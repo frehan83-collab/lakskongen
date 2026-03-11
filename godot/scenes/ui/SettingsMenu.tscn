@@ -1,0 +1,231 @@
+[gd_scene load_steps=3 format=3 uid="uid://dc5j8wp6nvlqx"]
+
+[ext_resource type="Script" path="res://scripts/ui/SettingsMenu.gd" id="1_xrv8h"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
+bg_color = Color(0.071, 0.095, 0.125, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.165, 0.478, 0.549, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="SettingsMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_xrv8h")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.059, 0.091, 0.125, 0.9)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Panel" type="Panel" parent="CenterContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(600, 500)
+
+[node name="Panel" type="StyleBoxFlat" parent="CenterContainer/Panel"]
+bg_color = Color(0.071, 0.095, 0.125, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.165, 0.478, 0.549, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -24.0
+
+[node name="Header" type="HBoxContainer" parent="CenterContainer/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="CenterContainer/Panel/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
+theme_override_font_sizes/font_size = 24
+text = "INNSTILLINGER"
+
+[node name="CloseButton" type="Button" parent="CenterContainer/Panel/VBoxContainer/Header"]
+layout_mode = 2
+custom_minimum_size = Vector2(32, 32)
+theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
+theme_override_font_sizes/font_size = 20
+text = "×"
+
+[node name="HSeparator" type="HSeparator" parent="CenterContainer/Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/separator = Color(0.165, 0.478, 0.549, 1)
+
+[node name="TabContainer" type="TabContainer" parent="CenterContainer/Panel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_unselected_color = Color(0.604, 0.655, 0.698, 1)
+theme_override_colors/font_selected_color = Color(0.902, 0.933, 0.953, 1)
+theme_override_colors/tab_selected = Color(0.165, 0.478, 0.549, 1)
+theme_override_colors/tab_unselected = Color(0.071, 0.095, 0.125, 1)
+
+[node name="Lyd" type="ScrollContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="MasterVolumeContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/MasterVolumeContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
+text = "Hovedvolum"
+
+[node name="MasterVolumeSlider" type="HSlider" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/MasterVolumeContainer"]
+layout_mode = 2
+max_value = 100.0
+value = 80.0
+
+[node name="EffectsVolumeContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/EffectsVolumeContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
+text = "Lydeffekter"
+
+[node name="EffectsVolumeSlider" type="HSlider" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/EffectsVolumeContainer"]
+layout_mode = 2
+max_value = 100.0
+value = 80.0
+
+[node name="MusicVolumeContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/MusicVolumeContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
+text = "Musikk"
+
+[node name="MusicVolumeSlider" type="HSlider" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/MusicVolumeContainer"]
+layout_mode = 2
+max_value = 100.0
+value = 60.0
+
+[node name="Grafikk" type="ScrollContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="ResolutionContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer/ResolutionContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
+text = "Oppløsning"
+
+[node name="ResolutionDropdown" type="OptionButton" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer/ResolutionContainer"]
+layout_mode = 2
+
+[node name="FullscreenContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer"]
+layout_mode = 2
+
+[node name="FullscreenCheckBox" type="CheckBox" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer/FullscreenContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
+text = "Fullskjerm"
+
+[node name="VsyncContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer"]
+layout_mode = 2
+
+[node name="VsyncCheckBox" type="CheckBox" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer/VsyncContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
+text = "V-Sync"
+
+[node name="Spill" type="ScrollContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="SimSpeedContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/SimSpeedContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
+text = "Simulasjonshastighet"
+
+[node name="SimSpeedSlider" type="HSlider" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/SimSpeedContainer"]
+layout_mode = 2
+min_value = 0.5
+max_value = 3.0
+step = 0.5
+value = 1.0
+
+[node name="AutosaveContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/AutosaveContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
+text = "Autolagring (minutter)"
+
+[node name="AutosaveSlider" type="HSlider" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/AutosaveContainer"]
+layout_mode = 2
+min_value = 1.0
+max_value = 30.0
+step = 1.0
+value = 5.0
+
+[node name="TutorialContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer"]
+layout_mode = 2
+
+[node name="TutorialCheckBox" type="CheckBox" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/TutorialContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
+text = "Vis opplæringshjelp"
+
+[node name="Kontroller" type="ScrollContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Kontroller"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Kontroller/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
+text = "Kontrolltilordning kommer i fremtidige versjoner"

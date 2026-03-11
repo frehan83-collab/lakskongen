@@ -1,0 +1,289 @@
+using Godot;
+using System.Collections.Generic;
+
+/// <summary>
+/// Global audio manager for handling music, sound effects, and ambient audio.
+/// Manages audio layers, volume control, and dynamic audio based on game state.
+/// </summary>
+public partial class AudioManager : Node
+{
+    [Signal]
+    public delegate void AudioVolumeChangedEventHandler(string busName, float volume);
+
+    // Audio players for different layers
+    private AudioStreamPlayer _musicPlayer;
+    private AudioStreamPlayer _ambientPlayer;
+    private AudioStreamPlayer _uiPlayer;
+    
+    // Audio buses
+    private const string MASTER_BUS = "Master";
+    private const string MUSIC_BUS = "Music";
+    private const string SFX_BUS = "SFX";
+    private const string AMBIENT_BUS = "Ambient";
+    
+    // Volume settings
+    private float _masterVolume = 1.0f;
+    private float _musicVolume = 0.7f;
+    private float _sfxVolume = 0.8f;
+    private float _ambientVolume = 0.5f;
+    
+    // Audio pools for sound effects
+    private Dictionary<string, AudioStreamPlayer> _sfxPlayers = new();
+    private Queue<AudioStreamPlayer> _availableSfxPlayers = new();
+    
+    // Current audio state
+    private AudioStream _currentMusic;
+    private AudioStream _currentAmbient;
+    private bool _isMusicMuted = false;
+
+    public override void _Ready()
+    {
+        SetupAudioPlayers();
+        SetupAudioBuses();
+        ConnectToEventBus();
+        
+        GD.Print("AudioManager initialized");
+    }
+
+    private void SetupAudioPlayers()
+    {
+        // Music player
+        _musicPlayer = new AudioStreamPlayer();
+        _musicPlayer.Bus = MUSIC_BUS;
+        AddChild(_musicPlayer);
+        
+        // Ambient player
+        _ambientPlayer = new AudioStreamPlayer();
+        _ambientPlayer.Bus = AMBIENT_BUS;
+        AddChild(_ambientPlayer);
+        
+        // UI sound player
+        _uiPlayer = new AudioStreamPlayer();
+        _uiPlayer.Bus = SFX_BUS;
+        AddChild(_uiPlayer);
+        
+        // Create pool of SFX players
+        for (int i = 0; i < 10; i++)
+        {
+            var sfxPlayer = new AudioStreamPlayer();
+            sfxPlayer.Bus = SFX_BUS;
+            sfxPlayer.Finished += () => ReturnSfxPlayerToPool(sfxPlayer);
+            AddChild(sfxPlayer);
+            _availableSfxPlayers.Enqueue(sfxPlayer);
+        }
+    }
+
+    private void SetupAudioBuses()
+    {
+        // Set initial volume levels
+        SetBusVolume(MASTER_BUS, _masterVolume);
+        SetBusVolume(MUSIC_BUS, _musicVolume);
+        SetBusVolume(SFX_BUS, _sfxVolume);
+        SetBusVolume(AMBIENT_BUS, _ambientVolume);
+    }
+
+    private void ConnectToEventBus()
+    {
+        // Connect to EventBus signals for dynamic audio responses
+        var eventBus = GetNode<EventBus>("/root/EventBus");
+        
+        // Example connections (uncomment when EventBus signals are available)
+        // eventBus.DiseaseOutbreak += OnDiseaseOutbreak;
+        // eventBus.HarvestCompleted += OnHarvestCompleted;
+        // eventBus.WeatherChanged += OnWeatherChanged;
+        // eventBus.SeasonChanged += OnSeasonChanged;
+    }
+
+    // === Public Interface ===
+    
+    /// <summary>
+    /// Play background music with smooth crossfade
+    /// </summary>
+    public void PlayMusic(string musicPath, bool loop = true, float fadeTime = 1.0f)
+    {
+        var newMusic = GD.Load<AudioStream>(musicPath);
+        if (newMusic == null)
+        {
+            GD.PrintErr($"Failed to load music: {musicPath}");
+            return;
+        }
+
+        if (_currentMusic == newMusic) return;
+        
+        _currentMusic = newMusic;
+        _musicPlayer.Stream = newMusic;
+        
+        if (loop && _musicPlayer.Stream is AudioStreamOggVorbis oggStream)
+        {
+            oggStream.Loop = true;
+        }
+        
+        if (!_isMusicMuted)
+        {
+            _musicPlayer.Play();
+        }
+        
+        GD.Print($"Playing music: {musicPath}");
+    }
+
+    /// <summary>
+    /// Play ambient background sound
+    /// </summary>
+    public void PlayAmbient(string ambientPath, bool loop = true)
+    {
+        var newAmbient = GD.Load<AudioStream>(ambientPath);
+        if (newAmbient == null)
+        {
+            GD.PrintErr($"Failed to load ambient sound: {ambientPath}");
+            return;
+        }
+
+        _currentAmbient = newAmbient;
+        _ambientPlayer.Stream = newAmbient;
+        
+        if (loop && _ambientPlayer.Stream is AudioStreamOggVorbis oggStream)
+        {
+            oggStream.Loop = true;
+        }
+        
+        _ambientPlayer.Play();
+        GD.Print($"Playing ambient: {ambientPath}");
+    }
+
+    /// <summary>
+    /// Play a sound effect
+    /// </summary>
+    public void PlaySfx(string sfxPath, float volumeDb = 0.0f, float pitch = 1.0f)
+    {
+        var sfxStream = GD.Load<AudioStream>(sfxPath);
+        if (sfxStream == null)
+        {
+            GD.PrintErr($"Failed to load SFX: {sfxPath}");
+            return;
+        }
+
+        var player = GetSfxPlayer();
+        if (player == null) return;
+
+        player.Stream = sfxStream;
+        player.VolumeDb = volumeDb;
+        player.PitchScale = pitch;
+        player.Play();
+    }
+
+    /// <summary>
+    /// Play UI sound (button clicks, notifications, etc.)
+    /// </summary>
+    public void PlayUiSound(string soundName)
+    {
+        string sfxPath = $"res://audio/ui/{soundName}.ogg";
+        PlaySfx(sfxPath);
+    }
+
+    /// <summary>
+    /// Set volume for audio bus
+    /// </summary>
+    public void SetBusVolume(string busName, float volume)
+    {
+        int busIndex = AudioServer.GetBusIndex(busName);
+        if (busIndex == -1)
+        {
+            GD.PrintErr($"Audio bus not found: {busName}");
+            return;
+        }
+
+        float volumeDb = volume > 0 ? Mathf.LinearToDb(volume) : -80.0f;
+        AudioServer.SetBusVolumeDb(busIndex, volumeDb);
+        
+        EmitSignal(SignalName.AudioVolumeChanged, busName, volume);
+    }
+
+    /// <summary>
+    /// Mute/unmute music
+    /// </summary>
+    public void SetMusicMuted(bool muted)
+    {
+        _isMusicMuted = muted;
+        
+        if (muted)
+        {
+            _musicPlayer.Stop();
+        }
+        else if (_currentMusic != null)
+        {
+            _musicPlayer.Play();
+        }
+    }
+
+    // === Private Methods ===
+
+    private AudioStreamPlayer GetSfxPlayer()
+    {
+        if (_availableSfxPlayers.Count > 0)
+        {
+            return _availableSfxPlayers.Dequeue();
+        }
+        
+        GD.PrintErr("No available SFX players!");
+        return null;
+    }
+
+    private void ReturnSfxPlayerToPool(AudioStreamPlayer player)
+    {
+        _availableSfxPlayers.Enqueue(player);
+    }
+
+    // === Event Handlers ===
+
+    private void OnDiseaseOutbreak(int farmId, string diseaseName, int affectedFish)
+    {
+        PlayUiSound("alert_disease");
+    }
+
+    private void OnHarvestCompleted(int farmId, int fishCount, float avgWeight, long revenue)
+    {
+        PlayUiSound("harvest_complete");
+    }
+
+    private void OnWeatherChanged(string weatherType, float temperature, string impact)
+    {
+        // Play weather-appropriate ambient sounds
+        string ambientPath = weatherType.ToLower() switch
+        {
+            "storm" => "res://audio/ambient/storm.ogg",
+            "rain" => "res://audio/ambient/rain.ogg",
+            "sunny" => "res://audio/ambient/calm_sea.ogg",
+            _ => "res://audio/ambient/default.ogg"
+        };
+        
+        PlayAmbient(ambientPath);
+    }
+
+    private void OnSeasonChanged(string newSeason, string effects)
+    {
+        // Change background music based on season
+        string musicPath = newSeason.ToLower() switch
+        {
+            "spring" => "res://audio/music/spring_theme.ogg",
+            "summer" => "res://audio/music/summer_theme.ogg",
+            "autumn" => "res://audio/music/autumn_theme.ogg",
+            "winter" => "res://audio/music/winter_theme.ogg",
+            _ => "res://audio/music/main_theme.ogg"
+        };
+        
+        PlayMusic(musicPath);
+    }
+
+    public override void _ExitTree()
+    {
+        // Cleanup audio players
+        _musicPlayer?.Stop();
+        _ambientPlayer?.Stop();
+        _uiPlayer?.Stop();
+        
+        foreach (var player in _sfxPlayers.Values)
+        {
+            player?.Stop();
+        }
+    }
+}

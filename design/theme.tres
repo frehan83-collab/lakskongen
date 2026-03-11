@@ -1,0 +1,36 @@
+[gd_resource type="Theme" load_steps=2]
+[resource]
+resource_name = "LakskongenTheme"
+
+# Colors
+// token: colors.bg
+bg = Color(0.059,0.090,0.125)
+// token: colors.panel
+panel = Color(0.071,0.094,0.149)
+// token: colors.text
+text = Color(0.902,0.933,0.953)
+// token: colors.muted
+muted = Color(0.604,0.655,0.698)
+// token: colors.accent
+accent = Color(0.165,0.718,0.710)
+// token: colors.accent-2
+accent-2 = Color(0.122,0.478,0.549)
+// token: colors.danger
+danger = Color(0.878,0.400,0.400)
+
+# Fonts (placeholders)
+font_size_xs = 12
+font_size_sm = 14
+font_size_md = 16
+font_size_lg = 20
+font_size_xl = 24
+
+# Spacing and radii
+spacing_unit = 8
+spacing_small = 8
+spacing_medium = 16
+spacing_large = 24
+spacing_xlarge = 40
+radius_sm = 6
+radius_md = 10
+radius_lg = 16

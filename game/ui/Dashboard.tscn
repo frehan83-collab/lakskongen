@@ -1,0 +1,187 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource path="res://game/ui/Dashboard.gd" type="Script" id=1]
+
+[node name="Dashboard" type="Control"]
+anchor_left = 0.6
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+rect_min_size = Vector2(400, 600)
+
+[node name="ColorRect_Background" type="ColorRect" parent="."]
+color = Color(0.102, 0.102, 0.18)
+rect_min_size = Vector2(400, 600)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+margin_left = 8
+margin_top = 8
+margin_right = -8
+margin_bottom = -8
+separation = 8
+
+[node name="Row_Cash" type="HBoxContainer" parent="VBoxContainer"]
+
+[node name="Label" type="Label" parent="VBoxContainer/Row_Cash"]
+text = "Cash:"
+
+[node name="Value" type="Label" parent="VBoxContainer/Row_Cash"]
+align = 2
+text = "NOK 0"
+
+[node name="Row_Day" type="HBoxContainer" parent="VBoxContainer"]
+
+[node name="Label" type="Label" parent="VBoxContainer/Row_Day"]
+text = "Date:"
+
+[node name="Value" type="Label" parent="VBoxContainer/Row_Day"]
+name = "Value"
+align = 2
+text = "Day 0 / Week 0 / Year 0"
+
+[node name="Row_Season" type="HBoxContainer" parent="VBoxContainer"]
+
+[node name="Label" type="Label" parent="VBoxContainer/Row_Season"]
+text = "Season:"
+
+[node name="Value" type="Label" parent="VBoxContainer/Row_Season"]
+text = "Unknown"
+
+[node name="Row_RevProfit" type="HBoxContainer" parent="VBoxContainer"]
+
+[node name="Label" type="Label" parent="VBoxContainer/Row_RevProfit"]
+text = "Revenue / Profit:"
+
+[node name="Revenue" type="Label" parent="VBoxContainer/Row_RevProfit"]
+name = "Revenue"
+align = 2
+text = "NOK 0"
+
+[node name="Profit" type="Label" parent="VBoxContainer/Row_RevProfit"]
+name = "Profit"
+align = 2
+text = "NOK 0"
+
+[node name="Row_Cost" type="HBoxContainer" parent="VBoxContainer"]
+
+[node name="Label" type="Label" parent="VBoxContainer/Row_Cost"]
+text = "Cost/EBIT per kg:"
+
+[node name="CostPerKg" type="Label" parent="VBoxContainer/Row_Cost"]
+name = "CostPerKg"
+text = "NOK 0"
+
+[node name="EBITPerKg" type="Label" parent="VBoxContainer/Row_Cost"]
+name = "EBITPerKg"
+text = "NOK 0"
+
+[node name="Row_Biomass" type="VBoxContainer" parent="VBoxContainer"]
+
+[node name="Label" type="Label" parent="VBoxContainer/Row_Biomass"]
+text = "Total Biomass / MAB"
+
+[node name="ProgressBar" type="ProgressBar" parent="VBoxContainer/Row_Biomass"]
+min_value = 0.0
+max_value = 100.0
+value = 0.0
+
+[node name="Value" type="Label" parent="VBoxContainer/Row_Biomass"]
+name = "Value"
+text = "0 kg / 0 kg"
+
+[node name="Row_Fish" type="HBoxContainer" parent="VBoxContainer"]
+
+[node name="Label" type="Label" parent="VBoxContainer/Row_Fish"]
+text = "Fish (alive / mortality / avg wt):"
+
+[node name="FishCount" type="Label" parent="VBoxContainer/Row_Fish"]
+name = "FishCount"
+text = "0"
+
+[node name="Mortality" type="Label" parent="VBoxContainer/Row_Fish"]
+name = "Mortality"
+text = "0 %"
+
+[node name="AvgWeight" type="Label" parent="VBoxContainer/Row_Fish"]
+name = "AvgWeight"
+text = "0 kg"
+
+[node name="Row_Env" type="HBoxContainer" parent="VBoxContainer"]
+
+[node name="Label" type="Label" parent="VBoxContainer/Row_Env"]
+text = "Sea (Temp / O2):"
+
+[node name="Temp" type="Label" parent="VBoxContainer/Row_Env"]
+name = "Temp"
+text = "0 °C"
+
+[node name="Oxygen" type="Label" parent="VBoxContainer/Row_Env"]
+name = "Oxygen"
+text = "0 mg/L"
+
+[node name="Row_Lice" type="HBoxContainer" parent="VBoxContainer"]
+
+[node name="Label" type="Label" parent="VBoxContainer/Row_Lice"]
+text = "Lice / fish:"
+
+[node name="LiceValue" type="Label" parent="VBoxContainer/Row_Lice"]
+name = "LiceValue"
+text = "0.00"
+
+[node name="Row_Diseases" type="HBoxContainer" parent="VBoxContainer"]
+
+[node name="Label" type="Label" parent="VBoxContainer/Row_Diseases"]
+text = "Active diseases:"
+
+[node name="DiseasesValue" type="Label" parent="VBoxContainer/Row_Diseases"]
+name = "DiseasesValue"
+text = "None"
+
+[node name="Row_Market" type="HBoxContainer" parent="VBoxContainer"]
+
+[node name="Label" type="Label" parent="VBoxContainer/Row_Market"]
+text = "Spot price:"
+
+[node name="SpotPrice" type="Label" parent="VBoxContainer/Row_Market"]
+name = "SpotPrice"
+text = "NOK 0.00"
+
+[node name="Row_Crew" type="HBoxContainer" parent="VBoxContainer"]
+
+[node name="Label" type="Label" parent="VBoxContainer/Row_Crew"]
+text = "Crew:"
+
+[node name="CrewValue" type="Label" parent="VBoxContainer/Row_Crew"]
+name = "CrewValue"
+align = 2
+text = "0 staff / morale 0% / NOK 0"
+
+[node name="Row_Time" type="VBoxContainer" parent="VBoxContainer"]
+
+[node name="Label" type="Label" parent="VBoxContainer/Row_Time"]
+text = "Time speed"
+
+[node name="Buttons" type="HBoxContainer" parent="VBoxContainer/Row_Time"]
+
+[node name="Btn1x" type="Button" parent="VBoxContainer/Row_Time/Buttons"]
+name = "Btn1x"
+text = "1x"
+
+[node name="Btn7x" type="Button" parent="VBoxContainer/Row_Time/Buttons"]
+name = "Btn7x"
+text = "7x"
+
+[node name="Btn30x" type="Button" parent="VBoxContainer/Row_Time/Buttons"]
+name = "Btn30x"
+text = "30x"
+
+[node name="BtnPause" type="Button" parent="VBoxContainer/Row_Time/Buttons"]
+name = "BtnPause"
+text = "Pause"
+
+[connection signal="ready" from="." to="." method="_ready"]
+
+[connection signal="time_speed_changed" from="." to="." method="_on_time_speed_changed"]
+
+[resource type="Script" id=1]
+resource_path = "res://game/ui/Dashboard.gd"

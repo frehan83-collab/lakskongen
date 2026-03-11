@@ -1,0 +1,39 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='800' viewBox='0 0 1200 800'>
+  <rect width='100%' height='100%' fill='#F8FAFC'/>
+  <g transform='translate(40,40)'>
+    <text x='0' y='24' font-family='Arial' font-size='20' font-weight='700' fill='#0F172A'>Build Factory</text>
+    <rect x='0' y='40' width='520' height='360' rx='8' fill='#FFFFFF' stroke='#E6EAF0'/>
+    <text x='16' y='76' font-size='14' fill='#0F172A'>Select Site</text>
+    <rect x='16' y='90' width='488' height='80' rx='6' fill='#F1F5F9' stroke='#E2E8F0'/>
+    <text x='32' y='120' font-size='13' fill='#0F172A'>- Coastal Bay (flat, near cold storage)</text>
+    <text x='32' y='140' font-size='13' fill='#64748B'>- Inland River (cheaper land, longer logistics)</text>
+
+    <text x='16' y='196' font-size='14' fill='#0F172A'>Factory Type</text>
+    <g>
+      <rect x='16' y='210' width='148' height='70' rx='6' fill='#FFFFFF' stroke='#00B4D8'/>
+      <text x='30' y='250' font-size='13' fill='#0F172A'>Processing</text>
+    </g>
+    <g>
+      <rect x='176' y='210' width='148' height='70' rx='6' fill='#FFFFFF' stroke='#E6EAF0'/>
+      <text x='190' y='250' font-size='13' fill='#64748B'>Cold Storage</text>
+    </g>
+    <g>
+      <rect x='336' y='210' width='148' height='70' rx='6' fill='#FFFFFF' stroke='#E6EAF0'/>
+      <text x='350' y='250' font-size='13' fill='#64748B'>Smolt Hatchery</text>
+    </g>
+
+    <text x='16' y='298' font-size='14' fill='#0F172A'>Capacity Tier</text>
+    <rect x='16' y='312' width='488' height='60' rx='6' fill='#F1F5F9' stroke='#E2E8F0'/>
+    <text x='32' y='345' font-size='13' fill='#0F172A'>Tier 1: 5 t/day — Cost: $120k — Build time: 7d</text>
+
+    <rect x='540' y='40' width='560' height='360' rx='8' fill='#FFFFFF' stroke='#E6EAF0'/>
+    <text x='556' y='76' font-size='14' fill='#0F172A'>Preview</text>
+    <text x='556' y='100' font-size='13' fill='#0F172A'>Throughput: 5,000 kg/day</text>
+    <text x='556' y='122' font-size='13' fill='#0F172A'>Est. Workforce: 12</text>
+    <text x='556' y='144' font-size='13' fill='#0F172A'>Energy: 25 kWh/day</text>
+
+    <rect x='556' y='320' width='220' height='60' rx='8' fill='#0077B6'/>
+    <text x='626' y='356' font-size='14' fill='#FFFFFF' text-anchor='middle'>Build (Confirm)</text>
+
+  </g>
+</svg>

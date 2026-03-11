@@ -1,0 +1,120 @@
+[gd_scene load_steps=2 format=3 uid="uid://bks2yj3v1fkl8"]
+
+[ext_resource type="Script" path="res://scripts/ui/HUD.gd" id="1_5xv2k"]
+
+[node name="HUD" type="Control"]
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 80.0
+mouse_filter = 2
+script = ExtResource("1_5xv2k")
+
+[node name="Background" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+
+[node name="LeftSection" type="HBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DayContainer" type="VBoxContainer" parent="HBoxContainer/LeftSection"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DayLabel" type="Label" parent="HBoxContainer/LeftSection/DayContainer"]
+layout_mode = 2
+text = "Day"
+horizontal_alignment = 1
+
+[node name="DayValue" type="Label" parent="HBoxContainer/LeftSection/DayContainer"]
+layout_mode = 2
+text = "1"
+horizontal_alignment = 1
+
+[node name="VSeparator" type="VSeparator" parent="HBoxContainer/LeftSection"]
+layout_mode = 2
+
+[node name="CashContainer" type="VBoxContainer" parent="HBoxContainer/LeftSection"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CashLabel" type="Label" parent="HBoxContainer/LeftSection/CashContainer"]
+layout_mode = 2
+text = "Cash"
+horizontal_alignment = 1
+
+[node name="CashValue" type="Label" parent="HBoxContainer/LeftSection/CashContainer"]
+layout_mode = 2
+text = "$1,000,000"
+horizontal_alignment = 1
+
+[node name="VSeparator2" type="VSeparator" parent="HBoxContainer/LeftSection"]
+layout_mode = 2
+
+[node name="NetWorthContainer" type="VBoxContainer" parent="HBoxContainer/LeftSection"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NetWorthLabel" type="Label" parent="HBoxContainer/LeftSection/NetWorthContainer"]
+layout_mode = 2
+text = "Net Worth"
+horizontal_alignment = 1
+
+[node name="NetWorthValue" type="Label" parent="HBoxContainer/LeftSection/NetWorthContainer"]
+layout_mode = 2
+text = "$1,000,000"
+horizontal_alignment = 1
+
+[node name="CenterSpacer" type="Control" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RightSection" type="HBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="SpeedLabel" type="Label" parent="HBoxContainer/RightSection"]
+layout_mode = 2
+text = "Speed:"
+vertical_alignment = 1
+
+[node name="SpeedButtons" type="HBoxContainer" parent="HBoxContainer/RightSection"]
+layout_mode = 2
+
+[node name="PauseButton" type="Button" parent="HBoxContainer/RightSection/SpeedButtons"]
+layout_mode = 2
+text = "||"
+tooltip_text = "Pause"
+
+[node name="Speed1x" type="Button" parent="HBoxContainer/RightSection/SpeedButtons"]
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+text = "1x"
+tooltip_text = "Normal Speed"
+
+[node name="Speed7x" type="Button" parent="HBoxContainer/RightSection/SpeedButtons"]
+layout_mode = 2
+toggle_mode = true
+text = "7x"
+tooltip_text = "Fast (1 week = 1 second)"
+
+[node name="Speed30x" type="Button" parent="HBoxContainer/RightSection/SpeedButtons"]
+layout_mode = 2
+toggle_mode = true
+text = "30x"
+tooltip_text = "Very Fast (1 month = 1 second)"

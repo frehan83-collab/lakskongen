@@ -1,0 +1,89 @@
+{
+  "components": {
+    "app/header": {
+      "tokens": [
+        "colors.panel",
+        "colors.text",
+        "spacing.large",
+        "fonts.sizes.lg",
+        "fonts.weights.medium",
+        "radii.md"
+      ],
+      "description": "Top bar with app title and controls"
+    },
+    "app/sidebar": {
+      "tokens": [
+        "colors.panel",
+        "colors.muted",
+        "spacing.medium",
+        "fonts.sizes.md",
+        "radii.sm"
+      ],
+      "description": "Left navigation / menu"
+    },
+    "ui/panel": {
+      "tokens": [
+        "colors.panel",
+        "colors.text",
+        "spacing.medium",
+        "radii.md"
+      ],
+      "description": "Primary content container"
+    },
+    "ui/card": {
+      "tokens": [
+        "colors.bg",
+        "colors.panel",
+        "colors.text",
+        "spacing.medium",
+        "radii.lg"
+      ],
+      "description": "Small card for stats or list items"
+    },
+    "ui/button/primary": {
+      "tokens": [
+        "colors.accent",
+        "colors.text",
+        "fonts.sizes.md",
+        "fonts.weights.medium",
+        "radii.sm",
+        "spacing.small"
+      ],
+      "description": "Primary action button"
+    },
+    "ui/button/secondary": {
+      "tokens": [
+        "colors.accent-2",
+        "colors.text",
+        "fonts.sizes.sm",
+        "fonts.weights.regular",
+        "radii.sm",
+        "spacing.small"
+      ],
+      "description": "Secondary action button"
+    },
+    "ui/text/heading": {
+      "tokens": [
+        "colors.text",
+        "fonts.sizes.xl",
+        "fonts.weights.bold"
+      ],
+      "description": "Section headings"
+    },
+    "ui/text/body": {
+      "tokens": [
+        "colors.text",
+        "fonts.sizes.md",
+        "fonts.weights.regular"
+      ],
+      "description": "Body copy"
+    },
+    "icon/large": {
+      "tokens": [
+        "colors.accent",
+        "icons.sizes"
+      ],
+      "description": "Icon style reference"
+    }
+  }
+}

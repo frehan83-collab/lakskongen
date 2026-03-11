@@ -1,0 +1,39 @@
+[gd_scene load_steps=4 format=3 uid="uid://b2qxjh8y7qz0k"]
+
+[ext_resource type="PackedScene" uid="uid://bks2yj3v1fkl8" path="res://scenes/ui/HUD.tscn" id="1_0gqxd"]
+[ext_resource type="PackedScene" uid="uid://cmj8vk2n9xy1z" path="res://scenes/ui/Dashboard.tscn" id="2_1nhye"]
+[ext_resource type="PackedScene" uid="uid://dn49kl5m3pq6w" path="res://scenes/ui/EventLog.tscn" id="3_2oizf"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="WorldLayer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Camera2D" type="Camera2D" parent="WorldLayer"]
+position = Vector2(960, 540)
+zoom = Vector2(0.5, 0.5)
+
+[node name="Background" type="ColorRect" parent="WorldLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.2, 0.4, 0.7, 1)
+mouse_filter = 2
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="HUD" parent="UILayer" instance=ExtResource("1_0gqxd")]
+
+[node name="Dashboard" parent="UILayer" instance=ExtResource("2_1nhye")]
+
+[node name="EventLog" parent="UILayer" instance=ExtResource("3_2oizf")]

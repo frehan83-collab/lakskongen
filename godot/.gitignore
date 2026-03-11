@@ -1,0 +1,124 @@
+# Godot 4 files to ignore
+.godot/
+.import/
+export.cfg
+export_presets.cfg
+
+# Imported translations (automatically generated from CSV files)
+*.translation
+
+# Mono/C# files
+.mono/
+data_*/
+mono_crash.*.json
+
+# C# build outputs
+bin/
+obj/
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+*.sln.docstates
+*.csproj.user
+*.vbproj.user
+
+# Rider
+.idea/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# Logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
+.grunt
+
+# node_modules (if using any Node.js tools)
+node_modules/
+
+# Editor directories and files
+.idea
+*.sw?
+
+# Godot editor settings
+.godot/editor/
+.godot/imported/
+
+# Build directories
+build/
+dist/
+out/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+
+# Addons (if not version controlled)
+#addons/
+
+# Project specific
+user://saves/
+*.backup
+
+# Audio files that might be large
+#*.ogg
+#*.wav
+#*.mp3
+
+# Texture files that might be large
+#*.png
+#*.jpg
+#*.jpeg
+
+# 3D model files
+#*.obj
+#*.fbx
+#*.dae
+#*.blend
+
+# Compiled shaders
+*.spv
+
+# Auto-generated files
+project.godot.backup*
+
+# Local configuration files
+local.cfg
+.env
+.env.local
+
+# Asset store packages
+AssetStoreTools/
+
+# Autosaves
+*autosave*

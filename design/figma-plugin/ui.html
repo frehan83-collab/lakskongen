@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Lakskongen — Populate Figma</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial; margin: 12px; color: #0f1720; }
+    textarea { width: 100%; height: 180px; font-family: monospace; }
+    .files { margin-top: 8px; }
+    button { margin-top: 12px; padding: 8px 12px; }
+    .note { margin-top: 8px; color: #555; font-size: 13px; }
+    .result { margin-top: 12px; font-size: 13px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h2>Lakskongen — Populate Figma</h2>
+  <p>This helper will create pages/frames for tokens, screens and import SVG assets as components in your Figma file.</p>
+
+  <label for="tokens">Design tokens (JSON) — edit if needed:</label>
+  <textarea id="tokens">{
+  "name": "lakskongen-design-tokens",
+  "colors": {
+    "bg": "#0F1720",
+    "panel": "#121826",
+    "text": "#E6EEF3",
+    "muted": "#9AA7B2",
+    "accent": "#2AB7B5",
+    "accent-2": "#1F7A8C",
+    "danger": "#E06666",
+    "colorblind-accent": "#FFB000"
+  },
+  "spacing": {
+    "unit": 8,
+    "small": 8,
+    "medium": 16,
+    "large": 24,
+    "xlarge": 40
+  },
+  "radii": {
+    "sm": 6,
+    "md": 10,
+    "lg": 16
+  },
+  "fonts": {
+    "base": "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue'",
+    "sizes": {
+      "xs": 12,
+      "sm": 14,
+      "md": 16,
+      "lg": 20,
+      "xl": 24
+    },
+    "weights": {
+      "regular": 400,
+      "medium": 500,
+      "bold": 700
+    }
+  },
+  "icons": {
+    "sizes": [16, 24, 32]
+  }
+}</textarea>
+
+  <div class="files">
+    <label for="svgfiles">Select SVG files to import as components (03_Assets):</label><br/>
+    <input id="svgfiles" type="file" accept=".svg" multiple />
+  </div>
+
+  <div>
+    <button id="run">Populate Figma</button>
+    <button id="clear">Clear result</button>
+  </div>
+
+  <div class="note">Notes: import will append to existing pages if they exist. Run this plugin on the target Figma file while you are editing it.</div>
+  <div class="result" id="result"></div>
+
+  <script>
+    const runBtn = document.getElementById('run');
+    const clearBtn = document.getElementById('clear');
+    const resultEl = document.getElementById('result');
+    runBtn.onclick = async () => {
+      resultEl.textContent = 'Reading files...';
+      const tokensText = document.getElementById('tokens').value;
+      let tokens;
+      try {
+        tokens = JSON.parse(tokensText);
+      } catch (e) {
+        resultEl.textContent = 'Invalid JSON in tokens: ' + e.message;
+        return;
+      }
+      const input = document.getElementById('svgfiles');
+      const files = Array.from(input.files || []);
+      const svgs = [];
+      for (const f of files) {
+        try {
+          const txt = await f.text();
+          svgs.push({ name: f.name, content: txt });
+        } catch (e) {
+          console.error('Failed to read', f.name, e);
+        }
+      }
+      parent.postMessage({ pluginMessage: { type: 'populate', tokens, svgs } }, '*');
+      resultEl.textContent = 'Populate message sent, waiting for result...';
+    };
+    clearBtn.onclick = () => { resultEl.textContent = ''; };
+
+    onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+      if (msg.type === 'done') {
+        resultEl.textContent = 'Finished. Created nodes:\n' + JSON.stringify(msg.result, null, 2);
+      }
+      if (msg.type === 'error') {
+        resultEl.textContent = 'Error: ' + msg.message;
+      }
+    };
+  </script>
+</body>
+</html>
