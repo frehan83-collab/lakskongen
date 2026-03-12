@@ -1,6 +1,18 @@
-# ContractSystem.gd
+# =============================================================================
+# ContractSystem.gd - GAME WRAPPER / UI LAYER
+# =============================================================================
+# This is the GDScript game layer for contract UI and gameplay features.
+# Handles: contract templates, UI generation, reputation, exclusivity mechanics.
+#
+# RELATIONSHIP TO C# ContractSystem.cs:
+# - This GDScript class is the GAME WRAPPER (UI, templates, gameplay features)
+# - C# ContractSystem.cs is the SIMULATION ENGINE (economics, payments, penalties)
+# - Data flows: This class manages UI and calls C# for economic calculations
+# - See docs/CONTRACT_SYSTEM_ARCHITECTURE.md for full data flow documentation
+#
 # Contract warfare mechanics for Lakskongen salmon farming simulator
 # Exclusive deals, buyer lockout, supplier dominance
+# =============================================================================
 
 extends Node
 class_name ContractSystem

@@ -1,3 +1,16 @@
+// =============================================================================
+// ContractSystem.cs - SIMULATION CORE
+// =============================================================================
+// This is the authoritative C# simulation layer for contract economics.
+// Handles: contract workflow, payment calculations, penalty logic, quality grades.
+//
+// RELATIONSHIP TO GDScript ContractSystem.gd:
+// - This C# class is the SIMULATION ENGINE (business logic, calculations)
+// - GDScript ContractSystem.gd is the GAME WRAPPER (UI, templates, gameplay)
+// - Data flows: GDScript calls C# via Godot's C# interop for economic calculations
+// - See docs/CONTRACT_SYSTEM_ARCHITECTURE.md for full data flow documentation
+// =============================================================================
+
 using System;
 using System.Collections.Generic;
 
