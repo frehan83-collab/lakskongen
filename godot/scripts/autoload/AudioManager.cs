@@ -4,6 +4,15 @@ using System.Collections.Generic;
 /// <summary>
 /// Global audio manager for handling music, sound effects, and ambient audio.
 /// Manages audio layers, volume control, and dynamic audio based on game state.
+///
+/// Audio Resource Structure:
+/// - res://audio/ui/*.ogg - UI sounds (button clicks, notifications, alerts)
+/// - res://audio/ambient/*.ogg - Ambient environmental sounds (weather, sea)
+/// - res://audio/music/*.ogg - Background music tracks (seasonal themes)
+/// - res://audio/sfx/*.ogg - Game sound effects
+///
+/// All paths are configured via constants and dictionaries at the top of this class.
+/// To add new audio, update the corresponding dictionary (AMBIENT_SOUNDS, SEASON_MUSIC, etc.)
 /// </summary>
 public partial class AudioManager : Node
 {
@@ -20,6 +29,35 @@ public partial class AudioManager : Node
     private const string MUSIC_BUS = "Music";
     private const string SFX_BUS = "SFX";
     private const string AMBIENT_BUS = "Ambient";
+    
+    // === Audio Resource Paths Configuration ===
+    // Base directories for audio resources
+    private const string AUDIO_BASE_DIR = "res://audio/";
+    private const string UI_AUDIO_DIR = AUDIO_BASE_DIR + "ui/";
+    private const string AMBIENT_AUDIO_DIR = AUDIO_BASE_DIR + "ambient/";
+    private const string MUSIC_AUDIO_DIR = AUDIO_BASE_DIR + "music/";
+    
+    // File extension for audio files
+    private const string AUDIO_EXTENSION = ".ogg";
+    
+    // Ambient sound paths
+    private static readonly Dictionary<string, string> AMBIENT_SOUNDS = new()
+    {
+        ["storm"] = AMBIENT_AUDIO_DIR + "storm" + AUDIO_EXTENSION,
+        ["rain"] = AMBIENT_AUDIO_DIR + "rain" + AUDIO_EXTENSION,
+        ["sunny"] = AMBIENT_AUDIO_DIR + "calm_sea" + AUDIO_EXTENSION,
+        ["default"] = AMBIENT_AUDIO_DIR + "default" + AUDIO_EXTENSION
+    };
+    
+    // Season music paths
+    private static readonly Dictionary<string, string> SEASON_MUSIC = new()
+    {
+        ["spring"] = MUSIC_AUDIO_DIR + "spring_theme" + AUDIO_EXTENSION,
+        ["summer"] = MUSIC_AUDIO_DIR + "summer_theme" + AUDIO_EXTENSION,
+        ["autumn"] = MUSIC_AUDIO_DIR + "autumn_theme" + AUDIO_EXTENSION,
+        ["winter"] = MUSIC_AUDIO_DIR + "winter_theme" + AUDIO_EXTENSION,
+        ["default"] = MUSIC_AUDIO_DIR + "main_theme" + AUDIO_EXTENSION
+    };
     
     // Volume settings
     private float _masterVolume = 1.0f;
@@ -176,7 +214,7 @@ public partial class AudioManager : Node
     /// </summary>
     public void PlayUiSound(string soundName)
     {
-        string sfxPath = $"res://audio/ui/{soundName}.ogg";
+        string sfxPath = UI_AUDIO_DIR + soundName + AUDIO_EXTENSION;
         PlaySfx(sfxPath);
     }
 
@@ -248,13 +286,8 @@ public partial class AudioManager : Node
     private void OnWeatherChanged(string weatherType, float temperature, string impact)
     {
         // Play weather-appropriate ambient sounds
-        string ambientPath = weatherType.ToLower() switch
-        {
-            "storm" => "res://audio/ambient/storm.ogg",
-            "rain" => "res://audio/ambient/rain.ogg",
-            "sunny" => "res://audio/ambient/calm_sea.ogg",
-            _ => "res://audio/ambient/default.ogg"
-        };
+        string weatherKey = weatherType.ToLower();
+        string ambientPath = AMBIENT_SOUNDS.GetValueOrDefault(weatherKey, AMBIENT_SOUNDS["default"]);
         
         PlayAmbient(ambientPath);
     }
@@ -262,14 +295,8 @@ public partial class AudioManager : Node
     private void OnSeasonChanged(string newSeason, string effects)
     {
         // Change background music based on season
-        string musicPath = newSeason.ToLower() switch
-        {
-            "spring" => "res://audio/music/spring_theme.ogg",
-            "summer" => "res://audio/music/summer_theme.ogg",
-            "autumn" => "res://audio/music/autumn_theme.ogg",
-            "winter" => "res://audio/music/winter_theme.ogg",
-            _ => "res://audio/music/main_theme.ogg"
-        };
+        string seasonKey = newSeason.ToLower();
+        string musicPath = SEASON_MUSIC.GetValueOrDefault(seasonKey, SEASON_MUSIC["default"]);
         
         PlayMusic(musicPath);
     }
