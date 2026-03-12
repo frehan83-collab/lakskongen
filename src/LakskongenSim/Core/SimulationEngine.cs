@@ -143,6 +143,7 @@ namespace LakskongenSim.Core
             {
                 // Get water chemistry penalty from the zone this population is in
                 double waterPenalty = 1.0;
+                double stockingDensity = 20.0; // default
                 var zone = State.Zones.FirstOrDefault(z => z.Id == population.ZoneId);
                 if (zone != null)
                 {
@@ -151,14 +152,24 @@ namespace LakskongenSim.Core
                     // Update zone biomass for water chemistry calculations
                     double biomassKg = population.Cohorts.Sum(c => c.Count * c.MeanWeightKg);
                     zone.CurrentFishBiomassKg = biomassKg;
+
+                    // Estimate stocking density (kg/m³) — assume 10,000 m³ per zone as default
+                    stockingDensity = biomassKg / 10_000.0;
                 }
 
                 // Apply growth with environmental modifiers
-                // For now use cohort-based growth; individual SDE growth used when performance allows
                 population.AdvanceDays(1);
 
-                // Feed the population (generates waste for water chemistry)
-                Feed.Feed(population, 1);
+                // Feed the population — FCR-aware, generates waste for water chemistry
+                var feedResult = Feed.Feed(population, 1, temperature, stockingDensity, waterPenalty);
+
+                // Feed waste → water chemistry (nitrogen and phosphorus loading)
+                if (zone != null && feedResult.FeedUsedKg > 0)
+                {
+                    // The waste is already accounted for in WaterChemistry.UpdateOneDay via biomass
+                    // but we can use feedResult for more precise tracking in future
+                    zone.FeedConversionRatio = feedResult.ActualFCR;
+                }
             }
 
             // ═══════════════════════════════════════════
