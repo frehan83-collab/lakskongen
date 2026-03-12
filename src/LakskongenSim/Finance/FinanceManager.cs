@@ -30,5 +30,18 @@ namespace LakskongenSim.Finance
             OnBalanceChanged?.Invoke(Balance);
             return true;
         }
+
+        /// <summary>
+        /// Returns the current available capital (balance) as float.
+        /// Used by expansion systems (VerticalIntegration, Acquisition) to check affordability.
+        /// </summary>
+        public float GetAvailableCapital() => (float)Balance;
+
+        /// <summary>
+        /// Deducts capital from balance for asset purchases.
+        /// Wrapper around Spend() for semantic clarity in expansion context.
+        /// </summary>
+        /// <param name="amount">Amount to deduct (float for compatibility with expansion systems).</param>
+        public void DeductCapital(float amount) => Spend((decimal)amount);
     }
 }
