@@ -70,7 +70,7 @@ namespace LakskongenSim.Biology
 
             // Temperature-dependent growth rate: α(T) = α_max × exp(−(T − T_opt)^2 / (2τ^2))
             if (temperature < 2.0 || temperature > 18.0) return weight; // No growth outside range
-            double alphaT = maxGrowthRate * Math.Exp(-Math.Pow(temperature - optimalTemperature, 2) / (2.0 * Math.Pow(thermalTolerance, 2)));
+            double alphaT = maxGrowthRate * Math.Exp(-Math.Pow(temperature - OptimalTemperature, 2) / (2.0 * Math.Pow(ThermalTolerance, 2)));
 
             // Proper SDE with time step dt = 1 day
             // Box-Muller transform for normal noise N(0,1)

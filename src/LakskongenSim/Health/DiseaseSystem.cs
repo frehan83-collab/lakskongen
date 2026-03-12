@@ -30,6 +30,9 @@ namespace LakskongenSim.Health
         private readonly Dictionary<FishPopulation, double> _infected = new();
 
         private readonly SeaLiceModel _liceModel;
+        
+        /// <summary>Expose lice model for integration with stochastic disease engine.</summary>
+        public SeaLiceModel LiceModel => _liceModel;
 
         public event Action<FishPopulation, double>? OnInfection; // population, prevalence
 

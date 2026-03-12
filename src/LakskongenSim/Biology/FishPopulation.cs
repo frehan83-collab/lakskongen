@@ -19,6 +19,18 @@ namespace LakskongenSim.Biology
         /// <summary>List of cohorts in this population.</summary>
         public List<Cohort> Cohorts { get; } = new();
 
+        /// <summary>Zone this population resides in.</summary>
+        public string ZoneId { get; set; } = "";
+
+        /// <summary>Whether this population had a recent treatment (resets after 30 days).</summary>
+        public bool HasRecentTreatment { get; set; }
+
+        /// <summary>Treatment intensity (0.0-1.0) from last treatment.</summary>
+        public double TreatmentIntensity { get; set; }
+
+        /// <summary>Growth penalty multiplier from disease resistance fitness cost.</summary>
+        private double _growthPenalty = 0.0;
+
         /// <summary>Raised when cohorts change (spawn/growth/mortality).</summary>
         public event Action? OnPopulationChanged;
 
@@ -73,6 +85,45 @@ namespace LakskongenSim.Biology
             if (ageDays < 365) return LifeStage.Smolt;        // Seawater-ready juveniles
             if (ageDays < 730) return LifeStage.Seawater;     // Growing in sea pens, 12-18 months
             return LifeStage.Harvest;                          // Ready for processing at 4-6kg
+        }
+
+        /// <summary>
+        /// Apply a growth penalty from disease resistance fitness cost.
+        /// Penalty is subtracted from effective growth rate (0.0 = no penalty).
+        /// </summary>
+        public void ApplyGrowthPenalty(double penalty)
+        {
+            _growthPenalty = Math.Clamp(penalty, 0.0, 0.5); // Cap at 50% reduction
+        }
+
+        /// <summary>Get current growth penalty.</summary>
+        public double GetGrowthPenalty() => _growthPenalty;
+
+        /// <summary>
+        /// Get individual fish representations for agent-based disease simulation.
+        /// Creates lightweight proxies from cohort data (not persistent — regenerated each call).
+        /// </summary>
+        public List<LakskongenSim.Health.FishIndividual> GetIndividuals()
+        {
+            var individuals = new List<LakskongenSim.Health.FishIndividual>();
+            int id = 0;
+            foreach (var cohort in Cohorts)
+            {
+                // Create representative individuals (sample up to 100 per cohort for performance)
+                int sampleSize = Math.Min(cohort.Count, 100);
+                for (int i = 0; i < sampleSize; i++)
+                {
+                    individuals.Add(new LakskongenSim.Health.FishIndividual
+                    {
+                        Id = $"{ZoneId}-{id++}",
+                        ZoneId = ZoneId,
+                        Weight = cohort.MeanWeightKg,
+                        GrowthRate = 0.01,
+                        HasResistanceGene = false
+                    });
+                }
+            }
+            return individuals;
         }
     }
 }

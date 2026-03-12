@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using LakskongenSim.Biology;
 using LakskongenSim.Environment;
 
@@ -59,6 +60,13 @@ namespace LakskongenSim.Health
         {
             if (days <= 0) return;
             
+            // Ensure all zones have entries in infection pressure map
+            foreach (var zone in zones)
+            {
+                if (!_zoneInfectionPressure.ContainsKey(zone))
+                    _zoneInfectionPressure[zone] = 0.0;
+            }
+            
             // Update zone infection pressure from water‑borne spread
             UpdateWaterborneSpread(zones);
             
@@ -67,7 +75,8 @@ namespace LakskongenSim.Health
                 // 1. Water‑borne transmission (distance‑dependent)
                 foreach (var zone in zones)
                 {
-                    double infectionPressure = _zoneInfectionPressure[zone];
+                    if (!_zoneInfectionPressure.TryGetValue(zone, out double infectionPressure))
+                        infectionPressure = 0.0;
                     foreach (var population in populations.Where(p => p.ZoneId == zone.Id))
                     {
                         double waterborneProbability = infectionPressure * 0.01; // Pressure → probability
@@ -81,7 +90,7 @@ namespace LakskongenSim.Health
                 // 2. Lice‑borne transmission (enhanced by lice count)
                 foreach (var population in populations)
                 {
-                    double liceFactor = _baseSystem.LiceSusceptibilityFactor * _baseSystem._liceModel.AverageLicePerFish;
+                    double liceFactor = _baseSystem.LiceSusceptibilityFactor * _baseSystem.LiceModel.AverageLicePerFish;
                     double liceborneProbability = liceFactor * 0.1;
                     if (_random.NextDouble() < liceborneProbability)
                     {
@@ -136,6 +145,8 @@ namespace LakskongenSim.Health
                         double spreadFactor = Math.Exp(-Math.Pow(distance, 2) / (2 * Math.Pow(WaterborneTransmissionRadius, 2)));
                         
                         double pressureIncrease = sourceInfection * spreadFactor * 0.1;
+                        if (!_zoneInfectionPressure.ContainsKey(targetZone))
+                            _zoneInfectionPressure[targetZone] = 0.0;
                         _zoneInfectionPressure[targetZone] += pressureIncrease;
                     }
                 }
@@ -215,7 +226,9 @@ namespace LakskongenSim.Health
             }
             
             // Gene transfer between bacteria (plasmid‑borne)
-            foreach (var gene in _resistanceGeneFrequency.Keys)
+            // Copy keys to avoid modifying collection during iteration
+            var geneKeys = _resistanceGeneFrequency.Keys.ToList();
+            foreach (var gene in geneKeys)
             {
                 double transferRate = ResistanceGeneTransferRate;
                 double currentFrequency = _resistanceGeneFrequency[gene];
@@ -263,7 +276,8 @@ namespace LakskongenSim.Health
         /// </summary>
         private void UpdateResistanceGeneFrequency(string zoneId, double increase)
         {
-            foreach (var gene in _resistanceGeneFrequency.Keys)
+            var keys = _resistanceGeneFrequency.Keys.ToList();
+            foreach (var gene in keys)
             {
                 _resistanceGeneFrequency[gene] += increase;
                 _resistanceGeneFrequency[gene] = Math.Min(_resistanceGeneFrequency[gene], 0.95);
