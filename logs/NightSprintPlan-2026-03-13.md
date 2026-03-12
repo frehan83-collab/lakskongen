@@ -27,7 +27,7 @@
 
 ## 🎯 NIGHT SPRINT PRIORITIES (00:30–08:00)
 
-### Phase 1: Integration & Wiring (00:30–02:00)
+### Phase 1: Integration & Wiring (00:30–01:00) ✅ COMPLETE
 1. **Connect WaterChemistry → GrowthModel**
    - Add `waterChemistryPenalty` parameter to SDE growth methods
    - Zone.AdvanceDays should pass water penalty to fish growth
@@ -43,7 +43,7 @@
    - Temperature flows: Weather → DiseaseSystem (treatment efficacy)
    - Seasonal patterns affect all biological rates
 
-### Phase 2: Missing Core Systems (02:00–04:00)
+### Phase 2: Missing Core Systems (01:00–02:00) ✅ COMPLETE
 4. **Feed Conversion Ratio (FCR) engine**
    - Currently FeedSystem uses fixed 2% of bodyweight — needs dynamic FCR
    - FCR 1.1–1.3 (industry range), affected by: temperature, feed quality, fish size, stage
