@@ -1,0 +1,491 @@
+{
+  "crisis_scenarios": [
+    {
+      "id": "isa_outbreak_major",
+      "name": "ISA Outbreak - Major",
+      "type": "DISEASE_OUTBREAK",
+      "description": "Infectious Salmon Anemia (ISA) virus detected in multiple farms. Government orders immediate culling and site quarantine.",
+      "severity_range": {
+        "min": 0.6,
+        "max": 0.9
+      },
+      "discount_range": {
+        "min": 0.4,
+        "max": 0.7
+      },
+      "duration_months": {
+        "min": 12,
+        "max": 24
+      },
+      "trigger_conditions": {
+        "minimum_competitor_farms": 3,
+        "water_temperature_above": 8,
+        "season": ["spring", "summer"]
+      },
+      "asset_types_affected": [
+        {
+          "type": "FARM_SITE",
+          "probability": 0.8,
+          "risk_multiplier": 1.5
+        },
+        {
+          "type": "EQUIPMENT",
+          "probability": 0.6,
+          "risk_multiplier": 1.2
+        },
+        {
+          "type": "LICENSE",
+          "probability": 0.3,
+          "risk_multiplier": 0.8
+        }
+      ],
+      "reputation_impact": -0.15,
+      "regional_spread_probability": 0.4,
+      "media_attention": "high",
+      "regulatory_response": "immediate_quarantine"
+    },
+    {
+      "id": "sea_lice_infestation",
+      "name": "Sea Lice Crisis",
+      "type": "DISEASE_OUTBREAK",
+      "description": "Severe sea lice infestation spreading across region. Emergency treatment protocols failing, forcing farm closures.",
+      "severity_range": {
+        "min": 0.4,
+        "max": 0.7
+      },
+      "discount_range": {
+        "min": 0.3,
+        "max": 0.6
+      },
+      "duration_months": {
+        "min": 8,
+        "max": 18
+      },
+      "trigger_conditions": {
+        "minimum_competitor_farms": 2,
+        "water_temperature_below": 12,
+        "season": ["summer", "autumn"]
+      },
+      "asset_types_affected": [
+        {
+          "type": "FARM_SITE",
+          "probability": 0.9,
+          "risk_multiplier": 1.3
+        },
+        {
+          "type": "EQUIPMENT",
+          "probability": 0.7,
+          "risk_multiplier": 1.1
+        },
+        {
+          "type": "PROCESSING_PLANT",
+          "probability": 0.2,
+          "risk_multiplier": 0.9
+        }
+      ],
+      "reputation_impact": -0.1,
+      "regional_spread_probability": 0.6,
+      "media_attention": "medium",
+      "regulatory_response": "increased_monitoring"
+    },
+    {
+      "id": "algae_bloom_toxic",
+      "name": "Toxic Algae Bloom",
+      "type": "ENVIRONMENTAL_SCANDAL",
+      "description": "Massive toxic algae bloom caused by farm runoff. Mass fish die-off and environmental damage triggers public outcry.",
+      "severity_range": {
+        "min": 0.5,
+        "max": 0.8
+      },
+      "discount_range": {
+        "min": 0.3,
+        "max": 0.5
+      },
+      "duration_months": {
+        "min": 6,
+        "max": 24
+      },
+      "trigger_conditions": {
+        "high_farm_density": true,
+        "water_temperature_above": 15,
+        "season": ["summer"]
+      },
+      "asset_types_affected": [
+        {
+          "type": "FARM_SITE",
+          "probability": 0.7,
+          "risk_multiplier": 1.4
+        },
+        {
+          "type": "LICENSE",
+          "probability": 0.8,
+          "risk_multiplier": 1.6
+        },
+        {
+          "type": "PROCESSING_PLANT",
+          "probability": 0.3,
+          "risk_multiplier": 1.1
+        }
+      ],
+      "reputation_impact": -0.25,
+      "environmental_cleanup_cost": true,
+      "media_attention": "very_high",
+      "regulatory_response": "license_review"
+    },
+    {
+      "id": "bankruptcy_overleveraged",
+      "name": "Overleveraged Bankruptcy",
+      "type": "BANKRUPTCY",
+      "description": "Major competitor collapses due to excessive debt and falling salmon prices. Court-ordered asset liquidation.",
+      "severity_range": {
+        "min": 0.7,
+        "max": 1.0
+      },
+      "discount_range": {
+        "min": 0.6,
+        "max": 0.8
+      },
+      "duration_months": {
+        "min": 3,
+        "max": 12
+      },
+      "trigger_conditions": {
+        "salmon_price_below": 45,
+        "competitor_debt_ratio_above": 0.8,
+        "market_volatility_high": true
+      },
+      "asset_types_affected": [
+        {
+          "type": "PROCESSING_PLANT",
+          "probability": 0.9,
+          "risk_multiplier": 0.8
+        },
+        {
+          "type": "EQUIPMENT",
+          "probability": 0.8,
+          "risk_multiplier": 0.9
+        },
+        {
+          "type": "FARM_SITE",
+          "probability": 0.6,
+          "risk_multiplier": 0.7
+        },
+        {
+          "type": "LICENSE",
+          "probability": 0.4,
+          "risk_multiplier": 0.6
+        }
+      ],
+      "reputation_impact": -0.05,
+      "fire_sale_timeline": "urgent",
+      "media_attention": "medium",
+      "regulatory_response": "financial_review"
+    },
+    {
+      "id": "regulatory_violation",
+      "name": "Environmental Compliance Violation",
+      "type": "REGULATORY_SHUTDOWN",
+      "description": "Serious environmental violations discovered. Immediate shutdown ordered pending compliance review.",
+      "severity_range": {
+        "min": 0.6,
+        "max": 0.9
+      },
+      "discount_range": {
+        "min": 0.5,
+        "max": 0.75
+      },
+      "duration_months": {
+        "min": 4,
+        "max": 18
+      },
+      "trigger_conditions": {
+        "environmental_monitoring_poor": true,
+        "previous_violations": true
+      },
+      "asset_types_affected": [
+        {
+          "type": "LICENSE",
+          "probability": 1.0,
+          "risk_multiplier": 1.8
+        },
+        {
+          "type": "FARM_SITE",
+          "probability": 0.8,
+          "risk_multiplier": 1.5
+        },
+        {
+          "type": "EQUIPMENT",
+          "probability": 0.4,
+          "risk_multiplier": 1.0
+        }
+      ],
+      "reputation_impact": -0.2,
+      "legal_proceedings": true,
+      "media_attention": "high",
+      "regulatory_response": "immediate_shutdown"
+    },
+    {
+      "id": "market_price_crash",
+      "name": "Global Salmon Price Crash",
+      "type": "MARKET_CRASH",
+      "description": "Global oversupply and trade tensions cause salmon prices to plummet. Weak operators forced to sell.",
+      "severity_range": {
+        "min": 0.4,
+        "max": 0.7
+      },
+      "discount_range": {
+        "min": 0.3,
+        "max": 0.6
+      },
+      "duration_months": {
+        "min": 12,
+        "max": 36
+      },
+      "trigger_conditions": {
+        "global_production_increase": true,
+        "trade_war_active": true,
+        "salmon_price_below": 40
+      },
+      "asset_types_affected": [
+        {
+          "type": "PROCESSING_PLANT",
+          "probability": 0.7,
+          "risk_multiplier": 1.0
+        },
+        {
+          "type": "EQUIPMENT",
+          "probability": 0.6,
+          "risk_multiplier": 1.0
+        },
+        {
+          "type": "FARM_SITE",
+          "probability": 0.5,
+          "risk_multiplier": 1.1
+        },
+        {
+          "type": "LICENSE",
+          "probability": 0.3,
+          "risk_multiplier": 0.9
+        }
+      ],
+      "reputation_impact": -0.03,
+      "market_recovery_uncertain": true,
+      "media_attention": "low",
+      "regulatory_response": "market_monitoring"
+    },
+    {
+      "id": "chemical_contamination",
+      "name": "Chemical Contamination Scandal",
+      "type": "ENVIRONMENTAL_SCANDAL",
+      "description": "Illegal chemical use detected in feed and treatments. Product recalls and export bans imposed.",
+      "severity_range": {
+        "min": 0.7,
+        "max": 1.0
+      },
+      "discount_range": {
+        "min": 0.4,
+        "max": 0.6
+      },
+      "duration_months": {
+        "min": 8,
+        "max": 30
+      },
+      "trigger_conditions": {
+        "cost_cutting_pressure": true,
+        "regulatory_oversight_weak": true
+      },
+      "asset_types_affected": [
+        {
+          "type": "PROCESSING_PLANT",
+          "probability": 0.9,
+          "risk_multiplier": 1.7
+        },
+        {
+          "type": "FARM_SITE",
+          "probability": 0.8,
+          "risk_multiplier": 1.6
+        },
+        {
+          "type": "EQUIPMENT",
+          "probability": 0.7,
+          "risk_multiplier": 1.4
+        },
+        {
+          "type": "LICENSE",
+          "probability": 0.6,
+          "risk_multiplier": 1.9
+        }
+      ],
+      "reputation_impact": -0.35,
+      "criminal_investigation": true,
+      "international_impact": true,
+      "media_attention": "very_high",
+      "regulatory_response": "immediate_shutdown"
+    },
+    {
+      "id": "equipment_failure_cascade",
+      "name": "Systematic Equipment Failure",
+      "type": "EQUIPMENT_FAILURE",
+      "description": "Widespread failure of critical equipment due to design flaws. Multiple farms affected simultaneously.",
+      "severity_range": {
+        "min": 0.3,
+        "max": 0.6
+      },
+      "discount_range": {
+        "min": 0.4,
+        "max": 0.7
+      },
+      "duration_months": {
+        "min": 6,
+        "max": 15
+      },
+      "trigger_conditions": {
+        "equipment_age_high": true,
+        "maintenance_deferred": true,
+        "harsh_weather_season": true
+      },
+      "asset_types_affected": [
+        {
+          "type": "EQUIPMENT",
+          "probability": 1.0,
+          "risk_multiplier": 1.8
+        },
+        {
+          "type": "FARM_SITE",
+          "probability": 0.6,
+          "risk_multiplier": 1.2
+        },
+        {
+          "type": "PROCESSING_PLANT",
+          "probability": 0.3,
+          "risk_multiplier": 1.0
+        }
+      ],
+      "reputation_impact": -0.08,
+      "insurance_claims": true,
+      "media_attention": "low",
+      "regulatory_response": "safety_inspection"
+    }
+  ],
+  "crisis_parameters": {
+    "maximum_concurrent_crises": 3,
+    "minimum_time_between_same_type": 180,
+    "regional_spread_factors": {
+      "troms": 1.2,
+      "nordland": 1.1,
+      "finnmark": 0.9,
+      "sogn_og_fjordane": 1.0,
+      "more_og_romsdal": 1.0,
+      "trondelag": 0.95
+    },
+    "seasonal_modifiers": {
+      "spring": {
+        "disease_risk": 1.3,
+        "environmental_risk": 1.1,
+        "equipment_risk": 1.0
+      },
+      "summer": {
+        "disease_risk": 1.2,
+        "environmental_risk": 1.4,
+        "equipment_risk": 0.8
+      },
+      "autumn": {
+        "disease_risk": 1.1,
+        "environmental_risk": 1.0,
+        "equipment_risk": 1.2
+      },
+      "winter": {
+        "disease_risk": 0.8,
+        "environmental_risk": 0.7,
+        "equipment_risk": 1.5
+      }
+    },
+    "market_condition_triggers": {
+      "salmon_price_thresholds": {
+        "crisis_likely": 35,
+        "crisis_very_likely": 30
+      },
+      "production_capacity_utilization": {
+        "overcapacity_threshold": 0.85
+      },
+      "global_trade_factors": [
+        "us_china_trade_war",
+        "brexit_uncertainty",
+        "russian_sanctions",
+        "covid_disruption"
+      ]
+    },
+    "reputation_decay": {
+      "vulture_capitalism_per_acquisition": 5,
+      "environmental_scandal_multiplier": 2.0,
+      "regulatory_violation_multiplier": 1.5,
+      "monthly_recovery_rate": 0.5
+    }
+  },
+  "asset_generation_rules": {
+    "base_asset_counts": {
+      "DISEASE_OUTBREAK": {
+        "min": 2,
+        "max": 6
+      },
+      "BANKRUPTCY": {
+        "min": 3,
+        "max": 8
+      },
+      "REGULATORY_SHUTDOWN": {
+        "min": 1,
+        "max": 4
+      },
+      "MARKET_CRASH": {
+        "min": 4,
+        "max": 10
+      },
+      "ENVIRONMENTAL_SCANDAL": {
+        "min": 2,
+        "max": 5
+      }
+    },
+    "asset_value_ranges": {
+      "LICENSE": {
+        "min": 500000,
+        "max": 5000000,
+        "currency": "NOK"
+      },
+      "FARM_SITE": {
+        "min": 10000000,
+        "max": 80000000,
+        "currency": "NOK"
+      },
+      "PROCESSING_PLANT": {
+        "min": 25000000,
+        "max": 300000000,
+        "currency": "NOK"
+      },
+      "EQUIPMENT": {
+        "min": 200000,
+        "max": 15000000,
+        "currency": "NOK"
+      }
+    },
+    "risk_factors": {
+      "disease_contamination": {
+        "farm_site": 0.6,
+        "equipment": 0.4,
+        "processing_plant": 0.3,
+        "license": 0.2
+      },
+      "regulatory_risk": {
+        "license": 0.8,
+        "farm_site": 0.5,
+        "processing_plant": 0.4,
+        "equipment": 0.2
+      },
+      "market_risk": {
+        "processing_plant": 0.6,
+        "farm_site": 0.4,
+        "equipment": 0.3,
+        "license": 0.2
+      }
+    }
+  }
+}
