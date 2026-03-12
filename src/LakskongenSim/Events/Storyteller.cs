@@ -46,10 +46,11 @@ namespace LakskongenSim.Events
 
         private void HandleAdvance(int days)
         {
+            // Note: State.Day is incremented by SimulationEngine (single source of truth)
+            // We just need to check for events on each day tick
             for (int i = 0; i < days; i++)
             {
-                _state.Day += 1;
-                TryMaybeTrigger(_state.Day);
+                TryMaybeTrigger(_state.Day + i);
             }
         }
 

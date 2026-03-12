@@ -110,9 +110,9 @@ namespace LakskongenSim.Core
             for (int day = 0; day < days; day++)
             {
                 AdvanceOneDay();
+                State.Day++; // Single source of truth for day counter
             }
 
-            State.Day += days;
             OnDayAdvanced?.Invoke(State.Day);
         }
 
