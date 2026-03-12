@@ -1,25 +1,29 @@
 using System;
+using LakskongenSim.Data;
 
 namespace LakskongenSim.Biology
 {
     /// <summary>
     /// Mortality model applying daily mortality rates.
+    /// Uses biologically-accurate 7-stage salmon lifecycle.
     /// </summary>
     public class MortalityModel
     {
         /// <summary>Apply mortality over days, return surviving count (rounded to int).</summary>
-        public int ApplyMortality(int count, int days, LakskongenSim.Core.LifeStage stage)
+        public int ApplyMortality(int count, int days, LifeStage stage)
         {
             if (count <= 0 || days <= 0) return count;
             double rate = LakskongenSim.Core.GameConstants.BaselineMortalityPerDay;
-            // Stage modifiers
+            // Stage modifiers based on real salmon mortality patterns
             switch (stage)
             {
-                case LakskongenSim.Core.LifeStage.EyedEgg: rate *= 5.0; break;
-                case LakskongenSim.Core.LifeStage.Smolt: rate *= 2.0; break;
-                case LakskongenSim.Core.LifeStage.Juvenile: rate *= 1.0; break;
-                case LakskongenSim.Core.LifeStage.Adult: rate *= 1.2; break;
-                case LakskongenSim.Core.LifeStage.Harvestable: rate *= 1.1; break;
+                case LifeStage.Egg: rate *= 5.0; break;       // Highest mortality in egg stage
+                case LifeStage.Alevin: rate *= 4.0; break;    // Vulnerable yolk sac stage
+                case LifeStage.Fry: rate *= 3.0; break;       // First feeding critical period
+                case LifeStage.Parr: rate *= 2.0; break;      // Freshwater predation/disease
+                case LifeStage.Smolt: rate *= 2.5; break;     // Smoltification stress
+                case LifeStage.Seawater: rate *= 1.2; break;  // Sea lice, disease exposure
+                case LifeStage.Harvest: rate *= 1.0; break;   // Stable if well-managed
             }
             // survivors = count * (1-rate)^days
             var survivors = count * Math.Pow(1.0 - rate, days);

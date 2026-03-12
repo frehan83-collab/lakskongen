@@ -2,6 +2,7 @@ using System;
 using Xunit;
 using LakskongenSim.Biology;
 using LakskongenSim.Health;
+using LakskongenSim.Data;
 
 namespace LakskongenSim.Health.Tests
 {
@@ -19,7 +20,8 @@ namespace LakskongenSim.Health.Tests
             };
 
             var pop = new FishPopulation(new GrowthModel(), new MortalityModel());
-            pop.AddCohort(new FishPopulation.Cohort(100, 10000, 1.0, LakskongenSim.Core.LifeStage.Juvenile));
+            // Use Seawater stage - represents fish in sea pens where disease/lice are most relevant
+            pop.AddCohort(new FishPopulation.Cohort(400, 10000, 1.0, LifeStage.Seawater));
 
             ds.Tick(pop, 30, temperatureC: 10.0);
             var p = ds.GetPrevalence(pop);
@@ -47,7 +49,8 @@ namespace LakskongenSim.Health.Tests
             };
 
             var pop = new FishPopulation(new GrowthModel(), new MortalityModel());
-            pop.AddCohort(new FishPopulation.Cohort(100, 10000, 1.0, LakskongenSim.Core.LifeStage.Juvenile));
+            // Use Seawater stage - represents fish in sea pens where treatment is applied
+            pop.AddCohort(new FishPopulation.Cohort(400, 10000, 1.0, LifeStage.Seawater));
 
             ds.Tick(pop, 14, temperatureC: 8.0);
             var beforeP = ds.GetPrevalence(pop);

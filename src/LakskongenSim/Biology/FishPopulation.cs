@@ -1,18 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using LakskongenSim.Data;
 
 namespace LakskongenSim.Biology
 {
     /// <summary>
     /// Cohort-based fish population model. Each cohort is a record of age, count and mean weight.
+    /// Uses biologically-accurate 7-stage salmon lifecycle from Data.LifeStage.
     /// </summary>
     public class FishPopulation
     {
         /// <summary>
         /// Represents a cohort in the population.
         /// </summary>
-        public record Cohort(int AgeDays, int Count, double MeanWeightKg, LakskongenSim.Core.LifeStage Stage);
+        public record Cohort(int AgeDays, int Count, double MeanWeightKg, LifeStage Stage);
 
         /// <summary>List of cohorts in this population.</summary>
         public List<Cohort> Cohorts { get; } = new();
@@ -57,14 +59,20 @@ namespace LakskongenSim.Biology
             OnPopulationChanged?.Invoke();
         }
 
-        private LakskongenSim.Core.LifeStage DetermineStage(int ageDays)
+        /// <summary>
+        /// Determine life stage based on age in days.
+        /// Based on Norwegian salmon lifecycle: Egg→Alevin→Fry→Parr→Smolt→Seawater→Harvest
+        /// </summary>
+        private LifeStage DetermineStage(int ageDays)
         {
-            // TODO: Replace thresholds with tunable parameters
-            if (ageDays < 60) return LakskongenSim.Core.LifeStage.EyedEgg;
-            if (ageDays < 180) return LakskongenSim.Core.LifeStage.Smolt;
-            if (ageDays < 365) return LakskongenSim.Core.LifeStage.Juvenile;
-            if (ageDays < 730) return LakskongenSim.Core.LifeStage.Adult;
-            return LakskongenSim.Core.LifeStage.Harvestable;
+            // Biologically-accurate salmon lifecycle thresholds
+            if (ageDays < 60) return LifeStage.Egg;           // 0-60 days, temperature-dependent
+            if (ageDays < 90) return LifeStage.Alevin;        // Yolk sac stage, 4-6 weeks
+            if (ageDays < 180) return LifeStage.Fry;          // First feeding, 3-4 months
+            if (ageDays < 300) return LifeStage.Parr;         // Freshwater growth, 4-6 months
+            if (ageDays < 365) return LifeStage.Smolt;        // Seawater-ready juveniles
+            if (ageDays < 730) return LifeStage.Seawater;     // Growing in sea pens, 12-18 months
+            return LifeStage.Harvest;                          // Ready for processing at 4-6kg
         }
     }
 }

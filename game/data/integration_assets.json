@@ -1,0 +1,267 @@
+{
+  "assets": [
+    {
+      "tier": "GENETICS",
+      "name": "AquaGen Breeding Facility",
+      "capex_nok": 250000000,
+      "annual_opex_nok": 15000000,
+      "capacity": 500,
+      "cost_saving_pct_per_kg": 0.02,
+      "quality_bonus": 0.08,
+      "competitor_lockout_radius": 200,
+      "construction_time_months": 18,
+      "maintenance_cost_pct_per_year": 0.03,
+      "description": "State-of-the-art genetic selection facility for superior salmon breeding lines",
+      "unlock_conditions": {
+        "min_annual_production_kg": 5000,
+        "min_capital_nok": 300000000
+      }
+    },
+    {
+      "tier": "HATCHERY",
+      "name": "Nordland Smolt Hatchery",
+      "capex_nok": 350000000,
+      "annual_opex_nok": 25000000,
+      "capacity": 2000000,
+      "cost_saving_pct_per_kg": 0.03,
+      "quality_bonus": 0.05,
+      "competitor_lockout_radius": 150,
+      "construction_time_months": 24,
+      "maintenance_cost_pct_per_year": 0.025,
+      "description": "Modern recirculating aquaculture system (RAS) for premium smolt production",
+      "unlock_conditions": {
+        "min_annual_production_kg": 8000
+      }
+    },
+    {
+      "tier": "HATCHERY",
+      "name": "Coastal Smolt Station",
+      "capex_nok": 180000000,
+      "annual_opex_nok": 18000000,
+      "capacity": 1200000,
+      "cost_saving_pct_per_kg": 0.025,
+      "quality_bonus": 0.03,
+      "competitor_lockout_radius": 100,
+      "construction_time_months": 18,
+      "maintenance_cost_pct_per_year": 0.03,
+      "description": "Flow-through hatchery system for cost-effective smolt production",
+      "unlock_conditions": {
+        "min_annual_production_kg": 3000
+      }
+    },
+    {
+      "tier": "FEED_MILL",
+      "name": "BioMar Feed Production Complex",
+      "capex_nok": 800000000,
+      "annual_opex_nok": 45000000,
+      "capacity": 150000,
+      "cost_saving_pct_per_kg": 0.12,
+      "quality_bonus": 0.06,
+      "competitor_lockout_radius": 300,
+      "construction_time_months": 30,
+      "maintenance_cost_pct_per_year": 0.02,
+      "description": "Large-scale feed mill with fishmeal processing and sustainable protein alternatives",
+      "unlock_conditions": {
+        "min_annual_production_kg": 15000,
+        "min_capital_nok": 1000000000
+      }
+    },
+    {
+      "tier": "FEED_MILL",
+      "name": "Regional Feed Mill",
+      "capex_nok": 450000000,
+      "annual_opex_nok": 28000000,
+      "capacity": 80000,
+      "cost_saving_pct_per_kg": 0.08,
+      "quality_bonus": 0.04,
+      "competitor_lockout_radius": 200,
+      "construction_time_months": 24,
+      "maintenance_cost_pct_per_year": 0.025,
+      "description": "Mid-scale feed production facility for regional supply",
+      "unlock_conditions": {
+        "min_annual_production_kg": 8000,
+        "min_capital_nok": 500000000
+      }
+    },
+    {
+      "tier": "SEA_FARM",
+      "name": "Exposed Ocean Farm Platform",
+      "capex_nok": 600000000,
+      "annual_opex_nok": 35000000,
+      "capacity": 8000,
+      "cost_saving_pct_per_kg": 0.04,
+      "quality_bonus": 0.07,
+      "competitor_lockout_radius": 50,
+      "construction_time_months": 36,
+      "maintenance_cost_pct_per_year": 0.04,
+      "description": "Offshore steel platform for harsh weather conditions and premium growth",
+      "unlock_conditions": {
+        "min_annual_production_kg": 5000,
+        "min_capital_nok": 700000000
+      }
+    },
+    {
+      "tier": "SEA_FARM",
+      "name": "Traditional Sea Cage Farm",
+      "capex_nok": 120000000,
+      "annual_opex_nok": 8000000,
+      "capacity": 3000,
+      "cost_saving_pct_per_kg": 0.015,
+      "quality_bonus": 0.02,
+      "competitor_lockout_radius": 25,
+      "construction_time_months": 12,
+      "maintenance_cost_pct_per_year": 0.05,
+      "description": "Conventional sea cage farm in protected fjord location",
+      "unlock_conditions": {
+        "min_annual_production_kg": 1000
+      }
+    },
+    {
+      "tier": "PROCESSING",
+      "name": "Lerøy Processing Plant",
+      "capex_nok": 1200000000,
+      "annual_opex_nok": 85000000,
+      "capacity": 100000,
+      "cost_saving_pct_per_kg": 0.15,
+      "quality_bonus": 0.12,
+      "competitor_lockout_radius": 400,
+      "construction_time_months": 42,
+      "maintenance_cost_pct_per_year": 0.02,
+      "description": "Fully automated processing facility with filleting, packaging, and value-added products",
+      "unlock_conditions": {
+        "min_annual_production_kg": 25000,
+        "min_capital_nok": 1500000000,
+        "required_tier": "SEA_FARM"
+      }
+    },
+    {
+      "tier": "PROCESSING",
+      "name": "Regional Processing Center",
+      "capex_nok": 320000000,
+      "annual_opex_nok": 32000000,
+      "capacity": 35000,
+      "cost_saving_pct_per_kg": 0.08,
+      "quality_bonus": 0.06,
+      "competitor_lockout_radius": 150,
+      "construction_time_months": 18,
+      "maintenance_cost_pct_per_year": 0.03,
+      "description": "Mid-scale processing facility for whole fish and basic filleting",
+      "unlock_conditions": {
+        "min_annual_production_kg": 10000,
+        "required_tier": "SEA_FARM"
+      }
+    },
+    {
+      "tier": "PROCESSING",
+      "name": "Mobile Processing Unit",
+      "capex_nok": 85000000,
+      "annual_opex_nok": 12000000,
+      "capacity": 8000,
+      "cost_saving_pct_per_kg": 0.05,
+      "quality_bonus": 0.03,
+      "competitor_lockout_radius": 75,
+      "construction_time_months": 8,
+      "maintenance_cost_pct_per_year": 0.06,
+      "description": "Floating processing vessel for on-site harvest processing",
+      "unlock_conditions": {
+        "min_annual_production_kg": 3000,
+        "required_tier": "SEA_FARM"
+      }
+    },
+    {
+      "tier": "COLD_CHAIN",
+      "name": "Frionor Cold Storage Complex",
+      "capex_nok": 280000000,
+      "annual_opex_nok": 18000000,
+      "capacity": 15000,
+      "cost_saving_pct_per_kg": 0.06,
+      "quality_bonus": 0.08,
+      "competitor_lockout_radius": 250,
+      "construction_time_months": 18,
+      "maintenance_cost_pct_per_year": 0.025,
+      "description": "Automated cold storage with blast freezing and temperature-controlled zones",
+      "unlock_conditions": {
+        "min_annual_production_kg": 12000,
+        "required_tier": "PROCESSING"
+      }
+    },
+    {
+      "tier": "COLD_CHAIN",
+      "name": "Port Cold Terminal",
+      "capex_nok": 150000000,
+      "annual_opex_nok": 12000000,
+      "capacity": 8000,
+      "cost_saving_pct_per_kg": 0.04,
+      "quality_bonus": 0.05,
+      "competitor_lockout_radius": 150,
+      "construction_time_months": 12,
+      "maintenance_cost_pct_per_year": 0.03,
+      "description": "Port-based cold storage for export logistics",
+      "unlock_conditions": {
+        "min_annual_production_kg": 6000,
+        "required_tier": "PROCESSING"
+      }
+    },
+    {
+      "tier": "DISTRIBUTION",
+      "name": "European Logistics Hub",
+      "capex_nok": 420000000,
+      "annual_opex_nok": 55000000,
+      "capacity": 200,
+      "cost_saving_pct_per_kg": 0.08,
+      "quality_bonus": 0.04,
+      "competitor_lockout_radius": 500,
+      "construction_time_months": 24,
+      "maintenance_cost_pct_per_year": 0.02,
+      "description": "Continental distribution center with refrigerated truck fleet and rail connections",
+      "unlock_conditions": {
+        "min_annual_production_kg": 20000,
+        "required_tier": "COLD_CHAIN",
+        "min_capital_nok": 500000000
+      }
+    },
+    {
+      "tier": "DISTRIBUTION",
+      "name": "Regional Distribution Network",
+      "capex_nok": 180000000,
+      "annual_opex_nok": 28000000,
+      "capacity": 80,
+      "cost_saving_pct_per_kg": 0.05,
+      "quality_bonus": 0.02,
+      "competitor_lockout_radius": 200,
+      "construction_time_months": 15,
+      "maintenance_cost_pct_per_year": 0.03,
+      "description": "Regional delivery network with temperature-controlled vehicles",
+      "unlock_conditions": {
+        "min_annual_production_kg": 8000,
+        "required_tier": "COLD_CHAIN"
+      }
+    }
+  ],
+  "synergy_rules": {
+    "adjacent_tier_bonus": 0.15,
+    "fully_integrated_threshold": 3,
+    "fully_integrated_ebitda_bonus": 0.20,
+    "base_integration_score_per_tier": 0.15
+  },
+  "tier_importance": {
+    "FEED_MILL": 1.5,
+    "PROCESSING": 1.3,
+    "SEA_FARM": 1.2,
+    "HATCHERY": 1.1,
+    "COLD_CHAIN": 1.0,
+    "DISTRIBUTION": 0.9,
+    "GENETICS": 0.8
+  },
+  "market_context": {
+    "feed_cost_percentage": 0.45,
+    "processing_savings_vs_outsourcing": 0.15,
+    "integrated_vs_fragmented_ebitda_advantage": 0.175,
+    "typical_capex_ranges": {
+      "feed_mill": {"min": 500000000, "max": 2000000000},
+      "smolt_hatchery": {"min": 200000000, "max": 800000000},
+      "processing_plant_small": {"min": 150000000, "max": 350000000},
+      "processing_plant_large": {"min": 500000000, "max": 3000000000}
+    }
+  }
+}
