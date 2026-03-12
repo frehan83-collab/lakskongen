@@ -1,0 +1,976 @@
+{
+  "faction_demands": {
+    "MATTILSYNET": [
+      {
+        "title": "Compliance Audit",
+        "description": "Mattilsynet requires an independent compliance audit of your fish health management protocols within 60 days.",
+        "cost_nok": 500000,
+        "duration_months": 2,
+        "consequence_if_ignored": "Increased inspection frequency and potential fines for non-compliance",
+        "priority": "high"
+      },
+      {
+        "title": "Antibiotic Reduction Plan",
+        "description": "Submit a detailed plan to reduce antibiotic usage by 20% over the next 12 months with quarterly reporting.",
+        "cost_nok": 750000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Suspension of medication permits and mandatory veterinary supervision",
+        "priority": "medium"
+      },
+      {
+        "title": "Traceability System Upgrade",
+        "description": "Implement enhanced traceability systems to track fish from egg to market, including digital records.",
+        "cost_nok": 1200000,
+        "duration_months": 6,
+        "consequence_if_ignored": "Export license suspension until compliance achieved",
+        "priority": "high"
+      },
+      {
+        "title": "Food Safety Training",
+        "description": "All staff must complete certified food safety training within 90 days.",
+        "cost_nok": 200000,
+        "duration_months": 3,
+        "consequence_if_ignored": "Operational restrictions until training completed",
+        "priority": "medium"
+      },
+      {
+        "title": "Residue Testing Protocol",
+        "description": "Implement weekly residue testing for medications and chemicals with third-party verification.",
+        "cost_nok": 300000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Product recalls and market access restrictions",
+        "priority": "high"
+      },
+      {
+        "title": "HACCP Certification",
+        "description": "Achieve HACCP (Hazard Analysis Critical Control Points) certification for all facilities.",
+        "cost_nok": 800000,
+        "duration_months": 8,
+        "consequence_if_ignored": "Operating license review and potential suspension",
+        "priority": "high"
+      },
+      {
+        "title": "Water Quality Monitoring",
+        "description": "Install automated water quality monitoring systems with real-time reporting to authorities.",
+        "cost_nok": 1500000,
+        "duration_months": 4,
+        "consequence_if_ignored": "Manual monitoring requirements and daily inspections",
+        "priority": "medium"
+      },
+      {
+        "title": "Biosecurity Enhancement",
+        "description": "Upgrade biosecurity measures including visitor protocols, equipment disinfection, and quarantine procedures.",
+        "cost_nok": 900000,
+        "duration_months": 6,
+        "consequence_if_ignored": "Restricted site access and mandatory external oversight",
+        "priority": "high"
+      },
+      {
+        "title": "Emergency Response Plan",
+        "description": "Develop comprehensive emergency response plans for disease outbreaks and environmental incidents.",
+        "cost_nok": 350000,
+        "duration_months": 3,
+        "consequence_if_ignored": "Increased liability and potential facility closure during emergencies",
+        "priority": "medium"
+      },
+      {
+        "title": "Veterinary Oversight Increase",
+        "description": "Increase veterinary visits to twice weekly with documented health assessments.",
+        "cost_nok": 600000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Mandatory on-site veterinarian presence required",
+        "priority": "medium"
+      },
+      {
+        "title": "Laboratory Accreditation",
+        "description": "Use only accredited laboratories for all fish health and quality testing.",
+        "cost_nok": 400000,
+        "duration_months": 6,
+        "consequence_if_ignored": "Test results rejected, repeat testing required at higher cost",
+        "priority": "low"
+      },
+      {
+        "title": "Record Digitization",
+        "description": "Convert all paper records to digital format with secure cloud backup systems.",
+        "cost_nok": 650000,
+        "duration_months": 8,
+        "consequence_if_ignored": "Audit difficulties leading to compliance violations",
+        "priority": "medium"
+      },
+      {
+        "title": "Staff Health Monitoring",
+        "description": "Implement health monitoring for all staff with regular medical checkups.",
+        "cost_nok": 250000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Work restrictions during health incidents",
+        "priority": "low"
+      },
+      {
+        "title": "Chemical Storage Upgrade",
+        "description": "Upgrade chemical storage facilities to meet latest safety standards.",
+        "cost_nok": 800000,
+        "duration_months": 4,
+        "consequence_if_ignored": "Chemical usage restrictions and increased inspection costs",
+        "priority": "high"
+      },
+      {
+        "title": "Quality Management System",
+        "description": "Implement ISO 22000 food safety management system across all operations.",
+        "cost_nok": 1100000,
+        "duration_months": 10,
+        "consequence_if_ignored": "Export market restrictions and quality certifications suspended",
+        "priority": "high"
+      },
+      {
+        "title": "Supplier Verification",
+        "description": "Conduct detailed verification of all feed and medication suppliers with quarterly audits.",
+        "cost_nok": 450000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Supply chain restrictions and mandatory pre-approvals",
+        "priority": "medium"
+      },
+      {
+        "title": "Temperature Monitoring",
+        "description": "Install comprehensive temperature monitoring throughout the cold chain.",
+        "cost_nok": 700000,
+        "duration_months": 5,
+        "consequence_if_ignored": "Product quality concerns and batch testing requirements",
+        "priority": "medium"
+      },
+      {
+        "title": "Waste Management Audit",
+        "description": "Comprehensive audit of waste management practices with improvement plan.",
+        "cost_nok": 300000,
+        "duration_months": 3,
+        "consequence_if_ignored": "Environmental compliance issues and potential fines",
+        "priority": "low"
+      },
+      {
+        "title": "Processing Facility Upgrade",
+        "description": "Upgrade processing facilities to meet enhanced hygiene standards.",
+        "cost_nok": 2000000,
+        "duration_months": 8,
+        "consequence_if_ignored": "Processing license suspension until upgrades completed",
+        "priority": "high"
+      },
+      {
+        "title": "Batch Testing Frequency",
+        "description": "Increase batch testing frequency to daily for key parameters.",
+        "cost_nok": 500000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Mandatory third-party testing at higher costs",
+        "priority": "medium"
+      }
+    ],
+    "FISKERIDIREKTORATET": [
+      {
+        "title": "MAB Utilization Report",
+        "description": "Submit detailed Maximum Allowable Biomass utilization reports with weekly updates on stocking levels.",
+        "cost_nok": 150000,
+        "duration_months": 12,
+        "consequence_if_ignored": "MAB allocation reduction and potential license review",
+        "priority": "high"
+      },
+      {
+        "title": "Stock Management System",
+        "description": "Implement real-time stock management system integrated with Fiskeridirektoratet's monitoring platform.",
+        "cost_nok": 1000000,
+        "duration_months": 6,
+        "consequence_if_ignored": "Manual reporting requirements and increased oversight",
+        "priority": "medium"
+      },
+      {
+        "title": "Escape Prevention Upgrade",
+        "description": "Upgrade net systems and escape prevention measures to latest standards with third-party certification.",
+        "cost_nok": 3000000,
+        "duration_months": 8,
+        "consequence_if_ignored": "Operating restrictions and liability for environmental damage",
+        "priority": "high"
+      },
+      {
+        "title": "License Compliance Review",
+        "description": "Comprehensive review of all license conditions with corrective action plan.",
+        "cost_nok": 400000,
+        "duration_months": 4,
+        "consequence_if_ignored": "License suspension pending compliance",
+        "priority": "high"
+      },
+      {
+        "title": "Production Data Validation",
+        "description": "Independent validation of all production data and reporting systems.",
+        "cost_nok": 500000,
+        "duration_months": 3,
+        "consequence_if_ignored": "Production quotas suspended until validation completed",
+        "priority": "high"
+      },
+      {
+        "title": "Environmental Monitoring",
+        "description": "Enhanced environmental monitoring with monthly sediment sampling and impact assessments.",
+        "cost_nok": 800000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Site relocation requirements and production restrictions",
+        "priority": "medium"
+      },
+      {
+        "title": "Reporting System Upgrade",
+        "description": "Upgrade to new digital reporting platform with automated data feeds.",
+        "cost_nok": 700000,
+        "duration_months": 5,
+        "consequence_if_ignored": "Daily manual reporting requirements",
+        "priority": "medium"
+      },
+      {
+        "title": "Feed Conversion Optimization",
+        "description": "Implement feed conversion tracking and optimization program to reduce waste.",
+        "cost_nok": 600000,
+        "duration_months": 8,
+        "consequence_if_ignored": "Feed quotas reduced based on current inefficiency",
+        "priority": "medium"
+      },
+      {
+        "title": "Site Inspection Preparation",
+        "description": "Prepare facilities for comprehensive site inspection including infrastructure upgrades.",
+        "cost_nok": 1200000,
+        "duration_months": 4,
+        "consequence_if_ignored": "Failed inspection leading to operational restrictions",
+        "priority": "high"
+      },
+      {
+        "title": "Fallowing Protocol",
+        "description": "Implement mandatory fallowing periods with detailed site rehabilitation plans.",
+        "cost_nok": 2500000,
+        "duration_months": 18,
+        "consequence_if_ignored": "Extended fallowing periods and production delays",
+        "priority": "high"
+      },
+      {
+        "title": "Mortality Reporting",
+        "description": "Enhanced mortality reporting with daily updates and cause analysis.",
+        "cost_nok": 200000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Investigation into mortality patterns and potential restrictions",
+        "priority": "medium"
+      },
+      {
+        "title": "Genetics Documentation",
+        "description": "Comprehensive documentation of all fish genetics and breeding programs.",
+        "cost_nok": 350000,
+        "duration_months": 6,
+        "consequence_if_ignored": "Restrictions on genetic material use and breeding licenses",
+        "priority": "low"
+      },
+      {
+        "title": "Area Management Participation",
+        "description": "Active participation in area management agreements with neighboring farms.",
+        "cost_nok": 400000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Exclusion from coordinated management benefits",
+        "priority": "medium"
+      },
+      {
+        "title": "Innovation Compliance",
+        "description": "Evaluate and implement approved technological innovations for sustainable production.",
+        "cost_nok": 1500000,
+        "duration_months": 10,
+        "consequence_if_ignored": "Limited access to new production quotas and green licenses",
+        "priority": "medium"
+      },
+      {
+        "title": "Emergency Preparedness",
+        "description": "Develop emergency preparedness plans for extreme weather and equipment failures.",
+        "cost_nok": 450000,
+        "duration_months": 3,
+        "consequence_if_ignored": "Operational restrictions during adverse conditions",
+        "priority": "medium"
+      },
+      {
+        "title": "Market Data Reporting",
+        "description": "Provide detailed market data including pricing, volumes, and destination markets.",
+        "cost_nok": 100000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Export license complications and market access issues",
+        "priority": "low"
+      },
+      {
+        "title": "Regional Coordination",
+        "description": "Coordinate production schedules with regional management plans.",
+        "cost_nok": 300000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Production timing restrictions and coordination penalties",
+        "priority": "medium"
+      },
+      {
+        "title": "Technology Assessment",
+        "description": "Assess and report on new farming technologies for regulatory approval.",
+        "cost_nok": 800000,
+        "duration_months": 8,
+        "consequence_if_ignored": "Delayed approval for new technologies and competitive disadvantage",
+        "priority": "low"
+      },
+      {
+        "title": "Biomass Verification",
+        "description": "Independent biomass verification using approved measurement systems.",
+        "cost_nok": 600000,
+        "duration_months": 6,
+        "consequence_if_ignored": "Biomass allocation reviews and potential reductions",
+        "priority": "high"
+      },
+      {
+        "title": "Regulatory Training",
+        "description": "Comprehensive regulatory training for all management staff.",
+        "cost_nok": 250000,
+        "duration_months": 3,
+        "consequence_if_ignored": "Increased compliance violations and oversight requirements",
+        "priority": "medium"
+      }
+    ],
+    "ENVIRONMENTAL_NGOS": [
+      {
+        "title": "Biomass Density Reduction",
+        "description": "Reduce maximum biomass density by 15% to decrease environmental impact and improve fish welfare.",
+        "cost_nok": 5000000,
+        "duration_months": 6,
+        "consequence_if_ignored": "Public campaign against operations and consumer boycott pressure",
+        "priority": "high"
+      },
+      {
+        "title": "Sea Lice Treatment Plan",
+        "description": "Implement comprehensive sea lice management with weekly monitoring and non-chemical treatment methods.",
+        "cost_nok": 2000000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Negative media attention and regulatory pressure for treatment requirements",
+        "priority": "high"
+      },
+      {
+        "title": "Organic Feed Transition",
+        "description": "Transition 50% of feed to certified organic sources with sustainable ingredient sourcing.",
+        "cost_nok": 8000000,
+        "duration_months": 18,
+        "consequence_if_ignored": "Sustainability certification challenges and market access issues",
+        "priority": "medium"
+      },
+      {
+        "title": "Closed Containment Pilot",
+        "description": "Invest in closed containment technology pilot project to demonstrate environmental commitment.",
+        "cost_nok": 25000000,
+        "duration_months": 24,
+        "consequence_if_ignored": "Continued pressure for environmental restrictions and negative publicity",
+        "priority": "high"
+      },
+      {
+        "title": "Marine Protected Area Fund",
+        "description": "Contribute to marine protected area establishment fund in surrounding waters.",
+        "cost_nok": 3000000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Opposition to expansion permits and environmental legal challenges",
+        "priority": "medium"
+      },
+      {
+        "title": "Carbon Footprint Reduction",
+        "description": "Achieve 30% reduction in carbon footprint through renewable energy and efficiency measures.",
+        "cost_nok": 6000000,
+        "duration_months": 18,
+        "consequence_if_ignored": "Climate accountability campaigns and investor pressure",
+        "priority": "medium"
+      },
+      {
+        "title": "Wild Fish Stock Assessment",
+        "description": "Fund independent assessment of impact on local wild fish populations.",
+        "cost_nok": 1500000,
+        "duration_months": 8,
+        "consequence_if_ignored": "Claims of environmental damage and regulatory investigations",
+        "priority": "medium"
+      },
+      {
+        "title": "Plastic Waste Elimination",
+        "description": "Eliminate all single-use plastics and implement comprehensive plastic waste management.",
+        "cost_nok": 1200000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Marine pollution accountability campaigns",
+        "priority": "low"
+      },
+      {
+        "title": "Biodiversity Monitoring",
+        "description": "Implement comprehensive biodiversity monitoring around farm sites with public reporting.",
+        "cost_nok": 800000,
+        "duration_months": 24,
+        "consequence_if_ignored": "Environmental impact uncertainty and permit challenges",
+        "priority": "medium"
+      },
+      {
+        "title": "Sustainable Certification",
+        "description": "Achieve ASC (Aquaculture Stewardship Council) certification for all operations.",
+        "cost_nok": 2500000,
+        "duration_months": 15,
+        "consequence_if_ignored": "Market access restrictions and competitive disadvantage",
+        "priority": "high"
+      },
+      {
+        "title": "Chemical Usage Transparency",
+        "description": "Publish detailed quarterly reports on all chemical usage with environmental impact assessments.",
+        "cost_nok": 400000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Transparency campaigns and consumer confidence issues",
+        "priority": "low"
+      },
+      {
+        "title": "Escapee Recovery Program",
+        "description": "Implement comprehensive escapee recovery and tracking program.",
+        "cost_nok": 1800000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Genetic pollution concerns and regulatory oversight",
+        "priority": "high"
+      },
+      {
+        "title": "Renewable Energy Transition",
+        "description": "Transition to 100% renewable energy sources for all operations.",
+        "cost_nok": 4500000,
+        "duration_months": 18,
+        "consequence_if_ignored": "Climate impact criticism and investor ESG concerns",
+        "priority": "medium"
+      },
+      {
+        "title": "Ecosystem Restoration Fund",
+        "description": "Contribute to ecosystem restoration projects in areas affected by aquaculture.",
+        "cost_nok": 2200000,
+        "duration_months": 24,
+        "consequence_if_ignored": "Environmental debt accusations and restoration demands",
+        "priority": "medium"
+      },
+      {
+        "title": "Fish Welfare Standards",
+        "description": "Implement enhanced fish welfare standards exceeding regulatory minimums.",
+        "cost_nok": 3500000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Animal welfare campaigns and ethical sourcing concerns",
+        "priority": "high"
+      },
+      {
+        "title": "Sediment Impact Mitigation",
+        "description": "Implement advanced sediment impact mitigation measures and monitoring.",
+        "cost_nok": 1600000,
+        "duration_months": 8,
+        "consequence_if_ignored": "Benthic impact concerns and site closure pressure",
+        "priority": "medium"
+      },
+      {
+        "title": "Ocean Noise Reduction",
+        "description": "Reduce operational noise impacts on marine mammals through equipment modifications.",
+        "cost_nok": 900000,
+        "duration_months": 6,
+        "consequence_if_ignored": "Marine conservation group opposition and noise pollution concerns",
+        "priority": "low"
+      },
+      {
+        "title": "Supply Chain Transparency",
+        "description": "Publish comprehensive supply chain sustainability reports with third-party verification.",
+        "cost_nok": 600000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Supply chain accountability campaigns and traceability concerns",
+        "priority": "medium"
+      },
+      {
+        "title": "Indigenous Rights Consultation",
+        "description": "Conduct comprehensive consultation with indigenous Sami communities on traditional fishing rights.",
+        "cost_nok": 500000,
+        "duration_months": 8,
+        "consequence_if_ignored": "Indigenous rights conflicts and cultural impact concerns",
+        "priority": "medium"
+      },
+      {
+        "title": "Research Collaboration",
+        "description": "Fund collaborative research with environmental organizations on sustainable aquaculture practices.",
+        "cost_nok": 2000000,
+        "duration_months": 36,
+        "consequence_if_ignored": "Scientific credibility concerns and research opposition",
+        "priority": "medium"
+      }
+    ],
+    "LOCAL_COMMUNITIES": [
+      {
+        "title": "Local Employment Quota",
+        "description": "Hire 70% of workforce from local municipalities with priority for youth employment.",
+        "cost_nok": 1000000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Community opposition to expansion permits and local political resistance",
+        "priority": "high"
+      },
+      {
+        "title": "Infrastructure Investment",
+        "description": "Invest in local infrastructure improvements including harbor facilities and road upgrades.",
+        "cost_nok": 5000000,
+        "duration_months": 18,
+        "consequence_if_ignored": "Community infrastructure burden complaints and municipal opposition",
+        "priority": "medium"
+      },
+      {
+        "title": "Skills Training Program",
+        "description": "Establish local skills training center for aquaculture and maritime industries.",
+        "cost_nok": 3000000,
+        "duration_months": 24,
+        "consequence_if_ignored": "Skills shortage complaints and workforce development pressure",
+        "priority": "medium"
+      },
+      {
+        "title": "Tourism Mitigation Fund",
+        "description": "Contribute to fund compensating tourism industry for visual and environmental impacts.",
+        "cost_nok": 2000000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Tourism industry opposition and economic impact disputes",
+        "priority": "medium"
+      },
+      {
+        "title": "Community Benefit Fund",
+        "description": "Establish annual community benefit fund for local projects and initiatives.",
+        "cost_nok": 1500000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Community benefit expectations and social license concerns",
+        "priority": "medium"
+      },
+      {
+        "title": "Local Supplier Preference",
+        "description": "Source 60% of goods and services from local suppliers where possible.",
+        "cost_nok": 800000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Local business support concerns and economic integration issues",
+        "priority": "low"
+      },
+      {
+        "title": "Emergency Response Support",
+        "description": "Provide emergency response equipment and training to local emergency services.",
+        "cost_nok": 1200000,
+        "duration_months": 6,
+        "consequence_if_ignored": "Emergency preparedness concerns and public safety issues",
+        "priority": "medium"
+      },
+      {
+        "title": "Coastal Access Maintenance",
+        "description": "Maintain and improve public coastal access routes around farm operations.",
+        "cost_nok": 600000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Public access restrictions complaints and recreational impact concerns",
+        "priority": "low"
+      },
+      {
+        "title": "Local Cultural Support",
+        "description": "Support local cultural events, festivals, and traditional activities.",
+        "cost_nok": 400000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Cultural impact concerns and community identity preservation issues",
+        "priority": "low"
+      },
+      {
+        "title": "Youth Development Program",
+        "description": "Sponsor youth development programs including scholarships and internships.",
+        "cost_nok": 700000,
+        "duration_months": 24,
+        "consequence_if_ignored": "Youth opportunity concerns and population retention challenges",
+        "priority": "medium"
+      },
+      {
+        "title": "Environmental Cleanup",
+        "description": "Lead environmental cleanup initiatives in local waters and coastal areas.",
+        "cost_nok": 1000000,
+        "duration_months": 8,
+        "consequence_if_ignored": "Environmental responsibility concerns and cleanup obligation disputes",
+        "priority": "medium"
+      },
+      {
+        "title": "Local Health Services",
+        "description": "Support local health services with equipment donations and facility improvements.",
+        "cost_nok": 2500000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Community health burden concerns and public service support expectations",
+        "priority": "high"
+      },
+      {
+        "title": "Housing Development",
+        "description": "Support affordable housing development for workers and local residents.",
+        "cost_nok": 8000000,
+        "duration_months": 30,
+        "consequence_if_ignored": "Housing shortage concerns and community displacement issues",
+        "priority": "high"
+      },
+      {
+        "title": "Traditional Fishing Support",
+        "description": "Support traditional fishing communities affected by aquaculture development.",
+        "cost_nok": 1500000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Traditional livelihood concerns and fishing rights conflicts",
+        "priority": "medium"
+      },
+      {
+        "title": "Transportation Services",
+        "description": "Provide transportation services for remote communities including ferry connections.",
+        "cost_nok": 3000000,
+        "duration_months": 24,
+        "consequence_if_ignored": "Transportation access concerns and community isolation issues",
+        "priority": "medium"
+      },
+      {
+        "title": "Local Food Security",
+        "description": "Ensure local food security by providing fresh fish to local markets at reduced prices.",
+        "cost_nok": 500000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Food security concerns and local benefit questions",
+        "priority": "low"
+      },
+      {
+        "title": "Community Communication",
+        "description": "Establish regular community communication including monthly public meetings.",
+        "cost_nok": 200000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Communication breakdown and community relations deterioration",
+        "priority": "low"
+      },
+      {
+        "title": "Elder Care Support",
+        "description": "Support elder care facilities and services in local communities.",
+        "cost_nok": 1800000,
+        "duration_months": 18,
+        "consequence_if_ignored": "Elder care burden concerns and demographic support expectations",
+        "priority": "medium"
+      },
+      {
+        "title": "Local Research Collaboration",
+        "description": "Collaborate with local institutions on marine research beneficial to communities.",
+        "cost_nok": 1200000,
+        "duration_months": 36,
+        "consequence_if_ignored": "Research benefit concerns and knowledge sharing expectations",
+        "priority": "low"
+      },
+      {
+        "title": "Noise Impact Mitigation",
+        "description": "Implement noise reduction measures for operations near residential areas.",
+        "cost_nok": 800000,
+        "duration_months": 6,
+        "consequence_if_ignored": "Noise complaint escalation and quality of life concerns",
+        "priority": "medium"
+      }
+    ],
+    "INDUSTRY_ASSOCIATION": [
+      {
+        "title": "Technology Adoption Support",
+        "description": "Participate in industry-wide technology adoption program for sustainable farming innovations.",
+        "cost_nok": 2000000,
+        "duration_months": 18,
+        "consequence_if_ignored": "Exclusion from technology sharing agreements and competitive disadvantage",
+        "priority": "medium"
+      },
+      {
+        "title": "Export Market Development",
+        "description": "Contribute to joint export market development initiatives for new international markets.",
+        "cost_nok": 1500000,
+        "duration_months": 24,
+        "consequence_if_ignored": "Limited access to new market opportunities and export support",
+        "priority": "medium"
+      },
+      {
+        "title": "Regulatory Advocacy Support",
+        "description": "Support industry advocacy for reasonable regulatory frameworks and international competitiveness.",
+        "cost_nok": 500000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Reduced industry political influence and regulatory advocacy effectiveness",
+        "priority": "low"
+      },
+      {
+        "title": "Industry Standards Development",
+        "description": "Participate in developing industry-wide best practices and quality standards.",
+        "cost_nok": 800000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Exclusion from industry standard setting and competitive certification issues",
+        "priority": "medium"
+      },
+      {
+        "title": "Research Consortium",
+        "description": "Join industry research consortium for developing sustainable aquaculture technologies.",
+        "cost_nok": 3000000,
+        "duration_months": 36,
+        "consequence_if_ignored": "Limited access to industry research and innovation lag",
+        "priority": "high"
+      },
+      {
+        "title": "Supply Chain Optimization",
+        "description": "Participate in industry-wide supply chain optimization and cost reduction initiatives.",
+        "cost_nok": 1200000,
+        "duration_months": 15,
+        "consequence_if_ignored": "Higher supply costs and reduced operational efficiency",
+        "priority": "medium"
+      },
+      {
+        "title": "Crisis Management Protocol",
+        "description": "Develop coordinated crisis management protocols for disease outbreaks and market disruptions.",
+        "cost_nok": 600000,
+        "duration_months": 8,
+        "consequence_if_ignored": "Isolated crisis response and reduced industry solidarity",
+        "priority": "medium"
+      },
+      {
+        "title": "International Trade Support",
+        "description": "Support industry initiatives for international trade negotiations and market access.",
+        "cost_nok": 750000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Reduced influence in trade negotiations and market access limitations",
+        "priority": "medium"
+      },
+      {
+        "title": "Sustainability Certification",
+        "description": "Achieve industry-recognized sustainability certifications for competitive positioning.",
+        "cost_nok": 2500000,
+        "duration_months": 18,
+        "consequence_if_ignored": "Market positioning challenges and sustainability credibility issues",
+        "priority": "high"
+      },
+      {
+        "title": "Innovation Hub Participation",
+        "description": "Participate in industry innovation hubs and technology development centers.",
+        "cost_nok": 1800000,
+        "duration_months": 24,
+        "consequence_if_ignored": "Innovation isolation and technology development lag",
+        "priority": "medium"
+      },
+      {
+        "title": "Training Standards Development",
+        "description": "Support development of industry-wide training standards and certification programs.",
+        "cost_nok": 900000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Skills standardization challenges and workforce quality concerns",
+        "priority": "low"
+      },
+      {
+        "title": "Market Intelligence Sharing",
+        "description": "Participate in market intelligence sharing platform for industry competitiveness.",
+        "cost_nok": 400000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Limited market insights and competitive intelligence gaps",
+        "priority": "low"
+      },
+      {
+        "title": "Brand Development Support",
+        "description": "Support industry-wide brand development for Norwegian salmon premium positioning.",
+        "cost_nok": 1000000,
+        "duration_months": 18,
+        "consequence_if_ignored": "Reduced brand value and premium positioning challenges",
+        "priority": "medium"
+      },
+      {
+        "title": "Environmental Initiative",
+        "description": "Participate in industry environmental stewardship initiatives to improve sector reputation.",
+        "cost_nok": 3500000,
+        "duration_months": 24,
+        "consequence_if_ignored": "Environmental reputation challenges and regulatory pressure increase",
+        "priority": "high"
+      },
+      {
+        "title": "Digital Transformation",
+        "description": "Join industry digital transformation initiative for operational efficiency and data sharing.",
+        "cost_nok": 2200000,
+        "duration_months": 20,
+        "consequence_if_ignored": "Digital competitiveness lag and operational efficiency challenges",
+        "priority": "high"
+      },
+      {
+        "title": "Labor Relations Framework",
+        "description": "Participate in industry-wide labor relations framework development.",
+        "cost_nok": 300000,
+        "duration_months": 6,
+        "consequence_if_ignored": "Labor relations isolation and union negotiation disadvantage",
+        "priority": "low"
+      },
+      {
+        "title": "Quality Assurance Program",
+        "description": "Implement industry-standard quality assurance program for product consistency.",
+        "cost_nok": 1500000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Quality standardization challenges and market credibility issues",
+        "priority": "medium"
+      },
+      {
+        "title": "Feed Security Initiative",
+        "description": "Participate in industry feed security and sustainability initiative.",
+        "cost_nok": 2000000,
+        "duration_months": 24,
+        "consequence_if_ignored": "Feed supply vulnerability and sustainability challenges",
+        "priority": "high"
+      },
+      {
+        "title": "Insurance Pool Participation",
+        "description": "Join industry insurance pool for risk sharing and reduced insurance costs.",
+        "cost_nok": 1000000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Higher insurance costs and reduced risk sharing benefits",
+        "priority": "medium"
+      },
+      {
+        "title": "Biosecurity Network",
+        "description": "Participate in industry biosecurity information sharing network.",
+        "cost_nok": 600000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Biosecurity information isolation and increased disease risk",
+        "priority": "medium"
+      }
+    ],
+    "FINANCIAL_SECTOR": [
+      {
+        "title": "Debt-to-Equity Optimization",
+        "description": "Reduce debt-to-equity ratio to below 60% through equity injection or debt reduction.",
+        "cost_nok": 15000000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Higher interest rates and reduced credit availability",
+        "priority": "high"
+      },
+      {
+        "title": "Insurance Compliance Upgrade",
+        "description": "Upgrade insurance coverage to include comprehensive environmental liability and business interruption.",
+        "cost_nok": 2000000,
+        "duration_months": 6,
+        "consequence_if_ignored": "Loan covenant violations and increased collateral requirements",
+        "priority": "high"
+      },
+      {
+        "title": "Financial Transparency Enhancement",
+        "description": "Implement enhanced financial reporting with quarterly audited statements and real-time dashboard access.",
+        "cost_nok": 800000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Credit rating downgrade and financing cost increases",
+        "priority": "medium"
+      },
+      {
+        "title": "ESG Reporting Implementation",
+        "description": "Implement comprehensive Environmental, Social, and Governance (ESG) reporting framework.",
+        "cost_nok": 1500000,
+        "duration_months": 8,
+        "consequence_if_ignored": "ESG investment exclusion and sustainable financing restrictions",
+        "priority": "high"
+      },
+      {
+        "title": "Risk Management Framework",
+        "description": "Develop comprehensive enterprise risk management framework with stress testing capabilities.",
+        "cost_nok": 1200000,
+        "duration_months": 10,
+        "consequence_if_ignored": "Risk assessment challenges and potential loan facility reviews",
+        "priority": "medium"
+      },
+      {
+        "title": "Operational Cash Flow Stability",
+        "description": "Demonstrate operational cash flow stability with minimum EBITDA coverage ratios.",
+        "cost_nok": 5000000,
+        "duration_months": 18,
+        "consequence_if_ignored": "Loan covenant breaches and accelerated repayment demands",
+        "priority": "high"
+      },
+      {
+        "title": "Asset Valuation Update",
+        "description": "Conduct independent asset valuation update for all facilities and equipment.",
+        "cost_nok": 600000,
+        "duration_months": 4,
+        "consequence_if_ignored": "Collateral value uncertainties and margin call risks",
+        "priority": "medium"
+      },
+      {
+        "title": "Sustainability Financing Transition",
+        "description": "Transition to sustainability-linked financing with performance-based interest rates.",
+        "cost_nok": 3000000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Higher financing costs and limited access to green financing",
+        "priority": "medium"
+      },
+      {
+        "title": "Working Capital Optimization",
+        "description": "Optimize working capital management with improved inventory turnover and receivables collection.",
+        "cost_nok": 1000000,
+        "duration_months": 8,
+        "consequence_if_ignored": "Liquidity concerns and credit line utilization issues",
+        "priority": "medium"
+      },
+      {
+        "title": "Financial Audit Enhancement",
+        "description": "Engage Big Four accounting firm for enhanced financial audit and internal controls assessment.",
+        "cost_nok": 1500000,
+        "duration_months": 6,
+        "consequence_if_ignored": "Audit quality concerns and financial credibility issues",
+        "priority": "medium"
+      },
+      {
+        "title": "Currency Hedging Strategy",
+        "description": "Implement comprehensive currency hedging strategy for export revenues and cost management.",
+        "cost_nok": 800000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Currency exposure concerns and earnings volatility issues",
+        "priority": "low"
+      },
+      {
+        "title": "Technology Investment Plan",
+        "description": "Develop and fund technology investment plan with ROI projections and implementation timeline.",
+        "cost_nok": 5000000,
+        "duration_months": 24,
+        "consequence_if_ignored": "Technology competitiveness concerns and future earnings potential questions",
+        "priority": "medium"
+      },
+      {
+        "title": "Management Succession Planning",
+        "description": "Develop comprehensive management succession planning and key person insurance.",
+        "cost_nok": 500000,
+        "duration_months": 6,
+        "consequence_if_ignored": "Management continuity risks and operational stability concerns",
+        "priority": "low"
+      },
+      {
+        "title": "Capital Expenditure Optimization",
+        "description": "Optimize capital expenditure planning with detailed ROI analysis and financing options.",
+        "cost_nok": 2000000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Investment efficiency concerns and capital allocation questions",
+        "priority": "medium"
+      },
+      {
+        "title": "Regulatory Capital Compliance",
+        "description": "Maintain regulatory capital requirements for financial stability and growth funding.",
+        "cost_nok": 8000000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Regulatory compliance issues and expansion financing restrictions",
+        "priority": "high"
+      },
+      {
+        "title": "Market Risk Assessment",
+        "description": "Conduct comprehensive market risk assessment including commodity price volatility analysis.",
+        "cost_nok": 700000,
+        "duration_months": 4,
+        "consequence_if_ignored": "Market exposure uncertainties and pricing risk concerns",
+        "priority": "low"
+      },
+      {
+        "title": "Corporate Governance Enhancement",
+        "description": "Enhance corporate governance with independent board members and audit committee.",
+        "cost_nok": 400000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Governance quality concerns and institutional investor restrictions",
+        "priority": "medium"
+      },
+      {
+        "title": "Financial Covenant Compliance",
+        "description": "Ensure ongoing financial covenant compliance with quarterly reporting and early warning systems.",
+        "cost_nok": 300000,
+        "duration_months": 12,
+        "consequence_if_ignored": "Covenant breach risks and loan acceleration possibilities",
+        "priority": "high"
+      },
+      {
+        "title": "Investment Grade Rating",
+        "description": "Achieve investment grade credit rating through financial performance and risk management improvements.",
+        "cost_nok": 3000000,
+        "duration_months": 18,
+        "consequence_if_ignored": "Higher financing costs and limited institutional investor access",
+        "priority": "medium"
+      },
+      {
+        "title": "Liquidity Management Plan",
+        "description": "Develop comprehensive liquidity management plan with backup credit facilities.",
+        "cost_nok": 1000000,
+        "duration_months": 6,
+        "consequence_if_ignored": "Liquidity risk concerns and financing flexibility limitations",
+        "priority": "high"
+      }
+    ]
+  }
+}
