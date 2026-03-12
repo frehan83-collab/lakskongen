@@ -160,23 +160,53 @@ public partial class SaveLoadManager : Node
     /// </summary>
     public bool LoadGame(string fileName)
     {
+        string fullPath = Path.Combine(SAVE_DIRECTORY, fileName);
+        
         try
         {
-            string fullPath = Path.Combine(SAVE_DIRECTORY, fileName);
-            
             using var file = FileAccess.Open(fullPath, FileAccess.ModeFlags.Read);
             if (file == null)
             {
-                throw new Exception($"Save file not found: {fullPath}");
+                string error = $"Save file not found: {fileName}. Please check that the file exists.";
+                EmitSignal(SignalName.LoadFailed, error);
+                GD.PrintErr(error);
+                return false;
             }
             
             string jsonString = file.GetAsText();
             file.Close();
             
-            var saveData = JsonSerializer.Deserialize<SaveGameData>(jsonString, _jsonOptions);
+            // Validate JSON is not empty or corrupted
+            if (string.IsNullOrWhiteSpace(jsonString))
+            {
+                string error = $"Save file '{fileName}' is empty or corrupted. Please try a different save file.";
+                EmitSignal(SignalName.LoadFailed, error);
+                GD.PrintErr(error);
+                TryLoadBackup(fileName);
+                return false;
+            }
+            
+            SaveGameData saveData;
+            try
+            {
+                saveData = JsonSerializer.Deserialize<SaveGameData>(jsonString, _jsonOptions);
+            }
+            catch (JsonException jsonEx)
+            {
+                string error = $"Save file '{fileName}' is corrupted (invalid JSON). Please try a different save file.";
+                EmitSignal(SignalName.LoadFailed, error);
+                GD.PrintErr($"{error} Details: {jsonEx.Message}");
+                TryLoadBackup(fileName);
+                return false;
+            }
+            
             if (saveData?.GameState == null)
             {
-                throw new Exception("Invalid save file format");
+                string error = $"Save file '{fileName}' is missing game data. Please try a different save file.";
+                EmitSignal(SignalName.LoadFailed, error);
+                GD.PrintErr(error);
+                TryLoadBackup(fileName);
+                return false;
             }
             
             // Load the game state into GameBridge
@@ -191,10 +221,24 @@ public partial class SaveLoadManager : Node
         }
         catch (Exception ex)
         {
-            string error = $"Failed to load game '{fileName}': {ex.Message}";
+            string error = $"Unexpected error loading '{fileName}': {ex.Message}. Please try a different save file.";
             EmitSignal(SignalName.LoadFailed, error);
             GD.PrintErr(error);
             return false;
+        }
+    }
+    
+    /// <summary>
+    /// Attempt to load backup file if main save is corrupted
+    /// </summary>
+    private void TryLoadBackup(string fileName)
+    {
+        string backupPath = Path.Combine(SAVE_DIRECTORY, fileName + BACKUP_SUFFIX);
+        if (FileAccess.FileExists(backupPath))
+        {
+            GD.Print($"Found backup file for '{fileName}'. You may try loading the backup manually.");
+            EventBus eventBus = GetNode<EventBus>("/root/EventBus");
+            eventBus?.PostNotification("Backup Available", $"A backup save exists for this file", "info");
         }
     }
 
@@ -282,25 +326,55 @@ public partial class SaveLoadManager : Node
     {
         string fullPath = Path.Combine(SAVE_DIRECTORY, fileName);
         
-        using var file = FileAccess.Open(fullPath, FileAccess.ModeFlags.Read);
-        if (file == null) return null;
-        
-        string jsonString = file.GetAsText();
-        file.Close();
-        
-        var saveData = JsonSerializer.Deserialize<SaveGameData>(jsonString, _jsonOptions);
-        if (saveData?.GameState == null) return null;
-        
-        return new SaveFileInfo
+        try
         {
-            FileName = fileName,
-            SaveName = saveData.SaveName,
-            SaveTime = saveData.SaveTime,
-            GameDay = saveData.GameState.CurrentDay,
-            PlayerName = saveData.GameState.PlayerName,
-            Cash = saveData.GameState.Cash,
-            FileSize = (int)file.GetLength()
-        };
+            using var file = FileAccess.Open(fullPath, FileAccess.ModeFlags.Read);
+            if (file == null) return null;
+            
+            string jsonString = file.GetAsText();
+            long fileSize = file.GetLength();
+            file.Close();
+            
+            // Validate JSON is not empty
+            if (string.IsNullOrWhiteSpace(jsonString))
+            {
+                GD.PrintErr($"Save file '{fileName}' is empty - skipping");
+                return null;
+            }
+            
+            SaveGameData saveData;
+            try
+            {
+                saveData = JsonSerializer.Deserialize<SaveGameData>(jsonString, _jsonOptions);
+            }
+            catch (JsonException jsonEx)
+            {
+                GD.PrintErr($"Save file '{fileName}' has corrupted JSON - skipping. Details: {jsonEx.Message}");
+                return null;
+            }
+            
+            if (saveData?.GameState == null)
+            {
+                GD.PrintErr($"Save file '{fileName}' is missing game state - skipping");
+                return null;
+            }
+            
+            return new SaveFileInfo
+            {
+                FileName = fileName,
+                SaveName = saveData.SaveName ?? "Unknown",
+                SaveTime = saveData.SaveTime,
+                GameDay = saveData.GameState.CurrentDay,
+                PlayerName = saveData.GameState.PlayerName ?? "Unknown",
+                Cash = saveData.GameState.Cash,
+                FileSize = (int)fileSize
+            };
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Error reading save file info for '{fileName}': {ex.Message}");
+            return null;
+        }
     }
 
     private void CreateBackup(string originalPath)
