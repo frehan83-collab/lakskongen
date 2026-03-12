@@ -29,6 +29,9 @@ namespace LakskongenSim.Core
         /// </summary>
         public List<Processing.ProcessingSnapshot> ProcessingSnapshots { get; set; } = new();
 
+        /// <summary>Event history log for the storyteller/event system. Tracks all random events that have occurred.</summary>
+        public List<Events.EventRecord> EventLog { get; set; } = new();
+
         /// <summary>Default constructor for serializer.</summary>
         public GameState()
         {
