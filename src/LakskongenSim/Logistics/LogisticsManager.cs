@@ -18,6 +18,9 @@ namespace LakskongenSim.Logistics
             double bestScore = double.MaxValue;
             foreach (var v in Fleet)
             {
+                // Null check for vehicle
+                if (v == null) continue;
+                
                 double capacity = v switch
                 {
                     Truck t => t.CapacityKg,
@@ -25,6 +28,10 @@ namespace LakskongenSim.Logistics
                     _ => 0
                 };
                 if (capacity <= 0 || capacity < loadKg) continue;
+                
+                // Validate vehicle properties before calculating score
+                if (v.SpeedKmPerH <= 0) continue;
+                
                 // score: cost per km (lower better) + inverse speed (faster preferred)
                 double score = v.CostPerKm + (1.0 / v.SpeedKmPerH);
                 if (score < bestScore)
@@ -40,7 +47,15 @@ namespace LakskongenSim.Logistics
         {
             var dist = RoutePlanner.EstimateDistanceKm(from, to);
             var vehicle = ChooseVehicleForLoad(loadKg);
-            if (vehicle == null) throw new InvalidOperationException("No vehicle available for load");
+            
+            // Graceful handling when no vehicle is available
+            if (vehicle == null)
+            {
+                // Return null vehicle with a high penalty cost to signal unavailability
+                // Caller can check for null vehicle and handle appropriately
+                return (null, double.MaxValue);
+            }
+            
             var cost = RoutePlanner.EstimateCost(vehicle, dist, weatherMultiplier);
             return (vehicle, cost);
         }
