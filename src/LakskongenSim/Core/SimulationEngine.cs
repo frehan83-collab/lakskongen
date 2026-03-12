@@ -1,171 +1,224 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
+using LakskongenSim.Biology;
+using LakskongenSim.Environment;
+using LakskongenSim.Farm;
+using LakskongenSim.Health;
 using LakskongenSim.Sustainability;
 
 namespace LakskongenSim.Core
 {
     /// <summary>
-    /// High-level orchestrator that connects subsystems and advances the simulation.
+    /// Central orchestrator connecting all subsystems in correct update order.
+    /// Update order: Weather → Environment/Water → Biology/Growth → Health/Disease → Market → Finance
     /// </summary>
     public class SimulationEngine
     {
-        private readonly List<object> _systems = new();
         public TimeManager Time { get; } = new();
         public GameState State { get; } = new();
-        
-        // Sustainability system
-        public SustainabilityManager SustainabilityManager { get; private set; }
-        private int _lastSustainabilityUpdate = 0;
-        private const int SUSTAINABILITY_UPDATE_INTERVAL = 7; // Update weekly
-        
-        // Connected systems (set externally or via RegisterSystem)
+
+        // ─── Core subsystems ───
+        public WeatherSystem Weather { get; private set; }
+        public EnvironmentModel Environment { get; private set; }
+        public GrowthModel Growth { get; private set; }
+        public MortalityModel Mortality { get; private set; }
+        public FeedSystem Feed { get; private set; }
+        public SeaLiceModel SeaLice { get; private set; }
+        public DiseaseSystem Disease { get; private set; }
+        public IntegratedDiseaseSystem IntegratedDisease { get; private set; }
+        public Hatchery Hatchery { get; private set; }
         public Market.MarketSimulation MarketSimulation { get; set; }
         public Finance.FinanceManager FinanceManager { get; set; }
+        public SustainabilityManager SustainabilityManager { get; private set; }
+
+        // ─── Update intervals ───
+        private int _lastSustainabilityUpdate = 0;
+        private const int SUSTAINABILITY_UPDATE_INTERVAL = 7; // Weekly
+
+        // ─── Events ───
+        public event Action<int>? OnDayAdvanced;
+        public event Action<string>? OnEventTriggered;
 
         /// <summary>
-        /// Initialize the simulation engine and all subsystems.
+        /// Initialize all subsystems and wire them together.
         /// </summary>
         public void Initialize()
         {
-            // Load sustainability configuration
-            var configPath = Path.Combine("src", "LakskongenSim", "Data", "SustainabilityConfig.json");
-            if (!File.Exists(configPath))
-            {
-                // Fallback: try relative to current directory
-                configPath = Path.Combine("Data", "SustainabilityConfig.json");
-            }
+            // Create subsystems
+            Weather = new WeatherSystem();
+            Environment = new EnvironmentModel();
+            Growth = new GrowthModel();
+            Mortality = new MortalityModel();
+            Feed = new FeedSystem();
+            SeaLice = new SeaLiceModel();
+            Disease = new DiseaseSystem(SeaLice);
+            IntegratedDisease = new IntegratedDiseaseSystem(SeaLice);
+            Hatchery = new Hatchery();
 
-            SustainabilityConfig config;
+            // Default finance and market if not set externally
+            FinanceManager ??= new Finance.FinanceManager(10_000_000m); // 10M NOK starting capital
+            MarketSimulation ??= new Market.MarketSimulation();
+
+            // Load sustainability configuration
+            SustainabilityConfig sustainConfig;
+            var configPath = Path.Combine("Data", "SustainabilityConfig.json");
             if (File.Exists(configPath))
             {
-                var configJson = File.ReadAllText(configPath);
-                config = JsonSerializer.Deserialize<SustainabilityConfig>(configJson) ?? new SustainabilityConfig();
+                var json = File.ReadAllText(configPath);
+                sustainConfig = JsonSerializer.Deserialize<SustainabilityConfig>(json) ?? new SustainabilityConfig();
             }
             else
             {
-                // Use default config if file not found
-                config = new SustainabilityConfig();
-                Console.WriteLine("⚠️ SustainabilityConfig.json not found, using defaults");
+                sustainConfig = new SustainabilityConfig();
             }
+            SustainabilityManager = new SustainabilityManager(sustainConfig);
 
-            // Create sustainability manager
-            SustainabilityManager = new SustainabilityManager(config);
-
-            // Subscribe to sustainability events
+            // Wire events
             SustainabilityManager.OnScoreChanged += OnSustainabilityScoreChanged;
             SustainabilityManager.OnCertificationChanged += OnCertificationChanged;
 
-            Console.WriteLine("✅ Sustainability system initialized");
+            // Hatchery → population
+            Hatchery.OnNewCohort += cohort =>
+            {
+                if (State.Populations.Count == 0)
+                {
+                    State.Populations.Add(new FishPopulation(Growth, Mortality));
+                }
+                State.Populations[0].AddCohort(cohort);
+            };
+
+            // Feed cost → finance
+            Feed.OnFeedCostIncurred += cost =>
+            {
+                FinanceManager.Spend(cost);
+            };
+
+            Console.WriteLine("✅ SimulationEngine initialized — all subsystems wired");
         }
 
         /// <summary>
-        /// Register a system to be managed. Systems should subscribe to TimeManager themselves or expose Tick.
-        /// </summary>
-        public void RegisterSystem(object system)
-        {
-            _systems.Add(system);
-        }
-
-        /// <summary>
-        /// Advance the whole simulation by given days.
+        /// Advance the simulation by the given number of days.
+        /// Executes all subsystems in correct dependency order.
         /// </summary>
         public void Advance(int days)
         {
-            Time.AdvanceDays(days);
-            
-            // Update sustainability score weekly
-            if (SustainabilityManager != null && State.Day - _lastSustainabilityUpdate >= SUSTAINABILITY_UPDATE_INTERVAL)
+            if (days <= 0) return;
+
+            for (int day = 0; day < days; day++)
             {
-                SustainabilityManager.UpdateScore(State);
-                _lastSustainabilityUpdate = State.Day;
+                AdvanceOneDay();
             }
-            
+
             State.Day += days;
+            OnDayAdvanced?.Invoke(State.Day);
         }
 
-        // Event handlers for sustainability system
+        /// <summary>
+        /// Single-day tick — the core simulation loop.
+        /// </summary>
+        private void AdvanceOneDay()
+        {
+            // ═══════════════════════════════════════════
+            // PHASE 1: WEATHER & ENVIRONMENT
+            // ═══════════════════════════════════════════
+            Weather.AdvanceDays(1);
+            double temperature = Weather.CurrentTemperatureC;
+
+            // Update zone temperatures and water chemistry
+            foreach (var zone in State.Zones)
+            {
+                zone.SetTemperature(temperature);
+                zone.AdvanceDays(1); // This updates WaterChemistry internally
+            }
+
+            Environment.AdvanceDays(1);
+
+            // ═══════════════════════════════════════════
+            // PHASE 2: BIOLOGY (Growth & Mortality)
+            // ═══════════════════════════════════════════
+            foreach (var population in State.Populations)
+            {
+                // Get water chemistry penalty from the zone this population is in
+                double waterPenalty = 1.0;
+                var zone = State.Zones.FirstOrDefault(z => z.Id == population.ZoneId);
+                if (zone != null)
+                {
+                    waterPenalty = zone.WaterChemistry.CalculateGrowthPenalty();
+
+                    // Update zone biomass for water chemistry calculations
+                    double biomassKg = population.Cohorts.Sum(c => c.Count * c.MeanWeightKg);
+                    zone.CurrentFishBiomassKg = biomassKg;
+                }
+
+                // Apply growth with environmental modifiers
+                // For now use cohort-based growth; individual SDE growth used when performance allows
+                population.AdvanceDays(1);
+
+                // Feed the population (generates waste for water chemistry)
+                Feed.Feed(population, 1);
+            }
+
+            // ═══════════════════════════════════════════
+            // PHASE 3: HEALTH (Disease & Sea Lice)
+            // ═══════════════════════════════════════════
+            SeaLice.AdvanceDays(1);
+
+            // Use integrated disease system with LOD for performance
+            IntegratedDisease.Update(
+                State.Zones.ToList(),
+                State.Populations.ToList(),
+                1);
+
+            // ═══════════════════════════════════════════
+            // PHASE 4: MARKET & FINANCE
+            // ═══════════════════════════════════════════
+            MarketSimulation.AdvanceDays(1);
+
+            // ═══════════════════════════════════════════
+            // PHASE 5: SUSTAINABILITY (weekly)
+            // ═══════════════════════════════════════════
+            if (State.Day - _lastSustainabilityUpdate >= SUSTAINABILITY_UPDATE_INTERVAL)
+            {
+                SustainabilityManager?.UpdateScore(State);
+                _lastSustainabilityUpdate = State.Day;
+            }
+        }
+
+        // ─── Sustainability event handlers ───
+
         private void OnSustainabilityScoreChanged(int score, CertificationLevel level)
         {
-            Console.WriteLine($"🌱 Sustainability Score: {score}/100 ({level})");
-            
-            // Update finance bonuses based on score
-            if (FinanceManager != null)
-            {
-                FinanceManager.UpdateSustainabilityBonuses(score);
-            }
-            
-            // Trigger achievements
+            FinanceManager?.UpdateSustainabilityBonuses(score);
+
             if (score >= 95 && level == CertificationLevel.SustainabilityLeader)
             {
-                Console.WriteLine("🏆 Achievement Unlocked: Sustainability Leader!");
+                OnEventTriggered?.Invoke("🏆 Achievement: Sustainability Leader!");
             }
         }
 
         private void OnCertificationChanged(CertificationLevel newLevel)
         {
-            Console.WriteLine($"📜 Certification Changed: {newLevel}");
-            
-            // Update market system with new certification
-            if (MarketSimulation != null)
+            if (MarketSimulation != null && SustainabilityManager != null)
             {
                 var multiplier = SustainabilityManager.GetPriceMultiplier(newLevel);
                 MarketSimulation.UpdateCertificationLevel(newLevel, multiplier);
             }
-            
-            // Apply financial bonuses/penalties
-            ApplyCertificationBonuses(newLevel);
-            
-            // Log news headlines for major certifications
-            switch (newLevel)
+
+            // Non-compliance fines
+            if (newLevel == CertificationLevel.NonCompliant && State.Day % 90 == 0)
             {
-                case CertificationLevel.ASCCertified:
-                    Console.WriteLine("📰 News: Farm Achieves ASC Certification!");
-                    break;
-                case CertificationLevel.OrganicCertified:
-                    Console.WriteLine("📰 News: Organic Certification Awarded!");
-                    break;
-                case CertificationLevel.SustainabilityLeader:
-                    Console.WriteLine("📰 News: Industry Leader - Sustainability Excellence!");
-                    break;
-                case CertificationLevel.NonCompliant:
-                    Console.WriteLine("⚠️ News: Environmental Compliance Warning!");
-                    break;
+                FinanceManager?.Spend(50_000m);
+                OnEventTriggered?.Invoke("💸 Non-compliance fine: 50,000 NOK");
             }
         }
-        
+
         /// <summary>
-        /// Apply financial bonuses and penalties based on certification level.
+        /// Register a system for generic management. Specific subsystems should be
+        /// set via properties instead (Weather, Disease, etc.).
         /// </summary>
-        private void ApplyCertificationBonuses(CertificationLevel level)
-        {
-            if (FinanceManager == null || SustainabilityManager == null) return;
-            
-            var score = SustainabilityManager.CurrentScore;
-            
-            // Non-Compliant penalty: 50,000 NOK quarterly fine
-            if (level == CertificationLevel.NonCompliant)
-            {
-                if (State.Day % 90 == 0) // Every quarter
-                {
-                    FinanceManager.Spend(50_000m);
-                    Console.WriteLine("💸 Non-compliance fine: 50,000 NOK");
-                }
-            }
-            
-            // ESG Investment bonus at 80+ score (applied when making green tech investments)
-            // This would be checked in investment systems, not applied here directly
-            if (score >= 80)
-            {
-                Console.WriteLine("✅ ESG Investment Bonus Active: 30% discount on green technology");
-            }
-            
-            // Government grant multiplier at 95+ score
-            if (level == CertificationLevel.SustainabilityLeader)
-            {
-                Console.WriteLine("🏅 Government Grant Multiplier Active: 1.5x on all grants");
-            }
-        }
+        public void RegisterSystem(object system) { /* reserved for future plugin/mod systems */ }
     }
 }
