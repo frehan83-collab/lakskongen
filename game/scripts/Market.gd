@@ -52,8 +52,9 @@ func get_spot_price_for_week(week: int) -> float:
 # Apply size multiplier based on MarketData.SIZE_PREMIERS
 func apply_size_multiplier(price_per_kg: float, size_kg: float) -> float:
     for band in MarketData.SIZE_PREMIERS:
-        if size_kg >= band["min"] and size_kg <= band["max"]:
-            return price_per_kg * band["mult"]
+        if band.has("min") and band.has("max") and band.has("mult"):
+            if size_kg >= band["min"] and size_kg <= band["max"]:
+                return price_per_kg * band["mult"]
     return price_per_kg
 
 # Apply quality multiplier
@@ -66,7 +67,7 @@ func apply_quality_multiplier(price_per_kg: float, quality: String) -> float:
 # Apply export market multiplier
 func apply_market_multiplier(price_per_kg: float, market_name: String) -> float:
     var m = MarketData.get_market_by_name(market_name)
-    if m.empty():
+    if m.empty() or not m.has("price_multiplier"):
         return price_per_kg
     return price_per_kg * float(m.get("price_multiplier", 1.0))
 
@@ -84,8 +85,8 @@ func price_for_sale(week: int, size_kg: float, quality: String, export_market: S
         var contract_price = _peek_contract_price()
         # Apply product type processing margins
         var prod = MarketData.get_product_type(product_type)
-        var proc_mult = prod.has("margin_multiplier") ? prod["margin_multiplier"] : 1.0
-        var proc_cost = prod.has("processing_cost_per_kg") ? prod["processing_cost_per_kg"] : 0.0
+        var proc_mult = prod.get("margin_multiplier", 1.0)
+        var proc_cost = prod.get("processing_cost_per_kg", 0.0)
         return contract_price * proc_mult + proc_cost
 
     var spot = get_spot_price_for_week(week)
@@ -97,8 +98,8 @@ func price_for_sale(week: int, size_kg: float, quality: String, export_market: S
     # Apply product type margin/cost
     var prod = MarketData.get_product_type(product_type)
     if prod.size() > 0:
-        var proc_mult = prod.has("margin_multiplier") ? prod["margin_multiplier"] : 1.0
-        var proc_cost = prod.has("processing_cost_per_kg") ? prod["processing_cost_per_kg"] : 0.0
+        var proc_mult = prod.get("margin_multiplier", 1.0)
+        var proc_cost = prod.get("processing_cost_per_kg", 0.0)
         p = p * proc_mult + proc_cost
 
     return max(0.0, p)
@@ -133,6 +134,10 @@ func fulfill_contract(volume_kg: float) -> float:
     if active_contracts.size() == 0:
         return -1.0
     var c = active_contracts[0]
+    if not c.has("volume_kg") or not c.has("locked_price_per_kg"):
+        push_error("Contract missing required keys")
+        active_contracts.remove_at(0)
+        return -1.0
     var used = min(volume_kg, float(c["volume_kg"]))
     c["volume_kg"] = float(c["volume_kg"]) - used
     if c["volume_kg"] <= 0:
@@ -142,15 +147,22 @@ func fulfill_contract(volume_kg: float) -> float:
 # Advance week counters for contracts - call once per week tick
 func advance_week():
     for i in range(active_contracts.size() - 1, -1, -1):
-        active_contracts[i]["weeks_remaining"] -= 1
-        if active_contracts[i]["weeks_remaining"] <= 0:
+        if active_contracts[i].has("weeks_remaining"):
+            active_contracts[i]["weeks_remaining"] -= 1
+            if active_contracts[i]["weeks_remaining"] <= 0:
+                active_contracts.remove_at(i)
+        else:
+            push_error("Contract missing 'weeks_remaining' key")
             active_contracts.remove_at(i)
 
 # Utility: estimate split of production by export market using MarketData.EXPORT_MARKETS
 func estimate_market_distribution(total_kg: float) -> Dictionary:
     var out = {}
     for m in MarketData.EXPORT_MARKETS:
-        out[m["name"]] = total_kg * float(m["volume_share"])
+        if m.has("name") and m.has("volume_share"):
+            out[m["name"]] = total_kg * float(m["volume_share"])
+        else:
+            push_warning("Market entry missing 'name' or 'volume_share' - skipping")
     return out
 
 # End of Market.gd
