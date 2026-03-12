@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "Lakskongen Sustainability Configuration",
+  "version": "1.0.0",
+  "description": "Scoring thresholds and certification requirements for the sustainability system",
+  
+  "seaLice": {
+    "excellentMax": 0.2,
+    "acceptableMax": 0.5,
+    "mechanicalDelouseBonus": 5,
+    "description": "Female lice per fish thresholds. <0.2 = excellent, 0.2-0.5 = acceptable, >0.5 = poor"
+  },
+  
+  "escapes": {
+    "perfectMax": 0,
+    "acceptableMax": 10,
+    "closedContainmentBonus": 5,
+    "description": "Annual escape count. Zero = perfect, 1-10 = acceptable, >10 = poor"
+  },
+  
+  "feed": {
+    "sustainableMinimum": 0.8,
+    "advancedFeedBonus": 5,
+    "description": "Sustainable feed source percentage. 80%+ recommended. Bonus for insect meal/algae"
+  },
+  
+  "carbon": {
+    "renewableEnergyTarget": 0.5,
+    "electricVesselBonus": 3,
+    "description": "Renewable energy percentage. 50%+ target. Bonus for electric vessels"
+  },
+  
+  "welfare": {
+    "maxDensityRatio": 0.8,
+    "electricalStunningBonus": 2,
+    "description": "Stocking density as ratio of max allowed. <80% = good. Bonus for humane slaughter"
+  },
+  
+  "ecosystem": {
+    "benthicHealthMinimum": 0.7,
+    "nutrientDischargeMax": 100.0,
+    "description": "Seabed health (70%+ healthy) and nutrient discharge (kg/day max)"
+  },
+  
+  "certificationMinScores": {
+    "NonCompliant": 0,
+    "BasicCompliance": 50,
+    "ASCCertified": 70,
+    "OrganicCertified": 85,
+    "SustainabilityLeader": 95
+  },
+  
+  "priceMultipliers": {
+    "NonCompliant": 0.85,
+    "BasicCompliance": 1.00,
+    "ASCCertified": 1.08,
+    "OrganicCertified": 1.15,
+    "SustainabilityLeader": 1.15
+  },
+  
+  "bonuses": {
+    "esgInvestmentBonus": 0.30,
+    "governmentGrantMultiplier": 1.5,
+    "nonComplianceFinePerQuarter": 50000,
+    "descriptions": {
+      "esgInvestmentBonus": "30% subsidy on green tech investments at 80+ score",
+      "governmentGrantMultiplier": "1.5x government grants at 95+ score (Sustainability Leader)",
+      "nonComplianceFinePerQuarter": "50,000 NOK quarterly fine if score <50 (NonCompliant)"
+    }
+  },
+  
+  "categoryWeights": {
+    "seaLiceManagement": 25,
+    "escapePrevention": 20,
+    "feedSustainability": 20,
+    "carbonFootprint": 15,
+    "welfareStandards": 10,
+    "ecosystemImpact": 10,
+    "total": 100,
+    "description": "Point allocation per category. Total must equal 100."
+  },
+  
+  "marketAccess": {
+    "NonCompliant": {
+      "markets": ["Domestic", "Russia"],
+      "restrictions": "Cannot export to EU, USA, Japan. Major buyers refuse contracts."
+    },
+    "BasicCompliance": {
+      "markets": ["Domestic", "EU", "USA", "Russia", "China"],
+      "restrictions": "Standard markets only. No premium buyers."
+    },
+    "ASCCertified": {
+      "markets": ["All standard markets", "Whole Foods", "Waitrose"],
+      "priceBonus": "+8%",
+      "restrictions": "None. Access to premium retail chains."
+    },
+    "OrganicCertified": {
+      "markets": ["All markets", "Japan Premium", "Michelin Restaurants"],
+      "priceBonus": "+15%",
+      "restrictions": "None. Full access including ultra-premium."
+    },
+    "SustainabilityLeader": {
+      "markets": ["All markets"],
+      "priceBonus": "+15% plus ESG grants",
+      "extraBenefits": [
+        "Government grants for innovation",
+        "Lower interest rates on loans (ESG investors)",
+        "Media awards and positive press",
+        "Industry leadership reputation"
+      ]
+    }
+  },
+  
+  "auditSystem": {
+    "frequency": "Quarterly",
+    "randomInspectionChance": 0.15,
+    "failurePenalties": {
+      "firstViolation": 25000,
+      "secondViolation": 75000,
+      "thirdViolation": "License suspension risk"
+    },
+    "recertificationTime": {
+      "ASCCertified": 90,
+      "OrganicCertified": 180,
+      "SustainabilityLeader": 365,
+      "unit": "days"
+    }
+  }
+}
