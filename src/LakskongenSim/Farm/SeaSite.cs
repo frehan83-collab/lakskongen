@@ -10,7 +10,13 @@ namespace LakskongenSim.Farm
     public class SeaSite
     {
         public string Id { get; init; }
+        public string ZoneId { get; set; } = ""; // Links to Environment.Zone
         public List<Biology.FishPopulation> Pens { get; } = new();
+
+        // License & MAB (Maximum Allowed Biomass)
+        public double MABTonnes { get; set; } = 780.0; // Standard license: 780 tonnes
+        public double CurrentBiomassTonnes => CurrentStockingDensity * PenVolume / 1000.0;
+        public bool IsOverMAB => CurrentBiomassTonnes > MABTonnes;
 
         // Sustainability integration properties
         public int EscapesThisYear { get; private set; } = 0;
@@ -18,20 +24,30 @@ namespace LakskongenSim.Farm
         public float CurrentStockingDensity { get; private set; } = 0f; // kg/m³
         public float MaxAllowedDensity { get; set; } = 25.0f; // kg/m³ (Norwegian standard)
         public float PenVolume { get; set; } = 50000f; // m³ (default pen volume)
+        public int NumberOfPens { get; set; } = 8; // Typical Norwegian site: 6-10 pens
 
         public event Action<Biology.FishPopulation>? OnStocked;
-        public event Action<int>? OnEscapeEvent; // Emits fish count
+        public event Action<int>? OnEscapeEvent;
+        public event Action? OnMABExceeded;
 
-        public SeaSite(string id)
+        public SeaSite(string id, string zoneId = "")
         {
             Id = id;
+            ZoneId = zoneId;
         }
 
         public void Stock(Biology.FishPopulation pop)
         {
+            pop.ZoneId = ZoneId; // Link population to this site's zone
             Pens.Add(pop);
             OnStocked?.Invoke(pop);
             UpdateStockingDensity();
+
+            // Check MAB limit
+            if (IsOverMAB)
+            {
+                OnMABExceeded?.Invoke();
+            }
         }
 
         /// <summary>Advance all pens by days.</summary>
