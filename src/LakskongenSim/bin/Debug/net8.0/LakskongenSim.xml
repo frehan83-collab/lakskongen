@@ -357,6 +357,82 @@
             Used by AudioController.gd to select which BGM to crossfade to.
             </summary>
         </member>
+        <member name="T:LakskongenSim.Core.DataExporter">
+             <summary>
+             Exports simulation data to CSV files for external analysis (Excel, Python, R, etc.).
+            
+             Number formatting uses Norwegian locale conventions:
+               - Decimal separator: comma (,)
+               - Thousands separator: space ( )
+               - CSV field separator: semicolon (;) to avoid conflicts with decimal comma
+            
+             All monetary values are in NOK.
+             </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DataExporter.ExportDailySnapshots(System.String)">
+            <summary>
+            Exports all recorded daily snapshots to CSV.
+            Columns: Dag;Fiskeantall;Totalbiomasse_kg;Gjennomsnittsvekt_kg;
+                     Temperatur_C;Markedspris_NOK;Saldo_NOK;FCR;Lus_per_fisk;
+                     Baerekraftsscore;Doedsrate
+            </summary>
+            <param name="path">Full file path for the output CSV.</param>
+            <returns>Number of rows written (excluding header).</returns>
+        </member>
+        <member name="M:LakskongenSim.Core.DataExporter.ExportFinancialReport(System.String)">
+             <summary>
+             Exports a financial summary report derived from daily snapshots.
+             Groups data by 30-day periods and calculates revenue proxies,
+             balance changes, and trend indicators.
+            
+             Columns: Periode;FraDag;TilDag;Saldo_start_NOK;Saldo_slutt_NOK;
+                      Endring_NOK;Gj_markedspris_NOK;Gj_biomasse_kg;
+                      Gj_baerekraftsscore;Gj_FCR
+             </summary>
+             <param name="path">Full file path for the output CSV.</param>
+             <returns>Number of period rows written.</returns>
+        </member>
+        <member name="M:LakskongenSim.Core.DataExporter.ExportPopulationData(System.String)">
+             <summary>
+             Exports detailed fish population data from daily snapshots.
+             Focuses on biological performance metrics.
+            
+             Columns: Dag;Fiskeantall;Totalbiomasse_kg;Gjennomsnittsvekt_kg;
+                      Temperatur_C;Lus_per_fisk;Doedsrate;Baerekraftsscore
+             </summary>
+             <param name="path">Full file path for the output CSV.</param>
+             <returns>Number of rows written.</returns>
+        </member>
+        <member name="M:LakskongenSim.Core.DataExporter.ExportEventHistory(System.String)">
+             <summary>
+             Exports the full event history log.
+            
+             Columns: Dag;Hendelses-ID;Navn;Kategori;Beskrivelse;Saldoendring_NOK
+             </summary>
+             <param name="path">Full file path for the output CSV.</param>
+             <returns>Number of event rows written.</returns>
+        </member>
+        <member name="M:LakskongenSim.Core.DataExporter.ExportAll(System.String)">
+            <summary>
+            Exports all four datasets to the given directory in one call.
+            Files are named with the current simulation day for easy versioning.
+            </summary>
+            <param name="directory">Target directory path.</param>
+        </member>
+        <member name="M:LakskongenSim.Core.DataExporter.FormatDecimal(System.Double,System.Int32)">
+            <summary>
+            Format a double using Norwegian locale (comma decimal, space thousands).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DataExporter.EscapeCsvField(System.String)">
+            <summary>
+            Escape a CSV field value: wrap in quotes and double any internal quotes.
+            Used for free-text fields like descriptions and names.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ExportSummary">
+            <summary>Summary of a multi-file export operation.</summary>
+        </member>
         <member name="T:LakskongenSim.Core.Enums">
             <summary>
             Enumerations used across the simulation.
@@ -438,6 +514,230 @@
         </member>
         <member name="M:LakskongenSim.Core.GameState.#ctor">
             <summary>Default constructor for serializer.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ModManifest">
+            <summary>
+            Declares the metadata for a single mod package.
+            Stored as manifest.json at the root of each mod folder.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModManifest.Files">
+            <summary>
+            Relative paths (from the mod folder) of JSON data files to load.
+            Supported types: events, research_nodes, fish_species, scenarios.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModManifest.Dependencies">
+            <summary>Other mod IDs that must be loaded before this one.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModManifest.Enabled">
+            <summary>Set at runtime; not part of the JSON file.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ModEventDefinition">
+            <summary>JSON-serializable event definition for mods (no delegate fields).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModEventDefinition.Effects">
+            <summary>
+            Simple numeric effects applied when the event fires.
+            Keys: "balance_change", "lice_change", "sustainability_change", "mortality_change".
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModEventDefinition.ConditionMinBalance">
+            <summary>Optional condition: minimum balance required (NOK) for the event to trigger.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModEventDefinition.ConditionMinDay">
+            <summary>Optional condition: minimum day index required.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ModResearchNode">
+            <summary>JSON-serializable research node for mods.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ModFishSpecies">
+            <summary>JSON-serializable fish species data for mods.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModFishSpecies.GrowthRateMultiplier">
+            <summary>Base growth rate multiplier relative to Atlantic salmon (1.0).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModFishSpecies.OptimalTempMin">
+            <summary>Optimal temperature range in °C.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModFishSpecies.BaseFCR">
+            <summary>Base FCR (Feed Conversion Ratio).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModFishSpecies.PriceMultiplier">
+            <summary>Market price multiplier relative to Atlantic salmon spot price.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ModScenario">
+            <summary>JSON-serializable custom scenario for mods.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModScenario.InitialBalanceNOK">
+            <summary>Initial balance in NOK (may differ from StartingCapitalNOK for debt scenarios).</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.LoadedMod">
+            <summary>All data parsed from a single mod package.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ModLoader">
+             <summary>
+             Discovers and loads mod packages from a <c>mods/</c> directory.
+            
+             Each mod is a subfolder containing a <c>manifest.json</c> plus any number
+             of JSON data files referenced from the manifest's <c>files</c> list.
+            
+             Supported file naming conventions (matched by first path segment after the
+             last slash, case-insensitive):
+               events_*.json        → ModEventDefinition[]
+               research_*.json      → ModResearchNode[]
+               fish_*.json          → ModFishSpecies[]
+               scenarios_*.json     → ModScenario[]
+             </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ModLoader.DiscoverAndLoad">
+            <summary>
+            Scan the mods directory, load all valid mod packages in dependency order,
+            and return the collection of successfully loaded mods.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ModLoader.SetModEnabled(System.String,System.Boolean)">
+            <summary>
+            Enable or disable a mod by ID.  Changes take effect on the next <see cref="M:LakskongenSim.Core.ModLoader.DiscoverAndLoad"/> call.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ModLoader.BuildEventDefinitions">
+            <summary>
+            Collect all ModEventDefinitions from every enabled loaded mod,
+            converting them into runtime EventDefinition objects with simple numeric effects.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ModLoader.GetAllResearchNodes">
+            <summary>Returns all ModResearchNode entries from enabled mods.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ModLoader.GetAllFishSpecies">
+            <summary>Returns all ModFishSpecies entries from enabled mods.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ModLoader.GetAllScenarios">
+            <summary>Returns all ModScenario entries from enabled mods.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.PlayerProfile">
+            <summary>
+            Snapshot of a single player's state in a multiplayer session.
+            JSON-serializable so it can be broadcast over the network layer.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.PlayerProfile.Color">
+            <summary>Hex color string, e.g. "#E87B3A".</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.PlayerProfile.CumulativeProfit">
+            <summary>Cumulative net profit since session start (NOK).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.PlayerProfile.SustainabilityScore">
+            <summary>Sustainability score 0–100 (mirrors SustainabilityManager).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.PlayerProfile.WelfareScore">
+            <summary>Fish welfare index 0–100.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.PlayerProfile.CompositeScore">
+            <summary>Composite rank score used for leaderboard sorting.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.TradeOffer">
+            <summary>
+            A bilateral trade offer between two players.
+            Supports fish (tonnes), contracts, and licenses.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TradeOffer.Quantity">
+            <summary>
+            Quantity (tonnes for fish; 1 for contract/license).
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TradeOffer.ItemId">
+            <summary>Reference ID for contract or license items.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TradeOffer.PriceNok">
+            <summary>Agreed price in NOK.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TradeOffer.CreatedOnDay">
+            <summary>Day the offer was created (for expiry logic).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TradeOffer.ExpiryDays">
+            <summary>Offer expires if not accepted within this many days.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.MultiplayerSettings.MaxPlayers">
+            <summary>Max players (2–8).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.MultiplayerSettings.SessionLengthDays">
+            <summary>Session length in simulated days (0 = endless).</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.MultiplayerManager">
+             <summary>
+             Pure C# multiplayer session manager — no Godot dependencies.
+             Manages the player roster, game mode, shared market access,
+             competitive scoring, trade offers, lobby state, and chat.
+            
+             The Godot layer (MultiplayerLobby.gd / MultiplayerHUD.gd) drives this
+             manager via method calls and subscribes to its events for UI updates.
+             Actual network transport (ENet / WebSocket / relay) is handled outside
+             this class; it only models the session logic.
+             </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.MultiplayerManager.SharedMarket">
+            <summary>
+            Shared market instance — all players read from the same price curve
+            so competition is fair.  Set by the host before play begins.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.AddPlayer(System.String,System.String,System.String,System.Decimal)">
+            <summary>
+            Add a player to the lobby. First player is automatically the host.
+            Returns false if the lobby is full or the session has already started.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.RemovePlayer(System.String)">
+            <summary>Remove a player by id (disconnect / leave lobby).</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.SetPlayerReady(System.String,System.Boolean)">
+            <summary>Toggle a player's ready status.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.StartGame">
+            <summary>
+            Host transitions the session from Waiting → Playing.
+            Returns false if conditions are not met.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.EndGame">
+            <summary>Host or timer ends the session → Playing → Finished.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.AdvanceDay">
+            <summary>
+            Advance simulation day.  In Simultaneous mode all players advance
+            together.  In TurnBased mode only the active player's engine ticks,
+            then control passes to the next player.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.MultiplayerManager.CurrentTurnPlayerId">
+            <summary>Returns the id of the player whose turn it is (TurnBased).</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.UpdatePlayerStats(System.String,System.Decimal,System.Int32,System.Decimal,System.Single,System.Single)">
+            <summary>
+            Update a player's live stats (called every sim tick from the Godot bridge).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.RefreshLeaderboard">
+            <summary>Rebuild and broadcast the sorted leaderboard.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.CreateTradeOffer(System.String,System.String,LakskongenSim.Core.TradeItemType,System.Single,System.Decimal,System.String)">
+            <summary>
+            Initiate a trade offer from one player to another.
+            Returns null if either player is not in the session.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.RespondToTradeOffer(System.String,System.Boolean)">
+            <summary>
+            Respond to a pending trade offer.
+            If accepted, transfers balance between players (fish/license transfer
+            must be completed by the calling layer).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.ToString">
+            <summary>Human-readable summary for debug logging.</summary>
         </member>
         <member name="T:LakskongenSim.Core.ResearchNode">
             <summary>
@@ -527,6 +827,125 @@
             <summary>
             Rotate existing backups: .bak2→.bak3, .bak1→.bak2, primary→.bak1.
             The oldest backup (.bak3) is deleted to make room.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ScenarioDefinition">
+            <summary>
+            Defines a playable scenario with starting conditions, objectives, and special rules.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.Id">
+            <summary>Unique snake_case identifier (e.g. "forste_sesong").</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.Name">
+            <summary>Display name in Norwegian.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.Description">
+            <summary>Flavour text describing the scenario premise.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.StartingCapitalNOK">
+            <summary>Starting bank balance in NOK (may be negative for debt scenarios).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.StartingRegion">
+            <summary>Primary Norwegian production region for this scenario.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.Difficulty">
+            <summary>Difficulty rating from 1 (easiest) to 5 (hardest).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.WinCondition">
+            <summary>Primary victory objective type.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.SpecialRules">
+            <summary>
+            Scenario-specific rule overrides and numeric targets.
+            Common keys:
+              "profit_target"         — decimal NOK threshold for Profit/Competition win
+              "sustainability_target" — int score threshold for Sustainability win
+              "ai_competitors"        — int count for Competition scenario
+              "single_site"           — "true" to restrict to one sea site
+              "harsh_storms"          — "true" for elevated storm frequency
+              "premium_prices"        — "true" for export price bonus
+              "start_disease"         — "true" to begin with an active disease outbreak
+              "start_debt"            — "true" signals negative starting capital
+              "regulation_pressure"   — "true" for stricter compliance thresholds
+              "calm_weather"          — "true" to suppress severe weather
+              "easy_market"           — "true" for reduced price volatility
+            Values are always strings; parse as needed.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.TimeLimitDays">
+            <summary>Optional day limit — null means unlimited time.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.IsUnlocked">
+            <summary>Whether this scenario is available to play (false = locked).</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ScenarioSystem">
+             <summary>
+             Campaign system: manages the scenario roster, tracks the active scenario,
+             and checks win/loss conditions on every simulated day.
+            
+             Integration: call <see cref="M:LakskongenSim.Core.ScenarioSystem.CheckWinConditions(System.Int32,System.Boolean)"/> once per day inside
+             SimulationEngine.Advance(), after all subsystem updates.
+             Wire <see cref="E:LakskongenSim.Core.ScenarioSystem.OnScenarioWon"/> and <see cref="E:LakskongenSim.Core.ScenarioSystem.OnScenarioLost"/> in GameBridge
+             to emit Godot signals to the UI layer.
+             </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioSystem.ActiveScenario">
+            <summary>The currently active scenario, or null if none selected.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioSystem.IsScenarioActive">
+            <summary>True while a scenario is running.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioSystem.IsWon">
+            <summary>True once the player has met the win condition.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioSystem.IsLost">
+            <summary>True once a loss condition has been triggered.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioSystem.LossReason">
+            <summary>Human-readable loss reason set when <see cref="P:LakskongenSim.Core.ScenarioSystem.IsLost"/> becomes true.</summary>
+        </member>
+        <member name="E:LakskongenSim.Core.ScenarioSystem.OnScenarioWon">
+            <summary>Fired when the player meets the scenario's win condition.</summary>
+        </member>
+        <member name="E:LakskongenSim.Core.ScenarioSystem.OnScenarioLost">
+            <summary>Fired when the player fails the scenario. Second argument is the reason string.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ScenarioSystem.StartScenario(System.String)">
+            <summary>
+            Activate a scenario. Applies starting capital to <see cref="P:LakskongenSim.Core.GameState.Balance"/>
+            and seeds AI competitor state if this is a Competition scenario.
+            </summary>
+            <exception cref="T:System.ArgumentException">Unknown scenario id.</exception>
+            <exception cref="T:System.InvalidOperationException">Scenario is locked.</exception>
+        </member>
+        <member name="M:LakskongenSim.Core.ScenarioSystem.CheckWinConditions(System.Int32,System.Boolean)">
+            <summary>
+            Evaluate win and loss conditions for the active scenario.
+            Call once per simulated day after all subsystem updates complete.
+            </summary>
+            <param name="sustainabilityScore">Current 0–100 sustainability score.</param>
+            <param name="tutorialComplete">True when TutorialSystem has finished all steps.</param>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioSystem.All">
+            <summary>All registered scenarios, keyed by id.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ScenarioSystem.GetScenario(System.String)">
+            <summary>Look up a scenario by id, returning null if not found.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ScenarioSystem.GetAll">
+            <summary>All scenarios visible to the player (unlocked or locked).</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ScenarioSystem.GetUnlocked">
+            <summary>Only unlocked scenarios.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ScenarioSystem.Unlock(System.String)">
+            <summary>Unlock a scenario (call after completing a prerequisite).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioSystem.AiProgress">
+            <summary>
+            AI competitor accumulated profit for Competition scenarios (read-only).
+            Keys are "ai_1", "ai_2", etc.
             </summary>
         </member>
         <member name="T:LakskongenSim.Core.SimulationEngine">
@@ -719,6 +1138,16 @@
         <member name="T:LakskongenSim.Data.EnvironmentalParameter">
             <summary>
             Environmental monitoring parameters
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.ProductionRegion">
+            <summary>
+            Norwegian production regions for salmon farming
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.WinCondition">
+            <summary>
+            Win conditions for scenario objectives
             </summary>
         </member>
         <member name="T:LakskongenSim.Data.GameConstants">

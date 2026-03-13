@@ -141,7 +141,13 @@ namespace LakskongenSim.Core
                 Description = "Achieve FCR below 1.15 for a full year",
                 Tier = AchievementTier.Novice,
                 RewardNOK = 75_000m,
-                Condition = gs => false // TODO: Track yearly FCR
+                Condition = gs =>
+                {
+                    if (gs.Day < 365 || gs.DailySnapshots.Count < 365) return false;
+                    var lastYear = gs.DailySnapshots.Where(s => s.Day >= gs.Day - 365 && s.Day <= gs.Day).ToList();
+                    if (lastYear.Count < 300) return false; // At least 300 days of data
+                    return lastYear.All(s => s.FCR > 0 && s.FCR < 1.15);
+                }
             });
 
             Register(new Achievement
@@ -162,7 +168,7 @@ namespace LakskongenSim.Core
                 Description = "Achieve ASC certification status",
                 Tier = AchievementTier.Intermediate,
                 RewardNOK = 150_000m,
-                Condition = gs => false // TODO: Check sustainability certification
+                Condition = gs => gs.HasASCCertification
             });
 
             Register(new Achievement
@@ -182,7 +188,7 @@ namespace LakskongenSim.Core
                 Description = "Breed a strain with +2.0 breeding value in growth",
                 Tier = AchievementTier.Intermediate,
                 RewardNOK = 250_000m,
-                Condition = gs => false // TODO: Track breeding values
+                Condition = gs => gs.BestGrowthBreedingValue >= 2.0
             });
 
             Register(new Achievement
@@ -213,7 +219,12 @@ namespace LakskongenSim.Core
                 Description = "Achieve 95+ sustainability score",
                 Tier = AchievementTier.Advanced,
                 RewardNOK = 500_000m,
-                Condition = gs => false // TODO: Check sustainability score
+                Condition = gs =>
+                {
+                    if (gs.DailySnapshots.Count == 0) return false;
+                    var latest = gs.DailySnapshots.Last();
+                    return latest.SustainabilityScore >= 95;
+                }
             });
 
             Register(new Achievement
@@ -233,7 +244,7 @@ namespace LakskongenSim.Core
                 Description = "Own feed mill, hatchery, farms, and processing plant",
                 Tier = AchievementTier.Advanced,
                 RewardNOK = 600_000m,
-                Condition = gs => false // TODO: Check vertical integration status
+                Condition = gs => gs.OwnsFeedMill && gs.OwnsHatchery && gs.OwnsProcessingPlant && gs.SeaSites.Count > 0
             });
 
             Register(new Achievement
@@ -243,7 +254,7 @@ namespace LakskongenSim.Core
                 Description = "Acquire 3 competitor farms during crises",
                 Tier = AchievementTier.Advanced,
                 RewardNOK = 400_000m,
-                Condition = gs => false // TODO: Track acquisitions
+                Condition = gs => gs.AcquisitionCount >= 3
             });
 
             Register(new Achievement
@@ -253,7 +264,12 @@ namespace LakskongenSim.Core
                 Description = "Export to all 6 major markets (EU, USA, China, Japan, UK, Middle East)",
                 Tier = AchievementTier.Advanced,
                 RewardNOK = 550_000m,
-                Condition = gs => false // TODO: Track export markets
+                Condition = gs => gs.ExportMarkets.Contains("EU") &&
+                                  gs.ExportMarkets.Contains("USA") &&
+                                  gs.ExportMarkets.Contains("China") &&
+                                  gs.ExportMarkets.Contains("Japan") &&
+                                  gs.ExportMarkets.Contains("UK") &&
+                                  gs.ExportMarkets.Contains("MiddleEast")
             });
 
             // ─── MASTER TIER (10+ years, elite players) ───
@@ -274,7 +290,7 @@ namespace LakskongenSim.Core
                 Description = "Achieve FCR of 1.05 or better",
                 Tier = AchievementTier.Master,
                 RewardNOK = 1_000_000m,
-                Condition = gs => false // TODO: Track best FCR
+                Condition = gs => gs.BestFCR > 0 && gs.BestFCR <= 1.05
             });
 
             Register(new Achievement
@@ -294,7 +310,7 @@ namespace LakskongenSim.Core
                 Description = "Breed ISA-resistant strain (0.5+ BV in disease resistance)",
                 Tier = AchievementTier.Master,
                 RewardNOK = 1_500_000m,
-                Condition = gs => false // TODO: Track breeding values
+                Condition = gs => gs.BestDiseaseResistanceBreedingValue >= 0.5
             });
 
             Register(new Achievement
@@ -341,7 +357,7 @@ namespace LakskongenSim.Core
                 Description = "Recover from bankruptcy (balance below 0) to profitability",
                 Tier = AchievementTier.Hidden,
                 RewardNOK = 250_000m,
-                Condition = gs => false // TODO: Track balance history
+                Condition = gs => gs.MinimumBalanceEver < 0 && gs.Balance >= 1_000_000m
             });
         }
 
