@@ -265,3 +265,18 @@ public enum EnvironmentalParameter
     AlgaeLevel,
     JellyfishDensity
 }
+
+/// <summary>
+/// Norwegian production regions for salmon farming
+/// </summary>
+public enum ProductionRegion
+{
+    Nordland,
+    Troms,
+    Finnmark,
+    Trøndelag,
+    Vestland,
+    Rogaland,
+    MøreOgRomsdal,
+    Sørlandet
+}
