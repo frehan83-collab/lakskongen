@@ -891,8 +891,12 @@
             Serialize <paramref name="state"/> to &lt;saveName&gt;.json.
             The existing file is rotated into backup slots before being overwritten.
             All public properties in GameState are automatically serialized, including:
+            - Analytics (DailySnapshots, ProcessingSnapshots)
+            - Events (EventLog)
             - Research (UnlockedResearchIds, ActiveResearchId, ResearchProgress)
-            - Achievements (ExportMarkets, AcquisitionCount, UnlockedAchievementIds, etc.)
+            - Markets (ExportMarkets, ContractActive)
+            - Expansion (AcquisitionCount)
+            - Achievements (UnlockedAchievementIds)
             - Sustainability (SustainabilityScore, SustainabilityCertification, FeedSustainabilityRating)
             - Scenarios (ActiveScenarioId, ScenarioIsWon, ScenarioIsLost, ScenarioLossReason, ScenarioStartDay)
             - Tutorial (TutorialCurrentStepIndex, CompletedTutorialStepIds)

@@ -1,0 +1,5 @@
+C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.csproj.AssemblyReference.cache
+C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.AssemblyInfoInputs.cache
+C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.AssemblyInfo.cs
+C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.csproj.CoreCompileInputs.cache

@@ -1,0 +1,2351 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>LakskongenSim</name>
+    </assembly>
+    <members>
+        <member name="T:LakskongenSim.Biology.FishPopulation">
+            <summary>
+            Cohort-based fish population model. Each cohort is a record of age, count and mean weight.
+            Uses biologically-accurate 7-stage salmon lifecycle from Data.LifeStage.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Biology.FishPopulation.Cohort">
+            <summary>
+            Represents a cohort in the population.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.FishPopulation.Cohort.#ctor(System.Int32,System.Int32,System.Double,LakskongenSim.Data.LifeStage)">
+            <summary>
+            Represents a cohort in the population.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Biology.FishPopulation.Id">
+            <summary>Unique identifier for this population.</summary>
+        </member>
+        <member name="P:LakskongenSim.Biology.FishPopulation.Cohorts">
+            <summary>List of cohorts in this population.</summary>
+        </member>
+        <member name="P:LakskongenSim.Biology.FishPopulation.TotalCount">
+            <summary>Total count of all fish across all cohorts.</summary>
+        </member>
+        <member name="P:LakskongenSim.Biology.FishPopulation.ZoneId">
+            <summary>Zone this population resides in.</summary>
+        </member>
+        <member name="P:LakskongenSim.Biology.FishPopulation.HasRecentTreatment">
+            <summary>Whether this population had a recent treatment (resets after 30 days).</summary>
+        </member>
+        <member name="P:LakskongenSim.Biology.FishPopulation.TreatmentIntensity">
+            <summary>Treatment intensity (0.0-1.0) from last treatment.</summary>
+        </member>
+        <member name="P:LakskongenSim.Biology.FishPopulation.SeaLiceLoad">
+            <summary>Sea lice load (average lice per fish) for this population.</summary>
+        </member>
+        <member name="P:LakskongenSim.Biology.FishPopulation.GrowthPenalty">
+            <summary>Growth penalty multiplier from disease resistance fitness cost. Serialized for save/load.</summary>
+        </member>
+        <member name="E:LakskongenSim.Biology.FishPopulation.OnPopulationChanged">
+            <summary>Raised when cohorts change (spawn/growth/mortality). Not serialized (events are excluded by default).</summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.FishPopulation.#ctor">
+            <summary>Parameterless constructor for JSON deserialization. GrowthModel/MortalityModel must be injected post-load by the simulation engine.</summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.FishPopulation.AddCohort(LakskongenSim.Biology.FishPopulation.Cohort)">
+            <summary>Add a new cohort to the population.</summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.FishPopulation.TriggerOnPopulationChanged">
+            <summary>Triggers the OnPopulationChanged event. Used by external systems that modify cohorts directly.</summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.FishPopulation.AdvanceDays(System.Int32)">
+            <summary>Advance the population by days: age, apply growth and mortality.</summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.FishPopulation.DetermineStage(System.Int32)">
+            <summary>
+            Determine life stage based on age in days.
+            Based on Norwegian salmon lifecycle: Egg→Alevin→Fry→Parr→Smolt→Seawater→Harvest
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.FishPopulation.ApplyGrowthPenalty(System.Double)">
+            <summary>
+            Apply a growth penalty from disease resistance fitness cost.
+            Penalty is subtracted from effective growth rate (0.0 = no penalty).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.FishPopulation.GetGrowthPenalty">
+            <summary>Get current growth penalty.</summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.FishPopulation.GetIndividuals">
+            <summary>
+            Get individual fish representations for agent-based disease simulation.
+            Creates lightweight proxies from cohort data (not persistent — regenerated each call).
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Biology.Genetics">
+            <summary>
+            Quantitative genetics system for salmon breeding programs.
+            Models 8 heritable traits with realistic heritabilities (h²), genetic correlations,
+            and breeding value estimation (BLUP-inspired simplified approach).
+            Norwegian breeding programs: AquaGen, SalmoBreed, Mowi Genetics.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.Genetics.GenerateRandomGenome">
+            <summary>
+            Generate a random genome with trait values centered around population mean.
+            Each trait is a Breeding Value (BV) relative to population mean (0 = average).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.Genetics.Breed(LakskongenSim.Biology.Genome,LakskongenSim.Biology.Genome)">
+            <summary>
+            Breed two parents to produce offspring genome.
+            Implements: Mendelian segregation (50/50 parental contribution),
+            environmental variance, genetic correlation effects.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.Genetics.EstimateBreedingValue(LakskongenSim.Data.GeneticTrait,System.Double,System.Int32)">
+            <summary>
+            Estimate breeding value from phenotypic observations (simplified BLUP).
+            accuracy = sqrt(h² × n / (1 + (n-1) × h²)) where n = number of observations
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.Genetics.ExpectedGeneticGain(LakskongenSim.Data.GeneticTrait,System.Double,System.Double)">
+            <summary>
+            Calculate expected genetic gain per generation.
+            ΔG = i × h² × σ_p where i = selection intensity, σ_p = phenotypic std dev
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.Genetics.SelectBreeders(System.Collections.Generic.List{LakskongenSim.Biology.Genome},LakskongenSim.Data.GeneticTrait,System.Double)">
+            <summary>
+            Select best breeders from a population based on a trait or index.
+            Returns top fraction ordered by breeding value.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.Genetics.SelectByIndex(System.Collections.Generic.List{LakskongenSim.Biology.Genome},System.Collections.Generic.Dictionary{LakskongenSim.Data.GeneticTrait,System.Double},System.Double)">
+            <summary>
+            Select breeders using a multi-trait selection index.
+            Weights determine relative importance of each trait.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.Genetics.CalculateSelectionIndex(LakskongenSim.Biology.Genome,System.Collections.Generic.Dictionary{LakskongenSim.Data.GeneticTrait,System.Double})">
+            <summary>Calculate weighted selection index for a genome.</summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.Genetics.GetHeritability(LakskongenSim.Data.GeneticTrait)">
+            <summary>Get heritability for a trait.</summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.Genetics.GetCorrelation(LakskongenSim.Data.GeneticTrait,LakskongenSim.Data.GeneticTrait)">
+            <summary>Get genetic correlation between two traits.</summary>
+        </member>
+        <member name="T:LakskongenSim.Biology.Genome">
+            <summary>
+            A salmon's genetic profile — breeding values for all heritable traits.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.Genome.GetGrowthMultiplier">
+            <summary>
+            Get the phenotypic effect of this genome on growth rate.
+            Returns multiplier (1.0 = average, 1.2 = 20% faster, etc.)
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.Genome.GetDiseaseResistanceMultiplier">
+            <summary>Get disease resistance multiplier (higher = more resistant).</summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.Genome.GetFCRMultiplier">
+            <summary>Get FCR multiplier (lower = better conversion).</summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.Genome.GetFilletQuality">
+            <summary>Get fillet quality score (0-100, higher = better).</summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.Genome.GetSummary">
+            <summary>Get summary of this genome for display.</summary>
+        </member>
+        <member name="T:LakskongenSim.Biology.GrowthModel">
+            <summary>
+            Simplified growth model that adjusts mean weight.
+            Uses biologically-accurate 7-stage salmon lifecycle.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.GrowthModel.ApplyGrowth(System.Double,System.Int32,LakskongenSim.Data.LifeStage)">
+            <summary>Apply growth over a number of days for a cohort.</summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.GrowthModel.ApplySDEGrowthOneDay(System.Double,System.Double,System.Double,System.Double,System.Double,LakskongenSim.Data.LifeStage)">
+            <summary>
+            Apply SDE-based growth for individual fish tracking over one day.
+            Correct mathematical formulation: dW = α(T) × W^γ × (1 − W/K) × dt + σ × sqrt([dt]) × N(0,1)
+            where dt = 1 day, K is genetic asymptotic weight (4-6 kg ±15%), α(T) temperature-dependent.
+            </summary>
+            <param name="weight">Current weight in kg</param>
+            <param name="temperature">Water temperature in °C</param>
+            <param name="geneticAsymptoticWeight">Genetic asymptotic weight K (4-6 kg baseline)</param>
+            <param name="geneticGrowthRate">Genetic maximum growth rate α_max (1-100 scale)</param>
+            <param name="individualVariance">Individual variance σ (epigenetic + stochastic)</param>
+            <param name="lifeStage">Current life stage for stage-specific modifiers</param>
+            <returns>New weight after one day</returns>
+        </member>
+        <member name="M:LakskongenSim.Biology.GrowthModel.ApplySDEGrowthMultipleDays(System.Double,System.Int32,System.Double,System.Double,System.Double,System.Double,LakskongenSim.Data.LifeStage)">
+            <summary>
+            Apply SDE growth over multiple days (batch processing optimized).
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Biology.MortalityModel">
+            <summary>
+            Mortality model applying daily mortality rates.
+            Uses biologically-accurate 7-stage salmon lifecycle.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.MortalityModel.ApplyMortality(System.Int32,System.Int32,LakskongenSim.Data.LifeStage)">
+            <summary>Apply mortality over days, return surviving count (rounded to int).</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.AchievementSystem">
+            <summary>
+            Achievement/milestone tracking system for player progression.
+            50+ achievements spanning beginner to mastery tiers.
+            Achievements unlock notifications, badges, and bonuses.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.AchievementSystem.CheckAchievements">
+            <summary>Check all achievements and unlock any that meet conditions.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.AnalyticsMetric">
+            <summary>
+            Metric keys used throughout the analytics system.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.DailySnapshot">
+            <summary>
+            One snapshot of key performance metrics captured at the end of each simulated day.
+            Fully JSON-serializable for save/load.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.Day">
+            <summary>Simulation day this snapshot was captured on.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.FishCount">
+            <summary>Total live fish count across all populations.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.TotalBiomassKg">
+            <summary>Total fish biomass in kg.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.AvgWeightKg">
+            <summary>Average individual fish weight in kg.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.TemperatureC">
+            <summary>Sea temperature in °C.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.MarketPriceNok">
+            <summary>Market price in NOK/kg.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.BalanceNok">
+            <summary>Farm balance in NOK.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.FCR">
+            <summary>Current Feed Conversion Ratio.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.LicePerFish">
+            <summary>Average sea lice per fish.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.SustainabilityScore">
+            <summary>Sustainability score (0–100).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.MortalityRate">
+            <summary>Daily mortality rate as a fraction (0.0–1.0).</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DailySnapshot.GetMetric(System.String)">
+            <summary>
+            Return the value of a named metric. Returns NaN if unknown.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.TrendDirection">
+            <summary>
+            Direction of a metric trend.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.AnalyticsTracker">
+            <summary>
+            Captures daily metric snapshots and provides time-series analytics:
+            moving averages, trend detection, and all-time highs/lows.
+            Attached to GameState and fed by SimulationEngine each day.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Core.AnalyticsTracker.TrendThreshold">
+            <summary>Minimum slope magnitude (as fraction of mean) to count as a trend.</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.AnalyticsTracker._snapshots">
+            <summary>The snapshot list stored in GameState (injected, not owned here).</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.AnalyticsTracker.#ctor(System.Collections.Generic.List{LakskongenSim.Core.DailySnapshot})">
+            <param name="snapshotList">Reference to GameState.DailySnapshots.</param>
+        </member>
+        <member name="M:LakskongenSim.Core.AnalyticsTracker.RecordSnapshot(LakskongenSim.Core.SimulationEngine)">
+            <summary>
+            Record a snapshot from the current simulation state.
+            Called at the end of each AdvanceOneDay().
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.AnalyticsTracker.GetTimeSeries(System.String,System.Int32)">
+            <summary>
+            Returns the values of <paramref name="metric"/> for the last <paramref name="lastNDays"/> days,
+            oldest-first. Returns all available data if fewer snapshots exist.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.AnalyticsTracker.GetMovingAverage(System.String,System.Int32,System.Int32)">
+            <summary>
+            Returns a simple moving average of <paramref name="metric"/> over the last
+            <paramref name="lastNDays"/> days, using a rolling window of <paramref name="windowDays"/>.
+            The output list has the same length as the input window (NaN for early positions).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.AnalyticsTracker.GetTrend(System.String,System.Int32)">
+            <summary>
+            Returns the trend of <paramref name="metric"/> over the last <paramref name="lastNDays"/> days
+            using linear regression slope. Up / Down / Stable.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.AnalyticsTracker.GetAllTimeHigh(System.String)">
+            <summary>Returns the all-time highest recorded value for <paramref name="metric"/>.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.AnalyticsTracker.GetAllTimeLow(System.String)">
+            <summary>Returns the all-time lowest recorded value for <paramref name="metric"/>.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.AnalyticsTracker.SnapshotCount">
+            <summary>Number of snapshots recorded so far.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.AnalyticsTracker.LinearRegressionSlope(System.Collections.Generic.List{System.Double})">
+            <summary>
+            Ordinary least-squares slope for a 0-indexed series (x = index, y = value).
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.AmbienceProfile">
+             <summary>
+             Pure C# state tracker for ambient audio. Zero Godot dependencies.
+             Derives an ambience profile from weather state, season, location context,
+             and any active alert.  Consumed by GameBridge → SimBridge → AudioController.gd.
+            
+             Ambience base tracks:  calm_sea | storm | wind | rain | harbor | processing_plant
+             Weather overlay tracks: "" | wind | rain | storm
+             Alert one-shots:        "" | disease_outbreak | market_crash | achievement |
+                                        harvest | lice_warning
+             </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.AudioContext">
+            <summary>Player location context — influences base ambience track.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.AudioManager">
+            <summary>
+            Simulation-aware audio state machine. Updated once per simulated day
+            via <see cref="M:LakskongenSim.Core.AudioManager.Update(System.Int32)"/>; queried any time via <see cref="M:LakskongenSim.Core.AudioManager.GetAmbienceProfile"/>.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.AudioManager.TriggerAlert(System.String)">
+            <summary>
+            Queue an alert sound to be played once.
+            Valid keys: disease_outbreak, market_crash, achievement, harvest, lice_warning.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.AudioManager.ClearAlert">
+            <summary>Clear the pending alert (called by AudioController after playback).</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.AudioManager.Update(System.Int32)">
+            <summary>
+            Sync state from the current simulation day and weather system.
+            Called by SimulationEngine.AdvanceOneDay() after Weather.AdvanceDays().
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.AudioManager.GetAmbienceProfile">
+            <summary>
+            Returns the current ambience profile consumed by AudioController.gd.
+            <list type="bullet">
+              <item><b>BaseTrack</b>  — primary looping ambient (location + weather-derived)</item>
+              <item><b>WeatherLayer</b> — additive weather overlay (empty when calm)</item>
+              <item><b>AlertLayer</b>  — one-shot alert key, empty when none pending</item>
+              <item><b>Volume</b>      — master volume scalar 0–1</item>
+            </list>
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.AudioManager.GetSeasonalTrack">
+            <summary>
+            Returns the background music track name for the current season.
+            Used by AudioController.gd to select which BGM to crossfade to.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.DataExporter">
+             <summary>
+             Exports simulation data to CSV files for external analysis (Excel, Python, R, etc.).
+            
+             Number formatting uses Norwegian locale conventions:
+               - Decimal separator: comma (,)
+               - Thousands separator: space ( )
+               - CSV field separator: semicolon (;) to avoid conflicts with decimal comma
+            
+             All monetary values are in NOK.
+             </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DataExporter.ExportDailySnapshots(System.String)">
+            <summary>
+            Exports all recorded daily snapshots to CSV.
+            Columns: Dag;Fiskeantall;Totalbiomasse_kg;Gjennomsnittsvekt_kg;
+                     Temperatur_C;Markedspris_NOK;Saldo_NOK;FCR;Lus_per_fisk;
+                     Baerekraftsscore;Doedsrate
+            </summary>
+            <param name="path">Full file path for the output CSV.</param>
+            <returns>Number of rows written (excluding header).</returns>
+        </member>
+        <member name="M:LakskongenSim.Core.DataExporter.ExportFinancialReport(System.String)">
+             <summary>
+             Exports a financial summary report derived from daily snapshots.
+             Groups data by 30-day periods and calculates revenue proxies,
+             balance changes, and trend indicators.
+            
+             Columns: Periode;FraDag;TilDag;Saldo_start_NOK;Saldo_slutt_NOK;
+                      Endring_NOK;Gj_markedspris_NOK;Gj_biomasse_kg;
+                      Gj_baerekraftsscore;Gj_FCR
+             </summary>
+             <param name="path">Full file path for the output CSV.</param>
+             <returns>Number of period rows written.</returns>
+        </member>
+        <member name="M:LakskongenSim.Core.DataExporter.ExportPopulationData(System.String)">
+             <summary>
+             Exports detailed fish population data from daily snapshots.
+             Focuses on biological performance metrics.
+            
+             Columns: Dag;Fiskeantall;Totalbiomasse_kg;Gjennomsnittsvekt_kg;
+                      Temperatur_C;Lus_per_fisk;Doedsrate;Baerekraftsscore
+             </summary>
+             <param name="path">Full file path for the output CSV.</param>
+             <returns>Number of rows written.</returns>
+        </member>
+        <member name="M:LakskongenSim.Core.DataExporter.ExportEventHistory(System.String)">
+             <summary>
+             Exports the full event history log.
+            
+             Columns: Dag;Hendelses-ID;Navn;Kategori;Beskrivelse;Saldoendring_NOK
+             </summary>
+             <param name="path">Full file path for the output CSV.</param>
+             <returns>Number of event rows written.</returns>
+        </member>
+        <member name="M:LakskongenSim.Core.DataExporter.ExportAll(System.String)">
+            <summary>
+            Exports all four datasets to the given directory in one call.
+            Files are named with the current simulation day for easy versioning.
+            </summary>
+            <param name="directory">Target directory path.</param>
+        </member>
+        <member name="M:LakskongenSim.Core.DataExporter.FormatDecimal(System.Double,System.Int32)">
+            <summary>
+            Format a double using Norwegian locale (comma decimal, space thousands).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DataExporter.EscapeCsvField(System.String)">
+            <summary>
+            Escape a CSV field value: wrap in quotes and double any internal quotes.
+            Used for free-text fields like descriptions and names.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ExportSummary">
+            <summary>Summary of a multi-file export operation.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.Enums">
+            <summary>
+            Enumerations used across the simulation.
+            Note: LifeStage and ProductType are now defined in LakskongenSim.Data.Enums
+            for biological accuracy (7-stage salmon lifecycle).
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.GameConstants">
+            <summary>
+            Global game constants and default configuration values.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.CurrencySymbol">
+            <summary>Currency symbol used in the simulation (NOK).</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.DefaultTickDays">
+            <summary>Default number of days per simulation tick.</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.BaselineMortalityPerDay">
+            <summary>Baseline mortality rate per day (approx 0.15 per year).</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.BaselineGrowthPerDay">
+            <summary>Baseline growth rate per day (percentage of weight).</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.VB_Linf_g">
+            <summary>Asymptotic/maximum expected weight (grams).</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.VB_k_per_day">
+            <summary>Growth coefficient (per day).</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.VB_t0_days">
+            <summary>von Bertalanffy t0 (days).</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.TypicalFCR">
+            <summary>Typical feed conversion ratio (kg feed / kg growth).</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.GameState">
+            <summary>
+            Serializable snapshot of the game's state. Designed to be JSON-friendly.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.Day">
+            <summary>Current simulation date (day index).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.Balance">
+            <summary>Monetary balance in NOK.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.Zones">
+            <summary>List of zones in the environment.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.SeaSites">
+            <summary>List of active farms/sea sites.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.Populations">
+            <summary>Fish populations across the system.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ProcessingSnapshots">
+            <summary>Processing P&amp;L snapshot (summary per plant). New systems can push ProcessingSnapshot objects here for dashboards.
+            Kept as a simple serializable structure so front-end/Dashboard can display aggregate processing profit/loss.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.EventLog">
+            <summary>Event history log for the storyteller/event system. Tracks all random events that have occurred.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.DailySnapshots">
+            <summary>
+            Daily analytics snapshots recorded by AnalyticsTracker.
+            One entry per simulated day; used by charting UI and trend analysis.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.UnlockedResearchIds">
+            <summary>IDs of all research nodes the player has completed.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ActiveResearchId">
+            <summary>ID of the research node currently being studied (null if idle).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ResearchProgress">
+            <summary>Days of progress accumulated on the active research.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ExportMarkets">
+            <summary>Export markets the player has sold to (e.g., "EU", "USA", "China", "Japan", "UK", "MiddleEast").</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.AcquisitionCount">
+            <summary>Number of competitor farms acquired.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ContractActive">
+            <summary>Whether the player has an active long-term contract.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.OwnsFeedMill">
+            <summary>Whether the player owns a feed mill.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.OwnsHatchery">
+            <summary>Whether the player owns a hatchery.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.OwnsProcessingPlant">
+            <summary>Whether the player owns a processing plant.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.HasASCCertification">
+            <summary>Whether the player has achieved ASC certification.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.BestFCR">
+            <summary>Best (lowest) FCR achieved by the player.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.BestGrowthBreedingValue">
+            <summary>Highest breeding value achieved for growth trait.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.BestDiseaseResistanceBreedingValue">
+            <summary>Highest breeding value achieved for disease resistance trait.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.MinimumBalanceEver">
+            <summary>Historical minimum balance (to detect bankruptcy recovery).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.FeedSustainabilityRating">
+            <summary>Feed sustainability rating (0.0-1.0) based on sustainable feed purchases. 1.0 = 100% sustainable sources.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.SustainabilityScore">
+            <summary>Sustainability score (0-100) computed by SustainabilityManager.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.SustainabilityCertification">
+            <summary>Current certification level based on sustainability score.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.UnlockedAchievementIds">
+            <summary>IDs of unlocked achievements.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ActiveScenarioId">
+            <summary>Active scenario ID, if any.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ScenarioIsWon">
+            <summary>Whether the active scenario has been won.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ScenarioIsLost">
+            <summary>Whether the active scenario has been lost.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ScenarioLossReason">
+            <summary>Reason for scenario loss, if any.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ScenarioStartDay">
+            <summary>Day the scenario started (day index).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.TutorialCurrentStepIndex">
+            <summary>Current tutorial step index (0-based).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.CompletedTutorialStepIds">
+            <summary>IDs of completed tutorial steps.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.LogisticsManager">
+            <summary>Logistics manager for vehicle fleet and carbon footprint tracking.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.GameState.#ctor">
+            <summary>Default constructor for serializer.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ModManifest">
+            <summary>
+            Declares the metadata for a single mod package.
+            Stored as manifest.json at the root of each mod folder.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModManifest.Files">
+            <summary>
+            Relative paths (from the mod folder) of JSON data files to load.
+            Supported types: events, research_nodes, fish_species, scenarios.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModManifest.Dependencies">
+            <summary>Other mod IDs that must be loaded before this one.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModManifest.Enabled">
+            <summary>Set at runtime; not part of the JSON file.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ModEventDefinition">
+            <summary>JSON-serializable event definition for mods (no delegate fields).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModEventDefinition.Effects">
+            <summary>
+            Simple numeric effects applied when the event fires.
+            Keys: "balance_change", "lice_change", "sustainability_change", "mortality_change".
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModEventDefinition.ConditionMinBalance">
+            <summary>Optional condition: minimum balance required (NOK) for the event to trigger.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModEventDefinition.ConditionMinDay">
+            <summary>Optional condition: minimum day index required.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ModResearchNode">
+            <summary>JSON-serializable research node for mods.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ModFishSpecies">
+            <summary>JSON-serializable fish species data for mods.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModFishSpecies.GrowthRateMultiplier">
+            <summary>Base growth rate multiplier relative to Atlantic salmon (1.0).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModFishSpecies.OptimalTempMin">
+            <summary>Optimal temperature range in °C.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModFishSpecies.BaseFCR">
+            <summary>Base FCR (Feed Conversion Ratio).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModFishSpecies.PriceMultiplier">
+            <summary>Market price multiplier relative to Atlantic salmon spot price.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ModScenario">
+            <summary>JSON-serializable custom scenario for mods.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ModScenario.InitialBalanceNOK">
+            <summary>Initial balance in NOK (may differ from StartingCapitalNOK for debt scenarios).</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.LoadedMod">
+            <summary>All data parsed from a single mod package.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ModLoader">
+             <summary>
+             Discovers and loads mod packages from a <c>mods/</c> directory.
+            
+             Each mod is a subfolder containing a <c>manifest.json</c> plus any number
+             of JSON data files referenced from the manifest's <c>files</c> list.
+            
+             Supported file naming conventions (matched by first path segment after the
+             last slash, case-insensitive):
+               events_*.json        → ModEventDefinition[]
+               research_*.json      → ModResearchNode[]
+               fish_*.json          → ModFishSpecies[]
+               scenarios_*.json     → ModScenario[]
+             </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ModLoader.DiscoverAndLoad">
+            <summary>
+            Scan the mods directory, load all valid mod packages in dependency order,
+            and return the collection of successfully loaded mods.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ModLoader.SetModEnabled(System.String,System.Boolean)">
+            <summary>
+            Enable or disable a mod by ID.  Changes take effect on the next <see cref="M:LakskongenSim.Core.ModLoader.DiscoverAndLoad"/> call.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ModLoader.BuildEventDefinitions">
+            <summary>
+            Collect all ModEventDefinitions from every enabled loaded mod,
+            converting them into runtime EventDefinition objects with simple numeric effects.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ModLoader.GetAllResearchNodes">
+            <summary>Returns all ModResearchNode entries from enabled mods.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ModLoader.GetAllFishSpecies">
+            <summary>Returns all ModFishSpecies entries from enabled mods.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ModLoader.GetAllScenarios">
+            <summary>Returns all ModScenario entries from enabled mods.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.PlayerProfile">
+            <summary>
+            Snapshot of a single player's state in a multiplayer session.
+            JSON-serializable so it can be broadcast over the network layer.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.PlayerProfile.Color">
+            <summary>Hex color string, e.g. "#E87B3A".</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.PlayerProfile.CumulativeProfit">
+            <summary>Cumulative net profit since session start (NOK).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.PlayerProfile.SustainabilityScore">
+            <summary>Sustainability score 0–100 (mirrors SustainabilityManager).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.PlayerProfile.WelfareScore">
+            <summary>Fish welfare index 0–100.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.PlayerProfile.CompositeScore">
+            <summary>Composite rank score used for leaderboard sorting.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.TradeOffer">
+            <summary>
+            A bilateral trade offer between two players.
+            Supports fish (tonnes), contracts, and licenses.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TradeOffer.Quantity">
+            <summary>
+            Quantity (tonnes for fish; 1 for contract/license).
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TradeOffer.ItemId">
+            <summary>Reference ID for contract or license items.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TradeOffer.PriceNok">
+            <summary>Agreed price in NOK.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TradeOffer.CreatedOnDay">
+            <summary>Day the offer was created (for expiry logic).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TradeOffer.ExpiryDays">
+            <summary>Offer expires if not accepted within this many days.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.MultiplayerSettings.MaxPlayers">
+            <summary>Max players (2–8).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.MultiplayerSettings.SessionLengthDays">
+            <summary>Session length in simulated days (0 = endless).</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.MultiplayerManager">
+             <summary>
+             Pure C# multiplayer session manager — no Godot dependencies.
+             Manages the player roster, game mode, shared market access,
+             competitive scoring, trade offers, lobby state, and chat.
+            
+             The Godot layer (MultiplayerLobby.gd / MultiplayerHUD.gd) drives this
+             manager via method calls and subscribes to its events for UI updates.
+             Actual network transport (ENet / WebSocket / relay) is handled outside
+             this class; it only models the session logic.
+             </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.MultiplayerManager.SharedMarket">
+            <summary>
+            Shared market instance — all players read from the same price curve
+            so competition is fair.  Set by the host before play begins.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.AddPlayer(System.String,System.String,System.String,System.Decimal)">
+            <summary>
+            Add a player to the lobby. First player is automatically the host.
+            Returns false if the lobby is full or the session has already started.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.RemovePlayer(System.String)">
+            <summary>Remove a player by id (disconnect / leave lobby).</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.SetPlayerReady(System.String,System.Boolean)">
+            <summary>Toggle a player's ready status.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.StartGame">
+            <summary>
+            Host transitions the session from Waiting → Playing.
+            Returns false if conditions are not met.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.EndGame">
+            <summary>Host or timer ends the session → Playing → Finished.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.AdvanceDay">
+            <summary>
+            Advance simulation day.  In Simultaneous mode all players advance
+            together.  In TurnBased mode only the active player's engine ticks,
+            then control passes to the next player.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.MultiplayerManager.CurrentTurnPlayerId">
+            <summary>Returns the id of the player whose turn it is (TurnBased).</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.UpdatePlayerStats(System.String,System.Decimal,System.Int32,System.Decimal,System.Single,System.Single)">
+            <summary>
+            Update a player's live stats (called every sim tick from the Godot bridge).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.RefreshLeaderboard">
+            <summary>Rebuild and broadcast the sorted leaderboard.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.CreateTradeOffer(System.String,System.String,LakskongenSim.Core.TradeItemType,System.Single,System.Decimal,System.String)">
+            <summary>
+            Initiate a trade offer from one player to another.
+            Returns null if either player is not in the session.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.RespondToTradeOffer(System.String,System.Boolean)">
+            <summary>
+            Respond to a pending trade offer.
+            If accepted, transfers balance between players (fish/license transfer
+            must be completed by the calling layer).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.MultiplayerManager.ToString">
+            <summary>Human-readable summary for debug logging.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ResearchNode">
+            <summary>
+            A single node in the tech tree. Immutable definition plus mutable unlock state.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ResearchSystem">
+            <summary>
+            Tech tree with 25 research nodes across 5 branches.
+            Tracks active research progress and fires OnResearchCompleted on completion.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ResearchSystem.ActiveResearchId">
+            <summary>ID of the research currently in progress (null if idle).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ResearchSystem.ResearchProgress">
+            <summary>Days elapsed on the active research.</summary>
+        </member>
+        <member name="E:LakskongenSim.Core.ResearchSystem.OnResearchCompleted">
+            <summary>Fires when a research node completes.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ResearchSystem.StartResearch(System.String)">
+            <summary>
+            Start researching a node. Validates prerequisites and idle state.
+            Does NOT deduct cost — caller is responsible for balance check and deduction.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ResearchSystem.CancelResearch">
+            <summary>Cancel the active research (no cost refund).</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ResearchSystem.AdvanceDay">
+            <summary>Advance one simulation day. Fires OnResearchCompleted on completion.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ResearchSystem.ArePrerequisitesMet(System.String)">
+            <summary>True if the node's prerequisites are all unlocked.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ResearchSystem.CanResearch(System.String)">
+            <summary>True if the node can be started (prereqs met, not unlocked, not active).</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ResearchSystem.GetAvailableNodes">
+            <summary>All nodes with prerequisites met and not yet unlocked.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ResearchSystem.GetUnlockedIds">
+            <summary>All unlocked research node IDs (for save/load serialization).</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ResearchSystem.GetTotalEffect(System.String)">
+            <summary>
+            Sum all unlocked effects for a given key.
+            Returns 0.0 if no unlocked node contributes to that key.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ResearchSystem.ForceUnlock(System.String)">
+            <summary>Restore an unlocked node without triggering the completion event.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ResearchSystem.RestoreProgress(System.String,System.Int32)">
+            <summary>Restore in-progress research from a saved state.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.SaveLoadManager">
+            <summary>
+            Manages JSON serialization/deserialization of GameState with backup file rotation.
+            Pure C# — no Godot dependency. Keeps the last 3 backup copies (.bak1/.bak2/.bak3)
+            and shifts them on each save so .bak1 is always the most recent backup.
+            
+            Handles backward compatibility: missing properties use default values from GameState constructor.
+            All new GameState properties are automatically serialized via System.Text.Json.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Core.SaveLoadManager.MaxBackups">
+            <summary>Number of backup generations to keep per save slot.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SaveLoadManager.SaveGame(LakskongenSim.Core.GameState,System.String)">
+            <summary>
+            Serialize <paramref name="state"/> to &lt;saveName&gt;.json.
+            The existing file is rotated into backup slots before being overwritten.
+            All public properties in GameState are automatically serialized, including:
+            - Research (UnlockedResearchIds, ActiveResearchId, ResearchProgress)
+            - Achievements (ExportMarkets, AcquisitionCount, UnlockedAchievementIds, etc.)
+            - Sustainability (SustainabilityScore, SustainabilityCertification, FeedSustainabilityRating)
+            - Scenarios (ActiveScenarioId, ScenarioIsWon, ScenarioIsLost, ScenarioLossReason, ScenarioStartDay)
+            - Tutorial (TutorialCurrentStepIndex, CompletedTutorialStepIds)
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SaveLoadManager.LoadGame(System.String)">
+            <summary>
+            Deserialize a <see cref="T:LakskongenSim.Core.GameState"/> from &lt;saveName&gt;.json.
+            Throws <see cref="T:System.IO.FileNotFoundException"/> if the file does not exist.
+            Backward compatible: missing properties use default values from GameState.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SaveLoadManager.TryLoadWithFallback(System.String)">
+            <summary>
+            Try to load the primary save; on failure fall back through backup slots.
+            Returns <c>null</c> if no readable file is found.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SaveLoadManager.RotateBackups(System.String)">
+            <summary>
+            Rotate existing backups: .bak2→.bak3, .bak1→.bak2, primary→.bak1.
+            The oldest backup (.bak3) is deleted to make room.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SaveLoadManager.Deserialize(System.String)">
+            <summary>
+            Deserialize JSON to GameState with backward compatibility handling.
+            Missing properties will use default values from the GameState constructor.
+            System.Text.Json handles:
+            - Missing properties → default/initialized values
+            - Null collections → empty collections (via property initializers)
+            - New enum values → default enum value
+            - Nullable properties → null if missing
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ScenarioDefinition">
+            <summary>
+            Defines a playable scenario with starting conditions, objectives, and special rules.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.Id">
+            <summary>Unique snake_case identifier (e.g. "forste_sesong").</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.Name">
+            <summary>Display name in Norwegian.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.Description">
+            <summary>Flavour text describing the scenario premise.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.StartingCapitalNOK">
+            <summary>Starting bank balance in NOK (may be negative for debt scenarios).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.StartingRegion">
+            <summary>Primary Norwegian production region for this scenario.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.Difficulty">
+            <summary>Difficulty rating from 1 (easiest) to 5 (hardest).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.WinCondition">
+            <summary>Primary victory objective type.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.SpecialRules">
+            <summary>
+            Scenario-specific rule overrides and numeric targets.
+            Common keys:
+              "profit_target"         — decimal NOK threshold for Profit/Competition win
+              "sustainability_target" — int score threshold for Sustainability win
+              "ai_competitors"        — int count for Competition scenario
+              "single_site"           — "true" to restrict to one sea site
+              "harsh_storms"          — "true" for elevated storm frequency
+              "premium_prices"        — "true" for export price bonus
+              "start_disease"         — "true" to begin with an active disease outbreak
+              "start_debt"            — "true" signals negative starting capital
+              "regulation_pressure"   — "true" for stricter compliance thresholds
+              "calm_weather"          — "true" to suppress severe weather
+              "easy_market"           — "true" for reduced price volatility
+            Values are always strings; parse as needed.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.TimeLimitDays">
+            <summary>Optional day limit — null means unlimited time.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioDefinition.IsUnlocked">
+            <summary>Whether this scenario is available to play (false = locked).</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ScenarioSystem">
+             <summary>
+             Campaign system: manages the scenario roster, tracks the active scenario,
+             and checks win/loss conditions on every simulated day.
+            
+             Integration: call <see cref="M:LakskongenSim.Core.ScenarioSystem.CheckWinConditions(System.Int32,System.Boolean)"/> once per day inside
+             SimulationEngine.Advance(), after all subsystem updates.
+             Wire <see cref="E:LakskongenSim.Core.ScenarioSystem.OnScenarioWon"/> and <see cref="E:LakskongenSim.Core.ScenarioSystem.OnScenarioLost"/> in GameBridge
+             to emit Godot signals to the UI layer.
+             </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioSystem.ActiveScenario">
+            <summary>The currently active scenario, or null if none selected.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioSystem.IsScenarioActive">
+            <summary>True while a scenario is running.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioSystem.IsWon">
+            <summary>True once the player has met the win condition.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioSystem.IsLost">
+            <summary>True once a loss condition has been triggered.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioSystem.LossReason">
+            <summary>Human-readable loss reason set when <see cref="P:LakskongenSim.Core.ScenarioSystem.IsLost"/> becomes true.</summary>
+        </member>
+        <member name="E:LakskongenSim.Core.ScenarioSystem.OnScenarioWon">
+            <summary>Fired when the player meets the scenario's win condition.</summary>
+        </member>
+        <member name="E:LakskongenSim.Core.ScenarioSystem.OnScenarioLost">
+            <summary>Fired when the player fails the scenario. Second argument is the reason string.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ScenarioSystem.StartScenario(System.String)">
+            <summary>
+            Activate a scenario. Applies starting capital to <see cref="P:LakskongenSim.Core.GameState.Balance"/>
+            and seeds AI competitor state if this is a Competition scenario.
+            </summary>
+            <exception cref="T:System.ArgumentException">Unknown scenario id.</exception>
+            <exception cref="T:System.InvalidOperationException">Scenario is locked.</exception>
+        </member>
+        <member name="M:LakskongenSim.Core.ScenarioSystem.CheckWinConditions(System.Int32,System.Boolean)">
+            <summary>
+            Evaluate win and loss conditions for the active scenario.
+            Call once per simulated day after all subsystem updates complete.
+            </summary>
+            <param name="sustainabilityScore">Current 0–100 sustainability score.</param>
+            <param name="tutorialComplete">True when TutorialSystem has finished all steps.</param>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioSystem.All">
+            <summary>All registered scenarios, keyed by id.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ScenarioSystem.GetScenario(System.String)">
+            <summary>Look up a scenario by id, returning null if not found.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ScenarioSystem.GetAll">
+            <summary>All scenarios visible to the player (unlocked or locked).</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ScenarioSystem.GetUnlocked">
+            <summary>Only unlocked scenarios.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ScenarioSystem.Unlock(System.String)">
+            <summary>Unlock a scenario (call after completing a prerequisite).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.ScenarioSystem.AiProgress">
+            <summary>
+            AI competitor accumulated profit for Competition scenarios (read-only).
+            Keys are "ai_1", "ai_2", etc.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.SimulationEngine">
+            <summary>
+            Central orchestrator connecting all subsystems in correct update order.
+            Update order: Weather → Environment → Biology → Health → Events → Market → Finance → Tutorial → Analytics
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SimulationEngine.Initialize">
+            <summary>
+            Initialize all subsystems and wire them together.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SimulationEngine.Advance(System.Int32)">
+            <summary>
+            Advance the simulation by the given number of days.
+            Executes all subsystems in correct dependency order.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SimulationEngine.AdvanceOneDay">
+            <summary>
+            Single-day tick — the core simulation loop.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SimulationEngine.SyncResearchToState">
+            <summary>
+            Synchronise the ResearchSystem's runtime state back into the serialisable GameState
+            so that Save/Load correctly persists the tech tree progress.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SimulationEngine.RegisterSystem(System.Object)">
+            <summary>
+            Register a system for generic management. Specific subsystems should be
+            set via properties instead (Weather, Disease, etc.).
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.TimeManager">
+            <summary>
+            Manages in-game time and triggers tick events.
+            </summary>
+        </member>
+        <member name="E:LakskongenSim.Core.TimeManager.OnAdvanceDays">
+            <summary>Raised when days have advanced; subscribers should update systems.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TimeManager.CurrentDay">
+            <summary>Current day index.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.TimeManager.AdvanceDays(System.Int32)">
+            <summary>Advance the simulation by a number of days and notify subscribers.</summary>
+            <param name="days">Days to advance.</param>
+        </member>
+        <member name="T:LakskongenSim.Core.TutorialStep">
+            <summary>Data for one tutorial step.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TutorialStep.CompletedOnDay">
+            <summary>Day this step was completed, or null if not yet completed.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.TutorialSystem">
+             <summary>
+             Step-based tutorial engine for Lakskongen — 12-step onboarding.
+             Tracks player progress, checks completion conditions each day,
+             and fires OnStepCompleted with optional NOK rewards.
+            
+             Registered in SimulationEngine and updated via CheckProgress() each day.
+             </summary>
+        </member>
+        <member name="E:LakskongenSim.Core.TutorialSystem.OnStepCompleted">
+            <summary>Fired when the player completes a tutorial step.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TutorialSystem.CurrentStep">
+            <summary>The active tutorial step, or null when the tutorial is finished.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TutorialSystem.IsComplete">
+            <summary>True after all 12 steps are completed.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TutorialSystem.CurrentStepNumber">
+            <summary>1-based number of the current step (returns 12 after completion).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.TutorialSystem.CompletedCount">
+            <summary>How many steps have been completed so far.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.TutorialSystem.CheckProgress">
+            <summary>
+            Called each simulated day by SimulationEngine.
+            Evaluates the current step's completion condition and advances when met.
+            Chains through multiple steps if conditions are immediately satisfied.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.TutorialSystem.GetStepCompletedDay(System.Int32)">
+            <summary>Returns the day step N was completed, or null if not yet completed.</summary>
+        </member>
+        <member name="T:LakskongenSim.Data.Season">
+            <summary>
+            All enumerations used throughout the salmon farming simulation
+            </summary>
+            <summary>
+            Seasons in the Norwegian fjords
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.ZoneColor">
+            <summary>
+            Norwegian production zones (1-13) traffic light colors
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.DiseaseType">
+            <summary>
+            Major salmon diseases in Norwegian aquaculture
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.LifeStage">
+            <summary>
+            Life stages of salmon from egg to harvest
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.LicenseType">
+            <summary>
+            Types of salmon production licenses
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.DelousingMethod">
+            <summary>
+            Delousing treatment methods
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.FeedIngredient">
+            <summary>
+            Feed ingredient types
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.ProcessingGrade">
+            <summary>
+            Processing grades affecting market value
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.ProductType">
+            <summary>
+            Product types for value-added processing
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.ExportMarket">
+            <summary>
+            Export market destinations
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.ContainmentType">
+            <summary>
+            Containment system types
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.WeatherCondition">
+            <summary>
+            Weather conditions affecting operations
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.GeneticTrait">
+            <summary>
+            Genetic traits for salmon breeding
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.WelfareFactor">
+            <summary>
+            Fish welfare scoring factors
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.AutomationLevel">
+            <summary>
+            Automation levels for various systems
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.FinancialInstrument">
+            <summary>
+            Financial instrument types
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.ComplianceStatus">
+            <summary>
+            Regulatory compliance status
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.ResearchArea">
+            <summary>
+            Research and development focus areas
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.EmployeeType">
+            <summary>
+            Employee specializations
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.EnvironmentalParameter">
+            <summary>
+            Environmental monitoring parameters
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.ProductionRegion">
+            <summary>
+            Norwegian production regions for salmon farming
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.WinCondition">
+            <summary>
+            Win conditions for scenario objectives
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Data.GameConstants">
+            <summary>
+            Data layer constants that may be persisted or tweaked separately from Core.GameConstants.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Environment.EnvironmentModel">
+            <summary>
+            Manages environmental zones and aggregated variables.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Environment.WaterChemistry">
+            <summary>
+            Dynamic water chemistry engine modeling nitrogen-phosphorus-carbonate cycles.
+            Uses ordinary differential equations (ODEs) with temperature dependence (Q10=2.0).
+            Affects fish growth (oxygen stress, ammonia toxicity) and disease susceptibility.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Environment.WaterChemistry.Temperature">
+            <summary>Current water temperature (°C). Serialized for save/load.</summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.WaterChemistry.#ctor">
+            <summary>Parameterless constructor for JSON deserialization.</summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.WaterChemistry.#ctor(System.Double)">
+            <summary>
+            Initialize water chemistry with Norwegian fjord baseline values.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.WaterChemistry.UpdateOneDay(System.Double,System.Double,System.Double)">
+            <summary>
+            Update chemistry for one day with fish waste inputs.
+            Fish waste: NH4 and PO4 from feed conversion (FCR 1.1-1.3).
+            </summary>
+            <param name="fishBiomassKg">Total fish biomass in zone (kg)</param>
+            <param name="feedConversionRatio">FCR (kg feed/kg fish growth)</param>
+            <param name="waterFlowRate">Water exchange rate (m³/day)</param>
+        </member>
+        <member name="M:LakskongenSim.Environment.WaterChemistry.CalculateGrowthPenalty">
+            <summary>
+            Calculate growth penalty due to water chemistry stress.
+            Returns multiplier (0.0-1.0) applied to fish growth rate.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.WaterChemistry.CalculateDiseaseSusceptibilityMultiplier">
+            <summary>
+            Calculate disease susceptibility multiplier from water quality.
+            Poor water quality increases susceptibility to bacterial diseases.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.WaterChemistry.GetStatus">
+            <summary>
+            Get current water chemistry status for player display/decision-making.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.WaterChemistry.SetTemperature(System.Double)">
+            <summary>
+            Set temperature (affects all biological rates via Q10).
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Environment.WaterChemistryStatus">
+            <summary>
+            Water chemistry status snapshot for UI display and player decisions.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Environment.WeatherSystem">
+            <summary>
+            Norwegian coastal weather system with Markov chain state transitions,
+            seasonal temperature cycles, and stochastic daily variation.
+            Temperature range: 2-18°C (Norwegian fjord sea surface temps).
+            Simulation-day driven — never uses real-world clock.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.WeatherSystem.ForceWeatherState(LakskongenSim.Environment.WeatherState)">
+            <summary>
+            Force a weather state transition from a storyteller event.
+            The Markov chain will naturally revert to normal probabilities over subsequent days.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.WeatherSystem.ApplyTemperatureAnomaly(System.Double)">
+            <summary>
+            Apply a temperature anomaly (°C offset) from a storyteller event.
+            Clamped to the realistic Norwegian sea surface range.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.WeatherSystem.AdvanceDays(System.Int32)">
+            <summary>
+            Advance weather simulation by given days.
+            Updates temperature, wind, and weather state.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.WeatherSystem.UpdateTemperature">
+            <summary>
+            Calculate sea surface temperature for current simulation day.
+            Uses sinusoidal seasonal cycle + stochastic daily variation.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.WeatherSystem.UpdateWeatherState">
+            <summary>
+            Update weather state using Markov chain transitions.
+            Storm probability increases in Oct-Mar.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.WeatherSystem.UpdateWind">
+            <summary>
+            Update wind speed based on weather state.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.WeatherSystem.GetStatus">
+            <summary>
+            Get current weather status for display.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Environment.WeatherState">
+            <summary>Weather states for Markov chain.</summary>
+        </member>
+        <member name="T:LakskongenSim.Environment.WeatherStatus">
+            <summary>Weather status snapshot for UI.</summary>
+        </member>
+        <member name="T:LakskongenSim.Environment.Zone">
+            <summary>
+            Represents a management zone in the simulation with water chemistry integration.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.Zone.#ctor">
+            <summary>Parameterless constructor for JSON deserialization.</summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.Zone.CalculateDailyNutrientLoad">
+            <summary>
+            Calculate daily nutrient load from fish biomass and feeding.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.Zone.UpdateCurrents(System.Int32)">
+            <summary>
+            Simulate ocean current changes based on season and weather patterns.
+            Currents affect nutrient dilution and oxygen replenishment.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.Zone.UpdateEutrophication(System.Double)">
+            <summary>
+            Model nutrient buildup and trigger algal blooms when thresholds are exceeded.
+            </summary>
+            <param name="nutrientLoad">Daily nutrient input (mg/L equivalent)</param>
+        </member>
+        <member name="M:LakskongenSim.Environment.Zone.CalculateGrowthPenalty">
+            <summary>
+            Calculate growth penalty multiplier (0.0-1.0) based on environmental stressors.
+            1.0 = optimal conditions, &lt;1.0 = reduced growth.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.Zone.GetStatus">
+            <summary>
+            Get current zone status including water chemistry and carrying capacity.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.Zone.SetTemperature(System.Double)">
+            <summary>
+            Set zone temperature (affects water chemistry rates).
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Environment.ZoneStatus">
+            <summary>
+            Zone status snapshot for UI display and player decisions.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.GetActiveCrises">
+            <summary>
+            Get all currently active crisis events
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.GetAvailableDistressedAssets(LakskongenSim.Events.CrisisEvent)">
+            <summary>
+            Get distressed assets available for purchase from a specific crisis
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.GetAllAvailableDistressedAssets">
+            <summary>
+            Get all currently available distressed assets
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.PurchaseDistressedAsset(LakskongenSim.Events.DistressedAsset,System.Decimal)">
+            <summary>
+            Attempt to purchase a distressed asset
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.CalculateIntegrationRisk(LakskongenSim.Events.DistressedAsset)">
+            <summary>
+            Calculate the integration risk for acquiring a distressed asset
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.CalculateReputationImpact(LakskongenSim.Events.DistressedAsset)">
+            <summary>
+            Calculate reputation impact of acquisition (negative for vulture capitalism)
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.TriggerCrisis(System.String,System.String,LakskongenSim.Events.CrisisType,System.Single)">
+            <summary>
+            Trigger a crisis affecting a competitor
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.CalculateDiscountMultiplier(LakskongenSim.Events.CrisisType,System.Single)">
+            <summary>
+            Calculate discount multiplier based on crisis type and severity
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.CalculateCrisisDuration(LakskongenSim.Events.CrisisType,System.Single)">
+            <summary>
+            Calculate crisis duration based on type and severity
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.GenerateDistressedAssets(LakskongenSim.Events.CrisisEvent)">
+            <summary>
+            Generate distressed assets based on a crisis event
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.GetRandomAssetType(LakskongenSim.Events.CrisisType)">
+            <summary>
+            Get appropriate asset types for a crisis type
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.GenerateAssetValue(LakskongenSim.Events.AssetType)">
+            <summary>
+            Generate realistic asset values based on type
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.GenerateAssetName(LakskongenSim.Events.AssetType,System.String)">
+            <summary>
+            Generate asset names based on type and competitor
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.GenerateAssetDescription(LakskongenSim.Events.AssetType,LakskongenSim.Events.CrisisEvent)">
+            <summary>
+            Generate asset descriptions based on crisis context
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.GenerateNorwegianLocation">
+            <summary>
+            Generate Norwegian location names
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.Update">
+            <summary>
+            Update system state (remove expired assets, update crisis status)
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Events.NorwegianEvents">
+            <summary>
+            Comprehensive event library for Norwegian salmon farming.
+            40+ events based on real industry occurrences.
+            To use: call NorwegianEvents.RegisterAll(storyteller) at game start.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Events.Storyteller">
+            <summary>
+            Lightweight AI Storyteller / Event Director inspired by RimWorld.
+            - Registers a set of event definitions
+            - Subscribes to the TimeManager and occasionally fires events
+            - Tracks cooldowns and simple pacing to avoid stacking disasters
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.Storyteller.ApplyBiologicalImpacts(LakskongenSim.Core.GameState)">
+            <summary>
+            Apply direct biological impacts from environmental events to zones and populations.
+            Called by events like algal blooms to affect fish growth and mortality.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.Storyteller.ProcessDiseaseEvents(LakskongenSim.Core.GameState)">
+            <summary>
+            Process disease events by checking population health status and triggering appropriate responses.
+            Integrates with disease system to increase prevalence and spawn player choices.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Events.VisualMilestones">
+            <summary>
+            Visual Milestones System - Tracks achievement milestones and notifies via events.
+            Pure C# — no Godot dependencies. Cinematic/camera logic lives in the Godot layer.
+            Author: Ingrid Lunde, UI/UX Designer
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.VisualMilestones.CheckMilestone(LakskongenSim.Events.VisualMilestones.MilestoneType)">
+            <summary>
+            Check and trigger milestone if conditions are met.
+            Called from game systems when events occur.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.VisualMilestones.NotifyCinematicFinished">
+            <summary>Call this from the Godot layer when a cinematic finishes playing.</summary>
+        </member>
+        <member name="M:LakskongenSim.Events.VisualMilestones.GetAchievedMilestones">
+            <summary>Get all achieved milestones.</summary>
+        </member>
+        <member name="M:LakskongenSim.Events.VisualMilestones.GetProgress">
+            <summary>Get milestone progress (total achieved / total milestones).</summary>
+        </member>
+        <member name="M:LakskongenSim.Events.VisualMilestones.IsMilestoneAchieved(LakskongenSim.Events.VisualMilestones.MilestoneType)">
+            <summary>Check if a specific milestone is achieved.</summary>
+        </member>
+        <member name="M:LakskongenSim.Events.VisualMilestones.GetNextMilestone">
+            <summary>Get next unachieved milestone, or null if all done.</summary>
+        </member>
+        <member name="T:LakskongenSim.Farm.DelousingSystem">
+            <summary>
+            Delousing treatment system with multiple method types, efficacy modeling,
+            treatment mortality risk, resistance tracking, and regulatory compliance.
+            Norwegian regulations: mandatory treatment above 0.5 adult female lice/fish.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Farm.DelousingSystem.GetProfile(LakskongenSim.Data.DelousingMethod)">
+            <summary>Get treatment parameters for a given method.</summary>
+        </member>
+        <member name="M:LakskongenSim.Farm.DelousingSystem.Treat(LakskongenSim.Biology.FishPopulation,LakskongenSim.Data.DelousingMethod,LakskongenSim.Health.SeaLiceModel,LakskongenSim.Health.IntegratedDiseaseSystem,System.Double)">
+            <summary>
+            Apply delousing treatment to a population.
+            Returns treatment result with mortality, cost, and efficacy data.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Farm.TreatmentProfile">
+            <summary>Treatment method characteristics.</summary>
+        </member>
+        <member name="T:LakskongenSim.Farm.TreatmentResult">
+            <summary>Result of a treatment operation.</summary>
+        </member>
+        <member name="T:LakskongenSim.Farm.FeedSystem">
+            <summary>
+            Dynamic feed system with realistic Feed Conversion Ratio (FCR) modeling.
+            Norwegian industry FCR range: 1.1–1.3 (kg feed per kg fish growth).
+            FCR affected by: temperature, fish size/stage, feed quality, feeding frequency,
+            stocking density, and water quality.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Farm.FeedSystem.CalculateFCR(System.Double,LakskongenSim.Data.LifeStage,System.Double,System.Double)">
+            <summary>
+            Calculate dynamic FCR based on current conditions.
+            Returns kg feed required per kg of fish growth.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Farm.FeedSystem.Feed(LakskongenSim.Biology.FishPopulation,System.Int32,System.Double,System.Double,System.Double)">
+            <summary>
+            Apply feed to population. Returns total feed used (kg).
+            Also calculates waste output for water chemistry integration.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Farm.FeedSystem.CalculateFeedQualityBonus">
+            <summary>
+            Calculate feed quality bonus from ingredient composition.
+            Better ingredients → lower FCR (up to 5% improvement).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Farm.FeedSystem.SetIngredientComposition(System.Collections.Generic.Dictionary{System.String,System.Single})">
+            <summary>Update feed composition and recalculate sustainability rating.</summary>
+        </member>
+        <member name="T:LakskongenSim.Farm.FeedResult">
+            <summary>
+            Result of a feeding operation — provides data to water chemistry and finance.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Farm.Hatchery">
+            <summary>
+            Simple hatchery that produces cohorts of eggs or smolts.
+            Uses biologically-accurate 7-stage salmon lifecycle.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Farm.Hatchery.SpawnEggs(System.Int32)">
+            <summary>Create a batch of eggs.</summary>
+        </member>
+        <member name="M:LakskongenSim.Farm.Hatchery.ReleaseSmolt(System.Int32)">
+            <summary>
+            Create smolt batch (for stocking sea pens).
+            Smolts are reared to proper size and age before release.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Farm.Hatchery.CalculateRearingCost(System.Int32,System.Int32)">
+            <summary>
+            Calculate total rearing cost for raising fish in the hatchery.
+            </summary>
+            <param name="fishCount">Number of fish being reared</param>
+            <param name="days">Number of days in hatchery</param>
+            <returns>Total cost in NOK</returns>
+        </member>
+        <member name="M:LakskongenSim.Farm.Hatchery.IsReadyForRelease(System.Int32)">
+            <summary>
+            Check if fish have reached maturation age and are ready for release to sea pens.
+            </summary>
+            <param name="daysInHatchery">Number of days fish have been in hatchery</param>
+            <returns>True if fish are ready for release as smolts</returns>
+        </member>
+        <member name="T:LakskongenSim.Farm.SeaSite">
+            <summary>
+            Represents a sea site where fish are kept in pens.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Farm.SeaSite.#ctor">
+            <summary>Parameterless constructor for JSON deserialization.</summary>
+        </member>
+        <member name="M:LakskongenSim.Farm.SeaSite.AdvanceDays(System.Int32)">
+            <summary>Advance all pens by days.</summary>
+        </member>
+        <member name="M:LakskongenSim.Farm.SeaSite.RecordEscape(System.Int32)">
+            <summary>Record escape event for sustainability tracking.</summary>
+        </member>
+        <member name="M:LakskongenSim.Farm.SeaSite.ResetAnnualCounters">
+            <summary>Reset annual counters (call at year start).</summary>
+        </member>
+        <member name="M:LakskongenSim.Farm.SeaSite.UpdateStockingDensity">
+            <summary>Calculate current stocking density based on total biomass and pen volume.</summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.FinanceManager">
+            <summary>
+            Tracks cashflow, applies costs and revenue.
+            Integrates with sustainability system for bonuses and penalties.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinanceManager.GetAvailableCapital">
+            <summary>
+            Returns the current available capital (balance) as float.
+            Used by expansion systems (VerticalIntegration, Acquisition) to check affordability.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinanceManager.DeductCapital(System.Single)">
+            <summary>
+            Deducts capital from balance for asset purchases.
+            Wrapper around Spend() for semantic clarity in expansion context.
+            </summary>
+            <param name="amount">Amount to deduct (float for compatibility with expansion systems).</param>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinanceManager.ApplyESGDiscount(System.Decimal)">
+            <summary>
+            Apply ESG investment discount (for sustainability score >= 80).
+            Call when purchasing green technology/equipment.
+            </summary>
+            <param name="baseCost">Original cost before discount</param>
+            <returns>Discounted cost</returns>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinanceManager.ApplyGrantMultiplier(System.Decimal)">
+            <summary>
+            Apply government grant multiplier (for sustainability score >= 95).
+            Call when receiving grants/subsidies.
+            </summary>
+            <param name="baseGrant">Base grant amount</param>
+            <returns>Multiplied grant amount</returns>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinanceManager.UpdateSustainabilityBonuses(System.Int32)">
+            <summary>
+            Update sustainability bonuses based on current score.
+            Called by SimulationEngine when sustainability score changes.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinanceManager.ApplyComplianceFine(System.Decimal)">
+            <summary>
+            Apply quarterly fine for non-compliance (score &lt; 50).
+            Called by SimulationEngine quarterly for non-compliant farms.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.FinancialStatements">
+            <summary>
+            Simple P&amp;L, Balance Sheet, and Cash Flow records for deterministic simulation.
+            Designed to be easy to test.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.InsuranceSystem">
+            <summary>
+            Insurance model: premium based on insured value and risk factor.
+            Can pay claims which reduce cash and reduce insured value if total loss.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.InvestmentSystem">
+            <summary>
+            Allows investing in capacity, equipment, and R&amp;D. Tracks book value and simple depreciation.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.InvestorSystem">
+            <summary>
+            Simple investor mechanics: issue bonds (debt) and equity (dilution).
+            Tracks outstanding equity shares and bond principal.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.KPIs">
+            <summary>
+            Calculates core financial KPIs from FinancialStatements.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.LicenseSystem">
+            <summary>
+            Management of licenses for sites; charges fees.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.LoanSystem">
+            <summary>
+            Very simple loan system.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.TaxSystem">
+            <summary>
+            Simplified corporate tax system.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Health.DiseaseLODSystem">
+            <summary>
+            Dynamic Level‑Of‑Detail system for disease simulation.
+            Ensures 60+ FPS with 10,000+ fish by adjusting simulation fidelity.
+            Three tiers: High (individual agent‑based), Medium (zone‑level SIR), Low (population‑level).
+            Fish dynamically move between tiers based on infection status and proximity.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.Update(System.Collections.Generic.List{LakskongenSim.Environment.Zone},System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation},System.Int32)">
+            <summary>
+            Main update loop. Processes all populations with appropriate LOD tier.
+            Called once per simulation day.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.UpdateLODAssignments(System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation},System.Collections.Generic.List{LakskongenSim.Environment.Zone})">
+            <summary>
+            Dynamically assign fish/populations to appropriate LOD tiers.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.AssignToHighDetail(LakskongenSim.Biology.FishPopulation,System.Double)">
+            <summary>
+            Assign infected fish and their neighbors to high‑detail tier.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.ProcessHighDetailTier(System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation},System.Int32)">
+            <summary>
+            Process high‑detail tier: full agent‑based simulation.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.ProcessMediumDetailTier(System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation},System.Int32)">
+            <summary>
+            Process medium‑detail tier: zone‑level SIR model (optimized).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.ProcessLowDetailTier(System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation},System.Int32)">
+            <summary>
+            Process low‑detail tier: simple prevalence tracking.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.CalculatePopulationPrevalence(LakskongenSim.Biology.FishPopulation)">
+            <summary>
+            Calculate infection prevalence for a population.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.GetInfectedIndividuals(LakskongenSim.Biology.FishPopulation)">
+            <summary>
+            Get infected individuals for a population.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.GetAllIndividuals(LakskongenSim.Biology.FishPopulation)">
+            <summary>
+            Get all individuals for a population.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.CalculateDistance(LakskongenSim.Health.FishIndividual,LakskongenSim.Health.FishIndividual)">
+            <summary>
+            Calculate distance between two individuals (placeholder).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.GetZonesForFish(System.Collections.Generic.HashSet{LakskongenSim.Health.FishIndividual})">
+            <summary>
+            Get zones containing the given fish.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.GetPopulationsForFish(System.Collections.Generic.HashSet{LakskongenSim.Health.FishIndividual})">
+            <summary>
+            Get populations containing the given fish.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.ApplyMediumDetailMortality(LakskongenSim.Biology.FishPopulation,System.Double,System.Int32)">
+            <summary>
+            Apply mortality for medium‑detail populations.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.ApplyLowDetailMortality(LakskongenSim.Biology.FishPopulation,System.Double,System.Int32)">
+            <summary>
+            Apply mortality for low‑detail populations.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.LogPerformanceMetrics">
+            <summary>
+            Log performance metrics for monitoring.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.GetPerformanceStats">
+            <summary>
+            Get performance statistics for UI display.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Health.LODPerformanceStats">
+            <summary>
+            Performance statistics for the LOD system.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Health.DiseaseSystem">
+            <summary>
+            High-level disease system that can infect populations and trigger mortality.
+            Implements a simple deterministic SIR-like model at the population level and
+            an interaction model with sea-lice and delousing treatments.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Health.DiseaseSystem.LiceModel">
+            <summary>Expose lice model for integration with stochastic disease engine.</summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseSystem.Tick(LakskongenSim.Biology.FishPopulation,System.Int32,System.Double)">
+            <summary>
+            Simulate disease spread for given population over days.
+            Temperature (C) can be provided for temperature-dependent treatment effects.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseSystem.ApplyTreatment(LakskongenSim.Biology.FishPopulation,System.Double,System.Double,System.Double)">
+            <summary>
+            Apply a delousing treatment. reductionFraction is the expected lice reduction (0..1)
+            treatmentEfficacy is modified by temperature (default ref at TreatmentRefTempC).
+            The method reduces lice, and reduces infected fraction proportionally to lice reduction
+            and a direct treatment efficacy (simulates medicinal treatment).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseSystem.GetPrevalence(LakskongenSim.Biology.FishPopulation)">
+            <summary>Get current infected fraction for a population.</summary>
+        </member>
+        <member name="T:LakskongenSim.Health.FishWelfare">
+            <summary>
+            Tracks welfare indicators such as condition score, mortality risk modifiers.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Health.IntegratedDiseaseSystem">
+            <summary>
+            Integrated disease system combining the full stochastic engine with LOD optimization.
+            Automatically switches between simulation fidelity levels to maintain 60+ FPS.
+            Provides unified API for game systems to interact with disease simulation.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.Update(System.Collections.Generic.List{LakskongenSim.Environment.Zone},System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation},System.Int32)">
+            <summary>
+            Main update method. Automatically selects optimal simulation fidelity.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.UpdateHighFidelity(System.Collections.Generic.List{LakskongenSim.Environment.Zone},System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation},System.Int32)">
+            <summary>
+            Update with full high-fidelity simulation (for small populations or debugging).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.UpdateMediumFidelity(System.Collections.Generic.List{LakskongenSim.Environment.Zone},System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation},System.Int32)">
+            <summary>
+            Update with medium fidelity (zone-level SIR, no individual tracking).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.UpdateLowFidelity(System.Collections.Generic.List{LakskongenSim.Environment.Zone},System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation},System.Int32)">
+            <summary>
+            Update with low fidelity (minimal simulation, primarily for distant populations).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.UpdateWithLODSystem(System.Collections.Generic.List{LakskongenSim.Environment.Zone},System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation},System.Int32)">
+            <summary>
+            Update using the LOD system (dynamic fidelity per population).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.AdjustLODBasedOnPerformance(System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation})">
+            <summary>
+            Auto-adjust LOD based on performance measurements.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.UpdateLODSystemLimits">
+            <summary>
+            Update LOD system with current performance-based limits.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.CalculateZoneInfectionPressure(LakskongenSim.Environment.Zone,System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation})">
+            <summary>
+            Calculate infection pressure for a zone based on nearby infected populations.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.UpdateBaseSystemPrevalence(LakskongenSim.Biology.FishPopulation,System.Double)">
+            <summary>
+            Update base system prevalence (maintains compatibility with existing code).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.ApplyMortalityBasedOnPrevalence(LakskongenSim.Biology.FishPopulation,System.Double,System.Int32)">
+            <summary>
+            Apply mortality based on prevalence.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.ApplyMinimalMortality(LakskongenSim.Biology.FishPopulation,System.Double,System.Int32)">
+            <summary>
+            Apply minimal mortality (for low-fidelity simulation).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.EstimateZoneDistance(System.String,System.String)">
+            <summary>
+            Estimate distance between zones (placeholder).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.UpdatePerformanceMetrics(System.Double)">
+            <summary>
+            Update performance tracking metrics.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.GetStatus">
+            <summary>
+            Get current system status for UI display.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.SetLODMode(LakskongenSim.Health.LODMode)">
+            <summary>
+            Set LOD mode manually (for debugging or user preference).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.GetPrevalence(LakskongenSim.Biology.FishPopulation)">
+            <summary>
+            Get current prevalence for a population.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.ApplyTreatment(LakskongenSim.Biology.FishPopulation,System.Double,System.Double,System.Double)">
+            <summary>
+            Apply treatment to a population.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Health.LODMode">
+            <summary>
+            Level of detail modes for disease simulation.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Health.DiseaseSystemStatus">
+            <summary>
+            Disease system status for UI display.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Health.SeaLiceModel">
+            <summary>
+            Simplified sea lice model that tracks average lice per fish and affects welfare.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Health.StochasticDiseaseEngine">
+            <summary>
+            Stochastic disease engine with multi‑vector transmission, resistance evolution,
+            and agent‑based outbreak modeling.
+            Extends existing DiseaseSystem with advanced mechanics.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.StochasticDiseaseEngine.SimulateMultiVectorTransmission(System.Collections.Generic.List{LakskongenSim.Environment.Zone},System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation},System.Int32)">
+            <summary>
+            Simulate multi‑vector disease transmission across zones.
+            Water‑borne spread via Gaussian kernel (5‑15km), lice‑borne, fomite transmission.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.StochasticDiseaseEngine.UpdateWaterborneSpread(System.Collections.Generic.List{LakskongenSim.Environment.Zone})">
+            <summary>
+            Water‑borne spread via Gaussian kernel (simplified advection‑diffusion).
+            Infection pressure decays with distance: exp(−distance² / (2×radius²))
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.StochasticDiseaseEngine.InfectPopulation(LakskongenSim.Biology.FishPopulation,System.String)">
+            <summary>
+            Infect a population with specified transmission vector.
+            Includes latent period, detection delay, reporting delay.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.StochasticDiseaseEngine.SuperspreaderEvent(LakskongenSim.Biology.FishPopulation)">
+            <summary>
+            Superspreader event: 20% of infected fish cause 80% of transmission.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.StochasticDiseaseEngine.UpdateResistanceEvolution(System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation})">
+            <summary>
+            Update resistance evolution via selection pressure and gene transfer.
+            Treatment eliminates susceptible strains, resistant strains proliferate.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.StochasticDiseaseEngine.ApplyResistanceFitnessCost(System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation})">
+            <summary>
+            Apply fitness cost to resistant populations (5‑15% slower growth).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.StochasticDiseaseEngine.GetResistanceProbability(System.String)">
+            <summary>
+            Get current resistance probability for a zone.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.StochasticDiseaseEngine.UpdateResistanceGeneFrequency(System.String,System.Double)">
+            <summary>
+            Update resistance gene frequency for a zone.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.StochasticDiseaseEngine.EstimateZoneDistance(LakskongenSim.Environment.Zone,LakskongenSim.Environment.Zone)">
+            <summary>
+            Estimate zone distance (placeholder for actual coordinate system).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.StochasticDiseaseEngine.GetZoneInfectionLevel(LakskongenSim.Environment.Zone)">
+            <summary>
+            Get zone infection level from individual states.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.StochasticDiseaseEngine.ApplyDelayedInfection(LakskongenSim.Biology.FishPopulation,System.Double,System.String)">
+            <summary>
+            Apply delayed infection with notification timing.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.StochasticDiseaseEngine.SpreadFromSuperspreader(LakskongenSim.Health.FishIndividual,System.Double)">
+            <summary>
+            Spread from superspreader to nearby individuals.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Health.DiseaseState">
+            <summary>
+            Disease state for individual fish tracking.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Health.FishIndividual">
+            <summary>
+            Individual fish representation for agent‑based modeling.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Logistics.LogisticsManager.CarbonFootprintScore">
+            <summary>
+            Calculate carbon footprint score for sustainability system (0.0-1.0, higher is better).
+            Based on renewable energy, transport efficiency, and vehicle fuel types.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Logistics.LogisticsManager.RecordFuelUsage(System.String,System.Double,System.String)">
+            <summary>Track vehicle fuel usage for carbon reporting.</summary>
+        </member>
+        <member name="T:LakskongenSim.Market.ContractSystem">
+            <summary>
+            Contract system supporting different contract types, acceptance/decline workflow, quality grading and penalty clauses.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.ContractSystem.ProposeContract(System.String,LakskongenSim.Market.ContractType,System.Decimal,System.Int32,LakskongenSim.Market.QualityGrade,System.Decimal)">
+            <summary>
+            Propose a contract offer (returns an id that can be accepted/declined).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.ContractSystem.AcceptOffer(LakskongenSim.Market.ContractOffer)">
+            <summary>
+            Accept an offer and convert it to an active contract.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.ContractSystem.DeclineOffer(LakskongenSim.Market.ContractOffer)">
+            <summary>
+            Decline an offer (no-op for now, placeholder for negotiation penalty or reputation effects).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.ContractSystem.FulfillContract(System.Guid,System.Int32)">
+            <summary>
+            Record delivery towards a contract. Returns the payment due for the delivered kg and any penalty applied if delivery is short.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.ContractSystem.RemoveContract(System.Guid)">
+            <summary>
+            Remove a contract (e.g., after settlement or cancellation).
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Market.ExportMarket">
+            <summary>
+            Represents exports and access to international markets.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Market.MarketSimulation">
+            <summary>
+            Realistic salmon market price simulation based on Norwegian industry dynamics.
+            Models: seasonal patterns, mean-reversion, supply/demand shocks, Nasdaq Salmon Index correlation.
+            Base price ~70 NOK/kg (2024-2026 range: 50-110 NOK/kg).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketSimulation.AdvanceDays(System.Int32)">
+            <summary>
+            Advance market simulation by given days.
+            Uses Ornstein-Uhlenbeck mean-reverting process with seasonal overlay.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketSimulation.TriggerMarketShock">
+            <summary>
+            Trigger a market shock event (supply disruption, demand spike, etc.)
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketSimulation.ApplyExternalShock(System.Double,System.Double)">
+            <summary>
+            Apply an external supply or demand shock from a storyteller event.
+            supplyFactor &lt; 1.0 tightens supply (prices rise), &gt; 1.0 increases supply (prices fall).
+            demandFactor &gt; 1.0 increases demand (prices rise), &lt; 1.0 drops demand (prices fall).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketSimulation.UpdateCertificationLevel(LakskongenSim.Sustainability.CertificationLevel,System.Decimal)">
+            <summary>
+            Update certification level and market access.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketSimulation.GetPriceHistory">
+            <summary>Get price history for charting.</summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketSimulation.GetStatus">
+            <summary>Get current market status snapshot.</summary>
+        </member>
+        <member name="T:LakskongenSim.Market.MarketStatus">
+            <summary>Market status snapshot for UI display.</summary>
+        </member>
+        <member name="T:LakskongenSim.Market.ProductType">
+            <summary>
+            Re-declare product type for market namespace convenience.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Politics.FactionType">
+            <summary>
+            Norwegian stakeholder factions in salmon farming industry
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Politics.SanctionType">
+            <summary>
+            Types of sanctions that factions can impose
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Politics.BonusType">
+            <summary>
+            Types of bonuses factions can provide
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Politics.Demand">
+            <summary>
+            Represents a demand from a faction
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Politics.ConsequenceResult">
+            <summary>
+            Result of fulfilling or ignoring a demand
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Politics.Faction">
+            <summary>
+            Represents a stakeholder faction
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Politics.Faction.RelationshipScore">
+            <summary>
+            Relationship score from -1 (hostile) to +1 (excellent)
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Politics.Faction.Influence">
+            <summary>
+            Political influence from 0 to 1
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Politics.Faction.WeightedRelationshipScore">
+            <summary>
+            Weighted relationship score based on faction influence
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Politics.StakeholderFactionSystem">
+            <summary>
+            Manages stakeholder factions and their relationships with the player
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Politics.StakeholderFactionSystem.GetAllFactions">
+            <summary>
+            Gets all factions
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Politics.StakeholderFactionSystem.GetFaction(LakskongenSim.Politics.FactionType)">
+            <summary>
+            Gets a specific faction
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Politics.StakeholderFactionSystem.UpdateRelationship(LakskongenSim.Politics.FactionType,System.Single,System.String)">
+            <summary>
+            Updates relationship with a faction
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Politics.StakeholderFactionSystem.GetActiveDemands">
+            <summary>
+            Gets all active demands from all factions
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Politics.StakeholderFactionSystem.IgnoreDemand(LakskongenSim.Politics.Demand)">
+            <summary>
+            Ignores a demand, triggering consequences
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Politics.StakeholderFactionSystem.FulfillDemand(LakskongenSim.Politics.Demand)">
+            <summary>
+            Fulfills a demand, gaining relationship benefits
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Politics.StakeholderFactionSystem.GetOverallReputation">
+            <summary>
+            Calculates overall reputation as weighted average of faction relationships
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Politics.StakeholderFactionSystem.ApplyRegulatorySanction(LakskongenSim.Politics.FactionType,LakskongenSim.Politics.SanctionType)">
+            <summary>
+            Applies regulatory sanctions
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Politics.StakeholderFactionSystem.ApplyBonus(LakskongenSim.Politics.FactionType,LakskongenSim.Politics.BonusType)">
+            <summary>
+            Applies faction bonuses
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Politics.StakeholderFactionSystem.IssueDemand(LakskongenSim.Politics.FactionType,System.String,System.Decimal,System.Int32,System.String)">
+            <summary>
+            Issues a new demand from a faction
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Politics.StakeholderFactionSystem.ProcessExpiredDemands">
+            <summary>
+            Removes expired demands
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.ProcessingManager">
+            <summary>
+            Processing manager implements simple economics: CAPEX tiers, OPEX scaling, depreciation, ROI calculations and capacity utilization curves.
+            Deterministic calculation methods are provided for unit tests and game integration.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingManager.UtilizationMultiplier(System.Decimal)">
+            <summary>
+            Utilization curve: returns an efficiency multiplier (0-1) based on utilization ratio (throughput/nominal).
+            We model inefficiency at low utilization and marginal gains near high utilization.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingManager.CalculateDailyOpex(System.Int32)">
+            <summary>
+            Calculate OPEX (fixed + variable) for a given daily throughput kg.
+            Variable OPEX stored in per-tonne units (per 1000 kg). Returns total OPEX.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingManager.AnnualDepreciation">
+            <summary>
+            Annual depreciation (straight-line)
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingManager.EstimatePaybackYears(System.Decimal,System.Decimal)">
+            <summary>
+            Simple ROI years estimate: capex / annualProfit (using utilization fraction)
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingManager.Process(System.Int32,LakskongenSim.Market.ProductType,System.Decimal,System.Decimal)">
+            <summary>
+            Process a given input weight (kg) into a product type. Uses yields, prices and economics to compute P&amp;L.
+            rawMaterialCostPerKg is the price paid for whole fish input.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.ProcessingSnapshot">
+            <summary>
+            Lightweight snapshot for dashboards: plant id, tier, last-day profit and cumulative stats.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Sustainability.CertificationLevel">
+            <summary>
+            Certification levels based on sustainability score (0-100).
+            Higher tiers unlock premium markets and grant financial bonuses.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Sustainability.SustainabilityManager">
+            <summary>
+            Manages sustainability scoring (0-100) and green certification tiers.
+            Integrates with existing systems (Disease, Feed, Logistics, Fish Population)
+            to calculate a composite score across 6 categories.
+            
+            Differentiator vs Farming Simulator 25: Deep sustainability mechanics
+            that unlock premium markets (+12-29% margins) and ESG investment bonuses.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Sustainability.SustainabilityManager.CalculateScore(LakskongenSim.Core.GameState)">
+            <summary>
+            Calculate sustainability score (0-100) from current game state.
+            Pure function - no side effects, testable.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Sustainability.SustainabilityManager.GetComponentScores(LakskongenSim.Core.GameState)">
+            <summary>
+            Get detailed breakdown of score components for UI display.
+            Returns dictionary: category -> points earned (0-max for that category)
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Sustainability.SustainabilityManager.GetCertificationLevel(System.Int32)">
+            <summary>
+            Get certification level from score (0-100).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Sustainability.SustainabilityManager.GetPriceMultiplier(LakskongenSim.Sustainability.CertificationLevel)">
+            <summary>
+            Get price multiplier based on certification level.
+            Premium markets pay more for sustainable products.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Sustainability.SustainabilityManager.ApplyRegulatoryPenalty(System.Int32)">
+            <summary>
+            Apply a direct score penalty from a regulatory storyteller event.
+            Immediately reduces score and fires change events if certification level shifts.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Sustainability.SustainabilityManager.UpdateScore(LakskongenSim.Core.GameState)">
+            <summary>
+            Update score and trigger events if changed.
+            Call this periodically (e.g., weekly/monthly) from simulation engine.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Sustainability.SustainabilityConfig">
+            <summary>
+            Configuration data for sustainability scoring.
+            Loaded from Data/SustainabilityConfig.json.
+            </summary>
+        </member>
+    </members>
+</doc>
