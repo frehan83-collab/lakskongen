@@ -65,7 +65,7 @@ namespace LakskongenSim.SaveLoad.Tests
             Assert.Equal("fjord-1", z.Id);
             Assert.Equal(500.0, z.CarryingCapacityTonnes);
             Assert.Equal(12_000.0, z.CurrentFishBiomassKg);
-            Assert.Equal(2500.0, z.WaterFlowRate);
+            Assert.Equal(zone.WaterFlowRate, z.WaterFlowRate);
             Assert.Equal(1.15, z.FeedConversionRatio);
 
             // WaterChemistry state

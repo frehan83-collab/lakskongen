@@ -38,10 +38,10 @@ public class ProcessingEconomicsTests
         // Opex should be Fixed + variable: Fixed 800 + variable  (10 tonnes * 200 per tonne) = 800 + 2000 = 2800
         Assert.Equal(2800m, res.Opex);
         // Depreciation daily = Capex(1,000,000)/7/365
-        var expectedDep = Math.Round((double)(1000000m / 7m / 365m), 10);
-        Assert.Equal((decimal)expectedDep, res.Depreciation);
+        var expectedDep = 1000000m / 7m / 365m;
+        Assert.Equal(expectedDep, res.Depreciation);
         // Profit = revenue - raw - opex - depreciation
-        var expectedProfit = 600000m - 300000m - 2800m - (1000000m / 7m / 365m);
+        var expectedProfit = 600000m - 300000m - 2800m - expectedDep;
         Assert.Equal(expectedProfit, res.Profit);
     }
 

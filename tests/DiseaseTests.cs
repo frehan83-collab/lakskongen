@@ -39,7 +39,7 @@ namespace LakskongenSim.Health.Tests
         {
             var lice = new SeaLiceModel();
             lice.ApplyTreatment(0.5); // start with some reduction so average non-zero
-            lice.AverageLicePerFish = 2.0; // seed lice
+            typeof(SeaLiceModel).GetProperty("AverageLicePerFish").SetValue(lice, 2.0); // seed lice
 
             var ds = new DiseaseSystem(lice)
             {
