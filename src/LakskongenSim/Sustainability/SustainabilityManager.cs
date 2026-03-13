@@ -117,6 +117,23 @@ namespace LakskongenSim.Sustainability
         }
 
         /// <summary>
+        /// Apply a direct score penalty from a regulatory storyteller event.
+        /// Immediately reduces score and fires change events if certification level shifts.
+        /// </summary>
+        public void ApplyRegulatoryPenalty(int penaltyPoints)
+        {
+            var penalizedScore = Math.Clamp(CurrentScore - penaltyPoints, 0, 100);
+            var penalizedLevel = GetCertificationLevel(penalizedScore);
+
+            var levelChanged = penalizedLevel != CurrentCertification;
+            CurrentScore = penalizedScore;
+            CurrentCertification = penalizedLevel;
+
+            OnScoreChanged?.Invoke(CurrentScore, CurrentCertification);
+            if (levelChanged) OnCertificationChanged?.Invoke(CurrentCertification);
+        }
+
+        /// <summary>
         /// Update score and trigger events if changed.
         /// Call this periodically (e.g., weekly/monthly) from simulation engine.
         /// </summary>

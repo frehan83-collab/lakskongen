@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using LakskongenSim.Biology;
 using LakskongenSim.Environment;
+using LakskongenSim.Events;
 using LakskongenSim.Farm;
 using LakskongenSim.Health;
 using LakskongenSim.Sustainability;
@@ -33,6 +34,8 @@ namespace LakskongenSim.Core
         public Market.MarketSimulation MarketSimulation { get; set; }
         public Finance.FinanceManager FinanceManager { get; set; }
         public SustainabilityManager SustainabilityManager { get; private set; }
+        public Storyteller Storyteller { get; private set; }
+        public TutorialSystem Tutorial { get; private set; }
 
         // ─── Update intervals ───
         private int _lastSustainabilityUpdate = 0;
@@ -41,6 +44,7 @@ namespace LakskongenSim.Core
         // ─── Events ───
         public event Action<int>? OnDayAdvanced;
         public event Action<string>? OnEventTriggered;
+        public event Action<EventRecord>? OnEventFired;
 
         /// <summary>
         /// Initialize all subsystems and wire them together.
@@ -80,6 +84,11 @@ namespace LakskongenSim.Core
             SustainabilityManager.OnScoreChanged += OnSustainabilityScoreChanged;
             SustainabilityManager.OnCertificationChanged += OnCertificationChanged;
 
+            // Initialize Storyteller event director
+            Storyteller = new Storyteller(Time, State);
+            NorwegianEvents.RegisterAll(Storyteller);
+            Storyteller.OnEventRaised += HandleStorytellerEvent;
+
             // Hatchery → population
             Hatchery.OnNewCohort += cohort =>
             {
@@ -95,6 +104,9 @@ namespace LakskongenSim.Core
             {
                 FinanceManager.Spend(cost);
             };
+
+            // Tutorial onboarding system
+            Tutorial = new TutorialSystem(this);
 
             Console.WriteLine("✅ SimulationEngine initialized — all subsystems wired");
         }
@@ -189,6 +201,13 @@ namespace LakskongenSim.Core
             MarketSimulation.AdvanceDays(1);
 
             // ═══════════════════════════════════════════
+            // PHASE 4.5: EVENTS (Storyteller)
+            // Advance TimeManager to pulse the Storyteller subscription.
+            // Storyteller reads State.Day (pre-increment) as the current day.
+            // ═══════════════════════════════════════════
+            Time.AdvanceDays(1);
+
+            // ═══════════════════════════════════════════
             // PHASE 5: SUSTAINABILITY (weekly)
             // ═══════════════════════════════════════════
             if (State.Day - _lastSustainabilityUpdate >= SUSTAINABILITY_UPDATE_INTERVAL)
@@ -196,6 +215,11 @@ namespace LakskongenSim.Core
                 SustainabilityManager?.UpdateScore(State);
                 _lastSustainabilityUpdate = State.Day;
             }
+
+            // ═══════════════════════════════════════════
+            // PHASE 6: TUTORIAL PROGRESS CHECK
+            // ═══════════════════════════════════════════
+            Tutorial?.CheckProgress();
         }
 
         // ─── Sustainability event handlers ───
@@ -223,6 +247,121 @@ namespace LakskongenSim.Core
             {
                 FinanceManager?.Spend(50_000m);
                 OnEventTriggered?.Invoke("💸 Non-compliance fine: 50,000 NOK");
+            }
+        }
+
+        // ─── Storyteller event handler ───
+
+        private void HandleStorytellerEvent(EventRecord record)
+        {
+            // Notify UI
+            OnEventFired?.Invoke(record);
+            OnEventTriggered?.Invoke($"📣 [{record.Category}] {record.Name}: {record.Description}");
+
+            Console.WriteLine($"[Day {record.Day}] EVENT: {record.Name} — {record.Description} ({record.BalanceChange:+#,0;-#,0;0} NOK)");
+
+            // Consequence chains: route each category to the appropriate subsystem
+            switch (record.Category)
+            {
+                case EventCategory.Disease:
+                    ApplyDiseaseConsequence(record);
+                    break;
+
+                case EventCategory.Weather:
+                    ApplyWeatherConsequence(record);
+                    break;
+
+                case EventCategory.Market:
+                    ApplyMarketConsequence(record);
+                    break;
+
+                case EventCategory.Regulation:
+                    ApplyRegulatoryConsequence(record);
+                    break;
+            }
+        }
+
+        private void ApplyDiseaseConsequence(EventRecord record)
+        {
+            // Run extra disease update days to reflect outbreak escalation
+            if (State.Populations.Count > 0)
+                IntegratedDisease?.Update(State.Zones.ToList(), State.Populations.ToList(), 3);
+        }
+
+        private void ApplyWeatherConsequence(EventRecord record)
+        {
+            switch (record.Id)
+            {
+                case "storm-damage":
+                    Weather?.ForceWeatherState(WeatherState.Storm);
+                    break;
+                case "heatwave":
+                    Weather?.ApplyTemperatureAnomaly(+4.0);
+                    break;
+                case "cold-snap":
+                    Weather?.ApplyTemperatureAnomaly(-3.5);
+                    break;
+                case "algal-bloom-toxic":
+                case "weather-algal-bloom":
+                case "oxygen-depletion":
+                    Weather?.ForceWeatherState(WeatherState.Severe);
+                    break;
+                default:
+                    Weather?.ForceWeatherState(WeatherState.Storm);
+                    break;
+            }
+        }
+
+        private void ApplyMarketConsequence(EventRecord record)
+        {
+            switch (record.Id)
+            {
+                case "oversupply-crash":
+                case "market-crash":
+                    MarketSimulation?.ApplyExternalShock(supplyFactor: 1.15, demandFactor: 0.90);
+                    break;
+                case "price-spike-china":
+                case "us-salmon-trend":
+                    MarketSimulation?.ApplyExternalShock(supplyFactor: 1.0, demandFactor: 1.10);
+                    break;
+                case "chile-collapse":
+                    MarketSimulation?.ApplyExternalShock(supplyFactor: 0.85, demandFactor: 1.0);
+                    break;
+                case "brexit-tariffs":
+                    MarketSimulation?.ApplyExternalShock(supplyFactor: 1.0, demandFactor: 0.92);
+                    break;
+                case "nok-weakens":
+                    MarketSimulation?.ApplyExternalShock(supplyFactor: 1.0, demandFactor: 1.05);
+                    break;
+                case "asc-premium":
+                case "contract-secured":
+                    MarketSimulation?.ApplyExternalShock(supplyFactor: 1.0, demandFactor: 1.06);
+                    break;
+                default:
+                    // Unknown market event — mild demand nudge
+                    MarketSimulation?.ApplyExternalShock(supplyFactor: 1.0, demandFactor: 0.97);
+                    break;
+            }
+        }
+
+        private void ApplyRegulatoryConsequence(EventRecord record)
+        {
+            switch (record.Id)
+            {
+                case "traffic-light-red":
+                case "escape-penalty":
+                case "resource-rent-tax":
+                case "welfare-inspection":
+                    SustainabilityManager?.ApplyRegulatoryPenalty(10);
+                    break;
+                case "traffic-light-green":
+                case "development-license":
+                    // Positive regulatory events — force a score re-evaluation
+                    SustainabilityManager?.UpdateScore(State);
+                    break;
+                default:
+                    SustainabilityManager?.ApplyRegulatoryPenalty(5);
+                    break;
             }
         }
 

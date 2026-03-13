@@ -63,6 +63,29 @@ namespace LakskongenSim.Environment
         }
 
         /// <summary>
+        /// Force a weather state transition from a storyteller event.
+        /// The Markov chain will naturally revert to normal probabilities over subsequent days.
+        /// </summary>
+        public void ForceWeatherState(WeatherState state)
+        {
+            CurrentState = state;
+            OnWeatherStateChanged?.Invoke(CurrentState);
+
+            if (state >= WeatherState.Storm)
+                OnWeatherAlert?.Invoke($"⛈️ Severe event forcing {state} conditions");
+        }
+
+        /// <summary>
+        /// Apply a temperature anomaly (°C offset) from a storyteller event.
+        /// Clamped to the realistic Norwegian sea surface range.
+        /// </summary>
+        public void ApplyTemperatureAnomaly(double deltaC)
+        {
+            CurrentTemperatureC = Math.Clamp(CurrentTemperatureC + deltaC, 1.5, 19.0);
+            OnTemperatureChanged?.Invoke(CurrentTemperatureC);
+        }
+
+        /// <summary>
         /// Advance weather simulation by given days.
         /// Updates temperature, wind, and weather state.
         /// </summary>
