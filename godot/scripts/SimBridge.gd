@@ -643,3 +643,17 @@ func get_achievement_list() -> Array[Dictionary]:
 	for entry in raw:
 		result.append(entry)
 	return result
+
+# T32 Audio Bridge Methods
+func get_current_weather_state() -> String:
+	if not _game_bridge: return "Calm"
+	return _game_bridge.GetCurrentWeatherState()
+
+func get_current_temperature() -> float:
+	if not _game_bridge: return 0.0
+	return float(_game_bridge.GetCurrentTemperature())
+
+func get_current_day() -> int:
+	if not _game_bridge: return 0
+	return int(_game_bridge.GetCurrentDay())
+

@@ -441,6 +441,10 @@ public partial class GameBridge : Node
     /// <summary>Current weather state as a lowercase string (calm | wind | storm).</summary>
     public string CurrentWeatherState => SimulationEngine?.Audio?.CurrentWeatherKey ?? "calm";
 
+    public string GetCurrentWeatherState() => SimulationEngine?.Weather?.CurrentState.ToString() ?? "Calm";
+    public double GetCurrentTemperature() => SimulationEngine?.Weather?.CurrentTemperatureC ?? 0.0;
+    public int GetCurrentDay() => SimulationEngine?.State?.Day ?? 0;
+
     // ── Internal ──────────────────────────────────────────────────────────────
 
     private void OnSimulationTick()
@@ -1169,3 +1173,4 @@ public partial class GameBridge : Node
         _simulationTimer?.QueueFree();
     }
 }
+
