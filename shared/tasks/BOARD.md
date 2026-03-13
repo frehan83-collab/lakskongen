@@ -50,11 +50,7 @@
 | T30 | Balance tuning — production economics | DeepSeek | ✅ Real Norwegian VB growth, FCR, costs, MAB |
 | T31 | MapPanel — 13 Norwegian production zones (UI rewrite) | Sonnet | ✅ Full PO 1-13 display |
 | T32 | Audio System — weather-reactive ambience + music crossfades | Sonnet | ✅ Dynamic soundscapes + tension music |
-
-## 🟢 In Progress (Sprint 7 — Wave 4)
-| ID | Task | Agent | Status |
-|----|------|-------|--------|
-| T33 | Achievement system polish + notification UI | Sonnet (rerouted to GPT-5.4) | 🏃 Running |
+| T33 | Achievement system polish + notification UI | GPT-5.4 | ✅ Polished system + unobtrusive UI |
 
 ## 📋 Inbox (Next)
 | ID | Task | Estimated Agent | Priority |
@@ -62,6 +58,6 @@
 | T17 | Multiplayer testing — NetworkManager + lobby | Sonnet | LOW |
 
 ---
-*Updated: 2026-03-13 22:15 CET — Sprint 7: 12 tasks done*
-*Build: ✅ Green | Tests: ✅ 18/18 | TODOs: 0 | Commits: 12+*
+*Updated: 2026-03-13 22:47 CET — Sprint 7: ALL 13 tasks done*
+*Build: ✅ Green | Tests: ✅ 18/18 | TODOs: 0 | Commits: 13+*
 *Fallback: Sonnet → GPT-5.4 → DeepSeek → Gemini 2.5 Flash | Ollama → Qwen → GPT-5.4*
