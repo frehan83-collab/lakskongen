@@ -593,6 +593,9 @@
         <member name="P:LakskongenSim.Core.GameState.Populations">
             <summary>Fish populations across the system.</summary>
         </member>
+        <member name="P:LakskongenSim.Core.GameState.Broodstock">
+            <summary>Broodstock genomes available for selective breeding.</summary>
+        </member>
         <member name="P:LakskongenSim.Core.GameState.ProcessingSnapshots">
             <summary>Processing P&amp;L snapshot (summary per plant). New systems can push ProcessingSnapshot objects here for dashboards.
             Kept as a simple serializable structure so front-end/Dashboard can display aggregate processing profit/loss.

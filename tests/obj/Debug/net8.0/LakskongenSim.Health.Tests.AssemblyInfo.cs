@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LakskongenSim.Health.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+44ccd6164bd09050d1c60118a2be5dbe540407f2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e7e84db30da10492cba3180b48b46c477e87c51f")]
 [assembly: System.Reflection.AssemblyProductAttribute("LakskongenSim.Health.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LakskongenSim.Health.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

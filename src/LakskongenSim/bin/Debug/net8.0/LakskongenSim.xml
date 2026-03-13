@@ -1253,10 +1253,22 @@
         <member name="P:LakskongenSim.Core.TutorialSystem.CompletedCount">
             <summary>How many steps have been completed so far.</summary>
         </member>
+        <member name="M:LakskongenSim.Core.TutorialSystem.LoadStepsFromJson">
+            <summary>Load tutorial steps from JSON file and parse condition strings.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.TutorialSystem.ParseCondition(System.String)">
+            <summary>Parse condition string (e.g., "day >= 7") into executable function.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.TutorialSystem.ParseDayCondition(System.String)">
+            <summary>Parse "day >= N" conditions.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.TutorialSystem.ParseNumericCondition(System.String)">
+            <summary>Parse generic numeric conditions (extensible).</summary>
+        </member>
         <member name="M:LakskongenSim.Core.TutorialSystem.CheckProgress">
             <summary>
             Called each simulated day by SimulationEngine.
-            Evaluates the current step's completion condition and advances when met.
+            Evaluates the current step's trigger and completion conditions and advances when met.
             Chains through multiple steps if conditions are immediately satisfied.
             </summary>
         </member>
