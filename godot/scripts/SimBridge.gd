@@ -305,3 +305,241 @@ func balance_color(amount: float) -> Color:
 	if amount < 0.0:     return Color.RED
 	elif amount < 500_000.0: return Color.YELLOW
 	return Color.WHITE
+
+# ── Analytics API ─────────────────────────────────────────────────────────────
+
+## Get time-series data for a metric over N days (returns Array[double]).
+## Valid metrics: fish_count, total_biomass_kg, market_price_nok, balance_nok,
+## temperature_c, fcr, lice_per_fish, sustainability_score, mortality_rate, avg_weight_kg
+func get_analytics_data(metric: String, days: int = 30) -> Array[float]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetAnalyticsData(metric, days)
+	var result: Array[float] = []
+	for v in raw:
+		result.append(v)
+	return result
+
+## Get moving average of a metric over N days with a rolling window.
+func get_analytics_moving_average(metric: String, days: int = 30, window_days: int = 7) -> Array[float]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetAnalyticsMovingAverage(metric, days, window_days)
+	var result: Array[float] = []
+	for v in raw:
+		result.append(v)
+	return result
+
+## Get trend for a metric over N days. Returns "up", "down", or "stable".
+func get_analytics_trend(metric: String, days: int = 14) -> String:
+	if not _game_bridge: return "stable"
+	return _game_bridge.GetAnalyticsTrend(metric, days)
+
+## Get all-time high value for a metric.
+func get_analytics_all_time_high(metric: String) -> float:
+	if not _game_bridge: return 0.0
+	return _game_bridge.GetAnalyticsAllTimeHigh(metric)
+
+## Get all-time low value for a metric.
+func get_analytics_all_time_low(metric: String) -> float:
+	if not _game_bridge: return 0.0
+	return _game_bridge.GetAnalyticsAllTimeLow(metric)
+
+# ── Research API ──────────────────────────────────────────────────────────────
+
+## Get all research nodes as Array[Dictionary].
+## Keys: id, name, description, branch, tier, cost_nok, research_days,
+##       prerequisites (Array[String]), unlocked (bool), is_active (bool),
+##       progress_days (int), can_research (bool), effects (Dictionary)
+func get_research_nodes() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetResearchNodes()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Start researching a node by ID. Returns true on success.
+func start_research(node_id: String) -> bool:
+	if not _game_bridge: return false
+	return _game_bridge.StartResearch(node_id)
+
+## Cancel the active research (no cost refund).
+func cancel_research() -> void:
+	if _game_bridge:
+		_game_bridge.CancelResearch()
+
+## Check if a research node is unlocked.
+func is_research_unlocked(node_id: String) -> bool:
+	if not _game_bridge: return false
+	return _game_bridge.IsResearchUnlocked(node_id)
+
+## Get combined effect value for a key across all unlocked research.
+func get_research_effect(effect_key: String) -> float:
+	if not _game_bridge: return 0.0
+	return _game_bridge.GetResearchEffect(effect_key)
+
+## ID of the research currently in progress (empty string if none).
+func get_active_research_id() -> String:
+	if not _game_bridge: return ""
+	return _game_bridge.ActiveResearchId
+
+## Days elapsed on the active research.
+func get_research_progress() -> int:
+	if not _game_bridge: return 0
+	return _game_bridge.ResearchProgress
+
+## Days remaining on the active research.
+func get_research_days_remaining() -> int:
+	if not _game_bridge: return 0
+	return _game_bridge.ResearchDaysRemaining
+
+# ── Scenario System API ───────────────────────────────────────────────────────
+
+## Get all available scenarios as Array[Dictionary].
+## Keys: id, name, description, difficulty, region, starting_capital
+func get_available_scenarios() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetAvailableScenarios()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Load and start a scenario by ID. Returns true on success.
+func start_scenario(scenario_id: String) -> bool:
+	if not _game_bridge: return false
+	return _game_bridge.StartScenario(scenario_id)
+
+## Get the ID of the currently active scenario.
+func get_active_scenario_id() -> String:
+	if not _game_bridge: return ""
+	return _game_bridge.GetActiveScenarioId()
+
+# ── Sustainability API (expanded) ─────────────────────────────────────────────
+
+## Get detailed sustainability breakdown as Dictionary.
+## Keys: sea_lice, escape, feed, carbon, welfare, ecosystem (all float)
+func get_sustainability_breakdown() -> Dictionary:
+	if not _game_bridge: return {}
+	return _game_bridge.GetSustainabilityBreakdown()
+
+## Get the current certification level as a string.
+## Values: NonCompliant, Compliant, ASCCertified, OrganicCertified
+func get_certification_level() -> String:
+	if not _game_bridge: return "NonCompliant"
+	return _game_bridge.GetCertificationLevel()
+
+## Get the current price multiplier from certification (e.g. 1.0 = no bonus, 1.15 = +15%).
+func get_price_multiplier() -> float:
+	if not _game_bridge: return 1.0
+	return _game_bridge.GetPriceMultiplier()
+
+# ── Finance API ───────────────────────────────────────────────────────────────
+
+## Total revenue accumulated this period.
+func get_revenue() -> float:
+	if not _game_bridge: return 0.0
+	return _game_bridge.Revenue
+
+## Total expenses accumulated this period.
+func get_expenses() -> float:
+	if not _game_bridge: return 0.0
+	return _game_bridge.Expenses
+
+## Current profit (Revenue - Expenses).
+func get_profit() -> float:
+	if not _game_bridge: return 0.0
+	return _game_bridge.Profit
+
+## Get financial history for the last N days as Array[Dictionary].
+## Keys: day (int), revenue (float), expenses (float), balance (float)
+func get_financial_history(days: int) -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetFinancialHistory(days)
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get loan information as Dictionary.
+## Keys: has_loan (bool), amount (float), interest_rate (float), remaining (float)
+func get_loan_info() -> Dictionary:
+	if not _game_bridge: return {}
+	return _game_bridge.GetLoanInfo()
+
+## Take out a loan for the specified amount. Returns true on success.
+func take_loan(amount: float) -> bool:
+	if not _game_bridge: return false
+	return _game_bridge.TakeLoan(amount)
+
+## Repay a portion of the active loan. Returns true on success.
+func repay_loan(amount: float) -> bool:
+	if not _game_bridge: return false
+	return _game_bridge.RepayLoan(amount)
+
+# ── Farm Management API ───────────────────────────────────────────────────────
+
+## Stock smolts at a specific sea site. Returns true on success.
+func stock_smolts(site_id: String, count: int) -> bool:
+	if not _game_bridge: return false
+	return _game_bridge.StockSmolts(site_id, count)
+
+## Harvest all fish at a specific sea site. Returns biomass harvested in kg.
+func harvest_site(site_id: String) -> float:
+	if not _game_bridge: return 0.0
+	return _game_bridge.HarvestSite(site_id)
+
+## Build a new sea site in the specified zone. Returns true on success.
+func build_sea_site(zone_id: String, name: String) -> bool:
+	if not _game_bridge: return false
+	return _game_bridge.BuildSeaSite(zone_id, name)
+
+## Get detailed information about all sea sites as Array[Dictionary].
+## Keys: id, name, zone, fish_count (int), biomass_kg (float), max_biomass (float), escapes_this_year (int)
+func get_sea_site_details() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetSeaSiteDetails()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Order a delousing treatment for a specific sea site.
+## Valid methods: mechanical, thermal, chemical, biological. Returns true on success.
+func order_delousing(site_id: String, method: String) -> bool:
+	if not _game_bridge: return false
+	return _game_bridge.OrderDelousing(site_id, method)
+
+# ── Worker/Crew API ───────────────────────────────────────────────────────────
+
+## Get the crew roster as Array[Dictionary].
+## Keys: id, name, role, salary_nok (float), skill_level (int), hire_date (int)
+func get_crew_list() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetCrewList()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Hire a new worker with the specified role. Returns true on success.
+## Valid roles: manager, technician, veterinarian, diver, feeder
+func hire_worker(role: String) -> bool:
+	if not _game_bridge: return false
+	return _game_bridge.HireWorker(role)
+
+## Fire a worker by ID. Returns true on success.
+func fire_worker(worker_id: String) -> bool:
+	if not _game_bridge: return false
+	return _game_bridge.FireWorker(worker_id)
+
+# ── Achievement API ───────────────────────────────────────────────────────────
+
+## Get all achievements as Array[Dictionary].
+## Keys: id, name, description, tier, reward_nok (float), unlocked (bool)
+func get_achievement_list() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetAchievementList()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result

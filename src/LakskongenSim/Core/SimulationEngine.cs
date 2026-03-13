@@ -139,7 +139,106 @@ namespace LakskongenSim.Core
                 SyncResearchToState();
             };
 
+            LoadJsonConfigs();
             Console.WriteLine("✅ SimulationEngine initialized — all subsystems wired");
+
+        private void LoadJsonConfigs()
+        {
+            string[] paths = { "game/data/", "Data/" };
+            string path = paths.FirstOrDefault(p => File.Exists(Path.Combine(p, "research_nodes.json"))) ?? paths[0];
+
+            // Load research nodes
+            try
+            {
+                var researchJson = File.ReadAllText(Path.Combine(path, "research_nodes.json"));
+                var researchNodes = JsonSerializer.Deserialize<List<ResearchNode>>(researchJson);
+                Research.Populate(researchNodes ?? new List<ResearchNode>());
+            }
+            catch
+            {
+                Console.WriteLine("research_nodes.json not found, using default research nodes.");
+            }
+
+            // Load tutorial steps
+            try
+            {
+                var tutorialJson = File.ReadAllText(Path.Combine(path, "tutorial_steps.json"));
+                var tutorialSteps = JsonSerializer.Deserialize<List<TutorialStep>>(tutorialJson);
+                Tutorial.LoadSteps(tutorialSteps ?? new List<TutorialStep>());
+            }
+            catch
+            {
+                Console.WriteLine("tutorial_steps.json not found, using default tutorial steps.");
+            }
+
+            // Load balancing config
+            try
+            {
+                var balancingJson = File.ReadAllText(Path.Combine(path, "balancing.json"));
+                var balancingConfig = JsonSerializer.Deserialize<BalancingConfig>(balancingJson) ?? new BalancingConfig();
+                ApplyBalancingConfig(balancingConfig);
+            }
+            catch
+            {
+                Console.WriteLine("balancing.json not found, using default balancing values.");
+            }
+
+            // Load scenarios
+            try
+            {
+                var scenariosJson = File.ReadAllText(Path.Combine(path, "scenarios.json"));
+                var scenarios = JsonSerializer.Deserialize<List<Scenario>>(scenariosJson);
+                // Assuming a ScenarioSystem exists and is used in the game
+                ScenarioSystem.LoadScenarios(scenarios ?? new List<Scenario>());
+            }
+            catch
+            {
+                Console.WriteLine("scenarios.json not found, using default scenarios.");
+            }
+
+            // Load encyclopedia entries
+            try
+            {
+                var encyclopediaJson = File.ReadAllText(Path.Combine(path, "encyclopedia_entries.json"));
+                var entries = JsonSerializer.Deserialize<List<EncyclopediaEntry>>(encyclopediaJson);
+                Encyclopedia.LoadEntries(entries ?? new List<EncyclopediaEntry>());
+            }
+            catch
+            {
+                Console.WriteLine("encyclopedia_entries.json not found, using default entries.");
+            }
+
+            // Load achievements config
+            try
+            {
+                var achievementsJson = File.ReadAllText(Path.Combine(path, "achievements_config.json"));
+                var achievements = JsonSerializer.Deserialize<List<AchievementConfig>>(achievementsJson);
+                Achievements.LoadAchievements(achievements ?? new List<AchievementConfig>());
+            }
+            catch
+            {
+                Console.WriteLine("achievements_config.json not found, using default achievements.");
+            }
+        }
+
+        private void ApplyBalancingConfig(BalancingConfig config)
+        {
+            FinanceManager.SetStartingCapital(config.StartingCapital);
+            Hatchery.SetCostAndMaturation(config.SmoltCostPerFish, config.SmoltMaturationDays);
+            Feed.SetFCRTargets(config.OptimalFCR, config.PoorFCR);
+            Market.SetBasePrice(config.BaseSalmonPricePerKg);
+        }
+
+        private class BalancingConfig
+        {
+            public decimal StartingCapital { get; set; } = 10000000;
+            public decimal SmoltCostPerFish { get; set; } = 15;
+            public int SmoltMaturationDays { get; set; } = 365;
+            public double OptimalFCR { get; set; } = 1.15;
+            public double PoorFCR { get; set; } = 1.4;
+            public decimal BaseSalmonPricePerKg { get; set; } = 70;
+        }
+
         }
 
         /// <summary>

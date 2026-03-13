@@ -43,8 +43,16 @@ func _ready():
 	if not score_label:
 		_create_ui()
 	
-	# Initial display
-	update_display(0, "NonCompliant", {})
+	# Connect to SimBridge for live data updates
+	if has_node("/root/SimBridge"):
+		var sim_bridge = get_node("/root/SimBridge")
+		sim_bridge.state_updated.connect(_on_state_updated)
+		print("SustainabilityPanel: connected to SimBridge")
+	else:
+		push_warning("SustainabilityPanel: SimBridge not found")
+	
+	# Initial display with live data
+	_refresh_from_bridge()
 
 func _create_ui():
 	"""Dynamically create UI elements if not set in editor"""
@@ -220,7 +228,12 @@ func _format_certification(cert: String) -> String:
 			return cert
 
 func _get_price_multiplier(cert: String) -> float:
-	"""Get price multiplier from certification level"""
+	"""Get price multiplier from certification level (from bridge if available, otherwise fallback)"""
+	if has_node("/root/SimBridge"):
+		var sim_bridge = get_node("/root/SimBridge")
+		return sim_bridge.get_price_multiplier()
+	
+	# Fallback to local calculation
 	match cert:
 		"NonCompliant":
 			return 0.85
@@ -268,6 +281,39 @@ func _simulate_score_change():
 	for i in range(test_scores.size()):
 		await get_tree().create_timer(2.0).timeout
 		update_display(test_scores[i], test_certs[i], test_categories)
+
+# === BRIDGE DATA REFRESH ===
+
+func _on_state_updated():
+	"""Called when SimBridge state updates"""
+	_refresh_from_bridge()
+
+func _refresh_from_bridge():
+	"""Pull live data from SimBridge and update display"""
+	if not has_node("/root/SimBridge"):
+		return
+	
+	var sim_bridge = get_node("/root/SimBridge")
+	
+	# Get sustainability score and certification level
+	var score = sim_bridge.sustainability_score
+	var cert = sim_bridge.get_certification_level()
+	
+	# Get detailed breakdown
+	var breakdown = sim_bridge.get_sustainability_breakdown()
+	
+	# Convert breakdown to category scores (normalized to 0-25 scale)
+	var categories = {
+		"SeaLiceManagement": breakdown.get("sea_lice", 0.0) * 25.0 / 100.0,
+		"EscapePrevention": breakdown.get("escape", 0.0) * 20.0 / 100.0,
+		"FeedSustainability": breakdown.get("feed", 0.0) * 20.0 / 100.0,
+		"CarbonFootprint": breakdown.get("carbon", 0.0) * 15.0 / 100.0,
+		"WelfareStandards": breakdown.get("welfare", 0.0) * 10.0 / 100.0,
+		"EcosystemImpact": breakdown.get("ecosystem", 0.0) * 10.0 / 100.0
+	}
+	
+	# Update display with live data
+	update_display(score, cert, categories)
 
 # Uncomment to test on load:
 # func _ready():

@@ -19,6 +19,14 @@ func _ready():
     lbl_trend.text = "-"
     lbl_history.text = ""
     set_process(true)
+    
+    # Connect to SimBridge for live market data
+    if has_node("/root/SimBridge"):
+        var sim_bridge = get_node("/root/SimBridge")
+        sim_bridge.state_updated.connect(_on_state_updated)
+        print("MarketPanel: connected to SimBridge")
+    else:
+        push_warning("MarketPanel: SimBridge not found")
 
 func _process(delta: float) -> void:
     # Smooth spot price change
@@ -80,6 +88,25 @@ func _on_accept_contract(contract_data) -> void:
 
 func _on_cancel_contract(contract_data) -> void:
     print("Cancel contract:", contract_data)
+
+func _on_state_updated():
+    """Called when SimBridge state updates - refresh market data"""
+    if not has_node("/root/SimBridge"):
+        return
+    
+    var sim_bridge = get_node("/root/SimBridge")
+    
+    # Get current spot price
+    var spot_price = sim_bridge.market_price_nok
+    
+    # Get price history using analytics API (last 52 days as weekly approximation)
+    var history = sim_bridge.get_analytics_data("market_price_nok", 52)
+    
+    # Contracts placeholder (to be implemented when contract system is ready)
+    var contracts = []
+    
+    # Update display
+    update_market(spot_price, history, contracts)
 
 func export_market_distribution(path: String = "user://market_distribution.csv") -> bool:
     # Exports price history distribution to CSV (price,count)
