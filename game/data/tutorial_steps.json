@@ -1,0 +1,98 @@
+[
+  {
+    "stepNumber": 1,
+    "title": "Velkommen til Lakskongen",
+    "description": "Your journey as a Norwegian salmon farmer begins. You have 10 million NOK to build your empire.",
+    "hint": "Take a look at your dashboard to see your starting capital and available zones.",
+    "rewardNok": 50000,
+    "condition": "game_started"
+  },
+  {
+    "stepNumber": 2,
+    "title": "Build Your Hatchery",
+    "description": "Every salmon starts as an egg. Build a hatchery to raise smolts for your sea farms.",
+    "hint": "Click on the Hatchery tab to purchase your first batch of smolts.",
+    "rewardNok": 100000,
+    "condition": "hatchery_built"
+  },
+  {
+    "stepNumber": 3,
+    "title": "Stock Your Pens",
+    "description": "Your smolts are ready! Transfer them to a sea site to begin the grow-out phase.",
+    "hint": "Select a sea site and click 'Stock Smolts' to transfer fish from the hatchery.",
+    "rewardNok": 75000,
+    "condition": "smolts_stocked"
+  },
+  {
+    "stepNumber": 4,
+    "title": "Feed Your Fish",
+    "description": "Salmon need quality feed to grow. Monitor your Feed Conversion Ratio (FCR) — below 1.15 is excellent.",
+    "hint": "Check the Feed panel to see daily consumption and FCR. Adjust feeding rates if needed.",
+    "rewardNok": 50000,
+    "condition": "fish_fed_7_days"
+  },
+  {
+    "stepNumber": 5,
+    "title": "Health Check",
+    "description": "Monitor your fish for sea lice and disease. Prevention is cheaper than treatment.",
+    "hint": "Open the Health panel. Keep sea lice below 0.5 per fish to avoid regulatory action.",
+    "rewardNok": 75000,
+    "condition": "health_checked"
+  },
+  {
+    "stepNumber": 6,
+    "title": "Delousing Operations",
+    "description": "Sea lice are the #1 challenge in Norwegian salmon farming. Choose your delousing method wisely.",
+    "hint": "Mechanical delousing costs more but earns sustainability points. Chemical is cheaper but harms your score.",
+    "rewardNok": 100000,
+    "condition": "delousing_performed"
+  },
+  {
+    "stepNumber": 7,
+    "title": "Wait for Growth",
+    "description": "Salmon take 14-18 months to reach harvest weight (4-6 kg). Use this time to plan ahead.",
+    "hint": "Advance time using the speed controls. Watch your fish grow on the dashboard.",
+    "rewardNok": 50000,
+    "condition": "day_90_reached"
+  },
+  {
+    "stepNumber": 8,
+    "title": "First Harvest",
+    "description": "Your salmon have reached market size! Time to harvest and sell.",
+    "hint": "Select your sea site and click 'Harvest'. Fish above 4 kg fetch the best prices.",
+    "rewardNok": 200000,
+    "condition": "first_harvest"
+  },
+  {
+    "stepNumber": 9,
+    "title": "Sell to Market",
+    "description": "The salmon spot price fluctuates daily. Timing your sales matters — or lock in contract prices for stability.",
+    "hint": "Check the Market panel for current prices. Consider signing a contract for predictable revenue.",
+    "rewardNok": 150000,
+    "condition": "first_sale"
+  },
+  {
+    "stepNumber": 10,
+    "title": "Research & Innovation",
+    "description": "Invest in R&D to improve your operations. Better genetics, feed, and technology give you an edge.",
+    "hint": "Open the Research panel and start your first project. 'Selective Breeding' is a good first choice.",
+    "rewardNok": 100000,
+    "condition": "research_started"
+  },
+  {
+    "stepNumber": 11,
+    "title": "Sustainability Matters",
+    "description": "Norway's traffic light system controls your growth. High sustainability scores unlock premium markets.",
+    "hint": "Check your Sustainability panel. ASC certification (score 70+) gives an 8% price premium.",
+    "rewardNok": 100000,
+    "condition": "sustainability_checked"
+  },
+  {
+    "stepNumber": 12,
+    "title": "Expand Your Empire",
+    "description": "Ready for growth? Build a new sea site in another zone to diversify risk and increase production.",
+    "hint": "Go to the Map and select a new zone. Build a sea site to start your second farm.",
+    "rewardNok": 500000,
+    "condition": "second_site_built"
+  }
+]

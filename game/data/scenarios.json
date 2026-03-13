@@ -1,0 +1,72 @@
+[
+  {
+    "id": "nordland-beginner",
+    "name": "Nordland Nybegynner",
+    "description": "Start fresh in beautiful Nordland with ideal water temperatures and generous starting capital. Perfect for learning the basics.",
+    "difficulty": "Easy",
+    "region": "Nordland",
+    "startingCapital": 15000000,
+    "startingZones": 2,
+    "startingSites": 1,
+    "startingWorkers": 5,
+    "temperatureRange": [6, 14],
+    "specialRules": [],
+    "objectives": ["Harvest 100 tonnes in year 1", "Achieve positive cash flow", "Complete the tutorial"]
+  },
+  {
+    "id": "vestland-expansion",
+    "name": "Vestland Vekst",
+    "description": "The heart of Norwegian aquaculture. Moderate conditions but fierce competition. Grow strategically to become the region's top producer.",
+    "difficulty": "Medium",
+    "region": "Vestland",
+    "startingCapital": 10000000,
+    "startingZones": 3,
+    "startingSites": 1,
+    "startingWorkers": 4,
+    "temperatureRange": [7, 15],
+    "specialRules": ["competitor_active", "higher_license_cost"],
+    "objectives": ["Reach 5M NOK profit", "Achieve ASC certification", "Operate 3 sea sites"]
+  },
+  {
+    "id": "troms-challenge",
+    "name": "Troms Utfordring",
+    "description": "Cold northern waters with short growing seasons. Sea lice pressure is lower, but storms are fierce. Not for the faint-hearted.",
+    "difficulty": "Hard",
+    "region": "Troms",
+    "startingCapital": 8000000,
+    "startingZones": 2,
+    "startingSites": 1,
+    "startingWorkers": 3,
+    "temperatureRange": [4, 12],
+    "specialRules": ["frequent_storms", "slow_growth", "low_lice_pressure"],
+    "objectives": ["Survive 3 years", "Reach 10M NOK net worth", "Zero fish escapes for 2 years"]
+  },
+  {
+    "id": "finnmark-extreme",
+    "name": "Finnmark Ekstrem",
+    "description": "The Arctic frontier. Brutal winters, limited infrastructure, and isolation. But untapped potential and zero competition. High risk, high reward.",
+    "difficulty": "Expert",
+    "region": "Finnmark",
+    "startingCapital": 6000000,
+    "startingZones": 1,
+    "startingSites": 0,
+    "startingWorkers": 2,
+    "temperatureRange": [2, 10],
+    "specialRules": ["extreme_weather", "limited_logistics", "development_grants", "no_existing_sites"],
+    "objectives": ["Build from nothing", "Export to 3 markets", "Achieve Sustainability Leader status"]
+  },
+  {
+    "id": "sandbox-freeplay",
+    "name": "Sandkasse",
+    "description": "No objectives, no pressure. Unlimited starting capital and all regions available. Experiment, learn, and build your dream salmon empire.",
+    "difficulty": "Sandbox",
+    "region": "All",
+    "startingCapital": 100000000,
+    "startingZones": 8,
+    "startingSites": 0,
+    "startingWorkers": 10,
+    "temperatureRange": [4, 16],
+    "specialRules": ["unlimited_loans", "no_bankruptcy", "all_research_half_cost"],
+    "objectives": []
+  }
+]
