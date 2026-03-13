@@ -550,6 +550,33 @@ func order_delousing(site_id: String, method: String) -> bool:
 	if not _game_bridge: return false
 	return _game_bridge.OrderDelousing(site_id, method)
 
+# ── Genetics API ──────────────────────────────────────────────────────────────
+
+## Get all broodstock genomes as Array[Dictionary].
+## Keys: id, generation (int), traits (Dictionary), has_mutation (bool), summary (String)
+func get_breeding_candidates() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetBreedingCandidates()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get genetic trait definitions as Array[Dictionary].
+## Keys: name (String), heritability (float), current_value (float), breeding_value (float)
+func get_genetic_traits() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetGeneticTraits()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get current inbreeding coefficient (0.0-1.0).
+func get_inbreeding_coefficient() -> float:
+	if not _game_bridge: return 0.0
+	return _game_bridge.GetInbreedingCoefficient()
+
 # ── Worker/Crew API ───────────────────────────────────────────────────────────
 
 ## Get the crew roster as Array[Dictionary].

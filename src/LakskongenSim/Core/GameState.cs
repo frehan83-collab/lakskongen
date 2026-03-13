@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using LakskongenSim.Sustainability;
+using LakskongenSim.Biology;
 
 namespace LakskongenSim.Core
 {
@@ -24,6 +25,9 @@ namespace LakskongenSim.Core
 
         /// <summary>Fish populations across the system.</summary>
         public List<Biology.FishPopulation> Populations { get; set; } = new();
+
+        /// <summary>Broodstock genomes available for selective breeding.</summary>
+        public List<Genome> Broodstock { get; set; } = new();
 
         /// <summary>Processing P&amp;L snapshot (summary per plant). New systems can push ProcessingSnapshot objects here for dashboards.
         /// Kept as a simple serializable structure so front-end/Dashboard can display aggregate processing profit/loss.

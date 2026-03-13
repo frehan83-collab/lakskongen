@@ -1,6 +1,8 @@
 using Godot;
 using LakskongenSim.Core;
 using LakskongenSim.Finance;
+using LakskongenSim.Biology;
+using LakskongenSim.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -923,6 +925,80 @@ public partial class GameBridge : Node
             EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, false);
         }
         return success;
+    }
+
+    // ── Genetics API ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns list of broodstock genomes with their genetic traits.
+    /// Each entry is a Dictionary with keys: "id", "generation", "traits" (Dictionary of trait values),
+    /// "has_mutation", "summary".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetBreedingCandidates()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var state = SimulationEngine?.State;
+        if (state == null) return result;
+
+        int index = 0;
+        foreach (var genome in state.Broodstock)
+        {
+            var traits = new Godot.Collections.Dictionary();
+            foreach (var kv in genome.TraitValues)
+                traits[kv.Key.ToString()] = kv.Value;
+
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = index.ToString(),
+                ["generation"] = genome.Generation,
+                ["traits"] = traits,
+                ["has_mutation"] = genome.HasMutation,
+                ["summary"] = genome.GetSummary()
+            });
+            index++;
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Returns trait definitions (name, heritability, current value, breeding value).
+    /// For each trait, returns a Dictionary with keys: "name", "heritability", "current_value", "breeding_value".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetGeneticTraits()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var genetics = SimulationEngine?.Genetics;
+        if (genetics == null) return result;
+
+        foreach (GeneticTrait trait in Enum.GetValues(typeof(GeneticTrait)))
+        {
+            double heritability = Genetics.GetHeritability(trait);
+            // For now, we'll return placeholder values; later we can compute current population average.
+            double currentValue = 0.0; // placeholder
+            double breedingValue = 0.0; // placeholder
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["name"] = trait.ToString(),
+                ["heritability"] = heritability,
+                ["current_value"] = currentValue,
+                ["breeding_value"] = breedingValue
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Returns current inbreeding depression level (coefficient between 0 and 1).
+    /// Simplified: count of shared genomes in broodstock.
+    /// </summary>
+    public double GetInbreedingCoefficient()
+    {
+        var broodstock = SimulationEngine?.State?.Broodstock;
+        if (broodstock == null || broodstock.Count < 2) return 0.0;
+
+        // Dummy implementation: compute average relatedness based on generation difference.
+        // For now, return a placeholder.
+        return 0.05;
     }
 
     // ── Worker/Crew API ───────────────────────────────────────────────────────

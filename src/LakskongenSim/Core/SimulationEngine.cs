@@ -32,6 +32,7 @@ namespace LakskongenSim.Core
         public DiseaseSystem Disease { get; private set; } = null!;
         public IntegratedDiseaseSystem IntegratedDisease { get; private set; } = null!;
         public Hatchery Hatchery { get; private set; } = null!;
+        public Genetics Genetics { get; private set; } = null!;
         public Market.MarketSimulation MarketSimulation { get; set; } = null!;
         public Finance.FinanceManager FinanceManager { get; set; } = null!;
         public SustainabilityManager SustainabilityManager { get; private set; } = null!;
@@ -74,6 +75,7 @@ namespace LakskongenSim.Core
             Disease = new DiseaseSystem(SeaLice);
             IntegratedDisease = new IntegratedDiseaseSystem(SeaLice);
             Hatchery = new Hatchery();
+            Genetics = new Genetics();
 
             // Default finance and market if not set externally
             FinanceManager ??= new Finance.FinanceManager(10_000_000m); // 10M NOK starting capital
