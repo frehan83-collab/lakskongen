@@ -54,7 +54,7 @@
 ## 🟢 In Progress (Sprint 7 — Wave 4)
 | ID | Task | Agent | Status |
 |----|------|-------|--------|
-| T33 | Achievement system polish + notification UI | Sonnet | 🏃 Running |
+| T33 | Achievement system polish + notification UI | Sonnet (rerouted to GPT-5.4) | 🏃 Running |
 
 ## 📋 Inbox (Next)
 | ID | Task | Estimated Agent | Priority |
