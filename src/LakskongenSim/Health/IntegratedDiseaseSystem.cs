@@ -18,6 +18,9 @@ namespace LakskongenSim.Health
         private readonly DiseaseLODSystem _lodSystem;
         private readonly SeaLiceModel _liceModel;
         
+        // Shared RNG — one instance per system to avoid seed-collision from rapid new Random() calls
+        private readonly Random _rng = new();
+
         // Performance targets
         private const double TargetFPS = 60.0;
         private const double MaxUpdateTimeMs = 16.7; // 60 FPS target
@@ -284,7 +287,7 @@ namespace LakskongenSim.Health
         private double EstimateZoneDistance(string zoneId1, string zoneId2)
         {
             // Simplified: random distance 0-30km
-            return new Random().NextDouble() * 30.0;
+            return _rng.NextDouble() * 30.0;
         }
         
         /// <summary>

@@ -14,7 +14,7 @@ namespace LakskongenSim.Core
 {
     /// <summary>
     /// Central orchestrator connecting all subsystems in correct update order.
-    /// Update order: Weather → Environment/Water → Biology/Growth → Health/Disease → Market → Finance
+    /// Update order: Weather → Environment → Biology → Health → Events → Market → Finance → Tutorial → Analytics
     /// </summary>
     public class SimulationEngine
     {
@@ -205,19 +205,25 @@ namespace LakskongenSim.Core
                 1);
 
             // ═══════════════════════════════════════════
-            // PHASE 4: MARKET & FINANCE
-            // ═══════════════════════════════════════════
-            MarketSimulation.AdvanceDays(1);
-
-            // ═══════════════════════════════════════════
-            // PHASE 4.5: EVENTS (Storyteller)
-            // Advance TimeManager to pulse the Storyteller subscription.
+            // PHASE 4: EVENTS (Storyteller)
+            // Run before Market so event-driven supply/demand shocks
+            // (e.g. oversupply-crash, chile-collapse) are applied before
+            // the market price advances for this day.
             // Storyteller reads State.Day (pre-increment) as the current day.
             // ═══════════════════════════════════════════
             Time.AdvanceDays(1);
 
             // ═══════════════════════════════════════════
-            // PHASE 5: SUSTAINABILITY (weekly)
+            // PHASE 5: MARKET
+            // Price simulation runs after events so any shocks registered
+            // this day are reflected in today's closing price.
+            // ═══════════════════════════════════════════
+            MarketSimulation.AdvanceDays(1);
+
+            // ═══════════════════════════════════════════
+            // PHASE 6: SUSTAINABILITY (weekly)
+            // Finance bonuses / penalties derived from the sustainability
+            // score are updated here; FinanceManager reacts via events.
             // ═══════════════════════════════════════════
             if (State.Day - _lastSustainabilityUpdate >= SUSTAINABILITY_UPDATE_INTERVAL)
             {
@@ -226,12 +232,12 @@ namespace LakskongenSim.Core
             }
 
             // ═══════════════════════════════════════════
-            // PHASE 6: TUTORIAL PROGRESS CHECK
+            // PHASE 7: TUTORIAL PROGRESS CHECK
             // ═══════════════════════════════════════════
             Tutorial?.CheckProgress();
 
             // ═══════════════════════════════════════════
-            // PHASE 7: ANALYTICS SNAPSHOT
+            // PHASE 8: ANALYTICS SNAPSHOT
             // Captured last so all subsystem updates are reflected.
             // ═══════════════════════════════════════════
             Analytics?.RecordSnapshot(this);

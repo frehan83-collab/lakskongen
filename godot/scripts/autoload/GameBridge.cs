@@ -73,6 +73,11 @@ public partial class GameBridge : Node
         SimulationEngine.FinanceManager = new FinanceManager(snapshot.Balance);
         SimulationEngine.Initialize();
 
+        // Wire tutorial signal (same as StartNewGame — must be done after Initialize())
+        SimulationEngine.Tutorial.OnStepCompleted += step =>
+            EmitSignal(SignalName.TutorialStepCompleted,
+                step.StepNumber, step.Title, (double)step.RewardNok);
+
         // Restore day counter and persistent collections
         SimulationEngine.State.Day = snapshot.Day;
         foreach (var zone in snapshot.Zones)
