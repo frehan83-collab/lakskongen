@@ -134,6 +134,10 @@ namespace LakskongenSim.Core
 
         // ─── Save/load helpers ─────────────────────────────────────────────────
 
+        /// <summary>
+        /// Populate research nodes from external JSON data.
+        /// Clears any existing nodes and replaces them with the provided list.
+        /// </summary>
         /// <summary>Restore an unlocked node without triggering the completion event.</summary>
         public void ForceUnlock(string nodeId)
         {
@@ -148,6 +152,65 @@ namespace LakskongenSim.Core
             {
                 ActiveResearchId = nodeId;
                 ResearchProgress = progress;
+            }
+        }
+
+        // ─── JSON population ───────────────────────────────────────────────────
+
+        /// <summary>
+        /// Replace the hardcoded node definitions with nodes loaded from JSON.
+        /// Preserves any existing unlock state if node IDs match.
+        /// </summary>
+        public void PopulateFromJson(List<ResearchNode> jsonNodes)
+        {
+            if (jsonNodes == null || jsonNodes.Count == 0) return;
+
+            // Map JSON branch strings to enum values
+            var branchMap = new Dictionary<string, ResearchBranch>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Biology"] = ResearchBranch.Biology,
+                ["Genetics"] = ResearchBranch.Biology,
+                ["Technology"] = ResearchBranch.Technology,
+                ["Sustainability"] = ResearchBranch.Sustainability,
+                ["Processing"] = ResearchBranch.Processing,
+                ["Expansion"] = ResearchBranch.Expansion
+            };
+
+            // Snapshot current unlock state before replacing
+            var previousState = new Dictionary<string, bool>();
+            foreach (var kvp in _nodes)
+                previousState[kvp.Key] = kvp.Value.Unlocked;
+
+            _nodes.Clear();
+
+            foreach (var node in jsonNodes)
+            {
+                // Resolve branch from JSON string if needed
+                if (branchMap.TryGetValue(node.Branch.ToString(), out var mappedBranch))
+                {
+                    // Create a copy with the correct enum branch
+                    var resolved = new ResearchNode
+                    {
+                        Id = node.Id,
+                        Name = node.Name,
+                        Description = node.Description,
+                        Branch = mappedBranch,
+                        Tier = node.Tier,
+                        CostNOK = node.CostNOK,
+                        ResearchDays = node.ResearchDays,
+                        Prerequisites = node.Prerequisites,
+                        Effects = node.Effects,
+                        Unlocked = previousState.TryGetValue(node.Id, out var wasUnlocked) && wasUnlocked
+                    };
+                    _nodes[resolved.Id] = resolved;
+                }
+                else
+                {
+                    // Use node as-is, preserve unlock state
+                    if (previousState.TryGetValue(node.Id, out var wasUnlocked))
+                        node.Unlocked = wasUnlocked;
+                    _nodes[node.Id] = node;
+                }
             }
         }
 

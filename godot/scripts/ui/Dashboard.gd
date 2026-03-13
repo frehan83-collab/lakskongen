@@ -78,8 +78,8 @@ func _setup_external_data_ui() -> void:
 	var parent_container = null
 	if has_node("ScrollContainer/VBoxContainer"):
 		parent_container = get_node("ScrollContainer/VBoxContainer")
-	elif has_node("Health"):
-		parent_container = get_node("Health").get_parent()
+	elif has_node("HealthSection"):
+		parent_container = get_node("HealthSection").get_parent()
 	else:
 		parent_container = self
 		

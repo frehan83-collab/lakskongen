@@ -35,11 +35,21 @@
 | T19 | Norwegian aquaculture data scraping (Barentswatch) | GPT‑4o | Running |
 | T20 | GitHub Issues sync — mirror BOARD.md to GitHub | GLM Flash | Running |
 
+## 🟢 In Progress (Sprint 7 — Evening Push)
+| ID | Task | Agent | Status |
+|----|------|-------|--------|
+| T21 | Fix last TODO: Research.PopulateFromJson | Sonnet | 🏃 Running |
+| T22 | Production chain status panel (Anno-style) | GPT-5.4 | 🏃 Running |
+| T23 | Market O-U model calibration (real salmon prices) | DeepSeek | 🏃 Running |
+
 ## 📋 Inbox (Next)
 | ID | Task | Estimated Agent | Priority |
 |----|------|----------------|----------|
-| T17 | Multiplayer testing — NetworkManager + lobby | Sonnet (after limit reset) | LOW |
+| T24 | Expand zones from 8 → 13 (full Norwegian coast) | Sonnet | HIGH |
+| T25 | Tutorial onboarding flow — first 2 hours experience | GPT-5.4 | HIGH |
+| T26 | Genetics breeding UI panel (key differentiator) | Sonnet | MEDIUM |
+| T17 | Multiplayer testing — NetworkManager + lobby | Sonnet | LOW |
 
 ---
-*Updated: 2026-03-13 17:10 CET*
-*GPT‑5.4 series is now flagship frontier model, GPT‑4o is current workhorse while Sonnet/Opus are limited.*
+*Updated: 2026-03-13 20:15 CET — Sprint 7 launched*
+*Fallback: Sonnet → GPT-5.4 → DeepSeek → Gemini 2.5 Flash | Ollama → Qwen → GPT-5.4*

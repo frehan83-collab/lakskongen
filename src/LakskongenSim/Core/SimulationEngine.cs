@@ -427,9 +427,8 @@ namespace LakskongenSim.Core
 
                 if (nodes != null && nodes.Count > 0)
                 {
-                    // ResearchSystem.Populate() method will be added to replace InitializeNodes()
+                    Research.PopulateFromJson(nodes);
                     Console.WriteLine($"✓ Loaded {nodes.Count} research nodes from JSON");
-                    // TODO: Call Research.PopulateFromJson(nodes) when method is implemented
                 }
             }
             catch (Exception ex)

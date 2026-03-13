@@ -978,10 +978,20 @@
             </summary>
         </member>
         <member name="M:LakskongenSim.Core.ResearchSystem.ForceUnlock(System.String)">
+            <summary>
+            Populate research nodes from external JSON data.
+            Clears any existing nodes and replaces them with the provided list.
+            </summary>
             <summary>Restore an unlocked node without triggering the completion event.</summary>
         </member>
         <member name="M:LakskongenSim.Core.ResearchSystem.RestoreProgress(System.String,System.Int32)">
             <summary>Restore in-progress research from a saved state.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ResearchSystem.PopulateFromJson(System.Collections.Generic.List{LakskongenSim.Core.ResearchNode})">
+            <summary>
+            Replace the hardcoded node definitions with nodes loaded from JSON.
+            Preserves any existing unlock state if node IDs match.
+            </summary>
         </member>
         <member name="T:LakskongenSim.Core.SaveLoadManager">
             <summary>
