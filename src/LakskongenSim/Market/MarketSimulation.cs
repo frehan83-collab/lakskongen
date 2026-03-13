@@ -14,16 +14,16 @@ namespace LakskongenSim.Market
     /// </summary>
     public class MarketSimulation
     {
-        private const decimal DefaultInitialPrice = 85m;
+        private const decimal DefaultInitialPrice = 75m; // Realistic initial price based on 2020-2025 average
         private const decimal PriceFloor = 40m;
         private const decimal PriceCeiling = 120m;
-        private const decimal WeeklyThetaMin = 0.15m;
-        private const decimal WeeklyThetaMax = 0.25m;
-        private const decimal WeeklySigmaMin = 8m;
-        private const decimal WeeklySigmaMax = 12m;
-        private const decimal DefaultLongTermMean = 85m;
-        private const decimal DefaultWeeklyTheta = 0.20m;
-        private const decimal DefaultWeeklySigma = 10m;
+        private const decimal WeeklyThetaMin = 0.01m; // Mean reversion speed (weekly) calibrated to annual kappa ~0.5 (moderate reversion over months)
+        private const decimal WeeklyThetaMax = 0.02m; // Upper bound corresponds to annual kappa ~1.0 (faster reversion)
+        private const decimal WeeklySigmaMin = 10m; // Lower bound for weekly volatility (salmon prices are highly volatile)
+        private const decimal WeeklySigmaMax = 15m; // Upper bound for weekly volatility (weekly swings of 5-15 NOK/kg are common)
+        private const decimal DefaultLongTermMean = 75m; // Long-run average based on 2020-2025 Norwegian salmon spot prices (~70-80 NOK/kg)
+        private const decimal DefaultWeeklyTheta = 0.015m; // Default weekly mean reversion speed (kappa ~0.78 annual)
+        private const decimal DefaultWeeklySigma = 12.5m; // Default weekly volatility (sigma ~15 NOK/kg annualized)
         private const int DaysPerWeek = 7;
 
         private static readonly string HistoricalPriceMarkdownPath = Path.GetFullPath(
@@ -44,13 +44,14 @@ namespace LakskongenSim.Market
         public string CalibrationSummary { get; private set; } = "Using default market calibration";
 
         // ─── Seasonal parameters (Norwegian market) ───
-        // Spring rise (Easter), summer dip (harvest glut), autumn-winter rise.
+        // Prices peak in summer (June-August) for BBQ/grilling season, dip in winter.
+        // Amplitude ~10-15 NOK/kg based on historical seasonal patterns.
         private static readonly decimal[] MonthlySeasonalOffsets =
         {
-            -6m, -7m, -2m,
-             3m,  7m,  4m,
-            -1m, -5m,  2m,
-             5m,  8m, 10m
+            -8m, -6m, -3m,  // Jan, Feb, Mar
+              0m,  3m,  8m,  // Apr, May, Jun
+             10m,  8m,  5m,  // Jul, Aug, Sep
+              0m, -5m, -7m   // Oct, Nov, Dec
         };
 
         // ─── Supply/demand ───
@@ -136,7 +137,7 @@ namespace LakskongenSim.Market
             var range = Math.Max(1m, maxObserved - minObserved);
             var normalizedReversion = 0.15m + (avgWeeklyMove / range) * 0.10m;
 
-            LongTermMean = ClampToBand(mean, 82m, 88m);
+            LongTermMean = ClampToBand(mean, 70m, 80m); // Realistic long-term average range for Norwegian salmon (2020-2025)
             MeanReversionSpeedWeekly = ClampToBand(normalizedReversion, WeeklyThetaMin, WeeklyThetaMax);
             VolatilityWeekly = ClampToBand(sampleStdDev, WeeklySigmaMin, WeeklySigmaMax);
 
