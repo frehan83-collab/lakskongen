@@ -2,97 +2,185 @@
   {
     "stepNumber": 1,
     "title": "Velkommen til Lakskongen",
-    "description": "Your journey as a Norwegian salmon farmer begins. You have 10 million NOK to build your empire.",
-    "hint": "Take a look at your dashboard to see your starting capital and available zones.",
+    "description": "Bestefars gård i Hardangerfjorden venter på deg. Du har arvet ett oppdrettsanlegg, to merder, og en drøm om å bygge et laksimperium. Du har 10 millioner NOK — bruk dem klokt.",
+    "hint": "Se på dashbordet for å sjekke startkapital, merder og soner.",
     "rewardNok": 50000,
     "condition": "game_started"
   },
   {
     "stepNumber": 2,
-    "title": "Build Your Hatchery",
-    "description": "Every salmon starts as an egg. Build a hatchery to raise smolts for your sea farms.",
-    "hint": "Click on the Hatchery tab to purchase your first batch of smolts.",
+    "title": "Kjenn dine fjorder",
+    "description": "Hver sone langs norskekysten har unik temperatur, strøm og sykdomsrisiko. Lær å lese vannet — det er din viktigste ferdighet.",
+    "hint": "Åpne Kart-panelet og klikk på sonen din. Se temperatur, oksygen og trafikklysstatus.",
+    "rewardNok": 25000,
+    "condition": "zone_inspected"
+  },
+  {
+    "stepNumber": 3,
+    "title": "Bygg klekkeri",
+    "description": "Hver laks starter som et egg. Bygg et klekkeri for å produsere smolt til sjøanleggene dine. Eller kjøp smolt fra leverandør — men da kontrollerer du ikke genetikken.",
+    "hint": "Klikk på Klekkeri-fanen for å kjøpe din første smoltgruppe.",
     "rewardNok": 100000,
     "condition": "hatchery_built"
   },
   {
-    "stepNumber": 3,
-    "title": "Stock Your Pens",
-    "description": "Your smolts are ready! Transfer them to a sea site to begin the grow-out phase.",
-    "hint": "Select a sea site and click 'Stock Smolts' to transfer fish from the hatchery.",
+    "stepNumber": 4,
+    "title": "Sett ut smolt",
+    "description": "Smolten er klar! Overfør dem til sjøanlegget for å starte tilvekstfasen. Smolt på 80-100g er ideell.",
+    "hint": "Velg et sjøanlegg og klikk 'Sett ut smolt' for å overføre fisk fra klekkeriet.",
     "rewardNok": 75000,
     "condition": "smolts_stocked"
   },
   {
-    "stepNumber": 4,
-    "title": "Feed Your Fish",
-    "description": "Salmon need quality feed to grow. Monitor your Feed Conversion Ratio (FCR) — below 1.15 is excellent.",
-    "hint": "Check the Feed panel to see daily consumption and FCR. Adjust feeding rates if needed.",
+    "stepNumber": 5,
+    "title": "Fôr laksen din",
+    "description": "Laks trenger kvalitetsfôr for å vokse. Fôrfaktor (FCR) er nøkkeltallet — under 1.15 er utmerket, over 1.3 betyr at du kaster penger i sjøen.",
+    "hint": "Sjekk Fôr-panelet for daglig forbruk og FCR. Juster fôrraten etter behov.",
     "rewardNok": 50000,
     "condition": "fish_fed_7_days"
   },
   {
-    "stepNumber": 5,
-    "title": "Health Check",
-    "description": "Monitor your fish for sea lice and disease. Prevention is cheaper than treatment.",
-    "hint": "Open the Health panel. Keep sea lice below 0.5 per fish to avoid regulatory action.",
+    "stepNumber": 6,
+    "title": "Temperaturovervåking",
+    "description": "Atlantisk laks trives mellom 8-14°C. Under 4°C stopper veksten. Over 18°C risikerer du massedød. Fjorden er en levende organisme — respekter den.",
+    "hint": "Se temperaturindikatoren på dashbordet. Grønn = optimalt, gul = advarsel, rød = fare.",
+    "rewardNok": 25000,
+    "condition": "temperature_checked"
+  },
+  {
+    "stepNumber": 7,
+    "title": "Helsesjekk",
+    "description": "Overvåk fisken for lakselus og sykdom. Forebygging er billigere enn behandling — alltid.",
+    "hint": "Åpne Helse-panelet. Hold lakselus under 0.5 per fisk for å unngå regulatorisk inngripen.",
     "rewardNok": 75000,
     "condition": "health_checked"
   },
   {
-    "stepNumber": 6,
-    "title": "Delousing Operations",
-    "description": "Sea lice are the #1 challenge in Norwegian salmon farming. Choose your delousing method wisely.",
-    "hint": "Mechanical delousing costs more but earns sustainability points. Chemical is cheaper but harms your score.",
+    "stepNumber": 8,
+    "title": "Første lusealarm!",
+    "description": "Lakselus er oppdrettsnæringens fiende nummer én. Du har tre valg: mekanisk (dyrt men bærekraftig), termisk (effektivt men stressende), eller kjemisk (billig men skader score).",
+    "hint": "Mekanisk avlusning koster mer men gir bærekraftspoeng. Kjemisk er billig men svekker omdømmet.",
     "rewardNok": 100000,
     "condition": "delousing_performed"
   },
   {
-    "stepNumber": 7,
-    "title": "Wait for Growth",
-    "description": "Salmon take 14-18 months to reach harvest weight (4-6 kg). Use this time to plan ahead.",
-    "hint": "Advance time using the speed controls. Watch your fish grow on the dashboard.",
+    "stepNumber": 9,
+    "title": "Vent på vekst",
+    "description": "Laks bruker 14-18 måneder fra smolt til slaktevekt (4-6 kg). Tålmodighet er en dyd i denne bransjen. Bruk tiden på å planlegge.",
+    "hint": "Bruk hastighetskontrollen til å spole fremover. Se fisken vokse på dashbordet.",
     "rewardNok": 50000,
     "condition": "day_90_reached"
   },
   {
-    "stepNumber": 8,
-    "title": "First Harvest",
-    "description": "Your salmon have reached market size! Time to harvest and sell.",
-    "hint": "Select your sea site and click 'Harvest'. Fish above 4 kg fetch the best prices.",
+    "stepNumber": 10,
+    "title": "Sykdomsutbrudd!",
+    "description": "PD (pankreassykdom) er oppdaget i naboanlegget! Biosikkerhet er kritisk. Vaksiner, brønnbåtrestriksjoner og overvåking kan beskytte deg.",
+    "hint": "Hold øye med sykdomsindikatoren. Vaksinering før utbrudd er mye billigere enn behandling etterpå.",
+    "rewardNok": 75000,
+    "condition": "disease_event_handled"
+  },
+  {
+    "stepNumber": 11,
+    "title": "Første høsting!",
+    "description": "Laksen din har nådd slaktevekt! Tid for å høste og selge. Fisk over 4 kg gir best pris. Timing er alt — sjekk markedet først.",
+    "hint": "Velg sjøanlegget og klikk 'Høst'. Fisk over 4 kg gir best pris på spotmarkedet.",
     "rewardNok": 200000,
     "condition": "first_harvest"
   },
   {
-    "stepNumber": 9,
-    "title": "Sell to Market",
-    "description": "The salmon spot price fluctuates daily. Timing your sales matters — or lock in contract prices for stability.",
-    "hint": "Check the Market panel for current prices. Consider signing a contract for predictable revenue.",
+    "stepNumber": 12,
+    "title": "Selg på spotmarkedet",
+    "description": "Lakseprisene svinger daglig — fra 40 til 120 NOK/kg. Sommeren (juni-august) gir ofte best pris pga. grillsesong. Eller lås inn en kontrakt for forutsigbarhet.",
+    "hint": "Sjekk Marked-panelet for dagens pris. Vurder å signere en kontrakt for stabil inntekt.",
     "rewardNok": 150000,
     "condition": "first_sale"
   },
   {
-    "stepNumber": 10,
-    "title": "Research & Innovation",
-    "description": "Invest in R&D to improve your operations. Better genetics, feed, and technology give you an edge.",
-    "hint": "Open the Research panel and start your first project. 'Selective Breeding' is a good first choice.",
+    "stepNumber": 13,
+    "title": "Forstå produksjonskjeden",
+    "description": "Fra egg til eksport — dette er verdikjeden din. Stamfisk → Egg → Yngel → Smolt → Sjøfisk → Høsting → Foredling → Eksport. Hver lenke i kjeden er en mulighet.",
+    "hint": "Åpne Produksjonskjede-panelet for å se flyten gjennom hele verdikjeden.",
+    "rewardNok": 50000,
+    "condition": "production_chain_viewed"
+  },
+  {
+    "stepNumber": 14,
+    "title": "Forskning & innovasjon",
+    "description": "Invester i FoU for å forbedre driften. Bedre genetikk, fôr og teknologi gir deg et forsprang. 'Selektiv avl' er et godt første prosjekt.",
+    "hint": "Åpne Forskning-panelet og start ditt første prosjekt.",
     "rewardNok": 100000,
     "condition": "research_started"
   },
   {
-    "stepNumber": 11,
-    "title": "Sustainability Matters",
-    "description": "Norway's traffic light system controls your growth. High sustainability scores unlock premium markets.",
-    "hint": "Check your Sustainability panel. ASC certification (score 70+) gives an 8% price premium.",
+    "stepNumber": 15,
+    "title": "Genetikk — ditt hemmelige våpen",
+    "description": "Genetikk er forskjellen mellom en god oppdrettet og en lakskonge. Veksthastighet, sykdomsresistens, filékvalitet — alt er arvelig. Velg avlsfisk med omhu.",
+    "hint": "Åpne Genetikk-panelet. Se avlsverdier, heritabilitet og innavlskoeffisient.",
+    "rewardNok": 75000,
+    "condition": "genetics_viewed"
+  },
+  {
+    "stepNumber": 16,
+    "title": "Bærekraft teller",
+    "description": "Norges trafikklyssystem styrer veksten din. Grønt lys = du kan vokse 6%. Gult = frys. Rødt = kutt 6%. Høy bærekraftsscore åpner premiummarkeder.",
+    "hint": "Sjekk Bærekraft-panelet. ASC-sertifisering (score 70+) gir 8% prispremie.",
     "rewardNok": 100000,
     "condition": "sustainability_checked"
   },
   {
-    "stepNumber": 12,
-    "title": "Expand Your Empire",
-    "description": "Ready for growth? Build a new sea site in another zone to diversify risk and increase production.",
-    "hint": "Go to the Map and select a new zone. Build a sea site to start your second farm.",
+    "stepNumber": 17,
+    "title": "Værvarsel: storm på vei",
+    "description": "Norskekysten er vakker men nådeløs. Stormer kan skade merder, rømme fisk og stoppe brønnbåter. Forbered deg — sjekk værpanelet regelmessig.",
+    "hint": "Se værprognosen. Under storm bør du sikre merdene og unngå operasjoner.",
+    "rewardNok": 50000,
+    "condition": "weather_storm_survived"
+  },
+  {
+    "stepNumber": 18,
+    "title": "Bygg foredlingsanlegg",
+    "description": "Stopp med å selge hel fisk til middelmådige priser. Bygg et foredlingsanlegg og produser fileter, røkt laks eller sashimi-kvalitet for premiummarkeder.",
+    "hint": "Foredlingsanlegget lar deg konvertere HOG → fileter → røkt → sashimi med økende marginer.",
+    "rewardNok": 250000,
+    "condition": "processing_plant_built"
+  },
+  {
+    "stepNumber": 19,
+    "title": "Åpne eksportmarkeder",
+    "description": "Norge eksporterer laks til over 100 land. Japan betaler best for sashimi-kvalitet. EU er volummarkedet. Bygg merkevaren din internasjonalt.",
+    "hint": "Åpne Eksport-panelet og velg ditt første eksportmarked.",
+    "rewardNok": 150000,
+    "condition": "export_market_opened"
+  },
+  {
+    "stepNumber": 20,
+    "title": "Utvid imperiet",
+    "description": "Klar for vekst? Bygg et nytt sjøanlegg i en annen sone for å diversifisere risiko og øke produksjonen. Husk — ulike soner har ulike utfordringer.",
+    "hint": "Gå til Kartet og velg en ny sone. Bygg et sjøanlegg for å starte din andre gård.",
     "rewardNok": 500000,
     "condition": "second_site_built"
+  },
+  {
+    "stepNumber": 21,
+    "title": "Kontraktsforhandling",
+    "description": "Spotmarkedet er volatilt. Langsiktige kontrakter gir forutsigbar inntekt men lavere topppriser. Balanser risiko mot belønning.",
+    "hint": "Gå til Kontrakter og forhandle din første leveringsavtale.",
+    "rewardNok": 100000,
+    "condition": "contract_signed"
+  },
+  {
+    "stepNumber": 22,
+    "title": "Ansett mannskap",
+    "description": "Du kan ikke gjøre alt alene. Ansett røktere, veterinærer og ingeniører. Erfarne folk koster mer men reduserer risiko og forbedrer effektivitet.",
+    "hint": "Åpne Mannskap-panelet for å ansette din første driftsleder.",
+    "rewardNok": 75000,
+    "condition": "crew_hired"
+  },
+  {
+    "stepNumber": 23,
+    "title": "Veien til Lakskongen",
+    "description": "Du har mestret det grunnleggende. Nå begynner den virkelige reisen. Bygg vertikal integrasjon, jag ASC-sertifisering, erobre premiummarkeder, og bli Norges neste laksekonge. Lykke til, sjef!",
+    "hint": "Fortsett å utforske, ekspandere og optimalisere. Lakskongen-tittelen venter!",
+    "rewardNok": 1000000,
+    "condition": "revenue_10_million"
   }
 ]

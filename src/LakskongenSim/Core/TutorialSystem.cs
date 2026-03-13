@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace LakskongenSim.Core
 {
@@ -12,10 +15,26 @@ namespace LakskongenSim.Core
         public string Title { get; init; } = "";
         public string Description { get; init; } = "";
         public string Hint { get; init; } = "";
+        
+        [JsonPropertyName("triggerCondition")]
+        public string TriggerConditionString { get; init; } = "";
+        
+        [JsonPropertyName("completionCondition")]
+        public string CompletionConditionString { get; init; } = "";
+        
+        [JsonPropertyName("highlightTarget")]
+        public string HighlightTarget { get; init; } = "";
+        
         public decimal RewardNok { get; init; }
-        public Func<TutorialSystem, bool>? CompletionCondition { get; init; }
+        
+        [JsonIgnore]
+        public Func<TutorialSystem, bool>? TriggerCondition { get; set; }
+        
+        [JsonIgnore]
+        public Func<TutorialSystem, bool>? CompletionCondition { get; set; }
 
         /// <summary>Day this step was completed, or null if not yet completed.</summary>
+        [JsonIgnore]
         public int? CompletedOnDay { get; internal set; }
     }
 
@@ -54,14 +73,130 @@ namespace LakskongenSim.Core
         public TutorialSystem(SimulationEngine engine)
         {
             _engine = engine ?? throw new ArgumentNullException(nameof(engine));
-            _steps = BuildSteps();
+            _steps = LoadStepsFromJson();
+        }
+        
+        /// <summary>Load tutorial steps from JSON file and parse condition strings.</summary>
+        private List<TutorialStep> LoadStepsFromJson()
+        {
+            string jsonPath = Path.Combine("game", "data", "tutorial_steps.json");
+            
+            // Fallback to hardcoded steps if JSON doesn't exist
+            if (!File.Exists(jsonPath))
+            {
+                Console.WriteLine("⚠️ tutorial_steps.json not found, using legacy hardcoded steps");
+                return BuildSteps();
+            }
+            
+            try
+            {
+                string jsonContent = File.ReadAllText(jsonPath);
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var steps = JsonSerializer.Deserialize<List<TutorialStep>>(jsonContent, options);
+                
+                if (steps == null || steps.Count == 0)
+                {
+                    Console.WriteLine("⚠️ Failed to parse tutorial_steps.json, using legacy steps");
+                    return BuildSteps();
+                }
+                
+                // Parse condition strings into Func<TutorialSystem, bool>
+                foreach (var step in steps)
+                {
+                    step.TriggerCondition = ParseCondition(step.TriggerConditionString);
+                    step.CompletionCondition = ParseCondition(step.CompletionConditionString);
+                }
+                
+                Console.WriteLine($"✅ Loaded {steps.Count} tutorial steps from JSON");
+                return steps;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Error loading tutorial_steps.json: {ex.Message}");
+                return BuildSteps();
+            }
+        }
+        
+        /// <summary>Parse condition string (e.g., "day >= 7") into executable function.</summary>
+        private Func<TutorialSystem, bool> ParseCondition(string conditionStr)
+        {
+            if (string.IsNullOrWhiteSpace(conditionStr))
+                return _ => true; // Always true for empty conditions
+            
+            string condition = conditionStr.Trim().ToLowerInvariant();
+            
+            // Simple condition parser — extend as needed
+            return condition switch
+            {
+                "game_started" => t => t.State.Day >= 0,
+                "day >= 1" => t => t.State.Day >= 1,
+                "day >= 7" => t => t.State.Day >= 7,
+                "cinematic_watched" => t => t.State.Day >= 1, // Auto-complete for now
+                "license_inspected" => t => t.State.SeaSites.Count >= 0, // Has license (inherited)
+                "pens_inspected" => t => t.State.Zones.Count >= 1,
+                "smolts_purchased >= 50000" => t => t.TotalFishCount >= 50000,
+                "pen_1_stocked" => t => t.State.Populations.Any(),
+                "health_panel_opened" => t => t.State.Day >= 1, // Assume player has explored
+                "feed_panel_opened" => t => t.State.Day >= 1,
+                "temperature_checked" => t => t.State.Day >= 1,
+                "lice_detection_acknowledged" => t => t.SeaLicePerFish >= 0.1,
+                "delousing_method_selected" => t => t.State.Day >= 8,
+                "delousing_completed" => t => t.SeaLicePerFish < 0.5,
+                "average_weight >= 4.0" => t => t.AverageFishWeightKg >= 4.0,
+                "first_harvest_initiated" => t => t.State.ProcessingSnapshots.Count >= 1,
+                "first_sale_completed" => t => t.State.ProcessingSnapshots.Count >= 1 && t.State.Balance > 10_000_000m,
+                "pl_report_viewed" => t => t.State.ProcessingSnapshots.Count >= 1,
+                "pen_2_stocked || cleaner_fish_deployed" => t => t.State.Populations.Count >= 2 || t.State.Day >= 120,
+                "smolts_purchased >= 100000" => t => t.TotalFishCount >= 100000,
+                "feed_strategy_adjusted" => t => t.State.Day >= 90,
+                "biosecurity_enabled" => t => t.State.Day >= 100,
+                "hatchery_built" => t => t.State.Day >= 120, // Placeholder — needs actual hatchery system
+                "research_project_started" => t => t.State.Day >= 130,
+                "tutorial_complete" => t => true, // Final step auto-completes
+                
+                // Default: parse numeric comparisons
+                _ when condition.Contains("day >=") => ParseDayCondition(condition),
+                _ when condition.Contains(">=") || condition.Contains("<=") || condition.Contains(">") || condition.Contains("<") 
+                    => ParseNumericCondition(condition),
+                    
+                // Unknown condition — log and return false
+                _ => t => { Console.WriteLine($"⚠️ Unknown tutorial condition: {conditionStr}"); return false; }
+            };
+        }
+        
+        /// <summary>Parse "day >= N" conditions.</summary>
+        private Func<TutorialSystem, bool> ParseDayCondition(string condition)
+        {
+            try
+            {
+                var parts = condition.Replace("day", "").Trim().Split(new[] { ">=", "<=", ">", "<", "==" }, StringSplitOptions.None);
+                if (parts.Length != 2) return _ => false;
+                
+                int targetDay = int.Parse(parts[1].Trim());
+                
+                if (condition.Contains(">=")) return t => t.State.Day >= targetDay;
+                if (condition.Contains("<=")) return t => t.State.Day <= targetDay;
+                if (condition.Contains(">")) return t => t.State.Day > targetDay;
+                if (condition.Contains("<")) return t => t.State.Day < targetDay;
+                if (condition.Contains("==")) return t => t.State.Day == targetDay;
+            }
+            catch { }
+            
+            return _ => false;
+        }
+        
+        /// <summary>Parse generic numeric conditions (extensible).</summary>
+        private Func<TutorialSystem, bool> ParseNumericCondition(string condition)
+        {
+            // Placeholder for future complex conditions
+            return _ => false;
         }
 
         // ── Public API ────────────────────────────────────────────────────────
 
         /// <summary>
         /// Called each simulated day by SimulationEngine.
-        /// Evaluates the current step's completion condition and advances when met.
+        /// Evaluates the current step's trigger and completion conditions and advances when met.
         /// Chains through multiple steps if conditions are immediately satisfied.
         /// </summary>
         public void CheckProgress()
@@ -73,6 +208,12 @@ namespace LakskongenSim.Core
                 if (IsComplete) break;
 
                 var step = CurrentStep!;
+                
+                // Check trigger condition first (if defined)
+                bool triggered = step.TriggerCondition == null || step.TriggerCondition(this);
+                if (!triggered) break; // Wait for trigger
+                
+                // Check completion condition
                 if (step.CompletionCondition == null || step.CompletionCondition(this))
                 {
                     CompleteStep(step);
