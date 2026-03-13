@@ -299,17 +299,16 @@ namespace LakskongenSim.Core
 
         private void RegisterAllScenarios()
         {
-            // ─── 1. FØRSTE SESONG — Tutorial (Difficulty 1) ───────────────────
-            //    One site, calm weather, stable market, friendly intro.
+            // ─── 1. FAMILIEGÅRDEN — Tutorial (Difficulty 1) ───────────────────
+            //    Inherit grandfather's small farm in Hardanger. One license, low funds, learn basics.
             Register(new ScenarioDefinition
             {
                 Id = "forste_sesong",
-                Name = "Første Sesong",
+                Name = "Familiegården",
                 Description =
-                    "Du har arvet en liten oppdrettslisens fra onkelen din i Hardanger. " +
-                    "Lær grunnleggende drift med ett anlegg, rolig vær og stabile priser. " +
-                    "Fullfør opplæringen og vis at du kan drive lønnsomt.",
-                StartingCapitalNOK = 500_000m,
+                    "Du har arvet bestefars lille oppdrett i Hardanger. Med én lisens og små midler må du lære grunnleggende oppdrett. " +
+                    "Bygg opp gården fra bunnen av og vis at du kan drive lønnsomt.",
+                StartingCapitalNOK = 300_000m,
                 StartingRegion = ProductionRegion.Vestland,
                 Difficulty = 1,
                 WinCondition = WinCondition.Tutorial,
@@ -323,16 +322,16 @@ namespace LakskongenSim.Core
                 IsUnlocked = true,
             });
 
-            // ─── 2. LOFOTENS EVENTYR — Storm & Premium (Difficulty 3) ─────────
-            //    Nordland harsh winters, but Japanese sashimi premium prices.
+            // ─── 2. NORDLANDS UTFORDRING — Storm & Premium (Difficulty 3) ─────
+            //    Harsh Nordland coast. Storms, cold, but premium sashimi market access to Japan.
             Register(new ScenarioDefinition
             {
                 Id = "lofoten_eventyr",
-                Name = "Lofotens Eventyr",
+                Name = "Nordlands Utfordring",
                 Description =
-                    "De dramatiske øyene i Nordland byr på de reneste havstrømmene og de råeste stormene. " +
-                    "Laksen her oppnår premiumpriser i Asia og Europa — men uvær truer anleggene. " +
-                    "Nå et overskudd på 5 000 000 NOK for å erobre markedet.",
+                    "De harde kystene i Nordland byr på de verste stormene og kaldeste havstrømmene, " +
+                    "men laksen her når premiumpriser som sashimi til Japan. " +
+                    "Takle uværet og nå et overskudd på 5 000 000 NOK.",
                 StartingCapitalNOK = 2_000_000m,
                 StartingRegion = ProductionRegion.Nordland,
                 Difficulty = 3,
@@ -347,16 +346,16 @@ namespace LakskongenSim.Core
                 IsUnlocked = true,
             });
 
-            // ─── 3. LAKSEBARONENE — Competition (Difficulty 4) ────────────────
-            //    Race against 3 AI competitors to 10M NOK profit.
+            // ─── 3. TRØNDER-KRIGEN — Competition (Difficulty 4) ───────────────
+            //    Competitive Trøndelag. 3 AI competitors. Market share battle.
             Register(new ScenarioDefinition
             {
                 Id = "laksebaronene",
-                Name = "Laksebaronene",
+                Name = "Trønder-krigen",
                 Description =
-                    "Tre aggressive konkurrenter kjemper om å bli Trøndelags største lakseaktør. " +
-                    "Hvem som helst kan ta markedsandeler, kjøpe lisenser og dumpe priser. " +
-                    "Vær den første til å nå 10 000 000 NOK i fortjeneste — eller bli utkonkurrert.",
+                    "Tre AI-konkurrenter kjemper om å bli Trøndelags største lakseaktør. " +
+                    "Markedskampen er brutal – hvem som helst kan ta markedsandeler, kjøpe lisenser og dumpe priser. " +
+                    "Vær den første til å nå 10 000 000 NOK i fortjeneste.",
                 StartingCapitalNOK = 5_000_000m,
                 StartingRegion = ProductionRegion.Trøndelag,
                 Difficulty = 4,
@@ -370,40 +369,16 @@ namespace LakskongenSim.Core
                 IsUnlocked = false,
             });
 
-            // ─── 4. BÆREKRAFTSMESTER — Sustainability (Difficulty 3) ──────────
-            //    Win by achieving Sustainability Leader certification (score ≥ 95).
-            Register(new ScenarioDefinition
-            {
-                Id = "barekraft_mester",
-                Name = "Bærekraftsmester",
-                Description =
-                    "Forbrukere og politikere krever ansvarlig havbruk. " +
-                    "Bygg et oppdrettsselskap med minst mulig miljøavtrykk og oppnå " +
-                    "Sustainability Leader-sertifiseringen (bærekraftspoeng ≥ 95). " +
-                    "Strengere reguleringer gjør veien krevende.",
-                StartingCapitalNOK = 3_000_000m,
-                StartingRegion = ProductionRegion.Vestland,
-                Difficulty = 3,
-                WinCondition = WinCondition.Sustainability,
-                SpecialRules = new Dictionary<string, string>
-                {
-                    ["sustainability_target"] = "95",
-                    ["regulation_pressure"]   = "true",
-                },
-                TimeLimitDays = null,
-                IsUnlocked = false,
-            });
-
-            // ─── 5. KRISE MANAGER — Survival (Difficulty 5) ──────────────────
-            //    Start with disease + debt + regulation pressure. Survive 2 years.
+            // ─── 4. FINNMARKS GJENFØDSEL — Survival (Difficulty 5) ───────────
+            //    Bankrupt Finnmark site with active ILA outbreak. Turnaround challenge.
             Register(new ScenarioDefinition
             {
                 Id = "krise_manager",
-                Name = "Krise Manager",
+                Name = "Finnmarks Gjenfødsel",
                 Description =
-                    "Du tar over et konkursrammet anlegg i Finnmark: ILA-utbrudd pågår, " +
+                    "Du tar over et konkursrammet anlegg i Finnmark med et aktivt ILA-utbrudd. " +
                     "500 000 NOK i gjeld og Mattilsynet har varslet sanksjoner. " +
-                    "Overlev i 730 dager (2 år) med positiv bankkonto — da er du en ekte krisehåndterer.",
+                    "Overlev i 730 dager og snu selskapet til lønnsomhet.",
                 StartingCapitalNOK = -500_000m,
                 StartingRegion = ProductionRegion.Finnmark,
                 Difficulty = 5,
@@ -415,6 +390,30 @@ namespace LakskongenSim.Core
                     ["regulation_pressure"] = "true",
                 },
                 TimeLimitDays = 730,
+                IsUnlocked = false,
+            });
+
+            // ─── 5. LAKSKONGEN — Freeplay (Difficulty 1) ──────────────────────
+            //    Freeplay. Start anywhere, no restrictions, build your empire.
+            Register(new ScenarioDefinition
+            {
+                Id = "barekraft_mester",
+                Name = "Lakskongen",
+                Description =
+                    "Fri lek – start hvor som helst i Norge uten begrensninger. " +
+                    "Bygg ditt lakseimperium fra bunnen av, uten tidspress eller konkurrenter. " +
+                    "Målet er å skape den største og mest lønnsomme oppdrettsvirksomheten.",
+                StartingCapitalNOK = 50_000_000m,
+                StartingRegion = ProductionRegion.Vestland,
+                Difficulty = 1,
+                WinCondition = WinCondition.Profit,
+                SpecialRules = new Dictionary<string, string>
+                {
+                    ["calm_weather"] = "true",
+                    ["easy_market"]  = "true",
+                    ["profit_target"] = "100000000",
+                },
+                TimeLimitDays = null,
                 IsUnlocked = false,
             });
         }

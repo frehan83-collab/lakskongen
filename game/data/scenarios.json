@@ -1,72 +1,81 @@
 [
   {
-    "id": "nordland-beginner",
-    "name": "Nordland Nybegynner",
-    "description": "Start fresh in beautiful Nordland with ideal water temperatures and generous starting capital. Perfect for learning the basics.",
-    "difficulty": "Easy",
-    "region": "Nordland",
-    "startingCapital": 15000000,
-    "startingZones": 2,
-    "startingSites": 1,
-    "startingWorkers": 5,
-    "temperatureRange": [6, 14],
-    "specialRules": [],
-    "objectives": ["Harvest 100 tonnes in year 1", "Achieve positive cash flow", "Complete the tutorial"]
+    "id": "forste_sesong",
+    "name": "Familiegården",
+    "description": "Du har arvet bestefars lille oppdrett i Hardanger. Med én lisens og små midler må du lære grunnleggende oppdrett. Bygg opp gården fra bunnen av og vis at du kan drive lønnsomt.",
+    "startingCapitalNOK": 300000,
+    "startingRegion": "Vestland",
+    "difficulty": 1,
+    "winCondition": "Tutorial",
+    "specialRules": {
+      "single_site": "true",
+      "calm_weather": "true",
+      "easy_market": "true"
+    },
+    "timeLimitDays": null,
+    "isUnlocked": true
   },
   {
-    "id": "vestland-expansion",
-    "name": "Vestland Vekst",
-    "description": "The heart of Norwegian aquaculture. Moderate conditions but fierce competition. Grow strategically to become the region's top producer.",
-    "difficulty": "Medium",
-    "region": "Vestland",
-    "startingCapital": 10000000,
-    "startingZones": 3,
-    "startingSites": 1,
-    "startingWorkers": 4,
-    "temperatureRange": [7, 15],
-    "specialRules": ["competitor_active", "higher_license_cost"],
-    "objectives": ["Reach 5M NOK profit", "Achieve ASC certification", "Operate 3 sea sites"]
+    "id": "lofoten_eventyr",
+    "name": "Nordlands Utfordring",
+    "description": "De harde kystene i Nordland byr på de verste stormene og kaldeste havstrømmene, men laksen her når premiumpriser som sashimi til Japan. Takle uværet og nå et overskudd på 5 000 000 NOK.",
+    "startingCapitalNOK": 2000000,
+    "startingRegion": "Nordland",
+    "difficulty": 3,
+    "winCondition": "Profit",
+    "specialRules": {
+      "harsh_storms": "true",
+      "premium_prices": "true",
+      "profit_target": "5000000"
+    },
+    "timeLimitDays": null,
+    "isUnlocked": true
   },
   {
-    "id": "troms-challenge",
-    "name": "Troms Utfordring",
-    "description": "Cold northern waters with short growing seasons. Sea lice pressure is lower, but storms are fierce. Not for the faint-hearted.",
-    "difficulty": "Hard",
-    "region": "Troms",
-    "startingCapital": 8000000,
-    "startingZones": 2,
-    "startingSites": 1,
-    "startingWorkers": 3,
-    "temperatureRange": [4, 12],
-    "specialRules": ["frequent_storms", "slow_growth", "low_lice_pressure"],
-    "objectives": ["Survive 3 years", "Reach 10M NOK net worth", "Zero fish escapes for 2 years"]
+    "id": "laksebaronene",
+    "name": "Trønder-krigen",
+    "description": "Tre AI-konkurrenter kjemper om å bli Trøndelags største lakseaktør. Markedskampen er brutal – hvem som helst kan ta markedsandeler, kjøpe lisenser og dumpe priser. Vær den første til å nå 10 000 000 NOK i fortjeneste.",
+    "startingCapitalNOK": 5000000,
+    "startingRegion": "Trøndelag",
+    "difficulty": 4,
+    "winCondition": "Competition",
+    "specialRules": {
+      "ai_competitors": "3",
+      "profit_target": "10000000"
+    },
+    "timeLimitDays": null,
+    "isUnlocked": false
   },
   {
-    "id": "finnmark-extreme",
-    "name": "Finnmark Ekstrem",
-    "description": "The Arctic frontier. Brutal winters, limited infrastructure, and isolation. But untapped potential and zero competition. High risk, high reward.",
-    "difficulty": "Expert",
-    "region": "Finnmark",
-    "startingCapital": 6000000,
-    "startingZones": 1,
-    "startingSites": 0,
-    "startingWorkers": 2,
-    "temperatureRange": [2, 10],
-    "specialRules": ["extreme_weather", "limited_logistics", "development_grants", "no_existing_sites"],
-    "objectives": ["Build from nothing", "Export to 3 markets", "Achieve Sustainability Leader status"]
+    "id": "krise_manager",
+    "name": "Finnmarks Gjenfødsel",
+    "description": "Du tar over et konkursrammet anlegg i Finnmark med et aktivt ILA-utbrudd. 500 000 NOK i gjeld og Mattilsynet har varslet sanksjoner. Overlev i 730 dager og snu selskapet til lønnsomhet.",
+    "startingCapitalNOK": -500000,
+    "startingRegion": "Finnmark",
+    "difficulty": 5,
+    "winCondition": "Survival",
+    "specialRules": {
+      "start_disease": "true",
+      "start_debt": "true",
+      "regulation_pressure": "true"
+    },
+    "timeLimitDays": 730,
+    "isUnlocked": false
   },
   {
-    "id": "sandbox-freeplay",
-    "name": "Sandkasse",
-    "description": "No objectives, no pressure. Unlimited starting capital and all regions available. Experiment, learn, and build your dream salmon empire.",
-    "difficulty": "Sandbox",
-    "region": "All",
-    "startingCapital": 100000000,
-    "startingZones": 8,
-    "startingSites": 0,
-    "startingWorkers": 10,
-    "temperatureRange": [4, 16],
-    "specialRules": ["unlimited_loans", "no_bankruptcy", "all_research_half_cost"],
-    "objectives": []
+    "id": "barekraft_mester",
+    "name": "Lakskongen",
+    "description": "Fri lek – start hvor som helst i Norge uten begrensninger. Bygg ditt lakseimperium fra bunnen av, uten tidspress eller konkurrenter. Målet er å skape den største og mest lønnsomme oppdrettsvirksomheten.",
+    "startingCapitalNOK": 50000000,
+    "startingRegion": "Vestland",
+    "difficulty": 1,
+    "winCondition": "Profit",
+    "specialRules": {
+      "calm_weather": "true",
+      "easy_market": "true",
+      "profit_target": "100000000"
+    },
+    "timeLimitDays": null,
+    "isUnlocked": false
   }
 ]
