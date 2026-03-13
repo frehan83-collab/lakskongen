@@ -43,7 +43,20 @@ namespace LakskongenSim.Events
                     rec.Description = "Infectious Salmon Anemia detected. Mandatory culling and 2-year fallow period for affected zone.";
                     rec.BalanceChange = -2_500_000m; // Catastrophic
                     gs.Balance += rec.BalanceChange;
-                    // TODO: Set zone to fallow, cull populations
+                    
+                    // Cull all populations in the first zone (or random zone if multiple)
+                    if (gs.Populations.Any())
+                    {
+                        var firstPop = gs.Populations.First();
+                        firstPop.Cohorts.Clear();
+                    }
+                    
+                    // Set first zone to fallow (reduce capacity to effectively disable it)
+                    if (gs.Zones.Any())
+                    {
+                        var zone = gs.Zones.First();
+                        zone.CarryingCapacityTonnes *= 0.1; // Drastically reduce capacity during fallow
+                    }
                 }
             });
 
@@ -157,7 +170,12 @@ namespace LakskongenSim.Events
                 {
                     rec.Description = "🎉 Breeding program yields ISA-resistant strain! Disease losses reduced by 40%.";
                     rec.BalanceChange = 0m; // Long-term benefit
-                    // TODO: Apply resistance multiplier to breeding population
+                    
+                    // Update best disease resistance breeding value
+                    gs.BestDiseaseResistanceBreedingValue = Math.Max(
+                        gs.BestDiseaseResistanceBreedingValue, 
+                        0.8 // Significant resistance breakthrough
+                    );
                 }
             });
 
@@ -441,7 +459,7 @@ namespace LakskongenSim.Events
                 Category = EventCategory.Market,
                 Weight = 0.5,
                 CooldownDays = 365,
-                Condition = gs => true, // TODO: check if ASC certified
+                Condition = gs => gs.HasASCCertification,
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "🌱 Whole Foods expands Norwegian sourcing. ASC premium now +12% vs standard.";
@@ -463,7 +481,7 @@ namespace LakskongenSim.Events
                 {
                     rec.Description = "🤝 3-year contract with major EU retailer locked in. Stable pricing guaranteed.";
                     rec.BalanceChange = 0m; // Future benefit
-                    // TODO: Set contract flag
+                    gs.ContractActive = true;
                 }
             });
         }
@@ -487,7 +505,12 @@ namespace LakskongenSim.Events
                 {
                     rec.Description = "🟢 Your zone gets GREEN status! MAB capacity +6% allowed.";
                     rec.BalanceChange = 0m;
-                    // TODO: Increase MAB on zones
+                    
+                    // Increase MAB (Maximum Allowable Biomass) on all zones by 6%
+                    foreach (var zone in gs.Zones)
+                    {
+                        zone.CarryingCapacityTonnes *= 1.06;
+                    }
                 }
             });
 
@@ -554,7 +577,12 @@ namespace LakskongenSim.Events
                 {
                     rec.Description = "🏆 Won development license for closed-containment trial! Innovate to convert to standard license.";
                     rec.BalanceChange = 0m;
-                    // TODO: Add development license to player
+                    
+                    // Add development license to unlocked research/licenses
+                    if (!gs.UnlockedResearchIds.Contains("development-license"))
+                    {
+                        gs.UnlockedResearchIds.Add("development-license");
+                    }
                 }
             });
 
@@ -575,15 +603,362 @@ namespace LakskongenSim.Events
             });
         }
 
-        // Remaining categories omitted for brevity — would add:
-        // - Equipment events (wellboat breakdown, ROV malfunction, feed barge collision)
-        // - Community events (NGO protests, local support, fjord access dispute)
-        // - Competitor events (bankruptcy opportunities, M&A, tech leapfrog)
-        // - Investor events (ESG fund interest, PE buyout offers, IPO opportunity)
+        // ═══════════════════════════════════════════════════════════
+        // EQUIPMENT EVENTS (5 events)
+        // ═══════════════════════════════════════════════════════════
 
-        private static void RegisterEquipmentEvents(Storyteller s) { /* TODO */ }
-        private static void RegisterCommunityEvents(Storyteller s) { /* TODO */ }
-        private static void RegisterCompetitorEvents(Storyteller s) { /* TODO */ }
-        private static void RegisterInvestorEvents(Storyteller s) { /* TODO */ }
+        private static void RegisterEquipmentEvents(Storyteller storyteller)
+        {
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "wellboat-breakdown",
+                Name = "Wellboat breakdown",
+                Category = EventCategory.Equipment,
+                Weight = 1.2,
+                CooldownDays = 120,
+                Condition = gs => gs.Populations.Any(),
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "⚙️ Main wellboat engine failure during harvest transport. Emergency repairs and delayed delivery.";
+                    rec.BalanceChange = -185_000m;
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "rov-malfunction",
+                Name = "ROV malfunction",
+                Category = EventCategory.Equipment,
+                Weight = 1.0,
+                CooldownDays = 90,
+                Condition = gs => gs.SeaSites.Any(),
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "🤖 Underwater ROV inspection system fails. Manual net inspections required, labor costs up.";
+                    rec.BalanceChange = -95_000m;
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "feed-barge-collision",
+                Name = "Feed barge collision",
+                Category = EventCategory.Equipment,
+                Weight = 0.6,
+                CooldownDays = 180,
+                Condition = gs => gs.Populations.Any(),
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "🚢 Feed barge collides with pen structure in rough weather. Net damage and 2,000 fish escape.";
+                    rec.BalanceChange = -320_000m;
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "net-damage",
+                Name = "Net damage discovered",
+                Category = EventCategory.Equipment,
+                Weight = 1.3,
+                CooldownDays = 60,
+                Condition = gs => gs.SeaSites.Any(),
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "🎣 Routine inspection reveals extensive net wear and small tears. Emergency net replacement needed.";
+                    rec.BalanceChange = -145_000m;
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "sensor-failure",
+                Name = "Monitoring sensor failure",
+                Category = EventCategory.Equipment,
+                Weight = 0.9,
+                CooldownDays = 90,
+                Condition = gs => gs.Populations.Any(),
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "📊 Oxygen and temperature sensors malfunction. Missed early warning of low-oxygen event causes losses.";
+                    rec.BalanceChange = -110_000m;
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // COMMUNITY EVENTS (5 events)
+        // ═══════════════════════════════════════════════════════════
+
+        private static void RegisterCommunityEvents(Storyteller storyteller)
+        {
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "ngo-protest",
+                Name = "Environmental NGO protest",
+                Category = EventCategory.Community,
+                Weight = 0.7,
+                CooldownDays = 180,
+                Condition = gs => gs.SeaSites.Any(),
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "📢 Greenpeace/WWF protest over sea lice impacts on wild salmon. Media coverage damages brand reputation.";
+                    rec.BalanceChange = -125_000m; // Lost contracts + PR costs
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "local-community-support",
+                Name = "Local community support",
+                Category = EventCategory.Community,
+                Weight = 0.8,
+                CooldownDays = 365,
+                MinDay = 365,
+                Condition = gs => gs.Balance > 1_000_000m,
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "🤝 Local municipality praises your employment and tax contribution. Easier permit renewals and expansion approval.";
+                    rec.BalanceChange = +85_000m; // Reduced bureaucracy costs
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "fjord-access-dispute",
+                Name = "Fjord access dispute",
+                Category = EventCategory.Community,
+                Weight = 0.6,
+                CooldownDays = 540,
+                Condition = gs => gs.SeaSites.Count >= 2,
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "⚖️ Local fishing association challenges your fjord access rights. Legal fees and potential site relocation.";
+                    rec.BalanceChange = -210_000m;
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "tourism-conflict",
+                Name = "Tourism industry conflict",
+                Category = EventCategory.Community,
+                Weight = 0.5,
+                CooldownDays = 365,
+                Condition = gs => gs.SeaSites.Any(),
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "🏔️ Tourism operators complain your pens ruin scenic fjord views. Municipal hearing and compromise required.";
+                    rec.BalanceChange = -95_000m;
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "school-visit-pr",
+                Name = "School visit PR success",
+                Category = EventCategory.Community,
+                Weight = 0.9,
+                CooldownDays = 180,
+                Condition = gs => gs.SeaSites.Any(),
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "🎓 Educational tours for local schools generate positive press. 'Farm-to-table' story boosts brand value.";
+                    rec.BalanceChange = +65_000m;
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // COMPETITOR EVENTS (5 events)
+        // ═══════════════════════════════════════════════════════════
+
+        private static void RegisterCompetitorEvents(Storyteller storyteller)
+        {
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "competitor-bankruptcy",
+                Name = "Competitor bankruptcy opportunity",
+                Category = EventCategory.Competitor,
+                Weight = 0.4,
+                CooldownDays = 730,
+                MinDay = 365,
+                Condition = gs => gs.Balance > 1_500_000m,
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "💼 Local competitor goes bankrupt. Acquire their licenses and sites at 60% discount?";
+                    rec.BalanceChange = -1_200_000m; // Acquisition cost
+                    gs.Balance += rec.BalanceChange;
+                    gs.AcquisitionCount++;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "ma-offer",
+                Name = "M&A acquisition offer",
+                Category = EventCategory.Competitor,
+                Weight = 0.3,
+                CooldownDays = 1095,
+                MinDay = 730,
+                Condition = gs => gs.Balance > 3_000_000m && gs.SeaSites.Count >= 2,
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "🏢 Mowi/SalMar makes acquisition offer for your operation. Premium valuation but loss of independence.";
+                    rec.BalanceChange = +2_500_000m; // Buyout windfall
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "tech-leapfrog",
+                Name = "Competitor tech leapfrog",
+                Category = EventCategory.Competitor,
+                Weight = 0.6,
+                CooldownDays = 365,
+                MinDay = 540,
+                Condition = gs => true,
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "🚀 Rival deploys breakthrough closed-containment system. Your traditional pens look outdated to buyers.";
+                    rec.BalanceChange = -180_000m; // Lost premium contracts
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "price-war",
+                Name = "Price war initiated",
+                Category = EventCategory.Competitor,
+                Weight = 0.8,
+                CooldownDays = 180,
+                Condition = gs => gs.Populations.Any(),
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "💥 Major producers flood market to drive out smaller operators. Prices crash to 42 NOK/kg.";
+                    rec.BalanceChange = -350_000m;
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "competitor-scandal",
+                Name = "Competitor scandal boost",
+                Category = EventCategory.Competitor,
+                Weight = 0.5,
+                CooldownDays = 365,
+                Condition = gs => true,
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "📰 Major competitor caught using illegal pesticides. Buyers shift orders to your certified operation.";
+                    rec.BalanceChange = +275_000m;
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // INVESTOR EVENTS (5 events)
+        // ═══════════════════════════════════════════════════════════
+
+        private static void RegisterInvestorEvents(Storyteller storyteller)
+        {
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "esg-fund-interest",
+                Name = "ESG fund investment interest",
+                Category = EventCategory.Investor,
+                Weight = 0.5,
+                CooldownDays = 540,
+                MinDay = 730,
+                Condition = gs => gs.HasASCCertification && gs.Balance > 1_500_000m,
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "🌱 Nordic ESG fund offers growth capital for sustainable expansion. 15% equity for 5M NOK.";
+                    rec.BalanceChange = +5_000_000m;
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "pe-buyout-offer",
+                Name = "Private equity buyout offer",
+                Category = EventCategory.Investor,
+                Weight = 0.3,
+                CooldownDays = 1095,
+                MinDay = 1095,
+                Condition = gs => gs.Balance > 5_000_000m && gs.AcquisitionCount >= 1,
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "💰 PE firm offers 8x EBITDA buyout. Retire rich or keep building your empire?";
+                    rec.BalanceChange = +8_000_000m;
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "ipo-opportunity",
+                Name = "IPO opportunity",
+                Category = EventCategory.Investor,
+                Weight = 0.2,
+                CooldownDays = 1825,
+                MinDay = 1460,
+                Condition = gs => gs.Balance > 10_000_000m && gs.SeaSites.Count >= 3,
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "📈 Oslo Børs IPO window opens. List on exchange, raise expansion capital, face quarterly earnings pressure.";
+                    rec.BalanceChange = +12_000_000m; // IPO proceeds
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "angel-investor",
+                Name = "Angel investor backing",
+                Category = EventCategory.Investor,
+                Weight = 0.7,
+                CooldownDays = 365,
+                MinDay = 180,
+                Condition = gs => gs.Balance < 2_000_000m && gs.Balance > 500_000m,
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "👼 Wealthy seafood industry veteran offers mentorship + 1.5M NOK for 10% equity.";
+                    rec.BalanceChange = +1_500_000m;
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+
+            storyteller.RegisterEvent(new EventDefinition
+            {
+                Id = "innovation-grant",
+                Name = "Government innovation grant",
+                Category = EventCategory.Investor,
+                Weight = 0.6,
+                CooldownDays = 730,
+                MinDay = 365,
+                Condition = gs => gs.UnlockedResearchIds.Count >= 3,
+                Apply = (gs, rec) =>
+                {
+                    rec.Description = "🏛️ Innovation Norway awards grant for sustainable aquaculture R&D. 2M NOK non-dilutive funding.";
+                    rec.BalanceChange = +2_000_000m;
+                    gs.Balance += rec.BalanceChange;
+                }
+            });
+        }
     }
 }
