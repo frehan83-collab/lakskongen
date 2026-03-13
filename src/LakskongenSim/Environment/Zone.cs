@@ -15,6 +15,12 @@ namespace LakskongenSim.Environment
         // Zone-specific parameters
         public double WaterFlowRate { get; set; } // m³/day (current speed affects dilution)
         public double FeedConversionRatio { get; set; } // FCR for fish in this zone
+        
+        // Environmental parameters (added for currents, eutrophication, algal blooms)
+        public double CurrentSpeed { get; set; } // m/s (ocean current velocity)
+        public double NutrientLevel { get; set; } // mg/L (nitrogen + phosphorus compounds)
+        public bool AlgaeBloomActive { get; set; } // true when harmful algal bloom is occurring
+        public double JellyfishDensity { get; set; } // count per cubic meter
 
         /// <summary>Parameterless constructor for JSON deserialization.</summary>
         public Zone() : this("") { }
@@ -27,6 +33,12 @@ namespace LakskongenSim.Environment
             CurrentFishBiomassKg = 0.0;
             WaterFlowRate = 1000.0; // Moderate flow
             FeedConversionRatio = 1.2; // Typical Norwegian FCR
+            
+            // Initialize environmental parameters
+            CurrentSpeed = 0.15; // typical moderate current (m/s)
+            NutrientLevel = 0.5; // low baseline nutrient level (mg/L)
+            AlgaeBloomActive = false;
+            JellyfishDensity = 0.0;
         }
 
         public void AdvanceDays(int days)
@@ -36,9 +48,127 @@ namespace LakskongenSim.Environment
                 // Update water chemistry based on current fish biomass
                 WaterChemistry.UpdateOneDay(CurrentFishBiomassKg, FeedConversionRatio, WaterFlowRate);
                 
-                // TODO: implement currents, eutrophication, algal blooms
-                // TODO: integrate with fish growth via growth penalty
+                // Update ocean currents (seasonal/weather variation)
+                UpdateCurrents(day);
+                
+                // Calculate nutrient load from fish waste and feed
+                double dailyNutrientLoad = CalculateDailyNutrientLoad();
+                UpdateEutrophication(dailyNutrientLoad);
             }
+        }
+        
+        /// <summary>
+        /// Calculate daily nutrient load from fish biomass and feeding.
+        /// </summary>
+        private double CalculateDailyNutrientLoad()
+        {
+            // Estimate: 1 kg fish produces ~0.05 kg N+P per day (depends on FCR and feed composition)
+            double baseNutrientPerKg = 0.05;
+            return CurrentFishBiomassKg * baseNutrientPerKg / WaterFlowRate; // diluted by water flow
+        }
+        
+        /// <summary>
+        /// Simulate ocean current changes based on season and weather patterns.
+        /// Currents affect nutrient dilution and oxygen replenishment.
+        /// </summary>
+        public void UpdateCurrents(int day)
+        {
+            // Seasonal variation: stronger currents in winter (Norwegian coast pattern)
+            int dayOfYear = day % 365;
+            double seasonalFactor = 1.0 + 0.3 * Math.Cos(2 * Math.PI * (dayOfYear - 15) / 365.0); // peak in January
+            
+            // Add some random weather-driven variation
+            var rng = new Random(day + Id.GetHashCode()); // deterministic per zone+day
+            double weatherNoise = 0.8 + 0.4 * rng.NextDouble(); // 0.8-1.2x
+            
+            // Base current: 0.05-0.35 m/s typical for Norwegian coastal waters
+            double baseSpeed = 0.15;
+            CurrentSpeed = baseSpeed * seasonalFactor * weatherNoise;
+            CurrentSpeed = Math.Clamp(CurrentSpeed, 0.05, 0.5);
+            
+            // Strong currents improve water quality (more dilution, oxygen replenishment)
+            WaterFlowRate = 500.0 + CurrentSpeed * 3000.0; // scale flow rate with current speed
+        }
+        
+        /// <summary>
+        /// Model nutrient buildup and trigger algal blooms when thresholds are exceeded.
+        /// </summary>
+        /// <param name="nutrientLoad">Daily nutrient input (mg/L equivalent)</param>
+        public void UpdateEutrophication(double nutrientLoad)
+        {
+            // Nutrient accumulation
+            NutrientLevel += nutrientLoad;
+            
+            // Natural dissipation via currents and biological uptake
+            double dissipationRate = 0.1 * CurrentSpeed; // stronger currents flush nutrients
+            NutrientLevel -= NutrientLevel * dissipationRate;
+            NutrientLevel = Math.Max(0.0, NutrientLevel);
+            
+            // Algal bloom threshold (typical: >2.0 mg/L total N+P for coastal blooms)
+            const double bloomThreshold = 2.0;
+            const double bloomClearThreshold = 1.2; // hysteresis to prevent flickering
+            
+            if (!AlgaeBloomActive && NutrientLevel > bloomThreshold)
+            {
+                AlgaeBloomActive = true;
+            }
+            else if (AlgaeBloomActive && NutrientLevel < bloomClearThreshold)
+            {
+                AlgaeBloomActive = false;
+            }
+            
+            // Active blooms deplete oxygen (via decomposition)
+            if (AlgaeBloomActive)
+            {
+                // Reduce oxygen by 1-2 mg/L per day during bloom
+                WaterChemistry.OxygenLevel = Math.Max(0.0, WaterChemistry.OxygenLevel - 1.5);
+            }
+        }
+        
+        /// <summary>
+        /// Calculate growth penalty multiplier (0.0-1.0) based on environmental stressors.
+        /// 1.0 = optimal conditions, &lt;1.0 = reduced growth.
+        /// </summary>
+        public double CalculateGrowthPenalty()
+        {
+            double penalty = 1.0;
+            
+            // Low oxygen penalty (critical below 5 mg/L)
+            if (WaterChemistry.OxygenLevel < 7.0)
+            {
+                double oxygenPenalty = WaterChemistry.OxygenLevel / 7.0;
+                penalty *= Math.Max(0.3, oxygenPenalty); // minimum 30% growth if very low O2
+            }
+            
+            // High temperature penalty (salmon optimal: 8-14°C)
+            double temp = WaterChemistry.Temperature;
+            if (temp > 14.0)
+            {
+                double tempExcess = temp - 14.0;
+                double tempPenalty = Math.Max(0.4, 1.0 - tempExcess * 0.08); // -8% per degree above 14°C
+                penalty *= tempPenalty;
+            }
+            else if (temp < 8.0)
+            {
+                double tempDeficit = 8.0 - temp;
+                double tempPenalty = Math.Max(0.6, 1.0 - tempDeficit * 0.05); // -5% per degree below 8°C
+                penalty *= tempPenalty;
+            }
+            
+            // Algal bloom penalty (toxins, reduced light, oxygen depletion)
+            if (AlgaeBloomActive)
+            {
+                penalty *= 0.6; // 40% growth reduction during harmful algal bloom
+            }
+            
+            // Jellyfish density penalty (compete for food, sting fish)
+            if (JellyfishDensity > 0.5)
+            {
+                double jellyfishPenalty = Math.Max(0.7, 1.0 - JellyfishDensity * 0.1);
+                penalty *= jellyfishPenalty;
+            }
+            
+            return Math.Clamp(penalty, 0.0, 1.0);
         }
         
         /// <summary>
