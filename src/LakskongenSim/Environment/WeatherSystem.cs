@@ -3,19 +3,237 @@ using System;
 namespace LakskongenSim.Environment
 {
     /// <summary>
-    /// Very small weather system producing temperature anomalies.
+    /// Norwegian coastal weather system with Markov chain state transitions,
+    /// seasonal temperature cycles, and stochastic daily variation.
+    /// Temperature range: 2-18°C (Norwegian fjord sea surface temps).
+    /// Simulation-day driven — never uses real-world clock.
     /// </summary>
     public class WeatherSystem
     {
+        // ─── State ───
         public double CurrentTemperatureC { get; private set; } = 8.0;
+        public double CurrentWindSpeedMs { get; private set; } = 5.0; // m/s
+        public WeatherState CurrentState { get; private set; } = WeatherState.Moderate;
+        public int SimulationDay { get; private set; } = 0;
 
+        // ─── Seasonal parameters (Norwegian coast) ───
+        // Mean sea surface temperature by month (°C) — Norwegian fjords
+        // Based on Havforskningsinstituttet (Institute of Marine Research) data
+        private static readonly double[] MonthlyMeanTemp =
+        {
+            4.5,  // Jan
+            3.8,  // Feb — coldest
+            4.2,  // Mar
+            5.5,  // Apr
+            8.0,  // May
+            10.5, // Jun
+            12.5, // Jul
+            13.5, // Aug — warmest
+            12.0, // Sep
+            9.5,  // Oct
+            7.0,  // Nov
+            5.5   // Dec
+        };
+
+        // ─── Markov chain transition probabilities ───
+        // State: Calm, Moderate, Storm, Severe
+        // Transition matrix (row = current state, col = next state)
+        private static readonly double[,] TransitionMatrix =
+        {
+            // Calm→     Moderate→  Storm→     Severe→
+            { 0.60,      0.30,      0.08,      0.02 },   // From Calm
+            { 0.25,      0.50,      0.20,      0.05 },   // From Moderate
+            { 0.10,      0.30,      0.45,      0.15 },   // From Storm
+            { 0.05,      0.20,      0.40,      0.35 },   // From Severe
+        };
+
+        // ─── Storm season modifier (Oct-Mar = higher storm probability) ───
+        private const double StormSeasonMultiplier = 1.5;
+
+        private readonly Random _rng;
+
+        // ─── Events ───
         public event Action<double>? OnTemperatureChanged;
+        public event Action<WeatherState>? OnWeatherStateChanged;
+        public event Action<string>? OnWeatherAlert; // Severe weather alerts
 
+        public WeatherSystem(int? seed = null)
+        {
+            _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+        }
+
+        /// <summary>
+        /// Advance weather simulation by given days.
+        /// Updates temperature, wind, and weather state.
+        /// </summary>
         public void AdvanceDays(int days)
         {
-            // crude seasonal cycle
-            CurrentTemperatureC = 8.0 + 4.0 * Math.Sin(DateTime.Now.DayOfYear / 365.0 * 2.0 * Math.PI);
+            for (int d = 0; d < days; d++)
+            {
+                SimulationDay++;
+                UpdateTemperature();
+                UpdateWeatherState();
+                UpdateWind();
+            }
+        }
+
+        /// <summary>
+        /// Calculate sea surface temperature for current simulation day.
+        /// Uses sinusoidal seasonal cycle + stochastic daily variation.
+        /// </summary>
+        private void UpdateTemperature()
+        {
+            // Determine month from simulation day (day 0 = January 1st)
+            int dayOfYear = SimulationDay % 365;
+            int month = dayOfYear / 30; // Approximate month (0-11)
+            month = Math.Clamp(month, 0, 11);
+
+            // Interpolate between monthly means for smooth transition
+            int nextMonth = (month + 1) % 12;
+            double dayInMonth = (dayOfYear % 30) / 30.0;
+            double baseMeanTemp = MonthlyMeanTemp[month] * (1.0 - dayInMonth)
+                                + MonthlyMeanTemp[nextMonth] * dayInMonth;
+
+            // Daily stochastic variation (±1.5°C normally, ±3°C during storms)
+            double varianceMultiplier = CurrentState switch
+            {
+                WeatherState.Storm => 2.0,
+                WeatherState.Severe => 3.0,
+                _ => 1.0
+            };
+
+            double u1 = Math.Max(1e-10, _rng.NextDouble());
+            double u2 = _rng.NextDouble();
+            double noise = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
+            double dailyVariation = noise * 1.0 * varianceMultiplier;
+
+            // Storm cooling effect
+            double stormCooling = CurrentState switch
+            {
+                WeatherState.Storm => -0.5,
+                WeatherState.Severe => -1.5,
+                _ => 0.0
+            };
+
+            double newTemp = baseMeanTemp + dailyVariation + stormCooling;
+
+            // Clamp to realistic Norwegian sea surface temperature range
+            CurrentTemperatureC = Math.Clamp(newTemp, 1.5, 19.0);
             OnTemperatureChanged?.Invoke(CurrentTemperatureC);
         }
+
+        /// <summary>
+        /// Update weather state using Markov chain transitions.
+        /// Storm probability increases in Oct-Mar.
+        /// </summary>
+        private void UpdateWeatherState()
+        {
+            int currentStateIdx = (int)CurrentState;
+            double roll = _rng.NextDouble();
+
+            // Check for storm season (Oct-Mar: days 270-365 + 0-90)
+            int dayOfYear = SimulationDay % 365;
+            bool isStormSeason = dayOfYear >= 270 || dayOfYear <= 90;
+
+            // Cumulative probability check
+            double cumulative = 0.0;
+            WeatherState newState = CurrentState;
+
+            for (int nextState = 0; nextState < 4; nextState++)
+            {
+                double prob = TransitionMatrix[currentStateIdx, nextState];
+
+                // Modify storm/severe probability during storm season
+                if (isStormSeason && (nextState == 2 || nextState == 3))
+                    prob *= StormSeasonMultiplier;
+
+                cumulative += prob;
+                if (roll < cumulative)
+                {
+                    newState = (WeatherState)nextState;
+                    break;
+                }
+            }
+
+            // Normalize (since we may have modified probabilities)
+            if (newState != CurrentState)
+            {
+                var previousState = CurrentState;
+                CurrentState = newState;
+                OnWeatherStateChanged?.Invoke(CurrentState);
+
+                // Alert for severe weather
+                if (CurrentState == WeatherState.Severe)
+                {
+                    OnWeatherAlert?.Invoke("⛈️ SEVERE WEATHER WARNING: Storm force winds and high seas expected. Operations suspended.");
+                }
+                else if (CurrentState == WeatherState.Storm && previousState != WeatherState.Severe)
+                {
+                    OnWeatherAlert?.Invoke("🌊 STORM WARNING: Rough conditions ahead. Monitor pen integrity.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Update wind speed based on weather state.
+        /// </summary>
+        private void UpdateWind()
+        {
+            double baseWind = CurrentState switch
+            {
+                WeatherState.Calm => 3.0,
+                WeatherState.Moderate => 7.0,
+                WeatherState.Storm => 15.0,
+                WeatherState.Severe => 25.0,
+                _ => 5.0
+            };
+
+            // Add random variation
+            double variation = (_rng.NextDouble() - 0.5) * 4.0;
+            CurrentWindSpeedMs = Math.Max(0.5, baseWind + variation);
+        }
+
+        /// <summary>
+        /// Get current weather status for display.
+        /// </summary>
+        public WeatherStatus GetStatus()
+        {
+            int dayOfYear = SimulationDay % 365;
+            int month = Math.Clamp(dayOfYear / 30, 0, 11);
+            string[] monthNames = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+            return new WeatherStatus
+            {
+                TemperatureC = CurrentTemperatureC,
+                WindSpeedMs = CurrentWindSpeedMs,
+                State = CurrentState,
+                SimulationDay = SimulationDay,
+                MonthName = monthNames[month],
+                IsStormSeason = dayOfYear >= 270 || dayOfYear <= 90,
+                CanOperate = CurrentState != WeatherState.Severe
+            };
+        }
+    }
+
+    /// <summary>Weather states for Markov chain.</summary>
+    public enum WeatherState
+    {
+        Calm = 0,
+        Moderate = 1,
+        Storm = 2,
+        Severe = 3
+    }
+
+    /// <summary>Weather status snapshot for UI.</summary>
+    public struct WeatherStatus
+    {
+        public double TemperatureC;
+        public double WindSpeedMs;
+        public WeatherState State;
+        public int SimulationDay;
+        public string MonthName;
+        public bool IsStormSeason;
+        public bool CanOperate;
     }
 }
