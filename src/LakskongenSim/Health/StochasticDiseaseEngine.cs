@@ -357,7 +357,7 @@ namespace LakskongenSim.Health
     {
         public bool IsInfected { get; set; }
         public double InfectionTime { get; set; } // Days until symptoms
-        public string TransmissionVector { get; set; }
+        public string TransmissionVector { get; set; } = null!;
         public bool Detected { get; set; }
         public bool Reported { get; set; }
     }
@@ -367,8 +367,8 @@ namespace LakskongenSim.Health
     /// </summary>
     public class FishIndividual
     {
-        public string Id { get; set; }
-        public string ZoneId { get; set; }
+        public string Id { get; set; } = null!;
+        public string ZoneId { get; set; } = null!;
         public double Weight { get; set; }
         public double GrowthRate { get; set; }
         public bool HasResistanceGene { get; set; }

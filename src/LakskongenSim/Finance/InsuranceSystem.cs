@@ -11,7 +11,9 @@ namespace LakskongenSim.Finance
         public decimal InsuredValue { get; private set; }
         public decimal AnnualPremiumRate { get; private set; } = 0.01m; // 1% default
 
+#pragma warning disable CS0067
         public event Action<decimal>? OnPremiumPaid;
+#pragma warning restore CS0067
         public event Action<decimal>? OnClaimPaid;
 
         public void Insure(decimal value, decimal annualRate)

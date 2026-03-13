@@ -3,7 +3,7 @@ using System;
 namespace LakskongenSim.Finance
 {
     /// <summary>
-    /// Allows investing in capacity, equipment, and R&D. Tracks book value and simple depreciation.
+    /// Allows investing in capacity, equipment, and R&amp;D. Tracks book value and simple depreciation.
     /// </summary>
     public class InvestmentSystem
     {

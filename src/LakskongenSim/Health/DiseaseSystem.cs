@@ -110,7 +110,7 @@ namespace LakskongenSim.Health
                     // Replace cohorts
                     pop.Cohorts.Clear();
                     pop.Cohorts.AddRange(updated);
-                    pop.OnPopulationChanged?.Invoke();
+                    pop.TriggerOnPopulationChanged();
                 }
             }
 

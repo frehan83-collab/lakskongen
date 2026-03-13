@@ -97,7 +97,7 @@ namespace LakskongenSim.Processing
         }
 
         /// <summary>
-        /// Process a given input weight (kg) into a product type. Uses yields, prices and economics to compute P&L.
+        /// Process a given input weight (kg) into a product type. Uses yields, prices and economics to compute P&amp;L.
         /// rawMaterialCostPerKg is the price paid for whole fish input.
         /// </summary>
         public ProcessingResult Process(int inputKg, ProductType product, decimal rawMaterialCostPerKg, decimal qualityMultiplier = 1.0m)

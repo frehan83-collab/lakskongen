@@ -165,7 +165,6 @@ namespace LakskongenSim.Sustainability
             // Bonus: +5 pts if using mechanical delousing (tracked via state metadata)
 
             var totalFish = 0;
-            var totalLice = 0.0;
 
             foreach (var pop in state.Populations)
             {
@@ -173,7 +172,7 @@ namespace LakskongenSim.Sustainability
                 totalFish += fishCount;
                 // Assume sea lice data is tracked per population (future integration)
                 // For now, use placeholder - will integrate with SeaLiceModel
-                // totalLice += fishCount * pop.LicePerFish; 
+                // totalLice += fishCount * pop.LicePerFish;
             }
 
             if (totalFish == 0) return WEIGHT_SEA_LICE; // No fish = perfect score (edge case)

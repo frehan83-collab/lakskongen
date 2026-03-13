@@ -26,7 +26,7 @@ namespace LakskongenSim.Markets
     public class InternationalMarket
     {
         public MarketRegion Region { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
         public float BasePriceNOK { get; set; } = 71.44f; // Q1 2026 baseline
         public float PremiumMultiplier { get; set; } // 1.15 = 15% premium
         public List<string> RequiredCertifications { get; set; } = new List<string>();
@@ -79,7 +79,7 @@ namespace LakskongenSim.Markets
     {
         public MarketRegion Region { get; set; }
         public MarketOpportunityType OpportunityType { get; set; }
-        public string Description { get; set; }
+        public string Description { get; set; } = null!;
         public float PotentialPremiumIncrease { get; set; }
         public int DurationMonths { get; set; }
         public float ProbabilityOfSuccess { get; set; }
@@ -91,9 +91,9 @@ namespace LakskongenSim.Markets
         private List<MarketOpportunity> activeOpportunities = new List<MarketOpportunity>();
 
         // Events
-        public event Action<MarketRegion, float> MarketEntered;
-        public event Action<MarketRegion, float, float> SaleCompleted; // region, volume, revenue
-        public event Action<MarketOpportunity> OpportunityAvailable;
+        public event Action<MarketRegion, float>? MarketEntered;
+        public event Action<MarketRegion, float, float>? SaleCompleted; // region, volume, revenue
+        public event Action<MarketOpportunity>? OpportunityAvailable;
 
         public InternationalMarketSystem()
         {
@@ -374,7 +374,7 @@ namespace LakskongenSim.Markets
             return new Dictionary<MarketRegion, InternationalMarket>(markets);
         }
 
-        public InternationalMarket GetMarket(MarketRegion region)
+        public InternationalMarket? GetMarket(MarketRegion region)
         {
             return markets.ContainsKey(region) ? markets[region] : null;
         }

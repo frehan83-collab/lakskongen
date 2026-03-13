@@ -30,7 +30,7 @@ namespace LakskongenSim.Health
         private int _highDetailCount;
         private int _mediumDetailCount;
         private int _lowDetailCount;
-        private double _lastUpdateTimeMs;
+        private double _lastUpdateTimeMs = 0.0;
         
         private readonly StochasticDiseaseEngine _diseaseEngine;
         private readonly Random _random = new Random();

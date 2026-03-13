@@ -59,8 +59,8 @@ namespace LakskongenSim.Expansion
         private const float BASE_INTEGRATION_SCORE_PER_TIER = 0.15f;
         private const float SYNERGY_MULTIPLIER = 1.25f;
         
-        public event Action<IntegrationTier, float> OnAssetBuilt;
-        public event Action<float> OnIntegrationMilestoneReached;
+        public event Action<IntegrationTier, float>? OnAssetBuilt;
+        public event Action<float>? OnIntegrationMilestoneReached;
         
         public VerticalIntegrationSystem(FinanceManager financeManager)
         {

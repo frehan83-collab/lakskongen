@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LakskongenSim.Finance
 {
     /// <summary>
-    /// Simple P&L, Balance Sheet, and Cash Flow records for deterministic simulation.
+    /// Simple P&amp;L, Balance Sheet, and Cash Flow records for deterministic simulation.
     /// Designed to be easy to test.
     /// </summary>
     public class FinancialStatements

@@ -24,7 +24,7 @@ namespace LakskongenSim.Core
         /// <summary>Fish populations across the system.</summary>
         public List<Biology.FishPopulation> Populations { get; set; } = new();
 
-        /// <summary>Processing P&L snapshot (summary per plant). New systems can push ProcessingSnapshot objects here for dashboards.
+        /// <summary>Processing P&amp;L snapshot (summary per plant). New systems can push ProcessingSnapshot objects here for dashboards.
         /// Kept as a simple serializable structure so front-end/Dashboard can display aggregate processing profit/loss.
         /// </summary>
         public List<Processing.ProcessingSnapshot> ProcessingSnapshots { get; set; } = new();

@@ -56,6 +56,12 @@ namespace LakskongenSim.Biology
             OnPopulationChanged?.Invoke();
         }
 
+        /// <summary>Triggers the OnPopulationChanged event. Used by external systems that modify cohorts directly.</summary>
+        public void TriggerOnPopulationChanged()
+        {
+            OnPopulationChanged?.Invoke();
+        }
+
         /// <summary>Advance the population by days: age, apply growth and mortality.</summary>
         public void AdvanceDays(int days)
         {

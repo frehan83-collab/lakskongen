@@ -31,7 +31,7 @@ namespace LakskongenSim.Expansion
 
     public class AcquisitionSystem
     {
-        private List<AcquisitionTarget> availableTargets;
+        private List<AcquisitionTarget> availableTargets = null!;
         private Random rng;
         
         // Economic constants based on Norwegian salmon industry
@@ -189,7 +189,7 @@ namespace LakskongenSim.Expansion
         }
 
         // Event for notifying when acquisition completes
-        public event Action<string, float, float> AcquisitionCompleted;
+        public event Action<string, float, float>? AcquisitionCompleted;
 
         protected virtual void OnAcquisitionCompleted(string targetId, float price, float synergies)
         {

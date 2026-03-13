@@ -48,10 +48,10 @@ namespace LakskongenSim.Politics
     {
         public int Id { get; set; }
         public FactionType FactionType { get; set; }
-        public string Description { get; set; }
+        public string Description { get; set; } = null!;
         public decimal CostNOK { get; set; }
         public int DurationMonths { get; set; }
-        public string ConsequenceIfIgnored { get; set; }
+        public string ConsequenceIfIgnored { get; set; } = null!;
         public DateTime IssuedDate { get; set; }
         public DateTime ExpiryDate => IssuedDate.AddMonths(DurationMonths);
         public bool IsExpired => DateTime.Now > ExpiryDate;
@@ -70,7 +70,7 @@ namespace LakskongenSim.Politics
         public bool Success { get; set; }
         public float RelationshipChange { get; set; }
         public decimal CostNOK { get; set; }
-        public string Description { get; set; }
+        public string Description { get; set; } = null!;
         public SanctionType? SanctionApplied { get; set; }
         public BonusType? BonusApplied { get; set; }
         public List<string> Messages { get; set; } = new List<string>();
@@ -82,9 +82,9 @@ namespace LakskongenSim.Politics
     public class Faction
     {
         public FactionType Type { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        
+        public string Name { get; set; } = null!;
+        public string Description { get; set; } = null!;
+
         /// <summary>
         /// Relationship score from -1 (hostile) to +1 (excellent)
         /// </summary>
@@ -115,9 +115,9 @@ namespace LakskongenSim.Politics
         private Random _random;
         private int _nextDemandId;
 
-        public event Action<FactionType, float, string> RelationshipChanged;
-        public event Action<Demand> DemandIssued;
-        public event Action<ConsequenceResult> ConsequenceApplied;
+        public event Action<FactionType, float, string>? RelationshipChanged;
+        public event Action<Demand>? DemandIssued;
+        public event Action<ConsequenceResult>? ConsequenceApplied;
 
         public StakeholderFactionSystem()
         {
@@ -196,7 +196,7 @@ namespace LakskongenSim.Politics
         /// <summary>
         /// Gets a specific faction
         /// </summary>
-        public Faction GetFaction(FactionType factionType)
+        public Faction? GetFaction(FactionType factionType)
         {
             return _factions.TryGetValue(factionType, out var faction) ? faction : null;
         }

@@ -22,24 +22,24 @@ namespace LakskongenSim.Core
         public GameState State { get; } = new();
 
         // ─── Core subsystems ───
-        public WeatherSystem Weather { get; private set; }
-        public EnvironmentModel Environment { get; private set; }
-        public GrowthModel Growth { get; private set; }
-        public MortalityModel Mortality { get; private set; }
-        public FeedSystem Feed { get; private set; }
-        public SeaLiceModel SeaLice { get; private set; }
-        public DiseaseSystem Disease { get; private set; }
-        public IntegratedDiseaseSystem IntegratedDisease { get; private set; }
-        public Hatchery Hatchery { get; private set; }
-        public Market.MarketSimulation MarketSimulation { get; set; }
-        public Finance.FinanceManager FinanceManager { get; set; }
-        public SustainabilityManager SustainabilityManager { get; private set; }
-        public Storyteller Storyteller { get; private set; }
-        public TutorialSystem Tutorial { get; private set; }
-        public AnalyticsTracker Analytics { get; private set; }
-        public AudioManager Audio { get; private set; }
-        public AchievementSystem Achievements { get; private set; }
-        public ResearchSystem Research { get; private set; }
+        public WeatherSystem Weather { get; private set; } = null!;
+        public EnvironmentModel Environment { get; private set; } = null!;
+        public GrowthModel Growth { get; private set; } = null!;
+        public MortalityModel Mortality { get; private set; } = null!;
+        public FeedSystem Feed { get; private set; } = null!;
+        public SeaLiceModel SeaLice { get; private set; } = null!;
+        public DiseaseSystem Disease { get; private set; } = null!;
+        public IntegratedDiseaseSystem IntegratedDisease { get; private set; } = null!;
+        public Hatchery Hatchery { get; private set; } = null!;
+        public Market.MarketSimulation MarketSimulation { get; set; } = null!;
+        public Finance.FinanceManager FinanceManager { get; set; } = null!;
+        public SustainabilityManager SustainabilityManager { get; private set; } = null!;
+        public Storyteller Storyteller { get; private set; } = null!;
+        public TutorialSystem Tutorial { get; private set; } = null!;
+        public AnalyticsTracker Analytics { get; private set; } = null!;
+        public AudioManager Audio { get; private set; } = null!;
+        public AchievementSystem Achievements { get; private set; } = null!;
+        public ResearchSystem Research { get; private set; } = null!;
 
         // ─── Update intervals ───
         private int _lastSustainabilityUpdate = 0;
