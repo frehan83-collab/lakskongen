@@ -52,12 +52,17 @@
 | T32 | Audio System — weather-reactive ambience + music crossfades | Sonnet | ✅ Dynamic soundscapes + tension music |
 | T33 | Achievement system polish + notification UI | GPT-5.4 | ✅ Polished system + unobtrusive UI |
 
+## 🟢 In Progress (Sprint 8 — Wave 1)
+| ID | Task | Agent | Status |
+|----|------|-------|--------|
+| T34 | Voice Lines for Notifications | GPT-5.4 | 🏃 Running |
+
 ## 📋 Inbox (Next)
 | ID | Task | Estimated Agent | Priority |
 |----|------|----------------|----------|
 | T17 | Multiplayer testing — NetworkManager + lobby | Sonnet | LOW |
 
 ---
-*Updated: 2026-03-13 22:47 CET — Sprint 7: ALL 13 tasks done*
+*Updated: 2026-03-13 22:49 CET — Sprint 8 launched*
 *Build: ✅ Green | Tests: ✅ 18/18 | TODOs: 0 | Commits: 13+*
 *Fallback: Sonnet → GPT-5.4 → DeepSeek → Gemini 2.5 Flash | Ollama → Qwen → GPT-5.4*
