@@ -1,8 +1,8 @@
 extends Control
 
 ## Norwegian coastline region selector for new sea site placement.
-## 8 regions from Finnmark (north) to Agder (south) with licence, temperature,
-## disease risk, and logistics data.
+## 13 production zones (PO 1-13) from south to north covering the entire
+## Norwegian coast with licence, temperature, disease risk, and logistics data.
 
 signal close_requested
 signal region_selected(region_id: String)
