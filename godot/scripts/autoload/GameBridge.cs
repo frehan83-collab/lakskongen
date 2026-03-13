@@ -2,6 +2,7 @@ using Godot;
 using LakskongenSim.Core;
 using LakskongenSim.Finance;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
@@ -18,6 +19,7 @@ public partial class GameBridge : Node
     [Signal] public delegate void GameStartedEventHandler();
     [Signal] public delegate void GameEndedEventHandler(string reason);
     [Signal] public delegate void TutorialStepCompletedEventHandler(int stepNumber, string title, double rewardNok);
+    [Signal] public delegate void AudioAlertTriggeredEventHandler(string alertKey);
 
     // ── Engine reference ──────────────────────────────────────────────────────
 
@@ -210,6 +212,68 @@ public partial class GameBridge : Node
         }
         return result;
     }
+
+    // ── Analytics API for GDScript ────────────────────────────────────────────
+
+    /// <summary>
+    /// Return time-series values for a named metric over the last <paramref name="days"/> days.
+    /// Returns a Godot Array of floats (oldest → newest).
+    /// <para>Valid metric keys are defined in <see cref="AnalyticsMetric"/> (e.g. "fish_count",
+    /// "total_biomass_kg", "market_price_nok", "balance_nok", "temperature_c",
+    /// "fcr", "lice_per_fish", "sustainability_score", "mortality_rate", "avg_weight_kg").</para>
+    /// </summary>
+    public Godot.Collections.Array<double> GetAnalyticsData(string metric, int days = 30)
+    {
+        var result = new Godot.Collections.Array<double>();
+        var analytics = SimulationEngine?.Analytics;
+        if (analytics == null) return result;
+
+        foreach (var v in analytics.GetTimeSeries(metric, days))
+            result.Add(v);
+
+        return result;
+    }
+
+    /// <summary>
+    /// Return a moving average of <paramref name="metric"/> over the last <paramref name="days"/> days
+    /// using a rolling window of <paramref name="windowDays"/>.
+    /// </summary>
+    public Godot.Collections.Array<double> GetAnalyticsMovingAverage(string metric, int days = 30, int windowDays = 7)
+    {
+        var result = new Godot.Collections.Array<double>();
+        var analytics = SimulationEngine?.Analytics;
+        if (analytics == null) return result;
+
+        foreach (var v in analytics.GetMovingAverage(metric, days, windowDays))
+            result.Add(v);
+
+        return result;
+    }
+
+    /// <summary>
+    /// Return the trend for <paramref name="metric"/> over the last <paramref name="days"/> days.
+    /// Returns "up", "down", or "stable".
+    /// </summary>
+    public string GetAnalyticsTrend(string metric, int days = 14)
+    {
+        var analytics = SimulationEngine?.Analytics;
+        if (analytics == null) return "stable";
+
+        return analytics.GetTrend(metric, days) switch
+        {
+            TrendDirection.Up   => "up",
+            TrendDirection.Down => "down",
+            _                   => "stable"
+        };
+    }
+
+    /// <summary>All-time high value for <paramref name="metric"/>.</summary>
+    public double GetAnalyticsAllTimeHigh(string metric)
+        => SimulationEngine?.Analytics?.GetAllTimeHigh(metric) ?? double.NaN;
+
+    /// <summary>All-time low value for <paramref name="metric"/>.</summary>
+    public double GetAnalyticsAllTimeLow(string metric)
+        => SimulationEngine?.Analytics?.GetAllTimeLow(metric) ?? double.NaN;
 
     // ── Tutorial properties for GDScript ─────────────────────────────────────
 

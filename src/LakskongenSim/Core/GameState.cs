@@ -32,6 +32,12 @@ namespace LakskongenSim.Core
         /// <summary>Event history log for the storyteller/event system. Tracks all random events that have occurred.</summary>
         public List<Events.EventRecord> EventLog { get; set; } = new();
 
+        /// <summary>
+        /// Daily analytics snapshots recorded by AnalyticsTracker.
+        /// One entry per simulated day; used by charting UI and trend analysis.
+        /// </summary>
+        public List<DailySnapshot> DailySnapshots { get; set; } = new();
+
         /// <summary>Default constructor for serializer.</summary>
         public GameState()
         {

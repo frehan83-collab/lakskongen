@@ -36,6 +36,8 @@ namespace LakskongenSim.Core
         public SustainabilityManager SustainabilityManager { get; private set; }
         public Storyteller Storyteller { get; private set; }
         public TutorialSystem Tutorial { get; private set; }
+        public AnalyticsTracker Analytics { get; private set; }
+        public AudioManager Audio { get; private set; }
 
         // ─── Update intervals ───
         private int _lastSustainabilityUpdate = 0;
@@ -108,6 +110,12 @@ namespace LakskongenSim.Core
             // Tutorial onboarding system
             Tutorial = new TutorialSystem(this);
 
+            // Analytics tracker — shares GameState's DailySnapshots list
+            Analytics = new AnalyticsTracker(State.DailySnapshots);
+
+            // Audio state tracker — pure C#, no Godot; consumed via GameBridge → SimBridge
+            Audio = new AudioManager(Weather);
+
             Console.WriteLine("✅ SimulationEngine initialized — all subsystems wired");
         }
 
@@ -138,6 +146,7 @@ namespace LakskongenSim.Core
             // ═══════════════════════════════════════════
             Weather.AdvanceDays(1);
             double temperature = Weather.CurrentTemperatureC;
+            Audio?.Update(State.Day);
 
             // Update zone temperatures and water chemistry
             foreach (var zone in State.Zones)
@@ -220,6 +229,12 @@ namespace LakskongenSim.Core
             // PHASE 6: TUTORIAL PROGRESS CHECK
             // ═══════════════════════════════════════════
             Tutorial?.CheckProgress();
+
+            // ═══════════════════════════════════════════
+            // PHASE 7: ANALYTICS SNAPSHOT
+            // Captured last so all subsystem updates are reflected.
+            // ═══════════════════════════════════════════
+            Analytics?.RecordSnapshot(this);
         }
 
         // ─── Sustainability event handlers ───
@@ -231,6 +246,7 @@ namespace LakskongenSim.Core
             if (score >= 95 && level == CertificationLevel.SustainabilityLeader)
             {
                 OnEventTriggered?.Invoke("🏆 Achievement: Sustainability Leader!");
+                Audio?.TriggerAlert("achievement");
             }
         }
 
@@ -259,6 +275,17 @@ namespace LakskongenSim.Core
             OnEventTriggered?.Invoke($"📣 [{record.Category}] {record.Name}: {record.Description}");
 
             Console.WriteLine($"[Day {record.Day}] EVENT: {record.Name} — {record.Description} ({record.BalanceChange:+#,0;-#,0;0} NOK)");
+
+            // Audio: map event category to alert sounds
+            switch (record.Category)
+            {
+                case EventCategory.Disease:
+                    Audio?.TriggerAlert("disease_outbreak");
+                    break;
+                case EventCategory.Market when record.BalanceChange < 0:
+                    Audio?.TriggerAlert("market_crash");
+                    break;
+            }
 
             // Consequence chains: route each category to the appropriate subsystem
             switch (record.Category)
