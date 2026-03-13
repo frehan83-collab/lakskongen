@@ -15,6 +15,7 @@ GameBridge="*res://scripts/autoload/GameBridge.cs"
 EventBus="*res://scripts/autoload/EventBus.cs"
 AudioManager="*res://scripts/autoload/AudioManager.cs"
 SaveLoadManager="*res://scripts/autoload/SaveLoadManager.cs"
+SimBridge="*res://scripts/SimBridge.gd"
 
 [display]
 
