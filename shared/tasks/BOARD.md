@@ -15,19 +15,23 @@
 | T10 | Create missing Godot scenes (SustainabilityPanel, FinancePanel) | Sonnet | 2 .tscn scenes + scripts, committed |
 | T11 | SimulationEngine — load JSON configs on Initialize() | Sonnet | All 6 JSON configs loaded, committed |
 
+| T12 | Save/Load — serialize new GameState properties | Sonnet | All properties verified, backward compat, committed |
+| T13 | Compile fix — resolve 12 errors (Zone, Storyteller, NorwegianEvents) | Sonnet | 0 errors, committed |
+| T14 | GDScript Dashboard.gd — wire to all new bridge data | Sonnet | Full dashboard: fish, finance, environment, sustainability, research, events |
+
 ## 🟢 In Progress
 | ID | Task | Agent | Status |
 |----|------|-------|--------|
-| T12 | Save/Load — serialize new GameState properties | Sonnet | Running |
+| T15 | Audio assets placeholder + AudioManager wiring | DeepSeek | Running (Sprint 5) |
 
 ## 📋 Inbox (Prioritized)
 | ID | Task | Estimated Agent | Priority |
 |----|------|----------------|----------|
-| T13 | Compile check — full solution build verification | DeepSeek/Opus | MEDIUM |
-| T14 | GDScript Dashboard.gd — wire to all new bridge data | Sonnet | MEDIUM |
-| T15 | Audio assets placeholder + AudioManager wiring | GLM | LOW |
-| T16 | Tutorial flow — TutorialSystem ↔ TutorialUI.gd | Sonnet | LOW |
+| T16 | Tutorial flow — TutorialSystem ↔ TutorialUI.gd | Sonnet | MEDIUM |
 | T17 | Multiplayer testing — NetworkManager + lobby | Sonnet | LOW |
+| T18 | Real salmon price data — calibrate O-U market model | Playwright + Sonnet | MEDIUM |
+| T19 | Norwegian aquaculture data scraping (Barentswatch) | Playwright | MEDIUM |
+| T20 | GitHub Issues sync — mirror BOARD.md to GitHub | Opus | LOW |
 
 ---
-*Updated: 2026-03-13 12:35 CET*
+*Updated: 2026-03-13 16:00 CET*
