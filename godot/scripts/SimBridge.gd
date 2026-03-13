@@ -18,6 +18,9 @@ signal day_advanced(day: int, season: String)
 ## Emitted when a KPI crosses an alert threshold.
 signal alert_raised(level: String, message: String)
 
+## Emitted when the player completes a tutorial step.
+signal tutorial_step_completed(step_number: int, title: String, reward_nok: float)
+
 # ── Simulation snapshot (refreshed on each tick) ──────────────────────────────
 
 var current_day: int = 0
@@ -40,6 +43,15 @@ var recent_events: Array[Dictionary] = []
 ## Latest alert messages (cleared when state_updated fires again)
 var active_alerts: Array[Dictionary] = []
 
+# ── Tutorial state ────────────────────────────────────────────────────────────
+
+var tutorial_step_number: int = 1
+var tutorial_step_title: String = ""
+var tutorial_description: String = ""
+var tutorial_hint: String = ""
+var tutorial_is_complete: bool = false
+var tutorial_completed_count: int = 0
+
 # ── Internal ──────────────────────────────────────────────────────────────────
 
 var _game_bridge: Node = null
@@ -53,6 +65,7 @@ func _ready() -> void:
 		_game_bridge.simulation_ticked.connect(_on_simulation_ticked)
 		_game_bridge.game_started.connect(_on_game_started)
 		_game_bridge.game_ended.connect(_on_game_ended)
+		_game_bridge.tutorial_step_completed.connect(_on_tutorial_step_completed)
 		print("SimBridge: connected to GameBridge (C#)")
 	else:
 		push_warning("SimBridge: /root/GameBridge not found — stub mode active")
@@ -72,6 +85,9 @@ func _on_simulation_ticked(day: int) -> void:
 func _on_game_ended(reason: String) -> void:
 	alert_raised.emit("critical", "Game over: " + reason)
 
+func _on_tutorial_step_completed(step_number: int, title: String, reward_nok: float) -> void:
+	tutorial_step_completed.emit(step_number, title, reward_nok)
+
 # ── State refresh ─────────────────────────────────────────────────────────────
 
 func _refresh_state() -> void:
@@ -90,6 +106,14 @@ func _refresh_state() -> void:
 	sustainability_level = _game_bridge.SustainabilityLevel
 	zone_count           = _game_bridge.ZoneCount
 	site_count           = _game_bridge.SiteCount
+
+	# Tutorial state
+	tutorial_step_number    = _game_bridge.TutorialStepNumber
+	tutorial_step_title     = _game_bridge.TutorialStepTitle
+	tutorial_description    = _game_bridge.TutorialDescription
+	tutorial_hint           = _game_bridge.TutorialHint
+	tutorial_is_complete    = _game_bridge.TutorialIsComplete
+	tutorial_completed_count = _game_bridge.TutorialCompletedCount
 
 	# Fetch latest events from C# (returns Array[Dictionary])
 	var raw = _game_bridge.GetRecentEvents(10)

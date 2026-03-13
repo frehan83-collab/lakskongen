@@ -17,6 +17,7 @@ public partial class GameBridge : Node
     [Signal] public delegate void SimulationTickedEventHandler(int day);
     [Signal] public delegate void GameStartedEventHandler();
     [Signal] public delegate void GameEndedEventHandler(string reason);
+    [Signal] public delegate void TutorialStepCompletedEventHandler(int stepNumber, string title, double rewardNok);
 
     // ── Engine reference ──────────────────────────────────────────────────────
 
@@ -50,6 +51,9 @@ public partial class GameBridge : Node
     {
         SimulationEngine.FinanceManager = new FinanceManager(startingCapital);
         SimulationEngine.Initialize();
+        SimulationEngine.Tutorial.OnStepCompleted += step =>
+            EmitSignal(SignalName.TutorialStepCompleted,
+                step.StepNumber, step.Title, (double)step.RewardNok);
         _gameRunning = true;
 
         EmitSignal(SignalName.GameStarted);
@@ -206,6 +210,26 @@ public partial class GameBridge : Node
         }
         return result;
     }
+
+    // ── Tutorial properties for GDScript ─────────────────────────────────────
+
+    /// <summary>Current tutorial step number (1–12). Returns 12 when complete.</summary>
+    public int TutorialStepNumber => SimulationEngine?.Tutorial?.CurrentStepNumber ?? 1;
+
+    /// <summary>Title of the current tutorial step.</summary>
+    public string TutorialStepTitle => SimulationEngine?.Tutorial?.CurrentStep?.Title ?? "";
+
+    /// <summary>Description/objective of the current tutorial step.</summary>
+    public string TutorialDescription => SimulationEngine?.Tutorial?.CurrentStep?.Description ?? "";
+
+    /// <summary>Contextual hint for the current tutorial step.</summary>
+    public string TutorialHint => SimulationEngine?.Tutorial?.CurrentStep?.Hint ?? "";
+
+    /// <summary>True after all 12 tutorial steps are completed.</summary>
+    public bool TutorialIsComplete => SimulationEngine?.Tutorial?.IsComplete ?? false;
+
+    /// <summary>Number of completed tutorial steps (0–12).</summary>
+    public int TutorialCompletedCount => SimulationEngine?.Tutorial?.CompletedCount ?? 0;
 
     // ── Internal ──────────────────────────────────────────────────────────────
 
