@@ -1,195 +1,307 @@
-extends Control
+extends PanelContainer
 
 ## ProductionChainPanel — Anno 1800-style production chain visualization.
-## Shows: Broodstock → Eggs → Fry → Smolt → Sea Fish → Harvest → Processing → Export
-## Each stage: count/quantity, color-coded status (green/yellow/red/gray).
+## Shows the full production lifecycle: Broodstock → Eggs → Fry → Smolt → Sea Fish → Harvest → Processing → Export
+## Each stage displays: current count/quantity, throughput rate, bottleneck indicators.
+## Color-coded: green (flowing), yellow (slow), red (bottleneck), gray (not yet unlocked).
 
-# ── Stage definitions ─────────────────────────────────────────────────────────
+# ── Chain stage data ──────────────────────────────────────────────────────────
 
-const STAGES := [
-	{ "id": "broodstock", "label": "Stamfisk", "stage": "Broodstock", "icon": "🐟", "unit": "stk" },
-	{ "id": "eggs",       "label": "Egg",       "stage": "Egg",        "icon": "🥚", "unit": "stk" },
-	{ "id": "fry",        "label": "Yngel",     "stage": "Fry",        "icon": "🐠", "unit": "stk" },
-	{ "id": "smolt",      "label": "Smolt",     "stage": "Smolt",      "icon": "🐟", "unit": "stk" },
-	{ "id": "sea_fish",   "label": "Sjøfisk",   "stage": "Adult",      "icon": "🐟", "unit": "kg" },
-	{ "id": "harvest",    "label": "Høsting",    "stage": "Harvested",  "icon": "🎣", "unit": "kg" },
-	{ "id": "processing", "label": "Foredling",  "stage": "",           "icon": "🏭", "unit": "kg" },
-	{ "id": "export",     "label": "Eksport",    "stage": "",           "icon": "📦", "unit": "markeder" },
+var _chain_stages: Array[Dictionary] = [
+	{
+		"id": "broodstock",
+		"label": "Stamfisk",
+		"stage": "Broodstock",
+		"unit": "fish",
+		"threshold_green": 100,
+		"threshold_yellow": 50
+	},
+	{
+		"id": "eggs",
+		"label": "Rogn",
+		"stage": "Egg",
+		"unit": "fish",
+		"threshold_green": 10000,
+		"threshold_yellow": 5000
+	},
+	{
+		"id": "fry",
+		"label": "Yngel",
+		"stage": "Fry",
+		"unit": "fish",
+		"threshold_green": 50000,
+		"threshold_yellow": 20000
+	},
+	{
+		"id": "smolt",
+		"label": "Smolt",
+		"stage": "Smolt",
+		"unit": "fish",
+		"threshold_green": 20000,
+		"threshold_yellow": 10000
+	},
+	{
+		"id": "sea_fish",
+		"label": "Sjøfisk",
+		"stage": "Adult",
+		"unit": "kg",
+		"threshold_green": 100000,
+		"threshold_yellow": 50000
+	},
+	{
+		"id": "harvest",
+		"label": "Høsting",
+		"stage": "Harvested",
+		"unit": "kg",
+		"threshold_green": 50000,
+		"threshold_yellow": 20000
+	},
+	{
+		"id": "processing",
+		"label": "Prosessering",
+		"stage": "",  # Special case: processing plant
+		"unit": "kg",
+		"threshold_green": 30000,
+		"threshold_yellow": 10000
+	},
+	{
+		"id": "export",
+		"label": "Eksport",
+		"stage": "",  # Special case: export markets
+		"unit": "markets",
+		"threshold_green": 3,
+		"threshold_yellow": 1
+	}
 ]
 
-# ── Node refs ─────────────────────────────────────────────────────────────────
+# ── UI references ─────────────────────────────────────────────────────────────
 
-var _sim: Node = null
-var _stage_labels: Dictionary = {}  # id -> { value_label, status_label }
-var _container: VBoxContainer = null
+@onready var _chain_container: VBoxContainer = %ChainContainer
 
-# ── Lifecycle ─────────────────────────────────────────────────────────────────
+# ── Godot lifecycle ───────────────────────────────────────────────────────────
 
 func _ready() -> void:
-	if has_node("/root/SimBridge"):
-		_sim = get_node("/root/SimBridge")
-		_sim.state_updated.connect(_on_state_updated)
-	else:
-		push_warning("ProductionChainPanel: SimBridge not found")
-	
-	_build_ui()
-	_refresh()
-	print("ProductionChainPanel: ready")
-
-func _build_ui() -> void:
-	# Find or create container
-	if has_node("ScrollContainer/VBoxContainer"):
-		_container = get_node("ScrollContainer/VBoxContainer")
-	else:
-		var scroll = ScrollContainer.new()
-		scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
-		add_child(scroll)
-		_container = VBoxContainer.new()
-		scroll.add_child(_container)
-	
-	# Title
-	var title = Label.new()
-	title.text = "🔗 Produksjonskjede"
-	title.add_theme_font_size_override("font_size", 20)
-	_container.add_child(title)
-	
-	var subtitle = Label.new()
-	subtitle.text = "Fra egg til eksport"
-	subtitle.add_theme_color_override("font_color", Color.GRAY)
-	_container.add_child(subtitle)
-	
-	var sep = HSeparator.new()
-	_container.add_child(sep)
-	
-	# Build each stage row
-	for i in range(STAGES.size()):
-		var stage = STAGES[i]
-		
-		# Arrow between stages (skip first)
-		if i > 0:
-			var arrow = Label.new()
-			arrow.text = "    ↓"
-			arrow.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
-			_container.add_child(arrow)
-		
-		var row = HBoxContainer.new()
-		row.name = "Stage_%s" % stage["id"]
-		_container.add_child(row)
-		
-		# Icon + label
-		var name_lbl = Label.new()
-		name_lbl.text = "%s %s" % [stage["icon"], stage["label"]]
-		name_lbl.custom_minimum_size.x = 140
-		row.add_child(name_lbl)
-		
-		# Value
-		var value_lbl = Label.new()
-		value_lbl.text = "--"
-		value_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		value_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		row.add_child(value_lbl)
-		
-		# Status indicator
-		var status_lbl = Label.new()
-		status_lbl.text = "●"
-		status_lbl.custom_minimum_size.x = 30
-		status_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		row.add_child(status_lbl)
-		
-		_stage_labels[stage["id"]] = {
-			"value": value_lbl,
-			"status": status_lbl,
-			"name": name_lbl
-		}
-
-# ── Refresh ───────────────────────────────────────────────────────────────────
-
-func _on_state_updated() -> void:
-	_refresh()
-
-func _refresh() -> void:
-	if not _sim:
+	if not has_node("/root/SimBridge"):
+		push_warning("ProductionChainPanel: SimBridge not found — panel inactive")
 		return
 	
-	for stage in STAGES:
-		var sid: String = stage["id"]
-		if not _stage_labels.has(sid):
-			continue
-		
-		var labels: Dictionary = _stage_labels[sid]
-		var value_lbl: Label = labels["value"]
-		var status_lbl: Label = labels["status"]
-		var count: int = 0
-		var biomass: float = 0.0
-		var display_text: String = "--"
-		var status_color: Color = Color.GRAY
-		
-		match sid:
-			"broodstock":
-				count = _sim.get_fish_count_by_stage("Broodstock")
-				display_text = "%s stk" % _format_number(count)
-				status_color = Color.GREEN if count > 0 else Color.GRAY
-			"eggs":
-				count = _sim.get_fish_count_by_stage("Egg")
-				display_text = "%s stk" % _format_number(count)
-				status_color = _flow_color(count, 1000, 10000)
-			"fry":
-				count = _sim.get_fish_count_by_stage("Fry")
-				display_text = "%s stk" % _format_number(count)
-				status_color = _flow_color(count, 500, 5000)
-			"smolt":
-				count = _sim.get_fish_count_by_stage("Smolt")
-				display_text = "%s stk" % _format_number(count)
-				status_color = _flow_color(count, 100, 2000)
-			"sea_fish":
-				count = _sim.get_fish_count_by_stage("Adult")
-				biomass = _sim.get_biomass_by_stage("Adult")
-				display_text = "%s stk (%.1f t)" % [_format_number(count), biomass / 1000.0]
-				status_color = _flow_color(count, 100, 5000)
-			"harvest":
-				count = _sim.get_fish_count_by_stage("Harvested")
-				biomass = _sim.get_biomass_by_stage("Harvested")
-				display_text = "%.1f tonn" % (biomass / 1000.0)
-				status_color = _flow_color(int(biomass), 100, 5000)
-			"processing":
-				if _sim.owns_processing_plant():
-					var throughput: float = _sim.get_processing_throughput_kg()
-					display_text = "%.1f tonn" % (throughput / 1000.0)
-					status_color = Color.GREEN if throughput > 0 else Color.YELLOW
-				else:
-					display_text = "Ikke eid"
-					status_color = Color.GRAY
-			"export":
-				var markets: int = _sim.get_export_market_count()
-				display_text = "%d markeder" % markets
-				status_color = Color.GREEN if markets > 0 else Color.GRAY
-		
-		value_lbl.text = display_text
-		status_lbl.add_theme_color_override("font_color", status_color)
+	SimBridge.state_updated.connect(_on_state_updated)
+	_build_ui()
+	_refresh_display()
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── UI construction ───────────────────────────────────────────────────────────
 
-## Color based on flow: gray (empty), red (bottleneck/low), yellow (moderate), green (flowing)
-func _flow_color(value: int, low_threshold: int, good_threshold: int) -> Color:
-	if value <= 0:
-		return Color.GRAY
-	elif value < low_threshold:
-		return Color.RED
-	elif value < good_threshold:
-		return Color.YELLOW
+func _build_ui() -> void:
+	_chain_container.queue_free()
+	
+	var vbox := VBoxContainer.new()
+	vbox.name = "ChainContainer"
+	vbox.unique_name_in_owner = true
+	add_child(vbox)
+	
+	# Header
+	var header := Label.new()
+	header.text = "Produksjonskjede"
+	header.add_theme_font_size_override("font_size", 20)
+	header.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	vbox.add_child(header)
+	
+	vbox.add_child(_create_separator())
+	
+	# Build each chain stage row
+	for i in _chain_stages.size():
+		var stage_data := _chain_stages[i]
+		var row := _create_stage_row(stage_data)
+		row.name = "Row_" + stage_data.id
+		vbox.add_child(row)
+		
+		# Add arrow between stages (except after last)
+		if i < _chain_stages.size() - 1:
+			var arrow := _create_arrow()
+			vbox.add_child(arrow)
+
+func _create_stage_row(stage_data: Dictionary) -> HBoxContainer:
+	var hbox := HBoxContainer.new()
+	hbox.custom_minimum_size.y = 40
+	
+	# Stage label
+	var label := Label.new()
+	label.text = stage_data.label
+	label.custom_minimum_size.x = 120
+	label.add_theme_font_size_override("font_size", 14)
+	hbox.add_child(label)
+	
+	# Quantity display
+	var quantity_label := Label.new()
+	quantity_label.name = "Quantity"
+	quantity_label.custom_minimum_size.x = 100
+	quantity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	quantity_label.add_theme_font_size_override("font_size", 14)
+	hbox.add_child(quantity_label)
+	
+	# Status indicator (colored box)
+	var status_indicator := ColorRect.new()
+	status_indicator.name = "StatusIndicator"
+	status_indicator.custom_minimum_size = Vector2(20, 20)
+	status_indicator.color = Color.GRAY
+	hbox.add_child(status_indicator)
+	
+	# Throughput/rate label
+	var throughput_label := Label.new()
+	throughput_label.name = "Throughput"
+	throughput_label.custom_minimum_size.x = 150
+	throughput_label.add_theme_font_size_override("font_size", 12)
+	throughput_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	hbox.add_child(throughput_label)
+	
+	return hbox
+
+func _create_arrow() -> CenterContainer:
+	var center := CenterContainer.new()
+	center.custom_minimum_size.y = 20
+	
+	var arrow_label := Label.new()
+	arrow_label.text = "▼"
+	arrow_label.add_theme_font_size_override("font_size", 16)
+	arrow_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	center.add_child(arrow_label)
+	
+	return center
+
+func _create_separator() -> HSeparator:
+	var sep := HSeparator.new()
+	sep.custom_minimum_size.y = 4
+	return sep
+
+# ── Data refresh ──────────────────────────────────────────────────────────────
+
+func _on_state_updated() -> void:
+	_refresh_display()
+
+func _refresh_display() -> void:
+	if not has_node("/root/SimBridge"):
+		return
+	
+	for stage_data in _chain_stages:
+		_update_stage_row(stage_data)
+
+func _update_stage_row(stage_data: Dictionary) -> void:
+	var row_name := "Row_" + stage_data.id
+	if not _chain_container.has_node(row_name):
+		return
+	
+	var row: HBoxContainer = _chain_container.get_node(row_name)
+	var quantity_label: Label = row.get_node("Quantity")
+	var status_indicator: ColorRect = row.get_node("StatusIndicator")
+	var throughput_label: Label = row.get_node("Throughput")
+	
+	var quantity: float = _get_stage_quantity(stage_data)
+	var status_color: Color = _get_status_color(stage_data, quantity)
+	var throughput_text: String = _get_throughput_text(stage_data)
+	
+	# Update quantity
+	if stage_data.unit == "kg":
+		quantity_label.text = SimBridge.format_biomass(quantity)
+	elif stage_data.unit == "markets":
+		quantity_label.text = "%d markets" % int(quantity)
 	else:
-		return Color.GREEN
+		quantity_label.text = SimBridge.format_fish(int(quantity))
+	
+	# Update status color
+	status_indicator.color = status_color
+	
+	# Update throughput
+	throughput_label.text = throughput_text
 
-## Format numbers with thousand separators
-func _format_number(n: int) -> String:
-	var s: String = str(n)
-	if n < 1000:
-		return s
-	var result: String = ""
-	var count: int = 0
-	for i in range(s.length() - 1, -1, -1):
-		if count > 0 and count % 3 == 0:
-			result = " " + result
-		result = s[i] + result
-		count += 1
-	return result
+# ── Data fetching ─────────────────────────────────────────────────────────────
+
+func _get_stage_quantity(stage_data: Dictionary) -> float:
+	match stage_data.id:
+		"broodstock":
+			return float(SimBridge.get_fish_count_by_stage("Broodstock"))
+		"eggs":
+			return float(SimBridge.get_fish_count_by_stage("Egg"))
+		"fry":
+			return float(SimBridge.get_fish_count_by_stage("Fry"))
+		"smolt":
+			return float(SimBridge.get_fish_count_by_stage("Smolt"))
+		"sea_fish":
+			return SimBridge.get_biomass_by_stage("Adult")
+		"harvest":
+			return SimBridge.get_biomass_by_stage("Harvested")
+		"processing":
+			return SimBridge.get_processing_throughput_kg()
+		"export":
+			return float(SimBridge.get_export_market_count())
+	return 0.0
+
+func _get_status_color(stage_data: Dictionary, quantity: float) -> Color:
+	# Gray if not unlocked
+	if not _is_stage_unlocked(stage_data):
+		return Color(0.3, 0.3, 0.3)  # Gray
+	
+	# Green/yellow/red based on thresholds
+	if quantity >= stage_data.threshold_green:
+		return Color(0.2, 0.8, 0.2)  # Green (flowing)
+	elif quantity >= stage_data.threshold_yellow:
+		return Color(0.9, 0.7, 0.1)  # Yellow (slow)
+	else:
+		return Color(0.9, 0.2, 0.1)  # Red (bottleneck)
+
+func _is_stage_unlocked(stage_data: Dictionary) -> bool:
+	match stage_data.id:
+		"broodstock", "eggs", "fry", "smolt", "sea_fish", "harvest":
+			return true  # Always available in base game
+		"processing":
+			return SimBridge.owns_processing_plant()
+		"export":
+			return SimBridge.get_export_market_count() > 0
+	return false
+
+func _get_throughput_text(stage_data: Dictionary) -> String:
+	match stage_data.id:
+		"broodstock":
+			var eggs := SimBridge.get_fish_count_by_stage("Egg")
+			if eggs > 0:
+				return "Produserer rogn"
+			return "Ingen produksjon"
+		"eggs":
+			var fry := SimBridge.get_fish_count_by_stage("Fry")
+			if fry > 0:
+				return "Klekker yngel"
+			return "Venter på klekkking"
+		"fry":
+			var smolt := SimBridge.get_fish_count_by_stage("Smolt")
+			if smolt > 0:
+				return "Smoltproduksjon aktiv"
+			return "Ingen smolt klar"
+		"smolt":
+			var adult_biomass := SimBridge.get_biomass_by_stage("Adult")
+			if adult_biomass > 10000:
+				return "I sjø (vokser)"
+			elif adult_biomass > 0:
+				return "Nylig utsatt"
+			return "Venter på utsett"
+		"sea_fish":
+			var harvested := SimBridge.get_biomass_by_stage("Harvested")
+			if harvested > 0:
+				return "Høsting pågår"
+			return "Vokser i sjøen"
+		"harvest":
+			var throughput := SimBridge.get_processing_throughput_kg()
+			if throughput > 1000:
+				return "Prosesseres: %.0f kg" % throughput
+			return "Venter på prosessering"
+		"processing":
+			if SimBridge.owns_processing_plant():
+				var markets := SimBridge.get_export_market_count()
+				if markets > 0:
+					return "Sender til %d markeder" % markets
+				return "Klar for eksport"
+			return "Ikke bygget"
+		"export":
+			var markets := SimBridge.get_export_market_count()
+			if markets > 0:
+				return "Aktive eksportmarkeder"
+			return "Ingen markeder åpnet"
+	return ""

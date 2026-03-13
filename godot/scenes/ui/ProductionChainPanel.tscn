@@ -1,24 +1,18 @@
-[gd_scene load_steps=2 format=3 uid="uid://cproductionchain"]
+[gd_scene load_steps=2 format=3 uid="uid://bmv8x3y4n5o6p"]
 
-[ext_resource type="Script" path="res://scripts/ui/ProductionChainPanel.gd" id="1_prod"]
+[ext_resource type="Script" path="res://scripts/ui/ProductionChainPanel.gd" id="1_production_chain"]
 
-[node name="ProductionChainPanel" type="Control"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1_prod")
+[node name="ProductionChainPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(400, 500)
+script = ExtResource("1_production_chain")
 
-[node name="ScrollContainer" type="ScrollContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="ScrollContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 2
-size_flags_horizontal = 3
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="ChainContainer" type="VBoxContainer" parent="MarginContainer"]
+unique_name_in_owner = true
+layout_mode = 2
