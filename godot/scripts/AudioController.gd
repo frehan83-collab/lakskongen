@@ -112,6 +112,9 @@ func _on_state_updated() -> void:
 		return
 	_update_bgm(_sim_bridge.audio_seasonal_track)
 	_update_ambient(_sim_bridge.audio_base_track, _sim_bridge.audio_weather_layer)
+	# Weather mapping: C# WeatherState → audio keys (AudioManager.cs):
+	#   Calm → "" (no weather layer), Moderate → "wind", Storm/Severe → "storm"
+	# Base track mapping: context + weather (AudioManager.GetAmbienceProfile)
 
 func _on_alert_triggered(alert_key: String) -> void:
 	_play_alert_sfx(alert_key)
