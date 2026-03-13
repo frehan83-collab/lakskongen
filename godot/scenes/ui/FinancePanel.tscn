@@ -1,0 +1,188 @@
+[gd_scene load_steps=2 format=3 uid="uid://d9wl3o8qz2yp2"]
+
+[ext_resource type="Script" path="res://scripts/ui/FinancePanel.gd" id="1_finance"]
+
+[node name="FinancePanel" type="PanelContainer"]
+custom_minimum_size = Vector2(500, 600)
+offset_right = 500.0
+offset_bottom = 600.0
+script = ExtResource("1_finance")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Header" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "💰 Finance Dashboard"
+
+[node name="SummaryContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BalanceRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SummaryContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BalanceLabel" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/BalanceRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Current Balance:"
+custom_minimum_size = Vector2(200, 0)
+
+[node name="balance_label" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/BalanceRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "-- NOK"
+
+[node name="RevenueRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SummaryContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="RevenueLabel" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/RevenueRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Revenue (Period):"
+custom_minimum_size = Vector2(200, 0)
+
+[node name="revenue_label" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/RevenueRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "-- NOK"
+
+[node name="ExpensesRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SummaryContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ExpensesLabel" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/ExpensesRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Expenses (Period):"
+custom_minimum_size = Vector2(200, 0)
+
+[node name="expenses_label" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/ExpensesRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "-- NOK"
+
+[node name="ProfitRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SummaryContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ProfitLabel" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/ProfitRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Profit (Period):"
+custom_minimum_size = Vector2(200, 0)
+
+[node name="profit_label" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/ProfitRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "-- NOK"
+
+[node name="HSeparator1" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="LoanHeader" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Loan Status"
+
+[node name="LoanContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LoanStatusRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/LoanContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="LoanStatusLabel" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanStatusRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Status:"
+custom_minimum_size = Vector2(200, 0)
+
+[node name="loan_status_label" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanStatusRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "No Active Loan"
+
+[node name="LoanAmountRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/LoanContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="LoanAmountLabel" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanAmountRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Loan Amount:"
+custom_minimum_size = Vector2(200, 0)
+
+[node name="loan_amount_label" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanAmountRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "--"
+
+[node name="LoanInterestRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/LoanContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="LoanInterestLabel" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanInterestRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Interest Rate:"
+custom_minimum_size = Vector2(200, 0)
+
+[node name="loan_interest_label" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanInterestRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "--"
+
+[node name="LoanRemainingRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/LoanContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="LoanRemainingLabel" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanRemainingRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Remaining:"
+custom_minimum_size = Vector2(200, 0)
+
+[node name="loan_remaining_label" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanRemainingRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "--"
+
+[node name="LoanButtonContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="take_loan_button" type="Button" parent="MarginContainer/VBoxContainer/LoanButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Take Loan (5M NOK)"
+
+[node name="repay_loan_button" type="Button" parent="MarginContainer/VBoxContainer/LoanButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+disabled = true
+text = "Repay Loan (1M NOK)"
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HistoryHeader" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Recent Financial History (Last 30 Days)"
+
+[node name="history_container" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
