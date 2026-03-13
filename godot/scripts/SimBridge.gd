@@ -25,6 +25,9 @@ signal tutorial_step_completed(step_number: int, title: String, reward_nok: floa
 ## alertKey: disease_outbreak | market_crash | achievement | harvest | lice_warning
 signal audio_alert_triggered(alert_key: String)
 
+## Emitted when the player unlocks a new achievement.
+signal achievement_unlocked(achievement_name: String, description: String, reward_nok: float, tier: String)
+
 # ── Simulation snapshot (refreshed on each tick) ──────────────────────────────
 
 var current_day: int = 0
@@ -46,6 +49,13 @@ var recent_events: Array[Dictionary] = []
 
 ## Latest alert messages (cleared when state_updated fires again)
 var active_alerts: Array[Dictionary] = []
+
+# ── Achievement state (refreshed on each tick) ────────────────────────────────
+
+var achievement_unlocked_count: int = 0
+var achievement_total_count: int = 0
+var latest_achievement_name: String = ""
+var latest_achievement_description: String = ""
 
 # ── Audio state (refreshed on each tick) ──────────────────────────────────────
 
@@ -91,6 +101,7 @@ func _ready() -> void:
 		_game_bridge.game_ended.connect(_on_game_ended)
 		_game_bridge.tutorial_step_completed.connect(_on_tutorial_step_completed)
 		_game_bridge.audio_alert_triggered.connect(_on_audio_alert_triggered)
+		_game_bridge.achievement_unlocked.connect(_on_achievement_unlocked)
 		print("SimBridge: connected to GameBridge (C#)")
 	else:
 		push_warning("SimBridge: /root/GameBridge not found — stub mode active")
@@ -116,6 +127,12 @@ func _on_tutorial_step_completed(step_number: int, title: String, reward_nok: fl
 func _on_audio_alert_triggered(alert_key: String) -> void:
 	audio_alert_layer = alert_key
 	audio_alert_triggered.emit(alert_key)
+
+func _on_achievement_unlocked(achievement_name: String, description: String, reward_nok: float, tier: String) -> void:
+	latest_achievement_name = achievement_name
+	latest_achievement_description = description
+	achievement_unlocked_count = _game_bridge.AchievementUnlockedCount
+	achievement_unlocked.emit(achievement_name, description, reward_nok, tier)
 
 # ── State refresh ─────────────────────────────────────────────────────────────
 
@@ -152,6 +169,10 @@ func _refresh_state() -> void:
 
 	active_alerts.clear()
 	_check_alerts()
+
+	# Achievement state
+	achievement_unlocked_count = _game_bridge.AchievementUnlockedCount
+	achievement_total_count    = _game_bridge.AchievementTotalCount
 
 	# Audio state
 	audio_base_track     = _game_bridge.AudioBaseTrack

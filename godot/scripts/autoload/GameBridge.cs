@@ -20,6 +20,7 @@ public partial class GameBridge : Node
     [Signal] public delegate void GameEndedEventHandler(string reason);
     [Signal] public delegate void TutorialStepCompletedEventHandler(int stepNumber, string title, double rewardNok);
     [Signal] public delegate void AudioAlertTriggeredEventHandler(string alertKey);
+    [Signal] public delegate void AchievementUnlockedEventHandler(string name, string description, double rewardNok, string tier);
 
     // ── Engine reference ──────────────────────────────────────────────────────
 
@@ -31,6 +32,11 @@ public partial class GameBridge : Node
     private float _timeSpeed = 1.0f;
     private bool _isPaused = false;
     private bool _gameRunning = false;
+
+    // ── Achievement tracking ──────────────────────────────────────────────────
+
+    private string _latestAchievementName = "";
+    private string _latestAchievementDescription = "";
 
     // ── Godot lifecycle ───────────────────────────────────────────────────────
 
@@ -56,6 +62,7 @@ public partial class GameBridge : Node
         SimulationEngine.Tutorial.OnStepCompleted += step =>
             EmitSignal(SignalName.TutorialStepCompleted,
                 step.StepNumber, step.Title, (double)step.RewardNok);
+        SimulationEngine.OnAchievementUnlocked += HandleAchievementUnlocked;
         _gameRunning = true;
 
         EmitSignal(SignalName.GameStarted);
@@ -77,6 +84,7 @@ public partial class GameBridge : Node
         SimulationEngine.Tutorial.OnStepCompleted += step =>
             EmitSignal(SignalName.TutorialStepCompleted,
                 step.StepNumber, step.Title, (double)step.RewardNok);
+        SimulationEngine.OnAchievementUnlocked += HandleAchievementUnlocked;
 
         // Restore day counter and persistent collections
         SimulationEngine.State.Day = snapshot.Day;
@@ -300,6 +308,47 @@ public partial class GameBridge : Node
     /// <summary>Number of completed tutorial steps (0–12).</summary>
     public int TutorialCompletedCount => SimulationEngine?.Tutorial?.CompletedCount ?? 0;
 
+    // ── Achievement properties for GDScript ──────────────────────────────────
+
+    /// <summary>Number of achievements the player has unlocked.</summary>
+    public int AchievementUnlockedCount => SimulationEngine?.Achievements?.UnlockedCount ?? 0;
+
+    /// <summary>Total number of achievements in the game.</summary>
+    public int AchievementTotalCount => SimulationEngine?.Achievements?.TotalCount ?? 0;
+
+    /// <summary>Name of the most recently unlocked achievement (empty if none yet).</summary>
+    public string LatestAchievementName => _latestAchievementName;
+
+    /// <summary>Description of the most recently unlocked achievement.</summary>
+    public string LatestAchievementDescription => _latestAchievementDescription;
+
+    /// <summary>
+    /// Return all achievements as an Array of Dictionaries.
+    /// Keys: "id" (string), "name" (string), "description" (string),
+    ///       "tier" (string), "reward_nok" (double), "unlocked" (bool).
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetAchievementList()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var sys = SimulationEngine?.Achievements;
+        if (sys == null) return result;
+
+        var all = sys.GetUnlocked().Concat(sys.GetLocked());
+        foreach (var a in all)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"]          = a.Id,
+                ["name"]        = a.Name,
+                ["description"] = a.Description,
+                ["tier"]        = a.Tier.ToString(),
+                ["reward_nok"]  = (double)a.RewardNOK,
+                ["unlocked"]    = sys.IsUnlocked(a.Id)
+            });
+        }
+        return result;
+    }
+
     // ── Audio state properties for GDScript ──────────────────────────────────
 
     /// <summary>Primary ambient base track key (calm_sea | storm | wind | harbor | processing_plant).</summary>
@@ -347,6 +396,18 @@ public partial class GameBridge : Node
             GD.PrintErr($"GameBridge tick error: {ex.Message}");
             EndGame($"Simulation error: {ex.Message}");
         }
+    }
+
+    private void HandleAchievementUnlocked(LakskongenSim.Core.Achievement achievement)
+    {
+        _latestAchievementName = achievement.Name;
+        _latestAchievementDescription = achievement.Description;
+        EmitSignal(SignalName.AchievementUnlocked,
+            achievement.Name,
+            achievement.Description,
+            (double)achievement.RewardNOK,
+            achievement.Tier.ToString());
+        GD.Print($"GameBridge: achievement unlocked — {achievement.Name}");
     }
 
     private void CheckGameOverConditions()

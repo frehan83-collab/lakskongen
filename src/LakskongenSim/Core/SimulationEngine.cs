@@ -38,6 +38,7 @@ namespace LakskongenSim.Core
         public TutorialSystem Tutorial { get; private set; }
         public AnalyticsTracker Analytics { get; private set; }
         public AudioManager Audio { get; private set; }
+        public AchievementSystem Achievements { get; private set; }
 
         // ─── Update intervals ───
         private int _lastSustainabilityUpdate = 0;
@@ -47,6 +48,7 @@ namespace LakskongenSim.Core
         public event Action<int>? OnDayAdvanced;
         public event Action<string>? OnEventTriggered;
         public event Action<EventRecord>? OnEventFired;
+        public event Action<Achievement>? OnAchievementUnlocked;
 
         /// <summary>
         /// Initialize all subsystems and wire them together.
@@ -115,6 +117,10 @@ namespace LakskongenSim.Core
 
             // Audio state tracker — pure C#, no Godot; consumed via GameBridge → SimBridge
             Audio = new AudioManager(Weather);
+
+            // Achievement system — initialized after State so conditions have full context
+            Achievements = new AchievementSystem(State);
+            Achievements.OnAchievementUnlocked += a => OnAchievementUnlocked?.Invoke(a);
 
             Console.WriteLine("✅ SimulationEngine initialized — all subsystems wired");
         }
@@ -241,6 +247,12 @@ namespace LakskongenSim.Core
             // Captured last so all subsystem updates are reflected.
             // ═══════════════════════════════════════════
             Analytics?.RecordSnapshot(this);
+
+            // ═══════════════════════════════════════════
+            // PHASE 9: ACHIEVEMENTS
+            // Checked after analytics so all state is current.
+            // ═══════════════════════════════════════════
+            Achievements?.CheckAchievements();
         }
 
         // ─── Sustainability event handlers ───
