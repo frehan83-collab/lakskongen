@@ -3,7 +3,7 @@ extends Control
 ## Dashboard — real-time KPI overview panel.
 ## Reads all data from SimBridge (GDScript autoload) and refreshes
 ## on every state_updated signal.  Sections: Overview, Production,
-## Health, Market, Sustainability, Alerts.
+## Health, Market, Sustainability, Finance, Research, Environment, Alerts.
 
 # ── Overview section ──────────────────────────────────────────────────────────
 @onready var day_label: Label        = _get("Overview/DayRow/DayValue")
@@ -15,6 +15,7 @@ extends Control
 # ── Production section ────────────────────────────────────────────────────────
 @onready var fish_count_label: Label  = _get("Production/FishRow/FishValue")
 @onready var biomass_label: Label     = _get("Production/BiomassRow/BiomassValue")
+@onready var avg_weight_label: Label  = _get("Production/AvgWeightRow/AvgWeightValue")
 @onready var temp_label: Label        = _get("Production/TempRow/TempValue")
 
 # ── Health section ────────────────────────────────────────────────────────────
@@ -25,9 +26,24 @@ extends Control
 @onready var price_label: Label       = _get("Market/PriceRow/PriceValue")
 @onready var avg_price_label: Label   = _get("Market/AvgPriceRow/AvgPriceValue")
 
+# ── Financial section ─────────────────────────────────────────────────────────
+@onready var revenue_label: Label     = _get("Finance/RevenueRow/RevenueValue")
+@onready var expenses_label: Label    = _get("Finance/ExpensesRow/ExpensesValue")
+@onready var profit_label: Label      = _get("Finance/ProfitRow/ProfitValue")
+
 # ── Sustainability section ────────────────────────────────────────────────────
 @onready var sustain_score_label: Label = _get("Sustainability/ScoreRow/ScoreValue")
 @onready var sustain_level_label: Label = _get("Sustainability/LevelRow/LevelValue")
+@onready var certification_label: Label = _get("Sustainability/CertificationRow/CertificationValue")
+@onready var price_mult_label: Label    = _get("Sustainability/PriceMultRow/PriceMultValue")
+
+# ── Research section ──────────────────────────────────────────────────────────
+@onready var research_active_label: Label   = _get("Research/ActiveRow/ActiveValue")
+@onready var research_progress_label: Label = _get("Research/ProgressRow/ProgressValue")
+
+# ── Environment section ───────────────────────────────────────────────────────
+@onready var weather_label: Label     = _get("Environment/WeatherRow/WeatherValue")
+@onready var oxygen_label: Label      = _get("Environment/OxygenRow/OxygenValue")
 
 # ── Alerts section ────────────────────────────────────────────────────────────
 @onready var alerts_container: VBoxContainer = _get("Alerts/AlertsList")
@@ -71,7 +87,10 @@ func _refresh() -> void:
 	_refresh_production()
 	_refresh_health()
 	_refresh_market()
+	_refresh_finance()
 	_refresh_sustainability()
+	_refresh_research()
+	_refresh_environment()
 	_refresh_alerts()
 	_refresh_events()
 
@@ -80,8 +99,15 @@ func _show_no_data() -> void:
 	_set_text(balance_label, "--")
 	_set_text(fish_count_label, "--")
 	_set_text(biomass_label, "--")
+	_set_text(avg_weight_label, "--")
 	_set_text(price_label, "-- NOK/kg")
+	_set_text(revenue_label, "--")
+	_set_text(expenses_label, "--")
+	_set_text(profit_label, "--")
 	_set_text(sustain_score_label, "--")
+	_set_text(research_active_label, "Ingen aktiv")
+	_set_text(weather_label, "--")
+	_set_text(oxygen_label, "--")
 
 # ── Section refreshes ─────────────────────────────────────────────────────────
 
@@ -99,6 +125,16 @@ func _refresh_overview() -> void:
 func _refresh_production() -> void:
 	_set_text(fish_count_label, _sim.format_fish(_sim.fish_count))
 	_set_text(biomass_label, _sim.format_biomass(_sim.fish_biomass_kg))
+	
+	# Calculate and display average weight
+	var avg_weight_kg: float = 0.0
+	if _sim.fish_count > 0:
+		avg_weight_kg = _sim.fish_biomass_kg / float(_sim.fish_count)
+	var avg_weight_g: float = avg_weight_kg * 1000.0
+	if avg_weight_g >= 1000.0:
+		_set_text(avg_weight_label, "%.2f kg" % avg_weight_kg)
+	else:
+		_set_text(avg_weight_label, "%.0f g" % avg_weight_g)
 
 	var temp_text: String = "%.1f°C" % _sim.temperature_c
 	_set_text(temp_label, temp_text)
@@ -148,6 +184,25 @@ func _refresh_market() -> void:
 	else:
 		_set_color(price_label, Color.WHITE)
 
+func _refresh_finance() -> void:
+	var revenue: float = _sim.get_revenue()
+	var expenses: float = _sim.get_expenses()
+	var profit: float = _sim.get_profit()
+	
+	_set_text(revenue_label, _sim.format_nok(revenue))
+	_set_color(revenue_label, Color.GREEN if revenue > 0.0 else Color.WHITE)
+	
+	_set_text(expenses_label, _sim.format_nok(expenses))
+	_set_color(expenses_label, Color.SALMON if expenses > 0.0 else Color.WHITE)
+	
+	_set_text(profit_label, _sim.format_nok(profit))
+	if profit > 0.0:
+		_set_color(profit_label, Color.GREEN)
+	elif profit < 0.0:
+		_set_color(profit_label, Color.RED)
+	else:
+		_set_color(profit_label, Color.WHITE)
+
 func _refresh_sustainability() -> void:
 	var score: int = _sim.sustainability_score
 	var level: String = _sim.sustainability_level
@@ -155,6 +210,80 @@ func _refresh_sustainability() -> void:
 	_set_text(sustain_level_label, _format_level(level))
 	_set_color(sustain_score_label, _sim.sustainability_color(level))
 	_set_color(sustain_level_label, _sim.sustainability_color(level))
+	
+	# Display certification level
+	var cert_level: String = _sim.get_certification_level()
+	_set_text(certification_label, _format_level(cert_level))
+	_set_color(certification_label, _sim.sustainability_color(cert_level))
+	
+	# Display price multiplier from certification
+	var price_mult: float = _sim.get_price_multiplier()
+	var mult_percent: int = int((price_mult - 1.0) * 100.0)
+	if mult_percent > 0:
+		_set_text(price_mult_label, "+%d%%" % mult_percent)
+		_set_color(price_mult_label, Color.GREEN)
+	elif mult_percent < 0:
+		_set_text(price_mult_label, "%d%%" % mult_percent)
+		_set_color(price_mult_label, Color.RED)
+	else:
+		_set_text(price_mult_label, "0%")
+		_set_color(price_mult_label, Color.WHITE)
+
+func _refresh_research() -> void:
+	var active_id: String = _sim.get_active_research_id()
+	
+	if active_id.is_empty():
+		_set_text(research_active_label, "Ingen aktiv")
+		_set_text(research_progress_label, "--")
+		_set_color(research_active_label, Color.GRAY)
+	else:
+		# Get research details
+		var research_nodes: Array[Dictionary] = _sim.get_research_nodes()
+		var active_name: String = active_id
+		var total_days: int = 0
+		
+		for node in research_nodes:
+			if node.get("id", "") == active_id:
+				active_name = node.get("name", active_id)
+				total_days = node.get("research_days", 0)
+				break
+		
+		_set_text(research_active_label, active_name)
+		_set_color(research_active_label, Color.CYAN)
+		
+		var progress: int = _sim.get_research_progress()
+		var remaining: int = _sim.get_research_days_remaining()
+		
+		if total_days > 0:
+			var progress_pct: int = int((float(progress) / float(total_days)) * 100.0)
+			_set_text(research_progress_label, "%d%% (%d/%d dager)" % [progress_pct, progress, total_days])
+		else:
+			_set_text(research_progress_label, "%d dager gjenstår" % remaining)
+		_set_color(research_progress_label, Color.YELLOW)
+
+func _refresh_environment() -> void:
+	# Weather state
+	var weather: String = _sim.audio_weather_state
+	var weather_text: String
+	match weather:
+		"calm":  weather_text = "Rolig ☀"
+		"wind":  weather_text = "Vind 💨"
+		"storm": weather_text = "Storm ⛈"
+		_:       weather_text = "Ukjent"
+	_set_text(weather_label, weather_text)
+	
+	# Color code weather
+	match weather:
+		"calm":  _set_color(weather_label, Color.GREEN)
+		"wind":  _set_color(weather_label, Color.YELLOW)
+		"storm": _set_color(weather_label, Color.RED)
+		_:       _set_color(weather_label, Color.WHITE)
+	
+	# Oxygen level (placeholder - not directly exposed by SimBridge yet)
+	# In a real implementation, this would come from water chemistry data
+	# For now, we'll show a derived value or placeholder
+	_set_text(oxygen_label, "-- mg/L")
+	_set_color(oxygen_label, Color.WHITE)
 
 func _refresh_alerts() -> void:
 	if not alerts_container:
