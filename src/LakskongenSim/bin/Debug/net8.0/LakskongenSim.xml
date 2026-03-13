@@ -562,16 +562,34 @@
             <summary>Baseline growth rate per day (percentage of weight).</summary>
         </member>
         <member name="F:LakskongenSim.Core.GameConstants.VB_Linf_g">
-            <summary>Asymptotic/maximum expected weight (grams).</summary>
+            <summary>Asymptotic/maximum expected weight (grams). Norwegian harvest weight 4-6 kg, asymptote higher.</summary>
         </member>
         <member name="F:LakskongenSim.Core.GameConstants.VB_k_per_day">
-            <summary>Growth coefficient (per day).</summary>
+            <summary>Growth coefficient (per day). Calibrated to reach ~5 kg in 14-18 months at sea (8-14°C).</summary>
         </member>
         <member name="F:LakskongenSim.Core.GameConstants.VB_t0_days">
-            <summary>von Bertalanffy t0 (days).</summary>
+            <summary>von Bertalanffy t0 (days). Offset for smolt stocking at ~80g.</summary>
         </member>
         <member name="F:LakskongenSim.Core.GameConstants.TypicalFCR">
-            <summary>Typical feed conversion ratio (kg feed / kg growth).</summary>
+            <summary>Typical feed conversion ratio (kg feed / kg growth). Norwegian industry average.</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.ProductionCostPerKg">
+            <summary>Production cost per kg (NOK). Norwegian industry average 2024.</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.FeedCostFraction">
+            <summary>Feed cost as fraction of total production cost.</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.SmoltCostPerFish">
+            <summary>Smolt cost per fish (NOK). Standard quality.</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.DelousingCostPerTreatment">
+            <summary>Delousing cost per treatment per pen (NOK).</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.StandardLicenseMAB">
+            <summary>Standard license MAB (tonnes).</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.LicenseValueNOK">
+            <summary>License value (NOK). Recent auction prices.</summary>
         </member>
         <member name="T:LakskongenSim.Core.GameState">
             <summary>
