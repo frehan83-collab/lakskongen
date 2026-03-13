@@ -21,6 +21,10 @@ signal alert_raised(level: String, message: String)
 ## Emitted when the player completes a tutorial step.
 signal tutorial_step_completed(step_number: int, title: String, reward_nok: float)
 
+## Emitted when an audio alert is triggered (one-shot SFX).
+## alertKey: disease_outbreak | market_crash | achievement | harvest | lice_warning
+signal audio_alert_triggered(alert_key: String)
+
 # ── Simulation snapshot (refreshed on each tick) ──────────────────────────────
 
 var current_day: int = 0
@@ -42,6 +46,26 @@ var recent_events: Array[Dictionary] = []
 
 ## Latest alert messages (cleared when state_updated fires again)
 var active_alerts: Array[Dictionary] = []
+
+# ── Audio state (refreshed on each tick) ──────────────────────────────────────
+
+## Primary ambient base track key: calm_sea | storm | wind | harbor | processing_plant
+var audio_base_track: String = "calm_sea"
+
+## Weather overlay layer key: "" | wind | rain | storm
+var audio_weather_layer: String = ""
+
+## Pending one-shot alert key: "" | disease_outbreak | market_crash | achievement | harvest | lice_warning
+var audio_alert_layer: String = ""
+
+## Master audio volume scalar 0–1
+var audio_volume: float = 1.0
+
+## Seasonal background music track name: spring_theme | summer_theme | autumn_theme | winter_theme
+var audio_seasonal_track: String = "main_theme"
+
+## Current weather key (calm | wind | storm) — convenience alias for weather audio routing
+var audio_weather_state: String = "calm"
 
 # ── Tutorial state ────────────────────────────────────────────────────────────
 
@@ -66,6 +90,7 @@ func _ready() -> void:
 		_game_bridge.game_started.connect(_on_game_started)
 		_game_bridge.game_ended.connect(_on_game_ended)
 		_game_bridge.tutorial_step_completed.connect(_on_tutorial_step_completed)
+		_game_bridge.audio_alert_triggered.connect(_on_audio_alert_triggered)
 		print("SimBridge: connected to GameBridge (C#)")
 	else:
 		push_warning("SimBridge: /root/GameBridge not found — stub mode active")
@@ -87,6 +112,10 @@ func _on_game_ended(reason: String) -> void:
 
 func _on_tutorial_step_completed(step_number: int, title: String, reward_nok: float) -> void:
 	tutorial_step_completed.emit(step_number, title, reward_nok)
+
+func _on_audio_alert_triggered(alert_key: String) -> void:
+	audio_alert_layer = alert_key
+	audio_alert_triggered.emit(alert_key)
 
 # ── State refresh ─────────────────────────────────────────────────────────────
 
@@ -124,6 +153,14 @@ func _refresh_state() -> void:
 	active_alerts.clear()
 	_check_alerts()
 
+	# Audio state
+	audio_base_track     = _game_bridge.AudioBaseTrack
+	audio_weather_layer  = _game_bridge.AudioWeatherLayer
+	audio_alert_layer    = _game_bridge.AudioAlertLayer
+	audio_volume         = _game_bridge.AudioVolume
+	audio_seasonal_track = _game_bridge.AudioSeasonalTrack
+	audio_weather_state  = _game_bridge.CurrentWeatherState
+
 	state_updated.emit()
 	day_advanced.emit(current_day, _season_name(current_day))
 
@@ -132,6 +169,7 @@ func _refresh_state() -> void:
 func _check_alerts() -> void:
 	if sea_lice_per_fish > 5.0:
 		_push_alert("critical", "Sea lice CRITICAL: %.1f / fish (limit 0.5)" % sea_lice_per_fish)
+		audio_alert_triggered.emit("lice_warning")
 	elif sea_lice_per_fish > 2.0:
 		_push_alert("warning", "Sea lice elevated: %.1f / fish" % sea_lice_per_fish)
 

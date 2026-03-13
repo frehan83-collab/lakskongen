@@ -295,6 +295,26 @@ public partial class GameBridge : Node
     /// <summary>Number of completed tutorial steps (0–12).</summary>
     public int TutorialCompletedCount => SimulationEngine?.Tutorial?.CompletedCount ?? 0;
 
+    // ── Audio state properties for GDScript ──────────────────────────────────
+
+    /// <summary>Primary ambient base track key (calm_sea | storm | wind | harbor | processing_plant).</summary>
+    public string AudioBaseTrack => SimulationEngine?.Audio?.GetAmbienceProfile().BaseTrack ?? "calm_sea";
+
+    /// <summary>Weather overlay layer key ("" | wind | rain | storm).</summary>
+    public string AudioWeatherLayer => SimulationEngine?.Audio?.GetAmbienceProfile().WeatherLayer ?? "";
+
+    /// <summary>Pending one-shot alert key ("" | disease_outbreak | market_crash | achievement | harvest | lice_warning).</summary>
+    public string AudioAlertLayer => SimulationEngine?.Audio?.ActiveAlert ?? "";
+
+    /// <summary>Master audio volume scalar 0–1.</summary>
+    public float AudioVolume => SimulationEngine?.Audio?.MasterVolume ?? 1.0f;
+
+    /// <summary>Current seasonal music track name (spring_theme | summer_theme | autumn_theme | winter_theme).</summary>
+    public string AudioSeasonalTrack => SimulationEngine?.Audio?.GetSeasonalTrack() ?? "main_theme";
+
+    /// <summary>Current weather state as a lowercase string (calm | wind | storm).</summary>
+    public string CurrentWeatherState => SimulationEngine?.Audio?.CurrentWeatherKey ?? "calm";
+
     // ── Internal ──────────────────────────────────────────────────────────────
 
     private void OnSimulationTick()
@@ -306,6 +326,15 @@ public partial class GameBridge : Node
             SimulationEngine.Advance(1);
             EmitSignal(SignalName.SimulationTicked, SimulationEngine.State.Day);
             EmitSignal(SignalName.GameStateUpdated);
+
+            // Fire audio alert signal if a new alert was queued this tick, then clear it
+            var alertKey = SimulationEngine.Audio?.ActiveAlert ?? "";
+            if (!string.IsNullOrEmpty(alertKey))
+            {
+                EmitSignal(SignalName.AudioAlertTriggered, alertKey);
+                SimulationEngine.Audio?.ClearAlert();
+            }
+
             CheckGameOverConditions();
         }
         catch (Exception ex)
