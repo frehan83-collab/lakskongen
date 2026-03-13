@@ -22,16 +22,24 @@
 ## 🟢 In Progress
 | ID | Task | Agent | Status |
 |----|------|-------|--------|
-| T15 | Audio assets placeholder + AudioManager wiring | DeepSeek | Running (Sprint 5) |
+## ✅ Done
+| ID | Task | Agent | Result |
+|----|------|-------|--------|
+| T15 | Audio assets placeholder + AudioManager wiring | DeepSeek | ✅ AudioController wired, committed |
 
-## 📋 Inbox (Prioritized)
+## 🟢 In Progress (Sprint 6)
+| ID | Task | Agent | Status |
+|----|------|-------|--------|
+| T16 | Tutorial flow — TutorialSystem ↔ TutorialUI.gd | GPT‑4o | Running |
+| T18 | Real salmon price data — calibrate O‑U market model | GPT‑5.4 | Running |
+| T19 | Norwegian aquaculture data scraping (Barentswatch) | GPT‑4o | Running |
+| T20 | GitHub Issues sync — mirror BOARD.md to GitHub | GLM Flash | Running |
+
+## 📋 Inbox (Next)
 | ID | Task | Estimated Agent | Priority |
 |----|------|----------------|----------|
-| T16 | Tutorial flow — TutorialSystem ↔ TutorialUI.gd | Sonnet | MEDIUM |
-| T17 | Multiplayer testing — NetworkManager + lobby | Sonnet | LOW |
-| T18 | Real salmon price data — calibrate O-U market model | Playwright + Sonnet | MEDIUM |
-| T19 | Norwegian aquaculture data scraping (Barentswatch) | Playwright | MEDIUM |
-| T20 | GitHub Issues sync — mirror BOARD.md to GitHub | Opus | LOW |
+| T17 | Multiplayer testing — NetworkManager + lobby | Sonnet (after limit reset) | LOW |
 
 ---
-*Updated: 2026-03-13 16:00 CET*
+*Updated: 2026-03-13 17:10 CET*
+*GPT‑5.4 series is now flagship frontier model, GPT‑4o is current workhorse while Sonnet/Opus are limited.*

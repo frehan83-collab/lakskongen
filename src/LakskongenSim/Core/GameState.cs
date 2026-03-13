@@ -94,6 +94,21 @@ namespace LakskongenSim.Core
         /// <summary>Current certification level based on sustainability score.</summary>
         public CertificationLevel SustainabilityCertification { get; set; }
 
+        /// <summary>Compact normalized external aquaculture data snapshot used for gameplay calibration.</summary>
+        public ExternalAquacultureSnapshot? ExternalAquacultureSnapshot { get; set; }
+
+        /// <summary>External-data analytics summary for UI/reporting surfaces.</summary>
+        public ExternalDataAnalyticsSummary ExternalDataAnalytics { get; set; } = new();
+
+        /// <summary>Latest fish-health warnings derived from BarentsWatch/industry snapshot data.</summary>
+        public List<HealthTrendWarning> ExternalHealthWarnings { get; set; } = new();
+
+        /// <summary>Current dynamic crisis scenario derived from external fish-health pressure.</summary>
+        public HealthCrisisScenario ExternalHealthCrisis { get; set; } = new();
+
+        /// <summary>Compact report for gameplay/UI messaging around external health pressure.</summary>
+        public ExternalHealthAnalyticsReport ExternalHealthAnalytics { get; set; } = new();
+
         /// <summary>IDs of unlocked achievements.</summary>
         public HashSet<string> UnlockedAchievementIds { get; set; } = new();
 

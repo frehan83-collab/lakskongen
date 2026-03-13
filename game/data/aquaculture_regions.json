@@ -1,0 +1,44 @@
+[
+  {
+    "regionId": "PA03",
+    "regionName": "Production Area 3",
+    "biomassUtilization": 0.84,
+    "licePressure": 0.27,
+    "diseasePressure": 1.04,
+    "escapeRisk": 1.0,
+    "environmentalCompliance": 0.97,
+    "temperatureAnomaly": 1.02,
+    "treatmentIntensity": 1.03,
+    "mortalityStress": 1.01,
+    "profitabilitySupport": 1.02,
+    "localityCount": 24
+  },
+  {
+    "regionId": "PA04",
+    "regionName": "Production Area 4",
+    "biomassUtilization": 0.88,
+    "licePressure": 0.31,
+    "diseasePressure": 1.1,
+    "escapeRisk": 1.03,
+    "environmentalCompliance": 0.95,
+    "temperatureAnomaly": 1.04,
+    "treatmentIntensity": 1.08,
+    "mortalityStress": 1.05,
+    "profitabilitySupport": 1.03,
+    "localityCount": 18
+  },
+  {
+    "regionId": "PA06",
+    "regionName": "Production Area 6",
+    "biomassUtilization": 0.79,
+    "licePressure": 0.22,
+    "diseasePressure": 0.96,
+    "escapeRisk": 0.99,
+    "environmentalCompliance": 1.01,
+    "temperatureAnomaly": 0.99,
+    "treatmentIntensity": 0.96,
+    "mortalityStress": 0.97,
+    "profitabilitySupport": 0.99,
+    "localityCount": 20
+  }
+]

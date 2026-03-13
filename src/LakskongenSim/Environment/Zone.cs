@@ -21,6 +21,11 @@ namespace LakskongenSim.Environment
         public double NutrientLevel { get; set; } // mg/L (nitrogen + phosphorus compounds)
         public bool AlgaeBloomActive { get; set; } // true when harmful algal bloom is occurring
         public double JellyfishDensity { get; set; } // count per cubic meter
+        public double ExternalRiskMultiplier { get; set; } = 1.0; // production-area / locality pressure from public data
+        public double ExternalNutrientMultiplier { get; set; } = 1.0; // regional environmental pressure multiplier
+        public double ExternalDiseasePressure { get; set; } = 1.0;
+        public double ExternalTemperatureStress { get; set; } = 1.0;
+        public double ExternalTreatmentIntensity { get; set; } = 1.0;
 
         /// <summary>Parameterless constructor for JSON deserialization.</summary>
         public Zone() : this("") { }
@@ -63,7 +68,7 @@ namespace LakskongenSim.Environment
         private double CalculateDailyNutrientLoad()
         {
             // Estimate: 1 kg fish produces ~0.05 kg N+P per day (depends on FCR and feed composition)
-            double baseNutrientPerKg = 0.05;
+            double baseNutrientPerKg = 0.05 * ExternalNutrientMultiplier;
             return CurrentFishBiomassKg * baseNutrientPerKg / WaterFlowRate; // diluted by water flow
         }
         
@@ -154,6 +159,8 @@ namespace LakskongenSim.Environment
                 double tempPenalty = Math.Max(0.6, 1.0 - tempDeficit * 0.05); // -5% per degree below 8°C
                 penalty *= tempPenalty;
             }
+
+            penalty /= Math.Clamp(ExternalTemperatureStress, 0.85, 1.30);
             
             // Algal bloom penalty (toxins, reduced light, oxygen depletion)
             if (AlgaeBloomActive)
@@ -167,7 +174,10 @@ namespace LakskongenSim.Environment
                 double jellyfishPenalty = Math.Max(0.7, 1.0 - JellyfishDensity * 0.1);
                 penalty *= jellyfishPenalty;
             }
-            
+
+            penalty /= Math.Max(0.75, ExternalRiskMultiplier);
+            penalty /= Math.Clamp(ExternalDiseasePressure, 0.85, 1.40);
+            penalty /= Math.Clamp(1.0 + ((ExternalTreatmentIntensity - 1.0) * 0.10), 0.90, 1.15);
             return Math.Clamp(penalty, 0.0, 1.0);
         }
         

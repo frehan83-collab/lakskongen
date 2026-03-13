@@ -9,6 +9,7 @@ using LakskongenSim.Events;
 using LakskongenSim.Farm;
 using LakskongenSim.Health;
 using LakskongenSim.Sustainability;
+using System.Globalization;
 
 namespace LakskongenSim.Core
 {
@@ -44,6 +45,12 @@ namespace LakskongenSim.Core
         // ─── Update intervals ───
         private int _lastSustainabilityUpdate = 0;
         private const int SUSTAINABILITY_UPDATE_INTERVAL = 7; // Weekly
+
+        // ─── External data calibration ───
+        private AquacultureDataConfig _aquacultureDataConfig = new();
+        private AquacultureGameplayModifiers _aquacultureModifiers = AquacultureGameplayModifiers.Default();
+        private BarentsWatchClientOptions _barentsWatchClientOptions = new();
+        private BarentsWatchFishHealthPipeline? _barentsWatchPipeline;
 
         // ─── Events ───
         public event Action<int>? OnDayAdvanced;
@@ -140,6 +147,10 @@ namespace LakskongenSim.Core
             };
 
             LoadJsonConfigs();
+            LoadAquacultureDataConfig();
+            InitializeBarentsWatchPipeline();
+            LoadExternalAquacultureSnapshot();
+            ApplyExternalAquacultureCalibration();
             Console.WriteLine("✅ SimulationEngine initialized — all subsystems wired");
         }
 
@@ -190,6 +201,186 @@ namespace LakskongenSim.Core
             LoadEncyclopediaEntries(dataPath);
 
             Console.WriteLine("✅ JSON config loading complete");
+        }
+
+        private void LoadAquacultureDataConfig()
+        {
+            try
+            {
+                var candidatePaths = new[]
+                {
+                    Path.Combine("Data", "AquacultureDataConfig.json"),
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "AquacultureDataConfig.json"),
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "Data", "AquacultureDataConfig.json")
+                };
+
+                var configPath = candidatePaths.FirstOrDefault(File.Exists);
+                if (configPath == null)
+                {
+                    Console.WriteLine("⚠️  AquacultureDataConfig.json not found, using external data defaults.");
+                    _aquacultureDataConfig = new AquacultureDataConfig();
+                    return;
+                }
+
+                var json = File.ReadAllText(configPath);
+                _aquacultureDataConfig = JsonSerializer.Deserialize<AquacultureDataConfig>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new AquacultureDataConfig();
+
+                Console.WriteLine($"✓ Loaded aquaculture data config from {Path.GetFullPath(configPath)}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️  Failed to load AquacultureDataConfig.json: {ex.Message}");
+                _aquacultureDataConfig = new AquacultureDataConfig();
+            }
+        }
+
+        private void LoadExternalAquacultureSnapshot()
+        {
+            try
+            {
+                if (_barentsWatchPipeline != null)
+                {
+                    var stored = _barentsWatchPipeline.LoadLatest();
+                    if (stored != null)
+                    {
+                        State.ExternalAquacultureSnapshot = stored.Normalized;
+                        State.ExternalDataAnalytics = stored.Analytics;
+                        State.ExternalHealthWarnings = stored.Warnings ?? new List<HealthTrendWarning>();
+                        State.ExternalHealthCrisis = BarentsWatchHealthCrisisEngine.BuildScenario(stored.Normalized);
+                        State.ExternalHealthAnalytics = BarentsWatchHealthCrisisEngine.BuildReport(stored.Normalized);
+                        Console.WriteLine(string.Format(
+                            CultureInfo.InvariantCulture,
+                            "✓ Loaded BarentsWatch fishhealth snapshot: biomass={0:F2}, lice={1:F2}, risk={2:F2}, warnings={3}",
+                            stored.Normalized.NationalBiomassUtilization,
+                            stored.Normalized.IndustryLicePressure,
+                            stored.Normalized.ProductionAreaRiskIndex,
+                            State.ExternalHealthWarnings.Count));
+                        return;
+                    }
+                }
+
+                var candidatePaths = new[]
+                {
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "..", "game", "data", "aquaculture_snapshot.json"),
+                    Path.Combine("game", "data", "aquaculture_snapshot.json"),
+                    Path.Combine("Data", "aquaculture_snapshot.json")
+                };
+
+                var snapshotPath = candidatePaths.FirstOrDefault(File.Exists);
+                if (snapshotPath == null)
+                {
+                    Console.WriteLine("⚠️  aquaculture_snapshot.json not found, using bundled market/sustainability defaults only.");
+                    return;
+                }
+
+                var json = File.ReadAllText(snapshotPath);
+                State.ExternalAquacultureSnapshot = JsonSerializer.Deserialize<ExternalAquacultureSnapshot>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (State.ExternalAquacultureSnapshot != null)
+                {
+                    State.ExternalDataAnalytics = AquacultureDataIntegration.BuildAnalyticsSummary(State);
+                    State.ExternalHealthWarnings = BarentsWatchHealthCrisisEngine.BuildWarnings(State.ExternalAquacultureSnapshot);
+                    State.ExternalHealthCrisis = BarentsWatchHealthCrisisEngine.BuildScenario(State.ExternalAquacultureSnapshot);
+                    State.ExternalHealthAnalytics = BarentsWatchHealthCrisisEngine.BuildReport(State.ExternalAquacultureSnapshot);
+                    Console.WriteLine(string.Format(
+                        CultureInfo.InvariantCulture,
+                        "✓ Loaded aquaculture snapshot: biomass={0:F2}, lice={1:F2}, risk={2:F2}",
+                        State.ExternalAquacultureSnapshot.NationalBiomassUtilization,
+                        State.ExternalAquacultureSnapshot.IndustryLicePressure,
+                        State.ExternalAquacultureSnapshot.ProductionAreaRiskIndex));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️  Failed to load aquaculture snapshot: {ex.Message}");
+            }
+        }
+
+        private void ApplyExternalAquacultureCalibration()
+        {
+            _aquacultureModifiers = AquacultureCalibrationEngine.Calculate(State, _aquacultureDataConfig);
+            State.ExternalDataAnalytics = AquacultureDataIntegration.BuildAnalyticsSummary(State);
+
+            if (State.ExternalAquacultureSnapshot != null)
+            {
+                State.ExternalHealthWarnings = BarentsWatchHealthCrisisEngine.BuildWarnings(State.ExternalAquacultureSnapshot);
+                State.ExternalHealthCrisis = BarentsWatchHealthCrisisEngine.BuildScenario(State.ExternalAquacultureSnapshot);
+                State.ExternalHealthAnalytics = BarentsWatchHealthCrisisEngine.BuildReport(State.ExternalAquacultureSnapshot);
+            }
+
+            var crisis = State.ExternalHealthCrisis ?? new HealthCrisisScenario();
+
+            SeaLice?.SetExternalPressureMultiplier(_aquacultureModifiers.ZoneRiskMultiplier * crisis.DelousingCostMultiplier / Math.Max(1.0, crisis.GrowthPenaltyMultiplier));
+            IntegratedDisease?.SetExternalDiseasePressure(_aquacultureModifiers.DiseasePressureMultiplier * crisis.MortalityPenaltyMultiplier);
+
+            foreach (var zone in State.Zones)
+            {
+                var regional = AquacultureDataIntegration.GetProfileForZone(State, zone.Id);
+                zone.ExternalRiskMultiplier = Math.Clamp(_aquacultureModifiers.ZoneRiskMultiplier * regional.LicePressure * crisis.EnvironmentalStressMultiplier, 0.85, 1.70);
+                zone.ExternalNutrientMultiplier = Math.Clamp(_aquacultureModifiers.NutrientLoadMultiplier * (2.0 - regional.EnvironmentalCompliance) * crisis.EnvironmentalStressMultiplier, 0.90, 1.55);
+                zone.ExternalDiseasePressure = Math.Clamp(regional.DiseasePressure * crisis.MortalityPenaltyMultiplier, 0.85, 1.90);
+                zone.ExternalTemperatureStress = Math.Clamp(regional.TemperatureAnomaly * crisis.EnvironmentalStressMultiplier, 0.85, 1.45);
+                zone.ExternalTreatmentIntensity = Math.Clamp(regional.TreatmentIntensity * crisis.DelousingCostMultiplier, 0.85, 1.60);
+            }
+
+            State.SustainabilityScore = SustainabilityManager?.CurrentScore ?? State.SustainabilityScore;
+            State.SustainabilityCertification = SustainabilityManager?.CurrentCertification ?? State.SustainabilityCertification;
+        }
+
+        private void InitializeBarentsWatchPipeline()
+        {
+            try
+            {
+                var localSnapshotCandidates = new[]
+                {
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "..", "game", "data", "barentswatch_fishhealth_raw.json"),
+                    Path.Combine("game", "data", "barentswatch_fishhealth_raw.json"),
+                    Path.Combine("Data", "barentswatch_fishhealth_raw.json")
+                };
+
+                _barentsWatchClientOptions = new BarentsWatchClientOptions
+                {
+                    BearerToken = System.Environment.GetEnvironmentVariable("BARENTSWATCH_TOKEN"),
+                    LocalSnapshotPath = localSnapshotCandidates.FirstOrDefault(File.Exists)
+                };
+
+                var snapshotDirectory = Path.Combine(AppContext.BaseDirectory, "Data", "barentswatch-snapshots");
+                var client = new BarentsWatchFishHealthClient(_barentsWatchClientOptions);
+                var repository = new BarentsWatchSnapshotRepository(snapshotDirectory);
+                _barentsWatchPipeline = new BarentsWatchFishHealthPipeline(client, repository);
+
+                if (_barentsWatchClientOptions.HasToken || !string.IsNullOrWhiteSpace(_barentsWatchClientOptions.LocalSnapshotPath))
+                {
+                    try
+                    {
+                        var stored = _barentsWatchPipeline.IngestLatest();
+                        State.ExternalAquacultureSnapshot = stored.Normalized;
+                        State.ExternalDataAnalytics = stored.Analytics;
+                        State.ExternalHealthWarnings = stored.Warnings;
+                        State.ExternalHealthCrisis = BarentsWatchHealthCrisisEngine.BuildScenario(stored.Normalized);
+                        State.ExternalHealthAnalytics = BarentsWatchHealthCrisisEngine.BuildReport(stored.Normalized);
+                        Console.WriteLine($"✓ BarentsWatch Fishhealth pipeline ingested snapshot {stored.Normalized.SnapshotYear}-W{stored.Normalized.SnapshotWeek:D2}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"⚠️  BarentsWatch ingest failed, continuing with persisted/default snapshot: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("⚠️  BarentsWatch token/local raw snapshot missing; pipeline initialized in passive mode.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️  Failed to initialize BarentsWatch pipeline: {ex.Message}");
+            }
         }
 
         private void LoadBalancingConfig(string dataPath)
@@ -560,6 +751,23 @@ namespace LakskongenSim.Core
             // Price simulation runs after events so any shocks registered
             // this day are reflected in today's closing price.
             // ═══════════════════════════════════════════
+            if (_aquacultureModifiers.ProfitabilityAdjustment != 0m)
+            {
+                var supplyFactor = 1.0 - (double)_aquacultureModifiers.ProfitabilityAdjustment;
+                var demandFactor = 1.0 + (double)_aquacultureModifiers.ProfitabilityAdjustment;
+                MarketSimulation.ApplyExternalShock(supplyFactor, demandFactor);
+            }
+
+            if (State.ExternalAquacultureSnapshot != null)
+            {
+                var crisis = State.ExternalHealthCrisis ?? new HealthCrisisScenario();
+                MarketSimulation.ApplyIndustrySignals(
+                    State.ExternalAquacultureSnapshot.NationalBiomassUtilization,
+                    State.ExternalAquacultureSnapshot.DiseasePressureIndex * crisis.MortalityPenaltyMultiplier,
+                    State.ExternalAquacultureSnapshot.MortalityStressIndex * crisis.EnvironmentalStressMultiplier,
+                    State.ExternalAquacultureSnapshot.MarketPriceSupportIndex * crisis.MarketPriceSupportMultiplier);
+            }
+
             MarketSimulation.AdvanceDays(1);
 
             // ═══════════════════════════════════════════
@@ -570,6 +778,8 @@ namespace LakskongenSim.Core
             if (State.Day - _lastSustainabilityUpdate >= SUSTAINABILITY_UPDATE_INTERVAL)
             {
                 SustainabilityManager?.UpdateScore(State);
+                State.SustainabilityScore = SustainabilityManager?.CurrentScore ?? State.SustainabilityScore;
+                State.SustainabilityCertification = SustainabilityManager?.CurrentCertification ?? State.SustainabilityCertification;
                 _lastSustainabilityUpdate = State.Day;
             }
 

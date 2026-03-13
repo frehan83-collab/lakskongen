@@ -1,0 +1,75 @@
+{
+  "retrievedAtUtc": "2026-03-13T12:00:00Z",
+  "year": 2026,
+  "week": 11,
+  "sourceName": "BarentsWatch Fishhealth",
+  "sourceUrl": "offline-sample",
+  "sourceMode": "offline-sample",
+  "productionAreas": [
+    {
+      "regionId": "NO-VL",
+      "regionName": "Vestland",
+      "biomassUtilization": 0.91,
+      "licePerFish": 0.48,
+      "diseaseCasesPer100Sites": 6.5,
+      "mortalityPercent": 4.1,
+      "temperatureDeviationC": 1.4,
+      "treatmentCountPerMonth": 2.6,
+      "localityCount": 28,
+      "escapesReported": 3,
+      "environmentalAlerts": 2
+    },
+    {
+      "regionId": "NO-RG",
+      "regionName": "Rogaland",
+      "biomassUtilization": 0.88,
+      "licePerFish": 0.37,
+      "diseaseCasesPer100Sites": 4.1,
+      "mortalityPercent": 3.0,
+      "temperatureDeviationC": 1.1,
+      "treatmentCountPerMonth": 2.0,
+      "localityCount": 22,
+      "escapesReported": 1,
+      "environmentalAlerts": 1
+    },
+    {
+      "regionId": "NO-TR",
+      "regionName": "Trøndelag",
+      "biomassUtilization": 0.84,
+      "licePerFish": 0.29,
+      "diseaseCasesPer100Sites": 3.5,
+      "mortalityPercent": 2.6,
+      "temperatureDeviationC": 0.7,
+      "treatmentCountPerMonth": 1.5,
+      "localityCount": 31,
+      "escapesReported": 0,
+      "environmentalAlerts": 1
+    },
+    {
+      "regionId": "NO-NL",
+      "regionName": "Nordland",
+      "biomassUtilization": 0.79,
+      "licePerFish": 0.22,
+      "diseaseCasesPer100Sites": 2.4,
+      "mortalityPercent": 2.1,
+      "temperatureDeviationC": 0.5,
+      "treatmentCountPerMonth": 1.1,
+      "localityCount": 35,
+      "escapesReported": 0,
+      "environmentalAlerts": 0
+    },
+    {
+      "regionId": "NO-FM",
+      "regionName": "Finnmark",
+      "biomassUtilization": 0.74,
+      "licePerFish": 0.18,
+      "diseaseCasesPer100Sites": 1.8,
+      "mortalityPercent": 1.9,
+      "temperatureDeviationC": 0.3,
+      "treatmentCountPerMonth": 0.8,
+      "localityCount": 19,
+      "escapesReported": 0,
+      "environmentalAlerts": 0
+    }
+  ]
+}

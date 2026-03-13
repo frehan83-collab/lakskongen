@@ -99,3 +99,4 @@ C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\net8.0\LakskongenSim.Tests.pdb
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\net8.0\LakskongenSim.Tests.genruntimeconfig.cache
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\net8.0\ref\LakskongenSim.Tests.dll
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\net8.0\LakskongenSim.Tests.sourcelink.json

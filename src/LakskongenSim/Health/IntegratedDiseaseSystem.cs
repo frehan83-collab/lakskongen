@@ -30,6 +30,7 @@ namespace LakskongenSim.Health
         private readonly Queue<double> _updateTimes = new Queue<double>();
         private double _averageUpdateTimeMs = 0.0;
         private int _totalUpdates = 0;
+        private double _externalDiseasePressureMultiplier = 1.0;
         
         // Current LOD mode (auto-adjusted based on performance)
         private LODMode _currentMode = LODMode.Auto;
@@ -115,8 +116,8 @@ namespace LakskongenSim.Health
                 foreach (var population in populations.Where(p => p.ZoneId == zone.Id))
                 {
                     double prevalence = _baseSystem.GetPrevalence(population);
-                    double transmissionRate = 0.15;
-                    double recoveryRate = 0.05;
+                    double transmissionRate = 0.15 * _externalDiseasePressureMultiplier;
+                    double recoveryRate = 0.05 / Math.Max(1.0, _externalDiseasePressureMultiplier * 0.5);
                     
                     // Simple SIR update
                     for (int day = 0; day < days; day++)
@@ -251,7 +252,7 @@ namespace LakskongenSim.Health
         /// </summary>
         private void ApplyMortalityBasedOnPrevalence(FishPopulation population, double prevalence, int days)
         {
-            double dailyMortalityRate = 0.002 * prevalence; // 0.2% per day at 100% prevalence
+            double dailyMortalityRate = 0.002 * prevalence * _externalDiseasePressureMultiplier; // 0.2% per day at 100% prevalence
             double survivalRate = Math.Pow(1.0 - dailyMortalityRate, days);
             
             // Apply to cohorts
@@ -269,7 +270,7 @@ namespace LakskongenSim.Health
         /// </summary>
         private void ApplyMinimalMortality(FishPopulation population, double prevalence, int days)
         {
-            double mortalityFraction = prevalence * 0.02 * days; // 2% mortality at 100% prevalence
+            double mortalityFraction = prevalence * 0.02 * days * _externalDiseasePressureMultiplier; // 2% mortality at 100% prevalence
             
             for (int i = 0; i < population.Cohorts.Count; i++)
             {
@@ -334,6 +335,14 @@ namespace LakskongenSim.Health
             }
         }
         
+        /// <summary>
+        /// Calibrates disease pressure from normalized external datasets.
+        /// </summary>
+        public void SetExternalDiseasePressure(double multiplier)
+        {
+            _externalDiseasePressureMultiplier = Math.Clamp(multiplier, 0.75, 1.75);
+        }
+
         /// <summary>
         /// Get current prevalence for a population.
         /// </summary>

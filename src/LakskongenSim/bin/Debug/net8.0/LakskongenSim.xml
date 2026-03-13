@@ -248,6 +248,24 @@
         <member name="P:LakskongenSim.Core.DailySnapshot.MortalityRate">
             <summary>Daily mortality rate as a fraction (0.0–1.0).</summary>
         </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.ExternalLicePressure">
+            <summary>External industry lice pressure index from normalized real-world data.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.ExternalDiseasePressure">
+            <summary>External disease pressure index from normalized real-world data.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.ExternalBiomassUtilization">
+            <summary>External biomass utilization index from normalized real-world data.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.ExternalMarketSupport">
+            <summary>External market support index from normalized real-world data.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.ExternalWarningCount">
+            <summary>Count of active external health warnings.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.ExternalCompositeRisk">
+            <summary>Composite external health risk score.</summary>
+        </member>
         <member name="M:LakskongenSim.Core.DailySnapshot.GetMetric(System.String)">
             <summary>
             Return the value of a named metric. Returns NaN if unknown.
@@ -313,6 +331,27 @@
             Ordinary least-squares slope for a 0-indexed series (x = index, y = value).
             </summary>
         </member>
+        <member name="T:LakskongenSim.Core.AquacultureCalibrationEngine">
+            <summary>
+            Converts normalized Norwegian aquaculture external data into gameplay modifiers.
+            Keeps runtime dependencies small by operating on compact snapshot values.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.RegionalAquacultureProfile">
+            <summary>
+            Compact regional rollup used by dashboards and simulation calibration.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ExternalDataAnalyticsSummary">
+            <summary>
+            Derived external-data analytics suitable for UI and reporting.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.AquacultureDataIntegration">
+            <summary>
+            Helper methods for consuming compact external aquaculture data safely.
+            </summary>
+        </member>
         <member name="T:LakskongenSim.Core.AmbienceProfile">
              <summary>
              Pure C# state tracker for ambient audio. Zero Godot dependencies.
@@ -364,6 +403,62 @@
             <summary>
             Returns the background music track name for the current season.
             Used by AudioController.gd to select which BGM to crossfade to.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchClientOptions">
+            <summary>
+            Secure client configuration for BarentsWatch Fishhealth API access.
+            Supports bearer-token auth and an offline/local snapshot mode for deterministic testing.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchFishHealthRawSnapshot">
+            <summary>
+            Raw/transport payload from Fishhealth-like sources before normalization into gameplay-friendly indexes.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchStoredSnapshot">
+            <summary>
+            File-persisted wrapper used by the data pipeline.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.HealthTrendWarning">
+            <summary>
+            In-game warning produced from external health trend analysis.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.HealthCrisisScenario">
+            <summary>
+            Crisis modifiers derived from BarentsWatch-aligned health signals.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ExternalHealthAnalyticsReport">
+            <summary>
+            Compact report for dashboards/UI/gameplay.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchFishHealthClient">
+            <summary>
+            Minimal secure client for fetching Fishhealth payloads from BarentsWatch or local fallback files.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchFishHealthNormalizer">
+            <summary>
+            Converts BarentsWatch raw values into Lakskongen normalized health/environment signals.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchSnapshotRepository">
+            <summary>
+            Persist/read normalized BarentsWatch snapshots for reproducible gameplay and testing.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchHealthCrisisEngine">
+            <summary>
+            Warning/crisis logic mapped from normalized health data to gameplay-readable outputs.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchFishHealthPipeline">
+            <summary>
+            End-to-end data pipeline: fetch → normalize → analyze → persist.
             </summary>
         </member>
         <member name="T:LakskongenSim.Core.DataExporter">
@@ -562,6 +657,21 @@
         </member>
         <member name="P:LakskongenSim.Core.GameState.SustainabilityCertification">
             <summary>Current certification level based on sustainability score.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ExternalAquacultureSnapshot">
+            <summary>Compact normalized external aquaculture data snapshot used for gameplay calibration.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ExternalDataAnalytics">
+            <summary>External-data analytics summary for UI/reporting surfaces.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ExternalHealthWarnings">
+            <summary>Latest fish-health warnings derived from BarentsWatch/industry snapshot data.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ExternalHealthCrisis">
+            <summary>Current dynamic crisis scenario derived from external fish-health pressure.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ExternalHealthAnalytics">
+            <summary>Compact report for gameplay/UI messaging around external health pressure.</summary>
         </member>
         <member name="P:LakskongenSim.Core.GameState.UnlockedAchievementIds">
             <summary>IDs of unlocked achievements.</summary>
@@ -1956,6 +2066,11 @@
             Set LOD mode manually (for debugging or user preference).
             </summary>
         </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.SetExternalDiseasePressure(System.Double)">
+            <summary>
+            Calibrates disease pressure from normalized external datasets.
+            </summary>
+        </member>
         <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.GetPrevalence(LakskongenSim.Biology.FishPopulation)">
             <summary>
             Get current prevalence for a population.
@@ -1980,6 +2095,9 @@
             <summary>
             Simplified sea lice model that tracks average lice per fish and affects welfare.
             </summary>
+        </member>
+        <member name="P:LakskongenSim.Health.SeaLiceModel.ExternalPressureMultiplier">
+            <summary>External multiplier from real-world lice pressure snapshots.</summary>
         </member>
         <member name="T:LakskongenSim.Health.StochasticDiseaseEngine">
             <summary>
@@ -2106,41 +2224,43 @@
             Represents exports and access to international markets.
             </summary>
         </member>
+        <member name="T:LakskongenSim.Market.HistoricalPrice">
+            <summary>
+            Historical weekly salmon spot prices used for market model calibration.
+            Values represent Norwegian salmon spot/export benchmarks in NOK/kg.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.HistoricalPrice.#ctor(System.String,System.Decimal,System.Nullable{System.Int32},System.Nullable{System.Int32})">
+            <summary>
+            Historical weekly salmon spot prices used for market model calibration.
+            Values represent Norwegian salmon spot/export benchmarks in NOK/kg.
+            </summary>
+        </member>
         <member name="T:LakskongenSim.Market.MarketSimulation">
             <summary>
             Realistic salmon market price simulation based on Norwegian industry dynamics.
-            Models: seasonal patterns, mean-reversion, supply/demand shocks, Nasdaq Salmon Index correlation.
-            Base price ~70 NOK/kg (2024-2026 range: 50-110 NOK/kg).
+            Models: seasonal patterns, calibrated Ornstein-Uhlenbeck mean reversion,
+            supply/demand shocks, and historical Norwegian spot-price anchors.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketSimulation.Initialize">
+            <summary>
+            Load historical price anchors and initialize the O-U model with calibrated parameters.
+            Safe to call multiple times.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketSimulation.CalibrateOUParameters">
+            <summary>
+            Calibrate O-U parameters from the bundled markdown research file.
+            The calibration is intentionally conservative: observed data sets the center and scale,
+            while gameplay clamps keep output inside realistic historical salmon ranges.
             </summary>
         </member>
         <member name="M:LakskongenSim.Market.MarketSimulation.AdvanceDays(System.Int32)">
             <summary>
-            Advance market simulation by given days.
-            Uses Ornstein-Uhlenbeck mean-reverting process with seasonal overlay.
+            Advance market simulation by a number of days.
+            Uses a daily-discretized Ornstein-Uhlenbeck process with seasonal Norwegian demand overlays.
             </summary>
-        </member>
-        <member name="M:LakskongenSim.Market.MarketSimulation.TriggerMarketShock">
-            <summary>
-            Trigger a market shock event (supply disruption, demand spike, etc.)
-            </summary>
-        </member>
-        <member name="M:LakskongenSim.Market.MarketSimulation.ApplyExternalShock(System.Double,System.Double)">
-            <summary>
-            Apply an external supply or demand shock from a storyteller event.
-            supplyFactor &lt; 1.0 tightens supply (prices rise), &gt; 1.0 increases supply (prices fall).
-            demandFactor &gt; 1.0 increases demand (prices rise), &lt; 1.0 drops demand (prices fall).
-            </summary>
-        </member>
-        <member name="M:LakskongenSim.Market.MarketSimulation.UpdateCertificationLevel(LakskongenSim.Sustainability.CertificationLevel,System.Decimal)">
-            <summary>
-            Update certification level and market access.
-            </summary>
-        </member>
-        <member name="M:LakskongenSim.Market.MarketSimulation.GetPriceHistory">
-            <summary>Get price history for charting.</summary>
-        </member>
-        <member name="M:LakskongenSim.Market.MarketSimulation.GetStatus">
-            <summary>Get current market status snapshot.</summary>
         </member>
         <member name="T:LakskongenSim.Market.MarketStatus">
             <summary>Market status snapshot for UI display.</summary>

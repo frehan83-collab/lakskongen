@@ -10,3 +10,4 @@ C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim\obj\Debug\net8.0
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim\obj\Debug\net8.0\refint\LakskongenSim.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim\obj\Debug\net8.0\LakskongenSim.pdb
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim\obj\Debug\net8.0\ref\LakskongenSim.dll
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim\obj\Debug\net8.0\LakskongenSim.sourcelink.json

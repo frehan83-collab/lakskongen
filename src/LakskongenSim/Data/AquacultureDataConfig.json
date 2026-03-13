@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "Lakskongen Aquaculture Data Integration Configuration",
+  "version": "1.0.0",
+  "description": "Configuration for Norwegian aquaculture external data ingestion and gameplay calibration.",
+  "sources": {
+    "barentsWatchFishHealthApi": {
+      "baseUrl": "https://www.barentswatch.no/bwapi",
+      "documentation": "https://developer.barentswatch.no/docs/fishhealth",
+      "openApiUi": "https://www.barentswatch.no/bwapi/openapi/index.html?urls.primaryName=Fishhealth%20API",
+      "requiresAuth": true,
+      "license": "NLOD unless endpoint documentation specifies otherwise",
+      "creditText": "Data delivered by BarentsWatch"
+    },
+    "ssbAquaculture": {
+      "baseUrl": "https://www.ssb.no/en/jord-skog-jakt-og-fiskeri/statistikker/fiskeoppdrett",
+      "statbankTableHint": "annual aquaculture / biomass / production tables",
+      "requiresAuth": false,
+      "license": "SSB public statistics"
+    },
+    "ssbSalmonExport": {
+      "baseUrl": "https://www.ssb.no/en/utenriksokonomi/utenrikshandel/statistikk/eksport-av-laks",
+      "statbankTable": "03024",
+      "requiresAuth": false,
+      "license": "SSB public statistics"
+    }
+  },
+  "refreshPolicy": {
+    "fishHealthHours": 24,
+    "municipalityStatsDays": 30,
+    "marketPricesDays": 7,
+    "fallbackToBundledDefaults": true
+  },
+  "calibration": {
+    "biomassUtilization": {
+      "nationalMabUtilizationNeutral": 0.82,
+      "highUtilizationThreshold": 0.9,
+      "lowUtilizationThreshold": 0.7,
+      "profitabilityAdjustmentAtHigh": 0.04,
+      "profitabilityAdjustmentAtLow": -0.03
+    },
+    "licePressure": {
+      "greenThreshold": 0.2,
+      "yellowThreshold": 0.35,
+      "redThreshold": 0.5,
+      "growthPenaltyGreen": 0.0,
+      "growthPenaltyYellow": 0.05,
+      "growthPenaltyRed": 0.12,
+      "mortalityPenaltyYellow": 0.01,
+      "mortalityPenaltyRed": 0.03,
+      "delousingCostMultiplierYellow": 1.15,
+      "delousingCostMultiplierRed": 1.35
+    },
+    "zoneExposure": {
+      "productionAreaRiskMultiplierMin": 0.9,
+      "productionAreaRiskMultiplierMax": 1.25,
+      "nutrientMultiplierMin": 0.95,
+      "nutrientMultiplierMax": 1.2
+    },
+    "industryProductivity": {
+      "feedSalesVolumeIndexNeutral": 1.0,
+      "feedSalesIndexHigh": 1.08,
+      "feedSalesIndexLow": 0.94,
+      "fcrAdjustmentHighEfficiency": -0.03,
+      "fcrAdjustmentLowEfficiency": 0.04
+    }
+  },
+  "compliance": {
+    "storeRawPersonalData": false,
+    "retainApiResponsesDays": 30,
+    "requireSourceAttribution": true,
+    "highTrafficNotifyProvider": true,
+    "notes": [
+      "BarentsWatch open data requires authentication and attribution.",
+      "Do not alter source data semantics when presenting licensed public data.",
+      "Prefer storing derived aggregates for gameplay rather than raw records long-term."
+    ]
+  }
+}

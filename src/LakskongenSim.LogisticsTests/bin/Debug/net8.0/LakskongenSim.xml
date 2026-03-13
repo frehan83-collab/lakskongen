@@ -313,6 +313,12 @@
             Ordinary least-squares slope for a 0-indexed series (x = index, y = value).
             </summary>
         </member>
+        <member name="T:LakskongenSim.Core.AquacultureCalibrationEngine">
+            <summary>
+            Converts normalized Norwegian aquaculture external data into gameplay modifiers.
+            Keeps runtime dependencies small by operating on compact snapshot values.
+            </summary>
+        </member>
         <member name="T:LakskongenSim.Core.AmbienceProfile">
              <summary>
              Pure C# state tracker for ambient audio. Zero Godot dependencies.
@@ -562,6 +568,9 @@
         </member>
         <member name="P:LakskongenSim.Core.GameState.SustainabilityCertification">
             <summary>Current certification level based on sustainability score.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ExternalAquacultureSnapshot">
+            <summary>Compact normalized external aquaculture data snapshot used for gameplay calibration.</summary>
         </member>
         <member name="P:LakskongenSim.Core.GameState.UnlockedAchievementIds">
             <summary>IDs of unlocked achievements.</summary>
@@ -891,8 +900,12 @@
             Serialize <paramref name="state"/> to &lt;saveName&gt;.json.
             The existing file is rotated into backup slots before being overwritten.
             All public properties in GameState are automatically serialized, including:
+            - Analytics (DailySnapshots, ProcessingSnapshots)
+            - Events (EventLog)
             - Research (UnlockedResearchIds, ActiveResearchId, ResearchProgress)
-            - Achievements (ExportMarkets, AcquisitionCount, UnlockedAchievementIds, etc.)
+            - Markets (ExportMarkets, ContractActive)
+            - Expansion (AcquisitionCount)
+            - Achievements (UnlockedAchievementIds)
             - Sustainability (SustainabilityScore, SustainabilityCertification, FeedSustainabilityRating)
             - Scenarios (ActiveScenarioId, ScenarioIsWon, ScenarioIsLost, ScenarioLossReason, ScenarioStartDay)
             - Tutorial (TutorialCurrentStepIndex, CompletedTutorialStepIds)
@@ -1977,6 +1990,9 @@
             Simplified sea lice model that tracks average lice per fish and affects welfare.
             </summary>
         </member>
+        <member name="P:LakskongenSim.Health.SeaLiceModel.ExternalPressureMultiplier">
+            <summary>External multiplier from real-world lice pressure snapshots.</summary>
+        </member>
         <member name="T:LakskongenSim.Health.StochasticDiseaseEngine">
             <summary>
             Stochastic disease engine with multi‑vector transmission, resistance evolution,
@@ -2102,41 +2118,43 @@
             Represents exports and access to international markets.
             </summary>
         </member>
+        <member name="T:LakskongenSim.Market.HistoricalPrice">
+            <summary>
+            Historical weekly salmon spot prices used for market model calibration.
+            Values represent Norwegian salmon spot/export benchmarks in NOK/kg.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.HistoricalPrice.#ctor(System.String,System.Decimal,System.Nullable{System.Int32},System.Nullable{System.Int32})">
+            <summary>
+            Historical weekly salmon spot prices used for market model calibration.
+            Values represent Norwegian salmon spot/export benchmarks in NOK/kg.
+            </summary>
+        </member>
         <member name="T:LakskongenSim.Market.MarketSimulation">
             <summary>
             Realistic salmon market price simulation based on Norwegian industry dynamics.
-            Models: seasonal patterns, mean-reversion, supply/demand shocks, Nasdaq Salmon Index correlation.
-            Base price ~70 NOK/kg (2024-2026 range: 50-110 NOK/kg).
+            Models: seasonal patterns, calibrated Ornstein-Uhlenbeck mean reversion,
+            supply/demand shocks, and historical Norwegian spot-price anchors.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketSimulation.Initialize">
+            <summary>
+            Load historical price anchors and initialize the O-U model with calibrated parameters.
+            Safe to call multiple times.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketSimulation.CalibrateOUParameters">
+            <summary>
+            Calibrate O-U parameters from the bundled markdown research file.
+            The calibration is intentionally conservative: observed data sets the center and scale,
+            while gameplay clamps keep output inside realistic historical salmon ranges.
             </summary>
         </member>
         <member name="M:LakskongenSim.Market.MarketSimulation.AdvanceDays(System.Int32)">
             <summary>
-            Advance market simulation by given days.
-            Uses Ornstein-Uhlenbeck mean-reverting process with seasonal overlay.
+            Advance market simulation by a number of days.
+            Uses a daily-discretized Ornstein-Uhlenbeck process with seasonal Norwegian demand overlays.
             </summary>
-        </member>
-        <member name="M:LakskongenSim.Market.MarketSimulation.TriggerMarketShock">
-            <summary>
-            Trigger a market shock event (supply disruption, demand spike, etc.)
-            </summary>
-        </member>
-        <member name="M:LakskongenSim.Market.MarketSimulation.ApplyExternalShock(System.Double,System.Double)">
-            <summary>
-            Apply an external supply or demand shock from a storyteller event.
-            supplyFactor &lt; 1.0 tightens supply (prices rise), &gt; 1.0 increases supply (prices fall).
-            demandFactor &gt; 1.0 increases demand (prices rise), &lt; 1.0 drops demand (prices fall).
-            </summary>
-        </member>
-        <member name="M:LakskongenSim.Market.MarketSimulation.UpdateCertificationLevel(LakskongenSim.Sustainability.CertificationLevel,System.Decimal)">
-            <summary>
-            Update certification level and market access.
-            </summary>
-        </member>
-        <member name="M:LakskongenSim.Market.MarketSimulation.GetPriceHistory">
-            <summary>Get price history for charting.</summary>
-        </member>
-        <member name="M:LakskongenSim.Market.MarketSimulation.GetStatus">
-            <summary>Get current market status snapshot.</summary>
         </member>
         <member name="T:LakskongenSim.Market.MarketStatus">
             <summary>Market status snapshot for UI display.</summary>

@@ -20,6 +20,12 @@ namespace LakskongenSim.Core
         public const string LiceCount       = "lice_per_fish";
         public const string SustainabilityScore = "sustainability_score";
         public const string MortalityRate   = "mortality_rate";
+        public const string ExternalLicePressure = "external_lice_pressure";
+        public const string ExternalDiseasePressure = "external_disease_pressure";
+        public const string ExternalBiomassUtilization = "external_biomass_utilization";
+        public const string ExternalMarketSupport = "external_market_support";
+        public const string ExternalWarningCount = "external_warning_count";
+        public const string ExternalCompositeRisk = "external_composite_risk";
     }
 
     /// <summary>
@@ -61,6 +67,24 @@ namespace LakskongenSim.Core
         /// <summary>Daily mortality rate as a fraction (0.0–1.0).</summary>
         public double MortalityRate { get; set; }
 
+        /// <summary>External industry lice pressure index from normalized real-world data.</summary>
+        public double ExternalLicePressure { get; set; }
+
+        /// <summary>External disease pressure index from normalized real-world data.</summary>
+        public double ExternalDiseasePressure { get; set; }
+
+        /// <summary>External biomass utilization index from normalized real-world data.</summary>
+        public double ExternalBiomassUtilization { get; set; }
+
+        /// <summary>External market support index from normalized real-world data.</summary>
+        public double ExternalMarketSupport { get; set; }
+
+        /// <summary>Count of active external health warnings.</summary>
+        public int ExternalWarningCount { get; set; }
+
+        /// <summary>Composite external health risk score.</summary>
+        public double ExternalCompositeRisk { get; set; }
+
         /// <summary>
         /// Return the value of a named metric. Returns NaN if unknown.
         /// </summary>
@@ -76,6 +100,12 @@ namespace LakskongenSim.Core
             AnalyticsMetric.LiceCount           => LicePerFish,
             AnalyticsMetric.SustainabilityScore => SustainabilityScore,
             AnalyticsMetric.MortalityRate       => MortalityRate,
+            AnalyticsMetric.ExternalLicePressure => ExternalLicePressure,
+            AnalyticsMetric.ExternalDiseasePressure => ExternalDiseasePressure,
+            AnalyticsMetric.ExternalBiomassUtilization => ExternalBiomassUtilization,
+            AnalyticsMetric.ExternalMarketSupport => ExternalMarketSupport,
+            AnalyticsMetric.ExternalWarningCount => ExternalWarningCount,
+            AnalyticsMetric.ExternalCompositeRisk => ExternalCompositeRisk,
             _                                   => double.NaN
         };
     }
@@ -141,6 +171,9 @@ namespace LakskongenSim.Core
                     mortalityRate = (double)(prevCount - fishCount) / prevCount;
             }
 
+            var external = state.ExternalAquacultureSnapshot;
+            var externalReport = state.ExternalHealthAnalytics ?? new ExternalHealthAnalyticsReport();
+
             var snap = new DailySnapshot
             {
                 Day                = state.Day,
@@ -153,7 +186,13 @@ namespace LakskongenSim.Core
                 FCR                = engine.Feed?.CurrentFCR ?? 1.15,
                 LicePerFish        = engine.SeaLice?.AverageLicePerFish ?? 0.0,
                 SustainabilityScore = engine.SustainabilityManager?.CurrentScore ?? 0,
-                MortalityRate      = mortalityRate
+                MortalityRate      = mortalityRate,
+                ExternalLicePressure = external?.IndustryLicePressure ?? 0.0,
+                ExternalDiseasePressure = external?.DiseasePressureIndex ?? 0.0,
+                ExternalBiomassUtilization = external?.NationalBiomassUtilization ?? 0.0,
+                ExternalMarketSupport = external?.MarketPriceSupportIndex ?? 0.0,
+                ExternalWarningCount = state.ExternalHealthWarnings?.Count ?? 0,
+                ExternalCompositeRisk = externalReport.CompositeRiskScore
             };
 
             _snapshots.Add(snap);
