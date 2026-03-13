@@ -6,8 +6,8 @@ namespace LakskongenSim.Logistics
         public double LiveCapacityKg { get; }
         public double PortAccessScore { get; }
 
-        public Wellboat(string id, double liveCapacityKg, double speedKmPerH, double costPerKm, double portAccessScore = 1.0)
-            : base(id, speedKmPerH, costPerKm)
+        public Wellboat(string id, double liveCapacityKg, double speedKmPerH, double costPerKm, double portAccessScore = 1.0, FuelType fuelType = FuelType.Diesel)
+            : base(id, speedKmPerH, costPerKm, fuelType)
         {
             LiveCapacityKg = liveCapacityKg;
             PortAccessScore = portAccessScore;

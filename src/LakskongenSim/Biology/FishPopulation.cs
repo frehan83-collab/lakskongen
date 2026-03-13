@@ -29,6 +29,9 @@ namespace LakskongenSim.Biology
         /// <summary>Treatment intensity (0.0-1.0) from last treatment.</summary>
         public double TreatmentIntensity { get; set; }
 
+        /// <summary>Sea lice load (average lice per fish) for this population.</summary>
+        public double SeaLiceLoad { get; set; } = 0.3;
+
         /// <summary>Growth penalty multiplier from disease resistance fitness cost. Serialized for save/load.</summary>
         public double GrowthPenalty { get => _growthPenalty; set => _growthPenalty = value; }
         private double _growthPenalty = 0.0;

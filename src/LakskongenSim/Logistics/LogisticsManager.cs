@@ -88,10 +88,9 @@ namespace LakskongenSim.Logistics
                 if (vehicle == null) continue;
                 totalVehicles++;
 
-                // Check for electric/hybrid vehicles (future property, defaulting to diesel)
-                // In future: add vehicle.FuelType property
-                // For now: assume all diesel (0 points)
-                // if (vehicle.IsElectric || vehicle.IsHybrid) electricCount++;
+                // Check for electric/hybrid vehicles
+                if (vehicle.FuelType == FuelType.Electric || vehicle.FuelType == FuelType.Hybrid)
+                    electricCount++;
             }
 
             if (totalVehicles > 0)

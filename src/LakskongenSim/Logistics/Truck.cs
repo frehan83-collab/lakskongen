@@ -5,8 +5,8 @@ namespace LakskongenSim.Logistics
         public double CapacityKg { get; }
         public double FixedCostPerTrip { get; }
 
-        public Truck(string id, double capacityKg, double speedKmPerH, double costPerKm, double fixedCostPerTrip = 0)
-            : base(id, speedKmPerH, costPerKm)
+        public Truck(string id, double capacityKg, double speedKmPerH, double costPerKm, double fixedCostPerTrip = 0, FuelType fuelType = FuelType.Diesel)
+            : base(id, speedKmPerH, costPerKm, fuelType)
         {
             CapacityKg = capacityKg;
             FixedCostPerTrip = fixedCostPerTrip;

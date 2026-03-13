@@ -165,21 +165,19 @@ namespace LakskongenSim.Sustainability
             // Bonus: +5 pts if using mechanical delousing (tracked via state metadata)
 
             var totalFish = 0;
+            var totalLice = 0.0;
 
             foreach (var pop in state.Populations)
             {
                 var fishCount = pop.Cohorts.Sum(c => c.Count);
                 totalFish += fishCount;
-                // Assume sea lice data is tracked per population (future integration)
-                // For now, use placeholder - will integrate with SeaLiceModel
-                // totalLice += fishCount * pop.LicePerFish;
+                totalLice += fishCount * pop.SeaLiceLoad;
             }
 
             if (totalFish == 0) return WEIGHT_SEA_LICE; // No fish = perfect score (edge case)
 
-            // Placeholder calculation - INTEGRATION POINT with Health/SeaLiceModel.cs
-            // TODO: Access actual lice count from SeaLiceModel.AverageLicePerFish
-            var avgLicePerFish = 0.3; // Placeholder
+            // Calculate weighted average lice per fish
+            var avgLicePerFish = totalLice / totalFish;
 
             int score;
             if (avgLicePerFish <= 0.2)
@@ -190,8 +188,14 @@ namespace LakskongenSim.Sustainability
                 score = 0;
 
             // Bonus for mechanical delousing (no chemicals)
-            // TODO: Check if last delousing method was mechanical
-            // if (state.UsedMechanicalDelousing) score = Math.Min(WEIGHT_SEA_LICE + 5, WEIGHT_SEA_LICE);
+            // Check EventLog for recent mechanical delousing events in last 365 days
+            var recentMechanicalDelousing = state.EventLog.Any(e => 
+                e.Id.Contains("mechanical", StringComparison.OrdinalIgnoreCase) && 
+                e.Id.Contains("delous", StringComparison.OrdinalIgnoreCase) &&
+                e.Day >= state.Day - 365);
+            
+            if (recentMechanicalDelousing) 
+                score = Math.Min(score + 5, WEIGHT_SEA_LICE);
 
             return Math.Clamp(score, 0, WEIGHT_SEA_LICE);
         }
@@ -201,12 +205,16 @@ namespace LakskongenSim.Sustainability
             // Zero escapes/year = 20 pts, 1-10 = 10 pts, >10 = 0 pts
             // Bonus: +5 pts for closed containment systems
 
-            // INTEGRATION POINT: SeaSite should track escape events
-            var totalEscapes = 0;
+            // Count escape events from EventLog in last 365 days
+            var totalEscapes = state.EventLog
+                .Where(e => e.Id.Contains("escape", StringComparison.OrdinalIgnoreCase) && 
+                           e.Day >= state.Day - 365)
+                .Count();
+
+            // Also add tracked escapes from SeaSites
             foreach (var site in state.SeaSites)
             {
-                // TODO: Access site.EscapeCount (add to SeaSite.cs)
-                // totalEscapes += site.EscapesThisYear;
+                totalEscapes += site.EscapesThisYear;
             }
 
             int score;
@@ -218,8 +226,8 @@ namespace LakskongenSim.Sustainability
                 score = 0;
 
             // Bonus for closed containment (RAS, semi-closed)
-            // TODO: Check if sites use closed systems
-            // if (state.SeaSites.Any(s => s.IsClosedContainment)) score = Math.Min(score + 5, WEIGHT_ESCAPE_PREVENTION);
+            if (state.SeaSites.Any(s => s.IsClosedContainment)) 
+                score = Math.Min(score + 5, WEIGHT_ESCAPE_PREVENTION);
 
             return Math.Clamp(score, 0, WEIGHT_ESCAPE_PREVENTION);
         }
@@ -230,15 +238,18 @@ namespace LakskongenSim.Sustainability
             // Insect meal/algae use = bonus
             // Fishmeal from overfished stocks = penalty
 
-            // INTEGRATION POINT: FeedSystem should track feed source sustainability
-            // TODO: Access FeedSystem.SustainabilityRating (0.0-1.0)
-            var sustainabilityRating = 0.7f; // Placeholder: 70% sustainable
+            // Use FeedSustainabilityRating from GameState (0.0-1.0)
+            var sustainabilityRating = (float)state.FeedSustainabilityRating;
 
             var score = (int)(sustainabilityRating * WEIGHT_FEED_SUSTAINABILITY);
 
-            // Bonus for advanced feed types
-            // TODO: Check feed composition
-            // if (feedSystem.UsesInsectMeal || feedSystem.UsesAlgae) score += 5;
+            // Bonus for advanced feed types (insect meal, algae)
+            // Check if research has been unlocked
+            var hasInsectMeal = state.UnlockedResearchIds.Contains("insect-meal", StringComparer.OrdinalIgnoreCase);
+            var hasAlgaeFeed = state.UnlockedResearchIds.Contains("algae-feed", StringComparer.OrdinalIgnoreCase);
+            
+            if (hasInsectMeal || hasAlgaeFeed) 
+                score += 5;
 
             return Math.Clamp(score, 0, WEIGHT_FEED_SUSTAINABILITY);
         }
@@ -250,9 +261,36 @@ namespace LakskongenSim.Sustainability
             // - Transport efficiency (local processing vs long-haul)
             // - Vessel fuel type (diesel vs hybrid vs electric)
 
-            // INTEGRATION POINT: LogisticsManager should track carbon footprint
-            // TODO: Access LogisticsManager.CarbonFootprintScore (0.0-1.0)
-            var carbonEfficiency = 0.5f; // Placeholder: 50% efficient
+            float carbonEfficiency;
+            
+            if (state.LogisticsManager != null)
+            {
+                // Use actual carbon footprint score from LogisticsManager
+                carbonEfficiency = state.LogisticsManager.CarbonFootprintScore();
+            }
+            else
+            {
+                // Fallback: estimate based on research unlocks
+                float renewableBonus = 0.0f;
+                float electricBonus = 0.0f;
+                
+                // Check for renewable energy research
+                if (state.UnlockedResearchIds.Contains("solar-power", StringComparer.OrdinalIgnoreCase) ||
+                    state.UnlockedResearchIds.Contains("wind-power", StringComparer.OrdinalIgnoreCase) ||
+                    state.UnlockedResearchIds.Contains("renewable-energy", StringComparer.OrdinalIgnoreCase))
+                {
+                    renewableBonus = 0.3f;
+                }
+                
+                // Check for electric vehicles research
+                if (state.UnlockedResearchIds.Contains("electric-vehicles", StringComparer.OrdinalIgnoreCase) ||
+                    state.UnlockedResearchIds.Contains("hybrid-vessels", StringComparer.OrdinalIgnoreCase))
+                {
+                    electricBonus = 0.2f;
+                }
+                
+                carbonEfficiency = 0.3f + renewableBonus + electricBonus; // Base 30% + bonuses
+            }
 
             var score = (int)(carbonEfficiency * WEIGHT_CARBON_FOOTPRINT);
 
@@ -266,16 +304,34 @@ namespace LakskongenSim.Sustainability
             // - Handling stress minimization
             // - Slaughter methods (electrical stunning = best practice)
 
-            // INTEGRATION POINT: FishPopulation/SeaSite should track stocking density
             var totalDensityScore = 0.0;
             var siteCount = state.SeaSites.Count;
 
             foreach (var site in state.SeaSites)
             {
-                // TODO: Calculate actual density vs max allowed
-                // var densityRatio = site.CurrentDensity / site.MaxDensity;
-                // if (densityRatio < 0.8) totalDensityScore += 1.0; // Under 80% = good
-                totalDensityScore += 0.75; // Placeholder
+                // Calculate actual biomass from populations
+                double totalBiomassKg = 0.0;
+                
+                // Sum biomass from all pens at this site
+                foreach (var pen in site.Pens)
+                {
+                    foreach (var cohort in pen.Cohorts)
+                    {
+                        totalBiomassKg += cohort.Count * cohort.MeanWeightKg;
+                    }
+                }
+                
+                // Calculate density ratio vs max allowed
+                double maxBiomassKg = site.PenVolume * site.MaxAllowedDensity;
+                double densityRatio = maxBiomassKg > 0 ? totalBiomassKg / maxBiomassKg : 0.0;
+                
+                // Score: Under 80% capacity = 1.0, 80-100% = partial, over 100% = 0
+                if (densityRatio < 0.8)
+                    totalDensityScore += 1.0;
+                else if (densityRatio < 1.0)
+                    totalDensityScore += (1.0 - densityRatio) / 0.2; // Linear decline from 0.8 to 1.0
+                else
+                    totalDensityScore += 0.0; // Overcrowded
             }
 
             var avgDensityScore = siteCount > 0 ? totalDensityScore / siteCount : 1.0;
@@ -291,11 +347,47 @@ namespace LakskongenSim.Sustainability
             // - Nutrient discharge levels
             // - Wild fish attraction/displacement
 
-            // INTEGRATION POINT: New EcosystemMonitor system or add to Zone.cs
-            // TODO: Track benthic oxygen levels, nutrient load
-            var ecosystemHealth = 0.6f; // Placeholder: 60% healthy
+            var totalEcosystemScore = 0.0;
+            var zoneCount = state.Zones.Count;
 
-            var score = (int)(ecosystemHealth * WEIGHT_ECOSYSTEM);
+            if (zoneCount == 0)
+                return WEIGHT_ECOSYSTEM; // No zones = perfect score (edge case)
+
+            foreach (var zone in state.Zones)
+            {
+                // 1. Oxygen level score (0.0-0.5)
+                // Good oxygen (>7 mg/L) = 0.5, poor (<5 mg/L) = 0.0
+                double oxygenScore = zone.WaterChemistry.OxygenO2 >= 7.0 ? 0.5 : 
+                                    zone.WaterChemistry.OxygenO2 >= 5.0 ? (zone.WaterChemistry.OxygenO2 - 5.0) / 4.0 : 0.0;
+
+                // 2. Nutrient load score (0.0-0.3)
+                // Low nutrients = better. Nitrate <1.0 mg/L = 0.3, >5.0 = 0.0
+                double nitrateLevel = zone.WaterChemistry.NitrateNO3;
+                double nutrientScore = nitrateLevel <= 1.0 ? 0.3 : 
+                                      nitrateLevel <= 5.0 ? 0.3 * (5.0 - nitrateLevel) / 4.0 : 0.0;
+
+                // 3. pH stability score (0.0-0.2)
+                // pH 7.5-8.5 = ideal (0.2), outside this range = reduced
+                double pH = zone.WaterChemistry.pH;
+                double pHScore = (pH >= 7.5 && pH <= 8.5) ? 0.2 : 
+                                (pH >= 6.5 && pH <= 9.0) ? 0.1 : 0.0;
+
+                totalEcosystemScore += oxygenScore + nutrientScore + pHScore;
+            }
+
+            // Average ecosystem health across all zones
+            var avgEcosystemHealth = (float)(totalEcosystemScore / zoneCount);
+
+            // Check for fallow rotation (improves ecosystem recovery)
+            // Look for fallow events in EventLog
+            var hasFallowRotation = state.EventLog.Any(e => 
+                e.Id.Contains("fallow", StringComparison.OrdinalIgnoreCase) && 
+                e.Day >= state.Day - 365);
+            
+            if (hasFallowRotation)
+                avgEcosystemHealth = Math.Min(avgEcosystemHealth + 0.1f, 1.0f);
+
+            var score = (int)(avgEcosystemHealth * WEIGHT_ECOSYSTEM);
 
             return Math.Clamp(score, 0, WEIGHT_ECOSYSTEM);
         }

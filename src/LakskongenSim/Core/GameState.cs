@@ -81,6 +81,13 @@ namespace LakskongenSim.Core
         /// <summary>Historical minimum balance (to detect bankruptcy recovery).</summary>
         public decimal MinimumBalanceEver { get; set; } = decimal.MaxValue;
 
+        /// <summary>Feed sustainability rating (0.0-1.0) based on sustainable feed purchases. 1.0 = 100% sustainable sources.</summary>
+        public double FeedSustainabilityRating { get; set; } = 0.7;
+
+        /// <summary>Logistics manager for vehicle fleet and carbon footprint tracking.</summary>
+        [JsonIgnore]
+        public Logistics.LogisticsManager? LogisticsManager { get; set; }
+
         /// <summary>Default constructor for serializer.</summary>
         public GameState()
         {
