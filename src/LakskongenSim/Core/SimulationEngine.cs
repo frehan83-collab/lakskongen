@@ -9,6 +9,8 @@ using LakskongenSim.Events;
 using LakskongenSim.Farm;
 using LakskongenSim.Health;
 using LakskongenSim.Sustainability;
+using LakskongenSim.Market;
+using LakskongenSim.Markets;
 using System.Globalization;
 
 namespace LakskongenSim.Core
@@ -34,6 +36,8 @@ namespace LakskongenSim.Core
         public Hatchery Hatchery { get; private set; } = null!;
         public Genetics Genetics { get; private set; } = null!;
         public Market.MarketSimulation MarketSimulation { get; set; } = null!;
+        public ContractSystem ContractSystem { get; private set; } = null!;
+        public InternationalMarketSystem InternationalMarketSystem { get; private set; } = null!;
         public Finance.FinanceManager FinanceManager { get; set; } = null!;
         public SustainabilityManager SustainabilityManager { get; private set; } = null!;
         public Storyteller Storyteller { get; private set; } = null!;
@@ -80,6 +84,8 @@ namespace LakskongenSim.Core
             // Default finance and market if not set externally
             FinanceManager ??= new Finance.FinanceManager(10_000_000m); // 10M NOK starting capital
             MarketSimulation ??= new Market.MarketSimulation();
+            ContractSystem = new ContractSystem();
+            InternationalMarketSystem = new InternationalMarketSystem();
 
             // Load sustainability configuration
             SustainabilityConfig sustainConfig;

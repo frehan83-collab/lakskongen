@@ -50,6 +50,7 @@
 | ID | Task | Agent | Status |
 |----|------|-------|--------|
 | T28 | Contracts panel + market depth UI | DeepSeek | 🏃 Running |
+| T29 | MapPanel expansion for 13 zones | Opus (direct) | 🏃 WIP |
 
 ## 📋 Inbox (Next)
 | ID | Task | Estimated Agent | Priority |

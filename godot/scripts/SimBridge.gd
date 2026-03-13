@@ -347,6 +347,38 @@ func get_export_market_count() -> int:
 func get_processing_throughput_kg() -> float:
 	return _game_bridge.ProcessingThroughputKg
 
+# ── Contract & Market API ─────────────────────────────────────────────────────
+
+## Get list of active contracts.
+## Returns Array[Dictionary] with keys: "id", "buyer", "type", "price_per_kg", "quantity_kg", "quality", "penalty_pct", "fulfilled_kg", "fulfilled_percent"
+func get_active_contracts() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetActiveContracts()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get list of available contract offers (generated from market conditions).
+## Returns Array[Dictionary] with keys: "buyer", "type", "price_per_kg", "quantity_kg", "quality", "penalty_pct"
+func get_available_offers() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetAvailableOffers()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get list of export markets with status and prices.
+## Returns Array[Dictionary] with keys: "region", "name", "base_price_nok", "premium_multiplier", "player_has_access", "logistics_cost_pct", "tariff_rate", "min_reputation_score", "required_certifications"
+func get_export_markets() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetExportMarkets()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
 # ── Analytics API ─────────────────────────────────────────────────────────────
 
 ## Get time-series data for a metric over N days (returns Array[double]).

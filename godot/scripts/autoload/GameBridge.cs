@@ -927,6 +927,103 @@ public partial class GameBridge : Node
         return success;
     }
 
+    // ── Contract & Market API ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns list of active contracts.
+    /// Each entry is a Dictionary with keys: "id", "buyer", "type", "price_per_kg", "quantity_kg", "quality", "penalty_pct", "fulfilled_kg", "fulfilled_percent".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetActiveContracts()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var contractSystem = SimulationEngine?.ContractSystem;
+        if (contractSystem == null) return result;
+
+        foreach (var contract in contractSystem.ActiveContracts)
+        {
+            float fulfilledPercent = contract.QuantityKg > 0 ? (float)(contract.FulfilledKg / contract.QuantityKg) * 100f : 0f;
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = contract.Id.ToString(),
+                ["buyer"] = contract.Buyer,
+                ["type"] = contract.Type.ToString(),
+                ["price_per_kg"] = (float)contract.PricePerKg,
+                ["quantity_kg"] = (float)contract.QuantityKg,
+                ["quality"] = contract.Quality,
+                ["penalty_pct"] = (float)contract.PenaltyPct,
+                ["fulfilled_kg"] = (float)contract.FulfilledKg,
+                ["fulfilled_percent"] = fulfilledPercent
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Returns list of available contract offers (generated from market conditions).
+    /// Each entry is a Dictionary with keys: "buyer", "type", "price_per_kg", "quantity_kg", "quality", "penalty_pct".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetAvailableOffers()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var contractSystem = SimulationEngine?.ContractSystem;
+        if (contractSystem == null) return result;
+
+        // Generate a few sample offers based on market price (simplified)
+        // TODO: integrate with market simulation
+        var marketPrice = SimulationEngine?.MarketSimulation?.PricePerKg ?? 70m;
+        var random = new Random();
+        var buyers = new[] { "NorgesGruppen", "Mowi", "Lerøy", "SalMar", "Cermaq", "International Seafood" };
+        var types = new[] { "FixedPrice", "IndexLinked", "VolumeBased" };
+        for (int i = 0; i < 5; i++)
+        {
+            var buyer = buyers[random.Next(buyers.Length)];
+            var type = types[random.Next(types.Length)];
+            var pricePerKg = (float)(marketPrice * (decimal)(0.9 + random.NextDouble() * 0.2)); // ±10%
+            var quantityKg = (float)(random.NextDouble() * 50000 + 10000); // 10k-60k kg
+            var quality = (float)(random.NextDouble() * 0.3 + 0.7); // 0.7-1.0
+            var penaltyPct = (float)(random.NextDouble() * 0.05); // 0-5%
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["buyer"] = buyer,
+                ["type"] = type,
+                ["price_per_kg"] = pricePerKg,
+                ["quantity_kg"] = quantityKg,
+                ["quality"] = quality,
+                ["penalty_pct"] = penaltyPct
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Returns list of export markets with status and prices.
+    /// Each entry is a Dictionary with keys: "region", "name", "base_price_nok", "premium_multiplier", "player_has_access", "logistics_cost_pct", "tariff_rate".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetExportMarkets()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var marketSystem = SimulationEngine?.InternationalMarketSystem;
+        if (marketSystem == null) return result;
+
+        var allMarkets = marketSystem.GetAllMarkets();
+        foreach (var market in allMarkets.Values)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["region"] = market.Region.ToString(),
+                ["name"] = market.Name,
+                ["base_price_nok"] = (float)market.BasePriceNOK,
+                ["premium_multiplier"] = (float)market.PremiumMultiplier,
+                ["player_has_access"] = market.PlayerHasAccess,
+                ["logistics_cost_pct"] = (float)market.LogisticsCostPctOfPrice,
+                ["tariff_rate"] = (float)market.TariffRate,
+                ["min_reputation_score"] = (float)market.MinReputationScore,
+                ["required_certifications"] = new Godot.Collections.Array<string>(market.RequiredCertifications.ToArray())
+            });
+        }
+        return result;
+    }
+
     // ── Genetics API ──────────────────────────────────────────────────────────
 
     /// <summary>
