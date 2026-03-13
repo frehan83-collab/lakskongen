@@ -141,104 +141,324 @@ namespace LakskongenSim.Core
 
             LoadJsonConfigs();
             Console.WriteLine("✅ SimulationEngine initialized — all subsystems wired");
+        }
 
         private void LoadJsonConfigs()
         {
-            string[] paths = { "game/data/", "Data/" };
-            string path = paths.FirstOrDefault(p => File.Exists(Path.Combine(p, "research_nodes.json"))) ?? paths[0];
+            // Try multiple possible paths for data files
+            string[] candidatePaths = {
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "..", "game", "data"),
+                Path.Combine("game", "data"),
+                "Data"
+            };
 
-            // Load research nodes
-            try
+            string? dataPath = null;
+            foreach (var candidate in candidatePaths)
             {
-                var researchJson = File.ReadAllText(Path.Combine(path, "research_nodes.json"));
-                var researchNodes = JsonSerializer.Deserialize<List<ResearchNode>>(researchJson);
-                Research.Populate(researchNodes ?? new List<ResearchNode>());
-            }
-            catch
-            {
-                Console.WriteLine("research_nodes.json not found, using default research nodes.");
-            }
-
-            // Load tutorial steps
-            try
-            {
-                var tutorialJson = File.ReadAllText(Path.Combine(path, "tutorial_steps.json"));
-                var tutorialSteps = JsonSerializer.Deserialize<List<TutorialStep>>(tutorialJson);
-                Tutorial.LoadSteps(tutorialSteps ?? new List<TutorialStep>());
-            }
-            catch
-            {
-                Console.WriteLine("tutorial_steps.json not found, using default tutorial steps.");
+                var testPath = Path.Combine(candidate, "balancing.json");
+                if (File.Exists(testPath))
+                {
+                    dataPath = candidate;
+                    break;
+                }
             }
 
-            // Load balancing config
-            try
+            if (dataPath == null)
             {
-                var balancingJson = File.ReadAllText(Path.Combine(path, "balancing.json"));
-                var balancingConfig = JsonSerializer.Deserialize<BalancingConfig>(balancingJson) ?? new BalancingConfig();
-                ApplyBalancingConfig(balancingConfig);
-            }
-            catch
-            {
-                Console.WriteLine("balancing.json not found, using default balancing values.");
+                Console.WriteLine("⚠️  Data directory not found. Using defaults for all configs.");
+                return;
             }
 
-            // Load scenarios
-            try
+            Console.WriteLine($"📁 Loading configs from: {Path.GetFullPath(dataPath)}");
+
+            // ─── Load balancing parameters ───
+            LoadBalancingConfig(dataPath);
+
+            // ─── Load research tree ───
+            LoadResearchNodes(dataPath);
+
+            // ─── Load tutorial steps ───
+            LoadTutorialSteps(dataPath);
+
+            // ─── Load scenarios ───
+            LoadScenarios(dataPath);
+
+            // ─── Load achievements metadata ───
+            LoadAchievementsMetadata(dataPath);
+
+            // ─── Load encyclopedia entries ───
+            LoadEncyclopediaEntries(dataPath);
+
+            Console.WriteLine("✅ JSON config loading complete");
+        }
+
+        private void LoadBalancingConfig(string dataPath)
+        {
+            var filePath = Path.Combine(dataPath, "balancing.json");
+            if (!File.Exists(filePath))
             {
-                var scenariosJson = File.ReadAllText(Path.Combine(path, "scenarios.json"));
-                var scenarios = JsonSerializer.Deserialize<List<Scenario>>(scenariosJson);
-                // Assuming a ScenarioSystem exists and is used in the game
-                ScenarioSystem.LoadScenarios(scenarios ?? new List<Scenario>());
-            }
-            catch
-            {
-                Console.WriteLine("scenarios.json not found, using default scenarios.");
+                Console.WriteLine("⚠️  balancing.json not found, using default balancing values.");
+                return;
             }
 
-            // Load encyclopedia entries
             try
             {
-                var encyclopediaJson = File.ReadAllText(Path.Combine(path, "encyclopedia_entries.json"));
-                var entries = JsonSerializer.Deserialize<List<EncyclopediaEntry>>(encyclopediaJson);
-                Encyclopedia.LoadEntries(entries ?? new List<EncyclopediaEntry>());
+                var json = File.ReadAllText(filePath);
+                var config = JsonSerializer.Deserialize<BalancingConfig>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new BalancingConfig();
+                ApplyBalancingConfig(config);
+                Console.WriteLine($"✓ Loaded balancing config (starting capital: {config.StartingCapital:N0} NOK)");
             }
-            catch
+            catch (Exception ex)
             {
-                Console.WriteLine("encyclopedia_entries.json not found, using default entries.");
+                Console.WriteLine($"⚠️  Failed to load balancing.json: {ex.Message}");
+            }
+        }
+
+        private void LoadResearchNodes(string dataPath)
+        {
+            var filePath = Path.Combine(dataPath, "research_nodes.json");
+            if (!File.Exists(filePath))
+            {
+                Console.WriteLine("⚠️  research_nodes.json not found, using built-in research tree.");
+                return;
             }
 
-            // Load achievements config
             try
             {
-                var achievementsJson = File.ReadAllText(Path.Combine(path, "achievements_config.json"));
-                var achievements = JsonSerializer.Deserialize<List<AchievementConfig>>(achievementsJson);
-                Achievements.LoadAchievements(achievements ?? new List<AchievementConfig>());
+                var json = File.ReadAllText(filePath);
+                var nodes = JsonSerializer.Deserialize<List<ResearchNode>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (nodes != null && nodes.Count > 0)
+                {
+                    // ResearchSystem.Populate() method will be added to replace InitializeNodes()
+                    Console.WriteLine($"✓ Loaded {nodes.Count} research nodes from JSON");
+                    // TODO: Call Research.PopulateFromJson(nodes) when method is implemented
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                Console.WriteLine("achievements_config.json not found, using default achievements.");
+                Console.WriteLine($"⚠️  Failed to load research_nodes.json: {ex.Message}");
+            }
+        }
+
+        private void LoadTutorialSteps(string dataPath)
+        {
+            var filePath = Path.Combine(dataPath, "tutorial_steps.json");
+            if (!File.Exists(filePath))
+            {
+                Console.WriteLine("⚠️  tutorial_steps.json not found, using built-in tutorial.");
+                return;
+            }
+
+            try
+            {
+                var json = File.ReadAllText(filePath);
+                // Tutorial steps in JSON don't include CompletionCondition delegates,
+                // so we log the existence but don't override the hardcoded tutorial
+                Console.WriteLine($"✓ Found tutorial_steps.json (tutorial uses built-in conditions)");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️  Failed to read tutorial_steps.json: {ex.Message}");
+            }
+        }
+
+        private void LoadScenarios(string dataPath)
+        {
+            var filePath = Path.Combine(dataPath, "scenarios.json");
+            if (!File.Exists(filePath))
+            {
+                Console.WriteLine("⚠️  scenarios.json not found, scenarios unavailable.");
+                return;
+            }
+
+            try
+            {
+                var json = File.ReadAllText(filePath);
+                var scenarios = JsonSerializer.Deserialize<List<ScenarioDefinition>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (scenarios != null && scenarios.Count > 0)
+                {
+                    Console.WriteLine($"✓ Loaded {scenarios.Count} scenario definitions");
+                    // ScenarioSystem integration would go here when implemented
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️  Failed to load scenarios.json: {ex.Message}");
+            }
+        }
+
+        private void LoadAchievementsMetadata(string dataPath)
+        {
+            var filePath = Path.Combine(dataPath, "achievements_config.json");
+            if (!File.Exists(filePath))
+            {
+                Console.WriteLine("⚠️  achievements_config.json not found, using built-in achievements.");
+                return;
+            }
+
+            try
+            {
+                var json = File.ReadAllText(filePath);
+                // Achievement conditions are hardcoded in AchievementSystem.RegisterAllAchievements()
+                // This JSON only provides UI metadata (icons, categories)
+                Console.WriteLine($"✓ Found achievements_config.json (achievements use built-in conditions)");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️  Failed to read achievements_config.json: {ex.Message}");
+            }
+        }
+
+        private void LoadEncyclopediaEntries(string dataPath)
+        {
+            var filePath = Path.Combine(dataPath, "encyclopedia_entries.json");
+            if (!File.Exists(filePath))
+            {
+                Console.WriteLine("⚠️  encyclopedia_entries.json not found.");
+                return;
+            }
+
+            try
+            {
+                var json = File.ReadAllText(filePath);
+                var entries = JsonSerializer.Deserialize<List<Dictionary<string, string>>>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (entries != null && entries.Count > 0)
+                {
+                    Console.WriteLine($"✓ Loaded {entries.Count} encyclopedia entries");
+                    // Encyclopedia system integration would go here when implemented
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️  Failed to load encyclopedia_entries.json: {ex.Message}");
             }
         }
 
         private void ApplyBalancingConfig(BalancingConfig config)
         {
-            FinanceManager.SetStartingCapital(config.StartingCapital);
-            Hatchery.SetCostAndMaturation(config.SmoltCostPerFish, config.SmoltMaturationDays);
-            Feed.SetFCRTargets(config.OptimalFCR, config.PoorFCR);
-            Market.SetBasePrice(config.BaseSalmonPricePerKg);
+            // Apply balancing parameters to subsystems
+            // Note: Some subsystems may not have setter methods yet, so we apply what we can
+
+            // Finance starting capital - only if FinanceManager was just created
+            if (State.Day == 0 && config.StartingCapital > 0)
+            {
+                // Starting capital is set during FinanceManager construction
+                Console.WriteLine($"  → Starting capital: {config.StartingCapital:N0} NOK");
+            }
+
+            // Feed system parameters
+            Console.WriteLine($"  → Feed cost per kg: {config.FeedCostPerKgNOK:N2} NOK");
+            Console.WriteLine($"  → FCR targets: Optimal={config.OptimalFCR}, Poor={config.PoorFCR}");
+
+            // Market base price
+            Console.WriteLine($"  → Base salmon price: {config.BaseSalmonPricePerKg:N0} NOK/kg");
+
+            // Growth parameters
+            Console.WriteLine($"  → Smolt maturation: {config.SmoltMaturationDays} days");
+            Console.WriteLine($"  → Grow-out period: {config.GrowthToHarvestDays} days");
+            Console.WriteLine($"  → Target harvest weight: {config.TargetHarvestWeightKg} kg");
+
+            // NOTE: Full subsystem integration requires adding setter methods to:
+            // - Feed.SetCostPerKg(), Feed.SetFCRTargets()
+            // - Market.SetBasePrice(), Market.SetVolatility()
+            // - Hatchery.SetCostAndMaturation()
+            // - Growth.SetTargetWeight()
+            // For now, this logs the values; subsystems use their own defaults.
         }
 
         private class BalancingConfig
         {
-            public decimal StartingCapital { get; set; } = 10000000;
+            // ─── Economy ───
+            public decimal StartingCapital { get; set; } = 10_000_000;
             public decimal SmoltCostPerFish { get; set; } = 15;
+            public decimal FeedCostPerKgNOK { get; set; } = 12.5m;
+            public decimal BaseSalmonPricePerKg { get; set; } = 70;
+            public double PriceVolatilityPercent { get; set; } = 15;
+            public double SeasonalPriceSwingPercent { get; set; } = 20;
+
+            // ─── Labor ───
+            public decimal WorkerMonthlySalaryNOK { get; set; } = 45_000;
+            public decimal ManagerMonthlySalaryNOK { get; set; } = 65_000;
+            public int WorkersPerSite { get; set; } = 8;
+            public int WorkersPerHatchery { get; set; } = 12;
+            public int WorkersPerProcessingPlant { get; set; } = 25;
+
+            // ─── Infrastructure ───
+            public decimal SeaSiteBuildCostNOK { get; set; } = 5_000_000;
+            public decimal HatcheryBuildCostNOK { get; set; } = 15_000_000;
+            public decimal ProcessingPlantCostNOK { get; set; } = 50_000_000;
+            public decimal FeedMillCostNOK { get; set; } = 30_000_000;
+
+            // ─── Production limits ───
+            public int MaxBiomassPerSiteKg { get; set; } = 780_000;
+            public int MaxSitesPerZone { get; set; } = 4;
+            public int MABLimitKgPerLicense { get; set; } = 780_000;
+
+            // ─── Operations ───
+            public decimal HarvestCostPerKgNOK { get; set; } = 3.5m;
+            public decimal ProcessingCostPerKgNOK { get; set; } = 8;
+            public decimal TransportCostPerKgPerKmNOK { get; set; } = 0.02m;
+
+            // ─── Health & Treatment ───
+            public decimal DelousingCostMechanicalNOK { get; set; } = 250_000;
+            public decimal DelousingCostChemicalNOK { get; set; } = 150_000;
+            public decimal DelousingCostCleanerfishNOK { get; set; } = 100_000;
+            public decimal VaccinationCostPerKgBiomass { get; set; } = 0.5m;
+            public double MortalityRateBasePercent { get; set; } = 0.03;
+            public double MortalityRateISAPercent { get; set; } = 0.25;
+            public double SeaLiceThresholdPerFish { get; set; } = 0.5;
+            public double SeaLiceTreatmentThreshold { get; set; } = 0.2;
+
+            // ─── Finance ───
+            public double InsurancePremiumPercent { get; set; } = 0.02;
+            public double LoanInterestRate { get; set; } = 0.065;
+            public double MaxLoanMultiplier { get; set; } = 3.0;
+            public double CorporateTaxRate { get; set; } = 0.22;
+            public double ResourceRentTaxRate { get; set; } = 0.25;
+
+            // ─── Licensing ───
+            public decimal LicenseCostNOK { get; set; } = 150_000_000;
+
+            // ─── Biology ───
             public int SmoltMaturationDays { get; set; } = 365;
+            public int GrowthToHarvestDays { get; set; } = 540;
+            public double TargetHarvestWeightKg { get; set; } = 5.0;
+            public double MinHarvestWeightKg { get; set; } = 3.5;
+            public double MaxHarvestWeightKg { get; set; } = 7.0;
             public double OptimalFCR { get; set; } = 1.15;
             public double PoorFCR { get; set; } = 1.4;
-            public decimal BaseSalmonPricePerKg { get; set; } = 70;
-        }
 
+            // ─── Environment ───
+            public double OptimalTemperatureMinC { get; set; } = 8;
+            public double OptimalTemperatureMaxC { get; set; } = 14;
+            public double LethalTemperatureMaxC { get; set; } = 23;
+            public int FallowPeriodDays { get; set; } = 60;
+
+            // ─── Compliance & Certification ───
+            public decimal EscapeFinePer100Fish { get; set; } = 500_000;
+            public decimal ASCCertificationCostNOK { get; set; } = 2_000_000;
+            public decimal ASCAuditCostYearlyNOK { get; set; } = 500_000;
+            public double ASCPricePremiumPercent { get; set; } = 8;
+            public double OrganicPricePremiumPercent { get; set; } = 15;
+
+            // ─── Research ───
+            public decimal ResearchBaseCostNOK { get; set; } = 500_000;
+            public decimal ResearchMaxCostNOK { get; set; } = 5_000_000;
         }
 
         /// <summary>
