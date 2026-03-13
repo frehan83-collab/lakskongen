@@ -6,233 +6,419 @@ using LakskongenSim.Data;
 namespace LakskongenSim.Core
 {
     /// <summary>
-    /// Campaign and scenario system for Lakskongen.
-    /// Provides 5 pre-built scenarios with different starting conditions, goals, and challenges.
+    /// Defines a playable scenario with starting conditions, objectives, and special rules.
     /// </summary>
-    public class ScenarioSystem
+    public class ScenarioDefinition
     {
-        private readonly Dictionary<string, Scenario> _scenarios = new();
-        private Scenario? _currentScenario;
+        /// <summary>Unique snake_case identifier (e.g. "forste_sesong").</summary>
+        public string Id { get; set; } = "";
 
-        public Scenario? CurrentScenario => _currentScenario;
-        public IReadOnlyDictionary<string, Scenario> AllScenarios => _scenarios;
+        /// <summary>Display name in Norwegian.</summary>
+        public string Name { get; set; } = "";
 
-        public event Action<Scenario>? OnScenarioStarted;
-        public event Action<Scenario, bool>? OnScenarioCompleted;
+        /// <summary>Flavour text describing the scenario premise.</summary>
+        public string Description { get; set; } = "";
 
-        public ScenarioSystem()
-        {
-            RegisterAllScenarios();
-        }
+        /// <summary>Starting bank balance in NOK (may be negative for debt scenarios).</summary>
+        public decimal StartingCapitalNOK { get; set; }
 
-        /// <summary>Start a scenario by ID.</summary>
-        public bool StartScenario(string scenarioId)
-        {
-            if (!_scenarios.TryGetValue(scenarioId, out var scenario))
-            {
-                Console.WriteLine($"❌ Scenario not found: {scenarioId}");
-                return false;
-            }
+        /// <summary>Primary Norwegian production region for this scenario.</summary>
+        public ProductionRegion StartingRegion { get; set; }
 
-            _currentScenario = scenario;
-            Console.WriteLine($"🎮 Starting scenario: {scenario.Name}");
-            Console.WriteLine($"   {scenario.Description}");
-            Console.WriteLine($"   Starting capital: {scenario.StartingCapitalNOK:N0} NOK");
-            Console.WriteLine($"   Region: {scenario.StartingRegion}");
-            Console.WriteLine($"   Difficulty: {new string('⭐', scenario.Difficulty)}");
-            Console.WriteLine($"   Goal: {scenario.WinCondition}");
+        /// <summary>Difficulty rating from 1 (easiest) to 5 (hardest).</summary>
+        public int Difficulty { get; set; }
 
-            OnScenarioStarted?.Invoke(scenario);
-            return true;
-        }
+        /// <summary>Primary victory objective type.</summary>
+        public WinCondition WinCondition { get; set; }
 
-        /// <summary>Check if current scenario win condition is met.</summary>
-        public bool CheckWinCondition(GameState gameState)
-        {
-            if (_currentScenario == null) return false;
-            if (_currentScenario.WinConditionCheck == null) return false;
+        /// <summary>
+        /// Scenario-specific rule overrides and numeric targets.
+        /// Common keys:
+        ///   "profit_target"         — decimal NOK threshold for Profit/Competition win
+        ///   "sustainability_target" — int score threshold for Sustainability win
+        ///   "ai_competitors"        — int count for Competition scenario
+        ///   "single_site"           — "true" to restrict to one sea site
+        ///   "harsh_storms"          — "true" for elevated storm frequency
+        ///   "premium_prices"        — "true" for export price bonus
+        ///   "start_disease"         — "true" to begin with an active disease outbreak
+        ///   "start_debt"            — "true" signals negative starting capital
+        ///   "regulation_pressure"   — "true" for stricter compliance thresholds
+        ///   "calm_weather"          — "true" to suppress severe weather
+        ///   "easy_market"           — "true" for reduced price volatility
+        /// Values are always strings; parse as needed.
+        /// </summary>
+        public Dictionary<string, string> SpecialRules { get; set; } = new();
 
-            bool won = _currentScenario.WinConditionCheck(gameState);
-            if (won)
-            {
-                Console.WriteLine($"🎉 Scenario completed: {_currentScenario.Name}!");
-                OnScenarioCompleted?.Invoke(_currentScenario, true);
-            }
+        /// <summary>Optional day limit — null means unlimited time.</summary>
+        public int? TimeLimitDays { get; set; }
 
-            return won;
-        }
-
-        /// <summary>Check if scenario has failed (time limit exceeded, etc.).</summary>
-        public bool CheckFailCondition(GameState gameState)
-        {
-            if (_currentScenario == null) return false;
-
-            // Time limit check
-            if (_currentScenario.TimeLimitDays.HasValue && gameState.Day > _currentScenario.TimeLimitDays.Value)
-            {
-                Console.WriteLine($"⏰ Time limit exceeded for scenario: {_currentScenario.Name}");
-                OnScenarioCompleted?.Invoke(_currentScenario, false);
-                return true;
-            }
-
-            return false;
-        }
-
-        public Scenario? GetScenario(string id) => _scenarios.GetValueOrDefault(id);
-
-        // ══════════════════════════════════════════════════════════════════
-        // SCENARIO DEFINITIONS
-        // ══════════════════════════════════════════════════════════════════
-
-        private void RegisterAllScenarios()
-        {
-            // ─── SCENARIO 1: FØRSTE SESONG (Tutorial) ───
-            Register(new Scenario
-            {
-                Id = "første-sesong",
-                Name = "Første Sesong",
-                Description = "Din første sesong som laksebonde. Lær grunnleggende drift med et enkelt anlegg, rolig vær og stabile markeder. Perfekt for nybegynnere.",
-                StartingCapitalNOK = 500_000m,
-                StartingRegion = ProductionRegion.Vestland,
-                Difficulty = 1,
-                WinCondition = "Overlev første året med positiv kontantstrøm (>100,000 NOK) og høst ditt første laksekorhort.",
-                SpecialRules = new List<string>
-                {
-                    "Værforhold: Kun Calm og Moderate (ingen stormer)",
-                    "Markedspris: Stabil 71.50 NOK/kg ±5%",
-                    "1 sea site tilgjengelig ved start",
-                    "Redusert risiko for sykdomsutbrudd (50% normal sats)",
-                    "Tutorial-meldinger aktivert"
-                },
-                TimeLimitDays = 365 * 2, // 2 years to complete
-                StartingSites = 1,
-                StartingLicenses = 0,
-                WinConditionCheck = gs => gs.Day >= 365 && gs.Balance > 100_000m && gs.Populations.Any(p => p.Cohorts.Any(c => c.Stage == LifeStage.Harvest))
-            });
-
-            // ─── SCENARIO 2: LOFOTEN EVENTYR ───
-            Register(new Scenario
-            {
-                Id = "lofoten-eventyr",
-                Name = "Lofoten Eventyr",
-                Description = "Start et oppdrettsanlegg i det værharde Nordland. Håndter brutale vinterstormer og lave temperaturer, men dra nytte av premium sashimi-priser fra japanske kjøpere.",
-                StartingCapitalNOK = 750_000m,
-                StartingRegion = ProductionRegion.Nordland,
-                Difficulty = 3,
-                WinCondition = "Oppnå 3M NOK i eksportinntekter til Japan-markedet innen 3 år.",
-                SpecialRules = new List<string>
-                {
-                    "Vintersesongen (Des-Feb): 60% sjanse for Storm eller Severe værforhold",
-                    "Temperatur: 2-4°C lavere enn normalt (langsommere vekst)",
-                    "Japansk marked: +40% premiumpriser for Superior-grade laks",
-                    "Økt dødelighetspåslag fra kulde og stormer (+15%)",
-                    "2 sea sites tilgjengelig ved start"
-                },
-                TimeLimitDays = 365 * 3,
-                StartingSites = 2,
-                StartingLicenses = 1,
-                WinConditionCheck = gs => false // TODO: Track export revenue by market when market system integrated
-            });
-
-            // ─── SCENARIO 3: LAKSEBARONENE (Competition) ───
-            Register(new Scenario
-            {
-                Id = "laksebaronene",
-                Name = "Laksebaronene",
-                Description = "Konkurranse-scenario: Du starter på lik linje med 3 AI-konkurrenter. Den første som oppnår 10M NOK i netto fortjeneste vinner. Bruk strategisk markedsføring, oppkjøp og innovasjon.",
-                StartingCapitalNOK = 1_000_000m,
-                StartingRegion = ProductionRegion.Trøndelag,
-                Difficulty = 4,
-                WinCondition = "Bli den første til å nå 10M NOK i netto fortjeneste før konkurrentene.",
-                SpecialRules = new List<string>
-                {
-                    "3 AI-konkurrenter starter samtidig med samme kapital",
-                    "Markedspriser påvirkes av totalt tilbud fra alle produsenter",
-                    "Konkurrenter kan kjøpe opp ledige lokaliteter",
-                    "Mulighet til å kjøpe opp konkursrammede konkurrenter",
-                    "Ukentlig leaderboard viser relativ posisjon",
-                    "Standard værforhold og markedsvolatilitet"
-                },
-                TimeLimitDays = 365 * 5,
-                StartingSites = 1,
-                StartingLicenses = 1,
-                WinConditionCheck = gs => gs.Balance >= 11_000_000m
-            });
-
-            // ─── SCENARIO 4: BÆREKRAFT MESTER ───
-            Register(new Scenario
-            {
-                Id = "bærekraft-mester",
-                Name = "Bærekraft Mester",
-                Description = "Vinn ved å bli en bærekraftleder - ikke gjennom profitt, men ved å oppnå ASC Sustainability Leader-sertifisering. Balanser lønnsomhet med miljøvern.",
-                StartingCapitalNOK = 800_000m,
-                StartingRegion = ProductionRegion.Vestland,
-                Difficulty = 4,
-                WinCondition = "Oppnå 'Sustainability Leader'-sertifisering (95+ sustainability score) før dag 1825.",
-                SpecialRules = new List<string>
-                {
-                    "Sustainability score starter på 50 (industrinorm)",
-                    "Forbrukere gir +15% premium for ASC-sertifisert laks",
-                    "Grønne obligasjoner tilgjengelig (lavere rente for bærekraftige operasjoner)",
-                    "Strengere straffer for luseutbrudd og rømming (-30% score)",
-                    "Bonus for bruk av rensefisk, landbasert smoltproduksjon og lavkarbon fôr",
-                    "Må opprettholde lønnsomhet (balance > 0)"
-                },
-                TimeLimitDays = 365 * 5,
-                StartingSites = 1,
-                StartingLicenses = 1,
-                WinConditionCheck = gs => false // TODO: Check sustainability score when system is integrated
-            });
-
-            // ─── SCENARIO 5: KRISE MANAGER ───
-            Register(new Scenario
-            {
-                Id = "krise-manager",
-                Name = "Krise Manager",
-                Description = "Du overtar en mislykket oppdrettsbedrift: ILA-utbrudd pågår, 2M NOK i gjeld, og Mattilsynet har gitt varsel om sanksjoner. Overlev krisen og gjenoppbygg.",
-                StartingCapitalNOK = -2_000_000m, // Starting in debt!
-                StartingRegion = ProductionRegion.Rogaland,
-                Difficulty = 5,
-                WinCondition = "Overlev til dag 730 med positiv balanse (>500k NOK) og ingen aktive regulatoriske sanksjoner.",
-                SpecialRules = new List<string>
-                {
-                    "Starter med -2M NOK gjeld (må betale 50k NOK/måned i renter)",
-                    "ILA-utbrudd aktiv ved start (30% dødlighet, karantene i 90 dager)",
-                    "Mattilsynet warning: Må redusere lusenivå til <0.2 per fisk innen 60 dager eller få bøter",
-                    "1 sea site tilgjengelig, men underbemmanet og dårlig vedlikeholdt",
-                    "Begrenset tilgang til kreditt (maks 500k NOK ekstra lån)",
-                    "Ingen nye lisenser tilgjengelig før gjeld er nedbetalt"
-                },
-                TimeLimitDays = 730, // 2 years
-                StartingSites = 1,
-                StartingLicenses = 0,
-                WinConditionCheck = gs => gs.Day >= 730 && gs.Balance > 500_000m
-            });
-        }
-
-        private void Register(Scenario scenario) => _scenarios[scenario.Id] = scenario;
+        /// <summary>Whether this scenario is available to play (false = locked).</summary>
+        public bool IsUnlocked { get; set; }
     }
 
     /// <summary>
-    /// Represents a gameplay scenario with starting conditions and win conditions.
+    /// Campaign system: manages the scenario roster, tracks the active scenario,
+    /// and checks win/loss conditions on every simulated day.
+    ///
+    /// Integration: call <see cref="CheckWinConditions"/> once per day inside
+    /// SimulationEngine.Advance(), after all subsystem updates.
+    /// Wire <see cref="OnScenarioWon"/> and <see cref="OnScenarioLost"/> in GameBridge
+    /// to emit Godot signals to the UI layer.
     /// </summary>
-    public class Scenario
+    public class ScenarioSystem
     {
-        public string Id { get; set; } = "";
-        public string Name { get; set; } = "";
-        public string Description { get; set; } = "";
-        public decimal StartingCapitalNOK { get; set; }
-        public ProductionRegion StartingRegion { get; set; }
-        public int Difficulty { get; set; } // 1-5 stars
-        public string WinCondition { get; set; } = "";
-        public List<string> SpecialRules { get; set; } = new();
-        public int? TimeLimitDays { get; set; }
-        
-        // Starting assets
-        public int StartingSites { get; set; }
-        public int StartingLicenses { get; set; }
+        private readonly GameState _state;
+        private readonly Dictionary<string, ScenarioDefinition> _scenarios = new();
 
-        // Win condition evaluator
-        public Func<GameState, bool>? WinConditionCheck { get; set; }
+        // ── Active scenario state ─────────────────────────────────────────────
+
+        /// <summary>The currently active scenario, or null if none selected.</summary>
+        public ScenarioDefinition? ActiveScenario { get; private set; }
+
+        /// <summary>True while a scenario is running.</summary>
+        public bool IsScenarioActive => ActiveScenario != null && !IsWon && !IsLost;
+
+        /// <summary>True once the player has met the win condition.</summary>
+        public bool IsWon { get; private set; }
+
+        /// <summary>True once a loss condition has been triggered.</summary>
+        public bool IsLost { get; private set; }
+
+        /// <summary>Human-readable loss reason set when <see cref="IsLost"/> becomes true.</summary>
+        public string LossReason { get; private set; } = "";
+
+        // Tracks simulated AI competitor accumulated profit for Competition scenarios
+        private readonly Dictionary<string, decimal> _aiProgress = new();
+        private int _scenarioStartDay;
+
+        // ── Events ────────────────────────────────────────────────────────────
+
+        /// <summary>Fired when the player meets the scenario's win condition.</summary>
+        public event Action<ScenarioDefinition>? OnScenarioWon;
+
+        /// <summary>Fired when the player fails the scenario. Second argument is the reason string.</summary>
+        public event Action<ScenarioDefinition, string>? OnScenarioLost;
+
+        // ── Constructor ───────────────────────────────────────────────────────
+
+        public ScenarioSystem(GameState state)
+        {
+            _state = state ?? throw new ArgumentNullException(nameof(state));
+            RegisterAllScenarios();
+        }
+
+        // ── Scenario management ───────────────────────────────────────────────
+
+        /// <summary>
+        /// Activate a scenario. Applies starting capital to <see cref="GameState.Balance"/>
+        /// and seeds AI competitor state if this is a Competition scenario.
+        /// </summary>
+        /// <exception cref="ArgumentException">Unknown scenario id.</exception>
+        /// <exception cref="InvalidOperationException">Scenario is locked.</exception>
+        public void StartScenario(string scenarioId)
+        {
+            if (!_scenarios.TryGetValue(scenarioId, out var scenario))
+                throw new ArgumentException($"Unknown scenario id: '{scenarioId}'", nameof(scenarioId));
+
+            if (!scenario.IsUnlocked)
+                throw new InvalidOperationException($"Scenario '{scenarioId}' is locked.");
+
+            ActiveScenario = scenario;
+            IsWon = false;
+            IsLost = false;
+            LossReason = "";
+            _scenarioStartDay = _state.Day;
+            _state.Balance = scenario.StartingCapitalNOK;
+
+            // Seed AI competitors for Competition scenarios
+            _aiProgress.Clear();
+            if (scenario.WinCondition == WinCondition.Competition &&
+                scenario.SpecialRules.TryGetValue("ai_competitors", out var countStr) &&
+                int.TryParse(countStr, out var count))
+            {
+                for (int i = 1; i <= count; i++)
+                    _aiProgress[$"ai_{i}"] = 0m;
+            }
+
+            Console.WriteLine($"[ScenarioSystem] Started '{scenario.Name}' " +
+                              $"(difficulty {scenario.Difficulty}/5, goal: {scenario.WinCondition})");
+        }
+
+        /// <summary>
+        /// Evaluate win and loss conditions for the active scenario.
+        /// Call once per simulated day after all subsystem updates complete.
+        /// </summary>
+        /// <param name="sustainabilityScore">Current 0–100 sustainability score.</param>
+        /// <param name="tutorialComplete">True when TutorialSystem has finished all steps.</param>
+        public void CheckWinConditions(int sustainabilityScore = 0, bool tutorialComplete = false)
+        {
+            if (ActiveScenario == null || IsWon || IsLost) return;
+
+            int daysElapsed = _state.Day - _scenarioStartDay;
+
+            // ── Universal loss: bankruptcy ────────────────────────────────────
+            if (_state.Balance < -2_000_000m)
+            {
+                TriggerLoss("Konkurs — gjelden oversteg 2 000 000 NOK.");
+                return;
+            }
+
+            // ── Universal loss: time limit exceeded (except Survival — handled below) ──
+            if (ActiveScenario.WinCondition != WinCondition.Survival &&
+                ActiveScenario.TimeLimitDays.HasValue &&
+                daysElapsed > ActiveScenario.TimeLimitDays.Value)
+            {
+                TriggerLoss($"Tid ute etter {ActiveScenario.TimeLimitDays.Value} dager.");
+                return;
+            }
+
+            // ── Per-condition win checks ──────────────────────────────────────
+            switch (ActiveScenario.WinCondition)
+            {
+                case WinCondition.Tutorial:
+                    if (tutorialComplete)
+                        TriggerWin();
+                    break;
+
+                case WinCondition.Profit:
+                {
+                    decimal target = GetRuleDecimal("profit_target", 5_000_000m);
+                    if (_state.Balance >= target)
+                        TriggerWin();
+                    break;
+                }
+
+                case WinCondition.Sustainability:
+                {
+                    int target = (int)GetRuleDecimal("sustainability_target", 95m);
+                    if (sustainabilityScore >= target)
+                        TriggerWin();
+                    break;
+                }
+
+                case WinCondition.Survival:
+                {
+                    int survivalDays = ActiveScenario.TimeLimitDays ?? 730;
+                    if (daysElapsed > survivalDays)
+                    {
+                        // Must still be solvent at the end
+                        if (_state.Balance > 0)
+                            TriggerWin();
+                        else
+                            TriggerLoss($"Du overlevde ikke de {survivalDays} dagene med positiv balanse.");
+                    }
+                    break;
+                }
+
+                case WinCondition.Competition:
+                {
+                    decimal target = GetRuleDecimal("profit_target", 10_000_000m);
+
+                    // Advance AI competitors with simple linear accumulation (varied rate per AI)
+                    int aiIdx = 0;
+                    foreach (var key in _aiProgress.Keys.ToList())
+                    {
+                        decimal dailyRate = 3_500m + (aiIdx * 1_200m); // AI_1: 3.5k, AI_2: 4.7k, AI_3: 5.9k NOK/day
+                        _aiProgress[key] += dailyRate;
+                        aiIdx++;
+                    }
+
+                    // If any AI reached target first, player loses
+                    if (_aiProgress.Values.Any(v => v >= target))
+                    {
+                        TriggerLoss("En konkurrent nådde profittmålet før deg!");
+                        return;
+                    }
+
+                    // Player wins by reaching target before any AI
+                    if (_state.Balance >= target)
+                        TriggerWin();
+                    break;
+                }
+            }
+        }
+
+        // ── Roster queries ────────────────────────────────────────────────────
+
+        /// <summary>All registered scenarios, keyed by id.</summary>
+        public IReadOnlyDictionary<string, ScenarioDefinition> All => _scenarios;
+
+        /// <summary>Look up a scenario by id, returning null if not found.</summary>
+        public ScenarioDefinition? GetScenario(string id) =>
+            _scenarios.TryGetValue(id, out var s) ? s : null;
+
+        /// <summary>All scenarios visible to the player (unlocked or locked).</summary>
+        public IEnumerable<ScenarioDefinition> GetAll() => _scenarios.Values;
+
+        /// <summary>Only unlocked scenarios.</summary>
+        public IEnumerable<ScenarioDefinition> GetUnlocked() =>
+            _scenarios.Values.Where(s => s.IsUnlocked);
+
+        /// <summary>Unlock a scenario (call after completing a prerequisite).</summary>
+        public void Unlock(string scenarioId)
+        {
+            if (_scenarios.TryGetValue(scenarioId, out var s))
+                s.IsUnlocked = true;
+        }
+
+        /// <summary>
+        /// AI competitor accumulated profit for Competition scenarios (read-only).
+        /// Keys are "ai_1", "ai_2", etc.
+        /// </summary>
+        public IReadOnlyDictionary<string, decimal> AiProgress => _aiProgress;
+
+        // ── Internal helpers ──────────────────────────────────────────────────
+
+        private decimal GetRuleDecimal(string key, decimal defaultValue)
+        {
+            if (ActiveScenario?.SpecialRules.TryGetValue(key, out var raw) == true &&
+                decimal.TryParse(raw, System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out var val))
+                return val;
+            return defaultValue;
+        }
+
+        private void TriggerWin()
+        {
+            IsWon = true;
+            Console.WriteLine($"[ScenarioSystem] ★ Vunnet: '{ActiveScenario!.Name}'");
+            OnScenarioWon?.Invoke(ActiveScenario!);
+        }
+
+        private void TriggerLoss(string reason)
+        {
+            IsLost = true;
+            LossReason = reason;
+            Console.WriteLine($"[ScenarioSystem] ✗ Tapt: {reason}");
+            OnScenarioLost?.Invoke(ActiveScenario!, reason);
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // SCENARIO DEFINITIONS — 5 Norwegian campaign scenarios
+        // ══════════════════════════════════════════════════════════════════════
+
+        private void RegisterAllScenarios()
+        {
+            // ─── 1. FØRSTE SESONG — Tutorial (Difficulty 1) ───────────────────
+            //    One site, calm weather, stable market, friendly intro.
+            Register(new ScenarioDefinition
+            {
+                Id = "forste_sesong",
+                Name = "Første Sesong",
+                Description =
+                    "Du har arvet en liten oppdrettslisens fra onkelen din i Hardanger. " +
+                    "Lær grunnleggende drift med ett anlegg, rolig vær og stabile priser. " +
+                    "Fullfør opplæringen og vis at du kan drive lønnsomt.",
+                StartingCapitalNOK = 500_000m,
+                StartingRegion = ProductionRegion.Vestland,
+                Difficulty = 1,
+                WinCondition = WinCondition.Tutorial,
+                SpecialRules = new Dictionary<string, string>
+                {
+                    ["single_site"]  = "true",
+                    ["calm_weather"] = "true",
+                    ["easy_market"]  = "true",
+                },
+                TimeLimitDays = null,
+                IsUnlocked = true,
+            });
+
+            // ─── 2. LOFOTENS EVENTYR — Storm & Premium (Difficulty 3) ─────────
+            //    Nordland harsh winters, but Japanese sashimi premium prices.
+            Register(new ScenarioDefinition
+            {
+                Id = "lofoten_eventyr",
+                Name = "Lofotens Eventyr",
+                Description =
+                    "De dramatiske øyene i Nordland byr på de reneste havstrømmene og de råeste stormene. " +
+                    "Laksen her oppnår premiumpriser i Asia og Europa — men uvær truer anleggene. " +
+                    "Nå et overskudd på 5 000 000 NOK for å erobre markedet.",
+                StartingCapitalNOK = 2_000_000m,
+                StartingRegion = ProductionRegion.Nordland,
+                Difficulty = 3,
+                WinCondition = WinCondition.Profit,
+                SpecialRules = new Dictionary<string, string>
+                {
+                    ["harsh_storms"]   = "true",
+                    ["premium_prices"] = "true",
+                    ["profit_target"]  = "5000000",
+                },
+                TimeLimitDays = null,
+                IsUnlocked = true,
+            });
+
+            // ─── 3. LAKSEBARONENE — Competition (Difficulty 4) ────────────────
+            //    Race against 3 AI competitors to 10M NOK profit.
+            Register(new ScenarioDefinition
+            {
+                Id = "laksebaronene",
+                Name = "Laksebaronene",
+                Description =
+                    "Tre aggressive konkurrenter kjemper om å bli Trøndelags største lakseaktør. " +
+                    "Hvem som helst kan ta markedsandeler, kjøpe lisenser og dumpe priser. " +
+                    "Vær den første til å nå 10 000 000 NOK i fortjeneste — eller bli utkonkurrert.",
+                StartingCapitalNOK = 5_000_000m,
+                StartingRegion = ProductionRegion.Trøndelag,
+                Difficulty = 4,
+                WinCondition = WinCondition.Competition,
+                SpecialRules = new Dictionary<string, string>
+                {
+                    ["ai_competitors"] = "3",
+                    ["profit_target"]  = "10000000",
+                },
+                TimeLimitDays = null,
+                IsUnlocked = false,
+            });
+
+            // ─── 4. BÆREKRAFTSMESTER — Sustainability (Difficulty 3) ──────────
+            //    Win by achieving Sustainability Leader certification (score ≥ 95).
+            Register(new ScenarioDefinition
+            {
+                Id = "barekraft_mester",
+                Name = "Bærekraftsmester",
+                Description =
+                    "Forbrukere og politikere krever ansvarlig havbruk. " +
+                    "Bygg et oppdrettsselskap med minst mulig miljøavtrykk og oppnå " +
+                    "Sustainability Leader-sertifiseringen (bærekraftspoeng ≥ 95). " +
+                    "Strengere reguleringer gjør veien krevende.",
+                StartingCapitalNOK = 3_000_000m,
+                StartingRegion = ProductionRegion.Vestland,
+                Difficulty = 3,
+                WinCondition = WinCondition.Sustainability,
+                SpecialRules = new Dictionary<string, string>
+                {
+                    ["sustainability_target"] = "95",
+                    ["regulation_pressure"]   = "true",
+                },
+                TimeLimitDays = null,
+                IsUnlocked = false,
+            });
+
+            // ─── 5. KRISE MANAGER — Survival (Difficulty 5) ──────────────────
+            //    Start with disease + debt + regulation pressure. Survive 2 years.
+            Register(new ScenarioDefinition
+            {
+                Id = "krise_manager",
+                Name = "Krise Manager",
+                Description =
+                    "Du tar over et konkursrammet anlegg i Finnmark: ILA-utbrudd pågår, " +
+                    "500 000 NOK i gjeld og Mattilsynet har varslet sanksjoner. " +
+                    "Overlev i 730 dager (2 år) med positiv bankkonto — da er du en ekte krisehåndterer.",
+                StartingCapitalNOK = -500_000m,
+                StartingRegion = ProductionRegion.Finnmark,
+                Difficulty = 5,
+                WinCondition = WinCondition.Survival,
+                SpecialRules = new Dictionary<string, string>
+                {
+                    ["start_disease"]       = "true",
+                    ["start_debt"]          = "true",
+                    ["regulation_pressure"] = "true",
+                },
+                TimeLimitDays = 730,
+                IsUnlocked = false,
+            });
+        }
+
+        private void Register(ScenarioDefinition scenario) => _scenarios[scenario.Id] = scenario;
     }
 }

@@ -280,3 +280,15 @@ public enum ProductionRegion
     MøreOgRomsdal,
     Sørlandet
 }
+
+/// <summary>
+/// Win conditions for scenario objectives
+/// </summary>
+public enum WinCondition
+{
+    Tutorial,       // Complete all tutorial milestones
+    Profit,         // Reach a target profit threshold
+    Sustainability, // Achieve Sustainability Leader certification (score ≥ 95)
+    Survival,       // Survive N days without bankruptcy
+    Competition     // Outpace AI competitors to a shared profit target
+}
