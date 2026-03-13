@@ -41,6 +41,10 @@ public partial class GameBridge : Node
     // ── Research signals ──────────────────────────────────────────────────────
 
     [Signal] public delegate void ResearchCompletedEventHandler(string nodeId, string nodeName);
+    [Signal] public delegate void ScenarioLoadedEventHandler(string scenarioId, string scenarioName);
+    [Signal] public delegate void SustainabilityChangedEventHandler(int score, string level);
+    [Signal] public delegate void FinanceTransactionEventHandler(string type, double amount, string description);
+    [Signal] public delegate void FarmActionCompletedEventHandler(string action, string siteId, bool success);
 
     // ── Godot lifecycle ───────────────────────────────────────────────────────
 
@@ -540,6 +544,393 @@ public partial class GameBridge : Node
     /// </summary>
     public double GetResearchEffect(string effectKey)
         => SimulationEngine?.Research?.GetTotalEffect(effectKey) ?? 0.0;
+
+    // ── Scenario System API for GDScript ─────────────────────────────────────
+
+    /// <summary>
+    /// Return all available scenarios as an Array of Dictionaries.
+    /// Keys: "id" (string), "name" (string), "description" (string),
+    ///       "difficulty" (string), "region" (string), "starting_capital" (double).
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetAvailableScenarios()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var scenarios = SimulationEngine?.ScenarioSystem?.GetAvailableScenarios();
+        if (scenarios == null) return result;
+
+        foreach (var scenario in scenarios)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"]               = scenario.Id,
+                ["name"]             = scenario.Name,
+                ["description"]      = scenario.Description,
+                ["difficulty"]       = scenario.Difficulty.ToString(),
+                ["region"]           = scenario.Region,
+                ["starting_capital"] = (double)scenario.StartingCapital
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Load and start a scenario by ID.
+    /// Returns true on success, false if scenario not found.
+    /// </summary>
+    public bool StartScenario(string scenarioId)
+    {
+        if (SimulationEngine?.ScenarioSystem == null) return false;
+
+        var scenario = SimulationEngine.ScenarioSystem.LoadScenario(scenarioId);
+        if (scenario == null)
+        {
+            GD.PrintErr($"GameBridge.StartScenario: scenario '{scenarioId}' not found");
+            return false;
+        }
+
+        // Initialize game with scenario parameters
+        StartNewGame(scenario.Name, (int)scenario.StartingCapital);
+        
+        EmitSignal(SignalName.ScenarioLoaded, scenarioId, scenario.Name);
+        GD.Print($"GameBridge: scenario loaded — {scenario.Name}");
+        return true;
+    }
+
+    /// <summary>
+    /// Return the ID of the currently active scenario.
+    /// Returns empty string if no scenario is loaded.
+    /// </summary>
+    public string GetActiveScenarioId()
+        => SimulationEngine?.ScenarioSystem?.ActiveScenarioId ?? "";
+
+    // ── Sustainability API (expanded) ────────────────────────────────────────
+
+    /// <summary>
+    /// Return detailed sustainability breakdown as a Dictionary.
+    /// Keys: "sea_lice" (double), "escape" (double), "feed" (double),
+    ///       "carbon" (double), "welfare" (double), "ecosystem" (double).
+    /// </summary>
+    public Godot.Collections.Dictionary GetSustainabilityBreakdown()
+    {
+        var result = new Godot.Collections.Dictionary();
+        var manager = SimulationEngine?.SustainabilityManager;
+        if (manager == null)
+        {
+            result["sea_lice"] = 0.0;
+            result["escape"] = 0.0;
+            result["feed"] = 0.0;
+            result["carbon"] = 0.0;
+            result["welfare"] = 0.0;
+            result["ecosystem"] = 0.0;
+            return result;
+        }
+
+        var breakdown = manager.GetBreakdown();
+        result["sea_lice"] = breakdown.SeaLiceScore;
+        result["escape"] = breakdown.EscapeScore;
+        result["feed"] = breakdown.FeedScore;
+        result["carbon"] = breakdown.CarbonScore;
+        result["welfare"] = breakdown.WelfareScore;
+        result["ecosystem"] = breakdown.EcosystemScore;
+        return result;
+    }
+
+    /// <summary>
+    /// Return the current certification level as a string.
+    /// Possible values: "NonCompliant", "Compliant", "ASCCertified", "OrganicCertified".
+    /// </summary>
+    public string GetCertificationLevel()
+        => SimulationEngine?.SustainabilityManager?.CurrentCertification.ToString() ?? "NonCompliant";
+
+    /// <summary>
+    /// Return the current price multiplier from certification (e.g. 1.0 = no bonus, 1.15 = +15%).
+    /// </summary>
+    public double GetPriceMultiplier()
+        => SimulationEngine?.SustainabilityManager?.GetPriceMultiplier() ?? 1.0;
+
+    // ── Finance API ───────────────────────────────────────────────────────────
+
+    /// <summary>Total revenue accumulated this period (read-only).</summary>
+    public double Revenue => (double)(SimulationEngine?.FinanceManager?.Revenue ?? 0m);
+
+    /// <summary>Total expenses accumulated this period (read-only).</summary>
+    public double Expenses => (double)(SimulationEngine?.FinanceManager?.Expenses ?? 0m);
+
+    /// <summary>Current profit (Revenue - Expenses).</summary>
+    public double Profit => Revenue - Expenses;
+
+    /// <summary>
+    /// Return financial history for the last N days as an Array of Dictionaries.
+    /// Keys: "day" (int), "revenue" (double), "expenses" (double), "balance" (double).
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetFinancialHistory(int days)
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var finance = SimulationEngine?.FinanceManager;
+        if (finance == null) return result;
+
+        var history = finance.GetHistory(days);
+        foreach (var entry in history)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["day"]      = entry.Day,
+                ["revenue"]  = (double)entry.Revenue,
+                ["expenses"] = (double)entry.Expenses,
+                ["balance"]  = (double)entry.Balance
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Return loan information as a Dictionary.
+    /// Keys: "has_loan" (bool), "amount" (double), "interest_rate" (double), "remaining" (double).
+    /// </summary>
+    public Godot.Collections.Dictionary GetLoanInfo()
+    {
+        var result = new Godot.Collections.Dictionary();
+        var finance = SimulationEngine?.FinanceManager;
+        if (finance == null)
+        {
+            result["has_loan"] = false;
+            result["amount"] = 0.0;
+            result["interest_rate"] = 0.0;
+            result["remaining"] = 0.0;
+            return result;
+        }
+
+        var loanInfo = finance.GetLoanInfo();
+        result["has_loan"] = loanInfo.HasLoan;
+        result["amount"] = (double)loanInfo.Amount;
+        result["interest_rate"] = loanInfo.InterestRate;
+        result["remaining"] = (double)loanInfo.Remaining;
+        return result;
+    }
+
+    /// <summary>
+    /// Take out a loan for the specified amount.
+    /// Returns true on success, false if already have a loan or amount is invalid.
+    /// </summary>
+    public bool TakeLoan(double amount)
+    {
+        if (SimulationEngine?.FinanceManager == null) return false;
+        
+        bool success = SimulationEngine.FinanceManager.TakeLoan((decimal)amount);
+        if (success)
+        {
+            EmitSignal(SignalName.FinanceTransaction, "loan_taken", amount, $"Loan taken: {amount:N0} NOK");
+            EmitSignal(SignalName.GameStateUpdated);
+            GD.Print($"GameBridge: loan taken — {amount:N0} NOK");
+        }
+        return success;
+    }
+
+    /// <summary>
+    /// Repay a portion of the active loan.
+    /// Returns true on success, false if no loan exists or insufficient funds.
+    /// </summary>
+    public bool RepayLoan(double amount)
+    {
+        if (SimulationEngine?.FinanceManager == null) return false;
+        
+        bool success = SimulationEngine.FinanceManager.RepayLoan((decimal)amount);
+        if (success)
+        {
+            EmitSignal(SignalName.FinanceTransaction, "loan_repaid", amount, $"Loan repayment: {amount:N0} NOK");
+            EmitSignal(SignalName.GameStateUpdated);
+            GD.Print($"GameBridge: loan repaid — {amount:N0} NOK");
+        }
+        return success;
+    }
+
+    // ── Farm Management API ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Stock smolts at a specific sea site.
+    /// Returns true on success, false if site not found or stocking failed.
+    /// </summary>
+    public bool StockSmolts(string siteId, int count)
+    {
+        if (SimulationEngine?.Hatchery == null) return false;
+
+        bool success = SimulationEngine.Hatchery.StockSmolts(siteId, count);
+        if (success)
+        {
+            EmitSignal(SignalName.FarmActionCompleted, "stock_smolts", siteId, true);
+            EmitSignal(SignalName.GameStateUpdated);
+            GD.Print($"GameBridge: stocked {count} smolts at site '{siteId}'");
+        }
+        else
+        {
+            EmitSignal(SignalName.FarmActionCompleted, "stock_smolts", siteId, false);
+        }
+        return success;
+    }
+
+    /// <summary>
+    /// Harvest all fish at a specific sea site.
+    /// Returns the total biomass harvested in kg, or 0.0 if site not found or empty.
+    /// </summary>
+    public double HarvestSite(string siteId)
+    {
+        if (SimulationEngine == null) return 0.0;
+
+        double biomassHarvested = SimulationEngine.HarvestSite(siteId);
+        if (biomassHarvested > 0.0)
+        {
+            EmitSignal(SignalName.FarmActionCompleted, "harvest", siteId, true);
+            EmitSignal(SignalName.GameStateUpdated);
+            GD.Print($"GameBridge: harvested {biomassHarvested:N0} kg from site '{siteId}'");
+        }
+        else
+        {
+            EmitSignal(SignalName.FarmActionCompleted, "harvest", siteId, false);
+        }
+        return biomassHarvested;
+    }
+
+    /// <summary>
+    /// Build a new sea site in the specified zone.
+    /// Returns true on success, false if zone not found or insufficient funds.
+    /// </summary>
+    public bool BuildSeaSite(string zoneId, string name)
+    {
+        if (SimulationEngine == null) return false;
+
+        bool success = SimulationEngine.BuildSeaSite(zoneId, name);
+        if (success)
+        {
+            EmitSignal(SignalName.FarmActionCompleted, "build_site", zoneId, true);
+            EmitSignal(SignalName.GameStateUpdated);
+            GD.Print($"GameBridge: built sea site '{name}' in zone '{zoneId}'");
+        }
+        else
+        {
+            EmitSignal(SignalName.FarmActionCompleted, "build_site", zoneId, false);
+        }
+        return success;
+    }
+
+    /// <summary>
+    /// Return detailed information about all sea sites as an Array of Dictionaries.
+    /// Keys: "id" (string), "name" (string), "zone" (string), "fish_count" (int),
+    ///       "biomass_kg" (double), "max_biomass" (double), "escapes_this_year" (int).
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetSeaSiteDetails()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var sites = SimulationEngine?.State?.SeaSites;
+        var populations = SimulationEngine?.State?.Populations;
+        if (sites == null || populations == null) return result;
+
+        foreach (var site in sites)
+        {
+            var population = populations.FirstOrDefault(p => p.SiteId == site.Id);
+            int fishCount = population?.Cohorts.Sum(c => c.Count) ?? 0;
+            double biomassKg = population?.Cohorts.Sum(c => c.Count * (double)c.MeanWeightKg) ?? 0.0;
+
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"]                = site.Id,
+                ["name"]              = site.Name,
+                ["zone"]              = site.ZoneId,
+                ["fish_count"]        = fishCount,
+                ["biomass_kg"]        = biomassKg,
+                ["max_biomass"]       = site.MaxBiomassKg,
+                ["escapes_this_year"] = site.EscapesThisYear
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Order a delousing treatment for a specific sea site using the specified method.
+    /// Valid methods: "mechanical", "thermal", "chemical", "biological".
+    /// Returns true on success, false if site not found, method invalid, or insufficient funds.
+    /// </summary>
+    public bool OrderDelousing(string siteId, string method)
+    {
+        if (SimulationEngine?.SeaLice == null) return false;
+
+        bool success = SimulationEngine.SeaLice.OrderDelousing(siteId, method);
+        if (success)
+        {
+            EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, true);
+            EmitSignal(SignalName.GameStateUpdated);
+            GD.Print($"GameBridge: ordered {method} delousing for site '{siteId}'");
+        }
+        else
+        {
+            EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, false);
+        }
+        return success;
+    }
+
+    // ── Worker/Crew API ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Return the crew roster as an Array of Dictionaries.
+    /// Keys: "id" (string), "name" (string), "role" (string), "salary_nok" (double),
+    ///       "skill_level" (int), "hire_date" (int).
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetCrewList()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var crew = SimulationEngine?.State?.Crew;
+        if (crew == null) return result;
+
+        foreach (var worker in crew)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"]         = worker.Id,
+                ["name"]       = worker.Name,
+                ["role"]       = worker.Role.ToString(),
+                ["salary_nok"] = (double)worker.SalaryNOK,
+                ["skill_level"] = worker.SkillLevel,
+                ["hire_date"]  = worker.HireDate
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Hire a new worker with the specified role.
+    /// Valid roles: "manager", "technician", "veterinarian", "diver", "feeder".
+    /// Returns true on success, false if role invalid or insufficient funds.
+    /// </summary>
+    public bool HireWorker(string role)
+    {
+        if (SimulationEngine == null) return false;
+
+        bool success = SimulationEngine.HireWorker(role);
+        if (success)
+        {
+            EmitSignal(SignalName.FinanceTransaction, "hire_worker", 0.0, $"Hired {role}");
+            EmitSignal(SignalName.GameStateUpdated);
+            GD.Print($"GameBridge: hired worker — {role}");
+        }
+        return success;
+    }
+
+    /// <summary>
+    /// Fire a worker by ID.
+    /// Returns true on success, false if worker not found.
+    /// </summary>
+    public bool FireWorker(string workerId)
+    {
+        if (SimulationEngine == null) return false;
+
+        bool success = SimulationEngine.FireWorker(workerId);
+        if (success)
+        {
+            EmitSignal(SignalName.FinanceTransaction, "fire_worker", 0.0, $"Fired worker {workerId}");
+            EmitSignal(SignalName.GameStateUpdated);
+            GD.Print($"GameBridge: fired worker — {workerId}");
+        }
+        return success;
+    }
 
     public override void _ExitTree()
     {
