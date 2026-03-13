@@ -202,7 +202,51 @@ public partial class GameBridge : Node
     public string SustainabilityLevel =>
         SimulationEngine?.SustainabilityManager?.CurrentCertification.ToString() ?? "NonCompliant";
 
-    // "?"? External Analytics "?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?
+    // 🔗 Production Chain API ─────────────────────────────────────────────────
+    
+    /// <summary>Count of fish at each life stage across all populations.</summary>
+    public int GetFishCountByStage(string stageName)
+    {
+        if (SimulationEngine?.State?.Populations == null) return 0;
+        if (!Enum.TryParse<LakskongenSim.Data.LifeStage>(stageName, true, out var stage)) return 0;
+        return SimulationEngine.State.Populations
+            .SelectMany(p => p.Cohorts)
+            .Where(c => c.Stage == stage)
+            .Sum(c => c.Count);
+    }
+
+    /// <summary>Biomass (kg) of fish at a specific life stage.</summary>
+    public double GetBiomassByStage(string stageName)
+    {
+        if (SimulationEngine?.State?.Populations == null) return 0.0;
+        if (!Enum.TryParse<LakskongenSim.Data.LifeStage>(stageName, true, out var stage)) return 0.0;
+        return SimulationEngine.State.Populations
+            .SelectMany(p => p.Cohorts)
+            .Where(c => c.Stage == stage)
+            .Sum(c => c.Count * c.MeanWeightKg);
+    }
+
+    /// <summary>Whether the player owns a hatchery.</summary>
+    public bool OwnsHatchery => SimulationEngine?.State?.OwnsHatchery ?? false;
+
+    /// <summary>Whether the player owns a processing plant.</summary>
+    public bool OwnsProcessingPlant => SimulationEngine?.State?.OwnsProcessingPlant ?? false;
+
+    /// <summary>Number of export markets unlocked.</summary>
+    public int ExportMarketCount => SimulationEngine?.State?.ExportMarkets?.Count ?? 0;
+
+    /// <summary>Total processing throughput from snapshots (kg).</summary>
+    public double ProcessingThroughputKg
+    {
+        get
+        {
+            var snapshots = SimulationEngine?.State?.ProcessingSnapshots;
+            if (snapshots == null || snapshots.Count == 0) return 0.0;
+            return (double)snapshots.Sum(s => s.InputKg);
+        }
+    }
+
+    // 📊 External Analytics ──────────────────────────────────────────────────
 
     public int ExternalWarningCount => SimulationEngine?.State?.ExternalHealthAnalytics?.WarningCount ?? 0;
     

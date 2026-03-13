@@ -24,12 +24,25 @@ Source: Akvafakta, SSB (Statistics Norway), Fish Farming Expert
 
 ## Ornstein-Uhlenbeck Calibration Parameters (Estimated)
 
-Based on observed data:
-- **μ (long-term mean)**: ~85 NOK/kg (2025-2026 average)
-- **θ (mean-reversion speed)**: ~0.15-0.25 (weekly, moderate reversion)
-- **σ (volatility)**: ~8-12 NOK/kg/√week
+Based on observed data 2020-2025:
+- **μ (long-term mean)**: ~70-80 NOK/kg (2020-2025 average)
+- **θ (mean-reversion speed)**: ~0.01-0.02/week (annual kappa ~0.5-1.0, moderate reversion over months)
+- **σ (volatility)**: ~10-15 NOK/kg/√week (salmon prices are highly volatile, weekly swings 5-15 NOK/kg common)
 - **Price floor**: ~40 NOK/kg (historical crisis low)
 - **Price ceiling**: ~120 NOK/kg (historical peak)
+
+## Historical Yearly Averages
+
+Based on IndexMundi monthly data (Norwegian salmon export price, NOK/kg):
+
+| Year | Average Price (NOK/kg) | Notes |
+|------|------------------------|-------|
+| 2020 | 62.68 | Average spot price for 2020 (FishFarmingExpert) |
+| 2021 | 60.81 | Monthly average from IndexMundi (Feb-Dec) |
+| 2022 | 82.26 | Monthly average |
+| 2023 | 95.76 | Monthly average |
+| 2024 | 94.35 | Monthly average |
+| 2025 | 83.84 | Jan-Jun average (preliminary) |
 
 ## Data Sources for Further Research
 - **SSB Statbank**: https://www.ssb.no/en/statbank/table/03024 (historical export data)

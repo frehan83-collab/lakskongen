@@ -321,6 +321,32 @@ func balance_color(amount: float) -> Color:
 	elif amount < 500_000.0: return Color.YELLOW
 	return Color.WHITE
 
+# ── Production Chain API ──────────────────────────────────────────────────────
+
+## Get count of fish at a specific life stage (Egg, Fry, Smolt, PostSmolt, Adult, Broodstock, Harvested)
+func get_fish_count_by_stage(stage_name: String) -> int:
+	return _game_bridge.GetFishCountByStage(stage_name)
+
+## Get biomass (kg) at a specific life stage
+func get_biomass_by_stage(stage_name: String) -> float:
+	return _game_bridge.GetBiomassByStage(stage_name)
+
+## Whether the player owns a hatchery
+func owns_hatchery() -> bool:
+	return _game_bridge.OwnsHatchery
+
+## Whether the player owns a processing plant
+func owns_processing_plant() -> bool:
+	return _game_bridge.OwnsProcessingPlant
+
+## Number of export markets unlocked
+func get_export_market_count() -> int:
+	return _game_bridge.ExportMarketCount
+
+## Total processing throughput (kg)
+func get_processing_throughput_kg() -> float:
+	return _game_bridge.ProcessingThroughputKg
+
 # ── Analytics API ─────────────────────────────────────────────────────────────
 
 ## Get time-series data for a metric over N days (returns Array[double]).
