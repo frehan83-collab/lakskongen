@@ -45,20 +45,23 @@
 | T25 | Genetics breeding UI (CK3-style) | DeepSeek | ✅ Traits, inbreeding, heritability |
 | T26 | Tutorial onboarding (23 steps) | Opus (direct) | ✅ Full Norwegian first-2-hours |
 | T27 | Polish 5 campaign scenarios | DeepSeek | ✅ Familiegården→Lakskongen |
+| T28 | Contracts panel + market depth UI | DeepSeek | ✅ Active contracts, offers, export markets |
+| T29 | Encyclopedia expansion (51→65 entries) | DeepSeek | ✅ Industry, market, tech, Norwegian companies |
+| T30 | Balance tuning — production economics | DeepSeek | ✅ Real Norwegian VB growth, FCR, costs, MAB |
 
 ## 🟢 In Progress (Sprint 7 — Wave 3)
 | ID | Task | Agent | Status |
 |----|------|-------|--------|
-| T28 | Contracts panel + market depth UI | DeepSeek | 🏃 Running |
-| T29 | MapPanel expansion for 13 zones | Opus (direct) | 🏃 WIP |
+| T31 | MapPanel expansion for 13 zones (UI rewrite) | Opus (direct) | 🏃 WIP |
 
 ## 📋 Inbox (Next)
 | ID | Task | Estimated Agent | Priority |
 |----|------|----------------|----------|
-| T29 | Encyclopedia expansion (51→80+ entries) | DeepSeek | MEDIUM |
-| T30 | Balance tuning pass (production costs, growth rates) | DeepSeek | HIGH |
+| T32 | Audio system + weather-reactive ambience | Sonnet | MEDIUM |
+| T33 | Achievement system polish + notification UI | Sonnet | MEDIUM |
 | T17 | Multiplayer testing — NetworkManager + lobby | Sonnet | LOW |
 
 ---
-*Updated: 2026-03-13 21:17 CET — Sprint 7 Wave 3*
+*Updated: 2026-03-13 21:45 CET — Sprint 7: 10 tasks done*
+*Build: ✅ Green | Tests: ✅ 18/18 | TODOs: 0 | Commits: 10+*
 *Fallback: Sonnet → GPT-5.4 → DeepSeek → Gemini 2.5 Flash | Ollama → Qwen → GPT-5.4*
