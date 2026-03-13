@@ -9,6 +9,9 @@ namespace LakskongenSim.Core
     /// Manages JSON serialization/deserialization of GameState with backup file rotation.
     /// Pure C# — no Godot dependency. Keeps the last 3 backup copies (.bak1/.bak2/.bak3)
     /// and shifts them on each save so .bak1 is always the most recent backup.
+    /// 
+    /// Handles backward compatibility: missing properties use default values from GameState constructor.
+    /// All new GameState properties are automatically serialized via System.Text.Json.
     /// </summary>
     public class SaveLoadManager
     {
@@ -20,7 +23,10 @@ namespace LakskongenSim.Core
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             WriteIndented = true,
-            Converters = { new JsonStringEnumConverter() }
+            Converters = { new JsonStringEnumConverter() },
+            DefaultIgnoreCondition = JsonIgnoreCondition.Never, // Serialize all properties
+            IgnoreReadOnlyProperties = false,
+            IncludeFields = false
         };
 
         public SaveLoadManager(string saveDirectory)
@@ -34,6 +40,12 @@ namespace LakskongenSim.Core
         /// <summary>
         /// Serialize <paramref name="state"/> to &lt;saveName&gt;.json.
         /// The existing file is rotated into backup slots before being overwritten.
+        /// All public properties in GameState are automatically serialized, including:
+        /// - Research (UnlockedResearchIds, ActiveResearchId, ResearchProgress)
+        /// - Achievements (ExportMarkets, AcquisitionCount, UnlockedAchievementIds, etc.)
+        /// - Sustainability (SustainabilityScore, SustainabilityCertification, FeedSustainabilityRating)
+        /// - Scenarios (ActiveScenarioId, ScenarioIsWon, ScenarioIsLost, ScenarioLossReason, ScenarioStartDay)
+        /// - Tutorial (TutorialCurrentStepIndex, CompletedTutorialStepIds)
         /// </summary>
         public void SaveGame(GameState state, string saveName = "save")
         {
@@ -48,6 +60,7 @@ namespace LakskongenSim.Core
         /// <summary>
         /// Deserialize a <see cref="GameState"/> from &lt;saveName&gt;.json.
         /// Throws <see cref="FileNotFoundException"/> if the file does not exist.
+        /// Backward compatible: missing properties use default values from GameState.
         /// </summary>
         public GameState LoadGame(string saveName = "save")
         {
@@ -108,8 +121,47 @@ namespace LakskongenSim.Core
             File.Copy(filePath, filePath + ".bak1", overwrite: true);
         }
 
-        private static GameState Deserialize(string json) =>
-            JsonSerializer.Deserialize<GameState>(json, JsonOptions)
+        /// <summary>
+        /// Deserialize JSON to GameState with backward compatibility handling.
+        /// Missing properties will use default values from the GameState constructor.
+        /// System.Text.Json handles:
+        /// - Missing properties → default/initialized values
+        /// - Null collections → empty collections (via property initializers)
+        /// - New enum values → default enum value
+        /// - Nullable properties → null if missing
+        /// </summary>
+        private static GameState Deserialize(string json)
+        {
+            var state = JsonSerializer.Deserialize<GameState>(json, JsonOptions)
                 ?? throw new InvalidOperationException("Deserialized GameState was null.");
+
+            // Ensure collections are never null (backward compatibility for older saves)
+            state.Zones ??= new();
+            state.SeaSites ??= new();
+            state.Populations ??= new();
+            state.ProcessingSnapshots ??= new();
+            state.EventLog ??= new();
+            state.DailySnapshots ??= new();
+            state.UnlockedResearchIds ??= new();
+            state.ExportMarkets ??= new();
+            state.UnlockedAchievementIds ??= new();
+            state.CompletedTutorialStepIds ??= new();
+
+            // Ensure new scalar properties have sensible defaults if missing
+            // (System.Text.Json uses 0/false/null for missing primitives, but we can override)
+            if (state.BestFCR == 0.0)
+                state.BestFCR = double.MaxValue; // Uninitialized = no record yet
+
+            if (state.MinimumBalanceEver == 0.0m)
+                state.MinimumBalanceEver = decimal.MaxValue; // Uninitialized = no low yet
+
+            if (state.FeedSustainabilityRating == 0.0)
+                state.FeedSustainabilityRating = 0.7; // Default 70% sustainable
+
+            // ScenarioLossReason should be empty string, not null
+            state.ScenarioLossReason ??= string.Empty;
+
+            return state;
+        }
     }
 }

@@ -1,0 +1,36 @@
+/// <summary>Feed sustainability rating (0.0-1.0) based on sustainable feed purchases. 1.0 = 100% sustainable sources.</summary>
+        public double FeedSustainabilityRating { get; set; } = 0.7;
+
+        /// <summary>Sustainability score (0-100) computed by SustainabilityManager.</summary>
+        public int SustainabilityScore { get; set; }
+
+        /// <summary>Current certification level based on sustainability score.</summary>
+        public CertificationLevel SustainabilityCertification { get; set; }
+
+        /// <summary>IDs of unlocked achievements.</summary>
+        public HashSet<string> UnlockedAchievementIds { get; set; } = new();
+
+        /// <summary>Active scenario ID, if any.</summary>
+        public string? ActiveScenarioId { get; set; }
+
+        /// <summary>Whether the active scenario has been won.</summary>
+        public bool ScenarioIsWon { get; set; }
+
+        /// <summary>Whether the active scenario has been lost.</summary>
+        public bool ScenarioIsLost { get; set; }
+
+        /// <summary>Reason for scenario loss, if any.</summary>
+        public string ScenarioLossReason { get; set; } = "";
+
+        /// <summary>Day the scenario started (day index).</summary>
+        public int ScenarioStartDay { get; set; }
+
+        /// <summary>Current tutorial step index (0-based).</summary>
+        public int TutorialCurrentStepIndex { get; set; }
+
+        /// <summary>IDs of completed tutorial steps.</summary>
+        public HashSet<string> CompletedTutorialStepIds { get; set; } = new();
+
+        /// <summary>Logistics manager for vehicle fleet and carbon footprint tracking.</summary>
+        [JsonIgnore]
+        public Logistics.LogisticsManager? LogisticsManager { get; set; }

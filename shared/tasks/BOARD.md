@@ -11,18 +11,19 @@
 | T06 | GameBridge expansion — 6 API sections | Sonnet | 25 new methods, committed |
 | T07 | JSON data: research, tutorial, balancing | Orchestrator | 3 files, committed |
 | T08 | JSON data: encyclopedia, achievements, scenarios | Orchestrator | 3 files, committed |
+| T09 | Wire GDScript UI panels to new bridge APIs | Sonnet | 39 new SimBridge methods, 4 panels wired, 2 new panels (Finance, Crew) |
+| T10 | Create missing Godot scenes (SustainabilityPanel, FinancePanel) | Sonnet | 2 .tscn scenes + scripts, committed |
+| T11 | SimulationEngine — load JSON configs on Initialize() | Sonnet | All 6 JSON configs loaded, committed |
 
 ## 🟢 In Progress
 | ID | Task | Agent | Status |
+|----|------|-------|--------|
+| T12 | Save/Load — serialize new GameState properties | Sonnet | Running |
 
 ## 📋 Inbox (Prioritized)
 | ID | Task | Estimated Agent | Priority |
 |----|------|----------------|----------|
-| T09 | Wire GDScript UI panels to new bridge APIs | Sonnet | HIGH |
-| T10 | Create missing Godot scenes (SustainabilityPanel, FinancePanel) | Sonnet | HIGH |
-| T11 | SimulationEngine — load JSON configs on Initialize() | Sonnet | HIGH |
-| T12 | Save/Load — serialize new GameState properties | Sonnet/GLM | MEDIUM |
-| T13 | Compile check — full solution build verification | Opus | MEDIUM |
+| T13 | Compile check — full solution build verification | DeepSeek/Opus | MEDIUM |
 | T14 | GDScript Dashboard.gd — wire to all new bridge data | Sonnet | MEDIUM |
 | T15 | Audio assets placeholder + AudioManager wiring | GLM | LOW |
 | T16 | Tutorial flow — TutorialSystem ↔ TutorialUI.gd | Sonnet | LOW |
