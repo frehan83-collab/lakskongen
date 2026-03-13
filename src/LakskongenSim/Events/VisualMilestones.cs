@@ -1,15 +1,14 @@
 using System;
 using System.Collections.Generic;
-using Godot;
 
 namespace LakskongenSim.Events
 {
     /// <summary>
-    /// Visual Milestones System - Automatic cinematics and achievements
-    /// Triggers beautiful moments when players hit major milestones
+    /// Visual Milestones System - Tracks achievement milestones and notifies via events.
+    /// Pure C# — no Godot dependencies. Cinematic/camera logic lives in the Godot layer.
     /// Author: Ingrid Lunde, UI/UX Designer
     /// </summary>
-    public partial class VisualMilestones : Node
+    public class VisualMilestones
     {
         public enum MilestoneType
         {
@@ -34,321 +33,145 @@ namespace LakskongenSim.Events
             public string CinematicType { get; set; } = string.Empty;
             public bool Achieved { get; set; }
             public DateTime? AchievedDate { get; set; }
-            public string ScreenshotPath { get; set; } = string.Empty;
         }
 
-        // Milestone tracking
-        private Dictionary<MilestoneType, Milestone> milestones = new Dictionary<MilestoneType, Milestone>();
-        private HashSet<MilestoneType> triggeredMilestones = new HashSet<MilestoneType>();
-        
-        // References
-        private Node gameManager;
-        private Node photoMode;
-        private AudioStreamPlayer cinematicMusic;
-        
-        // Cinematic state
-        private bool isPlayingCinematic = false;
-        private Camera3D cinematicCamera;
-        
-        [Signal]
-        public delegate void MilestoneAchievedEventHandler(string title, string description);
-        
-        [Signal]
-        public delegate void CinematicStartedEventHandler(MilestoneType type);
-        
-        [Signal]
-        public delegate void CinematicFinishedEventHandler();
+        // C# events (replaces Godot signals)
+        public event Action<string, string>? MilestoneAchieved;
+        public event Action<MilestoneType>? CinematicStarted;
+        public event Action? CinematicFinished;
 
-        public override void _Ready()
+        private readonly Dictionary<MilestoneType, Milestone> _milestones = new();
+        private readonly HashSet<MilestoneType> _triggeredMilestones = new();
+
+        public VisualMilestones()
         {
             InitializeMilestones();
-            SetupCinematicCamera();
-            GD.Print("✨ Visual Milestones system initialized");
         }
 
         private void InitializeMilestones()
         {
-            // First Harvest - The beginning
-            milestones[MilestoneType.FirstHarvest] = new Milestone
+            _milestones[MilestoneType.FirstHarvest] = new Milestone
             {
                 Type = MilestoneType.FirstHarvest,
-                Title = "🐟 First Harvest",
+                Title = "First Harvest",
                 Description = "You've harvested your first batch of salmon!",
-                CinematicType = "SlowMotionNetLift",
-                Achieved = false
+                CinematicType = "SlowMotionNetLift"
             };
 
-            // Revenue milestones
-            milestones[MilestoneType.Revenue1M] = new Milestone
+            _milestones[MilestoneType.Revenue1M] = new Milestone
             {
                 Type = MilestoneType.Revenue1M,
-                Title = "💰 Millionaire",
+                Title = "Millionaire",
                 Description = "1,000,000 NOK in total revenue!",
-                CinematicType = "ChampagneFireworks",
-                Achieved = false
+                CinematicType = "ChampagneFireworks"
             };
 
-            milestones[MilestoneType.Revenue10M] = new Milestone
+            _milestones[MilestoneType.Revenue10M] = new Milestone
             {
                 Type = MilestoneType.Revenue10M,
-                Title = "💎 Multi-Millionaire",
+                Title = "Multi-Millionaire",
                 Description = "10,000,000 NOK in total revenue!",
-                CinematicType = "DroneOverview",
-                Achieved = false
+                CinematicType = "DroneOverview"
             };
 
-            milestones[MilestoneType.Revenue100M] = new Milestone
+            _milestones[MilestoneType.Revenue100M] = new Milestone
             {
                 Type = MilestoneType.Revenue100M,
-                Title = "👑 Salmon King",
+                Title = "Salmon King",
                 Description = "100,000,000 NOK! You're a true Lakskongen!",
-                CinematicType = "EpicMontage",
-                Achieved = false
+                CinematicType = "EpicMontage"
             };
 
-            // Sustainability
-            milestones[MilestoneType.PerfectSustainabilityQuarter] = new Milestone
+            _milestones[MilestoneType.PerfectSustainabilityQuarter] = new Milestone
             {
                 Type = MilestoneType.PerfectSustainabilityQuarter,
-                Title = "🌿 Perfect Sustainability",
+                Title = "Perfect Sustainability",
                 Description = "Perfect sustainability score for an entire quarter!",
-                CinematicType = "EcoBadgeDrone",
-                Achieved = false
+                CinematicType = "EcoBadgeDrone"
             };
 
-            // Production milestones
-            milestones[MilestoneType.Fish100K] = new Milestone
+            _milestones[MilestoneType.Fish100K] = new Milestone
             {
                 Type = MilestoneType.Fish100K,
-                Title = "🎣 Century Mark",
+                Title = "Century Mark",
                 Description = "100,000 fish harvested in your career!",
-                CinematicType = "ProductionMontage",
-                Achieved = false
+                CinematicType = "ProductionMontage"
             };
 
-            milestones[MilestoneType.Fish1M] = new Milestone
+            _milestones[MilestoneType.Fish1M] = new Milestone
             {
                 Type = MilestoneType.Fish1M,
-                Title = "🏆 Production Master",
+                Title = "Production Master",
                 Description = "1,000,000 fish harvested! Industry legend!",
-                CinematicType = "LegendaryMontage",
-                Achieved = false
+                CinematicType = "LegendaryMontage"
             };
 
-            // Expansion milestones
-            milestones[MilestoneType.FirstAcquisition] = new Milestone
+            _milestones[MilestoneType.FirstAcquisition] = new Milestone
             {
                 Type = MilestoneType.FirstAcquisition,
-                Title = "🤝 Empire Builder",
+                Title = "Empire Builder",
                 Description = "You've acquired your first competitor!",
-                CinematicType = "AcquisitionCelebration",
-                Achieved = false
+                CinematicType = "AcquisitionCelebration"
             };
 
-            milestones[MilestoneType.VerticalIntegration] = new Milestone
+            _milestones[MilestoneType.VerticalIntegration] = new Milestone
             {
                 Type = MilestoneType.VerticalIntegration,
-                Title = "🏭 Vertical Integration",
+                Title = "Vertical Integration",
                 Description = "Full control: Feed mill to distribution!",
-                CinematicType = "SupplyChainViz",
-                Achieved = false
+                CinematicType = "SupplyChainViz"
             };
 
-            milestones[MilestoneType.InternationalExpansion] = new Milestone
+            _milestones[MilestoneType.InternationalExpansion] = new Milestone
             {
                 Type = MilestoneType.InternationalExpansion,
-                Title = "🌍 Global Player",
+                Title = "Global Player",
                 Description = "Exporting to 5+ international markets!",
-                CinematicType = "GlobalMap",
-                Achieved = false
+                CinematicType = "GlobalMap"
             };
 
-            milestones[MilestoneType.CrisisSurvival] = new Milestone
+            _milestones[MilestoneType.CrisisSurvival] = new Milestone
             {
                 Type = MilestoneType.CrisisSurvival,
-                Title = "⚡ Crisis Survivor",
+                Title = "Crisis Survivor",
                 Description = "You survived a major crisis and recovered!",
-                CinematicType = "RecoveryMontage",
-                Achieved = false
+                CinematicType = "RecoveryMontage"
             };
         }
 
-        private void SetupCinematicCamera()
-        {
-            cinematicCamera = new Camera3D();
-            cinematicCamera.Name = "CinematicCamera";
-            AddChild(cinematicCamera);
-            cinematicCamera.Current = false;
-        }
-
         /// <summary>
-        /// Check and trigger milestone if conditions are met
-        /// Called from game systems when events occur
+        /// Check and trigger milestone if conditions are met.
+        /// Called from game systems when events occur.
         /// </summary>
-        public void CheckMilestone(MilestoneType type, Dictionary<string, object> context = null)
+        public void CheckMilestone(MilestoneType type)
         {
-            if (triggeredMilestones.Contains(type))
-                return; // Already triggered
-
-            if (!milestones.ContainsKey(type))
+            if (_triggeredMilestones.Contains(type))
                 return;
 
-            var milestone = milestones[type];
-            
-            // Mark as achieved
+            if (!_milestones.TryGetValue(type, out var milestone))
+                return;
+
             milestone.Achieved = true;
             milestone.AchievedDate = DateTime.Now;
-            triggeredMilestones.Add(type);
+            _triggeredMilestones.Add(type);
 
-            GD.Print($"🎊 Milestone achieved: {milestone.Title}");
-
-            // Emit signal for UI
-            EmitSignal(SignalName.MilestoneAchieved, milestone.Title, milestone.Description);
-
-            // Play cinematic
-            PlayCinematic(milestone, context);
-
-            // Capture screenshot
-            CaptureMilestoneScreenshot(milestone);
+            MilestoneAchieved?.Invoke(milestone.Title, milestone.Description);
+            CinematicStarted?.Invoke(type);
+            // Cinematic playback is handled by the Godot layer listening to CinematicStarted.
+            // Signal completion via CinematicFinished when done.
         }
 
-        private void PlayCinematic(Milestone milestone, Dictionary<string, object> context)
+        /// <summary>Call this from the Godot layer when a cinematic finishes playing.</summary>
+        public void NotifyCinematicFinished()
         {
-            if (isPlayingCinematic)
-                return;
-
-            isPlayingCinematic = true;
-            EmitSignal(SignalName.CinematicStarted, (int)milestone.Type);
-
-            GD.Print($"🎬 Playing cinematic: {milestone.CinematicType}");
-
-            // Play appropriate cinematic based on type
-            switch (milestone.CinematicType)
-            {
-                case "SlowMotionNetLift":
-                    PlayFirstHarvestCinematic();
-                    break;
-                
-                case "ChampagneFireworks":
-                    PlayRevenueMillionCinematic();
-                    break;
-                
-                case "EcoBadgeDrone":
-                    PlaySustainabilityCinematic();
-                    break;
-                
-                case "ProductionMontage":
-                case "LegendaryMontage":
-                    PlayProductionMilestoneCinematic(milestone.Type);
-                    break;
-                
-                case "DroneOverview":
-                case "EpicMontage":
-                    PlayEmpireOverviewCinematic();
-                    break;
-                
-                default:
-                    PlayGenericCelebration();
-                    break;
-            }
+            CinematicFinished?.Invoke();
         }
 
-        private void PlayFirstHarvestCinematic()
-        {
-            // Slow-mo net lift with music swell
-            Engine.TimeScale = 0.3; // Slow motion
-            
-            // TODO: Position camera to watch harvest
-            // TODO: Add particle effects (water splash, fish jumping)
-            // TODO: Play triumphant music
-            
-            // Reset after 5 seconds
-            GetTree().CreateTimer(5.0).Timeout += () =>
-            {
-                Engine.TimeScale = 1.0;
-                EndCinematic();
-            };
-        }
-
-        private void PlayRevenueMillionCinematic()
-        {
-            // Champagne cork pop + fireworks over fjord
-            // TODO: Spawn particle effects
-            // TODO: Play celebration sound
-            // TODO: Show currency counter animation
-            
-            GetTree().CreateTimer(4.0).Timeout += EndCinematic;
-        }
-
-        private void PlaySustainabilityCinematic()
-        {
-            // Drone shot showing pristine farm
-            // TODO: Camera path flying over farm
-            // TODO: Green overlay effects
-            // TODO: Eco badge animation
-            
-            GetTree().CreateTimer(6.0).Timeout += EndCinematic;
-        }
-
-        private void PlayProductionMilestoneCinematic(MilestoneType type)
-        {
-            // Montage of harvests, growing operation
-            // TODO: Multiple camera angles
-            // TODO: Production statistics overlay
-            
-            GetTree().CreateTimer(5.0).Timeout += EndCinematic;
-        }
-
-        private void PlayEmpireOverviewCinematic()
-        {
-            // High-altitude overview of all operations
-            // TODO: Camera zoom out to show scale
-            // TODO: Highlight owned sites
-            
-            GetTree().CreateTimer(6.0).Timeout += EndCinematic;
-        }
-
-        private void PlayGenericCelebration()
-        {
-            // Simple celebration effect
-            GetTree().CreateTimer(3.0).Timeout += EndCinematic;
-        }
-
-        private void EndCinematic()
-        {
-            isPlayingCinematic = false;
-            
-            // Restore normal camera
-            if (cinematicCamera != null)
-                cinematicCamera.Current = false;
-            
-            EmitSignal(SignalName.CinematicFinished);
-            GD.Print("🎬 Cinematic finished");
-        }
-
-        private void CaptureMilestoneScreenshot(Milestone milestone)
-        {
-            // Use PhotoMode screenshot system
-            var photoModeNode = GetTree().Root.GetNodeOrNull("PhotoMode");
-            
-            if (photoModeNode != null && photoModeNode.HasMethod("capture_screenshot"))
-            {
-                // Capture automatically
-                photoModeNode.Call("capture_screenshot");
-                
-                // Store reference
-                // milestone.ScreenshotPath = ... (get from PhotoMode)
-                GD.Print($"📸 Auto-captured screenshot for {milestone.Title}");
-            }
-        }
-
-        /// <summary>
-        /// Get all achieved milestones
-        /// </summary>
+        /// <summary>Get all achieved milestones.</summary>
         public List<Milestone> GetAchievedMilestones()
         {
             var achieved = new List<Milestone>();
-            foreach (var milestone in milestones.Values)
+            foreach (var milestone in _milestones.Values)
             {
                 if (milestone.Achieved)
                     achieved.Add(milestone);
@@ -356,28 +179,18 @@ namespace LakskongenSim.Events
             return achieved;
         }
 
-        /// <summary>
-        /// Get milestone progress (total achieved / total milestones)
-        /// </summary>
-        public float GetProgress()
-        {
-            return (float)triggeredMilestones.Count / milestones.Count;
-        }
+        /// <summary>Get milestone progress (total achieved / total milestones).</summary>
+        public float GetProgress() =>
+            (float)_triggeredMilestones.Count / _milestones.Count;
 
-        /// <summary>
-        /// Check if specific milestone is achieved
-        /// </summary>
-        public bool IsMilestoneAchieved(MilestoneType type)
-        {
-            return triggeredMilestones.Contains(type);
-        }
+        /// <summary>Check if a specific milestone is achieved.</summary>
+        public bool IsMilestoneAchieved(MilestoneType type) =>
+            _triggeredMilestones.Contains(type);
 
-        /// <summary>
-        /// Get next unachieved milestone
-        /// </summary>
+        /// <summary>Get next unachieved milestone, or null if all done.</summary>
         public Milestone? GetNextMilestone()
         {
-            foreach (var milestone in milestones.Values)
+            foreach (var milestone in _milestones.Values)
             {
                 if (!milestone.Achieved)
                     return milestone;

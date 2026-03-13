@@ -162,6 +162,22 @@ namespace LakskongenSim.Market
         }
 
         /// <summary>
+        /// Apply an external supply or demand shock from a storyteller event.
+        /// supplyFactor &lt; 1.0 tightens supply (prices rise), &gt; 1.0 increases supply (prices fall).
+        /// demandFactor &gt; 1.0 increases demand (prices rise), &lt; 1.0 drops demand (prices fall).
+        /// </summary>
+        public void ApplyExternalShock(double supplyFactor, double demandFactor)
+        {
+            if (supplyFactor != 1.0) GlobalSupplyIndex *= supplyFactor;
+            if (demandFactor != 1.0) GlobalDemandIndex *= demandFactor;
+
+            GlobalSupplyIndex = Math.Clamp(GlobalSupplyIndex, 0.5, 2.0);
+            GlobalDemandIndex = Math.Clamp(GlobalDemandIndex, 0.5, 2.0);
+
+            OnPriceChanged?.Invoke(PricePerKg);
+        }
+
+        /// <summary>
         /// Update certification level and market access.
         /// </summary>
         public void UpdateCertificationLevel(CertificationLevel level, decimal priceMultiplier)
