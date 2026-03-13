@@ -4,8 +4,8 @@
 
 [application]
 
-config/name="Lakskongen - Salmon Farming Simulator"
-run/main_scene="res://scenes/Main.tscn"
+config/name="Lakskongen"
+run/main_scene="res://scenes/MainMenu.tscn"
 config/features=PackedStringArray("4.3", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
@@ -16,6 +16,10 @@ EventBus="*res://scripts/autoload/EventBus.cs"
 AudioManager="*res://scripts/autoload/AudioManager.cs"
 SaveLoadManager="*res://scripts/autoload/SaveLoadManager.cs"
 SimBridge="*res://scripts/SimBridge.gd"
+AudioController="*res://scripts/AudioController.gd"
+MusicLibrary="*res://scripts/MusicLibrary.gd"
+ToastNotification="*res://scripts/ui/ToastNotification.gd"
+LakskongenTheme="*res://theme/default_theme.gd"
 
 [display]
 
