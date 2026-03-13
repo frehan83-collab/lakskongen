@@ -43,6 +43,14 @@ var sustainability_level: String = "NonCompliant"
 var zone_count: int = 0
 var site_count: int = 0
 
+# "?"? External Analytics "?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?
+var external_warning_count: int = 0
+var external_composite_risk: float = 0.0
+var external_crisis_active: bool = false
+var external_crisis_label: String = "normal"
+var external_snapshot_source: String = "Offline"
+var external_snapshot_freshness_days: int = -1
+
 ## Most recent events (up to 10), each a Dictionary with keys:
 ## "day", "name", "category", "description", "balance_change"
 var recent_events: Array[Dictionary] = []
@@ -152,6 +160,13 @@ func _refresh_state() -> void:
 	sustainability_level = _game_bridge.SustainabilityLevel
 	zone_count           = _game_bridge.ZoneCount
 	site_count           = _game_bridge.SiteCount
+
+	external_warning_count           = _game_bridge.ExternalWarningCount
+	external_composite_risk          = _game_bridge.ExternalCompositeRisk
+	external_crisis_active           = _game_bridge.ExternalCrisisActive
+	external_crisis_label            = _game_bridge.ExternalCrisisLabel
+	external_snapshot_source         = _game_bridge.ExternalSnapshotSource
+	external_snapshot_freshness_days = _game_bridge.ExternalSnapshotFreshnessDays
 
 	# Tutorial state
 	tutorial_step_number    = _game_bridge.TutorialStepNumber

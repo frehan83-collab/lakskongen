@@ -64,9 +64,55 @@ func _ready() -> void:
 		_sim.alert_raised.connect(_on_alert_raised)
 	else:
 		push_warning("Dashboard: SimBridge not found — display will be empty")
-
+	_setup_external_data_ui()
 	_refresh()
 	print("Dashboard: ready")
+
+var _ext_box: VBoxContainer = null
+var ext_warnings_label: Label = null
+var ext_risk_label: Label = null
+var ext_crisis_label: Label = null
+var ext_source_label: Label = null
+
+func _setup_external_data_ui() -> void:
+	var parent_container = null
+	if has_node("ScrollContainer/VBoxContainer"):
+		parent_container = get_node("ScrollContainer/VBoxContainer")
+	elif has_node("Health"):
+		parent_container = get_node("Health").get_parent()
+	else:
+		parent_container = self
+		
+	if not parent_container:
+		return
+
+	_ext_box = VBoxContainer.new()
+	_ext_box.name = "ExternalData"
+	parent_container.add_child(_ext_box)
+
+	var hsep = HSeparator.new()
+	_ext_box.add_child(hsep)
+
+	var title = Label.new()
+	title.text = "External Analytics"
+	_ext_box.add_child(title)
+
+	ext_warnings_label = _create_row(_ext_box, "Warnings:")
+	ext_risk_label     = _create_row(_ext_box, "Composite Risk:")
+	ext_crisis_label   = _create_row(_ext_box, "Crisis Status:")
+	ext_source_label   = _create_row(_ext_box, "Snapshot:")
+
+func _create_row(parent: Node, label_text: String) -> Label:
+	var row = HBoxContainer.new()
+	parent.add_child(row)
+	var lbl = Label.new()
+	lbl.text = label_text
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(lbl)
+	var val = Label.new()
+	val.text = "--"
+	row.add_child(val)
+	return val
 
 # ── Signal handlers ───────────────────────────────────────────────────────────
 
@@ -93,6 +139,7 @@ func _refresh() -> void:
 	_refresh_environment()
 	_refresh_alerts()
 	_refresh_events()
+	_refresh_external_data()
 
 func _show_no_data() -> void:
 	_set_text(day_label, "--")
@@ -362,3 +409,38 @@ func _format_level(level: String) -> String:
 		"ASCCertified":         return "ASC-sertifisert"
 		"BasicCompliance":      return "Grunnleggende overholdelse"
 		_:                      return "Ikke i samsvar ⚠"
+
+
+func _refresh_external_data() -> void:
+	if not ext_warnings_label: return
+	
+	_set_text(ext_warnings_label, "%d active" % _sim.external_warning_count)
+	if _sim.external_warning_count > 0:
+		_set_color(ext_warnings_label, Color.ORANGE)
+	else:
+		_set_color(ext_warnings_label, Color.GREEN)
+
+	if ext_risk_label:
+		_set_text(ext_risk_label, "%.1f" % _sim.external_composite_risk)
+		if _sim.external_composite_risk > 0.8:
+			_set_color(ext_risk_label, Color.RED)
+		elif _sim.external_composite_risk > 0.4:
+			_set_color(ext_risk_label, Color.YELLOW)
+		else:
+			_set_color(ext_risk_label, Color.GREEN)
+
+	if ext_crisis_label:
+		if _sim.external_crisis_active:
+			_set_text(ext_crisis_label, _sim.external_crisis_label)
+			_set_color(ext_crisis_label, Color.RED)
+		else:
+			_set_text(ext_crisis_label, "None")
+			_set_color(ext_crisis_label, Color.GREEN)
+
+	if ext_source_label:
+		var txt = _sim.external_snapshot_source
+		if _sim.external_snapshot_freshness_days >= 0:
+			txt += " (%d days old)" % _sim.external_snapshot_freshness_days
+		_set_text(ext_source_label, txt)
+
+

@@ -202,6 +202,20 @@ public partial class GameBridge : Node
     public string SustainabilityLevel =>
         SimulationEngine?.SustainabilityManager?.CurrentCertification.ToString() ?? "NonCompliant";
 
+    // "?"? External Analytics "?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?
+
+    public int ExternalWarningCount => SimulationEngine?.State?.ExternalHealthAnalytics?.WarningCount ?? 0;
+    
+    public double ExternalCompositeRisk => SimulationEngine?.State?.ExternalHealthAnalytics?.CompositeRiskScore ?? 0.0;
+    
+    public bool ExternalCrisisActive => (SimulationEngine?.State?.ExternalHealthCrisis?.CrisisType ?? "none") != "none";
+    
+    public string ExternalCrisisLabel => SimulationEngine?.State?.ExternalHealthCrisis?.Severity ?? "normal";
+    
+    public string ExternalSnapshotSource => SimulationEngine?.State?.ExternalDataAnalytics?.SourceSummary ?? "Offline";
+    
+    public int ExternalSnapshotFreshnessDays => SimulationEngine?.State?.ExternalDataAnalytics?.SourceFreshnessDays ?? -1;
+
     /// <summary>Number of active environment zones.</summary>
     public int ZoneCount => SimulationEngine?.State?.Zones?.Count ?? 0;
 
