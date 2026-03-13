@@ -39,6 +39,7 @@ namespace LakskongenSim.Core
         public AnalyticsTracker Analytics { get; private set; }
         public AudioManager Audio { get; private set; }
         public AchievementSystem Achievements { get; private set; }
+        public ResearchSystem Research { get; private set; }
 
         // ─── Update intervals ───
         private int _lastSustainabilityUpdate = 0;
@@ -46,6 +47,7 @@ namespace LakskongenSim.Core
 
         // ─── Events ───
         public event Action<int>? OnDayAdvanced;
+        public event Action<ResearchNode>? OnResearchCompleted;
         public event Action<string>? OnEventTriggered;
         public event Action<EventRecord>? OnEventFired;
         public event Action<Achievement>? OnAchievementUnlocked;
@@ -121,6 +123,21 @@ namespace LakskongenSim.Core
             // Achievement system — initialized after State so conditions have full context
             Achievements = new AchievementSystem(State);
             Achievements.OnAchievementUnlocked += a => OnAchievementUnlocked?.Invoke(a);
+
+            // Research / Tech Tree — restore persisted state from GameState
+            Research = new ResearchSystem();
+            foreach (var id in State.UnlockedResearchIds)
+                Research.ForceUnlock(id);
+            if (State.ActiveResearchId != null)
+                Research.RestoreProgress(State.ActiveResearchId, State.ResearchProgress);
+            Research.OnResearchCompleted += node =>
+            {
+                OnResearchCompleted?.Invoke(node);
+                OnEventTriggered?.Invoke($"🔬 Research complete: {node.Name}!");
+                Audio?.TriggerAlert("achievement");
+                // Sync back to GameState
+                SyncResearchToState();
+            };
 
             Console.WriteLine("✅ SimulationEngine initialized — all subsystems wired");
         }
@@ -253,6 +270,26 @@ namespace LakskongenSim.Core
             // Checked after analytics so all state is current.
             // ═══════════════════════════════════════════
             Achievements?.CheckAchievements();
+
+            // ═══════════════════════════════════════════
+            // PHASE 10: RESEARCH PROGRESS
+            // Advances active research by one day and unlocks
+            // completed nodes. Fires OnResearchCompleted event.
+            // ═══════════════════════════════════════════
+            Research?.AdvanceDay();
+            SyncResearchToState();
+        }
+
+        /// <summary>
+        /// Synchronise the ResearchSystem's runtime state back into the serialisable GameState
+        /// so that Save/Load correctly persists the tech tree progress.
+        /// </summary>
+        private void SyncResearchToState()
+        {
+            if (Research == null) return;
+            State.UnlockedResearchIds = Research.GetUnlockedIds().ToList();
+            State.ActiveResearchId    = Research.ActiveResearchId;
+            State.ResearchProgress    = Research.ResearchProgress;
         }
 
         // ─── Sustainability event handlers ───

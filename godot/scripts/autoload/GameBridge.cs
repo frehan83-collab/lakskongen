@@ -38,6 +38,10 @@ public partial class GameBridge : Node
     private string _latestAchievementName = "";
     private string _latestAchievementDescription = "";
 
+    // ── Research signals ──────────────────────────────────────────────────────
+
+    [Signal] public delegate void ResearchCompletedEventHandler(string nodeId, string nodeName);
+
     // ── Godot lifecycle ───────────────────────────────────────────────────────
 
     public override void _Ready()
@@ -63,6 +67,8 @@ public partial class GameBridge : Node
             EmitSignal(SignalName.TutorialStepCompleted,
                 step.StepNumber, step.Title, (double)step.RewardNok);
         SimulationEngine.OnAchievementUnlocked += HandleAchievementUnlocked;
+        SimulationEngine.OnResearchCompleted += node =>
+            EmitSignal(SignalName.ResearchCompleted, node.Id, node.Name);
         _gameRunning = true;
 
         EmitSignal(SignalName.GameStarted);
@@ -85,6 +91,8 @@ public partial class GameBridge : Node
             EmitSignal(SignalName.TutorialStepCompleted,
                 step.StepNumber, step.Title, (double)step.RewardNok);
         SimulationEngine.OnAchievementUnlocked += HandleAchievementUnlocked;
+        SimulationEngine.OnResearchCompleted += node =>
+            EmitSignal(SignalName.ResearchCompleted, node.Id, node.Name);
 
         // Restore day counter and persistent collections
         SimulationEngine.State.Day = snapshot.Day;
@@ -423,6 +431,115 @@ public partial class GameBridge : Node
         EmitSignal(SignalName.GameEnded, reason);
         GD.Print($"GameBridge: game ended — {reason}");
     }
+
+    // ── Research API for GDScript ─────────────────────────────────────────────
+
+    /// <summary>ID of the research currently in progress (empty string if none).</summary>
+    public string ActiveResearchId => SimulationEngine?.Research?.ActiveResearchId ?? "";
+
+    /// <summary>Days elapsed on the active research.</summary>
+    public int ResearchProgress => SimulationEngine?.Research?.ResearchProgress ?? 0;
+
+    /// <summary>Days remaining on the active research (0 if none).</summary>
+    public int ResearchDaysRemaining
+    {
+        get
+        {
+            var r = SimulationEngine?.Research;
+            if (r == null || r.ActiveResearchId == null) return 0;
+            if (!r.Nodes.TryGetValue(r.ActiveResearchId, out var node)) return 0;
+            return Math.Max(0, node.ResearchDays - r.ResearchProgress);
+        }
+    }
+
+    /// <summary>
+    /// Return all research nodes as an Array of Dictionaries.
+    /// Keys: "id", "name", "description", "branch", "tier",
+    ///       "cost_nok", "research_days", "prerequisites" (Array[String]),
+    ///       "unlocked" (bool), "is_active" (bool), "progress_days" (int),
+    ///       "can_research" (bool), "effects" (Dictionary).
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetResearchNodes()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var research = SimulationEngine?.Research;
+        if (research == null) return result;
+
+        foreach (var node in research.Nodes.Values)
+        {
+            var prereqs = new Godot.Collections.Array<string>();
+            foreach (var p in node.Prerequisites)
+                prereqs.Add(p);
+
+            var effects = new Godot.Collections.Dictionary();
+            foreach (var kv in node.Effects)
+                effects[kv.Key] = kv.Value;
+
+            bool isActive = research.ActiveResearchId == node.Id;
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"]            = node.Id,
+                ["name"]          = node.Name,
+                ["description"]   = node.Description,
+                ["branch"]        = node.Branch.ToString(),
+                ["tier"]          = node.Tier,
+                ["cost_nok"]      = (double)node.CostNOK,
+                ["research_days"] = node.ResearchDays,
+                ["prerequisites"] = prereqs,
+                ["unlocked"]      = node.Unlocked,
+                ["is_active"]     = isActive,
+                ["progress_days"] = isActive ? research.ResearchProgress : 0,
+                ["can_research"]  = research.CanResearch(node.Id),
+                ["effects"]       = effects,
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Start researching a node. Returns true on success, false if the player cannot
+    /// afford it, prerequisites are missing, or research is already in progress.
+    /// </summary>
+    public bool StartResearch(string nodeId)
+    {
+        var engine   = SimulationEngine;
+        var research = engine?.Research;
+        if (research == null) return false;
+
+        if (!research.Nodes.TryGetValue(nodeId, out var node)) return false;
+        if (!research.CanResearch(nodeId)) return false;
+
+        // Balance check
+        if (engine!.FinanceManager.Balance < node.CostNOK)
+        {
+            GD.Print($"GameBridge.StartResearch: insufficient funds for '{nodeId}' (need {node.CostNOK:N0} NOK)");
+            return false;
+        }
+
+        engine.FinanceManager.Spend(node.CostNOK);
+        research.StartResearch(nodeId);
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: research started — {node.Name} ({node.ResearchDays}d, {node.CostNOK:N0} NOK)");
+        return true;
+    }
+
+    /// <summary>Cancel the active research (no cost refund).</summary>
+    public void CancelResearch()
+    {
+        SimulationEngine?.Research?.CancelResearch();
+        EmitSignal(SignalName.GameStateUpdated);
+    }
+
+    /// <summary>True if the node with the given ID is unlocked.</summary>
+    public bool IsResearchUnlocked(string nodeId)
+        => SimulationEngine?.Research?.Nodes.TryGetValue(nodeId, out var n) == true && n.Unlocked;
+
+    /// <summary>
+    /// Combined effect value for a given key across all unlocked research nodes.
+    /// Returns 0.0 if no unlocked node contributes to that key.
+    /// </summary>
+    public double GetResearchEffect(string effectKey)
+        => SimulationEngine?.Research?.GetTotalEffect(effectKey) ?? 0.0;
 
     public override void _ExitTree()
     {

@@ -38,6 +38,17 @@ namespace LakskongenSim.Core
         /// </summary>
         public List<DailySnapshot> DailySnapshots { get; set; } = new();
 
+        // ─── Research / Tech Tree ──────────────────────────────────────────────
+
+        /// <summary>IDs of all research nodes the player has completed.</summary>
+        public List<string> UnlockedResearchIds { get; set; } = new();
+
+        /// <summary>ID of the research node currently being studied (null if idle).</summary>
+        public string? ActiveResearchId { get; set; }
+
+        /// <summary>Days of progress accumulated on the active research.</summary>
+        public int ResearchProgress { get; set; }
+
         /// <summary>Default constructor for serializer.</summary>
         public GameState()
         {
