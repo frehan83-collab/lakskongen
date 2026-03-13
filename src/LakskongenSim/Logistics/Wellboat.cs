@@ -18,7 +18,7 @@ namespace LakskongenSim.Logistics
             var distCost = TravelCost(distanceKm);
             var loadFactor = System.Math.Min(1.0, loadKg / LiveCapacityKg);
             // wellboats have higher base cost and port access affects availability/cost
-            var baseMultiplier = 1.5 / PortAccessScore;
+            var baseMultiplier = 1.5 / System.Math.Max(0.001, PortAccessScore); // guard against zero
             return distCost * baseMultiplier * (0.7 + 0.3 * loadFactor);
         }
     }

@@ -6,16 +6,16 @@ namespace LakskongenSim.Expansion
 {
     public class AcquisitionTarget
     {
-        public string Id { get; set; }
-        public string Name { get; set; }
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
         public float AssetValue { get; set; } // NOK millions
         public float LicenseValue { get; set; } // NOK millions (MAB value)
         public float HealthScore { get; set; } // 0-1 (1 = excellent health)
         public bool IsDistressed { get; set; } // Post-disease, bankruptcy, etc.
         public float AskingPrice { get; set; } // NOK millions
         public float RegionalMarketShare { get; set; } // 0-1 (percentage as decimal)
-        public string Region { get; set; }
-        public string AssetType { get; set; } // "Fish Farm", "Processing Plant", "Hatchery"
+        public string Region { get; set; } = string.Empty;
+        public string AssetType { get; set; } = string.Empty; // "Fish Farm", "Processing Plant", "Hatchery"
         public float TonnageCapacity { get; set; } // For MAB licenses
     }
 
@@ -25,7 +25,7 @@ namespace LakskongenSim.Expansion
         public float ActualPrice { get; set; } // NOK millions
         public int RegulatoryDelayMonths { get; set; }
         public float SynergiesNOKPerYear { get; set; } // NOK millions per year
-        public string FailureReason { get; set; } // If Success = false
+        public string FailureReason { get; set; } = string.Empty; // If Success = false
         public bool RequiresAntitrustApproval { get; set; }
     }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 using LakskongenSim.Data;
 
 namespace LakskongenSim.Biology
@@ -17,7 +18,7 @@ namespace LakskongenSim.Biology
         public record Cohort(int AgeDays, int Count, double MeanWeightKg, LifeStage Stage);
 
         /// <summary>List of cohorts in this population.</summary>
-        public List<Cohort> Cohorts { get; } = new();
+        public List<Cohort> Cohorts { get; set; } = new();
 
         /// <summary>Zone this population resides in.</summary>
         public string ZoneId { get; set; } = "";
@@ -28,14 +29,19 @@ namespace LakskongenSim.Biology
         /// <summary>Treatment intensity (0.0-1.0) from last treatment.</summary>
         public double TreatmentIntensity { get; set; }
 
-        /// <summary>Growth penalty multiplier from disease resistance fitness cost.</summary>
+        /// <summary>Growth penalty multiplier from disease resistance fitness cost. Serialized for save/load.</summary>
+        public double GrowthPenalty { get => _growthPenalty; set => _growthPenalty = value; }
         private double _growthPenalty = 0.0;
 
-        /// <summary>Raised when cohorts change (spawn/growth/mortality).</summary>
+        /// <summary>Raised when cohorts change (spawn/growth/mortality). Not serialized (events are excluded by default).</summary>
         public event Action? OnPopulationChanged;
 
-        private readonly GrowthModel _growth;
-        private readonly MortalityModel _mortality;
+        private GrowthModel _growth = null!;
+        private MortalityModel _mortality = null!;
+
+        /// <summary>Parameterless constructor for JSON deserialization. GrowthModel/MortalityModel must be injected post-load by the simulation engine.</summary>
+        [JsonConstructor]
+        public FishPopulation() { }
 
         public FishPopulation(GrowthModel growth, MortalityModel mortality)
         {
@@ -97,7 +103,7 @@ namespace LakskongenSim.Biology
         }
 
         /// <summary>Get current growth penalty.</summary>
-        public double GetGrowthPenalty() => _growthPenalty;
+        public double GetGrowthPenalty() => GrowthPenalty;
 
         /// <summary>
         /// Get individual fish representations for agent-based disease simulation.

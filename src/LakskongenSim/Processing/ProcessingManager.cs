@@ -61,7 +61,7 @@ namespace LakskongenSim.Processing
         {
             if (utilizationRatio <= 0m) return 0m;
             if (utilizationRatio < 0.3m) return 0.6m * utilizationRatio / 0.3m; // steep loss when very low
-            if (utilizationRatio < 0.6m) return 0.9m * (utilizationRatio - 0.3m) / 0.3m + 0.6m; // ramp
+            if (utilizationRatio < 0.6m) return 0.6m + 0.3m * (utilizationRatio - 0.3m) / 0.3m; // ramp 0.6→0.9
             if (utilizationRatio <= 1.0m) return 0.9m + 0.1m * (utilizationRatio - 0.6m) / 0.4m; // plateau
             // overcapacity: efficiency degrades linearly beyond 1.0
             return Math.Max(0.0m, 1.0m - 0.3m * (utilizationRatio - 1.0m));

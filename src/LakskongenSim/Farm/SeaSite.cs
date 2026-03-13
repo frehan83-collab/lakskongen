@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace LakskongenSim.Farm
 {
@@ -11,17 +12,17 @@ namespace LakskongenSim.Farm
     {
         public string Id { get; init; }
         public string ZoneId { get; set; } = ""; // Links to Environment.Zone
-        public List<Biology.FishPopulation> Pens { get; } = new();
+        public List<Biology.FishPopulation> Pens { get; set; } = new();
 
         // License & MAB (Maximum Allowed Biomass)
         public double MABTonnes { get; set; } = 780.0; // Standard license: 780 tonnes
-        public double CurrentBiomassTonnes => CurrentStockingDensity * PenVolume / 1000.0;
-        public bool IsOverMAB => CurrentBiomassTonnes > MABTonnes;
+        [JsonIgnore] public double CurrentBiomassTonnes => CurrentStockingDensity * PenVolume / 1000.0;
+        [JsonIgnore] public bool IsOverMAB => CurrentBiomassTonnes > MABTonnes;
 
         // Sustainability integration properties
-        public int EscapesThisYear { get; private set; } = 0;
+        public int EscapesThisYear { get; set; } = 0;
         public bool IsClosedContainment { get; set; } = false;
-        public float CurrentStockingDensity { get; private set; } = 0f; // kg/m³
+        public float CurrentStockingDensity { get; set; } = 0f; // kg/m³
         public float MaxAllowedDensity { get; set; } = 25.0f; // kg/m³ (Norwegian standard)
         public float PenVolume { get; set; } = 50000f; // m³ (default pen volume)
         public int NumberOfPens { get; set; } = 8; // Typical Norwegian site: 6-10 pens
@@ -29,6 +30,9 @@ namespace LakskongenSim.Farm
         public event Action<Biology.FishPopulation>? OnStocked;
         public event Action<int>? OnEscapeEvent;
         public event Action? OnMABExceeded;
+
+        /// <summary>Parameterless constructor for JSON deserialization.</summary>
+        public SeaSite() { Id = ""; }
 
         public SeaSite(string id, string zoneId = "")
         {

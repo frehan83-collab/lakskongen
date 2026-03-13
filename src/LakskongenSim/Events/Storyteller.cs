@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using LakskongenSim.Core;
-using LakskongenSim.Market;
 
 namespace LakskongenSim.Events
 {

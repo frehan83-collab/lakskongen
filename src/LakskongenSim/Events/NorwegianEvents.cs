@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using LakskongenSim.Core;
-using LakskongenSim.Data;
 
 namespace LakskongenSim.Events
 {

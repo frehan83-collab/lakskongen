@@ -29,12 +29,12 @@ namespace LakskongenSim.Events
         public class Milestone
         {
             public MilestoneType Type { get; set; }
-            public string Title { get; set; }
-            public string Description { get; set; }
-            public string CinematicType { get; set; }
+            public string Title { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
+            public string CinematicType { get; set; } = string.Empty;
             public bool Achieved { get; set; }
             public DateTime? AchievedDate { get; set; }
-            public string ScreenshotPath { get; set; }
+            public string ScreenshotPath { get; set; } = string.Empty;
         }
 
         // Milestone tracking
@@ -375,7 +375,7 @@ namespace LakskongenSim.Events
         /// <summary>
         /// Get next unachieved milestone
         /// </summary>
-        public Milestone GetNextMilestone()
+        public Milestone? GetNextMilestone()
         {
             foreach (var milestone in milestones.Values)
             {

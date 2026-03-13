@@ -10,12 +10,15 @@ namespace LakskongenSim.Environment
     public class WaterChemistry
     {
         // State variables (concentrations in mg/L or mmol/L)
-        public double AmmoniaNH4 { get; private set; }  // Ammonium (toxic)
-        public double NitriteNO2 { get; private set; }  // Intermediate nitrification
-        public double NitrateNO3 { get; private set; }  // Final nitrification product
-        public double PhosphorusPO4 { get; private set; } // Phosphorus (from fish waste)
-        public double OxygenO2 { get; private set; }    // Dissolved oxygen
-        public double pH { get; private set; }          // pH (from carbonate equilibrium)
+        public double AmmoniaNH4 { get; set; }  // Ammonium (toxic)
+        public double NitriteNO2 { get; set; }  // Intermediate nitrification
+        public double NitrateNO3 { get; set; }  // Final nitrification product
+        public double PhosphorusPO4 { get; set; } // Phosphorus (from fish waste)
+        public double OxygenO2 { get; set; }    // Dissolved oxygen
+        public double pH { get; set; }          // pH (from carbonate equilibrium)
+
+        /// <summary>Current water temperature (°C). Serialized for save/load.</summary>
+        public double Temperature { get => _temperature; set => _temperature = value; }
         
         // Parameters (Norwegian fjord typical values)
         private const double OxygenReaerationRate = 0.05;   // mg/L/day reoxygenation
@@ -32,6 +35,9 @@ namespace LakskongenSim.Environment
         
         private double _temperature; // Current water temperature (°C)
         
+        /// <summary>Parameterless constructor for JSON deserialization.</summary>
+        public WaterChemistry() : this(10.0) { }
+
         /// <summary>
         /// Initialize water chemistry with Norwegian fjord baseline values.
         /// </summary>

@@ -27,7 +27,7 @@ namespace LakskongenSim.Logistics
 
         public bool NeedsReorder() => StockKg <= ReorderThresholdKg;
 
-        public Order CreateReorder(int currentDay)
+        public Order? CreateReorder(int currentDay)
         {
             if (!NeedsReorder()) return null;
             var deliveryDay = currentDay + PreferredSupplier.LeadTimeDays;

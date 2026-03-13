@@ -9,12 +9,15 @@ namespace LakskongenSim.Environment
     {
         public string Id { get; init; }
         public double CarryingCapacityTonnes { get; set; }
-        public WaterChemistry WaterChemistry { get; private set; }
+        public WaterChemistry WaterChemistry { get; set; }
         public double CurrentFishBiomassKg { get; set; }
         
         // Zone-specific parameters
         public double WaterFlowRate { get; set; } // m³/day (current speed affects dilution)
         public double FeedConversionRatio { get; set; } // FCR for fish in this zone
+
+        /// <summary>Parameterless constructor for JSON deserialization.</summary>
+        public Zone() : this("") { }
 
         public Zone(string id, double temperature = 10.0)
         {

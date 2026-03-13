@@ -55,7 +55,7 @@ namespace LakskongenSim.Events
         public string OwningCompetitor { get; set; } = string.Empty;
         
         public decimal PotentialSavings => OriginalValueNOK - DiscountedPriceNOK;
-        public float DiscountPercentage => (float)((OriginalValueNOK - DiscountedPriceNOK) / OriginalValueNOK);
+        public float DiscountPercentage => OriginalValueNOK == 0m ? 0f : (float)((OriginalValueNOK - DiscountedPriceNOK) / OriginalValueNOK);
         
         public override string ToString()
         {

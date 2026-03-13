@@ -20,14 +20,14 @@ namespace LakskongenSim.Expansion
     public class IntegrationAsset
     {
         public IntegrationTier Tier { get; set; }
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public float CapexNOK { get; set; }
         public float AnnualOpexNOK { get; set; }
         public int Capacity { get; set; } // Varies by tier - tonnes/year, fish/year, etc.
         public float CostSavingPctPerKg { get; set; } // 0-1 (e.g. 0.05 = 5% cost reduction)
         public float QualityBonus { get; set; } // 0-1 (e.g. 0.03 = 3% quality premium)
         public float CompetitorLockoutRadius { get; set; } // km radius of competitive advantage
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
         public Dictionary<string, object> UnlockConditions { get; set; } = new();
         public float MaintenanceCostPctPerYear { get; set; } // 0-1 (e.g. 0.02 = 2% of CAPEX annually)
         public bool IsOwned { get; set; } = false;
@@ -39,8 +39,8 @@ namespace LakskongenSim.Expansion
     public class IntegrationResult
     {
         public bool Success { get; set; }
-        public string Message { get; set; }
-        public IntegrationAsset Asset { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public IntegrationAsset? Asset { get; set; }
         public float ActualCapexPaid { get; set; }
         public float EstimatedPaybackYears { get; set; }
         public float CompetitiveAdvantageScore { get; set; }
@@ -92,7 +92,9 @@ namespace LakskongenSim.Expansion
                         break;
                         
                     case "required_tier":
-                        var requiredTier = (IntegrationTier)Enum.Parse(typeof(IntegrationTier), condition.Value.ToString());
+                        var tierStr = condition.Value?.ToString() ?? string.Empty;
+                        if (!Enum.TryParse<IntegrationTier>(tierStr, out var requiredTier))
+                            break; // unrecognised tier value in data — skip condition
                         if (!_ownedAssets.Any(a => a.Tier == requiredTier))
                             return false;
                         break;
