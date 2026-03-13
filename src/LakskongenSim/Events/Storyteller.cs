@@ -261,10 +261,11 @@ namespace LakskongenSim.Events
                 if (pop.Cohorts != null && pop.Cohorts.Count > 0)
                 {
                     double totalBefore = pop.TotalCount;
-                    foreach (var cohort in pop.Cohorts)
+                    for (int i = 0; i < pop.Cohorts.Count; i++)
                     {
-                        int cohortDeaths = (int)(deaths * (cohort.Count / totalBefore));
-                        cohort.Count = Math.Max(0, cohort.Count - cohortDeaths);
+                        int cohortDeaths = (int)(deaths * (pop.Cohorts[i].Count / totalBefore));
+                        int newCount = Math.Max(0, pop.Cohorts[i].Count - cohortDeaths);
+                        pop.Cohorts[i] = pop.Cohorts[i] with { Count = newCount };
                     }
                 }
             }
@@ -294,10 +295,11 @@ namespace LakskongenSim.Events
             if (targetPop.Cohorts != null && targetPop.Cohorts.Count > 0)
             {
                 double totalBefore = targetPop.TotalCount;
-                foreach (var cohort in targetPop.Cohorts)
+                for (int i = 0; i < targetPop.Cohorts.Count; i++)
                 {
-                    int cohortDeaths = (int)(diseaseDeaths * (cohort.Count / totalBefore));
-                    cohort.Count = Math.Max(0, cohort.Count - cohortDeaths);
+                    int cohortDeaths = (int)(diseaseDeaths * (targetPop.Cohorts[i].Count / totalBefore));
+                    int newCount = Math.Max(0, targetPop.Cohorts[i].Count - cohortDeaths);
+                    targetPop.Cohorts[i] = targetPop.Cohorts[i] with { Count = newCount };
                 }
             }
             

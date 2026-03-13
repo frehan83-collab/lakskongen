@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "+5YJ3rJqqoI=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\freha\\.openclaw\\workspace\\salmon-sim\\src\\LakskongenSim.LogisticsTests\\LakskongenSim.LogisticsTests.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\freha\\.nuget\\packages\\system.text.json\\8.0.5\\system.text.json.8.0.5.nupkg.sha512"
+  ],
+  "logs": []
+}

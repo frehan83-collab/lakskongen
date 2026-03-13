@@ -58,6 +58,9 @@ namespace LakskongenSim.Core
         /// <summary>Number of competitor farms acquired.</summary>
         public int AcquisitionCount { get; set; }
 
+        /// <summary>Whether the player has an active long-term contract.</summary>
+        public bool ContractActive { get; set; }
+
         /// <summary>Whether the player owns a feed mill.</summary>
         public bool OwnsFeedMill { get; set; }
 

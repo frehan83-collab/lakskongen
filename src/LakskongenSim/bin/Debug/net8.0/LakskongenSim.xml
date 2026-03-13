@@ -20,8 +20,14 @@
             Represents a cohort in the population.
             </summary>
         </member>
+        <member name="P:LakskongenSim.Biology.FishPopulation.Id">
+            <summary>Unique identifier for this population.</summary>
+        </member>
         <member name="P:LakskongenSim.Biology.FishPopulation.Cohorts">
             <summary>List of cohorts in this population.</summary>
+        </member>
+        <member name="P:LakskongenSim.Biology.FishPopulation.TotalCount">
+            <summary>Total count of all fish across all cohorts.</summary>
         </member>
         <member name="P:LakskongenSim.Biology.FishPopulation.ZoneId">
             <summary>Zone this population resides in.</summary>
@@ -31,6 +37,9 @@
         </member>
         <member name="P:LakskongenSim.Biology.FishPopulation.TreatmentIntensity">
             <summary>Treatment intensity (0.0-1.0) from last treatment.</summary>
+        </member>
+        <member name="P:LakskongenSim.Biology.FishPopulation.SeaLiceLoad">
+            <summary>Sea lice load (average lice per fish) for this population.</summary>
         </member>
         <member name="P:LakskongenSim.Biology.FishPopulation.GrowthPenalty">
             <summary>Growth penalty multiplier from disease resistance fitness cost. Serialized for save/load.</summary>
@@ -512,6 +521,75 @@
         <member name="P:LakskongenSim.Core.GameState.ResearchProgress">
             <summary>Days of progress accumulated on the active research.</summary>
         </member>
+        <member name="P:LakskongenSim.Core.GameState.ExportMarkets">
+            <summary>Export markets the player has sold to (e.g., "EU", "USA", "China", "Japan", "UK", "MiddleEast").</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.AcquisitionCount">
+            <summary>Number of competitor farms acquired.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ContractActive">
+            <summary>Whether the player has an active long-term contract.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.OwnsFeedMill">
+            <summary>Whether the player owns a feed mill.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.OwnsHatchery">
+            <summary>Whether the player owns a hatchery.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.OwnsProcessingPlant">
+            <summary>Whether the player owns a processing plant.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.HasASCCertification">
+            <summary>Whether the player has achieved ASC certification.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.BestFCR">
+            <summary>Best (lowest) FCR achieved by the player.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.BestGrowthBreedingValue">
+            <summary>Highest breeding value achieved for growth trait.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.BestDiseaseResistanceBreedingValue">
+            <summary>Highest breeding value achieved for disease resistance trait.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.MinimumBalanceEver">
+            <summary>Historical minimum balance (to detect bankruptcy recovery).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.FeedSustainabilityRating">
+            <summary>Feed sustainability rating (0.0-1.0) based on sustainable feed purchases. 1.0 = 100% sustainable sources.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.SustainabilityScore">
+            <summary>Sustainability score (0-100) computed by SustainabilityManager.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.SustainabilityCertification">
+            <summary>Current certification level based on sustainability score.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.UnlockedAchievementIds">
+            <summary>IDs of unlocked achievements.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ActiveScenarioId">
+            <summary>Active scenario ID, if any.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ScenarioIsWon">
+            <summary>Whether the active scenario has been won.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ScenarioIsLost">
+            <summary>Whether the active scenario has been lost.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ScenarioLossReason">
+            <summary>Reason for scenario loss, if any.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ScenarioStartDay">
+            <summary>Day the scenario started (day index).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.TutorialCurrentStepIndex">
+            <summary>Current tutorial step index (0-based).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.CompletedTutorialStepIds">
+            <summary>IDs of completed tutorial steps.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.LogisticsManager">
+            <summary>Logistics manager for vehicle fleet and carbon footprint tracking.</summary>
+        </member>
         <member name="M:LakskongenSim.Core.GameState.#ctor">
             <summary>Default constructor for serializer.</summary>
         </member>
@@ -800,6 +878,9 @@
             Manages JSON serialization/deserialization of GameState with backup file rotation.
             Pure C# — no Godot dependency. Keeps the last 3 backup copies (.bak1/.bak2/.bak3)
             and shifts them on each save so .bak1 is always the most recent backup.
+            
+            Handles backward compatibility: missing properties use default values from GameState constructor.
+            All new GameState properties are automatically serialized via System.Text.Json.
             </summary>
         </member>
         <member name="F:LakskongenSim.Core.SaveLoadManager.MaxBackups">
@@ -809,12 +890,19 @@
             <summary>
             Serialize <paramref name="state"/> to &lt;saveName&gt;.json.
             The existing file is rotated into backup slots before being overwritten.
+            All public properties in GameState are automatically serialized, including:
+            - Research (UnlockedResearchIds, ActiveResearchId, ResearchProgress)
+            - Achievements (ExportMarkets, AcquisitionCount, UnlockedAchievementIds, etc.)
+            - Sustainability (SustainabilityScore, SustainabilityCertification, FeedSustainabilityRating)
+            - Scenarios (ActiveScenarioId, ScenarioIsWon, ScenarioIsLost, ScenarioLossReason, ScenarioStartDay)
+            - Tutorial (TutorialCurrentStepIndex, CompletedTutorialStepIds)
             </summary>
         </member>
         <member name="M:LakskongenSim.Core.SaveLoadManager.LoadGame(System.String)">
             <summary>
             Deserialize a <see cref="T:LakskongenSim.Core.GameState"/> from &lt;saveName&gt;.json.
             Throws <see cref="T:System.IO.FileNotFoundException"/> if the file does not exist.
+            Backward compatible: missing properties use default values from GameState.
             </summary>
         </member>
         <member name="M:LakskongenSim.Core.SaveLoadManager.TryLoadWithFallback(System.String)">
@@ -827,6 +915,17 @@
             <summary>
             Rotate existing backups: .bak2→.bak3, .bak1→.bak2, primary→.bak1.
             The oldest backup (.bak3) is deleted to make room.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SaveLoadManager.Deserialize(System.String)">
+            <summary>
+            Deserialize JSON to GameState with backward compatibility handling.
+            Missing properties will use default values from the GameState constructor.
+            System.Text.Json handles:
+            - Missing properties → default/initialized values
+            - Null collections → empty collections (via property initializers)
+            - New enum values → default enum value
+            - Nullable properties → null if missing
             </summary>
         </member>
         <member name="T:LakskongenSim.Core.ScenarioDefinition">
@@ -1276,6 +1375,29 @@
         <member name="M:LakskongenSim.Environment.Zone.#ctor">
             <summary>Parameterless constructor for JSON deserialization.</summary>
         </member>
+        <member name="M:LakskongenSim.Environment.Zone.CalculateDailyNutrientLoad">
+            <summary>
+            Calculate daily nutrient load from fish biomass and feeding.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.Zone.UpdateCurrents(System.Int32)">
+            <summary>
+            Simulate ocean current changes based on season and weather patterns.
+            Currents affect nutrient dilution and oxygen replenishment.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Environment.Zone.UpdateEutrophication(System.Double)">
+            <summary>
+            Model nutrient buildup and trigger algal blooms when thresholds are exceeded.
+            </summary>
+            <param name="nutrientLoad">Daily nutrient input (mg/L equivalent)</param>
+        </member>
+        <member name="M:LakskongenSim.Environment.Zone.CalculateGrowthPenalty">
+            <summary>
+            Calculate growth penalty multiplier (0.0-1.0) based on environmental stressors.
+            1.0 = optimal conditions, &lt;1.0 = reduced growth.
+            </summary>
+        </member>
         <member name="M:LakskongenSim.Environment.Zone.GetStatus">
             <summary>
             Get current zone status including water chemistry and carrying capacity.
@@ -1386,6 +1508,18 @@
             - Tracks cooldowns and simple pacing to avoid stacking disasters
             </summary>
         </member>
+        <member name="M:LakskongenSim.Events.Storyteller.ApplyBiologicalImpacts(LakskongenSim.Core.GameState)">
+            <summary>
+            Apply direct biological impacts from environmental events to zones and populations.
+            Called by events like algal blooms to affect fish growth and mortality.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Events.Storyteller.ProcessDiseaseEvents(LakskongenSim.Core.GameState)">
+            <summary>
+            Process disease events by checking population health status and triggering appropriate responses.
+            Integrates with disease system to increase prevalence and spawn player choices.
+            </summary>
+        </member>
         <member name="T:LakskongenSim.Events.VisualMilestones">
             <summary>
             Visual Milestones System - Tracks achievement milestones and notifies via events.
@@ -1480,8 +1614,25 @@
             <summary>Create a batch of eggs.</summary>
         </member>
         <member name="M:LakskongenSim.Farm.Hatchery.ReleaseSmolt(System.Int32)">
-            <summary>Create smolt batch (for stocking sea pens).
-            TODO: Add rearing costs and time to mature in hatchery.</summary>
+            <summary>
+            Create smolt batch (for stocking sea pens).
+            Smolts are reared to proper size and age before release.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Farm.Hatchery.CalculateRearingCost(System.Int32,System.Int32)">
+            <summary>
+            Calculate total rearing cost for raising fish in the hatchery.
+            </summary>
+            <param name="fishCount">Number of fish being reared</param>
+            <param name="days">Number of days in hatchery</param>
+            <returns>Total cost in NOK</returns>
+        </member>
+        <member name="M:LakskongenSim.Farm.Hatchery.IsReadyForRelease(System.Int32)">
+            <summary>
+            Check if fish have reached maturation age and are ready for release to sea pens.
+            </summary>
+            <param name="daysInHatchery">Number of days fish have been in hatchery</param>
+            <returns>True if fish are ready for release as smolts</returns>
         </member>
         <member name="T:LakskongenSim.Farm.SeaSite">
             <summary>

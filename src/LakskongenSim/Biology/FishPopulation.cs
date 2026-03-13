@@ -17,8 +17,14 @@ namespace LakskongenSim.Biology
         /// </summary>
         public record Cohort(int AgeDays, int Count, double MeanWeightKg, LifeStage Stage);
 
+        /// <summary>Unique identifier for this population.</summary>
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+
         /// <summary>List of cohorts in this population.</summary>
         public List<Cohort> Cohorts { get; set; } = new();
+
+        /// <summary>Total count of all fish across all cohorts.</summary>
+        public int TotalCount => Cohorts.Sum(c => c.Count);
 
         /// <summary>Zone this population resides in.</summary>
         public string ZoneId { get; set; } = "";

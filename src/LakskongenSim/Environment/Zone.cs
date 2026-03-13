@@ -121,7 +121,7 @@ namespace LakskongenSim.Environment
             if (AlgaeBloomActive)
             {
                 // Reduce oxygen by 1-2 mg/L per day during bloom
-                WaterChemistry.OxygenLevel = Math.Max(0.0, WaterChemistry.OxygenLevel - 1.5);
+                WaterChemistry.OxygenO2 = Math.Max(0.0, WaterChemistry.OxygenO2 - 1.5);
             }
         }
         
@@ -134,9 +134,9 @@ namespace LakskongenSim.Environment
             double penalty = 1.0;
             
             // Low oxygen penalty (critical below 5 mg/L)
-            if (WaterChemistry.OxygenLevel < 7.0)
+            if (WaterChemistry.OxygenO2 < 7.0)
             {
-                double oxygenPenalty = WaterChemistry.OxygenLevel / 7.0;
+                double oxygenPenalty = WaterChemistry.OxygenO2 / 7.0;
                 penalty *= Math.Max(0.3, oxygenPenalty); // minimum 30% growth if very low O2
             }
             
