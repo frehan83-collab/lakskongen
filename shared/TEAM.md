@@ -20,15 +20,21 @@
 - ⏱️ ~1-3 min per task
 - 💰 ~$0.40/run
 
-### GPT-5.4 (Builder-3) — Top-Tier Workhorse
-- ✅ Complex reasoning, coding, multi-step agent workflows
-- ✅ 1M token context window — entire codebases, long trajectories
-- ✅ Built-in computer use for build-run-verify-fix loops
-- ✅ Native compaction support for longer agent trajectories
-- ✅ Tool search with deferred loading (reduces token usage)
-- ✅ Production-quality code, polished UI, multi-file changes
+### GPT-5.4 (Builder-3) — Flagship Frontier Model (Default)
+- ✅ Flagship frontier model: 272K+ context (1M possible), built-in computer use, compaction, tool search, multi-step agent workflows, production code generation
+- ✅ GPT-5.4-pro for toughest problems (deeper reasoning, more compute)
+- ✅ GPT-5-mini for cost‑optimized reasoning (fast, cheap)
+- ✅ GPT-5‑nano for high‑throughput tasks (straightforward instruction‑following)
+- ✅ GPT‑5‑codex for dedicated coding tasks
 - ⏱️ ~1-3 min per task (similar to Sonnet)
 - 💰 OpenAI credits — flagship frontier model
+
+### GPT‑4o (Builder‑4) — Current Workhorse (Sonnet/Opus limited)
+ - ✅ Complex reasoning, coding, multi‑step agent workflows
+ - ✅ 128K token context window
+ - ✅ Production‑quality code, polished UI, multi‑file changes
+ - ⏱️ ~1‑3 min per task (fast, reliable)
+ - 💰 OpenAI credits — current primary while Sonnet/Opus are limited
 
 ### GLM Flash (Local Helper) — Trivial Tasks Only
 - ✅ Single-file edits with clear context
