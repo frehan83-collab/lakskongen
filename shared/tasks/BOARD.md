@@ -35,21 +35,29 @@
 | T19 | Norwegian aquaculture data scraping (Barentswatch) | GPT‑4o | Running |
 | T20 | GitHub Issues sync — mirror BOARD.md to GitHub | GLM Flash | Running |
 
-## 🟢 In Progress (Sprint 7 — Evening Push)
+## ✅ Done (Sprint 7)
+| ID | Task | Agent | Result |
+|----|------|-------|--------|
+| T21 | Research.PopulateFromJson — zero TODOs | Opus (direct) | ✅ Wired with branch mapping |
+| T22 | Production chain panel (Anno-style) | Opus (direct) | ✅ Full chain Stamfisk→Eksport |
+| T23 | Market O-U model calibration | DeepSeek | ✅ Real Norwegian prices |
+| T24 | Expand to 13 zones (full coast) | DeepSeek | ✅ All PO 1-13 |
+| T25 | Genetics breeding UI (CK3-style) | DeepSeek | ✅ Traits, inbreeding, heritability |
+| T26 | Tutorial onboarding (23 steps) | Opus (direct) | ✅ Full Norwegian first-2-hours |
+| T27 | Polish 5 campaign scenarios | DeepSeek | ✅ Familiegården→Lakskongen |
+
+## 🟢 In Progress (Sprint 7 — Wave 3)
 | ID | Task | Agent | Status |
 |----|------|-------|--------|
-| T21 | Fix last TODO: Research.PopulateFromJson | Sonnet | 🏃 Running |
-| T22 | Production chain status panel (Anno-style) | GPT-5.4 | 🏃 Running |
-| T23 | Market O-U model calibration (real salmon prices) | DeepSeek | 🏃 Running |
+| T28 | Contracts panel + market depth UI | DeepSeek | 🏃 Running |
 
 ## 📋 Inbox (Next)
 | ID | Task | Estimated Agent | Priority |
 |----|------|----------------|----------|
-| T24 | Expand zones from 8 → 13 (full Norwegian coast) | Sonnet | HIGH |
-| T25 | Tutorial onboarding flow — first 2 hours experience | GPT-5.4 | HIGH |
-| T26 | Genetics breeding UI panel (key differentiator) | Sonnet | MEDIUM |
+| T29 | Encyclopedia expansion (51→80+ entries) | DeepSeek | MEDIUM |
+| T30 | Balance tuning pass (production costs, growth rates) | DeepSeek | HIGH |
 | T17 | Multiplayer testing — NetworkManager + lobby | Sonnet | LOW |
 
 ---
-*Updated: 2026-03-13 20:15 CET — Sprint 7 launched*
+*Updated: 2026-03-13 21:17 CET — Sprint 7 Wave 3*
 *Fallback: Sonnet → GPT-5.4 → DeepSeek → Gemini 2.5 Flash | Ollama → Qwen → GPT-5.4*
