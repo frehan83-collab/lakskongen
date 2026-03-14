@@ -72,11 +72,15 @@
 |----|------|-------|--------|
 | T49 | Tutorial system polish + onboarding flow | Sonnet 4.5 | ✅ 23-step flow aligned with VISION.md, completion tracking, skip button, progress dots, minimize |
 
+## ✅ Done (Sprint 10 — Wave 1 continued)
+| ID | Task | Agent | Result |
+|----|------|-------|--------|
+| T48 | Complete remaining UI tooltips (14 files) | DeepSeek V3.2 | ✅ All 14 files (ProductionChain, Genetics, Contracts, TechTree, Map, Encyclopedia, Tutorial, Finance, Sustainability, Crew, Analytics, DataExport, ModManager, Scenario) with Norwegian tooltips + minimal keyboard nav |
+
 ## 🟢 In Progress (Sprint 10 — Polish & Ship)
 | ID | Task | Agent | Status |
 |----|------|-------|--------|
 | T47 | Fix 3 integration test failures (fish growth, market price) | DeepSeek R1 | 🔄 Launching |
-| T48 | Complete remaining UI tooltips (14 files) | DeepSeek V3.2 | 🔄 Launching |
 
 ## 📋 Inbox (Sprint 10 — Wave 2)
 | ID | Task | Estimated Agent | Priority |

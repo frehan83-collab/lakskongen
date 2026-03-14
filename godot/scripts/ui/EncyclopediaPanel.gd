@@ -488,6 +488,7 @@ func _build_header() -> Control:
 	search_style.content_margin_left = 12
 	search_style.content_margin_right = 12
 	_search_field.add_theme_stylebox_override("normal", search_style)
+	_search_field.tooltip_text = "Søk i leksikon etter fisk, sykdommer, utstyr, regelverk og markeder."
 	_search_field.text_changed.connect(_on_search_changed)
 	inner.add_child(_search_field)
 
@@ -498,6 +499,7 @@ func _build_header() -> Control:
 
 	var close_btn := _make_button("✕", 18, Color(0.85, 0.35, 0.30))
 	close_btn.custom_minimum_size = Vector2(44, 44)
+	close_btn.tooltip_text = "Lukk leksikonet (Esc)"
 	close_btn.pressed.connect(_on_close_pressed)
 	inner.add_child(close_btn)
 

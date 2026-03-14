@@ -118,6 +118,7 @@ func _build_ui() -> void:
 	var close_btn := Button.new()
 	close_btn.text = "✕"
 	close_btn.flat = true
+	close_btn.tooltip_text = "Lukk modbehandler (Esc)"
 	close_btn.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	close_btn.add_theme_font_size_override("font_size", 18)
 	close_btn.pressed.connect(_on_close_pressed)

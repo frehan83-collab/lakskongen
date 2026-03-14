@@ -153,6 +153,7 @@ func _build_skeleton() -> void:
 	title_lbl.add_theme_font_size_override("font_size", 22)
 	title_lbl.modulate = C_TITLE
 	title_lbl.position = Vector2(28, 14)
+	title_lbl.tooltip_text = "Velg ett av fem forskjellige scenarier med unike utfordringer og vinnkriterier."
 	add_child(title_lbl)
 
 	var subtitle_lbl := Label.new()
@@ -168,6 +169,7 @@ func _build_skeleton() -> void:
 	close_btn.position = Vector2(PANEL_W - 44, 10)
 	close_btn.size = Vector2(32, 32)
 	close_btn.add_theme_font_size_override("font_size", 16)
+	close_btn.tooltip_text = "Lukk scenariovalg (Esc)"
 	close_btn.pressed.connect(func(): emit_signal("panel_close_requested"))
 	add_child(close_btn)
 
@@ -321,6 +323,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 
 	if locked:
 		btn.text = "🔒  LÅST"
+		btn.tooltip_text = "Dette scenariet er låst. Fullfør andre scenarier for å låse opp."
 		btn.disabled = true
 		var lock_style := StyleBoxFlat.new()
 		lock_style.bg_color = Color(0.15, 0.17, 0.20)
@@ -330,6 +333,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 		btn.add_theme_color_override("font_disabled_color", C_LOCKED_TXT)
 	else:
 		btn.text = "▶  START SCENARIO"
+		btn.tooltip_text = "Start dette scenariet (Enter)"
 		var n := StyleBoxFlat.new()
 		n.bg_color = s["color"].darkened(0.25)
 		n.set_corner_radius_all(7)
