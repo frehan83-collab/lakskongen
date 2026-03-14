@@ -14,14 +14,14 @@ namespace LakskongenSim.Market
     /// </summary>
     public class MarketSimulation
     {
-        private const decimal DefaultInitialPrice = 75m; // Realistic initial price based on 2020-2025 average
-        private const decimal PriceFloor = 40m;
-        private const decimal PriceCeiling = 120m;
+                private const decimal DefaultInitialPrice = 100m; // Realistic initial price based on 2024-2026 average (target 50-150 NOK/kg) // Realistic initial price based on 2020-2025 average
+                private const decimal PriceFloor = 50m; // Adjusted to realistic Norwegian market bounds (50-150 NOK/kg)
+                private const decimal PriceCeiling = 150m; // Adjusted to realistic Norwegian market bounds (50-150 NOK/kg)
         private const decimal WeeklyThetaMin = 0.01m; // Mean reversion speed (weekly) calibrated to annual kappa ~0.5 (moderate reversion over months)
         private const decimal WeeklyThetaMax = 0.02m; // Upper bound corresponds to annual kappa ~1.0 (faster reversion)
         private const decimal WeeklySigmaMin = 10m; // Lower bound for weekly volatility (salmon prices are highly volatile)
         private const decimal WeeklySigmaMax = 15m; // Upper bound for weekly volatility (weekly swings of 5-15 NOK/kg are common)
-        private const decimal DefaultLongTermMean = 75m; // Long-run average based on 2020-2025 Norwegian salmon spot prices (~70-80 NOK/kg)
+                private const decimal DefaultLongTermMean = 100m; // Long-run average based on 2024-2026 Norwegian salmon spot prices (target 50-150 NOK/kg) // Long-run average based on 2020-2025 Norwegian salmon spot prices (~70-80 NOK/kg)
         private const decimal DefaultWeeklyTheta = 0.015m; // Default weekly mean reversion speed (kappa ~0.78 annual)
         private const decimal DefaultWeeklySigma = 12.5m; // Default weekly volatility (sigma ~15 NOK/kg annualized)
         private const int DaysPerWeek = 7;

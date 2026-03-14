@@ -100,6 +100,7 @@ func _build_skeleton() -> void:
 	title.add_theme_font_size_override("font_size", 16)
 	title.modulate = Color(0.85, 0.85, 0.95)
 	title.position = Vector2(START_X, 10)
+	title.tooltip_text = "Teknologitre med 5 forskningsgrener: Biologi, Teknologi, Bærekraft, Foredling og Ekspansjon."
 	add_child(title)
 
 	# ── Close button ──
@@ -107,6 +108,7 @@ func _build_skeleton() -> void:
 	close_btn.text = "✕"
 	close_btn.position = Vector2(total_w - 40, 8)
 	close_btn.size = Vector2(28, 28)
+	close_btn.tooltip_text = "Lukk teknologitreet (Esc)"
 	close_btn.pressed.connect(func(): emit_signal("panel_close_requested"))
 	add_child(close_btn)
 
@@ -117,6 +119,7 @@ func _build_skeleton() -> void:
 	status_lbl.add_theme_font_size_override("font_size", 11)
 	status_lbl.modulate = Color(0.70, 0.80, 0.70)
 	status_lbl.position = Vector2(START_X, 36)
+	status_lbl.tooltip_text = "Status for pågående forskningsprosjekter."
 	add_child(status_lbl)
 
 	# ── Branch headers ──

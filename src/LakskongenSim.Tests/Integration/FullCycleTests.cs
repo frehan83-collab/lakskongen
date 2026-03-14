@@ -27,7 +27,7 @@ namespace LakskongenSim.Tests.Integration
         {
             // Initialize simulation engine
             _engine = new SimulationEngine();
-            _engine.Initialize();
+            _engine.Initialize(enableEvents: false); // Disable random events for deterministic tests
 
             // Direct references to key subsystems
             _state = _engine.State;

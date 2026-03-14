@@ -102,6 +102,7 @@ func _build_ui() -> void:
 	# Header
 	var header := Label.new()
 	header.text = "Produksjonskjede"
+	header.tooltip_text = "Visualisering av hele produksjonskjeden for laks, fra stamfisk til eksport."
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	vbox.add_child(header)
@@ -129,6 +130,7 @@ func _create_stage_row(stage_data: Dictionary) -> HBoxContainer:
 	label.text = stage_data.label
 	label.custom_minimum_size.x = 120
 	label.add_theme_font_size_override("font_size", 14)
+	label.tooltip_text = "Nåværende beholdning for "%s"-stadiet." % stage_data.label
 	hbox.add_child(label)
 	
 	# Quantity display
@@ -137,6 +139,7 @@ func _create_stage_row(stage_data: Dictionary) -> HBoxContainer:
 	quantity_label.custom_minimum_size.x = 100
 	quantity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	quantity_label.add_theme_font_size_override("font_size", 14)
+	quantity_label.tooltip_text = "Antall fisk eller biomasse (kg) ved dette produksjonsstadiet."
 	hbox.add_child(quantity_label)
 	
 	# Status indicator (colored box)
@@ -144,6 +147,7 @@ func _create_stage_row(stage_data: Dictionary) -> HBoxContainer:
 	status_indicator.name = "StatusIndicator"
 	status_indicator.custom_minimum_size = Vector2(20, 20)
 	status_indicator.color = Color.GRAY
+	status_indicator.tooltip_text = "Statusindikator: Grønn (flyter), Gul (sakker), Rød (flaskehals), Grå (ikke tilgjengelig)."
 	hbox.add_child(status_indicator)
 	
 	# Throughput/rate label
@@ -152,6 +156,7 @@ func _create_stage_row(stage_data: Dictionary) -> HBoxContainer:
 	throughput_label.custom_minimum_size.x = 150
 	throughput_label.add_theme_font_size_override("font_size", 12)
 	throughput_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	throughput_label.tooltip_text = "Informasjon om gjennomstrømning eller produksjonshastighet for dette stadiet."
 	hbox.add_child(throughput_label)
 	
 	return hbox

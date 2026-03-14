@@ -57,6 +57,7 @@ func _create_ui():
 	header.text = "👷 Crew Management"
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", Color(COLOR_TEXT))
+	header.tooltip_text = "Administrer ansatte: roller, lønn, ferdigheter og ansettelse/oppsigelse."
 	vbox.add_child(header)
 	
 	# Summary section

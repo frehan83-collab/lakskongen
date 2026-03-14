@@ -74,6 +74,28 @@ namespace LakskongenSim.Core
         {
             _engine = engine ?? throw new ArgumentNullException(nameof(engine));
             _steps = LoadStepsFromJson();
+            RestoreTutorialState();
+        }
+        
+        /// <summary>Restore tutorial progress from GameState (used when loading saved games).</summary>
+        private void RestoreTutorialState()
+        {
+            _currentStepIndex = _engine.State.TutorialCurrentStepIndex;
+            
+            // Mark steps as completed based on saved IDs
+            foreach (var step in _steps)
+            {
+                if (_engine.State.CompletedTutorialStepIds.Contains(step.Id))
+                {
+                    step.CompletedOnDay = _engine.State.Day; // Set to current day (actual day unknown)
+                }
+            }
+            
+            if (_currentStepIndex > 0)
+            {
+                Console.WriteLine($"📖 Tutorial restored: step {_currentStepIndex}/{TotalSteps}, " +
+                                  $"{CompletedCount} steps completed");
+            }
         }
         
         /// <summary>Load tutorial steps from JSON file and parse condition strings.</summary>
@@ -128,31 +150,68 @@ namespace LakskongenSim.Core
             // Simple condition parser — extend as needed
             return condition switch
             {
+                // Basic progression
                 "game_started" => t => t.State.Day >= 0,
                 "day >= 1" => t => t.State.Day >= 1,
+                "day >= 2" => t => t.State.Day >= 2,
                 "day >= 7" => t => t.State.Day >= 7,
-                "cinematic_watched" => t => t.State.Day >= 1, // Auto-complete for now
-                "license_inspected" => t => t.State.SeaSites.Count >= 0, // Has license (inherited)
-                "pens_inspected" => t => t.State.Zones.Count >= 1,
+                "day >= 10" => t => t.State.Day >= 10,
+                "day >= 15" => t => t.State.Day >= 15,
+                "day >= 30" => t => t.State.Day >= 30,
+                "day >= 60" => t => t.State.Day >= 60,
+                "day >= 90" => t => t.State.Day >= 90,
+                "day >= 120" => t => t.State.Day >= 120,
+                
+                // Fish and production
                 "smolts_purchased >= 50000" => t => t.TotalFishCount >= 50000,
-                "pen_1_stocked" => t => t.State.Populations.Any(),
-                "health_panel_opened" => t => t.State.Day >= 1, // Assume player has explored
-                "feed_panel_opened" => t => t.State.Day >= 1,
-                "temperature_checked" => t => t.State.Day >= 1,
-                "lice_detection_acknowledged" => t => t.SeaLicePerFish >= 0.1,
-                "delousing_method_selected" => t => t.State.Day >= 8,
-                "delousing_completed" => t => t.SeaLicePerFish < 0.5,
+                "smolts_purchased >= 75000" => t => t.TotalFishCount >= 75000,
+                "smolts_purchased >= 100000" => t => t.TotalFishCount >= 100000,
                 "average_weight >= 4.0" => t => t.AverageFishWeightKg >= 4.0,
+                
+                // Health and treatment
+                "lice_detection_acknowledged" => t => t.SeaLicePerFish >= 0.8, // Trigger lice event at 0.8
+                "delousing_completed" => t => t.SeaLicePerFish < 0.5, // Completed when under threshold
+                "biosecurity_enabled" => t => t.State.Day >= 35, // Placeholder: needs BiosecurityManager
+                "cleaner_fish_deployed" => t => t.State.Day >= 40, // Placeholder: needs CleanerFish system
+                
+                // Harvest and sales
                 "first_harvest_initiated" => t => t.State.ProcessingSnapshots.Count >= 1,
                 "first_sale_completed" => t => t.State.ProcessingSnapshots.Count >= 1 && t.State.Balance > 10_000_000m,
-                "pl_report_viewed" => t => t.State.ProcessingSnapshots.Count >= 1,
-                "pen_2_stocked || cleaner_fish_deployed" => t => t.State.Populations.Count >= 2 || t.State.Day >= 120,
-                "smolts_purchased >= 100000" => t => t.TotalFishCount >= 100000,
-                "feed_strategy_adjusted" => t => t.State.Day >= 90,
-                "biosecurity_enabled" => t => t.State.Day >= 100,
-                "hatchery_built" => t => t.State.Day >= 120, // Placeholder — needs actual hatchery system
-                "research_project_started" => t => t.State.Day >= 130,
+                "pl_report_viewed" => t => t.State.ProcessingSnapshots.Count >= 1 && t.State.Day >= 1,
+                
+                // Expansion and systems
+                "feed_strategy_adjusted" => t => t.State.Day >= 1, // Placeholder: needs FeedStrategy tracking
+                "hatchery_built" => t => t.State.Day >= 50, // Placeholder: needs Hatchery.IsBuilt check
+                "research_project_started" => t => false, // TODO: Implement Research system
+                "genetics_viewed" => t => t.State.Day >= 61, // Placeholder: needs UI tracking
+                "sustainability_checked" => t => t.State.Day >= 62, // Placeholder: needs UI tracking
+                "second_site_built" => t => t.State.SeaSites.Count >= 2,
+                "contract_signed" => t => t.State.Day >= 1, // Placeholder: needs ContractsManager
+                "processing_plant_built" => t => t.State.Day >= 1, // Placeholder: needs ProcessingPlant system
+                "export_market_opened" => t => t.State.Day >= 1, // Placeholder: needs ExportManager
                 "tutorial_complete" => t => true, // Final step auto-completes
+                
+                // Legacy conditions
+                "cinematic_watched" => t => t.State.Day >= 1,
+                "license_inspected" => t => t.State.SeaSites.Count >= 0,
+                "pens_inspected" => t => t.State.Zones.Count >= 1,
+                "pen_1_stocked" => t => t.State.Populations.Any(),
+                "health_panel_opened" => t => t.State.Day >= 1,
+                "feed_panel_opened" => t => t.State.Day >= 1,
+                "temperature_checked" => t => t.State.Day >= 1,
+                "zone_inspected" => t => t.State.Zones.Count >= 1,
+                "smolts_stocked" => t => t.State.Populations.Any(),
+                "fish_fed_7_days" => t => t.State.Day >= 7,
+                "health_checked" => t => t.State.Day >= 7,
+                "delousing_performed" => t => t.SeaLicePerFish < 0.5,
+                "day_90_reached" => t => t.State.Day >= 90,
+                "disease_event_handled" => t => t.State.Day >= 30,
+                "first_harvest" => t => t.State.ProcessingSnapshots.Count >= 1,
+                "first_sale" => t => t.State.ProcessingSnapshots.Count >= 1,
+                "production_chain_viewed" => t => t.State.Day >= 1,
+                "weather_storm_survived" => t => t.State.Day >= 30,
+                "crew_hired" => t => false, // TODO: Implement Crew system
+                "revenue_10_million" => t => t.State.Balance >= 10_000_000m,
                 
                 // Default: parse numeric comparisons
                 _ when condition.Contains("day >=") => ParseDayCondition(condition),
@@ -256,6 +315,10 @@ namespace LakskongenSim.Core
         {
             step.CompletedOnDay = _engine.State.Day;
             _currentStepIndex++;
+
+            // Persist completion to GameState
+            _engine.State.TutorialCurrentStepIndex = _currentStepIndex;
+            _engine.State.CompletedTutorialStepIds.Add(step.Id);
 
             if (step.RewardNok > 0)
             {

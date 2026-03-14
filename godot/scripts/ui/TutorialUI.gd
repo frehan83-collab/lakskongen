@@ -26,15 +26,18 @@ extends PanelContainer
 @export var step_label: Label
 @export var progress_bar: ProgressBar
 @export var close_button: Button
+@export var skip_button: Button  # NEW: Skip tutorial button
 @export var title_label: Label
 @export var description_label: Label
 @export var hint_label: Label
 @export var reward_label: Label
+@export var progress_dots_container: HBoxContainer  # NEW: Visual progress indicator
 
 # ── Internal ──────────────────────────────────────────────────────────────────
 
 var _tween: Tween = null
 var _minimised: bool = false
+var _tutorial_skipped: bool = false  # Track if user skipped tutorial
 
 # ── Godot lifecycle ───────────────────────────────────────────────────────────
 
@@ -49,7 +52,13 @@ func _ready() -> void:
 
 	if close_button:
 		close_button.pressed.connect(_on_close_pressed)
+		close_button.tooltip_text = "Minimer/utvid tutorial-panelet"
+	
+	if skip_button:
+		skip_button.pressed.connect(_on_skip_pressed)
+		skip_button.tooltip_text = "Hopp over tutorial og aktiver fri spilling"
 
+	_setup_progress_dots()
 	_refresh_display()
 
 # ── Signal handlers ───────────────────────────────────────────────────────────
@@ -66,16 +75,82 @@ func _on_step_completed(step_number: int, title: String, reward_nok: float) -> v
 func _on_close_pressed() -> void:
 	_set_minimised(!_minimised)
 
+func _on_skip_pressed() -> void:
+	# Confirm skip dialog
+	var confirm = ConfirmationDialog.new()
+	confirm.dialog_text = "Er du sikker på at du vil hoppe over tutorial?\n\nDu kan alltid starte en ny tutorial fra menyvalget 'Hjelp → Vis tutorial'."
+	confirm.ok_button_text = "Hopp over"
+	confirm.cancel_button_text = "Avbryt"
+	add_child(confirm)
+	confirm.popup_centered()
+	
+	confirm.confirmed.connect(func():
+		_tutorial_skipped = true
+		visible = false
+		# Notify SimBridge that tutorial was skipped
+		if has_node("/root/SimBridge"):
+			var sb: Node = get_node("/root/SimBridge")
+			if sb.has_method("skip_tutorial"):
+				sb.skip_tutorial()
+		confirm.queue_free()
+	)
+	
+	confirm.canceled.connect(func():
+		confirm.queue_free()
+	)
+
+# ── Progress dots setup ───────────────────────────────────────────────────────
+
+func _setup_progress_dots() -> void:
+	if not progress_dots_container:
+		return
+	
+	# Clear existing dots
+	for child in progress_dots_container.get_children():
+		child.queue_free()
+	
+	# Create 23 progress dots (one per tutorial step)
+	const TOTAL_STEPS = 23
+	for i in range(TOTAL_STEPS):
+		var dot = ColorRect.new()
+		dot.custom_minimum_size = Vector2(8, 8)
+		dot.color = Color(0.3, 0.3, 0.3, 0.5)  # Gray inactive
+		dot.tooltip_text = "Steg %d" % (i + 1)
+		progress_dots_container.add_child(dot)
+
+func _update_progress_dots(current_step: int, completed_count: int) -> void:
+	if not progress_dots_container:
+		return
+	
+	var dots = progress_dots_container.get_children()
+	for i in range(dots.size()):
+		var dot = dots[i] as ColorRect
+		if not dot:
+			continue
+		
+		if i < completed_count:
+			# Completed steps — green
+			dot.color = Color(0.2, 1.0, 0.4, 1.0)
+		elif i == current_step - 1:
+			# Current step — yellow/orange
+			dot.color = Color(1.0, 0.8, 0.2, 1.0)
+		else:
+			# Incomplete steps — gray
+			dot.color = Color(0.3, 0.3, 0.3, 0.5)
+
 # ── Display update ────────────────────────────────────────────────────────────
 
 func _refresh_display() -> void:
+	if _tutorial_skipped:
+		visible = false
+		return
 	if not has_node("/root/SimBridge"):
 		return
 	var sb: Node = get_node("/root/SimBridge")
 
 	var is_complete: bool = sb.tutorial_is_complete
 	var step_num: int     = sb.tutorial_step_number
-	var total: int        = 12
+	var total: int        = 23  # Updated to 23 steps
 
 	if is_complete:
 		_show_completion_screen()
@@ -84,11 +159,16 @@ func _refresh_display() -> void:
 	# Step counter
 	if step_label:
 		step_label.text = "Steg %d / %d" % [step_num, total]
+		step_label.tooltip_text = "Tutorial-stegnummer. Fullført %d av %d." % [sb.tutorial_completed_count, total]
 
 	# Progress bar
 	if progress_bar:
 		progress_bar.max_value = total
 		progress_bar.value     = sb.tutorial_completed_count
+	
+	# Update progress dots
+	_update_progress_dots(step_num, sb.tutorial_completed_count)
+		progress_bar.tooltip_text = "Fremdrift i tutorial: %d av %d steg fullført." % [sb.tutorial_completed_count, total]
 
 	# Title
 	if title_label:
@@ -155,7 +235,10 @@ func _show_completion_screen() -> void:
 	if step_label:
 		step_label.text = "Fullført ✓"
 	if progress_bar:
-		progress_bar.value = 12
+		progress_bar.value = 23
+	
+	# Mark all dots as complete
+	_update_progress_dots(23, 23)
 
 # ── Minimise / expand ─────────────────────────────────────────────────────────
 

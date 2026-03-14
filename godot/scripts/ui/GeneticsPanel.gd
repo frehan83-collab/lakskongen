@@ -19,8 +19,14 @@ func _ready() -> void:
 	
 	if breed_button:
 		breed_button.pressed.connect(_on_breed_pressed)
+		breed_button.tooltip_text = "Start et nytt avlsprogram for å forbedre genetiske egenskaper."
 	
 	_refresh_ui()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if breed_button and breed_button.visible and breed_button.has_focus() and event.is_action_pressed("ui_accept"):
+		_on_breed_pressed()
+		get_viewport().set_input_as_handled()
 
 func _on_state_updated() -> void:
 	_refresh_ui()
@@ -50,6 +56,7 @@ func _update_traits() -> void:
 		var name_label = Label.new()
 		name_label.text = trait_data.get("name", "Unknown")
 		name_label.custom_minimum_size = Vector2(150, 0)
+		name_label.tooltip_text = "Navn på genetisk egenskap."
 		row.add_child(name_label)
 		
 		# Heritability indicator
@@ -58,6 +65,7 @@ func _update_traits() -> void:
 		h2_label.text = "h² %.2f" % h2
 		h2_label.custom_minimum_size = Vector2(80, 0)
 		h2_label.add_theme_color_override("font_color", _heritability_color(h2))
+		h2_label.tooltip_text = "Arvelighet (h²): Hvor stor del av variasjonen i egenskapen som skyldes genetikk. Høyere h² betyr mer effektiv avl."
 		row.add_child(h2_label)
 		
 		# Breeding value with color coding
@@ -66,12 +74,14 @@ func _update_traits() -> void:
 		bv_label.text = "%+.2f" % bv if bv != 0.0 else "0.00"
 		bv_label.custom_minimum_size = Vector2(80, 0)
 		bv_label.add_theme_color_override("font_color", _breeding_value_color(bv))
+		bv_label.tooltip_text = "Avlverdi: Estimert genetisk verdi for egenskapen. Positive verdier er bedre, negative dårligere."
 		row.add_child(bv_label)
 		
 		# Current value
 		var cv_label = Label.new()
 		cv_label.text = "%.2f" % trait_data.get("current_value", 0.0)
 		cv_label.custom_minimum_size = Vector2(80, 0)
+		cv_label.tooltip_text = "Nåværende gjennomsnittsverdi for denne egenskapen i din populasjon."
 		row.add_child(cv_label)
 		
 		trait_list.add_child(row)
@@ -84,9 +94,11 @@ func _update_inbreeding() -> void:
 	
 	if inbreeding_label:
 		inbreeding_label.text = "Inbreeding: %.1f%%" % (coef * 100.0)
+	inbreeding_label.tooltip_text = "Innavelskoeffisient: Hvor høy grad av innavl det er i fiskepopulasjonen. Høye verdier kan føre til redusert helse og vekst."
 	
 	if inbreeding_warning:
 		inbreeding_warning.visible = coef > 0.15
+		inbreeding_warning.tooltip_text = "Advarsel: Innavelsnivået er høyt. Vurder å introdusere ny stamfisk for å unngå negative effekter."
 		if coef > 0.25:
 			inbreeding_warning.modulate = Color.RED
 		elif coef > 0.15:

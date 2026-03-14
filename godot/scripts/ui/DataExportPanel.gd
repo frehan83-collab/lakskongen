@@ -131,6 +131,7 @@ func _build_ui() -> void:
 
 	# Export all button
 	var export_all_btn := _make_big_button("Eksporter alle datasett", COLOR_EXPORT_ALL)
+	export_all_btn.tooltip_text = "Eksporter alle fire datasett til CSV-filer i ett trykk."
 	export_all_btn.pressed.connect(_on_export_all_pressed)
 	body_vbox.add_child(export_all_btn)
 
@@ -196,6 +197,7 @@ func _build_title_bar() -> Control:
 	var close_btn := Button.new()
 	close_btn.text = "✕"
 	close_btn.flat = true
+	close_btn.tooltip_text = "Lukk dataeksport-panelet (Esc)"
 	close_btn.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	close_btn.add_theme_font_size_override("font_size", 18)
 	close_btn.pressed.connect(_on_close_pressed)
@@ -230,6 +232,7 @@ func _build_path_selector() -> Control:
 	_path_display = LineEdit.new()
 	_path_display.text = _export_directory
 	_path_display.placeholder_text = "Velg eksportmappe..."
+	_path_display.tooltip_text = "Sti til mappen hvor eksporterte CSV-filer skal lagres."
 	_path_display.add_theme_color_override("font_color", COLOR_TEXT_BRIGHT)
 	_path_display.add_theme_font_size_override("font_size", 13)
 	_path_display.size_flags_horizontal = Control.SIZE_EXPAND_FILL

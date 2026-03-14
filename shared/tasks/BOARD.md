@@ -67,15 +67,22 @@
 | T44 | End-to-end integration test suite | DeepSeek R1 | ✅ 5 tests, found+fixed StochasticDisease bug, 4 blocked by JSON data |
 | T45 | Difficulty settings system | DeepSeek V3.2 | ✅ 5 presets (Easy→Realistic+Custom), 7 multipliers, builder pattern, 17 tests |
 
-## 📋 Inbox (Sprint 9 — Wave 3+)
+## 🟢 In Progress (Sprint 10 — Polish & Ship)
+| ID | Task | Agent | Status |
+|----|------|-------|--------|
+| T47 | Fix 3 integration test failures (fish growth, market price) | DeepSeek R1 | 🔄 Launching |
+| T48 | Complete remaining UI tooltips (14 files) | DeepSeek V3.2 | 🔄 Launching |
+| T49 | Tutorial system polish + onboarding flow | Sonnet 4.5 | 🔄 Launching |
+
+## 📋 Inbox (Sprint 10 — Wave 2)
 | ID | Task | Estimated Agent | Priority |
 |----|------|----------------|----------|
-| T46 | Fix JSON data enum mismatches (ResearchBranch, ProductionRegion, relatedIds) | DeepSeek V3.2 | HIGH |
-| T37b | UI polish Phase 2 (remaining 16 files) | Qwen Flash | MEDIUM |
-| T38 | Sound design & voice recording | Audio team | MEDIUM |
-| T39 | Localization (NO, EN, DE, FR, ES, JA) | Localization | LOW |
+| T50 | Localization framework (6 languages) | DeepSeek V3.2 | MEDIUM |
+| T51 | Sound design polish (weather-reactive) | Local review | LOW |
+| T52 | Performance profiling + optimization | DeepSeek R1 | MEDIUM |
+| T53 | Save/Load stress testing | Sonnet | MEDIUM |
 
 ---
-*Updated: 2026-03-14 21:40 CET — Sprint 9 Wave 2 complete!*
-*Build: ✅ Green | Tests: ✅ 95 passed, 4 blocked (JSON data) | TODOs: 0*
-*Routing: DeepSeek V3.2 primary → R1 → Qwen Flash → Gemini → Claude → Free tier*
+*Updated: 2026-03-14 23:33 CET — Sprint 10 launched! 3 agents parallel*
+*Build: ✅ Green | Tests: ✅ 96/99 | Sprint 9: SHIPPED*
+*Routing: DeepSeek V3.2 primary → R1 → Sonnet → Qwen → Gemini → Free tier*

@@ -70,7 +70,8 @@ namespace LakskongenSim.Core
         /// <summary>
         /// Initialize all subsystems and wire them together.
         /// </summary>
-        public void Initialize()
+        /// <param name="enableEvents">If false, disables random storyteller events (useful for deterministic tests).</param>
+        public void Initialize(bool enableEvents = true)
         {
             // Create subsystems
             Weather = new WeatherSystem();
@@ -115,7 +116,10 @@ namespace LakskongenSim.Core
 
             // Initialize Storyteller event director
             Storyteller = new Storyteller(Time, State);
-            NorwegianEvents.RegisterAll(Storyteller);
+            if (enableEvents)
+            {
+                NorwegianEvents.RegisterAll(Storyteller);
+            }
             Storyteller.OnEventRaised += HandleStorytellerEvent;
 
             // Hatchery → population

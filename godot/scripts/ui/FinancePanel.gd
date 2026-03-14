@@ -73,6 +73,7 @@ func _create_ui():
 	header.text = "💰 Finance Dashboard"
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", Color(COLOR_TEXT))
+	header.tooltip_text = "Økonomisk oversikt: inntekter, kostnader, fortjeneste, lån og finanshistorikk."
 	vbox.add_child(header)
 	
 	# Financial summary section
@@ -119,10 +120,12 @@ func _create_ui():
 	
 	take_loan_button = Button.new()
 	take_loan_button.text = "Take Loan (5M NOK)"
+	take_loan_button.tooltip_text = "Ta opp et nytt lån på 5 millioner NOK."
 	loan_btn_container.add_child(take_loan_button)
 	
 	repay_loan_button = Button.new()
 	repay_loan_button.text = "Repay Loan (1M NOK)"
+	repay_loan_button.tooltip_text = "Nedbetal 1 million NOK på eksisterende lån."
 	loan_btn_container.add_child(repay_loan_button)
 	
 	# Separator

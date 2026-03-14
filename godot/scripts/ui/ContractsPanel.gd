@@ -54,6 +54,7 @@ func _create_ui():
 	header.text = "📜 Contracts & Market Depth"
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", Color(COLOR_TEXT))
+	header.tooltip_text = "Oversikt over aktive kontrakter, tilgjengelige tilbud og eksportmarkeder."
 	vbox.add_child(header)
 	
 	# Spot price vs contract price comparison
@@ -63,10 +64,12 @@ func _create_ui():
 	
 	spot_price_label = Label.new()
 	spot_price_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
+	spot_price_label.tooltip_text = "Nåværende spotpris (markedspris) for laks per kg."
 	spot_container.add_child(spot_price_label)
 	
 	spot_vs_contract_label = Label.new()
 	spot_vs_contract_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
+	spot_vs_contract_label.tooltip_text = "Sammenligning mellom gjennomsnittlig kontraktspris og spotpris."
 	spot_container.add_child(spot_vs_contract_label)
 	
 	# Active contracts section
@@ -105,6 +108,7 @@ func _create_ui():
 	# Refresh button (optional)
 	var refresh_button = Button.new()
 	refresh_button.text = "Refresh"
+	refresh_button.tooltip_text = "Oppdater kontrakts- og markedsdata."
 	refresh_button.pressed.connect(_refresh_from_bridge)
 	vbox.add_child(refresh_button)
 
@@ -217,6 +221,7 @@ func _update_available_offers(offers: Array[Dictionary], spot_price: float):
 		
 		var accept_button = Button.new()
 		accept_button.text = "Accept"
+		accept_button.tooltip_text = "Aksepter dette kontraktstilbudet."
 		accept_button.disabled = true  # TODO: implement contract acceptance
 		row.add_child(accept_button)
 		

@@ -413,6 +413,7 @@ func _build_header() -> Control:
 
 	var close_btn := _make_btn("✕", 18, Color(0.85, 0.35, 0.30))
 	close_btn.custom_minimum_size = Vector2(44, 44)
+	close_btn.tooltip_text = "Lukk kartpanelet (Esc)"
 	close_btn.pressed.connect(_on_close_pressed)
 	inner.add_child(close_btn)
 
@@ -636,6 +637,7 @@ func _build_detail_panel() -> Control:
 	_confirm_btn.custom_minimum_size = Vector2(0, 50)
 	_confirm_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_confirm_btn.disabled = true
+	_confirm_btn.tooltip_text = "Velg denne regionen for å plassere et nytt sjøanlegg (Enter)"
 	_confirm_btn.pressed.connect(_on_confirm_pressed)
 	inner.add_child(_confirm_btn)
 

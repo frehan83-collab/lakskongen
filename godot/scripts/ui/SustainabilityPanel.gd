@@ -74,6 +74,7 @@ func _create_ui():
 	header.text = "🌱 Sustainability Score"
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", Color(COLOR_TEXT))
+	header.tooltip_text = "Bærekraftsscore (0-100) og sertifiseringsnivå basert på miljøpåvirkning og praksis."
 	vbox.add_child(header)
 	
 	# Score display (large)

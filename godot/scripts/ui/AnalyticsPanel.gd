@@ -74,15 +74,18 @@ func _build_layout() -> void:
 	title_lbl.text = "Analytics"
 	title_lbl.add_theme_font_size_override("font_size", 14)
 	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_lbl.tooltip_text = "Analyse av nøkkelmetrikker: fiskemengde, biomasse, markedspris og balanse."
 	toolbar.add_child(title_lbl)
 
 	var btn30 := Button.new()
 	btn30.text = "30d"
+	btn30.tooltip_text = "Vis data for de siste 30 dagene."
 	btn30.pressed.connect(_on_30d_pressed)
 	toolbar.add_child(btn30)
 
 	var btn90 := Button.new()
 	btn90.text = "90d"
+	btn90.tooltip_text = "Vis data for de siste 90 dagene."
 	btn90.pressed.connect(_on_90d_pressed)
 	toolbar.add_child(btn90)
 
