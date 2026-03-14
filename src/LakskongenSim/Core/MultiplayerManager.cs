@@ -213,6 +213,7 @@ namespace LakskongenSim.Core
         public event Action<ChatMessage>? OnChatMessageReceived;
         public event Action<List<LeaderboardEntry>>? OnLeaderboardUpdated;
         public event Action<string>? OnTurnChanged;         // playerId whose turn it is
+        public event Action<string>? OnHostMigrated;        // newHostId
 
         // ── Player management ─────────────────────────────────────────────────
 
@@ -244,9 +245,19 @@ namespace LakskongenSim.Core
         /// <summary>Remove a player by id (disconnect / leave lobby).</summary>
         public void RemovePlayer(string playerId)
         {
-            if (!_players.ContainsKey(playerId)) return;
+            if (!_players.TryGetValue(playerId, out var playerToRemove)) return;
+
+            bool wasHost = playerToRemove.IsHost;
             _players.Remove(playerId);
             OnPlayerLeft?.Invoke(playerId);
+
+            // If the host left and there are still players, assign a new host
+            if (wasHost && _players.Any())
+            {
+                var newHost = _players.Values.First();
+                newHost.IsHost = true;
+                OnHostMigrated?.Invoke(newHost.Id);
+            }
         }
 
         /// <summary>Toggle a player's ready status.</summary>

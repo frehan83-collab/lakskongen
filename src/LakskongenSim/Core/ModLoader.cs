@@ -43,7 +43,6 @@ namespace LakskongenSim.Core
         public List<string> Dependencies { get; set; } = new();
 
         /// <summary>Set at runtime; not part of the JSON file.</summary>
-        [JsonIgnore]
         public bool Enabled { get; set; } = true;
 
         [JsonIgnore]
@@ -199,6 +198,52 @@ namespace LakskongenSim.Core
         public List<string> InitialEventIds { get; set; } = new();
     }
 
+    public class ModConfigEntry
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+
+        [JsonPropertyName("enabled")]
+        public bool Enabled { get; set; } = true;
+    }
+
+    public class ModConfiguration
+    {
+        [JsonPropertyName("mods")]
+        public List<ModConfigEntry> Mods { get; set; } = new();
+
+        public static ModConfiguration Load(string configPath, JsonSerializerOptions options)
+        {
+            if (!File.Exists(configPath))
+            {
+                return new ModConfiguration();
+            }
+            try
+            {
+                var json = File.ReadAllText(configPath);
+                return JsonSerializer.Deserialize<ModConfiguration>(json, options) ?? new ModConfiguration();
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[ModLoader] Failed to load mod config from {configPath}: {ex.Message}");
+                return new ModConfiguration();
+            }
+        }
+
+        public void Save(string configPath, JsonSerializerOptions options)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(this, options);
+                File.WriteAllText(configPath, json);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[ModLoader] Failed to save mod config to {configPath}: {ex.Message}");
+            }
+        }
+    }
+
     // ── Loaded mod container ──────────────────────────────────────────────────
 
     /// <summary>All data parsed from a single mod package.</summary>
@@ -236,6 +281,9 @@ namespace LakskongenSim.Core
         private readonly List<LoadedMod> _loadedMods = new();
         private readonly List<string> _loadErrors = new();
 
+        private ModConfiguration _modConfiguration = new();
+        private string _modConfigPath => Path.Combine(_modsDirectory, "mods_config.json");
+
         public IReadOnlyList<LoadedMod> LoadedMods => _loadedMods;
         public IReadOnlyList<string> LoadErrors => _loadErrors;
 
@@ -250,6 +298,7 @@ namespace LakskongenSim.Core
                 ReadCommentHandling = JsonCommentHandling.Skip,
                 AllowTrailingCommas = true
             };
+            _modConfiguration = ModConfiguration.Load(_modConfigPath, _jsonOptions);
         }
 
         // ── Discovery & loading ───────────────────────────────────────────────
@@ -294,7 +343,20 @@ namespace LakskongenSim.Core
         {
             var mod = _loadedMods.FirstOrDefault(m => m.Manifest.Id == modId);
             if (mod != null)
+            {
                 mod.Manifest.Enabled = enabled;
+
+                var configEntry = _modConfiguration.Mods.FirstOrDefault(e => e.Id == modId);
+                if (configEntry != null)
+                {
+                    configEntry.Enabled = enabled;
+                }
+                else
+                {
+                    _modConfiguration.Mods.Add(new ModConfigEntry { Id = modId, Enabled = enabled });
+                }
+                _modConfiguration.Save(_modConfigPath, _jsonOptions);
+            }
         }
 
         /// <summary>
@@ -372,8 +434,10 @@ namespace LakskongenSim.Core
         {
             var manifests = new List<ModManifest>();
 
+            Console.WriteLine($"[ModLoader.DiscoverManifests] Scanning directory: {_modsDirectory}");
             foreach (var dir in Directory.EnumerateDirectories(_modsDirectory))
             {
+                Console.WriteLine($"[ModLoader.DiscoverManifests] Found subdirectory: {dir}");
                 var manifestPath = Path.Combine(dir, "manifest.json");
                 if (!File.Exists(manifestPath))
                 {
@@ -390,8 +454,31 @@ namespace LakskongenSim.Core
                         _loadErrors.Add($"Invalid manifest in {dir}: missing 'id'");
                         continue;
                     }
+                    if (string.IsNullOrWhiteSpace(manifest.Name))
+                    {
+                        _loadErrors.Add($"Invalid manifest in {dir} (ID: {manifest.Id}): missing 'name'");
+                        continue;
+                    }
+                    if (string.IsNullOrWhiteSpace(manifest.Author))
+                    {
+                        _loadErrors.Add($"Invalid manifest in {dir} (ID: {manifest.Id}): missing 'author'");
+                        continue;
+                    }
+
+                    if (manifests.Any(m => m.Id == manifest.Id))
+                    {
+                        _loadErrors.Add($"Duplicate mod ID found: '{manifest.Id}' in {dir}");
+                        continue;
+                    }
                     manifest.FolderPath = dir;
                     manifests.Add(manifest);
+
+                    // Apply persisted enabled state
+                    var configEntry = _modConfiguration.Mods.FirstOrDefault(e => e.Id == manifest.Id);
+                    if (configEntry != null)
+                    {
+                        manifest.Enabled = configEntry.Enabled;
+                    }
                 }
                 catch (Exception ex)
                 {

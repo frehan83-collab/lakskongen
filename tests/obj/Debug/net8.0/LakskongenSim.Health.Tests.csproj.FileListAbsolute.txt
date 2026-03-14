@@ -1,11 +1,5 @@
-C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.csproj.AssemblyReference.cache
-C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.AssemblyInfoInputs.cache
-C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.AssemblyInfo.cs
-C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.csproj.CoreCompileInputs.cache
-C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.sourcelink.json
-C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\testhost.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\testhost.exe
+C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\testhost.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\xunit.runner.visualstudio.dotnetcore.testadapter.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\xunit.runner.reporters.netcoreapp10.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\xunit.runner.utility.netcoreapp10.dll
@@ -95,6 +89,12 @@ C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\zh-Hant\Mic
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\LakskongenSim.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\LakskongenSim.pdb
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\LakskongenSim.xml
+C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.csproj.AssemblyReference.cache
+C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.AssemblyInfoInputs.cache
+C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.AssemblyInfo.cs
+C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.csproj.CoreCompileInputs.cache
+C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.sourcelink.json
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\Lakskong.53EC59EE.Up2Date
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\LakskongenSim.Health.Tests.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\obj\Debug\net8.0\refint\LakskongenSim.Health.Tests.dll

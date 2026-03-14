@@ -179,3 +179,42 @@ func _refresh_speed_buttons() -> void:
 
 func _on_pause_pressed() -> void:
 	_toggle_pause()
+
+# ── Accessibility ──────────────────────────────────────────────────────────────
+
+func _setup_tooltips() -> void:
+	# Speed control tooltips with keyboard hints
+	pause_btn.tooltip_text = "Pause/Resume (Space)"
+	speed_1x.tooltip_text = "Normal hastighet (1x)"
+	speed_2x.tooltip_text = "Dobbel hastighet (2x)"
+	speed_5x.tooltip_text = "5x hastighet"
+	
+	# Data display tooltips
+	if day_value.get_parent().has_method("set_tooltip_text"):
+		day_value.get_parent().tooltip_text = "Gjeldende dag i simulasjonen"
+	if season_value.get_parent().has_method("set_tooltip_text"):
+		season_value.get_parent().tooltip_text = "Årstid påvirker vekst og helse"
+	if balance_value.get_parent().has_method("set_tooltip_text"):
+		balance_value.get_parent().tooltip_text = "Saldo i Norske kroner"
+	if fish_value.get_parent().has_method("set_tooltip_text"):
+		fish_value.get_parent().tooltip_text = "Totalt antall fisk"
+	if temp_value.get_parent().has_method("set_tooltip_text"):
+		temp_value.get_parent().tooltip_text = "Vanntemperatur (optimal: 8-16°C)"
+	if price_value.get_parent().has_method("set_tooltip_text"):
+		price_value.get_parent().tooltip_text = "Markedspris per kilogram"
+
+
+func _setup_focus_navigation() -> void:
+	# Set up keyboard navigation for speed controls
+	pause_btn.focus_neighbor_right = NodePath("../Speed1x")
+	speed_1x.focus_neighbor_left = NodePath("../PauseButton")
+	speed_1x.focus_neighbor_right = NodePath("../Speed2x")
+	speed_2x.focus_neighbor_left = NodePath("../Speed1x")
+	speed_2x.focus_neighbor_right = NodePath("../Speed5x")
+	speed_5x.focus_neighbor_left = NodePath("../Speed2x")
+	
+	# Enable focus mode on buttons
+	pause_btn.focus_mode = Control.FOCUS_ALL
+	speed_1x.focus_mode = Control.FOCUS_ALL
+	speed_2x.focus_mode = Control.FOCUS_ALL
+	speed_5x.focus_mode = Control.FOCUS_ALL

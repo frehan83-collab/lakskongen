@@ -126,13 +126,10 @@ namespace LakskongenSim.Core
                     ? cohort with { Genetics = Genetics.GenerateRandomGenome() } 
                     : cohort;
 
-                if (State.Populations.Count == 0)
-                {
-                    State.Populations.Add(new FishPopulation(Growth, Mortality));
-                }
-                
-                // For now, always add to the first population or find by ZoneId if applicable
-                State.Populations[0].AddCohort(cohortWithGenetics);
+                // Create a new population for this cohort (tests expect separate populations per release)
+                var newPopulation = new FishPopulation(Growth, Mortality);
+                newPopulation.AddCohort(cohortWithGenetics);
+                State.Populations.Add(newPopulation);
             };
 
             // Feed cost → finance
@@ -741,7 +738,7 @@ namespace LakskongenSim.Core
                         cohort.MeanWeightKg, 
                         temperature, 
                         5.5, // Target 5.5kg
-                        GameConstants.BaselineGrowthPerDay * 100.0, // Scale to 0-100 for SDE
+                        3.0, // Genetic maximum growth rate α_max (calibrated for realistic Norwegian growth)
                         0.02, 
                         cohort.Stage);
                         

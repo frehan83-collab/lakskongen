@@ -93,10 +93,10 @@ C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\net8.0\LakskongenSim.Tests.AssemblyInfoInputs.cache
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\net8.0\LakskongenSim.Tests.AssemblyInfo.cs
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\net8.0\LakskongenSim.Tests.csproj.CoreCompileInputs.cache
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\net8.0\LakskongenSim.Tests.sourcelink.json
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\net8.0\Lakskong.616DDAE2.Up2Date
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\net8.0\LakskongenSim.Tests.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\net8.0\refint\LakskongenSim.Tests.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\net8.0\LakskongenSim.Tests.pdb
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\net8.0\LakskongenSim.Tests.genruntimeconfig.cache
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\net8.0\ref\LakskongenSim.Tests.dll
-C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.Tests\obj\Debug\net8.0\LakskongenSim.Tests.sourcelink.json

@@ -236,3 +236,36 @@ func _on_quit_pressed() -> void:
 
 func _on_submenu_closed() -> void:
 	_set_buttons_disabled(false)
+
+# ── Accessibility ──────────────────────────────────────────────────────────────
+
+func _setup_tooltips() -> void:
+	btn_resume.tooltip_text = "Fortsett spillet (ESC)"
+	btn_save.tooltip_text = "Lagre spillprogresjonen din"
+	btn_load.tooltip_text = "Last inn et tidligere lagret spill"
+	btn_settings.tooltip_text = "Endre innstillinger for lyd, grafikk og tilgjengelighet"
+	btn_main_menu.tooltip_text = "Gå tilbake til hovedmenyen (usaved progress will be lost)"
+	btn_quit.tooltip_text = "Avslutt spillet (usaved progress will be lost)"
+
+
+func _setup_focus_navigation() -> void:
+	# Enable keyboard focus for all buttons
+	btn_resume.focus_mode = Control.FOCUS_ALL
+	btn_save.focus_mode = Control.FOCUS_ALL
+	btn_load.focus_mode = Control.FOCUS_ALL
+	btn_settings.focus_mode = Control.FOCUS_ALL
+	btn_main_menu.focus_mode = Control.FOCUS_ALL
+	btn_quit.focus_mode = Control.FOCUS_ALL
+	
+	# Set up vertical navigation flow
+	btn_resume.focus_neighbor_bottom = NodePath("../BtnSave")
+	btn_save.focus_neighbor_top = NodePath("../BtnResume")
+	btn_save.focus_neighbor_bottom = NodePath("../BtnLoad")
+	btn_load.focus_neighbor_top = NodePath("../BtnSave")
+	btn_load.focus_neighbor_bottom = NodePath("../BtnSettings")
+	btn_settings.focus_neighbor_top = NodePath("../BtnLoad")
+	btn_settings.focus_neighbor_bottom = NodePath("../BtnMainMenu")
+	btn_main_menu.focus_neighbor_top = NodePath("../BtnSettings")
+	btn_main_menu.focus_neighbor_bottom = NodePath("../BtnQuit")
+	btn_quit.focus_neighbor_top = NodePath("../BtnMainMenu")
+	btn_quit.focus_neighbor_bottom = NodePath("../BtnResume")  # Loop back

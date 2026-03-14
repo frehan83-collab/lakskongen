@@ -11,10 +11,10 @@ C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.LogisticsTests\o
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.LogisticsTests\obj\Debug\net8.0\LakskongenSim.LogisticsTests.AssemblyInfoInputs.cache
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.LogisticsTests\obj\Debug\net8.0\LakskongenSim.LogisticsTests.AssemblyInfo.cs
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.LogisticsTests\obj\Debug\net8.0\LakskongenSim.LogisticsTests.csproj.CoreCompileInputs.cache
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.LogisticsTests\obj\Debug\net8.0\LakskongenSim.LogisticsTests.sourcelink.json
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.LogisticsTests\obj\Debug\net8.0\Lakskong.492A88EE.Up2Date
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.LogisticsTests\obj\Debug\net8.0\LakskongenSim.LogisticsTests.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.LogisticsTests\obj\Debug\net8.0\refint\LakskongenSim.LogisticsTests.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.LogisticsTests\obj\Debug\net8.0\LakskongenSim.LogisticsTests.pdb
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.LogisticsTests\obj\Debug\net8.0\LakskongenSim.LogisticsTests.genruntimeconfig.cache
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.LogisticsTests\obj\Debug\net8.0\ref\LakskongenSim.LogisticsTests.dll
-C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.LogisticsTests\obj\Debug\net8.0\LakskongenSim.LogisticsTests.sourcelink.json

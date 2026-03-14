@@ -10,7 +10,12 @@ namespace LakskongenSim.Core
         Technology,
         Sustainability,
         Processing,
-        Expansion
+        Expansion,
+        Genetics,
+        Automation,
+        Environment,
+        Health,
+        Nutrition
     }
 
     /// <summary>
@@ -567,6 +572,15 @@ namespace LakskongenSim.Core
                 Prerequisites = new() { "international-export", "land-based-ras" },
                 Effects = new() { ["market_price_bonus"] = 0.09, ["expansion_capacity_bonus"] = 0.35 }
             });
+        }
+
+        public void RegisterNodes(IEnumerable<ResearchNode> nodes)
+        {
+            if (nodes == null) return;
+            foreach (var node in nodes)
+            {
+                _nodes[node.Id] = node;
+            }
         }
 
         private void Add(ResearchNode node) => _nodes[node.Id] = node;

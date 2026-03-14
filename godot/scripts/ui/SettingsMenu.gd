@@ -1,7 +1,7 @@
 extends Control
 
 ## SettingsMenu — full tabbed settings panel for Lakskongen.
-## Tabs: Graphics, Audio, Gameplay.
+## Tabs: Graphics, Audio, Gameplay, Accessibility.
 ## Settings are persisted to user://settings.json and reloaded on startup.
 ## Connects volume sliders directly to AudioServer buses (via AudioManager or
 ## direct AudioServer calls so it works standalone).
@@ -24,11 +24,13 @@ extends Control
 ##      │  │  │  ├─ ResolutionRow  (HBoxContainer) ← ResLabel + ResOption
 ##      │  │  │  ├─ FullscreenRow  (HBoxContainer) ← FSLabel  + FSCheck
 ##      │  │  │  └─ VSyncRow       (HBoxContainer) ← VSLabel  + VSCheck
-##      │  │  └─ Gameplay (VBoxContainer, tab name "Spill")
-##      │  │     ├─ AutosaveRow   (HBoxContainer) ← ASLabel + ASOption
-##      │  │     ├─ TutorialRow   (HBoxContainer) ← TutLabel + TutCheck
-##      │  │     ├─ NotifsRow     (HBoxContainer) ← NotiLabel + NotiCheck
-##      │  │     └─ SpeedRow      (HBoxContainer) ← SpeedLabel + SpeedSlider + SpeedVal
+##      │  │  ├─ Gameplay (VBoxContainer, tab name "Spill")
+##      │  │  │  ├─ AutosaveRow   (HBoxContainer) ← ASLabel + ASOption
+##      │  │  │  ├─ TutorialRow   (HBoxContainer) ← TutLabel + TutCheck
+##      │  │  │  ├─ NotifsRow     (HBoxContainer) ← NotiLabel + NotiCheck
+##      │  │  │  └─ SpeedRow      (HBoxContainer) ← SpeedLabel + SpeedSlider + SpeedVal
+##      │  │  └─ Accessibility (VBoxContainer, tab name "Tilgjengelighet")
+##      │  │     └─ HighContrastRow (HBoxContainer) ← HCLabel + HCCheck
 ##      │  └─ ButtonRow (HBoxContainer)
 ##      │     ├─ ResetButton (Button) "Tilbakestill"
 ##      │     └─ ApplyButton (Button) "Bruk"
@@ -75,6 +77,9 @@ const DEFAULT_SETTINGS := {
 		"notifications_enabled": true,
 		"default_speed":         1.0,
 	},
+	"accessibility": {
+		"high_contrast": false,
+	},
 }
 
 # ── Node references ────────────────────────────────────────────────────────────
@@ -106,6 +111,9 @@ const DEFAULT_SETTINGS := {
 @onready var speed_slider:    HSlider      = $Panel/VBoxContainer/TabContainer/Gameplay/SpeedRow/SpeedSlider
 @onready var speed_val:       Label        = $Panel/VBoxContainer/TabContainer/Gameplay/SpeedRow/SpeedVal
 
+# Accessibility tab
+@onready var hc_check:        CheckBox     = $Panel/VBoxContainer/TabContainer/Accessibility/HighContrastRow/HCCheck
+
 # ── State ──────────────────────────────────────────────────────────────────────
 
 var _audio_manager: Node = null
@@ -123,6 +131,9 @@ func _ready() -> void:
 	_connect_signals()
 	_apply_audio(_settings["audio"])
 	_apply_graphics(_settings["graphics"])
+	_apply_high_contrast(_settings["accessibility"].get("high_contrast", false))
+	_setup_accessibility_hints()
+	_setup_focus_order()
 
 
 func _input(event: InputEvent) -> void:
@@ -187,6 +198,7 @@ func _apply_to_widgets(data: Dictionary) -> void:
 	var audio    : Dictionary = data.get("audio",    DEFAULT_SETTINGS["audio"])
 	var graphics : Dictionary = data.get("graphics", DEFAULT_SETTINGS["graphics"])
 	var gameplay : Dictionary = data.get("gameplay", DEFAULT_SETTINGS["gameplay"])
+	var accessibility: Dictionary = data.get("accessibility", DEFAULT_SETTINGS["accessibility"])
 
 	# Audio sliders
 	master_slider.value  = audio.get("master",  1.0) * 100.0
@@ -210,6 +222,9 @@ func _apply_to_widgets(data: Dictionary) -> void:
 	notifs_check.button_pressed   = gameplay.get("notifications_enabled", true)
 	speed_slider.value            = gameplay.get("default_speed", 1.0)
 	_update_speed_label()
+
+	# Accessibility
+	hc_check.button_pressed = accessibility.get("high_contrast", false)
 
 
 func _update_pct_labels() -> void:
@@ -286,6 +301,9 @@ func _collect_from_widgets() -> Dictionary:
 			"notifications_enabled": notifs_check.button_pressed,
 			"default_speed":         speed_slider.value,
 		},
+		"accessibility": {
+			"high_contrast": hc_check.button_pressed,
+		},
 	}
 
 # ── Signal connections ─────────────────────────────────────────────────────────
@@ -308,6 +326,8 @@ func _connect_signals() -> void:
 	tutorial_check.toggled.connect(func(_t): _dirty = true)
 	notifs_check.toggled.connect(func(_t): _dirty = true)
 	speed_slider.value_changed.connect(func(_v): _on_speed_slider_changed())
+	
+	hc_check.toggled.connect(_on_high_contrast_toggled)
 
 # ── Signal handlers ────────────────────────────────────────────────────────────
 
@@ -328,6 +348,7 @@ func _on_apply_pressed() -> void:
 	_settings = _collect_from_widgets()
 	_apply_audio(_settings["audio"])
 	_apply_graphics(_settings["graphics"])
+	_apply_high_contrast(_settings["accessibility"].get("high_contrast", false))
 	_save_settings(_settings)
 	_dirty = false
 	settings_applied.emit()
@@ -343,6 +364,7 @@ func _on_reset_pressed() -> void:
 	_apply_to_widgets(_settings)
 	_apply_audio(_settings["audio"])
 	_apply_graphics(_settings["graphics"])
+	_apply_high_contrast(_settings["accessibility"].get("high_contrast", false))
 	_save_settings(_settings)
 	_dirty = false
 
@@ -356,6 +378,98 @@ func _on_close_pressed() -> void:
 	close_requested.emit()
 	hide()
 
+# ── Accessibility ──────────────────────────────────────────────────────────────
+
+func _apply_high_contrast(enabled: bool) -> void:
+	# This is a placeholder. In a real project, this would involve:
+	# 1. Loading a different theme resource for high contrast.
+	# 2. Iterating through relevant UI elements and changing their colors/styles.
+	# For now, we'll just print a message and store the setting.
+	if enabled:
+		print("High contrast mode enabled!")
+		# Example: You could load a high-contrast theme here
+		# theme = load("res://themes/high_contrast_theme.tres")
+	else:
+		print("High contrast mode disabled!")
+		# theme = load("res://themes/default_theme.tres")
+
+
+func _on_high_contrast_toggled(button_pressed: bool) -> void:
+	_apply_high_contrast(button_pressed)
+	_dirty = true
+
+
+func _setup_accessibility_hints() -> void:
+	# Add accessibility descriptions for screen readers
+	if close_button.has_method("set_tooltip_text"):
+		close_button.tooltip_text = "Lukk innstillinger"
+	if apply_button.has_method("set_tooltip_text"):
+		apply_button.tooltip_text = "Lagre endringer"
+	if reset_button.has_method("set_tooltip_text"):
+		reset_button.tooltip_text = "Tilbakestill til standardinnstillinger"
+	
+	# Audio sliders
+	if master_slider.has_method("set_tooltip_text"):
+		master_slider.tooltip_text = "Hovedvolum"
+	if music_slider.has_method("set_tooltip_text"):
+		music_slider.tooltip_text = "Musikkvolum"
+	if ambient_slider.has_method("set_tooltip_text"):
+		ambient_slider.tooltip_text = "Omgivelseslyder volum"
+	if sfx_slider.has_method("set_tooltip_text"):
+		sfx_slider.tooltip_text = "Lydeffekter volum"
+	
+	# Graphics
+	if res_option.has_method("set_tooltip_text"):
+		res_option.tooltip_text = "Velg skjermoppløsning"
+	if fs_check.has_method("set_tooltip_text"):
+		fs_check.tooltip_text = "Fullskjerm modus"
+	if vsync_check.has_method("set_tooltip_text"):
+		vsync_check.tooltip_text = "Vertikal synkronisering (VSync)"
+	
+	# Gameplay
+	if autosave_option.has_method("set_tooltip_text"):
+		autosave_option.tooltip_text = "Frekvens for automatisk lagring"
+	if tutorial_check.has_method("set_tooltip_text"):
+		tutorial_check.tooltip_text = "Vis opplæringsmeldinger"
+	if notifs_check.has_method("set_tooltip_text"):
+		notifs_check.tooltip_text = "Aktiver varslinger"
+	if speed_slider.has_method("set_tooltip_text"):
+		speed_slider.tooltip_text = "Standard spillhastighet"
+	
+	# Accessibility
+	if hc_check.has_method("set_tooltip_text"):
+		hc_check.tooltip_text = "Høykontrast modus for bedre synlighet"
+
+
+func _setup_focus_order() -> void:
+	# Set up tab navigation order
+	# Audio tab
+	master_slider.focus_neighbor_bottom = NodePath("../../MusicRow/MusicSlider")
+	music_slider.focus_neighbor_top = NodePath("../../MasterRow/MasterSlider")
+	music_slider.focus_neighbor_bottom = NodePath("../../AmbientRow/AmbientSlider")
+	ambient_slider.focus_neighbor_top = NodePath("../../MusicRow/MusicSlider")
+	ambient_slider.focus_neighbor_bottom = NodePath("../../SFXRow/SFXSlider")
+	sfx_slider.focus_neighbor_top = NodePath("../../AmbientRow/AmbientSlider")
+	
+	# Graphics tab
+	res_option.focus_neighbor_bottom = NodePath("../../FullscreenRow/FSCheck")
+	fs_check.focus_neighbor_top = NodePath("../../ResolutionRow/ResOption")
+	fs_check.focus_neighbor_bottom = NodePath("../../VSyncRow/VSCheck")
+	vsync_check.focus_neighbor_top = NodePath("../../FullscreenRow/FSCheck")
+	
+	# Gameplay tab
+	autosave_option.focus_neighbor_bottom = NodePath("../../TutorialRow/TutCheck")
+	tutorial_check.focus_neighbor_top = NodePath("../../AutosaveRow/ASOption")
+	tutorial_check.focus_neighbor_bottom = NodePath("../../NotifsRow/NotiCheck")
+	notifs_check.focus_neighbor_top = NodePath("../../TutorialRow/TutCheck")
+	notifs_check.focus_neighbor_bottom = NodePath("../../SpeedRow/SpeedSlider")
+	speed_slider.focus_neighbor_top = NodePath("../../NotifsRow/NotiCheck")
+	
+	# Buttons at bottom
+	reset_button.focus_neighbor_right = NodePath("../ApplyButton")
+	apply_button.focus_neighbor_left = NodePath("../ResetButton")
+
+
 # ── Public API ─────────────────────────────────────────────────────────────────
 
 ## Call this from the game's autoload bootstrap to apply settings at startup.
@@ -363,8 +477,14 @@ func load_and_apply() -> void:
 	_settings = _load_settings()
 	_apply_audio(_settings["audio"])
 	_apply_graphics(_settings["graphics"])
+	_apply_high_contrast(_settings["accessibility"].get("high_contrast", false))
 
 
 ## Returns the current gameplay settings dict for other systems to read.
 func get_gameplay_settings() -> Dictionary:
 	return _settings.get("gameplay", DEFAULT_SETTINGS["gameplay"].duplicate())
+
+
+## Returns the current accessibility settings dict for other systems to read.
+func get_accessibility_settings() -> Dictionary:
+	return _settings.get("accessibility", DEFAULT_SETTINGS["accessibility"].duplicate())

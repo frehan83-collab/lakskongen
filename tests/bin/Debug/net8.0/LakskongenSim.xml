@@ -15,7 +15,7 @@
             Represents a cohort in the population.
             </summary>
         </member>
-        <member name="M:LakskongenSim.Biology.FishPopulation.Cohort.#ctor(System.Int32,System.Int32,System.Double,LakskongenSim.Data.LifeStage)">
+        <member name="M:LakskongenSim.Biology.FishPopulation.Cohort.#ctor(System.Int32,System.Int32,System.Double,LakskongenSim.Data.LifeStage,LakskongenSim.Biology.Genome)">
             <summary>
             Represents a cohort in the population.
             </summary>
@@ -536,6 +536,129 @@
         </member>
         <member name="T:LakskongenSim.Core.ExportSummary">
             <summary>Summary of a multi-file export operation.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.DifficultyLevel">
+            <summary>
+            Difficulty levels for the salmon farming simulator.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Core.DifficultyLevel.Easy">
+            <summary>Beginner-friendly mode with accelerated growth and reduced challenges.</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.DifficultyLevel.Normal">
+            <summary>Balanced gameplay with standard simulation parameters.</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.DifficultyLevel.Hard">
+            <summary>Challenging mode with slower growth and increased risks.</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.DifficultyLevel.Realistic">
+            <summary>Realistic Norwegian aquaculture industry parameters.</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.DifficultyLevel.Custom">
+            <summary>User-defined custom difficulty settings.</summary>
+        </member>
+        <member name="T:LakskongenSim.Core.DifficultySettings">
+            <summary>
+            Difficulty settings that scale simulation parameters.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DifficultySettings.Level">
+            <summary>Current difficulty level.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DifficultySettings.FishGrowthRateMultiplier">
+            <summary>Fish growth rate multiplier (Easy=1.3x, Normal=1.0x, Hard=0.8x, Realistic=0.9x).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DifficultySettings.DiseaseFrequencyMultiplier">
+            <summary>Disease frequency multiplier (Easy=0.5x, Normal=1.0x, Hard=1.5x, Realistic=1.2x).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DifficultySettings.MarketVolatilityMultiplier">
+            <summary>Market price volatility multiplier (Easy=0.5x, Normal=1.0x, Hard=1.5x, Realistic=1.0x).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DifficultySettings.StartingCapitalMultiplier">
+            <summary>Starting capital multiplier (Easy=1.5x, Normal=1.0x, Hard=0.7x, Realistic=0.8x).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DifficultySettings.LiceGrowthRateMultiplier">
+            <summary>Lice growth rate multiplier (Easy=0.5x, Normal=1.0x, Hard=1.5x, Realistic=1.3x).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DifficultySettings.RegulatoryStrictnessMultiplier">
+            <summary>Regulatory strictness multiplier (Easy=0.5x, Normal=1.0x, Hard=1.2x, Realistic=1.0x).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DifficultySettings.FeedCostMultiplier">
+            <summary>Feed cost multiplier (Easy=0.8x, Normal=1.0x, Hard=1.2x, Realistic=1.0x).</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DifficultySettings.Description">
+            <summary>Description of this difficulty preset (Norwegian).</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DifficultySettings.CreatePreset(LakskongenSim.Core.DifficultyLevel)">
+            <summary>
+            Creates a preset difficulty configuration.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DifficultySettings.Clone">
+            <summary>
+            Creates a copy of this settings object.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.DifficultyManager">
+            <summary>
+            Manages difficulty settings and applies them to game state.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DifficultyManager.CurrentSettings">
+            <summary>Current active difficulty settings.</summary>
+        </member>
+        <member name="E:LakskongenSim.Core.DifficultyManager.OnDifficultyChanged">
+            <summary>Event raised when difficulty settings change.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DifficultyManager.SetDifficulty(LakskongenSim.Core.DifficultyLevel)">
+            <summary>
+            Sets the difficulty to a preset level.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DifficultyManager.SetCustomDifficulty(LakskongenSim.Core.DifficultySettings)">
+            <summary>
+            Applies custom difficulty settings.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DifficultyManager.GetAdjustedGrowthRate(System.Double)">
+            <summary>
+            Gets the adjusted growth rate based on difficulty.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DifficultyManager.GetAdjustedDiseaseFrequency(System.Double)">
+            <summary>
+            Gets the adjusted disease frequency based on difficulty.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DifficultyManager.GetAdjustedMarketVolatility(System.Double)">
+            <summary>
+            Gets the adjusted market volatility based on difficulty.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DifficultyManager.GetAdjustedStartingCapital(System.Decimal)">
+            <summary>
+            Gets the adjusted starting capital based on difficulty.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DifficultyManager.GetAdjustedLiceGrowthRate(System.Double)">
+            <summary>
+            Gets the adjusted lice growth rate based on difficulty.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DifficultyManager.GetAdjustedRegulatoryStrictness(System.Double)">
+            <summary>
+            Gets the adjusted regulatory strictness based on difficulty.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.DifficultyManager.GetAdjustedFeedCost(System.Decimal)">
+            <summary>
+            Gets the adjusted feed cost based on difficulty.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.DifficultyManager.CustomDifficultyBuilder">
+            <summary>
+            Builder pattern for creating custom difficulty settings.
+            </summary>
         </member>
         <member name="T:LakskongenSim.Core.Enums">
             <summary>
@@ -1224,6 +1347,74 @@
             <summary>
             Register a system for generic management. Specific subsystems should be
             set via properties instead (Weather, Disease, etc.).
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.WorkshopItem">
+            <summary>
+            Represents a mod or item on the Steam Workshop.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ISteamWorkshop">
+            <summary>
+            Interface for Steam Workshop integration, allowing for dependency injection
+            and abstraction from the actual Steamworks SDK.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.SteamWorkshopManager">
+            <summary>
+            Manages interaction with the Steam Workshop for mod publishing and consumption.
+            This is an abstraction layer and does not directly use the Steamworks SDK.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SteamWorkshopManager.UploadModAsync(System.String,LakskongenSim.Core.WorkshopItem)">
+            <summary>
+            Uploads a mod to the Steam Workshop.
+            Flow: validate mod -> create workshop item -> set metadata -> upload content.
+            </summary>
+            <param name="modFolderPath">Absolute path to the mod's root folder.</param>
+            <param name="existingItem">Optional existing WorkshopItem if updating.</param>
+            <returns>The created or updated WorkshopItem, or null if upload fails.</returns>
+        </member>
+        <member name="M:LakskongenSim.Core.SteamWorkshopManager.DownloadModAsync(System.UInt64,System.String)">
+            <summary>
+            Downloads a mod from the Steam Workshop to the specified target folder.
+            Flow: subscribe -> download -> extract to mods folder -> trigger ModLoader discovery.
+            </summary>
+            <param name="workshopItemId">The ID of the workshop item to download.</param>
+            <param name="targetFolderPath">The folder where the mod content will be extracted.</param>
+            <returns>True if download and extraction are successful, false otherwise.</returns>
+        </member>
+        <member name="M:LakskongenSim.Core.SteamWorkshopManager.SubscribeToModAsync(System.UInt64)">
+            <summary>
+            Stubs for subscribing to a workshop item.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SteamWorkshopManager.UnsubscribeFromModAsync(System.UInt64)">
+            <summary>
+            Stubs for unsubscribing from a workshop item.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SteamWorkshopManager.GetWorkshopItemDetailsAsync(System.UInt64)">
+            <summary>
+            Stubs for getting workshop item details.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SteamWorkshopManager.CheckForUpdateAsync(System.UInt64,System.String)">
+            <summary>
+            Checks if a newer version of a mod is available on the workshop.
+            </summary>
+            <param name="workshopItemId">The ID of the workshop item.</param>
+            <param name="localModVersion">The version string of the locally installed mod.</param>
+            <returns>True if an update is available, false otherwise.</returns>
+        </member>
+        <member name="M:LakskongenSim.Core.SteamWorkshopManager.VoteForModAsync(System.UInt64,System.Boolean)">
+            <summary>
+            Stubs for rating/voting for a workshop item.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SteamWorkshopManager.ReportModAsync(System.UInt64,System.String)">
+            <summary>
+            Stubs for reporting a workshop item.
             </summary>
         </member>
         <member name="T:LakskongenSim.Core.TimeManager">

@@ -418,6 +418,15 @@ namespace LakskongenSim.Core
             });
         }
 
+        public void RegisterScenarios(IEnumerable<ScenarioDefinition> scenarios)
+        {
+            if (scenarios == null) return;
+            foreach (var scenario in scenarios)
+            {
+                _scenarios[scenario.Id] = scenario;
+            }
+        }
+
         private void Register(ScenarioDefinition scenario) => _scenarios[scenario.Id] = scenario;
     }
 }

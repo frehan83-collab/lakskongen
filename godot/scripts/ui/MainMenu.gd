@@ -258,3 +258,35 @@ func _transition_to_game() -> void:
 	tween.tween_callback(func():
 		get_tree().change_scene_to_file("res://scenes/Main.tscn")
 	)
+
+# ── Accessibility ──────────────────────────────────────────────────────────────
+
+func _setup_tooltips() -> void:
+	btn_new_game.tooltip_text = "Start et nytt oppdrettseventyr"
+	btn_load.tooltip_text = "Last inn et lagret spill"
+	btn_settings.tooltip_text = "Endre innstillinger for lyd, grafikk og spill"
+	btn_credits.tooltip_text = "Se hvem som laget spillet"
+	btn_quit.tooltip_text = "Avslutt til skrivebordet"
+
+
+func _setup_focus_navigation() -> void:
+	# Enable keyboard focus for all menu buttons
+	btn_new_game.focus_mode = Control.FOCUS_ALL
+	btn_load.focus_mode = Control.FOCUS_ALL
+	btn_settings.focus_mode = Control.FOCUS_ALL
+	btn_credits.focus_mode = Control.FOCUS_ALL
+	btn_quit.focus_mode = Control.FOCUS_ALL
+	
+	# Set up vertical navigation flow
+	btn_new_game.focus_neighbor_bottom = NodePath("../BtnLoadGame")
+	btn_load.focus_neighbor_top = NodePath("../BtnNewGame")
+	btn_load.focus_neighbor_bottom = NodePath("../BtnSettings")
+	btn_settings.focus_neighbor_top = NodePath("../BtnLoadGame")
+	btn_settings.focus_neighbor_bottom = NodePath("../BtnCredits")
+	btn_credits.focus_neighbor_top = NodePath("../BtnSettings")
+	btn_credits.focus_neighbor_bottom = NodePath("../BtnQuit")
+	btn_quit.focus_neighbor_top = NodePath("../BtnCredits")
+	btn_quit.focus_neighbor_bottom = NodePath("../BtnNewGame")  # Loop back
+	
+	# Set initial focus
+	btn_new_game.grab_focus()

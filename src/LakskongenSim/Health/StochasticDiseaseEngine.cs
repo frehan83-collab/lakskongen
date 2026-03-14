@@ -99,7 +99,7 @@ namespace LakskongenSim.Health
                 }
                 
                 // 3. Fomite transmission (equipment/personnel movement)
-                if (_random.NextDouble() < FomiteTransmissionProbability)
+                if (populations.Count > 0 && _random.NextDouble() < FomiteTransmissionProbability)
                 {
                     // Random population gets infected via equipment
                     var targetPopulation = populations[_random.Next(populations.Count)];
@@ -107,7 +107,7 @@ namespace LakskongenSim.Health
                 }
                 
                 // 4. Superspreader events (Pareto distribution)
-                if (_random.NextDouble() < SuperspreaderFraction)
+                if (populations.Count > 0 && _random.NextDouble() < SuperspreaderFraction)
                 {
                     var superspreaderPopulation = populations[_random.Next(populations.Count)];
                     SuperspreaderEvent(superspreaderPopulation);
