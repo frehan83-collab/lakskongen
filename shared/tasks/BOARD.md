@@ -67,12 +67,16 @@
 | T44 | End-to-end integration test suite | DeepSeek R1 | ✅ 5 tests, found+fixed StochasticDisease bug, 4 blocked by JSON data |
 | T45 | Difficulty settings system | DeepSeek V3.2 | ✅ 5 presets (Easy→Realistic+Custom), 7 multipliers, builder pattern, 17 tests |
 
+## ✅ Done (Sprint 10 — Wave 1)
+| ID | Task | Agent | Result |
+|----|------|-------|--------|
+| T49 | Tutorial system polish + onboarding flow | Sonnet 4.5 | ✅ 23-step flow aligned with VISION.md, completion tracking, skip button, progress dots, minimize |
+
 ## 🟢 In Progress (Sprint 10 — Polish & Ship)
 | ID | Task | Agent | Status |
 |----|------|-------|--------|
 | T47 | Fix 3 integration test failures (fish growth, market price) | DeepSeek R1 | 🔄 Launching |
 | T48 | Complete remaining UI tooltips (14 files) | DeepSeek V3.2 | 🔄 Launching |
-| T49 | Tutorial system polish + onboarding flow | Sonnet 4.5 | 🔄 Launching |
 
 ## 📋 Inbox (Sprint 10 — Wave 2)
 | ID | Task | Estimated Agent | Priority |
