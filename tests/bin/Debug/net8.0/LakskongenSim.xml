@@ -1463,6 +1463,9 @@
         <member name="P:LakskongenSim.Core.TutorialSystem.CompletedCount">
             <summary>How many steps have been completed so far.</summary>
         </member>
+        <member name="M:LakskongenSim.Core.TutorialSystem.RestoreTutorialState">
+            <summary>Restore tutorial progress from GameState (used when loading saved games).</summary>
+        </member>
         <member name="M:LakskongenSim.Core.TutorialSystem.LoadStepsFromJson">
             <summary>Load tutorial steps from JSON file and parse condition strings.</summary>
         </member>
