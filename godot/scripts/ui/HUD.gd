@@ -78,6 +78,8 @@ func _ready() -> void:
 	speed_2x.pressed.connect(func(): _set_speed(2.0))
 	speed_5x.pressed.connect(func(): _set_speed(5.0))
 
+	_setup_tooltips()
+	_setup_focus_navigation()
 	_update_all()
 	print("HUD: ready")
 
@@ -116,11 +118,11 @@ func _update_all() -> void:
 		COLOR_GOOD if _sim.fish_count > 0 else COLOR_WARN)
 
 	# Temperature
-	temp_value.text = "%.1f°C" % _sim.temperature_c
+	temp_value.text = "%.1f%s" % [_sim.temperature_c, tr("ui.hud.temp_c")]
 	temp_value.add_theme_color_override("font_color", _temp_color(_sim.temperature_c))
 
 	# Market price
-	price_value.text = "%.0f NOK/kg" % _sim.market_price_nok
+	price_value.text = "%.0f %s" % [_sim.market_price_nok, tr("ui.hud.price_kg")]
 	price_value.add_theme_color_override("font_color", _price_color(_sim.market_price_nok))
 
 func _update_season(season: String) -> void:
@@ -128,13 +130,14 @@ func _update_season(season: String) -> void:
 	season_value.text = season
 
 func _set_placeholders() -> void:
-	day_value.text     = "--"
+	var no_data = tr("ui.hud.no_data")
+	day_value.text     = no_data
 	season_icon.text   = "?"
 	season_value.text  = "---"
-	balance_value.text = "-- NOK"
-	fish_value.text    = "--"
-	temp_value.text    = "--°C"
-	price_value.text   = "-- NOK/kg"
+	balance_value.text = "%s NOK" % no_data
+	fish_value.text    = no_data
+	temp_value.text    = "%s%s" % [no_data, tr("ui.hud.temp_c")]
+	price_value.text   = "%s %s" % [no_data, tr("ui.hud.price_kg")]
 
 # ── Color logic ────────────────────────────────────────────────────────────────
 

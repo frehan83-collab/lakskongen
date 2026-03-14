@@ -66,6 +66,8 @@ func _ready() -> void:
 	_setup_visuals()
 	_connect_buttons()
 	_setup_submenus()
+	_setup_tooltips()
+	_setup_focus_navigation()
 
 	# PauseMenu must process while the tree is paused
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -188,14 +190,14 @@ func _on_resume_pressed() -> void:
 
 func _on_save_pressed() -> void:
 	save_requested.emit()
-	btn_save.text     = "Lagrer…"
+	btn_save.text     = tr("ui.pause.saving")
 	btn_save.disabled = true
 	if _save_manager and _save_manager.has_method("save_game"):
 		_save_manager.save_game("quicksave")
 	await get_tree().create_timer(0.5).timeout
-	btn_save.text = "Lagret ✓"
+	btn_save.text = tr("ui.pause.saved")
 	await get_tree().create_timer(1.2).timeout
-	btn_save.text     = "Lagre spill"
+	btn_save.text     = tr("ui.pause.save")
 	btn_save.disabled = false
 
 

@@ -17,11 +17,18 @@ var current_mode = MenuMode.LOAD
 
 func _ready():
     close_button.pressed.connect(_on_close_button_pressed)
+    _setup_tooltips()
     refresh_slots()
+
+
+func _input(event: InputEvent) -> void:
+    if visible and event.is_action_pressed("ui_cancel"):
+        _on_close_button_pressed()
+        get_viewport().set_input_as_handled()
 
 func open(mode: MenuMode):
     current_mode = mode
-    mode_label.text = "Save Game" if mode == MenuMode.SAVE else "Load Game"
+    mode_label.text = tr("ui.saveload.save") if mode == MenuMode.SAVE else tr("ui.saveload.load")
     refresh_slots()
     show()
 
@@ -55,12 +62,12 @@ func _create_slot_ui(data: Dictionary) -> Control:
     slot.add_child(info_label)
 
     var action_btn = Button.new()
-    action_btn.text = "Overwrite" if current_mode == MenuMode.SAVE else "Load"
+    action_btn.text = tr("ui.saveload.overwrite") if current_mode == MenuMode.SAVE else tr("ui.saveload.load")
     action_btn.pressed.connect(func(): _on_slot_action(data.id))
     slot.add_child(action_btn)
 
     var delete_btn = Button.new()
-    delete_btn.text = "Delete"
+    delete_btn.text = tr("ui.saveload.delete")
     delete_btn.pressed.connect(func(): _on_delete_action(data.id))
     slot.add_child(delete_btn)
 
@@ -68,7 +75,7 @@ func _create_slot_ui(data: Dictionary) -> Control:
 
 func _create_new_save_slot_ui() -> Control:
     var btn = Button.new()
-    btn.text = "+ Create New Save"
+    btn.text = tr("ui.saveload.create_new")
     btn.pressed.connect(func(): _on_slot_action("new"))
     return btn
 
@@ -85,3 +92,7 @@ func _on_delete_action(slot_id: String):
 func _on_close_button_pressed():
     emit_signal("close_requested")
     hide()
+
+
+func _setup_tooltips() -> void:
+    close_button.tooltip_text = tr("ui.common.close")

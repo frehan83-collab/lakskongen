@@ -719,11 +719,8 @@ namespace LakskongenSim.Core
 
             // Update environment model and all zones
             Environment.AdvanceDays(1);
-            foreach (var zone in State.Zones)
-            {
-                zone.SetTemperature(temperature);
-                // zone.AdvanceDays(1) is already called by Environment.AdvanceDays(1)
-            }
+            // NOTE: Do NOT override zone temperatures here — zones maintain their own temperatures
+            // zone.AdvanceDays(1) is already called by Environment.AdvanceDays(1)
 
             // ═══════════════════════════════════════════
             // PHASE 2A: HEALTH PREP (Calculate disease rates BEFORE biology)

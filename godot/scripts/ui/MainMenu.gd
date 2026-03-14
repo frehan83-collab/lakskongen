@@ -84,6 +84,8 @@ func _ready() -> void:
 	_setup_background()
 	_setup_buttons()
 	_setup_submenus()
+	_setup_tooltips()
+	_setup_focus_navigation()
 	_start_shimmer_loop()
 	_spawn_fish()
 
@@ -262,11 +264,11 @@ func _transition_to_game() -> void:
 # ── Accessibility ──────────────────────────────────────────────────────────────
 
 func _setup_tooltips() -> void:
-	btn_new_game.tooltip_text = "Start et nytt oppdrettseventyr"
-	btn_load.tooltip_text = "Last inn et lagret spill"
-	btn_settings.tooltip_text = "Endre innstillinger for lyd, grafikk og spill"
-	btn_credits.tooltip_text = "Se hvem som laget spillet"
-	btn_quit.tooltip_text = "Avslutt til skrivebordet"
+	btn_new_game.tooltip_text = tr("ui.tooltip.new_game")
+	btn_load.tooltip_text = tr("ui.tooltip.load_game")
+	btn_settings.tooltip_text = tr("ui.tooltip.settings")
+	btn_credits.tooltip_text = tr("ui.tooltip.credits")
+	btn_quit.tooltip_text = tr("ui.tooltip.quit")
 
 
 func _setup_focus_navigation() -> void:

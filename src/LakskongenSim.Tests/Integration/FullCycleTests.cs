@@ -123,12 +123,13 @@ namespace LakskongenSim.Tests.Integration
             _engine.Advance(540);
 
             // Assert: Fish should reach 4-6 kg at harvest
+            // At 365 (smolt age) + 540 (grow-out) = 905 days total, fish should be in Harvest stage
             var finalPopulation = _state.Populations.First();
             var harvestedFish = finalPopulation.Cohorts
-                                   .Where(c => c.Stage == LifeStage.Seawater)
+                                   .Where(c => c.Stage == LifeStage.Harvest || c.Stage == LifeStage.Seawater)
                                    .ToList();
 
-            Assert.True(harvestedFish.Any(), "Should have fish in seawater stage.");
+            Assert.True(harvestedFish.Any(), "Should have fish in seawater or harvest stage.");
 
             foreach (var cohort in harvestedFish)
             {

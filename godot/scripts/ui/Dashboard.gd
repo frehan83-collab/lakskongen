@@ -68,6 +68,12 @@ func _ready() -> void:
 	_refresh()
 	print("Dashboard: ready")
 
+
+func _input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("ui_cancel"):
+		hide()
+		get_viewport().set_input_as_handled()
+
 var _ext_box: VBoxContainer = null
 var ext_warnings_label: Label = null
 var ext_risk_label: Label = null
@@ -94,7 +100,7 @@ func _setup_external_data_ui() -> void:
 	_ext_box.add_child(hsep)
 
 	var title = Label.new()
-	title.text = "External Analytics"
+	title.text = tr("ui.dashboard.external_analytics")
 	_ext_box.add_child(title)
 
 	ext_warnings_label = _create_row(_ext_box, "Warnings:")
