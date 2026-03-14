@@ -36,13 +36,13 @@ layout_mode = 2
 
 [node name="Title" type="Label" parent="VBoxContainer/Header"]
 layout_mode = 2
-text = "Event Log"
+text = tr("ui.eventlog.eventlog")
 size_flags_horizontal = 3
 
 [node name="ClearButton" type="Button" parent="VBoxContainer/Header"]
 layout_mode = 2
-text = "Clear"
-tooltip_text = "Clear all log entries"
+text = tr("ui.eventlog.clear")
+tooltip_text = tr("ui.eventlog.clearalllogentries")
 
 [node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
 layout_mode = 2
@@ -61,5 +61,5 @@ alignment = 2
 layout_mode = 2
 size_flags_horizontal = 3
 bbcode_enabled = true
-text = "[color=gray]Welcome to Lakskongen! Events will appear here.[/color]"
+text = tr("ui.eventlog.colorgraywelcometola")
 fit_content = true

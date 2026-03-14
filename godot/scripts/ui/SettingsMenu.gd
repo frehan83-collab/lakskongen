@@ -50,13 +50,6 @@ const RESOLUTIONS := [
 	"3840x2160",
 ]
 
-const AUTOSAVE_OPTIONS := [
-	"Av",
-	"2 min",
-	"5 min",
-	"10 min",
-	"30 min",
-]
 const AUTOSAVE_MINUTES := [0, 2, 5, 10, 30]
 
 const DEFAULT_SETTINGS := {
@@ -114,9 +107,13 @@ const DEFAULT_SETTINGS := {
 # Accessibility tab
 @onready var hc_check:        CheckBox     = $Panel/VBoxContainer/TabContainer/Accessibility/HighContrastRow/HCCheck
 
+# Language tab (created programmatically)
+var language_option: OptionButton = null
+
 # ── State ──────────────────────────────────────────────────────────────────────
 
 var _audio_manager: Node = null
+var _localization_manager: Node = null
 var _settings: Dictionary = {}
 var _dirty: bool = false       # true when unsaved changes exist
 
@@ -124,7 +121,9 @@ var _dirty: bool = false       # true when unsaved changes exist
 
 func _ready() -> void:
 	_audio_manager = get_node_or_null("/root/AudioManager")
+	_localization_manager = get_node_or_null("/root/LocalizationManager")
 
+	_create_language_tab()
 	_populate_options()
 	_settings = _load_settings()
 	_apply_to_widgets(_settings)
@@ -134,6 +133,7 @@ func _ready() -> void:
 	_apply_high_contrast(_settings["accessibility"].get("high_contrast", false))
 	_setup_accessibility_hints()
 	_setup_focus_order()
+	_update_ui_text()
 
 
 func _input(event: InputEvent) -> void:
@@ -141,14 +141,112 @@ func _input(event: InputEvent) -> void:
 		_on_close_pressed()
 		get_viewport().set_input_as_handled()
 
+# ── Language tab creation ────────────────────────────────────────────────────
+
+func _create_language_tab() -> void:
+	if not tab_container:
+		push_warning("SettingsMenu: TabContainer not found, cannot create Language tab")
+		return
+	
+	# Create Language tab
+	var lang_container := VBoxContainer.new()
+	lang_container.name = "Language"
+	tab_container.add_child(lang_container)
+	
+	# Language selection row
+	var lang_row := HBoxContainer.new()
+	lang_row.name = "LanguageRow"
+	lang_container.add_child(lang_row)
+	
+	var lang_label := Label.new()
+	lang_label.text = "ui.settings.language_select"
+	lang_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lang_row.add_child(lang_label)
+	
+	language_option = OptionButton.new()
+	language_option.name = "LanguageOption"
+	lang_row.add_child(language_option)
+	
+	# Populate language options
+	if _localization_manager:
+		var locales: Array = _localization_manager.get_supported_locales()
+		var current_locale: String = _localization_manager.get_language()
+		var selected_idx := 0
+		
+		for i in range(locales.size()):
+			var locale: String = locales[i]
+			var locale_name: String = _localization_manager.get_locale_name(locale)
+			language_option.add_item(locale_name)
+			language_option.set_item_metadata(i, locale)
+			
+			if locale == current_locale:
+				selected_idx = i
+		
+		language_option.selected = selected_idx
+		language_option.item_selected.connect(_on_language_changed)
+	else:
+		push_warning("SettingsMenu: LocalizationManager not found")
+
+
+func _on_language_changed(index: int) -> void:
+	if not language_option or not _localization_manager:
+		return
+	
+	var locale: String = language_option.get_item_metadata(index)
+	_localization_manager.set_language(locale)
+	_update_ui_text()
+	_dirty = true
+
+
+func _update_ui_text() -> void:
+	# This function refreshes all translatable UI text after language change
+	# NOTE: For a full implementation, you'd want to update ALL text elements
+	# For now, we'll update the most critical ones
+	
+	# Update tab names using tr() which will now use the new locale
+	if tab_container:
+		tab_container.set_tab_title(0, tr("ui.settings.tab_audio"))
+		tab_container.set_tab_title(1, tr("ui.settings.tab_graphics"))
+		tab_container.set_tab_title(2, tr("ui.settings.tab_gameplay"))
+		tab_container.set_tab_title(3, tr("ui.settings.tab_accessibility"))
+		tab_container.set_tab_title(4, tr("ui.settings.tab_language"))
+	
+	# Update autosave options
+	if autosave_option:
+		var current_sel := autosave_option.selected
+		autosave_option.clear()
+		autosave_option.add_item(tr("ui.settings.autosave_off"))
+		autosave_option.add_item(tr("ui.settings.autosave_2min"))
+		autosave_option.add_item(tr("ui.settings.autosave_5min"))
+		autosave_option.add_item(tr("ui.settings.autosave_10min"))
+		autosave_option.add_item(tr("ui.settings.autosave_30min"))
+		autosave_option.selected = current_sel
+	
+	# Update language dropdown
+	if language_option and _localization_manager:
+		var current_locale := _localization_manager.get_language()
+		language_option.clear()
+		var locales: Array = _localization_manager.get_supported_locales()
+		for i in range(locales.size()):
+			var locale: String = locales[i]
+			var locale_name: String = _localization_manager.get_locale_name(locale)
+			language_option.add_item(locale_name)
+			language_option.set_item_metadata(i, locale)
+			if locale == current_locale:
+				language_option.selected = i
+
 # ── Option population ─────────────────────────────────────────────────────────
 
 func _populate_options() -> void:
 	for res in RESOLUTIONS:
 		res_option.add_item(res)
 
-	for opt in AUTOSAVE_OPTIONS:
-		autosave_option.add_item(opt)
+	# Populate autosave with translatable strings
+	autosave_option.add_item(tr("ui.settings.autosave_off"))
+	autosave_option.add_item(tr("ui.settings.autosave_2min"))
+	autosave_option.add_item(tr("ui.settings.autosave_5min"))
+	autosave_option.add_item(tr("ui.settings.autosave_10min"))
+	autosave_option.add_item(tr("ui.settings.autosave_30min"))
 
 # ── Load / Save ───────────────────────────────────────────────────────────────
 

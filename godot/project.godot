@@ -11,6 +11,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+LocalizationManager="*res://scripts/autoload/LocalizationManager.gd"
 GameBridge="*res://scripts/autoload/GameBridge.cs"
 EventBus="*res://scripts/autoload/EventBus.cs"
 AudioManager="*res://scripts/autoload/AudioManager.cs"
@@ -32,6 +33,12 @@ window/stretch/mode="canvas_items"
 [dotnet]
 
 project/assembly_name="LakskongenGame"
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://translations/strings.csv")
+locale/fallback="no"
+locale/test="no"
 
 [rendering]
 

@@ -35,7 +35,7 @@ size_flags_horizontal = 3
 
 [node name="Title" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-text = "Dashboard"
+text = tr("ui.dashboard.dashboard")
 horizontal_alignment = 1
 autowrap_mode = 2
 
@@ -47,43 +47,43 @@ layout_mode = 2
 
 [node name="FarmsTitle" type="Label" parent="ScrollContainer/VBoxContainer/FarmsSection"]
 layout_mode = 2
-text = "Farms"
+text = tr("ui.dashboard.farms")
 
 [node name="FarmCount" type="HBoxContainer" parent="ScrollContainer/VBoxContainer/FarmsSection"]
 layout_mode = 2
 
 [node name="FarmCountLabel" type="Label" parent="ScrollContainer/VBoxContainer/FarmsSection/FarmCount"]
 layout_mode = 2
-text = "Active Farms:"
+text = tr("ui.dashboard.activefarms")
 size_flags_horizontal = 3
 
 [node name="FarmCountValue" type="Label" parent="ScrollContainer/VBoxContainer/FarmsSection/FarmCount"]
 layout_mode = 2
-text = "0"
+text = tr("ui.dashboard.0_2")
 
 [node name="TotalCapacity" type="HBoxContainer" parent="ScrollContainer/VBoxContainer/FarmsSection"]
 layout_mode = 2
 
 [node name="TotalCapacityLabel" type="Label" parent="ScrollContainer/VBoxContainer/FarmsSection/TotalCapacity"]
 layout_mode = 2
-text = "Total Capacity:"
+text = tr("ui.dashboard.totalcapacity")
 size_flags_horizontal = 3
 
 [node name="TotalCapacityValue" type="Label" parent="ScrollContainer/VBoxContainer/FarmsSection/TotalCapacity"]
 layout_mode = 2
-text = "0"
+text = tr("ui.dashboard.0_2")
 
 [node name="CurrentStock" type="HBoxContainer" parent="ScrollContainer/VBoxContainer/FarmsSection"]
 layout_mode = 2
 
 [node name="CurrentStockLabel" type="Label" parent="ScrollContainer/VBoxContainer/FarmsSection/CurrentStock"]
 layout_mode = 2
-text = "Current Stock:"
+text = tr("ui.dashboard.currentstock")
 size_flags_horizontal = 3
 
 [node name="CurrentStockValue" type="Label" parent="ScrollContainer/VBoxContainer/FarmsSection/CurrentStock"]
 layout_mode = 2
-text = "0"
+text = tr("ui.dashboard.0_2")
 
 [node name="HSeparator2" type="HSeparator" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
@@ -93,43 +93,43 @@ layout_mode = 2
 
 [node name="ProductionTitle" type="Label" parent="ScrollContainer/VBoxContainer/ProductionSection"]
 layout_mode = 2
-text = "Production"
+text = tr("ui.dashboard.production")
 
 [node name="AvgGrowthRate" type="HBoxContainer" parent="ScrollContainer/VBoxContainer/ProductionSection"]
 layout_mode = 2
 
 [node name="AvgGrowthRateLabel" type="Label" parent="ScrollContainer/VBoxContainer/ProductionSection/AvgGrowthRate"]
 layout_mode = 2
-text = "Avg Growth Rate:"
+text = tr("ui.dashboard.avggrowthrate")
 size_flags_horizontal = 3
 
 [node name="AvgGrowthRateValue" type="Label" parent="ScrollContainer/VBoxContainer/ProductionSection/AvgGrowthRate"]
 layout_mode = 2
-text = "0%"
+text = tr("ui.dashboard.0_1")
 
 [node name="AvgWeight" type="HBoxContainer" parent="ScrollContainer/VBoxContainer/ProductionSection"]
 layout_mode = 2
 
 [node name="AvgWeightLabel" type="Label" parent="ScrollContainer/VBoxContainer/ProductionSection/AvgWeight"]
 layout_mode = 2
-text = "Avg Weight:"
+text = tr("ui.dashboard.avgweight")
 size_flags_horizontal = 3
 
 [node name="AvgWeightValue" type="Label" parent="ScrollContainer/VBoxContainer/ProductionSection/AvgWeight"]
 layout_mode = 2
-text = "0.0kg"
+text = tr("ui.dashboard.00kg")
 
 [node name="EstHarvestValue" type="HBoxContainer" parent="ScrollContainer/VBoxContainer/ProductionSection"]
 layout_mode = 2
 
 [node name="EstHarvestValueLabel" type="Label" parent="ScrollContainer/VBoxContainer/ProductionSection/EstHarvestValue"]
 layout_mode = 2
-text = "Est. Harvest Value:"
+text = tr("ui.dashboard.estharvestvalue")
 size_flags_horizontal = 3
 
 [node name="EstHarvestValueValue" type="Label" parent="ScrollContainer/VBoxContainer/ProductionSection/EstHarvestValue"]
 layout_mode = 2
-text = "$0"
+text = tr("ui.dashboard.0")
 
 [node name="HSeparator3" type="HSeparator" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
@@ -139,43 +139,43 @@ layout_mode = 2
 
 [node name="HealthTitle" type="Label" parent="ScrollContainer/VBoxContainer/HealthSection"]
 layout_mode = 2
-text = "Health"
+text = tr("ui.dashboard.health")
 
 [node name="OverallHealth" type="HBoxContainer" parent="ScrollContainer/VBoxContainer/HealthSection"]
 layout_mode = 2
 
 [node name="OverallHealthLabel" type="Label" parent="ScrollContainer/VBoxContainer/HealthSection/OverallHealth"]
 layout_mode = 2
-text = "Overall Health:"
+text = tr("ui.dashboard.overallhealth")
 size_flags_horizontal = 3
 
 [node name="OverallHealthValue" type="Label" parent="ScrollContainer/VBoxContainer/HealthSection/OverallHealth"]
 layout_mode = 2
-text = "Good"
+text = tr("ui.dashboard.good")
 
 [node name="AvgLiceCount" type="HBoxContainer" parent="ScrollContainer/VBoxContainer/HealthSection"]
 layout_mode = 2
 
 [node name="AvgLiceCountLabel" type="Label" parent="ScrollContainer/VBoxContainer/HealthSection/AvgLiceCount"]
 layout_mode = 2
-text = "Avg Lice Count:"
+text = tr("ui.dashboard.avglicecount")
 size_flags_horizontal = 3
 
 [node name="AvgLiceCountValue" type="Label" parent="ScrollContainer/VBoxContainer/HealthSection/AvgLiceCount"]
 layout_mode = 2
-text = "0.0"
+text = tr("ui.dashboard.00")
 
 [node name="MortalityRate" type="HBoxContainer" parent="ScrollContainer/VBoxContainer/HealthSection"]
 layout_mode = 2
 
 [node name="MortalityRateLabel" type="Label" parent="ScrollContainer/VBoxContainer/HealthSection/MortalityRate"]
 layout_mode = 2
-text = "Mortality Rate:"
+text = tr("ui.dashboard.mortalityrate")
 size_flags_horizontal = 3
 
 [node name="MortalityRateValue" type="Label" parent="ScrollContainer/VBoxContainer/HealthSection/MortalityRate"]
 layout_mode = 2
-text = "0%"
+text = tr("ui.dashboard.0_1")
 
 [node name="HSeparator4" type="HSeparator" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
@@ -185,28 +185,28 @@ layout_mode = 2
 
 [node name="MarketTitle" type="Label" parent="ScrollContainer/VBoxContainer/MarketSection"]
 layout_mode = 2
-text = "Market"
+text = tr("ui.dashboard.market")
 
 [node name="CurrentPrice" type="HBoxContainer" parent="ScrollContainer/VBoxContainer/MarketSection"]
 layout_mode = 2
 
 [node name="CurrentPriceLabel" type="Label" parent="ScrollContainer/VBoxContainer/MarketSection/CurrentPrice"]
 layout_mode = 2
-text = "Current Price:"
+text = tr("ui.dashboard.currentprice")
 size_flags_horizontal = 3
 
 [node name="CurrentPriceValue" type="Label" parent="ScrollContainer/VBoxContainer/MarketSection/CurrentPrice"]
 layout_mode = 2
-text = "$0/kg"
+text = tr("ui.dashboard.0kg")
 
 [node name="PriceTrend" type="HBoxContainer" parent="ScrollContainer/VBoxContainer/MarketSection"]
 layout_mode = 2
 
 [node name="PriceTrendLabel" type="Label" parent="ScrollContainer/VBoxContainer/MarketSection/PriceTrend"]
 layout_mode = 2
-text = "Trend:"
+text = tr("ui.dashboard.trend")
 size_flags_horizontal = 3
 
 [node name="PriceTrendValue" type="Label" parent="ScrollContainer/VBoxContainer/MarketSection/PriceTrend"]
 layout_mode = 2
-text = "Stable"
+text = tr("ui.dashboard.stable")

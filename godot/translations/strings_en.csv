@@ -1,0 +1,107 @@
+key,value
+ui.achievementnotification.,🏆
+ui.achievementnotification.x,X
+ui.achievementnotification.achievementtitle,Achievement Title
+ui.achievementnotification.descriptionoftheachi,Description of the achievement
+ui.dashboard.0,$0
+ui.dashboard.avglicecount,Avg Lice Count:
+ui.dashboard.farms,Farms
+ui.dashboard.trend,Trend:
+ui.dashboard.mortalityrate,Mortality Rate:
+ui.dashboard.health,Health
+ui.dashboard.0kg,$0/kg
+ui.dashboard.overallhealth,Overall Health:
+ui.dashboard.activefarms,Active Farms:
+ui.dashboard.totalcapacity,Total Capacity:
+ui.dashboard.avggrowthrate,Avg Growth Rate:
+ui.dashboard.0_1,0%
+ui.dashboard.stable,Stable
+ui.dashboard.0_2,0
+ui.dashboard.good,Good
+ui.dashboard.currentstock,Current Stock:
+ui.dashboard.avgweight,Avg Weight:
+ui.dashboard.currentprice,Current Price:
+ui.dashboard.00,0.0
+ui.dashboard.estharvestvalue,Est. Harvest Value:
+ui.dashboard.00kg,0.0kg
+ui.dashboard.production,Production
+ui.dashboard.market,Market
+ui.dashboard.dashboard,Dashboard
+ui.eventlog.eventlog,Event Log
+ui.eventlog.colorgraywelcometola,[color=gray]Welcome to Lakskongen! Events will appear here.[/color]
+ui.eventlog.clearalllogentries,Clear all log entries
+ui.eventlog.clear,Clear
+ui.financepanel.loanamount,Loan Amount:
+ui.financepanel.takeloan5mnok,Take Loan (5M NOK)
+ui.financepanel.noactiveloan,No Active Loan
+ui.financepanel.expensesperiod,Expenses (Period):
+ui.financepanel.remaining,Remaining:
+ui.financepanel.status,Status:
+ui.financepanel.recentfinancialhisto,Recent Financial History (Last 30 Days)
+ui.financepanel.currentbalance,Current Balance:
+ui.financepanel.revenueperiod,Revenue (Period):
+ui.financepanel.,--
+ui.financepanel.financedashboard,💰 Finance Dashboard
+ui.financepanel.repayloan1mnok,Repay Loan (1M NOK)
+ui.financepanel.nok,-- NOK
+ui.financepanel.loanstatus,Loan Status
+ui.financepanel.interestrate,Interest Rate:
+ui.financepanel.profitperiod,Profit (Period):
+ui.geneticspanel.current,Current
+ui.geneticspanel.trait,Trait
+ui.geneticspanel.inbreedingdepression,⚠ Inbreeding depression detected! Genetic diversity declining.
+ui.geneticspanel.heritability,Heritability
+ui.geneticspanel.geneticsbreeding,Genetics & Breeding
+ui.geneticspanel.selectbroodstockcomi,Select Broodstock (Coming Soon)
+ui.geneticspanel.inbreeding00,Inbreeding: 0.0%
+ui.geneticspanel.breedvalue,Breed Value
+ui.hud.day,Day
+ui.hud.1000000,"$1,000,000"
+ui.hud.cash,Cash
+ui.hud.pause,Pause
+ui.hud.veryfast1month1secon,Very Fast (1 month = 1 second)
+ui.hud.networth,Net Worth
+ui.hud.1x,1x
+ui.hud.speed,Speed:
+ui.hud.30x,30x
+ui.hud.7x,7x
+ui.hud.fast1week1second,Fast (1 week = 1 second)
+ui.hud.normalspeed,Normal Speed
+ui.hud.,||
+ui.hud.1,1
+ui.photomode.exitphotomodeesc,✕ Exit Photo Mode (ESC)
+ui.photomode.takescreenshotf12,📷 Take Screenshot (F12)
+ui.photomode.showhud,Show HUD
+ui.photomode.,⏪
+ui.photomode.screenshotcaptured,✨ Screenshot Captured!
+ui.photomode.photomode,📸 PHOTO MODE
+ui.photomode._1,⏸️
+ui.photomode.filter,Filter
+ui.photomode.timecontrol,Time Control
+ui.settingsmenu.opplsning,Oppløsning
+ui.settingsmenu.hovedvolum,Hovedvolum
+ui.settingsmenu.autolagringminutter,Autolagring (minutter)
+ui.settingsmenu.visopplringshjelp,Vis opplæringshjelp
+ui.settingsmenu.lydeffekter,Lydeffekter
+ui.settingsmenu.kontrolltilordningko,Kontrolltilordning kommer i fremtidige versjoner
+ui.settingsmenu.fullskjerm,Fullskjerm
+ui.settingsmenu.innstillinger,INNSTILLINGER
+ui.settingsmenu.,×
+ui.settingsmenu.vsync,V-Sync
+ui.settingsmenu.musikk,Musikk
+ui.settingsmenu.simulasjonshastighet,Simulasjonshastighet
+ui.sustainabilitypanel.categorybreakdown,Category Breakdown
+ui.sustainabilitypanel.pricepenalty15,Price Penalty: -15%
+ui.sustainabilitypanel.noncompliant,⚠️ Non-Compliant
+ui.sustainabilitypanel.0100,0/100
+ui.sustainabilitypanel.sustainabilityscore,🌱 Sustainability Score
+settingsmenu.visopplring,Vis opplæring
+settingsmenu.automatisklagringdag,Automatisk lagring (dager)
+settingsmenu.innstillinger,Innstillinger
+settingsmenu.bruk,Bruk
+settingsmenu.mastervolum,Mastervolum
+settingsmenu.vertikalsynkroniseri,Vertikal synkronisering (VSync)
+settingsmenu.simuleringshastighet,Simuleringshastighet
+settingsmenu.tilbakestill,Tilbakestill
+settingsmenu.,✕
+settingsmenu.omgivelseslyd,Omgivelseslyd

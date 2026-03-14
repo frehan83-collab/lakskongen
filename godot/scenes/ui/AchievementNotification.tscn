@@ -35,7 +35,7 @@ grow_vertical = 2
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 1
-text = "🏆"
+text = tr("ui.achievementnotification.")
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -47,13 +47,13 @@ size_flags_vertical = 1
 [node name="AchievementTitle" type="Label" parent="Panel/HBoxContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "Achievement Title"
+text = tr("ui.achievementnotification.achievementtitle")
 vertical_alignment = 1
 
 [node name="AchievementDescription" type="Label" parent="Panel/HBoxContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 1
-text = "Description of the achievement"
+text = tr("ui.achievementnotification.descriptionoftheachi")
 autowrap_mode = 2
 clip_text = true
 
@@ -67,7 +67,7 @@ offset_top = 4.0
 offset_right = -4.0
 offset_bottom = 28.0
 grow_horizontal = 0
-text = "X"
+text = tr("ui.achievementnotification.x")
 flat = true
 
 [connection signal="pressed" from="Panel/DismissButton" to="." method="_on_dismiss_button_pressed"]

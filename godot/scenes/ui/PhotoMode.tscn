@@ -36,7 +36,7 @@ theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="OverlayPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "📸 PHOTO MODE"
+text = tr("ui.photomode.photomode")
 horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="OverlayPanel/MarginContainer/VBoxContainer"]
@@ -48,7 +48,7 @@ theme_override_constants/separation = 8
 
 [node name="FilterLabel" type="Label" parent="OverlayPanel/MarginContainer/VBoxContainer/FilterSection"]
 layout_mode = 2
-text = "Filter"
+text = tr("ui.photomode.filter")
 
 [node name="FilterDropdown" type="OptionButton" parent="OverlayPanel/MarginContainer/VBoxContainer/FilterSection"]
 custom_minimum_size = Vector2(0, 36)
@@ -63,7 +63,7 @@ theme_override_constants/separation = 8
 
 [node name="TimeLabel" type="Label" parent="OverlayPanel/MarginContainer/VBoxContainer/TimeControls"]
 layout_mode = 2
-text = "Time Control"
+text = tr("ui.photomode.timecontrol")
 
 [node name="TimeButtons" type="HBoxContainer" parent="OverlayPanel/MarginContainer/VBoxContainer/TimeControls"]
 layout_mode = 2
@@ -72,13 +72,13 @@ theme_override_constants/separation = 8
 [node name="RewindButton" type="Button" parent="OverlayPanel/MarginContainer/VBoxContainer/TimeControls/TimeButtons"]
 custom_minimum_size = Vector2(80, 32)
 layout_mode = 2
-text = "⏪"
+text = tr("ui.photomode.")
 
 [node name="PauseButton" type="Button" parent="OverlayPanel/MarginContainer/VBoxContainer/TimeControls/TimeButtons"]
 custom_minimum_size = Vector2(80, 32)
 layout_mode = 2
 toggle_mode = true
-text = "⏸️"
+text = tr("ui.photomode._1")
 
 [node name="HSeparator3" type="HSeparator" parent="OverlayPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -90,17 +90,17 @@ theme_override_constants/separation = 8
 [node name="ScreenshotButton" type="Button" parent="OverlayPanel/MarginContainer/VBoxContainer/Actions"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
-text = "📷 Take Screenshot (F12)"
+text = tr("ui.photomode.takescreenshotf12")
 
 [node name="HUDToggle" type="CheckButton" parent="OverlayPanel/MarginContainer/VBoxContainer/Actions"]
 layout_mode = 2
 button_pressed = true
-text = "Show HUD"
+text = tr("ui.photomode.showhud")
 
 [node name="ExitButton" type="Button" parent="OverlayPanel/MarginContainer/VBoxContainer/Actions"]
 custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
-text = "✕ Exit Photo Mode (ESC)"
+text = tr("ui.photomode.exitphotomodeesc")
 
 [node name="TipsOverlay" type="PanelContainer" parent="."]
 visible = false
@@ -164,5 +164,5 @@ theme_override_constants/margin_bottom = 12
 
 [node name="NotificationLabel" type="Label" parent="NotificationPopup/MarginContainer"]
 layout_mode = 2
-text = "✨ Screenshot Captured!"
+text = tr("ui.photomode.screenshotcaptured")
 horizontal_alignment = 1

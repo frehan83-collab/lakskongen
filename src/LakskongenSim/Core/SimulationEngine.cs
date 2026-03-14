@@ -12,6 +12,7 @@ using LakskongenSim.Sustainability;
 using LakskongenSim.Market;
 using LakskongenSim.Markets;
 using System.Globalization;
+using System.Diagnostics;
 
 namespace LakskongenSim.Core
 {
@@ -698,6 +699,8 @@ namespace LakskongenSim.Core
         /// </summary>
         private void AdvanceOneDay()
         {
+            var overallStopwatch = Stopwatch.StartNew();
+
             // ═══════════════════════════════════════════
             // PHASE 1: WEATHER & ENVIRONMENT
             // ═══════════════════════════════════════════
@@ -716,6 +719,7 @@ namespace LakskongenSim.Core
             // ═══════════════════════════════════════════
             // PHASE 2: BIOLOGY (Growth & Mortality)
             // ═══════════════════════════════════════════
+            var biologyStopwatch = Stopwatch.StartNew();
             foreach (var population in State.Populations)
             {
                 var zone = State.Zones.FirstOrDefault(z => z.Id == population.ZoneId);
@@ -764,10 +768,13 @@ namespace LakskongenSim.Core
                     zone.FeedConversionRatio = feedResult.ActualFCR;
                 }
             }
+            biologyStopwatch.Stop();
+            Console.WriteLine($"Biology Phase: {biologyStopwatch.ElapsedMilliseconds} ms");
 
             // ═══════════════════════════════════════════
             // PHASE 3: HEALTH (Disease & Sea Lice)
             // ═══════════════════════════════════════════
+            var healthStopwatch = Stopwatch.StartNew();
             SeaLice.AdvanceDays(1);
 
             // Use integrated disease system with LOD for performance
@@ -775,6 +782,8 @@ namespace LakskongenSim.Core
                 State.Zones.ToList(),
                 State.Populations.ToList(),
                 1);
+            healthStopwatch.Stop();
+            Console.WriteLine($"Health Phase: {healthStopwatch.ElapsedMilliseconds} ms");
 
             // ═══════════════════════════════════════════
             // PHASE 4: EVENTS (Storyteller)
@@ -827,6 +836,9 @@ namespace LakskongenSim.Core
             Achievements?.CheckAchievements();
             Research?.AdvanceDay();
             SyncResearchToState();
+
+            overallStopwatch.Stop();
+            Console.WriteLine($"Overall AdvanceOneDay: {overallStopwatch.ElapsedMilliseconds} ms");
         }
 
         private void ProcessDailyFinance()

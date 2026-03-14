@@ -68,14 +68,14 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
 theme_override_font_sizes/font_size = 24
-text = "INNSTILLINGER"
+text = tr("ui.settingsmenu.innstillinger")
 
 [node name="CloseButton" type="Button" parent="CenterContainer/Panel/VBoxContainer/Header"]
 layout_mode = 2
 custom_minimum_size = Vector2(32, 32)
 theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
 theme_override_font_sizes/font_size = 20
-text = "×"
+text = tr("ui.settingsmenu.")
 
 [node name="HSeparator" type="HSeparator" parent="CenterContainer/Panel/VBoxContainer"]
 layout_mode = 2
@@ -103,7 +103,7 @@ layout_mode = 2
 [node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/MasterVolumeContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = "Hovedvolum"
+text = tr("ui.settingsmenu.hovedvolum")
 
 [node name="MasterVolumeSlider" type="HSlider" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/MasterVolumeContainer"]
 layout_mode = 2
@@ -116,7 +116,7 @@ layout_mode = 2
 [node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/EffectsVolumeContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = "Lydeffekter"
+text = tr("ui.settingsmenu.lydeffekter")
 
 [node name="EffectsVolumeSlider" type="HSlider" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/EffectsVolumeContainer"]
 layout_mode = 2
@@ -129,7 +129,7 @@ layout_mode = 2
 [node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/MusicVolumeContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = "Musikk"
+text = tr("ui.settingsmenu.musikk")
 
 [node name="MusicVolumeSlider" type="HSlider" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Lyd/VBoxContainer/MusicVolumeContainer"]
 layout_mode = 2
@@ -150,7 +150,7 @@ layout_mode = 2
 [node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer/ResolutionContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = "Oppløsning"
+text = tr("ui.settingsmenu.opplsning")
 
 [node name="ResolutionDropdown" type="OptionButton" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer/ResolutionContainer"]
 layout_mode = 2
@@ -161,7 +161,7 @@ layout_mode = 2
 [node name="FullscreenCheckBox" type="CheckBox" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer/FullscreenContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = "Fullskjerm"
+text = tr("ui.settingsmenu.fullskjerm")
 
 [node name="VsyncContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer"]
 layout_mode = 2
@@ -169,7 +169,7 @@ layout_mode = 2
 [node name="VsyncCheckBox" type="CheckBox" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Grafikk/VBoxContainer/VsyncContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = "V-Sync"
+text = tr("ui.settingsmenu.vsync")
 
 [node name="Spill" type="ScrollContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer"]
 layout_mode = 2
@@ -185,7 +185,7 @@ layout_mode = 2
 [node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/SimSpeedContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = "Simulasjonshastighet"
+text = tr("ui.settingsmenu.simulasjonshastighet")
 
 [node name="SimSpeedSlider" type="HSlider" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/SimSpeedContainer"]
 layout_mode = 2
@@ -200,7 +200,7 @@ layout_mode = 2
 [node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/AutosaveContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = "Autolagring (minutter)"
+text = tr("ui.settingsmenu.autolagringminutter")
 
 [node name="AutosaveSlider" type="HSlider" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/AutosaveContainer"]
 layout_mode = 2
@@ -215,7 +215,7 @@ layout_mode = 2
 [node name="TutorialCheckBox" type="CheckBox" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/TutorialContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = "Vis opplæringshjelp"
+text = tr("ui.settingsmenu.visopplringshjelp")
 
 [node name="Kontroller" type="ScrollContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer"]
 layout_mode = 2
@@ -228,4 +228,4 @@ size_flags_vertical = 3
 [node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Kontroller/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = "Kontrolltilordning kommer i fremtidige versjoner"
+text = tr("ui.settingsmenu.kontrolltilordningko")

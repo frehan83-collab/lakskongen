@@ -22,7 +22,7 @@ theme_override_constants/separation = 16
 [node name="Header" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "💰 Finance Dashboard"
+text = tr("ui.financepanel.financedashboard")
 
 [node name="SummaryContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -35,13 +35,13 @@ theme_override_constants/separation = 12
 [node name="BalanceLabel" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/BalanceRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "Current Balance:"
+text = tr("ui.financepanel.currentbalance")
 custom_minimum_size = Vector2(200, 0)
 
 [node name="balance_label" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/BalanceRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "-- NOK"
+text = tr("ui.financepanel.nok")
 
 [node name="RevenueRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SummaryContainer"]
 layout_mode = 2
@@ -50,13 +50,13 @@ theme_override_constants/separation = 12
 [node name="RevenueLabel" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/RevenueRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "Revenue (Period):"
+text = tr("ui.financepanel.revenueperiod")
 custom_minimum_size = Vector2(200, 0)
 
 [node name="revenue_label" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/RevenueRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "-- NOK"
+text = tr("ui.financepanel.nok")
 
 [node name="ExpensesRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SummaryContainer"]
 layout_mode = 2
@@ -65,13 +65,13 @@ theme_override_constants/separation = 12
 [node name="ExpensesLabel" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/ExpensesRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "Expenses (Period):"
+text = tr("ui.financepanel.expensesperiod")
 custom_minimum_size = Vector2(200, 0)
 
 [node name="expenses_label" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/ExpensesRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "-- NOK"
+text = tr("ui.financepanel.nok")
 
 [node name="ProfitRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/SummaryContainer"]
 layout_mode = 2
@@ -80,13 +80,13 @@ theme_override_constants/separation = 12
 [node name="ProfitLabel" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/ProfitRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "Profit (Period):"
+text = tr("ui.financepanel.profitperiod")
 custom_minimum_size = Vector2(200, 0)
 
 [node name="profit_label" type="Label" parent="MarginContainer/VBoxContainer/SummaryContainer/ProfitRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "-- NOK"
+text = tr("ui.financepanel.nok")
 
 [node name="HSeparator1" type="HSeparator" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -94,7 +94,7 @@ layout_mode = 2
 [node name="LoanHeader" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
-text = "Loan Status"
+text = tr("ui.financepanel.loanstatus")
 
 [node name="LoanContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -107,13 +107,13 @@ theme_override_constants/separation = 12
 [node name="LoanStatusLabel" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanStatusRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "Status:"
+text = tr("ui.financepanel.status")
 custom_minimum_size = Vector2(200, 0)
 
 [node name="loan_status_label" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanStatusRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "No Active Loan"
+text = tr("ui.financepanel.noactiveloan")
 
 [node name="LoanAmountRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/LoanContainer"]
 layout_mode = 2
@@ -122,13 +122,13 @@ theme_override_constants/separation = 12
 [node name="LoanAmountLabel" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanAmountRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "Loan Amount:"
+text = tr("ui.financepanel.loanamount")
 custom_minimum_size = Vector2(200, 0)
 
 [node name="loan_amount_label" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanAmountRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "--"
+text = tr("ui.financepanel.")
 
 [node name="LoanInterestRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/LoanContainer"]
 layout_mode = 2
@@ -137,13 +137,13 @@ theme_override_constants/separation = 12
 [node name="LoanInterestLabel" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanInterestRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "Interest Rate:"
+text = tr("ui.financepanel.interestrate")
 custom_minimum_size = Vector2(200, 0)
 
 [node name="loan_interest_label" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanInterestRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "--"
+text = tr("ui.financepanel.")
 
 [node name="LoanRemainingRow" type="HBoxContainer" parent="MarginContainer/VBoxContainer/LoanContainer"]
 layout_mode = 2
@@ -152,13 +152,13 @@ theme_override_constants/separation = 12
 [node name="LoanRemainingLabel" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanRemainingRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "Remaining:"
+text = tr("ui.financepanel.remaining")
 custom_minimum_size = Vector2(200, 0)
 
 [node name="loan_remaining_label" type="Label" parent="MarginContainer/VBoxContainer/LoanContainer/LoanRemainingRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "--"
+text = tr("ui.financepanel.")
 
 [node name="LoanButtonContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -167,13 +167,13 @@ theme_override_constants/separation = 12
 [node name="take_loan_button" type="Button" parent="MarginContainer/VBoxContainer/LoanButtonContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Take Loan (5M NOK)"
+text = tr("ui.financepanel.takeloan5mnok")
 
 [node name="repay_loan_button" type="Button" parent="MarginContainer/VBoxContainer/LoanButtonContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 disabled = true
-text = "Repay Loan (1M NOK)"
+text = tr("ui.financepanel.repayloan1mnok")
 
 [node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -181,7 +181,7 @@ layout_mode = 2
 [node name="HistoryHeader" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
-text = "Recent Financial History (Last 30 Days)"
+text = tr("ui.financepanel.recentfinancialhisto")
 
 [node name="history_container" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2

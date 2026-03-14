@@ -22,24 +22,24 @@ theme_override_constants/separation = 12
 [node name="Header" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "🌱 Sustainability Score"
+text = tr("ui.sustainabilitypanel.sustainabilityscore")
 
 [node name="score_label" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
-text = "0/100"
+text = tr("ui.sustainabilitypanel.0100")
 horizontal_alignment = 1
 
 [node name="certification_label" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "⚠️ Non-Compliant"
+text = tr("ui.sustainabilitypanel.noncompliant")
 horizontal_alignment = 1
 
 [node name="price_multiplier_label" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "Price Penalty: -15%"
+text = tr("ui.sustainabilitypanel.pricepenalty15")
 horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer"]
@@ -48,7 +48,7 @@ layout_mode = 2
 [node name="BreakdownHeader" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
-text = "Category Breakdown"
+text = tr("ui.sustainabilitypanel.categorybreakdown")
 
 [node name="category_container" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2

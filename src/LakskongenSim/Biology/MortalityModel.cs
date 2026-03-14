@@ -26,7 +26,9 @@ namespace LakskongenSim.Biology
                 case LifeStage.Harvest: rate *= 1.0; break;   // Stable if well-managed
             }
             // survivors = count * (1-rate)^days
+            System.Diagnostics.Debug.WriteLine($"[MortalityModel] Applying mortality: Count={count}, Days={days}, Stage={stage}, Rate={rate:F6}");
             var survivors = count * Math.Pow(1.0 - rate, days);
+            System.Diagnostics.Debug.WriteLine($"[MortalityModel] Survivors after mortality: {survivors:F0}");
             return Math.Max(0, (int)Math.Round(survivors));
         }
     }

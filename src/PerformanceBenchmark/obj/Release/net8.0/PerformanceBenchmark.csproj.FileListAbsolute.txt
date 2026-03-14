@@ -1,0 +1,6 @@
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\PerformanceBenchmark\obj\Release\net8.0\PerformanceBenchmark.csproj.AssemblyReference.cache
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\PerformanceBenchmark\obj\Release\net8.0\PerformanceBenchmark.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\PerformanceBenchmark\obj\Release\net8.0\PerformanceBenchmark.AssemblyInfoInputs.cache
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\PerformanceBenchmark\obj\Release\net8.0\PerformanceBenchmark.AssemblyInfo.cs
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\PerformanceBenchmark\obj\Release\net8.0\PerformanceBenchmark.csproj.CoreCompileInputs.cache
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\PerformanceBenchmark\obj\Release\net8.0\PerformanceBenchmark.sourcelink.json

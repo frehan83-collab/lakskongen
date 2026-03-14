@@ -256,10 +256,13 @@ namespace LakskongenSim.Health
             double survivalRate = Math.Pow(1.0 - dailyMortalityRate, days);
             
             // Apply to cohorts
+            System.Diagnostics.Debug.WriteLine($"[IntegratedDisease] ApplyMortalityBasedOnPrevalence: Prevalence={prevalence:F4}, DailyRate={dailyMortalityRate:F6}, SurvivalRate={survivalRate:F6}, Days={days}");
             for (int i = 0; i < population.Cohorts.Count; i++)
             {
                 var cohort = population.Cohorts[i];
+                System.Diagnostics.Debug.WriteLine($"[IntegratedDisease] Cohort {i}: BeforeCount={cohort.Count}");
                 int survivors = (int)(cohort.Count * survivalRate);
+                System.Diagnostics.Debug.WriteLine($"[IntegratedDisease] Cohort {i}: AfterCount={survivors}, Loss={cohort.Count - survivors}");
                 population.Cohorts[i] = new FishPopulation.Cohort(
                     cohort.AgeDays, survivors, cohort.MeanWeightKg, cohort.Stage);
             }
@@ -272,11 +275,13 @@ namespace LakskongenSim.Health
         {
             double mortalityFraction = prevalence * 0.02 * days * _externalDiseasePressureMultiplier; // 2% mortality at 100% prevalence
             
+            System.Diagnostics.Debug.WriteLine($"[IntegratedDisease] ApplyMinimalMortality: Prevalence={prevalence:F4}, MortalityFraction={mortalityFraction:F6}, Days={days}");
             for (int i = 0; i < population.Cohorts.Count; i++)
             {
                 var cohort = population.Cohorts[i];
                 int deaths = (int)(cohort.Count * mortalityFraction);
                 int survivors = Math.Max(0, cohort.Count - deaths);
+                System.Diagnostics.Debug.WriteLine($"[IntegratedDisease][Minimal] Cohort {i}: Count={cohort.Count}, Deaths={deaths}, Survivors={survivors}");
                 population.Cohorts[i] = new FishPopulation.Cohort(
                     cohort.AgeDays, survivors, cohort.MeanWeightKg, cohort.Stage);
             }

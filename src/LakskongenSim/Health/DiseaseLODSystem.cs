@@ -297,8 +297,10 @@ namespace LakskongenSim.Health
             for (int i = 0; i < population.Cohorts.Count; i++)
             {
                 var cohort = population.Cohorts[i];
+                System.Diagnostics.Debug.WriteLine($"[DiseaseLOD][Low] Cohort {i}: Initial Count={cohort.Count}, Prevalence={prevalence:F4}, MortalityFraction={mortalityFraction:F6}");
                 int deaths = (int)(cohort.Count * mortalityFraction);
                 int survivors = Math.Max(0, cohort.Count - deaths);
+                System.Diagnostics.Debug.WriteLine($"[DiseaseLOD][Low] Cohort {i}: Deaths={deaths}, Survivors={survivors}");
                 population.Cohorts[i] = new FishPopulation.Cohort(
                     cohort.AgeDays, survivors, cohort.MeanWeightKg, cohort.Stage);
             }

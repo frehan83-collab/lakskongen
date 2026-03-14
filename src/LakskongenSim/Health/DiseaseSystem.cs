@@ -76,6 +76,7 @@ namespace LakskongenSim.Health
                 var survivorsFactor = Math.Pow(1.0 - daily, days);
                 var survivors = (int)Math.Round(total * survivorsFactor);
                 var deaths = Math.Max(0, (int)total - survivors);
+                System.Diagnostics.Debug.WriteLine($"[DiseaseSystem] Tick: Total={total}, Prevalence={p:F4}, DailyMortRate={daily:F6}, SurvivalFactor={survivorsFactor:F6}, Deaths={deaths}");
                 if (deaths > 0)
                 {
                     // remove deaths proportionally from cohorts

@@ -40,14 +40,14 @@ layout_mode = 2
 [node name="TitleLabel" type="Label" parent="PanelContainer/VBoxContainer/HeaderRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Innstillinger"
+text = tr("settingsmenu.innstillinger")
 theme_override_font_sizes/font_size = 28
 
 [node name="CloseButton" type="Button" parent="PanelContainer/VBoxContainer/HeaderRow"]
 unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(40, 40)
-text = "✕"
+text = tr("settingsmenu.")
 
 [node name="TabContainer" type="TabContainer" parent="PanelContainer/VBoxContainer"]
 unique_name_in_owner = true
@@ -60,7 +60,7 @@ theme_override_constants/separation = 12
 
 [node name="MasterLabel" type="Label" parent="PanelContainer/VBoxContainer/TabContainer/Lyd"]
 layout_mode = 2
-text = "Mastervolum"
+text = tr("settingsmenu.mastervolum")
 
 [node name="MasterSlider" type="HSlider" parent="PanelContainer/VBoxContainer/TabContainer/Lyd"]
 unique_name_in_owner = true
@@ -72,7 +72,7 @@ value = 1.0
 
 [node name="BGMLabel" type="Label" parent="PanelContainer/VBoxContainer/TabContainer/Lyd"]
 layout_mode = 2
-text = "Musikk"
+text = tr("ui.settingsmenu.musikk")
 
 [node name="BGMSlider" type="HSlider" parent="PanelContainer/VBoxContainer/TabContainer/Lyd"]
 unique_name_in_owner = true
@@ -84,7 +84,7 @@ value = 0.8
 
 [node name="SFXLabel" type="Label" parent="PanelContainer/VBoxContainer/TabContainer/Lyd"]
 layout_mode = 2
-text = "Lydeffekter"
+text = tr("ui.settingsmenu.lydeffekter")
 
 [node name="SFXSlider" type="HSlider" parent="PanelContainer/VBoxContainer/TabContainer/Lyd"]
 unique_name_in_owner = true
@@ -96,7 +96,7 @@ value = 0.9
 
 [node name="AmbientLabel" type="Label" parent="PanelContainer/VBoxContainer/TabContainer/Lyd"]
 layout_mode = 2
-text = "Omgivelseslyd"
+text = tr("settingsmenu.omgivelseslyd")
 
 [node name="AmbientSlider" type="HSlider" parent="PanelContainer/VBoxContainer/TabContainer/Lyd"]
 unique_name_in_owner = true
@@ -113,17 +113,17 @@ theme_override_constants/separation = 12
 [node name="FullscreenCheck" type="CheckButton" parent="PanelContainer/VBoxContainer/TabContainer/Grafikk"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Fullskjerm"
+text = tr("ui.settingsmenu.fullskjerm")
 
 [node name="VSyncCheck" type="CheckButton" parent="PanelContainer/VBoxContainer/TabContainer/Grafikk"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Vertikal synkronisering (VSync)"
+text = tr("settingsmenu.vertikalsynkroniseri")
 button_pressed = true
 
 [node name="ResolutionLabel" type="Label" parent="PanelContainer/VBoxContainer/TabContainer/Grafikk"]
 layout_mode = 2
-text = "Oppløsning"
+text = tr("ui.settingsmenu.opplsning")
 
 [node name="ResolutionOption" type="OptionButton" parent="PanelContainer/VBoxContainer/TabContainer/Grafikk"]
 unique_name_in_owner = true
@@ -135,7 +135,7 @@ theme_override_constants/separation = 12
 
 [node name="SpeedLabel" type="Label" parent="PanelContainer/VBoxContainer/TabContainer/Spill"]
 layout_mode = 2
-text = "Simuleringshastighet"
+text = tr("settingsmenu.simuleringshastighet")
 
 [node name="SpeedSlider" type="HSlider" parent="PanelContainer/VBoxContainer/TabContainer/Spill"]
 unique_name_in_owner = true
@@ -147,7 +147,7 @@ value = 3.0
 
 [node name="AutosaveLabel" type="Label" parent="PanelContainer/VBoxContainer/TabContainer/Spill"]
 layout_mode = 2
-text = "Automatisk lagring (dager)"
+text = tr("settingsmenu.automatisklagringdag")
 
 [node name="AutosaveSlider" type="HSlider" parent="PanelContainer/VBoxContainer/TabContainer/Spill"]
 unique_name_in_owner = true
@@ -160,7 +160,7 @@ value = 7.0
 [node name="TutorialCheck" type="CheckButton" parent="PanelContainer/VBoxContainer/TabContainer/Spill"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Vis opplæring"
+text = tr("settingsmenu.visopplring")
 button_pressed = true
 
 [node name="ButtonRow" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
@@ -172,10 +172,10 @@ theme_override_constants/separation = 12
 unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(140, 44)
-text = "Tilbakestill"
+text = tr("settingsmenu.tilbakestill")
 
 [node name="ApplyButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonRow"]
 unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(140, 44)
-text = "Bruk"
+text = tr("settingsmenu.bruk")
