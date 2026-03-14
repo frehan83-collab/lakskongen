@@ -18,10 +18,10 @@ SaveLoadManager="*res://scripts/autoload/SaveLoadManager.cs"
 MultiplayerBridge="*res://scripts/autoload/MultiplayerBridge.cs"
 SimBridge="*res://scripts/SimBridge.gd"
 NetworkManager="*res://scripts/NetworkManager.gd"
-AudioController="*res://scripts/AudioController.gd"
-MusicLibrary="*res://scripts/MusicLibrary.gd"
 ToastNotification="*res://scripts/ui/ToastNotification.gd"
 LakskongenTheme="*res://theme/default_theme.gd"
+AudioController="*res://scripts/AudioController.gd"
+MusicLibrary="*res://scripts/MusicLibrary.gd"
 
 [display]
 
