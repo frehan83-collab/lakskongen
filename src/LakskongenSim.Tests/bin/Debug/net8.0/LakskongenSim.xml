@@ -248,6 +248,24 @@
         <member name="P:LakskongenSim.Core.DailySnapshot.MortalityRate">
             <summary>Daily mortality rate as a fraction (0.0–1.0).</summary>
         </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.ExternalLicePressure">
+            <summary>External industry lice pressure index from normalized real-world data.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.ExternalDiseasePressure">
+            <summary>External disease pressure index from normalized real-world data.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.ExternalBiomassUtilization">
+            <summary>External biomass utilization index from normalized real-world data.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.ExternalMarketSupport">
+            <summary>External market support index from normalized real-world data.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.ExternalWarningCount">
+            <summary>Count of active external health warnings.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.DailySnapshot.ExternalCompositeRisk">
+            <summary>Composite external health risk score.</summary>
+        </member>
         <member name="M:LakskongenSim.Core.DailySnapshot.GetMetric(System.String)">
             <summary>
             Return the value of a named metric. Returns NaN if unknown.
@@ -319,6 +337,21 @@
             Keeps runtime dependencies small by operating on compact snapshot values.
             </summary>
         </member>
+        <member name="T:LakskongenSim.Core.RegionalAquacultureProfile">
+            <summary>
+            Compact regional rollup used by dashboards and simulation calibration.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ExternalDataAnalyticsSummary">
+            <summary>
+            Derived external-data analytics suitable for UI and reporting.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.AquacultureDataIntegration">
+            <summary>
+            Helper methods for consuming compact external aquaculture data safely.
+            </summary>
+        </member>
         <member name="T:LakskongenSim.Core.AmbienceProfile">
              <summary>
              Pure C# state tracker for ambient audio. Zero Godot dependencies.
@@ -370,6 +403,62 @@
             <summary>
             Returns the background music track name for the current season.
             Used by AudioController.gd to select which BGM to crossfade to.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchClientOptions">
+            <summary>
+            Secure client configuration for BarentsWatch Fishhealth API access.
+            Supports bearer-token auth and an offline/local snapshot mode for deterministic testing.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchFishHealthRawSnapshot">
+            <summary>
+            Raw/transport payload from Fishhealth-like sources before normalization into gameplay-friendly indexes.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchStoredSnapshot">
+            <summary>
+            File-persisted wrapper used by the data pipeline.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.HealthTrendWarning">
+            <summary>
+            In-game warning produced from external health trend analysis.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.HealthCrisisScenario">
+            <summary>
+            Crisis modifiers derived from BarentsWatch-aligned health signals.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.ExternalHealthAnalyticsReport">
+            <summary>
+            Compact report for dashboards/UI/gameplay.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchFishHealthClient">
+            <summary>
+            Minimal secure client for fetching Fishhealth payloads from BarentsWatch or local fallback files.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchFishHealthNormalizer">
+            <summary>
+            Converts BarentsWatch raw values into Lakskongen normalized health/environment signals.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchSnapshotRepository">
+            <summary>
+            Persist/read normalized BarentsWatch snapshots for reproducible gameplay and testing.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchHealthCrisisEngine">
+            <summary>
+            Warning/crisis logic mapped from normalized health data to gameplay-readable outputs.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Core.BarentsWatchFishHealthPipeline">
+            <summary>
+            End-to-end data pipeline: fetch → normalize → analyze → persist.
             </summary>
         </member>
         <member name="T:LakskongenSim.Core.DataExporter">
@@ -473,16 +562,34 @@
             <summary>Baseline growth rate per day (percentage of weight).</summary>
         </member>
         <member name="F:LakskongenSim.Core.GameConstants.VB_Linf_g">
-            <summary>Asymptotic/maximum expected weight (grams).</summary>
+            <summary>Asymptotic/maximum expected weight (grams). Norwegian harvest weight 4-6 kg, asymptote higher.</summary>
         </member>
         <member name="F:LakskongenSim.Core.GameConstants.VB_k_per_day">
-            <summary>Growth coefficient (per day).</summary>
+            <summary>Growth coefficient (per day). Calibrated to reach ~5 kg in 14-18 months at sea (8-14°C).</summary>
         </member>
         <member name="F:LakskongenSim.Core.GameConstants.VB_t0_days">
-            <summary>von Bertalanffy t0 (days).</summary>
+            <summary>von Bertalanffy t0 (days). Offset for smolt stocking at ~80g.</summary>
         </member>
         <member name="F:LakskongenSim.Core.GameConstants.TypicalFCR">
-            <summary>Typical feed conversion ratio (kg feed / kg growth).</summary>
+            <summary>Typical feed conversion ratio (kg feed / kg growth). Norwegian industry average.</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.ProductionCostPerKg">
+            <summary>Production cost per kg (NOK). Norwegian industry average 2024.</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.FeedCostFraction">
+            <summary>Feed cost as fraction of total production cost.</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.SmoltCostPerFish">
+            <summary>Smolt cost per fish (NOK). Standard quality.</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.DelousingCostPerTreatment">
+            <summary>Delousing cost per treatment per pen (NOK).</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.StandardLicenseMAB">
+            <summary>Standard license MAB (tonnes).</summary>
+        </member>
+        <member name="F:LakskongenSim.Core.GameConstants.LicenseValueNOK">
+            <summary>License value (NOK). Recent auction prices.</summary>
         </member>
         <member name="T:LakskongenSim.Core.GameState">
             <summary>
@@ -503,6 +610,9 @@
         </member>
         <member name="P:LakskongenSim.Core.GameState.Populations">
             <summary>Fish populations across the system.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.Broodstock">
+            <summary>Broodstock genomes available for selective breeding.</summary>
         </member>
         <member name="P:LakskongenSim.Core.GameState.ProcessingSnapshots">
             <summary>Processing P&amp;L snapshot (summary per plant). New systems can push ProcessingSnapshot objects here for dashboards.
@@ -571,6 +681,18 @@
         </member>
         <member name="P:LakskongenSim.Core.GameState.ExternalAquacultureSnapshot">
             <summary>Compact normalized external aquaculture data snapshot used for gameplay calibration.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ExternalDataAnalytics">
+            <summary>External-data analytics summary for UI/reporting surfaces.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ExternalHealthWarnings">
+            <summary>Latest fish-health warnings derived from BarentsWatch/industry snapshot data.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ExternalHealthCrisis">
+            <summary>Current dynamic crisis scenario derived from external fish-health pressure.</summary>
+        </member>
+        <member name="P:LakskongenSim.Core.GameState.ExternalHealthAnalytics">
+            <summary>Compact report for gameplay/UI messaging around external health pressure.</summary>
         </member>
         <member name="P:LakskongenSim.Core.GameState.UnlockedAchievementIds">
             <summary>IDs of unlocked achievements.</summary>
@@ -877,10 +999,20 @@
             </summary>
         </member>
         <member name="M:LakskongenSim.Core.ResearchSystem.ForceUnlock(System.String)">
+            <summary>
+            Populate research nodes from external JSON data.
+            Clears any existing nodes and replaces them with the provided list.
+            </summary>
             <summary>Restore an unlocked node without triggering the completion event.</summary>
         </member>
         <member name="M:LakskongenSim.Core.ResearchSystem.RestoreProgress(System.String,System.Int32)">
             <summary>Restore in-progress research from a saved state.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.ResearchSystem.PopulateFromJson(System.Collections.Generic.List{LakskongenSim.Core.ResearchNode})">
+            <summary>
+            Replace the hardcoded node definitions with nodes loaded from JSON.
+            Preserves any existing unlock state if node IDs match.
+            </summary>
         </member>
         <member name="T:LakskongenSim.Core.SaveLoadManager">
             <summary>
@@ -1139,10 +1271,22 @@
         <member name="P:LakskongenSim.Core.TutorialSystem.CompletedCount">
             <summary>How many steps have been completed so far.</summary>
         </member>
+        <member name="M:LakskongenSim.Core.TutorialSystem.LoadStepsFromJson">
+            <summary>Load tutorial steps from JSON file and parse condition strings.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.TutorialSystem.ParseCondition(System.String)">
+            <summary>Parse condition string (e.g., "day >= 7") into executable function.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.TutorialSystem.ParseDayCondition(System.String)">
+            <summary>Parse "day >= N" conditions.</summary>
+        </member>
+        <member name="M:LakskongenSim.Core.TutorialSystem.ParseNumericCondition(System.String)">
+            <summary>Parse generic numeric conditions (extensible).</summary>
+        </member>
         <member name="M:LakskongenSim.Core.TutorialSystem.CheckProgress">
             <summary>
             Called each simulated day by SimulationEngine.
-            Evaluates the current step's completion condition and advances when met.
+            Evaluates the current step's trigger and completion conditions and advances when met.
             Chains through multiple steps if conditions are immediately satisfied.
             </summary>
         </member>
@@ -1963,6 +2107,11 @@
         <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.SetLODMode(LakskongenSim.Health.LODMode)">
             <summary>
             Set LOD mode manually (for debugging or user preference).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.SetExternalDiseasePressure(System.Double)">
+            <summary>
+            Calibrates disease pressure from normalized external datasets.
             </summary>
         </member>
         <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.GetPrevalence(LakskongenSim.Biology.FishPopulation)">

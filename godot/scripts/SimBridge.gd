@@ -26,7 +26,7 @@ signal tutorial_step_completed(step_number: int, title: String, reward_nok: floa
 signal audio_alert_triggered(alert_key: String)
 
 ## Emitted when the player unlocks a new achievement.
-signal achievement_unlocked(achievement_name: String, description: String, reward_nok: float, tier: String)
+signal achievement_unlocked(id: String, achievement_name: String, description: String, reward_nok: float, tier: String)
 
 # ── Simulation snapshot (refreshed on each tick) ──────────────────────────────
 
@@ -136,11 +136,11 @@ func _on_audio_alert_triggered(alert_key: String) -> void:
 	audio_alert_layer = alert_key
 	audio_alert_triggered.emit(alert_key)
 
-func _on_achievement_unlocked(achievement_name: String, description: String, reward_nok: float, tier: String) -> void:
+func _on_achievement_unlocked(id: String, achievement_name: String, description: String, reward_nok: float, tier: String) -> void:
 	latest_achievement_name = achievement_name
 	latest_achievement_description = description
 	achievement_unlocked_count = _game_bridge.AchievementUnlockedCount
-	achievement_unlocked.emit(achievement_name, description, reward_nok, tier)
+	achievement_unlocked.emit(id, achievement_name, description, reward_nok, tier)
 
 # ── State refresh ─────────────────────────────────────────────────────────────
 

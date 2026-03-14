@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using System.IO;
 
 namespace LakskongenSim.Core
 {
@@ -12,8 +14,8 @@ namespace LakskongenSim.Core
     public class AchievementSystem
     {
         private readonly GameState _state;
-        private readonly HashSet<string> _unlocked = new();
         private readonly Dictionary<string, Achievement> _achievements = new();
+        private readonly List<Achievement> _lockedAchievements = new();
 
         public event Action<Achievement>? OnAchievementUnlocked;
 
@@ -21,26 +23,29 @@ namespace LakskongenSim.Core
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
             RegisterAllAchievements();
+            
+            _lockedAchievements.AddRange(_achievements.Values.Where(a => !_state.UnlockedAchievementIds.Contains(a.Id)));
         }
 
         /// <summary>Check all achievements and unlock any that meet conditions.</summary>
         public void CheckAchievements()
         {
-            foreach (var achievement in _achievements.Values)
+            for (int i = _lockedAchievements.Count - 1; i >= 0; i--)
             {
-                if (_unlocked.Contains(achievement.Id)) continue;
+                var achievement = _lockedAchievements[i];
                 if (achievement.Condition == null) continue;
 
                 if (achievement.Condition(_state))
                 {
                     UnlockAchievement(achievement);
+                    _lockedAchievements.RemoveAt(i);
                 }
             }
         }
 
         private void UnlockAchievement(Achievement achievement)
         {
-            _unlocked.Add(achievement.Id);
+            _state.UnlockedAchievementIds.Add(achievement.Id);
             Console.WriteLine($"🏆 Achievement Unlocked: {achievement.Name}");
             Console.WriteLine($"    {achievement.Description}");
             if (achievement.RewardNOK > 0)
@@ -51,314 +56,76 @@ namespace LakskongenSim.Core
             OnAchievementUnlocked?.Invoke(achievement);
         }
 
-        public bool IsUnlocked(string achievementId) => _unlocked.Contains(achievementId);
-        public int UnlockedCount => _unlocked.Count;
+        public bool IsUnlocked(string achievementId) => _state.UnlockedAchievementIds.Contains(achievementId);
+        public int UnlockedCount => _state.UnlockedAchievementIds.Count;
         public int TotalCount => _achievements.Count;
-        public double CompletionPercent => (_unlocked.Count / (double)_achievements.Count) * 100.0;
+        public double CompletionPercent => (_state.UnlockedAchievementIds.Count / (double)_achievements.Count) * 100.0;
 
         public List<Achievement> GetUnlocked() => _achievements.Values
-            .Where(a => _unlocked.Contains(a.Id))
+            .Where(a => _state.UnlockedAchievementIds.Contains(a.Id))
             .OrderBy(a => a.Tier)
             .ToList();
 
         public List<Achievement> GetLocked() => _achievements.Values
-            .Where(a => !_unlocked.Contains(a.Id))
+            .Where(a => !_state.UnlockedAchievementIds.Contains(a.Id))
             .OrderBy(a => a.Tier)
             .ToList();
 
         // ══════════════════════════════════════════════════════════════════
-        // ACHIEVEMENT DEFINITIONS (50+ achievements)
+        // ACHIEVEMENT DEFINITIONS (loaded from JSON)
         // ══════════════════════════════════════════════════════════════════
 
         private void RegisterAllAchievements()
         {
-            // ─── BEGINNER TIER (First 100 days) ───
-            Register(new Achievement
+            var jsonPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "game", "data", "achievements_config.json");
+            if (!File.Exists(jsonPath))
             {
-                Id = "first-smolt",
-                Name = "First Smolt Release",
-                Description = "Stock your first pen with smolts",
-                Tier = AchievementTier.Beginner,
-                RewardNOK = 10_000m,
-                Condition = gs => gs.Populations.Any()
-            });
-
-            Register(new Achievement
-            {
-                Id = "survive-year-one",
-                Name = "Year One Survivor",
-                Description = "Survive your first year without bankruptcy",
-                Tier = AchievementTier.Beginner,
-                RewardNOK = 50_000m,
-                Condition = gs => gs.Day >= 365 && gs.Balance > 0
-            });
-
-            Register(new Achievement
-            {
-                Id = "first-harvest",
-                Name = "First Harvest",
-                Description = "Harvest your first salmon cohort",
-                Tier = AchievementTier.Beginner,
-                RewardNOK = 25_000m,
-                Condition = gs => gs.Populations.Any(p => p.Cohorts.Any(c => c.Stage == Data.LifeStage.Harvest))
-            });
-
-            Register(new Achievement
-            {
-                Id = "profitable-quarter",
-                Name = "Profitable Quarter",
-                Description = "End a quarter with positive cash flow",
-                Tier = AchievementTier.Beginner,
-                RewardNOK = 15_000m,
-                Condition = gs => gs.Balance > 1_000_000m && gs.Day >= 90
-            });
-
-            // ─── NOVICE TIER (Years 1-2) ───
-            Register(new Achievement
-            {
-                Id = "million-revenue",
-                Name = "Million NOK Revenue",
-                Description = "Achieve cumulative revenue of 1M NOK",
-                Tier = AchievementTier.Novice,
-                RewardNOK = 50_000m,
-                Condition = gs => gs.Balance >= 2_000_000m
-            });
-
-            Register(new Achievement
-            {
-                Id = "100k-harvest",
-                Name = "100,000 Fish Harvested",
-                Description = "Harvest 100,000 fish total",
-                Tier = AchievementTier.Novice,
-                RewardNOK = 100_000m,
-                Condition = gs => gs.Populations.Sum(p => p.Cohorts.Where(c => c.Stage == Data.LifeStage.Harvest).Sum(c => c.Count)) >= 100_000
-            });
-
-            Register(new Achievement
-            {
-                Id = "fcr-excellence",
-                Name = "FCR Excellence",
-                Description = "Achieve FCR below 1.15 for a full year",
-                Tier = AchievementTier.Novice,
-                RewardNOK = 75_000m,
-                Condition = gs =>
+                // Fallback for development environment if running directly from project root.
+                // Adjust this path based on your exact project structure.
+                jsonPath = "salmon-sim/game/data/achievements_config.json";
+                if (!File.Exists(jsonPath))
                 {
-                    if (gs.Day < 365 || gs.DailySnapshots.Count < 365) return false;
-                    var lastYear = gs.DailySnapshots.Where(s => s.Day >= gs.Day - 365 && s.Day <= gs.Day).ToList();
-                    if (lastYear.Count < 300) return false; // At least 300 days of data
-                    return lastYear.All(s => s.FCR > 0 && s.FCR < 1.15);
+                    Console.Error.WriteLine($"ERROR: achievements_config.json not found at {jsonPath}");
+                    return;
                 }
-            });
+            }
 
-            Register(new Achievement
-            {
-                Id = "disease-free-year",
-                Name = "Disease-Free Year",
-                Description = "Go 365 days without a disease outbreak",
-                Tier = AchievementTier.Novice,
-                RewardNOK = 80_000m,
-                Condition = gs => gs.EventLog.Count(e => e.Category == Events.EventCategory.Disease && e.Day >= gs.Day - 365) == 0 && gs.Day >= 365
-            });
+            var jsonString = File.ReadAllText(jsonPath);
+            var achievementDefinitions = JsonSerializer.Deserialize<List<AchievementDefinition>>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            // ─── INTERMEDIATE TIER (Years 2-5) ───
-            Register(new Achievement
+            if (achievementDefinitions == null)
             {
-                Id = "asc-certified",
-                Name = "ASC Certification",
-                Description = "Achieve ASC certification status",
-                Tier = AchievementTier.Intermediate,
-                RewardNOK = 150_000m,
-                Condition = gs => gs.HasASCCertification
-            });
+                Console.Error.WriteLine("ERROR: Failed to deserialize achievement definitions.");
+                return;
+            }
 
-            Register(new Achievement
+            foreach (var def in achievementDefinitions)
             {
-                Id = "five-million-revenue",
-                Name = "5 Million NOK Revenue",
-                Description = "Reach 5M NOK cumulative revenue",
-                Tier = AchievementTier.Intermediate,
-                RewardNOK = 200_000m,
-                Condition = gs => gs.Balance >= 6_000_000m
-            });
-
-            Register(new Achievement
-            {
-                Id = "genetic-superiority",
-                Name = "Genetic Superiority",
-                Description = "Breed a strain with +2.0 breeding value in growth",
-                Tier = AchievementTier.Intermediate,
-                RewardNOK = 250_000m,
-                Condition = gs => gs.BestGrowthBreedingValue >= 2.0
-            });
-
-            Register(new Achievement
-            {
-                Id = "crisis-survivor",
-                Name = "Crisis Survivor",
-                Description = "Survive a major crisis (ISA, storm, market crash) without bankruptcy",
-                Tier = AchievementTier.Intermediate,
-                RewardNOK = 120_000m,
-                Condition = gs => gs.EventLog.Any(e => e.BalanceChange < -500_000m) && gs.Balance > 0
-            });
-
-            Register(new Achievement
-            {
-                Id = "multi-site-operator",
-                Name = "Multi-Site Operator",
-                Description = "Operate 3+ sea sites simultaneously",
-                Tier = AchievementTier.Intermediate,
-                RewardNOK = 180_000m,
-                Condition = gs => gs.SeaSites.Count >= 3
-            });
-
-            // ─── ADVANCED TIER (Years 5-10) ───
-            Register(new Achievement
-            {
-                Id = "sustainability-leader",
-                Name = "Sustainability Leader",
-                Description = "Achieve 95+ sustainability score",
-                Tier = AchievementTier.Advanced,
-                RewardNOK = 500_000m,
-                Condition = gs =>
+                if (!AchievementConditionMap.Conditions.TryGetValue(def.ConditionKey, out var conditionFunc))
                 {
-                    if (gs.DailySnapshots.Count == 0) return false;
-                    var latest = gs.DailySnapshots.Last();
-                    return latest.SustainabilityScore >= 95;
+                    Console.Error.WriteLine($"WARNING: Condition key '{def.ConditionKey}' not found for achievement '{def.Id}'");
+                    continue;
                 }
-            });
 
-            Register(new Achievement
-            {
-                Id = "ten-million-revenue",
-                Name = "10 Million NOK Empire",
-                Description = "Build a 10M NOK salmon empire",
-                Tier = AchievementTier.Advanced,
-                RewardNOK = 750_000m,
-                Condition = gs => gs.Balance >= 11_000_000m
-            });
-
-            Register(new Achievement
-            {
-                Id = "vertical-integration",
-                Name = "Vertical Integration Master",
-                Description = "Own feed mill, hatchery, farms, and processing plant",
-                Tier = AchievementTier.Advanced,
-                RewardNOK = 600_000m,
-                Condition = gs => gs.OwnsFeedMill && gs.OwnsHatchery && gs.OwnsProcessingPlant && gs.SeaSites.Count > 0
-            });
-
-            Register(new Achievement
-            {
-                Id = "acquisition-spree",
-                Name = "Acquisition Spree",
-                Description = "Acquire 3 competitor farms during crises",
-                Tier = AchievementTier.Advanced,
-                RewardNOK = 400_000m,
-                Condition = gs => gs.AcquisitionCount >= 3
-            });
-
-            Register(new Achievement
-            {
-                Id = "global-exporter",
-                Name = "Global Exporter",
-                Description = "Export to all 6 major markets (EU, USA, China, Japan, UK, Middle East)",
-                Tier = AchievementTier.Advanced,
-                RewardNOK = 550_000m,
-                Condition = gs => gs.ExportMarkets.Contains("EU") &&
-                                  gs.ExportMarkets.Contains("USA") &&
-                                  gs.ExportMarkets.Contains("China") &&
-                                  gs.ExportMarkets.Contains("Japan") &&
-                                  gs.ExportMarkets.Contains("UK") &&
-                                  gs.ExportMarkets.Contains("MiddleEast")
-            });
-
-            // ─── MASTER TIER (10+ years, elite players) ───
-            Register(new Achievement
-            {
-                Id = "hundred-million",
-                Name = "Salmon Billionaire",
-                Description = "Reach 100M NOK net worth",
-                Tier = AchievementTier.Master,
-                RewardNOK = 5_000_000m,
-                Condition = gs => gs.Balance >= 105_000_000m
-            });
-
-            Register(new Achievement
-            {
-                Id = "perfect-fcr",
-                Name = "Perfect FCR",
-                Description = "Achieve FCR of 1.05 or better",
-                Tier = AchievementTier.Master,
-                RewardNOK = 1_000_000m,
-                Condition = gs => gs.BestFCR > 0 && gs.BestFCR <= 1.05
-            });
-
-            Register(new Achievement
-            {
-                Id = "zero-escapes",
-                Name = "Zero Escapes",
-                Description = "Go 5 years without a single fish escape",
-                Tier = AchievementTier.Master,
-                RewardNOK = 2_000_000m,
-                Condition = gs => gs.EventLog.Count(e => e.Id == "escape-penalty" && e.Day >= gs.Day - 1825) == 0 && gs.Day >= 1825
-            });
-
-            Register(new Achievement
-            {
-                Id = "disease-resistance",
-                Name = "Disease Resistance Breakthrough",
-                Description = "Breed ISA-resistant strain (0.5+ BV in disease resistance)",
-                Tier = AchievementTier.Master,
-                RewardNOK = 1_500_000m,
-                Condition = gs => gs.BestDiseaseResistanceBreedingValue >= 0.5
-            });
-
-            Register(new Achievement
-            {
-                Id = "industry-leader",
-                Name = "Industry Leader",
-                Description = "Become Norway's #1 salmon producer",
-                Tier = AchievementTier.Master,
-                RewardNOK = 10_000_000m,
-                Condition = gs => gs.Balance >= 500_000_000m && gs.SeaSites.Count >= 20
-            });
-
-            // ─── HIDDEN/SECRET ACHIEVEMENTS ───
-            Register(new Achievement
-            {
-                Id = "perfect-storm",
-                Name = "The Perfect Storm",
-                Description = "Survive ISA outbreak + market crash + storm damage in same year",
-                Tier = AchievementTier.Hidden,
-                RewardNOK = 3_000_000m,
-                Condition = gs =>
+                if (!Enum.TryParse<AchievementTier>(def.Tier, true, out var tierEnum))
                 {
-                    var recentYear = gs.EventLog.Where(e => e.Day >= gs.Day - 365).ToList();
-                    return recentYear.Any(e => e.Id == "isa-outbreak") &&
-                           recentYear.Any(e => e.Id == "oversupply-crash") &&
-                           recentYear.Any(e => e.Id == "storm-damage");
+                    Console.Error.WriteLine($"WARNING: Invalid tier '{def.Tier}' for achievement '{def.Id}'. Defaulting to Beginner.");
+                    tierEnum = AchievementTier.Beginner;
                 }
-            });
 
-            Register(new Achievement
-            {
-                Id = "speedrun-millionaire",
-                Name = "Speedrun Millionaire",
-                Description = "Reach 1M NOK profit in under 500 days",
-                Tier = AchievementTier.Hidden,
-                RewardNOK = 500_000m,
-                Condition = gs => gs.Balance >= 2_000_000m && gs.Day < 500
-            });
-
-            Register(new Achievement
-            {
-                Id = "bankruptcy-recovery",
-                Name = "Phoenix Rising",
-                Description = "Recover from bankruptcy (balance below 0) to profitability",
-                Tier = AchievementTier.Hidden,
-                RewardNOK = 250_000m,
-                Condition = gs => gs.MinimumBalanceEver < 0 && gs.Balance >= 1_000_000m
-            });
+                Register(new Achievement
+                {
+                    Id = def.Id,
+                    Name = def.Name,
+                    Description = def.Description,
+                    Tier = tierEnum,
+                    RewardNOK = def.RewardNOK,
+                    Icon = def.Icon,
+                    Category = def.Category,
+                    Hidden = def.Hidden,
+                    Condition = conditionFunc
+                });
+            }
         }
 
         private void Register(Achievement achievement) => _achievements[achievement.Id] = achievement;
@@ -374,13 +141,141 @@ namespace LakskongenSim.Core
         Hidden        // Secret achievements
     }
 
+    // New class for deserializing from JSON
+    public class AchievementDefinition
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Icon { get; set; } = ""; // New
+        public string Category { get; set; } = ""; // New
+        public bool Hidden { get; set; } = false; // New
+        public string Tier { get; set; } = ""; // As string for deserialization
+        public decimal RewardNOK { get; set; }
+        public string ConditionKey { get; set; } = ""; // Key to lookup Func<GameState, bool>
+    }
+
     public class Achievement
     {
         public string Id { get; set; } = "";
         public string Name { get; set; } = "";
         public string Description { get; set; } = "";
+        public string Icon { get; set; } = ""; // New
+        public string Category { get; set; } = ""; // New
+        public bool Hidden { get; set; } = false; // New
         public AchievementTier Tier { get; set; }
         public decimal RewardNOK { get; set; }
         public Func<GameState, bool>? Condition { get; set; }
+    }
+
+    // Static class to map condition keys to actual Func<GameState, bool> delegates
+    public static class AchievementConditionMap
+    {
+        public static readonly Dictionary<string, Func<GameState, bool>> Conditions = new()
+        {
+            {"HasAnyPopulations", gs => gs.Populations.Any()},
+            {"SurvivedYearOne", gs => gs.Day >= 365 && gs.Balance > 0},
+            {"HasHarvestedCohort", gs => gs.Populations.Any(p => p.Cohorts.Any(c => c.Stage == Data.LifeStage.Harvest))},
+            {"ProfitableQuarter", gs => gs.Balance > 1_000_000m && gs.Day >= 90},
+            {"MillionRevenue", gs => gs.Balance >= 2_000_000m}, // Assuming Balance is cumulative revenue here
+            {"Harvested100KFish", gs => gs.Populations.Sum(p => p.Cohorts.Where(c => c.Stage == Data.LifeStage.Harvest).Sum(c => c.Count)) >= 100_000},
+            {"FCRExcellence", gs =>
+                {
+                    if (gs.Day < 365 || gs.DailySnapshots.Count < 365) return false;
+                    
+                    int validDays = 0;
+                    for (int i = gs.DailySnapshots.Count - 1; i >= 0; i--)
+                    {
+                        var s = gs.DailySnapshots[i];
+                        if (s.Day < gs.Day - 365) break;
+                        
+                        if (s.FCR <= 0 || s.FCR >= 1.15) return false;
+                        validDays++;
+                    }
+                    return validDays >= 300;
+                }
+            },
+            {"DiseaseFreeYear", gs => 
+                {
+                    if (gs.Day < 365) return false;
+                    for (int i = gs.EventLog.Count - 1; i >= 0; i--)
+                    {
+                        var e = gs.EventLog[i];
+                        if (e.Day < gs.Day - 365) break;
+                        if (e.Category == Events.EventCategory.Disease) return false;
+                    }
+                    return true;
+                }
+            },
+            {"ASCCertified", gs => gs.HasASCCertification},
+            {"FiveMillionRevenue", gs => gs.Balance >= 6_000_000m},
+            {"GeneticSuperiority", gs => gs.BestGrowthBreedingValue >= 2.0},
+            {"CrisisSurvivor", gs => 
+                {
+                    if (gs.Balance <= 0) return false;
+                    for (int i = gs.EventLog.Count - 1; i >= 0; i--)
+                    {
+                        if (gs.EventLog[i].BalanceChange < -500_000m) return true;
+                    }
+                    return false;
+                }
+            },
+            {"MultiSiteOperator", gs => gs.SeaSites.Count >= 3},
+            {"SustainabilityLeader", gs =>
+                {
+                    if (gs.DailySnapshots.Count == 0) return false;
+                    var latest = gs.DailySnapshots.Last();
+                    return latest.SustainabilityScore >= 95;
+                }
+            },
+            {"TenMillionRevenue", gs => gs.Balance >= 11_000_000m},
+            {"VerticalIntegration", gs => gs.OwnsFeedMill && gs.OwnsHatchery && gs.OwnsProcessingPlant && gs.SeaSites.Count > 0},
+            {"AcquisitionSpree", gs => gs.AcquisitionCount >= 3},
+            {"GlobalExporter", gs => gs.ExportMarkets.Contains("EU") &&
+                                  gs.ExportMarkets.Contains("USA") &&
+                                  gs.ExportMarkets.Contains("China") &&
+                                  gs.ExportMarkets.Contains("Japan") &&
+                                  gs.ExportMarkets.Contains("UK") &&
+                                  gs.ExportMarkets.Contains("MiddleEast")
+            },
+            {"HundredMillionNetWorth", gs => gs.Balance >= 105_000_000m},
+            {"PerfectFCR", gs => gs.BestFCR > 0 && gs.BestFCR <= 1.05},
+            {"ZeroEscapes", gs => 
+                {
+                    if (gs.Day < 1825) return false;
+                    for (int i = gs.EventLog.Count - 1; i >= 0; i--)
+                    {
+                        var e = gs.EventLog[i];
+                        if (e.Day < gs.Day - 1825) break;
+                        if (e.Id == "escape-penalty") return false;
+                    }
+                    return true;
+                }
+            },
+            {"DiseaseResistance", gs => gs.BestDiseaseResistanceBreedingValue >= 0.5},
+            {"IndustryLeader", gs => gs.Balance >= 500_000_000m && gs.SeaSites.Count >= 20},
+            {"PerfectStorm", gs =>
+                {
+                    bool hasIsa = false;
+                    bool hasCrash = false;
+                    bool hasStorm = false;
+                    
+                    for (int i = gs.EventLog.Count - 1; i >= 0; i--)
+                    {
+                        var e = gs.EventLog[i];
+                        if (e.Day < gs.Day - 365) break;
+                        
+                        if (e.Id == "isa-outbreak") hasIsa = true;
+                        else if (e.Id == "oversupply-crash") hasCrash = true;
+                        else if (e.Id == "storm-damage") hasStorm = true;
+                        
+                        if (hasIsa && hasCrash && hasStorm) return true;
+                    }
+                    return false;
+                }
+            },
+            {"SpeedrunMillionaire", gs => gs.Balance >= 2_000_000m && gs.Day < 500},
+            {"BankruptcyRecovery", gs => gs.MinimumBalanceEver < 0 && gs.Balance >= 1_000_000m}
+        };
     }
 }

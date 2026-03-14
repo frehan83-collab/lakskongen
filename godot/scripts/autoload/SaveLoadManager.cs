@@ -1,5 +1,5 @@
 using Godot;
-using LakskongenSim.Models;
+using LakskongenSim.Core;
 using System;
 using System.IO;
 using System.Text.Json;
@@ -54,7 +54,7 @@ public partial class SaveLoadManager : Node
 
     private void EnsureSaveDirectory()
     {
-        using var dir = DirAccess.Open("user://");
+        using var dir = Godot.DirAccess.Open("user://");
         if (dir != null && !dir.DirExists("saves"))
         {
             dir.MakeDir("saves");
@@ -79,7 +79,7 @@ public partial class SaveLoadManager : Node
     /// </summary>
     public bool SaveGame(string saveName)
     {
-        if (_gameBridge?.GameState == null)
+        if (_gameBridge?.SimulationEngine?.State == null)
         {
             EmitSignal(SignalName.SaveFailed, "No game in progress");
             return false;
@@ -93,10 +93,10 @@ public partial class SaveLoadManager : Node
             // Create backup if save already exists
             CreateBackup(fullPath);
             
-            var saveData = CreateSaveData(_gameBridge.GameState, saveName);
+            var saveData = CreateSaveData(_gameBridge.SimulationEngine.State, saveName);
             string jsonString = JsonSerializer.Serialize(saveData, _jsonOptions);
             
-            using var file = FileAccess.Open(fullPath, FileAccess.ModeFlags.Write);
+            using var file = Godot.FileAccess.Open(fullPath, Godot.FileAccess.ModeFlags.Write);
             if (file == null)
             {
                 throw new Exception($"Failed to create save file: {fullPath}");
@@ -136,7 +136,7 @@ public partial class SaveLoadManager : Node
     /// </summary>
     public bool AutoSave()
     {
-        if (_gameBridge?.GameState == null) return false;
+        if (_gameBridge?.SimulationEngine?.State == null) return false;
 
         try
         {
@@ -164,7 +164,7 @@ public partial class SaveLoadManager : Node
         
         try
         {
-            using var file = FileAccess.Open(fullPath, FileAccess.ModeFlags.Read);
+            using var file = Godot.FileAccess.Open(fullPath, Godot.FileAccess.ModeFlags.Read);
             if (file == null)
             {
                 string error = $"Save file not found: {fileName}. Please check that the file exists.";
@@ -216,7 +216,7 @@ public partial class SaveLoadManager : Node
             EventBus eventBus = GetNode<EventBus>("/root/EventBus");
             eventBus.PostNotification("Game Loaded", $"Loaded '{saveData.SaveName}'", "success");
             
-            GD.Print($"Game loaded: {saveData.SaveName} (Day {saveData.GameState.CurrentDay})");
+            GD.Print($"Game loaded: {saveData.SaveName} (Day {saveData.GameState.Day})");
             return true;
         }
         catch (Exception ex)
@@ -234,7 +234,7 @@ public partial class SaveLoadManager : Node
     private void TryLoadBackup(string fileName)
     {
         string backupPath = Path.Combine(SAVE_DIRECTORY, fileName + BACKUP_SUFFIX);
-        if (FileAccess.FileExists(backupPath))
+        if (Godot.FileAccess.FileExists(backupPath))
         {
             GD.Print($"Found backup file for '{fileName}'. You may try loading the backup manually.");
             EventBus eventBus = GetNode<EventBus>("/root/EventBus");
@@ -249,7 +249,7 @@ public partial class SaveLoadManager : Node
     {
         var saves = new List<SaveFileInfo>();
         
-        using var dir = DirAccess.Open(SAVE_DIRECTORY);
+        using var dir = Godot.DirAccess.Open(SAVE_DIRECTORY);
         if (dir == null) return saves;
         
         dir.ListDirBegin();
@@ -292,7 +292,7 @@ public partial class SaveLoadManager : Node
         {
             string fullPath = Path.Combine(SAVE_DIRECTORY, fileName);
             
-            using var dir = DirAccess.Open(SAVE_DIRECTORY);
+            using var dir = Godot.DirAccess.Open(SAVE_DIRECTORY);
             if (dir != null && dir.FileExists(fileName))
             {
                 dir.Remove(fileName);
@@ -328,11 +328,11 @@ public partial class SaveLoadManager : Node
         
         try
         {
-            using var file = FileAccess.Open(fullPath, FileAccess.ModeFlags.Read);
+            using var file = Godot.FileAccess.Open(fullPath, Godot.FileAccess.ModeFlags.Read);
             if (file == null) return null;
             
             string jsonString = file.GetAsText();
-            long fileSize = file.GetLength();
+            long fileSize = (long)file.GetLength(); // Cast to long
             file.Close();
             
             // Validate JSON is not empty
@@ -355,7 +355,7 @@ public partial class SaveLoadManager : Node
             
             if (saveData?.GameState == null)
             {
-                GD.PrintErr($"Save file '{fileName}' is missing game state - skipping");
+                GD.PrintErr($"Save file '{fileName}' is missing game data - skipping");
                 return null;
             }
             
@@ -364,9 +364,8 @@ public partial class SaveLoadManager : Node
                 FileName = fileName,
                 SaveName = saveData.SaveName ?? "Unknown",
                 SaveTime = saveData.SaveTime,
-                GameDay = saveData.GameState.CurrentDay,
-                PlayerName = saveData.GameState.PlayerName ?? "Unknown",
-                Cash = saveData.GameState.Cash,
+                GameDay = saveData.GameState.Day,
+                Cash = (long)saveData.GameState.Balance, // Use Balance and cast to long
                 FileSize = (int)fileSize
             };
         }
@@ -379,14 +378,14 @@ public partial class SaveLoadManager : Node
 
     private void CreateBackup(string originalPath)
     {
-        if (!FileAccess.FileExists(originalPath)) return;
+        if (!Godot.FileAccess.FileExists(originalPath)) return;
         
         try
         {
             string backupPath = originalPath + BACKUP_SUFFIX;
             
-            using var original = FileAccess.Open(originalPath, FileAccess.ModeFlags.Read);
-            using var backup = FileAccess.Open(backupPath, FileAccess.ModeFlags.Write);
+            using var original = Godot.FileAccess.Open(originalPath, Godot.FileAccess.ModeFlags.Read);
+            using var backup = Godot.FileAccess.Open(backupPath, Godot.FileAccess.ModeFlags.Write);
             
             if (original != null && backup != null)
             {
@@ -403,7 +402,7 @@ public partial class SaveLoadManager : Node
     {
         var autoSaves = new List<string>();
         
-        using var dir = DirAccess.Open(SAVE_DIRECTORY);
+        using var dir = Godot.DirAccess.Open(SAVE_DIRECTORY);
         if (dir == null) return;
         
         dir.ListDirBegin();
@@ -471,7 +470,6 @@ public class SaveFileInfo
     public string SaveName { get; set; }
     public DateTime SaveTime { get; set; }
     public int GameDay { get; set; }
-    public string PlayerName { get; set; }
     public long Cash { get; set; }
     public int FileSize { get; set; }
 }

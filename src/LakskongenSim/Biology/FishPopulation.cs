@@ -15,7 +15,7 @@ namespace LakskongenSim.Biology
         /// <summary>
         /// Represents a cohort in the population.
         /// </summary>
-        public record Cohort(int AgeDays, int Count, double MeanWeightKg, LifeStage Stage);
+        public record Cohort(int AgeDays, int Count, double MeanWeightKg, LifeStage Stage, Genome? Genetics = null);
 
         /// <summary>Unique identifier for this population.</summary>
         public string Id { get; set; } = Guid.NewGuid().ToString();
@@ -84,7 +84,7 @@ namespace LakskongenSim.Biology
                 var newStage = DetermineStage(newAge);
                 if (survivors > 0)
                 {
-                    updated.Add(new Cohort(newAge, survivors, newWeight, newStage));
+                    updated.Add(new Cohort(newAge, survivors, newWeight, newStage, c.Genetics));
                 }
             }
             Cohorts.Clear();
@@ -139,8 +139,8 @@ namespace LakskongenSim.Biology
                         Id = $"{ZoneId}-{id++}",
                         ZoneId = ZoneId,
                         Weight = cohort.MeanWeightKg,
-                        GrowthRate = 0.01,
-                        HasResistanceGene = false
+                        GrowthRate = cohort.Genetics?.GetGrowthMultiplier() ?? 1.0,
+                        HasResistanceGene = (cohort.Genetics?.TraitValues.GetValueOrDefault(GeneticTrait.DiseaseResistance) ?? 0.0) > 0.5
                     });
                 }
             }

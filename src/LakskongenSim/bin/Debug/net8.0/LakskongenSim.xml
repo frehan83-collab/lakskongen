@@ -15,7 +15,7 @@
             Represents a cohort in the population.
             </summary>
         </member>
-        <member name="M:LakskongenSim.Biology.FishPopulation.Cohort.#ctor(System.Int32,System.Int32,System.Double,LakskongenSim.Data.LifeStage)">
+        <member name="M:LakskongenSim.Biology.FishPopulation.Cohort.#ctor(System.Int32,System.Int32,System.Double,LakskongenSim.Data.LifeStage,LakskongenSim.Biology.Genome)">
             <summary>
             Represents a cohort in the population.
             </summary>

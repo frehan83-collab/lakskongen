@@ -1,0 +1,73 @@
+[gd_scene load_steps=2 format=3 uid="uid://c3x67w174r87s"]
+
+[ext_resource type="Script" path="res://scripts/ui/AchievementNotification.gd" id="1_d753v"]
+
+[node name="AchievementNotification" type="CanvasLayer"]
+script = ExtResource("1_d753v")
+
+[node name="Panel" type="Panel" parent="."]
+custom_minimum_size = Vector2(300, 80)
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -310.0
+offset_top = -90.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="AchievementIcon" type="Label" parent="Panel/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 1
+text = "🏆"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+
+[node name="AchievementTitle" type="Label" parent="Panel/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Achievement Title"
+vertical_alignment = 1
+
+[node name="AchievementDescription" type="Label" parent="Panel/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 1
+text = "Description of the achievement"
+autowrap_mode = 2
+clip_text = true
+
+[node name="DismissButton" type="Button" parent="Panel"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -28.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = 28.0
+grow_horizontal = 0
+text = "X"
+flat = true
+
+[connection signal="pressed" from="Panel/DismissButton" to="." method="_on_dismiss_button_pressed"]

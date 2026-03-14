@@ -39,6 +39,7 @@ namespace LakskongenSim.Core
         public ContractSystem ContractSystem { get; private set; } = null!;
         public InternationalMarketSystem InternationalMarketSystem { get; private set; } = null!;
         public Finance.FinanceManager FinanceManager { get; set; } = null!;
+        public Finance.FinancialStatements FinancialStatements { get; private set; } = null!;
         public SustainabilityManager SustainabilityManager { get; private set; } = null!;
         public Storyteller Storyteller { get; private set; } = null!;
         public TutorialSystem Tutorial { get; private set; } = null!;
@@ -50,6 +51,8 @@ namespace LakskongenSim.Core
         // ─── Update intervals ───
         private int _lastSustainabilityUpdate = 0;
         private const int SUSTAINABILITY_UPDATE_INTERVAL = 7; // Weekly
+
+        private BalancingConfig _balancing = new();
 
         // ─── External data calibration ───
         private AquacultureDataConfig _aquacultureDataConfig = new();
@@ -83,6 +86,11 @@ namespace LakskongenSim.Core
 
             // Default finance and market if not set externally
             FinanceManager ??= new Finance.FinanceManager(10_000_000m); // 10M NOK starting capital
+            FinancialStatements = new Finance.FinancialStatements(FinanceManager.Balance);
+            
+            // Sync FinanceManager balance back to GameState
+            FinanceManager.OnBalanceChanged += balance => State.Balance = balance;
+            
             MarketSimulation ??= new Market.MarketSimulation();
             ContractSystem = new ContractSystem();
             InternationalMarketSystem = new InternationalMarketSystem();
@@ -113,11 +121,18 @@ namespace LakskongenSim.Core
             // Hatchery → population
             Hatchery.OnNewCohort += cohort =>
             {
+                // Assign genetics if missing (hatchery produces cohorts with specific genomes)
+                var cohortWithGenetics = cohort.Genetics == null 
+                    ? cohort with { Genetics = Genetics.GenerateRandomGenome() } 
+                    : cohort;
+
                 if (State.Populations.Count == 0)
                 {
                     State.Populations.Add(new FishPopulation(Growth, Mortality));
                 }
-                State.Populations[0].AddCohort(cohort);
+                
+                // For now, always add to the first population or find by ZoneId if applicable
+                State.Populations[0].AddCohort(cohortWithGenetics);
             };
 
             // Feed cost → finance
@@ -407,6 +422,7 @@ namespace LakskongenSim.Core
                 {
                     PropertyNameCaseInsensitive = true
                 }) ?? new BalancingConfig();
+                _balancing = config;
                 ApplyBalancingConfig(config);
                 Console.WriteLine($"✓ Loaded balancing config (starting capital: {config.StartingCapital:N0} NOK)");
             }
@@ -688,47 +704,62 @@ namespace LakskongenSim.Core
             double temperature = Weather.CurrentTemperatureC;
             Audio?.Update(State.Day);
 
-            // Update zone temperatures and water chemistry
+            // Update environment model and all zones
+            Environment.AdvanceDays(1);
             foreach (var zone in State.Zones)
             {
                 zone.SetTemperature(temperature);
-                zone.AdvanceDays(1); // This updates WaterChemistry internally
+                // zone.AdvanceDays(1) is already called by Environment.AdvanceDays(1)
             }
-
-            Environment.AdvanceDays(1);
 
             // ═══════════════════════════════════════════
             // PHASE 2: BIOLOGY (Growth & Mortality)
             // ═══════════════════════════════════════════
             foreach (var population in State.Populations)
             {
-                // Get water chemistry penalty from the zone this population is in
-                double waterPenalty = 1.0;
-                double stockingDensity = 20.0; // default
                 var zone = State.Zones.FirstOrDefault(z => z.Id == population.ZoneId);
+                double waterPenalty = zone?.WaterChemistry.CalculateGrowthPenalty() ?? 1.0;
+                double biomassKg = population.Cohorts.Sum(c => c.Count * c.MeanWeightKg);
+                
                 if (zone != null)
                 {
-                    waterPenalty = zone.WaterChemistry.CalculateGrowthPenalty();
-
-                    // Update zone biomass for water chemistry calculations
-                    double biomassKg = population.Cohorts.Sum(c => c.Count * c.MeanWeightKg);
                     zone.CurrentFishBiomassKg = biomassKg;
-
-                    // Estimate stocking density (kg/m³) — assume 10,000 m³ per zone as default
-                    stockingDensity = biomassKg / 10_000.0;
                 }
 
-                // Apply growth with environmental modifiers
+                // Advance population: age and mortality
                 population.AdvanceDays(1);
 
-                // Feed the population — FCR-aware, generates waste for water chemistry
+                // Manual growth adjustment to incorporate Genetics and Environment
+                var updatedCohorts = new List<FishPopulation.Cohort>();
+                foreach (var cohort in population.Cohorts)
+                {
+                    // Apply genetics multiplier
+                    double geneticMultiplier = cohort.Genetics?.GetGrowthMultiplier() ?? 1.0;
+                    
+                    // Use SDE model for more realistic growth if available, or base model
+                    double newWeight = Growth.ApplySDEGrowthOneDay(
+                        cohort.MeanWeightKg, 
+                        temperature, 
+                        5.5, // Target 5.5kg
+                        GameConstants.BaselineGrowthPerDay * 100.0, // Scale to 0-100 for SDE
+                        0.02, 
+                        cohort.Stage);
+                        
+                    // Apply environmental and genetic modifiers
+                    double delta = newWeight - cohort.MeanWeightKg;
+                    newWeight = cohort.MeanWeightKg + (delta * geneticMultiplier * waterPenalty);
+                    
+                    updatedCohorts.Add(cohort with { MeanWeightKg = newWeight });
+                }
+                population.Cohorts.Clear();
+                population.Cohorts.AddRange(updatedCohorts);
+
+                // Feed the population — FCR-aware
+                double stockingDensity = zone != null ? (biomassKg / 10_000.0) : 20.0;
                 var feedResult = Feed.Feed(population, 1, temperature, stockingDensity, waterPenalty);
 
-                // Feed waste → water chemistry (nitrogen and phosphorus loading)
                 if (zone != null && feedResult.FeedUsedKg > 0)
                 {
-                    // The waste is already accounted for in WaterChemistry.UpdateOneDay via biomass
-                    // but we can use feedResult for more precise tracking in future
                     zone.FeedConversionRatio = feedResult.ActualFCR;
                 }
             }
@@ -746,17 +777,11 @@ namespace LakskongenSim.Core
 
             // ═══════════════════════════════════════════
             // PHASE 4: EVENTS (Storyteller)
-            // Run before Market so event-driven supply/demand shocks
-            // (e.g. oversupply-crash, chile-collapse) are applied before
-            // the market price advances for this day.
-            // Storyteller reads State.Day (pre-increment) as the current day.
             // ═══════════════════════════════════════════
             Time.AdvanceDays(1);
 
             // ═══════════════════════════════════════════
-            // PHASE 5: MARKET
-            // Price simulation runs after events so any shocks registered
-            // this day are reflected in today's closing price.
+            // PHASE 5: MARKET & CONTRACTS
             // ═══════════════════════════════════════════
             if (_aquacultureModifiers.ProfitabilityAdjustment != 0m)
             {
@@ -778,9 +803,12 @@ namespace LakskongenSim.Core
             MarketSimulation.AdvanceDays(1);
 
             // ═══════════════════════════════════════════
-            // PHASE 6: SUSTAINABILITY (weekly)
-            // Finance bonuses / penalties derived from the sustainability
-            // score are updated here; FinanceManager reacts via events.
+            // PHASE 6: FINANCE
+            // ═══════════════════════════════════════════
+            ProcessDailyFinance();
+
+            // ═══════════════════════════════════════════
+            // PHASE 7: SUSTAINABILITY (weekly)
             // ═══════════════════════════════════════════
             if (State.Day - _lastSustainabilityUpdate >= SUSTAINABILITY_UPDATE_INTERVAL)
             {
@@ -791,30 +819,55 @@ namespace LakskongenSim.Core
             }
 
             // ═══════════════════════════════════════════
-            // PHASE 7: TUTORIAL PROGRESS CHECK
+            // PHASE 8-10: TUTORIAL, ANALYTICS, ACHIEVEMENTS, RESEARCH
             // ═══════════════════════════════════════════
             Tutorial?.CheckProgress();
-
-            // ═══════════════════════════════════════════
-            // PHASE 8: ANALYTICS SNAPSHOT
-            // Captured last so all subsystem updates are reflected.
-            // ═══════════════════════════════════════════
             Analytics?.RecordSnapshot(this);
-
-            // ═══════════════════════════════════════════
-            // PHASE 9: ACHIEVEMENTS
-            // Checked after analytics so all state is current.
-            // ═══════════════════════════════════════════
             Achievements?.CheckAchievements();
-
-            // ═══════════════════════════════════════════
-            // PHASE 10: RESEARCH PROGRESS
-            // Advances active research by one day and unlocks
-            // completed nodes. Fires OnResearchCompleted event.
-            // ═══════════════════════════════════════════
             Research?.AdvanceDay();
             SyncResearchToState();
         }
+
+        private void ProcessDailyFinance()
+        {
+            // 1. Calculate operational costs (Wages, Maintenance)
+            decimal dailyWages = 0m;
+            int totalSites = State.SeaSites.Count;
+            dailyWages += totalSites * _balancing.WorkersPerSite * (_balancing.WorkerMonthlySalaryNOK / 30m);
+            
+            if (State.OwnsHatchery)
+                dailyWages += _balancing.WorkersPerHatchery * (_balancing.WorkerMonthlySalaryNOK / 30m);
+            
+            if (State.OwnsProcessingPlant)
+                dailyWages += _balancing.WorkersPerProcessingPlant * (_balancing.WorkerMonthlySalaryNOK / 30m);
+
+            // 2. Fixed maintenance costs (e.g., 0.01% of build cost daily)
+            decimal dailyMaintenance = (totalSites * _balancing.SeaSiteBuildCostNOK * 0.0001m);
+            
+            // 3. Apply costs to FinanceManager and FinancialStatements
+            decimal totalOpEx = dailyWages + dailyMaintenance;
+            if (totalOpEx > 0)
+            {
+                FinanceManager.Spend(totalOpEx);
+                FinancialStatements.RecordOperatingExpense(totalOpEx);
+            }
+
+            // 4. Interest on debt (placeholder - could be expanded with LoanSystem)
+            // if (State.Debt > 0) ...
+
+            // 5. Taxes (apply monthly)
+            if (State.Day % 30 == 0)
+            {
+                decimal netIncome = FinancialStatements.ComputeNetIncome();
+                if (netIncome > 0)
+                {
+                    decimal tax = netIncome * (decimal)_balancing.CorporateTaxRate;
+                    FinanceManager.Spend(tax);
+                    FinancialStatements.RecordTax(tax);
+                }
+            }
+        }
+
 
         /// <summary>
         /// Synchronise the ResearchSystem's runtime state back into the serialisable GameState

@@ -36,4 +36,6 @@ mouse_filter = 2
 
 [node name="Dashboard" parent="UILayer" instance=ExtResource("2_1nhye")]
 
-[node name="EventLog" parent="UILayer" instance=ExtResource("3_2oizf")]
+[node name="EventLog" parent="UILayer" instance=ExtResource("3_2oizf")][ext_resource type="PackedScene" uid="uid://c3x67w174r87s" path="res://scenes/ui/AchievementNotification.tscn" id="4_1r3h1"]
+
+[node name="AchievementNotification" parent="UILayer" instance=ExtResource("4_1r3h1")]

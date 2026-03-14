@@ -1,5 +1,5 @@
 using Godot;
-using LakskongenSim.Models;
+using LakskongenSim.Core;
 
 /// <summary>
 /// Global signal bus for decoupled communication between UI and game systems.
