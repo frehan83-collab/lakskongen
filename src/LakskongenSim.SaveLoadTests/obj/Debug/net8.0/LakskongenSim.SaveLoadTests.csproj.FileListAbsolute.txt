@@ -1,11 +1,5 @@
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\bin\Debug\net8.0\.msCoverageSourceRootsMapping_LakskongenSim.SaveLoadTests
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\bin\Debug\net8.0\CoverletSourceRootsMapping_LakskongenSim.SaveLoadTests
-C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\obj\Debug\net8.0\LakskongenSim.SaveLoadTests.csproj.AssemblyReference.cache
-C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\obj\Debug\net8.0\LakskongenSim.SaveLoadTests.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\obj\Debug\net8.0\LakskongenSim.SaveLoadTests.AssemblyInfoInputs.cache
-C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\obj\Debug\net8.0\LakskongenSim.SaveLoadTests.AssemblyInfo.cs
-C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\obj\Debug\net8.0\LakskongenSim.SaveLoadTests.csproj.CoreCompileInputs.cache
-C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\obj\Debug\net8.0\LakskongenSim.SaveLoadTests.sourcelink.json
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\bin\Debug\net8.0\testhost.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\bin\Debug\net8.0\testhost.exe
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\bin\Debug\net8.0\xunit.runner.visualstudio.testadapter.dll
@@ -96,6 +90,12 @@ C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\bi
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\bin\Debug\net8.0\LakskongenSim.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\bin\Debug\net8.0\LakskongenSim.pdb
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\bin\Debug\net8.0\LakskongenSim.xml
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\obj\Debug\net8.0\LakskongenSim.SaveLoadTests.csproj.AssemblyReference.cache
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\obj\Debug\net8.0\LakskongenSim.SaveLoadTests.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\obj\Debug\net8.0\LakskongenSim.SaveLoadTests.AssemblyInfoInputs.cache
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\obj\Debug\net8.0\LakskongenSim.SaveLoadTests.AssemblyInfo.cs
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\obj\Debug\net8.0\LakskongenSim.SaveLoadTests.csproj.CoreCompileInputs.cache
+C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\obj\Debug\net8.0\LakskongenSim.SaveLoadTests.sourcelink.json
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\obj\Debug\net8.0\Lakskong.28A6F5F3.Up2Date
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\obj\Debug\net8.0\LakskongenSim.SaveLoadTests.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\src\LakskongenSim.SaveLoadTests\obj\Debug\net8.0\refint\LakskongenSim.SaveLoadTests.dll

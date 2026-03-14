@@ -15,7 +15,24 @@ namespace LakskongenSim.Biology
         /// <summary>
         /// Represents a cohort in the population.
         /// </summary>
-        public record Cohort(int AgeDays, int Count, double MeanWeightKg, LifeStage Stage, Genome? Genetics = null);
+        public class Cohort
+        {
+            public int AgeDays { get; set; }
+            public int Count { get; set; }
+            public double MeanWeightKg { get; set; }
+            public LifeStage Stage { get; set; }
+            public Genome? Genetics { get; set; }
+
+            // Constructor for easy initialization, matching the original record's constructor
+            public Cohort(int ageDays, int count, double meanWeightKg, LifeStage stage, Genome? genetics = null)
+            {
+                AgeDays = ageDays;
+                Count = count;
+                MeanWeightKg = meanWeightKg;
+                Stage = stage;
+                Genetics = genetics;
+            }
+        }
 
         /// <summary>Unique identifier for this population.</summary>
         public string Id { get; set; } = Guid.NewGuid().ToString();
@@ -71,24 +88,26 @@ namespace LakskongenSim.Biology
             OnPopulationChanged?.Invoke();
         }
 
-        /// <summary>Advance the population by days: age, apply growth and mortality.</summary>
+        /// <summary>Advance the population by days: age, apply growth and mortality.
+        /// Optimized: in-place updates with no list allocations (T56).</summary>
         public void AdvanceDays(int days)
         {
             if (days <= 0) return;
-            var updated = new List<Cohort>();
-            foreach (var c in Cohorts)
+            var populationId = this.Id; // Cache to avoid repeated property access
+
+            for (int i = 0; i < Cohorts.Count; i++)
             {
-                var newAge = c.AgeDays + days;
-                var newWeight = _growth.ApplyGrowth(c.MeanWeightKg, newAge - c.AgeDays, c.Stage);
-                var survivors = _mortality.ApplyMortality(c.Count, days, c.Stage);
-                var newStage = DetermineStage(newAge);
-                if (survivors > 0)
-                {
-                    updated.Add(new Cohort(newAge, survivors, newWeight, newStage, c.Genetics));
-                }
+                var cohort = Cohorts[i];
+
+                cohort.AgeDays += days;
+                cohort.MeanWeightKg = _growth.ApplyGrowth(cohort.MeanWeightKg, days, cohort.Stage);
+                cohort.Count = _mortality.ApplyMortality(cohort.Count, days, cohort.Stage, populationId);
+                cohort.Stage = DetermineStage(cohort.AgeDays);
             }
-            Cohorts.Clear();
-            Cohorts.AddRange(updated);
+
+            // Remove dead cohorts in-place — no new list allocation
+            Cohorts.RemoveAll(c => c.Count <= 0);
+
             OnPopulationChanged?.Invoke();
         }
 

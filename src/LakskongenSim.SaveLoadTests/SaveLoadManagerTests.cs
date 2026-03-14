@@ -373,11 +373,11 @@ public class SaveLoadManagerTests : IDisposable
             pop.ZoneId = $"PO{(i % 10) + 1}";
             // Each population gets a cohort with 5000 fish
             pop.Cohorts.Add(new FishPopulation.Cohort(
-                AgeDays: 365 + i * 10,
-                Count: 5000,
-                MeanWeightKg: 3.0 + i * 0.1,
-                Stage: Data.LifeStage.Seawater,
-                Genetics: null
+                365 + i * 10,
+                5000,
+                3.0 + i * 0.1,
+                Data.LifeStage.Seawater,
+                null
             ));
             state.Populations.Add(pop);
         }
@@ -605,11 +605,11 @@ public class SaveLoadManagerTests : IDisposable
             pop.Id = $"Pop_{i}";
             pop.ZoneId = $"Zone_{i}";
             pop.Cohorts.Add(new FishPopulation.Cohort(
-                AgeDays: 400,
-                Count: 5000,
-                MeanWeightKg: 3.0 + i * 0.01,
-                Stage: Data.LifeStage.Seawater,
-                Genetics: null
+                400,
+                5000,
+                3.0 + i * 0.01,
+                Data.LifeStage.Seawater,
+                null
             ));
             state.Populations.Add(pop);
         }

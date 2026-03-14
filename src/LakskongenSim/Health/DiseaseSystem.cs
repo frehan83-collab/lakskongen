@@ -36,9 +36,21 @@ namespace LakskongenSim.Health
 
         public event Action<FishPopulation, double>? OnInfection; // population, prevalence
 
+        // MortalityModel reference for rate injection (prevents double mortality)
+        private Biology.MortalityModel? _mortalityModel;
+
         public DiseaseSystem(SeaLiceModel liceModel)
         {
             _liceModel = liceModel ?? throw new ArgumentNullException(nameof(liceModel));
+        }
+
+        /// <summary>
+        /// Inject MortalityModel reference to enable disease rate injection.
+        /// Called by SimulationEngine during initialization.
+        /// </summary>
+        public void SetMortalityModel(Biology.MortalityModel mortalityModel)
+        {
+            _mortalityModel = mortalityModel;
         }
 
         /// <summary>
@@ -67,52 +79,13 @@ namespace LakskongenSim.Health
 
             _infected[pop] = p;
 
-            // Apply additional mortality proportional to infected fraction.
-            // Approximate extra deaths = total * (1 - (1 - extraRate*p)^days)
-            var total = pop.Cohorts.Sum(c => c.Count);
-            if (total > 0)
+            // Inject disease mortality rate instead of directly modifying cohorts
+            var dailyRate = ExtraMortalityRatePerDay * p;
+            System.Diagnostics.Debug.WriteLine($"[DiseaseSystem] Tick: PopId={pop.Id}, Prevalence={p:F4}, DailyMortRate={dailyRate:F6}");
+            
+            if (_mortalityModel != null && dailyRate > 0)
             {
-                var daily = ExtraMortalityRatePerDay * p;
-                var survivorsFactor = Math.Pow(1.0 - daily, days);
-                var survivors = (int)Math.Round(total * survivorsFactor);
-                var deaths = Math.Max(0, (int)total - survivors);
-                System.Diagnostics.Debug.WriteLine($"[DiseaseSystem] Tick: Total={total}, Prevalence={p:F4}, DailyMortRate={daily:F6}, SurvivalFactor={survivorsFactor:F6}, Deaths={deaths}");
-                if (deaths > 0)
-                {
-                    // remove deaths proportionally from cohorts
-                    var remainingToRemove = deaths;
-                    var updated = new List<FishPopulation.Cohort>();
-                    foreach (var c in pop.Cohorts)
-                    {
-                        if (remainingToRemove <= 0)
-                        {
-                            updated.Add(c);
-                            continue;
-                        }
-                        var take = (int)Math.Round((double)c.Count / total * deaths);
-                        take = Math.Min(take, c.Count);
-                        remainingToRemove -= take;
-                        var survivorsInC = c.Count - take;
-                        if (survivorsInC > 0)
-                        {
-                            updated.Add(new FishPopulation.Cohort(c.AgeDays, survivorsInC, c.MeanWeightKg, c.Stage));
-                        }
-                    }
-
-                    // If rounding left some, remove from last cohort
-                    if (remainingToRemove > 0 && updated.Count > 0)
-                    {
-                        var last = updated[updated.Count - 1];
-                        var newCount = Math.Max(0, last.Count - remainingToRemove);
-                        updated[updated.Count - 1] = new FishPopulation.Cohort(last.AgeDays, newCount, last.MeanWeightKg, last.Stage);
-                        updated.RemoveAll(c => c.Count == 0);
-                    }
-
-                    // Replace cohorts
-                    pop.Cohorts.Clear();
-                    pop.Cohorts.AddRange(updated);
-                    pop.TriggerOnPopulationChanged();
-                }
+                _mortalityModel.SetDiseaseMortalityRate(pop.Id, dailyRate);
             }
 
             OnInfection?.Invoke(pop, p);

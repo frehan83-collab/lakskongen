@@ -1,6 +1,6 @@
-C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\zh-Hant\Microsoft.TestPlatform.CoreUtilities.resources.dll
-C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\testhost.dll
+C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\xunit.core.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\testhost.exe
+C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\testhost.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\xunit.runner.visualstudio.dotnetcore.testadapter.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\xunit.runner.reporters.netcoreapp10.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\xunit.runner.utility.netcoreapp10.dll
@@ -20,7 +20,6 @@ C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\Newtonsoft.
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\NuGet.Frameworks.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\xunit.abstractions.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\xunit.assert.dll
-C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\xunit.core.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\xunit.execution.dotnet.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\cs\Microsoft.TestPlatform.CoreUtilities.resources.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\cs\Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
@@ -46,6 +45,7 @@ C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\tr\Microsof
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\tr\Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\zh-Hans\Microsoft.TestPlatform.CoreUtilities.resources.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\zh-Hans\Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
+C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\zh-Hant\Microsoft.TestPlatform.CoreUtilities.resources.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\zh-Hant\Microsoft.VisualStudio.TestPlatform.ObjectModel.resources.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\cs\Microsoft.TestPlatform.CommunicationUtilities.resources.dll
 C:\Users\freha\.openclaw\workspace\salmon-sim\tests\bin\Debug\net8.0\cs\Microsoft.TestPlatform.CrossPlatEngine.resources.dll

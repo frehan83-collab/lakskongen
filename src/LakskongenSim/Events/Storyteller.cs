@@ -29,13 +29,16 @@ namespace LakskongenSim.Events
 
         public event Action<EventRecord>? OnEventRaised;
 
-        public Storyteller(TimeManager time, GameState state, int? seed = null)
+        public Storyteller(TimeManager time, GameState state, int? seed = null, bool enableDefaultEvents = true)
         {
             _time = time ?? throw new ArgumentNullException(nameof(time));
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _rng = seed.HasValue ? new Random(seed.Value) : new Random();
             _time.OnAdvanceDays += HandleAdvance;
-            BuildDefaultEvents();
+            if (enableDefaultEvents)
+            {
+                BuildDefaultEvents();
+            }
         }
 
         public void RegisterEvent(EventDefinition def)
@@ -265,7 +268,7 @@ namespace LakskongenSim.Events
                     {
                         int cohortDeaths = (int)(deaths * (pop.Cohorts[i].Count / totalBefore));
                         int newCount = Math.Max(0, pop.Cohorts[i].Count - cohortDeaths);
-                        pop.Cohorts[i] = pop.Cohorts[i] with { Count = newCount };
+                        pop.Cohorts[i].Count = newCount;
                     }
                 }
             }
@@ -299,7 +302,7 @@ namespace LakskongenSim.Events
                 {
                     int cohortDeaths = (int)(diseaseDeaths * (targetPop.Cohorts[i].Count / totalBefore));
                     int newCount = Math.Max(0, targetPop.Cohorts[i].Count - cohortDeaths);
-                    targetPop.Cohorts[i] = targetPop.Cohorts[i] with { Count = newCount };
+                    targetPop.Cohorts[i].Count = newCount;
                 }
             }
             

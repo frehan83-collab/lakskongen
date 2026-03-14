@@ -53,7 +53,8 @@ namespace LakskongenSim.Core
         private int _lastSustainabilityUpdate = 0;
         private const int SUSTAINABILITY_UPDATE_INTERVAL = 7; // Weekly
 
-        private BalancingConfig _balancing = new();
+        private BalancingConfig _balancing = new(); // Track whether events/disease are enabled
+        private bool _enableEvents = true;
 
         // ─── External data calibration ───
         private AquacultureDataConfig _aquacultureDataConfig = new();
@@ -71,9 +72,11 @@ namespace LakskongenSim.Core
         /// <summary>
         /// Initialize all subsystems and wire them together.
         /// </summary>
-        /// <param name="enableEvents">If false, disables random storyteller events (useful for deterministic tests).</param>
+        /// <param name="enableEvents">If false, disables random storyteller events and disease mortality (useful for deterministic tests).</param>
         public void Initialize(bool enableEvents = true)
         {
+            _enableEvents = enableEvents;
+            
             // Create subsystems
             Weather = new WeatherSystem();
             Environment = new EnvironmentModel();
@@ -83,6 +86,11 @@ namespace LakskongenSim.Core
             SeaLice = new SeaLiceModel();
             Disease = new DiseaseSystem(SeaLice);
             IntegratedDisease = new IntegratedDiseaseSystem(SeaLice);
+            
+            // Wire disease systems to MortalityModel to prevent double mortality application
+            Disease.SetMortalityModel(Mortality);
+            IntegratedDisease.SetMortalityModel(Mortality);
+            
             Hatchery = new Hatchery();
             Genetics = new Genetics();
 
@@ -115,8 +123,8 @@ namespace LakskongenSim.Core
             SustainabilityManager.OnScoreChanged += OnSustainabilityScoreChanged;
             SustainabilityManager.OnCertificationChanged += OnCertificationChanged;
 
-            // Initialize Storyteller event director
-            Storyteller = new Storyteller(Time, State);
+            // Initialize Storyteller event director (only enable default events if enableEvents=true)
+            Storyteller = new Storyteller(Time, State, seed: null, enableDefaultEvents: enableEvents);
             if (enableEvents)
             {
                 NorwegianEvents.RegisterAll(Storyteller);
@@ -127,13 +135,14 @@ namespace LakskongenSim.Core
             Hatchery.OnNewCohort += cohort =>
             {
                 // Assign genetics if missing (hatchery produces cohorts with specific genomes)
-                var cohortWithGenetics = cohort.Genetics == null 
-                    ? cohort with { Genetics = Genetics.GenerateRandomGenome() } 
-                    : cohort;
+                if (cohort.Genetics == null)
+                {
+                    cohort.Genetics = Genetics.GenerateRandomGenome();
+                }
 
                 // Create a new population for this cohort (tests expect separate populations per release)
                 var newPopulation = new FishPopulation(Growth, Mortality);
-                newPopulation.AddCohort(cohortWithGenetics);
+                newPopulation.AddCohort(cohort);
                 State.Populations.Add(newPopulation);
             };
 
@@ -717,47 +726,72 @@ namespace LakskongenSim.Core
             }
 
             // ═══════════════════════════════════════════
-            // PHASE 2: BIOLOGY (Growth & Mortality)
+            // PHASE 2A: HEALTH PREP (Calculate disease rates BEFORE biology)
+            // ═══════════════════════════════════════════
+            Mortality.ClearDiseaseMortalityRates(); // Clear previous day's disease rates
+            
+            SeaLice.AdvanceDays(1);
+
+            // Only calculate disease if events are enabled (skip in deterministic tests)
+            if (_enableEvents)
+            {
+                // Calculate disease mortality rates and inject into MortalityModel
+                // This MUST happen before FishPopulation.AdvanceDays() to avoid double application
+                IntegratedDisease.Update(
+                    State.Zones.ToList(),
+                    State.Populations.ToList(),
+                    1);
+            }
+
+            // ═══════════════════════════════════════════
+            // PHASE 2B: BIOLOGY (Growth & Mortality)
+            // Optimized: indexed loops, manual sums, in-place updates (T56)
             // ═══════════════════════════════════════════
             var biologyStopwatch = Stopwatch.StartNew();
-            foreach (var population in State.Populations)
+            for (int popIdx = 0; popIdx < State.Populations.Count; popIdx++)
             {
+                var population = State.Populations[popIdx];
                 var zone = State.Zones.FirstOrDefault(z => z.Id == population.ZoneId);
                 double waterPenalty = zone?.WaterChemistry.CalculateGrowthPenalty() ?? 1.0;
-                double biomassKg = population.Cohorts.Sum(c => c.Count * c.MeanWeightKg);
-                
+
+                // Manual biomass sum — avoids LINQ delegate allocation (T56)
+                double biomassKg = 0.0;
+                for (int ci = 0; ci < population.Cohorts.Count; ci++)
+                {
+                    var c = population.Cohorts[ci];
+                    biomassKg += c.Count * c.MeanWeightKg;
+                }
+
                 if (zone != null)
                 {
                     zone.CurrentFishBiomassKg = biomassKg;
                 }
 
-                // Advance population: age and mortality
+                // Advance population: age and mortality (in-place, T56)
                 population.AdvanceDays(1);
 
-                // Manual growth adjustment to incorporate Genetics and Environment
-                var updatedCohorts = new List<FishPopulation.Cohort>();
-                foreach (var cohort in population.Cohorts)
+                // Manual growth adjustment — indexed loop, in-place (T56)
+                for (int ci = 0; ci < population.Cohorts.Count; ci++)
                 {
+                    var cohort = population.Cohorts[ci];
+
                     // Apply genetics multiplier
                     double geneticMultiplier = cohort.Genetics?.GetGrowthMultiplier() ?? 1.0;
-                    
-                    // Use SDE model for more realistic growth if available, or base model
-                    double newWeight = Growth.ApplySDEGrowthOneDay(
-                        cohort.MeanWeightKg, 
-                        temperature, 
+
+                    // Use SDE model for more realistic growth
+                    double newCalculatedWeight = Growth.ApplySDEGrowthOneDay(
+                        cohort.MeanWeightKg,
+                        temperature,
                         5.5, // Target 5.5kg
-                        3.0, // Genetic maximum growth rate α_max (calibrated for realistic Norwegian growth)
-                        0.02, 
+                        3.0, // Genetic maximum growth rate α_max
+                        0.02,
                         cohort.Stage);
-                        
-                    // Apply environmental and genetic modifiers
-                    double delta = newWeight - cohort.MeanWeightKg;
-                    newWeight = cohort.MeanWeightKg + (delta * geneticMultiplier * waterPenalty);
-                    
-                    updatedCohorts.Add(cohort with { MeanWeightKg = newWeight });
+
+                    // Apply environmental and genetic modifiers in-place
+                    double delta = newCalculatedWeight - cohort.MeanWeightKg;
+                    cohort.MeanWeightKg += (delta * geneticMultiplier * waterPenalty);
+                    if (cohort.MeanWeightKg < 0) cohort.MeanWeightKg = 0;
                 }
-                population.Cohorts.Clear();
-                population.Cohorts.AddRange(updatedCohorts);
 
                 // Feed the population — FCR-aware
                 double stockingDensity = zone != null ? (biomassKg / 10_000.0) : 20.0;
@@ -769,21 +803,6 @@ namespace LakskongenSim.Core
                 }
             }
             biologyStopwatch.Stop();
-            Console.WriteLine($"Biology Phase: {biologyStopwatch.ElapsedMilliseconds} ms");
-
-            // ═══════════════════════════════════════════
-            // PHASE 3: HEALTH (Disease & Sea Lice)
-            // ═══════════════════════════════════════════
-            var healthStopwatch = Stopwatch.StartNew();
-            SeaLice.AdvanceDays(1);
-
-            // Use integrated disease system with LOD for performance
-            IntegratedDisease.Update(
-                State.Zones.ToList(),
-                State.Populations.ToList(),
-                1);
-            healthStopwatch.Stop();
-            Console.WriteLine($"Health Phase: {healthStopwatch.ElapsedMilliseconds} ms");
 
             // ═══════════════════════════════════════════
             // PHASE 4: EVENTS (Storyteller)
@@ -838,7 +857,8 @@ namespace LakskongenSim.Core
             SyncResearchToState();
 
             overallStopwatch.Stop();
-            Console.WriteLine($"Overall AdvanceOneDay: {overallStopwatch.ElapsedMilliseconds} ms");
+            // T56: Removed Console.WriteLine to avoid string allocation in hot path
+            // Use Trace.WriteLine or conditional logging if debug output needed
         }
 
         private void ProcessDailyFinance()

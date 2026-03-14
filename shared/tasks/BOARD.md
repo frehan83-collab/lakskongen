@@ -78,19 +78,30 @@
 | T48 | Complete remaining UI tooltips (14 files) | DeepSeek V3.2 | ✅ All 14 files (ProductionChain, Genetics, Contracts, TechTree, Map, Encyclopedia, Tutorial, Finance, Sustainability, Crew, Analytics, DataExport, ModManager, Scenario) with Norwegian tooltips + minimal keyboard nav |
 | T53 | Save/Load stress testing | Sonnet 4.5 | ✅ 20 tests (7 stress), found race condition (documented), <2s for 100k fish, <5s for 500k fish |
 | T50 | Localization framework (6 languages) | Sonnet 4.5 | ✅ Godot's tr() system, 200+ keys (NO/EN/DE/FR/ES/JA), LocalizationManager singleton, language tab in Settings, live switching, guide docs |
+| T58 | Final QA Smoke Test | Sonnet 4.5 | ✅ 42/45 tests passing (93.3%), build green, 3 known failures (T47), comprehensive system validation, report: T58_QA_SMOKE_TEST_REPORT.md |
+
+## ✅ Done (Sprint 10 — Wave 2)
+| ID | Task | Agent | Result |
+|----|------|-------|--------|
+| T56 | Performance Optimization (Biology Loop) | Opus | ✅ 37% faster (single-cohort), 0 GC allocs, 0.05ms/day avg, 500x under 60 FPS budget. Fixed _enableEvents bug. Report: T56_PERFORMANCE_OPTIMIZATION_REPORT.md |
+
+## ✅ Done (Sprint 10 — Wave 2 continued)
+| ID | Task | Agent | Result |
+|----|------|-------|--------|
+| T55 | Mortality Deep Debug (Night Session) | Sonnet 4.5 | ✅ 3/5 FullCycleTests passing! Fixed triple mortality bug (DiseaseSystem+Storyteller+baseline). Survival 29.7%→>70%. Report: T55_MORTALITY_DEEP_DEBUG_REPORT.md |
 
 ## 🟢 In Progress (Sprint 10 — Polish & Ship)
 | ID | Task | Agent | Status |
 |----|------|-------|--------|
-| T47 | Fix 3 integration test failures (fish growth, market price) | DeepSeek R1 | 🔄 Launching |
+| T47 | Fix remaining 2 integration test failures (MultipleZones temp, FishGrowth stage transition) | TBD | 🔄 Next |
 
 ## 📋 Inbox (Sprint 10 — Wave 2)
 | ID | Task | Estimated Agent | Priority |
 |----|------|----------------|----------|
 | T51 | Sound design polish (weather-reactive) | Local review | LOW |
-| T52 | Performance profiling + optimization | DeepSeek R1 | MEDIUM |
+| T52 | Performance profiling + optimization | DeepSeek R1 | MEDIUM (partially done by T56) |
 
 ---
-*Updated: 2026-03-14 23:50 CET — T50 complete! 6-language localization ready.*
-*Build: ✅ Green | Tests: ✅ 116/119 (96 LakskongenSim.Tests + 20 SaveLoadTests) | Sprint 10: Wave 1 COMPLETE*
+*Updated: 2026-03-15 00:14 CET — T56 Performance Optimization COMPLETE! 37% gain, 0 GC, 500x under budget.*
+*Build: ✅ Green | Tests: ✅ 42/45 (93.3%) | Sprint 10: Wave 2 in progress*
 *Routing: DeepSeek V3.2 primary → R1 → Sonnet → Qwen → Gemini → Free tier*

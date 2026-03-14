@@ -14,7 +14,7 @@ namespace LakskongenSim.Core
         public const int DefaultTickDays = 1;
 
         /// <summary>Baseline mortality rate per day (approx 6-10% per year for Norwegian farmed salmon).</summary>
-        public const double BaselineMortalityPerDay = 0.00018; // Calibrated to achieve 70%+ survival over 905-day cycle with stage multipliers applied
+        public const double BaselineMortalityPerDay = 0.0002; // Calibrated to achieve 75%+ survival over 905-day cycle with stage multipliers (~1.5x average)
 
         /// <summary>Baseline growth rate per day (percentage of weight).</summary>
                 public const double BaselineGrowthPerDay = 0.006; // Calibrated to achieve 4-6kg in 18 months sea phase // calibrated default (approx 0.25%/day)

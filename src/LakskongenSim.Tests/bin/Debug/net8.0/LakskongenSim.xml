@@ -15,11 +15,6 @@
             Represents a cohort in the population.
             </summary>
         </member>
-        <member name="M:LakskongenSim.Biology.FishPopulation.Cohort.#ctor(System.Int32,System.Int32,System.Double,LakskongenSim.Data.LifeStage,LakskongenSim.Biology.Genome)">
-            <summary>
-            Represents a cohort in the population.
-            </summary>
-        </member>
         <member name="P:LakskongenSim.Biology.FishPopulation.Id">
             <summary>Unique identifier for this population.</summary>
         </member>
@@ -57,7 +52,8 @@
             <summary>Triggers the OnPopulationChanged event. Used by external systems that modify cohorts directly.</summary>
         </member>
         <member name="M:LakskongenSim.Biology.FishPopulation.AdvanceDays(System.Int32)">
-            <summary>Advance the population by days: age, apply growth and mortality.</summary>
+            <summary>Advance the population by days: age, apply growth and mortality.
+            Optimized: in-place updates with no list allocations (T56).</summary>
         </member>
         <member name="M:LakskongenSim.Biology.FishPopulation.DetermineStage(System.Int32)">
             <summary>
@@ -189,10 +185,25 @@
             <summary>
             Mortality model applying daily mortality rates.
             Uses biologically-accurate 7-stage salmon lifecycle.
+            Disease-aware: integrates disease mortality to prevent double-application.
             </summary>
         </member>
-        <member name="M:LakskongenSim.Biology.MortalityModel.ApplyMortality(System.Int32,System.Int32,LakskongenSim.Data.LifeStage)">
-            <summary>Apply mortality over days, return surviving count (rounded to int).</summary>
+        <member name="M:LakskongenSim.Biology.MortalityModel.ApplyMortality(System.Int32,System.Int32,LakskongenSim.Data.LifeStage,System.String)">
+            <summary>
+            Apply mortality over days, return surviving count (rounded to int).
+            Combines baseline, stage, and disease mortality in a single application.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.MortalityModel.SetDiseaseMortalityRate(System.String,System.Double)">
+            <summary>
+            Set disease mortality rate for a population.
+            Called by IntegratedDiseaseSystem before FishPopulation.AdvanceDays().
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Biology.MortalityModel.ClearDiseaseMortalityRates">
+            <summary>
+            Clear disease mortality rates (call at start of each tick).
+            </summary>
         </member>
         <member name="T:LakskongenSim.Core.AchievementSystem">
             <summary>
@@ -1325,7 +1336,7 @@
             <summary>
             Initialize all subsystems and wire them together.
             </summary>
-            <param name="enableEvents">If false, disables random storyteller events (useful for deterministic tests).</param>
+            <param name="enableEvents">If false, disables random storyteller events and disease mortality (useful for deterministic tests).</param>
         </member>
         <member name="M:LakskongenSim.Core.SimulationEngine.Advance(System.Int32)">
             <summary>
@@ -2104,6 +2115,16 @@
             Fish dynamically move between tiers based on infection status and proximity.
             </summary>
         </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.SetMortalityModel(LakskongenSim.Biology.MortalityModel)">
+            <summary>
+            Inject MortalityModel reference to enable disease rate injection.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.SetDiseaseSystem(LakskongenSim.Health.DiseaseSystem)">
+            <summary>
+            Inject DiseaseSystem reference for prevalence queries.
+            </summary>
+        </member>
         <member name="M:LakskongenSim.Health.DiseaseLODSystem.Update(System.Collections.Generic.List{LakskongenSim.Environment.Zone},System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation},System.Int32)">
             <summary>
             Main update loop. Processes all populations with appropriate LOD tier.
@@ -2165,14 +2186,14 @@
             Get populations containing the given fish.
             </summary>
         </member>
-        <member name="M:LakskongenSim.Health.DiseaseLODSystem.ApplyMediumDetailMortality(LakskongenSim.Biology.FishPopulation,System.Double,System.Int32)">
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.InjectMediumDetailMortalityRate(LakskongenSim.Biology.FishPopulation,System.Double,System.Int32)">
             <summary>
-            Apply mortality for medium‑detail populations.
+            Inject disease mortality rate for medium‑detail populations.
             </summary>
         </member>
-        <member name="M:LakskongenSim.Health.DiseaseLODSystem.ApplyLowDetailMortality(LakskongenSim.Biology.FishPopulation,System.Double,System.Int32)">
+        <member name="M:LakskongenSim.Health.DiseaseLODSystem.InjectLowDetailMortalityRate(LakskongenSim.Biology.FishPopulation,System.Double,System.Int32)">
             <summary>
-            Apply mortality for low‑detail populations.
+            Inject disease mortality rate for low‑detail populations.
             </summary>
         </member>
         <member name="M:LakskongenSim.Health.DiseaseLODSystem.LogPerformanceMetrics">
@@ -2199,6 +2220,12 @@
         </member>
         <member name="P:LakskongenSim.Health.DiseaseSystem.LiceModel">
             <summary>Expose lice model for integration with stochastic disease engine.</summary>
+        </member>
+        <member name="M:LakskongenSim.Health.DiseaseSystem.SetMortalityModel(LakskongenSim.Biology.MortalityModel)">
+            <summary>
+            Inject MortalityModel reference to enable disease rate injection.
+            Called by SimulationEngine during initialization.
+            </summary>
         </member>
         <member name="M:LakskongenSim.Health.DiseaseSystem.Tick(LakskongenSim.Biology.FishPopulation,System.Int32,System.Double)">
             <summary>
@@ -2227,6 +2254,12 @@
             Integrated disease system combining the full stochastic engine with LOD optimization.
             Automatically switches between simulation fidelity levels to maintain 60+ FPS.
             Provides unified API for game systems to interact with disease simulation.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.SetMortalityModel(LakskongenSim.Biology.MortalityModel)">
+            <summary>
+            Inject MortalityModel reference to enable disease rate injection.
+            Called by SimulationEngine during initialization.
             </summary>
         </member>
         <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.Update(System.Collections.Generic.List{LakskongenSim.Environment.Zone},System.Collections.Generic.List{LakskongenSim.Biology.FishPopulation},System.Int32)">
@@ -2274,14 +2307,15 @@
             Update base system prevalence (maintains compatibility with existing code).
             </summary>
         </member>
-        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.ApplyMortalityBasedOnPrevalence(LakskongenSim.Biology.FishPopulation,System.Double,System.Int32)">
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.InjectDiseaseMortalityRate(LakskongenSim.Biology.FishPopulation,System.Double,System.Int32)">
             <summary>
-            Apply mortality based on prevalence.
+            Inject disease mortality rate into MortalityModel (instead of directly modifying cohorts).
+            This prevents double-application of mortality.
             </summary>
         </member>
-        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.ApplyMinimalMortality(LakskongenSim.Biology.FishPopulation,System.Double,System.Int32)">
+        <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.InjectMinimalDiseaseMortalityRate(LakskongenSim.Biology.FishPopulation,System.Double,System.Int32)">
             <summary>
-            Apply minimal mortality (for low-fidelity simulation).
+            Inject minimal disease mortality rate (for low-fidelity simulation).
             </summary>
         </member>
         <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.EstimateZoneDistance(System.String,System.String)">

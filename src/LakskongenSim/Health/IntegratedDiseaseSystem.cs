@@ -36,6 +36,9 @@ namespace LakskongenSim.Health
         private LODMode _currentMode = LODMode.Auto;
         private int _performanceBasedHighDetailLimit = 1000;
         
+        // Mortality model reference (injected from SimulationEngine)
+        private Biology.MortalityModel? _mortalityModel;
+        
         public event Action<LODMode>? OnLODModeChanged;
         public event Action<double>? OnPerformanceUpdate; // FPS update
         
@@ -45,6 +48,17 @@ namespace LakskongenSim.Health
             _baseSystem = new DiseaseSystem(liceModel);
             _stochasticEngine = new StochasticDiseaseEngine(_baseSystem);
             _lodSystem = new DiseaseLODSystem(_stochasticEngine);
+        }
+
+        /// <summary>
+        /// Inject MortalityModel reference to enable disease rate injection.
+        /// Called by SimulationEngine during initialization.
+        /// </summary>
+        public void SetMortalityModel(Biology.MortalityModel mortalityModel)
+        {
+            _mortalityModel = mortalityModel ?? throw new ArgumentNullException(nameof(mortalityModel));
+            _lodSystem.SetMortalityModel(mortalityModel); // Pass to LOD system as well
+            _lodSystem.SetDiseaseSystem(_baseSystem); // Pass DiseaseSystem for prevalence queries
         }
         
         /// <summary>
@@ -131,8 +145,8 @@ namespace LakskongenSim.Health
                     // Update base system
                     UpdateBaseSystemPrevalence(population, prevalence);
                     
-                    // Apply mortality
-                    ApplyMortalityBasedOnPrevalence(population, prevalence, days);
+                    // Inject disease mortality rate (will be applied by MortalityModel during AdvanceDays)
+                    InjectDiseaseMortalityRate(population, prevalence, days);
                 }
             }
         }
@@ -153,10 +167,10 @@ namespace LakskongenSim.Health
                 
                 UpdateBaseSystemPrevalence(population, prevalence);
                 
-                // Minimal mortality
+                // Inject minimal disease mortality rate
                 if (prevalence > 0.1)
                 {
-                    ApplyMinimalMortality(population, prevalence, days);
+                    InjectMinimalDiseaseMortalityRate(population, prevalence, days);
                 }
             }
         }
@@ -248,43 +262,33 @@ namespace LakskongenSim.Health
         }
         
         /// <summary>
-        /// Apply mortality based on prevalence.
+        /// Inject disease mortality rate into MortalityModel (instead of directly modifying cohorts).
+        /// This prevents double-application of mortality.
         /// </summary>
-        private void ApplyMortalityBasedOnPrevalence(FishPopulation population, double prevalence, int days)
+        private void InjectDiseaseMortalityRate(FishPopulation population, double prevalence, int days)
         {
-            double dailyMortalityRate = 0.002 * prevalence * _externalDiseasePressureMultiplier; // 0.2% per day at 100% prevalence
-            double survivalRate = Math.Pow(1.0 - dailyMortalityRate, days);
+            if (_mortalityModel == null) return; // Fallback if not wired
             
-            // Apply to cohorts
-            System.Diagnostics.Debug.WriteLine($"[IntegratedDisease] ApplyMortalityBasedOnPrevalence: Prevalence={prevalence:F4}, DailyRate={dailyMortalityRate:F6}, SurvivalRate={survivalRate:F6}, Days={days}");
-            for (int i = 0; i < population.Cohorts.Count; i++)
-            {
-                var cohort = population.Cohorts[i];
-                System.Diagnostics.Debug.WriteLine($"[IntegratedDisease] Cohort {i}: BeforeCount={cohort.Count}");
-                int survivors = (int)(cohort.Count * survivalRate);
-                System.Diagnostics.Debug.WriteLine($"[IntegratedDisease] Cohort {i}: AfterCount={survivors}, Loss={cohort.Count - survivors}");
-                population.Cohorts[i] = new FishPopulation.Cohort(
-                    cohort.AgeDays, survivors, cohort.MeanWeightKg, cohort.Stage);
-            }
+            double dailyMortalityRate = 0.002 * prevalence * _externalDiseasePressureMultiplier; // 0.2% per day at 100% prevalence
+            
+            System.Diagnostics.Debug.WriteLine($"[IntegratedDisease] Injecting disease rate: PopId={population.Id}, Prevalence={prevalence:F4}, DailyRate={dailyMortalityRate:F6}, Days={days}");
+            
+            _mortalityModel.SetDiseaseMortalityRate(population.Id, dailyMortalityRate);
         }
         
         /// <summary>
-        /// Apply minimal mortality (for low-fidelity simulation).
+        /// Inject minimal disease mortality rate (for low-fidelity simulation).
         /// </summary>
-        private void ApplyMinimalMortality(FishPopulation population, double prevalence, int days)
+        private void InjectMinimalDiseaseMortalityRate(FishPopulation population, double prevalence, int days)
         {
-            double mortalityFraction = prevalence * 0.02 * days * _externalDiseasePressureMultiplier; // 2% mortality at 100% prevalence
+            if (_mortalityModel == null) return; // Fallback if not wired
             
-            System.Diagnostics.Debug.WriteLine($"[IntegratedDisease] ApplyMinimalMortality: Prevalence={prevalence:F4}, MortalityFraction={mortalityFraction:F6}, Days={days}");
-            for (int i = 0; i < population.Cohorts.Count; i++)
-            {
-                var cohort = population.Cohorts[i];
-                int deaths = (int)(cohort.Count * mortalityFraction);
-                int survivors = Math.Max(0, cohort.Count - deaths);
-                System.Diagnostics.Debug.WriteLine($"[IntegratedDisease][Minimal] Cohort {i}: Count={cohort.Count}, Deaths={deaths}, Survivors={survivors}");
-                population.Cohorts[i] = new FishPopulation.Cohort(
-                    cohort.AgeDays, survivors, cohort.MeanWeightKg, cohort.Stage);
-            }
+            // For low-fidelity, use lower disease mortality to avoid over-killing distant populations
+            double dailyMortalityRate = 0.0002 * prevalence * _externalDiseasePressureMultiplier; // 0.02% per day at 100% prevalence
+            
+            System.Diagnostics.Debug.WriteLine($"[IntegratedDisease][Minimal] Injecting disease rate: PopId={population.Id}, Prevalence={prevalence:F4}, DailyRate={dailyMortalityRate:F6}");
+            
+            _mortalityModel.SetDiseaseMortalityRate(population.Id, dailyMortalityRate);
         }
         
         /// <summary>
