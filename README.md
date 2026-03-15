@@ -148,15 +148,32 @@ pytest -v
 
 ## 📖 Documentation
 
+### 📐 Architecture & Design
+- **[Architecture Overview](docs/Architecture.md)** — Layered design, data flow, core systems
+- **[Architecture Deep Dives](docs/Architecture_DeepDives.md)** — Cohort model, genetics, save format, performance, localization
+- **[API Reference](docs/API_Reference.md)** — SimBridge, GameBridge, EventBus, SimulationEngine APIs
+- **[Modding API](docs/Modding_API.md)** — Create custom content (species, maps, scenarios)
+
+### 📊 System Diagrams
+- **[Architecture Diagram](docs/diagrams/architecture-overview.md)** — Simulation ↔ Bridge ↔ Presentation layers
+- **[Data Flow](docs/diagrams/data-flow.md)** — GameState → SimulationEngine → UI pipeline
+- **[Biology Lifecycle](docs/diagrams/biology-lifecycle.md)** — Egg → Fry → Smolt → Adult → Harvest
+- **[Disease Propagation](docs/diagrams/disease-propagation.md)** — SIR model + LOD tiers
+- **[Market Pricing](docs/diagrams/market-pricing.md)** — Ornstein-Uhlenbeck process + seasonal curves
+
+### 🎓 Tutorials
+- **[Getting Started](docs/tutorials/getting-started.md)** — 5-minute quickstart
+- **[Building from Source](docs/tutorials/building-from-source.md)** — Detailed build guide
+- **[Running Tests](docs/tutorials/running-tests.md)** — Unit, integration, stress tests
+- **[Creating Your First Mod](docs/tutorials/creating-your-first-mod.md)** — Step-by-step mod guide
+- **[Contributing Code](docs/tutorials/contributing-code.md)** — Fork → PR workflow
+
+### 📋 Project
 - **[VISION.md](VISION.md)** — Design philosophy and market analysis
 - **[GAMEPLAY_ROADMAP.md](GAMEPLAY_ROADMAP.md)** — Feature roadmap and industry research
 - **[STATUS.md](STATUS.md)** — Current development status
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** — How to contribute
-- **[docs/](docs/)** — Technical documentation and architecture
-  - Architecture overview
-  - Modding API
-  - Audio design
-  - System integration guides
+- **[CHANGELOG.md](CHANGELOG.md)** — Version history
 
 ---
 

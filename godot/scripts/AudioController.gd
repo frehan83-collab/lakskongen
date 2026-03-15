@@ -110,6 +110,7 @@ func _update_bgm_direct(path: String) -> void:
 		return
 	var stream := load(path) as AudioStream
 	if stream == null:
+		push_warning("AudioController: Missing BGM file: " + path)
 		return
 
 	_current_bgm_track = path
@@ -143,6 +144,7 @@ func _update_ambient_base_direct(path: String) -> void:
 		return
 	var stream := load(path) as AudioStream
 	if stream == null:
+		push_warning("AudioController: Missing ambient file: " + path)
 		return
 
 	_current_base_track = path
@@ -189,6 +191,7 @@ func _update_ambient_weather(weather_key: String) -> void:
 		return
 	var stream := load(path) as AudioStream
 	if stream == null:
+		push_warning("AudioController: Missing weather overlay: " + path)
 		return
 	_amb_weather.stream = stream
 	_amb_weather.volume_db = linear_to_db(0.0)
@@ -205,9 +208,13 @@ func _play_alert_sfx(alert_key: String) -> void:
 
 func play_sfx(path: String, volume_db: float = 0.0, pitch: float = 1.0) -> AudioStreamPlayer:
 	var player := _get_free_sfx_player()
-	if player == null: return null
+	if player == null:
+		push_warning("AudioController: SFX pool exhausted (all 8 players busy)")
+		return null
 	var stream := load(path) as AudioStream
-	if stream == null: return null
+	if stream == null:
+		push_warning("AudioController: Missing SFX file: " + path)
+		return null
 	player.stream = stream
 	player.volume_db = volume_db
 	player.pitch_scale = pitch

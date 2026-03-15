@@ -444,6 +444,19 @@ public void ApplyGrowth_WithOptimalTemperature_IncreasesWeight()
 
 ---
 
+## 📖 Further Reading
+
+- **[Architecture Deep Dives](Architecture_DeepDives.md)** — Cohort model, genetics, save format, performance, localization
+- **[API Reference](API_Reference.md)** — SimBridge, GameBridge, EventBus, SimulationEngine APIs
+- **[System Diagrams](diagrams/)** — Visual architecture, data flow, biology lifecycle, disease, market
+  - [Architecture Overview](diagrams/architecture-overview.md)
+  - [Data Flow](diagrams/data-flow.md)
+  - [Biology Lifecycle](diagrams/biology-lifecycle.md)
+  - [Disease Propagation](diagrams/disease-propagation.md)
+  - [Market Pricing](diagrams/market-pricing.md)
+- **[Tutorials](tutorials/)** — Getting started, building, testing, modding, contributing
+- **[Modding API](Modding_API.md)** — Mod development guide
+
 ## 📚 References
 
 - **Godot C# Docs:** https://docs.godotengine.org/en/stable/tutorials/scripting/c_sharp/
