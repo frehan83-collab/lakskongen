@@ -30,7 +30,9 @@ namespace LakskongenSim.Biology
             return newWeight;
         }
 
-        private static Random _random = new Random();
+        // Thread-safe random using .NET 6+ Random.Shared
+        // For deterministic seeding per instance, use instance field instead
+        private Random _random = Random.Shared;
         private const double AllometricExponent = 0.67; // Metabolism scaling exponent
         private const double OptimalTemperature = 11.0; // Norwegian optimal
         private const double ThermalTolerance = 3.0;    // Thermal tolerance width

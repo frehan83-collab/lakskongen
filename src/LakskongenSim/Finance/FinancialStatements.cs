@@ -4,8 +4,10 @@ using System.Collections.Generic;
 namespace LakskongenSim.Finance
 {
     /// <summary>
-    /// Simple P&amp;L, Balance Sheet, and Cash Flow records for deterministic simulation.
+    /// Simple P&amp;L (Profit and Loss), Balance Sheet, and Cash Flow records for deterministic simulation.
     /// Designed to be easy to test.
+    /// NOTE: Cash is NO LONGER tracked here - FinanceManager.Balance is the single source of truth.
+    /// This class only tracks P&amp;L flows for reporting purposes.
     /// </summary>
     public class FinancialStatements
     {
@@ -15,7 +17,14 @@ namespace LakskongenSim.Finance
         public decimal InterestExpense { get; private set; }
         public decimal Taxes { get; private set; }
 
+        /// <summary>
+        /// Cash is tracked by FinanceManager, not here.
+        /// This property is kept for backward compatibility but should not be used.
+        /// Query FinanceManager.Balance directly instead.
+        /// </summary>
+        [Obsolete("Use FinanceManager.Balance instead. Cash tracking moved to FinanceManager.")]
         public decimal Cash { get; private set; }
+        
         public decimal Assets { get; private set; }
         public decimal Liabilities { get; private set; }
         public decimal Equity => Assets - Liabilities;
@@ -24,43 +33,58 @@ namespace LakskongenSim.Finance
 
         public FinancialStatements(decimal startingCash = 0m, decimal startingAssets = 0m, decimal startingLiabilities = 0m)
         {
-            Cash = startingCash;
+            // startingCash is ignored - cash is tracked by FinanceManager
             Assets = startingAssets;
             Liabilities = startingLiabilities;
         }
 
+        /// <summary>
+        /// Record revenue for P&amp;L tracking only. Does NOT modify cash.
+        /// FinanceManager.AddRevenue() handles the actual cash change.
+        /// </summary>
         public void RecordRevenue(decimal amount)
         {
             Revenue += amount;
-            Cash += amount;
             Events.Add($"Revenue +{amount}");
         }
 
+        /// <summary>
+        /// Record COGS for P&amp;L tracking only. Does NOT modify cash.
+        /// FinanceManager.Spend() handles the actual cash change.
+        /// </summary>
         public void RecordCOGS(decimal amount)
         {
             COGS += amount;
-            Cash -= amount;
             Events.Add($"COGS -{amount}");
         }
 
+        /// <summary>
+        /// Record operating expense for P&amp;L tracking only. Does NOT modify cash.
+        /// FinanceManager.Spend() handles the actual cash change.
+        /// </summary>
         public void RecordOperatingExpense(decimal amount)
         {
             OperatingExpenses += amount;
-            Cash -= amount;
             Events.Add($"OpEx -{amount}");
         }
 
+        /// <summary>
+        /// Record interest expense for P&amp;L tracking only. Does NOT modify cash.
+        /// FinanceManager.Spend() handles the actual cash change.
+        /// </summary>
         public void RecordInterest(decimal amount)
         {
             InterestExpense += amount;
-            Cash -= amount;
             Events.Add($"Interest -{amount}");
         }
 
+        /// <summary>
+        /// Record tax expense for P&amp;L tracking only. Does NOT modify cash.
+        /// FinanceManager.Spend() handles the actual cash change.
+        /// </summary>
         public void RecordTax(decimal amount)
         {
             Taxes += amount;
-            Cash -= amount;
             Events.Add($"Tax -{amount}");
         }
 
@@ -69,25 +93,31 @@ namespace LakskongenSim.Finance
             return Revenue - COGS - OperatingExpenses - InterestExpense - Taxes;
         }
 
+        /// <summary>
+        /// Record asset purchase. Does NOT modify cash - caller must use FinanceManager.Spend().
+        /// </summary>
         public void AddAsset(decimal amount)
         {
             Assets += amount;
-            Cash -= amount;
             Events.Add($"Buy asset {amount}");
         }
 
+        /// <summary>
+        /// Record liability increase. Does NOT modify cash - caller must use FinanceManager.AddRevenue().
+        /// </summary>
         public void AddLiability(decimal amount)
         {
             Liabilities += amount;
-            Cash += amount;
             Events.Add($"Take liability {amount}");
         }
 
+        /// <summary>
+        /// Record liability repayment. Does NOT modify cash - caller must use FinanceManager.Spend().
+        /// </summary>
         public void RepayLiability(decimal amount)
         {
             var repayment = Math.Min(amount, Liabilities);
             Liabilities -= repayment;
-            Cash -= repayment;
             Events.Add($"Repay liability {repayment}");
         }
     }

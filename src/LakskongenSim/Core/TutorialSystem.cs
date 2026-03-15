@@ -44,7 +44,9 @@ namespace LakskongenSim.Core
     /// and fires OnStepCompleted with optional NOK rewards.
     ///
     /// Registered in SimulationEngine and updated via CheckProgress() each day.
+    /// NOTE: Uses GameState.Balance for step conditions (to be migrated to FinanceManager)
     /// </summary>
+    #pragma warning disable CS0618 // Type or member is obsolete
     public class TutorialSystem
     {
         private readonly SimulationEngine _engine;
@@ -573,4 +575,5 @@ namespace LakskongenSim.Core
             },
         };
     }
+    #pragma warning restore CS0618
 }

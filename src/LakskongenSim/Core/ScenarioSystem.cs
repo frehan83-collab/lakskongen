@@ -68,6 +68,7 @@ namespace LakskongenSim.Core
     public class ScenarioSystem
     {
         private readonly GameState _state;
+        private readonly Finance.FinanceManager? _financeManager;
         private readonly Dictionary<string, ScenarioDefinition> _scenarios = new();
 
         // ── Active scenario state ─────────────────────────────────────────────
@@ -101,9 +102,10 @@ namespace LakskongenSim.Core
 
         // ── Constructor ───────────────────────────────────────────────────────
 
-        public ScenarioSystem(GameState state)
+        public ScenarioSystem(GameState state, Finance.FinanceManager? financeManager = null)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
+            _financeManager = financeManager;
             RegisterAllScenarios();
         }
 
@@ -128,7 +130,24 @@ namespace LakskongenSim.Core
             IsLost = false;
             LossReason = "";
             _scenarioStartDay = _state.Day;
-            _state.Balance = scenario.StartingCapitalNOK;
+            
+            // Set starting capital via FinanceManager if available
+            if (_financeManager != null)
+            {
+                // Reset balance to scenario starting capital
+                // Use reflection to set the private setter on Balance property
+                var balanceProp = typeof(Finance.FinanceManager).GetProperty("Balance");
+                if (balanceProp != null && balanceProp.CanWrite)
+                {
+                    balanceProp.SetValue(_financeManager, scenario.StartingCapitalNOK);
+                }
+            }
+            else
+            {
+                #pragma warning disable CS0618
+                _state.Balance = scenario.StartingCapitalNOK;
+                #pragma warning restore CS0618
+            }
 
             // Seed AI competitors for Competition scenarios
             _aiProgress.Clear();
@@ -157,7 +176,12 @@ namespace LakskongenSim.Core
             int daysElapsed = _state.Day - _scenarioStartDay;
 
             // ── Universal loss: bankruptcy ────────────────────────────────────
-            if (_state.Balance < -2_000_000m)
+            decimal currentBalance = _financeManager?.Balance ?? 
+                #pragma warning disable CS0618
+                _state.Balance;
+                #pragma warning restore CS0618
+            
+            if (currentBalance < -2_000_000m)
             {
                 TriggerLoss("Konkurs — gjelden oversteg 2 000 000 NOK.");
                 return;
@@ -183,7 +207,7 @@ namespace LakskongenSim.Core
                 case WinCondition.Profit:
                 {
                     decimal target = GetRuleDecimal("profit_target", 5_000_000m);
-                    if (_state.Balance >= target)
+                    if (currentBalance >= target)
                         TriggerWin();
                     break;
                 }
@@ -202,7 +226,7 @@ namespace LakskongenSim.Core
                     if (daysElapsed > survivalDays)
                     {
                         // Must still be solvent at the end
-                        if (_state.Balance > 0)
+                        if (currentBalance > 0)
                             TriggerWin();
                         else
                             TriggerLoss($"Du overlevde ikke de {survivalDays} dagene med positiv balanse.");
@@ -231,7 +255,7 @@ namespace LakskongenSim.Core
                     }
 
                     // Player wins by reaching target before any AI
-                    if (_state.Balance >= target)
+                    if (currentBalance >= target)
                         TriggerWin();
                     break;
                 }

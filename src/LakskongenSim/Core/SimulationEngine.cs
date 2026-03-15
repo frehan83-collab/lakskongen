@@ -96,10 +96,11 @@ namespace LakskongenSim.Core
 
             // Default finance and market if not set externally
             FinanceManager ??= new Finance.FinanceManager(10_000_000m); // 10M NOK starting capital
-            FinancialStatements = new Finance.FinancialStatements(FinanceManager.Balance);
+            FinancialStatements = new Finance.FinancialStatements();
             
-            // Sync FinanceManager balance back to GameState
-            FinanceManager.OnBalanceChanged += balance => State.Balance = balance;
+            // NOTE: GameState.Balance is NO LONGER synced automatically.
+            // It is only updated during save/load for backward compatibility.
+            // FinanceManager.Balance is the SINGLE SOURCE OF TRUTH for cash.
             
             MarketSimulation ??= new Market.MarketSimulation();
             ContractSystem = new ContractSystem();
@@ -124,7 +125,8 @@ namespace LakskongenSim.Core
             SustainabilityManager.OnCertificationChanged += OnCertificationChanged;
 
             // Initialize Storyteller event director (only enable default events if enableEvents=true)
-            Storyteller = new Storyteller(Time, State, seed: null, enableDefaultEvents: enableEvents);
+            // Pass FinanceManager so events can modify balance correctly
+            Storyteller = new Storyteller(Time, State, FinanceManager, seed: null, enableDefaultEvents: enableEvents);
             if (enableEvents)
             {
                 NorwegianEvents.RegisterAll(Storyteller);
@@ -149,7 +151,11 @@ namespace LakskongenSim.Core
             // Feed cost → finance
             Feed.OnFeedCostIncurred += cost =>
             {
-                FinanceManager.Spend(cost);
+                if (!FinanceManager.Spend(cost))
+                {
+                    OnEventTriggered?.Invoke($"⚠️ Insufficient funds for feed: {cost:N0} NOK. Balance: {FinanceManager.Balance:N0} NOK");
+                    // Could trigger bankruptcy event here
+                }
             };
 
             // Tutorial onboarding system
@@ -878,7 +884,14 @@ namespace LakskongenSim.Core
             decimal totalOpEx = dailyWages + dailyMaintenance;
             if (totalOpEx > 0)
             {
-                FinanceManager.Spend(totalOpEx);
+                if (!FinanceManager.Spend(totalOpEx))
+                {
+                    // Bankruptcy warning - insufficient funds for operations
+                    OnEventTriggered?.Invoke($"💸 BANKRUPTCY WARNING: Cannot pay {totalOpEx:N0} NOK in operating costs. Balance: {FinanceManager.Balance:N0} NOK");
+                    
+                    // Force spend to create negative balance (debt)
+                    FinanceManager.ForceSpend(totalOpEx);
+                }
                 FinancialStatements.RecordOperatingExpense(totalOpEx);
             }
 
@@ -892,7 +905,11 @@ namespace LakskongenSim.Core
                 if (netIncome > 0)
                 {
                     decimal tax = netIncome * (decimal)_balancing.CorporateTaxRate;
-                    FinanceManager.Spend(tax);
+                    if (!FinanceManager.Spend(tax))
+                    {
+                        OnEventTriggered?.Invoke($"⚠️ Cannot pay {tax:N0} NOK in taxes. Balance: {FinanceManager.Balance:N0} NOK");
+                        FinanceManager.ForceSpend(tax);
+                    }
                     FinancialStatements.RecordTax(tax);
                 }
             }
@@ -1071,5 +1088,42 @@ namespace LakskongenSim.Core
         /// set via properties instead (Weather, Disease, etc.).
         /// </summary>
         public void RegisterSystem(object system) { /* reserved for future plugin/mod systems */ }
+
+        // ─── Save/Load Sync ───
+
+        /// <summary>
+        /// Prepare GameState for saving by syncing FinanceManager.Balance to GameState.Balance.
+        /// Call this BEFORE SaveLoadManager.SaveGame().
+        /// </summary>
+        public void PrepareForSave()
+        {
+            #pragma warning disable CS0618 // Type or member is obsolete
+            State.Balance = FinanceManager.Balance;
+            #pragma warning restore CS0618
+        }
+
+        /// <summary>
+        /// Restore state after loading by syncing GameState.Balance to FinanceManager.Balance
+        /// and re-injecting dependencies into deserialized objects.
+        /// Call this AFTER SaveLoadManager.LoadGame() with the loaded state.
+        /// </summary>
+        public void RestoreFromLoad(GameState loadedState)
+        {
+            // 1. Restore balance from saved state
+            #pragma warning disable CS0618 // Type or member is obsolete
+            if (loadedState.Balance > 0)
+            {
+                FinanceManager = new Finance.FinanceManager(loadedState.Balance);
+            }
+            #pragma warning restore CS0618
+
+            // 2. Re-inject GrowthModel and MortalityModel into all FishPopulations
+            foreach (var pop in loadedState.Populations)
+            {
+                pop.InjectDependencies(Growth, Mortality);
+            }
+
+            Console.WriteLine($"✅ Restored from save: Balance={FinanceManager.Balance:N0} NOK, {loadedState.Populations.Count} populations, Day {loadedState.Day}");
+        }
     }
 }

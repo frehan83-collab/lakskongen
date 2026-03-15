@@ -1,0 +1,338 @@
+{
+  "financing_options": [
+    {
+      "type": "BankLoan",
+      "name": "DNB Secured Term Loan",
+      "description": "Standard Norwegian bank loan secured against assets (licenses, equipment, property)",
+      "max_amount_nok": 500000000,
+      "interest_rate": 0.06,
+      "term_years": 7,
+      "requires_collateral": true,
+      "requires_public_listing": false,
+      "min_revenue_nok": 50000000,
+      "covenants": ["Debt/EBITDA < 4.0x", "Interest coverage > 2.5x", "Min equity ratio 30%"],
+      "risk_level": "Low"
+    },
+    {
+      "type": "BankLoan",
+      "name": "Nordea Expansion Facility",
+      "description": "Larger credit facility for major expansion projects",
+      "max_amount_nok": 2000000000,
+      "interest_rate": 0.055,
+      "term_years": 10,
+      "requires_collateral": true,
+      "requires_public_listing": false,
+      "min_revenue_nok": 500000000,
+      "covenants": ["Debt/EBITDA < 3.5x", "Min DSCR 1.5x", "No additional senior debt"],
+      "risk_level": "Medium"
+    },
+    {
+      "type": "CorporateBond",
+      "name": "Nordic Bond (Unsecured)",
+      "description": "High-yield corporate bond placement via Nordic ABM",
+      "max_amount_nok": 1500000000,
+      "interest_rate": 0.075,
+      "term_years": 5,
+      "requires_collateral": false,
+      "requires_public_listing": false,
+      "min_revenue_nok": 1000000000,
+      "covenants": ["Debt/EBITDA < 5.0x", "Change of control clause"],
+      "risk_level": "Medium"
+    },
+    {
+      "type": "CorporateBond",
+      "name": "Green Bond (Sustainability-linked)",
+      "description": "Lower rate bond for ESG-aligned investments (green feed, RAS systems, carbon reduction)",
+      "max_amount_nok": 1000000000,
+      "interest_rate": 0.05,
+      "term_years": 7,
+      "requires_collateral": false,
+      "requires_public_listing": false,
+      "min_revenue_nok": 500000000,
+      "covenants": ["Sustainability KPI targets", "Annual ESG reporting", "Use of proceeds restricted"],
+      "risk_level": "Low"
+    },
+    {
+      "type": "EquitySale",
+      "name": "Private Equity Round",
+      "description": "Sell minority stake to PE investor (DNB Private Equity, Herkules, FSN Capital)",
+      "max_amount_nok": 3000000000,
+      "interest_rate": 0,
+      "term_years": 0,
+      "dilution_percent": 0.20,
+      "requires_collateral": false,
+      "requires_public_listing": false,
+      "min_revenue_nok": 200000000,
+      "risk_level": "Medium"
+    },
+    {
+      "type": "SecondaryOffering",
+      "name": "Secondary Share Offering",
+      "description": "Issue new shares on the stock exchange to raise capital",
+      "max_amount_nok": 5000000000,
+      "interest_rate": 0,
+      "term_years": 0,
+      "dilution_percent": 0.15,
+      "requires_collateral": false,
+      "requires_public_listing": true,
+      "min_revenue_nok": 1000000000,
+      "risk_level": "Low"
+    },
+    {
+      "type": "GovernmentGrant",
+      "name": "Innovasjon Norge Green Tech Grant",
+      "description": "Government grant covering 50% of green technology investments",
+      "max_amount_nok": 100000000,
+      "interest_rate": 0,
+      "term_years": 0,
+      "requires_collateral": false,
+      "requires_public_listing": false,
+      "min_revenue_nok": 10000000,
+      "risk_level": "VeryLow"
+    },
+    {
+      "type": "JointVenture",
+      "name": "International Joint Venture",
+      "description": "Partner with local operator for international expansion",
+      "max_amount_nok": 2000000000,
+      "interest_rate": 0,
+      "term_years": 0,
+      "dilution_percent": 0,
+      "requires_collateral": false,
+      "requires_public_listing": false,
+      "min_revenue_nok": 500000000,
+      "risk_level": "High"
+    }
+  ],
+  "investment_opportunities": {
+    "organic_growth": [
+      {
+        "id": "org_license_3",
+        "name": "Acquire 3 New Licenses",
+        "description": "Purchase 3 new aquaculture licenses in Nordland region",
+        "capex_nok": 400000000,
+        "annual_opex_nok": 15000000,
+        "projected_annual_revenue_nok": 200000000,
+        "projected_annual_ebitda_nok": 50000000,
+        "projected_roi": 0.125,
+        "payback_years": 5.5,
+        "risk": "Low",
+        "risk_factors": ["License allocation uncertainty", "Site-specific disease risk"],
+        "success_probability": 0.85,
+        "market_share_impact": 0.002,
+        "licenses_gained": 3,
+        "mab_tonnes_gained": 2340,
+        "implementation_months": 6
+      },
+      {
+        "id": "org_pen_expand",
+        "name": "Expand Existing Site Capacity",
+        "description": "Add 4 new pens and upgraded feeding systems to existing sites",
+        "capex_nok": 120000000,
+        "annual_opex_nok": 8000000,
+        "projected_annual_revenue_nok": 80000000,
+        "projected_annual_ebitda_nok": 25000000,
+        "projected_roi": 0.21,
+        "payback_years": 3.5,
+        "risk": "VeryLow",
+        "implementation_months": 8
+      },
+      {
+        "id": "org_tech_upgrade",
+        "name": "Smart Farm Technology Package",
+        "description": "AI-powered feeding, underwater cameras, real-time biomass sensors",
+        "capex_nok": 45000000,
+        "annual_opex_nok": 5000000,
+        "projected_annual_ebitda_nok": 15000000,
+        "projected_roi": 0.33,
+        "payback_years": 2.5,
+        "risk": "Low",
+        "unlocks": "Precision Farming",
+        "implementation_months": 4
+      }
+    ],
+    "acquisitions": [
+      {
+        "id": "acq_greed_gregarious",
+        "name": "Acquire Greed Gregarious ASA",
+        "description": "Hostile takeover of mid-tier competitor. 60 licenses, overleveraged = opportunity.",
+        "capex_nok": 28000000000,
+        "licenses_gained": 60,
+        "mab_tonnes_gained": 80000,
+        "market_share_impact": 0.06,
+        "risk": "High",
+        "implementation_months": 18
+      },
+      {
+        "id": "acq_offshore_optimists",
+        "name": "Acquire Offshore Optimists AS",
+        "description": "Buy struggling tech startup. Offshore platform IP, currently unprofitable.",
+        "capex_nok": 18000000000,
+        "licenses_gained": 8,
+        "mab_tonnes_gained": 15000,
+        "market_share_impact": 0.01,
+        "risk": "VeryHigh",
+        "unlocks": "Offshore Farming Technology",
+        "implementation_months": 24
+      },
+      {
+        "id": "acq_nordlaks",
+        "name": "Acquire NordLaks Nord AS",
+        "description": "Buy conservative family company. 40 licenses, excellent Arctic locations.",
+        "capex_nok": 22000000000,
+        "licenses_gained": 40,
+        "mab_tonnes_gained": 55000,
+        "market_share_impact": 0.04,
+        "risk": "Medium",
+        "implementation_months": 12
+      }
+    ],
+    "vertical_integration": [
+      {
+        "id": "vi_processing_line",
+        "name": "Build Own Processing Line",
+        "description": "Small processing facility: whole fish, HOG, and basic fillets",
+        "capex_nok": 320000000,
+        "annual_opex_nok": 32000000,
+        "projected_annual_ebitda_nok": 48000000,
+        "risk": "Medium",
+        "unlocks": "Processing (Whole/HOG/Fillet)",
+        "implementation_months": 18
+      },
+      {
+        "id": "vi_hatchery",
+        "name": "Build RAS Hatchery",
+        "description": "Recirculating Aquaculture System for smolt production",
+        "capex_nok": 350000000,
+        "annual_opex_nok": 25000000,
+        "projected_annual_ebitda_nok": 35000000,
+        "risk": "Medium",
+        "unlocks": "Own Smolt Production",
+        "implementation_months": 24
+      },
+      {
+        "id": "vi_logistics",
+        "name": "Build Cold Chain & Logistics Fleet",
+        "description": "Refrigerated trucks, cold storage, direct-to-customer distribution",
+        "capex_nok": 180000000,
+        "annual_opex_nok": 28000000,
+        "projected_annual_ebitda_nok": 20000000,
+        "risk": "Low",
+        "unlocks": "Direct Distribution",
+        "implementation_months": 15
+      }
+    ],
+    "diversification": [
+      {
+        "id": "div_scotland",
+        "name": "Enter Scotland Market",
+        "description": "Acquire Scottish Highland sites. GBP exposure, different regs.",
+        "capex_nok": 3000000000,
+        "licenses_gained": 15,
+        "mab_tonnes_gained": 20000,
+        "risk": "High",
+        "implementation_months": 18
+      },
+      {
+        "id": "div_chile",
+        "name": "Enter Chile Market",
+        "description": "Joint venture with local Chilean operator. Counter-seasonal production.",
+        "capex_nok": 5000000000,
+        "licenses_gained": 25,
+        "mab_tonnes_gained": 40000,
+        "risk": "VeryHigh",
+        "implementation_months": 24
+      },
+      {
+        "id": "div_trout",
+        "name": "Diversify: Fjord Trout Production",
+        "description": "Add large rainbow trout production. Uses existing sites.",
+        "capex_nok": 200000000,
+        "risk": "Low",
+        "unlocks": "Trout Production",
+        "implementation_months": 8
+      },
+      {
+        "id": "div_branded_retail",
+        "name": "Launch Premium Retail Brand 'Fjordkongen'",
+        "description": "Consumer brand for smoked salmon, sashimi packs, ready meals",
+        "capex_nok": 150000000,
+        "annual_opex_nok": 40000000,
+        "projected_annual_ebitda_nok": 100000000,
+        "risk": "Medium",
+        "unlocks": "Premium Retail Brand",
+        "implementation_months": 12
+      }
+    ]
+  },
+  "empire_phases": {
+    "small_farmer": {
+      "licenses": "1-2",
+      "pens": "2-4",
+      "processing": "Toll processing",
+      "sales": "Spot market",
+      "revenue_range": "0-500M NOK"
+    },
+    "regional_player": {
+      "licenses": "5-10",
+      "zones": "2-3",
+      "processing": "Own small processing line",
+      "sales": "Mix of spot + contracts",
+      "revenue_range": "500M-1B NOK"
+    },
+    "national_leader": {
+      "licenses": "20-50",
+      "zones": "5+",
+      "processing": "Full processing (smoked, sashimi)",
+      "sales": "Export to EU/Asia",
+      "logistics": "Own logistics fleet",
+      "revenue_range": "1B-10B NOK"
+    },
+    "global_titan": {
+      "licenses": "100+",
+      "regions": "International (Norway + Scotland/Chile)",
+      "integration": "Vertically integrated (hatchery to retail)",
+      "brand": "Brand recognition",
+      "listing": "Stock exchange listing",
+      "revenue_range": "10B-50B NOK"
+    },
+    "industry_monopolist": {
+      "market_share": ">30% Norwegian",
+      "competitors_acquired": "2+",
+      "political_influence": "Lobby regulators",
+      "empire": "Diversified seafood empire",
+      "revenue_range": "50B+ NOK"
+    }
+  },
+  "victory_conditions": [
+    {
+      "id": "victory_largest",
+      "name": "The Lakskongen",
+      "description": "Become #1 largest salmon farmer (beat Mowier)",
+      "target_market_share": 0.21,
+      "difficulty": "Hard"
+    },
+    {
+      "id": "victory_valuation",
+      "name": "Ten Billion Club",
+      "description": "Achieve NOK 10B valuation",
+      "target_valuation_nok": 10000000000,
+      "difficulty": "Medium"
+    },
+    {
+      "id": "victory_sustainable",
+      "name": "Green Gold",
+      "description": "100% sustainability rating + profitable",
+      "target_sustainability": 100,
+      "target_ebitda_nok": 500000000,
+      "difficulty": "Very Hard"
+    },
+    {
+      "id": "victory_monopoly",
+      "name": "Total Dominance",
+      "description": "Control >50% Norwegian market share",
+      "target_market_share": 0.50,
+      "difficulty": "Extreme"
+    }
+  ]
+}

@@ -72,6 +72,9 @@ namespace LakskongenSim.Environment
             return CurrentFishBiomassKg * baseNutrientPerKg / WaterFlowRate; // diluted by water flow
         }
         
+        // Instance random for this zone (seeded once)
+        private Random? _zoneRandom;
+
         /// <summary>
         /// Simulate ocean current changes based on season and weather patterns.
         /// Currents affect nutrient dilution and oxygen replenishment.
@@ -82,9 +85,13 @@ namespace LakskongenSim.Environment
             int dayOfYear = day % 365;
             double seasonalFactor = 1.0 + 0.3 * Math.Cos(2 * Math.PI * (dayOfYear - 15) / 365.0); // peak in January
             
+            // Initialize zone-specific random once (deterministic seed per zone ID)
+            _zoneRandom ??= new Random(Id.GetHashCode());
+            
             // Add some random weather-driven variation
-            var rng = new Random(day + Id.GetHashCode()); // deterministic per zone+day
-            double weatherNoise = 0.8 + 0.4 * rng.NextDouble(); // 0.8-1.2x
+            // Use a deterministic hash per day to avoid creating new Random every call
+            int dayHash = HashCode.Combine(day, Id);
+            double weatherNoise = 0.8 + 0.4 * ((dayHash & 0x7FFFFFFF) % 1000) / 1000.0; // 0.8-1.2x deterministic
             
             // Base current: 0.05-0.35 m/s typical for Norwegian coastal waters
             double baseSpeed = 0.15;

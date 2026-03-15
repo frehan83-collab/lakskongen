@@ -1,12 +1,34 @@
 namespace LakskongenSim.Market
 {
     /// <summary>
-    /// Re-declare product type for market namespace convenience.
+    /// Complete product catalog for salmon processing value chain
     /// </summary>
     public enum ProductType
     {
+        // Primary products
         FreshWhole,
+        HOG,              // Head-Off Gutted
         Fillet,
-        Frozen
+        FilletSkinless,
+        Portions,
+        Frozen,
+        
+        // Value-added products
+        ColdSmoked,
+        HotSmoked,
+        Gravlax,
+        Sashimi,
+        
+        // Byproducts
+        FishOil,
+        FishMeal,
+        FishSkin,
+        Roe,
+        
+        // Boutique/specialty
+        SmokedPate,
+        SalmonJerky,
+        Canned,
+        ReadyMeal
     }
 }

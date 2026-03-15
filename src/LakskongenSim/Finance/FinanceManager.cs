@@ -8,6 +8,10 @@ namespace LakskongenSim.Finance
     /// </summary>
     public class FinanceManager
     {
+        /// <summary>
+        /// Current balance in NOK. This is the SINGLE SOURCE OF TRUTH for player cash.
+        /// All balance changes must go through AddRevenue() or Spend().
+        /// </summary>
         public decimal Balance { get; private set; }
 
         // Sustainability bonuses/penalties
@@ -21,19 +25,56 @@ namespace LakskongenSim.Finance
             Balance = startingBalance;
         }
 
+        /// <summary>
+        /// Add revenue to balance. Use for all income (sales, grants, investor injections).
+        /// </summary>
         public void AddRevenue(decimal amount)
         {
+            if (amount < 0)
+            {
+                Console.WriteLine($"⚠️ Warning: AddRevenue called with negative amount {amount}. Use Spend() instead.");
+                return;
+            }
             Balance += amount;
             OnBalanceChanged?.Invoke(Balance);
         }
 
+        /// <summary>
+        /// Deduct expense from balance. Returns false if insufficient funds.
+        /// IMPORTANT: Callers MUST check the return value and handle bankruptcy/debt logic.
+        /// </summary>
         public bool Spend(decimal amount)
         {
             if (amount <= 0) return true;
-            if (Balance < amount) return false;
+            if (Balance < amount)
+            {
+                Console.WriteLine($"⚠️ Insufficient funds: tried to spend {amount:N0} NOK but only have {Balance:N0} NOK");
+                return false;
+            }
             Balance -= amount;
             OnBalanceChanged?.Invoke(Balance);
             return true;
+        }
+        
+        /// <summary>
+        /// Check if an amount can be afforded without actually spending it.
+        /// Use before attempting purchases to provide better UX.
+        /// </summary>
+        public bool CanAfford(decimal amount)
+        {
+            return Balance >= amount;
+        }
+        
+        /// <summary>
+        /// Force spend even if balance goes negative (for debt/loans).
+        /// Only use when bankruptcy/debt mechanics are intentional.
+        /// </summary>
+        public void ForceSpend(decimal amount)
+        {
+            if (amount <= 0) return;
+            Balance -= amount;
+            OnBalanceChanged?.Invoke(Balance);
+            Console.WriteLine($"💳 Forced spend: {amount:N0} NOK (balance now {Balance:N0} NOK)");
         }
 
         /// <summary>

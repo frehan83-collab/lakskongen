@@ -14,7 +14,12 @@ namespace LakskongenSim.Core
         /// <summary>Current simulation date (day index).</summary>
         public int Day { get; set; }
 
-        /// <summary>Monetary balance in NOK.</summary>
+        /// <summary>
+        /// Monetary balance in NOK (deprecated - kept for backward save compatibility).
+        /// DO NOT USE - Use FinanceManager.Balance as single source of truth.
+        /// This field is only updated during save/load to maintain backward compatibility.
+        /// </summary>
+        [Obsolete("Use FinanceManager.Balance instead. This field is only for save/load compatibility.")]
         public decimal Balance { get; set; }
 
         /// <summary>List of zones in the environment.</summary>

@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using LakskongenSim.Events;
 
+#pragma warning disable CS0618 // Type or member is obsolete (GameState.Balance used in mod system)
 namespace LakskongenSim.Core
 {
     // ── Mod manifest ──────────────────────────────────────────────────────────
@@ -580,3 +581,4 @@ namespace LakskongenSim.Core
             Enum.TryParse<EventCategory>(raw, ignoreCase: true, out var cat) ? cat : EventCategory.Other;
     }
 }
+#pragma warning restore CS0618

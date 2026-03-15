@@ -10,20 +10,28 @@ namespace LakskongenSim.Market
     /// <summary>
     /// Realistic salmon market price simulation based on Norwegian industry dynamics.
     /// Models: seasonal patterns, calibrated Ornstein-Uhlenbeck mean reversion,
-    /// supply/demand shocks, and historical Norwegian spot-price anchors.
+    /// supply/demand shocks, historical Norwegian Fish Pool anchors, quality premiums,
+    /// multiple sales channels, and market intelligence.
+    ///
+    /// O-U parameters calibrated to Fish Pool FPI data 2020-2025:
+    ///   - Long-term mean ~85 NOK/kg (2020-2025 average; 2023-2025 elevated to ~90-100)
+    ///   - Annual kappa ~0.6-0.8 (moderate mean reversion)
+    ///   - Weekly sigma ~8-12 NOK/kg (high volatility typical of salmon spot)
+    ///   - Price range: NOK 40-160/kg historically
     /// </summary>
     public class MarketSimulation
     {
-                private const decimal DefaultInitialPrice = 100m; // Realistic initial price based on 2024-2026 average (target 50-150 NOK/kg) // Realistic initial price based on 2020-2025 average
-                private const decimal PriceFloor = 50m; // Adjusted to realistic Norwegian market bounds (50-150 NOK/kg)
-                private const decimal PriceCeiling = 150m; // Adjusted to realistic Norwegian market bounds (50-150 NOK/kg)
-        private const decimal WeeklyThetaMin = 0.01m; // Mean reversion speed (weekly) calibrated to annual kappa ~0.5 (moderate reversion over months)
-        private const decimal WeeklyThetaMax = 0.02m; // Upper bound corresponds to annual kappa ~1.0 (faster reversion)
-        private const decimal WeeklySigmaMin = 10m; // Lower bound for weekly volatility (salmon prices are highly volatile)
-        private const decimal WeeklySigmaMax = 15m; // Upper bound for weekly volatility (weekly swings of 5-15 NOK/kg are common)
-                private const decimal DefaultLongTermMean = 100m; // Long-run average based on 2024-2026 Norwegian salmon spot prices (target 50-150 NOK/kg) // Long-run average based on 2020-2025 Norwegian salmon spot prices (~70-80 NOK/kg)
-        private const decimal DefaultWeeklyTheta = 0.015m; // Default weekly mean reversion speed (kappa ~0.78 annual)
-        private const decimal DefaultWeeklySigma = 12.5m; // Default weekly volatility (sigma ~15 NOK/kg annualized)
+        // ─── Calibrated to Fish Pool FPI 2020-2025 data ───
+        private const decimal DefaultInitialPrice = 90m;   // 2024-2025 FPI average ~85-95 NOK/kg
+        private const decimal PriceFloor = 40m;            // Historical low (2020 COVID trough ~45)
+        private const decimal PriceCeiling = 160m;         // Historical high (2022 peak ~140, allow gameplay headroom)
+        private const decimal WeeklyThetaMin = 0.008m;     // Annual kappa ~0.42 (slow reversion, persistent trends)
+        private const decimal WeeklyThetaMax = 0.018m;     // Annual kappa ~0.94 (faster reversion)
+        private const decimal WeeklySigmaMin = 6m;         // Lower vol in stable periods
+        private const decimal WeeklySigmaMax = 14m;        // High vol during supply shocks
+        private const decimal DefaultLongTermMean = 85m;   // FPI 2020-2025 avg ≈ 80-90 NOK/kg
+        private const decimal DefaultWeeklyTheta = 0.012m; // Annual kappa ~0.62 (moderate reversion)
+        private const decimal DefaultWeeklySigma = 9m;     // Weekly moves ~5-12 NOK/kg typical
         private const int DaysPerWeek = 7;
 
         private static readonly string HistoricalPriceMarkdownPath = Path.GetFullPath(
@@ -43,15 +51,20 @@ namespace LakskongenSim.Market
         public IReadOnlyList<HistoricalPrice> HistoricalSeries => _historicalSeries;
         public string CalibrationSummary { get; private set; } = "Using default market calibration";
 
-        // ─── Seasonal parameters (Norwegian market) ───
-        // Prices peak in summer (June-August) for BBQ/grilling season, dip in winter.
-        // Amplitude ~10-15 NOK/kg based on historical seasonal patterns.
+        // ─── Seasonal parameters (Norwegian/global salmon market) ───
+        // Based on Fish Pool FPI seasonal decomposition 2018-2025:
+        // - Jan/Feb: Chinese New Year demand spike (Jan peak)
+        // - Mar-May: post-winter recovery, Easter demand
+        // - Jun-Aug: BBQ/grilling season peak (strongest seasonal signal)
+        // - Sep-Oct: post-summer dip as harvest volumes increase
+        // - Nov-Dec: Christmas/holiday demand recovery
+        // Amplitude ~8-12 NOK/kg based on Fish Pool seasonal decomposition.
         private static readonly decimal[] MonthlySeasonalOffsets =
         {
-            -8m, -6m, -3m,  // Jan, Feb, Mar
-              0m,  3m,  8m,  // Apr, May, Jun
-             10m,  8m,  5m,  // Jul, Aug, Sep
-              0m, -5m, -7m   // Oct, Nov, Dec
+              5m, -2m, -5m,  // Jan (CNY), Feb (post-CNY dip), Mar (low)
+             -3m,  2m,  8m,  // Apr (Easter variable), May (rising), Jun (BBQ starts)
+             12m, 10m,  3m,  // Jul (peak BBQ), Aug (still high), Sep (harvest surge → drop)
+             -4m, -2m,  6m   // Oct (oversupply), Nov (stable), Dec (Christmas demand)
         };
 
         // ─── Supply/demand ───
@@ -72,6 +85,12 @@ namespace LakskongenSim.Market
         // ─── Random ───
         private readonly Random _rng = new();
         private int _simulationDay;
+
+        // ─── Integrated subsystems (T77 expansion) ───
+        /// <summary>Sales channel system with spot, export, direct retail channels.</summary>
+        public MarketChannelSystem Channels { get; } = new();
+        /// <summary>Market intelligence: forecasting, news events, competitor tracking, brand reputation.</summary>
+        public MarketIntelligenceSystem Intelligence { get; } = new();
 
         // ─── Events ───
         public event Action<decimal>? OnPriceChanged;
@@ -137,7 +156,7 @@ namespace LakskongenSim.Market
             var range = Math.Max(1m, maxObserved - minObserved);
             var normalizedReversion = 0.15m + (avgWeeklyMove / range) * 0.10m;
 
-            LongTermMean = ClampToBand(mean, 70m, 80m); // Realistic long-term average range for Norwegian salmon (2020-2025)
+            LongTermMean = ClampToBand(mean, 75m, 100m); // Fish Pool FPI 2020-2025 avg range (lower during COVID, higher 2022-2024)
             MeanReversionSpeedWeekly = ClampToBand(normalizedReversion, WeeklyThetaMin, WeeklyThetaMax);
             VolatilityWeekly = ClampToBand(sampleStdDev, WeeklySigmaMin, WeeklySigmaMax);
 
@@ -155,12 +174,42 @@ namespace LakskongenSim.Market
         /// <summary>
         /// Advance market simulation by a number of days.
         /// Uses a daily-discretized Ornstein-Uhlenbeck process with seasonal Norwegian demand overlays.
+        /// Integrates market intelligence events and competitor supply data.
         /// </summary>
         public void AdvanceDays(int days)
         {
             for (int d = 0; d < days; d++)
             {
                 _simulationDay++;
+
+                // Weekly intelligence tick (every 7 days)
+                if (_simulationDay % DaysPerWeek == 0)
+                {
+                    Intelligence.AdvanceWeek(BasePricePerKg);
+                    Channels.ResetWeeklyVolumes();
+
+                    // Apply active news event impacts to supply/demand
+                    var (supFactor, demFactor, priceShock) = Intelligence.GetActiveEventImpacts();
+                    if (Math.Abs(supFactor - 1.0) > 0.001 || Math.Abs(demFactor - 1.0) > 0.001)
+                    {
+                        // Blend event impacts gradually (don't shock instantly)
+                        GlobalSupplyIndex = GlobalSupplyIndex * 0.9 + (GlobalSupplyIndex * supFactor) * 0.1;
+                        GlobalDemandIndex = GlobalDemandIndex * 0.9 + (GlobalDemandIndex * demFactor) * 0.1;
+                    }
+                    if (priceShock != 0m)
+                    {
+                        BasePricePerKg = ClampPrice(BasePricePerKg + priceShock * 0.15m);  // Gradual price shock absorption
+                    }
+
+                    // Competitor supply affects global supply index
+                    var competitorSupply = Intelligence.GetTotalCompetitorSupplyTonnes();
+                    var normalSupply = 31400.0;  // Sum of all base weekly harvests
+                    if (normalSupply > 0)
+                    {
+                        var supplyDeviation = (competitorSupply - normalSupply) / normalSupply;
+                        GlobalSupplyIndex *= 1.0 + supplyDeviation * 0.05;  // 5% sensitivity
+                    }
+                }
 
                 var seasonalTarget = LongTermMean + GetSeasonalOffsetForSimulationDay(_simulationDay);
                 var currentPrice = (double)BasePricePerKg;
@@ -178,7 +227,8 @@ namespace LakskongenSim.Market
                 var newPrice = currentPrice + drift + diffusion + supplyDemandEffect;
                 BasePricePerKg = ClampPrice((decimal)newPrice);
 
-                PricePerKg = BasePricePerKg * _certificationMultiplier;
+                // Apply brand reputation premium
+                PricePerKg = BasePricePerKg * _certificationMultiplier * Intelligence.PlayerReputation.PremiumMultiplier;
 
                 _priceHistory.Enqueue(PricePerKg);
                 if (_priceHistory.Count > MaxHistoryLength)
@@ -302,6 +352,30 @@ namespace LakskongenSim.Market
         public HashSet<string> GetAccessibleMarkets() => new(_accessibleMarkets);
         public decimal[] GetPriceHistory() => _priceHistory.ToArray();
 
+        // ─── T77: Quality-aware selling ───
+
+        /// <summary>
+        /// Sell fish through a specific channel with quality grading applied.
+        /// Convenience method that wires MarketChannelSystem to current spot price.
+        /// </summary>
+        public SaleResult SellFish(SalesChannelType channel, int volumeKg, FishBatchAttributes batchAttributes, ProductForm form = ProductForm.WholeRound)
+        {
+            var grading = QualityGrader.GradeFull(batchAttributes, form);
+
+            // Record delivery for brand reputation
+            Intelligence.PlayerReputation.RecordDelivery(grading.Grade, onTime: true, volumeKg);
+
+            return Channels.Sell(channel, volumeKg, BasePricePerKg, grading);
+        }
+
+        /// <summary>
+        /// Get price forecasts for player decision-making.
+        /// </summary>
+        public List<PriceForecast> GetPriceForecasts()
+        {
+            return Intelligence.GetForecasts(BasePricePerKg, LongTermMean, VolatilityWeekly);
+        }
+
         public MarketStatus GetStatus() => new MarketStatus
         {
             SpotPrice = BasePricePerKg,
@@ -316,7 +390,11 @@ namespace LakskongenSim.Market
             MeanReversionSpeedWeekly = MeanReversionSpeedWeekly,
             VolatilityWeekly = VolatilityWeekly,
             PriceFloor = PriceFloor,
-            PriceCeiling = PriceCeiling
+            PriceCeiling = PriceCeiling,
+            BrandReputation = Intelligence.PlayerReputation.Score,
+            BrandPremiumMultiplier = Intelligence.PlayerReputation.PremiumMultiplier,
+            ActiveNewsEvents = Intelligence.ActiveEvents.Count,
+            CompetitorSupplyTonnesPerWeek = Intelligence.GetTotalCompetitorSupplyTonnes()
         };
 
         private static decimal CalculateStdDev(IReadOnlyList<decimal> values)
@@ -352,5 +430,10 @@ namespace LakskongenSim.Market
         public decimal VolatilityWeekly;
         public decimal PriceFloor;
         public decimal PriceCeiling;
+        // T77 additions
+        public double BrandReputation;
+        public decimal BrandPremiumMultiplier;
+        public int ActiveNewsEvents;
+        public double CompetitorSupplyTonnesPerWeek;
     }
 }

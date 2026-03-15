@@ -1,0 +1,283 @@
+{
+  "parody_competitors": [
+    {
+      "id": "mowier",
+      "name": "Mowier ASA",
+      "parody_of": "Mowi ASA (ex-Marine Harvest)",
+      "tagline": "Leading the Blue Revolution™ (to the bank)",
+      "headquarters": "Bergen, Vestland",
+      "ceo": "Ivan Fredriksen",
+      "strategy": "CostLeader",
+      "positioning": "VolumeLeader",
+      "publicly_listed": true,
+      "ticker": "MOW",
+      "financials": {
+        "revenue_nok": 52000000000,
+        "ebitda_nok": 12000000000,
+        "market_cap_nok": 120000000000,
+        "debt_nok": 25000000000,
+        "cash_nok": 3000000000
+      },
+      "operations": {
+        "license_count": 180,
+        "total_mab_tonnes": 250000,
+        "site_count": 55,
+        "market_share_norway": 0.20,
+        "market_share_global": 0.08,
+        "weekly_harvest_tonnes": 4800,
+        "production_cost_per_kg": 48,
+        "regions": ["Norway", "Scotland", "Chile", "Canada", "Ireland"]
+      },
+      "personality": {
+        "expansion_appetite": 0.85,
+        "acquisition_aggression": 0.90,
+        "price_war_willingness": 0.70,
+        "lobbying_power": 0.95,
+        "brand_strength": 0.75,
+        "financial_health": 0.88
+      },
+      "backstory": "The industry Goliath. Former Marine Harvest, rebranded as Mowier to sound more Norwegian (it didn't work). Operates on every continent with salmon water. Their CFO once said 'fish are just wet chickens' at an investor conference. Board motto: 'If you can't beat them, buy them.'",
+      "quirks": [
+        "Sends CEO to Davos every year",
+        "Has a dedicated 'integration team' for hostile takeovers",
+        "Quarterly reports always include the phrase 'industry-leading cost position'",
+        "Marketing budget larger than most competitors' total revenue"
+      ]
+    },
+    {
+      "id": "salmax",
+      "name": "SalMax Group ASA",
+      "parody_of": "SalMar ASA",
+      "tagline": "Passion for Profit",
+      "headquarters": "Frøya, Trøndelag",
+      "ceo": "Gustav Witzøy",
+      "strategy": "Consolidator",
+      "positioning": "VolumeLeader",
+      "publicly_listed": true,
+      "ticker": "SMAX",
+      "financials": {
+        "revenue_nok": 28000000000,
+        "ebitda_nok": 8400000000,
+        "market_cap_nok": 95000000000,
+        "debt_nok": 15000000000,
+        "cash_nok": 5000000000
+      },
+      "operations": {
+        "license_count": 110,
+        "total_mab_tonnes": 170000,
+        "site_count": 38,
+        "market_share_norway": 0.14,
+        "market_share_global": 0.05,
+        "weekly_harvest_tonnes": 3300,
+        "production_cost_per_kg": 42,
+        "regions": ["Norway", "Iceland"]
+      },
+      "personality": {
+        "expansion_appetite": 0.90,
+        "acquisition_aggression": 0.95,
+        "price_war_willingness": 0.60,
+        "lobbying_power": 0.80,
+        "brand_strength": 0.65,
+        "financial_health": 0.92
+      },
+      "backstory": "The industry's most feared acquirer. Started as a small Trøndelag operation, now swallows competitors like their fish swallow pellets. Founder is the richest person in Norway (probably). Their M&A team has a higher kill rate than their sea lice treatment program.",
+      "quirks": [
+        "Always the highest bidder in license auctions",
+        "Board meetings held on the founder's yacht",
+        "Employees receive bonus in company shares (can't sell for 3 years)",
+        "Once tried to buy the entire Hardanger region 'for operational synergies'"
+      ]
+    },
+    {
+      "id": "heroy",
+      "name": "Herøy Seafood AS",
+      "parody_of": "Lerøy Seafood Group",
+      "tagline": "Lords of the Fjords",
+      "headquarters": "Bergen, Vestland",
+      "ceo": "Henning Beltestad",
+      "strategy": "PremiumSpecialist",
+      "positioning": "PremiumSpecialist",
+      "publicly_listed": true,
+      "ticker": "HROY",
+      "financials": {
+        "revenue_nok": 30000000000,
+        "ebitda_nok": 6000000000,
+        "market_cap_nok": 65000000000,
+        "debt_nok": 10000000000,
+        "cash_nok": 2500000000
+      },
+      "operations": {
+        "license_count": 95,
+        "total_mab_tonnes": 130000,
+        "site_count": 32,
+        "market_share_norway": 0.10,
+        "market_share_global": 0.04,
+        "weekly_harvest_tonnes": 2500,
+        "production_cost_per_kg": 55,
+        "regions": ["Norway"]
+      },
+      "personality": {
+        "expansion_appetite": 0.50,
+        "acquisition_aggression": 0.45,
+        "price_war_willingness": 0.20,
+        "lobbying_power": 0.70,
+        "brand_strength": 0.92,
+        "financial_health": 0.82
+      },
+      "backstory": "Bergen's finest. Old money meets cold water. Their brand commands 15% premium and their marketing shows dramatic fjord photography. Actually cares about quality (unusual for the industry). Name sounds fancy because they want you to think it's a Michelin restaurant, not a fish factory.",
+      "quirks": [
+        "Won't sell to discount supermarkets 'on principle'",
+        "Every fish has a QR code tracing it to the exact pen",
+        "Annual 'Fjord Gala' is THE networking event",
+        "CEO personally tastes sashimi from every batch (claims this)"
+      ]
+    },
+    {
+      "id": "greed_gregarious",
+      "name": "Greed Gregarious ASA",
+      "parody_of": "Grieg Seafood ASA",
+      "tagline": "Growth at Any Cost",
+      "headquarters": "Bergen, Vestland",
+      "ceo": "Andreas Greed IV",
+      "strategy": "Consolidator",
+      "positioning": "Diversified",
+      "publicly_listed": true,
+      "ticker": "GRED",
+      "financials": {
+        "revenue_nok": 14000000000,
+        "ebitda_nok": 2800000000,
+        "market_cap_nok": 22000000000,
+        "debt_nok": 8000000000,
+        "cash_nok": 1200000000
+      },
+      "operations": {
+        "license_count": 60,
+        "total_mab_tonnes": 80000,
+        "site_count": 22,
+        "market_share_norway": 0.06,
+        "market_share_global": 0.03,
+        "weekly_harvest_tonnes": 1500,
+        "production_cost_per_kg": 52,
+        "regions": ["Norway", "Canada", "Scotland"]
+      },
+      "personality": {
+        "expansion_appetite": 0.75,
+        "acquisition_aggression": 0.80,
+        "price_war_willingness": 0.55,
+        "lobbying_power": 0.60,
+        "brand_strength": 0.50,
+        "financial_health": 0.65
+      },
+      "backstory": "The industry's 'problem child'. Aggressive expansion funded by debt, recurring disease outbreaks, and a compliance department that's apparently decorative. Regularly features in DN.no for the wrong reasons. Their BC operations in Canada are an environmental controversy machine.",
+      "quirks": [
+        "Fined by Mattilsynet at least once per year",
+        "CEO gives interviews about 'responsible growth' while cutting biosecurity budgets",
+        "Their Canadian operations are literally on fire (algae, ISA, protests)",
+        "Acquisition target for everyone — too proud to sell"
+      ]
+    },
+    {
+      "id": "offshore_optimists",
+      "name": "Offshore Optimists AS",
+      "parody_of": "SalMar Ocean / offshore farming startups",
+      "tagline": "The Future is Offshore (we promise, this time it's different)",
+      "headquarters": "Trondheim, Trøndelag",
+      "ceo": "Dr. Offshore von Havmerden",
+      "strategy": "TechDisruptor",
+      "positioning": "PremiumSpecialist",
+      "publicly_listed": true,
+      "ticker": "OFOP",
+      "financials": {
+        "revenue_nok": 2000000000,
+        "ebitda_nok": -500000000,
+        "market_cap_nok": 15000000000,
+        "debt_nok": 6000000000,
+        "cash_nok": 3000000000
+      },
+      "operations": {
+        "license_count": 8,
+        "total_mab_tonnes": 15000,
+        "site_count": 3,
+        "market_share_norway": 0.01,
+        "market_share_global": 0.005,
+        "weekly_harvest_tonnes": 280,
+        "production_cost_per_kg": 85,
+        "regions": ["Norway"]
+      },
+      "personality": {
+        "expansion_appetite": 0.95,
+        "acquisition_aggression": 0.30,
+        "price_war_willingness": 0.10,
+        "lobbying_power": 0.40,
+        "brand_strength": 0.60,
+        "financial_health": 0.45
+      },
+      "backstory": "The tech startup that thinks steel platforms in the North Sea are a great idea for farming salmon. Burning through cash at a rate that would make Silicon Valley proud. Their Ocean Farm 1 platform looks impressive on Instagram; the P&L less so. Still unprofitable after 5 years, but the investor deck has amazing renders.",
+      "quirks": [
+        "Every presentation starts with 'the ocean is the future'",
+        "90% of revenue comes from government development licenses",
+        "CEO has a PhD in marine engineering (not fish farming)",
+        "Stock price moves on hype, not fundamentals",
+        "Annual report is 200 pages of renders and 2 pages of financials"
+      ]
+    },
+    {
+      "id": "nordlaks_nord",
+      "name": "NordLaks Nord AS",
+      "parody_of": "NRS / Norway Royal Salmon",
+      "tagline": "Arctic Excellence, Royal Ambitions",
+      "headquarters": "Stokmarknes, Nordland",
+      "ceo": "Inge Berg Jr.",
+      "strategy": "Conservative",
+      "positioning": "Diversified",
+      "publicly_listed": false,
+      "ticker": null,
+      "financials": {
+        "revenue_nok": 8000000000,
+        "ebitda_nok": 2000000000,
+        "market_cap_nok": 18000000000,
+        "debt_nok": 3500000000,
+        "cash_nok": 1800000000
+      },
+      "operations": {
+        "license_count": 40,
+        "total_mab_tonnes": 55000,
+        "site_count": 15,
+        "market_share_norway": 0.04,
+        "market_share_global": 0.015,
+        "weekly_harvest_tonnes": 1050,
+        "production_cost_per_kg": 50,
+        "regions": ["Norway"]
+      },
+      "personality": {
+        "expansion_appetite": 0.35,
+        "acquisition_aggression": 0.25,
+        "price_war_willingness": 0.30,
+        "lobbying_power": 0.45,
+        "brand_strength": 0.70,
+        "financial_health": 0.85
+      },
+      "backstory": "The quiet one. Family-owned Arctic operator that's been doing this since before it was cool. Conservative debt, solid margins, loyal employees who've been there for decades. Everyone respects them. Founder drives a 15-year-old Volvo despite being worth billions.",
+      "quirks": [
+        "Board meetings happen around the family dinner table",
+        "Refuses to go public despite investment banker pestering",
+        "Best employer reputation in the industry",
+        "Still uses paper logbooks at some sites (claims it's backup)"
+      ]
+    }
+  ],
+  "industry_dynamics": {
+    "total_norwegian_production_tonnes": 1550000,
+    "total_norwegian_mab_capacity_tonnes": 1250000,
+    "total_global_salmon_production_tonnes": 3800000,
+    "norway_share_of_global": 0.41,
+    "chile_share_of_global": 0.28,
+    "scotland_share_of_global": 0.05,
+    "canada_share_of_global": 0.04,
+    "industry_consolidation_trend": "accelerating",
+    "top_5_concentration": 0.55,
+    "typical_ebitda_margin_range": [0.15, 0.35],
+    "typical_cost_per_kg_range": [40, 60],
+    "typical_roic_range": [0.15, 0.25]
+  }
+}

@@ -285,12 +285,14 @@ namespace LakskongenSim.Health
         }
         
         /// <summary>
-        /// Estimate zone distance (placeholder for actual coordinate system).
+        /// Estimate zone distance deterministically based on zone IDs.
+        /// Returns a consistent distance for the same zone pair.
         /// </summary>
         private double EstimateZoneDistance(Zone zone1, Zone zone2)
         {
-            // Simplified: random distance between 0‑30km
-            return _random.NextDouble() * 30.0;
+            // Deterministic hash-based distance for reproducibility
+            int hash = HashCode.Combine(zone1.Id, zone2.Id);
+            return (Math.Abs(hash) % 3000) / 100.0; // 0-30km range
         }
         
         /// <summary>

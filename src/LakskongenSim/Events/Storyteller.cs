@@ -10,11 +10,16 @@ namespace LakskongenSim.Events
     /// - Registers a set of event definitions
     /// - Subscribes to the TimeManager and occasionally fires events
     /// - Tracks cooldowns and simple pacing to avoid stacking disasters
+    /// 
+    /// NOTE: Event Apply lambdas use GameState.Balance as fallback for tests that don't provide FinanceManager.
+    /// This is intentional for backward compatibility.
     /// </summary>
+    #pragma warning disable CS0618 // Type or member is obsolete (GameState.Balance fallbacks)
     public class Storyteller
     {
         private readonly TimeManager _time;
         private readonly GameState _state;
+        private readonly Finance.FinanceManager? _financeManager;
         private readonly Random _rng;
         private readonly List<EventDefinition> _events = new();
         private readonly Dictionary<string, int> _cooldowns = new();
@@ -29,10 +34,11 @@ namespace LakskongenSim.Events
 
         public event Action<EventRecord>? OnEventRaised;
 
-        public Storyteller(TimeManager time, GameState state, int? seed = null, bool enableDefaultEvents = true)
+        public Storyteller(TimeManager time, GameState state, Finance.FinanceManager? financeManager = null, int? seed = null, bool enableDefaultEvents = true)
         {
             _time = time ?? throw new ArgumentNullException(nameof(time));
             _state = state ?? throw new ArgumentNullException(nameof(state));
+            _financeManager = financeManager;
             _rng = seed.HasValue ? new Random(seed.Value) : new Random();
             _time.OnAdvanceDays += HandleAdvance;
             if (enableDefaultEvents)
@@ -137,9 +143,21 @@ namespace LakskongenSim.Events
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "Harmful algal bloom reduces feed conversion and increases mortality for several days.";
-                    // Simple effects: reduce balance (clean-up costs) and mark populations (crude)
-                    rec.BalanceChange = -100000m;
-                    gs.Balance += rec.BalanceChange;
+                    decimal cost = 100000m;
+                    rec.BalanceChange = -cost;
+                    
+                    // Use FinanceManager if available, otherwise fall back to direct balance modification (for tests)
+                    if (_financeManager != null)
+                    {
+                        if (!_financeManager.Spend(cost))
+                        {
+                            rec.Description += " (Insufficient funds for cleanup!)";
+                        }
+                    }
+                    else
+                    {
+                        gs.Balance -= cost; // Fallback for tests without FinanceManager
+                    }
 
                     // Apply direct biological impacts via zone system
                     ApplyBiologicalImpacts(gs);
@@ -158,8 +176,20 @@ namespace LakskongenSim.Events
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "A contagious disease spreads among pens — you must decide how to respond.";
-                    rec.BalanceChange = -50000m;
-                    gs.Balance += rec.BalanceChange;
+                    decimal cost = 50000m;
+                    rec.BalanceChange = -cost;
+                    
+                    if (_financeManager != null)
+                    {
+                        if (!_financeManager.Spend(cost))
+                        {
+                            rec.Description += " (Insufficient funds for treatment!)";
+                        }
+                    }
+                    else
+                    {
+                        gs.Balance -= cost;
+                    }
                     
                     // Integrate with disease and health systems
                     ProcessDiseaseEvents(gs);
@@ -178,9 +208,17 @@ namespace LakskongenSim.Events
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "Global market glut causes price to drop. Export prices fall temporarily.";
-                    rec.BalanceChange = -20000m;
-                    gs.Balance += rec.BalanceChange;
-                    // If we have MarketSimulation accessible, we could push a shock there. Attempt to find one in registrered systems is out-of-scope here.
+                    decimal cost = 20000m;
+                    rec.BalanceChange = -cost;
+                    
+                    if (_financeManager != null)
+                    {
+                        _financeManager.Spend(cost); // Market crash penalty (opportunity cost)
+                    }
+                    else
+                    {
+                        gs.Balance -= cost;
+                    }
                 }
             });
 
@@ -196,8 +234,20 @@ namespace LakskongenSim.Events
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "Essential equipment failed requiring repair or replacement.";
-                    rec.BalanceChange = -75000m;
-                    gs.Balance += rec.BalanceChange;
+                    decimal cost = 75000m;
+                    rec.BalanceChange = -cost;
+                    
+                    if (_financeManager != null)
+                    {
+                        if (!_financeManager.Spend(cost))
+                        {
+                            rec.Description += " (Insufficient funds for repairs!)";
+                        }
+                    }
+                    else
+                    {
+                        gs.Balance -= cost;
+                    }
                 }
             });
 
@@ -209,12 +259,21 @@ namespace LakskongenSim.Events
                 Category = EventCategory.Investor,
                 Weight = 0.4,
                 CooldownDays = 180,
-                Condition = gs => gs.Balance < 1_000_000m, // more likely when small
+                Condition = gs => _financeManager != null ? _financeManager.Balance < 1_000_000m : gs.Balance < 1_000_000m,
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "An investor offers a capital injection with strings attached.";
-                    rec.BalanceChange = +250000m;
-                    gs.Balance += rec.BalanceChange;
+                    decimal revenue = 250000m;
+                    rec.BalanceChange = revenue;
+                    
+                    if (_financeManager != null)
+                    {
+                        _financeManager.AddRevenue(revenue);
+                    }
+                    else
+                    {
+                        gs.Balance += revenue;
+                    }
                 }
             });
 
@@ -230,15 +289,28 @@ namespace LakskongenSim.Events
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "New regulations increase compliance costs and change licensing rules.";
-                    rec.BalanceChange = -120000m;
-                    gs.Balance += rec.BalanceChange;
+                    decimal cost = 120000m;
+                    rec.BalanceChange = -cost;
+                    
+                    if (_financeManager != null)
+                    {
+                        if (!_financeManager.Spend(cost))
+                        {
+                            rec.Description += " (Insufficient funds for compliance!)";
+                        }
+                    }
+                    else
+                    {
+                        gs.Balance -= cost;
+                    }
                 }
             });
         }
         
         /// <summary>
-        /// Apply direct biological impacts from environmental events to zones and populations.
-        /// Called by events like algal blooms to affect fish growth and mortality.
+        /// Apply environmental state changes from events like algal blooms.
+        /// Does NOT directly kill fish - mortality is applied by the zone/population advancement.
+        /// This prevents double-mortality bugs.
         /// </summary>
         private void ApplyBiologicalImpacts(GameState state)
         {
@@ -252,70 +324,53 @@ namespace LakskongenSim.Events
             affectedZone.AlgaeBloomActive = true;
             affectedZone.NutrientLevel = 3.0; // push above bloom threshold
             
-            // Apply mortality to populations in the affected zone
-            var populationsInZone = state.Populations.Where(p => p.ZoneId == affectedZone.Id).ToList();
-            foreach (var pop in populationsInZone)
-            {
-                // Apply 5-15% mortality from algal toxins and oxygen depletion
-                double mortalityRate = 0.05 + _rng.NextDouble() * 0.10;
-                int deaths = (int)(pop.TotalCount * mortalityRate);
-                
-                // Apply mortality across cohorts proportionally
-                if (pop.Cohorts != null && pop.Cohorts.Count > 0)
-                {
-                    double totalBefore = pop.TotalCount;
-                    for (int i = 0; i < pop.Cohorts.Count; i++)
-                    {
-                        int cohortDeaths = (int)(deaths * (pop.Cohorts[i].Count / totalBefore));
-                        int newCount = Math.Max(0, pop.Cohorts[i].Count - cohortDeaths);
-                        pop.Cohorts[i].Count = newCount;
-                    }
-                }
-            }
+            // NOTE: Do NOT directly modify cohort counts here.
+            // The algal bloom state will be picked up by:
+            // 1. WaterChemistry updates during Zone.AdvanceDays()
+            // 2. MortalityModel applying higher rates due to poor water quality
+            // 3. IntegratedDiseaseSystem increasing disease pressure in affected zone
+            
+            // This approach prevents double-mortality (event kills + disease system kills)
+            Console.WriteLine($"🦠 Algal bloom triggered in zone {affectedZone.Id} - mortality will be applied by simulation systems");
         }
         
         /// <summary>
-        /// Process disease events by checking population health status and triggering appropriate responses.
-        /// Integrates with disease system to increase prevalence and spawn player choices.
+        /// Mark population for increased disease pressure.
+        /// Does NOT directly kill fish - mortality is applied by MortalityModel via disease rates.
+        /// This prevents double-mortality (direct kills + disease system kills).
         /// </summary>
         private void ProcessDiseaseEvents(GameState state)
         {
             if (state.Populations == null || state.Populations.Count == 0) return;
             
-            // Select a random population to infect
+            // Select a random population for outbreak
             var targetPop = state.Populations[_rng.Next(state.Populations.Count)];
             
-            // Increase disease prevalence in the population
-            // (This assumes Population has disease tracking - if not, we apply mortality directly)
-            double infectionRate = 0.10 + _rng.NextDouble() * 0.20; // 10-30% infection rate
-            int infectedCount = (int)(targetPop.TotalCount * infectionRate);
+            // Mark population for treatment tracking
+            // The actual mortality will be applied by:
+            // 1. IntegratedDiseaseSystem.Update() increasing prevalence
+            // 2. MortalityModel.SetDiseaseMortalityRate() before AdvanceDays
+            // 3. FishPopulation.AdvanceDays() applying the combined mortality
             
-            // Apply disease mortality (5-10% of infected fish die if untreated)
-            double diseaseMortality = 0.05 + _rng.NextDouble() * 0.05;
-            int diseaseDeaths = (int)(infectedCount * diseaseMortality);
+            // Estimate impact for event logging
+            double estimatedInfectionRate = 0.10 + _rng.NextDouble() * 0.20; // 10-30%
+            int estimatedInfected = (int)(targetPop.TotalCount * estimatedInfectionRate);
             
-            // Apply mortality across cohorts
-            if (targetPop.Cohorts != null && targetPop.Cohorts.Count > 0)
-            {
-                double totalBefore = targetPop.TotalCount;
-                for (int i = 0; i < targetPop.Cohorts.Count; i++)
-                {
-                    int cohortDeaths = (int)(diseaseDeaths * (targetPop.Cohorts[i].Count / totalBefore));
-                    int newCount = Math.Max(0, targetPop.Cohorts[i].Count - cohortDeaths);
-                    targetPop.Cohorts[i].Count = newCount;
-                }
-            }
-            
-            // Future: Spawn player choice events (treat vs cull vs quarantine)
-            // For now, apply immediate effects and log the incident
+            // Log the outbreak for player notification
             state.EventLog.Add(new EventRecord
             {
                 Day = state.Day,
                 Id = "disease-impact",
                 Name = "Disease Impact",
                 Category = EventCategory.Disease,
-                Description = $"Disease outbreak affected {infectedCount} fish in population {targetPop.Id}. {diseaseDeaths} deaths occurred."
+                Description = $"Disease outbreak in population {targetPop.Id}. Estimated {estimatedInfected} fish at risk. Mortality will be applied by disease system."
             });
+            
+            Console.WriteLine($"🦠 Disease outbreak in population {targetPop.Id} - mortality will be applied by IntegratedDiseaseSystem");
+            
+            // NOTE: The actual disease spread and mortality is handled by ApplyDiseaseConsequence
+            // in SimulationEngine, which calls IntegratedDisease.Update() with extra days.
         }
     }
+    #pragma warning restore CS0618
 }

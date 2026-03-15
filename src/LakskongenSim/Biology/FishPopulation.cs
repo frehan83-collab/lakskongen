@@ -75,6 +75,16 @@ namespace LakskongenSim.Biology
             _mortality = mortality;
         }
 
+        /// <summary>
+        /// Inject dependencies after deserialization from save file.
+        /// MUST be called after loading a saved game before advancing simulation.
+        /// </summary>
+        public void InjectDependencies(GrowthModel growth, MortalityModel mortality)
+        {
+            _growth = growth ?? throw new ArgumentNullException(nameof(growth));
+            _mortality = mortality ?? throw new ArgumentNullException(nameof(mortality));
+        }
+
         /// <summary>Add a new cohort to the population.</summary>
         public void AddCohort(Cohort cohort)
         {

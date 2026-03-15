@@ -8,7 +8,11 @@ namespace LakskongenSim.Events
     /// Comprehensive event library for Norwegian salmon farming.
     /// 40+ events based on real industry occurrences.
     /// To use: call NorwegianEvents.RegisterAll(storyteller) at game start.
+    /// 
+    /// NOTE: This class uses GameState.Balance directly for backward compatibility.
+    /// TODO: Refactor to use FinanceManager when EventDefinition signature is updated.
     /// </summary>
+    #pragma warning disable CS0618 // Type or member is obsolete
     public static class NorwegianEvents
     {
         public static void RegisterAll(Storyteller storyteller)
@@ -961,4 +965,5 @@ namespace LakskongenSim.Events
             });
         }
     }
+    #pragma warning restore CS0618
 }

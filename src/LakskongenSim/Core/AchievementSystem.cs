@@ -10,7 +10,9 @@ namespace LakskongenSim.Core
     /// Achievement/milestone tracking system for player progression.
     /// 50+ achievements spanning beginner to mastery tiers.
     /// Achievements unlock notifications, badges, and bonuses.
+    /// NOTE: Uses GameState.Balance for checks (to be migrated to FinanceManager in future)
     /// </summary>
+    #pragma warning disable CS0618 // Type or member is obsolete
     public class AchievementSystem
     {
         private readonly GameState _state;
@@ -278,4 +280,5 @@ namespace LakskongenSim.Core
             {"BankruptcyRecovery", gs => gs.MinimumBalanceEver < 0 && gs.Balance >= 1_000_000m}
         };
     }
+    #pragma warning restore CS0618
 }

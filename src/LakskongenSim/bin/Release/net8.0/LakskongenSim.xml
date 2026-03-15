@@ -45,6 +45,12 @@
         <member name="M:LakskongenSim.Biology.FishPopulation.#ctor">
             <summary>Parameterless constructor for JSON deserialization. GrowthModel/MortalityModel must be injected post-load by the simulation engine.</summary>
         </member>
+        <member name="M:LakskongenSim.Biology.FishPopulation.InjectDependencies(LakskongenSim.Biology.GrowthModel,LakskongenSim.Biology.MortalityModel)">
+            <summary>
+            Inject dependencies after deserialization from save file.
+            MUST be called after loading a saved game before advancing simulation.
+            </summary>
+        </member>
         <member name="M:LakskongenSim.Biology.FishPopulation.AddCohort(LakskongenSim.Biology.FishPopulation.Cohort)">
             <summary>Add a new cohort to the population.</summary>
         </member>
@@ -210,6 +216,7 @@
             Achievement/milestone tracking system for player progression.
             50+ achievements spanning beginner to mastery tiers.
             Achievements unlock notifications, badges, and bonuses.
+            NOTE: Uses GameState.Balance for checks (to be migrated to FinanceManager in future)
             </summary>
         </member>
         <member name="M:LakskongenSim.Core.AchievementSystem.CheckAchievements">
@@ -734,7 +741,11 @@
             <summary>Current simulation date (day index).</summary>
         </member>
         <member name="P:LakskongenSim.Core.GameState.Balance">
-            <summary>Monetary balance in NOK.</summary>
+            <summary>
+            Monetary balance in NOK (deprecated - kept for backward save compatibility).
+            DO NOT USE - Use FinanceManager.Balance as single source of truth.
+            This field is only updated during save/load to maintain backward compatibility.
+            </summary>
         </member>
         <member name="P:LakskongenSim.Core.GameState.Zones">
             <summary>List of zones in the environment.</summary>
@@ -1361,6 +1372,19 @@
             set via properties instead (Weather, Disease, etc.).
             </summary>
         </member>
+        <member name="M:LakskongenSim.Core.SimulationEngine.PrepareForSave">
+            <summary>
+            Prepare GameState for saving by syncing FinanceManager.Balance to GameState.Balance.
+            Call this BEFORE SaveLoadManager.SaveGame().
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Core.SimulationEngine.RestoreFromLoad(LakskongenSim.Core.GameState)">
+            <summary>
+            Restore state after loading by syncing GameState.Balance to FinanceManager.Balance
+            and re-injecting dependencies into deserialized objects.
+            Call this AFTER SaveLoadManager.LoadGame() with the loaded state.
+            </summary>
+        </member>
         <member name="T:LakskongenSim.Core.WorkshopItem">
             <summary>
             Represents a mod or item on the Steam Workshop.
@@ -1457,6 +1481,7 @@
              and fires OnStepCompleted with optional NOK rewards.
             
              Registered in SimulationEngine and updated via CheckProgress() each day.
+             NOTE: Uses GameState.Balance for step conditions (to be migrated to FinanceManager)
              </summary>
         </member>
         <member name="E:LakskongenSim.Core.TutorialSystem.OnStepCompleted">
@@ -2131,6 +2156,9 @@
             Comprehensive event library for Norwegian salmon farming.
             40+ events based on real industry occurrences.
             To use: call NorwegianEvents.RegisterAll(storyteller) at game start.
+            
+            NOTE: This class uses GameState.Balance directly for backward compatibility.
+            TODO: Refactor to use FinanceManager when EventDefinition signature is updated.
             </summary>
         </member>
         <member name="T:LakskongenSim.Events.Storyteller">
@@ -2139,18 +2167,23 @@
             - Registers a set of event definitions
             - Subscribes to the TimeManager and occasionally fires events
             - Tracks cooldowns and simple pacing to avoid stacking disasters
+            
+            NOTE: Event Apply lambdas use GameState.Balance as fallback for tests that don't provide FinanceManager.
+            This is intentional for backward compatibility.
             </summary>
         </member>
         <member name="M:LakskongenSim.Events.Storyteller.ApplyBiologicalImpacts(LakskongenSim.Core.GameState)">
             <summary>
-            Apply direct biological impacts from environmental events to zones and populations.
-            Called by events like algal blooms to affect fish growth and mortality.
+            Apply environmental state changes from events like algal blooms.
+            Does NOT directly kill fish - mortality is applied by the zone/population advancement.
+            This prevents double-mortality bugs.
             </summary>
         </member>
         <member name="M:LakskongenSim.Events.Storyteller.ProcessDiseaseEvents(LakskongenSim.Core.GameState)">
             <summary>
-            Process disease events by checking population health status and triggering appropriate responses.
-            Integrates with disease system to increase prevalence and spawn player choices.
+            Mark population for increased disease pressure.
+            Does NOT directly kill fish - mortality is applied by MortalityModel via disease rates.
+            This prevents double-mortality (direct kills + disease system kills).
             </summary>
         </member>
         <member name="T:LakskongenSim.Events.VisualMilestones">
@@ -2287,10 +2320,288 @@
         <member name="M:LakskongenSim.Farm.SeaSite.UpdateStockingDensity">
             <summary>Calculate current stocking density based on total biomass and pen volume.</summary>
         </member>
+        <member name="T:LakskongenSim.Finance.CompetitorStrategy">
+            <summary>
+            Strategic behavior archetype for AI competitors.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorStrategy.CostLeader">
+            <summary>Cost leader: high volume, low margins, aggressive expansion (Mowier, SalMax)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorStrategy.PremiumSpecialist">
+            <summary>Premium specialist: quality focus, high margins, brand moat (Herøy)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorStrategy.Consolidator">
+            <summary>Aggressive consolidator: M&amp;A focused, debt-fueled growth (SalMax, Greed)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorStrategy.TechDisruptor">
+            <summary>Tech disruptor: offshore/land-based, hype-driven (Offshore Optimists)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorStrategy.Conservative">
+            <summary>Conservative: steady growth, low debt, family-owned style</summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.MarketPositioning">
+            <summary>
+            Market positioning for competitor pricing strategy.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.MarketPositioning.VolumeLeader">
+            <summary>Low cost, high volume</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.MarketPositioning.PremiumSpecialist">
+            <summary>High margin, quality focus</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.MarketPositioning.Diversified">
+            <summary>Diversified across segments</summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.CompetitorCompany">
+            <summary>
+            Represents an AI-controlled competitor company in the salmon industry.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Finance.CompetitorCompany.LeverageRatio">
+            <summary>
+            Debt-to-EBITDA ratio. Above 4x is considered risky in salmon industry.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Finance.CompetitorCompany.EBITDAMargin">
+            <summary>
+            EBITDA margin percentage.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Finance.CompetitorCompany.EnterpriseValue">
+            <summary>
+            Enterprise value (market cap + debt - cash).
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.CompetitorAction">
+            <summary>
+            Result of a competitor action that affects the market or player.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorActionType.HarvestIncrease">
+            <summary>Competitor increases harvest volumes</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorActionType.Acquisition">
+            <summary>Competitor acquires another company</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorActionType.LicenseBid">
+            <summary>Competitor bids on a license the player wanted</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorActionType.PriceWar">
+            <summary>Competitor starts a price war</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorActionType.Lobbying">
+            <summary>Competitor lobbies for favorable regulations</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorActionType.IPO">
+            <summary>Competitor goes public (IPO)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorActionType.DebtExpansion">
+            <summary>Competitor issues bonds/debt for expansion</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorActionType.Crisis">
+            <summary>Competitor enters crisis (disease, scandal)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorActionType.InternationalExpansion">
+            <summary>Competitor enters new international market</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorActionType.VerticalIntegration">
+            <summary>Competitor invests in vertical integration</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.CompetitorActionType.ContractUndercut">
+            <summary>Competitor undercuts contracts</summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.IndustryReport">
+            <summary>
+            Quarterly industry report summarizing all competitor activity.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.CompetitorAISystem">
+            <summary>
+            Simulates AI competitor behavior in the salmon farming industry.
+            Generates realistic competitive dynamics: M&amp;A, price wars, harvest volumes,
+            license bidding, and industry consolidation.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.CompetitorAISystem.InitializeCompetitors">
+            <summary>
+            Initialize the T75 parody competitors with realistic starting stats.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.CompetitorAISystem.AdvanceQuarter(System.Single,System.Decimal,System.Single,System.Int32)">
+            <summary>
+            Advance competitor simulation by one quarter. Returns actions taken.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.CompetitorAISystem.GetAcquirableCompetitors">
+            <summary>
+            Get competitors available for player acquisition.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.CompetitorAISystem.PlayerAcquireCompetitor(System.String,System.Decimal,System.Decimal)">
+            <summary>
+            Player attempts to acquire a competitor company.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.CompetitorAISystem.GetTotalAIMarketShare">
+            <summary>
+            Get the total Norwegian market share of all AI competitors combined.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.CompetitorAISystem.GetCompetitor(System.String)">
+            <summary>
+            Get a specific competitor by ID.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.CompetitorAISystem.GetMarketShareRanking(System.Single)">
+            <summary>
+            Get market share ranking including player.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.EmpirePhase">
+            <summary>
+            Player's current empire building phase.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.EmpirePhase.SmallFarmer">
+            <summary>Phase 1: 1-2 licenses, 2-4 pens, toll processing, spot market</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.EmpirePhase.RegionalPlayer">
+            <summary>Phase 2: 5-10 licenses, 2-3 zones, own processing, spot+contracts</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.EmpirePhase.NationalLeader">
+            <summary>Phase 3: 20-50 licenses, 5+ zones, full processing, exports, logistics</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.EmpirePhase.GlobalTitan">
+            <summary>Phase 4: 100+ licenses, international, vertically integrated, stock listing</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.EmpirePhase.IndustryMonopolist">
+            <summary>Phase 5: Acquire competitors, >30% market share, political influence</summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.GrowthStrategy">
+            <summary>
+            Growth strategy the player has chosen.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.GrowthStrategy.Organic">
+            <summary>Slow, safe, capital-efficient</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.GrowthStrategy.MergersAndAcquisitions">
+            <summary>Fast, risky, capital-intensive M&amp;A</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.GrowthStrategy.Partnership">
+            <summary>Joint ventures, shared risk/reward</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.GrowthStrategy.Balanced">
+            <summary>Balanced mix of strategies</summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.ProductStrategy">
+            <summary>
+            Product strategy for market positioning.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.ProductStrategy.Commodity">
+            <summary>Sell whole fish/HOG — low margin, high volume</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.ProductStrategy.ValueAdd">
+            <summary>Smoked, sashimi, fillets — high margin, lower volume</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.ProductStrategy.BrandedRetail">
+            <summary>Retail consumer products — highest margin, marketing costs</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.ProductStrategy.Mixed">
+            <summary>Mix of all strategies</summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.EmpireMilestone">
+            <summary>
+            A milestone achievement in the empire building journey.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.VictoryCondition">
+            <summary>
+            Victory condition for endgame.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.EmpireState">
+            <summary>
+            Snapshot of player's empire state for milestone/phase checking.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.PhaseTransition">
+            <summary>
+            Event when player transitions to a new empire phase.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.EmpireProgressionSystem">
+            <summary>
+            Tracks and manages the player's empire building progression.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.EmpireProgressionSystem.Update(LakskongenSim.Finance.EmpireState)">
+            <summary>
+            Update empire progression based on current state.
+            Call this periodically (e.g., quarterly or when major events occur).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.EmpireProgressionSystem.SetGrowthStrategy(LakskongenSim.Finance.GrowthStrategy)">
+            <summary>
+            Set growth strategy (affects recommendations and AI behavior).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.EmpireProgressionSystem.SetProductStrategy(LakskongenSim.Finance.ProductStrategy)">
+            <summary>
+            Set product strategy.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.EmpireProgressionSystem.GetNextPhaseRequirements">
+            <summary>
+            Get phase requirements for the next phase.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.EmpireProgressionSystem.GetSummary(LakskongenSim.Finance.EmpireState)">
+            <summary>
+            Get empire summary for UI display.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.EmpireSummary">
+            <summary>
+            Empire summary for UI display.
+            </summary>
+        </member>
         <member name="T:LakskongenSim.Finance.FinanceManager">
             <summary>
             Tracks cashflow, applies costs and revenue.
             Integrates with sustainability system for bonuses and penalties.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Finance.FinanceManager.Balance">
+            <summary>
+            Current balance in NOK. This is the SINGLE SOURCE OF TRUTH for player cash.
+            All balance changes must go through AddRevenue() or Spend().
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinanceManager.AddRevenue(System.Decimal)">
+            <summary>
+            Add revenue to balance. Use for all income (sales, grants, investor injections).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinanceManager.Spend(System.Decimal)">
+            <summary>
+            Deduct expense from balance. Returns false if insufficient funds.
+            IMPORTANT: Callers MUST check the return value and handle bankruptcy/debt logic.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinanceManager.CanAfford(System.Decimal)">
+            <summary>
+            Check if an amount can be afforded without actually spending it.
+            Use before attempting purchases to provide better UX.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinanceManager.ForceSpend(System.Decimal)">
+            <summary>
+            Force spend even if balance goes negative (for debt/loans).
+            Only use when bankruptcy/debt mechanics are intentional.
             </summary>
         </member>
         <member name="M:LakskongenSim.Finance.FinanceManager.GetAvailableCapital">
@@ -2336,14 +2647,145 @@
         </member>
         <member name="T:LakskongenSim.Finance.FinancialStatements">
             <summary>
-            Simple P&amp;L, Balance Sheet, and Cash Flow records for deterministic simulation.
+            Simple P&amp;L (Profit and Loss), Balance Sheet, and Cash Flow records for deterministic simulation.
             Designed to be easy to test.
+            NOTE: Cash is NO LONGER tracked here - FinanceManager.Balance is the single source of truth.
+            This class only tracks P&amp;L flows for reporting purposes.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Finance.FinancialStatements.Cash">
+            <summary>
+            Cash is tracked by FinanceManager, not here.
+            This property is kept for backward compatibility but should not be used.
+            Query FinanceManager.Balance directly instead.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinancialStatements.RecordRevenue(System.Decimal)">
+            <summary>
+            Record revenue for P&amp;L tracking only. Does NOT modify cash.
+            FinanceManager.AddRevenue() handles the actual cash change.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinancialStatements.RecordCOGS(System.Decimal)">
+            <summary>
+            Record COGS for P&amp;L tracking only. Does NOT modify cash.
+            FinanceManager.Spend() handles the actual cash change.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinancialStatements.RecordOperatingExpense(System.Decimal)">
+            <summary>
+            Record operating expense for P&amp;L tracking only. Does NOT modify cash.
+            FinanceManager.Spend() handles the actual cash change.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinancialStatements.RecordInterest(System.Decimal)">
+            <summary>
+            Record interest expense for P&amp;L tracking only. Does NOT modify cash.
+            FinanceManager.Spend() handles the actual cash change.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinancialStatements.RecordTax(System.Decimal)">
+            <summary>
+            Record tax expense for P&amp;L tracking only. Does NOT modify cash.
+            FinanceManager.Spend() handles the actual cash change.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinancialStatements.AddAsset(System.Decimal)">
+            <summary>
+            Record asset purchase. Does NOT modify cash - caller must use FinanceManager.Spend().
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinancialStatements.AddLiability(System.Decimal)">
+            <summary>
+            Record liability increase. Does NOT modify cash - caller must use FinanceManager.AddRevenue().
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.FinancialStatements.RepayLiability(System.Decimal)">
+            <summary>
+            Record liability repayment. Does NOT modify cash - caller must use FinanceManager.Spend().
             </summary>
         </member>
         <member name="T:LakskongenSim.Finance.InsuranceSystem">
             <summary>
             Insurance model: premium based on insured value and risk factor.
             Can pay claims which reduce cash and reduce insured value if total loss.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.FinancingType">
+            <summary>
+            Type of financing instrument available to the player.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.FinancingType.CashReserves">
+            <summary>Use existing cash reserves</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.FinancingType.BankLoan">
+            <summary>Bank loan (secured debt, fixed interest)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.FinancingType.CorporateBond">
+            <summary>Corporate bond issuance (unsecured debt, lower rate)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.FinancingType.EquitySale">
+            <summary>Equity sale (dilute ownership, no repayment)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.FinancingType.SecondaryOffering">
+            <summary>Secondary share offering (public companies only)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.FinancingType.GovernmentGrant">
+            <summary>Government innovation grant (non-dilutive, restricted use)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.FinancingType.JointVenture">
+            <summary>Joint venture (shared cost and revenue)</summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.FinancingOption">
+            <summary>
+            A financing option with terms and conditions.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.InvestmentOpportunity">
+            <summary>
+            An investment opportunity with projected returns.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.InvestmentAnalysis">
+            <summary>
+            Result of NPV/IRR calculation for a specific investment.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.InvestmentManager">
+            <summary>
+            Central investment decision engine. Provides ROI analysis, financing options,
+            and strategic capital allocation recommendations.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.InvestmentManager.CalculateNPV(System.Decimal,System.Collections.Generic.List{System.Decimal},System.Decimal)">
+            <summary>
+            Calculate NPV for a given set of cash flows.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.InvestmentManager.CalculateIRR(System.Decimal,System.Collections.Generic.List{System.Decimal},System.Int32)">
+            <summary>
+            Calculate IRR using iterative Newton-Raphson method.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.InvestmentManager.AnalyzeInvestment(LakskongenSim.Finance.InvestmentOpportunity)">
+            <summary>
+            Perform full investment analysis for an opportunity.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.InvestmentManager.GetAvailableFinancing(System.Decimal,System.Decimal,System.Decimal,System.Boolean)">
+            <summary>
+            Get available financing options based on current company status.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.InvestmentManager.ExecuteInvestment(LakskongenSim.Finance.InvestmentOpportunity,LakskongenSim.Finance.FinancingType,System.Decimal)">
+            <summary>
+            Execute an investment using specified financing.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.InvestmentManager.GetRecommendedInvestments(System.Int32,System.Single,System.Decimal,System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+            Get strategic investment recommendations based on current empire phase.
             </summary>
         </member>
         <member name="T:LakskongenSim.Finance.InvestmentSystem">
@@ -2370,6 +2812,137 @@
         <member name="T:LakskongenSim.Finance.LoanSystem">
             <summary>
             Very simple loan system.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.OwnershipStatus">
+            <summary>
+            Current company ownership structure.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.OwnershipStatus.Private">
+            <summary>Fully private, founder-controlled</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.OwnershipStatus.PEBacked">
+            <summary>Private equity backed (PE investors)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.OwnershipStatus.EuronextGrowth">
+            <summary>Listed on Euronext Growth Oslo (small cap)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.OwnershipStatus.OsloBoers">
+            <summary>Full OSE main list (Oslo Børs)</summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.IPOResult">
+            <summary>
+            Result of an IPO attempt.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.EarningsReport">
+            <summary>
+            Quarterly earnings report that affects stock price.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.StockPriceEvent">
+            <summary>
+            Stock price movement event for UI notification.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.InstitutionalInvestor">
+            <summary>
+            Investor type with different behavior patterns.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.InvestorType.SovereignWealth">
+            <summary>Government pension fund (Oljefondet style) — very patient</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.InvestorType.LongTermInstitutional">
+            <summary>Long-term institutional (pension fund, endowment)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.InvestorType.IndexFund">
+            <summary>Index fund — neutral, follows market</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.InvestorType.HedgeFund">
+            <summary>Hedge fund — short-term, activist potential</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.InvestorType.Retail">
+            <summary>Retail investors — volatile sentiment</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.InvestorType.Insider">
+            <summary>Founder/insider shares</summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.DividendPolicy">
+            <summary>
+            Dividend policy options for public companies.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.DividendPolicy.NoDividend">
+            <summary>No dividends — reinvest everything for growth</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.DividendPolicy.LowPayout">
+            <summary>Low payout (20-30% of net income)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.DividendPolicy.ModeratePayout">
+            <summary>Moderate payout (40-60% of net income)</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.DividendPolicy.HighPayout">
+            <summary>High payout (70-90% of net income) — income stock</summary>
+        </member>
+        <member name="F:LakskongenSim.Finance.DividendPolicy.VariableCyclical">
+            <summary>Variable — tied to salmon price cycles</summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.StockMarketSystem">
+            <summary>
+            Simulates the stock market for a publicly traded salmon farming company.
+            Models Oslo Stock Exchange dynamics, analyst coverage, and investor relations.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.StockMarketSystem.CheckIPOEligibility(System.Decimal,System.Decimal,System.Decimal)">
+            <summary>
+            Check if the company meets IPO requirements.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.StockMarketSystem.ExecuteIPO(System.Decimal,System.Decimal,System.Decimal,System.Single)">
+            <summary>
+            Execute an IPO. Returns result with capital raised and dilution.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.StockMarketSystem.AdvanceQuarter(System.Decimal,System.Decimal,System.Decimal,System.Decimal,System.Decimal)">
+            <summary>
+            Advance stock simulation by one quarter. Must be called with current financials.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.StockMarketSystem.ExecuteBuyback(System.Decimal)">
+            <summary>
+            Execute a share buyback to support stock price.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.StockMarketSystem.IssueEquity(System.Single)">
+            <summary>
+            Issue new equity (secondary offering) for capital raising.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.StockMarketSystem.SetDividendPolicy(LakskongenSim.Finance.DividendPolicy)">
+            <summary>
+            Set dividend policy.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.StockMarketSystem.CheckOSEUpgradeEligibility">
+            <summary>
+            Check if the company can upgrade from Euronext Growth to OSE main list.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.StockMarketSystem.UpgradeToOSE">
+            <summary>
+            Upgrade listing to Oslo Børs main list.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Finance.StockMarketSystem.GetSummary">
+            <summary>
+            Get a summary snapshot for UI display.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Finance.StockSummary">
+            <summary>
+            Stock market summary for UI display.
             </summary>
         </member>
         <member name="T:LakskongenSim.Finance.TaxSystem">
@@ -2590,7 +3163,8 @@
         </member>
         <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.EstimateZoneDistance(System.String,System.String)">
             <summary>
-            Estimate distance between zones (placeholder).
+            Estimate distance between zones deterministically based on zone IDs.
+            Returns a consistent distance for the same zone pair.
             </summary>
         </member>
         <member name="M:LakskongenSim.Health.IntegratedDiseaseSystem.UpdatePerformanceMetrics(System.Double)">
@@ -2694,7 +3268,8 @@
         </member>
         <member name="M:LakskongenSim.Health.StochasticDiseaseEngine.EstimateZoneDistance(LakskongenSim.Environment.Zone,LakskongenSim.Environment.Zone)">
             <summary>
-            Estimate zone distance (placeholder for actual coordinate system).
+            Estimate zone distance deterministically based on zone IDs.
+            Returns a consistent distance for the same zone pair.
             </summary>
         </member>
         <member name="M:LakskongenSim.Health.StochasticDiseaseEngine.GetZoneInfectionLevel(LakskongenSim.Environment.Zone)">
@@ -2731,14 +3306,56 @@
         <member name="M:LakskongenSim.Logistics.LogisticsManager.RecordFuelUsage(System.String,System.Double,System.String)">
             <summary>Track vehicle fuel usage for carbon reporting.</summary>
         </member>
+        <member name="P:LakskongenSim.Market.ContractOffer.DurationWeeks">
+            <summary>Duration in weeks for forward contracts.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.ContractOffer.MinQualityGrade">
+            <summary>Minimum fish quality grade accepted by buyer.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.ContractOffer.DestinationMarket">
+            <summary>Export market destination (null = domestic).</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.Contract.SignedAtWeek">
+            <summary>Week the contract was signed (game week).</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.Contract.DurationWeeks">
+            <summary>Duration in weeks. Contract expires after this.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.Contract.MinQualityGrade">
+            <summary>Minimum quality grade the buyer accepts.</summary>
+        </member>
+        <member name="M:LakskongenSim.Market.Contract.IsExpired(System.Int32)">
+            <summary>Whether the contract is expired (past duration).</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.Contract.IsComplete">
+            <summary>Whether the contract is fully fulfilled.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.Contract.RemainingKg">
+            <summary>Remaining kg to deliver.</summary>
+        </member>
         <member name="T:LakskongenSim.Market.ContractSystem">
             <summary>
-            Contract system supporting different contract types, acceptance/decline workflow, quality grading and penalty clauses.
+            Contract system supporting different contract types, acceptance/decline workflow,
+            quality grading, penalty clauses, forward contract negotiation, and portfolio management.
             </summary>
+        </member>
+        <member name="P:LakskongenSim.Market.ContractSystem.CompletedContracts">
+            <summary>Completed/expired contracts for history and analytics.</summary>
         </member>
         <member name="M:LakskongenSim.Market.ContractSystem.ProposeContract(System.String,LakskongenSim.Market.ContractType,System.Decimal,System.Int32,LakskongenSim.Market.QualityGrade,System.Decimal)">
             <summary>
             Propose a contract offer (returns an id that can be accepted/declined).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.ContractSystem.GenerateOffers(System.Decimal,System.Double)">
+            <summary>
+            Generate random buyer offers based on current market conditions.
+            Call weekly; returns 1-3 offers of varying attractiveness.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.ContractSystem.NegotiatePrice(LakskongenSim.Market.ContractOffer,System.Decimal)">
+            <summary>
+            Negotiate an offer — player proposes a counter-price. Returns adjusted offer or null if rejected.
             </summary>
         </member>
         <member name="M:LakskongenSim.Market.ContractSystem.AcceptOffer(LakskongenSim.Market.ContractOffer)">
@@ -2756,9 +3373,34 @@
             Record delivery towards a contract. Returns the payment due for the delivered kg and any penalty applied if delivery is short.
             </summary>
         </member>
+        <member name="M:LakskongenSim.Market.ContractSystem.AdvanceWeek">
+            <summary>
+            Advance contract system by one week. Checks for expirations and penalties.
+            </summary>
+        </member>
         <member name="M:LakskongenSim.Market.ContractSystem.RemoveContract(System.Guid)">
             <summary>
             Remove a contract (e.g., after settlement or cancellation).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.ContractSystem.GetTotalCommittedVolumeKg">
+            <summary>
+            Get total committed volume across all active contracts.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.ContractSystem.GetWeightedAveragePrice">
+            <summary>
+            Get weighted average contracted price.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.ContractSystem.GetPortfolioSummary">
+            <summary>
+            Get portfolio summary: how much is hedged vs exposed to spot.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.ContractSystem.GetTotalPenaltyExposure">
+            <summary>
+            Calculate total potential penalty exposure across all active contracts.
             </summary>
         </member>
         <member name="T:LakskongenSim.Market.ExportMarket">
@@ -2778,12 +3420,210 @@
             Values represent Norwegian salmon spot/export benchmarks in NOK/kg.
             </summary>
         </member>
-        <member name="T:LakskongenSim.Market.MarketSimulation">
+        <member name="T:LakskongenSim.Market.SalesChannelType">
             <summary>
-            Realistic salmon market price simulation based on Norwegian industry dynamics.
-            Models: seasonal patterns, calibrated Ornstein-Uhlenbeck mean reversion,
-            supply/demand shocks, and historical Norwegian spot-price anchors.
+            Sales channel type determining pricing mechanics.
             </summary>
+        </member>
+        <member name="T:LakskongenSim.Market.SalesChannel">
+            <summary>
+            Configuration for a sales channel including pricing, capacity, and requirements.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Market.SalesChannel.BasePriceMultiplier">
+            <summary>Base price multiplier relative to Norwegian spot (FPI).</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.SalesChannel.BidAskSpread">
+            <summary>Bid-ask spread as fraction (e.g., 0.02 = 2% spread). Player sells at bid.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.SalesChannel.SlippagePerHundredTonnes">
+            <summary>Volume slippage: price impact per 100 tonnes sold. Larger volumes = worse price.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.SalesChannel.MaxWeeklyVolumeKg">
+            <summary>Maximum volume (kg) sellable per week through this channel.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.SalesChannel.MinTransactionKg">
+            <summary>Minimum volume (kg) per transaction.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.SalesChannel.LogisticsCostFraction">
+            <summary>Logistics cost as fraction of sale price.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.SalesChannel.PaymentDelayDays">
+            <summary>Payment delay in days (spot = immediate, export = 30-60 days).</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.SalesChannel.IsAccessible">
+            <summary>Whether this channel is currently accessible to the player.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.SalesChannel.RequiredCertifications">
+            <summary>Required certifications for this channel.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.SalesChannel.MinQualityGrade">
+            <summary>Minimum quality grade accepted.</summary>
+        </member>
+        <member name="T:LakskongenSim.Market.SaleResult">
+            <summary>
+            Result of a sale through a channel.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Market.MarketChannelSystem">
+            <summary>
+            Manages all sales channels and executes sales with realistic pricing mechanics.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketChannelSystem.Sell(LakskongenSim.Market.SalesChannelType,System.Int32,System.Decimal,LakskongenSim.Market.GradingResult)">
+            <summary>
+            Execute a sale through a specific channel.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketChannelSystem.ResetWeeklyVolumes">
+            <summary>
+            Reset weekly volume caps (call at start of each game week).
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketChannelSystem.UnlockChannel(LakskongenSim.Market.SalesChannelType)">
+            <summary>
+            Unlock a sales channel.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketChannelSystem.GetChannels">
+            <summary>
+            Get all channels with their current status.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketChannelSystem.GetRemainingWeeklyCapacity(LakskongenSim.Market.SalesChannelType)">
+            <summary>
+            Get remaining weekly capacity for a channel.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketChannelSystem.EstimatePrice(LakskongenSim.Market.SalesChannelType,System.Decimal,LakskongenSim.Market.GradingResult,System.Int32)">
+            <summary>
+            Calculate expected price for a channel without executing a sale (for UI/decision-making).
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Market.MarketNewsEvent">
+            <summary>
+            A market news event that affects supply, demand, or prices.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Market.MarketNewsEvent.SupplyImpact">
+            <summary>Multiplier on global supply (e.g., 0.8 = 20% supply drop).</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.MarketNewsEvent.DemandImpact">
+            <summary>Multiplier on global demand.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.MarketNewsEvent.PriceShockNOK">
+            <summary>Direct price shock in NOK/kg (additive).</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.MarketNewsEvent.DurationWeeks">
+            <summary>Duration in game weeks.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.MarketNewsEvent.RemainingWeeks">
+            <summary>Remaining weeks of this event.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.MarketNewsEvent.TriggeredAtWeek">
+            <summary>When the event was triggered (game week).</summary>
+        </member>
+        <member name="T:LakskongenSim.Market.CompetitorProducer">
+            <summary>
+            Competitor salmon producer tracked for supply intelligence.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Market.CompetitorProducer.WeeklyHarvestTonnes">
+            <summary>Estimated weekly harvest volume in tonnes.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.CompetitorProducer.BaseWeeklyHarvestTonnes">
+            <summary>Base weekly harvest (normal operations).</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.CompetitorProducer.DisruptionFactor">
+            <summary>Current disruption factor (1.0 = normal, 0.5 = 50% disrupted).</summary>
+        </member>
+        <member name="T:LakskongenSim.Market.PriceForecast">
+            <summary>
+            Price forecast with confidence interval.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Market.PriceForecast.Confidence">
+            <summary>Confidence level (0-1). Decreases further out.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.PriceForecast.Trend">
+            <summary>Predicted trend direction.</summary>
+        </member>
+        <member name="T:LakskongenSim.Market.BrandReputation">
+            <summary>
+            Player brand reputation, built through consistent quality deliveries.
+            Higher reputation unlocks premium channels and price bonuses.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Market.BrandReputation.Score">
+            <summary>Reputation score 0-100.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.BrandReputation.PremiumMultiplier">
+            <summary>Price premium multiplier derived from reputation (1.0 at score=0, up to 1.10 at score=100).</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.BrandReputation.ConsecutiveGoodDeliveries">
+            <summary>Number of consecutive deliveries meeting or exceeding quality expectations.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.BrandReputation.TotalDeliveries">
+            <summary>Total deliveries made.</summary>
+        </member>
+        <member name="M:LakskongenSim.Market.BrandReputation.RecordDelivery(LakskongenSim.Market.FishQualityGrade,System.Boolean,System.Int32)">
+            <summary>
+            Record a delivery and update reputation.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.BrandReputation.WeeklyDecay">
+            <summary>Natural reputation decay over time (call weekly).</summary>
+        </member>
+        <member name="T:LakskongenSim.Market.MarketIntelligenceSystem">
+            <summary>
+            Market intelligence system providing forecasting, news, and competitor tracking.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketIntelligenceSystem.AdvanceWeek(System.Decimal)">
+            <summary>
+            Advance intelligence system by one week. Checks for new events, updates competitors.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketIntelligenceSystem.GetActiveEventImpacts">
+            <summary>
+            Get aggregate supply/demand impact from all active events.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketIntelligenceSystem.GetForecasts(System.Decimal,System.Decimal,System.Decimal)">
+            <summary>
+            Generate price forecasts for 1-4 weeks ahead using trend extrapolation + O-U mean reversion.
+            Intentionally imperfect (adds noise) so the player can't just follow the forecast blindly.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketIntelligenceSystem.GetTotalCompetitorSupplyTonnes">
+            <summary>
+            Get total competitor supply (tonnes/week) for supply/demand calculations.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketIntelligenceSystem.GetCompetitorSnapshot">
+            <summary>
+            Get a snapshot of the top competitors and their estimated volumes.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Market.MarketSimulation">
+             <summary>
+             Realistic salmon market price simulation based on Norwegian industry dynamics.
+             Models: seasonal patterns, calibrated Ornstein-Uhlenbeck mean reversion,
+             supply/demand shocks, historical Norwegian Fish Pool anchors, quality premiums,
+             multiple sales channels, and market intelligence.
+            
+             O-U parameters calibrated to Fish Pool FPI data 2020-2025:
+               - Long-term mean ~85 NOK/kg (2020-2025 average; 2023-2025 elevated to ~90-100)
+               - Annual kappa ~0.6-0.8 (moderate mean reversion)
+               - Weekly sigma ~8-12 NOK/kg (high volatility typical of salmon spot)
+               - Price range: NOK 40-160/kg historically
+             </summary>
+        </member>
+        <member name="P:LakskongenSim.Market.MarketSimulation.Channels">
+            <summary>Sales channel system with spot, export, direct retail channels.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.MarketSimulation.Intelligence">
+            <summary>Market intelligence: forecasting, news events, competitor tracking, brand reputation.</summary>
         </member>
         <member name="M:LakskongenSim.Market.MarketSimulation.Initialize">
             <summary>
@@ -2802,6 +3642,18 @@
             <summary>
             Advance market simulation by a number of days.
             Uses a daily-discretized Ornstein-Uhlenbeck process with seasonal Norwegian demand overlays.
+            Integrates market intelligence events and competitor supply data.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketSimulation.SellFish(LakskongenSim.Market.SalesChannelType,System.Int32,LakskongenSim.Market.FishBatchAttributes,LakskongenSim.Market.ProductForm)">
+            <summary>
+            Sell fish through a specific channel with quality grading applied.
+            Convenience method that wires MarketChannelSystem to current spot price.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.MarketSimulation.GetPriceForecasts">
+            <summary>
+            Get price forecasts for player decision-making.
             </summary>
         </member>
         <member name="T:LakskongenSim.Market.MarketStatus">
@@ -2809,7 +3661,127 @@
         </member>
         <member name="T:LakskongenSim.Market.ProductType">
             <summary>
-            Re-declare product type for market namespace convenience.
+            Complete product catalog for salmon processing value chain
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Market.FishQualityGrade">
+            <summary>
+            Extended quality grading aligned with Norwegian Standard (NS 9401/9417).
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Market.FishQualityGrade.SashimiGrade">
+            <summary>Sashimi-grade: >5kg, zero lice, perfect handling. +40% premium.</summary>
+        </member>
+        <member name="F:LakskongenSim.Market.FishQualityGrade.Superior">
+            <summary>Superior: >4kg, low lice count, good condition. +15% premium.</summary>
+        </member>
+        <member name="F:LakskongenSim.Market.FishQualityGrade.Standard">
+            <summary>Standard/Ordinary: meets baseline specs. No premium.</summary>
+        </member>
+        <member name="F:LakskongenSim.Market.FishQualityGrade.Production">
+            <summary>Production grade: minor defects, smaller fish. -15% discount.</summary>
+        </member>
+        <member name="F:LakskongenSim.Market.FishQualityGrade.Inferior">
+            <summary>Inferior: damaged, high lice scarring, undersized. -30% discount.</summary>
+        </member>
+        <member name="T:LakskongenSim.Market.ProductForm">
+            <summary>
+            Product form affects base price. Processing adds value but reduces yield.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Market.ProductForm.WholeRound">
+            <summary>Whole round fish. Baseline price.</summary>
+        </member>
+        <member name="F:LakskongenSim.Market.ProductForm.HOG">
+            <summary>Head-on gutted. +5% vs whole round.</summary>
+        </member>
+        <member name="F:LakskongenSim.Market.ProductForm.FreshFillet">
+            <summary>Fresh fillets. +60% vs whole round (40% yield).</summary>
+        </member>
+        <member name="F:LakskongenSim.Market.ProductForm.Smoked">
+            <summary>Smoked salmon. +120% vs whole round (35% yield).</summary>
+        </member>
+        <member name="F:LakskongenSim.Market.ProductForm.Frozen">
+            <summary>Frozen whole/portions. -5% vs fresh whole round.</summary>
+        </member>
+        <member name="T:LakskongenSim.Market.FishBatchAttributes">
+            <summary>
+            Input parameters for grading a fish batch.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Market.FishBatchAttributes.AverageWeightKg">
+            <summary>Average weight in kg.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.FishBatchAttributes.AverageLiceCount">
+            <summary>Average lice count per fish over grow-out cycle.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.FishBatchAttributes.DaysSinceHarvest">
+            <summary>Days since harvest (freshness decay).</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.FishBatchAttributes.ManualHarvest">
+            <summary>Whether fish was mechanically or manually harvested.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.FishBatchAttributes.WoundRate">
+            <summary>Percentage of fish with visible wounds/scarring (0-1).</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.FishBatchAttributes.OrganicCertified">
+            <summary>Whether the farm has organic certification.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.FishBatchAttributes.ASCCertified">
+            <summary>Whether the farm has ASC certification.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.FishBatchAttributes.FCR">
+            <summary>Feed conversion ratio (lower = better quality feed = better flesh).</summary>
+        </member>
+        <member name="T:LakskongenSim.Market.GradingResult">
+            <summary>
+            Result of grading a fish batch, including all applicable price multipliers.
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Market.GradingResult.GradeMultiplier">
+            <summary>Quality grade multiplier (e.g., 1.40 for sashimi).</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.GradingResult.FormMultiplier">
+            <summary>Product form multiplier (e.g., 1.60 for fillets).</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.GradingResult.FreshnessMultiplier">
+            <summary>Freshness decay multiplier (1.0 at harvest, decays over days).</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.GradingResult.CertificationMultiplier">
+            <summary>Certification bonus multiplier (organic +15%, ASC +10%).</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.GradingResult.EffectiveMultiplier">
+            <summary>Combined effective multiplier applied to base spot price.</summary>
+        </member>
+        <member name="P:LakskongenSim.Market.GradingResult.YieldFactor">
+            <summary>Yield factor for product form (1.0 = no loss, 0.40 = 60% lost in filleting).</summary>
+        </member>
+        <member name="T:LakskongenSim.Market.QualityGrader">
+            <summary>
+            Grades fish batches and calculates price multipliers based on Norwegian salmon industry standards.
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Market.QualityGrader.FreshnessDecayPerDay">
+            <summary>Freshness decay: -5% per day after harvest, floor at 50% of original value.</summary>
+        </member>
+        <member name="M:LakskongenSim.Market.QualityGrader.GradeBatch(LakskongenSim.Market.FishBatchAttributes)">
+            <summary>
+            Grade a fish batch based on its attributes.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.QualityGrader.GradeFull(LakskongenSim.Market.FishBatchAttributes,LakskongenSim.Market.ProductForm)">
+            <summary>
+            Full grading with all multipliers computed.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.QualityGrader.CalculateEffectivePrice(System.Decimal,LakskongenSim.Market.GradingResult)">
+            <summary>
+            Calculate effective price per kg for a graded batch.
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Market.QualityGrader.CalculateBatchRevenue(System.Decimal,LakskongenSim.Market.GradingResult,System.Int32)">
+            <summary>
+            Calculate revenue for selling a batch, accounting for yield loss.
             </summary>
         </member>
         <member name="T:LakskongenSim.Politics.FactionType">
@@ -2917,6 +3889,61 @@
             Removes expired demands
             </summary>
         </member>
+        <member name="T:LakskongenSim.Processing.BrandStrategy">
+            <summary>
+            Brand positioning strategy affects pricing power and market access
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.ReputationEvent">
+            <summary>
+            Reputation events that affect brand value
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.BrandReputation">
+            <summary>
+            Tracks brand reputation and its impact on pricing power
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Processing.BrandReputation.OverallScore">
+            <summary>
+            Calculate overall brand score (0-100)
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.BrandReputation.GetPricingPowerMultiplier(LakskongenSim.Market.ProductType)">
+            <summary>
+            Calculate pricing power multiplier based on reputation
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.BrandReputation.RecordEvent(LakskongenSim.Processing.ReputationEvent,System.String,System.Int32)">
+            <summary>
+            Record a reputation event
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.BrandReputation.ApplyReputationImpact(LakskongenSim.Processing.ReputationEvent,System.Int32)">
+            <summary>
+            Apply reputation change from an event
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.BrandReputation.ApplyNaturalDecay(System.Decimal)">
+            <summary>
+            Natural reputation decay over time (use sparingly)
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.BrandReputation.GetRecommendedMarketingBudget">
+            <summary>
+            Get marketing investment needed to maintain/grow reputation
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.BrandReputation.CanEnterMarket(System.String,LakskongenSim.Processing.MarketPosition)">
+            <summary>
+            Check if brand is strong enough for a market entry
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.ReputationHistoryEntry">
+            <summary>
+            Historical record of reputation event
+            </summary>
+        </member>
         <member name="T:LakskongenSim.Processing.ProcessingManager">
             <summary>
             Processing manager implements simple economics: CAPEX tiers, OPEX scaling, depreciation, ROI calculations and capacity utilization curves.
@@ -2951,9 +3978,293 @@
             rawMaterialCostPerKg is the price paid for whole fish input.
             </summary>
         </member>
+        <member name="T:LakskongenSim.Processing.PlantTier">
+            <summary>
+            Processing plant tier determines which products can be produced
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.UpgradeOption">
+            <summary>
+            Upgrade path for a processing line
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.ProcessingPlant">
+            <summary>
+            Represents a complete processing plant with multiple production lines
+            Handles upgrades, capacity planning, and investment decisions
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingPlant.GetAvailableUpgrades">
+            <summary>
+            Get available upgrade options for this plant
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingPlant.ApplyUpgrade(LakskongenSim.Processing.UpgradeOption)">
+            <summary>
+            Apply an upgrade to the plant
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingPlant.AddProductionLine(LakskongenSim.Market.ProductType,System.String)">
+            <summary>
+            Add a new production line to the plant
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingPlant.CalculateROI">
+            <summary>
+            Calculate total plant ROI
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingPlant.GetAvailableProducts">
+            <summary>
+            Get all products this plant can currently produce
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingPlant.GetTierUpgradeCost(LakskongenSim.Processing.PlantTier,LakskongenSim.Processing.PlantTier)">
+            <summary>
+            Calculate cost to upgrade between tiers
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingPlant.GetTierDescription(LakskongenSim.Processing.PlantTier)">
+            <summary>
+            Get description of tier capabilities
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingPlant.GetUnlockedProducts(LakskongenSim.Processing.PlantTier)">
+            <summary>
+            Get products unlocked at a specific tier
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingPlant.GetAutomationCost(LakskongenSim.Processing.ProductionLine,LakskongenSim.Processing.TechnologyTier)">
+            <summary>
+            Calculate automation upgrade cost for a line
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingPlant.GetLineMaintenanceCost(LakskongenSim.Market.ProductType)">
+            <summary>
+            Get monthly maintenance cost for a product line
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProcessingPlant.GetLineCapex(LakskongenSim.Market.ProductType)">
+            <summary>
+            Get initial CAPEX for a production line
+            </summary>
+        </member>
         <member name="T:LakskongenSim.Processing.ProcessingSnapshot">
             <summary>
             Lightweight snapshot for dashboards: plant id, tier, last-day profit and cumulative stats.
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.ProductCategory">
+            <summary>
+            Product category determines processing tier required and market positioning
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.MarketPosition">
+            <summary>
+            Market positioning affects pricing, demand volatility, and branding opportunities
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.ProductDefinition">
+            <summary>
+            Defines a specific value-added product with all economic and processing parameters
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.ProductCatalog">
+            <summary>
+            Central catalog of all available products with realistic Norwegian industry data
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductCatalog.GetByCategory(LakskongenSim.Processing.ProductCategory)">
+            <summary>
+            Get all products for a specific category
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductCatalog.GetByPlantTier(System.Int32)">
+            <summary>
+            Get all products available at a given plant tier
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductCatalog.CalculateActualYield(LakskongenSim.Market.ProductType,System.Decimal)">
+            <summary>
+            Calculate actual yield accounting for quality
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.ProductionLine">
+            <summary>
+            Represents a specific production line within a processing plant
+            Can be configured for different products and upgraded over time
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductionLine.ProcessBatch(System.Int32,System.Decimal,System.Decimal,System.Decimal,System.Int32)">
+            <summary>
+            Process a batch through this line
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductionLine.CalculateLaborCost(System.Int32)">
+            <summary>
+            Calculate labor cost for this batch
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductionLine.IsOperational">
+            <summary>
+            Check if line is currently operational
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductionLine.PerformMaintenance">
+            <summary>
+            Perform maintenance on the line
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductionLine.CalculateROI">
+            <summary>
+            Calculate ROI for this production line
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductionLine.EstimatePaybackYears(System.Decimal)">
+            <summary>
+            Calculate payback period in years (approximate)
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.ProductionResult">
+            <summary>
+            Result of a production batch operation
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.MaintenanceResult">
+            <summary>
+            Result of maintenance operation
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.OptimizationStrategy">
+            <summary>
+            Optimization strategy for product mix decisions
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.DemandScenario">
+            <summary>
+            Market demand scenario for a product
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.ProductMixRecommendation">
+            <summary>
+            Recommendation for what to produce
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.MixAnalysis">
+            <summary>
+            Complete product mix recommendation for a plant
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.ProductMixOptimizer">
+            <summary>
+            Helps players optimize their product mix based on market conditions and strategy
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductMixOptimizer.OptimizeProductMix(LakskongenSim.Processing.ProcessingPlant,System.Int32,System.Decimal,LakskongenSim.Processing.OptimizationStrategy,System.Collections.Generic.Dictionary{LakskongenSim.Market.ProductType,LakskongenSim.Processing.DemandScenario})">
+            <summary>
+            Analyze and recommend optimal product mix for a processing plant
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductMixOptimizer.CalculateProductScore(LakskongenSim.Market.ProductType,LakskongenSim.Processing.ProductDefinition,System.Decimal,LakskongenSim.Processing.DemandScenario,LakskongenSim.Processing.OptimizationStrategy)">
+            <summary>
+            Calculate score and metrics for a product
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductMixOptimizer.CalculateRiskScore(LakskongenSim.Processing.ProductDefinition,LakskongenSim.Processing.DemandScenario)">
+            <summary>
+            Calculate risk score for a product
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductMixOptimizer.SortByStrategy(System.Collections.Generic.List{LakskongenSim.Processing.ProductMixRecommendation},LakskongenSim.Processing.OptimizationStrategy)">
+            <summary>
+            Sort recommendations by strategy
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductMixOptimizer.CalculateAllocation(LakskongenSim.Processing.ProductMixRecommendation,System.Int32,LakskongenSim.Processing.OptimizationStrategy)">
+            <summary>
+            Calculate allocation for a product based on strategy
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductMixOptimizer.CalculateWeightedMargin(System.Collections.Generic.List{LakskongenSim.Processing.ProductMixRecommendation})">
+            <summary>
+            Calculate weighted average margin across portfolio
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductMixOptimizer.CalculatePortfolioRisk(System.Collections.Generic.List{LakskongenSim.Processing.ProductMixRecommendation})">
+            <summary>
+            Calculate portfolio-level risk
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductMixOptimizer.GenerateReasoning(LakskongenSim.Market.ProductType,LakskongenSim.Processing.ProductDefinition,System.Decimal,System.Decimal,System.Decimal,LakskongenSim.Processing.OptimizationStrategy)">
+            <summary>
+            Generate human-readable reasoning for product recommendation
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.ProductMixOptimizer.GenerateSummary(LakskongenSim.Processing.MixAnalysis,LakskongenSim.Processing.OptimizationStrategy)">
+            <summary>
+            Generate summary of the mix analysis
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.SkillLevel">
+            <summary>
+            Skill level affects processing efficiency and quality
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.TechnologyTier">
+            <summary>
+            Technology tier provides automation and precision improvements
+            </summary>
+        </member>
+        <member name="T:LakskongenSim.Processing.YieldCalculator">
+            <summary>
+            Calculates actual yields accounting for quality, skill, technology, and process conditions
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.YieldCalculator.Calculate(LakskongenSim.Market.ProductType,System.Decimal,LakskongenSim.Processing.SkillLevel,LakskongenSim.Processing.TechnologyTier,System.Decimal,System.Int32)">
+            <summary>
+            Calculate final yield percentage for a processing operation
+            </summary>
+            <param name="product">Product being produced</param>
+            <param name="inputQuality">Input fish quality (0-1, where 1.0 = perfect)</param>
+            <param name="skillLevel">Worker skill level</param>
+            <param name="techTier">Processing technology tier</param>
+            <param name="temperatureControl">Temperature stability (0-1, 1.0 = perfect control)</param>
+            <param name="freshnessHours">Hours since harvest (affects yield for premium products)</param>
+            <returns>Actual yield percentage (0-1)</returns>
+        </member>
+        <member name="M:LakskongenSim.Processing.YieldCalculator.CalculateOutputKg(LakskongenSim.Market.ProductType,System.Int32,System.Decimal,LakskongenSim.Processing.SkillLevel,LakskongenSim.Processing.TechnologyTier,System.Decimal,System.Int32)">
+            <summary>
+            Calculate output kg from input kg using yield calculator
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.YieldCalculator.GetSkillModifier(LakskongenSim.Processing.SkillLevel)">
+            <summary>
+            Get skill level modifier (additive to base yield)
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.YieldCalculator.GetTechnologyModifier(LakskongenSim.Processing.TechnologyTier)">
+            <summary>
+            Get technology tier modifier (additive to base yield)
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.YieldCalculator.CalculateFreshnessPenalty(LakskongenSim.Market.ProductType,System.Int32)">
+            <summary>
+            Calculate yield penalty from freshness degradation
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.YieldCalculator.GetLaborReduction(LakskongenSim.Processing.TechnologyTier)">
+            <summary>
+            Calculate labor cost reduction from technology
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.YieldCalculator.CalculateRejectRate(LakskongenSim.Market.ProductType,System.Decimal,LakskongenSim.Processing.SkillLevel)">
+            <summary>
+            Calculate reject rate (spoilage/quality failure) including random variation
+            </summary>
+        </member>
+        <member name="M:LakskongenSim.Processing.YieldCalculator.CalculateNetOutput(LakskongenSim.Market.ProductType,System.Int32,System.Decimal,LakskongenSim.Processing.SkillLevel)">
+            <summary>
+            Calculate total effective output after rejects
             </summary>
         </member>
         <member name="T:LakskongenSim.Sustainability.CertificationLevel">
