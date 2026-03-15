@@ -53,6 +53,15 @@ func _ready():
 	
 	print("EventLog initialized")
 
+func _input(event: InputEvent) -> void:
+	"""Handle keyboard navigation"""
+	if not visible:
+		return
+	
+	if event.is_action_pressed("ui_cancel"):
+		hide()
+		get_viewport().set_input_as_handled()
+
 func _connect_to_event_signals():
 	"""Connect to all relevant EventBus signals"""
 	# Time & Progress Events

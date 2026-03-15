@@ -38,6 +38,15 @@ func _ready():
 	# Initial refresh
 	_refresh_from_bridge()
 
+func _input(event: InputEvent) -> void:
+	"""Handle keyboard navigation"""
+	if not visible:
+		return
+	
+	if event.is_action_pressed("ui_cancel"):
+		hide()
+		get_viewport().set_input_as_handled()
+
 func _create_ui():
 	"""Dynamically create UI elements if not set in editor"""
 	

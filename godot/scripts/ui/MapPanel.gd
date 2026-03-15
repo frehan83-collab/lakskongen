@@ -320,6 +320,15 @@ func _ready() -> void:
 	_build_ui()
 	hide()
 
+func _input(event: InputEvent) -> void:
+	"""Handle keyboard navigation"""
+	if not visible:
+		return
+	
+	if event.is_action_pressed("ui_cancel"):
+		hide()
+		get_viewport().set_input_as_handled()
+
 func show_panel() -> void:
 	show()
 	modulate.a = 0.0

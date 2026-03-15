@@ -1,0 +1,70 @@
+# TechTreePanel
+ui.tech.title,"🔬 Forskning & Teknologi","🔬 Research & Technology","🔬 Forschung & Technologie","🔬 Recherche & Technologie","🔬 Investigación & Tecnología","🔬 研究 & 技術"
+ui.tech.title_tooltip,"Teknologitre med 5 forskningsgrener: Biologi, Teknologi, Bærekraft, Foredling og Ekspansjon.","Technology tree with 5 research branches: Biology, Technology, Sustainability, Processing and Expansion.","Technologiebaum mit 5 Forschungszweigen: Biologie, Technologie, Nachhaltigkeit, Verarbeitung und Expansion.","Arbre technologique avec 5 branches de recherche: Biologie, Technologie, Durabilité, Traitement et Expansion.","Árbol tecnológico con 5 ramas de investigación: Biología, Tecnología, Sostenibilidad, Procesamiento y Expansión.","5つの研究分野を持つ技術ツリー：生物学、技術、持続可能性、加工、拡張。"
+ui.tech.close_tooltip,"Lukk teknologitreet (Esc)","Close technology tree (Esc)","Technologiebaum schließen (Esc)","Fermer l'arbre technologique (Esc)","Cerrar árbol tecnológico (Esc)","技術ツリーを閉じる (Esc)"
+ui.tech.no_research,"Ingen aktiv forskning","No active research","Keine aktive Forschung","Aucune recherche active","Sin investigación activa","アクティブな研究なし"
+ui.tech.status_tooltip,"Status for pågående forskningsprosjekter.","Status of ongoing research projects.","Status laufender Forschungsprojekte.","Statut des projets de recherche en cours.","Estado de los proyectos de investigación en curso.","進行中の研究プロジェクトのステータス。"
+ui.tech.tier,"T%d","T%d","T%d","N%d","T%d","T%d"
+ui.tech.completed,"Fullført","Completed","Abgeschlossen","Terminé","Completado","完了"
+ui.tech.days_progress,"Dag %d / %d","Day %d / %d","Tag %d / %d","Jour %d / %d","Día %d / %d","日数 %d / %d"
+ui.tech.cost_days,"%s    %dd","%s    %dd","%s    %dd","%s    %dd","%s    %dd","%s    %dd"
+ui.tech.insufficient_funds,"Ikke nok midler eller et krav er ikke oppfylt.","Insufficient funds or a requirement is not met.","Unzureichende Mittel oder eine Anforderung ist nicht erfüllt.","Fonds insuffisants ou une exigence n'est pas satisfaite.","Fondos insuficientes o un requisito no se cumple.","資金不足または要件が満たされていません。"
+# MapPanel
+ui.map.title,"🗺️ Kart","🗺️ Map","🗺️ Karte","🗺️ Carte","🗺️ Mapa","🗺️ マップ"
+ui.map.title_tooltip,"Interaktivt kart over alle dine lokaliteter og soner.","Interactive map of all your sites and zones.","Interaktive Karte aller Ihrer Standorte und Zonen.","Carte interactive de tous vos sites et zones.","Mapa interactivo de todos tus sitios y zonas.","すべてのサイトとゾーンのインタラクティブマップ。"
+# ContractsPanel
+ui.contracts.title,"📋 Kontrakter & Markedsdybde","📋 Contracts & Market Depth","📋 Verträge & Markttiefe","📋 Contrats & Profondeur du Marché","📋 Contratos & Profundidad del Mercado","📋 契約 & 市場深度"
+ui.contracts.active,"Aktive kontrakter","Active Contracts","Aktive Verträge","Contrats Actifs","Contratos Activos","アクティブな契約"
+ui.contracts.offers,"Tilgjengelige tilbud","Available Offers","Verfügbare Angebote","Offres Disponibles","Ofertas Disponibles","利用可能なオファー"
+ui.contracts.export,"Eksportmarkeder","Export Markets","Exportmärkte","Marchés d'Exportation","Mercados de Exportación","輸出市場"
+ui.contracts.refresh,"Oppdater","Refresh","Aktualisieren","Actualiser","Actualizar","更新"
+# CrewPanel
+ui.crew.title,"👷 Bemanningsstyring","👷 Crew Management","👷 Personalverwaltung","👷 Gestion de l'Équipage","👷 Gestión de la Tripulación","👷 クルー管理"
+ui.crew.total_workers,"Totalt ansatte:","Total Workers:","Gesamtbeschäftigte:","Total des Employés:","Total de Trabajadores:","総労働者:"
+ui.crew.total_payroll,"Total lønn:","Total Payroll:","Gesamtlohn:","Total des Salaires:","Nómina Total:","総給与:"
+ui.crew.hire,"Ansett arbeidstagere","Hire Workers","Mitarbeiter Einstellen","Embaucher des Employés","Contratar Trabajadores","労働者を雇用"
+ui.crew.hire_role,"Ansett %s","Hire %s","%s Einstellen","Embaucher %s","Contratar %s","%s を雇用"
+# DataExportPanel
+ui.dataexport.title,"💾 Dataeksport","💾 Data Export","💾 Datenexport","💾 Exportation de Données","💾 Exportación de Datos","💾 データエクスポート"
+ui.dataexport.log,"Eksportlogg","Export Log","Exportprotokoll","Journal d'Exportation","Registro de Exportación","エクスポートログ"
+ui.dataexport.status,"Klar","Ready","Bereit","Prêt","Listo","準備完了"
+ui.dataexport.folder,"Eksportmappe","Export Folder","Exportordner","Dossier d'Exportation","Carpeta de Exportación","エクスポートフォルダ"
+# EncyclopediaPanel
+ui.encyclopedia.title,"📚 LAKSKONGEN ENCYCLOPEDIA","📚 LAKSKONGEN ENCYCLOPEDIA","📚 LAKSKONGEN ENZYKLOPÄDIE","📚 ENCYCLOPÉDIE LAKSKONGEN","📚 ENCICLOPEDIA LAKSKONGEN","📚 ラクスコンゲン百科事典"
+ui.encyclopedia.categories,"📁 KATEGORIER","📁 CATEGORIES","📁 KATEGORIEN","📁 CATÉGORIES","📁 CATEGORÍAS","📁 カテゴリ"
+ui.encyclopedia.entries,"📄 OPPFØRINGER","📄 ENTRIES","📄 EINTRÄGE","📄 ENTRÉES","📄 ENTRADAS","📄 エントリ"
+ui.encyclopedia.related,"SE OGSÅ","SEE ALSO","SIEHE AUCH","VOIR AUSSI","VER TAMBIÉN","参照"
+ui.encyclopedia.welcome,"Velkommen til Encyklopedien","Welcome to the Encyclopedia","Willkommen in der Enzyklopädie","Bienvenue dans l'Encyclopédie","Bienvenido a la Enciclopedia","百科事典へようこそ"
+# EventLog
+ui.eventlog.cleared,"[color=gray]Hendelseslogg tømt. Nye hendelser vises her.[/color]","[color=gray]Event log cleared. New events will appear here.[/color]","[color=gray]Ereignisprotokoll gelöscht. Neue Ereignisse werden hier angezeigt.[/color]","[color=gray]Journal des événements effacé. Les nouveaux événements apparaîtront ici.[/color]","[color=gray]Registro de eventos borrado. Los nuevos eventos aparecerán aquí.[/color]","[color=gray]イベントログがクリアされました。新しいイベントがここに表示されます。[/color]"
+# SustainabilityPanel
+ui.sustainability.title,"🌿 Bærekraftscore","🌿 Sustainability Score","🌿 Nachhaltigkeitspunktzahl","🌿 Score de Durabilité","🌿 Puntuación de Sostenibilidad","🌿 持続可能性スコア"
+ui.sustainability.breakdown,"Kategorifordeling","Category Breakdown","Kategorieaufschlüsselung","Répartition par Catégorie","Desglose por Categoría","カテゴリ別内訳"
+ui.sustainability.score,"%d/100","%d/100","%d/100","%d/100","%d/100","%d/100"
+ui.sustainability.category_score,"%d/%d","%d/%d","%d/%d","%d/%d","%d/%d","%d/%d"
+# AnalyticsPanel
+ui.analytics.title,"📊 Analytics","📊 Analytics","📊 Analytik","📊 Analytique","📊 Analítica","📊 分析"
+# CreditsPanel (has minimal strings, mostly loaded from external data)
+# AchievementPopup
+ui.achievement.unlocked,"PRESTASJON LÅST OPP","ACHIEVEMENT UNLOCKED","ERFOLG FREIGESCHALTET","SUCCÈS DÉBLOQUÉ","LOGRO DESBLOQUEADO","実績アンロック"
+ui.achievement.reward,"+ %s NOK","+ %s NOK","+ %s NOK","+ %s NOK","+ %s NOK","+ %s NOK"
+# TutorialUI
+ui.tutorial.step_current,"Steg %d / %d","Step %d / %d","Schritt %d / %d","Étape %d / %d","Paso %d / %d","ステップ %d / %d"
+ui.tutorial.step_complete,"✅ Steg %d fullført!  +%s NOK","✅ Step %d completed!  +%s NOK","✅ Schritt %d abgeschlossen!  +%s NOK","✅ Étape %d terminée!  +%s NOK","✅ Paso %d completado!  +%s NOK","✅ ステップ %d 完了!  +%s NOK"
+ui.tutorial.all_complete,"🎉 Tutorial fullført!","🎉 Tutorial Completed!","🎉 Tutorial Abgeschlossen!","🎉 Tutoriel Terminé!","🎉 Tutorial Completado!","🎉 チュートリアル完了!"
+ui.tutorial.explore_hint,"Utforsk Expansion, Genetics og Politics for å vokse videre.","Explore Expansion, Genetics and Politics to grow further.","Erkunden Sie Expansion, Genetik und Politik, um weiter zu wachsen.","Explorez l'Expansion, la Génétique et la Politique pour continuer à grandir.","Explora Expansión, Genética y Política para crecer más.","拡張、遺伝学、政治を探索してさらに成長しましょう。"
+# GeneticsPanel (partial - complex dynamic strings)
+ui.genetics.h2_value,"h² %.2f","h² %.2f","h² %.2f","h² %.2f","h² %.2f","h² %.2f"
+ui.genetics.bv_value,"%+.2f","%+.2f","%+.2f","%+.2f","%+.2f","%+.2f"
+ui.genetics.cv_value,"%.2f","%.2f","%.2f","%.2f","%.2f","%.2f"
+ui.genetics.inbreeding_pct,"Innavl: %.1f%%","Inbreeding: %.1f%%","Inzucht: %.1f%%","Consanguinité: %.1f%%","Endogamia: %.1f%%","近親交配: %.1f%%"
+# NotificationCenter
+ui.notifcenter.title,"🔔 Varsler","🔔 Notifications","🔔 Benachrichtigungen","🔔 Notifications","🔔 Notificaciones","🔔 通知"
+ui.notifcenter.clear,"Tøm alle","Clear All","Alle Löschen","Tout Effacer","Borrar Todo","すべてクリア"
+ui.notifcenter.empty,"Ingen varsler","No Notifications","Keine Benachrichtigungen","Aucune Notification","Sin Notificaciones","通知なし"
+# ModManagerPanel
+ui.modmanager.no_selection,"Ingen mod valgt","No Mod Selected","Kein Mod Ausgewählt","Aucun Mod Sélectionné","Sin Mod Seleccionado","Modが選択されていません"
+ui.modmanager.error_label,"Feil","Error","Fehler","Erreur","Error","エラー"
+ui.modmanager.active,"Aktiv","Active","Aktiv","Actif","Activo","アクティブ"
+# ScenarioSelectPanel (mostly uses existing keys, minimal new ones needed)
+# PhotoMode (if exists - simple panel, likely no hardcoded strings or already fixed)

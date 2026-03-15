@@ -75,6 +75,15 @@ func _ready() -> void:
 	_build_layout()
 	print("ToastNotification: ready")
 
+func _input(event: InputEvent) -> void:
+	"""Handle keyboard navigation"""
+	if not visible:
+		return
+	
+	if event.is_action_pressed("ui_cancel"):
+		hide()
+		get_viewport().set_input_as_handled()
+
 func _build_layout() -> void:
 	var anchor := Control.new()
 	anchor.name = "ToastAnchor"

@@ -89,6 +89,15 @@ func _ready() -> void:
 	_build_ui()
 	_refresh_display()
 
+func _input(event: InputEvent) -> void:
+	"""Handle keyboard navigation"""
+	if not visible:
+		return
+	
+	if event.is_action_pressed("ui_cancel"):
+		hide()
+		get_viewport().set_input_as_handled()
+
 # ── UI construction ───────────────────────────────────────────────────────────
 
 func _build_ui() -> void:
@@ -101,8 +110,8 @@ func _build_ui() -> void:
 	
 	# Header
 	var header := Label.new()
-	header.text = "Produksjonskjede"
-	header.tooltip_text = "Visualisering av hele produksjonskjeden for laks, fra stamfisk til eksport."
+	header.text = tr("ui.production.title")
+	header.tooltip_text = tr("ui.production.title_tooltip")
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	vbox.add_child(header)
@@ -130,7 +139,7 @@ func _create_stage_row(stage_data: Dictionary) -> HBoxContainer:
 	label.text = stage_data.label
 	label.custom_minimum_size.x = 120
 	label.add_theme_font_size_override("font_size", 14)
-	label.tooltip_text = "Nåværende beholdning for "%s"-stadiet." % stage_data.label
+	label.tooltip_text = tr("ui.production.stage_tooltip") % stage_data.label
 	hbox.add_child(label)
 	
 	# Quantity display
@@ -139,7 +148,7 @@ func _create_stage_row(stage_data: Dictionary) -> HBoxContainer:
 	quantity_label.custom_minimum_size.x = 100
 	quantity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	quantity_label.add_theme_font_size_override("font_size", 14)
-	quantity_label.tooltip_text = "Antall fisk eller biomasse (kg) ved dette produksjonsstadiet."
+	quantity_label.tooltip_text = tr("ui.production.quantity_tooltip")
 	hbox.add_child(quantity_label)
 	
 	# Status indicator (colored box)
@@ -147,7 +156,7 @@ func _create_stage_row(stage_data: Dictionary) -> HBoxContainer:
 	status_indicator.name = "StatusIndicator"
 	status_indicator.custom_minimum_size = Vector2(20, 20)
 	status_indicator.color = Color.GRAY
-	status_indicator.tooltip_text = "Statusindikator: Grønn (flyter), Gul (sakker), Rød (flaskehals), Grå (ikke tilgjengelig)."
+	status_indicator.tooltip_text = tr("ui.production.status_tooltip")
 	hbox.add_child(status_indicator)
 	
 	# Throughput/rate label
@@ -156,7 +165,7 @@ func _create_stage_row(stage_data: Dictionary) -> HBoxContainer:
 	throughput_label.custom_minimum_size.x = 150
 	throughput_label.add_theme_font_size_override("font_size", 12)
 	throughput_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	throughput_label.tooltip_text = "Informasjon om gjennomstrømning eller produksjonshastighet for dette stadiet."
+	throughput_label.tooltip_text = tr("ui.production.throughput_tooltip")
 	hbox.add_child(throughput_label)
 	
 	return hbox
@@ -268,45 +277,45 @@ func _get_throughput_text(stage_data: Dictionary) -> String:
 		"broodstock":
 			var eggs := SimBridge.get_fish_count_by_stage("Egg")
 			if eggs > 0:
-				return "Produserer rogn"
-			return "Ingen produksjon"
+				return tr("ui.production.status_producing")
+			return tr("ui.production.status_idle")
 		"eggs":
 			var fry := SimBridge.get_fish_count_by_stage("Fry")
 			if fry > 0:
-				return "Klekker yngel"
-			return "Venter på klekkking"
+				return tr("ui.production.status_hatching")
+			return tr("ui.production.status_waiting_hatch")
 		"fry":
 			var smolt := SimBridge.get_fish_count_by_stage("Smolt")
 			if smolt > 0:
-				return "Smoltproduksjon aktiv"
-			return "Ingen smolt klar"
+				return tr("ui.production.status_smolt_active")
+			return tr("ui.production.status_smolt_wait")
 		"smolt":
 			var adult_biomass := SimBridge.get_biomass_by_stage("Adult")
 			if adult_biomass > 10000:
-				return "I sjø (vokser)"
+				return tr("ui.production.status_at_sea_growing")
 			elif adult_biomass > 0:
-				return "Nylig utsatt"
-			return "Venter på utsett"
+				return tr("ui.production.status_recently_released")
+			return tr("ui.production.status_waiting_release")
 		"sea_fish":
 			var harvested := SimBridge.get_biomass_by_stage("Harvested")
 			if harvested > 0:
-				return "Høsting pågår"
-			return "Vokser i sjøen"
+				return tr("ui.production.status_harvesting")
+			return tr("ui.production.status_growing_sea")
 		"harvest":
 			var throughput := SimBridge.get_processing_throughput_kg()
 			if throughput > 1000:
-				return "Prosesseres: %.0f kg" % throughput
-			return "Venter på prosessering"
+				return tr("ui.production.status_processing_kg") % int(throughput)
+			return tr("ui.production.status_waiting_processing")
 		"processing":
 			if SimBridge.owns_processing_plant():
 				var markets := SimBridge.get_export_market_count()
 				if markets > 0:
-					return "Sender til %d markeder" % markets
-				return "Klar for eksport"
-			return "Ikke bygget"
+					return tr("ui.production.status_sending_markets") % markets
+				return tr("ui.production.status_ready_export")
+			return tr("ui.production.status_not_built")
 		"export":
 			var markets := SimBridge.get_export_market_count()
 			if markets > 0:
-				return "Aktive eksportmarkeder"
-			return "Ingen markeder åpnet"
+				return tr("ui.production.status_active_exports")
+			return tr("ui.production.status_no_markets")
 	return ""

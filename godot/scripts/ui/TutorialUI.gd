@@ -63,6 +63,15 @@ func _ready() -> void:
 
 # ── Signal handlers ───────────────────────────────────────────────────────────
 
+func _input(event: InputEvent) -> void:
+	"""Handle keyboard navigation"""
+	if not visible:
+		return
+	
+	if event.is_action_pressed("ui_cancel"):
+		hide()
+		get_viewport().set_input_as_handled()
+
 func _on_state_updated() -> void:
 	_refresh_display()
 

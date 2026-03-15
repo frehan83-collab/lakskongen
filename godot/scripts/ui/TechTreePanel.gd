@@ -76,6 +76,15 @@ func _ready() -> void:
 	_build_skeleton()
 	_refresh()
 
+func _input(event: InputEvent) -> void:
+	"""Handle keyboard navigation"""
+	if not visible:
+		return
+	
+	if event.is_action_pressed("ui_cancel"):
+		hide()
+		get_viewport().set_input_as_handled()
+
 func _process(_delta: float) -> void:
 	# Light polling — refreshes every ~2 s (120 frames at 60 fps)
 	if Engine.get_process_frames() % 120 == 0:
@@ -96,11 +105,11 @@ func _build_skeleton() -> void:
 
 	# ── Title bar ──
 	var title := Label.new()
-	title.text = "Forskning & Teknologi"
+	title.text = tr("ui.tech.title")
 	title.add_theme_font_size_override("font_size", 16)
 	title.modulate = Color(0.85, 0.85, 0.95)
 	title.position = Vector2(START_X, 10)
-	title.tooltip_text = "Teknologitre med 5 forskningsgrener: Biologi, Teknologi, Bærekraft, Foredling og Ekspansjon."
+	title.tooltip_text = tr("ui.tech.title_tooltip")
 	add_child(title)
 
 	# ── Close button ──
@@ -108,18 +117,18 @@ func _build_skeleton() -> void:
 	close_btn.text = "✕"
 	close_btn.position = Vector2(total_w - 40, 8)
 	close_btn.size = Vector2(28, 28)
-	close_btn.tooltip_text = "Lukk teknologitreet (Esc)"
+	close_btn.tooltip_text = tr("ui.tech.close_tooltip")
 	close_btn.pressed.connect(func(): emit_signal("panel_close_requested"))
 	add_child(close_btn)
 
 	# ── Research status bar ──
 	var status_lbl := Label.new()
 	status_lbl.name = "StatusLabel"
-	status_lbl.text = "Ingen aktiv forskning"
+	status_lbl.text = tr("ui.tech.no_research")
 	status_lbl.add_theme_font_size_override("font_size", 11)
 	status_lbl.modulate = Color(0.70, 0.80, 0.70)
 	status_lbl.position = Vector2(START_X, 36)
-	status_lbl.tooltip_text = "Status for pågående forskningsprosjekter."
+	status_lbl.tooltip_text = tr("ui.tech.status_tooltip")
 	add_child(status_lbl)
 
 	# ── Branch headers ──

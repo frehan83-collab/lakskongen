@@ -21,6 +21,15 @@ func _ready() -> void:
 		get_node("/root/SimBridge").achievement_unlocked.connect(show_notification)
 		print("AchievementNotification: connected to SimBridge")
 
+func _input(event: InputEvent) -> void:
+	"""Handle keyboard navigation"""
+	if not visible:
+		return
+	
+	if event.is_action_pressed("ui_cancel"):
+		hide()
+		get_viewport().set_input_as_handled()
+
 func _process(delta: float) -> void:
 	if not _visible_flag:
 		return

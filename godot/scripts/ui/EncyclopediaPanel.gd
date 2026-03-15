@@ -381,6 +381,15 @@ func show_panel() -> void:
 	tw.tween_property(self, "modulate:a", 1.0, 0.35)
 	_select_category("Fish Species")
 
+func _input(event: InputEvent) -> void:
+	"""Handle keyboard navigation"""
+	if not visible:
+		return
+	
+	if event.is_action_pressed("ui_cancel"):
+		hide()
+		get_viewport().set_input_as_handled()
+
 func hide_panel() -> void:
 	var tw := create_tween()
 	tw.tween_property(self, "modulate:a", 0.0, 0.25)

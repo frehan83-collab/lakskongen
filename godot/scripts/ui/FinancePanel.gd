@@ -54,6 +54,15 @@ func _ready():
 	# Initial refresh
 	_refresh_from_bridge()
 
+func _input(event: InputEvent):
+	"""Handle keyboard navigation"""
+	if not visible:
+		return
+	
+	if event.is_action_pressed("ui_cancel"):
+		hide()
+		get_viewport().set_input_as_handled()
+
 func _create_ui():
 	"""Dynamically create UI elements if not set in editor"""
 	
@@ -70,10 +79,10 @@ func _create_ui():
 	
 	# Header
 	var header = Label.new()
-	header.text = "💰 Finance Dashboard"
+	header.text = tr("ui.finance.title")
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", Color(COLOR_TEXT))
-	header.tooltip_text = "Økonomisk oversikt: inntekter, kostnader, fortjeneste, lån og finanshistorikk."
+	header.tooltip_text = tr("ui.finance.title_tooltip")
 	vbox.add_child(header)
 	
 	# Financial summary section
@@ -99,7 +108,7 @@ func _create_ui():
 	
 	# Loan section header
 	var loan_header = Label.new()
-	loan_header.text = "Loan Status"
+	loan_header.text = tr("ui.finance.loan_status")
 	loan_header.add_theme_font_size_override("font_size", 16)
 	loan_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(loan_header)
@@ -119,13 +128,13 @@ func _create_ui():
 	vbox.add_child(loan_btn_container)
 	
 	take_loan_button = Button.new()
-	take_loan_button.text = "Take Loan (5M NOK)"
-	take_loan_button.tooltip_text = "Ta opp et nytt lån på 5 millioner NOK."
+	take_loan_button.text = tr("ui.finance.take_loan")
+	take_loan_button.tooltip_text = tr("ui.finance.take_loan_tooltip")
 	loan_btn_container.add_child(take_loan_button)
 	
 	repay_loan_button = Button.new()
-	repay_loan_button.text = "Repay Loan (1M NOK)"
-	repay_loan_button.tooltip_text = "Nedbetal 1 million NOK på eksisterende lån."
+	repay_loan_button.text = tr("ui.finance.repay_loan")
+	repay_loan_button.tooltip_text = tr("ui.finance.repay_loan_tooltip")
 	loan_btn_container.add_child(repay_loan_button)
 	
 	# Separator
@@ -134,7 +143,7 @@ func _create_ui():
 	
 	# Financial history header
 	var history_header = Label.new()
-	history_header.text = "Recent Financial History (Last 30 Days)"
+	history_header.text = tr("ui.finance.history_header")
 	history_header.add_theme_font_size_override("font_size", 16)
 	history_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(history_header)
