@@ -70,26 +70,28 @@ Files:
 MUSIC
 -------------------------------------------------------------------------------
 
-⚠️ PLACEHOLDER MUSIC CURRENTLY IN USE ⚠️
+Source: Incompetech - Royalty Free Music
+Composer: Kevin MacLeod
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+URL: https://incompetech.com/music/royalty-free/
+License URL: http://creativecommons.org/licenses/by/4.0/
 
-Current music files are temporary sine wave tones for testing purposes only.
-These will be replaced with proper licensed music tracks.
+All music tracks are used under CC BY 4.0 license with proper attribution.
 
-When replaced with Incompetech tracks, attribution will be:
-
-Music by Kevin MacLeod (incompetech.com)
+Attribution:
+"Music by Kevin MacLeod (incompetech.com)
 Licensed under Creative Commons: By Attribution 4.0 License
-http://creativecommons.org/licenses/by/4.0/
+http://creativecommons.org/licenses/by/4.0/"
 
-Tracks (PENDING REPLACEMENT):
-- main_theme.ogg (placeholder)
-- calm_sea.ogg (placeholder)
-- spring.ogg (placeholder)
-- summer.ogg (placeholder)
-- autumn.ogg (placeholder)
-- winter.ogg (placeholder)
+Tracks Used:
+- main_theme.ogg - "Lotus" (World, 5:28, calming, Norwegian-inspired)
+- calm_sea.ogg - "Soaring" (Contemporary, 6:20, peaceful, atmospheric)
+- spring.ogg - "Morning" (Contemporary, 2:33, bright, hopeful)
+- summer.ogg - "Dreamer" (Contemporary, 3:24, light, optimistic)
+- autumn.ogg - "Evening" (Contemporary, 3:06, contemplative, transitional)
+- winter.ogg - "Bittersweet" (Soundtrack, 3:22, melancholic, darker)
 
-See MUSIC_REPLACEMENT_GUIDE.md for instructions on obtaining proper music files.
+All tracks converted to OGG Vorbis format (quality 6) for optimal size/quality balance.
 
 ===============================================================================
 LICENSE INFORMATION

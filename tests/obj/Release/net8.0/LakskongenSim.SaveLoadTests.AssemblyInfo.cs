@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LakskongenSim.SaveLoadTests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fafec9e6d3c729a520acf8db8e2d793a6123c636")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+02648283bafb18e64b5a1bb1c0ac8b5590f91a6c")]
 [assembly: System.Reflection.AssemblyProductAttribute("LakskongenSim.SaveLoadTests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LakskongenSim.SaveLoadTests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

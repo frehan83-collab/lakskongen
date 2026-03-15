@@ -1612,6 +1612,21 @@
             Win conditions for scenario objectives
             </summary>
         </member>
+        <member name="F:LakskongenSim.Data.WinCondition.Tutorial">
+            <summary>Complete all tutorial milestones</summary>
+        </member>
+        <member name="F:LakskongenSim.Data.WinCondition.Profit">
+            <summary>Reach a target profit threshold</summary>
+        </member>
+        <member name="F:LakskongenSim.Data.WinCondition.Sustainability">
+            <summary>Achieve Sustainability Leader certification (score ≥ 95)</summary>
+        </member>
+        <member name="F:LakskongenSim.Data.WinCondition.Survival">
+            <summary>Survive N days without bankruptcy</summary>
+        </member>
+        <member name="F:LakskongenSim.Data.WinCondition.Competition">
+            <summary>Outpace AI competitors to a shared profit target</summary>
+        </member>
         <member name="T:LakskongenSim.Data.GameConstants">
             <summary>
             Data layer constants that may be persisted or tweaked separately from Core.GameConstants.
@@ -1776,6 +1791,171 @@
             Zone status snapshot for UI display and player decisions.
             </summary>
         </member>
+        <member name="T:LakskongenSim.Events.CrisisType">
+            <summary>
+            Types of crises that can affect competitor companies
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Events.CrisisType.DISEASE_OUTBREAK">
+            <summary>Disease outbreak affecting fish stocks</summary>
+        </member>
+        <member name="F:LakskongenSim.Events.CrisisType.BANKRUPTCY">
+            <summary>Company bankruptcy</summary>
+        </member>
+        <member name="F:LakskongenSim.Events.CrisisType.REGULATORY_SHUTDOWN">
+            <summary>Regulatory shutdown</summary>
+        </member>
+        <member name="F:LakskongenSim.Events.CrisisType.MARKET_CRASH">
+            <summary>Market crash</summary>
+        </member>
+        <member name="F:LakskongenSim.Events.CrisisType.ENVIRONMENTAL_SCANDAL">
+            <summary>Environmental scandal</summary>
+        </member>
+        <member name="T:LakskongenSim.Events.AssetType">
+            <summary>
+            Types of assets available for acquisition
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Events.AssetType.LICENSE">
+            <summary>Aquaculture license</summary>
+        </member>
+        <member name="F:LakskongenSim.Events.AssetType.FARM_SITE">
+            <summary>Farm site</summary>
+        </member>
+        <member name="F:LakskongenSim.Events.AssetType.PROCESSING_PLANT">
+            <summary>Processing plant</summary>
+        </member>
+        <member name="F:LakskongenSim.Events.AssetType.EQUIPMENT">
+            <summary>Equipment</summary>
+        </member>
+        <member name="T:LakskongenSim.Events.CrisisEvent">
+            <summary>
+            Represents a crisis event affecting a competitor
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Events.CrisisEvent.Id">
+            <summary>Unique identifier for the crisis event</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.CrisisEvent.Type">
+            <summary>Type of crisis</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.CrisisEvent.AffectedCompetitorId">
+            <summary>ID of the affected competitor</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.CrisisEvent.CompetitorName">
+            <summary>Name of the affected competitor</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.CrisisEvent.SeverityScore">
+            <summary>Severity score on a 0-1 scale</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.CrisisEvent.DiscountMultiplier">
+            <summary>Multiplier for asset price discounts</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.CrisisEvent.DurationMonths">
+            <summary>Duration of the crisis in months</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.CrisisEvent.StartDate">
+            <summary>Start date of the crisis</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.CrisisEvent.IsActive">
+            <summary>Whether the crisis is currently active</summary>
+        </member>
+        <member name="M:LakskongenSim.Events.CrisisEvent.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:LakskongenSim.Events.DistressedAsset">
+            <summary>
+            Represents an asset available for acquisition at a distressed price
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Events.DistressedAsset.Id">
+            <summary>Unique identifier for the asset</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.DistressedAsset.AssetType">
+            <summary>Type of asset</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.DistressedAsset.Name">
+            <summary>Asset name</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.DistressedAsset.Description">
+            <summary>Asset description</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.DistressedAsset.Location">
+            <summary>Asset location</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.DistressedAsset.OriginalValueNOK">
+            <summary>Original fair market value in NOK</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.DistressedAsset.DiscountedPriceNOK">
+            <summary>Current discounted price in NOK</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.DistressedAsset.TimeRemainingMonths">
+            <summary>Months remaining before offer expires</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.DistressedAsset.RiskScore">
+            <summary>Risk score on a 0-1 scale (disease contamination, reputation damage, etc.)</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.DistressedAsset.CrisisEventId">
+            <summary>ID of the associated crisis event</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.DistressedAsset.OwningCompetitor">
+            <summary>Name of the distressed competitor</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.DistressedAsset.PotentialSavings">
+            <summary>Potential savings from the discount</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.DistressedAsset.DiscountPercentage">
+            <summary>Discount percentage</summary>
+        </member>
+        <member name="M:LakskongenSim.Events.DistressedAsset.ToString">
+            <inheritdoc/>
+        </member>
+        <member name="T:LakskongenSim.Events.AcquisitionResult">
+            <summary>
+            Result of attempting to acquire a distressed asset
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Events.AcquisitionResult.Success">
+            <summary>Whether the acquisition was successful</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.AcquisitionResult.Message">
+            <summary>Result message</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.AcquisitionResult.CostNOK">
+            <summary>Total acquisition cost in NOK</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.AcquisitionResult.IntegrationRisk">
+            <summary>Risk level of integrating the acquired asset</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.AcquisitionResult.AcquiredAsset">
+            <summary>The acquired asset, if successful</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.AcquisitionResult.ReputationImpact">
+            <summary>Impact on reputation (negative for "vulture capitalism")</summary>
+        </member>
+        <member name="T:LakskongenSim.Events.CrisisTriggeredHandler">
+            <summary>Handler for crisis triggered events</summary>
+            <param name="competitorId">ID of affected competitor</param>
+            <param name="type">Type of crisis</param>
+            <param name="severity">Severity score</param>
+        </member>
+        <member name="T:LakskongenSim.Events.DistressedAssetAcquiredHandler">
+            <summary>Handler for distressed asset acquisitions</summary>
+            <param name="assetType">Type of asset acquired</param>
+            <param name="price">Acquisition price</param>
+            <param name="riskScore">Risk score of the asset</param>
+        </member>
+        <member name="T:LakskongenSim.Events.CrisisCapitalismSystem">
+            <summary>
+            System for simulating competitor crises and opportunities for distressed asset acquisition
+            </summary>
+        </member>
+        <member name="E:LakskongenSim.Events.CrisisCapitalismSystem.CrisisTriggered">
+            <summary>Event raised when a crisis is triggered for a competitor</summary>
+        </member>
+        <member name="E:LakskongenSim.Events.CrisisCapitalismSystem.DistressedAssetAcquired">
+            <summary>Event raised when a distressed asset is acquired</summary>
+        </member>
         <member name="M:LakskongenSim.Events.CrisisCapitalismSystem.GetActiveCrises">
             <summary>
             Get all currently active crisis events
@@ -1855,6 +2035,96 @@
             <summary>
             Update system state (remove expired assets, update crisis status)
             </summary>
+        </member>
+        <member name="T:LakskongenSim.Events.EventDefinition">
+            <summary>
+            Defines a game event with conditions and effects
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Events.EventDefinition.Id">
+            <summary>Unique identifier for this event</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.EventDefinition.Name">
+            <summary>Display name of the event</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.EventDefinition.Category">
+            <summary>Category of the event</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.EventDefinition.Weight">
+            <summary>Selection weight for random event selection</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.EventDefinition.CooldownDays">
+            <summary>Cooldown period in days before this event can trigger again</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.EventDefinition.MinDay">
+            <summary>Minimum game day when this event can trigger</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.EventDefinition.MaxDay">
+            <summary>Maximum game day when this event can trigger</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.EventDefinition.Condition">
+            <summary>Condition function to check whether the event can trigger given current state</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.EventDefinition.Apply">
+            <summary>Action to apply when the event fires (modifies GameState and/or other systems)</summary>
+        </member>
+        <member name="T:LakskongenSim.Events.EventCategory">
+            <summary>
+            Categories of events that can occur in the game
+            </summary>
+        </member>
+        <member name="F:LakskongenSim.Events.EventCategory.Weather">
+            <summary>Weather-related events</summary>
+        </member>
+        <member name="F:LakskongenSim.Events.EventCategory.Disease">
+            <summary>Disease-related events</summary>
+        </member>
+        <member name="F:LakskongenSim.Events.EventCategory.Market">
+            <summary>Market-related events</summary>
+        </member>
+        <member name="F:LakskongenSim.Events.EventCategory.Regulation">
+            <summary>Regulatory events</summary>
+        </member>
+        <member name="F:LakskongenSim.Events.EventCategory.Equipment">
+            <summary>Equipment-related events</summary>
+        </member>
+        <member name="F:LakskongenSim.Events.EventCategory.Community">
+            <summary>Community-related events</summary>
+        </member>
+        <member name="F:LakskongenSim.Events.EventCategory.Investor">
+            <summary>Investor-related events</summary>
+        </member>
+        <member name="F:LakskongenSim.Events.EventCategory.Competitor">
+            <summary>Competitor-related events</summary>
+        </member>
+        <member name="F:LakskongenSim.Events.EventCategory.Other">
+            <summary>Other events</summary>
+        </member>
+        <member name="T:LakskongenSim.Events.EventRecord">
+            <summary>
+            Record of an event that occurred during gameplay
+            </summary>
+        </member>
+        <member name="P:LakskongenSim.Events.EventRecord.Day">
+            <summary>Game day when the event occurred</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.EventRecord.Id">
+            <summary>Unique identifier for the event</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.EventRecord.Name">
+            <summary>Name of the event</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.EventRecord.Category">
+            <summary>Category of the event</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.EventRecord.Description">
+            <summary>Description of the event</summary>
+        </member>
+        <member name="P:LakskongenSim.Events.EventRecord.BalanceChange">
+            <summary>Financial impact of the event in NOK</summary>
+        </member>
+        <member name="M:LakskongenSim.Events.EventRecord.ToString">
+            <inheritdoc/>
         </member>
         <member name="T:LakskongenSim.Events.NorwegianEvents">
             <summary>

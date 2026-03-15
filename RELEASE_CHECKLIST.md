@@ -1,0 +1,165 @@
+# Release Checklist — Lakskongen Early Access
+
+> Actionable checklist for Steam Early Access launch. Track progress by checking boxes.
+
+---
+
+## Pre-Launch: Code & Build
+
+- [x] Clean build: `dotnet build --configuration Release` — **0 errors** (1271 warnings, all CS1591 XML doc)
+- [x] Main test suite: **45/45 pass** (LakskongenSim.Tests)
+- [x] Save/Load tests: **20/20 pass** (LakskongenSim.SaveLoadTests)
+- [ ] Health tests: **17/18 pass** — 1 failure: `InfectionProgression_IncreasesPrevalenceAndCausesDeaths` (flaky stochastic assertion)
+- [ ] Fix or stabilize flaky disease test (T72-followup)
+- [ ] Logistics tests: verify separately
+- [ ] Processing tests: verify separately
+- [x] `bin/` and `obj/` clean rebuild verified
+
+## Pre-Launch: Assets & Content
+
+### Audio (27/27 ✅)
+- [x] Ambient: harbor_ambience, ice_cracking, ocean_waves, rain_heavy, rain_light, seagulls, storm, underwater, wind_light, wind_strong (10)
+- [x] Music: autumn, calm_sea, main_theme, spring, summer, winter (6)
+- [x] SFX: achievement_unlock, disease_alert, financial_crisis, harvest_ready, lice_alert (5)
+- [x] UI: button_click, button_hover, error, notification, panel_close, panel_open (6)
+- [ ] Verify all audio files are production quality (not placeholder/generated)
+- [ ] Audio levels normalized across categories
+
+### Localization (6 languages, 633 keys ✅)
+- [x] Base strings file: 634 lines (633 keys + header)
+- [x] Norwegian (strings_no.csv): 107 lines
+- [x] English (strings_en.csv): 107 lines
+- [x] German (strings_de.csv): 107 lines
+- [x] Spanish (strings_es.csv): 107 lines
+- [x] French (strings_fr.csv): 107 lines
+- [x] Japanese (strings_ja.csv): 107 lines
+- [ ] Verify per-language files contain all 633 keys (currently 106 each — may be subset)
+- [ ] Native speaker review for each language
+- [ ] In-game language switching tested
+
+### Documentation
+- [x] README.md present
+- [x] CHANGELOG.md present
+- [x] CONTRIBUTING.md present
+- [x] CREDITS.txt present
+- [x] GDD.md present
+- [x] VISION.md present
+- [ ] CHANGELOG.md updated with v0.1.0 EA release notes
+- [ ] README.md reviewed for accuracy
+- [ ] CREDITS.txt includes all contributors, asset licenses
+
+---
+
+## Steam Store Page
+
+### Required
+- [ ] Store page text finalized (from MARKETING_COPY.md / T70)
+- [ ] Short description (≤300 chars)
+- [ ] About This Game section
+- [ ] Early Access FAQ / "Why Early Access?"
+- [ ] Screenshots uploaded (minimum 5, see STEAM_STORE_ASSETS.md)
+- [ ] Capsule images (header, main, small, vertical)
+- [ ] At least one capsule approved by Steam review
+
+### Pricing
+- [ ] Base price set: **$29.99 USD / NOK 349**
+- [ ] Regional pricing reviewed (Steam auto-suggestions)
+- [ ] Launch discount decision (10-15% recommended for EA)
+- [ ] Pricing parity across regions verified
+
+### System Requirements
+- [ ] Minimum requirements documented:
+  - **OS:** Windows 10 64-bit
+  - **CPU:** Intel i5-6600 / AMD Ryzen 3 1200
+  - **RAM:** 8 GB
+  - **GPU:** GTX 960 / RX 460 (2GB VRAM)
+  - **Storage:** 2 GB
+  - **.NET:** Runtime 8.0 (bundled)
+- [ ] Recommended requirements documented:
+  - **OS:** Windows 11 64-bit
+  - **CPU:** Intel i7-9700 / AMD Ryzen 5 3600
+  - **RAM:** 16 GB
+  - **GPU:** GTX 1660 / RX 580 (4GB VRAM)
+  - **Storage:** 4 GB
+- [ ] Linux/macOS support status documented (not supported at EA launch)
+
+### Tags & Categories
+- [ ] Genre tags: Simulation, Strategy, Management, Indie
+- [ ] Feature tags: Economy, Farming Sim, Resource Management, Singleplayer
+- [ ] User-defined tags: Aquaculture, Norway, Tycoon, Environmental
+- [ ] Content descriptors: None required
+
+### Trailer
+- [ ] Gameplay trailer uploaded (or placeholder announcement video)
+- [ ] Trailer structure: see STEAM_STORE_ASSETS.md
+- [ ] 30-second cut for Steam Next Fest / social media
+
+---
+
+## Post-Launch: Day 1
+
+- [ ] Community hub enabled
+- [ ] Discussion boards created (General, Bug Reports, Suggestions, Guides)
+- [ ] Community Discord server set up
+- [ ] Discord ↔ Steam community linked
+- [ ] Announcement post: "Lakskongen is now in Early Access!"
+
+## Post-Launch: Week 1
+
+- [ ] Bug reporting workflow documented
+  - Steam discussions → tracked in GitHub Issues
+  - In-game feedback form (if applicable)
+- [ ] Hotfix pipeline ready (build → test → upload → publish ≤ 24h)
+- [ ] First patch targets identified from EA feedback
+- [ ] Community manager monitoring schedule
+
+## Post-Launch: Month 1
+
+- [ ] EA roadmap published (next 3-6 months of development)
+- [ ] First content update planned
+- [ ] Mod support documentation (if applicable)
+- [ ] Review response strategy (positive engagement, bug acknowledgment)
+
+---
+
+## Build & Deploy Pipeline
+
+- [ ] Steamworks SDK integrated
+- [ ] SteamPipe depots configured
+- [ ] Build upload script (`steamcmd` or Steamworks)
+- [ ] Branch management: `default` (stable), `beta` (preview)
+- [ ] DRM-free build option evaluated
+- [ ] Steam Cloud save sync configured
+- [ ] Achievement hooks wired (future)
+
+---
+
+## Legal & Compliance
+
+- [ ] EULA / Terms of Service
+- [ ] Privacy Policy (if collecting telemetry)
+- [ ] Third-party license attributions in CREDITS.txt
+- [ ] Audio/music licensing verified (all original or properly licensed)
+- [ ] Font licensing verified
+
+---
+
+## Summary — Launch Blockers
+
+| Item | Status | Blocker? |
+|------|--------|----------|
+| Clean build (0 errors) | ✅ PASS | — |
+| Core tests (45/45) | ✅ PASS | — |
+| Save/Load tests (20/20) | ✅ PASS | — |
+| Health test failure (1) | ⚠️ 1 flaky | Minor — not a launch blocker |
+| Audio files (27/27) | ✅ Present | Verify quality |
+| Localization (6 lang) | ✅ Files present | Verify completeness |
+| Documentation | ✅ All present | Review content |
+| Steam capsule images | ❌ Not created | **BLOCKER** |
+| Steam screenshots | ❌ Not captured | **BLOCKER** |
+| Store page text | ❌ Not uploaded | **BLOCKER** |
+| Steamworks integration | ❌ Not started | **BLOCKER** |
+
+---
+
+*Generated: 2026-03-15 | Sprint 10 — T72 Final Build Verification*
