@@ -286,9 +286,14 @@ public enum ProductionRegion
 /// </summary>
 public enum WinCondition
 {
-    Tutorial,       // Complete all tutorial milestones
-    Profit,         // Reach a target profit threshold
-    Sustainability, // Achieve Sustainability Leader certification (score ≥ 95)
-    Survival,       // Survive N days without bankruptcy
-    Competition     // Outpace AI competitors to a shared profit target
+    /// <summary>Complete all tutorial milestones</summary>
+    Tutorial,
+    /// <summary>Reach a target profit threshold</summary>
+    Profit,
+    /// <summary>Achieve Sustainability Leader certification (score ≥ 95)</summary>
+    Sustainability,
+    /// <summary>Survive N days without bankruptcy</summary>
+    Survival,
+    /// <summary>Outpace AI competitors to a shared profit target</summary>
+    Competition
 }

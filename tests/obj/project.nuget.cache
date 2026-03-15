@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "ZdMgVn+SdNM=",
+  "dgSpecHash": "t5H2PbaefUY=",
   "success": true,
-  "projectFilePath": "C:\\Users\\freha\\.openclaw\\workspace\\salmon-sim\\tests\\LakskongenSim.ProcessingTests.csproj",
+  "projectFilePath": "C:\\Users\\freha\\.openclaw\\workspace\\salmon-sim\\tests\\LakskongenSim.SaveLoadTests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\freha\\.nuget\\packages\\microsoft.codecoverage\\17.7.2\\microsoft.codecoverage.17.7.2.nupkg.sha512",
     "C:\\Users\\freha\\.nuget\\packages\\microsoft.net.test.sdk\\17.7.2\\microsoft.net.test.sdk.17.7.2.nupkg.sha512",

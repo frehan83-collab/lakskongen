@@ -1,0 +1,143 @@
+# LAKSKONGEN - Salmon Farming Simulator
+# Audio Asset Credits
+
+===============================================================================
+AUDIO CREDITS
+===============================================================================
+
+This game uses audio assets from the following sources. All assets are used
+under their respective licenses as documented below.
+
+-------------------------------------------------------------------------------
+UI SOUNDS & ALERT SFX
+-------------------------------------------------------------------------------
+
+Source: Kenney.nl - UI Audio Pack
+License: CC0 1.0 Universal (Public Domain)
+URL: https://kenney.nl/assets/ui-audio
+Files Used: 11 sound files (6 UI + 5 alert sounds)
+
+No attribution required under CC0 license, but credit is appreciated:
+"UI Audio Pack" by Kenney.nl (www.kenney.nl)
+
+Files:
+- button_click.wav
+- button_hover.wav
+- notification.wav
+- panel_open.wav
+- panel_close.wav
+- error.wav
+- disease_alert.wav
+- harvest_ready.wav
+
+-------------------------------------------------------------------------------
+
+Source: Freesound.org - Community Sound Library
+License: CC0 1.0 Universal (Public Domain)
+URL: https://freesound.org/
+
+Files:
+- lice_alert.wav
+- financial_crisis.wav
+- achievement_unlock.wav
+
+No attribution required under CC0 license.
+
+-------------------------------------------------------------------------------
+AMBIENT SOUNDS
+-------------------------------------------------------------------------------
+
+Source: Mixkit - Free Sound Effects Library
+License: Mixkit Sound Effects Free License
+URL: https://mixkit.co/free-sound-effects/
+Files Used: 10 ambient sound files
+
+No attribution required for free license use.
+
+Files:
+- ocean_waves.ogg
+- seagulls.ogg
+- wind_light.ogg
+- wind_strong.ogg
+- rain_light.ogg
+- rain_heavy.ogg
+- storm.ogg
+- harbor_ambience.ogg
+- underwater.ogg
+- ice_cracking.ogg
+
+-------------------------------------------------------------------------------
+MUSIC
+-------------------------------------------------------------------------------
+
+⚠️ PLACEHOLDER MUSIC CURRENTLY IN USE ⚠️
+
+Current music files are temporary sine wave tones for testing purposes only.
+These will be replaced with proper licensed music tracks.
+
+When replaced with Incompetech tracks, attribution will be:
+
+Music by Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0 License
+http://creativecommons.org/licenses/by/4.0/
+
+Tracks (PENDING REPLACEMENT):
+- main_theme.ogg (placeholder)
+- calm_sea.ogg (placeholder)
+- spring.ogg (placeholder)
+- summer.ogg (placeholder)
+- autumn.ogg (placeholder)
+- winter.ogg (placeholder)
+
+See MUSIC_REPLACEMENT_GUIDE.md for instructions on obtaining proper music files.
+
+===============================================================================
+LICENSE INFORMATION
+===============================================================================
+
+CC0 1.0 Universal (Public Domain Dedication)
+URL: https://creativecommons.org/publicdomain/zero/1.0/
+
+The person who associated a work with this deed has dedicated the work to
+the public domain by waiving all of his or her rights to the work worldwide
+under copyright law, including all related and neighboring rights, to the
+extent allowed by law.
+
+-------------------------------------------------------------------------------
+
+Creative Commons Attribution 4.0 International (CC BY 4.0)
+URL: http://creativecommons.org/licenses/by/4.0/
+
+You are free to:
+- Share — copy and redistribute the material in any medium or format
+- Adapt — remix, transform, and build upon the material for any purpose
+
+Under the following terms:
+- Attribution — You must give appropriate credit, provide a link to the
+  license, and indicate if changes were made.
+
+-------------------------------------------------------------------------------
+
+Mixkit Sound Effects Free License
+URL: https://mixkit.co/license/#sfxFree
+
+You are free to use these sound effects in personal or commercial projects,
+including feature films, broadcast, commercial, industrial, or educational
+purposes.
+
+===============================================================================
+TOOLS USED
+===============================================================================
+
+Audio Conversion: FFmpeg 8.0.1
+License: GPL v3+
+URL: https://ffmpeg.org/
+Used for converting audio files to WAV/OGG formats for Godot Engine.
+
+===============================================================================
+
+This CREDITS.txt file is part of the Lakskongen project.
+For questions or licensing inquiries, contact the development team.
+
+Last Updated: 2026-03-15
+Version: 1.0 (T69 Audio Integration)

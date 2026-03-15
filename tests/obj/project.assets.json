@@ -5564,9 +5564,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\freha\\.openclaw\\workspace\\salmon-sim\\tests\\LakskongenSim.ProcessingTests.csproj",
-      "projectName": "LakskongenSim.ProcessingTests",
-      "projectPath": "C:\\Users\\freha\\.openclaw\\workspace\\salmon-sim\\tests\\LakskongenSim.ProcessingTests.csproj",
+      "projectUniqueName": "C:\\Users\\freha\\.openclaw\\workspace\\salmon-sim\\tests\\LakskongenSim.SaveLoadTests.csproj",
+      "projectName": "LakskongenSim.SaveLoadTests",
+      "projectPath": "C:\\Users\\freha\\.openclaw\\workspace\\salmon-sim\\tests\\LakskongenSim.SaveLoadTests.csproj",
       "packagesPath": "C:\\Users\\freha\\.nuget\\packages\\",
       "outputPath": "C:\\Users\\freha\\.openclaw\\workspace\\salmon-sim\\tests\\obj\\",
       "projectStyle": "PackageReference",

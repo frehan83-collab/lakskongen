@@ -5,84 +5,152 @@ using LakskongenSim.Core;
 
 namespace LakskongenSim.Events
 {
+    /// <summary>
+    /// Types of crises that can affect competitor companies
+    /// </summary>
     public enum CrisisType
     {
+        /// <summary>Disease outbreak affecting fish stocks</summary>
         DISEASE_OUTBREAK,
+        /// <summary>Company bankruptcy</summary>
         BANKRUPTCY,
+        /// <summary>Regulatory shutdown</summary>
         REGULATORY_SHUTDOWN,
+        /// <summary>Market crash</summary>
         MARKET_CRASH,
+        /// <summary>Environmental scandal</summary>
         ENVIRONMENTAL_SCANDAL
     }
 
+    /// <summary>
+    /// Types of assets available for acquisition
+    /// </summary>
     public enum AssetType
     {
+        /// <summary>Aquaculture license</summary>
         LICENSE,
+        /// <summary>Farm site</summary>
         FARM_SITE,
+        /// <summary>Processing plant</summary>
         PROCESSING_PLANT,
+        /// <summary>Equipment</summary>
         EQUIPMENT
     }
 
+    /// <summary>
+    /// Represents a crisis event affecting a competitor
+    /// </summary>
     public class CrisisEvent
     {
+        /// <summary>Unique identifier for the crisis event</summary>
         public string Id { get; set; } = Guid.NewGuid().ToString();
+        /// <summary>Type of crisis</summary>
         public CrisisType Type { get; set; }
+        /// <summary>ID of the affected competitor</summary>
         public string AffectedCompetitorId { get; set; } = string.Empty;
+        /// <summary>Name of the affected competitor</summary>
         public string CompetitorName { get; set; } = string.Empty;
-        public float SeverityScore { get; set; } // 0-1 scale
-        public float DiscountMultiplier { get; set; } // How much asset prices are reduced
+        /// <summary>Severity score on a 0-1 scale</summary>
+        public float SeverityScore { get; set; }
+        /// <summary>Multiplier for asset price discounts</summary>
+        public float DiscountMultiplier { get; set; }
+        /// <summary>Duration of the crisis in months</summary>
         public int DurationMonths { get; set; }
+        /// <summary>Start date of the crisis</summary>
         public DateTime StartDate { get; set; }
+        /// <summary>Whether the crisis is currently active</summary>
         public bool IsActive => DateTime.Now < StartDate.AddMonths(DurationMonths);
 
+        /// <inheritdoc/>
         public override string ToString()
         {
             return $"{Type} affecting {CompetitorName} - Severity: {SeverityScore:P0}, Duration: {DurationMonths} months";
         }
     }
 
+    /// <summary>
+    /// Represents an asset available for acquisition at a distressed price
+    /// </summary>
     public class DistressedAsset
     {
+        /// <summary>Unique identifier for the asset</summary>
         public string Id { get; set; } = Guid.NewGuid().ToString();
+        /// <summary>Type of asset</summary>
         public AssetType AssetType { get; set; }
+        /// <summary>Asset name</summary>
         public string Name { get; set; } = string.Empty;
+        /// <summary>Asset description</summary>
         public string Description { get; set; } = string.Empty;
+        /// <summary>Asset location</summary>
         public string Location { get; set; } = string.Empty;
+        /// <summary>Original fair market value in NOK</summary>
         public decimal OriginalValueNOK { get; set; }
+        /// <summary>Current discounted price in NOK</summary>
         public decimal DiscountedPriceNOK { get; set; }
+        /// <summary>Months remaining before offer expires</summary>
         public int TimeRemainingMonths { get; set; }
-        public float RiskScore { get; set; } // 0-1 scale (disease contamination, reputation damage, etc.)
+        /// <summary>Risk score on a 0-1 scale (disease contamination, reputation damage, etc.)</summary>
+        public float RiskScore { get; set; }
+        /// <summary>ID of the associated crisis event</summary>
         public string CrisisEventId { get; set; } = string.Empty;
+        /// <summary>Name of the distressed competitor</summary>
         public string OwningCompetitor { get; set; } = string.Empty;
         
+        /// <summary>Potential savings from the discount</summary>
         public decimal PotentialSavings => OriginalValueNOK - DiscountedPriceNOK;
+        /// <summary>Discount percentage</summary>
         public float DiscountPercentage => OriginalValueNOK == 0m ? 0f : (float)((OriginalValueNOK - DiscountedPriceNOK) / OriginalValueNOK);
         
+        /// <inheritdoc/>
         public override string ToString()
         {
             return $"{AssetType}: {Name} - {DiscountedPriceNOK:N0} NOK ({DiscountPercentage:P0} off), Risk: {RiskScore:P0}";
         }
     }
 
+    /// <summary>
+    /// Result of attempting to acquire a distressed asset
+    /// </summary>
     public class AcquisitionResult
     {
+        /// <summary>Whether the acquisition was successful</summary>
         public bool Success { get; set; }
+        /// <summary>Result message</summary>
         public string Message { get; set; } = string.Empty;
+        /// <summary>Total acquisition cost in NOK</summary>
         public decimal CostNOK { get; set; }
+        /// <summary>Risk level of integrating the acquired asset</summary>
         public float IntegrationRisk { get; set; }
+        /// <summary>The acquired asset, if successful</summary>
         public DistressedAsset? AcquiredAsset { get; set; }
-        public float ReputationImpact { get; set; } // Negative for "vulture capitalism"
+        /// <summary>Impact on reputation (negative for "vulture capitalism")</summary>
+        public float ReputationImpact { get; set; }
     }
 
+    /// <summary>Handler for crisis triggered events</summary>
+    /// <param name="competitorId">ID of affected competitor</param>
+    /// <param name="type">Type of crisis</param>
+    /// <param name="severity">Severity score</param>
     public delegate void CrisisTriggeredHandler(string competitorId, CrisisType type, float severity);
+    
+    /// <summary>Handler for distressed asset acquisitions</summary>
+    /// <param name="assetType">Type of asset acquired</param>
+    /// <param name="price">Acquisition price</param>
+    /// <param name="riskScore">Risk score of the asset</param>
     public delegate void DistressedAssetAcquiredHandler(AssetType assetType, decimal price, float riskScore);
 
+    /// <summary>
+    /// System for simulating competitor crises and opportunities for distressed asset acquisition
+    /// </summary>
     public class CrisisCapitalismSystem
     {
         private readonly List<CrisisEvent> _activeCrises = new List<CrisisEvent>();
         private readonly List<DistressedAsset> _availableAssets = new List<DistressedAsset>();
         private readonly Random _random = new Random();
 
+        /// <summary>Event raised when a crisis is triggered for a competitor</summary>
         public event CrisisTriggeredHandler? CrisisTriggered;
+        /// <summary>Event raised when a distressed asset is acquired</summary>
         public event DistressedAssetAcquiredHandler? DistressedAssetAcquired;
 
         private readonly Dictionary<CrisisType, float> _baseSeverityRanges = new Dictionary<CrisisType, float>
