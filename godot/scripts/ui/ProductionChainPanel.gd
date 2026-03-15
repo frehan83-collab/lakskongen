@@ -217,7 +217,7 @@ func _update_stage_row(stage_data: Dictionary) -> void:
 	if stage_data.unit == "kg":
 		quantity_label.text = SimBridge.format_biomass(quantity)
 	elif stage_data.unit == "markets":
-		quantity_label.text = "%d markets" % int(quantity)
+		quantity_label.text = tr("ui.production.markets_format") % int(quantity)
 	else:
 		quantity_label.text = SimBridge.format_fish(int(quantity))
 	

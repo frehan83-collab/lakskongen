@@ -1,0 +1,31 @@
+keys,no,en,de,fr,es,ja
+# Additional ContractsPanel keys
+ui.contracts.spot_price,"Spot price: %s NOK/kg","Spot price: %s NOK/kg","Spotpreis: %s NOK/kg","Prix au comptant: %s NOK/kg","Precio spot: %s NOK/kg","スポット価格: %s NOK/kg"
+ui.contracts.avg_contract,"Avg contract: %s NOK/kg (%+.1f%%)","Avg contract: %s NOK/kg (%+.1f%%)","Durchschn. Vertrag: %s NOK/kg (%+.1f%%)","Contrat moyen: %s NOK/kg (%+.1f%%)","Contrato promedio: %s NOK/kg (%+.1f%%)","平均契約: %s NOK/kg (%+.1f%%)"
+ui.contracts.no_active,"No active contracts","No active contracts","Keine aktiven Verträge","Aucun contrat actif","Sin contratos activos","アクティブな契約なし"
+ui.contracts.quantity_format,"%s/%s kg (%d%%)","%s/%s kg (%d%%)","%s/%s kg (%d%%)","%s/%s kg (%d%%)","%s/%s kg (%d%%)","%s/%s kg (%d%%)"
+# Encyclopedia  
+ui.encyclopedia.entry_count,"📋 %d 📋","📋 %d 📋","📋 %d 📋","📋 %d 📋","📋 %d 📋","📋 %d 📋"
+ui.encyclopedia.select_info,"Select a category from the sidebar, then choose an entry to read detailed information about salmon farming in Norway.","Select a category from the sidebar, then choose an entry to read detailed information about salmon farming in Norway.","Wählen Sie eine Kategorie aus der Seitenleiste und dann einen Eintrag, um detaillierte Informationen über Lachszucht in Norwegen zu lesen.","Sélectionnez une catégorie dans la barre latérale, puis choisissez une entrée pour lire des informations détaillées sur la salmoniculture en Norvège.","Seleccione una categoría de la barra lateral, luego elija una entrada para leer información detallada sobre el cultivo de salmón en Noruega.","サイドバーからカテゴリを選択し、次にエントリを選択して、ノルウェーのサーモン養殖に関する詳細情報を読んでください。"
+# Finance
+ui.finance.balance,"Bal: %s","Bal: %s","Sal: %s","Sol: %s","Saldo: %s","残高: %s"
+# MapPanel
+ui.map.select_region,"Select a region","Select a region","Wählen Sie eine Region","Sélectionnez une région","Seleccione una región","地域を選択"
+ui.map.click_prompt,"Click a region on the map","Click a region on the map","Klicken Sie auf eine Region auf der Karte","Cliquez sur une région sur la carte","Haga clic en una región del mapa","マップ上の地域をクリック"
+ui.map.region_desc,"Choose a region from the map to see licensing availability, water conditions, disease risk, and logistics information.","Choose a region from the map to see licensing availability, water conditions, disease risk, and logistics information.","Wählen Sie eine Region auf der Karte aus, um Verfügbarkeit von Lizenzen, Wasserbedingungen, Krankheitsrisiko und Logistikinformationen zu sehen.","Choisissez une région sur la carte pour voir la disponibilité des licences, les conditions de l'eau, le risque de maladie et les informations logistiques.","Elija una región del mapa para ver la disponibilidad de licencias, condiciones del agua, riesgo de enfermedades e información logística.","マップから地域を選択して、ライセンスの可用性、水条件、疾病リスク、物流情報を確認してください。"
+# ModManager
+ui.modmanager.status_disabled,"⚪ Deaktivert","⚪ Disabled","⚪ Deaktiviert","⚪ Désactivé","⚪ Desactivado","⚪ 無効"
+ui.modmanager.author_format,"Forfatter: %s","Author: %s","Autor: %s","Auteur: %s","Autor: %s","著者: %s"
+ui.modmanager.author_unknown,"Ukjent","Unknown","Unbekannt","Inconnu","Desconocido","不明"
+# ScenarioSelect
+ui.scenario.win_icon,"🎯","🎯","🎯","🎯","🎯","🎯"
+ui.scenario.locked_btn,"🔒 LÅST","🔒 LOCKED","🔒 GESPERRT","🔒 VERROUILLÉ","🔒 BLOQUEADO","🔒 ロック済み"
+ui.scenario.start_btn,"▶️ START SCENARIO","▶️ START SCENARIO","▶️ SZENARIO STARTEN","▶️ DÉMARRER SCÉNARIO","▶️ INICIAR ESCENARIO","▶️ シナリオ開始"
+# Settings
+ui.settings.speed_format,"%.1fx","%.1fx","%.1fx","%.1fx","%.1fx","%.1fx"
+ui.settings.saved,"Lagret ✓","Saved ✓","Gespeichert ✓","Enregistré ✓","Guardado ✓","保存済み ✓"
+ui.settings.apply,"Bruk","Apply","Anwenden","Appliquer","Aplicar","適用"
+# TechTree
+ui.tech.cost_format,"%s 🕐 %dd","%s 🕐 %dd","%s 🕐 %dd","%s 🕐 %dd","%s 🕐 %dd","%s 🕐 %dd"
+# Tutorial
+ui.tutorial.completed,"Fullført ✓","Completed ✓","Abgeschlossen ✓","Terminé ✓","Completado ✓","完了 ✓"

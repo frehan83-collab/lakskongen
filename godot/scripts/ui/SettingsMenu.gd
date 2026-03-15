@@ -326,14 +326,14 @@ func _apply_to_widgets(data: Dictionary) -> void:
 
 
 func _update_pct_labels() -> void:
-	master_pct.text  = "%d%%" % int(master_slider.value)
-	music_pct.text   = "%d%%" % int(music_slider.value)
-	ambient_pct.text = "%d%%" % int(ambient_slider.value)
-	sfx_pct.text     = "%d%%" % int(sfx_slider.value)
+	master_pct.text  = tr("ui.settings.volume_format") % int(master_slider.value)
+	music_pct.text   = tr("ui.settings.volume_format") % int(music_slider.value)
+	ambient_pct.text = tr("ui.settings.volume_format") % int(ambient_slider.value)
+	sfx_pct.text     = tr("ui.settings.volume_format") % int(sfx_slider.value)
 
 
 func _update_speed_label() -> void:
-	speed_val.text = "%.1fx" % speed_slider.value
+	speed_val.text = tr("ui.settings.speed_format") % speed_slider.value
 
 # ── Apply settings to engine ──────────────────────────────────────────────────
 
@@ -451,10 +451,10 @@ func _on_apply_pressed() -> void:
 	_dirty = false
 	settings_applied.emit()
 	# Animate the button briefly to give feedback
-	apply_button.text = "Lagret ✓"
+	apply_button.text = tr("ui.settings.saved")
 	var tween := create_tween()
 	tween.tween_interval(1.2)
-	tween.tween_callback(func(): apply_button.text = "Bruk")
+	tween.tween_callback(func(): apply_button.text = tr("ui.settings.apply"))
 
 
 func _on_reset_pressed() -> void:

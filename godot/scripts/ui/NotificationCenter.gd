@@ -68,6 +68,11 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_notifications"):
 		toggle()
 		get_viewport().set_input_as_handled()
+		return
+	
+	if visible and event.is_action_pressed("ui_cancel"):
+		hide()
+		get_viewport().set_input_as_handled()
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
@@ -197,7 +202,7 @@ func _build_entry_node(entry: Dictionary, index: int) -> Control:
 	header.add_child(title_lbl)
 
 	var day_lbl := Label.new()
-	day_lbl.text = "Dag %d" % entry.get("day", 0)
+	day_lbl.text = tr("ui.notification.day_format") % entry.get("day", 0)
 	day_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 	day_lbl.add_theme_font_size_override("font_size", 10)
 	header.add_child(day_lbl)

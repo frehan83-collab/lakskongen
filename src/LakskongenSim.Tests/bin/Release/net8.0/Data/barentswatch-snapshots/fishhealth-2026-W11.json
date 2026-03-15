@@ -1,8 +1,8 @@
 {
   "Source": "BarentsWatch Fishhealth",
-  "RetrievedAtUtc": "2026-03-14T23:24:35.8422654Z",
+  "RetrievedAtUtc": "2026-03-15T00:55:47.978573Z",
   "Raw": {
-    "RetrievedAtUtc": "2026-03-14T23:24:35.8422654Z",
+    "RetrievedAtUtc": "2026-03-15T00:55:47.978573Z",
     "Year": 2026,
     "Week": 11,
     "SourceName": "BarentsWatch Fishhealth",
@@ -77,7 +77,7 @@
     ]
   },
   "Normalized": {
-    "RetrievedAtUtc": "2026-03-14T23:24:35.8422654Z",
+    "RetrievedAtUtc": "2026-03-15T00:55:47.978573Z",
     "SourceSummary": "BarentsWatch Fishhealth (offline-file)",
     "SnapshotYear": 2026,
     "SnapshotWeek": 11,

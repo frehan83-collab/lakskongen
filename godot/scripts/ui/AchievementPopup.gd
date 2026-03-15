@@ -90,7 +90,7 @@ func show_achievement(achievement_name: String, description: String, reward_nok:
 	_tier_label.modulate = TIER_COLORS.get(tier, COL_GOLD_LIGHT)
 
 	if reward_nok > 0.0:
-		_reward_label.text    = "+ %s NOK" % _format_nok(reward_nok)
+		_reward_label.text    = tr("ui.achievement.reward_format") % _format_nok(reward_nok)
 		_reward_label.visible = true
 	else:
 		_reward_label.visible = false
@@ -153,7 +153,7 @@ func _build_ui() -> void:
 
 	# "ACHIEVEMENT UNLOCKED" header
 	var header := Label.new()
-	header.text = "ACHIEVEMENT UNLOCKED"
+	header.text = tr("ui.achievement.unlocked")
 	header.add_theme_font_size_override("font_size", 11)
 	header.add_theme_color_override("font_color", COL_TEXT_DARK)
 	header.position = Vector2(76, 12)

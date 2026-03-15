@@ -223,7 +223,7 @@ func _update_loan_display(loan_info: Dictionary):
 	var has_loan = loan_info.get("has_loan", false)
 	
 	if loan_status_label:
-		loan_status_label.text = "Active" if has_loan else "No Active Loan"
+		loan_status_label.text = tr("ui.finance.loan_active") if has_loan else tr("ui.finance.loan_none")
 		loan_status_label.add_theme_color_override("font_color", 
 			Color(1.0, 0.8, 0.2) if has_loan else COLOR_NEUTRAL)
 	
@@ -232,7 +232,7 @@ func _update_loan_display(loan_info: Dictionary):
 			loan_amount_label.text = _format_nok(loan_info.get("amount", 0.0))
 		
 		if loan_interest_label:
-			loan_interest_label.text = "%.2f%%" % (loan_info.get("interest_rate", 0.0) * 100)
+			loan_interest_label.text = tr("ui.finance.loan_interest_format") % (loan_info.get("interest_rate", 0.0) * 100)
 		
 		if loan_remaining_label:
 			loan_remaining_label.text = _format_nok(loan_info.get("remaining", 0.0))
@@ -282,7 +282,7 @@ func _update_history_display(history: Array):
 		
 		# Day
 		var day_lbl = Label.new()
-		day_lbl.text = "Day %d" % day
+		day_lbl.text = tr("ui.finance.history_day") % day
 		day_lbl.custom_minimum_size = Vector2(80, 0)
 		day_lbl.add_theme_font_size_override("font_size", 12)
 		day_lbl.add_theme_color_override("font_color", Color(COLOR_MUTED))
@@ -290,7 +290,7 @@ func _update_history_display(history: Array):
 		
 		# Revenue
 		var rev_lbl = Label.new()
-		rev_lbl.text = "Rev: %s" % _format_nok_short(entry_revenue)
+		rev_lbl.text = tr("ui.finance.history_revenue") % _format_nok_short(entry_revenue)
 		rev_lbl.custom_minimum_size = Vector2(120, 0)
 		rev_lbl.add_theme_font_size_override("font_size", 11)
 		rev_lbl.add_theme_color_override("font_color", COLOR_POSITIVE)
@@ -298,7 +298,7 @@ func _update_history_display(history: Array):
 		
 		# Expenses
 		var exp_lbl = Label.new()
-		exp_lbl.text = "Exp: %s" % _format_nok_short(entry_expenses)
+		exp_lbl.text = tr("ui.finance.history_expenses") % _format_nok_short(entry_expenses)
 		exp_lbl.custom_minimum_size = Vector2(120, 0)
 		exp_lbl.add_theme_font_size_override("font_size", 11)
 		exp_lbl.add_theme_color_override("font_color", COLOR_NEGATIVE)
@@ -306,7 +306,7 @@ func _update_history_display(history: Array):
 		
 		# Balance
 		var bal_lbl = Label.new()
-		bal_lbl.text = "Bal: %s" % _format_nok_short(entry_balance)
+		bal_lbl.text = tr("ui.finance.balance") % _format_nok_short(entry_balance)
 		bal_lbl.add_theme_font_size_override("font_size", 11)
 		bal_lbl.add_theme_color_override("font_color", 
 			COLOR_POSITIVE if entry_balance >= 0 else COLOR_NEGATIVE)

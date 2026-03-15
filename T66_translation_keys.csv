@@ -1,0 +1,114 @@
+keys,no,en,de,fr,es,ja
+# CrewPanel
+ui.crew.header,"👷 Crew Management","👷 Crew Management","👷 Personalverwaltung","👷 Gestion d'Équipe","👷 Gestión de Tripulación","👷 乗組員管理"
+ui.crew.header_tooltip,"Administrer ansatte: roller, lønn, ferdigheter og ansettelse/oppsigelse.","Manage employees: roles, salary, skills and hiring/firing.","Mitarbeiter verwalten: Rollen, Gehalt, Fähigkeiten und Einstellung/Entlassung.","Gérer les employés: rôles, salaire, compétences et embauche/licenciement.","Gestionar empleados: roles, salario, habilidades y contratación/despido.","従業員を管理: 役割、給与、スキル、採用/解雇。"
+ui.crew.total_workers,"Total Workers:","Total Workers:","Gesamt Arbeiter:","Total Travailleurs:","Total Trabajadores:","総労働者:"
+ui.crew.total_payroll,"Total Payroll:","Total Payroll:","Gesamtlohn:","Salaire Total:","Nómina Total:","総給与:"
+ui.crew.hire_header,"Hire Workers","Hire Workers","Arbeiter Einstellen","Embaucher Travailleurs","Contratar Trabajadores","労働者を雇う"
+ui.crew.hire_manager,"Hire Manager","Hire Manager","Manager Einstellen","Embaucher Manager","Contratar Gerente","マネージャーを雇う"
+ui.crew.hire_technician,"Hire Technician","Hire Technician","Techniker Einstellen","Embaucher Technicien","Contratar Técnico","技術者を雇う"
+ui.crew.hire_veterinarian,"Hire Veterinarian","Hire Veterinarian","Tierarzt Einstellen","Embaucher Vétérinaire","Contratar Veterinario","獣医を雇う"
+ui.crew.hire_diver,"Hire Diver","Hire Diver","Taucher Einstellen","Embaucher Plongeur","Contratar Buceador","ダイバーを雇う"
+ui.crew.hire_feeder,"Hire Feeder","Hire Feeder","Fütterer Einstellen","Embaucher Nourricier","Contratar Alimentador","給餌係を雇う"
+ui.crew.hire_tooltip,"Ansett ny %s. Koster %s NOK/dag i lønn.","Hire new %s. Costs %s NOK/day in salary.","Neue %s einstellen. Kostet %s NOK/Tag Gehalt.","Embaucher nouveau %s. Coûte %s NOK/jour de salaire.","Contratar nuevo %s. Cuesta %s NOK/día de salario.","新しい%sを雇う。給与%s NOK/日。"
+ui.crew.roster_header,"Current Crew Roster","Current Crew Roster","Aktuelle Besatzungsliste","Liste d'Équipage Actuelle","Lista de Tripulación Actual","現在の乗組員名簿"
+ui.crew.no_workers,"No workers hired yet","No workers hired yet","Noch keine Arbeiter eingestellt","Aucun travailleur embauché","Ningún trabajador contratado aún","まだ労働者を雇っていません"
+ui.crew.skill,"Skill","Skill","Fähigkeit","Compétence","Habilidad","スキル"
+ui.crew.salary,"Salary","Salary","Gehalt","Salaire","Salario","給与"
+ui.crew.hired,"Hired","Hired","Eingestellt","Embauché","Contratado","雇用"
+ui.crew.fire,"Fire","Fire","Entlassen","Licencier","Despedir","解雇"
+ui.crew.day_format,"Day %d","Day %d","Tag %d","Jour %d","Día %d","%d日目"
+# ContractsPanel
+ui.contracts.header,"📋 Contracts & Market Depth","📋 Contracts & Market Depth","📋 Verträge & Markttiefe","📋 Contrats & Profondeur du Marché","📋 Contratos y Profundidad del Mercado","📋 契約と市場深度"
+ui.contracts.active_header,"Active Contracts","Active Contracts","Aktive Verträge","Contrats Actifs","Contratos Activos","アクティブ契約"
+ui.contracts.offers_header,"Available Offers","Available Offers","Verfügbare Angebote","Offres Disponibles","Ofertas Disponibles","利用可能なオファー"
+ui.contracts.export_header,"Export Markets","Export Markets","Exportmärkte","Marchés d'Export","Mercados de Exportación","輸出市場"
+ui.contracts.refresh,"Refresh","Refresh","Aktualisieren","Actualiser","Actualizar","更新"
+ui.contracts.tooltip_header,"Vis og administrer handelskontrakter med kjøpere.","View and manage trade contracts with buyers.","Handelsverträge mit Käufern anzeigen und verwalten.","Afficher et gérer les contrats commerciaux avec les acheteurs.","Ver y gestionar contratos comerciales con compradores.","買い手との取引契約を表示および管理します。"
+# AnalyticsPanel
+ui.analytics.title,"Analytics","Analytics","Analytik","Analytique","Analítica","分析"
+ui.analytics.title_tooltip,"Visualiser ytelsesdata og trender over tid.","Visualize performance data and trends over time.","Leistungsdaten und Trends über die Zeit visualisieren.","Visualiser les données de performance et les tendances au fil du temps.","Visualizar datos de rendimiento y tendencias a lo largo del tiempo.","時間経過に伴うパフォーマンスデータとトレンドを視覚化します。"
+# DataExportPanel
+ui.export.log_label,"Eksportlogg","Export Log","Exportprotokoll","Journal d'Export","Registro de Exportación","エクスポートログ"
+ui.export.title,"Dataeksport","Data Export","Datenexport","Exportation de Données","Exportación de Datos","データエクスポート"
+ui.export.status_ready,"Klar","Ready","Bereit","Prêt","Listo","準備完了"
+ui.export.folder_label,"Eksportmappe","Export Folder","Exportordner","Dossier d'Export","Carpeta de Exportación","エクスポートフォルダ"
+ui.export.csv_btn,"Eksporter CSV","Export CSV","CSV Exportieren","Exporter CSV","Exportar CSV","CSVをエクスポート"
+ui.export.json_btn,"Eksporter JSON","Export JSON","JSON Exportieren","Exporter JSON","Exportar JSON","JSONをエクスポート"
+ui.export.tooltip_csv,"Eksporter data som CSV-fil for analyse i Excel/Google Sheets.","Export data as CSV file for analysis in Excel/Google Sheets.","Daten als CSV-Datei für Analyse in Excel/Google Sheets exportieren.","Exporter les données en fichier CSV pour analyse dans Excel/Google Sheets.","Exportar datos como archivo CSV para análisis en Excel/Google Sheets.","Excel/Google SheetsでExcel/Google Sheetsで分析するためにデータをCSVファイルとしてエクスポートします。"
+# EncyclopediaPanel
+ui.encyclopedia.title,"📚 LAKSKONGEN ENCYCLOPEDIA","📚 LAKSKONGEN ENCYCLOPEDIA","📚 LAKSKONGEN ENZYKLOPÄDIE","📚 ENCYCLOPÉDIE LAKSKONGEN","📚 ENCICLOPEDIA LAKSKONGEN","📚 ラクスコンゲン百科事典"
+ui.encyclopedia.categories_header,"📑 CATEGORIES","📑 CATEGORIES","📑 KATEGORIEN","📑 CATÉGORIES","📑 CATEGORÍAS","📑 カテゴリ"
+ui.encyclopedia.entries_header,"📄 ENTRIES","📄 ENTRIES","📄 EINTRÄGE","📄 ENTRÉES","📄 ENTRADAS","📄 エントリ"
+ui.encyclopedia.see_also,"SEE ALSO","SEE ALSO","SIEHE AUCH","VOIR AUSSI","VER TAMBIÉN","関連項目"
+ui.encyclopedia.welcome,"Welcome to the Encyclopedia","Welcome to the Encyclopedia","Willkommen in der Enzyklopädie","Bienvenue dans l'Encyclopédie","Bienvenido a la Enciclopedia","百科事典へようこそ"
+ui.encyclopedia.tooltip,"Lær om lakseoppdrett, biologi, økonomi og spillmekanikker.","Learn about salmon farming, biology, economics and game mechanics.","Lernen Sie über Lachszucht, Biologie, Wirtschaft und Spielmechanik.","Apprenez sur la salmoniculture, la biologie, l'économie et les mécaniques de jeu.","Aprenda sobre cultivo de salmón, biología, economía y mecánicas del juego.","サーモン養殖、生物学、経済学、ゲームメカニクスについて学びます。"
+# EventLog
+ui.eventlog.cleared,"[color=gray]Event log cleared. New events will appear here.[/color]","[color=gray]Event log cleared. New events will appear here.[/color]","[color=gray]Ereignisprotokoll gelöscht. Neue Ereignisse erscheinen hier.[/color]","[color=gray]Journal d'événements effacé. Les nouveaux événements apparaîtront ici.[/color]","[color=gray]Registro de eventos borrado. Los nuevos eventos aparecerán aquí.[/color]","[color=gray]イベントログがクリアされました。新しいイベントがここに表示されます。[/color]"
+# FinancePanel
+ui.finance.loan_active,"Active","Active","Aktiv","Actif","Activo","アクティブ"
+ui.finance.loan_none,"No Active Loan","No Active Loan","Kein Aktiver Kredit","Aucun Prêt Actif","Sin Préstamo Activo","アクティブなローンなし"
+ui.finance.loan_interest_format,"%.2f%%","%.2f%%","%.2f%%","%.2f%%","%.2f%%","%.2f%%"
+ui.finance.history_day,"Day %d","Day %d","Tag %d","Jour %d","Día %d","%d日目"
+ui.finance.history_revenue,"Rev: %s","Rev: %s","Umsatz: %s","Rev: %s","Ingresos: %s","収入: %s"
+ui.finance.history_expenses,"Exp: %s","Exp: %s","Ausg: %s","Dép: %s","Gastos: %s","支出: %s"
+# GeneticsPanel
+ui.genetics.h2_format,"h² %.2f","h² %.2f","h² %.2f","h² %.2f","h² %.2f","h² %.2f"
+ui.genetics.bv_format,"%+.2f","%+.2f","%+.2f","%+.2f","%+.2f","%+.2f"
+ui.genetics.cv_format,"%.2f","%.2f","%.2f","%.2f","%.2f","%.2f"
+ui.genetics.inbreeding,"Inbreeding: %.1f%%","Inbreeding: %.1f%%","Inzucht: %.1f%%","Consanguinité: %.1f%%","Endogamia: %.1f%%","近親交配: %.1f%%"
+ui.genetics.tooltip_h2,"Arvbarhet (h²): Hvor mye av variasjon skyldes gener vs miljø.","Heritability (h²): How much variation is due to genes vs environment.","Erblichkeit (h²): Wie viel Variation auf Gene vs. Umwelt zurückzuführen ist.","Héritabilité (h²): Combien de variation est due aux gènes vs. l'environnement.","Heredabilidad (h²): Cuánta variación se debe a genes vs. medio ambiente.","遺伝率 (h²): 変動のうちどれだけが遺伝子対環境によるものか。"
+ui.genetics.tooltip_bv,"Avlsverdi (BV): Genetisk kvalitet relativ til gjennomsnittet.","Breeding Value (BV): Genetic quality relative to average.","Zuchtwert (BV): Genetische Qualität im Vergleich zum Durchschnitt.","Valeur d'Élevage (BV): Qualité génétique par rapport à la moyenne.","Valor de Cría (BV): Calidad genética en relación con el promedio.","育種価 (BV): 平均と比較した遺伝的品質。"
+ui.genetics.tooltip_cv,"Nåværende verdi: Faktisk målt trait-nivå i denne generasjonen.","Current Value: Actual measured trait level in this generation.","Aktueller Wert: Tatsächlich gemessenes Merkmalsniveau in dieser Generation.","Valeur Actuelle: Niveau de trait réellement mesuré dans cette génération.","Valor Actual: Nivel de rasgo medido real en esta generación.","現在の値: この世代で実際に測定された形質レベル。"
+# MapPanel
+ui.map.title,"SELECT REGION 🗺️ NORWEGIAN COASTLINE","SELECT REGION 🗺️ NORWEGIAN COASTLINE","REGION AUSWÄHLEN 🗺️ NORWEGISCHE KÜSTE","SÉLECTIONNER RÉGION 🗺️ CÔTE NORVÉGIENNE","SELECCIONAR REGIÓN 🗺️ COSTA NORUEGA","地域選択 🗺️ ノルウェー沿岸"
+ui.map.subtitle,"Click a region to view details and place a new sea site","Click a region to view details and place a new sea site","Klicken Sie auf eine Region, um Details anzuzeigen und einen neuen Standort zu platzieren","Cliquez sur une région pour afficher les détails et placer un nouveau site marin","Haga clic en una región para ver detalles y colocar un nuevo sitio marino","地域をクリックして詳細を表示し、新しい海上サイトを配置します"
+ui.map.norway,"NORWAY","NORWAY","NORWEGEN","NORVÈGE","NORUEGA","ノルウェー"
+ui.map.compass_n,"N\n↑","N\n↑","N\n↑","N\n↑","N\n↑","N\n↑"
+ui.map.tooltip,"Velg region for å plassere oppdrettsanlegg basert på strøm, temperatur og logistikk.","Select region to place farms based on currents, temperature and logistics.","Wählen Sie eine Region, um Farmen basierend auf Strömungen, Temperatur und Logistik zu platzieren.","Sélectionnez une région pour placer des fermes en fonction des courants, de la température et de la logistique.","Seleccione una región para colocar granjas basándose en corrientes, temperatura y logística.","海流、温度、物流に基づいて養殖場を配置する地域を選択します。"
+# ModManagerPanel
+ui.modmanager.title,"Modbehandler","Mod Manager","Mod-Verwaltung","Gestionnaire de Mods","Gestor de Mods","Mod管理"
+ui.modmanager.no_selection,"Ingen mod valgt","No mod selected","Kein Mod ausgewählt","Aucun mod sélectionné","Ningún mod seleccionado","Modが選択されていません"
+ui.modmanager.empty,"Ingen mods funnet.\nPlasser mods i mappen mods/.","No mods found.\nPlace mods in the mods/ folder.","Keine Mods gefunden.\nLegen Sie Mods im mods/ Ordner ab.","Aucun mod trouvé.\nPlacez les mods dans le dossier mods/.","No se encontraron mods.\nColoque mods en la carpeta mods/.","Modが見つかりません。\nmods/フォルダにModを配置してください。"
+ui.modmanager.status_error,"❌ Feil","❌ Error","❌ Fehler","❌ Erreur","❌ Error","❌ エラー"
+ui.modmanager.status_active,"✅ Aktiv","✅ Active","✅ Aktiv","✅ Actif","✅ Activo","✅ アクティブ"
+ui.modmanager.tooltip,"Administrer, aktiver og konfigurer mods. Les mod.json for metadata.","Manage, enable and configure mods. Reads mod.json for metadata.","Verwalten, aktivieren und konfigurieren Sie Mods. Liest mod.json für Metadaten.","Gérer, activer et configurer les mods. Lit mod.json pour les métadonnées.","Gestionar, habilitar y configurar mods. Lee mod.json para metadatos.","Modを管理、有効化、構成します。メタデータのためにmod.jsonを読み取ります。"
+# NotificationCenter
+ui.notification.day_format,"Dag %d","Day %d","Tag %d","Jour %d","Día %d","%d日目"
+# ProductionChainPanel
+ui.production.markets_format,"%d markets","%d markets","%d Märkte","%d marchés","%d mercados","%d市場"
+# SaveLoadMenu
+ui.saveload.info_format,"%s - Day %d - $%d\n%s","%s - Day %d - $%d\n%s","%s - Tag %d - $%d\n%s","%s - Jour %d - $%d\n%s","%s - Día %d - $%d\n%s","%s - %d日目 - $%d\n%s"
+# ScenarioSelectPanel
+ui.scenario.title,"Velg Scenario","Select Scenario","Szenario Auswählen","Sélectionner Scénario","Seleccionar Escenario","シナリオを選択"
+ui.scenario.subtitle,"Fem norske eventyr venter – velg din utfordring","Five Norwegian adventures await – choose your challenge","Fünf norwegische Abenteuer warten – wähle deine Herausforderung","Cinq aventures norvégiennes vous attendent – choisissez votre défi","Cinco aventuras noruegas te esperan – elige tu desafío","5つのノルウェーの冒険があなたを待っています – 挑戦を選んでください"
+ui.scenario.difficulty,"Vanskelighet 🎯","Difficulty 🎯","Schwierigkeit 🎯","Difficulté 🎯","Dificultad 🎯","難易度 🎯"
+ui.scenario.region_icon,"📍","📍","📍","📍","📍","📍"
+ui.scenario.capital_icon,"💰","💰","💰","💰","💰","💰"
+# SettingsMenu
+ui.settings.volume_format,"%d%%","%d%%","%d%%","%d%%","%d%%","%d%%"
+# SustainabilityPanel
+ui.sustainability.header,"🌱 Sustainability Score","🌱 Sustainability Score","🌱 Nachhaltigkeitswert","🌱 Score de Durabilité","🌱 Puntuación de Sostenibilidad","🌱 サステナビリティスコア"
+ui.sustainability.breakdown,"Category Breakdown","Category Breakdown","Kategorie-Aufschlüsselung","Répartition par Catégorie","Desglose por Categoría","カテゴリ別内訳"
+ui.sustainability.score_format,"%d/100","%d/100","%d/100","%d/100","%d/100","%d/100"
+ui.sustainability.category_score,"%d/%d","%d/%d","%d/%d","%d/%d","%d/%d","%d/%d"
+ui.sustainability.tooltip,"Overvåk miljøprestasjon: utslipp, energibruk, avfall og sertifiseringer.","Monitor environmental performance: emissions, energy use, waste and certifications.","Überwachen Sie die Umweltleistung: Emissionen, Energieverbrauch, Abfall und Zertifizierungen.","Surveiller la performance environnementale: émissions, consommation d'énergie, déchets et certifications.","Monitorear el rendimiento ambiental: emisiones, uso de energía, residuos y certificaciones.","環境パフォーマンスを監視: 排出、エネルギー使用、廃棄物、認証。"
+# TechTreePanel
+ui.tech.tier_node,"%s %s","%s %s","%s %s","%s %s","%s %s","%s %s"
+ui.tech.tier_label,"T%d","T%d","T%d","T%d","T%d","T%d"
+ui.tech.completed,"Fullført","Completed","Abgeschlossen","Terminé","Completado","完了"
+ui.tech.progress_days,"Dag %d / %d","Day %d / %d","Tag %d / %d","Jour %d / %d","Día %d / %d","%d日目 / %d"
+ui.tech.cost_days,"%s 🕐 %dd","%s 🕐 %dd","%s 🕐 %dd","%s 🕐 %dd","%s 🕐 %dd","%s 🕐 %dd"
+# TutorialUI
+ui.tutorial.step_format,"Steg %d / %d","Step %d / %d","Schritt %d / %d","Étape %d / %d","Paso %d / %d","ステップ %d / %d"
+ui.tutorial.step_complete,"✨ Steg %d fullført! 💰 +%s NOK","✨ Step %d complete! 💰 +%s NOK","✨ Schritt %d abgeschlossen! 💰 +%s NOK","✨ Étape %d terminée! 💰 +%s NOK","✨ Paso %d completado! 💰 +%s NOK","✨ ステップ %d 完了! 💰 +%s NOK"
+ui.tutorial.achievement,"✨ %s","✨ %s","✨ %s","✨ %s","✨ %s","✨ %s"
+ui.tutorial.complete,"🎉 Tutorial fullført!","🎉 Tutorial complete!","🎉 Tutorial abgeschlossen!","🎉 Tutoriel terminé!","🎉 Tutorial completado!","🎉 チュートリアル完了!"
+ui.tutorial.hint_next,"Utforsk Expansion, Genetics og Politics for å vokse videre.","Explore Expansion, Genetics and Politics to grow further.","Erkunden Sie Expansion, Genetics und Politics, um weiter zu wachsen.","Explorez Expansion, Genetics et Politics pour grandir davantage.","Explora Expansion, Genetics y Politics para crecer más.","さらに成長するには、Expansion、Genetics、Politicsを探索してください。"
+# AchievementPopup
+ui.achievement.unlocked,"ACHIEVEMENT UNLOCKED","ACHIEVEMENT UNLOCKED","ACHIEVEMENT FREIGESCHALTET","SUCCÈS DÉBLOQUÉ","LOGRO DESBLOQUEADO","実績解除"
+ui.achievement.reward_format,"+ %s NOK","+ %s NOK","+ %s NOK","+ %s NOK","+ %s NOK","+ %s NOK"
+# Dashboard
+ui.dashboard.event_format,"[Dag %d] %s (%s%s)","[Day %d] %s (%s%s)","[Tag %d] %s (%s%s)","[Jour %d] %s (%s%s)","[Día %d] %s (%s%s)","[%d日目] %s (%s%s)"
+# HUD
+ui.hud.balance_format,"%s NOK","%s NOK","%s NOK","%s NOK","%s NOK","%s NOK"

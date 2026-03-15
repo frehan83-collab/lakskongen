@@ -414,7 +414,7 @@ func _build_header() -> Control:
 	inner.add_child(title)
 
 	var subtitle := Label.new()
-	subtitle.text = "Click a region to view details and place a new sea site"
+	subtitle.text = tr("ui.map.subtitle")
 	subtitle.add_theme_font_size_override("font_size", 13)
 	subtitle.add_theme_color_override("font_color", TEXT_MUTED)
 	subtitle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -449,7 +449,7 @@ func _build_map_area() -> Control:
 
 	# "Norway" title
 	var map_title := Label.new()
-	map_title.text = "NORWAY"
+	map_title.text = tr("ui.map.norway")
 	map_title.add_theme_font_size_override("font_size", 11)
 	map_title.add_theme_color_override("font_color", TEXT_MUTED)
 	map_title.set_anchors_preset(Control.PRESET_TOP_LEFT)
@@ -458,7 +458,7 @@ func _build_map_area() -> Control:
 
 	# Compass rose
 	var compass := Label.new()
-	compass.text = "N\n↑"
+	compass.text = tr("ui.map.compass_n")
 	compass.add_theme_font_size_override("font_size", 13)
 	compass.add_theme_color_override("font_color", TEXT_ACCENT)
 	compass.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -540,13 +540,13 @@ func _build_detail_panel() -> Control:
 	name_row.add_child(name_col)
 
 	_detail_name = Label.new()
-	_detail_name.text = "Select a region"
+	_detail_name.text = tr("ui.map.select_region")
 	_detail_name.add_theme_font_size_override("font_size", 20)
 	_detail_name.add_theme_color_override("font_color", TEXT_TITLE)
 	name_col.add_child(_detail_name)
 
 	_detail_zone = Label.new()
-	_detail_zone.text = "Click a region on the map"
+	_detail_zone.text = tr("ui.map.click_prompt")
 	_detail_zone.add_theme_font_size_override("font_size", 13)
 	_detail_zone.add_theme_color_override("font_color", TEXT_MUTED)
 	name_col.add_child(_detail_zone)
@@ -555,7 +555,7 @@ func _build_detail_panel() -> Control:
 
 	# Description
 	_detail_desc = Label.new()
-	_detail_desc.text = "Choose a region from the map to see licensing availability, water conditions, disease risk, and logistics information."
+	_detail_desc.text = tr("ui.map.region_desc")
 	_detail_desc.add_theme_font_size_override("font_size", 14)
 	_detail_desc.add_theme_color_override("font_color", TEXT_BODY)
 	_detail_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -732,10 +732,10 @@ func _show_region(region_id: String) -> void:
 
 func _clear_selection() -> void:
 	_selected_region_id = ""
-	_detail_name.text = "Select a region"
-	_detail_zone.text = "Click a region on the map"
+	_detail_name.text = tr("ui.map.select_region")
+	_detail_zone.text = tr("ui.map.click_prompt")
 	_detail_icon.text = "🗺️"
-	_detail_desc.text = "Choose a region from the map to see licensing availability, water conditions, disease risk, and logistics information."
+	_detail_desc.text = tr("ui.map.region_desc")
 	_detail_licenses.text = "—"
 	_detail_temp.text = "—"
 	_detail_distance.text = "—"

@@ -167,7 +167,7 @@ func _refresh_display() -> void:
 
 	# Step counter
 	if step_label:
-		step_label.text = "Steg %d / %d" % [step_num, total]
+		step_label.text = tr("ui.tutorial.step_format") % [step_num, total]
 		step_label.tooltip_text = "Tutorial-stegnummer. Fullført %d av %d." % [sb.tutorial_completed_count, total]
 
 	# Progress bar
@@ -214,7 +214,7 @@ func _play_completion_animation(step_number: int, title: String, reward_nok: flo
 
 	# Show reward toast if applicable
 	if reward_label and reward_nok > 0.0:
-		reward_label.text    = "✅ Steg %d fullført!  +%s NOK" % [step_number, _format_nok(reward_nok)]
+		reward_label.text    = tr("ui.tutorial.step_complete") % [step_number, _format_nok(reward_nok)]
 		reward_label.visible = true
 		reward_label.modulate = Color(0.2, 1.0, 0.4, 1.0)
 		_tween.tween_interval(0.1)
@@ -240,9 +240,9 @@ func _show_completion_screen() -> void:
 			"Mål: 10 000 tonn årlig produksjon med Sustainability Leader-sertifisering."
 		)
 	if hint_label:
-		hint_label.text = "Utforsk Expansion, Genetics og Politics for å vokse videre."
+		hint_label.text = tr("ui.tutorial.hint_next")
 	if step_label:
-		step_label.text = "Fullført ✓"
+		step_label.text = tr("ui.tutorial.completed")
 	if progress_bar:
 		progress_bar.value = 23
 	

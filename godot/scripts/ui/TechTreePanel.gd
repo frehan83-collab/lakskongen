@@ -137,7 +137,7 @@ func _build_skeleton() -> void:
 		var meta: Dictionary = BRANCH_META[branch]
 		var x := START_X + bi * H_GAP
 		var hdr := Label.new()
-		hdr.text = "%s %s" % [meta["icon"], meta["label"]]
+		hdr.text = tr("ui.tech.tier_node") % [meta["icon"], meta["label"]]
 		hdr.add_theme_font_size_override("font_size", 12)
 		hdr.modulate = meta["color"]
 		hdr.position = Vector2(x, 58)
@@ -304,7 +304,7 @@ func _build_node_panel(nd: Dictionary) -> void:
 
 	# Tier badge
 	var tier_lbl := Label.new()
-	tier_lbl.text = "T%d" % tier
+	tier_lbl.text = tr("ui.tech.tier_label") % tier
 	tier_lbl.add_theme_font_size_override("font_size", 9)
 	tier_lbl.modulate = branch_color
 	vbox.add_child(tier_lbl)
@@ -312,7 +312,7 @@ func _build_node_panel(nd: Dictionary) -> void:
 	# Cost / progress row
 	if is_unlocked:
 		var done_lbl := Label.new()
-		done_lbl.text = "Fullført"
+		done_lbl.text = tr("ui.tech.completed")
 		done_lbl.add_theme_font_size_override("font_size", 9)
 		done_lbl.modulate = Color(0.4, 0.9, 0.5)
 		vbox.add_child(done_lbl)
@@ -324,7 +324,7 @@ func _build_node_panel(nd: Dictionary) -> void:
 		prog.show_percentage = false
 		vbox.add_child(prog)
 		var prog_lbl := Label.new()
-		prog_lbl.text = "Dag %d / %d" % [progress_days, research_days]
+		prog_lbl.text = tr("ui.tech.progress_days") % [progress_days, research_days]
 		prog_lbl.add_theme_font_size_override("font_size", 9)
 		prog_lbl.modulate = Color(1.0, 0.80, 0.30)
 		vbox.add_child(prog_lbl)

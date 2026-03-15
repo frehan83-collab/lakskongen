@@ -381,7 +381,7 @@ func _refresh_events() -> void:
 
 		var lbl := Label.new()
 		var sign: String = "+" if bal_chg >= 0 else ""
-		lbl.text = "[Dag %d] %s  (%s%s)" % [
+		lbl.text = tr("ui.dashboard.event_format") % [
 			day, name, sign, _sim.format_nok(bal_chg)
 		]
 		lbl.add_theme_color_override("font_color",

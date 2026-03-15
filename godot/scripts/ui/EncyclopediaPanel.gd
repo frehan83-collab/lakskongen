@@ -473,7 +473,7 @@ func _build_header() -> Control:
 	m.add_child(inner)
 
 	var title_lbl := Label.new()
-	title_lbl.text = "📚  LAKSKONGEN ENCYCLOPEDIA"
+	title_lbl.text = tr("ui.encyclopedia.title")
 	title_lbl.add_theme_font_size_override("font_size", 22)
 	title_lbl.add_theme_color_override("font_color", TEXT_TITLE)
 	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -525,7 +525,7 @@ func _build_sidebar() -> Control:
 
 	# Category header
 	var cat_header := Label.new()
-	cat_header.text = "  CATEGORIES"
+	cat_header.text = tr("ui.encyclopedia.categories_header")
 	cat_header.add_theme_font_size_override("font_size", 12)
 	cat_header.add_theme_color_override("font_color", TEXT_MUTED)
 	cat_header.custom_minimum_size.y = 36
@@ -561,7 +561,7 @@ func _build_sidebar() -> Control:
 	# Entry list header
 	var entry_header_row := HBoxContainer.new()
 	var entry_header := Label.new()
-	entry_header.text = "  ENTRIES"
+	entry_header.text = tr("ui.encyclopedia.entries_header")
 	entry_header.add_theme_font_size_override("font_size", 12)
 	entry_header.add_theme_color_override("font_color", TEXT_MUTED)
 	entry_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -647,7 +647,7 @@ func _build_content_area() -> Control:
 
 	# Related entries
 	var related_label := Label.new()
-	related_label.text = "SEE ALSO"
+	related_label.text = tr("ui.encyclopedia.see_also")
 	related_label.add_theme_font_size_override("font_size", 12)
 	related_label.add_theme_color_override("font_color", TEXT_MUTED)
 	inner_vbox.add_child(related_label)
@@ -663,11 +663,11 @@ func _build_content_area() -> Control:
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _show_welcome() -> void:
-	_title_label.text = "Welcome to the Encyclopedia"
+	_title_label.text = tr("ui.encyclopedia.welcome")
 	_icon_label.text = "📚"
 	_clear_desc()
 	var lbl := Label.new()
-	lbl.text = "Select a category from the sidebar, then choose an entry to read detailed information about salmon farming in Norway."
+	lbl.text = tr("ui.encyclopedia.select_info")
 	lbl.add_theme_font_size_override("font_size", 16)
 	lbl.add_theme_color_override("font_color", TEXT_BODY)
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

@@ -134,7 +134,7 @@ func _set_placeholders() -> void:
 	day_value.text     = no_data
 	season_icon.text   = "?"
 	season_value.text  = "---"
-	balance_value.text = "%s NOK" % no_data
+	balance_value.text = tr("ui.hud.balance_format") % no_data
 	fish_value.text    = no_data
 	temp_value.text    = "%s%s" % [no_data, tr("ui.hud.temp_c")]
 	price_value.text   = "%s %s" % [no_data, tr("ui.hud.price_kg")]

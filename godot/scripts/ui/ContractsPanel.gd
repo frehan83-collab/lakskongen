@@ -60,10 +60,10 @@ func _create_ui():
 	
 	# Header
 	var header = Label.new()
-	header.text = "📜 Contracts & Market Depth"
+	header.text = tr("ui.contracts.header")
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", Color(COLOR_TEXT))
-	header.tooltip_text = "Oversikt over aktive kontrakter, tilgjengelige tilbud og eksportmarkeder."
+	header.tooltip_text = tr("ui.contracts.tooltip_header")
 	vbox.add_child(header)
 	
 	# Spot price vs contract price comparison
@@ -83,7 +83,7 @@ func _create_ui():
 	
 	# Active contracts section
 	var active_header = Label.new()
-	active_header.text = "Active Contracts"
+	active_header.text = tr("ui.contracts.active_header")
 	active_header.add_theme_font_size_override("font_size", 16)
 	active_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(active_header)
@@ -94,7 +94,7 @@ func _create_ui():
 	
 	# Available offers section
 	var offers_header = Label.new()
-	offers_header.text = "Available Offers"
+	offers_header.text = tr("ui.contracts.offers_header")
 	offers_header.add_theme_font_size_override("font_size", 16)
 	offers_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(offers_header)
@@ -105,7 +105,7 @@ func _create_ui():
 	
 	# Export markets section
 	var export_header = Label.new()
-	export_header.text = "Export Markets"
+	export_header.text = tr("ui.contracts.export_header")
 	export_header.add_theme_font_size_override("font_size", 16)
 	export_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(export_header)
@@ -116,7 +116,7 @@ func _create_ui():
 	
 	# Refresh button (optional)
 	var refresh_button = Button.new()
-	refresh_button.text = "Refresh"
+	refresh_button.text = tr("ui.contracts.refresh")
 	refresh_button.tooltip_text = "Oppdater kontrakts- og markedsdata."
 	refresh_button.pressed.connect(_refresh_from_bridge)
 	vbox.add_child(refresh_button)
@@ -132,7 +132,7 @@ func _refresh_from_bridge():
 	
 	# Spot price
 	var spot_price = sim_bridge.market_price_nok
-	spot_price_label.text = "Spot price: %s NOK/kg" % sim_bridge.format_nok(spot_price)
+	spot_price_label.text = tr("ui.contracts.spot_price") % sim_bridge.format_nok(spot_price)
 	
 	# Fetch data from bridge
 	var active_contracts = sim_bridge.get_active_contracts()
@@ -149,17 +149,17 @@ func _refresh_from_bridge():
 	if avg_contract_price > 0:
 		var diff_pct = (avg_contract_price - spot_price) / spot_price * 100.0
 		var color = _profit_color(diff_pct)
-		spot_vs_contract_label.text = "Avg contract: %s NOK/kg (%+.1f%%)" % [sim_bridge.format_nok(avg_contract_price), diff_pct]
+		spot_vs_contract_label.text = tr("ui.contracts.avg_contract") % [sim_bridge.format_nok(avg_contract_price), diff_pct]
 		spot_vs_contract_label.add_theme_color_override("font_color", color)
 	else:
-		spot_vs_contract_label.text = "No active contracts"
+		spot_vs_contract_label.text = tr("ui.contracts.no_active")
 
 func _update_active_contracts(contracts: Array[Dictionary], spot_price: float):
 	_clear_container(active_contracts_container)
 	
 	if contracts.is_empty():
 		var label = Label.new()
-		label.text = "No active contracts"
+		label.text = tr("ui.contracts.no_active")
 		label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 		active_contracts_container.add_child(label)
 		return
@@ -178,7 +178,7 @@ func _update_active_contracts(contracts: Array[Dictionary], spot_price: float):
 		var quantity_kg = contract.get("quantity_kg", 0.0)
 		var fulfilled_kg = contract.get("fulfilled_kg", 0.0)
 		var fulfilled_percent = contract.get("fulfilled_percent", 0.0)
-		quantity_label.text = "%s/%s kg (%d%%)" % [
+		quantity_label.text = tr("ui.contracts.quantity_format") % [
 			_format_float(fulfilled_kg),
 			_format_float(quantity_kg),
 			int(fulfilled_percent)

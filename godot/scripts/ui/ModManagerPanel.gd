@@ -112,7 +112,8 @@ func _build_ui() -> void:
 	margin.add_child(inner_hbox)
 
 	var title_lbl := Label.new()
-	title_lbl.text = "Modbehandler"
+	title_lbl.text = tr("ui.modmanager.title")
+	title_lbl.tooltip_text = tr("ui.modmanager.tooltip")
 	title_lbl.add_theme_color_override("font_color", COLOR_TEXT_BRIGHT)
 	title_lbl.add_theme_font_size_override("font_size", 18)
 	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -208,7 +209,7 @@ func _build_detail_pane() -> void:
 	margin.add_child(vbox)
 
 	_detail_name = Label.new()
-	_detail_name.text = "Ingen mod valgt"
+	_detail_name.text = tr("ui.modmanager.no_selection")
 	_detail_name.add_theme_color_override("font_color", COLOR_TEXT_BRIGHT)
 	_detail_name.add_theme_font_size_override("font_size", 16)
 	_detail_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -300,7 +301,7 @@ func _rebuild_list() -> void:
 
 	if _mods.is_empty():
 		var empty_lbl := Label.new()
-		empty_lbl.text = "Ingen mods funnet.\nPlasser mods i mappen mods/."
+		empty_lbl.text = tr("ui.modmanager.empty")
 		empty_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 		empty_lbl.add_theme_font_size_override("font_size", 13)
 		empty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -447,7 +448,7 @@ func _show_detail(index: int) -> void:
 
 	var mod: Dictionary = _mods[index]
 	_detail_name.text    = mod.get("name", "Ukjent mod")
-	_detail_author.text  = "Forfatter: " + mod.get("author", "Ukjent")
+	_detail_author.text  = tr("ui.modmanager.author_format") % mod.get("author", tr("ui.modmanager.author_unknown"))
 	_detail_version.text = "Versjon: "   + mod.get("version", "?")
 	_detail_desc.text    = "[color=#8899aa]" + mod.get("description", "") + "[/color]"
 

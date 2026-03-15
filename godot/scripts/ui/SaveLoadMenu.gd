@@ -57,7 +57,7 @@ func refresh_slots():
 func _create_slot_ui(data: Dictionary) -> Control:
     var slot = HBoxContainer.new()
     var info_label = Label.new()
-    info_label.text = "%s - Day %d - $%d\n%s" % [data.name, data.day, data.cash, data.date]
+    info_label.text = tr("ui.saveload.info_format") % [data.name, data.day, data.cash, data.date]
     info_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     slot.add_child(info_label)
 

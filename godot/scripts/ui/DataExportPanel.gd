@@ -156,7 +156,7 @@ func _build_ui() -> void:
 
 	# Export log
 	var log_label := Label.new()
-	log_label.text = "Eksportlogg"
+	log_label.text = tr("ui.export.log_label")
 	log_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	log_label.add_theme_font_size_override("font_size", 12)
 	body_vbox.add_child(log_label)
@@ -191,14 +191,14 @@ func _build_title_bar() -> Control:
 	margin.add_child(hbox)
 
 	var title := Label.new()
-	title.text = "Dataeksport"
+	title.text = tr("ui.export.title")
 	title.add_theme_color_override("font_color", COLOR_TEXT_BRIGHT)
 	title.add_theme_font_size_override("font_size", 18)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(title)
 
 	_status_label = Label.new()
-	_status_label.text = "Klar"
+	_status_label.text = tr("ui.export.status_ready")
 	_status_label.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	_status_label.add_theme_font_size_override("font_size", 13)
 	hbox.add_child(_status_label)
@@ -229,7 +229,7 @@ func _build_path_selector() -> Control:
 	margin.add_child(vbox)
 
 	var lbl := Label.new()
-	lbl.text = "Eksportmappe"
+	lbl.text = tr("ui.export.folder_label")
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	lbl.add_theme_font_size_override("font_size", 11)
 	vbox.add_child(lbl)

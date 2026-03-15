@@ -80,10 +80,10 @@ func _build_layout() -> void:
 	vbox.add_child(toolbar)
 
 	var title_lbl := Label.new()
-	title_lbl.text = "Analytics"
+	title_lbl.text = tr("ui.analytics.title")
 	title_lbl.add_theme_font_size_override("font_size", 14)
 	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_lbl.tooltip_text = "Analyse av nøkkelmetrikker: fiskemengde, biomasse, markedspris og balanse."
+	title_lbl.tooltip_text = tr("ui.analytics.title_tooltip")
 	toolbar.add_child(title_lbl)
 
 	var btn30 := Button.new()

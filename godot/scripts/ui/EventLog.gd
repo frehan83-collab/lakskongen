@@ -172,7 +172,7 @@ func clear_log():
 	var welcome = RichTextLabel.new()
 	welcome.bbcode_enabled = true
 	welcome.fit_content = true
-	welcome.text = "[color=gray]Event log cleared. New events will appear here.[/color]"
+	welcome.text = tr("ui.eventlog.cleared")
 	log_entries.add_child(welcome)
 
 func _format_currency(amount: int) -> String:

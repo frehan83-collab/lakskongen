@@ -158,7 +158,7 @@ func _build_skeleton() -> void:
 
 	# ── Title bar ──
 	var title_lbl := Label.new()
-	title_lbl.text = "Velg Scenario"
+	title_lbl.text = tr("ui.scenario.title")
 	title_lbl.add_theme_font_size_override("font_size", 22)
 	title_lbl.modulate = C_TITLE
 	title_lbl.position = Vector2(28, 14)
@@ -166,7 +166,7 @@ func _build_skeleton() -> void:
 	add_child(title_lbl)
 
 	var subtitle_lbl := Label.new()
-	subtitle_lbl.text = "Fem norske eventyr venter — velg din utfordring"
+	subtitle_lbl.text = tr("ui.scenario.subtitle")
 	subtitle_lbl.add_theme_font_size_override("font_size", 13)
 	subtitle_lbl.modulate = C_DIM
 	subtitle_lbl.position = Vector2(28, 38)
@@ -304,13 +304,13 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	vbox.add_child(meta)
 
 	var region_lbl := Label.new()
-	region_lbl.text = "📍 " + s["region"]
+	region_lbl.text = tr("ui.scenario.region_icon") + " " + s["region"]
 	region_lbl.add_theme_font_size_override("font_size", 12)
 	region_lbl.add_theme_color_override("font_color", C_DIM)
 	meta.add_child(region_lbl)
 
 	var cap_lbl := Label.new()
-	cap_lbl.text = "💰 " + s["capital"]
+	cap_lbl.text = tr("ui.scenario.capital_icon") + " " + s["capital"]
 	cap_lbl.add_theme_font_size_override("font_size", 12)
 	if not locked:
 		cap_lbl.add_theme_color_override("font_color", C_NEGATIVE if s["capital_neg"] else C_POSITIVE)
@@ -319,7 +319,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	meta.add_child(cap_lbl)
 
 	var win_lbl := Label.new()
-	win_lbl.text = "🎯 " + s["win"]
+	win_lbl.text = tr("ui.scenario.win_icon") + " " + s["win"]
 	win_lbl.add_theme_font_size_override("font_size", 11)
 	win_lbl.add_theme_color_override("font_color", C_DIM if locked else s["color"].lightened(0.2))
 	win_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

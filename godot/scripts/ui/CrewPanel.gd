@@ -63,10 +63,10 @@ func _create_ui():
 	
 	# Header
 	var header = Label.new()
-	header.text = "👷 Crew Management"
+	header.text = tr("ui.crew.header")
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", Color(COLOR_TEXT))
-	header.tooltip_text = "Administrer ansatte: roller, lønn, ferdigheter og ansettelse/oppsigelse."
+	header.tooltip_text = tr("ui.crew.header_tooltip")
 	vbox.add_child(header)
 	
 	# Summary section
@@ -80,7 +80,7 @@ func _create_ui():
 	summary_container.add_child(count_container)
 	
 	var count_label = Label.new()
-	count_label.text = "Total Workers:"
+	count_label.text = tr("ui.crew.total_workers")
 	count_label.add_theme_font_size_override("font_size", 14)
 	count_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	count_container.add_child(count_label)
@@ -97,7 +97,7 @@ func _create_ui():
 	summary_container.add_child(payroll_container)
 	
 	var payroll_label = Label.new()
-	payroll_label.text = "Total Payroll:"
+	payroll_label.text = tr("ui.crew.total_payroll")
 	payroll_label.add_theme_font_size_override("font_size", 14)
 	payroll_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	payroll_container.add_child(payroll_label)
@@ -114,7 +114,7 @@ func _create_ui():
 	
 	# Hire section
 	var hire_header = Label.new()
-	hire_header.text = "Hire Workers"
+	hire_header.text = tr("ui.crew.hire_header")
 	hire_header.add_theme_font_size_override("font_size", 16)
 	hire_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(hire_header)
@@ -125,17 +125,17 @@ func _create_ui():
 	
 	# Create hire buttons for each role
 	var roles = ["manager", "technician", "veterinarian", "diver", "feeder"]
-	var role_labels = {
-		"manager": "Manager",
-		"technician": "Technician",
-		"veterinarian": "Veterinarian",
-		"diver": "Diver",
-		"feeder": "Feeder"
+	var role_keys = {
+		"manager": "ui.crew.hire_manager",
+		"technician": "ui.crew.hire_technician",
+		"veterinarian": "ui.crew.hire_veterinarian",
+		"diver": "ui.crew.hire_diver",
+		"feeder": "ui.crew.hire_feeder"
 	}
 	
 	for role in roles:
 		var btn = Button.new()
-		btn.text = "Hire %s" % role_labels[role]
+		btn.text = tr(role_keys[role])
 		btn.pressed.connect(_on_hire_pressed.bind(role))
 		hire_button_container.add_child(btn)
 	
@@ -145,7 +145,7 @@ func _create_ui():
 	
 	# Crew list header
 	var crew_header = Label.new()
-	crew_header.text = "Current Crew Roster"
+	crew_header.text = tr("ui.crew.roster_header")
 	crew_header.add_theme_font_size_override("font_size", 16)
 	crew_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(crew_header)
@@ -195,7 +195,7 @@ func _update_crew_list_display(crew_list: Array):
 	
 	if crew_list.is_empty():
 		var empty_label = Label.new()
-		empty_label.text = "No workers hired yet"
+		empty_label.text = tr("ui.crew.no_workers")
 		empty_label.add_theme_font_size_override("font_size", 12)
 		empty_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 		crew_list_container.add_child(empty_label)
@@ -239,7 +239,7 @@ func _create_crew_entry(worker: Dictionary):
 	hbox.add_child(skill_container)
 	
 	var skill_label = Label.new()
-	skill_label.text = "Skill"
+	skill_label.text = tr("ui.crew.skill")
 	skill_label.add_theme_font_size_override("font_size", 11)
 	skill_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	skill_container.add_child(skill_label)
@@ -257,7 +257,7 @@ func _create_crew_entry(worker: Dictionary):
 	hbox.add_child(salary_container)
 	
 	var salary_label = Label.new()
-	salary_label.text = "Salary"
+	salary_label.text = tr("ui.crew.salary")
 	salary_label.add_theme_font_size_override("font_size", 11)
 	salary_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	salary_container.add_child(salary_label)
@@ -275,21 +275,21 @@ func _create_crew_entry(worker: Dictionary):
 	hbox.add_child(date_container)
 	
 	var date_label = Label.new()
-	date_label.text = "Hired"
+	date_label.text = tr("ui.crew.hired")
 	date_label.add_theme_font_size_override("font_size", 11)
 	date_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	date_container.add_child(date_label)
 	
 	var date_value = Label.new()
 	var hire_date = worker.get("hire_date", 0)
-	date_value.text = "Day %d" % hire_date
+	date_value.text = tr("ui.crew.day_format") % hire_date
 	date_value.add_theme_font_size_override("font_size", 12)
 	date_value.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	date_container.add_child(date_value)
 	
 	# Fire button
 	var fire_btn = Button.new()
-	fire_btn.text = "Fire"
+	fire_btn.text = tr("ui.crew.fire")
 	fire_btn.custom_minimum_size = Vector2(80, 0)
 	fire_btn.pressed.connect(_on_fire_pressed.bind(worker.get("id", "")))
 	hbox.add_child(fire_btn)
