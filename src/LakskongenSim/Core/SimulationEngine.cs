@@ -952,8 +952,18 @@ namespace LakskongenSim.Core
             // Non-compliance fines
             if (newLevel == CertificationLevel.NonCompliant && State.Day % 90 == 0)
             {
-                FinanceManager?.Spend(50_000m);
-                OnEventTriggered?.Invoke("💸 Non-compliance fine: 50,000 NOK");
+                if (FinanceManager != null)
+                {
+                    if (!FinanceManager.Spend(50_000m))
+                    {
+                        OnEventTriggered?.Invoke("⚠️ BANKRUPTCY WARNING: Cannot pay 50,000 NOK non-compliance fine. Balance: " + FinanceManager.Balance.ToString("N0") + " NOK");
+                        FinanceManager.ForceSpend(50_000m);
+                    }
+                    else
+                    {
+                        OnEventTriggered?.Invoke("💸 Non-compliance fine: 50,000 NOK");
+                    }
+                }
             }
         }
 

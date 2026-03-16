@@ -180,8 +180,8 @@ namespace LakskongenSim.Processing
             
             decimal baseReject = def.RejectRatePercent;
             
-            // Poor quality increases rejects
-            decimal qualityPenalty = (1.0m - qualityScore) * 0.10m;
+            // Poor quality increases rejects significantly (T77/T78 fix: increased from 0.10 to 0.20)
+            decimal qualityPenalty = (1.0m - qualityScore) * 0.20m;
             
             // Skill reduces rejects
             decimal skillReduction = GetSkillModifier(skill) * 0.5m;

@@ -12,20 +12,27 @@ namespace LakskongenSim.Health.Tests
         public void InfectionProgression_IncreasesPrevalenceAndCausesDeaths()
         {
             var lice = new SeaLiceModel();
+            var mortalityModel = new MortalityModel();
             var ds = new DiseaseSystem(lice)
             {
                 Beta = 0.3,
                 Gamma = 0.01,
                 ExtraMortalityRatePerDay = 0.005
             };
+            
+            // Wire up MortalityModel so disease can inject mortality rates (T76 change)
+            ds.SetMortalityModel(mortalityModel);
 
-            var pop = new FishPopulation(new GrowthModel(), new MortalityModel());
+            var pop = new FishPopulation(new GrowthModel(), mortalityModel);
             // Use Seawater stage - represents fish in sea pens where disease/lice are most relevant
             pop.AddCohort(new FishPopulation.Cohort(400, 10000, 1.0, LifeStage.Seawater));
 
             ds.Tick(pop, 30, temperatureC: 10.0);
             var p = ds.GetPrevalence(pop);
             Assert.True(p > 0.0);
+            
+            // Apply mortality using AdvanceDays (which calls the injected disease rate via MortalityModel)
+            pop.AdvanceDays(30);
 
             // After 30 days we expect some extra mortality (not all fish gone)
             var total = 0;

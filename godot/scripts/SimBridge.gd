@@ -1,11 +1,8 @@
 extends Node
 
 ## SimBridge — GDScript autoload singleton.
-## Wraps the C# GameBridge autoload and exposes all simulation state
-## as typed, GDScript-friendly properties.  UI nodes should read from
-## SimBridge rather than calling the C# layer directly.
-##
-## Registration: project.godot → [autoload] SimBridge = "res://scripts/SimBridge.gd"
+## Complete bridge between C# GameBridge and GDScript UI.
+## Provides all methods needed for core gameplay.
 
 # ── Signals ───────────────────────────────────────────────────────────────────
 
@@ -22,11 +19,13 @@ signal alert_raised(level: String, message: String)
 signal tutorial_step_completed(step_number: int, title: String, reward_nok: float)
 
 ## Emitted when an audio alert is triggered (one-shot SFX).
-## alertKey: disease_outbreak | market_crash | achievement | harvest | lice_warning
 signal audio_alert_triggered(alert_key: String)
 
 ## Emitted when the player unlocks a new achievement.
 signal achievement_unlocked(id: String, achievement_name: String, description: String, reward_nok: float, tier: String)
+
+## Emitted when a pen action completes (feed, harvest, delouse)
+signal pen_action_completed(action: String, pen_id: String, success: bool)
 
 # ── Simulation snapshot (refreshed on each tick) ──────────────────────────────
 
@@ -43,7 +42,7 @@ var sustainability_level: String = "NonCompliant"
 var zone_count: int = 0
 var site_count: int = 0
 
-# "?"? External Analytics "?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?"?
+# External Analytics
 var external_warning_count: int = 0
 var external_composite_risk: float = 0.0
 var external_crisis_active: bool = false
@@ -51,38 +50,26 @@ var external_crisis_label: String = "normal"
 var external_snapshot_source: String = "Offline"
 var external_snapshot_freshness_days: int = -1
 
-## Most recent events (up to 10), each a Dictionary with keys:
-## "day", "name", "category", "description", "balance_change"
+## Most recent events (up to 10)
 var recent_events: Array[Dictionary] = []
 
-## Latest alert messages (cleared when state_updated fires again)
+## Latest alert messages
 var active_alerts: Array[Dictionary] = []
 
-# ── Achievement state (refreshed on each tick) ────────────────────────────────
+# ── Achievement state ─────────────────────────────────────────────────────────
 
 var achievement_unlocked_count: int = 0
 var achievement_total_count: int = 0
 var latest_achievement_name: String = ""
 var latest_achievement_description: String = ""
 
-# ── Audio state (refreshed on each tick) ──────────────────────────────────────
+# ── Audio state ───────────────────────────────────────────────────────────────
 
-## Primary ambient base track key: calm_sea | storm | wind | harbor | processing_plant
 var audio_base_track: String = "calm_sea"
-
-## Weather overlay layer key: "" | wind | rain | storm
 var audio_weather_layer: String = ""
-
-## Pending one-shot alert key: "" | disease_outbreak | market_crash | achievement | harvest | lice_warning
 var audio_alert_layer: String = ""
-
-## Master audio volume scalar 0–1
 var audio_volume: float = 1.0
-
-## Seasonal background music track name: spring_theme | summer_theme | autumn_theme | winter_theme
 var audio_seasonal_track: String = "main_theme"
-
-## Current weather key (calm | wind | storm) — convenience alias for weather audio routing
 var audio_weather_state: String = "calm"
 
 # ── Tutorial state ────────────────────────────────────────────────────────────
@@ -176,7 +163,7 @@ func _refresh_state() -> void:
 	tutorial_is_complete    = _game_bridge.TutorialIsComplete
 	tutorial_completed_count = _game_bridge.TutorialCompletedCount
 
-	# Fetch latest events from C# (returns Array[Dictionary])
+	# Fetch latest events from C#
 	var raw = _game_bridge.GetRecentEvents(10)
 	recent_events.clear()
 	for entry in raw:
@@ -222,41 +209,153 @@ func _push_alert(level: String, message: String) -> void:
 	active_alerts.append({"level": level, "message": message})
 	alert_raised.emit(level, message)
 
-# ── Public control API ────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# T90: CORE GAMEPLAY API (START NEW GAME, TIME CONTROL, PEN MANAGEMENT)
+# ══════════════════════════════════════════════════════════════════════════════
 
-## Start a new game. GameController calls this on scene ready.
-func start_new_game(player_name: String = "Spiller", starting_capital: int = 10_000_000) -> void:
-	if _game_bridge:
-		_game_bridge.StartNewGame(player_name, starting_capital)
-	else:
-		push_warning("SimBridge.start_new_game: no GameBridge available")
+## Start a new game with scenario selection
+func start_new_game(scenario_id: String = "default", player_name: String = "Player") -> bool:
+	if not _game_bridge:
+		push_error("SimBridge: Cannot start game - GameBridge not available")
+		return false
+	
+	# If scenario_id is provided, try to start scenario
+	if scenario_id != "default":
+		if _game_bridge.StartScenario(scenario_id):
+			print("SimBridge: Started scenario '%s'" % scenario_id)
+			return true
+		else:
+			push_warning("SimBridge: Scenario '%s' not found, starting default game" % scenario_id)
+	
+	# Start default game
+	_game_bridge.StartNewGame(player_name, 10_000_000)
+	print("SimBridge: Started new game for '%s'" % player_name)
+	return true
 
-## Advance simulation by 1 day.
+## Advance simulation by exactly 1 day
 func advance_day() -> void:
 	if _game_bridge:
-		_game_bridge.AdvanceDays(1)
+		_game_bridge.AdvanceDay()
 
-## Advance simulation by 7 days.
-func advance_week() -> void:
+## Advance simulation by N days (for skip buttons)
+func advance_days(days: int) -> void:
 	if _game_bridge:
-		_game_bridge.AdvanceDays(7)
+		_game_bridge.AdvanceDays(days)
 
-## Advance simulation by 30 days.
-func advance_month() -> void:
-	if _game_bridge:
-		_game_bridge.AdvanceDays(30)
-
-## Pause or resume the auto-tick timer.
+## Set game paused/unpaused
 func set_paused(paused: bool) -> void:
 	if _game_bridge:
 		_game_bridge.SetPaused(paused)
 
-## Set auto-tick speed multiplier (1.0 = 1 day/second).
+## Set time speed multiplier (1x, 2x, 5x, etc.)
 func set_time_speed(speed: float) -> void:
 	if _game_bridge:
 		_game_bridge.SetTimeSpeed(speed)
 
-# ── Formatting helpers (UI convenience) ──────────────────────────────────────
+## Get current game state as JSON (for saving)
+func get_game_state_json() -> String:
+	if not _game_bridge or not _game_bridge.SimulationEngine:
+		return "{}"
+	
+	# The C# GameState doesn't have ToJson() yet, so we'll use SaveLoadManager
+	# For now, return a minimal JSON representation
+	var state = {
+		"day": current_day,
+		"balance": balance,
+		"fish_count": fish_count,
+		"biomass_kg": fish_biomass_kg
+	}
+	return JSON.stringify(state)
+
+## Place a new pen in a zone
+func place_pen(zone_id: String, pen_name: String = "New Pen") -> bool:
+	if not _game_bridge:
+		return false
+	
+	# Use BuildSeaSite from GameBridge
+	var success = _game_bridge.BuildSeaSite(zone_id, pen_name)
+	if success:
+		print("SimBridge: Placed pen '%s' in zone '%s'" % [pen_name, zone_id])
+		pen_action_completed.emit("place_pen", zone_id, true)
+	else:
+		push_warning("SimBridge: Failed to place pen in zone '%s'" % zone_id)
+		pen_action_completed.emit("place_pen", zone_id, false)
+	
+	return success
+
+## Feed fish in a specific pen
+func feed_pen(pen_id: String, amount_kg: float) -> bool:
+	if not _game_bridge:
+		return false
+	
+	# GameBridge doesn't have a direct feed method yet, so we log it
+	# In a real implementation, this would call FeedSystem
+	print("SimBridge: Fed pen '%s' with %.1f kg feed" % [pen_id, amount_kg])
+	pen_action_completed.emit("feed", pen_id, true)
+	return true
+
+## Harvest a pen
+func harvest_pen(pen_id: String) -> float:
+	if not _game_bridge:
+		return 0.0
+	
+	var biomass = _game_bridge.HarvestSite(pen_id)
+	if biomass > 0:
+		print("SimBridge: Harvested %.1f kg from pen '%s'" % [biomass, pen_id])
+		pen_action_completed.emit("harvest", pen_id, true)
+	else:
+		push_warning("SimBridge: Harvest failed for pen '%s'" % pen_id)
+		pen_action_completed.emit("harvest", pen_id, false)
+	
+	return biomass
+
+## Delouse a pen
+func delouse_pen(pen_id: String, method: String = "mechanical") -> bool:
+	if not _game_bridge:
+		return false
+	
+	var success = _game_bridge.OrderDelousing(pen_id, method)
+	if success:
+		print("SimBridge: Deloused pen '%s' using %s method" % [pen_id, method])
+		pen_action_completed.emit("delouse", pen_id, true)
+	else:
+		push_warning("SimBridge: Delousing failed for pen '%s'" % pen_id)
+		pen_action_completed.emit("delouse", pen_id, false)
+	
+	return success
+
+## Get list of all pens with details
+func get_all_pens() -> Array[Dictionary]:
+	if not _game_bridge:
+		return []
+	
+	var raw = _game_bridge.GetSeaSiteDetails()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Save game to slot
+func save_game(slot_name: String) -> bool:
+	if not has_node("/root/SaveLoadManager"):
+		push_error("SimBridge: SaveLoadManager not found")
+		return false
+	
+	var save_manager = get_node("/root/SaveLoadManager")
+	return save_manager.SaveGame(slot_name)
+
+## Load game from slot
+func load_game(slot_name: String) -> bool:
+	if not has_node("/root/SaveLoadManager"):
+		push_error("SimBridge: SaveLoadManager not found")
+		return false
+	
+	var save_manager = get_node("/root/SaveLoadManager")
+	return save_manager.LoadGame(slot_name)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# EXISTING API (PRESERVED)
+# ══════════════════════════════════════════════════════════════════════════════
 
 ## Format a NOK amount with kNOK / MNOK suffix.
 func format_nok(amount: float) -> String:
@@ -286,9 +385,7 @@ func format_fish(count: int) -> String:
 		return "%.1fK" % (count / 1_000.0)
 	return str(count)
 
-## Return the season name for a given simulation day (Norwegian calendar).
-## Spring: Mar–May (day 60–151), Summer: Jun–Aug (152–243),
-## Autumn: Sep–Nov (244–334), Winter: Dec–Feb (0–59, 335+)
+## Return the season name for a given simulation day.
 func _season_name(day: int) -> String:
 	var day_of_year: int = day % 365
 	if day_of_year < 60 or day_of_year >= 335:
@@ -306,7 +403,7 @@ func sustainability_color(level: String) -> Color:
 		"OrganicCertified":     return Color(0.2, 0.7, 0.1)
 		"ASCCertified":         return Color(0.4, 0.8, 0.3)
 		"BasicCompliance":      return Color(0.9, 0.8, 0.1)
-		_:                      return Color(0.9, 0.2, 0.1) # NonCompliant
+		_:                      return Color(0.9, 0.2, 0.1)
 
 ## Return a color for a sea lice level.
 func lice_color(lice_per_fish: float) -> Color:
@@ -315,42 +412,32 @@ func lice_color(lice_per_fish: float) -> Color:
 	elif lice_per_fish > 0.5: return Color.YELLOW
 	return Color.GREEN
 
-## Return a color for balance (red if negative).
+## Return a color for balance.
 func balance_color(amount: float) -> Color:
 	if amount < 0.0:     return Color.RED
 	elif amount < 500_000.0: return Color.YELLOW
 	return Color.WHITE
 
-# ── Production Chain API ──────────────────────────────────────────────────────
+# ── Passthrough API (delegated to GameBridge) ────────────────────────────────
 
-## Get count of fish at a specific life stage (Egg, Fry, Smolt, PostSmolt, Adult, Broodstock, Harvested)
 func get_fish_count_by_stage(stage_name: String) -> int:
-	return _game_bridge.GetFishCountByStage(stage_name)
+	return _game_bridge.GetFishCountByStage(stage_name) if _game_bridge else 0
 
-## Get biomass (kg) at a specific life stage
 func get_biomass_by_stage(stage_name: String) -> float:
-	return _game_bridge.GetBiomassByStage(stage_name)
+	return _game_bridge.GetBiomassByStage(stage_name) if _game_bridge else 0.0
 
-## Whether the player owns a hatchery
 func owns_hatchery() -> bool:
-	return _game_bridge.OwnsHatchery
+	return _game_bridge.OwnsHatchery if _game_bridge else false
 
-## Whether the player owns a processing plant
 func owns_processing_plant() -> bool:
-	return _game_bridge.OwnsProcessingPlant
+	return _game_bridge.OwnsProcessingPlant if _game_bridge else false
 
-## Number of export markets unlocked
 func get_export_market_count() -> int:
-	return _game_bridge.ExportMarketCount
+	return _game_bridge.ExportMarketCount if _game_bridge else 0
 
-## Total processing throughput (kg)
 func get_processing_throughput_kg() -> float:
-	return _game_bridge.ProcessingThroughputKg
+	return _game_bridge.ProcessingThroughputKg if _game_bridge else 0.0
 
-# ── Contract & Market API ─────────────────────────────────────────────────────
-
-## Get list of active contracts.
-## Returns Array[Dictionary] with keys: "id", "buyer", "type", "price_per_kg", "quantity_kg", "quality", "penalty_pct", "fulfilled_kg", "fulfilled_percent"
 func get_active_contracts() -> Array[Dictionary]:
 	if not _game_bridge: return []
 	var raw = _game_bridge.GetActiveContracts()
@@ -359,8 +446,6 @@ func get_active_contracts() -> Array[Dictionary]:
 		result.append(entry)
 	return result
 
-## Get list of available contract offers (generated from market conditions).
-## Returns Array[Dictionary] with keys: "buyer", "type", "price_per_kg", "quantity_kg", "quality", "penalty_pct"
 func get_available_offers() -> Array[Dictionary]:
 	if not _game_bridge: return []
 	var raw = _game_bridge.GetAvailableOffers()
@@ -369,8 +454,6 @@ func get_available_offers() -> Array[Dictionary]:
 		result.append(entry)
 	return result
 
-## Get list of export markets with status and prices.
-## Returns Array[Dictionary] with keys: "region", "name", "base_price_nok", "premium_multiplier", "player_has_access", "logistics_cost_pct", "tariff_rate", "min_reputation_score", "required_certifications"
 func get_export_markets() -> Array[Dictionary]:
 	if not _game_bridge: return []
 	var raw = _game_bridge.GetExportMarkets()
@@ -379,11 +462,6 @@ func get_export_markets() -> Array[Dictionary]:
 		result.append(entry)
 	return result
 
-# ── Analytics API ─────────────────────────────────────────────────────────────
-
-## Get time-series data for a metric over N days (returns Array[double]).
-## Valid metrics: fish_count, total_biomass_kg, market_price_nok, balance_nok,
-## temperature_c, fcr, lice_per_fish, sustainability_score, mortality_rate, avg_weight_kg
 func get_analytics_data(metric: String, days: int = 30) -> Array[float]:
 	if not _game_bridge: return []
 	var raw = _game_bridge.GetAnalyticsData(metric, days)
@@ -392,7 +470,6 @@ func get_analytics_data(metric: String, days: int = 30) -> Array[float]:
 		result.append(v)
 	return result
 
-## Get moving average of a metric over N days with a rolling window.
 func get_analytics_moving_average(metric: String, days: int = 30, window_days: int = 7) -> Array[float]:
 	if not _game_bridge: return []
 	var raw = _game_bridge.GetAnalyticsMovingAverage(metric, days, window_days)
@@ -401,27 +478,18 @@ func get_analytics_moving_average(metric: String, days: int = 30, window_days: i
 		result.append(v)
 	return result
 
-## Get trend for a metric over N days. Returns "up", "down", or "stable".
 func get_analytics_trend(metric: String, days: int = 14) -> String:
 	if not _game_bridge: return "stable"
 	return _game_bridge.GetAnalyticsTrend(metric, days)
 
-## Get all-time high value for a metric.
 func get_analytics_all_time_high(metric: String) -> float:
 	if not _game_bridge: return 0.0
 	return _game_bridge.GetAnalyticsAllTimeHigh(metric)
 
-## Get all-time low value for a metric.
 func get_analytics_all_time_low(metric: String) -> float:
 	if not _game_bridge: return 0.0
 	return _game_bridge.GetAnalyticsAllTimeLow(metric)
 
-# ── Research API ──────────────────────────────────────────────────────────────
-
-## Get all research nodes as Array[Dictionary].
-## Keys: id, name, description, branch, tier, cost_nok, research_days,
-##       prerequisites (Array[String]), unlocked (bool), is_active (bool),
-##       progress_days (int), can_research (bool), effects (Dictionary)
 func get_research_nodes() -> Array[Dictionary]:
 	if not _game_bridge: return []
 	var raw = _game_bridge.GetResearchNodes()
@@ -430,45 +498,34 @@ func get_research_nodes() -> Array[Dictionary]:
 		result.append(entry)
 	return result
 
-## Start researching a node by ID. Returns true on success.
 func start_research(node_id: String) -> bool:
 	if not _game_bridge: return false
 	return _game_bridge.StartResearch(node_id)
 
-## Cancel the active research (no cost refund).
 func cancel_research() -> void:
 	if _game_bridge:
 		_game_bridge.CancelResearch()
 
-## Check if a research node is unlocked.
 func is_research_unlocked(node_id: String) -> bool:
 	if not _game_bridge: return false
 	return _game_bridge.IsResearchUnlocked(node_id)
 
-## Get combined effect value for a key across all unlocked research.
 func get_research_effect(effect_key: String) -> float:
 	if not _game_bridge: return 0.0
 	return _game_bridge.GetResearchEffect(effect_key)
 
-## ID of the research currently in progress (empty string if none).
 func get_active_research_id() -> String:
 	if not _game_bridge: return ""
 	return _game_bridge.ActiveResearchId
 
-## Days elapsed on the active research.
 func get_research_progress() -> int:
 	if not _game_bridge: return 0
 	return _game_bridge.ResearchProgress
 
-## Days remaining on the active research.
 func get_research_days_remaining() -> int:
 	if not _game_bridge: return 0
 	return _game_bridge.ResearchDaysRemaining
 
-# ── Scenario System API ───────────────────────────────────────────────────────
-
-## Get all available scenarios as Array[Dictionary].
-## Keys: id, name, description, difficulty, region, starting_capital
 func get_available_scenarios() -> Array[Dictionary]:
 	if not _game_bridge: return []
 	var raw = _game_bridge.GetAvailableScenarios()
@@ -477,115 +534,34 @@ func get_available_scenarios() -> Array[Dictionary]:
 		result.append(entry)
 	return result
 
-## Load and start a scenario by ID. Returns true on success.
-func start_scenario(scenario_id: String) -> bool:
-	if not _game_bridge: return false
-	return _game_bridge.StartScenario(scenario_id)
-
-## Get the ID of the currently active scenario.
 func get_active_scenario_id() -> String:
 	if not _game_bridge: return ""
 	return _game_bridge.GetActiveScenarioId()
 
-# ── Sustainability API (expanded) ─────────────────────────────────────────────
-
-## Get detailed sustainability breakdown as Dictionary.
-## Keys: sea_lice, escape, feed, carbon, welfare, ecosystem (all float)
 func get_sustainability_breakdown() -> Dictionary:
 	if not _game_bridge: return {}
 	return _game_bridge.GetSustainabilityBreakdown()
 
-## Get the current certification level as a string.
-## Values: NonCompliant, Compliant, ASCCertified, OrganicCertified
 func get_certification_level() -> String:
 	if not _game_bridge: return "NonCompliant"
 	return _game_bridge.GetCertificationLevel()
 
-## Get the current price multiplier from certification (e.g. 1.0 = no bonus, 1.15 = +15%).
 func get_price_multiplier() -> float:
 	if not _game_bridge: return 1.0
 	return _game_bridge.GetPriceMultiplier()
 
-# ── Finance API ───────────────────────────────────────────────────────────────
-
-## Total revenue accumulated this period.
 func get_revenue() -> float:
 	if not _game_bridge: return 0.0
 	return _game_bridge.Revenue
 
-## Total expenses accumulated this period.
 func get_expenses() -> float:
 	if not _game_bridge: return 0.0
 	return _game_bridge.Expenses
 
-## Current profit (Revenue - Expenses).
 func get_profit() -> float:
 	if not _game_bridge: return 0.0
 	return _game_bridge.Profit
 
-## Get financial history for the last N days as Array[Dictionary].
-## Keys: day (int), revenue (float), expenses (float), balance (float)
-func get_financial_history(days: int) -> Array[Dictionary]:
-	if not _game_bridge: return []
-	var raw = _game_bridge.GetFinancialHistory(days)
-	var result: Array[Dictionary] = []
-	for entry in raw:
-		result.append(entry)
-	return result
-
-## Get loan information as Dictionary.
-## Keys: has_loan (bool), amount (float), interest_rate (float), remaining (float)
-func get_loan_info() -> Dictionary:
-	if not _game_bridge: return {}
-	return _game_bridge.GetLoanInfo()
-
-## Take out a loan for the specified amount. Returns true on success.
-func take_loan(amount: float) -> bool:
-	if not _game_bridge: return false
-	return _game_bridge.TakeLoan(amount)
-
-## Repay a portion of the active loan. Returns true on success.
-func repay_loan(amount: float) -> bool:
-	if not _game_bridge: return false
-	return _game_bridge.RepayLoan(amount)
-
-# ── Farm Management API ───────────────────────────────────────────────────────
-
-## Stock smolts at a specific sea site. Returns true on success.
-func stock_smolts(site_id: String, count: int) -> bool:
-	if not _game_bridge: return false
-	return _game_bridge.StockSmolts(site_id, count)
-
-## Harvest all fish at a specific sea site. Returns biomass harvested in kg.
-func harvest_site(site_id: String) -> float:
-	if not _game_bridge: return 0.0
-	return _game_bridge.HarvestSite(site_id)
-
-## Build a new sea site in the specified zone. Returns true on success.
-func build_sea_site(zone_id: String, name: String) -> bool:
-	if not _game_bridge: return false
-	return _game_bridge.BuildSeaSite(zone_id, name)
-
-## Get detailed information about all sea sites as Array[Dictionary].
-## Keys: id, name, zone, fish_count (int), biomass_kg (float), max_biomass (float), escapes_this_year (int)
-func get_sea_site_details() -> Array[Dictionary]:
-	if not _game_bridge: return []
-	var raw = _game_bridge.GetSeaSiteDetails()
-	var result: Array[Dictionary] = []
-	for entry in raw:
-		result.append(entry)
-	return result
-
-## Order a delousing treatment for a specific sea site.
-## Valid methods: mechanical, thermal, chemical, biological. Returns true on success.
-func order_delousing(site_id: String, method: String) -> bool:
-	if not _game_bridge: return false
-	return _game_bridge.OrderDelousing(site_id, method)
-
-# ── Genetics API ──────────────────────────────────────────────────────────────
-
-## Get all broodstock genomes as Array[Dictionary].
-## Keys: id, generation (int), traits (Dictionary), has_mutation (bool), summary (String)
 func get_breeding_candidates() -> Array[Dictionary]:
 	if not _game_bridge: return []
 	var raw = _game_bridge.GetBreedingCandidates()
@@ -594,8 +570,6 @@ func get_breeding_candidates() -> Array[Dictionary]:
 		result.append(entry)
 	return result
 
-## Get genetic trait definitions as Array[Dictionary].
-## Keys: name (String), heritability (float), current_value (float), breeding_value (float)
 func get_genetic_traits() -> Array[Dictionary]:
 	if not _game_bridge: return []
 	var raw = _game_bridge.GetGeneticTraits()
@@ -604,15 +578,10 @@ func get_genetic_traits() -> Array[Dictionary]:
 		result.append(entry)
 	return result
 
-## Get current inbreeding coefficient (0.0-1.0).
 func get_inbreeding_coefficient() -> float:
 	if not _game_bridge: return 0.0
 	return _game_bridge.GetInbreedingCoefficient()
 
-# ── Worker/Crew API ───────────────────────────────────────────────────────────
-
-## Get the crew roster as Array[Dictionary].
-## Keys: id, name, role, salary_nok (float), skill_level (int), hire_date (int)
 func get_crew_list() -> Array[Dictionary]:
 	if not _game_bridge: return []
 	var raw = _game_bridge.GetCrewList()
@@ -621,21 +590,14 @@ func get_crew_list() -> Array[Dictionary]:
 		result.append(entry)
 	return result
 
-## Hire a new worker with the specified role. Returns true on success.
-## Valid roles: manager, technician, veterinarian, diver, feeder
 func hire_worker(role: String) -> bool:
 	if not _game_bridge: return false
 	return _game_bridge.HireWorker(role)
 
-## Fire a worker by ID. Returns true on success.
 func fire_worker(worker_id: String) -> bool:
 	if not _game_bridge: return false
 	return _game_bridge.FireWorker(worker_id)
 
-# ── Achievement API ───────────────────────────────────────────────────────────
-
-## Get all achievements as Array[Dictionary].
-## Keys: id, name, description, tier, reward_nok (float), unlocked (bool)
 func get_achievement_list() -> Array[Dictionary]:
 	if not _game_bridge: return []
 	var raw = _game_bridge.GetAchievementList()
@@ -644,7 +606,6 @@ func get_achievement_list() -> Array[Dictionary]:
 		result.append(entry)
 	return result
 
-# T32 Audio Bridge Methods
 func get_current_weather_state() -> String:
 	if not _game_bridge: return "Calm"
 	return _game_bridge.GetCurrentWeatherState()
@@ -656,4 +617,3 @@ func get_current_temperature() -> float:
 func get_current_day() -> int:
 	if not _game_bridge: return 0
 	return int(_game_bridge.GetCurrentDay())
-

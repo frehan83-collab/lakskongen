@@ -90,7 +90,7 @@ namespace LakskongenSim.Market
     /// Player brand reputation, built through consistent quality deliveries.
     /// Higher reputation unlocks premium channels and price bonuses.
     /// </summary>
-    public class BrandReputation
+    public class MarketBrandReputation
     {
         /// <summary>Reputation score 0-100.</summary>
         public double Score { get; private set; } = 25.0;
@@ -163,7 +163,7 @@ namespace LakskongenSim.Market
         private readonly Random _rng = new();
         private int _currentWeek = 0;
 
-        public BrandReputation PlayerReputation { get; } = new();
+        public MarketBrandReputation PlayerReputation { get; } = new();
         public IReadOnlyList<MarketNewsEvent> ActiveEvents => _activeEvents;
         public IReadOnlyList<MarketNewsEvent> EventHistory => _eventHistory;
         public IReadOnlyList<CompetitorProducer> Competitors => _competitors;

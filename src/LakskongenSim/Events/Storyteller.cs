@@ -213,7 +213,10 @@ namespace LakskongenSim.Events
                     
                     if (_financeManager != null)
                     {
-                        _financeManager.Spend(cost); // Market crash penalty (opportunity cost)
+                        if (!_financeManager.Spend(cost))
+                        {
+                            rec.Description += " (Insufficient funds for market shock penalty!)";
+                        }
                     }
                     else
                     {

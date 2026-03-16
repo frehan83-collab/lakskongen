@@ -11,8 +11,8 @@ namespace LakskongenSim.Tests
         [Fact]
         public void ProductCatalog_ContainsAllExpectedProducts()
         {
-            // Should have all 17 products
-            Assert.Equal(17, ProductCatalog.Products.Count);
+            // Should have all 18 products
+            Assert.Equal(18, ProductCatalog.Products.Count);
             
             // Check primary products exist
             Assert.True(ProductCatalog.Products.ContainsKey(ProductType.FreshWhole));
@@ -202,7 +202,8 @@ namespace LakskongenSim.Tests
             {
                 ConfiguredProduct = ProductType.Fillet,
                 UptimePercent = 0.95m,
-                DaysSinceLastMaintenance = 0
+                DaysSinceLastMaintenance = 0,
+                MaintenanceCostPerMonth = 5000m // Set maintenance cost (was missing, causing test failure)
             };
             
             // Fresh maintenance

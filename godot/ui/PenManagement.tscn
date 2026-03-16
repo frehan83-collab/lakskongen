@@ -1,0 +1,241 @@
+[gd_scene load_steps=2 format=3 uid="uid://pen_management_panel"]
+
+[ext_resource type="Script" path="res://scripts/ui/PenManagement.gd" id="1"]
+
+[node name="PenManagement" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 50.0
+offset_top = 80.0
+offset_right = -50.0
+offset_bottom = -80.0
+
+[node name="HSplit" type="HSplitContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+
+[node name="LeftPanel" type="VBoxContainer" parent="Panel/HSplit"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.3
+
+[node name="Header" type="Label" parent="Panel/HSplit/LeftPanel"]
+layout_mode = 2
+text = "Pens"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Panel/HSplit/LeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PenList" type="VBoxContainer" parent="Panel/HSplit/LeftPanel/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RightPanel" type="VBoxContainer" parent="Panel/HSplit"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.7
+
+[node name="NoPenLabel" type="Label" parent="Panel/HSplit/RightPanel"]
+layout_mode = 2
+text = "Select a pen to view details"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DetailPanel" type="VBoxContainer" parent="Panel/HSplit/RightPanel"]
+visible = false
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel"]
+layout_mode = 2
+text = "Pen Name"
+horizontal_alignment = 1
+
+[node name="Stats" type="VBoxContainer" parent="Panel/HSplit/RightPanel/DetailPanel"]
+layout_mode = 2
+
+[node name="StatsLabel" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Stats"]
+layout_mode = 2
+text = "Statistics"
+
+[node name="FishCountRow" type="HBoxContainer" parent="Panel/HSplit/RightPanel/DetailPanel/Stats"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Stats/FishCountRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Fish Count:"
+
+[node name="Value" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Stats/FishCountRow"]
+layout_mode = 2
+text = "0"
+
+[node name="BiomassRow" type="HBoxContainer" parent="Panel/HSplit/RightPanel/DetailPanel/Stats"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Stats/BiomassRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Biomass:"
+
+[node name="Value" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Stats/BiomassRow"]
+layout_mode = 2
+text = "0 t"
+
+[node name="AvgWeightRow" type="HBoxContainer" parent="Panel/HSplit/RightPanel/DetailPanel/Stats"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Stats/AvgWeightRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Avg Weight:"
+
+[node name="Value" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Stats/AvgWeightRow"]
+layout_mode = 2
+text = "0 kg"
+
+[node name="ZoneRow" type="HBoxContainer" parent="Panel/HSplit/RightPanel/DetailPanel/Stats"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Stats/ZoneRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Zone:"
+
+[node name="Value" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Stats/ZoneRow"]
+layout_mode = 2
+text = "Unknown"
+
+[node name="CapacityRow" type="HBoxContainer" parent="Panel/HSplit/RightPanel/DetailPanel/Stats"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Stats/CapacityRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Capacity:"
+
+[node name="Value" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Stats/CapacityRow"]
+layout_mode = 2
+text = "0%"
+
+[node name="WaterQuality" type="VBoxContainer" parent="Panel/HSplit/RightPanel/DetailPanel"]
+layout_mode = 2
+
+[node name="Header" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/WaterQuality"]
+layout_mode = 2
+text = "Water Quality"
+
+[node name="TempRow" type="HBoxContainer" parent="Panel/HSplit/RightPanel/DetailPanel/WaterQuality"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/WaterQuality/TempRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Temperature:"
+
+[node name="Value" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/WaterQuality/TempRow"]
+layout_mode = 2
+text = "-- °C"
+
+[node name="OxygenRow" type="HBoxContainer" parent="Panel/HSplit/RightPanel/DetailPanel/WaterQuality"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/WaterQuality/OxygenRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Oxygen:"
+
+[node name="Value" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/WaterQuality/OxygenRow"]
+layout_mode = 2
+text = "-- mg/L"
+
+[node name="SalinityRow" type="HBoxContainer" parent="Panel/HSplit/RightPanel/DetailPanel/WaterQuality"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/WaterQuality/SalinityRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Salinity:"
+
+[node name="Value" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/WaterQuality/SalinityRow"]
+layout_mode = 2
+text = "-- PSU"
+
+[node name="Health" type="VBoxContainer" parent="Panel/HSplit/RightPanel/DetailPanel"]
+layout_mode = 2
+
+[node name="Header" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Health"]
+layout_mode = 2
+text = "Health"
+
+[node name="LiceRow" type="HBoxContainer" parent="Panel/HSplit/RightPanel/DetailPanel/Health"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Health/LiceRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Sea Lice:"
+
+[node name="Value" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Health/LiceRow"]
+layout_mode = 2
+text = "-- / fish"
+
+[node name="DiseaseRow" type="HBoxContainer" parent="Panel/HSplit/RightPanel/DetailPanel/Health"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Health/DiseaseRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Disease:"
+
+[node name="Value" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Health/DiseaseRow"]
+layout_mode = 2
+text = "None"
+
+[node name="MortalityRow" type="HBoxContainer" parent="Panel/HSplit/RightPanel/DetailPanel/Health"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Health/MortalityRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Mortality:"
+
+[node name="Value" type="Label" parent="Panel/HSplit/RightPanel/DetailPanel/Health/MortalityRow"]
+layout_mode = 2
+text = "--%"
+
+[node name="Actions" type="HBoxContainer" parent="Panel/HSplit/RightPanel/DetailPanel"]
+layout_mode = 2
+
+[node name="FeedButton" type="Button" parent="Panel/HSplit/RightPanel/DetailPanel/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Feed (100kg)"
+
+[node name="DelousingButton" type="Button" parent="Panel/HSplit/RightPanel/DetailPanel/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Delouse"
+
+[node name="HarvestButton" type="Button" parent="Panel/HSplit/RightPanel/DetailPanel/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Harvest"

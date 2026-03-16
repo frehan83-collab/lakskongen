@@ -1,0 +1,160 @@
+[gd_scene load_steps=16 format=3 uid="uid://fjord_environment_001"]
+
+[ext_resource type="Script" path="res://scripts/environment/FjordEnvironment.gd" id="1_env"]
+[ext_resource type="Script" path="res://scripts/environment/FjordTerrain.gd" id="2_terrain"]
+[ext_resource type="Script" path="res://scripts/environment/FjordCamera.gd" id="3_camera"]
+[ext_resource type="Script" path="res://scripts/environment/TimeOfDay.gd" id="4_time"]
+[ext_resource type="Script" path="res://scripts/environment/WeatherController.gd" id="5_weather"]
+[ext_resource type="Shader" path="res://shaders/water_shader.gdshader" id="6_water_shader"]
+[ext_resource type="Shader" path="res://shaders/tilt_shift.gdshader" id="7_tilt_shader"]
+[ext_resource type="Shader" path="res://shaders/sky_shader.gdshader" id="8_sky_shader"]
+
+[sub_resource type="ShaderMaterial" id="water_mat"]
+shader = ExtResource("6_water_shader")
+shader_parameter/wave_speed = 1.0
+shader_parameter/wave_amplitude = 0.3
+shader_parameter/wave_frequency = 2.0
+shader_parameter/wave_count = 4
+shader_parameter/wave_steepness = 0.4
+shader_parameter/shallow_color = Color(0.361, 0.659, 0.722, 1)
+shader_parameter/medium_color = Color(0.165, 0.42, 0.486, 1)
+shader_parameter/deep_color = Color(0.059, 0.227, 0.29, 1)
+shader_parameter/depth_fade_distance = 30.0
+shader_parameter/transparency = 0.7
+shader_parameter/foam_amount = 1.5
+shader_parameter/foam_cutoff = 0.8
+shader_parameter/foam_color = Color(0.9, 0.95, 1.0, 1)
+shader_parameter/metallic_value = 0.1
+shader_parameter/roughness_value = 0.05
+shader_parameter/fresnel_power = 5.0
+shader_parameter/caustic_scale = 8.0
+shader_parameter/caustic_speed = 0.3
+shader_parameter/caustic_intensity = 0.3
+shader_parameter/normal_scale = 0.5
+shader_parameter/normal_scroll_dir1 = Vector2(1, 0)
+shader_parameter/normal_scroll_dir2 = Vector2(0, 1)
+shader_parameter/normal_scroll_speed = 0.05
+shader_parameter/wind_direction = Vector2(1, 0.3)
+shader_parameter/wind_strength = 1.0
+
+[sub_resource type="PlaneMesh" id="water_plane_mesh"]
+size = Vector2(4000, 4000)
+subdivide_width = 128
+subdivide_depth = 128
+
+[sub_resource type="ShaderMaterial" id="sky_mat"]
+shader = ExtResource("8_sky_shader")
+shader_parameter/time_of_day = 0.35
+shader_parameter/season = 0.5
+shader_parameter/aurora_intensity = 0.0
+shader_parameter/cloud_coverage = 0.3
+shader_parameter/star_density = 0.5
+shader_parameter/sun_size = 0.02
+
+[sub_resource type="Sky" id="sky_resource"]
+sky_material = SubResource("sky_mat")
+
+[sub_resource type="Environment" id="environment_resource"]
+background_mode = 2
+sky = SubResource("sky_resource")
+ambient_light_source = 2
+ambient_light_color = Color(0.529, 0.808, 0.922, 1)
+ambient_light_sky_contribution = 0.7
+ambient_light_energy = 0.4
+fog_enabled = true
+fog_light_color = Color(0.75, 0.82, 0.9, 1)
+fog_density = 0.001
+fog_sky_affect = 0.5
+volumetric_fog_enabled = false
+volumetric_fog_density = 0.01
+volumetric_fog_albedo = Color(0.9, 0.92, 0.95, 1)
+
+[sub_resource type="ShaderMaterial" id="tilt_shift_mat"]
+shader = ExtResource("7_tilt_shader")
+shader_parameter/focus_center = 0.5
+shader_parameter/focus_width = 0.15
+shader_parameter/blur_amount = 3.0
+shader_parameter/saturation_boost = 1.3
+shader_parameter/vignette_strength = 0.3
+shader_parameter/vignette_radius = 0.8
+shader_parameter/warmth = 0.02
+shader_parameter/contrast = 1.1
+
+[node name="FjordEnvironment" type="Node3D"]
+script = ExtResource("1_env")
+terrain = NodePath("Terrain")
+camera = NodePath("FjordCamera")
+time_system = NodePath("TimeOfDay")
+weather_system = NodePath("WeatherSystem")
+water_plane = NodePath("WaterPlane")
+
+[node name="Terrain" type="Node3D" parent="."]
+script = ExtResource("2_terrain")
+terrain_size = Vector2(4000, 4000)
+terrain_resolution = 256
+max_height = 400.0
+fjord_depth = 0.8
+fjord_width = 0.15
+cliff_steepness = 5.0
+island_count = 4
+terrain_seed = 42
+
+[node name="WaterPlane" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("water_plane_mesh")
+material_override = SubResource("water_mat")
+
+[node name="FjordCamera" type="Camera3D" parent="."]
+script = ExtResource("3_camera")
+transform = Transform3D(1, 0, 0, 0, 0.766, -0.643, 0, 0.643, 0.766, 0, 200, 100)
+current = true
+fov = 50.0
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.5, -0.866, 0, 0.866, 0.5, 0, 0, 0)
+light_color = Color(1, 0.957, 0.902, 1)
+light_energy = 1.2
+shadow_enabled = true
+directional_shadow_mode = 1
+directional_shadow_max_distance = 2000.0
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("environment_resource")
+
+[node name="TimeOfDay" type="Node" parent="."]
+script = ExtResource("4_time")
+time_of_day = 0.35
+time_scale = 2.0
+sun_light = NodePath("../Sun")
+world_environment = NodePath("../WorldEnvironment")
+
+[node name="WeatherSystem" type="Node3D" parent="."]
+script = ExtResource("5_weather")
+rain_particles = NodePath("RainParticles")
+snow_particles = NodePath("SnowParticles")
+world_environment = NodePath("../WorldEnvironment")
+
+[node name="RainParticles" type="GPUParticles3D" parent="WeatherSystem"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 50, 0)
+emitting = false
+amount = 2000
+lifetime = 2.0
+visibility_aabb = AABB(-100, -50, -100, 200, 100, 200)
+
+[node name="SnowParticles" type="GPUParticles3D" parent="WeatherSystem"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 60, 0)
+emitting = false
+amount = 1500
+lifetime = 5.0
+visibility_aabb = AABB(-100, -60, -100, 200, 120, 200)
+
+[node name="TiltShiftCanvas" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="TiltShiftRect" type="ColorRect" parent="TiltShiftCanvas"]
+material = SubResource("tilt_shift_mat")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

@@ -47,6 +47,8 @@ public partial class GameBridge : Node
     [Signal] public delegate void SustainabilityChangedEventHandler(int score, string level);
     [Signal] public delegate void FinanceTransactionEventHandler(string type, double amount, string description);
     [Signal] public delegate void FarmActionCompletedEventHandler(string action, string siteId, bool success);
+    [Signal] public delegate void WeatherEventEventHandler(string eventType, double severity, string description);
+    [Signal] public delegate void DiseaseOutbreakEventHandler(string diseaseType, string siteId, double severity, double treatmentCost);
 
     // ── Godot lifecycle ───────────────────────────────────────────────────────
 
@@ -110,6 +112,10 @@ public partial class GameBridge : Node
             SimulationEngine.State.Populations.Add(pop);
         foreach (var evt in snapshot.EventLog)
             SimulationEngine.State.EventLog.Add(evt);
+
+        // CRITICAL: Re-inject dependencies into deserialized populations
+        // Fixes P1-03 (Save/Load NRE Gap) - populations need GrowthModel/MortalityModel after deserialization
+        SimulationEngine.RestoreFromLoad(snapshot);
 
         _gameRunning = true;
         EmitSignal(SignalName.GameStarted);
@@ -465,6 +471,12 @@ public partial class GameBridge : Node
                 SimulationEngine.Audio?.ClearAlert();
             }
 
+            // Check for weather events and apply impacts
+            CheckWeatherImpacts();
+
+            // Check for disease outbreaks
+            CheckDiseaseOutbreaks();
+
             CheckGameOverConditions();
         }
         catch (Exception ex)
@@ -485,6 +497,125 @@ public partial class GameBridge : Node
             (double)achievement.RewardNOK,
             achievement.Tier.ToString());
         GD.Print($"GameBridge: achievement unlocked — {achievement.Name}");
+    }
+
+    // Track last weather check to avoid spam
+    private LakskongenSim.Environment.WeatherState _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
+    private int _lastDiseaseCheckDay = 0;
+
+    private void CheckWeatherImpacts()
+    {
+        if (SimulationEngine?.Weather == null || SimulationEngine?.State?.SeaSites == null) return;
+
+        var currentWeather = SimulationEngine.Weather.CurrentState;
+        
+        // Only trigger events when weather changes to severe states
+        if (currentWeather != _lastWeatherState && (currentWeather == LakskongenSim.Environment.WeatherState.Storm || currentWeather == LakskongenSim.Environment.WeatherState.Severe))
+        {
+            double severity = currentWeather == LakskongenSim.Environment.WeatherState.Severe ? 1.0 : 0.5;
+            
+            // Storm damages pens and increases mortality
+            foreach (var site in SimulationEngine.State.SeaSites)
+            {
+                var populations = SimulationEngine.State.Populations.Where(p => p.ZoneId == site.ZoneId).ToList();
+                foreach (var pop in populations)
+                {
+                    foreach (var cohort in pop.Cohorts)
+                    {
+                        // Increase mortality due to storm stress (0.5-2% loss depending on severity)
+                        int mortalityCount = (int)(cohort.Count * severity * 0.02);
+                        if (mortalityCount > 0)
+                        {
+                            cohort.Count = Math.Max(0, cohort.Count - mortalityCount);
+                        }
+                    }
+                }
+            }
+
+            // Calculate financial impact (pen repairs)
+            decimal repairCost = (decimal)(SimulationEngine.State.SeaSites.Count * 50000 * severity); // 50k-100k NOK per site
+            if (repairCost > 0 && SimulationEngine.FinanceManager.Balance >= repairCost)
+            {
+                SimulationEngine.FinanceManager.Spend(repairCost);
+                SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+                {
+                    Day = SimulationEngine.State.Day,
+                    Name = "Storm Damage",
+                    Category = LakskongenSim.Events.EventCategory.Weather,
+                    Description = $"{(currentWeather == LakskongenSim.Environment.WeatherState.Severe ? "Severe storm" : "Storm")} damaged pen infrastructure",
+                    BalanceChange = -repairCost
+                });
+            }
+
+            string weatherDesc = currentWeather == LakskongenSim.Environment.WeatherState.Severe 
+                ? "Severe storm causing major infrastructure damage and fish stress" 
+                : "Storm causing moderate damage and increased mortality";
+            
+            EmitSignal(SignalName.WeatherEvent, currentWeather.ToString(), severity, weatherDesc);
+            GD.Print($"GameBridge: Weather event — {currentWeather} (severity {severity:F2})");
+        }
+
+        // Temperature extremes stress fish
+        double temp = SimulationEngine.Weather.CurrentTemperatureC;
+        if (temp < 4.0 || temp > 16.0)
+        {
+            double tempStress = temp < 4.0 ? (4.0 - temp) * 0.01 : (temp - 16.0) * 0.01;
+            foreach (var pop in SimulationEngine.State.Populations)
+            {
+                foreach (var cohort in pop.Cohorts)
+                {
+                    int tempMortality = (int)(cohort.Count * tempStress * 0.005); // 0.5% per degree deviation
+                    if (tempMortality > 0)
+                    {
+                        cohort.Count = Math.Max(0, cohort.Count - tempMortality);
+                    }
+                }
+            }
+        }
+
+        _lastWeatherState = currentWeather;
+    }
+
+    private void CheckDiseaseOutbreaks()
+    {
+        if (SimulationEngine?.SeaLice == null || SimulationEngine?.State?.SeaSites == null) return;
+        
+        // Check once per week to avoid spam
+        if (SimulationEngine.State.Day - _lastDiseaseCheckDay < 7) return;
+        _lastDiseaseCheckDay = SimulationEngine.State.Day;
+
+        double licePerFish = SimulationEngine.SeaLice.AverageLicePerFish;
+        
+        // Trigger outbreak notification when lice threshold is exceeded
+        if (licePerFish > 0.5)
+        {
+            double severity = Math.Min(1.0, licePerFish / 2.0); // 0.5 lice = 0.25 severity, 2.0+ lice = 1.0 severity
+            
+            // Calculate treatment cost (mechanical delousing: ~50 NOK/fish)
+            int totalFish = SimulationEngine.State.Populations
+                .SelectMany(p => p.Cohorts)
+                .Sum(c => c.Count);
+            
+            decimal treatmentCost = totalFish * 50m;
+            
+            string description = severity < 0.5 
+                ? $"Moderate sea lice levels detected ({licePerFish:F2} per fish). Consider treatment."
+                : $"High sea lice levels detected ({licePerFish:F2} per fish)! Immediate treatment recommended.";
+            
+            EmitSignal(SignalName.DiseaseOutbreak, "SeaLice", "all_sites", severity, (double)treatmentCost);
+            
+            // Add warning to event log
+            SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+            {
+                Day = SimulationEngine.State.Day,
+                Name = "Sea Lice Warning",
+                Category = LakskongenSim.Events.EventCategory.Disease,
+                Description = description,
+                BalanceChange = 0m
+            });
+            
+            GD.Print($"GameBridge: Disease outbreak — SeaLice (severity {severity:F2}, treatment cost {treatmentCost:N0} NOK)");
+        }
     }
 
     private void CheckGameOverConditions()
@@ -706,10 +837,62 @@ public partial class GameBridge : Node
     /// </summary>
     public bool StockSmolts(string siteId, int count)
     {
-        // Hatchery.StockSmolts not yet implemented
-        GD.Print($"GameBridge: StockSmolts not implemented for site '{siteId}', count {count}");
-        EmitSignal(SignalName.FarmActionCompleted, "stock_smolts", siteId, false);
-        return false;
+        if (SimulationEngine?.State?.SeaSites == null || SimulationEngine?.Hatchery == null)
+        {
+            GD.PrintErr("GameBridge: StockSmolts failed - engine not initialized");
+            EmitSignal(SignalName.FarmActionCompleted, "stock_smolts", siteId, false);
+            return false;
+        }
+
+        var site = SimulationEngine.State.SeaSites.FirstOrDefault(s => s.Id == siteId);
+        if (site == null)
+        {
+            GD.PrintErr($"GameBridge: StockSmolts failed - site '{siteId}' not found");
+            EmitSignal(SignalName.FarmActionCompleted, "stock_smolts", siteId, false);
+            return false;
+        }
+
+        // Calculate stocking cost (hatchery rearing cost)
+        decimal stockingCost = SimulationEngine.Hatchery.CalculateRearingCost(count, SimulationEngine.Hatchery.MaturationDays);
+        
+        if (SimulationEngine.FinanceManager.Balance < stockingCost)
+        {
+            GD.PrintErr($"GameBridge: StockSmolts failed - insufficient funds (need {stockingCost:N0} NOK)");
+            EmitSignal(SignalName.FarmActionCompleted, "stock_smolts", siteId, false);
+            return false;
+        }
+
+        // Create a new fish population with smolts
+        var population = new LakskongenSim.Biology.FishPopulation(site.ZoneId, SimulationEngine.Growth, SimulationEngine.Mortality);
+        var smoltCohort = new LakskongenSim.Biology.FishPopulation.Cohort(
+            SimulationEngine.Hatchery.MaturationDays,
+            count,
+            SimulationEngine.Hatchery.SmoltReleaseWeight,
+            LakskongenSim.Data.LifeStage.Smolt
+        );
+        population.Cohorts.Add(smoltCohort);
+
+        // Stock the site
+        site.Stock(population);
+        SimulationEngine.State.Populations.Add(population);
+
+        // Charge the player
+        SimulationEngine.FinanceManager.Spend(stockingCost);
+        
+        // Record event
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "Smolt Stocking",
+            Category = LakskongenSim.Events.EventCategory.Farm,
+            Description = $"Stocked {count:N0} smolts at {siteId}",
+            BalanceChange = -stockingCost
+        });
+
+        EmitSignal(SignalName.FarmActionCompleted, "stock_smolts", siteId, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: Stocked {count:N0} smolts at '{siteId}' for {stockingCost:N0} NOK");
+        return true;
     }
 
     /// <summary>
@@ -718,10 +901,80 @@ public partial class GameBridge : Node
     /// </summary>
     public double HarvestSite(string siteId)
     {
-        // HarvestSite not yet implemented
-        GD.Print($"GameBridge: HarvestSite not implemented for site '{siteId}'");
-        EmitSignal(SignalName.FarmActionCompleted, "harvest", siteId, false);
-        return 0.0;
+        if (SimulationEngine?.State?.SeaSites == null)
+        {
+            GD.PrintErr("GameBridge: HarvestSite failed - engine not initialized");
+            EmitSignal(SignalName.FarmActionCompleted, "harvest", siteId, false);
+            return 0.0;
+        }
+
+        var site = SimulationEngine.State.SeaSites.FirstOrDefault(s => s.Id == siteId);
+        if (site == null)
+        {
+            GD.PrintErr($"GameBridge: HarvestSite failed - site '{siteId}' not found");
+            EmitSignal(SignalName.FarmActionCompleted, "harvest", siteId, false);
+            return 0.0;
+        }
+
+        // Calculate total biomass and count fish
+        double totalBiomassKg = 0.0;
+        int totalFishCount = 0;
+        var populations = SimulationEngine.State.Populations.Where(p => p.ZoneId == site.ZoneId).ToList();
+
+        foreach (var pop in populations)
+        {
+            foreach (var cohort in pop.Cohorts.ToList()) // ToList() to avoid modification during iteration
+            {
+                double cohortBiomass = cohort.Count * cohort.MeanWeightKg;
+                totalBiomassKg += cohortBiomass;
+                totalFishCount += cohort.Count;
+            }
+        }
+
+        if (totalBiomassKg < 0.1)
+        {
+            GD.Print($"GameBridge: HarvestSite - site '{siteId}' is empty");
+            EmitSignal(SignalName.FarmActionCompleted, "harvest", siteId, false);
+            return 0.0;
+        }
+
+        // Calculate revenue (market price × biomass × certification multiplier)
+        decimal revenue = (decimal)totalBiomassKg * SimulationEngine.MarketSimulation.PricePerKg;
+        decimal certMultiplier = SimulationEngine.SustainabilityManager?.GetPriceMultiplier(
+            SimulationEngine.SustainabilityManager.CurrentCertification) ?? 1.0m;
+        revenue *= certMultiplier;
+
+        // Apply harvest
+        SimulationEngine.FinanceManager.Earn(revenue);
+
+        // Remove harvested populations
+        foreach (var pop in populations)
+        {
+            pop.Cohorts.Clear();
+            SimulationEngine.State.Populations.Remove(pop);
+        }
+        site.Pens.Clear();
+
+        // Reset site stocking density
+        site.CurrentStockingDensity = 0f;
+
+        // Record event
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "Harvest",
+            Category = LakskongenSim.Events.EventCategory.Finance,
+            Description = $"Harvested {totalBiomassKg:N0} kg ({totalFishCount:N0} fish) at {siteId}",
+            BalanceChange = revenue
+        });
+
+        // Trigger achievement check
+        SimulationEngine.Audio?.TriggerAlert("harvest");
+
+        EmitSignal(SignalName.FarmActionCompleted, "harvest", siteId, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: Harvested {totalBiomassKg:N0} kg at '{siteId}' for {revenue:N0} NOK");
+        return totalBiomassKg;
     }
 
     /// <summary>
@@ -730,10 +983,62 @@ public partial class GameBridge : Node
     /// </summary>
     public bool BuildSeaSite(string zoneId, string name)
     {
-        // BuildSeaSite not yet implemented
-        GD.Print($"GameBridge: BuildSeaSite not implemented for zone '{zoneId}', name '{name}'");
-        EmitSignal(SignalName.FarmActionCompleted, "build_site", zoneId, false);
-        return false;
+        if (SimulationEngine?.State?.Zones == null || SimulationEngine?.State?.SeaSites == null)
+        {
+            GD.PrintErr("GameBridge: BuildSeaSite failed - engine not initialized");
+            EmitSignal(SignalName.FarmActionCompleted, "build_site", zoneId, false);
+            return false;
+        }
+
+        // Check if zone exists
+        var zone = SimulationEngine.State.Zones.FirstOrDefault(z => z.Id == zoneId);
+        if (zone == null)
+        {
+            GD.PrintErr($"GameBridge: BuildSeaSite failed - zone '{zoneId}' not found");
+            EmitSignal(SignalName.FarmActionCompleted, "build_site", zoneId, false);
+            return false;
+        }
+
+        // License cost: ~30M NOK for 780-tonne license (Norwegian market rate)
+        decimal licenseCost = 30_000_000m;
+        
+        // Check if player can afford it
+        if (SimulationEngine.FinanceManager.Balance < licenseCost)
+        {
+            GD.PrintErr($"GameBridge: BuildSeaSite failed - insufficient funds (need {licenseCost:N0} NOK)");
+            EmitSignal(SignalName.FarmActionCompleted, "build_site", zoneId, false);
+            return false;
+        }
+
+        // Create new sea site
+        var siteId = string.IsNullOrWhiteSpace(name) ? $"site_{SimulationEngine.State.SeaSites.Count + 1}" : name;
+        var newSite = new LakskongenSim.Farm.SeaSite(siteId, zoneId)
+        {
+            MABTonnes = 780.0, // Standard Norwegian license
+            NumberOfPens = 8,
+            PenVolume = 50000f,
+            MaxAllowedDensity = 25.0f
+        };
+
+        SimulationEngine.State.SeaSites.Add(newSite);
+
+        // Charge the player
+        SimulationEngine.FinanceManager.Spend(licenseCost);
+
+        // Record event
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "License Acquisition",
+            Category = LakskongenSim.Events.EventCategory.Farm,
+            Description = $"Built new sea site '{siteId}' in zone '{zoneId}' (780T MAB)",
+            BalanceChange = -licenseCost
+        });
+
+        EmitSignal(SignalName.FarmActionCompleted, "build_site", zoneId, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: Built sea site '{siteId}' in zone '{zoneId}' for {licenseCost:N0} NOK");
+        return true;
     }
 
     /// <summary>
@@ -775,10 +1080,88 @@ public partial class GameBridge : Node
     /// </summary>
     public bool OrderDelousing(string siteId, string method)
     {
-        // SeaLice.OrderDelousing not yet implemented, use ApplyTreatment if available
-        GD.Print($"GameBridge: OrderDelousing not implemented for site '{siteId}', method '{method}'");
-        EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, false);
-        return false;
+        if (SimulationEngine?.SeaLice == null || SimulationEngine?.State?.SeaSites == null)
+        {
+            GD.PrintErr("GameBridge: OrderDelousing failed - engine not initialized");
+            EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, false);
+            return false;
+        }
+
+        // Validate method
+        var validMethods = new[] { "mechanical", "thermal", "chemical", "biological" };
+        if (!validMethods.Contains(method.ToLower()))
+        {
+            GD.PrintErr($"GameBridge: OrderDelousing failed - invalid method '{method}'");
+            EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, false);
+            return false;
+        }
+
+        // If siteId is "all_sites", treat all sites
+        var targetSites = siteId == "all_sites" 
+            ? SimulationEngine.State.SeaSites.ToList()
+            : SimulationEngine.State.SeaSites.Where(s => s.Id == siteId).ToList();
+
+        if (targetSites.Count == 0)
+        {
+            GD.PrintErr($"GameBridge: OrderDelousing failed - site '{siteId}' not found");
+            EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, false);
+            return false;
+        }
+
+        // Calculate total fish count for cost
+        int totalFish = 0;
+        foreach (var site in targetSites)
+        {
+            var populations = SimulationEngine.State.Populations.Where(p => p.ZoneId == site.ZoneId);
+            totalFish += populations.SelectMany(p => p.Cohorts).Sum(c => c.Count);
+        }
+
+        // Treatment costs and effectiveness by method
+        decimal costPerFish = method.ToLower() switch
+        {
+            "mechanical" => 50m,   // Most expensive but effective
+            "thermal" => 40m,      // Moderate cost and effectiveness
+            "chemical" => 30m,     // Cheaper but environmental concerns
+            "biological" => 25m,   // Cheapest (cleaner fish)
+            _ => 50m
+        };
+
+        double effectiveness = method.ToLower() switch
+        {
+            "mechanical" => 0.85,  // 85% reduction
+            "thermal" => 0.75,     // 75% reduction
+            "chemical" => 0.70,    // 70% reduction
+            "biological" => 0.50,  // 50% reduction (ongoing)
+            _ => 0.70
+        };
+
+        decimal totalCost = totalFish * costPerFish;
+
+        if (SimulationEngine.FinanceManager.Balance < totalCost)
+        {
+            GD.PrintErr($"GameBridge: OrderDelousing failed - insufficient funds (need {totalCost:N0} NOK)");
+            EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, false);
+            return false;
+        }
+
+        // Apply treatment
+        SimulationEngine.SeaLice.ApplyTreatment(effectiveness);
+        SimulationEngine.FinanceManager.Spend(totalCost);
+
+        // Record event
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "Delousing Treatment",
+            Category = LakskongenSim.Events.EventCategory.Disease,
+            Description = $"Applied {method} delousing to {(siteId == "all_sites" ? "all sites" : siteId)} ({totalFish:N0} fish treated, {effectiveness:P0} effective)",
+            BalanceChange = -totalCost
+        });
+
+        EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: Delousing treatment applied — {method} ({totalFish:N0} fish, {totalCost:N0} NOK, {effectiveness:P0} effective)");
+        return true;
     }
 
     // ── Contract & Market API ──────────────────────────────────────────────────
