@@ -1,294 +1,291 @@
 extends Control
 
-## MainMenu — title screen for Lakskongen.
-## Buttons: Nytt Spill, Last inn, Innstillinger, Kreditter, Avslutt.
+## MainMenu — Premium main menu for Lakskongen
+## 
+## Features:
+## - Large "LAKSKONGEN" title in fjord teal (#2d8a7e)
+## - Subtitle "Norsk Lakseoppdrett Simulator" in muted blue-gray (#8899aa)
+## - Version text "v0.1.0 Alpha" in bottom-right corner
+## - 4 centered buttons (300px wide, 15px gap)
+## - Dark ocean background (#0d1b2a)
+## - Animated wave effect at bottom (sine wave opacity tween)
+## - Button hover with scale animation (1.05x)
 ##
-## Salmon-themed background is produced procedurally:
-##   • Deep ocean gradient via two stacked ColorRects
-##   • A slow "light shimmer" tween cycling on a semi-transparent ColorRect
-##   • Drifting salmon silhouette labels (emoji) animated in _process
-##
-## Submenus (SettingsMenu, CreditsScreen, SaveLoadMenu) are expected as
-## sibling nodes; they are shown/hidden via signals.
-##
-## Expected node layout:
+## Expected node structure (all created programmatically):
 ##   MainMenu (Control, full-screen)
-##   ├─ BgDeep      (ColorRect, full-screen, dark navy)
-##   ├─ BgMid       (ColorRect, full-screen, ocean blue, low alpha)
-##   ├─ Shimmer     (ColorRect, full-screen, white, alpha 0)  ← animated
-##   ├─ SalmonLayer (Control, full-screen)  ← fish sprites appended here
-##   ├─ CenterContainer
-##   │  └─ VBoxContainer
-##   │     ├─ TitleLabel   (Label) "🐟 LAKSKONGEN"
-##   │     ├─ SubtitleLabel (Label) "Norsk Lakseoppdrett Simulator"
-##   │     ├─ Spacer       (Control, min size 32)
-##   │     ├─ BtnNewGame   (Button) "Nytt Spill"
-##   │     ├─ BtnLoadGame  (Button) "Last inn spill"
-##   │     ├─ BtnSettings  (Button) "Innstillinger"
-##   │     ├─ BtnCredits   (Button) "Kreditter"
-##   │     └─ BtnQuit      (Button) "Avslutt"
-##   ├─ VersionLabel (Label, anchored bottom-right) "Lakskongen v0.1.0-alpha"
-##   ├─ SettingsMenu (Control) — shown on demand
-##   ├─ CreditsScreen (Control) — shown on demand
-##   └─ SaveLoadMenu (Control) — shown on demand
 
-# ── Color palette ─────────────────────────────────────────────────────────────
+# ── Constants ──────────────────────────────────────────────────────────────────
 
-const COLOR_OCEAN_DEEP := Color(0.04, 0.10, 0.22)
-const COLOR_OCEAN_MID  := Color(0.06, 0.20, 0.40, 0.60)
-const COLOR_TITLE      := Color(0.85, 0.95, 1.00)
-const COLOR_SUBTITLE   := Color(0.60, 0.80, 0.90)
-const COLOR_BTN_NORMAL := Color(0.10, 0.30, 0.55)
-const COLOR_BTN_HOVER  := Color(0.15, 0.45, 0.75)
+const BG_COLOR := Color("#0d1b2a")           # Dark ocean
+const TITLE_COLOR := Color("#2d8a7e")        # Fjord teal
+const SUBTITLE_COLOR := Color("#8899aa")     # Muted blue-gray
+const VERSION_COLOR := Color("#8899aa")      # Muted blue-gray
+const TEXT_COLOR := Color("#e8e8e8")         # Clean white
+const ACCENT_PRIMARY := Color("#2d8a7e")     # Teal accent
+const ACCENT_HOVER := Color("#45b5aa")       # Light teal
+const BG_MEDIUM := Color("#1a2744")          # Button background
 
-const SALMON_EMOJIS := ["🐟", "🐠", "🐡", "🦈"]
-const FISH_COUNT    := 8
-const VERSION       := "Lakskongen v0.1.0-alpha"
+const TITLE_FONT_SIZE := 64
+const SUBTITLE_FONT_SIZE := 24
+const VERSION_FONT_SIZE := 14
+const BUTTON_FONT_SIZE := 18
+
+const BUTTON_WIDTH := 300
+const BUTTON_HEIGHT := 50
+const BUTTON_GAP := 15
+
+const VERSION_TEXT := "v0.1.0 Alpha"
 
 # ── Node references ────────────────────────────────────────────────────────────
 
-@onready var bg_deep:      ColorRect  = $BgDeep
-@onready var bg_mid:       ColorRect  = $BgMid
-@onready var shimmer:      ColorRect  = $Shimmer
-@onready var salmon_layer: Control    = $SalmonLayer
+var background: ColorRect
+var wave_effect: ColorRect
+var title_label: Label
+var subtitle_label: Label
+var version_label: Label
+var button_container: VBoxContainer
 
-@onready var title_label:    Label  = $CenterContainer/VBoxContainer/TitleLabel
-@onready var subtitle_label: Label  = $CenterContainer/VBoxContainer/SubtitleLabel
+var btn_new_game: Button
+var btn_load: Button
+var btn_settings: Button
+var btn_quit: Button
 
-@onready var btn_new_game: Button = $CenterContainer/VBoxContainer/BtnNewGame
-@onready var btn_load:     Button = $CenterContainer/VBoxContainer/BtnLoadGame
-@onready var btn_settings: Button = $CenterContainer/VBoxContainer/BtnSettings
-@onready var btn_credits:  Button = $CenterContainer/VBoxContainer/BtnCredits
-@onready var btn_quit:     Button = $CenterContainer/VBoxContainer/BtnQuit
+var wave_tween: Tween
 
-@onready var version_label: Label = $VersionLabel
+# ── Signals ────────────────────────────────────────────────────────────────────
 
-@onready var settings_menu:  Control = $SettingsMenu
-@onready var credits_screen: Control = $CreditsScreen
-@onready var save_load_menu: Control = $SaveLoadMenu
-
-# ── State ──────────────────────────────────────────────────────────────────────
-
-var _fish_nodes: Array[Label] = []
-var _fish_velocity: Array[Vector2] = []
-var _save_manager: Node = null
-var _game_bridge: Node = null
-var _shimmer_tween: Tween = null
+signal new_game_requested
+signal load_game_requested
+signal settings_requested
 
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
-	_save_manager = get_node_or_null("/root/SaveLoadManager")
-	_game_bridge  = get_node_or_null("/root/GameBridge")
+	# Set full-screen anchors
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	
+	_create_background()
+	_create_wave_effect()
+	_create_title()
+	_create_subtitle()
+	_create_version_label()
+	_create_buttons()
+	_start_wave_animation()
+	
+	# Fade in animation
+	modulate.a = 0.0
+	var fade_tween := create_tween()
+	fade_tween.tween_property(self, "modulate:a", 1.0, 0.8).set_ease(Tween.EASE_OUT)
 
-	_setup_background()
-	_setup_buttons()
-	_setup_submenus()
-	_setup_tooltips()
-	_setup_focus_navigation()
-	_start_shimmer_loop()
-	_spawn_fish()
+# ── Background setup ───────────────────────────────────────────────────────────
 
-	version_label.text = VERSION
+func _create_background() -> void:
+	background = ColorRect.new()
+	background.color = BG_COLOR
+	background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(background)
 
-	# Apply saved settings on startup
-	if settings_menu and settings_menu.has_method("load_and_apply"):
-		settings_menu.load_and_apply()
+func _create_wave_effect() -> void:
+	wave_effect = ColorRect.new()
+	wave_effect.color = Color(ACCENT_PRIMARY.r, ACCENT_PRIMARY.g, ACCENT_PRIMARY.b, 0.0)
+	wave_effect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	# Position at bottom of screen, 150px tall
+	wave_effect.anchor_left = 0.0
+	wave_effect.anchor_right = 1.0
+	wave_effect.anchor_top = 1.0
+	wave_effect.anchor_bottom = 1.0
+	wave_effect.offset_top = -150
+	wave_effect.offset_bottom = 0
+	
+	add_child(wave_effect)
 
-	# Entrance animation: fade in the whole menu
-	modulate = Color(1, 1, 1, 0)
-	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 1.0, 0.8)
+func _start_wave_animation() -> void:
+	if wave_tween:
+		wave_tween.kill()
+	
+	wave_tween = create_tween().set_loops()
+	wave_tween.tween_property(wave_effect, "color:a", 0.15, 2.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	wave_tween.tween_property(wave_effect, "color:a", 0.05, 2.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
+# ── Title and text setup ───────────────────────────────────────────────────────
 
-func _process(delta: float) -> void:
-	_animate_fish(delta)
+func _create_title() -> void:
+	title_label = Label.new()
+	title_label.text = "LAKSKONGEN"
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title_label.add_theme_font_size_override("font_size", TITLE_FONT_SIZE)
+	title_label.add_theme_color_override("font_color", TITLE_COLOR)
+	
+	# Position at top center
+	title_label.anchor_left = 0.5
+	title_label.anchor_right = 0.5
+	title_label.anchor_top = 0.0
+	title_label.anchor_bottom = 0.0
+	title_label.offset_left = -300
+	title_label.offset_right = 300
+	title_label.offset_top = 80
+	title_label.offset_bottom = 80 + TITLE_FONT_SIZE + 20
+	
+	add_child(title_label)
 
-# ── Background setup ──────────────────────────────────────────────────────────
+func _create_subtitle() -> void:
+	subtitle_label = Label.new()
+	subtitle_label.text = "Norsk Lakseoppdrett Simulator"
+	subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	subtitle_label.add_theme_font_size_override("font_size", SUBTITLE_FONT_SIZE)
+	subtitle_label.add_theme_color_override("font_color", SUBTITLE_COLOR)
+	
+	# Position below title
+	subtitle_label.anchor_left = 0.5
+	subtitle_label.anchor_right = 0.5
+	subtitle_label.anchor_top = 0.0
+	subtitle_label.anchor_bottom = 0.0
+	subtitle_label.offset_left = -300
+	subtitle_label.offset_right = 300
+	subtitle_label.offset_top = 80 + TITLE_FONT_SIZE + 30
+	subtitle_label.offset_bottom = 80 + TITLE_FONT_SIZE + 30 + SUBTITLE_FONT_SIZE + 10
+	
+	add_child(subtitle_label)
 
-func _setup_background() -> void:
-	bg_deep.color = COLOR_OCEAN_DEEP
-	bg_mid.color  = COLOR_OCEAN_MID
-	shimmer.color = Color(1, 1, 1, 0)
+func _create_version_label() -> void:
+	version_label = Label.new()
+	version_label.text = VERSION_TEXT
+	version_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	version_label.add_theme_font_size_override("font_size", VERSION_FONT_SIZE)
+	version_label.add_theme_color_override("font_color", VERSION_COLOR)
+	
+	# Position at bottom-right corner
+	version_label.anchor_left = 1.0
+	version_label.anchor_right = 1.0
+	version_label.anchor_top = 1.0
+	version_label.anchor_bottom = 1.0
+	version_label.offset_left = -150
+	version_label.offset_right = -20
+	version_label.offset_top = -40
+	version_label.offset_bottom = -20
+	
+	add_child(version_label)
 
+# ── Button setup ───────────────────────────────────────────────────────────────
 
-func _start_shimmer_loop() -> void:
-	_shimmer_tween = create_tween().set_loops()
-	_shimmer_tween.tween_property(shimmer, "color:a", 0.06, 3.0).set_trans(Tween.TRANS_SINE)
-	_shimmer_tween.tween_property(shimmer, "color:a", 0.0,  4.0).set_trans(Tween.TRANS_SINE)
-	_shimmer_tween.tween_interval(1.5)
-
-# ── Fish animation ────────────────────────────────────────────────────────────
-
-func _spawn_fish() -> void:
-	var viewport_size := get_viewport_rect().size
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
-
-	for i in FISH_COUNT:
-		var fish := Label.new()
-		fish.text = SALMON_EMOJIS[rng.randi() % SALMON_EMOJIS.size()]
-		fish.add_theme_font_size_override("font_size", rng.randi_range(24, 52))
-		fish.modulate = Color(1, 1, 1, rng.randf_range(0.25, 0.55))
-		fish.position = Vector2(
-			rng.randf_range(0, viewport_size.x),
-			rng.randf_range(0, viewport_size.y)
-		)
-		salmon_layer.add_child(fish)
-		_fish_nodes.append(fish)
-		# All fish drift slowly leftward with slight vertical wander
-		_fish_velocity.append(Vector2(
-			rng.randf_range(-18.0, -8.0),
-			rng.randf_range(-4.0,  4.0)
-		))
-
-
-func _animate_fish(delta: float) -> void:
-	var viewport_size := get_viewport_rect().size
-	for i in _fish_nodes.size():
-		var fish := _fish_nodes[i]
-		fish.position += _fish_velocity[i] * delta
-		# Wrap around edges
-		if fish.position.x < -64:
-			fish.position.x = viewport_size.x + 32
-		if fish.position.y < -64:
-			fish.position.y = viewport_size.y + 32
-		if fish.position.y > viewport_size.y + 64:
-			fish.position.y = -32
-
-# ── Button setup ──────────────────────────────────────────────────────────────
-
-func _setup_buttons() -> void:
+func _create_buttons() -> void:
+	# Create container for buttons (centered vertically)
+	button_container = VBoxContainer.new()
+	button_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	button_container.add_theme_constant_override("separation", BUTTON_GAP)
+	
+	# Center the container
+	button_container.anchor_left = 0.5
+	button_container.anchor_right = 0.5
+	button_container.anchor_top = 0.5
+	button_container.anchor_bottom = 0.5
+	button_container.offset_left = -BUTTON_WIDTH / 2
+	button_container.offset_right = BUTTON_WIDTH / 2
+	button_container.offset_top = -((BUTTON_HEIGHT * 4 + BUTTON_GAP * 3) / 2)
+	button_container.offset_bottom = (BUTTON_HEIGHT * 4 + BUTTON_GAP * 3) / 2
+	
+	add_child(button_container)
+	
+	# Create buttons
+	btn_new_game = _create_button("Nytt Spill", true)
+	btn_load = _create_button("Last Spill", false)
+	btn_settings = _create_button("Innstillinger", false)
+	btn_quit = _create_button("Avslutt", false)
+	
+	button_container.add_child(btn_new_game)
+	button_container.add_child(btn_load)
+	button_container.add_child(btn_settings)
+	button_container.add_child(btn_quit)
+	
+	# Connect signals
 	btn_new_game.pressed.connect(_on_new_game_pressed)
 	btn_load.pressed.connect(_on_load_pressed)
 	btn_settings.pressed.connect(_on_settings_pressed)
-	btn_credits.pressed.connect(_on_credits_pressed)
 	btn_quit.pressed.connect(_on_quit_pressed)
 
-	# Style each button
-	for btn: Button in [btn_new_game, btn_load, btn_settings, btn_credits, btn_quit]:
-		var style := StyleBoxFlat.new()
-		style.bg_color = COLOR_BTN_NORMAL
-		style.corner_radius_top_left     = 8
-		style.corner_radius_top_right    = 8
-		style.corner_radius_bottom_left  = 8
-		style.corner_radius_bottom_right = 8
-		style.content_margin_left   = 40
-		style.content_margin_right  = 40
-		style.content_margin_top    = 12
-		style.content_margin_bottom = 12
-		btn.add_theme_stylebox_override("normal", style)
-		var hover_style := style.duplicate() as StyleBoxFlat
-		hover_style.bg_color = COLOR_BTN_HOVER
-		btn.add_theme_stylebox_override("hover", hover_style)
-		btn.add_theme_color_override("font_color", Color(0.95, 0.98, 1.0))
-		btn.add_theme_font_size_override("font_size", 20)
+func _create_button(button_text: String, is_primary: bool = false) -> Button:
+	var btn := Button.new()
+	btn.text = button_text
+	btn.custom_minimum_size = Vector2(BUTTON_WIDTH, BUTTON_HEIGHT)
+	btn.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
+	btn.add_theme_color_override("font_color", TEXT_COLOR)
+	
+	# Create custom style
+	var style_normal := StyleBoxFlat.new()
+	style_normal.bg_color = ACCENT_PRIMARY if is_primary else BG_MEDIUM
+	style_normal.set_corner_radius_all(8)
+	style_normal.set_border_width_all(2)
+	style_normal.border_color = ACCENT_PRIMARY
+	style_normal.set_content_margin_all(12)
+	
+	var style_hover := StyleBoxFlat.new()
+	style_hover.bg_color = ACCENT_HOVER
+	style_hover.set_corner_radius_all(8)
+	style_hover.set_border_width_all(2)
+	style_hover.border_color = ACCENT_HOVER
+	style_hover.set_content_margin_all(12)
+	
+	var style_pressed := StyleBoxFlat.new()
+	style_pressed.bg_color = ACCENT_PRIMARY.darkened(0.2)
+	style_pressed.set_corner_radius_all(8)
+	style_pressed.set_border_width_all(2)
+	style_pressed.border_color = ACCENT_PRIMARY
+	style_pressed.set_content_margin_all(12)
+	
+	btn.add_theme_stylebox_override("normal", style_normal)
+	btn.add_theme_stylebox_override("hover", style_hover)
+	btn.add_theme_stylebox_override("pressed", style_pressed)
+	
+	# Add hover animation
+	btn.mouse_entered.connect(_on_button_hover.bind(btn, true))
+	btn.mouse_exited.connect(_on_button_hover.bind(btn, false))
+	
+	btn.focus_mode = Control.FOCUS_ALL
+	
+	return btn
 
-# ── Submenu setup ─────────────────────────────────────────────────────────────
+func _on_button_hover(button: Button, is_hovering: bool) -> void:
+	var target_scale := Vector2(1.05, 1.05) if is_hovering else Vector2(1.0, 1.0)
+	
+	var tween := create_tween()
+	tween.tween_property(button, "scale", target_scale, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
-func _setup_submenus() -> void:
-	if settings_menu:
-		settings_menu.hide()
-		if settings_menu.has_signal("close_requested"):
-			settings_menu.close_requested.connect(_on_submenu_closed)
-
-	if credits_screen:
-		credits_screen.hide()
-		if credits_screen.has_signal("close_requested"):
-			credits_screen.close_requested.connect(_on_submenu_closed)
-
-	if save_load_menu:
-		save_load_menu.hide()
-		if save_load_menu.has_signal("close_requested"):
-			save_load_menu.close_requested.connect(_on_submenu_closed)
-
-
-func _set_main_buttons_disabled(disabled: bool) -> void:
-	btn_new_game.disabled = disabled
-	btn_load.disabled     = disabled
-	btn_settings.disabled = disabled
-	btn_credits.disabled  = disabled
-	btn_quit.disabled     = disabled
-
-# ── Button handlers ───────────────────────────────────────────────────────────
+# ── Button handlers ────────────────────────────────────────────────────────────
 
 func _on_new_game_pressed() -> void:
-	if _game_bridge and _game_bridge.has_method("start_new_game"):
-		_game_bridge.start_new_game()
-	_transition_to_game()
-
+	_disable_all_buttons()
+	emit_signal("new_game_requested")
+	
+	# Fade out and change scene
+	var tween := create_tween()
+	tween.tween_property(self, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(_change_to_game_scene)
 
 func _on_load_pressed() -> void:
-	if save_load_menu:
-		save_load_menu.show()
-		_set_main_buttons_disabled(true)
-	else:
-		push_warning("MainMenu: SaveLoadMenu node not found")
-
+	emit_signal("load_game_requested")
+	# You could show a save/load panel here
 
 func _on_settings_pressed() -> void:
-	if settings_menu:
-		settings_menu.show()
-		_set_main_buttons_disabled(true)
-	else:
-		push_warning("MainMenu: SettingsMenu node not found")
-
-
-func _on_credits_pressed() -> void:
-	if credits_screen:
-		credits_screen.show()
-		_set_main_buttons_disabled(true)
-	else:
-		push_warning("MainMenu: CreditsScreen node not found")
-
+	emit_signal("settings_requested")
+	# You could show a settings panel here
 
 func _on_quit_pressed() -> void:
+	_disable_all_buttons()
+	
 	var tween := create_tween()
 	tween.tween_property(self, "modulate:a", 0.0, 0.4)
 	tween.tween_callback(get_tree().quit)
 
+func _disable_all_buttons() -> void:
+	btn_new_game.disabled = true
+	btn_load.disabled = true
+	btn_settings.disabled = true
+	btn_quit.disabled = true
 
-func _on_submenu_closed() -> void:
-	_set_main_buttons_disabled(false)
-
-# ── Scene transition ──────────────────────────────────────────────────────────
-
-func _transition_to_game() -> void:
-	_set_main_buttons_disabled(true)
-	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, 0.6)
-	tween.tween_callback(func():
-		get_tree().change_scene_to_file("res://scenes/Main.tscn")
-	)
-
-# ── Accessibility ──────────────────────────────────────────────────────────────
-
-func _setup_tooltips() -> void:
-	btn_new_game.tooltip_text = tr("ui.tooltip.new_game")
-	btn_load.tooltip_text = tr("ui.tooltip.load_game")
-	btn_settings.tooltip_text = tr("ui.tooltip.settings")
-	btn_credits.tooltip_text = tr("ui.tooltip.credits")
-	btn_quit.tooltip_text = tr("ui.tooltip.quit")
-
-
-func _setup_focus_navigation() -> void:
-	# Enable keyboard focus for all menu buttons
-	btn_new_game.focus_mode = Control.FOCUS_ALL
-	btn_load.focus_mode = Control.FOCUS_ALL
-	btn_settings.focus_mode = Control.FOCUS_ALL
-	btn_credits.focus_mode = Control.FOCUS_ALL
-	btn_quit.focus_mode = Control.FOCUS_ALL
-	
-	# Set up vertical navigation flow
-	btn_new_game.focus_neighbor_bottom = NodePath("../BtnLoadGame")
-	btn_load.focus_neighbor_top = NodePath("../BtnNewGame")
-	btn_load.focus_neighbor_bottom = NodePath("../BtnSettings")
-	btn_settings.focus_neighbor_top = NodePath("../BtnLoadGame")
-	btn_settings.focus_neighbor_bottom = NodePath("../BtnCredits")
-	btn_credits.focus_neighbor_top = NodePath("../BtnSettings")
-	btn_credits.focus_neighbor_bottom = NodePath("../BtnQuit")
-	btn_quit.focus_neighbor_top = NodePath("../BtnCredits")
-	btn_quit.focus_neighbor_bottom = NodePath("../BtnNewGame")  # Loop back
-	
-	# Set initial focus
-	btn_new_game.grab_focus()
+func _change_to_game_scene() -> void:
+	# Change to main game scene
+	get_tree().change_scene_to_file("res://scenes/Main.tscn")

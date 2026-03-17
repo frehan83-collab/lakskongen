@@ -49,12 +49,22 @@ namespace LakskongenSim.Core
         public AchievementSystem Achievements { get; private set; } = null!;
         public ResearchSystem Research { get; private set; } = null!;
 
+        // ─── Farm Subsystems ───
+        public List<RASFacility> RASFacilities { get; private set; } = new();
+        public List<OffshoreFarm> OffshoreFarms { get; private set; } = new();
+        public AIFeedingSystem AIFeeding { get; private set; } = null!;
+        public List<PostSmoltFacility> PostSmoltFacilities { get; private set; } = new();
+
         // ─── Update intervals ───
         private int _lastSustainabilityUpdate = 0;
         private const int SUSTAINABILITY_UPDATE_INTERVAL = 7; // Weekly
 
         private BalancingConfig _balancing = new(); // Track whether events/disease are enabled
         private bool _enableEvents = true;
+
+        // ─── Farm systems daily OPEX (accumulated in TickDay, consumed in ProcessDailyFinance) ───
+        private decimal _dailyFarmSystemsOpex = 0m;
+        private decimal _dailyAiFeedingLicenseCost = 0m;
 
         // ─── External data calibration ───
         private AquacultureDataConfig _aquacultureDataConfig = new();
@@ -173,6 +183,12 @@ namespace LakskongenSim.Core
 
             // Research / Tech Tree — restore persisted state from GameState
             Research = new ResearchSystem();
+
+            // Initialize new farm systems
+            RASFacilities = new();
+            OffshoreFarms = new();
+            AIFeeding = new AIFeedingSystem();
+            PostSmoltFacilities = new();
             foreach (var id in State.UnlockedResearchIds)
                 Research.ForceUnlock(id);
             if (State.ActiveResearchId != null)
@@ -808,6 +824,40 @@ namespace LakskongenSim.Core
             biologyStopwatch.Stop();
 
             // ═══════════════════════════════════════════
+            // PHASE 3: FARM SYSTEMS & DAILY OPEX COLLECTION
+            // ═══════════════════════════════════════════
+            _dailyFarmSystemsOpex = 0m;
+            _dailyAiFeedingLicenseCost = 0m;
+            double totalBiomassForAI = State.Populations.Sum(p => p.GetTotalBiomassKg());
+            decimal currentFeedPricePerKg = _balancing.FeedCostPerKgNOK; // Using balancing config for now
+
+            // AIFeedingSystem TickDay (applies globally for all farms)
+            if (AIFeeding.IsInstalled)
+            {
+                var aiFeedResult = AIFeeding.TickDay(totalBiomassForAI, currentFeedPricePerKg);
+                _dailyAiFeedingLicenseCost = aiFeedResult.DailyLicenseCost;
+            }
+
+            foreach (var rasFacility in RASFacilities)
+            {
+                var rasResult = rasFacility.TickDay(State.Day, Weather.CurrentTemperatureC);
+                _dailyFarmSystemsOpex += rasResult.TotalDailyOPEX;
+            }
+
+            foreach (var offshoreFarm in OffshoreFarms)
+            {
+                var offshoreResult = offshoreFarm.TickDay(State.Day, Weather.CurrentWindSpeedMs, Weather.CurrentWaveHeight, Weather.CurrentState == WeatherState.Storm);
+                _dailyFarmSystemsOpex += offshoreResult.TotalDailyOPEX;
+            }
+
+            foreach (var postSmoltFacility in PostSmoltFacilities)
+            {
+                var postSmoltResult = postSmoltFacility.TickDay(State.Day);
+                _dailyFarmSystemsOpex += postSmoltResult.TotalDailyOPEX;
+            }
+
+
+            // ═══════════════════════════════════════════
             // PHASE 4: EVENTS (Storyteller)
             // ═══════════════════════════════════════════
             Time.AdvanceDays(1);
@@ -879,9 +929,10 @@ namespace LakskongenSim.Core
 
             // 2. Fixed maintenance costs (e.g., 0.01% of build cost daily)
             decimal dailyMaintenance = (totalSites * _balancing.SeaSiteBuildCostNOK * 0.0001m);
-            
+            dailyMaintenance += _dailyAiFeedingLicenseCost; // Add AI Feeding license cost here
+
             // 3. Apply costs to FinanceManager and FinancialStatements
-            decimal totalOpEx = dailyWages + dailyMaintenance;
+            decimal totalOpEx = dailyWages + dailyMaintenance + _dailyFarmSystemsOpex;
             if (totalOpEx > 0)
             {
                 if (!FinanceManager.Spend(totalOpEx))

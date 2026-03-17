@@ -863,7 +863,12 @@ public partial class GameBridge : Node
         }
 
         // Create a new fish population with smolts
-        var population = new LakskongenSim.Biology.FishPopulation(site.ZoneId, SimulationEngine.Growth, SimulationEngine.Mortality);
+        var population = new LakskongenSim.Biology.FishPopulation
+        {
+            ZoneId = site.ZoneId
+        };
+        population.InjectDependencies(SimulationEngine.Growth, SimulationEngine.Mortality);
+        
         var smoltCohort = new LakskongenSim.Biology.FishPopulation.Cohort(
             SimulationEngine.Hatchery.MaturationDays,
             count,
@@ -884,7 +889,7 @@ public partial class GameBridge : Node
         {
             Day = SimulationEngine.State.Day,
             Name = "Smolt Stocking",
-            Category = LakskongenSim.Events.EventCategory.Farm,
+            Category = LakskongenSim.Events.EventCategory.Equipment,
             Description = $"Stocked {count:N0} smolts at {siteId}",
             BalanceChange = -stockingCost
         });
@@ -945,7 +950,7 @@ public partial class GameBridge : Node
         revenue *= certMultiplier;
 
         // Apply harvest
-        SimulationEngine.FinanceManager.Earn(revenue);
+        SimulationEngine.FinanceManager.AddRevenue(revenue);
 
         // Remove harvested populations
         foreach (var pop in populations)
@@ -963,7 +968,7 @@ public partial class GameBridge : Node
         {
             Day = SimulationEngine.State.Day,
             Name = "Harvest",
-            Category = LakskongenSim.Events.EventCategory.Finance,
+            Category = LakskongenSim.Events.EventCategory.Market,
             Description = $"Harvested {totalBiomassKg:N0} kg ({totalFishCount:N0} fish) at {siteId}",
             BalanceChange = revenue
         });
@@ -1030,7 +1035,7 @@ public partial class GameBridge : Node
         {
             Day = SimulationEngine.State.Day,
             Name = "License Acquisition",
-            Category = LakskongenSim.Events.EventCategory.Farm,
+            Category = LakskongenSim.Events.EventCategory.Regulation,
             Description = $"Built new sea site '{siteId}' in zone '{zoneId}' (780T MAB)",
             BalanceChange = -licenseCost
         });
@@ -1372,6 +1377,584 @@ public partial class GameBridge : Node
         GD.Print($"GameBridge: FireWorker not implemented for workerId '{workerId}'");
         EmitSignal(SignalName.FinanceTransaction, "fire_worker", 0.0, $"Failed to fire worker {workerId}: not implemented");
         return false;
+    }
+
+    // ── RAS Facility API ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Return all RAS facilities as an Array of Dictionaries.
+    /// Keys: "id", "name", "zone_id", "scale", "capacity_tonnes_per_year", "tank_count",
+    ///       "current_water_temp", "oxygen_level", "water_ph", "co2_level".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetRASFacilities()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var facilities = SimulationEngine?.RASFacilities;
+        if (facilities == null) return result;
+
+        foreach (var facility in facilities)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = facility.Id,
+                ["name"] = facility.Name,
+                ["zone_id"] = facility.ZoneId,
+                ["scale"] = facility.Scale.ToString(),
+                ["capacity_tonnes_per_year"] = facility.CapacityTonnesPerYear,
+                ["tank_count"] = facility.TankCount,
+                ["current_water_temp"] = facility.CurrentWaterTemp,
+                ["oxygen_level"] = facility.OxygenLevel,
+                ["water_ph"] = facility.WaterPH,
+                ["co2_level"] = facility.CO2Level
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Build a new RAS facility.
+    /// Valid scales: "Small", "Medium", "Large", "Mega".
+    /// Returns true on success, false if insufficient funds.
+    /// </summary>
+    public bool BuildRASFacility(string name, string scale)
+    {
+        if (SimulationEngine?.RASFacilities == null)
+        {
+            GD.PrintErr("GameBridge: BuildRASFacility failed - engine not initialized");
+            EmitSignal(SignalName.FarmActionCompleted, "build_ras", name, false);
+            return false;
+        }
+
+        if (!Enum.TryParse<LakskongenSim.Farm.RASScale>(scale, true, out var rasScale))
+        {
+            GD.PrintErr($"GameBridge: BuildRASFacility failed - invalid scale '{scale}'");
+            EmitSignal(SignalName.FarmActionCompleted, "build_ras", name, false);
+            return false;
+        }
+
+        // CAPEX by scale (based on real-world data)
+        decimal buildCost = rasScale switch
+        {
+            LakskongenSim.Farm.RASScale.Small => 500_000_000m,    // 500M NOK (~5,000t)
+            LakskongenSim.Farm.RASScale.Medium => 1_000_000_000m, // 1B NOK (~8,000t)
+            LakskongenSim.Farm.RASScale.Large => 1_800_000_000m,  // 1.8B NOK (~20,000t)
+            _ => 1_000_000_000m
+        };
+
+        if (SimulationEngine.FinanceManager.Balance < buildCost)
+        {
+            GD.PrintErr($"GameBridge: BuildRASFacility failed - insufficient funds (need {buildCost:N0} NOK)");
+            EmitSignal(SignalName.FarmActionCompleted, "build_ras", name, false);
+            return false;
+        }
+
+        var facility = new LakskongenSim.Farm.RASFacility
+        {
+            Id = $"ras_{SimulationEngine.RASFacilities.Count + 1}",
+            Name = name,
+            Scale = rasScale,
+            CapacityTonnesPerYear = rasScale switch
+            {
+                LakskongenSim.Farm.RASScale.Small => 5_000,
+                LakskongenSim.Farm.RASScale.Medium => 8_000,
+                LakskongenSim.Farm.RASScale.Large => 20_000,
+                _ => 8_000
+            }
+        };
+
+        SimulationEngine.RASFacilities.Add(facility);
+        SimulationEngine.FinanceManager.Spend(buildCost);
+
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "RAS Facility Built",
+            Category = LakskongenSim.Events.EventCategory.Equipment,
+            Description = $"Built RAS facility '{name}' ({scale} scale, {facility.CapacityTonnesPerYear:N0}t capacity)",
+            BalanceChange = -buildCost
+        });
+
+        EmitSignal(SignalName.FarmActionCompleted, "build_ras", name, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: Built RAS facility '{name}' ({scale}) for {buildCost:N0} NOK");
+        return true;
+    }
+
+    /// <summary>
+    /// Perform maintenance on a RAS facility (water system cleaning, filter replacement).
+    /// Returns maintenance cost in NOK.
+    /// </summary>
+    public float PerformRASMaintenance(string facilityId)
+    {
+        if (SimulationEngine?.RASFacilities == null)
+        {
+            GD.PrintErr("GameBridge: PerformRASMaintenance failed - engine not initialized");
+            return 0f;
+        }
+
+        var facility = SimulationEngine.RASFacilities.FirstOrDefault(f => f.Id == facilityId);
+        if (facility == null)
+        {
+            GD.PrintErr($"GameBridge: PerformRASMaintenance failed - facility '{facilityId}' not found");
+            return 0f;
+        }
+
+        // Maintenance cost: ~1M NOK/month for medium facility
+        decimal maintenanceCost = facility.Scale switch
+        {
+            LakskongenSim.Farm.RASScale.Small => 500_000m,
+            LakskongenSim.Farm.RASScale.Medium => 1_000_000m,
+            LakskongenSim.Farm.RASScale.Large => 2_000_000m,
+            _ => 1_000_000m
+        };
+
+        if (SimulationEngine.FinanceManager.Balance < maintenanceCost)
+        {
+            GD.PrintErr($"GameBridge: PerformRASMaintenance failed - insufficient funds (need {maintenanceCost:N0} NOK)");
+            return 0f;
+        }
+
+        SimulationEngine.FinanceManager.Spend(maintenanceCost);
+
+        // Restore optimal water conditions after maintenance
+        facility.CurrentWaterTemp = facility.TargetWaterTemp;
+        facility.OxygenLevel = 8.0;
+        facility.WaterPH = 7.0;
+        facility.CO2Level = 8.0;
+
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "RAS Maintenance",
+            Category = LakskongenSim.Events.EventCategory.Equipment,
+            Description = $"Performed maintenance on RAS '{facility.Name}' (water system restored)",
+            BalanceChange = -maintenanceCost
+        });
+
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: RAS maintenance '{facilityId}' completed for {maintenanceCost:N0} NOK");
+        return (float)maintenanceCost;
+    }
+
+    // ── Offshore Farm API ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Return all offshore farms as an Array of Dictionaries.
+    /// Keys: "id", "name", "zone_id", "farm_type", "capacity_tonnes", "pen_count",
+    ///       "sea_lice_pressure", "water_flow_rate", "fcr".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetOffshoreFarms()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var farms = SimulationEngine?.OffshoreFarms;
+        if (farms == null) return result;
+
+        foreach (var farm in farms)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = farm.Id,
+                ["name"] = farm.Name,
+                ["zone_id"] = farm.ZoneId,
+                ["farm_type"] = farm.FarmType.ToString(),
+                ["capacity_tonnes"] = farm.CapacityTonnes,
+                ["pen_count"] = farm.PenCount,
+                ["sea_lice_pressure"] = farm.SeaLicePressure,
+                ["water_flow_rate"] = farm.WaterFlowRate,
+                ["fcr"] = farm.FCR
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Build a new offshore farm.
+    /// Valid farm types: "SemiSubmersible", "Ship", "Submerged".
+    /// Returns true on success, false if insufficient funds.
+    /// </summary>
+    public bool BuildOffshoreFarm(string name, string farmType)
+    {
+        if (SimulationEngine?.OffshoreFarms == null)
+        {
+            GD.PrintErr("GameBridge: BuildOffshoreFarm failed - engine not initialized");
+            EmitSignal(SignalName.FarmActionCompleted, "build_offshore", name, false);
+            return false;
+        }
+
+        if (!Enum.TryParse<LakskongenSim.Farm.OffshoreType>(farmType, true, out var offshoreType))
+        {
+            GD.PrintErr($"GameBridge: BuildOffshoreFarm failed - invalid type '{farmType}'");
+            EmitSignal(SignalName.FarmActionCompleted, "build_offshore", name, false);
+            return false;
+        }
+
+        // CAPEX by type (based on real-world offshore structures)
+        decimal buildCost = offshoreType switch
+        {
+            LakskongenSim.Farm.OffshoreType.SemiSubmersible => 800_000_000m,  // 800M NOK (Ocean Farm 1)
+            LakskongenSim.Farm.OffshoreType.ShipShaped => 1_000_000_000m,     // 1B NOK (Havfarm concept)
+            LakskongenSim.Farm.OffshoreType.Submersible => 1_200_000_000m,    // 1.2B NOK (Egg submersible)
+            _ => 800_000_000m
+        };
+
+        if (SimulationEngine.FinanceManager.Balance < buildCost)
+        {
+            GD.PrintErr($"GameBridge: BuildOffshoreFarm failed - insufficient funds (need {buildCost:N0} NOK)");
+            EmitSignal(SignalName.FarmActionCompleted, "build_offshore", name, false);
+            return false;
+        }
+
+        var farm = new LakskongenSim.Farm.OffshoreFarm
+        {
+            Id = $"offshore_{SimulationEngine.OffshoreFarms.Count + 1}",
+            Name = name,
+            FarmType = offshoreType,
+            CapacityTonnes = 8_000
+        };
+
+        SimulationEngine.OffshoreFarms.Add(farm);
+        SimulationEngine.FinanceManager.Spend(buildCost);
+
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "Offshore Farm Built",
+            Category = LakskongenSim.Events.EventCategory.Equipment,
+            Description = $"Built offshore farm '{name}' ({farmType} type, {farm.CapacityTonnes:N0}t capacity)",
+            BalanceChange = -buildCost
+        });
+
+        EmitSignal(SignalName.FarmActionCompleted, "build_offshore", name, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: Built offshore farm '{name}' ({farmType}) for {buildCost:N0} NOK");
+        return true;
+    }
+
+    /// <summary>
+    /// Repair offshore farm damage (storm damage, equipment failure).
+    /// Returns repair cost in NOK.
+    /// </summary>
+    public float RepairOffshore(string farmId)
+    {
+        if (SimulationEngine?.OffshoreFarms == null)
+        {
+            GD.PrintErr("GameBridge: RepairOffshore failed - engine not initialized");
+            return 0f;
+        }
+
+        var farm = SimulationEngine.OffshoreFarms.FirstOrDefault(f => f.Id == farmId);
+        if (farm == null)
+        {
+            GD.PrintErr($"GameBridge: RepairOffshore failed - farm '{farmId}' not found");
+            return 0f;
+        }
+
+        // Repair cost: major offshore repairs are expensive
+        decimal repairCost = 50_000_000m; // 50M NOK for major repair
+
+        if (SimulationEngine.FinanceManager.Balance < repairCost)
+        {
+            GD.PrintErr($"GameBridge: RepairOffshore failed - insufficient funds (need {repairCost:N0} NOK)");
+            return 0f;
+        }
+
+        SimulationEngine.FinanceManager.Spend(repairCost);
+
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "Offshore Repair",
+            Category = LakskongenSim.Events.EventCategory.Equipment,
+            Description = $"Repaired offshore farm '{farm.Name}' (hull integrity and equipment restored)",
+            BalanceChange = -repairCost
+        });
+
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: Offshore repair '{farmId}' completed for {repairCost:N0} NOK");
+        return (float)repairCost;
+    }
+
+    // ── AI Feeding System API ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Return AI feeding system status as a Dictionary.
+    /// Keys: "is_installed", "calibration_level", "days_since_installation",
+    ///       "camera_count", "camera_uptime", "appetite_score", "feed_waste_rate",
+    ///       "optimal_pellet_size_mm", "feed_rate_kg_per_min".
+    /// </summary>
+    public Godot.Collections.Dictionary GetAIFeedingStatus()
+    {
+        var result = new Godot.Collections.Dictionary();
+        var aiFeeding = SimulationEngine?.AIFeeding;
+        if (aiFeeding == null)
+        {
+            result["is_installed"] = false;
+            return result;
+        }
+
+        result["is_installed"] = aiFeeding.IsInstalled;
+        result["calibration_level"] = aiFeeding.CalibrationLevel;
+        result["days_since_installation"] = aiFeeding.DaysSinceInstallation;
+        result["camera_count"] = aiFeeding.CameraCount;
+        result["camera_uptime"] = aiFeeding.CameraUptime;
+        result["appetite_score"] = aiFeeding.AppetiteScore;
+        result["feed_waste_rate"] = aiFeeding.FeedWasteRate;
+        result["optimal_pellet_size_mm"] = aiFeeding.OptimalPelletSizeMm;
+        result["feed_rate_kg_per_min"] = aiFeeding.FeedRateKgPerMin;
+        return result;
+    }
+
+    /// <summary>
+    /// Install AI feeding system across all sites.
+    /// Returns installation cost in NOK.
+    /// </summary>
+    public float InstallAIFeeding()
+    {
+        if (SimulationEngine?.AIFeeding == null)
+        {
+            GD.PrintErr("GameBridge: InstallAIFeeding failed - engine not initialized");
+            return 0f;
+        }
+
+        if (SimulationEngine.AIFeeding.IsInstalled)
+        {
+            GD.PrintErr("GameBridge: InstallAIFeeding failed - AI feeding already installed");
+            return 0f;
+        }
+
+        // Installation cost: ~100M NOK for farm-wide AI feeding infrastructure
+        decimal installCost = 100_000_000m;
+
+        if (SimulationEngine.FinanceManager.Balance < installCost)
+        {
+            GD.PrintErr($"GameBridge: InstallAIFeeding failed - insufficient funds (need {installCost:N0} NOK)");
+            return 0f;
+        }
+
+        SimulationEngine.FinanceManager.Spend(installCost);
+        SimulationEngine.AIFeeding.IsInstalled = true;
+        SimulationEngine.AIFeeding.DaysSinceInstallation = 0;
+        SimulationEngine.AIFeeding.CalibrationLevel = 0.5; // Starts at 50%, improves over time
+
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "AI Feeding Installed",
+            Category = LakskongenSim.Events.EventCategory.Equipment,
+            Description = "Installed AI-driven precision feeding system (cameras and automation)",
+            BalanceChange = -installCost
+        });
+
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: AI feeding system installed for {installCost:N0} NOK");
+        return (float)installCost;
+    }
+
+    /// <summary>
+    /// Clean AI feeding cameras (biofouling reduces camera uptime over time).
+    /// Returns cleaning cost in NOK.
+    /// </summary>
+    public float CleanAICameras()
+    {
+        if (SimulationEngine?.AIFeeding == null || !SimulationEngine.AIFeeding.IsInstalled)
+        {
+            GD.PrintErr("GameBridge: CleanAICameras failed - AI feeding not installed");
+            return 0f;
+        }
+
+        // Camera cleaning cost
+        decimal cleaningCost = 500_000m; // 500k NOK for diver cleaning/maintenance
+
+        if (SimulationEngine.FinanceManager.Balance < cleaningCost)
+        {
+            GD.PrintErr($"GameBridge: CleanAICameras failed - insufficient funds (need {cleaningCost:N0} NOK)");
+            return 0f;
+        }
+
+        SimulationEngine.FinanceManager.Spend(cleaningCost);
+        SimulationEngine.AIFeeding.CameraUptime = 1.0; // Restore full camera uptime
+
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "Camera Cleaning",
+            Category = LakskongenSim.Events.EventCategory.Equipment,
+            Description = "Cleaned AI feeding cameras (vision restored to 100%)",
+            BalanceChange = -cleaningCost
+        });
+
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: AI camera cleaning completed for {cleaningCost:N0} NOK");
+        return (float)cleaningCost;
+    }
+
+    // ── Post-Smolt Facility API ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Return all post-smolt facilities as an Array of Dictionaries.
+    /// Keys: "id", "name", "zone_id", "annual_smolt_capacity", "target_transfer_weight_g",
+    ///       "tank_sections", "water_temp", "survival_rate", "fcr".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetPostSmoltFacilities()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var facilities = SimulationEngine?.PostSmoltFacilities;
+        if (facilities == null) return result;
+
+        foreach (var facility in facilities)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = facility.Id,
+                ["name"] = facility.Name,
+                ["zone_id"] = facility.ZoneId,
+                ["annual_smolt_capacity"] = facility.AnnualSmoltCapacity,
+                ["target_transfer_weight_g"] = facility.TargetTransferWeightG,
+                ["tank_sections"] = facility.TankSections,
+                ["water_temp"] = facility.WaterTemp,
+                ["survival_rate"] = facility.SurvivalRate,
+                ["fcr"] = facility.FCR
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Start a new smolt batch in a post-smolt facility.
+    /// Returns true on success, false if facility not found or insufficient capacity.
+    /// </summary>
+    public bool StartSmoltBatch(string facilityId, int count)
+    {
+        if (SimulationEngine?.PostSmoltFacilities == null)
+        {
+            GD.PrintErr("GameBridge: StartSmoltBatch failed - engine not initialized");
+            EmitSignal(SignalName.FarmActionCompleted, "start_smolt_batch", facilityId, false);
+            return false;
+        }
+
+        var facility = SimulationEngine.PostSmoltFacilities.FirstOrDefault(f => f.Id == facilityId);
+        if (facility == null)
+        {
+            GD.PrintErr($"GameBridge: StartSmoltBatch failed - facility '{facilityId}' not found");
+            EmitSignal(SignalName.FarmActionCompleted, "start_smolt_batch", facilityId, false);
+            return false;
+        }
+
+        // Cost per smolt (hatchery production cost)
+        decimal smoltCost = 15m; // 15 NOK per smolt (industry average)
+        decimal totalCost = smoltCost * count;
+
+        if (SimulationEngine.FinanceManager.Balance < totalCost)
+        {
+            GD.PrintErr($"GameBridge: StartSmoltBatch failed - insufficient funds (need {totalCost:N0} NOK)");
+            EmitSignal(SignalName.FarmActionCompleted, "start_smolt_batch", facilityId, false);
+            return false;
+        }
+
+        SimulationEngine.FinanceManager.Spend(totalCost);
+
+        // Create new batch (simplified - actual batch tracking would be in SmoltBatch class)
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "Smolt Batch Started",
+            Category = LakskongenSim.Events.EventCategory.Equipment,
+            Description = $"Started batch of {count:N0} smolts in post-smolt facility '{facility.Name}'",
+            BalanceChange = -totalCost
+        });
+
+        EmitSignal(SignalName.FarmActionCompleted, "start_smolt_batch", facilityId, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: Started smolt batch in '{facilityId}' ({count:N0} smolts, {totalCost:N0} NOK)");
+        return true;
+    }
+
+    /// <summary>
+    /// Vaccinate a smolt batch (disease prevention before sea transfer).
+    /// Returns vaccination cost in NOK.
+    /// </summary>
+    public float VaccinateBatch(string batchId)
+    {
+        if (SimulationEngine?.PostSmoltFacilities == null)
+        {
+            GD.PrintErr("GameBridge: VaccinateBatch failed - engine not initialized");
+            return 0f;
+        }
+
+        // Vaccination cost: ~5 NOK per fish (multi-component vaccine)
+        int fishCount = 100_000; // Placeholder - would fetch from actual batch
+        decimal vaccineCost = 5m * fishCount;
+
+        if (SimulationEngine.FinanceManager.Balance < vaccineCost)
+        {
+            GD.PrintErr($"GameBridge: VaccinateBatch failed - insufficient funds (need {vaccineCost:N0} NOK)");
+            return 0f;
+        }
+
+        SimulationEngine.FinanceManager.Spend(vaccineCost);
+
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "Batch Vaccination",
+            Category = LakskongenSim.Events.EventCategory.Disease,
+            Description = $"Vaccinated smolt batch '{batchId}' ({fishCount:N0} fish)",
+            BalanceChange = -vaccineCost
+        });
+
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: Vaccinated batch '{batchId}' for {vaccineCost:N0} NOK");
+        return (float)vaccineCost;
+    }
+
+    /// <summary>
+    /// Transfer a post-smolt batch to sea (move to sea site).
+    /// Returns true on success, false if batch not found or sea site unavailable.
+    /// </summary>
+    public bool TransferBatchToSea(string batchId)
+    {
+        if (SimulationEngine?.PostSmoltFacilities == null || SimulationEngine?.State?.SeaSites == null)
+        {
+            GD.PrintErr("GameBridge: TransferBatchToSea failed - engine not initialized");
+            EmitSignal(SignalName.FarmActionCompleted, "transfer_batch", batchId, false);
+            return false;
+        }
+
+        // Transfer cost: logistics, stress mitigation
+        decimal transferCost = 2_000_000m; // 2M NOK for batch transfer
+
+        if (SimulationEngine.FinanceManager.Balance < transferCost)
+        {
+            GD.PrintErr($"GameBridge: TransferBatchToSea failed - insufficient funds (need {transferCost:N0} NOK)");
+            EmitSignal(SignalName.FarmActionCompleted, "transfer_batch", batchId, false);
+            return false;
+        }
+
+        if (SimulationEngine.State.SeaSites.Count == 0)
+        {
+            GD.PrintErr("GameBridge: TransferBatchToSea failed - no sea sites available");
+            EmitSignal(SignalName.FarmActionCompleted, "transfer_batch", batchId, false);
+            return false;
+        }
+
+        SimulationEngine.FinanceManager.Spend(transferCost);
+
+        // Move batch to first available sea site (simplified)
+        var targetSite = SimulationEngine.State.SeaSites.First();
+
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "Batch Transferred to Sea",
+            Category = LakskongenSim.Events.EventCategory.Equipment,
+            Description = $"Transferred post-smolt batch '{batchId}' to sea site '{targetSite.Id}'",
+            BalanceChange = -transferCost
+        });
+
+        EmitSignal(SignalName.FarmActionCompleted, "transfer_batch", batchId, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: Transferred batch '{batchId}' to sea site '{targetSite.Id}' for {transferCost:N0} NOK");
+        return true;
     }
 
     public override void _ExitTree()

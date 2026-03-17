@@ -617,3 +617,263 @@ func get_current_temperature() -> float:
 func get_current_day() -> int:
 	if not _game_bridge: return 0
 	return int(_game_bridge.GetCurrentDay())
+
+# ══════════════════════════════════════════════════════════════════════════════
+# NEW FARM SYSTEMS (RAS, OFFSHORE, AI FEEDING, POST-SMOLT)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── RAS Facility Methods ──────────────────────────────────────────────────────
+
+## Get list of all RAS (Recirculating Aquaculture System) facilities
+func get_ras_facilities() -> Array[Dictionary]:
+	if _game_bridge and _game_bridge.has_method("GetRasFacilities"):
+		var raw = _game_bridge.GetRasFacilities()
+		var result: Array[Dictionary] = []
+		for entry in raw:
+			result.append(entry)
+		return result
+	
+	# Mock data for Norwegian RAS facilities
+	return [
+		{
+			"id": "ras_001",
+			"name": "Bergen RAS Anlegg",
+			"scale": "medium",
+			"operational": true,
+			"construction_progress": 100,
+			"water_temp": 12.5,
+			"oxygen": 8.2,
+			"ph": 7.6,
+			"co2": 12.0,
+			"biofilter_efficiency": 92.5,
+			"daily_opex": 85000.0,
+			"needs_maintenance": false
+		},
+		{
+			"id": "ras_002",
+			"name": "Tromsø Indoor Farm",
+			"scale": "large",
+			"operational": true,
+			"construction_progress": 100,
+			"water_temp": 13.0,
+			"oxygen": 8.5,
+			"ph": 7.5,
+			"co2": 10.5,
+			"biofilter_efficiency": 95.0,
+			"daily_opex": 120000.0,
+			"needs_maintenance": false
+		}
+	]
+
+## Start construction of a new RAS facility
+func build_ras_facility(name: String, scale: String) -> bool:
+	if _game_bridge and _game_bridge.has_method("BuildRasFacility"):
+		return _game_bridge.BuildRasFacility(name, scale)
+	
+	# Mock: Check if we have enough funds (cost depends on scale)
+	var cost_map = {
+		"small": 15_000_000.0,
+		"medium": 35_000_000.0,
+		"large": 75_000_000.0
+	}
+	var cost = cost_map.get(scale, 35_000_000.0)
+	
+	if balance >= cost:
+		print("SimBridge: Building RAS facility '%s' (%s scale) for %s" % [name, scale, format_nok(cost)])
+		return true
+	else:
+		push_warning("SimBridge: Insufficient funds to build RAS facility (need %s, have %s)" % [format_nok(cost), format_nok(balance)])
+		return false
+
+## Perform maintenance on RAS facility, returns cost
+func ras_maintenance(facility_id: String) -> float:
+	if _game_bridge and _game_bridge.has_method("RasMaintenance"):
+		return _game_bridge.RasMaintenance(facility_id)
+	
+	# Mock: Maintenance cost ~5% of daily OPEX * 30 days
+	var maintenance_cost = randf_range(120000.0, 180000.0)
+	print("SimBridge: RAS maintenance for '%s': %s" % [facility_id, format_nok(maintenance_cost)])
+	return maintenance_cost
+
+# ── Offshore Farm Methods ─────────────────────────────────────────────────────
+
+## Get list of all offshore farm installations
+func get_offshore_farms() -> Array[Dictionary]:
+	if _game_bridge and _game_bridge.has_method("GetOffshoreFarms"):
+		var raw = _game_bridge.GetOffshoreFarms()
+		var result: Array[Dictionary] = []
+		for entry in raw:
+			result.append(entry)
+		return result
+	
+	# Mock data for Norwegian offshore farms
+	return [
+		{
+			"id": "offshore_001",
+			"name": "Havfarm 1",
+			"type": "semi_submersible",
+			"operational": true,
+			"structural_integrity": 98.5,
+			"storm_lockdown": false,
+			"wave_height": 1.2,
+			"crew_days_since_rotation": 12,
+			"fish_count": 180000,
+			"daily_opex": 95000.0
+		},
+		{
+			"id": "offshore_002",
+			"name": "Ocean Farm Nord",
+			"type": "ocean_egg",
+			"operational": true,
+			"structural_integrity": 97.0,
+			"storm_lockdown": false,
+			"wave_height": 1.8,
+			"crew_days_since_rotation": 8,
+			"fish_count": 250000,
+			"daily_opex": 110000.0
+		}
+	]
+
+## Start construction of offshore farm
+func build_offshore_farm(name: String, farm_type: String) -> bool:
+	if _game_bridge and _game_bridge.has_method("BuildOffshoreFarm"):
+		return _game_bridge.BuildOffshoreFarm(name, farm_type)
+	
+	# Mock: Offshore is expensive
+	var cost_map = {
+		"semi_submersible": 200_000_000.0,
+		"ocean_egg": 350_000_000.0,
+		"spar_buoy": 180_000_000.0
+	}
+	var cost = cost_map.get(farm_type, 200_000_000.0)
+	
+	if balance >= cost:
+		print("SimBridge: Building offshore farm '%s' (%s) for %s" % [name, farm_type, format_nok(cost)])
+		return true
+	else:
+		push_warning("SimBridge: Insufficient funds for offshore farm (need %s)" % format_nok(cost))
+		return false
+
+## Repair offshore structure, returns cost
+func repair_offshore(farm_id: String) -> float:
+	if _game_bridge and _game_bridge.has_method("RepairOffshore"):
+		return _game_bridge.RepairOffshore(farm_id)
+	
+	# Mock: Structural repair is costly
+	var repair_cost = randf_range(500000.0, 2000000.0)
+	print("SimBridge: Offshore repair for '%s': %s" % [farm_id, format_nok(repair_cost)])
+	return repair_cost
+
+# ── AI Feeding Methods ────────────────────────────────────────────────────────
+
+## Get AI feeding system status across all farms
+func get_ai_feeding_status() -> Dictionary:
+	if _game_bridge and _game_bridge.has_method("GetAiFeedingStatus"):
+		return _game_bridge.GetAiFeedingStatus()
+	
+	# Mock: AI feeding improves FCR and reduces waste
+	return {
+		"installed": true,
+		"calibration": 95.0,
+		"camera_uptime": 98.5,
+		"appetite_score": 87.0,
+		"fcr_multiplier": 0.92,  # 8% improvement
+		"daily_savings": 12500.0,
+		"days_since_install": 45,
+		"camera_maintenance_needed": false
+	}
+
+## Install AI feeding system (one-time cost)
+func install_ai_feeding() -> float:
+	if _game_bridge and _game_bridge.has_method("InstallAiFeeding"):
+		return _game_bridge.InstallAiFeeding()
+	
+	# Mock: Installation cost
+	var cost = 8_500_000.0
+	print("SimBridge: Installing AI feeding system: %s" % format_nok(cost))
+	return cost
+
+## Clean AI camera sensors, returns maintenance cost
+func clean_ai_cameras() -> float:
+	if _game_bridge and _game_bridge.has_method("CleanAiCameras"):
+		return _game_bridge.CleanAiCameras()
+	
+	# Mock: Regular maintenance
+	var cost = randf_range(15000.0, 35000.0)
+	print("SimBridge: AI camera cleaning: %s" % format_nok(cost))
+	return cost
+
+# ── Post-Smolt Methods ────────────────────────────────────────────────────────
+
+## Get list of all post-smolt facilities
+func get_post_smolt_facilities() -> Array[Dictionary]:
+	if _game_bridge and _game_bridge.has_method("GetPostSmoltFacilities"):
+		var raw = _game_bridge.GetPostSmoltFacilities()
+		var result: Array[Dictionary] = []
+		for entry in raw:
+			result.append(entry)
+		return result
+	
+	# Mock data for Norwegian post-smolt facilities
+	return [
+		{
+			"id": "postsmolt_001",
+			"name": "Vesterålen Settefisk",
+			"capacity": 500000,
+			"current_count": 320000,
+			"avg_weight_g": 180.0,
+			"batches_active": 3,
+			"water_temp": 14.5,
+			"daily_opex": 45000.0,
+			"vaccination_rate": 98.5
+		},
+		{
+			"id": "postsmolt_002",
+			"name": "Nordland Post-Smolt AS",
+			"capacity": 800000,
+			"current_count": 650000,
+			"avg_weight_g": 220.0,
+			"batches_active": 5,
+			"water_temp": 15.0,
+			"daily_opex": 68000.0,
+			"vaccination_rate": 99.2
+		}
+	]
+
+## Start a new post-smolt batch
+func start_smolt_batch(facility_id: String, count: int) -> bool:
+	if _game_bridge and _game_bridge.has_method("StartSmoltBatch"):
+		return _game_bridge.StartSmoltBatch(facility_id, count)
+	
+	# Mock: Check capacity
+	var facilities = get_post_smolt_facilities()
+	for facility in facilities:
+		if facility.get("id") == facility_id:
+			var capacity = facility.get("capacity", 500000)
+			var current = facility.get("current_count", 0)
+			if current + count <= capacity:
+				print("SimBridge: Started batch of %s smolt at %s" % [format_fish(count), facility_id])
+				return true
+			else:
+				push_warning("SimBridge: Capacity exceeded at %s" % facility_id)
+				return false
+	return false
+
+## Vaccinate a smolt batch, returns cost
+func vaccinate_batch(batch_id: String) -> float:
+	if _game_bridge and _game_bridge.has_method("VaccinateBatch"):
+		return _game_bridge.VaccinateBatch(batch_id)
+	
+	# Mock: ~15-25 NOK per fish for vaccination
+	var cost = randf_range(150000.0, 350000.0)
+	print("SimBridge: Vaccinating batch '%s': %s" % [batch_id, format_nok(cost)])
+	return cost
+
+## Transfer post-smolt batch to sea cages
+func transfer_batch_to_sea(batch_id: String) -> bool:
+	if _game_bridge and _game_bridge.has_method("TransferBatchToSea"):
+		return _game_bridge.TransferBatchToSea(batch_id)
+	
+	# Mock: Transfer operation
+	print("SimBridge: Transferring batch '%s' to sea" % batch_id)
+	return true

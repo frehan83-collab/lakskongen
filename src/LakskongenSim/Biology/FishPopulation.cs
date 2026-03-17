@@ -43,6 +43,17 @@ namespace LakskongenSim.Biology
         /// <summary>Total count of all fish across all cohorts.</summary>
         public int TotalCount => Cohorts.Sum(c => c.Count);
 
+        /// <summary>Total biomass of all fish across all cohorts in kilograms.</summary>
+        public double GetTotalBiomassKg()
+        {
+            double totalBiomass = 0.0;
+            foreach (var cohort in Cohorts)
+            {
+                totalBiomass += cohort.Count * cohort.MeanWeightKg;
+            }
+            return totalBiomass;
+        }
+
         /// <summary>Zone this population resides in.</summary>
         public string ZoneId { get; set; } = "";
 

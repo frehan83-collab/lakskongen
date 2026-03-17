@@ -13,6 +13,7 @@ namespace LakskongenSim.Environment
         // ─── State ───
         public double CurrentTemperatureC { get; private set; } = 8.0;
         public double CurrentWindSpeedMs { get; private set; } = 5.0; // m/s
+        public double CurrentWaveHeight { get; private set; } = 0.5; // meters
         public WeatherState CurrentState { get; private set; } = WeatherState.Moderate;
         public int SimulationDay { get; private set; } = 0;
 
@@ -214,6 +215,36 @@ namespace LakskongenSim.Environment
             // Add random variation
             double variation = (_rng.NextDouble() - 0.5) * 4.0;
             CurrentWindSpeedMs = Math.Max(0.5, baseWind + variation);
+        }
+
+        /// <summary>
+        /// Update wave height based on weather state and wind speed.
+        /// </summary>
+        private void UpdateWaveHeight()
+        {
+            double baseWaveHeight = CurrentState switch
+            {
+                WeatherState.Calm => 0.3,
+                WeatherState.Moderate => 1.0,
+                WeatherState.Storm => 3.0,
+                WeatherState.Severe => 6.0,
+                _ => 0.5
+            };
+
+            // Scale with wind speed, add variation
+            double windFactor = CurrentWindSpeedMs / 10.0;
+            double variation = (_rng.NextDouble() - 0.5) * 1.0;
+            CurrentWaveHeight = Math.Max(0.1, baseWaveHeight + (windFactor * 0.5) + variation);
+
+            // Max wave height based on weather state for realism
+            CurrentWaveHeight = CurrentState switch
+            {
+                WeatherState.Calm => Math.Min(CurrentWaveHeight, 1.0),
+                WeatherState.Moderate => Math.Min(CurrentWaveHeight, 2.5),
+                WeatherState.Storm => Math.Min(CurrentWaveHeight, 7.0),
+                WeatherState.Severe => Math.Min(CurrentWaveHeight, 15.0),
+                _ => CurrentWaveHeight
+            };
         }
 
         /// <summary>

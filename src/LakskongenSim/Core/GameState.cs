@@ -28,6 +28,24 @@ namespace LakskongenSim.Core
         /// <summary>List of active farms/sea sites.</summary>
         public List<Farm.SeaSite> SeaSites { get; set; } = new();
 
+        /// <summary>List of active RAS facilities.</summary>
+        public List<Farm.RASFacility> RASFacilities { get; set; } = new();
+
+        /// <summary>List of active Offshore farms.</summary>
+        public List<Farm.OffshoreFarm> OffshoreFarms { get; set; } = new();
+
+        /// <summary>List of active Post-Smolt facilities.</summary>
+        public List<Farm.PostSmoltFacility> PostSmoltFacilities { get; set; } = new();
+
+        /// <summary>Whether the player has an AI Feeding System installed.</summary>
+        public bool OwnsAIFeedingSystem { get; set; } = false;
+
+        /// <summary>AI Feeding System calibration level (0.0-1.0). Improves over time with data.</summary>
+        public double AIFeedingCalibration { get; set; } = 0.5;
+
+        /// <summary>Days since AI Feeding System was installed. Used to track learning curve.</summary>
+        public int AIFeedingDaysSinceInstall { get; set; } = 0;
+
         /// <summary>Fish populations across the system.</summary>
         public List<Biology.FishPopulation> Populations { get; set; } = new();
 
