@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lakskongen — Merd 3 Detaljer</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#0A4D68;--primary-light:#0D5F80;--primary-dark:#083D53;
+  --secondary:#88C0D0;--secondary-light:#A3D1DE;
+  --accent:#5E81AC;--accent-light:#7B9BC0;
+  --bg:#ECEFF4;--surface:#FFFFFF;--surface-elevated:#F8F9FB;
+  --text:#2E3440;--text-secondary:#4C566A;--text-muted:#7B8794;--text-inverse:#ECEFF4;
+  --border:#D8DEE9;--border-light:#E5E9F0;
+  --success:#A3BE8C;--success-dark:#8FAD78;
+  --warning:#EBCB8B;--warning-dark:#D4B06A;
+  --danger:#BF616A;--danger-dark:#A54E56;
+  --info:#88C0D0;
+  --shadow-sm:0 1px 2px rgba(46,52,64,.06);
+  --shadow-md:0 2px 4px rgba(46,52,64,.1);
+  --radius-sm:4px;--radius-md:8px;--radius-lg:12px;
+  --font-heading:'Inter',system-ui,sans-serif;
+  --font-body:'IBM Plex Sans',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+html{font-size:15px;line-height:1.5}
+body{font-family:var(--font-body);color:var(--text);background:var(--bg);display:flex;min-height:100vh}
+
+.sidebar{width:220px;background:var(--primary);color:var(--text-inverse);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:10}
+.sidebar-logo{padding:20px 24px;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.5px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px}
+.sidebar-logo .icon{width:28px;height:28px;background:var(--secondary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px}
+.sidebar-nav{flex:1;padding:16px 0}
+.sidebar-nav a{display:flex;align-items:center;gap:12px;padding:10px 24px;color:rgba(236,239,244,.7);text-decoration:none;font-size:14px;font-weight:500;transition:all .15s}
+.sidebar-nav a:hover{color:#fff;background:rgba(255,255,255,.08)}
+.sidebar-nav a.active{color:#fff;background:rgba(255,255,255,.12);border-left:3px solid var(--secondary);padding-left:21px}
+.sidebar-nav a .nav-icon{width:20px;text-align:center;font-size:16px}
+.sidebar-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:rgba(236,239,244,.5)}
+
+.main{margin-left:220px;flex:1;padding:24px 32px;max-width:1600px}
+
+/* Breadcrumb */
+.breadcrumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);margin-bottom:16px}
+.breadcrumb a{color:var(--accent);text-decoration:none}
+.breadcrumb a:hover{text-decoration:underline}
+
+/* Page Header */
+.page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
+.page-header h1{font-family:var(--font-heading);font-size:24px;font-weight:700}
+.page-header .subtitle{font-size:13px;color:var(--text-muted);margin-top:2px}
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.status-badge.warning{background:rgba(235,203,139,.15);color:var(--warning-dark);border:1px solid rgba(235,203,139,.3)}
+.status-badge.healthy{background:rgba(163,190,140,.15);color:var(--success-dark);border:1px solid rgba(163,190,140,.3)}
+.status-badge.critical{background:rgba(191,97,106,.15);color:var(--danger-dark);border:1px solid rgba(191,97,106,.3)}
+.status-dot{width:8px;height:8px;border-radius:50%}
+.status-dot.warning{background:var(--warning)}
+.status-dot.healthy{background:var(--success)}
+.status-dot.critical{background:var(--danger)}
+.header-actions{display:flex;gap:10px}
+.btn{padding:8px 16px;border:none;border-radius:var(--radius-sm);font-family:var(--font-heading);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-light)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{background:var(--surface-elevated)}
+.btn-warning{background:var(--warning);color:var(--text)}
+.btn-warning:hover{background:var(--warning-dark);color:#fff}
+
+/* Grid */
+.grid-top{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+.grid-mid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px}
+.grid-bot{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+
+/* Stat Card */
+.stat-card{background:var(--surface);border-radius:var(--radius-md);padding:18px 20px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light)}
+.stat-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:500;margin-bottom:6px}
+.stat-value{font-family:var(--font-heading);font-size:24px;font-weight:700;line-height:1.1}
+.stat-sub{font-size:12px;color:var(--text-muted);margin-top:4px}
+.stat-value .unit{font-size:14px;font-weight:400;color:var(--text-secondary);margin-left:3px}
+
+/* Card */
+.card{background:var(--surface);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);border:1px solid var(--border-light);overflow:hidden}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center}
+.card-header h2{font-family:var(--font-heading);font-size:15px;font-weight:600}
+.card-body{padding:20px}
+
+/* Fish Size Distribution */
+.size-dist{display:flex;flex-direction:column;gap:10px}
+.size-row{display:flex;align-items:center;gap:12px}
+.size-label{width:60px;font-size:12px;color:var(--text-secondary);text-align:right;font-family:var(--font-mono)}
+.size-bar-bg{flex:1;height:20px;background:var(--border-light);border-radius:3px;overflow:hidden;position:relative}
+.size-bar{height:100%;border-radius:3px;transition:width .3s}
+.size-pct{width:40px;font-size:12px;font-family:var(--font-mono);color:var(--text-muted);text-align:right}
+
+/* Feeding Log */
+.feed-table{width:100%;border-collapse:collapse}
+.feed-table th{text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid var(--border-light);font-weight:500}
+.feed-table td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--border-light)}
+.feed-table tr:last-child td{border-bottom:none}
+.feed-status{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+
+/* Lice History (simple bar chart) */
+.lice-chart{display:flex;align-items:flex-end;gap:6px;height:100px;padding-top:8px}
+.lice-bar{flex:1;border-radius:2px 2px 0 0;min-height:2px;position:relative}
+.lice-bar.ok{background:var(--success)}
+.lice-bar.elevated{background:var(--warning)}
+.lice-bar.high{background:var(--danger)}
+.lice-threshold{position:absolute;left:0;right:0;border-top:2px dashed var(--danger);opacity:.5}
+.lice-labels{display:flex;gap:6px;margin-top:6px}
+.lice-labels span{flex:1;font-size:10px;color:var(--text-muted);text-align:center}
+
+/* Genetics */
+.genetics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.gene-item{background:var(--surface-elevated);border-radius:var(--radius-sm);padding:12px;text-align:center;border:1px solid var(--border-light)}
+.gene-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.gene-value{font-family:var(--font-mono);font-size:16px;font-weight:500}
+.gene-bar{height:4px;border-radius:2px;background:var(--border-light);margin-top:6px;overflow:hidden}
+.gene-bar-fill{height:100%;border-radius:2px}
+
+/* Mortality */
+.mortality-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-light);font-size:13px}
+.mortality-row:last-child{border-bottom:none}
+.mortality-row .cause{color:var(--text-secondary)}
+.mortality-row .count{font-family:var(--font-mono);font-weight:500}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="icon">🐟</div>Lakskongen</div>
+  <div class="sidebar-nav">
+    <a href="#"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="#" class="active"><span class="nav-icon">🏗️</span> Merder</a>
+    <a href="#"><span class="nav-icon">📈</span> Marked</a>
+    <a href="#"><span class="nav-icon">💰</span> Finans</a>
+    <a href="#"><span class="nav-icon">🔬</span> Forskning</a>
+    <a href="#"><span class="nav-icon">🗺️</span> Kart</a>
+    <a href="#"><span class="nav-icon">👷</span> Mannskap</a>
+    <a href="#"><span class="nav-icon">🚚</span> Logistikk</a>
+    <a href="#"><span class="nav-icon">⚙️</span> Innstillinger</a>
+  </div>
+  <div class="sidebar-footer">Uke 12 · Mars 2026<br>Dag 847 · Vår</div>
+</nav>
+
+<div class="main">
+  <div class="breadcrumb">
+    <a href="#">Dashboard</a> › <a href="#">Merder</a> › <strong>Merd 3</strong>
+  </div>
+
+  <div class="page-header">
+    <div>
+      <h1>Merd 3 — Nordfjord Øst</h1>
+      <div class="subtitle">Utsatt: 14. sep 2025 · Syklus 14 · Dag 188</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <span class="status-badge warning"><span class="status-dot warning"></span>Forhøyet lusetall</span>
+      <div class="header-actions">
+        <button class="btn btn-warning">🧪 Avlus</button>
+        <button class="btn btn-primary">🐟 Fôr</button>
+        <button class="btn btn-outline">📊 Rapport</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP KPIs -->
+  <div class="grid-top">
+    <div class="stat-card">
+      <div class="stat-label">Antall fisk</div>
+      <div class="stat-value">91 200</div>
+      <div class="stat-sub">Tap denne uken: 42 (0.05%)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Snitt vekt</div>
+      <div class="stat-value">3.4<span class="unit">kg</span></div>
+      <div class="stat-sub">Mål: 4.5 kg ved uke 18</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Biomasse</div>
+      <div class="stat-value">310<span class="unit">tonn</span></div>
+      <div class="stat-sub">MAB-grense: 780 tonn</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">FCR (aktuell)</div>
+      <div class="stat-value">1.18</div>
+      <div class="stat-sub">Mål: 1.15 · Forrige uke: 1.14</div>
+    </div>
+  </div>
+
+  <!-- MID: Size Distribution + Water/Lice -->
+  <div class="grid-mid">
+    <div class="card">
+      <div class="card-header"><h2>📏 Størrelsesfordeling</h2><span style="font-size:12px;color:var(--text-muted)">Siste måling: 19. mars</span></div>
+      <div class="card-body">
+        <div class="size-dist">
+          <div class="size-row">
+            <span class="size-label">1–2 kg</span>
+            <div class="size-bar-bg"><div class="size-bar" style="width:8%;background:var(--secondary-light)"></div></div>
+            <span class="size-pct">8%</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">2–3 kg</span>
+            <div class="size-bar-bg"><div class="size-bar" style="width:22%;background:var(--secondary)"></div></div>
+            <span class="size-pct">22%</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">3–4 kg</span>
+            <div class="size-bar-bg"><div class="size-bar" style="width:45%;background:var(--primary)"></div></div>
+            <span class="size-pct">45%</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">4–5 kg</span>
+            <div class="size-bar-bg"><div class="size-bar" style="width:20%;background:var(--accent)"></div></div>
+            <span class="size-pct">20%</span>
+          </div>
+          <div class="size-row">
+            <span class="size-label">5+ kg</span>
+            <div class="size-bar-bg"><div class="size-bar" style="width:5%;background:var(--accent-light)"></div></div>
+            <span class="size-pct">5%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <div class="card-header"><h2>🦠 Lusehistorikk (8 uker)</h2></div>
+        <div class="card-body">
+          <div class="lice-chart">
+            <div class="lice-bar ok" style="height:15%"></div>
+            <div class="lice-bar ok" style="height:20%"></div>
+            <div class="lice-bar ok" style="height:18%"></div>
+            <div class="lice-bar ok" style="height:25%"></div>
+            <div class="lice-bar elevated" style="height:45%"></div>
+            <div class="lice-bar elevated" style="height:55%"></div>
+            <div class="lice-bar elevated" style="height:65%"></div>
+            <div class="lice-bar high" style="height:80%;position:relative"><div class="lice-threshold" style="bottom:62.5%"></div></div>
+          </div>
+          <div class="lice-labels">
+            <span>U5</span><span>U6</span><span>U7</span><span>U8</span><span>U9</span><span>U10</span><span>U11</span><span>U12</span>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:var(--text-muted)">
+            Nå: <strong style="color:var(--danger)">0.38 lus/fisk</strong> · Grense: 0.5
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>💀 Dødelighet (siste 30 dager)</h2></div>
+        <div class="card-body">
+          <div class="mortality-row"><span class="cause">Sykdom (ILA)</span><span class="count" style="color:var(--danger)">18</span></div>
+          <div class="mortality-row"><span class="cause">Håndtering</span><span class="count">12</span></div>
+          <div class="mortality-row"><span class="cause">Predator</span><span class="count">7</span></div>
+          <div class="mortality-row"><span class="cause">Ukjent</span><span class="count">5</span></div>
+          <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">Total: 42 (0.05%) · Kum. syklus: 1.2%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM: Feeding + Genetics + Environment -->
+  <div class="grid-bot">
+    <div class="card">
+      <div class="card-header"><h2>🍽️ Fôrlogg (siste 5 dager)</h2></div>
+      <div class="card-body" style="padding:0">
+        <table class="feed-table">
+          <thead><tr><th>Dato</th><th>Mengde</th><th>Type</th><th>Respons</th></tr></thead>
+          <tbody>
+            <tr><td>21. mar</td><td style="font-family:var(--font-mono)">3 420 kg</td><td>Skretting Nutra</td><td><span class="feed-status" style="background:var(--success)"></span>God</td></tr>
+            <tr><td>20. mar</td><td style="font-family:var(--font-mono)">3 380 kg</td><td>Skretting Nutra</td><td><span class="feed-status" style="background:var(--success)"></span>God</td></tr>
+            <tr><td>19. mar</td><td style="font-family:var(--font-mono)">2 900 kg</td><td>Skretting Nutra</td><td><span class="feed-status" style="background:var(--warning)"></span>Middels</td></tr>
+            <tr><td>18. mar</td><td style="font-family:var(--font-mono)">3 100 kg</td><td>BioMar Intro</td><td><span class="feed-status" style="background:var(--success)"></span>God</td></tr>
+            <tr><td>17. mar</td><td style="font-family:var(--font-mono)">3 250 kg</td><td>BioMar Intro</td><td><span class="feed-status" style="background:var(--success)"></span>God</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2>🧬 Genetikk</h2></div>
+      <div class="card-body">
+        <div class="genetics-grid">
+          <div class="gene-item">
+            <div class="gene-label">Veksthastighet</div>
+            <div class="gene-value" style="color:var(--success-dark)">A+</div>
+            <div class="gene-bar"><div class="gene-bar-fill" style="width:92%;background:var(--success)"></div></div>
+          </div>
+          <div class="gene-item">
+            <div class="gene-label">Luseresistens</div>
+            <div class="gene-value" style="color:var(--warning-dark)">B</div>
+            <div class="gene-bar"><div class="gene-bar-fill" style="width:58%;background:var(--warning)"></div></div>
+          </div>
+          <div class="gene-item">
+            <div class="gene-label">Sykdomsresistens</div>
+            <div class="gene-value" style="color:var(--accent)">A</div>
+            <div class="gene-bar"><div class="gene-bar-fill" style="width:82%;background:var(--accent)"></div></div>
+          </div>
+          <div class="gene-item">
+            <div class="gene-label">Filétkvalitet</div>
+            <div class="gene-value" style="color:var(--success-dark)">A+</div>
+            <div class="gene-bar"><div class="gene-bar-fill" style="width:95%;background:var(--success)"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2>🌊 Miljø (nå)</h2></div>
+      <div class="card-body">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-light)">
+            <span style="font-size:13px;color:var(--text-secondary)">Temperatur</span>
+            <span style="font-family:var(--font-mono);font-weight:500">8.4°C</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-light)">
+            <span style="font-size:13px;color:var(--text-secondary)">Oksygen</span>
+            <span style="font-family:var(--font-mono);font-weight:500;color:var(--success-dark)">91%</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-light)">
+            <span style="font-size:13px;color:var(--text-secondary)">Strøm</span>
+            <span style="font-family:var(--font-mono);font-weight:500">0.3 m/s</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-light)">
+            <span style="font-size:13px;color:var(--text-secondary)">Sikt</span>
+            <span style="font-family:var(--font-mono);font-weight:500">8.5 m</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0">
+            <span style="font-size:13px;color:var(--text-secondary)">Algevekst</span>
+            <span style="font-family:var(--font-mono);font-weight:500;color:var(--success-dark)">Lav</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

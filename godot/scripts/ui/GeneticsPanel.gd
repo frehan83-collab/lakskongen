@@ -114,11 +114,11 @@ func _update_inbreeding() -> void:
 
 func _breeding_value_color(bv: float) -> Color:
 	if bv > 0.5:
-		return Color(0.2, 0.9, 0.2)  # Bright green
+		return Color("#A3BE8C")  # Bright green
 	elif bv > 0.0:
-		return Color(0.6, 1.0, 0.6)  # Light green
+		return Color("#A3BE8C")  # Light green
 	elif bv < -0.5:
-		return Color(0.9, 0.2, 0.2)  # Bright red
+		return Color("#BF616A")  # Bright red
 	elif bv < 0.0:
 		return Color(1.0, 0.6, 0.6)  # Light red
 	else:
@@ -126,11 +126,11 @@ func _breeding_value_color(bv: float) -> Color:
 
 func _heritability_color(h2: float) -> Color:
 	if h2 > 0.3:
-		return Color(0.4, 0.8, 1.0)  # Blue (high heritability = good for selection)
+		return Color("#88C0D0")  # Blue (high heritability = good for selection)
 	elif h2 > 0.15:
-		return Color(0.8, 0.8, 0.8)  # Gray
+		return Color("#4C566A")  # Gray
 	else:
-		return Color(0.6, 0.6, 0.6)  # Dim gray
+		return Color("#7B8794")  # Dim gray
 
 func _on_breed_pressed() -> void:
 	# Placeholder for breeding action

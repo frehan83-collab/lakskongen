@@ -1957,6 +1957,916 @@ public partial class GameBridge : Node
         return true;
     }
 
+    // ── Empire Systems API (T65) ──────────────────────────────────────────────
+
+    // ── CompetitorAI Methods ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Return all AI competitors as an Array of Dictionaries.
+    /// Keys: "id", "name", "parody_of", "strategy", "positioning", "revenue", "market_share_norway".
+    /// </summary>
+    // NOTE: CompetitorAI, EmpireProgression, StockMarket methods stubbed
+    // until the simulation engine implements the required interfaces.
+    // These are advanced features — core gameplay works without them.
+
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetCompetitors()
+    {
+        return new Godot.Collections.Array<Godot.Collections.Dictionary>();
+    }
+
+    public int GetCompetitorCount() => 0;
+
+    public Godot.Collections.Dictionary GetMarketLeader()
+    {
+        return new Godot.Collections.Dictionary();
+    }
+
+    // ── EmpireProgression Methods (stubbed) ────────────────────────────────────
+
+    public string GetEmpirePhase() => "SmallFarmer";
+    public int GetEmpireScore() => 0;
+
+    public Godot.Collections.Dictionary GetNextMilestone()
+    {
+        return new Godot.Collections.Dictionary();
+    }
+
+    public string GetGrowthStrategy() => "Organic";
+
+    // ── StockMarket Methods (stubbed) ──────────────────────────────────────────
+
+    public string GetOwnershipStatus() => "Private";
+    public double GetSharePrice() => 0.0;
+    public double GetMarketCap() => 0.0;
+    public bool IsPublic() => false;
+
+    public Godot.Collections.Dictionary AttemptIPO()
+    {
+        return new Godot.Collections.Dictionary
+        {
+            ["success"] = false,
+            ["message"] = "IPO system not yet implemented"
+        };
+    }
+
+    // ── BrandReputation Methods ────────────────────────────────────────────────
+
+    /// <summary>Overall brand reputation score (0-100).</summary>
+    public double GetBrandScore()
+    {
+        return (double)(SimulationEngine?.BrandReputation?.OverallScore ?? 50m);
+    }
+
+    /// <summary>Current brand strategy (Commodity, Organic, Premium, Luxury, Regional).</summary>
+    public string GetBrandStrategy()
+    {
+        return SimulationEngine?.BrandReputation?.Strategy.ToString() ?? "Commodity";
+    }
+
+    /// <summary>
+    /// Return active certifications as an Array of strings.
+    /// Examples: "ASC", "MSC", "Organic", "GlobalGAP".
+    /// </summary>
+    public Godot.Collections.Array<string> GetCertifications()
+    {
+        var result = new Godot.Collections.Array<string>();
+        var brand = SimulationEngine?.BrandReputation;
+        if (brand == null) return result;
+
+        foreach (var cert in brand.Certifications)
+            result.Add(cert);
+        return result;
+    }
+
+    /// <summary>Pricing power multiplier from brand reputation (1.0 = baseline, >1.0 = premium).</summary>
+    public double GetPricingPower()
+    {
+        var brand = SimulationEngine?.BrandReputation;
+        if (brand == null) return 1.0;
+        
+        // Return pricing power for FiletFersk as a baseline (FilletPremium not yet in ProductType)
+        try { return (double)brand.GetPricingPowerMultiplier(LakskongenSim.Market.ProductType.Fillet); }
+        catch { return 1.0; }
+    }
+
+    // ── CrisisCapitalism Methods ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Return active competitor crises as an Array of Dictionaries.
+    /// Keys: "id", "type", "competitor_name", "severity", "discount_multiplier".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetActiveCrises()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var system = SimulationEngine?.CrisisCapitalism;
+        if (system == null) return result;
+
+        foreach (var crisis in system.GetActiveCrises())
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = crisis.Id,
+                ["type"] = crisis.Type.ToString(),
+                ["competitor_name"] = crisis.CompetitorName,
+                ["severity"] = (double)crisis.SeverityScore,
+                ["discount_multiplier"] = (double)crisis.DiscountMultiplier,
+                ["duration_months"] = crisis.DurationMonths
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Return available distressed assets for acquisition as an Array of Dictionaries.
+    /// Keys: "id", "asset_type", "name", "location", "original_value", "discounted_price", "discount_pct", "risk_score".
+    /// </summary>
+    // CrisisCapitalism methods stubbed until engine implements GetAvailableAssets/AttemptAcquisition
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetAcquisitionOpportunities()
+    {
+        return new Godot.Collections.Array<Godot.Collections.Dictionary>();
+    }
+
+    public Godot.Collections.Dictionary AttemptAcquisition(string assetId)
+    {
+        return new Godot.Collections.Dictionary
+        {
+            ["success"] = false,
+            ["message"] = "Acquisition system not yet implemented"
+        };
+    }
+
+    // ── VerticalIntegration Methods ────────────────────────────────────────────
+
+    /// <summary>
+    /// Return all integration tiers with ownership status as an Array of Dictionaries.
+    /// Keys: "tier", "name", "is_owned", "capex", "cost_saving_pct", "quality_bonus".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetIntegrationTiers()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var system = SimulationEngine?.VerticalIntegration;
+        if (system == null) return result;
+
+        foreach (var asset in system.GetBuildableAssets())
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["tier"] = asset.Tier.ToString(),
+                ["name"] = asset.Name,
+                ["is_owned"] = asset.IsOwned,
+                ["capex"] = (double)asset.CapexNOK,
+                ["annual_opex"] = (double)asset.AnnualOpexNOK,
+                ["cost_saving_pct"] = (double)asset.CostSavingPctPerKg,
+                ["quality_bonus"] = (double)asset.QualityBonus,
+                ["description"] = asset.Description
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Return owned integration assets as an Array of Dictionaries.
+    /// Keys: "tier", "name", "capacity", "maintenance_cost_pct".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetOwnedAssets()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var system = SimulationEngine?.VerticalIntegration;
+        if (system == null) return result;
+
+        foreach (var asset in system.GetOwnedAssets())
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["tier"] = asset.Tier.ToString(),
+                ["name"] = asset.Name,
+                ["capacity"] = asset.Capacity,
+                ["maintenance_cost_pct"] = (double)asset.MaintenanceCostPctPerYear,
+                ["construction_completed"] = asset.ConstructionCompleted?.ToString() ?? "N/A"
+            });
+        }
+        return result;
+    }
+
+    /// <summary>Overall vertical integration score (0.0-1.0).</summary>
+    public double GetIntegrationScore()
+    {
+        return (double)(SimulationEngine?.VerticalIntegration?.GetIntegrationScore() ?? 0.0f);
+    }
+
+    /// <summary>
+    /// Attempt to purchase/build a vertical integration asset by ID.
+    /// Returns a Dictionary with keys: "success", "message", "capex_paid", "payback_years".
+    /// </summary>
+    public Godot.Collections.Dictionary PurchaseAsset(string assetId)
+    {
+        var result = new Godot.Collections.Dictionary();
+        var system = SimulationEngine?.VerticalIntegration;
+        if (system == null)
+        {
+            result["success"] = false;
+            result["message"] = "Vertical integration system not initialized";
+            return result;
+        }
+
+        // Find the asset
+        var asset = system.GetBuildableAssets().FirstOrDefault(a => a.Tier.ToString() == assetId);
+        if (asset == null)
+        {
+            result["success"] = false;
+            result["message"] = $"Asset '{assetId}' not found or already owned";
+            return result;
+        }
+
+        var integrationResult = system.BuildAsset(asset, (float)SimulationEngine.FinanceManager.Balance);
+        result["success"] = integrationResult.Success;
+        result["message"] = integrationResult.Message;
+        result["capex_paid"] = (double)integrationResult.ActualCapexPaid;
+        result["payback_years"] = (double)integrationResult.EstimatedPaybackYears;
+        return result;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    // WAVE 2 SYSTEMS API (T71) - LoanSystem, TaxSystem, InvestorSystem, etc.
+    // ══════════════════════════════════════════════════════════════════════════════
+
+    // ── LoanSystem Methods ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns active loans as an Array of Dictionaries.
+    /// Keys: "id", "principal", "interest_rate", "term_months", "remaining_months", "monthly_payment".
+    /// Note: Current LoanSystem is simplified and doesn't track individual loans.
+    /// This returns a placeholder for future implementation.
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetActiveLoans()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        // TODO: When LoanSystem tracks individual loans, return them here
+        return result;
+    }
+
+    /// <summary>Total debt outstanding (NOK). Returns 0 for now (no debt tracking yet).</summary>
+    public double GetTotalDebt()
+    {
+        // TODO: Implement when LoanSystem tracks outstanding principal
+        return 0.0;
+    }
+
+    /// <summary>Total monthly payment obligation (NOK). Returns 0 for now.</summary>
+    public double GetMonthlyPayment()
+    {
+        // TODO: Calculate from active loans when implemented
+        return 0.0;
+    }
+
+    /// <summary>
+    /// Take out a new loan.
+    /// Returns a Dictionary with keys: "success", "message", "loan_id", "principal", "monthly_payment".
+    /// </summary>
+    public Godot.Collections.Dictionary TakeLoan(double amount, int termMonths, double rate)
+    {
+        var result = new Godot.Collections.Dictionary();
+        
+        if (amount <= 0 || termMonths <= 0 || rate < 0)
+        {
+            result["success"] = false;
+            result["message"] = "Invalid loan parameters";
+            return result;
+        }
+
+        // For now, just add the principal to balance (simplified)
+        // TODO: Implement proper loan tracking with amortization schedule
+        SimulationEngine?.FinanceManager?.AddRevenue((decimal)amount);
+        
+        result["success"] = true;
+        result["message"] = $"Loan of {amount:N0} NOK approved at {rate:P1} for {termMonths} months";
+        result["loan_id"] = "loan_" + SimulationEngine?.State?.Day.ToString() ?? "0";
+        result["principal"] = amount;
+        
+        // Calculate approximate monthly payment (simplified)
+        double monthlyRate = rate / 12.0;
+        double monthlyPayment = amount * (monthlyRate * Math.Pow(1 + monthlyRate, termMonths)) / 
+                                (Math.Pow(1 + monthlyRate, termMonths) - 1);
+        result["monthly_payment"] = monthlyPayment;
+        
+        return result;
+    }
+
+    // ── TaxSystem Methods ─────────────────────────────────────────────────────────
+
+    /// <summary>Current corporate tax rate (0.22 = 22%).</summary>
+    public double GetTaxRate()
+    {
+        return 0.22; // Norwegian corporate tax rate
+    }
+
+    /// <summary>Last tax payment amount (NOK). Returns 0 for now.</summary>
+    public double GetLastTaxPaid()
+    {
+        // TODO: Track tax payments in TaxSystem
+        return 0.0;
+    }
+
+    /// <summary>Estimated annual tax burden based on current profit (NOK).</summary>
+    public double GetAnnualTaxBurden()
+    {
+        var profit = SimulationEngine?.FinanceManager?.Balance ?? 0m;
+        if (profit <= 0m) return 0.0;
+        
+        return (double)(profit * 0.22m); // 22% corporate tax
+    }
+
+    // ── InvestorSystem Methods ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns all investors/shareholders as an Array of Dictionaries.
+    /// Keys: "type", "amount", "shares", "equity_pct".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetInvestors()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var investorSystem = SimulationEngine?.InvestorSystem;
+        if (investorSystem == null) return result;
+
+        // Return bond holders
+        if (investorSystem.OutstandingBondPrincipal > 0)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["type"] = "bond",
+                ["amount"] = (double)investorSystem.OutstandingBondPrincipal,
+                ["shares"] = 0.0,
+                ["equity_pct"] = 0.0
+            });
+        }
+
+        // Return equity holders (simplified - show total outstanding shares)
+        if (investorSystem.OutstandingShares > 1_000_000m)
+        {
+            var dilutedShares = investorSystem.OutstandingShares - 1_000_000m;
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["type"] = "equity",
+                ["amount"] = (double)(dilutedShares * investorSystem.SharePrice),
+                ["shares"] = (double)dilutedShares,
+                ["equity_pct"] = (double)(dilutedShares / investorSystem.OutstandingShares)
+            });
+        }
+
+        return result;
+    }
+
+    /// <summary>Total investment from bonds and equity (NOK).</summary>
+    public double GetTotalInvestment()
+    {
+        var investorSystem = SimulationEngine?.InvestorSystem;
+        if (investorSystem == null) return 0.0;
+        
+        return (double)(investorSystem.OutstandingBondPrincipal + 
+                       (investorSystem.OutstandingShares - 1_000_000m) * investorSystem.SharePrice);
+    }
+
+    /// <summary>Current equity dilution (0.0-1.0, where 0.2 = 20% diluted).</summary>
+    public double GetEquityDilution()
+    {
+        var investorSystem = SimulationEngine?.InvestorSystem;
+        if (investorSystem == null) return 0.0;
+        
+        return (double)investorSystem.DilutionFraction();
+    }
+
+    // ── AcquisitionSystem Methods ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns available acquisition targets as an Array of Dictionaries.
+    /// Keys: "id", "name", "asset_value", "license_value", "health_score", "is_distressed",
+    ///       "asking_price", "region", "asset_type", "tonnage_capacity".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetAvailableTargets()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var acquisitionSystem = SimulationEngine?.AcquisitionSystem;
+        if (acquisitionSystem == null) return result;
+
+        foreach (var target in acquisitionSystem.GetAvailableTargets())
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = target.Id,
+                ["name"] = target.Name,
+                ["asset_value"] = (double)target.AssetValue,
+                ["license_value"] = (double)target.LicenseValue,
+                ["health_score"] = (double)target.HealthScore,
+                ["is_distressed"] = target.IsDistressed,
+                ["asking_price"] = (double)target.AskingPrice,
+                ["regional_market_share"] = (double)target.RegionalMarketShare,
+                ["region"] = target.Region,
+                ["asset_type"] = target.AssetType,
+                ["tonnage_capacity"] = (double)target.TonnageCapacity
+            });
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns owned acquisitions as an Array of Dictionaries.
+    /// Keys: "id", "name", "acquired_price", "acquisition_date", "synergies_per_year".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetOwnedAcquisitions()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        // TODO: Track completed acquisitions in GameState
+        // For now return empty array
+        return result;
+    }
+
+    /// <summary>
+    /// Attempt to acquire a target company.
+    /// Returns a Dictionary with keys: "success", "message", "actual_price", "regulatory_delay_months", "synergies".
+    /// </summary>
+    public Godot.Collections.Dictionary AttemptAcquisitionTarget(string targetId)
+    {
+        var result = new Godot.Collections.Dictionary();
+        var acquisitionSystem = SimulationEngine?.AcquisitionSystem;
+        if (acquisitionSystem == null)
+        {
+            result["success"] = false;
+            result["message"] = "Acquisition system not initialized";
+            return result;
+        }
+
+        var targets = acquisitionSystem.GetAvailableTargets();
+        var target = targets.FirstOrDefault(t => t.Id == targetId);
+        if (target == null)
+        {
+            result["success"] = false;
+            result["message"] = $"Target '{targetId}' not found";
+            return result;
+        }
+
+        // Calculate acquisition price (90% of asking price as baseline offer)
+        float offeredPrice = target.AskingPrice * 0.90f;
+        float playerCash = (float)(SimulationEngine?.FinanceManager?.Balance ?? 0m);
+
+        var acquisitionResult = acquisitionSystem.MakeOffer(target, offeredPrice, playerCash);
+        
+        if (acquisitionResult.Success)
+        {
+            // Deduct cost
+            SimulationEngine?.FinanceManager?.Spend((decimal)acquisitionResult.ActualPrice * 1_000_000m);
+            
+            // Calculate synergies (simplified - 10% of asset value per year)
+            float synergies = (target.AssetValue + target.LicenseValue) * 0.10f;
+            
+            // Complete acquisition
+            acquisitionSystem.CompleteAcquisition(target, acquisitionResult.ActualPrice, synergies);
+            
+            // Record event
+            SimulationEngine?.State?.EventLog.Add(new LakskongenSim.Events.EventRecord
+            {
+                Day = SimulationEngine.State.Day,
+                Name = "Company Acquisition",
+                Category = LakskongenSim.Events.EventCategory.Equipment,
+                Description = $"Acquired {target.Name} for {acquisitionResult.ActualPrice:F1}M NOK",
+                BalanceChange = -(decimal)acquisitionResult.ActualPrice * 1_000_000m
+            });
+        }
+
+        result["success"] = acquisitionResult.Success;
+        result["message"] = acquisitionResult.Success ? 
+            $"Successfully acquired {target.Name}" : 
+            acquisitionResult.FailureReason;
+        result["actual_price"] = (double)acquisitionResult.ActualPrice;
+        result["regulatory_delay_months"] = acquisitionResult.RegulatoryDelayMonths;
+        result["synergies_per_year"] = (double)acquisitionResult.SynergiesNOKPerYear;
+        result["requires_antitrust"] = acquisitionResult.RequiresAntitrustApproval;
+
+        return result;
+    }
+
+    // ── LicenseSystem Methods ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns active licenses as an Array of Dictionaries.
+    /// Keys: "site_id", "annual_fee", "zone_id", "mab_tonnes".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetActiveLicenses()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var sites = SimulationEngine?.State?.SeaSites;
+        if (sites == null) return result;
+
+        foreach (var site in sites)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["site_id"] = site.Id,
+                ["annual_fee"] = 50000.0, // From LicenseSystem.AnnualFeePerSite
+                ["zone_id"] = site.ZoneId,
+                ["mab_tonnes"] = site.MABTonnes
+            });
+        }
+
+        return result;
+    }
+
+    /// <summary>License cost for a new site (NOK).</summary>
+    public double GetLicenseCost()
+    {
+        return 30_000_000.0; // ~30M NOK for 780-tonne MAB license
+    }
+
+    /// <summary>
+    /// Apply for a new license in a zone.
+    /// Returns a Dictionary with keys: "success", "message", "cost", "mab_tonnes", "site_id".
+    /// </summary>
+    public Godot.Collections.Dictionary ApplyForLicense(string zoneId)
+    {
+        var result = new Godot.Collections.Dictionary();
+        
+        // Check if zone exists
+        var zone = SimulationEngine?.State?.Zones?.FirstOrDefault(z => z.Id == zoneId);
+        if (zone == null)
+        {
+            result["success"] = false;
+            result["message"] = $"Zone '{zoneId}' not found";
+            return result;
+        }
+
+        // License cost
+        decimal licenseCost = 30_000_000m;
+        
+        // Check funds
+        if (SimulationEngine?.FinanceManager?.Balance < licenseCost)
+        {
+            result["success"] = false;
+            result["message"] = $"Insufficient funds (need {licenseCost:N0} NOK)";
+            return result;
+        }
+
+        // Create new site (license approval)
+        var siteId = $"site_{SimulationEngine.State.SeaSites.Count + 1}";
+        var success = BuildSeaSite(zoneId, siteId);
+        
+        result["success"] = success;
+        result["message"] = success ? 
+            $"License approved for zone {zoneId}" : 
+            "License application failed";
+        result["cost"] = (double)licenseCost;
+        result["mab_tonnes"] = 780.0;
+        result["site_id"] = siteId;
+
+        return result;
+    }
+
+    // ── StakeholderFactionSystem Methods ──────────────────────────────────────────
+
+    /// <summary>
+    /// Returns all stakeholder factions as an Array of Dictionaries.
+    /// Keys: "type", "name", "description", "relationship_score", "influence", "weighted_score".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetFactions()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var factionSystem = SimulationEngine?.StakeholderFactionSystem;
+        if (factionSystem == null) return result;
+
+        foreach (var faction in factionSystem.GetAllFactions().Values)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["type"] = faction.Type.ToString(),
+                ["name"] = faction.Name,
+                ["description"] = faction.Description,
+                ["relationship_score"] = (double)faction.RelationshipScore,
+                ["influence"] = (double)faction.Influence,
+                ["weighted_score"] = (double)faction.WeightedRelationshipScore,
+                ["active_demands_count"] = faction.ActiveDemands.Count,
+                ["active_sanctions_count"] = faction.ActiveSanctions.Count,
+                ["active_bonuses_count"] = faction.ActiveBonuses.Count
+            });
+        }
+
+        return result;
+    }
+
+    /// <summary>Get relationship score with a specific faction (-1.0 to +1.0).</summary>
+    public double GetFactionRelation(string factionId)
+    {
+        var factionSystem = SimulationEngine?.StakeholderFactionSystem;
+        if (factionSystem == null) return 0.0;
+
+        if (!Enum.TryParse<LakskongenSim.Politics.FactionType>(factionId, true, out var factionType))
+            return 0.0;
+
+        var faction = factionSystem.GetFaction(factionType);
+        return faction != null ? (double)faction.RelationshipScore : 0.0;
+    }
+
+    /// <summary>
+    /// Returns all active demands from all factions as an Array of Dictionaries.
+    /// Keys: "id", "faction", "description", "cost_nok", "duration_months", "expiry_date", "consequence".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetActiveDemands()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var factionSystem = SimulationEngine?.StakeholderFactionSystem;
+        if (factionSystem == null) return result;
+
+        foreach (var demand in factionSystem.GetActiveDemands())
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = demand.Id,
+                ["faction"] = demand.FactionType.ToString(),
+                ["description"] = demand.Description,
+                ["cost_nok"] = (double)demand.CostNOK,
+                ["duration_months"] = demand.DurationMonths,
+                ["issued_date"] = demand.IssuedDate.ToString("yyyy-MM-dd"),
+                ["expiry_date"] = demand.ExpiryDate.ToString("yyyy-MM-dd"),
+                ["consequence"] = demand.ConsequenceIfIgnored,
+                ["is_expired"] = demand.IsExpired
+            });
+        }
+
+        return result;
+    }
+
+    // ── MarketIntelligence Methods ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns comprehensive market report as a Dictionary.
+    /// Keys: "current_price", "weekly_avg", "trend", "active_events", "competitor_supply_tonnes",
+    ///       "player_reputation_score", "forecasts" (Array).
+    /// </summary>
+    public Godot.Collections.Dictionary GetMarketReport()
+    {
+        var result = new Godot.Collections.Dictionary();
+        var marketIntel = SimulationEngine?.MarketIntelligence;
+        if (marketIntel == null)
+        {
+            result["current_price"] = 70.0;
+            result["weekly_avg"] = 70.0;
+            result["trend"] = "stable";
+            result["active_events"] = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+            result["competitor_supply_tonnes"] = 0.0;
+            result["player_reputation_score"] = 25.0;
+            result["forecasts"] = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+            return result;
+        }
+
+        var currentPrice = SimulationEngine?.MarketSimulation?.PricePerKg ?? 70m;
+        result["current_price"] = (double)currentPrice;
+        result["weekly_avg"] = (double)(SimulationEngine?.MarketSimulation?.WeeklyAvgPrice ?? 70m);
+        
+        // Get active events
+        var events = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var evt in marketIntel.ActiveEvents)
+        {
+            events.Add(new Godot.Collections.Dictionary
+            {
+                ["headline"] = evt.Headline,
+                ["description"] = evt.Description,
+                ["category"] = evt.Category.ToString(),
+                ["remaining_weeks"] = evt.RemainingWeeks,
+                ["supply_impact"] = evt.SupplyImpact,
+                ["demand_impact"] = evt.DemandImpact
+            });
+        }
+        result["active_events"] = events;
+        
+        result["competitor_supply_tonnes"] = marketIntel.GetTotalCompetitorSupplyTonnes();
+        result["player_reputation_score"] = marketIntel.PlayerReputation.Score;
+        
+        // Get price forecasts
+        var forecasts = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var forecastList = marketIntel.GetForecasts(currentPrice, 70m, 5m);
+        foreach (var f in forecastList)
+        {
+            forecasts.Add(new Godot.Collections.Dictionary
+            {
+                ["weeks_ahead"] = f.WeeksAhead,
+                ["predicted_price"] = (double)f.PredictedPrice,
+                ["lower_bound"] = (double)f.LowerBound,
+                ["upper_bound"] = (double)f.UpperBound,
+                ["confidence"] = f.Confidence,
+                ["trend"] = f.Trend.ToString()
+            });
+        }
+        result["forecasts"] = forecasts;
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns competitor analysis as an Array of Dictionaries.
+    /// Keys: "name", "country", "weekly_tonnes", "market_rank".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetCompetitorAnalysis()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var marketIntel = SimulationEngine?.MarketIntelligence;
+        if (marketIntel == null) return result;
+
+        var snapshot = marketIntel.GetCompetitorSnapshot();
+        int rank = 1;
+        foreach (var (name, country, weeklyTonnes) in snapshot)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["name"] = name,
+                ["country"] = country,
+                ["weekly_tonnes"] = weeklyTonnes,
+                ["market_rank"] = rank++
+            });
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns price forecast for next 4 weeks as an Array of Dictionaries.
+    /// Keys: "weeks_ahead", "predicted_price", "lower_bound", "upper_bound", "confidence", "trend".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetPriceForecast()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var marketIntel = SimulationEngine?.MarketIntelligence;
+        if (marketIntel == null) return result;
+
+        var currentPrice = SimulationEngine?.MarketSimulation?.PricePerKg ?? 70m;
+        var forecasts = marketIntel.GetForecasts(currentPrice, 70m, 5m);
+        
+        foreach (var f in forecasts)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["weeks_ahead"] = f.WeeksAhead,
+                ["predicted_price"] = (double)f.PredictedPrice,
+                ["lower_bound"] = (double)f.LowerBound,
+                ["upper_bound"] = (double)f.UpperBound,
+                ["confidence"] = f.Confidence,
+                ["trend"] = f.Trend.ToString()
+            });
+        }
+
+        return result;
+    }
+
+    // ── FishWelfare Methods ───────────────────────────────────────────────────────
+
+    /// <summary>Overall fish welfare score (0-100, where 100 is best).</summary>
+    public double GetWelfareScore()
+    {
+        var welfare = SimulationEngine?.FishWelfare;
+        if (welfare == null) return 50.0;
+        
+        // Convert ConditionScore (0-2) to 0-100 scale
+        return welfare.ConditionScore * 50.0;
+    }
+
+    /// <summary>
+    /// Returns welfare breakdown as a Dictionary.
+    /// Keys: "condition_score", "stress_level", "mortality_risk", "health_status".
+    /// </summary>
+    public Godot.Collections.Dictionary GetWelfareBreakdown()
+    {
+        var result = new Godot.Collections.Dictionary();
+        var welfare = SimulationEngine?.FishWelfare;
+        if (welfare == null)
+        {
+            result["condition_score"] = 50.0;
+            result["stress_level"] = "normal";
+            result["mortality_risk"] = "low";
+            result["health_status"] = "good";
+            return result;
+        }
+
+        var conditionScore = welfare.ConditionScore;
+        result["condition_score"] = conditionScore * 50.0; // 0-100 scale
+        
+        // Determine stress level
+        string stressLevel = conditionScore switch
+        {
+            < 0.5 => "critical",
+            < 0.8 => "high",
+            < 1.2 => "normal",
+            < 1.5 => "low",
+            _ => "optimal"
+        };
+        result["stress_level"] = stressLevel;
+        
+        // Determine mortality risk
+        string mortalityRisk = conditionScore switch
+        {
+            < 0.6 => "high",
+            < 1.0 => "moderate",
+            _ => "low"
+        };
+        result["mortality_risk"] = mortalityRisk;
+        
+        // Overall health status
+        string healthStatus = conditionScore switch
+        {
+            < 0.7 => "poor",
+            < 1.0 => "fair",
+            < 1.3 => "good",
+            _ => "excellent"
+        };
+        result["health_status"] = healthStatus;
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns welfare alerts as an Array of strings.
+    /// Example: ["High stress levels detected", "Mortality risk increasing"].
+    /// </summary>
+    public Godot.Collections.Array<string> GetWelfareAlerts()
+    {
+        var result = new Godot.Collections.Array<string>();
+        var welfare = SimulationEngine?.FishWelfare;
+        if (welfare == null) return result;
+
+        var conditionScore = welfare.ConditionScore;
+        
+        if (conditionScore < 0.6)
+            result.Add("CRITICAL: Fish condition extremely poor");
+        else if (conditionScore < 0.8)
+            result.Add("WARNING: High stress levels detected");
+        
+        if (conditionScore < 0.7)
+            result.Add("High mortality risk - immediate action required");
+        
+        // Check other factors (simplified)
+        if (SimulationEngine?.SeaLice?.AverageLicePerFish > 2.0)
+            result.Add("Sea lice levels affecting fish welfare");
+        
+        if (SimulationEngine?.Weather?.CurrentTemperatureC > 16.0 || 
+            SimulationEngine?.Weather?.CurrentTemperatureC < 6.0)
+            result.Add("Temperature stress affecting fish welfare");
+
+        return result;
+    }
+
+    // ── VisualMilestones Methods ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns all achieved milestones as an Array of Dictionaries.
+    /// Keys: "type", "title", "description", "achieved_date", "cinematic_type".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetAchievedMilestones()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var milestones = SimulationEngine?.VisualMilestones;
+        if (milestones == null) return result;
+
+        foreach (var milestone in milestones.GetAchievedMilestones())
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["type"] = milestone.Type.ToString(),
+                ["title"] = milestone.Title,
+                ["description"] = milestone.Description,
+                ["achieved_date"] = milestone.AchievedDate?.ToString("yyyy-MM-dd") ?? "",
+                ["cinematic_type"] = milestone.CinematicType
+            });
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns the next unachieved visual milestone as a Dictionary.
+    /// Keys: "type", "title", "description", "cinematic_type".
+    /// Returns empty Dictionary if all milestones achieved.
+    /// </summary>
+    public Godot.Collections.Dictionary GetNextVisualMilestone()
+    {
+        var result = new Godot.Collections.Dictionary();
+        var milestones = SimulationEngine?.VisualMilestones;
+        if (milestones == null) return result;
+
+        var next = milestones.GetNextMilestone();
+        if (next != null)
+        {
+            result["type"] = next.Type.ToString();
+            result["title"] = next.Title;
+            result["description"] = next.Description;
+            result["cinematic_type"] = next.CinematicType;
+        }
+
+        return result;
+    }
+
+    /// <summary>Milestone completion progress (0.0-1.0).</summary>
+    public double GetMilestoneProgress()
+    {
+        var milestones = SimulationEngine?.VisualMilestones;
+        return milestones?.GetProgress() ?? 0.0;
+    }
+
     public override void _ExitTree()
     {
         _simulationTimer?.Stop();

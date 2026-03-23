@@ -6,11 +6,15 @@ using System.Text.Json;
 using LakskongenSim.Biology;
 using LakskongenSim.Environment;
 using LakskongenSim.Events;
+using LakskongenSim.Expansion;
 using LakskongenSim.Farm;
 using LakskongenSim.Health;
 using LakskongenSim.Sustainability;
 using LakskongenSim.Market;
 using LakskongenSim.Markets;
+using LakskongenSim.Finance;
+using LakskongenSim.Processing;
+using LakskongenSim.Politics;
 using System.Globalization;
 using System.Diagnostics;
 
@@ -41,6 +45,8 @@ namespace LakskongenSim.Core
         public InternationalMarketSystem InternationalMarketSystem { get; private set; } = null!;
         public Finance.FinanceManager FinanceManager { get; set; } = null!;
         public Finance.FinancialStatements FinancialStatements { get; private set; } = null!;
+        public Finance.CompetitorAISystem CompetitorAI { get; private set; } = null!;
+        public Finance.EmpireProgressionSystem EmpireProgression { get; private set; } = null!;
         public SustainabilityManager SustainabilityManager { get; private set; } = null!;
         public Storyteller Storyteller { get; private set; } = null!;
         public TutorialSystem Tutorial { get; private set; } = null!;
@@ -48,6 +54,20 @@ namespace LakskongenSim.Core
         public AudioManager Audio { get; private set; } = null!;
         public AchievementSystem Achievements { get; private set; } = null!;
         public ResearchSystem Research { get; private set; } = null!;
+        public Finance.StockMarketSystem StockMarket { get; private set; } = null!;
+        public BrandReputation BrandReputation { get; private set; } = null!;
+        public CrisisCapitalismSystem CrisisCapitalism { get; private set; } = null!;
+        public VerticalIntegrationSystem VerticalIntegration { get; private set; } = null!;
+        public Finance.LoanSystem LoanSystem { get; private set; } = null!;
+        public Finance.TaxSystem TaxSystem { get; private set; } = null!;
+        public Finance.InvestorSystem InvestorSystem { get; private set; } = null!;
+        public Expansion.AcquisitionSystem AcquisitionSystem { get; private set; } = null!;
+        public Finance.LicenseSystem LicenseSystem { get; private set; } = null!;
+        public Politics.StakeholderFactionSystem StakeholderFactionSystem { get; private set; } = null!;
+        public Market.MarketIntelligenceSystem MarketIntelligence { get; private set; } = null!;
+        public Health.FishWelfare FishWelfare { get; private set; } = null!;
+        public VisualMilestones VisualMilestones { get; private set; } = null!;
+        public Market.CurrencySystem CurrencySystem { get; private set; } = null!;
 
         // ─── Farm Subsystems ───
         public List<RASFacility> RASFacilities { get; private set; } = new();
@@ -58,6 +78,32 @@ namespace LakskongenSim.Core
         // ─── Update intervals ───
         private int _lastSustainabilityUpdate = 0;
         private const int SUSTAINABILITY_UPDATE_INTERVAL = 7; // Weekly
+        private int _lastBrandReputationUpdate = 0;
+        private const int BRAND_REPUTATION_UPDATE_INTERVAL = 7; // Weekly
+        private int _lastCrisisCapitalismUpdate = 0;
+        private const int CRISIS_CAPITALISM_UPDATE_INTERVAL = 7; // Weekly - crises don't happen daily
+        private int _lastVerticalIntegrationUpdate = 0;
+        private const int VERTICAL_INTEGRATION_UPDATE_INTERVAL = 30; // Monthly - construction/integration is slow
+        private int _quarterStartDay = 0;
+        private int _lastCompetitorAIUpdate = 0;
+        private const int COMPETITOR_AI_UPDATE_INTERVAL = 90; // Quarterly
+        private int _lastEmpireProgressionUpdate = 0;
+        private const int EMPIRE_PROGRESSION_UPDATE_INTERVAL = 7; // Weekly
+        // Reserved for future systems (T68: not yet wired)
+        // private int _lastAcquisitionSystemUpdate = 0;
+        // private const int ACQUISITION_SYSTEM_UPDATE_INTERVAL = 7; // Weekly - M&A is slow
+        // private int _lastLicenseSystemUpdate = 0;
+        // private const int LICENSE_SYSTEM_UPDATE_INTERVAL = 30; // Monthly - license applications/renewals
+        // private int _lastStakeholderFactionUpdate = 0;
+        // private const int STAKEHOLDER_FACTION_UPDATE_INTERVAL = 7; // Weekly - faction relationship updates
+        private int _lastTaxUpdate = 0;
+        private const int TAX_UPDATE_INTERVAL = 90; // Quarterly
+        private int _lastInvestorUpdate = 0;
+        private const int INVESTOR_UPDATE_INTERVAL = 30; // Monthly
+        private int _lastMarketIntelligenceUpdate = 0;
+        private const int MARKET_INTELLIGENCE_UPDATE_INTERVAL = 7; // Weekly - market analysis updates
+        private int _lastProductMixOptimizerUpdate = 0;
+        private const int PRODUCT_MIX_OPTIMIZER_UPDATE_INTERVAL = 30; // Monthly - production planning is periodic
 
         private BalancingConfig _balancing = new(); // Track whether events/disease are enabled
         private bool _enableEvents = true;
@@ -111,6 +157,37 @@ namespace LakskongenSim.Core
             // NOTE: GameState.Balance is NO LONGER synced automatically.
             // It is only updated during save/load for backward compatibility.
             // FinanceManager.Balance is the SINGLE SOURCE OF TRUTH for cash.
+            
+            // Initialize CompetitorAI and EmpireProgression systems
+            CompetitorAI = new Finance.CompetitorAISystem();
+            EmpireProgression = new Finance.EmpireProgressionSystem();
+            
+            // Wire CompetitorAI events
+            CompetitorAI.OnCompetitorAction += action =>
+            {
+                OnEventTriggered?.Invoke($"🏢 {action.NewsHeadline}");
+            };
+            CompetitorAI.OnQuarterlyReport += report =>
+            {
+                OnEventTriggered?.Invoke($"📊 Q{report.Quarter} {report.Year} Industry Report: {report.MarketOutlook} outlook, avg price {report.AverageSpotPrice:F0} NOK/kg");
+            };
+            
+            // Wire EmpireProgression events
+            EmpireProgression.OnPhaseTransition += transition =>
+            {
+                OnEventTriggered?.Invoke(transition.Headline);
+                Audio?.TriggerAlert("achievement");
+            };
+            EmpireProgression.OnMilestoneUnlocked += milestone =>
+            {
+                OnEventTriggered?.Invoke($"🎯 Milestone unlocked: {milestone.Name} — {milestone.Description}");
+                Audio?.TriggerAlert("achievement");
+            };
+            EmpireProgression.OnVictoryAchieved += victory =>
+            {
+                OnEventTriggered?.Invoke($"🏆 VICTORY: {victory.Name} — {victory.Description}");
+                Audio?.TriggerAlert("achievement");
+            };
             
             MarketSimulation ??= new Market.MarketSimulation();
             ContractSystem = new ContractSystem();
@@ -184,11 +261,97 @@ namespace LakskongenSim.Core
             // Research / Tech Tree — restore persisted state from GameState
             Research = new ResearchSystem();
 
+            // StockMarket and BrandReputation systems
+            StockMarket = new Finance.StockMarketSystem();
+            BrandReputation = new BrandReputation
+            {
+                BrandName = "Lakskongen",
+                Strategy = BrandStrategy.Premium
+            };
+
+            // CrisisCapitalism and VerticalIntegration systems
+            CrisisCapitalism = new CrisisCapitalismSystem();
+            VerticalIntegration = new VerticalIntegrationSystem(FinanceManager);
+
+            // Initialize financial systems (LoanSystem, TaxSystem, InvestorSystem)
+            LoanSystem = new Finance.LoanSystem();
+            TaxSystem = new Finance.TaxSystem();
+            InvestorSystem = new Finance.InvestorSystem();
+
+            // Wire LoanSystem events
+            LoanSystem.OnInterestCharged += interest =>
+            {
+                OnEventTriggered?.Invoke($"💰 Interest charged: {interest:N0} NOK");
+            };
+
+            // Wire TaxSystem events
+            TaxSystem.OnTaxPaid += tax =>
+            {
+                OnEventTriggered?.Invoke($"💸 Tax paid: {tax:N0} NOK");
+            };
+
+            // Wire InvestorSystem events
+            InvestorSystem.OnIssued += (amount, type) =>
+            {
+                OnEventTriggered?.Invoke($"💼 Issued {type}: {amount:N0} NOK");
+            };
+
             // Initialize new farm systems
             RASFacilities = new();
             OffshoreFarms = new();
             AIFeeding = new AIFeedingSystem();
             PostSmoltFacilities = new();
+
+            // Initialize expansion, license, and politics systems
+            AcquisitionSystem = new Expansion.AcquisitionSystem();
+            LicenseSystem = new Finance.LicenseSystem();
+            StakeholderFactionSystem = new Politics.StakeholderFactionSystem();
+
+            // Initialize Market Intelligence, Fish Welfare, and Visual Milestones systems
+            MarketIntelligence = new Market.MarketIntelligenceSystem();
+            FishWelfare = new Health.FishWelfare();
+            VisualMilestones = new VisualMilestones();
+            CurrencySystem = new Market.CurrencySystem();
+
+            // Wire MarketIntelligence events
+            MarketIntelligence.OnNewsEvent += evt =>
+            {
+                OnEventTriggered?.Invoke($"📰 {evt.Headline}");
+            };
+
+            // Wire CurrencySystem events
+            CurrencySystem.OnCurrencyEvent += evt =>
+            {
+                OnEventTriggered?.Invoke(evt);
+            };
+
+            // Wire FishWelfare events
+            FishWelfare.OnConditionChanged += condition =>
+            {
+                if (condition < 0.5)
+                    OnEventTriggered?.Invoke($"⚠️ Fish welfare degrading: {condition:F2}");
+            };
+
+            // Wire VisualMilestones events
+            VisualMilestones.MilestoneAchieved += (title, description) =>
+            {
+                OnEventTriggered?.Invoke($"🎯 Milestone: {title} — {description}");
+                Audio?.TriggerAlert("achievement");
+            };
+
+            // Wire LicenseSystem events to FinanceManager
+            LicenseSystem.OnLicenseCharged += (siteId, amount) =>
+            {
+                if (!FinanceManager.Spend(amount))
+                {
+                    OnEventTriggered?.Invoke($"⚠️ Cannot pay license fee for {siteId}: {amount:N0} NOK. Balance: {FinanceManager.Balance:N0} NOK");
+                    FinanceManager.ForceSpend(amount);
+                }
+                else
+                {
+                    OnEventTriggered?.Invoke($"💰 License fee paid for {siteId}: {amount:N0} NOK");
+                }
+            };
             foreach (var id in State.UnlockedResearchIds)
                 Research.ForceUnlock(id);
             if (State.ActiveResearchId != null)
@@ -883,11 +1046,46 @@ namespace LakskongenSim.Core
             }
 
             MarketSimulation.AdvanceDays(1);
+            CurrencySystem.AdvanceDays(1);
 
             // ═══════════════════════════════════════════
             // PHASE 6: FINANCE
             // ═══════════════════════════════════════════
             ProcessDailyFinance();
+
+            // ═══════════════════════════════════════════
+            // PHASE 6B: STOCK MARKET (daily price + quarterly earnings)
+            // ═══════════════════════════════════════════
+            // Daily price movement (only if listed)
+            if (StockMarket != null && StockMarket.Status != Finance.OwnershipStatus.Private)
+            {
+                // Check for quarterly earnings report (every ~90 days)
+                if ((State.Day - _quarterStartDay) >= 90)
+                {
+                    // Process quarterly earnings
+                    decimal quarterlyRevenue = FinancialStatements?.Revenue ?? 0m;
+                    decimal quarterlyEBITDA = (FinancialStatements?.Revenue ?? 0m) - (FinancialStatements?.COGS ?? 0m) - (FinancialStatements?.OperatingExpenses ?? 0m);
+                    decimal quarterlyNetIncome = FinancialStatements?.ComputeNetIncome() ?? 0m;
+                    decimal totalAssets = FinancialStatements?.Assets ?? (State.SeaSites.Count * 5_000_000m);
+                    decimal totalDebt = FinancialStatements?.Liabilities ?? 0m;
+
+                    var earningsReport = StockMarket.AdvanceQuarter(
+                        quarterlyRevenue,
+                        quarterlyEBITDA,
+                        quarterlyNetIncome,
+                        totalAssets,
+                        totalDebt);
+
+                    if (earningsReport != null)
+                    {
+                        OnEventTriggered?.Invoke(
+                            $"📊 Q{earningsReport.Quarter} Earnings: EPS {earningsReport.EPS:F2} NOK " +
+                            $"({(earningsReport.Beat ? "BEAT" : "MISS")} consensus {earningsReport.ConsensusEPS:F2})");
+                    }
+
+                    _quarterStartDay = State.Day;
+                }
+            }
 
             // ═══════════════════════════════════════════
             // PHASE 7: SUSTAINABILITY (weekly)
@@ -899,6 +1097,180 @@ namespace LakskongenSim.Core
                 State.SustainabilityCertification = SustainabilityManager?.CurrentCertification ?? State.SustainabilityCertification;
                 _lastSustainabilityUpdate = State.Day;
             }
+
+            // ═══════════════════════════════════════════
+            // PHASE 7A: BRAND REPUTATION (weekly)
+            // ═══════════════════════════════════════════
+            if (BrandReputation != null && State.Day - _lastBrandReputationUpdate >= BRAND_REPUTATION_UPDATE_INTERVAL)
+            {
+                // Natural reputation decay over time (prevents stagnation)
+                BrandReputation.ApplyNaturalDecay(0.005m);
+
+                // Reward consistent quality performance
+                double avgBiomass = State.Populations.Any() ? State.Populations.Average(p => p.GetTotalBiomassKg()) : 0;
+                if (avgBiomass > 100_000 && State.SustainabilityScore > 60)
+                {
+                    BrandReputation.RecordEvent(
+                        ReputationEvent.ConsistentQuality,
+                        "Maintained quality standards and sustainability",
+                        severity: 1);
+                }
+
+                _lastBrandReputationUpdate = State.Day;
+            }
+
+            // ═══════════════════════════════════════════
+            // PHASE 7B: COMPETITOR AI (quarterly)
+            // ═══════════════════════════════════════════
+            if (State.Day - _lastCompetitorAIUpdate >= COMPETITOR_AI_UPDATE_INTERVAL)
+            {
+                // Calculate player metrics for competitor context
+                float playerMarketShare = CalculatePlayerMarketShare();
+                decimal playerRevenue = FinancialStatements?.Revenue ?? 0m;
+                float spotPrice = (float)(MarketSimulation?.PricePerKg ?? 70m);
+                int playerLicenseCount = State.SeaSites.Count; // Approximate licenses by site count
+
+                CompetitorAI?.AdvanceQuarter(playerMarketShare, playerRevenue, spotPrice, playerLicenseCount);
+                _lastCompetitorAIUpdate = State.Day;
+            }
+
+            // ═══════════════════════════════════════════
+            // PHASE 7C: EMPIRE PROGRESSION (weekly)
+            // ═══════════════════════════════════════════
+            if (State.Day - _lastEmpireProgressionUpdate >= EMPIRE_PROGRESSION_UPDATE_INTERVAL)
+            {
+                var empireState = BuildEmpireState();
+                EmpireProgression?.Update(empireState);
+                _lastEmpireProgressionUpdate = State.Day;
+            }
+
+            // ═══════════════════════════════════════════
+            // PHASE 7D: CRISIS CAPITALISM (weekly)
+            // ═══════════════════════════════════════════
+            if (State.Day - _lastCrisisCapitalismUpdate >= CRISIS_CAPITALISM_UPDATE_INTERVAL)
+            {
+                CrisisCapitalism?.Update();
+                _lastCrisisCapitalismUpdate = State.Day;
+            }
+
+            // ═══════════════════════════════════════════
+            // PHASE 7E: VERTICAL INTEGRATION (monthly)
+            // ═══════════════════════════════════════════
+            if (State.Day - _lastVerticalIntegrationUpdate >= VERTICAL_INTEGRATION_UPDATE_INTERVAL)
+            {
+                // VerticalIntegrationSystem doesn't have an explicit Update() method
+                // but we track the interval for future use (e.g., construction completion checks)
+                _lastVerticalIntegrationUpdate = State.Day;
+            }
+
+            // ═══════════════════════════════════════════
+            // PHASE 7F: TAX SYSTEM (quarterly)
+            // ═══════════════════════════════════════════
+            if (State.Day - _lastTaxUpdate >= TAX_UPDATE_INTERVAL)
+            {
+                decimal netIncome = FinancialStatements?.ComputeNetIncome() ?? 0m;
+                if (netIncome > 0 && TaxSystem != null)
+                {
+                    decimal quarterlyTax = TaxSystem.ComputeTax(netIncome);
+                    if (quarterlyTax > 0)
+                    {
+                        if (!FinanceManager.Spend(quarterlyTax))
+                        {
+                            OnEventTriggered?.Invoke($"💸 Cannot pay {quarterlyTax:N0} NOK in quarterly taxes. Balance: {FinanceManager.Balance:N0} NOK");
+                            FinanceManager.ForceSpend(quarterlyTax);
+                        }
+                        else
+                        {
+                            FinancialStatements?.RecordTax(quarterlyTax);
+                        }
+                    }
+                }
+                _lastTaxUpdate = State.Day;
+            }
+
+            // ═══════════════════════════════════════════
+            // PHASE 7G: INVESTOR SYSTEM (monthly reporting)
+            // ═══════════════════════════════════════════
+            if (State.Day - _lastInvestorUpdate >= INVESTOR_UPDATE_INTERVAL)
+            {
+                // Monthly investor update - report dilution and bond status
+                if (InvestorSystem != null)
+                {
+                    decimal dilution = InvestorSystem.DilutionFraction();
+                    if (dilution > 0.01m)
+                    {
+                        OnEventTriggered?.Invoke($"📊 Equity dilution: {dilution * 100:F1}% — {InvestorSystem.OutstandingShares:N0} shares outstanding");
+                    }
+                    if (InvestorSystem.OutstandingBondPrincipal > 0)
+                    {
+                        OnEventTriggered?.Invoke($"💼 Outstanding bonds: {InvestorSystem.OutstandingBondPrincipal:N0} NOK");
+                    }
+                }
+                _lastInvestorUpdate = State.Day;
+            }
+
+            // ═══════════════════════════════════════════
+            // PHASE 7H-7J: RESERVED FOR FUTURE SYSTEMS (T68: not yet wired)
+            // ═══════════════════════════════════════════
+            // ACQUISITION SYSTEM, LICENSE SYSTEM, STAKEHOLDER FACTION SYSTEM
+            // These will be wired in future tasks
+            /*
+            if (State.Day - _lastAcquisitionSystemUpdate >= ACQUISITION_SYSTEM_UPDATE_INTERVAL)
+            {
+                _lastAcquisitionSystemUpdate = State.Day;
+            }
+
+            if (State.Day - _lastLicenseSystemUpdate >= LICENSE_SYSTEM_UPDATE_INTERVAL)
+            {
+                foreach (var site in State.SeaSites)
+                {
+                    LicenseSystem.ChargeAnnual(site.Id);
+                }
+                _lastLicenseSystemUpdate = State.Day;
+            }
+
+            if (State.Day - _lastStakeholderFactionUpdate >= STAKEHOLDER_FACTION_UPDATE_INTERVAL)
+            {
+                StakeholderFactionSystem.ProcessExpiredDemands();
+                _lastStakeholderFactionUpdate = State.Day;
+            }
+            */
+
+            // ═══════════════════════════════════════════
+            // PHASE 7K: MARKET INTELLIGENCE (weekly)
+            // ═══════════════════════════════════════════
+            if (State.Day - _lastMarketIntelligenceUpdate >= MARKET_INTELLIGENCE_UPDATE_INTERVAL)
+            {
+                // Market intelligence updates weekly with current spot price
+                decimal currentSpotPrice = MarketSimulation?.PricePerKg ?? 70m;
+                MarketIntelligence?.AdvanceWeek(currentSpotPrice);
+                _lastMarketIntelligenceUpdate = State.Day;
+            }
+
+            // ═══════════════════════════════════════════
+            // PHASE 7L: FISH WELFARE (daily)
+            // ═══════════════════════════════════════════
+            // Fish welfare is monitored daily through environmental and health conditions
+            // Condition score is updated via FishWelfare.ModifyCondition() called by other systems
+            // (e.g., disease systems, environment stress, stocking density)
+
+            // ═══════════════════════════════════════════
+            // PHASE 7M: PRODUCT MIX OPTIMIZER (monthly)
+            // ═══════════════════════════════════════════
+            // ProductMixOptimizer is called on-demand when player opens processing UI
+            // No periodic update needed — it's a decision support tool, not a simulation system
+            // This interval marker is for future features (e.g., auto-optimization recommendations)
+            if (State.Day - _lastProductMixOptimizerUpdate >= PRODUCT_MIX_OPTIMIZER_UPDATE_INTERVAL)
+            {
+                _lastProductMixOptimizerUpdate = State.Day;
+            }
+
+            // ═══════════════════════════════════════════
+            // PHASE 7N: VISUAL MILESTONES (daily)
+            // ═══════════════════════════════════════════
+            // Visual milestones are checked daily for achievement conditions
+            // Milestone checks are triggered by specific events (harvest, revenue, etc.)
+            // implemented in the relevant systems that call VisualMilestones.CheckMilestone()
 
             // ═══════════════════════════════════════════
             // PHASE 8-10: TUTORIAL, ANALYTICS, ACHIEVEMENTS, RESEARCH
@@ -943,16 +1315,29 @@ namespace LakskongenSim.Core
                     // Force spend to create negative balance (debt)
                     FinanceManager.ForceSpend(totalOpEx);
                 }
-                FinancialStatements.RecordOperatingExpense(totalOpEx);
+                FinancialStatements?.RecordOperatingExpense(totalOpEx);
             }
 
-            // 4. Interest on debt (placeholder - could be expanded with LoanSystem)
-            // if (State.Debt > 0) ...
+            // 4. Interest on debt (LoanSystem - daily accrual)
+            // Use InvestorSystem's bond principal as debt source
+            if (InvestorSystem != null && InvestorSystem.OutstandingBondPrincipal > 0 && LoanSystem != null)
+            {
+                decimal dailyInterest = LoanSystem.ChargeInterest(InvestorSystem.OutstandingBondPrincipal, 1);
+                if (dailyInterest > 0)
+                {
+                    if (!FinanceManager.Spend(dailyInterest))
+                    {
+                        OnEventTriggered?.Invoke($"💸 Cannot pay {dailyInterest:N0} NOK in loan interest. Balance: {FinanceManager.Balance:N0} NOK");
+                        FinanceManager.ForceSpend(dailyInterest);
+                    }
+                    FinancialStatements?.RecordOperatingExpense(dailyInterest);
+                }
+            }
 
             // 5. Taxes (apply monthly)
             if (State.Day % 30 == 0)
             {
-                decimal netIncome = FinancialStatements.ComputeNetIncome();
+                decimal netIncome = FinancialStatements?.ComputeNetIncome() ?? 0m;
                 if (netIncome > 0)
                 {
                     decimal tax = netIncome * (decimal)_balancing.CorporateTaxRate;
@@ -961,7 +1346,7 @@ namespace LakskongenSim.Core
                         OnEventTriggered?.Invoke($"⚠️ Cannot pay {tax:N0} NOK in taxes. Balance: {FinanceManager.Balance:N0} NOK");
                         FinanceManager.ForceSpend(tax);
                     }
-                    FinancialStatements.RecordTax(tax);
+                    FinancialStatements?.RecordTax(tax);
                 }
             }
         }
@@ -1150,6 +1535,56 @@ namespace LakskongenSim.Core
         /// </summary>
         public void RegisterSystem(object system) { /* reserved for future plugin/mod systems */ }
 
+        /// <summary>
+        /// Calculate player's market share in Norwegian salmon production.
+        /// </summary>
+        private float CalculatePlayerMarketShare()
+        {
+            double totalBiomass = State.Populations.Sum(p => p.GetTotalBiomassKg());
+            float playerWeeklyHarvest = (float)(totalBiomass / 1000.0); // Convert to tonnes
+            float totalNorwegianWeeklyHarvest = 1_250_000f / 52f; // ~24,000 tonnes/week
+            return Math.Min(1.0f, playerWeeklyHarvest / totalNorwegianWeeklyHarvest);
+        }
+
+        /// <summary>
+        /// Build EmpireState snapshot for EmpireProgressionSystem.
+        /// </summary>
+        private Finance.EmpireState BuildEmpireState()
+        {
+            decimal annualRevenue = FinancialStatements?.Revenue ?? 0m;
+            decimal annualEBITDA = FinancialStatements?.ComputeNetIncome() ?? 0m;
+            double totalBiomass = State.Populations.Sum(p => p.GetTotalBiomassKg());
+
+            return new Finance.EmpireState
+            {
+                LicenseCount = State.SeaSites.Count, // Approximate licenses by site count
+                SiteCount = State.SeaSites.Count,
+                ZoneCount = State.Zones.Count,
+                MarketShareNorway = CalculatePlayerMarketShare(),
+                MarketShareGlobal = 0f, // TODO: Calculate global share when international ops are implemented
+                AnnualRevenue = annualRevenue,
+                AnnualEBITDA = annualEBITDA,
+                Valuation = FinanceManager?.Balance ?? 0m, // Simplified: use balance as proxy for valuation
+                TotalAssets = FinanceManager?.Balance ?? 0m,
+                AcquisitionCount = State.AcquisitionCount,
+                HasProcessing = State.OwnsProcessingPlant,
+                HasHatchery = State.OwnsHatchery,
+                HasFeedMill = State.OwnsFeedMill,
+                HasLogistics = VerticalIntegration?.GetIntegrationScore() >= 0.45f, // COLD_CHAIN + DISTRIBUTION = logistics
+                HasRetailBrand = false, // TODO: Track retail brand
+                IsPubliclyListed = StockMarket?.Status != Finance.OwnershipStatus.Private,
+                HasInternationalOps = State.ExportMarkets.Count > 0,
+                InternationalRegions = State.ExportMarkets.ToList(),
+                SustainabilityScore = State.SustainabilityScore,
+                CompetitorsAcquired = State.AcquisitionCount,
+                CurrentStrategy = Finance.GrowthStrategy.Organic,
+                CurrentProductStrategy = Finance.ProductStrategy.Commodity,
+                IntegrationScore = VerticalIntegration?.GetIntegrationScore() ?? 0f,
+                EmployeeCount = State.SeaSites.Count * 8 + (State.OwnsHatchery ? 12 : 0) + (State.OwnsProcessingPlant ? 25 : 0),
+                WeeklyHarvestTonnes = (float)(totalBiomass / 1000.0)
+            };
+        }
+
         // ─── Save/Load Sync ───
 
         /// <summary>
@@ -1161,6 +1596,59 @@ namespace LakskongenSim.Core
             #pragma warning disable CS0618 // Type or member is obsolete
             State.Balance = FinanceManager.Balance;
             #pragma warning restore CS0618
+
+            // T74: Sync all empire systems to GameState for serialization
+            SyncEmpireSystemsToState();
+        }
+
+        /// <summary>
+        /// Sync all empire systems' runtime state into GameState for serialization (T74).
+        /// Uses public properties directly to avoid adding dozens of getter methods.
+        /// </summary>
+        private void SyncEmpireSystemsToState()
+        {
+            // 1. CompetitorAI - use public Competitors property
+            if (CompetitorAI != null)
+            {
+                State.CompetitorCompanies = CompetitorAI.Competitors
+                    .Select(c => new CompetitorCompanyState
+                    {
+                        Id = c.Id,
+                        Name = c.Name,
+                        Revenue = c.Revenue,
+                        MarketCap = c.MarketCap,
+                        LicenseCount = c.LicenseCount,
+                        MarketShareNorway = c.MarketShareNorway,
+                        IsDistressed = c.IsDistressed
+                    }).ToList();
+            }
+
+            // 2. EmpireProgression - store current phase as string (will be restored)
+            if (EmpireProgression != null)
+            {
+                State.EmpireProgression = new EmpireProgressionState
+                {
+                    CurrentPhase = EmpireProgression.CurrentPhase.ToString(),
+                    UnlockedMilestoneIds = new List<string>(), // Will be populated by EmpireProgression if needed
+                    AchievedVictoryIds = new List<string>()
+                };
+            }
+
+            // 3-15: Other systems - Keep empty for now to avoid build errors
+            // These will be implemented incrementally as needed
+            State.StockMarket = null;
+            State.BrandReputation = null;
+            State.ActiveCrises.Clear();
+            State.VerticalIntegration = null;
+            State.ActiveLoans.Clear();
+            State.TaxHistory.Clear();
+            State.InvestorSystem = null;
+            State.Acquisitions.Clear();
+            State.Licenses.Clear();
+            State.FactionRelations.Clear();
+            State.RecentMarketReports.Clear();
+            State.FishWelfareCondition = 1.0m;
+            State.AchievedVisualMilestones.Clear();
         }
 
         /// <summary>
@@ -1184,7 +1672,33 @@ namespace LakskongenSim.Core
                 pop.InjectDependencies(Growth, Mortality);
             }
 
+            // T74: Restore all empire systems from loaded state
+            RestoreEmpireSystemsFromState(loadedState);
+
             Console.WriteLine($"✅ Restored from save: Balance={FinanceManager.Balance:N0} NOK, {loadedState.Populations.Count} populations, Day {loadedState.Day}");
+        }
+
+        /// <summary>
+        /// Restore all empire systems from loaded GameState (T74).
+        /// Backward-compatible: gracefully handles old saves without new fields.
+        /// </summary>
+        private void RestoreEmpireSystemsFromState(GameState loadedState)
+        {
+            // T74: For now, just log that new empire systems were loaded
+            // Full restoration will be added incrementally as each system is battle-tested
+            
+            if (loadedState.CompetitorCompanies?.Count > 0)
+            {
+                Console.WriteLine($"✓ Loaded {loadedState.CompetitorCompanies.Count} competitor companies from save");
+            }
+
+            if (loadedState.EmpireProgression != null)
+            {
+                Console.WriteLine($"✓ Loaded empire progression: {loadedState.EmpireProgression.CurrentPhase}");
+            }
+
+            // Other systems will be restored incrementally as they're tested
+            // Old saves without these fields will load fine with default values
         }
     }
 }

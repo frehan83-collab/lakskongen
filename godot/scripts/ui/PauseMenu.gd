@@ -28,27 +28,27 @@ signal quit_to_menu_requested
 
 # ── Color palette ─────────────────────────────────────────────────────────────
 
-const COLOR_OVERLAY        := Color(0.0, 0.0, 0.05, 0.72)
-const COLOR_PANEL_BG       := Color(0.08, 0.14, 0.25, 0.97)
-const COLOR_BTN_NORMAL     := Color(0.12, 0.30, 0.52)
-const COLOR_BTN_HOVER      := Color(0.18, 0.44, 0.72)
-const COLOR_BTN_DANGER     := Color(0.45, 0.08, 0.08)
-const COLOR_BTN_DANGER_HOVER := Color(0.65, 0.12, 0.12)
+const COLOR_OVERLAY        := Color(0.18, 0.20, 0.25, 0.65)  # Nordic dark overlay
+const COLOR_PANEL_BG       := Color("#FFFFFF")
+const COLOR_BTN_NORMAL     := Color("#0A4D68")   # Primary
+const COLOR_BTN_HOVER      := Color("#0D5F80")   # Primary light
+const COLOR_BTN_DANGER     := Color("#BF616A")   # Danger
+const COLOR_BTN_DANGER_HOVER := Color("#A54E56")  # Danger dark
 
 # ── Node references ────────────────────────────────────────────────────────────
 
 @onready var overlay:       ColorRect      = $Overlay
-@onready var panel:         PanelContainer = $Panel
-@onready var title_label:   Label          = $Panel/VBoxContainer/TitleLabel
-@onready var btn_resume:    Button         = $Panel/VBoxContainer/BtnResume
-@onready var btn_save:      Button         = $Panel/VBoxContainer/BtnSave
-@onready var btn_load:      Button         = $Panel/VBoxContainer/BtnLoad
-@onready var btn_settings:  Button         = $Panel/VBoxContainer/BtnSettings
-@onready var btn_main_menu: Button         = $Panel/VBoxContainer/BtnMainMenu
-@onready var btn_quit:      Button         = $Panel/VBoxContainer/BtnQuit
+@onready var panel:         PanelContainer = $PanelContainer
+@onready var title_label:   Label          = $PanelContainer/VBoxContainer/PausedLabel
+@onready var btn_resume:    Button         = $PanelContainer/VBoxContainer/ResumeButton
+@onready var btn_save:      Button         = $PanelContainer/VBoxContainer/SaveButton
+@onready var btn_load:      Button         = get_node_or_null("PanelContainer/VBoxContainer/LoadButton")
+@onready var btn_settings:  Button         = $PanelContainer/VBoxContainer/SettingsButton
+@onready var btn_main_menu: Button         = $PanelContainer/VBoxContainer/QuitButton
+@onready var btn_quit:      Button         = get_node_or_null("PanelContainer/VBoxContainer/ExitButton")
 
-@onready var settings_menu:  Control = $SettingsMenu
-@onready var save_load_menu: Control = $SaveLoadMenu
+@onready var settings_menu:  Control = get_node_or_null("SettingsMenu")
+@onready var save_load_menu: Control = get_node_or_null("/root/Main/SaveLoadMenu")
 
 # ── State ──────────────────────────────────────────────────────────────────────
 
@@ -111,22 +111,25 @@ func _pause_simulation(paused: bool) -> void:
 # ── Visual setup ──────────────────────────────────────────────────────────────
 
 func _setup_visuals() -> void:
-	overlay.color = COLOR_OVERLAY
+	if overlay:
+		overlay.color = COLOR_OVERLAY
 
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color                  = COLOR_PANEL_BG
-	panel_style.corner_radius_top_left    = 14
-	panel_style.corner_radius_top_right   = 14
-	panel_style.corner_radius_bottom_left = 14
-	panel_style.corner_radius_bottom_right = 14
-	panel_style.content_margin_left   = 48
-	panel_style.content_margin_right  = 48
-	panel_style.content_margin_top    = 36
-	panel_style.content_margin_bottom = 36
-	panel.add_theme_stylebox_override("panel", panel_style)
+	if panel:
+		var panel_style := StyleBoxFlat.new()
+		panel_style.bg_color                  = COLOR_PANEL_BG
+		panel_style.corner_radius_top_left    = 14
+		panel_style.corner_radius_top_right   = 14
+		panel_style.corner_radius_bottom_left = 14
+		panel_style.corner_radius_bottom_right = 14
+		panel_style.content_margin_left   = 48
+		panel_style.content_margin_right  = 48
+		panel_style.content_margin_top    = 36
+		panel_style.content_margin_bottom = 36
+		panel.add_theme_stylebox_override("panel", panel_style)
 
-	title_label.add_theme_font_size_override("font_size", 32)
-	title_label.add_theme_color_override("font_color", Color(0.90, 0.96, 1.00))
+	if title_label:
+		title_label.add_theme_font_size_override("font_size", 32)
+		title_label.add_theme_color_override("font_color", Color("#2E3440"))
 
 	_style_button(btn_resume,    COLOR_BTN_NORMAL,     COLOR_BTN_HOVER,         22)
 	_style_button(btn_save,      COLOR_BTN_NORMAL,     COLOR_BTN_HOVER,         19)
@@ -151,7 +154,7 @@ func _style_button(btn: Button, normal: Color, hover: Color, font_size: int) -> 
 	var hover_style := style.duplicate() as StyleBoxFlat
 	hover_style.bg_color = hover
 	btn.add_theme_stylebox_override("hover", hover_style)
-	btn.add_theme_color_override("font_color", Color(0.95, 0.98, 1.0))
+	btn.add_theme_color_override("font_color", Color("#ECEFF4"))
 	btn.add_theme_font_size_override("font_size", font_size)
 
 # ── Signal connections ─────────────────────────────────────────────────────────
@@ -173,7 +176,9 @@ func _setup_submenus() -> void:
 			settings_menu.close_requested.connect(_on_submenu_closed)
 	if save_load_menu:
 		save_load_menu.hide()
-		if save_load_menu.has_signal("close_requested"):
+		if save_load_menu.has_signal("menu_closed"):
+			save_load_menu.menu_closed.connect(_on_submenu_closed)
+		elif save_load_menu.has_signal("close_requested"):
 			save_load_menu.close_requested.connect(_on_submenu_closed)
 
 
@@ -242,12 +247,18 @@ func _on_submenu_closed() -> void:
 # ── Accessibility ──────────────────────────────────────────────────────────────
 
 func _setup_tooltips() -> void:
-	btn_resume.tooltip_text = "Fortsett spillet (ESC)"
-	btn_save.tooltip_text = "Lagre spillprogresjonen din"
-	btn_load.tooltip_text = "Last inn et tidligere lagret spill"
-	btn_settings.tooltip_text = "Endre innstillinger for lyd, grafikk og tilgjengelighet"
-	btn_main_menu.tooltip_text = "Gå tilbake til hovedmenyen (usaved progress will be lost)"
-	btn_quit.tooltip_text = "Avslutt spillet (usaved progress will be lost)"
+	if btn_resume:
+		btn_resume.tooltip_text = "Fortsett spillet (ESC)"
+	if btn_save:
+		btn_save.tooltip_text = "Lagre spillprogresjonen din"
+	if btn_load:
+		btn_load.tooltip_text = "Last inn et tidligere lagret spill"
+	if btn_settings:
+		btn_settings.tooltip_text = "Endre innstillinger for lyd, grafikk og tilgjengelighet"
+	if btn_main_menu:
+		btn_main_menu.tooltip_text = "Gå tilbake til hovedmenyen (usaved progress will be lost)"
+	if btn_quit:
+		btn_quit.tooltip_text = "Avslutt spillet (usaved progress will be lost)"
 
 
 func _setup_focus_navigation() -> void:
@@ -266,6 +277,12 @@ func _setup_focus_navigation() -> void:
 	btn_load.focus_neighbor_top = NodePath("../BtnSave")
 	btn_load.focus_neighbor_bottom = NodePath("../BtnSettings")
 	btn_settings.focus_neighbor_top = NodePath("../BtnLoad")
+	btn_settings.focus_neighbor_bottom = NodePath("../BtnMainMenu")
+	btn_main_menu.focus_neighbor_top = NodePath("../BtnSettings")
+	btn_main_menu.focus_neighbor_bottom = NodePath("../BtnQuit")
+	btn_quit.focus_neighbor_top = NodePath("../BtnMainMenu")
+	btn_quit.focus_neighbor_bottom = NodePath("../BtnResume")  # Loop back
+ad")
 	btn_settings.focus_neighbor_bottom = NodePath("../BtnMainMenu")
 	btn_main_menu.focus_neighbor_top = NodePath("../BtnSettings")
 	btn_main_menu.focus_neighbor_bottom = NodePath("../BtnQuit")

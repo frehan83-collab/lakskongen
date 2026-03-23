@@ -30,21 +30,21 @@ var _visible_flag: bool = false
 
 # ── Gold colour palette ───────────────────────────────────────────────────────
 
-const COL_GOLD_DARK   := Color(0.72, 0.53, 0.04)
-const COL_GOLD_MID    := Color(0.95, 0.75, 0.10)
+const COL_GOLD_DARK   := Color("#D4B06A")
+const COL_GOLD_MID    := Color("#D4B06A")
 const COL_GOLD_LIGHT  := Color(1.00, 0.93, 0.50)
-const COL_TEXT_DARK   := Color(0.15, 0.10, 0.02)
+const COL_TEXT_DARK   := Color("#F8F9FB")
 const COL_TEXT_WHITE  := Color(1.0,  1.0,  1.0)
 
 # ── Tier colour map ───────────────────────────────────────────────────────────
 
 const TIER_COLORS := {
-	"Beginner":     Color(0.55, 0.85, 0.55),
-	"Novice":       Color(0.40, 0.70, 1.00),
-	"Intermediate": Color(0.70, 0.40, 1.00),
+	"Beginner":     Color("#A3BE8C"),
+	"Novice":       Color("#88C0D0"),
+	"Intermediate": Color("#5E81AC"),
 	"Advanced":     Color(1.00, 0.55, 0.10),
 	"Master":       Color(1.00, 0.20, 0.20),
-	"Hidden":       Color(0.60, 0.60, 0.60),
+	"Hidden":       Color("#7B8794"),
 }
 
 # ── Godot lifecycle ───────────────────────────────────────────────────────────

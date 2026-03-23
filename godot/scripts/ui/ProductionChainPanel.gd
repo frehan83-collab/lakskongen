@@ -113,7 +113,7 @@ func _build_ui() -> void:
 	header.text = tr("ui.production.title")
 	header.tooltip_text = tr("ui.production.title_tooltip")
 	header.add_theme_font_size_override("font_size", 20)
-	header.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	header.add_theme_color_override("font_color", Color("#2E3440"))
 	vbox.add_child(header)
 	
 	vbox.add_child(_create_separator())
@@ -164,7 +164,7 @@ func _create_stage_row(stage_data: Dictionary) -> HBoxContainer:
 	throughput_label.name = "Throughput"
 	throughput_label.custom_minimum_size.x = 150
 	throughput_label.add_theme_font_size_override("font_size", 12)
-	throughput_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	throughput_label.add_theme_color_override("font_color", Color("#4C566A"))
 	throughput_label.tooltip_text = tr("ui.production.throughput_tooltip")
 	hbox.add_child(throughput_label)
 	
@@ -177,7 +177,7 @@ func _create_arrow() -> CenterContainer:
 	var arrow_label := Label.new()
 	arrow_label.text = "▼"
 	arrow_label.add_theme_font_size_override("font_size", 16)
-	arrow_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	arrow_label.add_theme_color_override("font_color", Color("#7B8794"))
 	center.add_child(arrow_label)
 	
 	return center
@@ -252,15 +252,15 @@ func _get_stage_quantity(stage_data: Dictionary) -> float:
 func _get_status_color(stage_data: Dictionary, quantity: float) -> Color:
 	# Gray if not unlocked
 	if not _is_stage_unlocked(stage_data):
-		return Color(0.3, 0.3, 0.3)  # Gray
+		return Color("#D8DEE9")  # Gray
 	
 	# Green/yellow/red based on thresholds
 	if quantity >= stage_data.threshold_green:
-		return Color(0.2, 0.8, 0.2)  # Green (flowing)
+		return Color("#A3BE8C")  # Green (flowing)
 	elif quantity >= stage_data.threshold_yellow:
-		return Color(0.9, 0.7, 0.1)  # Yellow (slow)
+		return Color("#EBCB8B")  # Yellow (slow)
 	else:
-		return Color(0.9, 0.2, 0.1)  # Red (bottleneck)
+		return Color("#BF616A")  # Red (bottleneck)
 
 func _is_stage_unlocked(stage_data: Dictionary) -> bool:
 	match stage_data.id:

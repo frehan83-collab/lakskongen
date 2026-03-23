@@ -17,11 +17,11 @@ var active_weather_alerts: Array[Dictionary] = []
 var active_disease_alerts: Array[Dictionary] = []
 
 # Color scheme
-const COLOR_CRITICAL = Color(0.9, 0.2, 0.2)
-const COLOR_WARNING = Color(0.9, 0.7, 0.2)
-const COLOR_INFO = Color(0.3, 0.7, 0.9)
-const COLOR_TEXT = "#E6EEF3"
-const COLOR_MUTED = "#9AA7B2"
+const COLOR_CRITICAL = Color("#BF616A")
+const COLOR_WARNING = Color("#EBCB8B")
+const COLOR_INFO = Color("#88C0D0")
+const COLOR_TEXT = "#2E3440"
+const COLOR_MUTED = "#7B8794"
 
 func _ready():
 	if not weather_status_label:
@@ -365,7 +365,7 @@ func _get_severity_color(severity: float) -> Color:
 
 func _create_alert_style(severity: float) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.15, 0.15, 0.2, 0.9)
+	style.bg_color = Color(0.18, 0.20, 0.25, 0.7)
 	
 	var border_color = _get_severity_color(severity)
 	style.border_color = border_color

@@ -44,6 +44,7 @@ func _ready() -> void:
 	# Get autoload references
 	if has_node("/root/SimBridge"):
 		_sim = get_node("/root/SimBridge")
+		print("GameUI: SimBridge loaded: " + str(_sim != null))
 	else:
 		push_error("GameUI: SimBridge not found!")
 	
@@ -137,20 +138,35 @@ func _build_tab_bar() -> void:
 # ── Tab Button Styling ────────────────────────────────────────────────────────
 
 func _style_tab_button(btn: Button, is_active: bool) -> void:
-	if _theme:
-		# Use LakskongenTheme colors
-		if is_active:
-			btn.modulate = Color(1.0, 1.0, 1.0)
-			btn.add_theme_color_override("font_color", Color(0.40, 0.85, 1.00)) # TEXT_ACCENT
-		else:
-			btn.modulate = Color(0.85, 0.85, 0.85)
-			btn.add_theme_color_override("font_color", Color(0.72, 0.88, 0.98)) # TEXT_BODY
+	# Nordic Minimalist v2.0 tab styling
+	btn.modulate = Color.WHITE
+	
+	if is_active:
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color("#0A4D68")  # PRIMARY
+		sb.set_corner_radius_all(4)
+		sb.set_content_margin_all(8)
+		btn.add_theme_stylebox_override("normal", sb)
+		btn.add_theme_stylebox_override("hover", sb)
+		btn.add_theme_color_override("font_color", Color("#ECEFF4"))
+		btn.add_theme_color_override("font_hover_color", Color("#ECEFF4"))
 	else:
-		# Fallback styling
-		if is_active:
-			btn.modulate = Color(1.2, 1.2, 1.0)
-		else:
-			btn.modulate = Color(0.8, 0.8, 0.8)
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color("#FFFFFF")
+		sb.border_color = Color("#D8DEE9")
+		sb.set_border_width_all(1)
+		sb.set_corner_radius_all(4)
+		sb.set_content_margin_all(8)
+		btn.add_theme_stylebox_override("normal", sb)
+		var sb_hover := StyleBoxFlat.new()
+		sb_hover.bg_color = Color("#F8F9FB")
+		sb_hover.border_color = Color("#88C0D0")
+		sb_hover.set_border_width_all(1)
+		sb_hover.set_corner_radius_all(4)
+		sb_hover.set_content_margin_all(8)
+		btn.add_theme_stylebox_override("hover", sb_hover)
+		btn.add_theme_color_override("font_color", Color("#4C566A"))
+		btn.add_theme_color_override("font_hover_color", Color("#0A4D68"))
 
 # ── Tab Navigation ────────────────────────────────────────────────────────────
 
@@ -210,26 +226,37 @@ func _get_or_create_panel(tab_def: TabDefinition) -> Control:
 	if _panel_cache.has(tab_def.id):
 		return _panel_cache[tab_def.id]
 	
-	# Load and instantiate panel script
-	if not ResourceLoader.exists(tab_def.script_path):
-		push_error("GameUI: Script not found: %s" % tab_def.script_path)
-		return null
+	var panel: Control = null
 	
-	var script = load(tab_def.script_path)
-	if not script:
-		push_error("GameUI: Failed to load script: %s" % tab_def.script_path)
-		return null
+	# Try loading a matching .tscn scene first (for scene-dependent scripts)
+	var scene_path := tab_def.script_path.replace("scripts/ui/", "scenes/ui/").replace(".gd", ".tscn")
+	if ResourceLoader.exists(scene_path):
+		var scene = load(scene_path) as PackedScene
+		if scene:
+			panel = scene.instantiate() as Control
+			panel.name = "Panel_" + tab_def.id
+			print("GameUI: Loaded scene for '%s' from %s" % [tab_def.id, scene_path])
 	
-	# Create instance
-	var panel = Control.new()
-	panel.name = "Panel_" + tab_def.id
-	panel.set_script(script)
+	# Fallback: create Control and attach script (for programmatic panels)
+	if panel == null:
+		if not ResourceLoader.exists(tab_def.script_path):
+			push_error("GameUI: Script not found: %s" % tab_def.script_path)
+			return null
+		
+		var script = load(tab_def.script_path)
+		if not script:
+			push_error("GameUI: Failed to load script: %s" % tab_def.script_path)
+			return null
+		
+		panel = Control.new()
+		panel.name = "Panel_" + tab_def.id
+		panel.set_script(script)
+		print("GameUI: Created panel for '%s' (programmatic)" % tab_def.id)
+	
 	panel.hide()
 	
 	# Cache it
 	_panel_cache[tab_def.id] = panel
-	
-	print("GameUI: Created panel for '%s'" % tab_def.id)
 	
 	return panel
 

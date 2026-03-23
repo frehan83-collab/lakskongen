@@ -77,7 +77,10 @@ const DEFAULT_SETTINGS := {
 
 # ── Node references ────────────────────────────────────────────────────────────
 
+const DEFAULT_LOCALE := "no"
+
 @onready var close_button:   Button        = $Panel/VBoxContainer/HeaderRow/CloseButton
+@onready var cancel_button:  Button        = get_node_or_null("Panel/VBoxContainer/ButtonRow/CancelButton")
 @onready var tab_container:  TabContainer  = $Panel/VBoxContainer/TabContainer
 @onready var apply_button:   Button        = $Panel/VBoxContainer/ButtonRow/ApplyButton
 @onready var reset_button:   Button        = $Panel/VBoxContainer/ButtonRow/ResetButton
@@ -224,7 +227,7 @@ func _update_ui_text() -> void:
 	
 	# Update language dropdown
 	if language_option and _localization_manager:
-		var current_locale := _localization_manager.get_language()
+		var current_locale: String = _localization_manager.get_language()
 		language_option.clear()
 		var locales: Array = _localization_manager.get_supported_locales()
 		for i in range(locales.size()):
@@ -345,10 +348,7 @@ func _apply_audio(audio: Dictionary) -> void:
 
 
 func _set_bus_volume(bus_name: String, linear: float) -> void:
-	if _audio_manager and _audio_manager.has_method("set_bus_volume"):
-		_audio_manager.set_bus_volume(bus_name, linear)
-		return
-	# Fallback: drive AudioServer directly
+	# This function is now only for fallback, as _audio_manager will be preferred
 	var idx := AudioServer.get_bus_index(bus_name)
 	if idx >= 0:
 		var db := linear_to_db(linear) if linear > 0.0 else -80.0
@@ -379,7 +379,11 @@ func _apply_graphics(graphics: Dictionary) -> void:
 
 func _collect_from_widgets() -> Dictionary:
 	var autosave_idx := autosave_option.selected
-	var autosave_min := AUTOSAVE_MINUTES[autosave_idx] if autosave_idx < AUTOSAVE_MINUTES.size() else 5
+	var autosave_min: int = AUTOSAVE_MINUTES[autosave_idx] if autosave_idx < AUTOSAVE_MINUTES.size() else 5
+
+	var language_locale := DEFAULT_LOCALE
+	if language_option and _localization_manager:
+		language_locale = language_option.get_item_metadata(language_option.selected)
 
 	return {
 		"audio": {
@@ -402,6 +406,7 @@ func _collect_from_widgets() -> Dictionary:
 		"accessibility": {
 			"high_contrast": hc_check.button_pressed,
 		},
+		"language": language_locale,
 	}
 
 # ── Signal connections ─────────────────────────────────────────────────────────
@@ -476,6 +481,16 @@ func _on_close_pressed() -> void:
 	close_requested.emit()
 	hide()
 
+func _on_cancel_pressed() -> void:
+	# Revert to currently saved settings and hide
+	_apply_to_widgets(_settings)
+	_apply_audio(_settings["audio"])
+	_apply_graphics(_settings["graphics"])
+	_apply_high_contrast(_settings["accessibility"].get("high_contrast", false))
+	_dirty = false
+	close_requested.emit()
+	hide()
+
 # ── Accessibility ──────────────────────────────────────────────────────────────
 
 func _apply_high_contrast(enabled: bool) -> void:
@@ -500,11 +515,13 @@ func _on_high_contrast_toggled(button_pressed: bool) -> void:
 func _setup_accessibility_hints() -> void:
 	# Add accessibility descriptions for screen readers
 	if close_button.has_method("set_tooltip_text"):
-		close_button.tooltip_text = "Lukk innstillinger"
+		close_button.tooltip_text = tr("ui.settings.close")
 	if apply_button.has_method("set_tooltip_text"):
-		apply_button.tooltip_text = "Lagre endringer"
+		apply_button.tooltip_text = tr("ui.settings.apply")
 	if reset_button.has_method("set_tooltip_text"):
-		reset_button.tooltip_text = "Tilbakestill til standardinnstillinger"
+		reset_button.tooltip_text = tr("ui.settings.reset_tooltip")
+	if cancel_button.has_method("set_tooltip_text"):
+		cancel_button.tooltip_text = tr("ui.settings.cancel")
 	
 	# Audio sliders
 	if master_slider.has_method("set_tooltip_text"):
@@ -564,8 +581,10 @@ func _setup_focus_order() -> void:
 	speed_slider.focus_neighbor_top = NodePath("../../NotifsRow/NotiCheck")
 	
 	# Buttons at bottom
-	reset_button.focus_neighbor_right = NodePath("../ApplyButton")
-	apply_button.focus_neighbor_left = NodePath("../ResetButton")
+	cancel_button.focus_neighbor_right = cancel_button.get_path_to(reset_button)
+	reset_button.focus_neighbor_left = reset_button.get_path_to(cancel_button)
+	reset_button.focus_neighbor_right = reset_button.get_path_to(apply_button)
+	apply_button.focus_neighbor_left = apply_button.get_path_to(reset_button)
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────

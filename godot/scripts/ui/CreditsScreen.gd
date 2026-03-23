@@ -78,13 +78,13 @@ const CREDITS_DATA: Array[Dictionary] = [
 
 # ── Style constants ───────────────────────────────────────────────────────────
 
-const COLOR_BG          := Color(0.03, 0.07, 0.16)
-const COLOR_GAME_TITLE  := Color(0.90, 0.97, 1.00)
-const COLOR_SUBTITLE    := Color(0.55, 0.80, 0.95)
-const COLOR_SECTION     := Color(0.40, 0.80, 1.00)
-const COLOR_ROLE        := Color(0.70, 0.80, 0.90)
+const COLOR_BG          := Color("#ECEFF4")
+const COLOR_GAME_TITLE  := Color("#2E3440")
+const COLOR_SUBTITLE    := Color("#A3D1DE")
+const COLOR_SECTION     := Color("#88C0D0")
+const COLOR_ROLE        := Color("#4C566A")
 const COLOR_NAME        := Color(1.00, 1.00, 1.00)
-const COLOR_BODY        := Color(0.75, 0.85, 0.92)
+const COLOR_BODY        := Color("#4C566A")
 
 const FONT_SIZE_GAME_TITLE := 52
 const FONT_SIZE_SUBTITLE   := 24
@@ -215,7 +215,7 @@ func _make_label(text: String, font_size: int, color: Color, bold: bool) -> Labe
 	if bold:
 		# Bold via outline to avoid needing a separate font resource
 		lbl.add_theme_constant_override("outline_size", 2)
-		lbl.add_theme_color_override("font_outline_color", color * Color(0.5, 0.5, 0.5, 0.8))
+		lbl.add_theme_color_override("font_outline_color", color * Color("#7B8794"))
 	return lbl
 
 
@@ -228,7 +228,7 @@ func _make_spacer(height: int) -> Control:
 
 func _style_close_button() -> void:
 	var style := StyleBoxFlat.new()
-	style.bg_color                     = Color(0.15, 0.28, 0.48, 0.90)
+	style.bg_color                     = Color(0.92, 0.94, 0.96, 0.90)
 	style.corner_radius_top_left       = 6
 	style.corner_radius_top_right      = 6
 	style.corner_radius_bottom_left    = 6
@@ -239,9 +239,9 @@ func _style_close_button() -> void:
 	style.content_margin_bottom        = 8
 	close_button.add_theme_stylebox_override("normal", style)
 	var hover_style := style.duplicate() as StyleBoxFlat
-	hover_style.bg_color = Color(0.22, 0.42, 0.68, 0.95)
+	hover_style.bg_color = Color("#5E81AC")
 	close_button.add_theme_stylebox_override("hover", hover_style)
-	close_button.add_theme_color_override("font_color", Color(0.95, 0.98, 1.0))
+	close_button.add_theme_color_override("font_color", Color("#2E3440"))
 	close_button.add_theme_font_size_override("font_size", 18)
 
 # ── Close ─────────────────────────────────────────────────────────────────────

@@ -16,17 +16,17 @@ signal panel_close_requested
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 
-const COLOR_BG          := Color(0.08, 0.10, 0.14)
-const COLOR_HEADER      := Color(0.05, 0.07, 0.10)
-const COLOR_CARD        := Color(0.10, 0.12, 0.18)
-const COLOR_CARD_HOVER  := Color(0.14, 0.18, 0.28)
-const COLOR_TEXT_BRIGHT := Color(0.92, 0.92, 0.95)
-const COLOR_TEXT_DIM    := Color(0.55, 0.55, 0.60)
-const COLOR_ACCENT      := Color(0.25, 0.55, 1.00)
-const COLOR_SUCCESS     := Color(0.15, 0.70, 0.35)
-const COLOR_WARNING     := Color(1.00, 0.60, 0.20)
-const COLOR_ERROR       := Color(0.85, 0.25, 0.25)
-const COLOR_EXPORT_ALL  := Color(0.25, 0.55, 1.00)
+const COLOR_BG          := Color("#ECEFF4")
+const COLOR_HEADER      := Color("#FFFFFF")
+const COLOR_CARD        := Color("#ECEFF4")
+const COLOR_CARD_HOVER  := Color("#FFFFFF")
+const COLOR_TEXT_BRIGHT := Color("#2E3440")
+const COLOR_TEXT_DIM    := Color("#7B8794")
+const COLOR_ACCENT      := Color("#5E81AC")
+const COLOR_SUCCESS     := Color("#A3BE8C")
+const COLOR_WARNING     := Color("#EBCB8B")
+const COLOR_ERROR       := Color("#BF616A")
+const COLOR_EXPORT_ALL  := Color("#5E81AC")
 
 # ── Export type definitions ───────────────────────────────────────────────────
 
@@ -38,7 +38,7 @@ const EXPORT_TYPES: Array = [
 		"icon":        "📊",
 		"description": "Biomasse, fiskeantall, markedspris, bærekraftsscore og mer.\nBra for trendanalyse og visualisering.",
 		"filename":    "daglig_oversikt",
-		"color":       Color(0.20, 0.50, 0.90),
+		"color":       Color("#5E81AC"),
 		"method":      "ExportDailySnapshots"
 	},
 	{
@@ -48,7 +48,7 @@ const EXPORT_TYPES: Array = [
 		"icon":        "💰",
 		"description": "Saldoendringer, gjennomsnittlig markedspris og FCR per periode.\nBra for lønnsomhetsanalyse.",
 		"filename":    "finansrapport",
-		"color":       Color(0.65, 0.45, 0.10),
+		"color":       Color("#D4B06A"),
 		"method":      "ExportFinancialReport"
 	},
 	{
@@ -58,7 +58,7 @@ const EXPORT_TYPES: Array = [
 		"icon":        "🐟",
 		"description": "Fiskeantall, gjennomsnittsvekt, lus per fisk, dødsrate.\nBra for biologisk analyse og velferdssporing.",
 		"filename":    "populasjon",
-		"color":       Color(0.15, 0.60, 0.40),
+		"color":       Color("#A3BE8C"),
 		"method":      "ExportPopulationData"
 	},
 	{
@@ -68,7 +68,7 @@ const EXPORT_TYPES: Array = [
 		"icon":        "📋",
 		"description": "Dato, kategori, beskrivelse og saldoendring for hver hendelse.\nBra for revisjon og risikoevaluering.",
 		"filename":    "hendelseslogg",
-		"color":       Color(0.55, 0.25, 0.80),
+		"color":       Color("#5E81AC"),
 		"method":      "ExportEventHistory"
 	}
 ]

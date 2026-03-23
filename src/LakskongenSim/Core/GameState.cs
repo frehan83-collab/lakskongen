@@ -164,9 +164,178 @@ namespace LakskongenSim.Core
         [JsonIgnore]
         public Logistics.LogisticsManager? LogisticsManager { get; set; }
 
+        // ─── Empire Systems State (T74: Save/Load serialization) ───────────────
+
+        /// <summary>CompetitorAI: Serialized competitor company states.</summary>
+        public List<CompetitorCompanyState> CompetitorCompanies { get; set; } = new();
+
+        /// <summary>EmpireProgression: Current empire phase and unlocked milestones.</summary>
+        public EmpireProgressionState? EmpireProgression { get; set; }
+
+        /// <summary>StockMarket: Ownership status, share price, price history.</summary>
+        public StockMarketState? StockMarket { get; set; }
+
+        /// <summary>BrandReputation: Brand scores, certifications, strategy.</summary>
+        public BrandReputationState? BrandReputation { get; set; }
+
+        /// <summary>CrisisCapitalism: Active crisis events.</summary>
+        public List<CrisisEventState> ActiveCrises { get; set; } = new();
+
+        /// <summary>VerticalIntegration: Owned assets and integration score.</summary>
+        public VerticalIntegrationState? VerticalIntegration { get; set; }
+
+        /// <summary>LoanSystem: Active loans with principal and interest rates.</summary>
+        public List<LoanState> ActiveLoans { get; set; } = new();
+
+        /// <summary>TaxSystem: Tax payment history.</summary>
+        public List<TaxPaymentRecord> TaxHistory { get; set; } = new();
+
+        /// <summary>InvestorSystem: Investors and equity dilution.</summary>
+        public InvestorSystemState? InvestorSystem { get; set; }
+
+        /// <summary>AcquisitionSystem: Owned acquisitions.</summary>
+        public List<AcquisitionRecord> Acquisitions { get; set; } = new();
+
+        /// <summary>LicenseSystem: Active licenses with expiry dates.</summary>
+        public List<LicenseRecord> Licenses { get; set; } = new();
+
+        /// <summary>StakeholderFactionSystem: Faction relations.</summary>
+        public Dictionary<string, decimal> FactionRelations { get; set; } = new();
+
+        /// <summary>MarketIntelligence: Recent market reports (last 4 weeks, regenerate older).</summary>
+        public List<MarketReportSnapshot> RecentMarketReports { get; set; } = new();
+
+        /// <summary>FishWelfare: Current welfare condition score.</summary>
+        public decimal FishWelfareCondition { get; set; } = 1.0m;
+
+        /// <summary>VisualMilestones: Achieved milestone IDs.</summary>
+        public HashSet<string> AchievedVisualMilestones { get; set; } = new();
+
         /// <summary>Default constructor for serializer.</summary>
         public GameState()
         {
         }
+    }
+
+    // ─── Empire Systems Serialization DTOs (T74) ────────────────────────────
+
+    /// <summary>Serializable snapshot of a CompetitorCompany.</summary>
+    public class CompetitorCompanyState
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public decimal Revenue { get; set; }
+        public decimal MarketCap { get; set; }
+        public int LicenseCount { get; set; }
+        public float MarketShareNorway { get; set; }
+        public bool IsDistressed { get; set; }
+    }
+
+    /// <summary>Serializable snapshot of EmpireProgressionSystem.</summary>
+    public class EmpireProgressionState
+    {
+        public string CurrentPhase { get; set; } = "SmallFarmer";
+        public List<string> UnlockedMilestoneIds { get; set; } = new();
+        public List<string> AchievedVictoryIds { get; set; } = new();
+    }
+
+    /// <summary>Serializable snapshot of StockMarketSystem.</summary>
+    public class StockMarketState
+    {
+        public string Status { get; set; } = "Private";
+        public decimal SharePrice { get; set; }
+        public List<decimal> PriceHistory { get; set; } = new();
+        public int OutstandingShares { get; set; }
+    }
+
+    /// <summary>Serializable snapshot of BrandReputation.</summary>
+    public class BrandReputationState
+    {
+        public string BrandName { get; set; } = string.Empty;
+        public string Strategy { get; set; } = "Commodity";
+        public decimal QualityReputation { get; set; }
+        public decimal SustainabilityReputation { get; set; }
+        public HashSet<string> Certifications { get; set; } = new();
+    }
+
+    /// <summary>Serializable snapshot of a CrisisEvent.</summary>
+    public class CrisisEventState
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string AffectedCompetitorId { get; set; } = string.Empty;
+        public float SeverityScore { get; set; }
+        public int DurationMonths { get; set; }
+        public DateTime StartDate { get; set; }
+    }
+
+    /// <summary>Serializable snapshot of VerticalIntegrationSystem.</summary>
+    public class VerticalIntegrationState
+    {
+        public bool OwnsFeedMill { get; set; }
+        public bool OwnsHatchery { get; set; }
+        public bool OwnsProcessing { get; set; }
+        public bool OwnsColdChain { get; set; }
+        public bool OwnsDistribution { get; set; }
+        public float IntegrationScore { get; set; }
+    }
+
+    /// <summary>Serializable snapshot of a Loan.</summary>
+    public class LoanState
+    {
+        public string Id { get; set; } = string.Empty;
+        public decimal Principal { get; set; }
+        public decimal InterestRate { get; set; }
+        public int TermDays { get; set; }
+        public int DaysTaken { get; set; }
+    }
+
+    /// <summary>Serializable snapshot of a tax payment.</summary>
+    public class TaxPaymentRecord
+    {
+        public int Day { get; set; }
+        public decimal Amount { get; set; }
+        public string TaxType { get; set; } = string.Empty;
+    }
+
+    /// <summary>Serializable snapshot of InvestorSystem.</summary>
+    public class InvestorSystemState
+    {
+        public int OutstandingShares { get; set; }
+        public decimal OutstandingBondPrincipal { get; set; }
+        public List<InvestorRecord> Investors { get; set; } = new();
+    }
+
+    /// <summary>Serializable investor record.</summary>
+    public class InvestorRecord
+    {
+        public string Name { get; set; } = string.Empty;
+        public int SharesOwned { get; set; }
+        public decimal InvestmentAmount { get; set; }
+    }
+
+    /// <summary>Serializable acquisition record.</summary>
+    public class AcquisitionRecord
+    {
+        public string TargetId { get; set; } = string.Empty;
+        public string TargetName { get; set; } = string.Empty;
+        public decimal PurchasePrice { get; set; }
+        public int DayAcquired { get; set; }
+    }
+
+    /// <summary>Serializable license record.</summary>
+    public class LicenseRecord
+    {
+        public string SiteId { get; set; } = string.Empty;
+        public int ExpiryDay { get; set; }
+        public decimal AnnualFee { get; set; }
+    }
+
+    /// <summary>Serializable market intelligence report snapshot.</summary>
+    public class MarketReportSnapshot
+    {
+        public int Day { get; set; }
+        public decimal SpotPrice { get; set; }
+        public string Sentiment { get; set; } = string.Empty;
     }
 }

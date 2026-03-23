@@ -81,6 +81,36 @@ var tutorial_hint: String = ""
 var tutorial_is_complete: bool = false
 var tutorial_completed_count: int = 0
 
+# ── Empire Systems State (T65) ────────────────────────────────────────────────
+
+# CompetitorAI
+var competitor_count: int = 0
+var market_leader_name: String = ""
+
+# EmpireProgression
+var empire_phase: String = "SmallFarmer"
+var empire_score: int = 0
+var growth_strategy: String = "Organic"
+
+# StockMarket
+var ownership_status: String = "Private"
+var share_price: float = 0.0
+var market_cap: float = 0.0
+var is_public: bool = false
+
+# BrandReputation
+var brand_score: float = 50.0
+var brand_strategy: String = "Commodity"
+var pricing_power: float = 1.0
+
+# CrisisCapitalism
+var active_crises_count: int = 0
+var acquisition_opportunities_count: int = 0
+
+# VerticalIntegration
+var integration_score: float = 0.0
+var owned_assets_count: int = 0
+
 # ── Internal ──────────────────────────────────────────────────────────────────
 
 var _game_bridge: Node = null
@@ -183,6 +213,25 @@ func _refresh_state() -> void:
 	audio_volume         = _game_bridge.AudioVolume
 	audio_seasonal_track = _game_bridge.AudioSeasonalTrack
 	audio_weather_state  = _game_bridge.CurrentWeatherState
+
+	# Empire Systems state (T65)
+	competitor_count             = _game_bridge.GetCompetitorCount()
+	var leader = _game_bridge.GetMarketLeader()
+	market_leader_name           = leader.get("name", "") if leader else ""
+	empire_phase                 = _game_bridge.GetEmpirePhase()
+	empire_score                 = _game_bridge.GetEmpireScore()
+	growth_strategy              = _game_bridge.GetGrowthStrategy()
+	ownership_status             = _game_bridge.GetOwnershipStatus()
+	share_price                  = _game_bridge.GetSharePrice()
+	market_cap                   = _game_bridge.GetMarketCap()
+	is_public                    = _game_bridge.IsPublic()
+	brand_score                  = _game_bridge.GetBrandScore()
+	brand_strategy               = _game_bridge.GetBrandStrategy()
+	pricing_power                = _game_bridge.GetPricingPower()
+	active_crises_count          = _game_bridge.GetActiveCrises().Count
+	acquisition_opportunities_count = _game_bridge.GetAcquisitionOpportunities().Count
+	integration_score            = _game_bridge.GetIntegrationScore()
+	owned_assets_count           = _game_bridge.GetOwnedAssets().Count
 
 	state_updated.emit()
 	day_advanced.emit(current_day, _season_name(current_day))
@@ -877,3 +926,330 @@ func transfer_batch_to_sea(batch_id: String) -> bool:
 	# Mock: Transfer operation
 	print("SimBridge: Transferring batch '%s' to sea" % batch_id)
 	return true
+
+# ══════════════════════════════════════════════════════════════════════════════
+# EMPIRE SYSTEMS API (T65) - CompetitorAI, EmpireProgression, StockMarket, etc.
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── CompetitorAI Methods ──────────────────────────────────────────────────────
+
+## Get all AI competitors
+func get_competitors() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetCompetitors()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get number of competitors
+func get_competitor_count() -> int:
+	return _game_bridge.GetCompetitorCount() if _game_bridge else 0
+
+## Get market leader info
+func get_market_leader() -> Dictionary:
+	return _game_bridge.GetMarketLeader() if _game_bridge else {}
+
+# ── EmpireProgression Methods ─────────────────────────────────────────────────
+
+## Get current empire phase
+func get_empire_phase() -> String:
+	return _game_bridge.GetEmpirePhase() if _game_bridge else "SmallFarmer"
+
+## Get empire progression score (0-100)
+func get_empire_score() -> int:
+	return _game_bridge.GetEmpireScore() if _game_bridge else 0
+
+## Get next milestone
+func get_next_milestone() -> Dictionary:
+	return _game_bridge.GetNextMilestone() if _game_bridge else {}
+
+## Get current growth strategy
+func get_growth_strategy() -> String:
+	return _game_bridge.GetGrowthStrategy() if _game_bridge else "Organic"
+
+# ── StockMarket Methods ───────────────────────────────────────────────────────
+
+## Get ownership status (Private, PEBacked, EuronextGrowth, OsloBoers)
+func get_ownership_status() -> String:
+	return _game_bridge.GetOwnershipStatus() if _game_bridge else "Private"
+
+## Get current share price (NOK)
+func get_share_price() -> float:
+	return _game_bridge.GetSharePrice() if _game_bridge else 0.0
+
+## Get market capitalization (NOK)
+func get_market_cap() -> float:
+	return _game_bridge.GetMarketCap() if _game_bridge else 0.0
+
+## Check if company is public
+func check_is_public() -> bool:
+	return _game_bridge.IsPublic() if _game_bridge else false
+
+## Attempt an IPO
+func attempt_ipo() -> Dictionary:
+	return _game_bridge.AttemptIPO() if _game_bridge else {"success": false, "message": "Not initialized"}
+
+# ── BrandReputation Methods ───────────────────────────────────────────────────
+
+## Get overall brand reputation score (0-100)
+func get_brand_score() -> float:
+	return _game_bridge.GetBrandScore() if _game_bridge else 50.0
+
+## Get brand strategy
+func get_brand_strategy() -> String:
+	return _game_bridge.GetBrandStrategy() if _game_bridge else "Commodity"
+
+## Get active certifications
+func get_certifications() -> Array[String]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetCertifications()
+	var result: Array[String] = []
+	for cert in raw:
+		result.append(cert)
+	return result
+
+## Get pricing power multiplier
+func get_pricing_power() -> float:
+	return _game_bridge.GetPricingPower() if _game_bridge else 1.0
+
+# ── CrisisCapitalism Methods ──────────────────────────────────────────────────
+
+## Get active competitor crises
+func get_active_crises() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetActiveCrises()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get available distressed assets for acquisition
+func get_acquisition_opportunities() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetAcquisitionOpportunities()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Attempt to acquire a distressed asset
+func attempt_acquisition(asset_id: String) -> Dictionary:
+	return _game_bridge.AttemptAcquisition(asset_id) if _game_bridge else {"success": false, "message": "Not initialized"}
+
+# ── VerticalIntegration Methods ───────────────────────────────────────────────
+
+## Get all integration tiers with ownership status
+func get_integration_tiers() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetIntegrationTiers()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get owned integration assets
+func get_owned_assets() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetOwnedAssets()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get integration score (0.0-1.0)
+func get_integration_score() -> float:
+	return _game_bridge.GetIntegrationScore() if _game_bridge else 0.0
+
+## Purchase/build a vertical integration asset
+func purchase_asset(asset_id: String) -> Dictionary:
+	return _game_bridge.PurchaseAsset(asset_id) if _game_bridge else {"success": false, "message": "Not initialized"}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# WAVE 2 SYSTEMS API (T71) - LoanSystem, TaxSystem, InvestorSystem, etc.
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── LoanSystem Methods ────────────────────────────────────────────────────────
+
+## Get all active loans
+func get_active_loans() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetActiveLoans()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get total debt outstanding (NOK)
+func get_total_debt() -> float:
+	return _game_bridge.GetTotalDebt() if _game_bridge else 0.0
+
+## Get total monthly payment obligation (NOK)
+func get_monthly_payment() -> float:
+	return _game_bridge.GetMonthlyPayment() if _game_bridge else 0.0
+
+## Take out a new loan
+func take_loan(amount: float, term_months: int, rate: float) -> Dictionary:
+	return _game_bridge.TakeLoan(amount, term_months, rate) if _game_bridge else {"success": false, "message": "Not initialized"}
+
+# ── TaxSystem Methods ─────────────────────────────────────────────────────────
+
+## Get current corporate tax rate (0.22 = 22%)
+func get_tax_rate() -> float:
+	return _game_bridge.GetTaxRate() if _game_bridge else 0.22
+
+## Get last tax payment amount (NOK)
+func get_last_tax_paid() -> float:
+	return _game_bridge.GetLastTaxPaid() if _game_bridge else 0.0
+
+## Get estimated annual tax burden (NOK)
+func get_annual_tax_burden() -> float:
+	return _game_bridge.GetAnnualTaxBurden() if _game_bridge else 0.0
+
+# ── InvestorSystem Methods ────────────────────────────────────────────────────
+
+## Get all investors/shareholders
+func get_investors() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetInvestors()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get total investment from bonds and equity (NOK)
+func get_total_investment() -> float:
+	return _game_bridge.GetTotalInvestment() if _game_bridge else 0.0
+
+## Get current equity dilution (0.0-1.0)
+func get_equity_dilution() -> float:
+	return _game_bridge.GetEquityDilution() if _game_bridge else 0.0
+
+# ── AcquisitionSystem Methods ─────────────────────────────────────────────────
+
+## Get available acquisition targets
+func get_available_targets() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetAvailableTargets()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get owned acquisitions
+func get_owned_acquisitions() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetOwnedAcquisitions()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Attempt to acquire a target company
+func attempt_acquisition_target(target_id: String) -> Dictionary:
+	return _game_bridge.AttemptAcquisitionTarget(target_id) if _game_bridge else {"success": false, "message": "Not initialized"}
+
+# ── LicenseSystem Methods ─────────────────────────────────────────────────────
+
+## Get all active licenses
+func get_active_licenses() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetActiveLicenses()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get license cost for a new site (NOK)
+func get_license_cost() -> float:
+	return _game_bridge.GetLicenseCost() if _game_bridge else 30_000_000.0
+
+## Apply for a new license in a zone
+func apply_for_license(zone_id: String) -> Dictionary:
+	return _game_bridge.ApplyForLicense(zone_id) if _game_bridge else {"success": false, "message": "Not initialized"}
+
+# ── StakeholderFactionSystem Methods ──────────────────────────────────────────
+
+## Get all stakeholder factions
+func get_factions() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetFactions()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get relationship score with a specific faction (-1.0 to +1.0)
+func get_faction_relation(faction_id: String) -> float:
+	return _game_bridge.GetFactionRelation(faction_id) if _game_bridge else 0.0
+
+## Get all active demands from all factions
+func get_active_demands() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetActiveDemands()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+# ── MarketIntelligence Methods ────────────────────────────────────────────────
+
+## Get comprehensive market report
+func get_market_report() -> Dictionary:
+	return _game_bridge.GetMarketReport() if _game_bridge else {}
+
+## Get competitor analysis
+func get_competitor_analysis() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetCompetitorAnalysis()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get price forecast for next 4 weeks
+func get_price_forecast() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetPriceForecast()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+# ── FishWelfare Methods ───────────────────────────────────────────────────────
+
+## Get overall fish welfare score (0-100)
+func get_welfare_score() -> float:
+	return _game_bridge.GetWelfareScore() if _game_bridge else 50.0
+
+## Get welfare breakdown
+func get_welfare_breakdown() -> Dictionary:
+	return _game_bridge.GetWelfareBreakdown() if _game_bridge else {}
+
+## Get welfare alerts
+func get_welfare_alerts() -> Array[String]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetWelfareAlerts()
+	var result: Array[String] = []
+	for alert in raw:
+		result.append(alert)
+	return result
+
+# ── VisualMilestones Methods ──────────────────────────────────────────────────
+
+## Get all achieved milestones
+func get_achieved_milestones() -> Array[Dictionary]:
+	if not _game_bridge: return []
+	var raw = _game_bridge.GetAchievedMilestones()
+	var result: Array[Dictionary] = []
+	for entry in raw:
+		result.append(entry)
+	return result
+
+## Get next unachieved milestone
+func get_next_milestone_info() -> Dictionary:
+	return _game_bridge.GetNextMilestone() if _game_bridge else {}
+
+## Get milestone completion progress (0.0-1.0)
+func get_milestone_progress() -> float:
+	return _game_bridge.GetMilestoneProgress() if _game_bridge else 0.0

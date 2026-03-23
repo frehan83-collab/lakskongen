@@ -123,7 +123,7 @@ func _setup_progress_dots() -> void:
 	for i in range(TOTAL_STEPS):
 		var dot = ColorRect.new()
 		dot.custom_minimum_size = Vector2(8, 8)
-		dot.color = Color(0.3, 0.3, 0.3, 0.5)  # Gray inactive
+		dot.color = Color(0.85, 0.87, 0.91, 0.5)  # Gray inactive
 		dot.tooltip_text = "Steg %d" % (i + 1)
 		progress_dots_container.add_child(dot)
 
@@ -139,13 +139,13 @@ func _update_progress_dots(current_step: int, completed_count: int) -> void:
 		
 		if i < completed_count:
 			# Completed steps — green
-			dot.color = Color(0.2, 1.0, 0.4, 1.0)
+			dot.color = Color("#A3BE8C")
 		elif i == current_step - 1:
 			# Current step — yellow/orange
 			dot.color = Color(1.0, 0.8, 0.2, 1.0)
 		else:
 			# Incomplete steps — gray
-			dot.color = Color(0.3, 0.3, 0.3, 0.5)
+			dot.color = Color(0.85, 0.87, 0.91, 0.5)
 
 # ── Display update ────────────────────────────────────────────────────────────
 
@@ -216,7 +216,7 @@ func _play_completion_animation(step_number: int, title: String, reward_nok: flo
 	if reward_label and reward_nok > 0.0:
 		reward_label.text    = tr("ui.tutorial.step_complete") % [step_number, _format_nok(reward_nok)]
 		reward_label.visible = true
-		reward_label.modulate = Color(0.2, 1.0, 0.4, 1.0)
+		reward_label.modulate = Color("#A3BE8C")
 		_tween.tween_interval(0.1)
 		_tween.tween_property(reward_label, "modulate:a", 0.0, 2.5).set_delay(2.0)
 		await _tween.finished

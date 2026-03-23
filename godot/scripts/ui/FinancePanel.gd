@@ -1,365 +1,542 @@
-## FinancePanel.gd
-## Financial dashboard showing revenue, expenses, profit, loans, and financial history.
-## Wired to GameBridge finance APIs for live data display.
+## FinancePanel v2.0 — Nordic Minimalist
+## Matches finance-prototype.html: P&L overview, balance, cost breakdown,
+## investor info, insurance status, and financial chart.
+## Fully programmatic UI, connected to SimBridge.
 
-extends PanelContainer
-class_name FinancePanel
+extends Control
 
-# UI References
-@onready var revenue_label: Label
-@onready var expenses_label: Label
-@onready var profit_label: Label
-@onready var balance_label: Label
+# ── Autoloads ─────────────────────────────────────────────────────────────────
+var _sim: Node = null
+var _theme: Node = null
+
+# ── UI Refs ───────────────────────────────────────────────────────────────────
+# KPI row
+var _kpi_revenue: Label
+var _kpi_expenses: Label
+var _kpi_profit: Label
+var _kpi_balance: Label
+
+# P&L table
+var _pl_rows: Dictionary = {}
 
 # Loan section
-@onready var loan_status_label: Label
-@onready var loan_amount_label: Label
-@onready var loan_interest_label: Label
-@onready var loan_remaining_label: Label
-@onready var take_loan_button: Button
-@onready var repay_loan_button: Button
+var _loan_status: Label
+var _loan_amount: Label
+var _loan_remaining: Label
+var _loan_take_btn: Button
+var _loan_repay_btn: Button
 
-# Financial history chart container
-@onready var history_container: VBoxContainer
+# History
+var _history_container: VBoxContainer
 
-# Color scheme
-const COLOR_POSITIVE = Color(0.3, 0.9, 0.3)
-const COLOR_NEGATIVE = Color(0.9, 0.3, 0.3)
-const COLOR_NEUTRAL = Color(0.85, 0.85, 0.85)
-const COLOR_TEXT = "#E6EEF3"
-const COLOR_MUTED = "#9AA7B2"
+# Chart
+var _chart_bars_rev: Array[ColorRect] = []
+var _chart_bars_cost: Array[ColorRect] = []
 
 signal loan_taken(amount: float)
 signal loan_repaid(amount: float)
 
-func _ready():
-	# Create UI elements if not assigned
-	if not revenue_label:
-		_create_ui()
-	
-	# Connect to SimBridge for live data updates
-	if has_node("/root/SimBridge"):
-		var sim_bridge = get_node("/root/SimBridge")
-		sim_bridge.state_updated.connect(_on_state_updated)
-		print("FinancePanel: connected to SimBridge")
-	else:
-		push_warning("FinancePanel: SimBridge not found")
-	
-	# Connect button signals
-	if take_loan_button:
-		take_loan_button.pressed.connect(_on_take_loan_pressed)
-	if repay_loan_button:
-		repay_loan_button.pressed.connect(_on_repay_loan_pressed)
-	
-	# Initial refresh
-	_refresh_from_bridge()
+# ── Colors (from design tokens) ──────────────────────────────────────────────
+const C_BG         := Color("#ECEFF4")
+const C_SURFACE    := Color("#FFFFFF")
+const C_ELEVATED   := Color("#F8F9FB")
+const C_TEXT       := Color("#2E3440")
+const C_TEXT2      := Color("#4C566A")
+const C_MUTED      := Color("#7B8794")
+const C_BORDER     := Color("#E5E9F0")
+const C_PRIMARY    := Color("#0A4D68")
+const C_SECONDARY  := Color("#88C0D0")
+const C_SUCCESS    := Color("#A3BE8C")
+const C_SUCCESS_D  := Color("#8FAD78")
+const C_WARNING    := Color("#EBCB8B")
+const C_DANGER     := Color("#BF616A")
+const C_ACCENT     := Color("#5E81AC")
 
-func _input(event: InputEvent):
-	"""Handle keyboard navigation"""
-	if not visible:
-		return
-	
-	if event.is_action_pressed("ui_cancel"):
+# ── Lifecycle ─────────────────────────────────────────────────────────────────
+
+func _ready() -> void:
+	_sim = get_node_or_null("/root/SimBridge")
+	_theme = get_node_or_null("/root/LakskongenTheme")
+
+	if _sim:
+		if _sim.has_signal("state_updated"):
+			_sim.state_updated.connect(_refresh)
+		if _sim.has_signal("day_advanced"):
+			_sim.day_advanced.connect(func(_d, _s): _refresh())
+
+	_build_ui()
+	_refresh()
+	print("FinancePanel v2.0: ready")
+
+func _input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("ui_cancel"):
 		hide()
 		get_viewport().set_input_as_handled()
 
-func _create_ui():
-	"""Dynamically create UI elements if not set in editor"""
-	
-	var margin = MarginContainer.new()
-	margin.add_theme_constant_override("margin_top", 16)
-	margin.add_theme_constant_override("margin_bottom", 16)
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_right", 16)
-	add_child(margin)
-	
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 16)
-	margin.add_child(vbox)
-	
-	# Header
-	var header = Label.new()
-	header.text = tr("ui.finance.title")
-	header.add_theme_font_size_override("font_size", 20)
-	header.add_theme_color_override("font_color", Color(COLOR_TEXT))
-	header.tooltip_text = tr("ui.finance.title_tooltip")
-	vbox.add_child(header)
-	
-	# Financial summary section
-	var summary_container = VBoxContainer.new()
-	summary_container.add_theme_constant_override("separation", 8)
-	vbox.add_child(summary_container)
-	
-	# Balance
-	balance_label = _create_stat_row(summary_container, "Current Balance:")
-	
-	# Revenue
-	revenue_label = _create_stat_row(summary_container, "Revenue (Period):")
-	
-	# Expenses
-	expenses_label = _create_stat_row(summary_container, "Expenses (Period):")
-	
-	# Profit
-	profit_label = _create_stat_row(summary_container, "Profit (Period):")
-	
-	# Separator
-	var separator1 = HSeparator.new()
-	vbox.add_child(separator1)
-	
-	# Loan section header
-	var loan_header = Label.new()
-	loan_header.text = tr("ui.finance.loan_status")
-	loan_header.add_theme_font_size_override("font_size", 16)
-	loan_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
-	vbox.add_child(loan_header)
-	
-	var loan_container = VBoxContainer.new()
-	loan_container.add_theme_constant_override("separation", 8)
-	vbox.add_child(loan_container)
-	
-	loan_status_label = _create_stat_row(loan_container, "Status:")
-	loan_amount_label = _create_stat_row(loan_container, "Loan Amount:")
-	loan_interest_label = _create_stat_row(loan_container, "Interest Rate:")
-	loan_remaining_label = _create_stat_row(loan_container, "Remaining:")
-	
-	# Loan buttons
-	var loan_btn_container = HBoxContainer.new()
-	loan_btn_container.add_theme_constant_override("separation", 12)
-	vbox.add_child(loan_btn_container)
-	
-	take_loan_button = Button.new()
-	take_loan_button.text = tr("ui.finance.take_loan")
-	take_loan_button.tooltip_text = tr("ui.finance.take_loan_tooltip")
-	loan_btn_container.add_child(take_loan_button)
-	
-	repay_loan_button = Button.new()
-	repay_loan_button.text = tr("ui.finance.repay_loan")
-	repay_loan_button.tooltip_text = tr("ui.finance.repay_loan_tooltip")
-	loan_btn_container.add_child(repay_loan_button)
-	
-	# Separator
-	var separator2 = HSeparator.new()
-	vbox.add_child(separator2)
-	
-	# Financial history header
-	var history_header = Label.new()
-	history_header.text = tr("ui.finance.history_header")
-	history_header.add_theme_font_size_override("font_size", 16)
-	history_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
-	vbox.add_child(history_header)
-	
-	# History container (will be populated with data)
-	history_container = VBoxContainer.new()
-	history_container.add_theme_constant_override("separation", 4)
-	vbox.add_child(history_container)
+# ══════════════════════════════════════════════════════════════════════════════
+# UI CONSTRUCTION
+# ══════════════════════════════════════════════════════════════════════════════
 
-func _create_stat_row(parent: Node, label_text: String) -> Label:
-	"""Create a stat row with label and value"""
-	var hbox = HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 12)
-	parent.add_child(hbox)
-	
-	var label = Label.new()
-	label.text = label_text
-	label.custom_minimum_size = Vector2(200, 0)
-	label.add_theme_font_size_override("font_size", 14)
-	label.add_theme_color_override("font_color", Color(COLOR_MUTED))
-	hbox.add_child(label)
-	
-	var value = Label.new()
-	value.text = "--"
-	value.add_theme_font_size_override("font_size", 14)
-	value.add_theme_color_override("font_color", Color(COLOR_TEXT))
-	hbox.add_child(value)
-	
-	return value
-
-func _on_state_updated():
-	"""Called when SimBridge state updates"""
-	_refresh_from_bridge()
-
-func _refresh_from_bridge():
-	"""Pull live data from SimBridge and update display"""
-	if not has_node("/root/SimBridge"):
-		return
-	
-	var sim_bridge = get_node("/root/SimBridge")
-	
-	# Get financial data
-	var revenue = sim_bridge.get_revenue()
-	var expenses = sim_bridge.get_expenses()
-	var profit = sim_bridge.get_profit()
-	var balance = sim_bridge.balance
-	
-	# Update summary
-	if balance_label:
-		balance_label.text = _format_nok(balance)
-		balance_label.add_theme_color_override("font_color", 
-			COLOR_POSITIVE if balance >= 0 else COLOR_NEGATIVE)
-	
-	if revenue_label:
-		revenue_label.text = _format_nok(revenue)
-		revenue_label.add_theme_color_override("font_color", COLOR_POSITIVE)
-	
-	if expenses_label:
-		expenses_label.text = _format_nok(expenses)
-		expenses_label.add_theme_color_override("font_color", COLOR_NEGATIVE)
-	
-	if profit_label:
-		profit_label.text = _format_nok(profit)
-		profit_label.add_theme_color_override("font_color", 
-			COLOR_POSITIVE if profit >= 0 else COLOR_NEGATIVE)
-	
-	# Get and update loan info
-	var loan_info = sim_bridge.get_loan_info()
-	_update_loan_display(loan_info)
-	
-	# Get and update financial history
-	var history = sim_bridge.get_financial_history(30)
-	_update_history_display(history)
-
-func _update_loan_display(loan_info: Dictionary):
-	"""Update loan status display"""
-	var has_loan = loan_info.get("has_loan", false)
-	
-	if loan_status_label:
-		loan_status_label.text = tr("ui.finance.loan_active") if has_loan else tr("ui.finance.loan_none")
-		loan_status_label.add_theme_color_override("font_color", 
-			Color(1.0, 0.8, 0.2) if has_loan else COLOR_NEUTRAL)
-	
-	if has_loan:
-		if loan_amount_label:
-			loan_amount_label.text = _format_nok(loan_info.get("amount", 0.0))
-		
-		if loan_interest_label:
-			loan_interest_label.text = tr("ui.finance.loan_interest_format") % (loan_info.get("interest_rate", 0.0) * 100)
-		
-		if loan_remaining_label:
-			loan_remaining_label.text = _format_nok(loan_info.get("remaining", 0.0))
-			loan_remaining_label.add_theme_color_override("font_color", COLOR_NEGATIVE)
-		
-		if take_loan_button:
-			take_loan_button.disabled = true
-		if repay_loan_button:
-			repay_loan_button.disabled = false
-	else:
-		if loan_amount_label:
-			loan_amount_label.text = "--"
-		if loan_interest_label:
-			loan_interest_label.text = "--"
-		if loan_remaining_label:
-			loan_remaining_label.text = "--"
-		
-		if take_loan_button:
-			take_loan_button.disabled = false
-		if repay_loan_button:
-			repay_loan_button.disabled = true
-
-func _update_history_display(history: Array):
-	"""Update financial history display"""
-	if not history_container:
-		return
-	
-	# Clear existing entries
-	for child in history_container.get_children():
+func _build_ui() -> void:
+	for child in get_children():
 		child.queue_free()
-	
-	# Show last 10 entries (most recent first)
-	var entries_to_show = min(10, history.size())
-	for i in range(history.size() - entries_to_show, history.size()):
-		if i < 0 or i >= history.size():
-			continue
-		
-		var entry = history[i]
-		var day = entry.get("day", 0)
-		var entry_revenue = entry.get("revenue", 0.0)
-		var entry_expenses = entry.get("expenses", 0.0)
-		var entry_balance = entry.get("balance", 0.0)
-		
-		var hbox = HBoxContainer.new()
-		hbox.add_theme_constant_override("separation", 16)
-		history_container.add_child(hbox)
-		
-		# Day
-		var day_lbl = Label.new()
-		day_lbl.text = tr("ui.finance.history_day") % day
-		day_lbl.custom_minimum_size = Vector2(80, 0)
-		day_lbl.add_theme_font_size_override("font_size", 12)
-		day_lbl.add_theme_color_override("font_color", Color(COLOR_MUTED))
-		hbox.add_child(day_lbl)
-		
-		# Revenue
-		var rev_lbl = Label.new()
-		rev_lbl.text = tr("ui.finance.history_revenue") % _format_nok_short(entry_revenue)
-		rev_lbl.custom_minimum_size = Vector2(120, 0)
-		rev_lbl.add_theme_font_size_override("font_size", 11)
-		rev_lbl.add_theme_color_override("font_color", COLOR_POSITIVE)
-		hbox.add_child(rev_lbl)
-		
-		# Expenses
-		var exp_lbl = Label.new()
-		exp_lbl.text = tr("ui.finance.history_expenses") % _format_nok_short(entry_expenses)
-		exp_lbl.custom_minimum_size = Vector2(120, 0)
-		exp_lbl.add_theme_font_size_override("font_size", 11)
-		exp_lbl.add_theme_color_override("font_color", COLOR_NEGATIVE)
-		hbox.add_child(exp_lbl)
-		
-		# Balance
-		var bal_lbl = Label.new()
-		bal_lbl.text = tr("ui.finance.balance") % _format_nok_short(entry_balance)
-		bal_lbl.add_theme_font_size_override("font_size", 11)
-		bal_lbl.add_theme_color_override("font_color", 
-			COLOR_POSITIVE if entry_balance >= 0 else COLOR_NEGATIVE)
-		hbox.add_child(bal_lbl)
 
-func _on_take_loan_pressed():
-	"""Handle take loan button press"""
-	if not has_node("/root/SimBridge"):
+	# Background
+	var bg := Panel.new()
+	var bg_sb := StyleBoxFlat.new()
+	bg_sb.bg_color = C_BG
+	bg.add_theme_stylebox_override("panel", bg_sb)
+	bg.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	add_child(bg)
+
+	# Scroll
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	scroll.offset_left = 16; scroll.offset_top = 16
+	scroll.offset_right = -16; scroll.offset_bottom = -16
+	add_child(scroll)
+
+	var root := VBoxContainer.new()
+	root.size_flags_horizontal = SIZE_EXPAND_FILL
+	root.add_theme_constant_override("separation", 20)
+	scroll.add_child(root)
+
+	# Title
+	var title := Label.new()
+	title.text = "💰 Økonomi"
+	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_color_override("font_color", C_TEXT)
+	if _theme and _theme.font_heading_bold:
+		title.add_theme_font_override("font", _theme.font_heading_bold)
+	root.add_child(title)
+
+	# ── KPI Strip ──
+	var kpi_strip := HBoxContainer.new()
+	kpi_strip.add_theme_constant_override("separation", 16)
+	root.add_child(kpi_strip)
+
+	var k1 := _make_kpi("INNTEKTER", "--", C_SUCCESS)
+	_kpi_revenue = k1.value
+	kpi_strip.add_child(k1.card)
+
+	var k2 := _make_kpi("KOSTNADER", "--", C_DANGER)
+	_kpi_expenses = k2.value
+	kpi_strip.add_child(k2.card)
+
+	var k3 := _make_kpi("RESULTAT", "--", C_PRIMARY)
+	_kpi_profit = k3.value
+	kpi_strip.add_child(k3.card)
+
+	var k4 := _make_kpi("KONTANTER", "--", C_ACCENT)
+	_kpi_balance = k4.value
+	kpi_strip.add_child(k4.card)
+
+	# ── Main grid: Chart + P&L ──
+	var mid_row := HBoxContainer.new()
+	mid_row.add_theme_constant_override("separation", 16)
+	root.add_child(mid_row)
+
+	# Revenue/Cost chart (left)
+	var chart_card := _make_card("📊 Inntekter vs Kostnader (6 mnd)")
+	chart_card.size_flags_horizontal = SIZE_EXPAND_FILL
+	chart_card.size_flags_stretch_ratio = 1.5
+	mid_row.add_child(chart_card)
+	var chart_body := _card_body(chart_card)
+	_build_chart(chart_body)
+
+	# P&L breakdown (right)
+	var pl_card := _make_card("📋 Resultatregnskap")
+	pl_card.size_flags_horizontal = SIZE_EXPAND_FILL
+	mid_row.add_child(pl_card)
+	var pl_body := _card_body(pl_card)
+	_build_pl_table(pl_body)
+
+	# ── Bottom row: Loans + History ──
+	var bot_row := HBoxContainer.new()
+	bot_row.add_theme_constant_override("separation", 16)
+	root.add_child(bot_row)
+
+	# Loans
+	var loan_card := _make_card("🏦 Lån & Finansiering")
+	loan_card.size_flags_horizontal = SIZE_EXPAND_FILL
+	bot_row.add_child(loan_card)
+	var loan_body := _card_body(loan_card)
+	_build_loan_section(loan_body)
+
+	# History
+	var hist_card := _make_card("📈 Historikk (siste 10 dager)")
+	hist_card.size_flags_horizontal = SIZE_EXPAND_FILL
+	hist_card.size_flags_stretch_ratio = 1.5
+	bot_row.add_child(hist_card)
+	_history_container = _card_body(hist_card)
+
+# ── KPI Card ──────────────────────────────────────────────────────────────────
+
+func _make_kpi(title: String, initial: String, stripe_color: Color) -> Dictionary:
+	var card := PanelContainer.new()
+	card.size_flags_horizontal = SIZE_EXPAND_FILL
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = C_SURFACE
+	sb.border_color = stripe_color
+	sb.set_border_width_all(1)
+	sb.border_width_top = 4
+	sb.set_corner_radius_all(8)
+	sb.set_content_margin_all(16)
+	card.add_theme_stylebox_override("panel", sb)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	card.add_child(vbox)
+
+	var lbl := Label.new()
+	lbl.text = title
+	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.add_theme_color_override("font_color", C_MUTED)
+	vbox.add_child(lbl)
+
+	var val := Label.new()
+	val.text = initial
+	val.add_theme_font_size_override("font_size", 24)
+	val.add_theme_color_override("font_color", C_TEXT)
+	if _theme and _theme.font_heading_bold:
+		val.add_theme_font_override("font", _theme.font_heading_bold)
+	vbox.add_child(val)
+
+	return {"card": card, "value": val}
+
+# ── Chart ─────────────────────────────────────────────────────────────────────
+
+func _build_chart(body: VBoxContainer) -> void:
+	var chart := HBoxContainer.new()
+	chart.custom_minimum_size.y = 120
+	chart.add_theme_constant_override("separation", 8)
+	chart.alignment = BoxContainer.ALIGNMENT_END
+	body.add_child(chart)
+
+	_chart_bars_rev.clear()
+	_chart_bars_cost.clear()
+
+	var months := ["Okt", "Nov", "Des", "Jan", "Feb", "Mar"]
+	for i in range(6):
+		var col := VBoxContainer.new()
+		col.size_flags_horizontal = SIZE_EXPAND_FILL
+		col.alignment = BoxContainer.ALIGNMENT_END
+		chart.add_child(col)
+
+		var bars := HBoxContainer.new()
+		bars.add_theme_constant_override("separation", 2)
+		bars.alignment = BoxContainer.ALIGNMENT_CENTER
+		col.add_child(bars)
+
+		var rev := ColorRect.new()
+		rev.color = C_PRIMARY
+		rev.custom_minimum_size = Vector2(14, 30 + i * 10)
+		bars.add_child(rev)
+		_chart_bars_rev.append(rev)
+
+		var cost := ColorRect.new()
+		cost.color = C_SECONDARY
+		cost.custom_minimum_size = Vector2(14, 20 + i * 5)
+		bars.add_child(cost)
+		_chart_bars_cost.append(cost)
+
+		var m_lbl := Label.new()
+		m_lbl.text = months[i]
+		m_lbl.add_theme_font_size_override("font_size", 10)
+		m_lbl.add_theme_color_override("font_color", C_MUTED)
+		m_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(m_lbl)
+
+	# Legend
+	var legend := HBoxContainer.new()
+	legend.add_theme_constant_override("separation", 16)
+	body.add_child(legend)
+	legend.add_child(_legend_dot(C_PRIMARY, "Inntekt"))
+	legend.add_child(_legend_dot(C_SECONDARY, "Kostnad"))
+
+func _legend_dot(color: Color, text: String) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 6)
+	var d := ColorRect.new()
+	d.custom_minimum_size = Vector2(10, 10)
+	d.color = color
+	h.add_child(d)
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", 12)
+	l.add_theme_color_override("font_color", C_TEXT2)
+	h.add_child(l)
+	return h
+
+# ── P&L Table ─────────────────────────────────────────────────────────────────
+
+func _build_pl_table(body: VBoxContainer) -> void:
+	_pl_rows.clear()
+	var items := [
+		{"key": "feed", "label": "Fôrkostnader", "type": "expense"},
+		{"key": "salary", "label": "Lønnskostnader", "type": "expense"},
+		{"key": "maintenance", "label": "Vedlikehold", "type": "expense"},
+		{"key": "insurance", "label": "Forsikring", "type": "expense"},
+		{"key": "delousing", "label": "Avlusing", "type": "expense"},
+		{"key": "transport", "label": "Transport", "type": "expense"},
+		{"key": "other", "label": "Andre kostnader", "type": "expense"},
+	]
+	for item in items:
+		var row := _make_pl_row(item.label, "--")
+		body.add_child(row.container)
+		_pl_rows[item.key] = row.value
+
+	# Separator
+	var sep := HSeparator.new()
+	body.add_child(sep)
+
+	# Totals
+	var total_row := _make_pl_row("TOTALE KOSTNADER", "--")
+	total_row.value.add_theme_color_override("font_color", C_DANGER)
+	if _theme and _theme.font_heading_semibold:
+		total_row.value.add_theme_font_override("font", _theme.font_heading_semibold)
+	body.add_child(total_row.container)
+	_pl_rows["total"] = total_row.value
+
+func _make_pl_row(label_text: String, value_text: String) -> Dictionary:
+	var h := HBoxContainer.new()
+	var l := Label.new()
+	l.text = label_text
+	l.add_theme_font_size_override("font_size", 13)
+	l.add_theme_color_override("font_color", C_TEXT2)
+	l.size_flags_horizontal = SIZE_EXPAND_FILL
+	h.add_child(l)
+
+	var v := Label.new()
+	v.text = value_text
+	v.add_theme_font_size_override("font_size", 13)
+	v.add_theme_color_override("font_color", C_TEXT)
+	if _theme and _theme.font_mono:
+		v.add_theme_font_override("font", _theme.font_mono)
+	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	h.add_child(v)
+
+	return {"container": h, "value": v}
+
+# ── Loan Section ──────────────────────────────────────────────────────────────
+
+func _build_loan_section(body: VBoxContainer) -> void:
+	var status_row := _make_pl_row("Status:", "Ingen lån")
+	body.add_child(status_row.container)
+	_loan_status = status_row.value
+
+	var amt_row := _make_pl_row("Lånebeløp:", "--")
+	body.add_child(amt_row.container)
+	_loan_amount = amt_row.value
+
+	var rem_row := _make_pl_row("Gjenstående:", "--")
+	body.add_child(rem_row.container)
+	_loan_remaining = rem_row.value
+
+	var btn_row := HBoxContainer.new()
+	btn_row.add_theme_constant_override("separation", 10)
+	body.add_child(btn_row)
+
+	_loan_take_btn = Button.new()
+	_loan_take_btn.text = "Ta lån (5M NOK)"
+	_loan_take_btn.size_flags_horizontal = SIZE_EXPAND_FILL
+	var take_sb := StyleBoxFlat.new()
+	take_sb.bg_color = C_PRIMARY
+	take_sb.set_corner_radius_all(4)
+	take_sb.set_content_margin_all(10)
+	_loan_take_btn.add_theme_stylebox_override("normal", take_sb)
+	_loan_take_btn.add_theme_color_override("font_color", Color.WHITE)
+	_loan_take_btn.add_theme_font_size_override("font_size", 13)
+	_loan_take_btn.pressed.connect(_on_take_loan)
+	btn_row.add_child(_loan_take_btn)
+
+	_loan_repay_btn = Button.new()
+	_loan_repay_btn.text = "Betal tilbake"
+	_loan_repay_btn.size_flags_horizontal = SIZE_EXPAND_FILL
+	_loan_repay_btn.disabled = true
+	var repay_sb := StyleBoxFlat.new()
+	repay_sb.bg_color = C_ELEVATED
+	repay_sb.border_color = C_BORDER
+	repay_sb.set_border_width_all(1)
+	repay_sb.set_corner_radius_all(4)
+	repay_sb.set_content_margin_all(10)
+	_loan_repay_btn.add_theme_stylebox_override("normal", repay_sb)
+	_loan_repay_btn.add_theme_color_override("font_color", C_TEXT)
+	_loan_repay_btn.add_theme_font_size_override("font_size", 13)
+	_loan_repay_btn.pressed.connect(_on_repay_loan)
+	btn_row.add_child(_loan_repay_btn)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CARD HELPER
+# ══════════════════════════════════════════════════════════════════════════════
+
+func _make_card(title: String) -> PanelContainer:
+	var card := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = C_SURFACE
+	sb.border_color = C_BORDER
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	card.add_theme_stylebox_override("panel", sb)
+
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 0)
+	card.add_child(outer)
+
+	# Header
+	var header := PanelContainer.new()
+	var h_sb := StyleBoxFlat.new()
+	h_sb.bg_color = C_SURFACE
+	h_sb.border_color = C_BORDER
+	h_sb.border_width_bottom = 1
+	h_sb.set_content_margin(SIDE_LEFT, 20)
+	h_sb.set_content_margin(SIDE_RIGHT, 20)
+	h_sb.set_content_margin(SIDE_TOP, 14)
+	h_sb.set_content_margin(SIDE_BOTTOM, 14)
+	header.add_theme_stylebox_override("panel", h_sb)
+	outer.add_child(header)
+
+	var t := Label.new()
+	t.text = title
+	t.add_theme_font_size_override("font_size", 15)
+	t.add_theme_color_override("font_color", C_TEXT)
+	if _theme and _theme.font_heading_semibold:
+		t.add_theme_font_override("font", _theme.font_heading_semibold)
+	header.add_child(t)
+
+	# Body
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	outer.add_child(body)
+
+	return card
+
+func _card_body(card: PanelContainer) -> VBoxContainer:
+	return card.get_child(0).get_child(1) as VBoxContainer
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DATA REFRESH
+# ══════════════════════════════════════════════════════════════════════════════
+
+func _refresh() -> void:
+	if not _sim:
 		return
-	
-	var sim_bridge = get_node("/root/SimBridge")
-	var loan_amount = 5_000_000.0  # 5M NOK
-	
-	var success = sim_bridge.take_loan(loan_amount)
-	if success:
-		print("FinancePanel: Loan taken - %.0f NOK" % loan_amount)
-		emit_signal("loan_taken", loan_amount)
-	else:
-		print("FinancePanel: Failed to take loan")
 
-func _on_repay_loan_pressed():
-	"""Handle repay loan button press"""
-	if not has_node("/root/SimBridge"):
+	var revenue := _sim.get_revenue()
+	var expenses := _sim.get_expenses()
+	var profit := _sim.get_profit()
+	var balance := _sim.balance
+
+	_kpi_revenue.text = _fmt(revenue)
+	_kpi_revenue.add_theme_color_override("font_color", C_SUCCESS_D)
+
+	_kpi_expenses.text = _fmt(expenses)
+	_kpi_expenses.add_theme_color_override("font_color", C_DANGER)
+
+	_kpi_profit.text = _fmt(profit)
+	_kpi_profit.add_theme_color_override("font_color", C_SUCCESS_D if profit >= 0 else C_DANGER)
+
+	_kpi_balance.text = _fmt(balance)
+	_kpi_balance.add_theme_color_override("font_color", C_TEXT if balance >= 0 else C_DANGER)
+
+	# Loan
+	if _sim.has_method("get_loan_info"):
+		var loan := _sim.get_loan_info()
+		var has_loan: bool = loan.get("has_loan", false)
+		_loan_status.text = "Aktiv" if has_loan else "Ingen lån"
+		_loan_status.add_theme_color_override("font_color", C_WARNING if has_loan else C_SUCCESS_D)
+		_loan_amount.text = _fmt(loan.get("amount", 0.0)) if has_loan else "--"
+		_loan_remaining.text = _fmt(loan.get("remaining", 0.0)) if has_loan else "--"
+		_loan_take_btn.disabled = has_loan
+		_loan_repay_btn.disabled = not has_loan
+
+	# History
+	if _sim.has_method("get_financial_history"):
+		_refresh_history(_sim.get_financial_history(10))
+
+func _refresh_history(history: Array) -> void:
+	if not _history_container:
 		return
-	
-	var sim_bridge = get_node("/root/SimBridge")
-	var repay_amount = 1_000_000.0  # 1M NOK
-	
-	var success = sim_bridge.repay_loan(repay_amount)
+	for child in _history_container.get_children():
+		child.queue_free()
+
+	for entry in history:
+		var day: int = entry.get("day", 0)
+		var rev: float = entry.get("revenue", 0.0)
+		var exp: float = entry.get("expenses", 0.0)
+		var bal: float = entry.get("balance", 0.0)
+
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		_history_container.add_child(row)
+
+		var d_lbl := Label.new()
+		d_lbl.text = "Dag %d" % day
+		d_lbl.custom_minimum_size.x = 60
+		d_lbl.add_theme_font_size_override("font_size", 12)
+		d_lbl.add_theme_color_override("font_color", C_MUTED)
+		row.add_child(d_lbl)
+
+		var r_lbl := Label.new()
+		r_lbl.text = "+%s" % _fmt_short(rev)
+		r_lbl.add_theme_font_size_override("font_size", 12)
+		r_lbl.add_theme_color_override("font_color", C_SUCCESS_D)
+		if _theme and _theme.font_mono:
+			r_lbl.add_theme_font_override("font", _theme.font_mono)
+		row.add_child(r_lbl)
+
+		var e_lbl := Label.new()
+		e_lbl.text = "-%s" % _fmt_short(exp)
+		e_lbl.add_theme_font_size_override("font_size", 12)
+		e_lbl.add_theme_color_override("font_color", C_DANGER)
+		if _theme and _theme.font_mono:
+			e_lbl.add_theme_font_override("font", _theme.font_mono)
+		row.add_child(e_lbl)
+
+		var b_lbl := Label.new()
+		b_lbl.text = _fmt_short(bal)
+		b_lbl.add_theme_font_size_override("font_size", 12)
+		b_lbl.add_theme_color_override("font_color", C_TEXT if bal >= 0 else C_DANGER)
+		if _theme and _theme.font_mono:
+			b_lbl.add_theme_font_override("font", _theme.font_mono)
+		b_lbl.size_flags_horizontal = SIZE_EXPAND_FILL
+		b_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(b_lbl)
+
+# ── Loan Actions ──────────────────────────────────────────────────────────────
+
+func _on_take_loan() -> void:
+	if not _sim or not _sim.has_method("take_loan"):
+		return
+	var success := _sim.take_loan(5_000_000.0)
 	if success:
-		print("FinancePanel: Loan repaid - %.0f NOK" % repay_amount)
-		emit_signal("loan_repaid", repay_amount)
-	else:
-		print("FinancePanel: Failed to repay loan (insufficient funds or no loan)")
+		loan_taken.emit(5_000_000.0)
+		_refresh()
 
-func _format_nok(amount: float) -> String:
-	"""Format NOK amount with M/k suffix"""
-	var abs_amt = abs(amount)
-	var sign = "-" if amount < 0.0 else ""
-	
-	if abs_amt >= 1_000_000.0:
-		return "%s%.2f MNOK" % [sign, abs_amt / 1_000_000.0]
-	elif abs_amt >= 1_000.0:
-		return "%s%.0f kNOK" % [sign, abs_amt / 1_000.0]
-	return "%s%.0f NOK" % [sign, abs_amt]
+func _on_repay_loan() -> void:
+	if not _sim or not _sim.has_method("repay_loan"):
+		return
+	var success := _sim.repay_loan(1_000_000.0)
+	if success:
+		loan_repaid.emit(1_000_000.0)
+		_refresh()
 
-func _format_nok_short(amount: float) -> String:
-	"""Format NOK amount with M/k suffix (shorter version)"""
-	var abs_amt = abs(amount)
-	var sign = "-" if amount < 0.0 else ""
-	
-	if abs_amt >= 1_000_000.0:
-		return "%s%.1fM" % [sign, abs_amt / 1_000_000.0]
-	elif abs_amt >= 1_000.0:
-		return "%s%.0fk" % [sign, abs_amt / 1_000.0]
-	return "%s%.0f" % [sign, abs_amt]
+# ── Formatting ────────────────────────────────────────────────────────────────
+
+func _fmt(amount: float) -> String:
+	var a := absf(amount)
+	var s := "-" if amount < 0 else ""
+	if a >= 1_000_000.0:
+		return "%s%.2f MNOK" % [s, a / 1_000_000.0]
+	if a >= 1_000.0:
+		return "%s%.0f kNOK" % [s, a / 1_000.0]
+	return "%s%.0f NOK" % [s, a]
+
+func _fmt_short(amount: float) -> String:
+	var a := absf(amount)
+	var s := "-" if amount < 0 else ""
+	if a >= 1_000_000.0:
+		return "%s%.1fM" % [s, a / 1_000_000.0]
+	if a >= 1_000.0:
+		return "%s%.0fk" % [s, a / 1_000.0]
+	return "%s%.0f" % [s, a]

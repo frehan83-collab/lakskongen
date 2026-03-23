@@ -6,26 +6,26 @@ extends Control
 signal close_requested
 
 # ── Colors (Norwegian ocean theme) ──────────────────────────────────────────
-const BG_DEEP       := Color(0.03, 0.07, 0.18, 0.97)
-const BG_PANEL      := Color(0.05, 0.10, 0.24, 1.0)
-const BG_SIDEBAR    := Color(0.04, 0.08, 0.20, 1.0)
-const BG_ENTRY      := Color(0.06, 0.12, 0.28, 1.0)
-const BG_SELECTED   := Color(0.08, 0.25, 0.50, 1.0)
-const BG_HOVER      := Color(0.07, 0.18, 0.38, 1.0)
-const BG_SEARCH     := Color(0.05, 0.11, 0.26, 1.0)
-const BORDER_COLOR  := Color(0.20, 0.55, 0.85, 0.60)
-const TEXT_TITLE    := Color(0.90, 0.97, 1.00)
-const TEXT_BODY     := Color(0.72, 0.88, 0.98)
-const TEXT_MUTED    := Color(0.50, 0.70, 0.88)
-const TEXT_ACCENT   := Color(0.40, 0.85, 1.00)
-const TEXT_RELATED  := Color(0.35, 0.80, 1.00)
+const BG_DEEP       := Color("#ECEFF4")
+const BG_PANEL      := Color("#FFFFFF")
+const BG_SIDEBAR    := Color("#F8F9FB")
+const BG_ENTRY      := Color("#F8F9FB")
+const BG_SELECTED   := Color("#0A4D68")
+const BG_HOVER      := Color("#5E81AC")
+const BG_SEARCH     := Color("#F8F9FB")
+const BORDER_COLOR  := Color("#D8DEE9")
+const TEXT_TITLE    := Color("#2E3440")
+const TEXT_BODY     := Color("#4C566A")
+const TEXT_MUTED    := Color("#7B8794")
+const TEXT_ACCENT   := Color("#0A4D68")
+const TEXT_RELATED  := Color("#88C0D0")
 const CAT_COLORS := {
-	"Fish Species": Color(0.30, 0.80, 0.60),
-	"Diseases":     Color(0.90, 0.40, 0.35),
-	"Equipment":    Color(0.45, 0.70, 0.95),
-	"Regulations":  Color(0.95, 0.78, 0.30),
-	"Feed":         Color(0.65, 0.88, 0.40),
-	"Markets":      Color(0.80, 0.55, 0.95),
+	"Fish Species": Color("#A3BE8C"),
+	"Diseases":     Color("#BF616A"),
+	"Equipment":    Color("#88C0D0"),
+	"Regulations":  Color("#EBCB8B"),
+	"Feed":         Color("#A3BE8C"),
+	"Markets":      Color("#7B9BC0"),
 }
 
 # ── Encyclopedia data ─────────────────────────────────────────────────────────
@@ -403,7 +403,7 @@ func _build_ui() -> void:
 	# Dim overlay
 	_overlay = ColorRect.new()
 	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_overlay.color = Color(0.0, 0.02, 0.08, 0.75)
+	_overlay.color = Color(0.18, 0.20, 0.25, 0.60)
 	add_child(_overlay)
 
 	# Main panel container (centred)
@@ -456,7 +456,7 @@ func _build_header() -> Control:
 	hdr.custom_minimum_size.y = 64
 
 	var hdr_bg := ColorRect.new()
-	hdr_bg.color = Color(0.04, 0.09, 0.22, 1.0)
+	hdr_bg.color = Color("#FFFFFF")
 	hdr_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hdr.add_child(hdr_bg)
 
@@ -506,7 +506,7 @@ func _build_header() -> Control:
 	spacer.custom_minimum_size.x = 20
 	inner.add_child(spacer)
 
-	var close_btn := _make_button("✕", 18, Color(0.85, 0.35, 0.30))
+	var close_btn := _make_button("✕", 18, Color("#BF616A"))
 	close_btn.custom_minimum_size = Vector2(44, 44)
 	close_btn.tooltip_text = "Lukk leksikonet (Esc)"
 	close_btn.pressed.connect(_on_close_pressed)
@@ -530,7 +530,7 @@ func _build_sidebar() -> Control:
 	cat_header.add_theme_color_override("font_color", TEXT_MUTED)
 	cat_header.custom_minimum_size.y = 36
 	var cat_hdr_style := StyleBoxFlat.new()
-	cat_hdr_style.bg_color = Color(0.04, 0.08, 0.20, 1.0)
+	cat_hdr_style.bg_color = Color("#F8F9FB")
 	cat_hdr_style.border_color = BORDER_COLOR
 	cat_hdr_style.border_width_bottom = 1
 	cat_header.add_theme_stylebox_override("normal", cat_hdr_style)

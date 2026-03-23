@@ -15,18 +15,18 @@ signal panel_close_requested
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 
-const COLOR_BG          := Color(0.08, 0.10, 0.14)
-const COLOR_HEADER      := Color(0.05, 0.07, 0.10)
-const COLOR_ROW_EVEN    := Color(0.10, 0.12, 0.17)
-const COLOR_ROW_ODD     := Color(0.12, 0.14, 0.20)
-const COLOR_ROW_HOVER   := Color(0.15, 0.20, 0.32)
-const COLOR_ROW_SEL     := Color(0.10, 0.25, 0.55)
-const COLOR_ENABLED     := Color(0.15, 0.70, 0.35)
-const COLOR_DISABLED    := Color(0.55, 0.20, 0.20)
-const COLOR_TEXT_BRIGHT := Color(0.92, 0.92, 0.95)
-const COLOR_TEXT_DIM    := Color(0.55, 0.55, 0.60)
-const COLOR_ACCENT      := Color(0.25, 0.55, 1.00)
-const COLOR_DETAIL_BG   := Color(0.06, 0.08, 0.12)
+const COLOR_BG          := Color("#ECEFF4")
+const COLOR_HEADER      := Color("#FFFFFF")
+const COLOR_ROW_EVEN    := Color("#ECEFF4")
+const COLOR_ROW_ODD     := Color("#FFFFFF")
+const COLOR_ROW_HOVER   := Color("#F8F9FB")
+const COLOR_ROW_SEL     := Color("#5E81AC")
+const COLOR_ENABLED     := Color("#A3BE8C")
+const COLOR_DISABLED    := Color("#A54E56")
+const COLOR_TEXT_BRIGHT := Color("#2E3440")
+const COLOR_TEXT_DIM    := Color("#7B8794")
+const COLOR_ACCENT      := Color("#5E81AC")
+const COLOR_DETAIL_BG   := Color("#ECEFF4")
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -155,7 +155,7 @@ func _build_ui() -> void:
 	# Separator
 	var sep := ColorRect.new()
 	sep.custom_minimum_size.x = 1
-	sep.color = Color(0.25, 0.28, 0.35)
+	sep.color = Color("#D8DEE9")
 	body_hbox.add_child(sep)
 
 	# Right: detail pane
@@ -185,7 +185,7 @@ func _build_ui() -> void:
 	open_btn.pressed.connect(_on_open_folder_pressed)
 	toolbar_hbox.add_child(open_btn)
 
-	var reload_btn := _make_button("Last inn på nytt", Color(0.25, 0.45, 0.25))
+	var reload_btn := _make_button("Last inn på nytt", Color("#8FAD78"))
 	reload_btn.pressed.connect(_on_reload_pressed)
 	toolbar_hbox.add_child(reload_btn)
 
@@ -227,7 +227,7 @@ func _build_detail_pane() -> void:
 
 	var sep_line := ColorRect.new()
 	sep_line.custom_minimum_size.y = 1
-	sep_line.color = Color(0.25, 0.28, 0.35)
+	sep_line.color = Color("#D8DEE9")
 	vbox.add_child(sep_line)
 
 	_detail_desc = RichTextLabel.new()
@@ -240,7 +240,7 @@ func _build_detail_pane() -> void:
 
 	var sep_line2 := ColorRect.new()
 	sep_line2.custom_minimum_size.y = 1
-	sep_line2.color = Color(0.25, 0.28, 0.35)
+	sep_line2.color = Color("#D8DEE9")
 	vbox.add_child(sep_line2)
 
 	_detail_stats = Label.new()

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lakskongen — Kart</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--primary:#0A4D68;--primary-light:#0D5F80;--secondary:#88C0D0;--accent:#5E81AC;--bg:#ECEFF4;--surface:#FFFFFF;--surface-elevated:#F8F9FB;--text:#2E3440;--text-secondary:#4C566A;--text-muted:#7B8794;--text-inverse:#ECEFF4;--border:#D8DEE9;--border-light:#E5E9F0;--success:#A3BE8C;--success-dark:#8FAD78;--warning:#EBCB8B;--warning-dark:#D4B06A;--danger:#BF616A;--info:#88C0D0;--shadow-sm:0 1px 2px rgba(46,52,64,.06);--radius-sm:4px;--radius-md:8px;--font-heading:'Inter',system-ui,sans-serif;--font-body:'IBM Plex Sans',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace}
+html{font-size:15px;line-height:1.5}body{font-family:var(--font-body);color:var(--text);background:var(--bg);display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--primary);color:var(--text-inverse);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:10}
+.sidebar-logo{padding:20px 24px;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.5px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px}
+.sidebar-logo .icon{width:28px;height:28px;background:var(--secondary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px}
+.sidebar-nav{flex:1;padding:16px 0}.sidebar-nav a{display:flex;align-items:center;gap:12px;padding:10px 24px;color:rgba(236,239,244,.7);text-decoration:none;font-size:14px;font-weight:500;transition:all .15s}.sidebar-nav a:hover{color:#fff;background:rgba(255,255,255,.08)}.sidebar-nav a.active{color:#fff;background:rgba(255,255,255,.12);border-left:3px solid var(--secondary);padding-left:21px}.sidebar-nav a .nav-icon{width:20px;text-align:center;font-size:16px}
+.sidebar-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:rgba(236,239,244,.5)}
+.main{margin-left:220px;flex:1;padding:24px 32px;max-width:1600px}
+.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}.page-header h1{font-family:var(--font-heading);font-size:24px;font-weight:700}
+.map-layout{display:grid;grid-template-columns:1fr 320px;gap:20px;height:calc(100vh - 120px)}
+/* Map placeholder */
+.map-container{background:var(--surface);border-radius:var(--radius-md);border:1px solid var(--border-light);position:relative;overflow:hidden;min-height:600px}
+.map-bg{width:100%;height:100%;background:linear-gradient(180deg,#B8D4E3 0%,#9BC4D8 30%,#7BB4CC 60%,#5B9FBB 100%);position:relative}
+/* Simplified Norway coastline using CSS */
+.norway-shape{position:absolute;top:5%;left:20%;width:60%;height:90%;opacity:.15}
+.norway-shape svg{width:100%;height:100%}
+/* Location pins */
+.map-pin{position:absolute;cursor:pointer;transition:transform .15s}
+.map-pin:hover{transform:scale(1.15)}
+.pin-dot{width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center}
+.pin-dot.active{background:var(--success);animation:pulse 2s infinite}
+.pin-dot.hq{background:var(--primary)}
+.pin-dot.processing{background:var(--accent)}
+.pin-dot.supplier{background:var(--warning)}
+.pin-label{position:absolute;left:28px;top:0;white-space:nowrap;background:rgba(255,255,255,.95);padding:3px 10px;border-radius:var(--radius-sm);font-size:11px;font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,.15);font-family:var(--font-heading)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(163,190,140,.5)}50%{box-shadow:0 0 0 8px rgba(163,190,140,0)}}
+/* Map controls */
+.map-controls{position:absolute;top:16px;right:16px;display:flex;flex-direction:column;gap:4px}
+.map-ctrl{width:32px;height:32px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px}
+.map-legend{position:absolute;bottom:16px;left:16px;background:rgba(255,255,255,.95);border-radius:var(--radius-md);padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.1);display:flex;gap:16px}
+.map-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-secondary)}
+.map-legend-dot{width:10px;height:10px;border-radius:50%}
+
+/* Side panel */
+.map-panel{display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.card{background:var(--surface);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);border:1px solid var(--border-light);overflow:hidden}
+.card-header{padding:14px 16px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center}
+.card-header h2{font-family:var(--font-heading);font-size:14px;font-weight:600}
+.card-body{padding:16px}
+.location-item{padding:10px 0;border-bottom:1px solid var(--border-light);cursor:pointer;transition:background .1s}
+.location-item:last-child{border-bottom:none}
+.location-item:hover{background:var(--surface-elevated);margin:0 -16px;padding:10px 16px}
+.loc-header{display:flex;justify-content:space-between;align-items:center}
+.loc-name{font-family:var(--font-heading);font-size:13px;font-weight:600}
+.loc-type{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.loc-type.farm{background:rgba(163,190,140,.15);color:var(--success-dark)}
+.loc-type.processing{background:rgba(94,129,172,.15);color:var(--accent)}
+.loc-type.supplier{background:rgba(235,203,139,.15);color:var(--warning-dark)}
+.loc-details{display:flex;gap:12px;margin-top:6px;font-size:11px;color:var(--text-muted)}
+.route-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-light);font-size:12px}
+.route-item:last-child{border-bottom:none}
+.route-icon{font-size:16px}
+.route-info{flex:1}.route-name{font-weight:500;font-size:13px}.route-detail{color:var(--text-muted);font-size:11px;margin-top:2px}
+.route-dist{font-family:var(--font-mono);color:var(--text-secondary);font-size:12px}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="icon">🐟</div>Lakskongen</div>
+  <div class="sidebar-nav">
+    <a href="#"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="#"><span class="nav-icon">🏗️</span> Merder</a>
+    <a href="#"><span class="nav-icon">📈</span> Marked</a>
+    <a href="#"><span class="nav-icon">💰</span> Finans</a>
+    <a href="#"><span class="nav-icon">🔬</span> Forskning</a>
+    <a href="#" class="active"><span class="nav-icon">🗺️</span> Kart</a>
+    <a href="#"><span class="nav-icon">👷</span> Mannskap</a>
+    <a href="#"><span class="nav-icon">🚚</span> Logistikk</a>
+    <a href="#"><span class="nav-icon">⚙️</span> Innstillinger</a>
+  </div>
+  <div class="sidebar-footer">Uke 12 · Mars 2026<br>Dag 847 · Vår</div>
+</nav>
+<div class="main">
+  <div class="page-header"><h1>🗺️ Kart — Nordland Region</h1></div>
+  <div class="map-layout">
+    <div class="map-container">
+      <div class="map-bg">
+        <!-- SVG simplified Norway coast -->
+        <svg viewBox="0 0 400 800" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:.12">
+          <path d="M180,50 C160,100 140,180 150,250 C155,290 170,320 165,380 C160,440 180,480 175,540 C170,600 185,660 180,720 C178,750 190,780 200,790 L220,790 C230,750 225,700 230,650 C235,600 220,560 225,500 C230,440 215,400 220,340 C225,280 210,240 215,180 C218,140 230,100 220,50 Z" fill="#0A4D68"/>
+        </svg>
+
+        <!-- Farm locations -->
+        <div class="map-pin" style="top:25%;left:45%"><div class="pin-dot active"></div><span class="pin-label">Nordfjord — 6 merder</span></div>
+        <div class="map-pin" style="top:38%;left:35%"><div class="pin-dot active"></div><span class="pin-label">Helgeland Sør — 4 merder</span></div>
+        <div class="map-pin" style="top:55%;left:50%"><div class="pin-dot active"></div><span class="pin-label">Brønnøysund — 4 merder</span></div>
+
+        <!-- HQ -->
+        <div class="map-pin" style="top:42%;left:55%"><div class="pin-dot hq"></div><span class="pin-label">🏢 Hovedkontor Bodø</span></div>
+
+        <!-- Processing -->
+        <div class="map-pin" style="top:48%;left:42%"><div class="pin-dot processing"></div><span class="pin-label">⚙️ Prosessering Ørnes</span></div>
+
+        <!-- Suppliers -->
+        <div class="map-pin" style="top:18%;left:58%"><div class="pin-dot supplier"></div><span class="pin-label">📦 Skretting lager</span></div>
+        <div class="map-pin" style="top:65%;left:38%"><div class="pin-dot supplier"></div><span class="pin-label">📦 BioMar depot</span></div>
+      </div>
+
+      <div class="map-controls">
+        <div class="map-ctrl">+</div>
+        <div class="map-ctrl">−</div>
+        <div class="map-ctrl">⟳</div>
+      </div>
+
+      <div class="map-legend">
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--success)"></div>Oppdrett</div>
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--primary)"></div>Hovedkontor</div>
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--accent)"></div>Prosessering</div>
+        <div class="map-legend-item"><div class="map-legend-dot" style="background:var(--warning)"></div>Leverandør</div>
+      </div>
+    </div>
+
+    <div class="map-panel">
+      <div class="card">
+        <div class="card-header"><h2>📍 Lokasjoner</h2></div>
+        <div class="card-body">
+          <div class="location-item">
+            <div class="loc-header"><span class="loc-name">Nordfjord</span><span class="loc-type farm">Oppdrett</span></div>
+            <div class="loc-details"><span>6 merder</span><span>2 450 t biomasse</span><span>67°28'N</span></div>
+          </div>
+          <div class="location-item">
+            <div class="loc-header"><span class="loc-name">Helgeland Sør</span><span class="loc-type farm">Oppdrett</span></div>
+            <div class="loc-details"><span>4 merder</span><span>1 820 t biomasse</span><span>65°52'N</span></div>
+          </div>
+          <div class="location-item">
+            <div class="loc-header"><span class="loc-name">Brønnøysund</span><span class="loc-type farm">Oppdrett</span></div>
+            <div class="loc-details"><span>4 merder</span><span>1 640 t biomasse</span><span>65°28'N</span></div>
+          </div>
+          <div class="location-item">
+            <div class="loc-header"><span class="loc-name">Ørnes</span><span class="loc-type processing">Prosessering</span></div>
+            <div class="loc-details"><span>Kapasitet: 200 t/uke</span><span>Utnyttelse: 78%</span></div>
+          </div>
+          <div class="location-item">
+            <div class="loc-header"><span class="loc-name">Bodø HQ</span><span class="loc-type supplier">Kontor</span></div>
+            <div class="loc-details"><span>24 ansatte</span><span>Admin & salg</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>🚚 Aktive ruter</h2></div>
+        <div class="card-body">
+          <div class="route-item">
+            <div class="route-icon">🚛</div>
+            <div class="route-info"><div class="route-name">Nordfjord → Ørnes</div><div class="route-detail">Lastebil · 80t fersk · Ankomst 14:30</div></div>
+            <div class="route-dist">142 km</div>
+          </div>
+          <div class="route-item">
+            <div class="route-icon">🚢</div>
+            <div class="route-info"><div class="route-name">Ørnes → Bergen havn</div><div class="route-detail">Brønnbåt · 120t · Avgår i morgen</div></div>
+            <div class="route-dist">890 km</div>
+          </div>
+          <div class="route-item">
+            <div class="route-icon">📦</div>
+            <div class="route-info"><div class="route-name">Skretting → Nordfjord</div><div class="route-detail">Fôrleveranse · 50t · Onsdag</div></div>
+            <div class="route-dist">210 km</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

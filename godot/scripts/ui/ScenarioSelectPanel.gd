@@ -30,105 +30,95 @@ const CARDS_Y    := 80    # vertical offset below title bar
 
 # ── Deep-ocean colour palette ───────────────────────────────────────────────────
 
-const C_BG         := Color(0.06, 0.08, 0.12)   # near-black fjord
-const C_CARD_BASE  := Color(0.11, 0.15, 0.22)   # dark slate
-const C_LOCKED_BG  := Color(0.09, 0.10, 0.13)   # muted locked card
-const C_TITLE      := Color(0.88, 0.92, 1.00)
-const C_TEXT       := Color(0.78, 0.82, 0.90)
-const C_DIM        := Color(0.45, 0.48, 0.55)
-const C_LOCKED_TXT := Color(0.35, 0.38, 0.42)
-const C_STAR_ON    := Color(1.00, 0.85, 0.15)
-const C_STAR_OFF   := Color(0.30, 0.32, 0.38)
-const C_POSITIVE   := Color(0.35, 0.90, 0.50)
-const C_NEGATIVE   := Color(0.95, 0.35, 0.35)
+const C_BG         := Color("#ECEFF4")   # near-black fjord
+const C_CARD_BASE  := Color("#FFFFFF")   # dark slate
+const C_LOCKED_BG  := Color("#E5E9F0")   # muted locked card
+const C_TITLE      := Color("#2E3440")
+const C_TEXT       := Color("#4C566A")
+const C_DIM        := Color("#7B8794")
+const C_LOCKED_TXT := Color("#D8DEE9")
+const C_STAR_ON    := Color("#EBCB8B")
+const C_STAR_OFF   := Color("#D8DEE9")
+const C_POSITIVE   := Color("#A3BE8C")
+const C_NEGATIVE   := Color("#BF616A")
 
 # ── Scenario metadata ───────────────────────────────────────────────────────────
 
 const SCENARIO_DATA: Array = [
 	{
 		"id":          "forste_sesong",
-		"name":        "Første Sesong",
-		"subtitle":    "Opplæring",
+		"name":        "Familiegården",
+		"subtitle":    "Tutorial",
 		"difficulty":  1,
 		"win":         "Fullfør opplæringen",
-		"description": "Du har arvet en liten oppdrettslisens i Hardanger. "
-		             + "Lær grunnleggende drift med ett anlegg, rolig vær og stabile "
-		             + "priser. Perfekt for nybegynnere.",
-		"capital":     "500 000 NOK",
+		"description": "Du har arvet bestefars lille oppdrett i Hardanger. Med én lisens og små midler må du lære grunnleggende oppdrett. Bygg opp gården fra bunnen av og vis at du kan drive lønnsomt.",
+		"capital":     "300 000 NOK",
 		"capital_neg": false,
 		"region":      "Vestland",
 		"icon":        "🐟",
-		"color":       Color(0.30, 0.65, 1.00),   # ocean blue
+		"color":       Color("#5E81AC"),   # ocean blue
 		"unlocked":    true,
 		"special":     ["☀️ Rolig vær", "📈 Stabile priser", "1 anlegg"],
 	},
 	{
 		"id":          "lofoten_eventyr",
-		"name":        "Lofotens Eventyr",
-		"subtitle":    "Storm & Premiumkvalitet",
+		"name":        "Nordlands Utfordring",
+		"subtitle":    "Storm & Premium",
 		"difficulty":  3,
 		"win":         "Nå 5 000 000 NOK i overskudd",
-		"description": "De dramatiske øyene i Nordland byr på de reneste havstrømmene "
-		             + "og de råeste stormene. Premium-priser i Asia og Europa — "
-		             + "men uvær truer anleggene.",
+		"description": "De harde kystene i Nordland byr på de verste stormene og kaldeste havstrømmene, men laksen her når premiumpriser som sashimi til Japan. Takle uværet og nå et overskudd på 5 000 000 NOK.",
 		"capital":     "2 000 000 NOK",
 		"capital_neg": false,
 		"region":      "Nordland",
 		"icon":        "❄️",
-		"color":       Color(0.55, 0.82, 1.00),   # arctic blue
+		"color":       Color("#A3D1DE"),   # arctic blue
 		"unlocked":    true,
-		"special":     ["⛈️ Harde stormer", "💴 Premiumpriser", "2 anlegg"],
+		"special":     ["⛈️ Harde stormer", "💴 Premiumpriser", "Høy risiko"],
 	},
 	{
 		"id":          "laksebaronene",
-		"name":        "Laksebaronene",
+		"name":        "Trønder-krigen",
 		"subtitle":    "Konkurranse",
 		"difficulty":  4,
 		"win":         "Nå 10 000 000 NOK før konkurrentene",
-		"description": "Tre aggressive konkurrenter kjemper om å bli Trøndelags største "
-		             + "lakseaktør. Vær den første til å nå 10M NOK i fortjeneste — "
-		             + "eller bli utkonkurrert.",
+		"description": "Tre AI-konkurrenter kjemper om å bli Trøndelags største lakseaktør. Markedskampen er brutal – hvem som helst kan ta markedsandeler, kjøpe lisenser og dumpe priser. Vær den første til å nå 10 000 000 NOK i fortjeneste.",
 		"capital":     "5 000 000 NOK",
 		"capital_neg": false,
 		"region":      "Trøndelag",
 		"icon":        "👑",
 		"color":       Color(1.00, 0.82, 0.20),   # gold
 		"unlocked":    false,
-		"special":     ["🤖 3 AI-rivaler", "📊 Ukentlig leaderboard", "Dynamisk marked"],
-	},
-	{
-		"id":          "barekraft_mester",
-		"name":        "Bærekraftsmester",
-		"subtitle":    "Miljøsertifisering",
-		"difficulty":  3,
-		"win":         "Sustainability Leader-sertifisering (≥ 95 poeng)",
-		"description": "Forbrukere og politikere krever ansvarlig havbruk. Bygg et "
-		             + "selskap med minst mulig miljøavtrykk og oppnå toppsertifisering. "
-		             + "Strengere reguleringer gjør veien krevende.",
-		"capital":     "3 000 000 NOK",
-		"capital_neg": false,
-		"region":      "Vestland",
-		"icon":        "🌿",
-		"color":       Color(0.25, 0.88, 0.52),   # emerald
-		"unlocked":    false,
-		"special":     ["🔬 ASC-fokus", "⚖️ Reguleringstrykk", "Grønne obligasjoner"],
+		"special":     ["🤖 3 AI-rivaler", "📊 Profittledertavle", "Dynamisk marked"],
 	},
 	{
 		"id":          "krise_manager",
-		"name":        "Krise Manager",
+		"name":        "Finnmarks Gjenfødsel",
 		"subtitle":    "Overlevelsesprøve",
 		"difficulty":  5,
 		"win":         "Overlev 730 dager med positiv saldo",
-		"description": "Du tar over et konkursrammet anlegg i Finnmark: ILA-utbrudd, "
-		             + "500 000 NOK i gjeld og Mattilsynet-varsel. Bare de sterkeste "
-		             + "overlever.",
+		"description": "Du tar over et konkursrammet anlegg i Finnmark med et aktivt ILA-utbrudd. 500 000 NOK i gjeld og Mattilsynet har varslet sanksjoner. Overlev i 730 dager og snu selskapet til lønnsomhet.",
 		"capital":     "−500 000 NOK",
 		"capital_neg": true,
 		"region":      "Finnmark",
 		"icon":        "🚨",
-		"color":       Color(0.95, 0.32, 0.32),   # crisis red
+		"color":       Color("#BF616A"),   # crisis red
 		"unlocked":    false,
-		"special":     ["🦠 ILA-utbrudd", "💸 Startgjeld", "🏛️ Myndighetstilsyn"],
+		"special":     ["🦠 ILA-utbrudd", "💸 Startgjeld", "🏛️ Reguleringstrykk"],
+	},
+	{
+		"id":          "barekraft_mester",
+		"name":        "Lakskongen",
+		"subtitle":    "Fri lek",
+		"difficulty":  1,
+		"win":         "Nå 100 000 000 NOK i overskudd",
+		"description": "Fri lek – start hvor som helst i Norge uten begrensninger. Bygg ditt lakseimperium fra bunnen av, uten tidspress eller konkurrenter. Målet er å skape den største og mest lønnsomme oppdrettsvirksomheten.",
+		"capital":     "50 000 000 NOK",
+		"capital_neg": false,
+		"region":      "Vestland",
+		"icon":        "👑",
+		"color":       Color("#A3BE8C"),   # emerald
+		"unlocked":    false,
+		"special":     ["☀️ Rolig vær", "📈 Stabile priser", "Ingen tidspress"],
 	},
 ]
 
@@ -136,6 +126,14 @@ const SCENARIO_DATA: Array = [
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(PANEL_W, PANEL_H)
+	anchor_left = 0.5
+	anchor_right = 0.5
+	anchor_top = 0.5
+	anchor_bottom = 0.5
+	offset_left = -PANEL_W / 2
+	offset_right = PANEL_W / 2
+	offset_top = -PANEL_H / 2
+	offset_bottom = PANEL_H / 2
 	_build_skeleton()
 
 # ── Build ───────────────────────────────────────────────────────────────────────
@@ -184,7 +182,7 @@ func _build_skeleton() -> void:
 
 	# ── Separator line ──
 	var sep := ColorRect.new()
-	sep.color = Color(0.20, 0.28, 0.42)
+	sep.color = Color("#D8DEE9")
 	sep.position = Vector2(0, HEADER_H - 2)
 	sep.size = Vector2(PANEL_W, 1)
 	add_child(sep)
@@ -278,7 +276,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	# ── Separator ──
 	var sep := ColorRect.new()
 	sep.custom_minimum_size = Vector2(0, 1)
-	sep.color = Color(0.22, 0.28, 0.38) if not locked else Color(0.15, 0.18, 0.22)
+	sep.color = Color("#D8DEE9") if not locked else Color("#F8F9FB")
 	vbox.add_child(sep)
 
 	# ── Description ──
@@ -335,7 +333,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 		btn.tooltip_text = "Dette scenariet er låst. Fullfør andre scenarier for å låse opp."
 		btn.disabled = true
 		var lock_style := StyleBoxFlat.new()
-		lock_style.bg_color = Color(0.15, 0.17, 0.20)
+		lock_style.bg_color = Color("#F8F9FB")
 		lock_style.set_corner_radius_all(7)
 		btn.add_theme_stylebox_override("normal",   lock_style)
 		btn.add_theme_stylebox_override("disabled", lock_style)

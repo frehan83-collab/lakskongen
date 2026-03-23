@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lakskongen — Forskning</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--primary:#0A4D68;--primary-light:#0D5F80;--secondary:#88C0D0;--secondary-light:#A3D1DE;--accent:#5E81AC;--accent-light:#7B9BC0;--bg:#ECEFF4;--surface:#FFFFFF;--surface-elevated:#F8F9FB;--text:#2E3440;--text-secondary:#4C566A;--text-muted:#7B8794;--text-inverse:#ECEFF4;--border:#D8DEE9;--border-light:#E5E9F0;--success:#A3BE8C;--success-dark:#8FAD78;--warning:#EBCB8B;--warning-dark:#D4B06A;--danger:#BF616A;--info:#88C0D0;--shadow-sm:0 1px 2px rgba(46,52,64,.06);--radius-sm:4px;--radius-md:8px;--font-heading:'Inter',system-ui,sans-serif;--font-body:'IBM Plex Sans',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace}
+html{font-size:15px;line-height:1.5}body{font-family:var(--font-body);color:var(--text);background:var(--bg);display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--primary);color:var(--text-inverse);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:10}
+.sidebar-logo{padding:20px 24px;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.5px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px}
+.sidebar-logo .icon{width:28px;height:28px;background:var(--secondary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px}
+.sidebar-nav{flex:1;padding:16px 0}.sidebar-nav a{display:flex;align-items:center;gap:12px;padding:10px 24px;color:rgba(236,239,244,.7);text-decoration:none;font-size:14px;font-weight:500;transition:all .15s}.sidebar-nav a:hover{color:#fff;background:rgba(255,255,255,.08)}.sidebar-nav a.active{color:#fff;background:rgba(255,255,255,.12);border-left:3px solid var(--secondary);padding-left:21px}.sidebar-nav a .nav-icon{width:20px;text-align:center;font-size:16px}
+.sidebar-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:rgba(236,239,244,.5)}
+.main{margin-left:220px;flex:1;padding:24px 32px;max-width:1600px}
+.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}.page-header h1{font-family:var(--font-heading);font-size:24px;font-weight:700}
+.btn{padding:8px 16px;border:none;border-radius:var(--radius-sm);font-family:var(--font-heading);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-light)}
+.kpi-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--surface);border-radius:var(--radius-md);padding:18px 20px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.kpi-card:nth-child(1)::before{background:var(--accent)}.kpi-card:nth-child(2)::before{background:var(--success)}.kpi-card:nth-child(3)::before{background:var(--warning)}
+.kpi-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:500;margin-bottom:6px}
+.kpi-value{font-family:var(--font-heading);font-size:26px;font-weight:700;line-height:1.1}.kpi-value .unit{font-size:14px;font-weight:400;color:var(--text-secondary);margin-left:3px}
+.card{background:var(--surface);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);border:1px solid var(--border-light);overflow:hidden;margin-bottom:20px}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center}
+.card-header h2{font-family:var(--font-heading);font-size:15px;font-weight:600}
+.card-body{padding:20px}
+/* Tech Tree */
+.tech-tree{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.tech-node{background:var(--surface-elevated);border:2px solid var(--border);border-radius:var(--radius-md);padding:14px;text-align:center;position:relative;transition:all .15s;cursor:pointer}
+.tech-node:hover{box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.tech-node.completed{border-color:var(--success);background:rgba(163,190,140,.08)}
+.tech-node.in-progress{border-color:var(--accent);background:rgba(94,129,172,.08)}
+.tech-node.locked{opacity:.5;border-style:dashed}
+.tech-node.available{border-color:var(--warning);background:rgba(235,203,139,.08)}
+.tech-icon{font-size:24px;margin-bottom:6px}
+.tech-name{font-family:var(--font-heading);font-size:12px;font-weight:600;margin-bottom:4px}
+.tech-cost{font-size:10px;color:var(--text-muted);font-family:var(--font-mono)}
+.tech-progress{height:3px;background:var(--border-light);border-radius:2px;margin-top:8px;overflow:hidden}
+.tech-progress-fill{height:100%;border-radius:2px}
+.tech-badge{position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+.tech-badge.done{background:var(--success)}
+.tech-badge.active{background:var(--accent)}
+/* Legend */
+.legend{display:flex;gap:20px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border-light)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary)}
+.legend-dot{width:12px;height:12px;border-radius:3px;border:2px solid}
+.legend-dot.completed{border-color:var(--success);background:rgba(163,190,140,.2)}
+.legend-dot.in-progress{border-color:var(--accent);background:rgba(94,129,172,.2)}
+.legend-dot.available{border-color:var(--warning);background:rgba(235,203,139,.2)}
+.legend-dot.locked{border-color:var(--border);border-style:dashed;opacity:.5}
+/* Active research */
+.research-active{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.research-item{background:var(--surface-elevated);border-radius:var(--radius-md);padding:16px;border:1px solid var(--border-light)}
+.research-item-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.research-item-name{font-family:var(--font-heading);font-size:14px;font-weight:600}
+.research-eta{font-size:11px;color:var(--text-muted);font-family:var(--font-mono)}
+.research-desc{font-size:12px;color:var(--text-secondary);margin-bottom:10px}
+.progress-bar{height:8px;background:var(--border-light);border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;background:var(--accent)}
+.research-stats{display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--text-muted)}
+/* MAB Licensing */
+.mab-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.mab-zone{background:var(--surface-elevated);border-radius:var(--radius-sm);padding:14px;text-align:center;border:2px solid}
+.mab-zone.green{border-color:var(--success)}.mab-zone.yellow{border-color:var(--warning)}.mab-zone.red{border-color:var(--danger)}
+.mab-zone-name{font-family:var(--font-heading);font-size:13px;font-weight:600;margin-bottom:4px}
+.mab-zone-status{font-size:20px;margin-bottom:4px}
+.mab-zone-label{font-size:11px;color:var(--text-muted)}
+.mab-zone-mab{font-family:var(--font-mono);font-size:13px;font-weight:500;margin-top:6px}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="icon">🐟</div>Lakskongen</div>
+  <div class="sidebar-nav">
+    <a href="#"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="#"><span class="nav-icon">🏗️</span> Merder</a>
+    <a href="#"><span class="nav-icon">📈</span> Marked</a>
+    <a href="#"><span class="nav-icon">💰</span> Finans</a>
+    <a href="#" class="active"><span class="nav-icon">🔬</span> Forskning</a>
+    <a href="#"><span class="nav-icon">🗺️</span> Kart</a>
+    <a href="#"><span class="nav-icon">👷</span> Mannskap</a>
+    <a href="#"><span class="nav-icon">🚚</span> Logistikk</a>
+    <a href="#"><span class="nav-icon">⚙️</span> Innstillinger</a>
+  </div>
+  <div class="sidebar-footer">Uke 12 · Mars 2026<br>Dag 847 · Vår</div>
+</nav>
+<div class="main">
+  <div class="page-header"><h1>🔬 Forskning & Teknologi</h1><button class="btn btn-primary">📊 Forskningsrapport</button></div>
+
+  <div class="kpi-strip">
+    <div class="kpi-card"><div class="kpi-label">Forskning fullført</div><div class="kpi-value">12<span class="unit">/ 25</span></div></div>
+    <div class="kpi-card"><div class="kpi-label">Aktive prosjekter</div><div class="kpi-value">3</div></div>
+    <div class="kpi-card"><div class="kpi-label">FoU-budsjett brukt</div><div class="kpi-value">4.2<span class="unit">MNOK</span></div></div>
+  </div>
+
+  <!-- TECH TREE -->
+  <div class="card">
+    <div class="card-header"><h2>🌳 Teknologitre</h2></div>
+    <div class="card-body">
+      <div class="tech-tree">
+        <div class="tech-node completed"><span class="tech-badge done">✓</span><div class="tech-icon">🧬</div><div class="tech-name">Grunnleggende genetikk</div><div class="tech-cost">Fullført</div></div>
+        <div class="tech-node completed"><span class="tech-badge done">✓</span><div class="tech-icon">🍽️</div><div class="tech-name">Fôroptimalisering I</div><div class="tech-cost">Fullført</div></div>
+        <div class="tech-node completed"><span class="tech-badge done">✓</span><div class="tech-icon">💊</div><div class="tech-name">Vaksinasjon I</div><div class="tech-cost">Fullført</div></div>
+        <div class="tech-node completed"><span class="tech-badge done">✓</span><div class="tech-icon">🌊</div><div class="tech-name">Vannkvalitetssensorer</div><div class="tech-cost">Fullført</div></div>
+        <div class="tech-node completed"><span class="tech-badge done">✓</span><div class="tech-icon">🔋</div><div class="tech-name">Solcelle-flåte</div><div class="tech-cost">Fullført</div></div>
+
+        <div class="tech-node completed"><span class="tech-badge done">✓</span><div class="tech-icon">🧪</div><div class="tech-name">Avansert genetikk</div><div class="tech-cost">Fullført</div></div>
+        <div class="tech-node in-progress"><span class="tech-badge active">⟳</span><div class="tech-icon">🤖</div><div class="tech-name">AI Fôrstyring</div><div class="tech-cost">2.1 MNOK</div><div class="tech-progress"><div class="tech-progress-fill" style="width:65%;background:var(--accent)"></div></div></div>
+        <div class="tech-node completed"><span class="tech-badge done">✓</span><div class="tech-icon">🦠</div><div class="tech-name">ILA-resistent stamme</div><div class="tech-cost">Fullført</div></div>
+        <div class="tech-node in-progress"><span class="tech-badge active">⟳</span><div class="tech-icon">🐟</div><div class="tech-name">Undervannsdrone</div><div class="tech-cost">1.8 MNOK</div><div class="tech-progress"><div class="tech-progress-fill" style="width:30%;background:var(--accent)"></div></div></div>
+        <div class="tech-node completed"><span class="tech-badge done">✓</span><div class="tech-icon">♻️</div><div class="tech-name">Slam-gjenvinning</div><div class="tech-cost">Fullført</div></div>
+
+        <div class="tech-node available"><div class="tech-icon">🧬</div><div class="tech-name">Steril laks (triploidi)</div><div class="tech-cost">3.5 MNOK</div></div>
+        <div class="tech-node locked"><div class="tech-icon">🏭</div><div class="tech-name">Landbasert RAS</div><div class="tech-cost">8.0 MNOK</div></div>
+        <div class="tech-node available"><div class="tech-icon">💊</div><div class="tech-name">Vaksinasjon III</div><div class="tech-cost">1.5 MNOK</div></div>
+        <div class="tech-node locked"><div class="tech-icon">🛰️</div><div class="tech-name">Satellittovervåking</div><div class="tech-cost">4.2 MNOK</div></div>
+        <div class="tech-node in-progress"><span class="tech-badge active">⟳</span><div class="tech-icon">🌿</div><div class="tech-name">Insektbasert fôr</div><div class="tech-cost">2.8 MNOK</div><div class="tech-progress"><div class="tech-progress-fill" style="width:15%;background:var(--accent)"></div></div></div>
+
+        <div class="tech-node locked"><div class="tech-icon">🔬</div><div class="tech-name">CRISPR luseresistens</div><div class="tech-cost">6.0 MNOK</div></div>
+        <div class="tech-node locked"><div class="tech-icon">🏗️</div><div class="tech-name">Havmerd (offshore)</div><div class="tech-cost">12.0 MNOK</div></div>
+        <div class="tech-node locked"><div class="tech-icon">📡</div><div class="tech-name">5G IoT-plattform</div><div class="tech-cost">3.0 MNOK</div></div>
+        <div class="tech-node locked"><div class="tech-icon">🤖</div><div class="tech-name">Autonom drift</div><div class="tech-cost">15.0 MNOK</div></div>
+        <div class="tech-node locked"><div class="tech-icon">🌍</div><div class="tech-name">Karbonnøytral drift</div><div class="tech-cost">5.5 MNOK</div></div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot completed"></div>Fullført</div>
+        <div class="legend-item"><div class="legend-dot in-progress"></div>Pågår</div>
+        <div class="legend-item"><div class="legend-dot available"></div>Tilgjengelig</div>
+        <div class="legend-item"><div class="legend-dot locked"></div>Låst</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Research -->
+  <div class="card">
+    <div class="card-header"><h2>⚗️ Aktiv forskning</h2></div>
+    <div class="card-body">
+      <div class="research-active">
+        <div class="research-item">
+          <div class="research-item-header"><span class="research-item-name">🤖 AI Fôrstyring</span><span class="research-eta">ETA: Uke 16</span></div>
+          <div class="research-desc">Maskinlæring for optimal fôrmengde basert på appetitt, vær og vekstdata. Reduserer FCR med est. 8%.</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:65%"></div></div>
+          <div class="research-stats"><span>Investert: 1.4 M</span><span>Forsker: 2</span><span>65% ferdig</span></div>
+        </div>
+        <div class="research-item">
+          <div class="research-item-header"><span class="research-item-name">🐟 Undervannsdrone</span><span class="research-eta">ETA: Uke 22</span></div>
+          <div class="research-desc">Autonom inspeksjon av merdnot og fiskeadferd. Erstatter dykkere, kontinuerlig overvåking.</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:30%"></div></div>
+          <div class="research-stats"><span>Investert: 540 K</span><span>Forsker: 1</span><span>30% ferdig</span></div>
+        </div>
+        <div class="research-item">
+          <div class="research-item-header"><span class="research-item-name">🌿 Insektbasert fôr</span><span class="research-eta">ETA: Uke 30</span></div>
+          <div class="research-desc">Black soldier fly-larver som proteinerstatter i fôr. Reduserer soyaimport og miljøavtrykk.</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:15%"></div></div>
+          <div class="research-stats"><span>Investert: 420 K</span><span>Forsker: 1</span><span>15% ferdig</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAB Licensing -->
+  <div class="card">
+    <div class="card-header"><h2>🚦 Trafikklyssystem (MAB-konsesjoner)</h2></div>
+    <div class="card-body">
+      <div class="mab-grid">
+        <div class="mab-zone green"><div class="mab-zone-status">🟢</div><div class="mab-zone-name">PO 7 Nordland</div><div class="mab-zone-label">Grønn — kan vokse 6%</div><div class="mab-zone-mab">MAB: 780 t → 827 t</div></div>
+        <div class="mab-zone yellow"><div class="mab-zone-status">🟡</div><div class="mab-zone-name">PO 6 Helgeland</div><div class="mab-zone-label">Gul — uendret kapasitet</div><div class="mab-zone-mab">MAB: 780 t</div></div>
+        <div class="mab-zone red"><div class="mab-zone-status">🔴</div><div class="mab-zone-name">PO 3 Hardanger</div><div class="mab-zone-label">Rød — reduksjon 6%</div><div class="mab-zone-mab">MAB: 780 t → 733 t</div></div>
+        <div class="mab-zone green"><div class="mab-zone-status">🟢</div><div class="mab-zone-name">PO 9 Troms</div><div class="mab-zone-label">Grønn — kan vokse 6%</div><div class="mab-zone-mab">MAB: 780 t → 827 t</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

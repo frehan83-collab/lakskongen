@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lakskongen — Mannskap</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--primary:#0A4D68;--primary-light:#0D5F80;--secondary:#88C0D0;--accent:#5E81AC;--bg:#ECEFF4;--surface:#FFFFFF;--surface-elevated:#F8F9FB;--text:#2E3440;--text-secondary:#4C566A;--text-muted:#7B8794;--text-inverse:#ECEFF4;--border:#D8DEE9;--border-light:#E5E9F0;--success:#A3BE8C;--success-dark:#8FAD78;--warning:#EBCB8B;--warning-dark:#D4B06A;--danger:#BF616A;--info:#88C0D0;--shadow-sm:0 1px 2px rgba(46,52,64,.06);--radius-sm:4px;--radius-md:8px;--font-heading:'Inter',system-ui,sans-serif;--font-body:'IBM Plex Sans',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace}
+html{font-size:15px;line-height:1.5}body{font-family:var(--font-body);color:var(--text);background:var(--bg);display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--primary);color:var(--text-inverse);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:10}
+.sidebar-logo{padding:20px 24px;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.5px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px}
+.sidebar-logo .icon{width:28px;height:28px;background:var(--secondary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px}
+.sidebar-nav{flex:1;padding:16px 0}.sidebar-nav a{display:flex;align-items:center;gap:12px;padding:10px 24px;color:rgba(236,239,244,.7);text-decoration:none;font-size:14px;font-weight:500;transition:all .15s}.sidebar-nav a:hover{color:#fff;background:rgba(255,255,255,.08)}.sidebar-nav a.active{color:#fff;background:rgba(255,255,255,.12);border-left:3px solid var(--secondary);padding-left:21px}.sidebar-nav a .nav-icon{width:20px;text-align:center;font-size:16px}
+.sidebar-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:rgba(236,239,244,.5)}
+.main{margin-left:220px;flex:1;padding:24px 32px;max-width:1600px}
+.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}.page-header h1{font-family:var(--font-heading);font-size:24px;font-weight:700}
+.btn{padding:8px 16px;border:none;border-radius:var(--radius-sm);font-family:var(--font-heading);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary{background:var(--primary);color:#fff}
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--surface);border-radius:var(--radius-md);padding:18px 20px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.kpi-card:nth-child(1)::before{background:var(--primary)}.kpi-card:nth-child(2)::before{background:var(--success)}.kpi-card:nth-child(3)::before{background:var(--warning)}.kpi-card:nth-child(4)::before{background:var(--accent)}
+.kpi-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:500;margin-bottom:6px}
+.kpi-value{font-family:var(--font-heading);font-size:26px;font-weight:700;line-height:1.1}.kpi-value .unit{font-size:14px;font-weight:400;color:var(--text-secondary);margin-left:3px}
+.kpi-change{font-size:12px;margin-top:6px;font-weight:500}.kpi-change.up{color:var(--success-dark)}.kpi-change.down{color:var(--danger)}
+.grid-wide-narrow{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.card{background:var(--surface);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);border:1px solid var(--border-light);overflow:hidden}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center}
+.card-header h2{font-family:var(--font-heading);font-size:15px;font-weight:600}
+.card-body{padding:20px}
+/* Employee table */
+.emp-table{width:100%;border-collapse:collapse}
+.emp-table th{text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:1px solid var(--border-light);font-weight:500}
+.emp-table td{padding:10px;font-size:13px;border-bottom:1px solid var(--border-light)}
+.emp-table tr:last-child td{border-bottom:none}
+.emp-table tr:hover{background:var(--surface-elevated)}
+.emp-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff}
+.emp-name{font-family:var(--font-heading);font-weight:600}
+.emp-role{font-size:11px;color:var(--text-muted)}
+.skill-bar{display:flex;gap:3px}.skill-dot{width:8px;height:8px;border-radius:2px;background:var(--border-light)}.skill-dot.filled{background:var(--accent)}
+.morale-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.morale-badge.high{background:rgba(163,190,140,.15);color:var(--success-dark)}
+.morale-badge.medium{background:rgba(235,203,139,.15);color:var(--warning-dark)}
+.morale-badge.low{background:rgba(191,97,106,.15);color:var(--danger)}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.status-dot.active{background:var(--success)}
+.status-dot.leave{background:var(--warning)}
+.status-dot.sick{background:var(--danger)}
+/* Skill overview */
+.skill-overview{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.skill-item{background:var(--surface-elevated);border-radius:var(--radius-sm);padding:14px;border:1px solid var(--border-light)}
+.skill-name{font-family:var(--font-heading);font-size:13px;font-weight:600;margin-bottom:8px}
+.skill-level-bar{height:8px;background:var(--border-light);border-radius:4px;overflow:hidden;margin-bottom:4px}
+.skill-level-fill{height:100%;border-radius:4px}
+.skill-count{font-size:11px;color:var(--text-muted)}
+/* Salary donut placeholder */
+.salary-grid{display:grid;grid-template-columns:1fr;gap:10px}
+.salary-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-light);font-size:13px}
+.salary-row:last-child{border-bottom:none}
+.salary-row .dept{color:var(--text-secondary)}.salary-row .amount{font-family:var(--font-mono);font-weight:500}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="icon">🐟</div>Lakskongen</div>
+  <div class="sidebar-nav">
+    <a href="#"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="#"><span class="nav-icon">🏗️</span> Merder</a>
+    <a href="#"><span class="nav-icon">📈</span> Marked</a>
+    <a href="#"><span class="nav-icon">💰</span> Finans</a>
+    <a href="#"><span class="nav-icon">🔬</span> Forskning</a>
+    <a href="#"><span class="nav-icon">🗺️</span> Kart</a>
+    <a href="#" class="active"><span class="nav-icon">👷</span> Mannskap</a>
+    <a href="#"><span class="nav-icon">🚚</span> Logistikk</a>
+    <a href="#"><span class="nav-icon">⚙️</span> Innstillinger</a>
+  </div>
+  <div class="sidebar-footer">Uke 12 · Mars 2026<br>Dag 847 · Vår</div>
+</nav>
+<div class="main">
+  <div class="page-header"><h1>👷 Mannskap</h1><button class="btn btn-primary">➕ Ansett</button></div>
+
+  <div class="kpi-strip">
+    <div class="kpi-card"><div class="kpi-label">Totalt ansatte</div><div class="kpi-value">38</div><div class="kpi-change">Kapasitet: 42</div></div>
+    <div class="kpi-card"><div class="kpi-label">Snitt moral</div><div class="kpi-value">78<span class="unit">%</span></div><div class="kpi-change up">▲ 2% denne mnd</div></div>
+    <div class="kpi-card"><div class="kpi-label">Sykefravær</div><div class="kpi-value">4.2<span class="unit">%</span></div><div class="kpi-change down">▲ 0.8% over snitt</div></div>
+    <div class="kpi-card"><div class="kpi-label">Lønnskostnad/mnd</div><div class="kpi-value">6.1<span class="unit">MNOK</span></div><div class="kpi-change">Budsjett: 5.8M</div></div>
+  </div>
+
+  <div class="grid-wide-narrow">
+    <div class="card">
+      <div class="card-header"><h2>👥 Ansattliste</h2><span style="font-size:12px;color:var(--text-muted)">Viser 8 av 38</span></div>
+      <div class="card-body" style="padding:0">
+        <table class="emp-table">
+          <thead><tr><th></th><th>Navn</th><th>Stasjon</th><th>Ferdigheter</th><th>XP</th><th>Moral</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="emp-avatar" style="background:var(--primary)">OB</div></td>
+              <td><div class="emp-name">Ole Berntsen</div><div class="emp-role">Driftsleder</div></td>
+              <td>Nordfjord</td>
+              <td><div class="skill-bar"><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot filled"></div></div></td>
+              <td style="font-family:var(--font-mono)">Lv.12</td>
+              <td><span class="morale-badge high">😊 92%</span></td>
+              <td><span class="status-dot active"></span> Aktiv</td>
+            </tr>
+            <tr>
+              <td><div class="emp-avatar" style="background:var(--accent)">KH</div></td>
+              <td><div class="emp-name">Kari Holmen</div><div class="emp-role">Fiskebiolog</div></td>
+              <td>Nordfjord</td>
+              <td><div class="skill-bar"><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot"></div></div></td>
+              <td style="font-family:var(--font-mono)">Lv.9</td>
+              <td><span class="morale-badge high">😊 88%</span></td>
+              <td><span class="status-dot active"></span> Aktiv</td>
+            </tr>
+            <tr>
+              <td><div class="emp-avatar" style="background:var(--secondary)">EN</div></td>
+              <td><div class="emp-name">Erik Nordahl</div><div class="emp-role">Røkter</div></td>
+              <td>Helgeland Sør</td>
+              <td><div class="skill-bar"><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot"></div><div class="skill-dot"></div></div></td>
+              <td style="font-family:var(--font-mono)">Lv.6</td>
+              <td><span class="morale-badge medium">😐 65%</span></td>
+              <td><span class="status-dot active"></span> Aktiv</td>
+            </tr>
+            <tr>
+              <td><div class="emp-avatar" style="background:var(--warning-dark)">LS</div></td>
+              <td><div class="emp-name">Lise Strand</div><div class="emp-role">Fôrtekniker</div></td>
+              <td>Nordfjord</td>
+              <td><div class="skill-bar"><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot"></div></div></td>
+              <td style="font-family:var(--font-mono)">Lv.8</td>
+              <td><span class="morale-badge high">😊 85%</span></td>
+              <td><span class="status-dot active"></span> Aktiv</td>
+            </tr>
+            <tr>
+              <td><div class="emp-avatar" style="background:var(--danger)">TK</div></td>
+              <td><div class="emp-name">Thomas Krog</div><div class="emp-role">Skipper (brønnbåt)</div></td>
+              <td>Brønnøysund</td>
+              <td><div class="skill-bar"><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot"></div><div class="skill-dot"></div></div></td>
+              <td style="font-family:var(--font-mono)">Lv.7</td>
+              <td><span class="morale-badge medium">😐 72%</span></td>
+              <td><span class="status-dot leave"></span> Permisjon</td>
+            </tr>
+            <tr>
+              <td><div class="emp-avatar" style="background:#7B68AE">MV</div></td>
+              <td><div class="emp-name">Marit Vang</div><div class="emp-role">Prosesseringsarbeider</div></td>
+              <td>Ørnes</td>
+              <td><div class="skill-bar"><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot"></div><div class="skill-dot"></div><div class="skill-dot"></div></div></td>
+              <td style="font-family:var(--font-mono)">Lv.4</td>
+              <td><span class="morale-badge high">😊 80%</span></td>
+              <td><span class="status-dot active"></span> Aktiv</td>
+            </tr>
+            <tr>
+              <td><div class="emp-avatar" style="background:var(--success-dark)">JA</div></td>
+              <td><div class="emp-name">Jonas Aas</div><div class="emp-role">Dykker / Nottilsyn</div></td>
+              <td>Helgeland Sør</td>
+              <td><div class="skill-bar"><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot"></div></div></td>
+              <td style="font-family:var(--font-mono)">Lv.10</td>
+              <td><span class="morale-badge low">😟 48%</span></td>
+              <td><span class="status-dot sick"></span> Syk</td>
+            </tr>
+            <tr>
+              <td><div class="emp-avatar" style="background:var(--info)">SS</div></td>
+              <td><div class="emp-name">Silje Solheim</div><div class="emp-role">Salgssjef</div></td>
+              <td>Bodø HQ</td>
+              <td><div class="skill-bar"><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot filled"></div><div class="skill-dot filled"></div></div></td>
+              <td style="font-family:var(--font-mono)">Lv.11</td>
+              <td><span class="morale-badge high">😊 90%</span></td>
+              <td><span class="status-dot active"></span> Aktiv</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <div class="card-header"><h2>🎯 Ferdighetsoversikt</h2></div>
+        <div class="card-body">
+          <div class="skill-overview">
+            <div class="skill-item"><div class="skill-name">🐟 Fiskehåndtering</div><div class="skill-level-bar"><div class="skill-level-fill" style="width:82%;background:var(--success)"></div></div><div class="skill-count">14 ansatte · Snitt Lv.8</div></div>
+            <div class="skill-item"><div class="skill-name">🔧 Teknisk</div><div class="skill-level-bar"><div class="skill-level-fill" style="width:68%;background:var(--accent)"></div></div><div class="skill-count">8 ansatte · Snitt Lv.6</div></div>
+            <div class="skill-item"><div class="skill-name">🚢 Navigasjon</div><div class="skill-level-bar"><div class="skill-level-fill" style="width:55%;background:var(--info)"></div></div><div class="skill-count">5 ansatte · Snitt Lv.7</div></div>
+            <div class="skill-item"><div class="skill-name">🔬 Biologi</div><div class="skill-level-bar"><div class="skill-level-fill" style="width:72%;background:var(--primary)"></div></div><div class="skill-count">4 ansatte · Snitt Lv.9</div></div>
+            <div class="skill-item"><div class="skill-name">💼 Administrasjon</div><div class="skill-level-bar"><div class="skill-level-fill" style="width:88%;background:var(--warning)"></div></div><div class="skill-count">5 ansatte · Snitt Lv.10</div></div>
+            <div class="skill-item"><div class="skill-name">⚙️ Prosessering</div><div class="skill-level-bar"><div class="skill-level-fill" style="width:45%;background:var(--secondary)"></div></div><div class="skill-count">6 ansatte · Snitt Lv.4</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>💰 Lønn per avdeling</h2></div>
+        <div class="card-body">
+          <div class="salary-grid">
+            <div class="salary-row"><span class="dept">Oppdrett (drift)</span><span class="amount">2 800 000</span></div>
+            <div class="salary-row"><span class="dept">Prosessering</span><span class="amount">1 200 000</span></div>
+            <div class="salary-row"><span class="dept">Logistikk</span><span class="amount">850 000</span></div>
+            <div class="salary-row"><span class="dept">Salg & admin</span><span class="amount">1 250 000</span></div>
+            <div class="salary-row" style="font-weight:700;border-top:2px solid var(--border);padding-top:10px;margin-top:4px"><span class="dept">Total</span><span class="amount">6 100 000</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

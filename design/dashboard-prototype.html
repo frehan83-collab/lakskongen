@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lakskongen — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#0A4D68;--primary-light:#0D5F80;--primary-dark:#083D53;
+  --secondary:#88C0D0;--secondary-light:#A3D1DE;
+  --accent:#5E81AC;--accent-light:#7B9BC0;
+  --bg:#ECEFF4;--surface:#FFFFFF;--surface-elevated:#F8F9FB;
+  --text:#2E3440;--text-secondary:#4C566A;--text-muted:#7B8794;--text-inverse:#ECEFF4;
+  --border:#D8DEE9;--border-light:#E5E9F0;
+  --success:#A3BE8C;--success-dark:#8FAD78;
+  --warning:#EBCB8B;--warning-dark:#D4B06A;
+  --danger:#BF616A;--danger-dark:#A54E56;
+  --info:#88C0D0;
+  --water-blue:#5B8FA3;--salmon-pink:#E5A09D;
+  --shadow-sm:0 1px 2px rgba(46,52,64,.06);
+  --shadow-md:0 2px 4px rgba(46,52,64,.1);
+  --shadow-lg:0 4px 8px rgba(46,52,64,.12);
+  --radius-sm:4px;--radius-md:8px;--radius-lg:12px;
+  --font-heading:'Inter',system-ui,sans-serif;
+  --font-body:'IBM Plex Sans',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+html{font-size:15px;line-height:1.5}
+body{font-family:var(--font-body);color:var(--text);background:var(--bg);display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{width:220px;background:var(--primary);color:var(--text-inverse);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:10}
+.sidebar-logo{padding:20px 24px;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.5px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px}
+.sidebar-logo .icon{width:28px;height:28px;background:var(--secondary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px}
+.sidebar-nav{flex:1;padding:16px 0}
+.sidebar-nav a{display:flex;align-items:center;gap:12px;padding:10px 24px;color:rgba(236,239,244,.7);text-decoration:none;font-size:14px;font-weight:500;transition:all .15s}
+.sidebar-nav a:hover{color:#fff;background:rgba(255,255,255,.08)}
+.sidebar-nav a.active{color:#fff;background:rgba(255,255,255,.12);border-left:3px solid var(--secondary);padding-left:21px}
+.sidebar-nav a .nav-icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.sidebar-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:rgba(236,239,244,.5)}
+
+/* ── MAIN CONTENT ── */
+.main{margin-left:220px;flex:1;padding:24px 32px;max-width:1700px}
+
+/* ── TOP BAR ── */
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.topbar-left h1{font-family:var(--font-heading);font-size:24px;font-weight:700;color:var(--text)}
+.topbar-left p{font-size:13px;color:var(--text-muted);margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.topbar-right .notif{width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;font-size:16px}
+.topbar-right .notif .badge{position:absolute;top:-2px;right:-2px;width:16px;height:16px;background:var(--danger);border-radius:50%;font-size:9px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.topbar-right .avatar{width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600}
+
+/* ── KPI STRIP ── */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--surface);border-radius:var(--radius-md);padding:20px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.kpi-card:nth-child(1)::before{background:var(--primary)}
+.kpi-card:nth-child(2)::before{background:var(--success)}
+.kpi-card:nth-child(3)::before{background:var(--secondary)}
+.kpi-card:nth-child(4)::before{background:var(--accent)}
+.kpi-label{font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:500;margin-bottom:8px}
+.kpi-value{font-family:var(--font-heading);font-size:28px;font-weight:700;color:var(--text);line-height:1.1}
+.kpi-unit{font-size:14px;font-weight:400;color:var(--text-secondary);margin-left:4px}
+.kpi-change{font-size:12px;margin-top:8px;font-weight:500}
+.kpi-change.up{color:var(--success-dark)}
+.kpi-change.down{color:var(--danger)}
+
+/* ── GRID LAYOUT ── */
+.grid-2{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.grid-2-equal{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+
+/* ── CARD ── */
+.card{background:var(--surface);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);border:1px solid var(--border-light);overflow:hidden}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center}
+.card-header h2{font-family:var(--font-heading);font-size:15px;font-weight:600;color:var(--text)}
+.card-header .badge-count{font-size:11px;background:var(--danger);color:#fff;padding:2px 8px;border-radius:var(--radius-sm);font-weight:600}
+.card-body{padding:20px}
+
+/* ── PENS OVERVIEW ── */
+.pens-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pen{background:var(--surface-elevated);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;position:relative}
+.pen-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.pen-name{font-family:var(--font-heading);font-size:14px;font-weight:600}
+.pen-status{width:10px;height:10px;border-radius:50%}
+.pen-status.healthy{background:var(--success)}
+.pen-status.warning{background:var(--warning)}
+.pen-status.critical{background:var(--danger)}
+.pen-stats{display:flex;flex-direction:column;gap:6px}
+.pen-stat{display:flex;justify-content:space-between;font-size:12px}
+.pen-stat .label{color:var(--text-muted)}
+.pen-stat .value{font-family:var(--font-mono);font-weight:500;color:var(--text)}
+
+/* ── WATER QUALITY ── */
+.water-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.water-item{background:var(--surface-elevated);border-radius:var(--radius-md);padding:14px;text-align:center;border:1px solid var(--border-light)}
+.water-value{font-family:var(--font-mono);font-size:22px;font-weight:500;color:var(--text);margin:6px 0}
+.water-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+.water-bar{height:4px;border-radius:2px;background:var(--border-light);margin-top:8px;overflow:hidden}
+.water-bar-fill{height:100%;border-radius:2px}
+
+/* ── WEATHER ── */
+.weather-current{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.weather-icon{font-size:40px}
+.weather-temp{font-family:var(--font-heading);font-size:32px;font-weight:700}
+.weather-desc{font-size:13px;color:var(--text-secondary)}
+.weather-details{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
+.weather-detail{font-size:12px;color:var(--text-secondary)}
+.weather-detail strong{color:var(--text);font-weight:500}
+.weather-forecast{display:flex;gap:12px;border-top:1px solid var(--border-light);padding-top:12px}
+.forecast-day{flex:1;text-align:center;font-size:12px}
+.forecast-day .day{color:var(--text-muted);font-weight:500;margin-bottom:4px}
+.forecast-day .temp{font-family:var(--font-mono);color:var(--text);font-size:13px}
+.forecast-day .icon{font-size:18px;margin:4px 0}
+
+/* ── ALERTS ── */
+.alert-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-light)}
+.alert-item:last-child{border-bottom:none;padding-bottom:0}
+.alert-item:first-child{padding-top:0}
+.alert-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0}
+.alert-dot.warning{background:var(--warning)}
+.alert-dot.danger{background:var(--danger)}
+.alert-dot.info{background:var(--info)}
+.alert-text{font-size:13px;color:var(--text)}
+.alert-time{font-size:11px;color:var(--text-muted);margin-top:2px}
+
+/* ── FINANCIAL CHART ── */
+.fin-chart{display:flex;align-items:flex-end;gap:8px;height:120px;padding-top:8px}
+.fin-bar-group{flex:1;display:flex;gap:3px;align-items:flex-end;position:relative}
+.fin-bar{border-radius:3px 3px 0 0;min-height:4px}
+.fin-bar.revenue{background:var(--primary);width:50%}
+.fin-bar.cost{background:var(--secondary);width:50%}
+.fin-month{text-align:center;font-size:10px;color:var(--text-muted);margin-top:6px}
+.fin-legend{display:flex;gap:16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-light)}
+.fin-legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary)}
+.fin-legend-dot{width:10px;height:10px;border-radius:2px}
+
+/* ── QUICK ACTIONS ── */
+.actions-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.action-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border:none;border-radius:var(--radius-sm);font-family:var(--font-heading);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.5px}
+.action-btn.primary{background:var(--primary);color:#fff}
+.action-btn.primary:hover{background:var(--primary-light)}
+.action-btn.secondary{background:var(--surface-elevated);color:var(--text);border:1px solid var(--border)}
+.action-btn.secondary:hover{background:var(--border-light)}
+.action-btn.warning{background:var(--warning);color:var(--text)}
+.action-btn.warning:hover{background:var(--warning-dark);color:#fff}
+.action-btn.success{background:var(--success);color:#fff}
+.action-btn.success:hover{background:var(--success-dark)}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="icon">🐟</div>
+    Lakskongen
+  </div>
+  <div class="sidebar-nav">
+    <a href="#" class="active"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="#"><span class="nav-icon">🏗️</span> Merder</a>
+    <a href="#"><span class="nav-icon">📈</span> Marked</a>
+    <a href="#"><span class="nav-icon">💰</span> Finans</a>
+    <a href="#"><span class="nav-icon">🔬</span> Forskning</a>
+    <a href="#"><span class="nav-icon">🗺️</span> Kart</a>
+    <a href="#"><span class="nav-icon">👷</span> Mannskap</a>
+    <a href="#"><span class="nav-icon">🚚</span> Logistikk</a>
+    <a href="#"><span class="nav-icon">⚙️</span> Innstillinger</a>
+  </div>
+  <div class="sidebar-footer">
+    Uke 12 · Mars 2026<br>
+    Dag 847 · Vår
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1>Fjordlaks AS — Oversikt</h1>
+      <p>Nordland · 6 merder aktive · Produksjonssyklus 14</p>
+    </div>
+    <div class="topbar-right">
+      <div class="notif">🔔<span class="badge">3</span></div>
+      <div class="avatar">FH</div>
+    </div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Biomasse</div>
+      <div class="kpi-value">2 450<span class="kpi-unit">tonn</span></div>
+      <div class="kpi-change up">▲ 3.2% denne uken</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Inntekter (YTD)</div>
+      <div class="kpi-value">142.3<span class="kpi-unit">MNOK</span></div>
+      <div class="kpi-change up">▲ 8.1% mot budsjett</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Fiskehelse</div>
+      <div class="kpi-value">94.2<span class="kpi-unit">%</span></div>
+      <div class="kpi-change down">▼ 1.3% fra forrige uke</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Fôrfaktor (FCR)</div>
+      <div class="kpi-value">1.12</div>
+      <div class="kpi-change up">▲ Bedre enn mål (1.15)</div>
+    </div>
+  </div>
+
+  <!-- ROW 1: PENS + WATER QUALITY -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <h2>🏗️ Merdoversikt</h2>
+      </div>
+      <div class="card-body">
+        <div class="pens-grid">
+          <div class="pen">
+            <div class="pen-header"><span class="pen-name">Merd 1</span><span class="pen-status healthy"></span></div>
+            <div class="pen-stats">
+              <div class="pen-stat"><span class="label">Antall</span><span class="value">82 400</span></div>
+              <div class="pen-stat"><span class="label">Snitt vekt</span><span class="value">4.8 kg</span></div>
+              <div class="pen-stat"><span class="label">Temp</span><span class="value">8.2°C</span></div>
+            </div>
+          </div>
+          <div class="pen">
+            <div class="pen-header"><span class="pen-name">Merd 2</span><span class="pen-status healthy"></span></div>
+            <div class="pen-stats">
+              <div class="pen-stat"><span class="label">Antall</span><span class="value">79 100</span></div>
+              <div class="pen-stat"><span class="label">Snitt vekt</span><span class="value">5.1 kg</span></div>
+              <div class="pen-stat"><span class="label">Temp</span><span class="value">8.1°C</span></div>
+            </div>
+          </div>
+          <div class="pen">
+            <div class="pen-header"><span class="pen-name">Merd 3</span><span class="pen-status warning"></span></div>
+            <div class="pen-stats">
+              <div class="pen-stat"><span class="label">Antall</span><span class="value">91 200</span></div>
+              <div class="pen-stat"><span class="label">Snitt vekt</span><span class="value">3.4 kg</span></div>
+              <div class="pen-stat"><span class="label">Temp</span><span class="value">8.4°C</span></div>
+            </div>
+          </div>
+          <div class="pen">
+            <div class="pen-header"><span class="pen-name">Merd 4</span><span class="pen-status critical"></span></div>
+            <div class="pen-stats">
+              <div class="pen-stat"><span class="label">Antall</span><span class="value">68 300</span></div>
+              <div class="pen-stat"><span class="label">Snitt vekt</span><span class="value">5.6 kg</span></div>
+              <div class="pen-stat"><span class="label">Temp</span><span class="value">7.9°C</span></div>
+            </div>
+          </div>
+          <div class="pen">
+            <div class="pen-header"><span class="pen-name">Merd 5</span><span class="pen-status healthy"></span></div>
+            <div class="pen-stats">
+              <div class="pen-stat"><span class="label">Antall</span><span class="value">85 700</span></div>
+              <div class="pen-stat"><span class="label">Snitt vekt</span><span class="value">4.2 kg</span></div>
+              <div class="pen-stat"><span class="label">Temp</span><span class="value">8.3°C</span></div>
+            </div>
+          </div>
+          <div class="pen">
+            <div class="pen-header"><span class="pen-name">Merd 6</span><span class="pen-status healthy"></span></div>
+            <div class="pen-stats">
+              <div class="pen-stat"><span class="label">Antall</span><span class="value">77 500</span></div>
+              <div class="pen-stat"><span class="label">Snitt vekt</span><span class="value">4.9 kg</span></div>
+              <div class="pen-stat"><span class="label">Temp</span><span class="value">8.2°C</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <!-- WATER QUALITY -->
+      <div class="card">
+        <div class="card-header"><h2>💧 Vannkvalitet</h2></div>
+        <div class="card-body">
+          <div class="water-grid">
+            <div class="water-item">
+              <div class="water-label">Temperatur</div>
+              <div class="water-value">8.2°C</div>
+              <div class="water-bar"><div class="water-bar-fill" style="width:65%;background:var(--success)"></div></div>
+            </div>
+            <div class="water-item">
+              <div class="water-label">Oksygen</div>
+              <div class="water-value">92%</div>
+              <div class="water-bar"><div class="water-bar-fill" style="width:92%;background:var(--success)"></div></div>
+            </div>
+            <div class="water-item">
+              <div class="water-label">Salinitet</div>
+              <div class="water-value">33‰</div>
+              <div class="water-bar"><div class="water-bar-fill" style="width:85%;background:var(--info)"></div></div>
+            </div>
+            <div class="water-item">
+              <div class="water-label">pH</div>
+              <div class="water-value">7.8</div>
+              <div class="water-bar"><div class="water-bar-fill" style="width:78%;background:var(--success)"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WEATHER -->
+      <div class="card">
+        <div class="card-header"><h2>🌤️ Vær</h2></div>
+        <div class="card-body">
+          <div class="weather-current">
+            <div class="weather-icon">⛅</div>
+            <div>
+              <div class="weather-temp">6°C</div>
+              <div class="weather-desc">Delvis skyet</div>
+            </div>
+          </div>
+          <div class="weather-details">
+            <div class="weather-detail"><strong>Vind:</strong> 12 km/t NV</div>
+            <div class="weather-detail"><strong>Bølge:</strong> 0.8 m</div>
+            <div class="weather-detail"><strong>Sikt:</strong> 14 km</div>
+            <div class="weather-detail"><strong>Fukt:</strong> 72%</div>
+          </div>
+          <div class="weather-forecast">
+            <div class="forecast-day"><div class="day">Søn</div><div class="icon">🌧️</div><div class="temp">4° / 2°</div></div>
+            <div class="forecast-day"><div class="day">Man</div><div class="icon">⛅</div><div class="temp">7° / 3°</div></div>
+            <div class="forecast-day"><div class="day">Tir</div><div class="icon">☀️</div><div class="temp">9° / 4°</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2: FINANCE + ALERTS + ACTIONS -->
+  <div class="grid-3">
+    <!-- FINANCIAL -->
+    <div class="card">
+      <div class="card-header"><h2>💰 Økonomi (6 mnd)</h2></div>
+      <div class="card-body">
+        <div class="fin-chart">
+          <div class="fin-bar-group"><div class="fin-bar revenue" style="height:45px"></div><div class="fin-bar cost" style="height:32px"></div><div class="fin-month">Okt</div></div>
+          <div class="fin-bar-group"><div class="fin-bar revenue" style="height:52px"></div><div class="fin-bar cost" style="height:35px"></div><div class="fin-month">Nov</div></div>
+          <div class="fin-bar-group"><div class="fin-bar revenue" style="height:68px"></div><div class="fin-bar cost" style="height:38px"></div><div class="fin-month">Des</div></div>
+          <div class="fin-bar-group"><div class="fin-bar revenue" style="height:58px"></div><div class="fin-bar cost" style="height:40px"></div><div class="fin-month">Jan</div></div>
+          <div class="fin-bar-group"><div class="fin-bar revenue" style="height:75px"></div><div class="fin-bar cost" style="height:42px"></div><div class="fin-month">Feb</div></div>
+          <div class="fin-bar-group"><div class="fin-bar revenue" style="height:90px"></div><div class="fin-bar cost" style="height:45px"></div><div class="fin-month">Mar</div></div>
+        </div>
+        <div class="fin-legend">
+          <div class="fin-legend-item"><div class="fin-legend-dot" style="background:var(--primary)"></div> Inntekt</div>
+          <div class="fin-legend-item"><div class="fin-legend-dot" style="background:var(--secondary)"></div> Kostnad</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="card">
+      <div class="card-header"><h2>⚠️ Varsler</h2><span class="badge-count">3</span></div>
+      <div class="card-body">
+        <div class="alert-item">
+          <div class="alert-dot warning"></div>
+          <div>
+            <div class="alert-text">Lusetall stigende i Merd 3 — nærmer seg grenseverdi (0.4 lus/fisk)</div>
+            <div class="alert-time">12 min siden</div>
+          </div>
+        </div>
+        <div class="alert-item">
+          <div class="alert-dot danger"></div>
+          <div>
+            <div class="alert-text">Merd 4 oksygennivå lavt (78%) — vurder tiltak</div>
+            <div class="alert-time">43 min siden</div>
+          </div>
+        </div>
+        <div class="alert-item">
+          <div class="alert-dot info"></div>
+          <div>
+            <div class="alert-text">Kontraktsfrist: Nordsjø Sjømat leveranse innen 28. mars</div>
+            <div class="alert-time">2 timer siden</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUICK ACTIONS -->
+    <div class="card">
+      <div class="card-header"><h2>⚡ Hurtigvalg</h2></div>
+      <div class="card-body">
+        <div class="actions-grid">
+          <button class="action-btn primary">🐟 Fôr alle</button>
+          <button class="action-btn success">📦 Høst</button>
+          <button class="action-btn warning">🧪 Avlus</button>
+          <button class="action-btn secondary">📊 Rapporter</button>
+          <button class="action-btn secondary">🔬 Forskning</button>
+          <button class="action-btn secondary">🗺️ Kart</button>
+          <button class="action-btn secondary">👷 Ansett</button>
+          <button class="action-btn secondary">📋 Kontrakter</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

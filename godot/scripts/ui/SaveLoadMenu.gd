@@ -76,11 +76,17 @@ func _refresh_slots() -> void:
 		return
 	
 	# Get save files
+	if not _save_manager.has_method("GetSaveFiles"):
+		var label = Label.new()
+		label.text = "Save system not ready"
+		slots_container.add_child(label)
+		return
+	
 	var saves = _save_manager.GetSaveFiles()
 	
-	if saves.is_empty():
+	if not saves or saves.is_empty():
 		var label = Label.new()
-		label.text = "No save files found"
+		label.text = "No save files found" if _current_mode == MenuMode.LOAD else "No saves yet - create a new save"
 		slots_container.add_child(label)
 		return
 	
@@ -89,7 +95,7 @@ func _refresh_slots() -> void:
 		var slot_ui = _create_slot_ui(save)
 		slots_container.add_child(slot_ui)
 
-func _create_slot_ui(save_info: SaveFileInfo) -> Control:
+func _create_slot_ui(save_info) -> Control:
 	var container = HBoxContainer.new()
 	container.custom_minimum_size = Vector2(0, 60)
 	
@@ -217,22 +223,29 @@ func _format_nok(amount: int) -> String:
 		return "%.1f k" % (amount / 1_000.0)
 	return str(amount)
 
-func _format_datetime(dt: Dictionary) -> String:
-	# DateTime from C# comes as Dictionary
-	# For now, just return a simple string
-	return "%04d-%02d-%02d %02d:%02d" % [
-		dt.get("year", 2024),
-		dt.get("month", 1),
-		dt.get("day", 1),
-		dt.get("hour", 0),
-		dt.get("minute", 0)
-	]
-
-# Type alias for C# SaveFileInfo (duck typing in GDScript)
-class SaveFileInfo:
-	var FileName: String
-	var SaveName: String
-	var SaveTime: Dictionary
-	var GameDay: int
-	var Cash: int
-	var FileSize: int
+func _format_datetime(dt) -> String:
+	# Handle C# DateTime object or Dictionary
+	if typeof(dt) == TYPE_OBJECT:
+		# C# DateTime object - use its properties
+		var year = dt.Year if dt.has("Year") else 2024
+		var month = dt.Month if dt.has("Month") else 1
+		var day = dt.Day if dt.has("Day") else 1
+		var hour = dt.Hour if dt.has("Hour") else 0
+		var minute = dt.Minute if dt.has("Minute") else 0
+		return "%04d-%02d-%02d %02d:%02d" % [year, month, day, hour, minute]
+	elif typeof(dt) == TYPE_DICTIONARY:
+		# Dictionary format
+		return "%04d-%02d-%02d %02d:%02d" % [
+			dt.get("year", 2024),
+			dt.get("month", 1),
+			dt.get("day", 1),
+			dt.get("hour", 0),
+			dt.get("minute", 0)
+		]
+	else:
+		# Fallback
+		return "Unknown date"
+# Save slot metadata helper (unused — metadata accessed via Dictionary)
+#var _save_game_day: int
+#var _save_cash: int
+#var _save_file_size: int

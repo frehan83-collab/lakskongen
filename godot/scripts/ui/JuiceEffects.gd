@@ -104,7 +104,7 @@ static func flash_damage(node: Control) -> Tween:
 
 ## Green income flash
 static func flash_income(node: Control) -> Tween:
-	return flash_color(node, Color(0.2, 1.0, 0.4, 1.0), 0.4)
+	return flash_color(node, Color("#A3BE8C"), 0.4)
 
 ## Amber warning flash
 static func flash_warning(node: Control) -> Tween:

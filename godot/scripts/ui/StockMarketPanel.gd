@@ -20,11 +20,11 @@ var stock_price_history: Array[float] = []
 var quarterly_earnings: Array[Dictionary] = []
 
 # Color scheme
-const COLOR_GREEN = Color(0.3, 0.9, 0.3)
-const COLOR_YELLOW = Color(0.9, 0.9, 0.3)
-const COLOR_RED = Color(0.9, 0.3, 0.3)
-const COLOR_TEXT = "#E6EEF3"
-const COLOR_MUTED = "#9AA7B2"
+const COLOR_GREEN = Color("#A3BE8C")
+const COLOR_YELLOW = Color("#EBCB8B")
+const COLOR_RED = Color("#BF616A")
+const COLOR_TEXT = "#2E3440"
+const COLOR_MUTED = "#7B8794"
 
 # IPO eligibility criteria (Norwegian stock market requirements)
 const IPO_MIN_REVENUE = 50_000_000.0  # 50M NOK annual revenue

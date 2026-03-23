@@ -55,7 +55,7 @@ func get_supported_locales() -> Array:
 
 ## Get the localized name of a language by its code.
 func get_locale_name(locale: String) -> String:
-	var key := LOCALE_NAMES.get(locale, "")
+	var key: String = LOCALE_NAMES.get(locale, "")
 	if key.is_empty():
 		return locale.to_upper()
 	return tr(key)
@@ -63,7 +63,7 @@ func get_locale_name(locale: String) -> String:
 
 ## Get all locale codes with their localized names.
 func get_locale_options() -> Dictionary:
-	var options := {}
+	var options: Dictionary = {}
 	for locale in SUPPORTED_LOCALES:
 		options[locale] = get_locale_name(locale)
 	return options
@@ -76,13 +76,13 @@ func _load_saved_language() -> void:
 		set_language(DEFAULT_LOCALE)
 		return
 	
-	var file := FileAccess.open(SETTINGS_PATH, FileAccess.READ)
+	var file: FileAccess = FileAccess.open(SETTINGS_PATH, FileAccess.READ)
 	if file == null:
 		push_warning("LocalizationManager: could not open %s" % SETTINGS_PATH)
 		set_language(DEFAULT_LOCALE)
 		return
 	
-	var saved_locale := file.get_line().strip_edges()
+	var saved_locale: String = file.get_line().strip_edges()
 	file.close()
 	
 	if saved_locale in SUPPORTED_LOCALES:
@@ -93,7 +93,7 @@ func _load_saved_language() -> void:
 
 
 func _save_language(locale: String) -> void:
-	var file := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
 	if file == null:
 		push_warning("LocalizationManager: could not write %s" % SETTINGS_PATH)
 		return

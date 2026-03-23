@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lakskongen — Logistikk</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--primary:#0A4D68;--primary-light:#0D5F80;--secondary:#88C0D0;--accent:#5E81AC;--bg:#ECEFF4;--surface:#FFFFFF;--surface-elevated:#F8F9FB;--text:#2E3440;--text-secondary:#4C566A;--text-muted:#7B8794;--text-inverse:#ECEFF4;--border:#D8DEE9;--border-light:#E5E9F0;--success:#A3BE8C;--success-dark:#8FAD78;--warning:#EBCB8B;--warning-dark:#D4B06A;--danger:#BF616A;--info:#88C0D0;--shadow-sm:0 1px 2px rgba(46,52,64,.06);--radius-sm:4px;--radius-md:8px;--font-heading:'Inter',system-ui,sans-serif;--font-body:'IBM Plex Sans',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace}
+html{font-size:15px;line-height:1.5}body{font-family:var(--font-body);color:var(--text);background:var(--bg);display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--primary);color:var(--text-inverse);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:10}
+.sidebar-logo{padding:20px 24px;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.5px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px}
+.sidebar-logo .icon{width:28px;height:28px;background:var(--secondary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px}
+.sidebar-nav{flex:1;padding:16px 0}.sidebar-nav a{display:flex;align-items:center;gap:12px;padding:10px 24px;color:rgba(236,239,244,.7);text-decoration:none;font-size:14px;font-weight:500;transition:all .15s}.sidebar-nav a:hover{color:#fff;background:rgba(255,255,255,.08)}.sidebar-nav a.active{color:#fff;background:rgba(255,255,255,.12);border-left:3px solid var(--secondary);padding-left:21px}.sidebar-nav a .nav-icon{width:20px;text-align:center;font-size:16px}
+.sidebar-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:rgba(236,239,244,.5)}
+.main{margin-left:220px;flex:1;padding:24px 32px;max-width:1600px}
+.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}.page-header h1{font-family:var(--font-heading);font-size:24px;font-weight:700}
+.btn{padding:8px 16px;border:none;border-radius:var(--radius-sm);font-family:var(--font-heading);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary{background:var(--primary);color:#fff}
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--surface);border-radius:var(--radius-md);padding:18px 20px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.kpi-card:nth-child(1)::before{background:var(--primary)}.kpi-card:nth-child(2)::before{background:var(--success)}.kpi-card:nth-child(3)::before{background:var(--warning)}.kpi-card:nth-child(4)::before{background:var(--accent)}
+.kpi-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:500;margin-bottom:6px}
+.kpi-value{font-family:var(--font-heading);font-size:26px;font-weight:700;line-height:1.1}.kpi-value .unit{font-size:14px;font-weight:400;color:var(--text-secondary);margin-left:3px}
+.kpi-change{font-size:12px;margin-top:6px;font-weight:500}.kpi-change.up{color:var(--success-dark)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+.card{background:var(--surface);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);border:1px solid var(--border-light);overflow:hidden}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center}
+.card-header h2{font-family:var(--font-heading);font-size:15px;font-weight:600}
+.card-body{padding:20px}
+/* Fleet */
+.fleet-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.vehicle{background:var(--surface-elevated);border-radius:var(--radius-md);padding:16px;border:1px solid var(--border-light);position:relative}
+.vehicle-icon{font-size:28px;margin-bottom:8px}
+.vehicle-name{font-family:var(--font-heading);font-size:14px;font-weight:600}
+.vehicle-type{font-size:11px;color:var(--text-muted);margin-bottom:8px}
+.vehicle-status{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.vehicle-status.active{background:rgba(163,190,140,.15);color:var(--success-dark)}
+.vehicle-status.idle{background:rgba(136,192,208,.15);color:var(--primary)}
+.vehicle-status.maintenance{background:rgba(235,203,139,.15);color:var(--warning-dark)}
+.vehicle-stats{display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--text-muted)}
+/* Shipments */
+.shipment-table{width:100%;border-collapse:collapse}
+.shipment-table th{text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:1px solid var(--border-light);font-weight:500}
+.shipment-table td{padding:10px;font-size:13px;border-bottom:1px solid var(--border-light)}
+.shipment-table tr:last-child td{border-bottom:none}
+.ship-status{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.ship-status.transit{background:rgba(94,129,172,.15);color:var(--accent)}
+.ship-status.loading{background:rgba(235,203,139,.15);color:var(--warning-dark)}
+.ship-status.delivered{background:rgba(163,190,140,.15);color:var(--success-dark)}
+.ship-status.scheduled{background:rgba(136,192,208,.15);color:var(--primary)}
+/* Inventory */
+.inv-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border-light)}
+.inv-item:last-child{border-bottom:none}
+.inv-name{font-family:var(--font-heading);font-size:13px;font-weight:600}.inv-details{font-size:11px;color:var(--text-muted);margin-top:2px}
+.inv-level{text-align:right}.inv-qty{font-family:var(--font-mono);font-size:15px;font-weight:500}
+.inv-bar{width:100px;height:6px;background:var(--border-light);border-radius:3px;overflow:hidden;margin-top:4px}
+.inv-bar-fill{height:100%;border-radius:3px}
+/* Supplier */
+.supplier-item{background:var(--surface-elevated);border-radius:var(--radius-sm);padding:14px;border:1px solid var(--border-light);margin-bottom:10px}
+.supplier-item:last-child{margin-bottom:0}
+.supplier-name{font-family:var(--font-heading);font-size:14px;font-weight:600}
+.supplier-product{font-size:12px;color:var(--text-muted);margin-top:2px}
+.supplier-meta{display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--text-secondary)}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="icon">🐟</div>Lakskongen</div>
+  <div class="sidebar-nav">
+    <a href="#"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="#"><span class="nav-icon">🏗️</span> Merder</a>
+    <a href="#"><span class="nav-icon">📈</span> Marked</a>
+    <a href="#"><span class="nav-icon">💰</span> Finans</a>
+    <a href="#"><span class="nav-icon">🔬</span> Forskning</a>
+    <a href="#"><span class="nav-icon">🗺️</span> Kart</a>
+    <a href="#"><span class="nav-icon">👷</span> Mannskap</a>
+    <a href="#" class="active"><span class="nav-icon">🚚</span> Logistikk</a>
+    <a href="#"><span class="nav-icon">⚙️</span> Innstillinger</a>
+  </div>
+  <div class="sidebar-footer">Uke 12 · Mars 2026<br>Dag 847 · Vår</div>
+</nav>
+<div class="main">
+  <div class="page-header"><h1>🚚 Logistikk & Forsyning</h1><button class="btn btn-primary">📋 Ny bestilling</button></div>
+
+  <div class="kpi-strip">
+    <div class="kpi-card"><div class="kpi-label">Aktive transporter</div><div class="kpi-value">5</div><div class="kpi-change">3 lastebiler, 2 brønnbåter</div></div>
+    <div class="kpi-card"><div class="kpi-label">Levert denne uken</div><div class="kpi-value">340<span class="unit">tonn</span></div><div class="kpi-change up">▲ 12% mot forrige uke</div></div>
+    <div class="kpi-card"><div class="kpi-label">Fôrlager (dager)</div><div class="kpi-value">18<span class="unit">dager</span></div><div class="kpi-change">Neste leveranse: Onsdag</div></div>
+    <div class="kpi-card"><div class="kpi-label">Transportkostnad/kg</div><div class="kpi-value">3.40<span class="unit">NOK</span></div><div class="kpi-change up">▼ 5% optimalisert</div></div>
+  </div>
+
+  <!-- Fleet + Shipments -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><h2>🚛 Flåte</h2></div>
+      <div class="card-body">
+        <div class="fleet-grid">
+          <div class="vehicle"><div class="vehicle-icon">🚛</div><div class="vehicle-name">Nordland-01</div><div class="vehicle-type">Kjølebil · 20t kapasitet</div><span class="vehicle-status active">● I transport</span><div class="vehicle-stats"><span>Nordfjord → Ørnes</span><span>ETA 14:30</span></div></div>
+          <div class="vehicle"><div class="vehicle-icon">🚛</div><div class="vehicle-name">Nordland-02</div><div class="vehicle-type">Kjølebil · 20t kapasitet</div><span class="vehicle-status idle">● Ledig</span><div class="vehicle-stats"><span>Ørnes depot</span><span>Klar</span></div></div>
+          <div class="vehicle"><div class="vehicle-icon">🚛</div><div class="vehicle-name">Helgeland-01</div><div class="vehicle-type">Kjølebil · 15t kapasitet</div><span class="vehicle-status active">● I transport</span><div class="vehicle-stats"><span>Ørnes → Bodø</span><span>ETA 16:00</span></div></div>
+          <div class="vehicle"><div class="vehicle-icon">🚢</div><div class="vehicle-name">MS Fjordlaks</div><div class="vehicle-type">Brønnbåt · 300t kapasitet</div><span class="vehicle-status active">● I transport</span><div class="vehicle-stats"><span>Nordfjord → Ørnes</span><span>Ankomst i morgen</span></div></div>
+          <div class="vehicle"><div class="vehicle-icon">🚢</div><div class="vehicle-name">MS Havbris</div><div class="vehicle-type">Brønnbåt · 250t kapasitet</div><span class="vehicle-status maintenance">● Vedlikehold</span><div class="vehicle-stats"><span>Bodø verft</span><span>Klar ons.</span></div></div>
+          <div class="vehicle"><div class="vehicle-icon">🚛</div><div class="vehicle-name">Nordland-03</div><div class="vehicle-type">Fôrbil · 25t kapasitet</div><span class="vehicle-status active">● I transport</span><div class="vehicle-stats"><span>Skretting → Nordfjord</span><span>ETA 11:00</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2>📦 Forsendelser</h2></div>
+      <div class="card-body" style="padding:0">
+        <table class="shipment-table">
+          <thead><tr><th>Ref</th><th>Rute</th><th>Volum</th><th>Type</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:var(--font-mono);font-size:12px">#SH-847-1</td><td>Nordfjord → Ørnes</td><td style="font-family:var(--font-mono)">80t</td><td>Fersk laks</td><td><span class="ship-status transit">I transitt</span></td></tr>
+            <tr><td style="font-family:var(--font-mono);font-size:12px">#SH-847-2</td><td>Ørnes → Bergen</td><td style="font-family:var(--font-mono)">120t</td><td>Prosessert</td><td><span class="ship-status loading">Laster</span></td></tr>
+            <tr><td style="font-family:var(--font-mono);font-size:12px">#SH-847-3</td><td>Helgeland → Ørnes</td><td style="font-family:var(--font-mono)">60t</td><td>Fersk laks</td><td><span class="ship-status scheduled">Planlagt</span></td></tr>
+            <tr><td style="font-family:var(--font-mono);font-size:12px">#SH-846-4</td><td>Ørnes → Oslo</td><td style="font-family:var(--font-mono)">45t</td><td>Filet</td><td><span class="ship-status delivered">Levert</span></td></tr>
+            <tr><td style="font-family:var(--font-mono);font-size:12px">#SH-846-5</td><td>Skretting → Nordfjord</td><td style="font-family:var(--font-mono)">50t</td><td>Fôr</td><td><span class="ship-status transit">I transitt</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inventory + Suppliers -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><h2>📊 Lagerbeholdning</h2></div>
+      <div class="card-body">
+        <div class="inv-item">
+          <div><div class="inv-name">Skretting Nutra Supreme</div><div class="inv-details">Hovedfôr · Nordfjord lager</div></div>
+          <div class="inv-level"><div class="inv-qty">142 tonn</div><div class="inv-bar"><div class="inv-bar-fill" style="width:65%;background:var(--success)"></div></div></div>
+        </div>
+        <div class="inv-item">
+          <div><div class="inv-name">BioMar Intro 3mm</div><div class="inv-details">Smoltfôr · Helgeland lager</div></div>
+          <div class="inv-level"><div class="inv-qty">38 tonn</div><div class="inv-bar"><div class="inv-bar-fill" style="width:32%;background:var(--warning)"></div></div></div>
+        </div>
+        <div class="inv-item">
+          <div><div class="inv-name">Hydrogenperoksid</div><div class="inv-details">Avlusningsmiddel · Ørnes</div></div>
+          <div class="inv-level"><div class="inv-qty">8 200 L</div><div class="inv-bar"><div class="inv-bar-fill" style="width:55%;background:var(--info)"></div></div></div>
+        </div>
+        <div class="inv-item">
+          <div><div class="inv-name">ALPHA JECT micro 6</div><div class="inv-details">Vaksine · Nordfjord kjølelager</div></div>
+          <div class="inv-level"><div class="inv-qty">12 000 doser</div><div class="inv-bar"><div class="inv-bar-fill" style="width:80%;background:var(--success)"></div></div></div>
+        </div>
+        <div class="inv-item">
+          <div><div class="inv-name">Merdnot (reserve)</div><div class="inv-details">Nylon 25mm · Bodø lager</div></div>
+          <div class="inv-level"><div class="inv-qty">4 stk</div><div class="inv-bar"><div class="inv-bar-fill" style="width:20%;background:var(--danger)"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2>🏭 Leverandører</h2></div>
+      <div class="card-body">
+        <div class="supplier-item"><div class="supplier-name">Skretting Norge</div><div class="supplier-product">Fôr · Hovedleverandør</div><div class="supplier-meta"><span>Kontrakt til 2027</span><span>Leveringstid: 3 dager</span><span>⭐ 4.8/5</span></div></div>
+        <div class="supplier-item"><div class="supplier-name">BioMar AS</div><div class="supplier-product">Fôr · Sekundærleverandør</div><div class="supplier-meta"><span>Kontrakt til 2026</span><span>Leveringstid: 5 dager</span><span>⭐ 4.5/5</span></div></div>
+        <div class="supplier-item"><div class="supplier-name">Pharmaq</div><div class="supplier-product">Vaksiner & medisin</div><div class="supplier-meta"><span>Rammeavtale</span><span>Leveringstid: 2 dager</span><span>⭐ 4.9/5</span></div></div>
+        <div class="supplier-item"><div class="supplier-name">AKVA Group</div><div class="supplier-product">Merdutstyr, nøter, teknologi</div><div class="supplier-meta"><span>Rammeavtale</span><span>Leveringstid: 7-14 dager</span><span>⭐ 4.3/5</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

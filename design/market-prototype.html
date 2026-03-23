@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lakskongen — Marked & Handel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#0A4D68;--primary-light:#0D5F80;--primary-dark:#083D53;
+  --secondary:#88C0D0;--secondary-light:#A3D1DE;
+  --accent:#5E81AC;--accent-light:#7B9BC0;
+  --bg:#ECEFF4;--surface:#FFFFFF;--surface-elevated:#F8F9FB;
+  --text:#2E3440;--text-secondary:#4C566A;--text-muted:#7B8794;--text-inverse:#ECEFF4;
+  --border:#D8DEE9;--border-light:#E5E9F0;
+  --success:#A3BE8C;--success-dark:#8FAD78;
+  --warning:#EBCB8B;--warning-dark:#D4B06A;
+  --danger:#BF616A;--danger-dark:#A54E56;
+  --info:#88C0D0;
+  --shadow-sm:0 1px 2px rgba(46,52,64,.06);
+  --radius-sm:4px;--radius-md:8px;--radius-lg:12px;
+  --font-heading:'Inter',system-ui,sans-serif;
+  --font-body:'IBM Plex Sans',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+html{font-size:15px;line-height:1.5}
+body{font-family:var(--font-body);color:var(--text);background:var(--bg);display:flex;min-height:100vh}
+
+.sidebar{width:220px;background:var(--primary);color:var(--text-inverse);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:10}
+.sidebar-logo{padding:20px 24px;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.5px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px}
+.sidebar-logo .icon{width:28px;height:28px;background:var(--secondary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px}
+.sidebar-nav{flex:1;padding:16px 0}
+.sidebar-nav a{display:flex;align-items:center;gap:12px;padding:10px 24px;color:rgba(236,239,244,.7);text-decoration:none;font-size:14px;font-weight:500;transition:all .15s}
+.sidebar-nav a:hover{color:#fff;background:rgba(255,255,255,.08)}
+.sidebar-nav a.active{color:#fff;background:rgba(255,255,255,.12);border-left:3px solid var(--secondary);padding-left:21px}
+.sidebar-nav a .nav-icon{width:20px;text-align:center;font-size:16px}
+.sidebar-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:rgba(236,239,244,.5)}
+
+.main{margin-left:220px;flex:1;padding:24px 32px;max-width:1600px}
+
+.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.page-header h1{font-family:var(--font-heading);font-size:24px;font-weight:700}
+
+.btn{padding:8px 16px;border:none;border-radius:var(--radius-sm);font-family:var(--font-heading);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-light)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{background:var(--surface-elevated)}
+
+/* KPI strip */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--surface);border-radius:var(--radius-md);padding:18px 20px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.kpi-card:nth-child(1)::before{background:var(--success)}
+.kpi-card:nth-child(2)::before{background:var(--danger)}
+.kpi-card:nth-child(3)::before{background:var(--accent)}
+.kpi-card:nth-child(4)::before{background:var(--warning)}
+.kpi-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:500;margin-bottom:6px}
+.kpi-value{font-family:var(--font-heading);font-size:26px;font-weight:700;line-height:1.1}
+.kpi-value .unit{font-size:14px;font-weight:400;color:var(--text-secondary);margin-left:3px}
+.kpi-change{font-size:12px;margin-top:6px;font-weight:500}
+.kpi-change.up{color:var(--success-dark)}
+.kpi-change.down{color:var(--danger)}
+
+/* Grids */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.grid-wide-narrow{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px}
+
+/* Card */
+.card{background:var(--surface);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);border:1px solid var(--border-light);overflow:hidden}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center}
+.card-header h2{font-family:var(--font-heading);font-size:15px;font-weight:600}
+.card-body{padding:20px}
+
+/* Price chart */
+.price-chart{height:160px;display:flex;align-items:flex-end;gap:4px;position:relative;border-bottom:1px solid var(--border-light);padding-bottom:8px}
+.price-bar{flex:1;border-radius:2px 2px 0 0;min-height:2px;position:relative}
+.price-labels{display:flex;gap:4px;margin-top:6px}
+.price-labels span{flex:1;font-size:9px;color:var(--text-muted);text-align:center}
+.price-summary{display:flex;gap:24px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border-light)}
+.price-summary-item{text-align:center}
+.price-summary-item .label{font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px}
+.price-summary-item .value{font-family:var(--font-mono);font-size:18px;font-weight:600}
+
+/* Contracts table */
+.contracts-table{width:100%;border-collapse:collapse}
+.contracts-table th{text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid var(--border-light);font-weight:500}
+.contracts-table td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--border-light)}
+.contracts-table tr:last-child td{border-bottom:none}
+.contract-status{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.contract-status.active{background:rgba(163,190,140,.15);color:var(--success-dark)}
+.contract-status.pending{background:rgba(235,203,139,.15);color:var(--warning-dark)}
+.contract-status.expired{background:rgba(191,97,106,.15);color:var(--danger-dark)}
+
+/* Buyers */
+.buyer-list{display:flex;flex-direction:column;gap:12px}
+.buyer-item{display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--surface-elevated);border-radius:var(--radius-sm);border:1px solid var(--border-light)}
+.buyer-name{font-family:var(--font-heading);font-size:14px;font-weight:600}
+.buyer-details{font-size:12px;color:var(--text-muted);margin-top:2px}
+.buyer-price{font-family:var(--font-mono);font-size:16px;font-weight:600;color:var(--primary)}
+.buyer-volume{font-size:11px;color:var(--text-muted)}
+
+/* Market regions */
+.region-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.region-item{background:var(--surface-elevated);border-radius:var(--radius-sm);padding:14px;border:1px solid var(--border-light)}
+.region-flag{font-size:20px;margin-bottom:4px}
+.region-name{font-family:var(--font-heading);font-size:13px;font-weight:600;margin-bottom:6px}
+.region-price{font-family:var(--font-mono);font-size:15px;font-weight:500}
+.region-demand{font-size:11px;margin-top:4px}
+.region-demand.high{color:var(--success-dark)}
+.region-demand.medium{color:var(--warning-dark)}
+.region-demand.low{color:var(--danger-dark)}
+
+/* Seasonal */
+.season-bar{display:flex;height:24px;border-radius:var(--radius-sm);overflow:hidden;margin-bottom:8px}
+.season-segment{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff}
+.season-legend{display:flex;gap:16px;font-size:12px;color:var(--text-secondary)}
+.season-legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="icon">🐟</div>Lakskongen</div>
+  <div class="sidebar-nav">
+    <a href="#"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="#"><span class="nav-icon">🏗️</span> Merder</a>
+    <a href="#" class="active"><span class="nav-icon">📈</span> Marked</a>
+    <a href="#"><span class="nav-icon">💰</span> Finans</a>
+    <a href="#"><span class="nav-icon">🔬</span> Forskning</a>
+    <a href="#"><span class="nav-icon">🗺️</span> Kart</a>
+    <a href="#"><span class="nav-icon">👷</span> Mannskap</a>
+    <a href="#"><span class="nav-icon">🚚</span> Logistikk</a>
+    <a href="#"><span class="nav-icon">⚙️</span> Innstillinger</a>
+  </div>
+  <div class="sidebar-footer">Uke 12 · Mars 2026<br>Dag 847 · Vår</div>
+</nav>
+
+<div class="main">
+  <div class="page-header">
+    <h1>📈 Marked & Handel</h1>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary">📝 Ny kontrakt</button>
+      <button class="btn btn-outline">📦 Selg spot</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-label">Spotpris (Nasdaq)</div>
+      <div class="kpi-value">82.40<span class="unit">NOK/kg</span></div>
+      <div class="kpi-change up">▲ 3.8% denne uken</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Kontraktpris (snitt)</div>
+      <div class="kpi-value">76.50<span class="unit">NOK/kg</span></div>
+      <div class="kpi-change down">▼ 1.2% mot forrige kvartal</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Tilgjengelig volum</div>
+      <div class="kpi-value">485<span class="unit">tonn</span></div>
+      <div class="kpi-change">Slakteklar: Merd 1, 2, 4</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Åpne kontrakter</div>
+      <div class="kpi-value">4</div>
+      <div class="kpi-change">Neste leveranse: 28. mar</div>
+    </div>
+  </div>
+
+  <!-- PRICE CHART + BUYERS -->
+  <div class="grid-wide-narrow">
+    <div class="card">
+      <div class="card-header"><h2>💹 Prisutvikling (12 uker)</h2><span style="font-size:12px;color:var(--text-muted)">NOK/kg · Fersk Superior</span></div>
+      <div class="card-body">
+        <div class="price-chart">
+          <div class="price-bar" style="height:55%;background:var(--secondary)"></div>
+          <div class="price-bar" style="height:52%;background:var(--secondary)"></div>
+          <div class="price-bar" style="height:58%;background:var(--secondary)"></div>
+          <div class="price-bar" style="height:60%;background:var(--secondary)"></div>
+          <div class="price-bar" style="height:54%;background:var(--secondary)"></div>
+          <div class="price-bar" style="height:48%;background:var(--secondary)"></div>
+          <div class="price-bar" style="height:45%;background:var(--danger);opacity:.7"></div>
+          <div class="price-bar" style="height:50%;background:var(--secondary)"></div>
+          <div class="price-bar" style="height:62%;background:var(--secondary)"></div>
+          <div class="price-bar" style="height:68%;background:var(--success)"></div>
+          <div class="price-bar" style="height:72%;background:var(--success)"></div>
+          <div class="price-bar" style="height:82%;background:var(--success)"></div>
+        </div>
+        <div class="price-labels">
+          <span>U1</span><span>U2</span><span>U3</span><span>U4</span><span>U5</span><span>U6</span><span>U7</span><span>U8</span><span>U9</span><span>U10</span><span>U11</span><span>U12</span>
+        </div>
+        <div class="price-summary">
+          <div class="price-summary-item"><div class="label">Lav (12u)</div><div class="value" style="color:var(--danger)">68.20</div></div>
+          <div class="price-summary-item"><div class="label">Snitt (12u)</div><div class="value">74.85</div></div>
+          <div class="price-summary-item"><div class="label">Høy (12u)</div><div class="value" style="color:var(--success-dark)">82.40</div></div>
+          <div class="price-summary-item"><div class="label">Trend</div><div class="value" style="color:var(--success-dark)">▲ Stigende</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2>🏢 Kjøpere</h2></div>
+      <div class="card-body">
+        <div class="buyer-list">
+          <div class="buyer-item">
+            <div><div class="buyer-name">Nordsjø Sjømat</div><div class="buyer-details">Fast kontrakt · EU distribusjon</div></div>
+            <div style="text-align:right"><div class="buyer-price">78.00</div><div class="buyer-volume">200 t/mnd</div></div>
+          </div>
+          <div class="buyer-item">
+            <div><div class="buyer-name">Marine Harvest Trading</div><div class="buyer-details">Spot · Asiatisk marked</div></div>
+            <div style="text-align:right"><div class="buyer-price">82.40</div><div class="buyer-volume">Spot</div></div>
+          </div>
+          <div class="buyer-item">
+            <div><div class="buyer-name">Bergen Fish Co</div><div class="buyer-details">Fast kontrakt · UK marked</div></div>
+            <div style="text-align:right"><div class="buyer-price">75.00</div><div class="buyer-volume">150 t/mnd</div></div>
+          </div>
+          <div class="buyer-item">
+            <div><div class="buyer-name">SalMar Direct</div><div class="buyer-details">Forespørsel · Ny kunde</div></div>
+            <div style="text-align:right"><div class="buyer-price">80.50</div><div class="buyer-volume">100 t/mnd</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTRACTS + MARKETS -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><h2>📋 Kontrakter</h2></div>
+      <div class="card-body" style="padding:0">
+        <table class="contracts-table">
+          <thead><tr><th>Kjøper</th><th>Volum</th><th>Pris</th><th>Frist</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:500">Nordsjø Sjømat</td>
+              <td style="font-family:var(--font-mono)">80 t</td>
+              <td style="font-family:var(--font-mono)">78.00</td>
+              <td>28. mar</td>
+              <td><span class="contract-status active">Aktiv</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:500">Bergen Fish Co</td>
+              <td style="font-family:var(--font-mono)">60 t</td>
+              <td style="font-family:var(--font-mono)">75.00</td>
+              <td>5. apr</td>
+              <td><span class="contract-status active">Aktiv</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:500">SalMar Direct</td>
+              <td style="font-family:var(--font-mono)">100 t</td>
+              <td style="font-family:var(--font-mono)">80.50</td>
+              <td>15. apr</td>
+              <td><span class="contract-status pending">Tilbud</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:500">EuroFish GmbH</td>
+              <td style="font-family:var(--font-mono)">120 t</td>
+              <td style="font-family:var(--font-mono)">71.20</td>
+              <td>1. mar</td>
+              <td><span class="contract-status expired">Utløpt</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2>🌍 Markedsregioner</h2></div>
+      <div class="card-body">
+        <div class="region-grid">
+          <div class="region-item">
+            <div class="region-flag">🇪🇺</div>
+            <div class="region-name">EU (Frankrike/Spania)</div>
+            <div class="region-price">€8.20/kg</div>
+            <div class="region-demand high">● Høy etterspørsel</div>
+          </div>
+          <div class="region-item">
+            <div class="region-flag">🇬🇧</div>
+            <div class="region-name">Storbritannia</div>
+            <div class="region-price">£7.80/kg</div>
+            <div class="region-demand medium">● Middels etterspørsel</div>
+          </div>
+          <div class="region-item">
+            <div class="region-flag">🇯🇵</div>
+            <div class="region-name">Japan</div>
+            <div class="region-price">¥1 450/kg</div>
+            <div class="region-demand high">● Høy etterspørsel</div>
+          </div>
+          <div class="region-item">
+            <div class="region-flag">🇺🇸</div>
+            <div class="region-name">USA</div>
+            <div class="region-price">$9.10/kg</div>
+            <div class="region-demand medium">● Middels etterspørsel</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:500">SESONGINDIKATOR</div>
+          <div class="season-bar">
+            <div class="season-segment" style="width:25%;background:var(--info)">V</div>
+            <div class="season-segment" style="width:25%;background:var(--success)">S</div>
+            <div class="season-segment" style="width:25%;background:var(--warning)">H</div>
+            <div class="season-segment" style="width:25%;background:var(--accent)">V</div>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted)">📍 Nå: Vår — prisene stiger typisk mot påske</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

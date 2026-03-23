@@ -1,16 +1,16 @@
 ## TechTreePanel.gd
 ## Visual tech tree with 25 nodes across 5 branches.
-## Builds its layout procedurally — no external scene file required.
+## Builds its layout procedurally - no external scene file required.
 ##
 ## Layout: 5 branch columns, 5 tier rows. Nodes are PanelContainers
 ## sized at NODE_W × NODE_H. Connection lines are drawn on a canvas
 ## overlay behind the buttons.
 ##
 ## Node status colours:
-##   LOCKED      — dark grey, no interaction
-##   AVAILABLE   — ocean blue, clickable
-##   RESEARCHING — warm amber, shows progress bar
-##   UNLOCKED    — emerald green
+##   LOCKED      - dark grey, no interaction
+##   AVAILABLE   - ocean blue, clickable
+##   RESEARCHING - warm amber, shows progress bar
+##   UNLOCKED    - emerald green
 ##
 ## Signals this panel emits:
 ##   research_started(node_id: String)
@@ -37,20 +37,20 @@ const START_Y    := 90    # space for branch headers and title bar
 const BRANCH_ORDER: Array = ["Biology", "Technology", "Sustainability", "Processing", "Expansion"]
 
 const BRANCH_META: Dictionary = {
-	"Biology":       { "label": "Biologi",        "icon": "🧬", "color": Color(0.25, 0.75, 0.35) },
-	"Technology":    { "label": "Teknologi",       "icon": "⚙️", "color": Color(0.25, 0.55, 1.00) },
-	"Sustainability":{ "label": "Bærekraft",       "icon": "🌿", "color": Color(0.15, 0.80, 0.65) },
-	"Processing":    { "label": "Foredling",       "icon": "🐟", "color": Color(1.00, 0.60, 0.20) },
-	"Expansion":     { "label": "Ekspansjon",      "icon": "🌊", "color": Color(0.75, 0.35, 1.00) },
+	"Biology":       { "label": "Biologi",        "icon": "🧬", "color": Color("#A3BE8C") },
+	"Technology":    { "label": "Teknologi",       "icon": "⚙️", "color": Color("#5E81AC") },
+	"Sustainability":{ "label": "Bærekraft",       "icon": "🌿", "color": Color("#A3BE8C") },
+	"Processing":    { "label": "Foredling",       "icon": "🐟", "color": Color("#EBCB8B") },
+	"Expansion":     { "label": "Ekspansjon",      "icon": "🌊", "color": Color("#5E81AC") },
 }
 
-# Node state colours
-const COLOR_LOCKED      := Color(0.20, 0.20, 0.22)
-const COLOR_AVAILABLE   := Color(0.10, 0.25, 0.55)
-const COLOR_RESEARCHING := Color(0.45, 0.30, 0.05)
-const COLOR_UNLOCKED    := Color(0.10, 0.38, 0.18)
-const COLOR_TEXT_DIM    := Color(0.55, 0.55, 0.60)
-const COLOR_TEXT_BRIGHT := Color(0.92, 0.92, 0.95)
+# Node state colours - Nordic Minimalist v2.0
+const COLOR_LOCKED      := Color("#D8DEE9")   # Light gray (border)
+const COLOR_AVAILABLE   := Color("#5E81AC")   # Accent blue
+const COLOR_RESEARCHING := Color("#EBCB8B")   # Warning amber
+const COLOR_UNLOCKED    := Color("#A3BE8C")   # Success green
+const COLOR_TEXT_DIM    := Color("#7B8794")   # Muted
+const COLOR_TEXT_BRIGHT := Color("#2E3440")   # Dark text
 
 # ── Runtime state ───────────────────────────────────────────────────────────────
 
@@ -80,13 +80,13 @@ func _input(event: InputEvent) -> void:
 	"""Handle keyboard navigation"""
 	if not visible:
 		return
-	
+
 	if event.is_action_pressed("ui_cancel"):
 		hide()
 		get_viewport().set_input_as_handled()
 
 func _process(_delta: float) -> void:
-	# Light polling — refreshes every ~2 s (120 frames at 60 fps)
+	# Light polling - refreshes every ~2 s (120 frames at 60 fps)
 	if Engine.get_process_frames() % 120 == 0:
 		_refresh()
 
@@ -99,7 +99,7 @@ func _build_skeleton() -> void:
 
 	# ── Background panel ──
 	var bg := ColorRect.new()
-	bg.color = Color(0.06, 0.07, 0.10)
+	bg.color = Color("#ECEFF4")  # Nordic Minimalist light bg
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
@@ -107,7 +107,7 @@ func _build_skeleton() -> void:
 	var title := Label.new()
 	title.text = tr("ui.tech.title")
 	title.add_theme_font_size_override("font_size", 16)
-	title.modulate = Color(0.85, 0.85, 0.95)
+	title.modulate = Color("#2E3440")  # Dark text
 	title.position = Vector2(START_X, 10)
 	title.tooltip_text = tr("ui.tech.title_tooltip")
 	add_child(title)
@@ -126,7 +126,7 @@ func _build_skeleton() -> void:
 	status_lbl.name = "StatusLabel"
 	status_lbl.text = tr("ui.tech.no_research")
 	status_lbl.add_theme_font_size_override("font_size", 11)
-	status_lbl.modulate = Color(0.70, 0.80, 0.70)
+	status_lbl.modulate = Color("#4C566A")  # Secondary text
 	status_lbl.position = Vector2(START_X, 36)
 	status_lbl.tooltip_text = tr("ui.tech.status_tooltip")
 	add_child(status_lbl)
@@ -189,7 +189,7 @@ func _refresh() -> void:
 	if active_id != "":
 		var remaining: int = gb.ResearchDaysRemaining
 		var nd: Dictionary = _node_data.get(active_id, {})
-		_update_status_label("Forsker: %s — %d dager gjenstår" % [nd.get("name", active_id), remaining])
+		_update_status_label("Forsker: %s - %d dager gjenstår" % [nd.get("name", active_id), remaining])
 	else:
 		_update_status_label("Ingen aktiv forskning  |  Velg en node for å starte")
 
@@ -267,7 +267,7 @@ func _build_node_panel(nd: Dictionary) -> void:
 		style.border_color = branch_color.lightened(0.3)
 	else:
 		style.bg_color     = COLOR_LOCKED
-		style.border_color = Color(0.30, 0.30, 0.33)
+		style.border_color = Color("#D8DEE9")  # Border
 
 	panel.add_theme_stylebox_override("panel", style)
 	add_child(panel)
@@ -314,7 +314,7 @@ func _build_node_panel(nd: Dictionary) -> void:
 		var done_lbl := Label.new()
 		done_lbl.text = tr("ui.tech.completed")
 		done_lbl.add_theme_font_size_override("font_size", 9)
-		done_lbl.modulate = Color(0.4, 0.9, 0.5)
+		done_lbl.modulate = Color("#A3BE8C")  # Success
 		vbox.add_child(done_lbl)
 	elif is_active:
 		# Progress bar
@@ -390,7 +390,7 @@ func _on_research_confirmed() -> void:
 		emit_signal("research_started", _pending_node_id)
 		_refresh()
 	else:
-		# Show brief error — insufficient funds or state changed
+		# Show brief error - insufficient funds or state changed
 		var err := AcceptDialog.new()
 		err.title = "Kan ikke starte forskning"
 		err.dialog_text = "Ikke nok midler eller et krav er ikke oppfylt."
@@ -473,11 +473,11 @@ class _LineCanvas extends Control:
 
 				var line_color: Color
 				if is_unlocked and prereq_unlocked:
-					line_color = Color(0.30, 0.80, 0.35, 0.75)  # green — fully connected
+					line_color = Color(0.64, 0.74, 0.55, 0.75)  # success green - fully connected
 				elif prereq_unlocked:
-					line_color = Color(0.40, 0.55, 1.00, 0.60)  # blue — prereq done
+					line_color = Color(0.37, 0.51, 0.67, 0.60)  # accent blue - prereq done
 				else:
-					line_color = Color(0.30, 0.30, 0.35, 0.40)  # dim — locked chain
+					line_color = Color(0.85, 0.87, 0.91, 0.40)  # border gray - locked chain
 
 				# Draw the connector with an elbow: src → mid-x → target
 				var mid_y := (src_pt.y + target_pt.y) * 0.5

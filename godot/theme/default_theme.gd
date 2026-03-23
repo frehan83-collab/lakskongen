@@ -1,41 +1,129 @@
-
 extends Node
 
-## LakskongenTheme — Premium Norwegian Fjord aesthetic.
+## LakskongenTheme v2.0 — Nordic Minimalist / Clean-Tech
+## Direction A from Style Seed: Cool teal-blue, Inter font, light theme, data-forward.
 ## Add as autoload "LakskongenTheme" so any node can read palette constants and use helpers.
 ## Call apply_to_root() from a scene's _ready() to push the theme project-wide.
 
+# ---------------------------------------------------------------------------
+# Nordic Minimalist Color Palette (tokens.json v2.0)
+# ---------------------------------------------------------------------------
+# Primary — Deep fjord teal
+const PRIMARY           := Color("#0A4D68")
+const PRIMARY_LIGHT     := Color("#0D5F80")
+const PRIMARY_DARK      := Color("#083D53")
 
-# ---------------------------------------------------------------------------
-# Norwegian Fjord Color Palette
-# ---------------------------------------------------------------------------
-const BG_DARK           := Color("#0d1b2a") # Deep night ocean
-const BG_MEDIUM         := Color("#1a2744") # Ocean blue
-const BG_LIGHT          := Color("#243b5e") # Lighter panel blue
-const ACCENT_PRIMARY    := Color("#2d8a7e") # Fjord teal
-const ACCENT_SECONDARY  := Color("#45b5aa") # Light teal
-const WARNING_COLOR     := Color("#e8a838") # Amber
-const DANGER_COLOR      := Color("#e87461") # Salmon pink/red
-const SUCCESS_COLOR     := Color("#4caf50") # Green
-const TEXT_PRIMARY      := Color("#e8e8e8") # Clean white
-const TEXT_SECONDARY    := Color("#8899aa") # Muted blue-gray
-const TEXT_ACCENT       := Color("#45b5aa") # Teal highlights
+# Secondary — Nordic ice blue
+const SECONDARY         := Color("#88C0D0")
+const SECONDARY_LIGHT   := Color("#A3D1DE")
+
+# Accent — Muted steel blue
+const ACCENT            := Color("#5E81AC")
+const ACCENT_LIGHT      := Color("#7B9BC0")
+
+# Backgrounds
+const BG                := Color("#ECEFF4")   # Light gray-blue
+const SURFACE           := Color("#FFFFFF")   # Cards, panels
+const SURFACE_ELEVATED  := Color("#F8F9FB")   # Elevated/hover
+
+# Text
+const TEXT_PRIMARY      := Color("#2E3440")   # Near-black
+const TEXT_SECONDARY    := Color("#4C566A")   # Dark gray
+const TEXT_MUTED        := Color("#7B8794")   # Light gray
+const TEXT_INVERSE      := Color("#ECEFF4")   # White-ish (on dark bg)
+
+# Borders
+const BORDER            := Color("#D8DEE9")
+const BORDER_LIGHT      := Color("#E5E9F0")
+
+# Status
+const SUCCESS           := Color("#A3BE8C")
+const SUCCESS_DARK      := Color("#8FAD78")
+const WARNING           := Color("#EBCB8B")
+const WARNING_DARK      := Color("#D4B06A")
+const DANGER            := Color("#BF616A")
+const DANGER_DARK       := Color("#A54E56")
+const INFO              := Color("#88C0D0")
+
+# Domain-specific
+const WATER_BLUE        := Color("#5B8FA3")
+const SALMON_PINK       := Color("#E5A09D")
+
+# ----------- Legacy aliases (backward compat for old scripts) ---------------
+const BG_DARK           := Color("#2E3440")
+const BG_MEDIUM         := Color("#3B4252")
+const BG_LIGHT          := Color("#4C566A")
+const ACCENT_PRIMARY    := Color("#0A4D68")
+const ACCENT_SECONDARY  := Color("#88C0D0")
+const WARNING_COLOR     := Color("#EBCB8B")
+const DANGER_COLOR      := Color("#BF616A")
+const SUCCESS_COLOR     := Color("#A3BE8C")
+const TEXT_ACCENT       := Color("#88C0D0")
 
 # ---------------------------------------------------------------------------
 # Font Size Constants
 # ---------------------------------------------------------------------------
-const FONT_TITLE  := 28
+const FONT_XS     := 11
+const FONT_SM     := 13
+const FONT_BODY   := 15
+const FONT_LG     := 18
 const FONT_HEADER := 22
-const FONT_BODY   := 16
-const FONT_SMALL  := 12
+const FONT_TITLE  := 28
+const FONT_HERO   := 48
+const FONT_SMALL  := 12  # Legacy alias
 
 # ---------------------------------------------------------------------------
-# Theme construction and helpers
+# Spacing & Radius Constants
+# ---------------------------------------------------------------------------
+const SPACING_XS  := 4
+const SPACING_SM  := 8
+const SPACING_MD  := 16
+const SPACING_LG  := 24
+const SPACING_XL  := 32
+
+const RADIUS_SM   := 4
+const RADIUS_MD   := 8
+const RADIUS_LG   := 12
+
+# ---------------------------------------------------------------------------
+# Font Resources
+# ---------------------------------------------------------------------------
+var font_heading: Font = null
+var font_heading_bold: Font = null
+var font_heading_semibold: Font = null
+var font_body: Font = null
+var font_mono: Font = null
+
+# ---------------------------------------------------------------------------
+# Theme construction
 # ---------------------------------------------------------------------------
 var _theme: Theme
 
 func _ready() -> void:
+	_load_fonts()
 	_theme = _build_theme()
+
+func _load_fonts() -> void:
+	# Inter for headings
+	if ResourceLoader.exists("res://assets/fonts/Inter-Regular.otf"):
+		font_heading = load("res://assets/fonts/Inter-Regular.otf")
+	if ResourceLoader.exists("res://assets/fonts/Inter-Bold.otf"):
+		font_heading_bold = load("res://assets/fonts/Inter-Bold.otf")
+	if ResourceLoader.exists("res://assets/fonts/Inter-SemiBold.otf"):
+		font_heading_semibold = load("res://assets/fonts/Inter-SemiBold.otf")
+	# Body — use Inter Medium if no IBM Plex Sans
+	if ResourceLoader.exists("res://assets/fonts/IBMPlexSans-Regular.ttf"):
+		font_body = load("res://assets/fonts/IBMPlexSans-Regular.ttf")
+	elif ResourceLoader.exists("res://assets/fonts/Inter-Medium.otf"):
+		font_body = load("res://assets/fonts/Inter-Medium.otf")
+	# Mono
+	if ResourceLoader.exists("res://assets/fonts/JetBrainsMono-Regular.ttf"):
+		font_mono = load("res://assets/fonts/JetBrainsMono-Regular.ttf")
+	
+	if font_heading:
+		print("LakskongenTheme: Fonts loaded (Inter + JetBrains Mono)")
+	else:
+		push_warning("LakskongenTheme: Custom fonts not found — using Godot defaults")
 
 func get_theme() -> Theme:
 	if _theme == null:
@@ -50,96 +138,161 @@ func apply_to_root() -> void:
 func _build_theme() -> Theme:
 	var t := Theme.new()
 
-	# --- Default Font --- (Assuming a default font is set in Project Settings or loaded dynamically)
-	# var default_font = preload("res://assets/fonts/your_default_font.tres") # Example
-	# t.set_font("font", "Label", default_font)
-	# t.set_font("font", "Button", default_font)
+	# Default font
+	if font_body:
+		t.set_default_font(font_body)
+	t.set_default_font_size(FONT_BODY)
 
-	# --- Panel Styles ---
-	t.set_stylebox("panel", "Panel", get_panel_style())
-	t.set_stylebox("panel", "PanelContainer", get_panel_style())
+	# --- Panel Styles (light background) ---
+	var panel_sb := StyleBoxFlat.new()
+	panel_sb.bg_color = SURFACE
+	panel_sb.border_color = BORDER_LIGHT
+	panel_sb.set_border_width_all(1)
+	panel_sb.set_corner_radius_all(RADIUS_MD)
+	panel_sb.set_content_margin_all(SPACING_MD)
+	t.set_stylebox("panel", "Panel", panel_sb)
+	t.set_stylebox("panel", "PanelContainer", panel_sb)
 
 	# --- Button Styles ---
-	t.set_stylebox("normal", "Button", get_button_style(BG_MEDIUM, ACCENT_PRIMARY, TEXT_PRIMARY).normal)
-	t.set_stylebox("hover", "Button", get_button_style(ACCENT_PRIMARY, ACCENT_SECONDARY, BG_DARK).hover)
-	t.set_stylebox("pressed", "Button", get_button_style(ACCENT_SECONDARY, ACCENT_PRIMARY, BG_DARK).pressed)
-	t.set_stylebox("disabled", "Button", get_button_style(BG_DARK.lightened(0.1), TEXT_SECONDARY, TEXT_SECONDARY).disabled)
+	# Normal
+	var btn_normal := StyleBoxFlat.new()
+	btn_normal.bg_color = PRIMARY
+	btn_normal.set_corner_radius_all(RADIUS_SM)
+	btn_normal.set_content_margin_all(12)
+	t.set_stylebox("normal", "Button", btn_normal)
+	
+	# Hover
+	var btn_hover := StyleBoxFlat.new()
+	btn_hover.bg_color = PRIMARY_LIGHT
+	btn_hover.set_corner_radius_all(RADIUS_SM)
+	btn_hover.set_content_margin_all(12)
+	t.set_stylebox("hover", "Button", btn_hover)
+	
+	# Pressed
+	var btn_pressed := StyleBoxFlat.new()
+	btn_pressed.bg_color = PRIMARY_DARK
+	btn_pressed.set_corner_radius_all(RADIUS_SM)
+	btn_pressed.set_content_margin_all(12)
+	t.set_stylebox("pressed", "Button", btn_pressed)
+	
+	# Disabled
+	var btn_disabled := StyleBoxFlat.new()
+	btn_disabled.bg_color = BORDER
+	btn_disabled.set_corner_radius_all(RADIUS_SM)
+	btn_disabled.set_content_margin_all(12)
+	t.set_stylebox("disabled", "Button", btn_disabled)
 
-	t.set_color("font_color", "Button", TEXT_PRIMARY)
-	t.set_color("font_hover_color", "Button", BG_DARK)
-	t.set_color("font_pressed_color", "Button", BG_DARK)
-	t.set_color("font_disabled_color", "Button", TEXT_SECONDARY)
-	t.set_font_size("font_size", "Button", FONT_BODY)
+	t.set_color("font_color", "Button", TEXT_INVERSE)
+	t.set_color("font_hover_color", "Button", TEXT_INVERSE)
+	t.set_color("font_pressed_color", "Button", TEXT_INVERSE)
+	t.set_color("font_disabled_color", "Button", TEXT_MUTED)
+	t.set_font_size("font_size", "Button", FONT_SM)
+	if font_heading_semibold:
+		t.set_font("font", "Button", font_heading_semibold)
 
 	# --- Label Styles ---
 	t.set_color("font_color", "Label", TEXT_PRIMARY)
 	t.set_font_size("font_size", "Label", FONT_BODY)
 
-	# --- Other common controls (optional, extend as needed) ---
-	# LineEdit
-	var line_edit_style := get_panel_style(BG_LIGHT, ACCENT_PRIMARY, 1, 6, 8) # Smaller radius for inputs
-	t.set_stylebox("normal", "LineEdit", line_edit_style)
+	# --- LineEdit ---
+	var line_edit_sb := StyleBoxFlat.new()
+	line_edit_sb.bg_color = SURFACE
+	line_edit_sb.border_color = BORDER
+	line_edit_sb.set_border_width_all(1)
+	line_edit_sb.set_corner_radius_all(RADIUS_SM)
+	line_edit_sb.set_content_margin_all(8)
+	t.set_stylebox("normal", "LineEdit", line_edit_sb)
 	t.set_color("font_color", "LineEdit", TEXT_PRIMARY)
-	t.set_color("caret_color", "LineEdit", ACCENT_SECONDARY)
+	t.set_color("caret_color", "LineEdit", PRIMARY)
 	t.set_font_size("font_size", "LineEdit", FONT_BODY)
 
-	# ProgressBar
-	var pb_bg := get_panel_style(BG_DARK.lightened(0.1), BG_MEDIUM, 1, 6) # Smaller radius
+	# --- ProgressBar ---
+	var pb_bg := StyleBoxFlat.new()
+	pb_bg.bg_color = BORDER_LIGHT
+	pb_bg.set_corner_radius_all(RADIUS_SM)
 	var pb_fill := StyleBoxFlat.new()
-	pb_fill.bg_color = ACCENT_PRIMARY
-	pb_fill.set_corner_radius_all(6)
+	pb_fill.bg_color = PRIMARY
+	pb_fill.set_corner_radius_all(RADIUS_SM)
 	t.set_stylebox("background", "ProgressBar", pb_bg)
 	t.set_stylebox("fill", "ProgressBar", pb_fill)
 	t.set_color("font_color", "ProgressBar", TEXT_PRIMARY)
 
-	# CheckBox
+	# --- CheckBox / OptionButton ---
 	t.set_color("font_color", "CheckBox", TEXT_PRIMARY)
-	t.set_font_size("font_size", "CheckBox", FONT_BODY)
-
-	# OptionButton (Dropdown)
 	t.set_color("font_color", "OptionButton", TEXT_PRIMARY)
+	t.set_font_size("font_size", "CheckBox", FONT_BODY)
 	t.set_font_size("font_size", "OptionButton", FONT_BODY)
-	var op_normal_style := get_button_style(BG_MEDIUM, ACCENT_PRIMARY, TEXT_PRIMARY).normal
-	var op_hover_style := get_button_style(ACCENT_PRIMARY, ACCENT_SECONDARY, BG_DARK).hover
-	t.set_stylebox("normal", "OptionButton", op_normal_style)
-	t.set_stylebox("hover", "OptionButton", op_hover_style)
-	t.set_stylebox("pressed", "OptionButton", op_normal_style) # Same as normal for pressed
+
+	# --- HSeparator ---
+	var sep_sb := StyleBoxFlat.new()
+	sep_sb.bg_color = BORDER_LIGHT
+	sep_sb.set_content_margin(SIDE_TOP, 4)
+	sep_sb.set_content_margin(SIDE_BOTTOM, 4)
+	t.set_stylebox("separator", "HSeparator", sep_sb)
+
+	# --- ScrollContainer ---
+	t.set_color("font_color", "ScrollContainer", TEXT_PRIMARY)
 
 	return t
 
-
 # ---------------------------------------------------------------------------
-# Static Helper Functions
+# Helper Functions
 # ---------------------------------------------------------------------------
 
-static func get_panel_style(bg_color: Color = BG_MEDIUM, border_color: Color = ACCENT_PRIMARY, border_width: int = 1, corner_radius: int = 8, content_margin: int = 10) -> StyleBoxFlat:
+## Get a styled panel StyleBox with configurable colors
+static func make_panel(bg: Color = SURFACE, border: Color = BORDER_LIGHT, border_w: int = 1, radius: int = RADIUS_MD, margin: int = SPACING_MD) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg_color
-	sb.border_color = border_color
-	sb.set_border_width_all(border_width)
-	sb.set_corner_radius_all(corner_radius)
-	sb.set_content_margin_all(content_margin)
+	sb.bg_color = bg
+	sb.border_color = border
+	sb.set_border_width_all(border_w)
+	sb.set_corner_radius_all(radius)
+	sb.set_content_margin_all(margin)
 	return sb
+
+## Get a KPI card panel (white with colored top stripe)
+static func make_kpi_panel(stripe_color: Color = PRIMARY) -> StyleBoxFlat:
+	var sb := make_panel()
+	sb.border_color = BORDER_LIGHT
+	sb.set_border_width_all(1)
+	# Top stripe via border
+	sb.border_width_top = 4
+	sb.border_color = stripe_color
+	return sb
+
+## Status colors helper
+static func status_color(level: String) -> Color:
+	match level.to_lower():
+		"healthy", "good", "success": return SUCCESS
+		"warning", "elevated": return WARNING
+		"critical", "danger", "bad": return DANGER
+		"info": return INFO
+		_: return TEXT_MUTED
+
+## Balance color (financial)
+static func balance_color(amount: float) -> Color:
+	if amount > 0:
+		return SUCCESS_DARK
+	elif amount < 0:
+		return DANGER
+	return TEXT_PRIMARY
+
+# Legacy compat
+static func get_panel_style(bg_color: Color = SURFACE, border_color: Color = BORDER_LIGHT, border_width: int = 1, corner_radius: int = 8, content_margin: int = 10) -> StyleBoxFlat:
+	return make_panel(bg_color, border_color, border_width, corner_radius, content_margin)
+
+static func get_severity_color(level: String) -> Color:
+	return status_color(level)
 
 static func get_button_style(normal_bg: Color, hover_bg: Color, text_color: Color) -> Dictionary:
 	var styles := {}
-
-	# Normal
-	var normal_sb := get_panel_style(normal_bg, ACCENT_PRIMARY, 1, 8, 12)
+	var normal_sb := make_panel(normal_bg, PRIMARY, 1, RADIUS_SM, 12)
 	styles.normal = normal_sb
-
-	# Hover
-	var hover_sb := get_panel_style(hover_bg, TEXT_ACCENT, 1, 8, 12)
+	var hover_sb := make_panel(hover_bg, SECONDARY, 1, RADIUS_SM, 12)
 	styles.hover = hover_sb
-
-	# Pressed
-	var pressed_sb := get_panel_style(hover_bg.darkened(0.1), ACCENT_PRIMARY, 1, 8, 12)
+	var pressed_sb := make_panel(hover_bg.darkened(0.1), PRIMARY, 1, RADIUS_SM, 12)
 	styles.pressed = pressed_sb
-
-	# Disabled
-	var disabled_sb := get_panel_style(BG_DARK.lightened(0.1), TEXT_SECONDARY, 1, 8, 12)
+	var disabled_sb := make_panel(BORDER, TEXT_MUTED, 1, RADIUS_SM, 12)
 	styles.disabled = disabled_sb
-
 	return styles
 
 static func get_label_style(font_size: int = FONT_BODY, font_color: Color = TEXT_PRIMARY) -> Dictionary:
@@ -147,39 +300,3 @@ static func get_label_style(font_size: int = FONT_BODY, font_color: Color = TEXT
 	label_settings.font_size = font_size
 	label_settings.font_color = font_color
 	return {"settings": label_settings}
-
-
-# ---------------------------------------------------------------------------
-# Color-coded Severity Helpers
-# ---------------------------------------------------------------------------
-static func get_severity_color(level: String) -> Color:
-	match level.to_lower():
-		"info": return BG_LIGHT # Use a lighter background blue for info
-		"warning": return WARNING_COLOR
-		"critical": return DANGER_COLOR
-		"success": return SUCCESS_COLOR
-		_: return TEXT_SECONDARY # Default for unknown levels
-
-
-# ---------------------------------------------------------------------------
-# Example Usage in other scenes:
-# var LakskongenTheme = get_node("/root/LakskongenTheme") # If autoloaded
-#
-# func _ready():
-#    # Apply theme globally to the root of the scene tree
-#    LakskongenTheme.apply_to_root()
-#
-#    # Get a specific panel style
-#    $MyPanel.add_theme_stylebox_override("panel", LakskongenTheme.get_panel_style())
-#
-#    # Get a specific button style (e.g., for a custom button)
-#    $MyButton.add_theme_stylebox_override("normal", LakskongenTheme.get_button_style(LakskongenTheme.ACCENT_PRIMARY, LakskongenTheme.ACCENT_SECONDARY, LakskongenTheme.TEXT_PRIMARY).normal)
-#
-#    # Get a label setting (e.g., for a dynamically created label)
-#    var my_label = Label.new()
-#    my_label.label_settings = LakskongenTheme.get_label_style(LakskongenTheme.FONT_HEADER).settings
-#    add_child(my_label)
-#
-#    # Get a severity color
-#    $StatusLabel.modulate = LakskongenTheme.get_severity_color("warning")
-

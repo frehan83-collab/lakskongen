@@ -75,7 +75,7 @@ layout_mode = 2
 custom_minimum_size = Vector2(32, 32)
 theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
 theme_override_font_sizes/font_size = 20
-text = tr("ui.settingsmenu.")
+text = "X"
 
 [node name="HSeparator" type="HSeparator" parent="CenterContainer/Panel/VBoxContainer"]
 layout_mode = 2
@@ -211,11 +211,10 @@ value = 5.0
 
 [node name="TutorialContainer" type="VBoxContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer"]
 layout_mode = 2
-
 [node name="TutorialCheckBox" type="CheckBox" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/TutorialContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = tr("ui.settingsmenu.visopplringshjelp")
+text = tr("ui.settings.tutorial_enabled")
 
 [node name="Kontroller" type="ScrollContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer"]
 layout_mode = 2

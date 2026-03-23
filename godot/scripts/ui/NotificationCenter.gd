@@ -26,9 +26,9 @@ signal panel_toggled(is_open: bool)
 const MAX_ENTRIES := 20
 
 const SEVERITY_COLORS := {
-	"info":     Color(0.70, 0.90, 1.00),  # light blue
+	"info":     Color("#A3D1DE"),  # light blue
 	"warning":  Color(1.00, 0.80, 0.10),  # yellow
-	"critical": Color(0.95, 0.20, 0.15),  # red
+	"critical": Color("#BF616A"),  # red
 }
 
 const SEVERITY_ICONS := {
@@ -176,7 +176,7 @@ func _build_entry_node(entry: Dictionary, index: int) -> Control:
 	style.border_color = color
 	style.set_border_width_all(0)
 	style.border_width_left = 3
-	style.bg_color = Color(0.12, 0.14, 0.18, 0.95)
+	style.bg_color = Color("#FFFFFF")
 	style.set_corner_radius_all(4)
 	panel_node.add_theme_stylebox_override("panel", style)
 
@@ -203,7 +203,7 @@ func _build_entry_node(entry: Dictionary, index: int) -> Control:
 
 	var day_lbl := Label.new()
 	day_lbl.text = tr("ui.notification.day_format") % entry.get("day", 0)
-	day_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	day_lbl.add_theme_color_override("font_color", Color("#7B8794"))
 	day_lbl.add_theme_font_size_override("font_size", 10)
 	header.add_child(day_lbl)
 
@@ -211,7 +211,7 @@ func _build_entry_node(entry: Dictionary, index: int) -> Control:
 	var desc_lbl := Label.new()
 	desc_lbl.text = entry.get("description", "")
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc_lbl.add_theme_color_override("font_color", Color(0.80, 0.80, 0.80))
+	desc_lbl.add_theme_color_override("font_color", Color("#4C566A"))
 	desc_lbl.add_theme_font_size_override("font_size", 11)
 	desc_lbl.visible = is_expanded
 	desc_lbl.name = "Desc"

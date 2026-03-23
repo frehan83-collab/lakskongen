@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lakskongen — Finans</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--primary:#0A4D68;--primary-light:#0D5F80;--secondary:#88C0D0;--secondary-light:#A3D1DE;--accent:#5E81AC;--bg:#ECEFF4;--surface:#FFFFFF;--surface-elevated:#F8F9FB;--text:#2E3440;--text-secondary:#4C566A;--text-muted:#7B8794;--text-inverse:#ECEFF4;--border:#D8DEE9;--border-light:#E5E9F0;--success:#A3BE8C;--success-dark:#8FAD78;--warning:#EBCB8B;--warning-dark:#D4B06A;--danger:#BF616A;--danger-dark:#A54E56;--info:#88C0D0;--shadow-sm:0 1px 2px rgba(46,52,64,.06);--radius-sm:4px;--radius-md:8px;--font-heading:'Inter',system-ui,sans-serif;--font-body:'IBM Plex Sans',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace}
+html{font-size:15px;line-height:1.5}body{font-family:var(--font-body);color:var(--text);background:var(--bg);display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--primary);color:var(--text-inverse);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:10}
+.sidebar-logo{padding:20px 24px;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.5px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px}
+.sidebar-logo .icon{width:28px;height:28px;background:var(--secondary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px}
+.sidebar-nav{flex:1;padding:16px 0}.sidebar-nav a{display:flex;align-items:center;gap:12px;padding:10px 24px;color:rgba(236,239,244,.7);text-decoration:none;font-size:14px;font-weight:500;transition:all .15s}.sidebar-nav a:hover{color:#fff;background:rgba(255,255,255,.08)}.sidebar-nav a.active{color:#fff;background:rgba(255,255,255,.12);border-left:3px solid var(--secondary);padding-left:21px}.sidebar-nav a .nav-icon{width:20px;text-align:center;font-size:16px}
+.sidebar-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:rgba(236,239,244,.5)}
+.main{margin-left:220px;flex:1;padding:24px 32px;max-width:1600px}
+.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.page-header h1{font-family:var(--font-heading);font-size:24px;font-weight:700}
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--surface);border-radius:var(--radius-md);padding:18px 20px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.kpi-card:nth-child(1)::before{background:var(--success)}.kpi-card:nth-child(2)::before{background:var(--danger)}.kpi-card:nth-child(3)::before{background:var(--primary)}.kpi-card:nth-child(4)::before{background:var(--warning)}
+.kpi-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:500;margin-bottom:6px}
+.kpi-value{font-family:var(--font-heading);font-size:26px;font-weight:700;line-height:1.1}.kpi-value .unit{font-size:14px;font-weight:400;color:var(--text-secondary);margin-left:3px}
+.kpi-change{font-size:12px;margin-top:6px;font-weight:500}.kpi-change.up{color:var(--success-dark)}.kpi-change.down{color:var(--danger)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+.card{background:var(--surface);border-radius:var(--radius-md);box-shadow:var(--shadow-sm);border:1px solid var(--border-light);overflow:hidden}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center}
+.card-header h2{font-family:var(--font-heading);font-size:15px;font-weight:600}
+.card-body{padding:20px}
+.pl-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-light);font-size:13px}
+.pl-row:last-child{border-bottom:none}.pl-row.total{font-weight:700;font-size:14px;border-top:2px solid var(--border);padding-top:12px;margin-top:4px}
+.pl-row .label{color:var(--text-secondary)}.pl-row .value{font-family:var(--font-mono);font-weight:500}
+.pl-row .value.positive{color:var(--success-dark)}.pl-row .value.negative{color:var(--danger)}
+.balance-section{margin-bottom:16px}.balance-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border-light)}
+.balance-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px}.balance-row .label{color:var(--text-secondary)}.balance-row .value{font-family:var(--font-mono);font-weight:500}
+.investor-item{display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--surface-elevated);border-radius:var(--radius-sm);border:1px solid var(--border-light);margin-bottom:10px}
+.investor-item:last-child{margin-bottom:0}
+.investor-name{font-family:var(--font-heading);font-size:14px;font-weight:600}.investor-details{font-size:12px;color:var(--text-muted);margin-top:2px}
+.investor-amount{font-family:var(--font-mono);font-size:16px;font-weight:600;color:var(--primary)}
+.cost-bar-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.cost-label{width:100px;font-size:12px;color:var(--text-secondary);text-align:right}
+.cost-bar-bg{flex:1;height:18px;background:var(--border-light);border-radius:3px;overflow:hidden}
+.cost-bar{height:100%;border-radius:3px}
+.cost-pct{width:45px;font-size:12px;font-family:var(--font-mono);color:var(--text-muted)}
+.insurance-card{background:var(--surface-elevated);border-radius:var(--radius-sm);padding:14px;border:1px solid var(--border-light);margin-bottom:10px}
+.insurance-card:last-child{margin-bottom:0}
+.insurance-type{font-family:var(--font-heading);font-size:13px;font-weight:600;margin-bottom:4px}
+.insurance-details{font-size:12px;color:var(--text-muted)}
+.insurance-premium{font-family:var(--font-mono);font-size:14px;font-weight:500;color:var(--primary);margin-top:4px}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="icon">🐟</div>Lakskongen</div>
+  <div class="sidebar-nav">
+    <a href="#"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="#"><span class="nav-icon">🏗️</span> Merder</a>
+    <a href="#"><span class="nav-icon">📈</span> Marked</a>
+    <a href="#" class="active"><span class="nav-icon">💰</span> Finans</a>
+    <a href="#"><span class="nav-icon">🔬</span> Forskning</a>
+    <a href="#"><span class="nav-icon">🗺️</span> Kart</a>
+    <a href="#"><span class="nav-icon">👷</span> Mannskap</a>
+    <a href="#"><span class="nav-icon">🚚</span> Logistikk</a>
+    <a href="#"><span class="nav-icon">⚙️</span> Innstillinger</a>
+  </div>
+  <div class="sidebar-footer">Uke 12 · Mars 2026<br>Dag 847 · Vår</div>
+</nav>
+<div class="main">
+  <div class="page-header"><h1>💰 Finans & Økonomi</h1></div>
+
+  <div class="kpi-strip">
+    <div class="kpi-card"><div class="kpi-label">Inntekter (YTD)</div><div class="kpi-value">142.3<span class="unit">MNOK</span></div><div class="kpi-change up">▲ 8.1% mot budsjett</div></div>
+    <div class="kpi-card"><div class="kpi-label">Kostnader (YTD)</div><div class="kpi-value">98.7<span class="unit">MNOK</span></div><div class="kpi-change down">▲ 2.3% over budsjett</div></div>
+    <div class="kpi-card"><div class="kpi-label">EBITDA</div><div class="kpi-value">43.6<span class="unit">MNOK</span></div><div class="kpi-change up">Margin: 30.6%</div></div>
+    <div class="kpi-card"><div class="kpi-label">Likviditet</div><div class="kpi-value">28.4<span class="unit">MNOK</span></div><div class="kpi-change">Runway: 8 mnd</div></div>
+  </div>
+
+  <div class="grid-2">
+    <!-- P&L -->
+    <div class="card">
+      <div class="card-header"><h2>📊 Resultatregnskap (Q1 2026)</h2></div>
+      <div class="card-body">
+        <div class="pl-row"><span class="label">Salgsinntekter</span><span class="value positive">142 300 000</span></div>
+        <div class="pl-row"><span class="label">Fôrkostnader</span><span class="value negative">-52 100 000</span></div>
+        <div class="pl-row"><span class="label">Lønn & personal</span><span class="value negative">-18 400 000</span></div>
+        <div class="pl-row"><span class="label">Vedlikehold</span><span class="value negative">-8 200 000</span></div>
+        <div class="pl-row"><span class="label">Transport & logistikk</span><span class="value negative">-6 800 000</span></div>
+        <div class="pl-row"><span class="label">Forsikring</span><span class="value negative">-4 200 000</span></div>
+        <div class="pl-row"><span class="label">Avlusning</span><span class="value negative">-3 900 000</span></div>
+        <div class="pl-row"><span class="label">Andre driftskostnader</span><span class="value negative">-5 100 000</span></div>
+        <div class="pl-row total"><span class="label">EBITDA</span><span class="value positive">43 600 000</span></div>
+        <div class="pl-row"><span class="label">Avskrivninger</span><span class="value negative">-12 000 000</span></div>
+        <div class="pl-row"><span class="label">Rentekostnader</span><span class="value negative">-3 800 000</span></div>
+        <div class="pl-row total"><span class="label">Resultat før skatt</span><span class="value positive">27 800 000</span></div>
+      </div>
+    </div>
+
+    <!-- Balance Sheet -->
+    <div class="card">
+      <div class="card-header"><h2>📋 Balanse (forenklet)</h2></div>
+      <div class="card-body">
+        <div class="balance-section">
+          <div class="balance-title">EIENDELER</div>
+          <div class="balance-row"><span class="label">Konsesjoner & rettigheter</span><span class="value">180 000 000</span></div>
+          <div class="balance-row"><span class="label">Anlegg & utstyr</span><span class="value">95 000 000</span></div>
+          <div class="balance-row"><span class="label">Biologiske eiendeler</span><span class="value">68 000 000</span></div>
+          <div class="balance-row"><span class="label">Fordringer</span><span class="value">22 000 000</span></div>
+          <div class="balance-row"><span class="label">Bankinnskudd</span><span class="value">28 400 000</span></div>
+          <div class="balance-row" style="font-weight:700;border-top:1px solid var(--border);padding-top:8px;margin-top:4px"><span class="label">Sum eiendeler</span><span class="value">393 400 000</span></div>
+        </div>
+        <div class="balance-section">
+          <div class="balance-title">GJELD & EGENKAPITAL</div>
+          <div class="balance-row"><span class="label">Egenkapital</span><span class="value">215 000 000</span></div>
+          <div class="balance-row"><span class="label">Langsiktig gjeld</span><span class="value">142 000 000</span></div>
+          <div class="balance-row"><span class="label">Kortsiktig gjeld</span><span class="value">36 400 000</span></div>
+          <div class="balance-row" style="font-weight:700;border-top:1px solid var(--border);padding-top:8px;margin-top:4px"><span class="label">Sum gjeld & EK</span><span class="value">393 400 000</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <!-- Cost Breakdown -->
+    <div class="card">
+      <div class="card-header"><h2>📉 Kostnadsfordeling</h2></div>
+      <div class="card-body">
+        <div class="cost-bar-row"><span class="cost-label">Fôr</span><div class="cost-bar-bg"><div class="cost-bar" style="width:53%;background:var(--primary)"></div></div><span class="cost-pct">53%</span></div>
+        <div class="cost-bar-row"><span class="cost-label">Lønn</span><div class="cost-bar-bg"><div class="cost-bar" style="width:19%;background:var(--accent)"></div></div><span class="cost-pct">19%</span></div>
+        <div class="cost-bar-row"><span class="cost-label">Vedlikehold</span><div class="cost-bar-bg"><div class="cost-bar" style="width:8%;background:var(--secondary)"></div></div><span class="cost-pct">8%</span></div>
+        <div class="cost-bar-row"><span class="cost-label">Transport</span><div class="cost-bar-bg"><div class="cost-bar" style="width:7%;background:var(--warning)"></div></div><span class="cost-pct">7%</span></div>
+        <div class="cost-bar-row"><span class="cost-label">Forsikring</span><div class="cost-bar-bg"><div class="cost-bar" style="width:4%;background:var(--info)"></div></div><span class="cost-pct">4%</span></div>
+        <div class="cost-bar-row"><span class="cost-label">Avlusning</span><div class="cost-bar-bg"><div class="cost-bar" style="width:4%;background:var(--danger)"></div></div><span class="cost-pct">4%</span></div>
+        <div class="cost-bar-row"><span class="cost-label">Andre</span><div class="cost-bar-bg"><div class="cost-bar" style="width:5%;background:var(--text-muted)"></div></div><span class="cost-pct">5%</span></div>
+      </div>
+    </div>
+
+    <!-- Investors -->
+    <div class="card">
+      <div class="card-header"><h2>🏦 Investorer</h2></div>
+      <div class="card-body">
+        <div class="investor-item"><div><div class="investor-name">Nordkapp Invest AS</div><div class="investor-details">45% eierandel · Styreleder</div></div><div class="investor-amount">96.8 M</div></div>
+        <div class="investor-item"><div><div class="investor-name">Fjordlaks Holding</div><div class="investor-details">30% eierandel · Grunnlegger</div></div><div class="investor-amount">64.5 M</div></div>
+        <div class="investor-item"><div><div class="investor-name">Innovasjon Norge</div><div class="investor-details">15% · Utviklingstilskudd</div></div><div class="investor-amount">32.3 M</div></div>
+        <div class="investor-item"><div><div class="investor-name">Ansattepool</div><div class="investor-details">10% · Aksjeprogram</div></div><div class="investor-amount">21.5 M</div></div>
+      </div>
+    </div>
+
+    <!-- Insurance -->
+    <div class="card">
+      <div class="card-header"><h2>🛡️ Forsikring</h2></div>
+      <div class="card-body">
+        <div class="insurance-card"><div class="insurance-type">Biomasseforsikring</div><div class="insurance-details">Dekning: 100% biomasse · Selvrisiko: 500 000</div><div class="insurance-premium">Premie: 2.8 MNOK/år</div></div>
+        <div class="insurance-card"><div class="insurance-type">Driftsstans</div><div class="insurance-details">Dekning: 6 mnd drift · Ventetid: 14 dager</div><div class="insurance-premium">Premie: 850 000/år</div></div>
+        <div class="insurance-card"><div class="insurance-type">Utstyr & anlegg</div><div class="insurance-details">Dekning: Fullverdi · Inkl. storm/flom</div><div class="insurance-premium">Premie: 550 000/år</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

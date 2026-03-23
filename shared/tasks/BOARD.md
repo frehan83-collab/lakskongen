@@ -100,6 +100,23 @@
 |----|------|-------|--------|
 | T59 | Fix Remaining Integration Test Failures | Sonnet 4.5 | ✅ 5/5 FullCycleTests passing! Fixed: (1) Zone temperature synchronization — removed override in SimulationEngine, (2) Fish stage transition — updated test to accept Harvest stage at 905 days. All tests green! |
 
+## ✅ Done (Sprint 11 — Wire the Empire)
+| ID | Task | Agent | Result |
+|----|------|-------|--------|
+| T62 | Wire CompetitorAI + EmpireProgression into SimulationEngine | Sonnet 4.5 | ✅ Both systems wired, daily/weekly updates |
+| T63 | Wire StockMarket + BrandReputation into SimulationEngine | Sonnet 4.5 | ✅ Daily stock price + weekly reputation |
+| T64 | Wire CrisisCapitalism + VerticalIntegration into SimulationEngine | Sonnet 4.5 | ✅ Weekly crisis eval + monthly integration |
+| T65 | GameBridge + SimBridge for 6 empire systems | Sonnet 4.5 | ✅ 23 bridge methods |
+| T66 | EmpirePanel.gd — Empire Overview UI | Sonnet 4.5 | ✅ 6-section panel |
+| T67 | Empire systems integration tests | Sonnet 4.5 | ✅ 13 tests, all passing |
+| T68 | Wire LoanSystem + TaxSystem + InvestorSystem | Sonnet 4.5 | ✅ Daily/quarterly/monthly updates |
+| T69 | Wire AcquisitionSystem + LicenseSystem + StakeholderFactionSystem | Sonnet 4.5 | ✅ Weekly/monthly updates |
+| T70 | Wire MarketIntelligence + FishWelfare + ProductMixOptimizer + VisualMilestones | Sonnet 4.5 | ✅ 4 systems + 3 TODOs fixed |
+| T71 | GameBridge + SimBridge for 9 Wave 2 systems | Sonnet 4.5 | ✅ 28 bridge methods |
+| T72 | FinanceDeepPanel.gd — Loans/Tax/Investors UI | Kimi K2.5 | ✅ 4-section finance panel |
+| T73 | StakeholderPanel.gd — Political relations UI | DeepSeek V3.2 | ✅ 6 factions, demands, actions |
+| T76 | CurrencySystem — NOK exchange rate simulation | Sonnet 4.5 | ✅ 4 currency pairs (EUR/USD/JPY/GBP), daily O-U updates, export revenue multiplier |
+
 ## 🟢 In Progress (Sprint 10 — Polish & Ship)
 | ID | Task | Agent | Status |
 |----|------|-------|--------|
@@ -111,6 +128,6 @@
 | T52 | Performance profiling + optimization | DeepSeek R1 | MEDIUM (partially done by T56) |
 
 ---
-*Updated: 2026-03-15 00:42 CET — T59 Integration Test Fixes COMPLETE! 5/5 FullCycleTests passing (100%).*
-*Build: ✅ Green | Tests: ✅ 5/5 FullCycleTests (100%) | Sprint 10: Wave 2 final complete*
+*Updated: 2026-03-19 18:13 CET — Sprint 11 "Wire the Empire" COMPLETE. 40 subsystems in SimulationEngine.*
+*Build: ✅ Green (CurrencySystem wired) | Tests: ✅ 5/5 FullCycleTests (100%) | Sprint 11 complete*
 *Routing: DeepSeek V3.2 primary → R1 → Sonnet → Qwen → Gemini → Free tier*

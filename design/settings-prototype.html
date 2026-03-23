@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lakskongen — Innstillinger</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--primary:#0A4D68;--primary-light:#0D5F80;--secondary:#88C0D0;--accent:#5E81AC;--bg:#ECEFF4;--surface:#FFFFFF;--surface-elevated:#F8F9FB;--text:#2E3440;--text-secondary:#4C566A;--text-muted:#7B8794;--text-inverse:#ECEFF4;--border:#D8DEE9;--border-light:#E5E9F0;--success:#A3BE8C;--success-dark:#8FAD78;--warning:#EBCB8B;--danger:#BF616A;--info:#88C0D0;--shadow-sm:0 1px 2px rgba(46,52,64,.06);--radius-sm:4px;--radius-md:8px;--font-heading:'Inter',system-ui,sans-serif;--font-body:'IBM Plex Sans',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace}
+html{font-size:15px;line-height:1.5}body{font-family:var(--font-body);color:var(--text);background:var(--bg);display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--primary);color:var(--text-inverse);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:10}
+.sidebar-logo{padding:20px 24px;font-family:var(--font-heading);font-size:20px;font-weight:700;letter-spacing:-.5px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px}
+.sidebar-logo .icon{width:28px;height:28px;background:var(--secondary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px}
+.sidebar-nav{flex:1;padding:16px 0}.sidebar-nav a{display:flex;align-items:center;gap:12px;padding:10px 24px;color:rgba(236,239,244,.7);text-decoration:none;font-size:14px;font-weight:500;transition:all .15s}.sidebar-nav a:hover{color:#fff;background:rgba(255,255,255,.08)}.sidebar-nav a.active{color:#fff;background:rgba(255,255,255,.12);border-left:3px solid var(--secondary);padding-left:21px}.sidebar-nav a .nav-icon{width:20px;text-align:center;font-size:16px}
+.sidebar-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.12);font-size:12px;color:rgba(236,239,244,.5)}
+.main{margin-left:220px;flex:1;padding:24px 32px;max-width:900px}
+.page-header{margin-bottom:32px}.page-header h1{font-family:var(--font-heading);font-size:24px;font-weight:700}.page-header p{font-size:13px;color:var(--text-muted);margin-top:4px}
+/* Tabs */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border-light);margin-bottom:24px}
+.tab{padding:10px 20px;font-family:var(--font-heading);font-size:14px;font-weight:500;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600}
+/* Settings section */
+.section{margin-bottom:32px}
+.section-title{font-family:var(--font-heading);font-size:16px;font-weight:700;margin-bottom:4px}
+.section-desc{font-size:13px;color:var(--text-muted);margin-bottom:16px}
+.setting-row{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius-md);margin-bottom:10px;box-shadow:var(--shadow-sm)}
+.setting-info{flex:1}.setting-label{font-family:var(--font-heading);font-size:14px;font-weight:600}.setting-desc{font-size:12px;color:var(--text-muted);margin-top:2px}
+/* Toggle */
+.toggle{width:44px;height:24px;background:var(--border);border-radius:12px;position:relative;cursor:pointer;transition:background .2s}
+.toggle.on{background:var(--success)}
+.toggle-dot{width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.toggle.on .toggle-dot{left:22px}
+/* Select */
+.select{padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font-body);font-size:13px;background:var(--surface);color:var(--text);cursor:pointer;min-width:140px}
+/* Slider */
+.slider-wrap{display:flex;align-items:center;gap:12px}
+.slider{-webkit-appearance:none;width:120px;height:4px;border-radius:2px;background:var(--border-light);outline:none}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--primary);cursor:pointer}
+.slider-value{font-family:var(--font-mono);font-size:13px;color:var(--text);min-width:30px}
+/* Save bar */
+.save-bar{position:fixed;bottom:0;left:220px;right:0;background:var(--surface);border-top:1px solid var(--border);padding:16px 32px;display:flex;justify-content:flex-end;gap:12px;z-index:5}
+.btn{padding:10px 24px;border:none;border-radius:var(--radius-sm);font-family:var(--font-heading);font-size:14px;font-weight:600;cursor:pointer}
+.btn-primary{background:var(--primary);color:#fff}.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+/* Color swatches */
+.color-swatches{display:flex;gap:8px}
+.swatch{width:28px;height:28px;border-radius:var(--radius-sm);cursor:pointer;border:2px solid transparent;transition:border .15s}
+.swatch.selected{border-color:var(--text);box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--text)}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="icon">🐟</div>Lakskongen</div>
+  <div class="sidebar-nav">
+    <a href="#"><span class="nav-icon">📊</span> Dashboard</a>
+    <a href="#"><span class="nav-icon">🏗️</span> Merder</a>
+    <a href="#"><span class="nav-icon">📈</span> Marked</a>
+    <a href="#"><span class="nav-icon">💰</span> Finans</a>
+    <a href="#"><span class="nav-icon">🔬</span> Forskning</a>
+    <a href="#"><span class="nav-icon">🗺️</span> Kart</a>
+    <a href="#"><span class="nav-icon">👷</span> Mannskap</a>
+    <a href="#"><span class="nav-icon">🚚</span> Logistikk</a>
+    <a href="#" class="active"><span class="nav-icon">⚙️</span> Innstillinger</a>
+  </div>
+  <div class="sidebar-footer">Uke 12 · Mars 2026<br>Dag 847 · Vår</div>
+</nav>
+<div class="main">
+  <div class="page-header"><h1>⚙️ Innstillinger</h1><p>Spillinnstillinger, grafikk, lyd og tilgjengelighet</p></div>
+
+  <div class="tabs">
+    <div class="tab active">Generelt</div>
+    <div class="tab">Grafikk</div>
+    <div class="tab">Lyd</div>
+    <div class="tab">Spill</div>
+    <div class="tab">Tilgjengelighet</div>
+  </div>
+
+  <!-- GENERAL -->
+  <div class="section">
+    <div class="section-title">Generelt</div>
+    <div class="section-desc">Språk, varsler og grunnleggende innstillinger</div>
+
+    <div class="setting-row">
+      <div class="setting-info"><div class="setting-label">Språk</div><div class="setting-desc">Velg spillspråk</div></div>
+      <select class="select"><option selected>Norsk (bokmål)</option><option>English</option><option>Deutsch</option></select>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="setting-label">Autosave</div><div class="setting-desc">Lagre automatisk hvert 5. minutt</div></div>
+      <div class="toggle on"><div class="toggle-dot"></div></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="setting-label">Autosave-intervall</div><div class="setting-desc">Hvor ofte spillet lagrer automatisk</div></div>
+      <select class="select"><option>Hvert 2. minutt</option><option selected>Hvert 5. minutt</option><option>Hvert 10. minutt</option></select>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="setting-label">Popup-varsler</div><div class="setting-desc">Vis varsler for hendelser og advarsler</div></div>
+      <div class="toggle on"><div class="toggle-dot"></div></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="setting-label">Tutorial-tips</div><div class="setting-desc">Vis hjelpsomme tips for nye spillere</div></div>
+      <div class="toggle"><div class="toggle-dot"></div></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="setting-label">Simuleringshastighet (standard)</div><div class="setting-desc">Velg standard spillhastighet</div></div>
+      <select class="select"><option>1x (Sakte)</option><option selected>2x (Normal)</option><option>4x (Rask)</option><option>8x (Turbo)</option></select>
+    </div>
+  </div>
+
+  <!-- GRAPHICS -->
+  <div class="section">
+    <div class="section-title">Grafikk & Visning</div>
+    <div class="section-desc">Visuell kvalitet og ytelse</div>
+
+    <div class="setting-row">
+      <div class="setting-info"><div class="setting-label">Oppløsning</div><div class="setting-desc">Spillvinduets oppløsning</div></div>
+      <select class="select"><option>1280×720</option><option selected>1920×1080</option><option>2560×1440</option><option>3840×2160</option></select>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="setting-label">Fullskjerm</div><div class="setting-desc">Kjør i fullskjermmodus</div></div>
+      <div class="toggle on"><div class="toggle-dot"></div></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="setting-label">Vannanimasjon</div><div class="setting-desc">Bølger og vanneffekter</div></div>
+      <select class="select"><option>Av</option><option>Lav</option><option selected>Middels</option><option>Høy</option></select>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="setting-label">Partikkeleffekter</div><div class="setting-desc">Regn, snø, bølgesprut</div></div>
+      <div class="slider-wrap"><input type="range" class="slider" min="0" max="100" value="70"><span class="slider-value">70%</span></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="setting-label">UI-tema</div><div class="setting-desc">Velg fargetema for grensesnittet</div></div>
+      <div class="color-swatches">
+        <div class="swatch selected" style="background:#0A4D68"></div>
+        <div class="swatch" style="background:#2E3440"></div>
+        <div class="swatch" style="background:#4C566A"></div>
+        <div class="swatch" style="background:#5E81AC"></div>
+        <div class="swatch" style="background:#8FBCBB"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUDIO -->
+  <div class="section">
+    <div class="section-title">Lyd</div>
+    <div class="section-desc">Musikk, effekter og lydvolum</div>
+
+    <div class="setting-row">
+      <div class="setting-info"><div class="setting-label">Hovedvolum</div><div class="setting-desc">Generelt lydnivå</div></div>
+      <div class="slider-wrap"><input type="range" class="slider" min="0" max="100" value="80"><span class="slider-value">80%</span></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="setting-label">Musikk</div><div class="setting-desc">Bakgrunnsmusikk</div></div>
+      <div class="slider-wrap"><input type="range" class="slider" min="0" max="100" value="60"><span class="slider-value">60%</span></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="setting-label">Lydeffekter</div><div class="setting-desc">Bølger, vind, UI-klikk</div></div>
+      <div class="slider-wrap"><input type="range" class="slider" min="0" max="100" value="70"><span class="slider-value">70%</span></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="setting-label">Ambient lyd</div><div class="setting-desc">Værbaserte omgivelseslyder</div></div>
+      <div class="toggle on"><div class="toggle-dot"></div></div>
+    </div>
+  </div>
+
+  <div style="height:80px"></div><!-- space for save bar -->
+
+  <div class="save-bar">
+    <button class="btn btn-outline">Tilbakestill</button>
+    <button class="btn btn-primary">💾 Lagre endringer</button>
+  </div>
+</div>
+</body>
+</html>

@@ -19,7 +19,7 @@ public partial class MultiplayerBridge : Node
     [Signal] public delegate void AllPlayersReadyEventHandler();
     [Signal] public delegate void GameStartedEventHandler();
     [Signal] public delegate void GameEndedEventHandler();
-    [Signal] public delegate void TradeOfferedEventHandler(string offerId, string fromPlayerId, string toPlayerId, string itemType, float quantity, decimal priceNok);
+    [Signal] public delegate void TradeOfferedEventHandler(string offerId, string fromPlayerId, string toPlayerId, string itemType, float quantity, float priceNok);
     [Signal] public delegate void TradeResolvedEventHandler(string offerId, string status);
     [Signal] public delegate void ChatMessageReceivedEventHandler(string playerId, string playerName, string text);
     [Signal] public delegate void LeaderboardUpdatedEventHandler(Godot.Collections.Array<Godot.Collections.Dictionary> entries);
@@ -53,7 +53,7 @@ public partial class MultiplayerBridge : Node
         MultiplayerManager.OnGameFinished += () =>
             EmitSignal(SignalName.GameEnded);
         MultiplayerManager.OnTradeOffered += offer =>
-            EmitSignal(SignalName.TradeOffered, offer.OfferId, offer.FromPlayerId, offer.ToPlayerId, offer.ItemType.ToString(), offer.Quantity, offer.PriceNok);
+            EmitSignal(SignalName.TradeOffered, offer.OfferId, offer.FromPlayerId, offer.ToPlayerId, offer.ItemType.ToString(), offer.Quantity, (float)offer.PriceNok);
         MultiplayerManager.OnTradeResolved += offer =>
             EmitSignal(SignalName.TradeResolved, offer.OfferId, offer.Status.ToString());
         MultiplayerManager.OnChatMessageReceived += msg =>
@@ -133,11 +133,11 @@ public partial class MultiplayerBridge : Node
     /// <summary>Create a trade offer between players.</summary>
     public string CreateTradeOffer(string fromPlayerId, string toPlayerId,
                                    string itemType, float quantity,
-                                   decimal priceNok, string itemId = null)
+                                   float priceNok, string itemId = null)
     {
         var type = Enum.Parse<TradeItemType>(itemType);
         var offer = MultiplayerManager.CreateTradeOffer(fromPlayerId, toPlayerId,
-            type, quantity, priceNok, itemId);
+            type, quantity, (decimal)priceNok, itemId);
         return offer?.OfferId ?? "";
     }
 

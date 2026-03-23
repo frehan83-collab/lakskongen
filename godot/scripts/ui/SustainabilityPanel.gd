@@ -16,8 +16,8 @@ class_name SustainabilityPanel
 # Color scheme from design tokens
 const COLOR_BG = "#0F1720"
 const COLOR_PANEL = "#121826"
-const COLOR_TEXT = "#E6EEF3"
-const COLOR_MUTED = "#9AA7B2"
+const COLOR_TEXT = "#2E3440"
+const COLOR_MUTED = "#7B8794"
 const COLOR_ACCENT = "#2AB7B5"
 const COLOR_ACCENT_2 = "#1F7A8C"
 const COLOR_DANGER = "#E06666"

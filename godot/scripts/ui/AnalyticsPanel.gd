@@ -21,10 +21,10 @@ extends Control
 # ── Configuration ──────────────────────────────────────────────────────────────
 
 const METRICS: Array = [
-	{ "key": "fish_count",        "label": "Fish Count",        "color": Color(0.2, 0.6, 1.0) },
-	{ "key": "total_biomass_kg",  "label": "Biomass (kg)",      "color": Color(0.3, 0.8, 0.4) },
+	{ "key": "fish_count",        "label": "Fish Count",        "color": Color("#5E81AC") },
+	{ "key": "total_biomass_kg",  "label": "Biomass (kg)",      "color": Color("#A3BE8C") },
 	{ "key": "market_price_nok",  "label": "Price (NOK/kg)",    "color": Color(1.0, 0.75, 0.2) },
-	{ "key": "balance_nok",       "label": "Balance (NOK)",     "color": Color(0.9, 0.4, 0.4) },
+	{ "key": "balance_nok",       "label": "Balance (NOK)",     "color": Color("#BF616A") },
 ]
 
 const CHART_W  := 260
@@ -141,7 +141,7 @@ func _build_chart_cell(parent: Node, meta: Dictionary) -> Dictionary:
 	var value_lbl := Label.new()
 	value_lbl.text = "–"
 	value_lbl.add_theme_font_size_override("font_size", 10)
-	value_lbl.modulate = Color(0.8, 0.8, 0.8)
+	value_lbl.modulate = Color("#4C566A")
 	inner.add_child(value_lbl)
 
 	# Chart area (drawn procedurally)
@@ -187,13 +187,13 @@ func _refresh() -> void:
 		match trend:
 			"up":
 				trend_lbl.text    = ARROW_UP
-				trend_lbl.modulate = Color(0.3, 0.9, 0.3)
+				trend_lbl.modulate = Color("#A3BE8C")
 			"down":
 				trend_lbl.text    = ARROW_DOWN
-				trend_lbl.modulate = Color(0.9, 0.3, 0.3)
+				trend_lbl.modulate = Color("#BF616A")
 			_:
 				trend_lbl.text    = ARROW_FLAT
-				trend_lbl.modulate = Color(0.7, 0.7, 0.7)
+				trend_lbl.modulate = Color("#4C566A")
 
 		# Latest value
 		var value_lbl: Label = nodes["value_lbl"]
@@ -279,7 +279,7 @@ class _ChartArea extends Control:
 			y_range = 1.0  # avoid divide-by-zero for flat lines
 
 		# ── Grid lines (3 horizontal) ──
-		var grid_color := Color(0.3, 0.3, 0.3, 0.5)
+		var grid_color := Color(0.85, 0.87, 0.91, 0.5)
 		for gi in 3:
 			var gy: float = pad + (h - 2 * pad) * gi / 2.0
 			draw_line(Vector2(pad, gy), Vector2(w - pad, gy), grid_color, 0.5)
@@ -304,7 +304,7 @@ class _ChartArea extends Control:
 			prev_pt = pt
 
 		# ── Y-axis min/max labels ──
-		var label_color := Color(0.65, 0.65, 0.65)
+		var label_color := Color("#7B8794")
 		draw_string(ThemeDB.fallback_font, Vector2(2, h - 2),
 			_short_num(y_min), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, label_color)
 		draw_string(ThemeDB.fallback_font, Vector2(2, pad + 10),
