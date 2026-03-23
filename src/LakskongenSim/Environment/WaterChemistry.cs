@@ -108,6 +108,75 @@ namespace LakskongenSim.Environment
         }
         
         /// <summary>
+        /// Get ammonia concentration in mg/L.
+        /// </summary>
+        /// <returns>Ammonia (NH4) concentration</returns>
+        public double GetAmmoniaConcentration()
+        {
+            return AmmoniaNH4;
+        }
+        
+        /// <summary>
+        /// Get nitrite concentration in mg/L.
+        /// </summary>
+        /// <returns>Nitrite (NO2) concentration</returns>
+        public double GetNitriteConcentration()
+        {
+            return NitriteNO2;
+        }
+        
+        /// <summary>
+        /// Get nitrate concentration in mg/L.
+        /// </summary>
+        /// <returns>Nitrate (NO3) concentration</returns>
+        public double GetNitrateConcentration()
+        {
+            return NitrateNO3;
+        }
+        
+        /// <summary>
+        /// Add nitrogen load from fish waste to the system.
+        /// Fish excrete ammonia (NH4) through gills and feces.
+        /// </summary>
+        /// <param name="ammoniaKg">Ammonia load in kg</param>
+        public void AddNitrogenLoad(double ammoniaKg)
+        {
+            // Convert kg to mg (assuming 1 m³ water volume = 1,000,000 mg)
+            // This simplifies to: ammonia in mg/L = ammonia in kg / water volume in m³
+            double volumeFactor = 1000.0; // Convert from kg to mg, assuming 1 m³
+            AmmoniaNH4 += ammoniaKg * volumeFactor;
+            
+            // Clamp to realistic range
+            AmmoniaNH4 = Math.Min(AmmoniaNH4, 10.0);
+        }
+        
+        /// <summary>
+        /// Perform daily nitrification step converting ammonia to nitrite to nitrate.
+        /// NH4 -> NO2 -> NO3
+        /// Uses temperature-dependent rates (Q10=2.0).
+        /// </summary>
+        public void DailyNitrificationStep()
+        {
+            // Temperature-dependent rate modifiers (Q10=2.0)
+            double tempFactor = Math.Pow(Q10TemperatureFactor, (_temperature - 10.0) / 10.0);
+            
+            // NH4 -> NO2 conversion
+            double nitrificationRateNH4 = NitrificationRateNH4 * tempFactor * AmmoniaNH4;
+            
+            // NO2 -> NO3 conversion
+            double nitrificationRateNO2 = NitrificationRateNO2 * tempFactor * NitriteNO2;
+            
+            // Update concentrations
+            AmmoniaNH4 -= nitrificationRateNH4;
+            if (AmmoniaNH4 < 0) AmmoniaNH4 = 0;
+            
+            NitriteNO2 += nitrificationRateNH4 - nitrificationRateNO2;
+            if (NitriteNO2 < 0) NitriteNO2 = 0;
+            
+            NitrateNO3 += nitrificationRateNO2;
+        }
+        
+        /// <summary>
         /// Calculate growth penalty due to water chemistry stress.
         /// Returns multiplier (0.0-1.0) applied to fish growth rate.
         /// </summary>
