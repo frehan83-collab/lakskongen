@@ -16,14 +16,16 @@ namespace LakskongenSim.Core
     public class AchievementSystem
     {
         private readonly GameState _state;
+        private readonly Finance.FinanceManager? _financeManager;
         private readonly Dictionary<string, Achievement> _achievements = new();
         private readonly List<Achievement> _lockedAchievements = new();
 
         public event Action<Achievement>? OnAchievementUnlocked;
 
-        public AchievementSystem(GameState state)
+        public AchievementSystem(GameState state, Finance.FinanceManager? financeManager = null)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
+            _financeManager = financeManager;
             RegisterAllAchievements();
             
             _lockedAchievements.AddRange(_achievements.Values.Where(a => !_state.UnlockedAchievementIds.Contains(a.Id)));
@@ -52,7 +54,10 @@ namespace LakskongenSim.Core
             Console.WriteLine($"    {achievement.Description}");
             if (achievement.RewardNOK > 0)
             {
-                _state.Balance += achievement.RewardNOK;
+                if (_financeManager != null)
+                    _financeManager.AddRevenue(achievement.RewardNOK);
+                else
+                    _state.Balance += achievement.RewardNOK; // Legacy fallback
                 Console.WriteLine($"    Reward: {achievement.RewardNOK:N0} NOK");
             }
             OnAchievementUnlocked?.Invoke(achievement);

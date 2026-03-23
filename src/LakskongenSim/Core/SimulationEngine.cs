@@ -255,7 +255,7 @@ namespace LakskongenSim.Core
             Audio = new AudioManager(Weather);
 
             // Achievement system — initialized after State so conditions have full context
-            Achievements = new AchievementSystem(State);
+            Achievements = new AchievementSystem(State, FinanceManager);
             Achievements.OnAchievementUnlocked += a => OnAchievementUnlocked?.Invoke(a);
 
             // Research / Tech Tree — restore persisted state from GameState

@@ -400,6 +400,7 @@ namespace LakskongenSim.Core
 
                             if (captured.Effects.TryGetValue("balance_change", out var balDelta))
                             {
+                                // TODO: Route through FinanceManager when engine ref is available in closure
                                 state.Balance += (decimal)balDelta;
                                 record.BalanceChange = (decimal)balDelta;
                             }
