@@ -1,0 +1,268 @@
+[
+  {
+    "id": "first_harvest",
+    "name": "First Harvest",
+    "description": "Harvest your first batch of salmon",
+    "icon": "res://assets/icons/achievement_harvest.png",
+    "condition": {"type": "harvest_count", "value": 1}
+  },
+  {
+    "id": "harvest_veteran",
+    "name": "Harvest Veteran",
+    "description": "Complete 10 harvest cycles",
+    "icon": "res://assets/icons/achievement_harvest.png",
+    "condition": {"type": "harvest_count", "value": 10}
+  },
+  {
+    "id": "harvest_master",
+    "name": "Harvest Master",
+    "description": "Complete 100 harvest cycles",
+    "icon": "res://assets/icons/achievement_harvest.png",
+    "condition": {"type": "harvest_count", "value": 100}
+  },
+  {
+    "id": "millionaire",
+    "name": "Millionaire",
+    "description": "Reach 1 million NOK in cash",
+    "icon": "res://assets/icons/achievement_money.png",
+    "condition": {"type": "balance", "value": 1000000}
+  },
+  {
+    "id": "multi_millionaire",
+    "name": "Multi-Millionaire",
+    "description": "Reach 10 million NOK in cash",
+    "icon": "res://assets/icons/achievement_money.png",
+    "condition": {"type": "balance", "value": 10000000}
+  },
+  {
+    "id": "ultra_wealthy",
+    "name": "Ultra Wealthy",
+    "description": "Reach 100 million NOK in cash",
+    "icon": "res://assets/icons/achievement_money.png",
+    "condition": {"type": "balance", "value": 100000000}
+  },
+  {
+    "id": "small_producer",
+    "name": "Small Producer",
+    "description": "Produce 10,000 fish total",
+    "icon": "res://assets/icons/achievement_production.png",
+    "condition": {"type": "total_fish_produced", "value": 10000}
+  },
+  {
+    "id": "medium_producer",
+    "name": "Medium Producer",
+    "description": "Produce 100,000 fish total",
+    "icon": "res://assets/icons/achievement_production.png",
+    "condition": {"type": "total_fish_produced", "value": 100000}
+  },
+  {
+    "id": "mega_producer",
+    "name": "Mega Producer",
+    "description": "Produce 1,000,000 fish total",
+    "icon": "res://assets/icons/achievement_production.png",
+    "condition": {"type": "total_fish_produced", "value": 1000000}
+  },
+  {
+    "id": "reputable",
+    "name": "Reputable",
+    "description": "Reach 50 reputation score",
+    "icon": "res://assets/icons/achievement_reputation.png",
+    "condition": {"type": "reputation", "value": 50}
+  },
+  {
+    "id": "highly_regarded",
+    "name": "Highly Regarded",
+    "description": "Reach 75 reputation score",
+    "icon": "res://assets/icons/achievement_reputation.png",
+    "condition": {"type": "reputation", "value": 75}
+  },
+  {
+    "id": "industry_leader",
+    "name": "Industry Leader",
+    "description": "Reach 90 reputation score",
+    "icon": "res://assets/icons/achievement_reputation.png",
+    "condition": {"type": "reputation", "value": 90}
+  },
+  {
+    "id": "legendary",
+    "name": "Legendary",
+    "description": "Reach 95 reputation score",
+    "icon": "res://assets/icons/achievement_reputation.png",
+    "condition": {"type": "reputation", "value": 95}
+  },
+  {
+    "id": "eco_warrior",
+    "name": "Eco Warrior",
+    "description": "Operate for 1 year without any chemical treatments",
+    "icon": "res://assets/icons/achievement_sustainability.png",
+    "condition": {"type": "no_chemicals_duration", "value": 365}
+  },
+  {
+    "id": "organic_pioneer",
+    "name": "Organic Pioneer",
+    "description": "Operate for 3 years without any chemical treatments",
+    "icon": "res://assets/icons/achievement_sustainability.png",
+    "condition": {"type": "no_chemicals_duration", "value": 1095}
+  },
+  {
+    "id": "green_master",
+    "name": "Green Master",
+    "description": "Achieve 95+ sustainability score for 1 year",
+    "icon": "res://assets/icons/achievement_sustainability.png",
+    "condition": {"type": "high_sustainability_duration", "value": 365}
+  },
+  {
+    "id": "tech_novice",
+    "name": "Tech Novice",
+    "description": "Unlock 5 research technologies",
+    "icon": "res://assets/icons/achievement_technology.png",
+    "condition": {"type": "research_unlocked", "value": 5}
+  },
+  {
+    "id": "innovator",
+    "name": "Innovator",
+    "description": "Unlock 10 research technologies",
+    "icon": "res://assets/icons/achievement_technology.png",
+    "condition": {"type": "research_unlocked", "value": 10}
+  },
+  {
+    "id": "tech_titan",
+    "name": "Tech Titan",
+    "description": "Unlock 20 research technologies",
+    "icon": "res://assets/icons/achievement_technology.png",
+    "condition": {"type": "research_unlocked", "value": 20}
+  },
+  {
+    "id": "first_contract",
+    "name": "First Contract",
+    "description": "Sign your first sales contract",
+    "icon": "res://assets/icons/achievement_business.png",
+    "condition": {"type": "contracts_signed", "value": 1}
+  },
+  {
+    "id": "deal_maker",
+    "name": "Deal Maker",
+    "description": "Sign 50 sales contracts",
+    "icon": "res://assets/icons/achievement_business.png",
+    "condition": {"type": "contracts_signed", "value": 50}
+  },
+  {
+    "id": "stock_market_debut",
+    "name": "Stock Market Debut",
+    "description": "Complete your IPO",
+    "icon": "res://assets/icons/achievement_business.png",
+    "condition": {"type": "ipo_completed", "value": 1}
+  },
+  {
+    "id": "first_acquisition",
+    "name": "First Acquisition",
+    "description": "Complete your first company acquisition",
+    "icon": "res://assets/icons/achievement_business.png",
+    "condition": {"type": "acquisitions_completed", "value": 1}
+  },
+  {
+    "id": "corporate_empire",
+    "name": "Corporate Empire",
+    "description": "Complete 5 acquisitions",
+    "icon": "res://assets/icons/achievement_business.png",
+    "condition": {"type": "acquisitions_completed", "value": 5}
+  },
+  {
+    "id": "decade_survivor",
+    "name": "Decade Survivor",
+    "description": "Keep your company running for 10 years",
+    "icon": "res://assets/icons/achievement_survival.png",
+    "condition": {"type": "years_survived", "value": 10}
+  },
+  {
+    "id": "two_decade_veteran",
+    "name": "Two Decade Veteran",
+    "description": "Keep your company running for 20 years",
+    "icon": "res://assets/icons/achievement_survival.png",
+    "condition": {"type": "years_survived", "value": 20}
+  },
+  {
+    "id": "legacy_builder",
+    "name": "Legacy Builder",
+    "description": "Keep your company running for 50 years",
+    "icon": "res://assets/icons/achievement_survival.png",
+    "condition": {"type": "years_survived", "value": 50}
+  },
+  {
+    "id": "organic_certified",
+    "name": "Organic Certified",
+    "description": "Achieve organic certification",
+    "icon": "res://assets/icons/achievement_specialization.png",
+    "condition": {"type": "organic_certified", "value": 1}
+  },
+  {
+    "id": "organic_master",
+    "name": "Organic Master",
+    "description": "Maintain organic certification for 5 years",
+    "icon": "res://assets/icons/achievement_specialization.png",
+    "condition": {"type": "organic_certification_duration", "value": 1825}
+  },
+  {
+    "id": "genetics_expert",
+    "name": "Genetics Expert",
+    "description": "Breed fish with 90+ genetic quality",
+    "icon": "res://assets/icons/achievement_specialization.png",
+    "condition": {"type": "max_genetic_quality", "value": 90}
+  },
+  {
+    "id": "perfect_genetics",
+    "name": "Perfect Genetics",
+    "description": "Breed fish with 98+ genetic quality",
+    "icon": "res://assets/icons/achievement_specialization.png",
+    "condition": {"type": "max_genetic_quality", "value": 98}
+  },
+  {
+    "id": "disease_free",
+    "name": "Disease Free",
+    "description": "Operate for 2 years without a single disease outbreak",
+    "icon": "res://assets/icons/achievement_specialization.png",
+    "condition": {"type": "disease_free_duration", "value": 730}
+  },
+  {
+    "id": "crisis_manager",
+    "name": "Crisis Manager",
+    "description": "Survive 3 major disease outbreaks",
+    "icon": "res://assets/icons/achievement_survival.png",
+    "condition": {"type": "disease_outbreaks_survived", "value": 3}
+  },
+  {
+    "id": "premium_brand",
+    "name": "Premium Brand",
+    "description": "Sell fish at 150% or higher market price for 1 year",
+    "icon": "res://assets/icons/achievement_business.png",
+    "condition": {"type": "premium_pricing_duration", "value": 365}
+  },
+  {
+    "id": "export_champion",
+    "name": "Export Champion",
+    "description": "Export to 10 different countries",
+    "icon": "res://assets/icons/achievement_business.png",
+    "condition": {"type": "export_countries", "value": 10}
+  },
+  {
+    "id": "efficiency_expert",
+    "name": "Efficiency Expert",
+    "description": "Achieve 95%+ feed conversion ratio for 1 year",
+    "icon": "res://assets/icons/achievement_specialization.png",
+    "condition": {"type": "fcr_efficiency_duration", "value": 365}
+  },
+  {
+    "id": "zero_waste",
+    "name": "Zero Waste",
+    "description": "Achieve 0% mortality rate for 6 months",
+    "icon": "res://assets/icons/achievement_sustainability.png",
+    "condition": {"type": "zero_mortality_duration", "value": 180}
+  },
+  {
+    "id": "diversification_master",
+    "name": "Diversification Master",
+    "description": "Operate farms in 5 different regions simultaneously",
+    "icon": "res://assets/icons/achievement_business.png",
+    "condition": {"type": "active_regions", "value": 5}
+  }
+]

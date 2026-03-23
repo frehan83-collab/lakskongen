@@ -1,0 +1,171 @@
+[
+  {
+    "id": "small_farm",
+    "name": "Small Family Farm",
+    "difficulty": "Easy",
+    "description": "Start small and build your legacy",
+    "story": "You've inherited your grandfather's modest salmon farm in Western Norway. With just two pens, limited capital, and big dreams, you must grow the operation carefully. One wrong move could sink the family business. Can you turn this small farm into a thriving enterprise?",
+    "starting_balance": 5000000,
+    "starting_day": 0,
+    "starting_sites": [
+      {
+        "name": "Grandfather's Farm",
+        "zone_id": "fjord_west",
+        "pen_count": 2,
+        "smolt_per_pen": 5000
+      }
+    ],
+    "starting_debt": 0,
+    "starting_research": [],
+    "starting_buildings": [],
+    "goal": {
+      "type": "revenue",
+      "target": 50000000,
+      "time_limit_years": 5,
+      "description": "Reach 50M NOK revenue in 5 years"
+    },
+    "restrictions": [],
+    "tutorial_recommended": true,
+    "tags": ["beginner", "growth", "family"]
+  },
+  {
+    "id": "industrial_giant",
+    "name": "Industrial Giant",
+    "difficulty": "Medium",
+    "description": "Scale to dominate the market",
+    "story": "You've been appointed CEO of a mid-sized salmon producer with aggressive growth targets. The board expects you to take the company public within 3 years. You have capital, infrastructure, and momentum—but scaling brings new challenges. Disease outbreaks, logistics, and market volatility can sink even the biggest players.",
+    "starting_balance": 50000000,
+    "starting_day": 0,
+    "starting_sites": [
+      {
+        "name": "Northern Site Alpha",
+        "zone_id": "fjord_north",
+        "pen_count": 4,
+        "smolt_per_pen": 12000
+      },
+      {
+        "name": "Western Site Beta",
+        "zone_id": "fjord_west",
+        "pen_count": 3,
+        "smolt_per_pen": 10000
+      },
+      {
+        "name": "Southern Site Gamma",
+        "zone_id": "fjord_south",
+        "pen_count": 3,
+        "smolt_per_pen": 11000
+      }
+    ],
+    "starting_debt": 0,
+    "starting_research": ["basic_genetics", "water_monitoring"],
+    "starting_buildings": [],
+    "goal": {
+      "type": "ipo",
+      "target": 1,
+      "time_limit_years": 3,
+      "description": "Go public (IPO) within 3 years"
+    },
+    "restrictions": [],
+    "tutorial_recommended": false,
+    "tags": ["intermediate", "finance", "scale"]
+  },
+  {
+    "id": "organic_specialist",
+    "name": "Organic Specialist",
+    "difficulty": "Hard",
+    "description": "Build the most sustainable farm in Norway",
+    "story": "You're launching Norway's first 100% organic salmon operation. No chemical treatments, no antibiotics, only natural methods. Costs are higher, growth is slower, but premium buyers pay top dollar for truly sustainable fish. Can you build a brand reputation of 90+ while staying profitable?",
+    "starting_balance": 10000000,
+    "starting_day": 0,
+    "starting_sites": [
+      {
+        "name": "Organic Pilot Site",
+        "zone_id": "fjord_west",
+        "pen_count": 3,
+        "smolt_per_pen": 1666
+      }
+    ],
+    "starting_debt": 0,
+    "starting_research": ["sustainable_feed", "cleaner_fish"],
+    "starting_buildings": [],
+    "goal": {
+      "type": "reputation_and_profit",
+      "target": 90,
+      "time_limit_years": 5,
+      "description": "Build brand reputation to 90+ while profitable"
+    },
+    "restrictions": ["no_chemicals", "no_antibiotics"],
+    "tutorial_recommended": false,
+    "tags": ["expert", "sustainability", "premium"]
+  },
+  {
+    "id": "research_station",
+    "name": "Research Station",
+    "difficulty": "Hard",
+    "description": "Unlock the future of aquaculture",
+    "story": "You run an experimental salmon research facility backed by university and government grants. Your mission: advance aquaculture technology through aggressive R&D. You have a hatchery, genetic stock, and funding—but your success is measured in research breakthroughs, not just profits. Unlock 20 tech tree nodes in 4 years.",
+    "starting_balance": 20000000,
+    "starting_day": 0,
+    "starting_sites": [
+      {
+        "name": "Research Site Alpha",
+        "zone_id": "fjord_north",
+        "pen_count": 2,
+        "smolt_per_pen": 5000
+      },
+      {
+        "name": "Test Site Beta",
+        "zone_id": "fjord_west",
+        "pen_count": 2,
+        "smolt_per_pen": 5000
+      }
+    ],
+    "starting_debt": 0,
+    "starting_research": ["basic_genetics", "water_monitoring", "selective_breeding_1"],
+    "starting_buildings": ["hatchery"],
+    "goal": {
+      "type": "research",
+      "target": 20,
+      "time_limit_years": 4,
+      "description": "Unlock 20 tech tree nodes in 4 years"
+    },
+    "restrictions": [],
+    "tutorial_recommended": false,
+    "tags": ["expert", "technology", "science"]
+  },
+  {
+    "id": "inheritance",
+    "name": "The Inheritance",
+    "difficulty": "Medium",
+    "description": "Save your grandfather's struggling legacy",
+    "story": "Your grandfather passed away, leaving you his salmon farm—and 30 million NOK in debt. The banks are circling. The pens are aging. The cash flow is negative. You have 50,000 smolt across 5 pens and just 2 million NOK in the account. Pay off the debt and reach profitability—or lose everything your family built.",
+    "starting_balance": 2000000,
+    "starting_day": 0,
+    "starting_sites": [
+      {
+        "name": "Old Family Farm North",
+        "zone_id": "fjord_north",
+        "pen_count": 3,
+        "smolt_per_pen": 10000
+      },
+      {
+        "name": "Old Family Farm South",
+        "zone_id": "fjord_south",
+        "pen_count": 2,
+        "smolt_per_pen": 10000
+      }
+    ],
+    "starting_debt": 30000000,
+    "starting_research": [],
+    "starting_buildings": [],
+    "goal": {
+      "type": "debt_and_profit",
+      "target": 0,
+      "time_limit_years": 5,
+      "description": "Pay off debt and reach profitability"
+    },
+    "restrictions": [],
+    "tutorial_recommended": false,
+    "tags": ["intermediate", "challenge", "survival"]
+  }
+]

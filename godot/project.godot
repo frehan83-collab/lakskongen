@@ -1,6 +1,12 @@
 ; Engine configuration file.
 ; It's best edited using the editor UI and not directly,
-; unless you know what you are doing.
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
 
 [application]
 
@@ -24,6 +30,7 @@ AudioController="*res://scripts/AudioController.gd"
 MusicLibrary="*res://scripts/MusicLibrary.gd"
 AchievementManager="*res://scripts/autoload/AchievementManager.gd"
 ScenarioManager="*res://scripts/ScenarioManager.gd"
+TutorialManager="*res://scripts/tutorial/TutorialManager.gd"
 
 [display]
 
@@ -38,10 +45,9 @@ project/assembly_name="LakskongenGame"
 [internationalization]
 
 locale/translations=PackedStringArray("res://translations/strings.csv")
-locale/fallback="no"
 locale/test="no"
+locale/fallback="no"
 
 [rendering]
 
-renderer/rendering_method="forward_plus"
 textures/canvas_textures/default_texture_filter=2

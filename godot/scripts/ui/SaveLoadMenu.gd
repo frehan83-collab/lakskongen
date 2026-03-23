@@ -1,251 +1,178 @@
 extends Control
 
-## SaveLoadMenu — Save/Load game interface.
-## Lists save slots, handles save/load/delete operations.
+## SaveLoadMenu v2.0 — Nordic Minimalist, fully programmatic.
 
-signal save_completed(slot_name: String)
-signal load_completed(slot_name: String)
-signal menu_closed()
+signal close_requested
+signal game_loaded(slot_name: String)
+signal game_saved(slot_name: String)
 
-enum MenuMode { SAVE, LOAD }
-
-# ── UI References ─────────────────────────────────────────────────────────────
-@onready var title_label: Label = $Panel/TitleLabel
-@onready var slots_container: VBoxContainer = $Panel/ScrollContainer/SlotsContainer
-@onready var close_button: Button = $Panel/CloseButton
-@onready var new_save_button: Button = $Panel/NewSaveButton
-
-# ── State ─────────────────────────────────────────────────────────────────────
-var _sim: Node = null
-var _save_manager: Node = null
-var _current_mode: MenuMode = MenuMode.LOAD
-
-# ── Lifecycle ─────────────────────────────────────────────────────────────────
+var _mode: String = "load"  # "save" or "load"
+var _slots_container: VBoxContainer
+var _title_label: Label
 
 func _ready() -> void:
-	if has_node("/root/SimBridge"):
-		_sim = get_node("/root/SimBridge")
-	
-	if has_node("/root/SaveLoadManager"):
-		_save_manager = get_node("/root/SaveLoadManager")
-		_save_manager.game_saved.connect(_on_game_saved)
-		_save_manager.game_loaded.connect(_on_game_loaded)
-		_save_manager.save_failed.connect(_on_save_failed)
-		_save_manager.load_failed.connect(_on_load_failed)
-	else:
-		push_warning("SaveLoadMenu: SaveLoadManager not found")
-	
-	if close_button:
-		close_button.pressed.connect(_on_close_pressed)
-	
-	if new_save_button:
-		new_save_button.pressed.connect(_on_new_save_pressed)
-	
-	visible = false
+	_build_ui()
+	hide()
 
-func _input(event: InputEvent) -> void:
-	if visible and event.is_action_pressed("ui_cancel"):
-		_on_close_pressed()
-		get_viewport().set_input_as_handled()
-
-# ── Public API ────────────────────────────────────────────────────────────────
-
-## Open menu in SAVE or LOAD mode
-func open(mode: MenuMode = MenuMode.LOAD) -> void:
-	_current_mode = mode
-	
-	if title_label:
-		title_label.text = "Save Game" if mode == MenuMode.SAVE else "Load Game"
-	
-	if new_save_button:
-		new_save_button.visible = (mode == MenuMode.SAVE)
-	
-	_refresh_slots()
-	visible = true
-
-## Refresh the list of save slots
-func _refresh_slots() -> void:
-	# Clear existing slots
-	for child in slots_container.get_children():
+func _build_ui() -> void:
+	for child in get_children():
 		child.queue_free()
-	
-	if not _save_manager:
-		var label = Label.new()
-		label.text = "SaveLoadManager not available"
-		slots_container.add_child(label)
-		return
-	
-	# Get save files
-	if not _save_manager.has_method("GetSaveFiles"):
-		var label = Label.new()
-		label.text = "Save system not ready"
-		slots_container.add_child(label)
-		return
-	
-	var saves = _save_manager.GetSaveFiles()
-	
-	if not saves or saves.is_empty():
-		var label = Label.new()
-		label.text = "No save files found" if _current_mode == MenuMode.LOAD else "No saves yet - create a new save"
-		slots_container.add_child(label)
-		return
-	
-	# Create slot UI for each save
-	for save in saves:
-		var slot_ui = _create_slot_ui(save)
-		slots_container.add_child(slot_ui)
 
-func _create_slot_ui(save_info) -> Control:
-	var container = HBoxContainer.new()
-	container.custom_minimum_size = Vector2(0, 60)
-	
-	# Info section
-	var info_box = VBoxContainer.new()
-	info_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	
-	var name_label = Label.new()
-	name_label.text = save_info.SaveName
-	name_label.add_theme_font_size_override("font_size", 16)
-	info_box.add_child(name_label)
-	
-	var details_label = Label.new()
-	details_label.text = "Day %d | %s NOK | %s" % [
-		save_info.GameDay,
-		_format_nok(save_info.Cash),
-		_format_datetime(save_info.SaveTime)
-	]
-	details_label.add_theme_color_override("font_color", Color.GRAY)
-	info_box.add_child(details_label)
-	
-	container.add_child(info_box)
-	
-	# Action buttons
-	if _current_mode == MenuMode.SAVE:
-		var overwrite_btn = Button.new()
-		overwrite_btn.text = "Overwrite"
-		overwrite_btn.custom_minimum_size = Vector2(100, 0)
-		overwrite_btn.pressed.connect(func(): _on_save_slot_pressed(save_info.FileName))
-		container.add_child(overwrite_btn)
-	else: # LOAD mode
-		var load_btn = Button.new()
-		load_btn.text = "Load"
-		load_btn.custom_minimum_size = Vector2(100, 0)
-		load_btn.pressed.connect(func(): _on_load_slot_pressed(save_info.FileName))
-		container.add_child(load_btn)
-	
-	var delete_btn = Button.new()
-	delete_btn.text = "Delete"
-	delete_btn.custom_minimum_size = Vector2(80, 0)
-	delete_btn.pressed.connect(func(): _on_delete_slot_pressed(save_info.FileName))
-	container.add_child(delete_btn)
-	
-	return container
+	var overlay = ColorRect.new()
+	overlay.color = Color(0.18, 0.20, 0.25, 0.65)
+	overlay.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	overlay.mouse_filter = MOUSE_FILTER_STOP
+	add_child(overlay)
 
-# ── Actions ───────────────────────────────────────────────────────────────────
+	var panel = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(600, 450)
+	panel.anchor_left = 0.5; panel.anchor_right = 0.5
+	panel.anchor_top = 0.5; panel.anchor_bottom = 0.5
+	panel.offset_left = -300; panel.offset_right = 300
+	panel.offset_top = -225; panel.offset_bottom = 225
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color("#FFFFFF")
+	sb.set_corner_radius_all(12)
+	sb.set_content_margin_all(20)
+	panel.add_theme_stylebox_override("panel", sb)
+	add_child(panel)
 
-func _on_new_save_pressed() -> void:
-	# Create new save with timestamp
-	var timestamp = Time.get_datetime_string_from_system().replace(":", "-")
-	var save_name = "save_%s" % timestamp
-	_save_game(save_name)
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 12)
+	panel.add_child(vbox)
 
-func _on_save_slot_pressed(file_name: String) -> void:
-	# Remove .json extension if present
-	var save_name = file_name.replace(".json", "")
-	_save_game(save_name)
+	# Header
+	var header = HBoxContainer.new()
+	vbox.add_child(header)
+	_title_label = Label.new()
+	_title_label.text = "Last Spill"
+	_title_label.add_theme_font_size_override("font_size", 22)
+	_title_label.add_theme_color_override("font_color", Color("#2E3440"))
+	_title_label.size_flags_horizontal = SIZE_EXPAND_FILL
+	header.add_child(_title_label)
+	var close_btn = Button.new()
+	close_btn.text = "✕"
+	close_btn.pressed.connect(func(): close_requested.emit(); hide())
+	header.add_child(close_btn)
 
-func _on_load_slot_pressed(file_name: String) -> void:
-	_load_game(file_name)
+	# Scroll + slots
+	var scroll = ScrollContainer.new()
+	scroll.size_flags_vertical = SIZE_EXPAND_FILL
+	vbox.add_child(scroll)
+	_slots_container = VBoxContainer.new()
+	_slots_container.size_flags_horizontal = SIZE_EXPAND_FILL
+	_slots_container.add_theme_constant_override("separation", 8)
+	scroll.add_child(_slots_container)
 
-func _on_delete_slot_pressed(file_name: String) -> void:
-	# TODO: Show confirmation dialog
-	if _save_manager:
-		var success = _save_manager.DeleteSave(file_name)
-		if success:
-			print("SaveLoadMenu: Deleted save file: %s" % file_name)
-			_refresh_slots()
-		else:
-			push_error("SaveLoadMenu: Failed to delete save file: %s" % file_name)
+	# New save button (only shown in save mode)
+	var new_save_btn = Button.new()
+	new_save_btn.text = "💾 Nytt Lagringspunkt"
+	new_save_btn.name = "NewSaveButton"
+	var btn_sb = StyleBoxFlat.new()
+	btn_sb.bg_color = Color("#0A4D68")
+	btn_sb.set_corner_radius_all(4)
+	btn_sb.set_content_margin_all(10)
+	new_save_btn.add_theme_stylebox_override("normal", btn_sb)
+	new_save_btn.add_theme_color_override("font_color", Color.WHITE)
+	new_save_btn.pressed.connect(_on_new_save)
+	vbox.add_child(new_save_btn)
 
-func _save_game(save_name: String) -> void:
-	if not _save_manager:
-		push_error("SaveLoadMenu: SaveLoadManager not available")
-		return
-	
-	var success = _save_manager.SaveGame(save_name)
-	if success:
-		print("SaveLoadMenu: Game saved as '%s'" % save_name)
-		save_completed.emit(save_name)
-	else:
-		push_error("SaveLoadMenu: Save failed for '%s'" % save_name)
-
-func _load_game(file_name: String) -> void:
-	if not _save_manager:
-		push_error("SaveLoadMenu: SaveLoadManager not available")
-		return
-	
-	var success = _save_manager.LoadGame(file_name)
-	if success:
-		print("SaveLoadMenu: Game loaded from '%s'" % file_name)
-		load_completed.emit(file_name)
-		hide()
-	else:
-		push_error("SaveLoadMenu: Load failed for '%s'" % file_name)
-
-func _on_close_pressed() -> void:
-	menu_closed.emit()
-	hide()
-
-# ── Signal Handlers ───────────────────────────────────────────────────────────
-
-func _on_game_saved(save_name: String, file_path: String) -> void:
-	print("SaveLoadMenu: Game saved successfully: %s" % save_name)
+func show_load() -> void:
+	_mode = "load"
+	if _title_label: _title_label.text = "Last Spill"
 	_refresh_slots()
+	show()
 
-func _on_game_loaded(save_name: String) -> void:
-	print("SaveLoadMenu: Game loaded successfully: %s" % save_name)
+func show_save() -> void:
+	_mode = "save"
+	if _title_label: _title_label.text = "Lagre Spill"
+	_refresh_slots()
+	show()
+
+func _refresh_slots() -> void:
+	if not _slots_container: return
+	for child in _slots_container.get_children():
+		child.queue_free()
+
+	var save_mgr = get_node_or_null("/root/SaveLoadManager")
+	if not save_mgr:
+		var lbl = Label.new()
+		lbl.text = "SaveLoadManager ikke tilgjengelig"
+		lbl.add_theme_color_override("font_color", Color("#7B8794"))
+		_slots_container.add_child(lbl)
+		return
+
+	var saves = []
+	if save_mgr.has_method("get_save_list"):
+		saves = save_mgr.get_save_list()
+
+	if saves.is_empty():
+		var lbl = Label.new()
+		lbl.text = "Ingen lagrede spill funnet" if _mode == "load" else "Ingen eksisterende lagringer"
+		lbl.add_theme_color_override("font_color", Color("#7B8794"))
+		_slots_container.add_child(lbl)
+		return
+
+	for save_info in saves:
+		var slot = _create_slot(save_info)
+		_slots_container.add_child(slot)
+
+func _create_slot(save_info) -> PanelContainer:
+	var slot = PanelContainer.new()
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color("#F8F9FB")
+	sb.border_color = Color("#D8DEE9")
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	sb.set_content_margin_all(12)
+	slot.add_theme_stylebox_override("panel", sb)
+
+	var hbox = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 12)
+	slot.add_child(hbox)
+
+	var info_vbox = VBoxContainer.new()
+	info_vbox.size_flags_horizontal = SIZE_EXPAND_FILL
+	hbox.add_child(info_vbox)
+
+	var name_lbl = Label.new()
+	var slot_name = save_info.get("name", "Unknown") if save_info is Dictionary else str(save_info)
+	name_lbl.text = slot_name
+	name_lbl.add_theme_font_size_override("font_size", 16)
+	name_lbl.add_theme_color_override("font_color", Color("#2E3440"))
+	info_vbox.add_child(name_lbl)
+
+	var details = Label.new()
+	var day = save_info.get("day", "?") if save_info is Dictionary else "?"
+	details.text = "Dag %s" % str(day)
+	details.add_theme_font_size_override("font_size", 12)
+	details.add_theme_color_override("font_color", Color("#7B8794"))
+	info_vbox.add_child(details)
+
+	var action_btn = Button.new()
+	action_btn.text = "Last" if _mode == "load" else "Lagre"
+	action_btn.pressed.connect(func(): _on_slot_action(slot_name))
+	hbox.add_child(action_btn)
+
+	return slot
+
+func _on_slot_action(slot_name: String) -> void:
+	var save_mgr = get_node_or_null("/root/SaveLoadManager")
+	if not save_mgr: return
+	if _mode == "load":
+		if save_mgr.has_method("load_game"):
+			save_mgr.load_game(slot_name)
+		game_loaded.emit(slot_name)
+	else:
+		if save_mgr.has_method("save_game"):
+			save_mgr.save_game(slot_name)
+		game_saved.emit(slot_name)
 	hide()
 
-func _on_save_failed(error: String) -> void:
-	push_error("SaveLoadMenu: Save failed: %s" % error)
-	# TODO: Show error dialog
-
-func _on_load_failed(error: String) -> void:
-	push_error("SaveLoadMenu: Load failed: %s" % error)
-	# TODO: Show error dialog
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-func _format_nok(amount: int) -> String:
-	if amount >= 1_000_000:
-		return "%.2f M" % (amount / 1_000_000.0)
-	elif amount >= 1_000:
-		return "%.1f k" % (amount / 1_000.0)
-	return str(amount)
-
-func _format_datetime(dt) -> String:
-	# Handle C# DateTime object or Dictionary
-	if typeof(dt) == TYPE_OBJECT:
-		# C# DateTime object - use its properties
-		var year = dt.Year if dt.has("Year") else 2024
-		var month = dt.Month if dt.has("Month") else 1
-		var day = dt.Day if dt.has("Day") else 1
-		var hour = dt.Hour if dt.has("Hour") else 0
-		var minute = dt.Minute if dt.has("Minute") else 0
-		return "%04d-%02d-%02d %02d:%02d" % [year, month, day, hour, minute]
-	elif typeof(dt) == TYPE_DICTIONARY:
-		# Dictionary format
-		return "%04d-%02d-%02d %02d:%02d" % [
-			dt.get("year", 2024),
-			dt.get("month", 1),
-			dt.get("day", 1),
-			dt.get("hour", 0),
-			dt.get("minute", 0)
-		]
-	else:
-		# Fallback
-		return "Unknown date"
-# Save slot metadata helper (unused — metadata accessed via Dictionary)
-#var _save_game_day: int
-#var _save_cash: int
-#var _save_file_size: int
+func _on_new_save() -> void:
+	var save_mgr = get_node_or_null("/root/SaveLoadManager")
+	if save_mgr and save_mgr.has_method("save_game"):
+		var ts = Time.get_datetime_string_from_system().replace(":", "-")
+		save_mgr.save_game("save_%s" % ts)
+		game_saved.emit("save_%s" % ts)
+	_refresh_slots()

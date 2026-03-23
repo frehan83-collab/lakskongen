@@ -1,0 +1,140 @@
+[
+  {
+    "id": 1,
+    "title": "Velkommen til Lakskongen",
+    "text": "Din bestefar etterlot deg sitt lille lakseoppdrett. Nå er det opp til deg å drive det videre. La oss starte med det grunnleggende.",
+    "action": "click_next"
+  },
+  {
+    "id": 2,
+    "title": "Dashbordet",
+    "text": "Dette er kontrollpanelet ditt. Her ser du viktige nøkkeltall: total fiskemasse, vannkvalitet, inntekter og kostnader. Hold øye med disse!",
+    "action": "click_next"
+  },
+  {
+    "id": 3,
+    "title": "Merdene",
+    "text": "Dette er dine merder hvor laksen vokser. Hver merd viser antall fisk, gjennomsnittsvekt og helsestatus.",
+    "action": "click_next"
+  },
+  {
+    "id": 4,
+    "title": "Tidskontroller",
+    "text": "Bruk tidskontrollene til å pause spillet eller øke hastigheten. Dette lar deg planlegge i ro eller se resultatene raskere.",
+    "action": "click_next"
+  },
+  {
+    "id": 5,
+    "title": "Fôr fisken din",
+    "text": "Fisk må fôres daglig for å vokse. Klikk på fôrknappen for å gi fôr til dine fisk. Automatisk fôring kan aktiveres senere.",
+    "action": "click_next"
+  },
+  {
+    "id": 6,
+    "title": "Overvåk vannkvalitet",
+    "text": "Vannkvalitet er kritisk for fiskehelse. Sjekk temperatur, oksygennivå og salinitet regelmessig. Dårlig vann = syk fisk.",
+    "action": "click_next"
+  },
+  {
+    "id": 7,
+    "title": "Sjekk lusepåslag",
+    "text": "Lakselus er en stor trussel. Overvåk lusenivået i dine merder. Hvis det blir for høyt, må du handle raskt.",
+    "action": "click_next"
+  },
+  {
+    "id": 8,
+    "title": "Første avlusing",
+    "text": "Når lusepresset er høyt, må du avluse. Velg en metode (termisk, mekanisk eller kjemisk) og utfør behandlingen.",
+    "action": "click_next"
+  },
+  {
+    "id": 9,
+    "title": "Overvåk vekst",
+    "text": "Fisken vokser hver dag hvis den er sunn og godt fôret. Se på vekstgrafen for å spore fremgangen din over tid.",
+    "action": "click_next"
+  },
+  {
+    "id": 10,
+    "title": "Første høsting",
+    "text": "Når fisken når slaktevekt (4-6 kg), er det tid for høsting. Velg en merd og start høsteprosessen. Timing påvirker kvalitet og pris.",
+    "action": "click_next"
+  },
+  {
+    "id": 11,
+    "title": "Salg på spotmarkedet",
+    "text": "Nå kan du selge fisken din! Spotmarkedet gir umiddelbar betaling, men prisene varierer. Sjekk dagens pris og selg.",
+    "action": "click_next"
+  },
+  {
+    "id": 12,
+    "title": "Se resultat",
+    "text": "Gratulerer med første salg! Sjekk økonomivinduet for å se profit eller tap. Dette viser inntekter, kostnader og nettoresultat.",
+    "action": "click_next"
+  },
+  {
+    "id": 13,
+    "title": "Kjøp mer settefisk",
+    "text": "For å vokse må du investere. Kjøp settefisk (smolt) fra klekkeri og sett dem ut i merdene. Kvalitet koster, men lønner seg.",
+    "action": "click_next"
+  },
+  {
+    "id": 14,
+    "title": "Plasser ny merd",
+    "text": "Utvid produksjonen ved å plassere flere merder. Hver lokalitet har plass til flere merder, men koster å installere.",
+    "action": "click_next"
+  },
+  {
+    "id": 15,
+    "title": "Administrer flere merder",
+    "text": "Med flere merder må du håndtere mer kompleks drift. Hver merd kan være i forskjellige faser - smolt, vekst, slaktemodning.",
+    "action": "click_next"
+  },
+  {
+    "id": 16,
+    "title": "Sykdomsvarsel: ILA",
+    "text": "VARSEL! Infeksiøs lakseanemi (ILA) oppdaget i området. Dette er en alvorlig sykdom som kan utslette hele bestanden hvis ikke håndtert.",
+    "action": "click_next"
+  },
+  {
+    "id": 17,
+    "title": "Behandlingsbeslutning",
+    "text": "Du har valg: Forebyggende slakting (tap inntekt), behandle og håpe (risiko), eller vaksinere fremtidig settefisk (forebygging).",
+    "action": "click_next"
+  },
+  {
+    "id": 18,
+    "title": "Teknologisk forskning",
+    "text": "Invester i FoU for å forbedre driften: bedre fôr, lusebehandling, overvåking eller sykdomsforebygging. Forskning tar tid men gir varig effekt.",
+    "action": "click_next"
+  },
+  {
+    "id": 19,
+    "title": "Klekkeri - egenproduksjon",
+    "text": "Bygg et klekkeri for å produsere din egen settefisk. Dette gir kontroll over genetikk, helse og kutter avhengighet av eksterne leverandører.",
+    "action": "click_next"
+  },
+  {
+    "id": 20,
+    "title": "Avlsprogram",
+    "text": "Med klekkeri kan du drive selektiv avl. Velg stamfisk med ønskede egenskaper: veksthastighet, sykdomsresistens, kjøttkvalitet.",
+    "action": "click_next"
+  },
+  {
+    "id": 21,
+    "title": "Kontraktsforhandling",
+    "text": "I stedet for spotmarkedet, forhandle langsiktige kontrakter med kjøpere. Stabil pris og volum, men mindre fleksibilitet.",
+    "action": "click_next"
+  },
+  {
+    "id": 22,
+    "title": "Foredlingsanlegg",
+    "text": "Bygg foredling for å selge ferdigvarer i stedet for rundvekt. Høyere marginer, men krever investering og logistikk.",
+    "action": "click_next"
+  },
+  {
+    "id": 23,
+    "title": "Imperiumsvisjon",
+    "text": "Se kartet over dine anlegg. Fra en enkelt merd til et integrert laksekonsern. Du har nå verktøyene - bygg ditt laksimperium!",
+    "action": "click_next"
+  }
+]

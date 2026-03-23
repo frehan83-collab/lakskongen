@@ -1,607 +1,322 @@
 extends Control
 
-## SettingsMenu — full tabbed settings panel for Lakskongen.
-## Tabs: Graphics, Audio, Gameplay, Accessibility.
-## Settings are persisted to user://settings.json and reloaded on startup.
-## Connects volume sliders directly to AudioServer buses (via AudioManager or
-## direct AudioServer calls so it works standalone).
-##
-## Expected node layout (set up in .tscn):
-##   SettingsMenu (Control, full-screen anchor, modal)
-##   └─ Overlay (ColorRect, semi-transparent background)
-##   └─ Panel (PanelContainer, centred)
-##      ├─ VBoxContainer
-##      │  ├─ HeaderRow (HBoxContainer)
-##      │  │  ├─ TitleLabel (Label) "Innstillinger"
-##      │  │  └─ CloseButton (Button) "✕"
-##      │  ├─ TabContainer
-##      │  │  ├─ Audio  (VBoxContainer, tab name "Lyd")
-##      │  │  │  ├─ MasterRow    (HBoxContainer) ← MasterLabel + MasterSlider + MasterPct
-##      │  │  │  ├─ MusicRow     (HBoxContainer) ← MusicLabel  + MusicSlider  + MusicPct
-##      │  │  │  ├─ AmbientRow   (HBoxContainer) ← AmbientLabel+ AmbientSlider+ AmbientPct
-##      │  │  │  └─ SFXRow       (HBoxContainer) ← SFXLabel    + SFXSlider    + SFXPct
-##      │  │  ├─ Graphics (VBoxContainer, tab name "Grafikk")
-##      │  │  │  ├─ ResolutionRow  (HBoxContainer) ← ResLabel + ResOption
-##      │  │  │  ├─ FullscreenRow  (HBoxContainer) ← FSLabel  + FSCheck
-##      │  │  │  └─ VSyncRow       (HBoxContainer) ← VSLabel  + VSCheck
-##      │  │  ├─ Gameplay (VBoxContainer, tab name "Spill")
-##      │  │  │  ├─ AutosaveRow   (HBoxContainer) ← ASLabel + ASOption
-##      │  │  │  ├─ TutorialRow   (HBoxContainer) ← TutLabel + TutCheck
-##      │  │  │  ├─ NotifsRow     (HBoxContainer) ← NotiLabel + NotiCheck
-##      │  │  │  └─ SpeedRow      (HBoxContainer) ← SpeedLabel + SpeedSlider + SpeedVal
-##      │  │  └─ Accessibility (VBoxContainer, tab name "Tilgjengelighet")
-##      │  │     └─ HighContrastRow (HBoxContainer) ← HCLabel + HCCheck
-##      │  └─ ButtonRow (HBoxContainer)
-##      │     ├─ ResetButton (Button) "Tilbakestill"
-##      │     └─ ApplyButton (Button) "Bruk"
+## SettingsMenu v2.0 — Nordic Minimalist, fully programmatic.
+## No scene dependencies. Builds all UI in _ready().
 
 signal settings_applied
 signal close_requested
 
-# ── Constants ──────────────────────────────────────────────────────────────────
-
 const SETTINGS_PATH := "user://settings.json"
-
-const RESOLUTIONS := [
-	"1280x720",
-	"1600x900",
-	"1920x1080",
-	"2560x1440",
-	"3840x2160",
-]
-
-const AUTOSAVE_MINUTES := [0, 2, 5, 10, 30]
-
 const DEFAULT_SETTINGS := {
-	"audio": {
-		"master":  1.0,
-		"music":   0.7,
-		"ambient": 0.5,
-		"sfx":     0.8,
-	},
-	"graphics": {
-		"resolution": "1920x1080",
-		"fullscreen": false,
-		"vsync":      true,
-	},
-	"gameplay": {
-		"autosave_minutes":      5,
-		"tutorial_enabled":      true,
-		"notifications_enabled": true,
-		"default_speed":         1.0,
-	},
-	"accessibility": {
-		"high_contrast": false,
-	},
+	"audio": {"master": 1.0, "music": 0.7, "ambient": 0.5, "sfx": 0.8},
+	"graphics": {"resolution": "1920x1080", "fullscreen": false, "vsync": true},
+	"gameplay": {"autosave_minutes": 5, "tutorial_enabled": true, "notifications_enabled": true, "default_speed": 1.0},
+	"accessibility": {"high_contrast": false},
 }
 
-# ── Node references ────────────────────────────────────────────────────────────
-
-const DEFAULT_LOCALE := "no"
-
-@onready var close_button:   Button        = $Panel/VBoxContainer/HeaderRow/CloseButton
-@onready var cancel_button:  Button        = get_node_or_null("Panel/VBoxContainer/ButtonRow/CancelButton")
-@onready var tab_container:  TabContainer  = $Panel/VBoxContainer/TabContainer
-@onready var apply_button:   Button        = $Panel/VBoxContainer/ButtonRow/ApplyButton
-@onready var reset_button:   Button        = $Panel/VBoxContainer/ButtonRow/ResetButton
-
-# Audio tab
-@onready var master_slider:  HSlider = $Panel/VBoxContainer/TabContainer/Audio/MasterRow/MasterSlider
-@onready var master_pct:     Label   = $Panel/VBoxContainer/TabContainer/Audio/MasterRow/MasterPct
-@onready var music_slider:   HSlider = $Panel/VBoxContainer/TabContainer/Audio/MusicRow/MusicSlider
-@onready var music_pct:      Label   = $Panel/VBoxContainer/TabContainer/Audio/MusicRow/MusicPct
-@onready var ambient_slider: HSlider = $Panel/VBoxContainer/TabContainer/Audio/AmbientRow/AmbientSlider
-@onready var ambient_pct:    Label   = $Panel/VBoxContainer/TabContainer/Audio/AmbientRow/AmbientPct
-@onready var sfx_slider:     HSlider = $Panel/VBoxContainer/TabContainer/Audio/SFXRow/SFXSlider
-@onready var sfx_pct:        Label   = $Panel/VBoxContainer/TabContainer/Audio/SFXRow/SFXPct
-
-# Graphics tab
-@onready var res_option:    OptionButton = $Panel/VBoxContainer/TabContainer/Graphics/ResolutionRow/ResOption
-@onready var fs_check:      CheckBox     = $Panel/VBoxContainer/TabContainer/Graphics/FullscreenRow/FSCheck
-@onready var vsync_check:   CheckBox     = $Panel/VBoxContainer/TabContainer/Graphics/VSyncRow/VSCheck
-
-# Gameplay tab
-@onready var autosave_option: OptionButton = $Panel/VBoxContainer/TabContainer/Gameplay/AutosaveRow/ASOption
-@onready var tutorial_check:  CheckBox     = $Panel/VBoxContainer/TabContainer/Gameplay/TutorialRow/TutCheck
-@onready var notifs_check:    CheckBox     = $Panel/VBoxContainer/TabContainer/Gameplay/NotifsRow/NotiCheck
-@onready var speed_slider:    HSlider      = $Panel/VBoxContainer/TabContainer/Gameplay/SpeedRow/SpeedSlider
-@onready var speed_val:       Label        = $Panel/VBoxContainer/TabContainer/Gameplay/SpeedRow/SpeedVal
-
-# Accessibility tab
-@onready var hc_check:        CheckBox     = $Panel/VBoxContainer/TabContainer/Accessibility/HighContrastRow/HCCheck
-
-# Language tab (created programmatically)
-var language_option: OptionButton = null
-
-# ── State ──────────────────────────────────────────────────────────────────────
-
-var _audio_manager: Node = null
-var _localization_manager: Node = null
 var _settings: Dictionary = {}
-var _dirty: bool = false       # true when unsaved changes exist
+var _dirty: bool = false
 
-# ── Lifecycle ──────────────────────────────────────────────────────────────────
+# UI refs
+var _overlay: ColorRect
+var _panel: PanelContainer
+var _tab_container: TabContainer
+var _master_slider: HSlider
+var _music_slider: HSlider
+var _ambient_slider: HSlider
+var _sfx_slider: HSlider
+var _master_pct: Label
+var _music_pct: Label
+var _ambient_pct: Label
+var _sfx_pct: Label
+var _res_option: OptionButton
+var _fs_check: CheckBox
+var _vsync_check: CheckBox
+var _autosave_option: OptionButton
+var _tutorial_check: CheckBox
+var _notifs_check: CheckBox
+var _speed_slider: HSlider
+var _speed_val: Label
+var _hc_check: CheckBox
 
 func _ready() -> void:
-	_audio_manager = get_node_or_null("/root/AudioManager")
-	_localization_manager = get_node_or_null("/root/LocalizationManager")
-
-	_create_language_tab()
-	_populate_options()
 	_settings = _load_settings()
+	_build_ui()
 	_apply_to_widgets(_settings)
-	_connect_signals()
-	_apply_audio(_settings["audio"])
-	_apply_graphics(_settings["graphics"])
-	_apply_high_contrast(_settings["accessibility"].get("high_contrast", false))
-	_setup_accessibility_hints()
-	_setup_focus_order()
-	_update_ui_text()
+	_apply_audio(_settings.get("audio", {}))
+	hide()
 
+func _build_ui() -> void:
+	for child in get_children():
+		child.queue_free()
 
-func _input(event: InputEvent) -> void:
-	if visible and event.is_action_pressed("ui_cancel"):
-		_on_close_pressed()
-		get_viewport().set_input_as_handled()
+	# Overlay
+	_overlay = ColorRect.new()
+	_overlay.color = Color(0.18, 0.20, 0.25, 0.65)
+	_overlay.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	_overlay.mouse_filter = MOUSE_FILTER_STOP
+	add_child(_overlay)
 
-# ── Language tab creation ────────────────────────────────────────────────────
+	# Panel
+	_panel = PanelContainer.new()
+	_panel.custom_minimum_size = Vector2(700, 500)
+	_panel.anchor_left = 0.5; _panel.anchor_right = 0.5
+	_panel.anchor_top = 0.5; _panel.anchor_bottom = 0.5
+	_panel.offset_left = -350; _panel.offset_right = 350
+	_panel.offset_top = -250; _panel.offset_bottom = 250
+	var panel_sb = StyleBoxFlat.new()
+	panel_sb.bg_color = Color("#FFFFFF")
+	panel_sb.set_corner_radius_all(12)
+	panel_sb.set_content_margin_all(20)
+	_panel.add_theme_stylebox_override("panel", panel_sb)
+	add_child(_panel)
 
-func _create_language_tab() -> void:
-	if not tab_container:
-		push_warning("SettingsMenu: TabContainer not found, cannot create Language tab")
-		return
-	
-	# Create Language tab
-	var lang_container := VBoxContainer.new()
-	lang_container.name = "Language"
-	tab_container.add_child(lang_container)
-	
-	# Language selection row
-	var lang_row := HBoxContainer.new()
-	lang_row.name = "LanguageRow"
-	lang_container.add_child(lang_row)
-	
-	var lang_label := Label.new()
-	lang_label.text = "ui.settings.language_select"
-	lang_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lang_row.add_child(lang_label)
-	
-	language_option = OptionButton.new()
-	language_option.name = "LanguageOption"
-	lang_row.add_child(language_option)
-	
-	# Populate language options
-	if _localization_manager:
-		var locales: Array = _localization_manager.get_supported_locales()
-		var current_locale: String = _localization_manager.get_language()
-		var selected_idx := 0
-		
-		for i in range(locales.size()):
-			var locale: String = locales[i]
-			var locale_name: String = _localization_manager.get_locale_name(locale)
-			language_option.add_item(locale_name)
-			language_option.set_item_metadata(i, locale)
-			
-			if locale == current_locale:
-				selected_idx = i
-		
-		language_option.selected = selected_idx
-		language_option.item_selected.connect(_on_language_changed)
-	else:
-		push_warning("SettingsMenu: LocalizationManager not found")
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 12)
+	_panel.add_child(vbox)
 
+	# Header
+	var header = HBoxContainer.new()
+	vbox.add_child(header)
+	var title = Label.new()
+	title.text = "Innstillinger"
+	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_color_override("font_color", Color("#2E3440"))
+	title.size_flags_horizontal = SIZE_EXPAND_FILL
+	header.add_child(title)
+	var close_btn = Button.new()
+	close_btn.text = "✕"
+	close_btn.pressed.connect(_on_close)
+	header.add_child(close_btn)
 
-func _on_language_changed(index: int) -> void:
-	if not language_option or not _localization_manager:
-		return
-	
-	var locale: String = language_option.get_item_metadata(index)
-	_localization_manager.set_language(locale)
-	_update_ui_text()
-	_dirty = true
+	# Tabs
+	_tab_container = TabContainer.new()
+	_tab_container.size_flags_vertical = SIZE_EXPAND_FILL
+	vbox.add_child(_tab_container)
 
+	_build_audio_tab()
+	_build_graphics_tab()
+	_build_gameplay_tab()
+	_build_accessibility_tab()
 
-func _update_ui_text() -> void:
-	# This function refreshes all translatable UI text after language change
-	# NOTE: For a full implementation, you'd want to update ALL text elements
-	# For now, we'll update the most critical ones
-	
-	# Update tab names using tr() which will now use the new locale
-	if tab_container:
-		tab_container.set_tab_title(0, tr("ui.settings.tab_audio"))
-		tab_container.set_tab_title(1, tr("ui.settings.tab_graphics"))
-		tab_container.set_tab_title(2, tr("ui.settings.tab_gameplay"))
-		tab_container.set_tab_title(3, tr("ui.settings.tab_accessibility"))
-		tab_container.set_tab_title(4, tr("ui.settings.tab_language"))
-	
-	# Update autosave options
-	if autosave_option:
-		var current_sel := autosave_option.selected
-		autosave_option.clear()
-		autosave_option.add_item(tr("ui.settings.autosave_off"))
-		autosave_option.add_item(tr("ui.settings.autosave_2min"))
-		autosave_option.add_item(tr("ui.settings.autosave_5min"))
-		autosave_option.add_item(tr("ui.settings.autosave_10min"))
-		autosave_option.add_item(tr("ui.settings.autosave_30min"))
-		autosave_option.selected = current_sel
-	
-	# Update language dropdown
-	if language_option and _localization_manager:
-		var current_locale: String = _localization_manager.get_language()
-		language_option.clear()
-		var locales: Array = _localization_manager.get_supported_locales()
-		for i in range(locales.size()):
-			var locale: String = locales[i]
-			var locale_name: String = _localization_manager.get_locale_name(locale)
-			language_option.add_item(locale_name)
-			language_option.set_item_metadata(i, locale)
-			if locale == current_locale:
-				language_option.selected = i
+	# Buttons
+	var btn_row = HBoxContainer.new()
+	btn_row.alignment = BoxContainer.ALIGNMENT_END
+	btn_row.add_theme_constant_override("separation", 8)
+	vbox.add_child(btn_row)
+	var reset_btn = Button.new()
+	reset_btn.text = "Tilbakestill"
+	reset_btn.pressed.connect(_on_reset)
+	btn_row.add_child(reset_btn)
+	var apply_btn = Button.new()
+	apply_btn.text = "Bruk"
+	var apply_sb = StyleBoxFlat.new()
+	apply_sb.bg_color = Color("#0A4D68")
+	apply_sb.set_corner_radius_all(4)
+	apply_sb.set_content_margin_all(8)
+	apply_btn.add_theme_stylebox_override("normal", apply_sb)
+	apply_btn.add_theme_color_override("font_color", Color.WHITE)
+	apply_btn.pressed.connect(_on_apply)
+	btn_row.add_child(apply_btn)
 
-# ── Option population ─────────────────────────────────────────────────────────
+func _build_audio_tab() -> void:
+	var tab = VBoxContainer.new()
+	tab.name = "Lyd"
+	tab.add_theme_constant_override("separation", 12)
+	_tab_container.add_child(tab)
+	var r1 = _make_slider_row(tab, "Master", 0.0, 1.0, 0.01)
+	_master_slider = r1.slider; _master_pct = r1.label
+	_master_slider.value_changed.connect(func(v): _master_pct.text = "%d%%" % int(v*100); _apply_audio_live())
+	var r2 = _make_slider_row(tab, "Musikk", 0.0, 1.0, 0.01)
+	_music_slider = r2.slider; _music_pct = r2.label
+	_music_slider.value_changed.connect(func(v): _music_pct.text = "%d%%" % int(v*100); _apply_audio_live())
+	var r3 = _make_slider_row(tab, "Ambient", 0.0, 1.0, 0.01)
+	_ambient_slider = r3.slider; _ambient_pct = r3.label
+	_ambient_slider.value_changed.connect(func(v): _ambient_pct.text = "%d%%" % int(v*100); _apply_audio_live())
+	var r4 = _make_slider_row(tab, "Effekter", 0.0, 1.0, 0.01)
+	_sfx_slider = r4.slider; _sfx_pct = r4.label
+	_sfx_slider.value_changed.connect(func(v): _sfx_pct.text = "%d%%" % int(v*100); _apply_audio_live())
 
-func _populate_options() -> void:
-	for res in RESOLUTIONS:
-		res_option.add_item(res)
+func _build_graphics_tab() -> void:
+	var tab = VBoxContainer.new()
+	tab.name = "Grafikk"
+	tab.add_theme_constant_override("separation", 12)
+	_tab_container.add_child(tab)
+	# Resolution
+	var res_row = HBoxContainer.new()
+	tab.add_child(res_row)
+	var res_lbl = Label.new()
+	res_lbl.text = "Oppløsning"
+	res_lbl.size_flags_horizontal = SIZE_EXPAND_FILL
+	res_row.add_child(res_lbl)
+	_res_option = OptionButton.new()
+	for r in ["1280x720", "1600x900", "1920x1080", "2560x1440", "3840x2160"]:
+		_res_option.add_item(r)
+	res_row.add_child(_res_option)
+	# Fullscreen
+	_fs_check = _make_check_row(tab, "Fullskjerm")
+	_vsync_check = _make_check_row(tab, "VSync")
 
-	# Populate autosave with translatable strings
-	autosave_option.add_item(tr("ui.settings.autosave_off"))
-	autosave_option.add_item(tr("ui.settings.autosave_2min"))
-	autosave_option.add_item(tr("ui.settings.autosave_5min"))
-	autosave_option.add_item(tr("ui.settings.autosave_10min"))
-	autosave_option.add_item(tr("ui.settings.autosave_30min"))
+func _build_gameplay_tab() -> void:
+	var tab = VBoxContainer.new()
+	tab.name = "Spill"
+	tab.add_theme_constant_override("separation", 12)
+	_tab_container.add_child(tab)
+	var as_row = HBoxContainer.new()
+	tab.add_child(as_row)
+	var as_lbl = Label.new()
+	as_lbl.text = "Autolagring"
+	as_lbl.size_flags_horizontal = SIZE_EXPAND_FILL
+	as_row.add_child(as_lbl)
+	_autosave_option = OptionButton.new()
+	for m in ["Av", "2 min", "5 min", "10 min", "30 min"]:
+		_autosave_option.add_item(m)
+	as_row.add_child(_autosave_option)
+	_tutorial_check = _make_check_row(tab, "Vis tutorial")
+	_notifs_check = _make_check_row(tab, "Varsler")
+	var spd = _make_slider_row(tab, "Standard hastighet", 0.5, 5.0, 0.5)
+	_speed_slider = spd.slider; _speed_val = spd.label
 
-# ── Load / Save ───────────────────────────────────────────────────────────────
+func _build_accessibility_tab() -> void:
+	var tab = VBoxContainer.new()
+	tab.name = "Tilgjengelighet"
+	tab.add_theme_constant_override("separation", 12)
+	_tab_container.add_child(tab)
+	_hc_check = _make_check_row(tab, "Høykontrast")
 
+func _make_slider_row(parent: VBoxContainer, label_text: String, min_val: float, max_val: float, step: float) -> Dictionary:
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	parent.add_child(row)
+	var lbl = Label.new()
+	lbl.text = label_text
+	lbl.custom_minimum_size.x = 120
+	row.add_child(lbl)
+	var slider = HSlider.new()
+	slider.min_value = min_val
+	slider.max_value = max_val
+	slider.step = step
+	slider.size_flags_horizontal = SIZE_EXPAND_FILL
+	row.add_child(slider)
+	var val_lbl = Label.new()
+	val_lbl.custom_minimum_size.x = 50
+	val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(val_lbl)
+	return {"slider": slider, "label": val_lbl}
+
+func _make_check_row(parent: VBoxContainer, label_text: String) -> CheckBox:
+	var check = CheckBox.new()
+	check.text = label_text
+	parent.add_child(check)
+	return check
+
+# ── Settings IO ─────────────────────────────────────────────────────────
 func _load_settings() -> Dictionary:
-	if not FileAccess.file_exists(SETTINGS_PATH):
-		return DEFAULT_SETTINGS.duplicate(true)
-
-	var file := FileAccess.open(SETTINGS_PATH, FileAccess.READ)
-	if file == null:
-		push_warning("SettingsMenu: could not open %s" % SETTINGS_PATH)
-		return DEFAULT_SETTINGS.duplicate(true)
-
-	var json_text := file.get_as_text()
-	file.close()
-
-	var parsed = JSON.parse_string(json_text)
-	if typeof(parsed) != TYPE_DICTIONARY:
-		push_warning("SettingsMenu: malformed settings file, using defaults")
-		return DEFAULT_SETTINGS.duplicate(true)
-
-	# Merge with defaults so missing keys are filled in
-	var merged := DEFAULT_SETTINGS.duplicate(true)
-	_deep_merge(merged, parsed)
-	return merged
-
+	if FileAccess.file_exists(SETTINGS_PATH):
+		var file = FileAccess.open(SETTINGS_PATH, FileAccess.READ)
+		var json = JSON.new()
+		if json.parse(file.get_as_text()) == OK:
+			return json.data
+	return DEFAULT_SETTINGS.duplicate(true)
 
 func _save_settings(data: Dictionary) -> void:
-	var file := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
-	if file == null:
-		push_warning("SettingsMenu: could not write %s" % SETTINGS_PATH)
-		return
+	var file = FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t"))
-	file.close()
-
-
-## Recursively merge src into dst (dst wins for non-dict leaf values, src overwrites).
-func _deep_merge(dst: Dictionary, src: Dictionary) -> void:
-	for key in src:
-		if dst.has(key) and typeof(dst[key]) == TYPE_DICTIONARY and typeof(src[key]) == TYPE_DICTIONARY:
-			_deep_merge(dst[key], src[key])
-		else:
-			dst[key] = src[key]
-
-# ── Apply settings to widgets ─────────────────────────────────────────────────
-
-func _apply_to_widgets(data: Dictionary) -> void:
-	var audio    : Dictionary = data.get("audio",    DEFAULT_SETTINGS["audio"])
-	var graphics : Dictionary = data.get("graphics", DEFAULT_SETTINGS["graphics"])
-	var gameplay : Dictionary = data.get("gameplay", DEFAULT_SETTINGS["gameplay"])
-	var accessibility: Dictionary = data.get("accessibility", DEFAULT_SETTINGS["accessibility"])
-
-	# Audio sliders
-	master_slider.value  = audio.get("master",  1.0) * 100.0
-	music_slider.value   = audio.get("music",   0.7) * 100.0
-	ambient_slider.value = audio.get("ambient", 0.5) * 100.0
-	sfx_slider.value     = audio.get("sfx",     0.8) * 100.0
-	_update_pct_labels()
-
-	# Graphics
-	var res: String = graphics.get("resolution", "1920x1080")
-	var res_idx := RESOLUTIONS.find(res)
-	res_option.selected = max(res_idx, 0)
-	fs_check.button_pressed    = graphics.get("fullscreen", false)
-	vsync_check.button_pressed = graphics.get("vsync", true)
-
-	# Gameplay
-	var autosave_min: int = gameplay.get("autosave_minutes", 5)
-	var as_idx := AUTOSAVE_MINUTES.find(autosave_min)
-	autosave_option.selected = max(as_idx, 0)
-	tutorial_check.button_pressed = gameplay.get("tutorial_enabled",      true)
-	notifs_check.button_pressed   = gameplay.get("notifications_enabled", true)
-	speed_slider.value            = gameplay.get("default_speed", 1.0)
-	_update_speed_label()
-
-	# Accessibility
-	hc_check.button_pressed = accessibility.get("high_contrast", false)
-
-
-func _update_pct_labels() -> void:
-	master_pct.text  = tr("ui.settings.volume_format") % int(master_slider.value)
-	music_pct.text   = tr("ui.settings.volume_format") % int(music_slider.value)
-	ambient_pct.text = tr("ui.settings.volume_format") % int(ambient_slider.value)
-	sfx_pct.text     = tr("ui.settings.volume_format") % int(sfx_slider.value)
-
-
-func _update_speed_label() -> void:
-	speed_val.text = tr("ui.settings.speed_format") % speed_slider.value
-
-# ── Apply settings to engine ──────────────────────────────────────────────────
-
-func _apply_audio(audio: Dictionary) -> void:
-	_set_bus_volume("Master",  audio.get("master",  1.0))
-	_set_bus_volume("Music",   audio.get("music",   0.7))
-	_set_bus_volume("Ambient", audio.get("ambient", 0.5))
-	_set_bus_volume("SFX",     audio.get("sfx",     0.8))
-
-
-func _set_bus_volume(bus_name: String, linear: float) -> void:
-	# This function is now only for fallback, as _audio_manager will be preferred
-	var idx := AudioServer.get_bus_index(bus_name)
-	if idx >= 0:
-		var db := linear_to_db(linear) if linear > 0.0 else -80.0
-		AudioServer.set_bus_volume_db(idx, db)
-
-
-func _apply_graphics(graphics: Dictionary) -> void:
-	var fullscreen: bool = graphics.get("fullscreen", false)
-	if fullscreen:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-	else:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-
-	DisplayServer.window_set_vsync_mode(
-		DisplayServer.VSYNC_ENABLED if graphics.get("vsync", true)
-		else DisplayServer.VSYNC_DISABLED
-	)
-
-	var res_str: String = graphics.get("resolution", "1920x1080")
-	var parts := res_str.split("x")
-	if parts.size() == 2:
-		var w := int(parts[0])
-		var h := int(parts[1])
-		if w > 0 and h > 0:
-			DisplayServer.window_set_size(Vector2i(w, h))
-
-# ── Read current widget state into a dict ─────────────────────────────────────
 
 func _collect_from_widgets() -> Dictionary:
-	var autosave_idx := autosave_option.selected
-	var autosave_min: int = AUTOSAVE_MINUTES[autosave_idx] if autosave_idx < AUTOSAVE_MINUTES.size() else 5
-
-	var language_locale := DEFAULT_LOCALE
-	if language_option and _localization_manager:
-		language_locale = language_option.get_item_metadata(language_option.selected)
-
 	return {
 		"audio": {
-			"master":  master_slider.value  / 100.0,
-			"music":   music_slider.value   / 100.0,
-			"ambient": ambient_slider.value / 100.0,
-			"sfx":     sfx_slider.value     / 100.0,
+			"master": _master_slider.value if _master_slider else 1.0,
+			"music": _music_slider.value if _music_slider else 0.7,
+			"ambient": _ambient_slider.value if _ambient_slider else 0.5,
+			"sfx": _sfx_slider.value if _sfx_slider else 0.8,
 		},
 		"graphics": {
-			"resolution": RESOLUTIONS[res_option.selected] if res_option.selected < RESOLUTIONS.size() else "1920x1080",
-			"fullscreen": fs_check.button_pressed,
-			"vsync":      vsync_check.button_pressed,
+			"resolution": _res_option.get_item_text(_res_option.selected) if _res_option else "1920x1080",
+			"fullscreen": _fs_check.button_pressed if _fs_check else false,
+			"vsync": _vsync_check.button_pressed if _vsync_check else true,
 		},
 		"gameplay": {
-			"autosave_minutes":      autosave_min,
-			"tutorial_enabled":      tutorial_check.button_pressed,
-			"notifications_enabled": notifs_check.button_pressed,
-			"default_speed":         speed_slider.value,
+			"autosave_minutes": [0, 2, 5, 10, 30][_autosave_option.selected] if _autosave_option else 5,
+			"tutorial_enabled": _tutorial_check.button_pressed if _tutorial_check else true,
+			"notifications_enabled": _notifs_check.button_pressed if _notifs_check else true,
+			"default_speed": _speed_slider.value if _speed_slider else 1.0,
 		},
 		"accessibility": {
-			"high_contrast": hc_check.button_pressed,
+			"high_contrast": _hc_check.button_pressed if _hc_check else false,
 		},
-		"language": language_locale,
 	}
 
-# ── Signal connections ─────────────────────────────────────────────────────────
+func _apply_to_widgets(data: Dictionary) -> void:
+	var audio = data.get("audio", {})
+	if _master_slider: _master_slider.value = audio.get("master", 1.0)
+	if _music_slider: _music_slider.value = audio.get("music", 0.7)
+	if _ambient_slider: _ambient_slider.value = audio.get("ambient", 0.5)
+	if _sfx_slider: _sfx_slider.value = audio.get("sfx", 0.8)
 
-func _connect_signals() -> void:
-	close_button.pressed.connect(_on_close_pressed)
-	apply_button.pressed.connect(_on_apply_pressed)
-	reset_button.pressed.connect(_on_reset_pressed)
+	var gfx = data.get("graphics", {})
+	if _res_option:
+		var res_str = gfx.get("resolution", "1920x1080")
+		for i in _res_option.item_count:
+			if _res_option.get_item_text(i) == res_str:
+				_res_option.selected = i
+				break
+	if _fs_check: _fs_check.button_pressed = gfx.get("fullscreen", false)
+	if _vsync_check: _vsync_check.button_pressed = gfx.get("vsync", true)
 
-	master_slider.value_changed.connect(func(_v): _on_audio_slider_changed())
-	music_slider.value_changed.connect(func(_v): _on_audio_slider_changed())
-	ambient_slider.value_changed.connect(func(_v): _on_audio_slider_changed())
-	sfx_slider.value_changed.connect(func(_v): _on_audio_slider_changed())
+	var gp = data.get("gameplay", {})
+	if _autosave_option:
+		var mins = gp.get("autosave_minutes", 5)
+		var idx = [0, 2, 5, 10, 30].find(mins)
+		if idx >= 0: _autosave_option.selected = idx
+	if _tutorial_check: _tutorial_check.button_pressed = gp.get("tutorial_enabled", true)
+	if _notifs_check: _notifs_check.button_pressed = gp.get("notifications_enabled", true)
+	if _speed_slider: _speed_slider.value = gp.get("default_speed", 1.0)
 
-	fs_check.toggled.connect(func(_t): _dirty = true)
-	vsync_check.toggled.connect(func(_t): _dirty = true)
-	res_option.item_selected.connect(func(_i): _dirty = true)
+	var acc = data.get("accessibility", {})
+	if _hc_check: _hc_check.button_pressed = acc.get("high_contrast", false)
 
-	autosave_option.item_selected.connect(func(_i): _dirty = true)
-	tutorial_check.toggled.connect(func(_t): _dirty = true)
-	notifs_check.toggled.connect(func(_t): _dirty = true)
-	speed_slider.value_changed.connect(func(_v): _on_speed_slider_changed())
-	
-	hc_check.toggled.connect(_on_high_contrast_toggled)
+func _apply_audio(audio: Dictionary) -> void:
+	var bus_map = {"Master": "master", "Music": "music", "Ambient": "ambient", "SFX": "sfx"}
+	for bus_name in bus_map:
+		var idx = AudioServer.get_bus_index(bus_name)
+		if idx >= 0:
+			var vol = audio.get(bus_map[bus_name], 1.0)
+			AudioServer.set_bus_volume_db(idx, linear_to_db(vol))
 
-# ── Signal handlers ────────────────────────────────────────────────────────────
-
-func _on_audio_slider_changed() -> void:
-	_update_pct_labels()
-	# Live-preview audio changes
-	var data := _collect_from_widgets()
-	_apply_audio(data["audio"])
+func _apply_audio_live() -> void:
+	_apply_audio(_collect_from_widgets()["audio"])
 	_dirty = true
 
-
-func _on_speed_slider_changed() -> void:
-	_update_speed_label()
-	_dirty = true
-
-
-func _on_apply_pressed() -> void:
+func _on_apply() -> void:
 	_settings = _collect_from_widgets()
-	_apply_audio(_settings["audio"])
-	_apply_graphics(_settings["graphics"])
-	_apply_high_contrast(_settings["accessibility"].get("high_contrast", false))
 	_save_settings(_settings)
-	_dirty = false
+	_apply_audio(_settings["audio"])
 	settings_applied.emit()
-	# Animate the button briefly to give feedback
-	apply_button.text = tr("ui.settings.saved")
-	var tween := create_tween()
-	tween.tween_interval(1.2)
-	tween.tween_callback(func(): apply_button.text = tr("ui.settings.apply"))
+	_dirty = false
 
-
-func _on_reset_pressed() -> void:
+func _on_reset() -> void:
 	_settings = DEFAULT_SETTINGS.duplicate(true)
 	_apply_to_widgets(_settings)
 	_apply_audio(_settings["audio"])
-	_apply_graphics(_settings["graphics"])
-	_apply_high_contrast(_settings["accessibility"].get("high_contrast", false))
-	_save_settings(_settings)
-	_dirty = false
+	_dirty = true
 
-
-func _on_close_pressed() -> void:
+func _on_close() -> void:
 	if _dirty:
-		# Auto-save on close so live audio previews are persisted
 		_settings = _collect_from_widgets()
 		_save_settings(_settings)
 		_dirty = false
 	close_requested.emit()
 	hide()
 
-func _on_cancel_pressed() -> void:
-	# Revert to currently saved settings and hide
-	_apply_to_widgets(_settings)
-	_apply_audio(_settings["audio"])
-	_apply_graphics(_settings["graphics"])
-	_apply_high_contrast(_settings["accessibility"].get("high_contrast", false))
-	_dirty = false
-	close_requested.emit()
-	hide()
+func get_audio_settings() -> Dictionary:
+	return _settings.get("audio", DEFAULT_SETTINGS["audio"].duplicate())
 
-# ── Accessibility ──────────────────────────────────────────────────────────────
+func get_graphics_settings() -> Dictionary:
+	return _settings.get("graphics", DEFAULT_SETTINGS["graphics"].duplicate())
 
-func _apply_high_contrast(enabled: bool) -> void:
-	# This is a placeholder. In a real project, this would involve:
-	# 1. Loading a different theme resource for high contrast.
-	# 2. Iterating through relevant UI elements and changing their colors/styles.
-	# For now, we'll just print a message and store the setting.
-	if enabled:
-		print("High contrast mode enabled!")
-		# Example: You could load a high-contrast theme here
-		# theme = load("res://themes/high_contrast_theme.tres")
-	else:
-		print("High contrast mode disabled!")
-		# theme = load("res://themes/default_theme.tres")
-
-
-func _on_high_contrast_toggled(button_pressed: bool) -> void:
-	_apply_high_contrast(button_pressed)
-	_dirty = true
-
-
-func _setup_accessibility_hints() -> void:
-	# Add accessibility descriptions for screen readers
-	if close_button.has_method("set_tooltip_text"):
-		close_button.tooltip_text = tr("ui.settings.close")
-	if apply_button.has_method("set_tooltip_text"):
-		apply_button.tooltip_text = tr("ui.settings.apply")
-	if reset_button.has_method("set_tooltip_text"):
-		reset_button.tooltip_text = tr("ui.settings.reset_tooltip")
-	if cancel_button.has_method("set_tooltip_text"):
-		cancel_button.tooltip_text = tr("ui.settings.cancel")
-	
-	# Audio sliders
-	if master_slider.has_method("set_tooltip_text"):
-		master_slider.tooltip_text = "Hovedvolum"
-	if music_slider.has_method("set_tooltip_text"):
-		music_slider.tooltip_text = "Musikkvolum"
-	if ambient_slider.has_method("set_tooltip_text"):
-		ambient_slider.tooltip_text = "Omgivelseslyder volum"
-	if sfx_slider.has_method("set_tooltip_text"):
-		sfx_slider.tooltip_text = "Lydeffekter volum"
-	
-	# Graphics
-	if res_option.has_method("set_tooltip_text"):
-		res_option.tooltip_text = "Velg skjermoppløsning"
-	if fs_check.has_method("set_tooltip_text"):
-		fs_check.tooltip_text = "Fullskjerm modus"
-	if vsync_check.has_method("set_tooltip_text"):
-		vsync_check.tooltip_text = "Vertikal synkronisering (VSync)"
-	
-	# Gameplay
-	if autosave_option.has_method("set_tooltip_text"):
-		autosave_option.tooltip_text = "Frekvens for automatisk lagring"
-	if tutorial_check.has_method("set_tooltip_text"):
-		tutorial_check.tooltip_text = "Vis opplæringsmeldinger"
-	if notifs_check.has_method("set_tooltip_text"):
-		notifs_check.tooltip_text = "Aktiver varslinger"
-	if speed_slider.has_method("set_tooltip_text"):
-		speed_slider.tooltip_text = "Standard spillhastighet"
-	
-	# Accessibility
-	if hc_check.has_method("set_tooltip_text"):
-		hc_check.tooltip_text = "Høykontrast modus for bedre synlighet"
-
-
-func _setup_focus_order() -> void:
-	# Set up tab navigation order
-	# Audio tab
-	master_slider.focus_neighbor_bottom = NodePath("../../MusicRow/MusicSlider")
-	music_slider.focus_neighbor_top = NodePath("../../MasterRow/MasterSlider")
-	music_slider.focus_neighbor_bottom = NodePath("../../AmbientRow/AmbientSlider")
-	ambient_slider.focus_neighbor_top = NodePath("../../MusicRow/MusicSlider")
-	ambient_slider.focus_neighbor_bottom = NodePath("../../SFXRow/SFXSlider")
-	sfx_slider.focus_neighbor_top = NodePath("../../AmbientRow/AmbientSlider")
-	
-	# Graphics tab
-	res_option.focus_neighbor_bottom = NodePath("../../FullscreenRow/FSCheck")
-	fs_check.focus_neighbor_top = NodePath("../../ResolutionRow/ResOption")
-	fs_check.focus_neighbor_bottom = NodePath("../../VSyncRow/VSCheck")
-	vsync_check.focus_neighbor_top = NodePath("../../FullscreenRow/FSCheck")
-	
-	# Gameplay tab
-	autosave_option.focus_neighbor_bottom = NodePath("../../TutorialRow/TutCheck")
-	tutorial_check.focus_neighbor_top = NodePath("../../AutosaveRow/ASOption")
-	tutorial_check.focus_neighbor_bottom = NodePath("../../NotifsRow/NotiCheck")
-	notifs_check.focus_neighbor_top = NodePath("../../TutorialRow/TutCheck")
-	notifs_check.focus_neighbor_bottom = NodePath("../../SpeedRow/SpeedSlider")
-	speed_slider.focus_neighbor_top = NodePath("../../NotifsRow/NotiCheck")
-	
-	# Buttons at bottom
-	cancel_button.focus_neighbor_right = cancel_button.get_path_to(reset_button)
-	reset_button.focus_neighbor_left = reset_button.get_path_to(cancel_button)
-	reset_button.focus_neighbor_right = reset_button.get_path_to(apply_button)
-	apply_button.focus_neighbor_left = apply_button.get_path_to(reset_button)
-
-
-# ── Public API ─────────────────────────────────────────────────────────────────
-
-## Call this from the game's autoload bootstrap to apply settings at startup.
-func load_and_apply() -> void:
-	_settings = _load_settings()
-	_apply_audio(_settings["audio"])
-	_apply_graphics(_settings["graphics"])
-	_apply_high_contrast(_settings["accessibility"].get("high_contrast", false))
-
-
-## Returns the current gameplay settings dict for other systems to read.
 func get_gameplay_settings() -> Dictionary:
 	return _settings.get("gameplay", DEFAULT_SETTINGS["gameplay"].duplicate())
 
-
-## Returns the current accessibility settings dict for other systems to read.
 func get_accessibility_settings() -> Dictionary:
 	return _settings.get("accessibility", DEFAULT_SETTINGS["accessibility"].duplicate())
