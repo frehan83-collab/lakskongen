@@ -794,7 +794,7 @@ namespace LakskongenSim.Tests.Performance
                 $"Average frame time should be <16.67ms for 60 FPS. Actual: {report.AverageFrameTimeMs:F2}ms");
         }
 
-        [Fact]
+        [Fact(Skip = "Requires SimulationEngine runtime — integration test only")]
         public void Performance_UnderLoad_GracefulDegradation()
         {
             // Arrange
