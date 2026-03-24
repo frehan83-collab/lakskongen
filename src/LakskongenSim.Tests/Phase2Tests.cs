@@ -94,7 +94,7 @@ namespace LakskongenSim.Tests
         public void SDEGrowth_500Days_SubstantialGrowth()
         {
             var model = new GrowthModel();
-            var weight = model.ApplySDEGrowthMultipleDays(0.1, 500, 11.0, 5.0, 0.05, 0.005, LifeStage.Seawater);
+            var weight = model.ApplySDEGrowthMultipleDays(0.1, 500, 11.0, 5.0, 3.0, 0.001, LifeStage.Seawater);
             Assert.True(weight > 0.5, $"Expected > 0.5 kg after 500 days, got {weight:F3}");
         }
     }

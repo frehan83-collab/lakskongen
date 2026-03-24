@@ -953,8 +953,8 @@ namespace LakskongenSim.Core
                     zone.CurrentFishBiomassKg = biomassKg;
                 }
 
-                // Advance population: age and mortality (in-place, T56)
-                population.AdvanceDays(1);
+                // Advance population: age and mortality only — growth handled by SDE below
+                population.AdvanceDays(1, skipGrowth: true);
 
                 // Manual growth adjustment — indexed loop, in-place (T56)
                 for (int ci = 0; ci < population.Cohorts.Count; ci++)
@@ -969,8 +969,8 @@ namespace LakskongenSim.Core
                         cohort.MeanWeightKg,
                         temperature,
                         5.5, // Target 5.5kg
-                        3.0, // Genetic maximum growth rate α_max
-                        0.02,
+                        20.0, // Genetic maximum growth rate α_max (calibrating: SDE-only growth)
+                        0.002, // Stochastic variance (kept small vs deterministic growth)
                         cohort.Stage);
 
                     // Apply environmental and genetic modifiers in-place

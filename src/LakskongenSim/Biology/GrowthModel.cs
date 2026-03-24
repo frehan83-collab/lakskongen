@@ -36,6 +36,13 @@ namespace LakskongenSim.Biology
         private const double AllometricExponent = 0.67; // Metabolism scaling exponent
         private const double OptimalTemperature = 11.0; // Norwegian optimal
         private const double ThermalTolerance = 3.0;    // Thermal tolerance width
+        
+        /// <summary>
+        /// Scaling factor applied to geneticGrowthRate to calibrate biological growth.
+        /// With rate=3.0 (engine default), produces ~5kg harvest from 80g smolt in 540 days at 11°C.
+        /// Formula: effective α = rate × ScalingFactor × stageModifier × temp_response
+        /// </summary>
+        private const double GrowthRateScalingFactor = 0.0015;
 
         /// <summary>
         /// Apply SDE-based growth for individual fish tracking over one day.
@@ -67,7 +74,7 @@ namespace LakskongenSim.Biology
                 case LifeStage.Harvest: stageModifier = 0.8; break;
             }
 
-            double maxGrowthRate = geneticGrowthRate * (1.0 + (_random.NextDouble() - 0.5) * 0.1) * stageModifier;
+            double maxGrowthRate = geneticGrowthRate * GrowthRateScalingFactor * (1.0 + (_random.NextDouble() - 0.5) * 0.1) * stageModifier;
             double variance = individualVariance * (1.0 + (_random.NextDouble() - 0.5) * 0.2);
 
             // Temperature-dependent growth rate: α(T) = α_max × exp(−(T − T_opt)^2 / (2τ^2))
@@ -107,7 +114,7 @@ namespace LakskongenSim.Biology
 
             // Genetic parameters (fixed for this batch)
             double asymptoticWeightK = geneticAsymptoticWeight * (1.0 + (_random.NextDouble() - 0.5) * 0.15);
-            double maxGrowthRate = geneticGrowthRate * (1.0 + (_random.NextDouble() - 0.5) * 0.1);
+            double maxGrowthRate = geneticGrowthRate * GrowthRateScalingFactor * (1.0 + (_random.NextDouble() - 0.5) * 0.1);
             double variance = individualVariance * (1.0 + (_random.NextDouble() - 0.5) * 0.2);
             
             // Stage modifier

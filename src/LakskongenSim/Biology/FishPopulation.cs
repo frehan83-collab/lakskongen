@@ -111,7 +111,7 @@ namespace LakskongenSim.Biology
 
         /// <summary>Advance the population by days: age, apply growth and mortality.
         /// Optimized: in-place updates with no list allocations (T56).</summary>
-        public void AdvanceDays(int days)
+        public void AdvanceDays(int days, bool skipGrowth = false)
         {
             if (days <= 0) return;
             var populationId = this.Id; // Cache to avoid repeated property access
@@ -121,7 +121,10 @@ namespace LakskongenSim.Biology
                 var cohort = Cohorts[i];
 
                 cohort.AgeDays += days;
-                cohort.MeanWeightKg = _growth.ApplyGrowth(cohort.MeanWeightKg, days, cohort.Stage);
+                if (!skipGrowth)
+                {
+                    cohort.MeanWeightKg = _growth.ApplyGrowth(cohort.MeanWeightKg, days, cohort.Stage);
+                }
                 cohort.Count = _mortality.ApplyMortality(cohort.Count, days, cohort.Stage, populationId);
                 cohort.Stage = DetermineStage(cohort.AgeDays);
             }
