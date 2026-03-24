@@ -134,7 +134,7 @@ func _create_competitor_item(competitor: Dictionary) -> Control:
 		actions_label.text = "Recent: " + latest
 		actions_label.add_theme_color_override("font_color", Color("#E6EEF3"))
 	else:
-		actions_label.text = "No recent activity"
+		actions_label.text = tr("No recent activity")
 		actions_label.add_theme_color_override("font_color", Color("#666666"))
 	actions_label.add_theme_font_size_override("font_size", 11)
 	vbox.add_child(actions_label)
@@ -170,7 +170,7 @@ func _create_competitor_item(competitor: Dictionary) -> Control:
 		acquire_button.text = "Acquire (NOK %.2fB)" % acq_price
 		acquire_button.disabled = false
 	else:
-		acquire_button.text = "Not for Sale"
+		acquire_button.text = tr("Not for Sale")
 		acquire_button.disabled = true
 	
 	acquire_button.custom_minimum_size = Vector2(140, 32)
@@ -221,3 +221,15 @@ func _execute_acquisition(company_id: String):
 
 func _on_refresh_pressed():
 	_load_competitors()
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_close_requested()
+
+func _on_close_requested() -> void:
+	hide()
+
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

@@ -44,9 +44,9 @@ project/assembly_name="LakskongenGame"
 
 [internationalization]
 
-locale/translations=PackedStringArray("res://translations/strings.csv")
+locale/translations=PackedStringArray("res://translations/translations.csv")
 locale/test="no"
-locale/fallback="no"
+locale/fallback="en"
 
 [rendering]
 

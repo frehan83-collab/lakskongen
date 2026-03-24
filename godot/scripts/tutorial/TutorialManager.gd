@@ -282,3 +282,4 @@ func on_pen_clicked(pen_id: int):
 
 func on_action_completed(action_type: String, data: Variant = null):
 	check_completion(action_type, data)
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

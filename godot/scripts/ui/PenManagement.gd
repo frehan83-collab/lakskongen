@@ -135,7 +135,7 @@ func _build_ui() -> void:
 
 	# ── RIGHT: Detail Panel ──
 	_no_pen_label = Label.new()
-	_no_pen_label.text = "Velg en merd for detaljer"
+	_no_pen_label.text = tr("Velg en merd for detaljer")
 	_no_pen_label.add_theme_font_size_override("font_size", 16)
 	_no_pen_label.add_theme_color_override("font_color", C_MUTED)
 	_no_pen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -168,7 +168,7 @@ func _build_detail_panel() -> void:
 	header.add_child(header_left)
 
 	_detail_name = Label.new()
-	_detail_name.text = "Merd 1"
+	_detail_name.text = tr("Merd 1")
 	_detail_name.add_theme_font_size_override("font_size", 24)
 	_detail_name.add_theme_color_override("font_color", C_TEXT)
 	if _theme and _theme.font_heading_bold:
@@ -187,7 +187,7 @@ func _build_detail_panel() -> void:
 	header.add_child(header_right)
 
 	_detail_status_badge = Label.new()
-	_detail_status_badge.text = "● Frisk"
+	_detail_status_badge.text = tr("● Frisk")
 	_detail_status_badge.add_theme_font_size_override("font_size", 12)
 	_detail_status_badge.add_theme_color_override("font_color", C_SUCCESS_D)
 	header_right.add_child(_detail_status_badge)
@@ -387,7 +387,7 @@ func _refresh_pen_list() -> void:
 
 	if pens.is_empty():
 		var lbl := Label.new()
-		lbl.text = "Ingen merder tilgjengelig"
+		lbl.text = tr("Ingen merder tilgjengelig")
 		lbl.add_theme_color_override("font_color", C_MUTED)
 		_pen_list_vbox.add_child(lbl)
 		_show_no_pen()
@@ -462,36 +462,36 @@ func _refresh_detail() -> void:
 	# Water
 	_det_temp.text = "%.1f°C" % _sim.temperature_c
 	_det_oxygen.text = "91%"
-	_det_current.text = "0.3 m/s"
-	_det_visibility.text = "8.5 m"
-	_det_algae.text = "Lav"
+	_det_current.text = tr("0.3 m/s")
+	_det_visibility.text = tr("8.5 m")
+	_det_algae.text = tr("Lav")
 	_det_algae.add_theme_color_override("font_color", C_SUCCESS_D)
 
 	# Health
 	var lice: float = _sim.sea_lice_per_fish if _sim.get("sea_lice_per_fish") != null else 0.1
 	_det_lice.text = "%.2f lus/fisk" % lice
 	_det_lice.add_theme_color_override("font_color", C_SUCCESS_D if lice < 0.2 else (C_WARNING_D if lice < 0.5 else C_DANGER))
-	_det_disease.text = "Ingen"
+	_det_disease.text = tr("Ingen")
 	_det_disease.add_theme_color_override("font_color", C_SUCCESS_D)
 	_det_mortality.text = "0.05%"
 	_det_mortality_total.text = "1.2%"
 
 	# Genetics (mock for now)
-	_det_gene_growth.text = "A+"
+	_det_gene_growth.text = tr("A+")
 	_det_gene_growth.add_theme_color_override("font_color", C_SUCCESS_D)
-	_det_gene_lice.text = "B"
+	_det_gene_lice.text = tr("B")
 	_det_gene_lice.add_theme_color_override("font_color", C_WARNING_D)
-	_det_gene_disease.text = "A"
+	_det_gene_disease.text = tr("A")
 	_det_gene_disease.add_theme_color_override("font_color", C_ACCENT)
-	_det_gene_fillet.text = "A+"
+	_det_gene_fillet.text = tr("A+")
 	_det_gene_fillet.add_theme_color_override("font_color", C_SUCCESS_D)
 
 	# Status badge
 	if lice >= 0.5:
-		_detail_status_badge.text = "⚠ Forhøyet lusetall"
+		_detail_status_badge.text = tr("⚠ Forhøyet lusetall")
 		_detail_status_badge.add_theme_color_override("font_color", C_WARNING_D)
 	else:
-		_detail_status_badge.text = "● Frisk"
+		_detail_status_badge.text = tr("● Frisk")
 		_detail_status_badge.add_theme_color_override("font_color", C_SUCCESS_D)
 
 	# Button states
@@ -550,3 +550,6 @@ func _fmt_num(n: int) -> String:
 		result = s[i] + result
 		count += 1
 	return ("-" + result) if n < 0 else result
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

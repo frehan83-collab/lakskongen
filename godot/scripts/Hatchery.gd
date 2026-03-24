@@ -36,3 +36,4 @@ func stock_to_farm(count: int, farm_node: Node) -> Array:
             farm_node.receive_stock(f)
         moved.append(f)
     return moved
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

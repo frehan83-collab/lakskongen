@@ -95,7 +95,7 @@ func _create_ui() -> void:
 	# HEADER
 	# ══════════════════════════════════════════════════════════════════════════
 	var header = Label.new()
-	header.text = "💰 Finansiell Oversikt"
+	header.text = tr("💰 Finansiell Oversikt")
 	header.add_theme_font_size_override("font_size", 22)
 	header.add_theme_color_override("font_color", Color(COLOR_HIGHLIGHT))
 	header.tooltip_text = "Dyptgående finansiell analyse — lån, skatt, investorer, og økonomisk helse."
@@ -108,7 +108,7 @@ func _create_ui() -> void:
 	# 1. LOAN MANAGEMENT
 	# ══════════════════════════════════════════════════════════════════════════
 	var loan_header = Label.new()
-	loan_header.text = "🏦 Lånstyring"
+	loan_header.text = tr("🏦 Lånstyring")
 	loan_header.add_theme_font_size_override("font_size", 18)
 	loan_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	content_vbox.add_child(loan_header)
@@ -124,7 +124,7 @@ func _create_ui() -> void:
 	# 2. TAX OVERVIEW
 	# ══════════════════════════════════════════════════════════════════════════
 	var tax_header = Label.new()
-	tax_header.text = "📊 Skatteoversikt"
+	tax_header.text = tr("📊 Skatteoversikt")
 	tax_header.add_theme_font_size_override("font_size", 18)
 	tax_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	content_vbox.add_child(tax_header)
@@ -140,7 +140,7 @@ func _create_ui() -> void:
 	# 3. INVESTOR RELATIONS
 	# ══════════════════════════════════════════════════════════════════════════
 	var investor_header = Label.new()
-	investor_header.text = "👔 Investorrelasjoner"
+	investor_header.text = tr("👔 Investorrelasjoner")
 	investor_header.add_theme_font_size_override("font_size", 18)
 	investor_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	content_vbox.add_child(investor_header)
@@ -156,7 +156,7 @@ func _create_ui() -> void:
 	# 4. FINANCIAL HEALTH SUMMARY
 	# ══════════════════════════════════════════════════════════════════════════
 	var health_header = Label.new()
-	health_header.text = "❤️ Finansiell Helse"
+	health_header.text = tr("❤️ Finansiell Helse")
 	health_header.add_theme_font_size_override("font_size", 18)
 	health_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	content_vbox.add_child(health_header)
@@ -209,7 +209,7 @@ func _update_loan_management(loans_data: Dictionary) -> void:
 	debt_row.add_theme_constant_override("separation", 8)
 	
 	var debt_label = Label.new()
-	debt_label.text = "Total gjeld:"
+	debt_label.text = tr("Total gjeld:")
 	debt_label.custom_minimum_size = Vector2(150, 0)
 	debt_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	debt_row.add_child(debt_label)
@@ -227,7 +227,7 @@ func _update_loan_management(loans_data: Dictionary) -> void:
 	payment_row.add_theme_constant_override("separation", 8)
 	
 	var payment_label = Label.new()
-	payment_label.text = "Månedlig betaling:"
+	payment_label.text = tr("Månedlig betaling:")
 	payment_label.custom_minimum_size = Vector2(150, 0)
 	payment_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	payment_row.add_child(payment_label)
@@ -245,7 +245,7 @@ func _update_loan_management(loans_data: Dictionary) -> void:
 	rating_row.add_theme_constant_override("separation", 8)
 	
 	var rating_label = Label.new()
-	rating_label.text = "Kredittvurdering:"
+	rating_label.text = tr("Kredittvurdering:")
 	rating_label.custom_minimum_size = Vector2(150, 0)
 	rating_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	rating_row.add_child(rating_label)
@@ -262,7 +262,7 @@ func _update_loan_management(loans_data: Dictionary) -> void:
 	# Active loans list
 	if active_loans.size() > 0:
 		var loans_header = Label.new()
-		loans_header.text = "Aktive lån:"
+		loans_header.text = tr("Aktive lån:")
 		loans_header.add_theme_font_size_override("font_size", 14)
 		loans_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 		loan_management_container.add_child(loans_header)
@@ -293,7 +293,7 @@ func _update_loan_management(loans_data: Dictionary) -> void:
 			loan_management_container.add_child(loan_row)
 	else:
 		var no_loans = Label.new()
-		no_loans.text = "✅ Ingen aktive lån"
+		no_loans.text = tr("✅ Ingen aktive lån")
 		no_loans.add_theme_font_size_override("font_size", 12)
 		no_loans.add_theme_color_override("font_color", COLOR_GREEN)
 		loan_management_container.add_child(no_loans)
@@ -303,7 +303,7 @@ func _update_loan_management(loans_data: Dictionary) -> void:
 	button_row.add_theme_constant_override("separation", 8)
 	
 	var take_loan_button = Button.new()
-	take_loan_button.text = "💳 Ta nytt lån"
+	take_loan_button.text = tr("💳 Ta nytt lån")
 	take_loan_button.tooltip_text = "Søk om nytt lån basert på din kredittvurdering og tilgjengelig kreditt."
 	take_loan_button.pressed.connect(_on_take_loan_pressed)
 	button_row.add_child(take_loan_button)
@@ -334,7 +334,7 @@ func _update_tax_overview(tax_data: Dictionary) -> void:
 	rate_row.add_theme_constant_override("separation", 8)
 	
 	var rate_label = Label.new()
-	rate_label.text = "Gjeldende skattesats:"
+	rate_label.text = tr("Gjeldende skattesats:")
 	rate_label.custom_minimum_size = Vector2(180, 0)
 	rate_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	rate_row.add_child(rate_label)
@@ -353,7 +353,7 @@ func _update_tax_overview(tax_data: Dictionary) -> void:
 	last_paid_row.add_theme_constant_override("separation", 8)
 	
 	var last_paid_label = Label.new()
-	last_paid_label.text = "Sist betalt skatt:"
+	last_paid_label.text = tr("Sist betalt skatt:")
 	last_paid_label.custom_minimum_size = Vector2(180, 0)
 	last_paid_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	last_paid_row.add_child(last_paid_label)
@@ -371,7 +371,7 @@ func _update_tax_overview(tax_data: Dictionary) -> void:
 	burden_row.add_theme_constant_override("separation", 8)
 	
 	var burden_label = Label.new()
-	burden_label.text = "Årlig skattebelastning:"
+	burden_label.text = tr("Årlig skattebelastning:")
 	burden_label.custom_minimum_size = Vector2(180, 0)
 	burden_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	burden_row.add_child(burden_label)
@@ -389,7 +389,7 @@ func _update_tax_overview(tax_data: Dictionary) -> void:
 	next_row.add_theme_constant_override("separation", 8)
 	
 	var next_label = Label.new()
-	next_label.text = "Estimert neste betaling:"
+	next_label.text = tr("Estimert neste betaling:")
 	next_label.custom_minimum_size = Vector2(180, 0)
 	next_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	next_row.add_child(next_label)
@@ -405,7 +405,7 @@ func _update_tax_overview(tax_data: Dictionary) -> void:
 	# Tax optimization tips
 	if optimization_tips.size() > 0:
 		var tips_header = Label.new()
-		tips_header.text = "💡 Skatteoptimaliseringstips:"
+		tips_header.text = tr("💡 Skatteoptimaliseringstips:")
 		tips_header.add_theme_font_size_override("font_size", 14)
 		tips_header.add_theme_color_override("font_color", COLOR_BLUE)
 		tax_overview_container.add_child(tips_header)
@@ -437,7 +437,7 @@ func _update_investor_relations(investors_data: Dictionary) -> void:
 	investment_row.add_theme_constant_override("separation", 8)
 	
 	var investment_label = Label.new()
-	investment_label.text = "Total investering:"
+	investment_label.text = tr("Total investering:")
 	investment_label.custom_minimum_size = Vector2(180, 0)
 	investment_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	investment_row.add_child(investment_label)
@@ -455,7 +455,7 @@ func _update_investor_relations(investors_data: Dictionary) -> void:
 	dilution_row.add_theme_constant_override("separation", 8)
 	
 	var dilution_label = Label.new()
-	dilution_label.text = "Egenkapitalutvanning:"
+	dilution_label.text = tr("Egenkapitalutvanning:")
 	dilution_label.custom_minimum_size = Vector2(180, 0)
 	dilution_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	dilution_row.add_child(dilution_label)
@@ -474,7 +474,7 @@ func _update_investor_relations(investors_data: Dictionary) -> void:
 	dividend_row.add_theme_constant_override("separation", 8)
 	
 	var dividend_label = Label.new()
-	dividend_label.text = "Utbetalt utbytte:"
+	dividend_label.text = tr("Utbetalt utbytte:")
 	dividend_label.custom_minimum_size = Vector2(180, 0)
 	dividend_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	dividend_row.add_child(dividend_label)
@@ -492,7 +492,7 @@ func _update_investor_relations(investors_data: Dictionary) -> void:
 	next_div_row.add_theme_constant_override("separation", 8)
 	
 	var next_div_label = Label.new()
-	next_div_label.text = "Neste utbytte (estimert):"
+	next_div_label.text = tr("Neste utbytte (estimert):")
 	next_div_label.custom_minimum_size = Vector2(180, 0)
 	next_div_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	next_div_row.add_child(next_div_label)
@@ -508,7 +508,7 @@ func _update_investor_relations(investors_data: Dictionary) -> void:
 	# Investor list
 	if investors.size() > 0:
 		var investors_header = Label.new()
-		investors_header.text = "Investorer:"
+		investors_header.text = tr("Investorer:")
 		investors_header.add_theme_font_size_override("font_size", 14)
 		investors_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 		investor_relations_container.add_child(investors_header)
@@ -539,7 +539,7 @@ func _update_investor_relations(investors_data: Dictionary) -> void:
 			investor_relations_container.add_child(investor_row)
 	else:
 		var no_investors = Label.new()
-		no_investors.text = "✅ Ingen eksterne investorer"
+		no_investors.text = tr("✅ Ingen eksterne investorer")
 		no_investors.add_theme_font_size_override("font_size", 12)
 		no_investors.add_theme_color_override("font_color", COLOR_GREEN)
 		investor_relations_container.add_child(no_investors)
@@ -562,7 +562,7 @@ func _update_financial_health(health_data: Dictionary) -> void:
 	de_row.add_theme_constant_override("separation", 8)
 	
 	var de_label = Label.new()
-	de_label.text = "Gjeld-til-egenkapital:"
+	de_label.text = tr("Gjeld-til-egenkapital:")
 	de_label.custom_minimum_size = Vector2(180, 0)
 	de_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	de_row.add_child(de_label)
@@ -587,7 +587,7 @@ func _update_financial_health(health_data: Dictionary) -> void:
 	runway_row.add_theme_constant_override("separation", 8)
 	
 	var runway_label = Label.new()
-	runway_label.text = "Kontantreserve (dager):"
+	runway_label.text = tr("Kontantreserve (dager):")
 	runway_label.custom_minimum_size = Vector2(180, 0)
 	runway_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	runway_row.add_child(runway_label)
@@ -606,7 +606,7 @@ func _update_financial_health(health_data: Dictionary) -> void:
 	rating_row.add_theme_constant_override("separation", 8)
 	
 	var rating_label = Label.new()
-	rating_label.text = "Kredittvurdering:"
+	rating_label.text = tr("Kredittvurdering:")
 	rating_label.custom_minimum_size = Vector2(180, 0)
 	rating_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	rating_row.add_child(rating_label)
@@ -630,7 +630,7 @@ func _update_financial_health(health_data: Dictionary) -> void:
 	liquidity_row.add_theme_constant_override("separation", 8)
 	
 	var liquidity_label = Label.new()
-	liquidity_label.text = "Likviditetsgrad:"
+	liquidity_label.text = tr("Likviditetsgrad:")
 	liquidity_label.custom_minimum_size = Vector2(180, 0)
 	liquidity_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	liquidity_row.add_child(liquidity_label)
@@ -649,7 +649,7 @@ func _update_financial_health(health_data: Dictionary) -> void:
 	trend_row.add_theme_constant_override("separation", 8)
 	
 	var trend_label = Label.new()
-	trend_label.text = "Lønnsomhetstrend:"
+	trend_label.text = tr("Lønnsomhetstrend:")
 	trend_label.custom_minimum_size = Vector2(180, 0)
 	trend_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	trend_row.add_child(trend_label)
@@ -860,3 +860,6 @@ func _trend_label(trend: String) -> String:
 			return "Nedgang"
 		_:
 			return "Ukjent"
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

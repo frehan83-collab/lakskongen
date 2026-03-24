@@ -15,7 +15,7 @@ func _ready():
 
     # Title Label
     var title_label = Label.new()
-    title_label.text = "M&A Dashboard - Competitors"
+    title_label.text = tr("M&A Dashboard - Competitors")
     title_label.add_theme_font_size_override("font_size", 24)
     title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     main_vbox.add_child(title_label)
@@ -94,13 +94,13 @@ func _refresh_competitors_list():
                 # Connect signal with arguments
                 acquire_button.pressed.connect(_on_acquire_pressed.bind(competitor.CompanyName, competitor.AssetValueNoK))
             else:
-                acquire_button.text = "NOT FOR SALE"
+                acquire_button.text = tr("NOT FOR SALE")
                 acquire_button.disabled = true
             
             competitor_row.add_child(acquire_button)
     else:
         var no_competitors_label = Label.new()
-        no_competitors_label.text = "No competitors found."
+        no_competitors_label.text = tr("No competitors found.")
         no_competitors_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
         competitors_vbox.add_child(no_competitors_label)
 
@@ -109,3 +109,15 @@ func _on_acquire_pressed(company_name, price):
     # In a real scenario, you would call a C# method on SimulationCore here
     # e.g., simulation_core.acquire_company(company_name)
     _refresh_competitors_list()
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_close_requested()
+
+func _on_close_requested() -> void:
+	hide()
+
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

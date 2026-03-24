@@ -105,30 +105,30 @@ func _build_skeleton() -> void:
 
 	# ── Title bar ──
 	var title := Label.new()
-	title.text = tr("ui.tech.title")
+	title.text = tr("UI_TECH_TITLE")
 	title.add_theme_font_size_override("font_size", 16)
 	title.modulate = Color("#2E3440")  # Dark text
 	title.position = Vector2(START_X, 10)
-	title.tooltip_text = tr("ui.tech.title_tooltip")
+	title.tooltip_text = tr("UI_TECH_TITLE_TOOLTIP")
 	add_child(title)
 
 	# ── Close button ──
 	var close_btn := Button.new()
-	close_btn.text = "✕"
+	close_btn.text = tr("✕")
 	close_btn.position = Vector2(total_w - 40, 8)
 	close_btn.size = Vector2(28, 28)
-	close_btn.tooltip_text = tr("ui.tech.close_tooltip")
+	close_btn.tooltip_text = tr("UI_TECH_CLOSE_TOOLTIP")
 	close_btn.pressed.connect(func(): emit_signal("panel_close_requested"))
 	add_child(close_btn)
 
 	# ── Research status bar ──
 	var status_lbl := Label.new()
 	status_lbl.name = "StatusLabel"
-	status_lbl.text = tr("ui.tech.no_research")
+	status_lbl.text = tr("UI_TECH_NO_RESEARCH")
 	status_lbl.add_theme_font_size_override("font_size", 11)
 	status_lbl.modulate = Color("#4C566A")  # Secondary text
 	status_lbl.position = Vector2(START_X, 36)
-	status_lbl.tooltip_text = tr("ui.tech.status_tooltip")
+	status_lbl.tooltip_text = tr("UI_TECH_STATUS_TOOLTIP")
 	add_child(status_lbl)
 
 	# ── Branch headers ──
@@ -137,7 +137,7 @@ func _build_skeleton() -> void:
 		var meta: Dictionary = BRANCH_META[branch]
 		var x := START_X + bi * H_GAP
 		var hdr := Label.new()
-		hdr.text = tr("ui.tech.tier_node") % [meta["icon"], meta["label"]]
+		hdr.text = tr("UI_TECH_TIER_NODE") % [meta["icon"], meta["label"]]
 		hdr.add_theme_font_size_override("font_size", 12)
 		hdr.modulate = meta["color"]
 		hdr.position = Vector2(x, 58)
@@ -285,13 +285,13 @@ func _build_node_panel(nd: Dictionary) -> void:
 	var status_icon := Label.new()
 	status_icon.add_theme_font_size_override("font_size", 11)
 	if is_unlocked:
-		status_icon.text = "✅"
+		status_icon.text = tr("✅")
 	elif is_active:
-		status_icon.text = "⏳"
+		status_icon.text = tr("⏳")
 	elif can_research:
-		status_icon.text = "🔬"
+		status_icon.text = tr("🔬")
 	else:
-		status_icon.text = "🔒"
+		status_icon.text = tr("🔒")
 	title_row.add_child(status_icon)
 
 	var name_lbl := Label.new()
@@ -304,7 +304,7 @@ func _build_node_panel(nd: Dictionary) -> void:
 
 	# Tier badge
 	var tier_lbl := Label.new()
-	tier_lbl.text = tr("ui.tech.tier_label") % tier
+	tier_lbl.text = tr("UI_TECH_TIER_LABEL") % tier
 	tier_lbl.add_theme_font_size_override("font_size", 9)
 	tier_lbl.modulate = branch_color
 	vbox.add_child(tier_lbl)
@@ -312,7 +312,7 @@ func _build_node_panel(nd: Dictionary) -> void:
 	# Cost / progress row
 	if is_unlocked:
 		var done_lbl := Label.new()
-		done_lbl.text = tr("ui.tech.completed")
+		done_lbl.text = tr("UI_TECH_COMPLETED")
 		done_lbl.add_theme_font_size_override("font_size", 9)
 		done_lbl.modulate = Color("#A3BE8C")  # Success
 		vbox.add_child(done_lbl)
@@ -324,7 +324,7 @@ func _build_node_panel(nd: Dictionary) -> void:
 		prog.show_percentage = false
 		vbox.add_child(prog)
 		var prog_lbl := Label.new()
-		prog_lbl.text = tr("ui.tech.progress_days") % [progress_days, research_days]
+		prog_lbl.text = tr("UI_TECH_PROGRESS_DAYS") % [progress_days, research_days]
 		prog_lbl.add_theme_font_size_override("font_size", 9)
 		prog_lbl.modulate = Color(1.0, 0.80, 0.30)
 		vbox.add_child(prog_lbl)
@@ -420,7 +420,7 @@ func _on_node_hover(node_id: String) -> void:
 			fx_parts.append("%s: +%.0f%%" % [k.replace("_", " ").capitalize(), effects[k] * 100])
 		lines.append("Effekter: " + ", ".join(fx_parts))
 
-	_tooltip_label.text = "\n".join(lines)
+	_tooltip_label.text = tr("\n")
 	_tooltip_label.custom_minimum_size = Vector2(260, 0)
 	_tooltip_popup.popup(Rect2(get_global_mouse_position() + Vector2(12, 8), Vector2(280, 1)))
 
@@ -494,3 +494,6 @@ class _LineCanvas extends Control:
 				draw_line(arrow_tip, target_pt, line_color, 1.5)
 				draw_line(arrow_tip + perp, target_pt, line_color, 1.0)
 				draw_line(arrow_tip - perp, target_pt, line_color, 1.0)
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

@@ -103,3 +103,4 @@ func clone(new_id: int = 0) -> Fish:
     f.mortality_rate_daily = mortality_rate_daily
     f.alive = alive
     return f
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

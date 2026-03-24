@@ -163,7 +163,7 @@ func show_weekly_summary(week: int, data: Dictionary):
 	var main_vbox = _panel_container.get_child(0)
 	var header_vbox = main_vbox.get_child(0).get_child(0) # CenterContainer -> VBoxContainer
 	var title_label = header_vbox.get_child(0)
-	title_label.text = "UKENS OPPSUMMERING"
+	title_label.text = tr("UKENS OPPSUMMERING")
 	title_label.set_modulate(LakskongenTheme.ACCENT2) # Use ACCENT2 for weekly
 	
 	var date_label = header_vbox.get_child(1)
@@ -202,3 +202,15 @@ func hide_summary():
 		_overlay = null
 		_panel_container = null
 
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_close_requested()
+
+func _on_close_requested() -> void:
+	hide()
+
+
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

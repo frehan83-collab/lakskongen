@@ -17,7 +17,7 @@ func _ready():
 
     # Factory Selection
     var factory_label = Label.new()
-    factory_label.text = "Velg Fabrikk:"
+    factory_label.text = tr("Velg Fabrikk:")
     main_vbox.add_child(factory_label)
 
     factory_option_button = OptionButton.new()
@@ -28,7 +28,7 @@ func _ready():
 
     # Fish Quality Selection
     var quality_label = Label.new()
-    quality_label.text = "Velg Fiske-kvalitet:"
+    quality_label.text = tr("Velg Fiske-kvalitet:")
     main_vbox.add_child(quality_label)
 
     quality_option_button = OptionButton.new()
@@ -40,7 +40,7 @@ func _ready():
 
     # Quantity Input
     var quantity_label = Label.new()
-    quantity_label.text = "Mengde (Kg):"
+    quantity_label.text = tr("Mengde (Kg):")
     main_vbox.add_child(quantity_label)
 
     quantity_spinbox = SpinBox.new()
@@ -57,7 +57,7 @@ func _ready():
 
     # Process Legally Button
     process_legally_button = Button.new()
-    process_legally_button.text = "Process Legally"
+    process_legally_button.text = tr("Process Legally")
     process_legally_button.add_theme_color_override("font_color", Color("00ff00")) # Green color
     process_legally_button.connect("pressed", Callable(self, "_on_process_legally_pressed"))
     button_hbox.add_child(process_legally_button)
@@ -119,3 +119,15 @@ func _on_smuggle_pressed():
     else:
         status_label.append_text(tr("[color=green]Smuggling successful! %s Kg fish smuggled to Poland without incident.[/color]
 ") % [quantity])
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_close_requested()
+
+func _on_close_requested() -> void:
+	hide()
+
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

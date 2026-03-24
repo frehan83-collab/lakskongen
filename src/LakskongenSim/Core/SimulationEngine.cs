@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using LakskongenSim.Biology;
+using LakskongenSim.Data;
 using LakskongenSim.Environment;
 using LakskongenSim.Events;
 using LakskongenSim.Expansion;
@@ -642,7 +644,8 @@ namespace LakskongenSim.Core
                 var json = File.ReadAllText(filePath);
                 var nodes = JsonSerializer.Deserialize<List<ResearchNode>>(json, new JsonSerializerOptions
                 {
-                    PropertyNameCaseInsensitive = true
+                    PropertyNameCaseInsensitive = true,
+                    Converters = { new JsonStringEnumConverter() }
                 });
 
                 if (nodes != null && nodes.Count > 0)
@@ -693,7 +696,8 @@ namespace LakskongenSim.Core
                 var json = File.ReadAllText(filePath);
                 var scenarios = JsonSerializer.Deserialize<List<ScenarioDefinition>>(json, new JsonSerializerOptions
                 {
-                    PropertyNameCaseInsensitive = true
+                    PropertyNameCaseInsensitive = true,
+                    Converters = { new JsonStringEnumConverter() }
                 });
 
                 if (scenarios != null && scenarios.Count > 0)
@@ -742,7 +746,7 @@ namespace LakskongenSim.Core
             try
             {
                 var json = File.ReadAllText(filePath);
-                var entries = JsonSerializer.Deserialize<List<Dictionary<string, string>>>(json, new JsonSerializerOptions
+                var entries = JsonSerializer.Deserialize<List<EncyclopediaEntry>>(json, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });

@@ -83,7 +83,7 @@ func _create_ui():
 	# HEADER
 	# ══════════════════════════════════════════════════════════════════════════
 	var header = Label.new()
-	header.text = "🤝 Interessenter & Politikk"
+	header.text = tr("🤝 Interessenter & Politikk")
 	header.add_theme_font_size_override("font_size", 22)
 	header.add_theme_color_override("font_color", Color(COLOR_HIGHLIGHT))
 	header.tooltip_text = "Oversikt over dine relasjoner med interessenter, aktive krav, og politisk innflytelse."
@@ -96,7 +96,7 @@ func _create_ui():
 	# 1. FACTION OVERVIEW
 	# ══════════════════════════════════════════════════════════════════════════
 	var faction_header = Label.new()
-	faction_header.text = "👥 Interessenter Oversikt"
+	faction_header.text = tr("👥 Interessenter Oversikt")
 	faction_header.add_theme_font_size_override("font_size", 18)
 	faction_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(faction_header)
@@ -112,7 +112,7 @@ func _create_ui():
 	# 2. ACTIVE DEMANDS
 	# ══════════════════════════════════════════════════════════════════════════
 	var demands_header = Label.new()
-	demands_header.text = "📋 Aktive Krav"
+	demands_header.text = tr("📋 Aktive Krav")
 	demands_header.add_theme_font_size_override("font_size", 18)
 	demands_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(demands_header)
@@ -128,7 +128,7 @@ func _create_ui():
 	# 3. REPUTATION IMPACT
 	# ══════════════════════════════════════════════════════════════════════════
 	var reputation_header = Label.new()
-	reputation_header.text = "📊 Omdømmeeffekter"
+	reputation_header.text = tr("📊 Omdømmeeffekter")
 	reputation_header.add_theme_font_size_override("font_size", 18)
 	reputation_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(reputation_header)
@@ -144,7 +144,7 @@ func _create_ui():
 	# 4. POLITICAL ACTIONS
 	# ══════════════════════════════════════════════════════════════════════════
 	var actions_header = Label.new()
-	actions_header.text = "🎯 Politiske Handlinger"
+	actions_header.text = tr("🎯 Politiske Handlinger")
 	actions_header.add_theme_font_size_override("font_size", 18)
 	actions_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(actions_header)
@@ -268,7 +268,7 @@ func _update_active_demands(demands: Array[Dictionary]):
 	
 	if demands.is_empty():
 		var no_demands = Label.new()
-		no_demands.text = "✅ Ingen aktive krav for øyeblikket"
+		no_demands.text = tr("✅ Ingen aktive krav for øyeblikket")
 		no_demands.add_theme_font_size_override("font_size", 13)
 		no_demands.add_theme_color_override("font_color", COLOR_GREEN)
 		active_demands_container.add_child(no_demands)
@@ -341,13 +341,13 @@ func _update_active_demands(demands: Array[Dictionary]):
 		action_row.add_theme_constant_override("separation", 8)
 		
 		var negotiate_btn = Button.new()
-		negotiate_btn.text = "🤝 Forhandle"
+		negotiate_btn.text = tr("🤝 Forhandle")
 		negotiate_btn.tooltip_text = "Prøv å forhandle ned kravet"
 		negotiate_btn.pressed.connect(_on_negotiate_pressed.bind(demand_id))
 		action_row.add_child(negotiate_btn)
 		
 		var ignore_btn = Button.new()
-		ignore_btn.text = "🚫 Ignorer"
+		ignore_btn.text = tr("🚫 Ignorer")
 		ignore_btn.tooltip_text = "Ignorer kravet og aksepter konsekvensene"
 		ignore_btn.pressed.connect(_on_ignore_demand_pressed.bind(demand_id))
 		action_row.add_child(ignore_btn)
@@ -414,7 +414,7 @@ func _update_political_actions(actions_available: Dictionary):
 	_clear_container(political_actions_container)
 	
 	var info_label = Label.new()
-	info_label.text = "Bruk politiske handlinger for å påvirke interessenter og forbedre relasjoner."
+	info_label.text = tr("Bruk politiske handlinger for å påvirke interessenter og forbedre relasjoner.")
 	info_label.add_theme_font_size_override("font_size", 12)
 	info_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -425,13 +425,13 @@ func _update_political_actions(actions_available: Dictionary):
 	lobby_section.add_theme_constant_override("separation", 4)
 	
 	var lobby_header = Label.new()
-	lobby_header.text = "🎤 Lobbying"
+	lobby_header.text = tr("🎤 Lobbying")
 	lobby_header.add_theme_font_size_override("font_size", 14)
 	lobby_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	lobby_section.add_child(lobby_header)
 	
 	var lobby_desc = Label.new()
-	lobby_desc.text = "Påvirk politikere og reguleringsmyndigheter til fordel for din bedrift."
+	lobby_desc.text = tr("Påvirk politikere og reguleringsmyndigheter til fordel for din bedrift.")
 	lobby_desc.add_theme_font_size_override("font_size", 12)
 	lobby_desc.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	lobby_section.add_child(lobby_desc)
@@ -458,13 +458,13 @@ func _update_political_actions(actions_available: Dictionary):
 	donate_section.add_theme_constant_override("separation", 4)
 	
 	var donate_header = Label.new()
-	donate_header.text = "💰 Donasjoner & Sponsing"
+	donate_header.text = tr("💰 Donasjoner & Sponsing")
 	donate_header.add_theme_font_size_override("font_size", 14)
 	donate_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	donate_section.add_child(donate_header)
 	
 	var donate_desc = Label.new()
-	donate_desc.text = "Doner til lokalsamfunn eller miljøorganisasjoner for å bygge goodwill."
+	donate_desc.text = tr("Doner til lokalsamfunn eller miljøorganisasjoner for å bygge goodwill.")
 	donate_desc.add_theme_font_size_override("font_size", 12)
 	donate_desc.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	donate_section.add_child(donate_desc)
@@ -491,19 +491,19 @@ func _update_political_actions(actions_available: Dictionary):
 	media_section.add_theme_constant_override("separation", 4)
 	
 	var media_header = Label.new()
-	media_header.text = "📣 Media Kampanjer"
+	media_header.text = tr("📣 Media Kampanjer")
 	media_header.add_theme_font_size_override("font_size", 14)
 	media_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	media_section.add_child(media_header)
 	
 	var media_desc = Label.new()
-	media_desc.text = "Kjør PR-kampanjer for å forbedre din offentlige image."
+	media_desc.text = tr("Kjør PR-kampanjer for å forbedre din offentlige image.")
 	media_desc.add_theme_font_size_override("font_size", 12)
 	media_desc.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	media_section.add_child(media_desc)
 	
 	var media_btn = Button.new()
-	media_btn.text = "📰 Start Media Kampanje"
+	media_btn.text = tr("📰 Start Media Kampanje")
 	media_btn.tooltip_text = "Forbedre din relasjon med media og offentligheten"
 	media_btn.pressed.connect(_on_lobby_pressed.bind("media"))
 	media_section.add_child(media_btn)
@@ -657,3 +657,6 @@ func _get_political_actions_safe(sim_bridge: Node) -> Dictionary:
 func _clear_container(container: VBoxContainer):
 	for child in container.get_children():
 		child.queue_free()
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

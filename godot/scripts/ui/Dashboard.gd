@@ -151,7 +151,7 @@ func _build_title_bar() -> HBoxContainer:
 	var hbox := HBoxContainer.new()
 
 	var title := Label.new()
-	title.text = "Fjordlaks AS — Oversikt"
+	title.text = tr("UI_DASHBOARD_TITLE") if tr("UI_DASHBOARD_TITLE") != "ui.dashboard.title" else "Fjordlaks AS — Oversikt"
 	title.add_theme_font_size_override("font_size", 24)
 	title.add_theme_color_override("font_color", Color("#2E3440"))
 	if _theme and _theme.font_heading_bold:
@@ -270,7 +270,7 @@ func _build_pen_mini_card(pen_num: int) -> Dictionary:
 	var header := HBoxContainer.new()
 	vbox.add_child(header)
 	var name_lbl := Label.new()
-	name_lbl.text = "Merd %d" % pen_num
+	name_lbl.text = tr("UI_DASHBOARD_PEN_NAME") % pen_num if tr("UI_DASHBOARD_PEN_NAME") != "ui.dashboard.pen_name" else "Merd %d" % pen_num
 	name_lbl.add_theme_font_size_override("font_size", 14)
 	name_lbl.add_theme_color_override("font_color", Color("#2E3440"))
 	if _theme and _theme.font_heading_semibold:
@@ -382,7 +382,7 @@ func _build_weather_card() -> PanelContainer:
 	body.add_child(hbox)
 
 	_weather_icon = Label.new()
-	_weather_icon.text = "⛅"
+	_weather_icon.text = tr("⛅")
 	_weather_icon.add_theme_font_size_override("font_size", 36)
 	hbox.add_child(_weather_icon)
 
@@ -390,7 +390,7 @@ func _build_weather_card() -> PanelContainer:
 	hbox.add_child(info_vbox)
 
 	_weather_temp = Label.new()
-	_weather_temp.text = "--°C"
+	_weather_temp.text = tr("--°C")
 	_weather_temp.add_theme_font_size_override("font_size", 28)
 	_weather_temp.add_theme_color_override("font_color", Color("#2E3440"))
 	if _theme and _theme.font_heading_bold:
@@ -653,30 +653,32 @@ func _refresh_kpis() -> void:
 
 	# Biomass
 	var biomass_tonnes := _sim.fish_biomass_kg / 1000.0
-	_kpi_biomass_value.text = "%s tonn" % _format_number(biomass_tonnes)
+	var biomass_fmt = tr("UI_DASHBOARD_BIOMASS_FORMAT") if tr("UI_DASHBOARD_BIOMASS_FORMAT") != "ui.dashboard.biomass_format" else "%s tonn"
+	_kpi_biomass_value.text = biomass_fmt % _format_number(biomass_tonnes)
 
 	# Revenue
 	var revenue := _sim.get_revenue()
 	var revenue_m := revenue / 1_000_000.0
-	_kpi_revenue_value.text = "%.1f MNOK" % revenue_m
+	var revenue_fmt = tr("UI_DASHBOARD_REVENUE_FORMAT") if tr("UI_DASHBOARD_REVENUE_FORMAT") != "ui.dashboard.revenue_format" else "%.1f MNOK"
+	_kpi_revenue_value.text = revenue_fmt % revenue_m
 
 	# Health (use sustainability score as proxy)
 	var health := _sim.sustainability_score
-	_kpi_health_value.text = "%d%%" % health
+	_kpi_health_value.text = tr("%d%%") % health
 	if health >= 90:
-		_kpi_health_change.text = "▲ God status"
+		_kpi_health_change.text = tr("UI_DASHBOARD_HEALTH_GOOD") if tr("UI_DASHBOARD_HEALTH_GOOD") != "ui.dashboard.health_good" else "▲ God status"
 		_kpi_health_change.add_theme_color_override("font_color", Color("#8FAD78"))
 	elif health >= 70:
-		_kpi_health_change.text = "─ Stabil"
+		_kpi_health_change.text = tr("UI_DASHBOARD_HEALTH_STABLE") if tr("UI_DASHBOARD_HEALTH_STABLE") != "ui.dashboard.health_stable" else "─ Stabil"
 		_kpi_health_change.add_theme_color_override("font_color", Color("#D4B06A"))
 	else:
-		_kpi_health_change.text = "▼ Lav"
+		_kpi_health_change.text = tr("UI_DASHBOARD_HEALTH_LOW") if tr("UI_DASHBOARD_HEALTH_LOW") != "ui.dashboard.health_low" else "▼ Lav"
 		_kpi_health_change.add_theme_color_override("font_color", Color("#A54E56"))
 
 	# FCR
 	# Mock - real FCR would come from feed/growth tracking
-	_kpi_fcr_value.text = "1.12"
-	_kpi_fcr_change.text = "▲ Bedre enn mål (1.15)"
+	_kpi_fcr_value.text = tr("1.12")
+	_kpi_fcr_change.text = tr("UI_DASHBOARD_FCR_BETTER") if tr("UI_DASHBOARD_FCR_BETTER") != "ui.dashboard.fcr_better" else "▲ Bedre enn mål (1.15)"
 
 func _refresh_pens() -> void:
 	if not _sim:
@@ -693,11 +695,11 @@ func _refresh_pens() -> void:
 			# Distribute fish somewhat randomly per pen
 			var variation := 0.85 + randf() * 0.3
 			pen.count_value.text = _format_number(int(fish_per_pen * variation))
-			pen.weight_value.text = "%.1f kg" % (avg_weight * (0.9 + randf() * 0.2))
+			pen.weight_value.text = tr("%.1f kg") % (avg_weight * (0.9 + randf() * 0.2))
 			pen.temp_value.text = "%.1f°C" % (temp + randf() * 0.5 - 0.25)
 			pen.status_dot.color = Color("#A3BE8C")  # Healthy
 		else:
-			pen.count_value.text = "Tom"
+count_value.text = tr("Tom")
 			pen.weight_value.text = "--"
 			pen.temp_value.text = "--"
 			pen.status_dot.color = Color("#D8DEE9")
@@ -722,17 +724,17 @@ func _refresh_weather() -> void:
 	var weather_state = _sim.get_current_weather_state()
 	match weather_state:
 		"Calm":
-			_weather_icon.text = "☀️"
-			_weather_desc.text = "Klart"
+			_weather_icon.text = tr("☀️")
+			_weather_desc.text = tr("Klart")
 		"Windy":
-			_weather_icon.text = "💨"
-			_weather_desc.text = "Vind"
+			_weather_icon.text = tr("💨")
+			_weather_desc.text = tr("Vind")
 		"Storm":
-			_weather_icon.text = "⛈️"
-			_weather_desc.text = "Storm"
+			_weather_icon.text = tr("⛈️")
+			_weather_desc.text = tr("Storm")
 		_:
-			_weather_icon.text = "⛅"
-			_weather_desc.text = "Delvis skyet"
+			_weather_icon.text = tr("⛅")
+			_weather_desc.text = tr("Delvis skyet")
 
 func _refresh_alerts() -> void:
 	if not _alerts_container:
@@ -797,3 +799,6 @@ func _format_number(n: int) -> String:
 	if n < 0:
 		result = "-" + result
 	return result
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

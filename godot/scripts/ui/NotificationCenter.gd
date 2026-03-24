@@ -202,7 +202,7 @@ func _build_entry_node(entry: Dictionary, index: int) -> Control:
 	header.add_child(title_lbl)
 
 	var day_lbl := Label.new()
-	day_lbl.text = tr("ui.notification.day_format") % entry.get("day", 0)
+	day_lbl.text = tr("UI_NOTIFICATION_DAY_FORMAT") % entry.get("day", 0)
 	day_lbl.add_theme_color_override("font_color", Color("#7B8794"))
 	day_lbl.add_theme_font_size_override("font_size", 10)
 	header.add_child(day_lbl)
@@ -261,3 +261,6 @@ func _category_to_severity(category: String) -> String:
 		"disease", "outbreak", "crisis": return "critical"
 		"warning", "compliance":          return "warning"
 		_:                                return "info"
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

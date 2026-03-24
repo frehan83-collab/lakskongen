@@ -27,4 +27,4 @@ func _on_recovery_progress(crisis_id: String, progress: float):
 func _on_crisis_resolved(_crisis_id: String, _success: bool):
     hide()
     progress_bar.value = 0
-    milestones_label.text = ""
+    milestones_label.text = ""tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

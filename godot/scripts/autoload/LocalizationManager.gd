@@ -99,3 +99,4 @@ func _save_language(locale: String) -> void:
 		return
 	file.store_line(locale)
 	file.close()
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

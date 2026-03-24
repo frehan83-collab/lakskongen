@@ -8,9 +8,13 @@ namespace LakskongenSim.Environment
     public class Zone
     {
         public string Id { get; init; }
+        public string Name { get; set; } = "";
         public double CarryingCapacityTonnes { get; set; }
         public WaterChemistry WaterChemistry { get; set; }
         public double CurrentFishBiomassKg { get; set; }
+        
+        /// <summary>Current stocking density in kg/m³ (calculated from biomass and pen volume).</summary>
+        public double CurrentStockingDensity { get; set; }
         
         // Zone-specific parameters
         public double WaterFlowRate { get; set; } // m³/day (current speed affects dilution)

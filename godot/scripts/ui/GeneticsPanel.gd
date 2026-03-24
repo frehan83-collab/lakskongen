@@ -70,7 +70,7 @@ func _update_traits() -> void:
 		# Heritability indicator
 		var h2_label = Label.new()
 		var h2 = trait_data.get("heritability", 0.0)
-		h2_label.text = tr("ui.genetics.h2_format") % h2
+		h2_label.text = tr("UI_GENETICS_H2_FORMAT") % h2
 		h2_label.custom_minimum_size = Vector2(80, 0)
 		h2_label.add_theme_color_override("font_color", _heritability_color(h2))
 		h2_label.tooltip_text = "Arvelighet (h²): Hvor stor del av variasjonen i egenskapen som skyldes genetikk. Høyere h² betyr mer effektiv avl."
@@ -79,7 +79,7 @@ func _update_traits() -> void:
 		# Breeding value with color coding
 		var bv_label = Label.new()
 		var bv = trait_data.get("breeding_value", 0.0)
-		bv_label.text = tr("ui.genetics.bv_format") % bv if bv != 0.0 else "0.00"
+		bv_label.text = tr("UI_GENETICS_BV_FORMAT") % bv if bv != 0.0 else "0.00"
 		bv_label.custom_minimum_size = Vector2(80, 0)
 		bv_label.add_theme_color_override("font_color", _breeding_value_color(bv))
 		bv_label.tooltip_text = "Avlverdi: Estimert genetisk verdi for egenskapen. Positive verdier er bedre, negative dårligere."
@@ -87,7 +87,7 @@ func _update_traits() -> void:
 		
 		# Current value
 		var cv_label = Label.new()
-		cv_label.text = tr("ui.genetics.cv_format") % trait_data.get("current_value", 0.0)
+		cv_label.text = tr("UI_GENETICS_CV_FORMAT") % trait_data.get("current_value", 0.0)
 		cv_label.custom_minimum_size = Vector2(80, 0)
 		cv_label.tooltip_text = "Nåværende gjennomsnittsverdi for denne egenskapen i din populasjon."
 		row.add_child(cv_label)
@@ -101,7 +101,7 @@ func _update_inbreeding() -> void:
 	var coef = _sim_bridge.get_inbreeding_coefficient()
 	
 	if inbreeding_label:
-		inbreeding_label.text = tr("ui.genetics.inbreeding") % (coef * 100.0)
+		inbreeding_label.text = tr("UI_GENETICS_INBREEDING") % (coef * 100.0)
 	inbreeding_label.tooltip_text = "Innavelskoeffisient: Hvor høy grad av innavl det er i fiskepopulasjonen. Høye verdier kan føre til redusert helse og vekst."
 	
 	if inbreeding_warning:
@@ -135,3 +135,4 @@ func _heritability_color(h2: float) -> Color:
 func _on_breed_pressed() -> void:
 	# Placeholder for breeding action
 	print("GeneticsPanel: Breed button pressed (not yet implemented)")
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

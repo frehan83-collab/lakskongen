@@ -23,4 +23,4 @@ func simulate_disease_outbreak() -> String:
         return "PD"
     if randf() < CMS_PROB:
         return "CMS"
-    return ""
+    return ""tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

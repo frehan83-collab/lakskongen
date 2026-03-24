@@ -104,3 +104,4 @@ func get_traffic_light_color(color_name: String) -> Color:
             return LakskongenTheme.DANGER
         _:
             return Color.WHITE
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

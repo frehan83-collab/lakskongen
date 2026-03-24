@@ -120,3 +120,4 @@ func get_current_day() -> int:
 
 func is_game_started() -> bool:
 	return _game_started
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

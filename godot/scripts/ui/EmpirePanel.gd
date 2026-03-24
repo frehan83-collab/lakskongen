@@ -97,7 +97,7 @@ func _create_ui():
 	# HEADER
 	# ══════════════════════════════════════════════════════════════════════════
 	var header = Label.new()
-	header.text = "👑 Empire Oversikt"
+	header.text = tr("👑 Empire Oversikt")
 	header.add_theme_font_size_override("font_size", 22)
 	header.add_theme_color_override("font_color", Color(COLOR_HIGHLIGHT))
 	header.tooltip_text = "Oversikt over ditt lakseimperium — markedsposisjon, konkurrenter, merkevare, vertikal integrasjon, og strategiske muligheter."
@@ -110,7 +110,7 @@ func _create_ui():
 	# 1. EMPIRE PHASE BANNER
 	# ══════════════════════════════════════════════════════════════════════════
 	var phase_header = Label.new()
-	phase_header.text = "📊 Empire Fase"
+	phase_header.text = tr("📊 Empire Fase")
 	phase_header.add_theme_font_size_override("font_size", 18)
 	phase_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(phase_header)
@@ -144,7 +144,7 @@ func _create_ui():
 	# 2. COMPETITOR LEADERBOARD
 	# ══════════════════════════════════════════════════════════════════════════
 	var competitor_header = Label.new()
-	competitor_header.text = "🏆 Konkurrent Leaderboard"
+	competitor_header.text = tr("🏆 Konkurrent Leaderboard")
 	competitor_header.add_theme_font_size_override("font_size", 18)
 	competitor_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(competitor_header)
@@ -160,7 +160,7 @@ func _create_ui():
 	# 3. BRAND & REPUTATION
 	# ══════════════════════════════════════════════════════════════════════════
 	var brand_header = Label.new()
-	brand_header.text = "⭐ Merkevare & Omdømme"
+	brand_header.text = tr("⭐ Merkevare & Omdømme")
 	brand_header.add_theme_font_size_override("font_size", 18)
 	brand_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(brand_header)
@@ -176,7 +176,7 @@ func _create_ui():
 	# 4. STOCK MARKET (if public)
 	# ══════════════════════════════════════════════════════════════════════════
 	var stock_header = Label.new()
-	stock_header.text = "📈 Aksjemarked"
+	stock_header.text = tr("📈 Aksjemarked")
 	stock_header.add_theme_font_size_override("font_size", 18)
 	stock_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(stock_header)
@@ -192,7 +192,7 @@ func _create_ui():
 	# 5. VERTICAL INTEGRATION TRACKER
 	# ══════════════════════════════════════════════════════════════════════════
 	var integration_header = Label.new()
-	integration_header.text = "🔗 Vertikal Integrasjon"
+	integration_header.text = tr("🔗 Vertikal Integrasjon")
 	integration_header.add_theme_font_size_override("font_size", 18)
 	integration_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(integration_header)
@@ -208,7 +208,7 @@ func _create_ui():
 	# 6. CRISIS & OPPORTUNITIES
 	# ══════════════════════════════════════════════════════════════════════════
 	var crisis_header = Label.new()
-	crisis_header.text = "⚠️ Kriser & Muligheter"
+	crisis_header.text = tr("⚠️ Kriser & Muligheter")
 	crisis_header.add_theme_font_size_override("font_size", 18)
 	crisis_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(crisis_header)
@@ -299,7 +299,7 @@ func _update_competitor_leaderboard(competitors: Array[Dictionary], player_reven
 	
 	if competitors.is_empty():
 		var label = Label.new()
-		label.text = "Ingen konkurrentdata tilgjengelig"
+		label.text = tr("Ingen konkurrentdata tilgjengelig")
 		label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 		competitor_leaderboard_container.add_child(label)
 		return
@@ -350,7 +350,7 @@ func _update_competitor_leaderboard(competitors: Array[Dictionary], player_reven
 		# Leader badge
 		if is_leader:
 			var badge = Label.new()
-			badge.text = "👑"
+			badge.text = tr("👑")
 			badge.tooltip_text = "Markedsleder"
 			row.add_child(badge)
 		
@@ -408,7 +408,7 @@ func _update_brand_reputation(brand_data: Dictionary):
 	score_row.add_theme_constant_override("separation", 8)
 	
 	var score_label = Label.new()
-	score_label.text = "Merkevare Score:"
+	score_label.text = tr("Merkevare Score:")
 	score_label.custom_minimum_size = Vector2(150, 0)
 	score_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	score_row.add_child(score_label)
@@ -430,7 +430,7 @@ func _update_brand_reputation(brand_data: Dictionary):
 	# Certifications
 	if certifications.size() > 0:
 		var cert_label = Label.new()
-		cert_label.text = "Aktive sertifiseringer:"
+		cert_label.text = tr("Aktive sertifiseringer:")
 		cert_label.add_theme_font_size_override("font_size", 14)
 		cert_label.add_theme_color_override("font_color", Color(COLOR_TEXT))
 		brand_reputation_container.add_child(cert_label)
@@ -443,7 +443,7 @@ func _update_brand_reputation(brand_data: Dictionary):
 			brand_reputation_container.add_child(cert_row)
 	else:
 		var no_cert = Label.new()
-		no_cert.text = "Ingen sertifiseringer ennå"
+		no_cert.text = tr("Ingen sertifiseringer ennå")
 		no_cert.add_theme_font_size_override("font_size", 12)
 		no_cert.add_theme_color_override("font_color", Color(COLOR_MUTED))
 		brand_reputation_container.add_child(no_cert)
@@ -453,7 +453,7 @@ func _update_brand_reputation(brand_data: Dictionary):
 	pricing_row.add_theme_constant_override("separation", 8)
 	
 	var pricing_label = Label.new()
-	pricing_label.text = "Prismakt:"
+	pricing_label.text = tr("Prismakt:")
 	pricing_label.custom_minimum_size = Vector2(150, 0)
 	pricing_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	pricing_row.add_child(pricing_label)
@@ -514,7 +514,7 @@ func _update_stock_market(stock_data: Dictionary):
 	
 	if not is_public:
 		var status_label = Label.new()
-		status_label.text = "🏢 Privat selskap"
+		status_label.text = tr("🏢 Privat selskap")
 		status_label.add_theme_font_size_override("font_size", 14)
 		status_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 		stock_market_container.add_child(status_label)
@@ -523,18 +523,18 @@ func _update_stock_market(stock_data: Dictionary):
 		
 		if eligible:
 			var eligible_label = Label.new()
-			eligible_label.text = "✅ Klar for børsnotering!"
+			eligible_label.text = tr("✅ Klar for børsnotering!")
 			eligible_label.add_theme_color_override("font_color", COLOR_GREEN)
 			stock_market_container.add_child(eligible_label)
 			
 			var ipo_button = Button.new()
-			ipo_button.text = "🚀 Start børsintroduksjon (IPO)"
+			ipo_button.text = tr("🚀 Start børsintroduksjon (IPO)")
 			ipo_button.tooltip_text = "Gå på børs og selg aksjer til offentligheten for å skaffe kapital."
 			ipo_button.pressed.connect(_on_ipo_button_pressed)
 			stock_market_container.add_child(ipo_button)
 		else:
 			var not_eligible_label = Label.new()
-			not_eligible_label.text = "❌ Ikke kvalifisert for IPO ennå"
+			not_eligible_label.text = tr("❌ Ikke kvalifisert for IPO ennå")
 			not_eligible_label.add_theme_color_override("font_color", COLOR_RED)
 			not_eligible_label.tooltip_text = "Trenger høyere inntekt, fortjeneste, og flere anlegg for å gå på børs."
 			stock_market_container.add_child(not_eligible_label)
@@ -548,7 +548,7 @@ func _update_stock_market(stock_data: Dictionary):
 	var ownership_pct = stock_data.get("ownership_pct", 100.0)
 	
 	var public_label = Label.new()
-	public_label.text = "📈 Børsnotert selskap (OSE)"
+	public_label.text = tr("📈 Børsnotert selskap (OSE)")
 	public_label.add_theme_font_size_override("font_size", 14)
 	public_label.add_theme_color_override("font_color", COLOR_GREEN)
 	stock_market_container.add_child(public_label)
@@ -558,7 +558,7 @@ func _update_stock_market(stock_data: Dictionary):
 	price_row.add_theme_constant_override("separation", 8)
 	
 	var price_label = Label.new()
-	price_label.text = "Aksjekurs:"
+	price_label.text = tr("Aksjekurs:")
 	price_label.custom_minimum_size = Vector2(120, 0)
 	price_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	price_row.add_child(price_label)
@@ -578,7 +578,7 @@ func _update_stock_market(stock_data: Dictionary):
 	cap_row.add_theme_constant_override("separation", 8)
 	
 	var cap_label = Label.new()
-	cap_label.text = "Markedsverdi:"
+	cap_label.text = tr("Markedsverdi:")
 	cap_label.custom_minimum_size = Vector2(120, 0)
 	cap_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	cap_row.add_child(cap_label)
@@ -596,7 +596,7 @@ func _update_stock_market(stock_data: Dictionary):
 	ownership_row.add_theme_constant_override("separation", 8)
 	
 	var ownership_label = Label.new()
-	ownership_label.text = "Din eierandel:"
+	ownership_label.text = tr("Din eierandel:")
 	ownership_label.custom_minimum_size = Vector2(120, 0)
 	ownership_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	ownership_row.add_child(ownership_label)
@@ -631,7 +631,7 @@ func _update_vertical_integration(integration_data: Dictionary):
 	score_row.add_theme_constant_override("separation", 8)
 	
 	var score_label = Label.new()
-	score_label.text = "Integrasjonsscore:"
+	score_label.text = tr("Integrasjonsscore:")
 	score_label.custom_minimum_size = Vector2(150, 0)
 	score_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 	score_row.add_child(score_label)
@@ -668,7 +668,7 @@ func _update_vertical_integration(integration_data: Dictionary):
 		tier_box.add_child(icon_label)
 		
 		var status_label = Label.new()
-		status_label.text = "✓" if is_owned else "✗"
+		status_label.text = tr("✓")
 		status_label.add_theme_font_size_override("font_size", 14)
 		status_label.add_theme_color_override("font_color", COLOR_GREEN if is_owned else COLOR_RED)
 		status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -679,14 +679,14 @@ func _update_vertical_integration(integration_data: Dictionary):
 		# Add arrow between tiers (except last)
 		if tier != INTEGRATION_TIERS[-1]:
 			var arrow = Label.new()
-			arrow.text = "→"
+			arrow.text = tr("→")
 			arrow.add_theme_font_size_override("font_size", 16)
 			arrow.add_theme_color_override("font_color", Color(COLOR_MUTED))
 			chain_container.add_child(arrow)
 	
 	# Tier details list
 	var details_label = Label.new()
-	details_label.text = "Eide enheter:"
+	details_label.text = tr("Eide enheter:")
 	details_label.add_theme_font_size_override("font_size", 14)
 	details_label.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vertical_integration_container.add_child(details_label)
@@ -702,7 +702,7 @@ func _update_vertical_integration(integration_data: Dictionary):
 				vertical_integration_container.add_child(tier_label)
 	else:
 		var no_integration = Label.new()
-		no_integration.text = "  Ingen vertikal integrasjon ennå"
+		no_integration.text = tr("  Ingen vertikal integrasjon ennå")
 		no_integration.add_theme_font_size_override("font_size", 12)
 		no_integration.add_theme_color_override("font_color", Color(COLOR_MUTED))
 		vertical_integration_container.add_child(no_integration)
@@ -717,7 +717,7 @@ func _update_crisis_opportunities(crises: Array[Dictionary], opportunities: Arra
 	# Active crises
 	if crises.size() > 0:
 		var crisis_header = Label.new()
-		crisis_header.text = "🚨 Aktive kriser:"
+		crisis_header.text = tr("🚨 Aktive kriser:")
 		crisis_header.add_theme_font_size_override("font_size", 14)
 		crisis_header.add_theme_color_override("font_color", COLOR_RED)
 		crisis_opportunities_container.add_child(crisis_header)
@@ -731,7 +731,7 @@ func _update_crisis_opportunities(crises: Array[Dictionary], opportunities: Arra
 			crisis_opportunities_container.add_child(crisis_row)
 	else:
 		var no_crisis = Label.new()
-		no_crisis.text = "✅ Ingen aktive kriser"
+		no_crisis.text = tr("✅ Ingen aktive kriser")
 		no_crisis.add_theme_font_size_override("font_size", 12)
 		no_crisis.add_theme_color_override("font_color", COLOR_GREEN)
 		crisis_opportunities_container.add_child(no_crisis)
@@ -744,7 +744,7 @@ func _update_crisis_opportunities(crises: Array[Dictionary], opportunities: Arra
 	# Acquisition opportunities
 	if opportunities.size() > 0:
 		var opp_header = Label.new()
-		opp_header.text = "💼 Oppkjøpsmuligheter:"
+		opp_header.text = tr("💼 Oppkjøpsmuligheter:")
 		opp_header.add_theme_font_size_override("font_size", 14)
 		opp_header.add_theme_color_override("font_color", COLOR_BLUE)
 		crisis_opportunities_container.add_child(opp_header)
@@ -768,7 +768,7 @@ func _update_crisis_opportunities(crises: Array[Dictionary], opportunities: Arra
 			opp_row.add_child(price_label)
 			
 			var buy_button = Button.new()
-			buy_button.text = "Kjøp"
+			buy_button.text = tr("Kjøp")
 			buy_button.tooltip_text = "Kjøp denne eiendelen og utvid imperiet ditt."
 			buy_button.custom_minimum_size = Vector2(60, 0)
 			buy_button.pressed.connect(_on_buy_opportunity.bind(opp.get("id", "")))
@@ -777,7 +777,7 @@ func _update_crisis_opportunities(crises: Array[Dictionary], opportunities: Arra
 			crisis_opportunities_container.add_child(opp_row)
 	else:
 		var no_opp = Label.new()
-		no_opp.text = "Ingen oppkjøpsmuligheter akkurat nå"
+		no_opp.text = tr("Ingen oppkjøpsmuligheter akkurat nå")
 		no_opp.add_theme_font_size_override("font_size", 12)
 		no_opp.add_theme_color_override("font_color", Color(COLOR_MUTED))
 		crisis_opportunities_container.add_child(no_opp)
@@ -893,3 +893,6 @@ func _format_currency(value: float) -> String:
 		return "%.0f k NOK" % (value / 1_000.0)
 	else:
 		return "%.0f NOK" % value
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

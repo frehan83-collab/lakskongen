@@ -90,7 +90,7 @@ func _build_ui() -> void:
 	var header := HBoxContainer.new()
 	root.add_child(header)
 	var title := Label.new()
-	title.text = "📈 Marked & Handel"
+	title.text = tr("📈 Marked & Handel")
 	title.add_theme_font_size_override("font_size", 24)
 	title.add_theme_color_override("font_color", C_TEXT)
 	if _theme and _theme.font_heading_bold:
@@ -180,7 +180,7 @@ func _build_price_chart(body: VBoxContainer) -> void:
 	body.add_child(labels)
 	for i in range(12):
 		var l := Label.new()
-		l.text = "U%d" % (i + 1)
+		l.text = tr("U%d") % (i + 1)
 		l.add_theme_font_size_override("font_size", 9)
 		l.add_theme_color_override("font_color", C_MUTED)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -231,9 +231,9 @@ func _refresh() -> void:
 	var spot := _sim.market_price_nok
 	var weekly := _sim.weekly_avg_price_nok
 
-	_kpi_spot.text = "%.2f NOK/kg" % spot
-	_kpi_contract.text = "%.2f NOK/kg" % (weekly * 0.93)  # Contract ~7% below spot
-	_kpi_volume.text = "%.0f tonn" % (_sim.fish_biomass_kg / 1000.0 * 0.2)  # 20% harvestable
+	_kpi_spot.text = tr("%.2f NOK/kg") % spot
+	_kpi_contract.text = tr("%.2f NOK/kg") % (weekly * 0.93)  # Contract ~7% below spot
+	_kpi_volume.text = tr("%.0f tonn") % (_sim.fish_biomass_kg / 1000.0 * 0.2)  # 20% harvestable
 	_kpi_open.text = "4"  # Mock
 
 	# Price summary
@@ -242,7 +242,7 @@ func _refresh() -> void:
 	_price_summary_avg.text = "%.2f" % (spot * 0.91)
 	_price_summary_hi.text = "%.2f" % spot
 	_price_summary_hi.add_theme_color_override("font_color", C_SUCCESS_D)
-	_price_summary_trend.text = "▲ Stigende" if spot > weekly else "▼ Fallende"
+	_price_summary_trend.text = tr("▲ Stigende")
 	_price_summary_trend.add_theme_color_override("font_color", C_SUCCESS_D if spot > weekly else C_DANGER)
 
 	_refresh_buyers()
@@ -523,3 +523,6 @@ func _make_btn(text: String, color: Color, outline: bool = false) -> Button:
 	btn.add_theme_color_override("font_color", Color.WHITE if not outline else C_TEXT)
 	btn.add_theme_font_size_override("font_size", 13)
 	return btn
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

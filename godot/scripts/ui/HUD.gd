@@ -59,6 +59,12 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept"):
 		_toggle_pause()
 		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("ui_cancel"):
+		# Toggle pause menu through signal
+		var game_ui = get_node_or_null("/root/GameUI")
+		if game_ui and game_ui.has_method("toggle_pause"):
+			game_ui.toggle_pause()
+			get_viewport().set_input_as_handled()
 
 # ── Build UI ───────────────────────────────────────────────────────────────────
 
@@ -253,10 +259,10 @@ func _update_all() -> void:
 	fish_value.add_theme_color_override("font_color",
 		C_TEXT if _sim.fish_count > 0 else C_WARNING)
 
-	temp_value.text = "%.1f°C" % _sim.temperature_c
+	temp_value.text = tr("UI_HUD_TEMP_FORMAT") % _sim.temperature_c if tr("UI_HUD_TEMP_FORMAT") != "ui.hud.temp_format" else "%.1f°C" % _sim.temperature_c
 	temp_value.add_theme_color_override("font_color", _temp_color(_sim.temperature_c))
 
-	price_value.text = "%.0f kr/kg" % _sim.market_price_nok
+	price_value.text = tr("UI_HUD_PRICE_FORMAT") % _sim.market_price_nok if tr("UI_HUD_PRICE_FORMAT") != "ui.hud.price_format" else "%.0f kr/kg" % _sim.market_price_nok
 	price_value.add_theme_color_override("font_color", _price_color(_sim.market_price_nok))
 
 	var alert_count = _sim.active_alerts.size() if _sim.get("active_alerts") else 0
@@ -309,3 +315,6 @@ func _refresh_speed_buttons() -> void:
 	speed_5x.button_pressed = (not _is_paused and _current_speed == 5.0)
 	pause_btn.text = "▶️" if _is_paused else "⏸️"
 	pause_btn.tooltip_text = "Resume" if _is_paused else "Pause"
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

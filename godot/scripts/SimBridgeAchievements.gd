@@ -171,3 +171,4 @@ func debug_print_game_state():
 	for key in state.keys():
 		print("  %s: %s" % [key, state[key]])
 	print("========================================")
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

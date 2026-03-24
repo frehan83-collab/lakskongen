@@ -45,7 +45,7 @@ func _build_ui() -> void:
 	var header = HBoxContainer.new()
 	vbox.add_child(header)
 	_title_label = Label.new()
-	_title_label.text = "Last Spill"
+	_title_label.text = tr("UI_SAVELOAD_TITLE_LOAD") if tr("UI_SAVELOAD_TITLE_LOAD") != "ui.saveload.title_load" else "Last Spill"
 	_title_label.add_theme_font_size_override("font_size", 22)
 	_title_label.add_theme_color_override("font_color", Color("#2E3440"))
 	_title_label.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -66,7 +66,7 @@ func _build_ui() -> void:
 
 	# New save button (only shown in save mode)
 	var new_save_btn = Button.new()
-	new_save_btn.text = "💾 Nytt Lagringspunkt"
+	new_save_btn.text = tr("UI_SAVELOAD_NEW_SAVE") if tr("UI_SAVELOAD_NEW_SAVE") != "ui.saveload.new_save" else "💾 Nytt Lagringspunkt"
 	new_save_btn.name = "NewSaveButton"
 	var btn_sb = StyleBoxFlat.new()
 	btn_sb.bg_color = Color("#0A4D68")
@@ -79,13 +79,13 @@ func _build_ui() -> void:
 
 func show_load() -> void:
 	_mode = "load"
-	if _title_label: _title_label.text = "Last Spill"
+	if _title_label: _title_label.text = tr("UI_SAVELOAD_TITLE_LOAD") if tr("UI_SAVELOAD_TITLE_LOAD") != "ui.saveload.title_load" else "Last Spill"
 	_refresh_slots()
 	show()
 
 func show_save() -> void:
 	_mode = "save"
-	if _title_label: _title_label.text = "Lagre Spill"
+	if _title_label: _title_label.text = tr("UI_SAVELOAD_TITLE_SAVE") if tr("UI_SAVELOAD_TITLE_SAVE") != "ui.saveload.title_save" else "Lagre Spill"
 	_refresh_slots()
 	show()
 
@@ -97,7 +97,7 @@ func _refresh_slots() -> void:
 	var save_mgr = get_node_or_null("/root/SaveLoadManager")
 	if not save_mgr:
 		var lbl = Label.new()
-		lbl.text = "SaveLoadManager ikke tilgjengelig"
+		lbl.text = tr("UI_SAVELOAD_MANAGER_UNAVAILABLE") if tr("UI_SAVELOAD_MANAGER_UNAVAILABLE") != "ui.saveload.manager_unavailable" else "SaveLoadManager ikke tilgjengelig"
 		lbl.add_theme_color_override("font_color", Color("#7B8794"))
 		_slots_container.add_child(lbl)
 		return
@@ -108,7 +108,10 @@ func _refresh_slots() -> void:
 
 	if saves.is_empty():
 		var lbl = Label.new()
-		lbl.text = "Ingen lagrede spill funnet" if _mode == "load" else "Ingen eksisterende lagringer"
+		var empty_text = tr("UI_SAVELOAD_EMPTY_LOAD") if tr("UI_SAVELOAD_EMPTY_LOAD") != "ui.saveload.empty_load" else "Ingen lagrede spill funnet"
+		if _mode == "save":
+			empty_text = tr("UI_SAVELOAD_EMPTY_SAVE") if tr("UI_SAVELOAD_EMPTY_SAVE") != "ui.saveload.empty_save" else "Ingen eksisterende lagringer"
+		lbl.text = empty_text
 		lbl.add_theme_color_override("font_color", Color("#7B8794"))
 		_slots_container.add_child(lbl)
 		return
@@ -144,13 +147,16 @@ func _create_slot(save_info) -> PanelContainer:
 
 	var details = Label.new()
 	var day = save_info.get("day", "?") if save_info is Dictionary else "?"
-	details.text = "Dag %s" % str(day)
+	var day_fmt = tr("UI_SAVELOAD_DAY_FORMAT") if tr("UI_SAVELOAD_DAY_FORMAT") != "ui.saveload.day_format" else "Dag %s"
+	details.text = day_fmt % str(day)
 	details.add_theme_font_size_override("font_size", 12)
 	details.add_theme_color_override("font_color", Color("#7B8794"))
 	info_vbox.add_child(details)
 
 	var action_btn = Button.new()
-	action_btn.text = "Last" if _mode == "load" else "Lagre"
+	var load_text = tr("UI_SAVELOAD_LOAD") if tr("UI_SAVELOAD_LOAD") != "ui.saveload.load" else "Last"
+	var save_text = tr("UI_SAVELOAD_SAVE") if tr("UI_SAVELOAD_SAVE") != "ui.saveload.save" else "Lagre"
+	action_btn.text = load_text if _mode == "load" else save_text
 	action_btn.pressed.connect(func(): _on_slot_action(slot_name))
 	hbox.add_child(action_btn)
 
@@ -176,3 +182,4 @@ func _on_new_save() -> void:
 		save_mgr.save_game("save_%s" % ts)
 		game_saved.emit("save_%s" % ts)
 	_refresh_slots()
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

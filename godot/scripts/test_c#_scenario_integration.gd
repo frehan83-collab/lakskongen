@@ -117,3 +117,4 @@ func connect_signals():
 		GameBridge.ScenarioApplied.connect(_on_scenario_applied)
 		GameBridge.GameStateSnapshot.connect(_on_game_state_snapshot)
 		print("✅ Signals connected")
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

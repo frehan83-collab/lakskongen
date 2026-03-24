@@ -146,3 +146,4 @@ func _reposition_stack():
 
 func _get_stack_y(index: int) -> float:
 	return LakskongenTheme.SPACE_SM + index * (NOTIFICATION_HEIGHT + NOTIFICATION_GAP)
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

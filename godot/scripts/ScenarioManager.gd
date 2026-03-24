@@ -222,3 +222,4 @@ func get_goal_description() -> String:
 		return ""
 	var goal = current_scenario.get("goal", {})
 	return goal.get("description", "")
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

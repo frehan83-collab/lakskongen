@@ -103,7 +103,7 @@ func _create_channel_item(channel: Dictionary) -> Control:
 	
 	# Right side - Sell button
 	var sell_button = Button.new()
-	sell_button.text = "Sell Here"
+	sell_button.text = tr("Sell Here")
 	sell_button.disabled = is_locked
 	sell_button.custom_minimum_size = Vector2(100, 40)
 	sell_button.pressed.connect(_on_sell_button_pressed.bind(channel))
@@ -151,3 +151,15 @@ func _show_slippage_warning(channel: Dictionary, quantity: int):
 
 func _on_refresh_pressed():
 	_load_market_channels()
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_close_requested()
+
+func _on_close_requested() -> void:
+	hide()
+
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

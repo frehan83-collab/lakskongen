@@ -74,7 +74,7 @@ func _create_ui():
 	
 	# Header
 	var header = Label.new()
-	header.text = "📈 Stock Market & IPO"
+	header.text = tr("📈 Stock Market & IPO")
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	header.tooltip_text = "Company valuation, IPO eligibility, and stock market performance"
@@ -82,7 +82,7 @@ func _create_ui():
 	
 	# IPO Status Section
 	var ipo_header = Label.new()
-	ipo_header.text = "IPO Eligibility"
+	ipo_header.text = tr("IPO Eligibility")
 	ipo_header.add_theme_font_size_override("font_size", 16)
 	ipo_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(ipo_header)
@@ -96,14 +96,14 @@ func _create_ui():
 	vbox.add_child(company_valuation_label)
 	
 	ipo_button = Button.new()
-	ipo_button.text = "Launch IPO"
+	ipo_button.text = tr("Launch IPO")
 	ipo_button.tooltip_text = "Go public on Oslo Stock Exchange (OSE)"
 	ipo_button.pressed.connect(_on_ipo_button_pressed)
 	vbox.add_child(ipo_button)
 	
 	# Stock Price Section
 	var stock_header = Label.new()
-	stock_header.text = "Stock Performance"
+	stock_header.text = tr("Stock Performance")
 	stock_header.add_theme_font_size_override("font_size", 16)
 	stock_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(stock_header)
@@ -120,7 +120,7 @@ func _create_ui():
 	
 	# Quarterly Earnings Section
 	var earnings_header = Label.new()
-	earnings_header.text = "Quarterly Earnings"
+	earnings_header.text = tr("Quarterly Earnings")
 	earnings_header.add_theme_font_size_override("font_size", 16)
 	earnings_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(earnings_header)
@@ -131,7 +131,7 @@ func _create_ui():
 	
 	# Dividend Policy Section
 	var dividend_header = Label.new()
-	dividend_header.text = "Dividend Policy"
+	dividend_header.text = tr("Dividend Policy")
 	dividend_header.add_theme_font_size_override("font_size", 16)
 	dividend_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(dividend_header)
@@ -186,14 +186,14 @@ func _check_ipo_eligibility(revenue: float, profit: float, site_count: int, days
 
 func _update_ipo_status(eligible: bool, revenue: float, profit: float, site_count: int, days: int):
 	if is_public:
-		ipo_status_label.text = "✅ Company is publicly traded on Oslo Stock Exchange"
+		ipo_status_label.text = tr("✅ Company is publicly traded on Oslo Stock Exchange")
 		ipo_status_label.add_theme_color_override("font_color", COLOR_GREEN)
 		ipo_button.disabled = true
-		ipo_button.text = "Already Public"
+		ipo_button.text = tr("Already Public")
 		return
 	
 	if eligible:
-		ipo_status_label.text = "✅ Eligible for IPO — All requirements met!"
+		ipo_status_label.text = tr("✅ Eligible for IPO — All requirements met!")
 		ipo_status_label.add_theme_color_override("font_color", COLOR_GREEN)
 		ipo_button.disabled = false
 	else:
@@ -277,7 +277,7 @@ func _display_quarterly_earnings():
 	
 	if quarterly_earnings.is_empty():
 		var label = Label.new()
-		label.text = "No quarterly data yet"
+		label.text = tr("No quarterly data yet")
 		label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 		quarterly_earnings_container.add_child(label)
 		return
@@ -376,3 +376,6 @@ func _format_currency(value: float) -> String:
 		return "%.0fK" % (value / 1_000.0)
 	else:
 		return "%.0f" % value
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

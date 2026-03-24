@@ -259,7 +259,7 @@ func _build_toast_node(data: QueuedToastData) -> Control:
 
 	# Close Button
 	var close_button := Button.new()
-	close_button.text = "X"
+	close_button.text = tr("X")
 	close_button.custom_minimum_size = Vector2(30, 30)
 	close_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	close_button.add_theme_color_override("font_color", COLOR_TEXT.darkened(0.2))
@@ -281,3 +281,15 @@ func _build_toast_node(data: QueuedToastData) -> Control:
 
 func _on_close_button_pressed(toast_node: Control) -> void:
 	_dismiss_toast(toast_node, false) # Dismiss with animation
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_close_requested()
+
+func _on_close_requested() -> void:
+	hide()
+
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

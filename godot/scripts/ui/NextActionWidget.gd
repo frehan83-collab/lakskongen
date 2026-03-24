@@ -69,3 +69,4 @@ func _update_suggestion():
 		suggestion_label.add_theme_color_override("font_color", LakskongenTheme.KELP_LIGHT)
 	else:
 		suggestion_label.add_theme_color_override("font_color", LakskongenTheme.TEXT)
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

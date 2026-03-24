@@ -79,13 +79,13 @@ func _build_ui() -> void:
 	var header = HBoxContainer.new()
 	vbox.add_child(header)
 	var title = Label.new()
-	title.text = "Innstillinger"
+	title.text = tr("UI_SETTINGS_TITLE") if tr("UI_SETTINGS_TITLE") != "ui.settings.title" else "Innstillinger"
 	title.add_theme_font_size_override("font_size", 22)
 	title.add_theme_color_override("font_color", Color("#2E3440"))
 	title.size_flags_horizontal = SIZE_EXPAND_FILL
 	header.add_child(title)
 	var close_btn = Button.new()
-	close_btn.text = "✕"
+	close_btn.text = tr("✕")
 	close_btn.pressed.connect(_on_close)
 	header.add_child(close_btn)
 
@@ -105,11 +105,11 @@ func _build_ui() -> void:
 	btn_row.add_theme_constant_override("separation", 8)
 	vbox.add_child(btn_row)
 	var reset_btn = Button.new()
-	reset_btn.text = "Tilbakestill"
+	reset_btn.text = tr("UI_SETTINGS_RESET") if tr("UI_SETTINGS_RESET") != "ui.settings.reset" else "Tilbakestill"
 	reset_btn.pressed.connect(_on_reset)
 	btn_row.add_child(reset_btn)
 	var apply_btn = Button.new()
-	apply_btn.text = "Bruk"
+	apply_btn.text = tr("UI_SETTINGS_APPLY") if tr("UI_SETTINGS_APPLY") != "ui.settings.apply" else "Bruk"
 	var apply_sb = StyleBoxFlat.new()
 	apply_sb.bg_color = Color("#0A4D68")
 	apply_sb.set_corner_radius_all(4)
@@ -146,7 +146,7 @@ func _build_graphics_tab() -> void:
 	var res_row = HBoxContainer.new()
 	tab.add_child(res_row)
 	var res_lbl = Label.new()
-	res_lbl.text = "Oppløsning"
+	res_lbl.text = tr("Oppløsning")
 	res_lbl.size_flags_horizontal = SIZE_EXPAND_FILL
 	res_row.add_child(res_lbl)
 	_res_option = OptionButton.new()
@@ -165,7 +165,7 @@ func _build_gameplay_tab() -> void:
 	var as_row = HBoxContainer.new()
 	tab.add_child(as_row)
 	var as_lbl = Label.new()
-	as_lbl.text = "Autolagring"
+	as_lbl.text = tr("Autolagring")
 	as_lbl.size_flags_horizontal = SIZE_EXPAND_FILL
 	as_row.add_child(as_lbl)
 	_autosave_option = OptionButton.new()
@@ -320,3 +320,11 @@ func get_gameplay_settings() -> Dictionary:
 
 func get_accessibility_settings() -> Dictionary:
 	return _settings.get("accessibility", DEFAULT_SETTINGS["accessibility"].duplicate())
+
+func _input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("ui_cancel"):
+		_on_close()
+		get_viewport().set_input_as_handled()
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

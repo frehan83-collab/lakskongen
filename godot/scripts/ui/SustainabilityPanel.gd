@@ -80,8 +80,8 @@ func _create_ui():
 	
 	# Header
 	var header = Label.new()
-	header.text = tr("ui.sustainability.header")
-	header.tooltip_text = tr("ui.sustainability.tooltip")
+	header.text = tr("UI_SUSTAINABILITY_HEADER")
+	header.tooltip_text = tr("UI_SUSTAINABILITY_TOOLTIP")
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	header.tooltip_text = "Bærekraftsscore (0-100) og sertifiseringsnivå basert på miljøpåvirkning og praksis."
@@ -113,7 +113,7 @@ func _create_ui():
 	
 	# Category breakdown header
 	var breakdown_header = Label.new()
-	breakdown_header.text = tr("ui.sustainability.breakdown")
+	breakdown_header.text = tr("UI_SUSTAINABILITY_BREAKDOWN")
 	breakdown_header.add_theme_font_size_override("font_size", 16)
 	breakdown_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(breakdown_header)
@@ -131,7 +131,7 @@ func update_display(score: int, certification: String, categories: Dictionary):
 	
 	# Update score label
 	if score_label:
-		score_label.text = tr("ui.sustainability.score_format") % score
+		score_label.text = tr("UI_SUSTAINABILITY_SCORE_FORMAT") % score
 		score_label.add_theme_color_override("font_color", _get_score_color(score))
 	
 	# Update certification label
@@ -205,7 +205,7 @@ func _create_category_bar(label_text: String, score: int, max_score: int):
 	
 	# Score text
 	var score_text = Label.new()
-	score_text.text = tr("ui.sustainability.category_score") % [score, max_score]
+	score_text.text = tr("UI_SUSTAINABILITY_CATEGORY_SCORE") % [score, max_score]
 	score_text.custom_minimum_size = Vector2(50, 0)
 	score_text.add_theme_font_size_override("font_size", 12)
 	score_text.add_theme_color_override("font_color", Color(COLOR_MUTED))
@@ -330,3 +330,6 @@ func _refresh_from_bridge():
 # func _ready():
 # 	super._ready()
 # 	_simulate_score_change()
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

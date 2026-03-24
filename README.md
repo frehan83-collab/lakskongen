@@ -62,6 +62,29 @@ dotnet build src/LakskongenSim.sln
 
 ## 🐟 Features
 
+### 🌊 Phase 5: Real Norwegian Environmental Data *(NEW)*
+- **13 Norwegian production zones (PO01-PO13)** with geospatially accurate oceanographic data
+- **Daily resolution** temperature, oxygen, currents, salinity from Mareano/Geonorge/IMR
+- **Seasonal patterns** calibrated to Institute of Marine Research (IMR) monitoring data (2015-2025)
+- **7-day forecast cache** for performance optimization and player planning
+- **Environmental stress indices** that directly modulate fish growth, mortality, and disease risk
+- **Zone-specific characteristics:** Deep fjords (PO04-06), exposed coast (PO03), Arctic waters (PO11-13)
+- **Data sources:** Mareano (bathymetry, currents), Geonorge (habitat maps), IMR (temperature/oxygen), MET Norway (forecasts)
+
+### 💰 Phase 6: Economic Simulation & Strategic Optimization *(NEW)*
+- **Ornstein-Uhlenbeck price model** calibrated to Fish Pool FPI (Norwegian salmon spot market, 2020-2025)
+- **Contract system:** Spot, forward (4-12 weeks), tolling, exclusive contracts with quality grading and penalties
+- **International markets:** 18 export destinations (USA, EU, Japan, China, etc.) with tariffs, FX rates, quality premiums
+- **Strategic optimizers:**
+  - **Feeding Optimizer:** Temperature/oxygen-based feeding schedules, economic margin optimization
+  - **Harvest Optimizer:** Optimal timing based on size distribution, market price, contract deadlines
+  - **Pen Management Optimizer:** Stocking density optimization (welfare vs growth tradeoff)
+  - **Treatment Cost-Benefit Analyzer:** Disease treatment ROI analysis
+- **Norwegian taxation:** 22% corporate tax + 40% resource rent tax on profits >70M NOK (2023 reform)
+- **Financial instruments:** Loans (short/long-term), equity investors (seed, Series A/B), IPO/stock market
+- **License system:** MAB (Maximum Allowed Biomass) limits, traffic light system (green/yellow/red zones)
+- **Currency system:** Real-time FX rates (NOK/USD/EUR/GBP/JPY/CNY) for international trade
+
 ### 🧬 Biology & Genetics
 - 8-trait Mendelian genetics (growth rate, disease resistance, fillet quality, maturation, feed efficiency, color, stress tolerance, fillet yield)
 - Full life cycle: Egg → Alevin → Fry → Parr → Smolt → Post-smolt → Adult → Broodstock
@@ -139,6 +162,35 @@ dotnet test tests/
 ```
 
 **Current test stats:** 203/203 passing, 0 failures, 0 errors
+
+### Testing Phase 5+6 Features
+
+**Environmental Data Integration:**
+```bash
+# Test environmental data provider (13 zones)
+dotnet test src/LakskongenSim.Tests/ --filter "FullyQualifiedName~MareanoEnvironmentalDataProvider"
+
+# Test zone profiles and seasonal patterns
+dotnet test src/LakskongenSim.Tests/ --filter "FullyQualifiedName~NorwegianZoneEnvironmentalProfile"
+```
+
+**Economic System:**
+```bash
+# Test market simulation (O-U model, seasonal patterns)
+dotnet test src/LakskongenSim.Tests/ --filter "FullyQualifiedName~MarketSimulation"
+
+# Test contract system (spot, forward, quality grading)
+dotnet test src/LakskongenSim.Tests/ --filter "FullyQualifiedName~ContractSystem"
+
+# Test optimizers (feeding, harvest, pen management)
+dotnet test src/LakskongenSim.Tests/ --filter "FullyQualifiedName~Optimizer"
+```
+
+**Integration Tests:**
+```bash
+# Full simulation with environmental data → growth → market → revenue
+dotnet test src/LakskongenSim.Tests/ --filter "FullyQualifiedName~IntegrationTests"
+```
 
 ---
 
@@ -230,8 +282,13 @@ lakskongen/
 
 ## 📖 Documentation
 
-- **[Architecture Overview](docs/Architecture.md)** — System design and data flow
+### Core Documentation
+- **[Architecture Overview](docs/ARCHITECTURE.md)** — Full system architecture, data flow, module dependencies *(Updated for Phase 5+6)*
+- **[Economic System](docs/ECONOMIC_SYSTEM.md)** — Phase 6 deep dive: finance, markets, contracts, optimization *(NEW)*
+- **[Environmental Data](docs/ENVIRONMENTAL_DATA.md)** — Phase 5 deep dive: Mareano/Geonorge integration, 13 zones, data sources *(NEW)*
 - **[API Reference](docs/API_Reference.md)** — SimBridge, GameBridge, EventBus APIs
+
+### Additional Documentation
 - **[VISION.md](VISION.md)** — Design philosophy and market analysis
 - **[GAMEPLAY_ROADMAP.md](GAMEPLAY_ROADMAP.md)** — Feature roadmap
 - **[CHANGELOG.md](CHANGELOG.md)** — Version history
@@ -243,6 +300,8 @@ lakskongen/
 
 ### ✅ Completed
 - **Phase 1:** Core simulation (biology, genetics, disease, market, processing)
+- **Phase 5:** Mareano/Geonorge environmental data integration (13 Norwegian production zones, daily resolution) *(NEW)*
+- **Phase 6:** Economic simulation and strategic optimization (O-U price model, contracts, optimizers) *(NEW)*
 - **Sprint 9:** Advanced biology, disease LOD, market dynamics
 - **Sprint 10:** Performance optimization, localization, stress testing
 - **Wave 9:** Market intelligence, VAP processing, commercial gameplay

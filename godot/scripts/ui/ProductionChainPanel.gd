@@ -110,8 +110,8 @@ func _build_ui() -> void:
 	
 	# Header
 	var header := Label.new()
-	header.text = tr("ui.production.title")
-	header.tooltip_text = tr("ui.production.title_tooltip")
+	header.text = tr("UI_PRODUCTION_TITLE")
+	header.tooltip_text = tr("UI_PRODUCTION_TITLE_TOOLTIP")
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", Color("#2E3440"))
 	vbox.add_child(header)
@@ -139,7 +139,7 @@ func _create_stage_row(stage_data: Dictionary) -> HBoxContainer:
 	label.text = stage_data.label
 	label.custom_minimum_size.x = 120
 	label.add_theme_font_size_override("font_size", 14)
-	label.tooltip_text = tr("ui.production.stage_tooltip") % stage_data.label
+	label.tooltip_text = tr("UI_PRODUCTION_STAGE_TOOLTIP") % stage_data.label
 	hbox.add_child(label)
 	
 	# Quantity display
@@ -148,7 +148,7 @@ func _create_stage_row(stage_data: Dictionary) -> HBoxContainer:
 	quantity_label.custom_minimum_size.x = 100
 	quantity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	quantity_label.add_theme_font_size_override("font_size", 14)
-	quantity_label.tooltip_text = tr("ui.production.quantity_tooltip")
+	quantity_label.tooltip_text = tr("UI_PRODUCTION_QUANTITY_TOOLTIP")
 	hbox.add_child(quantity_label)
 	
 	# Status indicator (colored box)
@@ -156,7 +156,7 @@ func _create_stage_row(stage_data: Dictionary) -> HBoxContainer:
 	status_indicator.name = "StatusIndicator"
 	status_indicator.custom_minimum_size = Vector2(20, 20)
 	status_indicator.color = Color.GRAY
-	status_indicator.tooltip_text = tr("ui.production.status_tooltip")
+	status_indicator.tooltip_text = tr("UI_PRODUCTION_STATUS_TOOLTIP")
 	hbox.add_child(status_indicator)
 	
 	# Throughput/rate label
@@ -165,7 +165,7 @@ func _create_stage_row(stage_data: Dictionary) -> HBoxContainer:
 	throughput_label.custom_minimum_size.x = 150
 	throughput_label.add_theme_font_size_override("font_size", 12)
 	throughput_label.add_theme_color_override("font_color", Color("#4C566A"))
-	throughput_label.tooltip_text = tr("ui.production.throughput_tooltip")
+	throughput_label.tooltip_text = tr("UI_PRODUCTION_THROUGHPUT_TOOLTIP")
 	hbox.add_child(throughput_label)
 	
 	return hbox
@@ -217,7 +217,7 @@ func _update_stage_row(stage_data: Dictionary) -> void:
 	if stage_data.unit == "kg":
 		quantity_label.text = SimBridge.format_biomass(quantity)
 	elif stage_data.unit == "markets":
-		quantity_label.text = tr("ui.production.markets_format") % int(quantity)
+		quantity_label.text = tr("UI_PRODUCTION_MARKETS_FORMAT") % int(quantity)
 	else:
 		quantity_label.text = SimBridge.format_fish(int(quantity))
 	
@@ -277,45 +277,48 @@ func _get_throughput_text(stage_data: Dictionary) -> String:
 		"broodstock":
 			var eggs := SimBridge.get_fish_count_by_stage("Egg")
 			if eggs > 0:
-				return tr("ui.production.status_producing")
-			return tr("ui.production.status_idle")
+				return tr("UI_PRODUCTION_STATUS_PRODUCING")
+			return tr("UI_PRODUCTION_STATUS_IDLE")
 		"eggs":
 			var fry := SimBridge.get_fish_count_by_stage("Fry")
 			if fry > 0:
-				return tr("ui.production.status_hatching")
-			return tr("ui.production.status_waiting_hatch")
+				return tr("UI_PRODUCTION_STATUS_HATCHING")
+			return tr("UI_PRODUCTION_STATUS_WAITING_HATCH")
 		"fry":
 			var smolt := SimBridge.get_fish_count_by_stage("Smolt")
 			if smolt > 0:
-				return tr("ui.production.status_smolt_active")
-			return tr("ui.production.status_smolt_wait")
+				return tr("UI_PRODUCTION_STATUS_SMOLT_ACTIVE")
+			return tr("UI_PRODUCTION_STATUS_SMOLT_WAIT")
 		"smolt":
 			var adult_biomass := SimBridge.get_biomass_by_stage("Adult")
 			if adult_biomass > 10000:
-				return tr("ui.production.status_at_sea_growing")
+				return tr("UI_PRODUCTION_STATUS_AT_SEA_GROWING")
 			elif adult_biomass > 0:
-				return tr("ui.production.status_recently_released")
-			return tr("ui.production.status_waiting_release")
+				return tr("UI_PRODUCTION_STATUS_RECENTLY_RELEASED")
+			return tr("UI_PRODUCTION_STATUS_WAITING_RELEASE")
 		"sea_fish":
 			var harvested := SimBridge.get_biomass_by_stage("Harvested")
 			if harvested > 0:
-				return tr("ui.production.status_harvesting")
-			return tr("ui.production.status_growing_sea")
+				return tr("UI_PRODUCTION_STATUS_HARVESTING")
+			return tr("UI_PRODUCTION_STATUS_GROWING_SEA")
 		"harvest":
 			var throughput := SimBridge.get_processing_throughput_kg()
 			if throughput > 1000:
-				return tr("ui.production.status_processing_kg") % int(throughput)
-			return tr("ui.production.status_waiting_processing")
+				return tr("UI_PRODUCTION_STATUS_PROCESSING_KG") % int(throughput)
+			return tr("UI_PRODUCTION_STATUS_WAITING_PROCESSING")
 		"processing":
 			if SimBridge.owns_processing_plant():
 				var markets := SimBridge.get_export_market_count()
 				if markets > 0:
-					return tr("ui.production.status_sending_markets") % markets
-				return tr("ui.production.status_ready_export")
-			return tr("ui.production.status_not_built")
+					return tr("UI_PRODUCTION_STATUS_SENDING_MARKETS") % markets
+				return tr("UI_PRODUCTION_STATUS_READY_EXPORT")
+			return tr("UI_PRODUCTION_STATUS_NOT_BUILT")
 		"export":
 			var markets := SimBridge.get_export_market_count()
 			if markets > 0:
-				return tr("ui.production.status_active_exports")
-			return tr("ui.production.status_no_markets")
+				return tr("UI_PRODUCTION_STATUS_ACTIVE_EXPORTS")
+			return tr("UI_PRODUCTION_STATUS_NO_MARKETS")
 	return ""
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

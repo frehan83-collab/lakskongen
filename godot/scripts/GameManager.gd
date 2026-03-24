@@ -48,3 +48,4 @@ func set_feed_quality(q: float) -> void:
 func compute_feed_cost_for_growth(gain_g: float) -> float:
     var kg = feed.feed_needed_for_growth(gain_g)
     return feed.cost_for_feed_kg(kg)
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

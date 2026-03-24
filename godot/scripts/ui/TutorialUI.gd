@@ -167,7 +167,7 @@ func _refresh_display() -> void:
 
 	# Step counter
 	if step_label:
-		step_label.text = tr("ui.tutorial.step_format") % [step_num, total]
+		step_label.text = tr("UI_TUTORIAL_STEP_FORMAT") % [step_num, total]
 		step_label.tooltip_text = "Tutorial-stegnummer. Fullført %d av %d." % [sb.tutorial_completed_count, total]
 
 	# Progress bar
@@ -214,7 +214,7 @@ func _play_completion_animation(step_number: int, title: String, reward_nok: flo
 
 	# Show reward toast if applicable
 	if reward_label and reward_nok > 0.0:
-		reward_label.text    = tr("ui.tutorial.step_complete") % [step_number, _format_nok(reward_nok)]
+		reward_label.text    = tr("UI_TUTORIAL_STEP_COMPLETE") % [step_number, _format_nok(reward_nok)]
 		reward_label.visible = true
 		reward_label.modulate = Color("#A3BE8C")
 		_tween.tween_interval(0.1)
@@ -232,7 +232,7 @@ func _play_completion_animation(step_number: int, title: String, reward_nok: flo
 
 func _show_completion_screen() -> void:
 	if title_label:
-		title_label.text = "🏆 Tutorial fullført!"
+		title_label.text = tr("🏆 Tutorial fullført!")
 	if description_label:
 		description_label.text = (
 			"Gratulerer — du er nå en ekte oppdrettskonge!\n\n" +
@@ -240,9 +240,9 @@ func _show_completion_screen() -> void:
 			"Mål: 10 000 tonn årlig produksjon med Sustainability Leader-sertifisering."
 		)
 	if hint_label:
-		hint_label.text = tr("ui.tutorial.hint_next")
+		hint_label.text = tr("UI_TUTORIAL_HINT_NEXT")
 	if step_label:
-		step_label.text = tr("ui.tutorial.completed")
+		step_label.text = tr("UI_TUTORIAL_COMPLETED")
 	if progress_bar:
 		progress_bar.value = 23
 	
@@ -261,12 +261,12 @@ func _set_minimised(value: bool) -> void:
 		_tween.tween_property(self, "custom_minimum_size:y", 32.0, 0.2)
 		if description_label: description_label.visible = false
 		if hint_label:        hint_label.visible        = false
-		if close_button:      close_button.text         = "▼"
+      close_button.text         = tr("▼")
 	else:
 		_tween.tween_property(self, "custom_minimum_size:y", 0.0, 0.2)
 		if description_label: description_label.visible = true
 		if hint_label:        hint_label.visible        = true
-		if close_button:      close_button.text         = "✕"
+      close_button.text         = tr("✕")
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -278,3 +278,6 @@ func _format_nok(amount: float) -> String:
 	elif amount >= 1_000.0:
 		return "%.0f kNOK" % (amount / 1_000.0)
 	return "%.0f NOK" % amount
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

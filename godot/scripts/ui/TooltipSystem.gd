@@ -97,3 +97,4 @@ static func format_fish_info(weight_kg: float, health: float, lice: float) -> St
     info_text += "[color=%s]%s:[/color] %.1f%%\n" % [health_color, "Helse", health]
     info_text += format_stat("Lus", "%.1f" % lice, "")
     return info_text
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

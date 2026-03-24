@@ -90,7 +90,7 @@ func show_achievement(achievement_name: String, description: String, reward_nok:
 	_tier_label.modulate = TIER_COLORS.get(tier, COL_GOLD_LIGHT)
 
 	if reward_nok > 0.0:
-		_reward_label.text    = tr("ui.achievement.reward_format") % _format_nok(reward_nok)
+		_reward_label.text    = tr("UI_ACHIEVEMENT_REWARD_FORMAT") % _format_nok(reward_nok)
 		_reward_label.visible = true
 	else:
 		_reward_label.visible = false
@@ -153,7 +153,7 @@ func _build_ui() -> void:
 
 	# "ACHIEVEMENT UNLOCKED" header
 	var header := Label.new()
-	header.text = tr("ui.achievement.unlocked")
+	header.text = tr("UI_ACHIEVEMENT_UNLOCKED")
 	header.add_theme_font_size_override("font_size", 11)
 	header.add_theme_color_override("font_color", COL_TEXT_DARK)
 	header.position = Vector2(76, 12)
@@ -210,3 +210,6 @@ func _format_nok(amount: float) -> String:
 	elif amount >= 1_000.0:
 		return "%.0f k" % (amount / 1_000.0)
 	return "%.0f" % amount
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

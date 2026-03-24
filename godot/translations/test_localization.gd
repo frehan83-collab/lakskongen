@@ -66,3 +66,4 @@ func _ready() -> void:
 	print("Count: %d" % supported.size())
 	for locale in supported:
 		print("  • %s — %s" % [locale, loc_mgr.get_locale_name(locale)])
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

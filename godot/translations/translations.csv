@@ -1,0 +1,262 @@
+keys,English,Norwegian,Comment
+UI_MAINMENU_TITLE,LAKSKONGEN,LAKSKONGEN,Main menu game title
+UI_MAINMENU_SUBTITLE,Norwegian Salmon Farming Simulator,Norsk Lakseoppdrett Simulator,Main menu subtitle
+UI_BUTTON_NEW_GAME,New Game,Nytt Spill,Main menu button
+UI_BUTTON_LOAD_GAME,Load Game,Last Spill,Main menu button
+UI_BUTTON_SETTINGS,Settings,Innstillinger,Main menu button
+UI_BUTTON_QUIT,Quit,Avslutt,Main menu button
+UI_VERSION_TEXT,v0.2.0 Alpha — Nordic Minimalist,v0.2.0 Alpha — Nordic Minimalist,Version display
+UI_DASHBOARD_TITLE,%s — Overview,%s — Oversikt,Dashboard title with company name
+UI_DASHBOARD_PEN_NAME,Pen %d,Merd %d,Pen identifier in dashboard
+UI_KPI_BIOMASS_LABEL,TOTAL BIOMASS,TOTAL BIOMASSE,KPI card label
+UI_KPI_REVENUE_LABEL,REVENUE (YTD),INNTEKTER (YTD),KPI card label
+UI_KPI_HEALTH_LABEL,FISH HEALTH,FISKEHELSE,KPI card label
+UI_KPI_FCR_LABEL,FEED RATIO (FCR),FÔRFAKTOR (FCR),KPI card label
+UI_DASHBOARD_BIOMASS_FORMAT,%s tonnes,%s tonn,Biomass display format
+UI_DASHBOARD_REVENUE_FORMAT,%.1f MNOK,%.1f MNOK,Revenue display format
+UI_DASHBOARD_HEALTH_GOOD,▲ Good status,▲ God status,Health status indicator
+UI_DASHBOARD_HEALTH_STABLE,─ Stable,─ Stabil,Health status indicator
+UI_DASHBOARD_HEALTH_LOW,▼ Low,▼ Lav,Health status indicator
+UI_DASHBOARD_FCR_BETTER,▲ Better than target (1.15),▲ Bedre enn mål (1.15),FCR comparison
+UI_PEN_COUNT_LABEL,Count,Antall,Pen stat label
+UI_PEN_WEIGHT_LABEL,Avg weight,Snitt vekt,Pen stat label
+UI_PEN_TEMP_LABEL,Temp,Temp,Pen stat label
+UI_WATER_CARD_TITLE,Water Quality,Vannkvalitet,Card title
+UI_WATER_TEMP_LABEL,TEMPERATURE,TEMPERATUR,Water quality metric
+UI_WATER_OXYGEN_LABEL,OXYGEN,OKSYGEN,Water quality metric
+UI_WATER_SALINITY_LABEL,SALINITY,SALINITET,Water quality metric
+UI_WATER_PH_LABEL,PH,PH,Water quality metric
+UI_WEATHER_CARD_TITLE,Weather,Vær,Card title
+UI_WEATHER_WIND_LABEL,Wind:,Vind:,Weather detail label
+UI_WEATHER_WAVE_LABEL,Wave:,Bølge:,Weather detail label
+UI_WEATHER_VISIBILITY_LABEL,Visibility:,Sikt:,Weather detail label
+UI_WEATHER_HUMIDITY_LABEL,Humidity:,Fukt:,Weather detail label
+UI_FINANCE_CARD_TITLE,Finance (6 months),Økonomi (6 mnd),Finance chart title
+UI_FINANCE_LEGEND_REVENUE,Revenue,Inntekt,Chart legend
+UI_FINANCE_LEGEND_COST,Cost,Kostnad,Chart legend
+UI_FINANCE_KPI_REVENUE,REVENUE,INNTEKTER,Finance KPI label
+UI_FINANCE_KPI_EXPENSES,EXPENSES,KOSTNADER,Finance KPI label
+UI_FINANCE_KPI_PROFIT,PROFIT,RESULTAT,Finance KPI label
+UI_FINANCE_KPI_BALANCE,CASH,KONTANTER,Finance KPI label
+UI_FINANCE_PL_FEED,Feed costs,Fôrkostnader,P&L line item
+UI_FINANCE_PL_SALARY,Salary costs,Lønnskostnader,P&L line item
+UI_FINANCE_PL_MAINTENANCE,Maintenance,Vedlikehold,P&L line item
+UI_FINANCE_PL_INSURANCE,Insurance,Forsikring,P&L line item
+UI_FINANCE_PL_DELOUSING,Delousing,Avlusing,P&L line item
+UI_FINANCE_PL_TRANSPORT,Transport,Transport,P&L line item
+UI_FINANCE_PL_OTHER,Other costs,Andre kostnader,P&L line item
+UI_FINANCE_PL_TOTAL,TOTAL COSTS,TOTALE KOSTNADER,P&L total
+UI_FINANCE_LOAN_TITLE,Loans & Financing,Lån & Finansiering,Loan section title
+UI_FINANCE_LOAN_STATUS_LABEL,Status:,Status:,Loan info label
+UI_FINANCE_LOAN_AMOUNT_LABEL,Loan amount:,Lånebeløp:,Loan info label
+UI_FINANCE_LOAN_REMAINING_LABEL,Remaining:,Gjenstående:,Loan info label
+UI_FINANCE_LOAN_STATUS_ACTIVE,Active,Aktiv,Loan status
+UI_FINANCE_LOAN_STATUS_NONE,No loan,Ingen lån,Loan status
+UI_FINANCE_LOAN_TAKE_BUTTON,Take loan (5M NOK),Ta lån (5M NOK),Loan action button
+UI_FINANCE_LOAN_REPAY_BUTTON,Repay,Betal tilbake,Loan action button
+UI_FINANCE_HISTORY_TITLE,History (last 10 days),Historikk (siste 10 dager),History section title
+UI_ALERTS_CARD_TITLE,Alerts,Varsler,Alerts card title
+UI_ALERTS_TIME_MINUTES,%d min ago,%d min siden,Time format for alerts
+UI_ALERTS_TIME_HOURS,%d hours ago,%d timer siden,Time format for alerts
+UI_ACTIONS_CARD_TITLE,Quick Actions,Hurtigvalg,Actions card title
+UI_ACTION_FEED_ALL,Feed All,Fôr alle,Quick action button
+UI_ACTION_HARVEST,Harvest,Høst,Quick action button
+UI_ACTION_DELOUSE,Delouse,Avlus,Quick action button
+UI_ACTION_REPORTS,Reports,Rapporter,Quick action button
+UI_ACTION_RESEARCH,Research,Forskning,Quick action button
+UI_ACTION_MAP,Map,Kart,Quick action button
+UI_ACTION_HIRE,Hire,Ansett,Quick action button
+UI_ACTION_CONTRACTS,Contracts,Kontrakter,Quick action button
+UI_PEN_MANAGEMENT_TITLE,Pens,Merder,Pen management panel title
+UI_PEN_DETAIL_SELECT_PROMPT,Select a pen for details,Velg en merd for detaljer,Empty state message
+UI_PEN_DETAIL_NAME,Pen %d,Merd %d,Pen detail header
+UI_PEN_DETAIL_SUBTITLE_FORMAT,Zone: %s · Capacity: %.0f%%,Sone: %s · Kapasitet: %.0f%%,Pen subtitle format
+UI_PEN_DETAIL_STATUS_HEALTHY,● Healthy,● Frisk,Status badge
+UI_PEN_DETAIL_STATUS_LICE_WARNING,⚠ Elevated lice count,⚠ Forhøyet lusetall,Status badge warning
+UI_PEN_KPI_FISH_COUNT,FISH COUNT,ANTALL FISK,KPI label
+UI_PEN_KPI_AVG_WEIGHT,AVG WEIGHT,SNITT VEKT,KPI label
+UI_PEN_KPI_BIOMASS,BIOMASS,BIOMASSE,KPI label
+UI_PEN_KPI_FCR,FCR (CURRENT),FCR (AKTUELL),KPI label
+UI_PEN_ENVIRONMENT_TITLE,Environment,Miljø,Card title
+UI_PEN_ENVIRONMENT_TEMP,Temperature,Temperatur,Environment metric
+UI_PEN_ENVIRONMENT_OXYGEN,Oxygen,Oksygen,Environment metric
+UI_PEN_ENVIRONMENT_CURRENT,Current,Strøm,Environment metric
+UI_PEN_ENVIRONMENT_VISIBILITY,Visibility,Sikt,Environment metric
+UI_PEN_ENVIRONMENT_ALGAE,Algae growth,Algevekst,Environment metric
+UI_PEN_ENVIRONMENT_ALGAE_LOW,Low,Lav,Algae status
+UI_PEN_HEALTH_TITLE,Health,Helse,Card title
+UI_PEN_HEALTH_LICE,Lice count,Lusetall,Health metric
+UI_PEN_HEALTH_LICE_FORMAT,%.2f lice/fish,%.2f lus/fisk,Lice display format
+UI_PEN_HEALTH_DISEASE,Disease,Sykdom,Health metric
+UI_PEN_HEALTH_DISEASE_NONE,None,Ingen,Disease status
+UI_PEN_HEALTH_MORTALITY_WEEK,Mortality (week),Dødelighet (uke),Health metric
+UI_PEN_HEALTH_MORTALITY_TOTAL,Mortality (total),Dødelighet (total),Health metric
+UI_PEN_GENETICS_TITLE,Genetics,Genetikk,Card title
+UI_PEN_GENETICS_GROWTH,Growth rate,Veksthastighet,Genetics metric
+UI_PEN_GENETICS_LICE_RESIST,Lice resistance,Luseresistens,Genetics metric
+UI_PEN_GENETICS_DISEASE_RESIST,Disease resistance,Sykdomsresistens,Genetics metric
+UI_PEN_GENETICS_FILLET_QUALITY,Fillet quality,Filétkvalitet,Genetics metric
+UI_PEN_GENETICS_GRADE_A_PLUS,A+,A+,Genetics grade
+UI_PEN_GENETICS_GRADE_A,A,A,Genetics grade
+UI_PEN_GENETICS_GRADE_B,B,B,Genetics grade
+UI_PEN_ACTION_FEED,Feed,Fôr,Action button
+UI_PEN_ACTION_DELOUSE,Delouse,Avlus,Action button
+UI_PEN_ACTION_HARVEST,Harvest,Høst,Action button
+UI_PEN_LIST_EMPTY,No pens available,Ingen merder tilgjengelig,Empty state
+UI_PEN_LIST_EMPTY_STATUS,Empty,Tom,Empty pen status
+UI_HUD_DAY_LABEL,Day,Dag,HUD label
+UI_HUD_SEASON_WINTER,Winter,Vinter,Season name
+UI_HUD_SEASON_SPRING,Spring,Vår,Season name
+UI_HUD_SEASON_SUMMER,Summer,Sommer,Season name
+UI_HUD_SEASON_AUTUMN,Autumn,Høst,Season name
+UI_HUD_BALANCE_LABEL,Balance,Saldo,HUD label
+UI_HUD_FISH_LABEL,Fish,Fisk,HUD label
+UI_HUD_TEMP_LABEL,Temp,Temp,HUD label
+UI_HUD_PRICE_LABEL,Price,Pris,HUD label
+UI_HUD_ALERTS_LABEL,Alerts,Varsler,HUD label
+UI_HUD_WEATHER_LABEL,Weather,Vær,HUD label
+UI_HUD_TEMP_FORMAT,%.1f°C,%.1f°C,Temperature display format
+UI_HUD_PRICE_FORMAT,%.0f NOK/kg,%.0f kr/kg,Price display format
+UI_HUD_SPEED_BUTTON_PAUSE,Pause/Resume (Space),Pause/Resume (Space),Speed control tooltip
+UI_HUD_SPEED_BUTTON_1X,Normal speed,Normal hastighet,Speed control tooltip
+UI_HUD_SPEED_BUTTON_2X,Double speed,Dobbel hastighet,Speed control tooltip
+UI_HUD_SPEED_BUTTON_5X,5x speed,5x hastighet,Speed control tooltip
+UI_HUD_PAUSE_RESUME_TOOLTIP,Resume,Resume,Pause button tooltip
+UI_HUD_PAUSE_PAUSE_TOOLTIP,Pause,Pause,Pause button tooltip
+UI_SETTINGS_TITLE,Settings,Innstillinger,Settings panel title
+UI_SETTINGS_CLOSE_BUTTON,✕,✕,Close button
+UI_SETTINGS_RESET_BUTTON,Reset,Tilbakestill,Settings button
+UI_SETTINGS_APPLY_BUTTON,Apply,Bruk,Settings button
+UI_SETTINGS_TAB_AUDIO,Audio,Lyd,Settings tab
+UI_SETTINGS_TAB_GRAPHICS,Graphics,Grafikk,Settings tab
+UI_SETTINGS_TAB_GAMEPLAY,Gameplay,Spill,Settings tab
+UI_SETTINGS_TAB_ACCESSIBILITY,Accessibility,Tilgjengelighet,Settings tab
+UI_SETTINGS_MASTER_LABEL,Master,Master,Audio setting
+UI_SETTINGS_MUSIC_LABEL,Music,Musikk,Audio setting
+UI_SETTINGS_AMBIENT_LABEL,Ambient,Ambient,Audio setting
+UI_SETTINGS_SFX_LABEL,Effects,Effekter,Audio setting
+UI_SETTINGS_RESOLUTION_LABEL,Resolution,Oppløsning,Graphics setting
+UI_SETTINGS_FULLSCREEN_LABEL,Fullscreen,Fullskjerm,Graphics setting
+UI_SETTINGS_VSYNC_LABEL,VSync,VSync,Graphics setting
+UI_SETTINGS_AUTOSAVE_LABEL,Autosave,Autolagring,Gameplay setting
+UI_SETTINGS_AUTOSAVE_OFF,Off,Av,Autosave option
+UI_SETTINGS_AUTOSAVE_2MIN,2 min,2 min,Autosave option
+UI_SETTINGS_AUTOSAVE_5MIN,5 min,5 min,Autosave option
+UI_SETTINGS_AUTOSAVE_10MIN,10 min,10 min,Autosave option
+UI_SETTINGS_AUTOSAVE_30MIN,30 min,30 min,Autosave option
+UI_SETTINGS_TUTORIAL_LABEL,Show tutorial,Vis tutorial,Gameplay setting
+UI_SETTINGS_NOTIFICATIONS_LABEL,Notifications,Varsler,Gameplay setting
+UI_SETTINGS_SPEED_LABEL,Default speed,Standard hastighet,Gameplay setting
+UI_SETTINGS_HIGH_CONTRAST_LABEL,High contrast,Høykontrast,Accessibility setting
+UI_SAVELOAD_TITLE_LOAD,Load Game,Last Spill,Save/load panel title
+UI_SAVELOAD_TITLE_SAVE,Save Game,Lagre Spill,Save/load panel title
+UI_SAVELOAD_NEW_SAVE,New Save,💾 Nytt Lagringspunkt,New save button
+UI_SAVELOAD_MANAGER_UNAVAILABLE,SaveLoadManager not available,SaveLoadManager ikke tilgjengelig,Error message
+UI_SAVELOAD_EMPTY_LOAD,No saved games found,Ingen lagrede spill funnet,Empty state
+UI_SAVELOAD_EMPTY_SAVE,No existing saves,Ingen eksisterende lagringer,Empty state
+UI_SAVELOAD_DAY_FORMAT,Day %s,Dag %s,Save slot day format
+UI_SAVELOAD_LOAD_BUTTON,Load,Last,Action button
+UI_SAVELOAD_SAVE_BUTTON,Save,Lagre,Action button
+UI_TUTORIAL_STEP_FORMAT,Step %d / %d,Steg %d / %d,Tutorial progress
+UI_TUTORIAL_STEP_COMPLETE,Step %d complete! Reward: %s,Steg %d fullført! Belønning: %s,Completion message
+UI_TUTORIAL_COMPLETED,Tutorial completed,Tutorial fullført,Final step label
+UI_TUTORIAL_HINT_NEXT,Explore all features and grow your empire!,Utforsk alle funksjoner og voks imperiet ditt!,Post-tutorial hint
+UI_TUTORIAL_SKIP_CONFIRM,Are you sure you want to skip the tutorial?,Er du sikker på at du vil hoppe over tutorial?,Confirmation dialog
+UI_TUTORIAL_SKIP_DETAILS,You can always restart the tutorial from 'Help → Show Tutorial'.,Du kan alltid starte en ny tutorial fra menyvalget 'Hjelp → Vis tutorial'.,Skip dialog info
+UI_TUTORIAL_SKIP_BUTTON,Skip,Hopp over,Confirmation button
+UI_TUTORIAL_CANCEL_BUTTON,Cancel,Avbryt,Confirmation button
+UI_TUTORIAL_MINIMIZE_EXPAND,Minimize/expand tutorial panel,Minimer/utvid tutorial-panelet,Tooltip
+UI_TUTORIAL_SKIP_TOOLTIP,Skip tutorial and enable free play,Hopp over tutorial og aktiver fri spilling,Tooltip
+UI_CONTRACT_DIALOG_TITLE,CONTRACT NEGOTIATION,KONTRAKTSFORHANDLING,Dialog title
+UI_CONTRACT_BUYER_LABEL,Buyer:,Kjøper:,Contract detail
+UI_CONTRACT_VOLUME_LABEL,Volume:,Volum:,Contract detail
+UI_CONTRACT_PRICE_LABEL,Offered price:,Tilbudt pris:,Contract detail
+UI_CONTRACT_DURATION_LABEL,Duration:,Varighet:,Contract detail
+UI_CONTRACT_QUALITY_LABEL,Quality requirements:,Kvalitetskrav:,Contract detail
+UI_CONTRACT_PENALTY_LABEL,Penalties for non-delivery:,Bøter ved manglende levering:,Contract detail
+UI_CONTRACT_YOUR_COUNTER_PRICE,Your counter price:,Din motpris:,Negotiation label
+UI_CONTRACT_PRICE_PER_KG,%.2f NOK/kg,%.2f NOK/kg,Price format
+UI_CONTRACT_ACCEPTANCE_CHANCE,Acceptance chance: %d%%,Sjanse for aksept: %d%%,Chance display
+UI_CONTRACT_ACCEPT_BUTTON,ACCEPT OFFER,AKSEPTER TILBUD,Action button
+UI_CONTRACT_NEGOTIATE_BUTTON,NEGOTIATE,FORHANDL,Action button
+UI_CONTRACT_DECLINE_BUTTON,DECLINE,AVSLÅ,Action button
+UI_MONTH_OCTOBER,Oct,Okt,Month abbreviation
+UI_MONTH_NOVEMBER,Nov,Nov,Month abbreviation
+UI_MONTH_DECEMBER,Dec,Des,Month abbreviation
+UI_MONTH_JANUARY,Jan,Jan,Month abbreviation
+UI_MONTH_FEBRUARY,Feb,Feb,Month abbreviation
+UI_MONTH_MARCH,Mar,Mar,Month abbreviation
+UI_GENERIC_STATUS_UNKNOWN,Unknown,Ukjent,Unknown status
+UI_GENERIC_ZONE_UNKNOWN,Unknown zone,Ukjent sone,Unknown zone
+UI_GENERIC_EMPTY_PLACEHOLDER,--,--,Empty data placeholder
+UI_STATUS_HEALTHY,Healthy,Frisk,Status indicator
+UI_STATUS_WARNING,Warning,Advarsel,Status indicator
+UI_STATUS_DANGER,Danger,Farlig,Status indicator
+UI_STATUS_EMPTY,Empty,Tom,Status indicator
+UI_WEATHER_CALM,Clear,Klart,Weather condition
+UI_WEATHER_WINDY,Windy,Vind,Weather condition
+UI_WEATHER_STORM,Storm,Storm,Weather condition
+UI_WEATHER_PARTLY_CLOUDY,Partly cloudy,Delvis skyet,Weather condition
+UI_GENETICS_GRADE_A_PLUS,A+,A+,Grade indicator
+UI_GENETICS_GRADE_A,A,A,Grade indicator
+UI_GENETICS_GRADE_B,B,B,Grade indicator
+UI_PEN_CARD_TITLE,Pen Overview,Merdoversikt,Dashboard card title
+UI_WATER_CARD_TITLE_SHORT,Water,Vann,Dashboard card title
+# === TOOLTIPS — Nordic Minimalist Style ===
+TIP_TAB_PLAY,Main gameplay interface,Hovedspillsgrensesnitt,Tab navigation tooltip
+TIP_TAB_MAP,View production areas,Vis produksjonsområder,Tab navigation tooltip
+TIP_TAB_FINANCE,Financial dashboard and reports,Økonomisk oversikt og rapporter,Tab navigation tooltip
+TIP_TAB_REGULATION,Traffic light system and ESG,Trafikklyssystem og ESG,Tab navigation tooltip
+TIP_TAB_RESEARCH,Technology tree and upgrades,Teknologitre og oppgraderinger,Tab navigation tooltip
+TIP_TAB_MNA,Acquisitions and investments,Oppkjøp og investeringer,Tab navigation tooltip
+TIP_TAB_FACTORY,Processing and production,Foredling og produksjon,Tab navigation tooltip
+TIP_TAB_STAFF,Hire and manage personnel,Ansett og administrer personale,Tab navigation tooltip
+TIP_TAB_PENS,Manage fish pens and facilities,Håndter merder og anlegg,Tab navigation tooltip
+TIP_TAB_SAVE,Save or load game progress,Lagre eller last spillframgang,Tab navigation tooltip
+TIP_TAB_LOG,View event and simulation log,Vis hendelses- og simuleringslogg,Tab navigation tooltip
+TIP_ACTION_NEXT_DAY,Advance simulation one day,Fremskynd simulering én dag,Time control tooltip
+TIP_ACTION_SKIP_WEEK,Advance simulation 7 days,Fremskynd simulering 7 dager,Time control tooltip
+TIP_ACTION_SKIP_MONTH,Advance simulation 30 days,Fremskynd simulering 30 dager,Time control tooltip
+TIP_ACTION_BUY_SMOLT_STD,Purchase standard smolt 10K,Kjøp standard smolt 10K,Hatchery tooltip
+TIP_ACTION_BUY_SMOLT_PREM,Purchase premium smolt 10K,Kjøp premium smolt 10K,Hatchery tooltip
+TIP_ACTION_HARVEST_ALL,Harvest and sell ready batches,Høst og selg klare batch,Harvest tooltip
+TIP_ACTION_DELOUSE_PEN,Treat pen for sea lice,Behandle merd for lakselus,Pen action tooltip
+TIP_ACTION_HARVEST_PEN,Harvest fish from this pen,Høst fisk fra denne merden,Pen action tooltip
+TIP_ACTION_SELL_PEN,Sell pen and recover 50% value,Selg merd og få 50% verdi tilbake,Pen action tooltip
+TIP_ACTION_BUY_PEN,Purchase new pen facility,Kjøp ny merdfasilitet,Pen management tooltip
+TIP_STAT_CASH,Available funds for operations,Tilgjengelige midler for drift,Financial tooltip
+TIP_STAT_FISH_COUNT,Total fish across all pens,Totalt antall fisk i alle merder,Statistics tooltip
+TIP_STAT_FEED_COST,Daily feed expenditure,Daglig fôrforbruk,Financial tooltip
+TIP_STAT_REPUTATION,Company standing affects prices,Selskapets omdømme påvirker priser,Statistics tooltip
+TIP_STAT_SPOT_PRICE,Current market rate per kg,Gjeldende markedspris per kg,Market tooltip
+TIP_STAT_FCR,Feed conversion ratio efficiency,Fôromsetningsforhold effektivitet,Statistics tooltip
+TIP_STAT_BIOMASS,Total fish weight in tonnes,Totalt fiskevekt i tonn,Statistics tooltip
+TIP_STAT_HEALTH,Overall fish welfare status,Samlet fiskevelferdsstatus,Health tooltip
+TIP_STAT_LICE_LEVEL,Sea lice count per fish,Lakselustall per fisk,Health tooltip
+TIP_STATUS_HEALTHY,Fish in good condition,Fisk i god stand,Status tooltip
+TIP_STATUS_WARNING,Attention required — check metrics,Obs! Sjekk verdier,Status tooltip
+TIP_STATUS_DANGER,Critical — immediate action needed,Kritisk — umiddelbar handling nødvendig,Status tooltip
+TIP_KPI_REVENUE,Total income this period,Totale inntekter denne perioden,KPI tooltip
+TIP_KPI_EXPENSES,Total costs this period,Totale kostnader denne perioden,KPI tooltip
+TIP_KPI_PROFIT,Net revenue after costs,Netto inntekt etter kostnader,KPI tooltip
+TIP_ESG_CARBON,Environmental impact per kg,Miljøpåvirkning per kg,ESG tooltip
+TIP_ESG_ANTIBIOTIC,Medication usage level,Medikamentbruk nivå,ESG tooltip
+TIP_ESG_WELFARE,Fish quality of life score,Fiskevelferd score,ESG tooltip
+TIP_ESG_FEED,Sustainable feed sourcing,Bærekraftig fôrkilder,ESG tooltip
+TIP_ESG_ESCAPE,Risk of fish escaping,Risiko for rømning,ESG tooltip
+TIP_TECH_BIOLOGY,Biological research upgrades,Biologiske forskningsoppgraderinger,Tech tree tooltip
+TIP_TECH_INFRA,Facility improvements,Anleggsforbedringer,Tech tree tooltip
+TIP_TECH_UNDERWORLD,Unofficial operations,Uoffisielle operasjoner,Tech tree tooltip
+TIP_SAVE_QUICK,Quick save to slot 0,Hurtiglagre til plass 0,Save/load tooltip
+TIP_SAVE_SLOT,Save to numbered slot,Lagre til nummerert plass,Save/load tooltip
+TIP_LOAD_SLOT,Load from numbered slot,Last fra nummerert plass,Save/load tooltip
+TIP_DELETE_SLOT,Permanently remove save,Slett lagring permanent,Save/load tooltip
+TIP_STAFF_HIRE,Recruit new employee,Rekrutter ny ansatt,Staff tooltip
+TIP_STAFF_FIRE,Terminate employment,Avslutt ansettelse,Staff tooltip
+TIP_STAFF_TRAIN,Improve staff skills,Forbedre ansattes ferdigheter,Staff tooltip
+TIP_CONTRACT_ACCEPT,Agree to buyer terms,Godta kjøpers betingelser,Contract tooltip
+TIP_CONTRACT_NEGOTIATE,Counter offer price,Fremsett motpris,Contract tooltip
+TIP_CONTRACT_DECLINE,Reject offer,Avslå tilbud,Contract tooltip
+TIP_TRAFFIC_GREEN,6% growth allowed,6% vekst tillatt,Traffic light tooltip
+TIP_TRAFFIC_YELLOW,No growth change,Ingen vekstendring,Traffic light tooltip
+TIP_TRAFFIC_RED,6% reduction required,6% reduksjon påkrevd,Traffic light tooltip

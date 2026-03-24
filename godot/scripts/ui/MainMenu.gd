@@ -87,7 +87,7 @@ func _build_ui() -> void:
 	
 	# Title
 	title_label = Label.new()
-	title_label.text = "LAKSKONGEN"
+	title_label.text = tr("UI_MAINMENU_TITLE") if tr("UI_MAINMENU_TITLE") != "ui.mainmenu.title" else "LAKSKONGEN"
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", TITLE_SIZE)
 	title_label.add_theme_color_override("font_color", PRIMARY)
@@ -104,7 +104,7 @@ func _build_ui() -> void:
 	
 	# Subtitle
 	subtitle_label = Label.new()
-	subtitle_label.text = "Norsk Lakseoppdrett Simulator"
+	subtitle_label.text = tr("UI_MAINMENU_SUBTITLE") if tr("UI_MAINMENU_SUBTITLE") != "ui.mainmenu.subtitle" else "Norsk Lakseoppdrett Simulator"
 	subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle_label.add_theme_font_size_override("font_size", SUBTITLE_SIZE)
 	subtitle_label.add_theme_color_override("font_color", TEXT_MUTED)
@@ -269,3 +269,12 @@ func _disable_all() -> void:
 	btn_load.disabled = true
 	btn_settings.disabled = true
 	btn_quit.disabled = true
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		if scenario_panel and scenario_panel.visible:
+			_on_scenario_close()
+			get_viewport().set_input_as_handled()
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

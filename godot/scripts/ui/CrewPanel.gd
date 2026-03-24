@@ -76,7 +76,7 @@ func _build_ui() -> void:
 	var header := HBoxContainer.new()
 	root.add_child(header)
 	var title := Label.new()
-	title.text = "👷 Mannskap"
+	title.text = tr("👷 Mannskap")
 	title.add_theme_font_size_override("font_size", 24)
 	title.add_theme_color_override("font_color", C_TEXT)
 	if _theme and _theme.font_heading_bold:
@@ -144,8 +144,8 @@ func _refresh_kpis() -> void:
 		total_salary += w.get("salary", 35000.0)
 		total_morale += w.get("morale", 75.0)
 
-	_kpi_payroll.text = "%.0f kNOK" % (total_salary / 1000.0) if total_salary > 0 else "--"
-	_kpi_morale.text = "%d%%" % int(total_morale / max(crew.size(), 1))
+	_kpi_payroll.text = tr("%.0f kNOK") % (total_salary / 1000.0) if total_salary > 0 else "--"
+	_kpi_morale.text = tr("%d%%") % int(total_morale / max(crew.size(), 1))
 	_kpi_efficiency.text = "87%"  # Mock
 
 func _refresh_crew_list() -> void:
@@ -223,7 +223,7 @@ func _refresh_crew_list() -> void:
 
 		# XP
 		var xp_lbl := Label.new()
-		xp_lbl.text = "%d XP" % w.get("xp", 0)
+		xp_lbl.text = tr("%d XP") % w.get("xp", 0)
 		xp_lbl.add_theme_font_size_override("font_size", 12)
 		xp_lbl.add_theme_color_override("font_color", C_ACCENT)
 		if _theme and _theme.font_mono:
@@ -233,7 +233,7 @@ func _refresh_crew_list() -> void:
 		# Morale
 		var morale: int = w.get("morale", 75)
 		var morale_lbl := Label.new()
-		morale_lbl.text = "%d%%" % morale
+		morale_lbl.text = tr("%d%%") % morale
 		morale_lbl.add_theme_font_size_override("font_size", 12)
 		morale_lbl.add_theme_color_override("font_color", C_SUCCESS_D if morale >= 80 else (C_WARNING_D if morale >= 60 else C_DANGER))
 		if _theme and _theme.font_mono:
@@ -389,3 +389,6 @@ func _make_btn(text: String, color: Color) -> Button:
 	btn.add_theme_color_override("font_color", Color.WHITE)
 	btn.add_theme_font_size_override("font_size", 13)
 	return btn
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

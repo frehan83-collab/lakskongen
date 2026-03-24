@@ -50,3 +50,4 @@ func phenotype(genetics: Dictionary) -> Dictionary:
                 score += 1
         out[locus] = score
     return out
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

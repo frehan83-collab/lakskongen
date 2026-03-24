@@ -224,3 +224,4 @@ func get_scenario_summary(scenario_id: String) -> String:
 	summary += "Goal: %s\n" % scenario.get("goal", {}).get("description", "")
 	
 	return summary
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

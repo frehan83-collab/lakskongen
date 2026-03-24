@@ -156,7 +156,7 @@ func _build_skeleton() -> void:
 
 	# ── Title bar ──
 	var title_lbl := Label.new()
-	title_lbl.text = tr("ui.scenario.title")
+	title_lbl.text = tr("UI_SCENARIO_TITLE")
 	title_lbl.add_theme_font_size_override("font_size", 22)
 	title_lbl.modulate = C_TITLE
 	title_lbl.position = Vector2(28, 14)
@@ -164,7 +164,7 @@ func _build_skeleton() -> void:
 	add_child(title_lbl)
 
 	var subtitle_lbl := Label.new()
-	subtitle_lbl.text = tr("ui.scenario.subtitle")
+	subtitle_lbl.text = tr("UI_SCENARIO_SUBTITLE")
 	subtitle_lbl.add_theme_font_size_override("font_size", 13)
 	subtitle_lbl.modulate = C_DIM
 	subtitle_lbl.position = Vector2(28, 38)
@@ -172,7 +172,7 @@ func _build_skeleton() -> void:
 
 	# ── Close button ──
 	var close_btn := Button.new()
-	close_btn.text = "✕"
+	close_btn.text = tr("✕")
 	close_btn.position = Vector2(PANEL_W - 44, 10)
 	close_btn.size = Vector2(32, 32)
 	close_btn.add_theme_font_size_override("font_size", 16)
@@ -231,7 +231,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	vbox.add_child(header)
 
 	var icon_lbl := Label.new()
-	icon_lbl.text = "🔒" if locked else s["icon"]
+	icon_lbl.text = tr("🔒")
 	icon_lbl.add_theme_font_size_override("font_size", 36)
 	header.add_child(icon_lbl)
 
@@ -258,14 +258,14 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	vbox.add_child(stars_row)
 
 	var diff_prefix := Label.new()
-	diff_prefix.text = "Vanskelighet  "
+	diff_prefix.text = tr("Vanskelighet  ")
 	diff_prefix.add_theme_font_size_override("font_size", 12)
 	diff_prefix.add_theme_color_override("font_color", C_DIM)
 	stars_row.add_child(diff_prefix)
 
 	for si in 5:
 		var star := Label.new()
-		star.text = "★"
+		star.text = tr("★")
 		star.add_theme_font_size_override("font_size", 16)
 		var star_color: Color = C_STAR_OFF
 		if not locked and si < s["difficulty"]:
@@ -302,13 +302,13 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	vbox.add_child(meta)
 
 	var region_lbl := Label.new()
-	region_lbl.text = tr("ui.scenario.region_icon") + " " + s["region"]
+	region_lbl.text = tr("UI_SCENARIO_REGION_ICON") + " " + s["region"]
 	region_lbl.add_theme_font_size_override("font_size", 12)
 	region_lbl.add_theme_color_override("font_color", C_DIM)
 	meta.add_child(region_lbl)
 
 	var cap_lbl := Label.new()
-	cap_lbl.text = tr("ui.scenario.capital_icon") + " " + s["capital"]
+	cap_lbl.text = tr("UI_SCENARIO_CAPITAL_ICON") + " " + s["capital"]
 	cap_lbl.add_theme_font_size_override("font_size", 12)
 	if not locked:
 		cap_lbl.add_theme_color_override("font_color", C_NEGATIVE if s["capital_neg"] else C_POSITIVE)
@@ -317,7 +317,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	meta.add_child(cap_lbl)
 
 	var win_lbl := Label.new()
-	win_lbl.text = tr("ui.scenario.win_icon") + " " + s["win"]
+	win_lbl.text = tr("UI_SCENARIO_WIN_ICON") + " " + s["win"]
 	win_lbl.add_theme_font_size_override("font_size", 11)
 	win_lbl.add_theme_color_override("font_color", C_DIM if locked else s["color"].lightened(0.2))
 	win_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -329,7 +329,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	btn.add_theme_font_size_override("font_size", 14)
 
 	if locked:
-		btn.text = "🔒  LÅST"
+		btn.text = tr("🔒  LÅST")
 		btn.tooltip_text = "Dette scenariet er låst. Fullfør andre scenarier for å låse opp."
 		btn.disabled = true
 		var lock_style := StyleBoxFlat.new()
@@ -339,7 +339,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 		btn.add_theme_stylebox_override("disabled", lock_style)
 		btn.add_theme_color_override("font_disabled_color", C_LOCKED_TXT)
 	else:
-		btn.text = "▶  START SCENARIO"
+		btn.text = tr("▶  START SCENARIO")
 		btn.tooltip_text = "Start dette scenariet (Enter)"
 		var n := StyleBoxFlat.new()
 		n.bg_color = s["color"].darkened(0.25)
@@ -366,3 +366,6 @@ func _on_start_pressed(scenario_id: String) -> void:
 	var tw := create_tween()
 	tw.tween_property(self, "modulate:a", 0.0, 0.35)
 	tw.finished.connect(queue_free)
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

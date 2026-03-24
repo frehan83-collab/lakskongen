@@ -3,6 +3,7 @@ using LakskongenSim.Core;
 using LakskongenSim.Finance;
 using LakskongenSim.Biology;
 using LakskongenSim.Data;
+using LakskongenSim.Integration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,6 +28,10 @@ public partial class GameBridge : Node
     // ── Engine reference ──────────────────────────────────────────────────────
 
     public SimulationEngine SimulationEngine { get; private set; }
+
+    // ── Dashboard Data Provider ──────────────────────────────────────────────────
+
+    private DashboardDataProvider _dashboardDataProvider;
 
     // ── Auto-tick timer ───────────────────────────────────────────────────────
 
@@ -55,13 +60,14 @@ public partial class GameBridge : Node
     public override void _Ready()
     {
         SimulationEngine = new SimulationEngine();
+        _dashboardDataProvider = new DashboardDataProvider(SimulationEngine);
 
         _simulationTimer = new Timer();
         _simulationTimer.WaitTime = 1.0f; // 1 second = 1 simulated day at 1x
         _simulationTimer.Timeout += OnSimulationTick;
         AddChild(_simulationTimer);
 
-        GD.Print("GameBridge: initialized");
+        GD.Print("GameBridge: initialized with dashboard data provider");
     }
 
     // ── Game management ───────────────────────────────────────────────────────
@@ -2865,6 +2871,216 @@ public partial class GameBridge : Node
     {
         var milestones = SimulationEngine?.VisualMilestones;
         return milestones?.GetProgress() ?? 0.0;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    // DASHBOARD API - Financial Dashboards Integration
+    // ══════════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Returns P&L statement data as a Godot Dictionary.
+    /// Keys: "revenue", "cost_of_sales", "gross_profit", "operating_expenses",
+    ///       "ebitda", "depreciation", "ebit", "interest", "tax", "net_profit",
+    ///       "gross_margin_pct", "operating_margin_pct", "net_margin_pct".
+    /// </summary>
+    public Godot.Collections.Dictionary GetPLData()
+    {
+        if (_dashboardDataProvider == null)
+        {
+            GD.PrintErr("GameBridge: DashboardDataProvider not initialized");
+            return new Godot.Collections.Dictionary();
+        }
+
+        var plData = _dashboardDataProvider.GetPLData();
+        var result = new Godot.Collections.Dictionary();
+
+        foreach (var kvp in plData)
+        {
+            result[kvp.Key] = kvp.Value;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns 12-month cash flow forecast as a Godot Array of Dictionaries.
+    /// Each entry: "month", "operating_cash", "investing_cash", "financing_cash", "net_cash", "cumulative_cash".
+    /// </summary>
+    public Godot.Collections.Array GetCashFlowForecast()
+    {
+        if (_dashboardDataProvider == null)
+        {
+            GD.PrintErr("GameBridge: DashboardDataProvider not initialized");
+            return new Godot.Collections.Array();
+        }
+
+        var forecast = _dashboardDataProvider.GetCashFlowForecast();
+        var result = new Godot.Collections.Array();
+
+        foreach (var month in forecast)
+        {
+            var dict = new Godot.Collections.Dictionary();
+            foreach (var kvp in month)
+            {
+                dict[kvp.Key] = kvp.Value;
+            }
+            result.Add(dict);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns ROI analysis data as a Godot Dictionary.
+    /// Keys: "total_investment", "annual_return", "roi_pct", "payback_months",
+    ///       "npv", "irr_pct", "break_even_month".
+    /// </summary>
+    public Godot.Collections.Dictionary GetROIAnalysis()
+    {
+        if (_dashboardDataProvider == null)
+        {
+            GD.PrintErr("GameBridge: DashboardDataProvider not initialized");
+            return new Godot.Collections.Dictionary();
+        }
+
+        var roiData = _dashboardDataProvider.GetROIAnalysis();
+        var result = new Godot.Collections.Dictionary();
+
+        foreach (var kvp in roiData)
+        {
+            result[kvp.Key] = kvp.Value;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns detailed cost breakdown as a Godot Dictionary.
+    /// Keys: "opex_feed", "opex_labor", "opex_maintenance", "opex_licenses",
+    ///       "opex_delousing", "opex_other", "opex_total",
+    ///       "capex_licenses", "capex_pens", "capex_equipment", "capex_ras",
+    ///       "capex_offshore", "capex_total".
+    /// </summary>
+    public Godot.Collections.Dictionary GetCostBreakdown()
+    {
+        if (_dashboardDataProvider == null)
+        {
+            GD.PrintErr("GameBridge: DashboardDataProvider not initialized");
+            return new Godot.Collections.Dictionary();
+        }
+
+        var costData = _dashboardDataProvider.GetCostBreakdown();
+        var result = new Godot.Collections.Dictionary();
+
+        foreach (var kvp in costData)
+        {
+            result[kvp.Key] = kvp.Value;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns market price chart data (current + 30-day history) as a Godot Array of Dictionaries.
+    /// Each entry: "day", "price_per_kg", "weekly_avg", "volume_tonnes".
+    /// </summary>
+    public Godot.Collections.Array GetMarketPrices()
+    {
+        if (_dashboardDataProvider == null)
+        {
+            GD.PrintErr("GameBridge: DashboardDataProvider not initialized");
+            return new Godot.Collections.Array();
+        }
+
+        var prices = _dashboardDataProvider.GetMarketPrices();
+        var result = new Godot.Collections.Array();
+
+        foreach (var price in prices)
+        {
+            var dict = new Godot.Collections.Dictionary();
+            foreach (var kvp in price)
+            {
+                dict[kvp.Key] = kvp.Value;
+            }
+            result.Add(dict);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns production cost per kg data as a Godot Dictionary.
+    /// Keys: "total_cost_per_kg", "feed_cost_per_kg", "labor_cost_per_kg",
+    ///       "maintenance_cost_per_kg", "other_cost_per_kg", "total_biomass_kg",
+    ///       "fcr", "benchmark_cost_per_kg", "vs_benchmark_pct".
+    /// </summary>
+    public Godot.Collections.Dictionary GetProductionCosts()
+    {
+        if (_dashboardDataProvider == null)
+        {
+            GD.PrintErr("GameBridge: DashboardDataProvider not initialized");
+            return new Godot.Collections.Dictionary();
+        }
+
+        var costData = _dashboardDataProvider.GetProductionCosts();
+        var result = new Godot.Collections.Dictionary();
+
+        foreach (var kvp in costData)
+        {
+            result[kvp.Key] = kvp.Value;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns scenario comparison data as a Godot Array of Dictionaries.
+    /// Each scenario: "name", "revenue", "cost", "profit", "roi_pct", "risk_score".
+    /// </summary>
+    public Godot.Collections.Array GetScenarioComparison()
+    {
+        if (_dashboardDataProvider == null)
+        {
+            GD.PrintErr("GameBridge: DashboardDataProvider not initialized");
+            return new Godot.Collections.Array();
+        }
+
+        var scenarios = _dashboardDataProvider.GetScenarioComparison();
+        var result = new Godot.Collections.Array();
+
+        foreach (var scenario in scenarios)
+        {
+            var dict = new Godot.Collections.Dictionary();
+            foreach (var kvp in scenario)
+            {
+                dict[kvp.Key] = kvp.Value;
+            }
+            result.Add(dict);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns AI advisor recommendations as a Godot Array of strings.
+    /// </summary>
+    public Godot.Collections.Array<string> GetAdvisorRecommendations()
+    {
+        if (_dashboardDataProvider == null)
+        {
+            GD.PrintErr("GameBridge: DashboardDataProvider not initialized");
+            return new Godot.Collections.Array<string>();
+        }
+
+        var recommendations = _dashboardDataProvider.GetAdvisorRecommendations();
+        var result = new Godot.Collections.Array<string>();
+
+        foreach (var recommendation in recommendations)
+        {
+            result.Add(recommendation);
+        }
+
+        return result;
     }
 
     public override void _ExitTree()

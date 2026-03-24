@@ -50,7 +50,7 @@ func _ready() -> void:
 
     # Title
     _title_label = Label.new()
-    _title_label.text = "KONTRAKTSFORHANDLING"
+    _title_label.text = tr("KONTRAKTSFORHANDLING")
     _title_label.add_theme_font_size_override("font_size", FONT_XL_SIZE)
     _title_label.add_theme_color_override("font_color", COLOR_ACCENT)
     _title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -75,7 +75,7 @@ func _ready() -> void:
     main_vbox.add_child(_negotiation_vbox)
     
     var counter_price_label = Label.new()
-    counter_price_label.text = "Din motpris:"
+    counter_price_label.text = tr("Din motpris:")
     counter_price_label.add_theme_color_override("font_color", COLOR_TEXT)
     _negotiation_vbox.add_child(counter_price_label)
 
@@ -86,7 +86,7 @@ func _ready() -> void:
     _negotiation_vbox.add_child(_slider_price)
 
     _slider_price_value_label = Label.new()
-    _slider_price_value_label.text = "0.0 NOK/kg"
+    _slider_price_value_label.text = tr("0.0 NOK/kg")
     _slider_price_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     _slider_price_value_label.add_theme_color_override("font_color", COLOR_TEXT)
     _negotiation_vbox.add_child(_slider_price_value_label)
@@ -107,19 +107,19 @@ func _ready() -> void:
     main_vbox.add_child(_buttons_hbox)
 
     var accept_button = Button.new()
-    accept_button.text = "AKSEPTER TILBUD"
+    accept_button.text = tr("AKSEPTER TILBUD")
     accept_button.add_theme_color_override("font_color", COLOR_ACCENT)
     accept_button.pressed.connect(_on_accept_button_pressed)
     _buttons_hbox.add_child(accept_button)
 
     var negotiate_button = Button.new()
-    negotiate_button.text = "FORHANDL"
+    negotiate_button.text = tr("FORHANDL")
     negotiate_button.add_theme_color_override("font_color", COLOR_ACCENT)
     negotiate_button.pressed.connect(_on_negotiate_button_pressed)
     _buttons_hbox.add_child(negotiate_button)
 
     var decline_button = Button.new()
-    decline_button.text = "AVSLÅ"
+    decline_button.text = tr("AVSLÅ")
     decline_button.add_theme_color_override("font_color", COLOR_DANGER)
     decline_button.pressed.connect(_on_decline_button_pressed)
     _buttons_hbox.add_child(decline_button)
@@ -222,3 +222,15 @@ func _on_decline_button_pressed() -> void:
 func _hide_dialog() -> void:
     visible = false
 
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_close_requested()
+
+func _on_close_requested() -> void:
+	hide()
+
+
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

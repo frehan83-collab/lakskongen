@@ -1,0 +1,141 @@
+[gd_scene load_steps=2 format=3 uid="uid://c8qx2v3n4m5p7"]
+
+[ext_resource type="Script" path="res://scripts/ui/MapPanelEnhanced.gd" id="1_enhanced_map"]
+
+[node name="MapPanelEnhanced" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_enhanced_map")
+
+[node name="Overlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.18, 0.2, 0.25, 0.6)
+
+[node name="MainPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_top = -350.0
+offset_right = 500.0
+offset_bottom = 350.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="MainPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBox" type="VBoxContainer" parent="MainPanel/Margin"]
+layout_mode = 2
+
+[node name="Header" type="HBoxContainer" parent="MainPanel/Margin/VBox"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MainPanel/Margin/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "🗺️ SELECT REGION — NORWEGIAN COASTLINE"
+
+[node name="CloseBtn" type="Button" parent="MainPanel/Margin/VBox/Header"]
+layout_mode = 2
+text = "✕"
+
+[node name="LayerToolbar" type="HBoxContainer" parent="MainPanel/Margin/VBox"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MainPanel/Margin/VBox/LayerToolbar"]
+layout_mode = 2
+text = "Environmental Layers:"
+
+[node name="RegionsBtn" type="Button" parent="MainPanel/Margin/VBox/LayerToolbar"]
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+text = "Regions"
+
+[node name="TempBtn" type="Button" parent="MainPanel/Margin/VBox/LayerToolbar"]
+layout_mode = 2
+toggle_mode = true
+text = "🌡️ Temperature"
+
+[node name="OxygenBtn" type="Button" parent="MainPanel/Margin/VBox/LayerToolbar"]
+layout_mode = 2
+toggle_mode = true
+text = "💨 Oxygen"
+
+[node name="CurrentsBtn" type="Button" parent="MainPanel/Margin/VBox/LayerToolbar"]
+layout_mode = 2
+toggle_mode = true
+text = "🌊 Currents"
+
+[node name="QualityBtn" type="Button" parent="MainPanel/Margin/VBox/LayerToolbar"]
+layout_mode = 2
+toggle_mode = true
+text = "⭐ Quality"
+
+[node name="HSeparator" type="HSeparator" parent="MainPanel/Margin/VBox"]
+layout_mode = 2
+
+[node name="Body" type="HBoxContainer" parent="MainPanel/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MapArea" type="PanelContainer" parent="MainPanel/Margin/VBox/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MapContainer" type="Control" parent="MainPanel/Margin/VBox/Body/MapArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="LegendPanel" type="PanelContainer" parent="MainPanel/Margin/VBox/Body/MapArea/MapContainer"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 410.0
+offset_right = 150.0
+offset_bottom = 520.0
+
+[node name="VBox" type="VBoxContainer" parent="MainPanel/Margin/VBox/Body/MapArea/MapContainer/LegendPanel"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MainPanel/Margin/VBox/Body/MapArea/MapContainer/LegendPanel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Legend"
+
+[node name="DetailPanel" type="PanelContainer" parent="MainPanel/Margin/VBox/Body"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="MainPanel/Margin/VBox/Body/DetailPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="MainPanel/Margin/VBox/Body/DetailPanel/Margin"]
+layout_mode = 2
+
+[node name="Placeholder" type="Label" parent="MainPanel/Margin/VBox/Body/DetailPanel/Margin/VBox"]
+layout_mode = 2
+text = "Select a region to view detailed environmental data including temperature, oxygen levels, current speeds, and quality scores."
+autowrap_mode = 3

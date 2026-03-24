@@ -23,3 +23,4 @@ func _ready() -> void:
 		water.position.y = -1.0
 	
 	print("FjordTerrain3D: ready")
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

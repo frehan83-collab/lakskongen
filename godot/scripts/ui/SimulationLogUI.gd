@@ -8,7 +8,7 @@ func _ready():
     # Opprett dag-teller
     day_label = Label.new()
     day_label.name = "DayLabel"
-    day_label.text = "DAY: 0"
+    day_label.text = tr("DAY: 0")
     add_child(day_label)
 
     # Opprett logg-konsoll
@@ -35,3 +35,15 @@ func _on_day_ticked(day: int, log_summary: String):
     day_label.text = "DAY: " + str(day)
     log_text_label.append_text(log_summary + "\n")
     log_text_label.scroll_to_line(log_text_label.get_line_count() - 1) # Scroll til bunnen
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_close_requested()
+
+func _on_close_requested() -> void:
+	hide()
+
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

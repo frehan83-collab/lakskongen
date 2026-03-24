@@ -402,19 +402,19 @@ func _build_header() -> Control:
 	m.add_child(inner)
 
 	var map_icon := Label.new()
-	map_icon.text = "🗺️  "
+	map_icon.text = tr("🗺️  ")
 	map_icon.add_theme_font_size_override("font_size", 22)
 	inner.add_child(map_icon)
 
 	var title := Label.new()
-	title.text = "SELECT REGION — NORWEGIAN COASTLINE"
+	title.text = tr("SELECT REGION — NORWEGIAN COASTLINE")
 	title.add_theme_font_size_override("font_size", 20)
 	title.add_theme_color_override("font_color", TEXT_TITLE)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	inner.add_child(title)
 
 	var subtitle := Label.new()
-	subtitle.text = tr("ui.map.subtitle")
+	subtitle.text = tr("UI_MAP_SUBTITLE")
 	subtitle.add_theme_font_size_override("font_size", 13)
 	subtitle.add_theme_color_override("font_color", TEXT_MUTED)
 	subtitle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -449,7 +449,7 @@ func _build_map_area() -> Control:
 
 	# "Norway" title
 	var map_title := Label.new()
-	map_title.text = tr("ui.map.norway")
+	map_title.text = tr("UI_MAP_NORWAY")
 	map_title.add_theme_font_size_override("font_size", 11)
 	map_title.add_theme_color_override("font_color", TEXT_MUTED)
 	map_title.set_anchors_preset(Control.PRESET_TOP_LEFT)
@@ -458,7 +458,7 @@ func _build_map_area() -> Control:
 
 	# Compass rose
 	var compass := Label.new()
-	compass.text = tr("ui.map.compass_n")
+	compass.text = tr("UI_MAP_COMPASS_N")
 	compass.add_theme_font_size_override("font_size", 13)
 	compass.add_theme_color_override("font_color", TEXT_ACCENT)
 	compass.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -532,7 +532,7 @@ func _build_detail_panel() -> Control:
 	inner.add_child(name_row)
 
 	_detail_icon = Label.new()
-	_detail_icon.text = "🗺️"
+	_detail_icon.text = tr("🗺️")
 	_detail_icon.add_theme_font_size_override("font_size", 36)
 	name_row.add_child(_detail_icon)
 
@@ -540,13 +540,13 @@ func _build_detail_panel() -> Control:
 	name_row.add_child(name_col)
 
 	_detail_name = Label.new()
-	_detail_name.text = tr("ui.map.select_region")
+	_detail_name.text = tr("UI_MAP_SELECT_REGION")
 	_detail_name.add_theme_font_size_override("font_size", 20)
 	_detail_name.add_theme_color_override("font_color", TEXT_TITLE)
 	name_col.add_child(_detail_name)
 
 	_detail_zone = Label.new()
-	_detail_zone.text = tr("ui.map.click_prompt")
+	_detail_zone.text = tr("UI_MAP_CLICK_PROMPT")
 	_detail_zone.add_theme_font_size_override("font_size", 13)
 	_detail_zone.add_theme_color_override("font_color", TEXT_MUTED)
 	name_col.add_child(_detail_zone)
@@ -555,7 +555,7 @@ func _build_detail_panel() -> Control:
 
 	# Description
 	_detail_desc = Label.new()
-	_detail_desc.text = tr("ui.map.region_desc")
+	_detail_desc.text = tr("UI_MAP_REGION_DESC")
 	_detail_desc.add_theme_font_size_override("font_size", 14)
 	_detail_desc.add_theme_color_override("font_color", TEXT_BODY)
 	_detail_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -576,13 +576,13 @@ func _build_detail_panel() -> Control:
 	inner.add_child(temp_section)
 
 	var temp_hdr := Label.new()
-	temp_hdr.text = "WATER TEMPERATURE RANGE"
+	temp_hdr.text = tr("WATER TEMPERATURE RANGE")
 	temp_hdr.add_theme_font_size_override("font_size", 11)
 	temp_hdr.add_theme_color_override("font_color", TEXT_MUTED)
 	temp_section.add_child(temp_hdr)
 
 	_detail_temp = Label.new()
-	_detail_temp.text = "—"
+	_detail_temp.text = tr("—")
 	_detail_temp.add_theme_font_size_override("font_size", 15)
 	_detail_temp.add_theme_color_override("font_color", TEXT_ACCENT)
 	temp_section.add_child(_detail_temp)
@@ -594,7 +594,7 @@ func _build_detail_panel() -> Control:
 
 	# Optimal range label
 	var optimal_lbl := Label.new()
-	optimal_lbl.text = "Optimal: 12–16 °C  |  Max tolerance: 20 °C"
+	optimal_lbl.text = tr("Optimal: 12–16 °C  |  Max tolerance: 20 °C")
 	optimal_lbl.add_theme_font_size_override("font_size", 11)
 	optimal_lbl.add_theme_color_override("font_color", TEXT_MUTED)
 	temp_section.add_child(optimal_lbl)
@@ -607,7 +607,7 @@ func _build_detail_panel() -> Control:
 	inner.add_child(risk_section)
 
 	var risk_hdr := Label.new()
-	risk_hdr.text = "DISEASE RISK"
+	risk_hdr.text = tr("DISEASE RISK")
 	risk_hdr.add_theme_font_size_override("font_size", 11)
 	risk_hdr.add_theme_color_override("font_color", TEXT_MUTED)
 	risk_section.add_child(risk_hdr)
@@ -629,7 +629,7 @@ func _build_detail_panel() -> Control:
 	risk_row.add_child(_detail_risk_indicator)
 
 	_detail_risk_label = Label.new()
-	_detail_risk_label.text = "—"
+	_detail_risk_label.text = tr("—")
 	_detail_risk_label.add_theme_font_size_override("font_size", 15)
 	_detail_risk_label.add_theme_color_override("font_color", TEXT_BODY)
 	risk_row.add_child(_detail_risk_label)
@@ -710,7 +710,7 @@ func _show_region(region_id: String) -> void:
 	_detail_distance.text = r["distance_to_processing"]
 	_detail_processing.text = r["processing_hub"]
 	_detail_harvest.text = str(r["annual_harvest_kt"]) + " 000 tonnes/year"
-	_detail_operators.text = "\n".join(r.get("key_operators", []))
+	_detail_operators.text = tr("\n")
 
 	var risk: String = r["disease_risk"]
 	_detail_risk_label.text = risk
@@ -732,21 +732,21 @@ func _show_region(region_id: String) -> void:
 
 func _clear_selection() -> void:
 	_selected_region_id = ""
-	_detail_name.text = tr("ui.map.select_region")
-	_detail_zone.text = tr("ui.map.click_prompt")
-	_detail_icon.text = "🗺️"
-	_detail_desc.text = tr("ui.map.region_desc")
-	_detail_licenses.text = "—"
-	_detail_temp.text = "—"
-	_detail_distance.text = "—"
-	_detail_processing.text = "—"
-	_detail_harvest.text = "—"
-	_detail_operators.text = "—"
-	_detail_risk_label.text = "—"
+	_detail_name.text = tr("UI_MAP_SELECT_REGION")
+	_detail_zone.text = tr("UI_MAP_CLICK_PROMPT")
+	_detail_icon.text = tr("🗺️")
+	_detail_desc.text = tr("UI_MAP_REGION_DESC")
+	_detail_licenses.text = tr("—")
+	_detail_temp.text = tr("—")
+	_detail_distance.text = tr("—")
+	_detail_processing.text = tr("—")
+	_detail_harvest.text = tr("—")
+	_detail_operators.text = tr("—")
+	_detail_risk_label.text = tr("—")
 	_detail_risk_label.add_theme_color_override("font_color", TEXT_BODY)
 	_detail_risk_indicator.color = TEXT_MUTED
 	_confirm_btn.disabled = true
-	_confirm_btn.text = "  SELECT THIS REGION  "
+	_confirm_btn.text = tr("  SELECT THIS REGION  ")
 	var dd_lbl := _detail_panel.find_child("DiseaseDetails", true, false) as Label
 	if dd_lbl:
 		dd_lbl.text = ""
@@ -1030,3 +1030,6 @@ class _TempBar extends Control:
 		for t in [5, 10, 12, 15, 16, 20]:
 			var tx := float(t) / total_range * w
 			draw_line(Vector2(tx, h * 0.8), Vector2(tx, h), Color(1, 1, 1, 0.3), 1.0)
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

@@ -89,3 +89,4 @@ func _on_skip_pressed():
 	)
 	confirm.canceled.connect(func(): confirm.queue_free())
 	confirm.popup_centered()
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

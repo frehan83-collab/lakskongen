@@ -39,12 +39,12 @@ layout_mode = 2
 custom_minimum_size = Vector2(600, 500)
 
 [node name="Panel" type="StyleBoxFlat" parent="CenterContainer/Panel"]
-bg_color = Color(0.071, 0.095, 0.125, 1)
+bg_color = Color(0.059, 0.122, 0.2, 1)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.165, 0.478, 0.549, 1)
+border_color = Color(0.165, 0.718, 0.71, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
@@ -213,7 +213,7 @@ value = 5.0
 layout_mode = 2
 [node name="TutorialCheckBox" type="CheckBox" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Spill/VBoxContainer/TutorialContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
+theme_override_colors/font_color = Color(0.91, 0.957, 0.973, 1)
 text = tr("ui.settings.tutorial_enabled")
 
 [node name="Kontroller" type="ScrollContainer" parent="CenterContainer/Panel/VBoxContainer/TabContainer"]
@@ -227,4 +227,4 @@ size_flags_vertical = 3
 [node name="Label" type="Label" parent="CenterContainer/Panel/VBoxContainer/TabContainer/Kontroller/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.902, 0.933, 0.953, 1)
-text = tr("ui.settingsmenu.kontrolltilordningko")
+text = tr("ui.settingsmenu.kontrolltilordningko")))

@@ -213,3 +213,4 @@ func _setup_highlight_container():
 	highlight_container = HighlightDrawer.new(self)
 	highlight_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(highlight_container)
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

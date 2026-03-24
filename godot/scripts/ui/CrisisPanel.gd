@@ -122,11 +122,11 @@ func _on_crisis_triggered(crisis_data: Dictionary):
     # Show advisor hint based on crisis phase
     var phase = crisis_data.get("phase", "Warning")
     if phase == "Warning":
-        advisor_hint.text = "[i]Advisor: You have 3 days to respond before escalation.[/i]"
+        advisor_hint.text = tr("[i]Advisor: You have 3 days to respond before escalation.[/i]")
     elif phase == "Escalation":
-        advisor_hint.text = "[i]Advisor: Immediate action required! Crisis worsening.[/i]"
+        advisor_hint.text = tr("[i]Advisor: Immediate action required! Crisis worsening.[/i]")
     elif phase == "FullCrisis":
-        advisor_hint.text = "[i]Advisor: CATASTROPHIC — Damage control only.[/i]"
+        advisor_hint.text = tr("[i]Advisor: CATASTROPHIC — Damage control only.[/i]")
     
     # Show and animate
     animation_player.play("crisis_pulse")
@@ -273,9 +273,9 @@ func _process(delta):
         var time_left = crisis_manager.get_crisis_time_remaining(current_crisis_id)
         
         if time_left <= 0:
-            timer_label.text = "TIME EXPIRED"
+            timer_label.text = tr("TIME EXPIRED")
         elif time_left == 1:
-            timer_label.text = "FINAL DAY TO ACT"
+            timer_label.text = tr("FINAL DAY TO ACT")
             timer_label.add_theme_color_override("font_color", LakskongenTheme.DANGER)
         elif time_left <= 3:
             timer_label.text = "URGENT: %d DAYS REMAINING" % time_left
@@ -284,4 +284,15 @@ func _process(delta):
             timer_label.text = "ACT IN %d DAYS" % time_left
             timer_label.add_theme_color_override("font_color", LakskongenTheme.WARNING)
     else:
-        timer_label.text = "TIME LIMITED"
+        timer_label.text = tr("TIME LIMITED")
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_close_requested()
+
+func _on_close_requested() -> void:
+	hide()
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

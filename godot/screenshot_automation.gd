@@ -272,3 +272,4 @@ func finish_capture():
 	print("")
 	
 	quit()
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

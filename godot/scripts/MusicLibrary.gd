@@ -92,3 +92,4 @@ static func alert_sfx(key: String) -> String:
 ## Return the resource path for a UI sound, or "" if not found.
 static func ui_sfx(key: String) -> String:
 	return UI_SFX.get(key, "")
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

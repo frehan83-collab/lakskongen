@@ -231,10 +231,10 @@ func _update_save_slot_ui(slot_number: int):
             slot_info_label.text = "Day %d — Cash: %d NOK" % [day, cash]
             slot_date_label.text = "Saved: %s" % save_time
         else:
-            slot_info_label.text = "Corrupted Save"
+            slot_info_label.text = tr("Corrupted Save")
             slot_date_label.text = ""
     else:
-        slot_info_label.text = "Empty"
+        slot_info_label.text = tr("Empty")
         slot_date_label.text = ""
 
 func _update_all_save_slots_ui():
@@ -301,4 +301,16 @@ func _on_delete(slot: int):
             print("Error opening user:// directory to delete file.")
     else:
         print("No save file found to delete for slot %d" % slot)
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_close_requested()
+
+func _on_close_requested() -> void:
+	hide()
+
 #endregion
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

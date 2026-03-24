@@ -300,3 +300,4 @@ static func get_label_style(font_size: int = FONT_BODY, font_color: Color = TEXT
 	label_settings.font_size = font_size
 	label_settings.font_color = font_color
 	return {"settings": label_settings}
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

@@ -112,8 +112,8 @@ func _build_ui() -> void:
 	margin.add_child(inner_hbox)
 
 	var title_lbl := Label.new()
-	title_lbl.text = tr("ui.modmanager.title")
-	title_lbl.tooltip_text = tr("ui.modmanager.tooltip")
+	title_lbl.text = tr("UI_MODMANAGER_TITLE")
+	title_lbl.tooltip_text = tr("UI_MODMANAGER_TOOLTIP")
 	title_lbl.add_theme_color_override("font_color", COLOR_TEXT_BRIGHT)
 	title_lbl.add_theme_font_size_override("font_size", 18)
 	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -126,7 +126,7 @@ func _build_ui() -> void:
 	inner_hbox.add_child(_status_label)
 
 	var close_btn := Button.new()
-	close_btn.text = "✕"
+	close_btn.text = tr("✕")
 	close_btn.flat = true
 	close_btn.tooltip_text = "Lukk modbehandler (Esc)"
 	close_btn.add_theme_color_override("font_color", COLOR_TEXT_DIM)
@@ -209,7 +209,7 @@ func _build_detail_pane() -> void:
 	margin.add_child(vbox)
 
 	_detail_name = Label.new()
-	_detail_name.text = tr("ui.modmanager.no_selection")
+	_detail_name.text = tr("UI_MODMANAGER_NO_SELECTION")
 	_detail_name.add_theme_color_override("font_color", COLOR_TEXT_BRIGHT)
 	_detail_name.add_theme_font_size_override("font_size", 16)
 	_detail_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -301,7 +301,7 @@ func _rebuild_list() -> void:
 
 	if _mods.is_empty():
 		var empty_lbl := Label.new()
-		empty_lbl.text = tr("ui.modmanager.empty")
+		empty_lbl.text = tr("UI_MODMANAGER_EMPTY")
 		empty_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 		empty_lbl.add_theme_font_size_override("font_size", 13)
 		empty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -362,7 +362,7 @@ func _build_mod_row(index: int) -> Control:
 
 	# Drag handle
 	var drag_lbl := Label.new()
-	drag_lbl.text = "⠿"
+	drag_lbl.text = tr("⠿")
 	drag_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
 	drag_lbl.add_theme_font_size_override("font_size", 16)
 	drag_lbl.custom_minimum_size.x = 20
@@ -411,13 +411,13 @@ func _build_mod_row(index: int) -> Control:
 	# Status badge
 	var status_lbl := Label.new()
 	if has_errors:
-		status_lbl.text = "⚠ Feil"
+		status_lbl.text = tr("⚠ Feil")
 		status_lbl.add_theme_color_override("font_color", Color(1.0, 0.55, 0.25))
 	elif is_enabled:
-		status_lbl.text = "● Aktiv"
+		status_lbl.text = tr("● Aktiv")
 		status_lbl.add_theme_color_override("font_color", COLOR_ENABLED)
 	else:
-		status_lbl.text = "○ Deaktivert"
+		status_lbl.text = tr("○ Deaktivert")
 		status_lbl.add_theme_color_override("font_color", COLOR_DISABLED)
 	status_lbl.add_theme_font_size_override("font_size", 12)
 	status_lbl.custom_minimum_size.x = 90
@@ -438,7 +438,7 @@ func _build_mod_row(index: int) -> Control:
 
 func _show_detail(index: int) -> void:
 	if index < 0 or index >= _mods.size():
-		_detail_name.text  = "Ingen mod valgt"
+		_detail_name.text  = tr("Ingen mod valgt")
 		_detail_author.text = ""
 		_detail_version.text = ""
 		_detail_desc.text  = ""
@@ -448,7 +448,7 @@ func _show_detail(index: int) -> void:
 
 	var mod: Dictionary = _mods[index]
 	_detail_name.text    = mod.get("name", "Ukjent mod")
-	_detail_author.text  = tr("ui.modmanager.author_format") % mod.get("author", tr("ui.modmanager.author_unknown"))
+	_detail_author.text  = tr("UI_MODMANAGER_AUTHOR_FORMAT") % mod.get("author", tr("UI_MODMANAGER_AUTHOR_UNKNOWN"))
 	_detail_version.text = "Versjon: "   + mod.get("version", "?")
 	_detail_desc.text    = "[color=#8899aa]" + mod.get("description", "") + "[/color]"
 
@@ -578,3 +578,6 @@ func _spacer() -> Control:
 # Workaround: Color() constructor inside a const initializer can't call static
 func COLOR(r: float, g: float, b: float) -> Color:
 	return Color(r, g, b)
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

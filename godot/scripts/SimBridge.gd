@@ -1253,3 +1253,4 @@ func get_next_milestone_info() -> Dictionary:
 ## Get milestone completion progress (0.0-1.0)
 func get_milestone_progress() -> float:
 	return _game_bridge.GetMilestoneProgress() if _game_bridge else 0.0
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

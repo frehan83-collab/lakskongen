@@ -123,7 +123,7 @@ func _create_product_item(product: Dictionary) -> Control:
 		profit_label.text = "Est. Profit: NOK %.0f/day" % expected_profit
 		profit_label.add_theme_color_override("font_color", Color("#2AB7B5"))
 	else:
-		profit_label.text = "Not recommended"
+		profit_label.text = tr("Not recommended")
 		profit_label.add_theme_color_override("font_color", Color("#666666"))
 	profit_label.add_theme_font_size_override("font_size", 11)
 	info_vbox.add_child(profit_label)
@@ -211,3 +211,15 @@ func _on_apply_button_pressed():
 	confirm.title = "Success"
 	add_child(confirm)
 	confirm.popup_centered()
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_close_requested()
+
+func _on_close_requested() -> void:
+	hide()
+
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

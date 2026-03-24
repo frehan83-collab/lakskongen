@@ -68,3 +68,4 @@ func compute_daily_feed_and_cost(cohort_count: int, avg_daily_growth_g: float, w
     var total_feed_kg = feed_per_fish_kg * float(max(cohort_count, 0))
     var total_cost = cost_for_feed_kg(total_feed_kg, demand_index)
     return {"feed_per_fish_kg": feed_per_fish_kg, "total_feed_kg": total_feed_kg, "total_cost": total_cost}
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

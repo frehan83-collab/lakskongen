@@ -363,3 +363,4 @@ func print_results():
 				print("  " + result)
 	
 	print("\n=== END TEST SUITE ===\n")
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

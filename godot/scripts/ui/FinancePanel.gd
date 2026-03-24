@@ -103,7 +103,7 @@ func _build_ui() -> void:
 
 	# Title
 	var title := Label.new()
-	title.text = "💰 Økonomi"
+	title.text = tr("💰 Økonomi")
 	title.add_theme_font_size_override("font_size", 24)
 	title.add_theme_color_override("font_color", C_TEXT)
 	if _theme and _theme.font_heading_bold:
@@ -338,7 +338,7 @@ func _build_loan_section(body: VBoxContainer) -> void:
 	body.add_child(btn_row)
 
 	_loan_take_btn = Button.new()
-	_loan_take_btn.text = "Ta lån (5M NOK)"
+	_loan_take_btn.text = tr("Ta lån (5M NOK)")
 	_loan_take_btn.size_flags_horizontal = SIZE_EXPAND_FILL
 	var take_sb := StyleBoxFlat.new()
 	take_sb.bg_color = C_PRIMARY
@@ -351,7 +351,7 @@ func _build_loan_section(body: VBoxContainer) -> void:
 	btn_row.add_child(_loan_take_btn)
 
 	_loan_repay_btn = Button.new()
-	_loan_repay_btn.text = "Betal tilbake"
+	_loan_repay_btn.text = tr("Betal tilbake")
 	_loan_repay_btn.size_flags_horizontal = SIZE_EXPAND_FILL
 	_loan_repay_btn.disabled = true
 	var repay_sb := StyleBoxFlat.new()
@@ -443,7 +443,7 @@ func _refresh() -> void:
 	if _sim.has_method("get_loan_info"):
 		var loan := _sim.get_loan_info()
 		var has_loan: bool = loan.get("has_loan", false)
-		_loan_status.text = "Aktiv" if has_loan else "Ingen lån"
+		_loan_status.text = tr("Aktiv")
 		_loan_status.add_theme_color_override("font_color", C_WARNING if has_loan else C_SUCCESS_D)
 		_loan_amount.text = _fmt(loan.get("amount", 0.0)) if has_loan else "--"
 		_loan_remaining.text = _fmt(loan.get("remaining", 0.0)) if has_loan else "--"
@@ -471,7 +471,7 @@ func _refresh_history(history: Array) -> void:
 		_history_container.add_child(row)
 
 		var d_lbl := Label.new()
-		d_lbl.text = "Dag %d" % day
+		d_lbl.text = tr("Dag %d") % day
 		d_lbl.custom_minimum_size.x = 60
 		d_lbl.add_theme_font_size_override("font_size", 12)
 		d_lbl.add_theme_color_override("font_color", C_MUTED)
@@ -540,3 +540,6 @@ func _fmt_short(amount: float) -> String:
 	if a >= 1_000.0:
 		return "%s%.0fk" % [s, a / 1_000.0]
 	return "%s%.0f" % [s, a]
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

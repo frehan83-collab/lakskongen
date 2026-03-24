@@ -66,14 +66,14 @@ func _create_ui():
 	
 	# Header
 	var header = Label.new()
-	header.text = "🌊 Weather & Disease Monitoring"
+	header.text = tr("🌊 Weather & Disease Monitoring")
 	header.add_theme_font_size_override("font_size", 20)
 	header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(header)
 	
 	# Current Weather Section
 	var weather_header = Label.new()
-	weather_header.text = "Current Weather Conditions"
+	weather_header.text = tr("Current Weather Conditions")
 	weather_header.add_theme_font_size_override("font_size", 16)
 	weather_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(weather_header)
@@ -88,7 +88,7 @@ func _create_ui():
 	
 	# Weather Alerts Section
 	var alert_header = Label.new()
-	alert_header.text = "⚠️ Weather Alerts"
+	alert_header.text = tr("⚠️ Weather Alerts")
 	alert_header.add_theme_font_size_override("font_size", 16)
 	alert_header.add_theme_color_override("font_color", Color(COLOR_WARNING))
 	vbox.add_child(alert_header)
@@ -99,7 +99,7 @@ func _create_ui():
 	
 	# Disease Alerts Section
 	var disease_header = Label.new()
-	disease_header.text = "🦠 Disease Outbreaks"
+	disease_header.text = tr("🦠 Disease Outbreaks")
 	disease_header.add_theme_font_size_override("font_size", 16)
 	disease_header.add_theme_color_override("font_color", Color(COLOR_CRITICAL))
 	vbox.add_child(disease_header)
@@ -110,7 +110,7 @@ func _create_ui():
 	
 	# Treatment Options Section
 	var treatment_header = Label.new()
-	treatment_header.text = "💊 Treatment Options"
+	treatment_header.text = tr("💊 Treatment Options")
 	treatment_header.add_theme_font_size_override("font_size", 16)
 	treatment_header.add_theme_color_override("font_color", Color(COLOR_TEXT))
 	vbox.add_child(treatment_header)
@@ -188,7 +188,7 @@ func _display_weather_alerts():
 	
 	if active_weather_alerts.is_empty():
 		var label = Label.new()
-		label.text = "No active weather alerts"
+		label.text = tr("No active weather alerts")
 		label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 		weather_alert_container.add_child(label)
 		return
@@ -226,7 +226,7 @@ func _display_disease_alerts():
 	
 	if active_disease_alerts.is_empty():
 		var label = Label.new()
-		label.text = "No active disease outbreaks"
+		label.text = tr("No active disease outbreaks")
 		label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 		disease_alert_container.add_child(label)
 		return
@@ -254,7 +254,7 @@ func _display_disease_alerts():
 		
 		var site_label = Label.new()
 		var site_id = alert.get("site_id", "")
-		site_label.text = "Location: %s" % ("All sites" if site_id == "all_sites" else site_id)
+		site_label.text = tr("Location: %s") % ("All sites" if site_id == "all_sites" else site_id)
 		site_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
 		vbox.add_child(site_label)
 		
@@ -299,7 +299,7 @@ func _display_treatment_options(disease_type: String, site_id: String, estimated
 		row.add_child(cost_label)
 		
 		var apply_button = Button.new()
-		apply_button.text = "Apply"
+		apply_button.text = tr("Apply")
 		apply_button.tooltip_text = "Apply %s treatment to %s" % [treatment.get("name", ""), site_id]
 		apply_button.pressed.connect(_on_treatment_applied.bind(treatment.get("method", ""), site_id))
 		row.add_child(apply_button)
@@ -390,3 +390,6 @@ func _format_currency(value: float) -> String:
 		return "%.0fK" % (value / 1_000.0)
 	else:
 		return "%.0f" % value
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

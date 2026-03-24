@@ -65,3 +65,4 @@ func _on_day_ticked(_day: int, _log_summary: String):
         price_label.set_modulate(Color.GREEN)
     else:
         price_label.set_modulate(Color.WHITE)
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

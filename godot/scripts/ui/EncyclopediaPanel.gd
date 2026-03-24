@@ -473,7 +473,7 @@ func _build_header() -> Control:
 	m.add_child(inner)
 
 	var title_lbl := Label.new()
-	title_lbl.text = tr("ui.encyclopedia.title")
+	title_lbl.text = tr("UI_ENCYCLOPEDIA_TITLE")
 	title_lbl.add_theme_font_size_override("font_size", 22)
 	title_lbl.add_theme_color_override("font_color", TEXT_TITLE)
 	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -525,7 +525,7 @@ func _build_sidebar() -> Control:
 
 	# Category header
 	var cat_header := Label.new()
-	cat_header.text = tr("ui.encyclopedia.categories_header")
+	cat_header.text = tr("UI_ENCYCLOPEDIA_CATEGORIES_HEADER")
 	cat_header.add_theme_font_size_override("font_size", 12)
 	cat_header.add_theme_color_override("font_color", TEXT_MUTED)
 	cat_header.custom_minimum_size.y = 36
@@ -561,7 +561,7 @@ func _build_sidebar() -> Control:
 	# Entry list header
 	var entry_header_row := HBoxContainer.new()
 	var entry_header := Label.new()
-	entry_header.text = tr("ui.encyclopedia.entries_header")
+	entry_header.text = tr("UI_ENCYCLOPEDIA_ENTRIES_HEADER")
 	entry_header.add_theme_font_size_override("font_size", 12)
 	entry_header.add_theme_color_override("font_color", TEXT_MUTED)
 	entry_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -625,7 +625,7 @@ func _build_content_area() -> Control:
 
 	_icon_label = Label.new()
 	_icon_label.add_theme_font_size_override("font_size", 48)
-	_icon_label.text = "📖"
+	_icon_label.text = tr("📖")
 	title_row.add_child(_icon_label)
 
 	_title_label = Label.new()
@@ -647,7 +647,7 @@ func _build_content_area() -> Control:
 
 	# Related entries
 	var related_label := Label.new()
-	related_label.text = tr("ui.encyclopedia.see_also")
+	related_label.text = tr("UI_ENCYCLOPEDIA_SEE_ALSO")
 	related_label.add_theme_font_size_override("font_size", 12)
 	related_label.add_theme_color_override("font_color", TEXT_MUTED)
 	inner_vbox.add_child(related_label)
@@ -663,11 +663,11 @@ func _build_content_area() -> Control:
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _show_welcome() -> void:
-	_title_label.text = tr("ui.encyclopedia.welcome")
-	_icon_label.text = "📚"
+	_title_label.text = tr("UI_ENCYCLOPEDIA_WELCOME")
+	_icon_label.text = tr("📚")
 	_clear_desc()
 	var lbl := Label.new()
-	lbl.text = tr("ui.encyclopedia.select_info")
+	lbl.text = tr("UI_ENCYCLOPEDIA_SELECT_INFO")
 	lbl.add_theme_font_size_override("font_size", 16)
 	lbl.add_theme_color_override("font_color", TEXT_BODY)
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -742,7 +742,7 @@ func _populate_entry_list() -> void:
 	_entry_buttons.clear()
 
 	var visible := _get_visible_entries()
-	_entry_count_label.text = "  %d  " % visible.size()
+	_entry_count_label.text = tr("  %d  ") % visible.size()
 
 	for entry in visible:
 		var btn := _make_entry_button(entry)
@@ -903,3 +903,6 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		_on_close_pressed()
 		get_viewport().set_input_as_handled()
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+    if event.is_action_pressed("ui_cancel"):
+        get_tree().call_group_flags(2, "tooltips", "hide")

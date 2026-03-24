@@ -294,3 +294,4 @@ func unlock_all_achievements() -> void:
 		if not achievement_id.is_empty():
 			unlock(achievement_id)
 	print("AchievementManager: All achievements unlocked")
+tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
