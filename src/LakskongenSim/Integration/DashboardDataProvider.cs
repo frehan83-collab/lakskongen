@@ -10,7 +10,7 @@ namespace LakskongenSim.Integration
     /// <summary>
     /// Central data provider for financial dashboards.
     /// Exposes economic data from SimulationEngine to GDScript via GameBridge.
-    /// Provides P&L, cash flow, ROI, cost breakdown, market prices, and scenario analysis.
+    /// Provides P&amp;L, cash flow, ROI, cost breakdown, market prices, and scenario analysis.
     /// </summary>
     public class DashboardDataProvider
     {
@@ -22,11 +22,11 @@ namespace LakskongenSim.Integration
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // P&L STATEMENT DATA
+        // P&amp;L STATEMENT DATA
         // ══════════════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Returns P&L statement data as a Dictionary.
+        /// Returns P&amp;L statement data as a Dictionary.
         /// Keys: "revenue", "cost_of_sales", "gross_profit", "operating_expenses",
         ///       "ebitda", "depreciation", "ebit", "interest", "tax", "net_profit",
         ///       "gross_margin_pct", "operating_margin_pct", "net_margin_pct".
