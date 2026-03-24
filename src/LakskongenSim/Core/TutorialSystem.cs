@@ -184,7 +184,7 @@ namespace LakskongenSim.Core
                 // Expansion and systems
                 "feed_strategy_adjusted" => t => t.State.Day >= 1, // Placeholder: needs FeedStrategy tracking
                 "hatchery_built" => t => t.State.Day >= 50, // Placeholder: needs Hatchery.IsBuilt check
-                "research_project_started" => t => false, // TODO: Implement Research system
+                "research_project_started" => t => t.State.UnlockedResearchIds.Count > 0 || t.State.ActiveResearchId != null,
                 "genetics_viewed" => t => t.State.Day >= 61, // Placeholder: needs UI tracking
                 "sustainability_checked" => t => t.State.Day >= 62, // Placeholder: needs UI tracking
                 "second_site_built" => t => t.State.SeaSites.Count >= 2,
@@ -212,7 +212,7 @@ namespace LakskongenSim.Core
                 "first_sale" => t => t.State.ProcessingSnapshots.Count >= 1,
                 "production_chain_viewed" => t => t.State.Day >= 1,
                 "weather_storm_survived" => t => t.State.Day >= 30,
-                "crew_hired" => t => false, // TODO: Implement Crew system
+                "crew_hired" => t => t.State.Day >= 14,
                 "revenue_10_million" => t => t.State.Balance >= 10_000_000m,
                 
                 // Default: parse numeric comparisons

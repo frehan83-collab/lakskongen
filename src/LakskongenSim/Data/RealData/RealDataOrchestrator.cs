@@ -40,7 +40,9 @@ namespace Lakskongen.Data.RealData
         // Data layers
         public TemperatureLayer TemperatureLayer { get; private set; } = null!;
         public BathymetryLayer BathymetryLayer { get; private set; } = null!;
-        // TODO: Add SalinityLayer, OxygenLayer, CurrentLayer
+        public LakskongenSim.Data.RealData.Layers.SalinityLayer SalinityLayer { get; private set; } = null!;
+        public LakskongenSim.Data.RealData.Layers.OxygenLayer OxygenLayer { get; private set; } = null!;
+        public LakskongenSim.Data.RealData.Layers.CurrentLayer CurrentLayer { get; private set; } = null!;
 
         // Status
         public bool IsInitialized { get; private set; }
@@ -87,6 +89,9 @@ namespace Lakskongen.Data.RealData
                 // Initialize data layers
                 TemperatureLayer = new TemperatureLayer(_cache, _dataLoaders);
                 BathymetryLayer = new BathymetryLayer(_cache, _dataLoaders);
+                SalinityLayer = new LakskongenSim.Data.RealData.Layers.SalinityLayer();
+                OxygenLayer = new LakskongenSim.Data.RealData.Layers.OxygenLayer();
+                CurrentLayer = new LakskongenSim.Data.RealData.Layers.CurrentLayer();
                 
                 // Run health checks
                 await UpdateSourceStatusesAsync();
@@ -121,6 +126,8 @@ namespace Lakskongen.Data.RealData
             
             TemperatureLayer = new TemperatureLayer(_cache, _dataLoaders);
             BathymetryLayer = new BathymetryLayer(_cache, _dataLoaders);
+            SalinityLayer = new LakskongenSim.Data.RealData.Layers.SalinityLayer();
+            OxygenLayer = new LakskongenSim.Data.RealData.Layers.OxygenLayer();
             
             IsInitialized = true;
             Console.WriteLine("RealDataOrchestrator initialized in FALLBACK mode (no external sources)");
@@ -292,6 +299,24 @@ namespace Lakskongen.Data.RealData
             }
 
             return defaultConfig;
+        }
+
+        /// <summary>
+        /// Get salinity at a zone.
+        /// </summary>
+        public double GetSalinity(string zoneId, DateTime? date = null, double depthM = 10.0)
+        {
+            EnsureInitialized();
+            return SalinityLayer.GetSalinity(zoneId, date ?? DateTime.UtcNow, depthM);
+        }
+
+        /// <summary>
+        /// Get dissolved oxygen at a zone.
+        /// </summary>
+        public double GetOxygen(string zoneId, DateTime? date = null, double depthM = 10.0)
+        {
+            EnsureInitialized();
+            return OxygenLayer.GetOxygen(zoneId, date ?? DateTime.UtcNow, depthM);
         }
 
         private void EnsureInitialized()

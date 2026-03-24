@@ -8,6 +8,7 @@ namespace LakskongenSim.Tests.DataLayers
     {
         private readonly SalinityLayer _salinity = new();
         private readonly OxygenLayer _oxygen = new();
+        private readonly CurrentLayer _current = new();
 
         // Salinity Tests
 
@@ -94,6 +95,51 @@ namespace LakskongenSim.Tests.DataLayers
             Assert.Equal("Stressed", _oxygen.GetStressLevel(5.0));
             Assert.Equal("Critical", _oxygen.GetStressLevel(3.0));
             Assert.Equal("Lethal", _oxygen.GetStressLevel(1.0));
+        }
+
+        // Current Tests
+
+        [Fact]
+        public void Current_Speed_InRange()
+        {
+            double speed = _current.GetCurrentSpeed("PO06", new DateTime(2024, 6, 15));
+            Assert.InRange(speed, 0.01, 2.0);
+        }
+
+        [Fact]
+        public void Current_WinterStronger_ThanSummer()
+        {
+            double winter = _current.GetCurrentSpeed("PO06", new DateTime(2024, 1, 15));
+            double summer = _current.GetCurrentSpeed("PO06", new DateTime(2024, 7, 15));
+            Assert.True(winter >= summer, $"Winter ({winter:F3}) should be >= summer ({summer:F3})");
+        }
+
+        [Fact]
+        public void Current_DeepWater_Slower()
+        {
+            double surface = _current.GetCurrentSpeed("PO06", new DateTime(2024, 6, 15), 2.0);
+            double deep = _current.GetCurrentSpeed("PO06", new DateTime(2024, 6, 15), 50.0);
+            Assert.True(deep < surface, $"Deep ({deep:F3}) should be < surface ({surface:F3})");
+        }
+
+        [Fact]
+        public void Current_Direction_Valid()
+        {
+            double dir = _current.GetCurrentDirection("PO06", new DateTime(2024, 6, 15));
+            Assert.InRange(dir, 0.0, 360.0);
+        }
+
+        [Fact]
+        public void Current_Assessment_Correct()
+        {
+            var stagnant = _current.AssessForAquaculture(0.02);
+            Assert.Equal("Stagnant", stagnant.Level);
+
+            var optimal = _current.AssessForAquaculture(0.30);
+            Assert.Equal("Optimal", optimal.Level);
+
+            var extreme = _current.AssessForAquaculture(1.50);
+            Assert.Equal("Extreme", extreme.Level);
         }
     }
 }

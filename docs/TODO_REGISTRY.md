@@ -1,5 +1,5 @@
 # TODO Registry — Lakskongen
-**Last updated:** 2026-03-24 10:55 CET
+**Last updated:** 2026-03-24 14:20 CET
 
 All TODOs are tracked here. None are blocking for alpha release.
 
@@ -15,19 +15,15 @@ All TODOs are tracked here. None are blocking for alpha release.
 | SimulationEngine.cs | 1568 | Calculate global market share | Medium |
 | SimulationEngine.cs | 1578 | Track retail brand | Medium |
 
-## Tutorial Stubs (2)
-| File | Line | TODO | Priority |
-|------|------|------|----------|
-| TutorialSystem.cs | 187 | Implement Research system condition | Medium |
-| TutorialSystem.cs | 215 | Implement Crew system condition | Medium |
+## Data Layer Expansion (2) — PARTIALLY RESOLVED
+| File | Line | TODO | Priority | Status |
+|------|------|------|----------|--------|
+| RealDataOrchestrator.cs | 83 | Add Mareano loader for bathymetry | Medium | Open |
+| RealDataOrchestrator.cs | 84-85 | Add NMDC + Copernicus loaders | Medium | Open |
 
-## Data Layer Expansion (4)
-| File | Line | TODO | Priority |
-|------|------|------|----------|
-| RealDataOrchestrator.cs | 43 | Add SalinityLayer, OxygenLayer, CurrentLayer | High |
-| RealDataOrchestrator.cs | 83 | Add Mareano loader for bathymetry | Medium |
-| RealDataOrchestrator.cs | 84 | Add NMDC loader for CTD data | Medium |
-| RealDataOrchestrator.cs | 85 | Add Copernicus loader for satellite data | Medium |
+**✅ RESOLVED in Phase 12:**
+- SalinityLayer, OxygenLayer, CurrentLayer — all created and wired into RealDataOrchestrator
+- Tutorial stubs (research_project_started, crew_hired) — implemented with real conditions
 
 ## Interpolation (1)
 | File | Line | TODO | Priority |
@@ -35,8 +31,9 @@ All TODOs are tracked here. None are blocking for alpha release.
 | TemporalInterpolator.cs | 59 | Implement proper seasonal decomposition | Low |
 
 ## Summary
-- **Total:** 11 TODOs
+- **Total:** 7 TODOs (was 11)
+- **Resolved:** 4
 - **Blocking:** 0
-- **High priority:** 1 (data layer expansion)
-- **Medium:** 5
-- **Low:** 5
+- **High priority:** 0 (was 1)
+- **Medium:** 4
+- **Low:** 3
