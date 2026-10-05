@@ -47,9 +47,9 @@ func _ready():
 	
 	# Connect to GameBridge signals
 	if game_bridge:
-		game_bridge.game_started.connect(_on_game_started)
-		game_bridge.game_ended.connect(_on_game_ended)
-		game_bridge.simulation_ticked.connect(_on_simulation_ticked)
+		game_bridge.GameStarted.connect(_on_game_started)
+		game_bridge.GameEnded.connect(_on_game_ended)
+		game_bridge.SimulationTicked.connect(_on_simulation_ticked)
 	
 	print("EventLog initialized")
 
@@ -305,6 +305,4 @@ func _on_inspection_scheduled(farm_id: int, inspection_type: String, days_until:
 
 func _on_compliance_issue(farm_id: int, issue: String, fine: int):
 	add_log_entry("Compliance issue at Farm %d: %s - Fine: %s" % 
-		[farm_id, issue, _format_currency(fine)], "danger")tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")
+		[farm_id, issue, _format_currency(fine)], "danger")

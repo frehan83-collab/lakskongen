@@ -229,4 +229,3 @@ func get_sun_height() -> float:
 ## Set time directly (0-24 hours)
 func set_hour(hour: float) -> void:
 	time_of_day = fmod(hour / 24.0, 1.0)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

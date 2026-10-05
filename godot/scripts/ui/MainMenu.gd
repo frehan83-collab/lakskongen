@@ -275,6 +275,3 @@ func _input(event: InputEvent) -> void:
 		if scenario_panel and scenario_panel.visible:
 			_on_scenario_close()
 			get_viewport().set_input_as_handled()
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

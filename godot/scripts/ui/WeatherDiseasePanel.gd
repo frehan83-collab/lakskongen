@@ -390,6 +390,3 @@ func _format_currency(value: float) -> String:
 		return "%.0fK" % (value / 1_000.0)
 	else:
 		return "%.0f" % value
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

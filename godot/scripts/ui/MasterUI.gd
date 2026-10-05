@@ -115,4 +115,3 @@ func _switch_to_tab(index: int):
 		style.content_margin_top = LakskongenTheme.SPACE_SM
 		style.content_margin_bottom = LakskongenTheme.SPACE_SM
 		tab_buttons[i].add_theme_stylebox_override("normal", style)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

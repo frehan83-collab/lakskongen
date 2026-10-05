@@ -229,4 +229,3 @@ func resume_environment() -> void:
     """Resume time progression."""
     if time_system:
         time_system.paused = false
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

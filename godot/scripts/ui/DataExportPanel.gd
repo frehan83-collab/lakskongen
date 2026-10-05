@@ -490,7 +490,7 @@ func _on_close_pressed() -> void:
 
 func _default_export_dir() -> String:
 	var docs := OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS)
-	return docs.path_join("LakskongenSim", "Eksport")
+	return docs.rstrip("/") + "/LakskongenSim/Eksport"
 
 func _make_panel(bg_color: Color) -> PanelContainer:
 	var pc := PanelContainer.new()
@@ -516,6 +516,3 @@ func _make_small_button(label_text: String, color: Color) -> Button:
 	disabled_style.bg_color = color.darkened(0.45)
 	btn.add_theme_stylebox_override("disabled", disabled_style)
 	return btn
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

@@ -657,6 +657,3 @@ func _get_political_actions_safe(sim_bridge: Node) -> Dictionary:
 func _clear_container(container: VBoxContainer):
 	for child in container.get_children():
 		child.queue_free()
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

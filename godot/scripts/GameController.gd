@@ -158,4 +158,3 @@ func _get_button(node_name: String) -> Button:
 func _connect_button(btn: Button, callable: Callable) -> void:
 	if btn and not btn.pressed.is_connected(callable):
 		btn.pressed.connect(callable)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

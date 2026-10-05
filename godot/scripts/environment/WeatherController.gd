@@ -191,4 +191,3 @@ static func weather_name(state: WeatherState) -> String:
 		WeatherState.STORM: return "Storm"
 		WeatherState.FOG: return "Fog"
 	return "Unknown"
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

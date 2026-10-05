@@ -5,7 +5,7 @@ extends PanelContainer
 
 @onready var trait_list: VBoxContainer = %TraitList
 @onready var inbreeding_label: Label = %InbreedingLabel
-@ontml:parameter name="content">@onready var inbreeding_warning: Panel = %InbreedingWarning
+@onready var inbreeding_warning: Panel = %InbreedingWarning
 @onready var breed_button: Button = %BreedButton
 
 var _sim_bridge: Node = null
@@ -135,4 +135,3 @@ func _heritability_color(h2: float) -> Color:
 func _on_breed_pressed() -> void:
 	# Placeholder for breeding action
 	print("GeneticsPanel: Breed button pressed (not yet implemented)")
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

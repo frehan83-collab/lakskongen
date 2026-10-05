@@ -263,4 +263,3 @@ func get_height_at(world_x: float, world_z: float) -> float:
 
 	var h := lerpf(lerpf(h00, h10, tx), lerpf(h01, h11, tx), tz)
 	return h * max_height
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

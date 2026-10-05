@@ -91,4 +91,3 @@ func _draw():
 	# Axes
 	draw_line(Vector2(graph_rect.position.x, graph_rect.end.y), Vector2(graph_rect.end.x, graph_rect.end.y), LakskongenTheme.MUTED, 1.0)
 	draw_line(Vector2(graph_rect.position.x, graph_rect.position.y), Vector2(graph_rect.position.x, graph_rect.end.y), LakskongenTheme.MUTED, 1.0)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

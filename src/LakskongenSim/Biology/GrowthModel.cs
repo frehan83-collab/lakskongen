@@ -83,7 +83,9 @@ namespace LakskongenSim.Biology
 
             // Proper SDE with time step dt = 1 day
             // Box-Muller transform for normal noise N(0,1)
-            double u1 = _random.NextDouble();
+            // NOTE: 1.0 - NextDouble() keeps u1 in (0,1]; NextDouble() can
+            // return exactly 0.0, and Log(0) would poison weights with NaN/Inf.
+            double u1 = 1.0 - _random.NextDouble();
             double u2 = _random.NextDouble();
             double normalNoise = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
             
@@ -107,7 +109,8 @@ namespace LakskongenSim.Biology
             double[] noises = new double[days];
             for (int i = 0; i < days; i++)
             {
-                double u1 = _random.NextDouble();
+                // See note above: guard against Log(0).
+                double u1 = 1.0 - _random.NextDouble();
                 double u2 = _random.NextDouble();
                 noises[i] = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
             }

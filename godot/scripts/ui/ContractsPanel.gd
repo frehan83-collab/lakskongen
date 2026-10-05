@@ -168,7 +168,7 @@ func _build_price_chart(body: VBoxContainer) -> void:
 	for i in range(12):
 		var bar := ColorRect.new()
 		bar.size_flags_horizontal = SIZE_EXPAND_FILL
-		var h_pct := heights[i]
+		var h_pct: float = float(heights[i])
 		bar.custom_minimum_size = Vector2(0, h_pct * 1.5)
 		bar.color = C_SUCCESS if h_pct > 65 else (C_DANGER if h_pct < 48 else C_SECONDARY)
 		chart.add_child(bar)
@@ -228,8 +228,8 @@ func _refresh() -> void:
 	if not _sim:
 		return
 
-	var spot := _sim.market_price_nok
-	var weekly := _sim.weekly_avg_price_nok
+	var spot: float = float(_sim.market_price_nok) if _sim else 75.0
+	var weekly: float = float(_sim.weekly_avg_price_nok) if _sim else 75.0
 
 	_kpi_spot.text = tr("%.2f NOK/kg") % spot
 	_kpi_contract.text = tr("%.2f NOK/kg") % (weekly * 0.93)  # Contract ~7% below spot
@@ -255,7 +255,7 @@ func _refresh_buyers() -> void:
 	for child in _buyers_vbox.get_children():
 		child.queue_free()
 
-	var spot := _sim.market_price_nok if _sim else 75.0
+	var spot: float = float(_sim.market_price_nok) if _sim else 75.0
 	var buyers := [
 		{"name": "Nordsjø Sjømat", "type": "Fast kontrakt · EU", "price": spot * 0.95, "vol": "200 t/mnd"},
 		{"name": "Marine Harvest Trading", "type": "Spot · Asia", "price": spot, "vol": "Spot"},
@@ -321,7 +321,7 @@ func _refresh_contracts() -> void:
 	for child in _contracts_vbox.get_children():
 		child.queue_free()
 
-	var spot := _sim.market_price_nok if _sim else 75.0
+	var spot: float = float(_sim.market_price_nok) if _sim else 75.0
 	var contracts := [
 		{"buyer": "Nordsjø Sjømat", "vol": "80 t", "price": spot * 0.95, "deadline": "28. mar", "status": "Aktiv"},
 		{"buyer": "Bergen Fish Co", "vol": "60 t", "price": spot * 0.91, "deadline": "5. apr", "status": "Aktiv"},
@@ -377,7 +377,7 @@ func _refresh_regions() -> void:
 	for child in _regions_grid.get_children():
 		child.queue_free()
 
-	var spot := _sim.market_price_nok if _sim else 75.0
+	var spot: float = float(_sim.market_price_nok) if _sim else 75.0
 	var regions := [
 		{"flag": "🇪🇺", "name": "EU (Frankrike/Spania)", "price": "€%.2f/kg" % (spot * 0.09), "demand": "Høy", "level": "high"},
 		{"flag": "🇬🇧", "name": "Storbritannia", "price": "£%.2f/kg" % (spot * 0.085), "demand": "Middels", "level": "medium"},
@@ -523,6 +523,3 @@ func _make_btn(text: String, color: Color, outline: bool = false) -> Button:
 	btn.add_theme_color_override("font_color", Color.WHITE if not outline else C_TEXT)
 	btn.add_theme_font_size_override("font_size", 13)
 	return btn
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

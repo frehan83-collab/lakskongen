@@ -169,7 +169,8 @@ namespace LakskongenSim.Biology
         /// <returns>Standard normal random variable.</returns>
         public double GenerateNormalNoise()
         {
-            double u1 = _random.NextDouble();
+            // Guard against Log(0): NextDouble() can return exactly 0.0.
+            double u1 = 1.0 - _random.NextDouble();
             double u2 = _random.NextDouble();
             return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
         }

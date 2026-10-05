@@ -182,4 +182,3 @@ func _on_new_save() -> void:
 		save_mgr.save_game("save_%s" % ts)
 		game_saved.emit("save_%s" % ts)
 	_refresh_slots()
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

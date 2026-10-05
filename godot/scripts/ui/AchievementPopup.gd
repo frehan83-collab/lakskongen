@@ -129,7 +129,7 @@ func _build_ui() -> void:
 	var vp_w := float(ProjectSettings.get_setting("display/window/size/viewport_width", 1920))
 	var panel_w := 560.0
 	var panel_h := 140.0
-	_panel.set_anchors_preset(Control.PRESET_TOP_CENTER)
+	_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_panel.set_size(Vector2(panel_w, panel_h))
 	_panel.position = Vector2(-panel_w / 2.0, 16.0)
 
@@ -210,6 +210,3 @@ func _format_nok(amount: float) -> String:
 	elif amount >= 1_000.0:
 		return "%.0f k" % (amount / 1_000.0)
 	return "%.0f" % amount
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

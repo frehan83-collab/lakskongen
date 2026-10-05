@@ -200,7 +200,7 @@ func _refresh_display() -> void:
 		_update_stage_row(stage_data)
 
 func _update_stage_row(stage_data: Dictionary) -> void:
-	var row_name := "Row_" + stage_data.id
+	var row_name: String = "Row_" + str(stage_data.id)
 	if not _chain_container.has_node(row_name):
 		return
 	
@@ -319,6 +319,3 @@ func _get_throughput_text(stage_data: Dictionary) -> String:
 				return tr("UI_PRODUCTION_STATUS_ACTIVE_EXPORTS")
 			return tr("UI_PRODUCTION_STATUS_NO_MARKETS")
 	return ""
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

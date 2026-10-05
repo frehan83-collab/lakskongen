@@ -422,7 +422,7 @@ func _refresh() -> void:
 	if not _sim:
 		return
 
-	var revenue := _sim.get_revenue()
+	var revenue: float = float(_sim.get_revenue())
 	var expenses := _sim.get_expenses()
 	var profit := _sim.get_profit()
 	var balance := _sim.balance
@@ -540,6 +540,3 @@ func _fmt_short(amount: float) -> String:
 	if a >= 1_000.0:
 		return "%s%.0fk" % [s, a / 1_000.0]
 	return "%s%.0f" % [s, a]
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

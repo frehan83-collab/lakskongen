@@ -190,4 +190,3 @@ func demo_unlock_sequence():
 
 func _on_demo_achievement_unlocked(achievement_id: String, achievement_data: Dictionary):
 	print("  🏆 UNLOCKED: %s - %s" % [achievement_data.get("name"), achievement_data.get("description")])
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

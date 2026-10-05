@@ -177,7 +177,7 @@ func _refresh_display() -> void:
 	
 	# Update progress dots
 	_update_progress_dots(step_num, sb.tutorial_completed_count)
-		progress_bar.tooltip_text = "Fremdrift i tutorial: %d av %d steg fullført." % [sb.tutorial_completed_count, total]
+	progress_bar.tooltip_text = "Fremdrift i tutorial: %d av %d steg fullført." % [sb.tutorial_completed_count, total]
 
 	# Title
 	if title_label:
@@ -261,12 +261,12 @@ func _set_minimised(value: bool) -> void:
 		_tween.tween_property(self, "custom_minimum_size:y", 32.0, 0.2)
 		if description_label: description_label.visible = false
 		if hint_label:        hint_label.visible        = false
-      close_button.text         = tr("▼")
+		close_button.text         = tr("▼")
 	else:
 		_tween.tween_property(self, "custom_minimum_size:y", 0.0, 0.2)
 		if description_label: description_label.visible = true
 		if hint_label:        hint_label.visible        = true
-      close_button.text         = tr("✕")
+		close_button.text         = tr("✕")
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -278,6 +278,3 @@ func _format_nok(amount: float) -> String:
 	elif amount >= 1_000.0:
 		return "%.0f kNOK" % (amount / 1_000.0)
 	return "%.0f NOK" % amount
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

@@ -431,4 +431,3 @@ func _get_free_sfx_player() -> AudioStreamPlayer:
 
 func _on_sfx_finished(player: AudioStreamPlayer) -> void:
 	player.stream = null
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

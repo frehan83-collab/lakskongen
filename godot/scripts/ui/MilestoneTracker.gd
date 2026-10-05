@@ -284,4 +284,4 @@ func _connect_signals():
 		{"name": "First Harvest", "value": 1000.0, "day": 45, "goal": "Harvest 1 ton"},
 		{"name": "25%", "value": 25000.0, "day": 120, "goal": "Harvest 100 tons"}
 	]
-	_update_milestones_display()tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
+	_update_milestones_display()

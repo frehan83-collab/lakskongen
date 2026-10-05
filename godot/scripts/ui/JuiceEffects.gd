@@ -185,4 +185,3 @@ static func floating_text(parent: Node, text: String, start_pos: Vector2, color:
 	tween.tween_property(label, "position:y", start_pos.y - 60, duration)
 	tween.tween_property(label, "modulate:a", 0.0, duration)
 	tween.chain().tween_callback(label.queue_free)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

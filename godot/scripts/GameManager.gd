@@ -3,10 +3,10 @@
 extends Node
 class_name GameManager
 
-onready var Genetics = preload("res://godot/scripts/Genetics.gd")
-onready var Hatchery = preload("res://godot/scripts/Hatchery.gd")
-onready var TimeSystem = preload("res://godot/scripts/TimeSystem.gd")
-onready var FeedManager = preload("res://godot/scripts/FeedManager.gd")
+@onready var Genetics = preload("res://scripts/Genetics.gd")
+@onready var Hatchery = preload("res://scripts/Hatchery.gd")
+@onready var TimeSystem = preload("res://scripts/TimeSystem.gd")
+@onready var FeedManager = preload("res://scripts/FeedManager.gd")
 
 var genetics: Node
 var hatchery: Node
@@ -23,7 +23,7 @@ func _ready() -> void:
     add_child(time)
     add_child(feed)
     # connect day tick
-    time.connect("day_advanced", self, "_on_day_advanced")
+    time.day_advanced.connect(_on_day_advanced)
 
 func _on_day_advanced(days: int) -> void:
     hatchery.incubate_eggs(days)
@@ -48,4 +48,3 @@ func set_feed_quality(q: float) -> void:
 func compute_feed_cost_for_growth(gain_g: float) -> float:
     var kg = feed.feed_needed_for_growth(gain_g)
     return feed.cost_for_feed_kg(kg)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

@@ -176,7 +176,8 @@ namespace LakskongenSim.Farm
                     int take = Math.Min(remaining, (int)(cohort.Count * actualMortalityRate));
                     remaining -= take;
                     pop.Cohorts[i] = new Biology.FishPopulation.Cohort(
-                        cohort.AgeDays, cohort.Count - take, cohort.MeanWeightKg, cohort.Stage);
+                        cohort.AgeDays, cohort.Count - take, cohort.MeanWeightKg, cohort.Stage,
+                        cohort.Genetics);
                 }
                 pop.Cohorts.RemoveAll(c => c.Count <= 0);
             }

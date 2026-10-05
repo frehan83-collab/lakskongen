@@ -17,7 +17,7 @@ func _ready() -> void:
 		refresh_button.pressed.connect(_on_refresh_pressed)
 	
 	if game_bridge:
-		game_bridge.game_state_updated.connect(_on_game_state_updated)
+		game_bridge.GameStateUpdated.connect(_on_game_state_updated)
 	
 	_refresh_data()
 

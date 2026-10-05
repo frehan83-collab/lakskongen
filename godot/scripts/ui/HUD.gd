@@ -315,6 +315,3 @@ func _refresh_speed_buttons() -> void:
 	speed_5x.button_pressed = (not _is_paused and _current_speed == 5.0)
 	pause_btn.text = "▶️" if _is_paused else "⏸️"
 	pause_btn.tooltip_text = "Resume" if _is_paused else "Pause"
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

@@ -2896,7 +2896,7 @@ public partial class GameBridge : Node
 
         foreach (var kvp in plData)
         {
-            result[kvp.Key] = kvp.Value;
+            result[kvp.Key] = Variant.From(kvp.Value);
         }
 
         return result;
@@ -2922,7 +2922,7 @@ public partial class GameBridge : Node
             var dict = new Godot.Collections.Dictionary();
             foreach (var kvp in month)
             {
-                dict[kvp.Key] = kvp.Value;
+                dict[kvp.Key] = Variant.From(kvp.Value);
             }
             result.Add(dict);
         }
@@ -2948,7 +2948,7 @@ public partial class GameBridge : Node
 
         foreach (var kvp in roiData)
         {
-            result[kvp.Key] = kvp.Value;
+            result[kvp.Key] = Variant.From(kvp.Value);
         }
 
         return result;
@@ -2974,7 +2974,7 @@ public partial class GameBridge : Node
 
         foreach (var kvp in costData)
         {
-            result[kvp.Key] = kvp.Value;
+            result[kvp.Key] = Variant.From(kvp.Value);
         }
 
         return result;
@@ -3000,7 +3000,7 @@ public partial class GameBridge : Node
             var dict = new Godot.Collections.Dictionary();
             foreach (var kvp in price)
             {
-                dict[kvp.Key] = kvp.Value;
+                dict[kvp.Key] = Variant.From(kvp.Value);
             }
             result.Add(dict);
         }
@@ -3027,7 +3027,7 @@ public partial class GameBridge : Node
 
         foreach (var kvp in costData)
         {
-            result[kvp.Key] = kvp.Value;
+            result[kvp.Key] = Variant.From(kvp.Value);
         }
 
         return result;
@@ -3053,7 +3053,7 @@ public partial class GameBridge : Node
             var dict = new Godot.Collections.Dictionary();
             foreach (var kvp in scenario)
             {
-                dict[kvp.Key] = kvp.Value;
+                dict[kvp.Key] = Variant.From(kvp.Value);
             }
             result.Add(dict);
         }

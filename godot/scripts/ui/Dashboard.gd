@@ -652,18 +652,18 @@ func _refresh_kpis() -> void:
 		return
 
 	# Biomass
-	var biomass_tonnes := _sim.fish_biomass_kg / 1000.0
+	var biomass_tonnes: float = float(_sim.fish_biomass_kg) / 1000.0
 	var biomass_fmt = tr("UI_DASHBOARD_BIOMASS_FORMAT") if tr("UI_DASHBOARD_BIOMASS_FORMAT") != "ui.dashboard.biomass_format" else "%s tonn"
 	_kpi_biomass_value.text = biomass_fmt % _format_number(biomass_tonnes)
 
 	# Revenue
-	var revenue := _sim.get_revenue()
+	var revenue: float = float(_sim.get_revenue())
 	var revenue_m := revenue / 1_000_000.0
 	var revenue_fmt = tr("UI_DASHBOARD_REVENUE_FORMAT") if tr("UI_DASHBOARD_REVENUE_FORMAT") != "ui.dashboard.revenue_format" else "%.1f MNOK"
 	_kpi_revenue_value.text = revenue_fmt % revenue_m
 
 	# Health (use sustainability score as proxy)
-	var health := _sim.sustainability_score
+	var health: int = int(_sim.sustainability_score)
 	_kpi_health_value.text = tr("%d%%") % health
 	if health >= 90:
 		_kpi_health_change.text = tr("UI_DASHBOARD_HEALTH_GOOD") if tr("UI_DASHBOARD_HEALTH_GOOD") != "ui.dashboard.health_good" else "▲ God status"
@@ -699,7 +699,7 @@ func _refresh_pens() -> void:
 			pen.temp_value.text = "%.1f°C" % (temp + randf() * 0.5 - 0.25)
 			pen.status_dot.color = Color("#A3BE8C")  # Healthy
 		else:
-count_value.text = tr("Tom")
+			count_value.text = tr("Tom")
 			pen.weight_value.text = "--"
 			pen.temp_value.text = "--"
 			pen.status_dot.color = Color("#D8DEE9")
@@ -799,6 +799,3 @@ func _format_number(n: int) -> String:
 	if n < 0:
 		result = "-" + result
 	return result
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

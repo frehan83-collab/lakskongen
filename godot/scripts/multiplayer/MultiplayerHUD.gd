@@ -45,7 +45,7 @@ const COLOR_PENDING  := Color(0.50, 0.80, 1.00)
 
 # ── Trade dialog (spawned on demand) ─────────────────────────────────────────
 # The scene path is resolved at runtime; replace with actual packed scene path.
-const TRADE_DIALOG_SCENE := "res://godot/scenes/multiplayer/TradeDialog.tscn"
+const TRADE_DIALOG_SCENE := "res://scenes/multiplayer/TradeDialog.tscn"
 
 # ── State ─────────────────────────────────────────────────────────────────────
 
@@ -263,6 +263,3 @@ func _format_nok_compact(value: float) -> String:
 	elif abs_val >= 1_000.0:
 		return "%s%.0fk" % [sign_str, abs_val / 1_000.0]
 	return "%s%.0f" % [sign_str, abs_val]
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

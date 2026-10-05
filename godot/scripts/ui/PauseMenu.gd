@@ -282,10 +282,3 @@ func _setup_focus_navigation() -> void:
 	btn_main_menu.focus_neighbor_bottom = NodePath("../BtnQuit")
 	btn_quit.focus_neighbor_top = NodePath("../BtnMainMenu")
 	btn_quit.focus_neighbor_bottom = NodePath("../BtnResume")  # Loop back
-ad")
-	btn_settings.focus_neighbor_bottom = NodePath("../BtnMainMenu")
-	btn_main_menu.focus_neighbor_top = NodePath("../BtnSettings")
-	btn_main_menu.focus_neighbor_bottom = NodePath("../BtnQuit")
-	btn_quit.focus_neighbor_top = NodePath("../BtnMainMenu")
-	btn_quit.focus_neighbor_bottom = NodePath("../BtnResume")  # Loop back
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

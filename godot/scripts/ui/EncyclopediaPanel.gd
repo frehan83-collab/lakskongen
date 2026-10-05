@@ -772,7 +772,7 @@ func _get_entry(entry_id: String) -> Dictionary:
 func _refresh_category_styles() -> void:
 	for cat in _category_buttons:
 		var btn: Button = _category_buttons[cat]
-		var is_sel := (cat == _current_category)
+		var is_sel: bool = (cat == _current_category)
 		_style_category_button(btn, cat, is_sel)
 
 func _refresh_entry_button_styles() -> void:
@@ -903,6 +903,3 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		_on_close_pressed()
 		get_viewport().set_input_as_handled()
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

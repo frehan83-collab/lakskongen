@@ -30,6 +30,8 @@ namespace LakskongenSim.Environment
         public double ExternalDiseasePressure { get; set; } = 1.0;
         public double ExternalTemperatureStress { get; set; } = 1.0;
         public double ExternalTreatmentIntensity { get; set; } = 1.0;
+        /// <summary>Cumulative simulated days in this zone; drives seasonality.</summary>
+        public long ElapsedDays { get; private set; }
 
         /// <summary>Parameterless constructor for JSON deserialization.</summary>
         public Zone() : this("") { }
@@ -54,11 +56,14 @@ namespace LakskongenSim.Environment
         {
             for (int day = 0; day < days; day++)
             {
+                ElapsedDays++;
                 // Update water chemistry based on current fish biomass
                 WaterChemistry.UpdateOneDay(CurrentFishBiomassKg, FeedConversionRatio, WaterFlowRate);
-                
-                // Update ocean currents (seasonal/weather variation)
-                UpdateCurrents(day);
+
+                // Update ocean currents (seasonal/weather variation).
+                // Uses cumulative ElapsedDays so the seasonal cycle advances
+                // across ticks instead of restarting every call.
+                UpdateCurrents((int)(ElapsedDays % 365));
                 
                 // Calculate nutrient load from fish waste and feed
                 double dailyNutrientLoad = CalculateDailyNutrientLoad();

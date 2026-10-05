@@ -291,4 +291,3 @@ func get_pen_info(pen_id: String) -> Dictionary:
         "depth": pen_data.depth,
         "active": pen_data.active
     }
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

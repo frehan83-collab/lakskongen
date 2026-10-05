@@ -83,4 +83,3 @@ func _ready():
 	
 	print("\n=== Test Complete ===\n")
 	manager.queue_free()
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

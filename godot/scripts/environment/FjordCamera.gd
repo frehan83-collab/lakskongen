@@ -216,4 +216,3 @@ func look_at_position(world_pos: Vector3, zoom: ZoomLevel = current_zoom) -> voi
 ## Get the current focus point on the ground
 func get_focus_point() -> Vector3:
 	return _target_position
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

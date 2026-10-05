@@ -494,6 +494,3 @@ class _LineCanvas extends Control:
 				draw_line(arrow_tip, target_pt, line_color, 1.5)
 				draw_line(arrow_tip + perp, target_pt, line_color, 1.0)
 				draw_line(arrow_tip - perp, target_pt, line_color, 1.0)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

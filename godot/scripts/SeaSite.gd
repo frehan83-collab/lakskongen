@@ -101,4 +101,3 @@ func empty_pen(pen_id: int) -> int:
             p["fish"].clear()
             return removed
     return 0
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

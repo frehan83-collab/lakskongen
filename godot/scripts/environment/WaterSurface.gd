@@ -109,4 +109,3 @@ func _calculate_normal(v1: Vector3, v2: Vector3, v3: Vector3) -> Vector3:
 	var edge1 := v2 - v1
 	var edge2 := v3 - v1
 	return edge1.cross(edge2).normalized()
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

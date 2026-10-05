@@ -126,4 +126,3 @@ func _set_label_bold(label_node):
         font.set_size(label_node.get_theme_font("font").get_size())
         font.set_font_weight(TextServer.FONT_WEIGHT_BOLD)
         label_node.add_theme_font_override("font", font)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

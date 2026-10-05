@@ -158,4 +158,3 @@ func notify_simulation_event(event_type: String, data: Dictionary) -> void:
             set_weather(weather)
         _:
             print("[NordlandIntegration] Unknown event: %s" % event_type)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

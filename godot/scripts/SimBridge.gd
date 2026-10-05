@@ -120,13 +120,13 @@ var _game_bridge: Node = null
 func _ready() -> void:
 	if has_node("/root/GameBridge"):
 		_game_bridge = get_node("/root/GameBridge")
-		_game_bridge.game_state_updated.connect(_on_game_state_updated)
-		_game_bridge.simulation_ticked.connect(_on_simulation_ticked)
-		_game_bridge.game_started.connect(_on_game_started)
-		_game_bridge.game_ended.connect(_on_game_ended)
-		_game_bridge.tutorial_step_completed.connect(_on_tutorial_step_completed)
-		_game_bridge.audio_alert_triggered.connect(_on_audio_alert_triggered)
-		_game_bridge.achievement_unlocked.connect(_on_achievement_unlocked)
+		_game_bridge.GameStateUpdated.connect(_on_game_state_updated)
+		_game_bridge.SimulationTicked.connect(_on_simulation_ticked)
+		_game_bridge.GameStarted.connect(_on_game_started)
+		_game_bridge.GameEnded.connect(_on_game_ended)
+		_game_bridge.TutorialStepCompleted.connect(_on_tutorial_step_completed)
+		_game_bridge.AudioAlertTriggered.connect(_on_audio_alert_triggered)
+		_game_bridge.AchievementUnlocked.connect(_on_achievement_unlocked)
 		print("SimBridge: connected to GameBridge (C#)")
 	else:
 		push_warning("SimBridge: /root/GameBridge not found — stub mode active")
@@ -1253,4 +1253,3 @@ func get_next_milestone_info() -> Dictionary:
 ## Get milestone completion progress (0.0-1.0)
 func get_milestone_progress() -> float:
 	return _game_bridge.GetMilestoneProgress() if _game_bridge else 0.0
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

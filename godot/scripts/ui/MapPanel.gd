@@ -487,8 +487,8 @@ func _build_region_markers() -> void:
 		var marker := _RegionMarker.new()
 		marker.region_data = region
 		# Convert normalised pos to pixel coords with some horizontal centering
-		var px := region["pos"].x * map_size.x
-		var py := region["pos"].y * (map_size.y - 80) + 30
+		var px: float = region["pos"].x * map_size.x
+		var py: float = region["pos"].y * (map_size.y - 80) + 30
 		marker.position = Vector2(px - 60, py - 22)
 		marker.custom_minimum_size = Vector2(120, 44)
 		marker.mouse_entered.connect(_on_region_hover.bind(region["id"]))
@@ -1030,6 +1030,3 @@ class _TempBar extends Control:
 		for t in [5, 10, 12, 15, 16, 20]:
 			var tx := float(t) / total_range * w
 			draw_line(Vector2(tx, h * 0.8), Vector2(tx, h), Color(1, 1, 1, 0.3), 1.0)
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

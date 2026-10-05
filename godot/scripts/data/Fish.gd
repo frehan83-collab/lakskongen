@@ -2,7 +2,7 @@
 # Implements empirical growth models (von Bertalanffy and Gompertz)
 
 class_name Fish
-extends Reference
+extends RefCounted
 
 var id: int
 var age_days: int = 0
@@ -103,4 +103,3 @@ func clone(new_id: int = 0) -> Fish:
     f.mortality_rate_daily = mortality_rate_daily
     f.alive = alive
     return f
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

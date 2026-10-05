@@ -1662,12 +1662,10 @@ namespace LakskongenSim.Core
         /// </summary>
         public void RestoreFromLoad(GameState loadedState)
         {
-            // 1. Restore balance from saved state
+            // 1. Restore balance from saved state (always assign — a bankrupt
+            // or zero save must restore exactly that, not keep live cash).
             #pragma warning disable CS0618 // Type or member is obsolete
-            if (loadedState.Balance > 0)
-            {
-                FinanceManager = new Finance.FinanceManager(loadedState.Balance);
-            }
+            FinanceManager = new Finance.FinanceManager(loadedState.Balance);
             #pragma warning restore CS0618
 
             // 2. Re-inject GrowthModel and MortalityModel into all FishPopulations

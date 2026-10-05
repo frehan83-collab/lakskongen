@@ -68,4 +68,3 @@ func _get_configuration_warnings() -> PackedStringArray:
 					break
 	
 	return warnings
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

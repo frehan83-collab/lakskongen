@@ -550,6 +550,3 @@ func _fmt_num(n: int) -> String:
 		result = s[i] + result
 		count += 1
 	return ("-" + result) if n < 0 else result
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key
-    if event.is_action_pressed("ui_cancel"):
-        get_tree().call_group_flags(2, "tooltips", "hide")

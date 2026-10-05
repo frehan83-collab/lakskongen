@@ -142,4 +142,3 @@ func get_time_string() -> String:
 	if time_system:
 		return time_system.get_time_string()
 	return "??:??"
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

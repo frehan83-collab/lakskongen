@@ -15,6 +15,8 @@ const DEFAULT_PLAYER_NAME: String = "Player"
 
 # State
 var _game_started: bool = false
+# Optional PauseMenu instance (not currently in Main.tscn — toggle stays inert until wired).
+var _pause_menu: Control = null
 
 func _ready() -> void:
 	print("Main: Initializing...")
@@ -105,19 +107,3 @@ func _on_resume_requested() -> void:
 func _on_quit_to_menu() -> void:
 	# This is handled by PauseMenu, but we could add cleanup here if needed
 	pass
-y() -> void:
-	if _sim:
-		_sim.advance_day()
-
-func set_paused(paused: bool) -> void:
-	if _sim:
-		_sim.set_paused(paused)
-
-func get_current_day() -> int:
-	if _sim:
-		return _sim.current_day
-	return 0
-
-func is_game_started() -> bool:
-	return _game_started
-tooltip_text = tr("TOOLTIP_%s")  # TODO: Add translation key

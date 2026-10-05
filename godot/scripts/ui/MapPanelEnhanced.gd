@@ -202,8 +202,8 @@ func _build_region_markers() -> void:
 		var marker := _RegionMarker.new()
 		marker.region_data = region
 		marker.current_layer = _current_layer
-		var px := region["pos"].x * map_size.x
-		var py := region["pos"].y * (map_size.y - 80) + 30
+		var px: float = region["pos"].x * map_size.x
+		var py: float = region["pos"].y * (map_size.y - 80) + 30
 		marker.position = Vector2(px - 40, py - 15)
 		marker.custom_minimum_size = Vector2(80, 30)
 		marker.mouse_entered.connect(func(): _on_region_hover(region["id"]))
