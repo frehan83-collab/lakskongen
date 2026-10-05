@@ -76,6 +76,25 @@ namespace LakskongenSim.Expansion
                 .OrderBy(asset => asset.CapexNOK)
                 .ToList();
         }
+
+        /// <summary>Owned tiers for save serialization.</summary>
+        public List<IntegrationTier> GetOwnedTiers()
+        {
+            return _ownedAssets.Select(a => a.Tier).Distinct().ToList();
+        }
+
+        /// <summary>
+        /// Restore a saved owned tier without charging CAPEX or firing events
+        /// (load path only — BuildAsset is the live path). No-op if the asset
+        /// catalogue does not contain the tier (data not loaded / modded).
+        /// </summary>
+        public void RestoreOwnedTier(IntegrationTier tier)
+        {
+            var asset = _allAssets.FirstOrDefault(a => a.Tier == tier);
+            if (asset == null || asset.IsOwned) return;
+            asset.IsOwned = true;
+            _ownedAssets.Add(asset);
+        }
         
         private bool IsUnlocked(IntegrationAsset asset)
         {

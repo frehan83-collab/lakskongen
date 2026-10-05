@@ -179,6 +179,21 @@ namespace LakskongenSim.Events
             return achieved;
         }
 
+        /// <summary>
+        /// Restore achieved milestones from save (no events, no cinematics —
+        /// load path only). Unknown type names are skipped.
+        /// </summary>
+        public void RestoreAchieved(System.Collections.Generic.IEnumerable<string> typeNames)
+        {
+            foreach (var name in typeNames)
+            {
+                if (!System.Enum.TryParse<MilestoneType>(name, out var type)) continue;
+                if (!_milestones.TryGetValue(type, out var milestone)) continue;
+                milestone.Achieved = true; // AchievedDate stays null (original date not persisted)
+                _triggeredMilestones.Add(type);
+            }
+        }
+
         /// <summary>Get milestone progress (total achieved / total milestones).</summary>
         public float GetProgress() =>
             (float)_triggeredMilestones.Count / _milestones.Count;

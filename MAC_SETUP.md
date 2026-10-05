@@ -27,7 +27,9 @@ export PATH="$DOTNET_ROOT:$PATH"
 export DOTNET_ROLL_FORWARD=LatestMajor   # tests target net8.0; runs on the 10 runtime
 
 dotnet build LakskongenSim.sln          # 0 errors (2449 warnings, mostly XML-doc)
-dotnet test LakskongenSim.sln           # 351 passed, 0 failed (via roll-forward)
+dotnet test LakskongenSim.sln           # all green (main suite 290 incl. 6 new
+                                        # cash/save round-trip tests; satellites 20+46+46+46)
+python3 -m pytest tests/ -q            # 21 passed, 1 skipped (design + bridge + save guards)
 ```
 
 Individual suites: `tests/*.csproj` and `src/*/*.Tests/*.csproj` build and
@@ -38,16 +40,23 @@ instead of roll-forward, or retarget test projects to net10.0.
 
 ## Godot project
 
-- Current project: `godot/` (Godot 4.3, C#, Forward Plus).
+- Current project: `godot/` (Godot **4.7**, C#, Forward Plus — migrated from
+  4.3 on 2026-10-05; `project.godot` features tag + `Godot.NET.Sdk/4.7.2`
+  pin this. All verification runs on 4.7.2.)
 - Legacy project: `game/` (Godot 3 era, `config_version=4`) — not maintained.
 - Headless import check: `godot-mono --headless --path godot --import`
 - Headless boot smoke: `godot-mono --headless --path godot --quit-after 600`
-- NOTE: `--import` on 4.7 writes `.uid` files and touches the `.csproj`;
-  run `git checkout -- godot/LakskongenGame.csproj && git clean -fdq godot/`
-  afterwards to keep the tree clean.
+- `.uid` files (130, Godot 4.4+ resource IDs) are TRACKED in git — commit them
+  with their scripts. Never `git clean` them away.
+- SAFE post-import cleanup (import touches only generated files):
+  `git checkout -- godot/LakskongenGame.csproj` then
+  `git status --porcelain godot/` and revert generated files individually.
+  NEVER run broad `git clean -fdq godot/` — it once deleted an untracked
+  source file (ProductionGoal.cs).
 
-## Known environment-independent breakage (2026-10-05)
+## Status (2026-10-05, post repair passes)
 
-- ~81 `.gd` files fail to parse (stray column-0 `tooltip_text` lines + other
-  defects) — the game cannot boot. See review findings, not setup.
-- `godot/LakskongenGame.sln` does not compile (7× CS0266 in GameBridge.cs).
+- Both `.sln` build with 0 errors; full test suites green (see above).
+- GDScript parse failures: 0/118. Boot smoke: clean.
+- Remaining work: empire-restore edge cases (competitor roster, phase
+  unlocks), onboarding slice, legacy `game/` archival decision.

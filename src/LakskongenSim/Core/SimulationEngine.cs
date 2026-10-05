@@ -1653,21 +1653,100 @@ namespace LakskongenSim.Core
                 };
             }
 
-            // 3-15: Other systems - Keep empty for now to avoid build errors
-            // These will be implemented incrementally as needed
-            State.StockMarket = null;
-            State.BrandReputation = null;
-            State.ActiveCrises.Clear();
-            State.VerticalIntegration = null;
-            State.ActiveLoans.Clear();
-            State.TaxHistory.Clear();
-            State.InvestorSystem = null;
-            State.Acquisitions.Clear();
-            State.Licenses.Clear();
-            State.FactionRelations.Clear();
-            State.RecentMarketReports.Clear();
-            State.FishWelfareCondition = 1.0m;
-            State.AchievedVisualMilestones.Clear();
+            // 3. StockMarket — live cap-table state (private setters; see RestoreState)
+            if (StockMarket != null)
+            {
+                State.StockMarket = new StockMarketState
+                {
+                    Status = StockMarket.Status.ToString(),
+                    SharePrice = StockMarket.SharePrice,
+                    PriceHistory = StockMarket.PriceHistory.Select(e => e.NewPrice).ToList(),
+                    OutstandingShares = (int)StockMarket.TotalShares
+                };
+            }
+
+            // 4. BrandReputation — public setters, direct map
+            if (BrandReputation != null)
+            {
+                State.BrandReputation = new BrandReputationState
+                {
+                    BrandName = BrandReputation.BrandName,
+                    Strategy = BrandReputation.Strategy.ToString(),
+                    QualityReputation = BrandReputation.QualityReputation,
+                    SustainabilityReputation = BrandReputation.SustainabilityReputation,
+                    Certifications = new HashSet<string>(BrandReputation.Certifications)
+                };
+            }
+
+            // 5. CrisisCapitalism — active crises only (expired ones drop naturally)
+            if (CrisisCapitalism != null)
+            {
+                State.ActiveCrises = CrisisCapitalism.GetActiveCrises()
+                    .Select(c => new CrisisEventState
+                    {
+                        Id = c.Id,
+                        Type = c.Type.ToString(),
+                        AffectedCompetitorId = c.AffectedCompetitorId,
+                        SeverityScore = c.SeverityScore,
+                        DurationMonths = c.DurationMonths,
+                        StartDate = c.StartDate
+                    }).ToList();
+            }
+
+            // 6. VerticalIntegration — owned tiers + score
+            if (VerticalIntegration != null)
+            {
+                var owned = VerticalIntegration.GetOwnedTiers();
+                State.VerticalIntegration = new VerticalIntegrationState
+                {
+                    OwnsFeedMill = owned.Contains(Expansion.IntegrationTier.FEED_MILL),
+                    OwnsHatchery = owned.Contains(Expansion.IntegrationTier.HATCHERY),
+                    OwnsProcessing = owned.Contains(Expansion.IntegrationTier.PROCESSING),
+                    OwnsColdChain = owned.Contains(Expansion.IntegrationTier.COLD_CHAIN),
+                    OwnsDistribution = owned.Contains(Expansion.IntegrationTier.DISTRIBUTION),
+                    IntegrationScore = VerticalIntegration.GetIntegrationScore()
+                };
+            }
+
+            // 7. InvestorSystem — aggregates (no per-investor records exist yet;
+            // DTO keeps the list slot for a future cap-table implementation)
+            if (InvestorSystem != null)
+            {
+                State.InvestorSystem = new InvestorSystemState
+                {
+                    OutstandingShares = (int)InvestorSystem.OutstandingShares,
+                    OutstandingBondPrincipal = InvestorSystem.OutstandingBondPrincipal,
+                    Investors = new List<InvestorRecord>()
+                };
+            }
+
+            // 8. StakeholderFactionSystem — RAW relationship scores by faction
+            // (not weighted: Influence is a constant per faction, re-applied live)
+            if (StakeholderFactionSystem != null)
+            {
+                State.FactionRelations = StakeholderFactionSystem.GetAllFactions()
+                    .ToDictionary(kvp => kvp.Key.ToString(), kvp => (decimal)kvp.Value.RelationshipScore);
+            }
+
+            // 9. FishWelfare — single condition score
+            if (FishWelfare != null)
+            {
+                State.FishWelfareCondition = (decimal)FishWelfare.ConditionScore;
+            }
+
+            // 10. VisualMilestones — achieved type names (dates not persisted)
+            if (VisualMilestones != null)
+            {
+                State.AchievedVisualMilestones = VisualMilestones.GetAchievedMilestones()
+                    .Select(m => m.Type.ToString()).ToHashSet();
+            }
+
+            // PRESERVED (never cleared): ActiveLoans, TaxHistory, Acquisitions,
+            // Licenses, RecentMarketReports. These DTO slots have no live runtime
+            // counterpart yet (LoanSystem/TaxSystem/LicenseSystem are stateless
+            // calculators; AcquisitionSystem tracks targets, not owned deals;
+            // no market-report producer exists). Loaded values round-trip
+            // untouched until the systems grow live state — then wire them here.
         }
 
         /// <summary>
@@ -1698,12 +1777,13 @@ namespace LakskongenSim.Core
         /// <summary>
         /// Restore all empire systems from loaded GameState (T74).
         /// Backward-compatible: gracefully handles old saves without new fields.
+        /// Live-system rehydration is exact and side-effect-free (no cash
+        /// movement, no events). CompetitorAI rosters respawn procedurally and
+        /// EmpireProgression re-derives phases from milestones as play
+        /// continues — their DTOs round-trip in State for UI/history.
         /// </summary>
         private void RestoreEmpireSystemsFromState(GameState loadedState)
         {
-            // T74: For now, just log that new empire systems were loaded
-            // Full restoration will be added incrementally as each system is battle-tested
-            
             if (loadedState.CompetitorCompanies?.Count > 0)
             {
                 Console.WriteLine($"✓ Loaded {loadedState.CompetitorCompanies.Count} competitor companies from save");
@@ -1714,8 +1794,85 @@ namespace LakskongenSim.Core
                 Console.WriteLine($"✓ Loaded empire progression: {loadedState.EmpireProgression.CurrentPhase}");
             }
 
-            // Other systems will be restored incrementally as they're tested
-            // Old saves without these fields will load fine with default values
+            // StockMarket — exact restore via system API
+            if (loadedState.StockMarket != null && StockMarket != null)
+            {
+                if (Enum.TryParse<Finance.OwnershipStatus>(loadedState.StockMarket.Status, out var status))
+                    StockMarket.RestoreState(status, loadedState.StockMarket.SharePrice,
+                        loadedState.StockMarket.OutstandingShares, loadedState.StockMarket.PriceHistory);
+            }
+
+            // BrandReputation — public setters, direct restore
+            if (loadedState.BrandReputation != null && BrandReputation != null)
+            {
+                BrandReputation.BrandName = loadedState.BrandReputation.BrandName;
+                if (Enum.TryParse<Processing.BrandStrategy>(loadedState.BrandReputation.Strategy, out var strategy))
+                    BrandReputation.Strategy = strategy;
+                BrandReputation.QualityReputation = loadedState.BrandReputation.QualityReputation;
+                BrandReputation.SustainabilityReputation = loadedState.BrandReputation.SustainabilityReputation;
+                BrandReputation.Certifications = new HashSet<string>(loadedState.BrandReputation.Certifications);
+            }
+
+            // Active crises — re-registered silently (expired ones skipped)
+            if (loadedState.ActiveCrises?.Count > 0 && CrisisCapitalism != null)
+            {
+                foreach (var c in loadedState.ActiveCrises)
+                {
+                    if (!Enum.TryParse<Events.CrisisType>(c.Type, out var type)) continue;
+                    CrisisCapitalism.RestoreCrisis(new Events.CrisisEvent
+                    {
+                        Id = c.Id,
+                        Type = type,
+                        AffectedCompetitorId = c.AffectedCompetitorId,
+                        SeverityScore = c.SeverityScore,
+                        DurationMonths = c.DurationMonths,
+                        StartDate = c.StartDate
+                    });
+                }
+            }
+
+            // VerticalIntegration — re-mark owned tiers (no CAPEX, no events)
+            if (loadedState.VerticalIntegration != null && VerticalIntegration != null)
+            {
+                var vi = loadedState.VerticalIntegration;
+                if (vi.OwnsFeedMill) VerticalIntegration.RestoreOwnedTier(Expansion.IntegrationTier.FEED_MILL);
+                if (vi.OwnsHatchery) VerticalIntegration.RestoreOwnedTier(Expansion.IntegrationTier.HATCHERY);
+                if (vi.OwnsProcessing) VerticalIntegration.RestoreOwnedTier(Expansion.IntegrationTier.PROCESSING);
+                if (vi.OwnsColdChain) VerticalIntegration.RestoreOwnedTier(Expansion.IntegrationTier.COLD_CHAIN);
+                if (vi.OwnsDistribution) VerticalIntegration.RestoreOwnedTier(Expansion.IntegrationTier.DISTRIBUTION);
+            }
+
+            // InvestorSystem — exact aggregates via system API
+            if (loadedState.InvestorSystem != null && InvestorSystem != null)
+            {
+                InvestorSystem.RestoreState(loadedState.InvestorSystem.OutstandingShares,
+                    loadedState.InvestorSystem.OutstandingBondPrincipal);
+            }
+
+            // Faction relations — direct score restore (no delta replay)
+            if (loadedState.FactionRelations?.Count > 0 && StakeholderFactionSystem != null)
+            {
+                foreach (var kvp in loadedState.FactionRelations)
+                {
+                    if (!Enum.TryParse<Politics.FactionType>(kvp.Key, out var faction)) continue;
+                    var f = StakeholderFactionSystem.GetFaction(faction);
+                    if (f != null) f.RelationshipScore = (float)kvp.Value;
+                }
+            }
+
+            // FishWelfare — delta restore (fires normal condition event for UI)
+            if (FishWelfare != null)
+            {
+                FishWelfare.ModifyCondition((double)loadedState.FishWelfareCondition - FishWelfare.ConditionScore);
+            }
+
+            // VisualMilestones — silent re-mark (no events, no cinematics)
+            if (loadedState.AchievedVisualMilestones?.Count > 0 && VisualMilestones != null)
+            {
+                VisualMilestones.RestoreAchieved(loadedState.AchievedVisualMilestones);
+            }
+
+            // Old saves without these fields load fine with default values
         }
     }
 }

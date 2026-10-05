@@ -100,5 +100,41 @@ namespace LakskongenSim.Tests.Core
             var configJson = File.ReadAllText(configPath);
             Assert.Contains("false", configJson); // enabled field set to false
         }
+
+        [Fact]
+        public void BuildEventDefinitions_WithFinance_SettlesCashThroughFinanceManager()
+        {
+            // Arrange — mod with a cash-grant event
+            var modPath = Path.Combine(_testModsDirectory, "cashmod");
+            Directory.CreateDirectory(modPath);
+            var manifest = new ModManifest
+            {
+                Id = "cashmod", Name = "Cash Mod", Author = "Test", Version = "1.0.0",
+                Files = new System.Collections.Generic.List<string> { "events.json" },
+                Dependencies = new System.Collections.Generic.List<string>()
+            };
+            File.WriteAllText(Path.Combine(modPath, "manifest.json"),
+                System.Text.Json.JsonSerializer.Serialize(manifest));
+            File.WriteAllText(Path.Combine(modPath, "events.json"),
+                """[{"id":"grant","name":"Grant","category":"General","weight":1.0,"cooldown_days":30,"description":"Cash grant","effects":{"balance_change":250000.0}}]""");
+
+            var modLoader = new ModLoader(_testModsDirectory);
+            modLoader.DiscoverAndLoad();
+            var finance = new LakskongenSim.Finance.FinanceManager(1_000_000m);
+            var defs = modLoader.BuildEventDefinitions(finance);
+            var grant = Assert.Single(defs);
+
+            // Act — invoke the built Apply closure directly
+            var state = new GameState();
+            var record = new EventRecord();
+            grant.Apply?.Invoke(state, record);
+
+            // Assert — finance moved, ledger recorded, mirror untouched
+            Assert.Equal(1_250_000m, finance.Balance);
+            Assert.Equal(250000m, record.BalanceChange);
+#pragma warning disable CS0618 // mirror must stay untouched by event settlement
+            Assert.Equal(0m, state.Balance);
+#pragma warning restore CS0618
+        }
     }
 }

@@ -364,7 +364,7 @@ namespace LakskongenSim.Core
         /// Collect all ModEventDefinitions from every enabled loaded mod,
         /// converting them into runtime EventDefinition objects with simple numeric effects.
         /// </summary>
-        public List<EventDefinition> BuildEventDefinitions()
+        public List<EventDefinition> BuildEventDefinitions(Finance.FinanceManager? finance = null)
         {
             var result = new List<EventDefinition>();
 
@@ -400,9 +400,19 @@ namespace LakskongenSim.Core
 
                             if (captured.Effects.TryGetValue("balance_change", out var balDelta))
                             {
-                                // TODO: Route through FinanceManager when engine ref is available in closure
-                                state.Balance += (decimal)balDelta;
-                                record.BalanceChange = (decimal)balDelta;
+                                var delta = (decimal)balDelta;
+                                // Unconditional (fines/catastrophes apply into debt),
+                                // matching NorwegianEvents settlement semantics.
+                                if (finance != null)
+                                {
+                                    if (delta >= 0m) finance.AddRevenue(delta);
+                                    else finance.ForceSpend(-delta);
+                                }
+                                else
+                                {
+                                    state.Balance += delta; // test fallback (no finance)
+                                }
+                                record.BalanceChange = delta;
                             }
                         }
                     });

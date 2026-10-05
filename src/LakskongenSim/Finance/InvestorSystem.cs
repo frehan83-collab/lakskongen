@@ -36,5 +36,16 @@ namespace LakskongenSim.Finance
             // For simplicity, assume original base was 1_000_000 shares
             return Math.Max(0m, OutstandingShares - 1_000_000m) / OutstandingShares;
         }
+
+        /// <summary>
+        /// Exact state restore from save (no cash side effects, no events).
+        /// Per-investor records are not tracked by this system; the save DTO
+        /// keeps the list slot for a future cap-table implementation.
+        /// </summary>
+        public void RestoreState(decimal outstandingShares, decimal outstandingBondPrincipal)
+        {
+            if (outstandingShares > 0) OutstandingShares = outstandingShares;
+            if (outstandingBondPrincipal >= 0) OutstandingBondPrincipal = outstandingBondPrincipal;
+        }
     }
 }

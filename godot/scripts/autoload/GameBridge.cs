@@ -119,6 +119,33 @@ public partial class GameBridge : Node
         foreach (var evt in snapshot.EventLog)
             SimulationEngine.State.EventLog.Add(evt);
 
+        // Empire-system DTOs (save-rounded; engine rehydrates live systems)
+        SimulationEngine.State.StockMarket = snapshot.StockMarket;
+        SimulationEngine.State.BrandReputation = snapshot.BrandReputation;
+        foreach (var crisis in snapshot.ActiveCrises)
+            SimulationEngine.State.ActiveCrises.Add(crisis);
+        SimulationEngine.State.VerticalIntegration = snapshot.VerticalIntegration;
+        foreach (var loan in snapshot.ActiveLoans)
+            SimulationEngine.State.ActiveLoans.Add(loan);
+        foreach (var tax in snapshot.TaxHistory)
+            SimulationEngine.State.TaxHistory.Add(tax);
+        SimulationEngine.State.InvestorSystem = snapshot.InvestorSystem;
+        foreach (var acq in snapshot.Acquisitions)
+            SimulationEngine.State.Acquisitions.Add(acq);
+        foreach (var lic in snapshot.Licenses)
+            SimulationEngine.State.Licenses.Add(lic);
+        foreach (var kvp in snapshot.FactionRelations)
+            SimulationEngine.State.FactionRelations[kvp.Key] = kvp.Value;
+        foreach (var rep in snapshot.RecentMarketReports)
+            SimulationEngine.State.RecentMarketReports.Add(rep);
+        SimulationEngine.State.FishWelfareCondition = snapshot.FishWelfareCondition;
+        foreach (var m in snapshot.AchievedVisualMilestones)
+            SimulationEngine.State.AchievedVisualMilestones.Add(m);
+        if (snapshot.CompetitorCompanies != null)
+            foreach (var c in snapshot.CompetitorCompanies)
+                SimulationEngine.State.CompetitorCompanies.Add(c);
+        SimulationEngine.State.EmpireProgression = snapshot.EmpireProgression;
+
         // CRITICAL: Re-inject dependencies into deserialized populations
         // Fixes P1-03 (Save/Load NRE Gap) - populations need GrowthModel/MortalityModel after deserialization
         SimulationEngine.RestoreFromLoad(snapshot);

@@ -308,6 +308,18 @@ namespace LakskongenSim.Events
         }
 
         /// <summary>
+        /// Restore a saved crisis without firing events or generating new
+        /// assets (load path only — TriggerCrisis is the live path).
+        /// Expired crises (IsActive == false) are skipped.
+        /// </summary>
+        public void RestoreCrisis(CrisisEvent crisis)
+        {
+            if (crisis == null || !crisis.IsActive) return;
+            if (_activeCrises.Any(c => c.Id == crisis.Id)) return;
+            _activeCrises.Add(crisis);
+        }
+
+        /// <summary>
         /// Calculate discount multiplier based on crisis type and severity
         /// </summary>
         private float CalculateDiscountMultiplier(CrisisType type, float severity)

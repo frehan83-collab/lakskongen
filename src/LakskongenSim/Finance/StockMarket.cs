@@ -155,6 +155,24 @@ namespace LakskongenSim.Finance
         public List<StockPriceEvent> PriceHistory { get; } = new();
         public List<EarningsReport> EarningsHistory { get; } = new();
 
+        /// <summary>
+        /// Exact state restore from save (no cash side effects, no events).
+        /// Institutional registry is session-built (analyst coverage events)
+        /// and intentionally not persisted.
+        /// </summary>
+        public void RestoreState(OwnershipStatus status, decimal sharePrice, decimal totalShares, IEnumerable<decimal>? priceHistory = null)
+        {
+            Status = status;
+            if (sharePrice > 0) SharePrice = sharePrice;
+            if (totalShares > 0) TotalShares = totalShares;
+            if (priceHistory != null)
+            {
+                PriceHistory.Clear();
+                foreach (var price in priceHistory)
+                    PriceHistory.Add(new StockPriceEvent { OldPrice = price, NewPrice = price, Reason = "Save restore", Timestamp = DateTime.Now });
+            }
+        }
+
         // Private state
         private readonly Random _rng;
         private decimal _lastEPS;
