@@ -382,24 +382,7 @@ namespace LakskongenSim.Core
 
         private void LoadJsonConfigs()
         {
-            // Try multiple possible paths for data files
-            string[] candidatePaths = {
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "..", "game", "data"),
-                Path.Combine("game", "data"),
-                "Data"
-            };
-
-            string? dataPath = null;
-            foreach (var candidate in candidatePaths)
-            {
-                var testPath = Path.Combine(candidate, "balancing.json");
-                if (File.Exists(testPath))
-                {
-                    dataPath = candidate;
-                    break;
-                }
-            }
-
+            string? dataPath = ResolveDataDirectory("balancing.json");
             if (dataPath == null)
             {
                 Console.WriteLine("⚠️  Data directory not found. Using defaults for all configs.");
@@ -427,6 +410,27 @@ namespace LakskongenSim.Core
             LoadEncyclopediaEntries(dataPath);
 
             Console.WriteLine("✅ JSON config loading complete");
+        }
+
+        /// <summary>
+        /// Resolve the canonical live data dir (godot/data) by probing for a
+        /// marker file. Shared by TutorialSystem and AchievementSystem, which
+        /// load independently of LoadJsonConfigs. Legacy game/data last
+        /// (removed 2026-10-05, see archive/README.md).
+        /// </summary>
+        internal static string? ResolveDataDirectory(string probeFile)
+        {
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string[] candidates = {
+                Path.Combine("godot", "data"),
+                "data",
+                Path.Combine(baseDir, "..", "..", "..", "data"),
+                Path.Combine(baseDir, "..", "..", "..", "..", "..", "godot", "data"),
+                Path.Combine(baseDir, "..", "..", "..", "..", "..", "game", "data"),
+                Path.Combine("game", "data"),
+                "Data"
+            };
+            return candidates.FirstOrDefault(c => File.Exists(Path.Combine(c, probeFile)));
         }
 
         private void LoadAquacultureDataConfig()
@@ -1635,21 +1639,33 @@ namespace LakskongenSim.Core
                         Id = c.Id,
                         Name = c.Name,
                         Revenue = c.Revenue,
+                        EBITDA = c.EBITDA,
                         MarketCap = c.MarketCap,
+                        DebtLevel = c.DebtLevel,
+                        CashReserves = c.CashReserves,
                         LicenseCount = c.LicenseCount,
+                        TotalMABTonnes = c.TotalMABTonnes,
+                        SiteCount = c.SiteCount,
                         MarketShareNorway = c.MarketShareNorway,
-                        IsDistressed = c.IsDistressed
+                        MarketShareGlobal = c.MarketShareGlobal,
+                        WeeklyHarvestTonnes = c.WeeklyHarvestTonnes,
+                        IsDistressed = c.IsDistressed,
+                        IsAcquisitionTarget = c.IsAcquisitionTarget,
+                        AcquisitionPrice = c.AcquisitionPrice
                     }).ToList();
             }
 
-            // 2. EmpireProgression - store current phase as string (will be restored)
+            // 2. EmpireProgression - phase, features, milestone/victory unlocks
             if (EmpireProgression != null)
             {
                 State.EmpireProgression = new EmpireProgressionState
                 {
                     CurrentPhase = EmpireProgression.CurrentPhase.ToString(),
-                    UnlockedMilestoneIds = new List<string>(), // Will be populated by EmpireProgression if needed
-                    AchievedVictoryIds = new List<string>()
+                    UnlockedFeatures = EmpireProgression.UnlockedFeatures.ToList(),
+                    UnlockedMilestoneIds = EmpireProgression.Milestones
+                        .Where(m => m.IsUnlocked).Select(m => m.Id).ToList(),
+                    AchievedVictoryIds = EmpireProgression.VictoryConditions
+                        .Where(v => v.IsAchieved).Select(v => v.Id).ToList()
                 };
             }
 
@@ -1778,20 +1794,48 @@ namespace LakskongenSim.Core
         /// Restore all empire systems from loaded GameState (T74).
         /// Backward-compatible: gracefully handles old saves without new fields.
         /// Live-system rehydration is exact and side-effect-free (no cash
-        /// movement, no events). CompetitorAI rosters respawn procedurally and
-        /// EmpireProgression re-derives phases from milestones as play
-        /// continues — their DTOs round-trip in State for UI/history.
+        /// movement, no events). Competitors match by stable parody ID onto the
+        /// procedurally spawned roster; unknown IDs are ignored.
         /// </summary>
         private void RestoreEmpireSystemsFromState(GameState loadedState)
         {
             if (loadedState.CompetitorCompanies?.Count > 0)
             {
                 Console.WriteLine($"✓ Loaded {loadedState.CompetitorCompanies.Count} competitor companies from save");
+                if (CompetitorAI != null)
+                {
+                    var roster = CompetitorAI.Competitors.ToDictionary(c => c.Id);
+                    foreach (var saved in loadedState.CompetitorCompanies)
+                    {
+                        if (!roster.TryGetValue(saved.Id, out var live)) continue;
+                        live.Revenue = saved.Revenue;
+                        live.EBITDA = saved.EBITDA;
+                        live.MarketCap = saved.MarketCap;
+                        live.DebtLevel = saved.DebtLevel;
+                        live.CashReserves = saved.CashReserves;
+                        live.LicenseCount = saved.LicenseCount;
+                        live.TotalMABTonnes = saved.TotalMABTonnes;
+                        live.SiteCount = saved.SiteCount;
+                        live.MarketShareNorway = saved.MarketShareNorway;
+                        live.MarketShareGlobal = saved.MarketShareGlobal;
+                        live.WeeklyHarvestTonnes = saved.WeeklyHarvestTonnes;
+                        live.IsDistressed = saved.IsDistressed;
+                        live.IsAcquisitionTarget = saved.IsAcquisitionTarget;
+                        live.AcquisitionPrice = saved.AcquisitionPrice;
+                    }
+                }
             }
 
             if (loadedState.EmpireProgression != null)
             {
                 Console.WriteLine($"✓ Loaded empire progression: {loadedState.EmpireProgression.CurrentPhase}");
+                if (EmpireProgression != null &&
+                    Enum.TryParse<Finance.EmpirePhase>(loadedState.EmpireProgression.CurrentPhase, out var phase))
+                {
+                    EmpireProgression.RestoreState(phase, loadedState.EmpireProgression.UnlockedFeatures,
+                        loadedState.EmpireProgression.UnlockedMilestoneIds,
+                        loadedState.EmpireProgression.AchievedVictoryIds);
+                }
             }
 
             // StockMarket — exact restore via system API

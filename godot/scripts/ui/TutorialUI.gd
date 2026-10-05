@@ -153,13 +153,18 @@ func _refresh_display() -> void:
 	if _tutorial_skipped:
 		visible = false
 		return
+	if not _tutorial_setting_enabled():
+		visible = false
+		return
 	if not has_node("/root/SimBridge"):
 		return
 	var sb: Node = get_node("/root/SimBridge")
 
 	var is_complete: bool = sb.tutorial_is_complete
 	var step_num: int     = sb.tutorial_step_number
-	var total: int        = 23  # Updated to 23 steps
+	var total: int        = sb.tutorial_total_steps
+	if total <= 0:
+		total = 12  # engine not running (menu state) — matches C# track size
 
 	if is_complete:
 		_show_completion_screen()
@@ -269,6 +274,23 @@ func _set_minimised(value: bool) -> void:
 		close_button.text         = tr("✕")
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+## Settings gate: SettingsMenu → user://settings.json → gameplay.tutorial_enabled.
+## Missing file / key defaults to enabled (first-run players see onboarding).
+func _tutorial_setting_enabled() -> bool:
+	if not FileAccess.file_exists("user://settings.json"):
+		return true
+	var file = FileAccess.open("user://settings.json", FileAccess.READ)
+	var json = JSON.new()
+	if json.parse(file.get_as_text()) != OK:
+		return true
+	var data = json.data
+	if typeof(data) != TYPE_DICTIONARY:
+		return true
+	var gameplay = data.get("gameplay", {})
+	if typeof(gameplay) != TYPE_DICTIONARY:
+		return true
+	return bool(gameplay.get("tutorial_enabled", true))
 
 func _format_nok(amount: float) -> String:
 	if has_node("/root/SimBridge"):

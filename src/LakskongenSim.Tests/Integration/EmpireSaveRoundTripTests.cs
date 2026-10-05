@@ -73,8 +73,7 @@ namespace LakskongenSim.Tests.Integration
 
         [Fact]
         public void RoundTrip_PreservesStockMarketListing()
-        {
-            var engine = NewEngine();
+        {            var engine = NewEngine();
             engine.StockMarket.RestoreState(Finance.OwnershipStatus.EuronextGrowth, 42.5m, 2_000_000m, new[] { 40m, 42.5m });
 
             engine.PrepareForSave();
@@ -86,6 +85,42 @@ namespace LakskongenSim.Tests.Integration
             Assert.Equal(Finance.OwnershipStatus.EuronextGrowth, loaded.StockMarket.Status);
             Assert.Equal(42.5m, loaded.StockMarket.SharePrice);
             Assert.Equal(2, loaded.StockMarket.PriceHistory.Count);
+        }
+
+        [Fact]
+        public void RoundTrip_PreservesCompetitorFinancialsById()
+        {
+            var engine = NewEngine();
+            var target = engine.CompetitorAI.Competitors.First();
+            target.Revenue = 1_234_567m;
+            target.IsDistressed = true;
+
+            engine.PrepareForSave();
+            var saved = Assert.Single(engine.State.CompetitorCompanies, c => c.Id == target.Id);
+            Assert.Equal(1_234_567m, saved.Revenue);
+
+            var loaded = NewEngine();
+            loaded.RestoreFromLoad(engine.State);
+            var restored = loaded.CompetitorAI.Competitors.First(c => c.Id == target.Id);
+            Assert.Equal(1_234_567m, restored.Revenue);
+            Assert.True(restored.IsDistressed);
+        }
+
+        [Fact]
+        public void RoundTrip_PreservesEmpirePhaseAndUnlocks()
+        {
+            var engine = NewEngine();
+            engine.EmpireProgression.RestoreState(Finance.EmpirePhase.NationalLeader,
+                new[] { "offshore" }, new[] { "first_license" }, new[] { "victory_largest" });
+
+            engine.PrepareForSave();
+            Assert.Equal("NationalLeader", engine.State.EmpireProgression?.CurrentPhase);
+
+            var loaded = NewEngine();
+            loaded.RestoreFromLoad(engine.State);
+            Assert.Equal(Finance.EmpirePhase.NationalLeader, loaded.EmpireProgression.CurrentPhase);
+            Assert.Contains("offshore", loaded.EmpireProgression.UnlockedFeatures);
+            Assert.Equal(1, loaded.EmpireProgression.UnlockedMilestoneCount);
         }
     }
 }

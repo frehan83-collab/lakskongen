@@ -80,6 +80,7 @@ var tutorial_description: String = ""
 var tutorial_hint: String = ""
 var tutorial_is_complete: bool = false
 var tutorial_completed_count: int = 0
+var tutorial_total_steps: int = 0
 
 # ── Empire Systems State (T65) ────────────────────────────────────────────────
 
@@ -192,6 +193,7 @@ func _refresh_state() -> void:
 	tutorial_hint           = _game_bridge.TutorialHint
 	tutorial_is_complete    = _game_bridge.TutorialIsComplete
 	tutorial_completed_count = _game_bridge.TutorialCompletedCount
+	tutorial_total_steps     = _game_bridge.TutorialTotalSteps
 
 	# Fetch latest events from C#
 	var raw = _game_bridge.GetRecentEvents(10)
@@ -300,6 +302,12 @@ func set_paused(paused: bool) -> void:
 func set_time_speed(speed: float) -> void:
 	if _game_bridge:
 		_game_bridge.SetTimeSpeed(speed)
+
+## Skip the tutorial silently (no rewards). From TutorialUI skip button.
+func skip_tutorial() -> void:
+	if _game_bridge and _game_bridge.has_method("SkipTutorial"):
+		_game_bridge.SkipTutorial()
+		_refresh_state()
 
 ## Get current game state as JSON (for saving)
 func get_game_state_json() -> String:

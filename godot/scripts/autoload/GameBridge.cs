@@ -401,7 +401,7 @@ public partial class GameBridge : Node
 
     // ── Tutorial properties for GDScript ─────────────────────────────────────
 
-    /// <summary>Current tutorial step number (1–12). Returns 12 when complete.</summary>
+    /// <summary>Current tutorial step number (1–TotalSteps). Returns TotalSteps when complete.</summary>
     public int TutorialStepNumber => SimulationEngine?.Tutorial?.CurrentStepNumber ?? 1;
 
     /// <summary>Title of the current tutorial step.</summary>
@@ -413,11 +413,20 @@ public partial class GameBridge : Node
     /// <summary>Contextual hint for the current tutorial step.</summary>
     public string TutorialHint => SimulationEngine?.Tutorial?.CurrentStep?.Hint ?? "";
 
-    /// <summary>True after all 12 tutorial steps are completed.</summary>
+    /// <summary>True after all tutorial steps are completed.</summary>
     public bool TutorialIsComplete => SimulationEngine?.Tutorial?.IsComplete ?? false;
 
-    /// <summary>Number of completed tutorial steps (0–12).</summary>
+    /// <summary>Number of completed tutorial steps.</summary>
     public int TutorialCompletedCount => SimulationEngine?.Tutorial?.CompletedCount ?? 0;
+
+    /// <summary>Total tutorial steps (drives UI progress bars — never hardcode).</summary>
+    public int TutorialTotalSteps => SimulationEngine?.Tutorial?.TotalSteps ?? 0;
+
+    /// <summary>Skip the tutorial silently (no rewards). From TutorialUI skip button.</summary>
+    public void SkipTutorial()
+    {
+        SimulationEngine?.Tutorial?.Skip();
+    }
 
     // ── Achievement properties for GDScript ──────────────────────────────────
 

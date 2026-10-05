@@ -181,6 +181,36 @@ namespace LakskongenSim.Finance
         public event Action<EmpireMilestone>? OnMilestoneUnlocked;
         public event Action<VictoryCondition>? OnVictoryAchieved;
 
+        /// <summary>
+        /// Silent restore from save: phase, unlocked features, milestone and
+        /// victory states. No events fire (load path only — Update and the
+        /// unlock paths are live). Unknown IDs are skipped.
+        /// </summary>
+        public void RestoreState(EmpirePhase phase,
+            System.Collections.Generic.IEnumerable<string>? unlockedFeatures = null,
+            System.Collections.Generic.IEnumerable<string>? unlockedMilestoneIds = null,
+            System.Collections.Generic.IEnumerable<string>? achievedVictoryIds = null)
+        {
+            _currentPhase = phase;
+            if (unlockedFeatures != null)
+            {
+                _unlockedFeatures.Clear();
+                _unlockedFeatures.AddRange(unlockedFeatures);
+            }
+            if (unlockedMilestoneIds != null)
+            {
+                var ids = new System.Collections.Generic.HashSet<string>(unlockedMilestoneIds);
+                foreach (var m in _milestones)
+                    if (ids.Contains(m.Id)) m.IsUnlocked = true;
+            }
+            if (achievedVictoryIds != null)
+            {
+                var ids = new System.Collections.Generic.HashSet<string>(achievedVictoryIds);
+                foreach (var v in _victoryConditions)
+                    if (ids.Contains(v.Id)) v.IsAchieved = true;
+            }
+        }
+
         public EmpireProgressionSystem()
         {
             InitializeMilestones();

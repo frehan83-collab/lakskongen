@@ -1,0 +1,718 @@
+﻿[
+    {
+        "id":  "atlantic-salmon",
+        "title":  "Atlantic Salmon (Salmo salar)",
+        "category":  "Biology",
+        "content":  "The Atlantic salmon is an anadromous fish native to the North Atlantic. Norway is the world\u0027s largest producer of farmed Atlantic salmon, producing over 1.5 million tonnes annually. Wild salmon migrate from rivers to the ocean and back to spawn, but farmed salmon complete their entire lifecycle in controlled environments.",
+        "relatedIds":  [
+                           "life-cycle",
+                           "smolt",
+                           "genetics"
+                       ]
+    },
+    {
+        "id":  "life-cycle",
+        "title":  "Salmon Life Cycle",
+        "category":  "Biology",
+        "content":  "Salmon progress through distinct stages: egg â†’ alevin â†’ fry â†’ parr â†’ smolt â†’ post-smolt â†’ adult. In farming, eggs are fertilized in hatcheries, raised to smolt stage (12-18 months), then transferred to sea cages for 14-22 months of grow-out before harvest at 4-6 kg.",
+        "relatedIds":  [
+                           "atlantic-salmon",
+                           "alevin",
+                           "parr",
+                           "smolt"
+                       ]
+    },
+    {
+        "id":  "smolt",
+        "title":  "Smolt",
+        "category":  "Biology",
+        "content":  "A smolt is a juvenile salmon that has undergone smoltification â€” the physiological adaptation from freshwater to saltwater. This involves changes in gill ion transport, body silvering, and hormonal shifts. Smolt quality directly impacts sea survival rates and final harvest weight. Modern hatcheries use photoperiod manipulation to produce year-round smolts.",
+        "relatedIds":  [
+                           "life-cycle",
+                           "hatchery",
+                           "parr"
+                       ]
+    },
+    {
+        "id":  "parr",
+        "title":  "Parr",
+        "category":  "Biology",
+        "content":  "Parr are juvenile salmon with distinctive dark vertical bars (parr marks) on their sides. In hatcheries, parr grow for 6-12 months in freshwater tanks before undergoing smoltification. Proper nutrition and water quality during the parr stage are critical for producing high-quality smolts.",
+        "relatedIds":  [
+                           "life-cycle",
+                           "smolt",
+                           "alevin"
+                       ]
+    },
+    {
+        "id":  "alevin",
+        "title":  "Alevin",
+        "category":  "Biology",
+        "content":  "Alevins are newly hatched salmon that still carry their yolk sac, which provides nutrition for the first 4-6 weeks. During this stage, alevins remain in gravel (wild) or incubation trays (farmed). Temperature controls the rate of yolk absorption and first feeding timing.",
+        "relatedIds":  [
+                           "life-cycle",
+                           "parr",
+                           "hatchery"
+                       ]
+    },
+    {
+        "id":  "spawning",
+        "title":  "Broodstock \u0026 Spawning",
+        "category":  "Biology",
+        "content":  "Broodstock are mature salmon selected for breeding based on desirable traits: fast growth, disease resistance, late maturation, and fillet quality. Norwegian breeding companies like AquaGen and SalmoBreed maintain multi-generation breeding programs. Eggs are stripped from females and fertilized with milt from selected males.",
+        "relatedIds":  [
+                           "genetics",
+                           "selective-breeding",
+                           "life-cycle"
+                       ]
+    },
+    {
+        "id":  "genetics",
+        "title":  "Salmon Genetics",
+        "category":  "Biology",
+        "content":  "Modern Norwegian salmon have been selectively bred since the 1970s, resulting in fish that grow 2-3x faster than wild salmon. Key breeding traits include growth rate, disease resistance, fillet color (astaxanthin uptake), late sexual maturation, and feed efficiency. Genomic selection using SNP chips has revolutionized breeding accuracy.",
+        "relatedIds":  [
+                           "spawning",
+                           "selective-breeding",
+                           "atlantic-salmon"
+                       ]
+    },
+    {
+        "id":  "growth-rate",
+        "title":  "Growth Rate \u0026 SGR",
+        "category":  "Biology",
+        "content":  "Specific Growth Rate (SGR) measures daily weight gain as a percentage. Norwegian salmon typically achieve SGR of 0.8-1.2% per day under optimal conditions (8-14Â°C). Growth follows a modified von Bertalanffy curve, with fastest growth in the first sea year. Temperature, photoperiod, feed quality, and genetics all influence growth rate.",
+        "relatedIds":  [
+                           "fcr",
+                           "atlantic-salmon",
+                           "water-temperature"
+                       ]
+    },
+    {
+        "id":  "fcr",
+        "title":  "Feed Conversion Ratio (FCR)",
+        "category":  "Biology",
+        "content":  "FCR is the ratio of feed input to fish weight gain (kg feed / kg growth). Norwegian salmon achieve FCR of 1.1-1.3, among the best of any farmed animal. For comparison, chicken FCR is ~1.7, pork ~3.0, and beef ~6.0. Lower FCR means better feed efficiency, lower costs, and reduced environmental impact.",
+        "relatedIds":  [
+                           "growth-rate",
+                           "feed-optimization",
+                           "automated-feeding"
+                       ]
+    },
+    {
+        "id":  "fish-welfare",
+        "title":  "Fish Welfare",
+        "category":  "Biology",
+        "content":  "Norway has strict fish welfare regulations. Key indicators include stocking density (max 25 kg/mÂ³), handling stress, stunning methods at slaughter, and environmental conditions. The Welfare Indicators for Fish (WIF) framework monitors swimming behavior, fin condition, skin lesions, and appetite as welfare proxies.",
+        "relatedIds":  [
+                           "stocking-density",
+                           "harvest-methods",
+                           "water-temperature"
+                       ]
+    },
+    {
+        "id":  "sea-site",
+        "title":  "Sea Site (SjÃ¸lokalitet)",
+        "category":  "Farming",
+        "content":  "A sea site is a licensed location in Norwegian coastal waters where salmon are grown in net pens. Each site typically has 6-12 circular pens, each 50-160m in circumference. Sites are selected for good water flow, suitable depth (\u003e25m), and distance from wild salmon rivers. Norway has approximately 1,000 active sea sites.",
+        "relatedIds":  [
+                           "net-pen",
+                           "mab-limit",
+                           "production-zones"
+                       ]
+    },
+    {
+        "id":  "net-pen",
+        "title":  "Net Pen (Merd)",
+        "category":  "Farming",
+        "content":  "Net pens are large floating structures used to contain salmon in the sea. Modern Norwegian pens are typically circular (160m circumference) with nets extending 20-50m deep, holding 150,000-200,000 fish each. Materials include HDPE frames, nylon or copper-alloy nets, and mooring systems designed for Norwegian weather conditions.",
+        "relatedIds":  [
+                           "sea-site",
+                           "escape-prevention",
+                           "stocking-density"
+                       ]
+    },
+    {
+        "id":  "hatchery",
+        "title":  "Hatchery (Settefiskanlegg)",
+        "category":  "Farming",
+        "content":  "Hatcheries are land-based facilities for breeding, incubating eggs, and raising salmon to smolt stage. Modern Norwegian hatcheries use recirculating aquaculture systems (RAS) with controlled temperature, photoperiod, and water quality. Smolts are typically 80-150g when transferred to sea. Some companies now produce post-smolts up to 500g on land.",
+        "relatedIds":  [
+                           "smolt",
+                           "alevin",
+                           "broodstock"
+                       ]
+    },
+    {
+        "id":  "stocking-density",
+        "title":  "Stocking Density",
+        "category":  "Farming",
+        "content":  "Norwegian regulations limit maximum stocking density to 25 kg/mÂ³ in open net pens, though most operators target 15-20 kg/mÂ³ for optimal welfare and growth. Higher density increases stress, disease risk, and mortality. Closed containment systems may allow higher densities due to better water control.",
+        "relatedIds":  [
+                           "fish-welfare",
+                           "net-pen",
+                           "mab-limit"
+                       ]
+    },
+    {
+        "id":  "mab-limit",
+        "title":  "Maximum Allowed Biomass (MAB)",
+        "category":  "Farming",
+        "content":  "MAB is the regulatory cap on total live fish biomass per license. Standard Norwegian licenses allow 780 tonnes MAB. Development licenses (utviklingstillatelser) may have different limits. MAB is the primary tool for controlling production volume in Norwegian aquaculture. Exceeding MAB is a serious regulatory violation.",
+        "relatedIds":  [
+                           "license-system",
+                           "sea-site",
+                           "production-zones"
+                       ]
+    },
+    {
+        "id":  "fallowing",
+        "title":  "Fallowing (Brakklegging)",
+        "category":  "Farming",
+        "content":  "Fallowing is the mandatory rest period between production cycles at a sea site. Norwegian regulations require minimum 2-month fallow periods, during which the seabed recovers from organic loading. Coordinated area-based fallowing synchronizes rest periods across neighboring sites to break disease and parasite cycles.",
+        "relatedIds":  [
+                           "environmental-monitoring",
+                           "sea-site",
+                           "eutrophication"
+                       ]
+    },
+    {
+        "id":  "broodstock",
+        "title":  "Broodstock Management",
+        "category":  "Farming",
+        "content":  "Broodstock are sexually mature salmon selected for breeding. Norwegian broodstock programs maintain pedigree records across 12+ generations. Selection criteria include growth, disease resistance, fillet quality, sexual maturation timing, and deformity rates. Modern programs use genomic estimated breeding values (GEBVs) for precision selection.",
+        "relatedIds":  [
+                           "spawning",
+                           "genetics",
+                           "selective-breeding"
+                       ]
+    },
+    {
+        "id":  "harvest-methods",
+        "title":  "Harvest \u0026 Slaughter",
+        "category":  "Farming",
+        "content":  "Norwegian regulations require humane slaughter methods. Fish are crowded, pumped aboard a wellboat, transported to a processing plant, stunned (electrical or percussive), and bled. The entire process is designed to minimize stress, which also improves flesh quality. Automated systems can process 15,000+ fish per hour.",
+        "relatedIds":  [
+                           "fish-welfare",
+                           "processing-plants",
+                           "harvest-automation"
+                       ]
+    },
+    {
+        "id":  "sea-lice",
+        "title":  "Sea Lice (Lakselus)",
+        "category":  "Health",
+        "content":  "Salmon lice (Lepeophtheirus salmonis) are parasitic copepods that feed on salmon skin, mucus, and blood. They are the single biggest biological challenge in Norwegian aquaculture, costing the industry ~5 billion NOK annually. Regulatory limits are 0.5 adult female lice per fish (0.2 near wild salmon rivers in spring).",
+        "relatedIds":  [
+                           "delousing-mechanical",
+                           "delousing-chemical",
+                           "traffic-light-system"
+                       ]
+    },
+    {
+        "id":  "isa-disease",
+        "title":  "Infectious Salmon Anemia (ISA)",
+        "category":  "Health",
+        "content":  "ISA is a highly contagious viral disease that causes severe anemia, organ damage, and high mortality in Atlantic salmon. ISA outbreaks require mandatory reporting, culling of infected populations, and establishment of control zones. Norway has strict surveillance programs and ISA is a List 1 notifiable disease.",
+        "relatedIds":  [
+                           "disease-resistance",
+                           "isa-resistance",
+                           "vaccination"
+                       ]
+    },
+    {
+        "id":  "pancreas-disease",
+        "title":  "Pancreas Disease (PD)",
+        "category":  "Health",
+        "content":  "PD is caused by salmonid alphavirus (SAV) and is one of the most economically significant diseases in Norwegian salmon farming. It causes inflammation of the pancreas, heart, and skeletal muscle, leading to reduced growth, poor feed conversion, and elevated mortality. Vaccines are available but not fully protective.",
+        "relatedIds":  [
+                           "vaccination",
+                           "disease-resistance",
+                           "fish-welfare"
+                       ]
+    },
+    {
+        "id":  "agd",
+        "title":  "Amoebic Gill Disease (AGD)",
+        "category":  "Health",
+        "content":  "AGD is caused by the amoeba Neoparamoeba perurans and has become increasingly prevalent in Norwegian waters since 2012. It causes gill inflammation, respiratory distress, and mortality. Treatment involves freshwater baths (3-5 hours). Warmer sea temperatures increase AGD risk, making it a growing concern with climate change.",
+        "relatedIds":  [
+                           "water-temperature",
+                           "fish-welfare",
+                           "delousing-mechanical"
+                       ]
+    },
+    {
+        "id":  "cardiomyopathy",
+        "title":  "Cardiomyopathy Syndrome (CMS)",
+        "category":  "Health",
+        "content":  "CMS is a viral heart disease caused by piscine myocarditis virus (PMCV). It primarily affects large, fast-growing salmon in the second sea year, causing sudden mortality with few prior clinical signs. CMS is one of the top causes of mortality in Norwegian aquaculture. No vaccine is currently available.",
+        "relatedIds":  [
+                           "fish-welfare",
+                           "genetics",
+                           "growth-rate"
+                       ]
+    },
+    {
+        "id":  "delousing-mechanical",
+        "title":  "Mechanical Delousing",
+        "category":  "Health",
+        "content":  "Mechanical delousing uses physical methods to remove sea lice: Hydrolicer (pressurized water), Thermolicer (warm water 28-34Â°C), and Optilicer (lasers). These methods avoid chemical residues and resistance development. Mortality during treatment ranges from 0.1-3% depending on fish condition and method. Costs ~250,000 NOK per treatment.",
+        "relatedIds":  [
+                           "sea-lice",
+                           "delousing-chemical",
+                           "fish-welfare"
+                       ]
+    },
+    {
+        "id":  "delousing-chemical",
+        "title":  "Chemical Delousing",
+        "category":  "Health",
+        "content":  "Chemical treatments include bath treatments (azamethiphos, hydrogen peroxide) and in-feed treatments (emamectin benzoate). Chemical resistance in sea lice populations is widespread in Norway, reducing effectiveness. Environmental concerns about chemical discharge have driven the industry toward non-medicinal methods.",
+        "relatedIds":  [
+                           "sea-lice",
+                           "delousing-mechanical",
+                           "environmental-monitoring"
+                       ]
+    },
+    {
+        "id":  "vaccination",
+        "title":  "Vaccination Programs",
+        "category":  "Health",
+        "content":  "All Norwegian farmed salmon are vaccinated, typically with multivalent oil-adjuvanted vaccines protecting against furunculosis, vibriosis, IHN, and PD. Vaccination is done by intraperitoneal injection at the smolt stage, requiring individual handling of each fish. Vaccine development continues for ISA, CMS, and sea lice.",
+        "relatedIds":  [
+                           "vaccine-development",
+                           "isa-disease",
+                           "pancreas-disease"
+                       ]
+    },
+    {
+        "id":  "salmon-price",
+        "title":  "Salmon Spot Price",
+        "category":  "Market",
+        "content":  "Norwegian salmon prices are primarily set at the NASDAQ Salmon Index (formerly FHL), reflecting weekly average export prices. Prices typically range 50-120 NOK/kg, with strong seasonality: highest in Q1/Q4, lowest in Q3. Price volatility is significant â€” swings of 30-40% within a year are common. Global supply, Chilean competition, and demand shifts drive prices.",
+        "relatedIds":  [
+                           "spot-market",
+                           "contract-sales",
+                           "export-markets"
+                       ]
+    },
+    {
+        "id":  "spot-market",
+        "title":  "Spot Market Trading",
+        "category":  "Market",
+        "content":  "The spot market handles ~60% of Norwegian salmon sales. Fish are sold at current market prices through intermediaries like Marine Harvest, LerÃ¸y, and Cermaq trading desks. Spot sales offer higher average returns but with significant price risk. Small producers are more exposed to spot volatility than vertically integrated companies.",
+        "relatedIds":  [
+                           "salmon-price",
+                           "contract-sales",
+                           "value-chain"
+                       ]
+    },
+    {
+        "id":  "contract-sales",
+        "title":  "Contract Sales",
+        "category":  "Market",
+        "content":  "Forward contracts lock in prices for future delivery, providing revenue predictability. Typical contracts cover 3-12 months at fixed or index-linked prices. Contracts usually trade at a 5-10% discount to expected spot prices as a risk premium. Large retailers (Tesco, Carrefour) prefer contracted supply for menu planning.",
+        "relatedIds":  [
+                           "salmon-price",
+                           "spot-market",
+                           "export-markets"
+                       ]
+    },
+    {
+        "id":  "export-markets",
+        "title":  "Export Markets",
+        "category":  "Market",
+        "content":  "Norway exports salmon to 100+ countries. Top markets: EU (France, Poland, Denmark for processing), Asia (Japan, China, South Korea), USA, and UK. The EU accounts for ~70% of Norwegian salmon exports by volume. Fresh whole salmon dominates exports, but value-added products (fillets, smoked, portions) are growing. Russia import ban since 2014 redirected volumes.",
+        "relatedIds":  [
+                           "salmon-price",
+                           "value-chain",
+                           "cold-chain-logistics"
+                       ]
+    },
+    {
+        "id":  "processing-plants",
+        "title":  "Processing Plants",
+        "category":  "Market",
+        "content":  "Primary processing (slaughter, gutting, grading) occurs near farming regions. Secondary processing (filleting, portioning, smoking, value-added) increasingly moves to low-cost countries (Poland, Lithuania). Norwegian processing plants handle ~3 million tonnes of raw material annually. Automation and robotics are transforming processing efficiency.",
+        "relatedIds":  [
+                           "harvest-methods",
+                           "value-chain",
+                           "harvest-automation"
+                       ]
+    },
+    {
+        "id":  "value-chain",
+        "title":  "Salmon Value Chain",
+        "category":  "Market",
+        "content":  "The salmon value chain spans: broodstock â†’ hatchery â†’ sea farming â†’ harvest â†’ primary processing â†’ secondary processing â†’ logistics â†’ retail/food service. Vertically integrated companies (Mowi, LerÃ¸y, SalMar) control multiple stages. Producer share of retail price is typically 40-50%. Feed costs represent ~50% of production costs.",
+        "relatedIds":  [
+                           "processing-plants",
+                           "export-markets",
+                           "spot-market"
+                       ]
+    },
+    {
+        "id":  "water-temperature",
+        "title":  "Water Temperature",
+        "category":  "Environment",
+        "content":  "Sea temperature is the single most important environmental factor for salmon growth. Optimal range is 8-14Â°C. Below 6Â°C, growth slows dramatically. Above 18Â°C, fish become stressed and mortality increases. Norwegian coastal temperatures range from 2Â°C (winter, Finnmark) to 18Â°C (summer, Vestland). Climate change is pushing temperatures upward.",
+        "relatedIds":  [
+                           "growth-rate",
+                           "agd",
+                           "oxygen-levels"
+                       ]
+    },
+    {
+        "id":  "oxygen-levels",
+        "title":  "Dissolved Oxygen",
+        "category":  "Environment",
+        "content":  "Salmon require dissolved oxygen above 6 mg/L (ideally \u003e7 mg/L). Oxygen levels drop with higher temperatures, higher stocking density, and calm weather (reduced mixing). Oxygen supplementation systems inject pure oxygen when levels fall. Hypoxic events can cause mass mortality if not detected early by monitoring systems.",
+        "relatedIds":  [
+                           "water-temperature",
+                           "stocking-density",
+                           "water-quality-sensors"
+                       ]
+    },
+    {
+        "id":  "algal-bloom",
+        "title":  "Harmful Algal Blooms",
+        "category":  "Environment",
+        "content":  "Harmful algal blooms (HABs) can devastate salmon farms. Chrysochromulina and Prymnesium blooms in northern Norway (2019) killed 8 million fish worth ~2 billion NOK. Algae block gills and produce toxins. There is no treatment â€” farms can only tow pens to deeper water or harvest early. Climate change increases HAB frequency.",
+        "relatedIds":  [
+                           "eutrophication",
+                           "oxygen-levels",
+                           "water-temperature"
+                       ]
+    },
+    {
+        "id":  "eutrophication",
+        "title":  "Eutrophication",
+        "category":  "Environment",
+        "content":  "Nutrient enrichment from fish waste (nitrogen, phosphorus) and excess feed can cause localized eutrophication beneath net pens. This depletes oxygen, smothers benthic organisms, and degrades water quality. Norwegian regulations require environmental monitoring (MOM-B and MOM-C surveys) and fallowing to allow seabed recovery.",
+        "relatedIds":  [
+                           "fallowing",
+                           "environmental-monitoring",
+                           "waste-recycling"
+                       ]
+    },
+    {
+        "id":  "wild-salmon-impact",
+        "title":  "Wild Salmon Interaction",
+        "category":  "Environment",
+        "content":  "Escaped farmed salmon interbreed with wild populations, reducing genetic fitness of wild stocks. Sea lice from farms also impact wild salmon and sea trout smolts during outmigration. Norway\u0027s National Salmon Rivers require strict controls near river mouths. The traffic light system addresses this by regulating farm growth based on lice impact on wild fish.",
+        "relatedIds":  [
+                           "escape-prevention",
+                           "traffic-light-system",
+                           "sea-lice"
+                       ]
+    },
+    {
+        "id":  "escape-prevention",
+        "title":  "Escape Prevention",
+        "category":  "Environment",
+        "content":  "Fish escapes are a major environmental and economic concern. Norwegian regulations (NYTEK) set strict standards for net pen equipment, mooring, and operational procedures. Annual escape numbers have decreased from millions to ~100,000-200,000 through better technology. Causes include storm damage, predator attacks, boat collisions, and handling errors.",
+        "relatedIds":  [
+                           "wild-salmon-impact",
+                           "net-pen",
+                           "closed-containment"
+                       ]
+    },
+    {
+        "id":  "closed-containment-env",
+        "title":  "Closed Containment Systems",
+        "category":  "Environment",
+        "content":  "Closed and semi-closed containment systems physically separate farmed fish from the marine environment, eliminating escapes and dramatically reducing sea lice. Technologies include solid-wall pens (Aquatraz), submersible cages (Atlantis), and large-scale land-based RAS. Higher CAPEX but lower biological costs and better sustainability scores.",
+        "relatedIds":  [
+                           "escape-prevention",
+                           "sea-lice",
+                           "closed-containment"
+                       ]
+    },
+    {
+        "id":  "underwater-cameras-tech",
+        "title":  "Underwater Cameras",
+        "category":  "Technology",
+        "content":  "Underwater cameras monitor fish behavior, appetite, mortality, net condition, and predators in real-time. Modern systems use AI to detect abnormal behavior patterns, count lice, estimate biomass, and optimize feeding. Camera feeds are monitored from onshore control rooms, enabling 24/7 surveillance of remote sites.",
+        "relatedIds":  [
+                           "ai-monitoring",
+                           "automated-feeding",
+                           "underwater-drones"
+                       ]
+    },
+    {
+        "id":  "feed-sensors-tech",
+        "title":  "Feed Sensors",
+        "category":  "Technology",
+        "content":  "Pellet detection sensors placed beneath net pens measure uneaten feed falling through. This data drives precision feeding algorithms that reduce waste and improve FCR. Combined with appetite cameras, feed sensors enable real-time adjustment of feeding rates. Waste feed reduction of 5-15% is typical after sensor installation.",
+        "relatedIds":  [
+                           "automated-feeding",
+                           "fcr",
+                           "feed-optimization"
+                       ]
+    },
+    {
+        "id":  "rov-inspection",
+        "title":  "ROV Inspection",
+        "category":  "Technology",
+        "content":  "Remotely Operated Vehicles (ROVs) inspect net pens, mooring systems, and seabed conditions without putting divers at risk. Modern ROVs carry cameras, sensors, and tools for net repair. They can collect dead fish, inspect for predator damage, and survey benthic environments. ROV use is mandatory for deep-water and exposed sites.",
+        "relatedIds":  [
+                           "underwater-drones",
+                           "net-pen",
+                           "environmental-monitoring"
+                       ]
+    },
+    {
+        "id":  "automated-feeding-tech",
+        "title":  "Automated Feeding",
+        "category":  "Technology",
+        "content":  "Modern feeding systems use compressed air to transport pellets from feed barges to individual pens via pipes. Computer-controlled valves distribute precise amounts based on biomass, temperature, and appetite signals. Advanced systems integrate AI cameras that watch fish surface behavior and adjust feeding in real-time. Feed costs represent ~50% of production costs, so optimization has major financial impact.",
+        "relatedIds":  [
+                           "feed-sensors-tech",
+                           "fcr",
+                           "automated-feeding"
+                       ]
+    },
+    {
+        "id":  "ai-monitoring-tech",
+        "title":  "AI \u0026 Machine Learning",
+        "category":  "Technology",
+        "content":  "AI applications in Norwegian aquaculture include: automatic lice counting from images, biomass estimation from stereo cameras, appetite prediction from feeding behavior, disease detection from swimming patterns, and production planning optimization. Companies like Stingray, CageEye, and AquaCloud lead development. AI can detect health issues 3-5 days before clinical signs appear.",
+        "relatedIds":  [
+                           "underwater-cameras-tech",
+                           "ai-monitoring",
+                           "water-quality-sensors"
+                       ]
+    },
+    {
+        "id":  "blockchain-tech",
+        "title":  "Blockchain Traceability",
+        "category":  "Technology",
+        "content":  "Blockchain enables immutable tracking of salmon from egg to plate: genetics, feed source, treatment history, harvest date, processing chain, and transport conditions. IBM Food Trust and similar platforms are being piloted in Norwegian aquaculture. Premium markets (Japan, USA health-conscious) pay 3-5% more for fully traceable fish.",
+        "relatedIds":  [
+                           "blockchain-traceability",
+                           "export-markets",
+                           "value-chain"
+                       ]
+    },
+    {
+        "id":  "traffic-light-system",
+        "title":  "Traffic Light System",
+        "category":  "Regulations",
+        "content":  "Norway\u0027s traffic light system (trafikklyssystemet) divides the coast into 13 production zones, each rated green, yellow, or red based on sea lice impact on wild salmon. Green zones can grow MAB by 6%, yellow zones stay flat, and red zones must reduce by 6%. Assessment occurs every 2 years. This is the primary tool for regulating industry growth.",
+        "relatedIds":  [
+                           "sea-lice",
+                           "production-zones",
+                           "mab-limit"
+                       ]
+    },
+    {
+        "id":  "asc-certification",
+        "title":  "ASC Certification",
+        "category":  "Regulations",
+        "content":  "The Aquaculture Stewardship Council (ASC) sets standards for responsible salmon farming covering: sea lice limits, escape rates, benthic impact, chemical use, feed sustainability, and social responsibility. ASC-certified salmon commands an 8-15% price premium in key markets. Over 30% of Norwegian production is ASC-certified.",
+        "relatedIds":  [
+                           "sustainability-leader",
+                           "asc-certified",
+                           "export-markets"
+                       ]
+    },
+    {
+        "id":  "production-zones",
+        "title":  "Production Zones",
+        "category":  "Regulations",
+        "content":  "Norway\u0027s coastline is divided into 13 production zones (produksjonsomrÃ¥der) from Rogaland to Finnmark. Each zone is independently assessed under the traffic light system. Zone management aims to coordinate fallowing, disease control, and environmental monitoring across neighboring farms regardless of company ownership.",
+        "relatedIds":  [
+                           "traffic-light-system",
+                           "mab-limit",
+                           "sea-site"
+                       ]
+    },
+    {
+        "id":  "license-system",
+        "title":  "License System",
+        "category":  "Regulations",
+        "content":  "Norwegian salmon farming requires a license (konsesjon) from the Directorate of Fisheries. Standard licenses allow 780 tonnes MAB. New licenses are auctioned, with prices reaching 150-200 million NOK. Special license types include development licenses (utviklingstillatelser) for innovative technology, research licenses, and teaching licenses. License value represents a major balance sheet asset.",
+        "relatedIds":  [
+                           "mab-limit",
+                           "production-zones",
+                           "traffic-light-system"
+                       ]
+    },
+    {
+        "id":  "resource-rent-tax",
+        "title":  "Resource Rent Tax",
+        "category":  "Regulations",
+        "content":  "Norway introduced a 25% resource rent tax (grunnrenteskatt) on salmon farming profits from 2023, in addition to the standard 22% corporate tax. The tax applies to profits above a threshold and includes a basic deduction. This mirrors the petroleum sector\u0027s taxation model and has been politically contentious. Total effective tax rate can exceed 40%.",
+        "relatedIds":  [
+                           "license-system",
+                           "salmon-price",
+                           "value-chain"
+                       ]
+    },
+    {
+        "id":  "environmental-monitoring",
+        "title":  "Environmental Monitoring",
+        "category":  "Regulations",
+        "content":  "Norwegian regulations require regular environmental monitoring at sea sites. MOM-B surveys assess seabed conditions directly beneath pens (fauna, chemistry). MOM-C surveys assess the wider impact zone. Sites scoring poorly must reduce production or fallow. Water quality monitoring for oxygen, temperature, and currents is increasingly continuous via IoT sensors.",
+        "relatedIds":  [
+                           "eutrophication",
+                           "fallowing",
+                           "water-quality-sensors"
+                       ]
+    },
+    {
+        "content":  "Wellboats are specialized vessels with live fish holds used to transport smolt to sea sites and harvest fish to processing plants. Modern wellboats can carry 300-600 tonnes of live fish in closed tanks with controlled water quality, oxygen, and temperature. They also perform at-sea delousing treatments using freshwater or warm water systems.",
+        "title":  "Wellboat (Brønnbåt)",
+        "category":  "Farming",
+        "id":  "wellboat",
+        "relatedIds":  [
+                           "harvest-methods",
+                           "delousing-mechanical",
+                           "sea-site"
+                       ]
+    },
+    {
+        "content":  "Feed barges are floating platforms anchored at sea sites that store feed and house feeding systems, cameras, and control equipment. Modern feed barges hold 200-500 tonnes of feed and are operated remotely from onshore control rooms. They serve as the operational hub for day-to-day farm management.",
+        "title":  "Feed Barge (Fôrflåte)",
+        "category":  "Farming",
+        "id":  "feed-barge",
+        "relatedIds":  [
+                           "automated-feeding-tech",
+                           "sea-site",
+                           "feed-sensors-tech"
+                       ]
+    },
+    {
+        "content":  "Salmon use day length (photoperiod) as a cue for smoltification and sexual maturation. Hatcheries manipulate artificial lighting to produce out-of-season smolts, enabling year-round stocking. In sea cages, underwater lights delay maturation by simulating long days, preventing early sexual maturation which reduces fillet quality.",
+        "title":  "Photoperiod \u0026 Light Management",
+        "category":  "Biology",
+        "id":  "photoperiod",
+        "relatedIds":  [
+                           "smolt",
+                           "hatchery",
+                           "growth-rate"
+                       ]
+    },
+    {
+        "content":  "The distinctive pink-orange color of salmon flesh comes from astaxanthin, a carotenoid pigment added to feed. Wild salmon get astaxanthin from crustaceans; farmed salmon receive synthetic or natural (Haematococcus algae) astaxanthin in feed. Color intensity affects consumer perception and price — the SalmoFan color card measures flesh color from 20 (pale) to 34 (deep red).",
+        "title":  "Astaxanthin \u0026 Flesh Color",
+        "category":  "Biology",
+        "id":  "astaxanthin",
+        "relatedIds":  [
+                           "fcr",
+                           "processing-plants",
+                           "value-chain"
+                       ]
+    },
+    {
+        "content":  "Mowi (formerly Marine Harvest) is the world\u0027s largest salmon farmer, producing ~500,000 tonnes annually. Headquartered in Bergen, Norway, Mowi is vertically integrated from feed (Mowi Feed) through farming in Norway, Scotland, Chile, Canada, and Ireland to processing and branded consumer products. Listed on the Oslo Stock Exchange (MOWI).",
+        "title":  "Mowi ASA",
+        "category":  "Industry",
+        "id":  "mowi",
+        "relatedIds":  [
+                           "value-chain",
+                           "export-markets",
+                           "license-system"
+                       ]
+    },
+    {
+        "content":  "SalMar is Norway\u0027s second-largest salmon farmer, known for innovation including the Ocean Farm 1 offshore installation and the InnovaMar processing plant. Founded in 1991, SalMar focuses on Central Norway (Frøya) and Northern Norway (SalMar Arctic). Their offshore farming concept represents the industry\u0027s push into more exposed, deeper water locations.",
+        "title":  "SalMar ASA",
+        "category":  "Industry",
+        "id":  "salmar",
+        "relatedIds":  [
+                           "closed-containment-env",
+                           "processing-plants",
+                           "license-system"
+                       ]
+    },
+    {
+        "content":  "Lerøy is Norway\u0027s third-largest salmon producer and a major seafood distributor. Headquartered in Bergen, Lerøy operates across the Norwegian coast and in Scotland (Lerøy Aurora in Northern Norway, Lerøy Midt in Central Norway). The company is also a leading whitefish and shellfish distributor, providing diversification beyond salmon.",
+        "title":  "Lerøy Seafood Group",
+        "category":  "Industry",
+        "id":  "leroy",
+        "relatedIds":  [
+                           "value-chain",
+                           "export-markets",
+                           "processing-plants"
+                       ]
+    },
+    {
+        "content":  "Fish Pool ASA operates a regulated marketplace for salmon futures and options on the Oslo Stock Exchange. Contracts are cash-settled against the NASDAQ Salmon Index. Farmers use Fish Pool to hedge price risk by locking in future prices, while speculators provide liquidity. Understanding derivatives is key to advanced financial management in salmon farming.",
+        "title":  "Fish Pool (Salmon Futures)",
+        "category":  "Market",
+        "id":  "fish-pool",
+        "relatedIds":  [
+                           "salmon-price",
+                           "contract-sales",
+                           "spot-market"
+                       ]
+    },
+    {
+        "content":  "Sashimi-grade salmon commands the highest prices, primarily for the Japanese market. Requirements include: perfect flesh color (SalmoFan 27+), no parasites, -20°C deep-freeze treatment, minimal gaping, and pristine handling. Norwegian Air Shuttle salmon — fresh from fjord to Tokyo in 48 hours — transformed Japan\u0027s sushi market in the 2000s.",
+        "title":  "Sashimi Grade Salmon",
+        "category":  "Market",
+        "id":  "sashimi-grade",
+        "relatedIds":  [
+                           "export-markets",
+                           "processing-plants",
+                           "value-chain"
+                       ]
+    },
+    {
+        "content":  "Cold-smoked salmon (røkt laks) is Norway\u0027s highest value-added product. The smoking process involves salting, drying, and cold-smoking at 20-30°C for 6-12 hours. Premium smoked salmon retails at 2-3x the fresh fillet price. Scotland and Norway dominate the premium smoked salmon market. Hot-smoking creates a different, fully-cooked product.",
+        "title":  "Smoked Salmon",
+        "category":  "Market",
+        "id":  "smoked-salmon",
+        "relatedIds":  [
+                           "processing-plants",
+                           "value-chain",
+                           "export-markets"
+                       ]
+    },
+    {
+        "content":  "Ocean Farm 1, developed by SalMar and SINTEF, is a 110m diameter offshore fish farm designed for exposed open-ocean locations. It holds up to 1 million fish and can withstand extreme weather. Nordlaks\u0027 Havfarm is a 385m ship-shaped structure. These concepts aim to access new farming areas while reducing environmental impact on coastal ecosystems.",
+        "title":  "Ocean Farm (Havfarm)",
+        "category":  "Technology",
+        "id":  "ocean-farm",
+        "relatedIds":  [
+                           "closed-containment-env",
+                           "salmar",
+                           "net-pen"
+                       ]
+    },
+    {
+        "content":  "RAS are land-based systems that continuously filter and recirculate water, allowing precise control of temperature, oxygen, and waste. RAS enables year-round production independent of weather and eliminates sea lice and escapes. High CAPEX (500M-2B NOK for large facilities) but potentially lower operating costs. Atlantic Sapphire and Andfjord Salmon pioneer large-scale RAS.",
+        "title":  "Recirculating Aquaculture Systems (RAS)",
+        "category":  "Technology",
+        "id":  "ras-technology",
+        "relatedIds":  [
+                           "hatchery",
+                           "closed-containment-env",
+                           "oxygen-levels"
+                       ]
+    },
+    {
+        "content":  "Lumpfish (rognkjeks) and wrasse (leppefisk) are deployed in salmon pens as biological delousing agents. These fish eat sea lice directly off the salmon. Norway uses ~50 million cleaner fish annually. Challenges include cleaner fish welfare, winter mortality, and ensuring adequate feeding. Cleaner fish represent the most sustainable delousing approach.",
+        "title":  "Cleaner Fish (Rensefisk)",
+        "category":  "Health",
+        "id":  "cleaner-fish",
+        "relatedIds":  [
+                           "sea-lice",
+                           "delousing-mechanical",
+                           "fish-welfare"
+                       ]
+    },
+    {
+        "content":  "The Norwegian Seafood Council (Norges sjømatråd) promotes Norwegian seafood globally through marketing, market intelligence, and trade facilitation. Funded by a levy on all Norwegian seafood exports. The \u0027Seafood from Norway\u0027 brand is recognized worldwide. The council\u0027s market intelligence provides valuable price forecasts and demand trends.",
+        "title":  "Norwegian Seafood Council",
+        "category":  "Industry",
+        "id":  "norwegian-seafood-council",
+        "relatedIds":  [
+                           "export-markets",
+                           "salmon-price",
+                           "value-chain"
+                       ]
+    }
+]

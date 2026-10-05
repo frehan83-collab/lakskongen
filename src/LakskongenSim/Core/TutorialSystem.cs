@@ -63,9 +63,9 @@ namespace LakskongenSim.Core
         /// <summary>True after all 12 steps are completed.</summary>
         public bool IsComplete => _currentStepIndex >= _steps.Count;
 
-        /// <summary>1-based number of the current step (returns 12 after completion).</summary>
+        /// <summary>1-based number of the current step (returns TotalSteps after completion).</summary>
         public int CurrentStepNumber =>
-            _currentStepIndex < _steps.Count ? _steps[_currentStepIndex].StepNumber : 12;
+            _currentStepIndex < _steps.Count ? _steps[_currentStepIndex].StepNumber : _steps.Count;
 
         public int TotalSteps => _steps.Count;
 
@@ -103,7 +103,8 @@ namespace LakskongenSim.Core
         /// <summary>Load tutorial steps from JSON file and parse condition strings.</summary>
         private List<TutorialStep> LoadStepsFromJson()
         {
-            string jsonPath = Path.Combine("game", "data", "tutorial_steps.json");
+            string? dir = SimulationEngine.ResolveDataDirectory("tutorial_steps.json");
+            string jsonPath = dir != null ? Path.Combine(dir, "tutorial_steps.json") : string.Empty;
             
             // Fallback to hardcoded steps if JSON doesn't exist
             if (!File.Exists(jsonPath))
@@ -121,6 +122,18 @@ namespace LakskongenSim.Core
                 if (steps == null || steps.Count == 0)
                 {
                     Console.WriteLine("⚠️ Failed to parse tutorial_steps.json, using legacy steps");
+                    return BuildSteps();
+                }
+
+                // Schema guard: the shared tutorial_steps.json belongs to the
+                // GDScript click-through track (id/title/text/action, no
+                // conditions). Condition-less steps would auto-complete on day
+                // 1, wiping the real onboarding — only accept JSON that
+                // actually drives progression.
+                if (!steps.Any(s => !string.IsNullOrWhiteSpace(s.TriggerConditionString)
+                    || !string.IsNullOrWhiteSpace(s.CompletionConditionString)))
+                {
+                    Console.WriteLine("⚠️ tutorial_steps.json has no conditions (GDScript track schema); using built-in steps");
                     return BuildSteps();
                 }
                 
@@ -254,6 +267,18 @@ namespace LakskongenSim.Core
         }
 
         // ── Public API ────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Skip the tutorial silently: marks all steps complete WITHOUT
+        /// rewards or completion events (skip ≠ earn). Called from the
+        /// TutorialUI skip button via GameBridge.SkipTutorial.
+        /// </summary>
+        public void Skip()
+        {
+            foreach (var step in _steps)
+                step.CompletedOnDay ??= _engine.State.Day;
+            _currentStepIndex = _steps.Count;
+        }
 
         /// <summary>
         /// Called each simulated day by SimulationEngine.

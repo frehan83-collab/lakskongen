@@ -43,7 +43,7 @@ instead of roll-forward, or retarget test projects to net10.0.
 - Current project: `godot/` (Godot **4.7**, C#, Forward Plus — migrated from
   4.3 on 2026-10-05; `project.godot` features tag + `Godot.NET.Sdk/4.7.2`
   pin this. All verification runs on 4.7.2.)
-- Legacy project: `game/` (Godot 3 era, `config_version=4`) — not maintained.
+- Legacy prototype: `archive/game-godot3/` (Godot 3 era, ex-`game/`) — not maintained, see `archive/README.md`.
 - Headless import check: `godot-mono --headless --path godot --import`
 - Headless boot smoke: `godot-mono --headless --path godot --quit-after 600`
 - `.uid` files (130, Godot 4.4+ resource IDs) are TRACKED in git — commit them

@@ -84,18 +84,13 @@ namespace LakskongenSim.Core
 
         private void RegisterAllAchievements()
         {
-            var jsonPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "game", "data", "achievements_config.json");
-            if (!File.Exists(jsonPath))
+            string? dir = SimulationEngine.ResolveDataDirectory("achievements_config.json");
+            if (dir == null)
             {
-                // Fallback for development environment if running directly from project root.
-                // Adjust this path based on your exact project structure.
-                jsonPath = "salmon-sim/game/data/achievements_config.json";
-                if (!File.Exists(jsonPath))
-                {
-                    Console.Error.WriteLine($"ERROR: achievements_config.json not found at {jsonPath}");
-                    return;
-                }
+                Console.Error.WriteLine("ERROR: achievements_config.json not found (searched godot/data candidates)");
+                return;
             }
+            var jsonPath = Path.Combine(dir, "achievements_config.json");
 
             var jsonString = File.ReadAllText(jsonPath);
             var achievementDefinitions = JsonSerializer.Deserialize<List<AchievementDefinition>>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });

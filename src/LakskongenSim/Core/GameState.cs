@@ -225,16 +225,26 @@ namespace LakskongenSim.Core
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public decimal Revenue { get; set; }
+        public decimal EBITDA { get; set; }
         public decimal MarketCap { get; set; }
+        public decimal DebtLevel { get; set; }
+        public decimal CashReserves { get; set; }
         public int LicenseCount { get; set; }
+        public float TotalMABTonnes { get; set; }
+        public int SiteCount { get; set; }
         public float MarketShareNorway { get; set; }
+        public float MarketShareGlobal { get; set; }
+        public float WeeklyHarvestTonnes { get; set; }
         public bool IsDistressed { get; set; }
+        public bool IsAcquisitionTarget { get; set; }
+        public decimal AcquisitionPrice { get; set; }
     }
 
     /// <summary>Serializable snapshot of EmpireProgressionSystem.</summary>
     public class EmpireProgressionState
     {
         public string CurrentPhase { get; set; } = "SmallFarmer";
+        public List<string> UnlockedFeatures { get; set; } = new();
         public List<string> UnlockedMilestoneIds { get; set; } = new();
         public List<string> AchievedVictoryIds { get; set; } = new();
     }
