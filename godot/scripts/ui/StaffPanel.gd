@@ -89,14 +89,14 @@ func _create_staff_row(staff: Dictionary) -> HBoxContainer:
 
 	# Morale (as a bar, using a custom drawing control)
 	var morale_bar = Control.new()
-	morale_bar.custom_minimum_size = Vector2(80, LakskongenTheme.FONT_SM.get_height())
+	morale_bar.custom_minimum_size = Vector2(80, ThemeDB.fallback_font.get_height(LakskongenTheme.FONT_SM))
 	morale_bar.set_h_size_flags(Control.SIZE_EXPAND)
 	morale_bar.set_v_size_flags(Control.SIZE_SHRINK_CENTER) # Center vertically
 	hbox.add_child(morale_bar)
 
 	morale_bar.add_child(Label.new()) # Dummy label to make it visible
 	morale_bar.get_child(0).text = "Moral: %d" % staff.morale
-	morale_bar.get_child(0).add_theme_font_size_override("font_size", LakskongenTheme.FONT_SM.get_height())
+	morale_bar.get_child(0).add_theme_font_size_override("font_size", LakskongenTheme.FONT_SM)
 	morale_bar.get_child(0).add_theme_color_override("font_color", LakskongenTheme.TEXT)
 
 	morale_bar.set_draw_callback(func():
@@ -110,7 +110,7 @@ func _create_staff_row(staff: Dictionary) -> HBoxContainer:
 		var fill_width = rect.size.x * (float(staff.morale) / 100.0)
 		morale_bar.draw_rect(Rect2(0, 0, rect.size.x, rect.size.y), LakskongenTheme.COLOR_BACKGROUND_DARK, false) # Background
 		morale_bar.draw_rect(Rect2(0, 0, fill_width, rect.size.y), morale_color) # Fill
-		morale_bar.draw_string(LakskongenTheme.FONT_SM, Vector2(5, LakskongenTheme.FONT_SM.get_ascent()), "Moral: %d" % staff.morale, HORIZONTAL_ALIGNMENT_LEFT, -1, LakskongenTheme.FONT_SM.get_height(), LakskongenTheme.TEXT)
+		morale_bar.draw_string(ThemeDB.fallback_font, Vector2(5, ThemeDB.fallback_font.get_ascent(LakskongenTheme.FONT_SM)), "Moral: %d" % staff.morale, HORIZONTAL_ALIGNMENT_LEFT, -1, LakskongenTheme.FONT_SM, LakskongenTheme.TEXT)
 	)
 
 	# Salary

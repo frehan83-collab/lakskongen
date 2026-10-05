@@ -300,3 +300,114 @@ static func get_label_style(font_size: int = FONT_BODY, font_color: Color = TEXT
 	label_settings.font_size = font_size
 	label_settings.font_color = font_color
 	return {"settings": label_settings}
+
+# ── Panel/UI compatibility layer ──────────────────────────────────────────
+# Added to satisfy the UI scripts built against the LakskongenTheme API
+# (dark-fjord panels, SPACE_* rhythm, create_* builders, formatters).
+# Palette values are tunable; semantics below are what callers rely on.
+
+# Dark panel surfaces (UI is dark; light BG_* above are legacy)
+const PANEL            := Color("#3B4252")
+const PANEL_ALT        := Color("#434C5E")
+const PANEL_HOVER      := Color("#4C566A")
+# Text on dark surfaces
+const TEXT             := Color("#ECEFF4")
+const MUTED            := Color("#7B8794")
+# Status accents (DANGER/WARNING/SUCCESS already declared above)
+const GOLD             := Color("#EBCB8B")
+const TEAL             := Color("#88C0D0")
+const KELP             := Color("#8FBC8F")
+const KELP_LIGHT       := Color("#A3BE8C")
+const AURORA_GREEN     := Color("#A3BE8C")
+const AURORA_PURPLE    := Color("#B48EAD")
+const ACCENT2          := Color("#81A1C1")
+const COLOR_BACKGROUND_DARK := Color("#2E3440")
+const COLOR_GREEN      := Color("#A3BE8C")
+const COLOR_RED        := Color("#BF616A")
+const COLOR_YELLOW     := Color("#EBCB8B")
+# Font sizes (px); FONT_* are ints everywhere they are used as sizes.
+# (FONT_XS/SM/BODY/LG/HEADER/TITLE/HERO/SMALL already declared above.)
+const FONT_MD    := 15
+const FONT_XL    := 24
+const FONT_XXL   := 32
+# Spacing rhythm aliases
+const SPACE_XS := SPACING_XS
+const SPACE_SM := SPACING_SM
+const SPACE_MD := SPACING_MD
+const SPACE_LG := SPACING_LG
+const SPACE_XL := SPACING_XL
+
+static func create_styled_panel() -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", make_panel(PANEL, BORDER, 1, RADIUS_MD, SPACING_MD))
+	return panel
+
+static func create_label(text: String, font_size: int = FONT_BODY, color: Color = TEXT_PRIMARY) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	return label
+
+static func create_section_header(text: String) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", FONT_LG)
+	label.add_theme_color_override("font_color", ACCENT)
+	return label
+
+static func create_divider(color: Color = BORDER) -> HSeparator:
+	var sep := HSeparator.new()
+	sep.add_theme_constant_override("separation", SPACING_SM)
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	sep.add_theme_stylebox_override("separator", style)
+	return sep
+
+static func create_stat(label_text: String, value_text: String, color: Color = TEXT_PRIMARY) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", SPACING_SM)
+	var name_label := create_label(label_text, FONT_SM, TEXT_SECONDARY)
+	var value_label := create_label(value_text, FONT_SM, color)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(name_label)
+	row.add_child(value_label)
+	return row
+
+static func create_button(text: String, a: Variant = true, b: Variant = false) -> Button:
+	# Two historical call shapes:
+	#   (text, primary: bool, danger: bool)
+	#   (text, font_size: int, color: Color)
+	var btn := Button.new()
+	btn.text = text
+	var primary := true
+	var danger := false
+	var font_size: int = FONT_MD
+	var color: Color = ACCENT
+	if a is bool:
+		primary = a
+		if b is bool:
+			danger = b
+	elif a is int:
+		font_size = a
+		if b is Color:
+			color = b
+	var bg := PRIMARY if primary else BORDER
+	if danger:
+		bg = DANGER
+	btn.add_theme_font_size_override("font_size", font_size)
+	var styles := get_button_style(bg, bg.lightened(0.1), TEXT_INVERSE if primary or danger else TEXT_PRIMARY)
+	for state_name in styles:
+		btn.add_theme_stylebox_override(state_name, styles[state_name])
+	btn.add_theme_color_override("font_color", color if not primary and not danger else TEXT_INVERSE)
+	btn.add_theme_color_override("font_hover_color", color if not primary and not danger else TEXT_INVERSE)
+	return btn
+
+static func format_number(value: Variant, decimals: int = 0) -> String:
+	var num := float(value)
+	if decimals <= 0:
+		return "%d" % int(round(num))
+	return ("%." + str(decimals) + "f") % num
+
+static func format_currency(value: Variant, decimals: int = 2) -> String:
+	return format_number(value, decimals) + " kr"

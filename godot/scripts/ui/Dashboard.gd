@@ -684,8 +684,8 @@ func _refresh_pens() -> void:
 	if not _sim:
 		return
 
-	var site_count := _sim.site_count
-	var fish_per_pen := _sim.fish_count / max(site_count, 1)
+	var site_count: int = int(_sim.site_count)
+	var fish_per_pen: float = float(_sim.fish_count) / max(site_count, 1)
 	var avg_weight := _sim.fish_biomass_kg / max(_sim.fish_count, 1)
 	var temp := _sim.temperature_c
 

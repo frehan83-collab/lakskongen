@@ -423,8 +423,8 @@ func _refresh() -> void:
 		return
 
 	var revenue: float = float(_sim.get_revenue())
-	var expenses := _sim.get_expenses()
-	var profit := _sim.get_profit()
+	var expenses: float = float(_sim.get_expenses())
+	var profit: float = float(_sim.get_profit())
 	var balance := _sim.balance
 
 	_kpi_revenue.text = _fmt(revenue)

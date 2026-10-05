@@ -2,7 +2,7 @@ extends Control
 
 class_name FinancialDashboard
 
-const LakskongenTheme = preload("res://scripts/ui/LakskongenTheme.gd") # Anta at temaet er her
+const LakskongenTheme = preload("res://theme/default_theme.gd") # Anta at temaet er her
 
 var simulation_core = null
 

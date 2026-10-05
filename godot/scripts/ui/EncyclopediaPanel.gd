@@ -778,7 +778,7 @@ func _refresh_category_styles() -> void:
 func _refresh_entry_button_styles() -> void:
 	for eid in _entry_buttons:
 		var btn: Button = _entry_buttons[eid]
-		var is_sel := (eid == _current_entry_id)
+		var is_sel: bool = (eid == _current_entry_id)
 		_style_entry_button_active(btn, is_sel)
 
 # ── Widget factories ───────────────────────────────────────────────────────────
