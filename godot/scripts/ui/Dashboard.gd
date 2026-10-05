@@ -687,7 +687,7 @@ func _refresh_pens() -> void:
 	var site_count: int = int(_sim.site_count)
 	var fish_per_pen: float = float(_sim.fish_count) / max(site_count, 1)
 	var avg_weight: float = float(_sim.fish_biomass_kg) / max(int(_sim.fish_count), 1)
-	var temp := _sim.temperature_c
+	var temp: float = float(_sim.temperature_c)
 
 	for i in range(min(_pen_cards.size(), 6)):
 		var pen = _pen_cards[i]
@@ -699,7 +699,7 @@ func _refresh_pens() -> void:
 			pen.temp_value.text = "%.1f°C" % (temp + randf() * 0.5 - 0.25)
 			pen.status_dot.color = Color("#A3BE8C")  # Healthy
 		else:
-			count_value.text = tr("Tom")
+			pen.count_value.text = tr("Tom")
 			pen.weight_value.text = "--"
 			pen.temp_value.text = "--"
 			pen.status_dot.color = Color("#D8DEE9")
@@ -708,7 +708,7 @@ func _refresh_water() -> void:
 	if not _sim:
 		return
 
-	var temp := _sim.temperature_c
+	var temp: float = float(_sim.temperature_c)
 	_water_items["temp"].text = "%.1f°C" % temp
 	_water_items["oxygen"].text = "92%"  # Mock
 	_water_items["salinity"].text = "33‰"  # Mock
@@ -718,7 +718,7 @@ func _refresh_weather() -> void:
 	if not _sim:
 		return
 
-	var temp := _sim.temperature_c
+	var temp: float = float(_sim.temperature_c)
 	_weather_temp.text = "%d°C" % int(temp)
 
 	var weather_state = _sim.get_current_weather_state()

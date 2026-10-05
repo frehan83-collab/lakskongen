@@ -441,7 +441,7 @@ func _refresh() -> void:
 
 	# Loan
 	if _sim.has_method("get_loan_info"):
-		var loan := _sim.get_loan_info()
+		var loan: Dictionary = _sim.get_loan_info()
 		var has_loan: bool = loan.get("has_loan", false)
 		_loan_status.text = tr("Aktiv")
 		_loan_status.add_theme_color_override("font_color", C_WARNING if has_loan else C_SUCCESS_D)
@@ -508,7 +508,7 @@ func _refresh_history(history: Array) -> void:
 func _on_take_loan() -> void:
 	if not _sim or not _sim.has_method("take_loan"):
 		return
-	var success := _sim.take_loan(5_000_000.0)
+	var success: bool = bool(_sim.take_loan(5_000_000.0))
 	if success:
 		loan_taken.emit(5_000_000.0)
 		_refresh()
@@ -516,7 +516,7 @@ func _on_take_loan() -> void:
 func _on_repay_loan() -> void:
 	if not _sim or not _sim.has_method("repay_loan"):
 		return
-	var success := _sim.repay_loan(1_000_000.0)
+	var success: bool = bool(_sim.repay_loan(1_000_000.0))
 	if success:
 		loan_repaid.emit(1_000_000.0)
 		_refresh()

@@ -124,5 +124,6 @@ func _set_label_bold(label_node):
     if label_node and label_node is Label:
         var font = label_node.get_theme_font("font").duplicate()
         font.set_size(label_node.get_theme_font("font").get_size())
-        font.set_font_weight(TextServer.FONT_WEIGHT_BOLD)
-        label_node.add_theme_font_override("font", font)
+        if font is SystemFont:
+            font.weight = 700
+            label_node.add_theme_font_override("font", font)

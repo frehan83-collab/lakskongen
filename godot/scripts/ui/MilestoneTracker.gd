@@ -273,7 +273,7 @@ func _domain_name(domain: MasteryDomain) -> String:
 func _connect_signals():
 	GameState.connect("production_goal_created", Callable(self, "add_goal"))
 
-# func _add_test_data():
+func _add_test_data():
 	# Only for demo purposes – remove in production
 	mastery_xp[MasteryDomain.BIOLOGY] = 125
 	mastery_xp[MasteryDomain.BUSINESS] = 340
