@@ -425,7 +425,7 @@ func _refresh() -> void:
 	var revenue: float = float(_sim.get_revenue())
 	var expenses: float = float(_sim.get_expenses())
 	var profit: float = float(_sim.get_profit())
-	var balance := _sim.balance
+	var balance: float = float(_sim.balance)
 
 	_kpi_revenue.text = _fmt(revenue)
 	_kpi_revenue.add_theme_color_override("font_color", C_SUCCESS_D)

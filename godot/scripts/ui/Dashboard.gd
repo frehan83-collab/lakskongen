@@ -686,7 +686,7 @@ func _refresh_pens() -> void:
 
 	var site_count: int = int(_sim.site_count)
 	var fish_per_pen: float = float(_sim.fish_count) / max(site_count, 1)
-	var avg_weight := _sim.fish_biomass_kg / max(_sim.fish_count, 1)
+	var avg_weight: float = float(_sim.fish_biomass_kg) / max(int(_sim.fish_count), 1)
 	var temp := _sim.temperature_c
 
 	for i in range(min(_pen_cards.size(), 6)):

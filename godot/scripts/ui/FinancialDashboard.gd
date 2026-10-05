@@ -82,7 +82,7 @@ func _create_kpi_tile(title_text, value_text, value_color):
     panel.set_h_size_flags(SIZE_EXPAND_FILL)
 
     var vbox = VBoxContainer.new()
-    vbox.alignment = BoxContainer.ALIGN_CENTER
+    vbox.alignment = BoxContainer.ALIGNMENT_CENTER
     vbox.add_theme_constant_override("separation", LakskongenTheme.SPACE_SM)
     panel.add_child(vbox)
 
