@@ -26,14 +26,17 @@ namespace LakskongenSim.Finance
             { 12, (80, 95) },  // Christmas peak
         };
 
-        // Zone-specific feed costs (NOK/kg feed) — varies by distance from feed mills
+        // Zone-specific DELIVERED feed prices (NOK/kg feed) — varies by
+        // distance from feed mills. Matches FeedSystem.FeedCostPerKg band
+        // (~14 base + freight); was 37-45, which is feed-cost-per-kg-FISH
+        // territory, not feed price. Keep gradient shape, fix level.
         private static readonly Dictionary<string, double> ZoneFeedCosts = new()
         {
-            { "PO01", 38.0 }, { "PO02", 37.5 }, { "PO03", 37.0 },
-            { "PO04", 36.5 }, { "PO05", 37.0 }, { "PO06", 38.0 },
-            { "PO07", 39.0 }, { "PO08", 40.0 }, { "PO09", 41.0 },
-            { "PO10", 42.0 }, { "PO11", 43.0 }, { "PO12", 44.0 },
-            { "PO13", 45.0 },
+            { "PO01", 20.0 }, { "PO02", 19.5 }, { "PO03", 19.0 },
+            { "PO04", 18.5 }, { "PO05", 19.0 }, { "PO06", 20.0 },
+            { "PO07", 20.5 }, { "PO08", 21.0 }, { "PO09", 21.5 },
+            { "PO10", 22.0 }, { "PO11", 22.5 }, { "PO12", 23.0 },
+            { "PO13", 23.5 },
         };
 
         // Regional electricity tariffs (NOK/kWh)
@@ -65,7 +68,7 @@ namespace LakskongenSim.Finance
         /// </summary>
         public double GetFeedCostPerZone(string zoneId)
         {
-            return ZoneFeedCosts.TryGetValue(zoneId, out var cost) ? cost : 40.0;
+            return ZoneFeedCosts.TryGetValue(zoneId, out var cost) ? cost : 20.5;
         }
 
         /// <summary>

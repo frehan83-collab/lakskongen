@@ -26,8 +26,11 @@ var mastery_xp := {
 	MasteryDomain.SUSTAINABILITY: 0
 }
 
-var active_goals := []  # Array of ProductionGoal objects (C# instances)
+var active_goals := []  # Array of ProductionGoal objects (added explicitly)
 var milestone_history := []  # Array of dictionaries {name: String, value: float, day: int}
+var _next_milestone := {}  # Next unachieved visual milestone from GameBridge
+var _next_progress := 0.0  # 0.0-1.0 via GameBridge.GetMilestoneProgress
+var _known_milestone_titles := {}  # title -> true (already shown/notified)
 
 @onready var goals_container := VBoxContainer.new()
 @onready var milestones_container := VBoxContainer.new()
@@ -58,9 +61,9 @@ func _ready():
 	var milestones_header := LakskongenTheme.create_label("Recent Milestones", LakskongenTheme.FONT_LG, ACCENT)
 	vbox.add_child(milestones_header)
 	vbox.add_child(milestones_container)
-	
-	# Populate with dummy data (for testing)
-	_add_test_data()
+
+	_connect_signals()
+	_refresh_from_bridge()
 
 func _setup_panel_style():
 	var style := StyleBoxFlat.new()
@@ -133,7 +136,7 @@ func _on_milestone_reached(milestone_name: String, milestone_value: float, goal:
 	var entry := {
 		"name": milestone_name,
 		"value": milestone_value,
-		"day": GameState.CurrentDay if GameState else 0,
+		"day": _current_day(),
 		"goal": goal.Description
 	}
 	milestone_history.push_front(entry)
@@ -157,7 +160,23 @@ func _on_goal_completed(goal: ProductionGoal):
 
 func _update_goals_display():
 	_clear_container(goals_container)
-	
+
+	# Next visual milestone from the sim (real producer via GameBridge).
+	if not _next_milestone.is_empty():
+		var hbox := HBoxContainer.new()
+		hbox.add_theme_constant_override("separation", LakskongenTheme.SPACE_MD)
+
+		var title := str(_next_milestone.get("title", "Next milestone"))
+		var desc_label := LakskongenTheme.create_label(title, LakskongenTheme.FONT_SM, TEXT)
+		desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		desc_label.tooltip_text = str(_next_milestone.get("description", ""))
+		hbox.add_child(desc_label)
+
+		var progress_label := LakskongenTheme.create_label("%.0f%%" % (_next_progress * 100.0), LakskongenTheme.FONT_SM, ACCENT)
+		hbox.add_child(progress_label)
+
+		goals_container.add_child(hbox)
+
 	for goal in active_goals:
 		var hbox := HBoxContainer.new()
 		hbox.add_theme_constant_override("separation", LakskongenTheme.SPACE_MD)
@@ -171,7 +190,7 @@ func _update_goals_display():
 		
 		goals_container.add_child(hbox)
 	
-	if active_goals.is_empty():
+	if active_goals.is_empty() and _next_milestone.is_empty():
 		var empty_label := LakskongenTheme.create_label("No active goals", LakskongenTheme.FONT_SM, MUTED)
 		goals_container.add_child(empty_label)
 
@@ -271,17 +290,49 @@ func _domain_name(domain: MasteryDomain) -> String:
 		_: return "Unknown"
 
 func _connect_signals():
-	GameState.connect("production_goal_created", Callable(self, "add_goal"))
+	# Refresh from the real producer (GameBridge visual milestones)
+	# whenever the sim advances a day or pushes a state update.
+	var sim = get_node_or_null("/root/SimBridge")
+	if sim:
+		if sim.has_signal("day_advanced") and not sim.day_advanced.is_connected(_refresh_from_bridge):
+			sim.day_advanced.connect(_refresh_from_bridge)
+		if sim.has_signal("state_updated") and not sim.state_updated.is_connected(_refresh_from_bridge):
+			sim.state_updated.connect(_refresh_from_bridge)
 
-func _add_test_data():
-	# Only for demo purposes – remove in production
-	mastery_xp[MasteryDomain.BIOLOGY] = 125
-	mastery_xp[MasteryDomain.BUSINESS] = 340
-	mastery_xp[MasteryDomain.SUSTAINABILITY] = 80
-	_update_mastery_display()
-	
-	milestone_history = [
-		{"name": "First Harvest", "value": 1000.0, "day": 45, "goal": "Harvest 1 ton"},
-		{"name": "25%", "value": 25000.0, "day": 120, "goal": "Harvest 100 tons"}
-	]
-	_update_milestones_display()
+
+## Pull achieved + next milestones from GameBridge. New achievements get
+## a history entry, a notification, and Business XP — same as add_goal().
+func _refresh_from_bridge():
+	var bridge = get_node_or_null("/root/GameBridge")
+	if bridge == null:
+		return
+	if bridge.has_method("GetAchievedMilestones"):
+		var achieved = bridge.GetAchievedMilestones()
+		for m in achieved:
+			var title := str(m.get("title", ""))
+			if title == "" or _known_milestone_titles.has(title):
+				continue
+			_known_milestone_titles[title] = true
+			milestone_history.push_front({
+				"name": str(m.get("description", title)),
+				"value": 0.0,
+				"day": _current_day(),
+				"goal": title
+			})
+			if milestone_history.size() > 5:
+				milestone_history.pop_back()
+			_show_notification("Milestone: %s" % title)
+			add_mastery_xp(MasteryDomain.BUSINESS, 25)
+		_update_milestones_display()
+	if bridge.has_method("GetNextVisualMilestone"):
+		_next_milestone = bridge.GetNextVisualMilestone()
+	if bridge.has_method("GetMilestoneProgress"):
+		_next_progress = clampf(float(bridge.GetMilestoneProgress()), 0.0, 1.0)
+	_update_goals_display()
+
+
+func _current_day() -> int:
+	var bridge = get_node_or_null("/root/SimBridge")
+	if bridge:
+		return int(bridge.get("current_day") or 0)
+	return 0

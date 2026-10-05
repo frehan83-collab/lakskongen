@@ -155,7 +155,7 @@ func _on_crisis_resolved(crisis_id: String, success: bool):
         animation_player.stop()
     
     # Show resolution toast (could be implemented separately)
-    GD.print("Crisis %s resolved: success=%s" % [crisis_id, success])
+    print("Crisis %s resolved: success=%s" % [crisis_id, success])
 
 func _on_crisis_escalated(crisis_id: String, new_severity: int):
     if current_crisis_id == crisis_id:
@@ -287,9 +287,9 @@ func _process(delta):
         timer_label.text = tr("TIME LIMITED")
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
-		get_viewport().set_input_as_handled()
-		_on_close_requested()
+    if event.is_action_pressed("ui_cancel"):
+        get_viewport().set_input_as_handled()
+        _on_close_requested()
 
 func _on_close_requested() -> void:
-	hide()
+    hide()

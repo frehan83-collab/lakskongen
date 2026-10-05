@@ -155,9 +155,14 @@ namespace LakskongenSim.Core
             // Default finance and market if not set externally
             FinanceManager ??= new Finance.FinanceManager(10_000_000m); // 10M NOK starting capital
             FinancialStatements = new Finance.FinancialStatements();
-            
-            // NOTE: GameState.Balance is NO LONGER synced automatically.
-            // It is only updated during save/load for backward compatibility.
+
+            // Feed PRICE authority: FeedSystem.FeedCostPerKg is charged daily via
+            // OnFeedCostIncurred. BalancingConfig mirrors it for estimates
+            // (AI savings); ApplyBalancingConfig pushes file values back in.
+            _balancing.FeedCostPerKgNOK = Feed.FeedCostPerKg;
+
+            // NOTE: GameState.Balance is a read-only MIRROR, synced from
+            // FinanceManager.Balance at the end of each simulated day (Phase 6).
             // FinanceManager.Balance is the SINGLE SOURCE OF TRUTH for cash.
             
             // Initialize CompetitorAI and EmpireProgression systems
@@ -218,7 +223,7 @@ namespace LakskongenSim.Core
             Storyteller = new Storyteller(Time, State, FinanceManager, seed: null, enableDefaultEvents: enableEvents);
             if (enableEvents)
             {
-                NorwegianEvents.RegisterAll(Storyteller);
+                NorwegianEvents.RegisterAll(Storyteller, FinanceManager);
             }
             Storyteller.OnEventRaised += HandleStorytellerEvent;
 
@@ -775,7 +780,10 @@ namespace LakskongenSim.Core
                 Console.WriteLine($"  → Starting capital: {config.StartingCapital:N0} NOK");
             }
 
-            // Feed system parameters
+            // Feed system parameters — applied, not just logged:
+            // balancing file is the override authority when present.
+            if (Feed != null)
+                Feed.FeedCostPerKg = config.FeedCostPerKgNOK;
             Console.WriteLine($"  → Feed cost per kg: {config.FeedCostPerKgNOK:N2} NOK");
             Console.WriteLine($"  → FCR targets: Optimal={config.OptimalFCR}, Poor={config.PoorFCR}");
 
@@ -1056,6 +1064,13 @@ namespace LakskongenSim.Core
             // PHASE 6: FINANCE
             // ═══════════════════════════════════════════
             ProcessDailyFinance();
+
+            // GameState.Balance is a read-only MIRROR of FinanceManager.Balance.
+            // Writers must use FinanceManager (AddRevenue/Spend/ForceSpend);
+            // this keeps event Conditions and UI readers correct all day.
+            #pragma warning disable CS0618 // Balance mirror: save-compat field by design
+            State.Balance = FinanceManager.Balance;
+            #pragma warning restore CS0618
 
             // ═══════════════════════════════════════════
             // PHASE 6B: STOCK MARKET (daily price + quarterly earnings)

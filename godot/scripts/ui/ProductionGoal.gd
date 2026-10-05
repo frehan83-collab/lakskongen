@@ -1,9 +1,9 @@
 class_name ProductionGoal
 extends RefCounted
-## Minimal milestone-goal contract consumed by MilestoneTracker UI.
-## STUB: satisfies parsing and basic runtime wiring until the real
-## (C#-planned) ProductionGoal lands — then DELETE this file to avoid
-## a global-class name collision.
+## Goal contract consumed by MilestoneTracker.add_goal().
+## Visual milestones come from the sim via GameBridge
+## (GetAchievedMilestones / GetNextVisualMilestone); this class is for
+## explicitly added goals (scenarios, tutorial chains).
 
 signal MilestoneReached(milestone_name: String, milestone_value: float)
 signal GoalCompleted

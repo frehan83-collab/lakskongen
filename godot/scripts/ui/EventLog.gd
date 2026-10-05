@@ -121,8 +121,9 @@ func add_log_entry(text: String, event_type: String = "info", show_timestamp: bo
 	
 	# Format timestamp
 	var timestamp = ""
-	if show_timestamp and game_bridge and game_bridge.GameState:
-		var day = game_bridge.GameState.CurrentDay
+	var sim_bridge = get_node_or_null("/root/SimBridge")
+	if show_timestamp and sim_bridge:
+		var day = int(sim_bridge.get("current_day") or 0)
 		timestamp = "[color=gray][Day %d][/color] " % day
 	
 	# Get color for event type

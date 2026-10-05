@@ -105,8 +105,8 @@ func hide_menu() -> void:
 
 func _pause_simulation(paused: bool) -> void:
 	get_tree().paused = paused
-	if _game_bridge and _game_bridge.has_method("set_paused"):
-		_game_bridge.set_paused(paused)
+	if _game_bridge and _game_bridge.has_method("SetPaused"):
+		_game_bridge.SetPaused(paused)
 
 # ── Visual setup ──────────────────────────────────────────────────────────────
 

@@ -30,6 +30,13 @@ public partial class SaveLoadManager : Node
     private const int MAX_AUTOSAVES = 5;
     private const int MAX_BACKUPS = 3;
 
+    /// <summary>
+    /// Save format version. Bump when GameState shape changes and add a
+    /// migration step in MigrateSaveData. Old saves without the field read
+    /// as version 0.
+    /// </summary>
+    public const int CurrentSaveVersion = 1;
+
     private JsonSerializerOptions _jsonOptions;
     private GameBridge _gameBridge;
 
@@ -95,15 +102,24 @@ public partial class SaveLoadManager : Node
             
             var saveData = CreateSaveData(_gameBridge.SimulationEngine.State, saveName);
             string jsonString = JsonSerializer.Serialize(saveData, _jsonOptions);
-            
-            using var file = Godot.FileAccess.Open(fullPath, Godot.FileAccess.ModeFlags.Write);
-            if (file == null)
+
+            // Atomic write: temp file + rename, so a crash can never leave
+            // a half-written save behind.
+            string tempPath = fullPath + ".tmp";
+            using (var file = Godot.FileAccess.Open(tempPath, Godot.FileAccess.ModeFlags.Write))
             {
-                throw new Exception($"Failed to create save file: {fullPath}");
+                if (file == null)
+                {
+                    throw new Exception($"Failed to create temp save file: {tempPath}");
+                }
+                file.StoreString(jsonString);
+                file.Close();
             }
-            
-            file.StoreString(jsonString);
-            file.Close();
+            System.IO.File.Move(
+                ProjectSettings.GlobalizePath(tempPath),
+                ProjectSettings.GlobalizePath(fullPath),
+                true
+            );
             
             EmitSignal(SignalName.GameSaved, saveName, fullPath);
             EventBus eventBus = GetNode<EventBus>("/root/EventBus");
@@ -205,8 +221,21 @@ public partial class SaveLoadManager : Node
                 string error = $"Save file '{fileName}' is missing game data. Please try a different save file.";
                 EmitSignal(SignalName.LoadFailed, error);
                 GD.PrintErr(error);
-                TryLoadBackup(fileName);
                 return false;
+            }
+
+            // Version gate: refuse newer formats, migrate older ones.
+            if (saveData.SaveVersion > CurrentSaveVersion)
+            {
+                string error = $"Save file '{fileName}' needs a newer game version (save v{saveData.SaveVersion}, game v{CurrentSaveVersion}). Please update the game.";
+                EmitSignal(SignalName.LoadFailed, error);
+                GD.PrintErr(error);
+                return false;
+            }
+            if (saveData.SaveVersion < CurrentSaveVersion)
+            {
+                GD.Print($"Migrating save '{fileName}' from v{saveData.SaveVersion} to v{CurrentSaveVersion}.");
+                saveData = MigrateSaveData(saveData);
             }
             
             // Load the game state into GameBridge
@@ -318,8 +347,32 @@ public partial class SaveLoadManager : Node
             SaveName = saveName,
             SaveTime = DateTime.UtcNow,
             GameVersion = ProjectSettings.GetSetting("application/config/version", "1.0.0").AsString(),
+            SaveVersion = CurrentSaveVersion,
             GameState = gameState
         };
+    }
+
+    /// <summary>
+    /// Migrate an older save forward step by step. Add a case per version
+    /// bump; each step must handle saves produced by the previous version.
+    /// </summary>
+    private SaveGameData MigrateSaveData(SaveGameData saveData)
+    {
+        // v0 (pre-version saves): no format changes yet, accept as-is.
+        while (saveData.SaveVersion < CurrentSaveVersion)
+        {
+            switch (saveData.SaveVersion)
+            {
+                case 0:
+                    // v0 -> v1: version stamp introduced, no data changes.
+                    saveData.SaveVersion = 1;
+                    break;
+                default:
+                    GD.PrintErr($"No migrator for save version {saveData.SaveVersion}; loading as-is.");
+                    return saveData;
+            }
+        }
+        return saveData;
     }
 
     private SaveFileInfo GetSaveFileInfo(string fileName)
@@ -461,6 +514,8 @@ public class SaveGameData
     public string SaveName { get; set; }
     public DateTime SaveTime { get; set; }
     public string GameVersion { get; set; }
+    /// <summary>Save format version. See CurrentSaveVersion + MigrateSaveData.</summary>
+    public int SaveVersion { get; set; }
     public GameState GameState { get; set; }
 }
 
