@@ -281,12 +281,20 @@ namespace LakskongenSim.Core
 
         private readonly List<LoadedMod> _loadedMods = new();
         private readonly List<string> _loadErrors = new();
+        private readonly List<ModManifest> _discoveredManifests = new();
 
         private ModConfiguration _modConfiguration = new();
         private string _modConfigPath => Path.Combine(_modsDirectory, "mods_config.json");
 
         public IReadOnlyList<LoadedMod> LoadedMods => _loadedMods;
         public IReadOnlyList<string> LoadErrors => _loadErrors;
+
+        /// <summary>
+        /// Every manifest discovered on the last <see cref="DiscoverAndLoad"/> call,
+        /// including disabled mods (which are not present in <see cref="LoadedMods"/>).
+        /// Useful for mod-management UIs.
+        /// </summary>
+        public IReadOnlyList<ModManifest> DiscoveredManifests => _discoveredManifests;
 
         public int EnabledModCount => _loadedMods.Count(m => m.Manifest.Enabled);
 
@@ -312,6 +320,7 @@ namespace LakskongenSim.Core
         {
             _loadedMods.Clear();
             _loadErrors.Clear();
+            _discoveredManifests.Clear();
 
             if (!Directory.Exists(_modsDirectory))
             {
@@ -321,6 +330,7 @@ namespace LakskongenSim.Core
 
             var manifests = DiscoverManifests();
             var ordered   = SortByDependencies(manifests);
+            _discoveredManifests.AddRange(ordered);
 
             foreach (var manifest in ordered)
             {
@@ -342,22 +352,29 @@ namespace LakskongenSim.Core
         /// </summary>
         public void SetModEnabled(string modId, bool enabled)
         {
+            // A disabled mod is not in _loadedMods, so also consult the full
+            // discovered set (populated by DiscoverAndLoad) to re-enable it.
+            var discovered = _discoveredManifests.FirstOrDefault(m => m.Id == modId);
+            if (discovered != null)
+                discovered.Enabled = enabled;
+
             var mod = _loadedMods.FirstOrDefault(m => m.Manifest.Id == modId);
             if (mod != null)
-            {
                 mod.Manifest.Enabled = enabled;
 
-                var configEntry = _modConfiguration.Mods.FirstOrDefault(e => e.Id == modId);
-                if (configEntry != null)
-                {
-                    configEntry.Enabled = enabled;
-                }
-                else
-                {
-                    _modConfiguration.Mods.Add(new ModConfigEntry { Id = modId, Enabled = enabled });
-                }
-                _modConfiguration.Save(_modConfigPath, _jsonOptions);
+            if (discovered == null && mod == null)
+                return;
+
+            var configEntry = _modConfiguration.Mods.FirstOrDefault(e => e.Id == modId);
+            if (configEntry != null)
+            {
+                configEntry.Enabled = enabled;
             }
+            else
+            {
+                _modConfiguration.Mods.Add(new ModConfigEntry { Id = modId, Enabled = enabled });
+            }
+            _modConfiguration.Save(_modConfigPath, _jsonOptions);
         }
 
         /// <summary>

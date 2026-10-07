@@ -1,0 +1,261 @@
+[gd_scene load_steps=5 format=3 uid="uid://m5modmanager01"]
+
+[ext_resource type="Script" path="res://scripts/ui/ModManagerPanel.gd" id="1_mods"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
+bg_color = Color(0.92549, 0.937255, 0.956863, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
+bg_color = Color(1, 1, 1, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn"]
+bg_color = Color(0.368627, 0.505882, 0.67451, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_detail"]
+bg_color = Color(0.92549, 0.937255, 0.956863, 1)
+
+[node name="ModManagerPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_mods")
+
+[node name="Background" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
+
+[node name="Root" type="VBoxContainer" parent="./Background"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="TitleBar" type="PanelContainer" parent="./Background/Root"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="TitleMargin" type="MarginContainer" parent="./Background/Root/TitleBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_right = 12
+
+[node name="TitleHBox" type="HBoxContainer" parent="./Background/Root/TitleBar/TitleMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="./Background/Root/TitleBar/TitleMargin/TitleHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 18
+text = "Modbehandling"
+tooltip_text = "Administrer installerte modifikasjoner: aktiver/deaktiver, sorter lasterekkefølge og vis detaljer."
+
+[node name="StatusLabel" type="Label" parent="./Background/Root/TitleBar/TitleMargin/TitleHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 13
+
+[node name="CloseButton" type="Button" parent="./Background/Root/TitleBar/TitleMargin/TitleHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 18
+text = "✕"
+flat = true
+tooltip_text = "Lukk modbehandler (Esc)"
+
+[node name="Body" type="HBoxContainer" parent="./Background/Root"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="ListScroll" type="ScrollContainer" parent="./Background/Root/Body"]
+custom_minimum_size = Vector2(460, 0)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ListVBox" type="VBoxContainer" parent="./Background/Root/Body/ListScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 1
+
+[node name="ColumnHeader" type="PanelContainer" parent="./Background/Root/Body/ListScroll/ListVBox"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="HeaderMargin" type="MarginContainer" parent="./Background/Root/Body/ListScroll/ListVBox/ColumnHeader"]
+layout_mode = 2
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_right = 12
+
+[node name="HeaderHBox" type="HBoxContainer" parent="./Background/Root/Body/ListScroll/ListVBox/ColumnHeader/HeaderMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ColMod" type="Label" parent="./Background/Root/Body/ListScroll/ListVBox/ColumnHeader/HeaderMargin/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "Mod"
+
+[node name="ColVer" type="Label" parent="./Background/Root/Body/ListScroll/ListVBox/ColumnHeader/HeaderMargin/HeaderHBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "Versjon"
+
+[node name="ColAuthor" type="Label" parent="./Background/Root/Body/ListScroll/ListVBox/ColumnHeader/HeaderMargin/HeaderHBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "Forfatter"
+
+[node name="ColStatus" type="Label" parent="./Background/Root/Body/ListScroll/ListVBox/ColumnHeader/HeaderMargin/HeaderHBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "Status"
+
+[node name="ListContainer" type="VBoxContainer" parent="./Background/Root/Body/ListScroll/ListVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 1
+
+[node name="Separator" type="ColorRect" parent="./Background/Root/Body"]
+custom_minimum_size = Vector2(1, 0)
+layout_mode = 2
+color = Color(0.847059, 0.870588, 0.913725, 1)
+
+[node name="DetailPanel" type="PanelContainer" parent="./Background/Root/Body"]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_detail")
+
+[node name="DetailMargin" type="MarginContainer" parent="./Background/Root/Body/DetailPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="DetailVBox" type="VBoxContainer" parent="./Background/Root/Body/DetailPanel/DetailMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="DetailName" type="Label" parent="./Background/Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 16
+text = "Ingen mod valgt"
+autowrap_mode = 2
+
+[node name="DetailAuthor" type="Label" parent="./Background/Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="DetailVersion" type="Label" parent="./Background/Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="Sep1" type="ColorRect" parent="./Background/Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+color = Color(0.847059, 0.870588, 0.913725, 1)
+
+[node name="DetailDesc" type="RichTextLabel" parent="./Background/Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/default_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/normal_font_size = 13
+bbcode_enabled = true
+fit_content = true
+autowrap_mode = 2
+
+[node name="Sep2" type="ColorRect" parent="./Background/Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+color = Color(0.847059, 0.870588, 0.913725, 1)
+
+[node name="DetailStats" type="Label" parent="./Background/Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.368627, 0.505882, 0.67451, 1)
+theme_override_font_sizes/font_size = 12
+autowrap_mode = 2
+
+[node name="DetailErrors" type="Label" parent="./Background/Root/Body/DetailPanel/DetailMargin/DetailVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.45, 0.35, 1)
+theme_override_font_sizes/font_size = 11
+autowrap_mode = 2
+
+[node name="Toolbar" type="PanelContainer" parent="./Background/Root"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="ToolbarMargin" type="MarginContainer" parent="./Background/Root/Toolbar"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_right = 12
+
+[node name="ToolbarHBox" type="HBoxContainer" parent="./Background/Root/Toolbar/ToolbarMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="OpenFolderButton" type="Button" parent="./Background/Root/Toolbar/ToolbarMargin/ToolbarHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
+text = "Åpne modmappe"
+
+[node name="ReloadButton" type="Button" parent="./Background/Root/Toolbar/ToolbarMargin/ToolbarHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
+text = "Last inn på nytt"
+
+[node name="ToolbarSpacer" type="Control" parent="./Background/Root/Toolbar/ToolbarMargin/ToolbarHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ApplyButton" type="Button" parent="./Background/Root/Toolbar/ToolbarMargin/ToolbarHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
+text = "Bruk endringer"

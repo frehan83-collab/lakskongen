@@ -49,6 +49,19 @@ namespace LakskongenSim.Core
         /// <summary>Fish populations across the system.</summary>
         public List<Biology.FishPopulation> Populations { get; set; } = new();
 
+        /// <summary>
+        /// Growth model snapshot (TD-04). Stateless marker today; null for
+        /// saves written before snapshots existed.
+        /// </summary>
+        public Biology.GrowthModelSnapshot? GrowthState { get; set; }
+
+        /// <summary>
+        /// Mortality model snapshot (TD-04): live disease rates + accumulated
+        /// environmental stress per population. Null for older saves (models
+        /// then resume cleared, matching legacy post-load behavior).
+        /// </summary>
+        public Biology.MortalityModelSnapshot? MortalityState { get; set; }
+
         /// <summary>Broodstock genomes available for selective breeding.</summary>
         public List<Genome> Broodstock { get; set; } = new();
 
@@ -59,6 +72,24 @@ namespace LakskongenSim.Core
 
         /// <summary>Event history log for the storyteller/event system. Tracks all random events that have occurred.</summary>
         public List<Events.EventRecord> EventLog { get; set; } = new();
+
+        /// <summary>
+        /// Memory bound for <see cref="EventLog"/> (TD-10/11): at most this many
+        /// event records are retained in memory. Older records are evicted
+        /// oldest-first. This is a compile-time constant plus a helper method —
+        /// no serialized members are added, so the save format is unchanged.
+        /// </summary>
+        public const int MaxEventLogEntries = 1000;
+
+        /// <summary>
+        /// Evict oldest event-log entries beyond <see cref="MaxEventLogEntries"/>.
+        /// Call after appending to <see cref="EventLog"/>.
+        /// </summary>
+        public void TrimEventLog()
+        {
+            if (EventLog.Count > MaxEventLogEntries)
+                EventLog.RemoveRange(0, EventLog.Count - MaxEventLogEntries);
+        }
 
         /// <summary>
         /// Daily analytics snapshots recorded by AnalyticsTracker.
@@ -96,6 +127,19 @@ namespace LakskongenSim.Core
 
         /// <summary>Whether the player owns a processing plant.</summary>
         public bool OwnsProcessingPlant { get; set; }
+
+        /// <summary>VAP plant tier (Phase 3.5): "", "Small", "Medium", "Large".</summary>
+        public string ProcessingTier { get; set; } = "";
+
+        /// <summary>Feed recipe sliders (Phase 4.4): protein 38-48, replacement
+        /// 0-60, astaxanthin 0-80 ppm.</summary>
+        public double RecipeProteinPct { get; set; } = 42.0;
+        public double RecipeReplacePct { get; set; } = 20.0;
+        public double RecipeAstaxPpm { get; set; } = 50.0;
+
+        /// <summary>Night-shift ROC policy (Phase 5.2).</summary>
+        public LakskongenSim.Logistics.NightShiftPolicy NightShiftPolicy { get; set; } =
+            LakskongenSim.Logistics.NightShiftPolicy.Standard;
 
         /// <summary>Whether the player has achieved ASC certification.</summary>
         public bool HasASCCertification { get; set; }
@@ -208,8 +252,36 @@ namespace LakskongenSim.Core
         /// <summary>FishWelfare: Current welfare condition score.</summary>
         public decimal FishWelfareCondition { get; set; } = 1.0m;
 
+        /// <summary>Spot-hire wellboat jobs awaiting execution (Phase 2.4).</summary>
+        public List<Logistics.WellboatJob> WellboatJobs { get; set; } = new();
+
+        /// <summary>Staff roster (Phase 3.1).</summary>
+        public List<CrewMember> Crew { get; set; } = new();
+
+        /// <summary>Active bloom/hypoxia events (Phase 4.3).</summary>
+        public List<Environment.BloomEvent> ActiveBlooms { get; set; } = new();
+
         /// <summary>VisualMilestones: Achieved milestone IDs.</summary>
         public HashSet<string> AchievedVisualMilestones { get; set; } = new();
+
+        // ─── Depth Systems State (P9/P11: Save/Load serialization) ─────────────
+
+        /// <summary>P11 InsuranceSystem: subscribed catastrophe policies
+        /// (kind, premium, coverage, deductible). Additive; empty for old saves.</summary>
+        public List<InsurancePolicyState> InsurancePolicies { get; set; } = new();
+
+        /// <summary>P11 bloom mitigation registry: installed non-flag-backed
+        /// mitigations as (siteId, kind key). Additive; empty for old saves.</summary>
+        public List<BloomMitigationState> BloomMitigations { get; set; } = new();
+
+        /// <summary>P9: whether the 25% resource-rent tax is charged (opt-in per scenario).</summary>
+        public bool EnableResourceRentTax { get; set; }
+
+        /// <summary>P9: cumulative resource-rent tax paid (NOK).</summary>
+        public decimal ResourceRentPaid { get; set; }
+
+        /// <summary>P9: last binding monthly pen price set by the Price Council (NOK/kg).</summary>
+        public decimal PenPriceCouncilLastValue { get; set; }
 
         /// <summary>Default constructor for serializer.</summary>
         public GameState()
@@ -347,5 +419,25 @@ namespace LakskongenSim.Core
         public int Day { get; set; }
         public decimal SpotPrice { get; set; }
         public string Sentiment { get; set; } = string.Empty;
+    }
+
+    // ─── Depth Systems Serialization DTOs (P9/P11) ──────────────────────────
+
+    /// <summary>Serializable snapshot of an <c>InsuranceSystem</c> policy.
+    /// <see cref="Kind"/> is the <c>InsuranceKind</c> name (Mortality/Bloom/Storm/ISA).</summary>
+    public class InsurancePolicyState
+    {
+        public string Kind { get; set; } = string.Empty;
+        public double Premium { get; set; }
+        public double Coverage { get; set; }
+        public decimal Deductible { get; set; }
+    }
+
+    /// <summary>Serializable snapshot of an installed bloom mitigation.
+    /// <see cref="Kind"/> is the bridge key (bubble/diffuser/pumping/deep_feeding).</summary>
+    public class BloomMitigationState
+    {
+        public string SiteId { get; set; } = string.Empty;
+        public string Kind { get; set; } = string.Empty;
     }
 }

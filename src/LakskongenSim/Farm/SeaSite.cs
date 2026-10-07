@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using LakskongenSim.Biology;
 
 namespace LakskongenSim.Farm
 {
@@ -22,6 +23,56 @@ namespace LakskongenSim.Farm
         // Sustainability integration properties
         public int EscapesThisYear { get; set; } = 0;
         public bool IsClosedContainment { get; set; } = false;
+
+        /// <summary>Containment tech level 0-5 (Phase 4.1). Old saves default 0;
+        /// skirt-owners migrate to 1, closed-flagged to 3. Downgrade not allowed.</summary>
+        public ContainmentLevel Containment { get; set; } = ContainmentLevel.OpenNet;
+
+        /// <summary>Red-zone MAB credit applied (Phase 4.1). Reverted exactly on
+        /// zone exit so re-entries never compound.</summary>
+        public bool RedZoneCreditApplied { get; set; } = false;
+
+        /// <summary>ROC watch mode (Phase 4.2): "watch" (25 pts), "scan" (10),
+        /// "auto" (0 + 8% feed spill + slower escape response).</summary>
+        public string WatchMode { get; set; } = "watch";
+
+        /// <summary>Gill health 0-100 (Phase 4.3). Blooms damage, recovery heals.
+        /// Throttles appetite, inflates FCR, worsens treatment mortality.</summary>
+        public double GillScore { get; set; } = 100.0;
+
+        /// <summary>Bubble curtain installed (Phase 4.3): jelly ×0.23.</summary>
+        public bool HasBubbleCurtain { get; set; } = false;
+
+        /// <summary>O2 diffuser installed (Phase 4.3): hypoxia ×0.3, algae ×0.7.</summary>
+        public bool HasO2Diffuser { get; set; } = false;
+
+        /// <summary>Net/cage integrity 0-100. Storms degrade; RepairNets restores.
+        /// Below 40 during storms risks escapes. Old saves migrate 0 → 100 on load.</summary>
+        public double NetIntegrityPct { get; set; } = 100.0;
+
+        /// <summary>Lice skirt installed (Phase 1.5): -settlement, daily OPEX.</summary>
+        public bool HasLiceSkirt { get; set; } = false;
+
+        /// <summary>Seal deterrent installed (Phase 1.5): predator mitigation, daily OPEX.</summary>
+        public bool HasSealDeterrent { get; set; } = false;
+
+        // Phase 5.3: Sludge valorization
+        /// <summary>Accumulated sludge dry solids (kg) awaiting valorization.</summary>
+        public double SludgeAccumulatedKgDs { get; set; } = 0.0;
+
+        /// <summary>Total sludge valorized this production cycle (kg DS).</summary>
+        public double SludgeValorizedKgDs { get; set; } = 0.0;
+
+        /// <summary>Day of last sludge valorization.</summary>
+        public int LastSludgeValorizationDay { get; set; } = -1;
+
+        /// <summary>Whether this site is connected to a centralized sludge hub.</summary>
+        public bool HasSludgeHubConnection { get; set; } = false;
+
+        // Phase 5.4: Carbon ledger
+        /// <summary>Carbon emissions/credits tracker for this site.</summary>
+        public CarbonTracker CarbonTracker { get; set; } = new();
+
         public float CurrentStockingDensity { get; set; } = 0f; // kg/m³
         public float MaxAllowedDensity { get; set; } = 25.0f; // kg/m³ (Norwegian standard)
         public float PenVolume { get; set; } = 50000f; // m³ (default pen volume)
@@ -43,6 +94,7 @@ namespace LakskongenSim.Farm
         public void Stock(Biology.FishPopulation pop)
         {
             pop.ZoneId = ZoneId; // Link population to this site's zone
+            pop.SiteId = Id;     // Direct site reference for O(1) lookup
             Pens.Add(pop);
             OnStocked?.Invoke(pop);
             UpdateStockingDensity();

@@ -69,12 +69,41 @@ var _line_canvas: _LineCanvas = null
 var _confirm_dialog: AcceptDialog = null
 var _tooltip_popup: PopupPanel = null
 var _tooltip_label: Label = null
+var _sim: Node = null
 
 # ── Lifecycle ───────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
+	_sim = get_node_or_null("/root/SimBridge")
+	if _sim != null:
+		if _sim.has_signal("state_updated"):
+			_sim.state_updated.connect(_on_state_updated)
+		print("TechTreePanel: connected to SimBridge")
+	else:
+		push_warning("TechTreePanel: SimBridge not found")
 	_build_skeleton()
 	_refresh()
+
+func on_panel_shown() -> void:
+	_refresh()
+
+func _on_state_updated() -> void:
+	if visible:
+		_refresh()
+
+## Resolve the SimBridge facade (never touch GameBridge.cs directly).
+func _bridge() -> Node:
+	if _sim == null or not is_instance_valid(_sim):
+		_sim = get_node_or_null("/root/SimBridge")
+	return _sim
+
+## Safe translated format: falls back to a local format string when the
+## translation catalogue is unavailable (tr returns the bare key).
+func _fmt(key: String, fallback: String, args: Array) -> String:
+	var t := tr(key)
+	if "%" not in t:
+		t = fallback
+	return t % args
 
 func _input(event: InputEvent) -> void:
 	"""Handle keyboard navigation"""
@@ -99,7 +128,7 @@ func _build_skeleton() -> void:
 
 	# ── Background panel ──
 	var bg := ColorRect.new()
-	bg.color = Color("#ECEFF4")  # Nordic Minimalist light bg
+	bg.color = Color(0.92549, 0.937255, 0.956863, 0.82)  # Nordic Minimalist light bg, lets 3D vista show through
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
@@ -137,7 +166,7 @@ func _build_skeleton() -> void:
 		var meta: Dictionary = BRANCH_META[branch]
 		var x := START_X + bi * H_GAP
 		var hdr := Label.new()
-		hdr.text = tr("UI_TECH_TIER_NODE") % [meta["icon"], meta["label"]]
+		hdr.text = _fmt("UI_TECH_TIER_NODE", "%s %s", [meta["icon"], meta["label"]])
 		hdr.add_theme_font_size_override("font_size", 12)
 		hdr.modulate = meta["color"]
 		hdr.position = Vector2(x, 58)
@@ -169,12 +198,12 @@ func _build_skeleton() -> void:
 # ── Data refresh ────────────────────────────────────────────────────────────────
 
 func _refresh() -> void:
-	if not Engine.has_singleton("GameBridge"):
-		_update_status_label("GameBridge ikke tilgjengelig")
+	var gb := _bridge()
+	if gb == null:
+		_update_status_label("SimBridge ikke tilgjengelig")
 		return
 
-	var gb = Engine.get_singleton("GameBridge")
-	var nodes_raw: Array = Array(gb.GetResearchNodes())
+	var nodes_raw: Array = Array(gb.get_research_nodes())
 
 	# Rebuild lookup maps
 	_node_data.clear()
@@ -185,9 +214,9 @@ func _refresh() -> void:
 	_build_node_panels()
 
 	# Update status bar
-	var active_id: String = gb.ActiveResearchId
+	var active_id: String = gb.get_active_research_id()
 	if active_id != "":
-		var remaining: int = gb.ResearchDaysRemaining
+		var remaining: int = gb.get_research_days_remaining()
 		var nd: Dictionary = _node_data.get(active_id, {})
 		_update_status_label("Forsker: %s - %d dager gjenstår" % [nd.get("name", active_id), remaining])
 	else:
@@ -304,7 +333,7 @@ func _build_node_panel(nd: Dictionary) -> void:
 
 	# Tier badge
 	var tier_lbl := Label.new()
-	tier_lbl.text = tr("UI_TECH_TIER_LABEL") % tier
+	tier_lbl.text = _fmt("UI_TECH_TIER_LABEL", "Nivå %s", [tier])
 	tier_lbl.add_theme_font_size_override("font_size", 9)
 	tier_lbl.modulate = branch_color
 	vbox.add_child(tier_lbl)
@@ -324,7 +353,7 @@ func _build_node_panel(nd: Dictionary) -> void:
 		prog.show_percentage = false
 		vbox.add_child(prog)
 		var prog_lbl := Label.new()
-		prog_lbl.text = tr("UI_TECH_PROGRESS_DAYS") % [progress_days, research_days]
+		prog_lbl.text = _fmt("UI_TECH_PROGRESS_DAYS", "%d av %d dager", [progress_days, research_days])
 		prog_lbl.add_theme_font_size_override("font_size", 9)
 		prog_lbl.modulate = Color(1.0, 0.80, 0.30)
 		vbox.add_child(prog_lbl)
@@ -382,12 +411,13 @@ func _on_active_node_clicked(_node_id: String) -> void:
 func _on_research_confirmed() -> void:
 	if _pending_node_id == "":
 		return
-	var gb = Engine.get_singleton("GameBridge")
+	var gb := _bridge()
 	if gb == null:
 		return
-	var success: bool = gb.StartResearch(_pending_node_id)
+	var success: bool = gb.start_research(_pending_node_id)
 	if success:
 		emit_signal("research_started", _pending_node_id)
+		_toast_research(_pending_node_id)
 		_refresh()
 	else:
 		# Show brief error - insufficient funds or state changed
@@ -420,7 +450,7 @@ func _on_node_hover(node_id: String) -> void:
 			fx_parts.append("%s: +%.0f%%" % [k.replace("_", " ").capitalize(), effects[k] * 100])
 		lines.append("Effekter: " + ", ".join(fx_parts))
 
-	_tooltip_label.text = tr("\n")
+	_tooltip_label.text = "\n".join(lines)
 	_tooltip_label.custom_minimum_size = Vector2(260, 0)
 	_tooltip_popup.popup(Rect2(get_global_mouse_position() + Vector2(12, 8), Vector2(280, 1)))
 
@@ -428,6 +458,16 @@ func _on_node_hover_exit() -> void:
 	_tooltip_popup.hide()
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
+## Juice-only toast on research start (signal + sim call above untouched).
+func _toast_research(node_id: String) -> void:
+	var mgr := get_node_or_null("/root/ToastNotification")
+	if mgr and mgr.has_method("show_toast"):
+		var nd: Dictionary = _node_data.get(node_id, {})
+		var label := str(nd.get("name", node_id))
+		var t := tr("UI_TOAST_RESEARCH")
+		var msg := (t % label) if t != "UI_TOAST_RESEARCH" else ("🔬 Forskning startet: %s" % label)
+		mgr.show_toast(msg, "SUCCESS", 4.0)
 
 func _update_status_label(text: String) -> void:
 	var lbl: Label = get_node_or_null("StatusLabel")

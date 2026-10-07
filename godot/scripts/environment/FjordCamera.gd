@@ -25,6 +25,11 @@ const ZOOM_PRESETS := {
 @export var orbit_speed: float = 0.003
 @export var transition_speed: float = 2.0
 
+# === Auto Orbit (vista background drift) ===
+@export_group("AutoOrbit")
+@export var auto_orbit_enabled: bool = false
+@export var auto_orbit_speed: float = 0.03
+
 # === Boundaries ===
 @export_group("Boundaries")
 @export var min_x: float = -2000.0
@@ -48,6 +53,7 @@ var _is_orbiting: bool = false
 var _orbit_start: Vector2 = Vector2.ZERO
 var _zoom_interpolation: float = 0.0
 var _is_underwater: bool = false
+var _fly_tween: Tween = null
 
 signal zoom_level_changed(level: ZoomLevel)
 signal entered_underwater()
@@ -83,12 +89,18 @@ func _handle_mouse_button(event: InputEventMouseButton) -> void:
 			if event.pressed:
 				_zoom_out()
 		MOUSE_BUTTON_MIDDLE:
-			_is_orbiting = event.pressed
-			if event.pressed:
-				_orbit_start = event.position
-				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-			else:
-				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+			_set_orbiting(event.pressed, event.position)
+		MOUSE_BUTTON_RIGHT:
+			_set_orbiting(event.pressed, event.position)
+
+
+func _set_orbiting(pressed: bool, mouse_pos: Vector2) -> void:
+	_is_orbiting = pressed
+	if pressed:
+		_orbit_start = mouse_pos
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	else:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 func _handle_orbit(event: InputEventMouseMotion) -> void:
@@ -137,9 +149,15 @@ func _apply_zoom_preset(level: ZoomLevel) -> void:
 
 func _process(delta: float) -> void:
 	_process_pan_input(delta)
+	_process_auto_orbit(delta)
 	_interpolate_camera(delta)
 	_update_camera_transform()
 	_update_tilt_shift()
+
+
+func _process_auto_orbit(delta: float) -> void:
+	if auto_orbit_enabled and not _is_orbiting:
+		_yaw += auto_orbit_speed * delta
 
 
 func _process_pan_input(delta: float) -> void:
@@ -211,6 +229,19 @@ func _update_tilt_shift() -> void:
 func look_at_position(world_pos: Vector3, zoom: ZoomLevel = current_zoom) -> void:
 	_target_position = Vector3(world_pos.x, 0.0, world_pos.z)
 	set_zoom_level(zoom)
+
+
+## Eased fly-to variant (no instant snaps): tweens the focus target with an
+## ease-out curve. The per-frame interpolation then carries the camera along
+## smoothly. Zoom-level signals behave exactly like look_at_position.
+func fly_to_position(world_pos: Vector3, zoom: ZoomLevel = current_zoom, duration: float = 1.2) -> void:
+	set_zoom_level(zoom)
+	var dest := Vector3(world_pos.x, 0.0, world_pos.z)
+	if _fly_tween and _fly_tween.is_valid():
+		_fly_tween.kill()
+	_fly_tween = create_tween()
+	_fly_tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	_fly_tween.tween_property(self, "_target_position", dest, duration)
 
 
 ## Get the current focus point on the ground

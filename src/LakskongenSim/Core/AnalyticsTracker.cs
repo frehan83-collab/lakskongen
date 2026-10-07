@@ -132,6 +132,15 @@ namespace LakskongenSim.Core
         /// <summary>Minimum slope magnitude (as fraction of mean) to count as a trend.</summary>
         private const double TrendThreshold = 0.005; // 0.5% change per day
 
+        /// <summary>
+        /// Memory bound (TD-11): at most this many daily snapshots are retained
+        /// (10 years of daily data). Older entries are evicted oldest-first on
+        /// record; aggregates are computed incrementally so nothing else depends
+        /// on full history. Same list instance is shared with GameState, so the
+        /// save format is unchanged — saves just stop growing without bound.
+        /// </summary>
+        public const int MaxSnapshotsRetained = 3650;
+
         // ── Storage ───────────────────────────────────────────────────────────
 
         /// <summary>The snapshot list stored in GameState (injected, not owned here).</summary>
@@ -196,6 +205,8 @@ namespace LakskongenSim.Core
             };
 
             _snapshots.Add(snap);
+            if (_snapshots.Count > MaxSnapshotsRetained)
+                _snapshots.RemoveRange(0, _snapshots.Count - MaxSnapshotsRetained);
         }
 
         // ── Query API ─────────────────────────────────────────────────────────
@@ -265,6 +276,16 @@ namespace LakskongenSim.Core
 
         /// <summary>Number of snapshots recorded so far.</summary>
         public int SnapshotCount => _snapshots.Count;
+
+        /// <summary>
+        /// Returns the most recent value of <paramref name="metric"/>,
+        /// or NaN when no snapshots exist yet.
+        /// </summary>
+        public double GetLatest(string metric)
+        {
+            if (_snapshots.Count == 0) return double.NaN;
+            return _snapshots[^1].GetMetric(metric);
+        }
 
         // ── Helpers ───────────────────────────────────────────────────────────
 

@@ -1,11 +1,1543 @@
-[gd_scene load_steps=2 format=3 uid="uid://cmj8vk2n9xy1z"]
+[gd_scene load_steps=10 format=3 uid="uid://cmj8vk2n9xy1z"]
 
 [ext_resource type="Script" path="res://scripts/ui/Dashboard.gd" id="1_4n8xm"]
+[ext_resource type="Script" path="res://scripts/ui/LineChart.gd" id="2_chart"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.898039, 0.913725, 0.941176, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mini"]
+bg_color = Color(0.972549, 0.976471, 0.984314, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.847059, 0.870588, 0.913725, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 12.0
+content_margin_top = 12.0
+content_margin_right = 12.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
+bg_color = Color(1, 1, 1, 1)
+border_width_bottom = 1
+border_color = Color(0.898039, 0.913725, 0.941176, 1)
+content_margin_left = 20.0
+content_margin_top = 14.0
+content_margin_right = 20.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_primary"]
+bg_color = Color(0.0392157, 0.301961, 0.407843, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_green"]
+bg_color = Color(0.639216, 0.745098, 0.54902, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_yellow"]
+bg_color = Color(0.921569, 0.796078, 0.545098, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_light"]
+bg_color = Color(0.972549, 0.976471, 0.984314, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.847059, 0.870588, 0.913725, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
 
 [node name="Dashboard" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_4n8xm")
+
+[node name="Background" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.92549, 0.937255, 0.956863, 0.82)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="MainScroll" type="ScrollContainer" parent="Margin"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RootVBox" type="VBoxContainer" parent="Margin/MainScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="TitleBar" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Margin/MainScroll/RootVBox/TitleBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 24
+text = "Fjordlaks AS — Oversikt"
+
+[node name="KpiStrip" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="KpiBiomass" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiBiomass"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiBiomass/VBox"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.0392157, 0.301961, 0.407843, 1)
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiBiomass/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "TOTAL BIOMASSE"
+
+[node name="KpiBiomassValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiBiomass/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 28
+text = "-- tonn"
+
+[node name="KpiBiomassChange" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiBiomass/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.560784, 0.678431, 0.470588, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="KpiRevenue" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue/VBox"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.639216, 0.745098, 0.54902, 1)
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "INNTEKTER (YTD)"
+
+[node name="KpiRevenueValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 28
+text = "-- MNOK"
+
+[node name="KpiRevenueChange" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.560784, 0.678431, 0.470588, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="KpiHealth" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiHealth"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiHealth/VBox"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiHealth/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "FISKEHELSE"
+
+[node name="KpiHealthValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiHealth/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 28
+text = "--%"
+
+[node name="KpiHealthChange" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiHealth/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.560784, 0.678431, 0.470588, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="KpiFcr" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiFcr"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiFcr/VBox"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.368627, 0.505882, 0.67451, 1)
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiFcr/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "FÔRFAKTOR (FCR)"
+
+[node name="KpiFcrValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiFcr/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 28
+text = "--"
+
+[node name="KpiFcrChange" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiFcr/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.560784, 0.678431, 0.470588, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="Row1" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="PensCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="PensOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="PensHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="PensTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "🏗️ Merdoversikt"
+
+[node name="PensBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PenGrid" type="GridContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 3
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+
+[node name="PenCard1" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_mini")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HeaderRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox"]
+layout_mode = 2
+
+[node name="Pen1Name" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 14
+text = "Merd 1"
+
+[node name="Pen1Status" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/HeaderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.639216, 0.745098, 0.54902, 1)
+
+[node name="CountRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/CountRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Antall"
+
+[node name="Pen1Count" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/CountRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="WeightRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/WeightRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Snitt vekt"
+
+[node name="Pen1Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/WeightRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="TempRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/TempRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Temp"
+
+[node name="Pen1Temp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/TempRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="PenCard2" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_mini")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HeaderRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox"]
+layout_mode = 2
+
+[node name="Pen2Name" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 14
+text = "Merd 2"
+
+[node name="Pen2Status" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/HeaderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.639216, 0.745098, 0.54902, 1)
+
+[node name="CountRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/CountRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Antall"
+
+[node name="Pen2Count" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/CountRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="WeightRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/WeightRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Snitt vekt"
+
+[node name="Pen2Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/WeightRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="TempRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/TempRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Temp"
+
+[node name="Pen2Temp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/TempRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="PenCard3" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_mini")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HeaderRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox"]
+layout_mode = 2
+
+[node name="Pen3Name" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 14
+text = "Merd 3"
+
+[node name="Pen3Status" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/HeaderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.639216, 0.745098, 0.54902, 1)
+
+[node name="CountRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/CountRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Antall"
+
+[node name="Pen3Count" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/CountRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="WeightRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/WeightRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Snitt vekt"
+
+[node name="Pen3Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/WeightRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="TempRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/TempRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Temp"
+
+[node name="Pen3Temp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/TempRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="PenCard4" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_mini")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HeaderRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox"]
+layout_mode = 2
+
+[node name="Pen4Name" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 14
+text = "Merd 4"
+
+[node name="Pen4Status" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/HeaderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.639216, 0.745098, 0.54902, 1)
+
+[node name="CountRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/CountRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Antall"
+
+[node name="Pen4Count" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/CountRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="WeightRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/WeightRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Snitt vekt"
+
+[node name="Pen4Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/WeightRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="TempRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/TempRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Temp"
+
+[node name="Pen4Temp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/TempRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="PenCard5" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_mini")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HeaderRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox"]
+layout_mode = 2
+
+[node name="Pen5Name" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 14
+text = "Merd 5"
+
+[node name="Pen5Status" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/HeaderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.639216, 0.745098, 0.54902, 1)
+
+[node name="CountRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/CountRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Antall"
+
+[node name="Pen5Count" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/CountRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="WeightRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/WeightRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Snitt vekt"
+
+[node name="Pen5Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/WeightRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="TempRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/TempRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Temp"
+
+[node name="Pen5Temp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/TempRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="PenCard6" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_mini")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HeaderRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox"]
+layout_mode = 2
+
+[node name="Pen6Name" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 14
+text = "Merd 6"
+
+[node name="Pen6Status" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/HeaderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.639216, 0.745098, 0.54902, 1)
+
+[node name="CountRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/CountRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Antall"
+
+[node name="Pen6Count" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/CountRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="WeightRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/WeightRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Snitt vekt"
+
+[node name="Pen6Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/WeightRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="TempRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox"]
+layout_mode = 2
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/TempRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Temp"
+
+[node name="Pen6Temp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/TempRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="RightCol" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="WaterCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="WaterOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="WaterHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="WaterTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "💧 Vannkvalitet"
+
+[node name="WaterBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="WaterGrid" type="GridContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+
+[node name="WaterTempPanel" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_mini")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterTempPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterTempPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 10
+text = "TEMPERATUR"
+horizontal_alignment = 1
+
+[node name="WaterTemp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterTempPanel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 20
+text = "--°C"
+horizontal_alignment = 1
+
+[node name="WaterOxygenPanel" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_mini")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterOxygenPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterOxygenPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 10
+text = "OKSYGEN"
+horizontal_alignment = 1
+
+[node name="WaterOxygen" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterOxygenPanel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 20
+text = "--%"
+horizontal_alignment = 1
+
+[node name="WaterSalinityPanel" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_mini")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterSalinityPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterSalinityPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 10
+text = "BØLGER"
+horizontal_alignment = 1
+
+[node name="WaterSalinity" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterSalinityPanel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 20
+text = "--‰"
+horizontal_alignment = 1
+
+[node name="WaterPhPanel" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_mini")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterPhPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterPhPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 10
+text = "PH"
+horizontal_alignment = 1
+
+[node name="WaterPh" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterPhPanel/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 20
+text = "--"
+horizontal_alignment = 1
+
+[node name="WeatherCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="WeatherOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="WeatherHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="WeatherTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "🌤️ Vær"
+
+[node name="WeatherBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="WeatherTop" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="WeatherIcon" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherTop"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "⛅"
+
+[node name="WeatherInfo" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherTop"]
+layout_mode = 2
+
+[node name="WeatherTemp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherTop/WeatherInfo"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 28
+text = "--°C"
+
+[node name="WeatherDesc" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherTop/WeatherInfo"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
+theme_override_font_sizes/font_size = 13
+text = "--"
+
+[node name="WeatherGrid" type="GridContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 4
+
+[node name="WindTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
+theme_override_font_sizes/font_size = 12
+text = "Vind:"
+
+[node name="WeatherWind" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="WaveTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
+theme_override_font_sizes/font_size = 12
+text = "Bølge:"
+
+[node name="WeatherWave" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="VisTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
+theme_override_font_sizes/font_size = 12
+text = "Nøter:"
+
+[node name="WeatherVisibility" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="HumTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
+theme_override_font_sizes/font_size = 12
+text = "Lus:"
+
+[node name="WeatherHumidity" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "--"
+
+[node name="Row2" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="FinCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row2"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="FinOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="FinHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="FinTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "💰 Økonomi (6 mnd)"
+
+[node name="FinBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="FinChart" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 2
+
+[node name="Month1" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month1"]
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="FinRev1" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month1/Bars"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(12, 30)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.0392157, 0.301961, 0.407843, 1)
+
+[node name="FinCost1" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month1/Bars"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(12, 20)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month1"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 10
+text = "Okt"
+horizontal_alignment = 1
+
+[node name="Month2" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month2"]
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="FinRev2" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month2/Bars"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(12, 40)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.0392157, 0.301961, 0.407843, 1)
+
+[node name="FinCost2" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month2/Bars"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(12, 25)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month2"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 10
+text = "Nov"
+horizontal_alignment = 1
+
+[node name="Month3" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month3"]
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="FinRev3" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month3/Bars"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(12, 50)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.0392157, 0.301961, 0.407843, 1)
+
+[node name="FinCost3" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month3/Bars"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(12, 30)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month3"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 10
+text = "Des"
+horizontal_alignment = 1
+
+[node name="Month4" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month4"]
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="FinRev4" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month4/Bars"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(12, 60)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.0392157, 0.301961, 0.407843, 1)
+
+[node name="FinCost4" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month4/Bars"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(12, 35)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month4"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 10
+text = "Jan"
+horizontal_alignment = 1
+
+[node name="Month5" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month5"]
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="FinRev5" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month5/Bars"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(12, 70)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.0392157, 0.301961, 0.407843, 1)
+
+[node name="FinCost5" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month5/Bars"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(12, 40)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month5"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 10
+text = "Feb"
+horizontal_alignment = 1
+
+[node name="Month6" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month6"]
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="FinRev6" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month6/Bars"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(12, 80)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.0392157, 0.301961, 0.407843, 1)
+
+[node name="FinCost6" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month6/Bars"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(12, 45)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month6"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 10
+text = "Mar"
+horizontal_alignment = 1
+
+[node name="Legend" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="RevLegend" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/Legend"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Dot" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/Legend/RevLegend"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.0392157, 0.301961, 0.407843, 1)
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/Legend/RevLegend"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
+theme_override_font_sizes/font_size = 12
+text = "Inntekt"
+
+[node name="CostLegend" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/Legend"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Dot" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/Legend/CostLegend"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/Legend/CostLegend"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
+theme_override_font_sizes/font_size = 12
+text = "Kostnad"
+
+[node name="AlertsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row2"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="AlertsOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/AlertsCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="AlertsHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row2/AlertsCard/AlertsOuter"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="AlertsTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row2/AlertsCard/AlertsOuter/AlertsHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "⚠️ Varsler"
+
+[node name="AlertsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/AlertsCard/AlertsOuter"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="AlertsContainer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/AlertsCard/AlertsOuter/AlertsBody"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="ActionsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row2"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="ActionsOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="ActionsHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="ActionsTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "⚡ Hurtigvalg"
+
+[node name="ActionsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ActionsGrid" type="GridContainer" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+
+[node name="BtnFeedAll" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_primary")
+text = "🐟 Fôr alle"
+
+[node name="BtnHarvest" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_green")
+text = "📦 Høst"
+
+[node name="BtnDelouse" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_yellow")
+text = "🧪 Avlus"
+
+[node name="BtnReports" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_light")
+text = "📊 Rapporter"
+
+[node name="BtnResearch" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_light")
+text = "🔬 Forskning"
+
+[node name="BtnMap" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_light")
+text = "🗺️ Kart"
+
+[node name="BtnHire" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_light")
+text = "👷 Ansett"
+
+[node name="BtnContracts" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_light")
+text = "📋 Kontrakter"
+
+[node name="Row3" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TrendsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row3"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="TrendsOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="TrendsHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="TrendsTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter/TrendsHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "📈 Trender (30 dager)"
+
+[node name="TrendsBody" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ChartBiomass" type="Control" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter/TrendsBody"]
+script = ExtResource("2_chart")
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ChartPrice" type="Control" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter/TrendsBody"]
+script = ExtResource("2_chart")
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ChartLice" type="Control" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter/TrendsBody"]
+script = ExtResource("2_chart")
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ChartFcr" type="Control" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter/TrendsBody"]
+script = ExtResource("2_chart")
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Row4" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="OpsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row4"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="OpsOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row4/OpsCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="OpsHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="OpsTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "🎛️ Driftssentral (100 pkt)"
+
+[node name="OpsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="OpsBudget" type="Label" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Brukt 0/100"
+
+[node name="OpsList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsBody"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="PolicyRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsBody"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PolicyLbl" type="Label" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsBody/PolicyRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(150, 0)
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Natt-modus:"
+
+[node name="PolicyOption" type="OptionButton" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsBody/PolicyRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12

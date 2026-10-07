@@ -353,23 +353,46 @@ var _search_text: String = ""
 var _category_buttons: Dictionary = {}
 var _entry_buttons: Dictionary = {}
 
-# ── Node refs ─────────────────────────────────────────────────────────────────
-var _overlay: ColorRect
-var _category_list: VBoxContainer
-var _entry_list: VBoxContainer
-var _content_scroll: ScrollContainer
-var _content_box: VBoxContainer
-var _search_field: LineEdit
-var _title_label: Label
-var _icon_label: Label
-var _desc_box: VBoxContainer
-var _related_box: HBoxContainer
-var _entry_count_label: Label
+# ── Node refs (declared in scenes/ui/EncyclopediaPanel.tscn) ────────────────
+@onready var _category_list: VBoxContainer = %CategoryList
+@onready var _entry_list: VBoxContainer = %EntryList
+@onready var _content_scroll: ScrollContainer = %ContentScroll
+@onready var _content_box: VBoxContainer = %ContentBox
+@onready var _search_field: LineEdit = %SearchField
+@onready var _title_label: Label = %TitleLabel
+@onready var _icon_label: Label = %IconLabel
+@onready var _desc_box: VBoxContainer = %DescBox
+@onready var _related_box: HBoxContainer = %RelatedBox
+@onready var _entry_count_label: Label = %EntryCountLabel
+@onready var _header_title: Label = %HeaderTitle
+@onready var _cat_header: Label = %CatHeader
+@onready var _entry_header: Label = %EntryHeader
+@onready var _related_label: Label = %RelatedLabel
+@onready var _close_btn: Button = %CloseBtn
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
-	_build_ui()
+	_apply_localization()
+	_search_field.text_changed.connect(_on_search_changed)
+	_close_btn.pressed.connect(_on_close_pressed)
+	_populate_categories()
+	_select_category("Fish Species")
 	hide()
+
+func _apply_localization() -> void:
+	_header_title.text = tr("UI_ENCYCLOPEDIA_TITLE")
+	_cat_header.text = tr("UI_ENCYCLOPEDIA_CATEGORIES_HEADER")
+	_entry_header.text = tr("UI_ENCYCLOPEDIA_ENTRIES_HEADER")
+	_related_label.text = tr("UI_ENCYCLOPEDIA_SEE_ALSO")
+
+func _populate_categories() -> void:
+	for c in _category_list.get_children():
+		c.queue_free()
+	_category_buttons.clear()
+	for cat in ["Fish Species", "Diseases", "Equipment", "Regulations", "Feed", "Markets"]:
+		var btn := _make_category_button(cat)
+		_category_buttons[cat] = btn
+		_category_list.add_child(btn)
 
 # ─────────────────────────────────────────────────────────────────────────────
 func show_panel() -> void:
@@ -396,270 +419,7 @@ func hide_panel() -> void:
 	tw.tween_callback(hide)
 
 # ─────────────────────────────────────────────────────────────────────────────
-func _build_ui() -> void:
-	anchor_right = 1.0
-	anchor_bottom = 1.0
-
-	# Dim overlay
-	_overlay = ColorRect.new()
-	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_overlay.color = Color(0.18, 0.20, 0.25, 0.60)
-	add_child(_overlay)
-
-	# Main panel container (centred)
-	var panel_anchor := Control.new()
-	panel_anchor.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(panel_anchor)
-
-	var outer_margin := MarginContainer.new()
-	outer_margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]:
-		outer_margin.add_theme_constant_override("margin_" + side, 60)
-	panel_anchor.add_child(outer_margin)
-
-	var panel_bg := _make_box(BG_PANEL, 12)
-	panel_bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel_bg.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	outer_margin.add_child(panel_bg)
-
-	var panel_margin := MarginContainer.new()
-	panel_margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]:
-		panel_margin.add_theme_constant_override("margin_" + side, 0)
-	panel_bg.add_child(panel_margin)
-
-	var layout := VBoxContainer.new()
-	layout.set_anchors_preset(Control.PRESET_FULL_RECT)
-	panel_margin.add_child(layout)
-
-	# Header
-	layout.add_child(_build_header())
-
-	# Horizontal divider
-	layout.add_child(_make_separator())
-
-	# Body: sidebar + content
-	var body := HSplitContainer.new()
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.split_offset = 520
-	layout.add_child(body)
-
-	# Left: category + entry list
-	body.add_child(_build_sidebar())
-
-	# Right: entry content
-	body.add_child(_build_content_area())
-
-# ── Header ────────────────────────────────────────────────────────────────────
-func _build_header() -> Control:
-	var hdr := HBoxContainer.new()
-	hdr.custom_minimum_size.y = 64
-
-	var hdr_bg := ColorRect.new()
-	hdr_bg.color = Color("#FFFFFF")
-	hdr_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	hdr.add_child(hdr_bg)
-
-	var m := MarginContainer.new()
-	m.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for side in ["left", "right"]:
-		m.add_theme_constant_override("margin_" + side, 24)
-	for side in ["top", "bottom"]:
-		m.add_theme_constant_override("margin_" + side, 12)
-	hdr.add_child(m)
-
-	var inner := HBoxContainer.new()
-	inner.alignment = BoxContainer.ALIGNMENT_CENTER
-	m.add_child(inner)
-
-	var title_lbl := Label.new()
-	title_lbl.text = tr("UI_ENCYCLOPEDIA_TITLE")
-	title_lbl.add_theme_font_size_override("font_size", 22)
-	title_lbl.add_theme_color_override("font_color", TEXT_TITLE)
-	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inner.add_child(title_lbl)
-
-	# Search bar
-	_search_field = LineEdit.new()
-	_search_field.placeholder_text = "🔍  Search entries…"
-	_search_field.custom_minimum_size = Vector2(280, 38)
-	_search_field.add_theme_font_size_override("font_size", 15)
-	_search_field.add_theme_color_override("font_color", TEXT_BODY)
-	_search_field.add_theme_color_override("font_placeholder_color", TEXT_MUTED)
-	var search_style := StyleBoxFlat.new()
-	search_style.bg_color = BG_SEARCH
-	search_style.border_color = BORDER_COLOR
-	search_style.border_width_bottom = 2
-	search_style.corner_radius_top_left = 6
-	search_style.corner_radius_top_right = 6
-	search_style.corner_radius_bottom_left = 6
-	search_style.corner_radius_bottom_right = 6
-	search_style.content_margin_left = 12
-	search_style.content_margin_right = 12
-	_search_field.add_theme_stylebox_override("normal", search_style)
-	_search_field.tooltip_text = "Søk i leksikon etter fisk, sykdommer, utstyr, regelverk og markeder."
-	_search_field.text_changed.connect(_on_search_changed)
-	inner.add_child(_search_field)
-
-	# Close button
-	var spacer := Control.new()
-	spacer.custom_minimum_size.x = 20
-	inner.add_child(spacer)
-
-	var close_btn := _make_button("✕", 18, Color("#BF616A"))
-	close_btn.custom_minimum_size = Vector2(44, 44)
-	close_btn.tooltip_text = "Lukk leksikonet (Esc)"
-	close_btn.pressed.connect(_on_close_pressed)
-	inner.add_child(close_btn)
-
-	return hdr
-
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-func _build_sidebar() -> Control:
-	var sidebar_bg := _make_box(BG_SIDEBAR, 0)
-	sidebar_bg.custom_minimum_size.x = 260
-
-	var vbox := VBoxContainer.new()
-	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
-	sidebar_bg.add_child(vbox)
-
-	# Category header
-	var cat_header := Label.new()
-	cat_header.text = tr("UI_ENCYCLOPEDIA_CATEGORIES_HEADER")
-	cat_header.add_theme_font_size_override("font_size", 12)
-	cat_header.add_theme_color_override("font_color", TEXT_MUTED)
-	cat_header.custom_minimum_size.y = 36
-	var cat_hdr_style := StyleBoxFlat.new()
-	cat_hdr_style.bg_color = Color("#F8F9FB")
-	cat_hdr_style.border_color = BORDER_COLOR
-	cat_hdr_style.border_width_bottom = 1
-	cat_header.add_theme_stylebox_override("normal", cat_hdr_style)
-	vbox.add_child(cat_header)
-
-	# Category buttons
-	var cat_scroll := ScrollContainer.new()
-	cat_scroll.custom_minimum_size.y = 260
-	cat_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	vbox.add_child(cat_scroll)
-
-	var cat_list_wrap := VBoxContainer.new()
-	cat_list_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cat_scroll.add_child(cat_list_wrap)
-
-	_category_list = VBoxContainer.new()
-	_category_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cat_list_wrap.add_child(_category_list)
-
-	for cat in ["Fish Species", "Diseases", "Equipment", "Regulations", "Feed", "Markets"]:
-		var btn := _make_category_button(cat)
-		_category_buttons[cat] = btn
-		_category_list.add_child(btn)
-
-	# Divider
-	vbox.add_child(_make_separator())
-
-	# Entry list header
-	var entry_header_row := HBoxContainer.new()
-	var entry_header := Label.new()
-	entry_header.text = tr("UI_ENCYCLOPEDIA_ENTRIES_HEADER")
-	entry_header.add_theme_font_size_override("font_size", 12)
-	entry_header.add_theme_color_override("font_color", TEXT_MUTED)
-	entry_header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	entry_header_row.add_child(entry_header)
-
-	_entry_count_label = Label.new()
-	_entry_count_label.add_theme_font_size_override("font_size", 11)
-	_entry_count_label.add_theme_color_override("font_color", TEXT_MUTED)
-	_entry_count_label.custom_minimum_size.x = 40
-	entry_header_row.add_child(_entry_count_label)
-	vbox.add_child(entry_header_row)
-
-	# Entry list
-	var entry_scroll := ScrollContainer.new()
-	entry_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	entry_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	vbox.add_child(entry_scroll)
-
-	var entry_list_wrap := VBoxContainer.new()
-	entry_list_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	entry_scroll.add_child(entry_list_wrap)
-
-	_entry_list = VBoxContainer.new()
-	_entry_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	entry_list_wrap.add_child(_entry_list)
-
-	return sidebar_bg
-
-# ── Content area ──────────────────────────────────────────────────────────────
-func _build_content_area() -> Control:
-	var content_bg := _make_box(BG_ENTRY, 0)
-	content_bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-	_content_scroll = ScrollContainer.new()
-	_content_scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_content_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	content_bg.add_child(_content_scroll)
-
-	_content_box = VBoxContainer.new()
-	_content_box.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_content_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_content_scroll.add_child(_content_box)
-
-	var content_margin := MarginContainer.new()
-	content_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for side in ["left", "right"]:
-		content_margin.add_theme_constant_override("margin_" + side, 40)
-	for side in ["top", "bottom"]:
-		content_margin.add_theme_constant_override("margin_" + side, 32)
-	_content_box.add_child(content_margin)
-
-	var inner_vbox := VBoxContainer.new()
-	inner_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inner_vbox.add_theme_constant_override("separation", 16)
-	content_margin.add_child(inner_vbox)
-
-	# Icon + title row
-	var title_row := HBoxContainer.new()
-	title_row.add_theme_constant_override("separation", 16)
-	inner_vbox.add_child(title_row)
-
-	_icon_label = Label.new()
-	_icon_label.add_theme_font_size_override("font_size", 48)
-	_icon_label.text = tr("📖")
-	title_row.add_child(_icon_label)
-
-	_title_label = Label.new()
-	_title_label.add_theme_font_size_override("font_size", 24)
-	_title_label.add_theme_color_override("font_color", TEXT_TITLE)
-	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_row.add_child(_title_label)
-
-	inner_vbox.add_child(_make_separator())
-
-	# Description container
-	_desc_box = VBoxContainer.new()
-	_desc_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_desc_box.add_theme_constant_override("separation", 12)
-	inner_vbox.add_child(_desc_box)
-
-	inner_vbox.add_child(_make_separator())
-
-	# Related entries
-	var related_label := Label.new()
-	related_label.text = tr("UI_ENCYCLOPEDIA_SEE_ALSO")
-	related_label.add_theme_font_size_override("font_size", 12)
-	related_label.add_theme_color_override("font_color", TEXT_MUTED)
-	inner_vbox.add_child(related_label)
-
-	_related_box = HBoxContainer.new()
-	_related_box.add_theme_constant_override("separation", 8)
-	inner_vbox.add_child(_related_box)
-
-	# Placeholder content
-	_show_welcome()
-
-	return content_bg
+# (Shell layout now lives in scenes/ui/EncyclopediaPanel.tscn — see _apply_localization.)
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _show_welcome() -> void:
@@ -869,21 +629,7 @@ func _make_button(text: String, font_size: int, color: Color) -> Button:
 	btn.add_theme_stylebox_override("hover", hover_style)
 	return btn
 
-func _make_box(bg: Color, radius: int) -> PanelContainer:
-	var pc := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = bg
-	style.corner_radius_top_left = radius
-	style.corner_radius_top_right = radius
-	style.corner_radius_bottom_left = radius
-	style.corner_radius_bottom_right = radius
-	pc.add_theme_stylebox_override("panel", style)
-	return pc
-
-func _make_separator() -> HSeparator:
-	var sep := HSeparator.new()
-	sep.add_theme_color_override("color", BORDER_COLOR)
-	return sep
+# (Static box/separator factories removed — shell styling lives in scenes/ui/EncyclopediaPanel.tscn.)
 
 # ── Signal handlers ───────────────────────────────────────────────────────────
 func _on_search_changed(new_text: String) -> void:

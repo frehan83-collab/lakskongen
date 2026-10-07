@@ -55,7 +55,11 @@ namespace LakskongenSim.Processing
         public decimal CumulativeRevenue { get; set; }
         public decimal CumulativeProfit { get; set; }
         public decimal CumulativeCapex { get; set; }
-        
+
+        // Phase 5.4: Carbon ledger
+        /// <summary>Carbon emissions/credits tracker for this processing plant.</summary>
+        public Farm.CarbonTracker CarbonTracker { get; set; } = new();
+
         /// <summary>
         /// Get available upgrade options for this plant
         /// </summary>

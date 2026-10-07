@@ -1,208 +1,76 @@
 extends Control
 
-## MainMenu v2.0 — Nordic Minimalist
-## Light background with teal branding, elegant centered layout.
-## Wave animation at bottom, smooth transitions.
-
-const BG_COLOR      := Color("#ECEFF4")
-const PRIMARY       := Color("#0A4D68")
-const PRIMARY_LIGHT := Color("#0D5F80")
-const SECONDARY     := Color("#88C0D0")
-const TEXT_MAIN     := Color("#2E3440")
-const TEXT_MUTED    := Color("#7B8794")
-const SURFACE       := Color("#FFFFFF")
-const BORDER        := Color("#D8DEE9")
-
-const TITLE_SIZE    := 56
-const SUBTITLE_SIZE := 20
-const BUTTON_SIZE   := 16
-const BTN_W         := 320
-const BTN_H         := 52
-const BTN_GAP       := 12
-const VERSION_TEXT  := "v0.2.0 Alpha — Nordic Minimalist"
+## MainMenu v2.1 — Nordic Minimalist (scene-based).
+## Layout lives in scenes/MainMenu.tscn; this script is wiring only:
+## signal hookups, localization, fade tween, wave animation, scenario panel spawn.
 
 const SCENARIO_PANEL_SCRIPT = preload("res://scripts/ui/ScenarioSelectPanel.gd")
+const MOD_MANAGER_SCENE = "res://scenes/ui/ModManagerPanel.tscn"
 
-var background: ColorRect
-var wave_effect: ColorRect
-var title_label: Label
-var subtitle_label: Label
-var version_label: Label
-var button_container: VBoxContainer
-var fish_icon: Label
-
-var btn_new_game: Button
-var btn_load: Button
-var btn_settings: Button
-var btn_quit: Button
+@onready var wave_effect: ColorRect = %WaveEffect
+@onready var center: CenterContainer = %Center
+@onready var menu_vbox: VBoxContainer = %MenuVBox
+@onready var fish_icon: Label = %FishIcon
+@onready var title_label: Label = %TitleLabel
+@onready var subtitle_label: Label = %SubtitleLabel
+@onready var version_label: Label = %VersionLabel
+@onready var btn_new_game: Button = %BtnNewGame
+@onready var btn_load: Button = %BtnLoad
+@onready var btn_settings: Button = %BtnSettings
+@onready var btn_quit: Button = %BtnQuit
 
 var wave_tween: Tween
 var scenario_panel: Control = null
+var mod_manager_panel: Control = null
 
 signal new_game_requested
 signal load_game_requested
 signal settings_requested
 
 func _ready() -> void:
-	set_anchors_preset(PRESET_FULL_RECT)
-	_build_ui()
-	
+	_apply_localization()
+	_apply_heading_font()
+	_connect_buttons()
+	_ensure_mods_button()
+
 	# Fade in
 	modulate.a = 0.0
 	var fade := create_tween()
 	fade.tween_property(self, "modulate:a", 1.0, 0.8).set_ease(Tween.EASE_OUT)
 
-func _build_ui() -> void:
-	# Background
-	background = ColorRect.new()
-	background.color = BG_COLOR
-	background.set_anchors_preset(PRESET_FULL_RECT)
-	background.mouse_filter = MOUSE_FILTER_IGNORE
-	add_child(background)
-	
-	# Wave effect at bottom (primary color, subtle)
-	wave_effect = ColorRect.new()
-	wave_effect.color = Color(SECONDARY.r, SECONDARY.g, SECONDARY.b, 0.0)
-	wave_effect.mouse_filter = MOUSE_FILTER_IGNORE
-	wave_effect.anchor_left = 0.0
-	wave_effect.anchor_right = 1.0
-	wave_effect.anchor_top = 1.0
-	wave_effect.anchor_bottom = 1.0
-	wave_effect.offset_top = -200
-	add_child(wave_effect)
 	_start_wave_animation()
-	
-	# Fish icon (large, centered above title)
-	fish_icon = Label.new()
-	fish_icon.text = "🐟"
-	fish_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	fish_icon.add_theme_font_size_override("font_size", 48)
-	fish_icon.anchor_left = 0.5
-	fish_icon.anchor_right = 0.5
-	fish_icon.offset_left = -50
-	fish_icon.offset_right = 50
-	fish_icon.offset_top = 80
-	fish_icon.offset_bottom = 140
-	add_child(fish_icon)
-	
-	# Title
-	title_label = Label.new()
-	title_label.text = tr("UI_MAINMENU_TITLE") if tr("UI_MAINMENU_TITLE") != "ui.mainmenu.title" else "LAKSKONGEN"
-	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_label.add_theme_font_size_override("font_size", TITLE_SIZE)
-	title_label.add_theme_color_override("font_color", PRIMARY)
+
+func _apply_localization() -> void:
+	title_label.text = _tr_or("UI_MAINMENU_TITLE", "LAKSKONGEN")
+	subtitle_label.text = _tr_or("UI_MAINMENU_SUBTITLE", "Norsk Lakseoppdrett Simulator")
+	btn_new_game.text = "🐟  " + _tr_or("UI_BUTTON_NEW_GAME", "Nytt Spill")
+	btn_load.text = "💾  " + _tr_or("UI_BUTTON_LOAD_GAME", "Last Spill")
+	btn_settings.text = "⚙️  " + _tr_or("UI_BUTTON_SETTINGS", "Innstillinger")
+	btn_quit.text = "🚪  " + _tr_or("UI_BUTTON_QUIT", "Avslutt")
+	version_label.text = _tr_or("UI_VERSION_TEXT", "v0.2.0 Alpha — Nordic Minimalist")
+
+func _tr_or(key: String, fallback: String) -> String:
+	var t := tr(key)
+	return t if t != key else fallback
+
+func _apply_heading_font() -> void:
 	var theme_node = get_node_or_null("/root/LakskongenTheme")
 	if theme_node and theme_node.font_heading_bold:
 		title_label.add_theme_font_override("font", theme_node.font_heading_bold)
-	title_label.anchor_left = 0.5
-	title_label.anchor_right = 0.5
-	title_label.offset_left = -400
-	title_label.offset_right = 400
-	title_label.offset_top = 150
-	title_label.offset_bottom = 150 + TITLE_SIZE + 20
-	add_child(title_label)
-	
-	# Subtitle
-	subtitle_label = Label.new()
-	subtitle_label.text = tr("UI_MAINMENU_SUBTITLE") if tr("UI_MAINMENU_SUBTITLE") != "ui.mainmenu.subtitle" else "Norsk Lakseoppdrett Simulator"
-	subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle_label.add_theme_font_size_override("font_size", SUBTITLE_SIZE)
-	subtitle_label.add_theme_color_override("font_color", TEXT_MUTED)
-	subtitle_label.anchor_left = 0.5
-	subtitle_label.anchor_right = 0.5
-	subtitle_label.offset_left = -300
-	subtitle_label.offset_right = 300
-	subtitle_label.offset_top = 150 + TITLE_SIZE + 25
-	subtitle_label.offset_bottom = 150 + TITLE_SIZE + 25 + SUBTITLE_SIZE + 10
-	add_child(subtitle_label)
-	
-	# Buttons
-	button_container = VBoxContainer.new()
-	button_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	button_container.add_theme_constant_override("separation", BTN_GAP)
-	button_container.anchor_left = 0.5
-	button_container.anchor_right = 0.5
-	button_container.anchor_top = 0.5
-	button_container.anchor_bottom = 0.5
-	button_container.offset_left = -BTN_W / 2
-	button_container.offset_right = BTN_W / 2
-	var total_h = BTN_H * 4 + BTN_GAP * 3
-	button_container.offset_top = -(total_h / 2) + 40
-	button_container.offset_bottom = (total_h / 2) + 40
-	add_child(button_container)
-	
-	btn_new_game = _make_btn("🐟  Nytt Spill", true)
-	btn_load = _make_btn("💾  Last Spill", false)
-	btn_settings = _make_btn("⚙️  Innstillinger", false)
-	btn_quit = _make_btn("🚪  Avslutt", false)
-	
-	button_container.add_child(btn_new_game)
-	button_container.add_child(btn_load)
-	button_container.add_child(btn_settings)
-	button_container.add_child(btn_quit)
-	
+
+func _connect_buttons() -> void:
 	btn_new_game.pressed.connect(_on_new_game_pressed)
 	btn_load.pressed.connect(_on_load_pressed)
 	btn_settings.pressed.connect(_on_settings_pressed)
 	btn_quit.pressed.connect(_on_quit_pressed)
-	
-	# Version
-	version_label = Label.new()
-	version_label.text = VERSION_TEXT
-	version_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	version_label.add_theme_font_size_override("font_size", 12)
-	version_label.add_theme_color_override("font_color", TEXT_MUTED)
-	version_label.anchor_left = 1.0
-	version_label.anchor_right = 1.0
-	version_label.anchor_top = 1.0
-	version_label.anchor_bottom = 1.0
-	version_label.offset_left = -250
-	version_label.offset_right = -20
-	version_label.offset_top = -35
-	version_label.offset_bottom = -15
-	add_child(version_label)
-
-func _make_btn(text: String, is_primary: bool) -> Button:
-	var btn := Button.new()
-	btn.text = text
-	btn.custom_minimum_size = Vector2(BTN_W, BTN_H)
-	btn.add_theme_font_size_override("font_size", BUTTON_SIZE)
-	btn.focus_mode = Control.FOCUS_ALL
-	
-	if is_primary:
-		var sb_n := StyleBoxFlat.new()
-		sb_n.bg_color = PRIMARY
-		sb_n.set_corner_radius_all(8)
-		sb_n.set_content_margin_all(12)
-		btn.add_theme_stylebox_override("normal", sb_n)
-		var sb_h := StyleBoxFlat.new()
-		sb_h.bg_color = PRIMARY_LIGHT
-		sb_h.set_corner_radius_all(8)
-		sb_h.set_content_margin_all(12)
-		btn.add_theme_stylebox_override("hover", sb_h)
-		btn.add_theme_color_override("font_color", Color.WHITE)
-		btn.add_theme_color_override("font_hover_color", Color.WHITE)
-	else:
-		var sb_n := StyleBoxFlat.new()
-		sb_n.bg_color = SURFACE
-		sb_n.border_color = BORDER
-		sb_n.set_border_width_all(1)
-		sb_n.set_corner_radius_all(8)
-		sb_n.set_content_margin_all(12)
-		btn.add_theme_stylebox_override("normal", sb_n)
-		var sb_h := StyleBoxFlat.new()
-		sb_h.bg_color = Color("#F8F9FB")
-		sb_h.border_color = PRIMARY
-		sb_h.set_border_width_all(1)
-		sb_h.set_corner_radius_all(8)
-		sb_h.set_content_margin_all(12)
-		btn.add_theme_stylebox_override("hover", sb_h)
-		btn.add_theme_color_override("font_color", TEXT_MAIN)
-		btn.add_theme_color_override("font_hover_color", PRIMARY)
-	
-	btn.mouse_entered.connect(_on_btn_hover.bind(btn, true))
-	btn.mouse_exited.connect(_on_btn_hover.bind(btn, false))
-	return btn
+	for btn in [btn_new_game, btn_load, btn_settings, btn_quit]:
+		btn.mouse_entered.connect(_on_btn_hover.bind(btn, true))
+		btn.mouse_exited.connect(_on_btn_hover.bind(btn, false))
+	# Polish: press-pop + keyboard navigation between the menu buttons.
+		UIPolish.attach_press_feedback(btn)
+	UIPolish.link_vertical_focus(btn_new_game.get_parent())
+	# Keyboard accessibility: focus the primary action on entry.
+	btn_new_game.grab_focus.call_deferred()
 
 func _on_btn_hover(button: Button, hovering: bool) -> void:
 	var target := Vector2(1.03, 1.03) if hovering else Vector2.ONE
@@ -235,6 +103,50 @@ func _on_quit_pressed() -> void:
 	tw.tween_property(self, "modulate:a", 0.0, 0.4)
 	tw.tween_callback(get_tree().quit)
 
+# ── Mod manager ───────────────────────────────────────────────────────────────
+
+## Adds a "Mods" item to the menu between Settings and Quit (programmatic, so
+## MainMenu.tscn stays untouched).
+func _ensure_mods_button() -> void:
+	if not is_instance_valid(menu_vbox) or menu_vbox.has_node("BtnMods"):
+		return
+	var btn := Button.new()
+	btn.name = "BtnMods"
+	btn.text = "🧩  " + _tr_or("UI_BUTTON_MODS", "Mods")
+	btn.custom_minimum_size = Vector2(320, 52)
+	btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	btn.add_theme_font_size_override("font_size", 16)
+	btn.pressed.connect(_on_mods_pressed)
+	UIPolish.attach_press_feedback(btn)
+	menu_vbox.add_child(btn)
+	# Place it just before Quit for a predictable order.
+	if is_instance_valid(btn_quit):
+		menu_vbox.move_child(btn, btn_quit.get_index())
+	UIPolish.link_vertical_focus(menu_vbox)
+
+func _on_mods_pressed() -> void:
+	if mod_manager_panel == null or not is_instance_valid(mod_manager_panel):
+		var scene = load(MOD_MANAGER_SCENE)
+		if scene == null:
+			push_warning("MainMenu: failed to load %s" % MOD_MANAGER_SCENE)
+			return
+		mod_manager_panel = scene.instantiate()
+		mod_manager_panel.name = "ModManagerPanel"
+		add_child(mod_manager_panel)
+		if mod_manager_panel.has_signal("mods_changed"):
+			mod_manager_panel.mods_changed.connect(_on_mods_changed)
+		if mod_manager_panel.has_signal("panel_close_requested"):
+			mod_manager_panel.panel_close_requested.connect(_on_mods_closed)
+	mod_manager_panel.show()
+
+func _on_mods_changed() -> void:
+	# Hook for refreshing any cached mod state elsewhere in the menu.
+	pass
+
+func _on_mods_closed() -> void:
+	if is_instance_valid(mod_manager_panel):
+		mod_manager_panel.hide()
+
 func _show_scenario_panel() -> void:
 	if scenario_panel != null:
 		scenario_panel.queue_free()
@@ -244,25 +156,21 @@ func _show_scenario_panel() -> void:
 		scenario_panel.scenario_selected.connect(_on_scenario_selected)
 	if scenario_panel.has_signal("panel_close_requested"):
 		scenario_panel.panel_close_requested.connect(_on_scenario_close)
-	button_container.visible = false
-	title_label.visible = false
-	subtitle_label.visible = false
-	fish_icon.visible = false
+	center.visible = false
 
 func _on_scenario_selected(scenario_id: String) -> void:
 	var sim = get_node_or_null("/root/SimBridge")
 	if sim:
-		sim.start_new_game(scenario_id)
+		# start_new_game(player_name, starting_capital, scenario_id) —
+		# pass the id in the scenario slot, not the player-name slot.
+		sim.start_new_game("Player", 10000000, scenario_id)
 		get_tree().change_scene_to_file("res://scenes/GameScene.tscn")
 
 func _on_scenario_close() -> void:
 	if scenario_panel:
 		scenario_panel.queue_free()
 		scenario_panel = null
-	button_container.visible = true
-	title_label.visible = true
-	subtitle_label.visible = true
-	fish_icon.visible = true
+	center.visible = true
 
 func _disable_all() -> void:
 	btn_new_game.disabled = true

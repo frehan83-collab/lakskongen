@@ -1,0 +1,257 @@
+[gd_scene format=3 uid="uid://boed2ck10n04b"]
+
+[ext_resource type="Script" path="res://scripts/ui/AnalyticsPanel.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tablet"]
+bg_color = Color(0.164706, 0.188235, 0.219608, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.298039, 0.337255, 0.415686, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+content_margin_left = 20.0
+content_margin_top = 20.0
+content_margin_right = 20.0
+content_margin_bottom = 20.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_chart_bg"]
+bg_color = Color(0.109804, 0.129412, 0.14902, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.298039, 0.337255, 0.415686, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_toolbar"]
+bg_color = Color(0.109804, 0.129412, 0.14902, 0.8)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_period_btn"]
+bg_color = Color(0.227451, 0.258824, 0.294118, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.368627, 0.407843, 0.47451, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 16.0
+content_margin_top = 6.0
+content_margin_right = 16.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_period_btn_active"]
+bg_color = Color(0.0392157, 0.301961, 0.407843, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.533333, 0.752941, 0.815686, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 16.0
+content_margin_top = 6.0
+content_margin_right = 16.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_period_btn_hover"]
+bg_color = Color(0.298039, 0.337255, 0.415686, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.533333, 0.752941, 0.815686, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 16.0
+content_margin_top = 6.0
+content_margin_right = 16.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_legend"]
+bg_color = Color(0.109804, 0.129412, 0.14902, 0.9)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+
+[node name="AnalyticsPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="TabletOverlay" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 40.0
+offset_bottom = 40.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_tablet")
+
+[node name="OuterVBox" type="VBoxContainer" parent="TabletOverlay"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="Toolbar" type="HBoxContainer" parent="TabletOverlay/OuterVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 12
+theme_override_styles/panel = SubResource("StyleBoxFlat_toolbar")
+
+[node name="TitleLabel" type="Label" parent="TabletOverlay/OuterVBox/Toolbar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92549, 0.937255, 0.956863, 1)
+theme_override_font_sizes/font_size = 20
+text = "📊 Analyse"
+tooltip_text = "Farm performance analytics"
+
+[node name="Spacer" type="Control" parent="TabletOverlay/OuterVBox/Toolbar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PeriodSegment" type="HBoxContainer" parent="TabletOverlay/OuterVBox/Toolbar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Btn7d" type="Button" parent="TabletOverlay/OuterVBox/Toolbar/PeriodSegment"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_period_btn")
+theme_override_styles/hover = SubResource("StyleBoxFlat_period_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_period_btn_active")
+theme_override_colors/font_color = Color(0.847059, 0.870588, 0.913725, 1)
+theme_override_colors/font_hover_color = Color(0.92549, 0.937255, 0.956863, 1)
+theme_override_font_sizes/font_size = 13
+text = "7d"
+
+[node name="Btn30d" type="Button" parent="TabletOverlay/OuterVBox/Toolbar/PeriodSegment"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_period_btn_active")
+theme_override_styles/hover = SubResource("StyleBoxFlat_period_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_period_btn_active")
+theme_override_colors/font_color = Color(0.92549, 0.937255, 0.956863, 1)
+theme_override_colors/font_hover_color = Color(0.92549, 0.937255, 0.956863, 1)
+theme_override_font_sizes/font_size = 13
+text = "30d"
+
+[node name="Btn90d" type="Button" parent="TabletOverlay/OuterVBox/Toolbar/PeriodSegment"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_period_btn")
+theme_override_styles/hover = SubResource("StyleBoxFlat_period_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_period_btn_active")
+theme_override_colors/font_color = Color(0.847059, 0.870588, 0.913725, 1)
+theme_override_colors/font_hover_color = Color(0.92549, 0.937255, 0.956863, 1)
+theme_override_font_sizes/font_size = 13
+text = "90d"
+
+[node name="BtnAll" type="Button" parent="TabletOverlay/OuterVBox/Toolbar/PeriodSegment"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_period_btn")
+theme_override_styles/hover = SubResource("StyleBoxFlat_period_btn_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_period_btn_active")
+theme_override_colors/font_color = Color(0.847059, 0.870588, 0.913725, 1)
+theme_override_colors/font_hover_color = Color(0.92549, 0.937255, 0.956863, 1)
+theme_override_font_sizes/font_size = 13
+text = "Alt"
+
+[node name="ChartsGrid" type="GridContainer" parent="TabletOverlay/OuterVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+columns = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 16
+
+[node name="ChartBiomass" type="PanelContainer" parent="TabletOverlay/OuterVBox/ChartsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(300, 220)
+theme_override_styles/panel = SubResource("StyleBoxFlat_chart_bg")
+
+[node name="ChartProfit" type="PanelContainer" parent="TabletOverlay/OuterVBox/ChartsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(300, 220)
+theme_override_styles/panel = SubResource("StyleBoxFlat_chart_bg")
+
+[node name="ChartDO" type="PanelContainer" parent="TabletOverlay/OuterVBox/ChartsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(300, 220)
+theme_override_styles/panel = SubResource("StyleBoxFlat_chart_bg")
+
+[node name="ChartLice" type="PanelContainer" parent="TabletOverlay/OuterVBox/ChartsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(300, 220)
+theme_override_styles/panel = SubResource("StyleBoxFlat_chart_bg")
+
+[node name="ChartFeed" type="PanelContainer" parent="TabletOverlay/OuterVBox/ChartsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(300, 220)
+theme_override_styles/panel = SubResource("StyleBoxFlat_chart_bg")
+
+[node name="ChartSpacer" type="Control" parent="TabletOverlay/OuterVBox/ChartsGrid"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+custom_minimum_size = Vector2(300, 220)

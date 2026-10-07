@@ -96,7 +96,7 @@ func _get_daylight_hours() -> float:
 
 	for i in range(keys.size() - 1):
 		if s >= keys[i] and s <= keys[i + 1]:
-			var t := (s - keys[i]) / (keys[i + 1] - keys[i])
+			var t: float = (s - keys[i]) / (keys[i + 1] - keys[i])
 			return lerpf(DAYLIGHT_HOURS[keys[i]], DAYLIGHT_HOURS[keys[i + 1]], t)
 
 	return 12.0
@@ -176,7 +176,7 @@ func _update_environment() -> void:
 	var sun_height := 0.0
 
 	if hour >= times["sunrise"] and hour <= times["sunset"]:
-		var progress := (hour - times["sunrise"]) / (times["sunset"] - times["sunrise"])
+		var progress: float = (hour - times["sunrise"]) / (times["sunset"] - times["sunrise"])
 		sun_height = sin(progress * PI)
 
 	# Ambient light
@@ -194,7 +194,7 @@ func _update_environment() -> void:
 
 func _check_day_night_transitions() -> void:
 	var times := _get_sunrise_sunset()
-	var is_day := _current_hour >= times["sunrise"] and _current_hour <= times["sunset"]
+	var is_day: bool = _current_hour >= times["sunrise"] and _current_hour <= times["sunset"]
 
 	if is_day and not _was_day:
 		sunrise.emit()
@@ -222,7 +222,7 @@ func get_sun_height() -> float:
 	var times := _get_sunrise_sunset()
 	if _current_hour < times["sunrise"] or _current_hour > times["sunset"]:
 		return 0.0
-	var progress := (_current_hour - times["sunrise"]) / (times["sunset"] - times["sunrise"])
+	var progress: float = (_current_hour - times["sunrise"]) / (times["sunset"] - times["sunrise"])
 	return sin(progress * PI)
 
 

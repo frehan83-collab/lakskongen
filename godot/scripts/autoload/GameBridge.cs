@@ -6,7 +6,16 @@ using LakskongenSim.Data;
 using LakskongenSim.Integration;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
+// Namespace aliases for the Phase 5/6 features (sludge, carbon, cohort transfers,
+// scenarios) so qualified references like Farm.SludgeValorization resolve from
+// this global-namespace file.
+using Farm = LakskongenSim.Farm;
+using Events = LakskongenSim.Events;
+using Processing = LakskongenSim.Processing;
+using Logistics = LakskongenSim.Logistics;
 
 /// <summary>
 /// Singleton C# autoload — bridges SimulationEngine to Godot.
@@ -29,6 +38,11 @@ public partial class GameBridge : Node
 
     public SimulationEngine SimulationEngine { get; private set; }
 
+    // ── Mod system ────────────────────────────────────────────────────────────
+
+    private ModLoader? _modLoader;
+    private string _modsDirectory = "";
+
     // ── Dashboard Data Provider ──────────────────────────────────────────────────
 
     private DashboardDataProvider _dashboardDataProvider;
@@ -49,6 +63,8 @@ public partial class GameBridge : Node
 
     [Signal] public delegate void ResearchCompletedEventHandler(string nodeId, string nodeName);
     [Signal] public delegate void ScenarioLoadedEventHandler(string scenarioId, string scenarioName);
+    [Signal] public delegate void ScenarioWonEventHandler(string scenarioId, string scenarioName);
+    [Signal] public delegate void ScenarioLostEventHandler(string scenarioId, string reason);
     [Signal] public delegate void SustainabilityChangedEventHandler(int score, string level);
     [Signal] public delegate void FinanceTransactionEventHandler(string type, double amount, string description);
     [Signal] public delegate void FarmActionCompletedEventHandler(string action, string siteId, bool success);
@@ -67,7 +83,43 @@ public partial class GameBridge : Node
         _simulationTimer.Timeout += OnSimulationTick;
         AddChild(_simulationTimer);
 
+        InitializeModLoader();
+
         GD.Print("GameBridge: initialized with dashboard data provider");
+    }
+
+    /// <summary>
+    /// Create the ModLoader against a per-user mods directory (preferred) or,
+    /// as a fallback, a <c>mods/</c> folder beside the executable.
+    /// </summary>
+    private void InitializeModLoader()
+    {
+        try
+        {
+            _modsDirectory = ResolveModsDirectory();
+            DirAccess.MakeDirRecursiveAbsolute(_modsDirectory);
+            _modLoader = new ModLoader(_modsDirectory);
+            _modLoader.DiscoverAndLoad();
+            GD.Print($"GameBridge: ModLoader ready at {_modsDirectory} " +
+                     $"({_modLoader.LoadedMods.Count} loaded, {_modLoader.LoadErrors.Count} errors)");
+        }
+        catch (Exception ex)
+        {
+            _modLoader = null;
+            GD.PrintErr($"GameBridge: ModLoader init failed: {ex.Message}");
+        }
+    }
+
+    private static string ResolveModsDirectory()
+    {
+        // user://mods is writable and survives game updates/installs.
+        var userMods = ProjectSettings.GlobalizePath("user://mods");
+        if (!string.IsNullOrEmpty(userMods))
+            return userMods;
+
+        // Fallback: <exe dir>/mods
+        var exeDir = Path.GetDirectoryName(OS.GetExecutablePath());
+        return Path.Combine(string.IsNullOrEmpty(exeDir) ? "." : exeDir, "mods");
     }
 
     // ── Game management ───────────────────────────────────────────────────────
@@ -77,12 +129,25 @@ public partial class GameBridge : Node
     {
         SimulationEngine.FinanceManager = new FinanceManager(startingCapital);
         SimulationEngine.Initialize();
+
+        // P11: a new game starts with no in-memory mitigation installs and a
+        // clean serializable mirror (the registry outlives Initialize).
+        _installedMitigations.Clear();
+        SyncMitigationsToState();
         SimulationEngine.Tutorial.OnStepCompleted += step =>
             EmitSignal(SignalName.TutorialStepCompleted,
                 step.StepNumber, step.Title, (double)step.RewardNok);
+        // Single-wire: StartNewGame/LoadGame may run repeatedly on one
+        // engine instance — unhook first so handlers never stack.
+        SimulationEngine.OnAchievementUnlocked -= HandleAchievementUnlocked;
         SimulationEngine.OnAchievementUnlocked += HandleAchievementUnlocked;
-        SimulationEngine.OnResearchCompleted += node =>
-            EmitSignal(SignalName.ResearchCompleted, node.Id, node.Name);
+        SimulationEngine.OnResearchCompleted -= HandleResearchCompleted;
+        SimulationEngine.OnResearchCompleted += HandleResearchCompleted;
+        SimulationEngine.OnScenarioWon -= HandleScenarioWon;
+        SimulationEngine.OnScenarioWon += HandleScenarioWon;
+        SimulationEngine.OnScenarioLost -= HandleScenarioLost;
+        SimulationEngine.OnScenarioLost += HandleScenarioLost;
+        RegisterModScenariosIntoEngine();
         _gameRunning = true;
 
         EmitSignal(SignalName.GameStarted);
@@ -104,12 +169,44 @@ public partial class GameBridge : Node
         SimulationEngine.Tutorial.OnStepCompleted += step =>
             EmitSignal(SignalName.TutorialStepCompleted,
                 step.StepNumber, step.Title, (double)step.RewardNok);
+        // Single-wire: LoadGame may run repeatedly on one engine
+        // instance — unhook first so handlers never stack.
+        SimulationEngine.OnAchievementUnlocked -= HandleAchievementUnlocked;
         SimulationEngine.OnAchievementUnlocked += HandleAchievementUnlocked;
-        SimulationEngine.OnResearchCompleted += node =>
-            EmitSignal(SignalName.ResearchCompleted, node.Id, node.Name);
+        SimulationEngine.OnResearchCompleted -= HandleResearchCompleted;
+        SimulationEngine.OnResearchCompleted += HandleResearchCompleted;
+        SimulationEngine.OnScenarioWon -= HandleScenarioWon;
+        SimulationEngine.OnScenarioWon += HandleScenarioWon;
+        SimulationEngine.OnScenarioLost -= HandleScenarioLost;
+        SimulationEngine.OnScenarioLost += HandleScenarioLost;
+        RegisterModScenariosIntoEngine();
 
         // Restore day counter and persistent collections
+        // (State outlives Initialize — clear first so repeat loads
+        // never duplicate zones, sites, populations or log entries.)
         SimulationEngine.State.Day = snapshot.Day;
+        // Ownership flags (were dropped on load; restored here incl. VAP tier).
+        SimulationEngine.State.OwnsHatchery = snapshot.OwnsHatchery;
+        SimulationEngine.State.OwnsFeedMill = snapshot.OwnsFeedMill;
+        SimulationEngine.State.OwnsProcessingPlant = snapshot.OwnsProcessingPlant;
+        SimulationEngine.State.ProcessingTier = snapshot.ProcessingTier ?? "";
+        SimulationEngine.State.HasASCCertification = snapshot.HasASCCertification;
+        SimulationEngine.State.Zones.Clear();
+        SimulationEngine.State.SeaSites.Clear();
+        SimulationEngine.State.Populations.Clear();
+        SimulationEngine.State.EventLog.Clear();
+        SimulationEngine.State.WellboatJobs.Clear();
+        SimulationEngine.State.Crew.Clear();
+        SimulationEngine.State.ActiveBlooms.Clear();
+        SimulationEngine.State.ActiveCrises.Clear();
+        SimulationEngine.State.ActiveLoans.Clear();
+        SimulationEngine.State.TaxHistory.Clear();
+        SimulationEngine.State.Acquisitions.Clear();
+        SimulationEngine.State.Licenses.Clear();
+        SimulationEngine.State.RecentMarketReports.Clear();
+        SimulationEngine.State.AchievedVisualMilestones.Clear();
+        if (SimulationEngine.State.CompetitorCompanies != null)
+            SimulationEngine.State.CompetitorCompanies.Clear();
         foreach (var zone in snapshot.Zones)
             SimulationEngine.State.Zones.Add(zone);
         foreach (var site in snapshot.SeaSites)
@@ -118,6 +215,15 @@ public partial class GameBridge : Node
             SimulationEngine.State.Populations.Add(pop);
         foreach (var evt in snapshot.EventLog)
             SimulationEngine.State.EventLog.Add(evt);
+        if (snapshot.WellboatJobs != null)
+            foreach (var job in snapshot.WellboatJobs)
+                SimulationEngine.State.WellboatJobs.Add(job);
+        if (snapshot.Crew != null)
+            foreach (var member in snapshot.Crew)
+                SimulationEngine.State.Crew.Add(member);
+        if (snapshot.ActiveBlooms != null)
+            foreach (var bloom in snapshot.ActiveBlooms)
+                SimulationEngine.State.ActiveBlooms.Add(bloom);
 
         // Empire-system DTOs (save-rounded; engine rehydrates live systems)
         SimulationEngine.State.StockMarket = snapshot.StockMarket;
@@ -149,6 +255,14 @@ public partial class GameBridge : Node
         // CRITICAL: Re-inject dependencies into deserialized populations
         // Fixes P1-03 (Save/Load NRE Gap) - populations need GrowthModel/MortalityModel after deserialization
         SimulationEngine.RestoreFromLoad(snapshot);
+
+        // P11 persistence: rebuild the in-memory mitigation registry from the
+        // saved list, then re-normalize the serializable mirror.
+        RestoreMitigationsFromState(snapshot.BloomMitigations);
+        SyncMitigationsToState();
+
+        // Phase 4.4: re-apply saved recipe to the fresh FeedSystem.
+        ApplyFeedRecipe();
 
         _gameRunning = true;
         EmitSignal(SignalName.GameStarted);
@@ -193,6 +307,7 @@ public partial class GameBridge : Node
         try
         {
             SimulationEngine.Advance(days);
+            ProcessDueWellboatJobs();
             EmitSignal(SignalName.SimulationTicked, SimulationEngine.State.Day);
             EmitSignal(SignalName.GameStateUpdated);
             CheckGameOverConditions();
@@ -200,6 +315,157 @@ public partial class GameBridge : Node
         catch (Exception ex)
         {
             GD.PrintErr($"GameBridge.AdvanceDays error: {ex.Message}");
+        }
+    }
+
+    // ── Phase 2.4 spot-hire wellboat pool ──
+
+    /// <summary>Pending wellboat jobs (for UI queue + alerts).</summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetWellboatJobs()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var jobs = SimulationEngine?.State?.WellboatJobs;
+        if (jobs == null) return result;
+        int today = SimulationEngine?.State?.Day ?? 0;
+        foreach (var j in jobs)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = j.Id,
+                ["site_id"] = j.SiteId,
+                ["kind"] = j.Kind,
+                ["method"] = j.Method,
+                ["eta_days"] = System.Math.Max(0, j.DueDay - today)
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Request a spot-hire wellboat (Phase 2.4) or ROV inspection (Phase 3.4):
+    /// harvest (150k, 5d), delouse (100k + treatment at execution, 3d),
+    /// rov (75k, 2d: net cleaning +15 integrity + findings report),
+    /// freshwater (120k + bath at execution, 4d: lice + AGD, zero resistance).
+    /// One pending job per site+kind. Returns true when booked.
+    /// </summary>
+    public bool RequestWellboat(string siteId, string kind, string method = "")
+    {
+        var state = SimulationEngine?.State;
+        if (state?.SeaSites?.All(s => s.Id != siteId) != false)
+        {
+            EmitSignal(SignalName.FarmActionCompleted, "wellboat", siteId, false);
+            return false;
+        }
+        if (state.WellboatJobs.Any(j => j.SiteId == siteId && j.Kind == kind))
+        {
+            GD.Print($"GameBridge: Wellboat already booked for '{siteId}' ({kind})");
+            return false;
+        }
+        int delay = kind switch { "delouse" => 3, "rov" => 2, "freshwater" => 4, _ => 5 };
+        decimal hire = kind switch { "delouse" => 100_000m, "rov" => 75_000m, "freshwater" => 120_000m, _ => 150_000m };
+        // Skipper: -25% hire via contacts, -1 day routing.
+        hire *= LakskongenSim.Core.CrewEffects.WellboatHireMultiplier(state);
+        delay = System.Math.Max(1, delay - LakskongenSim.Core.CrewEffects.WellboatDelayReduction(state));
+        if (SimulationEngine!.FinanceManager.Balance < hire)
+        {
+            EmitSignal(SignalName.FarmActionCompleted, "wellboat", siteId, false);
+            return false;
+        }
+        SimulationEngine.FinanceManager.Spend(hire);
+        state.WellboatJobs.Add(new LakskongenSim.Logistics.WellboatJob
+        {
+            SiteId = siteId, Kind = kind, Method = method,
+            DueDay = state.Day + delay, HireCost = hire
+        });
+        state.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = state.Day,
+            Name = "Brønnbåt bestilt",
+            Category = LakskongenSim.Events.EventCategory.Equipment,
+            Description = $"Brønnbåt bestilt til {siteId} ({kind}, ankomst om {delay}d)",
+            BalanceChange = -hire
+        });
+        EmitSignal(SignalName.FarmActionCompleted, "wellboat", siteId, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        return true;
+    }
+
+    /// <summary>Execute due wellboat jobs after each advance (Phase 2.4).</summary>
+    private void ProcessDueWellboatJobs()
+    {
+        var state = SimulationEngine?.State;
+        if (state?.WellboatJobs.Count == 0) return;
+        foreach (var job in state!.WellboatJobs.Where(j => j.DueDay <= state.Day).ToList())
+        {
+            if (job.Kind == "freshwater")
+            {
+                // Freshwater bath boat: Treat all site pens, zero resistance.
+                var fwsite = state.SeaSites.FirstOrDefault(s => s.Id == job.SiteId);
+                bool fwok = fwsite != null && fwsite.Pens.Any(p => p.TotalCount > 0);
+                int fwdeaths = 0;
+                if (fwok)
+                {
+                    var delousing = new LakskongenSim.Farm.DelousingSystem();
+                    double tempC = SimulationEngine!.Weather?.CurrentTemperatureC ?? 10.0;
+                    double mortMult = LakskongenSim.Core.CrewEffects.TreatmentMortalityMultiplier(state);
+                    foreach (var pop in fwsite!.Pens)
+                    {
+                        if (pop.TotalCount <= 0) continue;
+                        fwdeaths += delousing.Treat(pop,
+                            LakskongenSim.Data.DelousingMethod.FreshwaterBath,
+                            SimulationEngine.SeaLice, SimulationEngine.IntegratedDisease,
+                            tempC, mortMult).Deaths;
+                    }
+                    SimulationEngine.FinanceManager.Spend(60_000m); // bath consumables
+                }
+                state.WellboatJobs.Remove(job);
+                state.EventLog.Add(new LakskongenSim.Events.EventRecord
+                {
+                    Day = state.Day,
+                    Name = fwok ? "Ferskvannsbehandling" : "Brønnbåt returnerte",
+                    Category = LakskongenSim.Events.EventCategory.Disease,
+                    Description = fwok
+                        ? $"Ferskvannsbåt behandlet {job.SiteId} ({fwdeaths:N0} håndteringsdødsfall, null resistens)"
+                        : $"Ferskvannsbåt kunne ikke behandle {job.SiteId}",
+                    BalanceChange = fwok ? -60_000m : 0m
+                });
+                continue;
+            }
+            if (job.Kind == "rov")
+            {
+                // ROV inspection: cleans nets (+15 integrity) + findings report.
+                var site = state.SeaSites.FirstOrDefault(s => s.Id == job.SiteId);
+                bool ok = site != null;
+                if (ok)
+                {
+                    site!.NetIntegrityPct = System.Math.Min(100.0, site.NetIntegrityPct + 15.0);
+                    int fish = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
+                    state.EventLog.Add(new LakskongenSim.Events.EventRecord
+                    {
+                        Day = state.Day,
+                        Name = "ROV-inspeksjon",
+                        Category = LakskongenSim.Events.EventCategory.Equipment,
+                        Description = $"ROV ved {site.Id}: {fish:N0} fisk, lus {SimulationEngine!.SeaLice.AverageLicePerFish:F2}/fisk, gjeller {site.GillScore:F0}/100, nøter {site.NetIntegrityPct:F0}% (+15 renset), rømminger i år: {site.EscapesThisYear}",
+                        BalanceChange = 0m
+                    });
+                }
+                state.WellboatJobs.Remove(job);
+                continue;
+            }
+            bool done = job.Kind == "delouse"
+                ? OrderDelousing(job.SiteId, string.IsNullOrEmpty(job.Method) ? "hydrolicer" : job.Method)
+                : HarvestSite(job.SiteId) > 0.0;
+            state.WellboatJobs.Remove(job);
+            state.EventLog.Add(new LakskongenSim.Events.EventRecord
+            {
+                Day = state.Day,
+                Name = done ? "Brønnbåt ankommet" : "Brønnbåt returnerte",
+                Category = LakskongenSim.Events.EventCategory.Equipment,
+                Description = done
+                    ? $"Brønnbåt utførte {job.Kind} ved {job.SiteId}"
+                    : $"Brønnbåt kunne ikke utføre {job.Kind} ved {job.SiteId} (tom merd/manglende midler)",
+                BalanceChange = 0m
+            });
         }
     }
 
@@ -273,6 +539,9 @@ public partial class GameBridge : Node
     /// <summary>Whether the player owns a processing plant.</summary>
     public bool OwnsProcessingPlant => SimulationEngine?.State?.OwnsProcessingPlant ?? false;
 
+    /// <summary>VAP plant tier (Phase 3.5): "", "Small", "Medium", "Large".</summary>
+    public string ProcessingTier => SimulationEngine?.State?.ProcessingTier ?? "";
+
     /// <summary>Number of export markets unlocked.</summary>
     public int ExportMarketCount => SimulationEngine?.State?.ExportMarkets?.Count ?? 0;
 
@@ -309,6 +578,97 @@ public partial class GameBridge : Node
 
     /// <summary>Average sea lice per fish across the farm.</summary>
     public double SeaLicePerFish => SimulationEngine?.SeaLice?.AverageLicePerFish ?? 0.0;
+
+    // ── Phase 1.1 live KPI scalars (additive; backed by Feed/Analytics/Zone/Weather) ──
+
+    /// <summary>Current feed conversion ratio (live from FeedSystem).</summary>
+    public double CurrentFCR => SimulationEngine?.Feed?.CurrentFCR ?? 1.15;
+
+    /// <summary>Current appetite 0-1 (Phase 2.1). Low = fish won't eat; cut ration.</summary>
+    public double Appetite01 => SimulationEngine?.Feed?.LastAppetite01 ?? 1.0;
+
+    /// <summary>Average individual fish weight in kg across all populations.</summary>
+    public double AvgWeightKg
+    {
+        get
+        {
+            var cohorts = SimulationEngine?.State?.Populations
+                .SelectMany(p => p.Cohorts).ToList();
+            if (cohorts == null || cohorts.Count == 0) return 0.0;
+            double biomass = cohorts.Sum(c => (double)c.Count * c.MeanWeightKg);
+            int count = cohorts.Sum(c => c.Count);
+            return count > 0 ? biomass / count : 0.0;
+        }
+    }
+
+    /// <summary>Today's mortality rate as a fraction (latest analytics snapshot).</summary>
+    public double MortalityRateToday => SimulationEngine?.Analytics?.GetLatest("mortality_rate") ?? double.NaN;
+
+    /// <summary>Dissolved oxygen (mg/L) in the first zone's water chemistry.</summary>
+    public double ZoneOxygenMgL => SimulationEngine?.State?.Zones?.FirstOrDefault()?.WaterChemistry?.OxygenO2 ?? double.NaN;
+
+    /// <summary>pH in the first zone's water chemistry.</summary>
+    public double ZonePh => SimulationEngine?.State?.Zones?.FirstOrDefault()?.WaterChemistry?.pH ?? double.NaN;
+
+    /// <summary>Current wind speed in m/s (for forecast widget).</summary>
+    public double WindSpeedMs => SimulationEngine?.Weather?.CurrentWindSpeedMs ?? 0.0;
+
+    /// <summary>Current significant wave height in meters (for forecast widget).</summary>
+    public double WaveHeightM => SimulationEngine?.Weather?.CurrentWaveHeight ?? 0.0;
+
+    /// <summary>Most recent value of a named analytics metric, or NaN when empty.</summary>
+    public double GetAnalyticsLatest(string metric)
+        => SimulationEngine?.Analytics?.GetLatest(metric) ?? double.NaN;
+
+    // ── Phase 1.2 storm/net scalars ──
+
+    /// <summary>Lowest net integrity across all sea sites (100 when none).</summary>
+    public double MinNetIntegrity =>
+        SimulationEngine?.State?.SeaSites?.Count > 0
+            ? SimulationEngine.State.SeaSites.Min(s => s.NetIntegrityPct)
+            : 100.0;
+
+    /// <summary>Honest 3-day storm probability from the weather Markov chain.</summary>
+    public double StormRisk3Days => SimulationEngine?.Weather?.StormRiskNext3Days() ?? 0.0;
+
+    // ── Phase 1.3 traffic-light zones ──
+
+    /// <summary>
+    /// Live traffic-light status per zone as an Array of Dictionaries.
+    /// Keys: "zone" (string), "color" (string: Green/Yellow/Red),
+    ///       "mab_factor" (double), "capacity_tonnes" (double).
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetZoneTrafficLights()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var engine = SimulationEngine;
+        if (engine?.State?.Zones == null || engine.TrafficLightSystem == null) return result;
+
+        foreach (var zone in engine.State.Zones)
+        {
+            var color = engine.TrafficLightSystem.GetZoneColor(zone.Id);
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["zone"]            = zone.Id,
+                ["color"]           = color.ToString(),
+                ["mab_factor"]      = LakskongenSim.Finance.TrafficLightSystem.MabFactorFor(color),
+                ["capacity_tonnes"] = zone.CarryingCapacityTonnes
+            });
+        }
+        return result;
+    }
+
+    /// <summary>Number of zones currently under red traffic light.</summary>
+    public int RedZoneCount
+    {
+        get
+        {
+            var engine = SimulationEngine;
+            if (engine?.State?.Zones == null || engine.TrafficLightSystem == null) return 0;
+            return engine.State.Zones
+                .Count(z => engine.TrafficLightSystem.GetZoneColor(z.Id).ToString() == "Red");
+        }
+    }
 
     /// <summary>
     /// Return the N most recent event log entries as an Array of Dictionaries,
@@ -502,6 +862,7 @@ public partial class GameBridge : Node
         try
         {
             SimulationEngine.Advance(1);
+            ProcessDueWellboatJobs();
             EmitSignal(SignalName.SimulationTicked, SimulationEngine.State.Day);
             EmitSignal(SignalName.GameStateUpdated);
 
@@ -541,6 +902,76 @@ public partial class GameBridge : Node
         GD.Print($"GameBridge: achievement unlocked — {achievement.Name}");
     }
 
+    private void HandleResearchCompleted(LakskongenSim.Core.ResearchNode node)
+    {
+        EmitSignal(SignalName.ResearchCompleted, node.Id, node.Name);
+    }
+
+    private void HandleScenarioWon(ScenarioDefinition scenario)
+    {
+        EmitSignal(SignalName.ScenarioWon, scenario.Id, scenario.Name);
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: scenario won — {scenario.Name}");
+    }
+
+    private void HandleScenarioLost(ScenarioDefinition scenario, string reason)
+    {
+        EmitSignal(SignalName.ScenarioLost, scenario.Id, reason);
+        EndGame($"Scenario '{scenario.Name}' failed: {reason}");
+    }
+
+    /// <summary>
+    /// Project any mod-provided scenarios into the engine's ScenarioSystem so they
+    /// become startable via <see cref="StartScenario"/> in addition to built-ins.
+    /// Safe to call repeatedly (registering an id replaces it).
+    /// </summary>
+    private void RegisterModScenariosIntoEngine()
+    {
+        if (_modLoader == null || SimulationEngine?.Scenario == null) return;
+
+        var definitions = new List<ScenarioDefinition>();
+        foreach (var mod in _modLoader.GetAllScenarios())
+        {
+            definitions.Add(new ScenarioDefinition
+            {
+                Id = mod.Id,
+                Name = string.IsNullOrWhiteSpace(mod.Name) ? mod.Id : mod.Name,
+                Description = mod.Description,
+                StartingCapitalNOK = mod.StartingCapitalNOK,
+                StartingRegion = ParseRegion(mod.StartingRegion),
+                Difficulty = Math.Clamp(mod.Difficulty, 1, 5),
+                WinCondition = ParseWinCondition(mod.WinCondition),
+                SpecialRules = new Dictionary<string, string>(),
+                TimeLimitDays = null,
+                IsUnlocked = true
+            });
+        }
+
+        if (definitions.Count > 0)
+            SimulationEngine.Scenario.RegisterScenarios(definitions);
+    }
+
+    private static LakskongenSim.Data.ProductionRegion ParseRegion(string raw)
+        => Enum.TryParse<LakskongenSim.Data.ProductionRegion>(raw, true, out var r)
+            ? r
+            : LakskongenSim.Data.ProductionRegion.Vestland;
+
+    private static LakskongenSim.Data.WinCondition ParseWinCondition(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return LakskongenSim.Data.WinCondition.Profit;
+        if (Enum.TryParse<LakskongenSim.Data.WinCondition>(raw, true, out var w)) return w;
+
+        return raw.Trim().ToLowerInvariant() switch
+        {
+            "tutorial" => LakskongenSim.Data.WinCondition.Tutorial,
+            "profit" or "revenue" => LakskongenSim.Data.WinCondition.Profit,
+            "sustainability" or "reputation_and_profit" => LakskongenSim.Data.WinCondition.Sustainability,
+            "survival" or "debt_and_profit" => LakskongenSim.Data.WinCondition.Survival,
+            "competition" or "ipo" => LakskongenSim.Data.WinCondition.Competition,
+            _ => LakskongenSim.Data.WinCondition.Profit
+        };
+    }
+
     // Track last weather check to avoid spam
     private LakskongenSim.Environment.WeatherState _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
     private int _lastDiseaseCheckDay = 0;
@@ -555,26 +986,84 @@ public partial class GameBridge : Node
         if (currentWeather != _lastWeatherState && (currentWeather == LakskongenSim.Environment.WeatherState.Storm || currentWeather == LakskongenSim.Environment.WeatherState.Severe))
         {
             double severity = currentWeather == LakskongenSim.Environment.WeatherState.Severe ? 1.0 : 0.5;
+
+            // P11: track the realized storm loss in NOK so a Storm policy can
+            // settle one claim per weather event (fish loss + infrastructure).
+            decimal stormSpotPrice = SimulationEngine.MarketSimulation?.PricePerKg ?? 70m;
+            decimal stormFishLoss = 0m;
             
-            // Storm damages pens and increases mortality
+            // Storm damages pens and increases mortality (roekter halves losses).
+            // Iterate each site's own pens: populations are ZoneId-tagged
+            // (zone-shared), so State-wide filtering here would hit shared
+            // populations once per site in the zone.
+            double stormMult = LakskongenSim.Core.CrewEffects.StormLossMultiplier(SimulationEngine.State);
             foreach (var site in SimulationEngine.State.SeaSites)
             {
-                var populations = SimulationEngine.State.Populations.Where(p => p.ZoneId == site.ZoneId).ToList();
-                foreach (var pop in populations)
+                foreach (var pop in site.Pens)
                 {
                     foreach (var cohort in pop.Cohorts)
                     {
                         // Increase mortality due to storm stress (0.5-2% loss depending on severity)
-                        int mortalityCount = (int)(cohort.Count * severity * 0.02);
+                        int mortalityCount = (int)(cohort.Count * severity * 0.02 * stormMult);
                         if (mortalityCount > 0)
                         {
                             cohort.Count = Math.Max(0, cohort.Count - mortalityCount);
+                            stormFishLoss += (decimal)(mortalityCount * cohort.MeanWeightKg) * stormSpotPrice;
                         }
                     }
                 }
             }
 
-            // Calculate financial impact (pen repairs)
+            // Phase 1.2: nets degrade in heavy weather; weak nets tear → escapes.
+            // Escape is player-fault-visible: only sites left below 40% tear.
+            foreach (var site in SimulationEngine.State.SeaSites)
+            {
+                // Phase 4.1: containment storm/escape signature per site.
+                var cmods = LakskongenSim.Farm.ContainmentTech.ModifiersFor(site.Containment);
+                site.NetIntegrityPct = System.Math.Max(0.0, site.NetIntegrityPct
+                    - severity * 25.0 * LakskongenSim.Core.CrewEffects.NetDecayMultiplier(SimulationEngine.State) * cmods.StormDamageMult);
+                if (site.NetIntegrityPct >= 40.0) continue;
+
+                int siteFish = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
+                int escapees = (int)(siteFish * (0.02 + severity * 0.06) * stormMult * cmods.EscapeRiskMult
+                    * LakskongenSim.Optimization.RemoteOpsCentre.EscapeResponseMult(site.WatchMode));
+                if (escapees <= 0) continue;
+
+                if (siteFish > 0)
+                {
+                    double siteBiomassKg = site.Pens.SelectMany(p => p.Cohorts)
+                        .Sum(c => (double)c.Count * c.MeanWeightKg);
+                    stormFishLoss += (decimal)(escapees * (siteBiomassKg / siteFish)) * stormSpotPrice;
+                }
+
+                int remaining = escapees;
+                foreach (var pop in site.Pens)
+                {
+                    foreach (var cohort in pop.Cohorts)
+                    {
+                        int take = System.Math.Min(cohort.Count, remaining);
+                        cohort.Count = System.Math.Max(0, cohort.Count - take);
+                        remaining -= take;
+                        if (remaining <= 0) break;
+                    }
+                    if (remaining <= 0) break;
+                }
+                site.RecordEscape(escapees);
+                decimal escapeFine = escapees * 100m; // NOK 100/fish regulatory fine
+                if (SimulationEngine.FinanceManager.Balance >= escapeFine)
+                    SimulationEngine.FinanceManager.Spend(escapeFine);
+                SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+                {
+                    Day = SimulationEngine.State.Day,
+                    Name = "Escape",
+                    Category = LakskongenSim.Events.EventCategory.Equipment,
+                    Description = $"RØMMING: {escapees:N0} fish escaped at {site.Id} (nets {site.NetIntegrityPct:F0}%)",
+                    BalanceChange = -escapeFine
+                });
+                EmitSignal(SignalName.DiseaseOutbreak, "Escape", site.Id, 1.0, (double)escapeFine);
+                GD.Print($"GameBridge: ESCAPE — {escapees:N0} fish at '{site.Id}' (fine {escapeFine:N0} NOK)");
+            }
+            // Storm repair bill (infrastructure damage, separate from escapes).
             decimal repairCost = (decimal)(SimulationEngine.State.SeaSites.Count * 50000 * severity); // 50k-100k NOK per site
             if (repairCost > 0 && SimulationEngine.FinanceManager.Balance >= repairCost)
             {
@@ -587,6 +1076,26 @@ public partial class GameBridge : Node
                     Description = $"{(currentWeather == LakskongenSim.Environment.WeatherState.Severe ? "Severe storm" : "Storm")} damaged pen infrastructure",
                     BalanceChange = -repairCost
                 });
+            }
+
+            // P11: settle the Storm insurance claim against the realized loss
+            // (fish mortality + escapes + infrastructure repair).
+            decimal stormLossNok = stormFishLoss + repairCost;
+            decimal stormPayout = SimulationEngine.Insurance?.ComputePayout(InsuranceKind.Storm, stormLossNok) ?? 0m;
+            if (stormPayout > 0m)
+            {
+                SimulationEngine.FinanceManager.AddRevenue(stormPayout);
+                SimulationEngine.FinancialStatements?.RecordRevenue(stormPayout);
+                SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+                {
+                    Day = SimulationEngine.State.Day,
+                    Id = "insurance-storm",
+                    Name = "Forsikringsoppgjør",
+                    Category = LakskongenSim.Events.EventCategory.Weather,
+                    Description = $"Forsikring (Storm) dekket {stormPayout:N0} av {stormLossNok:N0} NOK stormtap",
+                    BalanceChange = stormPayout
+                });
+                GD.Print($"GameBridge: Storm insurance payout {stormPayout:N0} NOK (loss {stormLossNok:N0} NOK)");
             }
 
             string weatherDesc = currentWeather == LakskongenSim.Environment.WeatherState.Severe 
@@ -786,32 +1295,400 @@ public partial class GameBridge : Node
     // ── Scenario System API for GDScript ─────────────────────────────────────
 
     /// <summary>
-    /// Return all available scenarios as an Array of Dictionaries.
-    /// Keys: "id" (string), "name" (string), "description" (string),
-    ///       "difficulty" (string), "region" (string), "starting_capital" (double).
+    /// Return all available scenarios (built-in roster + mod scenarios) as an
+    /// Array of Dictionaries. Keys consumed by the UI:
+    ///   "id", "name", "description", "difficulty" (int 1-5), "region",
+    ///   "starting_capital" (double), "starting_capital_neg" (bool),
+    ///   "starting_cash" (double), "story" (string), "tags" (Array[String]),
+    ///   "restrictions" (Array[String]),
+    ///   "win_condition", "win" (human text), "time_limit_days",
+    ///   "is_unlocked"/"unlocked" (bool), "special_rules" (Dictionary),
+    ///   "special" (Array[String]), "subtitle", "capital" (formatted).
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetAvailableScenarios()
     {
-        // Scenario system not yet implemented
-        return new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        if (SimulationEngine == null) return result;
+
+        ScenarioSystem? system = SimulationEngine.Scenario;
+        system ??= new ScenarioSystem(SimulationEngine.State);
+
+        foreach (var scenario in system.GetAll())
+            result.Add(ScenarioToDictionary(scenario));
+
+        // Merge mod scenarios that are not already in the engine roster.
+        if (_modLoader != null)
+        {
+            foreach (var mod in _modLoader.GetAllScenarios())
+            {
+                if (system.GetScenario(mod.Id) != null) continue;
+                result.Add(ModScenarioToDictionary(mod));
+            }
+        }
+        return result;
     }
 
     /// <summary>
-    /// Load and start a scenario by ID.
-    /// Returns true on success, false if scenario not found.
+    /// Load and start a scenario by ID. Initializes the engine if needed,
+    /// applies the scenario's starting capital, and emits <c>ScenarioLoaded</c>.
+    /// Returns true on success, false if unknown/locked or on error.
     /// </summary>
     public bool StartScenario(string scenarioId)
     {
-        // Scenario system not yet implemented
-        return false;
+        if (string.IsNullOrWhiteSpace(scenarioId) || SimulationEngine == null)
+            return false;
+
+        // Not running yet (e.g. launched straight from the campaign menu):
+        // validate against the roster, then initialize the engine first.
+        if (!_gameRunning || SimulationEngine.Scenario == null)
+        {
+            var probe = SimulationEngine.Scenario ?? new ScenarioSystem(SimulationEngine.State);
+            var candidate = probe.GetScenario(scenarioId);
+            if (candidate == null || !candidate.IsUnlocked)
+            {
+                GD.Print($"GameBridge.StartScenario: '{scenarioId}' unavailable (unknown or locked)");
+                return false;
+            }
+            StartNewGame("Player", (int)candidate.StartingCapitalNOK);
+        }
+
+        var scenario = SimulationEngine.Scenario!.GetScenario(scenarioId);
+        if (scenario == null) return false;
+
+        try
+        {
+            SimulationEngine.Scenario!.StartScenario(scenarioId);
+            // Materialize the scenario's starting sites/populations/research into
+            // the live GameState (idempotent; SimulationEngine is left untouched).
+            scenario.ApplyStartingState(SimulationEngine.State);
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"GameBridge.StartScenario('{scenarioId}') failed: {ex.Message}");
+            return false;
+        }
+
+        EmitSignal(SignalName.ScenarioLoaded, scenario.Id, scenario.Name);
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: scenario started — {scenario.Name} ({scenario.Id})");
+        return true;
     }
 
     /// <summary>
-    /// Return the ID of the currently active scenario.
-    /// Returns empty string if no scenario is loaded.
+    /// Return the ID of the currently active scenario (empty when none).
     /// </summary>
     public string GetActiveScenarioId()
-        => "";
+        => SimulationEngine?.Scenario?.ActiveScenario?.Id ?? "";
+
+    /// <summary>Whether the active scenario has been won.</summary>
+    public bool IsScenarioWon => SimulationEngine?.Scenario?.IsWon ?? false;
+
+    /// <summary>Whether the active scenario has been lost.</summary>
+    public bool IsScenarioLost => SimulationEngine?.Scenario?.IsLost ?? false;
+
+    /// <summary>Human-readable loss reason for the active scenario ("" if none).</summary>
+    public string ScenarioLossReason => SimulationEngine?.Scenario?.LossReason ?? "";
+
+    /// <summary>
+    /// Apply a scenario supplied as a JSON string (used by ScenarioManager.gd).
+    /// Accepts either the C# schema (win_condition/starting_balance) or the legacy
+    /// Godot schema (goal/starting_balance). Unknown ids are registered first.
+    /// Returns true when the scenario was started.
+    /// </summary>
+    public bool ApplyScenario(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json) || SimulationEngine == null) return false;
+
+        ScenarioJsonDto? dto;
+        try
+        {
+            dto = JsonSerializer.Deserialize<ScenarioJsonDto>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                ReadCommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
+            });
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"GameBridge.ApplyScenario: parse error: {ex.Message}");
+            return false;
+        }
+
+        if (dto == null || string.IsNullOrWhiteSpace(dto.Id)) return false;
+
+        decimal capital = dto.StartingBalance
+                          ?? dto.StartingCapitalNok
+                          ?? dto.InitialBalanceNok
+                          ?? 10_000_000m;
+
+        if (!_gameRunning || SimulationEngine.Scenario == null)
+            StartNewGame("Player", (int)capital);
+
+        if (SimulationEngine.Scenario!.GetScenario(dto.Id) == null)
+        {
+            SimulationEngine.Scenario.RegisterScenarios(new[]
+            {
+                new ScenarioDefinition
+                {
+                    Id = dto.Id,
+                    Name = string.IsNullOrWhiteSpace(dto.Name) ? dto.Id : dto.Name,
+                    Description = dto.Description,
+                    StartingCapitalNOK = dto.StartingCapitalNok ?? capital,
+                    StartingCash = dto.StartingCash ?? (dto.StartingCapitalNok ?? capital),
+                    Story = string.IsNullOrWhiteSpace(dto.Story) ? dto.Description : dto.Story!,
+                    StartingRegion = ParseRegion(dto.StartingRegion),
+                    Difficulty = ParseDifficultyElement(dto.Difficulty),
+                    WinCondition = ParseWinCondition(dto.WinCondition),
+                    SpecialRules = new Dictionary<string, string>(),
+                    StartingSites = dto.StartingSites ?? new List<StartingSiteDefinition>(),
+                    StartingResearch = dto.StartingResearch ?? System.Array.Empty<string>(),
+                    StartingBuildings = dto.StartingBuildings ?? System.Array.Empty<string>(),
+                    Restrictions = dto.Restrictions ?? System.Array.Empty<string>(),
+                    Tags = dto.Tags ?? System.Array.Empty<string>(),
+                    TimeLimitDays = dto.TimeLimitDays,
+                    IsUnlocked = dto.IsUnlocked ?? true
+                }
+            });
+        }
+
+        return StartScenario(dto.Id);
+    }
+
+    // ── Scenario dictionary projection ───────────────────────────────────────
+
+    private static Godot.Collections.Dictionary ScenarioToDictionary(ScenarioDefinition s)
+    {
+        var rules = new Godot.Collections.Dictionary();
+        foreach (var kv in s.SpecialRules)
+            rules[kv.Key] = kv.Value;
+
+        var special = new Godot.Collections.Array<string>();
+        if (s.SpecialRules.ContainsKey("single_site")) special.Add("1 anlegg");
+        if (s.SpecialRules.ContainsKey("harsh_storms")) special.Add("Harde stormer");
+        if (s.SpecialRules.ContainsKey("premium_prices")) special.Add("Premiumpriser");
+        if (s.SpecialRules.ContainsKey("start_disease")) special.Add("Aktiv sykdom");
+        if (s.SpecialRules.ContainsKey("start_debt")) special.Add("Startgjeld");
+        if (s.SpecialRules.ContainsKey("regulation_pressure")) special.Add("Reguleringstrykk");
+        if (s.SpecialRules.ContainsKey("calm_weather")) special.Add("Rolig vær");
+        if (s.SpecialRules.ContainsKey("easy_market")) special.Add("Stabile priser");
+        if (s.SpecialRules.TryGetValue("ai_competitors", out var aiCount)) special.Add($"{aiCount} AI-rivaler");
+
+        return new Godot.Collections.Dictionary
+        {
+            ["id"] = s.Id,
+            ["name"] = s.Name,
+            ["description"] = s.Description,
+            ["difficulty"] = s.Difficulty,
+            ["region"] = s.StartingRegion.ToString(),
+            ["starting_capital"] = (double)s.StartingCapitalNOK,
+            ["starting_capital_neg"] = s.StartingCapitalNOK < 0m,
+            // Extended campaign metadata (backward-compatible additive keys).
+            ["starting_cash"] = (double)(s.StartingCash != 0m ? s.StartingCash : s.StartingCapitalNOK),
+            ["story"] = string.IsNullOrEmpty(s.Story) ? s.Description : s.Story,
+            ["tags"] = ToGdArray(s.Tags),
+            ["restrictions"] = ToGdArray(s.Restrictions),
+            ["win_condition"] = s.WinCondition.ToString(),
+            ["win"] = DescribeWinCondition(s),
+            ["time_limit_days"] = s.TimeLimitDays ?? 0,
+            ["is_unlocked"] = s.IsUnlocked,
+            ["unlocked"] = s.IsUnlocked,
+            ["special_rules"] = rules,
+            ["special"] = special,
+            ["subtitle"] = DifficultyLabel(s.Difficulty),
+            ["capital"] = FormatCapital(s.StartingCapitalNOK)
+        };
+    }
+
+    /// <summary>Project a C# string[] to a Godot Array[String] (empty when null).</summary>
+    private static Godot.Collections.Array<string> ToGdArray(string[]? source)
+    {
+        var arr = new Godot.Collections.Array<string>();
+        if (source != null)
+            foreach (var value in source)
+                if (!string.IsNullOrEmpty(value)) arr.Add(value);
+        return arr;
+    }
+
+    private static Godot.Collections.Dictionary ModScenarioToDictionary(ModScenario m)
+    {
+        var rules = new Godot.Collections.Dictionary();
+        return new Godot.Collections.Dictionary
+        {
+            ["id"] = m.Id,
+            ["name"] = m.Name,
+            ["description"] = m.Description,
+            ["difficulty"] = Math.Clamp(m.Difficulty, 1, 5),
+            ["region"] = m.StartingRegion,
+            ["starting_capital"] = (double)m.StartingCapitalNOK,
+            ["starting_capital_neg"] = m.StartingCapitalNOK < 0m,
+            ["starting_cash"] = (double)m.StartingCapitalNOK,
+            ["story"] = m.Description,
+            ["tags"] = new Godot.Collections.Array<string>(),
+            ["restrictions"] = new Godot.Collections.Array<string>(),
+            ["win_condition"] = m.WinCondition,
+            ["win"] = m.WinCondition,
+            ["time_limit_days"] = 0,
+            ["is_unlocked"] = true,
+            ["unlocked"] = true,
+            ["special_rules"] = rules,
+            ["special"] = new Godot.Collections.Array<string>(),
+            ["subtitle"] = "Mod",
+            ["capital"] = FormatCapital(m.StartingCapitalNOK),
+            ["is_mod"] = true
+        };
+    }
+
+    private static string DifficultyLabel(int difficulty) => difficulty switch
+    {
+        1 => "Enkel",
+        2 => "Lett",
+        3 => "Middels",
+        4 => "Vanskelig",
+        _ => "Ekspert"
+    };
+
+    private static string DescribeWinCondition(ScenarioDefinition s) => s.WinCondition switch
+    {
+        WinCondition.Tutorial => "Fullfør opplæringen",
+        WinCondition.Profit => $"Nå {FormatCapital(RuleDecimal(s, "profit_target", 5_000_000m))} i overskudd",
+        WinCondition.Sustainability => $"Nå bærekraftsmål {RuleDecimal(s, "sustainability_target", 95m):0}",
+        WinCondition.Survival => $"Overlev {(s.TimeLimitDays ?? 730)} dager med positiv saldo",
+        WinCondition.Competition => $"Nå {FormatCapital(RuleDecimal(s, "profit_target", 10_000_000m))} før konkurrentene",
+        _ => s.WinCondition.ToString()
+    };
+
+    private static decimal RuleDecimal(ScenarioDefinition s, string key, decimal fallback)
+        => s.SpecialRules.TryGetValue(key, out var raw) &&
+           decimal.TryParse(raw, System.Globalization.NumberStyles.Any,
+               System.Globalization.CultureInfo.InvariantCulture, out var value)
+            ? value : fallback;
+
+    private static string FormatCapital(decimal amount)
+        => $"{amount:N0} NOK".Replace(",", " ").Replace("\u00A0", " ");
+
+    private static int ParseDifficultyElement(JsonElement el)
+    {
+        if (el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var number))
+            return Math.Clamp(number, 1, 5);
+        if (el.ValueKind == JsonValueKind.String)
+        {
+            var raw = (el.GetString() ?? "").Trim().ToLowerInvariant();
+            if (int.TryParse(raw, out var parsed)) return Math.Clamp(parsed, 1, 5);
+            return raw switch { "easy" => 1, "medium" or "normal" => 3, "hard" => 5, _ => 3 };
+        }
+        return 3;
+    }
+
+    /// <summary>Parsed scenario JSON — union of C# and legacy Godot schemas.</summary>
+    private sealed class ScenarioJsonDto
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("id")] public string Id { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("name")] public string Name { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("description")] public string Description { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("starting_balance")] public decimal? StartingBalance { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("starting_capital_nok")] public decimal? StartingCapitalNok { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("initial_balance_nok")] public decimal? InitialBalanceNok { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("starting_region")] public string StartingRegion { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("difficulty")] public JsonElement Difficulty { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("win_condition")] public string WinCondition { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("time_limit_days")] public int? TimeLimitDays { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("is_unlocked")] public bool? IsUnlocked { get; set; }
+        // Extended campaign schema (additive; defaults are safe for legacy entries).
+        [System.Text.Json.Serialization.JsonPropertyName("starting_cash")] public decimal? StartingCash { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("story")] public string? Story { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("tags")] public string[]? Tags { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("restrictions")] public string[]? Restrictions { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("starting_research")] public string[]? StartingResearch { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("starting_buildings")] public string[]? StartingBuildings { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("starting_sites")] public List<StartingSiteDefinition>? StartingSites { get; set; }
+    }
+
+    // ── Mod System API for GDScript ──────────────────────────────────────────
+
+    /// <summary>Directory the ModLoader scans (user://mods preferred).</summary>
+    public string ModsDirectory => _modsDirectory;
+
+    /// <summary>
+    /// Return all discovered mods as an Array of Dictionaries. Keys match
+    /// ModManagerPanel.gd: "id", "name", "author", "version", "description",
+    /// "enabled", "event_count", "research_count", "species_count",
+    /// "scenario_count", "errors" (Array[String]).
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetModList()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        if (_modLoader == null) return result;
+
+        foreach (var manifest in _modLoader.DiscoveredManifests)
+        {
+            var loaded = _modLoader.LoadedMods.FirstOrDefault(m => m.Manifest.Id == manifest.Id);
+
+            var errors = new Godot.Collections.Array<string>();
+            if (loaded != null)
+                foreach (var error in loaded.Errors)
+                    errors.Add(error);
+
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = manifest.Id,
+                ["name"] = manifest.Name,
+                ["author"] = manifest.Author,
+                ["version"] = manifest.Version,
+                ["description"] = manifest.Description,
+                ["enabled"] = manifest.Enabled,
+                ["event_count"] = loaded?.Events.Count ?? 0,
+                ["research_count"] = loaded?.ResearchNodes.Count ?? 0,
+                ["species_count"] = loaded?.FishSpecies.Count ?? 0,
+                ["scenario_count"] = loaded?.Scenarios.Count ?? 0,
+                ["errors"] = errors
+            });
+        }
+        return result;
+    }
+
+    /// <summary>Re-scan the mods directory and reload all enabled mods.</summary>
+    public void ReloadMods()
+    {
+        _modLoader?.DiscoverAndLoad();
+        EmitSignal(SignalName.GameStateUpdated);
+    }
+
+    /// <summary>
+    /// Persist enable/disable state pushed from ModManagerPanel.gd. Accepts a
+    /// Godot Array of {id, enabled} dictionaries (or a single dictionary),
+    /// updates the mod config, and reloads.
+    /// </summary>
+    public bool ApplyModSettings(Godot.Variant settings)
+    {
+        if (_modLoader == null) return false;
+
+        var entries = new List<(string Id, bool Enabled)>();
+
+        if (settings.VariantType == Variant.Type.Array)
+        {
+            foreach (var item in settings.AsGodotArray())
+            {
+                if (item.VariantType != Variant.Type.Dictionary) continue;
+                var dict = item.AsGodotDictionary();
+                if (dict.ContainsKey("id"))
+                    entries.Add((dict["id"].AsString(), dict.ContainsKey("enabled") && dict["enabled"].AsBool()));
+            }
+        }
+        else if (settings.VariantType == Variant.Type.Dictionary)
+        {
+            var dict = settings.AsGodotDictionary();
+            if (dict.ContainsKey("id"))
+                entries.Add((dict["id"].AsString(), dict.ContainsKey("enabled") && dict["enabled"].AsBool()));
+        }
+
+        foreach (var (id, enabled) in entries)
+            _modLoader.SetModEnabled(id, enabled);
+
+        _modLoader.DiscoverAndLoad();
+        EmitSignal(SignalName.GameStateUpdated);
+        return true;
+    }
 
     // ── Sustainability API (expanded) ────────────────────────────────────────
 
@@ -874,10 +1751,19 @@ public partial class GameBridge : Node
     // ── Farm Management API ───────────────────────────────────────────────────
 
     /// <summary>
-    /// Stock smolts at a specific sea site.
+    /// Stock smolts at a specific sea site (Phase 1.4: strain-aware).
+    /// Strain selects release weight, cost, genome traits and lice load.
     /// Returns true on success, false if site not found or stocking failed.
     /// </summary>
-    public bool StockSmolts(string siteId, int count)
+    public bool StockSmolts(string siteId, int count, string strainId = "standard")
+        => StockSmolts(siteId, count, strainId, Farm.SmoltQualityTier.Standard);
+
+    /// <summary>
+    /// Stock smolts with an explicit post-smolt quality tier (P5 carryover).
+    /// The tier is stamped on the cohort so the sea phase applies its
+    /// mortality / growth / time-to-harvest carryover multipliers.
+    /// </summary>
+    public bool StockSmolts(string siteId, int count, string strainId, Farm.SmoltQualityTier qualityTier)
     {
         if (SimulationEngine?.State?.SeaSites == null || SimulationEngine?.Hatchery == null)
         {
@@ -894,9 +1780,12 @@ public partial class GameBridge : Node
             return false;
         }
 
-        // Calculate stocking cost (hatchery rearing cost)
-        decimal stockingCost = SimulationEngine.Hatchery.CalculateRearingCost(count, SimulationEngine.Hatchery.MaturationDays);
-        
+        // Calculate stocking cost (hatchery rearing cost × strain multiplier × quality premium)
+        var strain = LakskongenSim.Farm.SmoltStrainRegistry.Get(strainId);
+        var quality = Farm.SmoltQualityRegistry.Get(qualityTier);
+        decimal stockingCost = SimulationEngine.Hatchery.CalculateRearingCost(count, SimulationEngine.Hatchery.MaturationDays)
+            * (decimal)strain.CostMultiplier;
+
         if (SimulationEngine.FinanceManager.Balance < stockingCost)
         {
             GD.PrintErr($"GameBridge: StockSmolts failed - insufficient funds (need {stockingCost:N0} NOK)");
@@ -904,19 +1793,24 @@ public partial class GameBridge : Node
             return false;
         }
 
-        // Create a new fish population with smolts
+        // Create a new fish population with strain smolts
         var population = new LakskongenSim.Biology.FishPopulation
         {
-            ZoneId = site.ZoneId
+            ZoneId = site.ZoneId,
+            SeaLiceLoad = strain.InitialLiceLoad
         };
         population.InjectDependencies(SimulationEngine.Growth, SimulationEngine.Mortality);
         
         var smoltCohort = new LakskongenSim.Biology.FishPopulation.Cohort(
             SimulationEngine.Hatchery.MaturationDays,
             count,
-            SimulationEngine.Hatchery.SmoltReleaseWeight,
-            LakskongenSim.Data.LifeStage.Smolt
-        );
+            strain.ReleaseWeightKg,
+            LakskongenSim.Data.LifeStage.Smolt,
+            strain.BuildGenome()
+        )
+        {
+            Quality = quality.Tier
+        };
         population.Cohorts.Add(smoltCohort);
 
         // Stock the site
@@ -932,14 +1826,63 @@ public partial class GameBridge : Node
             Day = SimulationEngine.State.Day,
             Name = "Smolt Stocking",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"Stocked {count:N0} smolts at {siteId}",
+            Description = $"Stocked {count:N0} {quality.Name} {strain.Name} smolts ({strain.ReleaseWeightKg * 1000:F0}g) at {siteId}",
             BalanceChange = -stockingCost
         });
 
         EmitSignal(SignalName.FarmActionCompleted, "stock_smolts", siteId, true);
         EmitSignal(SignalName.GameStateUpdated);
-        GD.Print($"GameBridge: Stocked {count:N0} smolts at '{siteId}' for {stockingCost:N0} NOK");
+        GD.Print($"GameBridge: Stocked {count:N0} {quality.Name} {strain.Name} smolts at '{siteId}' for {stockingCost:N0} NOK");
         return true;
+    }
+
+    /// <summary>
+    /// Buyable smolt strains for the stocking dialog (Phase 1.4).
+    /// Keys: "id", "name", "description", "weight_g", "cost_multiplier",
+    ///       "growth_pct", "disease_pct", "initial_lice".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetSmoltStrains()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var s in LakskongenSim.Farm.SmoltStrainRegistry.All)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"]              = s.Id,
+                ["name"]            = s.Name,
+                ["description"]     = s.Description,
+                ["weight_g"]        = s.ReleaseWeightKg * 1000.0,
+                ["cost_multiplier"] = s.CostMultiplier,
+                ["growth_pct"]      = s.GrowthTrait * 15.0,
+                ["disease_pct"]     = s.DiseaseTrait * 20.0,
+                ["initial_lice"]    = s.InitialLiceLoad
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Post-smolt quality tiers for the stocking dialog (P5 carryover).
+    /// Each entry: "id" (tier name), "name", "mortality_mult", "growth_mult",
+    /// "days_mult", "quality" (0-1). Array order matches the enum order, so the
+    /// UI's selected index equals the tier value passed to StockSmolts.
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetSmoltQualityTiers()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var q in Farm.SmoltQualityRegistry.All)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"]             = q.Tier.ToString(),
+                ["name"]           = q.Name,
+                ["mortality_mult"] = q.MortalityMultiplier,
+                ["growth_mult"]    = q.GrowthMultiplier,
+                ["days_mult"]      = q.TimeToHarvestMultiplier,
+                ["quality"]        = q.Quality01
+            });
+        }
+        return result;
     }
 
     /// <summary>
@@ -963,10 +1906,12 @@ public partial class GameBridge : Node
             return 0.0;
         }
 
-        // Calculate total biomass and count fish
+        // Harvest ONLY this site's pens (site.Pens identity). Populations
+        // carry ZoneId (shared by every site in a zone), so filtering
+        // State.Populations by zone would wipe neighbouring sites too.
         double totalBiomassKg = 0.0;
         int totalFishCount = 0;
-        var populations = SimulationEngine.State.Populations.Where(p => p.ZoneId == site.ZoneId).ToList();
+        var populations = site.Pens.ToList();
 
         foreach (var pop in populations)
         {
@@ -985,16 +1930,56 @@ public partial class GameBridge : Node
             return 0.0;
         }
 
-        // Calculate revenue (market price × biomass × certification multiplier)
-        decimal revenue = (decimal)totalBiomassKg * SimulationEngine.MarketSimulation.PricePerKg;
+        // Calculate revenue: oldest contracts first at locked prices,
+        // remainder at spot — all scaled by certification multiplier.
+        // Partial deliveries accrue no penalty (expiry settles shortfalls).
+        decimal revenue = 0m;
+        double remainingKg = totalBiomassKg;
+        var cs = SimulationEngine.ContractSystem;
+        if (cs != null)
+        {
+            foreach (var c in cs.ActiveContracts.OrderBy(c => c.SignedAtWeek).ToList())
+            {
+                if (remainingKg <= 0.1) break;
+                int deliver = (int)System.Math.Min(remainingKg, c.RemainingKg);
+                if (deliver <= 0) continue;
+                var (payment, _) = cs.FulfillContract(c.Id, deliver);
+                revenue += payment;
+                remainingKg -= deliver;
+            }
+        }
+        decimal spotPrice = SimulationEngine.MarketSimulation.PricePerKg;
+        revenue += (decimal)remainingKg * spotPrice;
         decimal certMultiplier = SimulationEngine.SustainabilityManager?.GetPriceMultiplier(
             SimulationEngine.SustainabilityManager.CurrentCertification) ?? 1.0m;
         revenue *= certMultiplier;
+        // VAP fillet line (Phase 3.5): +12% when a plant is owned.
+        // Phase 4.4: grade-C recipe (pale) halves the premium to +6%.
+        bool vap = SimulationEngine.State.OwnsProcessingPlant;
+        if (vap)
+        {
+            string grade = LakskongenSim.Processing.FeedRecipe.Grade(
+                SimulationEngine.State.RecipeProteinPct, SimulationEngine.State.RecipeAstaxPpm);
+            revenue *= LakskongenSim.Processing.FeedRecipe.VapMult(grade);
+            if (grade == "C")
+                SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+                {
+                    Day = SimulationEngine.State.Day,
+                    Name = "Blek filet (C)",
+                    Category = LakskongenSim.Events.EventCategory.Market,
+                    Description = "Lav astaxanthin i fôret — VAP-premie halvert til +6%",
+                    BalanceChange = 0m
+                });
+        }
 
         // Apply harvest
         SimulationEngine.FinanceManager.AddRevenue(revenue);
 
-        // Remove harvested populations
+        // P15: player-supply market impact — the harvested tonnage moves the
+        // market (accumulates downward price pressure, decays over days).
+        SimulationEngine.MarketSimulation?.ApplyPlayerHarvest(totalBiomassKg / 1000.0);
+
+        // Remove exactly the harvested populations (this site only)
         foreach (var pop in populations)
         {
             pop.Cohorts.Clear();
@@ -1022,6 +2007,320 @@ public partial class GameBridge : Node
         EmitSignal(SignalName.GameStateUpdated);
         GD.Print($"GameBridge: Harvested {totalBiomassKg:N0} kg at '{siteId}' for {revenue:N0} NOK");
         return totalBiomassKg;
+    }
+
+    // ── Insurance API (P11) ──────────────────────────────────────────────────
+
+    private static readonly InsuranceKind[] InsuranceKinds =
+    {
+        InsuranceKind.Mortality, InsuranceKind.Bloom, InsuranceKind.Storm, InsuranceKind.ISA
+    };
+
+    /// <summary>
+    /// Annual premium (NOK) at 100% coverage per catastrophe kind. Premiums are
+    /// scaled linearly by the requested coverage fraction; the deductible is
+    /// retained by the insured before cover applies (see <see cref="InsurancePolicy"/>).
+    /// </summary>
+    private static decimal BaseAnnualPremiumNok(InsuranceKind kind) => kind switch
+    {
+        InsuranceKind.Mortality => 120_000m,
+        InsuranceKind.Bloom => 250_000m,
+        InsuranceKind.Storm => 180_000m,
+        InsuranceKind.ISA => 300_000m,
+        _ => 0m
+    };
+
+    private static string InsuranceKindKey(InsuranceKind kind) => kind.ToString().ToLowerInvariant();
+
+    private static bool TryParseInsuranceKind(string kind, out InsuranceKind parsed) =>
+        Enum.TryParse(kind, ignoreCase: true, out parsed);
+
+    /// <summary>
+    /// Per-kind insurance status for the UI:
+    /// <c>{ "mortality"|"bloom"|"storm"|"isa": { enabled, premium, coverage, deductible }, "total_premium" }</c>.
+    /// Premiums are summed across stacked policies of a kind; coverage/deductible
+    /// report the primary (first) policy of that kind.
+    /// </summary>
+    public Godot.Collections.Dictionary GetInsuranceStatus()
+    {
+        var result = new Godot.Collections.Dictionary();
+        decimal totalPremium = 0m;
+
+        var insurance = SimulationEngine?.Insurance;
+        if (insurance == null)
+        {
+            result["total_premium"] = 0.0;
+            return result;
+        }
+
+        foreach (var kind in InsuranceKinds)
+        {
+            var policies = insurance.Policies.Where(p => p.Kind == kind).ToList();
+            var primary = policies.Count > 0 ? policies[0] : null;
+            decimal premium = policies.Sum(p => p.PremiumNokPerYear);
+            totalPremium += premium;
+
+            result[InsuranceKindKey(kind)] = new Godot.Collections.Dictionary
+            {
+                ["enabled"] = policies.Count > 0,
+                ["premium"] = (double)premium,
+                ["coverage"] = primary?.CoverageFraction ?? 0.0,
+                ["deductible"] = primary != null ? (double)primary.DeductibleNok : 0.0
+            };
+        }
+
+        result["total_premium"] = (double)totalPremium;
+        return result;
+    }
+
+    /// <summary>
+    /// Enable/disable a catastrophe policy. <paramref name="kind"/> is one of
+    /// "mortality" | "bloom" | "storm" | "isa" (case-insensitive). Replaces any
+    /// existing policy of that kind while preserving all other kinds. Returns
+    /// false for an unknown kind or an uninitialized engine.
+    /// </summary>
+    public bool SetInsurancePolicy(string kind, bool enabled, double coverage, double deductible)
+    {
+        var insurance = SimulationEngine?.Insurance;
+        if (insurance == null) return false;
+        if (!TryParseInsuranceKind(kind, out var parsed)) return false;
+
+        double clampedCoverage = System.Math.Clamp(coverage, 0.0, 1.0);
+        decimal ded = deductible > 0.0 ? (decimal)deductible : 0m;
+
+        // InsuranceSystem exposes no per-kind removal, so rebuild: keep every
+        // other kind's policies, then re-add this kind if enabled.
+        var survivors = insurance.Policies.Where(p => p.Kind != parsed).ToList();
+        insurance.ClearPolicies();
+        foreach (var policy in survivors)
+            insurance.Subscribe(policy);
+
+        if (enabled && clampedCoverage > 0.0)
+        {
+            decimal premium = BaseAnnualPremiumNok(parsed) * (decimal)clampedCoverage;
+            insurance.Subscribe(new InsurancePolicy(parsed, premium, clampedCoverage, ded));
+        }
+
+        EmitSignal(SignalName.GameStateUpdated);
+        return true;
+    }
+
+    // ── Bloom mitigation API (P11 mitigation UI) ────────────────────────────
+
+    private static readonly Farm.MitigationKind[] BloomMitigationKinds =
+    {
+        Farm.MitigationKind.BubbleCurtain,
+        Farm.MitigationKind.O2Diffuser,
+        Farm.MitigationKind.Pumping,
+        Farm.MitigationKind.DeepFeeding
+    };
+
+    /// <summary>
+    /// In-memory registry of non-flag-backed mitigation installs (pumping and
+    /// deep feeding). Bubble curtain / O2 diffuser persist on the
+    /// <see cref="Farm.SeaSite"/> flags; the remaining kinds have no modelled
+    /// site field, so the bridge tracks them here for the UI only, without
+    /// touching SimulationEngine or the site model.
+    /// </summary>
+    private readonly Dictionary<string, HashSet<Farm.MitigationKind>> _installedMitigations =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    private static string MitigationKindKey(Farm.MitigationKind kind) => kind switch
+    {
+        Farm.MitigationKind.BubbleCurtain => "bubble",
+        Farm.MitigationKind.O2Diffuser => "diffuser",
+        Farm.MitigationKind.Pumping => "pumping",
+        Farm.MitigationKind.DeepFeeding => "deep_feeding",
+        _ => "none"
+    };
+
+    private static string MitigationKindLabel(Farm.MitigationKind kind) => kind switch
+    {
+        Farm.MitigationKind.BubbleCurtain => "Boblegardin",
+        Farm.MitigationKind.O2Diffuser => "O2-diffuser",
+        Farm.MitigationKind.Pumping => "Dypvannspumping",
+        Farm.MitigationKind.DeepFeeding => "Dypfôring",
+        _ => "Ingen"
+    };
+
+    private static string MitigationBestFor(Farm.MitigationKind kind) => kind switch
+    {
+        Farm.MitigationKind.BubbleCurtain => "jellyfish",
+        Farm.MitigationKind.O2Diffuser => "algae/hypoxia",
+        Farm.MitigationKind.Pumping => "hypoxia",
+        Farm.MitigationKind.DeepFeeding => "algae",
+        _ => ""
+    };
+
+    private static bool TryParseMitigationKind(string kind, out Farm.MitigationKind parsed)
+    {
+        switch ((kind ?? "").Trim().ToLowerInvariant())
+        {
+            case "bubble":
+            case "bubblecurtain":
+            case "bubble_curtain":
+                parsed = Farm.MitigationKind.BubbleCurtain; return true;
+            case "diffuser":
+            case "o2":
+            case "o2diffuser":
+            case "o2_diffuser":
+                parsed = Farm.MitigationKind.O2Diffuser; return true;
+            case "pumping":
+            case "pump":
+                parsed = Farm.MitigationKind.Pumping; return true;
+            case "deep_feeding":
+            case "deepfeeding":
+            case "deep_feed":
+                parsed = Farm.MitigationKind.DeepFeeding; return true;
+            default:
+                parsed = Farm.MitigationKind.None; return false;
+        }
+    }
+
+    private bool IsBloomMitigationInstalled(Farm.SeaSite site, Farm.MitigationKind kind)
+    {
+        if (site == null) return false;
+        if (kind == Farm.MitigationKind.BubbleCurtain || kind == Farm.MitigationKind.O2Diffuser)
+            return Farm.BloomMitigation.IsInstalled(kind, site);
+        return _installedMitigations.TryGetValue(site.Id, out var set) && set.Contains(kind);
+    }
+
+    /// <summary>
+    /// P11 persistence: mirror the in-memory mitigation registry into
+    /// <see cref="GameState.BloomMitigations"/> so it is serialized on save.
+    /// Flag-backed kinds (bubble curtain / O2 diffuser) persist on the site
+    /// model and are intentionally not duplicated here.
+    /// </summary>
+    private void SyncMitigationsToState()
+    {
+        var state = SimulationEngine?.State;
+        if (state == null) return;
+        state.BloomMitigations ??= new List<BloomMitigationState>();
+        state.BloomMitigations.Clear();
+        foreach (var kvp in _installedMitigations)
+        {
+            foreach (var kind in kvp.Value)
+            {
+                if (kind == Farm.MitigationKind.BubbleCurtain || kind == Farm.MitigationKind.O2Diffuser)
+                    continue;
+                state.BloomMitigations.Add(new BloomMitigationState
+                {
+                    SiteId = kvp.Key,
+                    Kind = MitigationKindKey(kind)
+                });
+            }
+        }
+    }
+
+    /// <summary>
+    /// P11 persistence: rebuild the in-memory mitigation registry from a saved
+    /// <see cref="GameState.BloomMitigations"/> list. Backward-safe: null list
+    /// or unknown kinds are ignored; flag-backed kinds are skipped (site flags
+    /// are the source of truth for them).
+    /// </summary>
+    private void RestoreMitigationsFromState(List<BloomMitigationState>? saved)
+    {
+        _installedMitigations.Clear();
+        if (saved == null) return;
+
+        foreach (var entry in saved)
+        {
+            if (entry == null || string.IsNullOrWhiteSpace(entry.SiteId)) continue;
+            if (!TryParseMitigationKind(entry.Kind, out var kind) || kind == Farm.MitigationKind.None) continue;
+            if (kind == Farm.MitigationKind.BubbleCurtain || kind == Farm.MitigationKind.O2Diffuser) continue;
+
+            if (!_installedMitigations.TryGetValue(entry.SiteId, out var set))
+            {
+                set = new HashSet<Farm.MitigationKind>();
+                _installedMitigations[entry.SiteId] = set;
+            }
+            set.Add(kind);
+        }
+    }
+
+    /// <summary>
+    /// Bloom-mitigation catalog for the UI: one entry per kind with its fixed
+    /// deployment cost (NOK), peak mortality reduction (fraction), intended
+    /// bloom kind and the sites where it is currently installed.
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetBloomMitigations()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var sites = SimulationEngine?.State?.SeaSites;
+        foreach (var kind in BloomMitigationKinds)
+        {
+            var installed = new Godot.Collections.Array<string>();
+            if (sites != null)
+            {
+                foreach (var s in sites)
+                    if (IsBloomMitigationInstalled(s, kind)) installed.Add(s.Id);
+            }
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["kind"] = MitigationKindKey(kind),
+                ["label"] = MitigationKindLabel(kind),
+                ["fixed_cost"] = (double)Farm.BloomMitigation.FixedCostNok(kind),
+                ["opex_at_full"] = (double)Farm.BloomMitigation.OpexPerSeverityNok(kind),
+                ["max_reduction"] = Farm.BloomMitigation.MaxReduction(kind),
+                ["best_for"] = MitigationBestFor(kind),
+                ["installed_sites"] = installed
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Install (or toggle off) a bloom mitigation at a site. Bubble curtain and O2
+    /// diffuser delegate to <see cref="DeployCountermeasure"/> so their existing
+    /// costs and site flags are preserved; pumping and deep feeding are tracked by
+    /// the bridge at their <see cref="Farm.BloomMitigation"/> fixed cost. Returns
+    /// false for an unknown site/kind or when funds are insufficient.
+    /// </summary>
+    public bool InstallBloomMitigation(string siteId, string kind)
+    {
+        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        if (site == null) return false;
+        if (!TryParseMitigationKind(kind, out var parsed) || parsed == Farm.MitigationKind.None) return false;
+
+        if (parsed == Farm.MitigationKind.BubbleCurtain || parsed == Farm.MitigationKind.O2Diffuser)
+            return DeployCountermeasure(siteId, MitigationKindKey(parsed));
+
+        bool installed = IsBloomMitigationInstalled(site, parsed);
+        if (!installed)
+        {
+            decimal cost = Farm.BloomMitigation.FixedCostNok(parsed);
+            if (SimulationEngine!.FinanceManager.Balance < cost)
+            {
+                EmitSignal(SignalName.FarmActionCompleted, "countermeasure", siteId, false);
+                return false;
+            }
+            SimulationEngine.FinanceManager.Spend(cost);
+            if (!_installedMitigations.TryGetValue(site.Id, out var set))
+            {
+                set = new HashSet<Farm.MitigationKind>();
+                _installedMitigations[site.Id] = set;
+            }
+            set.Add(parsed);
+            SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+            {
+                Day = SimulationEngine.State.Day,
+                Name = $"{MitigationKindLabel(parsed)} installert",
+                Category = LakskongenSim.Events.EventCategory.Equipment,
+                Description = $"{MitigationKindLabel(parsed)} ved {siteId}",
+                BalanceChange = -cost
+            });
+        }
+        else
+        {
+            _installedMitigations[site.Id].Remove(parsed);
+        }
+
+        // P11 persistence: keep the serializable mirror in lock-step.
+        SyncMitigationsToState();
+
+        EmitSignal(SignalName.FarmActionCompleted, "countermeasure", siteId, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        return true;
     }
 
     /// <summary>
@@ -1089,22 +2388,277 @@ public partial class GameBridge : Node
     }
 
     /// <summary>
-    /// Return detailed information about all sea sites as an Array of Dictionaries.
-    /// Keys: "id" (string), "name" (string), "zone" (string), "fish_count" (int),
+    /// Active blooms for UI (Phase 4.3).
+    /// Keys: "id", "kind", "site_id", "severity", "days_left".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetActiveBlooms()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var blooms = SimulationEngine?.State?.ActiveBlooms;
+        if (blooms == null) return result;
+        int today = SimulationEngine?.State?.Day ?? 0;
+        foreach (var b in blooms)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = b.Id,
+                ["kind"] = b.Kind,
+                ["site_id"] = b.SiteId,
+                ["severity"] = b.Severity01,
+                ["days_left"] = b.DaysLeft(today)
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Deploy a bloom countermeasure (Phase 4.3): "bubble" (1.8M + 90k/wk,
+    /// jelly ×0.23) or "diffuser" (2.4M + 120k/wk, hypoxia ×0.3, algae ×0.7).
+    /// Toggling an active measure OFF is free.
+    /// </summary>
+    public bool DeployCountermeasure(string siteId, string kind)
+    {
+        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        if (site == null) return false;
+        bool isBubble = (kind ?? "").ToLower() == "bubble";
+        if (!isBubble && (kind ?? "").ToLower() != "diffuser") return false;
+        bool active = isBubble ? site.HasBubbleCurtain : site.HasO2Diffuser;
+        if (!active)
+        {
+            decimal cost = isBubble ? 1_800_000m : 2_400_000m;
+            if (SimulationEngine!.FinanceManager.Balance < cost)
+            {
+                EmitSignal(SignalName.FarmActionCompleted, "countermeasure", siteId, false);
+                return false;
+            }
+            SimulationEngine.FinanceManager.Spend(cost);
+            if (isBubble) site.HasBubbleCurtain = true; else site.HasO2Diffuser = true;
+            SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+            {
+                Day = SimulationEngine.State.Day,
+                Name = isBubble ? "Boblegardin installert" : "O2-diffuser installert",
+                Category = LakskongenSim.Events.EventCategory.Equipment,
+                Description = $"{(isBubble ? "Boblegardin" : "O2-diffuser")} ved {siteId}",
+                BalanceChange = -cost
+            });
+        }
+        else if (isBubble) site.HasBubbleCurtain = false;
+        else site.HasO2Diffuser = false;
+
+        EmitSignal(SignalName.FarmActionCompleted, "countermeasure", siteId, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        return true;
+    }
+    /// <summary>Vaccinated share of live fish 0-1 (Phase 5.1).</summary>
+    public double VaccineCoverage
+    {
+        get
+        {
+            var state = SimulationEngine?.State;
+            return state != null ? LakskongenSim.Health.VaccinationProgram.Coverage01(state) : 0.0;
+        }
+    }
+
+    /// <summary>October window days left, -1 when closed (Phase 5.1).</summary>
+    public int VaccineWindowDaysLeft =>
+        LakskongenSim.Health.VaccinationProgram.WindowDaysLeft(SimulationEngine?.State?.Day ?? 0);
+
+    // ── Intervention advisor (Phase 5.3) ──
+
+    /// <summary>
+    /// Ranked intervention suggestions from twin-lite projection (Phase 5.3).
+    /// Keys: "id", "action", "site_id", "eta_days", "delta_nok", "confidence", "reasoning".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetInterventionRanking()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var engine = SimulationEngine;
+        if (engine?.State == null || engine.Growth == null || engine.SeaLice == null || engine.Analytics == null) return result;
+
+        var state = engine.State;
+        double tempC = engine.Weather?.CurrentTemperatureC ?? 10.0;
+        var forecast = LakskongenSim.Optimization.ForecastTwin.Project(
+            state, engine.Growth, engine.SeaLice, tempC, engine.Analytics);
+        double currentLice = engine.SeaLice.AverageLicePerFish;
+        double gillScore = 0.0;
+        if (state.SeaSites.Count > 0)
+            gillScore = state.SeaSites.Average(s => s.GillScore);
+        double feedFcr = engine.Feed?.CurrentFCR ?? 1.15;
+        var contracts = engine.ContractSystem?.ActiveContracts ?? new List<LakskongenSim.Market.Contract>();
+        int crewCount = state.Crew?.Count ?? 0;
+
+        var suggestions = LakskongenSim.Advisor.InterventionAdvisor.Rank(
+            state, forecast, currentLice, gillScore, feedFcr, contracts,
+            crewCount, state.Day);
+
+        foreach (var s in suggestions)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = s.Id,
+                ["action"] = s.Action,
+                ["site_id"] = s.SiteId,
+                ["eta_days"] = s.DaysOut,
+                ["delta_nok"] = (double)s.DeltaNok,
+                ["confidence"] = s.Confidence,
+                ["reasoning"] = s.Reasoning
+            });
+        }
+        return result;
+    }
+
+    // ── Night-shift ROC policy (Phase 5.2) ──
+
+    /// <summary>Current night-shift policy (Standard/ScanOnly/AutomatedROC).</summary>
+    public string NightShiftPolicy => SimulationEngine?.State?.NightShiftPolicy.ToString() ?? "Standard";
+
+    /// <summary>
+    /// Set night-shift ROC policy (Phase 5.2).
+    /// Standard / ScanOnly / AutomatedROC. Returns true on success.
+    /// </summary>
+    public bool SetNightShiftPolicy(string policyName)
+    {
+        if (!System.Enum.TryParse<LakskongenSim.Logistics.NightShiftPolicy>(policyName, true, out var policy))
+            return false;
+        var state = SimulationEngine?.State;
+        if (state == null) return false;
+        state.NightShiftPolicy = policy;
+        EmitSignal(SignalName.GameStateUpdated);
+        return true;
+    }
+
+    /// <summary>Night-shift policy premium / detection / fatigue scalars.</summary>
+    public Godot.Collections.Dictionary GetNightShiftStatus()
+    {
+        var state = SimulationEngine?.State;
+        var policy = state?.NightShiftPolicy ?? LakskongenSim.Logistics.NightShiftPolicy.Standard;
+        return new Godot.Collections.Dictionary
+        {
+            ["policy"] = policy.ToString(),
+            ["premium_monthly"] = (double)LakskongenSim.Logistics.NightShiftResolver.MonthlyCost(
+                (LakskongenSim.Logistics.NightShiftPolicy)policy),
+            ["detection_chance"] = LakskongenSim.Logistics.NightShiftResolver.DetectionChance(
+                (LakskongenSim.Logistics.NightShiftPolicy)policy),
+            ["fatigue_per_night"] = LakskongenSim.Logistics.NightShiftResolver.FatigueDelta(
+                (LakskongenSim.Logistics.NightShiftPolicy)policy),
+            ["misfire_chance"] = LakskongenSim.Logistics.NightShiftResolver.MisfireChance(
+                (LakskongenSim.Logistics.NightShiftPolicy)policy,
+                state?.Crew?.Count > 0 ? (int)(state.Crew.Average(c => c.Morale)) : 5)
+        };
+    }
+
+    /// <summary>
+    /// Vaccinate a site against ulcer/CMS (Phase 5.1). October window only,
+    /// 3.2 NOK/fish + 0.6% handling loss (vet halves it), 12-mo protection.
+    /// </summary>
+    public bool VaccinateSite(string siteId)
+    {
+        var state = SimulationEngine?.State;
+        var site = state?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        if (site == null) return false;
+        if (!LakskongenSim.Health.VaccinationProgram.IsWindowOpen(state!.Day))
+        {
+            GD.Print($"GameBridge: VaccinateSite refused — October window closed (day {state.Day})");
+            EmitSignal(SignalName.FarmActionCompleted, "vaccinate", siteId, false);
+            return false;
+        }
+        int fish = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
+        if (fish <= 0) return false;
+        decimal cost = fish * LakskongenSim.Health.VaccinationProgram.CostPerFishNok;
+        if (SimulationEngine!.FinanceManager.Balance < cost)
+        {
+            EmitSignal(SignalName.FarmActionCompleted, "vaccinate", siteId, false);
+            return false;
+        }
+        bool vet = LakskongenSim.Core.CrewEffects.HasRole(state, "veterinaer");
+        double lossRate = LakskongenSim.Health.VaccinationProgram.HandlingLoss * (vet ? 0.5 : 1.0);
+        int lost = 0;
+        foreach (var pop in site.Pens)
+        {
+            foreach (var cohort in pop.Cohorts)
+            {
+                int take = (int)(cohort.Count * lossRate);
+                cohort.Count = System.Math.Max(0, cohort.Count - take);
+                lost += take;
+            }
+            pop.VaccinatedDay = state.Day;
+        }
+        SimulationEngine.FinanceManager.Spend(cost);
+        state.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = state.Day,
+            Name = "Vaksinering",
+            Category = LakskongenSim.Events.EventCategory.Disease,
+            Description = $"{siteId} vaksinert mot sår/CMS ({fish:N0} fisk, {lost:N0} håndteringstap)",
+            BalanceChange = -cost
+        });
+        EmitSignal(SignalName.FarmActionCompleted, "vaccinate", siteId, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        return true;
+    }
+
+    /// <summary>
+    /// Toggle a preventive mitigation at a site (Phase 1.5).
+    /// kind: "skirt" (500k install, 2k/day, -settlement) or
+    ///       "deterrent" (200k install, 1k/day, seal protection).
+    /// Installing charges once; toggling an active mitigation OFF is free.
+    /// </summary>
+    public bool ToggleMitigation(string siteId, string kind)
+    {
+        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        if (site == null)
+        {
+            EmitSignal(SignalName.FarmActionCompleted, "mitigation", siteId, false);
+            return false;
+        }
+        bool isSkirt = (kind ?? "").ToLower() == "skirt";
+        bool active = isSkirt ? site.HasLiceSkirt : site.HasSealDeterrent;
+        if (!active)
+        {
+            decimal cost = isSkirt ? 500_000m : 200_000m;
+            if (SimulationEngine!.FinanceManager.Balance < cost)
+            {
+                EmitSignal(SignalName.FarmActionCompleted, "mitigation", siteId, false);
+                return false;
+            }
+            SimulationEngine.FinanceManager.Spend(cost);
+            if (isSkirt) site.HasLiceSkirt = true; else site.HasSealDeterrent = true;
+            SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+            {
+                Day = SimulationEngine.State.Day,
+                Name = isSkirt ? "Lice Skirt Installed" : "Seal Deterrent Installed",
+                Category = LakskongenSim.Events.EventCategory.Equipment,
+                Description = $"{(isSkirt ? "Luseskjørt" : "Seldeterrent")} installert ved {siteId}",
+                BalanceChange = -cost
+            });
+        }
+        else if (isSkirt) site.HasLiceSkirt = false;
+        else site.HasSealDeterrent = false;
+
+        EmitSignal(SignalName.FarmActionCompleted, "mitigation", siteId, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        return true;
+    }
     ///       "biomass_kg" (double), "max_biomass" (double), "escapes_this_year" (int).
+    /// </summary>
+    /// <summary>
+    /// Return detailed information about all sea sites as an Array of Dictionaries.
+    /// Keys: "id", "name", "zone", "fish_count", "biomass_kg", "max_biomass",
+    ///       "escapes_this_year", "net_integrity", "has_skirt", "has_deterrent".
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetSeaSiteDetails()
     {
         var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
         var sites = SimulationEngine?.State?.SeaSites;
-        var populations = SimulationEngine?.State?.Populations;
-        if (sites == null || populations == null) return result;
+        if (sites == null) return result;
 
         foreach (var site in sites)
         {
-            var population = populations.FirstOrDefault(p => p.ZoneId == site.Id);
-            int fishCount = population?.Cohorts.Sum(c => c.Count) ?? 0;
-            double biomassKg = population?.Cohorts.Sum(c => c.Count * (double)c.MeanWeightKg) ?? 0.0;
+            // Per-site truth lives in site.Pens: populations carry the
+            // shared ZoneId, never the site Id, so State-wide filtering
+            // by either key misattributes biomass across sites.
+            int fishCount = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
+            double biomassKg = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count * (double)c.MeanWeightKg);
 
             result.Add(new Godot.Collections.Dictionary
             {
@@ -1114,15 +2668,26 @@ public partial class GameBridge : Node
                 ["fish_count"]        = fishCount,
                 ["biomass_kg"]        = biomassKg,
                 ["max_biomass"]       = site.MABTonnes * 1000,
-                ["escapes_this_year"] = site.EscapesThisYear
+                ["escapes_this_year"] = site.EscapesThisYear,
+                ["net_integrity"]     = site.NetIntegrityPct,
+                ["has_skirt"]         = site.HasLiceSkirt,
+                ["has_deterrent"]     = site.HasSealDeterrent,
+                ["containment"]       = site.Containment.ToString(),
+                ["watch_mode"]        = site.WatchMode,
+                ["gill_score"]        = site.GillScore,
+                ["has_bubble"]        = site.HasBubbleCurtain,
+                ["has_diffuser"]      = site.HasO2Diffuser
             });
         }
         return result;
     }
 
     /// <summary>
-    /// Order a delousing treatment for a specific sea site using the specified method.
-    /// Valid methods: "mechanical", "thermal", "chemical", "biological".
+    /// Order a delousing treatment (Phase 2.2: full treatment cards).
+    /// Methods: thermolicer, hydrolicer, cleanerfish, laser, freshwater,
+    /// peroxide, medicatedfeed, skirt + legacy aliases mechanical/thermal/
+    /// chemical/biological. Delegates to DelousingSystem profiles (efficacy,
+    /// mortality, welfare, resistance) per population.
     /// Returns true on success, false if site not found, method invalid, or insufficient funds.
     /// </summary>
     public bool OrderDelousing(string siteId, string method)
@@ -1134,9 +2699,8 @@ public partial class GameBridge : Node
             return false;
         }
 
-        // Validate method
-        var validMethods = new[] { "mechanical", "thermal", "chemical", "biological" };
-        if (!validMethods.Contains(method.ToLower()))
+        // Map UI method names (incl. legacy) to DelousingMethod.
+        if (!TryParseDelousingMethod(method, out var delousingMethod))
         {
             GD.PrintErr($"GameBridge: OrderDelousing failed - invalid method '{method}'");
             EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, false);
@@ -1155,34 +2719,18 @@ public partial class GameBridge : Node
             return false;
         }
 
-        // Calculate total fish count for cost
+        // Calculate total fish count for cost (per-site pens — ZoneId is
+        // zone-shared, so State-wide filtering would double-count sites
+        // in the same zone).
         int totalFish = 0;
         foreach (var site in targetSites)
         {
-            var populations = SimulationEngine.State.Populations.Where(p => p.ZoneId == site.ZoneId);
-            totalFish += populations.SelectMany(p => p.Cohorts).Sum(c => c.Count);
+            totalFish += site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
         }
 
-        // Treatment costs and effectiveness by method
-        decimal costPerFish = method.ToLower() switch
-        {
-            "mechanical" => 50m,   // Most expensive but effective
-            "thermal" => 40m,      // Moderate cost and effectiveness
-            "chemical" => 30m,     // Cheaper but environmental concerns
-            "biological" => 25m,   // Cheapest (cleaner fish)
-            _ => 50m
-        };
-
-        double effectiveness = method.ToLower() switch
-        {
-            "mechanical" => 0.85,  // 85% reduction
-            "thermal" => 0.75,     // 75% reduction
-            "chemical" => 0.70,    // 70% reduction
-            "biological" => 0.50,  // 50% reduction (ongoing)
-            _ => 0.70
-        };
-
-        decimal totalCost = totalFish * costPerFish;
+        // Profile-driven cost/efficacy (single source of truth).
+        var profile = LakskongenSim.Farm.DelousingSystem.GetProfile(delousingMethod);
+        decimal totalCost = totalFish * profile.CostPerFish;
 
         if (SimulationEngine.FinanceManager.Balance < totalCost)
         {
@@ -1191,8 +2739,26 @@ public partial class GameBridge : Node
             return false;
         }
 
-        // Apply treatment
-        SimulationEngine.SeaLice.ApplyTreatment(effectiveness);
+        // Apply per-population via DelousingSystem (profile efficacy with
+        // resistance, handling mortality, welfare). Veterinarian halves deaths.
+        var delousing = new LakskongenSim.Farm.DelousingSystem();
+        double tempC = SimulationEngine.Weather?.CurrentTemperatureC ?? 10.0;
+        double mortMult = LakskongenSim.Core.CrewEffects.TreatmentMortalityMultiplier(SimulationEngine.State);
+        // Phase 4.3: damaged gills can't take heat/handling — up to +150%.
+        double worstGill = targetSites.Count > 0
+            ? targetSites.Min(s => s.GillScore) : 100.0;
+        mortMult *= 1.0 + (1.0 - worstGill / 100.0) * 1.5;
+        int totalDeaths = 0;
+        foreach (var site in targetSites)
+        {
+            foreach (var pop in site.Pens)
+            {
+                if (pop.TotalCount <= 0) continue;
+                var result = delousing.Treat(pop, delousingMethod,
+                    SimulationEngine.SeaLice, SimulationEngine.IntegratedDisease, tempC, mortMult);
+                totalDeaths += result.Deaths;
+            }
+        }
         SimulationEngine.FinanceManager.Spend(totalCost);
 
         // Record event
@@ -1201,17 +2767,842 @@ public partial class GameBridge : Node
             Day = SimulationEngine.State.Day,
             Name = "Delousing Treatment",
             Category = LakskongenSim.Events.EventCategory.Disease,
-            Description = $"Applied {method} delousing to {(siteId == "all_sites" ? "all sites" : siteId)} ({totalFish:N0} fish treated, {effectiveness:P0} effective)",
+            Description = $"Applied {delousingMethod} delousing to {(siteId == "all_sites" ? "all sites" : siteId)} ({totalFish:N0} fish treated, {profile.Efficacy:P0} profile efficacy, {totalDeaths:N0} handling deaths)",
             BalanceChange = -totalCost
         });
 
         EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, true);
         EmitSignal(SignalName.GameStateUpdated);
-        GD.Print($"GameBridge: Delousing treatment applied — {method} ({totalFish:N0} fish, {totalCost:N0} NOK, {effectiveness:P0} effective)");
+        GD.Print($"GameBridge: Delousing treatment applied — {delousingMethod} ({totalFish:N0} fish, {totalCost:N0} NOK, {totalDeaths:N0} deaths)");
         return true;
     }
 
+    /// <summary>
+    /// Map UI/legacy method names to DelousingMethod (Phase 2.2).
+    /// </summary>
+    public static bool TryParseDelousingMethod(string name, out LakskongenSim.Data.DelousingMethod method)
+    {
+        switch ((name ?? "").ToLower())
+        {
+            case "thermolicer":
+            case "thermal": method = LakskongenSim.Data.DelousingMethod.Thermolicer; return true;
+            case "hydrolicer":
+            case "mechanical": method = LakskongenSim.Data.DelousingMethod.Hydrolicer; return true;
+            case "cleanerfish":
+            case "cleaner_fish":
+            case "biological": method = LakskongenSim.Data.DelousingMethod.CleanerFish; return true;
+            case "laser":
+            case "laserdelousing":
+            case "stingray": method = LakskongenSim.Data.DelousingMethod.LaserDelousing; return true;
+            case "freshwater":
+            case "freshwaterbath": method = LakskongenSim.Data.DelousingMethod.FreshwaterBath; return true;
+            case "peroxide":
+            case "hydrogen_peroxide":
+            case "chemical": method = LakskongenSim.Data.DelousingMethod.HydrogenPeroxide; return true;
+            case "medicatedfeed":
+            case "medicated_feed": method = LakskongenSim.Data.DelousingMethod.MedicatedFeed; return true;
+            case "skirt":
+            case "liceskirts": method = LakskongenSim.Data.DelousingMethod.LiceSkirts; return true;
+            default: method = default; return false;
+        }
+    }
+
+    /// <summary>
+    /// Treatment cards for the delousing UI (Phase 2.2).
+    /// Keys: "id", "efficacy", "mortality", "cost_per_fish", "welfare_impact",
+    ///       "resistance_risk", "requires_wellboat".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetTreatmentProfiles()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (LakskongenSim.Data.DelousingMethod m in System.Enum.GetValues(typeof(LakskongenSim.Data.DelousingMethod)))
+        {
+            var p = LakskongenSim.Farm.DelousingSystem.GetProfile(m);
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"]              = m.ToString(),
+                ["efficacy"]        = p.Efficacy,
+                ["mortality"]       = p.MortalityRisk,
+                ["cost_per_fish"]   = (double)p.CostPerFish,
+                ["welfare_impact"]  = p.WelfareImpact,
+                ["resistance_risk"] = p.ResistanceRiskIncrease,
+                ["requires_wellboat"] = p.RequiresWellboat
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Current chemical/mechanical resistance 0-1 (Phase 2.2) for the UI.
+    /// Keys: "pyrethroid", "organophosphate", "peroxide", "mechanical".
+    /// </summary>
+    public Godot.Collections.Dictionary GetResistanceLevels()
+    {
+        var lice = SimulationEngine?.SeaLice;
+        return new Godot.Collections.Dictionary
+        {
+            ["pyrethroid"]      = lice?.PyrethroidResistance ?? 0.0,
+            ["organophosphate"] = lice?.OrganophosphateResistance ?? 0.0,
+            ["peroxide"]        = lice?.HydrogenPeroxideResistance ?? 0.0,
+            ["mechanical"]      = lice?.MechanicalResistance ?? 0.0
+        };
+    }
+
+    /// <summary>
+    /// Buy a VAP processing plant (Phase 3.5). Tiers mirror ProcessingManager:
+    /// Small 1M, Medium 5M, Large 15M. Owned plant adds +12% fillet margin on
+    /// all harvest revenue at 5k NOK/day opex. One plant per game (upgrade
+    /// = pay difference).
+    /// </summary>
+    public bool BuyProcessingPlant(string tier)
+    {
+        var state = SimulationEngine?.State;
+        if (state == null) return false;
+        tier = (tier ?? "").Trim();
+        decimal cost = tier.ToLower() switch
+        {
+            "small" => 1_000_000m,
+            "medium" => 5_000_000m,
+            "large" => 15_000_000m,
+            _ => -1m
+        };
+        if (cost < 0) return false;
+        if (state.OwnsProcessingPlant && state.ProcessingTier.ToLower() == tier.ToLower())
+            return true;
+        decimal ownedValue = state.OwnsProcessingPlant ? state.ProcessingTier.ToLower() switch
+        {
+            "small" => 1_000_000m,
+            "medium" => 5_000_000m,
+            "large" => 15_000_000m,
+            _ => 0m
+        } : 0m;
+        decimal due = cost - ownedValue;
+        if (due <= 0) return true;
+        if (SimulationEngine!.FinanceManager.Balance < due) return false;
+        SimulationEngine.FinanceManager.Spend(due);
+        state.OwnsProcessingPlant = true;
+        state.ProcessingTier = tier;
+        state.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = state.Day,
+            Name = "Foredlingsanlegg kjøpt",
+            Category = LakskongenSim.Events.EventCategory.Equipment,
+            Description = $"Filetlinje ({tier}) satt i drift — +12% på all høsteinntekt",
+            BalanceChange = -due
+        });
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: Processing plant bought ({tier}, {due:N0} NOK)");
+        return true;
+    }
+
+    /// <summary>
+    /// Containment ladder table for UI (Phase 4.1).
+    /// Keys: "id", "capex_nok", "weekly_opex_nok", "lice_exclusion",
+    ///       "oxygen_demand", "storm_mult", "escape_mult", "growth_mult".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetContainmentLevels()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var kv in LakskongenSim.Farm.ContainmentTech.Table)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = kv.Key.ToString(),
+                ["capex_nok"] = (double)kv.Value.CapexNok,
+                ["weekly_opex_nok"] = (double)kv.Value.WeeklyOpexNok,
+                ["lice_exclusion"] = kv.Value.LiceExclusion01,
+                ["oxygen_demand"] = kv.Value.OxygenDemandMult,
+                ["storm_mult"] = kv.Value.StormDamageMult,
+                ["escape_mult"] = kv.Value.EscapeRiskMult,
+                ["growth_mult"] = kv.Value.GrowthMult
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Set ROC watch mode for a site (Phase 4.2). Refused when over budget.
+    /// Budget = 100 + 15/crew (cap +45). Returns true on success.
+    /// </summary>
+    public bool SetWatchMode(string siteId, string mode)
+    {
+        var state = SimulationEngine?.State;
+        var site = state?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        if (site == null) return false;
+        mode = (mode ?? "").ToLower();
+        if (mode != "watch" && mode != "scan" && mode != "auto") return false;
+        int budget = LakskongenSim.Optimization.RemoteOpsCentre.BudgetFor(state!.Crew.Count);
+        int used = state.SeaSites.Sum(s => LakskongenSim.Optimization.RemoteOpsCentre.CostFor(s.Id == siteId ? mode : s.WatchMode));
+        if (used > budget) return false;
+        site.WatchMode = mode;
+        EmitSignal(SignalName.GameStateUpdated);
+        return true;
+    }
+
+    /// <summary>ROC attention budget and usage (Phase 4.2).</summary>
+    public Godot.Collections.Dictionary GetAttentionBudget()
+    {
+        var state = SimulationEngine?.State;
+        int crew = state?.Crew.Count ?? 0;
+        int sites = state?.SeaSites.Count ?? 0;
+        return new Godot.Collections.Dictionary
+        {
+            ["budget"] = LakskongenSim.Optimization.RemoteOpsCentre.BudgetFor(crew),
+            ["used"] = state?.SeaSites != null
+                ? LakskongenSim.Optimization.RemoteOpsCentre.UsedBy(state.SeaSites) : 0,
+            ["site_count"] = sites
+        };
+    }
+    /// <summary>
+    /// Set feed recipe (Phase 4.4): protein 38-48, replacement 0-60, astax 0-80.
+    /// Updates feed price authority, FCR multiplier and novel-ingredient flag.
+    /// </summary>
+    public void SetFeedRecipe(double proteinPct, double replacePct, double astaxPpm)
+    {
+        var state = SimulationEngine?.State;
+        if (state == null) return;
+        var (p, r, a) = LakskongenSim.Processing.FeedRecipe.Clamp(proteinPct, replacePct, astaxPpm);
+        state.RecipeProteinPct = p;
+        state.RecipeReplacePct = r;
+        state.RecipeAstaxPpm = a;
+        ApplyFeedRecipe();
+        EmitSignal(SignalName.GameStateUpdated);
+    }
+
+    /// <summary>Current recipe + live preview (cost, FCR mult, grade).</summary>
+    public Godot.Collections.Dictionary GetFeedRecipe()
+    {
+        var state = SimulationEngine?.State;
+        double p = state?.RecipeProteinPct ?? 42.0;
+        double r = state?.RecipeReplacePct ?? 20.0;
+        double a = state?.RecipeAstaxPpm ?? 50.0;
+        string grade = LakskongenSim.Processing.FeedRecipe.Grade(p, a);
+        return new Godot.Collections.Dictionary
+        {
+            ["protein"] = p,
+            ["replace"] = r,
+            ["astax"] = a,
+            ["cost_per_kg"] = LakskongenSim.Processing.FeedRecipe.CostPerKg(p, r, a),
+            ["fcr_mult"] = LakskongenSim.Processing.FeedRecipe.FcrMult(p, r, a),
+            ["grade"] = grade,
+            ["vap_mult"] = (double)LakskongenSim.Processing.FeedRecipe.VapMult(grade)
+        };
+    }
+
+    private void ApplyFeedRecipe()
+    {
+        var state = SimulationEngine?.State;
+        var feed = SimulationEngine?.Feed;
+        if (state == null || feed == null) return;
+        feed.FeedCostPerKg = (decimal)LakskongenSim.Processing.FeedRecipe.CostPerKg(
+            state.RecipeProteinPct, state.RecipeReplacePct, state.RecipeAstaxPpm);
+        feed.RecipeFCRMult = LakskongenSim.Processing.FeedRecipe.FcrMult(
+            state.RecipeProteinPct, state.RecipeReplacePct, state.RecipeAstaxPpm);
+        feed.UsesInsectMeal = state.RecipeReplacePct >= 30.0;
+    }
+    /// <summary>
+    /// Twin-lite 7-day forecast (Phase 4.5, PROJECTION): biomass/lice/cash
+    /// arrays + confidence. Cached per day. Read-only — never touches live sim.
+    /// Keys: "biomass_kg", "lice", "cash_nok" (Array double), "confidence".
+    /// </summary>
+    private Godot.Collections.Dictionary? _forecastCache;
+    private int _forecastCacheDay = -1;
+
+    public Godot.Collections.Dictionary GetForecast()
+    {
+        int day = SimulationEngine?.State?.Day ?? 0;
+        if (_forecastCache != null && _forecastCacheDay == day)
+            return (Godot.Collections.Dictionary)_forecastCache.Duplicate();
+        var result = new Godot.Collections.Dictionary
+        {
+            ["biomass_kg"] = new Godot.Collections.Array<double>(),
+            ["lice"] = new Godot.Collections.Array<double>(),
+            ["cash_nok"] = new Godot.Collections.Array<double>(),
+            ["confidence"] = "low"
+        };
+        var engine = SimulationEngine;
+        if (engine?.State != null && engine.Growth != null && engine.SeaLice != null && engine.Analytics != null)
+        {
+            var fc = LakskongenSim.Optimization.ForecastTwin.Project(
+                engine.State, engine.Growth, engine.SeaLice,
+                engine.Weather?.CurrentTemperatureC ?? 8.0, engine.Analytics);
+            var bio = new Godot.Collections.Array<double>();
+            var lice = new Godot.Collections.Array<double>();
+            var cash = new Godot.Collections.Array<double>();
+            foreach (var v in fc.BiomassKg) bio.Add(v);
+            foreach (var v in fc.LicePerFish) lice.Add(v);
+            foreach (var v in fc.CashNok) cash.Add(v);
+            result["biomass_kg"] = bio;
+            result["lice"] = lice;
+            result["cash_nok"] = cash;
+            result["confidence"] = fc.Confidence;
+        }
+        _forecastCache = result;
+        _forecastCacheDay = day;
+        return (Godot.Collections.Dictionary)result.Duplicate();
+    }
+    /// <summary>
+    /// Upgrade site containment one rung up the ladder (Phase 4.1, no downgrade).
+    /// Charges the target level's capex, syncs skirt flag at level 1+, applies
+    /// immediate red-zone MAB credit when eligible. Returns true on success.
+    /// </summary>
+    public bool UpgradeContainment(string siteId, string levelName)
+    {
+        var state = SimulationEngine?.State;
+        var site = state?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        if (site == null) return false;
+        if (!System.Enum.TryParse<LakskongenSim.Farm.ContainmentLevel>(levelName, true, out var target))
+            return false;
+        if (target <= site.Containment) return false; // no downgrade / same-level
+        var mods = LakskongenSim.Farm.ContainmentTech.ModifiersFor(target);
+        if (SimulationEngine!.FinanceManager.Balance < mods.CapexNok) return false;
+        SimulationEngine.FinanceManager.Spend(mods.CapexNok);
+        site.Containment = target;
+        if (target >= LakskongenSim.Farm.ContainmentLevel.Skirt)
+            site.HasLiceSkirt = true;
+        if (target >= LakskongenSim.Farm.ContainmentLevel.ClosedFloat)
+            site.IsClosedContainment = true;
+        // Immediate red-zone credit when upgrading inside a red zone.
+        var tls = SimulationEngine.TrafficLightSystem;
+        if (tls != null && tls.GetZoneColor(site.ZoneId).ToString() == "Red"
+            && !site.RedZoneCreditApplied && target >= LakskongenSim.Farm.ContainmentLevel.SemiClosed)
+        {
+            double credit = LakskongenSim.Farm.ContainmentTech.MabCreditFor(target, true);
+            site.MABTonnes *= credit;
+            site.RedZoneCreditApplied = true;
+        }
+        state!.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = state.Day,
+            Name = "Containment oppgradert",
+            Category = LakskongenSim.Events.EventCategory.Equipment,
+            Description = $"{siteId} → {target} ({mods.CapexNok:N0} NOK)",
+            BalanceChange = -mods.CapexNok
+        });
+        EmitSignal(SignalName.FarmActionCompleted, "upgrade_containment", siteId, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: {siteId} containment → {target}");
+        return true;
+    }
+
+    /// <summary>
+    /// Repair nets at a sea site (Phase 1.2). Cost scales with damage:
+    /// NOK 250k for a full 0→100 rebuild. Restores NetIntegrityPct to 100.
+    /// Returns true on success, false if site not found or insufficient funds.
+    /// </summary>
+    public bool RepairNets(string siteId)
+    {
+        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        if (site == null)
+        {
+            GD.PrintErr($"GameBridge: RepairNets failed - site '{siteId}' not found");
+            EmitSignal(SignalName.FarmActionCompleted, "repair_nets", siteId, false);
+            return false;
+        }
+        if (site.NetIntegrityPct >= 99.5)
+        {
+            GD.Print($"GameBridge: RepairNets — '{siteId}' already intact");
+            return true;
+        }
+        decimal cost = (decimal)(100.0 - site.NetIntegrityPct) / 100m * 250_000m;
+        if (SimulationEngine!.FinanceManager.Balance < cost)
+        {
+            GD.PrintErr($"GameBridge: RepairNets failed - insufficient funds (need {cost:N0} NOK)");
+            EmitSignal(SignalName.FarmActionCompleted, "repair_nets", siteId, false);
+            return false;
+        }
+        site.NetIntegrityPct = 100.0;
+        SimulationEngine.FinanceManager.Spend(cost);
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "Net Repair",
+            Category = LakskongenSim.Events.EventCategory.Equipment,
+            Description = $"Repaired nets at {siteId} (100%)",
+            BalanceChange = -cost
+        });
+        EmitSignal(SignalName.FarmActionCompleted, "repair_nets", siteId, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: Repaired nets at '{siteId}' for {cost:N0} NOK");
+        return true;
+    }
+
+    // ── Phase 5.3: Sludge Valorization ───────────────────────────────────────────
+
+    /// <summary>
+    /// Get sludge status for all sea sites.
+    /// Keys per site: "id", "accumulated_kg_ds", "valorized_kg_ds", "last_valorization_day",
+    ///                 "has_hub_connection", "projected_daily_kg_ds".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetSludgeStatus()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var sites = SimulationEngine?.State?.SeaSites;
+        if (sites == null) return result;
+
+        foreach (var site in sites)
+        {
+            // Project daily sludge based on recent feed usage
+            double dailyFeedKg = 0.0;
+            var pops = site.Pens;
+            foreach (var pop in pops)
+            {
+                // Approximate from biomass - rough estimate 1.5% body weight/day
+                dailyFeedKg += pop.GetTotalBiomassKg() * 0.015;
+            }
+            var containmentMods = Farm.SludgeValorization.ContainmentCollectionMult.TryGetValue(site.Containment, out var m) ? m : Farm.SludgeValorization.Default.CollectionEfficiency;
+            double projectedDaily = dailyFeedKg / 1000.0 * Farm.SludgeValorization.Default.KgDrySolidsPerTonneFeed * containmentMods;
+
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = site.Id,
+                ["accumulated_kg_ds"] = site.SludgeAccumulatedKgDs,
+                ["valorized_kg_ds"] = site.SludgeValorizedKgDs,
+                ["last_valorization_day"] = site.LastSludgeValorizationDay,
+                ["has_hub_connection"] = site.HasSludgeHubConnection,
+                ["projected_daily_kg_ds"] = projectedDaily
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Toggle centralized sludge hub connection for a site (Phase 5.3).
+    /// CAPEX 40M NOK (shared hub), enables weekly auto-valorization at better efficiency.
+    /// Returns true on success.
+    /// </summary>
+    public bool ToggleSludgeHub(string siteId)
+    {
+        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        if (site == null) return false;
+
+        if (!site.HasSludgeHubConnection)
+        {
+            // Check if hub already built elsewhere or build new
+            bool hubExists = SimulationEngine.State.SeaSites.Any(s => s.HasSludgeHubConnection);
+            decimal cost = hubExists ? 5_000_000m : 40_000_000m; // Connection vs new hub
+            if (SimulationEngine!.FinanceManager.Balance < cost) return false;
+            SimulationEngine.FinanceManager.Spend(cost);
+            site.HasSludgeHubConnection = true;
+
+            SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+            {
+                Day = SimulationEngine.State.Day,
+                Name = hubExists ? "Slam-hub tilkobling" : "Slam-hub byggd",
+                Category = LakskongenSim.Events.EventCategory.Equipment,
+                Description = $"{site.Id} koblet til sentral slam-hub ({cost:N0} NOK)",
+                BalanceChange = -cost
+            });
+        }
+        else
+        {
+            site.HasSludgeHubConnection = false;
+            SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+            {
+                Day = SimulationEngine.State.Day,
+                Name = "Slam-hub frakoblet",
+                Category = LakskongenSim.Events.EventCategory.Equipment,
+                Description = $"{site.Id} frakoblet fra sentral slam-hub",
+                BalanceChange = 0m
+            });
+        }
+
+        EmitSignal(SignalName.GameStateUpdated);
+        return true;
+    }
+
+    /// <summary>
+    /// Manually trigger sludge valorization at a site (Phase 5.3).
+    /// Returns net revenue (biogas + fertilizer - opex).
+    /// </summary>
+    public decimal ValorizeSludgeNow(string siteId)
+    {
+        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        if (site == null) return 0m;
+        if (site.SludgeAccumulatedKgDs < 100.0) return 0m;
+
+        var sludgeParams = Farm.SludgeValorization.Default;
+        var (biogasRev, fertRev, opex) = Farm.SludgeValorization.Valorize(site.SludgeAccumulatedKgDs, sludgeParams);
+        decimal netRev = biogasRev + fertRev - opex;
+
+        if (netRev > 0)
+            SimulationEngine!.FinanceManager.AddRevenue(netRev);
+        else
+        {
+            if (!SimulationEngine!.FinanceManager.Spend(-netRev))
+                SimulationEngine!.FinanceManager.ForceSpend(-netRev);
+        }
+
+        site.SludgeValorizedKgDs += site.SludgeAccumulatedKgDs;
+        site.LastSludgeValorizationDay = SimulationEngine!.State.Day;
+
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "Manuell slam-valorisering",
+            Category = LakskongenSim.Events.EventCategory.Equipment,
+            Description = $"{site.Id}: {site.SludgeAccumulatedKgDs:F0} kg DS → biogas {biogasRev:N0} + gjødsel {fertRev:N0} - OPEX {opex:N0} = {netRev:+#,0;-#,0;0} NOK",
+            BalanceChange = netRev
+        });
+        SimulationEngine.State.TrimEventLog();
+
+        site.SludgeAccumulatedKgDs = 0.0;
+        EmitSignal(SignalName.GameStateUpdated);
+        return netRev;
+    }
+
+    // ── Phase 5.3: Cohort Transfers ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Transfer reason enum for UI.
+    /// </summary>
+    public enum TransferReason
+    {
+        Grading,
+        Fallowing,
+        MabManagement,
+        DiseaseIsolation,
+        OffshoreStocking,
+        ContainmentUpgrade
+    }
+
+    /// <summary>
+    /// Plan a cohort transfer between sites (Phase 5.3).
+    /// Returns plan with cost, mortality estimate, ETA. Does not execute.
+    /// Keys: "source_id", "dest_id", "fish_count", "mean_weight_kg", "reason",
+    ///       "eta_days", "estimated_cost_nok", "estimated_mortality_pct", "requires_wellboat".
+    /// </summary>
+    public Godot.Collections.Dictionary PlanCohortTransfer(
+        string sourceSiteId, string destSiteId, int fishCount, double meanWeightKg, string reasonStr)
+    {
+        var result = new Godot.Collections.Dictionary();
+        if (!System.Enum.TryParse<Farm.CohortTransferSystem.TransferReason>(reasonStr, true, out var reason))
+        {
+            result["error"] = "Invalid reason";
+            return result;
+        }
+
+        var state = SimulationEngine?.State;
+        if (state == null) { result["error"] = "Engine not initialized"; return result; }
+
+        bool hasVet = LakskongenSim.Core.CrewEffects.HasRole(state, "veterinaer");
+        var plan = Farm.CohortTransferSystem.PlanTransfer(sourceSiteId, destSiteId, fishCount, meanWeightKg, reason, state, hasVet);
+
+        result["source_id"] = plan.SourceSiteId;
+        result["dest_id"] = plan.DestSiteId;
+        result["fish_count"] = plan.FishCount;
+        result["mean_weight_kg"] = plan.MeanWeightKg;
+        result["reason"] = plan.Reason.ToString();
+        result["eta_days"] = plan.EtaDays;
+        result["estimated_cost_nok"] = (double)plan.EstimatedCostNok;
+        result["estimated_mortality_pct"] = plan.EstimatedMortalityPct;
+        result["requires_wellboat"] = plan.RequiresWellboat;
+        return result;
+    }
+
+    /// <summary>
+    /// Execute a planned cohort transfer (Phase 5.3).
+    /// Called when wellboat arrives (or immediately for testing).
+    /// Returns result dict: "success", "fish_transferred", "fish_lost", "actual_cost_nok", "message".
+    /// </summary>
+    public Godot.Collections.Dictionary ExecuteCohortTransfer(
+        string sourceSiteId, string destSiteId, int fishCount, double meanWeightKg, string reasonStr)
+    {
+        var result = new Godot.Collections.Dictionary();
+        if (!System.Enum.TryParse<Farm.CohortTransferSystem.TransferReason>(reasonStr, true, out var reason))
+        {
+            result["success"] = false;
+            result["message"] = "Invalid reason";
+            return result;
+        }
+
+        var engine = SimulationEngine;
+        if (engine?.State == null) { result["success"] = false; result["message"] = "Engine not initialized"; return result; }
+
+        bool hasVet = LakskongenSim.Core.CrewEffects.HasRole(engine.State, "veterinaer");
+        var plan = Farm.CohortTransferSystem.PlanTransfer(sourceSiteId, destSiteId, fishCount, meanWeightKg, reason, engine.State, hasVet);
+        var execResult = Farm.CohortTransferSystem.ExecuteTransfer(plan, engine.State, engine.FinanceManager, Random.Shared);
+
+        result["success"] = execResult.Success;
+        result["fish_transferred"] = execResult.FishTransferred;
+        result["fish_lost"] = execResult.FishLost;
+        result["actual_cost_nok"] = (double)execResult.ActualCostNok;
+        result["message"] = execResult.Message;
+
+        EmitSignal(SignalName.GameStateUpdated);
+        return result;
+    }
+
+    /// <summary>
+    /// Get valid destination sites for a transfer from source (Phase 5.3).
+    /// Keys per site: "id", "name", "zone", "current_biomass_kg", "mab_tonnes", "available_mab_kg".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetTransferDestinations(string sourceSiteId, double incomingBiomassKg)
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var state = SimulationEngine?.State;
+        if (state == null) return result;
+
+        var dests = Farm.CohortTransferSystem.GetValidDestinations(sourceSiteId, state, incomingBiomassKg);
+        foreach (var site in dests)
+        {
+            double currentBio = site.Pens.Sum(p => p.GetTotalBiomassKg());
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = site.Id,
+                ["name"] = site.Id,
+                ["zone"] = site.ZoneId,
+                ["current_biomass_kg"] = currentBio,
+                ["mab_tonnes"] = site.MABTonnes,
+                ["available_mab_kg"] = site.MABTonnes * 1000.0 - currentBio
+            });
+        }
+        return result;
+    }
+
+    // ── Phase 5.4: Carbon Ledger ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Get aggregated carbon ledger for all sites and facilities (Phase 5.4).
+    /// Returns: "sites" (array), "offshore" (array), "ras" (array), "processing" (dict),
+    ///          "total_emissions_kg", "total_credits_kg", "net_emissions_kg",
+    ///          "scope1_kg", "scope2_kg", "scope3_kg", "this_year_net_kg".
+    /// </summary>
+    public Godot.Collections.Dictionary GetCarbonLedger()
+    {
+        var result = new Godot.Collections.Dictionary();
+        var state = SimulationEngine?.State;
+        if (state == null) return result;
+
+        var sitesArray = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        double totalEmissions = 0, totalCredits = 0;
+        double scope1 = 0, scope2 = 0, scope3 = 0;
+
+        // Sea sites
+        foreach (var site in state.SeaSites)
+        {
+            var tracker = site.CarbonTracker;
+            double em = tracker.TotalEmissions();
+            double cr = tracker.TotalCredits();
+            totalEmissions += em;
+            totalCredits += cr;
+            var breakdown = tracker.ScopeBreakdown(0, state.Day);
+            scope1 += breakdown["Scope1"];
+            scope2 += breakdown["Scope2"];
+            scope3 += breakdown["Scope3"];
+
+            var topSources = new Godot.Collections.Array();
+            foreach (var t in tracker.TopSources(0, state.Day, 3))
+                topSources.Add(new Godot.Collections.Dictionary { ["source"] = t.Source, ["kg"] = t.KgCO2e });
+            sitesArray.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = site.Id,
+                ["emissions_kg"] = em,
+                ["credits_kg"] = cr,
+                ["net_kg"] = em - cr,
+                ["scope1_kg"] = breakdown["Scope1"],
+                ["scope2_kg"] = breakdown["Scope2"],
+                ["scope3_kg"] = breakdown["Scope3"],
+                ["this_year_net_kg"] = tracker.NetThisYear(state.Day),
+                ["top_sources"] = topSources
+            });
+        }
+
+        // Offshore farms
+        var offshoreArray = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var off in SimulationEngine!.OffshoreFarms)
+        {
+            if (!off.IsOperational) continue;
+            var tracker = off.CarbonTracker;
+            double em = tracker.TotalEmissions();
+            double cr = tracker.TotalCredits();
+            totalEmissions += em;
+            totalCredits += cr;
+            var breakdown = tracker.ScopeBreakdown(0, state.Day);
+            scope1 += breakdown["Scope1"];
+            scope2 += breakdown["Scope2"];
+            scope3 += breakdown["Scope3"];
+
+            offshoreArray.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = off.Id,
+                ["name"] = off.Name,
+                ["emissions_kg"] = em,
+                ["credits_kg"] = cr,
+                ["net_kg"] = em - cr,
+                ["scope1_kg"] = breakdown["Scope1"],
+                ["scope2_kg"] = breakdown["Scope2"],
+                ["scope3_kg"] = breakdown["Scope3"],
+                ["this_year_net_kg"] = tracker.NetThisYear(state.Day)
+            });
+        }
+
+        // RAS facilities
+        var rasArray = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var ras in SimulationEngine!.RASFacilities)
+        {
+            if (!ras.IsOperational) continue;
+            var tracker = ras.CarbonTracker;
+            double em = tracker.TotalEmissions();
+            double cr = tracker.TotalCredits();
+            totalEmissions += em;
+            totalCredits += cr;
+            var breakdown = tracker.ScopeBreakdown(0, state.Day);
+            scope1 += breakdown["Scope1"];
+            scope2 += breakdown["Scope2"];
+            scope3 += breakdown["Scope3"];
+
+            rasArray.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = ras.Id,
+                ["name"] = ras.Name,
+                ["emissions_kg"] = em,
+                ["credits_kg"] = cr,
+                ["net_kg"] = em - cr,
+                ["scope1_kg"] = breakdown["Scope1"],
+                ["scope2_kg"] = breakdown["Scope2"],
+                ["scope3_kg"] = breakdown["Scope3"],
+                ["this_year_net_kg"] = tracker.NetThisYear(state.Day)
+            });
+        }
+
+        // Processing plant (virtual)
+        var procDict = new Godot.Collections.Dictionary();
+        if (state.OwnsProcessingPlant && Enum.TryParse<Processing.ProcessingTier>(state.ProcessingTier, out var tier))
+        {
+            var firstSite = state.SeaSites.FirstOrDefault();
+            if (firstSite != null)
+            {
+                var tracker = firstSite.CarbonTracker;
+                double em = tracker.Emissions.Where(e => e.Source == "processing_plant").Sum(e => e.KgCO2e);
+                double cr = tracker.Credits.Where(c => c.Source == "processing_plant").Sum(c => c.KgCO2e);
+                procDict["emissions_kg"] = em;
+                procDict["credits_kg"] = cr;
+                procDict["net_kg"] = em - cr;
+                procDict["tier"] = state.ProcessingTier;
+            }
+        }
+
+        result["sites"] = sitesArray;
+        result["offshore"] = offshoreArray;
+        result["ras"] = rasArray;
+        result["processing"] = procDict;
+        result["total_emissions_kg"] = totalEmissions;
+        result["total_credits_kg"] = totalCredits;
+        result["net_emissions_kg"] = totalEmissions - totalCredits;
+        result["scope1_kg"] = scope1;
+        result["scope2_kg"] = scope2;
+        result["scope3_kg"] = scope3;
+        result["this_year_net_kg"] = state.SeaSites.Sum(s => s.CarbonTracker.NetThisYear(state.Day)) +
+                                     SimulationEngine!.OffshoreFarms.Sum(o => o.CarbonTracker.NetThisYear(state.Day)) +
+                                     SimulationEngine!.RASFacilities.Sum(r => r.CarbonTracker.NetThisYear(state.Day));
+
+        return result;
+    }
+
+    /// <summary>
+    /// Get carbon intensity per kg harvested (kg CO2e/kg HOG).
+    /// </summary>
+    public double GetCarbonIntensity()
+    {
+        var state = SimulationEngine?.State;
+        if (state == null) return 0.0;
+
+        double totalHarvestedKg = state.EventLog
+            .Where(e => e.Category == Events.EventCategory.Market && e.Name == "Harvest")
+            .Sum(e => Math.Abs((double)e.BalanceChange) / 80.0); // Rough: revenue / 80 NOK/kg
+        
+        if (totalHarvestedKg <= 0) return 0.0;
+
+        double totalEmissions = state.SeaSites.Sum(s => s.CarbonTracker.TotalEmissions()) +
+                                SimulationEngine!.OffshoreFarms.Sum(o => o.CarbonTracker.TotalEmissions()) +
+                                SimulationEngine!.RASFacilities.Sum(r => r.CarbonTracker.TotalEmissions());
+        
+        return totalEmissions / totalHarvestedKg;
+    }
+
+    /// <summary>
+    /// Check if carbon-neutral certification threshold met (net <= 0 for year).
+    /// </summary>
+    public bool IsCarbonNeutralYear()
+    {
+        var state = SimulationEngine?.State;
+        if (state == null) return false;
+        
+        double netThisYear = state.SeaSites.Sum(s => s.CarbonTracker.NetThisYear(state.Day)) +
+                             SimulationEngine!.OffshoreFarms.Sum(o => o.CarbonTracker.NetThisYear(state.Day)) +
+                             SimulationEngine!.RASFacilities.Sum(r => r.CarbonTracker.NetThisYear(state.Day));
+        
+        return netThisYear <= 0;
+    }
+
+    // ── Phase 3 depth exposure (P7/P9/P10) ──────────────────────────────────────
+
+    /// <summary>P9: binding monthly pen price (NOK/kg) set by the Price Council.</summary>
+    public double PenPrice => (double)(SimulationEngine?.PenPriceCouncil?.MonthlyPenPrice ?? 0m);
+
+    /// <summary>P9: whether the 25% resource-rent tax is enabled for the active scenario.</summary>
+    public bool ResourceRentEnabled => SimulationEngine?.EnableResourceRentTax ?? false;
+
+    /// <summary>P9: cumulative resource-rent tax paid (NOK).</summary>
+    public double ResourceRentPaid => (double)(SimulationEngine?.ResourceRentPaid ?? 0m);
+
+    /// <summary>
+    /// P10: gill-health early-warning risk (0-1) for a site.
+    /// Keys: "site_id", "risk", "warning" (bool), "critical" (bool), "reason".
+    /// </summary>
+    public Godot.Collections.Dictionary GetGillRisk(string siteId)
+    {
+        var res = new Godot.Collections.Dictionary
+        {
+            ["site_id"] = siteId, ["risk"] = 0.0, ["warning"] = false,
+            ["critical"] = false, ["reason"] = "no data"
+        };
+        var engine = SimulationEngine;
+        var site = engine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        if (site == null) return res;
+
+        double temp = engine!.Weather?.CurrentTemperatureC ?? 10.0;
+        double gill = site.GillScore;
+        // Derive inputs we can trust; gill score is a direct reverse proxy for risk.
+        double risk = System.Math.Clamp(1.0 - gill / 100.0, 0.0, 1.0);
+        var r = LakskongenSim.Health.GillHealthWarning.Evaluate(temp, 8.0, 5.0, 0.2, site.GillScore < 60 ? 0.5 : 0.0);
+        // Blend the model risk with the live gill score so both matter.
+        risk = System.Math.Clamp((risk + r.Risk01) * 0.5, 0.0, 1.0);
+        res["risk"] = risk;
+        res["warning"] = risk >= 0.5;
+        res["critical"] = risk >= 0.75;
+        res["reason"] = r.Reason;
+        return res;
+    }
+
+    /// <summary>P7: does a site's containment qualify for red-zone capacity recovery?</summary>
+    public bool QualifiesForEnvironmentalFlexibility(string siteId)
+    {
+        var engine = SimulationEngine;
+        var site = engine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        if (site == null || engine?.TrafficLightSystem == null) return false;
+        var color = engine.TrafficLightSystem.GetZoneColor(site.ZoneId);
+        return LakskongenSim.Farm.EnvironmentalFlexibility.QualifiesForRedZoneRecovery(site.Containment, color);
+    }
+
     // ── Contract & Market API ──────────────────────────────────────────────────
+
+    /// <summary>Offer cache: real ContractSystem offers for the current day.</summary>
+    private List<LakskongenSim.Market.ContractOffer> _offerCache = new();
+    private int _offerCacheDay = -1;
+
+    private void RefreshOfferCache()
+    {
+        var cs = SimulationEngine?.ContractSystem;
+        if (cs == null) return;
+        int day = SimulationEngine?.State?.Day ?? 0;
+        if (day == _offerCacheDay) return;
+        _offerCacheDay = day;
+        decimal spot = SimulationEngine?.MarketSimulation?.PricePerKg ?? 70m;
+        double brand = (double)(SimulationEngine?.BrandReputation?.QualityReputation ?? 50m) / 100.0;
+        _offerCache = cs.GenerateOffers(spot, brand);
+    }
 
     /// <summary>
     /// Returns list of active contracts.
@@ -1225,7 +3616,7 @@ public partial class GameBridge : Node
 
         foreach (var contract in contractSystem.ActiveContracts)
         {
-            float fulfilledPercent = contract.QuantityKg > 0 ? (float)(contract.FulfilledKg / contract.QuantityKg) * 100f : 0f;
+            float fulfilledPercent = contract.QuantityKg > 0 ? (float)contract.FulfilledKg / contract.QuantityKg * 100f : 0f;
             result.Add(new Godot.Collections.Dictionary
             {
                 ["id"] = contract.Id.ToString(),
@@ -1252,31 +3643,48 @@ public partial class GameBridge : Node
         var contractSystem = SimulationEngine?.ContractSystem;
         if (contractSystem == null) return result;
 
-        // Generate a few sample offers based on market price (simplified)
-        // TODO: integrate with market simulation
-        var marketPrice = SimulationEngine?.MarketSimulation?.PricePerKg ?? 70m;
-        var random = new Random();
-        var buyers = new[] { "NorgesGruppen", "Mowi", "Lerøy", "SalMar", "Cermaq", "International Seafood" };
-        var types = new[] { "FixedPrice", "IndexLinked", "VolumeBased" };
-        for (int i = 0; i < 5; i++)
+        // Real offers from ContractSystem, cached per day (stable within a day).
+        RefreshOfferCache();
+        for (int i = 0; i < _offerCache.Count; i++)
         {
-            var buyer = buyers[random.Next(buyers.Length)];
-            var type = types[random.Next(types.Length)];
-            var pricePerKg = (float)(marketPrice * (decimal)(0.9 + random.NextDouble() * 0.2)); // ±10%
-            var quantityKg = (float)(random.NextDouble() * 50000 + 10000); // 10k-60k kg
-            var quality = (float)(random.NextDouble() * 0.3 + 0.7); // 0.7-1.0
-            var penaltyPct = (float)(random.NextDouble() * 0.05); // 0-5%
+            var o = _offerCache[i];
             result.Add(new Godot.Collections.Dictionary
             {
-                ["buyer"] = buyer,
-                ["type"] = type,
-                ["price_per_kg"] = pricePerKg,
-                ["quantity_kg"] = quantityKg,
-                ["quality"] = quality,
-                ["penalty_pct"] = penaltyPct
+                ["index"] = i,
+                ["buyer"] = o.Buyer,
+                ["type"] = o.Type.ToString(),
+                ["price_per_kg"] = (double)o.PricePerKg,
+                ["quantity_kg"] = (double)o.QuantityKg,
+                ["quality"] = o.Quality.ToString(),
+                ["penalty_pct"] = (double)o.PenaltyPct,
+                ["duration_weeks"] = o.DurationWeeks
             });
         }
         return result;
+    }
+
+    /// <summary>
+    /// Accept a cached offer by index (Phase 2.3). Returns the contract ID
+    /// string on success, empty string on failure.
+    /// </summary>
+    public string AcceptOffer(int index)
+    {
+        var cs = SimulationEngine?.ContractSystem;
+        if (cs == null || index < 0 || index >= _offerCache.Count) return "";
+        var offer = _offerCache[index];
+        var contract = cs.AcceptOffer(offer);
+        _offerCache.RemoveAt(index);
+        SimulationEngine?.State?.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine?.State?.Day ?? 0,
+            Name = "Kontrakt signert",
+            Category = LakskongenSim.Events.EventCategory.Market,
+            Description = $"Kontrakt med {contract.Buyer}: {contract.QuantityKg:N0} kg @ {contract.PricePerKg:N0} NOK/kg ({contract.DurationWeeks} uker)",
+            BalanceChange = 0m
+        });
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: Contract signed — {contract.Buyer} {contract.QuantityKg:N0}kg @ {contract.PricePerKg:N0} NOK/kg");
+        return contract.Id.ToString();
     }
 
     /// <summary>
@@ -1382,43 +3790,207 @@ public partial class GameBridge : Node
         return 0.05;
     }
 
+    /// <summary>
+    /// Wave 6: per-trait expected genetic gain for the current broodstock under
+    /// genomic selection (ΔG = i·r·σ_A). Returns an empty array when there is no
+    /// broodstock, so the UI can show an "insufficient data" note. Each entry has
+    /// keys: "trait", "heritability", "accuracy", "gain".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetGenomicSelectionPreview()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var broodstock = SimulationEngine?.State?.Broodstock;
+        if (broodstock == null || broodstock.Count == 0) return result;
+
+        var gains = GenomicSelection.ExpectedGain(broodstock);
+        foreach (GeneticTrait trait in Enum.GetValues(typeof(GeneticTrait)))
+        {
+            gains.TryGetValue(trait, out double gain);
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["trait"] = trait.ToString(),
+                ["heritability"] = Genetics.GetHeritability(trait),
+                ["accuracy"] = GenomicSelection.SelectionAccuracy(trait, SelectionMethod.Genomic),
+                ["gain"] = gain
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Wave 6: inbreeding status for the broodstock (falling back to live cohort
+    /// genomes when no broodstock is held). Keys: "coefficient" (0..1),
+    /// "penalty" (fractional growth loss 0..1), "penalty_percent" (0..100),
+    /// "level" ("none"/"low"/"elevated"/"high"). Coefficient 0 → penalty 0.
+    /// </summary>
+    public Godot.Collections.Dictionary GetInbreedingStatus()
+    {
+        double coefficient = ComputePopulationInbreedingProxy();
+        double penalty = GenomicSelection.InbreedingDepressionPenalty(
+            GeneticTrait.GrowthRate, coefficient);
+
+        string level = coefficient > 0.25 ? "high"
+            : coefficient > 0.15 ? "elevated"
+            : coefficient > 0.0 ? "low"
+            : "none";
+
+        return new Godot.Collections.Dictionary
+        {
+            ["coefficient"] = coefficient,
+            ["penalty"] = penalty,
+            ["penalty_percent"] = penalty * 100.0,
+            ["level"] = level
+        };
+    }
+
+    /// <summary>
+    /// Wave 6: registered GE traits with their Norwegian regulatory status.
+    /// Keys: "id", "name", "region_status", "reputation_cost", "target_trait",
+    /// "modification". The game is set in Norway, so Norway status is reported.
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetGeTraits()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var trait in GeTraitRegistry.All)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = trait.Id,
+                ["name"] = trait.Name,
+                ["region_status"] = trait.StatusIn(GeRegion.Norway).ToString(),
+                ["reputation_cost"] = trait.ReputationCost,
+                ["target_trait"] = trait.TargetTrait.ToString(),
+                ["modification"] = trait.Modification.ToString()
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Mean inbreeding proxy across the broodstock, falling back to live cohort
+    /// genomes. Returns 0.0 when no genomes are available (no depression).
+    /// </summary>
+    private double ComputePopulationInbreedingProxy()
+    {
+        var state = SimulationEngine?.State;
+        if (state == null) return 0.0;
+
+        double total = 0.0;
+        int samples = 0;
+
+        foreach (var genome in state.Broodstock)
+        {
+            if (genome == null) continue;
+            total += genome.InbreedingCoefficient;
+            samples++;
+        }
+
+        if (samples == 0)
+        {
+            foreach (var population in state.Populations)
+            {
+                foreach (var cohort in population.Cohorts)
+                {
+                    if (cohort.Genetics == null) continue;
+                    total += cohort.Genetics.InbreedingCoefficient;
+                    samples++;
+                }
+            }
+        }
+
+        if (samples == 0) return 0.0;
+        return Math.Clamp(total / samples, 0.0, 1.0);
+    }
+
     // ── Worker/Crew API ───────────────────────────────────────────────────────
 
     /// <summary>
-    /// Return the crew roster as an Array of Dictionaries.
-    /// Keys: "id" (string), "name" (string), "role" (string), "salary_nok" (double),
-    ///       "skill_level" (int), "hire_date" (int).
+    /// Return the crew roster as an Array of Dictionaries (Phase 3.1, live).
+    /// Keys: "id", "name", "role", "salary_nok" (double), "morale" (int),
+    ///       "hired_day" (int).
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetCrewList()
     {
-        // GameState.Crew not yet implemented
-        GD.Print($"GameBridge: GetCrewList not implemented");
-        return new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var crew = SimulationEngine?.State?.Crew;
+        if (crew == null) return result;
+        foreach (var c in crew)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = c.Id,
+                ["name"] = c.Name,
+                ["role"] = c.Role,
+                ["salary_nok"] = (double)c.MonthlySalaryNok,
+                ["morale"] = c.Morale,
+                ["hired_day"] = c.HiredDay
+            });
+        }
+        return result;
     }
 
     /// <summary>
-    /// Hire a new worker with the specified role.
-    /// Valid roles: "manager", "technician", "veterinarian", "diver", "feeder".
-    /// Returns true on success, false if role invalid or insufficient funds.
+    /// Hireable candidates (Phase 3.1): role/name/salary triples.
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetHireCandidates()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var (role, name, salary) in LakskongenSim.Core.CrewEffects.Candidates)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["role"] = role,
+                ["name"] = name,
+                ["salary_nok"] = (double)salary
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Hire a worker by role (Phase 3.1). 50k signing cost + monthly payroll.
+    /// Valid roles: "roekter", "veterinaer", "skipper".
     /// </summary>
     public bool HireWorker(string role)
     {
-        // SimulationEngine.HireWorker not yet implemented
-        GD.Print($"GameBridge: HireWorker not implemented for role '{role}'");
-        EmitSignal(SignalName.FinanceTransaction, "hire_worker", 0.0, $"Failed to hire {role}: not implemented");
-        return false;
+        var state = SimulationEngine?.State;
+        if (state == null) return false;
+        role = (role ?? "").ToLower();
+        if (role != "roekter" && role != "veterinaer" && role != "skipper")
+        {
+            EmitSignal(SignalName.FinanceTransaction, "hire_worker", 0.0, $"Unknown role '{role}'");
+            return false;
+        }
+        const decimal signingCost = 50_000m;
+        if (SimulationEngine!.FinanceManager.Balance < signingCost) return false;
+        var candidate = LakskongenSim.Core.CrewEffects.Candidates
+            .FirstOrDefault(c => c.role == role);
+        var rng = new Random();
+        SimulationEngine.FinanceManager.Spend(signingCost);
+        state.Crew.Add(new LakskongenSim.Core.CrewMember
+        {
+            Name = candidate.name,
+            Role = role,
+            MonthlySalaryNok = candidate.salary,
+            Morale = 75 + rng.Next(21),
+            HiredDay = state.Day
+        });
+        EmitSignal(SignalName.FinanceTransaction, "hire_worker", (double)signingCost, $"Hired {candidate.name} ({role})");
+        EmitSignal(SignalName.GameStateUpdated);
+        return true;
     }
 
     /// <summary>
-    /// Fire a worker by ID.
+    /// Fire a worker by ID (Phase 3.1, free).
     /// Returns true on success, false if worker not found.
     /// </summary>
     public bool FireWorker(string workerId)
     {
-        // SimulationEngine.FireWorker not yet implemented
-        GD.Print($"GameBridge: FireWorker not implemented for workerId '{workerId}'");
-        EmitSignal(SignalName.FinanceTransaction, "fire_worker", 0.0, $"Failed to fire worker {workerId}: not implemented");
-        return false;
+        var state = SimulationEngine?.State;
+        if (state?.Crew == null) return false;
+        int removed = state.Crew.RemoveAll(c => c.Id == workerId);
+        if (removed > 0) EmitSignal(SignalName.GameStateUpdated);
+        return removed > 0;
     }
 
     // ── RAS Facility API ──────────────────────────────────────────────────────
@@ -1623,7 +4195,9 @@ public partial class GameBridge : Node
             return false;
         }
 
-        if (!Enum.TryParse<LakskongenSim.Farm.OffshoreType>(farmType, true, out var offshoreType))
+        // UI passes snake_case ("semi_submersible") — normalize before parse.
+        var normalizedType = (farmType ?? "").Replace("_", "").Replace(" ", "");
+        if (!Enum.TryParse<LakskongenSim.Farm.OffshoreType>(normalizedType, true, out var offshoreType))
         {
             GD.PrintErr($"GameBridge: BuildOffshoreFarm failed - invalid type '{farmType}'");
             EmitSignal(SignalName.FarmActionCompleted, "build_offshore", name, false);

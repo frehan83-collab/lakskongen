@@ -151,6 +151,11 @@ namespace LakskongenSim.Core
             state.UnlockedAchievementIds ??= new();
             state.CompletedTutorialStepIds ??= new();
 
+            // P9/P11 additive depth-system collections (null for old saves or
+            // hand-edited nulls) — keep them empty-safe.
+            state.InsurancePolicies ??= new();
+            state.BloomMitigations ??= new();
+
             // Ensure new scalar properties have sensible defaults if missing
             // (System.Text.Json uses 0/false/null for missing primitives, but we can override)
             if (state.BestFCR == 0.0)
@@ -164,6 +169,29 @@ namespace LakskongenSim.Core
 
             // ScenarioLossReason should be empty string, not null
             state.ScenarioLossReason ??= string.Empty;
+
+            // TD-04 snapshots: null snapshot = pre-snapshot save (models
+            // resume cleared); non-null with null dicts = hand-edited save.
+            if (state.MortalityState != null)
+            {
+                state.MortalityState.DiseaseRates ??= new();
+                state.MortalityState.StressStates ??= new();
+            }
+
+            // Cohort SmoltQualityTier is an additive sea-transfer carryover
+            // field. Older saves decode as Standard (0); hand-edited or future
+            // saves may carry an undefined value — clamp to Standard so the
+            // quality registry never has to guess.
+            foreach (var pop in state.Populations)
+            {
+                if (pop?.Cohorts == null) continue;
+                foreach (var cohort in pop.Cohorts)
+                {
+                    if (cohort == null) continue;
+                    if (!Enum.IsDefined(typeof(LakskongenSim.Farm.SmoltQualityTier), cohort.Quality))
+                        cohort.Quality = LakskongenSim.Farm.SmoltQualityTier.Standard;
+                }
+            }
 
             return state;
         }

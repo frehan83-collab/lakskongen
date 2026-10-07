@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LakskongenSim.Core;
 using LakskongenSim.Data;
 using LakskongenSim.Environment;
 
@@ -21,6 +22,12 @@ namespace LakskongenSim.Biology
         // Disease mortality rates per population (injected by IntegratedDiseaseSystem)
         private readonly Dictionary<string, double> _diseaseRates = new Dictionary<string, double>();
         private int _callCount = 0; // For debugging
+
+        /// <summary>Maximum total daily mortality rate applied in one tick.</summary>
+        private const double MaxTotalDailyMortalityRate = 0.95;
+
+        /// <summary>Maximum disease mortality rate accepted per population per day.</summary>
+        private const double MaxDiseaseDailyMortalityRate = 0.5;
         
         // Environmental stress tracking per population
         private readonly Dictionary<string, EnvironmentalStressState> _environmentalStress = new();
@@ -59,15 +66,15 @@ namespace LakskongenSim.Biology
             double totalRate = (baseRate * stageMultiplier) + diseaseRate;
             
             // Clamp to prevent negative or >100% mortality
-            totalRate = Math.Clamp(totalRate, 0.0, 0.95); // Max 95% mortality per day
+            totalRate = Math.Clamp(totalRate, 0.0, MaxTotalDailyMortalityRate); // Max 95% mortality per day
             
             // survivors = count * (1-rate)^days
             var survivors = count * Math.Pow(1.0 - totalRate, days);
             
-            // Log to console for debugging (first 10 calls)
+            // Log to sim log for debugging (first 10 calls)
             if (_callCount < 10)
             {
-                Console.WriteLine($"[MortalityModel] Call #{_callCount}: BaseRate={baseRate:F7}, Stage={stage}, StageMult={stageMultiplier:F2}, TotalRate={totalRate:F7}, Count={count}, Survivors={survivors:F0}");
+                SimLog.Debug($"[MortalityModel] Call #{_callCount}: BaseRate={baseRate:F7}, Stage={stage}, StageMult={stageMultiplier:F2}, TotalRate={totalRate:F7}, Count={count}, Survivors={survivors:F0}");
                 _callCount++;
             }
             
@@ -81,7 +88,7 @@ namespace LakskongenSim.Biology
         public void SetDiseaseMortalityRate(string populationId, double dailyRate)
         {
             if (string.IsNullOrEmpty(populationId)) return;
-            double clampedRate = Math.Clamp(dailyRate, 0.0, 0.5); // Cap at 50% per day
+            double clampedRate = Math.Clamp(dailyRate, 0.0, MaxDiseaseDailyMortalityRate); // Cap at 50% per day
             System.Diagnostics.Debug.WriteLine($"[MortalityModel] SET DISEASE RATE: PopId={populationId}, Rate={clampedRate:F6}");
             _diseaseRates[populationId] = clampedRate;
         }
@@ -136,7 +143,7 @@ namespace LakskongenSim.Biology
             double totalRate = (baseRate * stageMultiplier) + diseaseRate + environmentalMortality;
             
             // Clamp to prevent negative or >100% mortality
-            totalRate = Math.Clamp(totalRate, 0.0, 0.95);
+            totalRate = Math.Clamp(totalRate, 0.0, MaxTotalDailyMortalityRate);
             
             // survivors = count * (1-rate)^days
             var survivors = count * Math.Pow(1.0 - totalRate, days);
@@ -246,6 +253,57 @@ namespace LakskongenSim.Biology
         {
             _environmentalStress.Remove(populationId);
         }
+
+        /// <summary>
+        /// Capture live model state for saves: per-population disease rates
+        /// plus accumulated environmental stress. Without this, loaded games
+        /// silently drop disease/stress pressure on the first post-load tick.
+        /// </summary>
+        public MortalityModelSnapshot GetSaveSnapshot()
+        {
+            var snapshot = new MortalityModelSnapshot();
+            foreach (var kvp in _diseaseRates)
+                snapshot.DiseaseRates[kvp.Key] = kvp.Value;
+            foreach (var kvp in _environmentalStress)
+                snapshot.StressStates[kvp.Key] = new EnvironmentalStressSnapshot
+                {
+                    AccumulatedThermalStress = kvp.Value.AccumulatedThermalStress,
+                    AccumulatedOxygenStress = kvp.Value.AccumulatedOxygenStress,
+                    DaysOfStress = kvp.Value.DaysOfStress,
+                    LastEnvironmentalQuality = kvp.Value.LastEnvironmentalQuality,
+                };
+            return snapshot;
+        }
+
+        /// <summary>
+        /// Restore live model state after a load so disease and chronic
+        /// stress pressure resume exactly. Accepts null (clears state) for
+        /// saves written before this snapshot existed. Null dictionaries
+        /// inside a snapshot are treated as empty (hand-edited-save safety).
+        /// </summary>
+        public void RestoreFromSave(MortalityModelSnapshot? snapshot)
+        {
+            _diseaseRates.Clear();
+            _environmentalStress.Clear();
+            if (snapshot == null) return;
+
+            if (snapshot.DiseaseRates != null)
+                foreach (var kvp in snapshot.DiseaseRates)
+                    _diseaseRates[kvp.Key] = Math.Clamp(kvp.Value, 0.0, MaxDiseaseDailyMortalityRate);
+
+            if (snapshot.StressStates != null)
+                foreach (var kvp in snapshot.StressStates)
+                {
+                    if (kvp.Value == null) continue;
+                    _environmentalStress[kvp.Key] = new EnvironmentalStressState
+                    {
+                        AccumulatedThermalStress = kvp.Value.AccumulatedThermalStress,
+                        AccumulatedOxygenStress = kvp.Value.AccumulatedOxygenStress,
+                        DaysOfStress = kvp.Value.DaysOfStress,
+                        LastEnvironmentalQuality = kvp.Value.LastEnvironmentalQuality,
+                    };
+                }
+        }
         
         /// <summary>
         /// Tracks environmental stress accumulation for a population.
@@ -257,5 +315,27 @@ namespace LakskongenSim.Biology
             public int DaysOfStress { get; set; }
             public double LastEnvironmentalQuality { get; set; } = 1.0;
         }
+    }
+
+    /// <summary>
+    /// Serializable accumulated-stress state for one population.
+    /// Public DTO mirror of MortalityModel's private tracking state.
+    /// </summary>
+    public sealed class EnvironmentalStressSnapshot
+    {
+        public double AccumulatedThermalStress { get; set; }
+        public double AccumulatedOxygenStress { get; set; }
+        public int DaysOfStress { get; set; }
+        public double LastEnvironmentalQuality { get; set; } = 1.0;
+    }
+
+    /// <summary>
+    /// Serializable save snapshot for <see cref="MortalityModel"/>: live
+    /// per-population disease rates plus accumulated environmental stress.
+    /// </summary>
+    public sealed class MortalityModelSnapshot
+    {
+        public Dictionary<string, double> DiseaseRates { get; set; } = new();
+        public Dictionary<string, EnvironmentalStressSnapshot> StressStates { get; set; } = new();
     }
 }

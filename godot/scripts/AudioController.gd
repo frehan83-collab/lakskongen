@@ -37,7 +37,6 @@ var _target_ocean_blend: float = 0.0
 var _amb_weather: AudioStreamPlayer   
 var _current_base_track:    String = ""
 var _current_weather_track: String = ""
-var _current_season: String = ""
 
 const SFX_POOL_SIZE: int = 8
 var _sfx_pool: Array[AudioStreamPlayer] = []
@@ -45,6 +44,7 @@ var _sfx_pool: Array[AudioStreamPlayer] = []
 var _sim_bridge: Node = null
 
 func _ready() -> void:
+	MusicLibrary.validate_catalog()
 	_create_players()
 	_connect_signals()
 	_start_ocean_ambient()
@@ -92,41 +92,23 @@ func _connect_signals() -> void:
 		push_warning("AudioController: SimBridge not found")
 
 func _start_ocean_ambient() -> void:
-	# Load and start ocean ambient layers
-	var calm_path := "res://assets/audio/ambient/ocean_calm.ogg"
-	var rough_path := "res://assets/audio/ambient/ocean_rough.ogg"
-	
+	# Load and start ocean ambient layers from the real asset paths.
+	var calm_path := "res://assets/audio/ambient/ocean_waves.ogg"
+	var rough_path := "res://assets/audio/ambient/storm.ogg"
+
 	if ResourceLoader.exists(calm_path):
 		var stream := load(calm_path) as AudioStream
 		if stream:
 			_ocean_calm.stream = stream
 			_ocean_calm.volume_db = linear_to_db(OCEAN_CALM_VOLUME * _ambient_volume)
 			_ocean_calm.play()
-	else:
-		# Fallback to existing calm_sea.ogg
-		calm_path = "res://assets/audio/ambient/calm_sea.ogg"
-		if ResourceLoader.exists(calm_path):
-			var stream := load(calm_path) as AudioStream
-			if stream:
-				_ocean_calm.stream = stream
-				_ocean_calm.volume_db = linear_to_db(OCEAN_CALM_VOLUME * _ambient_volume)
-				_ocean_calm.play()
-	
+
 	if ResourceLoader.exists(rough_path):
 		var stream := load(rough_path) as AudioStream
 		if stream:
 			_ocean_rough.stream = stream
-			_ocean_rough.volume_db = linear_to_db(0.0)  # Start silent
+			# Volume is driven every frame by _tick_ocean_blend; no silent init.
 			_ocean_rough.play()
-	else:
-		# Fallback to existing storm.ogg
-		rough_path = "res://assets/audio/ambient/storm.ogg"
-		if ResourceLoader.exists(rough_path):
-			var stream := load(rough_path) as AudioStream
-			if stream:
-				_ocean_rough.stream = stream
-				_ocean_rough.volume_db = linear_to_db(0.0)
-				_ocean_rough.play()
 
 func _tick_ocean_blend(delta: float) -> void:
 	# Smooth blend between calm and rough ocean
@@ -142,84 +124,38 @@ func _tick_ocean_blend(delta: float) -> void:
 func _on_state_updated() -> void:
 	if not _sim_bridge:
 		return
-	
-	# Get current season and update music
-	var season := ""
-	if _sim_bridge.has_method("get_current_season"):
-		season = _sim_bridge.get_current_season().to_lower()
-	elif "current_season" in _sim_bridge:
-		season = _sim_bridge.current_season.to_lower()
-	
-	if season != _current_season and not season.is_empty():
-		_current_season = season
-		_update_seasonal_music(season)
-	
-	# Get weather state for ocean blend and music transitions
-	var weather := ""
-	if _sim_bridge.has_method("get_current_weather_state"):
-		weather = _sim_bridge.get_current_weather_state().to_lower()
-	elif "audio_weather_state" in _sim_bridge:
-		weather = _sim_bridge.audio_weather_state.to_lower()
-	
-	# Update ocean ambient blend based on weather
+
+	# Seasonal BGM — authoritative key from the simulation bridge.
+	var seasonal_key := str(_sim_bridge.audio_seasonal_track)
+	if not seasonal_key.is_empty():
+		var music_path := MusicLibrary.music(seasonal_key)
+		if music_path.is_empty() or not ResourceLoader.exists(music_path):
+			music_path = MusicLibrary.music("main_theme")
+		if not music_path.is_empty():
+			_update_bgm_direct(music_path)
+
+	# Location / weather-derived base ambience.
+	_update_ambient_base_direct(MusicLibrary.ambient_base(_sim_bridge.audio_base_track))
+
+	# Additive weather overlay ("" fades the layer out).
+	_update_ambient_weather(_sim_bridge.audio_weather_layer)
+
+	# Ocean blend based on weather state.
+	var weather := str(_sim_bridge.audio_weather_state).to_lower()
 	if weather == "storm" or weather == "severe":
 		_target_ocean_blend = 1.0  # Full rough
 	elif weather == "rain" or weather == "wind" or weather == "moderate":
 		_target_ocean_blend = 0.5  # Half blend
 	else:
 		_target_ocean_blend = 0.0  # Calm
-	
-	# Storm music override
-	var day := 0
-	if _sim_bridge.has_method("get_current_day"):
-		day = _sim_bridge.get_current_day()
-	elif "current_day" in _sim_bridge:
-		day = _sim_bridge.current_day
-	
-	var active_alerts := []
-	if "active_alerts" in _sim_bridge:
-		active_alerts = _sim_bridge.active_alerts
-	
-	var sea_lice := 0.0
-	if "sea_lice_per_fish" in _sim_bridge:
-		sea_lice = _sim_bridge.sea_lice_per_fish
-	
-	# Storm overlay music during severe weather
-	if weather == "storm" or weather == "severe":
-		var storm_track := MusicLibrary.music("storm_music")
-		if not storm_track.is_empty() and ResourceLoader.exists(storm_track):
-			_update_bgm_direct(storm_track)
-	elif day > 30 or active_alerts.size() > 0 or sea_lice > 2.0:
-		# Tense situation - keep seasonal music but could add tension layer
-		pass
-	
-	# Update ambient weather overlay
-	var weather_layer := ""
-	if "audio_weather_layer" in _sim_bridge:
-		weather_layer = _sim_bridge.audio_weather_layer
-	_update_ambient_weather(weather_layer)
-	
-	# Temperature-based sound variations
+
+	# Temperature-based pitch variation on the ambient base layer.
 	var temp := 10.0
-	if _sim_bridge.has_method("get_current_temperature"):
-		temp = _sim_bridge.get_current_temperature()
-	elif "temperature_c" in _sim_bridge:
-		temp = _sim_bridge.temperature_c
-	
+	if "temperature_c" in _sim_bridge:
+		temp = float(_sim_bridge.temperature_c)
 	var pitch := 1.0 + (temp - 10.0) * 0.005
 	_amb_base_active.pitch_scale = clampf(pitch, 0.8, 1.2)
 	_amb_base_pending.pitch_scale = clampf(pitch, 0.8, 1.2)
-
-func _update_seasonal_music(season: String) -> void:
-	var track_key := season + "_theme"
-	var path := MusicLibrary.music(track_key)
-	
-	if path.is_empty() or not ResourceLoader.exists(path):
-		# Fallback to main theme
-		path = MusicLibrary.music("main_theme")
-	
-	if not path.is_empty() and ResourceLoader.exists(path):
-		_update_bgm_direct(path)
 
 func _on_alert_triggered(alert_key: String) -> void:
 	_play_alert_sfx(alert_key)
@@ -390,6 +326,20 @@ func play_panel_open() -> void:
 
 func play_panel_close() -> void:
 	play_ui("menu_close")
+
+## Recursively connect every Button under `root` to click/hover micro-sounds.
+## Intentionally NOT wired globally — call this explicitly for a UI subtree.
+func attach_ui_sounds(root: Node) -> void:
+	if root == null:
+		return
+	if root is Button:
+		var btn := root as Button
+		if not btn.pressed.is_connected(play_button_click):
+			btn.pressed.connect(play_button_click)
+		if not btn.mouse_entered.is_connected(play_button_hover):
+			btn.mouse_entered.connect(play_button_hover)
+	for child in root.get_children():
+		attach_ui_sounds(child)
 
 ## Volume control methods
 func set_master_volume(vol: float) -> void:

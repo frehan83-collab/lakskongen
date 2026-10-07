@@ -1,7 +1,7 @@
-## FinancePanel v2.0 — Nordic Minimalist
-## Matches finance-prototype.html: P&L overview, balance, cost breakdown,
-## investor info, insurance status, and financial chart.
-## Fully programmatic UI, connected to SimBridge.
+## FinancePanel v2.1 — Nordic Minimalist (scene-based).
+## Layout lives in scenes/ui/FinancePanel.tscn; this script is wiring only:
+## @onready % refs, signal hookups, localization, theme fonts, data refresh.
+## The history list is data-driven and still populated in code.
 
 extends Control
 
@@ -9,48 +9,79 @@ extends Control
 var _sim: Node = null
 var _theme: Node = null
 
-# ── UI Refs ───────────────────────────────────────────────────────────────────
-# KPI row
-var _kpi_revenue: Label
-var _kpi_expenses: Label
-var _kpi_profit: Label
-var _kpi_balance: Label
+# ── Scene refs ────────────────────────────────────────────────────────────────
+@onready var _title_label: Label = %TitleLabel
+@onready var _chart_title: Label = %ChartTitle
+@onready var _pl_title: Label = %PlTitle
+@onready var _loan_title: Label = %LoanTitle
+@onready var _hist_title: Label = %HistTitle
 
-# P&L table
+@onready var _kpi_revenue: Label = %KpiRevenueValue
+@onready var _kpi_expenses: Label = %KpiExpensesValue
+@onready var _kpi_profit: Label = %KpiProfitValue
+@onready var _kpi_balance: Label = %KpiBalanceValue
+
+@onready var _loan_status: Label = %LoanStatus
+@onready var _loan_amount: Label = %LoanAmount
+@onready var _loan_remaining: Label = %LoanRemaining
+@onready var _loan_take_btn: Button = %BtnTakeLoan
+@onready var _loan_repay_btn: Button = %BtnRepayLoan
+
+@onready var _history_container: VBoxContainer = %HistoryContainer
+
+# Depth-system rows (P9): pen price + resource rent, built in code.
+var _pen_price_label: Label = null
+var _resource_rent_title: Label = null
+var _resource_rent_label: Label = null
+
+# Insurance section (P11): one row per catastrophe kind, built in code.
+var _insurance_card: PanelContainer = null
+var _insurance_total_label: Label = null
+var _insurance_rows: Array[Dictionary] = []
+var _insurance_updating: bool = false
+
+const _INSURANCE_KINDS := [
+	{"key": "mortality", "label": "Dødelighet", "icon": "🐟"},
+	{"key": "bloom", "label": "Oppblomstring", "icon": "🪼"},
+	{"key": "storm", "label": "Storm/rømming", "icon": "⛈️"},
+	{"key": "isa", "label": "ILA (ISA)", "icon": "🦠"},
+]
+
+# P&L rows are static scene labels; collected for future data binding.
 var _pl_rows: Dictionary = {}
 
-# Loan section
-var _loan_status: Label
-var _loan_amount: Label
-var _loan_remaining: Label
-var _loan_take_btn: Button
-var _loan_repay_btn: Button
-
-# History
-var _history_container: VBoxContainer
-
-# Chart
 var _chart_bars_rev: Array[ColorRect] = []
 var _chart_bars_cost: Array[ColorRect] = []
 
 signal loan_taken(amount: float)
 signal loan_repaid(amount: float)
 
+# ── Previous values for count-up juice (display only) ───────────────────────
+var _prev_revenue: float = 0.0
+var _prev_expenses: float = 0.0
+var _prev_profit: float = 0.0
+var _prev_balance: float = 0.0
+var _kpi_tweens: Array[Tween] = []
+
+# Balance-trend sparkline (created in code; script loaded lazily).
+var _sparkline_script: GDScript = null
+var _balance_spark = null
+
 # ── Colors (from design tokens) ──────────────────────────────────────────────
-const C_BG         := Color("#ECEFF4")
-const C_SURFACE    := Color("#FFFFFF")
-const C_ELEVATED   := Color("#F8F9FB")
-const C_TEXT       := Color("#2E3440")
-const C_TEXT2      := Color("#4C566A")
-const C_MUTED      := Color("#7B8794")
-const C_BORDER     := Color("#E5E9F0")
-const C_PRIMARY    := Color("#0A4D68")
-const C_SECONDARY  := Color("#88C0D0")
-const C_SUCCESS    := Color("#A3BE8C")
-const C_SUCCESS_D  := Color("#8FAD78")
-const C_WARNING    := Color("#EBCB8B")
-const C_DANGER     := Color("#BF616A")
-const C_ACCENT     := Color("#5E81AC")
+const C_BG := Color("#ECEFF4")
+const C_SURFACE := Color("#FFFFFF")
+const C_ELEVATED := Color("#F8F9FB")
+const C_TEXT := Color("#2E3440")
+const C_TEXT2 := Color("#4C566A")
+const C_MUTED := Color("#7B8794")
+const C_BORDER := Color("#E5E9F0")
+const C_PRIMARY := Color("#0A4D68")
+const C_SECONDARY := Color("#88C0D0")
+const C_SUCCESS := Color("#A3BE8C")
+const C_SUCCESS_D := Color("#8FAD78")
+const C_WARNING := Color("#EBCB8B")
+const C_DANGER := Color("#BF616A")
+const C_ACCENT := Color("#5E81AC")
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -64,355 +95,288 @@ func _ready() -> void:
 		if _sim.has_signal("day_advanced"):
 			_sim.day_advanced.connect(func(_d, _s): _refresh())
 
-	_build_ui()
+	_collect_scene_refs()
+	_build_deep_finance_row()
+	_build_balance_sparkline()
+	_build_insurance_card()
+	_apply_localization()
+	_apply_theme_fonts()
+	_loan_take_btn.pressed.connect(_on_take_loan)
+	_loan_repay_btn.pressed.connect(_on_repay_loan)
 	_refresh()
-	print("FinancePanel v2.0: ready")
 
 func _input(event: InputEvent) -> void:
 	if visible and event.is_action_pressed("ui_cancel"):
 		hide()
 		get_viewport().set_input_as_handled()
 
-# ══════════════════════════════════════════════════════════════════════════════
-# UI CONSTRUCTION
-# ══════════════════════════════════════════════════════════════════════════════
+# ── Scene wiring ──────────────────────────────────────────────────────────────
 
-func _build_ui() -> void:
-	for child in get_children():
-		child.queue_free()
-
-	# Background
-	var bg := Panel.new()
-	var bg_sb := StyleBoxFlat.new()
-	bg_sb.bg_color = C_BG
-	bg.add_theme_stylebox_override("panel", bg_sb)
-	bg.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	add_child(bg)
-
-	# Scroll
-	var scroll := ScrollContainer.new()
-	scroll.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	scroll.offset_left = 16; scroll.offset_top = 16
-	scroll.offset_right = -16; scroll.offset_bottom = -16
-	add_child(scroll)
-
-	var root := VBoxContainer.new()
-	root.size_flags_horizontal = SIZE_EXPAND_FILL
-	root.add_theme_constant_override("separation", 20)
-	scroll.add_child(root)
-
-	# Title
-	var title := Label.new()
-	title.text = tr("💰 Økonomi")
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", C_TEXT)
-	if _theme and _theme.font_heading_bold:
-		title.add_theme_font_override("font", _theme.font_heading_bold)
-	root.add_child(title)
-
-	# ── KPI Strip ──
-	var kpi_strip := HBoxContainer.new()
-	kpi_strip.add_theme_constant_override("separation", 16)
-	root.add_child(kpi_strip)
-
-	var k1 := _make_kpi("INNTEKTER", "--", C_SUCCESS)
-	_kpi_revenue = k1.value
-	kpi_strip.add_child(k1.card)
-
-	var k2 := _make_kpi("KOSTNADER", "--", C_DANGER)
-	_kpi_expenses = k2.value
-	kpi_strip.add_child(k2.card)
-
-	var k3 := _make_kpi("RESULTAT", "--", C_PRIMARY)
-	_kpi_profit = k3.value
-	kpi_strip.add_child(k3.card)
-
-	var k4 := _make_kpi("KONTANTER", "--", C_ACCENT)
-	_kpi_balance = k4.value
-	kpi_strip.add_child(k4.card)
-
-	# ── Main grid: Chart + P&L ──
-	var mid_row := HBoxContainer.new()
-	mid_row.add_theme_constant_override("separation", 16)
-	root.add_child(mid_row)
-
-	# Revenue/Cost chart (left)
-	var chart_card := _make_card("📊 Inntekter vs Kostnader (6 mnd)")
-	chart_card.size_flags_horizontal = SIZE_EXPAND_FILL
-	chart_card.size_flags_stretch_ratio = 1.5
-	mid_row.add_child(chart_card)
-	var chart_body := _card_body(chart_card)
-	_build_chart(chart_body)
-
-	# P&L breakdown (right)
-	var pl_card := _make_card("📋 Resultatregnskap")
-	pl_card.size_flags_horizontal = SIZE_EXPAND_FILL
-	mid_row.add_child(pl_card)
-	var pl_body := _card_body(pl_card)
-	_build_pl_table(pl_body)
-
-	# ── Bottom row: Loans + History ──
-	var bot_row := HBoxContainer.new()
-	bot_row.add_theme_constant_override("separation", 16)
-	root.add_child(bot_row)
-
-	# Loans
-	var loan_card := _make_card("🏦 Lån & Finansiering")
-	loan_card.size_flags_horizontal = SIZE_EXPAND_FILL
-	bot_row.add_child(loan_card)
-	var loan_body := _card_body(loan_card)
-	_build_loan_section(loan_body)
-
-	# History
-	var hist_card := _make_card("📈 Historikk (siste 10 dager)")
-	hist_card.size_flags_horizontal = SIZE_EXPAND_FILL
-	hist_card.size_flags_stretch_ratio = 1.5
-	bot_row.add_child(hist_card)
-	_history_container = _card_body(hist_card)
-
-# ── KPI Card ──────────────────────────────────────────────────────────────────
-
-func _make_kpi(title: String, initial: String, stripe_color: Color) -> Dictionary:
-	var card := PanelContainer.new()
-	card.size_flags_horizontal = SIZE_EXPAND_FILL
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = C_SURFACE
-	sb.border_color = stripe_color
-	sb.set_border_width_all(1)
-	sb.border_width_top = 4
-	sb.set_corner_radius_all(8)
-	sb.set_content_margin_all(16)
-	card.add_theme_stylebox_override("panel", sb)
-
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 4)
-	card.add_child(vbox)
-
-	var lbl := Label.new()
-	lbl.text = title
-	lbl.add_theme_font_size_override("font_size", 11)
-	lbl.add_theme_color_override("font_color", C_MUTED)
-	vbox.add_child(lbl)
-
-	var val := Label.new()
-	val.text = initial
-	val.add_theme_font_size_override("font_size", 24)
-	val.add_theme_color_override("font_color", C_TEXT)
-	if _theme and _theme.font_heading_bold:
-		val.add_theme_font_override("font", _theme.font_heading_bold)
-	vbox.add_child(val)
-
-	return {"card": card, "value": val}
-
-# ── Chart ─────────────────────────────────────────────────────────────────────
-
-func _build_chart(body: VBoxContainer) -> void:
-	var chart := HBoxContainer.new()
-	chart.custom_minimum_size.y = 120
-	chart.add_theme_constant_override("separation", 8)
-	chart.alignment = BoxContainer.ALIGNMENT_END
-	body.add_child(chart)
-
+func _collect_scene_refs() -> void:
+	_pl_rows.clear()
+	for key in ["Feed", "Salary", "Maintenance", "Insurance", "Delousing", "Transport", "Other", "Total"]:
+		_pl_rows[key.to_lower()] = get_node_or_null("%Pl" + key)
 	_chart_bars_rev.clear()
 	_chart_bars_cost.clear()
+	for i in range(1, 7):
+		var suffix := str(i)
+		_chart_bars_rev.append(get_node_or_null("%ChartRev" + suffix) as ColorRect)
+		_chart_bars_cost.append(get_node_or_null("%ChartCost" + suffix) as ColorRect)
 
-	var months := ["Okt", "Nov", "Des", "Jan", "Feb", "Mar"]
-	for i in range(6):
-		var col := VBoxContainer.new()
-		col.size_flags_horizontal = SIZE_EXPAND_FILL
-		col.alignment = BoxContainer.ALIGNMENT_END
-		chart.add_child(col)
+## Balance-trend Sparkline near the KPI strip. Parented into the balance KPI's
+## VBox (via its value label's parent) so a missing node never crashes.
+func _build_balance_sparkline() -> void:
+	_sparkline_script = load("res://scripts/ui/Sparkline.gd")
+	if _sparkline_script == null or _kpi_balance == null:
+		return
+	var parent: Node = _kpi_balance.get_parent()
+	if parent == null:
+		return
+	var spark = _sparkline_script.new()
+	spark.name = "BalanceSpark"
+	spark.line_color = C_ACCENT
+	spark.unit_fmt = ""
+	spark.custom_minimum_size = Vector2(80, 28)
+	parent.add_child(spark)
+	_balance_spark = spark
 
-		var bars := HBoxContainer.new()
-		bars.add_theme_constant_override("separation", 2)
-		bars.alignment = BoxContainer.ALIGNMENT_CENTER
-		col.add_child(bars)
-
-		var rev := ColorRect.new()
-		rev.color = C_PRIMARY
-		rev.custom_minimum_size = Vector2(14, 30 + i * 10)
-		bars.add_child(rev)
-		_chart_bars_rev.append(rev)
-
-		var cost := ColorRect.new()
-		cost.color = C_SECONDARY
-		cost.custom_minimum_size = Vector2(14, 20 + i * 5)
-		bars.add_child(cost)
-		_chart_bars_cost.append(cost)
-
-		var m_lbl := Label.new()
-		m_lbl.text = months[i]
-		m_lbl.add_theme_font_size_override("font_size", 10)
-		m_lbl.add_theme_color_override("font_color", C_MUTED)
-		m_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		col.add_child(m_lbl)
-
-	# Legend
-	var legend := HBoxContainer.new()
-	legend.add_theme_constant_override("separation", 16)
-	body.add_child(legend)
-	legend.add_child(_legend_dot(C_PRIMARY, "Inntekt"))
-	legend.add_child(_legend_dot(C_SECONDARY, "Kostnad"))
-
-func _legend_dot(color: Color, text: String) -> HBoxContainer:
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 6)
-	var d := ColorRect.new()
-	d.custom_minimum_size = Vector2(10, 10)
-	d.color = color
-	h.add_child(d)
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", 12)
-	l.add_theme_color_override("font_color", C_TEXT2)
-	h.add_child(l)
-	return h
-
-# ── P&L Table ─────────────────────────────────────────────────────────────────
-
-func _build_pl_table(body: VBoxContainer) -> void:
-	_pl_rows.clear()
-	var items := [
-		{"key": "feed", "label": "Fôrkostnader", "type": "expense"},
-		{"key": "salary", "label": "Lønnskostnader", "type": "expense"},
-		{"key": "maintenance", "label": "Vedlikehold", "type": "expense"},
-		{"key": "insurance", "label": "Forsikring", "type": "expense"},
-		{"key": "delousing", "label": "Avlusing", "type": "expense"},
-		{"key": "transport", "label": "Transport", "type": "expense"},
-		{"key": "other", "label": "Andre kostnader", "type": "expense"},
-	]
-	for item in items:
-		var row := _make_pl_row(item.label, "--")
-		body.add_child(row.container)
-		_pl_rows[item.key] = row.value
-
-	# Separator
-	var sep := HSeparator.new()
-	body.add_child(sep)
-
-	# Totals
-	var total_row := _make_pl_row("TOTALE KOSTNADER", "--")
-	total_row.value.add_theme_color_override("font_color", C_DANGER)
-	if _theme and _theme.font_heading_semibold:
-		total_row.value.add_theme_font_override("font", _theme.font_heading_semibold)
-	body.add_child(total_row.container)
-	_pl_rows["total"] = total_row.value
-
-func _make_pl_row(label_text: String, value_text: String) -> Dictionary:
-	var h := HBoxContainer.new()
-	var l := Label.new()
-	l.text = label_text
-	l.add_theme_font_size_override("font_size", 13)
-	l.add_theme_color_override("font_color", C_TEXT2)
-	l.size_flags_horizontal = SIZE_EXPAND_FILL
-	h.add_child(l)
-
-	var v := Label.new()
-	v.text = value_text
-	v.add_theme_font_size_override("font_size", 13)
-	v.add_theme_color_override("font_color", C_TEXT)
-	if _theme and _theme.font_mono:
-		v.add_theme_font_override("font", _theme.font_mono)
-	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	h.add_child(v)
-
-	return {"container": h, "value": v}
-
-# ── Loan Section ──────────────────────────────────────────────────────────────
-
-func _build_loan_section(body: VBoxContainer) -> void:
-	var status_row := _make_pl_row("Status:", "Ingen lån")
-	body.add_child(status_row.container)
-	_loan_status = status_row.value
-
-	var amt_row := _make_pl_row("Lånebeløp:", "--")
-	body.add_child(amt_row.container)
-	_loan_amount = amt_row.value
-
-	var rem_row := _make_pl_row("Gjenstående:", "--")
-	body.add_child(rem_row.container)
-	_loan_remaining = rem_row.value
-
-	var btn_row := HBoxContainer.new()
-	btn_row.add_theme_constant_override("separation", 10)
-	body.add_child(btn_row)
-
-	_loan_take_btn = Button.new()
-	_loan_take_btn.text = tr("Ta lån (5M NOK)")
-	_loan_take_btn.size_flags_horizontal = SIZE_EXPAND_FILL
-	var take_sb := StyleBoxFlat.new()
-	take_sb.bg_color = C_PRIMARY
-	take_sb.set_corner_radius_all(4)
-	take_sb.set_content_margin_all(10)
-	_loan_take_btn.add_theme_stylebox_override("normal", take_sb)
-	_loan_take_btn.add_theme_color_override("font_color", Color.WHITE)
-	_loan_take_btn.add_theme_font_size_override("font_size", 13)
-	_loan_take_btn.pressed.connect(_on_take_loan)
-	btn_row.add_child(_loan_take_btn)
-
-	_loan_repay_btn = Button.new()
-	_loan_repay_btn.text = tr("Betal tilbake")
-	_loan_repay_btn.size_flags_horizontal = SIZE_EXPAND_FILL
-	_loan_repay_btn.disabled = true
-	var repay_sb := StyleBoxFlat.new()
-	repay_sb.bg_color = C_ELEVATED
-	repay_sb.border_color = C_BORDER
-	repay_sb.set_border_width_all(1)
-	repay_sb.set_corner_radius_all(4)
-	repay_sb.set_content_margin_all(10)
-	_loan_repay_btn.add_theme_stylebox_override("normal", repay_sb)
-	_loan_repay_btn.add_theme_color_override("font_color", C_TEXT)
-	_loan_repay_btn.add_theme_font_size_override("font_size", 13)
-	_loan_repay_btn.pressed.connect(_on_repay_loan)
-	btn_row.add_child(_loan_repay_btn)
-
-# ══════════════════════════════════════════════════════════════════════════════
-# CARD HELPER
-# ══════════════════════════════════════════════════════════════════════════════
-
-func _make_card(title: String) -> PanelContainer:
+## P9 depth rows: binding monthly pen price and (when enabled) resource-rent tax
+## paid. Built in code and inserted under the title so a missing node never crashes.
+func _build_deep_finance_row() -> void:
+	if _title_label == null:
+		return
+	var root: Node = _title_label.get_parent()
+	if root == null:
+		return
 	var card := PanelContainer.new()
+	card.name = "DeepFinanceRow"
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = C_SURFACE
 	sb.border_color = C_BORDER
 	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(8)
+	sb.set_content_margin_all(10)
 	card.add_theme_stylebox_override("panel", sb)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 24)
+	card.add_child(row)
+
+	var pp_title := Label.new()
+	pp_title.text = tr("Pen price (binding)")
+	pp_title.add_theme_color_override("font_color", C_TEXT2)
+	pp_title.add_theme_font_size_override("font_size", 12)
+	row.add_child(pp_title)
+	_pen_price_label = Label.new()
+	_pen_price_label.text = "--"
+	_pen_price_label.add_theme_color_override("font_color", C_TEXT)
+	_pen_price_label.add_theme_font_size_override("font_size", 12)
+	row.add_child(_pen_price_label)
+
+	_resource_rent_title = Label.new()
+	_resource_rent_title.text = tr("Ressursrente")
+	_resource_rent_title.add_theme_color_override("font_color", C_TEXT2)
+	_resource_rent_title.add_theme_font_size_override("font_size", 12)
+	_resource_rent_title.visible = false
+	row.add_child(_resource_rent_title)
+	_resource_rent_label = Label.new()
+	_resource_rent_label.text = "--"
+	_resource_rent_label.add_theme_color_override("font_color", C_DANGER)
+	_resource_rent_label.add_theme_font_size_override("font_size", 12)
+	_resource_rent_label.visible = false
+	row.add_child(_resource_rent_label)
+
+	root.add_child(card)
+	root.move_child(card, 1)
+
+## Insurance section (P11): per-kind enable/coverage/deductible rows. Built in
+## code and inserted near the top; every access is guarded so a missing bridge or
+## a scene without room degrades to a no-op.
+func _build_insurance_card() -> void:
+	if _title_label == null or _sim == null:
+		return
+	if not _sim.has_method("get_insurance_status") or not _sim.has_method("set_insurance_policy"):
+		return
+	var root: Node = _title_label.get_parent()
+	if root == null:
+		return
+
+	_insurance_card = PanelContainer.new()
+	_insurance_card.name = "InsuranceCard"
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = C_SURFACE
+	sb.border_color = C_BORDER
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	sb.set_content_margin_all(10)
+	_insurance_card.add_theme_stylebox_override("panel", sb)
 
 	var outer := VBoxContainer.new()
-	outer.add_theme_constant_override("separation", 0)
-	card.add_child(outer)
+	outer.add_theme_constant_override("separation", 8)
+	_insurance_card.add_child(outer)
 
-	# Header
-	var header := PanelContainer.new()
-	var h_sb := StyleBoxFlat.new()
-	h_sb.bg_color = C_SURFACE
-	h_sb.border_color = C_BORDER
-	h_sb.border_width_bottom = 1
-	h_sb.set_content_margin(SIDE_LEFT, 20)
-	h_sb.set_content_margin(SIDE_RIGHT, 20)
-	h_sb.set_content_margin(SIDE_TOP, 14)
-	h_sb.set_content_margin(SIDE_BOTTOM, 14)
-	header.add_theme_stylebox_override("panel", h_sb)
+	var header := Label.new()
+	header.text = tr("🛡️ Forsikring per katastrofe")
+	header.add_theme_font_size_override("font_size", 15)
+	header.add_theme_color_override("font_color", C_TEXT)
 	outer.add_child(header)
 
-	var t := Label.new()
-	t.text = title
-	t.add_theme_font_size_override("font_size", 15)
-	t.add_theme_color_override("font_color", C_TEXT)
-	if _theme and _theme.font_heading_semibold:
-		t.add_theme_font_override("font", _theme.font_heading_semibold)
-	header.add_child(t)
+	var hint := Label.new()
+	hint.text = tr("Premie betales årlig; dekning og egenandel avgjør utbetaling ved tap.")
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", 11)
+	hint.add_theme_color_override("font_color", C_MUTED)
+	outer.add_child(hint)
 
-	# Body
-	var body := VBoxContainer.new()
-	body.add_theme_constant_override("separation", 10)
-	outer.add_child(body)
+	_insurance_rows.clear()
+	for entry in _INSURANCE_KINDS:
+		outer.add_child(_build_insurance_row(entry))
 
-	return card
+	outer.add_child(HSeparator.new())
+	_insurance_total_label = Label.new()
+	_insurance_total_label.text = tr("Total årspremie: --")
+	_insurance_total_label.add_theme_font_size_override("font_size", 13)
+	_insurance_total_label.add_theme_color_override("font_color", C_TEXT2)
+	outer.add_child(_insurance_total_label)
 
-func _card_body(card: PanelContainer) -> VBoxContainer:
-	return card.get_child(0).get_child(1) as VBoxContainer
+	root.add_child(_insurance_card)
+	var target: int = mini(2, root.get_child_count() - 1)
+	root.move_child(_insurance_card, target)
+
+func _build_insurance_row(entry: Dictionary) -> Control:
+	var kind := str(entry.get("key", ""))
+	var row := VBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 10)
+	row.add_child(top)
+
+	var toggle := CheckButton.new()
+	toggle.text = "%s %s" % [str(entry.get("icon", "")), tr(str(entry.get("label", kind)))]
+	toggle.tooltip_text = tr("Slå forsikringen av/på. Premien belastes årlig uansett om det oppstår tap.")
+	toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	toggle.toggled.connect(func(_pressed: bool) -> void: _on_insurance_changed(kind))
+	top.add_child(toggle)
+
+	var premium := Label.new()
+	premium.text = "--"
+	premium.add_theme_font_size_override("font_size", 12)
+	premium.add_theme_color_override("font_color", C_MUTED)
+	premium.custom_minimum_size.x = 120
+	premium.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	top.add_child(premium)
+
+	var controls := HBoxContainer.new()
+	controls.add_theme_constant_override("separation", 12)
+	row.add_child(controls)
+
+	var cov_lbl := Label.new()
+	cov_lbl.text = tr("Dekning")
+	cov_lbl.add_theme_font_size_override("font_size", 12)
+	cov_lbl.add_theme_color_override("font_color", C_MUTED)
+	controls.add_child(cov_lbl)
+
+	var coverage := SpinBox.new()
+	coverage.min_value = 0.0
+	coverage.max_value = 100.0
+	coverage.step = 5.0
+	coverage.suffix = "%"
+	coverage.custom_minimum_size.x = 90
+	coverage.tooltip_text = tr("Andel av tap over egenandelen som dekkes. Høyere dekning gir høyere premie.")
+	coverage.value_changed.connect(func(_v: float) -> void: _on_insurance_changed(kind))
+	controls.add_child(coverage)
+
+	var ded_lbl := Label.new()
+	ded_lbl.text = tr("Egenandel")
+	ded_lbl.add_theme_font_size_override("font_size", 12)
+	ded_lbl.add_theme_color_override("font_color", C_MUTED)
+	controls.add_child(ded_lbl)
+
+	var deductible := SpinBox.new()
+	deductible.min_value = 0.0
+	deductible.max_value = 50_000_000.0
+	deductible.step = 100_000.0
+	deductible.suffix = " NOK"
+	deductible.custom_minimum_size.x = 160
+	deductible.tooltip_text = tr("Tap du dekker selv før forsikringen trer inn. Høyere egenandel gir lavere premie.")
+	deductible.value_changed.connect(func(_v: float) -> void: _on_insurance_changed(kind))
+	controls.add_child(deductible)
+
+	_insurance_rows.append({
+		"kind": kind,
+		"toggle": toggle,
+		"coverage": coverage,
+		"deductible": deductible,
+		"premium": premium,
+	})
+	return row
+
+func _on_insurance_changed(kind: String) -> void:
+	if _insurance_updating or _sim == null:
+		return
+	for r in _insurance_rows:
+		if str(r.get("kind", "")) != kind:
+			continue
+		var enabled: bool = (r["toggle"] as CheckButton).button_pressed
+		var coverage: float = float((r["coverage"] as SpinBox).value) / 100.0
+		var deductible: float = float((r["deductible"] as SpinBox).value)
+		if _sim.has_method("set_insurance_policy"):
+			_sim.set_insurance_policy(kind, enabled, coverage, deductible)
+		break
+	_refresh_insurance()
+
+## Push the bridge's policy state back into the controls without re-triggering
+## set_insurance_policy (guarded by _insurance_updating).
+func _refresh_insurance() -> void:
+	if _insurance_card == null or _sim == null or not _sim.has_method("get_insurance_status"):
+		return
+	var status: Dictionary = _sim.get_insurance_status()
+	if status.is_empty():
+		return
+	_insurance_updating = true
+	for r in _insurance_rows:
+		var kind := str(r.get("kind", ""))
+		var s: Dictionary = status.get(kind, {})
+		var enabled := bool(s.get("enabled", false))
+		(r["toggle"] as CheckButton).button_pressed = enabled
+		(r["coverage"] as SpinBox).value = clampf(float(s.get("coverage", 0.0)) * 100.0, 0.0, 100.0)
+		(r["deductible"] as SpinBox).value = maxf(0.0, float(s.get("deductible", 0.0)))
+		var premium_lbl := r["premium"] as Label
+		premium_lbl.text = ("%s/år" % _fmt(float(s.get("premium", 0.0)))) if enabled else tr("Ingen")
+		premium_lbl.add_theme_color_override("font_color", C_TEXT if enabled else C_MUTED)
+	_insurance_updating = false
+	if _insurance_total_label != null:
+		_insurance_total_label.text = tr("Total årspremie: %s") % _fmt(float(status.get("total_premium", 0.0)))
+
+func _apply_localization() -> void:
+	_title_label.text = tr("💰 Økonomi")
+	_chart_title.text = tr("📊 Inntekter vs Kostnader (6 mnd)")
+	_pl_title.text = tr("📋 Resultatregnskap")
+	_loan_title.text = tr("🏦 Lån & Finansiering")
+	_hist_title.text = tr("📈 Historikk (siste 10 dager)")
+	_loan_take_btn.text = tr("Ta lån (5M NOK)")
+	_loan_repay_btn.text = tr("Betal tilbake")
+
+func _apply_theme_fonts() -> void:
+	if not _theme:
+		return
+	if _theme.font_heading_bold:
+		_title_label.add_theme_font_override("font", _theme.font_heading_bold)
+		_kpi_revenue.add_theme_font_override("font", _theme.font_heading_bold)
+		_kpi_expenses.add_theme_font_override("font", _theme.font_heading_bold)
+		_kpi_profit.add_theme_font_override("font", _theme.font_heading_bold)
+		_kpi_balance.add_theme_font_override("font", _theme.font_heading_bold)
+	if _theme.font_heading_semibold:
+		_chart_title.add_theme_font_override("font", _theme.font_heading_semibold)
+		_pl_title.add_theme_font_override("font", _theme.font_heading_semibold)
+		_loan_title.add_theme_font_override("font", _theme.font_heading_semibold)
+		_hist_title.add_theme_font_override("font", _theme.font_heading_semibold)
+		if _pl_rows.get("total"):
+			(_pl_rows["total"] as Label).add_theme_font_override("font", _theme.font_heading_semibold)
+	if _theme.font_mono:
+		for key in _pl_rows:
+			if _pl_rows[key]:
+				(_pl_rows[key] as Label).add_theme_font_override("font", _theme.font_mono)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DATA REFRESH
@@ -427,16 +391,21 @@ func _refresh() -> void:
 	var profit: float = float(_sim.get_profit())
 	var balance: float = float(_sim.balance)
 
-	_kpi_revenue.text = _fmt(revenue)
+	# Juice: count-up tweens on KPI numbers (display only, no sim changes).
+	_count_up(_kpi_revenue, _prev_revenue, revenue, Callable(self, "_fmt"))
+	_prev_revenue = revenue
+	_count_up(_kpi_expenses, _prev_expenses, expenses, Callable(self, "_fmt"))
+	_prev_expenses = expenses
+	_count_up(_kpi_profit, _prev_profit, profit, Callable(self, "_fmt"))
+	_prev_profit = profit
+	_count_up(_kpi_balance, _prev_balance, balance, Callable(self, "_fmt"))
+	_prev_balance = balance
 	_kpi_revenue.add_theme_color_override("font_color", C_SUCCESS_D)
 
-	_kpi_expenses.text = _fmt(expenses)
 	_kpi_expenses.add_theme_color_override("font_color", C_DANGER)
 
-	_kpi_profit.text = _fmt(profit)
 	_kpi_profit.add_theme_color_override("font_color", C_SUCCESS_D if profit >= 0 else C_DANGER)
 
-	_kpi_balance.text = _fmt(balance)
 	_kpi_balance.add_theme_color_override("font_color", C_TEXT if balance >= 0 else C_DANGER)
 
 	# Loan
@@ -454,11 +423,46 @@ func _refresh() -> void:
 	if _sim.has_method("get_financial_history"):
 		_refresh_history(_sim.get_financial_history(10))
 
+	# Balance-trend sparkline (display only, no sim mutation).
+	if _balance_spark != null and is_instance_valid(_balance_spark) and _sim.has_method("get_analytics_data"):
+		var series: Array[float] = _sim.get_analytics_data("balance_nok", 30)
+		if _balance_spark.has_method("set_values"):
+			_balance_spark.call("set_values", series)
+		else:
+			_balance_spark.set("values", series)
+
+	_refresh_deep_finance()
+	_refresh_insurance()
+
+## P9: pen price always shown; resource-rent row only when the scenario enables it.
+func _refresh_deep_finance() -> void:
+	if _pen_price_label == null or not _sim:
+		return
+	if _sim.has_method("get_pen_price"):
+		_pen_price_label.text = "%.2f NOK/kg" % float(_sim.get_pen_price())
+	if _sim.has_method("get_resource_rent"):
+		var rr: Dictionary = _sim.get_resource_rent()
+		var enabled: bool = bool(rr.get("enabled", false))
+		_resource_rent_title.visible = enabled
+		_resource_rent_label.visible = enabled
+		if enabled:
+			_resource_rent_label.text = _fmt(float(rr.get("paid", 0.0)))
+
 func _refresh_history(history: Array) -> void:
 	if not _history_container:
 		return
 	for child in _history_container.get_children():
 		child.queue_free()
+
+	if history.is_empty():
+		var empty := Label.new()
+		empty.text = _tr_or("UI_FINANCE_HISTORY_EMPTY",
+			"📈 Ingen historikk ennå — tallene kommer etter hvert som dagene går.")
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		empty.add_theme_font_size_override("font_size", 12)
+		empty.add_theme_color_override("font_color", C_MUTED)
+		_history_container.add_child(empty)
+		return
 
 	for entry in history:
 		var day: int = entry.get("day", 0)
@@ -511,6 +515,7 @@ func _on_take_loan() -> void:
 	var success: bool = bool(_sim.take_loan(5_000_000.0))
 	if success:
 		loan_taken.emit(5_000_000.0)
+		_toast(_tr_or("UI_TOAST_LOAN_TAKEN", "🏦 Lån tatt opp: 5,0 MNOK"), "SUCCESS")
 		_refresh()
 
 func _on_repay_loan() -> void:
@@ -519,7 +524,30 @@ func _on_repay_loan() -> void:
 	var success: bool = bool(_sim.repay_loan(1_000_000.0))
 	if success:
 		loan_repaid.emit(1_000_000.0)
+		_toast(_tr_or("UI_TOAST_LOAN_REPAID", "🏦 Nedbetaling fullført: 1,0 MNOK"), "SUCCESS")
 		_refresh()
+
+func _tr_or(key: String, fallback: String) -> String:
+	var t := tr(key)
+	return t if t != key else fallback
+
+func _toast(message: String, level: String = "INFO") -> void:
+	var mgr := get_node_or_null("/root/ToastNotification")
+	if mgr and mgr.has_method("show_toast"):
+		mgr.show_toast(message, level, 4.0)
+
+# ── Count-up juice (display only) ───────────────────────────────────────────
+
+func _count_up(lbl: Label, from_val: float, to_val: float, fmt: Callable) -> void:
+	if lbl == null:
+		return
+	if is_equal_approx(from_val, to_val):
+		lbl.text = fmt.call(to_val)
+		return
+	var tween := lbl.create_tween()
+	tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_method(func(v: float): lbl.text = fmt.call(v), from_val, to_val, 0.6)
+	_kpi_tweens.append(tween)
 
 # ── Formatting ────────────────────────────────────────────────────────────────
 

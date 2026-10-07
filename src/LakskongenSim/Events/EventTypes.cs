@@ -23,6 +23,10 @@ namespace LakskongenSim.Events
         Investor,
         /// <summary>Competitor-related events</summary>
         Competitor,
+        /// <summary>Plankton bloom events</summary>
+        PlanktonBloom,
+        /// <summary>Plankton crash (DO crash) events</summary>
+        PlanktonCrash,
         /// <summary>Other events</summary>
         Other
     }

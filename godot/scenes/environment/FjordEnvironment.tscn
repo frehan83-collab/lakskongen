@@ -5,9 +5,13 @@
 [ext_resource type="Script" path="res://scripts/environment/FjordCamera.gd" id="3_camera"]
 [ext_resource type="Script" path="res://scripts/environment/TimeOfDay.gd" id="4_time"]
 [ext_resource type="Script" path="res://scripts/environment/WeatherController.gd" id="5_weather"]
+[ext_resource type="Script" path="res://scripts/visual/VisualAdapter3D.gd" id="9_visual_adapter"]
+[ext_resource type="Script" path="res://scripts/visual/particles/ParticleEffects.gd" id="10_particles"]
 [ext_resource type="Shader" path="res://shaders/water_shader.gdshader" id="6_water_shader"]
 [ext_resource type="Shader" path="res://shaders/tilt_shift.gdshader" id="7_tilt_shader"]
 [ext_resource type="Shader" path="res://shaders/sky_shader.gdshader" id="8_sky_shader"]
+[ext_resource type="Texture2D" path="res://assets/textures/water/ocean_normal_1.png" id="10_normal_map_1"]
+[ext_resource type="Texture2D" path="res://assets/textures/water/ocean_normal_2.png" id="11_normal_map_2"]
 
 [sub_resource type="ShaderMaterial" id="water_mat"]
 shader = ExtResource("6_water_shader")
@@ -30,12 +34,19 @@ shader_parameter/fresnel_power = 5.0
 shader_parameter/caustic_scale = 8.0
 shader_parameter/caustic_speed = 0.3
 shader_parameter/caustic_intensity = 0.3
-shader_parameter/normal_scale = 0.5
-shader_parameter/normal_scroll_dir1 = Vector2(1, 0)
-shader_parameter/normal_scroll_dir2 = Vector2(0, 1)
-shader_parameter/normal_scroll_speed = 0.05
+shader_parameter/normal_map_scale = 0.02
+shader_parameter/normal_map_scroll_dir1 = Vector2(1, 0.2)
+shader_parameter/normal_map_scroll_dir2 = Vector2(-0.3, 1)
+shader_parameter/normal_map_scroll_speed = 0.05
+shader_parameter/normal_map_strength = 1.0
+shader_parameter/normal_map_1 = ExtResource("10_normal_map_1")
+shader_parameter/normal_map_2 = ExtResource("11_normal_map_2")
 shader_parameter/wind_direction = Vector2(1, 0.3)
 shader_parameter/wind_strength = 1.0
+shader_parameter/water_clarity = 0.85
+shader_parameter/temperature_factor = 0.4
+shader_parameter/algae_density = 0.0
+shader_parameter/turbidity = 0.0
 
 [sub_resource type="PlaneMesh" id="water_plane_mesh"]
 size = Vector2(4000, 4000)
@@ -87,6 +98,7 @@ camera = NodePath("FjordCamera")
 time_system = NodePath("TimeOfDay")
 weather_system = NodePath("WeatherSystem")
 water_plane = NodePath("WaterPlane")
+visual_adapter = NodePath("VisualAdapter3D")
 
 [node name="Terrain" type="Node3D" parent="."]
 script = ExtResource("2_terrain")
@@ -158,3 +170,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="VisualAdapter3D" type="Node" parent="."]
+script = ExtResource("9_visual_adapter")
+
+[node name="ParticleEffects" type="Node3D" parent="."]
+script = ExtResource("10_particles")

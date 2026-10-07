@@ -32,6 +32,12 @@ var _panel_cache: Dictionary = {} # id -> Control (cached panel instances)
 
 var _sim: Node = null
 var _theme: Node = null
+var _tutorial_state: Node = null
+
+## Advanced panels gated by tutorial progress. Kept in sync with
+## scripts/autoload/TutorialState.gd (which owns the authoritative mapping);
+## this is only a fallback so the UI behaves if the autoload is absent.
+const ADVANCED_TABS: Array[String] = ["ras", "offshore", "analytics", "research", "sustainability"]
 
 # ── UI Nodes ──────────────────────────────────────────────────────────────────
 
@@ -53,11 +59,25 @@ func _ready() -> void:
 	else:
 		push_warning("GameUI: LakskongenTheme not found")
 	
+	# Progressive disclosure: TutorialState autoload gates advanced panels.
+	# Missing autoload → fail-open (all panels unlocked), never crash.
+	_tutorial_state = get_node_or_null("/root/TutorialState")
+	if _tutorial_state:
+		if _tutorial_state.has_signal("phase_changed"):
+			_tutorial_state.phase_changed.connect(_on_tutorial_phase_changed)
+		if _tutorial_state.has_signal("panel_unlocked"):
+			_tutorial_state.panel_unlocked.connect(_on_panel_unlocked)
+	else:
+		push_warning("GameUI: TutorialState not found — advanced panels unlocked")
+	
 	# Define all tabs
 	_register_tabs()
 	
 	# Build tab bar UI
 	_build_tab_bar()
+	
+	# Apply tutorial-based locking before the first tab switch.
+	_apply_progressive_disclosure()
 	
 	# Show default tab (Dashboard)
 	_switch_to_tab("dashboard")
@@ -79,7 +99,13 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		for tab in _tabs:
 			if tab.shortcut_key != KEY_NONE and event.keycode == tab.shortcut_key:
+				if not _is_tab_unlocked(tab.id):
+					# Locked by tutorial — swallow the shortcut.
+					get_viewport().set_input_as_handled()
+					return
 				_switch_to_tab(tab.id)
+				# Keyboard navigation: move focus into the freshly shown panel.
+				_focus_panel_for_keyboard(tab.id)
 				get_viewport().set_input_as_handled()
 				return
 
@@ -98,6 +124,7 @@ func _register_tabs() -> void:
 	_tabs.append(TabDefinition.new("sustainability", "🚦 Regulering", "🚦", "res://scripts/ui/SustainabilityPanel.gd", KEY_F7))
 	_tabs.append(TabDefinition.new("ras", "🏗️ RAS", "🏗️", "res://scripts/ui/RASPanel.gd", KEY_F8))
 	_tabs.append(TabDefinition.new("offshore", "🌊 Offshore", "🌊", "res://scripts/ui/OffshorePanel.gd", KEY_F9))
+	_tabs.append(TabDefinition.new("analytics", "📈 Analyse", "📈", "res://scripts/ui/AnalyticsPanel.gd", KEY_F10))
 	
 	# Additional tabs (no F-key shortcuts)
 	_tabs.append(TabDefinition.new("ai_feeding", "🤖 AI-Fôring", "🤖", "res://scripts/ui/AIFeedingPanel.gd"))
@@ -125,6 +152,10 @@ func _build_tab_bar() -> void:
 		btn.name = "Tab_" + tab.id
 		btn.toggle_mode = true
 		btn.button_group = null # We'll manage state manually
+		# Overflow fix: let buttons shrink + elide instead of clipping off-bar.
+		btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		btn.clip_text = true
+		btn.custom_minimum_size = Vector2(64, 0)
 		
 		# Style button
 		_style_tab_button(btn, false)
@@ -134,6 +165,49 @@ func _build_tab_bar() -> void:
 		
 		tab_bar.add_child(btn)
 		_tab_buttons[tab.id] = btn
+
+	# Keyboard/gamepad: arrow keys walk the tab bar left/right.
+	UIPolish.link_horizontal_focus(tab_bar)
+
+## Move keyboard focus into the active panel after a shortcut-driven switch.
+## Deferred so the panel is laid out before we grab focus.
+func _focus_panel_for_keyboard(_tab_id: String) -> void:
+	await get_tree().process_frame
+	if _current_panel != null and is_instance_valid(_current_panel):
+		UIPolish.focus_first(_current_panel)
+
+# ── Progressive Disclosure ────────────────────────────────────────────────────
+
+## True when a tab may be opened. Non-advanced tabs are always unlocked.
+## If the TutorialState autoload is missing we fail-open (never soft-lock).
+func _is_tab_unlocked(tab_id: String) -> bool:
+	if tab_id not in ADVANCED_TABS:
+		return true
+	if _tutorial_state == null:
+		return true
+	if not _tutorial_state.has_method("is_panel_unlocked"):
+		return true
+	return bool(_tutorial_state.is_panel_unlocked(tab_id))
+
+## Apply enabled/disabled state to every tab button from tutorial progress.
+func _apply_progressive_disclosure() -> void:
+	for tab_id in _tab_buttons.keys():
+		var btn: Button = _tab_buttons[tab_id]
+		if btn == null:
+			continue
+		var unlocked: bool = _is_tab_unlocked(tab_id)
+		btn.disabled = not unlocked
+		btn.modulate = Color.WHITE if unlocked else Color(1, 1, 1, 0.45)
+		if unlocked:
+			btn.tooltip_text = ""
+		else:
+			btn.tooltip_text = "Låses opp senere i tutorialen"
+
+func _on_tutorial_phase_changed(_phase: int) -> void:
+	_apply_progressive_disclosure()
+
+func _on_panel_unlocked(_panel_id: String) -> void:
+	_apply_progressive_disclosure()
 
 # ── Tab Button Styling ────────────────────────────────────────────────────────
 
@@ -174,6 +248,11 @@ func _switch_to_tab(tab_id: String) -> void:
 	if tab_id == _active_tab_id:
 		return # Already on this tab
 	
+	# Progressive disclosure gate — locked tabs cannot be switched to.
+	if not _is_tab_unlocked(tab_id):
+		push_warning("GameUI: Tab '%s' is locked until later in the tutorial" % tab_id)
+		return
+	
 	# Find tab definition
 	var tab_def: TabDefinition = null
 	for tab in _tabs:
@@ -196,6 +275,9 @@ func _switch_to_tab(tab_id: String) -> void:
 		btn.button_pressed = is_active
 		_style_tab_button(btn, is_active)
 	
+	# Re-apply lock dimming (styling above resets modulate on every button).
+	_apply_progressive_disclosure()
+	
 	# Get or create panel
 	var panel: Control = _get_or_create_panel(tab_def)
 	
@@ -207,9 +289,19 @@ func _switch_to_tab(tab_id: String) -> void:
 		# Set layout to fill container
 		panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 		panel.show()
-		
+
+		# Juice: soft panel transition (fade + rise), Compatibility-safe tween.
+		_panel_enter(panel)
+
+		# Polish: every button in the panel gets a satisfying press-pop.
+		# Idempotent (JuiceEffects guards via meta), so re-switching is cheap.
+		UIPolish.attach_press_feedback(panel)
+
 		_current_panel = panel
 		_active_tab_id = tab_id
+
+		# Keep the active tab visible when the bar scrolls (overflow fix).
+		_scroll_tab_into_view(tab_id)
 		
 		# Notify panel it's now visible (if it has on_panel_shown method)
 		if panel.has_method("on_panel_shown"):
@@ -237,21 +329,26 @@ func _get_or_create_panel(tab_def: TabDefinition) -> Control:
 			panel.name = "Panel_" + tab_def.id
 			print("GameUI: Loaded scene for '%s' from %s" % [tab_def.id, scene_path])
 	
-	# Fallback: create Control and attach script (for programmatic panels)
+	# Fallback: instantiate directly from the script (for programmatic panels).
+	# NOTE: Must use script.new() so the node gets the script's native base
+	# type (e.g. PanelContainer). Control.new() + set_script() fails for any
+	# script whose base is not exactly Control, leaving an empty panel.
 	if panel == null:
 		if not ResourceLoader.exists(tab_def.script_path):
 			push_error("GameUI: Script not found: %s" % tab_def.script_path)
 			return null
-		
-		var script = load(tab_def.script_path)
-		if not script:
+
+		var script = load(tab_def.script_path) as GDScript
+		if script == null:
 			push_error("GameUI: Failed to load script: %s" % tab_def.script_path)
 			return null
-		
-		panel = Control.new()
+
+		panel = script.new() as Control
+		if panel == null:
+			push_error("GameUI: Script root is not a Control: %s" % tab_def.script_path)
+			return null
 		panel.name = "Panel_" + tab_def.id
-		panel.set_script(script)
-		print("GameUI: Created panel for '%s' (programmatic)" % tab_def.id)
+		print("GameUI: Created panel for '%s' (programmatic, base %s)" % [tab_def.id, panel.get_class()])
 	
 	panel.hide()
 	
@@ -263,7 +360,40 @@ func _get_or_create_panel(tab_def: TabDefinition) -> Control:
 # ── Signal Handlers ───────────────────────────────────────────────────────────
 
 func _on_tab_button_pressed(tab_id: String) -> void:
+	# Juice: press feedback without touching navigation logic.
+	var btn: Button = _tab_buttons.get(tab_id)
+	if btn:
+		JuiceEffects.button_pop(btn)
 	_switch_to_tab(tab_id)
+
+# ── Juice helpers (additive; navigation logic above is untouched) ────────────
+
+## Soft enter for tab panels: fade + rise. Falls back silently if the
+## panel is not ready for tweens yet.
+func _panel_enter(panel: Control) -> void:
+	if panel == null or not is_instance_valid(panel):
+		return
+	JuiceEffects.panel_enter(panel)
+
+## Ensure the active tab button is scrolled into view inside the
+## TabBarScroll ScrollContainer (overflow fix for narrow windows).
+func _scroll_tab_into_view(tab_id: String) -> void:
+	var btn: Control = _tab_buttons.get(tab_id)
+	if btn == null:
+		return
+	var scroller := tab_bar.get_parent() as ScrollContainer
+	if scroller == null:
+		return
+	await get_tree().process_frame
+	if not is_instance_valid(btn) or not is_instance_valid(scroller):
+		return
+	var btn_rect := Rect2(btn.position, btn.size)
+	var view_w: float = scroller.size.x
+	var scroll: float = scroller.scroll_horizontal
+	if btn_rect.position.x < scroll:
+		scroller.scroll_horizontal = int(max(0.0, btn_rect.position.x - 8.0))
+	elif btn_rect.end.x > scroll + view_w:
+		scroller.scroll_horizontal = int(btn_rect.end.x - view_w + 8.0)
 
 # ── Public API ────────────────────────────────────────────────────────────────
 

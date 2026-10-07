@@ -1,0 +1,10 @@
+[gd_resource type="Material" load_steps=2 format=3 uid="uid://salmon_mature_mat_001"]
+
+[ext_resource type="Shader" path="res://shaders/fish_shader.gdshader" id="1_shader"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/albedo_color = Color(0.75, 0.35, 0.25, 1.0)
+shader_parameter/metallic = 0.2
+shader_parameter/roughness = 0.4
+shader_parameter/specular_strength = 0.6

@@ -223,6 +223,14 @@ namespace LakskongenSim.Biology
         public bool HasMutation { get; set; } = false;
         public List<GeneticTrait> MutatedTraits { get; set; } = new();
 
+        /// <summary>
+        /// Cumulative inbreeding coefficient proxy for this genome's lineage (0..1).
+        /// Additive, opt-in field: defaults to 0.0, so existing genomes and saves
+        /// are unaffected until a breeding programme records a value. Only a value
+        /// &gt; 0 triggers growth depression in the biology loop.
+        /// </summary>
+        public double InbreedingCoefficient { get; set; } = 0.0;
+
         public Genome()
         {
             // Initialize all traits to 0 (population mean)

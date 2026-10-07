@@ -32,8 +32,6 @@ func _register_pen() -> void:
 	# Called at runtime to register this pen location with the game manager
 	# Game systems can query pen locations via get_tree().get_nodes_in_group("fish_pens")
 	add_to_group("fish_pens")
-	
-	print("Fish pen registered: ID=%s, Capacity=%d, Position=%v" % [pen_id, capacity, global_position])
 
 func get_pen_data() -> Dictionary:
 	"""Returns pen metadata as a dictionary for serialization/integration"""
@@ -46,8 +44,10 @@ func get_pen_data() -> Dictionary:
 	}
 
 func _update_gizmo() -> void:
-	# Visual update for editor (gizmo plugin would handle actual drawing)
-	queue_redraw() if has_method("queue_redraw") else update_gizmo()
+	# Marker3D exposes no queue_redraw/update_gizmo; refresh the
+	# configuration warnings instead so the editor reflects pen_id changes.
+	if is_inside_tree():
+		update_configuration_warnings()
 
 # Debug visualization (optional, for editor/runtime debugging)
 func _get_configuration_warnings() -> PackedStringArray:

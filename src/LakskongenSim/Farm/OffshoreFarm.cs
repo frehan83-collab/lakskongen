@@ -75,6 +75,10 @@ namespace LakskongenSim.Farm
         
         public int EmployeeCount { get; set; } = 25; // Smaller crew, more automated
 
+        // Phase 5.4: Carbon ledger
+        /// <summary>Carbon emissions/credits tracker for this offshore farm.</summary>
+        public CarbonTracker CarbonTracker { get; set; } = new();
+
         // ─── Events (not serialized) ───
         public event Action<string>? OnAlert;
         public event Action<string>? OnMilestone;

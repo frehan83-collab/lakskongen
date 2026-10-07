@@ -27,7 +27,7 @@ All capsule images must be `.png` format, sRGB color space, no rounded corners, 
 
 ## 2. Screenshots
 
-**Minimum:** 5 screenshots | **Recommended:** 8–10
+**Minimum:** 5 screenshots | **Recommended:** 10–14
 **Format:** `.png` or `.jpg` | **Dimensions:** 1920 × 1080 px (16:9)
 **Naming convention:** `screenshot_XX_description.png` (zero-padded)
 
@@ -43,6 +43,10 @@ All capsule images must be `.png` format, sRGB color space, no rounded corners, 
 | 08 | Harvest & Logistics | `screenshot_08_harvest.png` | Wellboat scheduling, truck routing, cold chain management |
 | 09 | Weather & Seasons | `screenshot_09_weather.png` | Seasonal variation, storm warnings, temperature effects on growth |
 | 10 | Technology & Sustainability | `screenshot_10_tech.png` | Sustainability score, ASC certification, vertical integration tree |
+| 11 | Regulation & Traffic Lights | `screenshot_11_regulation.png` | Production-zone traffic lights, MAB capacity bars, resource-rent tax panel, Price Council |
+| 12 | Genetics & Breeding | `screenshot_12_genetics.png` | Breeding values, genomic selection, gene-editing traits with approval status |
+| 13 | Precision Feeding | `screenshot_13_feeding.png` | AI feeding dashboard, watch-mode spread quality, FCR and waste metrics |
+| 14 | Insurance & Mitigation | `screenshot_14_insurance.png` | Catastrophe policy cover, bloom early-warning, bubble curtain / O2 mitigation |
 
 **Screenshot guidelines:**
 - Capture at native 1080p with UI visible

@@ -145,6 +145,8 @@ func _advance(days: int) -> void:
 
 ## Safe button lookup — searches the scene tree by unique name (%) first,
 ## then falls back to a direct child search.  Returns null if not found.
+## The buttons are optional (HUD owns speed control in GameScene), so a miss
+## is silent by design — callers must null-check.
 func _get_button(node_name: String) -> Button:
 	# Try %UniqueNodeName lookup (requires the node to be marked unique in scene)
 	var unique_path := "%" + node_name
@@ -152,7 +154,6 @@ func _get_button(node_name: String) -> Button:
 		var n := get_node(unique_path)
 		if n is Button:
 			return n as Button
-	push_warning("GameController: button '%s' not found in scene — skipping" % node_name)
 	return null
 
 func _connect_button(btn: Button, callable: Callable) -> void:

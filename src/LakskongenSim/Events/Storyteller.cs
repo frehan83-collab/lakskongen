@@ -104,6 +104,7 @@ namespace LakskongenSim.Events
 
             // log into game state and expose to listeners
             _state.EventLog.Add(record);
+            _state.TrimEventLog();
             OnEventRaised?.Invoke(record);
         }
 
@@ -334,7 +335,7 @@ namespace LakskongenSim.Events
             // 3. IntegratedDiseaseSystem increasing disease pressure in affected zone
             
             // This approach prevents double-mortality (event kills + disease system kills)
-            Console.WriteLine($"🦠 Algal bloom triggered in zone {affectedZone.Id} - mortality will be applied by simulation systems");
+            SimLog.Info($"Algal bloom triggered in zone {affectedZone.Id} - mortality will be applied by simulation systems");
         }
         
         /// <summary>
@@ -368,8 +369,9 @@ namespace LakskongenSim.Events
                 Category = EventCategory.Disease,
                 Description = $"Disease outbreak in population {targetPop.Id}. Estimated {estimatedInfected} fish at risk. Mortality will be applied by disease system."
             });
-            
-            Console.WriteLine($"🦠 Disease outbreak in population {targetPop.Id} - mortality will be applied by IntegratedDiseaseSystem");
+            state.TrimEventLog();
+
+            SimLog.Info($"Disease outbreak in population {targetPop.Id} - mortality will be applied by IntegratedDiseaseSystem");
             
             // NOTE: The actual disease spread and mortality is handled by ApplyDiseaseConsequence
             // in SimulationEngine, which calls IntegratedDisease.Update() with extra days.

@@ -42,6 +42,11 @@ var _tutorial_skipped: bool = false  # Track if user skipped tutorial
 # ── Godot lifecycle ───────────────────────────────────────────────────────────
 
 func _ready() -> void:
+	# Hide the panel until we know a tutorial step is actually showing.
+	# (Null-guards below keep a bare/scene-less host from crashing;
+	# the canonical scenes/ui/TutorialUI.tscn wires all @exports.)
+	visible = false
+
 	# Connect to SimBridge signals
 	if has_node("/root/SimBridge"):
 		var sb: Node = get_node("/root/SimBridge")
@@ -76,6 +81,9 @@ func _on_state_updated() -> void:
 	_refresh_display()
 
 func _on_step_completed(step_number: int, title: String, reward_nok: float) -> void:
+	if _has_no_wired_content():
+		return
+	visible = true
 	_play_completion_animation(step_number, title, reward_nok)
 	# Re-expand if the player had minimised the panel
 	if _minimised:
@@ -156,6 +164,11 @@ func _refresh_display() -> void:
 	if not _tutorial_setting_enabled():
 		visible = false
 		return
+	# No wired content (bare GameScene node): keep the panel hidden so no
+	# empty dark rectangle shows when no tutorial is active.
+	if _has_no_wired_content():
+		visible = false
+		return
 	if not has_node("/root/SimBridge"):
 		return
 	var sb: Node = get_node("/root/SimBridge")
@@ -172,17 +185,14 @@ func _refresh_display() -> void:
 
 	# Step counter
 	if step_label:
-		step_label.text = tr("UI_TUTORIAL_STEP_FORMAT") % [step_num, total]
+		step_label.text = _tr_step_format(step_num, total)
 		step_label.tooltip_text = "Tutorial-stegnummer. Fullført %d av %d." % [sb.tutorial_completed_count, total]
 
 	# Progress bar
 	if progress_bar:
 		progress_bar.max_value = total
 		progress_bar.value     = sb.tutorial_completed_count
-	
-	# Update progress dots
-	_update_progress_dots(step_num, sb.tutorial_completed_count)
-	progress_bar.tooltip_text = "Fremdrift i tutorial: %d av %d steg fullført." % [sb.tutorial_completed_count, total]
+		progress_bar.tooltip_text = "Fremdrift i tutorial: %d av %d steg fullført." % [sb.tutorial_completed_count, total]
 
 	# Title
 	if title_label:
@@ -202,6 +212,9 @@ func _refresh_display() -> void:
 	if reward_label:
 		reward_label.visible = false  # rewards shown in completion animation
 
+	# Wired content exists and tutorial is active: show the panel.
+	visible = true
+
 # ── Completion animation ──────────────────────────────────────────────────────
 
 func _play_completion_animation(step_number: int, title: String, reward_nok: float) -> void:
@@ -219,7 +232,7 @@ func _play_completion_animation(step_number: int, title: String, reward_nok: flo
 
 	# Show reward toast if applicable
 	if reward_label and reward_nok > 0.0:
-		reward_label.text    = tr("UI_TUTORIAL_STEP_COMPLETE") % [step_number, _format_nok(reward_nok)]
+		reward_label.text    = _tr_step_complete(step_number, _format_nok(reward_nok))
 		reward_label.visible = true
 		reward_label.modulate = Color("#A3BE8C")
 		_tween.tween_interval(0.1)
@@ -236,6 +249,7 @@ func _play_completion_animation(step_number: int, title: String, reward_nok: flo
 			reward_label.visible = false
 
 func _show_completion_screen() -> void:
+	visible = true
 	if title_label:
 		title_label.text = tr("🏆 Tutorial fullført!")
 	if description_label:
@@ -266,14 +280,22 @@ func _set_minimised(value: bool) -> void:
 		_tween.tween_property(self, "custom_minimum_size:y", 32.0, 0.2)
 		if description_label: description_label.visible = false
 		if hint_label:        hint_label.visible        = false
-		close_button.text         = tr("▼")
+		if close_button:      close_button.text         = "▼"
 	else:
 		_tween.tween_property(self, "custom_minimum_size:y", 0.0, 0.2)
 		if description_label: description_label.visible = true
 		if hint_label:        hint_label.visible        = true
-		close_button.text         = tr("✕")
+		if close_button:      close_button.text         = "✕"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+## True when hosted without the wired children from
+## scenes/ui/TutorialUI.tscn (null-guards then apply). Used to hide the
+## empty panel instead of showing a dead rectangle.
+func _has_no_wired_content() -> bool:
+	return step_label == null and title_label == null \
+		and description_label == null and hint_label == null \
+		and progress_bar == null
 
 ## Settings gate: SettingsMenu → user://settings.json → gameplay.tutorial_enabled.
 ## Missing file / key defaults to enabled (first-run players see onboarding).
@@ -300,3 +322,18 @@ func _format_nok(amount: float) -> String:
 	elif amount >= 1_000.0:
 		return "%.0f kNOK" % (amount / 1_000.0)
 	return "%.0f NOK" % amount
+
+## Translated step counter / completion formats with fallbacks: tr() returns
+## the key itself when the catalog is missing, and formatting the raw key
+## (no placeholders) aborts the caller.
+func _tr_step_format(step_num: int, total: int) -> String:
+	var fmt := tr("UI_TUTORIAL_STEP_FORMAT")
+	if fmt == "UI_TUTORIAL_STEP_FORMAT" or not ("%" in fmt):
+		return "Steg %d / %d" % [step_num, total]
+	return fmt % [step_num, total]
+
+func _tr_step_complete(step_number: int, reward_text: String) -> String:
+	var fmt := tr("UI_TUTORIAL_STEP_COMPLETE")
+	if fmt == "UI_TUTORIAL_STEP_COMPLETE" or fmt.count("%") < 2:
+		return "Steg %d fullført! Belønning: %s" % [step_number, reward_text]
+	return fmt % [step_number, reward_text]

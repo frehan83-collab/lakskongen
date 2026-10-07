@@ -17,12 +17,12 @@ namespace LakskongenSim.Events
     #pragma warning disable CS0618 // Type or member is obsolete
     public static class NorwegianEvents
     {
-        public static void RegisterAll(Storyteller storyteller, Finance.FinanceManager? finance = null)
+        public static void RegisterAll(Storyteller storyteller, Finance.FinanceManager? finance = null, Finance.TrafficLightSystem? trafficLight = null)
         {
             RegisterDiseaseEvents(storyteller, finance);
             RegisterWeatherEvents(storyteller, finance);
             RegisterMarketEvents(storyteller, finance);
-            RegisterRegulatoryEvents(storyteller, finance);
+            RegisterRegulatoryEvents(storyteller, finance, trafficLight);
             RegisterEquipmentEvents(storyteller, finance);
             RegisterCommunityEvents(storyteller, finance);
             RegisterCompetitorEvents(storyteller, finance);
@@ -34,7 +34,7 @@ namespace LakskongenSim.Events
         /// fines and catastrophes apply even into debt — debt scenarios allow
         /// negative balances), matching the original direct-mutation semantics.
         /// </summary>
-        private static void SettleBalanceChange(Finance.FinanceManager? finance, GameState gs, EventRecord rec)
+        public static void SettleBalanceChange(Finance.FinanceManager? finance, GameState gs, EventRecord rec)
         {
             if (rec.BalanceChange == 0m) return;
             if (finance != null)
@@ -115,6 +115,14 @@ namespace LakskongenSim.Events
                 {
                     rec.Description = "Cardiomyopathy Syndrome detected in seawater cohorts. Heart inflammation causes 5-20% losses.";
                     rec.BalanceChange = -280_000m;
+                    // Phase 5.1: vaccination coverage blunts CMS (no cure exists).
+                    double vmult = Health.VaccinationProgram.OutbreakCostMult(gs,
+                        Core.CrewEffects.HasRole(gs, "veterinaer"));
+                    if (vmult < 1.0)
+                    {
+                        rec.BalanceChange = -(decimal)(280_000.0 * vmult);
+                        rec.Description += " (Vaksinert bestand — tap begrenset.)";
+                    }
                     SettleBalanceChange(finance, gs, rec);
                 }
             });
@@ -164,6 +172,14 @@ namespace LakskongenSim.Events
                 {
                     rec.Description = "Bacterial infection from cold stress. Skin lesions reduce fillet quality.";
                     rec.BalanceChange = -90_000m;
+                    // Phase 5.1: vaccination blunts winter ulcers.
+                    double vmult = Health.VaccinationProgram.OutbreakCostMult(gs,
+                        Core.CrewEffects.HasRole(gs, "veterinaer"));
+                    if (vmult < 1.0)
+                    {
+                        rec.BalanceChange = -(decimal)(90_000.0 * vmult);
+                        rec.Description += " (Vaksinert bestand — tap begrenset.)";
+                    }
                     SettleBalanceChange(finance, gs, rec);
                 }
             });
@@ -365,11 +381,20 @@ namespace LakskongenSim.Events
                 Category = EventCategory.Other,
                 Weight = 1.0,
                 CooldownDays = 60,
-                Condition = gs => gs.Populations.Any(),
+                // Phase 1.5: fully deterrent-protected farms are skipped.
+                Condition = gs => gs.Populations.Any() && gs.SeaSites
+                    .Where(s => s.Pens.Any(p => p.TotalCount > 0))
+                    .Any(s => !s.HasSealDeterrent),
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Seals breach nets and kill fish. Net damage and stress-induced mortality.";
-                    rec.BalanceChange = -65_000m;
+                    // Damage scales with the unprotected share of stock.
+                    var stocked = gs.SeaSites.Where(s => s.Pens.Any(p => p.TotalCount > 0)).ToList();
+                    int total = stocked.SelectMany(s => s.Pens).Sum(p => p.TotalCount);
+                    int unprotected = stocked.Where(s => !s.HasSealDeterrent).SelectMany(s => s.Pens).Sum(p => p.TotalCount);
+                    double share = total > 0 ? (double)unprotected / total : 1.0;
+                    rec.Description = "Seals breach nets and kill fish. Net damage and stress-induced mortality."
+                        + (share < 1.0 ? $" (Deterrents protected {1.0 - share:P0} of stock.)" : "");
+                    rec.BalanceChange = -(decimal)(65_000.0 * share);
                     SettleBalanceChange(finance, gs, rec);
                 }
             });
@@ -517,7 +542,7 @@ namespace LakskongenSim.Events
         // REGULATORY EVENTS (6 events)
         // ═══════════════════════════════════════════════════════════
 
-        private static void RegisterRegulatoryEvents(Storyteller storyteller, Finance.FinanceManager? finance)
+        private static void RegisterRegulatoryEvents(Storyteller storyteller, Finance.FinanceManager? finance, Finance.TrafficLightSystem? trafficLight = null)
         {
             storyteller.RegisterEvent(new EventDefinition
             {
@@ -532,12 +557,11 @@ namespace LakskongenSim.Events
                 {
                     rec.Description = "🟢 Your zone gets GREEN status! MAB capacity +6% allowed.";
                     rec.BalanceChange = 0m;
-                    
-                    // Increase MAB (Maximum Allowable Biomass) on all zones by 6%
-                    foreach (var zone in gs.Zones)
-                    {
-                        zone.CarryingCapacityTonnes *= 1.06;
-                    }
+
+                    // Gated (default off): with no TrafficLightSystem, or gate
+                    // off, this is the exact legacy ×1.06 loop — default
+                    // outcomes identical. Gate on routes through the machine.
+                    (trafficLight ?? new Finance.TrafficLightSystem()).ApplyGreenStatus(gs);
                 }
             });
 
@@ -555,6 +579,10 @@ namespace LakskongenSim.Events
                     rec.Description = "🔴 Sea lice pressure triggers RED zone status. Must reduce MAB by 6%.";
                     rec.BalanceChange = -320_000m; // Production loss
                     SettleBalanceChange(finance, gs, rec);
+
+                    // Gated: legacy leaves MAB untouched (fine only). Gate on
+                    // additionally tracks RED with the symmetric ×0.94 MAB cut.
+                    trafficLight?.ApplyRedStatus(gs);
                 }
             });
 

@@ -45,8 +45,8 @@ namespace LakskongenSim.Health.Tests
         public void TreatmentReducesPrevalenceAndLice()
         {
             var lice = new SeaLiceModel();
-            lice.ApplyTreatment(0.5); // start with some reduction so average non-zero
-            typeof(SeaLiceModel).GetProperty("AverageLicePerFish").SetValue(lice, 2.0); // seed lice
+            lice.ApplyTreatment("medicinal", 0.5); // start with some reduction so average non-zero
+            lice.Reset(2.0); // seed lice above the action threshold
 
             var ds = new DiseaseSystem(lice)
             {
@@ -62,7 +62,7 @@ namespace LakskongenSim.Health.Tests
             ds.Tick(pop, 14, temperatureC: 8.0);
             var beforeP = ds.GetPrevalence(pop);
 
-            ds.ApplyTreatment(pop, reductionFraction: 0.8, directTreatmentEfficacy: 0.6, temperatureC: 8.0);
+            ds.ApplyTreatment(pop, "medicinal", reductionFraction: 0.8, directTreatmentEfficacy: 0.6, temperatureC: 8.0);
             var afterP = ds.GetPrevalence(pop);
             Assert.True(afterP <= beforeP);
             Assert.True(lice.AverageLicePerFish < 2.0);

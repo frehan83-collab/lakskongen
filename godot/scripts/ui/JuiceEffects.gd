@@ -164,6 +164,40 @@ static func fade_out(node: Control, duration: float = 0.3) -> Tween:
 	tween.tween_property(node, "modulate:a", 0.0, duration)
 	return tween
 
+# ── Button Press Feedback ───────────────────────────────────────────────────
+
+## Quick scale punch for button presses. Pure juice: no logic changes.
+static func button_pop(button: Control, scale_factor: float = 0.94, duration: float = 0.12) -> Tween:
+	var tween := button.create_tween()
+	tween.set_ease(Tween.EASE_OUT)
+	tween.set_trans(Tween.TRANS_BACK)
+	tween.tween_property(button, "scale", Vector2.ONE * scale_factor, duration * 0.5)
+	tween.tween_property(button, "scale", Vector2.ONE, duration * 0.5)
+	return tween
+
+## Wire press feedback onto a button without touching its existing connections.
+static func attach_press_feedback(button: BaseButton) -> void:
+	if button == null:
+		return
+	if button.has_meta("_juice_feedback_attached"):
+		return
+	button.set_meta("_juice_feedback_attached", true)
+	button.pressed.connect(func(): button_pop(button))
+
+# ── Panel Transitions ───────────────────────────────────────────────────────
+
+## Soft enter for tab panels: fade + rise. Call after panel.show().
+static func panel_enter(panel: Control, duration: float = 0.28) -> Tween:
+	panel.modulate.a = 0.0
+	panel.position.y += 14.0
+	var tween := panel.create_tween()
+	tween.set_ease(Tween.EASE_OUT)
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_parallel(true)
+	tween.tween_property(panel, "modulate:a", 1.0, duration)
+	tween.tween_property(panel, "position:y", panel.position.y - 14.0, duration)
+	return tween
+
 # ── Floating Text (Damage Numbers / Income Pop) ──────────────────────────────
 
 ## Create a floating text that rises and fades (like damage numbers in RPGs).

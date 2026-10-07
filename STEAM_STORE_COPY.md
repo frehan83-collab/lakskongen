@@ -6,10 +6,10 @@
 
 ## 1. Short Description (300 characters max)
 
-**Character count: 198**
+**Character count: 228**
 
 ```
-Build a salmon empire in Norway's fjords. Manage real genetics, disease, markets, and regulations across a 17-product value chain — from egg to sashimi. The deepest aquaculture simulation ever made.
+Build a salmon empire in Norway's fjords. Real genetics and lice resistance, disease, climate coupling, precision feeding, and hard regulation — traffic lights, resource rent, the Price Council — across a 17-product value chain.
 ```
 
 ---
@@ -43,10 +43,22 @@ Every system connects to every other system. Genetics affect growth rates. Growt
 ### Key Features
 
 🧬 **Real Salmon Biology**
-Von Bertalanffy growth models, Mendelian genetics with 8+ heritable traits, feed conversion ratios that respond to temperature and stocking density. Your fish aren't numbers on a spreadsheet — they're biological systems that reward deep understanding.
+Von Bertalanffy growth models, Mendelian genetics with 8+ heritable traits, genomic selection and breeding values, inbreeding depression, and feed conversion ratios that respond to temperature and stocking density. Your fish aren't numbers on a spreadsheet — they're biological systems that reward deep understanding.
 
-🦠 **Complex Disease Management**
-Sea lice develop treatment resistance. ISA and IPN spread through your sites via SIR epidemiological models. Algal blooms strike without warning. Choose between chemical treatments, cleaner fish, laser delousing, or preventive husbandry — each with real trade-offs.
+🧪 **Genomics & Gene Editing**
+Run a breeding programme with marker-assisted selection, then weigh gene-edited traits — each with region-specific approval, reputational fallout, and containment requirements. Push growth, disease resistance, or sterility, and live with the bill.
+
+🦠 **Disease, Lice & Treatment Harm**
+Sea lice develop treatment resistance. ISA and IPN spread through your sites via SIR epidemiological models. Harmful algal blooms strike without warning. Delousing itself hurts: mechanical, thermal, and chemical treatments trade lice counts against fish welfare. Choose between treatments, cleaner fish, laser delousing, or preventive husbandry — each with real costs.
+
+🌡️ **Climate Coupling & Precision Feeding**
+A documented warming trend shortens sea-lice development time. AI feeding and site watch modes (watch/scan/auto) change feed spread, waste, FCR, and size variance, while oxygen, salinity, and currents set how much of your feed becomes fish.
+
+⚖️ **Norwegian Regulatory Realism**
+Navigate the real traffic light system — green, yellow, and red zones adjust your maximum allowable biomass. Face the 25% resource-rent tax (grunnrenteskatt) with its 70 MNOK standard deduction, binding monthly pen prices set by the Price Council, lice treatment thresholds, and environmental flexibility earned through closed containment. Regulations aren't flavor — they're strategic constraints on every expansion.
+
+🛡️ **Insurance & Mitigation**
+Subscribe catastrophe cover — mortality, bloom, storm, ISA — then back it with bubble curtains, oxygen diffusers, and early-warning sensor networks. Mitigate, insure, or gamble, and watch the balance sheet either way.
 
 🏭 **17-Product Value Chain**
 Process whole fish into fillets, portions, smoked products, sashimi-grade cuts, and more. Extract value from byproducts: fish oil, fish meal, collagen, even fish skin leather. Every product has different margins, shelf life, and market demand.
@@ -54,14 +66,17 @@ Process whole fish into fillets, portions, smoked products, sashimi-grade cuts, 
 📈 **6 Global Market Channels**
 Trade on spot markets calibrated to real Fish Pool price data. Negotiate forward contracts with European retailers. Chase premium margins in Tokyo's sashimi market. Sell through 6 channels — from commodity spot to exclusive direct retail — each with unique risk/reward profiles.
 
-⚖️ **Norwegian Regulatory Realism**
-Navigate the traffic light system, maximum allowable biomass (MAB) limits, lice treatment thresholds, and environmental monitoring. Regulations aren't just background flavor — they're strategic constraints that shape every expansion decision.
-
 🏢 **Empire Building in 5 Phases**
 Progress from a single-site operator to an industry titan. Vertically integrate from hatchery to export. Take your company through IPO. Acquire competitors. Dominate the market across 5 distinct growth phases — each unlocking new mechanics and challenges.
 
+🗺️ **Campaigns & Scenarios**
+Play nine hand-built scenarios grounded in real 2024–26 Norwegian events: the Hardanger family farm, a PO3 red-zone MAB cut, the ISA cull-zone, the algal-bloom catastrophe, and the resource-rent transition. Each reshapes the rules, not just the starting cash.
+
 🤖 **AI Competitors with Personality**
-Compete against AI companies inspired by real industry players — Mowier, SalMax, Herøy Havbruk — each with distinct strategies, strengths, and market behavior. They'll undercut your prices, poach your sites, and lobby regulators. Outplay them all.
+Compete against AI companies inspired by real industry players — each with distinct strategies, strengths, and market behavior. They'll undercut your prices, poach your sites, and lobby regulators. Outplay them all.
+
+🧩 **Mods & Community Content**
+A full mod loader plus planned Steam Workshop integration. Add custom scenarios, equipment, data, and rules, and let the community extend the simulation. The community shapes the game's future.
 
 ---
 
@@ -72,14 +87,22 @@ Lakskongen is built on peer-reviewed aquaculture science and real industry data.
 - **Water chemistry** — Temperature, oxygen, salinity, and currents affect fish welfare and growth
 - **Seasonal cycles** — Midnight sun summers and polar night winters change everything
 - **Real pricing models** — Ornstein-Uhlenbeck mean-reverting price dynamics calibrated to historical salmon spot data
+- **Lice resistance & treatment harm** — Treatments lose efficacy over time, and delousing costs you welfare as well as cash
+- **Climate-coupled biology** — A warming trend feeds straight into sea-lice development and growth
+- **Precision feeding** — AI feeding and watch modes drive feed conversion, waste, and size variance
+- **Regulation that bites** — Traffic-light MAB adjustments, resource-rent tax, and Price Council pen pricing
+- **Insurance & mitigation** — Catastrophe policies and bloom mitigation tools decide who survives a bad year
+- **Genomics & gene editing** — Breeding values and regionally approved GE traits, with real trade-offs
 - **Technology progression** — Research your way from 1990s open net pens to cutting-edge semi-closed containment and offshore farms
 - **100,000+ fish simulation** — Full biological modeling at scale, running smoothly at 60 FPS
 
 ---
 
-### Multiplayer & Modding
+### Multiplayer, Campaigns & Modding
 
 Team up in **cooperative multiplayer** — share a company, split responsibilities, and build an empire together. One player manages sea operations while another runs the processing plant and market strategy.
+
+Choose from **nine campaign scenarios**, each with its own starting sites, rules, and regulatory pressure — or drop into freeplay and build without limits.
 
 **Full mod support** with planned Steam Workshop integration. Create and share custom scenarios, equipment, maps, and gameplay modifications. The community shapes the game's future.
 
@@ -97,12 +120,15 @@ Fully localized in 6 languages:
 > Steam's feature list — short, punchy bullets for the sidebar/feature section.
 
 1. **Unmatched Simulation Depth** — Real biological models, genetics, disease dynamics, and environmental systems based on peer-reviewed aquaculture science
-2. **17-Product Processing Chain** — Transform whole salmon into fillets, sashimi, smoked products, fish oil, and more — every cut has different margins
-3. **Dynamic Global Markets** — Trade across 6 international channels with prices driven by real Fish Pool market data and seasonal demand
-4. **Norwegian Regulatory Framework** — Navigate the traffic light system, MAB limits, and lice thresholds — regulations are game mechanics, not background
-5. **5-Phase Empire Building** — Grow from a single pen to a vertically integrated industry titan through IPO, acquisitions, and market domination
-6. **AI Competitors** — Outsmart rival companies with distinct strategies and personalities inspired by real Norwegian aquaculture giants
-7. **Co-op Multiplayer & Mod Support** — Build empires with friends and extend the game through full modding and planned Workshop integration
+2. **Norwegian Regulation, Modelled Seriously** — Traffic-light MAB adjustments, the 25% resource-rent tax, and Price Council pen pricing are mechanics, not background
+3. **Biology That Fights Back** — Sea-lice treatment resistance, delousing harm, genomic selection, gene editing, and climate-coupled development
+4. **Precision Feeding & Welfare** — AI feeding and watch modes drive FCR, waste, and fish welfare across every site
+5. **Insurance & Mitigation** — Catastrophe policies, bubble curtains, oxygen diffusers, and early-warning sensors decide who survives
+6. **17-Product Processing Chain** — Transform whole salmon into fillets, sashimi, smoked products, fish oil, and more — every cut has different margins
+7. **Dynamic Global Markets** — Trade across 6 international channels with prices driven by real Fish Pool market data and seasonal demand
+8. **5-Phase Empire Building** — Grow from a single pen to a vertically integrated industry titan through IPO, acquisitions, and market domination
+9. **Nine Campaigns, Nine Rule Sets** — From a Hardanger family farm to a red-zone MAB cut, an ISA cull, an algal catastrophe, and the resource-rent transition
+10. **AI Competitors, Co-op & Mods** — Outsmart rival companies, build with friends, and extend the game through a full mod loader and planned Workshop integration
 
 ---
 
@@ -135,7 +161,9 @@ Fully localized in 6 languages:
 - Process fish into 17 different products across the full value chain
 - Trade on 6 international market channels with dynamic pricing
 - Compete against AI companies with distinct strategies
-- Navigate Norway's real regulatory framework
+- Navigate Norway's real regulatory framework — traffic lights, MAB limits, the resource-rent tax, and Price Council pricing
+- Run nine campaign scenarios or freeplay, each with distinct rules and starting state
+- Breed for genetics, manage lice resistance and delousing harm, and insure against catastrophe
 - Play in 6 fully localized languages (NO, EN, DE, FR, ES, JA)
 
 The simulation systems, market mechanics, and business management features are complete and functional. We're now focused on visual polish, additional content, and refinements driven by player feedback."
@@ -237,6 +265,7 @@ Secondary tags:
 |---------|------|-------|
 | 1.0 | 2026-03-15 | Initial draft (T70) |
 | 2.0 | 2026-03-15 | Finalized store page copy (T84) — polished all sections, added EA disclaimer, system requirements, tags, mature content |
+| 3.0 | 2026-10-07 | Depth refresh — traffic lights, resource rent & Price Council, lice resistance/delousing harm, genomics & GE, climate coupling, precision feeding, insurance/mitigation, nine campaigns, mods |
 
 ---
 

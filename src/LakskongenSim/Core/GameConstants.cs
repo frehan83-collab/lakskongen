@@ -21,13 +21,13 @@ namespace LakskongenSim.Core
 
         // von Bertalanffy growth parameters (weight-based, grams/days)
         /// <summary>Asymptotic/maximum expected weight (grams). Norwegian harvest weight 4-6 kg, asymptote higher.</summary>
-        public const double VB_Linf_g = 6500.0; // asymptotic weight (g) — Norwegian farmed salmon can exceed 6 kg
+        public const double VB_Linf_g = 10000.0; // asymptotic weight (g) — must exceed max observed harvest weight (~5 kg); farmed salmon grown out reach 8-15 kg
 
-        /// <summary>Growth coefficient (per day). Calibrated to reach ~5 kg in 14-18 months at sea (8-14°C).</summary>
-        public const double VB_k_per_day = 0.0030; // ~1.1/year — faster than wild due to selective breeding
+        /// <summary>Growth coefficient (per day). Calibrated to 100g smolt at transfer → 5.0 kg at 540d sea (both anchors within ±5%).</summary>
+        public const double VB_k_per_day = 0.0025; // ~0.91/year — selective breeding strain at optimal 11°C
 
         /// <summary>von Bertalanffy t0 (days). Offset for smolt stocking at ~80g.</summary>
-        public const double VB_t0_days = -45.0; // accounts for hatchery growth phase
+        public const double VB_t0_days = -97.0; // accounts for hatchery growth phase
 
         /// <summary>Typical feed conversion ratio (kg feed / kg growth). Norwegian industry average.</summary>
         public const double TypicalFCR = 1.20; // industry average 1.1-1.3 (Kontali Analyse 2024)

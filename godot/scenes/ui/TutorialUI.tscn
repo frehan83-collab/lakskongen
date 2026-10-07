@@ -1,0 +1,104 @@
+[gd_scene format=3 uid="uid://ctutorialui01"]
+
+[ext_resource type="Script" path="res://scripts/ui/TutorialUI.gd" id="1_tutorial"]
+
+[node name="TutorialUI" type="PanelContainer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_tutorial")
+step_label = NodePath("VBox/Header/StepLabel")
+progress_bar = NodePath("VBox/Header/ProgressBar")
+close_button = NodePath("VBox/Header/CloseButton")
+skip_button = NodePath("VBox/Header/SkipButton")
+title_label = NodePath("VBox/TitleLabel")
+description_label = NodePath("VBox/DescriptionLabel")
+hint_label = NodePath("VBox/HintRow/HintLabel")
+reward_label = NodePath("VBox/RewardLabel")
+progress_dots_container = NodePath("VBox/ProgressDots")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="StepLabel" type="Label" parent="VBox/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+text = "Steg 1 / 12"
+
+[node name="ProgressBar" type="ProgressBar" parent="VBox/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 12.0
+show_percentage = false
+
+[node name="SkipButton" type="Button" parent="VBox/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Hopp over tutorial og aktiver fri spilling"
+text = "Hopp over"
+
+[node name="CloseButton" type="Button" parent="VBox/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Minimer/utvid tutorial-panelet"
+text = "✕"
+
+[node name="TitleLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Tutorial"
+
+[node name="Sep1" type="HSeparator" parent="VBox"]
+layout_mode = 2
+
+[node name="DescriptionLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+text = "Beskrivelse"
+autowrap_mode = 3
+
+[node name="Sep2" type="HSeparator" parent="VBox"]
+layout_mode = 2
+
+[node name="HintRow" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HintIcon" type="Label" parent="VBox/HintRow"]
+layout_mode = 2
+text = "💡"
+
+[node name="HintLabel" type="Label" parent="VBox/HintRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+text = "Hint"
+autowrap_mode = 3
+
+[node name="RewardLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "Belønning"
+
+[node name="ProgressDots" type="HBoxContainer" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 4

@@ -199,6 +199,49 @@ namespace LakskongenSim.Environment
         }
 
         /// <summary>
+        /// Honest 3-day storm forecast: P(state ∈ {Storm, Severe} within 3 days)
+        /// by cubing the season-adjusted Markov transition matrix from the
+        /// current state. Pure function — safe for UI polling.
+        /// </summary>
+        public double StormRiskNext3Days()
+        {
+            int dayOfYear = SimulationDay % 365;
+            bool isStormSeason = dayOfYear >= 270 || dayOfYear <= 90;
+            double[,] m = new double[4, 4];
+            for (int r = 0; r < 4; r++)
+            {
+                double rowSum = 0.0;
+                for (int c = 0; c < 4; c++)
+                {
+                    double p = TransitionMatrix[r, c];
+                    if (isStormSeason && (c == 2 || c == 3))
+                        p *= StormSeasonMultiplier;
+                    m[r, c] = p;
+                    rowSum += p;
+                }
+                for (int c = 0; c < 4; c++)
+                    m[r, c] /= rowSum;
+            }
+            double[,] m2 = Multiply4(m, m);
+            double[,] m3 = Multiply4(m2, m);
+            int s = (int)CurrentState;
+            return Math.Clamp(m3[s, 2] + m3[s, 3], 0.0, 1.0);
+        }
+
+        private static double[,] Multiply4(double[,] a, double[,] b)
+        {
+            var r = new double[4, 4];
+            for (int i = 0; i < 4; i++)
+                for (int j = 0; j < 4; j++)
+                {
+                    double sum = 0.0;
+                    for (int k = 0; k < 4; k++)
+                        sum += a[i, k] * b[k, j];
+                    r[i, j] = sum;
+                }
+            return r;
+        }
+        /// <summary>
         /// Update wind speed based on weather state.
         /// </summary>
         private void UpdateWind()

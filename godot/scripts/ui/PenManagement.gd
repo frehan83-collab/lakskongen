@@ -1,7 +1,7 @@
-## PenManagement v2.0 — Nordic Minimalist
-## Pen list (left) + Detail panel (right) with stats, water quality,
-## health, genetics, feed log, and action buttons.
-## Fully programmatic UI matching pen-detail-prototype.html.
+## PenManagement v2.1 — Nordic Minimalist (scene-based).
+## Layout lives in scenes/ui/PenManagement.tscn; this script is wiring only:
+## @onready % refs, signal hookups, localization, theme fonts, data refresh.
+## Pen list buttons are data-driven and still populated in code.
 
 extends Control
 
@@ -16,62 +16,68 @@ var _theme: Node = null
 var _selected_pen_id: String = ""
 var _pen_list_items: Dictionary = {}  # pen_id -> Button
 
-# ── UI Refs ───────────────────────────────────────────────────────────────────
-var _pen_list_vbox: VBoxContainer
-var _detail_scroll: ScrollContainer
-var _no_pen_label: Label
+# ── Scene refs ────────────────────────────────────────────────────────────────
+@onready var _left_title: Label = %LeftTitle
+@onready var _pen_list_vbox: VBoxContainer = %PenList
+@onready var _detail_scroll: ScrollContainer = %DetailScroll
+@onready var _no_pen_label: Label = %NoPenLabel
 
-# Detail labels
-var _detail_name: Label
-var _detail_subtitle: Label
-var _detail_status_badge: Label
+@onready var _detail_name: Label = %DetailName
+@onready var _detail_subtitle: Label = %DetailSubtitle
+@onready var _detail_status_badge: Label = %DetailBadge
 
-# KPIs
-var _det_count: Label
-var _det_weight: Label
-var _det_biomass: Label
-var _det_fcr: Label
+@onready var _det_count: Label = %DetCount
+@onready var _det_weight: Label = %DetWeight
+@onready var _det_biomass: Label = %DetBiomass
+@onready var _det_fcr: Label = %DetFcr
 
-# Water quality
-var _det_temp: Label
-var _det_oxygen: Label
-var _det_current: Label
-var _det_visibility: Label
-var _det_algae: Label
+@onready var _det_temp: Label = %DetTemp
+@onready var _det_oxygen: Label = %DetOxygen
+@onready var _det_current: Label = %DetCurrent
+@onready var _det_visibility: Label = %DetVisibility
+@onready var _det_algae: Label = %DetAlgae
 
-# Health
-var _det_lice: Label
-var _det_disease: Label
-var _det_mortality: Label
-var _det_mortality_total: Label
+@onready var _det_lice: Label = %DetLice
+@onready var _det_disease: Label = %DetDisease
+@onready var _det_mortality: Label = %DetMortality
+@onready var _det_mortality_total: Label = %DetMortalityTotal
 
-# Genetics
-var _det_gene_growth: Label
-var _det_gene_lice: Label
-var _det_gene_disease: Label
-var _det_gene_fillet: Label
+@onready var _det_gene_growth: Label = %DetGeneGrowth
+@onready var _det_gene_lice: Label = %DetGeneLice
+@onready var _det_gene_disease: Label = %DetGeneDisease
+@onready var _det_gene_fillet: Label = %DetGeneFillet
 
-# Buttons
-var _btn_feed: Button
-var _btn_delouse: Button
-var _btn_harvest: Button
+@onready var _water_title: Label = %WaterTitle
+@onready var _health_title: Label = %HealthTitle
+@onready var _gene_title: Label = %GeneTitle
+
+@onready var _btn_feed: Button = %BtnFeed
+@onready var _btn_delouse: Button = %BtnDelouse
+@onready var _btn_harvest: Button = %BtnHarvest
+@onready var _btn_repair: Button = %BtnRepair
+@onready var _strain_option: OptionButton = %StrainOption
+@onready var _btn_stock: Button = %BtnStock
+@onready var _btn_skirt: Button = %BtnSkirt
+@onready var _btn_deterrent: Button = %BtnDeterrent
+@onready var _delouse_option: OptionButton = %DelouseOption
+@onready var _btn_rov: Button = %BtnROV
 
 # ── Colors ────────────────────────────────────────────────────────────────────
-const C_BG       := Color("#ECEFF4")
-const C_SURFACE  := Color("#FFFFFF")
+const C_BG := Color("#ECEFF4")
+const C_SURFACE := Color("#FFFFFF")
 const C_ELEVATED := Color("#F8F9FB")
-const C_TEXT     := Color("#2E3440")
-const C_TEXT2    := Color("#4C566A")
-const C_MUTED    := Color("#7B8794")
-const C_BORDER   := Color("#E5E9F0")
-const C_PRIMARY  := Color("#0A4D68")
+const C_TEXT := Color("#2E3440")
+const C_TEXT2 := Color("#4C566A")
+const C_MUTED := Color("#7B8794")
+const C_BORDER := Color("#E5E9F0")
+const C_PRIMARY := Color("#0A4D68")
 const C_SECONDARY := Color("#88C0D0")
-const C_SUCCESS  := Color("#A3BE8C")
+const C_SUCCESS := Color("#A3BE8C")
 const C_SUCCESS_D := Color("#8FAD78")
-const C_WARNING  := Color("#EBCB8B")
+const C_WARNING := Color("#EBCB8B")
 const C_WARNING_D := Color("#D4B06A")
-const C_DANGER   := Color("#BF616A")
-const C_ACCENT   := Color("#5E81AC")
+const C_DANGER := Color("#BF616A")
+const C_ACCENT := Color("#5E81AC")
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -85,284 +91,79 @@ func _ready() -> void:
 		if _sim.has_signal("pen_action_completed"):
 			_sim.pen_action_completed.connect(_on_pen_action_completed)
 
-	_build_ui()
+	_apply_localization()
+	_apply_theme_fonts()
+	_btn_delouse.pressed.connect(_on_delouse)
+	_btn_feed.pressed.connect(_on_feed)
+	_btn_harvest.pressed.connect(_on_harvest)
+	_btn_repair.pressed.connect(_on_repair)
+	_btn_stock.pressed.connect(_on_stock)
+	_btn_skirt.pressed.connect(_on_toggle_mitigation.bind("skirt"))
+	_btn_deterrent.pressed.connect(_on_toggle_mitigation.bind("deterrent"))
+	_btn_rov.pressed.connect(_on_rov)
+	_populate_strains()
+	_build_quality_selector()
+	_populate_quality_tiers()
+	_populate_treatments()
+	_attach_button_juice()
 	_refresh()
-	print("PenManagement v2.0: ready")
 
 func _input(event: InputEvent) -> void:
 	if visible and event.is_action_pressed("ui_cancel"):
 		hide()
 		get_viewport().set_input_as_handled()
 
-# ══════════════════════════════════════════════════════════════════════════════
-# UI BUILD
-# ══════════════════════════════════════════════════════════════════════════════
+# ── Scene wiring ──────────────────────────────────────────────────────────────
 
-func _build_ui() -> void:
-	for child in get_children():
-		child.queue_free()
+func _apply_localization() -> void:
+	_left_title.text = tr("🐟 Merder")
+	_no_pen_label.text = _tr_or("UI_PEN_SELECT_HINT",
+		"🐟 Velg en merd\nVelg en merd i listen til venstre for å se detaljer, fôre, avluse eller høste.")
+	_no_pen_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_water_title.text = tr("🌊 Miljø")
+	_health_title.text = tr("💀 Helse")
+	_gene_title.text = tr("🧬 Genetikk")
+	_btn_delouse.text = tr("🧪 Avlus")
+	_btn_feed.text = tr("🐟 Fôr")
+	_btn_harvest.text = tr("📦 Høst")
+	_btn_repair.text = tr("🔧 Reparer nøter")
+	_btn_stock.text = tr("🐣 Sett ut 10k")
 
-	# Background
-	var bg := Panel.new()
-	var bg_sb := StyleBoxFlat.new()
-	bg_sb.bg_color = C_BG
-	bg.add_theme_stylebox_override("panel", bg_sb)
-	bg.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	add_child(bg)
+func _tr_or(key: String, fallback: String) -> String:
+	var t := tr(key)
+	return t if t != key else fallback
 
-	# Split layout: pen list (left) + detail (right)
-	var hsplit := HBoxContainer.new()
-	hsplit.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	hsplit.offset_left = 16; hsplit.offset_top = 16
-	hsplit.offset_right = -16; hsplit.offset_bottom = -16
-	hsplit.add_theme_constant_override("separation", 16)
-	add_child(hsplit)
+## Juice-only: press feedback on the three detail action buttons.
+func _attach_button_juice() -> void:
+	for btn in [_btn_feed, _btn_delouse, _btn_harvest, _btn_repair, _btn_stock, _btn_skirt, _btn_deterrent, _btn_rov]:
+		if btn is BaseButton:
+			JuiceEffects.attach_press_feedback(btn)
 
-	# ── LEFT: Pen List ──
-	var left_card := _make_card_container("🐟 Merder")
-	left_card.custom_minimum_size.x = 250
-	hsplit.add_child(left_card)
+## Juice-only toast helper; never touches simulation state.
+func _toast(message: String, level: String = "INFO") -> void:
+	var mgr := get_node_or_null("/root/ToastNotification")
+	if mgr and mgr.has_method("show_toast"):
+		mgr.show_toast(message, level, 4.0)
 
-	var left_body := left_card.get_child(0).get_child(1) as VBoxContainer
-	var list_scroll := ScrollContainer.new()
-	list_scroll.size_flags_vertical = SIZE_EXPAND_FILL
-	left_body.add_child(list_scroll)
-
-	_pen_list_vbox = VBoxContainer.new()
-	_pen_list_vbox.add_theme_constant_override("separation", 8)
-	_pen_list_vbox.size_flags_horizontal = SIZE_EXPAND_FILL
-	list_scroll.add_child(_pen_list_vbox)
-
-	# ── RIGHT: Detail Panel ──
-	_no_pen_label = Label.new()
-	_no_pen_label.text = tr("Velg en merd for detaljer")
-	_no_pen_label.add_theme_font_size_override("font_size", 16)
-	_no_pen_label.add_theme_color_override("font_color", C_MUTED)
-	_no_pen_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_no_pen_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_no_pen_label.size_flags_horizontal = SIZE_EXPAND_FILL
-	_no_pen_label.size_flags_vertical = SIZE_EXPAND_FILL
-
-	_detail_scroll = ScrollContainer.new()
-	_detail_scroll.size_flags_horizontal = SIZE_EXPAND_FILL
-	_detail_scroll.size_flags_vertical = SIZE_EXPAND_FILL
-	_detail_scroll.visible = false
-
-	hsplit.add_child(_no_pen_label)
-	hsplit.add_child(_detail_scroll)
-
-	_build_detail_panel()
-
-func _build_detail_panel() -> void:
-	var root := VBoxContainer.new()
-	root.size_flags_horizontal = SIZE_EXPAND_FILL
-	root.add_theme_constant_override("separation", 16)
-	_detail_scroll.add_child(root)
-
-	# ── Header ──
-	var header := HBoxContainer.new()
-	root.add_child(header)
-
-	var header_left := VBoxContainer.new()
-	header_left.size_flags_horizontal = SIZE_EXPAND_FILL
-	header.add_child(header_left)
-
-	_detail_name = Label.new()
-	_detail_name.text = tr("Merd 1")
-	_detail_name.add_theme_font_size_override("font_size", 24)
-	_detail_name.add_theme_color_override("font_color", C_TEXT)
-	if _theme and _theme.font_heading_bold:
+func _apply_theme_fonts() -> void:
+	if not _theme:
+		return
+	if _theme.font_heading_bold:
 		_detail_name.add_theme_font_override("font", _theme.font_heading_bold)
-	header_left.add_child(_detail_name)
-
-	_detail_subtitle = Label.new()
-	_detail_subtitle.text = "--"
-	_detail_subtitle.add_theme_font_size_override("font_size", 13)
-	_detail_subtitle.add_theme_color_override("font_color", C_MUTED)
-	header_left.add_child(_detail_subtitle)
-
-	# Status badge + buttons
-	var header_right := HBoxContainer.new()
-	header_right.add_theme_constant_override("separation", 10)
-	header.add_child(header_right)
-
-	_detail_status_badge = Label.new()
-	_detail_status_badge.text = tr("● Frisk")
-	_detail_status_badge.add_theme_font_size_override("font_size", 12)
-	_detail_status_badge.add_theme_color_override("font_color", C_SUCCESS_D)
-	header_right.add_child(_detail_status_badge)
-
-	_btn_delouse = _make_action_btn("🧪 Avlus", C_WARNING)
-	header_right.add_child(_btn_delouse)
-	_btn_delouse.pressed.connect(_on_delouse)
-
-	_btn_feed = _make_action_btn("🐟 Fôr", C_PRIMARY)
-	header_right.add_child(_btn_feed)
-	_btn_feed.pressed.connect(_on_feed)
-
-	_btn_harvest = _make_action_btn("📦 Høst", C_SUCCESS)
-	header_right.add_child(_btn_harvest)
-	_btn_harvest.pressed.connect(_on_harvest)
-
-	# ── KPI row ──
-	var kpi_row := HBoxContainer.new()
-	kpi_row.add_theme_constant_override("separation", 12)
-	root.add_child(kpi_row)
-
-	_det_count = _add_stat_card(kpi_row, "ANTALL FISK", "--")
-	_det_weight = _add_stat_card(kpi_row, "SNITT VEKT", "--")
-	_det_biomass = _add_stat_card(kpi_row, "BIOMASSE", "--")
-	_det_fcr = _add_stat_card(kpi_row, "FCR (AKTUELL)", "--")
-
-	# ── Bottom grid: Water + Health + Genetics ──
-	var bottom := HBoxContainer.new()
-	bottom.add_theme_constant_override("separation", 16)
-	root.add_child(bottom)
-
-	# Water quality card
-	var water_card := _make_card_container("🌊 Miljø")
-	water_card.size_flags_horizontal = SIZE_EXPAND_FILL
-	bottom.add_child(water_card)
-	var water_body := water_card.get_child(0).get_child(1) as VBoxContainer
-
-	_det_temp = _add_detail_row(water_body, "Temperatur", "--")
-	_det_oxygen = _add_detail_row(water_body, "Oksygen", "--")
-	_det_current = _add_detail_row(water_body, "Strøm", "--")
-	_det_visibility = _add_detail_row(water_body, "Sikt", "--")
-	_det_algae = _add_detail_row(water_body, "Algevekst", "--")
-
-	# Health card
-	var health_card := _make_card_container("💀 Helse")
-	health_card.size_flags_horizontal = SIZE_EXPAND_FILL
-	bottom.add_child(health_card)
-	var health_body := health_card.get_child(0).get_child(1) as VBoxContainer
-
-	_det_lice = _add_detail_row(health_body, "Lusetall", "--")
-	_det_disease = _add_detail_row(health_body, "Sykdom", "--")
-	_det_mortality = _add_detail_row(health_body, "Dødelighet (uke)", "--")
-	_det_mortality_total = _add_detail_row(health_body, "Dødelighet (total)", "--")
-
-	# Genetics card
-	var gene_card := _make_card_container("🧬 Genetikk")
-	gene_card.size_flags_horizontal = SIZE_EXPAND_FILL
-	bottom.add_child(gene_card)
-	var gene_body := gene_card.get_child(0).get_child(1) as VBoxContainer
-
-	_det_gene_growth = _add_detail_row(gene_body, "Veksthastighet", "--")
-	_det_gene_lice = _add_detail_row(gene_body, "Luseresistens", "--")
-	_det_gene_disease = _add_detail_row(gene_body, "Sykdomsresistens", "--")
-	_det_gene_fillet = _add_detail_row(gene_body, "Filétkvalitet", "--")
-
-# ── Widget builders ───────────────────────────────────────────────────────────
-
-func _make_card_container(title: String) -> PanelContainer:
-	var card := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = C_SURFACE
-	sb.border_color = C_BORDER
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(8)
-	card.add_theme_stylebox_override("panel", sb)
-
-	var outer := VBoxContainer.new()
-	outer.add_theme_constant_override("separation", 0)
-	card.add_child(outer)
-
-	var header := PanelContainer.new()
-	var h_sb := StyleBoxFlat.new()
-	h_sb.bg_color = C_SURFACE
-	h_sb.border_color = C_BORDER
-	h_sb.border_width_bottom = 1
-	h_sb.set_content_margin(SIDE_LEFT, 16)
-	h_sb.set_content_margin(SIDE_RIGHT, 16)
-	h_sb.set_content_margin(SIDE_TOP, 12)
-	h_sb.set_content_margin(SIDE_BOTTOM, 12)
-	header.add_theme_stylebox_override("panel", h_sb)
-	outer.add_child(header)
-
-	var t := Label.new()
-	t.text = title
-	t.add_theme_font_size_override("font_size", 14)
-	t.add_theme_color_override("font_color", C_TEXT)
-	if _theme and _theme.font_heading_semibold:
-		t.add_theme_font_override("font", _theme.font_heading_semibold)
-	header.add_child(t)
-
-	var body := VBoxContainer.new()
-	body.add_theme_constant_override("separation", 8)
-	outer.add_child(body)
-
-	return card
-
-func _add_stat_card(parent: HBoxContainer, title: String, value: String) -> Label:
-	var card := PanelContainer.new()
-	card.size_flags_horizontal = SIZE_EXPAND_FILL
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = C_SURFACE
-	sb.border_color = C_BORDER
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(8)
-	sb.set_content_margin_all(14)
-	card.add_theme_stylebox_override("panel", sb)
-	parent.add_child(card)
-
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 4)
-	card.add_child(vbox)
-
-	var lbl := Label.new()
-	lbl.text = title
-	lbl.add_theme_font_size_override("font_size", 11)
-	lbl.add_theme_color_override("font_color", C_MUTED)
-	vbox.add_child(lbl)
-
-	var val := Label.new()
-	val.text = value
-	val.add_theme_font_size_override("font_size", 22)
-	val.add_theme_color_override("font_color", C_TEXT)
-	if _theme and _theme.font_heading_bold:
-		val.add_theme_font_override("font", _theme.font_heading_bold)
-	vbox.add_child(val)
-
-	return val
-
-func _add_detail_row(parent: VBoxContainer, label_text: String, value_text: String) -> Label:
-	var row := HBoxContainer.new()
-	parent.add_child(row)
-
-	var lbl := Label.new()
-	lbl.text = label_text
-	lbl.add_theme_font_size_override("font_size", 13)
-	lbl.add_theme_color_override("font_color", C_TEXT2)
-	lbl.size_flags_horizontal = SIZE_EXPAND_FILL
-	row.add_child(lbl)
-
-	var val := Label.new()
-	val.text = value_text
-	val.add_theme_font_size_override("font_size", 13)
-	val.add_theme_color_override("font_color", C_TEXT)
-	if _theme and _theme.font_mono:
-		val.add_theme_font_override("font", _theme.font_mono)
-	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	row.add_child(val)
-
-	return val
-
-func _make_action_btn(text: String, color: Color) -> Button:
-	var btn := Button.new()
-	btn.text = text
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = color
-	sb.set_corner_radius_all(4)
-	sb.set_content_margin_all(8)
-	btn.add_theme_stylebox_override("normal", sb)
-	var hover_sb := sb.duplicate() as StyleBoxFlat
-	hover_sb.bg_color = color.lightened(0.1)
-	btn.add_theme_stylebox_override("hover", hover_sb)
-	btn.add_theme_color_override("font_color", Color.WHITE)
-	btn.add_theme_color_override("font_hover_color", Color.WHITE)
-	btn.add_theme_font_size_override("font_size", 13)
-	return btn
+		_det_count.add_theme_font_override("font", _theme.font_heading_bold)
+		_det_weight.add_theme_font_override("font", _theme.font_heading_bold)
+		_det_biomass.add_theme_font_override("font", _theme.font_heading_bold)
+		_det_fcr.add_theme_font_override("font", _theme.font_heading_bold)
+	if _theme.font_heading_semibold:
+		_left_title.add_theme_font_override("font", _theme.font_heading_semibold)
+		_water_title.add_theme_font_override("font", _theme.font_heading_semibold)
+		_health_title.add_theme_font_override("font", _theme.font_heading_semibold)
+		_gene_title.add_theme_font_override("font", _theme.font_heading_semibold)
+	if _theme.font_mono:
+		for lbl in [_det_temp, _det_oxygen, _det_current, _det_visibility, _det_algae,
+				_det_lice, _det_disease, _det_mortality, _det_mortality_total,
+				_det_gene_growth, _det_gene_lice, _det_gene_disease, _det_gene_fillet]:
+			(lbl as Label).add_theme_font_override("font", _theme.font_mono)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DATA REFRESH
@@ -387,7 +188,9 @@ func _refresh_pen_list() -> void:
 
 	if pens.is_empty():
 		var lbl := Label.new()
-		lbl.text = tr("Ingen merder tilgjengelig")
+		lbl.text = _tr_or("UI_PEN_LIST_EMPTY_GUIDE",
+			"🐟 Ingen merder ennå\nKjøp din første merd, eller velg en produksjonssone på kartet for å komme i gang.")
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lbl.add_theme_color_override("font_color", C_MUTED)
 		_pen_list_vbox.add_child(lbl)
 		_show_no_pen()
@@ -447,22 +250,25 @@ func _refresh_detail() -> void:
 	var biomass: float = pen.get("biomass_kg", 0.0)
 	var avg_w: float = biomass / float(fish) if fish > 0 else 0.0
 	var max_bio: float = pen.get("max_biomass", 780000.0)
+	var integrity: float = float(pen.get("net_integrity", 100.0))
 
 	_detail_name.text = pen.get("name", _selected_pen_id)
-	_detail_subtitle.text = "Sone: %s · Kapasitet: %.0f%%" % [
+	_detail_subtitle.text = "Sone: %s · Kapasitet: %.0f%% · Nøter: %.0f%%" % [
 		pen.get("zone", "Ukjent"),
-		(biomass / max_bio * 100.0) if max_bio > 0 else 0.0
+		(biomass / max_bio * 100.0) if max_bio > 0 else 0.0,
+		integrity
 	]
 
 	_det_count.text = _fmt_num(fish)
 	_det_weight.text = "%.1f kg" % avg_w
 	_det_biomass.text = "%.0f t" % (biomass / 1000.0)
-	_det_fcr.text = "1.15"  # Mock
+	_det_fcr.text = "%.2f" % float(_sim.fcr)
 
-	# Water
+	# Water (live where simulated)
 	_det_temp.text = "%.1f°C" % _sim.temperature_c
-	_det_oxygen.text = "91%"
-	_det_current.text = tr("0.3 m/s")
+	var o2: float = float(_sim.oxygen_mgl)
+	_det_oxygen.text = "%.1f mg/L" % o2 if o2 == o2 and o2 > 0.0 else "–"
+	_det_current.text = "%d%%" % int(float(_sim.appetite) * 100.0)
 	_det_visibility.text = tr("8.5 m")
 	_det_algae.text = tr("Lav")
 	_det_algae.add_theme_color_override("font_color", C_SUCCESS_D)
@@ -473,7 +279,17 @@ func _refresh_detail() -> void:
 	_det_lice.add_theme_color_override("font_color", C_SUCCESS_D if lice < 0.2 else (C_WARNING_D if lice < 0.5 else C_DANGER))
 	_det_disease.text = tr("Ingen")
 	_det_disease.add_theme_color_override("font_color", C_SUCCESS_D)
-	_det_mortality.text = "0.05%"
+	# Resistance: worst chemical track (Phase 2.2) — overuse bites back.
+	var max_res := 0.0
+	if _sim and _sim.has_method("get_resistance_levels"):
+		var res_lvls: Dictionary = _sim.get_resistance_levels()
+		for k in res_lvls:
+			max_res = max(max_res, float(res_lvls[k]))
+	_det_disease.text = "%.0f%%" % (max_res * 100.0)
+	_det_disease.add_theme_color_override("font_color",
+		C_SUCCESS_D if max_res < 0.2 else (C_WARNING_D if max_res < 0.5 else C_DANGER))
+	var mort: float = float(_sim.mortality_rate)
+	_det_mortality.text = "%.2f%%" % (mort * 100.0) if mort == mort else "–"
 	_det_mortality_total.text = "1.2%"
 
 	# Genetics (mock for now)
@@ -487,7 +303,10 @@ func _refresh_detail() -> void:
 	_det_gene_fillet.add_theme_color_override("font_color", C_SUCCESS_D)
 
 	# Status badge
-	if lice >= 0.5:
+	if integrity < 40.0:
+		_detail_status_badge.text = tr("🚨 Nøter kritisk — rømmingsfare")
+		_detail_status_badge.add_theme_color_override("font_color", C_DANGER)
+	elif lice >= 0.5:
 		_detail_status_badge.text = tr("⚠ Forhøyet lusetall")
 		_detail_status_badge.add_theme_color_override("font_color", C_WARNING_D)
 	else:
@@ -498,6 +317,12 @@ func _refresh_detail() -> void:
 	_btn_feed.disabled = (fish == 0)
 	_btn_delouse.disabled = (fish == 0 or lice < 0.2)
 	_btn_harvest.disabled = (fish == 0 or avg_w < 3.5)
+	_btn_repair.disabled = integrity >= 99.5
+	# Mitigation toggles (Phase 1.5) reflect live site state.
+	var has_skirt: bool = bool(pen.get("has_skirt", false))
+	var has_det: bool = bool(pen.get("has_deterrent", false))
+	_btn_skirt.text = ("🔛 " if has_skirt else "⚪ ") + tr("Luseskjørt")
+	_btn_deterrent.text = ("🔛 " if has_det else "⚪ ") + tr("Seldeterrent")
 
 func _show_no_pen() -> void:
 	_no_pen_label.visible = true
@@ -514,6 +339,16 @@ func _select_pen(pen_id: String) -> void:
 	pen_selected.emit(pen_id)
 	_refresh()
 
+
+## Public selection API for 3D pen clicks (FjordVistaBridge).
+func select_pen(pen_id: String) -> void:
+	_select_pen(pen_id)
+
+
+## Currently selected pen id (empty when none).
+func get_selected_pen_id() -> String:
+	return _selected_pen_id
+
 func _on_feed() -> void:
 	if _selected_pen_id.is_empty() or not _sim:
 		return
@@ -524,9 +359,44 @@ func _on_feed() -> void:
 func _on_delouse() -> void:
 	if _selected_pen_id.is_empty() or not _sim:
 		return
+	var idx := clampi(_delouse_option.selected, 0, _treatment_ids.size() - 1)
+	var method_id := _treatment_ids[idx]
+	# Wellboat methods (Thermolicer/Hydrolicer/…) take days via spot-hire;
+	# the lice keep growing meanwhile — time it before the 0.5 limit.
+	# FreshwaterBath gets its own RO boat (zero resistance, AGD included).
+	if method_id == "FreshwaterBath":
+		if _sim.has_method("request_wellboat"):
+			_sim.request_wellboat(_selected_pen_id, "freshwater")
+		action_requested.emit("wellboat", _selected_pen_id)
+		return
+	if bool(_treatment_wellboat.get(method_id, false)):
+		if _sim.has_method("request_wellboat"):
+			_sim.request_wellboat(_selected_pen_id, "delouse", method_id)
+		action_requested.emit("wellboat", _selected_pen_id)
+		return
 	if _sim.has_method("delouse_pen"):
-		_sim.delouse_pen(_selected_pen_id, "mechanical")
+		_sim.delouse_pen(_selected_pen_id, method_id)
 	action_requested.emit("delouse", _selected_pen_id)
+
+## Treatment cards (Phase 2.2): id + efficacy/mortality per profile.
+var _treatment_ids: Array[String] = ["Hydrolicer"]
+var _treatment_wellboat: Dictionary = {}
+
+func _populate_treatments() -> void:
+	_treatment_ids.clear()
+	_treatment_wellboat.clear()
+	_delouse_option.clear()
+	if _sim and _sim.has_method("get_treatment_profiles"):
+		for p in _sim.get_treatment_profiles():
+			var id := str(p.get("id", "?"))
+			_treatment_ids.append(id)
+			_treatment_wellboat[id] = bool(p.get("requires_wellboat", false))
+			var tag := "🚢" if bool(p.get("requires_wellboat", false)) else ""
+			_delouse_option.add_item("%s%s %.0f%%/%.1f%%" % [
+				tag, id, float(p.get("efficacy", 0.0)) * 100.0, float(p.get("mortality", 0.0)) * 100.0])
+	if _treatment_ids.is_empty():
+		_treatment_ids.append("Hydrolicer")
+		_delouse_option.add_item("Hydrolicer")
 
 func _on_harvest() -> void:
 	if _selected_pen_id.is_empty() or not _sim:
@@ -535,8 +405,126 @@ func _on_harvest() -> void:
 		_sim.harvest_pen(_selected_pen_id)
 	action_requested.emit("harvest", _selected_pen_id)
 
+func _on_repair() -> void:
+	if _selected_pen_id.is_empty() or not _sim:
+		return
+	if _sim.has_method("repair_nets"):
+		_sim.repair_nets(_selected_pen_id)
+	action_requested.emit("repair_nets", _selected_pen_id)
+
+## Strain picker (Phase 1.4): fixed 10k batch per click, strain from dropdown.
+var _strain_ids: Array[String] = ["standard"]
+
+# P5 smolt-quality picker: tier index equals the StockSmolts quality value
+# (0=Standard, 1=Large, 2=SuperSmolt), matching get_smolt_quality_tiers() order.
+var _quality_option: OptionButton = null
+
+## Build the quality OptionButton in code and place it just before the stock button.
+func _build_quality_selector() -> void:
+	if _btn_stock == null:
+		return
+	var parent: Node = _btn_stock.get_parent()
+	if parent == null:
+		return
+	_quality_option = OptionButton.new()
+	_quality_option.name = "SmoltQualityOption"
+	_quality_option.add_theme_font_size_override("font_size", 12)
+	_quality_option.tooltip_text = tr("Smoltkvalitet — forventet bæreevne i sjøfasen")
+	parent.add_child(_quality_option)
+	parent.move_child(_quality_option, _btn_stock.get_index())
+
+## Populate quality tiers + tooltips describing expected carryover.
+func _populate_quality_tiers() -> void:
+	if _quality_option == null:
+		return
+	_quality_option.clear()
+	var tiers: Array = []
+	if _sim and _sim.has_method("get_smolt_quality_tiers"):
+		tiers = _sim.get_smolt_quality_tiers()
+	if tiers.is_empty():
+		_quality_option.add_item(tr("Standard S1"))
+		_quality_option.tooltip_text = tr("Smoltkvalitet utilgjengelig")
+		return
+	for q in tiers:
+		_quality_option.add_item(tr(str(q.get("name", "?"))))
+		var idx := _quality_option.item_count - 1
+		_quality_option.set_item_tooltip(idx, "%s — dødelighet ×%.2f, vekst ×%.2f, dager til slakt ×%.2f" % [
+			tr(str(q.get("name", "?"))),
+			float(q.get("mortality_mult", 1.0)),
+			float(q.get("growth_mult", 1.0)),
+			float(q.get("days_mult", 1.0))])
+
+func _populate_strains() -> void:
+	_strain_ids.clear()
+	_strain_option.clear()
+	if _sim and _sim.has_method("get_smolt_strains"):
+		for s in _sim.get_smolt_strains():
+			_strain_ids.append(str(s.get("id", "standard")))
+			_strain_option.add_item("%s (%.0fg, ×%.1f)" % [
+				str(s.get("name", "?")),
+				float(s.get("weight_g", 100.0)),
+				float(s.get("cost_multiplier", 1.0))])
+	if _strain_ids.is_empty():
+		_strain_ids.append("standard")
+		_strain_option.add_item("Standard S1")
+
+func _on_stock() -> void:
+	if _selected_pen_id.is_empty() or not _sim:
+		return
+	var strain_id := _strain_ids[clampi(_strain_option.selected, 0, _strain_ids.size() - 1)]
+	var quality_tier := maxi(0, _quality_option.selected) if _quality_option != null else 0
+	if _sim.has_method("stock_smolts"):
+		_sim.stock_smolts(_selected_pen_id, 10000, strain_id, quality_tier)
+	action_requested.emit("stock_smolts", _selected_pen_id)
+
+func _on_toggle_mitigation(kind: String) -> void:
+	if _selected_pen_id.is_empty() or not _sim:
+		return
+	if _sim.has_method("toggle_mitigation"):
+		_sim.toggle_mitigation(_selected_pen_id, kind)
+	action_requested.emit("mitigation", _selected_pen_id)
+
+func _on_rov() -> void:
+	if _selected_pen_id.is_empty() or not _sim:
+		return
+	if _sim.has_method("request_wellboat"):
+		_sim.request_wellboat(_selected_pen_id, "rov")
+	action_requested.emit("wellboat", _selected_pen_id)
+
 func _on_pen_action_completed(action: String, pen_id: String, _success: bool) -> void:
 	_refresh()
+	# Juice-only feedback: toast per action, celebration on harvest.
+	# Simulation numbers are untouched; this only reads the completion signal.
+	if _success:
+		match action:
+			"feed":
+				_toast(_tr_or("UI_TOAST_FEED_OK", "🐟 Merd %s fôret") % pen_id, "SUCCESS")
+			"delouse", "delousing":
+				_toast(_tr_or("UI_TOAST_DELOUSE_OK", "🧪 Avlusing bestilt for merd %s") % pen_id, "SUCCESS")
+			"harvest":
+				_toast(_tr_or("UI_TOAST_HARVEST_OK", "📦 Høsting fullført i merd %s! 🎉") % pen_id, "SUCCESS")
+				_play_harvest_celebration()
+			"repair_nets":
+				_toast(_tr_or("UI_TOAST_REPAIR_OK", "🔧 Nøter reparert i %s (100%)") % pen_id, "SUCCESS")
+			"stock_smolts":
+				_toast(_tr_or("UI_TOAST_STOCK_OK", "🐣 10 000 smolt satt ut i %s") % pen_id, "SUCCESS")
+			"mitigation":
+				_toast(_tr_or("UI_TOAST_MITIGATION_OK", "🛡️ Tiltak oppdatert i %s") % pen_id, "SUCCESS")
+			"wellboat":
+				_toast(_tr_or("UI_TOAST_WELLBOAT_OK", "🚢 Brønnbåt bestilt til %s") % pen_id, "SUCCESS")
+			"place_pen", "buy":
+				_toast(_tr_or("UI_TOAST_BUY_PEN", "🏗️ Ny merd kjøpt — lykke til!"), "SUCCESS")
+			"sell":
+				_toast(_tr_or("UI_TOAST_SELL_PEN", "💰 Merd %s solgt") % pen_id, "INFO")
+	else:
+		_toast(_tr_or("UI_TOAST_ACTION_FAILED", "⚠️ %s feilet for merd %s") % [action.capitalize(), pen_id], "WARNING")
+
+## Harvest celebration reusing the AchievementPopup/JuiceEffects pattern:
+## double-pulse + income flash on the detail panel, no new systems.
+func _play_harvest_celebration() -> void:
+	var target: Control = _detail_scroll if is_instance_valid(_detail_scroll) else self
+	JuiceEffects.double_pulse(target, 1.02, 0.5)
+	JuiceEffects.flash_income(target)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 

@@ -87,6 +87,10 @@ namespace LakskongenSim.Farm
         /// <summary>Is facility fully operational?</summary>
         public bool IsOperational => ConstructionProgress >= 1.0;
 
+        // Phase 5.4: Carbon ledger
+        /// <summary>Carbon emissions/credits tracker for this RAS facility.</summary>
+        public CarbonTracker CarbonTracker { get; set; } = new();
+
         // ─── Status ───
         public int DaysSinceLastMaintenance { get; set; } = 0;
         public int MaintenanceIntervalDays { get; set; } = 90; // Quarterly biofilter maintenance

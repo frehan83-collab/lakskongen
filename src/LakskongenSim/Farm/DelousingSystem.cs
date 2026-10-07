@@ -135,7 +135,7 @@ namespace LakskongenSim.Farm
         /// </summary>
         public TreatmentResult Treat(Biology.FishPopulation pop, DelousingMethod method,
             Health.SeaLiceModel liceModel, Health.IntegratedDiseaseSystem diseaseSystem,
-            double temperatureC = 10.0)
+            double temperatureC = 10.0, double mortalityMultiplier = 1.0)
         {
             var profile = GetProfile(method);
             int totalFish = pop.Cohorts.Sum(c => c.Count);
@@ -147,7 +147,7 @@ namespace LakskongenSim.Farm
                 return TreatmentResult.Cancelled(method, "Temperature out of range");
             }
 
-            // Calculate actual efficacy (may be reduced by resistance)
+// Calculate actual efficacy (may be reduced by resistance)
             double actualEfficacy = profile.Efficacy;
 
             // Temperature modifier on chemical treatments
@@ -157,12 +157,25 @@ namespace LakskongenSim.Farm
                 actualEfficacy *= Math.Max(0.5, tempModifier);
             }
 
-            // Apply lice reduction
-            liceModel.ApplyTreatment(actualEfficacy);
+            string treatmentType = method switch
+            {
+                DelousingMethod.HydrogenPeroxide => "hydrogen_peroxide",
+                DelousingMethod.MedicatedFeed => "organophosphate",
+                DelousingMethod.Thermolicer => "thermal",
+                DelousingMethod.Hydrolicer => "mechanical",
+                DelousingMethod.CleanerFish => "cleaner_fish",
+                DelousingMethod.LaserDelousing => "laser",
+                DelousingMethod.FreshwaterBath => "freshwater",
+                DelousingMethod.LiceSkirts => "preventive",
+                _ => "mechanical"
+            };
 
-            // Treatment mortality
+            // Apply lice reduction
+            double efficacyResult = liceModel.ApplyTreatment(treatmentType, actualEfficacy);
+
+            // Treatment mortality (veterinarian supervision scales it)
             var rng = new Random();
-            double actualMortalityRate = profile.MortalityRisk * (1.0 + (temperatureC - 10.0) * 0.05);
+            double actualMortalityRate = profile.MortalityRisk * (1.0 + (temperatureC - 10.0) * 0.05) * mortalityMultiplier;
             actualMortalityRate = Math.Max(0, actualMortalityRate);
             int deaths = (int)(totalFish * actualMortalityRate);
 
@@ -185,12 +198,12 @@ namespace LakskongenSim.Farm
             // Update disease system — treatment affects disease prevalence
             if (diseaseSystem != null)
             {
-                diseaseSystem.ApplyTreatment(pop, actualEfficacy, actualEfficacy * 0.5, temperatureC);
+                diseaseSystem.ApplyTreatment(pop, "mechanical", actualEfficacy, actualEfficacy * 0.5, temperatureC);
             }
 
             // Mark population as recently treated (for resistance evolution)
             pop.HasRecentTreatment = true;
-            pop.TreatmentIntensity = actualEfficacy;
+            pop.TreatmentIntensity = efficacyResult;
 
             // Calculate cost
             decimal totalCost = totalFish * profile.CostPerFish;
@@ -198,14 +211,14 @@ namespace LakskongenSim.Farm
             // Fire events
             OnTreatmentCost?.Invoke(totalCost);
             if (deaths > 0) OnTreatmentMortality?.Invoke(deaths);
-            OnTreatmentEvent?.Invoke($"🐟 {method}: Treated {totalFish} fish, {deaths} deaths ({actualMortalityRate:P1}), efficacy {actualEfficacy:P0}, cost {totalCost:N0} NOK");
+            OnTreatmentEvent?.Invoke($"🐟 {method}: Treated {totalFish} fish, {deaths} deaths ({actualMortalityRate:P1}), efficacy {efficacyResult:P0}, cost {totalCost:N0} NOK");
 
             return new TreatmentResult
             {
                 Method = method,
                 FishTreated = totalFish,
                 Deaths = deaths,
-                Efficacy = actualEfficacy,
+                Efficacy = efficacyResult,
                 Cost = totalCost,
                 Success = true,
                 Message = $"Treatment complete: {actualEfficacy:P0} lice reduction"

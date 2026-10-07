@@ -2,7 +2,7 @@ shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
 
 // === Norwegian Fjord Water Shader ===
-// Gerstner waves, depth-based color, foam, reflections, caustics
+// Gerstner waves, depth-based color, foam, reflections, caustics, normal map support
 
 // Wave parameters
 uniform float wave_speed : hint_range(0.0, 5.0) = 1.0;
@@ -33,12 +33,14 @@ uniform float caustic_scale : hint_range(0.1, 20.0) = 8.0;
 uniform float caustic_speed : hint_range(0.0, 2.0) = 0.3;
 uniform float caustic_intensity : hint_range(0.0, 1.0) = 0.3;
 
-// Normal map
-uniform sampler2D noise_texture : hint_normal;
-uniform float normal_scale : hint_range(0.0, 2.0) = 0.5;
-uniform vec2 normal_scroll_dir1 = vec2(1.0, 0.0);
-uniform vec2 normal_scroll_dir2 = vec2(0.0, 1.0);
-uniform float normal_scroll_speed : hint_range(0.0, 1.0) = 0.05;
+// Normal maps (Poly Haven Ocean Water or similar CC0)
+uniform sampler2D normal_map_1 : hint_normal;
+uniform sampler2D normal_map_2 : hint_normal;
+uniform float normal_map_scale : hint_range(0.01, 1.0) = 0.02;
+uniform vec2 normal_map_scroll_dir1 = vec2(1.0, 0.2);
+uniform vec2 normal_map_scroll_dir2 = vec2(-0.3, 1.0);
+uniform float normal_map_scroll_speed : hint_range(0.0, 1.0) = 0.05;
+uniform float normal_map_strength : hint_range(0.0, 2.0) = 1.0;
 
 // Depth texture for shore foam
 uniform sampler2D depth_texture : hint_depth_texture;
@@ -47,6 +49,12 @@ uniform sampler2D screen_texture : hint_screen_texture;
 // Wind direction (from WeatherController)
 uniform vec2 wind_direction = vec2(1.0, 0.3);
 uniform float wind_strength : hint_range(0.0, 3.0) = 1.0;
+
+// Visual Adapter parameters (driven by simulation)
+uniform float water_clarity : hint_range(0.0, 1.0) = 1.0;       // 0.0 = murky, 1.0 = clear
+uniform float temperature_factor : hint_range(0.0, 1.0) = 0.5; // Temperature influence on color
+uniform float algae_density : hint_range(0.0, 1.0) = 0.0;      // Plankton bloom green tint
+uniform float turbidity : hint_range(0.0, 1.0) = 0.0;          // Sediment/particulate matter
 
 varying float vertex_height;
 varying vec3 world_pos;
@@ -62,11 +70,6 @@ vec3 gerstner_wave(vec2 pos, float time, vec2 direction, float freq, float amp, 
 	displacement.z = steep * amp * direction.y * c;
 	displacement.y = amp * s;
 	return displacement;
-}
-
-// Simple hash for procedural variation
-float hash(vec2 p) {
-	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
 
 // Caustic pattern
@@ -115,17 +118,39 @@ void fragment() {
 	vec3 water_color = mix(shallow_color, medium_color, smoothstep(0.0, 0.5, depth_factor));
 	water_color = mix(water_color, deep_color, smoothstep(0.5, 1.0, depth_factor));
 
-	// Scrolling normal maps for surface detail
-	vec2 uv1 = world_pos.xz * 0.02 + normal_scroll_dir1 * TIME * normal_scroll_speed;
-	vec2 uv2 = world_pos.xz * 0.03 + normal_scroll_dir2 * TIME * normal_scroll_speed * 0.7;
-	vec3 normal1 = texture(noise_texture, uv1).rgb * 2.0 - 1.0;
-	vec3 normal2 = texture(noise_texture, uv2).rgb * 2.0 - 1.0;
-	vec3 combined_normal = normalize(normal1 + normal2);
+	// Temperature influence on color (colder = bluer, warmer = greener)
+	water_color = mix(water_color, vec3(0.1, 0.4, 0.3), temperature_factor * 0.3);
+
+	// Algae bloom green tint
+	water_color = mix(water_color, vec3(0.2, 0.6, 0.2), algae_density * 0.6);
+
+	// Turbidity (sediment) - brownish tint
+	water_color = mix(water_color, vec3(0.4, 0.3, 0.2), turbidity * 0.4);
+
+	// Clarity affects overall transparency and color saturation
+	water_color *= water_clarity;
+	water_color += (1.0 - water_clarity) * vec3(0.1, 0.15, 0.2); // Murky base
+
+	// Sample normal maps for surface detail (compatible with Compatibility renderer)
+	vec2 uv1 = world_pos.xz * normal_map_scale + normal_map_scroll_dir1 * TIME * normal_map_scroll_speed;
+	vec2 uv2 = world_pos.xz * normal_map_scale * 1.5 + normal_map_scroll_dir2 * TIME * normal_map_scroll_speed * 0.7;
+	
+	vec3 normal1 = texture(normal_map_1, uv1).rgb * 2.0 - 1.0;
+	vec3 normal2 = texture(normal_map_2, uv2).rgb * 2.0 - 1.0;
+	
+	// Combine normal maps with strength control
+	vec3 combined_normal = normalize(normal1 + normal2) * normal_map_strength;
 
 	// Shore foam
 	float shore_foam = 1.0 - smoothstep(0.0, foam_amount, depth_diff);
+	
+	// Wave crest foam based on vertex displacement
 	float wave_foam = smoothstep(foam_cutoff, foam_cutoff + 0.2, vertex_height);
-	float total_foam = clamp(shore_foam + wave_foam, 0.0, 1.0);
+	
+	// Additional foam from normal map detail (simulating micro-wave breaking)
+	float detail_foam = smoothstep(0.6, 0.9, length(combined_normal.xz)) * 0.3;
+	
+	float total_foam = clamp(shore_foam + wave_foam + detail_foam, 0.0, 1.0);
 
 	// Fresnel effect
 	float fresnel = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), fresnel_power);
@@ -133,6 +158,7 @@ void fragment() {
 	// Caustics (visible mostly in shallow water)
 	float caustics = caustic_pattern(world_pos.xz, TIME) * caustic_intensity;
 	caustics *= (1.0 - depth_factor); // Only visible in shallow areas
+	caustics *= water_clarity; // Less caustics in murky water
 
 	// Final color
 	vec3 final_color = mix(water_color, foam_color, total_foam);
@@ -142,6 +168,6 @@ void fragment() {
 	ALBEDO = final_color;
 	METALLIC = metallic_value;
 	ROUGHNESS = mix(roughness_value, 0.8, total_foam); // Foam is rough
-	NORMAL_MAP = combined_normal * normal_scale;
-	ALPHA = mix(transparency, 1.0, total_foam + fresnel * 0.5);
+	NORMAL_MAP = combined_normal;
+	ALPHA = mix(transparency, 1.0, total_foam + fresnel * 0.5) * water_clarity;
 }

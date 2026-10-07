@@ -1,0 +1,371 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/CarbonLedgerPanel.gd" id="1_carbon"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.898039, 0.913725, 0.941176, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
+bg_color = Color(1, 1, 1, 1)
+border_width_bottom = 1
+border_color = Color(0.898039, 0.913725, 0.941176, 1)
+content_margin_left = 20.0
+content_margin_top = 14.0
+content_margin_right = 20.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kpi"]
+bg_color = Color(0.968627, 0.976471, 0.988235, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.898039, 0.913725, 0.941176, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[node name="CarbonLedgerPanel" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+script = ExtResource("1_carbon")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="MainScroll" type="ScrollContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RootVBox" type="VBoxContainer" parent="Margin/MainScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="CarbonTitle" type="Label" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 22
+text = "Klimaregnskap"
+
+[node name="CarbonStatus" type="Label" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 16
+text = ""
+
+[node name="CarbonIntensity" type="Label" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "Kulstoffintensitet: --"
+
+[node name="SummaryCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="SummaryOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="SummaryHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="SummaryTitle" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "📊 Utslipp & Kreditter (akkumulert)"
+
+[node name="SummaryBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="KPIRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Scope1Box" type="PanelContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_kpi")
+
+[node name="Scope1VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope1Box"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Scope1Label" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope1Box/Scope1VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.533333, 0.752941, 0.815686, 1)
+theme_override_font_sizes/font_size = 12
+text = "Omfang 1 — Direkte brensel"
+
+[node name="Scope1Value" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope1Box/Scope1VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 20
+text = "-- t"
+
+[node name="Scope2Box" type="PanelContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_kpi")
+
+[node name="Scope2VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope2Box"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Scope2Label" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope2Box/Scope2VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.533333, 0.752941, 0.815686, 1)
+theme_override_font_sizes/font_size = 12
+text = "Omfang 2 — Elektrisitet"
+
+[node name="Scope2Value" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope2Box/Scope2VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 20
+text = "-- t"
+
+[node name="Scope3Box" type="PanelContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_kpi")
+
+[node name="Scope3VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope3Box"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Scope3Label" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope3Box/Scope3VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.533333, 0.752941, 0.815686, 1)
+theme_override_font_sizes/font_size = 12
+text = "Omfang 3 — Fôr & Transport"
+
+[node name="Scope3Value" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope3Box/Scope3VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 20
+text = "-- t"
+
+[node name="KPIRow2" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CreditsBox" type="PanelContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_kpi")
+
+[node name="CreditsVBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2/CreditsBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="CreditsLabel" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2/CreditsBox/CreditsVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.8, 0.3)
+theme_override_font_sizes/font_size = 12
+text = "Kreditter (Biogass, Tang)"
+
+[node name="CreditsValue" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2/CreditsBox/CreditsVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.8, 0.3)
+theme_override_font_sizes/font_size = 20
+text = "-- t"
+
+[node name="NetBox" type="PanelContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_kpi")
+
+[node name="NetVBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2/NetBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="NetLabel" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2/NetBox/NetVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 12
+text = "Netto utslipp"
+
+[node name="NetValue" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2/NetBox/NetVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 20
+text = "-- t"
+
+[node name="BtnRefresh" type="Button" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 1
+theme_override_font_sizes/font_size = 13
+text = "Oppdater"
+
+[node name="SitesCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="SitesOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SitesCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="SitesHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/SitesCard/SitesOuter"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="SitesTitle" type="Label" parent="Margin/MainScroll/RootVBox/SitesCard/SitesOuter/SitesHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "🌊 Kystlokaliteter"
+
+[node name="SitesBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SitesCard/SitesOuter"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SitesList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SitesCard/SitesOuter/SitesBody"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="OffshoreCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="OffshoreOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/OffshoreCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="OffshoreHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/OffshoreCard/OffshoreOuter"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="OffshoreTitle" type="Label" parent="Margin/MainScroll/RootVBox/OffshoreCard/OffshoreOuter/OffshoreHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "🌊 Offshore Anlegg"
+
+[node name="OffshoreBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/OffshoreCard/OffshoreOuter"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="OffshoreList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/OffshoreCard/OffshoreOuter/OffshoreBody"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="RasCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="RasOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/RasCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="RasHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/RasCard/RasOuter"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="RasTitle" type="Label" parent="Margin/MainScroll/RootVBox/RasCard/RasOuter/RasHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "🏭 RAS Anlegg"
+
+[node name="RasBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/RasCard/RasOuter"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="RasList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/RasCard/RasOuter/RasBody"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="ProcessingCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="ProcessingOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ProcessingCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="ProcessingHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/ProcessingCard/ProcessingOuter"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="ProcessingTitle" type="Label" parent="Margin/MainScroll/RootVBox/ProcessingCard/ProcessingOuter/ProcessingHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "🏭 Foredlingsanlegg"
+
+[node name="ProcessingBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ProcessingCard/ProcessingOuter"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ProcessingInfo" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ProcessingCard/ProcessingOuter/ProcessingBody"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8

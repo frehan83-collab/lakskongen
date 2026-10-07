@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using LakskongenSim.Biology;
+using LakskongenSim.Core;
 using LakskongenSim.Environment;
 
 namespace LakskongenSim.Health
@@ -17,14 +19,22 @@ namespace LakskongenSim.Health
         private readonly StochasticDiseaseEngine _stochasticEngine;
         private readonly DiseaseLODSystem _lodSystem;
         private readonly SeaLiceModel _liceModel;
-        
-        // Shared RNG — one instance per system to avoid seed-collision from rapid new Random() calls
-        private readonly Random _rng = new();
 
         // Performance targets
         private const double TargetFPS = 60.0;
         private const double MaxUpdateTimeMs = 16.7; // 60 FPS target
         private const int PerformanceSampleCount = 60; // Track last second of performance
+
+        // SIR tuning for the medium/low fidelity tiers (zone-level model).
+        private const double MediumTierTransmissionRate = 0.15;
+        private const double MediumTierRecoveryRate = 0.05;
+        private const double LowTierDailyDecayRate = 0.01;
+        private const double LowTierPrevalenceFloor = 0.1; // below: no mortality injection
+        private const double WaterborneKernelRadiusKm = 15.0; // ISA spreads 5-15km via water
+
+        // Disease mortality injected per unit prevalence (fraction of fish per day).
+        private const double HighTierMortalityPerPrevalence = 0.002; // 0.2%/day at 100% prevalence
+        private const double LowTierMortalityPerPrevalence = 0.0002; // 0.02%/day at 100% prevalence
         
         // Performance monitoring
         private readonly Queue<double> _updateTimes = new Queue<double>();
@@ -67,8 +77,9 @@ namespace LakskongenSim.Health
         public void Update(List<Zone> zones, List<FishPopulation> populations, int days = 1)
         {
             if (days <= 0) return;
-            
-            var startTime = DateTime.Now;
+
+            // Stopwatch has sub-millisecond resolution; DateTime.Now is ~15ms (TD-29).
+            var stopwatch = Stopwatch.StartNew();
             
             // Auto-adjust LOD mode based on performance
             if (_currentMode == LODMode.Auto)
@@ -94,8 +105,8 @@ namespace LakskongenSim.Health
                     break;
             }
             
-            var endTime = DateTime.Now;
-            double updateTimeMs = (endTime - startTime).TotalMilliseconds;
+            var endTime = stopwatch.Elapsed;
+            double updateTimeMs = endTime.TotalMilliseconds;
             
             // Update performance tracking
             UpdatePerformanceMetrics(updateTimeMs);
@@ -130,8 +141,8 @@ namespace LakskongenSim.Health
                 foreach (var population in populations.Where(p => p.ZoneId == zone.Id))
                 {
                     double prevalence = _baseSystem.GetPrevalence(population);
-                    double transmissionRate = 0.15 * _externalDiseasePressureMultiplier;
-                    double recoveryRate = 0.05 / Math.Max(1.0, _externalDiseasePressureMultiplier * 0.5);
+                    double transmissionRate = MediumTierTransmissionRate * _externalDiseasePressureMultiplier;
+                    double recoveryRate = MediumTierRecoveryRate / Math.Max(1.0, _externalDiseasePressureMultiplier * 0.5);
                     
                     // Simple SIR update
                     for (int day = 0; day < days; day++)
@@ -162,13 +173,13 @@ namespace LakskongenSim.Health
                 double prevalence = _baseSystem.GetPrevalence(population);
                 
                 // Simple exponential decay
-                double decayRate = 0.01;
+                double decayRate = LowTierDailyDecayRate;
                 prevalence *= Math.Pow(1.0 - decayRate, days);
                 
                 UpdateBaseSystemPrevalence(population, prevalence);
                 
                 // Inject minimal disease mortality rate
-                if (prevalence > 0.1)
+                if (prevalence > LowTierPrevalenceFloor)
                 {
                     InjectMinimalDiseaseMortalityRate(population, prevalence, days);
                 }
@@ -227,7 +238,7 @@ namespace LakskongenSim.Health
         {
             // In a full implementation, would configure the LOD system
             // For now, just log the adjustment
-            Console.WriteLine($"[IntegratedDisease] Adjusted high-detail limit to {_performanceBasedHighDetailLimit}");
+            SimLog.Debug($"[IntegratedDisease] Adjusted high-detail limit to {_performanceBasedHighDetailLimit}");
         }
         
         /// <summary>
@@ -245,7 +256,7 @@ namespace LakskongenSim.Health
                 double distance = EstimateZoneDistance(zone.Id, population.ZoneId);
                 
                 // Gaussian kernel: pressure decays with distance
-                double spreadFactor = Math.Exp(-Math.Pow(distance, 2) / (2 * Math.Pow(15.0, 2)));
+                double spreadFactor = Math.Exp(-Math.Pow(distance, 2) / (2 * Math.Pow(WaterborneKernelRadiusKm, 2)));
                 totalPressure += prevalence * spreadFactor;
             }
             
@@ -269,7 +280,7 @@ namespace LakskongenSim.Health
         {
             if (_mortalityModel == null) return; // Fallback if not wired
             
-            double dailyMortalityRate = 0.002 * prevalence * _externalDiseasePressureMultiplier; // 0.2% per day at 100% prevalence
+            double dailyMortalityRate = HighTierMortalityPerPrevalence * prevalence * _externalDiseasePressureMultiplier; // 0.2% per day at 100% prevalence
             
             System.Diagnostics.Debug.WriteLine($"[IntegratedDisease] Injecting disease rate: PopId={population.Id}, Prevalence={prevalence:F4}, DailyRate={dailyMortalityRate:F6}, Days={days}");
             
@@ -284,7 +295,7 @@ namespace LakskongenSim.Health
             if (_mortalityModel == null) return; // Fallback if not wired
             
             // For low-fidelity, use lower disease mortality to avoid over-killing distant populations
-            double dailyMortalityRate = 0.0002 * prevalence * _externalDiseasePressureMultiplier; // 0.02% per day at 100% prevalence
+            double dailyMortalityRate = LowTierMortalityPerPrevalence * prevalence * _externalDiseasePressureMultiplier; // 0.02% per day at 100% prevalence
             
             System.Diagnostics.Debug.WriteLine($"[IntegratedDisease][Minimal] Injecting disease rate: PopId={population.Id}, Prevalence={prevalence:F4}, DailyRate={dailyMortalityRate:F6}");
             
@@ -367,10 +378,19 @@ namespace LakskongenSim.Health
         /// <summary>
         /// Apply treatment to a population.
         /// </summary>
-        public void ApplyTreatment(FishPopulation population, double reductionFraction, 
+        public void ApplyTreatment(FishPopulation population, string treatmentType, double reductionFraction,
             double directTreatmentEfficacy, double temperatureC)
         {
-            _baseSystem.ApplyTreatment(population, reductionFraction, directTreatmentEfficacy, temperatureC);
+            _baseSystem.ApplyTreatment(population, treatmentType, reductionFraction, directTreatmentEfficacy, temperatureC);
+        }
+
+        /// <summary>
+        /// Apply treatment to a population (legacy 4-arg overload, defaults to mechanical).
+        /// </summary>
+        public void ApplyTreatment(FishPopulation population, double reductionFraction,
+            double directTreatmentEfficacy, double temperatureC)
+        {
+            _baseSystem.ApplyTreatment(population, "mechanical", reductionFraction, directTreatmentEfficacy, temperatureC);
         }
     }
     

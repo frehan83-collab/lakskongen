@@ -12,8 +12,12 @@ config_version=5
 
 config/name="Lakskongen"
 run/main_scene="res://scenes/MainMenu.tscn"
-config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
+
+[audio]
+
+driver/default_bus_layout="res://audio_bus_layout.tres"
 
 [autoload]
 
@@ -28,9 +32,12 @@ ToastNotification="*res://scripts/ui/ToastNotification.gd"
 LakskongenTheme="*res://theme/default_theme.gd"
 AudioController="*res://scripts/AudioController.gd"
 MusicLibrary="*res://scripts/MusicLibrary.gd"
+TutorialState="*res://scripts/autoload/TutorialState.gd"
+ConsequenceDirector="*res://scripts/ui/ConsequenceDirector.gd"
 AchievementManager="*res://scripts/autoload/AchievementManager.gd"
 ScenarioManager="*res://scripts/ScenarioManager.gd"
 TutorialManager="*res://scripts/tutorial/TutorialManager.gd"
+MCPRuntimeServer="*res://addons/godot_mcp_toolkit/runtime/mcp_runtime_server.gd"
 
 [display]
 
@@ -42,12 +49,16 @@ window/stretch/mode="canvas_items"
 
 project/assembly_name="LakskongenGame"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot_mcp_toolkit/plugin.cfg")
+
 [internationalization]
 
-locale/translations=PackedStringArray("res://translations/translations.csv")
+locale/translations=PackedStringArray("res://translations/translations.en.translation", "res://translations/translations.nb.translation")
 locale/test="no"
-locale/fallback="en"
 
 [rendering]
 
 textures/canvas_textures/default_texture_filter=2
+textures/vram_compression/import_etc2_astc=true

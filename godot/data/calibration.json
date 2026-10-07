@@ -1,0 +1,111 @@
+{
+  "version": "1.0.0",
+  "economy": {
+    "startingCapitalNOK": 10000000,
+    "smoltCostPerFishNOK": 12,
+    "baseSalmonPricePerKgNOK": 70,
+    "priceVolatilityPercent": 12,
+    "seasonalPriceSwingPercent": 18
+  },
+  "labor": {
+    "workerMonthlySalaryNOK": 48000,
+    "managerMonthlySalaryNOK": 70000,
+    "workersPerSite": 7,
+    "workersPerHatchery": 10,
+    "workersPerProcessingPlant": 20
+  },
+  "infrastructure": {
+    "seaSiteBuildCostNOK": 6000000,
+    "hatcheryBuildCostNOK": 18000000,
+    "processingPlantCostNOK": 55000000,
+    "feedMillCostNOK": 35000000,
+    "maxBiomassPerSiteKg": 780000,
+    "maxSitesPerZone": 4
+  },
+  "operations": {
+    "harvestCostPerKgNOK": 4.0,
+    "processingCostPerKgNOK": 9,
+    "transportCostPerKgPerKmNOK": 0.025
+  },
+  "health": {
+    "delousingCostMechanicalNOK": 280000,
+    "delousingCostChemicalNOK": 180000,
+    "delousingCostCleanerfishNOK": 120000,
+    "vaccinationCostPerKgBiomassNOK": 0.5,
+    "mortalityRateBasePercent": 0.025,
+    "mortalityRateISAPercent": 0.22,
+    "seaLiceThresholdPerFish": 0.5,
+    "seaLiceTreatmentThreshold": 0.15,
+    "seaMortalityPerCycle": 0.15
+  },
+  "finance": {
+    "insurancePremiumPercent": 0.018,
+    "loanInterestRate": 0.055,
+    "maxLoanMultiplier": 3.5,
+    "corporateTaxRate": 0.22,
+    "resourceRentTaxRate": 0.25,
+    "resourceRentBasicDeductionNOK": 70000000
+  },
+  "licensing": {
+    "licenseCostNOK": 150000000,
+    "mabLimitKgPerLicense": 780000
+  },
+  "biology": {
+    "smoltMaturationDays": 365,
+    "growthToHarvestDays": 540,
+    "targetHarvestWeightKg": 5.2,
+    "minHarvestWeightKg": 3.8,
+    "maxHarvestWeightKg": 7.5,
+    "optimalFCR": 1.15,
+    "poorFCR": 1.35
+  },
+  "environment": {
+    "optimalTemperatureMinC": 8,
+    "optimalTemperatureMaxC": 14,
+    "lethalTemperatureMaxC": 22,
+    "fallowPeriodDays": 60
+  },
+  "waterQuality": {
+    "criticalDOSaturationThreshold": 0.60,
+    "doSaturationDecayCoefficient": 0.3,
+    "doSaturationMinMultiplier": 0.2,
+    "doSaturationMaxMultiplier": 1.0,
+    "stockingDensityThresholdKgM3": 25.0,
+    "stockingDensityReductionDenominator": 75.0,
+    "stockingDensityMinMultiplier": 0.5,
+    "oxygenConsumptionPerKgFishPerDay": 95.0,
+    "oxygenConsumptionPerKgFeed": 480.0,
+    "waterExchangeCoefficient": 0.05
+  },
+  "compliance": {
+    "escapeFinePer100FishNOK": 500000,
+    "ascCertificationCostNOK": 2000000,
+    "ascAuditCostYearlyNOK": 500000,
+    "ascPricePremiumPercent": 10,
+    "organicPricePremiumPercent": 18
+  },
+  "research": {
+    "researchBaseCostNOK": 450000,
+    "researchMaxCostNOK": 4500000
+  },
+  "market": {
+    "initialPriceNOKPerKg": 88,
+    "priceFloorNOKPerKg": 42,
+    "priceCeilingNOKPerKg": 150,
+    "longTermMeanNOKPerKg": 82,
+    "meanReversionSpeedWeekly": 0.012,
+    "volatilityWeekly": 5.0,
+    "meanReversionSpeedMin": 0.009,
+    "meanReversionSpeedMax": 0.016,
+    "volatilityMin": 5.5,
+    "volatilityMax": 12.5,
+    "daysPerWeek": 7,
+    "monthlySeasonalOffsets": [3.2, 4.1, -1.8, -3.5, -2.1, 0.8, 1.2, -0.5, -2.8, -1.9, 0.3, 1.7]
+  },
+  "feed": {
+    "feedPricePerKgFeedNOK": 22.3,
+    "baseFCR": 1.15,
+    "optimalFCRTempC": 12.0,
+    "fcrTempSensitivity": 0.018
+  }
+}

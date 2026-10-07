@@ -5,7 +5,9 @@ extends Node
 ## Bridges gameplay events between the simulation and the 3D environment.
 
 # === Configuration ===
-@export var nordland_scene_path: NodePath = "/root/Main/NordlandFjord"
+## Explicit scene path. Leave empty for automatic discovery: the current
+## scene and its children are searched for a NordlandFjordController.
+@export var nordland_scene_path: NodePath = ""
 @export var auto_initialize: bool = true
 
 # === References ===
@@ -22,51 +24,53 @@ func _ready() -> void:
 
 func initialize() -> void:
     """Initialize integration with Nordland scene and SimBridge."""
-    
-    # Get Nordland scene reference
-    if has_node(nordland_scene_path):
+
+    # Get Nordland scene reference: explicit path first, then tree discovery
+    # (the old default /root/Main/NordlandFjord never exists at runtime).
+    if nordland_scene_path != NodePath("") and has_node(nordland_scene_path):
         _nordland = get_node(nordland_scene_path)
-        print("[NordlandIntegration] Connected to NordlandFjord scene")
-        
+    else:
+        _nordland = _discover_nordland_controller()
+
+    if _nordland:
         # Connect to Nordland signals
         _nordland.scene_ready.connect(_on_scene_ready)
         _nordland.pen_selected.connect(_on_pen_selected)
         _nordland.camera_focus_changed.connect(_on_camera_focus_changed)
     else:
-        push_warning("[NordlandIntegration] NordlandFjord scene not found at %s" % nordland_scene_path)
-    
+        push_warning("[NordlandIntegration] No NordlandFjordController found in tree")
+
     # Get SimBridge reference
     if has_node("/root/SimBridge"):
         _sim_bridge = get_node("/root/SimBridge")
-        print("[NordlandIntegration] Connected to SimBridge")
-    
-    print("[NordlandIntegration] Initialized")
+
+
+func _discover_nordland_controller() -> NordlandFjordController:
+    var tree := get_tree()
+    if tree == null:
+        return null
+    for node in tree.get_nodes_in_group("nordland_fjord"):
+        if node is NordlandFjordController:
+            return node
+    var root := tree.current_scene
+    if root:
+        var found := root.find_child("NordlandFjordController", true, false)
+        if found is NordlandFjordController:
+            return found
+    return null
 
 
 func _on_scene_ready() -> void:
     """Called when Nordland scene is fully loaded."""
-    print("[NordlandIntegration] Nordland scene ready")
-    
     # Sync initial state from simulation
     _sync_pens_from_simulation()
     _sync_weather_from_simulation()
 
 
-func _on_pen_selected(pen_id: String, position: Vector3) -> void:
+func _on_pen_selected(pen_id: String, _position: Vector3) -> void:
     """Handle pen selection in 3D scene."""
-    print("[NordlandIntegration] Pen selected: %s" % pen_id)
-    
     # Map to simulation site ID
-    var site_id = _pen_simulation_map.get(pen_id, pen_id)
-    
-    # Could emit signal for UI to show pen details
-    # Or call SimBridge to get pen info
-    if _sim_bridge and _sim_bridge.has_method("get_all_pens"):
-        var pens = _sim_bridge.get_all_pens()
-        for pen in pens:
-            if pen.get("id") == site_id or pen.get("zone_id") == site_id:
-                print("[NordlandIntegration] Found simulation data for %s" % site_id)
-                break
+    var _site_id = _pen_simulation_map.get(pen_id, pen_id)
 
 
 func _on_camera_focus_changed(position: Vector3, zoom_level: int) -> void:
@@ -78,10 +82,9 @@ func _sync_pens_from_simulation() -> void:
     """Sync pen locations from simulation state."""
     if not _sim_bridge:
         return
-    
+
     var sim_pens = _sim_bridge.get_all_pens()
-    print("[NordlandIntegration] Syncing %d pens from simulation" % sim_pens.size())
-    
+
     # Update mapping
     for i in range(sim_pens.size()):
         var sim_pen = sim_pens[i]
@@ -94,10 +97,9 @@ func _sync_weather_from_simulation() -> void:
     """Sync weather state from simulation."""
     if not _sim_bridge or not _nordland:
         return
-    
+
     var weather_state = _sim_bridge.get_current_weather_state()
-    print("[NordlandIntegration] Syncing weather: %s" % weather_state)
-    
+
     # Convert string to enum
     var weather_enum = _string_to_weather_enum(weather_state)
     _nordland.set_weather(weather_enum)
@@ -151,10 +153,7 @@ func notify_simulation_event(event_type: String, data: Dictionary) -> void:
     """Send event notification to simulation."""
     match event_type:
         "pen_clicked":
-            var pen_id = data.get("pen_id", "")
-            print("[NordlandIntegration] Pen clicked: %s" % pen_id)
+            pass
         "weather_changed":
             var weather = data.get("weather", "clear")
             set_weather(weather)
-        _:
-            print("[NordlandIntegration] Unknown event: %s" % event_type)

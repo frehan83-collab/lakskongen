@@ -259,5 +259,85 @@
     "hidden": true,
     "reward_nok": 250000,
     "condition_key": "BankruptcyRecovery"
+  },
+  {
+    "id": "self-insured",
+    "name": "Self-insured",
+    "description": "Hold cover for all four catastrophes (mortality, bloom, storm, ISA)",
+    "icon": "🛡️",
+    "category": "finance",
+    "hidden": false,
+    "reward_nok": 400000,
+    "condition_key": "AllCatastrophePoliciesActive"
+  },
+  {
+    "id": "closed-loop",
+    "name": "Closed loop",
+    "description": "Upgrade a red-zone site to closed containment and claim the biomass credit",
+    "icon": "🔒",
+    "category": "sustainability",
+    "hidden": false,
+    "reward_nok": 350000,
+    "condition_key": "ClosedLoopUpgrade"
+  },
+  {
+    "id": "genomicist",
+    "name": "Genomicist",
+    "description": "Complete two generations of genomic selection in your broodstock",
+    "icon": "🧬",
+    "category": "genetics",
+    "hidden": false,
+    "reward_nok": 300000,
+    "condition_key": "GenomicSelectionCompleted"
+  },
+  {
+    "id": "weatherproof",
+    "name": "Weatherproof",
+    "description": "Survive an algal bloom with mitigation installed and stay solvent",
+    "icon": "🌊",
+    "category": "sustainability",
+    "hidden": false,
+    "reward_nok": 250000,
+    "condition_key": "WeatherproofBloom"
+  },
+  {
+    "id": "tax-planner",
+    "name": "Tax planner",
+    "description": "Stay profitable through the resource-rent tax transition",
+    "icon": "🧾",
+    "category": "finance",
+    "hidden": false,
+    "reward_nok": 400000,
+    "condition_key": "ResourceRentProfitable"
+  },
+  {
+    "id": "precision",
+    "name": "Precision",
+    "description": "Reach a feed conversion ratio of 1.12 or better",
+    "icon": "🎯",
+    "category": "production",
+    "hidden": false,
+    "reward_nok": 300000,
+    "condition_key": "PrecisionFCR"
+  },
+  {
+    "id": "super-smolt",
+    "name": "SuperSmolt",
+    "description": "Stock a post-smolt facility and raise large, sea-ready smolts",
+    "icon": "🐟",
+    "category": "production",
+    "hidden": false,
+    "reward_nok": 250000,
+    "condition_key": "SuperSmoltStocked"
+  },
+  {
+    "id": "bloom-ready",
+    "name": "Bloom Ready",
+    "description": "Install bloom countermeasures (bubble curtain or O2 diffuser) at a site",
+    "icon": "🫧",
+    "category": "sustainability",
+    "hidden": false,
+    "reward_nok": 150000,
+    "condition_key": "BloomMitigationInstalled"
   }
 ]

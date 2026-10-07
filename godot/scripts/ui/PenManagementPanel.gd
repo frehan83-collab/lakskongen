@@ -41,7 +41,7 @@ func _ready():
     main_vbox.add_child(buy_pen_vbox)
 
     var buy_pen_button = LakskongenTheme.create_button("KJØP NY MERD", true, false)
-    buy_pen_button.pressed.connect(buy_pen_requested)
+    buy_pen_button.pressed.connect(_on_buy_pen_pressed.bind(buy_pen_button))
     buy_pen_vbox.add_child(buy_pen_button)
 
     var prices_label = LakskongenTheme.create_label("Priser: Tradisjonell 5M, Semi-Closed 15M, Fully Closed 40M, Offshore 200M", LakskongenTheme.FONT_SM, LakskongenTheme.TEXT)
@@ -56,6 +56,13 @@ func update_pens(pens: Array):
     var total_pens = pens.size()
     var total_mab = 0.0
     var total_biomass = 0.0
+
+    if pens.is_empty():
+        var empty_lbl := LakskongenTheme.create_label(
+            "🐟 Ingen merder ennå — kjøp din første merd nedenfor for å starte produksjonen.",
+            LakskongenTheme.FONT_SM, LakskongenTheme.TEXT_SECONDARY)
+        empty_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+        _pens_vbox.add_child(empty_lbl)
 
     for pen_data in pens:
         total_mab += pen_data["mab_limit_tons"]
@@ -118,15 +125,15 @@ func update_pens(pens: Array):
         pen_vbox.add_child(actions_hbox)
 
         var delouse_button = LakskongenTheme.create_button("AVLUSE", false, true)
-        delouse_button.pressed.connect(func(): delouse_requested.emit(pen_data["id"]))
+        delouse_button.pressed.connect(_on_pen_action_button.bind("delouse", pen_data["id"], delouse_button))
         actions_hbox.add_child(delouse_button)
 
         var harvest_button = LakskongenTheme.create_button("HØSTE", true, false)
-        harvest_button.pressed.connect(func(): harvest_requested.emit(pen_data["id"]))
+        harvest_button.pressed.connect(_on_pen_action_button.bind("harvest", pen_data["id"], harvest_button))
         actions_hbox.add_child(harvest_button)
 
         var sell_button = LakskongenTheme.create_button("SELG MERD", false, true)
-        sell_button.pressed.connect(func(): sell_pen_requested.emit(pen_data["id"]))
+        sell_button.pressed.connect(_on_pen_action_button.bind("sell", pen_data["id"], sell_button))
         actions_hbox.add_child(sell_button)
 
     # Update overview label
@@ -139,6 +146,33 @@ func update_pens(pens: Array):
         LakskongenTheme.format_number(total_mab, 0),
         LakskongenTheme.format_number(used_capacity_pct, 1)
     ]
+
+# ── Juice-only feedback (signals preserved; no sim changes) ─────────────────
+
+func _on_buy_pen_pressed(button: Button) -> void:
+    buy_pen_requested.emit()
+    if is_instance_valid(button):
+        JuiceEffects.button_pop(button)
+    _toast("🏗️ Ny merd bestilt — lykke til!", "SUCCESS")
+
+func _on_pen_action_button(action: String, pen_id: int, button: Button) -> void:
+    match action:
+        "delouse":
+            delouse_requested.emit(pen_id)
+            _toast("🧪 Avlusing bestilt for merd %d" % pen_id, "INFO")
+        "harvest":
+            harvest_requested.emit(pen_id)
+            _toast("📦 Høsting startet i merd %d 🎉" % pen_id, "SUCCESS")
+        "sell":
+            sell_pen_requested.emit(pen_id)
+            _toast("💰 Salg av merd %d sendt" % pen_id, "INFO")
+    if is_instance_valid(button):
+        JuiceEffects.button_pop(button)
+
+func _toast(message: String, level: String = "INFO") -> void:
+    var mgr := get_node_or_null("/root/ToastNotification")
+    if mgr and mgr.has_method("show_toast"):
+        mgr.show_toast(message, level, 4.0)
 
 func _input(event: InputEvent) -> void:
     if event.is_action_pressed("ui_cancel"):

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "evt_winter_storm",
+    "name": "Winter Storm",
+    "category": "Weather",
+    "weight": 1.5,
+    "cooldown_days": 90,
+    "min_day": 30,
+    "max_day": 2147483647,
+    "description": "A fierce North Sea storm batters the pens, damaging equipment and stressing the stock.",
+    "effects": {
+      "balance_change": -350000.0,
+      "mortality_change": 0.8
+    },
+    "condition_min_day": 30
+  },
+  {
+    "id": "evt_coastal_icing",
+    "name": "Coastal Icing",
+    "category": "Weather",
+    "weight": 1.0,
+    "cooldown_days": 60,
+    "min_day": 60,
+    "max_day": 180,
+    "description": "Sub-zero air temperatures and sea spray ice up walkways, raising sea-lice treatment difficulty.",
+    "effects": {
+      "lice_change": 0.15,
+      "balance_change": -120000.0
+    },
+    "condition_min_balance": 500000.0
+  }
+]

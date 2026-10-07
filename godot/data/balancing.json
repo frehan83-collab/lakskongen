@@ -51,5 +51,15 @@
   "researchMaxCostNOK": 5000000,
   "workersPerSite": 8,
   "workersPerHatchery": 12,
-  "workersPerProcessingPlant": 25
+  "workersPerProcessingPlant": 25,
+  "criticalDOSaturationThreshold": 0.60,
+  "doSaturationDecayCoefficient": 0.3,
+  "doSaturationMinMultiplier": 0.2,
+  "doSaturationMaxMultiplier": 1.0,
+  "stockingDensityThresholdKgM3": 25.0,
+  "stockingDensityReductionDenominator": 75.0,
+  "stockingDensityMinMultiplier": 0.5,
+  "oxygenConsumptionPerKgFishPerDay": 0.1,
+  "oxygenConsumptionPerKgFeed": 0.5,
+  "waterExchangeCoefficient": 0.5
 }

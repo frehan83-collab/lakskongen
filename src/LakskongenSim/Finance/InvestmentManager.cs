@@ -319,9 +319,8 @@ namespace LakskongenSim.Finance
             switch (financing)
             {
                 case FinancingType.CashReserves:
-                    if (!_finance.CanAfford(amount))
+                    if (!_finance.Spend(amount))
                         return (false, $"Insufficient cash. Need {amount:N0} NOK, have {_finance.Balance:N0} NOK");
-                    _finance.Spend(amount);
                     break;
 
                 case FinancingType.BankLoan:
@@ -352,17 +351,15 @@ namespace LakskongenSim.Finance
                 case FinancingType.GovernmentGrant:
                     decimal grantAmount = _finance.ApplyGrantMultiplier(amount * 0.5m); // Grants cover 50%
                     _finance.AddRevenue(grantAmount);
-                    if (!_finance.CanAfford(amount - grantAmount))
+                    if (!_finance.Spend(amount - grantAmount))
                         return (false, "Cannot cover remaining cost after grant");
-                    _finance.Spend(amount - grantAmount);
                     break;
 
                 case FinancingType.JointVenture:
                     // Player pays 50%, gets 50% of returns
                     decimal playerShare = amount * 0.5m;
-                    if (!_finance.CanAfford(playerShare))
+                    if (!_finance.Spend(playerShare))
                         return (false, $"Cannot afford JV contribution of {playerShare:N0} NOK");
-                    _finance.Spend(playerShare);
                     break;
             }
 

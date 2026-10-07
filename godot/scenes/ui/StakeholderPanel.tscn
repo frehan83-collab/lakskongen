@@ -1,0 +1,268 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/StakeholderPanel.gd" id="1_stake"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.898039, 0.913725, 0.941176, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
+bg_color = Color(1, 1, 1, 1)
+border_width_bottom = 1
+border_color = Color(0.898039, 0.913725, 0.941176, 1)
+content_margin_left = 20.0
+content_margin_top = 14.0
+content_margin_right = 20.0
+content_margin_bottom = 14.0
+
+[node name="StakeholderPanel" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+script = ExtResource("1_stake")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="MainScroll" type="ScrollContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RootVBox" type="VBoxContainer" parent="Margin/MainScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0392157, 0.301961, 0.407843, 1)
+theme_override_font_sizes/font_size = 22
+text = "🤝 Interessenter & Politikk"
+
+[node name="Sep0" type="HSeparator" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+
+[node name="FactionCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/FactionCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/FactionCard/Outer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="FactionHeader" type="Label" parent="Margin/MainScroll/RootVBox/FactionCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 18
+text = "👥 Interessenter Oversikt"
+
+[node name="FactionBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/FactionCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FactionList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/FactionCard/Outer/FactionBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DemandsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/DemandsCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/DemandsCard/Outer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="DemandsHeader" type="Label" parent="Margin/MainScroll/RootVBox/DemandsCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 18
+text = "📋 Aktive Krav"
+
+[node name="DemandsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/DemandsCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DemandsList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/DemandsCard/Outer/DemandsBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ReputationCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ReputationCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/ReputationCard/Outer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="ReputationHeader" type="Label" parent="Margin/MainScroll/RootVBox/ReputationCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 18
+text = "📊 Omdømmeeffekter"
+
+[node name="ReputationBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ReputationCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ReputationList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ReputationCard/Outer/ReputationBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ActionsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ActionsCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="ActionsHeader" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 18
+text = "🎯 Politiske Handlinger"
+
+[node name="ActionsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ActionsInfo" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Bruk politiske handlinger for å påvirke interessenter og forbedre relasjoner."
+autowrap_mode = 2
+
+[node name="LobbySection" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="LobbyHeader" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/LobbySection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 14
+text = "🎤 Lobbying"
+
+[node name="LobbyDesc" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/LobbySection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Påvirk politikere og reguleringsmyndigheter til fordel for din bedrift."
+
+[node name="LobbyButtons" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/LobbySection"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BtnLobbyRegulators" type="Button" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/LobbySection/LobbyButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "⚖️ Reguleringsmyndigheter"
+
+[node name="BtnLobbyIndustry" type="Button" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/LobbySection/LobbyButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "🏢 Bransjeorganisasjoner"
+
+[node name="Sep1" type="HSeparator" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody"]
+layout_mode = 2
+
+[node name="DonateSection" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="DonateHeader" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/DonateSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 14
+text = "💰 Donasjoner & Sponsing"
+
+[node name="DonateDesc" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/DonateSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Doner til lokalsamfunn eller miljøorganisasjoner for å bygge goodwill."
+
+[node name="DonateButtons" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/DonateSection"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BtnDonateEnv" type="Button" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/DonateSection/DonateButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "🌿 Miljøorganisasjoner"
+
+[node name="BtnDonateLocal" type="Button" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/DonateSection/DonateButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "🏘️ Lokalsamfunn"
+
+[node name="Sep2" type="HSeparator" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody"]
+layout_mode = 2
+
+[node name="MediaSection" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="MediaHeader" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/MediaSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 14
+text = "📣 Media Kampanjer"
+
+[node name="MediaDesc" type="Label" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/MediaSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 12
+text = "Kjør PR-kampanjer for å forbedre din offentlige image."
+
+[node name="BtnMediaCampaign" type="Button" parent="Margin/MainScroll/RootVBox/ActionsCard/Outer/ActionsBody/MediaSection"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "📰 Start Media Kampanje"

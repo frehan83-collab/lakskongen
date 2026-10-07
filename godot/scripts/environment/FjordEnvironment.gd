@@ -9,6 +9,8 @@ extends Node3D
 @export var camera: FjordCamera
 @export var time_system: TimeOfDay
 @export var weather_system: WeatherController
+@export var visual_adapter: VisualAdapter3D
+@export var particle_effects: ParticleEffects
 
 @export_group("Water")
 @export var water_plane: MeshInstance3D
@@ -21,6 +23,16 @@ var _initialized: bool = false
 
 func _ready() -> void:
 	_connect_signals()
+	
+	if visual_adapter:
+		visual_adapter.bind_simulation(get_node_or_null("/root/SimBridge"))
+	
+	if particle_effects:
+		var pen_mgr = get_node_or_null("/root/FishPenManager")
+		if pen_mgr == null:
+			pen_mgr = get_node_or_null("../FishPenManager")
+		particle_effects.fish_pen_manager = pen_mgr
+	
 	_initialized = true
 	print("[FjordEnvironment] Initialized — Norwegian fjord renderer ready")
 
@@ -33,7 +45,7 @@ func _connect_signals() -> void:
 	if weather_system:
 		weather_system.storm_started.connect(_on_storm_started)
 		weather_system.storm_ended.connect(_on_storm_ended)
-		weather_system.visibility_changed.connect(_on_visibility_changed)
+		weather_system.fog_visibility_changed.connect(_on_fog_visibility_changed)
 
 	if camera:
 		camera.entered_underwater.connect(_on_entered_underwater)
@@ -58,7 +70,7 @@ func _on_storm_ended() -> void:
 	print("[FjordEnvironment] Storm ended")
 
 
-func _on_visibility_changed(factor: float) -> void:
+func _on_fog_visibility_changed(factor: float) -> void:
 	# Gameplay hook: reduced visibility affects operations
 	pass
 

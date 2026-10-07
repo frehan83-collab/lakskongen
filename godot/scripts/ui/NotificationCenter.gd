@@ -1,23 +1,15 @@
-extends Control
-
-## NotificationCenter — slide-in panel (anchored right) for event history.
+## NotificationCenter v2.1 — Nordic Minimalist (scene-based).
+## Slide-in panel (anchored right) for event history.
+## Layout lives in scenes/ui/NotificationCenter.tscn; this script is wiring only:
+## @onready % refs, signal hookups, localization, theme fonts, entry list.
 ## Displays up to MAX_ENTRIES notifications, newest on top.
 ## Auto-shows on critical alerts; player can toggle with N key or a button.
 ##
 ## Each entry dict shape:
 ##   { "icon": String, "title": String, "description": String,
 ##     "day": int, "severity": String }   # severity: "info"|"warning"|"critical"
-##
-## Expected node layout (set up in .tscn):
-##   NotificationCenter (Control)
-##   └─ PanelContainer
-##      ├─ VBoxContainer
-##      │  ├─ HeaderRow (HBoxContainer)
-##      │  │  ├─ TitleLabel (Label)  "Varsler"
-##      │  │  └─ CloseButton (Button)  "✕"
-##      │  └─ ScrollContainer
-##      │     └─ EntryList (VBoxContainer)  ← entries added here
-##      └─ (AnimationPlayer — "slide_in" / "slide_out" animations)
+
+extends Control
 
 signal panel_toggled(is_open: bool)
 
@@ -37,42 +29,100 @@ const SEVERITY_ICONS := {
 	"critical": "🚨",
 }
 
-# ── Node references ────────────────────────────────────────────────────────────
+# Lower rank = higher priority. Entries are grouped/sorted critical → warning → info.
+const SEVERITY_RANK := {
+	"critical": 0,
+	"warning":  1,
+	"info":     2,
+}
 
-@onready var panel:          Control         = $PanelContainer
-@onready var entry_list:     VBoxContainer   = $PanelContainer/VBoxContainer/ScrollContainer/EntryList
-@onready var close_button:   Button          = $PanelContainer/VBoxContainer/HeaderRow/CloseButton
-@onready var anim_player:    AnimationPlayer = $PanelContainer/AnimationPlayer
-@onready var scroll_container: ScrollContainer = $PanelContainer/VBoxContainer/ScrollContainer
+const GROUP_TITLES := {
+	"critical": "Kritisk",
+	"warning":  "Advarsel",
+	"info":     "Info",
+}
+
+# ── Scene refs ────────────────────────────────────────────────────────────────
+
+@onready var panel: PanelContainer = %Panel
+@onready var entry_list: VBoxContainer = %EntryList
+@onready var close_button: Button = %CloseButton
+@onready var anim_player: AnimationPlayer = %AnimPlayer
+@onready var scroll_container: ScrollContainer = %ScrollContainer
+@onready var _title_label: Label = %TitleLabel
 
 # ── State ──────────────────────────────────────────────────────────────────────
 
 var _sim: Node = null
+var _theme: Node = null
 var _entries: Array[Dictionary] = []
 var _is_open: bool = false
 var _expanded_index: int = -1   # which entry is currently expanded (-1 = none)
+var _slide_tween: Tween = null
+var _clear_button: Button = null
 
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
 	_sim = get_node_or_null("/root/SimBridge")
+	_theme = get_node_or_null("/root/LakskongenTheme")
 	if _sim:
-		_sim.alert_raised.connect(_on_alert_raised)
-		_sim.state_updated.connect(_on_state_updated)
+		if _sim.has_signal("alert_raised"):
+			_sim.alert_raised.connect(_on_alert_raised)
+		if _sim.has_signal("state_updated"):
+			_sim.state_updated.connect(_on_state_updated)
 
-	close_button.pressed.connect(hide_panel)
-	panel.hide()
-	print("NotificationCenter: ready")
+	if close_button:
+		close_button.pressed.connect(hide_panel)
+	_ensure_clear_button()
+	_apply_localization()
+	_apply_theme_fonts()
+	if panel:
+		panel.hide()
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_notifications"):
 		toggle()
 		get_viewport().set_input_as_handled()
 		return
-	
+
 	if visible and event.is_action_pressed("ui_cancel"):
 		hide()
 		get_viewport().set_input_as_handled()
+
+# ── Scene wiring ──────────────────────────────────────────────────────────────
+
+func _apply_localization() -> void:
+	if _title_label:
+		_title_label.text = tr("UI_NOTIFY_TITLE")
+	if close_button:
+		close_button.tooltip_text = tr("UI_NOTIFY_TITLE")
+
+func _apply_theme_fonts() -> void:
+	if not _theme or not _theme.font_heading_semibold:
+		return
+	if _title_label:
+		_title_label.add_theme_font_override("font", _theme.font_heading_semibold)
+
+## The scene ships without a clear-all button; add one to the header if absent.
+func _ensure_clear_button() -> void:
+	if not _title_label:
+		return
+	var existing := get_node_or_null("%ClearAllButton")
+	if existing is Button:
+		_clear_button = existing
+	else:
+		var header := _title_label.get_parent()
+		if header == null:
+			return
+		_clear_button = Button.new()
+		_clear_button.name = "ClearAllButton"
+		header.add_child(_clear_button)
+	if _clear_button:
+		_clear_button.text = _tr_or("UI_NOTIFY_CLEAR_ALL", "Tøm")
+		_clear_button.tooltip_text = _tr_or("UI_NOTIFY_CLEAR_ALL", "Tøm alle varsler")
+		if not _clear_button.pressed.is_connected(clear_all):
+			_clear_button.pressed.connect(clear_all)
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
@@ -94,6 +144,14 @@ func add_entry(icon: String, title: String, description: String,
 	if severity == "critical" and not _is_open:
 		show_panel()
 
+## Remove every stored notification and refresh the (empty) list.
+func clear_all() -> void:
+	if _entries.is_empty():
+		return
+	_entries.clear()
+	_expanded_index = -1
+	_rebuild_list()
+
 func toggle() -> void:
 	if _is_open:
 		hide_panel()
@@ -107,6 +165,8 @@ func show_panel() -> void:
 	panel.show()
 	if anim_player and anim_player.has_animation("slide_in"):
 		anim_player.play("slide_in")
+	else:
+		_slide_in()
 	panel_toggled.emit(true)
 
 func hide_panel() -> void:
@@ -116,8 +176,34 @@ func hide_panel() -> void:
 	if anim_player and anim_player.has_animation("slide_out"):
 		anim_player.play("slide_out")
 		await anim_player.animation_finished
+	else:
+		await _slide_out()
 	panel.hide()
 	panel_toggled.emit(false)
+
+## Slide-in juice (display only): fade + rise from the right edge.
+func _slide_in() -> void:
+	if _slide_tween and _slide_tween.is_valid():
+		_slide_tween.kill()
+	panel.modulate.a = 0.0
+	panel.position.x = 24.0
+	_slide_tween = panel.create_tween()
+	_slide_tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	_slide_tween.set_parallel(true)
+	_slide_tween.tween_property(panel, "modulate:a", 1.0, 0.25)
+	_slide_tween.tween_property(panel, "position:x", 0.0, 0.25)
+
+func _slide_out() -> void:
+	if _slide_tween and _slide_tween.is_valid():
+		_slide_tween.kill()
+	_slide_tween = panel.create_tween()
+	_slide_tween.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	_slide_tween.set_parallel(true)
+	_slide_tween.tween_property(panel, "modulate:a", 0.0, 0.2)
+	_slide_tween.tween_property(panel, "position:x", 24.0, 0.2)
+	await _slide_tween.finished
+	panel.position.x = 0.0
+	panel.modulate.a = 1.0
 
 # ── SimBridge signal handlers ──────────────────────────────────────────────────
 
@@ -150,17 +236,46 @@ func _on_state_updated() -> void:
 # ── List rendering ─────────────────────────────────────────────────────────────
 
 func _rebuild_list() -> void:
+	if not entry_list:
+		return
 	# Clear existing children
 	for child in entry_list.get_children():
 		child.queue_free()
 
+	if _entries.is_empty():
+		var empty := Label.new()
+		empty.text = _tr_or("UI_NOTIFY_EMPTY", "🔔 Ingen varsler ennå — vi gir beskjed når noe skjer.")
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		empty.add_theme_font_size_override("font_size", 12)
+		empty.add_theme_color_override("font_color", Color("#7B8794"))
+		entry_list.add_child(empty)
+		return
+
+	var ordered: Array = []
 	for i in _entries.size():
-		var entry := _entries[i]
+		ordered.append({"entry": _entries[i], "index": i})
+	# Group by severity (critical → warning → info); newest first within a group.
+	ordered.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var ra := _severity_rank(str(a["entry"].get("severity", "info")))
+		var rb := _severity_rank(str(b["entry"].get("severity", "info")))
+		if ra != rb:
+			return ra < rb
+		return int(a["index"]) < int(b["index"])
+	)
+
+	var last_rank := -1
+	for i in ordered.size():
+		var entry: Dictionary = ordered[i]["entry"]
+		var rank := _severity_rank(str(entry.get("severity", "info")))
+		if rank != last_rank:
+			entry_list.add_child(_build_group_header(rank))
+			last_rank = rank
 		entry_list.add_child(_build_entry_node(entry, i))
 
 	# Scroll to top (newest entry)
 	await get_tree().process_frame
-	scroll_container.scroll_vertical = 0
+	if scroll_container:
+		scroll_container.scroll_vertical = 0
 
 func _build_entry_node(entry: Dictionary, index: int) -> Control:
 	var sev: String   = entry.get("severity", "info")
@@ -202,7 +317,7 @@ func _build_entry_node(entry: Dictionary, index: int) -> Control:
 	header.add_child(title_lbl)
 
 	var day_lbl := Label.new()
-	day_lbl.text = tr("UI_NOTIFICATION_DAY_FORMAT") % entry.get("day", 0)
+	day_lbl.text = _tr_day_format(entry.get("day", 0))
 	day_lbl.add_theme_color_override("font_color", Color("#7B8794"))
 	day_lbl.add_theme_font_size_override("font_size", 10)
 	header.add_child(day_lbl)
@@ -249,6 +364,37 @@ func _toggle_expand(index: int) -> void:
 	_rebuild_list()
 
 # ── Utility ────────────────────────────────────────────────────────────────────
+
+func _severity_rank(severity: String) -> int:
+	return SEVERITY_RANK.get(severity.to_lower(), 99)
+
+func _rank_to_severity(rank: int) -> String:
+	match rank:
+		0: return "critical"
+		1: return "warning"
+		_: return "info"
+
+func _build_group_header(rank: int) -> Control:
+	var sev := _rank_to_severity(rank)
+	var lbl := Label.new()
+	lbl.text = _tr_or("UI_NOTIFY_GROUP_%s" % sev.to_upper(), GROUP_TITLES.get(sev, "Info"))
+	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.add_theme_color_override("font_color", SEVERITY_COLORS.get(sev, Color("#7B8794")))
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return lbl
+
+## Translated "Day %d" with fallback: tr() returns the key itself when the
+## translation catalog is missing — formatting the raw key (no placeholder)
+## aborts _build_entry_node and yields a null child for add_child().
+func _tr_day_format(day: int) -> String:
+	var fmt := tr("UI_NOTIFICATION_DAY_FORMAT")
+	if fmt == "UI_NOTIFICATION_DAY_FORMAT" or not ("%" in fmt):
+		return "Dag %d" % day
+	return fmt % day
+
+func _tr_or(key: String, fallback: String) -> String:
+	var t := tr(key)
+	return t if t != key else fallback
 
 func _level_to_title(level: String) -> String:
 	match level:

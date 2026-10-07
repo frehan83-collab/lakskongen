@@ -14,15 +14,26 @@ namespace LakskongenSim.Farm
     public class FeedSystem
     {
         // ─── Cost parameters ───
-        public decimal FeedCostPerKg { get; set; } = 14m;  // NOK/kg (industry avg ~12-16 NOK/kg)
+        public decimal FeedCostPerKg { get; set; } = 13.5m;  // NOK/kg (matches BalancingConfig)
 
         // ─── FCR parameters ───
-        public double BaseFCR { get; private set; } = 1.15; // Industry average (GSI/Seafish data)
-        public double CurrentFCR { get; private set; } = 1.15;
+        public double BaseFCR { get; private set; } = 1.12; // ↓ from 1.15 (industry best)
+        public double CurrentFCR { get; private set; } = 1.12;
+
+        /// <summary>
+        /// Apply the calibrated base FCR from <see cref="Calibration.CalibrationRegistry"/>
+        /// (Phase A). Keeps FeedSystem's FCR anchor from drifting from the single source
+        /// of truth without exposing a public mutable property.
+        /// </summary>
+        public void SetBaseFCR(double baseFcr)
+        {
+            BaseFCR = Math.Clamp(baseFcr, 0.8, 2.5);
+            CurrentFCR = BaseFCR;
+        }
 
         // Temperature-FCR relationship (Norwegian data: optimal 11-13°C)
         private const double OptimalFCRTemp = 12.0;
-        private const double FCRTempSensitivity = 0.02; // FCR increases 0.02 per °C away from optimal
+        private const double FCRTempSensitivity = 0.018; // ↓ from 0.02 (less sensitive)
 
         // ─── Feeding strategy ───
         public double FeedingRatePercent { get; set; } = 1.5; // % of bodyweight per day (adjustable by player)
@@ -38,6 +49,75 @@ namespace LakskongenSim.Farm
         public double TotalFeedUsedKg { get; private set; }
         public double TotalGrowthKg { get; private set; }
         public double LifetimeFCR => TotalGrowthKg > 0 ? TotalFeedUsedKg / TotalGrowthKg : BaseFCR;
+
+        /// <summary>Last computed appetite 0-1 (Phase 2.1). 1 = full ration.</summary>
+        public double LastAppetite01 { get; private set; } = 1.0;
+
+        /// <summary>Recipe FCR multiplier 0.90-1.0 (Phase 4.4, set by recipe).</summary>
+        public double RecipeFCRMult { get; set; } = 1.0;
+
+        // ─── Precision feeding (feed spreading quality) ───
+        // Poor spreading means pellets land unevenly: dominant fish gorge while
+        // subordinate fish miss out. Empirically this raises FCR, produces a more
+        // variable size distribution, and increases pellet waste on the seabed.
+        // Feed is 50-65% of production cost, so spreading quality is high-leverage.
+
+        /// <summary>FCR penalty at zero spreading quality (poor = +20%).</summary>
+        public const double MaxPrecisionFcrPenalty = 0.20;
+
+        /// <summary>Pellet waste fraction at perfect spreading (5%).</summary>
+        public const double BaseWasteFraction = 0.05;
+
+        /// <summary>Additional pellet waste fraction at zero spreading quality (+15%).</summary>
+        public const double MaxExtraWasteFraction = 0.15;
+
+        /// <summary>Size variance (CV) at perfect spreading (0.10).</summary>
+        public const double BaseSizeVarianceCv = 0.10;
+
+        /// <summary>Additional size variance (CV) at zero spreading quality (+0.25).</summary>
+        public const double MaxExtraSizeVarianceCv = 0.25;
+
+        /// <summary>
+        /// FCR multiplier from feed spreading quality. 1.0 at perfect spread,
+        /// 1.20 at poorest spread. Pure and monotonic decreasing in quality.
+        /// </summary>
+        public static double PrecisionFCRMultiplier(double spreadQuality01)
+        {
+            double q = Math.Clamp(spreadQuality01, 0.0, 1.0);
+            return 1.0 + MaxPrecisionFcrPenalty * (1.0 - q);
+        }
+
+        /// <summary>Feed-waste fraction (uneaten pellets) as a function of spreading quality. Monotonic.</summary>
+        public static double CalculateFeedWasteFraction(double spreadQuality01)
+        {
+            double q = Math.Clamp(spreadQuality01, 0.0, 1.0);
+            return BaseWasteFraction + MaxExtraWasteFraction * (1.0 - q);
+        }
+
+        /// <summary>Cohort size variance (coefficient of variation) vs spreading quality. Monotonic.</summary>
+        public static double CalculateSizeVarianceCv(double spreadQuality01)
+        {
+            double q = Math.Clamp(spreadQuality01, 0.0, 1.0);
+            return BaseSizeVarianceCv + MaxExtraSizeVarianceCv * (1.0 - q);
+        }
+
+        /// <summary>
+        /// Appetite from temperature + oxygen (Phase 2.1): full ration at 8-14°C
+        /// and good O2, tapering to 0.3 in cold/heat or hypoxia. Fish that won't
+        /// eat shouldn't be fed — saves cost and seabed load.
+        /// </summary>
+        public static double CalculateAppetite(double temperatureC, double doModifier01)
+        {
+            double tempApp = temperatureC switch
+            {
+                < 2.0 => 0.3,
+                < 6.0 => 0.6 + (temperatureC - 2.0) * 0.1,   // 0.6→1.0
+                <= 14.0 => 1.0,
+                <= 18.0 => 1.0 - (temperatureC - 14.0) * 0.1, // 1.0→0.6
+                _ => 0.5
+            };
+            return Math.Clamp(tempApp * (0.3 + 0.7 * doModifier01), 0.3, 1.0);
+        }
 
         // ─── Events ───
         public event Action<decimal>? OnFeedCostIncurred;
@@ -105,6 +185,9 @@ namespace LakskongenSim.Farm
             // Water quality: poor water → worse FCR
             fcr *= (2.0 - waterQualityPenalty); // penalty=1.0 → no effect; penalty=0.5 → FCR×1.5
 
+            // Recipe: better ingredients convert better (Phase 4.4).
+            fcr *= RecipeFCRMult;
+
             // Clamp to realistic range
             CurrentFCR = Math.Clamp(fcr, 0.9, 2.5);
             OnFCRChanged?.Invoke(CurrentFCR);
@@ -116,9 +199,16 @@ namespace LakskongenSim.Farm
         /// Apply feed to population. Returns total feed used (kg).
         /// Also calculates waste output for water chemistry integration.
         /// </summary>
+        /// <param name="pop">Population to feed.</param>
+        /// <param name="days">Number of days to feed over.</param>
+        /// <param name="temperatureC">Water temperature in °C.</param>
+        /// <param name="stockingDensityKgM3">Stocking density in kg/m³.</param>
+        /// <param name="waterQualityPenalty">Water-quality multiplier (1.0 = no penalty).</param>
+        /// <param name="spreadQuality01">Feed spreading precision 0 (poor) to 1 (perfect).
+        /// Defaults to 1.0 so existing callers keep baseline behaviour.</param>
         public FeedResult Feed(Biology.FishPopulation pop, int days,
             double temperatureC = 12.0, double stockingDensityKgM3 = 20.0,
-            double waterQualityPenalty = 1.0)
+            double waterQualityPenalty = 1.0, double spreadQuality01 = 1.0)
         {
             double biomassKg = pop.Cohorts.Sum(c => c.Count * c.MeanWeightKg);
             if (biomassKg <= 0) return FeedResult.Empty;
@@ -129,11 +219,23 @@ namespace LakskongenSim.Farm
                 .Select(c => c.Stage)
                 .FirstOrDefault();
 
-            // Calculate dynamic FCR
+            // Calculate dynamic FCR, then apply precision-feeding penalty.
             double fcr = CalculateFCR(temperatureC, dominantStage, stockingDensityKgM3, waterQualityPenalty);
+            fcr = Math.Clamp(fcr * PrecisionFCRMultiplier(spreadQuality01), 0.9, 2.5);
+            if (Math.Abs(fcr - CurrentFCR) > 1e-9)
+            {
+                CurrentFCR = fcr;
+                OnFCRChanged?.Invoke(CurrentFCR);
+            }
 
-            // Daily feed amount (% of bodyweight, adjustable by player)
-            double dailyFeedKg = biomassKg * (FeedingRatePercent / 100.0);
+            // Precision-feeding side outputs: waste and size spread.
+            double wasteFraction = CalculateFeedWasteFraction(spreadQuality01);
+            double sizeVarianceCv = CalculateSizeVarianceCv(spreadQuality01);
+
+            // Daily feed amount (% of bodyweight, adjustable by player),
+            // scaled by appetite so uneaten feed doesn't wreck FCR/seabed.
+            LastAppetite01 = CalculateAppetite(temperatureC, waterQualityPenalty);
+            double dailyFeedKg = biomassKg * (FeedingRatePercent / 100.0) * LastAppetite01;
             double totalFeedKg = dailyFeedKg * days;
 
             // Expected growth from this feed
@@ -143,6 +245,9 @@ namespace LakskongenSim.Farm
             // ~30% of feed N is retained, 70% excreted (Norwegian aquaculture data)
             double nitrogenWasteKg = totalFeedKg * 0.07 * 0.70; // 7% N in feed, 70% excreted
             double phosphorusWasteKg = totalFeedKg * 0.01 * 0.70; // 1% P in feed, 70% excreted
+
+            // Uneaten pellets from imperfect spreading (seabed load).
+            double feedWasteKg = totalFeedKg * wasteFraction;
 
             // Cost
             decimal totalCost = (decimal)totalFeedKg * FeedCostPerKg;
@@ -162,7 +267,10 @@ namespace LakskongenSim.Farm
                 NitrogenWasteKg = nitrogenWasteKg,
                 PhosphorusWasteKg = phosphorusWasteKg,
                 CostNOK = totalCost,
-                BiomassKg = biomassKg
+                BiomassKg = biomassKg,
+                FeedWasteFraction = wasteFraction,
+                FeedWasteKg = feedWasteKg,
+                SizeVarianceCv = sizeVarianceCv
             };
         }
 
@@ -229,6 +337,15 @@ namespace LakskongenSim.Farm
         public double PhosphorusWasteKg;
         public decimal CostNOK;
         public double BiomassKg;
+
+        /// <summary>Fraction of dispensed feed not consumed (0-1) from spreading quality.</summary>
+        public double FeedWasteFraction;
+
+        /// <summary>Absolute uneaten feed (kg) from imperfect spreading.</summary>
+        public double FeedWasteKg;
+
+        /// <summary>Cohort size variance (coefficient of variation) implied by spreading quality.</summary>
+        public double SizeVarianceCv;
 
         public static FeedResult Empty => new FeedResult();
     }

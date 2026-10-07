@@ -40,7 +40,7 @@ var _start_values: Dictionary = {}
 signal weather_changed(state: WeatherState)
 signal storm_started()
 signal storm_ended()
-signal visibility_changed(factor: float)  # 0.0 = blind, 1.0 = clear
+signal fog_visibility_changed(factor: float)  # 0.0 = blind, 1.0 = clear
 
 var _wind_direction: Vector2 = Vector2(1.0, 0.3)
 var _was_storm: bool = false
@@ -142,7 +142,7 @@ func _apply_weather_values(values: Dictionary) -> void:
 	var vis_fog := 1.0 - clampf(values.get("fog", 0.0) * 100.0, 0.0, 0.8)
 	var vis_rain := 1.0 - clampf(values.get("rain", 0.0) * 0.3, 0.0, 0.3)
 	var vis_snow := 1.0 - clampf(values.get("snow", 0.0) * 0.2, 0.0, 0.2)
-	visibility_changed.emit(vis_fog * vis_rain * vis_snow)
+	fog_visibility_changed.emit(vis_fog * vis_rain * vis_snow)
 
 
 func _update_particle_positions() -> void:

@@ -7,6 +7,9 @@ extends PanelContainer
 @onready var inbreeding_label: Label = %InbreedingLabel
 @onready var inbreeding_warning: Panel = %InbreedingWarning
 @onready var breed_button: Button = %BreedButton
+@onready var inbreeding_detail_label: Label = %InbreedingDetailLabel
+@onready var gain_list: VBoxContainer = %GainList
+@onready var ge_list: VBoxContainer = %GeList
 
 var _sim_bridge: Node = null
 
@@ -45,6 +48,9 @@ func _refresh_ui() -> void:
 	
 	_update_traits()
 	_update_inbreeding()
+	_update_genomic_preview()
+	_update_inbreeding_status()
+	_update_ge_traits()
 
 func _update_traits() -> void:
 	if not trait_list:
@@ -102,15 +108,113 @@ func _update_inbreeding() -> void:
 	
 	if inbreeding_label:
 		inbreeding_label.text = tr("UI_GENETICS_INBREEDING") % (coef * 100.0)
-	inbreeding_label.tooltip_text = "Innavelskoeffisient: Hvor høy grad av innavl det er i fiskepopulasjonen. Høye verdier kan føre til redusert helse og vekst."
+	inbreeding_label.tooltip_text = tr("Innavelskoeffisient: Hvor høy grad av innavl det er i fiskepopulasjonen. Høye verdier kan føre til redusert helse og vekst.")
 	
 	if inbreeding_warning:
 		inbreeding_warning.visible = coef > 0.15
-		inbreeding_warning.tooltip_text = "Advarsel: Innavelsnivået er høyt. Vurder å introdusere ny stamfisk for å unngå negative effekter."
+		inbreeding_warning.tooltip_text = tr("Advarsel: Innavelsnivået er høyt. Vurder å introdusere ny stamfisk for å unngå negative effekter.")
 		if coef > 0.25:
 			inbreeding_warning.modulate = Color.RED
 		elif coef > 0.15:
 			inbreeding_warning.modulate = Color.ORANGE
+
+func _update_genomic_preview() -> void:
+	if not gain_list or not _sim_bridge:
+		return
+	for child in gain_list.get_children():
+		child.queue_free()
+	if not _sim_bridge.has_method("get_genomic_selection_preview"):
+		gain_list.add_child(_note_label(tr("Genomisk seleksjon ikke tilgjengelig.")))
+		return
+
+	var preview: Array = _sim_bridge.get_genomic_selection_preview()
+	if preview.is_empty():
+		gain_list.add_child(_note_label(tr("Ingen stamfisk registrert — start et avlsprogram.")))
+		return
+
+	for entry in preview:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		var name_label := Label.new()
+		name_label.text = str(entry.get("trait", "?"))
+		name_label.custom_minimum_size = Vector2(150, 0)
+		name_label.tooltip_text = tr("Forventet endring i avlsverdi per generasjon under genomisk seleksjon.")
+		row.add_child(name_label)
+		var gain_label := Label.new()
+		var gain := float(entry.get("gain", 0.0))
+		gain_label.text = "+%.3f" % gain if gain > 0.0 else "%.3f" % gain
+		gain_label.custom_minimum_size = Vector2(80, 0)
+		gain_label.add_theme_color_override("font_color", Color("#A3BE8C") if gain > 0.0 else Color.WHITE)
+		row.add_child(gain_label)
+		gain_list.add_child(row)
+
+func _update_inbreeding_status() -> void:
+	if not inbreeding_detail_label or not _sim_bridge:
+		return
+	if not _sim_bridge.has_method("get_inbreeding_status"):
+		inbreeding_detail_label.text = tr("Innavel: ikke tilgjengelig")
+		return
+
+	var status: Dictionary = _sim_bridge.get_inbreeding_status()
+	var coef := float(status.get("coefficient", 0.0))
+	var penalty_pct := float(status.get("penalty_percent", 0.0))
+	var level := str(status.get("level", "none"))
+	inbreeding_detail_label.text = tr("Innavel: %.1f%% · vekststraff: %.1f%%") % [coef * 100.0, penalty_pct]
+	inbreeding_detail_label.tooltip_text = tr("Koeffisient og forventet veksttap fra innavlsdepresjon (GenomicSelection).")
+	match level:
+		"high":
+			inbreeding_detail_label.add_theme_color_override("font_color", Color.RED)
+		"elevated":
+			inbreeding_detail_label.add_theme_color_override("font_color", Color.ORANGE)
+		_:
+			inbreeding_detail_label.add_theme_color_override("font_color", Color.WHITE)
+
+func _update_ge_traits() -> void:
+	if not ge_list or not _sim_bridge:
+		return
+	for child in ge_list.get_children():
+		child.queue_free()
+	if not _sim_bridge.has_method("get_ge_traits"):
+		ge_list.add_child(_note_label(tr("GE-data ikke tilgjengelig.")))
+		return
+
+	var traits: Array = _sim_bridge.get_ge_traits()
+	if traits.is_empty():
+		ge_list.add_child(_note_label(tr("Ingen GE-egenskaper registrert.")))
+		return
+
+	for entry in traits:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		var name_label := Label.new()
+		name_label.text = str(entry.get("name", entry.get("id", "?")))
+		name_label.custom_minimum_size = Vector2(220, 0)
+		name_label.tooltip_text = tr("Reguleringsstatus i Norge og reputasjonskostnad ved bruk.")
+		row.add_child(name_label)
+		var status_label := Label.new()
+		var region_status := str(entry.get("region_status", "NotSubmitted"))
+		status_label.text = tr("%s (repr. %.0f%%)") % [tr(region_status), float(entry.get("reputation_cost", 0.0)) * 100.0]
+		status_label.custom_minimum_size = Vector2(150, 0)
+		status_label.add_theme_color_override("font_color", _ge_status_color(region_status))
+		row.add_child(status_label)
+		ge_list.add_child(row)
+
+func _ge_status_color(region_status: String) -> Color:
+	match region_status:
+		"Approved":
+			return Color("#A3BE8C")
+		"Banned":
+			return Color("#BF616A")
+		"UnderReview":
+			return Color.ORANGE
+		_:
+			return Color("#7B8794")
+
+func _note_label(text: String) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_color_override("font_color", Color("#7B8794"))
+	return label
 
 func _breeding_value_color(bv: float) -> Color:
 	if bv > 0.5:

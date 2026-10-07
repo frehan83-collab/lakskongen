@@ -164,8 +164,16 @@ namespace LakskongenSim.Expansion
                 };
             }
             
-            // Process construction
-            _financeManager.DeductCapital(asset.CapexNOK);
+            // Process construction (checked spend — failures can no longer go silent)
+            if (!_financeManager.TryDeductCapital(asset.CapexNOK))
+            {
+                return new IntegrationResult
+                {
+                    Success = false,
+                    Message = $"Insufficient funds. Need NOK {asset.CapexNOK:N0}.",
+                    Asset = asset
+                };
+            }
             asset.IsOwned = true;
             asset.ConstructionStarted = DateTime.Now; // In real game, use game time
             asset.ConstructionCompleted = asset.ConstructionStarted.Value.AddMonths(asset.ConstructionTimeMonths);

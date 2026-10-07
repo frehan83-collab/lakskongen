@@ -149,6 +149,8 @@ func show_daily_summary(day: int, data: Dictionary):
 	button_center.add_child(continue_button)
 	main_vbox.add_child(button_center)
 
+	_play_open_animation()
+
 func show_weekly_summary(week: int, data: Dictionary):
 	if _overlay:
 		_overlay.queue_free()
@@ -196,11 +198,30 @@ func show_weekly_summary(week: int, data: Dictionary):
 	button_center.add_child(continue_button)
 	main_vbox.add_child(button_center)
 
+	_play_open_animation()
+
 func hide_summary():
 	if _overlay:
 		_overlay.queue_free()
 		_overlay = null
 		_panel_container = null
+
+## Juice: day-advance summary entrance — soft scale + fade on the
+## newspaper panel (Compatibility-safe tween, display only).
+func _play_open_animation() -> void:
+	if not is_instance_valid(_panel_container):
+		return
+	await get_tree().process_frame
+	if not is_instance_valid(_panel_container):
+		return
+	_panel_container.pivot_offset = _panel_container.size / 2.0
+	_panel_container.scale = Vector2(0.94, 0.94)
+	_panel_container.modulate.a = 0.0
+	var tween := _panel_container.create_tween()
+	tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tween.set_parallel(true)
+	tween.tween_property(_panel_container, "scale", Vector2.ONE, 0.35)
+	tween.tween_property(_panel_container, "modulate:a", 1.0, 0.25)
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):

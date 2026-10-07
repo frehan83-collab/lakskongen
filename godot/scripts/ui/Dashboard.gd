@@ -1,44 +1,89 @@
 extends Control
 
-## Dashboard v2.0 — Nordic Minimalist / Clean-Tech
-## Matches the HTML prototype: KPI strip, pen grid, water quality,
-## weather, finance, alerts, and quick actions.
-## Builds the entire UI programmatically from LakskongenTheme v2.0 tokens.
+## Dashboard v2.1 — Nordic Minimalist / Clean-Tech (scene-based).
+## Layout lives in scenes/ui/Dashboard.tscn; this script is wiring only:
+## @onready % refs, signal hookups, localization, theme fonts, data refresh.
+## Dynamic rows (alerts) are still populated in code; static layout is in the scene.
 
 # ── Autoload refs ─────────────────────────────────────────────────────────────
 var _sim: Node = null
 var _theme: Node = null
 var _juice: Node = null
 
-# ── UI refs (created in _build_ui) ────────────────────────────────────────────
-var _kpi_biomass_value: Label
-var _kpi_biomass_change: Label
-var _kpi_revenue_value: Label
-var _kpi_revenue_change: Label
-var _kpi_health_value: Label
-var _kpi_health_change: Label
-var _kpi_fcr_value: Label
-var _kpi_fcr_change: Label
+# ── Scene refs ────────────────────────────────────────────────────────────────
+@onready var _title_label: Label = %TitleLabel
+@onready var _kpi_biomass_value: Label = %KpiBiomassValue
+@onready var _kpi_biomass_change: Label = %KpiBiomassChange
+@onready var _kpi_revenue_value: Label = %KpiRevenueValue
+@onready var _kpi_revenue_change: Label = %KpiRevenueChange
+@onready var _kpi_health_value: Label = %KpiHealthValue
+@onready var _kpi_health_change: Label = %KpiHealthChange
+@onready var _kpi_fcr_value: Label = %KpiFcrValue
+@onready var _kpi_fcr_change: Label = %KpiFcrChange
 
+@onready var _pens_title: Label = %PensTitle
+@onready var _water_title: Label = %WaterTitle
+@onready var _weather_title: Label = %WeatherTitle
+@onready var _fin_title: Label = %FinTitle
+@onready var _alerts_title: Label = %AlertsTitle
+@onready var _actions_title: Label = %ActionsTitle
+
+@onready var _water_temp: Label = %WaterTemp
+@onready var _water_oxygen: Label = %WaterOxygen
+@onready var _water_salinity: Label = %WaterSalinity
+@onready var _water_ph: Label = %WaterPh
+
+@onready var _weather_icon: Label = %WeatherIcon
+@onready var _weather_temp: Label = %WeatherTemp
+@onready var _weather_desc: Label = %WeatherDesc
+@onready var _weather_wind: Label = %WeatherWind
+@onready var _weather_wave: Label = %WeatherWave
+@onready var _weather_visibility: Label = %WeatherVisibility
+@onready var _weather_humidity: Label = %WeatherHumidity
+
+@onready var _alerts_container: VBoxContainer = %AlertsContainer
+
+@onready var _chart_biomass: Control = %ChartBiomass
+@onready var _chart_price: Control = %ChartPrice
+@onready var _chart_lice: Control = %ChartLice
+@onready var _chart_fcr: Control = %ChartFcr
+@onready var _trends_title: Label = %TrendsTitle
+@onready var _ops_title: Label = %OpsTitle
+@onready var _ops_budget: Label = %OpsBudget
+@onready var _ops_list: VBoxContainer = %OpsList
+@onready var _policy_option: OptionButton = %PolicyOption
+
+@onready var _btn_feed_all: Button = %BtnFeedAll
+@onready var _btn_harvest: Button = %BtnHarvest
+@onready var _btn_delouse: Button = %BtnDelouse
+@onready var _btn_reports: Button = %BtnReports
+@onready var _btn_research: Button = %BtnResearch
+@onready var _btn_map: Button = %BtnMap
+@onready var _btn_hire: Button = %BtnHire
+@onready var _btn_contracts: Button = %BtnContracts
+
+# Pen mini-cards are static scene nodes; collected into an array in _ready.
 var _pen_cards: Array[Dictionary] = []
-var _water_items: Dictionary = {}
-var _weather_temp: Label
-var _weather_desc: Label
-var _weather_icon: Label
-var _weather_details: Dictionary = {}
-var _alerts_container: VBoxContainer
 
-var _fin_bars_revenue: Array[Control] = []
-var _fin_bars_cost: Array[Control] = []
+var _fin_bars_revenue: Array[ColorRect] = []
+var _fin_bars_cost: Array[ColorRect] = []
+var _fin_month_labels: Array[Label] = []
 
 # ── Previous values for animations ────────────────────────────────────────────
 var _prev_balance: float = 0.0
 var _prev_price: float = 0.0
+var _prev_biomass: float = 0.0
+var _prev_revenue: float = 0.0
+var _prev_health: float = 0.0
+var _prev_fcr: float = 0.0
+
+# ── KPI sparklines (created in code; script loaded lazily) ────────────────────
+var _sparkline_script: GDScript = null
+var _kpi_sparks: Dictionary = {}
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
-	# Grab autoloads
 	_sim = get_node_or_null("/root/SimBridge")
 	_theme = get_node_or_null("/root/LakskongenTheme")
 	_juice = get_node_or_null("/root/JuiceEffects")
@@ -49,9 +94,12 @@ func _ready() -> void:
 		if _sim.has_signal("state_updated"):
 			_sim.state_updated.connect(_on_state_updated)
 
-	_build_ui()
+	_collect_scene_refs()
+	_build_kpi_sparklines()
+	_apply_localization()
+	_apply_theme_fonts()
+	_connect_quick_actions()
 	_refresh_all()
-	print("Dashboard v2.0: ready (Nordic Minimalist)")
 
 func _input(event: InputEvent) -> void:
 	if visible and event.is_action_pressed("ui_cancel"):
@@ -66,575 +114,214 @@ func _on_day_advanced(_day: int, _season: String) -> void:
 func _on_state_updated() -> void:
 	_refresh_all()
 
-# ══════════════════════════════════════════════════════════════════════════════
-# UI CONSTRUCTION
-# ══════════════════════════════════════════════════════════════════════════════
-
-func _build_ui() -> void:
-	# Clear any existing children from the .tscn
-	for child in get_children():
-		child.queue_free()
-
-	# Root background
-	var bg := Panel.new()
-	bg.name = "Background"
-	var bg_sb := StyleBoxFlat.new()
-	bg_sb.bg_color = Color("#ECEFF4")
-	bg.add_theme_stylebox_override("panel", bg_sb)
-	bg.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	add_child(bg)
-
-	# Main scroll
-	var scroll := ScrollContainer.new()
-	scroll.name = "MainScroll"
-	scroll.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	scroll.offset_left = 16
-	scroll.offset_top = 16
-	scroll.offset_right = -16
-	scroll.offset_bottom = -16
-	add_child(scroll)
-
-	var root_vbox := VBoxContainer.new()
-	root_vbox.name = "RootVBox"
-	root_vbox.size_flags_horizontal = SIZE_EXPAND_FILL
-	root_vbox.add_theme_constant_override("separation", 16)
-	scroll.add_child(root_vbox)
-
-	# ── Title bar ──
-	var title_bar := _build_title_bar()
-	root_vbox.add_child(title_bar)
-
-	# ── KPI Strip ──
-	var kpi_strip := _build_kpi_strip()
-	root_vbox.add_child(kpi_strip)
-
-	# ── Row 1: Pens + Water/Weather ──
-	var row1 := HBoxContainer.new()
-	row1.add_theme_constant_override("separation", 16)
-	root_vbox.add_child(row1)
-
-	var pens_card := _build_pens_card()
-	pens_card.size_flags_horizontal = SIZE_EXPAND_FILL
-	pens_card.size_flags_stretch_ratio = 2.0
-	row1.add_child(pens_card)
-
-	var right_col := VBoxContainer.new()
-	right_col.size_flags_horizontal = SIZE_EXPAND_FILL
-	right_col.size_flags_stretch_ratio = 1.0
-	right_col.add_theme_constant_override("separation", 16)
-	row1.add_child(right_col)
-
-	right_col.add_child(_build_water_card())
-	right_col.add_child(_build_weather_card())
-
-	# ── Row 2: Finance + Alerts + Actions ──
-	var row2 := HBoxContainer.new()
-	row2.add_theme_constant_override("separation", 16)
-	root_vbox.add_child(row2)
-
-	var fin_card := _build_finance_card()
-	fin_card.size_flags_horizontal = SIZE_EXPAND_FILL
-	row2.add_child(fin_card)
-
-	var alerts_card := _build_alerts_card()
-	alerts_card.size_flags_horizontal = SIZE_EXPAND_FILL
-	row2.add_child(alerts_card)
-
-	var actions_card := _build_actions_card()
-	actions_card.size_flags_horizontal = SIZE_EXPAND_FILL
-	row2.add_child(actions_card)
-
-
-# ── Title Bar ─────────────────────────────────────────────────────────────────
-
-func _build_title_bar() -> HBoxContainer:
-	var hbox := HBoxContainer.new()
-
-	var title := Label.new()
-	title.text = tr("UI_DASHBOARD_TITLE") if tr("UI_DASHBOARD_TITLE") != "ui.dashboard.title" else "Fjordlaks AS — Oversikt"
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", Color("#2E3440"))
-	if _theme and _theme.font_heading_bold:
-		title.add_theme_font_override("font", _theme.font_heading_bold)
-	title.size_flags_horizontal = SIZE_EXPAND_FILL
-	hbox.add_child(title)
-
-	return hbox
-
-
-# ── KPI Strip ─────────────────────────────────────────────────────────────────
-
-func _build_kpi_strip() -> HBoxContainer:
-	var strip := HBoxContainer.new()
-	strip.add_theme_constant_override("separation", 16)
-
-	var kpi1 = _build_kpi_card("TOTAL BIOMASSE", "-- tonn", "", Color("#0A4D68"))
-	_kpi_biomass_value = kpi1.value_label
-	_kpi_biomass_change = kpi1.change_label
-	strip.add_child(kpi1.card)
-
-	var kpi2 = _build_kpi_card("INNTEKTER (YTD)", "-- MNOK", "", Color("#A3BE8C"))
-	_kpi_revenue_value = kpi2.value_label
-	_kpi_revenue_change = kpi2.change_label
-	strip.add_child(kpi2.card)
-
-	var kpi3 = _build_kpi_card("FISKEHELSE", "--%", "", Color("#88C0D0"))
-	_kpi_health_value = kpi3.value_label
-	_kpi_health_change = kpi3.change_label
-	strip.add_child(kpi3.card)
-
-	var kpi4 = _build_kpi_card("FÔRFAKTOR (FCR)", "--", "", Color("#5E81AC"))
-	_kpi_fcr_value = kpi4.value_label
-	_kpi_fcr_change = kpi4.change_label
-	strip.add_child(kpi4.card)
-
-	return strip
-
-func _build_kpi_card(title: String, initial_value: String, change_text: String, stripe_color: Color) -> Dictionary:
-	var card := PanelContainer.new()
-	card.size_flags_horizontal = SIZE_EXPAND_FILL
-
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color.WHITE
-	sb.border_color = Color("#E5E9F0")
-	sb.set_border_width_all(1)
-	sb.border_width_top = 4
-	sb.border_color = stripe_color  # Note: Godot uses single border_color for all sides
-	sb.set_corner_radius_all(8)
-	sb.set_content_margin_all(16)
-	# Workaround: use a more specific approach for top stripe
-	card.add_theme_stylebox_override("panel", sb)
-
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 4)
-	card.add_child(vbox)
-
-	var lbl := Label.new()
-	lbl.text = title
-	lbl.add_theme_font_size_override("font_size", 11)
-	lbl.add_theme_color_override("font_color", Color("#7B8794"))
-	vbox.add_child(lbl)
-
-	var value_lbl := Label.new()
-	value_lbl.text = initial_value
-	value_lbl.add_theme_font_size_override("font_size", 28)
-	value_lbl.add_theme_color_override("font_color", Color("#2E3440"))
-	if _theme and _theme.font_heading_bold:
-		value_lbl.add_theme_font_override("font", _theme.font_heading_bold)
-	vbox.add_child(value_lbl)
-
-	var change_lbl := Label.new()
-	change_lbl.text = change_text
-	change_lbl.add_theme_font_size_override("font_size", 12)
-	change_lbl.add_theme_color_override("font_color", Color("#8FAD78"))
-	vbox.add_child(change_lbl)
-
-	return {"card": card, "value_label": value_lbl, "change_label": change_lbl}
-
-
-# ── Pens Card ─────────────────────────────────────────────────────────────────
-
-func _build_pens_card() -> PanelContainer:
-	var card := _make_card("🏗️ Merdoversikt")
-
-	var grid := GridContainer.new()
-	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 12)
-	card.get_child(0).get_child(1).add_child(grid)  # VBox -> Body container
-
-	# Build 6 pen mini-cards
-	for i in range(6):
-		var pen_data := _build_pen_mini_card(i + 1)
-		grid.add_child(pen_data.panel)
-		_pen_cards.append(pen_data)
-
-	return card
-
-func _build_pen_mini_card(pen_num: int) -> Dictionary:
-	var panel := PanelContainer.new()
-	panel.size_flags_horizontal = SIZE_EXPAND_FILL
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color("#F8F9FB")
-	sb.border_color = Color("#D8DEE9")
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(8)
-	sb.set_content_margin_all(12)
-	panel.add_theme_stylebox_override("panel", sb)
-
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 6)
-	panel.add_child(vbox)
-
-	# Header row
-	var header := HBoxContainer.new()
-	vbox.add_child(header)
-	var name_lbl := Label.new()
-	name_lbl.text = tr("UI_DASHBOARD_PEN_NAME") % pen_num if tr("UI_DASHBOARD_PEN_NAME") != "ui.dashboard.pen_name" else "Merd %d" % pen_num
-	name_lbl.add_theme_font_size_override("font_size", 14)
-	name_lbl.add_theme_color_override("font_color", Color("#2E3440"))
-	if _theme and _theme.font_heading_semibold:
-		name_lbl.add_theme_font_override("font", _theme.font_heading_semibold)
-	name_lbl.size_flags_horizontal = SIZE_EXPAND_FILL
-	header.add_child(name_lbl)
-
-	var status_dot := ColorRect.new()
-	status_dot.custom_minimum_size = Vector2(10, 10)
-	status_dot.color = Color("#A3BE8C")  # Default healthy
-	header.add_child(status_dot)
-
-	# Stats
-	var count_row := _make_pen_stat("Antall", "--")
-	vbox.add_child(count_row.container)
-	var weight_row := _make_pen_stat("Snitt vekt", "--")
-	vbox.add_child(weight_row.container)
-	var temp_row := _make_pen_stat("Temp", "--")
-	vbox.add_child(temp_row.container)
-
-	return {
-		"panel": panel,
-		"status_dot": status_dot,
-		"count_value": count_row.value,
-		"weight_value": weight_row.value,
-		"temp_value": temp_row.value
-	}
-
-func _make_pen_stat(label_text: String, value_text: String) -> Dictionary:
-	var hbox := HBoxContainer.new()
-	var lbl := Label.new()
-	lbl.text = label_text
-	lbl.add_theme_font_size_override("font_size", 12)
-	lbl.add_theme_color_override("font_color", Color("#7B8794"))
-	lbl.size_flags_horizontal = SIZE_EXPAND_FILL
-	hbox.add_child(lbl)
-
-	var val := Label.new()
-	val.text = value_text
-	val.add_theme_font_size_override("font_size", 12)
-	val.add_theme_color_override("font_color", Color("#2E3440"))
-	if _theme and _theme.font_mono:
-		val.add_theme_font_override("font", _theme.font_mono)
-	hbox.add_child(val)
-
-	return {"container": hbox, "value": val}
-
-
-# ── Water Quality Card ────────────────────────────────────────────────────────
-
-func _build_water_card() -> PanelContainer:
-	var card := _make_card("💧 Vannkvalitet")
-	var body = card.get_child(0).get_child(1)
-
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 12)
-	body.add_child(grid)
-
-	_water_items["temp"] = _build_water_item(grid, "TEMPERATUR", "--°C")
-	_water_items["oxygen"] = _build_water_item(grid, "OKSYGEN", "--%")
-	_water_items["salinity"] = _build_water_item(grid, "SALINITET", "--‰")
-	_water_items["ph"] = _build_water_item(grid, "PH", "--")
-
-	return card
-
-func _build_water_item(parent: Control, title: String, initial_value: String) -> Label:
-	var panel := PanelContainer.new()
-	panel.size_flags_horizontal = SIZE_EXPAND_FILL
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color("#F8F9FB")
-	sb.set_corner_radius_all(8)
-	sb.set_content_margin_all(12)
-	panel.add_theme_stylebox_override("panel", sb)
-	parent.add_child(panel)
-
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 4)
-	panel.add_child(vbox)
-
-	var lbl := Label.new()
-	lbl.text = title
-	lbl.add_theme_font_size_override("font_size", 10)
-	lbl.add_theme_color_override("font_color", Color("#7B8794"))
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(lbl)
-
-	var val := Label.new()
-	val.text = initial_value
-	val.add_theme_font_size_override("font_size", 20)
-	val.add_theme_color_override("font_color", Color("#2E3440"))
-	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if _theme and _theme.font_mono:
-		val.add_theme_font_override("font", _theme.font_mono)
-	vbox.add_child(val)
-
-	return val
-
-
-# ── Weather Card ──────────────────────────────────────────────────────────────
-
-func _build_weather_card() -> PanelContainer:
-	var card := _make_card("🌤️ Vær")
-	var body = card.get_child(0).get_child(1)
-
-	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 16)
-	body.add_child(hbox)
-
-	_weather_icon = Label.new()
-	_weather_icon.text = tr("⛅")
-	_weather_icon.add_theme_font_size_override("font_size", 36)
-	hbox.add_child(_weather_icon)
-
-	var info_vbox := VBoxContainer.new()
-	hbox.add_child(info_vbox)
-
-	_weather_temp = Label.new()
-	_weather_temp.text = tr("--°C")
-	_weather_temp.add_theme_font_size_override("font_size", 28)
-	_weather_temp.add_theme_color_override("font_color", Color("#2E3440"))
-	if _theme and _theme.font_heading_bold:
-		_weather_temp.add_theme_font_override("font", _theme.font_heading_bold)
-	info_vbox.add_child(_weather_temp)
-
-	_weather_desc = Label.new()
-	_weather_desc.text = "--"
-	_weather_desc.add_theme_font_size_override("font_size", 13)
-	_weather_desc.add_theme_color_override("font_color", Color("#4C566A"))
-	info_vbox.add_child(_weather_desc)
-
-	# Details grid
-	var details_grid := GridContainer.new()
-	details_grid.columns = 2
-	details_grid.add_theme_constant_override("h_separation", 16)
-	details_grid.add_theme_constant_override("v_separation", 4)
-	body.add_child(details_grid)
-
-	_weather_details["wind"] = _add_weather_detail(details_grid, "Vind:", "--")
-	_weather_details["wave"] = _add_weather_detail(details_grid, "Bølge:", "--")
-	_weather_details["visibility"] = _add_weather_detail(details_grid, "Sikt:", "--")
-	_weather_details["humidity"] = _add_weather_detail(details_grid, "Fukt:", "--")
-
-	return card
-
-func _add_weather_detail(parent: Control, title: String, value: String) -> Label:
-	var lbl := Label.new()
-	lbl.text = title
-	lbl.add_theme_font_size_override("font_size", 12)
-	lbl.add_theme_color_override("font_color", Color("#4C566A"))
-	parent.add_child(lbl)
-
-	var val := Label.new()
-	val.text = value
-	val.add_theme_font_size_override("font_size", 12)
-	val.add_theme_color_override("font_color", Color("#2E3440"))
-	parent.add_child(val)
-
-	return val
-
-
-# ── Finance Card ──────────────────────────────────────────────────────────────
-
-func _build_finance_card() -> PanelContainer:
-	var card := _make_card("💰 Økonomi (6 mnd)")
-	var body = card.get_child(0).get_child(1)
-
-	var chart_hbox := HBoxContainer.new()
-	chart_hbox.custom_minimum_size.y = 120
-	chart_hbox.add_theme_constant_override("separation", 8)
-	chart_hbox.alignment = BoxContainer.ALIGNMENT_END
-	body.add_child(chart_hbox)
-
+func _on_quick_action(action: String) -> void:
+	# Juice-only feedback: toast + button pop + route to the relevant tab.
+	# No simulation calls are made here; panels trigger sim actions themselves.
+	_pop_button(action)
+	match action:
+		"feed_all":
+			_toast(_tr_or("UI_TOAST_FEED_ALL", "🐟 Fôrer alle merder …"), "INFO")
+			_route_to_tab("pens")
+		"harvest":
+			_toast(_tr_or("UI_TOAST_HARVEST_START", "📦 Klar for høsting — velg en merd"), "INFO")
+			_route_to_tab("pens")
+		"delouse":
+			_toast(_tr_or("UI_TOAST_DELOUSE_START", "🧪 Velg en merd for avlusing"), "INFO")
+			_route_to_tab("pens")
+		"reports":
+			_route_to_tab("finance")
+		"research":
+			_toast(_tr_or("UI_TOAST_RESEARCH_OPEN", "🔬 Forskningsstreet åpnes"), "INFO")
+			_route_to_tab("research")
+		"map":
+			_route_to_tab("map")
+		"hire":
+			_route_to_tab("crew")
+		"contracts":
+			_route_to_tab("contracts")
+		_:
+			pass
+
+## Route to a GameUI tab by climbing ancestors (UI-only, no sim change).
+func _route_to_tab(tab_id: String) -> void:
+	var node: Node = self
+	while node != null:
+		if node.has_method("show_tab") and node.has_method("has_tab"):
+			if node.has_method("get_active_tab") and node.get_active_tab() == tab_id:
+				return
+			if bool(node.call("has_tab", tab_id)):
+				node.call("show_tab", tab_id)
+			return
+		node = node.get_parent()
+
+func _pop_button(action: String) -> void:
+	var btn: Button = null
+	match action:
+		"feed_all": btn = _btn_feed_all
+		"harvest": btn = _btn_harvest
+		"delouse": btn = _btn_delouse
+		"reports": btn = _btn_reports
+		"research": btn = _btn_research
+		"map": btn = _btn_map
+		"hire": btn = _btn_hire
+		"contracts": btn = _btn_contracts
+	if btn:
+		JuiceEffects.button_pop(btn)
+
+func _toast(message: String, level: String = "INFO") -> void:
+	var mgr := get_node_or_null("/root/ToastNotification")
+	if mgr and mgr.has_method("show_toast"):
+		mgr.show_toast(message, level, 3.5)
+
+# ── Scene wiring ──────────────────────────────────────────────────────────────
+
+func _collect_scene_refs() -> void:
+	_pen_cards.clear()
+	for i in range(1, 7):
+		var suffix := str(i)
+		_pen_cards.append({
+			"panel": get_node_or_null("%PenCard" + suffix),
+			"status_dot": get_node_or_null("%Pen" + suffix + "Status"),
+			"name_label": get_node_or_null("%Pen" + suffix + "Name"),
+			"count_value": get_node_or_null("%Pen" + suffix + "Count"),
+			"weight_value": get_node_or_null("%Pen" + suffix + "Weight"),
+			"temp_value": get_node_or_null("%Pen" + suffix + "Temp"),
+		})
 	_fin_bars_revenue.clear()
 	_fin_bars_cost.clear()
+	_fin_month_labels.clear()
+	for i in range(1, 7):
+		var suffix := str(i)
+		_fin_bars_revenue.append(get_node_or_null("%FinRev" + suffix) as ColorRect)
+		_fin_bars_cost.append(get_node_or_null("%FinCost" + suffix) as ColorRect)
+		# MonthLbl nodes share one % name; resolve via parent path instead.
+		_fin_month_labels.append(get_node_or_null("Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month" + suffix + "/MonthLbl") as Label)
 
-	var months := ["Okt", "Nov", "Des", "Jan", "Feb", "Mar"]
-	for i in range(6):
-		var month_vbox := VBoxContainer.new()
-		month_vbox.size_flags_horizontal = SIZE_EXPAND_FILL
-		month_vbox.alignment = BoxContainer.ALIGNMENT_END
-		chart_hbox.add_child(month_vbox)
+func _connect_quick_actions() -> void:
+	_btn_feed_all.pressed.connect(_on_quick_action.bind("feed_all"))
+	_btn_harvest.pressed.connect(_on_quick_action.bind("harvest"))
+	_btn_delouse.pressed.connect(_on_quick_action.bind("delouse"))
+	_btn_reports.pressed.connect(_on_quick_action.bind("reports"))
+	_btn_research.pressed.connect(_on_quick_action.bind("research"))
+	_btn_map.pressed.connect(_on_quick_action.bind("map"))
+	_btn_hire.pressed.connect(_on_quick_action.bind("hire"))
+	_btn_contracts.pressed.connect(_on_quick_action.bind("contracts"))
 
-		var bars_hbox := HBoxContainer.new()
-		bars_hbox.add_theme_constant_override("separation", 2)
-		bars_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-		month_vbox.add_child(bars_hbox)
+func _apply_localization() -> void:
+	_title_label.text = _tr_or("UI_DASHBOARD_TITLE", "Fjordlaks AS — Oversikt")
+	_pens_title.text = tr("🏗️ Merdoversikt")
+	_water_title.text = tr("💧 Vannkvalitet")
+	_weather_title.text = tr("🌤️ Vær")
+	_fin_title.text = tr("💰 Økonomi (6 mnd)")
+	_alerts_title.text = tr("⚠️ Varsler")
+	_actions_title.text = tr("⚡ Hurtigvalg")
+	_btn_feed_all.text = tr("🐟 Fôr alle")
+	_btn_harvest.text = tr("📦 Høst")
+	_btn_delouse.text = tr("🧪 Avlus")
+	_btn_reports.text = tr("📊 Rapporter")
+	_btn_research.text = tr("🔬 Forskning")
+	_btn_map.text = tr("🗺️ Kart")
+	_btn_hire.text = tr("👷 Ansett")
+	_btn_contracts.text = tr("📋 Kontrakter")
 
-		var rev_bar := ColorRect.new()
-		rev_bar.color = Color("#0A4D68")
-		rev_bar.custom_minimum_size = Vector2(12, 30 + i * 10)
-		bars_hbox.add_child(rev_bar)
-		_fin_bars_revenue.append(rev_bar)
+func _tr_or(key: String, fallback: String) -> String:
+	var t := tr(key)
+	return t if t != key else fallback
 
-		var cost_bar := ColorRect.new()
-		cost_bar.color = Color("#88C0D0")
-		cost_bar.custom_minimum_size = Vector2(12, 20 + i * 5)
-		bars_hbox.add_child(cost_bar)
-		_fin_bars_cost.append(cost_bar)
+func _apply_theme_fonts() -> void:
+	if not _theme:
+		return
+	if _theme.font_heading_bold:
+		_title_label.add_theme_font_override("font", _theme.font_heading_bold)
+		_kpi_biomass_value.add_theme_font_override("font", _theme.font_heading_bold)
+		_kpi_revenue_value.add_theme_font_override("font", _theme.font_heading_bold)
+		_kpi_health_value.add_theme_font_override("font", _theme.font_heading_bold)
+		_kpi_fcr_value.add_theme_font_override("font", _theme.font_heading_bold)
+		_weather_temp.add_theme_font_override("font", _theme.font_heading_bold)
+	if _theme.font_heading_semibold:
+		_pens_title.add_theme_font_override("font", _theme.font_heading_semibold)
+		_water_title.add_theme_font_override("font", _theme.font_heading_semibold)
+		_weather_title.add_theme_font_override("font", _theme.font_heading_semibold)
+		_fin_title.add_theme_font_override("font", _theme.font_heading_semibold)
+		_alerts_title.add_theme_font_override("font", _theme.font_heading_semibold)
+		_actions_title.add_theme_font_override("font", _theme.font_heading_semibold)
+		for pen in _pen_cards:
+			if pen.name_label:
+				(pen.name_label as Label).add_theme_font_override("font", _theme.font_heading_semibold)
+	if _theme.font_mono:
+		_water_temp.add_theme_font_override("font", _theme.font_mono)
+		_water_oxygen.add_theme_font_override("font", _theme.font_mono)
+		_water_salinity.add_theme_font_override("font", _theme.font_mono)
+		_water_ph.add_theme_font_override("font", _theme.font_mono)
+		for pen in _pen_cards:
+			for key in ["count_value", "weight_value", "temp_value"]:
+				if pen[key]:
+					(pen[key] as Label).add_theme_font_override("font", _theme.font_mono)
 
-		var month_lbl := Label.new()
-		month_lbl.text = months[i]
-		month_lbl.add_theme_font_size_override("font_size", 10)
-		month_lbl.add_theme_color_override("font_color", Color("#7B8794"))
-		month_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		month_vbox.add_child(month_lbl)
+# ══════════════════════════════════════════════════════════════════════════════
+# KPI SPARKLINES (created in code; additive juice, no sim mutation)
+# ══════════════════════════════════════════════════════════════════════════════
 
-	# Legend
-	var legend := HBoxContainer.new()
-	legend.add_theme_constant_override("separation", 16)
-	body.add_child(legend)
-
-	var rev_legend := _make_legend_item(Color("#0A4D68"), "Inntekt")
-	legend.add_child(rev_legend)
-	var cost_legend := _make_legend_item(Color("#88C0D0"), "Kostnad")
-	legend.add_child(cost_legend)
-
-	return card
-
-func _make_legend_item(color: Color, text: String) -> HBoxContainer:
-	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 6)
-
-	var dot := ColorRect.new()
-	dot.custom_minimum_size = Vector2(10, 10)
-	dot.color = color
-	hbox.add_child(dot)
-
-	var lbl := Label.new()
-	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", 12)
-	lbl.add_theme_color_override("font_color", Color("#4C566A"))
-	hbox.add_child(lbl)
-
-	return hbox
-
-
-# ── Alerts Card ───────────────────────────────────────────────────────────────
-
-func _build_alerts_card() -> PanelContainer:
-	var card := _make_card("⚠️ Varsler")
-	_alerts_container = card.get_child(0).get_child(1) as VBoxContainer
-	# Will be populated in _refresh_alerts()
-	return card
-
-
-# ── Actions Card ──────────────────────────────────────────────────────────────
-
-func _build_actions_card() -> PanelContainer:
-	var card := _make_card("⚡ Hurtigvalg")
-	var body = card.get_child(0).get_child(1)
-
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 10)
-	body.add_child(grid)
-
-	var actions := [
-		{"text": "🐟 Fôr alle", "color": Color("#0A4D68"), "signal": "feed_all"},
-		{"text": "📦 Høst", "color": Color("#A3BE8C"), "signal": "harvest"},
-		{"text": "🧪 Avlus", "color": Color("#EBCB8B"), "signal": "delouse"},
-		{"text": "📊 Rapporter", "color": Color("#F8F9FB"), "signal": "reports"},
-		{"text": "🔬 Forskning", "color": Color("#F8F9FB"), "signal": "research"},
-		{"text": "🗺️ Kart", "color": Color("#F8F9FB"), "signal": "map"},
-		{"text": "👷 Ansett", "color": Color("#F8F9FB"), "signal": "hire"},
-		{"text": "📋 Kontrakter", "color": Color("#F8F9FB"), "signal": "contracts"},
+## One Sparkline beneath each KPI card. The KPI card's value + change labels live
+## in the same VBoxContainer, so we parent into that VBox (resolved via the value
+## label's parent) — no hard scene path, no crash if a node is missing.
+func _build_kpi_sparklines() -> void:
+	_sparkline_script = load("res://scripts/ui/Sparkline.gd")
+	if _sparkline_script == null:
+		return
+	var specs: Array = [
+		["biomass", _kpi_biomass_value, "total_biomass_kg", Color("#2E86AB"), "%.0f"],
+		["revenue", _kpi_revenue_value, "balance_nok", Color("#8FAD78"), "%.1f"],
+		["health", _kpi_health_value, "sustainability_score", Color("#88C0D0"), "%.0f"],
+		["fcr", _kpi_fcr_value, "fcr", Color("#D4B06A"), "%.2f"],
 	]
+	for spec in specs:
+		var key: String = spec[0]
+		var value_lbl: Label = spec[1]
+		if value_lbl == null:
+			continue
+		var parent: Node = value_lbl.get_parent()
+		if parent == null:
+			continue
+		var spark = _sparkline_script.new()
+		spark.name = "KpiSpark" + key.capitalize()
+		spark.line_color = spec[3]
+		spark.unit_fmt = spec[4]
+		spark.custom_minimum_size = Vector2(80, 28)
+		parent.add_child(spark)
+		_kpi_sparks[key] = {"node": spark, "metric": spec[2]}
 
-	for action in actions:
-		var btn := Button.new()
-		btn.text = action.text
-		btn.size_flags_horizontal = SIZE_EXPAND_FILL
-		var is_light = action.color.v > 0.9
-		var btn_sb := StyleBoxFlat.new()
-		btn_sb.bg_color = action.color
-		btn_sb.set_corner_radius_all(4)
-		btn_sb.set_content_margin_all(10)
-		if is_light:
-			btn_sb.border_color = Color("#D8DEE9")
-			btn_sb.set_border_width_all(1)
-		btn.add_theme_stylebox_override("normal", btn_sb)
-		var hover_sb := btn_sb.duplicate()
-		hover_sb.bg_color = action.color.darkened(0.1) if not is_light else Color("#E5E9F0")
-		btn.add_theme_stylebox_override("hover", hover_sb)
-		if is_light:
-			btn.add_theme_color_override("font_color", Color("#2E3440"))
-			btn.add_theme_color_override("font_hover_color", Color("#2E3440"))
+func _refresh_kpi_sparklines() -> void:
+	if not _sim or not _sim.has_method("get_analytics_data"):
+		return
+	for key in _kpi_sparks:
+		var info: Dictionary = _kpi_sparks[key]
+		var spark = info.get("node")
+		if spark == null or not is_instance_valid(spark):
+			continue
+		var data: Array[float] = _sim.get_analytics_data(str(info.get("metric", "")), 30)
+		if spark.has_method("set_values"):
+			spark.call("set_values", data)
 		else:
-			btn.add_theme_color_override("font_color", Color.WHITE)
-			btn.add_theme_color_override("font_hover_color", Color.WHITE)
-		btn.add_theme_font_size_override("font_size", 13)
-		grid.add_child(btn)
+			spark.set("values", data)
 
-	return card
+## Flash a KPI value label green when the change is good, red when bad.
+## Skips the first refresh (prev == 0) and changes below the material threshold.
+func _flash_kpi(lbl: Label, new_val: float, prev_val: float, good_when_up: bool, material: float = 0.005) -> void:
+	if lbl == null or is_zero_approx(prev_val):
+		return
+	var delta := new_val - prev_val
+	if absf(delta) / maxf(absf(prev_val), 1e-6) < material:
+		return
+	_flash_label(lbl, (delta > 0.0) == good_when_up)
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# CARD BUILDER HELPER
-# ══════════════════════════════════════════════════════════════════════════════
-
-func _make_card(title: String) -> PanelContainer:
-	var card := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color.WHITE
-	sb.border_color = Color("#E5E9F0")
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(8)
-	card.add_theme_stylebox_override("panel", sb)
-
-	var outer_vbox := VBoxContainer.new()
-	outer_vbox.add_theme_constant_override("separation", 0)
-	card.add_child(outer_vbox)
-
-	# Header
-	var header := PanelContainer.new()
-	var header_sb := StyleBoxFlat.new()
-	header_sb.bg_color = Color.WHITE
-	header_sb.border_color = Color("#E5E9F0")
-	header_sb.border_width_bottom = 1
-	header_sb.set_content_margin(SIDE_LEFT, 20)
-	header_sb.set_content_margin(SIDE_RIGHT, 20)
-	header_sb.set_content_margin(SIDE_TOP, 14)
-	header_sb.set_content_margin(SIDE_BOTTOM, 14)
-	header.add_theme_stylebox_override("panel", header_sb)
-	outer_vbox.add_child(header)
-
-	var title_lbl := Label.new()
-	title_lbl.text = title
-	title_lbl.add_theme_font_size_override("font_size", 15)
-	title_lbl.add_theme_color_override("font_color", Color("#2E3440"))
-	if _theme and _theme.font_heading_semibold:
-		title_lbl.add_theme_font_override("font", _theme.font_heading_semibold)
-	header.add_child(title_lbl)
-
-	# Body container
-	var body := VBoxContainer.new()
-	body.add_theme_constant_override("separation", 12)
-	var body_margin := MarginContainer.new()
-	body_margin.add_theme_constant_override("margin_left", 20)
-	body_margin.add_theme_constant_override("margin_right", 20)
-	body_margin.add_theme_constant_override("margin_top", 16)
-	body_margin.add_theme_constant_override("margin_bottom", 16)
-	body_margin.add_child(body)
-	outer_vbox.add_child(body_margin)
-
-	# Return card, but body is nested: card -> outer_vbox -> [header, body_margin -> body]
-	# Override body access: store reference on the outer vbox for easier access
-	# Actually, let's keep it consistent: body is at index 1 of outer_vbox's child (margin->body)
-	# Caller accesses body via: card.get_child(0).get_child(1).get_child(0)
-	# This is ugly — let's restructure to be: outer_vbox has header and body directly
-	
-	# Remove margin approach, just add margins to body directly
-	body_margin.queue_free()
-	outer_vbox.remove_child(body_margin)
-	
-	var body2 := VBoxContainer.new()
-	body2.add_theme_constant_override("separation", 12)
-	outer_vbox.add_child(body2)
-	
-	# We return the card; caller accesses body via card.get_child(0).get_child(1)
-	return card
-
+func _flash_label(lbl: Label, good: bool) -> void:
+	if lbl == null:
+		return
+	if good:
+		JuiceEffects.flash_income(lbl)
+	else:
+		JuiceEffects.flash_damage(lbl)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DATA REFRESH
@@ -646,73 +333,178 @@ func _refresh_all() -> void:
 	_refresh_water()
 	_refresh_weather()
 	_refresh_alerts()
+	_refresh_charts()
+	_refresh_finance()
+	_refresh_ops()
+
+func _trend_text(trend: String) -> String:
+	match trend:
+		"up": return "▲ Stigende"
+		"down": return "▼ Fallende"
+		_: return "─ Stabil"
+
+func _trend_color(trend: String, good_when_up: bool) -> Color:
+	if trend == "stable":
+		return Color("#7B8794")
+	var good := (trend == "up") == good_when_up
+	return Color("#8FAD78") if good else Color("#A54E56")
 
 func _refresh_kpis() -> void:
 	if not _sim:
 		return
 
-	# Biomass
+	# Biomass (juice: count-up tween, display only)
 	var biomass_tonnes: float = float(_sim.fish_biomass_kg) / 1000.0
-	var biomass_fmt = tr("UI_DASHBOARD_BIOMASS_FORMAT") if tr("UI_DASHBOARD_BIOMASS_FORMAT") != "ui.dashboard.biomass_format" else "%s tonn"
-	_kpi_biomass_value.text = biomass_fmt % _format_number(biomass_tonnes)
+	var biomass_fmt := _tr_or("UI_DASHBOARD_BIOMASS_FORMAT", "%s tonn")
+	_flash_kpi(_kpi_biomass_value, biomass_tonnes, _prev_biomass, true)
+	_count_up(_kpi_biomass_value, _prev_biomass, biomass_tonnes, biomass_fmt)
+	_prev_biomass = biomass_tonnes
+	var biomass_trend: String = _sim.get_analytics_trend("total_biomass_kg") if _sim.has_method("get_analytics_trend") else "stable"
+	_kpi_biomass_change.text = _trend_text(biomass_trend)
+	_kpi_biomass_change.add_theme_color_override("font_color", _trend_color(biomass_trend, true))
 
-	# Revenue
+	# Revenue (juice: count-up tween, display only)
 	var revenue: float = float(_sim.get_revenue())
 	var revenue_m := revenue / 1_000_000.0
-	var revenue_fmt = tr("UI_DASHBOARD_REVENUE_FORMAT") if tr("UI_DASHBOARD_REVENUE_FORMAT") != "ui.dashboard.revenue_format" else "%.1f MNOK"
-	_kpi_revenue_value.text = revenue_fmt % revenue_m
+	var revenue_fmt := _tr_or("UI_DASHBOARD_REVENUE_FORMAT", "%.1f MNOK")
+	_flash_kpi(_kpi_revenue_value, revenue_m, _prev_revenue, true)
+	_count_up(_kpi_revenue_value, _prev_revenue, revenue_m, revenue_fmt)
+	_prev_revenue = revenue_m
+	var balance_trend: String = _sim.get_analytics_trend("balance_nok") if _sim.has_method("get_analytics_trend") else "stable"
+	_kpi_revenue_change.text = _trend_text(balance_trend)
+	_kpi_revenue_change.add_theme_color_override("font_color", _trend_color(balance_trend, true))
 
 	# Health (use sustainability score as proxy)
 	var health: int = int(_sim.sustainability_score)
-	_kpi_health_value.text = tr("%d%%") % health
+	_kpi_health_value.text = "%d%%" % health
+	_flash_kpi(_kpi_health_value, float(health), _prev_health, true, 0.01)
+	_prev_health = float(health)
 	if health >= 90:
-		_kpi_health_change.text = tr("UI_DASHBOARD_HEALTH_GOOD") if tr("UI_DASHBOARD_HEALTH_GOOD") != "ui.dashboard.health_good" else "▲ God status"
+		_kpi_health_change.text = _tr_or("UI_DASHBOARD_HEALTH_GOOD", "▲ God status")
 		_kpi_health_change.add_theme_color_override("font_color", Color("#8FAD78"))
 	elif health >= 70:
-		_kpi_health_change.text = tr("UI_DASHBOARD_HEALTH_STABLE") if tr("UI_DASHBOARD_HEALTH_STABLE") != "ui.dashboard.health_stable" else "─ Stabil"
+		_kpi_health_change.text = _tr_or("UI_DASHBOARD_HEALTH_STABLE", "─ Stabil")
 		_kpi_health_change.add_theme_color_override("font_color", Color("#D4B06A"))
 	else:
-		_kpi_health_change.text = tr("UI_DASHBOARD_HEALTH_LOW") if tr("UI_DASHBOARD_HEALTH_LOW") != "ui.dashboard.health_low" else "▼ Lav"
+		_kpi_health_change.text = _tr_or("UI_DASHBOARD_HEALTH_LOW", "▼ Lav")
 		_kpi_health_change.add_theme_color_override("font_color", Color("#A54E56"))
 
-	# FCR
-	# Mock - real FCR would come from feed/growth tracking
-	_kpi_fcr_value.text = tr("1.12")
-	_kpi_fcr_change.text = tr("UI_DASHBOARD_FCR_BETTER") if tr("UI_DASHBOARD_FCR_BETTER") != "ui.dashboard.fcr_better" else "▲ Bedre enn mål (1.15)"
+	# FCR — live from FeedSystem via SimState (target <1.30).
+	var fcr: float = float(_sim.fcr)
+	_kpi_fcr_value.text = "%.2f" % fcr
+	_flash_kpi(_kpi_fcr_value, fcr, _prev_fcr, false)
+	_prev_fcr = fcr
+	var fcr_trend: String = _sim.get_analytics_trend("fcr") if _sim.has_method("get_analytics_trend") else "stable"
+	if fcr <= 1.15:
+		_kpi_fcr_change.text = _tr_or("UI_DASHBOARD_FCR_BETTER", "▲ Bedre enn mål (1.15)")
+		_kpi_fcr_change.add_theme_color_override("font_color", Color("#8FAD78"))
+	elif fcr <= 1.30:
+		_kpi_fcr_change.text = "%s · %.2f" % [_trend_text(fcr_trend), fcr]
+		_kpi_fcr_change.add_theme_color_override("font_color", Color("#D4B06A"))
+	else:
+		_kpi_fcr_change.text = _tr_or("UI_DASHBOARD_FCR_BAD", "▼ Over mål — sjekk fôring")
+		_kpi_fcr_change.add_theme_color_override("font_color", Color("#A54E56"))
+
+	_refresh_kpi_sparklines()
+	_refresh_kpi_tooltips(biomass_tonnes, revenue_m, health, fcr)
+
+## Static-but-honest "explain this number" tooltips for the four KPI cards.
+## Each explains the contributing factors and quotes the live value where it is
+## trivially available. No fabricated live breakdown; null-guarded throughout.
+func _refresh_kpi_tooltips(biomass_tonnes: float, revenue_m: float, health: int, fcr: float) -> void:
+	var fish := 0
+	var avg_w := 0.0
+	if _sim:
+		var f = _sim.get("fish_count")
+		if f != null:
+			fish = int(f)
+		var aw = _sim.get("avg_weight_kg")
+		if aw != null:
+			avg_w = float(aw)
+
+	if is_instance_valid(_kpi_biomass_value):
+		_kpi_biomass_value.tooltip_text = (
+			"Stående biomasse = antall fisk × gjennomsnittsvekt.\n"
+			+ "Nå: %s fisk × %.2f kg ≈ %s tonn.\n"
+			+ "Telles per merd; påvirkes av tilvekst, dødelighet og rømming."
+		) % [_format_number(fish), avg_w, _format_number(int(round(biomass_tonnes)))]
+
+	if is_instance_valid(_kpi_revenue_value):
+		_kpi_revenue_value.tooltip_text = (
+			"Akkumulert saldo (driftsresultat) = salgsinntekter − kostnader.\n"
+			+ "Nå: %.1f MNOK.\n"
+			+ "Påvirkes av pris (NOK/kg), høstet volum, fôr- og behandlingskostnader."
+		) % revenue_m
+
+	if is_instance_valid(_kpi_health_value):
+		_kpi_health_value.tooltip_text = (
+			"Bærekraftsscore (0–100 %%) = vektet sum av lusehåndtering, utslipp,\n"
+			+ "rømming og dyrevelferd.\n"
+			+ "Nå: %d %%. ≥90 grønn · 70–89 gul · <70 rød."
+		) % health
+
+	if is_instance_valid(_kpi_fcr_value):
+		_kpi_fcr_value.tooltip_text = (
+			"Fôrfaktor (FCR) = fôr brukt (kg) / biomassevekst (kg).\n"
+			+ "Lavere er bedre; mål < 1,30. Nå: %.2f.\n"
+			+ "Faktorer: vanntemperatur, fôrkvalitet (protein/astaxantin), tetthet og oksygen."
+		) % fcr
 
 func _refresh_pens() -> void:
 	if not _sim:
 		return
 
-	var site_count: int = int(_sim.site_count)
-	var fish_per_pen: float = float(_sim.fish_count) / max(site_count, 1)
-	var avg_weight: float = float(_sim.fish_biomass_kg) / max(int(_sim.fish_count), 1)
+	var pens: Array = _sim.get_all_pens() if _sim.has_method("get_all_pens") else []
 	var temp: float = float(_sim.temperature_c)
+	var lice: float = float(_sim.sea_lice_per_fish)
 
 	for i in range(min(_pen_cards.size(), 6)):
-		var pen = _pen_cards[i]
-		if i < site_count:
-			# Distribute fish somewhat randomly per pen
-			var variation := 0.85 + randf() * 0.3
-			pen.count_value.text = _format_number(int(fish_per_pen * variation))
-			pen.weight_value.text = tr("%.1f kg") % (avg_weight * (0.9 + randf() * 0.2))
-			pen.temp_value.text = "%.1f°C" % (temp + randf() * 0.5 - 0.25)
-			pen.status_dot.color = Color("#A3BE8C")  # Healthy
+		var pen: Dictionary = _pen_cards[i]
+		if i < pens.size():
+			var site: Dictionary = pens[i]
+			var count: int = int(site.get("fish_count", 0))
+			var biomass: float = float(site.get("biomass_kg", 0.0))
+			var max_bio: float = float(site.get("max_biomass", 0.0))
+			var escapes: int = int(site.get("escapes_this_year", 0))
+			if pen.name_label:
+				(pen.name_label as Label).text = str(site.get("name", "Merd %d" % (i + 1)))
+			var avg_w: float = biomass / max(count, 1)
+			(pen.count_value as Label).text = _format_number(count)
+			(pen.weight_value as Label).text = "%.1f kg" % avg_w if count > 0 else "--"
+			(pen.temp_value as Label).text = "%.1f°C" % temp
+			var dot_color := Color("#A3BE8C")
+			if escapes > 0 or (max_bio > 0.0 and biomass > max_bio):
+				dot_color = Color("#BF616A")
+			elif lice > 0.2 or (max_bio > 0.0 and biomass > max_bio * 0.8):
+				dot_color = Color("#EBCB8B")
+			(pen.status_dot as ColorRect).color = dot_color
 		else:
-			pen.count_value.text = tr("Tom")
-			pen.weight_value.text = "--"
-			pen.temp_value.text = "--"
-			pen.status_dot.color = Color("#D8DEE9")
+			if pen.name_label:
+				var pen_fmt := _tr_or("UI_DASHBOARD_PEN_NAME", "Merd %d")
+				(pen.name_label as Label).text = pen_fmt % (i + 1)
+			(pen.count_value as Label).text = tr("Tom")
+			(pen.weight_value as Label).text = "--"
+			(pen.temp_value as Label).text = "--"
+			(pen.status_dot as ColorRect).color = Color("#D8DEE9")
 
 func _refresh_water() -> void:
 	if not _sim:
 		return
 
 	var temp: float = float(_sim.temperature_c)
-	_water_items["temp"].text = "%.1f°C" % temp
-	_water_items["oxygen"].text = "92%"  # Mock
-	_water_items["salinity"].text = "33‰"  # Mock
-	_water_items["ph"].text = "7.8"  # Mock
+	_water_temp.text = "%.1f°C" % temp
+	var o2: float = float(_sim.oxygen_mgl)
+	_water_oxygen.text = "%.1f mg/L" % o2 if o2 == o2 and o2 > 0.0 else "–"
+	if o2 == o2 and o2 > 0.0:
+		if o2 < 5.0:
+			_water_oxygen.add_theme_color_override("font_color", Color("#A54E56"))
+		elif o2 < 6.5:
+			_water_oxygen.add_theme_color_override("font_color", Color("#D4B06A"))
+		else:
+			_water_oxygen.add_theme_color_override("font_color", Color("#2E3440"))
+	_water_salinity.text = "%.1f m" % float(_sim.wave_m)
+	var ph: float = float(_sim.water_ph)
+	_water_ph.text = "%.1f" % ph if ph == ph and ph > 0.0 else "–"
 
 func _refresh_weather() -> void:
 	if not _sim:
@@ -724,17 +516,35 @@ func _refresh_weather() -> void:
 	var weather_state = _sim.get_current_weather_state()
 	match weather_state:
 		"Calm":
-			_weather_icon.text = tr("☀️")
+			_weather_icon.text = "☀️"
 			_weather_desc.text = tr("Klart")
+		"Moderate":
+			_weather_icon.text = "⛅"
+			_weather_desc.text = tr("Delvis skyet")
 		"Windy":
-			_weather_icon.text = tr("💨")
+			_weather_icon.text = "💨"
 			_weather_desc.text = tr("Vind")
 		"Storm":
-			_weather_icon.text = tr("⛈️")
+			_weather_icon.text = "⛈️"
 			_weather_desc.text = tr("Storm")
+		"Severe":
+			_weather_icon.text = "🌪️"
+			_weather_desc.text = tr("Ekstremvær")
 		_:
-			_weather_icon.text = tr("⛅")
+			_weather_icon.text = "⛅"
 			_weather_desc.text = tr("Delvis skyet")
+
+	# Live wind/wave + honest Markov-chain storm forecast (Phase 1.2).
+	_weather_wind.text = "%.0f m/s" % float(_sim.wind_ms)
+	_weather_wave.text = "%.1f m" % float(_sim.wave_m)
+	var risk: float = float(_sim.storm_risk_3d)
+	if risk > 0.15:
+		_weather_desc.text += " · ☔ %d%% (3d)" % int(risk * 100.0)
+		_weather_desc.add_theme_color_override("font_color", Color("#A54E56") if risk > 0.5 else Color("#D4B06A"))
+	else:
+		_weather_desc.add_theme_color_override("font_color", Color("#2E3440"))
+	_weather_visibility.text = "%.0f%% nøter" % float(_sim.min_net_integrity)
+	_weather_humidity.text = "Lus %.2f" % float(_sim.sea_lice_per_fish)
 
 func _refresh_alerts() -> void:
 	if not _alerts_container:
@@ -744,12 +554,27 @@ func _refresh_alerts() -> void:
 	for child in _alerts_container.get_children():
 		child.queue_free()
 
-	# Mock alerts — in production, pull from EventBus or SimBridge
-	var alerts := [
-		{"text": "Lusetall stigende — nærmer seg grenseverdi", "level": "warning", "time": "12 min siden"},
-		{"text": "Oksygennivå lavt i Merd 4 — vurder tiltak", "level": "danger", "time": "43 min siden"},
-		{"text": "Kontraktsfrist: Nordsjø Sjømat innen 28. mar", "level": "info", "time": "2 timer siden"},
-	]
+	# Real alerts: live SimState thresholds first, then recent sim events.
+	var alerts: Array[Dictionary] = []
+	if _sim:
+		for a in _sim.active_alerts:
+			var lvl: String = str(a.get("level", "info"))
+			alerts.append({"text": str(a.get("message", "")), "level": lvl, "time": "Nå"})
+		for e in _sim.recent_events:
+			var desc: String = str(e.get("description", ""))
+			if desc.is_empty():
+				continue
+			alerts.append({"text": "%s — %s" % [str(e.get("name", "Hendelse")), desc], "level": "info", "time": "Dag %d" % int(e.get("day", 0))})
+		alerts = alerts.slice(0, 6)
+
+	if alerts.is_empty():
+		var empty := Label.new()
+		empty.text = _tr_or("UI_DASHBOARD_ALERTS_EMPTY", "🎉 Ingen aktive varsler — alt ser bra ut")
+		empty.add_theme_font_size_override("font_size", 13)
+		empty.add_theme_color_override("font_color", Color("#7B8794"))
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_alerts_container.add_child(empty)
+		return
 
 	for alert in alerts:
 		var hbox := HBoxContainer.new()
@@ -760,13 +585,14 @@ func _refresh_alerts() -> void:
 		dot.custom_minimum_size = Vector2(8, 8)
 		match alert.level:
 			"warning": dot.color = Color("#EBCB8B")
-			"danger": dot.color = Color("#BF616A")
+			"danger", "critical": dot.color = Color("#BF616A")
 			"info": dot.color = Color("#88C0D0")
 			_: dot.color = Color("#7B8794")
 		hbox.add_child(dot)
 
 		var text_vbox := VBoxContainer.new()
 		text_vbox.add_theme_constant_override("separation", 2)
+		text_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		hbox.add_child(text_vbox)
 
 		var text_lbl := Label.new()
@@ -782,6 +608,161 @@ func _refresh_alerts() -> void:
 		time_lbl.add_theme_color_override("font_color", Color("#7B8794"))
 		text_vbox.add_child(time_lbl)
 
+
+func _refresh_charts() -> void:
+	if not _sim or not _sim.has_method("get_analytics_data"):
+		return
+	_trends_title.text = _tr_or("UI_DASHBOARD_TRENDS_TITLE", "📈 Trender (30 dager)")
+	var fc: Dictionary = _sim.get_forecast() if _sim.has_method("get_forecast") else {}
+	var conf := str(fc.get("confidence", "low"))
+	_trends_title.text += " · 🔮 7d (%s konfidens)" % {"high": "høy", "medium": "middels"}.get(conf, "lav")
+	var biomass: Array[float] = []
+	for v in _sim.get_analytics_data("total_biomass_kg", 30):
+		biomass.append(v / 1000.0)
+	var fbio: Array[float] = []
+	for v in Array(fc.get("biomass_kg", [])):
+		fbio.append(float(v) / 1000.0)
+	_set_chart(_chart_biomass, "Biomasse (tonn)", biomass, "total_biomass_kg", -1.0, "%.0f", Color("#2E86AB"), fbio)
+	var price: Array[float] = _sim.get_analytics_data("market_price_nok", 30)
+	_set_chart(_chart_price, "Pris (NOK/kg)", price, "market_price_nok", -1.0, "%.0f", Color("#8FAD78"))
+	var lice: Array[float] = _sim.get_analytics_data("lice_per_fish", 30)
+	var flice: Array[float] = []
+	for v in Array(fc.get("lice", [])):
+		flice.append(float(v))
+	_set_chart(_chart_lice, "Lus/fisk (grense 0,5)", lice, "lice_per_fish", 0.5, "%.2f", Color("#A54E56"), flice)
+	var fcr: Array[float] = _sim.get_analytics_data("fcr", 30)
+	_set_chart(_chart_fcr, "FCR (mål 1,30)", fcr, "fcr", 1.3, "%.2f", Color("#D4B06A"))
+
+
+func _set_chart(chart: Control, title: String, values: Array[float], metric: String, threshold: float, fmt: String, color: Color, future: Array[float] = []) -> void:
+	if chart == null or not chart.has_method("set_series"):
+		return
+	chart.set("title", title)
+	chart.set("threshold", threshold)
+	chart.set("unit_fmt", fmt)
+	chart.set("line_color", color)
+	var ma: Array[float] = _sim.get_analytics_moving_average(metric, 30, 7) if _sim.has_method("get_analytics_moving_average") else []
+	chart.call("set_series", values, ma)
+	if chart.has_method("set_future"):
+		chart.call("set_future", future)
+
+
+func _refresh_finance() -> void:
+	if not _sim or not _sim.has_method("get_analytics_data"):
+		return
+	if _fin_bars_revenue.is_empty():
+		return
+	# Six buckets over the last 30 days of balance history: green = net gain,
+	# red = net loss per bucket. Honest label: saldoendring, not revenue/cost.
+	var series: Array[float] = _sim.get_analytics_data("balance_nok", 30)
+	if series.size() < 2:
+		return
+	var bucket := maxi(1, series.size() / 6)
+	var max_abs := 1.0
+	var deltas: Array[float] = []
+	for b in range(6):
+		var start_i: int = mini(b * bucket, series.size() - 1)
+		var end_i: int = mini((b + 1) * bucket - 1, series.size() - 1)
+		var d: float = series[end_i] - series[start_i]
+		deltas.append(d)
+		max_abs = max(max_abs, absf(d))
+	for b in range(6):
+		var frac: float = deltas[b] / max_abs
+		var h: float = clampf(absf(frac) * 64.0, 2.0 if not is_zero_approx(deltas[b]) else 0.0, 64.0)
+		var rev: ColorRect = _fin_bars_revenue[b] if b < _fin_bars_revenue.size() else null
+		var cost: ColorRect = _fin_bars_cost[b] if b < _fin_bars_cost.size() else null
+		if rev:
+			rev.custom_minimum_size = Vector2(rev.custom_minimum_size.x, h if deltas[b] >= 0.0 else 0.0)
+			rev.visible = deltas[b] >= 0.0
+		if cost:
+			cost.custom_minimum_size = Vector2(cost.custom_minimum_size.x, h if deltas[b] < 0.0 else 0.0)
+			cost.visible = deltas[b] < 0.0
+		if b < _fin_month_labels.size() and _fin_month_labels[b]:
+			_fin_month_labels[b].text = "D-%d" % (series.size() - mini((b + 1) * bucket, series.size()))
+
+
+## ROC ops card (Phase 4.2): budget + per-site watch/scan/auto cycle buttons.
+const WATCH_ORDER := ["watch", "scan", "auto"]
+const WATCH_ICON := {"watch": "👁️", "scan": "🔍", "auto": "🤖"}
+const WATCH_COST := {"watch": 25, "scan": 10, "auto": 0}
+
+const NIGHT_WATCH_ORDER := ["Standard", "ScanOnly", "AutomatedROC"]
+const NIGHT_WATCH_ICON := {"Standard": "👁️", "ScanOnly": "🔍", "AutomatedROC": "🤖"}
+const NIGHT_WATCH_COST := {"Standard": 0, "ScanOnly": 0, "AutomatedROC": 85_000}
+
+func _refresh_ops() -> void:
+	if _ops_list == null or not _sim:
+		return
+	for child in _ops_list.get_children():
+		child.queue_free()
+	var budget: Dictionary = _sim.get_attention_budget() if _sim.has_method("get_attention_budget") else {}
+	var b: int = int(budget.get("budget", 100))
+	var used: int = int(budget.get("used", 0))
+	_ops_title.text = _tr_or("UI_DASHBOARD_OPS_TITLE", "🎛️ Driftssentral")
+	_ops_budget.text = "Brukt %d/%d oppmerksomhet (👁️ 25 · 🔍 10 · 🤖 0 +8%% spill)" % [used, b]
+	_ops_budget.add_theme_color_override("font_color",
+		Color("#A54E56") if used > b else Color("#7B8794"))
+	var pens: Array = _sim.get_all_pens() if _sim.has_method("get_all_pens") else []
+	for site in pens:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		_ops_list.add_child(row)
+		var name_lbl := Label.new()
+		name_lbl.text = str(site.get("name", "?"))
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.add_theme_font_size_override("font_size", 13)
+		_ops_list.add_child(row)
+		row.add_child(name_lbl)
+		var mode := str(site.get("watch_mode", "watch"))
+		var btn := Button.new()
+		btn.text = "%s %s (%d)" % [str(WATCH_ICON.get(mode, "?")), mode.capitalize(), int(WATCH_COST.get(mode, 0))]
+		var sid := str(site.get("id", ""))
+		var nxt: String = WATCH_ORDER[(WATCH_ORDER.find(mode) + 1) % WATCH_ORDER.size()]
+		btn.tooltip_text = "Bytt til %s" % nxt
+		btn.pressed.connect(_on_watch_cycle.bind(sid, nxt))
+		row.add_child(btn)
+
+# Night-shift policy selector (Phase 5.2)
+	if _policy_option:
+		var status: Dictionary = _sim.get_night_shift_status() if _sim.has_method("get_night_shift_status") else {}
+		var current: String = str(status.get("policy", "Standard"))
+		var idx := ["Standard", "ScanOnly", "AutomatedROC"].find(current)
+		if idx >= 0:
+			_policy_option.select(idx)
+		_policy_option.pressed.connect(_on_policy_changed)
+
+
+func _on_watch_cycle(site_id: String, mode: String) -> void:
+	if _sim and _sim.has_method("set_watch_mode"):
+		_sim.set_watch_mode(site_id, mode)
+
+func _on_policy_changed(_idx: int) -> void:
+	if _sim and _sim.has_method("set_night_shift_policy"):
+		var policies := ["Standard", "ScanOnly", "AutomatedROC"]
+		var policy := String(policies[_idx])
+		_sim.set_night_shift_policy(policy)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# COUNT-UP JUICE (display only)
+# ══════════════════════════════════════════════════════════════════════════════
+
+## Tween a KPI label from one value to another. Supports "%s tonn"-style
+## formats (integer with thousand separators) and "%.1f MNOK"-style floats.
+func _count_up(lbl: Label, from_val: float, to_val: float, fmt: String) -> void:
+	if lbl == null:
+		return
+	if is_equal_approx(from_val, to_val):
+		lbl.text = _apply_kpi_fmt(fmt, to_val)
+		return
+	var tween := lbl.create_tween()
+	tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tween.tween_method(func(v: float): lbl.text = _apply_kpi_fmt(fmt, v), from_val, to_val, 0.6)
+
+func _apply_kpi_fmt(fmt: String, v: float) -> String:
+	if "%s" in fmt:
+		return fmt % _format_number(int(v))
+	return fmt % v
 
 # ══════════════════════════════════════════════════════════════════════════════
 # UTILITIES

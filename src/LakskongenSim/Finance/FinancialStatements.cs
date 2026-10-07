@@ -31,6 +31,21 @@ namespace LakskongenSim.Finance
 
         public List<string> Events { get; } = new List<string>();
 
+        // Memory bound (TD-10): the human-readable P&L journal is for UI/debug
+        // only and must not grow without limit over long campaigns. Only the most
+        // recent entries are retained; totals (Revenue/COGS/...) are unaffected.
+        public const int MaxEventsRetained = 1000;
+
+        /// <summary>
+        /// Append a journal entry, evicting oldest entries beyond the retention cap.
+        /// </summary>
+        private void AddEvent(string entry)
+        {
+            Events.Add(entry);
+            if (Events.Count > MaxEventsRetained)
+                Events.RemoveRange(0, Events.Count - MaxEventsRetained);
+        }
+
         public FinancialStatements(decimal startingCash = 0m, decimal startingAssets = 0m, decimal startingLiabilities = 0m)
         {
             // startingCash is ignored - cash is tracked by FinanceManager
@@ -45,7 +60,7 @@ namespace LakskongenSim.Finance
         public void RecordRevenue(decimal amount)
         {
             Revenue += amount;
-            Events.Add($"Revenue +{amount}");
+            AddEvent($"Revenue +{amount}");
         }
 
         /// <summary>
@@ -55,7 +70,7 @@ namespace LakskongenSim.Finance
         public void RecordCOGS(decimal amount)
         {
             COGS += amount;
-            Events.Add($"COGS -{amount}");
+            AddEvent($"COGS -{amount}");
         }
 
         /// <summary>
@@ -65,7 +80,7 @@ namespace LakskongenSim.Finance
         public void RecordOperatingExpense(decimal amount)
         {
             OperatingExpenses += amount;
-            Events.Add($"OpEx -{amount}");
+            AddEvent($"OpEx -{amount}");
         }
 
         /// <summary>
@@ -75,7 +90,7 @@ namespace LakskongenSim.Finance
         public void RecordInterest(decimal amount)
         {
             InterestExpense += amount;
-            Events.Add($"Interest -{amount}");
+            AddEvent($"Interest -{amount}");
         }
 
         /// <summary>
@@ -85,7 +100,7 @@ namespace LakskongenSim.Finance
         public void RecordTax(decimal amount)
         {
             Taxes += amount;
-            Events.Add($"Tax -{amount}");
+            AddEvent($"Tax -{amount}");
         }
 
         public decimal ComputeNetIncome()
@@ -99,7 +114,7 @@ namespace LakskongenSim.Finance
         public void AddAsset(decimal amount)
         {
             Assets += amount;
-            Events.Add($"Buy asset {amount}");
+            AddEvent($"Buy asset {amount}");
         }
 
         /// <summary>
@@ -108,7 +123,7 @@ namespace LakskongenSim.Finance
         public void AddLiability(decimal amount)
         {
             Liabilities += amount;
-            Events.Add($"Take liability {amount}");
+            AddEvent($"Take liability {amount}");
         }
 
         /// <summary>
@@ -118,7 +133,7 @@ namespace LakskongenSim.Finance
         {
             var repayment = Math.Min(amount, Liabilities);
             Liabilities -= repayment;
-            Events.Add($"Repay liability {repayment}");
+            AddEvent($"Repay liability {repayment}");
         }
     }
 }

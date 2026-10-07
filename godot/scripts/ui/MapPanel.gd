@@ -7,6 +7,9 @@ extends Control
 signal close_requested
 signal region_selected(region_id: String)
 
+# Data-overlay legend embedded into the detail panel (see SiteOverlayLegend.gd).
+const SiteOverlayLegend = preload("res://scripts/ui/SiteOverlayLegend.gd")
+
 # ── Colors ────────────────────────────────────────────────────────────────────
 const BG_DEEP        := Color("#ECEFF4")
 const BG_PANEL       := Color("#FFFFFF")
@@ -296,29 +299,99 @@ const REGIONS := [
 var _selected_region_id: String = ""
 var _hovered_region_id: String = ""
 var _region_nodes: Dictionary = {}  # id -> Control (map dot)
-var _confirm_btn: Button
+var _overlay = null  # SiteOverlayLegend instance (additive; optional)
 
-# ── Node refs ─────────────────────────────────────────────────────────────────
-var _detail_panel: Control
-var _detail_name: Label
-var _detail_zone: Label
-var _detail_icon: Label
-var _detail_desc: Label
-var _detail_licenses: Label
-var _detail_temp: Label
-var _detail_risk_label: Label
-var _detail_risk_indicator: ColorRect
-var _detail_distance: Label
-var _detail_processing: Label
-var _detail_harvest: Label
-var _detail_operators: Label
+# ── Node refs (declared in scenes/ui/MapPanel.tscn) ───────────────────────────
+@onready var _map_container: Control = %MapContainer
+@onready var _map_icon: Label = %MapIcon
+@onready var _title_label: Label = %TitleLabel
+@onready var _subtitle_label: Label = %SubtitleLabel
+@onready var _close_btn: Button = %CloseBtn
+@onready var _map_title: Label = %MapTitle
+@onready var _compass_label: Label = %CompassLabel
+@onready var _detail_icon: Label = %DetailIcon
+@onready var _detail_name: Label = %DetailName
+@onready var _detail_zone: Label = %DetailZone
+@onready var _detail_desc: Label = %DetailDesc
+@onready var _detail_licenses: Label = %DetailLicenses
+@onready var _detail_temp: Label = %DetailTemp
+@onready var _detail_risk_label: Label = %DetailRiskLabel
+@onready var _detail_risk_indicator: ColorRect = %DetailRiskIndicator
+@onready var _detail_distance: Label = %DetailDistance
+@onready var _detail_processing: Label = %DetailProcessing
+@onready var _detail_harvest: Label = %DetailHarvest
+@onready var _detail_operators: Label = %DetailOperators
+@onready var _disease_details: Label = %DiseaseDetails
+@onready var _temp_bar_slot: Control = %TempBarSlot
+@onready var _confirm_btn: Button = %ConfirmBtn
 var _temp_bar: Control
-var _map_container: Control
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
-	_build_ui()
+	_apply_localization()
+	_close_btn.pressed.connect(_on_close_pressed)
+	_confirm_btn.pressed.connect(_on_confirm_pressed)
+	# Decorative coastline backdrop (custom drawing, added behind labels).
+	var coastline := _CoastlineDrawer.new()
+	coastline.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_map_container.add_child(coastline)
+	_map_container.move_child(coastline, 0)
+	# Temperature bar visualisation (custom drawing, added to its slot).
+	_temp_bar = _TempBar.new()
+	_temp_bar.custom_minimum_size = Vector2(0, 28)
+	_temp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_temp_bar_slot.add_child(_temp_bar)
+	# Live data-overlay legend (lice/oxygen/biomass/gill/containment).
+	_add_overlay_legend()
+	# Region markers are built deferred so the map container has layout size.
+	call_deferred("_build_region_markers")
 	hide()
+
+## Embed the SiteOverlayLegend at the top of the detail column and wire it so
+## region markers re-tint whenever the overlay metric or live site data changes.
+func _add_overlay_legend() -> void:
+	_overlay = SiteOverlayLegend.new()
+	_overlay.name = "SiteOverlayLegend"
+	var host := find_child("DetailInner", true, false)
+	if host == null:
+		_overlay = null
+		return
+	host.add_child(_overlay)
+	host.move_child(_overlay, 0)
+	if _overlay.has_signal("sites_updated"):
+		_overlay.sites_updated.connect(_apply_overlay_to_markers)
+	if _overlay.has_signal("metric_changed"):
+		_overlay.metric_changed.connect(_on_overlay_metric_changed)
+
+func _on_overlay_metric_changed(_metric_id: String) -> void:
+	_apply_overlay_to_markers()
+
+## Tint each region marker by the average overlay intensity of the sea sites
+## sharing its production zone. Regions with no live sites keep their static
+## disease-risk dot (overlay_active = false), so existing behavior is preserved.
+func _apply_overlay_to_markers() -> void:
+	if _overlay == null or not is_instance_valid(_overlay):
+		return
+	for rid in _region_nodes:
+		var m = _region_nodes[rid]
+		if m == null or not is_instance_valid(m):
+			continue
+		var region := _get_region(rid)
+		var zone := str(region.get("production_zone", ""))
+		var t := float(_overlay.get_zone_intensity(zone))
+		if t < 0.0:
+			m.overlay_active = false
+		else:
+			m.overlay_active = true
+			m.overlay_color = _overlay.intensity_to_color(t)
+		m.queue_redraw()
+
+func _apply_localization() -> void:
+	_map_icon.text = tr("🗺️  ")
+	_title_label.text = tr("SELECT REGION — NORWEGIAN COASTLINE")
+	_subtitle_label.text = tr("UI_MAP_SUBTITLE")
+	_map_title.text = tr("UI_MAP_NORWAY")
+	_compass_label.text = tr("UI_MAP_COMPASS_N")
 
 func _input(event: InputEvent) -> void:
 	"""Handle keyboard navigation"""
@@ -342,138 +415,7 @@ func hide_panel() -> void:
 	tw.tween_callback(hide)
 
 # ─────────────────────────────────────────────────────────────────────────────
-func _build_ui() -> void:
-	anchor_right = 1.0
-	anchor_bottom = 1.0
-
-	# Dim overlay
-	var overlay := ColorRect.new()
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.color = Color(0.18, 0.20, 0.25, 0.60)
-	add_child(overlay)
-
-	# Outer margin
-	var outer := MarginContainer.new()
-	outer.set_anchors_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]:
-		outer.add_theme_constant_override("margin_" + side, 50)
-	add_child(outer)
-
-	var panel_bg := _make_panel(BG_PANEL, 14)
-	panel_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	outer.add_child(panel_bg)
-
-	var root_vbox := VBoxContainer.new()
-	root_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
-	panel_bg.add_child(root_vbox)
-
-	root_vbox.add_child(_build_header())
-	root_vbox.add_child(_make_hsep())
-
-	var body := HBoxContainer.new()
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 0)
-	root_vbox.add_child(body)
-
-	body.add_child(_build_map_area())
-	body.add_child(_make_vsep())
-	body.add_child(_build_detail_panel())
-
-# ── Header ────────────────────────────────────────────────────────────────────
-func _build_header() -> Control:
-	var hdr := HBoxContainer.new()
-	hdr.custom_minimum_size.y = 62
-
-	var hdr_bg := ColorRect.new()
-	hdr_bg.color = Color("#FFFFFF")
-	hdr_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	hdr.add_child(hdr_bg)
-
-	var m := MarginContainer.new()
-	m.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for side in ["left", "right"]:
-		m.add_theme_constant_override("margin_" + side, 24)
-	for side in ["top", "bottom"]:
-		m.add_theme_constant_override("margin_" + side, 12)
-	hdr.add_child(m)
-
-	var inner := HBoxContainer.new()
-	inner.alignment = BoxContainer.ALIGNMENT_CENTER
-	m.add_child(inner)
-
-	var map_icon := Label.new()
-	map_icon.text = tr("🗺️  ")
-	map_icon.add_theme_font_size_override("font_size", 22)
-	inner.add_child(map_icon)
-
-	var title := Label.new()
-	title.text = tr("SELECT REGION — NORWEGIAN COASTLINE")
-	title.add_theme_font_size_override("font_size", 20)
-	title.add_theme_color_override("font_color", TEXT_TITLE)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inner.add_child(title)
-
-	var subtitle := Label.new()
-	subtitle.text = tr("UI_MAP_SUBTITLE")
-	subtitle.add_theme_font_size_override("font_size", 13)
-	subtitle.add_theme_color_override("font_color", TEXT_MUTED)
-	subtitle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inner.add_child(subtitle)
-
-	var close_btn := _make_btn("✕", 18, Color("#BF616A"))
-	close_btn.custom_minimum_size = Vector2(44, 44)
-	close_btn.tooltip_text = "Lukk kartpanelet (Esc)"
-	close_btn.pressed.connect(_on_close_pressed)
-	inner.add_child(close_btn)
-
-	return hdr
-
-# ── Map area ──────────────────────────────────────────────────────────────────
-func _build_map_area() -> Control:
-	var map_bg := _make_panel(BG_MAP, 0)
-	map_bg.custom_minimum_size.x = 480
-	map_bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-	var map_margin := MarginContainer.new()
-	map_margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]:
-		map_margin.add_theme_constant_override("margin_" + side, 24)
-	map_bg.add_child(map_margin)
-
-	# Container for map drawing
-	_map_container = Control.new()
-	_map_container.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_map_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_map_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	map_margin.add_child(_map_container)
-
-	# "Norway" title
-	var map_title := Label.new()
-	map_title.text = tr("UI_MAP_NORWAY")
-	map_title.add_theme_font_size_override("font_size", 11)
-	map_title.add_theme_color_override("font_color", TEXT_MUTED)
-	map_title.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	map_title.position = Vector2(4, 0)
-	_map_container.add_child(map_title)
-
-	# Compass rose
-	var compass := Label.new()
-	compass.text = tr("UI_MAP_COMPASS_N")
-	compass.add_theme_font_size_override("font_size", 13)
-	compass.add_theme_color_override("font_color", TEXT_ACCENT)
-	compass.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	compass.position = Vector2(-40, 0)
-	_map_container.add_child(compass)
-
-	# Draw the coastline (simplified SVG-like polyline via a custom node)
-	var coastline := _CoastlineDrawer.new()
-	coastline.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_map_container.add_child(coastline)
-
-	# Region markers - built deferred so we can use layout size
-	call_deferred("_build_region_markers")
-
-	return map_bg
+# (Shell layout now lives in scenes/ui/MapPanel.tscn — see _apply_localization.)
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _build_region_markers() -> void:
@@ -496,204 +438,11 @@ func _build_region_markers() -> void:
 		marker.gui_input.connect(_on_region_input.bind(region["id"]))
 		_map_container.add_child(marker)
 		_region_nodes[region["id"]] = marker
+	# Apply the current overlay (if any) once markers exist.
+	_apply_overlay_to_markers()
 
 # ── Detail panel ──────────────────────────────────────────────────────────────
-func _build_detail_panel() -> Control:
-	_detail_panel = _make_panel(BG_DETAIL, 0)
-	_detail_panel.custom_minimum_size.x = 340
-
-	var scroll := ScrollContainer.new()
-	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_detail_panel.add_child(scroll)
-
-	var vbox := VBoxContainer.new()
-	vbox.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_theme_constant_override("separation", 0)
-	scroll.add_child(vbox)
-
-	var m := MarginContainer.new()
-	m.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for side in ["left", "right"]:
-		m.add_theme_constant_override("margin_" + side, 24)
-	for side in ["top", "bottom"]:
-		m.add_theme_constant_override("margin_" + side, 20)
-	vbox.add_child(m)
-
-	var inner := VBoxContainer.new()
-	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inner.add_theme_constant_override("separation", 14)
-	m.add_child(inner)
-
-	# Icon + name
-	var name_row := HBoxContainer.new()
-	name_row.add_theme_constant_override("separation", 12)
-	inner.add_child(name_row)
-
-	_detail_icon = Label.new()
-	_detail_icon.text = tr("🗺️")
-	_detail_icon.add_theme_font_size_override("font_size", 36)
-	name_row.add_child(_detail_icon)
-
-	var name_col := VBoxContainer.new()
-	name_row.add_child(name_col)
-
-	_detail_name = Label.new()
-	_detail_name.text = tr("UI_MAP_SELECT_REGION")
-	_detail_name.add_theme_font_size_override("font_size", 20)
-	_detail_name.add_theme_color_override("font_color", TEXT_TITLE)
-	name_col.add_child(_detail_name)
-
-	_detail_zone = Label.new()
-	_detail_zone.text = tr("UI_MAP_CLICK_PROMPT")
-	_detail_zone.add_theme_font_size_override("font_size", 13)
-	_detail_zone.add_theme_color_override("font_color", TEXT_MUTED)
-	name_col.add_child(_detail_zone)
-
-	inner.add_child(_make_hsep())
-
-	# Description
-	_detail_desc = Label.new()
-	_detail_desc.text = tr("UI_MAP_REGION_DESC")
-	_detail_desc.add_theme_font_size_override("font_size", 14)
-	_detail_desc.add_theme_color_override("font_color", TEXT_BODY)
-	_detail_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_detail_desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inner.add_child(_detail_desc)
-
-	inner.add_child(_make_hsep())
-
-	# Stats grid
-	var stats := _build_stats_grid()
-	inner.add_child(stats)
-
-	inner.add_child(_make_hsep())
-
-	# Temperature bar
-	var temp_section := VBoxContainer.new()
-	temp_section.add_theme_constant_override("separation", 8)
-	inner.add_child(temp_section)
-
-	var temp_hdr := Label.new()
-	temp_hdr.text = tr("WATER TEMPERATURE RANGE")
-	temp_hdr.add_theme_font_size_override("font_size", 11)
-	temp_hdr.add_theme_color_override("font_color", TEXT_MUTED)
-	temp_section.add_child(temp_hdr)
-
-	_detail_temp = Label.new()
-	_detail_temp.text = tr("—")
-	_detail_temp.add_theme_font_size_override("font_size", 15)
-	_detail_temp.add_theme_color_override("font_color", TEXT_ACCENT)
-	temp_section.add_child(_detail_temp)
-
-	_temp_bar = _TempBar.new()
-	_temp_bar.custom_minimum_size = Vector2(0, 28)
-	_temp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	temp_section.add_child(_temp_bar)
-
-	# Optimal range label
-	var optimal_lbl := Label.new()
-	optimal_lbl.text = tr("Optimal: 12–16 °C  |  Max tolerance: 20 °C")
-	optimal_lbl.add_theme_font_size_override("font_size", 11)
-	optimal_lbl.add_theme_color_override("font_color", TEXT_MUTED)
-	temp_section.add_child(optimal_lbl)
-
-	inner.add_child(_make_hsep())
-
-	# Disease risk
-	var risk_section := VBoxContainer.new()
-	risk_section.add_theme_constant_override("separation", 8)
-	inner.add_child(risk_section)
-
-	var risk_hdr := Label.new()
-	risk_hdr.text = tr("DISEASE RISK")
-	risk_hdr.add_theme_font_size_override("font_size", 11)
-	risk_hdr.add_theme_color_override("font_color", TEXT_MUTED)
-	risk_section.add_child(risk_hdr)
-
-	var risk_row := HBoxContainer.new()
-	risk_row.add_theme_constant_override("separation", 10)
-	risk_section.add_child(risk_row)
-
-	_detail_risk_indicator = ColorRect.new()
-	_detail_risk_indicator.custom_minimum_size = Vector2(18, 18)
-	_detail_risk_indicator.color = TEXT_MUTED
-	var risk_ind_style := StyleBoxFlat.new()
-	risk_ind_style.bg_color = TEXT_MUTED
-	risk_ind_style.corner_radius_top_left = 9
-	risk_ind_style.corner_radius_top_right = 9
-	risk_ind_style.corner_radius_bottom_left = 9
-	risk_ind_style.corner_radius_bottom_right = 9
-	_detail_risk_indicator.add_theme_stylebox_override("panel", risk_ind_style)
-	risk_row.add_child(_detail_risk_indicator)
-
-	_detail_risk_label = Label.new()
-	_detail_risk_label.text = tr("—")
-	_detail_risk_label.add_theme_font_size_override("font_size", 15)
-	_detail_risk_label.add_theme_color_override("font_color", TEXT_BODY)
-	risk_row.add_child(_detail_risk_label)
-
-	var disease_details_lbl: Label = _make_wrapped_label("")
-	disease_details_lbl.name = "DiseaseDetails"
-	disease_details_lbl.add_theme_font_size_override("font_size", 13)
-	risk_section.add_child(disease_details_lbl)
-
-	inner.add_child(_make_hsep())
-
-	# Confirm button
-	_confirm_btn = _make_btn("  SELECT THIS REGION  ", 16, TEXT_ACCENT)
-	_confirm_btn.custom_minimum_size = Vector2(0, 50)
-	_confirm_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_confirm_btn.disabled = true
-	_confirm_btn.tooltip_text = "Velg denne regionen for å plassere et nytt sjøanlegg (Enter)"
-	_confirm_btn.pressed.connect(_on_confirm_pressed)
-	inner.add_child(_confirm_btn)
-
-	return _detail_panel
-
-func _build_stats_grid() -> Control:
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 16)
-	grid.add_theme_constant_override("v_separation", 10)
-
-	grid.add_child(_make_stat_key("AVAILABLE LICENCES"))
-	_detail_licenses = _make_stat_val("—")
-	grid.add_child(_detail_licenses)
-
-	grid.add_child(_make_stat_key("DISTANCE TO PROCESSING"))
-	_detail_distance = _make_stat_val("—")
-	grid.add_child(_detail_distance)
-
-	grid.add_child(_make_stat_key("PROCESSING HUB"))
-	_detail_processing = _make_stat_val("—")
-	grid.add_child(_detail_processing)
-
-	grid.add_child(_make_stat_key("ANNUAL HARVEST"))
-	_detail_harvest = _make_stat_val("—")
-	grid.add_child(_detail_harvest)
-
-	grid.add_child(_make_stat_key("KEY OPERATORS"))
-	_detail_operators = _make_stat_val("—")
-	_detail_operators.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	grid.add_child(_detail_operators)
-
-	return grid
-
-func _make_stat_key(key: String) -> Label:
-	var l := Label.new()
-	l.text = key
-	l.add_theme_font_size_override("font_size", 11)
-	l.add_theme_color_override("font_color", TEXT_MUTED)
-	return l
-
-func _make_stat_val(initial: String) -> Label:
-	var l := Label.new()
-	l.text = initial
-	l.add_theme_font_size_override("font_size", 14)
-	l.add_theme_color_override("font_color", TEXT_BODY)
-	return l
+# (Detail panel layout now lives in scenes/ui/MapPanel.tscn.)
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _show_region(region_id: String) -> void:
@@ -719,9 +468,7 @@ func _show_region(region_id: String) -> void:
 	_detail_risk_indicator.color = risk_color
 
 	# Update disease details label
-	var dd_lbl := _detail_panel.find_child("DiseaseDetails", true, false) as Label
-	if dd_lbl:
-		dd_lbl.text = r.get("disease_details", "")
+	_disease_details.text = r.get("disease_details", "")
 
 	# Temperature bar
 	if _temp_bar is _TempBar:
@@ -747,9 +494,7 @@ func _clear_selection() -> void:
 	_detail_risk_indicator.color = TEXT_MUTED
 	_confirm_btn.disabled = true
 	_confirm_btn.text = tr("  SELECT THIS REGION  ")
-	var dd_lbl := _detail_panel.find_child("DiseaseDetails", true, false) as Label
-	if dd_lbl:
-		dd_lbl.text = ""
+	_disease_details.text = ""
 	_refresh_markers()
 
 # ── Marker state refresh ───────────────────────────────────────────────────────
@@ -813,60 +558,7 @@ func _risk_color(risk: String) -> Color:
 	else:
 		return RISK_MEDIUM
 
-func _make_wrapped_label(text: String) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", 13)
-	l.add_theme_color_override("font_color", TEXT_BODY)
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	return l
-
-func _make_panel(bg: Color, radius: int) -> PanelContainer:
-	var pc := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = bg
-	style.corner_radius_top_left = radius
-	style.corner_radius_top_right = radius
-	style.corner_radius_bottom_left = radius
-	style.corner_radius_bottom_right = radius
-	pc.add_theme_stylebox_override("panel", style)
-	return pc
-
-func _make_btn(text: String, fsize: int, color: Color) -> Button:
-	var btn := Button.new()
-	btn.text = text
-	btn.add_theme_font_size_override("font_size", fsize)
-	btn.add_theme_color_override("font_color", color)
-	btn.add_theme_color_override("font_hover_color", color.lightened(0.2))
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(color, 0.12)
-	style.border_color = Color(color, 0.55)
-	for p in ["border_width_bottom","border_width_top","border_width_left","border_width_right"]:
-		style.set(p, 1)
-	style.corner_radius_top_left = 7
-	style.corner_radius_top_right = 7
-	style.corner_radius_bottom_left = 7
-	style.corner_radius_bottom_right = 7
-	style.content_margin_left = 16
-	style.content_margin_right = 16
-	style.content_margin_top = 10
-	style.content_margin_bottom = 10
-	btn.add_theme_stylebox_override("normal", style)
-	var hover := style.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(color, 0.26)
-	btn.add_theme_stylebox_override("hover", hover)
-	return btn
-
-func _make_hsep() -> HSeparator:
-	var sep := HSeparator.new()
-	sep.add_theme_color_override("color", BORDER_COLOR)
-	return sep
-
-func _make_vsep() -> VSeparator:
-	var sep := VSeparator.new()
-	sep.add_theme_color_override("color", BORDER_COLOR)
-	return sep
+# (Widget factories removed — static styling lives in scenes/ui/MapPanel.tscn.)
 
 # ── Inner classes ─────────────────────────────────────────────────────────────
 
@@ -945,6 +637,8 @@ class _RegionMarker extends Control:
 
 	var region_data: Dictionary = {}
 	var state: int = STATE_NORMAL
+	var overlay_active: bool = false
+	var overlay_color: Color = Color("#7B8794")
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
@@ -978,6 +672,8 @@ class _RegionMarker extends Control:
 
 		# Dot
 		var dot_col := _risk_dot_color(risk)
+		if overlay_active:
+			dot_col = overlay_color
 		if state == STATE_SELECTED:
 			dot_col = region_color.lightened(0.3)
 		var dot_r := 7.0 if state == STATE_NORMAL else 9.0

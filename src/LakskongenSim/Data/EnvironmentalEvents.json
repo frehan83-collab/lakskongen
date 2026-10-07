@@ -1,0 +1,159 @@
+{
+  "PlanktonBloom": {
+    "Enabled": true,
+    "BaseGrowthRate": 0.15,
+    "MaxGrowthRate": 0.5,
+    "CarryingCapacity": 1.0,
+    "BloomThreshold": 0.3,
+    "CrashThreshold": 0.85,
+    "NaturalDecayRate": 0.95,
+    "PostCrashRetention": 0.1,
+    "MinLightFactor": 0.1,
+    "OptimalTempMin": 10.0,
+    "OptimalTempMax": 18.0,
+    "ColdPenaltyPerDegree": 0.08,
+    "HeatPenaltyPerDegree": 0.1,
+    "MinTempFactor": 0.1,
+    "NutrientPerKgFish": 0.001,
+    "HalfSaturationNutrient": 1.0,
+    "StratificationMixingFactor": 5.0,
+    "MinStratification": 0.2,
+    "RespirationOxygenDrawdown": 0.5,
+    "MaxOxygenDepletion": 0.75,
+    
+    "EventProbabilities": {
+      "SpringBloom": 0.15,
+      "AutumnBloom": 0.12,
+      "SummerBloom": 0.08
+    },
+    
+    "SeasonWindows": {
+      "Spring": { "StartDay": 60, "EndDay": 150 },
+      "Summer": { "StartDay": 151, "EndDay": 240 },
+      "Autumn": { "StartDay": 241, "EndDay": 330 }
+    },
+    
+    "Severity": {
+      "Mild": { "Probability": 0.5, "OxygenDepletionFactor": 0.3, "MortalityRate": 0.02 },
+      "Moderate": { "Probability": 0.35, "OxygenDepletionFactor": 0.5, "MortalityRate": 0.08 },
+      "Severe": { "Probability": 0.15, "OxygenDepletionFactor": 0.75, "MortalityRate": 0.25 }
+    },
+    
+    "DOThresholds": {
+      "Critical": 2.0,
+      "Stress": 4.0,
+      "Optimal": 7.0
+    }
+  },
+  
+  "EnvironmentalEvents": [
+    {
+      "Id": "plankton-bloom-spring",
+      "Name": "Spring Plankton Bloom",
+      "Category": "Weather",
+      "Weight": 1.5,
+      "CooldownDays": 60,
+      "MinDay": 60,
+      "MaxDay": 150,
+      "Description": "Spring phytoplankton bloom fueled by increasing light and nutrient upwelling. Risk of oxygen depletion if bloom crashes.",
+      "BalanceChange": -50000,
+      "Severity": "Mild"
+    },
+    {
+      "Id": "plankton-bloom-autumn",
+      "Name": "Autumn Plankton Bloom",
+      "Category": "Weather", 
+      "Weight": 1.2,
+      "CooldownDays": 90,
+      "MinDay": 240,
+      "MaxDay": 330,
+      "Description": "Autumn bloom driven by nutrient remineralization and cooling waters. Higher crash risk due to shorter days reducing photosynthesis.",
+      "BalanceChange": -75000,
+      "Severity": "Moderate"
+    },
+    {
+      "Id": "plankton-crash",
+      "Name": "Plankton Bloom Crash",
+      "Category": "Weather",
+      "Weight": 0.8,
+      "CooldownDays": 30,
+      "MinDay": 1,
+      "MaxDay": 365,
+      "Description": "Massive phytoplankton die-off triggers bacterial respiration spike. Dissolved oxygen crashes below 30% saturation causing acute fish mortality.",
+      "BalanceChange": -200000,
+      "Severity": "Severe"
+    },
+    {
+      "Id": "storm-surge",
+      "Name": "Storm Surge",
+      "Category": "Weather",
+      "Weight": 1.0,
+      "CooldownDays": 45,
+      "MinDay": 1,
+      "MaxDay": 365,
+      "Description": "Severe storm causes wave damage to pen structures and stress-induced feeding reduction. Inspect pens for damage after.",
+      "BalanceChange": -100000,
+      "Severity": "Moderate"
+    },
+    {
+      "Id": "jellyfish_invasion",
+      "Name": "Jellyfish Invasion",
+      "Category": "Disease",
+      "Weight": 0.7,
+      "CooldownDays": 90,
+      "MinDay": 120,
+      "MaxDay": 300,
+      "Description": "Massive jellyfish bloom clogs pen nets and stings fish. Gill damage increases mortality and reduces feeding.",
+      "BalanceChange": -150000,
+      "Severity": "Moderate"
+    },
+    {
+      "Id": "warm_water_event",
+      "Name": "Marine Heatwave",
+      "Category": "Weather",
+      "Weight": 0.5,
+      "CooldownDays": 120,
+      "MinDay": 150,
+      "MaxDay": 270,
+      "Description": "Extended period of unusually warm water temperatures. Growth accelerates but oxygen drops and disease risk spikes.",
+      "BalanceChange": -50000,
+      "Severity": "Mild"
+    },
+    {
+      "Id": "cold_snap",
+      "Name": "Arctic Cold Snap",
+      "Category": "Weather",
+      "Weight": 0.4,
+      "CooldownDays": 120,
+      "MinDay": 300,
+      "MaxDay": 60,
+      "Description": "Sudden temperature drop below 2°C. Fish metabolism slows, feeding stops, growth halts. Risk of cold shock mortality.",
+      "BalanceChange": -80000,
+      "Severity": "Mild"
+    },
+    {
+      "Id": "harmful_algal_bloom",
+      "Name": "Harmful Algal Bloom (HAB)",
+      "Category": "Disease",
+      "Weight": 0.3,
+      "CooldownDays": 180,
+      "MinDay": 100,
+      "MaxDay": 300,
+      "Description": "Toxic algae species bloom. Neurotoxins accumulate in fish, making them unsellable. Immediate harvest or depuration required.",
+      "BalanceChange": -500000,
+      "Severity": "Severe"
+    },
+    {
+      "Id": "oxygen_supersaturation",
+      "Name": "Oxygen Supersaturation Event",
+      "Category": "Weather",
+      "Weight": 0.3,
+      "CooldownDays": 90,
+      "MinDay": 60,
+      "MaxDay": 200,
+      "Description": "Photosynthesis-driven oxygen supersaturation (>150%). Risk of gas bubble disease in fish. Requires emergency aeration.",
+      "BalanceChange": -30000,
+      "Severity": "Mild"
+    }
+  ]
+}

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using LakskongenSim.Biology;
+using LakskongenSim.Core;
 using LakskongenSim.Environment;
 
 namespace LakskongenSim.Health
@@ -31,9 +32,24 @@ namespace LakskongenSim.Health
         private const double LatentPeriodMean = 7.0; // days
         private const double DetectionDelayMean = 3.0; // days after symptoms
         private const double ReportingDelayMean = 2.0; // days after detection
+
+        // Infection probabilities
+        private const double BaseInfectionProbabilityPerExposure = 0.05; // 5% chance per exposure
+        private const double IndividualInfectionFraction = 0.3; // 30% of individuals infected per event
+        private const double NearbyInfectionBaseProbability = 0.1; // base spread chance to nearby fish
+        private const double MaxResistanceFrequency = 0.95; // resistance gene frequency cap
+
+        // Memory bound (TD-08): individual tracking is capped so long campaigns
+        // cannot grow memory without limit. Oldest healthy records are evicted first;
+        // infected records are preserved preferentially to keep outbreak state.
+        // 20k entries ≈ 100 sampled fish × 200 populations, well above normal use.
+        public const int MaxIndividualStates = 20000;
         
         private readonly DiseaseSystem _baseSystem;
-        private readonly Random _random = new Random();
+
+        // Thread-safe RNG (TD-06): System.Random is not safe for concurrent use.
+        private readonly Random _random;
+        private readonly object _rngLock = new();
         
         // Agent‑based tracking
         private Dictionary<FishIndividual, DiseaseState> _individualStates = new Dictionary<FishIndividual, DiseaseState>();
@@ -43,8 +59,19 @@ namespace LakskongenSim.Health
         private Dictionary<string, double> _resistanceGeneFrequency = new Dictionary<string, double>();
         
         public StochasticDiseaseEngine(DiseaseSystem baseSystem)
+            : this(baseSystem, null)
+        {
+        }
+
+        /// <summary>
+        /// Create an engine with an optional deterministic seed (for tests).
+        /// </summary>
+        /// <param name="baseSystem">Underlying SIR disease system.</param>
+        /// <param name="seed">Seed for the RNG, or null for non-deterministic.</param>
+        public StochasticDiseaseEngine(DiseaseSystem baseSystem, int? seed)
         {
             _baseSystem = baseSystem ?? throw new ArgumentNullException(nameof(baseSystem));
+            _random = seed.HasValue ? new Random(seed.Value) : Random.Shared;
             
             // Initialize resistance genes for common pathogens
             _resistanceGeneFrequency["ISA"] = 0.01; // 1% initial resistance
@@ -80,7 +107,7 @@ namespace LakskongenSim.Health
                     foreach (var population in populations.Where(p => p.ZoneId == zone.Id))
                     {
                         double waterborneProbability = infectionPressure * 0.01; // Pressure → probability
-                        if (_random.NextDouble() < waterborneProbability)
+                        if (NextDoubleLocked() < waterborneProbability)
                         {
                             InfectPopulation(population, "waterborne");
                         }
@@ -92,24 +119,24 @@ namespace LakskongenSim.Health
                 {
                     double liceFactor = _baseSystem.LiceSusceptibilityFactor * _baseSystem.LiceModel.AverageLicePerFish;
                     double liceborneProbability = liceFactor * 0.1;
-                    if (_random.NextDouble() < liceborneProbability)
+                    if (NextDoubleLocked() < liceborneProbability)
                     {
                         InfectPopulation(population, "liceborne");
                     }
                 }
                 
                 // 3. Fomite transmission (equipment/personnel movement)
-                if (populations.Count > 0 && _random.NextDouble() < FomiteTransmissionProbability)
+                if (populations.Count > 0 && NextDoubleLocked() < FomiteTransmissionProbability)
                 {
                     // Random population gets infected via equipment
-                    var targetPopulation = populations[_random.Next(populations.Count)];
+                    var targetPopulation = populations[NextLocked(populations.Count)];
                     InfectPopulation(targetPopulation, "fomite");
                 }
                 
                 // 4. Superspreader events (Pareto distribution)
-                if (populations.Count > 0 && _random.NextDouble() < SuperspreaderFraction)
+                if (populations.Count > 0 && NextDoubleLocked() < SuperspreaderFraction)
                 {
-                    var superspreaderPopulation = populations[_random.Next(populations.Count)];
+                    var superspreaderPopulation = populations[NextLocked(populations.Count)];
                     SuperspreaderEvent(superspreaderPopulation);
                 }
                 
@@ -163,19 +190,18 @@ namespace LakskongenSim.Health
             double resistanceProbability = GetResistanceProbability(population.ZoneId);
             
             // Base infection probability modified by resistance
-            double baseProbability = 0.05; // 5% chance per exposure
-            double actualProbability = baseProbability * (1.0 - resistanceProbability);
+            double actualProbability = BaseInfectionProbabilityPerExposure * (1.0 - resistanceProbability);
             
-            if (_random.NextDouble() < actualProbability)
+            if (NextDoubleLocked() < actualProbability)
             {
                 // Latent period before symptoms
-                double latentPeriod = LatentPeriodMean + (_random.NextDouble() - 0.5) * 2.0;
+                double latentPeriod = LatentPeriodMean + (NextDoubleLocked() - 0.5) * 2.0;
                 
                 // Detection delay after symptoms
-                double detectionDelay = DetectionDelayMean + (_random.NextDouble() - 0.5) * 1.0;
+                double detectionDelay = DetectionDelayMean + (NextDoubleLocked() - 0.5) * 1.0;
                 
                 // Reporting delay after detection
-                double reportingDelay = ReportingDelayMean + (_random.NextDouble() - 0.5) * 1.0;
+                double reportingDelay = ReportingDelayMean + (NextDoubleLocked() - 0.5) * 1.0;
                 
                 // Total delay before player notification
                 double totalDelay = latentPeriod + detectionDelay + reportingDelay;
@@ -197,7 +223,7 @@ namespace LakskongenSim.Health
                 int superspreaderCount = (int)(infectedIndividuals.Count * SuperspreaderFraction);
                 for (int i = 0; i < superspreaderCount; i++)
                 {
-                    var superspreader = infectedIndividuals[_random.Next(infectedIndividuals.Count)].Key;
+                    var superspreader = infectedIndividuals[NextLocked(infectedIndividuals.Count)].Key;
                     
                     // Superspreader causes enhanced transmission
                     double enhancedTransmission = SuperspreaderTransmissionMultiplier;
@@ -233,7 +259,7 @@ namespace LakskongenSim.Health
                 double transferRate = ResistanceGeneTransferRate;
                 double currentFrequency = _resistanceGeneFrequency[gene];
                 double newFrequency = currentFrequency + transferRate * (1.0 - currentFrequency);
-                _resistanceGeneFrequency[gene] = Math.Min(newFrequency, 0.95); // Cap at 95%
+                _resistanceGeneFrequency[gene] = Math.Min(newFrequency, MaxResistanceFrequency); // Cap at 95%
             }
             
             // Fitness cost: resistant strains grow slower without treatment
@@ -280,7 +306,7 @@ namespace LakskongenSim.Health
             foreach (var gene in keys)
             {
                 _resistanceGeneFrequency[gene] += increase;
-                _resistanceGeneFrequency[gene] = Math.Min(_resistanceGeneFrequency[gene], 0.95);
+                _resistanceGeneFrequency[gene] = Math.Min(_resistanceGeneFrequency[gene], MaxResistanceFrequency);
             }
         }
         
@@ -315,7 +341,7 @@ namespace LakskongenSim.Health
             // Record infection with delay metadata
             foreach (var individual in population.GetIndividuals())
             {
-                if (_random.NextDouble() < 0.3) // 30% of individuals infected
+                if (NextDoubleLocked() < IndividualInfectionFraction)
                 {
                     _individualStates[individual] = new DiseaseState
                     {
@@ -327,6 +353,49 @@ namespace LakskongenSim.Health
                     };
                 }
             }
+            TrimIndividualStates();
+        }
+
+        /// <summary>
+        /// Enforce the <see cref="MaxIndividualStates"/> memory bound (TD-08).
+        /// Evicts healthy records first; infected records are kept preferentially
+        /// so active outbreak state is never discarded by the cap.
+        /// </summary>
+        private void TrimIndividualStates()
+        {
+            int excess = _individualStates.Count - MaxIndividualStates;
+            if (excess <= 0) return;
+
+            var evictable = _individualStates
+                .Where(kv => !kv.Value.IsInfected)
+                .Select(kv => kv.Key)
+                .Take(excess)
+                .ToList();
+            foreach (var key in evictable)
+                _individualStates.Remove(key);
+
+            excess = _individualStates.Count - MaxIndividualStates;
+            if (excess > 0)
+            {
+                // All remaining records are infected: drop the oldest batch anyway
+                // to honor the bound (outbreak pressure is retained in zone maps).
+                foreach (var key in _individualStates.Keys.Take(excess).ToList())
+                    _individualStates.Remove(key);
+            }
+
+            SimLog.Debug($"[Disease] Individual-state cap reached; trimmed to {_individualStates.Count} records (max {MaxIndividualStates}).");
+        }
+
+        /// <summary>Thread-safe uniform draw in [0,1).</summary>
+        private double NextDoubleLocked()
+        {
+            lock (_rngLock) { return _random.NextDouble(); }
+        }
+
+        /// <summary>Thread-safe uniform integer draw in [0, max).</summary>
+        private int NextLocked(int max)
+        {
+            lock (_rngLock) { return _random.Next(max); }
         }
         
         /// <summary>
@@ -341,8 +410,8 @@ namespace LakskongenSim.Health
             {
                 if (!nearby.Value.IsInfected)
                 {
-                    double infectionProbability = 0.1 * transmissionMultiplier;
-                    if (_random.NextDouble() < infectionProbability)
+                    double infectionProbability = NearbyInfectionBaseProbability * transmissionMultiplier;
+                    if (NextDoubleLocked() < infectionProbability)
                     {
                         nearby.Value.IsInfected = true;
                         nearby.Value.TransmissionVector = "superspreader";

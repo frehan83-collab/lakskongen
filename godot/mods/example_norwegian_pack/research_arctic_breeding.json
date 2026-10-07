@@ -1,0 +1,32 @@
+[
+  {
+    "id": "arctic_breeding_program",
+    "name": "Arctic Breeding Program",
+    "description": "Selective breeding for cold-water tolerance, lowering mortality during winter grow-out.",
+    "branch": "Biology",
+    "tier": 2,
+    "cost_nok": 900000,
+    "research_days": 120,
+    "prerequisites": [],
+    "effects": {
+      "mortality_reduction": 0.02,
+      "growth_rate_bonus": 0.05
+    }
+  },
+  {
+    "id": "deep_fjord_genetics",
+    "name": "Deep-Fjord Genetics",
+    "description": "Genomic selection using deep-fjord broodstock, improving feed conversion in cold water.",
+    "branch": "Biology",
+    "tier": 3,
+    "cost_nok": 2200000,
+    "research_days": 180,
+    "prerequisites": [
+      "arctic_breeding_program"
+    ],
+    "effects": {
+      "fcr_reduction": 0.04,
+      "price_bonus": 0.03
+    }
+  }
+]

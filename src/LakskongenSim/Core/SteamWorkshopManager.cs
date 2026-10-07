@@ -55,11 +55,47 @@ namespace LakskongenSim.Core
         Task<bool> ReportModAsync(ulong workshopItemId, string reason);
     }
 
+    // ── Backend selection seam ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Factory that selects the Workshop backend at compile time.
+    /// <list type="bullet">
+    ///   <item>Default build (editor/offline): the <see cref="SteamWorkshopManager"/> simulation.</item>
+    ///   <item><c>STEAMWORKS</c> defined: the real Steamworks.NET backend stub
+    ///   (see <c>SteamworksWorkshopBackend</c>) — wire it to SteamUGC there.</item>
+    /// </list>
+    /// Using this factory keeps call sites backend-agnostic.
+    /// </summary>
+    public static class SteamWorkshop
+    {
+        /// <summary>Create the active Workshop backend for this build.</summary>
+        public static ISteamWorkshop Create(ModLoader modLoader, string workshopDownloadPath)
+        {
+#if STEAMWORKS
+            return new SteamworksWorkshopBackend(modLoader, workshopDownloadPath);
+#else
+            return new SteamWorkshopManager(modLoader, workshopDownloadPath);
+#endif
+        }
+    }
+
     // ── SteamWorkshopManager Implementation ───────────────────────────────────
 
     /// <summary>
-    /// Manages interaction with the Steam Workshop for mod publishing and consumption.
-    /// This is an abstraction layer and does not directly use the Steamworks SDK.
+    /// SIMULATED Workshop backend used for editor/offline play (no Steamworks SDK).
+    ///
+    /// <para><b>What is real:</b> mod validation against <c>manifest.json</c>, the
+    /// download/extract-to-mods-folder flow, and the <see cref="ModLoader"/>
+    /// re-scan. <b>What is simulated:</b> item ids, network latency
+    /// (<see cref="Task.Delay(int)"/>), metadata and version lookups — Steam
+    /// publication is never contacted.</para>
+    ///
+    /// <para>To ship a real Steamworks build, define the <c>STEAMWORKS</c>
+    /// compilation symbol and implement <see cref="ISteamWorkshop"/> against
+    /// Steamworks.NET (<c>SteamUGC</c>/<c>SteamRemoteStorage</c>/<c>CallResult</c>).
+    /// Construct through <see cref="SteamWorkshop.Create"/> so the correct
+    /// backend is selected without call sites changing. No NuGet dependency is
+    /// added to this project for that path.</para>
     /// </summary>
     public class SteamWorkshopManager : ISteamWorkshop
     {
@@ -302,4 +338,66 @@ namespace LakskongenSim.Core
             return (ulong)new Random().Next(100000000, 999999999);
         }
     }
+
+#if STEAMWORKS
+    /// <summary>
+    /// Real Steamworks.NET Workshop backend — build-gated placeholder seam.
+    ///
+    /// <para>Compiled only when the <c>STEAMWORKS</c> symbol is defined. Each
+    /// member documents the Steamworks.NET API it must call. Until implemented
+    /// it throws <see cref="NotImplementedException"/>, so a Steamworks build
+    /// fails loudly rather than silently pretending an upload succeeded.</para>
+    ///
+    /// <para>Implementation notes:</para>
+    /// <list type="bullet">
+    ///   <item>Publish: <c>SteamUGC.CreateItem</c> + <c>SteamUGC.StartItemUpdate</c>
+    ///   (<c>SetItemTitle</c>/<c>SetItemDescription</c>/<c>SetItemContent</c>/
+    ///   <c>SetItemPreview</c>/<c>SetItemTags</c>) + <c>SteamUGC.SubmitItemUpdate</c>,
+    ///   driving the <c>CallResult&lt;SubmitItemUpdateResult_t&gt;</c> callback.</item>
+    ///   <item>Consume: <c>SteamUGC.SubscribeItem</c>/<c>UnsubscribeItem</c> and read
+    ///   <c>SteamApps.GetItemInstallInfo</c> for the install path, then hand it to
+    ///   <see cref="ModLoader.DiscoverAndLoad"/>.</item>
+    ///   <item>Metadata: <c>SteamUGC.GetItemState</c> and query via
+    ///   <c>SteamUGC.CreateQueryAllUGCRequest</c>.</item>
+    ///   <item>Vote/report: <c>SteamUGC.SetUserItemVote</c> and the in-client
+    ///   reporting flow.</item>
+    ///   <item>Handle <c>SteamAPI.Init</c>/<c>RunCallbacks</c> at app level first.</item>
+    /// </list>
+    /// </summary>
+    internal sealed class SteamworksWorkshopBackend : ISteamWorkshop
+    {
+        private readonly ModLoader _modLoader;
+        private readonly string _workshopDownloadPath;
+
+        public SteamworksWorkshopBackend(ModLoader modLoader, string workshopDownloadPath)
+        {
+            _modLoader = modLoader;
+            _workshopDownloadPath = workshopDownloadPath;
+        }
+
+        public Task<WorkshopItem?> UploadModAsync(string modFolderPath, WorkshopItem? existingItem = null)
+            => throw new NotImplementedException("Wire SteamUGC.CreateItem/StartItemUpdate/SubmitItemUpdate.");
+
+        public Task<bool> DownloadModAsync(ulong workshopItemId, string targetFolderPath)
+            => throw new NotImplementedException("Wire SteamUGC.SubscribeItem + SteamApps.GetItemInstallInfo.");
+
+        public Task<bool> SubscribeToModAsync(ulong workshopItemId)
+            => throw new NotImplementedException("Wire SteamUGC.SubscribeItem.");
+
+        public Task<bool> UnsubscribeFromModAsync(ulong workshopItemId)
+            => throw new NotImplementedException("Wire SteamUGC.UnsubscribeItem.");
+
+        public Task<WorkshopItem?> GetWorkshopItemDetailsAsync(ulong workshopItemId)
+            => throw new NotImplementedException("Wire SteamUGC.CreateQueryAllUGCRequest.");
+
+        public Task<bool> CheckForUpdateAsync(ulong workshopItemId, string localModVersion)
+            => throw new NotImplementedException("Wire SteamUGC.GetItemState (k_EItemStateNeedsUpdate).");
+
+        public Task<bool> VoteForModAsync(ulong workshopItemId, bool upvote)
+            => throw new NotImplementedException("Wire SteamUGC.SetUserItemVote.");
+
+        public Task<bool> ReportModAsync(ulong workshopItemId, string reason)
+            => throw new NotImplementedException("Wire the Steam client reporting flow.");
+    }
+#endif
 }

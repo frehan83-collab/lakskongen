@@ -1,9 +1,12 @@
 using Godot;
 using LakskongenSim.Core;
+using LakskongenSim.Farm;
+using LakskongenSim.Logistics;
 using System;
 using System.IO;
 using System.Text.Json;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// Manages game save/load functionality with JSON serialization.
@@ -35,7 +38,7 @@ public partial class SaveLoadManager : Node
     /// migration step in MigrateSaveData. Old saves without the field read
     /// as version 0.
     /// </summary>
-    public const int CurrentSaveVersion = 1;
+    public const int CurrentSaveVersion = 2;
 
     private JsonSerializerOptions _jsonOptions;
     private GameBridge _gameBridge;
@@ -100,6 +103,10 @@ public partial class SaveLoadManager : Node
             // Create backup if save already exists
             CreateBackup(fullPath);
             
+            // Sync live FinanceManager balance + empire systems into the
+            // serializable GameState mirror BEFORE snapshotting — otherwise
+            // saves persist stale cash and empire DTOs.
+            _gameBridge.SimulationEngine.PrepareForSave();
             var saveData = CreateSaveData(_gameBridge.SimulationEngine.State, saveName);
             string jsonString = JsonSerializer.Serialize(saveData, _jsonOptions);
 
@@ -241,6 +248,9 @@ public partial class SaveLoadManager : Node
             // Load the game state into GameBridge
             _gameBridge.LoadGame(saveData.GameState);
             
+            // Post-load validation: ensure all new fields have valid defaults
+            ValidateAndFixGameState(saveData.GameState);
+            
             EmitSignal(SignalName.GameLoaded, saveData.SaveName);
             EventBus eventBus = GetNode<EventBus>("/root/EventBus");
             eventBus.PostNotification("Game Loaded", $"Loaded '{saveData.SaveName}'", "success");
@@ -313,6 +323,119 @@ public partial class SaveLoadManager : Node
     }
 
     /// <summary>
+    /// Post-load validation: ensure all Phase 5+ fields have valid defaults.
+    /// Runs after deserialization and migration, before game resumes.
+    /// </summary>
+    private void ValidateAndFixGameState(GameState state)
+    {
+        // SiteId on populations (added in Phase 5 performance optimization)
+        foreach (var pop in state.Populations)
+        {
+            if (string.IsNullOrEmpty(pop.SiteId))
+            {
+                // Try to find site from pens
+                var site = state.SeaSites.FirstOrDefault(s => s.Pens.Contains(pop));
+                if (site != null) pop.SiteId = site.Id;
+            }
+        }
+
+        // CarbonTracker on SeaSites (Phase 5.4)
+        foreach (var site in state.SeaSites)
+        {
+            site.CarbonTracker ??= new LakskongenSim.Farm.CarbonTracker();
+        }
+
+        // CarbonTracker on OffshoreFarms (Phase 5.4)
+        foreach (var off in state.OffshoreFarms)
+        {
+            off.CarbonTracker ??= new LakskongenSim.Farm.CarbonTracker();
+        }
+
+        // CarbonTracker on RASFacilities (Phase 5.4)
+        foreach (var ras in state.RASFacilities)
+        {
+            ras.CarbonTracker ??= new LakskongenSim.Farm.CarbonTracker();
+        }
+
+        // CarbonTracker on ProcessingPlants (Phase 5.4)
+        foreach (var proc in state.ProcessingSnapshots)
+        {
+            // ProcessingSnapshot doesn't have CarbonTracker; it's on ProcessingPlant
+        }
+
+        // Sludge fields on SeaSites (Phase 5.3)
+        foreach (var site in state.SeaSites)
+        {
+            if (site.SludgeAccumulatedKgDs < 0) site.SludgeAccumulatedKgDs = 0;
+            if (site.SludgeValorizedKgDs < 0) site.SludgeValorizedKgDs = 0;
+            if (site.LastSludgeValorizationDay < -1) site.LastSludgeValorizationDay = -1;
+        }
+
+        // VaccinatedDay on populations (Phase 5.1)
+        foreach (var pop in state.Populations)
+        {
+            if (pop.VaccinatedDay < -1) pop.VaccinatedDay = -1;
+        }
+
+        // SmoltQualityTier on cohorts (additive sea-transfer carryover field).
+        // A save written before this field existed reads as Standard (0); a
+        // hand-edited or future save may hold an undefined value — clamp to
+        // Standard so the quality registry never has to guess.
+        foreach (var pop in state.Populations)
+        {
+            if (pop?.Cohorts == null) continue;
+            foreach (var cohort in pop.Cohorts)
+            {
+                if (cohort == null) continue;
+                if (!Enum.IsDefined(typeof(LakskongenSim.Farm.SmoltQualityTier), cohort.Quality))
+                {
+                    cohort.Quality = LakskongenSim.Farm.SmoltQualityTier.Standard;
+                }
+            }
+        }
+
+        // WatchMode on SeaSites (Phase 4.2)
+        foreach (var site in state.SeaSites)
+        {
+            if (string.IsNullOrEmpty(site.WatchMode)) site.WatchMode = "watch";
+        }
+
+        // GillScore on SeaSites (Phase 4.3)
+        foreach (var site in state.SeaSites)
+        {
+            if (site.GillScore < 0) site.GillScore = 100.0;
+            else if (site.GillScore > 100) site.GillScore = 100.0;
+        }
+
+        // NightShiftPolicy on GameState (Phase 5.2)
+        if (!Enum.IsDefined(typeof(LakskongenSim.Logistics.NightShiftPolicy), state.NightShiftPolicy))
+        {
+            state.NightShiftPolicy = LakskongenSim.Logistics.NightShiftPolicy.Standard;
+        }
+
+        // P11 insurance policies (additive): null-safe list + sanitize premiums /
+        // coverages so a hand-edited save can never poison the payout math.
+        state.InsurancePolicies ??= new List<InsurancePolicyState>();
+        foreach (var policy in state.InsurancePolicies)
+        {
+            if (policy == null) continue;
+            if (double.IsNaN(policy.Coverage) || double.IsInfinity(policy.Coverage))
+                policy.Coverage = 0.0;
+            if (double.IsNaN(policy.Premium) || double.IsInfinity(policy.Premium) || policy.Premium < 0.0)
+                policy.Premium = 0.0;
+            if (policy.Deductible < 0m)
+                policy.Deductible = 0m;
+        }
+
+        // P11 bloom mitigation registry (additive): null-safe list.
+        state.BloomMitigations ??= new List<BloomMitigationState>();
+
+        // P9 resource-rent tax (additive): cumulative paid can never be negative.
+        if (state.ResourceRentPaid < 0m)
+            state.ResourceRentPaid = 0m;
+    }
+
+    /// <summary>
     /// Delete a save file
     /// </summary>
     public bool DeleteSave(string fileName)
@@ -366,6 +489,12 @@ public partial class SaveLoadManager : Node
                 case 0:
                     // v0 -> v1: version stamp introduced, no data changes.
                     saveData.SaveVersion = 1;
+                    break;
+                case 1:
+                    // v1 -> v2: Phase 5 fields (SiteId, CarbonTracker, Sludge, etc.)
+                    // These are initialized with defaults in class constructors.
+                    // Just bump version - deserializer will use defaults for missing fields.
+                    saveData.SaveVersion = 2;
                     break;
                 default:
                     GD.PrintErr($"No migrator for save version {saveData.SaveVersion}; loading as-is.");

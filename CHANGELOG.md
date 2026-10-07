@@ -7,6 +7,108 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.0-alpha] - 2026-10-07
+
+### 🎯 Focus: Waves 1–8 — Depth, Signature UI, Content & Ship Engineering
+
+A single long session that took the game from "feature-complete systems" to
+"systems the player can actually feel": real audio, a token-driven theme, deep
+biology/economics/genetics, legible overlays and briefings, authored
+scenarios/mods, save persistence, and a performance gate.
+
+### Added — Wave 1 (Foundations)
+- **Audio truth pass** — catalogues remapped to real `assets/audio/*` paths,
+  `loop=true` on all music/ambient imports, duplicate `AudioController` removed,
+  seasonal/weather ambience wired to `SimBridge.audio_*`, `/root/GameAudio` →
+  `/root/AudioController`, `validate_catalog()` guard.
+- **Theme/token pipeline** — theme derived at runtime from
+  `godot/theme/tokens.json`; `tools/sync_tokens.py [--check]`.
+- **Data-viz** — `Sparkline.gd` under all four Dashboard KPIs + Finance balance,
+  `LineChart.gd` area fill/gridlines/empty state, direction-aware value flashes.
+- **Scenarios + mods** — `ScenarioSystem` constructed in `SimulationEngine` with
+  daily win checks; `GameBridge` scenario API implemented (`ApplyScenario`,
+  `ScenarioLoaded`); `ModLoader` instantiated (`user://mods`), Mod Manager wired.
+- **Build repair** — `SaveLoadManager` brace bug, missing namespace aliases and
+  typing fixed; the Godot C# assembly compiles again.
+
+### Added — Wave 2 (Onboarding + consequence)
+- **Unified onboarding** — C# `TutorialSystem` is the single source of truth;
+  `tutorial_steps.json` rewritten to a valid 14-step schema; GDScript
+  `TutorialManager`/`TutorialOverlay` deprecated; `TutorialState` autoload gates
+  advanced tabs (progressive disclosure).
+- **Consequence director** — new `ConsequenceDirector` autoload maps bridge
+  signals → screen-shake, toasts, and audio; `ToastNotification` gained dedup,
+  severity-ranked queue and click actions; `NotificationCenter` grouped/sorted.
+- **Scenario goal HUD + mod panel** — missing `ui/ScenarioGoalHUD.gd` created and
+  instanced; `MainMenu` opens the Mod Manager on demand.
+
+### Added — Wave 3 (Depth systems)
+- **Health** — `DelousingHarmModel`, `ThermalLiceCoupling`, `GillHealthWarning`
+  (0–1 early warning) with warming coupled into lice development.
+- **Biology** — `SmoltQuality` (Standard/Large/SuperSmolt carryover, grounded in
+  SuperSmolt field data) stamped onto cohorts; precision-feeding spread → FCR,
+  waste and size variance.
+- **Finance/Market** — `ResourceRentTax` (25% cash-flow, 70M deduction, opt-in),
+  `PriceCouncil` (binding monthly pen price), `EnvironmentalFlexibility`
+  (red-zone recovery via closed containment).
+- **Campaigns** — 4 real-event scenarios (PO3 red-zone cut, ISA outbreak, algal
+  catastrophe, resource-rent transition); **9 scenarios load** in-game.
+
+### Added — Wave 4 (Depth UI + modding)
+- Finance binding pen price + resource-rent row; per-site gill-risk chips;
+  smolt-quality selector with carryover tooltips.
+- Sample mod `godot/mods/example_norwegian_pack/`; `docs/Modding_API.md`
+  reconciled to the real contract; new `docs/CALIBRATION.md`.
+- Cohort quality validated on both save paths; 3-year resource-rent soak test.
+
+### Added — Wave 5 (Insurance, mitigation, overlays)
+- **Insurance (P11)** — `InsuranceSystem`: Mortality/Bloom/Storm/ISA policies
+  with premium/deductible/coverage and stacked payouts capped at loss.
+- **Bloom mitigation** — `BloomMitigation` (bubble curtain / deep feeding /
+  pumping / O2 diffuser) with severity- and target-aware effectiveness.
+- **Data overlays** — `SiteOverlayLegend.gd` (lice/oxygen/biomass/gill/
+  containment, green→amber→red ramp) embedded in `MapPanel`.
+- Dashboard KPI cards gained honest "explain this number" tooltips.
+
+### Added — Wave 6 (Genetics + player-supply)
+- **Genetics (P12)** — `GenomicSelection` (breeder's equation, marker accuracy,
+  Wright inbreeding F + depression) and `GeneticEngineering` (per-region
+  regulatory status, sterility containment, reputation/recall risk).
+- **Player-supply market impact (P15)** — `PlayerSupplyImpact` +
+  `MarketSimulation.ApplyPlayerHarvest`: large harvests press the spot price
+  down (−8% cap), decaying ~15%/day.
+- Engine wiring: insurance payouts on bloom/disease/storm/escape; mitigation
+  cuts bloom mortality and charges OPEX.
+
+### Added — Wave 7 (Briefings + content + save)
+- **Depth briefing** — `MorningBriefing` daily depth line (gill warning, active
+  insurance premium, Price-Council pen price, own supply pressure) and a
+  night-shift digest.
+- **Content** — encyclopedia/event/achievement/tutorial data refreshed;
+  Norwegian event flavour and onboarding copy.
+- **Save persistence** — empire/competitor state, cohort quality, ModLoader
+  cash, and scenario carryover round-trip through save/load with versioning.
+
+### Added — Wave 8 (Perf gate + localization + docs)
+- **Performance gate** — deterministic day-advance benchmark (~0.27 ms/day on
+  the reference 100-site run) added to the verification loop.
+- **Localization finalize** — 108 new `key,en,no` rows covering insurance,
+  bloom mitigation, genetics (gain/inbreeding/GE), overlay legends, depth
+  briefing, smolt quality, price council, resource rent and gill risk; 5
+  previously malformed CSV rows repaired; `translations.en/nb.translation`
+  regenerated; workflow documented in `docs/LOCALIZATION.md`.
+
+### Testing
+- **674 → ~690 tests, 0 failures** across the assemblies (incl. 3-year soak).
+- Godot editor scan: 0 GDScript parse errors; headless boot: 0 script errors.
+- `tools/sync_tokens.py --check` → in sync.
+
+### Notes
+- Roadmap and remaining work (P8 barrier tech, P14 audio polish, Steam
+  page/demo/Next Fest, CI perf budget) tracked in `PLAN.md`.
+
+---
+
 ## [0.5.0-alpha] - 2026-03-16
 
 ### 🎯 Focus: Waves 10-12 — Playable Game with 3D Fjords, Tutorial, Advanced Features

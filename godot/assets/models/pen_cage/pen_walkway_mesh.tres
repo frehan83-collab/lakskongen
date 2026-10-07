@@ -1,0 +1,8 @@
+[gd_resource type="PrimitiveMesh" load_steps=1 format=3 uid="uid://pen_walkway_mesh_001"]
+
+[resource]
+type = "TorusMesh"
+inner_radius = 24.0
+outer_radius = 27.0
+radial_segments = 24
+tubular_segments = 4

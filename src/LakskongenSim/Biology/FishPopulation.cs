@@ -23,6 +23,13 @@ namespace LakskongenSim.Biology
             public LifeStage Stage { get; set; }
             public Genome? Genetics { get; set; }
 
+            /// <summary>
+            /// Smolt/post-smolt quality carryover tier, stamped at sea transfer.
+            /// Additive field; defaults to <see cref="Farm.SmoltQualityTier.Standard"/>
+            /// so existing saves and new cohorts keep baseline behaviour.
+            /// </summary>
+            public Farm.SmoltQualityTier Quality { get; set; } = Farm.SmoltQualityTier.Standard;
+
             // Constructor for easy initialization, matching the original record's constructor
             public Cohort(int ageDays, int count, double meanWeightKg, LifeStage stage, Genome? genetics = null)
             {
@@ -65,6 +72,12 @@ namespace LakskongenSim.Biology
 
         /// <summary>Sea lice load (average lice per fish) for this population.</summary>
         public double SeaLiceLoad { get; set; } = 0.3;
+
+        /// <summary>Vaccination day index (Phase 5.1, ulcer/CMS, 12-mo protection). -1 = never.</summary>
+        public int VaccinatedDay { get; set; } = -1;
+
+        /// <summary>Site ID this population belongs to (for O(1) lookup instead of O(n) search).</summary>
+        public string SiteId { get; set; } = "";
 
         /// <summary>Growth penalty multiplier from disease resistance fitness cost. Serialized for save/load.</summary>
         public double GrowthPenalty { get => _growthPenalty; set => _growthPenalty = value; }

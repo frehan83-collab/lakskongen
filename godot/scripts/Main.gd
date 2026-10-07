@@ -48,7 +48,7 @@ func _start_game() -> void:
 	print("Main: Starting new game...")
 
 	# Start the simulation via SimBridge
-	var success = _sim.start_new_game("default", DEFAULT_PLAYER_NAME)
+	var success = _sim.start_new_game(DEFAULT_PLAYER_NAME)
 
 	if success:
 		_game_started = true

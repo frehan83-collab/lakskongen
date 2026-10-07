@@ -10,6 +10,9 @@ namespace LakskongenSim.Core
     /// <summary>Data for one tutorial step.</summary>
     public class TutorialStep
     {
+        // Shared tutorial_steps.json uses numeric ids (GDScript click-through
+        // track) — accept numbers or strings so deserialization never fails.
+        [JsonConverter(typeof(LenientStringConverter))]
         public string Id { get; init; } = "";
         public int StepNumber { get; init; }
         public string Title { get; init; } = "";
@@ -191,7 +194,7 @@ namespace LakskongenSim.Core
                 
                 // Harvest and sales
                 "first_harvest_initiated" => t => t.State.ProcessingSnapshots.Count >= 1,
-                "first_sale_completed" => t => t.State.ProcessingSnapshots.Count >= 1 && t.State.Balance > 10_000_000m,
+                "first_sale_completed" => t => t.State.ProcessingSnapshots.Count >= 1 && t.LiveBalance > 10_000_000m,
                 "pl_report_viewed" => t => t.State.ProcessingSnapshots.Count >= 1 && t.State.Day >= 1,
                 
                 // Expansion and systems
@@ -226,7 +229,7 @@ namespace LakskongenSim.Core
                 "production_chain_viewed" => t => t.State.Day >= 1,
                 "weather_storm_survived" => t => t.State.Day >= 30,
                 "crew_hired" => t => t.State.Day >= 14,
-                "revenue_10_million" => t => t.State.Balance >= 10_000_000m,
+                "revenue_10_million" => t => t.LiveBalance >= 10_000_000m,
                 
                 // Default: parse numeric comparisons
                 _ when condition.Contains("day >=") => ParseDayCondition(condition),
@@ -312,6 +315,13 @@ namespace LakskongenSim.Core
         // ── Internal helpers used by conditions ───────────────────────────────
 
         internal GameState State => _engine.State;
+
+        /// <summary>
+        /// Live cash from FinanceManager (single source of truth).
+        /// State.Balance is a day-end mirror and goes stale after mid-day
+        /// transactions — conditions must read this instead.
+        /// </summary>
+        internal decimal LiveBalance => _engine.FinanceManager?.Balance ?? State.Balance;
 
         internal int TotalFishCount =>
             _engine.State.Populations.SelectMany(p => p.Cohorts).Sum(c => c.Count);
@@ -601,4 +611,26 @@ namespace LakskongenSim.Core
         };
     }
     #pragma warning restore CS0618
+
+    /// <summary>
+    /// Accepts a JSON string or number for string-typed ids (shared config
+    /// files use numeric ids). Numbers serialize back as strings.
+    /// </summary>
+    public class LenientStringConverter : JsonConverter<string>
+    {
+        public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return reader.TokenType switch
+            {
+                JsonTokenType.String => reader.GetString() ?? "",
+                JsonTokenType.Number => reader.TryGetInt64(out var n) ? n.ToString() : reader.GetDouble().ToString(),
+                JsonTokenType.True => "true",
+                JsonTokenType.False => "false",
+                _ => "",
+            };
+        }
+
+        public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options)
+            => writer.WriteStringValue(value);
+    }
 }

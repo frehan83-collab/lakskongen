@@ -10,7 +10,11 @@ namespace PerformanceBenchmark
 {
     class Program
     {
-        static void Main(string[] args)
+        // ── Perf gate budgets (ms per simulated day) ──
+        private const double PerfGateSoftMsPerDay = 2.0;
+        private const double PerfGateHardMsPerDay = 5.0;
+
+        static int Main(string[] args)
         {
             Console.WriteLine("╔══════════════════════════════════════════════════╗");
             Console.WriteLine("║  Lakskongen Performance Benchmark — T61         ║");
@@ -33,9 +37,13 @@ namespace PerformanceBenchmark
             // ─── Scenario 4: Full simulation — all systems enabled ───
             RunBenchmark("Scenario 4: Full Simulation (All Systems)", 10, 10000, enableEvents: true, runs: 3);
 
+            bool gatePassed = RunPerfGate();
+
             Console.WriteLine("\n╔══════════════════════════════════════════════════╗");
             Console.WriteLine("║  Benchmark Complete                             ║");
             Console.WriteLine("╚══════════════════════════════════════════════════╝");
+
+            return gatePassed ? 0 : 1;
         }
 
         static void RunBenchmark(string scenarioName, int numCohorts, int fishPerCohort, bool enableEvents, int runs)
@@ -165,6 +173,84 @@ namespace PerformanceBenchmark
             Console.WriteLine($"  │ Memory delta: {bestMemDelta / 1024.0:+#,0;-#,0;0} KB");
             Console.WriteLine($"  │ Fish remain:  {bestFinalFish:N0} ({bestFinalCohorts} cohorts)");
             Console.WriteLine($"  └────────────────────────────────────────────────");
+        }
+
+        /// <summary>
+        /// Perf gate: a realistic multi-site campaign session (ressursrente) with events
+        /// on. Prints a per-day report and fails only above the hard budget so shared
+        /// CI runners do not produce false failures.
+        /// </summary>
+        static bool RunPerfGate()
+        {
+            const int warmupDays = 15;
+            const int measuredDays = 365;
+            const int runs = 3;
+
+            Console.WriteLine($"\n{"".PadRight(60, '═')}");
+            Console.WriteLine("  PERF GATE — Multi-Site Campaign Session (events on)");
+            Console.WriteLine($"  Soft target: < {PerfGateSoftMsPerDay:F1} ms/day   Hard limit: < {PerfGateHardMsPerDay:F1} ms/day");
+            Console.WriteLine($"{"".PadRight(60, '═')}");
+
+            double bestMsPerDay = double.MaxValue;
+            double bestMaxMs = 0.0;
+            int sites = 0, populations = 0, fish = 0;
+
+            for (int run = 0; run < runs; run++)
+            {
+                var engine = new SimulationEngine();
+                engine.Initialize(enableEvents: true, seed: 7);
+                var scenario = engine.Scenario.GetScenario("ressursrente")
+                    ?? throw new InvalidOperationException("ressursrente scenario missing from roster");
+                scenario.ApplyStartingState(engine.State);
+                engine.EnableResourceRentTax = true;
+
+                for (int i = 0; i < warmupDays; i++)
+                    engine.Advance(1);
+
+                var dayTimings = new double[measuredDays];
+                var sw = Stopwatch.StartNew();
+                for (int day = 0; day < measuredDays; day++)
+                {
+                    var daySw = Stopwatch.StartNew();
+                    engine.Advance(1);
+                    daySw.Stop();
+                    dayTimings[day] = daySw.Elapsed.TotalMilliseconds;
+                }
+                sw.Stop();
+
+                double avgMs = sw.Elapsed.TotalMilliseconds / measuredDays;
+                Array.Sort(dayTimings);
+                double maxMs = dayTimings[measuredDays - 1];
+
+                if (avgMs < bestMsPerDay)
+                {
+                    bestMsPerDay = avgMs;
+                    bestMaxMs = maxMs;
+                    sites = engine.State.SeaSites.Count;
+                    populations = engine.State.Populations.Count;
+                    fish = engine.State.Populations.Sum(p => p.TotalCount);
+                }
+
+                Console.Write($"  Run {run + 1}/{runs}: {avgMs:F4} ms/day avg, {maxMs:F3} ms peak/day");
+                Console.WriteLine($", {sw.Elapsed.TotalMilliseconds:F1} ms total, fish: {engine.State.Populations.Sum(p => p.TotalCount):N0}");
+            }
+
+            bool pass = bestMsPerDay < PerfGateHardMsPerDay;
+            string verdict = pass
+                ? (bestMsPerDay <= PerfGateSoftMsPerDay
+                    ? "✅ PASS (within soft target)"
+                    : "⚠️ PASS (above soft target, within hard limit)")
+                : "❌ FAIL (exceeds hard limit)";
+
+            Console.WriteLine($"\n  ┌─ Perf Gate Result ──────────────────────────");
+            Console.WriteLine($"  │ Session:     {sites} sites, {populations} populations, {fish:N0} fish");
+            Console.WriteLine($"  │ Best avg:    {bestMsPerDay:F4} ms/day");
+            Console.WriteLine($"  │ Best peak:   {bestMaxMs:F3} ms/day");
+            Console.WriteLine($"  │ Budget:      soft {PerfGateSoftMsPerDay:F1} / hard {PerfGateHardMsPerDay:F1} ms/day");
+            Console.WriteLine($"  │ Verdict:     {verdict}");
+            Console.WriteLine($"  └────────────────────────────────────────────────");
+
+            return pass;
         }
     }
 }

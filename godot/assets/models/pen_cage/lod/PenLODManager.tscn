@@ -1,0 +1,7 @@
+[gd_resource type="Script" load_steps=2 format=3 uid="uid://pen_lod_manager"]
+
+[resource]
+script = ExtResource("1")
+
+[node name="PenLODManager" type="Node3D"]
+script = ExtResource("1")

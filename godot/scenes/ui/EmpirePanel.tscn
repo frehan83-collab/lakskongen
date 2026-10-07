@@ -1,0 +1,248 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/EmpirePanel.gd" id="1_empire"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.898039, 0.913725, 0.941176, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
+bg_color = Color(1, 1, 1, 1)
+border_width_bottom = 1
+border_color = Color(0.898039, 0.913725, 0.941176, 1)
+content_margin_left = 20.0
+content_margin_top = 14.0
+content_margin_right = 20.0
+content_margin_bottom = 14.0
+
+[node name="EmpirePanel" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+script = ExtResource("1_empire")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="MainScroll" type="ScrollContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RootVBox" type="VBoxContainer" parent="Margin/MainScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0392157, 0.301961, 0.407843, 1)
+theme_override_font_sizes/font_size = 22
+text = "👑 Empire Oversikt"
+
+[node name="Sep0" type="HSeparator" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+
+[node name="PhaseCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/PhaseCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/PhaseCard/Outer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="PhaseHeader" type="Label" parent="Margin/MainScroll/RootVBox/PhaseCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 18
+text = "📊 Empire Fase"
+
+[node name="PhaseBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/PhaseCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="EmpirePhaseBanner" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/PhaseCard/Outer/PhaseBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="PhaseNameLabel" type="Label" parent="Margin/MainScroll/RootVBox/PhaseCard/Outer/PhaseBody/EmpirePhaseBanner"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 16
+text = "Fase: 🌱 Liten Bonde"
+
+[node name="PhaseProgressBar" type="ProgressBar" parent="Margin/MainScroll/RootVBox/PhaseCard/Outer/PhaseBody/EmpirePhaseBanner"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(400, 20)
+layout_mode = 2
+show_percentage = true
+
+[node name="GrowthStrategyLabel" type="Label" parent="Margin/MainScroll/RootVBox/PhaseCard/Outer/PhaseBody/EmpirePhaseBanner"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 14
+text = "Vekststrategi: Organisk vekst"
+
+[node name="CompetitorCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/CompetitorCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/CompetitorCard/Outer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="CompetitorHeader" type="Label" parent="Margin/MainScroll/RootVBox/CompetitorCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 18
+text = "🏆 Konkurrent Leaderboard"
+
+[node name="CompetitorBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/CompetitorCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="CompetitorList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/CompetitorCard/Outer/CompetitorBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="BrandCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BrandCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BrandCard/Outer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="BrandHeader" type="Label" parent="Margin/MainScroll/RootVBox/BrandCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 18
+text = "⭐ Merkevare & Omdømme"
+
+[node name="BrandBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BrandCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="BrandBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BrandCard/Outer/BrandBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="StockCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/StockCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/StockCard/Outer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="StockHeader" type="Label" parent="Margin/MainScroll/RootVBox/StockCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 18
+text = "📈 Aksjemarked"
+
+[node name="StockBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/StockCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="StockBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/StockCard/Outer/StockBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="IntegrationCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/IntegrationCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/IntegrationCard/Outer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="IntegrationHeader" type="Label" parent="Margin/MainScroll/RootVBox/IntegrationCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 18
+text = "🔗 Vertikal Integrasjon"
+
+[node name="IntegrationBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/IntegrationCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="IntegrationBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/IntegrationCard/Outer/IntegrationBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CrisisCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/CrisisCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/CrisisCard/Outer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="CrisisHeader" type="Label" parent="Margin/MainScroll/RootVBox/CrisisCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 18
+text = "⚠️ Kriser & Muligheter"
+
+[node name="CrisisBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/CrisisCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="CrisisBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/CrisisCard/Outer/CrisisBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6

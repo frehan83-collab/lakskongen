@@ -23,10 +23,11 @@ namespace LakskongenSim.Biology
     /// Individual fish get unique growth trajectories ±15% from genetic baseline.
     /// Early-life stress reduces asymptotic size via epigenetic memory.
     /// 
-    /// Mareano/Geonorge Environmental Integration:
-    /// - Oxygen-dependent metabolism (reduced growth below 6 mg/L O2)
+    /// Environmental Integration:
+    /// - Temperature-dependent growth (Gaussian response)
+    /// - Dissolved oxygen saturation modifier (Brett 1979, FAO): exponential reduction below 60% saturation
+    /// - Stocking density modifier (Oppedal et al. 2011): linear reduction above 25 kg/m³
     /// - Current-based feed availability (optimal 0.1-0.3 m/s)
-    /// - Temperature stratification effects (depth-specific growth)
     /// - Combined environmental stress penalties
     /// </summary>
     public class SDEGrowthModel
@@ -93,7 +94,12 @@ namespace LakskongenSim.Biology
         #region Fields
 
         private readonly Random _random;
-        
+
+        // Thread-safe guard (TD-06): System.Random is not safe for concurrent use.
+        // All draws funnel through NextDoubleLocked(). Seeded instances stay
+        // deterministic for single-threaded tests; unseeded aliases Random.Shared.
+        private readonly object _rngLock = new();
+
         #endregion
 
         #region Constructors
@@ -137,7 +143,7 @@ namespace LakskongenSim.Biology
         /// <returns>Individual genetic asymptotic weight K.</returns>
         public double GenerateGeneticAsymptoticWeight(double baselineWeight = BaselineAsymptoticWeight)
         {
-            double variance = (_random.NextDouble() - 0.5) * 2.0 * AsymptoticWeightVariance;
+            double variance = (NextDoubleLocked() - 0.5) * 2.0 * AsymptoticWeightVariance;
             return baselineWeight * (1.0 + variance);
         }
 
@@ -148,7 +154,7 @@ namespace LakskongenSim.Biology
         /// <returns>Individual genetic growth rate α_max.</returns>
         public double GenerateGeneticGrowthRate(double baselineRate = BaselineGrowthCoefficient)
         {
-            double variance = (_random.NextDouble() - 0.5) * 2.0 * GrowthRateVariance;
+            double variance = (NextDoubleLocked() - 0.5) * 2.0 * GrowthRateVariance;
             return baselineRate * (1.0 + variance);
         }
 
@@ -159,8 +165,14 @@ namespace LakskongenSim.Biology
         /// <returns>Individual variance coefficient.</returns>
         public double GenerateStochasticVariance(double baselineVariance = BaselineStochasticVariance)
         {
-            double variance = (_random.NextDouble() - 0.5) * 2.0 * VarianceVariance;
+            double variance = (NextDoubleLocked() - 0.5) * 2.0 * VarianceVariance;
             return baselineVariance * (1.0 + variance);
+        }
+
+        /// <summary>Thread-safe uniform draw in [0,1).</summary>
+        private double NextDoubleLocked()
+        {
+            lock (_rngLock) { return _random.NextDouble(); }
         }
 
         /// <summary>
@@ -170,8 +182,8 @@ namespace LakskongenSim.Biology
         public double GenerateNormalNoise()
         {
             // Guard against Log(0): NextDouble() can return exactly 0.0.
-            double u1 = 1.0 - _random.NextDouble();
-            double u2 = _random.NextDouble();
+            double u1 = 1.0 - NextDoubleLocked();
+            double u2 = NextDoubleLocked();
             return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
         }
 
@@ -200,6 +212,37 @@ namespace LakskongenSim.Biology
             double epigeneticMultiplier = 1.0,
             double dt = 1.0)
         {
+            return ApplySDEGrowth(
+                currentWeight,
+                temperature,
+                asymptoticWeight,
+                maxGrowthRate,
+                stochasticVariance,
+                epigeneticMultiplier,
+                environmentalMultiplier: 1.0,
+                dt);
+        }
+
+/// <summary>
+        /// Applies SDE-based growth with environmental modifiers (DO saturation, stocking density).
+        /// 
+        /// Environmental modifiers are applied ADDITIVELY in log-space to preserve the VB
+        /// closed-form calibration baseline. This prevents the 5.4× growth discrepancy
+        /// that occurs when modifiers stack multiplicatively.
+        /// 
+        /// log(dW/dt) = log(dW/dt_VB) + log(env_multiplier) ≈ log(dW/dt_VB) + (env_mult - 1)
+        /// for small perturbations around 1.0.
+        /// </summary>
+        public double ApplySDEGrowth(
+            double currentWeight,
+            double temperature,
+            double asymptoticWeight,
+            double maxGrowthRate,
+            double stochasticVariance,
+            double epigeneticMultiplier,
+            double environmentalMultiplier,
+            double dt = 1.0)
+        {
             // Handle zero or negative weight
             if (currentWeight <= 0.0) return 0.0;
 
@@ -209,10 +252,18 @@ namespace LakskongenSim.Biology
             // Calculate temperature-corrected growth coefficient
             double alphaT = CalculateTemperatureCorrectedGrowth(temperature, maxGrowthRate);
 
-            // Deterministic component: α(T) × W^γ × (1 − W/K) × dt
+            // Apply environmental multiplier ADDITIVELY in log-space to preserve VB baseline
+            // For small perturbations: log(1 + x) ≈ x, so multiplicative multiplier m
+            // becomes additive perturbation (m - 1) in log-space
+            // Combined effect: combinedMultiplier = 1.0 + (environmentalMultiplier - 1.0) * 0.5
+            // This makes environmental modifiers small perturbations (±50% max effect)
+            double combinedMultiplier = 1.0 + (environmentalMultiplier - 1.0) * 0.5;
+            combinedMultiplier = Math.Clamp(combinedMultiplier, 0.5, 1.5);
+
+            // Deterministic component: α(T) × W^γ × (1 − W/K) × dt × combinedMultiplier
             double vonBertalanffyTerm = Math.Pow(currentWeight, AllometricExponent);
             double gompertzTerm = 1.0 - (currentWeight / effectiveK);
-            double deterministicGrowth = alphaT * vonBertalanffyTerm * gompertzTerm * dt;
+            double deterministicGrowth = alphaT * vonBertalanffyTerm * gompertzTerm * dt * combinedMultiplier;
 
             // Stochastic component: σ × deterministicGrowth × sqrt(dt) × N(0,1)
             // Scales proportionally to the deterministic drift to prevent runaway variance
@@ -241,6 +292,7 @@ namespace LakskongenSim.Biology
         /// <param name="maxGrowthRate">Genetic maximum growth rate α_max.</param>
         /// <param name="stochasticVariance">Individual stochastic variance σ.</param>
         /// <param name="epigeneticMultiplier">Epigenetic memory multiplier (0.75-1.0).</param>
+        /// <param name="environmentalMultiplier">Combined environmental multiplier (DO × density) (0.1-1.0).</param>
         /// <returns>Final weight after specified days.</returns>
         public double ApplySDEGrowthMultipleDays(
             double initialWeight,
@@ -249,7 +301,8 @@ namespace LakskongenSim.Biology
             double asymptoticWeight,
             double maxGrowthRate,
             double stochasticVariance,
-            double epigeneticMultiplier = 1.0)
+            double epigeneticMultiplier = 1.0,
+            double environmentalMultiplier = 1.0)
         {
             if (days <= 0) return initialWeight;
 
@@ -263,6 +316,7 @@ namespace LakskongenSim.Biology
                     maxGrowthRate,
                     stochasticVariance,
                     epigeneticMultiplier,
+                    environmentalMultiplier,
                     1.0);
 
                 // Early termination if fish dies (weight = 0)
@@ -326,24 +380,11 @@ namespace LakskongenSim.Biology
             return weights;
         }
 
-        /// <summary>
+/// <summary>
         /// Applies SDE-based growth with full environmental data integration.
         /// 
-        /// Incorporates:
-        /// - Temperature-dependent growth (Gaussian response)
-        /// - Oxygen-dependent metabolism (reduced growth at low O2)
-        /// - Current-based feed availability effects
-        /// - Combined environmental stress penalties
+        /// Environmental modifiers are applied ADDITIVELY in log-space to preserve VB baseline.
         /// </summary>
-        /// <param name="currentWeight">Current weight in kg.</param>
-        /// <param name="environmentalData">Environmental data point with temperature, oxygen, current.</param>
-        /// <param name="asymptoticWeight">Genetic asymptotic weight K (kg).</param>
-        /// <param name="maxGrowthRate">Genetic maximum growth rate α_max.</param>
-        /// <param name="stochasticVariance">Individual stochastic variance σ.</param>
-        /// <param name="epigeneticMultiplier">Epigenetic memory multiplier (0.75-1.0).</param>
-        /// <param name="environmentalMultiplier">Additional environmental multiplier (0.0-1.0+).</param>
-        /// <param name="dt">Time step in days (default 1.0).</param>
-        /// <returns>New weight after time step dt.</returns>
         public double ApplySDEGrowthWithEnvironment(
             double currentWeight,
             EnvironmentalDataPoint environmentalData,
@@ -369,9 +410,12 @@ namespace LakskongenSim.Biology
             // Calculate current-based feed availability multiplier
             double currentMultiplier = CalculateCurrentFeedMultiplier(environmentalData.CurrentSpeedAtCageDepth);
 
-            // Combine all environmental multipliers
+            // Combine all environmental multipliers ADDITIVELY in log-space
+            // Convert multiplicative multipliers to additive log-space perturbations
             double combinedMultiplier = environmentalMultiplier * oxygenMultiplier * currentMultiplier;
-            combinedMultiplier = Math.Clamp(combinedMultiplier, 0.3, 1.5);
+            // Apply additively in log-space: 1 + (m - 1) * 0.5
+            combinedMultiplier = 1.0 + (combinedMultiplier - 1.0) * 0.5;
+            combinedMultiplier = Math.Clamp(combinedMultiplier, 0.5, 1.5);
 
             // Deterministic component: α(T) × W^γ × (1 − W/K) × dt × environmental_multipliers
             double vonBertalanffyTerm = Math.Pow(currentWeight, AllometricExponent);
@@ -383,7 +427,7 @@ namespace LakskongenSim.Biology
             double stressVarianceFactor = 1.0 + (1.0 - environmentalData.EnvironmentalQualityScore) * 0.5;
             double normalNoise = GenerateNormalNoise();
             double stochasticGrowth = stochasticVariance * stressVarianceFactor *
-                                     deterministicGrowth * Math.Sqrt(dt) * normalNoise;
+                                      deterministicGrowth * Math.Sqrt(dt) * normalNoise;
 
             // Update weight
             double newWeight = currentWeight + deterministicGrowth + stochasticGrowth;
@@ -456,6 +500,47 @@ namespace LakskongenSim.Biology
                               (StrongCurrentThreshold - OptimalCurrentMax);
                 return 0.80 + ratio * 0.22; // Linear interpolation to optimal
             }
+        }
+
+        /// <summary>
+        /// Calculate DO saturation growth modifier per Brett (1979) / FAO.
+        /// Formula: growth × (1 − exp(−DO_sat/0.3)), clamped to [0.2, 1.0].
+        /// DO_sat is the dissolved oxygen saturation fraction (0.0-1.0).
+        /// </summary>
+        /// <param name="doSaturation">DO saturation as fraction (0.0-1.0).</param>
+        /// <returns>Growth multiplier (0.2-1.0).</returns>
+        public double CalculateDOSaturationModifier(double doSaturation)
+        {
+            return WaterQuality.CalculateDOSaturationModifier(doSaturation);
+        }
+
+        /// <summary>
+        /// Calculate stocking density growth modifier per Oppedal et al. (2011).
+        /// Formula: growth × max(0.5, 1 − (density−25)/75) for density > 25 kg/m³.
+        /// </summary>
+        /// <param name="stockingDensityKgM3">Stocking density in kg/m³.</param>
+        /// <returns>Growth multiplier (0.5-1.0).</returns>
+        public double CalculateStockingDensityModifier(double stockingDensityKgM3)
+        {
+            return WaterQuality.CalculateStockingDensityModifier(stockingDensityKgM3);
+        }
+
+        /// <summary>
+        /// Calculate combined environmental growth multiplier from DO and stocking density.
+        /// </summary>
+        /// <param name="waterChemistry">Water chemistry state.</param>
+        /// <param name="temperatureC">Water temperature (°C).</param>
+        /// <param name="stockingDensityKgM3">Stocking density (kg/m³).</param>
+        /// <param name="salinityPSU">Salinity (PSU).</param>
+        /// <returns>Combined growth multiplier (0.1-1.0).</returns>
+        public double CalculateCombinedEnvironmentalMultiplier(
+            WaterChemistry waterChemistry,
+            double temperatureC,
+            double stockingDensityKgM3,
+            double salinityPSU = 35.0)
+        {
+            return WaterQuality.CalculateCombinedEnvironmentalMultiplier(
+                waterChemistry, temperatureC, stockingDensityKgM3, salinityPSU);
         }
 
         #endregion

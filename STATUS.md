@@ -1,40 +1,46 @@
 # Lakskongen — Development Status
 
-## Phase 1 Prototype — In Progress
+**Last updated:** 2026-10-07
+**Version:** `0.6.0-alpha`
+**Roadmap / next actions:** see [PLAN.md](PLAN.md)
+**Latest session detail:** see [docs/SESSION_SUMMARY.md](docs/SESSION_SUMMARY.md)
 
-### ✅ Completed (Agent 1: lakskongen-dev)
-- **Genetics.gd** — Breeding with 3 traits (growth, disease_resistance, fillet_quality), mutation, random generation
-- **Fish.gd** — Fish class with growth model (temp, feed, genetics factors)
-- **Hatchery.gd** — Egg → Smolt pipeline with temperature-driven development
-- **SeaSite.gd** — Net pen simulation: stocking, growth, lice, mortality, harvest
-- **Market.gd** — Seasonal pricing, size premium, batch selling
-- **FeedManager.gd** — Feed quality/FCR/cost calculation
-- **Finance.gd** — Cash flow, revenue/expense tracking
-- **TimeSystem.gd** — Day counter with speed control and signals
-- **GameManager.gd** — Orchestrator connecting all systems
-- **Dashboard.gd** — Placeholder KPI display
-- **Main.tscn** — Scene tree
+## Build & test
 
-### 🔄 In Progress (3 parallel agents)
-- **lakskongen-market** — Deep market: export markets, contracts, quality grading, financial instruments
-- **lakskongen-environment** — Environment sim, disease system, sea lice mechanics
-- **lakskongen-farm** — Sea site expansion, feed recipes, license/MAB/traffic light system
+| Check | Result |
+|---|---|
+| `dotnet build LakskongenSim.sln` | ✅ succeeded |
+| Tests | ✅ ~690 passing, 0 failures (incl. 3-year soak) |
+| Godot editor scan | ✅ 0 GDScript parse errors |
+| Godot headless boot | ✅ 0 script errors · 9 scenarios · ModLoader ready |
+| Theme tokens | ✅ in sync (`tools/sync_tokens.py --check`) |
+| Translation CSV | ✅ 552 rows · 3 cols each · 0 duplicate keys |
+| Perf | ✅ ~0.27 ms/day day-advance benchmark |
 
-### 📋 TODO (Next Wave)
-- Integrate specialized agent outputs into GameManager
-- UI: actual Godot Control nodes (not just print statements)
-- Save/Load system
-- Technology tree
-- Multiple sites/zones
-- Campaign scenarios
-- Sound & visuals
+## Where the project is
 
-### ⚠️ Code Review Notes
-- Genetics.gd uses `preload()` as static functions — may need refactor to autoload
-- Growth model exists in both Fish.gd and SeaSite.gd — should consolidate
-- Market.gd seasonal curve peaks at wrong time (sin peaks at day 91, should be Easter ~day 100)
-- Dashboard is print-only — needs proper Control UI
-- Main.tscn format may have issues (ext_resource ordering)
+Phases 1–7 feature-complete, plus Waves 1–8 delivered this session:
 
----
-*Last updated: 2026-03-10 23:35*
+- **Foundations** — audio truth pass, token-driven theme, data-viz, scenario/mod
+  systems wired, C# build repaired.
+- **Onboarding + consequence** — single `TutorialSystem`, progressive
+  disclosure, `ConsequenceDirector`, severity-ranked notifications.
+- **Depth** — health (delousing harm, thermal–lice, gill warning), biology
+  (smolt-quality carryover, precision feeding), finance (resource-rent, binding
+  price council, environmental flexibility), genetics (genomic selection,
+  inbreeding, GE), player-supply price impact.
+- **Insurance + mitigation + data overlays** — catastrophe policies, bloom
+  mitigation catalog, live map overlays, explain-this-number tooltips.
+- **Briefings + content + persistence** — morning depth briefing, night-digest,
+  save round-trips.
+- **Ship engineering** — perf gate, localization finalized
+  ([docs/LOCALIZATION.md](docs/LOCALIZATION.md)).
+
+## Remaining roadmap (short)
+
+- **P8** flow-dependent barrier tech (Smoltscreen).
+- **P14** audio polish pass.
+- **P15** Steam page/demo/Next Fest, wishlist targets, CI perf budget gate.
+- Finish wiring insurance/mitigation + overlays into all daily-loop/UI actions.
+
+Full detail and priorities: [PLAN.md](PLAN.md).

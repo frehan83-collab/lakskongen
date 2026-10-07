@@ -76,8 +76,8 @@ public partial class AudioManager : Node
 
     public override void _Ready()
     {
-        SetupAudioPlayers();
         SetupAudioBuses();
+        SetupAudioPlayers();
         ConnectToEventBus();
         
         GD.Print("AudioManager initialized");
@@ -113,11 +113,26 @@ public partial class AudioManager : Node
 
     private void SetupAudioBuses()
     {
+        // Guarantee the buses exist (project bus layout covers editor/real
+        // runs; headless/dummy-driver boots may not apply it).
+        EnsureBus(MUSIC_BUS);
+        EnsureBus(SFX_BUS);
+        EnsureBus(AMBIENT_BUS);
+
         // Set initial volume levels
         SetBusVolume(MASTER_BUS, _masterVolume);
         SetBusVolume(MUSIC_BUS, _musicVolume);
         SetBusVolume(SFX_BUS, _sfxVolume);
         SetBusVolume(AMBIENT_BUS, _ambientVolume);
+    }
+
+    private void EnsureBus(string busName)
+    {
+        if (AudioServer.GetBusIndex(busName) == -1)
+        {
+            AudioServer.AddBus();
+            AudioServer.SetBusName(AudioServer.BusCount - 1, busName);
+        }
     }
 
     private void ConnectToEventBus()

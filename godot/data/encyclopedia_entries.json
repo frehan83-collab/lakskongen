@@ -1,4 +1,4 @@
-﻿[
+[
     {
         "id":  "atlantic-salmon",
         "title":  "Atlantic Salmon (Salmo salar)",
@@ -713,6 +713,182 @@
                            "export-markets",
                            "salmon-price",
                            "value-chain"
+                       ]
+    },
+    {
+        "id":  "sea-lice-resistance",
+        "title":  "Sea-Lice Resistance & Barrier Tech",
+        "category":  "Health",
+        "content":  "Sea lice (Lepeophtheirus salmonis) develop resistance to medicinal treatments within a few generations, so Norwegian producers rotate between chemical, mechanical and biological delousing. Resistance is tracked per production zone and rises with treatment intensity. Modern barrier strategies reduce the need for treatment in the first place: permeable lice skirts (e.g. Smoltscreen), submerged feeding, cleaner fish, and optical sensors that count lice continuously. Because resistance is regional, one site's treatment schedule affects its neighbours, which is why area-based coordination is central to Norway's lice management.",
+        "relatedIds":  [
+                           "sea-lice",
+                           "delousing-mechanical",
+                           "delousing-harm"
+                       ]
+    },
+    {
+        "id":  "delousing-harm",
+        "title":  "Delousing Harm & Welfare",
+        "category":  "Health",
+        "content":  "Every delousing method carries a welfare cost. Mechanical treatments (Thermolicer, Hydrolicer, Optilicer) and handling stress can cause scale loss, fin erosion, skin lesions, and elevated short-term mortality; injuries compound when fish are treated repeatedly. Norwegian veterinary data (NVI) identify delousing injuries and secondary infection among the leading causes of mortality in sea-phase salmon. Welfare-aware operators schedule treatments only when lice thresholds are exceeded, favour gentler methods for weakened cohorts, and budget for recovery time. Reducing treatment frequency through barrier technology is now the primary welfare strategy.",
+        "relatedIds":  [
+                           "sea-lice",
+                           "delousing-mechanical",
+                           "sea-lice-resistance"
+                       ]
+    },
+    {
+        "id":  "gill-health-warning",
+        "title":  "Gill-Health Early Warning",
+        "category":  "Health",
+        "content":  "Gills are the salmon's most exposed organ and the first casualty of harmful algae, jellyfish, low oxygen and amoebic gill disease (AGD). A gill-health score combines water temperature, oxygen saturation, current speed and recent algal pressure into a 0-1 risk index. Rising risk is a leading indicator: interventions such as bubble curtains, oxygen diffusers, deep feeding or towing pens to deeper, cleaner water are far cheaper if applied before clinical gill damage appears. Sensors and AI cameras can flag deteriorating gill scores days before mortality shows up in the pen.",
+        "relatedIds":  [
+                           "agd",
+                           "algal-bloom-mitigation",
+                           "oxygen-levels"
+                       ]
+    },
+    {
+        "id":  "post-smolt-supersmolt",
+        "title":  "Post-Smolt & SuperSmolt Quality",
+        "category":  "Farming",
+        "content":  "A smolt's quality at sea transfer shapes its entire sea phase. Large post-smolts (200-500 g, or 'SuperSmolt' up to 1 kg) spend less time in the vulnerable early sea phase and show markedly better survival: field data report roughly 1% mortality over four months for SuperSmolt versus 1.5% for standard, and 5.7% versus 8.6% to harvest. Quality tiers trade higher hatchery cost and longer freshwater residence for lower sea mortality, faster early growth and better feed conversion. Carryover effects persist for months, so stocking decisions made on land determine sea-phase profitability.",
+        "relatedIds":  [
+                           "smolt",
+                           "hatchery",
+                           "post-smolt-carryover"
+                       ]
+    },
+    {
+        "id":  "post-smolt-carryover",
+        "title":  "Post-Smolt Carryover Effect",
+        "category":  "Farming",
+        "content":  "The physiological state a salmon carries from the hatchery does not reset at sea transfer. Smolt quality, vaccination status and early freshwater growth stamp a carryover effect onto the whole sea phase: mortality, growth rate and feed conversion all inherit from land-based performance. Operators therefore model post-smolt quality as a multiplier applied to sea-phase survival and growth, and record the tier stamped on each cohort at stocking so cost and performance can be attributed correctly.",
+        "relatedIds":  [
+                           "post-smolt-supersmolt",
+                           "smolt",
+                           "growth-rate"
+                       ]
+    },
+    {
+        "id":  "precision-feeding",
+        "title":  "Precision Feeding (AI Control)",
+        "category":  "Technology",
+        "content":  "Feed is roughly half of production cost, so precision feeding is the highest-return operational lever in salmon farming. Pellet-detection sensors beneath the pen, appetite cameras and hydroacoustic biomass estimates feed a control loop that adjusts ration in real time. Feed spreading and overfeeding raise the feed conversion ratio (FCR) and increase waste loading on the seabed; tight control lowers both. AI feeding systems learn each pen's appetite curve and can improve FCR by several hundredths, worth millions of NOK per licence over a cycle. The goal is a control problem: match feed input to actual biomass growth, not to a fixed schedule.",
+        "relatedIds":  [
+                           "automated-feeding-tech",
+                           "feed-sensors-tech",
+                           "fcr"
+                       ]
+    },
+    {
+        "id":  "resource-rent-planning",
+        "title":  "Resource-Rent Tax Planning",
+        "category":  "Regulations",
+        "content":  "Norway's 25% resource-rent tax (grunnrenteskatt) applies to aquaculture profits on top of the 22% corporate tax, with a standard deduction (grunnfradrag) of about 70 million NOK shielding smaller operators. Effective marginal rates above the deduction can exceed 40%, so the deduction is a planning anchor: stay under it and tax is negligible, exceed it and every additional krone is heavily taxed. Operators respond by investing in the value chain, timing harvests, and structuring ownership. The tax makes small and mid-size farms structurally competitive relative to giants, and rewards honest accounting of where profit is generated.",
+        "relatedIds":  [
+                           "resource-rent-tax",
+                           "license-system",
+                           "value-chain"
+                       ]
+    },
+    {
+        "id":  "price-council",
+        "title":  "Price Council & Pen Price",
+        "category":  "Market",
+        "content":  "Norwegian salmon is traded against a binding monthly reference price (pen price) set from the spot market and published by the Price Council. The pen price anchors contract settlement and salmon futures on the Oslo exchange. Because it is binding for a full month, producers who contract at the pen price forgo upside if spot rises and avoid downside if it falls. The gap between the binding pen price and the live spot price is a direct signal of contract-versus-spot strategy, and large player harvests can press spot below the pen price.",
+        "relatedIds":  [
+                           "salmon-price",
+                           "spot-market",
+                           "contract-sales"
+                       ]
+    },
+    {
+        "id":  "environmental-flexibility",
+        "title":  "Environmental Flexibility",
+        "category":  "Regulations",
+        "content":  "Environmental flexibility is the regulatory principle that lets a site demonstrate lower environmental impact than a standard open-net pen and recover production capacity in an otherwise restricted zone. In a red traffic-light zone (PO), maximum allowed biomass is cut by 6%; a site that upgrades to semi-closed or closed containment can qualify for a biomass credit because it eliminates escapes and sharply reduces sea-lice output. The credit is conditional on verified containment technology, turning technology investment into a regulatory asset rather than a pure cost.",
+        "relatedIds":  [
+                           "closed-containment-env",
+                           "traffic-light-system",
+                           "containment-ladder"
+                       ]
+    },
+    {
+        "id":  "containment-ladder",
+        "title":  "Containment Technology Ladder",
+        "category":  "Technology",
+        "content":  "Containment upgrades form a ladder from open net through lice skirt, semi-closed and closed floating systems to fully land-based production. Each rung reduces interaction with the marine environment: skirts lower lice pressure, semi-closed barriers cut lice and escape risk while retaining seawater exchange, closed systems eliminate escapes and lice but add pumping and oxygen costs. The higher a site climbs, the larger the regulatory credit it can claim and the more stable its biological performance, at the price of higher capital and operating expenditure.",
+        "relatedIds":  [
+                           "environmental-flexibility",
+                           "closed-containment-env",
+                           "sea-lice-resistance"
+                       ]
+    },
+    {
+        "id":  "catastrophe-insurance",
+        "title":  "Catastrophe Insurance",
+        "category":  "Market",
+        "content":  "Salmon farming faces catastrophic risks that can wipe out a cohort in days: harmful algal blooms, storms, disease outbreaks such as ISA, and mass mortality events. Catastrophe insurance lets operators transfer these tail risks by paying an annual premium per peril (mortality, bloom, storm, ISA) in exchange for a defined payout above a deductible. Cover is sized by coverage fraction, and premiums scale with it. Well-insured operators can survive a single-event loss of tens of millions of NOK; uninsured farms are one bad week from insolvency. Insurance is a recurring operating cost, not a one-off.",
+        "relatedIds":  [
+                           "algal-bloom-mitigation",
+                           "isa-disease",
+                           "resource-rent-planning"
+                       ]
+    },
+    {
+        "id":  "algal-bloom-mitigation",
+        "title":  "Algal-Bloom Mitigation",
+        "category":  "Environment",
+        "content":  "Harmful algal blooms (HABs) can kill hundreds of tonnes of salmon in a single event, as the 2019 northern Norway blooms showed. Mitigation is preventive and layered: early-warning sensors detect rising algal pressure; bubble curtains lift algae-laden water away from the cage; oxygen diffusers counter the hypoxia that blooms cause; deep feeding keeps fish below the algae band; and, as a last resort, pens can be towed to cleaner water or fish harvested early. Effectiveness depends on the bloom type, so mitigation must be matched to the threat. Installed countermeasures carry standing operating costs that must be budgeted.",
+        "relatedIds":  [
+                           "algal-bloom",
+                           "gill-health-warning",
+                           "catastrophe-insurance"
+                       ]
+    },
+    {
+        "id":  "genomic-selection",
+        "title":  "Genomic Selection",
+        "category":  "Biology",
+        "content":  "Genomic selection uses dense DNA marker panels (SNP chips) to estimate an animal's genetic merit directly, rather than inferring it from relatives' performance. The predicted accuracy is higher than pedigree or marker-assisted selection, so genetic gain per generation is faster. In salmon breeding, genomic selection has accelerated improvement in growth, disease resistance, feed efficiency and delayed maturation. The trade-off is inbreeding: selecting hard from a finite population raises the inbreeding coefficient and causes inbreeding depression in growth and survival, so breeding programmes balance selection intensity against genetic diversity.",
+        "relatedIds":  [
+                           "genetics",
+                           "broodstock",
+                           "selective-breeding"
+                       ]
+    },
+    {
+        "id":  "genetic-engineering",
+        "title":  "Genetic Engineering (GE Salmon)",
+        "category":  "Biology",
+        "content":  "Genetic engineering (GE) inserts or edits specific genes to produce traits such as accelerated growth or disease resistance. GE salmon achieve faster growth but face a patchwork of national regulations: approved in some markets, banned or heavily restricted in others, and often rejected by premium retailers. Because GE fish can outcompete and interbreed with wild stocks if they escape, containment (sterility, physical barriers) is a regulatory precondition. Public and buyer perception is a real commercial risk, so GE adoption trades potential performance and regulatory access against reputation and market acceptance.",
+        "relatedIds":  [
+                           "genomic-selection",
+                           "genetics",
+                           "asc-certification"
+                       ]
+    },
+    {
+        "id":  "climate-warming-lice",
+        "title":  "Climate Warming & Sea Lice",
+        "category":  "Environment",
+        "content":  "Warmer sea temperatures accelerate the sea-louse life cycle: development is driven by cumulative degree-days, so a warm year produces more louse generations and higher peak burdens. Warming also raises the risk of amoebic gill disease and other temperature-linked conditions. This couples climate directly to biology and regulation: higher lice pressure pushes production zones toward yellow or red traffic-light status, capping growth. Operators adapt with thermal-aware treatment timing, barrier technology and deeper, cooler feeding strategies. Climate warming therefore changes not only fish physiology but the regulatory ceiling on production.",
+        "relatedIds":  [
+                           "water-temperature",
+                           "sea-lice",
+                           "thermal-lice-coupling"
+                       ]
+    },
+    {
+        "id":  "thermal-lice-coupling",
+        "title":  "Thermal Lice Coupling",
+        "category":  "Environment",
+        "content":  "Sea-louse development rate is a function of water temperature, modelled through degree-days: at 10 C a generation takes roughly 3-5 weeks, and each additional degree compresses that interval. The thermal coupling means identical louse counts at the same site can imply very different future pressure depending on the temperature trajectory. Production models link temperature forecasts to louse population growth so that treatment timing and barrier deployment anticipate the peak rather than chasing it. The coupling is the mechanistic bridge between climate warming and lice regulation.",
+        "relatedIds":  [
+                           "sea-lice",
+                           "water-temperature",
+                           "climate-warming-lice"
                        ]
     }
 ]

@@ -106,20 +106,20 @@ func _generate_terrain() -> void:
 
 func _calculate_height(x: float, z: float) -> float:
 	# Distance from center line (fjord channel)
-	var dist_from_center := abs(x)
+	var dist_from_center: float = absf(x)
 	
 	# Fjord channel is flat at water level
 	if dist_from_center < fjord_width / 2.0:
 		return water_level
 	
 	# Mountain rise based on distance from fjord edge
-	var mountain_dist := dist_from_center - fjord_width / 2.0
-	var mountain_factor := clamp(mountain_dist / 30.0, 0.0, 1.0)
+	var mountain_dist: float = dist_from_center - fjord_width / 2.0
+	var mountain_factor: float = clamp(mountain_dist / 30.0, 0.0, 1.0)
 	
 	# Add noise for terrain variation
-	var noise_value := noise.get_noise_2d(x, z)
-	var base_height := mountain_factor * mountain_height
-	var variation := noise_value * mountain_height * 0.3
+	var noise_value: float = noise.get_noise_2d(x, z)
+	var base_height: float = mountain_factor * mountain_height
+	var variation: float = noise_value * mountain_height * 0.3
 	
 	return water_level + base_height + variation
 

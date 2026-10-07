@@ -1,171 +1,363 @@
 [
   {
-    "id": "small_farm",
-    "name": "Small Family Farm",
-    "difficulty": "Easy",
-    "description": "Start small and build your legacy",
-    "story": "You've inherited your grandfather's modest salmon farm in Western Norway. With just two pens, limited capital, and big dreams, you must grow the operation carefully. One wrong move could sink the family business. Can you turn this small farm into a thriving enterprise?",
-    "starting_balance": 5000000,
+    "id": "forste_sesong",
+    "name": "Familiegården",
+    "difficulty": 1,
+    "description": "Du har arvet bestefars lille oppdrett i Hardanger. Med én lisens og små midler må du lære grunnleggende oppdrett. Bygg opp gården fra bunnen av og vis at du kan drive lønnsomt.",
+    "story": "Du har arvet bestefars lille oppdrett i Hardanger. Med én lisens og små midler må du lære grunnleggende oppdrett. Bygg opp gården fra bunnen av og vis at du kan drive lønnsomt.",
+    "starting_balance": 300000,
+    "starting_cash": 300000,
+    "starting_region": "Vestland",
     "starting_day": 0,
     "starting_sites": [
       {
-        "name": "Grandfather's Farm",
-        "zone_id": "fjord_west",
-        "pen_count": 2,
-        "smolt_per_pen": 5000
+        "id": "bestefars_anlegg",
+        "name": "Bestefars Anlegg",
+        "zone": "fjord_west",
+        "pens": 1,
+        "smolt_count": 5000,
+        "smolt_quality": "standard"
       }
     ],
     "starting_debt": 0,
     "starting_research": [],
     "starting_buildings": [],
+    "win_condition": "Tutorial",
+    "special_rules": {
+      "single_site": "true",
+      "calm_weather": "true",
+      "easy_market": "true"
+    },
+    "is_unlocked": true,
     "goal": {
-      "type": "revenue",
-      "target": 50000000,
-      "time_limit_years": 5,
-      "description": "Reach 50M NOK revenue in 5 years"
+      "type": "tutorial",
+      "target": 0,
+      "time_limit_years": 0,
+      "description": "Fullfør opplæringen"
     },
     "restrictions": [],
     "tutorial_recommended": true,
     "tags": ["beginner", "growth", "family"]
   },
   {
-    "id": "industrial_giant",
-    "name": "Industrial Giant",
-    "difficulty": "Medium",
-    "description": "Scale to dominate the market",
-    "story": "You've been appointed CEO of a mid-sized salmon producer with aggressive growth targets. The board expects you to take the company public within 3 years. You have capital, infrastructure, and momentum—but scaling brings new challenges. Disease outbreaks, logistics, and market volatility can sink even the biggest players.",
-    "starting_balance": 50000000,
-    "starting_day": 0,
-    "starting_sites": [
-      {
-        "name": "Northern Site Alpha",
-        "zone_id": "fjord_north",
-        "pen_count": 4,
-        "smolt_per_pen": 12000
-      },
-      {
-        "name": "Western Site Beta",
-        "zone_id": "fjord_west",
-        "pen_count": 3,
-        "smolt_per_pen": 10000
-      },
-      {
-        "name": "Southern Site Gamma",
-        "zone_id": "fjord_south",
-        "pen_count": 3,
-        "smolt_per_pen": 11000
-      }
-    ],
-    "starting_debt": 0,
-    "starting_research": ["basic_genetics", "water_monitoring"],
-    "starting_buildings": [],
-    "goal": {
-      "type": "ipo",
-      "target": 1,
-      "time_limit_years": 3,
-      "description": "Go public (IPO) within 3 years"
-    },
-    "restrictions": [],
-    "tutorial_recommended": false,
-    "tags": ["intermediate", "finance", "scale"]
-  },
-  {
-    "id": "organic_specialist",
-    "name": "Organic Specialist",
-    "difficulty": "Hard",
-    "description": "Build the most sustainable farm in Norway",
-    "story": "You're launching Norway's first 100% organic salmon operation. No chemical treatments, no antibiotics, only natural methods. Costs are higher, growth is slower, but premium buyers pay top dollar for truly sustainable fish. Can you build a brand reputation of 90+ while staying profitable?",
-    "starting_balance": 10000000,
-    "starting_day": 0,
-    "starting_sites": [
-      {
-        "name": "Organic Pilot Site",
-        "zone_id": "fjord_west",
-        "pen_count": 3,
-        "smolt_per_pen": 1666
-      }
-    ],
-    "starting_debt": 0,
-    "starting_research": ["sustainable_feed", "cleaner_fish"],
-    "starting_buildings": [],
-    "goal": {
-      "type": "reputation_and_profit",
-      "target": 90,
-      "time_limit_years": 5,
-      "description": "Build brand reputation to 90+ while profitable"
-    },
-    "restrictions": ["no_chemicals", "no_antibiotics"],
-    "tutorial_recommended": false,
-    "tags": ["expert", "sustainability", "premium"]
-  },
-  {
-    "id": "research_station",
-    "name": "Research Station",
-    "difficulty": "Hard",
-    "description": "Unlock the future of aquaculture",
-    "story": "You run an experimental salmon research facility backed by university and government grants. Your mission: advance aquaculture technology through aggressive R&D. You have a hatchery, genetic stock, and funding—but your success is measured in research breakthroughs, not just profits. Unlock 20 tech tree nodes in 4 years.",
-    "starting_balance": 20000000,
-    "starting_day": 0,
-    "starting_sites": [
-      {
-        "name": "Research Site Alpha",
-        "zone_id": "fjord_north",
-        "pen_count": 2,
-        "smolt_per_pen": 5000
-      },
-      {
-        "name": "Test Site Beta",
-        "zone_id": "fjord_west",
-        "pen_count": 2,
-        "smolt_per_pen": 5000
-      }
-    ],
-    "starting_debt": 0,
-    "starting_research": ["basic_genetics", "water_monitoring", "selective_breeding_1"],
-    "starting_buildings": ["hatchery"],
-    "goal": {
-      "type": "research",
-      "target": 20,
-      "time_limit_years": 4,
-      "description": "Unlock 20 tech tree nodes in 4 years"
-    },
-    "restrictions": [],
-    "tutorial_recommended": false,
-    "tags": ["expert", "technology", "science"]
-  },
-  {
-    "id": "inheritance",
-    "name": "The Inheritance",
-    "difficulty": "Medium",
-    "description": "Save your grandfather's struggling legacy",
-    "story": "Your grandfather passed away, leaving you his salmon farm—and 30 million NOK in debt. The banks are circling. The pens are aging. The cash flow is negative. You have 50,000 smolt across 5 pens and just 2 million NOK in the account. Pay off the debt and reach profitability—or lose everything your family built.",
+    "id": "lofoten_eventyr",
+    "name": "Nordlands Utfordring",
+    "difficulty": 3,
+    "description": "De harde kystene i Nordland byr på de verste stormene og kaldeste havstrømmene, men laksen her når premiumpriser som sashimi til Japan. Takle uværet og nå et overskudd på 5 000 000 NOK.",
+    "story": "De harde kystene i Nordland byr på de verste stormene og kaldeste havstrømmene, men laksen her når premiumpriser som sashimi til Japan. Takle uværet og nå et overskudd på 5 000 000 NOK.",
     "starting_balance": 2000000,
+    "starting_cash": 2000000,
+    "starting_region": "Nordland",
     "starting_day": 0,
     "starting_sites": [
       {
-        "name": "Old Family Farm North",
-        "zone_id": "fjord_north",
-        "pen_count": 3,
-        "smolt_per_pen": 10000
-      },
-      {
-        "name": "Old Family Farm South",
-        "zone_id": "fjord_south",
-        "pen_count": 2,
-        "smolt_per_pen": 10000
+        "id": "nordland_premium",
+        "name": "Nordland Premium",
+        "zone": "fjord_north",
+        "pens": 2,
+        "smolt_count": 8000,
+        "smolt_quality": "standard"
       }
     ],
-    "starting_debt": 30000000,
+    "starting_debt": 0,
     "starting_research": [],
     "starting_buildings": [],
+    "win_condition": "Profit",
+    "special_rules": {
+      "harsh_storms": "true",
+      "premium_prices": "true",
+      "profit_target": "5000000"
+    },
+    "is_unlocked": true,
+    "goal": {
+      "type": "revenue",
+      "target": 5000000,
+      "time_limit_years": 0,
+      "description": "Nå 5 000 000 NOK i overskudd"
+    },
+    "restrictions": [],
+    "tutorial_recommended": false,
+    "tags": ["intermediate", "storm", "premium"]
+  },
+  {
+    "id": "laksebaronene",
+    "name": "Trønder-krigen",
+    "difficulty": 4,
+    "description": "Tre AI-konkurrenter kjemper om å bli Trøndelags største lakseaktør. Markedskampen er brutal – hvem som helst kan ta markedsandeler, kjøpe lisenser og dumpe priser. Vær den første til å nå 10 000 000 NOK i fortjeneste.",
+    "story": "Tre AI-konkurrenter kjemper om å bli Trøndelags største lakseaktør. Markedskampen er brutal – hvem som helst kan ta markedsandeler, kjøpe lisenser og dumpe priser. Vær den første til å nå 10 000 000 NOK i fortjeneste.",
+    "starting_balance": 5000000,
+    "starting_cash": 5000000,
+    "starting_region": "Trøndelag",
+    "starting_day": 0,
+    "starting_sites": [
+      {
+        "id": "trondelag_base",
+        "name": "Trøndelag Base",
+        "zone": "fjord_west",
+        "pens": 3,
+        "smolt_count": 10000,
+        "smolt_quality": "standard"
+      }
+    ],
+    "starting_debt": 0,
+    "starting_research": [],
+    "starting_buildings": [],
+    "win_condition": "Competition",
+    "special_rules": {
+      "ai_competitors": "3",
+      "profit_target": "10000000"
+    },
+    "is_unlocked": false,
+    "goal": {
+      "type": "revenue",
+      "target": 10000000,
+      "time_limit_years": 0,
+      "description": "Nå 10 000 000 NOK før konkurrentene"
+    },
+    "restrictions": [],
+    "tutorial_recommended": false,
+    "tags": ["expert", "competition", "market"]
+  },
+  {
+    "id": "krise_manager",
+    "name": "Finnmarks Gjenfødsel",
+    "difficulty": 5,
+    "description": "Du tar over et konkursrammet anlegg i Finnmark med et aktivt ILA-utbrudd. 500 000 NOK i gjeld og Mattilsynet har varslet sanksjoner. Overlev i 730 dager og snu selskapet til lønnsomhet.",
+    "story": "Du tar over et konkursrammet anlegg i Finnmark med et aktivt ILA-utbrudd. 500 000 NOK i gjeld og Mattilsynet har varslet sanksjoner. Overlev i 730 dager og snu selskapet til lønnsomhet.",
+    "starting_balance": -500000,
+    "starting_cash": -500000,
+    "starting_region": "Finnmark",
+    "starting_day": 0,
+    "starting_sites": [
+      {
+        "id": "finnmark_turnaround",
+        "name": "Finnmark Turnaround",
+        "zone": "fjord_north",
+        "pens": 2,
+        "smolt_count": 6000,
+        "smolt_quality": "standard"
+      }
+    ],
+    "starting_debt": 500000,
+    "starting_research": [],
+    "starting_buildings": [],
+    "win_condition": "Survival",
+    "special_rules": {
+      "start_disease": "true",
+      "start_debt": "true",
+      "regulation_pressure": "true"
+    },
+    "time_limit_days": 730,
+    "is_unlocked": false,
     "goal": {
       "type": "debt_and_profit",
       "target": 0,
-      "time_limit_years": 5,
-      "description": "Pay off debt and reach profitability"
+      "time_limit_years": 2,
+      "description": "Overlev 730 dager med positiv saldo"
     },
     "restrictions": [],
     "tutorial_recommended": false,
-    "tags": ["intermediate", "challenge", "survival"]
+    "tags": ["expert", "survival", "turnaround"]
+  },
+  {
+    "id": "barekraft_mester",
+    "name": "Lakskongen",
+    "difficulty": 1,
+    "description": "Fri lek – start hvor som helst i Norge uten begrensninger. Bygg ditt lakseimperium fra bunnen av, uten tidspress eller konkurrenter. Målet er å skape den største og mest lønnsomme oppdrettsvirksomheten.",
+    "story": "Fri lek – start hvor som helst i Norge uten begrensninger. Bygg ditt lakseimperium fra bunnen av, uten tidspress eller konkurrenter. Målet er å skape den største og mest lønnsomme oppdrettsvirksomheten.",
+    "starting_balance": 50000000,
+    "starting_cash": 50000000,
+    "starting_region": "Vestland",
+    "starting_day": 0,
+    "starting_sites": [
+      {
+        "id": "lakskongen_hovedanlegg",
+        "name": "Lakskongen Hovedanlegg",
+        "zone": "fjord_west",
+        "pens": 4,
+        "smolt_count": 12000,
+        "smolt_quality": "standard"
+      }
+    ],
+    "starting_debt": 0,
+    "starting_research": [],
+    "starting_buildings": [],
+    "win_condition": "Profit",
+    "special_rules": {
+      "calm_weather": "true",
+      "easy_market": "true",
+      "profit_target": "100000000"
+    },
+    "is_unlocked": false,
+    "goal": {
+      "type": "revenue",
+      "target": 100000000,
+      "time_limit_years": 0,
+      "description": "Nå 100 000 000 NOK i overskudd"
+    },
+    "restrictions": [],
+    "tutorial_recommended": false,
+    "tags": ["freeplay", "empire", "sandbox"]
+  },
+  {
+    "id": "po3_red_sone",
+    "name": "PO3 Rød Sone",
+    "difficulty": 4,
+    "description": "PO3 rød sone: −6 % MTB, lukket containement er eneste vei til miljøfleksibilitet. Overlev i 3 år.",
+    "story": "Produksjonsområde PO3 har gått over til RØDT lys etter lakselustrykk og rømningsrisiko. Mattilsynet og Nærings- og fiskeridepartementet strammer inn: maksimal tillatt biomasse (MTB) kuttes med 6 %. Din eneste vei til 'miljøfleksibilitet' er lukket containement-teknologi (semi-lukket og høyere), som gir biomassekreditt selv i rød sone. Behold lønnsomheten og overlev reguleringsbølgen.",
+    "starting_balance": 12000000,
+    "starting_cash": 12000000,
+    "starting_region": "Trøndelag",
+    "starting_day": 0,
+    "starting_sites": [
+      { "id": "po3_nord", "name": "PO3 Nord", "zone": "po3_nord", "pens": 6, "smolt_count": 12000, "smolt_quality": "robust" },
+      { "id": "po3_sor", "name": "PO3 Sør", "zone": "po3_sor", "pens": 4, "smolt_count": 10000, "smolt_quality": "standard" }
+    ],
+    "starting_debt": 0,
+    "starting_research": ["sensor-networks", "deep-sea-farming"],
+    "starting_buildings": ["ai_feeding"],
+    "win_condition": "Survival",
+    "special_rules": {
+      "red_zone": "true",
+      "mab_reduction": "0.06",
+      "environmental_flexibility": "closed_containment",
+      "regulation_pressure": "true"
+    },
+    "time_limit_days": 1095,
+    "is_unlocked": true,
+    "goal": {
+      "type": "debt_and_profit",
+      "target": 0,
+      "time_limit_years": 3,
+      "description": "Overlev 1095 dager med positiv saldo i rød sone"
+    },
+    "restrictions": [
+      "Rød sone: −6 % MTB på alle åpne anlegg",
+      "Bare lukket containement (semi-lukket eller høyere) kvalifiserer for miljøfleksibilitet"
+    ],
+    "tutorial_recommended": false,
+    "tags": ["regulering", "rød_sone", "containement", "survival"]
+  },
+  {
+    "id": "isa_utbrudd",
+    "name": "ISA-utbruddet",
+    "difficulty": 5,
+    "description": "Aktiv ISA med tvungen nedslaktningssone. Bygg firewalls, krev inn forsikring, redd de friske anleggene.",
+    "story": "SalMar varslet om ILA/ISA ved et anlegg, og Mattilsynet har opprettet bekjempelsessone. Hele det infiserte anlegget må slaktes ut (tvungen nedslaktning). Du må bygge biosikkerhetsbranner (firewalls) mellom sonene, aktivere forsikringsdekning og hindre smitte til nabofelt. Hvert minutt teller — klarer du å slukke brannen?",
+    "starting_balance": 18000000,
+    "starting_cash": 18000000,
+    "starting_region": "Trøndelag",
+    "starting_day": 0,
+    "starting_sites": [
+      { "id": "isa_kjerne", "name": "Infisert kjerneanlegg", "zone": "isa_kjerne", "pens": 4, "smolt_count": 8000, "smolt_quality": "standard" },
+      { "id": "isa_nord", "name": "Nabofelt nord", "zone": "isa_nord", "pens": 6, "smolt_count": 12000, "smolt_quality": "robust" },
+      { "id": "isa_sor", "name": "Nabofelt sør", "zone": "isa_sor", "pens": 6, "smolt_count": 12000, "smolt_quality": "robust" }
+    ],
+    "starting_debt": 0,
+    "starting_research": ["disease-resistance", "sensor-networks"],
+    "starting_buildings": ["hatchery"],
+    "win_condition": "Survival",
+    "special_rules": {
+      "start_disease": "true",
+      "disease_type": "ISA",
+      "mandatory_cull": "true",
+      "firewalls": "true",
+      "insurance": "true",
+      "regulation_pressure": "true"
+    },
+    "time_limit_days": 540,
+    "is_unlocked": true,
+    "goal": {
+      "type": "debt_and_profit",
+      "target": 0,
+      "time_limit_years": 1,
+      "description": "Kontroller utbruddet og overlev 540 dager"
+    },
+    "restrictions": [
+      "Tvungen nedslaktning i bekjempelsessonen",
+      "Biosikkerhetsbranner (firewalls) mellom produksjonsområder",
+      "Forsikringsdekning kreves for utbruddsansvar"
+    ],
+    "tutorial_recommended": false,
+    "tags": ["sykdom", "isa", "krise", "biosecurity"]
+  },
+  {
+    "id": "algekatastrofe",
+    "name": "Algekatastrofen",
+    "difficulty": 5,
+    "description": "1 000 t dødelighet ved én algehend. Tidlig varsling, mitigerende tiltak og forsikring avgjør.",
+    "story": "Høsten rammet Grieg Seafood hardt: et massivt skadelig algeoppblomstring drepte rundt 1 000 tonn laks i ett enkelt hendelsesforløp. Alger tapper oksygenet og skader gjellene. Tidlig varsling fra sensorer, umiddelbar mitigering (boblegardin og O2-tilførsel) og forsikring er forskjellen mellom overlevelse og total tap.",
+    "starting_balance": 25000000,
+    "starting_cash": 25000000,
+    "starting_region": "Nordland",
+    "starting_day": 0,
+    "starting_sites": [
+      { "id": "alge_sor", "name": "Algeutsatt sør", "zone": "alge_sor", "pens": 8, "smolt_count": 14000, "smolt_quality": "standard" },
+      { "id": "alge_midt", "name": "Algeutsatt midt", "zone": "alge_midt", "pens": 8, "smolt_count": 14000, "smolt_quality": "standard" },
+      { "id": "alge_indre", "name": "Innlandsbeskyttet", "zone": "alge_indre", "pens": 5, "smolt_count": 9000, "smolt_quality": "robust" }
+    ],
+    "starting_debt": 0,
+    "starting_research": ["sensor-networks", "predictive-analytics"],
+    "starting_buildings": ["ai_feeding"],
+    "win_condition": "Survival",
+    "special_rules": {
+      "start_bloom": "true",
+      "early_warning": "true",
+      "mitigation": "true",
+      "insurance": "true"
+    },
+    "time_limit_days": 365,
+    "is_unlocked": true,
+    "goal": {
+      "type": "debt_and_profit",
+      "target": 0,
+      "time_limit_years": 1,
+      "description": "Overlev én algesesong med positiv saldo"
+    },
+    "restrictions": [
+      "Tidligvarslingssystem for alger påkrevd",
+      "Mitigerende tiltak (boblegardin/O2) må være operative",
+      "Katastrofeforsikring kreves"
+    ],
+    "tutorial_recommended": false,
+    "tags": ["alger", "bloom", "katastrofe", "forsikring"]
+  },
+  {
+    "id": "ressursrente",
+    "name": "Ressursrente-overgangen",
+    "difficulty": 3,
+    "description": "25 % grunnrenteskatt med 70 MNOK grunnfradrag. Restrukturer for lønnsomhet under det nye regimet.",
+    "story": "Den nye grunnrentebeskatningen er vedtatt: 25 % kontantstrømskatt på havbruk, med et standardfradrag (grunnfradrag) på 70 millioner kroner. Små og mellomstore aktører kan vokse skattefritt under fradraget, men hver krone over 70 MNOK blir dramatisk mindre verdt. Omstrukturer, invester i verdikjeden og lever lønnsomt i det nye skattelandskapet.",
+    "starting_balance": 60000000,
+    "starting_cash": 60000000,
+    "starting_region": "Vestland",
+    "starting_day": 0,
+    "starting_sites": [
+      { "id": "vest_1", "name": "Hovedanlegg vest", "zone": "vest_1", "pens": 8, "smolt_count": 15000, "smolt_quality": "postsmolt" },
+      { "id": "vest_2", "name": "Vekstanlegg nord", "zone": "vest_2", "pens": 8, "smolt_count": 15000, "smolt_quality": "postsmolt" },
+      { "id": "vest_3", "name": "Utvidelse sør", "zone": "vest_3", "pens": 6, "smolt_count": 12000, "smolt_quality": "robust" }
+    ],
+    "starting_debt": 0,
+    "starting_research": ["international-export", "value-added-processing"],
+    "starting_buildings": ["processing_plant", "feed_mill"],
+    "win_condition": "Profit",
+    "special_rules": {
+      "resource_rent_tax": "0.25",
+      "standard_deduction": "70000000",
+      "profit_target": "25000000"
+    },
+    "is_unlocked": true,
+    "goal": {
+      "type": "revenue",
+      "target": 25000000,
+      "time_limit_years": 0,
+      "description": "Nå 25 000 000 NOK i overskudd under grunnrenteregimet"
+    },
+    "restrictions": [
+      "25 % grunnrenteskatt på kontantstrøm",
+      "70 MNOK standardfradrag (grunnfradrag) deles på tvers av virksomheten"
+    ],
+    "tutorial_recommended": false,
+    "tags": ["skatt", "grunnrente", "finans", "profit"]
   }
 ]

@@ -97,7 +97,7 @@ namespace LakskongenSim.Health
         /// The method reduces lice, and reduces infected fraction proportionally to lice reduction
         /// and a direct treatment efficacy (simulates medicinal treatment).
         /// </summary>
-        public void ApplyTreatment(FishPopulation pop, double reductionFraction, double directTreatmentEfficacy, double temperatureC)
+        public void ApplyTreatment(FishPopulation pop, string treatmentType, double reductionFraction, double directTreatmentEfficacy, double temperatureC)
         {
             if (reductionFraction < 0) reductionFraction = 0;
             if (reductionFraction > 1) reductionFraction = 1;
@@ -110,7 +110,7 @@ namespace LakskongenSim.Health
 
             // apply to lice model
             var effectiveReduction = reductionFraction * tempModifier;
-            _liceModel.ApplyTreatment(effectiveReduction);
+            _liceModel.ApplyTreatment(treatmentType, effectiveReduction);
 
             // reduce infected fraction: two effects - via lice (less susceptibility) and direct treatment
             if (!_infected.TryGetValue(pop, out var p)) p = 0.0;

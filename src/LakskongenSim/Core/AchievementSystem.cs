@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.IO;
 
 namespace LakskongenSim.Core
@@ -111,7 +112,10 @@ namespace LakskongenSim.Core
 
                 if (!Enum.TryParse<AchievementTier>(def.Tier, true, out var tierEnum))
                 {
-                    Console.Error.WriteLine($"WARNING: Invalid tier '{def.Tier}' for achievement '{def.Id}'. Defaulting to Beginner.");
+                    // Config carries no tier field — default silently; warn
+                    // only for genuinely unrecognized tier strings.
+                    if (!string.IsNullOrWhiteSpace(def.Tier))
+                        Console.Error.WriteLine($"WARNING: Invalid tier '{def.Tier}' for achievement '{def.Id}'. Defaulting to Beginner.");
                     tierEnum = AchievementTier.Beginner;
                 }
 
@@ -153,7 +157,12 @@ namespace LakskongenSim.Core
         public string Category { get; set; } = ""; // New
         public bool Hidden { get; set; } = false; // New
         public string Tier { get; set; } = ""; // As string for deserialization
+        [JsonPropertyName("reward_nok")]
         public decimal RewardNOK { get; set; }
+        // Config file uses snake_case "condition_key" — map explicitly
+        // (case-insensitive matching alone does not bridge underscores,
+        // which left every ConditionKey empty and all lookups failing).
+        [JsonPropertyName("condition_key")]
         public string ConditionKey { get; set; } = ""; // Key to lookup Func<GameState, bool>
     }
 
@@ -277,7 +286,57 @@ namespace LakskongenSim.Core
                 }
             },
             {"SpeedrunMillionaire", gs => gs.Balance >= 2_000_000m && gs.Day < 500},
-            {"BankruptcyRecovery", gs => gs.MinimumBalanceEver < 0 && gs.Balance >= 1_000_000m}
+            {"BankruptcyRecovery", gs => gs.MinimumBalanceEver < 0 && gs.Balance >= 1_000_000m},
+
+            // ── Wave 7 depth-system achievements ──────────────────────────────
+            // Self-insured: all four catastrophe perils have paid out at least
+            // once, which implies full cover was carried across mortality,
+            // bloom, storm and ISA risk. GameState does not expose live policy
+            // state, so the payout ledger is the observable proxy.
+            {"AllCatastrophePoliciesActive", gs =>
+                {
+                    string[] kinds = { "mortality", "bloom", "storm", "isa" };
+                    foreach (var kind in kinds)
+                    {
+                        bool covered = false;
+                        for (int i = gs.EventLog.Count - 1; i >= 0; i--)
+                        {
+                            if (gs.EventLog[i].Id == $"insurance-{kind}") { covered = true; break; }
+                        }
+                        if (!covered) return false;
+                    }
+                    return true;
+                }
+            },
+            // Closed loop: a site was upgraded into closed containment from a
+            // red traffic-light zone and claimed the environmental-flexibility
+            // biomass credit.
+            {"ClosedLoopUpgrade", gs =>
+                gs.SeaSites.Any(s => s.IsClosedContainment && s.RedZoneCreditApplied)
+            },
+            // Genomicist: broodstock has advanced at least two generations,
+            // i.e. genomic selection has been applied across breeding cycles.
+            {"GenomicSelectionCompleted", gs => gs.Broodstock.Any(g => g.Generation >= 2)},
+            // Weatherproof: mitigated bloom event survived while solvent.
+            {"WeatherproofBloom", gs =>
+                gs.SeaSites.Any(s => s.HasBubbleCurtain || s.HasO2Diffuser) &&
+                gs.EventLog.Any(e => e.Id == "algal-bloom-toxic" || e.Id == "weather-algal-bloom" || e.Id == "algal-bloom") &&
+                gs.DailySnapshots.Count > 0 && gs.DailySnapshots.Last().BalanceNok > 0.0
+            },
+            // Tax planner: profitable under the resource-rent transition campaign.
+            {"ResourceRentProfitable", gs =>
+                gs.ActiveScenarioId != null &&
+                gs.ActiveScenarioId.ToLowerInvariant().Contains("ressursrente") &&
+                gs.DailySnapshots.Count > 0 && gs.DailySnapshots.Last().BalanceNok > 0.0
+            },
+            // Precision: world-class feed conversion (P6).
+            {"PrecisionFCR", gs => gs.BestFCR > 0.0 && gs.BestFCR <= 1.12},
+            // SuperSmolt: a post-smolt facility is operating.
+            {"SuperSmoltStocked", gs => gs.PostSmoltFacilities.Count > 0},
+            // Bloom Ready: at least one site has bloom countermeasures installed.
+            {"BloomMitigationInstalled", gs =>
+                gs.SeaSites.Any(s => s.HasBubbleCurtain || s.HasO2Diffuser)
+            }
         };
     }
     #pragma warning restore CS0618

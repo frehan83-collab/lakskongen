@@ -6,15 +6,23 @@ extends MeshInstance3D
 @export var wave_height: float = 0.3
 @export var wave_frequency: float = 0.5
 
+## Throttle for the CPU mesh rebuild (SurfaceTool commit every frame is
+## too expensive). The vertex waves update at this interval instead.
+@export var rebuild_interval: float = 0.25
+
 var time: float = 0.0
 var original_vertices: PackedVector3Array = []
+var _rebuild_accum: float = 0.0
 
 func _ready() -> void:
 	_cache_original_vertices()
 
 func _process(delta: float) -> void:
 	time += delta * wave_speed
-	_animate_water()
+	_rebuild_accum += delta
+	if _rebuild_accum >= rebuild_interval:
+		_rebuild_accum = 0.0
+		_animate_water()
 
 func _cache_original_vertices() -> void:
 	if mesh == null:

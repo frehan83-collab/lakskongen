@@ -1,0 +1,449 @@
+[gd_scene load_steps=9 format=3 uid="uid://mappanel_scene_01"]
+
+[ext_resource type="Script" path="res://scripts/ui/MapPanel.gd" id="1_mappanel"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_bg"]
+bg_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_map_area"]
+bg_color = Color(0.92549, 0.937255, 0.956863, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_detail"]
+bg_color = Color(0.972549, 0.976471, 0.984314, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_close_normal"]
+bg_color = Color(0.74902, 0.380392, 0.415686, 0.12)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.74902, 0.380392, 0.415686, 0.55)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+content_margin_left = 16.0
+content_margin_top = 10.0
+content_margin_right = 16.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_close_hover"]
+bg_color = Color(0.74902, 0.380392, 0.415686, 0.26)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.74902, 0.380392, 0.415686, 0.55)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+content_margin_left = 16.0
+content_margin_top = 10.0
+content_margin_right = 16.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_confirm_normal"]
+bg_color = Color(0.0392157, 0.301961, 0.407843, 0.12)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0392157, 0.301961, 0.407843, 0.55)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+content_margin_left = 16.0
+content_margin_top = 10.0
+content_margin_right = 16.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_confirm_hover"]
+bg_color = Color(0.0392157, 0.301961, 0.407843, 0.26)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.0392157, 0.301961, 0.407843, 0.55)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+content_margin_left = 16.0
+content_margin_top = 10.0
+content_margin_right = 16.0
+content_margin_bottom = 10.0
+
+[node name="MapPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_mappanel")
+
+[node name="Overlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.18, 0.2, 0.25, 0.6)
+
+[node name="Outer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 50
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 50
+theme_override_constants/margin_bottom = 50
+
+[node name="PanelBg" type="PanelContainer" parent="Outer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel_bg")
+
+[node name="RootVBox" type="VBoxContainer" parent="Outer/PanelBg"]
+layout_mode = 2
+
+[node name="Header" type="HBoxContainer" parent="Outer/PanelBg/RootVBox"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+
+[node name="HeaderMargin" type="MarginContainer" parent="Outer/PanelBg/RootVBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 12
+
+[node name="HeaderInner" type="HBoxContainer" parent="Outer/PanelBg/RootVBox/Header/HeaderMargin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="MapIcon" type="Label" parent="Outer/PanelBg/RootVBox/Header/HeaderMargin/HeaderInner"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "🗺️"
+
+[node name="TitleLabel" type="Label" parent="Outer/PanelBg/RootVBox/Header/HeaderMargin/HeaderInner"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 20
+text = "SELECT REGION — NORWEGIAN COASTLINE"
+
+[node name="SubtitleLabel" type="Label" parent="Outer/PanelBg/RootVBox/Header/HeaderMargin/HeaderInner"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 13
+text = "Velg region"
+
+[node name="CloseBtn" type="Button" parent="Outer/PanelBg/RootVBox/Header/HeaderMargin/HeaderInner"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+tooltip_text = "Lukk kartpanelet (Esc)"
+theme_override_colors/font_color = Color(0.74902, 0.380392, 0.415686, 1)
+theme_override_colors/font_hover_color = Color(0.8, 0.5, 0.53, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_close_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_close_hover")
+text = "✕"
+
+[node name="HeaderSep" type="HSeparator" parent="Outer/PanelBg/RootVBox"]
+layout_mode = 2
+
+[node name="Body" type="HBoxContainer" parent="Outer/PanelBg/RootVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="MapArea" type="PanelContainer" parent="Outer/PanelBg/RootVBox/Body"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_map_area")
+
+[node name="MapMargin" type="MarginContainer" parent="Outer/PanelBg/RootVBox/Body/MapArea"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="MapContainer" type="Control" parent="Outer/PanelBg/RootVBox/Body/MapArea/MapMargin"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="MapTitle" type="Label" parent="Outer/PanelBg/RootVBox/Body/MapArea/MapMargin/MapContainer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 4.0
+offset_right = -4.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "Norge"
+
+[node name="CompassLabel" type="Label" parent="Outer/PanelBg/RootVBox/Body/MapArea/MapMargin/MapContainer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.0392157, 0.301961, 0.407843, 1)
+theme_override_font_sizes/font_size = 13
+text = "N ↑"
+
+[node name="BodySep" type="VSeparator" parent="Outer/PanelBg/RootVBox/Body"]
+layout_mode = 2
+
+[node name="DetailPanel" type="PanelContainer" parent="Outer/PanelBg/RootVBox/Body"]
+custom_minimum_size = Vector2(340, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_detail")
+
+[node name="DetailScroll" type="ScrollContainer" parent="Outer/PanelBg/RootVBox/Body/DetailPanel"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="DetailVBox" type="VBoxContainer" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="DetailMargin" type="MarginContainer" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="DetailInner" type="VBoxContainer" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="NameRow" type="HBoxContainer" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="DetailIcon" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/NameRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "🗺️"
+
+[node name="NameCol" type="VBoxContainer" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/NameRow"]
+layout_mode = 2
+
+[node name="DetailName" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/NameRow/NameCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 20
+text = "Velg region"
+
+[node name="DetailZone" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/NameRow/NameCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 13
+text = "Klikk på kartet"
+
+[node name="Sep1" type="HSeparator" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner"]
+layout_mode = 2
+
+[node name="DetailDesc" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
+theme_override_font_sizes/font_size = 14
+text = "Regionbeskrivelse"
+autowrap_mode = 3
+
+[node name="Sep2" type="HSeparator" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner"]
+layout_mode = 2
+
+[node name="StatsGrid" type="GridContainer" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner"]
+layout_mode = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="KeyLicences" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "AVAILABLE LICENCES"
+
+[node name="DetailLicenses" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
+theme_override_font_sizes/font_size = 14
+text = "—"
+
+[node name="KeyDistance" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "DISTANCE TO PROCESSING"
+
+[node name="DetailDistance" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
+theme_override_font_sizes/font_size = 14
+text = "—"
+
+[node name="KeyHub" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "PROCESSING HUB"
+
+[node name="DetailProcessing" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
+theme_override_font_sizes/font_size = 14
+text = "—"
+
+[node name="KeyHarvest" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "ANNUAL HARVEST"
+
+[node name="DetailHarvest" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
+theme_override_font_sizes/font_size = 14
+text = "—"
+
+[node name="KeyOperators" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "KEY OPERATORS"
+
+[node name="DetailOperators" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
+theme_override_font_sizes/font_size = 14
+text = "—"
+autowrap_mode = 3
+
+[node name="Sep3" type="HSeparator" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner"]
+layout_mode = 2
+
+[node name="TempSection" type="VBoxContainer" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TempHeader" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/TempSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "WATER TEMPERATURE RANGE"
+
+[node name="DetailTemp" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/TempSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0392157, 0.301961, 0.407843, 1)
+theme_override_font_sizes/font_size = 15
+text = "—"
+
+[node name="TempBarSlot" type="Control" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/TempSection"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="OptimalLabel" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/TempSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "Optimal: 12–16 °C  |  Max tolerance: 20 °C"
+
+[node name="Sep4" type="HSeparator" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner"]
+layout_mode = 2
+
+[node name="RiskSection" type="VBoxContainer" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="RiskHeader" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/RiskSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "DISEASE RISK"
+
+[node name="RiskRow" type="HBoxContainer" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/RiskSection"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="DetailRiskIndicator" type="ColorRect" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/RiskSection/RiskRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+color = Color(0.482353, 0.529412, 0.580392, 1)
+
+[node name="DetailRiskLabel" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/RiskSection/RiskRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
+theme_override_font_sizes/font_size = 15
+text = "—"
+
+[node name="DiseaseDetails" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/RiskSection"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 3
+
+[node name="Sep5" type="HSeparator" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner"]
+layout_mode = 2
+
+[node name="ConfirmBtn" type="Button" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Velg denne regionen for å plassere et nytt sjøanlegg (Enter)"
+theme_override_colors/font_color = Color(0.0392157, 0.301961, 0.407843, 1)
+theme_override_colors/font_hover_color = Color(0.05, 0.36, 0.49, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_confirm_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_confirm_hover")
+disabled = true
+text = "  SELECT THIS REGION  "

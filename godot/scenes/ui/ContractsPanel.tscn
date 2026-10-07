@@ -1,9 +1,641 @@
-[gd_scene load_steps=2 format=3 uid="uid://"]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/ContractsPanel.gd" id="1_contracts"]
 
-[node name="ContractsPanel" type="PanelContainer"]
-custom_minimum_size = Vector2(600, 700)
-offset_right = 600.0
-offset_bottom = 700.0
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.898039, 0.913725, 0.941176, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
+bg_color = Color(1, 1, 1, 1)
+border_width_bottom = 1
+border_color = Color(0.898039, 0.913725, 0.941176, 1)
+content_margin_left = 20.0
+content_margin_top = 14.0
+content_margin_right = 20.0
+content_margin_bottom = 14.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_primary"]
+bg_color = Color(0.0392157, 0.301961, 0.407843, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_light"]
+bg_color = Color(0.972549, 0.976471, 0.984314, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.847059, 0.870588, 0.913725, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+
+[node name="ContractsPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_contracts")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.92549, 0.937255, 0.956863, 0.82)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="MainScroll" type="ScrollContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RootVBox" type="VBoxContainer" parent="Margin/MainScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="HeaderBar" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Margin/MainScroll/RootVBox/HeaderBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 24
+text = "📈 Marked & Handel"
+
+[node name="BtnNewContract" type="Button" parent="Margin/MainScroll/RootVBox/HeaderBar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_primary")
+text = "📝 Ny kontrakt"
+
+[node name="BtnSellSpot" type="Button" parent="Margin/MainScroll/RootVBox/HeaderBar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("StyleBoxFlat_btn_light")
+text = "📦 Selg spot"
+
+[node name="KpiStrip" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="KpiSpot" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiSpot"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiSpot/VBox"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.639216, 0.745098, 0.54902, 1)
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiSpot/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "SPOTPRIS (NASDAQ)"
+
+[node name="KpiSpotValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiSpot/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 22
+text = "--"
+
+[node name="KpiContract" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiContract"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiContract/VBox"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.74902, 0.380392, 0.415686, 1)
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiContract/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "KONTRAKTPRIS (SNITT)"
+
+[node name="KpiContractValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiContract/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 22
+text = "--"
+
+[node name="KpiVolume" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiVolume"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiVolume/VBox"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.368627, 0.505882, 0.67451, 1)
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiVolume/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "TILGJENGELIG VOLUM"
+
+[node name="KpiVolumeValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiVolume/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 22
+text = "--"
+
+[node name="KpiOpen" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiOpen"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiOpen/VBox"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.921569, 0.796078, 0.545098, 1)
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiOpen/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "ÅPNE KONTRAKTER"
+
+[node name="KpiOpenValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiOpen/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 22
+text = "--"
+
+[node name="MidRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ChartCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="ChartTitle" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "💹 Prisutvikling (12 uker)"
+
+[node name="ChartBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PriceChart" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody"]
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 2
+
+[node name="PriceBar1" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 82)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="PriceBar2" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="PriceBar3" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 87)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="PriceBar4" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="PriceBar5" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 81)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="PriceBar6" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="PriceBar7" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 67)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+color = Color(0.74902, 0.380392, 0.415686, 1)
+
+[node name="PriceBar8" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 75)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="PriceBar9" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 93)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+color = Color(0.533333, 0.752941, 0.815686, 1)
+
+[node name="PriceBar10" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 102)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+color = Color(0.639216, 0.745098, 0.54902, 1)
+
+[node name="PriceBar11" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 108)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+color = Color(0.639216, 0.745098, 0.54902, 1)
+
+[node name="PriceBar12" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 123)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+color = Color(0.639216, 0.745098, 0.54902, 1)
+
+[node name="PriceLabels" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="L1" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 9
+text = "U1"
+horizontal_alignment = 1
+
+[node name="L2" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 9
+text = "U2"
+horizontal_alignment = 1
+
+[node name="L3" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 9
+text = "U3"
+horizontal_alignment = 1
+
+[node name="L4" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 9
+text = "U4"
+horizontal_alignment = 1
+
+[node name="L5" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 9
+text = "U5"
+horizontal_alignment = 1
+
+[node name="L6" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 9
+text = "U6"
+horizontal_alignment = 1
+
+[node name="L7" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 9
+text = "U7"
+horizontal_alignment = 1
+
+[node name="L8" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 9
+text = "U8"
+horizontal_alignment = 1
+
+[node name="L9" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 9
+text = "U9"
+horizontal_alignment = 1
+
+[node name="L10" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 9
+text = "U10"
+horizontal_alignment = 1
+
+[node name="L11" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 9
+text = "U11"
+horizontal_alignment = 1
+
+[node name="L12" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 9
+text = "U12"
+horizontal_alignment = 1
+
+[node name="SummaryRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="SumLoBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumLoBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "LAV (12U)"
+horizontal_alignment = 1
+
+[node name="SumLo" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumLoBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 16
+text = "--"
+horizontal_alignment = 1
+
+[node name="SumAvgBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumAvgBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "SNITT (12U)"
+horizontal_alignment = 1
+
+[node name="SumAvg" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumAvgBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 16
+text = "--"
+horizontal_alignment = 1
+
+[node name="SumHiBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumHiBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "HØY (12U)"
+horizontal_alignment = 1
+
+[node name="SumHi" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumHiBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 16
+text = "--"
+horizontal_alignment = 1
+
+[node name="SumTrendBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumTrendBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 11
+text = "TREND"
+horizontal_alignment = 1
+
+[node name="SumTrend" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumTrendBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 16
+text = "--"
+horizontal_alignment = 1
+
+[node name="BuyersCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="BuyersTitle" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "🏢 Kjøpere"
+
+[node name="BuyersBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BuyersContainer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer/BuyersBody"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="BotRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ContractsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="ContractsTitle" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "📋 Kontrakter"
+
+[node name="ContractsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ContractsContainer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer/ContractsBody"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="RegionsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/RegionsCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow/RegionsCard/Outer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="RegionsTitle" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/RegionsCard/Outer/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 15
+text = "🌍 Markedsregioner"
+
+[node name="RegionsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/RegionsCard/Outer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="RegionsGrid" type="GridContainer" parent="Margin/MainScroll/RootVBox/BotRow/RegionsCard/Outer/RegionsBody"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10

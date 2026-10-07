@@ -1,93 +1,52 @@
 extends Control
 
-## SaveLoadMenu v2.0 — Nordic Minimalist, fully programmatic.
+## SaveLoadMenu v2.1 — Nordic Minimalist (scene-based).
+## Layout lives in scenes/ui/SaveLoadMenu.tscn; script is wiring only:
+## @onready % refs, signal hookups, slot refresh, localization.
+## Dynamic content (save slots) is still built in code from SaveLoadManager.
 
 signal close_requested
 signal game_loaded(slot_name: String)
 signal game_saved(slot_name: String)
 
 var _mode: String = "load"  # "save" or "load"
-var _slots_container: VBoxContainer
-var _title_label: Label
+
+@onready var _title_label: Label = %TitleLabel
+@onready var _close_button: Button = %CloseButton
+@onready var _slots_container: VBoxContainer = %SlotsContainer
+@onready var _new_save_button: Button = %NewSaveButton
 
 func _ready() -> void:
-	_build_ui()
+	_apply_localization()
+	_close_button.pressed.connect(func(): close_requested.emit(); hide())
+	_new_save_button.pressed.connect(_on_new_save)
 	hide()
 
-func _build_ui() -> void:
-	for child in get_children():
-		child.queue_free()
+func _apply_localization() -> void:
+	_update_title_text()
+	_new_save_button.text = _tr_or("UI_SAVELOAD_NEW_SAVE", "💾 Nytt Lagringspunkt")
 
-	var overlay = ColorRect.new()
-	overlay.color = Color(0.18, 0.20, 0.25, 0.65)
-	overlay.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	overlay.mouse_filter = MOUSE_FILTER_STOP
-	add_child(overlay)
-
-	var panel = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(600, 450)
-	panel.anchor_left = 0.5; panel.anchor_right = 0.5
-	panel.anchor_top = 0.5; panel.anchor_bottom = 0.5
-	panel.offset_left = -300; panel.offset_right = 300
-	panel.offset_top = -225; panel.offset_bottom = 225
-	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color("#FFFFFF")
-	sb.set_corner_radius_all(12)
-	sb.set_content_margin_all(20)
-	panel.add_theme_stylebox_override("panel", sb)
-	add_child(panel)
-
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 12)
-	panel.add_child(vbox)
-
-	# Header
-	var header = HBoxContainer.new()
-	vbox.add_child(header)
-	_title_label = Label.new()
-	_title_label.text = tr("UI_SAVELOAD_TITLE_LOAD") if tr("UI_SAVELOAD_TITLE_LOAD") != "ui.saveload.title_load" else "Last Spill"
-	_title_label.add_theme_font_size_override("font_size", 22)
-	_title_label.add_theme_color_override("font_color", Color("#2E3440"))
-	_title_label.size_flags_horizontal = SIZE_EXPAND_FILL
-	header.add_child(_title_label)
-	var close_btn = Button.new()
-	close_btn.text = "✕"
-	close_btn.pressed.connect(func(): close_requested.emit(); hide())
-	header.add_child(close_btn)
-
-	# Scroll + slots
-	var scroll = ScrollContainer.new()
-	scroll.size_flags_vertical = SIZE_EXPAND_FILL
-	vbox.add_child(scroll)
-	_slots_container = VBoxContainer.new()
-	_slots_container.size_flags_horizontal = SIZE_EXPAND_FILL
-	_slots_container.add_theme_constant_override("separation", 8)
-	scroll.add_child(_slots_container)
-
-	# New save button (only shown in save mode)
-	var new_save_btn = Button.new()
-	new_save_btn.text = tr("UI_SAVELOAD_NEW_SAVE") if tr("UI_SAVELOAD_NEW_SAVE") != "ui.saveload.new_save" else "💾 Nytt Lagringspunkt"
-	new_save_btn.name = "NewSaveButton"
-	var btn_sb = StyleBoxFlat.new()
-	btn_sb.bg_color = Color("#0A4D68")
-	btn_sb.set_corner_radius_all(4)
-	btn_sb.set_content_margin_all(10)
-	new_save_btn.add_theme_stylebox_override("normal", btn_sb)
-	new_save_btn.add_theme_color_override("font_color", Color.WHITE)
-	new_save_btn.pressed.connect(_on_new_save)
-	vbox.add_child(new_save_btn)
+func _tr_or(key: String, fallback: String) -> String:
+	var t := tr(key)
+	return t if t != key else fallback
 
 func show_load() -> void:
 	_mode = "load"
-	if _title_label: _title_label.text = tr("UI_SAVELOAD_TITLE_LOAD") if tr("UI_SAVELOAD_TITLE_LOAD") != "ui.saveload.title_load" else "Last Spill"
+	_update_title_text()
 	_refresh_slots()
 	show()
 
 func show_save() -> void:
 	_mode = "save"
-	if _title_label: _title_label.text = tr("UI_SAVELOAD_TITLE_SAVE") if tr("UI_SAVELOAD_TITLE_SAVE") != "ui.saveload.title_save" else "Lagre Spill"
+	_update_title_text()
 	_refresh_slots()
 	show()
+
+func _update_title_text() -> void:
+	if _mode == "save":
+		_title_label.text = _tr_or("UI_SAVELOAD_TITLE_SAVE", "Lagre Spill")
+	else:
+		_title_label.text = _tr_or("UI_SAVELOAD_TITLE_LOAD", "Last Spill")
 
 func _refresh_slots() -> void:
 	if not _slots_container: return
@@ -96,8 +55,8 @@ func _refresh_slots() -> void:
 
 	var save_mgr = get_node_or_null("/root/SaveLoadManager")
 	if not save_mgr:
-		var lbl = Label.new()
-		lbl.text = tr("UI_SAVELOAD_MANAGER_UNAVAILABLE") if tr("UI_SAVELOAD_MANAGER_UNAVAILABLE") != "ui.saveload.manager_unavailable" else "SaveLoadManager ikke tilgjengelig"
+		var lbl := Label.new()
+		lbl.text = _tr_or("UI_SAVELOAD_MANAGER_UNAVAILABLE", "SaveLoadManager ikke tilgjengelig")
 		lbl.add_theme_color_override("font_color", Color("#7B8794"))
 		_slots_container.add_child(lbl)
 		return
@@ -107,13 +66,26 @@ func _refresh_slots() -> void:
 		saves = save_mgr.get_save_list()
 
 	if saves.is_empty():
-		var lbl = Label.new()
-		var empty_text = tr("UI_SAVELOAD_EMPTY_LOAD") if tr("UI_SAVELOAD_EMPTY_LOAD") != "ui.saveload.empty_load" else "Ingen lagrede spill funnet"
+		var empty_vbox := VBoxContainer.new()
+		empty_vbox.add_theme_constant_override("separation", 4)
+		var lbl := Label.new()
+		var empty_text := _tr_or("UI_SAVELOAD_EMPTY_LOAD", "Ingen lagrede spill funnet")
 		if _mode == "save":
-			empty_text = tr("UI_SAVELOAD_EMPTY_SAVE") if tr("UI_SAVELOAD_EMPTY_SAVE") != "ui.saveload.empty_save" else "Ingen eksisterende lagringer"
-		lbl.text = empty_text
+			empty_text = _tr_or("UI_SAVELOAD_EMPTY_SAVE", "Ingen eksisterende lagringer")
+		lbl.text = "💾 " + empty_text
 		lbl.add_theme_color_override("font_color", Color("#7B8794"))
-		_slots_container.add_child(lbl)
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		empty_vbox.add_child(lbl)
+		var hint := Label.new()
+		if _mode == "save":
+			hint.text = _tr_or("UI_SAVELOAD_EMPTY_SAVE_HINT", "Trykk «Nytt Lagringspunkt» for å sikre framgangen din.")
+		else:
+			hint.text = _tr_or("UI_SAVELOAD_EMPTY_LOAD_HINT", "Start et nytt spill fra hovedmenyen for å komme i gang.")
+		hint.add_theme_font_size_override("font_size", 12)
+		hint.add_theme_color_override("font_color", Color("#7B8794"))
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		empty_vbox.add_child(hint)
+		_slots_container.add_child(empty_vbox)
 		return
 
 	for save_info in saves:
@@ -121,8 +93,8 @@ func _refresh_slots() -> void:
 		_slots_container.add_child(slot)
 
 func _create_slot(save_info) -> PanelContainer:
-	var slot = PanelContainer.new()
-	var sb = StyleBoxFlat.new()
+	var slot := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color("#F8F9FB")
 	sb.border_color = Color("#D8DEE9")
 	sb.set_border_width_all(1)
@@ -130,32 +102,32 @@ func _create_slot(save_info) -> PanelContainer:
 	sb.set_content_margin_all(12)
 	slot.add_theme_stylebox_override("panel", sb)
 
-	var hbox = HBoxContainer.new()
+	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 12)
 	slot.add_child(hbox)
 
-	var info_vbox = VBoxContainer.new()
+	var info_vbox := VBoxContainer.new()
 	info_vbox.size_flags_horizontal = SIZE_EXPAND_FILL
 	hbox.add_child(info_vbox)
 
-	var name_lbl = Label.new()
+	var name_lbl := Label.new()
 	var slot_name = save_info.get("name", "Unknown") if save_info is Dictionary else str(save_info)
 	name_lbl.text = slot_name
 	name_lbl.add_theme_font_size_override("font_size", 16)
 	name_lbl.add_theme_color_override("font_color", Color("#2E3440"))
 	info_vbox.add_child(name_lbl)
 
-	var details = Label.new()
+	var details := Label.new()
 	var day = save_info.get("day", "?") if save_info is Dictionary else "?"
-	var day_fmt = tr("UI_SAVELOAD_DAY_FORMAT") if tr("UI_SAVELOAD_DAY_FORMAT") != "ui.saveload.day_format" else "Dag %s"
+	var day_fmt := _tr_or("UI_SAVELOAD_DAY_FORMAT", "Dag %s")
 	details.text = day_fmt % str(day)
 	details.add_theme_font_size_override("font_size", 12)
 	details.add_theme_color_override("font_color", Color("#7B8794"))
 	info_vbox.add_child(details)
 
-	var action_btn = Button.new()
-	var load_text = tr("UI_SAVELOAD_LOAD") if tr("UI_SAVELOAD_LOAD") != "ui.saveload.load" else "Last"
-	var save_text = tr("UI_SAVELOAD_SAVE") if tr("UI_SAVELOAD_SAVE") != "ui.saveload.save" else "Lagre"
+	var action_btn := Button.new()
+	var load_text := _tr_or("UI_SAVELOAD_LOAD", "Last")
+	var save_text := _tr_or("UI_SAVELOAD_SAVE", "Lagre")
 	action_btn.text = load_text if _mode == "load" else save_text
 	action_btn.pressed.connect(func(): _on_slot_action(slot_name))
 	hbox.add_child(action_btn)
@@ -169,11 +141,18 @@ func _on_slot_action(slot_name: String) -> void:
 		if save_mgr.has_method("load_game"):
 			save_mgr.load_game(slot_name)
 		game_loaded.emit(slot_name)
+		_toast(_tr_or("UI_TOAST_LOADED", "💾 Lagring lastet: %s") % slot_name, "SUCCESS")
 	else:
 		if save_mgr.has_method("save_game"):
 			save_mgr.save_game(slot_name)
 		game_saved.emit(slot_name)
+		_toast(_tr_or("UI_TOAST_SAVED", "💾 Spill lagret: %s") % slot_name, "SUCCESS")
 	hide()
+
+func _toast(message: String, level: String = "INFO") -> void:
+	var mgr := get_node_or_null("/root/ToastNotification")
+	if mgr and mgr.has_method("show_toast"):
+		mgr.show_toast(message, level, 4.0)
 
 func _on_new_save() -> void:
 	var save_mgr = get_node_or_null("/root/SaveLoadManager")
@@ -181,4 +160,5 @@ func _on_new_save() -> void:
 		var ts = Time.get_datetime_string_from_system().replace(":", "-")
 		save_mgr.save_game("save_%s" % ts)
 		game_saved.emit("save_%s" % ts)
+		_toast(_tr_or("UI_TOAST_SAVED", "💾 Spill lagret: %s") % ("save_%s" % ts), "SUCCESS")
 	_refresh_slots()

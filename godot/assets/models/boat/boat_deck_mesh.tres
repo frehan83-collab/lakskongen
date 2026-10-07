@@ -1,0 +1,5 @@
+[gd_resource type="PrimitiveMesh" load_steps=1 format=3 uid="uid://boat_deck_mesh_001"]
+
+[resource]
+type = "BoxMesh"
+size = Vector3(9.0, 0.3, 12.0)
