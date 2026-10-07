@@ -55,7 +55,7 @@ namespace LakskongenSim.Farm
             
             // Default economic parameters
             LicenseCostPerTon = 5000m;
-            FeedCostPerKg = 15m;
+            FeedCostPerKg = LakskongenSim.Calibration.CalibrationRegistry.Default.Feed.FeedPricePerKgFeedNOK;
             LaborCostPerMonth = 150000m;
             MarketPriceBonus = 0m;
         }

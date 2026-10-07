@@ -1150,7 +1150,7 @@ private class BalancingConfig
             // ─── Economy ───
             public decimal StartingCapital { get; set; } = 10_000_000;
             public decimal SmoltCostPerFish { get; set; } = 12; // ↓ from 15 (competitive smolt price)
-            public decimal FeedCostPerKgNOK { get; set; } = 13.5m; // ↑ from 12.5 (realistic 2024)
+            public decimal FeedCostPerKgNOK { get; set; } = 22.3m; // mirrors CalibrationRegistry feed price (SSOT); overwritten by FromRegistry()
             public decimal BaseSalmonPricePerKg { get; set; } = 75; // ↑ from 70 (strong market)
             public double PriceVolatilityPercent { get; set; } = 12; // ↓ from 15 (calmer market)
             public double SeasonalPriceSwingPercent { get; set; } = 18; // ↓ from 20
