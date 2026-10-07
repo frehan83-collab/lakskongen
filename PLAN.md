@@ -176,12 +176,17 @@ Full report saved in the session log. Top priorities:
 - **Save persistence**: insurance policies, bloom-mitigation registry, resource-rent flag/paid, pen-price council now round-trip through save/load (backward-compatible; legacy saves default safely). Round-trip tests added.
 - **Localization + docs**: +108 `en/no` translation rows (552 total, CSV valid), new `docs/LOCALIZATION.md`, `docs/SESSION_SUMMARY.md`, `CHANGELOG.md` `[0.6.0-alpha]`, refreshed `STATUS.md`.
 
+## Wave 9 — landed (this session)
+- **Smoltscreen barrier tech (P8)**: `BarrierTech` (permeable 150/200 µm liner) — flow-dependent lice/jellyfish blocking, cleaning decay, capex ~half of closed retrofit, and *not* eligible for environmental flexibility (regulatory ambiguity). Wired into weekly lice settlement + jellyfish blooms; install/clean/status in GameBridge + OffshorePanel.
+- **Onboarding + audio**: tutorial track 14→18 steps (genetics, insurance, mitigation, overlays) with `TutorialState` unlock mapping; event stingers for insurance payout / GE deploy / red-zone change / mitigation install via `ConsequenceDirector`; UI sounds on the new panels.
+- **Balance/realism**: standalone `FeedSystem` defaults reconciled to the registry (22.3 / 1.15 → 25.65/kg produced); new `docs/BALANCE.md`; `CalibrationGuardTests` extended; `REALISM_CHECKLIST` feed row corrected.
+
 ## Final session verification
 - `dotnet build LakskongenSim.sln` → **succeeded** (sim + Godot C# assemblies).
-- Tests: **689 passed, 1 skipped, 0 failed** across 5 assemblies (incl. campaign smoke + 3-yr soak).
+- Tests: **698 passed, 1 skipped, 0 failed** across 5 assemblies (campaign smoke + 3-yr soak + barrier).
 - Performance: **~0.27 ms/day** (soft budget 2 ms, hard gate 5 ms).
-- Godot editor scan: **0 parse errors**; headless boot: **0 script errors**; 9 scenarios; ModLoader ready; theme from tokens; translations compile.
-- `tools/sync_tokens.py --check` → in sync.
+- Godot editor scan: **0 parse errors**; headless boot: **0 script errors**; 9 scenarios; ModLoader ready; theme from tokens.
+- `tools/sync_tokens.py --check` → in sync; tutorial/calibration JSON valid; 552 translation rows.
 
 ## Next (post-session)
 - Visual QA on a real display (all verification so far is headless + tests).

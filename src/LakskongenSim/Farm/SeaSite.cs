@@ -46,6 +46,14 @@ namespace LakskongenSim.Farm
         /// <summary>O2 diffuser installed (Phase 4.3): hypoxia ×0.3, algae ×0.7.</summary>
         public bool HasO2Diffuser { get; set; } = false;
 
+        /// <summary>P8 permeable barrier installed at this site (None = none).
+        /// Retrofit liner (e.g. Smoltscreen) that blocks lice/jellyfish by flow.</summary>
+        public BarrierKind Barrier { get; set; } = BarrierKind.None;
+
+        /// <summary>P8 days since the installed barrier was last cleaned. Drives
+        /// biofouling efficiency decay once past the cleaning interval.</summary>
+        public int BarrierDaysSinceCleaning { get; set; } = 0;
+
         /// <summary>Net/cage integrity 0-100. Storms degrade; RepairNets restores.
         /// Below 40 during storms risks escapes. Old saves migrate 0 → 100 on load.</summary>
         public double NetIntegrityPct { get; set; } = 100.0;

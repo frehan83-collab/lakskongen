@@ -11,7 +11,8 @@ the review date and any changes at the bottom of this file.
 | Item | Game value | Real reference (Oct 2026) | Source to re-check |
 |---|---|---|---|
 | Salmon spot NOK/kg | BaseSalmonPricePerKg = 70 | 2024 avg 92.7, 2025 avg 77.2, Q3-26 ~65-73 | Fish Pool / Euronext SISALMONI via FishFarmingExpert, SalMar/Mowi quarterlies |
-| Feed NOK/kg fish | FeedCostPerKgNOK = 12.5 (model as price×FCR!) | ~25.7 feed cost/kg produced (2024) | Fiskeridir Key Figures (Tab.38), Mowi annual |
+| Feed NOK/kg feed | FeedPricePerKgFeedNOK = 22.3 (registry) | ~20-24 delivered feed | Fiskeridir Key Figures, Mowi annual |
+| Feed NOK/kg *produced* | price × FCR = 22.3 × 1.15 ≈ 25.6 | ~25.7 feed cost/kg produced (2024) | Fiskeridir Key Figures (Tab.38), Mowi annual |
 | FCR | BaseFCR 1.15 | bFCR 1.14-1.15, econ 1.2-1.5 | SalMar sustainability reports |
 | EBIT/kg band | (tune after first playtests) | Cyclical 8-25 (SalMar 23.4 FY24, 13.6 FY25) | SalMar/Mowi quarterlies |
 | Resource rent tax | 25% effective, 70M basic deduction | Same (from 1 Jan 2023); watch Storting changes | Skatteetaten, Prop.1LS |
@@ -39,4 +40,5 @@ the review date and any changes at the bottom of this file.
 | Date | Reviewer | Changes |
 |---|---|---|
 | 2026-10-05 | Spark (AI review) | Checklist created; feed-cost model flagged (12.5 vs ~25 reality) |
+| 2026-10-07 | Balance consolidation | Feed rows reconciled to registry (22.3 price × 1.15 FCR ≈ 25.6); FeedSystem defaults sourced from CalibrationRegistry; new drift guard; see docs/BALANCE.md |
 | | | |

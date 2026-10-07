@@ -124,6 +124,7 @@ namespace LakskongenSim.Core
         private int _lastContractUpdate = 0; // Phase 2.3 (same weekly cadence, own tracker)
         private int _lastBloomUpdate = 0;
         private const int BLOOM_UPDATE_INTERVAL = 7; // Weekly (Phase 4.3)
+        private const int BARRIER_CLEANING_TICK_DAYS = 7; // P8: barrier cleaning decay cadence (weekly)
         private int _lastNightPolicyUpdate = 0;
         private const int NIGHT_POLICY_INTERVAL = 1; // Daily (Phase 5.2)
         private int _lastProductMixOptimizerUpdate = 0;
@@ -2474,9 +2475,18 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
         }
 
         /// <summary>
+        /// P8: approximate tidal flow (m/s) at a site from its zone's current
+        /// speed, falling back to a sensible default when no zone is found.
+        /// </summary>
+        private double SiteFlowMs(Farm.SeaSite site) =>
+            State.Zones.FirstOrDefault(z => z.Id == site.ZoneId)?.CurrentSpeed
+                ?? Farm.BarrierTech.DefaultFlowMs;
+
+        /// <summary>
         /// Weekly preventive coverage (Phase 1.5 + 4.1): fish-weighted effective
         /// lice exclusion combining skirt toggles and containment levels.
         /// Per-site: 1-(1-skirt*0.7)*(1-exclusion). Drives settlement reduction.
+        /// P8 adds a flow-dependent permeable-barrier factor (no-op when none).
         /// </summary>
         private void UpdatePreventiveCoverage()
         {
@@ -2488,7 +2498,29 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
                 total += fish;
                 double skirt = site.HasLiceSkirt ? 0.70 : 0.0;
                 double excl = Farm.ContainmentTech.ModifiersFor(site.Containment).LiceExclusion01;
-                covered += fish * (1.0 - (1.0 - skirt) * (1.0 - excl));
+
+                // P8: a permeable barrier blocks a flow-dependent share of new
+                // chalimus settlement. Guarded: no barrier installed leaves the
+                // existing skirt/containment formula exactly as before.
+                double barrier = 0.0;
+                if (site.Barrier != Farm.BarrierKind.None)
+                {
+                    barrier = Farm.BarrierTech.EffectiveLiceBlocking(
+                        site.Barrier, SiteFlowMs(site), site.BarrierDaysSinceCleaning);
+
+                    // Periodic cleaning requirement: uncleaned barriers lose
+                    // efficiency (handled above), and cleaning costs standing opex.
+                    site.BarrierDaysSinceCleaning += BARRIER_CLEANING_TICK_DAYS;
+                    decimal barrierOpex = Farm.BarrierTech.SpecFor(site.Barrier).WeeklyOpexNok;
+                    if (barrierOpex > 0)
+                    {
+                        if (!FinanceManager.Spend(barrierOpex))
+                            FinanceManager.ForceSpend(barrierOpex);
+                        FinancialStatements?.RecordOperatingExpense(barrierOpex);
+                    }
+                }
+
+                covered += fish * (1.0 - (1.0 - skirt) * (1.0 - excl) * (1.0 - barrier));
 
                 // Phase 4.1: standing energy opex per containment level.
                 decimal opex = Farm.ContainmentTech.ModifiersFor(site.Containment).WeeklyOpexNok;
@@ -2544,6 +2576,16 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
                 double cm = LakskongenSim.Environment.BloomEventDeck.CounterMult(site, bloom.Kind)
                     * LakskongenSim.Environment.BloomEventDeck.ContainmentMult(site, bloom.Kind)
                     * (vet ? 0.8 : 1.0);
+
+                // P8: a permeable barrier also excludes jellyfish, reducing the
+                // bloom's counter-measure multiplier by the flow-dependent
+                // jellyfish blocking. Guarded: no barrier leaves cm unchanged.
+                if (bloom.Kind == "jellyfish" && site.Barrier != Farm.BarrierKind.None)
+                {
+                    double jellyBlock = Farm.BarrierTech.EffectiveJellyfishBlocking(
+                        site.Barrier, SiteFlowMs(site), site.BarrierDaysSinceCleaning);
+                    cm *= 1.0 - Math.Clamp(jellyBlock, 0.0, 1.0);
+                }
                 if (cm <= 0.0) continue; // fully dodged (contained)
                 double gillDmg = bloom.Kind switch
                 {

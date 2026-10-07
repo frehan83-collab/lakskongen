@@ -347,6 +347,10 @@ func _ready() -> void:
 	call_deferred("_build_region_markers")
 	hide()
 
+	var audio := get_node_or_null("/root/AudioController")
+	if audio and audio.has_method("attach_ui_sounds"):
+		audio.attach_ui_sounds(self)
+
 ## Embed the SiteOverlayLegend at the top of the detail column and wire it so
 ## region markers re-tint whenever the overlay metric or live site data changes.
 func _add_overlay_legend() -> void:

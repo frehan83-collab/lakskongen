@@ -23,10 +23,14 @@ signal panel_unlocked(panel_id: String)
 ## All other panel ids are always unlocked.
 const ADVANCED_PANELS: Dictionary = {
 	"analytics": 8,
-	"research": 11,
-	"sustainability": 12,
-	"ras": 13,
-	"offshore": 14,
+	"genetics": 11,
+	"research": 12,
+	"insurance": 13,
+	"mitigation": 14,
+	"carbon": 15,
+	"sustainability": 15,
+	"ras": 16,
+	"offshore": 17,
 }
 
 ## Current 1-based tutorial step number (0 when no simulation/bridge).
@@ -36,6 +40,7 @@ var phase: int = 0
 var is_complete: bool = false
 
 var _sim: Node = null
+var _has_data: bool = false
 var _phase_seen: bool = false
 var _emitted_unlocks: Dictionary = {}
 
@@ -61,11 +66,14 @@ func is_panel_unlocked(panel_id: String) -> bool:
 		return true
 	if is_complete:
 		return true
+	if not _has_data:
+		return true
 	return phase >= int(ADVANCED_PANELS[panel_id])
 
 # ── Internal ──────────────────────────────────────────────────────────────────
 
 func _refresh() -> void:
+	_has_data = _sim != null and ("tutorial_step_number" in _sim or _sim.has_method("GetTutorialStepNumber"))
 	var new_phase: int = int(_read_sim_value("tutorial_step_number", ["GetTutorialStepNumber"], 0))
 	var new_complete: bool = bool(_read_sim_value("tutorial_is_complete", ["GetTutorialIsComplete"], false))
 

@@ -85,6 +85,10 @@ func refresh():
 	_update_sludge_status()
 	_update_transfer_ui()
 
+	var audio := get_node_or_null("/root/AudioController")
+	if audio and audio.has_method("attach_ui_sounds"):
+		audio.attach_ui_sounds(self)
+
 func on_panel_shown() -> void:
 	refresh()
 
@@ -197,25 +201,66 @@ func _update_containment_ladder() -> void:
 			var max_lbl := Label.new()
 			max_lbl.text = "MAX"
 			row.add_child(max_lbl)
-			continue
-		var next_id: String = CONTAIN_ORDER[idx + 1]
-		var info: Dictionary = by_id.get(next_id, {})
-		var btn := Button.new()
-		var capex: float = float(info.get("capex_nok", 0.0))
-		btn.text = "→ %s (%.1fM)" % [next_id, capex / 1_000_000.0]
-		btn.tooltip_text = "Lus-blokkering %.0f%% · Storm ×%.1f · Rømning ×%.1f · Vekst ×%.2f · OPEX %.0fk/uke" % [
-			float(info.get("lice_exclusion", 0.0)) * 100.0,
-			float(info.get("storm_mult", 1.0)),
-			float(info.get("escape_mult", 1.0)),
-			float(info.get("growth_mult", 1.0)),
-			float(info.get("weekly_opex_nok", 0.0)) / 1000.0]
-		var sid := str(site.get("id", ""))
-		btn.pressed.connect(_on_upgrade_containment.bind(sid, next_id))
-		row.add_child(btn)
+		else:
+			var next_id: String = CONTAIN_ORDER[idx + 1]
+			var info: Dictionary = by_id.get(next_id, {})
+			var btn := Button.new()
+			var capex: float = float(info.get("capex_nok", 0.0))
+			btn.text = "→ %s (%.1fM)" % [next_id, capex / 1_000_000.0]
+			btn.tooltip_text = "Lus-blokkering %.0f%% · Storm ×%.1f · Rømning ×%.1f · Vekst ×%.2f · OPEX %.0fk/uke" % [
+				float(info.get("lice_exclusion", 0.0)) * 100.0,
+				float(info.get("storm_mult", 1.0)),
+				float(info.get("escape_mult", 1.0)),
+				float(info.get("growth_mult", 1.0)),
+				float(info.get("weekly_opex_nok", 0.0)) / 1000.0]
+			var sid := str(site.get("id", ""))
+			btn.pressed.connect(_on_upgrade_containment.bind(sid, next_id))
+			row.add_child(btn)
+		_add_barrier_controls(row, site)
 
 func _on_upgrade_containment(site_id: String, level_id: String) -> void:
 	if _sim and _sim.has_method("upgrade_containment"):
 		_sim.upgrade_containment(site_id, level_id)
+	refresh()
+
+## P8: Smoltscreen permeable-barrier controls for one site row. Guarded — the
+## controls only appear when GameBridge exposes the barrier API, and show the
+## flow-dependent effectiveness reported by the engine.
+func _add_barrier_controls(row: HBoxContainer, site: Dictionary) -> void:
+	var bridge := get_node_or_null("/root/GameBridge")
+	if bridge == null or not bridge.has_method("InstallBarrier"):
+		return
+	var sid := str(site.get("id", ""))
+	if sid.is_empty():
+		return
+	var installed := bool(site.get("has_barrier", false))
+	var lice := float(site.get("barrier_lice_blocking", 0.0))
+	var jelly := float(site.get("barrier_jellyfish_blocking", 0.0))
+	var days := int(site.get("barrier_days_since_cleaning", 0))
+	var btn := Button.new()
+	btn.text = "🔛 Smoltscreen (fjern)" if installed else "→ Smoltscreen (6.0M)"
+	btn.tooltip_text = ("Permeabel returliner (150+200 µm) — lus −%.0f%%, manet −%.0f%% ved dagens strøm. "
+		+ "Ikke kvalifisert for miljøfleksibilitet: regulatorer leser «tett» som impermeabelt.") % [
+		lice * 100.0, jelly * 100.0]
+	btn.pressed.connect(_on_install_barrier.bind(sid))
+	row.add_child(btn)
+	if installed:
+		var clean := Button.new()
+		clean.text = "🧽"
+		clean.tooltip_text = "Rengjør barriere (nullstiller begroing). Sist rengjort for %d dager siden." % days
+		clean.pressed.connect(_on_clean_barrier.bind(sid))
+		row.add_child(clean)
+
+func _on_install_barrier(site_id: String) -> void:
+	var bridge := get_node_or_null("/root/GameBridge")
+	if bridge != null and bridge.has_method("InstallBarrier"):
+		bridge.InstallBarrier(site_id, "smoltscreen")
+	refresh()
+
+func _on_clean_barrier(site_id: String) -> void:
+	var bridge := get_node_or_null("/root/GameBridge")
+	if bridge != null and bridge.has_method("CleanBarrier"):
+		bridge.CleanBarrier(site_id)
 	refresh()
 
 # ── Phase 5.3: Sludge Valorization UI ────────────────────────────────────────

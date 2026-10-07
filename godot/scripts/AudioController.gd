@@ -327,6 +327,26 @@ func play_panel_open() -> void:
 func play_panel_close() -> void:
 	play_ui("menu_close")
 
+## Semantic event stingers. Every mapping uses an existing catalogue key and is
+## fully guarded, so a missing asset degrades to silence rather than an error.
+func play_insurance_payout() -> void:
+	play_ui("notification")
+
+func play_ge_deployment() -> void:
+	play_ui("menu_open")
+
+func play_mitigation_install() -> void:
+	play_ui("button_click")
+
+func play_harvest_stinger() -> void:
+	_play_alert_sfx("harvest")
+
+func play_red_zone_alert(is_red: bool = true) -> void:
+	if is_red:
+		play_ui("error")
+	else:
+		play_ui("notification")
+
 ## Recursively connect every Button under `root` to click/hover micro-sounds.
 ## Intentionally NOT wired globally — call this explicitly for a UI subtree.
 func attach_ui_sounds(root: Node) -> void:

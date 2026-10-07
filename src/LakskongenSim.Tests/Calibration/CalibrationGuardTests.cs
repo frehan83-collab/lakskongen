@@ -1,6 +1,7 @@
 using System.Linq;
 using Xunit;
 using LakskongenSim.Calibration;
+using LakskongenSim.Farm;
 
 namespace LakskongenSim.Tests.Calibration
 {
@@ -177,6 +178,8 @@ namespace LakskongenSim.Tests.Calibration
             Assert.InRange(C.Feed.BaseFCR, 1.1, 1.3);
             // Feed price per kg feed stays in a plausible 15-30 NOK/kg band.
             Assert.InRange(C.Feed.FeedPricePerKgFeedNOK, 15m, 30m);
+            // Feed FCR anchor and the biology best-practice FCR must not drift apart.
+            Assert.Equal(C.Biology.OptimalFCR, C.Feed.BaseFCR, 6);
         }
 
         [Fact]
@@ -189,6 +192,26 @@ namespace LakskongenSim.Tests.Calibration
             Assert.InRange(modelled, 25.7m - 4m, 25.7m + 4m);
             // Guard specifically against regression to the old flat 12.5 NOK/kg model.
             Assert.True(modelled > 20m, $"feed cost/kg produced {modelled} regressed to the old flat model");
+        }
+
+        [Fact]
+        public void FeedSystem_Defaults_MatchRegistry_NoDrift()
+        {
+            // Regression guard for the old FeedSystem defaults (13.5 NOK/kg feed,
+            // 1.12 FCR) which produced a standalone effective cost of only ~15.1
+            // NOK/kg produced and disagreed with the registry. A bare FeedSystem
+            // must source its cost/FCR anchors from the calibration spine, so any
+            // code path that bypasses SimulationEngine.ApplyBalancingConfig still
+            // lands on the reconciled ~25.7 NOK/kg produced.
+            var feed = new FeedSystem();
+            Assert.Equal(C.Feed.FeedPricePerKgFeedNOK, feed.FeedCostPerKg);
+            Assert.Equal(C.Feed.BaseFCR, feed.BaseFCR, 6);
+            Assert.Equal(C.Feed.BaseFCR, feed.CurrentFCR, 6);
+            // Effective cost-per-kg-produced must equal the registry anchor.
+            Assert.Equal(C.FeedCostPerKgProducedNOK, feed.FeedCostPerKgProducedNOK, 3);
+            Assert.InRange(feed.FeedCostPerKgProducedNOK, 25.7m - 4m, 25.7m + 4m);
+            Assert.True(feed.FeedCostPerKgProducedNOK > 20m,
+                $"standalone FeedSystem cost/kg produced {feed.FeedCostPerKgProducedNOK} regressed to the flat model");
         }
     }
 }

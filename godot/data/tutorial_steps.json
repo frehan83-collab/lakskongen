@@ -101,8 +101,19 @@
     "completionCondition": "pl_report_viewed"
   },
   {
-    "id": "explore-research",
+    "id": "explore-genetics",
     "stepNumber": 11,
+    "title": "Utforsk genetikk og avl",
+    "description": "Norsk lakseavl har doblet veksthastigheten på 40 år. I Lakskongen kan du velge stamfisk for egenskaper som vekst, sykdomsresistens, fôreffektivitet og kjøttkvalitet. Genomisk seleksjon gir raskere genetisk fremgang per generasjon, men innavl over 15 % koster vekst og helse. Åpne genetikkpanelet og se på avlsverdier, arvelighet (h²) og innavlsstatus.",
+    "hint": "Gå til Genetikk → Avlsprogram. Velg foreldre med høy vekst og lav innavl. Hold innavelskoeffisienten under 15 %.",
+    "highlightTarget": "genetics",
+    "rewardNok": 75000,
+    "triggerCondition": "day >= 60",
+    "completionCondition": "genetics_viewed"
+  },
+  {
+    "id": "explore-research",
+    "stepNumber": 12,
     "title": "Utforsk forskning",
     "description": "Invester i forskning og utvikling for å forbedre driften: bedre fôr, lusebehandling, overvåking eller sykdomsforebygging. Forskning tar tid, men gir varig effekt på produksjon og lønnsomhet.",
     "hint": "Åpne Forskning og start ditt første prosjekt. Prioriter det som løser din største flaskehals.",
@@ -111,8 +122,30 @@
     "completionCondition": "research_project_started"
   },
   {
+    "id": "catastrophe-insurance",
+    "stepNumber": 13,
+    "title": "Sikre deg mot katastrofer",
+    "description": "Dødelighet, oppblomstring, storm/rømming og ILA kan utslette marginer. Forsikring per katastrofe lar deg velge dekning og egenandel: høyere dekning gir høyere årspremie, høyere egenandel gir lavere premie. Åpne økonomipanelet og tegn den forsikringen som passer din risikoprofil.",
+    "hint": "Gå til Økonomi → Forsikring per katastrofe. Aktiver minst én dekning og juster egenandelen.",
+    "highlightTarget": "finance",
+    "rewardNok": 100000,
+    "triggerCondition": "day >= 60",
+    "completionCondition": "day >= 90"
+  },
+  {
+    "id": "bloom-mitigation",
+    "stepNumber": 14,
+    "title": "Dempe oppblomstring",
+    "description": "Maneter (sep–jan), alger (mai–jul) og oksygensvikt kan skade gjellene og øke dødeligheten. Mottiltak som boblegardin, O2-diffuser, dypvannspumping og dypfôring reduserer tapet, men koster både installasjon og drift. Åpne vær- og sykdomspanelet og installer et mottiltak på en utsatt lokalitet.",
+    "hint": "Gå til Vær & Sykdom → Mottiltak. Boblegardin er best mot maneter; O2-diffuser mot alger/hypoksi.",
+    "highlightTarget": "health",
+    "rewardNok": 75000,
+    "triggerCondition": "day >= 90",
+    "completionCondition": "day >= 120"
+  },
+  {
     "id": "sustainability",
-    "stepNumber": 12,
+    "stepNumber": 15,
     "title": "Bærekraft og regulering",
     "description": "Norsk oppdrett reguleres strengt. Trafikklyssystemet styrer hvor mye biomasse du får lov til å ha per sone, basert på lusepress og miljøpåvirkning. Sjekk bærekraftsscoren og hold deg innenfor regelverket.",
     "hint": "Åpne Regulering for å se trafikklysstatus per sone og gjeldende MAB-grenser.",
@@ -122,7 +155,7 @@
   },
   {
     "id": "expand-second-site",
-    "stepNumber": 13,
+    "stepNumber": 16,
     "title": "Utvid med ny lokalitet",
     "description": "For å vokse må du utvide. En ekstra lokalitet gir mer produksjonskapasitet, men krever investering, bemanning og logistikk. Spredning av risiko på tvers av lokaliteter er avgjørende for langsiktig suksess.",
     "hint": "Kjøp en ny lisens og etabler din andre lokalitet på kartet.",
@@ -131,8 +164,19 @@
     "completionCondition": "second_site_built"
   },
   {
+    "id": "data-overlays",
+    "stepNumber": 17,
+    "title": "Bruk dataoverlegg på kartet",
+    "description": "Kartpanelet har dataoverlegg som fargelegger hver sone etter lus, oksygen, biomasse, gjellehelse eller containment. Overlegg gjør det lettere å sammenligne lokaliteter og prioritere tiltak der risikoen er høyest. Slå på et overlegg og undersøk hvordan sonene endrer seg.",
+    "hint": "Gå til Kart → Overlegg. Velg en metrikk (f.eks. lus eller oksygen) og sammenlign sonene.",
+    "highlightTarget": "map",
+    "rewardNok": 50000,
+    "triggerCondition": "day >= 120",
+    "completionCondition": "day >= 150"
+  },
+  {
     "id": "free-play",
-    "stepNumber": 14,
+    "stepNumber": 18,
     "title": "Tutorial fullført — fri spilling!",
     "description": "Gratulerer, oppdrettskonge! Du har fullført Lakskongen-tutorialen og forstår hele verdikjeden: Lisens → Lokalitet → Smolt → Fôr → Helse → Avlusing → Høsting → Salg.\n\nNå venter hele spillet: utvid lisensporteføljen, oppnå ASC- og økologisk sertifisering, naviger reguleringspolitikken og bygg integrerte foredlingsanlegg. Lykke til — målet er 10 000 tonn årlig produksjon med Sustainability Leader-sertifisering.",
     "hint": "Utforsk alle paneler fritt. Bygg ditt laksimperium!",

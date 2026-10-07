@@ -2323,6 +2323,164 @@ public partial class GameBridge : Node
         return true;
     }
 
+    // ── P8 permeable-barrier API (Smoltscreen) ──────────────────────────────
+
+    private static string BarrierKindKey(Farm.BarrierKind kind) => kind switch
+    {
+        Farm.BarrierKind.Smoltscreen => "smoltscreen",
+        _ => "none"
+    };
+
+    private static bool TryParseBarrierKind(string kind, out Farm.BarrierKind parsed)
+    {
+        switch ((kind ?? "").Trim().ToLowerInvariant())
+        {
+            case "smoltscreen":
+            case "smolt_screen":
+            case "smolt-screen":
+                parsed = Farm.BarrierKind.Smoltscreen; return true;
+            case "none":
+            case "remove":
+            case "":
+                parsed = Farm.BarrierKind.None; return true;
+            default:
+                parsed = Farm.BarrierKind.None; return false;
+        }
+    }
+
+    /// <summary>P8: approximate tidal flow (m/s) at a site from its zone.</summary>
+    private static double SiteFlowMs(SimulationEngine engine, Farm.SeaSite site)
+    {
+        var zone = engine?.State?.Zones?.FirstOrDefault(z => z.Id == site.ZoneId);
+        return zone?.CurrentSpeed ?? Farm.BarrierTech.DefaultFlowMs;
+    }
+
+    /// <summary>
+    /// Install (or toggle off) a permeable barrier at a site. On install the
+    /// barrier's capex is charged; installing when the same kind is already
+    /// present removes it (no refund), mirroring the mitigation toggle. Returns
+    /// false for an unknown site/kind or when funds are insufficient.
+    /// </summary>
+    public bool InstallBarrier(string siteId, string kind)
+    {
+        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        if (site == null) return false;
+        if (!TryParseBarrierKind(kind, out var parsed)) return false;
+
+        // Toggle off when the same barrier is already installed.
+        if (parsed == site.Barrier)
+        {
+            site.Barrier = Farm.BarrierKind.None;
+            site.BarrierDaysSinceCleaning = 0;
+            EmitSignal(SignalName.FarmActionCompleted, "install_barrier", siteId, true);
+            EmitSignal(SignalName.GameStateUpdated);
+            return true;
+        }
+
+        // Explicit "none"/"remove" with no barrier installed is a no-op success.
+        if (parsed == Farm.BarrierKind.None)
+        {
+            site.Barrier = Farm.BarrierKind.None;
+            site.BarrierDaysSinceCleaning = 0;
+            EmitSignal(SignalName.FarmActionCompleted, "install_barrier", siteId, true);
+            EmitSignal(SignalName.GameStateUpdated);
+            return true;
+        }
+
+        decimal cost = Farm.BarrierTech.SpecFor(parsed).CapexNok;
+        if (SimulationEngine!.FinanceManager.Balance < cost)
+        {
+            EmitSignal(SignalName.FarmActionCompleted, "install_barrier", siteId, false);
+            return false;
+        }
+
+        SimulationEngine.FinanceManager.Spend(cost);
+        site.Barrier = parsed;
+        site.BarrierDaysSinceCleaning = 0;
+
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = $"{Farm.BarrierTech.SpecFor(parsed).DisplayName} installert",
+            Category = LakskongenSim.Events.EventCategory.Equipment,
+            Description = $"{Farm.BarrierTech.SpecFor(parsed).DisplayName} ved {siteId} ({cost:N0} NOK)",
+            BalanceChange = -cost
+        });
+
+        EmitSignal(SignalName.FarmActionCompleted, "install_barrier", siteId, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        GD.Print($"GameBridge: {siteId} barrier → {parsed} ({cost:N0} NOK)");
+        return true;
+    }
+
+    /// <summary>
+    /// P8: clean an installed barrier, resetting biofouling decay. Charges the
+    /// barrier's standing (weekly) opex as a one-off cleaning service. Returns
+    /// false when no barrier is installed or funds are insufficient.
+    /// </summary>
+    public bool CleanBarrier(string siteId)
+    {
+        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        if (site == null || site.Barrier == Farm.BarrierKind.None) return false;
+
+        decimal cost = Farm.BarrierTech.SpecFor(site.Barrier).WeeklyOpexNok;
+        if (SimulationEngine!.FinanceManager.Balance < cost) return false;
+        SimulationEngine.FinanceManager.Spend(cost);
+        site.BarrierDaysSinceCleaning = 0;
+
+        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
+        {
+            Day = SimulationEngine.State.Day,
+            Name = "Barriere rengjort",
+            Category = LakskongenSim.Events.EventCategory.Equipment,
+            Description = $"{Farm.BarrierTech.SpecFor(site.Barrier).DisplayName} rengjort ved {siteId}",
+            BalanceChange = -cost
+        });
+
+        EmitSignal(SignalName.FarmActionCompleted, "clean_barrier", siteId, true);
+        EmitSignal(SignalName.GameStateUpdated);
+        return true;
+    }
+
+    /// <summary>
+    /// P8: per-site permeable-barrier status. Keys: "site_id", "kind",
+    /// "installed", "flow_ms", "lice_blocking", "jellyfish_blocking",
+    /// "days_since_cleaning", "cleaning_due_in_days", "capex_nok",
+    /// "weekly_opex_nok", "eligible_environmental_flexibility", "rationale".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetBarrierStatus()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var sites = SimulationEngine?.State?.SeaSites;
+        if (sites == null) return result;
+
+        foreach (var site in sites)
+        {
+            var spec = Farm.BarrierTech.SpecFor(site.Barrier);
+            double flow = SiteFlowMs(SimulationEngine, site);
+            int days = site.BarrierDaysSinceCleaning;
+            int dueIn = site.Barrier != Farm.BarrierKind.None
+                ? spec.CleaningIntervalDays - days
+                : 0;
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["site_id"] = site.Id,
+                ["kind"] = BarrierKindKey(site.Barrier),
+                ["installed"] = site.Barrier != Farm.BarrierKind.None,
+                ["flow_ms"] = flow,
+                ["lice_blocking"] = Farm.BarrierTech.EffectiveLiceBlocking(site.Barrier, flow, days),
+                ["jellyfish_blocking"] = Farm.BarrierTech.EffectiveJellyfishBlocking(site.Barrier, flow, days),
+                ["days_since_cleaning"] = days,
+                ["cleaning_due_in_days"] = dueIn,
+                ["capex_nok"] = (double)spec.CapexNok,
+                ["weekly_opex_nok"] = (double)spec.WeeklyOpexNok,
+                ["eligible_environmental_flexibility"] = Farm.BarrierTech.IsEligibleForEnvironmentalFlexibility(site.Barrier),
+                ["rationale"] = Farm.BarrierTech.EnvironmentalFlexibilityRationale(site.Barrier)
+            });
+        }
+        return result;
+    }
+
     /// <summary>
     /// Build a new sea site in the specified zone.
     /// Returns true on success, false if zone not found or insufficient funds.
@@ -2676,7 +2834,15 @@ public partial class GameBridge : Node
                 ["watch_mode"]        = site.WatchMode,
                 ["gill_score"]        = site.GillScore,
                 ["has_bubble"]        = site.HasBubbleCurtain,
-                ["has_diffuser"]      = site.HasO2Diffuser
+                ["has_diffuser"]      = site.HasO2Diffuser,
+                // P8: permeable barrier (Smoltscreen) state + flow-dependent effectiveness.
+                ["barrier"]           = site.Barrier.ToString(),
+                ["has_barrier"]       = site.Barrier != Farm.BarrierKind.None,
+                ["barrier_days_since_cleaning"] = site.BarrierDaysSinceCleaning,
+                ["barrier_lice_blocking"] = Farm.BarrierTech.EffectiveLiceBlocking(
+                    site.Barrier, SiteFlowMs(SimulationEngine, site), site.BarrierDaysSinceCleaning),
+                ["barrier_jellyfish_blocking"] = Farm.BarrierTech.EffectiveJellyfishBlocking(
+                    site.Barrier, SiteFlowMs(SimulationEngine, site), site.BarrierDaysSinceCleaning)
             });
         }
         return result;

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using LakskongenSim.Calibration;
 using LakskongenSim.Data;
 
 namespace LakskongenSim.Farm
@@ -14,11 +15,27 @@ namespace LakskongenSim.Farm
     public class FeedSystem
     {
         // ─── Cost parameters ───
-        public decimal FeedCostPerKg { get; set; } = 13.5m;  // NOK/kg (matches BalancingConfig)
+        /// <summary>
+        /// Feed price per kg of feed (NOK/kg feed). Defaults to the calibrated
+        /// <see cref="CalibrationRegistry"/> value so a standalone <see cref="FeedSystem"/>
+        /// (tests, headless tools, code that bypasses <c>SimulationEngine</c>) cannot
+        /// drift from the single source of truth. The engine also re-applies the
+        /// registry value on load via <c>ApplyBalancingConfig</c>.
+        /// </summary>
+        public decimal FeedCostPerKg { get; set; } =
+            CalibrationRegistry.Default.Feed.FeedPricePerKgFeedNOK;
+
+        /// <summary>
+        /// Effective feed cost per kg of fish produced (NOK/kg produced) = feed price
+        /// × base FCR. Registry anchor is ~25.7 (22.3 × 1.15), per docs/REALISM_CHECKLIST.md.
+        /// </summary>
+        public decimal FeedCostPerKgProducedNOK => FeedCostPerKg * (decimal)BaseFCR;
 
         // ─── FCR parameters ───
-        public double BaseFCR { get; private set; } = 1.12; // ↓ from 1.15 (industry best)
-        public double CurrentFCR { get; private set; } = 1.12;
+        /// <summary>Base FCR, seeded from the calibrated registry (real biological ~1.15).</summary>
+        public double BaseFCR { get; private set; } = CalibrationRegistry.Default.Feed.BaseFCR;
+        /// <summary>Current dynamic FCR; reset to <see cref="BaseFCR"/> until conditions are applied.</summary>
+        public double CurrentFCR { get; private set; } = CalibrationRegistry.Default.Feed.BaseFCR;
 
         /// <summary>
         /// Apply the calibrated base FCR from <see cref="Calibration.CalibrationRegistry"/>

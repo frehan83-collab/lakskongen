@@ -26,6 +26,10 @@ func _ready() -> void:
 	
 	_refresh_ui()
 
+	var audio := get_node_or_null("/root/AudioController")
+	if audio and audio.has_method("attach_ui_sounds"):
+		audio.attach_ui_sounds(self)
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return

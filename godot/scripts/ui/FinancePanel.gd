@@ -105,6 +105,10 @@ func _ready() -> void:
 	_loan_repay_btn.pressed.connect(_on_repay_loan)
 	_refresh()
 
+	var audio := get_node_or_null("/root/AudioController")
+	if audio and audio.has_method("attach_ui_sounds"):
+		audio.attach_ui_sounds(self)
+
 func _input(event: InputEvent) -> void:
 	if visible and event.is_action_pressed("ui_cancel"):
 		hide()

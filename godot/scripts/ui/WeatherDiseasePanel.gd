@@ -66,6 +66,10 @@ func _ready():
 
 	_refresh_from_bridge()
 
+	var audio := get_node_or_null("/root/AudioController")
+	if audio and audio.has_method("attach_ui_sounds"):
+		audio.attach_ui_sounds(self)
+
 func _input(event: InputEvent) -> void:
 	if not visible:
 		return
@@ -244,6 +248,10 @@ func _refresh_bloom_mitigations() -> void:
 			max_red * 100.0, _format_currency(cost), _format_currency(opex), tr(best)]
 		btn.pressed.connect(_on_install_mitigation.bind(kind))
 		row.add_child(btn)
+
+	var audio := get_node_or_null("/root/AudioController")
+	if audio and audio.has_method("attach_ui_sounds"):
+		audio.attach_ui_sounds(_mitigation_list)
 
 func _on_install_mitigation(kind: String) -> void:
 	var sim := get_node_or_null("/root/SimBridge")

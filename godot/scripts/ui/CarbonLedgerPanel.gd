@@ -39,6 +39,10 @@ func _ready():
 
 	refresh()
 
+	var audio := get_node_or_null("/root/AudioController")
+	if audio and audio.has_method("attach_ui_sounds"):
+		audio.attach_ui_sounds(self)
+
 func _apply_localization() -> void:
 	header_label.text = tr("UI_CARBON_LEDGER")
 	status_label.text = ""
@@ -82,7 +86,9 @@ func refresh():
 		status_label.add_theme_color_override("font_color", Color(1, 0.6, 0.2))
 
 func _show_unavailable():
-	sites_container.add_child(Label.new().tap(lambda l: l.text = tr("UI_CARBON_LEDGER") + ": Data ikke tilgjengelig"))
+	var lbl := Label.new()
+	lbl.text = tr("UI_CARBON_LEDGER") + ": Data ikke tilgjengelig"
+	sites_container.add_child(lbl)
 	status_label.text = ""
 
 func _update_summary(ledger: Dictionary):
@@ -201,6 +207,9 @@ func _update_processing(ledger: Dictionary):
 	row.add_child(name_lbl)
 
 func _on_refresh_pressed():
+	refresh()
+
+func _on_state_updated():
 	refresh()
 
 func _input(event: InputEvent) -> void:
