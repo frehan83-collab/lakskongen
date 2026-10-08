@@ -31,13 +31,28 @@ public partial class GameBridge : Node
 {
     // ── Finance API ───────────────────────────────────────────────────────────
 
-#pragma warning disable CS0618 // State.Balance is the intentional save-compat mirror of FinanceManager.Balance
-    /// <summary>Total revenue accumulated this period (read-only).</summary>
-    public double Revenue => (double)(SimulationEngine?.State?.Balance ?? 0m);
-#pragma warning restore CS0618
+/// <summary>
+    /// Total accumulated P&L revenue (Phase 1 wave 3: was the Balance mirror —
+    /// the UI called a bank balance "revenue"). Harvests, insurance payouts and
+    /// sludge valorization now maintain FinancialStatements.Revenue (D1).
+    /// </summary>
+    public double Revenue => (double)(SimulationEngine?.FinancialStatements?.Revenue ?? 0m);
 
-    /// <summary>Total expenses accumulated this period (read-only).</summary>
-    public double Expenses => 0.0; // FinanceManager lacks Expenses tracking
+    /// <summary>
+    /// Total accumulated P&L expenses: COGS (feed, now booked in the engine's
+    /// feed-cost path) + operating expenses. Deliberate game change: these
+    /// used to read 0.0 and (Balance) respectively, which made IPO gates and
+    /// profit displays lie.
+    /// </summary>
+    public double Expenses
+    {
+        get
+        {
+            var fs = SimulationEngine?.FinancialStatements;
+            if (fs == null) return 0.0;
+            return (double)(fs.COGS + fs.OperatingExpenses);
+        }
+    }
 
     /// <summary>Current profit (Revenue - Expenses).</summary>
     public double Profit => Revenue - Expenses;

@@ -384,7 +384,8 @@ namespace LakskongenSim.Core
                 }
             };
 
-            // Feed cost → finance
+            // Feed cost → finance (D1: the cash spend also books COGS so the P&L
+            // finally sees the largest cost item — feed is ~35% of OPEX).
             Feed.OnFeedCostIncurred += cost =>
             {
                 if (!FinanceManager.Spend(cost))
@@ -392,6 +393,7 @@ namespace LakskongenSim.Core
                     OnEventTriggered?.Invoke($"⚠️ Insufficient funds for feed: {cost:N0} NOK. Balance: {FinanceManager.Balance:N0} NOK");
                     // Could trigger bankruptcy event here
                 }
+                FinancialStatements?.RecordCOGS(cost);
             };
 
             // Tutorial onboarding system
@@ -2662,7 +2664,10 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
                 if (netRevenue != 0m)
                 {
                     if (netRevenue > 0)
+                    {
                         FinanceManager.AddRevenue(netRevenue);
+                        FinancialStatements?.RecordRevenue(netRevenue);
+                    }
                     else
                     {
                         if (!FinanceManager.Spend(-netRevenue))

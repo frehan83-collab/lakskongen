@@ -235,6 +235,9 @@ public partial class SimulationEngine
         }
 
         FinanceManager.AddRevenue(revenue);
+        // D1: the sale finally lands in the P&L — Revenue was previously
+        // maintained only by insurance payouts, so IPO gates read a lie.
+        FinancialStatements?.RecordRevenue(revenue);
 
         // P15: player-supply market impact — the harvested tonnage moves the
         // market (accumulates downward price pressure, decays over days).
