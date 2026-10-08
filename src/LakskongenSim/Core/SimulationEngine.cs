@@ -1540,26 +1540,26 @@ private class BalancingConfig
 
         private void ExecuteDelouseOrHarvestWellboat(Logistics.WellboatJob job)
         {
-            bool done = job.Kind == "delouse"
-                ? DelouseSite(job.SiteId, string.IsNullOrEmpty(job.Method) ? "hydrolicer" : job.Method).Ok
-                : HarvestSite(job.SiteId).Ok;
+            var cmd = job.Kind == "delouse"
+                ? DelouseSite(job.SiteId, string.IsNullOrEmpty(job.Method) ? "hydrolicer" : job.Method)
+                : HarvestSite(job.SiteId);
 
             State.EventLog.Add(new Events.EventRecord
             {
                 Day = State.Day,
-                Name = done ? "Brønnbåt ankommet" : "Brønnbåt returnerte",
+                Name = cmd.Ok ? "Brønnbåt ankommet" : "Brønnbåt returnerte",
                 Category = Events.EventCategory.Equipment,
-                Description = done
+                Description = cmd.Ok
                     ? $"Brønnbåt utførte {job.Kind} ved {job.SiteId}"
-                    : $"Brønnbåt kunne ikke utføre {job.Kind} ved {job.SiteId} (tom merd/manglende midler)",
+                    : $"Brønnbåt kunne ikke utføre {job.Kind} ved {job.SiteId}: {cmd.Message}",
                 BalanceChange = 0m
             });
             _dayNotes.Add(new DayNote
             {
                 Kind = job.Kind == "delouse" ? "wellboat_delouse" : "wellboat_harvest",
                 SiteId = job.SiteId,
-                Success = done,
-                Message = job.Kind
+                Success = cmd.Ok,
+                Message = cmd.Ok ? job.Kind : cmd.Message
             });
         }
 
@@ -3138,6 +3138,67 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
         /// Mattilsynet deadline passed: forced delousing at the player's
         /// expense, breaches reset. The state does not negotiate.
         /// </summary>
+        /// <summary>Result of a full-site delousing pass (shared player/regulation kernel).</summary>
+        private sealed class SiteDelousingOutcome
+        {
+            public bool Applied = false;
+            public string CancelReason = "";
+            public int TotalFish = 0;
+            public int TotalDeaths = 0;
+            public double GillDamage = 0.0;
+            public decimal Cost = 0m;
+        }
+
+        /// <summary>
+        /// Treatment-mortality multiplier for a site: crew (veterinarian) and
+        /// gill health (Phase 4.3: damaged gills can't take heat/handling,
+        /// up to +150%). Shared by the player verb and regulatory enforcement.
+        /// </summary>
+        private double ComputeSiteTreatmentMortalityMultiplier(SeaSite site)
+        {
+            double mortMult = CrewEffects.TreatmentMortalityMultiplier(State);
+            double worstGill = site.GillScore;
+            return mortMult * (1.0 + (1.0 - worstGill / 100.0) * 1.5);
+        }
+
+        /// <summary>
+        /// Treat every live pen of a site with one delousing method (all-pens
+        /// semantics). Lice kill and gill capture happen once per site;
+        /// handling mortality and harm per pen. Payment, bookkeeping and the
+        /// event log stay with the caller so the player verb (validated,
+        /// spend) and regulation (force-paid) share one model.
+        /// </summary>
+        private SiteDelousingOutcome ApplySiteDelousing(Farm.SeaSite site,
+            Data.DelousingMethod method, double tempC, double mortMult)
+        {
+            var outcome = new SiteDelousingOutcome();
+            var delousing = new Farm.DelousingSystem();
+            bool siteLiceKillDone = false;
+            bool gillCaptured = false;
+            foreach (var pop in site.Pens)
+            {
+                if (pop.TotalCount <= 0) continue;
+                var result = delousing.Treat(pop, method, site.Lice, IntegratedDisease,
+                    tempC, mortMult, applyCompanyLiceKill: !siteLiceKillDone);
+                if (!result.Success)
+                {
+                    outcome.CancelReason = result.Message;
+                    continue;
+                }
+                siteLiceKillDone = true;
+                outcome.Applied = true;
+                outcome.TotalFish += result.FishTreated;
+                outcome.TotalDeaths += result.Deaths;
+                outcome.Cost += result.Cost;
+                if (!gillCaptured)
+                {
+                    outcome.GillDamage = result.GillDamage;
+                    gillCaptured = true;
+                }
+            }
+            return outcome;
+        }
+
         private void EnforceLiceTreatmentOrder(SeaSite site, double temperatureC)
         {
             var target = site.Pens.FirstOrDefault(p => p.TotalCount > 0);
@@ -3148,27 +3209,50 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
                 return;
             }
 
-            var delousing = new Farm.DelousingSystem();
-            var result = delousing.Treat(target, Data.DelousingMethod.Thermolicer,
-                site.Lice, IntegratedDisease, temperatureC, 1.0, applyCompanyLiceKill: true);
-            if (!FinanceManager.Spend(result.Cost))
-                FinanceManager.ForceSpend(result.Cost);
-            FinancialStatements?.RecordOperatingExpense(result.Cost);
-            site.GillScore = Math.Max(0.0, site.GillScore - result.GillDamage * 50.0);
+            // Phase 1 wave 3: regulation drives the SAME treatment kernel as
+            // the player verb, so a Mattilsynet order treats the WHOLE site
+            // (previously only the first pen) with identical model semantics —
+            // crew/gill multipliers included (documented decision; the old
+            // forced path silently used a flat 1.0 multiplier).
+            var outcome = ApplySiteDelousing(site, Data.DelousingMethod.Thermolicer,
+                temperatureC, ComputeSiteTreatmentMortalityMultiplier(site));
+
+            if (outcome.Applied)
+            {
+                if (!FinanceManager.Spend(outcome.Cost))
+                    FinanceManager.ForceSpend(outcome.Cost);
+                FinancialStatements?.RecordOperatingExpense(outcome.Cost);
+                site.GillScore = Math.Max(0.0, site.GillScore - outcome.GillDamage * 50.0);
+
+                State.EventLog.Add(new Events.EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Forced delousing",
+                    Category = Events.EventCategory.Regulation,
+                    Description = $"Mattilsynet ordered delousing at {site.Id} was ignored — " +
+                        $"forced Thermolicer treatment of {outcome.TotalFish:N0} fish cost {outcome.Cost:N0} NOK.",
+                    BalanceChange = -outcome.Cost
+                });
+                State.TrimEventLog();
+                OnEventTriggered?.Invoke($"⚖️ Tvangsavlusning ved {site.Id}: {outcome.Cost:N0} NOK.");
+            }
+            else
+            {
+                // Temperature window closed (e.g. Thermolicer < 6 °C) — the
+                // order still closes, logged honestly instead of a silent 0-cost "success".
+                State.EventLog.Add(new Events.EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Forced delousing",
+                    Category = Events.EventCategory.Regulation,
+                    Description = $"Mattilsynet order at {site.Id} could not be executed: {outcome.CancelReason}",
+                    BalanceChange = 0m
+                });
+                State.TrimEventLog();
+            }
+
             site.TreatmentOrderDueDay = -1;
             site.ConsecutiveLiceBreaches = 0;
-
-            State.EventLog.Add(new Events.EventRecord
-            {
-                Day = State.Day,
-                Name = "Forced delousing",
-                Category = Events.EventCategory.Regulation,
-                Description = $"Mattilsynet ordered delousing at {site.Id} was ignored — " +
-                    $"forced Thermolicer treatment cost {result.Cost:N0} NOK.",
-                BalanceChange = -result.Cost
-            });
-            State.TrimEventLog();
-            OnEventTriggered?.Invoke($"⚖️ Tvangsavlusning ved {site.Id}: {result.Cost:N0} NOK.");
         }
 
         /// <summary>

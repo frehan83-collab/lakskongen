@@ -382,42 +382,23 @@ public partial class SimulationEngine
             return CommandResult.Fail("insufficient_funds",
                 $"Insufficient funds: need {totalCost:N0} NOK to treat {totalFish:N0} fish");
 
-        var delousing = new Farm.DelousingSystem();
         double tempC = Weather?.CurrentTemperatureC ?? 10.0;
-        double mortMult = CrewEffects.TreatmentMortalityMultiplier(State);
-        // Phase 4.3: damaged gills can't take heat/handling — up to +150%.
-        double worstGill = site.GillScore;
-        mortMult *= 1.0 + (1.0 - worstGill / 100.0) * 1.5;
+        double mortMult = ComputeSiteTreatmentMortalityMultiplier(site);
 
-        int totalDeaths = 0;
-        double siteGillDamage = 0.0;
-        bool siteLiceKillDone = false;
-        bool gillCaptured = false;
-        foreach (var pop in site.Pens)
-        {
-            if (pop.TotalCount <= 0) continue;
-            var result = delousing.Treat(pop, delousingMethod,
-                site.Lice, IntegratedDisease, tempC, mortMult,
-                applyCompanyLiceKill: !siteLiceKillDone);
-            siteLiceKillDone = true;
-            totalDeaths += result.Deaths;
-            // First REAL treatment in iteration order defines the site dose —
-            // never a value-based sentinel (would break if harm ever went per-pen).
-            if (!gillCaptured)
-            {
-                siteGillDamage = result.GillDamage;
-                gillCaptured = true;
-            }
-        }
-        // Gill damage lands ONCE on the site score. The dose is identical for
-        // every pen of a site (same method/temperature/gill state), so the
-        // old per-pen subtraction multiplied one scalar by the pen count.
-        site.GillScore = Math.Max(0.0, site.GillScore - siteGillDamage * 50.0);
+        // Phase 1 wave 3: the regulation-shared kernel treats every live pen;
+        // gill damage lands ONCE on the site score (the old bridge multiplied
+        // the dose scalar per pen).
+        var outcome = ApplySiteDelousing(site, delousingMethod, tempC, mortMult);
+        if (!outcome.Applied)
+            return CommandResult.Fail("cancelled",
+                $"Treatment cancelled: {outcome.CancelReason}");
 
-        FinanceManager.Spend(totalCost);
+        FinanceManager.Spend(outcome.Cost);
+        FinancialStatements?.RecordOperatingExpense(outcome.Cost);
+        site.GillScore = Math.Max(0.0, site.GillScore - outcome.GillDamage * 50.0);
 
         string description = $"Applied {delousingMethod} delousing to {siteId} " +
-                             $"({totalFish:N0} fish treated, {profile.Efficacy:P0} profile efficacy, {totalDeaths:N0} handling deaths)";
+                             $"({outcome.TotalFish:N0} fish treated, {profile.Efficacy:P0} profile efficacy, {outcome.TotalDeaths:N0} handling deaths)";
         State.EventLog.Add(new EventRecord
         {
             Day = State.Day,
@@ -427,7 +408,7 @@ public partial class SimulationEngine
             BalanceChange = -totalCost
         });
 
-        return CommandResult.Success(description, totalFish, totalDeaths, siteId);
+        return CommandResult.Success(description, outcome.TotalFish, outcome.TotalDeaths, siteId);
     }
 
     private static string InsuranceKindKey(InsuranceKind kind) => kind.ToString().ToLowerInvariant();

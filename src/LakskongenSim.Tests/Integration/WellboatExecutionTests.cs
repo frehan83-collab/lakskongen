@@ -117,8 +117,13 @@ public class WellboatExecutionTests
     [Fact]
     public void Advance_ExecutesDelouseJob_ViaWellboat()
     {
-        var engine = NewStockedEngine("site-1");
-        Assert.True(engine.RequestWellboat("site-1", "delouse", "thermal").Ok);
+        var engine = NewEngineWithSite("site-1");
+        // January water can fall below every treatment window; advance into
+        // spring before booking so the execution lands inside the hydrolicer
+        // window (4-18°C) and the success path is the one under test.
+        engine.Advance(120);
+        Assert.True(engine.StockSmolts("site-1", 500, "standard").Ok);
+        Assert.True(engine.RequestWellboat("site-1", "delouse", "hydrolicer").Ok);
 
         engine.Advance(4); // eta 3 days
 
