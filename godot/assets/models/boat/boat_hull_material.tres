@@ -1,4 +1,4 @@
-[gd_resource type="Material" load_steps=2 format=3 uid="uid://boat_hull_mat_001"]
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://boat_hull_mat_001"]
 
 [ext_resource type="Shader" path="res://shaders/pen_standard_shader.gdshader" id="1_shader"]
 
