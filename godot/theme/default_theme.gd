@@ -171,9 +171,20 @@ func _load_fonts() -> void:
 	# Mono
 	if ResourceLoader.exists("res://assets/fonts/JetBrainsMono-Regular.ttf"):
 		font_mono = load("res://assets/fonts/JetBrainsMono-Regular.ttf")
-	
+
+	# Emoji fallback: Inter/JetBrains have no emoji glyphs, so labels using emoji
+	# (tab bar, HUD) render tofu. Attach the OS emoji font as a fallback chain.
+	var emoji := SystemFont.new()
+	emoji.font_names = PackedStringArray([
+		"Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji",
+		"Android Emoji", "EmojiOne Color"])
+	emoji.allow_system_fallback = true
+	for f in [font_heading, font_heading_bold, font_heading_semibold, font_body, font_mono]:
+		if f != null:
+			f.fallbacks = [emoji]
+
 	if font_heading:
-		print("LakskongenTheme: Fonts loaded (Inter + JetBrains Mono)")
+		print("LakskongenTheme: Fonts loaded (Inter + JetBrains Mono + emoji fallback)")
 	else:
 		push_warning("LakskongenTheme: Custom fonts not found — using Godot defaults")
 

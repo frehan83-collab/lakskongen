@@ -280,7 +280,7 @@ process_material = SubResource("snow_process")
 draw_pass_1 = SubResource("snow_mesh")
 
 [node name="TiltShiftCanvas" type="CanvasLayer" parent="."]
-layer = 10
+layer = 1
 
 [node name="TiltShiftRect" type="ColorRect" parent="TiltShiftCanvas"]
 material = SubResource("tilt_shift_mat")
@@ -291,7 +291,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="UnderwaterCanvas" type="CanvasLayer" parent="."]
-layer = 11
+layer = 1
 
 [node name="UnderwaterRect" type="ColorRect" parent="UnderwaterCanvas"]
 material = SubResource("underwater_mat")

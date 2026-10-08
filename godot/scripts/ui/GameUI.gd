@@ -153,10 +153,10 @@ func _build_tab_bar() -> void:
 		btn.name = "Tab_" + tab.id
 		btn.toggle_mode = true
 		btn.button_group = null # We'll manage state manually
-		# Overflow fix: let buttons shrink + elide instead of clipping off-bar.
+		# Size to the full label (emoji + text); the bar scrolls when it overflows.
 		btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		btn.clip_text = true
-		btn.custom_minimum_size = Vector2(64, 0)
+		btn.clip_text = false
+		btn.add_theme_font_size_override("font_size", 12)
 		
 		# Style button
 		_style_tab_button(btn, false)

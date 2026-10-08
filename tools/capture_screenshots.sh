@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 GODOT_DIR="$ROOT_DIR/godot"
 HARNESS_SCENE="res://scenes/tools/ScreenshotHarness.tscn"
-OUT_DIR="$ROOT_DIR/screenshots/game"
+OUT_DIR="$GODOT_DIR/screenshots/game"
 USER_OUT_DIR="$HOME/Library/Application Support/Godot/app_userdata/Lakskongen/screenshots"
 
 # ── Locate the Godot binary (GODOT_BIN override wins) ────────────────────────────
@@ -72,13 +72,16 @@ echo
 echo "Launching non-headless screenshot harness (a display is required)..."
 echo
 
-# Do not let a non-zero Godot exit abort the report step.
+# Do not let a non-zero Godot exit abort the report step. Tee the full console
+# log next to the images so runtime errors (shader/resource) are reviewable.
+LOG_FILE="$OUT_DIR/harness.log"
 set +e
-"$GODOT_BIN" --path "$GODOT_DIR" "$HARNESS_SCENE"
-status=$?
+"$GODOT_BIN" --path "$GODOT_DIR" "$HARNESS_SCENE" 2>&1 | tee "$LOG_FILE"
+status=${PIPESTATUS[0]}
 set -e
 
 echo
+echo "Console log: $LOG_FILE"
 if [[ $status -ne 0 ]]; then
   echo "WARNING: harness exited with status $status" >&2
 fi
