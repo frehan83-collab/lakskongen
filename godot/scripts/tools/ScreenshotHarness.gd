@@ -133,10 +133,36 @@ func _boot_game() -> void:
 	# Advance a few simulated days so the dashboard/telemetry have history.
 	if sim != null:
 		sim.advance_days(QA_DAYS_TO_SIMULATE)
+	# Ensure at least one stocked site so the 3D fjord shows pens + fish.
+	_ensure_qa_site()
 	await _wait(2.0)
 
 	_ui_layer = _find(_game, "UILayer")
 	_env = _find(_game, "FjordEnvironment")
+
+
+func _ensure_qa_site() -> void:
+	var sim := get_node_or_null("/root/SimBridge")
+	var gb := get_node_or_null("/root/GameBridge")
+	if sim == null:
+		return
+	var pens: Array = sim.get_all_pens() if sim.has_method("get_all_pens") else []
+	if not pens.is_empty():
+		return
+	var zone_id := ""
+	if sim.has_method("get_zone_traffic_lights"):
+		var zs: Array = sim.get_zone_traffic_lights()
+		if not zs.is_empty():
+			zone_id = str(zs[0].get("zone", ""))
+	if zone_id == "" or gb == null or not gb.has_method("BuildSeaSite"):
+		push_warning("[ScreenshotHarness] could not create a QA site (zone=%s, gb=%s)" % [zone_id, str(gb != null)])
+		return
+	var site_id := "QA-Site"
+	gb.BuildSeaSite(zone_id, site_id)
+	if sim.has_method("stock_smolts"):
+		sim.stock_smolts(site_id, 50000, "standard", 0)
+	sim.advance_days(3)
+	print("[ScreenshotHarness] built + stocked QA site '%s' in zone '%s'" % [site_id, zone_id])
 
 
 func _capture_dashboard() -> void:
