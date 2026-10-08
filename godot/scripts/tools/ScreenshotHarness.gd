@@ -29,6 +29,7 @@ const WEATHER_STORM := 4
 
 # FjordCamera.ZoomLevel enum ordinals: COAST, FJORD, FARM, UNDERWATER.
 const ZOOM_FJORD := 1
+const ZOOM_FARM := 2
 const ZOOM_UNDERWATER := 3
 
 # Scenario id from ScenarioSelectPanel / ScenarioSystem (unlocked by default;
@@ -76,6 +77,7 @@ func _run_sequence() -> void:
 	await _capture_genetics()
 
 	await _capture_fjord_day()
+	await _capture_fjord_farm()
 	await _capture_fjord_night_aurora()
 	await _capture_fjord_storm()
 	await _capture_fjord_underwater()
@@ -246,6 +248,16 @@ func _capture_fjord_day() -> void:
 	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FJORD)
 	await _wait(1.5)
 	await _shoot("08_fjord_day")
+
+
+## Asset-QA closeup: FARM zoom on the focused pen. Every Blender asset
+## (fish, pens, boats, barges) gets its proof frame here.
+func _capture_fjord_farm() -> void:
+	_hide_ui()
+	await _wait(0.4)
+	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FARM)
+	await _wait(2.5)
+	await _shoot("08b_fjord_farm")
 
 
 func _capture_fjord_night_aurora() -> void:

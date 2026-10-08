@@ -335,18 +335,36 @@ func _create_net_mesh() -> Mesh:
 	return cyl
 
 
+## Blender-built salmon (blender/build_salmon.py -> salmon_v2.glb).
+## Falls back to a plain box if the import is missing.
+var _salmon_mesh: Mesh = null
+
+func _get_salmon_mesh() -> Mesh:
+	if _salmon_mesh:
+		return _salmon_mesh
+	var packed: PackedScene = load("res://assets/models/fish/salmon_v2.glb") as PackedScene
+	if packed != null:
+		var inst: Node = packed.instantiate()
+		var mi := inst.find_child("LK_Salmon", true, false) as MeshInstance3D
+		if mi and mi.mesh:
+			_salmon_mesh = mi.mesh
+		inst.queue_free()
+	if _salmon_mesh == null:
+		var body := BoxMesh.new()
+		body.size = Vector3(0.9, 0.3, 0.25)
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.5, 0.58, 0.65, 1.0)
+		mat.roughness = 0.6
+		body.material = mat
+		_salmon_mesh = body
+	return _salmon_mesh
+
+
 func _create_fish_multimesh() -> MultiMesh:
 	"""One shared low-poly fish school mesh per pen (modest count)."""
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
-	var body := BoxMesh.new()
-	body.size = Vector3(0.9, 0.3, 0.25)
-	var mat := StandardMaterial3D.new()
-	# Steel-blue/silver like a real salmon back, not salmon-flesh orange.
-	mat.albedo_color = Color(0.5, 0.58, 0.65, 1.0)
-	mat.roughness = 0.6
-	body.material = mat
-	mm.mesh = body
+	mm.mesh = _get_salmon_mesh()
 	# Allocated once at max; _apply_fish_density drives visible count.
 	mm.instance_count = FISH_MAX_INSTANCES
 	mm.visible_instance_count = 0
@@ -389,7 +407,10 @@ func _animate_fish_school(pen_data: Dictionary, pen_id: String) -> void:
 		var r := fish_swim_radius * (0.55 + 0.45 * float(i % 3) / 2.0)
 		var depth := -3.0 - float(i % 4) * 2.0
 		var pos := Vector3(cos(t) * r, depth + sin(t * 1.7) * 0.6, sin(t) * r)
-		var basis := Basis(Vector3.UP, -t).scaled(Vector3.ONE * fish_scale)
+		# Tangential heading: velocity of the circle path; the salmon model's
+		# nose points along local -Z (Blender -Y -> Godot -Z on import).
+		var vel := Vector3(-sin(t), 0.0, cos(t))
+		var basis := Basis.looking_at(vel, Vector3.UP).scaled(Vector3.ONE * fish_scale)
 		school.multimesh.set_instance_transform(i, Transform3D(basis, pos))
 
 

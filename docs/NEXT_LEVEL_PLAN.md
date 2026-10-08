@@ -20,6 +20,13 @@ Date: 2026-10-08. Reviewed at commit `b56ff2a`. The review covers the C# simulat
   Mattilsynet orders + forced treatment, stage-specific efficacy,
   resistance decay, DelousingHarmModel wired into treatments.
   653 tests pass, harness log error-free.
+- **Blender pipeline LIVE.** MCP server wired (.mcp.json + opencode.json),
+  official Blender Lab addon, `blender/` sources, `tools/blender_mcp_call.py`
+  helper, `08b_fjord_farm` asset-QA closeup in the harness. First asset:
+  procedural low-poly salmon (284 tris, skin/belly/fin; `blender/
+  build_salmon.py` -> `salmon_v2.glb`) driving the pen MultiMesh with
+  tangential heading. Orientation verified against the binary (nose -Z).
+  Next assets: feed barge, wellboat, pen rails.
   **Deferred with reason:** price-clamp removal (needs the Phase 2
   supply-driven market first — removing it now just moves the band problem);
   PlayerScriptProbe (needs the Sim.Commands refactor); ISnapshotable +
