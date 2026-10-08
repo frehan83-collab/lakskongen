@@ -48,6 +48,23 @@ namespace LakskongenSim.Finance
         }
 
         /// <summary>
+        /// Add borrowed principal as liquidity WITHOUT booking it as revenue
+        /// (S5: a loan is a liability, not income — it must never let
+        /// profit-scenarios win on day 1). Mirrors <see cref="AddRevenue"/>
+        /// cash-flow mechanics so repayment amortization stays symmetric.
+        /// </summary>
+        public void AddLoanPrincipal(decimal amount)
+        {
+            if (amount <= 0)
+            {
+                SimLog.Warn($"AddLoanPrincipal called with non-positive amount {amount}.");
+                return;
+            }
+            Balance += amount;
+            OnBalanceChanged?.Invoke(Balance);
+        }
+
+        /// <summary>
         /// Deduct expense from balance. Returns false if insufficient funds.
         /// IMPORTANT: Callers MUST check the return value and handle bankruptcy/debt logic.
         /// Failures are logged and broadcast via <see cref="OnSpendFailed"/>.

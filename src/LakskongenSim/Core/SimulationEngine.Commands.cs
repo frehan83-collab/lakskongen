@@ -1,0 +1,423 @@
+using System;
+using System.Linq;
+using LakskongenSim.Biology;
+using LakskongenSim.Data;
+using LakskongenSim.Events;
+using LakskongenSim.Farm;
+using LakskongenSim.Finance;
+using LakskongenSim.Processing;
+
+namespace LakskongenSim.Core;
+
+/// <summary>
+/// Typed outcome of a player command issued against the simulation.
+/// Lifecycle rule (Phase 1 cross-cutting): player verbs live in the library
+/// and return <see cref="CommandResult"/> with a stable <see cref="ErrorKey"/>;
+/// the Godot bridge keeps its legacy bool/dictionary/double surface by
+/// projecting this result — the UI contract never changes in the same change
+/// as the migration.
+/// </summary>
+public sealed class CommandResult
+{
+    /// <summary>True when the command fully applied.</summary>
+    public bool Ok { get; private set; } = false;
+
+    /// <summary>
+    /// Stable machine-readable failure reason: "engine_not_ready",
+    /// "site_not_found", "site_empty", "insufficient_funds",
+    /// "invalid_loan_params", "unknown_kind". Empty for successes.
+    /// </summary>
+    public string ErrorKey { get; private set; } = "";
+
+    /// <summary>Human-readable outcome, formatted for logs and toasts.</summary>
+    public string Message { get; private set; } = "";
+
+    /// <summary>Primary numeric payload (e.g. kg harvested); 0 otherwise.</summary>
+    public double Value { get; private set; } = 0.0;
+
+    /// <summary>Secondary numeric payload (e.g. NOK revenue from a harvest); 0 otherwise.</summary>
+    public double Value2 { get; private set; } = 0.0;
+
+    /// <summary>Optional identifier (e.g. loan id); empty otherwise.</summary>
+    public string Id { get; private set; } = "";
+
+    public static CommandResult Success(string message = "", double value = 0.0, double value2 = 0.0, string id = "") =>
+        new() { Ok = true, Message = message, Value = value, Value2 = value2, Id = id };
+
+    public static CommandResult Fail(string errorKey, string message, double value = 0.0) =>
+        new() { Ok = false, ErrorKey = errorKey, Message = message, Value = value };
+}
+
+/// <summary>
+/// Player verbs, moved out of the Godot bridge (NEXT_LEVEL_PLAN Phase 1).
+/// These run on the same state the UI shows and are the same entry points the
+/// PlayerScriptProbe careers drive — one implementation, one path.
+/// </summary>
+public partial class SimulationEngine
+{
+    // ── Stocking ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Stock smolts at an owned sea site (Phase 1.4: strain-aware, P5:
+    /// quality-carryover). Charges the calibrated rearing cost and seeds the
+    /// incoming strain's lice load into the site's lice model.
+    /// </summary>
+    public CommandResult StockSmolts(string siteId, int count, string strainId = "standard")
+        => StockSmolts(siteId, count, strainId, SmoltQualityTier.Standard);
+
+    /// <summary>
+    /// Stock smolts with an explicit post-smolt quality tier. The tier is
+    /// stamped on the cohort so the sea phase applies its mortality / growth /
+    /// time-to-harvest carryover multipliers.
+    /// </summary>
+    public CommandResult StockSmolts(string siteId, int count, string strainId, SmoltQualityTier qualityTier)
+    {
+        if (State?.SeaSites == null || Hatchery == null || FinanceManager == null)
+            return CommandResult.Fail("engine_not_ready", "Engine not initialized");
+
+        var site = State.SeaSites.FirstOrDefault(s => s.Id == siteId);
+        if (site == null)
+            return CommandResult.Fail("site_not_found", $"Site '{siteId}' not found");
+
+        var strain = SmoltStrainRegistry.Get(strainId);
+        var quality = SmoltQualityRegistry.Get(qualityTier);
+        decimal stockingCost = Hatchery.CalculateRearingCost(count, Hatchery.MaturationDays)
+            * (decimal)strain.CostMultiplier;
+
+        if (FinanceManager.Balance < stockingCost)
+            return CommandResult.Fail("insufficient_funds",
+                $"Insufficient funds: need {stockingCost:N0} NOK for {count:N0} smolts");
+
+        var population = new FishPopulation
+        {
+            ZoneId = site.ZoneId,
+            SeaLiceLoad = strain.InitialLiceLoad
+        };
+        population.InjectDependencies(Growth, Mortality);
+
+        var smoltCohort = new FishPopulation.Cohort(
+            Hatchery.MaturationDays,
+            count,
+            strain.ReleaseWeightKg,
+            LifeStage.Smolt,
+            strain.BuildGenome()
+        )
+        {
+            Quality = quality.Tier
+        };
+        population.Cohorts.Add(smoltCohort);
+
+        site.Stock(population);
+        State.Populations.Add(population);
+
+        // Phase 2.1: seed the SITE's lice model from the incoming smolts
+        // (no Reset — that would wipe resistance built up by earlier
+        // cohorts). Without this the model sits at 0 lice forever and
+        // AdvanceDay early-outs.
+        if (strain.InitialLiceLoad > 0)
+            site.Lice.SeedExternalInfection(Math.Max(0.05, strain.InitialLiceLoad));
+
+        FinanceManager.Spend(stockingCost);
+
+        var message = $"Stocked {count:N0} {quality.Name} {strain.Name} smolts " +
+                      $"({strain.ReleaseWeightKg * 1000:F0}g) at {siteId}";
+
+        State.EventLog.Add(new EventRecord
+        {
+            Day = State.Day,
+            Name = "Smolt Stocking",
+            Category = EventCategory.Equipment,
+            Description = $"{message} for {stockingCost:N0} NOK",
+            BalanceChange = -stockingCost
+        });
+
+        return CommandResult.Success(message, count, id: siteId);
+    }
+
+    // ── Harvest ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Harvest every fish at one sea site. Value = biomass kg, Value2 = NOK
+    /// revenue after contracts (oldest first), spot remainder, certification
+    /// and VAP multipliers. Fails with "site_empty" when the site holds no
+    /// meaningful biomass.
+    /// </summary>
+    public CommandResult HarvestSite(string siteId)
+    {
+        if (State?.SeaSites == null)
+            return CommandResult.Fail("engine_not_ready", "Engine not initialized");
+
+        var site = State.SeaSites.FirstOrDefault(s => s.Id == siteId);
+        if (site == null)
+            return CommandResult.Fail("site_not_found", $"Site '{siteId}' not found");
+
+        // Harvest ONLY this site's pens (site.Pens identity). Populations
+        // carry ZoneId (shared by every site in a zone), so filtering
+        // State.Populations by zone would wipe neighbouring sites too.
+        double totalBiomassKg = 0.0;
+        int totalFishCount = 0;
+        var populations = site.Pens.ToList();
+
+        foreach (var pop in populations)
+        {
+            foreach (var cohort in pop.Cohorts.ToList()) // ToList() to avoid modification during iteration
+            {
+                double cohortBiomass = cohort.Count * cohort.MeanWeightKg;
+                totalBiomassKg += cohortBiomass;
+                totalFishCount += cohort.Count;
+            }
+        }
+
+        if (totalBiomassKg < 0.1)
+            return CommandResult.Fail("site_empty", $"Site '{siteId}' is empty");
+
+        // Calculate revenue: oldest contracts first at locked prices,
+        // remainder at spot — all scaled by certification multiplier.
+        // Partial deliveries accrue no penalty (expiry settles shortfalls).
+        decimal revenue = 0m;
+        double remainingKg = totalBiomassKg;
+        if (ContractSystem != null)
+        {
+            foreach (var c in ContractSystem.ActiveContracts.OrderBy(c => c.SignedAtWeek).ToList())
+            {
+                if (remainingKg <= 0.1) break;
+                int deliver = (int)Math.Min(remainingKg, c.RemainingKg);
+                if (deliver <= 0) continue;
+                var (payment, _) = ContractSystem.FulfillContract(c.Id, deliver);
+                revenue += payment;
+                remainingKg -= deliver;
+            }
+        }
+        decimal spotPrice = MarketSimulation.PricePerKg;
+        revenue += (decimal)remainingKg * spotPrice;
+        decimal certMultiplier = SustainabilityManager?.GetPriceMultiplier(
+            SustainabilityManager.CurrentCertification) ?? 1.0m;
+        revenue *= certMultiplier;
+        // VAP fillet line (Phase 3.5): +12% when a plant is owned.
+        // Phase 4.4: grade-C recipe (pale) halves the premium to +6%.
+        bool vap = State.OwnsProcessingPlant;
+        if (vap)
+        {
+            string grade = FeedRecipe.Grade(State.RecipeProteinPct, State.RecipeAstaxPpm);
+            revenue *= FeedRecipe.VapMult(grade);
+            if (grade == "C")
+                State.EventLog.Add(new EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Blek filet (C)",
+                    Category = EventCategory.Market,
+                    Description = "Lav astaxanthin i fôret — VAP-premie halvert til +6%",
+                    BalanceChange = 0m
+                });
+        }
+
+        FinanceManager.AddRevenue(revenue);
+
+        // P15: player-supply market impact — the harvested tonnage moves the
+        // market (accumulates downward price pressure, decays over days).
+        MarketSimulation?.ApplyPlayerHarvest(totalBiomassKg / 1000.0);
+
+        // Remove exactly the harvested populations (this site only)
+        foreach (var pop in populations)
+        {
+            pop.Cohorts.Clear();
+            State.Populations.Remove(pop);
+        }
+        site.Pens.Clear();
+
+        // Reset site stocking density
+        site.CurrentStockingDensity = 0f;
+
+        var message = $"Harvested {totalBiomassKg:N0} kg ({totalFishCount:N0} fish) at {siteId}";
+
+        State.EventLog.Add(new EventRecord
+        {
+            Day = State.Day,
+            Name = "Harvest",
+            Category = EventCategory.Market,
+            Description = $"{message} for {revenue:N0} NOK",
+            BalanceChange = revenue
+        });
+
+        return CommandResult.Success(message, totalBiomassKg, (double)revenue, siteId);
+    }
+
+    // ── Finance ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Take out a new loan. The principal lands as liquidity via
+    /// <c>FinanceManager.AddLoanPrincipal</c> (NOT revenue, S5); the liability
+    /// is recorded in <see cref="GameState.ActiveLoans"/> and amortized daily
+    /// in ProcessDailyFinance. Returns the loan id in <see cref="CommandResult.Id"/>.
+    /// </summary>
+    public CommandResult TakeLoan(double amount, int termMonths, double rate)
+    {
+        if (amount <= 0 || termMonths <= 0 || rate < 0)
+            return CommandResult.Fail("invalid_loan_params", "Invalid loan parameters");
+
+        if (State == null || FinanceManager == null)
+            return CommandResult.Fail("engine_not_ready", "Engine not initialized");
+
+        // Cash in as liquidity (NOT revenue — it must be repaid).
+        FinanceManager.AddLoanPrincipal((decimal)amount);
+
+        string loanId = "loan_" + State.Day;
+        State.ActiveLoans.Add(new LoanState
+        {
+            Id = loanId,
+            Principal = (decimal)amount,
+            InterestRate = (decimal)rate,
+            TermDays = Math.Max(30, termMonths * 30),
+            DaysTaken = 0
+        });
+
+        var message = $"Loan of {amount:N0} NOK approved at {rate:P1} for {termMonths} months";
+        return CommandResult.Success(message, amount, id: loanId);
+    }
+
+    // ── Insurance ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Annual premium (NOK) at 100% coverage per catastrophe kind. Premiums are
+    /// scaled linearly by the requested coverage fraction; the deductible is
+    /// retained by the insured before cover applies (see <see cref="InsurancePolicy"/>).
+    /// </summary>
+    private static decimal BaseAnnualPremiumNok(InsuranceKind kind) => kind switch
+    {
+        InsuranceKind.Mortality => 120_000m,
+        InsuranceKind.Bloom => 250_000m,
+        InsuranceKind.Storm => 180_000m,
+        InsuranceKind.ISA => 300_000m,
+        _ => 0m
+    };
+
+    /// <summary>
+    /// Enable/disable a catastrophe policy ("mortality" | "bloom" | "storm" |
+    /// "isa", case-insensitive). Replaces any existing policy of that kind while
+    /// preserving all other kinds.
+    /// </summary>
+    public CommandResult SetInsurancePolicy(string kind, bool enabled, double coverage, double deductible)
+    {
+        if (Insurance == null)
+            return CommandResult.Fail("engine_not_ready", "Engine not initialized");
+
+        if (!Enum.TryParse(kind, ignoreCase: true, out InsuranceKind parsed))
+            return CommandResult.Fail("unknown_kind", $"Unknown insurance kind '{kind}'");
+
+        double clampedCoverage = Math.Clamp(coverage, 0.0, 1.0);
+        decimal ded = deductible > 0.0 ? (decimal)deductible : 0m;
+
+        // InsuranceSystem exposes no per-kind removal, so rebuild: keep every
+        // other kind's policies, then re-add this kind if enabled.
+        var survivors = Insurance.Policies.Where(p => p.Kind != parsed).ToList();
+        Insurance.ClearPolicies();
+        foreach (var policy in survivors)
+            Insurance.Subscribe(policy);
+
+        if (enabled && clampedCoverage > 0.0)
+        {
+            decimal premium = BaseAnnualPremiumNok(parsed) * (decimal)clampedCoverage;
+            Insurance.Subscribe(new InsurancePolicy(parsed, premium, clampedCoverage, ded));
+        }
+
+        bool active = enabled && clampedCoverage > 0.0;
+        return CommandResult.Success(
+            active ? $"Insurance '{InsuranceKindKey(parsed)}' active (premium base {BaseAnnualPremiumNok(parsed):N0} NOK)" :
+                     $"Insurance '{InsuranceKindKey(parsed)}' disabled");
+    }
+
+    private static string InsuranceKindKey(InsuranceKind kind) => kind.ToString().ToLowerInvariant();
+
+    // ── Load path ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Adopt a deserialized snapshot into the live engine exactly the way the
+    /// game does (Phase 1: the load path gets ONE owner). The Godot bridge's
+    /// LoadGame previously hand-copied this list; the game and the
+    /// PlayerScriptProbe now share this method, so a drift between "player
+    /// load" and "probe load" is impossible by construction.
+    /// <para>
+    /// The copy list is deliberately unchanged from the bridge's. Fields the
+    /// old list missed (research progress, achievements, active scenario,
+    /// tutorial, RAS/offshore) are still missed until the ISnapshotable
+    /// rewrite — this method documents the gap, it does not fix it.
+    /// </para>
+    /// </summary>
+    public void AdoptSavedState(GameState snapshot)
+    {
+        // Restore day counter and persistent collections.
+        State.Day = snapshot.Day;
+        // Ownership flags (were dropped on load; restored here incl. VAP tier).
+        State.OwnsHatchery = snapshot.OwnsHatchery;
+        State.OwnsFeedMill = snapshot.OwnsFeedMill;
+        State.OwnsProcessingPlant = snapshot.OwnsProcessingPlant;
+        State.ProcessingTier = snapshot.ProcessingTier ?? "";
+        State.HasASCCertification = snapshot.HasASCCertification;
+
+        State.Zones.Clear();
+        State.SeaSites.Clear();
+        State.Populations.Clear();
+        State.EventLog.Clear();
+        State.WellboatJobs.Clear();
+        State.Crew.Clear();
+        State.ActiveBlooms.Clear();
+        State.ActiveCrises.Clear();
+        State.ActiveLoans.Clear();
+        State.TaxHistory.Clear();
+        State.Acquisitions.Clear();
+        State.Licenses.Clear();
+        State.RecentMarketReports.Clear();
+        State.AchievedVisualMilestones.Clear();
+        if (State.CompetitorCompanies != null)
+            State.CompetitorCompanies.Clear();
+
+        foreach (var zone in snapshot.Zones)
+            State.Zones.Add(zone);
+        foreach (var site in snapshot.SeaSites)
+            State.SeaSites.Add(site);
+        foreach (var pop in snapshot.Populations)
+            State.Populations.Add(pop);
+        foreach (var evt in snapshot.EventLog)
+            State.EventLog.Add(evt);
+        if (snapshot.WellboatJobs != null)
+            foreach (var job in snapshot.WellboatJobs)
+                State.WellboatJobs.Add(job);
+        if (snapshot.Crew != null)
+            foreach (var member in snapshot.Crew)
+                State.Crew.Add(member);
+        if (snapshot.ActiveBlooms != null)
+            foreach (var bloom in snapshot.ActiveBlooms)
+                State.ActiveBlooms.Add(bloom);
+
+        // Empire-system DTOs (save-rounded; engine rehydrates live systems).
+        State.StockMarket = snapshot.StockMarket;
+        State.BrandReputation = snapshot.BrandReputation;
+        foreach (var crisis in snapshot.ActiveCrises)
+            State.ActiveCrises.Add(crisis);
+        State.VerticalIntegration = snapshot.VerticalIntegration;
+        foreach (var loan in snapshot.ActiveLoans)
+            State.ActiveLoans.Add(loan);
+        foreach (var tax in snapshot.TaxHistory)
+            State.TaxHistory.Add(tax);
+        State.InvestorSystem = snapshot.InvestorSystem;
+        foreach (var acq in snapshot.Acquisitions)
+            State.Acquisitions.Add(acq);
+        foreach (var lic in snapshot.Licenses)
+            State.Licenses.Add(lic);
+        foreach (var kvp in snapshot.FactionRelations)
+            State.FactionRelations[kvp.Key] = kvp.Value;
+        foreach (var rep in snapshot.RecentMarketReports)
+            State.RecentMarketReports.Add(rep);
+        State.FishWelfareCondition = snapshot.FishWelfareCondition;
+        foreach (var m in snapshot.AchievedVisualMilestones)
+            State.AchievedVisualMilestones.Add(m);
+        if (snapshot.CompetitorCompanies != null && State.CompetitorCompanies != null)
+            foreach (var c in snapshot.CompetitorCompanies)
+                State.CompetitorCompanies.Add(c);
+        State.EmpireProgression = snapshot.EmpireProgression;
+
+        // Re-inject dependencies into deserialized populations and restore
+        // depth/empire systems + model snapshots (same call the game makes).
+        RestoreFromLoad(snapshot);
+    }
+}

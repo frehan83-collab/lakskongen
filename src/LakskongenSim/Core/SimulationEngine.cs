@@ -27,7 +27,7 @@ namespace LakskongenSim.Core
     /// Central orchestrator connecting all subsystems in correct update order.
     /// Update order: Weather → Environment → Biology → Health → Events → Market → Finance → Tutorial → Analytics
     /// </summary>
-    public class SimulationEngine
+    public partial class SimulationEngine
     {
         public TimeManager Time { get; } = new();
         public GameState State { get; private set; } = new();

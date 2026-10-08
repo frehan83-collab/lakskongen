@@ -5,7 +5,7 @@
 [![Engine](https://img.shields.io/badge/Godot-4.7-blue.svg)](https://godotengine.org/)
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4.svg)](https://dotnet.microsoft.com/)
 [![Status: Playable Alpha](https://img.shields.io/badge/Status-Playable%20Alpha-brightgreen.svg)]()
-[![Tests: 727 passing](https://img.shields.io/badge/Tests-727%20passing-success.svg)]()
+[![Tests: 663 passing](https://img.shields.io/badge/Tests-663%20passing-success.svg)]()
 
 Lakskongen puts you in charge of a Norwegian salmon farm and scales you from a
 single net pen to a vertically integrated corporation: egg → smolt → sea site →
@@ -32,7 +32,7 @@ History: **[CHANGELOG.md](CHANGELOG.md)**.
 # Build the whole solution (sim library + Godot C# assembly)
 dotnet build LakskongenSim.sln
 
-# Run the full test suite (727 passing, 1 skipped)
+# Run the full test suite (663 passing, 1 skipped)
 dotnet test LakskongenSim.sln
 
 # Launch the game

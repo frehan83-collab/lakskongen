@@ -198,80 +198,11 @@ public partial class GameBridge : Node
         SimulationEngine.OnScenarioLost += HandleScenarioLost;
         RegisterModScenariosIntoEngine();
 
-        // Restore day counter and persistent collections
-        // (State outlives Initialize — clear first so repeat loads
-        // never duplicate zones, sites, populations or log entries.)
-        SimulationEngine.State.Day = snapshot.Day;
-        // Ownership flags (were dropped on load; restored here incl. VAP tier).
-        SimulationEngine.State.OwnsHatchery = snapshot.OwnsHatchery;
-        SimulationEngine.State.OwnsFeedMill = snapshot.OwnsFeedMill;
-        SimulationEngine.State.OwnsProcessingPlant = snapshot.OwnsProcessingPlant;
-        SimulationEngine.State.ProcessingTier = snapshot.ProcessingTier ?? "";
-        SimulationEngine.State.HasASCCertification = snapshot.HasASCCertification;
-        SimulationEngine.State.Zones.Clear();
-        SimulationEngine.State.SeaSites.Clear();
-        SimulationEngine.State.Populations.Clear();
-        SimulationEngine.State.EventLog.Clear();
-        SimulationEngine.State.WellboatJobs.Clear();
-        SimulationEngine.State.Crew.Clear();
-        SimulationEngine.State.ActiveBlooms.Clear();
-        SimulationEngine.State.ActiveCrises.Clear();
-        SimulationEngine.State.ActiveLoans.Clear();
-        SimulationEngine.State.TaxHistory.Clear();
-        SimulationEngine.State.Acquisitions.Clear();
-        SimulationEngine.State.Licenses.Clear();
-        SimulationEngine.State.RecentMarketReports.Clear();
-        SimulationEngine.State.AchievedVisualMilestones.Clear();
-        if (SimulationEngine.State.CompetitorCompanies != null)
-            SimulationEngine.State.CompetitorCompanies.Clear();
-        foreach (var zone in snapshot.Zones)
-            SimulationEngine.State.Zones.Add(zone);
-        foreach (var site in snapshot.SeaSites)
-            SimulationEngine.State.SeaSites.Add(site);
-        foreach (var pop in snapshot.Populations)
-            SimulationEngine.State.Populations.Add(pop);
-        foreach (var evt in snapshot.EventLog)
-            SimulationEngine.State.EventLog.Add(evt);
-        if (snapshot.WellboatJobs != null)
-            foreach (var job in snapshot.WellboatJobs)
-                SimulationEngine.State.WellboatJobs.Add(job);
-        if (snapshot.Crew != null)
-            foreach (var member in snapshot.Crew)
-                SimulationEngine.State.Crew.Add(member);
-        if (snapshot.ActiveBlooms != null)
-            foreach (var bloom in snapshot.ActiveBlooms)
-                SimulationEngine.State.ActiveBlooms.Add(bloom);
-
-        // Empire-system DTOs (save-rounded; engine rehydrates live systems)
-        SimulationEngine.State.StockMarket = snapshot.StockMarket;
-        SimulationEngine.State.BrandReputation = snapshot.BrandReputation;
-        foreach (var crisis in snapshot.ActiveCrises)
-            SimulationEngine.State.ActiveCrises.Add(crisis);
-        SimulationEngine.State.VerticalIntegration = snapshot.VerticalIntegration;
-        foreach (var loan in snapshot.ActiveLoans)
-            SimulationEngine.State.ActiveLoans.Add(loan);
-        foreach (var tax in snapshot.TaxHistory)
-            SimulationEngine.State.TaxHistory.Add(tax);
-        SimulationEngine.State.InvestorSystem = snapshot.InvestorSystem;
-        foreach (var acq in snapshot.Acquisitions)
-            SimulationEngine.State.Acquisitions.Add(acq);
-        foreach (var lic in snapshot.Licenses)
-            SimulationEngine.State.Licenses.Add(lic);
-        foreach (var kvp in snapshot.FactionRelations)
-            SimulationEngine.State.FactionRelations[kvp.Key] = kvp.Value;
-        foreach (var rep in snapshot.RecentMarketReports)
-            SimulationEngine.State.RecentMarketReports.Add(rep);
-        SimulationEngine.State.FishWelfareCondition = snapshot.FishWelfareCondition;
-        foreach (var m in snapshot.AchievedVisualMilestones)
-            SimulationEngine.State.AchievedVisualMilestones.Add(m);
-        if (snapshot.CompetitorCompanies != null)
-            foreach (var c in snapshot.CompetitorCompanies)
-                SimulationEngine.State.CompetitorCompanies.Add(c);
-        SimulationEngine.State.EmpireProgression = snapshot.EmpireProgression;
-
-        // CRITICAL: Re-inject dependencies into deserialized populations
-        // Fixes P1-03 (Save/Load NRE Gap) - populations need GrowthModel/MortalityModel after deserialization
-        SimulationEngine.RestoreFromLoad(snapshot);
+        // Phase 1: the load path has ONE owner. AdoptSavedState restores the
+        // day counter, ownership flags and all persistent collections, then
+        // re-injects model dependencies (the old hand-copied list moved there
+        // verbatim; PlayerScriptProbe drives the identical path headless).
+        SimulationEngine.AdoptSavedState(snapshot);
 
         // P11 persistence: rebuild the in-memory mitigation registry from the
         // saved list, then re-normalize the serializable mirror.

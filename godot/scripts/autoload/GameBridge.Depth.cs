@@ -478,24 +478,7 @@ public partial class GameBridge : Node
         InsuranceKind.Mortality, InsuranceKind.Bloom, InsuranceKind.Storm, InsuranceKind.ISA
     };
 
-    /// <summary>
-    /// Annual premium (NOK) at 100% coverage per catastrophe kind. Premiums are
-    /// scaled linearly by the requested coverage fraction; the deductible is
-    /// retained by the insured before cover applies (see <see cref="InsurancePolicy"/>).
-    /// </summary>
-    private static decimal BaseAnnualPremiumNok(InsuranceKind kind) => kind switch
-    {
-        InsuranceKind.Mortality => 120_000m,
-        InsuranceKind.Bloom => 250_000m,
-        InsuranceKind.Storm => 180_000m,
-        InsuranceKind.ISA => 300_000m,
-        _ => 0m
-    };
-
     private static string InsuranceKindKey(InsuranceKind kind) => kind.ToString().ToLowerInvariant();
-
-    private static bool TryParseInsuranceKind(string kind, out InsuranceKind parsed) =>
-        Enum.TryParse(kind, ignoreCase: true, out parsed);
 
     /// <summary>
     /// Per-kind insurance status for the UI:
@@ -543,28 +526,15 @@ public partial class GameBridge : Node
     /// </summary>
     public bool SetInsurancePolicy(string kind, bool enabled, double coverage, double deductible)
     {
-        var insurance = SimulationEngine?.Insurance;
-        if (insurance == null) return false;
-        if (!TryParseInsuranceKind(kind, out var parsed)) return false;
+        var engine = SimulationEngine;
+        if (engine == null) return false;
 
-        double clampedCoverage = System.Math.Clamp(coverage, 0.0, 1.0);
-        decimal ded = deductible > 0.0 ? (decimal)deductible : 0m;
-
-        // InsuranceSystem exposes no per-kind removal, so rebuild: keep every
-        // other kind's policies, then re-add this kind if enabled.
-        var survivors = insurance.Policies.Where(p => p.Kind != parsed).ToList();
-        insurance.ClearPolicies();
-        foreach (var policy in survivors)
-            insurance.Subscribe(policy);
-
-        if (enabled && clampedCoverage > 0.0)
-        {
-            decimal premium = BaseAnnualPremiumNok(parsed) * (decimal)clampedCoverage;
-            insurance.Subscribe(new InsurancePolicy(parsed, premium, clampedCoverage, ded));
-        }
-
-        EmitSignal(SignalName.GameStateUpdated);
-        return true;
+        // Phase 1: the verb lives in the library (SimulationEngine.Commands);
+        // the bridge keeps the bool + GameStateUpdated surface.
+        var result = engine.SetInsurancePolicy(kind, enabled, coverage, deductible);
+        if (result.Ok)
+            EmitSignal(SignalName.GameStateUpdated);
+        return result.Ok;
     }
 
     // ── P8 permeable-barrier API (Smoltscreen) ──────────────────────────────

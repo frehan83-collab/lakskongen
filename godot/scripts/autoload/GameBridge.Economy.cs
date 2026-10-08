@@ -297,44 +297,43 @@ public partial class GameBridge : Node
     public Godot.Collections.Dictionary TakeLoan(double amount, int termMonths, double rate)
     {
         var result = new Godot.Collections.Dictionary();
-        
-        if (amount <= 0 || termMonths <= 0 || rate < 0)
+        var engine = SimulationEngine;
+        if (engine == null)
         {
             result["success"] = false;
-            result["message"] = "Invalid loan parameters";
+            result["message"] = "Engine not initialized";
             return result;
         }
 
-        // Cash in as liquidity (NOT revenue — it must be repaid).
-        SimulationEngine?.FinanceManager?.AddRevenue((decimal)amount);
+        // Phase 1: the verb lives in the library (SimulationEngine.Commands);
+        // the bridge preserves the exact Dictionary contract the UI reads.
+        var cmd = engine.TakeLoan(amount, termMonths, rate);
+        result["success"] = cmd.Ok;
+        result["message"] = cmd.Ok
+            ? cmd.Message
+            : (cmd.ErrorKey == "invalid_loan_params" ? "Invalid loan parameters" : cmd.Message);
+        result["loan_id"] = cmd.Ok ? cmd.Id : "";
+        result["principal"] = cmd.Ok ? amount : 0.0;
 
-        // S5: record the liability — the engine amortizes principal +
-        // interest daily in ProcessDailyFinance. Without this, loans were
-        // free money that won profit scenarios on day 1.
-        string loanId = "loan_" + SimulationEngine?.State?.Day.ToString() ?? "0";
-        if (SimulationEngine?.State != null)
+        // Calculate approximate monthly payment (presentation only; the
+        // engine amortizes principal + interest daily). rate == 0 divides by
+        // zero in the annuity formula, so fall back to linear amortization.
+        double monthlyPayment = 0.0;
+        if (cmd.Ok)
         {
-            SimulationEngine.State.ActiveLoans.Add(new LakskongenSim.Core.LoanState
+            if (rate > 0)
             {
-                Id = loanId,
-                Principal = (decimal)amount,
-                InterestRate = (decimal)rate,
-                TermDays = Math.Max(30, termMonths * 30),
-                DaysTaken = 0
-            });
+                double monthlyRate = rate / 12.0;
+                monthlyPayment = amount * (monthlyRate * Math.Pow(1 + monthlyRate, termMonths)) /
+                                 (Math.Pow(1 + monthlyRate, termMonths) - 1);
+            }
+            else
+            {
+                monthlyPayment = amount / Math.Max(1, termMonths);
+            }
         }
-
-        result["success"] = true;
-        result["message"] = $"Loan of {amount:N0} NOK approved at {rate:P1} for {termMonths} months";
-        result["loan_id"] = loanId;
-        result["principal"] = amount;
-        
-        // Calculate approximate monthly payment (simplified)
-        double monthlyRate = rate / 12.0;
-        double monthlyPayment = amount * (monthlyRate * Math.Pow(1 + monthlyRate, termMonths)) / 
-                                (Math.Pow(1 + monthlyRate, termMonths) - 1);
         result["monthly_payment"] = monthlyPayment;
-        
+
         return result;
     }
 

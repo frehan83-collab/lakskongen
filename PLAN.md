@@ -1,7 +1,7 @@
 # Lakskongen — Road to Elite
 
 **Goal:** an elite, realistic salmon-farming simulator with a signature UI.
-**Status date:** 2026-10-08 · **Build:** 0 errors, 0 warnings · **Tests:** 727 passed, 1 skipped (deterministic)
+**Status date:** 2026-10-08 · **Build:** 0 errors, 0 warnings · **Tests:** 663 passed, 1 skipped (deterministic; count verified 2026-10-08, see STATUS.md)
 
 ---
 

@@ -47,81 +47,27 @@ public partial class GameBridge : Node
     /// </summary>
     public bool StockSmolts(string siteId, int count, string strainId, Farm.SmoltQualityTier qualityTier)
     {
-        if (SimulationEngine?.State?.SeaSites == null || SimulationEngine?.Hatchery == null)
+        var engine = SimulationEngine;
+        if (engine == null)
         {
             GD.PrintErr("GameBridge: StockSmolts failed - engine not initialized");
             EmitSignal(SignalName.FarmActionCompleted, "stock_smolts", siteId, false);
             return false;
         }
 
-        var site = SimulationEngine.State.SeaSites.FirstOrDefault(s => s.Id == siteId);
-        if (site == null)
+        // Phase 1: the verb lives in the library (SimulationEngine.Commands).
+        // The bridge only projects the typed result onto the legacy surface.
+        var result = engine.StockSmolts(siteId, count, strainId, qualityTier);
+        if (!result.Ok)
         {
-            GD.PrintErr($"GameBridge: StockSmolts failed - site '{siteId}' not found");
+            GD.PrintErr($"GameBridge: StockSmolts failed - {result.Message}");
             EmitSignal(SignalName.FarmActionCompleted, "stock_smolts", siteId, false);
             return false;
         }
-
-        // Calculate stocking cost (hatchery rearing cost × strain multiplier × quality premium)
-        var strain = LakskongenSim.Farm.SmoltStrainRegistry.Get(strainId);
-        var quality = Farm.SmoltQualityRegistry.Get(qualityTier);
-        decimal stockingCost = SimulationEngine.Hatchery.CalculateRearingCost(count, SimulationEngine.Hatchery.MaturationDays)
-            * (decimal)strain.CostMultiplier;
-
-        if (SimulationEngine.FinanceManager.Balance < stockingCost)
-        {
-            GD.PrintErr($"GameBridge: StockSmolts failed - insufficient funds (need {stockingCost:N0} NOK)");
-            EmitSignal(SignalName.FarmActionCompleted, "stock_smolts", siteId, false);
-            return false;
-        }
-
-        // Create a new fish population with strain smolts
-        var population = new LakskongenSim.Biology.FishPopulation
-        {
-            ZoneId = site.ZoneId,
-            SeaLiceLoad = strain.InitialLiceLoad
-        };
-        population.InjectDependencies(SimulationEngine.Growth, SimulationEngine.Mortality);
-        
-        var smoltCohort = new LakskongenSim.Biology.FishPopulation.Cohort(
-            SimulationEngine.Hatchery.MaturationDays,
-            count,
-            strain.ReleaseWeightKg,
-            LakskongenSim.Data.LifeStage.Smolt,
-            strain.BuildGenome()
-        )
-        {
-            Quality = quality.Tier
-        };
-        population.Cohorts.Add(smoltCohort);
-
-        // Stock the site
-        site.Stock(population);
-        SimulationEngine.State.Populations.Add(population);
-
-        // Phase 2.1: seed the SITE's lice model from the incoming smolts
-        // (no Reset — that would wipe resistance built up by earlier
-        // cohorts). Without this the model sits at 0 lice forever and
-        // AdvanceDay early-outs.
-        if (strain.InitialLiceLoad > 0)
-            site.Lice.SeedExternalInfection(Math.Max(0.05, strain.InitialLiceLoad));
-
-        // Charge the player
-        SimulationEngine.FinanceManager.Spend(stockingCost);
-        
-        // Record event
-        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
-        {
-            Day = SimulationEngine.State.Day,
-            Name = "Smolt Stocking",
-            Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"Stocked {count:N0} {quality.Name} {strain.Name} smolts ({strain.ReleaseWeightKg * 1000:F0}g) at {siteId}",
-            BalanceChange = -stockingCost
-        });
 
         EmitSignal(SignalName.FarmActionCompleted, "stock_smolts", siteId, true);
         EmitSignal(SignalName.GameStateUpdated);
-        GD.Print($"GameBridge: Stocked {count:N0} {quality.Name} {strain.Name} smolts at '{siteId}' for {stockingCost:N0} NOK");
+        GD.Print($"GameBridge: {result.Message}");
         return true;
     }
 
@@ -180,122 +126,31 @@ public partial class GameBridge : Node
     /// </summary>
     public double HarvestSite(string siteId)
     {
-        if (SimulationEngine?.State?.SeaSites == null)
+        var engine = SimulationEngine;
+        if (engine == null)
         {
             GD.PrintErr("GameBridge: HarvestSite failed - engine not initialized");
             EmitSignal(SignalName.FarmActionCompleted, "harvest", siteId, false);
             return 0.0;
         }
 
-        var site = SimulationEngine.State.SeaSites.FirstOrDefault(s => s.Id == siteId);
-        if (site == null)
+        // Phase 1: the verb lives in the library (SimulationEngine.Commands);
+        // Value = kg, Value2 = NOK revenue. Same legacy surface as before.
+        var result = engine.HarvestSite(siteId);
+        if (!result.Ok)
         {
-            GD.PrintErr($"GameBridge: HarvestSite failed - site '{siteId}' not found");
+            GD.PrintErr($"GameBridge: HarvestSite failed - {result.Message}");
             EmitSignal(SignalName.FarmActionCompleted, "harvest", siteId, false);
             return 0.0;
         }
-
-        // Harvest ONLY this site's pens (site.Pens identity). Populations
-        // carry ZoneId (shared by every site in a zone), so filtering
-        // State.Populations by zone would wipe neighbouring sites too.
-        double totalBiomassKg = 0.0;
-        int totalFishCount = 0;
-        var populations = site.Pens.ToList();
-
-        foreach (var pop in populations)
-        {
-            foreach (var cohort in pop.Cohorts.ToList()) // ToList() to avoid modification during iteration
-            {
-                double cohortBiomass = cohort.Count * cohort.MeanWeightKg;
-                totalBiomassKg += cohortBiomass;
-                totalFishCount += cohort.Count;
-            }
-        }
-
-        if (totalBiomassKg < 0.1)
-        {
-            GD.Print($"GameBridge: HarvestSite - site '{siteId}' is empty");
-            EmitSignal(SignalName.FarmActionCompleted, "harvest", siteId, false);
-            return 0.0;
-        }
-
-        // Calculate revenue: oldest contracts first at locked prices,
-        // remainder at spot — all scaled by certification multiplier.
-        // Partial deliveries accrue no penalty (expiry settles shortfalls).
-        decimal revenue = 0m;
-        double remainingKg = totalBiomassKg;
-        var cs = SimulationEngine.ContractSystem;
-        if (cs != null)
-        {
-            foreach (var c in cs.ActiveContracts.OrderBy(c => c.SignedAtWeek).ToList())
-            {
-                if (remainingKg <= 0.1) break;
-                int deliver = (int)System.Math.Min(remainingKg, c.RemainingKg);
-                if (deliver <= 0) continue;
-                var (payment, _) = cs.FulfillContract(c.Id, deliver);
-                revenue += payment;
-                remainingKg -= deliver;
-            }
-        }
-        decimal spotPrice = SimulationEngine.MarketSimulation.PricePerKg;
-        revenue += (decimal)remainingKg * spotPrice;
-        decimal certMultiplier = SimulationEngine.SustainabilityManager?.GetPriceMultiplier(
-            SimulationEngine.SustainabilityManager.CurrentCertification) ?? 1.0m;
-        revenue *= certMultiplier;
-        // VAP fillet line (Phase 3.5): +12% when a plant is owned.
-        // Phase 4.4: grade-C recipe (pale) halves the premium to +6%.
-        bool vap = SimulationEngine.State.OwnsProcessingPlant;
-        if (vap)
-        {
-            string grade = LakskongenSim.Processing.FeedRecipe.Grade(
-                SimulationEngine.State.RecipeProteinPct, SimulationEngine.State.RecipeAstaxPpm);
-            revenue *= LakskongenSim.Processing.FeedRecipe.VapMult(grade);
-            if (grade == "C")
-                SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
-                {
-                    Day = SimulationEngine.State.Day,
-                    Name = "Blek filet (C)",
-                    Category = LakskongenSim.Events.EventCategory.Market,
-                    Description = "Lav astaxanthin i fôret — VAP-premie halvert til +6%",
-                    BalanceChange = 0m
-                });
-        }
-
-        // Apply harvest
-        SimulationEngine.FinanceManager.AddRevenue(revenue);
-
-        // P15: player-supply market impact — the harvested tonnage moves the
-        // market (accumulates downward price pressure, decays over days).
-        SimulationEngine.MarketSimulation?.ApplyPlayerHarvest(totalBiomassKg / 1000.0);
-
-        // Remove exactly the harvested populations (this site only)
-        foreach (var pop in populations)
-        {
-            pop.Cohorts.Clear();
-            SimulationEngine.State.Populations.Remove(pop);
-        }
-        site.Pens.Clear();
-
-        // Reset site stocking density
-        site.CurrentStockingDensity = 0f;
-
-        // Record event
-        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
-        {
-            Day = SimulationEngine.State.Day,
-            Name = "Harvest",
-            Category = LakskongenSim.Events.EventCategory.Market,
-            Description = $"Harvested {totalBiomassKg:N0} kg ({totalFishCount:N0} fish) at {siteId}",
-            BalanceChange = revenue
-        });
 
         // Trigger achievement check
-        SimulationEngine.Audio?.TriggerAlert("harvest");
+        engine.Audio?.TriggerAlert("harvest");
 
         EmitSignal(SignalName.FarmActionCompleted, "harvest", siteId, true);
         EmitSignal(SignalName.GameStateUpdated);
-        GD.Print($"GameBridge: Harvested {totalBiomassKg:N0} kg at '{siteId}' for {revenue:N0} NOK");
-        return totalBiomassKg;
+        GD.Print($"GameBridge: Harvested {result.Value:N0} kg at '{siteId}' for {result.Value2:N0} NOK");
+        return result.Value;
     }
 
     // ── Bloom mitigation API (P11 mitigation UI) ────────────────────────────

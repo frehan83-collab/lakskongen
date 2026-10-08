@@ -34,6 +34,31 @@ Date: 2026-10-08. Reviewed at commit `b56ff2a`. The review covers the C# simulat
   removal (~29% of library still unwired); SimRng named streams (seed is now
   threaded + persisted, but Random.Shared/DateTime.Now remain in tick-adjacent
   code paths, grandfathered in DeterminismAllowlist.txt).
+- **Phase 1 wave 1 DONE — Sim.Commands (player path).**
+  `SimulationEngine.Commands.cs` now owns `StockSmolts`, `HarvestSite`,
+  `TakeLoan`, `SetInsurancePolicy` with a typed `CommandResult` (stable
+  error keys: `site_not_found` / `site_empty` / `insufficient_funds` /
+  `invalid_loan_params` / `unknown_kind` / `engine_not_ready`). GameBridge
+  is a thin adapter with the same GDScript surface (bool/Dictionary/double).
+  The load path got one owner: `SimulationEngine.AdoptSavedState` took over
+  the hand-copied field list from `GameBridge.LoadGame` verbatim — the
+  documented gaps (research/achievements/scenario/tutorial/RAS/offshore) are
+  still gaps until the ISnapshotable rewrite. `FinanceManager.AddLoanPrincipal`
+  books loans as liquidity, not revenue (S5 residual).
+  **PlayerScriptProbe** (`src/LakskongenSim.Tests/Integration/`) runs
+  scripted `po3_red_sone` careers through these commands with events ON,
+  zones ON and a mid-run save/load through `AdoptSavedState` (the identical
+  adoption path the game uses). 2 career tests + 8 command-contract tests
+  green; suite honest count now 663. Honest band caveat: the probe measures
+  the wide band (FCR 0.9–2.6, price 70–96) because zones+events shift the
+  tight SimProbe bands; probe uses the LIBRARY serializer (PascalCase/enum
+  strings) vs the game's camelCase/enum-ints — adoption unified, formats not.
+  **Deferred by design this wave:** OrderDelousing (needs the treatment-RNG
+  stream), bridge tick logic (wellboat ETA, CheckWeatherImpacts, temperature
+  mortality — still bridge-owned, so "two paths" persists partially until
+  they move), BuildSeaSite/ApplyForLicense (double 30M charge + license
+  model decision), the cash-vs-equity scenario win check is equity-based so
+  AddLoanPrincipal can't be gamed day 1.
 - **Phases 2/4/5 NOT STARTED.** Phase 4 still needs the UI/bridge review pass.
 
 ## Verdict
