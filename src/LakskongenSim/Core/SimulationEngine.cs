@@ -1403,22 +1403,26 @@ private class BalancingConfig
                 AdvanceOneDay();
                 State.Day++; // Single source of truth for day counter
 
-                // Post-tick phase: due wellboat jobs execute AFTER State.Day++
-                // so the booking contract (DueDay = bookedDay + delay) stays
-                // exact; placing this inside AdvanceOneDay would deliver every
-                // boat one day early (off-by-one, see NEXT_LEVEL_PLAN).
-                ProcessDueWellboatJobs();
+                // Post-tick phases (ordered): storm impacts -> wellboat
+                // execution -> balance mirror. Registration order IS the
+                // execution order (see ITickSystem). Wellboat runs AFTER
+                // State.Day++ so the booking contract
+                // (DueDay = bookedDay + delay) stays exact.
+                foreach (var phase in _postTickPhases)
+                    phase.Tick(this);
             }
-
-            // Post-tick balance mirror sync: wellboat and storm economies land
-            // in FinanceManager after the in-day mirror, so re-sync here or
-            // State.Balance would read one day stale.
-            #pragma warning disable CS0618 // Balance mirror: save-compat field by design
-            State.Balance = FinanceManager.Balance;
-            #pragma warning restore CS0618
 
             OnDayAdvanced?.Invoke(State.Day);
         }
+
+        // ─── Post-tick phase pipeline (Phase 1 wave 3) ────────────────────────
+
+        private ITickSystem[] _postTickPhases = new ITickSystem[]
+        {
+            new StormImpactsTickSystem(),
+            new WellboatExecutionTickSystem(),
+            new BalanceMirrorTickSystem()
+        };
 
         // ─── Per-advance note ledger ─────────────────────────────────────────
         // The bridge drains these notes once per Advance/AdvanceDays call and
@@ -1440,7 +1444,7 @@ private class BalancingConfig
         /// Execute due wellboat jobs (Phase 2.4/3.4). Engine-owned mutations
         /// and event-log entry; caller (the game) only mirrors the notes.
         /// </summary>
-        private void ProcessDueWellboatJobs()
+        internal void ProcessDueWellboatJobs()
         {
             if (State?.WellboatJobs is null || State.WellboatJobs.Count == 0) return;
 
@@ -1960,12 +1964,6 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
             #pragma warning restore CS0618
 
             // ═══════════════════════════════════════════
-            // PHASE 1.4: STORM & TEMPERATURE IMPACTS (moved from the
-            // GameBridge so tick and skip share one deterministic path).
-            // ═══════════════════════════════════════════
-            ApplyStormAndTemperatureImpacts();
-
-            // ═══════════════════════════════════════════
             // PHASE 6B: STOCK MARKET (daily price + quarterly earnings)
             // ═══════════════════════════════════════════
             // Daily price movement (only if listed)
@@ -2304,14 +2302,15 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
         }
 
         /// <summary>
-        /// Storm episode impacts + temperature stress, moved verbatim from the
-        /// GameBridge (Phase 1 wave 2) so tick and skip share one path.
-        /// Storm mortality, repair bill and insurance settlement fire on the
-        /// TRANSITION into Storm/Severe (edge-triggered, as the bridge did);
-        /// temperature stress applies daily. Gated by _enableEvents like the
-        /// other event hazards, so event-off probes keep their band models.
+        /// Storm episode impacts + temperature stress, moved from the GameBridge
+        /// (Phase 1 wave 2) and now a first-class POST-TICK phase via
+        /// StormImpactsTickSystem (wave 3). Storm mortality, repair bill and
+        /// insurance settlement fire on the TRANSITION into Storm/Severe
+        /// (edge-triggered, as the bridge did); temperature stress applies
+        /// daily. Gated by _enableEvents like the other event hazards, so
+        /// event-off probes keep their band models.
         /// </summary>
-        private void ApplyStormAndTemperatureImpacts()
+        internal void ApplyStormAndTemperatureImpacts()
         {
             if (!_enableEvents || Weather == null)
             {
