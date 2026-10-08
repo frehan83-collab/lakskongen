@@ -37,7 +37,6 @@ ConsequenceDirector="*res://scripts/ui/ConsequenceDirector.gd"
 AchievementManager="*res://scripts/autoload/AchievementManager.gd"
 ScenarioManager="*res://scripts/ScenarioManager.gd"
 TutorialManager="*res://scripts/tutorial/TutorialManager.gd"
-MCPRuntimeServer="*res://addons/godot_mcp_toolkit/runtime/mcp_runtime_server.gd"
 
 [display]
 
@@ -48,10 +47,6 @@ window/stretch/mode="canvas_items"
 [dotnet]
 
 project/assembly_name="LakskongenGame"
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/godot_mcp_toolkit/plugin.cfg")
 
 [internationalization]
 

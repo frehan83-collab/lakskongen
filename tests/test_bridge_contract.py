@@ -9,7 +9,15 @@ import re
 from pathlib import Path
 
 REPO = Path(__file__).parent.parent
-BRIDGE = REPO / "godot" / "scripts" / "autoload" / "GameBridge.cs"
+BRIDGE_DIR = REPO / "godot" / "scripts" / "autoload"
+
+
+def _bridge_sources():
+    # GameBridge is split into partials (GameBridge.Core/Farm/Market/Depth/...
+    # .cs) plus a small anchor file. GDScript can call members on any part.
+    files = sorted(BRIDGE_DIR.glob("GameBridge*.cs"))
+    assert files, "contract harness broken: no GameBridge*.cs files found"
+    return files
 
 ACCESS_RE = re.compile(r"(?:game_bridge|_game_bridge)\.([A-Za-z_][A-Za-z0-9_]*)")
 SIGNAL_RE = re.compile(r"\[Signal\]\s*public delegate void (\w+)EventHandler")
@@ -27,7 +35,7 @@ CS_KEYWORDS = frozenset(
 
 
 def _declared_members():
-    src = BRIDGE.read_text(encoding="utf-8")
+    src = "\n".join(p.read_text(encoding="utf-8") for p in _bridge_sources())
     names = set()
     names.update(m.group(1) for m in SIGNAL_RE.finditer(src))
     names.update(m.group(1) for m in METHOD_RE.finditer(src))

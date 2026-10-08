@@ -4,7 +4,9 @@
 
 # Godot
 .godot/
-*.import
+# NOTE: *.import files are intentionally TRACKED (Godot 4 expects them in
+# version control). Music loop=true and normal-map import settings live there;
+# ignoring them breaks a fresh clone.
 
 # OS
 .DS_Store
@@ -39,3 +41,9 @@ godot/opencode.json
 # Python cache
 __pycache__/
 *.pyc
+.pytest_cache/
+
+# Screenshot harness output (rewritten on every capture; keep repo lean).
+# Curated Steam capsules live in screenshots/steam_store/ and stay tracked.
+godot/screenshots/game/
+screenshots/qa/

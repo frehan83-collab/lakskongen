@@ -20,7 +20,19 @@ set -E  # errtrace: propagate the ERR trap into shell functions
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-PYTHON="${PYTHON:-python3}"
+# Prefer an interpreter that actually has pytest (GitHub uses 3.12; local
+# default python3 may be a newer brew install without it).
+resolve_python() {
+    if [[ -n "${PYTHON:-}" ]]; then printf '%s' "$PYTHON"; return 0; fi
+    local c
+    for c in python3.12 python3.11 python3; do
+        if command -v "$c" >/dev/null 2>&1 && "$c" -m pytest --version >/dev/null 2>&1; then
+            command -v "$c"; return 0
+        fi
+    done
+    printf '%s' "python3"
+}
+PYTHON="$(resolve_python)"
 
 # Resolve the Godot binary: explicit GODOT_BIN wins, else PATH, else common
 # macOS install locations (incl. ~/Applications and the Homebrew cask wrapper).
@@ -92,8 +104,19 @@ step_build() {
     dotnet build LakskongenSim.sln --nologo
 }
 
+step_build_godot() {
+    # The Godot C# assembly (GameBridge, SaveLoadManager, ...) is NOT in
+    # LakskongenSim.sln — build it explicitly so bridge breakage fails CI.
+    # Godot.NET.Sdk comes from NuGet; no editor install required.
+    dotnet build godot/LakskongenGame.csproj --nologo
+}
+
 step_test() {
     dotnet test LakskongenSim.sln --nologo
+}
+
+step_pytest() {
+    "$PYTHON" -m pytest tests/ -q
 }
 
 step_benchmark() {
@@ -181,7 +204,9 @@ echo "Lakskongen CI quality gate — repo: $REPO_ROOT"
 echo ""
 
 run_step "dotnet build LakskongenSim.sln"              step_build
+run_step "dotnet build godot/LakskongenGame.csproj"    step_build_godot
 run_step "dotnet test LakskongenSim.sln"               step_test
+run_step "pytest tests/ (bridge contract)"             step_pytest
 run_step "Performance benchmark (perf gate)"           step_benchmark
 run_step "Design token sync check"                     step_tokens
 run_step "Validate JSON data + mod manifests"          step_validate_json

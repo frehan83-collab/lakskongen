@@ -31,8 +31,21 @@ jobs:
         with:
           python-version: "3.12"
 
-      # Godot is intentionally not installed on the runner. tools/ci.sh skips
-      # the GDScript parse scan gracefully when GODOT_BIN is absent. To enable
-      # it, set GODOT_BIN (e.g. via a cached download) before this step.
+      - name: Setup Godot 4.7.2 (mono, headless)
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-mono: true
+
+      - name: Locate Godot binary
+        run: |
+          BIN="$(command -v godot || command -v godot-mono || true)"
+          if [ -z "$BIN" ]; then
+            BIN="$(find "$HOME" "$RUNNER_TOOL_CACHE" -maxdepth 5 -name 'Godot*' -type f 2>/dev/null | head -1)"
+          fi
+          [ -n "$BIN" ] || { echo "Godot binary not found"; exit 1; }
+          echo "GODOT_BIN=$BIN" >> "$GITHUB_ENV"
+          "$BIN" --version
+
       - name: Run quality gate
         run: bash tools/ci.sh
