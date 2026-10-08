@@ -10,7 +10,7 @@
 | Check | Result |
 |---|---|
 | `dotnet build LakskongenSim.sln` | ✅ 0 errors, 0 warnings |
-| Tests | ✅ **693 passed**, 1 skipped, 0 failed (honest count; the old "727" included ~92 triplicates, fixed in Phase 0. Includes seeded 3-year soak, campaign smoke, PlayerScriptProbe careers) |
+| Tests | ✅ **695 passed**, 1 skipped, 0 failed (honest count; the old "727" included ~92 triplicates, fixed in Phase 0. Includes seeded 3-year soak, campaign smoke, PlayerScriptProbe careers) |
 | CI gate (`tools/ci.sh`) | ✅ **9/9 locally** (nothing skipped) — builds both assemblies · dotnet tests · pytest · perf · token sync · JSON · scene validation · GDScript parse. GitHub CI runs the same gate headless |
 | Performance | ✅ 0.19 ms/day best avg (3 sites / ~103k fish; soft 2 ms/day, hard 5 ms/day) |
 | Godot editor scan | ✅ 0 GDScript parse errors (Godot 4.7) |
@@ -67,9 +67,15 @@ Mattilsynet enforcement (whole-site, honest temperature cancellation);
 storm factor in CalibrationRegistry (v1.0.4); P&L truth — harvest/feed
 book revenue/COGS and the bridge reports real Revenue/Expenses/Profit.
 
-Next on this track: in-day ITickSystem migration of the interval
-blocks, ISnapshotable/one-serializer rewrite, then migrating the legacy
-seeded subsystems onto SimRng streams with bit-equivalence golden tests.
+Wave 4 (done): `AdvanceOneDay` is a pure pipeline loop — 25 in-day
+ITickSystem phases (weather → biology → economy → regulation →
+analytics) with system-owned interval clocks rebuilt per Initialize
+(the `_quarterStartDay` leak is dead). Balance bands, soaks and
+determinism identity verified unchanged.
+
+Next on this track: ISnapshotable/one-serializer rewrite, then
+migrating the legacy seeded subsystems onto SimRng streams with
+bit-equivalence golden tests.
 
 - **Foundations (W1–2)** — audio truth pass, token-driven theme, data-viz,
   scenarios/mods wired, unified onboarding, `ConsequenceDirector`.

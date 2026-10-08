@@ -94,9 +94,26 @@ Date: 2026-10-08. Reviewed at commit `b56ff2a`. The review covers the C# simulat
   book revenue, feed books COGS, and GameBridge Revenue/Expenses/Profit
   read the statements — IPO gating now keys on real profitability
   (deliberate, documented). Suite 693/1 skip.
-  **Still open:** in-day ITickSystem migration of the interval blocks
-  (weather/bio/finance/regulation), ISnapshotable+one serializer (incl.
-  weather persistence for the load-mid-storm settlement gap),
+  **Phase 1 wave 4 DONE — in-day ITickSystem migration.**
+  The 614-line AdvanceOneDay is now a pure pipeline loop: 25 in-day
+  phases (EnvironmentAndWeather → HealthPrep → Biology → FarmOpex →
+  CarbonLedger → EventsAndTime → Market → Finance → StockMarket →
+  Sustainability → Sludge → TrafficLight → Brand → Competitor →
+  Empire → Crisis → VerticalIntegration → TaxAndResourceRent →
+  Investor → BloomDeck → MarketIntelligence → ContractExpiry →
+  ProductMix → TutorialAnalytics → NightShift) in
+  `InDayTickSystems.cs`, registration order = simulation order.
+  Every interval clock is system-owned and rebuilt per Initialize —
+  the `_quarterStartDay` leak across New Games is dead (S9, regression-
+  tested). Shared-clock couplings preserved (sludge on its own 7-day
+  clock, tax+resource-rent in one system for the same-day `== 0`
+  dependency). Verbatim migration: all 17 balance-band tests, soaking,
+  campaign smoke, SimProbe determinism identity, wellboat/storm/
+  enforcement pass unchanged (695/1). Shared engine surface widened
+  minimally (internal helpers + EventsEnabled/LegacyEventRng/FireEvent/
+  TickFeedCostPerKgNOK accessors).
+  **Still open:** ISnapshotable+one serializer (incl. weather
+  persistence for the load-mid-storm settlement gap),
   BuildSeaSite/ApplyForLicense double-charge, migration of legacy seeded
   subsystems onto SimRng streams with golden-file bit-equivalence, the
   episodic storm model (net-integrity exposure + magnitude band test).
