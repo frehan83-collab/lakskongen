@@ -52,6 +52,14 @@ namespace LakskongenSim.Events
             _events.Add(def);
         }
 
+        /// <summary>Detach from the clock so a discarded Storyteller stops
+        /// firing events. SimulationEngine calls this before replacing the
+        /// instance on re-initialization (previously they stacked).</summary>
+        public void Detach()
+        {
+            _time.OnAdvanceDays -= HandleAdvance;
+        }
+
         private void HandleAdvance(int days)
         {
             // Note: State.Day is incremented by SimulationEngine (single source of truth)

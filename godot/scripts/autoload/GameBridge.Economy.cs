@@ -305,13 +305,28 @@ public partial class GameBridge : Node
             return result;
         }
 
-        // For now, just add the principal to balance (simplified)
-        // TODO: Implement proper loan tracking with amortization schedule
+        // Cash in as liquidity (NOT revenue — it must be repaid).
         SimulationEngine?.FinanceManager?.AddRevenue((decimal)amount);
-        
+
+        // S5: record the liability — the engine amortizes principal +
+        // interest daily in ProcessDailyFinance. Without this, loans were
+        // free money that won profit scenarios on day 1.
+        string loanId = "loan_" + SimulationEngine?.State?.Day.ToString() ?? "0";
+        if (SimulationEngine?.State != null)
+        {
+            SimulationEngine.State.ActiveLoans.Add(new LakskongenSim.Core.LoanState
+            {
+                Id = loanId,
+                Principal = (decimal)amount,
+                InterestRate = (decimal)rate,
+                TermDays = Math.Max(30, termMonths * 30),
+                DaysTaken = 0
+            });
+        }
+
         result["success"] = true;
         result["message"] = $"Loan of {amount:N0} NOK approved at {rate:P1} for {termMonths} months";
-        result["loan_id"] = "loan_" + SimulationEngine?.State?.Day.ToString() ?? "0";
+        result["loan_id"] = loanId;
         result["principal"] = amount;
         
         // Calculate approximate monthly payment (simplified)

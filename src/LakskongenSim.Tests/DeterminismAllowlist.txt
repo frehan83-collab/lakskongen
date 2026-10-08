@@ -1,0 +1,103 @@
+# Grandfathered non-determinism in src/LakskongenSim (S10).
+# Format: path :: pattern :: source line. Any NEW entry fails DeterminismBanTests.
+# Fix entries by threading the engine seed through; then delete the line here.
+src/LakskongenSim/Advisor/AdvisorDemo.cs :: DateTime.Now :: var envData = new MareanoEnvironmentalDataProvider(DateTime.Now);
+src/LakskongenSim/Advisor/AlertSystem.cs :: DateTime.UtcNow :: .Where(kvp => kvp.Value < DateTime.UtcNow)
+src/LakskongenSim/Advisor/AlertSystem.cs :: DateTime.UtcNow :: CreatedAt = DateTime.UtcNow,
+src/LakskongenSim/Advisor/AlertSystem.cs :: DateTime.UtcNow :: _suppressedAlerts[suppressionKey] = DateTime.UtcNow + SuppressionDuration;
+src/LakskongenSim/Advisor/AlertSystem.cs :: DateTime.UtcNow :: alert.ResolvedAt = DateTime.UtcNow;
+src/LakskongenSim/Advisor/AlertSystem.cs :: DateTime.UtcNow :: if (DateTime.UtcNow < suppressedUntil)
+src/LakskongenSim/Advisor/AlertSystem.cs :: DateTime.UtcNow :: oldest.ResolvedAt = DateTime.UtcNow;
+src/LakskongenSim/Advisor/AlertSystem.cs :: DateTime.UtcNow :: oldestNonCritical.ResolvedAt = DateTime.UtcNow;
+src/LakskongenSim/Advisor/IntelligentAdvisor.cs :: DateTime.UtcNow :: CreatedAt = DateTime.UtcNow,
+src/LakskongenSim/Advisor/IntelligentAdvisor.cs :: Guid.NewGuid() :: Id = $"REC-{Guid.NewGuid().ToString()[..8]}",
+src/LakskongenSim/Advisor/IntelligentAdvisor.cs :: new Random() :: _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+src/LakskongenSim/Advisor/Recommendation.cs :: DateTime.UtcNow :: public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+src/LakskongenSim/Advisor/Recommendation.cs :: DateTime.UtcNow :: public DateTime RecordedAt { get; set; } = DateTime.UtcNow;
+src/LakskongenSim/Advisor/Recommendation.cs :: Guid.NewGuid() :: public string Id { get; set; } = Guid.NewGuid().ToString();
+src/LakskongenSim/Advisor/RecommendationHistory.cs :: DateTime.UtcNow :: rec.ResolvedAt = DateTime.UtcNow;
+src/LakskongenSim/Advisor/RecommendationHistory.cs :: DateTime.UtcNow :: var cutoff = DateTime.UtcNow.AddDays(-daysWindow);
+src/LakskongenSim/Biology/FishPopulation.cs :: Guid.NewGuid() :: public string Id { get; set; } = Guid.NewGuid().ToString();
+src/LakskongenSim/Biology/Genetics.cs :: new Random() :: _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+src/LakskongenSim/Biology/GrowthModel.cs :: Random.Shared :: _random = seed.HasValue ? new Random(seed.Value) : Random.Shared;
+src/LakskongenSim/Biology/IndividualFish.cs :: DateTime.UtcNow :: DiedAt = DateTime.UtcNow;
+src/LakskongenSim/Biology/IndividualFish.cs :: DateTime.UtcNow :: SpawnedAt = DateTime.UtcNow;
+src/LakskongenSim/Biology/IndividualFish.cs :: Guid.NewGuid() :: Id = Guid.NewGuid();
+src/LakskongenSim/Biology/IndividualFish.cs :: new Random() :: private readonly Random _random = new Random();
+src/LakskongenSim/Biology/PlanktonBloom.cs :: new Random() :: _globalRng = seed.HasValue ? new Random(seed.Value) : new Random();
+src/LakskongenSim/Biology/SDEGrowthModel.cs :: Random.Shared :: _random = seed.HasValue ? new Random(seed.Value) : Random.Shared;
+src/LakskongenSim/Core/AquacultureCalibrationEngine.cs :: DateTime.UtcNow :: public DateTime RetrievedAtUtc { get; set; } = DateTime.UtcNow;
+src/LakskongenSim/Core/BarentsWatchFishHealthIntegration.cs :: DateTime.UtcNow :: SourceFreshnessDays = Math.Max(0, (int)Math.Round((DateTime.UtcNow - raw.RetrievedAtUtc).TotalDays)),
+src/LakskongenSim/Core/BarentsWatchFishHealthIntegration.cs :: DateTime.UtcNow :: local.RetrievedAtUtc = DateTime.UtcNow;
+src/LakskongenSim/Core/BarentsWatchFishHealthIntegration.cs :: DateTime.UtcNow :: payload.RetrievedAtUtc = DateTime.UtcNow;
+src/LakskongenSim/Core/BarentsWatchFishHealthIntegration.cs :: DateTime.UtcNow :: public DateTime RetrievedAtUtc { get; set; } = DateTime.UtcNow;
+src/LakskongenSim/Core/CrewMember.cs :: Guid.NewGuid() :: public string Id { get; set; } = Guid.NewGuid().ToString();
+src/LakskongenSim/Core/ModLoader.cs :: Guid.NewGuid() :: public string Id { get; set; } = Guid.NewGuid().ToString();
+src/LakskongenSim/Core/MultiplayerManager.cs :: DateTime.UtcNow :: public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+src/LakskongenSim/Core/MultiplayerManager.cs :: Guid.NewGuid() :: public string Id { get; set; } = Guid.NewGuid().ToString("N")[..8];
+src/LakskongenSim/Core/MultiplayerManager.cs :: Guid.NewGuid() :: public string OfferId { get; set; } = Guid.NewGuid().ToString("N")[..12];
+src/LakskongenSim/Core/MultiplayerManager.cs :: Guid.NewGuid() :: public string SessionId { get; } = Guid.NewGuid().ToString("N")[..16];
+src/LakskongenSim/Core/SimulationEngine.cs :: new Random() :: _rng = seed.HasValue ? new Random(seed.Value + 101) : new Random();
+src/LakskongenSim/Core/SteamWorkshopManager.cs :: new Random() :: return (ulong)new Random().Next(100000000, 999999999);
+src/LakskongenSim/Data/RealData/Cache/CacheEntry.cs :: DateTime.UtcNow :: public bool IsExpired => DateTime.UtcNow > ExpiresAt;
+src/LakskongenSim/Data/RealData/Cache/DataCache.cs :: DateTime.UtcNow :: CreatedAt = DateTime.UtcNow
+src/LakskongenSim/Data/RealData/Cache/DataCache.cs :: DateTime.UtcNow :: public bool IsExpired => DateTime.UtcNow > ExpiresAt;
+src/LakskongenSim/Data/RealData/Cache/DataCache.cs :: DateTime.UtcNow :: var expiresAt = DateTime.UtcNow.Add(expiration ?? _defaultExpiration);
+src/LakskongenSim/Data/RealData/Layers/TemperatureLayer.cs :: DateTime.UtcNow :: LatestData = DateTime.UtcNow.AddDays(-1),
+src/LakskongenSim/Data/RealData/Loaders/EmodnetDataLoader.cs :: DateTime.UtcNow :: LastSuccessfulQuery = DateTime.UtcNow
+src/LakskongenSim/Data/RealData/Loaders/EmodnetDataLoader.cs :: DateTime.UtcNow :: LatestData = DateTime.UtcNow.AddDays(-1),
+src/LakskongenSim/Data/RealData/Loaders/EmodnetDataLoader.cs :: DateTime.UtcNow :: Timestamp = DateTime.UtcNow,
+src/LakskongenSim/Data/RealData/Models/GeoCoordinate.cs :: HashCode.Combine( :: public override int GetHashCode() => HashCode.Combine(Latitude, Longitude);
+src/LakskongenSim/Data/RealData/RealDataOrchestrator.cs :: DateTime.UtcNow :: LastCheck = DateTime.UtcNow,
+src/LakskongenSim/Data/RealData/RealDataOrchestrator.cs :: DateTime.UtcNow :: return OxygenLayer.GetOxygen(zoneId, date ?? DateTime.UtcNow, depthM);
+src/LakskongenSim/Data/RealData/RealDataOrchestrator.cs :: DateTime.UtcNow :: return SalinityLayer.GetSalinity(zoneId, date ?? DateTime.UtcNow, depthM);
+src/LakskongenSim/Data/RealData/RealDataOrchestrator.cs :: DateTime.UtcNow :: return await BathymetryLayer.GetGridAsync(bbox, DateTime.UtcNow, resolutionKm);
+src/LakskongenSim/Data/RealData/RealDataOrchestrator.cs :: DateTime.UtcNow :: return await TemperatureLayer.GetGridAsync(bbox, date ?? DateTime.UtcNow, resolutionKm);
+src/LakskongenSim/Data/RealData/RealDataOrchestrator.cs :: DateTime.UtcNow :: var timestamp = date ?? DateTime.UtcNow;
+src/LakskongenSim/Environment/BloomEvent.cs :: Guid.NewGuid() :: public string Id { get; set; } = Guid.NewGuid().ToString();
+src/LakskongenSim/Environment/MareanoEnvironmentalDataProvider.cs :: DateTime.UtcNow :: _currentDate = startDate ?? DateTime.UtcNow;
+src/LakskongenSim/Environment/WeatherSystem.cs :: new Random() :: _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+src/LakskongenSim/Environment/Zone.cs :: HashCode.Combine( :: int dayHash = HashCode.Combine(day, Id);
+src/LakskongenSim/Events/CrisisCapitalismSystem.cs :: DateTime.Now :: StartDate = DateTime.Now
+src/LakskongenSim/Events/CrisisCapitalismSystem.cs :: DateTime.Now :: public bool IsActive => DateTime.Now < StartDate.AddMonths(DurationMonths);
+src/LakskongenSim/Events/CrisisCapitalismSystem.cs :: Guid.NewGuid() :: public string Id { get; set; } = Guid.NewGuid().ToString();
+src/LakskongenSim/Events/CrisisCapitalismSystem.cs :: new Random() :: _random = seed.HasValue ? new Random(seed.Value) : new Random();
+src/LakskongenSim/Events/EventDefinition.cs :: Guid.NewGuid() :: public string Id { get; set; } = Guid.NewGuid().ToString();
+src/LakskongenSim/Events/Storyteller.cs :: new Random() :: _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+src/LakskongenSim/Events/VisualMilestones.cs :: DateTime.Now :: milestone.AchievedDate = DateTime.Now;
+src/LakskongenSim/Expansion/AcquisitionSystem.cs :: new Random() :: rng = seed.HasValue ? new Random(seed.Value) : new Random();
+src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: .Where(a => a.ConstructionCompleted <= DateTime.Now)
+src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: asset.ConstructionStarted = DateTime.Now; // In real game, use game time
+src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: if (asset != null && asset.ConstructionCompleted <= DateTime.Now)
+src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: return adjacentTiers.Any(adjTier => _ownedAssets.Any(a => a.Tier == adjTier && a.ConstructionCompleted <= DateTime.Now));
+src/LakskongenSim/Farm/AIFeedingSystem.cs :: Random.Shared :: AppetiteScore = 0.5 + Random.Shared.NextDouble() * 0.5; // Simulated camera reading
+src/LakskongenSim/Farm/DelousingSystem.cs :: new Random() :: var rng = new Random();
+src/LakskongenSim/Farm/OffshoreFarm.cs :: Random.Shared :: if (Random.Shared.NextDouble() < escapeChance)
+src/LakskongenSim/Farm/OffshoreFarm.cs :: Random.Shared :: int escapes = (int)(GetTotalFishCount() * Random.Shared.NextDouble() * 0.05); // Up to 5%
+src/LakskongenSim/Farm/PostSmoltFacility.cs :: DateTime.Now :: StartDate = DateTime.Now
+src/LakskongenSim/Farm/RASFacility.cs :: Random.Shared :: CurrentWaterTemp = TargetWaterTemp + (Random.Shared.NextDouble() - 0.5) * 0.3; // ±0.15°C noise
+src/LakskongenSim/Farm/RASFacility.cs :: Random.Shared :: decimal cost = 500_000m + (decimal)(Random.Shared.NextDouble() * 500_000);
+src/LakskongenSim/Finance/CompetitorAI.cs :: new Random() :: _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+src/LakskongenSim/Finance/EmpireProgression.cs :: DateTime.Now :: milestone.UnlockedAt = DateTime.Now;
+src/LakskongenSim/Finance/MarketCycleSimulator.cs :: DateTime.Now :: int futureMonth = (DateTime.Now.Month + m - 1) % 12 + 1;
+src/LakskongenSim/Finance/StockMarket.cs :: DateTime.Now :: PriceHistory.Add(new StockPriceEvent { OldPrice = price, NewPrice = price, Reason = "Save restore", Timestamp = DateTime.Now });
+src/LakskongenSim/Finance/StockMarket.cs :: DateTime.Now :: Timestamp = DateTime.Now
+src/LakskongenSim/Finance/StockMarket.cs :: new Random() :: _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+src/LakskongenSim/Health/DiseaseLODSystem.cs :: new Random() :: private readonly Random _random = new Random();
+src/LakskongenSim/Health/IntegratedDiseaseSystem.cs :: HashCode.Combine( :: int hash = HashCode.Combine(zoneId1, zoneId2);
+src/LakskongenSim/Health/StochasticDiseaseEngine.cs :: HashCode.Combine( :: int hash = HashCode.Combine(zone1.Id, zone2.Id);
+src/LakskongenSim/Health/StochasticDiseaseEngine.cs :: Random.Shared :: _random = seed.HasValue ? new Random(seed.Value) : Random.Shared;
+src/LakskongenSim/Logistics/WellboatJob.cs :: Guid.NewGuid() :: public string Id { get; set; } = Guid.NewGuid().ToString();
+src/LakskongenSim/Market/ContractSystem.cs :: Guid.NewGuid() :: var c = new Contract(offer.Buyer, offer.Type, offer.PricePerKg, offer.QuantityKg, offer.Quality, offer.PenaltyPct, Guid.NewGuid())
+src/LakskongenSim/Market/FuturesContract.cs :: Guid.NewGuid() :: public string ContractId { get; set; } = Guid.NewGuid().ToString("N")[..8];
+src/LakskongenSim/Market/MarketSimulation.cs :: new Random() :: _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+src/LakskongenSim/Market/MonteCarloPriceEngine.cs :: Random.Shared :: _rng = seed.HasValue ? new Random(seed.Value) : Random.Shared;
+src/LakskongenSim/Performance/EconomicCalculationCache.cs :: DateTime.UtcNow :: Expiry = DateTime.UtcNow + (ttl ?? _defaultTtl),
+src/LakskongenSim/Performance/EconomicCalculationCache.cs :: DateTime.UtcNow :: if (_cache.TryGetValue(key, out var entry) && entry.Expiry > DateTime.UtcNow)
+src/LakskongenSim/Performance/EnvironmentalDataCache.cs :: DateTime.UtcNow :: if (_cache.TryGetValue(key, out var entry) && entry.Expiry > DateTime.UtcNow)
+src/LakskongenSim/Performance/EnvironmentalDataCache.cs :: DateTime.UtcNow :: var expiry = DateTime.UtcNow + (ttl ?? TimeSpan.FromHours(1));
+src/LakskongenSim/Politics/StakeholderFactionSystem.cs :: DateTime.Now :: IssuedDate = DateTime.Now;
+src/LakskongenSim/Politics/StakeholderFactionSystem.cs :: DateTime.Now :: public bool IsExpired => DateTime.Now > ExpiryDate;
+src/LakskongenSim/Politics/StakeholderFactionSystem.cs :: new Random() :: _random = seed.HasValue ? new Random(seed.Value) : new Random();
+src/LakskongenSim/Processing/BrandReputation.cs :: DateTime.UtcNow :: Date = DateTime.UtcNow,
+src/LakskongenSim/Processing/ProcessingPlant.cs :: Guid.NewGuid() :: LineId = Guid.NewGuid().ToString(),

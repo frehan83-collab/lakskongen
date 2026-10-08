@@ -14,6 +14,11 @@ namespace LakskongenSim.Core
         /// <summary>Current simulation date (day index).</summary>
         public int Day { get; set; }
 
+        /// <summary>RNG seed chosen at New Game (S10). Persisted so a game is
+        /// reproducible from day 0 and bug reports carry their seed. 0 means
+        /// "pre-seed save / unset" — treated as unseeded on load.</summary>
+        public int RandomSeed { get; set; }
+
         /// <summary>
         /// Monetary balance in NOK (deprecated - kept for backward save compatibility).
         /// DO NOT USE - Use FinanceManager.Balance as single source of truth.

@@ -222,6 +222,24 @@ namespace LakskongenSim.Health
         }
 
         /// <summary>
+        /// Base (resistance-free) efficacy for a treatment type. Callers that
+        /// already computed an operational efficacy should normalize their
+        /// dose by this so the kill is efficacy x (1 - resistance), not the
+        /// product of two efficacy estimates (S8 double-dip).
+        /// </summary>
+        public static double GetBaseEfficacy(string treatmentType)
+        {
+            return treatmentType.ToLower() switch
+            {
+                "pyrethroid" or "deltamethrin" or "cypermethrin" => PYRETHROID_EFFICACY_BASE,
+                "organophosphate" or "azamethiphos" => ORGANOPHOSPHATE_EFFICACY_BASE,
+                "hydrogen_peroxide" or "h2o2" => H2O2_EFFICACY_BASE,
+                "mechanical" or "freshwater" or "thermal" => MECHANICAL_EFFICACY_BASE,
+                _ => 0.5,
+            };
+        }
+
+        /// <summary>
         /// Apply chemical treatment.
         /// </summary>
         /// <param name="treatmentType">"pyrethroid", "organophosphate", "hydrogen_peroxide"</param>

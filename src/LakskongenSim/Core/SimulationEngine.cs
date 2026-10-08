@@ -30,7 +30,32 @@ namespace LakskongenSim.Core
     public class SimulationEngine
     {
         public TimeManager Time { get; } = new();
-        public GameState State { get; } = new();
+        public GameState State { get; private set; } = new();
+
+        /// <summary>Drop all run state so a new game never inherits zones,
+        /// sites, fish, event log or interval clocks from the previous one
+        /// (S9). Called at the top of Initialize and directly by New Game.</summary>
+        public void Reset()
+        {
+            Storyteller?.Detach();
+            Storyteller = null!;
+            State = new GameState();
+            Time.Reset();
+            _lastSustainabilityUpdate = 0;
+            _lastTrafficLightUpdate = 0;
+            _lastBrandReputationUpdate = 0;
+            _lastCrisisCapitalismUpdate = 0;
+            _lastVerticalIntegrationUpdate = 0;
+            _lastCompetitorAIUpdate = 0;
+            _lastEmpireProgressionUpdate = 0;
+            _lastTaxUpdate = 0;
+            _lastInvestorUpdate = 0;
+            _lastMarketIntelligenceUpdate = 0;
+            _lastContractUpdate = 0;
+            _lastBloomUpdate = 0;
+            _lastNightPolicyUpdate = 0;
+            _lastProductMixOptimizerUpdate = 0;
+        }
 
         // ─── Core subsystems ───
         public WeatherSystem Weather { get; private set; } = null!;
@@ -211,6 +236,10 @@ namespace LakskongenSim.Core
         /// <param name="seed">Optional RNG seed. When set, growth/market/event randomness is reproducible (tests).</param>
         public void Initialize(bool enableEvents = true, int? seed = null)
         {
+            // Fresh run state first: State/Storyteller/Time outlive the
+            // engine instance, so without this a second New Game inherits
+            // the previous game (S9).
+            Reset();
             _enableEvents = enableEvents;
             _rng = seed.HasValue ? new Random(seed.Value + 101) : new Random();
             
@@ -246,8 +275,14 @@ namespace LakskongenSim.Core
             _financeManager = FinanceManager;
              
             // Initialize CompetitorAI and EmpireProgression systems
-            CompetitorAI = new Finance.CompetitorAISystem();
+            // (S10: every seeded subsystem gets the seed — previously most
+            // ran on unseeded System.Random even in seeded games/tests.)
+            CompetitorAI = new Finance.CompetitorAISystem(seed);
             EmpireProgression = new Finance.EmpireProgressionSystem();
+            // Traffic-light regulatory state machine. Constructed HERE (not
+            // with the expansion systems below) because NorwegianEvents
+            // .RegisterAll, called further down, needs the live instance (S9).
+            TrafficLightSystem = new Finance.TrafficLightSystem();
             
             // Wire CompetitorAI events
             CompetitorAI.OnCompetitorAction += action =>
@@ -300,7 +335,7 @@ namespace LakskongenSim.Core
 
             // Initialize Storyteller event director (only enable default events if enableEvents=true)
             // Pass FinanceManager so events can modify balance correctly
-            Storyteller = new Storyteller(Time, State, FinanceManager, seed: null, enableDefaultEvents: enableEvents);
+            Storyteller = new Storyteller(Time, State, FinanceManager, seed: seed, enableDefaultEvents: enableEvents);
             if (enableEvents)
             {
                 NorwegianEvents.RegisterAll(Storyteller, FinanceManager, TrafficLightSystem);
@@ -365,7 +400,7 @@ namespace LakskongenSim.Core
             Research = new ResearchSystem();
 
             // StockMarket and BrandReputation systems
-            StockMarket = new Finance.StockMarketSystem();
+            StockMarket = new Finance.StockMarketSystem(seed);
             BrandReputation = new BrandReputation
             {
                 BrandName = "Lakskongen",
@@ -373,7 +408,7 @@ namespace LakskongenSim.Core
             };
 
             // CrisisCapitalism and VerticalIntegration systems
-            CrisisCapitalism = new CrisisCapitalismSystem();
+            CrisisCapitalism = new CrisisCapitalismSystem(seed);
             VerticalIntegration = new VerticalIntegrationSystem(FinanceManager);
 
             // Initialize financial systems (LoanSystem, TaxSystem, InvestorSystem)
@@ -410,12 +445,13 @@ namespace LakskongenSim.Core
             PostSmoltFacilities = new();
 
             // Initialize expansion, license, and politics systems
-            AcquisitionSystem = new Expansion.AcquisitionSystem();
+            AcquisitionSystem = new Expansion.AcquisitionSystem(seed);
             LicenseSystem = new Finance.LicenseSystem();
-            // Traffic-light regulatory state machine (gate off by default:
-            // legacy event-only MAB behavior preserved until explicitly enabled).
-            TrafficLightSystem = new Finance.TrafficLightSystem();
-            StakeholderFactionSystem = new Politics.StakeholderFactionSystem();
+            // NOTE: TrafficLightSystem is constructed near the top of
+            // Initialize (NorwegianEvents.RegisterAll needs it). Gate stays
+            // off by default: legacy event-only MAB behavior preserved until
+            // explicitly enabled.
+            StakeholderFactionSystem = new Politics.StakeholderFactionSystem(seed);
 
             // Initialize Market Intelligence, Fish Welfare, and Visual Milestones systems
             MarketIntelligence = seed.HasValue
@@ -1500,7 +1536,10 @@ private class BalancingConfig
             double temperature = Weather.CurrentTemperatureC;
             Audio?.Update(State.Day);
 
-            // Update environment model and all zones
+            // Update environment model and all zones. S3: EnvironmentModel
+            // keeps its own zone list, so mirror the live zones first —
+            // otherwise water chemistry never advances.
+            Environment.SyncZones(State.Zones);
             Environment.AdvanceDays(1);
             // NOTE: Do NOT override zone temperatures here — zones maintain their own temperatures
             // zone.AdvanceDays(1) is already called by Environment.AdvanceDays(1)
@@ -1811,6 +1850,13 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
             // ═══════════════════════════════════════════
             if (State.Day - _lastTrafficLightUpdate >= TRAFFIC_LIGHT_UPDATE_INTERVAL)
             {
+                // S1: the company lice model is the authority — mirror its
+                // average onto every population first, so limits, traffic
+                // lights and the UI read live values instead of the
+                // stocking-time constant.
+                double avgLice = SeaLice?.AverageLicePerFish ?? 0.0;
+                foreach (var pop in State.Populations)
+                    pop.SeaLiceLoad = avgLice;
                 UpdateTrafficLightZones();
                 UpdatePreventiveCoverage();
                 _lastTrafficLightUpdate = State.Day;
@@ -2260,6 +2306,45 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
                         FinanceManager.ForceSpend(dailyInterest);
                     }
                     FinancialStatements?.RecordOperatingExpense(dailyInterest);
+                }
+            }
+
+            // 4B. Loan amortization (S5): GameBridge.TakeLoan records a
+            // LoanState liability; here principal + interest accrue daily.
+            // Previously loans were free money (principal booked as revenue
+            // with no repayment), winnable on day 1.
+            foreach (var loan in State.ActiveLoans.ToList())
+            {
+                if (loan.Principal <= 0) { State.ActiveLoans.Remove(loan); continue; }
+                loan.DaysTaken++;
+                int remainingDays = Math.Max(1, loan.TermDays - loan.DaysTaken + 1);
+                decimal dailyInterest = loan.Principal * loan.InterestRate / 365m;
+                decimal dailySlice = loan.Principal / remainingDays + dailyInterest;
+                // Final day: clear exactly (avoid dust from rounding).
+                if (loan.DaysTaken >= loan.TermDays) dailySlice = loan.Principal + dailyInterest;
+                if (!FinanceManager.Spend(dailySlice))
+                {
+                    OnEventTriggered?.Invoke($"💸 Cannot pay {dailySlice:N0} NOK loan instalment. Balance: {FinanceManager.Balance:N0} NOK");
+                    FinanceManager.ForceSpend(dailySlice);
+                }
+                FinancialStatements?.RecordOperatingExpense(dailySlice);
+                loan.Principal -= (dailySlice - dailyInterest);
+                if (loan.Principal <= 0.01m || loan.DaysTaken >= loan.TermDays)
+                    State.ActiveLoans.Remove(loan);
+            }
+
+            // 4C. Insurance premiums (S5): policies were free — charge the
+            // annual premium pro-rata every day.
+            if (Insurance != null)
+            {
+                decimal dailyPremium = 0m;
+                foreach (var policy in Insurance.Policies)
+                    dailyPremium += policy.PremiumNokPerYear / 365m;
+                if (dailyPremium > 0)
+                {
+                    if (!FinanceManager.Spend(dailyPremium))
+                        FinanceManager.ForceSpend(dailyPremium);
+                    FinancialStatements?.RecordOperatingExpense(dailyPremium);
                 }
             }
 
@@ -3247,6 +3332,11 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
         /// </summary>
         public void RestoreFromLoad(GameState loadedState)
         {
+            // 0. S2: the Godot save path deserializes GameState directly
+            // (not via the library SaveLoadManager), so re-link here too:
+            // SeaSite.Pens and State.Populations must share instances.
+            GameStateRelinker.RelinkIds(loadedState);
+
             // 1. Restore balance from saved state (always assign — a bankrupt
             // or zero save must restore exactly that, not keep live cash).
             #pragma warning disable CS0618 // Type or member is obsolete

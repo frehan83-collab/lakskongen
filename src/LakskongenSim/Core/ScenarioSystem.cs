@@ -650,10 +650,18 @@ namespace LakskongenSim.Core
             int daysElapsed = _state.Day - _scenarioStartDay;
 
             // ── Universal loss: bankruptcy ────────────────────────────────────
-            decimal currentBalance = _financeManager?.Balance ?? 
+            decimal currentBalance = _financeManager?.Balance ??
                 #pragma warning disable CS0618
                 _state.Balance;
                 #pragma warning restore CS0618
+            // S5: judge profit/solvency on EQUITY (cash minus outstanding
+            // loan principal), not raw cash — otherwise one loan wins any
+            // profit scenario on day 1.
+            decimal outstandingLoans = 0m;
+            if (_state.ActiveLoans != null)
+                foreach (var loan in _state.ActiveLoans)
+                    outstandingLoans += System.Math.Max(0m, loan.Principal);
+            decimal equity = currentBalance - outstandingLoans;
             
             if (currentBalance < -2_000_000m)
             {
@@ -681,7 +689,7 @@ namespace LakskongenSim.Core
                 case WinCondition.Profit:
                 {
                     decimal target = GetRuleDecimal("profit_target", 5_000_000m);
-                    if (currentBalance >= target)
+                    if (equity >= target)
                         TriggerWin();
                     break;
                 }
@@ -700,7 +708,7 @@ namespace LakskongenSim.Core
                     if (daysElapsed > survivalDays)
                     {
                         // Must still be solvent at the end
-                        if (currentBalance > 0)
+                        if (equity > 0)
                             TriggerWin();
                         else
                             TriggerLoss($"Du overlevde ikke de {survivalDays} dagene med positiv balanse.");
@@ -729,7 +737,7 @@ namespace LakskongenSim.Core
                     }
 
                     // Player wins by reaching target before any AI
-                    if (currentBalance >= target)
+                    if (equity >= target)
                         TriggerWin();
                     break;
                 }

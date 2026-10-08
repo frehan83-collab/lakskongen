@@ -132,10 +132,14 @@ namespace LakskongenSim.Farm
         /// <summary>
         /// Apply delousing treatment to a population.
         /// Returns treatment result with mortality, cost, and efficacy data.
+        /// The lice model is company-wide: pass applyCompanyLiceKill=true for
+        /// exactly ONE population per treatment operation so a multi-pen
+        /// order does not nuke global lice N times (S8).
         /// </summary>
         public TreatmentResult Treat(Biology.FishPopulation pop, DelousingMethod method,
             Health.SeaLiceModel liceModel, Health.IntegratedDiseaseSystem diseaseSystem,
-            double temperatureC = 10.0, double mortalityMultiplier = 1.0)
+            double temperatureC = 10.0, double mortalityMultiplier = 1.0,
+            bool applyCompanyLiceKill = true)
         {
             var profile = GetProfile(method);
             int totalFish = pop.Cohorts.Sum(c => c.Count);
@@ -170,8 +174,20 @@ namespace LakskongenSim.Farm
                 _ => "mechanical"
             };
 
-            // Apply lice reduction
-            double efficacyResult = liceModel.ApplyTreatment(treatmentType, actualEfficacy);
+            // Apply lice reduction. S8: normalize the operational efficacy
+            // by the model's base so the kill is efficacy x (1-resistance),
+            // not base x profile (double-dip); and only for the flagged
+            // population — the model is company-wide.
+            double efficacyResult = 0.0;
+            if (applyCompanyLiceKill)
+            {
+                double dose = actualEfficacy / Math.Max(0.01, Health.SeaLiceModel.GetBaseEfficacy(treatmentType));
+                efficacyResult = liceModel.ApplyTreatment(treatmentType, Math.Clamp(dose, 0.0, 1.0));
+            }
+            else
+            {
+                efficacyResult = actualEfficacy;
+            }
 
             // Treatment mortality (veterinarian supervision scales it)
             var rng = new Random();
@@ -195,10 +211,12 @@ namespace LakskongenSim.Farm
                 pop.Cohorts.RemoveAll(c => c.Count <= 0);
             }
 
-            // Update disease system — treatment affects disease prevalence
+            // Update disease system — treatment affects disease prevalence.
+            // The per-population infected-fraction bookkeeping always runs;
+            // the company-wide lice kill never does here (applied above, once).
             if (diseaseSystem != null)
             {
-                diseaseSystem.ApplyTreatment(pop, "mechanical", actualEfficacy, actualEfficacy * 0.5, temperatureC);
+                diseaseSystem.ApplyTreatment(pop, "mechanical", actualEfficacy, actualEfficacy * 0.5, temperatureC, applyLiceModel: false);
             }
 
             // Mark population as recently treated (for resistance evolution)

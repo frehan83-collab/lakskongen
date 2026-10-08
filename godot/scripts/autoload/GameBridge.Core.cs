@@ -136,7 +136,11 @@ public partial class GameBridge : Node
     public void StartNewGame(string playerName, int startingCapital = 10_000_000)
     {
         SimulationEngine.FinanceManager = new FinanceManager(startingCapital);
-        SimulationEngine.Initialize();
+        // S10: the live game was never seeded — every subsystem fell back to
+        // unseeded System.Random. Pick one seed, persist it on the state.
+        int seed = new System.Random().Next();
+        SimulationEngine.Initialize(seed: seed);
+        SimulationEngine.State.RandomSeed = seed;
 
         // P11: a new game starts with no in-memory mitigation installs and a
         // clean serializable mirror (the registry outlives Initialize).
@@ -171,7 +175,12 @@ public partial class GameBridge : Node
     public void LoadGame(GameState snapshot)
     {
         SimulationEngine.FinanceManager = new FinanceManager(snapshot.Balance);
-        SimulationEngine.Initialize();
+        // S10: resume with the stored seed when present. NOTE: subsystem RNG
+        // *positions* are not persisted (see ISnapshotable plan item), so a
+        // loaded game replays the same seed stream from day 0 rather than
+        // continuing the exact pre-save trajectory.
+        int? seed = snapshot.RandomSeed != 0 ? snapshot.RandomSeed : null;
+        SimulationEngine.Initialize(seed: seed);
 
         // Wire tutorial signal (same as StartNewGame — must be done after Initialize())
         SimulationEngine.Tutorial.OnStepCompleted += step =>

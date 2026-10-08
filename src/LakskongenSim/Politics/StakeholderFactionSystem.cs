@@ -119,11 +119,11 @@ namespace LakskongenSim.Politics
         public event Action<Demand>? DemandIssued;
         public event Action<ConsequenceResult>? ConsequenceApplied;
 
-        public StakeholderFactionSystem()
+        public StakeholderFactionSystem(int? seed = null)
         {
             _factions = new Dictionary<FactionType, Faction>();
             _demandHistory = new List<Demand>();
-            _random = new Random();
+            _random = seed.HasValue ? new Random(seed.Value) : new Random();
             _nextDemandId = 1;
             InitializeFactions();
         }

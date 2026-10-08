@@ -193,6 +193,10 @@ namespace LakskongenSim.Core
                 }
             }
 
+            // S2: Pens and Populations are the same fish serialized twice —
+            // re-link by Id so both lists share instances again.
+            GameStateRelinker.RelinkIds(state);
+
             return state;
         }
     }

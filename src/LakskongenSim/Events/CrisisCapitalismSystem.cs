@@ -146,7 +146,12 @@ namespace LakskongenSim.Events
     {
         private readonly List<CrisisEvent> _activeCrises = new List<CrisisEvent>();
         private readonly List<DistressedAsset> _availableAssets = new List<DistressedAsset>();
-        private readonly Random _random = new Random();
+        private readonly Random _random;
+
+        public CrisisCapitalismSystem(int? seed = null)
+        {
+            _random = seed.HasValue ? new Random(seed.Value) : new Random();
+        }
 
         /// <summary>Event raised when a crisis is triggered for a competitor</summary>
         public event CrisisTriggeredHandler? CrisisTriggered;

@@ -105,7 +105,7 @@ namespace LakskongenSim.Health
         /// The method reduces lice, and reduces infected fraction proportionally to lice reduction
         /// and a direct treatment efficacy (simulates medicinal treatment).
         /// </summary>
-        public void ApplyTreatment(FishPopulation pop, string treatmentType, double reductionFraction, double directTreatmentEfficacy, double temperatureC)
+        public void ApplyTreatment(FishPopulation pop, string treatmentType, double reductionFraction, double directTreatmentEfficacy, double temperatureC, bool applyLiceModel = true)
         {
             if (reductionFraction < 0) reductionFraction = 0;
             if (reductionFraction > 1) reductionFraction = 1;
@@ -116,14 +116,19 @@ namespace LakskongenSim.Health
             var tempModifier = 1.0 + TreatmentTempSensitivityPerDegC * (temperatureC - TreatmentRefTempC);
             tempModifier = Math.Clamp(tempModifier, 0.0, 2.0);
 
-            // apply to lice model
-            var effectiveReduction = reductionFraction * tempModifier;
-            _liceModel.ApplyTreatment(treatmentType, effectiveReduction);
+            // apply to lice model (S8: skip when the caller already applied
+            // the company-wide lice kill — otherwise one treatment hits the
+            // global model twice per population).
+            if (applyLiceModel)
+            {
+                var effectiveReduction = reductionFraction * tempModifier;
+                _liceModel.ApplyTreatment(treatmentType, effectiveReduction);
+            }
 
             // reduce infected fraction: two effects - via lice (less susceptibility) and direct treatment
             if (!_infected.TryGetValue(pop, out var p)) p = 0.0;
 
-            var liceContribution = effectiveReduction * 0.5; // assume half of benefit via lice
+            var liceContribution = reductionFraction * tempModifier * 0.5; // assume half of benefit via lice
             var directContribution = directTreatmentEfficacy * tempModifier * 0.5;
 
             var totalReduction = Math.Clamp(liceContribution + directContribution, 0.0, 1.0);

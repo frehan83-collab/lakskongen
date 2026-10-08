@@ -39,9 +39,9 @@ namespace LakskongenSim.Expansion
         private const float STANDARD_MAB_SIZE = 780f; // Standard MAB license tonnage
         private const float ANTITRUST_THRESHOLD = 0.30f; // 30% market share triggers review
         
-        public AcquisitionSystem()
+        public AcquisitionSystem(int? seed = null)
         {
-            rng = new Random();
+            rng = seed.HasValue ? new Random(seed.Value) : new Random();
             LoadAvailableTargets();
         }
 

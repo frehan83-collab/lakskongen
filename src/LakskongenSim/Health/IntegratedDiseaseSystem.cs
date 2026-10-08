@@ -401,9 +401,9 @@ namespace LakskongenSim.Health
         /// Apply treatment to a population.
         /// </summary>
         public void ApplyTreatment(FishPopulation population, string treatmentType, double reductionFraction,
-            double directTreatmentEfficacy, double temperatureC)
+            double directTreatmentEfficacy, double temperatureC, bool applyLiceModel = true)
         {
-            _baseSystem.ApplyTreatment(population, treatmentType, reductionFraction, directTreatmentEfficacy, temperatureC);
+            _baseSystem.ApplyTreatment(population, treatmentType, reductionFraction, directTreatmentEfficacy, temperatureC, applyLiceModel);
         }
 
         /// <summary>
