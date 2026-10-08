@@ -31,8 +31,9 @@ const WEATHER_STORM := 4
 const ZOOM_FJORD := 1
 const ZOOM_UNDERWATER := 3
 
-# Scenario id from ScenarioSelectPanel / ScenarioSystem.
-const QA_SCENARIO_ID := "barekraft_mester"
+# Scenario id from ScenarioSelectPanel / ScenarioSystem (unlocked by default;
+# campaign scenarios can be gated).
+const QA_SCENARIO_ID := "small_farm"
 const QA_STARTING_CAPITAL := 10_000_000
 const QA_DAYS_TO_SIMULATE := 12
 
@@ -78,6 +79,7 @@ func _run_sequence() -> void:
 	await _capture_fjord_night_aurora()
 	await _capture_fjord_storm()
 	await _capture_fjord_underwater()
+	await _capture_fjord_diagnostics()
 
 	_print_summary()
 	get_tree().quit(0)
@@ -122,11 +124,11 @@ func _boot_game() -> void:
 	if sim != null:
 		sim.start_new_game("Player", QA_STARTING_CAPITAL, QA_SCENARIO_ID)
 
-	# Unlock advanced panels for this QA pass (telemetry is tutorial-gated).
-	var tut := get_node_or_null("/root/TutorialState")
-	if tut != null:
-		tut.set("is_complete", true)
-		tut.set("phase", 99)
+	# Unlock advanced panels for this QA pass: skip the C# tutorial so TutorialState
+	# reports complete (it re-derives phase/complete from SimBridge every frame,
+	# so setting the properties directly does not stick).
+	if sim != null and sim.has_method("skip_tutorial"):
+		sim.skip_tutorial()
 
 	# Advance a few simulated days so the dashboard/telemetry have history.
 	if sim != null:
@@ -245,6 +247,45 @@ func _set_camera_zoom(level: int) -> void:
 	var cam = _env.get("camera")
 	if cam != null and is_instance_valid(cam) and cam.has_method("set_zoom_level"):
 		cam.call("set_zoom_level", level)
+
+
+## Isolate the "black band": capture the fjord with the water hidden, then with
+## the terrain hidden, and log the camera + mesh state. One run tells us what
+## the black region actually is.
+func _capture_fjord_diagnostics() -> void:
+	if _env == null or not is_instance_valid(_env):
+		return
+	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FJORD)
+	await _wait(1.2)
+	_log_3d_state()
+	var water := _find(_env, "WaterPlane")
+	var terrain := _find(_env, "Terrain")
+	if water is Node3D:
+		(water as Node3D).visible = false
+		await _wait(0.6)
+		await _shoot("12_diag_no_water")
+		(water as Node3D).visible = true
+		await _wait(0.4)
+	if terrain is Node3D:
+		(terrain as Node3D).visible = false
+		await _wait(0.6)
+		await _shoot("13_diag_no_terrain")
+		(terrain as Node3D).visible = true
+
+
+func _log_3d_state() -> void:
+	if _env == null:
+		return
+	var cam = _env.get("camera")
+	if cam is Camera3D:
+		var c := cam as Camera3D
+		print("[diag] camera pos=%s rot=%s fov=%.1f current=%s" % [
+			c.global_position, c.global_rotation, c.fov, c.current])
+	for nm in ["WaterPlane", "Terrain"]:
+		var n := _find(_env, nm)
+		if n is Node3D:
+			var m := n as Node3D
+			print("[diag] %s visible=%s pos=%s" % [nm, m.visible, m.global_position])
 
 
 func _hide_ui() -> void:

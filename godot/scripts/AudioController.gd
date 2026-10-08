@@ -43,6 +43,12 @@ var _sfx_pool: Array[AudioStreamPlayer] = []
 
 var _sim_bridge: Node = null
 
+## Safe linear->dB: -inf (from linear_to_db(0.0)) is rejected by Godot's
+## volume_db setter and spams "Volume can't be set to NaN". Clamp to silence.
+const SILENT_DB := -80.0
+func _l2db(v: float) -> float:
+	return SILENT_DB if v <= 0.0001 else linear_to_db(v)
+
 func _ready() -> void:
 	MusicLibrary.validate_catalog()
 	_create_players()
@@ -59,18 +65,18 @@ func _process(delta: float) -> void:
 func _create_players() -> void:
 	_bgm_active  = _make_player(BUS_MUSIC)
 	_bgm_pending = _make_player(BUS_MUSIC)
-	_bgm_pending.volume_db = linear_to_db(0.0)
+	_bgm_pending.volume_db = _l2db(0.0)
 
 	_amb_base_active    = _make_player(BUS_AMBIENT)
 	_amb_base_pending   = _make_player(BUS_AMBIENT)
-	_amb_base_pending.volume_db = linear_to_db(0.0)
+	_amb_base_pending.volume_db = _l2db(0.0)
 	
 	# Ocean ambient layers (always playing)
 	_ocean_calm  = _make_player(BUS_AMBIENT)
 	_ocean_rough = _make_player(BUS_AMBIENT)
 	
 	_amb_weather = _make_player(BUS_AMBIENT)
-	_amb_weather.volume_db = linear_to_db(WEATHER_LAYER_VOLUME * _ambient_volume)
+	_amb_weather.volume_db = _l2db(WEATHER_LAYER_VOLUME * _ambient_volume)
 
 	for i in SFX_POOL_SIZE:
 		var p := _make_player(BUS_SFX)
@@ -100,7 +106,7 @@ func _start_ocean_ambient() -> void:
 		var stream := load(calm_path) as AudioStream
 		if stream:
 			_ocean_calm.stream = stream
-			_ocean_calm.volume_db = linear_to_db(OCEAN_CALM_VOLUME * _ambient_volume)
+			_ocean_calm.volume_db = _l2db(OCEAN_CALM_VOLUME * _ambient_volume)
 			_ocean_calm.play()
 
 	if ResourceLoader.exists(rough_path):
@@ -118,8 +124,8 @@ func _tick_ocean_blend(delta: float) -> void:
 	var calm_vol := OCEAN_CALM_VOLUME * (1.0 - _ocean_blend) * _ambient_volume
 	var rough_vol := OCEAN_ROUGH_VOLUME * _ocean_blend * _ambient_volume
 	
-	_ocean_calm.volume_db = linear_to_db(calm_vol) if calm_vol > 0.001 else -80.0
-	_ocean_rough.volume_db = linear_to_db(rough_vol) if rough_vol > 0.001 else -80.0
+	_ocean_calm.volume_db = _l2db(calm_vol) if calm_vol > 0.001 else -80.0
+	_ocean_rough.volume_db = _l2db(rough_vol) if rough_vol > 0.001 else -80.0
 
 func _on_state_updated() -> void:
 	if not _sim_bridge:
@@ -177,12 +183,12 @@ func _update_bgm_direct(path: String) -> void:
 
 	if not _bgm_active.playing:
 		_bgm_active.stream = stream
-		_bgm_active.volume_db = linear_to_db(_music_volume)
+		_bgm_active.volume_db = _l2db(_music_volume)
 		_bgm_active.play()
 		return
 
 	_bgm_pending.stream = stream
-	_bgm_pending.volume_db = linear_to_db(0.0)
+	_bgm_pending.volume_db = _l2db(0.0)
 	_bgm_pending.play()
 	_bgm_fade_t = 0.0
 	_bgm_fading = true
@@ -190,8 +196,8 @@ func _update_bgm_direct(path: String) -> void:
 func _tick_crossfade(delta: float) -> void:
 	_bgm_fade_t += delta
 	var t: float = clampf(_bgm_fade_t / CROSSFADE_DURATION, 0.0, 1.0)
-	_bgm_active.volume_db  = linear_to_db(_music_volume * (1.0 - t))
-	_bgm_pending.volume_db = linear_to_db(_music_volume * t)
+	_bgm_active.volume_db  = _l2db(_music_volume * (1.0 - t))
+	_bgm_pending.volume_db = _l2db(_music_volume * t)
 	if t >= 1.0:
 		_bgm_fading = false
 		_bgm_active.stop()
@@ -216,12 +222,12 @@ func _update_ambient_base_direct(path: String) -> void:
 
 	if not _amb_base_active.playing:
 		_amb_base_active.stream = stream
-		_amb_base_active.volume_db = linear_to_db(_ambient_volume)
+		_amb_base_active.volume_db = _l2db(_ambient_volume)
 		_amb_base_active.play()
 		return
 
 	_amb_base_pending.stream = stream
-	_amb_base_pending.volume_db = linear_to_db(0.0)
+	_amb_base_pending.volume_db = _l2db(0.0)
 	_amb_base_pending.play()
 	_amb_base_fade_t = 0.0
 	_amb_base_fading = true
@@ -229,8 +235,8 @@ func _update_ambient_base_direct(path: String) -> void:
 func _tick_ambient_crossfade(delta: float) -> void:
 	_amb_base_fade_t += delta
 	var t: float = clampf(_amb_base_fade_t / AMBIENT_FADE_DURATION, 0.0, 1.0)
-	_amb_base_active.volume_db  = linear_to_db(_ambient_volume * (1.0 - t))
-	_amb_base_pending.volume_db = linear_to_db(_ambient_volume * t)
+	_amb_base_active.volume_db  = _l2db(_ambient_volume * (1.0 - t))
+	_amb_base_pending.volume_db = _l2db(_ambient_volume * t)
 	if t >= 1.0:
 		_amb_base_fading = false
 		_amb_base_active.stop()
@@ -246,7 +252,7 @@ func _update_ambient_weather(weather_key: String) -> void:
 	if weather_key.is_empty():
 		var tween := create_tween()
 		tween.tween_property(_amb_weather, "volume_db",
-			linear_to_db(0.0), AMBIENT_FADE_DURATION)
+			_l2db(0.0), AMBIENT_FADE_DURATION)
 		tween.tween_callback(_amb_weather.stop)
 		return
 
@@ -260,11 +266,11 @@ func _update_ambient_weather(weather_key: String) -> void:
 		return
 	
 	_amb_weather.stream = stream
-	_amb_weather.volume_db = linear_to_db(0.0)
+	_amb_weather.volume_db = _l2db(0.0)
 	_amb_weather.play()
 	var tween := create_tween()
 	tween.tween_property(_amb_weather, "volume_db",
-		linear_to_db(WEATHER_LAYER_VOLUME * _ambient_volume), AMBIENT_FADE_DURATION)
+		_l2db(WEATHER_LAYER_VOLUME * _ambient_volume), AMBIENT_FADE_DURATION)
 
 func _play_alert_sfx(alert_key: String) -> void:
 	var path := MusicLibrary.alert_sfx(alert_key)
@@ -366,18 +372,18 @@ func set_master_volume(vol: float) -> void:
 	_master_volume = clampf(vol, 0.0, 1.0)
 	var idx: int = AudioServer.get_bus_index(BUS_MASTER)
 	if idx >= 0:
-		AudioServer.set_bus_volume_db(idx, linear_to_db(_master_volume))
+		AudioServer.set_bus_volume_db(idx, _l2db(_master_volume))
 
 func set_music_volume(vol: float) -> void:
 	_music_volume = clampf(vol, 0.0, 1.0)
 	if not _bgm_fading:
-		_bgm_active.volume_db = linear_to_db(_music_volume)
+		_bgm_active.volume_db = _l2db(_music_volume)
 
 func set_ambient_volume(vol: float) -> void:
 	_ambient_volume = clampf(vol, 0.0, 1.0)
 	if not _amb_base_fading:
-		_amb_base_active.volume_db = linear_to_db(_ambient_volume)
-	_amb_weather.volume_db = linear_to_db(WEATHER_LAYER_VOLUME * _ambient_volume)
+		_amb_base_active.volume_db = _l2db(_ambient_volume)
+	_amb_weather.volume_db = _l2db(WEATHER_LAYER_VOLUME * _ambient_volume)
 	
 	# Update ocean layers
 	_tick_ocean_blend(0.0)
@@ -386,7 +392,7 @@ func set_sfx_volume(vol: float) -> void:
 	_sfx_volume = clampf(vol, 0.0, 1.0)
 	var idx: int = AudioServer.get_bus_index(BUS_SFX)
 	if idx >= 0:
-		AudioServer.set_bus_volume_db(idx, linear_to_db(_sfx_volume))
+		AudioServer.set_bus_volume_db(idx, _l2db(_sfx_volume))
 
 func set_music_muted(muted: bool) -> void:
 	var idx: int = AudioServer.get_bus_index(BUS_MUSIC)

@@ -48,7 +48,7 @@ func _init_particle_systems() -> void:
 	var feed_mat = StandardMaterial3D.new()
 	feed_mat.albedo_color = Color(0.9, 0.7, 0.3, 0.8)
 	feed_mat.emission = Color(1.0, 0.8, 0.2) * 2.0
-	feed_mat.unshaded = true
+	feed_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_feed_particles.process_material = ParticleProcessMaterial.new()
 	_feed_particles.process_material.gravity = Vector3(0, feed_gravity, 0)
 	_feed_particles.process_material.spread = feed_spread * 0.1
@@ -71,7 +71,7 @@ func _init_particle_systems() -> void:
 	var harvest_mat = StandardMaterial3D.new()
 	harvest_mat.albedo_color = Color(0.6, 0.3, 0.1, 0.9)
 	harvest_mat.emission = Color(0.8, 0.4, 0.1) * 1.5
-	harvest_mat.unshaded = true
+	harvest_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_harvest_particles.process_material = ParticleProcessMaterial.new()
 	_harvest_particles.process_material.gravity = Vector3(0, harvest_gravity, 0)
 	_harvest_particles.process_material.spread = harvest_spread * 0.1
