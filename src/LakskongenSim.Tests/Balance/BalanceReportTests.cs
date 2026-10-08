@@ -13,10 +13,9 @@ namespace LakskongenSim.Tests.Balance
     /// docs/BALANCE.md, with an explicit tolerance. On failure the measured
     /// distribution is included in the assertion message.
     ///
-    /// Three metrics cannot reach their reference band without editing
-    /// <c>SimulationEngine.cs</c> (or the biology/market models it owns), so they
-    /// are asserted against a documented "deferred" band and a DEFERRED note is
-    /// emitted. See docs/BALANCE.md §5 "Deferred / needs engine work".
+    /// Calibration v1.0.2 wired the three previously-deferred metrics into the
+    /// live simulation (sea mortality anchor, registry-sourced market, seeded
+    /// lice pressure), so those tests now assert the real reference bands.
     /// </summary>
     public class BalanceReportTests
     {
@@ -51,10 +50,9 @@ namespace LakskongenSim.Tests.Balance
         [Fact]
         public void SimProbe_IsDeterministic_SameSeedSameMetrics()
         {
-            // The seeded subsystems (growth, weather, feed, mortality, lice) are
-            // reproducible. SimulationEngine.MarketSimulation's Intelligence
-            // subsystem draws from an unseeded RNG, so realized price is excluded
-            // from this check (and reported as a deferred metric in docs/BALANCE.md).
+            // v1.0.2: all seeded subsystems (growth, weather, feed, mortality,
+            // lice) plus the market and its intelligence RNG are seeded by the
+            // engine, so realized price is now deterministic too.
             var a = SimProbe.Run(7, SimScenario.Baseline);
             var b = SimProbe.Run(7, SimScenario.Baseline);
             Assert.Equal(a.MeanFcr, b.MeanFcr, 9);
@@ -62,6 +60,8 @@ namespace LakskongenSim.Tests.Balance
             Assert.Equal(a.MeanHarvestWeightKg, b.MeanHarvestWeightKg, 9);
             Assert.Equal(a.FeedCostPerKgProducedNok, b.FeedCostPerKgProducedNok, 9);
             Assert.Equal(a.PeakLicePerFish, b.PeakLicePerFish, 9);
+            Assert.Equal(a.PeakAdultFemaleLicePerFish, b.PeakAdultFemaleLicePerFish, 9);
+            Assert.Equal(a.RealizedPriceNokPerKg, b.RealizedPriceNokPerKg, 9);
         }
 
         [Fact]
@@ -72,18 +72,15 @@ namespace LakskongenSim.Tests.Balance
         }
 
         [Fact]
-        public void SeaMortalityPerCycle_WithinReferenceBandOrDeferred()
+        public void SeaMortalityPerCycle_WithinReferenceBand()
         {
             var d = Baseline.Value.SeaMortalityPercentPerCycle;
-            // DEFERRED: with storyteller events off (the only deterministic mode;
-            // the Storyteller is hard-wired to an unseeded RNG by the engine),
-            // disease/bloom mortality is not injected, so the baseline-only
-            // MortalityModel lands ~4pp below the 14-16% NVI band. The
-            // CalibrationRegistry.Health.SeaMortalityPerCycle value is never read
-            // by MortalityModel (it uses GameConstants.BaselineMortalityPerDay).
-            const double deferredMin = 8.0, deferredMax = 20.0;
-            AssertWithin(d.Median, deferredMin, deferredMax, 0.0,
-                $"sea mortality %/cycle (DEFERRED; reference {MortalityMin}-{MortalityMax}%)", d);
+            // v1.0.2: MortalityModel maps CalibrationRegistry.Health.SeaMortalityPerCycle
+            // (0.15) to a daily sea hazard over the calibrated grow-out, so the
+            // measured median now sits in the NVI 14-16% band. Disease/event
+            // mortality remains additive on top when storyteller events are on.
+            AssertWithin(d.Median, MortalityMin, MortalityMax, 0.5,
+                "sea mortality %/cycle", d);
         }
 
         [Fact]
@@ -101,30 +98,33 @@ namespace LakskongenSim.Tests.Balance
         }
 
         [Fact]
-        public void RealizedPrice_RestrictedToDocumentedEnvelope_Deferred()
+        public void RealizedPrice_WithinReferenceBand()
         {
             var d = Baseline.Value.RealizedPriceNokPerKg;
-            // DEFERRED: MarketSimulation does not read CalibrationRegistry.Market
-            // (long-term mean 82, weekly theta 0.012), and its weakly mean-
-            // reverting O-U with an unclamped supply/demand bias drifts to the
-            // 150 NOK/kg ceiling within one grow-out. Guard the hard price
-            // envelope here (floor x0.7 .. ceiling x1.4, matching FullCycleTests)
-            // and surface the reference gap. Reference band 74-90 NOK/kg.
-            const double envelopeMin = 42.0 * 0.7, envelopeMax = 150.0 * 1.4;
-            AssertWithin(d.Median, envelopeMin, envelopeMax, 0.0,
-                $"realized price NOK/kg (DEFERRED; reference {PriceMin}-{PriceMax})", d);
+            // v1.0.2: MarketSimulation sources CalibrationRegistry.Market (long-
+            // term mean 82, weekly theta/sigma, 42-150 band), mean-reverts its
+            // supply/demand indices, applies a normal-play band around the mean,
+            // and seeds its intelligence RNG. Realized median now sits in the
+            // Fish Pool 74-90 NOK/kg band; shocks may still breach transiently.
+            AssertWithin(d.Median, PriceMin, PriceMax, 2.0,
+                "realized price NOK/kg", d);
         }
 
         [Fact]
-        public void PeakLice_NeverExceedsRegulatoryLimit()
+        public void PeakLice_ReachesRegulatoryLimitWithoutTreatment()
         {
             var d = Baseline.Value.PeakLicePerFish;
-            // Regulatory action limit is 0.5 adult females/fish (Mattilsynet).
-            // DEFERRED observation: the clean run never seeds external lice
-            // pressure, so the peak is 0 rather than a realistic ~0.5; asserting
-            // the ceiling keeps the safety invariant guarded. Reference <=0.5.
-            AssertWithin(d.P90, 0.0, LiceMax, 0.0,
-                "peak adult-female lice/fish (DEFERRED: engine never seeds lice)", d);
+            // v1.0.2: the engine seeds external lice pressure at sea stocking and
+            // seasonally, so a clean (no-treatment) grow-out builds to the
+            // Mattilsynet action limit of ~0.5 adult females/fish. The untreated
+            // peak hovers at the limit and can breach it in a long, warm cycle
+            // (which is exactly why treatment matters); guard against runaway
+            // infestation (no treatment at all must not explode toward the 50/fish
+            // crowding cap).
+            AssertWithin(d.Median, 0.30, 0.60, 0.05,
+                "peak adult-female lice/fish (no treatment; regulatory limit 0.5)", d);
+            Assert.True(d.P90 <= 1.0,
+                $"untreated lice p90 {d.P90:F3} exceeded the runaway guard 1.0 {d.Triple()}");
         }
 
         [Fact]

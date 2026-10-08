@@ -160,7 +160,7 @@ namespace LakskongenSim.Market
         private readonly List<MarketNewsEvent> _eventHistory = new();
         private readonly List<CompetitorProducer> _competitors = new();
         private readonly Queue<decimal> _priceHistory = new();
-        private readonly Random _rng = new();
+        private Random _rng = new();
         private int _currentWeek = 0;
 
         public MarketBrandReputation PlayerReputation { get; } = new();
@@ -210,6 +210,23 @@ namespace LakskongenSim.Market
         {
             InitializeCompetitors();
         }
+
+        /// <summary>
+        /// Create the intelligence system with a deterministic seed so news
+        /// events, competitor variation and forecasts are reproducible under a
+        /// seeded engine.
+        /// </summary>
+        public MarketIntelligenceSystem(int seed)
+        {
+            _rng = new Random(seed);
+            InitializeCompetitors();
+        }
+
+        /// <summary>
+        /// Replace the RNG with a deterministically-seeded one. Used by
+        /// <see cref="MarketSimulation"/> when the engine supplies a seed.
+        /// </summary>
+        public void Reseed(int seed) => _rng = new Random(seed);
 
         private void InitializeCompetitors()
         {

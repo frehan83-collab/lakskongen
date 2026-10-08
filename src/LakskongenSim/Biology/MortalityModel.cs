@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LakskongenSim.Calibration;
 using LakskongenSim.Core;
 using LakskongenSim.Data;
 using LakskongenSim.Environment;
@@ -32,6 +33,50 @@ namespace LakskongenSim.Biology
         // Environmental stress tracking per population
         private readonly Dictionary<string, EnvironmentalStressState> _environmentalStress = new();
 
+        // Sea-phase mortality anchor. `CalibrationRegistry.Health.SeaMortalityPerCycle`
+        // (real NVI 2024 ~15.4%, band 14-16%) is mapped to a daily hazard over the
+        // calibrated sea grow-out duration. The sea stages (Seawater/Harvest) use this
+        // anchor instead of the freshwater `GameConstants.BaselineMortalityPerDay`,
+        // while disease/event mortality stays additive on top (see SetDiseaseMortalityRate).
+        private double _seaMortalityPerCycle = CalibrationRegistry.Default.Health.SeaMortalityPerCycle;
+        private double _seaPhaseDays = CalibrationRegistry.Default.Biology.GrowthToHarvestDays;
+        private double _seaDailyRate = ComputeSeaDailyRate(
+            CalibrationRegistry.Default.Health.SeaMortalityPerCycle,
+            CalibrationRegistry.Default.Biology.GrowthToHarvestDays);
+
+        /// <summary>
+        /// Map a whole-cycle sea mortality fraction to a per-day hazard:
+        /// <c>1 - (1 - perCycle)^(1/days)</c>. Whole-cycle fraction is the
+        /// survival-consistent form (not perCycle/days).
+        /// </summary>
+        internal static double ComputeSeaDailyRate(double perCycle, double days)
+        {
+            if (days <= 0) return 0.0;
+            double clamped = Math.Clamp(perCycle, 0.0, 0.99);
+            return 1.0 - Math.Pow(1.0 - clamped, 1.0 / days);
+        }
+
+        /// <summary>
+        /// Wire the calibrated whole-cycle sea mortality anchor into the live
+        /// model. Called by the engine after <c>CalibrationRegistry</c> load so
+        /// the runtime value is the registry value, not a code default.
+        /// </summary>
+        public void ConfigureSeaMortality(double perCycle, double seaPhaseDays)
+        {
+            _seaMortalityPerCycle = perCycle;
+            _seaPhaseDays = seaPhaseDays > 0 ? seaPhaseDays : _seaPhaseDays;
+            _seaDailyRate = ComputeSeaDailyRate(_seaMortalityPerCycle, _seaPhaseDays);
+        }
+
+        /// <summary>Per-day sea-phase baseline hazard derived from the per-cycle anchor.</summary>
+        public double SeaDailyMortalityRate => _seaDailyRate;
+
+        /// <summary>Baseline daily rate for a stage: sea stages use the calibrated anchor, freshwater keeps the legacy constant.</summary>
+        private double BaselineDailyRate(LifeStage stage)
+            => stage is LifeStage.Seawater or LifeStage.Harvest
+                ? _seaDailyRate
+                : LakskongenSim.Core.GameConstants.BaselineMortalityPerDay;
+
         /// <summary>
         /// Apply mortality over days, return surviving count (rounded to int).
         /// Combines baseline, stage, and disease mortality in a single application.
@@ -40,7 +85,7 @@ namespace LakskongenSim.Biology
         {
             if (count <= 0 || days <= 0) return count;
             
-            double baseRate = LakskongenSim.Core.GameConstants.BaselineMortalityPerDay;
+            double baseRate = BaselineDailyRate(stage);
             
             // Stage modifiers based on real salmon mortality patterns
             double stageMultiplier = 1.0;
@@ -114,7 +159,7 @@ namespace LakskongenSim.Biology
         {
             if (count <= 0 || days <= 0) return count;
             
-            double baseRate = LakskongenSim.Core.GameConstants.BaselineMortalityPerDay;
+            double baseRate = BaselineDailyRate(stage);
             
             // Stage modifiers based on real salmon mortality patterns
             double stageMultiplier = 1.0;

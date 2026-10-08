@@ -148,6 +148,15 @@ namespace LakskongenSim.Core
         private const double DefaultStockingDensityKgM3 = 20.0; // fallback when no zone is known
         private const double WarmingPerYearC = 0.02; // P10: documented warming trend applied to lice development
 
+        // ─── Sea-lice seeding (realistic external copepodid pressure) ───
+        // At sea stocking each cycle is seeded with external lice pressure; the
+        // daily external multiplier is seasonally modulated so a clean grow-out
+        // reaches ~0.5 adult females/fish (the Mattilsynet action limit) without
+        // any treatment. Deterministic (no RNG).
+        private const double StockingLiceSeedIntensity = 2.0;
+        private const double SeasonalLicePressureBase = 1.0;
+        private const double SeasonalLicePressureAmplitude = 0.35;
+
         // ─── External data calibration ───
         private AquacultureDataConfig _aquacultureDataConfig = new();
         private AquacultureGameplayModifiers _aquacultureModifiers = AquacultureGameplayModifiers.Default();
@@ -289,6 +298,17 @@ namespace LakskongenSim.Core
                 var newPopulation = new FishPopulation(Growth, Mortality);
                 newPopulation.AddCohort(cohort);
                 State.Populations.Add(newPopulation);
+
+                // Sea-phase stocking: seed realistic external lice pressure so a
+                // clean (no-treatment) grow-out reaches the regulatory action
+                // limit (~0.5 adult females/fish) rather than staying at zero.
+                // Each cycle starts from a fallow low point, like a real pen.
+                if (cohort.Stage == LifeStage.Smolt)
+                {
+                    SeaLice.Reset(0.0);
+                    SeaLice.SetExternalPressure(SeasonalLicePressure(State.Day));
+                    SeaLice.SeedExternalInfection(StockingLiceSeedIntensity);
+                }
             };
 
             // Feed cost → finance
@@ -371,7 +391,9 @@ namespace LakskongenSim.Core
             StakeholderFactionSystem = new Politics.StakeholderFactionSystem();
 
             // Initialize Market Intelligence, Fish Welfare, and Visual Milestones systems
-            MarketIntelligence = new Market.MarketIntelligenceSystem();
+            MarketIntelligence = seed.HasValue
+                ? new Market.MarketIntelligenceSystem(seed.Value)
+                : new Market.MarketIntelligenceSystem();
             FishWelfare = new Health.FishWelfare();
             VisualMilestones = new VisualMilestones();
             CurrencySystem = new Market.CurrencySystem();
@@ -1011,6 +1033,17 @@ namespace LakskongenSim.Core
             SimLog.Info($"  → Feed cost per kg feed: {config.FeedCostPerKgNOK:N2} NOK");
             SimLog.Info($"  → Base FCR: {config.BaseFCR:F2} (optimal={config.OptimalFCR}, poor={config.PoorFCR})");
 
+            // Sea mortality anchor — the whole-cycle registry value is mapped to a
+            // daily hazard over the calibrated grow-out duration so the realized
+            // sea-phase mortality tracks the NVI 14-16% band (v1.0.2).
+            if (Mortality != null)
+            {
+                Mortality.ConfigureSeaMortality(config.SeaMortalityPerCycle, config.GrowthToHarvestDays);
+                SimLog.Info(
+                    $"  → Sea mortality: {config.SeaMortalityPerCycle:P1}/cycle → " +
+                    $"{Mortality.SeaDailyMortalityRate:P4}/day over {config.GrowthToHarvestDays}d");
+            }
+
             // Market base price
             SimLog.Info($"  → Base salmon price: {config.BaseSalmonPricePerKg:N0} NOK/kg");
 
@@ -1094,6 +1127,7 @@ private class BalancingConfig
                 VaccinationCostPerKgBiomass = c.Health.VaccinationCostPerKgBiomassNOK,
                 MortalityRateBasePercent = c.Health.MortalityRateBasePercent,
                 MortalityRateISAPercent = c.Health.MortalityRateISAPercent,
+                SeaMortalityPerCycle = c.Health.SeaMortalityPerCycle,
                 SeaLiceThresholdPerFish = c.Health.SeaLiceThresholdPerFish,
                 SeaLiceTreatmentThreshold = c.Health.SeaLiceTreatmentThreshold,
 
@@ -1185,6 +1219,8 @@ private class BalancingConfig
             public decimal VaccinationCostPerKgBiomass { get; set; } = 0.5m;
             public double MortalityRateBasePercent { get; set; } = 0.025; // ↓ from 0.03 (better husbandry)
             public double MortalityRateISAPercent { get; set; } = 0.22; // ↓ from 0.25
+            /// <summary>Whole-cycle sea mortality anchor (fraction); mapped to a daily hazard by MortalityModel.</summary>
+            public double SeaMortalityPerCycle { get; set; } = 0.15;
             public double SeaLiceThresholdPerFish { get; set; } = 0.5;
             public double SeaLiceTreatmentThreshold { get; set; } = 0.15; // ↓ from 0.2 (proactive)
 
@@ -1277,6 +1313,19 @@ private class BalancingConfig
         }
 
         /// <summary>
+        /// Seasonal external sea-lice pressure multiplier (neighbouring farms and
+        /// wild salmon). Peaks in late summer, troughs in late winter; centred on
+        /// <see cref="SeasonalLicePressureBase"/> so a normal cycle builds to the
+        /// regulatory action limit. Deterministic.
+        /// </summary>
+        private static double SeasonalLicePressure(int day)
+        {
+            double dayOfYear = ((day % 365) + 365) % 365;
+            return SeasonalLicePressureBase
+                + SeasonalLicePressureAmplitude * Math.Sin(2.0 * Math.PI * (dayOfYear - 180.0) / 365.0);
+        }
+
+        /// <summary>
         /// Single-day tick — the core simulation loop.
         /// </summary>
         private void AdvanceOneDay()
@@ -1306,6 +1355,10 @@ private class BalancingConfig
             // SeaLice.AdvanceDays(1);
             // Phase 3 (P10): climate coupling — warming shortens lice development time.
             Health.ThermalLiceCoupling.SyncSeaLiceTemperature(SeaLice, temperature, WarmingPerYearC, State.Day);
+            // Seasonal external copepodid pressure (neighbouring farms / wild
+            // salmon): spring/summer peak, winter trough. Keeps lice pressure
+            // realistic over the year without constant artificial seeding.
+            SeaLice.SetExternalPressure(SeasonalLicePressure(State.Day));
             SeaLice.AdvanceDay();
 
             // Only calculate disease if events are enabled (skip in deterministic tests)
