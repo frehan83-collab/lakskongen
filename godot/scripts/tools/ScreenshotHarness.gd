@@ -228,6 +228,10 @@ func _set_weather(state: int) -> void:
 		ws.set("transition_duration", 0.15)
 	if _env.has_method("set_weather"):
 		_env.call("set_weather", state)
+	await get_tree().process_frame
+	var ws2 = _env.get("weather_system")
+	if ws2 != null and "current_weather" in ws2:
+		print("[diag] weather set to %d -> now %s" % [state, str(ws2.get("current_weather"))])
 
 
 func _set_aurora(intensity: float) -> void:
