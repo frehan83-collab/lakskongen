@@ -77,6 +77,14 @@ var _prev_revenue: float = 0.0
 var _prev_health: float = 0.0
 var _prev_fcr: float = 0.0
 
+# ── State-of-the-farm banner + threshold-crossing feel ────────────────────────
+# The banner lives in code (scene untouched); factor severities are remembered
+# so a warning flash / double-pulse only fires on a real threshold crossing,
+# never on every state_updated.
+var _state_banner: FarmStateBanner = null
+var _factor_sev: Dictionary = {}
+var _thresholds_primed: bool = false
+
 # ── KPI sparklines (created in code; script loaded lazily) ────────────────────
 var _sparkline_script: GDScript = null
 var _kpi_sparks: Dictionary = {}
@@ -95,6 +103,7 @@ func _ready() -> void:
 			_sim.state_updated.connect(_on_state_updated)
 
 	_collect_scene_refs()
+	_build_state_banner()
 	_build_kpi_sparklines()
 	_apply_localization()
 	_apply_theme_fonts()
@@ -196,6 +205,19 @@ func _collect_scene_refs() -> void:
 		_fin_bars_cost.append(get_node_or_null("%FinCost" + suffix) as ColorRect)
 		# MonthLbl nodes share one % name; resolve via parent path instead.
 		_fin_month_labels.append(get_node_or_null("Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month" + suffix + "/MonthLbl") as Label)
+
+## Create the state-of-the-farm banner in code and slot it under the title bar.
+## Keeps Dashboard.tscn untouched; silently no-ops if the scene shape changes.
+func _build_state_banner() -> void:
+	if _state_banner and is_instance_valid(_state_banner):
+		return
+	var root_vbox := get_node_or_null("%RootVBox")
+	if root_vbox == null:
+		return
+	_state_banner = FarmStateBanner.new()
+	_state_banner.name = "FarmStateBanner"
+	root_vbox.add_child(_state_banner)
+	root_vbox.move_child(_state_banner, mini(1, root_vbox.get_child_count() - 1))
 
 func _connect_quick_actions() -> void:
 	_btn_feed_all.pressed.connect(_on_quick_action.bind("feed_all"))
@@ -336,6 +358,54 @@ func _refresh_all() -> void:
 	_refresh_charts()
 	_refresh_finance()
 	_refresh_ops()
+	_refresh_farm_state()
+
+func _refresh_farm_state() -> void:
+	if _sim == null:
+		return
+	var ev: Dictionary = FarmStateBanner.evaluate(_sim)
+	var state := str(ev.get("state", FarmStateBanner.STATE_HEALTHY))
+	var summary := _tr_or("UI_FARM_STATE_%s" % state.to_upper(), str(ev.get("summary_no", "")))
+	var detail := str(ev.get("detail_no", ""))
+	if _state_banner and is_instance_valid(_state_banner):
+		var title := "%s %s" % [FarmStateBanner.icon_for(state), summary]
+		_state_banner.set_state(state, title, detail)
+
+	# One-shot threshold-crossing feel. Only fires on a real transition, so
+	# being called on every state_updated cannot spam.
+	var factors: Dictionary = ev.get("factors", {})
+	_check_farm_factor("lice", int(factors.get("lice", 0)), _kpi_health_value)
+	_check_farm_factor("oxygen", int(factors.get("oxygen", 0)), _water_oxygen)
+	_check_farm_factor("fcr", int(factors.get("fcr", 0)), _kpi_fcr_value)
+	_check_farm_factor("balance", int(factors.get("balance", 0)), _kpi_revenue_value)
+	_thresholds_primed = true
+
+## Warning flash + double-pulse when a metric crosses into critical, a green
+## recovery flash when it climbs back out. Records severity to dedupe.
+func _check_farm_factor(key: String, sev: int, value_label: Control) -> void:
+	var prev := int(_factor_sev.get(key, 0))
+	_factor_sev[key] = sev
+	if not _thresholds_primed:
+		return
+	if value_label == null or not is_instance_valid(value_label):
+		return
+	if sev >= 2 and prev < 2:
+		JuiceEffects.flash_warning(value_label)
+		var card := _kpi_card(value_label)
+		if card:
+			card.pivot_offset = card.size * 0.5
+			JuiceEffects.double_pulse(card)
+	elif sev < 2 and prev >= 2:
+		JuiceEffects.flash_income(value_label)
+
+## Walk up from a KPI value label to the enclosing card (first PanelContainer).
+func _kpi_card(lbl: Control) -> Control:
+	var n: Node = lbl
+	while n != null:
+		if n is PanelContainer:
+			return n as Control
+		n = n.get_parent()
+	return lbl
 
 func _trend_text(trend: String) -> String:
 	match trend:

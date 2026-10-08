@@ -39,7 +39,7 @@ namespace LakskongenSim.Calibration
         public const string EmbeddedResourceName = "LakskongenSim.Calibration.calibration.json";
 
         /// <summary>Current schema/balancing version. Bump when reconciled values change.</summary>
-        public const string DefaultVersion = "1.0.0";
+        public const string DefaultVersion = "1.0.1";
 
         /// <summary>Calibration schema/balancing version.</summary>
         [JsonPropertyName("version")]
@@ -438,7 +438,13 @@ namespace LakskongenSim.Calibration
         public double BaseFCR { get; init; } = 1.15;
         /// <summary>Temperature at which FCR is optimal (°C).</summary>
         public double OptimalFCRTempC { get; init; } = 12.0;
-        /// <summary>FCR change per °C away from optimal.</summary>
-        public double FCRTempSensitivity { get; init; } = 0.018;
+        /// <summary>
+        /// FCR change per °C away from optimal. Balance tune (v1.0.1): reduced
+        /// from 0.018 to 0.008 — the measured economic FCR median (SimProbe,
+        /// seeds 1-20) was ~1.24 at 0.018 versus the bFCR 1.15 reference.
+        /// Runtime authority is the matching constant in
+        /// <c>FeedSystem</c>; this field is the reconciled record.
+        /// </summary>
+        public double FCRTempSensitivity { get; init; } = 0.008;
     }
 }

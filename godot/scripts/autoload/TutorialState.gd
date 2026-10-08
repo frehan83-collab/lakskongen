@@ -23,6 +23,7 @@ signal panel_unlocked(panel_id: String)
 ## All other panel ids are always unlocked.
 const ADVANCED_PANELS: Dictionary = {
 	"analytics": 8,
+	"telemetry": 8,
 	"genetics": 11,
 	"research": 12,
 	"insurance": 13,

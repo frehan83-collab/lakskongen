@@ -73,6 +73,45 @@ const EXPORT_TYPES: Array[Dictionary] = [
 	}
 ]
 
+# ── Telemetry export definitions (SimBridge analytics) ────────────────────────
+
+## Window (in simulated days) exported by the balance-telemetry action.
+const TELEMETRY_DEFAULT_DAYS := 365
+
+## Header row / per-day metric order for the balance-telemetry CSV.
+const TELEMETRY_COLUMNS: Array[String] = [
+	"day",
+	"balance_nok",
+	"total_biomass_kg",
+	"market_price_nok",
+	"fcr",
+	"lice_per_fish",
+	"temperature_c",
+	"mortality_rate",
+	"sustainability_score",
+]
+
+## SimBridge metric keys (same order as the value columns above, minus "day").
+const TELEMETRY_METRICS: Array[String] = [
+	"balance_nok",
+	"total_biomass_kg",
+	"market_price_nok",
+	"fcr",
+	"lice_per_fish",
+	"temperature_c",
+	"mortality_rate",
+	"sustainability_score",
+]
+
+## Header row for the single-row composite depth snapshot CSV.
+const DEPTH_COLUMNS: Array[String] = [
+	"pen_price",
+	"supply_pressure",
+	"insurance_total_premium",
+	"resource_rent_paid",
+	"worst_gill_risk",
+]
+
 # ── Runtime state ─────────────────────────────────────────────────────────────
 
 var _export_directory: String = ""
@@ -101,6 +140,7 @@ func _ready() -> void:
 	_path_display.text = _export_directory
 	for export_type in EXPORT_TYPES:
 		_cards_grid.add_child(_build_export_card(export_type))
+	_add_telemetry_section()
 	_log_info("Klar til å eksportere.")
 
 func _input(event: InputEvent) -> void:
@@ -299,6 +339,224 @@ func _call_export_method(method_name: String, path: String) -> int:
 	if result is int:
 		return result
 	return -1
+
+# ── Telemetry export (SimBridge analytics) ────────────────────────────────────
+
+func _add_telemetry_section() -> void:
+	var body := _cards_grid.get_parent()
+	if body == null:
+		return
+	var section := _build_telemetry_section()
+	body.add_child(section)
+	body.move_child(section, _cards_grid.get_index() + 1)
+
+func _build_telemetry_section() -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+
+	var telemetry_btn := _make_small_button("Export balance telemetry (CSV)", COLOR_ACCENT)
+	telemetry_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	telemetry_btn.tooltip_text = "Én rad per simuleringsdag for de siste %d dagene." % TELEMETRY_DEFAULT_DAYS
+	telemetry_btn.pressed.connect(_on_export_telemetry_pressed)
+	row.add_child(telemetry_btn)
+
+	var depth_btn := _make_small_button("Export depth snapshot (CSV)", COLOR_ACCENT)
+	depth_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	depth_btn.tooltip_text = "Pen-pris, tilbudstrykk, forsikringspremie, ressursrente og verste gjellerisiko."
+	depth_btn.pressed.connect(_on_export_depth_pressed)
+	row.add_child(depth_btn)
+
+	return row
+
+func _on_export_telemetry_pressed() -> void:
+	var sim := get_node_or_null("/root/SimBridge")
+	if sim == null:
+		_set_status("Feil")
+		_log_error("✗ SimBridge ikke tilgjengelig.")
+		_toast("Telemetrieksport mislyktes: SimBridge mangler", "CRITICAL", 5.0)
+		return
+
+	var dir := _resolve_export_dir()
+	if dir.is_empty():
+		_log_error("Velg en eksportmappe først.")
+		return
+
+	_set_status("Eksporterer telemetri...")
+	_progress_bar.visible = true
+	_progress_bar.value = 25
+
+	var contents := _build_telemetry_csv(sim, TELEMETRY_DEFAULT_DAYS)
+	var path := dir.path_join("balansetelemetri_dag%s.csv" % _day_string(sim))
+	var rows := _write_csv(path, contents)
+
+	_progress_bar.value = 100
+	await get_tree().create_timer(0.3).timeout
+	_progress_bar.visible = false
+
+	if rows >= 0:
+		_set_status("Ferdig")
+		_log_ok("✓ Balansetelemetri — %d rader → %s" % [rows, path])
+		_toast("✓ Telemetri eksportert (%d rader)" % rows, "SUCCESS", 4.0)
+		emit_signal("export_completed", path, rows)
+	else:
+		_set_status("Feil")
+		_log_error("✗ Telemetrieksport mislyktes: " + path)
+		_toast("Telemetrieksport mislyktes", "CRITICAL", 5.0)
+
+func _on_export_depth_pressed() -> void:
+	var sim := get_node_or_null("/root/SimBridge")
+	if sim == null:
+		_set_status("Feil")
+		_log_error("✗ SimBridge ikke tilgjengelig.")
+		_toast("Dybdeeksport mislyktes: SimBridge mangler", "CRITICAL", 5.0)
+		return
+
+	var dir := _resolve_export_dir()
+	if dir.is_empty():
+		_log_error("Velg en eksportmappe først.")
+		return
+
+	_set_status("Eksporterer dybde...")
+	_progress_bar.visible = true
+	_progress_bar.value = 25
+
+	var contents := _build_depth_csv(sim)
+	var path := dir.path_join("dybde_oyeblikksbilde_dag%s.csv" % _day_string(sim))
+	var rows := _write_csv(path, contents)
+
+	_progress_bar.value = 100
+	await get_tree().create_timer(0.3).timeout
+	_progress_bar.visible = false
+
+	if rows >= 0:
+		_set_status("Ferdig")
+		_log_ok("✓ Dybde-øyeblikksbilde — %d rader → %s" % [rows, path])
+		_toast("✓ Dybde-øyeblikksbilde eksportert", "SUCCESS", 4.0)
+		emit_signal("export_completed", path, rows)
+	else:
+		_set_status("Feil")
+		_log_error("✗ Dybdeeksport mislyktes: " + path)
+		_toast("Dybdeeksport mislyktes", "CRITICAL", 5.0)
+
+func _resolve_export_dir() -> String:
+	var dir := _path_display.text.strip_edges()
+	if dir.is_empty():
+		return "user://exports"
+	return dir
+
+func _day_string(sim: Node) -> String:
+	if sim != null and sim.has_method("get_current_day"):
+		return "%04d" % int(sim.get_current_day())
+	return "0000"
+
+func _build_telemetry_csv(sim: Node, days: int) -> String:
+	var series: Dictionary = {}
+	var longest := 0
+	for metric in TELEMETRY_METRICS:
+		var values: Array = series.get(metric, [])
+		if sim.has_method("get_analytics_data"):
+			var raw = sim.get_analytics_data(metric, days)
+			if raw is Array:
+				values = raw
+		series[metric] = values
+		longest = maxi(longest, values.size())
+
+	var row_count: int = clampi(longest, 0, days)
+	var start_day := _telemetry_start_day(sim, row_count)
+
+	var lines := PackedStringArray()
+	lines.append(",".join(TELEMETRY_COLUMNS))
+	for i in range(row_count):
+		var cells := PackedStringArray()
+		cells.append(str(start_day + i))
+		for metric in TELEMETRY_METRICS:
+			cells.append(_cell(series[metric], i))
+		lines.append(",".join(cells))
+	return "\n".join(lines) + "\n"
+
+func _telemetry_start_day(sim: Node, row_count: int) -> int:
+	var current := 0
+	if sim != null and sim.has_method("get_current_day"):
+		current = int(sim.get_current_day())
+	if current < 1:
+		current = row_count
+	return maxi(1, current - row_count + 1)
+
+func _build_depth_csv(sim: Node) -> String:
+	var pen_price := ""
+	if sim.has_method("get_pen_price"):
+		var pp := float(sim.get_pen_price())
+		if pp > 0.0:
+			pen_price = "%.4f" % pp
+
+	var supply_pressure := ""
+	if sim.has_method("get_player_supply_pressure"):
+		var sp := float(sim.get_player_supply_pressure())
+		if sp >= 0.0:
+			supply_pressure = "%.4f" % sp
+
+	var insurance_total_premium := ""
+	if sim.has_method("get_insurance_status"):
+		var ins = sim.get_insurance_status()
+		if ins is Dictionary and ins.has("total_premium"):
+			insurance_total_premium = "%.4f" % float(ins.get("total_premium", 0.0))
+
+	var resource_rent_paid := ""
+	if sim.has_method("get_resource_rent"):
+		var rr = sim.get_resource_rent()
+		if rr is Dictionary and rr.has("paid"):
+			resource_rent_paid = "%.4f" % float(rr.get("paid", 0.0))
+
+	var worst_gill_risk := ""
+	if sim.has_method("get_all_pens") and sim.has_method("get_gill_risk"):
+		var worst := -1.0
+		var pens = sim.get_all_pens()
+		if pens is Array:
+			for pen in pens:
+				if pen is Dictionary:
+					var sid := str(pen.get("id", ""))
+					if sid.is_empty():
+						continue
+					var g = sim.get_gill_risk(sid)
+					if g is Dictionary:
+						worst = maxf(worst, float(g.get("risk", 0.0)))
+		if worst >= 0.0:
+			worst_gill_risk = "%.4f" % worst
+
+	var lines := PackedStringArray()
+	lines.append(",".join(DEPTH_COLUMNS))
+	lines.append(",".join([pen_price, supply_pressure, insurance_total_premium, resource_rent_paid, worst_gill_risk]))
+	return "\n".join(lines) + "\n"
+
+func _cell(values: Array, index: int) -> String:
+	if index < 0 or index >= values.size():
+		return ""
+	var value = values[index]
+	if value == null:
+		return ""
+	if value is float or value is int:
+		var f := float(value)
+		if is_nan(f) or is_inf(f):
+			return ""
+		return "%.4f" % f
+	return str(value)
+
+func _write_csv(path: String, contents: String) -> int:
+	var dir_path := path.get_base_dir()
+	if not dir_path.is_empty() and not DirAccess.dir_exists_absolute(dir_path):
+		DirAccess.make_dir_recursive_absolute(dir_path)
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		_log_error("Kunne ikke åpne fil for skriving: %s" % path)
+		return -1
+	file.store_string(contents)
+	file.close()
+	return maxi(0, contents.split("\n", false).size() - 1)
+
+func _toast(message: String, level: String, duration: float) -> void:
+	var mgr := get_node_or_null("/root/ToastNotification")
+	if mgr and mgr.has_method("show_toast"):
+		mgr.show_toast(message, level, duration)
 
 # ── File browser ──────────────────────────────────────────────────────────────
 

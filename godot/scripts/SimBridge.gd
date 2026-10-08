@@ -403,6 +403,7 @@ func get_resource_rent() -> Dictionary: return _proxies.get_resource_rent()
 func get_gill_risk(site_id: String) -> Dictionary: return _proxies.get_gill_risk(site_id)
 func qualifies_flexibility(site_id: String) -> bool: return _proxies.qualifies_flexibility(site_id)
 func get_player_supply_pressure() -> float: return _proxies.get_player_supply_pressure()
+func get_zone_traffic_lights() -> Array[Dictionary]: return _proxies.get_zone_traffic_lights()
 
 # ── Proxies: genetics / crew / achievements / weather ─────────────────────────
 

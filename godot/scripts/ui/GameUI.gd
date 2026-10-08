@@ -37,7 +37,7 @@ var _tutorial_state: Node = null
 ## Advanced panels gated by tutorial progress. Kept in sync with
 ## scripts/autoload/TutorialState.gd (which owns the authoritative mapping);
 ## this is only a fallback so the UI behaves if the autoload is absent.
-const ADVANCED_TABS: Array[String] = ["ras", "offshore", "analytics", "research", "sustainability"]
+const ADVANCED_TABS: Array[String] = ["ras", "offshore", "analytics", "research", "sustainability", "telemetry"]
 
 # ── UI Nodes ──────────────────────────────────────────────────────────────────
 
@@ -127,6 +127,7 @@ func _register_tabs() -> void:
 	_tabs.append(TabDefinition.new("analytics", "📈 Analyse", "📈", "res://scripts/ui/AnalyticsPanel.gd", KEY_F10))
 	
 	# Additional tabs (no F-key shortcuts)
+	_tabs.append(TabDefinition.new("telemetry", "📡 Telemetri", "📡", "res://scripts/ui/TelemetryPanel.gd"))
 	_tabs.append(TabDefinition.new("ai_feeding", "🤖 AI-Fôring", "🤖", "res://scripts/ui/AIFeedingPanel.gd"))
 	_tabs.append(TabDefinition.new("crew", "👥 Mannskap", "👥", "res://scripts/ui/CrewPanel.gd"))
 	_tabs.append(TabDefinition.new("contracts", "📈 Kontrakter", "📈", "res://scripts/ui/ContractsPanel.gd"))

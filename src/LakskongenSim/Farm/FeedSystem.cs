@@ -48,9 +48,14 @@ namespace LakskongenSim.Farm
             CurrentFCR = BaseFCR;
         }
 
-        // Temperature-FCR relationship (Norwegian data: optimal 11-13°C)
+        // Temperature-FCR relationship (Norwegian data: optimal 11-13°C).
+        // Balance tuning (Oct 2026): the thermal response of FCR is gentler than
+        // the original 0.018/°C. Over a seeded grow-out to harvest the steeper
+        // slope pushed the measured economic FCR median to ~1.24 and feed cost
+        // to ~27.7 NOK/kg produced; 0.008/°C centres the measured median on
+        // ~1.19 and ~26.5 NOK/kg produced, versus the bFCR 1.15 / 25.7 anchors.
         private const double OptimalFCRTemp = 12.0;
-        private const double FCRTempSensitivity = 0.018; // ↓ from 0.02 (less sensitive)
+        private const double FCRTempSensitivity = 0.008; // ↓ from 0.018 (balance tune)
 
         // ─── Feeding strategy ───
         public double FeedingRatePercent { get; set; } = 1.5; // % of bodyweight per day (adjustable by player)

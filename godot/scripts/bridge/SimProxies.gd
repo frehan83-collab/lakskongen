@@ -239,6 +239,15 @@ func get_player_supply_pressure() -> float:
 		return float(game_bridge.GetPlayerSupplyPressure())
 	return -1.0
 
+# ── Traffic-light zones (Phase 1.3) ──────────────────────────────────────────
+
+## Per-zone traffic-light status: one entry per zone with
+## {zone, color (Green/Yellow/Red), mab_factor, capacity_tonnes}.
+func get_zone_traffic_lights() -> Array[Dictionary]:
+	if game_bridge and game_bridge.has_method("GetZoneTrafficLights"):
+		return _arr(game_bridge.GetZoneTrafficLights())
+	return []
+
 # ── RAS facilities ────────────────────────────────────────────────────────────
 
 ## Get list of all RAS (Recirculating Aquaculture System) facilities

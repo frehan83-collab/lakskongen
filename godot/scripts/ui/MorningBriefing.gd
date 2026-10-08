@@ -96,13 +96,27 @@ func _update_briefing_content(current_day: int):
 	for child in _content_box.get_children():
 		child.queue_free()
 
-	# 1. Weather Forecast
+	# Ops-report order: state of the farm → conditions → market → finance,
+	# then the narrative sections (events, night ops, decisions).
+
+	# 1. State of the farm — one-line lead.
+	_content_box.add_child(_create_state_section())
+
+	# 2. Water / lice / gill / feed.
+	var conditions := _get_conditions()
+	if conditions != "":
+		_content_box.add_child(_create_section(_tr_or("UI_BRIEFING_CONDITIONS", "💧 Drift — vann, lus, gjeller, fôr"), conditions))
+
+	# 3. Weather Forecast
 	_content_box.add_child(_create_section(_tr_or("UI_BRIEFING_WEATHER", "🌤️ Værmelding"), _get_weather_forecast()))
 
-	# 2. Market Update
-	_content_box.add_child(_create_section(_tr_or("UI_BRIEFING_MARKET", "💰 Marked"), _get_market_update()))
+	# 4. Market (spot price + binding pen price + supply pressure).
+	_content_box.add_child(_create_section(_tr_or("UI_BRIEFING_MARKET", "💰 Marked"), _get_market_report()))
 
-	# 3. Overnight Events
+	# 5. Finance / insurance.
+	_content_box.add_child(_create_section(_tr_or("UI_BRIEFING_FINANCE", "🛡️ Økonomi & forsikring"), _get_finance_report()))
+
+	# 6. Overnight Events
 	var events = _get_overnight_events()
 	if events != "":
 		_content_box.add_child(_create_section(_tr_or("UI_BRIEFING_EVENTS", "📰 Nattens hendelser"), events))
@@ -110,24 +124,18 @@ func _update_briefing_content(current_day: int):
 		_content_box.add_child(_create_section(_tr_or("UI_BRIEFING_EVENTS", "📰 Nattens hendelser"),
 			_tr_or("UI_BRIEFING_NO_EVENTS", "Rolig natt — ingen uhell å melde. 🎉")))
 
-	# 3b. Natt-Driftssentral (Phase 5.2): night-shift digest
+	# 6b. Natt-Driftssentral (Phase 5.2): night-shift digest
 	var night_digest = _get_night_digest()
 	if night_digest != "":
 		_content_box.add_child(_create_section(_tr_or("UI_BRIEFING_NIGHT_OPS", "🌙 Natt-Driftssentral"), night_digest))
 
-	# 4. Pending Decisions
+	# 7. Pending Decisions
 	var decisions = _get_pending_decisions()
 	if decisions != "":
 		_content_box.add_child(_create_section(_tr_or("UI_BRIEFING_DECISIONS", "⚠️ Ventende beslutninger"), decisions))
 
-	# 5. Company Status
-	_content_box.add_child(_create_section(_tr_or("UI_BRIEFING_STATUS", "🏢 Selskapsstatus"), _get_company_status()))
-
-	# 6. Depth systems (P7/P9/P10/P11/P15): gill warning, insurance, pen price,
-	#    supply pressure. Each proxy is guarded; unavailable lines are skipped.
-	var depth := _get_depth_status()
-	if depth != "":
-		_content_box.add_child(_create_section(_tr_or("UI_BRIEFING_DEPTH", "🧭 Dybde"), depth))
+	# Depth content (gill/pen price/supply/insurance) is already distributed
+	# into the conditions, market, and finance sections above.
 
 func _create_section(title: String, content: String) -> VBoxContainer:
 	var section := VBoxContainer.new()
@@ -146,6 +154,144 @@ func _create_section(title: String, content: String) -> VBoxContainer:
 	section.add_child(LakskongenTheme.create_divider())
 
 	return section
+
+## 1-line "state of the farm" lead, colored by severity. Uses the same
+## FarmStateBanner.evaluate() as the dashboard so the two never disagree.
+func _create_state_section() -> VBoxContainer:
+	var sim := get_node_or_null("/root/SimBridge")
+	var ev: Dictionary = FarmStateBanner.evaluate(sim)
+	var state := str(ev.get("state", FarmStateBanner.STATE_HEALTHY))
+	var summary := _tr_or("UI_FARM_STATE_%s" % state.to_upper(), str(ev.get("summary_no", "")))
+	var detail := str(ev.get("detail_no", ""))
+	var line := "%s %s" % [FarmStateBanner.icon_for(state), summary]
+	if state == FarmStateBanner.STATE_CRITICAL and detail != "":
+		line += " — %s" % detail
+
+	var section := VBoxContainer.new()
+	section.add_theme_constant_override("separation", LakskongenTheme.SPACE_SM)
+	var label := LakskongenTheme.create_label(line, LakskongenTheme.FONT_LG, FarmStateBanner.tint_for(state))
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	section.add_child(label)
+	section.add_child(LakskongenTheme.create_divider())
+	return section
+
+## Water / lice / gill / feed lines. Every source is guarded; unavailable
+## lines are skipped rather than printed as zeros.
+func _get_conditions() -> String:
+	var sim := get_node_or_null("/root/SimBridge")
+	var parts := PackedStringArray()
+
+	# Water temperature (prefer SimulationCore env, fall back to snapshot).
+	var temp := NAN
+	if _sim_core and _sim_core.Environment:
+		temp = float(_sim_core.Environment.CurrentWaterTemp)
+	else:
+		temp = _sim_float(sim, "temperature_c", NAN)
+	var oxygen := _sim_float(sim, "oxygen_mgl", -1.0)
+	if is_finite(temp):
+		var water := "🌡️ Vann: %.1f°C" % temp
+		if oxygen > 0.0:
+			water += " · O2 %.1f mg/L (%s)" % [oxygen, _oxygen_word(oxygen)]
+		parts.append(water)
+
+	# Lice pressure.
+	var lice := _sim_float(sim, "sea_lice_per_fish", -1.0)
+	if lice >= 0.0:
+		parts.append("🐟 Lus: %.2f /fisk (%s)" % [lice, _lice_word(lice)])
+
+	# Gill-health early warning (P10).
+	var gill := _get_gill_status()
+	if gill != "":
+		parts.append(gill)
+
+	# Feed: FCR + appetite.
+	var feed_bits := PackedStringArray()
+	var fcr := _sim_float(sim, "fcr", -1.0)
+	if fcr > 0.0:
+		feed_bits.append("FCR %.2f" % fcr)
+	var appetite := _sim_float(sim, "appetite", -1.0)
+	if appetite >= 0.0:
+		feed_bits.append("appetitt %d%%" % int(appetite * 100.0))
+	if not feed_bits.is_empty():
+		parts.append("🍽️ Fôr: " + " · ".join(feed_bits))
+
+	if parts.is_empty():
+		return _tr_or("UI_BRIEFING_NO_DATA", "Ingen data tilgjengelig.")
+	return "\n".join(parts)
+
+func _sim_float(sim: Node, prop: String, fallback: float) -> float:
+	if sim == null:
+		return fallback
+	var v = sim.get(prop)
+	if v == null:
+		return fallback
+	var f := float(v)
+	return f if is_finite(f) else fallback
+
+func _oxygen_word(o2: float) -> String:
+	if o2 < 6.0:
+		return _tr_or("UI_O2_CRIT", "kritisk lavt")
+	if o2 < 6.5:
+		return _tr_or("UI_O2_LOW", "lavt")
+	return _tr_or("UI_O2_OK", "ok")
+
+func _lice_word(lice: float) -> String:
+	if lice > 0.5:
+		return _tr_or("UI_LICE_CRIT", "over grense")
+	if lice > 0.2:
+		return _tr_or("UI_LICE_WARN", "forhøyet")
+	return _tr_or("UI_LICE_OK", "ok")
+
+## Market digest: spot price + binding pen price + supply pressure.
+func _get_market_report() -> String:
+	var parts := PackedStringArray()
+	var base := _get_market_update()
+	if base != "":
+		parts.append(base)
+	var sim := get_node_or_null("/root/SimBridge")
+	if sim == null:
+		return base
+	if sim.has_method("get_pen_price"):
+		var pen_price := float(sim.call("get_pen_price"))
+		if pen_price > 0.0:
+			parts.append(_tr_or("UI_BRIEFING_DEPTH_PEN_PRICE", "📋 Prisråd (pen-pris): %.2f NOK/kg") % pen_price)
+	if sim.has_method("get_player_supply_pressure"):
+		var pressure := float(sim.call("get_player_supply_pressure"))
+		if pressure >= 0.0:
+			var label := _tr_or("UI_BRIEFING_DEPTH_SUPPLY_LOW", "lav")
+			if pressure >= 0.66:
+				label = _tr_or("UI_BRIEFING_DEPTH_SUPPLY_HIGH", "høy")
+			elif pressure >= 0.33:
+				label = _tr_or("UI_BRIEFING_DEPTH_SUPPLY_MED", "moderat")
+			parts.append(_tr_or("UI_BRIEFING_DEPTH_SUPPLY", "📉 Eget tilbudstrykk: %.0f%% (%s)") % [pressure * 100.0, label])
+	if parts.is_empty():
+		return _tr_or("UI_BRIEFING_NO_DATA", "Ingen data tilgjengelig.")
+	return "\n".join(parts)
+
+## Finance digest: company status + active insurance premium.
+func _get_finance_report() -> String:
+	var parts := PackedStringArray()
+	var company := _get_company_status()
+	if company != "":
+		parts.append(company)
+	var insurance := _get_insurance_line()
+	if insurance != "":
+		parts.append(insurance)
+	if parts.is_empty():
+		return _tr_or("UI_BRIEFING_NO_DATA", "Ingen data tilgjengelig.")
+	return "\n".join(parts)
+
+## P11: active catastrophe-insurance premium, or "" when unavailable.
+func _get_insurance_line() -> String:
+	var sim := get_node_or_null("/root/SimBridge")
+	if sim == null or not sim.has_method("get_insurance_status"):
+		return ""
+	var ins = sim.call("get_insurance_status")
+	if not (ins is Dictionary) or not ins.has("total_premium"):
+		return ""
+	var prem := float(ins.get("total_premium", 0.0))
+	var prem_nok: String = sim.call("format_nok", prem) if sim.has_method("format_nok") else ("%.0f NOK" % prem)
+	return _tr_or("UI_BRIEFING_DEPTH_INSURANCE", "🛡️ Forsikring: %s/år i premie") % prem_nok
 
 func _get_weather_forecast() -> String:
 	if _sim_core and _sim_core.Environment:
@@ -244,68 +390,63 @@ func _get_company_status() -> String:
 		]
 	return ""
 
-## Depth line (Wave 7): gill-health warning, active insurance premium, binding
-## pen price, and player-supply pressure. Every proxy is guarded; a line is
-## only added when its proxy is available (unavailable -> skipped).
-func _get_depth_status() -> String:
+## P10: gill-health early warning — scan sites, report the worst risk.
+## Returns a single line, or "" when no data is exposed.
+func _get_gill_status() -> String:
 	var sim := get_node_or_null("/root/SimBridge")
-	if not sim:
+	if not sim or not sim.has_method("get_all_pens") or not sim.has_method("get_gill_risk"):
 		return ""
-	var parts: PackedStringArray = []
+	var pens: Array = sim.get_all_pens()
+	var warnings := 0
+	var criticals := 0
+	var worst_site := ""
+	var worst_risk := 0.0
+	for pen in pens:
+		if pen is Dictionary:
+			var sid := str(pen.get("id", ""))
+			if sid == "":
+				continue
+			var g: Dictionary = sim.get_gill_risk(sid)
+			if bool(g.get("warning", false)):
+				warnings += 1
+			if bool(g.get("critical", false)):
+				criticals += 1
+			var r := float(g.get("risk", 0.0))
+			if r > worst_risk:
+				worst_risk = r
+				worst_site = sid
+	if criticals > 0:
+		return _tr_or("UI_BRIEFING_DEPTH_GILL_CRIT", "⚠️ Gjellehelse: %d kritisk, %d varslet") % [criticals, warnings]
+	if warnings > 0:
+		return _tr_or("UI_BRIEFING_DEPTH_GILL_WARN", "⚠️ Gjellehelse: %d merd(er) varslet (maks %.0f%% @ %s)") % [warnings, worst_risk * 100.0, worst_site]
+	return _tr_or("UI_BRIEFING_DEPTH_GILL_OK", "🫁 Gjellehelse: ingen varsler")
 
-	# P10: gill-health early warning — scan sites, report the worst risk.
-	if sim.has_method("get_all_pens") and sim.has_method("get_gill_risk"):
-		var pens: Array = sim.get_all_pens()
-		var warnings := 0
-		var criticals := 0
-		var worst_site := ""
-		var worst_risk := 0.0
-		for pen in pens:
-			if pen is Dictionary:
-				var sid := str(pen.get("id", ""))
-				if sid == "":
-					continue
-				var g: Dictionary = sim.get_gill_risk(sid)
-				if bool(g.get("warning", false)):
-					warnings += 1
-				if bool(g.get("critical", false)):
-					criticals += 1
-				var r := float(g.get("risk", 0.0))
-				if r > worst_risk:
-					worst_risk = r
-					worst_site = sid
-		if criticals > 0:
-			parts.append(_tr_or("UI_BRIEFING_DEPTH_GILL_CRIT", "⚠️ Gjellehelse: %d kritisk, %d varslet") % [criticals, warnings])
-		elif warnings > 0:
-			parts.append(_tr_or("UI_BRIEFING_DEPTH_GILL_WARN", "⚠️ Gjellehelse: %d merd(er) varslet (maks %.0f%% @ %s)") % [warnings, worst_risk * 100.0, worst_site])
-		else:
-			parts.append(_tr_or("UI_BRIEFING_DEPTH_GILL_OK", "🫁 Gjellehelse: ingen varsler"))
-
-	# P11: active catastrophe-insurance premium.
-	if sim.has_method("get_insurance_status"):
-		var ins: Dictionary = sim.get_insurance_status()
-		if ins.has("total_premium"):
-			var prem := float(ins.get("total_premium", 0.0))
-			var prem_nok: String = sim.call("format_nok", prem) if sim.has_method("format_nok") else ("%.0f NOK" % prem)
-			parts.append(_tr_or("UI_BRIEFING_DEPTH_INSURANCE", "🛡️ Forsikring: %s/år i premie") % prem_nok)
-
-	# P9: binding monthly pen price from the Price Council.
-	if sim.has_method("get_pen_price"):
-		var pen_price := float(sim.get_pen_price())
-		if pen_price > 0.0:
-			parts.append(_tr_or("UI_BRIEFING_DEPTH_PEN_PRICE", "📋 Prisråd (pen-pris): %.2f NOK/kg") % pen_price)
-
-	# P15: player-supply pressure on the spot price (-1.0 = unavailable).
-	if sim.has_method("get_player_supply_pressure"):
-		var pressure := float(sim.get_player_supply_pressure())
-		if pressure >= 0.0:
-			var label := _tr_or("UI_BRIEFING_DEPTH_SUPPLY_LOW", "lav")
-			if pressure >= 0.66:
-				label = _tr_or("UI_BRIEFING_DEPTH_SUPPLY_HIGH", "høy")
-			elif pressure >= 0.33:
-				label = _tr_or("UI_BRIEFING_DEPTH_SUPPLY_MED", "moderat")
-			parts.append(_tr_or("UI_BRIEFING_DEPTH_SUPPLY", "📉 Eget tilbudstrykk: %.0f%% (%s)") % [pressure * 100.0, label])
-
+## Back-compat combiner for callers/tests that still ask for the full "Dybde"
+## block. The morning briefing itself now distributes this content into the
+## conditions / market / finance sections.
+func _get_depth_status() -> String:
+	var parts := PackedStringArray()
+	var gill := _get_gill_status()
+	if gill != "":
+		parts.append(gill)
+	var sim := get_node_or_null("/root/SimBridge")
+	if sim:
+		if sim.has_method("get_pen_price"):
+			var pen_price := float(sim.call("get_pen_price"))
+			if pen_price > 0.0:
+				parts.append(_tr_or("UI_BRIEFING_DEPTH_PEN_PRICE", "📋 Prisråd (pen-pris): %.2f NOK/kg") % pen_price)
+		if sim.has_method("get_player_supply_pressure"):
+			var pressure := float(sim.call("get_player_supply_pressure"))
+			if pressure >= 0.0:
+				var label := _tr_or("UI_BRIEFING_DEPTH_SUPPLY_LOW", "lav")
+				if pressure >= 0.66:
+					label = _tr_or("UI_BRIEFING_DEPTH_SUPPLY_HIGH", "høy")
+				elif pressure >= 0.33:
+					label = _tr_or("UI_BRIEFING_DEPTH_SUPPLY_MED", "moderat")
+				parts.append(_tr_or("UI_BRIEFING_DEPTH_SUPPLY", "📉 Eget tilbudstrykk: %.0f%% (%s)") % [pressure * 100.0, label])
+	var insurance := _get_insurance_line()
+	if insurance != "":
+		parts.append(insurance)
 	return "\n".join(parts)
 
 func _weather_event_to_string(event) -> String:
@@ -332,9 +473,9 @@ func _get_night_digest() -> String:
 	var misfire: float = float(status.get("misfire_chance", 0.0)) if status.has("misfire_chance") else 0.0
 	var premium: float = float(status.get("premium_monthly", 0.0)) if status.has("premium_monthly") else 0.0
 
-	var icon := {"Standard": "👁️", "ScanOnly": "🔍", "AutomatedROC": "🤖"}.get(policy, "👁️")
+	var icon: String = {"Standard": "👁️", "ScanOnly": "🔍", "AutomatedROC": "🤖"}.get(policy, "👁️")
 	var text := "%s %s-modus (oppmerksomhet %d/%d, deteksjon %d%%, utmattelse +%d%%)" % [
-		icon, policy, 100 - (policy == "AutomatedROC" ? 85 : 0), 100, int(detect * 100.0), int(fatigue * 100.0)]
+		icon, policy, 100 - (85 if policy == "AutomatedROC" else 0), 100, int(detect * 100.0), int(fatigue * 100.0)]
 
 	if policy == "AutomatedROC":
 		var auto_cost: int = int(premium / 30.0)

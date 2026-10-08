@@ -46,6 +46,40 @@ produced** — a 41% understatement that any test, tool or subsystem bypassing
 `CalibrationRegistry.Default`, so the standalone path is identical to the
 engine path.
 
+## 1b. Measured distributions (SimProbe, seeds 1-20)
+
+`src/LakskongenSim.Tests/Balance/SimProbe.cs` runs 20 seeded 3-year (1095-day)
+grow-out sims per scenario, harvesting and re-stocking each time the stock
+reaches the calibrated 5.2 kg target. `BalanceReportTests` asserts the medians
+below against the reference bands in this document. Measured **Oct 2026,
+calibration v1.0.1** (the realized-price row varies run-to-run because the
+engine's MarketIntelligence RNG is unseeded).
+
+Scenario `Baseline`: one 50k-smolt sea site, storyteller events off, no zone.
+
+| Metric | Measured min / **median** / p90 | Reference band | Verdict |
+|---|---|---|---|
+| Mean economic FCR | 1.20 / **1.20** / 1.21 | 1.10-1.30 (bFCR 1.15) | IN BAND |
+| Sea mortality %/cycle | 9.7 / **10.8** / 12.2 | 14-16 (NVI 2024) | **DEFERRED** (events off; see §5) |
+| Mean harvest weight kg | 5.20 / **5.20** / 5.20 | 4.5-5.5 | IN BAND |
+| Feed cost NOK/kg produced | 26.7 / **26.8** / 27.0 | 22-30 (~25.7) | IN BAND |
+| Realized price NOK/kg | ~51 / **~150-155** / 164 | 74-90 | **DEFERRED** (market drift; see §5) |
+| Peak adult-female lice/fish | 0.00 / **0.00** / 0.00 | <=0.5 (Mattilsynet) | **DEFERRED** (no seeded lice pressure; see §5) |
+| Escapes/year | 0.00 / **0.00** / 0.00 | low (<=2 guard) | IN BAND |
+
+Scenario `HighStocking` (100k smolt) is statistically identical on these
+per-fish/per-cycle metrics — FCR 1.20, mortality 10.8%/cycle, harvest 5.20 kg,
+feed cost 26.8 NOK/kg — confirming the bands hold as farm size changes.
+
+### Tuning applied (calibration v1.0.1)
+
+- `FeedSystem.FCRTempSensitivity` **0.018 -> 0.008 °C⁻¹** (and the reconciled
+  `Feed.FCRTempSensitivity` in `CalibrationRegistry`/`calibration.json`).
+  At 0.018 the seeded economic-FCR median was ~1.24 and feed cost ~27.7; at
+  0.008 it centres on **1.20** and **26.8 NOK/kg produced**, versus the
+  bFCR 1.15 / 25.7 NOK/kg references. Runtime authority is the `FeedSystem`
+  constant; the registry field is the reconciled record.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
@@ -126,6 +160,47 @@ following are recorded for that owner:
   registry `FeedPricePerKgFeedNOK` and `BaseFCR` into `FeedSystem`, which is
   how the engine path reaches 25.645 NOK/kg produced.
 
+### Measured-band deferrals (from §1b, Oct 2026)
+
+These three metrics cannot reach their reference band from
+`CalibrationRegistry`/`calibration.json`/`FeedSystem` alone — the driving
+constants live in files outside this task's ownership. Recorded for the engine
+owner; `BalanceReportTests` pins the current deferred behavior and prints the
+reference gap so the drift is visible rather than silent.
+
+- **Sea mortality ~10.8%/cycle vs 14-16% (NVI 2024).** `MortalityModel` is
+  driven by `GameConstants.BaselineMortalityPerDay` (0.0002) × stage multiplier;
+  `CalibrationRegistry.Health.SeaMortalityPerCycle` (0.15) and
+  `MortalityRateBasePercent` are **never read**. The missing ~4pp is the
+  disease/bloom share, injected by `IntegratedDiseaseSystem` only when
+  storyteller events are enabled — and `Storyteller` is hard-wired to an
+  **unseeded** RNG in `SimulationEngine.Initialize` (`seed: null`, line ~267),
+  so event-on runs are not reproducible. Fix: wire the registry mortality
+  anchors into `MortalityModel` and seed the Storyteller from the engine seed.
+- **Realized price median ~154 (range 51-164) vs 74-90 NOK/kg.**
+  `MarketSimulation` does **not** read `CalibrationRegistry.Market`
+  (`LongTermMeanNOKPerKg` 82, `MeanReversionSpeedWeekly` 0.012, etc.); it uses
+  its own hardcoded O-U. With weak mean reversion plus an unclamped
+  supply/demand bias and the 150 NOK/kg ceiling, the path drifts to the ceiling
+  within one grow-out. Its `Intelligence` subsystem also draws from an unseeded
+  RNG, so the realized-price distribution is not reproducible. Fix: source the
+  O-U params from the registry, mean-revert the supply/demand bias, and seed the
+  intelligence RNG.
+- **Peak adult-female lice 0 vs ~0.5 regulatory peak.** In a clean run
+  `SeaLiceModel` starts at zero and is only pressurised through
+  `SetExternalPressure`/`SeedExternalInfection`, which the engine calls only
+  from external BarentsWatch data/events. The harness therefore never sees lice
+  even though the 0.5 limit is enforced elsewhere. Fix: seed baseline external
+  lice pressure from the environment profile so a normal cycle reaches the
+  action limit.
+
+Additionally (feed-path coupling, engine-level): the daily ration
+(`FeedSystem.FeedingRatePercent` 1.5% bodyweight) is decoupled from actual SDE
+growth, so accounting feed cost per harvested kg (~4x the registry-derived
+25.7) is far above the price × FCR figure the bands use. `SimProbe` therefore
+reports the documented `price × economic FCR` definition (§1b). Coupling the
+ration to the SDE growth response is an engine change.
+
 ## 6. Guard coverage
 
 `CalibrationGuardTests` enforces the bands above. Feed-path specific guards:
@@ -143,3 +218,4 @@ following are recorded for that owner:
 | Date | Reviewer | Changes |
 |---|---|---|
 | 2026-10-07 | Balance consolidation | FeedSystem defaults now sourced from CalibrationRegistry; added standalone-drift guard; report created; feed row in REALISM_CHECKLIST reconciled. |
+| 2026-10-08 | Balance harness | Added `SimProbe` + `BalanceReportTests` (seeds 1-20, 3-year grow-out cycles); measured-band table (§1b); tuned `FCRTempSensitivity` 0.018 -> 0.008 (v1.0.1); recorded mortality/price/lice deferrals (§5). |

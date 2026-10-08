@@ -15,10 +15,19 @@ const DEDUP_WINDOW_MS := 2000
 
 const ESCAPE_KEYS := ["rømming", "rømte", "escape"]
 const BLOOM_KEYS  := ["oppblomstring", "bloom", "alge", "algae", "manet", "jellyfish", "hypoksi", "hypoxia"]
-const DISEASE_KEYS := ["sykdom", "disease", "outbreak", "lus", "sea lice", "sealice", "ila", "smitte"]
+const DISEASE_KEYS := ["sykdom", "disease", "outbreak", "ila", "smitte"]
+# Depth events now have their own severity + audio (task: lice / DO / gill).
+const LICE_KEYS := ["lus", "sea lice", "sealice"]
+const OXYGEN_KEYS := ["oksygen", "oxygen"]
+const GILL_KEYS := ["gjelle", "gill"]
 const GE_KEYS := ["aquadvantage", "genmodifisert", "genteknolog", "genredigering", "genome editing", "gmo", "gene edit", "ge_disease", "ge_growth", "ge_lice", "ge_sterility"]
 const INSURANCE_KEYS := ["forsikring", "insurance"]
 const TRAFFIC_PREFIX := "trafikklys"
+
+## UI keys AudioController.play_ui understands (MusicLibrary.UI_SFX). Used to
+## tell a genuine playable audio key from a semantic alert key we can't cue
+## directly (alert SFX such as "lice_warning" are emitted by SimBridge).
+const UI_SOUND_KEYS := ["button_click", "button_hover", "notification", "error", "menu_open", "menu_close", "panel_open", "panel_close"]
 
 var _sim: Node = null
 var _game_bridge: Node = null
@@ -28,6 +37,8 @@ var _audio: Node = null
 var _dedup: Dictionary = {} # category key -> ticks_msec
 var _seen_event_keys: Dictionary = {}
 var _events_primed: bool = false
+var _day_dedup: Dictionary = {} # once-per-day key -> day number
+var _last_depth_scan_day: int = -1
 
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
 
@@ -66,12 +77,54 @@ func _on_alert_raised(level: String, message: String) -> void:
 	var lvl := level.to_upper()
 	if _has_any(msg, ESCAPE_KEYS):
 		_fire_critical("escape", "🚨 %s" % message)
+	elif _has_any(msg, LICE_KEYS):
+		_on_lice_alert(lvl, message)
+	elif _has_any(msg, OXYGEN_KEYS):
+		_on_oxygen_alert(lvl, message)
+	elif _has_any(msg, GILL_KEYS):
+		_on_gill_alert(message, false)
 	elif _has_any(msg, BLOOM_KEYS):
 		_fire_warning("bloom", message)
 	elif _has_any(msg, DISEASE_KEYS):
 		_fire_warning("disease", message)
 	elif lvl == "CRITICAL":
 		_fire_critical("critical_alert", message)
+
+## Lice crossing the legal limit. Severity follows the alert level; deduped per
+## day per severity so a persistent condition reports once (warning -> critical
+## still escalates the same day). Audio key "lice_warning" is also cued by
+## SimBridge.audio_alert_triggered.
+func _on_lice_alert(level: String, message: String) -> void:
+	var critical := level == "CRITICAL"
+	var key := "lice_critical" if critical else "lice_warning"
+	if _seen_today(key, _current_day()):
+		return
+	if critical:
+		_fire_critical(key, "🐟 %s" % message, "lice_warning")
+	else:
+		_fire_warning(key, "🐟 %s" % message, "lice_warning")
+
+## Dissolved-oxygen crash. Critical below 6 mg/L, warning for the pre-crash band.
+func _on_oxygen_alert(level: String, message: String) -> void:
+	var critical := level == "CRITICAL"
+	var key := "oxygen_critical" if critical else "oxygen_warning"
+	if _seen_today(key, _current_day()):
+		return
+	if critical:
+		_fire_critical(key, "🫧 %s" % message, "error")
+	else:
+		_fire_warning(key, "🫧 %s" % message, "notification")
+
+## Gill-health warning. Fires only on an explicit alert message; the polled
+## proxy path calls this with is_critical = true for critical sites.
+func _on_gill_alert(message: String, is_critical: bool, audio_key: String = "") -> void:
+	var key := "gill_critical" if is_critical else "gill_warning"
+	if _seen_today(key, _current_day()):
+		return
+	if is_critical:
+		_fire_critical(key, "🫁 %s" % message, audio_key if audio_key != "" else "error")
+	else:
+		_fire_warning(key, "🫁 %s" % message, audio_key if audio_key != "" else "notification")
 
 func _on_achievement_unlocked(id: String, achievement_name: String, _description: String, _reward_nok: float, _tier: String) -> void:
 	if _is_duplicate("achievement:%s" % id):
@@ -119,22 +172,48 @@ func _on_state_updated() -> void:
 	if _sim == null:
 		return
 	var events: Variant = _sim.get("recent_events")
-	if events == null:
+	if events != null:
+		for ev in events:
+			if not (ev is Dictionary):
+				continue
+			var name := str(ev.get("name", ""))
+			var desc := str(ev.get("description", ""))
+			var day := int(ev.get("day", 0))
+			var key := "%d|%s|%s" % [day, name, desc]
+			if _seen_event_keys.has(key):
+				continue
+			_seen_event_keys[key] = true
+			if _events_primed:
+				_dispatch_log_event(name, desc)
+		_events_primed = true
+		_prune_seen_events()
+	_scan_depth_once_per_day()
+
+## Depth events (lice/DO/gill) mostly surface as alerts, but gill-health risk
+## is only exposed through the get_gill_risk proxy. Scan it once per simulated
+## day so a persistent warning reports exactly once, not on every snapshot.
+func _scan_depth_once_per_day() -> void:
+	if _sim == null:
 		return
-	for ev in events:
-		if not (ev is Dictionary):
+	var day := _current_day()
+	if day < 0 or day == _last_depth_scan_day:
+		return
+	_last_depth_scan_day = day
+	if not _sim.has_method("get_all_pens") or not _sim.has_method("get_gill_risk"):
+		return
+	for pen in _sim.get_all_pens():
+		if not (pen is Dictionary):
 			continue
-		var name := str(ev.get("name", ""))
-		var desc := str(ev.get("description", ""))
-		var day := int(ev.get("day", 0))
-		var key := "%d|%s|%s" % [day, name, desc]
-		if _seen_event_keys.has(key):
+		var sid := str(pen.get("id", ""))
+		if sid.is_empty():
 			continue
-		_seen_event_keys[key] = true
-		if _events_primed:
-			_dispatch_log_event(name, desc)
-	_events_primed = true
-	_prune_seen_events()
+		var g = _sim.get_gill_risk(sid)
+		if not (g is Dictionary):
+			continue
+		if bool(g.get("critical", false)):
+			_on_gill_alert("Gjellehelse kritisk ved %s" % sid, true, "error")
+		elif bool(g.get("warning", false)):
+			_on_gill_alert("Gjellehelse-varsel ved %s" % sid, false, "notification")
 
 func _dispatch_log_event(name: String, desc: String) -> void:
 	var lname := name.to_lower()
@@ -194,19 +273,31 @@ func _on_game_ended(reason: String) -> void:
 
 # ── Consequence primitives ─────────────────────────────────────────────────────
 
-func _fire_critical(category: String, message: String) -> void:
+func _fire_critical(category: String, message: String, audio_key: String = "") -> void:
 	if _is_duplicate(category):
 		return
 	_shake(16.0, 0.4)
 	_toast(message, "CRITICAL", 7.0)
-	_audio_call("play_ui", ["notification"])
+	_play_cue(audio_key, "error")
 
-func _fire_warning(category: String, message: String) -> void:
+func _fire_warning(category: String, message: String, audio_key: String = "") -> void:
 	if _is_duplicate(category):
 		return
 	_flash_warning()
 	_toast(message, "WARNING", 6.0)
-	_audio_call("play_ui", ["notification"])
+	_play_cue(audio_key, "notification")
+
+## Play the preferred audio key when AudioController can address it, otherwise
+## fall back to the severity default. Alert SFX keys (e.g. "lice_warning") are
+## not play_ui-addressable and are already emitted by SimBridge.
+func _play_cue(preferred_key: String, fallback_key: String) -> void:
+	if _audio == null:
+		return
+	var key := preferred_key if _is_ui_sound_key(preferred_key) else fallback_key
+	_audio_call("play_ui", [key])
+
+func _is_ui_sound_key(key: String) -> bool:
+	return UI_SOUND_KEYS.has(key)
 
 func _shake(intensity: float, duration: float) -> void:
 	var vp := get_viewport()
@@ -248,6 +339,27 @@ func _has_any(haystack: String, keys: Array) -> bool:
 	for key in keys:
 		if haystack.contains(key):
 			return true
+	return false
+
+func _current_day() -> int:
+	if _sim == null:
+		return -1
+	var d = _sim.get("current_day")
+	return int(d) if d != null else -1
+
+## Returns true when `key` was already fired for `day` (so the caller skips).
+## A day of -1 (no sim clock) makes this a no-op, leaving _is_duplicate to
+## coalesce bursts within the 2s window.
+func _seen_today(key: String, day: int) -> bool:
+	if day < 0:
+		return false
+	if int(_day_dedup.get(key, -1)) == day:
+		return true
+	_day_dedup[key] = day
+	if _day_dedup.size() > 256:
+		var keys := _day_dedup.keys()
+		for i in range(mini(64, keys.size())):
+			_day_dedup.erase(keys[i])
 	return false
 
 func _is_duplicate(key: String) -> bool:
