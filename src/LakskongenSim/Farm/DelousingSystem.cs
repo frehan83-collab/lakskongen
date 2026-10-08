@@ -249,6 +249,38 @@ namespace LakskongenSim.Farm
                 HarmWelfareCost = harm.WelfareCost
             };
         }
+
+        /// <summary>
+        /// Map UI/legacy method names to <see cref="DelousingMethod"/> (Phase 2.2).
+        /// Owner of the method-name contract since Phase 1 wave 2 — the Godot
+        /// bridge delegates to this instead of keeping its own table.
+        /// </summary>
+        public static bool TryParseMethodName(string name, out DelousingMethod method)
+        {
+            switch ((name ?? "").ToLower())
+            {
+                case "thermolicer":
+                case "thermal": method = DelousingMethod.Thermolicer; return true;
+                case "hydrolicer":
+                case "mechanical": method = DelousingMethod.Hydrolicer; return true;
+                case "cleanerfish":
+                case "cleaner_fish":
+                case "biological": method = DelousingMethod.CleanerFish; return true;
+                case "laser":
+                case "laserdelousing":
+                case "stingray": method = DelousingMethod.LaserDelousing; return true;
+                case "freshwater":
+                case "freshwaterbath": method = DelousingMethod.FreshwaterBath; return true;
+                case "peroxide":
+                case "hydrogen_peroxide":
+                case "chemical": method = DelousingMethod.HydrogenPeroxide; return true;
+                case "medicatedfeed":
+                case "medicated_feed": method = DelousingMethod.MedicatedFeed; return true;
+                case "skirt":
+                case "liceskirts": method = DelousingMethod.LiceSkirts; return true;
+                default: method = default; return false;
+            }
+        }
     }
 
     /// <summary>Treatment method characteristics.</summary>

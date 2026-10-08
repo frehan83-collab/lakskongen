@@ -623,126 +623,39 @@ public partial class GameBridge : Node
     /// </summary>
     public bool OrderDelousing(string siteId, string method)
     {
-        if (SimulationEngine?.SeaLice == null || SimulationEngine?.State?.SeaSites == null)
+        var engine = SimulationEngine;
+        if (engine == null)
         {
             GD.PrintErr("GameBridge: OrderDelousing failed - engine not initialized");
             EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, false);
             return false;
         }
 
-        // Map UI method names (incl. legacy) to DelousingMethod.
-        if (!TryParseDelousingMethod(method, out var delousingMethod))
+        // Phase 1 wave 2: the verb lives in the library
+        // (SimulationEngine.DelouseSite). "all_sites" stays an adapter-side
+        // fan-out over the per-site command.
+        if (siteId == "all_sites")
         {
-            GD.PrintErr($"GameBridge: OrderDelousing failed - invalid method '{method}'");
+            bool ok = true;
+            foreach (var site in engine.State.SeaSites.ToList())
+                ok &= engine.DelouseSite(site.Id, method).Ok;
+            EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, ok);
+            if (ok) EmitSignal(SignalName.GameStateUpdated);
+            return ok;
+        }
+
+        var result = engine.DelouseSite(siteId, method);
+        if (!result.Ok)
+        {
+            GD.PrintErr($"GameBridge: OrderDelousing failed - {result.Message}");
             EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, false);
             return false;
         }
-
-        // If siteId is "all_sites", treat all sites
-        var targetSites = siteId == "all_sites" 
-            ? SimulationEngine.State.SeaSites.ToList()
-            : SimulationEngine.State.SeaSites.Where(s => s.Id == siteId).ToList();
-
-        if (targetSites.Count == 0)
-        {
-            GD.PrintErr($"GameBridge: OrderDelousing failed - site '{siteId}' not found");
-            EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, false);
-            return false;
-        }
-
-        // Calculate total fish count for cost (per-site pens — ZoneId is
-        // zone-shared, so State-wide filtering would double-count sites
-        // in the same zone).
-        int totalFish = 0;
-        foreach (var site in targetSites)
-        {
-            totalFish += site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
-        }
-
-        // Profile-driven cost/efficacy (single source of truth).
-        var profile = LakskongenSim.Farm.DelousingSystem.GetProfile(delousingMethod);
-        decimal totalCost = totalFish * profile.CostPerFish;
-
-        if (SimulationEngine.FinanceManager.Balance < totalCost)
-        {
-            GD.PrintErr($"GameBridge: OrderDelousing failed - insufficient funds (need {totalCost:N0} NOK)");
-            EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, false);
-            return false;
-        }
-
-        // Apply per-population via DelousingSystem (profile efficacy with
-        // resistance, handling mortality, welfare). Veterinarian halves deaths.
-        var delousing = new LakskongenSim.Farm.DelousingSystem();
-        double tempC = SimulationEngine.Weather?.CurrentTemperatureC ?? 10.0;
-        double mortMult = LakskongenSim.Core.CrewEffects.TreatmentMortalityMultiplier(SimulationEngine.State);
-        // Phase 4.3: damaged gills can't take heat/handling — up to +150%.
-        double worstGill = targetSites.Count > 0
-            ? targetSites.Min(s => s.GillScore) : 100.0;
-        mortMult *= 1.0 + (1.0 - worstGill / 100.0) * 1.5;
-        int totalDeaths = 0;
-        // Phase 2.1: each site has its OWN lice model — apply its kill
-        // exactly once per site (first live pen). Handling mortality and
-        // harm still run per pen. Gill damage lands on the site score.
-        foreach (var site in targetSites)
-        {
-            bool siteLiceKillDone = false;
-            foreach (var pop in site.Pens)
-            {
-                if (pop.TotalCount <= 0) continue;
-                var result = delousing.Treat(pop, delousingMethod,
-                    site.Lice, SimulationEngine.IntegratedDisease, tempC, mortMult,
-                    applyCompanyLiceKill: !siteLiceKillDone);
-                siteLiceKillDone = true;
-                site.GillScore = System.Math.Max(0.0, site.GillScore - result.GillDamage * 50.0);
-                totalDeaths += result.Deaths;
-            }
-        }
-        SimulationEngine.FinanceManager.Spend(totalCost);
-
-        // Record event
-        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
-        {
-            Day = SimulationEngine.State.Day,
-            Name = "Delousing Treatment",
-            Category = LakskongenSim.Events.EventCategory.Disease,
-            Description = $"Applied {delousingMethod} delousing to {(siteId == "all_sites" ? "all sites" : siteId)} ({totalFish:N0} fish treated, {profile.Efficacy:P0} profile efficacy, {totalDeaths:N0} handling deaths)",
-            BalanceChange = -totalCost
-        });
 
         EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, true);
         EmitSignal(SignalName.GameStateUpdated);
-        GD.Print($"GameBridge: Delousing treatment applied — {delousingMethod} ({totalFish:N0} fish, {totalCost:N0} NOK, {totalDeaths:N0} deaths)");
+        GD.Print($"GameBridge: {result.Message}");
         return true;
-    }
-
-    /// <summary>
-    /// Map UI/legacy method names to DelousingMethod (Phase 2.2).
-    /// </summary>
-    public static bool TryParseDelousingMethod(string name, out LakskongenSim.Data.DelousingMethod method)
-    {
-        switch ((name ?? "").ToLower())
-        {
-            case "thermolicer":
-            case "thermal": method = LakskongenSim.Data.DelousingMethod.Thermolicer; return true;
-            case "hydrolicer":
-            case "mechanical": method = LakskongenSim.Data.DelousingMethod.Hydrolicer; return true;
-            case "cleanerfish":
-            case "cleaner_fish":
-            case "biological": method = LakskongenSim.Data.DelousingMethod.CleanerFish; return true;
-            case "laser":
-            case "laserdelousing":
-            case "stingray": method = LakskongenSim.Data.DelousingMethod.LaserDelousing; return true;
-            case "freshwater":
-            case "freshwaterbath": method = LakskongenSim.Data.DelousingMethod.FreshwaterBath; return true;
-            case "peroxide":
-            case "hydrogen_peroxide":
-            case "chemical": method = LakskongenSim.Data.DelousingMethod.HydrogenPeroxide; return true;
-            case "medicatedfeed":
-            case "medicated_feed": method = LakskongenSim.Data.DelousingMethod.MedicatedFeed; return true;
-            case "skirt":
-            case "liceskirts": method = LakskongenSim.Data.DelousingMethod.LiceSkirts; return true;
-            default: method = default; return false;
-        }
     }
 
     /// <summary>

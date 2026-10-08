@@ -326,6 +326,81 @@ public partial class SimulationEngine
                      $"Insurance '{InsuranceKindKey(parsed)}' disabled");
     }
 
+    // ── Delousing ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Apply a delousing treatment to one site (player verb, moved from
+    /// GameBridge.OrderDelousing). Profile-driven cost and efficacy, per-pen
+    /// mortality/harm via DelousingSystem; the site's lice kill and gill
+    /// damage apply ONCE per site (the bridge applied gill damage once per
+    /// pen, i.e. N× for N pens — fixed here). Fails before any mutation:
+    /// unknown_method / site_not_found / site_empty / insufficient_funds.
+    /// </summary>
+    public CommandResult DelouseSite(string siteId, string method)
+    {
+        if (!Farm.DelousingSystem.TryParseMethodName(method, out var delousingMethod))
+            return CommandResult.Fail("unknown_method", $"Invalid delousing method '{method}'");
+
+        if (State?.SeaSites == null || SeaLice == null || IntegratedDisease == null || FinanceManager == null)
+            return CommandResult.Fail("engine_not_ready", "Engine not initialized");
+
+        var site = State.SeaSites.FirstOrDefault(s => s.Id == siteId);
+        if (site == null)
+            return CommandResult.Fail("site_not_found", $"Site '{siteId}' not found");
+
+        int totalFish = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
+        if (totalFish <= 0)
+            return CommandResult.Fail("site_empty", $"Site '{siteId}' has no fish to treat");
+
+        var profile = Farm.DelousingSystem.GetProfile(delousingMethod);
+        decimal totalCost = totalFish * profile.CostPerFish;
+
+        if (FinanceManager.Balance < totalCost)
+            return CommandResult.Fail("insufficient_funds",
+                $"Insufficient funds: need {totalCost:N0} NOK to treat {totalFish:N0} fish");
+
+        var delousing = new Farm.DelousingSystem();
+        double tempC = Weather?.CurrentTemperatureC ?? 10.0;
+        double mortMult = CrewEffects.TreatmentMortalityMultiplier(State);
+        // Phase 4.3: damaged gills can't take heat/handling — up to +150%.
+        double worstGill = site.GillScore;
+        mortMult *= 1.0 + (1.0 - worstGill / 100.0) * 1.5;
+
+        int totalDeaths = 0;
+        double siteGillDamage = 0.0;
+        bool siteLiceKillDone = false;
+        foreach (var pop in site.Pens)
+        {
+            if (pop.TotalCount <= 0) continue;
+            var result = delousing.Treat(pop, delousingMethod,
+                site.Lice, IntegratedDisease, tempC, mortMult,
+                applyCompanyLiceKill: !siteLiceKillDone);
+            siteLiceKillDone = true;
+            totalDeaths += result.Deaths;
+            if (siteGillDamage == 0.0)
+                siteGillDamage = result.GillDamage;
+        }
+        // Gill damage lands ONCE on the site score. The dose is identical for
+        // every pen of a site (same method/temperature/gill state), so the
+        // old per-pen subtraction multiplied one scalar by the pen count.
+        site.GillScore = Math.Max(0.0, site.GillScore - siteGillDamage * 50.0);
+
+        FinanceManager.Spend(totalCost);
+
+        string description = $"Applied {delousingMethod} delousing to {siteId} " +
+                             $"({totalFish:N0} fish treated, {profile.Efficacy:P0} profile efficacy, {totalDeaths:N0} handling deaths)";
+        State.EventLog.Add(new EventRecord
+        {
+            Day = State.Day,
+            Name = "Delousing Treatment",
+            Category = EventCategory.Disease,
+            Description = description,
+            BalanceChange = -totalCost
+        });
+
+        return CommandResult.Success(description, totalFish, totalDeaths, siteId);
+    }
+
     private static string InsuranceKindKey(InsuranceKind kind) => kind.ToString().ToLowerInvariant();
 
     // ── Load path ──────────────────────────────────────────────────────────
