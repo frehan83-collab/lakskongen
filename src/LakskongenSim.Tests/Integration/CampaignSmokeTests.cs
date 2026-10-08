@@ -16,7 +16,10 @@ namespace LakskongenSim.Tests.Integration
     /// </summary>
     public class CampaignSmokeTests
     {
-        private const double PerScenarioBudgetSeconds = 3.0;
+        // Wall-clock gate with load-noise margin (Phase 1 wave 4): a full year
+        // per scenario measures well under 1 s; 6 s still fails an order-of-
+        // magnitude regression while surviving shared-runner spikes.
+        private const double PerScenarioBudgetSeconds = 6.0;
         private const double PriceFloorFactor = 0.6;
         private const double PriceCeilingFactor = 1.5;
 

@@ -61,8 +61,13 @@ namespace LakskongenSim.Tests.Integration
             stopwatch.Stop();
 
             Assert.Equal(days, engine.State.Day);
-            Assert.True(stopwatch.Elapsed.TotalSeconds < 5.0,
-                $"3-year soak took {stopwatch.Elapsed.TotalSeconds:F2}s (expected <5s)");
+            // Wall-clock gate with load-noise margin: the 1095-day soak measures
+            // ~0.5 s in isolation (engine ~0.14 ms/day per the perf benchmark);
+            // 10 s still fails a 20x asymptotic regression while surviving
+            // shared-runner schedule spikes. Bumped from 5 s (Phase 1 wave 4,
+            // CI flaked twice at the old boundary with identical sim cost).
+            Assert.True(stopwatch.Elapsed.TotalSeconds < 10.0,
+                $"3-year soak took {stopwatch.Elapsed.TotalSeconds:F2}s (expected <10s)");
         }
     }
 }
