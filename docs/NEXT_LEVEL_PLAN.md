@@ -2,6 +2,28 @@
 
 Date: 2026-10-08. Reviewed at commit `b56ff2a`. The review covers the C# simulation, the 3D/visual/audio layer, and tests/CI/data/repo hygiene. The GDScript UI/bridge review pass did not finish (it ran out of credits), so the UI/UX items in Phase 4 still need a dedicated pass.
 
+## Execution status (2026-10-08, commits 6286df7 / ec7710a / d30bd94)
+
+- **Phase 0 DONE.** CI is 9/9 green locally with nothing skipped: builds both
+  C# assemblies, runs dotnet tests + pytest, perf gate, token sync, JSON
+  validation, scene validation, GDScript parse scan. Test count honest: 648
+  (was "727" with ~92 triplicates). GitHub CI installs Godot 4.7.2 mono
+  headless. Root decluttered, `.import` tracked, MCP autoload removed.
+- **Phase 3 quick wins DONE** (medium/bigger items open). Fjord renders:
+  blue depth-graded water, floating pens + boats + fish, real storm/night
+  frames, sim toasts in 3D, harness log error-free. Remaining known issue:
+  distant channel-wall silhouettes render as thin grey streaks at FJORD zoom
+  (needs the FastNoiseLite terrain + wider valley — medium task).
+- **Phase 1 core DONE** (S1/S2/S3/S5/S8/S9/S10 + 9 regression/ban tests).
+  **Deferred with reason:** price-clamp removal (needs the Phase 2
+  supply-driven market first — removing it now just moves the band problem);
+  PlayerScriptProbe (needs the Sim.Commands refactor); ISnapshotable +
+  save round-trip hash test; ITickSystem split of AdvanceOneDay; dead-code
+  removal (~29% of library still unwired); SimRng named streams (seed is now
+  threaded + persisted, but Random.Shared/DateTime.Now remain in tick-adjacent
+  code paths, grandfathered in DeterminismAllowlist.txt).
+- **Phases 2/4/5 NOT STARTED.** Phase 4 still needs the UI/bridge review pass.
+
 ## Verdict
 
 The game has a large feature surface (about 45k LOC of sim and 38k of Godot scripts), but many core loops are not actually connected. Three problems hide this:
