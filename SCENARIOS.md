@@ -316,6 +316,67 @@ Notes: Probabilities are per-site, per-year baseline unless otherwise noted. Eff
 
 ----------
 
+DEPTH-SYSTEM CAMPAIGN SCENARIOS (2024–26 policy & events)
+
+These four campaigns are registered in `src/LakskongenSim/Core/ScenarioSystem.cs`
+and mirrored in `godot/data/scenarios.json`. Each one seeds a distinct
+depth-system starting state via `ScenarioDefinition.ApplyStartingState` so the
+disease, insurance, mitigation, containment/Smoltscreen and resource-rent
+systems are exercised from day 0. Fields are additive: `objective`,
+`starting_insurance`, `starting_mitigations`, `starting_blooms`,
+`starting_disease`, `enable_resource_rent_tax`, and per-site `containment` /
+`barrier`.
+
+1) PO3 Rød Sone (`po3_red_sone`) — Difficulty 4, 3 years (1095 days)
+- Hook: Production area PO3 flips to a red traffic light and the −6 % MTB cut
+  bites; the only route to "miljøfleksibilitet" is closed-containment biomass
+  credit.
+- Objective: Recover MAB by operating at least one site at semi-closed
+  containment and survive 1095 days in the red zone.
+- Depth system: containment / environmental flexibility. `PO3 Nord` starts at
+  `SemiClosed`; `special_rules` carry `containment_target = semi_closed` and
+  `min_contained_sites = 1`.
+- Restrictions: −6 % MTB on open sites; only semi-closed or higher qualifies;
+  at least one site must stay contained.
+
+2) ISA-utbruddet (`isa_utbrudd`) — Difficulty 5, 18 months (540 days)
+- Hook: A confirmed ISA outbreak triggers a compulsory cull zone; biosecurity
+  firewalls, insurance recovery and containment decide whether the neighbouring
+  sites survive.
+- Objective: Keep the ISA outbreak isolated to the core site, build Smoltscreen
+  biosecurity between zones, and survive 540 days with catastrophe cover.
+- Depth system: disease + insurance + Smoltscreen barrier. Seeds
+  `starting_disease` (ISA) on `isa_kjerne`, pre-subscribes ISA and Mortality
+  policies, and installs `Smoltscreen` barriers on both neighbouring sites.
+- Restrictions: compulsory cull; firewalls required; outbreak-cover insurance
+  required; outbreak must not spread to neighbours.
+
+3) Algekatastrofen (`algekatastrofe`) — Difficulty 5, 1 season (365 days)
+- Hook: A harmful algal bloom wipes out ~1,000 tonnes in a single event;
+  early warning, mitigation (bubble curtain / O2 diffuser) and catastrophe
+  insurance are the difference between survival and total loss.
+- Objective: Install bloom mitigation on the exposed sites and survive the
+  algal window (day 200–300) with catastrophe insurance.
+- Depth system: bloom mitigation + insurance. Seeds a scripted `algae` bloom on
+  `alge_sor`, pre-installs an O2 diffuser on `alge_indre` (pumping mirrored for
+  `alge_midt`), and pre-subscribes a Bloom policy.
+- Restrictions: early-warning system required; mitigation must be operational
+  before the window; catastrophe insurance required.
+
+4) Ressursrente-overgangen (`ressursrente`) — Difficulty 3, open-ended
+- Hook: The 25 % resource-rent cash-flow tax with a 70 MNOK standard deduction
+  reshapes profitability; scaling past the deduction makes every extra krone
+  worth less.
+- Objective: Stay profitable under the 25 % tax and reach 25 MNOK profit via
+  value-chain investment.
+- Depth system: resource-rent tax. `enable_resource_rent_tax = true` (also
+  derived from the `resource_rent_tax` special rule) and a starting Mortality
+  policy.
+- Restrictions: 25 % cash-flow tax; the 70 MNOK standard deduction is shared
+  across the business; profit above the deduction is taxed quarterly.
+
+----------
+
 Gameplay tuning notes (design guidance for devs):
 - Random event probabilities should scale with zone risk, farm size, and investments in mitigation. For example, better biosecurity reduces disease and leak probabilities; protected zones reduce storm damage.
 - Difficulty scaling: larger starting capital increases exposure to political/regulatory events; smaller operators feel operational pressures and cashflow fragility.

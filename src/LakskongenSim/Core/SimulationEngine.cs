@@ -157,6 +157,33 @@ namespace LakskongenSim.Core
         private const double SeasonalLicePressureBase = 1.0;
         private const double SeasonalLicePressureAmplitude = 0.35;
 
+        // ─── Sea-site storm containment hazards (engine-owned, deterministic) ───
+        // Net integrity wears on storm days and repairs in calm weather; a severe
+        // storm can tear a weakened net and release fish. This is the single
+        // source of truth for storm escapes (GameBridge.CheckWeatherImpacts no
+        // longer mutates NetIntegrityPct / records escapes). Deterministic for a
+        // given seed because storm timing comes from the seeded WeatherSystem.
+        // Real mapping: Norwegian sea-site escapes are rare and far below 1% of
+        // stock per site per year; see docs/BALANCE.md §1c and the 0.5% guard.
+        private const double StormIntegrityLossPctPerDay = 0.3;
+        private const double SevereIntegrityLossPctPerDay = 1.0;
+        private const double NetIntegrityRepairPctPerDay = 0.2;
+        /// <summary>Expected containment-failure probability on a severe-storm day.</summary>
+        private const double StormFailureProbabilityPerSevereDay = 0.01;
+        /// <summary>Fraction of the pen released by one containment failure at full wear.</summary>
+        private const double StormLossFractionPerFailure = 0.05;
+        /// <summary>Documented 40% net-integrity risk line (hard breach).</summary>
+        private const double NetIntegrityEscapeRiskThresholdPct = 40.0;
+        /// <summary>Regulatory escape fine (NOK per escaped fish).</summary>
+        private const decimal EscapeFineNOKPerFish = 100m;
+
+        /// <summary>
+        /// Cumulative expected storm containment-failure events recorded by the
+        /// engine (all sites). Expected (not Bernoulli) so escape accounting is
+        /// smooth and reproducible across seeds. Exposed for SimProbe.
+        /// </summary>
+        public double StormEscapeEvents { get; private set; } = 0.0;
+
         // ─── External data calibration ───
         private AquacultureDataConfig _aquacultureDataConfig = new();
         private AquacultureGameplayModifiers _aquacultureModifiers = AquacultureGameplayModifiers.Default();
@@ -1035,13 +1062,31 @@ namespace LakskongenSim.Core
 
             // Sea mortality anchor — the whole-cycle registry value is mapped to a
             // daily hazard over the calibrated grow-out duration so the realized
-            // sea-phase mortality tracks the NVI 14-16% band (v1.0.2).
+            // sea-phase mortality tracks the NVI 14-16% band (v1.0.2). v1.0.3 splits
+            // the anchor into a husbandry baseline plus an explicit disease slice
+            // when events are enabled; with events off the full anchor stays in the
+            // baseline (deterministic no-disease runs).
             if (Mortality != null)
             {
-                Mortality.ConfigureSeaMortality(config.SeaMortalityPerCycle, config.GrowthToHarvestDays);
+                Mortality.ConfigureSeaMortality(
+                    config.SeaMortalityPerCycle,
+                    config.GrowthToHarvestDays,
+                    config.SeaMortalityDiseaseShare,
+                    _enableEvents);
                 SimLog.Info(
                     $"  → Sea mortality: {config.SeaMortalityPerCycle:P1}/cycle → " +
-                    $"{Mortality.SeaDailyMortalityRate:P4}/day over {config.GrowthToHarvestDays}d");
+                    $"{Mortality.SeaDailyMortalityRate:P4}/day over {config.GrowthToHarvestDays}d " +
+                    $"(disease share {config.SeaMortalityDiseaseShare:P0}, events={_enableEvents})");
+            }
+
+            // Disease slice — size the SIR so its endemic daily hazard integrates
+            // to SeaMortalityPerCycle × SeaMortalityDiseaseShare over the grow-out.
+            // Only when events are enabled; the deterministic path never injects.
+            if (_enableEvents && IntegratedDisease != null)
+            {
+                double diseasePerCycle = config.SeaMortalityPerCycle * config.SeaMortalityDiseaseShare;
+                IntegratedDisease.ConfigureDiseaseShare(diseasePerCycle, config.GrowthToHarvestDays);
+                SimLog.Info($"  → Disease slice: {diseasePerCycle:P1}/cycle (explicit SIR injection)");
             }
 
             // Market base price
@@ -1128,6 +1173,7 @@ private class BalancingConfig
                 MortalityRateBasePercent = c.Health.MortalityRateBasePercent,
                 MortalityRateISAPercent = c.Health.MortalityRateISAPercent,
                 SeaMortalityPerCycle = c.Health.SeaMortalityPerCycle,
+                SeaMortalityDiseaseShare = c.Health.SeaMortalityDiseaseShare,
                 SeaLiceThresholdPerFish = c.Health.SeaLiceThresholdPerFish,
                 SeaLiceTreatmentThreshold = c.Health.SeaLiceTreatmentThreshold,
 
@@ -1221,6 +1267,8 @@ private class BalancingConfig
             public double MortalityRateISAPercent { get; set; } = 0.22; // ↓ from 0.25
             /// <summary>Whole-cycle sea mortality anchor (fraction); mapped to a daily hazard by MortalityModel.</summary>
             public double SeaMortalityPerCycle { get; set; } = 0.15;
+            /// <summary>Disease-attributable share of the sea anchor (0-1); drives the SIR slice when events are on.</summary>
+            public double SeaMortalityDiseaseShare { get; set; } = 0.30;
             public double SeaLiceThresholdPerFish { get; set; } = 0.5;
             public double SeaLiceTreatmentThreshold { get; set; } = 0.15; // ↓ from 0.2 (proactive)
 
@@ -1326,6 +1374,119 @@ private class BalancingConfig
         }
 
         /// <summary>
+        /// Engine-owned storm containment hazards. On storm days net integrity
+        /// decays (containment/crew multipliers); in calm weather it repairs. A
+        /// severe storm can cause a containment failure that releases fish, and
+        /// any site below the documented 40% risk line leaks on a storm day. All
+        /// escapes flow through <see cref="Farm.SeaSite.RecordEscape"/> and charge
+        /// the regulatory fine, keeping the sustainability and finance paths
+        /// consistent. Deterministic for a given seed (storm timing is seeded).
+        /// </summary>
+        private void ApplyStormHazards()
+        {
+            if (!_enableEvents) return;
+            if (State.SeaSites == null || State.SeaSites.Count == 0) return;
+
+            var state = Weather.CurrentState;
+            bool stormy = state is WeatherState.Storm or WeatherState.Severe;
+            if (!stormy && State.SeaSites.All(s => s.NetIntegrityPct >= 100.0)) return;
+
+            double severity = state == WeatherState.Severe ? 1.0 : state == WeatherState.Storm ? 0.5 : 0.0;
+            double crewStormMult = Core.CrewEffects.StormLossMultiplier(State);
+            double crewNetDecayMult = Core.CrewEffects.NetDecayMultiplier(State);
+
+            foreach (var site in State.SeaSites)
+            {
+                var cmods = Farm.ContainmentTech.ModifiersFor(site.Containment);
+
+                if (stormy)
+                {
+                    double wear = (state == WeatherState.Severe
+                            ? SevereIntegrityLossPctPerDay
+                            : StormIntegrityLossPctPerDay)
+                        * cmods.StormDamageMult * crewNetDecayMult;
+                    site.NetIntegrityPct = Math.Max(0.0, site.NetIntegrityPct - wear);
+                }
+                else
+                {
+                    site.NetIntegrityPct = Math.Min(100.0, site.NetIntegrityPct + NetIntegrityRepairPctPerDay);
+                }
+
+                int siteFish = 0;
+                foreach (var pop in site.Pens)
+                    foreach (var cohort in pop.Cohorts)
+                        siteFish += cohort.Count;
+                if (siteFish <= 0) continue;
+
+                double exposure = Math.Max(0.0, 1.0 - site.NetIntegrityPct / 100.0);
+                double riskMult = cmods.EscapeRiskMult
+                    * Optimization.RemoteOpsCentre.EscapeResponseMult(site.WatchMode)
+                    * crewStormMult;
+
+                // (a) Rare containment failure on a severe-storm day, scaled by wear.
+                if (state == WeatherState.Severe)
+                {
+                    double expected = siteFish * StormLossFractionPerFailure
+                        * StormFailureProbabilityPerSevereDay * exposure * riskMult;
+                    StormEscapeEvents += StormFailureProbabilityPerSevereDay;
+                    int escapees = (int)Math.Round(expected);
+                    if (escapees > 0)
+                        RecordStormEscape(site, escapees, severity);
+                }
+
+                // (b) Hard breach below the documented 40% risk line.
+                if (stormy && site.NetIntegrityPct < NetIntegrityEscapeRiskThresholdPct)
+                {
+                    int breach = (int)Math.Round(siteFish * (0.02 + severity * 0.06) * exposure * riskMult);
+                    if (breach > 0)
+                        RecordStormEscape(site, breach, severity);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Remove escaped fish from a site's pens, record the escape, charge the
+        /// regulatory fine and write the event log entry.
+        /// </summary>
+        private void RecordStormEscape(SeaSite site, int escapees, double severity)
+        {
+            if (escapees <= 0) return;
+
+            int remaining = escapees;
+            foreach (var pop in site.Pens)
+            {
+                foreach (var cohort in pop.Cohorts)
+                {
+                    int take = Math.Min(cohort.Count, remaining);
+                    cohort.Count -= take;
+                    remaining -= take;
+                    if (remaining <= 0) break;
+                }
+                pop.TriggerOnPopulationChanged();
+                if (remaining <= 0) break;
+            }
+
+            site.RecordEscape(escapees);
+
+            decimal fine = escapees * EscapeFineNOKPerFish;
+            if (!FinanceManager.Spend(fine))
+                FinanceManager.ForceSpend(fine);
+
+            State.EventLog.Add(new Events.EventRecord
+            {
+                Day = State.Day,
+                Name = "Escape",
+                Category = Events.EventCategory.Equipment,
+                Description = $"RØMMING: {escapees:N0} fish escaped at {site.Id} " +
+                              $"(nets {site.NetIntegrityPct:F0}%, storm severity {severity:F1})",
+                BalanceChange = -fine
+            });
+            State.TrimEventLog();
+
+            OnEventTriggered?.Invoke($"🌊 RØMMING: {escapees:N0} fisk rømte ved {site.Id} (bot {fine:N0} NOK)");
+        }
+
+        /// <summary>
         /// Single-day tick — the core simulation loop.
         /// </summary>
         private void AdvanceOneDay()
@@ -1346,6 +1507,11 @@ private class BalancingConfig
 
             // Plankton bloom dynamics (depends on updated zone conditions)
             PlanktonBloom?.AdvanceDay(State, Weather);
+
+            // Storm containment hazards (engine-owned): net-integrity wear +
+            // deterministic escape accounting. Only when events are enabled, so
+            // enableEvents:false stays deterministic and unaffected.
+            ApplyStormHazards();
 
             // ═══════════════════════════════════════════
             // PHASE 2A: HEALTH PREP (Calculate disease rates BEFORE biology)

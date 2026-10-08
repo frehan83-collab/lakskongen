@@ -25,13 +25,14 @@ namespace LakskongenSim.Tests.Balance
         HighStocking,
 
         /// <summary>Storyteller events on (disease subsystem live), shocks
-        /// suppressed, high-fidelity disease LOD. Measures the additive
-        /// disease-attributable mortality term over a grow-out cycle.</summary>
+        /// suppressed. Measures the additive disease-attributable mortality term
+        /// over a grow-out cycle: the engine splits the sea anchor into a
+        /// husbandry baseline plus an explicit SIR disease slice (v1.0.3).</summary>
         DiseaseStress,
 
-        /// <summary>Seeded storms with a test-side containment-risk model that
-        /// applies the documented <see cref="SeaSite.NetIntegrityPct"/> wear
-        /// and records escapes through <see cref="SeaSite.RecordEscape"/>.</summary>
+        /// <summary>Seeded storms; the engine itself applies the net-integrity
+        /// wear and records escapes through <see cref="SeaSite.RecordEscape"/>
+        /// (v1.0.3). The probe only reads the live engine counters.</summary>
         Storm,
 
         /// <summary>Three commercial sea sites operated together for the full
@@ -216,21 +217,11 @@ namespace LakskongenSim.Tests.Balance
         /// <summary>Number of sites in the multi-site economics scenario.</summary>
         public const int MultiSiteCount = 3;
 
-        // ── Test-side containment-risk model (Storm scenario) ───────────────
-        // The live engine exposes SeaSite.NetIntegrityPct and SeaSite.RecordEscape
-        // but does not yet drive them from sea-site storms (only OffshoreFarm has a
-        // live escape path). The probe therefore applies the documented behaviour
-        // from SeaSite: "Storms degrade; below 40 during storms risks escapes."
-        // Escape risk is modelled as a rare containment failure on severe-storm
-        // days (expectation-based, so the metric is smooth and deterministic). See
-        // docs/BALANCE.md §1c for the model and its real-world anchors.
-        private const double StormIntegrityLossPctPerDay = 0.3;
-        private const double SevereIntegrityLossPctPerDay = 1.0;
-        private const double IntegrityRepairPctPerDay = 0.2;
-        /// <summary>Expected probability of a net-containment failure on a severe-storm day.</summary>
-        private const double FailureProbabilityPerSevereDay = 0.01;
-        /// <summary>Fraction of the pen released by one containment failure at full wear.</summary>
-        private const double LossFractionPerFailure = 0.05;
+        // ── Engine-driven storm escapes (v1.0.3) ────────────────────────────
+        // Storm net-integrity wear and escape accounting now live in
+        // SimulationEngine.ApplyStormHazards (the single source of truth); the
+        // probe no longer applies a test-side model. It simply reads the engine's
+        // NetIntegrityPct and escape counters. See docs/BALANCE.md §1c.
 
         /// <summary>Smolt count used by a scenario preset.</summary>
         public static int SmoltCountFor(SimScenario scenario) => scenario switch
@@ -488,33 +479,34 @@ namespace LakskongenSim.Tests.Balance
 
         /// <summary>
         /// Run one seeded storm exposure. Storms come from the seeded weather
-        /// system; the probe applies the documented net-integrity wear and
-        /// records escapes when integrity drops below the 40% threshold. All
-        /// escapes flow through <see cref="SeaSite.RecordEscape"/>, so the
-        /// regulatory/sustainability counters see them exactly as the game would.
+        /// system; the engine itself applies the net-integrity wear and records
+        /// escapes through <see cref="SeaSite.RecordEscape"/> (v1.0.3). The probe
+        /// only reads the engine's live <see cref="SeaSite.NetIntegrityPct"/>,
+        /// the accumulated site escapes and the engine's storm-event counter, so
+        /// there is a single source of truth for storm escapes.
         /// </summary>
         public static StormMetrics RunStorm(int seed, int days = HorizonDays)
         {
             double targetWeight = CalibrationRegistry.Default.Biology.TargetHarvestWeightKg;
             var engine = new SimulationEngine();
-            engine.Initialize(enableEvents: false, seed: seed);
+            // enableEvents:true turns on the engine's storm hazards (gated with the
+            // disease/event subsystem). Storyteller random shocks are silenced so
+            // the measured escapes are attributable to storms, not events.
+            engine.Initialize(enableEvents: true, seed: seed);
+            engine.Storyteller.BaseDailyChance = 0.0;
+            engine.Storyteller.MaxDailyChance = 0.0;
 
             var site = new SeaSite("Storm-site");
             engine.State.SeaSites.Clear();
             engine.State.SeaSites.Add(site);
 
-            double integrity = 100.0;
             double minIntegrity = 100.0;
-            double escapes = 0;
-            double escapeEvents = 0;
             int stormDays = 0;
             int day = 0;
             int cycle = 0;
 
             while (day < days)
             {
-                // Fresh nets each production cycle (annual maintenance).
-                integrity = 100.0;
                 cycle++;
                 engine.Hatchery.ReleaseSmolt(DefaultSmoltCount);
                 var population = engine.State.Populations.Last();
@@ -526,33 +518,9 @@ namespace LakskongenSim.Tests.Balance
                     engine.Advance(1);
                     day++;
 
-                    var weather = engine.Weather.CurrentState;
-                    if (weather >= WeatherState.Storm)
-                    {
+                    if (engine.Weather.CurrentState >= WeatherState.Storm)
                         stormDays++;
-                        bool severe = weather == WeatherState.Severe;
-                        integrity = Math.Max(0.0, integrity -
-                            (severe ? SevereIntegrityLossPctPerDay : StormIntegrityLossPctPerDay));
-
-                        if (severe)
-                        {
-                            // Expected escape from a rare severe-storm containment
-                            // failure, amplified by accumulated net wear.
-                            double exposure = Math.Max(0.0, 1.0 - integrity / 100.0);
-                            double expectedFish = population.TotalCount
-                                * LossFractionPerFailure * FailureProbabilityPerSevereDay * exposure;
-                            escapes += expectedFish;
-                            escapeEvents += FailureProbabilityPerSevereDay;
-                            int whole = (int)Math.Round(expectedFish);
-                            if (whole > 0) site.RecordEscape(whole);
-                        }
-                    }
-                    else
-                    {
-                        integrity = Math.Min(100.0, integrity + IntegrityRepairPctPerDay);
-                    }
-
-                    minIntegrity = Math.Min(minIntegrity, integrity);
+                    minIntegrity = Math.Min(minIntegrity, site.NetIntegrityPct);
 
                     double meanWeight = population.Cohorts.Count > 0
                         ? population.GetTotalBiomassKg() / Math.Max(population.TotalCount, 1)
@@ -567,9 +535,10 @@ namespace LakskongenSim.Tests.Balance
 
             double years = days / 365.0;
             double stockedPerYear = (double)DefaultSmoltCount * cycle / years;
+            double escapes = site.EscapesThisYear; // cumulative over the horizon
             return new StormMetrics(
                 EscapesPerSitePerYear: escapes / years,
-                EscapeEventsPerSitePerYear: escapeEvents / years,
+                EscapeEventsPerSitePerYear: engine.StormEscapeEvents / years,
                 EscapesPercentOfStockPerYear: stockedPerYear > 0 ? 100.0 * escapes / stockedPerYear : 0.0,
                 StormDaysPerYear: stormDays / years,
                 MinIntegrityPct: minIntegrity);

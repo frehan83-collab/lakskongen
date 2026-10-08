@@ -1,6 +1,7 @@
 using System;
 using Xunit;
 using Xunit.Abstractions;
+using LakskongenSim.Calibration;
 
 namespace LakskongenSim.Tests.Balance
 {
@@ -58,10 +59,12 @@ namespace LakskongenSim.Tests.Balance
         private const double LiceMax = 0.5;
         // Escapes: real events are rare; guard the upper bound per year.
         private const double EscapesMax = 2.0;
-        // Additive disease-attributable mortality: the 15% calibrate sea-mortality
-        // anchor already subsumes disease, so the live additive term must stay
-        // negligible (docs/BALANCE.md §1c; engine deferral recorded).
-        private const double DiseaseMortalityMax = 2.0;
+        // Additive disease-attributable mortality is now a visible, calibrated
+        // slice of the 15% sea-mortality anchor (v1.0.3: Health.SeaMortalityDiseaseShare
+        // = 0.30), so the live disease term must be clearly positive but must not
+        // run away and blow past the anchor. See docs/BALANCE.md §1c.
+        private const double DiseaseMortalityMin = 0.5;
+        private const double DiseaseMortalityMax = 10.0;
         // Storm-escape rate as a share of stocked fish per site per year. Real
         // Norwegian escape events release <<1% of a site's stock per year on
         // average; a well-maintained net should stay well inside this guard.
@@ -187,18 +190,35 @@ namespace LakskongenSim.Tests.Balance
         }
 
         [Fact]
-        public void DiseaseMortality_StaysNegligible()
+        public void DiseaseMortality_IsVisibleAndBounded()
         {
             var d = Disease.Value;
-            // The additive disease subsystem is effectively dormant (prevalence is
-            // seeded at 1e-6 and the high-fidelity SIR path does not inject), so the
-            // measured term is ~0. The real disease burden is already baked into the
-            // calibrated 15% sea-mortality anchor, so this guards against an
-            // accidental outbreak blowing past the 14-16% total.
-            AssertWithin(d.DiseaseMortalityPercentPerCycle.P90, 0.0, DiseaseMortalityMax, 0.0,
-                "disease mortality %/cycle (p90)", d.DiseaseMortalityPercentPerCycle);
-            Assert.True(d.DiseaseMortalityPercentPerCycle.Median <= d.TotalMortalityPercentPerCycle.Median,
+            // v1.0.3: the SIR disease subsystem is wired into MortalityModel and
+            // contributes the calibrated SeaMortalityDiseaseShare (0.30) of the
+            // 15% sea anchor when events are on — a visible, tunable slice rather
+            // than the previously dormant term. Guard both directions: it must be
+            // non-trivial (>0) and must not explode past the anchor.
+            AssertWithin(d.DiseaseMortalityPercentPerCycle.Median, DiseaseMortalityMin,
+                DiseaseMortalityMax, 0.0, "disease mortality %/cycle", d.DiseaseMortalityPercentPerCycle);
+            Assert.True(d.DiseaseMortalityPercentPerCycle.Median > 0.0,
+                "disease mortality term is dormant (median 0); expected a visible slice");
+            Assert.True(d.DiseaseMortalityPercentPerCycle.P90 <= DiseaseMortalityMax,
+                $"disease p90 {d.DiseaseMortalityPercentPerCycle.P90:F3} exceeded runaway guard {DiseaseMortalityMax} {d.DiseaseMortalityPercentPerCycle.Triple()}");
+            Assert.True(d.DiseaseMortalityPercentPerCycle.Median < d.TotalMortalityPercentPerCycle.Median,
                 "disease term exceeded total mortality");
+        }
+
+        [Fact]
+        public void DiseaseShare_IsCalibratedAndSplitsTheSeaAnchor()
+        {
+            var c = CalibrationRegistry.Default;
+            // The disease share is the tunable knob that moves mortality between
+            // the husbandry baseline and the SIR slice. It must be a real slice of
+            // the anchor (not 0 or 1), and the split must reconstruct the anchor.
+            Assert.InRange(c.Health.SeaMortalityDiseaseShare, 0.05, 0.50);
+            double disease = c.Health.SeaMortalityPerCycle * c.Health.SeaMortalityDiseaseShare;
+            double husbandry = c.Health.SeaMortalityPerCycle * (1.0 - c.Health.SeaMortalityDiseaseShare);
+            Assert.Equal(c.Health.SeaMortalityPerCycle, disease + husbandry, 9);
         }
 
         [Fact]
@@ -276,7 +296,7 @@ namespace LakskongenSim.Tests.Balance
             _output.WriteLine(SimProbe.Format(LiceControl.Value));
             _output.WriteLine("reference bands: FCR 1.10-1.30 | sea mortality 14-16%/cycle | " +
                 "harvest 4.5-5.5 kg | feed cost 22-30 NOK/kg | price 74-90 NOK/kg | lice <=0.5 | escapes <=2/yr | " +
-                "disease <=2%/cycle | storm escapes <=0.5%/site/yr | EBIT 8-25 NOK/kg");
+                "disease 0.5-10%/cycle (visible slice) | storm escapes <=0.5%/site/yr | EBIT 8-25 NOK/kg");
 
             // Sanity: every scenario must produce finite, positive distributions.
             Assert.True(Baseline.Value.MeanFcr.Median > 0);

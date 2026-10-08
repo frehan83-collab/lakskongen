@@ -38,6 +38,109 @@ namespace LakskongenSim.Core
         /// <summary>Smolt strain id (see <see cref="Farm.SmoltStrainRegistry"/>), e.g. "standard", "robust", "postsmolt".</summary>
         [System.Text.Json.Serialization.JsonPropertyName("smolt_quality")]
         public string SmoltQuality { get; set; } = "standard";
+
+        /// <summary>Starting containment tech level (Phase 4.1): "open"/"skirt"/
+        /// "semi_closed"/"closed_float"/"submersible"/"offshore_closed".
+        /// Blank or unknown leaves the site at the default (open net).</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("containment")]
+        public string Containment { get; set; } = "";
+
+        /// <summary>Starting permeable barrier (P8): "smoltscreen" or blank.
+        /// Unknown values leave the site without a barrier.</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("barrier")]
+        public string Barrier { get; set; } = "";
+    }
+
+    /// <summary>
+    /// A catastrophe-insurance policy the player starts the scenario already
+    /// holding (P11). Mirrors <see cref="GameState.InsurancePolicies"/> so it is
+    /// serializable and applied additively by
+    /// <see cref="ScenarioDefinition.ApplyStartingState"/>.
+    /// </summary>
+    public class StartingInsuranceDefinition
+    {
+        /// <summary>Cover kind: "Mortality", "Bloom", "Storm" or "ISA" (case-insensitive).</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        public string Kind { get; set; } = "";
+
+        /// <summary>Annual premium in NOK (>= 0).</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("premium")]
+        public decimal Premium { get; set; }
+
+        /// <summary>Reimbursement fraction above the deductible, in [0,1].</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("coverage")]
+        public double Coverage { get; set; }
+
+        /// <summary>Retained loss (NOK) before cover applies (>= 0).</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deductible")]
+        public decimal Deductible { get; set; }
+    }
+
+    /// <summary>
+    /// A bloom/hypoxia countermeasure the player starts with already installed
+    /// (P11). Flag-backed kinds ("bubble"/"diffuser") set the corresponding
+    /// <see cref="Farm.SeaSite"/> flag; the rest are mirrored into
+    /// <see cref="GameState.BloomMitigations"/>.
+    /// </summary>
+    public class StartingMitigationDefinition
+    {
+        /// <summary>Target sea-site id (may be blank for registry-only entries).</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("site")]
+        public string SiteId { get; set; } = "";
+
+        /// <summary>Mitigation key: "bubble"/"diffuser"/"pumping"/"deep_feeding".</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        public string Kind { get; set; } = "";
+    }
+
+    /// <summary>
+    /// A scripted bloom active from day 0 of the scenario (Phase 4.3). Lets an
+    /// algal-bloom campaign open inside its mortality window so mitigation and
+    /// insurance decisions matter immediately.
+    /// </summary>
+    public class StartingBloomDefinition
+    {
+        /// <summary>Affected sea-site id.</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("site")]
+        public string SiteId { get; set; } = "";
+
+        /// <summary>Bloom kind: "algae", "jellyfish" or "hypoxia".</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        public string Kind { get; set; } = "algae";
+
+        /// <summary>Severity in [0,1] (clamped).</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("severity")]
+        public double Severity { get; set; } = 0.5;
+
+        /// <summary>Duration in simulated days (default 21).</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("duration_days")]
+        public int DurationDays { get; set; } = 21;
+    }
+
+    /// <summary>
+    /// A disease outbreak the scenario starts with. At the GameState level this
+    /// records an outbreak event; when an engine is supplied to
+    /// <see cref="ScenarioDefinition.ApplyStartingState"/> it additionally raises
+    /// the integrated disease pressure and seeds the base SIR prevalence on the
+    /// named (or first) population.
+    /// </summary>
+    public class StartingDiseaseDefinition
+    {
+        /// <summary>Pathogen label, e.g. "ISA", "ILA", "PD".</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; set; } = "ISA";
+
+        /// <summary>Site whose population should be seeded (blank = first population).</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("site")]
+        public string SiteId { get; set; } = "";
+
+        /// <summary>Integrated disease-pressure multiplier applied at start (clamped engine-side).</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("external_pressure")]
+        public double ExternalPressure { get; set; } = 1.6;
+
+        /// <summary>Simulated days of SIR spread applied to the seed population.</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("seed_days")]
+        public int SeedDays { get; set; } = 14;
     }
 
     /// <summary>
@@ -136,13 +239,60 @@ namespace LakskongenSim.Core
         public decimal StartingCash { get; set; }
 
         /// <summary>
-        /// Pure, engine-independent application of this scenario's starting state:
-        /// creates zones, sea sites, stocked fish populations, research flags and
-        /// ownership flags directly on <paramref name="state"/>. Does NOT touch the
-        /// finance balance (caller applies <see cref="StartingCapitalNOK"/>).
-        /// Safe to call more than once — zones, site ids and research ids are de-duplicated.
+        /// Short, UI-facing objective string that names the depth system the
+        /// scenario is built around (e.g. "Recover MAB via closed containment").
+        /// Additive; blank for legacy scenarios.
         /// </summary>
-        public void ApplyStartingState(GameState state)
+        [System.Text.Json.Serialization.JsonPropertyName("objective")]
+        public string Objective { get; set; } = "";
+
+        /// <summary>
+        /// P9: explicit opt-in for the 25% resource-rent tax. When null it is
+        /// derived from the presence of a "resource_rent_tax" special rule.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("enable_resource_rent_tax")]
+        public bool? EnableResourceRentTax { get; set; }
+
+        /// <summary>P11: catastrophe policies the player starts subscribed to.</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("starting_insurance")]
+        public List<StartingInsuranceDefinition> StartingInsurance { get; set; } = new();
+
+        /// <summary>P11/4.3: countermeasures pre-installed at scenario start.</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("starting_mitigations")]
+        public List<StartingMitigationDefinition> StartingMitigations { get; set; } = new();
+
+        /// <summary>4.3: scripted blooms active from day 0 of the scenario.</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("starting_blooms")]
+        public List<StartingBloomDefinition> StartingBlooms { get; set; } = new();
+
+        /// <summary>Health: disease outbreak the scenario starts inside.</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("starting_disease")]
+        public StartingDiseaseDefinition? StartingDisease { get; set; }
+
+        /// <summary>
+        /// Applies this scenario's starting state. Creates zones, sea sites,
+        /// stocked fish populations, research flags, ownership flags and the
+        /// depth-system starting state (containment/barriers, insurance,
+        /// mitigations, scripted blooms, disease marker, resource-rent opt-in)
+        /// directly on <paramref name="state"/>. Does NOT touch the finance
+        /// balance (caller applies <see cref="StartingCapitalNOK"/>).
+        ///
+        /// <para>
+        /// Safe to call more than once — zones, site ids, research ids and
+        /// scripted bloom ids are de-duplicated and the mirrored lists are
+        /// replaced rather than appended.
+        /// </para>
+        ///
+        /// <para>
+        /// When <paramref name="engine"/> is supplied the runtime-coupled parts
+        /// are applied as well: insurance policies are subscribed on the live
+        /// <c>InsuranceSystem</c>, the resource-rent tax is enabled, and a
+        /// starting disease raises integrated disease pressure and seeds SIR
+        /// prevalence. Passing null (the default) keeps the call pure and
+        /// engine-independent, preserving the legacy one-argument call sites.
+        /// </para>
+        /// </summary>
+        public void ApplyStartingState(GameState state, SimulationEngine? engine = null)
         {
             if (state == null) throw new ArgumentNullException(nameof(state));
 
@@ -167,6 +317,8 @@ namespace LakskongenSim.Core
                 var strain = SmoltStrainRegistry.Get(siteDef.SmoltQuality);
 
                 var site = new SeaSite(siteId, zoneId) { NumberOfPens = penCount };
+                site.Containment = ParseContainment(siteDef.Containment);
+                site.Barrier = ParseBarrier(siteDef.Barrier);
                 for (int pen = 0; pen < penCount; pen++)
                 {
                     var pop = new FishPopulation(new GrowthModel(), new MortalityModel())
@@ -201,6 +353,39 @@ namespace LakskongenSim.Core
 
             foreach (var building in StartingBuildings ?? System.Array.Empty<string>())
                 ApplyStartingBuilding(state, building);
+
+            ApplyInsuranceMirror(state);
+            ApplyMitigations(state);
+            ApplyBlooms(state);
+            ApplyDiseaseMarker(state);
+
+            // P9: opt-in to the 25% resource-rent tax, either explicitly or
+            // derived from the legacy "resource_rent_tax" special rule.
+            bool wantsTax = EnableResourceRentTax
+                ?? SpecialRules.ContainsKey("resource_rent_tax");
+            if (wantsTax) state.EnableResourceRentTax = true;
+
+            // Runtime-coupled depth wiring (additive, guarded).
+            if (engine != null)
+            {
+                // Rebuild the live insurance policies from what we just mirrored.
+                engine.RestoreInsuranceFromState(state);
+                engine.EnableResourceRentTax = state.EnableResourceRentTax;
+
+                var disease = StartingDisease;
+                if (disease != null && !string.IsNullOrWhiteSpace(disease.Type))
+                {
+                    if (double.IsFinite(disease.ExternalPressure) && disease.ExternalPressure > 0)
+                        engine.IntegratedDisease.SetExternalDiseasePressure(disease.ExternalPressure);
+
+                    var target = string.IsNullOrWhiteSpace(disease.SiteId)
+                        ? state.Populations.FirstOrDefault()
+                        : state.Populations.FirstOrDefault(p => p.SiteId == disease.SiteId)
+                          ?? state.Populations.FirstOrDefault();
+                    if (target != null && disease.SeedDays > 0)
+                        engine.Disease.Tick(target, disease.SeedDays);
+                }
+            }
         }
 
         private static void ApplyStartingBuilding(GameState state, string building)
@@ -214,6 +399,135 @@ namespace LakskongenSim.Core
                 // Unknown building names are ignored (forward-compatible).
             }
         }
+
+        // ── New-schema application helpers (additive; guarded) ────────────────
+
+        private void ApplyInsuranceMirror(GameState state)
+        {
+            var wanted = new List<InsurancePolicyState>();
+            foreach (var policy in StartingInsurance ?? new List<StartingInsuranceDefinition>())
+            {
+                if (policy == null || string.IsNullOrWhiteSpace(policy.Kind)) continue;
+                wanted.Add(new InsurancePolicyState
+                {
+                    Kind = policy.Kind.Trim(),
+                    Premium = double.IsFinite((double)policy.Premium) ? (double)policy.Premium : 0.0,
+                    Coverage = double.IsFinite(policy.Coverage) ? Math.Clamp(policy.Coverage, 0.0, 1.0) : 0.0,
+                    Deductible = policy.Deductible > 0m ? policy.Deductible : 0m
+                });
+            }
+            if (wanted.Count > 0)
+                state.InsurancePolicies = wanted;
+        }
+
+        private void ApplyMitigations(GameState state)
+        {
+            var defs = StartingMitigations;
+            if (defs == null || defs.Count == 0) return;
+
+            state.BloomMitigations ??= new List<BloomMitigationState>();
+            foreach (var def in defs)
+            {
+                if (def == null || string.IsNullOrWhiteSpace(def.Kind)) continue;
+
+                var site = string.IsNullOrWhiteSpace(def.SiteId)
+                    ? null
+                    : state.SeaSites.FirstOrDefault(s => s.Id == def.SiteId);
+                var kind = ParseMitigation(def.Kind);
+                switch (kind)
+                {
+                    case MitigationKind.BubbleCurtain:
+                        if (site != null) site.HasBubbleCurtain = true;
+                        break;
+                    case MitigationKind.O2Diffuser:
+                        if (site != null) site.HasO2Diffuser = true;
+                        break;
+                    default:
+                        string siteId = (def.SiteId ?? "").Trim();
+                        string key = def.Kind.Trim().ToLowerInvariant();
+                        if (!state.BloomMitigations.Any(m => m.SiteId == siteId && m.Kind == key))
+                            state.BloomMitigations.Add(new BloomMitigationState { SiteId = siteId, Kind = key });
+                        break;
+                }
+            }
+        }
+
+        private void ApplyBlooms(GameState state)
+        {
+            var defs = StartingBlooms;
+            if (defs == null || defs.Count == 0) return;
+
+            state.ActiveBlooms ??= new List<Environment.BloomEvent>();
+            for (int i = 0; i < defs.Count; i++)
+            {
+                var def = defs[i];
+                if (def == null || string.IsNullOrWhiteSpace(def.SiteId)) continue;
+
+                string bloomId = $"{Id}_{def.SiteId}_{(string.IsNullOrWhiteSpace(def.Kind) ? "algae" : def.Kind.ToLowerInvariant())}_{i + 1}";
+                if (state.ActiveBlooms.Any(b => b.Id == bloomId)) continue;
+
+                state.ActiveBlooms.Add(new Environment.BloomEvent
+                {
+                    Id = bloomId,
+                    Kind = string.IsNullOrWhiteSpace(def.Kind) ? "algae" : def.Kind.Trim().ToLowerInvariant(),
+                    SiteId = def.SiteId,
+                    Severity01 = Math.Clamp(def.Severity, 0.0, 1.0),
+                    StartDay = state.Day,
+                    DurationDays = def.DurationDays > 0 ? def.DurationDays : 21
+                });
+            }
+        }
+
+        private void ApplyDiseaseMarker(GameState state)
+        {
+            var disease = StartingDisease;
+            if (disease == null || string.IsNullOrWhiteSpace(disease.Type)) return;
+
+            string eventId = $"{Id}-{disease.Type.Trim().ToLowerInvariant()}-outbreak";
+            if (state.EventLog.Any(e => e.Id == eventId)) return;
+
+            state.EventLog.Add(new Events.EventRecord
+            {
+                Day = state.Day,
+                Id = eventId,
+                Name = $"Utbrudd: {disease.Type}",
+                Category = Events.EventCategory.Disease,
+                Description = string.IsNullOrWhiteSpace(disease.SiteId)
+                    ? $"Scenariostart med aktiv {disease.Type}."
+                    : $"Scenariostart med aktiv {disease.Type} ved {disease.SiteId}.",
+                BalanceChange = 0m
+            });
+            state.TrimEventLog();
+        }
+
+        private static ContainmentLevel ParseContainment(string? raw) =>
+            (raw ?? "").Trim().ToLowerInvariant() switch
+            {
+                "skirt" => ContainmentLevel.Skirt,
+                "semi_closed" or "semiclosed" or "semi-closed" or "semi" => ContainmentLevel.SemiClosed,
+                "closed" or "closed_float" or "closedfloat" => ContainmentLevel.ClosedFloat,
+                "submersible" or "sub" => ContainmentLevel.Submersible,
+                "offshore_closed" or "offshoreclosed" => ContainmentLevel.OffshoreClosed,
+                "open" or "open_net" or "opennet" or "" => ContainmentLevel.OpenNet,
+                _ => ContainmentLevel.OpenNet
+            };
+
+        private static BarrierKind ParseBarrier(string? raw) =>
+            (raw ?? "").Trim().ToLowerInvariant() switch
+            {
+                "smoltscreen" or "smolt_screen" or "smolt-screen" => BarrierKind.Smoltscreen,
+                _ => BarrierKind.None
+            };
+
+        private static MitigationKind ParseMitigation(string? raw) =>
+            (raw ?? "").Trim().ToLowerInvariant() switch
+            {
+                "bubble" or "bubble_curtain" or "bubblecurtain" => MitigationKind.BubbleCurtain,
+                "diffuser" or "o2" or "o2_diffuser" or "o2diffuser" or "oxygen" => MitigationKind.O2Diffuser,
+                "pumping" or "pump" => MitigationKind.Pumping,
+                "deep_feeding" or "deepfeeding" or "deep" => MitigationKind.DeepFeeding,
+                _ => MitigationKind.None
+            };
     }
 
     /// <summary>
@@ -623,6 +937,8 @@ namespace LakskongenSim.Core
                     "Behold lønnsomheten og overlev reguleringsbølgen.",
                 Description =
                     "PO3 rød sone: −6 % MTB, lukket containement er eneste vei til miljøfleksibilitet. Overlev i 3 år.",
+                Objective =
+                    "Gjenopprett MAB ved å drifte minst ett anlegg på semi-lukket containement og overlev 1095 dager i rød sone.",
                 StartingCapitalNOK = 12_000_000m,
                 StartingCash = 12_000_000m,
                 StartingRegion = ProductionRegion.Trøndelag,
@@ -630,8 +946,8 @@ namespace LakskongenSim.Core
                 WinCondition = WinCondition.Survival,
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Name = "PO3 Nord", Zone = "po3_nord", Pens = 6, SmoltCount = 12_000, SmoltQuality = "robust" },
-                    new() { Name = "PO3 Sør", Zone = "po3_sor",  Pens = 4, SmoltCount = 10_000, SmoltQuality = "standard" },
+                    new() { Id = "po3_nord", Name = "PO3 Nord", Zone = "po3_nord", Pens = 6, SmoltCount = 12_000, SmoltQuality = "robust", Containment = "semi_closed" },
+                    new() { Id = "po3_sor",  Name = "PO3 Sør",  Zone = "po3_sor",  Pens = 4, SmoltCount = 10_000, SmoltQuality = "standard" },
                 },
                 StartingResearch = new[] { "sensor-networks", "deep-sea-farming" },
                 StartingBuildings = new[] { "ai_feeding" },
@@ -639,13 +955,16 @@ namespace LakskongenSim.Core
                 {
                     "Rød sone: −6 % MTB på alle åpne anlegg",
                     "Bare lukket containement (semi-lukket eller høyere) kvalifiserer for miljøfleksibilitet",
+                    "Minst ett anlegg må holdes på semi-lukket nivå for å gjenvinne MAB",
                 },
-                Tags = new[] { "regulering", "rød_sone", "containement", "survival" },
+                Tags = new[] { "regulering", "rød_sone", "containement", "survival", "mtb" },
                 SpecialRules = new Dictionary<string, string>
                 {
                     ["red_zone"] = "true",
                     ["mab_reduction"] = "0.06",
                     ["environmental_flexibility"] = "closed_containment",
+                    ["containment_target"] = "semi_closed",
+                    ["min_contained_sites"] = "1",
                     ["regulation_pressure"] = "true",
                 },
                 TimeLimitDays = 1095, // 3 years
@@ -666,6 +985,8 @@ namespace LakskongenSim.Core
                     "og hindre smitte til nabofelt. Hvert minutt teller — klarer du å slukke brannen?",
                 Description =
                     "Aktiv ISA med tvungen nedslaktningssone. Bygg firewalls, krev inn forsikring, redd de friske anleggene.",
+                Objective =
+                    "Hold ISA-utbruddet isolert i kjerneanlegget, bygg Smoltscreen-biosikkerhet mellom sonene og overlev 540 dager med forsikringsdekning.",
                 StartingCapitalNOK = 18_000_000m,
                 StartingCash = 18_000_000m,
                 StartingRegion = ProductionRegion.Trøndelag,
@@ -673,19 +994,32 @@ namespace LakskongenSim.Core
                 WinCondition = WinCondition.Survival,
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Name = "Infisert kjerneanlegg", Zone = "isa_kjerne", Pens = 4, SmoltCount = 8_000,  SmoltQuality = "standard" },
-                    new() { Name = "Nabofelt nord",          Zone = "isa_nord",   Pens = 6, SmoltCount = 12_000, SmoltQuality = "robust" },
-                    new() { Name = "Nabofelt sør",           Zone = "isa_sor",    Pens = 6, SmoltCount = 12_000, SmoltQuality = "robust" },
+                    new() { Id = "isa_kjerne", Name = "Infisert kjerneanlegg", Zone = "isa_kjerne", Pens = 4, SmoltCount = 8_000,  SmoltQuality = "standard" },
+                    new() { Id = "isa_nord",   Name = "Nabofelt nord",          Zone = "isa_nord",   Pens = 6, SmoltCount = 12_000, SmoltQuality = "robust",   Barrier = "smoltscreen" },
+                    new() { Id = "isa_sor",    Name = "Nabofelt sør",           Zone = "isa_sor",    Pens = 6, SmoltCount = 12_000, SmoltQuality = "robust",   Barrier = "smoltscreen" },
                 },
                 StartingResearch = new[] { "disease-resistance", "sensor-networks" },
                 StartingBuildings = new[] { "hatchery" }, // biosecure smolt production
+                StartingInsurance = new List<StartingInsuranceDefinition>
+                {
+                    new() { Kind = "ISA",       Premium = 300_000m, Coverage = 0.90, Deductible = 500_000m },
+                    new() { Kind = "Mortality", Premium = 120_000m, Coverage = 0.70, Deductible = 250_000m },
+                },
+                StartingDisease = new StartingDiseaseDefinition
+                {
+                    Type = "ISA",
+                    SiteId = "isa_kjerne",
+                    ExternalPressure = 1.70,
+                    SeedDays = 21,
+                },
                 Restrictions = new[]
                 {
                     "Tvungen nedslaktning i bekjempelsessonen",
                     "Biosikkerhetsbranner (firewalls) mellom produksjonsområder",
                     "Forsikringsdekning kreves for utbruddsansvar",
+                    "Utbruddet må ikke spre seg til nabofeltene",
                 },
-                Tags = new[] { "sykdom", "isa", "krise", "biosecurity" },
+                Tags = new[] { "sykdom", "isa", "krise", "biosecurity", "forsikring" },
                 SpecialRules = new Dictionary<string, string>
                 {
                     ["start_disease"] = "true",
@@ -693,6 +1027,9 @@ namespace LakskongenSim.Core
                     ["mandatory_cull"] = "true",
                     ["firewalls"] = "true",
                     ["insurance"] = "true",
+                    ["insurance_target"] = "isa",
+                    ["biosecurity_target"] = "smoltscreen",
+                    ["max_infected_sites"] = "1",
                     ["regulation_pressure"] = "true",
                 },
                 TimeLimitDays = 540, // ~18 months to contain and recover
@@ -715,6 +1052,8 @@ namespace LakskongenSim.Core
                     "forsikring er forskjellen mellom overlevelse og total tap.",
                 Description =
                     "1 000 t dødelighet ved én algehend. Tidlig varsling, mitigerende tiltak og forsikring avgjør.",
+                Objective =
+                    "Installer mitigerende tiltak (O2-diffuser/boblegardin) på alle utsatte anlegg og overlev alge-vinduet med katastrofeforsikring.",
                 StartingCapitalNOK = 25_000_000m,
                 StartingCash = 25_000_000m,
                 StartingRegion = ProductionRegion.Nordland,
@@ -722,25 +1061,42 @@ namespace LakskongenSim.Core
                 WinCondition = WinCondition.Survival,
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Name = "Algeutsatt sør", Zone = "alge_sor",  Pens = 8, SmoltCount = 14_000, SmoltQuality = "standard" },
-                    new() { Name = "Algeutsatt midt", Zone = "alge_midt", Pens = 8, SmoltCount = 14_000, SmoltQuality = "standard" },
-                    new() { Name = "Innlandsbeskyttet", Zone = "alge_indre", Pens = 5, SmoltCount = 9_000, SmoltQuality = "robust" },
+                    new() { Id = "alge_sor",   Name = "Algeutsatt sør", Zone = "alge_sor",  Pens = 8, SmoltCount = 14_000, SmoltQuality = "standard" },
+                    new() { Id = "alge_midt",  Name = "Algeutsatt midt", Zone = "alge_midt", Pens = 8, SmoltCount = 14_000, SmoltQuality = "standard" },
+                    new() { Id = "alge_indre", Name = "Innlandsbeskyttet", Zone = "alge_indre", Pens = 5, SmoltCount = 9_000, SmoltQuality = "robust" },
                 },
                 StartingResearch = new[] { "sensor-networks", "predictive-analytics" },
                 StartingBuildings = new[] { "ai_feeding" },
+                StartingMitigations = new List<StartingMitigationDefinition>
+                {
+                    new() { SiteId = "alge_indre", Kind = "diffuser" },
+                    new() { SiteId = "alge_midt",  Kind = "pumping" },
+                },
+                StartingBlooms = new List<StartingBloomDefinition>
+                {
+                    new() { SiteId = "alge_sor", Kind = "algae", Severity = 0.60, DurationDays = 28 },
+                },
+                StartingInsurance = new List<StartingInsuranceDefinition>
+                {
+                    new() { Kind = "Bloom", Premium = 212_500m, Coverage = 0.85, Deductible = 1_000_000m },
+                },
                 Restrictions = new[]
                 {
                     "Tidligvarslingssystem for alger påkrevd",
-                    "Mitigerende tiltak (boblegardin/O2) må være operative",
+                    "Mitigerende tiltak (boblegardin/O2) må være operative før alge-vinduet (dag 200–300)",
                     "Katastrofeforsikring kreves",
                 },
-                Tags = new[] { "alger", "bloom", "katastrofe", "forsikring" },
+                Tags = new[] { "alger", "bloom", "katastrofe", "forsikring", "mitigering" },
                 SpecialRules = new Dictionary<string, string>
                 {
                     ["start_bloom"] = "true",
                     ["early_warning"] = "true",
                     ["mitigation"] = "true",
+                    ["mitigation_target"] = "o2_diffuser",
+                    ["bloom_window_start_doy"] = "200",
+                    ["bloom_window_end_doy"] = "300",
                     ["insurance"] = "true",
+                    ["insurance_target"] = "bloom",
                 },
                 TimeLimitDays = 365, // survive one full bloom season
                 IsUnlocked = true,
@@ -762,25 +1118,33 @@ namespace LakskongenSim.Core
                     "lever lønnsomt i det nye skattelandskapet.",
                 Description =
                     "25 % grunnrenteskatt med 70 MNOK grunnfradrag. Restrukturer for lønnsomhet under det nye regimet.",
+                Objective =
+                    "Lever med 25 % grunnrenteskatt (70 MNOK grunnfradrag) og nå 25 MNOK i overskudd gjennom verdikjede-investeringer.",
                 StartingCapitalNOK = 60_000_000m,
                 StartingCash = 60_000_000m,
                 StartingRegion = ProductionRegion.Vestland,
                 Difficulty = 3,
                 WinCondition = WinCondition.Profit,
+                EnableResourceRentTax = true,
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Name = "Hovedanlegg vest", Zone = "vest_1", Pens = 8,  SmoltCount = 15_000, SmoltQuality = "postsmolt" },
-                    new() { Name = "Vekstanlegg nord", Zone = "vest_2", Pens = 8,  SmoltCount = 15_000, SmoltQuality = "postsmolt" },
-                    new() { Name = "Utvidelse sør",    Zone = "vest_3", Pens = 6,  SmoltCount = 12_000, SmoltQuality = "robust" },
+                    new() { Id = "vest_1", Name = "Hovedanlegg vest", Zone = "vest_1", Pens = 8,  SmoltCount = 15_000, SmoltQuality = "postsmolt" },
+                    new() { Id = "vest_2", Name = "Vekstanlegg nord", Zone = "vest_2", Pens = 8,  SmoltCount = 15_000, SmoltQuality = "postsmolt" },
+                    new() { Id = "vest_3", Name = "Utvidelse sør",    Zone = "vest_3", Pens = 6,  SmoltCount = 12_000, SmoltQuality = "robust" },
                 },
                 StartingResearch = new[] { "international-export", "value-added-processing" },
                 StartingBuildings = new[] { "processing_plant", "feed_mill" },
+                StartingInsurance = new List<StartingInsuranceDefinition>
+                {
+                    new() { Kind = "Mortality", Premium = 120_000m, Coverage = 0.70, Deductible = 250_000m },
+                },
                 Restrictions = new[]
                 {
                     "25 % grunnrenteskatt på kontantstrøm",
                     "70 MNOK standardfradrag (grunnfradrag) deles på tvers av virksomheten",
+                    "Overskudd over grunnfradraget beskattes kvartalsvis",
                 },
-                Tags = new[] { "skatt", "grunnrente", "finans", "profit" },
+                Tags = new[] { "skatt", "grunnrente", "finans", "profit", "kontantstrøm" },
                 SpecialRules = new Dictionary<string, string>
                 {
                     ["resource_rent_tax"] = "0.25",

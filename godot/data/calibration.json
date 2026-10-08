@@ -1,5 +1,5 @@
 {
-  "version": "1.0.2",
+  "version": "1.0.3",
   "economy": {
     "startingCapitalNOK": 10000000,
     "smoltCostPerFishNOK": 12,
@@ -36,7 +36,8 @@
     "mortalityRateISAPercent": 0.22,
     "seaLiceThresholdPerFish": 0.5,
     "seaLiceTreatmentThreshold": 0.15,
-    "seaMortalityPerCycle": 0.15
+    "seaMortalityPerCycle": 0.15,
+    "seaMortalityDiseaseShare": 0.30
   },
   "finance": {
     "insurancePremiumPercent": 0.018,

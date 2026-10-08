@@ -67,12 +67,36 @@ namespace LakskongenSim.Health
         public void SetMortalityModel(Biology.MortalityModel mortalityModel)
         {
             _mortalityModel = mortalityModel ?? throw new ArgumentNullException(nameof(mortalityModel));
+            _baseSystem.SetMortalityModel(mortalityModel); // base SIR injects here (single path)
             _lodSystem.SetMortalityModel(mortalityModel); // Pass to LOD system as well
             _lodSystem.SetDiseaseSystem(_baseSystem); // Pass DiseaseSystem for prevalence queries
         }
+
+        /// <summary>
+        /// Size the disease system to a calibrated slice of the whole-cycle sea
+        /// mortality anchor. The disease mortality rate is set so that, at the SIR
+        /// endemic equilibrium, the daily disease hazard integrates to
+        /// <paramref name="diseasePerCycle"/> over the calibrated sea grow-out.
+        /// Populations start at that equilibrium prevalence, so the realized
+        /// per-cycle disease slice is deterministic and tracks the calibration.
+        /// </summary>
+        public void ConfigureDiseaseShare(double diseasePerCycle, double seaPhaseDays)
+        {
+            if (seaPhaseDays <= 0) seaPhaseDays = 540.0;
+            double perCycle = Math.Clamp(diseasePerCycle, 0.0, 0.99);
+            double daily = 1.0 - Math.Pow(1.0 - perCycle, 1.0 / seaPhaseDays);
+            double endemic = _baseSystem.EquilibriumPrevalence();
+            if (endemic < 1e-6) endemic = 1.0;
+            _baseSystem.ExtraMortalityRatePerDay = daily / endemic;
+            _baseSystem.InitialPrevalence = endemic;
+        }
         
         /// <summary>
-        /// Main update method. Automatically selects optimal simulation fidelity.
+        /// Main update method. Runs the deterministic population-level SIR for
+        /// every population and injects the resulting disease mortality rate into
+        /// the shared <see cref="Biology.MortalityModel"/> (the single authoritative
+        /// injection path; the LOD/stochastic tiers are telemetry/scenario only and
+        /// must not inject independently).
         /// </summary>
         public void Update(List<Zone> zones, List<FishPopulation> populations, int days = 1)
         {
@@ -80,31 +104,17 @@ namespace LakskongenSim.Health
 
             // Stopwatch has sub-millisecond resolution; DateTime.Now is ~15ms (TD-29).
             var stopwatch = Stopwatch.StartNew();
-            
+
+            // Deterministic population-level SIR: evolve prevalence and inject the
+            // disease mortality rate for the next biology step. No RNG on this path.
+            TickBaseSystem(populations, days);
+
             // Auto-adjust LOD mode based on performance
             if (_currentMode == LODMode.Auto)
             {
                 AdjustLODBasedOnPerformance(populations);
             }
-            
-            // Execute update with selected mode
-            switch (_currentMode)
-            {
-                case LODMode.High:
-                    UpdateHighFidelity(zones, populations, days);
-                    break;
-                case LODMode.Medium:
-                    UpdateMediumFidelity(zones, populations, days);
-                    break;
-                case LODMode.Low:
-                    UpdateLowFidelity(zones, populations, days);
-                    break;
-                case LODMode.Auto:
-                default:
-                    UpdateWithLODSystem(zones, populations, days);
-                    break;
-            }
-            
+
             var endTime = stopwatch.Elapsed;
             double updateTimeMs = endTime.TotalMilliseconds;
             
@@ -120,12 +130,24 @@ namespace LakskongenSim.Health
         }
         
         /// <summary>
+        /// Deterministic population-level SIR tick for every population. The base
+        /// <see cref="DiseaseSystem"/> evolves prevalence and injects the disease
+        /// mortality rate into the shared <see cref="Biology.MortalityModel"/>.
+        /// </summary>
+        private void TickBaseSystem(List<FishPopulation> populations, int days)
+        {
+            for (int i = 0; i < populations.Count; i++)
+                _baseSystem.Tick(populations[i], days, 10.0);
+        }
+
+        /// <summary>
         /// Update with full high-fidelity simulation (for small populations or debugging).
         /// </summary>
         private void UpdateHighFidelity(List<Zone> zones, List<FishPopulation> populations, int days)
         {
-            // Use full stochastic engine
-            _stochasticEngine.SimulateMultiVectorTransmission(zones, populations, days);
+            // High-fidelity path: deterministic base SIR injection (the stochastic
+            // engine is retained for scenario/telemetry use only).
+            TickBaseSystem(populations, days);
         }
         
         /// <summary>

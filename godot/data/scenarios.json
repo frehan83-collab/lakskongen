@@ -205,12 +205,13 @@
     "difficulty": 4,
     "description": "PO3 rød sone: −6 % MTB, lukket containement er eneste vei til miljøfleksibilitet. Overlev i 3 år.",
     "story": "Produksjonsområde PO3 har gått over til RØDT lys etter lakselustrykk og rømningsrisiko. Mattilsynet og Nærings- og fiskeridepartementet strammer inn: maksimal tillatt biomasse (MTB) kuttes med 6 %. Din eneste vei til 'miljøfleksibilitet' er lukket containement-teknologi (semi-lukket og høyere), som gir biomassekreditt selv i rød sone. Behold lønnsomheten og overlev reguleringsbølgen.",
+    "objective": "Gjenopprett MAB ved å drifte minst ett anlegg på semi-lukket containement og overlev 1095 dager i rød sone.",
     "starting_balance": 12000000,
     "starting_cash": 12000000,
     "starting_region": "Trøndelag",
     "starting_day": 0,
     "starting_sites": [
-      { "id": "po3_nord", "name": "PO3 Nord", "zone": "po3_nord", "pens": 6, "smolt_count": 12000, "smolt_quality": "robust" },
+      { "id": "po3_nord", "name": "PO3 Nord", "zone": "po3_nord", "pens": 6, "smolt_count": 12000, "smolt_quality": "robust", "containment": "semi_closed" },
       { "id": "po3_sor", "name": "PO3 Sør", "zone": "po3_sor", "pens": 4, "smolt_count": 10000, "smolt_quality": "standard" }
     ],
     "starting_debt": 0,
@@ -221,6 +222,8 @@
       "red_zone": "true",
       "mab_reduction": "0.06",
       "environmental_flexibility": "closed_containment",
+      "containment_target": "semi_closed",
+      "min_contained_sites": "1",
       "regulation_pressure": "true"
     },
     "time_limit_days": 1095,
@@ -233,10 +236,11 @@
     },
     "restrictions": [
       "Rød sone: −6 % MTB på alle åpne anlegg",
-      "Bare lukket containement (semi-lukket eller høyere) kvalifiserer for miljøfleksibilitet"
+      "Bare lukket containement (semi-lukket eller høyere) kvalifiserer for miljøfleksibilitet",
+      "Minst ett anlegg må holdes på semi-lukket nivå for å gjenvinne MAB"
     ],
     "tutorial_recommended": false,
-    "tags": ["regulering", "rød_sone", "containement", "survival"]
+    "tags": ["regulering", "rød_sone", "containement", "survival", "mtb"]
   },
   {
     "id": "isa_utbrudd",
@@ -244,18 +248,24 @@
     "difficulty": 5,
     "description": "Aktiv ISA med tvungen nedslaktningssone. Bygg firewalls, krev inn forsikring, redd de friske anleggene.",
     "story": "SalMar varslet om ILA/ISA ved et anlegg, og Mattilsynet har opprettet bekjempelsessone. Hele det infiserte anlegget må slaktes ut (tvungen nedslaktning). Du må bygge biosikkerhetsbranner (firewalls) mellom sonene, aktivere forsikringsdekning og hindre smitte til nabofelt. Hvert minutt teller — klarer du å slukke brannen?",
+    "objective": "Hold ISA-utbruddet isolert i kjerneanlegget, bygg Smoltscreen-biosikkerhet mellom sonene og overlev 540 dager med forsikringsdekning.",
     "starting_balance": 18000000,
     "starting_cash": 18000000,
     "starting_region": "Trøndelag",
     "starting_day": 0,
     "starting_sites": [
       { "id": "isa_kjerne", "name": "Infisert kjerneanlegg", "zone": "isa_kjerne", "pens": 4, "smolt_count": 8000, "smolt_quality": "standard" },
-      { "id": "isa_nord", "name": "Nabofelt nord", "zone": "isa_nord", "pens": 6, "smolt_count": 12000, "smolt_quality": "robust" },
-      { "id": "isa_sor", "name": "Nabofelt sør", "zone": "isa_sor", "pens": 6, "smolt_count": 12000, "smolt_quality": "robust" }
+      { "id": "isa_nord", "name": "Nabofelt nord", "zone": "isa_nord", "pens": 6, "smolt_count": 12000, "smolt_quality": "robust", "barrier": "smoltscreen" },
+      { "id": "isa_sor", "name": "Nabofelt sør", "zone": "isa_sor", "pens": 6, "smolt_count": 12000, "smolt_quality": "robust", "barrier": "smoltscreen" }
     ],
     "starting_debt": 0,
     "starting_research": ["disease-resistance", "sensor-networks"],
     "starting_buildings": ["hatchery"],
+    "starting_insurance": [
+      { "kind": "ISA", "premium": 300000, "coverage": 0.9, "deductible": 500000 },
+      { "kind": "Mortality", "premium": 120000, "coverage": 0.7, "deductible": 250000 }
+    ],
+    "starting_disease": { "type": "ISA", "site": "isa_kjerne", "external_pressure": 1.7, "seed_days": 21 },
     "win_condition": "Survival",
     "special_rules": {
       "start_disease": "true",
@@ -263,6 +273,9 @@
       "mandatory_cull": "true",
       "firewalls": "true",
       "insurance": "true",
+      "insurance_target": "isa",
+      "biosecurity_target": "smoltscreen",
+      "max_infected_sites": "1",
       "regulation_pressure": "true"
     },
     "time_limit_days": 540,
@@ -276,10 +289,11 @@
     "restrictions": [
       "Tvungen nedslaktning i bekjempelsessonen",
       "Biosikkerhetsbranner (firewalls) mellom produksjonsområder",
-      "Forsikringsdekning kreves for utbruddsansvar"
+      "Forsikringsdekning kreves for utbruddsansvar",
+      "Utbruddet må ikke spre seg til nabofeltene"
     ],
     "tutorial_recommended": false,
-    "tags": ["sykdom", "isa", "krise", "biosecurity"]
+    "tags": ["sykdom", "isa", "krise", "biosecurity", "forsikring"]
   },
   {
     "id": "algekatastrofe",
@@ -287,6 +301,7 @@
     "difficulty": 5,
     "description": "1 000 t dødelighet ved én algehend. Tidlig varsling, mitigerende tiltak og forsikring avgjør.",
     "story": "Høsten rammet Grieg Seafood hardt: et massivt skadelig algeoppblomstring drepte rundt 1 000 tonn laks i ett enkelt hendelsesforløp. Alger tapper oksygenet og skader gjellene. Tidlig varsling fra sensorer, umiddelbar mitigering (boblegardin og O2-tilførsel) og forsikring er forskjellen mellom overlevelse og total tap.",
+    "objective": "Installer mitigerende tiltak (O2-diffuser/boblegardin) på alle utsatte anlegg og overlev alge-vinduet med katastrofeforsikring.",
     "starting_balance": 25000000,
     "starting_cash": 25000000,
     "starting_region": "Nordland",
@@ -299,12 +314,26 @@
     "starting_debt": 0,
     "starting_research": ["sensor-networks", "predictive-analytics"],
     "starting_buildings": ["ai_feeding"],
+    "starting_mitigations": [
+      { "site": "alge_indre", "kind": "diffuser" },
+      { "site": "alge_midt", "kind": "pumping" }
+    ],
+    "starting_blooms": [
+      { "site": "alge_sor", "kind": "algae", "severity": 0.6, "duration_days": 28 }
+    ],
+    "starting_insurance": [
+      { "kind": "Bloom", "premium": 212500, "coverage": 0.85, "deductible": 1000000 }
+    ],
     "win_condition": "Survival",
     "special_rules": {
       "start_bloom": "true",
       "early_warning": "true",
       "mitigation": "true",
-      "insurance": "true"
+      "mitigation_target": "o2_diffuser",
+      "bloom_window_start_doy": "200",
+      "bloom_window_end_doy": "300",
+      "insurance": "true",
+      "insurance_target": "bloom"
     },
     "time_limit_days": 365,
     "is_unlocked": true,
@@ -316,11 +345,11 @@
     },
     "restrictions": [
       "Tidligvarslingssystem for alger påkrevd",
-      "Mitigerende tiltak (boblegardin/O2) må være operative",
+      "Mitigerende tiltak (boblegardin/O2) må være operative før alge-vinduet (dag 200–300)",
       "Katastrofeforsikring kreves"
     ],
     "tutorial_recommended": false,
-    "tags": ["alger", "bloom", "katastrofe", "forsikring"]
+    "tags": ["alger", "bloom", "katastrofe", "forsikring", "mitigering"]
   },
   {
     "id": "ressursrente",
@@ -328,6 +357,7 @@
     "difficulty": 3,
     "description": "25 % grunnrenteskatt med 70 MNOK grunnfradrag. Restrukturer for lønnsomhet under det nye regimet.",
     "story": "Den nye grunnrentebeskatningen er vedtatt: 25 % kontantstrømskatt på havbruk, med et standardfradrag (grunnfradrag) på 70 millioner kroner. Små og mellomstore aktører kan vokse skattefritt under fradraget, men hver krone over 70 MNOK blir dramatisk mindre verdt. Omstrukturer, invester i verdikjeden og lever lønnsomt i det nye skattelandskapet.",
+    "objective": "Lever med 25 % grunnrenteskatt (70 MNOK grunnfradrag) og nå 25 MNOK i overskudd gjennom verdikjede-investeringer.",
     "starting_balance": 60000000,
     "starting_cash": 60000000,
     "starting_region": "Vestland",
@@ -340,6 +370,10 @@
     "starting_debt": 0,
     "starting_research": ["international-export", "value-added-processing"],
     "starting_buildings": ["processing_plant", "feed_mill"],
+    "starting_insurance": [
+      { "kind": "Mortality", "premium": 120000, "coverage": 0.7, "deductible": 250000 }
+    ],
+    "enable_resource_rent_tax": true,
     "win_condition": "Profit",
     "special_rules": {
       "resource_rent_tax": "0.25",
@@ -355,9 +389,10 @@
     },
     "restrictions": [
       "25 % grunnrenteskatt på kontantstrøm",
-      "70 MNOK standardfradrag (grunnfradrag) deles på tvers av virksomheten"
+      "70 MNOK standardfradrag (grunnfradrag) deles på tvers av virksomheten",
+      "Overskudd over grunnfradraget beskattes kvartalsvis"
     ],
     "tutorial_recommended": false,
-    "tags": ["skatt", "grunnrente", "finans", "profit"]
+    "tags": ["skatt", "grunnrente", "finans", "profit", "kontantstrøm"]
   }
 ]

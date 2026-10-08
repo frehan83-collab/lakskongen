@@ -8,7 +8,7 @@ outside the reality bands named below.
 This document is the human-readable companion to the registry: it records the
 current game value, the real Norwegian reference, the source, and the
 recommended playtest band for each high-leverage knob. Last reconciled:
-**Oct 2026**.
+**Oct 2026, calibration v1.0.3**.
 
 ## 1. Feed-cost path audit (end-to-end)
 
@@ -52,10 +52,12 @@ engine path.
 grow-out sims per scenario, harvesting and re-stocking each time the stock
 reaches the calibrated 5.2 kg target. `BalanceReportTests` asserts the medians
 below against the reference bands in this document. Measured **Oct 2026,
-calibration v1.0.2** (fully deterministic: the engine seeds growth, weather,
+calibration v1.0.3** (fully deterministic: the engine seeds growth, weather,
 market O-U and market intelligence RNG from the same seed).
 
 Scenario `Baseline`: one 50k-smolt sea site, storyteller events off, no zone.
+This is the deterministic no-disease/no-storm path; its numbers are unchanged
+by v1.0.3 (the calibrated all-cause anchor still drives the whole total).
 
 | Metric | Measured min / **median** / p90 | Reference band | Verdict |
 |---|---|---|---|
@@ -103,6 +105,30 @@ calibration registry into the live models:
   Peak adult-female lice moved 0.00 -> **0.49/fish** (median), i.e. a clean
   grow-out reaches the regulatory action limit without treatment.
 
+### Tuning applied (calibration v1.0.3)
+
+This pass wired the two dormant depth systems into the live engine:
+
+- **Disease is now an explicit slice of sea mortality.** `CalibrationRegistry.Health`
+  gains `SeaMortalityDiseaseShare` (0.30). When `enableEvents:true`,
+  `MortalityModel` uses the husbandry baseline `SeaMortalityPerCycle × (1 − share)`
+  and `IntegratedDiseaseSystem` drives the base SIR, injecting the remaining
+  slice through `MortalityModel.SetDiseaseMortalityRate`. The SIR is sized so
+  its endemic daily hazard integrates to `SeaMortalityPerCycle × share` over the
+  calibrated grow-out, and populations start at that endemic equilibrium, so the
+  realized slice is deterministic and tunable. With `enableEvents:false` the full
+  anchor stays in the baseline (no disease injection), so `Baseline` is unchanged
+  and remains in the 14-16% band. Measured `DiseaseStress`: disease
+  **4.39%/cycle**, total **14.88%/cycle** (seeds 1-20).
+- **Storm escapes are engine-driven.** `SimulationEngine.ApplyStormHazards` (in
+  the weather phase) owns net-integrity wear, repair, and escape accounting:
+  storm days decay `SeaSite.NetIntegrityPct`, calm days repair it, a severe
+  storm can cause a containment failure, and any site below the documented 40%
+  risk line leaks on a storm day. Escapes flow through `SeaSite.RecordEscape`,
+  charge the regulatory fine and write the event log. The duplicate escape /
+  net-decay block was removed from `GameBridge.CheckWeatherImpacts`, leaving one
+  source of truth. Deterministic for a given seed (storm timing is seeded).
+
 ### Tuning applied (calibration v1.0.1)
 
 - `FeedSystem.FCRTempSensitivity` **0.018 -> 0.008 °C⁻¹** (and the reconciled
@@ -115,49 +141,55 @@ calibration registry into the live models:
 ## 1c. Extended probe — disease, escapes, multi-site economics (seeds 1-20)
 
 `SimProbe` now also sweeps four extension scenarios, all pure in-process and
-deterministic for a given seed. Measured **Oct 2026, calibration v1.0.2**.
+deterministic for a given seed. Measured **Oct 2026, calibration v1.0.3**.
 
 ### Disease-cycle mortality (`SimScenario.DiseaseStress`)
 
 `RunDisease` initialises with `enableEvents:true` (the disease subsystem live),
 silences the random storyteller shocks so the only mortality difference versus
-the deterministic baseline is the disease term, forces the disease LOD high, and
-measures disease-attributable deaths exactly from the injected per-population
-rate (`MortalityModel.GetSaveSnapshot`): for a one-day step
+the deterministic baseline is the disease term, and measures disease-attributable
+deaths exactly from the injected per-population rate
+(`MortalityModel.GetSaveSnapshot`): for a one-day step
 `survivors(without) - survivors(with) = count x diseaseRate`.
 
 | Metric | Measured min / **median** / p90 | Reference / guard | Verdict |
 |---|---|---|---|
-| Disease mortality %/cycle | 0.00 / **0.00** / 0.00 | <=2 (additive guard) | DORMANT (see note) |
-| Total sea mortality %/cycle | 14.19 / **15.76** / 17.82 | 14-16 (NVI 2024) | IN BAND |
+| Disease mortality %/cycle | 4.34 / **4.39** / 8.62 | 0.5-10 (calibrated slice) | IN BAND |
+| Total sea mortality %/cycle | 13.37 / **14.88** / 16.84 | 14-16 (NVI 2024) | IN BAND |
 
-**Note (engine deferral, see §5):** the additive disease subsystem is
-effectively dormant. The stochastic engine's base SIR is seeded at 1e-6
-prevalence and the high-fidelity path does not inject its mortality into
-`MortalityModel`, so the measured *additive* term is 0. The real disease burden
-is **not** missing from the game: NVI's all-cause 15.4% sea mortality (14-16%
-band) is already anchored in `Health.SeaMortalityPerCycle` and reproduced by the
-baseline total (15.76%). The guard exists to catch an accidental outbreak
-pushing the additive term beyond the calibrated anchor.
+**v1.0.3 (wired):** the disease subsystem is no longer dormant. The base SIR is
+ticked deterministically every day for every population and injects its mortality
+through `MortalityModel.SetDiseaseMortalityRate`. When events are on the sea
+anchor is split: the husbandry baseline becomes
+`SeaMortalityPerCycle × (1 − SeaMortalityDiseaseShare)` and the SIR contributes
+`SeaMortalityPerCycle × SeaMortalityDiseaseShare` (0.30 → ~4.4%/cycle measured),
+so the two sum back to the calibrated 14-16% total. `SeaMortalityDiseaseShare` is
+the tunable knob: raise it to shift more of the 15% onto disease, lower it to
+return the burden to the baseline. With `enableEvents:false` the full anchor
+stays in the baseline and disease never injects (deterministic path).
 
 ### Storm escapes (`SimScenario.Storm`)
 
-`RunStorm` runs the seeded weather and applies a documented **test-side
-containment-risk model** through the engine's own `SeaSite.NetIntegrityPct` and
-`SeaSite.RecordEscape` (the live engine does not yet drive sea-site storm
-escapes; only `OffshoreFarm` has a live escape path — the same deferral pattern
-as disease). Each cycle starts with fresh nets (integrity 100). Ordinary storm
-days cost 0.3 integrity, severe days 1.0, with 0.2/day repair; on severe days a
-containment failure occurs with expectation 1% and releases, at full wear, 5% of
-the pen — so escapes stay rare and low.
+`RunStorm` runs the seeded weather; the **engine itself** now owns storm
+containment: `SimulationEngine.ApplyStormHazards` decays
+`SeaSite.NetIntegrityPct` on storm days (0.3/day storm, 1.0/day severe, scaled by
+containment/crew multipliers), repairs it 0.2/day in calm weather, and records
+escapes through `SeaSite.RecordEscape`. A severe storm can cause a containment
+failure (expected 1% per severe day releasing up to 5% of the pen at full wear,
+scaled by containment `EscapeRiskMult`, `RemoteOpsCentre` watch-mode response and
+`CrewEffects.StormLossMultiplier`); any site below the documented 40% risk line
+also leaks on a storm day. Escapes charge the regulatory fine and write the event
+log. The probe only reads the engine counters — there is no test-side model and
+`GameBridge.CheckWeatherImpacts` no longer duplicates it. Deterministic for a
+given seed (storm timing is seeded).
 
 | Metric | Measured min / **median** / p90 | Reference / guard | Verdict |
 |---|---|---|---|
-| Escapes / site / year (fish) | 10.6 / **25.0** / 39.1 | low | IN BAND |
+| Escapes / site / year (fish) | 10.3 / **30.7** / 59.0 | low | IN BAND |
 | Escape events / site / year | 0.12 / **0.16** / 0.21 | <=1 guard | IN BAND |
-| Escapes % of stock / site / year | 0.06 / **0.15** / 0.30 | <=0.5% guard | IN BAND |
+| Escapes % of stock / site / year | 0.06 / **0.22** / 0.44 | <=0.5% guard | IN BAND |
 | Storm days / year | 97 / **118.7** / 128.7 | scenario exposure proof | OK |
-| Min net integrity % | 72.1 / **83.4** / 89.5 | >=40 (SeaSite risk line) | IN BAND |
+| Min net integrity % | 63.3 / **80.7** / 86.3 | >=40 (SeaSite risk line) | IN BAND |
 
 Real mapping: Norwegian escape events are rare and per-site annual escape rates
 sit far below 1% of stock; the 0.5% guard is a conservative cap. This also keeps
@@ -268,7 +300,7 @@ Highest-leverage first:
 5. **Resource rent (25%, 70M deduction).** Dominant late-game tax; foreign to
    most players — verify the deduction is legible in the finance UI.
 
-## 5. Resolved engine coupling (v1.0.2)
+## 5. Resolved engine coupling (v1.0.2 / v1.0.3)
 
 ### Measured-band gaps resolved (from §1b, Oct 2026)
 
@@ -280,9 +312,11 @@ The three metrics previously deferred to the engine owner are now wired into
   fraction to a per-day sea hazard
   (`1 - (1 - perCycle)^(1 / GrowthToHarvestDays)`) for the Seawater/Harvest
   stages; freshwater stages keep `GameConstants.BaselineMortalityPerDay`.
-  `SimulationEngine.ApplyBalancingConfig` pushes the registry anchor in, and
-  disease/event mortality remains additive, so `enableEvents:false` stays
-  deterministic and on-band.
+  `SimulationEngine.ApplyBalancingConfig` pushes the registry anchor in. From
+  v1.0.3 that anchor is split into the husbandry baseline plus an explicit
+  disease slice when events are on (see below); with events off the full anchor
+  stays in the baseline, so `enableEvents:false` remains deterministic and
+  on-band.
 - **Realized price ~153 -> 88.0 NOK/kg.** `MarketSimulation` sources all O-U
   parameters from `CalibrationRegistry.Market` (mean 82, weekly theta/sigma,
   42-150 band), mean-reverts the supply/demand indices daily, applies a bounded
@@ -293,6 +327,27 @@ The three metrics previously deferred to the engine owner are now wired into
   external lice pressure at sea stocking and drives `SeaLice.SetExternalPressure`
   seasonally (late-summer peak, winter trough), so a clean grow-out reaches the
   0.5 regulatory action limit without treatment. No RNG is involved.
+
+### Depth-system wiring resolved (v1.0.3)
+
+The two dormant depth systems are now wired into the live engine in-band:
+
+- **Disease-attributable mortality is live and tunable.** `IntegratedDiseaseSystem`
+  now calls `_baseSystem.SetMortalityModel(...)` and `Update` deterministically
+  ticks the base SIR for every population, injecting the resulting mortality
+  through `MortalityModel.SetDiseaseMortalityRate`. `MortalityModel` splits the
+  calibrated anchor into `SeaMortalityPerCycle × (1 − SeaMortalityDiseaseShare)`
+  (husbandry baseline) and the disease slice, and `ConfigureDiseaseShare` sizes
+  `DiseaseSystem.ExtraMortalityRatePerDay` so the endemic daily hazard integrates
+  to the slice over the grow-out. `enableEvents:false` never injects. Measured
+  `DiseaseStress`: disease **4.39%** of the **14.88%** total (§1c).
+- **Sea-site storm escapes are engine-driven.** `SimulationEngine.ApplyStormHazards`
+  (weather phase) decrements `SeaSite.NetIntegrityPct` on storm days, repairs it
+  in calm weather, records escapes via `SeaSite.RecordEscape` (gated at the
+  documented 40% risk line and a rare severe-day containment failure), charges
+  the regulatory fine and writes the event log. The duplicate escape/net-decay
+  block was removed from `GameBridge.CheckWeatherImpacts`. Deterministic for a
+  given seed.
 
 ### Remaining engine coupling
 
@@ -313,22 +368,6 @@ The three metrics previously deferred to the engine owner are now wired into
   simulation cash. Recommended: derive it from the registry
   (`FeedPricePerKgFeedNOK`) and update the test, or document it explicitly as
   an abstract estimate.
-- **Disease-attributable mortality is dormant.** `IntegratedDiseaseSystem`
-  builds its own `DiseaseSystem` base SIR but `SetMortalityModel` wires the
-  `MortalityModel` only into the LOD system, not the base system; and the base
-  SIR starts from a 1e-6 prevalence seed. The high-fidelity path therefore never
-  injects disease mortality, so the measured additive term is 0 (§1c). The
-  all-cause disease burden is still represented via the calibrated
-  `Health.SeaMortalityPerCycle` anchor. Recommended (engine): call
-  `_baseSystem.SetMortalityModel(...)` and drive a realistic exogenous infection
-  ramp, then re-tune `DiseaseSystem.ExtraMortalityRatePerDay`.
-- **Sea-site storm escapes are not engine-driven.** `SeaSite.NetIntegrityPct`
-  and `SeaSite.RecordEscape` exist and are documented ("Storms degrade; below 40
-  during storms risks escapes") but no engine code degrades integrity or records
-  a sea-site escape; only `OffshoreFarm` has a live escape path. §1c measures a
-  documented **test-side** containment-risk model through the same public
-  counters. Recommended (engine): decrement `NetIntegrityPct` on storm days and
-  call `RecordEscape`, gated at the 40% threshold.
 
 ## 6. Guard coverage
 
@@ -342,6 +381,23 @@ The three metrics previously deferred to the engine owner are now wired into
   match registry price/FCR and the derived cost (guards the 13.5 / 1.12
   default regression).
 
+v1.0.3 depth-system guards in `BalanceReportTests`:
+
+- `DiseaseMortality_IsVisibleAndBounded` — the SIR disease slice must be visible
+  within events-on runs (median > 0) and bounded (median 0.5-10%/cycle, p90
+  within the runaway guard, and less than the total).
+- `DiseaseStress_TotalMortality_WithinReferenceBand` — disease-stress total sea
+  mortality stays in the 14-16% band.
+- `DiseaseShare_IsCalibratedAndSplitsTheSeaAnchor` — `SeaMortalityDiseaseShare`
+  is a real slice (not 0 or 1) and the husbandry + disease split reconstructs
+  `SeaMortalityPerCycle` exactly.
+- `StormEscapes_StayWithinRegulatoryGuard` — engine-driven storm escapes stay
+  within the 0.5%/site/year share guard and the 1 event/site/year guard, storms
+  actually occur, and maintained nets stay above the 40% risk line.
+- `SimProbe_IsDeterministic_SameSeedSameMetrics` /
+  `ExtendedProbes_AreDeterministic_SameSeedSameMetrics` — two identical seeds
+  produce byte-identical metrics for the baseline, disease and storm scenarios.
+
 ## Review log
 
 | Date | Reviewer | Changes |
@@ -350,3 +406,4 @@ The three metrics previously deferred to the engine owner are now wired into
 | 2026-10-08 | Balance harness | Added `SimProbe` + `BalanceReportTests` (seeds 1-20, 3-year grow-out cycles); measured-band table (§1b); tuned `FCRTempSensitivity` 0.018 -> 0.008 (v1.0.1); recorded mortality/price/lice deferrals (§5). |
 | 2026-10-08 | Calibration v1.0.2 | Wired `Health.SeaMortalityPerCycle` into `MortalityModel` (per-cycle -> per-day; 10.8 -> 15.8%); sourced `MarketSimulation` O-U from `CalibrationRegistry.Market`, added supply/demand mean-reversion + normal-play band, seeded market intelligence RNG (153 -> 88.0 NOK/kg); seeded seasonal external lice pressure (0.00 -> 0.49/fish). Re-ran `SimProbe` seeds 1-20 both scenarios; full suite green (707 passed). Updated `BalanceReportTests` bands from deferred to the real references; bumped `calibration.json` to 1.0.2. |
 | 2026-10-08 | Extended probe | Added disease-cycle, storm-escape, multi-site economics and lice-control scenarios to `SimProbe` + `BalanceReportTests` (§1c). Measured disease term 0.00%/cycle (dormant; engine deferral recorded in §5), storm escapes 0.15%/site/yr vs 0.5 guard, multi-site EBIT/kg 16.43 (in the 8-25 cyclical band), cost 69.6 NOK/kg produced, 1.5 treatments/cycle with 0.07% per-cycle resistance. Documented the test-side containment-risk model and the farm-gate cost stack. |
+| 2026-10-08 | Calibration v1.0.3 | Wired the two dormant depth systems into the live engine in-band. Disease: `IntegratedDiseaseSystem` injects via `MortalityModel.SetDiseaseMortalityRate`, anchor split by new `Health.SeaMortalityDiseaseShare` (0.30), measured disease 4.39%/cycle of a 14.88% total (was 0.00 / 15.76). Storms: `SimulationEngine.ApplyStormHazards` owns `SeaSite.NetIntegrityPct` wear/repair + `RecordEscape` (fine + event log); removed the duplicate block from `GameBridge.CheckWeatherImpacts`. Measured storm escapes 0.22%/site/yr, 0.16 events, min integrity 80.7% (was test-side 0.15% / 0.16 / 83.4). Re-ran `SimProbe` seeds 1-20; full solution suite green; `enableEvents:false` path unchanged and deterministic; bumped `calibration.json` to 1.0.3. |

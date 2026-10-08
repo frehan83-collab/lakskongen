@@ -1022,55 +1022,10 @@ public partial class GameBridge : Node
                 }
             }
 
-            // Phase 1.2: nets degrade in heavy weather; weak nets tear → escapes.
-            // Escape is player-fault-visible: only sites left below 40% tear.
-            foreach (var site in SimulationEngine.State.SeaSites)
-            {
-                // Phase 4.1: containment storm/escape signature per site.
-                var cmods = LakskongenSim.Farm.ContainmentTech.ModifiersFor(site.Containment);
-                site.NetIntegrityPct = System.Math.Max(0.0, site.NetIntegrityPct
-                    - severity * 25.0 * LakskongenSim.Core.CrewEffects.NetDecayMultiplier(SimulationEngine.State) * cmods.StormDamageMult);
-                if (site.NetIntegrityPct >= 40.0) continue;
-
-                int siteFish = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
-                int escapees = (int)(siteFish * (0.02 + severity * 0.06) * stormMult * cmods.EscapeRiskMult
-                    * LakskongenSim.Optimization.RemoteOpsCentre.EscapeResponseMult(site.WatchMode));
-                if (escapees <= 0) continue;
-
-                if (siteFish > 0)
-                {
-                    double siteBiomassKg = site.Pens.SelectMany(p => p.Cohorts)
-                        .Sum(c => (double)c.Count * c.MeanWeightKg);
-                    stormFishLoss += (decimal)(escapees * (siteBiomassKg / siteFish)) * stormSpotPrice;
-                }
-
-                int remaining = escapees;
-                foreach (var pop in site.Pens)
-                {
-                    foreach (var cohort in pop.Cohorts)
-                    {
-                        int take = System.Math.Min(cohort.Count, remaining);
-                        cohort.Count = System.Math.Max(0, cohort.Count - take);
-                        remaining -= take;
-                        if (remaining <= 0) break;
-                    }
-                    if (remaining <= 0) break;
-                }
-                site.RecordEscape(escapees);
-                decimal escapeFine = escapees * 100m; // NOK 100/fish regulatory fine
-                if (SimulationEngine.FinanceManager.Balance >= escapeFine)
-                    SimulationEngine.FinanceManager.Spend(escapeFine);
-                SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
-                {
-                    Day = SimulationEngine.State.Day,
-                    Name = "Escape",
-                    Category = LakskongenSim.Events.EventCategory.Equipment,
-                    Description = $"RØMMING: {escapees:N0} fish escaped at {site.Id} (nets {site.NetIntegrityPct:F0}%)",
-                    BalanceChange = -escapeFine
-                });
-                EmitSignal(SignalName.DiseaseOutbreak, "Escape", site.Id, 1.0, (double)escapeFine);
-                GD.Print($"GameBridge: ESCAPE — {escapees:N0} fish at '{site.Id}' (fine {escapeFine:N0} NOK)");
-            }
+            // Phase 1.2 / v1.0.3: net-integrity wear and storm escapes are now
+            // owned by the engine (SimulationEngine.ApplyStormHazards), the single
+            // source of truth. GameBridge no longer mutates NetIntegrityPct or
+            // records escapes here, which prevents double-escape accounting.
             // Storm repair bill (infrastructure damage, separate from escapes).
             decimal repairCost = (decimal)(SimulationEngine.State.SeaSites.Count * 50000 * severity); // 50k-100k NOK per site
             if (repairCost > 0 && SimulationEngine.FinanceManager.Balance >= repairCost)

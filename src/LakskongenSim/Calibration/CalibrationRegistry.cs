@@ -39,7 +39,7 @@ namespace LakskongenSim.Calibration
         public const string EmbeddedResourceName = "LakskongenSim.Calibration.calibration.json";
 
         /// <summary>Current schema/balancing version. Bump when reconciled values change.</summary>
-        public const string DefaultVersion = "1.0.2";
+        public const string DefaultVersion = "1.0.3";
 
         /// <summary>Calibration schema/balancing version.</summary>
         [JsonPropertyName("version")]
@@ -269,6 +269,16 @@ namespace LakskongenSim.Calibration
         /// Vet Institute Fish Health Report.
         /// </summary>
         public double SeaMortalityPerCycle { get; init; } = 0.15;
+        /// <summary>
+        /// Disease-attributable share (0-1) of <see cref="SeaMortalityPerCycle"/>.
+        /// The SIR disease system contributes this slice explicitly when events
+        /// are enabled; the remaining (1 - share) is the husbandry baseline. With
+        /// events off the whole anchor stays in the baseline so a deterministic
+        /// no-disease run still reproduces the 14-16% band. Real mapping: NVI
+        /// attributes a large part of the 15.4% all-cause sea loss to infectious
+        /// disease; 0.30 keeps disease a visible, tunable slice.
+        /// </summary>
+        public double SeaMortalityDiseaseShare { get; init; } = 0.30;
     }
 
     /// <summary>Finance constants.</summary>

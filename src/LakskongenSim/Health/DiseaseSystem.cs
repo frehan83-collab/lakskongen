@@ -19,6 +19,14 @@ namespace LakskongenSim.Health
         // Additional daily mortality applied proportionally to infected fraction
         public double ExtraMortalityRatePerDay { get; set; } = 0.002; // 0.2% per day at 100% prevalence
 
+        /// <summary>
+        /// Prevalence a population starts from when first seen. The engine sets
+        /// this to the calibrated endemic equilibrium so the disease slice tracks
+        /// its calibrated share of the sea-mortality anchor deterministically
+        /// (instead of the old 1e-6 seed that left the subsystem dormant).
+        /// </summary>
+        public double InitialPrevalence { get; set; } = 1e-6;
+
         // How much sea-lice increases susceptibility (multiplier per lice/fish)
         public double LiceSusceptibilityFactor { get; set; } = 0.02; // per lice
 
@@ -62,7 +70,7 @@ namespace LakskongenSim.Health
             if (pop == null) throw new ArgumentNullException(nameof(pop));
             if (days <= 0) return;
 
-            if (!_infected.TryGetValue(pop, out var p)) p = 1e-6; // tiny seed
+            if (!_infected.TryGetValue(pop, out var p)) p = Math.Clamp(InitialPrevalence, 0.0, 1.0);
 
             // incorporate lice-driven increased transmission
             var liceEffect = 1.0 + LiceSusceptibilityFactor * _liceModel.AverageLicePerFish;
@@ -130,6 +138,18 @@ namespace LakskongenSim.Health
         {
             if (pop == null) throw new ArgumentNullException(nameof(pop));
             return _infected.TryGetValue(pop, out var p) ? p : 0.0;
+        }
+
+        /// <summary>
+        /// Stable endemic prevalence of the population-level SIR
+        /// (<c>1 - gamma / (beta * liceEffect)</c>). Used to size the disease
+        /// mortality rate so its calibrated per-cycle slice is reproducible.
+        /// </summary>
+        public double EquilibriumPrevalence()
+        {
+            double liceEffect = 1.0 + LiceSusceptibilityFactor * (_liceModel?.AverageLicePerFish ?? 0.0);
+            double transmission = Beta * liceEffect;
+            return transmission > Gamma ? Math.Clamp(1.0 - Gamma / transmission, 0.0, 1.0) : 0.0;
         }
     }
 }

@@ -38,8 +38,16 @@ namespace LakskongenSim.Biology
         // calibrated sea grow-out duration. The sea stages (Seawater/Harvest) use this
         // anchor instead of the freshwater `GameConstants.BaselineMortalityPerDay`,
         // while disease/event mortality stays additive on top (see SetDiseaseMortalityRate).
+        //
+        // v1.0.3: when events are enabled the anchor is split into a husbandry
+        // baseline (1 - diseaseShare) plus an explicit disease slice that the SIR
+        // disease system contributes through SetDiseaseMortalityRate; the two sum
+        // back to the calibrated whole-cycle anchor. With events off the full anchor
+        // stays in the baseline so a deterministic no-disease run is unchanged.
         private double _seaMortalityPerCycle = CalibrationRegistry.Default.Health.SeaMortalityPerCycle;
         private double _seaPhaseDays = CalibrationRegistry.Default.Biology.GrowthToHarvestDays;
+        private double _seaDiseaseShare = 0.0;
+        private bool _seaDiseaseEnabled = false;
         private double _seaDailyRate = ComputeSeaDailyRate(
             CalibrationRegistry.Default.Health.SeaMortalityPerCycle,
             CalibrationRegistry.Default.Biology.GrowthToHarvestDays);
@@ -61,15 +69,36 @@ namespace LakskongenSim.Biology
         /// model. Called by the engine after <c>CalibrationRegistry</c> load so
         /// the runtime value is the registry value, not a code default.
         /// </summary>
-        public void ConfigureSeaMortality(double perCycle, double seaPhaseDays)
+        /// <param name="perCycle">Whole-cycle sea mortality anchor (fraction).</param>
+        /// <param name="seaPhaseDays">Calibrated sea grow-out duration (days).</param>
+        /// <param name="diseaseShare">Disease-attributable share of the anchor (0-1).</param>
+        /// <param name="diseaseEnabled">When true the disease slice is removed from
+        /// the baseline and left to the SIR disease system; when false the full
+        /// anchor stays in the baseline (deterministic no-disease runs).</param>
+        public void ConfigureSeaMortality(double perCycle, double seaPhaseDays,
+            double diseaseShare = 0.0, bool diseaseEnabled = false)
         {
             _seaMortalityPerCycle = perCycle;
             _seaPhaseDays = seaPhaseDays > 0 ? seaPhaseDays : _seaPhaseDays;
-            _seaDailyRate = ComputeSeaDailyRate(_seaMortalityPerCycle, _seaPhaseDays);
+            _seaDiseaseShare = Math.Clamp(diseaseShare, 0.0, 1.0);
+            _seaDiseaseEnabled = diseaseEnabled;
+            double nonDiseasePerCycle = diseaseEnabled
+                ? perCycle * (1.0 - _seaDiseaseShare)
+                : perCycle;
+            _seaDailyRate = ComputeSeaDailyRate(nonDiseasePerCycle, _seaPhaseDays);
         }
 
         /// <summary>Per-day sea-phase baseline hazard derived from the per-cycle anchor.</summary>
         public double SeaDailyMortalityRate => _seaDailyRate;
+
+        /// <summary>Whole-cycle sea mortality anchor currently configured.</summary>
+        public double SeaMortalityPerCycle => _seaMortalityPerCycle;
+
+        /// <summary>Disease share of the sea anchor currently configured (0-1).</summary>
+        public double SeaMortalityDiseaseShare => _seaDiseaseShare;
+
+        /// <summary>Whether the explicit disease slice is currently enabled.</summary>
+        public bool IsSeaDiseaseEnabled => _seaDiseaseEnabled;
 
         /// <summary>Baseline daily rate for a stage: sea stages use the calibrated anchor, freshwater keeps the legacy constant.</summary>
         private double BaselineDailyRate(LifeStage stage)
