@@ -80,11 +80,26 @@ Date: 2026-10-08. Reviewed at commit `b56ff2a`. The review covers the C# simulat
   Division note: `CheckDiseaseOutbreaks` remains bridge-side as a UI
   observer (now reading `GetCompanyLiceAverage`); `CheckGameOverConditions`
   stays bridge-side (EndGame is Godot lifecycle). Suite 686/1 skip.
-  **Still open:** ITickSystem split, ISnapshotable+one serializer,
+  **Phase 1 wave 3 DONE — ITickSystem + shared delousing kernel + P&L truth.**
+  `ITickSystem` contract (Tick(engine), no data-bag, registration order =
+  execution order) with three post-tick phases: StormImpacts →
+  WellboatExecution → BalanceMirror; the ad-hoc advance wiring is gone,
+  the mirror re-syncs daily, and the contract is designed so in-day
+  AdvanceOneDay blocks can migrate without a contract change. The
+  delousing core is now shared: `ApplySiteDelousing` + the crew/gill
+  multiplier drive BOTH the player verb and Mattilsynet enforcement
+  (whole-site treatment, force-pay, honest temperature cancellation).
+  Storm loss factor moved into CalibrationRegistry (EnvironmentCalibration,
+  v1.0.4) with a provisional corridor guard. P&L truth: harvest/sludge
+  book revenue, feed books COGS, and GameBridge Revenue/Expenses/Profit
+  read the statements — IPO gating now keys on real profitability
+  (deliberate, documented). Suite 693/1 skip.
+  **Still open:** in-day ITickSystem migration of the interval blocks
+  (weather/bio/finance/regulation), ISnapshotable+one serializer (incl.
+  weather persistence for the load-mid-storm settlement gap),
   BuildSeaSite/ApplyForLicense double-charge, migration of legacy seeded
-  subsystems (Weather/Growth/Genetics/Market) onto SimRng streams with
-  golden-file bit-equivalence, EnforceLiceTreatmentOrder reuse of
-  DelouseSite core.
+  subsystems onto SimRng streams with golden-file bit-equivalence, the
+  episodic storm model (net-integrity exposure + magnitude band test).
   **Review follow-ups (from the post-impl adversarial pass, accepted):**
   (1) `StormFishLossBaseFraction = 0.0003` is a PROVISIONAL single-variable
   band fit — it must become an episodic storm model (NVI-attributed storm

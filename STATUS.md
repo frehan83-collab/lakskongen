@@ -10,7 +10,7 @@
 | Check | Result |
 |---|---|
 | `dotnet build LakskongenSim.sln` | ✅ 0 errors, 0 warnings |
-| Tests | ✅ **686 passed**, 1 skipped, 0 failed (honest count; the old "727" included ~92 triplicates, fixed in Phase 0. Includes seeded 3-year soak, campaign smoke, PlayerScriptProbe careers) |
+| Tests | ✅ **693 passed**, 1 skipped, 0 failed (honest count; the old "727" included ~92 triplicates, fixed in Phase 0. Includes seeded 3-year soak, campaign smoke, PlayerScriptProbe careers) |
 | CI gate (`tools/ci.sh`) | ✅ **9/9 locally** (nothing skipped) — builds both assemblies · dotnet tests · pytest · perf · token sync · JSON · scene validation · GDScript parse. GitHub CI runs the same gate headless |
 | Performance | ✅ 0.19 ms/day best avg (3 sites / ~103k fish; soft 2 ms/day, hard 5 ms/day) |
 | Godot editor scan | ✅ 0 GDScript parse errors (Godot 4.7) |
@@ -61,9 +61,15 @@ projects — the tick/skip asymmetry is dead. Storm loss factor
 recalibrated 0.02 → 0.0003 (was never probe-measured; 67% cycle
 mortality vs the 14–16% band).
 
-Next on this track: `ITickSystem` split, ISnapshotable/one-serializer
-rewrite, then migrating the legacy seeded subsystems onto SimRng
-streams with bit-equivalence golden tests.
+Wave 3 (done): `ITickSystem` post-tick pipeline (storm → wellboat →
+balance mirror); one delousing kernel shared by the player verb and
+Mattilsynet enforcement (whole-site, honest temperature cancellation);
+storm factor in CalibrationRegistry (v1.0.4); P&L truth — harvest/feed
+book revenue/COGS and the bridge reports real Revenue/Expenses/Profit.
+
+Next on this track: in-day ITickSystem migration of the interval
+blocks, ISnapshotable/one-serializer rewrite, then migrating the legacy
+seeded subsystems onto SimRng streams with bit-equivalence golden tests.
 
 - **Foundations (W1–2)** — audio truth pass, token-driven theme, data-viz,
   scenarios/mods wired, unified onboarding, `ConsequenceDirector`.
