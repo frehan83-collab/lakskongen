@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://fjord_environment_001"]
+[gd_scene load_steps=29 format=3 uid="uid://fjord_environment_001"]
 
 [ext_resource type="Script" path="res://scripts/environment/FjordEnvironment.gd" id="1_env"]
 [ext_resource type="Script" path="res://scripts/environment/FjordTerrain.gd" id="2_terrain"]
@@ -12,6 +12,9 @@
 [ext_resource type="Shader" path="res://shaders/sky_shader.gdshader" id="8_sky_shader"]
 [ext_resource type="Texture2D" path="res://assets/textures/water/ocean_normal_1.png" id="10_normal_map_1"]
 [ext_resource type="Texture2D" path="res://assets/textures/water/ocean_normal_2.png" id="11_normal_map_2"]
+[ext_resource type="Shader" path="res://shaders/underwater_post.gdshader" id="12_underwater_shader"]
+[ext_resource type="Texture2D" path="res://assets/textures/water_foam.png" id="13_foam_tex"]
+[ext_resource type="Texture2D" path="res://assets/textures/water_caustics.png" id="14_caustics_tex"]
 
 [sub_resource type="ShaderMaterial" id="water_mat"]
 shader = ExtResource("6_water_shader")
@@ -41,6 +44,14 @@ shader_parameter/normal_map_scroll_speed = 0.05
 shader_parameter/normal_map_strength = 1.0
 shader_parameter/normal_map_1 = ExtResource("10_normal_map_1")
 shader_parameter/normal_map_2 = ExtResource("11_normal_map_2")
+shader_parameter/foam_texture = ExtResource("13_foam_tex")
+shader_parameter/caustics_texture = ExtResource("14_caustics_tex")
+shader_parameter/foam_scale = 0.08
+shader_parameter/foam_scroll_speed = 0.02
+shader_parameter/foam_texture_strength = 1.2
+shader_parameter/caustics_tile_scale = 0.05
+shader_parameter/caustics_tile_speed = 0.05
+shader_parameter/caustics_tile_strength = 0.6
 shader_parameter/wind_direction = Vector2(1, 0.3)
 shader_parameter/wind_strength = 1.0
 shader_parameter/water_clarity = 0.85
@@ -58,6 +69,9 @@ shader = ExtResource("8_sky_shader")
 shader_parameter/time_of_day = 0.35
 shader_parameter/season = 0.5
 shader_parameter/aurora_intensity = 0.0
+shader_parameter/aurora_enabled = true
+shader_parameter/aurora_band_height = 0.35
+shader_parameter/aurora_band_width = 0.18
 shader_parameter/cloud_coverage = 0.3
 shader_parameter/star_density = 0.5
 shader_parameter/sun_size = 0.02
@@ -68,14 +82,52 @@ sky_material = SubResource("sky_mat")
 [sub_resource type="Environment" id="environment_resource"]
 background_mode = 2
 sky = SubResource("sky_resource")
-ambient_light_source = 2
+ambient_light_source = 3
 ambient_light_color = Color(0.529, 0.808, 0.922, 1)
-ambient_light_sky_contribution = 0.7
-ambient_light_energy = 0.4
+ambient_light_sky_contribution = 1.0
+ambient_light_energy = 0.5
+reflected_light_source = 2
+tonemap_mode = 3
+tonemap_exposure = 1.0
+tonemap_white = 6.0
+ssao_enabled = true
+ssao_radius = 2.0
+ssao_intensity = 0.7
+ssao_power = 1.5
+ssao_detail = 0.5
+ssao_horizon = 0.06
+ssao_sharpness = 0.98
+ssao_light_affect = 0.1
+glow_enabled = true
+glow_normalized = true
+glow_levels/1 = 0.0
+glow_levels/2 = 0.0
+glow_levels/3 = 0.1
+glow_levels/4 = 0.3
+glow_levels/5 = 0.5
+glow_levels/6 = 0.3
+glow_levels/7 = 0.1
+glow_intensity = 0.6
+glow_strength = 1.0
+glow_bloom = 0.05
+glow_blend_mode = 1
+glow_hdr_threshold = 1.0
+glow_hdr_scale = 2.0
+glow_hdr_luminance_cap = 12.0
+glow_map_strength = 0.8
 fog_enabled = true
 fog_light_color = Color(0.75, 0.82, 0.9, 1)
-fog_density = 0.001
+fog_light_energy = 1.0
+fog_sun_scatter = 0.2
+fog_density = 0.0008
+fog_aerial_perspective = 0.3
 fog_sky_affect = 0.5
+fog_height = 150.0
+fog_height_density = 0.02
+adjustments_enabled = true
+adjustment_brightness = 1.0
+adjustment_contrast = 1.05
+adjustment_saturation = 1.08
 volumetric_fog_enabled = false
 volumetric_fog_density = 0.01
 volumetric_fog_albedo = Color(0.9, 0.92, 0.95, 1)
@@ -90,6 +142,60 @@ shader_parameter/vignette_strength = 0.3
 shader_parameter/vignette_radius = 0.8
 shader_parameter/warmth = 0.02
 shader_parameter/contrast = 1.1
+
+[sub_resource type="ShaderMaterial" id="underwater_mat"]
+shader = ExtResource("12_underwater_shader")
+shader_parameter/active = 0.0
+shader_parameter/water_tint = Color(0.055, 0.227, 0.29, 1)
+shader_parameter/tint_strength = 0.55
+shader_parameter/blur_amount = 2.5
+shader_parameter/caustics_strength = 0.16
+shader_parameter/caustics_scale = 0.12
+shader_parameter/caustics_speed = 0.05
+shader_parameter/edge_vignette = 0.35
+shader_parameter/caustics_texture = ExtResource("14_caustics_tex")
+
+[sub_resource type="ParticleProcessMaterial" id="rain_process"]
+particle_flag_disable_z = false
+direction = Vector3(0, -1, 0)
+spread = 8.0
+initial_velocity_min = 18.0
+initial_velocity_max = 26.0
+gravity = Vector3(0, -30, 0)
+scale_min = 0.5
+scale_max = 1.0
+
+[sub_resource type="StandardMaterial3D" id="rain_draw_mat"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.65, 0.75, 0.95, 0.5)
+billboard_mode = 3
+
+[sub_resource type="QuadMesh" id="rain_mesh"]
+material = SubResource("rain_draw_mat")
+size = Vector2(0.04, 0.7)
+
+[sub_resource type="ParticleProcessMaterial" id="snow_process"]
+direction = Vector3(0, -1, 0)
+spread = 30.0
+initial_velocity_min = 1.0
+initial_velocity_max = 3.0
+gravity = Vector3(0, -2, 0)
+damping_min = 0.1
+damping_max = 0.3
+turbulence_enabled = true
+turbulence_noise_strength = 0.6
+turbulence_noise_speed = Vector3(0.2, 0.1, 0.2)
+
+[sub_resource type="StandardMaterial3D" id="snow_draw_mat"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.95, 0.97, 1, 0.85)
+billboard_mode = 3
+
+[sub_resource type="QuadMesh" id="snow_mesh"]
+material = SubResource("snow_draw_mat")
+size = Vector2(0.12, 0.12)
 
 [node name="FjordEnvironment" type="Node3D"]
 script = ExtResource("1_env")
@@ -133,6 +239,15 @@ directional_shadow_max_distance = 2000.0
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("environment_resource")
 
+[node name="ReflectionProbe" type="ReflectionProbe" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 120, 0)
+size = Vector3(4000, 900, 4000)
+origin_offset = Vector3(0, 0, 0)
+intensity = 1.0
+max_distance = 4000.0
+box_projection = true
+update_mode = 1
+
 [node name="TimeOfDay" type="Node" parent="."]
 script = ExtResource("4_time")
 time_of_day = 0.35
@@ -152,6 +267,8 @@ emitting = false
 amount = 2000
 lifetime = 2.0
 visibility_aabb = AABB(-100, -50, -100, 200, 100, 200)
+process_material = SubResource("rain_process")
+draw_pass_1 = SubResource("rain_mesh")
 
 [node name="SnowParticles" type="GPUParticles3D" parent="WeatherSystem"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 60, 0)
@@ -159,6 +276,8 @@ emitting = false
 amount = 1500
 lifetime = 5.0
 visibility_aabb = AABB(-100, -60, -100, 200, 120, 200)
+process_material = SubResource("snow_process")
+draw_pass_1 = SubResource("snow_mesh")
 
 [node name="TiltShiftCanvas" type="CanvasLayer" parent="."]
 layer = 10
@@ -170,6 +289,18 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="UnderwaterCanvas" type="CanvasLayer" parent="."]
+layer = 11
+
+[node name="UnderwaterRect" type="ColorRect" parent="UnderwaterCanvas"]
+material = SubResource("underwater_mat")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="VisualAdapter3D" type="Node" parent="."]
 script = ExtResource("9_visual_adapter")

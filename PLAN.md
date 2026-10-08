@@ -181,12 +181,26 @@ Full report saved in the session log. Top priorities:
 - **Onboarding + audio**: tutorial track 14→18 steps (genetics, insurance, mitigation, overlays) with `TutorialState` unlock mapping; event stingers for insurance payout / GE deploy / red-zone change / mitigation install via `ConsequenceDirector`; UI sounds on the new panels.
 - **Balance/realism**: standalone `FeedSystem` defaults reconciled to the registry (22.3 / 1.15 → 25.65/kg produced); new `docs/BALANCE.md`; `CalibrationGuardTests` extended; `REALISM_CHECKLIST` feed row corrected.
 
+## Critical review verdict (external research + metrics)
+Scored against a research rubric (Dwarf Fortress/RimWorld/Factorio/Anno/Cities:Skylines/Mini Motorways/iRacing):
+- **Realism/depth: 3.5/5** — genuinely interlocking systems + calibration guards; but never played, so "emergent/legible" is unproven.
+- **Code/engineering: 3.5→4/5** — deterministic, save-safe, moddable, 698 tests; was held back by a 5,868-LOC monolith + 9 stubs (now fixed).
+- **Graphics/presentation: 2/5** — **the blocker**: no 3D model assets, procedural primitives, placeholder capsules.
+- **Category context:** no top-tier aquaculture incumbent exists (Aquaculture Land 75%, FS25 Highlands Fishing 56% mixed); realistic 3D is *not* required — coherent stylized art is.
+
+## Wave 10 — landed (this session) — attacking the graphics blocker + engineering
+- **Visual identity (A)**: `tools/gen_textures.py` (PIL, deterministic) → 14 tileable textures + normal maps (grass/rock/snow/sand/moss, foam, caustics); `terrain_shader` now textured (biplanar + slope/height blend + normals); `water_shader` foam+caustics; `sky_shader` aurora; new `underwater_post.gdshader`; `FjordEnvironment.tscn` gains ReflectionProbe, ACES/glow/SSAO/fog tuning, particle process materials.
+- **Engineering (B)**: `GameBridge.cs` 5,868 LOC → anchor + 5 partials (`Core`/`Farm`/`Market`/`Depth`/`Economy`), behaviour-identical; **0 `NotImplementedException`** (safe-fail + log).
+- **CI (C)**: `tools/ci.sh` + `.github/workflows/ci.yml` — build, test, perf gate, token sync, JSON validation, headless parse scan. **Passes locally (all 6 steps).** Fixed stale `verify.yml` (.NET 8→10).
+- **Store art (D)**: `tools/gen_store_art.py` → illustrated "Nordic Aurora Fjord" capsule set (7 sizes) replacing text-on-gradient placeholders.
+
+**Caveat:** graphics/store-art changes are code-generated and **cannot be visually verified headlessly** — they need human eyeballs on a display before shipping.
+
 ## Final session verification
-- `dotnet build LakskongenSim.sln` → **succeeded** (sim + Godot C# assemblies).
-- Tests: **698 passed, 1 skipped, 0 failed** across 5 assemblies (campaign smoke + 3-yr soak + barrier).
-- Performance: **~0.27 ms/day** (soft budget 2 ms, hard gate 5 ms).
-- Godot editor scan: **0 parse errors**; headless boot: **0 script errors**; 9 scenarios; ModLoader ready; theme from tokens.
-- `tools/sync_tokens.py --check` → in sync; tutorial/calibration JSON valid; 552 translation rows.
+- `dotnet build LakskongenSim.sln` → **succeeded**.
+- Tests: **698 passed, 1 skipped, 0 failed**.
+- `tools/ci.sh` (with Godot) → **PASSED (6/6)**; perf ~0.21 ms/day.
+- Godot editor scan: **0 parse/shader errors**; headless boot: **0 script errors**; GameBridge autoload alive after split; 14 textures imported.
 
 ## Next (post-session)
 - Visual QA on a real display (all verification so far is headless + tests).

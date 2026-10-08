@@ -46,6 +46,16 @@ uniform float normal_map_strength : hint_range(0.0, 2.0) = 1.0;
 uniform sampler2D depth_texture : hint_depth_texture;
 uniform sampler2D screen_texture : hint_screen_texture;
 
+// Foam / caustics detail textures (generated tiles)
+uniform sampler2D foam_texture : hint_default_white, filter_linear, repeat_enable;
+uniform sampler2D caustics_texture : hint_default_white, filter_linear, repeat_enable;
+uniform float foam_scale : hint_range(0.001, 1.0) = 0.08;
+uniform float foam_scroll_speed : hint_range(0.0, 1.0) = 0.02;
+uniform float foam_texture_strength : hint_range(0.0, 2.0) = 1.2;
+uniform float caustics_tile_scale : hint_range(0.001, 1.0) = 0.05;
+uniform float caustics_tile_speed : hint_range(0.0, 1.0) = 0.05;
+uniform float caustics_tile_strength : hint_range(0.0, 2.0) = 0.6;
+
 // Wind direction (from WeatherController)
 uniform vec2 wind_direction = vec2(1.0, 0.3);
 uniform float wind_strength : hint_range(0.0, 3.0) = 1.0;
@@ -149,14 +159,25 @@ void fragment() {
 	
 	// Additional foam from normal map detail (simulating micro-wave breaking)
 	float detail_foam = smoothstep(0.6, 0.9, length(combined_normal.xz)) * 0.3;
-	
+
+	// Texture-driven foam/whitecap wisps, advected by the wind.
+	vec2 foam_uv = world_pos.xz * foam_scale
+		+ normalize(wind_direction) * TIME * foam_scroll_speed;
+	float foam_wisp = texture(foam_texture, foam_uv).a;
+	float texture_foam = foam_wisp * (shore_foam + wave_foam) * foam_texture_strength;
+
 	float total_foam = clamp(shore_foam + wave_foam + detail_foam, 0.0, 1.0);
+	total_foam = clamp(total_foam * (0.45 + 1.1 * foam_wisp) + texture_foam * 0.35, 0.0, 1.0);
 
 	// Fresnel effect
 	float fresnel = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), fresnel_power);
 
 	// Caustics (visible mostly in shallow water)
 	float caustics = caustic_pattern(world_pos.xz, TIME) * caustic_intensity;
+	float caustics_tile = texture(caustics_texture,
+		world_pos.xz * caustics_tile_scale
+		+ vec2(TIME * caustics_tile_speed, TIME * caustics_tile_speed * 0.6)).r;
+	caustics += caustics_tile * caustics_tile_strength * caustic_intensity;
 	caustics *= (1.0 - depth_factor); // Only visible in shallow areas
 	caustics *= water_clarity; // Less caustics in murky water
 

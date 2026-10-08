@@ -19,6 +19,9 @@ uniform vec3 night_horizon : source_color = vec3(0.05, 0.1, 0.15);
 
 // Aurora
 uniform float aurora_intensity : hint_range(0.0, 1.0) = 0.0;
+uniform bool aurora_enabled = true;
+uniform float aurora_band_height : hint_range(0.0, 1.0) = 0.35;
+uniform float aurora_band_width : hint_range(0.01, 0.5) = 0.18;
 uniform vec3 aurora_green : source_color = vec3(0.31, 1.0, 0.69);      // #4FFFB0
 uniform vec3 aurora_purple : source_color = vec3(0.651, 0.31, 1.0);    // #A64FFF
 
@@ -45,17 +48,25 @@ float stars(vec3 dir) {
 }
 
 float aurora(vec3 dir, float time) {
-	if (dir.y < 0.1) return 0.0;
+	if (dir.y < 0.05) return 0.0;
 	float y = dir.y;
-	vec2 uv = dir.xz / (y + 0.5) * 3.0;
+	float azimuth = atan(dir.x, dir.z);
 
+	// Vertical curtain rays that shimmer and slowly drift.
+	float rays = 0.5 + 0.5 * sin(azimuth * 18.0 + time * 0.6);
+	rays *= 0.5 + 0.5 * sin(azimuth * 7.0 - time * 0.25 + 1.3);
+
+	// Broad horizontal waves.
+	vec2 uv = dir.xz / (y + 0.4) * 2.0;
 	float wave1 = sin(uv.x * 2.0 + time * 0.3) * sin(uv.y * 1.5 + time * 0.2);
 	float wave2 = sin(uv.x * 3.5 - time * 0.4) * cos(uv.y * 2.0 + time * 0.15);
-	float pattern = (wave1 + wave2) * 0.5;
+	float pattern = max((wave1 + wave2) * 0.5, 0.0);
 
-	// Aurora is band-like in the sky
-	float band = smoothstep(0.2, 0.5, y) * smoothstep(0.8, 0.5, y);
-	return max(pattern, 0.0) * band;
+	// Soft band centred on aurora_band_height.
+	float band = smoothstep(aurora_band_height - aurora_band_width, aurora_band_height, y)
+		* (1.0 - smoothstep(aurora_band_height, aurora_band_height + aurora_band_width, y));
+
+	return (pattern * 0.6 + rays * 0.4) * band;
 }
 
 void sky() {
@@ -99,7 +110,7 @@ void sky() {
 	}
 
 	// Aurora borealis (night only, when enabled)
-	if (aurora_intensity > 0.0 && night_factor > 0.1) {
+	if (aurora_enabled && aurora_intensity > 0.0 && night_factor > 0.1) {
 		float a = aurora(dir, TIME);
 		vec3 aurora_color = mix(aurora_green, aurora_purple, sin(dir.x * 5.0 + TIME * 0.2) * 0.5 + 0.5);
 		sky_color += aurora_color * a * aurora_intensity * night_factor;

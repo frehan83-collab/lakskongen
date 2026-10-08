@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    name: Quality gate
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_NOLOGO: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_ROLL_FORWARD: LatestMajor
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Godot is intentionally not installed on the runner. tools/ci.sh skips
+      # the GDScript parse scan gracefully when GODOT_BIN is absent. To enable
+      # it, set GODOT_BIN (e.g. via a cached download) before this step.
+      - name: Run quality gate
+        run: bash tools/ci.sh

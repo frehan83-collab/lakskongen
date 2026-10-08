@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+#
+# Lakskongen CI quality gate.
+#
+# Fails fast: the first failing step prints the summary and exits non-zero.
+# Every step is recorded so the summary always shows what ran.
+#
+# Environment:
+#   GODOT_BIN   Path to the Godot 4 editor binary. Defaults to the standard
+#               macOS install. If the binary is missing the GDScript parse
+#               scan is skipped gracefully (never a hard failure).
+#   PYTHON      Python interpreter to use. Defaults to python3.
+#
+# Usage:
+#   bash tools/ci.sh
+#
+set -euo pipefail
+set -E  # errtrace: propagate the ERR trap into shell functions
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+PYTHON="${PYTHON:-python3}"
+GODOT_BIN="${GODOT_BIN:-/Applications/Godot.app/Contents/MacOS/Godot}"
+
+STEP_NAMES=()
+STEP_RESULTS=()
+CURRENT_STEP=""
+STEP_STATUS=""
+
+print_summary() {
+    local i
+    echo ""
+    echo "=================== CI SUMMARY ==================="
+    for i in "${!STEP_NAMES[@]}"; do
+        printf '  %-4s  %s\n' "${STEP_RESULTS[$i]}" "${STEP_NAMES[$i]}"
+    done
+    if [[ ${#STEP_NAMES[@]} -eq 0 ]]; then
+        echo "  (no steps completed)"
+    fi
+    echo "=================================================="
+}
+
+on_err() {
+    local code=$?
+    if [[ -n "$CURRENT_STEP" ]]; then
+        STEP_RESULTS+=("FAIL")
+    fi
+    print_summary
+    echo ""
+    echo "CI FAILED at step: ${CURRENT_STEP:-<unknown>} (exit $code)"
+    exit "$code"
+}
+
+trap on_err ERR
+
+run_step() {
+    local name="$1"
+    shift
+    CURRENT_STEP="$name"
+    STEP_NAMES+=("$name")
+    STEP_STATUS="PASS"
+    echo "▶ $name"
+    "$@"
+    STEP_RESULTS+=("$STEP_STATUS")
+    CURRENT_STEP=""
+}
+
+step_build() {
+    dotnet build LakskongenSim.sln --nologo
+}
+
+step_test() {
+    dotnet test LakskongenSim.sln --nologo
+}
+
+step_benchmark() {
+    # Program.cs returns non-zero when the perf gate exceeds its hard budget.
+    dotnet run --project src/PerformanceBenchmark -c Release
+}
+
+step_tokens() {
+    "$PYTHON" tools/sync_tokens.py --check
+}
+
+step_validate_json() {
+    local fail=0 count=0 f
+    while IFS= read -r -d '' f; do
+        count=$((count + 1))
+        if ! "$PYTHON" -m json.tool "$f" >/dev/null 2>&1; then
+            echo "   INVALID JSON: ${f#"$REPO_ROOT"/}"
+            "$PYTHON" -m json.tool "$f" 2>&1 | head -5 || true
+            fail=1
+        fi
+    done < <(find "$REPO_ROOT/godot/data" -maxdepth 1 -name '*.json' -print0; \
+             find "$REPO_ROOT/godot/mods" -name 'manifest.json' -print0)
+    echo "   Validated $count JSON file(s)."
+    (( fail == 0 ))
+}
+
+step_gdscript_scan() {
+    if [[ ! -x "$GODOT_BIN" ]]; then
+        echo "   Godot not found at '$GODOT_BIN' — skipping GDScript parse scan."
+        echo "   Set GODOT_BIN=/path/to/Godot to enable it."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+
+    local project="$REPO_ROOT/godot"
+    local log rc=0
+    log="$(mktemp -t lakskongen-godot.XXXXXX)"
+
+    local -a timeout_cmd=()
+    if command -v timeout >/dev/null 2>&1; then
+        timeout_cmd=(timeout 300)
+    elif command -v gtimeout >/dev/null 2>&1; then
+        timeout_cmd=(gtimeout 300)
+    fi
+
+    echo "   Using Godot: $GODOT_BIN"
+    "${timeout_cmd[@]}" "$GODOT_BIN" --headless --path "$project" \
+        --editor --quit-after 3 >"$log" 2>&1 || rc=$?
+
+    if grep -qiE "parse error|script error" "$log"; then
+        echo "   GDScript parse errors detected:"
+        grep -iE "parse error|script error" "$log" | head -40
+        echo "   Full log: $log"
+        STEP_STATUS="FAIL"
+        return 1
+    fi
+
+    if (( rc != 0 )); then
+        echo "   Godot exited with code $rc; parse scan did not complete cleanly."
+        tail -20 "$log"
+        echo "   Full log: $log"
+        STEP_STATUS="FAIL"
+        return 1
+    fi
+
+    echo "   GDScript parse scan clean."
+    rm -f "$log"
+}
+
+echo "Lakskongen CI quality gate — repo: $REPO_ROOT"
+echo ""
+
+run_step "dotnet build LakskongenSim.sln"              step_build
+run_step "dotnet test LakskongenSim.sln"               step_test
+run_step "Performance benchmark (perf gate)"           step_benchmark
+run_step "Design token sync check"                     step_tokens
+run_step "Validate JSON data + mod manifests"          step_validate_json
+run_step "Headless GDScript parse scan"                step_gdscript_scan
+
+CURRENT_STEP=""
+print_summary
+echo ""
+echo "CI PASSED"

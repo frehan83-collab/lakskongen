@@ -15,14 +15,25 @@ extends Node3D
 @export_group("Water")
 @export var water_plane: MeshInstance3D
 
+@export_group("Post-Process")
+## Full-screen underwater overlay (blue tint + blur + caustics).
+@export var underwater_rect: ColorRect
+## Water surface height used to detect an underwater camera.
+@export var underwater_water_level: float = 0.0
+
 @export_group("Debug")
 @export var debug_overlay: bool = false
 
 var _initialized: bool = false
+var _underwater_target: float = 0.0
+var _underwater_current: float = 0.0
 
 
 func _ready() -> void:
 	_connect_signals()
+
+	if underwater_rect == null:
+		underwater_rect = get_node_or_null("UnderwaterCanvas/UnderwaterRect") as ColorRect
 	
 	if visual_adapter:
 		visual_adapter.bind_simulation(get_node_or_null("/root/SimBridge"))
@@ -35,6 +46,29 @@ func _ready() -> void:
 	
 	_initialized = true
 	print("[FjordEnvironment] Initialized — Norwegian fjord renderer ready")
+
+
+func _process(delta: float) -> void:
+	_update_underwater_post(delta)
+
+
+## Fade the underwater post-process overlay based on camera depth.
+## Fully guarded: no-ops when the overlay or camera is missing.
+func _update_underwater_post(delta: float) -> void:
+	if underwater_rect == null or not (underwater_rect.material is ShaderMaterial):
+		return
+
+	var target := 0.0
+	if camera:
+		var level := underwater_water_level
+		if terrain:
+			level = terrain.water_level
+		if camera.global_position.y < level:
+			target = 1.0
+
+	_underwater_target = target
+	_underwater_current = move_toward(_underwater_current, _underwater_target, delta * 2.5)
+	(underwater_rect.material as ShaderMaterial).set_shader_parameter("active", _underwater_current)
 
 
 func _connect_signals() -> void:

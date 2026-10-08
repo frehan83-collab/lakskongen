@@ -344,9 +344,10 @@ namespace LakskongenSim.Core
     /// Real Steamworks.NET Workshop backend — build-gated placeholder seam.
     ///
     /// <para>Compiled only when the <c>STEAMWORKS</c> symbol is defined. Each
-    /// member documents the Steamworks.NET API it must call. Until implemented
-    /// it throws <see cref="NotImplementedException"/>, so a Steamworks build
-    /// fails loudly rather than silently pretending an upload succeeded.</para>
+    /// member documents the Steamworks.NET API it must call. Until the SDK is
+    /// wired, every operation fails safe (returns <c>null</c>/<c>false</c>) and
+    /// emits a <see cref="SimLog.Error(string)"/> line, so a Steamworks build
+    /// never silently pretends an upload or download succeeded.</para>
     ///
     /// <para>Implementation notes:</para>
     /// <list type="bullet">
@@ -376,28 +377,55 @@ namespace LakskongenSim.Core
         }
 
         public Task<WorkshopItem?> UploadModAsync(string modFolderPath, WorkshopItem? existingItem = null)
-            => throw new NotImplementedException("Wire SteamUGC.CreateItem/StartItemUpdate/SubmitItemUpdate.");
+        {
+            SimLog.Error($"[SteamworksWorkshop] Upload unavailable: Steamworks SDK not wired. " +
+                         $"No item was published for '{modFolderPath}'.");
+            return Task.FromResult<WorkshopItem?>(null);
+        }
 
         public Task<bool> DownloadModAsync(ulong workshopItemId, string targetFolderPath)
-            => throw new NotImplementedException("Wire SteamUGC.SubscribeItem + SteamApps.GetItemInstallInfo.");
+        {
+            SimLog.Error($"[SteamworksWorkshop] Download unavailable: Steamworks SDK not wired. " +
+                         $"Item {workshopItemId} was not downloaded to '{targetFolderPath}'.");
+            return Task.FromResult(false);
+        }
 
         public Task<bool> SubscribeToModAsync(ulong workshopItemId)
-            => throw new NotImplementedException("Wire SteamUGC.SubscribeItem.");
+        {
+            SimLog.Error($"[SteamworksWorkshop] Subscribe unavailable: Steamworks SDK not wired. Item {workshopItemId}.");
+            return Task.FromResult(false);
+        }
 
         public Task<bool> UnsubscribeFromModAsync(ulong workshopItemId)
-            => throw new NotImplementedException("Wire SteamUGC.UnsubscribeItem.");
+        {
+            SimLog.Error($"[SteamworksWorkshop] Unsubscribe unavailable: Steamworks SDK not wired. Item {workshopItemId}.");
+            return Task.FromResult(false);
+        }
 
         public Task<WorkshopItem?> GetWorkshopItemDetailsAsync(ulong workshopItemId)
-            => throw new NotImplementedException("Wire SteamUGC.CreateQueryAllUGCRequest.");
+        {
+            SimLog.Error($"[SteamworksWorkshop] Details unavailable: Steamworks SDK not wired. Item {workshopItemId}.");
+            return Task.FromResult<WorkshopItem?>(null);
+        }
 
         public Task<bool> CheckForUpdateAsync(ulong workshopItemId, string localModVersion)
-            => throw new NotImplementedException("Wire SteamUGC.GetItemState (k_EItemStateNeedsUpdate).");
+        {
+            SimLog.Error($"[SteamworksWorkshop] Update check unavailable: Steamworks SDK not wired. " +
+                         $"Item {workshopItemId}, local version {localModVersion}.");
+            return Task.FromResult(false);
+        }
 
         public Task<bool> VoteForModAsync(ulong workshopItemId, bool upvote)
-            => throw new NotImplementedException("Wire SteamUGC.SetUserItemVote.");
+        {
+            SimLog.Error($"[SteamworksWorkshop] Vote unavailable: Steamworks SDK not wired. Item {workshopItemId}.");
+            return Task.FromResult(false);
+        }
 
         public Task<bool> ReportModAsync(ulong workshopItemId, string reason)
-            => throw new NotImplementedException("Wire the Steam client reporting flow.");
+        {
+            SimLog.Error($"[SteamworksWorkshop] Report unavailable: Steamworks SDK not wired. Item {workshopItemId}.");
+            return Task.FromResult(false);
+        }
     }
 #endif
 }

@@ -31,8 +31,28 @@ FjordEnvironment (Node3D) — Main controller
 | `scripts/environment/WeatherController.gd` | Script | Weather state machine |
 | `shaders/water_shader.gdshader` | Shader | Ocean rendering (Gerstner waves) |
 | `shaders/tilt_shift.gdshader` | Shader | Post-process miniature effect |
+| `shaders/underwater_post.gdshader` | Shader | Underwater tint + blur + caustics overlay |
 | `shaders/sky_shader.gdshader` | Shader | Dynamic sky with aurora |
-| `shaders/terrain_shader.gdshader` | Shader | Multi-layer terrain texturing |
+| `shaders/terrain_shader.gdshader` | Shader | Textured multi-layer terrain |
+| `tools/gen_textures.py` | Script | Deterministic PIL texture generator (stdlib + PIL) |
+
+## Generated Textures (`godot/assets/textures/`)
+
+All 512×512, seamless/tileable, produced by `python3 tools/gen_textures.py`
+(seeded, stdlib + Pillow only). Terrain layers ship with matching tangent-space
+normal maps (`*_normal.png`).
+
+| Texture | Channels | Used by |
+|---------|----------|---------|
+| `terrain_grass.png` / `_normal` | RGB | Terrain shader (low flat land) |
+| `terrain_rock.png` / `_normal` | RGB | Terrain shader (cliffs, upland) |
+| `terrain_snow.png` / `_normal` | RGB | Terrain shader (peaks, winter) |
+| `terrain_sand.png` / `_normal` | RGB | Terrain shader (beach/shore) |
+| `terrain_moss.png` / `_normal` | RGB | Terrain shader (north slopes) |
+| `water_foam.png` | RGBA (A = wisp mask) | Water shader shore/crest foam |
+| `water_caustics.png` | RGB | Water shader + underwater post |
+| `water/ocean_normal_1.png` | RGB normal | Water shader normal map 1 |
+| `water/ocean_normal_2.png` | RGB normal | Water shader normal map 2 |
 
 ## Camera Controls
 
@@ -164,12 +184,12 @@ fjord.set_season(0.75)  # Autumn
 
 ## Next Steps (Future Tasks)
 
-- [ ] Particle process materials (rain/snow velocity, gravity, wind)
+- [x] Particle process materials (rain/snow velocity, gravity, wind)
 - [ ] Terrain LOD (chunk-based loading for larger worlds)
-- [ ] Underwater post-process (blue tint, caustic overlay, blur)
-- [ ] Northern lights particle/shader effect
+- [x] Underwater post-process (blue tint, caustic overlay, blur)
+- [x] Northern lights shader effect (uniform-guarded aurora band)
 - [ ] Lighthouse beam (SpotLight3D + volumetric)
-- [ ] Terrain texture atlas (actual texture images vs. procedural color)
-- [ ] Foam texture for water (noise-based → texture-based)
-- [ ] Reflection probe placement
+- [x] Terrain texture atlas (actual texture images vs. procedural color)
+- [x] Foam texture for water (noise-based → texture-based)
+- [x] Reflection probe placement
 - [ ] Sound integration (ocean waves, rain, wind from AudioController)

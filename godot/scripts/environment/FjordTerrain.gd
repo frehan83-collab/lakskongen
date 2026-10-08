@@ -218,6 +218,9 @@ func _create_terrain_material() -> Material:
 		mat.shader = shader
 		mat.set_shader_parameter("water_level", water_level)
 		mat.set_shader_parameter("season", 0.5)
+		mat.set_shader_parameter("texture_scale", 1.0 / 24.0)
+		mat.set_shader_parameter("normal_strength", 1.0)
+		_apply_terrain_textures(mat)
 		return mat
 
 	# Fallback to basic material
@@ -225,6 +228,43 @@ func _create_terrain_material() -> Material:
 	fallback.albedo_color = Color("#6B7280")
 	fallback.roughness = 0.85
 	return fallback
+
+
+## Load the generated terrain texture set into the shader material.
+## Guarded: if any texture is missing, `use_textures` is disabled and the
+## shader falls back to its original procedural palette.
+func _apply_terrain_textures(mat: ShaderMaterial) -> void:
+	const BASE := "res://assets/textures/"
+	var layers := {
+		"grass": "terrain_grass",
+		"rock": "terrain_rock",
+		"snow": "terrain_snow",
+		"sand": "terrain_sand",
+		"moss": "terrain_moss",
+	}
+	var missing: Array[String] = []
+	for layer in layers:
+		var albedo_path := "%s%s.png" % [BASE, layers[layer]]
+		var normal_path := "%s%s_normal.png" % [BASE, layers[layer]]
+		var albedo := _load_texture(albedo_path)
+		var normal := _load_texture(normal_path)
+		if albedo == null or normal == null:
+			missing.append(layer)
+			continue
+		mat.set_shader_parameter("%s_tex" % layer, albedo)
+		mat.set_shader_parameter("%s_normal_tex" % layer, normal)
+
+	if missing.is_empty():
+		mat.set_shader_parameter("use_textures", 1.0)
+	else:
+		push_warning("[FjordTerrain] Missing terrain textures: %s — using procedural fallback" % ", ".join(missing))
+		mat.set_shader_parameter("use_textures", 0.0)
+
+
+func _load_texture(path: String) -> Texture2D:
+	if not ResourceLoader.exists(path):
+		return null
+	return load(path) as Texture2D
 
 
 ## Smoothstep helper
