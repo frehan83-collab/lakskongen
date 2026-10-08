@@ -129,9 +129,12 @@ func _update_sun() -> void:
 	var sun_angle := lerpf(-10.0, 190.0, sun_progress)
 	var sun_height := sin(deg_to_rad(clampf(sun_angle, 0.0, 180.0)))
 
-	# Rotate sun
+	# Rotate sun. At 60-69N the sun peaks near 45-53 deg on a summer day
+	# and barely clears the horizon in winter — never 80 deg overhead.
+	var summer_factor := 1.0 - absf(fmod(season, 1.0) - 0.5) * 2.0
+	var max_elevation := lerpf(10.0, 50.0, clampf(summer_factor, 0.0, 1.0))
 	sun_light.rotation_degrees = Vector3(
-		-lerpf(5.0, 80.0, sun_height),  # Pitch (height)
+		-lerpf(5.0, max_elevation, sun_height),  # Pitch (height)
 		lerpf(-90.0, 90.0, sun_progress),  # Yaw (east to west)
 		0.0
 	)

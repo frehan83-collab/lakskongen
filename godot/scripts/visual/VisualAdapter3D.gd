@@ -44,6 +44,11 @@ func _on_day_advanced(day: int, season: String) -> void:
 	_set_season_visuals(season)
 
 func _sync_pens_from_sim() -> void:
+	# DISABLED: this is a second, broken pen spawner that duplicates
+	# FishPenManager. It calls get_all_sites() (does not exist on SimBridge),
+	# places pens at (0,-20,0), and assigns a Node to MultiMesh.mesh.
+	# Delete this once FishPenManager covers all sim-to-3D sync.
+	return
 	var sites = _sim_bridge.get_all_sites()
 	if not sites:
 		return

@@ -33,7 +33,7 @@ const ZOOM_UNDERWATER := 3
 
 # Scenario id from ScenarioSelectPanel / ScenarioSystem (unlocked by default;
 # campaign scenarios can be gated).
-const QA_SCENARIO_ID := "small_farm"
+const QA_SCENARIO_ID := "po3_red_sone"
 const QA_STARTING_CAPITAL := 10_000_000
 const QA_DAYS_TO_SIMULATE := 12
 
@@ -135,7 +135,36 @@ func _boot_game() -> void:
 		sim.advance_days(QA_DAYS_TO_SIMULATE)
 	# Ensure at least one stocked site so the 3D fjord shows pens + fish.
 	_ensure_qa_site()
+	# Frame the farm: point the fjord camera at the first pen so the QA
+	# shots show cages + fish instead of empty water (zoom presets apply
+	# per shot on top of this focus point).
+	_focus_camera_on_first_pen()
 	await _wait(2.0)
+
+
+func _focus_camera_on_first_pen() -> void:
+	var pm := _find(_game, "FishPenManager")
+	if pm == null or not pm.has_method("get_pen_ids"):
+		return
+	# Pens arrive via SimBridge.state_updated ticks, a few frames after the
+	# scenario starts — poll briefly instead of assuming they exist already.
+	var ids: Array = []
+	for i in range(50):
+		ids = pm.call("get_pen_ids")
+		if not ids.is_empty():
+			break
+		await _wait(0.2)
+	if ids.is_empty():
+		push_warning("[ScreenshotHarness] no pens spawned — camera stays default")
+		return
+	var pos: Vector3 = pm.call("get_pen_position", ids[0])
+	# NOTE: _env is assigned after this runs in _boot_game — resolve locally.
+	var env := _env if _env != null else _find(_game, "FjordEnvironment")
+	if env != null and env.has_method("focus_camera_on"):
+		env.call("focus_camera_on", pos, 1)  # FjordCamera.ZoomLevel.FJORD
+		print("[diag] camera focused on pen %s at %s" % [str(ids[0]), str(pos)])
+	else:
+		push_warning("[ScreenshotHarness] could not focus camera (env=%s)" % str(env != null))
 
 	_ui_layer = _find(_game, "UILayer")
 	_env = _find(_game, "FjordEnvironment")
@@ -276,6 +305,9 @@ func _set_camera_zoom(level: int) -> void:
 		return
 	var cam = _env.get("camera")
 	if cam != null and is_instance_valid(cam) and cam.has_method("set_zoom_level"):
+		# Deterministic framing: the vista auto-orbit would rotate a
+		# different amount before every shot.
+		cam.set("auto_orbit_enabled", false)
 		cam.call("set_zoom_level", level)
 
 

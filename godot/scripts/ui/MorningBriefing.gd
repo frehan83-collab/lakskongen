@@ -13,6 +13,17 @@ extends CanvasLayer
 @onready var _close_button: Button = %CloseButton
 
 var _game_state: Node = null
+var _sim_bridge: Node = null
+
+
+func _exit_tree() -> void:
+	if _sim_bridge and _sim_bridge.has_signal("day_advanced") \
+			and _sim_bridge.day_advanced.is_connected(_on_sim_day_advanced):
+		_sim_bridge.day_advanced.disconnect(_on_sim_day_advanced)
+
+
+func _on_sim_day_advanced(new_day: int, _season: String) -> void:
+	_on_day_advanced(new_day)
 var _sim_core: Node = null
 var _decision_manager: Node = null
 var _last_day_shown: int = 0
@@ -32,8 +43,9 @@ func _ready():
 	# (Lambda adapts the 2-arg signal to the 1-arg handler; GameState
 	# hookup above is untouched.)
 	var sim := get_node_or_null("/root/SimBridge")
+	_sim_bridge = sim
 	if sim and sim.has_signal("day_advanced"):
-		sim.day_advanced.connect(func(new_day: int, _season: String): _on_day_advanced(new_day))
+		sim.day_advanced.connect(_on_sim_day_advanced)
 
 	_apply_localization()
 	_close_button.pressed.connect(_on_close_pressed)

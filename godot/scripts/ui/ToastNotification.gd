@@ -170,16 +170,19 @@ func _start_critical_pulse(toast_node: Control) -> void:
 	pulse.tween_property(toast_node, "modulate", Color(1, 1, 1, 1), 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 func _start_dismiss_timer(toast_node: Control, duration: float) -> void:
+	# The tween is created ON the toast node so it dies with it: a manually
+	# closed toast must not leave a timer behind holding a freed capture
+	# ("Lambda capture was freed" — the engine logs when the callable is
+	# invoked, so a fire-time is_instance_valid guard does NOT help).
+	var life := toast_node.create_tween()
 	var progress_bar = toast_node.find_child("ProgressBar") as ProgressBar
 	if progress_bar:
 		progress_bar.max_value = duration
 		progress_bar.value = duration
-		var progress_tween := create_tween()
-		progress_tween.tween_property(progress_bar, "value", 0, duration)
-		progress_tween.tween_callback(func(): _dismiss_toast(toast_node, false))
+		life.tween_property(progress_bar, "value", 0, duration)
 	else:
-		var timer := get_tree().create_timer(duration)
-		timer.timeout.connect(func(): _dismiss_toast(toast_node, false))
+		life.tween_interval(duration)
+	life.tween_callback(_dismiss_toast.bind(toast_node, false))
 
 func _dismiss_toast(node: Control, immediate: bool) -> void:
 	if not is_instance_valid(node) or not node in _active_nodes:

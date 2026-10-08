@@ -7,16 +7,16 @@ render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_sc
 // Wave parameters
 uniform float wave_speed : hint_range(0.0, 5.0) = 1.0;
 uniform float wave_amplitude : hint_range(0.0, 2.0) = 0.3;
-uniform float wave_frequency : hint_range(0.0, 10.0) = 2.0;
-uniform int wave_count : hint_range(1, 8) = 4;
+uniform float wave_frequency : hint_range(0.0, 10.0) = 0.15;
+uniform int wave_count : hint_range(1, 8) = 3;
 uniform float wave_steepness : hint_range(0.0, 1.0) = 0.4;
 
 // Color
-uniform vec3 shallow_color : source_color = vec3(0.361, 0.659, 0.722); // #5CA8B8
-uniform vec3 medium_color : source_color = vec3(0.165, 0.420, 0.486);  // #2A6B7C
-uniform vec3 deep_color : source_color = vec3(0.059, 0.227, 0.290);    // #0F3A4A
-uniform float depth_fade_distance : hint_range(0.1, 100.0) = 30.0;
-uniform float transparency : hint_range(0.0, 1.0) = 0.7;
+uniform vec3 shallow_color : source_color = vec3(0.10, 0.32, 0.36);
+uniform vec3 medium_color : source_color = vec3(0.04, 0.18, 0.24);
+uniform vec3 deep_color : source_color = vec3(0.01, 0.07, 0.11);
+uniform float depth_fade_distance : hint_range(0.1, 100.0) = 25.0;
+uniform float transparency : hint_range(0.0, 1.0) = 0.85;
 
 // Foam
 uniform float foam_amount : hint_range(0.0, 5.0) = 1.5;
@@ -24,8 +24,8 @@ uniform float foam_cutoff : hint_range(0.0, 2.0) = 0.8;
 uniform vec3 foam_color : source_color = vec3(0.9, 0.95, 1.0);
 
 // Reflections & specular
-uniform float metallic_value : hint_range(0.0, 1.0) = 0.1;
-uniform float roughness_value : hint_range(0.0, 1.0) = 0.05;
+uniform float metallic_value : hint_range(0.0, 1.0) = 0.0;
+uniform float roughness_value : hint_range(0.0, 1.0) = 0.08;
 uniform float fresnel_power : hint_range(0.0, 10.0) = 5.0;
 
 // Caustics (underwater light)
@@ -36,10 +36,10 @@ uniform float caustic_intensity : hint_range(0.0, 1.0) = 0.3;
 // Normal maps (Poly Haven Ocean Water or similar CC0)
 uniform sampler2D normal_map_1 : hint_normal;
 uniform sampler2D normal_map_2 : hint_normal;
-uniform float normal_map_scale : hint_range(0.01, 1.0) = 0.02;
+uniform float normal_map_scale : hint_range(0.01, 1.0) = 0.05;
 uniform vec2 normal_map_scroll_dir1 = vec2(1.0, 0.2);
 uniform vec2 normal_map_scroll_dir2 = vec2(-0.3, 1.0);
-uniform float normal_map_scroll_speed : hint_range(0.0, 1.0) = 0.05;
+uniform float normal_map_scroll_speed : hint_range(0.0, 1.0) = 0.02;
 uniform float normal_map_strength : hint_range(0.0, 2.0) = 1.0;
 
 // Depth texture for shore foam
@@ -49,9 +49,9 @@ uniform sampler2D screen_texture : hint_screen_texture;
 // Foam / caustics detail textures (generated tiles)
 uniform sampler2D foam_texture : hint_default_white, filter_linear, repeat_enable;
 uniform sampler2D caustics_texture : hint_default_white, filter_linear, repeat_enable;
-uniform float foam_scale : hint_range(0.001, 1.0) = 0.08;
+uniform float foam_scale : hint_range(0.001, 1.0) = 0.03;
 uniform float foam_scroll_speed : hint_range(0.0, 1.0) = 0.02;
-uniform float foam_texture_strength : hint_range(0.0, 2.0) = 1.2;
+uniform float foam_texture_strength : hint_range(0.0, 2.0) = 0.25;
 uniform float caustics_tile_scale : hint_range(0.001, 1.0) = 0.05;
 uniform float caustics_tile_speed : hint_range(0.0, 1.0) = 0.05;
 uniform float caustics_tile_strength : hint_range(0.0, 2.0) = 0.6;
@@ -62,7 +62,7 @@ uniform float wind_strength : hint_range(0.0, 3.0) = 1.0;
 
 // Visual Adapter parameters (driven by simulation)
 uniform float water_clarity : hint_range(0.0, 1.0) = 1.0;       // 0.0 = murky, 1.0 = clear
-uniform float temperature_factor : hint_range(0.0, 1.0) = 0.5; // Temperature influence on color
+uniform float temperature_factor : hint_range(0.0, 1.0) = 0.2; // Temperature influence on color
 uniform float algae_density : hint_range(0.0, 1.0) = 0.0;      // Plankton bloom green tint
 uniform float turbidity : hint_range(0.0, 1.0) = 0.0;          // Sediment/particulate matter
 
@@ -121,7 +121,9 @@ void fragment() {
 	vec4 ndc = vec4(SCREEN_UV * 2.0 - 1.0, depth_raw, 1.0);
 	vec4 view_pos = INV_PROJECTION_MATRIX * ndc;
 	view_pos.xyz /= view_pos.w;
-	float depth_diff = view_pos.z - FRAGCOORD.z;
+	// Both in view space (metres, negative forward); positive when the
+	// riverbed/terrain lies behind the surface along the view ray.
+	float depth_diff = VERTEX.z - view_pos.z;
 	float depth_factor = clamp(depth_diff / depth_fade_distance, 0.0, 1.0);
 
 	// Water color based on depth
@@ -145,11 +147,14 @@ void fragment() {
 	vec2 uv1 = world_pos.xz * normal_map_scale + normal_map_scroll_dir1 * TIME * normal_map_scroll_speed;
 	vec2 uv2 = world_pos.xz * normal_map_scale * 1.5 + normal_map_scroll_dir2 * TIME * normal_map_scroll_speed * 0.7;
 	
-	vec3 normal1 = texture(normal_map_1, uv1).rgb * 2.0 - 1.0;
-	vec3 normal2 = texture(normal_map_2, uv2).rgb * 2.0 - 1.0;
-	
+	// The ocean normal maps are VRAM-compressed (RGTC): only R/G survive,
+	// so rebuild Z instead of trusting the sampled blue channel.
+	vec2 n1 = texture(normal_map_1, uv1).rg * 2.0 - 1.0;
+	vec2 n2 = texture(normal_map_2, uv2).rg * 2.0 - 1.0;
+	vec2 nxy = (n1 + n2) * 0.5 * normal_map_strength;
+
 	// Combine normal maps with strength control
-	vec3 combined_normal = normalize(normal1 + normal2) * normal_map_strength;
+	vec3 combined_normal = normalize(vec3(nxy, 1.0));
 
 	// Shore foam
 	float shore_foam = 1.0 - smoothstep(0.0, foam_amount, depth_diff);
@@ -157,8 +162,9 @@ void fragment() {
 	// Wave crest foam based on vertex displacement
 	float wave_foam = smoothstep(foam_cutoff, foam_cutoff + 0.2, vertex_height);
 	
-	// Additional foam from normal map detail (simulating micro-wave breaking)
-	float detail_foam = smoothstep(0.6, 0.9, length(combined_normal.xz)) * 0.3;
+	// Additional foam from normal map detail (simulating micro-wave breaking).
+	// .xy only: .z sits near 1.0 and would foam the whole surface.
+	float detail_foam = smoothstep(0.6, 0.9, length(combined_normal.xy)) * 0.3;
 
 	// Texture-driven foam/whitecap wisps, advected by the wind.
 	vec2 foam_uv = world_pos.xz * foam_scale
@@ -184,11 +190,12 @@ void fragment() {
 	// Final color
 	vec3 final_color = mix(water_color, foam_color, total_foam);
 	final_color += caustics * vec3(0.3, 0.5, 0.6);
-	final_color = mix(final_color, vec3(1.0), fresnel * 0.3);
+	final_color = mix(final_color, vec3(0.75, 0.85, 0.9), fresnel * 0.1);
 
 	ALBEDO = final_color;
 	METALLIC = metallic_value;
 	ROUGHNESS = mix(roughness_value, 0.8, total_foam); // Foam is rough
-	NORMAL_MAP = combined_normal;
+	NORMAL_MAP = combined_normal * 0.5 + 0.5;
+	NORMAL_MAP_DEPTH = 0.8;
 	ALPHA = mix(transparency, 1.0, total_foam + fresnel * 0.5) * water_clarity;
 }

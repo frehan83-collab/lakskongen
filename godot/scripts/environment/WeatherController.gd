@@ -130,13 +130,13 @@ func _apply_weather_values(values: Dictionary) -> void:
 	if rain_particles:
 		var rain_amount: float = values.get("rain", 0.0)
 		rain_particles.emitting = rain_amount > 0.01
-		rain_particles.amount = int(clampf(rain_amount * 2000, 0, 8000))
+		rain_particles.amount = int(clampf(rain_amount * 2000, 1, 8000))
 
 	# Snow particles
 	if snow_particles:
 		var snow_amount: float = values.get("snow", 0.0)
 		snow_particles.emitting = snow_amount > 0.01
-		snow_particles.amount = int(clampf(snow_amount * 1500, 0, 4000))
+		snow_particles.amount = int(clampf(snow_amount * 1500, 1, 4000))
 
 	# Visibility
 	var vis_fog := 1.0 - clampf(values.get("fog", 0.0) * 100.0, 0.0, 0.8)

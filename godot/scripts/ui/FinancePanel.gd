@@ -93,7 +93,7 @@ func _ready() -> void:
 		if _sim.has_signal("state_updated"):
 			_sim.state_updated.connect(_refresh)
 		if _sim.has_signal("day_advanced"):
-			_sim.day_advanced.connect(func(_d, _s): _refresh())
+			_sim.day_advanced.connect(_on_day_advanced)
 
 	_collect_scene_refs()
 	_build_deep_finance_row()
@@ -385,6 +385,20 @@ func _apply_theme_fonts() -> void:
 # ══════════════════════════════════════════════════════════════════════════════
 # DATA REFRESH
 # ══════════════════════════════════════════════════════════════════════════════
+
+func _exit_tree() -> void:
+	# Tab panels are re-instanced on every switch; without this the old
+	# lambda/method connections fire on freed panels ("Lambda capture freed").
+	if _sim:
+		if _sim.has_signal("state_updated") and _sim.state_updated.is_connected(_refresh):
+			_sim.state_updated.disconnect(_refresh)
+		if _sim.has_signal("day_advanced") and _sim.day_advanced.is_connected(_on_day_advanced):
+			_sim.day_advanced.disconnect(_on_day_advanced)
+
+
+func _on_day_advanced(_d, _s) -> void:
+	_refresh()
+
 
 func _refresh() -> void:
 	if not _sim:

@@ -12,7 +12,7 @@ extends Node3D
 @export var max_pens: int = 12
 @export var pen_spacing: float = 150.0  # Meters between pens
 @export var min_depth: float = 15.0      # Minimum water depth for pen placement
-@export var max_depth: float = 100.0     # Maximum water depth
+@export var max_depth: float = 350.0    # Maximum water depth (the main channel runs 200-330 m deep)
 
 @export_group("Models")
 @export var pen_cage_scene: PackedScene = preload("res://assets/models/pen_cage/pen_cage.tscn")
@@ -114,11 +114,16 @@ func _generate_recommended_locations() -> void:
 	"""Generate recommended pen locations along the fjord channel."""
 	_recommended_locations.clear()
 
+	if _terrain_ref == null:
+		# Auto-resolve: in GameScene this manager is a sibling of Terrain,
+		# and setup_pens() is only called by NordlandFjordController.
+		_terrain_ref = get_node_or_null("../Terrain") as FjordTerrain
+
 	if not _terrain_ref:
-		# Fallback: place pens in a line through center
+		# Fallback: place pens in a line through center, collars floating.
 		for i in range(max_pens):
 			var z = (i - max_pens / 2.0) * pen_spacing
-			_recommended_locations.append(Vector3(0, -5, z))
+			_recommended_locations.append(Vector3(0, 0, z))
 		return
 
 	# Generate locations based on fjord shape
@@ -126,25 +131,29 @@ func _generate_recommended_locations() -> void:
 	var start_z = -fjord_length * 0.4
 
 	for i in range(max_pens):
-		# Create pens along the winding fjord centerline
+		# Create pens along the winding fjord centerline.
 		var progress = float(i) / float(max_pens - 1)
 		var z = start_z + progress * fjord_length * 0.8
 
-		# Add some variation to x position (follow fjord bends)
-		var fjord_center_x = sin(progress * 4.0) * 50.0
+		# The TRUE channel center, mirroring FjordTerrain's generator
+		# (fjord_center = sin(nz*2)*0.1 in normalized coords, x = nx*2000).
+		# The old sin(progress*4)*50 guess missed the channel entirely and
+		# parked pens on the cliff walls.
+		var fjord_center_x = sin(z / 1000.0) * 200.0
 
 		# Try different x positions to find deep water
 		var best_pos = Vector3(fjord_center_x, 0, z)
 		var best_depth = -999.0
 
-		for offset in [-100, -50, 0, 50, 100]:
+		for offset in [-250, -150, -75, 0, 75, 150, 250]:
 			var test_x = fjord_center_x + offset
 			var height = _terrain_ref.get_height_at(test_x, z)
 			var depth = -height  # Negative height = underwater
 
 			if depth > min_depth and depth < max_depth and depth > best_depth:
 				best_depth = depth
-				best_pos = Vector3(test_x, -depth * 0.3, z)  # Slightly submerged
+				# The collar floats ON the surface; only the net hangs below.
+				best_pos = Vector3(test_x, 0.0, z)
 
 		_recommended_locations.append(best_pos)
 
@@ -178,7 +187,7 @@ func _slot_position(index: int) -> Vector3:
 	if index < _recommended_locations.size():
 		return _recommended_locations[index]
 	var z := (float(index) - float(max_pens) / 2.0) * pen_spacing
-	return Vector3(0, -5, z)
+	return Vector3(0, 0, z)
 
 
 func _apply_site_data(pen_id: String, site: Dictionary, index: int) -> void:
@@ -237,24 +246,26 @@ static func _site_float(site: Dictionary, keys: Array, fallback: float) -> float
 func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 	"""Internal method to add a pen marker using the PenCage scene."""
 
-	# Instantiate the PenCage scene
+	# Instantiate the PenCage scene. NOTE: add_child() BEFORE touching
+	# global_position — setting it on a node outside the tree errors and
+	# silently leaves the pen at the origin.
 	var cage = pen_cage_scene.instantiate()
 	cage.name = pen_id
-	cage.global_position = position
 	markers_parent.add_child(cage)
+	cage.global_position = position
 
 	# Service boat
 	var boat = service_boat_scene.instantiate()
 	boat.name = "%s_boat" % pen_id
-	boat.global_position = position + Vector3(30, 2, 30)
 	markers_parent.add_child(boat)
+	boat.global_position = position + Vector3(30, 2, 30)
 
 	# Fish school using MultiMesh
 	var school := MultiMeshInstance3D.new()
 	school.name = "FishSchool"
 	school.multimesh = _create_fish_multimesh()
-	school.global_position = position
 	markers_parent.add_child(school)
+	school.global_position = position
 
 	# Store pen data
 	_pens[pen_id] = {
@@ -307,7 +318,8 @@ func _create_fish_multimesh() -> MultiMesh:
 	var body := BoxMesh.new()
 	body.size = Vector3(0.9, 0.3, 0.25)
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.95, 0.55, 0.3, 1.0)
+	# Steel-blue/silver like a real salmon back, not salmon-flesh orange.
+	mat.albedo_color = Color(0.5, 0.58, 0.65, 1.0)
 	mat.roughness = 0.6
 	body.material = mat
 	mm.mesh = body

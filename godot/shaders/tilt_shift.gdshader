@@ -54,9 +54,14 @@ void fragment() {
 	float dist_from_center = abs(uv.y - focus_center);
 	float blur_factor = smoothstep(focus_width, focus_width + 0.2, dist_from_center);
 
-	// Sample with blur
+	// Sample with blur. blur_sample() divides by amount^2, which is NaN
+	// for amount == 0 (0/0) and renders black on Metal — skip it inside
+	// the focus band instead of relying on mix(sharp, NaN, 0).
 	vec3 sharp = texture(screen_texture, uv).rgb;
-	vec3 blurred = blur_sample(screen_texture, uv, blur_amount * blur_factor);
+	vec3 blurred = sharp;
+	if (blur_factor >= 0.001) {
+		blurred = blur_sample(screen_texture, uv, blur_amount * blur_factor);
+	}
 	vec3 color = mix(sharp, blurred, blur_factor);
 
 	// Saturation boost

@@ -10,10 +10,13 @@ enum ZoomLevel { COAST, FJORD, FARM, UNDERWATER }
 @export var current_zoom: ZoomLevel = ZoomLevel.FJORD
 
 # Zoom presets: [altitude, fov, pitch_deg, tilt_shift_focus]
+# Altitudes are heights ABOVE the focus point; the camera orbits the focus
+# (position = focus + yaw-rotated offset) and looks at it, so the horizon
+# stays in frame instead of staring straight down.
 const ZOOM_PRESETS := {
-	ZoomLevel.COAST:      { "altitude": 1000.0, "fov": 45.0, "pitch": -60.0, "tilt_focus": 0.45 },
-	ZoomLevel.FJORD:      { "altitude": 200.0,  "fov": 50.0, "pitch": -50.0, "tilt_focus": 0.5 },
-	ZoomLevel.FARM:       { "altitude": 50.0,   "fov": 55.0, "pitch": -40.0, "tilt_focus": 0.55 },
+	ZoomLevel.COAST:      { "altitude": 1400.0, "fov": 45.0, "pitch": -35.0, "tilt_focus": 0.45 },
+	ZoomLevel.FJORD:      { "altitude": 550.0,  "fov": 45.0, "pitch": -30.0, "tilt_focus": 0.5 },
+	ZoomLevel.FARM:       { "altitude": 70.0,   "fov": 50.0, "pitch": -28.0, "tilt_focus": 0.55 },
 	ZoomLevel.UNDERWATER: { "altitude": -10.0,  "fov": 70.0, "pitch": -10.0, "tilt_focus": 0.5 },
 }
 
@@ -39,17 +42,25 @@ const ZOOM_PRESETS := {
 
 # === Tilt-Shift ===
 @export_group("Tilt-Shift")
-## Disabled by default: the tilt-shift focus band rendered solid black on the
-## Metal backend (a full-width black bar across the centre of the viewport).
-## Re-enable once the screen-texture shader is verified on Metal.
-@export var tilt_shift_enabled: bool = false
+## The tilt-shift focus band rendered solid black on Metal because
+## blur_sample() divided by zero inside the focus band (0/0 = NaN). The
+## shader now skips the blur when blur_factor < 0.001, so this is safe.
+@export var tilt_shift_enabled: bool = true
 @export var tilt_shift_material: ShaderMaterial
+## Optional terrain reference used to keep the camera out of the mountainside.
+@export var terrain: FjordTerrain
 
 # Internal state
 var _target_position: Vector3 = Vector3.ZERO
-var _target_altitude: float = 200.0
-var _target_fov: float = 50.0
-var _target_pitch: float = -50.0
+var _target_altitude: float = 550.0
+var _smooth_altitude: float = 550.0
+var _target_fov: float = 45.0
+var _target_pitch: float = -30.0
+## Start looking ACROSS the fjord (water + pens + far shore) instead of
+## straight down the channel at the near cliff wall.
+## Look down the channel (the water runs for kilometres along Z) rather
+## than across it: across-channel framing puts the near cliff wall between
+## the camera and the pens. The over-water search below keeps it honest.
 var _yaw: float = 0.0  # Rotation around Y axis
 var _velocity: Vector3 = Vector3.ZERO
 var _is_orbiting: bool = false
@@ -196,22 +207,43 @@ func _process_pan_input(delta: float) -> void:
 func _interpolate_camera(delta: float) -> void:
 	var speed := transition_speed * delta
 
-	# Interpolate altitude
-	var current_alt := global_position.y
-	var new_alt := lerpf(current_alt, _target_altitude, speed)
-
-	# Interpolate FOV
+	# Interpolate altitude and FOV; the transform step below converts the
+	# smoothed values into an orbit position around the focus point.
+	_smooth_altitude = lerpf(_smooth_altitude, _target_altitude, speed)
 	fov = lerpf(fov, _target_fov, speed)
-
-	# Interpolate position
-	var target := Vector3(_target_position.x, new_alt, _target_position.z)
-	global_position = global_position.lerp(target, speed)
 
 
 func _update_camera_transform() -> void:
-	# Apply rotation (yaw + pitch)
+	# Orbit the focus point: the camera sits behind/above it at the zoom
+	# pitch, then looks at it — the horizon stays visible.
 	var pitch_rad := deg_to_rad(_target_pitch)
-	rotation = Vector3(pitch_rad, _yaw, 0.0)
+	var horiz := _smooth_altitude / maxf(tan(-pitch_rad), 0.2)
+	var offset := Basis(Vector3.UP, _yaw) * Vector3(0.0, _smooth_altitude, horiz)
+	var focus := Vector3(_target_position.x, 0.0, _target_position.z)
+	var pos := focus + offset
+	if terrain and terrain.has_method("get_height_at"):
+		var water_y := 0.0
+		if "water_level" in terrain:
+			water_y = float(terrain.get("water_level"))
+		# Keep the camera over water WITHOUT collapsing onto the focus:
+		# take the farthest offset along the orbit direction that still
+		# sits over water, so the framing stays wide. Falls back to
+		# directly above the focus (always water: pens float there).
+		var flat := Vector2(pos.x - focus.x, pos.z - focus.z)
+		var placed := false
+		for i in range(21):
+			var t := 1.0 - float(i) / 20.0
+			var cand := Vector3(focus.x + flat.x * t, pos.y, focus.z + flat.y * t)
+			if terrain.get_height_at(cand.x, cand.z) <= water_y + 5.0:
+				pos = cand
+				placed = true
+				break
+		if not placed:
+			pos = Vector3(focus.x, pos.y, focus.z)
+		pos.y = maxf(pos.y, water_y + 10.0)
+	if (pos - global_position).length_squared() > 0.000001:
+		global_position = pos
+		look_at(focus, Vector3.UP)
 
 
 func _update_tilt_shift() -> void:

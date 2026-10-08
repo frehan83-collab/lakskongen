@@ -16,7 +16,7 @@ extends Node3D
 ## Width of main fjord (fraction of terrain)
 @export_range(0.0, 0.5) var fjord_width: float = 0.15
 ## Steepness of cliff walls
-@export_range(1.0, 10.0) var cliff_steepness: float = 5.0
+@export_range(1.0, 10.0) var cliff_steepness: float = 2.0
 ## Number of scattered islands
 @export_range(0, 10) var island_count: int = 4
 ## Random seed for terrain generation
@@ -115,8 +115,11 @@ func _generate_heightmap(rng: RandomNumberGenerator) -> PackedFloat32Array:
 			height -= inlet_factor * fjord_depth * 0.6
 
 			# Noise for natural variation
+			# Kept small on purpose: the sine-based _fbm builds diagonal
+			# corduroy ridges tall enough to poke through the fjord channel.
+			# (Proper fix: replace _fbm with FastNoiseLite ridged noise.)
 			var noise_val := _fbm(nx * 3.0 + float(terrain_seed), nz * 3.0, 4, rng)
-			height += noise_val * 0.15
+			height += noise_val * 0.05
 
 			# Islands
 			for i in range(island_count):
@@ -218,6 +221,14 @@ func _create_terrain_material() -> Material:
 		mat.shader = shader
 		mat.set_shader_parameter("water_level", water_level)
 		mat.set_shader_parameter("season", 0.5)
+		# Snow only on the highest peaks, green heath far up the slopes:
+		# the generated heightmap's median sits near 300 m, so the old
+		# snow_height=200 painted ~77% of the land white.
+		mat.set_shader_parameter("snow_height", 400.0)
+		mat.set_shader_parameter("snow_blend", 45.0)
+		mat.set_shader_parameter("grass_height", 240.0)
+		mat.set_shader_parameter("cliff_slope", 0.38)
+		mat.set_shader_parameter("beach_height", 4.0)
 		mat.set_shader_parameter("texture_scale", 1.0 / 24.0)
 		mat.set_shader_parameter("normal_strength", 1.0)
 		_apply_terrain_textures(mat)

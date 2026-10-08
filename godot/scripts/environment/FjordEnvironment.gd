@@ -68,6 +68,9 @@ func _update_underwater_post(delta: float) -> void:
 
 	_underwater_target = target
 	_underwater_current = move_toward(_underwater_current, _underwater_target, delta * 2.5)
+	# Hidden when inactive: the overlay samples the screen texture every
+	# frame even at active == 0.
+	underwater_rect.visible = _underwater_current > 0.01
 	(underwater_rect.material as ShaderMaterial).set_shader_parameter("active", _underwater_current)
 
 

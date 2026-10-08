@@ -34,17 +34,17 @@ uniform float detail_scale : hint_range(0.01, 1.0) = 0.1;
 uniform float roughness_base : hint_range(0.0, 1.0) = 0.85;
 
 // --- Texture layers ---
-uniform sampler2D grass_tex : hint_default_white, source_color, filter_linear, repeat_enable;
-uniform sampler2D rock_tex : hint_default_white, source_color, filter_linear, repeat_enable;
-uniform sampler2D snow_tex : hint_default_white, source_color, filter_linear, repeat_enable;
-uniform sampler2D sand_tex : hint_default_white, source_color, filter_linear, repeat_enable;
-uniform sampler2D moss_tex : hint_default_white, source_color, filter_linear, repeat_enable;
+uniform sampler2D grass_tex : hint_default_white, source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D rock_tex : hint_default_white, source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D snow_tex : hint_default_white, source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D sand_tex : hint_default_white, source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D moss_tex : hint_default_white, source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 
-uniform sampler2D grass_normal_tex : hint_default_white, filter_linear, repeat_enable;
-uniform sampler2D rock_normal_tex : hint_default_white, filter_linear, repeat_enable;
-uniform sampler2D snow_normal_tex : hint_default_white, filter_linear, repeat_enable;
-uniform sampler2D sand_normal_tex : hint_default_white, filter_linear, repeat_enable;
-uniform sampler2D moss_normal_tex : hint_default_white, filter_linear, repeat_enable;
+uniform sampler2D grass_normal_tex : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D rock_normal_tex : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D snow_normal_tex : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D sand_normal_tex : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D moss_normal_tex : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
 
 // World-space tile frequency (1 texture repeat per `1/texture_scale` metres).
 uniform float texture_scale : hint_range(0.001, 0.5) = 0.04;
@@ -128,6 +128,10 @@ void fragment() {
 	vec3 c_snow = texture(snow_tex, uv).rgb;
 	vec3 c_sand = texture(sand_tex, uv).rgb;
 	vec3 c_moss = texture(moss_tex, uv).rgb;
+
+	// The generated rock texture is a pale blue-grey; darken it toward a
+	// Norwegian coastal cliff so rock reads as rock, not snow.
+	c_rock *= vec3(0.55, 0.56, 0.55);
 
 	vec3 nm_grass = texture(grass_normal_tex, uv).rgb * 2.0 - 1.0;
 	vec3 nm_rock = texture(rock_normal_tex, uv).rgb * 2.0 - 1.0;
