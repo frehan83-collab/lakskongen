@@ -594,7 +594,9 @@ public partial class GameBridge : Node
     public int SiteCount => SimulationEngine?.State?.SeaSites?.Count ?? 0;
 
     /// <summary>Average sea lice per fish across the farm.</summary>
-    public double SeaLicePerFish => SimulationEngine?.SeaLice?.AverageLicePerFish ?? 0.0;
+    /// <summary>Phase 2.1: biomass-weighted mean across site lice models
+    /// (falls back to the legacy company model when nothing is stocked).</summary>
+    public double SeaLicePerFish => SimulationEngine?.GetCompanyLiceAverage() ?? 0.0;
 
     // ── Phase 1.1 live KPI scalars (additive; backed by Feed/Analytics/Zone/Weather) ──
 

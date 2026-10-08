@@ -143,6 +143,35 @@ namespace LakskongenSim.Health
         }
 
         /// <summary>
+        /// Evaluate a treatment named by the game-wide method enum
+        /// (LakskongenSim.Data.DelousingMethod) without taking a dependency
+        /// on it: chemical/feed baths are low-harm, thermal/mechanical are
+        /// injurious, precision/preventive methods count as low-harm.
+        /// </summary>
+        /// <summary>
+        /// Map a game-wide method name (LakskongenSim.Data.DelousingMethod) to
+        /// the closest harm method. Shared by EvaluateFor and callers that
+        /// need the enum (e.g. injury-state accumulation).
+        /// </summary>
+        public static DelousingMethod MethodFor(string dataMethodName)
+        {
+            return dataMethodName switch
+            {
+                nameof(Data.DelousingMethod.HydrogenPeroxide) => DelousingMethod.Medicinal,
+                nameof(Data.DelousingMethod.MedicatedFeed) => DelousingMethod.Medicinal,
+                nameof(Data.DelousingMethod.FreshwaterBath) => DelousingMethod.Freshwater,
+                nameof(Data.DelousingMethod.Thermolicer) => DelousingMethod.Thermal,
+                nameof(Data.DelousingMethod.Hydrolicer) => DelousingMethod.Hydrolicer,
+                _ => DelousingMethod.Medicinal, // CleanerFish, Laser, LiceSkirts: precise/gentle
+            };
+        }
+
+        public static DelousingHarmResult EvaluateFor(string dataMethodName, double doseFraction = 1.0)
+        {
+            return Evaluate(MethodFor(dataMethodName), doseFraction);
+        }
+
+        /// <summary>
         /// Evaluate a single treatment event at the given dose fraction (0-1).
         /// Pure function; no state mutation.
         /// </summary>

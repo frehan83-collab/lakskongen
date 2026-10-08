@@ -86,6 +86,22 @@ namespace LakskongenSim.Farm
         public float PenVolume { get; set; } = 50000f; // m³ (default pen volume)
         public int NumberOfPens { get; set; } = 8; // Typical Norwegian site: 6-10 pens
 
+        // ── Per-site sea lice (Phase 2.1) ─────────────────────────────────
+        /// <summary>Live lice model for THIS site (stage-structured).
+        /// Not serialized — re-seeded from population loads on load via the
+        /// weekly sync's self-start, same as a fresh stocking.</summary>
+        [JsonIgnore]
+        public Health.SeaLiceModel Lice { get; set; } = new Health.SeaLiceModel();
+
+        /// <summary>Adult females per fish at the last weekly count.</summary>
+        public double LastLiceCount { get; set; } = 0.0;
+        /// <summary>Sim day of the last weekly lice count (-1 = never).</summary>
+        public int LastLiceCountDay { get; set; } = -1;
+        /// <summary>Consecutive weekly counts above the legal limit.</summary>
+        public int ConsecutiveLiceBreaches { get; set; } = 0;
+        /// <summary>Mattilsynet treatment deadline (sim day), -1 = no order.</summary>
+        public int TreatmentOrderDueDay { get; set; } = -1;
+
         public event Action<Biology.FishPopulation>? OnStocked;
         public event Action<int>? OnEscapeEvent;
         public event Action? OnMABExceeded;

@@ -189,10 +189,16 @@ namespace LakskongenSim.Farm
                 efficacyResult = actualEfficacy;
             }
 
-            // Treatment mortality (veterinarian supervision scales it)
+            // Treatment mortality (veterinarian supervision scales it).
+            // P4: handling harm compounds on repeat treatments — the harm
+            // model's immediate rate (handling + injury-linked) floors the
+            // profile rate, so back-to-back delousings kill extra fish.
             var rng = new Random();
-            double actualMortalityRate = profile.MortalityRisk * (1.0 + (temperatureC - 10.0) * 0.05) * mortalityMultiplier;
-            actualMortalityRate = Math.Max(0, actualMortalityRate);
+            double profileRate = profile.MortalityRisk * (1.0 + (temperatureC - 10.0) * 0.05) * mortalityMultiplier;
+            var harm = Health.DelousingHarmModel.EvaluateFor(method.ToString(), actualEfficacy);
+            pop.TreatmentHarm = Health.DelousingHarmModel.ApplyTreatment(
+                pop.TreatmentHarm, Health.DelousingHarmModel.MethodFor(method.ToString()), actualEfficacy);
+            double actualMortalityRate = Math.Max(0, Math.Max(profileRate, harm.TotalMortalityContribution));
             int deaths = (int)(totalFish * actualMortalityRate);
 
             // Apply mortality to cohorts
@@ -239,7 +245,9 @@ namespace LakskongenSim.Farm
                 Efficacy = efficacyResult,
                 Cost = totalCost,
                 Success = true,
-                Message = $"Treatment complete: {actualEfficacy:P0} lice reduction"
+                Message = $"Treatment complete: {actualEfficacy:P0} lice reduction",
+                GillDamage = harm.GillDamageContribution,
+                HarmWelfareCost = harm.WelfareCost
             };
         }
     }
@@ -269,6 +277,10 @@ namespace LakskongenSim.Farm
         public decimal Cost;
         public bool Success;
         public string Message;
+        /// <summary>Gill damage added by this treatment (P4 harm model).</summary>
+        public double GillDamage;
+        /// <summary>Welfare cost scalar of this treatment (P4 harm model).</summary>
+        public double HarmWelfareCost;
 
         public static TreatmentResult Cancelled(DelousingMethod method, string reason) => new TreatmentResult
         {

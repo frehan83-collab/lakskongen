@@ -70,6 +70,12 @@ namespace LakskongenSim.Biology
         /// <summary>Treatment intensity (0.0-1.0) from last treatment.</summary>
         public double TreatmentIntensity { get; set; }
 
+        /// <summary>Accumulated delousing injury/welfare load (P4). Compounds
+        /// on repeat treatments, decays daily in the tick. Initialized with a
+        /// long-ago last treatment so the first real treatment is unamplified.</summary>
+        public Health.DelousingInjuryState TreatmentHarm { get; set; } =
+            new Health.DelousingInjuryState { DaysSinceLastTreatment = 999 };
+
         /// <summary>Sea lice load (average lice per fish) for this population.</summary>
         public double SeaLiceLoad { get; set; } = 0.3;
 

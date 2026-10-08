@@ -283,9 +283,17 @@ namespace LakskongenSim.Health
             efficacy *= doseFraction;
             efficacy = Math.Clamp(efficacy, 0.0, 0.99);
 
-            // Apply mortality to all stages
+            // Stage-specific efficacy (Phase 2.1): attached chalimus shrug
+            // off peroxide baths and thermal/mechanical stripping that clear
+            // mobiles effectively — follow-up treatments stay necessary.
+            double chalimusFactor = treatmentType.ToLower() switch
+            {
+                "hydrogen_peroxide" or "h2o2" => 0.35,
+                "thermal" or "mechanical" or "freshwater" => 0.6,
+                _ => 1.0,
+            };
             double survival = 1.0 - efficacy;
-            ChalimusPerFish *= survival;
+            ChalimusPerFish *= 1.0 - efficacy * chalimusFactor;
             PreAdultPerFish *= survival;
             AdultFemalePerFish *= survival;
             AdultMalePerFish *= survival;

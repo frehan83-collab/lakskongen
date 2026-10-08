@@ -99,11 +99,12 @@ public partial class GameBridge : Node
         site.Stock(population);
         SimulationEngine.State.Populations.Add(population);
 
-        // S1: seed the company lice model from the incoming smolts (no Reset
-        // — that would wipe resistance built up by earlier cohorts). Without
-        // this the model sits at 0 lice forever and AdvanceDay early-outs.
-        if (SimulationEngine.SeaLice != null && strain.InitialLiceLoad > 0)
-            SimulationEngine.SeaLice.SeedExternalInfection(Math.Max(0.05, strain.InitialLiceLoad));
+        // Phase 2.1: seed the SITE's lice model from the incoming smolts
+        // (no Reset — that would wipe resistance built up by earlier
+        // cohorts). Without this the model sits at 0 lice forever and
+        // AdvanceDay early-outs.
+        if (strain.InitialLiceLoad > 0)
+            site.Lice.SeedExternalInfection(Math.Max(0.05, strain.InitialLiceLoad));
 
         // Charge the player
         SimulationEngine.FinanceManager.Spend(stockingCost);
@@ -824,18 +825,20 @@ public partial class GameBridge : Node
             ? targetSites.Min(s => s.GillScore) : 100.0;
         mortMult *= 1.0 + (1.0 - worstGill / 100.0) * 1.5;
         int totalDeaths = 0;
-        // S8: the lice model is company-wide — apply its kill exactly once
-        // per order. Per-population handling mortality still runs every pen.
-        bool liceKillDone = false;
+        // Phase 2.1: each site has its OWN lice model — apply its kill
+        // exactly once per site (first live pen). Handling mortality and
+        // harm still run per pen. Gill damage lands on the site score.
         foreach (var site in targetSites)
         {
+            bool siteLiceKillDone = false;
             foreach (var pop in site.Pens)
             {
                 if (pop.TotalCount <= 0) continue;
                 var result = delousing.Treat(pop, delousingMethod,
-                    SimulationEngine.SeaLice, SimulationEngine.IntegratedDisease, tempC, mortMult,
-                    applyCompanyLiceKill: !liceKillDone);
-                liceKillDone = true;
+                    site.Lice, SimulationEngine.IntegratedDisease, tempC, mortMult,
+                    applyCompanyLiceKill: !siteLiceKillDone);
+                siteLiceKillDone = true;
+                site.GillScore = System.Math.Max(0.0, site.GillScore - result.GillDamage * 50.0);
                 totalDeaths += result.Deaths;
             }
         }

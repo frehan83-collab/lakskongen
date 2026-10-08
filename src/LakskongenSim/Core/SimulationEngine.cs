@@ -1565,6 +1565,9 @@ private class BalancingConfig
             // realistic over the year without constant artificial seeding.
             SeaLice.SetExternalPressure(SeasonalLicePressure(State.Day));
             SeaLice.AdvanceDay();
+            // Phase 2.1: per-site lice models are the authority for farm
+            // truth (company model retained as a fallback/compat rollup).
+            AdvanceSiteLiceModels(temperature);
 
             // Only calculate disease if events are enabled (skip in deterministic tests)
             if (_enableEvents)
@@ -1850,23 +1853,9 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
             // ═══════════════════════════════════════════
             if (State.Day - _lastTrafficLightUpdate >= TRAFFIC_LIGHT_UPDATE_INTERVAL)
             {
-                // S1: the company lice model is the authority — mirror its
-                // average onto every population first, so limits, traffic
-                // lights and the UI read live values instead of the
-                // stocking-time constant. Self-starting: scenario/hatchery
-                // stockings set population loads without touching the model,
-                // so re-seed from the worst population when extinct.
-                if ((SeaLice?.AverageLicePerFish ?? 0.0) <= 0.001 && SeaLice != null)
-                {
-                    double maxLoad = 0.0;
-                    foreach (var p in State.Populations)
-                        maxLoad = Math.Max(maxLoad, p.SeaLiceLoad);
-                    if (maxLoad > 0.01)
-                        SeaLice.SeedExternalInfection(Math.Min(maxLoad, 0.5));
-                }
-                double avgLice = SeaLice?.AverageLicePerFish ?? 0.0;
-                foreach (var pop in State.Populations)
-                    pop.SeaLiceLoad = avgLice;
+                // Phase 2.1: per-site sync + weekly counting + Mattilsynet
+                // orders, before the traffic-light assessment reads them.
+                UpdateSiteLiceCounts();
                 UpdateTrafficLightZones();
                 UpdatePreventiveCoverage();
                 _lastTrafficLightUpdate = State.Day;
@@ -2738,6 +2727,195 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
         /// from the live lice load of its populations. MAB consequence applies
         /// exactly once per color change; steady colors never compound.
         /// </summary>
+        /// <summary>
+        /// Phase 2.1 daily per-site lice: advance each stocked site's model
+        /// under local conditions, decay resistance, then spread copepodids
+        /// between sites (same zone couples strongly, across zones weakly).
+        /// Also decays each population's delousing-injury load.
+        /// </summary>
+        private void AdvanceSiteLiceModels(double temperature)
+        {
+            if (State.SeaSites.Count == 0)
+                return;
+
+            foreach (var site in State.SeaSites)
+            {
+                double biomassKg = 0.0;
+                int fish = 0;
+                foreach (var pen in site.Pens)
+                {
+                    foreach (var c in pen.Cohorts)
+                    {
+                        biomassKg += c.Count * c.MeanWeightKg;
+                        fish += c.Count;
+                    }
+                    // P4: injury loads heal with time (handled here so the
+                    // compounding only bites on repeat treatments).
+                    pen.TreatmentHarm = Health.DelousingHarmModel.AdvanceDay(pen.TreatmentHarm);
+                }
+                if (fish <= 0)
+                    continue;
+
+                var zone = State.Zones.FirstOrDefault(z => z.Id == site.ZoneId);
+                double volumeM3 = Math.Max(1.0, (double)site.PenVolume * Math.Max(1, site.NumberOfPens));
+                site.Lice.SetEnvironment(
+                    temperature,
+                    35.0,
+                    zone?.CurrentSpeed ?? 0.15,
+                    biomassKg / volumeM3);
+                site.Lice.SetExternalPressure(SeasonalLicePressure(State.Day));
+                site.Lice.AdvanceDay();
+                site.Lice.AdvanceResistanceDecay(1);
+            }
+
+            // Farm-to-farm infection: adult females shed copepodids onto
+            // neighbours, attenuated by zone separation.
+            foreach (var site in State.SeaSites)
+            {
+                double inflow = 0.0;
+                foreach (var other in State.SeaSites)
+                {
+                    if (ReferenceEquals(other, site))
+                        continue;
+                    double coupling = other.ZoneId == site.ZoneId ? 0.4 : 0.08;
+                    inflow += other.Lice.AdultFemalePerFish * coupling;
+                }
+                if (inflow > 0.0001)
+                    site.Lice.SeedExternalInfection(Math.Min(inflow * 0.02, 0.05));
+            }
+        }
+
+        /// <summary>
+        /// Phase 2.1 weekly lice census: mirror each site model onto its pens
+        /// (traffic lights, limits and UI read pen loads), count adult
+        /// females where the water is warm enough to count (≥4 °C), enforce
+        /// the legal limit (0.5, 0.2 in spring weeks 16–21), and escalate
+        /// repeat breaches into Mattilsynet treatment orders with forced
+        /// treatment past the deadline.
+        /// </summary>
+        private void UpdateSiteLiceCounts()
+        {
+            double temperature = Weather?.CurrentTemperatureC ?? 10.0;
+            int weekOfYear = (State.Day % 365) / 7;
+            double limit = (weekOfYear >= 16 && weekOfYear <= 21) ? 0.2 : 0.5;
+
+            foreach (var site in State.SeaSites)
+            {
+                int fish = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
+                if (fish <= 0)
+                    continue;
+
+                // Self-starting: scenario/hatchery stockings set population
+                // loads without seeding the site model — re-seed from the
+                // worst pen instead of zeroing everyone's lice.
+                if (site.Lice.AverageLicePerFish <= 0.001)
+                {
+                    double maxLoad = site.Pens.Max(p => p.SeaLiceLoad);
+                    if (maxLoad > 0.01)
+                        site.Lice.SeedExternalInfection(Math.Min(maxLoad, 0.5));
+                }
+
+                double avgLice = site.Lice.AverageLicePerFish;
+                foreach (var pen in site.Pens)
+                    pen.SeaLiceLoad = avgLice;
+
+                // No counting obligation below 4 °C.
+                if (temperature < 4.0)
+                    continue;
+
+                site.LastLiceCount = site.Lice.AdultFemalePerFish;
+                site.LastLiceCountDay = State.Day;
+
+                if (site.LastLiceCount > limit)
+                    site.ConsecutiveLiceBreaches++;
+                else
+                    site.ConsecutiveLiceBreaches = 0;
+
+                if (site.ConsecutiveLiceBreaches >= 2 && site.TreatmentOrderDueDay < 0)
+                {
+                    site.TreatmentOrderDueDay = State.Day + 14;
+                    State.EventLog.Add(new Events.EventRecord
+                    {
+                        Day = State.Day,
+                        Name = "Mattilsynet order",
+                        Category = Events.EventCategory.Regulation,
+                        Description = $"Mattilsynet: {site.Id} exceeded the lice limit " +
+                            $"({site.LastLiceCount:F2} adult females vs {limit:F1} allowed). " +
+                            $"Delouse within 14 days.",
+                        BalanceChange = 0m
+                    });
+                    State.TrimEventLog();
+                    OnEventTriggered?.Invoke(
+                        $"📋 Mattilsynet: {site.Id} over lusenivå ({site.LastLiceCount:F2} vs {limit:F1}) — avlus innen 14 dager!");
+                }
+                else if (site.TreatmentOrderDueDay >= 0 && State.Day > site.TreatmentOrderDueDay)
+                {
+                    EnforceLiceTreatmentOrder(site, temperature);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Mattilsynet deadline passed: forced delousing at the player's
+        /// expense, breaches reset. The state does not negotiate.
+        /// </summary>
+        private void EnforceLiceTreatmentOrder(SeaSite site, double temperatureC)
+        {
+            var target = site.Pens.FirstOrDefault(p => p.TotalCount > 0);
+            if (target == null)
+            {
+                site.TreatmentOrderDueDay = -1;
+                site.ConsecutiveLiceBreaches = 0;
+                return;
+            }
+
+            var delousing = new Farm.DelousingSystem();
+            var result = delousing.Treat(target, Data.DelousingMethod.Thermolicer,
+                site.Lice, IntegratedDisease, temperatureC, 1.0, applyCompanyLiceKill: true);
+            if (!FinanceManager.Spend(result.Cost))
+                FinanceManager.ForceSpend(result.Cost);
+            FinancialStatements?.RecordOperatingExpense(result.Cost);
+            site.GillScore = Math.Max(0.0, site.GillScore - result.GillDamage * 50.0);
+            site.TreatmentOrderDueDay = -1;
+            site.ConsecutiveLiceBreaches = 0;
+
+            State.EventLog.Add(new Events.EventRecord
+            {
+                Day = State.Day,
+                Name = "Forced delousing",
+                Category = Events.EventCategory.Regulation,
+                Description = $"Mattilsynet ordered delousing at {site.Id} was ignored — " +
+                    $"forced Thermolicer treatment cost {result.Cost:N0} NOK.",
+                BalanceChange = -result.Cost
+            });
+            State.TrimEventLog();
+            OnEventTriggered?.Invoke($"⚖️ Tvangsavlusning ved {site.Id}: {result.Cost:N0} NOK.");
+        }
+
+        /// <summary>
+        /// Phase 2.1 company rollup: biomass-weighted mean lice across stocked
+        /// sites. Falls back to the legacy company model when nothing is stocked.
+        /// </summary>
+        public double GetCompanyLiceAverage()
+        {
+            double liceFish = 0.0;
+            long fish = 0;
+            foreach (var site in State.SeaSites)
+            {
+                foreach (var pen in site.Pens)
+                {
+                    foreach (var c in pen.Cohorts)
+                    {
+                        liceFish += c.Count * site.Lice.AverageLicePerFish;
+                        fish += c.Count;
+                    }
+                }
+            }
+            if (fish > 0)
+                return liceFish / fish;
+            return SeaLice?.AverageLicePerFish ?? 0.0;
+        }
+
         private void UpdateTrafficLightZones()
         {
             if (TrafficLightSystem == null || State.Zones.Count == 0) return;

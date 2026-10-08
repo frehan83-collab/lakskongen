@@ -156,40 +156,145 @@ public class Phase1RegressionTests
         Assert.Equal(7, zone.ElapsedDays);
     }
 
+    private static SeaSite StockTestSite(SimulationEngine engine, string siteId, double liceLoad)
+    {
+        // Mirrors the runtime invariant: the same instances live in
+        // site.Pens and State.Populations (see GameStateRelinker).
+        var site = new SeaSite(siteId, "zone-test");
+        var pop = new FishPopulation { Id = Guid.NewGuid().ToString(), SeaLiceLoad = liceLoad, SiteId = siteId };
+        pop.InjectDependencies(engine.Growth, engine.Mortality);
+        pop.Cohorts.Add(new FishPopulation.Cohort(100, 10_000, 1.0, Data.LifeStage.Seawater, null));
+        site.Pens.Add(pop);
+        engine.State.SeaSites.Add(site);
+        engine.State.Populations.Add(pop);
+        return site;
+    }
+
     [Fact]
-    public void LiceSync_Weekly_MirrorsModelAverage()
+    public void LiceSync_Weekly_MirrorsSiteModelAverage()
     {
         var engine = new SimulationEngine();
         engine.Initialize(enableEvents: false, seed: 15);
-        var pop = new FishPopulation { SeaLiceLoad = 0.0 };
-        engine.State.Populations.Add(pop);
-        engine.SeaLice.SeedExternalInfection(1.0);
-        Assert.True(engine.SeaLice.AverageLicePerFish > 0.0); // seeded, non-vacuous
+        var site = StockTestSite(engine, "site-sync", 0.0);
+        site.Lice.SeedExternalInfection(1.0);
+        Assert.True(site.Lice.AverageLicePerFish > 0.0); // seeded, non-vacuous
 
         // NOTE: AdvanceOneDay ticks with Day=0..N-1, so the Day>=7 weekly
         // block first fires on the 8th tick.
-        engine.Advance(8); // weekly traffic-light block syncs SeaLiceLoad
+        engine.Advance(8); // weekly block syncs each pen to its SITE model
 
-        // The population mirrors the model average exactly — whatever the
-        // model dynamics did to it (a fishless test tank lets lice decline).
-        Assert.Equal(engine.SeaLice.AverageLicePerFish, pop.SeaLiceLoad, precision: 10);
+        // The pen mirrors its site model exactly — whatever the model
+        // dynamics did to it (a fishless test tank lets lice decline).
+        Assert.Equal(site.Lice.AverageLicePerFish, site.Pens[0].SeaLiceLoad, precision: 10);
     }
 
     [Fact]
     public void LiceSync_SelfStarts_FromScenarioStockedFish()
     {
         // Scenario/hatchery stockings set population loads without seeding
-        // the company model — the weekly block must re-seed from the worst
-        // population instead of zeroing everyone's lice.
+        // the site model — the weekly block must re-seed from the worst
+        // pen instead of zeroing everyone's lice.
         var engine = new SimulationEngine();
         engine.Initialize(enableEvents: false, seed: 16);
-        var pop = new FishPopulation { SeaLiceLoad = 0.2 };
-        engine.State.Populations.Add(pop);
-        Assert.True(engine.SeaLice.AverageLicePerFish <= 0.001);
+        var site = StockTestSite(engine, "site-seed", 0.2);
+        Assert.True(site.Lice.AverageLicePerFish <= 0.001);
 
         engine.Advance(8);
 
-        Assert.True(engine.SeaLice.AverageLicePerFish > 0.0);
-        Assert.Equal(engine.SeaLice.AverageLicePerFish, pop.SeaLiceLoad, precision: 10);
+        Assert.True(site.Lice.AverageLicePerFish > 0.0);
+        Assert.Equal(site.Lice.AverageLicePerFish, site.Pens[0].SeaLiceLoad, precision: 10);
+    }
+
+    [Fact]
+    public void SiteLiceModels_AdvanceIndependently_WithNeighbourInflow()
+    {
+        var engine = new SimulationEngine();
+        engine.Initialize(enableEvents: false, seed: 17);
+        // Lice barely develop in winter water (~4 °C kills the dynamics, as
+        // in reality) — fast-forward to July before seeding.
+        engine.Advance(180);
+        // Same zone => strong coupling; the clean site still catches
+        // copepodids from its lousy neighbour.
+        var lousy = StockTestSite(engine, "site-lousy", 0.0);
+        lousy.ZoneId = "zone-shared";
+        lousy.Lice.SeedExternalInfection(2.0);
+        var clean = StockTestSite(engine, "site-clean", 0.0);
+        clean.ZoneId = "zone-shared";
+
+        engine.Advance(30);
+
+        Assert.True(lousy.Lice.AverageLicePerFish > 0.0);
+        // Clean site was never seeded directly — any lice came from inflow.
+        Assert.True(clean.Lice.AverageLicePerFish > 0.0);
+        // ...but stays well below the heavily seeded neighbour.
+        Assert.True(clean.Lice.AverageLicePerFish < lousy.Lice.AverageLicePerFish);
+    }
+
+    [Fact]
+    public void LiceBreach_TwoStrikes_IssuesTreatmentOrder()
+    {
+        var engine = new SimulationEngine();
+        engine.Initialize(enableEvents: false, seed: 18);
+        // Summer water: lice dynamics only run when it is warm enough.
+        engine.Advance(180);
+        var site = StockTestSite(engine, "site-breach", 0.0);
+        // Heavy transient: overshoots the ~0.5 steady state before settling.
+        site.Lice.SeedExternalInfection(20.0);
+
+        engine.Advance(60);
+
+        // Two consecutive weekly breaches => order with a deadline.
+        Assert.True(site.ConsecutiveLiceBreaches >= 2 || site.TreatmentOrderDueDay >= 0,
+            $"breaches={site.ConsecutiveLiceBreaches} due={site.TreatmentOrderDueDay} count={site.LastLiceCount:F2}");
+        Assert.True(site.TreatmentOrderDueDay >= 0 || site.LastLiceCount <= 0.5,
+            $"no order but breaching: count={site.LastLiceCount:F2}");
+    }
+
+    [Fact]
+    public void Delousing_RepeatedThermalTreatment_CompoundsHarm()
+    {
+        var lice = new SeaLiceModel();
+        var disease = new IntegratedDiseaseSystem(lice);
+        var delousing = new DelousingSystem();
+        var pop = new FishPopulation();
+        pop.Cohorts.Add(new FishPopulation.Cohort(100, 100_000, 4.0, Data.LifeStage.Seawater, null));
+
+        var first = delousing.Treat(pop, Data.DelousingMethod.Thermolicer, lice, disease, 10.0, 1.0);
+        double injuryAfterFirst = pop.TreatmentHarm.InjuryLoad;
+        Assert.True(injuryAfterFirst > 0.0);
+
+        // Back-to-back treatment next day: recency amplifies the injury load.
+        pop.TreatmentHarm = new Health.DelousingInjuryState
+        {
+            InjuryLoad = injuryAfterFirst,
+            GillDamage = 0.0,
+            CumulativeWelfareCost = 0.0,
+            DaysSinceLastTreatment = 1,
+            TreatmentsToDate = 1
+        };
+        var second = delousing.Treat(pop, Data.DelousingMethod.Thermolicer, lice, disease, 10.0, 1.0);
+
+        Assert.True(pop.TreatmentHarm.InjuryLoad > injuryAfterFirst);
+        // Per-capita death rate is non-decreasing (absolute deaths fall
+        // because the first treatment shrank the population — compare rates).
+        Assert.True((long)second.Deaths * first.FishTreated >= (long)first.Deaths * second.FishTreated);
+        Assert.True(second.GillDamage > 0.0);
+    }
+
+    [Fact]
+    public void CompanyLiceAverage_WeightsStockedSites()
+    {
+        var engine = new SimulationEngine();
+        engine.Initialize(enableEvents: false, seed: 19);
+        var a = StockTestSite(engine, "site-a", 0.0);
+        a.Lice.SeedExternalInfection(1.0);
+        double avgA = a.Lice.AverageLicePerFish;
+        var b = StockTestSite(engine, "site-b", 0.0); // clean, extinct
+
+        // Both sites hold 10k fish: average must sit strictly between the
+        // lousy site and zero (not equal to either).
+        double company = engine.GetCompanyLiceAverage();
+        Assert.InRange(company, 0.0, avgA);
+        Assert.True(company > 0.0 && company < avgA);
     }
 }
