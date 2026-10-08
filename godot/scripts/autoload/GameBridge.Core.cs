@@ -762,8 +762,9 @@ public partial class GameBridge : Node
                 SimulationEngine.Audio?.ClearAlert();
             }
 
-            // Check for weather events and apply impacts
-            CheckWeatherImpacts();
+            // Storm/temperature impacts now run inside the engine's daily
+            // advance (one path for tick and skip); the DayNote ledger
+            // projects the WeatherEvent signal via ProjectDayNotes.
 
             // Check for disease outbreaks
             CheckDiseaseOutbreaks();
@@ -861,114 +862,9 @@ public partial class GameBridge : Node
     }
 
     // Track last weather check to avoid spam
-    private LakskongenSim.Environment.WeatherState _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
     private int _lastDiseaseCheckDay = 0;
 
-    private void CheckWeatherImpacts()
-    {
-        if (SimulationEngine?.Weather == null || SimulationEngine?.State?.SeaSites == null) return;
-
-        var currentWeather = SimulationEngine.Weather.CurrentState;
-        
-        // Only trigger events when weather changes to severe states
-        if (currentWeather != _lastWeatherState && (currentWeather == LakskongenSim.Environment.WeatherState.Storm || currentWeather == LakskongenSim.Environment.WeatherState.Severe))
-        {
-            double severity = currentWeather == LakskongenSim.Environment.WeatherState.Severe ? 1.0 : 0.5;
-
-            // P11: track the realized storm loss in NOK so a Storm policy can
-            // settle one claim per weather event (fish loss + infrastructure).
-            decimal stormSpotPrice = SimulationEngine.MarketSimulation?.PricePerKg ?? 70m;
-            decimal stormFishLoss = 0m;
-            
-            // Storm damages pens and increases mortality (roekter halves losses).
-            // Iterate each site's own pens: populations are ZoneId-tagged
-            // (zone-shared), so State-wide filtering here would hit shared
-            // populations once per site in the zone.
-            double stormMult = LakskongenSim.Core.CrewEffects.StormLossMultiplier(SimulationEngine.State);
-            foreach (var site in SimulationEngine.State.SeaSites)
-            {
-                foreach (var pop in site.Pens)
-                {
-                    foreach (var cohort in pop.Cohorts)
-                    {
-                        // Increase mortality due to storm stress (0.5-2% loss depending on severity)
-                        int mortalityCount = (int)(cohort.Count * severity * 0.02 * stormMult);
-                        if (mortalityCount > 0)
-                        {
-                            cohort.Count = Math.Max(0, cohort.Count - mortalityCount);
-                            stormFishLoss += (decimal)(mortalityCount * cohort.MeanWeightKg) * stormSpotPrice;
-                        }
-                    }
-                }
-            }
-
-            // Phase 1.2 / v1.0.3: net-integrity wear and storm escapes are now
-            // owned by the engine (SimulationEngine.ApplyStormHazards), the single
-            // source of truth. GameBridge no longer mutates NetIntegrityPct or
-            // records escapes here, which prevents double-escape accounting.
-            // Storm repair bill (infrastructure damage, separate from escapes).
-            decimal repairCost = (decimal)(SimulationEngine.State.SeaSites.Count * 50000 * severity); // 50k-100k NOK per site
-            if (repairCost > 0 && SimulationEngine.FinanceManager.Balance >= repairCost)
-            {
-                SimulationEngine.FinanceManager.Spend(repairCost);
-                SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
-                {
-                    Day = SimulationEngine.State.Day,
-                    Name = "Storm Damage",
-                    Category = LakskongenSim.Events.EventCategory.Weather,
-                    Description = $"{(currentWeather == LakskongenSim.Environment.WeatherState.Severe ? "Severe storm" : "Storm")} damaged pen infrastructure",
-                    BalanceChange = -repairCost
-                });
-            }
-
-            // P11: settle the Storm insurance claim against the realized loss
-            // (fish mortality + escapes + infrastructure repair).
-            decimal stormLossNok = stormFishLoss + repairCost;
-            decimal stormPayout = SimulationEngine.Insurance?.ComputePayout(InsuranceKind.Storm, stormLossNok) ?? 0m;
-            if (stormPayout > 0m)
-            {
-                SimulationEngine.FinanceManager.AddRevenue(stormPayout);
-                SimulationEngine.FinancialStatements?.RecordRevenue(stormPayout);
-                SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
-                {
-                    Day = SimulationEngine.State.Day,
-                    Id = "insurance-storm",
-                    Name = "Forsikringsoppgjør",
-                    Category = LakskongenSim.Events.EventCategory.Weather,
-                    Description = $"Forsikring (Storm) dekket {stormPayout:N0} av {stormLossNok:N0} NOK stormtap",
-                    BalanceChange = stormPayout
-                });
-                GD.Print($"GameBridge: Storm insurance payout {stormPayout:N0} NOK (loss {stormLossNok:N0} NOK)");
-            }
-
-            string weatherDesc = currentWeather == LakskongenSim.Environment.WeatherState.Severe 
-                ? "Severe storm causing major infrastructure damage and fish stress" 
-                : "Storm causing moderate damage and increased mortality";
-            
-            EmitSignal(SignalName.WeatherEvent, currentWeather.ToString(), severity, weatherDesc);
-            GD.Print($"GameBridge: Weather event — {currentWeather} (severity {severity:F2})");
-        }
-
-        // Temperature extremes stress fish
-        double temp = SimulationEngine.Weather.CurrentTemperatureC;
-        if (temp < 4.0 || temp > 16.0)
-        {
-            double tempStress = temp < 4.0 ? (4.0 - temp) * 0.01 : (temp - 16.0) * 0.01;
-            foreach (var pop in SimulationEngine.State.Populations)
-            {
-                foreach (var cohort in pop.Cohorts)
-                {
-                    int tempMortality = (int)(cohort.Count * tempStress * 0.005); // 0.5% per degree deviation
-                    if (tempMortality > 0)
-                    {
-                        cohort.Count = Math.Max(0, cohort.Count - tempMortality);
-                    }
-                }
-            }
-        }
-
-        _lastWeatherState = currentWeather;
-    }
+    
 
     private void CheckDiseaseOutbreaks()
     {
@@ -978,7 +874,9 @@ public partial class GameBridge : Node
         if (SimulationEngine.State.Day - _lastDiseaseCheckDay < 7) return;
         _lastDiseaseCheckDay = SimulationEngine.State.Day;
 
-        double licePerFish = SimulationEngine.SeaLice.AverageLicePerFish;
+        // Phase 1 wave 2: the per-site lice models (Phase 2.1) are the
+        // simulation's authority; the legacy company model underreported.
+        double licePerFish = SimulationEngine.GetCompanyLiceAverage();
         
         // Trigger outbreak notification when lice threshold is exceeded
         if (licePerFish > 0.5)

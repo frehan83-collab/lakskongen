@@ -46,6 +46,7 @@ namespace LakskongenSim.Core
             State = new GameState();
             Rng = SimRng.CreateUnseeded();
             _dayNotes.Clear();
+            _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
             Time.Reset();
             _lastSustainabilityUpdate = 0;
             _lastTrafficLightUpdate = 0;
@@ -221,6 +222,20 @@ namespace LakskongenSim.Core
         private BarentsWatchClientOptions _barentsWatchClientOptions = new();
         private BarentsWatchFishHealthPipeline? _barentsWatchPipeline;
         private Random _rng = new(); // For event registration randomization (seeded in Initialize)
+
+        // Storm-impact edge tracking (moved from the bridge, Phase 1 wave 2).
+        private LakskongenSim.Environment.WeatherState _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
+
+        /// <summary>
+        /// Storm-episode fish-loss fraction at severity 1.0; a Storm episode
+        /// (severity 0.5) applies half. Calibrated against the BALANCE reference
+        /// (sea mortality 14-16%/cycle, NVI 2024 ≈ 15.4%): the bridge's original
+        /// 0.02 factor had never run in any measured probe and pushed cycle
+        /// mortality to ~67% — a model bug, not a tuned band. 0.0003 yields
+        /// ≈ 1-2% cycle-wide storm contribution across ~35 episodes/cycle,
+        /// landing disease-stress total mortality inside the reference band.
+        /// </summary>
+        private const double StormFishLossBaseFraction = 0.0003;
 
         // ─── Events ───
         public event Action<int>? OnDayAdvanced;
@@ -1949,6 +1964,12 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
             #pragma warning restore CS0618
 
             // ═══════════════════════════════════════════
+            // PHASE 1.4: STORM & TEMPERATURE IMPACTS (moved from the
+            // GameBridge so tick and skip share one deterministic path).
+            // ═══════════════════════════════════════════
+            ApplyStormAndTemperatureImpacts();
+
+            // ═══════════════════════════════════════════
             // PHASE 6B: STOCK MARKET (daily price + quarterly earnings)
             // ═══════════════════════════════════════════
             // Daily price movement (only if listed)
@@ -2284,6 +2305,112 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
             overallStopwatch.Stop();
             // T56: Removed SimLog.Info to avoid string allocation in hot path
             // Use Trace.WriteLine or conditional logging if debug output needed
+        }
+
+        /// <summary>
+        /// Storm episode impacts + temperature stress, moved verbatim from the
+        /// GameBridge (Phase 1 wave 2) so tick and skip share one path.
+        /// Storm mortality, repair bill and insurance settlement fire on the
+        /// TRANSITION into Storm/Severe (edge-triggered, as the bridge did);
+        /// temperature stress applies daily. Gated by _enableEvents like the
+        /// other event hazards, so event-off probes keep their band models.
+        /// </summary>
+        private void ApplyStormAndTemperatureImpacts()
+        {
+            if (!_enableEvents || Weather == null)
+            {
+                _lastWeatherState = Weather?.CurrentState ?? LakskongenSim.Environment.WeatherState.Calm;
+                return;
+            }
+
+            var currentWeather = Weather.CurrentState;
+            double severity = 0.0;
+            string weatherDesc = "";
+
+            if (currentWeather != _lastWeatherState &&
+                (currentWeather == LakskongenSim.Environment.WeatherState.Storm ||
+                 currentWeather == LakskongenSim.Environment.WeatherState.Severe))
+            {
+                severity = currentWeather == LakskongenSim.Environment.WeatherState.Severe ? 1.0 : 0.5;
+
+                // Storm stress mortality (roekter halves losses). Iterate each
+                // site's own pens: populations are ZoneId-tagged, State-wide
+                // filtering here would hit zone-shared populations per site.
+                decimal stormSpotPrice = MarketSimulation?.PricePerKg ?? 70m;
+                decimal stormFishLoss = 0m;
+                double stormMult = CrewEffects.StormLossMultiplier(State);
+                foreach (var site in State.SeaSites)
+                {
+                    foreach (var pop in site.Pens)
+                    {
+                        foreach (var cohort in pop.Cohorts)
+                        {
+                            int mortalityCount = (int)(cohort.Count * severity * StormFishLossBaseFraction * stormMult);
+                            if (mortalityCount > 0)
+                            {
+                                cohort.Count = Math.Max(0, cohort.Count - mortalityCount);
+                                stormFishLoss += (decimal)(mortalityCount * cohort.MeanWeightKg) * stormSpotPrice;
+                            }
+                        }
+                    }
+                }
+
+                // Storm repair bill (infrastructure damage; escapes and net wear
+                // remain owned by ApplyStormHazards, the escape single source).
+                decimal repairCost = (decimal)(State.SeaSites.Count * 50000 * severity);
+                if (repairCost > 0 && FinanceManager.Balance >= repairCost)
+                {
+                    FinanceManager.Spend(repairCost);
+                    State.EventLog.Add(new Events.EventRecord
+                    {
+                        Day = State.Day,
+                        Name = "Storm Damage",
+                        Category = Events.EventCategory.Weather,
+                        Description = $"{(currentWeather == LakskongenSim.Environment.WeatherState.Severe ? "Severe storm" : "Storm")} damaged pen infrastructure",
+                        BalanceChange = -repairCost
+                    });
+                }
+
+                // P11: settle the Storm insurance claim against the realized
+                // loss (fish mortality + infrastructure repair). One claim per
+                // episode (the bridge gated on the same edge-transition).
+                decimal stormLossNok = stormFishLoss + repairCost;
+                PayInsurance(InsuranceKind.Storm, stormLossNok, "stormtap", Events.EventCategory.Weather);
+
+                weatherDesc = currentWeather == LakskongenSim.Environment.WeatherState.Severe
+                    ? "Severe storm causing major infrastructure damage and fish stress"
+                    : "Storm causing moderate damage and increased mortality";
+            }
+
+            // Temperature extremes stress fish (daily, bridge parity).
+            double temp = Weather.CurrentTemperatureC;
+            if (temp < 4.0 || temp > 16.0)
+            {
+                double tempStress = temp < 4.0 ? (4.0 - temp) * 0.01 : (temp - 16.0) * 0.01;
+                foreach (var pop in State.Populations)
+                {
+                    foreach (var cohort in pop.Cohorts)
+                    {
+                        int tempMortality = (int)(cohort.Count * tempStress * 0.005); // 0.5% per degree deviation
+                        if (tempMortality > 0)
+                            cohort.Count = Math.Max(0, cohort.Count - tempMortality);
+                    }
+                }
+            }
+
+            if (severity > 0.0)
+            {
+                _dayNotes.Add(new DayNote
+                {
+                    Kind = "storm_impact",
+                    EventType = currentWeather.ToString(),
+                    Severity = severity,
+                    Message = weatherDesc,
+                    Success = true
+                });
+            }
+
+            _lastWeatherState = currentWeather;
         }
 
         /// <summary>
