@@ -19,22 +19,33 @@ HARNESS_SCENE="res://scenes/tools/ScreenshotHarness.tscn"
 OUT_DIR="$ROOT_DIR/screenshots/game"
 USER_OUT_DIR="$HOME/Library/Application Support/Godot/app_userdata/Lakskongen/screenshots"
 
-DEFAULT_GODOT_MACOS="/Users/fredrik.j.hansen/Applications/Godot_mono.app/Contents/MacOS/Godot"
-
 # ── Locate the Godot binary (GODOT_BIN override wins) ────────────────────────────
 GODOT_BIN="${GODOT_BIN:-}"
 if [[ -z "$GODOT_BIN" ]]; then
-  if [[ -x "$DEFAULT_GODOT_MACOS" ]]; then
-    GODOT_BIN="$DEFAULT_GODOT_MACOS"
-  elif command -v godot >/dev/null 2>&1; then
-    GODOT_BIN="$(command -v godot)"
-  elif command -v godot4 >/dev/null 2>&1; then
-    GODOT_BIN="$(command -v godot4)"
-  else
-    echo "ERROR: Godot binary not found." >&2
-    echo "Set GODOT_BIN=/path/to/Godot to override." >&2
-    exit 1
-  fi
+  for candidate in godot-mono godot godot4 Godot; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      GODOT_BIN="$(command -v "$candidate")"; break
+    fi
+  done
+fi
+if [[ -z "$GODOT_BIN" ]]; then
+  for candidate in \
+    "/Applications/Godot.app/Contents/MacOS/Godot" \
+    "/Applications/Godot_mono.app/Contents/MacOS/Godot" \
+    "$HOME/Applications/Godot_mono.app/Contents/MacOS/Godot" \
+    "$HOME/Applications/Godot.app/Contents/MacOS/Godot"; do
+    if [[ -x "$candidate" ]]; then GODOT_BIN="$candidate"; break; fi
+  done
+fi
+if [[ -z "$GODOT_BIN" ]]; then
+  for candidate in /opt/homebrew/Caskroom/godot-mono/*/.homebrew-command-wrappers/godot-mono; do
+    if [[ -x "$candidate" ]]; then GODOT_BIN="$candidate"; break; fi
+  done
+fi
+if [[ -z "$GODOT_BIN" ]]; then
+  echo "ERROR: Godot binary not found." >&2
+  echo "Set GODOT_BIN=/path/to/Godot to override." >&2
+  exit 1
 fi
 
 if [[ ! -x "$GODOT_BIN" ]]; then

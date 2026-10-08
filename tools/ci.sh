@@ -21,7 +21,29 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 PYTHON="${PYTHON:-python3}"
-GODOT_BIN="${GODOT_BIN:-/Applications/Godot.app/Contents/MacOS/Godot}"
+
+# Resolve the Godot binary: explicit GODOT_BIN wins, else PATH, else common
+# macOS install locations (incl. ~/Applications and the Homebrew cask wrapper).
+resolve_godot_bin() {
+    if [[ -n "${GODOT_BIN:-}" && -x "$GODOT_BIN" ]]; then printf '%s' "$GODOT_BIN"; return 0; fi
+    local c
+    for c in godot-mono godot Godot; do
+        if command -v "$c" >/dev/null 2>&1; then command -v "$c"; return 0; fi
+    done
+    for c in \
+        "/Applications/Godot.app/Contents/MacOS/Godot" \
+        "/Applications/Godot_mono.app/Contents/MacOS/Godot" \
+        "$HOME/Applications/Godot_mono.app/Contents/MacOS/Godot" \
+        "$HOME/Applications/Godot.app/Contents/MacOS/Godot"; do
+        [[ -x "$c" ]] && { printf '%s' "$c"; return 0; }
+    done
+    # Homebrew cask wrapper (version-agnostic glob).
+    for c in /opt/homebrew/Caskroom/godot-mono/*/.homebrew-command-wrappers/godot-mono; do
+        [[ -x "$c" ]] && { printf '%s' "$c"; return 0; }
+    done
+    printf '%s' "/Applications/Godot.app/Contents/MacOS/Godot"
+}
+GODOT_BIN="$(resolve_godot_bin)"
 
 STEP_NAMES=()
 STEP_RESULTS=()

@@ -32,7 +32,14 @@ find_godot() {
     for candidate in \
         "/Applications/Godot_mono.app/Contents/MacOS/Godot" \
         "/Applications/Godot.app/Contents/MacOS/Godot" \
-        "/Applications/Godot-mono.app/Contents/MacOS/Godot"; do
+        "/Applications/Godot-mono.app/Contents/MacOS/Godot" \
+        "$HOME/Applications/Godot_mono.app/Contents/MacOS/Godot" \
+        "$HOME/Applications/Godot.app/Contents/MacOS/Godot"; do
+        if [[ -x "$candidate" ]]; then
+            printf '%s\n' "$candidate"; return 0
+        fi
+    done
+    for candidate in /opt/homebrew/Caskroom/godot-mono/*/.homebrew-command-wrappers/godot-mono; do
         if [[ -x "$candidate" ]]; then
             printf '%s\n' "$candidate"; return 0
         fi
