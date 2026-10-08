@@ -258,19 +258,24 @@ func _capture_fjord_diagnostics() -> void:
 	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FJORD)
 	await _wait(1.2)
 	_log_3d_state()
-	var water := _find(_env, "WaterPlane")
-	var terrain := _find(_env, "Terrain")
-	if water is Node3D:
-		(water as Node3D).visible = false
-		await _wait(0.6)
-		await _shoot("12_diag_no_water")
-		(water as Node3D).visible = true
-		await _wait(0.4)
-	if terrain is Node3D:
-		(terrain as Node3D).visible = false
-		await _wait(0.6)
-		await _shoot("13_diag_no_terrain")
-		(terrain as Node3D).visible = true
+	# Hide each full-screen overlay / the farm, one at a time, so we can see
+	# which element produces the black band.
+	var targets := [
+		["TiltShiftCanvas", "14_diag_no_tilt"],
+		["UnderwaterCanvas", "15_diag_no_underwater"],
+		["FishPenManager", "16_diag_no_farm"],
+	]
+	for t in targets:
+		var node := _find(_env, t[0])
+		if node == null:
+			node = _find(self, t[0])
+		if node is CanvasItem or node is Node3D:
+			var was_visible: bool = node.visible
+			node.visible = false
+			await _wait(0.6)
+			await _shoot(t[1])
+			node.visible = was_visible
+			await _wait(0.3)
 
 
 func _log_3d_state() -> void:
@@ -281,11 +286,19 @@ func _log_3d_state() -> void:
 		var c := cam as Camera3D
 		print("[diag] camera pos=%s rot=%s fov=%.1f current=%s" % [
 			c.global_position, c.global_rotation, c.fov, c.current])
-	for nm in ["WaterPlane", "Terrain"]:
-		var n := _find(_env, nm)
-		if n is Node3D:
-			var m := n as Node3D
-			print("[diag] %s visible=%s pos=%s" % [nm, m.visible, m.global_position])
+	# Enumerate every 3D mesh under the environment with its world AABB size.
+	for n in _env.find_children("*", "MeshInstance3D", true, false):
+		var m := n as MeshInstance3D
+		var s := Vector3.ZERO
+		if m.mesh != null:
+			s = m.mesh.get_aabb().size
+		print("[diag] Mesh %-24s visible=%s size=%s pos=%s" % [
+			m.name, m.visible, s, m.global_position])
+	for n in _env.find_children("*", "MultiMeshInstance3D", true, false):
+		var mm := n as MultiMeshInstance3D
+		var inst := mm.multimesh.instance_count if mm.multimesh != null else 0
+		print("[diag] MultiMesh %-20s visible=%s instances=%d pos=%s" % [
+			mm.name, mm.visible, inst, mm.global_position])
 
 
 func _hide_ui() -> void:
