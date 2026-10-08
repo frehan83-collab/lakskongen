@@ -1029,7 +1029,14 @@ public partial class GameBridge : Node
 
         bool hasVet = LakskongenSim.Core.CrewEffects.HasRole(engine.State, "veterinaer");
         var plan = Farm.CohortTransferSystem.PlanTransfer(sourceSiteId, destSiteId, fishCount, meanWeightKg, reason, engine.State, hasVet);
-        var execResult = Farm.CohortTransferSystem.ExecuteTransfer(plan, engine.State, engine.FinanceManager, Random.Shared);
+        // Phase 1.4: deterministic per (game seed, source, destination) transfer
+        // losses instead of Random.Shared (which the determinism ban cannot see
+        // because the Godot layer is outside its scan scope).
+        int transferRngSeed = engine.Rng.Stream(
+            LakskongenSim.Core.SimRngStreams.CohortTransfer, plan.SourceSiteId, plan.DestSiteId)
+            .Next(int.MaxValue);
+        var execResult = Farm.CohortTransferSystem.ExecuteTransfer(
+            plan, engine.State, engine.FinanceManager, new Random(transferRngSeed));
 
         result["success"] = execResult.Success;
         result["fish_transferred"] = execResult.FishTransferred;

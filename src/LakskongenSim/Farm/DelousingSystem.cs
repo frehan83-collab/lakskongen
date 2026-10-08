@@ -193,7 +193,6 @@ namespace LakskongenSim.Farm
             // P4: handling harm compounds on repeat treatments — the harm
             // model's immediate rate (handling + injury-linked) floors the
             // profile rate, so back-to-back delousings kill extra fish.
-            var rng = new Random();
             double profileRate = profile.MortalityRisk * (1.0 + (temperatureC - 10.0) * 0.05) * mortalityMultiplier;
             var harm = Health.DelousingHarmModel.EvaluateFor(method.ToString(), actualEfficacy);
             pop.TreatmentHarm = Health.DelousingHarmModel.ApplyTreatment(

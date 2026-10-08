@@ -70,8 +70,7 @@ src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: .Whe
 src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: asset.ConstructionStarted = DateTime.Now; // In real game, use game time
 src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: if (asset != null && asset.ConstructionCompleted <= DateTime.Now)
 src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: return adjacentTiers.Any(adjTier => _ownedAssets.Any(a => a.Tier == adjTier && a.ConstructionCompleted <= DateTime.Now));
-src/LakskongenSim/Farm/AIFeedingSystem.cs :: Random.Shared :: AppetiteScore = 0.5 + Random.Shared.NextDouble() * 0.5; // Simulated camera reading
-src/LakskongenSim/Farm/DelousingSystem.cs :: new Random() :: var rng = new Random();
+
 src/LakskongenSim/Farm/OffshoreFarm.cs :: Random.Shared :: if (Random.Shared.NextDouble() < escapeChance)
 src/LakskongenSim/Farm/OffshoreFarm.cs :: Random.Shared :: int escapes = (int)(GetTotalFishCount() * Random.Shared.NextDouble() * 0.05); // Up to 5%
 src/LakskongenSim/Farm/PostSmoltFacility.cs :: DateTime.Now :: StartDate = DateTime.Now

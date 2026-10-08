@@ -32,6 +32,10 @@ namespace LakskongenSim.Core
         public TimeManager Time { get; } = new();
         public GameState State { get; private set; } = new();
 
+        /// <summary>Named deterministic RNG streams (Phase 1.4). Re-seeded in
+        /// Initialize from the game seed; replaced on Reset.</summary>
+        public SimRng Rng { get; private set; } = SimRng.CreateUnseeded();
+
         /// <summary>Drop all run state so a new game never inherits zones,
         /// sites, fish, event log or interval clocks from the previous one
         /// (S9). Called at the top of Initialize and directly by New Game.</summary>
@@ -40,6 +44,7 @@ namespace LakskongenSim.Core
             Storyteller?.Detach();
             Storyteller = null!;
             State = new GameState();
+            Rng = SimRng.CreateUnseeded();
             Time.Reset();
             _lastSustainabilityUpdate = 0;
             _lastTrafficLightUpdate = 0;
@@ -242,6 +247,7 @@ namespace LakskongenSim.Core
             Reset();
             _enableEvents = enableEvents;
             _rng = seed.HasValue ? new Random(seed.Value + 101) : new Random();
+            Rng = seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded();
             
             // Create subsystems
             Weather = seed.HasValue ? new WeatherSystem(seed.Value) : new WeatherSystem();
@@ -441,7 +447,7 @@ namespace LakskongenSim.Core
             // Initialize new farm systems
             RASFacilities = new();
             OffshoreFarms = new();
-            AIFeeding = new AIFeedingSystem();
+            AIFeeding = new AIFeedingSystem(Rng.Stream(SimRngStreams.AiFeeding));
             PostSmoltFacilities = new();
 
             // Initialize expansion, license, and politics systems

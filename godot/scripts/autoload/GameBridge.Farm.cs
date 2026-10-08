@@ -1314,14 +1314,17 @@ public partial class GameBridge : Node
         if (SimulationEngine!.FinanceManager.Balance < signingCost) return false;
         var candidate = LakskongenSim.Core.CrewEffects.Candidates
             .FirstOrDefault(c => c.role == role);
-        var rng = new Random();
+        // Phase 1.4: morale roll comes from the engine's named stream (deterministic
+        // per game seed + role), not a fresh unseeded Random.
+        int moraleBonus = SimulationEngine?.Rng
+            ?.Stream(LakskongenSim.Core.SimRngStreams.HireWorker, role)?.Next(0, 21) ?? 0;
         SimulationEngine.FinanceManager.Spend(signingCost);
         state.Crew.Add(new LakskongenSim.Core.CrewMember
         {
             Name = candidate.name,
             Role = role,
             MonthlySalaryNok = candidate.salary,
-            Morale = 75 + rng.Next(21),
+            Morale = 75 + moraleBonus,
             HiredDay = state.Day
         });
         EmitSignal(SignalName.FinanceTransaction, "hire_worker", (double)signingCost, $"Hired {candidate.name} ({role})");

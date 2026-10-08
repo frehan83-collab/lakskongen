@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LakskongenSim.Core;
 
 namespace LakskongenSim.Farm
 {
@@ -16,6 +17,18 @@ namespace LakskongenSim.Farm
     /// </summary>
     public class AIFeedingSystem
     {
+        private readonly SimRngStream? _cameraStream;
+
+        public AIFeedingSystem() { }
+
+        /// <summary>
+        /// Deterministic variant: camera-reading noise comes from a named
+        /// SimRng stream (SimRngStreams.AiFeeding). The parameterless
+        /// constructor keeps a fixed neutral reading for callers without
+        /// an RNG service.
+        /// </summary>
+        public AIFeedingSystem(SimRngStream cameraStream) => _cameraStream = cameraStream;
+
         // ─── Configuration ───
         /// <summary>Is the AI system installed and active?</summary>
         public bool IsInstalled { get; set; } = false;
@@ -189,7 +202,9 @@ namespace LakskongenSim.Farm
             result.DailyLicenseCost = ANNUAL_LICENSE_COST / 365m;
 
             // ─── Appetite tracking ───
-            AppetiteScore = 0.5 + Random.Shared.NextDouble() * 0.5; // Simulated camera reading
+            // Simulated camera reading; noise from the named stream when
+            // wired (engine), fixed neutral reading otherwise.
+            AppetiteScore = 0.5 + (_cameraStream?.NextDouble() ?? 0.5) * 0.5;
             if (AppetiteHistory.Count > 30) AppetiteHistory.RemoveAt(0);
             AppetiteHistory.Add(AppetiteScore);
 
