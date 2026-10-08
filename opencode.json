@@ -1,0 +1,16 @@
+{
+	"$schema": "https://opencode.ai/config.json",
+	"mcp": {
+		"blender": {
+			"type": "local",
+			"command": [
+				"uv",
+				"--directory",
+				"/Users/fredrik.j.hansen/blender_mcp/mcp",
+				"run",
+				"blender-mcp"
+			],
+			"enabled": true
+		}
+	}
+}
