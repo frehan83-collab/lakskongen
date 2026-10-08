@@ -45,6 +45,7 @@ namespace LakskongenSim.Core
             Storyteller = null!;
             State = new GameState();
             Rng = SimRng.CreateUnseeded();
+            _dayNotes.Clear();
             Time.Reset();
             _lastSustainabilityUpdate = 0;
             _lastTrafficLightUpdate = 0;
@@ -1397,9 +1398,158 @@ private class BalancingConfig
             {
                 AdvanceOneDay();
                 State.Day++; // Single source of truth for day counter
+
+                // Post-tick phase: due wellboat jobs execute AFTER State.Day++
+                // so the booking contract (DueDay = bookedDay + delay) stays
+                // exact; placing this inside AdvanceOneDay would deliver every
+                // boat one day early (off-by-one, see NEXT_LEVEL_PLAN).
+                ProcessDueWellboatJobs();
             }
 
             OnDayAdvanced?.Invoke(State.Day);
+        }
+
+        // ─── Per-advance note ledger ─────────────────────────────────────────
+        // The bridge drains these notes once per Advance/AdvanceDays call and
+        // projects them onto its legacy signals. Mutating code logs to
+        // State.EventLog itself; the notes only mirror WHAT happened so the
+        // presentation layer can react without owning simulation logic.
+
+        private readonly List<DayNote> _dayNotes = new();
+
+        /// <summary>Drain and clear the per-advance note ledger.</summary>
+        public List<DayNote> DrainDayNotes()
+        {
+            var notes = new List<DayNote>(_dayNotes);
+            _dayNotes.Clear();
+            return notes;
+        }
+
+        /// <summary>
+        /// Execute due wellboat jobs (Phase 2.4/3.4). Engine-owned mutations
+        /// and event-log entry; caller (the game) only mirrors the notes.
+        /// </summary>
+        private void ProcessDueWellboatJobs()
+        {
+            if (State?.WellboatJobs is null || State.WellboatJobs.Count == 0) return;
+
+            foreach (var job in State.WellboatJobs.Where(j => j.DueDay <= State.Day).ToList())
+            {
+                if (job.Kind == "freshwater")
+                    ExecuteFreshwaterBath(job);
+                else if (job.Kind == "rov")
+                    ExecuteRovInspection(job);
+                else
+                    ExecuteDelouseOrHarvestWellboat(job);
+
+                State.WellboatJobs.Remove(job);
+            }
+        }
+
+        private void ExecuteFreshwaterBath(Logistics.WellboatJob job)
+        {
+            var site = State.SeaSites.FirstOrDefault(s => s.Id == job.SiteId);
+            bool ok = site != null && site.Pens.Any(p => p.TotalCount > 0);
+            int deaths = 0;
+            string message;
+            if (ok)
+            {
+                // Freshwater bath: treat all pens, zero resistance. The site's
+                // lice kill applies once per site (first live pen), matching
+                // DelouseSite semantics (the old bridge multiplied the kill
+                // per pen via the company model).
+                var delousing = new Farm.DelousingSystem();
+                double tempC = Weather?.CurrentTemperatureC ?? 10.0;
+                double mortMult = CrewEffects.TreatmentMortalityMultiplier(State);
+                bool killDone = false;
+                foreach (var pop in site!.Pens)
+                {
+                    if (pop.TotalCount <= 0) continue;
+                    deaths += delousing.Treat(pop, Data.DelousingMethod.FreshwaterBath,
+                        site.Lice, IntegratedDisease, tempC, mortMult,
+                        applyCompanyLiceKill: !killDone).Deaths;
+                    killDone = true;
+                }
+                FinanceManager?.Spend(60_000m); // bath consumables
+                message = $"Ferskvannsbåt behandlet {job.SiteId} ({deaths:N0} håndteringsdødsfall, null resistens)";
+            }
+            else
+            {
+                message = $"Ferskvannsbåt kunne ikke behandle {job.SiteId}";
+            }
+
+            State.EventLog.Add(new Events.EventRecord
+            {
+                Day = State.Day,
+                Name = ok ? "Ferskvannsbehandling" : "Brønnbåt returnerte",
+                Category = Events.EventCategory.Disease,
+                Description = message,
+                BalanceChange = ok ? -60_000m : 0m
+            });
+            _dayNotes.Add(new DayNote
+            {
+                Kind = "wellboat_freshwater",
+                SiteId = job.SiteId,
+                Success = ok,
+                Message = message
+            });
+        }
+
+        private void ExecuteRovInspection(Logistics.WellboatJob job)
+        {
+            var site = State.SeaSites.FirstOrDefault(s => s.Id == job.SiteId);
+            bool ok = site != null;
+            string message = ok
+                ? $"ROV ved {site!.Id}: nøter renset (+15%)"
+                : $"ROV kunne ikke inspisere {job.SiteId}";
+            if (ok)
+            {
+                site!.NetIntegrityPct = Math.Min(100.0, site.NetIntegrityPct + 15.0);
+                int fish = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
+                message = $"ROV ved {site.Id}: {fish:N0} fisk, lus {GetCompanyLiceAverage():F2}/fisk, " +
+                          $"gjeller {site.GillScore:F0}/100, nøter {site.NetIntegrityPct:F0}% (+15 renset), " +
+                          $"rømminger i år: {site.EscapesThisYear}";
+                State.EventLog.Add(new Events.EventRecord
+                {
+                    Day = State.Day,
+                    Name = "ROV-inspeksjon",
+                    Category = Events.EventCategory.Equipment,
+                    Description = message,
+                    BalanceChange = 0m
+                });
+            }
+            _dayNotes.Add(new DayNote
+            {
+                Kind = "wellboat_rov",
+                SiteId = job.SiteId,
+                Success = ok,
+                Message = message
+            });
+        }
+
+        private void ExecuteDelouseOrHarvestWellboat(Logistics.WellboatJob job)
+        {
+            bool done = job.Kind == "delouse"
+                ? DelouseSite(job.SiteId, string.IsNullOrEmpty(job.Method) ? "hydrolicer" : job.Method).Ok
+                : HarvestSite(job.SiteId).Ok;
+
+            State.EventLog.Add(new Events.EventRecord
+            {
+                Day = State.Day,
+                Name = done ? "Brønnbåt ankommet" : "Brønnbåt returnerte",
+                Category = Events.EventCategory.Equipment,
+                Description = done
+                    ? $"Brønnbåt utførte {job.Kind} ved {job.SiteId}"
+                    : $"Brønnbåt kunne ikke utføre {job.Kind} ved {job.SiteId} (tom merd/manglende midler)",
+                BalanceChange = 0m
+            });
+            _dayNotes.Add(new DayNote
+            {
+                Kind = job.Kind == "delouse" ? "wellboat_delouse" : "wellboat_harvest",
+                SiteId = job.SiteId,
+                Success = done,
+                Message = job.Kind
+            });
         }
 
         /// <summary>

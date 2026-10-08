@@ -49,6 +49,29 @@ public sealed class CommandResult
 }
 
 /// <summary>
+/// One atomic outcome produced by the engine DURING Advance processing
+/// (wellboat executions, storm impacts). The Godot bridge drains the ledger
+/// after Advance/AdvanceDays and projects each note onto the legacy signal
+/// surface; PlayerScriptProbe reads the same notes headless. The mutating
+/// code owns its event-log entry — the bridge is presentation only.
+/// </summary>
+public sealed class DayNote
+{
+    /// <summary>Note kind: wellboat_rov / wellboat_freshwater /
+    /// wellboat_delouse / wellboat_harvest / storm_impact.</summary>
+    public string Kind { get; set; } = "";
+
+    public string SiteId { get; set; } = "";
+    public bool Success { get; set; } = false;
+    public string Message { get; set; } = "";
+
+    /// <summary>Signal event type (WeatherEvent projection), empty otherwise.</summary>
+    public string EventType { get; set; } = "";
+    public double Severity { get; set; } = 0.0;
+    public double Value { get; set; } = 0.0;
+}
+
+/// <summary>
 /// Player verbs, moved out of the Godot bridge (NEXT_LEVEL_PLAN Phase 1).
 /// These run on the same state the UI shows and are the same entry points the
 /// PlayerScriptProbe careers drive — one implementation, one path.
@@ -402,6 +425,60 @@ public partial class SimulationEngine
     }
 
     private static string InsuranceKindKey(InsuranceKind kind) => kind.ToString().ToLowerInvariant();
+
+    // ── Wellboat booking ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Book a spot-hire wellboat or ROV inspection (Phase 2.4/3.4): harvest
+    /// (150k, 5d), delouse (100k + treatment at execution, 3d), rov (75k, 2d:
+    /// net cleaning +15 integrity + findings report), freshwater (120k + bath
+    /// at execution, 4d). One pending job per site+kind. Execution runs inside
+    /// the engine's daily Advance (post-tick, see ProcessDueWellboatJobs).
+    /// </summary>
+    public CommandResult RequestWellboat(string siteId, string kind, string method = "")
+    {
+        if (State?.SeaSites == null || FinanceManager == null)
+            return CommandResult.Fail("engine_not_ready", "Engine not initialized");
+
+        if (State.SeaSites.All(s => s.Id != siteId))
+            return CommandResult.Fail("site_not_found", $"Site '{siteId}' not found");
+
+        if (State.WellboatJobs.Any(j => j.SiteId == siteId && j.Kind == kind))
+            return CommandResult.Fail("already_booked",
+                $"Wellboat already booked for '{siteId}' ({kind})");
+
+        int delay = kind switch { "delouse" => 3, "rov" => 2, "freshwater" => 4, _ => 5 };
+        decimal hire = kind switch { "delouse" => 100_000m, "rov" => 75_000m, "freshwater" => 120_000m, _ => 150_000m };
+        // Skipper: -25% hire via contacts, -1 day routing.
+        hire *= CrewEffects.WellboatHireMultiplier(State);
+        delay = Math.Max(1, delay - CrewEffects.WellboatDelayReduction(State));
+
+        if (FinanceManager.Balance < hire)
+            return CommandResult.Fail("insufficient_funds",
+                $"Insufficient funds: need {hire:N0} NOK for the wellboat hire");
+
+        FinanceManager.Spend(hire);
+        State.WellboatJobs.Add(new Logistics.WellboatJob
+        {
+            SiteId = siteId,
+            Kind = kind,
+            Method = method,
+            DueDay = State.Day + delay,
+            HireCost = hire
+        });
+
+        State.EventLog.Add(new EventRecord
+        {
+            Day = State.Day,
+            Name = "Brønnbåt bestilt",
+            Category = EventCategory.Equipment,
+            Description = $"Brønnbåt bestilt til {siteId} ({kind}, ankomst om {delay}d)",
+            BalanceChange = -hire
+        });
+
+        return CommandResult.Success(
+            $"Wellboat booked for {siteId} ({kind}, arrival in {delay}d)", id: siteId);
+    }
 
     // ── Load path ──────────────────────────────────────────────────────────
 

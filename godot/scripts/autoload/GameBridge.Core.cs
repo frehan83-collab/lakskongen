@@ -255,7 +255,7 @@ public partial class GameBridge : Node
         try
         {
             SimulationEngine.Advance(days);
-            ProcessDueWellboatJobs();
+            ProjectDayNotes();
             EmitSignal(SignalName.SimulationTicked, SimulationEngine.State.Day);
             EmitSignal(SignalName.GameStateUpdated);
             CheckGameOverConditions();
@@ -298,122 +298,60 @@ public partial class GameBridge : Node
     /// </summary>
     public bool RequestWellboat(string siteId, string kind, string method = "")
     {
-        var state = SimulationEngine?.State;
-        if (state?.SeaSites?.All(s => s.Id != siteId) != false)
+        // Phase 1 wave 2: booking and execution live in the library
+        // (SimulationEngine.RequestWellboat + engine-side post-tick execution).
+        // The bridge preserves the bool + FarmActionCompleted surface; the
+        // duplicate-booking path stays silent exactly like before.
+        if (SimulationEngine == null)
         {
             EmitSignal(SignalName.FarmActionCompleted, "wellboat", siteId, false);
             return false;
         }
-        if (state.WellboatJobs.Any(j => j.SiteId == siteId && j.Kind == kind))
+        var result = SimulationEngine.RequestWellboat(siteId, kind, method);
+        if (!result.Ok)
         {
-            GD.Print($"GameBridge: Wellboat already booked for '{siteId}' ({kind})");
+            if (result.ErrorKey != "already_booked")
+            {
+                GD.PrintErr($"GameBridge: {result.Message}");
+                EmitSignal(SignalName.FarmActionCompleted, "wellboat", siteId, false);
+            }
             return false;
         }
-        int delay = kind switch { "delouse" => 3, "rov" => 2, "freshwater" => 4, _ => 5 };
-        decimal hire = kind switch { "delouse" => 100_000m, "rov" => 75_000m, "freshwater" => 120_000m, _ => 150_000m };
-        // Skipper: -25% hire via contacts, -1 day routing.
-        hire *= LakskongenSim.Core.CrewEffects.WellboatHireMultiplier(state);
-        delay = System.Math.Max(1, delay - LakskongenSim.Core.CrewEffects.WellboatDelayReduction(state));
-        if (SimulationEngine!.FinanceManager.Balance < hire)
-        {
-            EmitSignal(SignalName.FarmActionCompleted, "wellboat", siteId, false);
-            return false;
-        }
-        SimulationEngine.FinanceManager.Spend(hire);
-        state.WellboatJobs.Add(new LakskongenSim.Logistics.WellboatJob
-        {
-            SiteId = siteId, Kind = kind, Method = method,
-            DueDay = state.Day + delay, HireCost = hire
-        });
-        state.EventLog.Add(new LakskongenSim.Events.EventRecord
-        {
-            Day = state.Day,
-            Name = "Brønnbåt bestilt",
-            Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"Brønnbåt bestilt til {siteId} ({kind}, ankomst om {delay}d)",
-            BalanceChange = -hire
-        });
         EmitSignal(SignalName.FarmActionCompleted, "wellboat", siteId, true);
         EmitSignal(SignalName.GameStateUpdated);
         return true;
     }
 
-    /// <summary>Execute due wellboat jobs after each advance (Phase 2.4).</summary>
-    private void ProcessDueWellboatJobs()
+    /// <summary>
+    /// Project the engine's per-advance DayNote ledger onto the legacy signal
+    /// surface (Phase 1 wave 2). The engine executes and logs; this layer only
+    /// re-emits what the UI already knows how to consume.
+    /// </summary>
+    private void ProjectDayNotes()
     {
-        var state = SimulationEngine?.State;
-        if (state?.WellboatJobs.Count == 0) return;
-        foreach (var job in state!.WellboatJobs.Where(j => j.DueDay <= state.Day).ToList())
+        var engine = SimulationEngine;
+        if (engine == null) return;
+        foreach (var note in engine.DrainDayNotes())
         {
-            if (job.Kind == "freshwater")
+            switch (note.Kind)
             {
-                // Freshwater bath boat: Treat all site pens, zero resistance.
-                var fwsite = state.SeaSites.FirstOrDefault(s => s.Id == job.SiteId);
-                bool fwok = fwsite != null && fwsite.Pens.Any(p => p.TotalCount > 0);
-                int fwdeaths = 0;
-                if (fwok)
-                {
-                    var delousing = new LakskongenSim.Farm.DelousingSystem();
-                    double tempC = SimulationEngine!.Weather?.CurrentTemperatureC ?? 10.0;
-                    double mortMult = LakskongenSim.Core.CrewEffects.TreatmentMortalityMultiplier(state);
-                    foreach (var pop in fwsite!.Pens)
-                    {
-                        if (pop.TotalCount <= 0) continue;
-                        fwdeaths += delousing.Treat(pop,
-                            LakskongenSim.Data.DelousingMethod.FreshwaterBath,
-                            SimulationEngine.SeaLice, SimulationEngine.IntegratedDisease,
-                            tempC, mortMult).Deaths;
-                    }
-                    SimulationEngine.FinanceManager.Spend(60_000m); // bath consumables
-                }
-                state.WellboatJobs.Remove(job);
-                state.EventLog.Add(new LakskongenSim.Events.EventRecord
-                {
-                    Day = state.Day,
-                    Name = fwok ? "Ferskvannsbehandling" : "Brønnbåt returnerte",
-                    Category = LakskongenSim.Events.EventCategory.Disease,
-                    Description = fwok
-                        ? $"Ferskvannsbåt behandlet {job.SiteId} ({fwdeaths:N0} håndteringsdødsfall, null resistens)"
-                        : $"Ferskvannsbåt kunne ikke behandle {job.SiteId}",
-                    BalanceChange = fwok ? -60_000m : 0m
-                });
-                continue;
+                case "wellboat_delouse":
+                    EmitSignal(SignalName.FarmActionCompleted, "wellboat", note.SiteId, note.Success);
+                    EmitSignal(SignalName.FarmActionCompleted, "delousing", note.SiteId, note.Success);
+                    break;
+                case "wellboat_harvest":
+                    EmitSignal(SignalName.FarmActionCompleted, "wellboat", note.SiteId, note.Success);
+                    EmitSignal(SignalName.FarmActionCompleted, "harvest", note.SiteId, note.Success);
+                    engine.Audio?.TriggerAlert("harvest");
+                    break;
+                case "wellboat_rov":
+                case "wellboat_freshwater":
+                    EmitSignal(SignalName.FarmActionCompleted, "wellboat", note.SiteId, note.Success);
+                    break;
+                case "storm_impact":
+                    EmitSignal(SignalName.WeatherEvent, note.EventType, note.Severity, note.Message);
+                    break;
             }
-            if (job.Kind == "rov")
-            {
-                // ROV inspection: cleans nets (+15 integrity) + findings report.
-                var site = state.SeaSites.FirstOrDefault(s => s.Id == job.SiteId);
-                bool ok = site != null;
-                if (ok)
-                {
-                    site!.NetIntegrityPct = System.Math.Min(100.0, site.NetIntegrityPct + 15.0);
-                    int fish = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
-                    state.EventLog.Add(new LakskongenSim.Events.EventRecord
-                    {
-                        Day = state.Day,
-                        Name = "ROV-inspeksjon",
-                        Category = LakskongenSim.Events.EventCategory.Equipment,
-                        Description = $"ROV ved {site.Id}: {fish:N0} fisk, lus {SimulationEngine!.SeaLice.AverageLicePerFish:F2}/fisk, gjeller {site.GillScore:F0}/100, nøter {site.NetIntegrityPct:F0}% (+15 renset), rømminger i år: {site.EscapesThisYear}",
-                        BalanceChange = 0m
-                    });
-                }
-                state.WellboatJobs.Remove(job);
-                continue;
-            }
-            bool done = job.Kind == "delouse"
-                ? OrderDelousing(job.SiteId, string.IsNullOrEmpty(job.Method) ? "hydrolicer" : job.Method)
-                : HarvestSite(job.SiteId) > 0.0;
-            state.WellboatJobs.Remove(job);
-            state.EventLog.Add(new LakskongenSim.Events.EventRecord
-            {
-                Day = state.Day,
-                Name = done ? "Brønnbåt ankommet" : "Brønnbåt returnerte",
-                Category = LakskongenSim.Events.EventCategory.Equipment,
-                Description = done
-                    ? $"Brønnbåt utførte {job.Kind} ved {job.SiteId}"
-                    : $"Brønnbåt kunne ikke utføre {job.Kind} ved {job.SiteId} (tom merd/manglende midler)",
-                BalanceChange = 0m
-            });
         }
     }
 
@@ -812,7 +750,7 @@ public partial class GameBridge : Node
         try
         {
             SimulationEngine.Advance(1);
-            ProcessDueWellboatJobs();
+            ProjectDayNotes();
             EmitSignal(SignalName.SimulationTicked, SimulationEngine.State.Day);
             EmitSignal(SignalName.GameStateUpdated);
 

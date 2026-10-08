@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using LakskongenSim.Core;
@@ -51,6 +52,7 @@ public static class PlayerScriptProbe
         public bool SaveLoadRoundTripped = false;
         public bool HarvestedAllSites = false;
         public decimal EndingBalance = 0m;
+        public List<string> NoteKinds = new();
     }
 
     /// <summary>
@@ -78,6 +80,12 @@ public static class PlayerScriptProbe
         Assert.True(loan.Ok, $"loan failed: {loan.ErrorKey}");
         Assert.False(string.IsNullOrEmpty(loan.Id), "loan must return an id");
 
+        // Wellboat verbs through the same surface the game uses: an ROV
+        // inspection (net cleaning) and a contracted delousing. Both must be
+        // executed by the engine in the daily advance and reported as notes.
+        Assert.True(engine.RequestWellboat("po3_nord", "rov").Ok, "ROV booking failed");
+        Assert.True(engine.RequestWellboat("po3_sor", "delouse", "hydrolicer").Ok, "wellboat delouse booking failed");
+
         double fishBeforeGrowOut = TotalFish(engine.State);
         // Feed/growth counters reset on the resumed engine, so accumulate in
         // segments: bank the delta each loop iteration, re-anchoring the
@@ -91,6 +99,8 @@ public static class PlayerScriptProbe
         while (engine.State.Day < CareerHorizonDays)
         {
             engine.Advance(AdvanceChunkDays);
+            foreach (var note in engine.DrainDayNotes())
+                result.NoteKinds.Add(note.Kind);
             feedAccumulator += engine.Feed.TotalFeedUsedKg - lastFeedUsed;
             growthAccumulator += engine.Feed.TotalGrowthKg - lastGrowth;
             lastFeedUsed = engine.Feed.TotalFeedUsedKg;

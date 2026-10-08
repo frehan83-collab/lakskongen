@@ -26,11 +26,20 @@ public class PlayerScriptCareerTests
         Assert.True(r.HarvestedKg > 50_000, $"harvest too small: {r.HarvestedKg:N0} kg");
         Assert.InRange(r.RealizedPricePerKg, 70.0, 96.0);
         Assert.InRange(r.EconomicFcr, 0.9, 2.6);
-        Assert.InRange(r.SeaMortalityPct, 0.0, 60.0);
+        // Wide ceiling on purpose: the career deliberately books early
+        // treatments (wellboat delouse day ~3) and runs events + red zone,
+        // so grow-out mortality runs above the clean SimProbe band; the
+        // ceiling only guards against a silent full wipe.
+        Assert.InRange(r.SeaMortalityPct, 0.0, 65.0);
         Assert.True(r.EventLogEntries > 5, "events never fired — the events-on path is broken");
         Assert.True(double.IsFinite(r.PeakAdultFemaleLice), "lice metric went non-finite");
         Assert.True(r.PeakAdultFemaleLice < 5.0, $"lice ran away: {r.PeakAdultFemaleLice:F2}/fish");
         Assert.True(r.EndingBalance > -10_000_000m, $"bankrupt at career end: {r.EndingBalance:N0} NOK");
+
+        // The wellboat bookings must have been executed by the engine's daily
+        // advance, through the same note ledger the game's bridge projects.
+        Assert.Contains("wellboat_rov", r.NoteKinds);
+        Assert.Contains("wellboat_delouse", r.NoteKinds);
     }
 
     [Fact]
