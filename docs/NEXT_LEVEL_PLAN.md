@@ -15,6 +15,11 @@ Date: 2026-10-08. Reviewed at commit `b56ff2a`. The review covers the C# simulat
   distant channel-wall silhouettes render as thin grey streaks at FJORD zoom
   (needs the FastNoiseLite terrain + wider valley — medium task).
 - **Phase 1 core DONE** (S1/S2/S3/S5/S8/S9/S10 + 9 regression/ban tests).
+- **Phase 2.1 DONE** (commit 6670aa1): per-site lice models with
+  farm-to-farm infection, weekly counting (0.5 / 0.2 spring limit),
+  Mattilsynet orders + forced treatment, stage-specific efficacy,
+  resistance decay, DelousingHarmModel wired into treatments.
+  653 tests pass, harness log error-free.
   **Deferred with reason:** price-clamp removal (needs the Phase 2
   supply-driven market first — removing it now just moves the band problem);
   PlayerScriptProbe (needs the Sim.Commands refactor); ISnapshotable +
