@@ -269,7 +269,7 @@ func _capture_fjord_diagnostics() -> void:
 		var node := _find(_env, t[0])
 		if node == null:
 			node = _find(self, t[0])
-		if node is CanvasItem or node is Node3D:
+		if node is CanvasLayer or node is CanvasItem or node is Node3D:
 			var was_visible: bool = node.visible
 			node.visible = false
 			await _wait(0.6)

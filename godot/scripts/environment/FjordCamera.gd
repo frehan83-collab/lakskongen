@@ -39,7 +39,10 @@ const ZOOM_PRESETS := {
 
 # === Tilt-Shift ===
 @export_group("Tilt-Shift")
-@export var tilt_shift_enabled: bool = true
+## Disabled by default: the tilt-shift focus band rendered solid black on the
+## Metal backend (a full-width black bar across the centre of the viewport).
+## Re-enable once the screen-texture shader is verified on Metal.
+@export var tilt_shift_enabled: bool = false
 @export var tilt_shift_material: ShaderMaterial
 
 # Internal state

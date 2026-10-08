@@ -283,6 +283,7 @@ draw_pass_1 = SubResource("snow_mesh")
 layer = 1
 
 [node name="TiltShiftRect" type="ColorRect" parent="TiltShiftCanvas"]
+visible = false
 material = SubResource("tilt_shift_mat")
 anchors_preset = 15
 anchor_right = 1.0
