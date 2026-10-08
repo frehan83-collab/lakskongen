@@ -10,7 +10,7 @@
 | Check | Result |
 |---|---|
 | `dotnet build LakskongenSim.sln` | ✅ 0 errors, 0 warnings |
-| Tests | ✅ **663 passed**, 1 skipped, 0 failed (honest count; the old "727" included ~92 triplicates, fixed in Phase 0. Includes seeded 3-year soak, campaign smoke, PlayerScriptProbe careers) |
+| Tests | ✅ **686 passed**, 1 skipped, 0 failed (honest count; the old "727" included ~92 triplicates, fixed in Phase 0. Includes seeded 3-year soak, campaign smoke, PlayerScriptProbe careers) |
 | CI gate (`tools/ci.sh`) | ✅ **9/9 locally** (nothing skipped) — builds both assemblies · dotnet tests · pytest · perf · token sync · JSON · scene validation · GDScript parse. GitHub CI runs the same gate headless |
 | Performance | ✅ 0.19 ms/day best avg (3 sites / ~103k fish; soft 2 ms/day, hard 5 ms/day) |
 | Godot editor scan | ✅ 0 GDScript parse errors (Godot 4.7) |
@@ -52,9 +52,18 @@ Phases 1–7 feature-complete, plus Waves 1–14. **NEXT_LEVEL_PLAN Phase 1
   same adoption path the game uses. **2 career tests + 8 command
   contract tests, all green.**
 
-Next on this track: move `OrderDelousing` and the bridge-side tick
-logic (wellboat ETA execution, `CheckWeatherImpacts`, temperature
-mortality) into the engine, then the `ITickSystem` split.
+Wave 2 (done): `SimRng` named streams wired in; `DelouseSite` moved to
+the library (gill fix: site-level hit once per site); wellboat booking +
+execution inside the engine's daily advance (day-anchor after
+`State.Day++`); storm/temperature impacts moved into `AdvanceOneDay`
+with per-episode insurance settlement via a `DayNote` ledger the bridge
+projects — the tick/skip asymmetry is dead. Storm loss factor
+recalibrated 0.02 → 0.0003 (was never probe-measured; 67% cycle
+mortality vs the 14–16% band).
+
+Next on this track: `ITickSystem` split, ISnapshotable/one-serializer
+rewrite, then migrating the legacy seeded subsystems onto SimRng
+streams with bit-equivalence golden tests.
 
 - **Foundations (W1–2)** — audio truth pass, token-driven theme, data-viz,
   scenarios/mods wired, unified onboarding, `ConsequenceDirector`.

@@ -392,6 +392,7 @@ public partial class SimulationEngine
         int totalDeaths = 0;
         double siteGillDamage = 0.0;
         bool siteLiceKillDone = false;
+        bool gillCaptured = false;
         foreach (var pop in site.Pens)
         {
             if (pop.TotalCount <= 0) continue;
@@ -400,8 +401,13 @@ public partial class SimulationEngine
                 applyCompanyLiceKill: !siteLiceKillDone);
             siteLiceKillDone = true;
             totalDeaths += result.Deaths;
-            if (siteGillDamage == 0.0)
+            // First REAL treatment in iteration order defines the site dose —
+            // never a value-based sentinel (would break if harm ever went per-pen).
+            if (!gillCaptured)
+            {
                 siteGillDamage = result.GillDamage;
+                gillCaptured = true;
+            }
         }
         // Gill damage lands ONCE on the site score. The dose is identical for
         // every pen of a site (same method/temperature/gill state), so the

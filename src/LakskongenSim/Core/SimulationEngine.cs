@@ -34,7 +34,7 @@ namespace LakskongenSim.Core
 
         /// <summary>Named deterministic RNG streams (Phase 1.4). Re-seeded in
         /// Initialize from the game seed; replaced on Reset.</summary>
-        public SimRng Rng { get; private set; } = SimRng.CreateUnseeded();
+        public SimRng Rng { get; private set; } = new SimRng(0);
 
         /// <summary>Drop all run state so a new game never inherits zones,
         /// sites, fish, event log or interval clocks from the previous one
@@ -44,7 +44,7 @@ namespace LakskongenSim.Core
             Storyteller?.Detach();
             Storyteller = null!;
             State = new GameState();
-            Rng = SimRng.CreateUnseeded();
+            Rng = new SimRng(0);
             _dayNotes.Clear();
             _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
             Time.Reset();
@@ -1420,6 +1420,13 @@ private class BalancingConfig
                 // boat one day early (off-by-one, see NEXT_LEVEL_PLAN).
                 ProcessDueWellboatJobs();
             }
+
+            // Post-tick balance mirror sync: wellboat and storm economies land
+            // in FinanceManager after the in-day mirror, so re-sync here or
+            // State.Balance would read one day stale.
+            #pragma warning disable CS0618 // Balance mirror: save-compat field by design
+            State.Balance = FinanceManager.Balance;
+            #pragma warning restore CS0618
 
             OnDayAdvanced?.Invoke(State.Day);
         }

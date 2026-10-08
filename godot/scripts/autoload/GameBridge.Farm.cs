@@ -640,7 +640,9 @@ public partial class GameBridge : Node
             foreach (var site in engine.State.SeaSites.ToList())
                 ok &= engine.DelouseSite(site.Id, method).Ok;
             EmitSignal(SignalName.FarmActionCompleted, "delousing", siteId, ok);
-            if (ok) EmitSignal(SignalName.GameStateUpdated);
+            // Partial application still changed state — refresh regardless;
+            // the bool tells the UI whether every site succeeded.
+            EmitSignal(SignalName.GameStateUpdated);
             return ok;
         }
 

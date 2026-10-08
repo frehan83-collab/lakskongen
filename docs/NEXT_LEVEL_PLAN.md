@@ -59,6 +59,44 @@ Date: 2026-10-08. Reviewed at commit `b56ff2a`. The review covers the C# simulat
   they move), BuildSeaSite/ApplyForLicense (double 30M charge + license
   model decision), the cash-vs-equity scenario win check is equity-based so
   AddLoanPrincipal can't be gamed day 1.
+- **Phase 1 wave 2 DONE — SimRng + delousing + wellboat + storm/temp.**
+  `SimRng` (SplitMix64, FNV-1a named streams, per-identity suffix
+  overloads, engine-owned lifecycle) now feeds AI-feeding noise, hire
+  morale and cohort transfers; the determinism ban's allowlist shrank
+  accordingly (dead unseeded lines deleted, incl. DelousingSystem's
+  never-drawn `new Random()`). `DelouseSite` moved into the library with
+  the gill fix (site-level hit once per site — the bridge multiplied the
+  dose scalar by pen count) and `DelousingSystem.TryParseMethodName` owns
+  the name table. Wellboat booking is a command; due jobs execute inside
+  `Advance` AFTER `State.Day++` (no off-by-one), freshwater baths use the
+  site lice model with kill-once. Storm/temperature impacts moved into
+  `AdvanceOneDay` (edge-triggered per episode, one insurance claim per
+  episode via PayInsurance) — the tick/skip asymmetry is dead; the bridge
+  now only projects a per-advance `DayNote` ledger onto legacy signals.
+  **Calibration:** the bridge's storm loss factor 0.02/fish/episode had
+  never run in any measured probe and pushed disease-stress mortality to
+  ~67% vs the 14–16% band; recalibrated to 0.0003, all BalanceReportTests
+  back in band (model bug, bands untouched).
+  Division note: `CheckDiseaseOutbreaks` remains bridge-side as a UI
+  observer (now reading `GetCompanyLiceAverage`); `CheckGameOverConditions`
+  stays bridge-side (EndGame is Godot lifecycle). Suite 686/1 skip.
+  **Still open:** ITickSystem split, ISnapshotable+one serializer,
+  BuildSeaSite/ApplyForLicense double-charge, migration of legacy seeded
+  subsystems (Weather/Growth/Genetics/Market) onto SimRng streams with
+  golden-file bit-equivalence, EnforceLiceTreatmentOrder reuse of
+  DelouseSite core.
+  **Review follow-ups (from the post-impl adversarial pass, accepted):**
+  (1) `StormFishLossBaseFraction = 0.0003` is a PROVISIONAL single-variable
+  band fit — it must become an episodic storm model (NVI-attributed storm
+  mortality, net-integrity exposure in ApplyStormHazards, magnitude band
+  test 0.5–3%) and move into CalibrationRegistry; (2) `_lastWeatherState`
+  resets on load, so loading mid-storm re-settles that episode's insurance
+  claim — weather persistence is an ISnapshotable item; (3) economy
+  properties `Revenue`/`Expenses`/`Profit` in GameBridge.Economy read the
+  stale Balance mirror and need the P&L fix (S4); (4) wellboat/storm
+  execution currently hangs on the `Advance` loop — ITickSystem must make
+  them first-class tick phases with the mirror sync in a structured
+  post-tick slot.
 - **Phases 2/4/5 NOT STARTED.** Phase 4 still needs the UI/bridge review pass.
 
 ## Verdict

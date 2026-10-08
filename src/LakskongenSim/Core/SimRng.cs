@@ -42,19 +42,13 @@ public sealed class SimRng
         => new(RandomNumberGenerator.GetInt32(int.MinValue, int.MaxValue));
 
     /// <summary>Get (or lazily create) the single stream for a scope.</summary>
-    public SimRngStream Stream(string scope)
-    {
-        if (_streams.TryGetValue(scope, out var existing))
-            return existing;
-        var stream = new SimRngStream(Mix(_gameSeed ^ Fnv1a(scope)));
-        _streams[scope] = stream;
-        return stream;
-    }
+    public SimRngStream Stream(string scope) => Stream(scope, Array.Empty<string>());
 
     /// <summary>
     /// Get a per-identity stream: the scope salt is chained through the
     /// suffixes, so drawing order between different identity sets can never
-    /// influence each other's sequences.
+    /// influence each other's sequences. Both overloads share the key
+    /// derivation — Stream(name) and Stream(name, []) are the same stream.
     /// </summary>
     public SimRngStream Stream(string scope, params string[] suffixes)
     {
