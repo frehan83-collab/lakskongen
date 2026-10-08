@@ -34,6 +34,10 @@ var _fish_time: float = 0.0
 var markers_parent: Node3D
 var visualization: MeshInstance3D
 var active_indicator: MeshInstance3D
+## Feeding FX: ParticleEffects node + per-pen cooldown (seconds).
+var _particles: Node = null
+var _last_fed_at: Dictionary = {}
+const FEED_FX_COOLDOWN := 25.0
 
 # === Signals ===
 signal pen_added(pen_id: String, position: Vector3)
@@ -52,10 +56,26 @@ const COLOR_DEFAULT := Color(0.9, 0.6, 0.2, 0.6)
 
 func _ready() -> void:
 	_ensure_expected_nodes()
+	# ParticleEffects is a sibling under FjordEnvironment in GameScene.
+	_particles = get_node_or_null("../ParticleEffects")
 	if visualization:
 		visualization.visible = false
 	if active_indicator:
 		active_indicator.visible = false
+
+
+## Fire feeding particles while the sim reports active feeding at a site
+## (rate-limited per pen so the 1 Hz sim sync does not spam emitters).
+func _maybe_emit_feeding(pen_id: String, site: Dictionary) -> void:
+	if _particles == null or not _particles.has_method("_emit_feeding"):
+		return
+	if not bool(site.get("is_feeding", false)):
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - float(_last_fed_at.get(pen_id, -9999.0)) < FEED_FX_COOLDOWN:
+		return
+	_last_fed_at[pen_id] = now
+	_particles.call("_emit_feeding", {"pen_id": pen_id})
 
 
 func _ensure_expected_nodes() -> void:
@@ -209,14 +229,18 @@ func _apply_site_data(pen_id: String, site: Dictionary, index: int) -> void:
 		label.text = _site_string(site, ["name", "pen_name", "id"], pen_id)
 	var color := health_color_for(site)
 	_set_ring_color(pen_id, color)
+	_apply_fish_density(pen_id, site)
+	_maybe_emit_feeding(pen_id, site)
 
 
 static func health_color_for(site: Dictionary) -> Color:
+	# Thresholds mirror the sim's regulatory limits: green below 0.2
+	# (spring limit), amber 0.2-0.5, red at/above the 0.5 adult-female limit.
 	var lice := _site_float(site, ["sea_lice", "lice_per_fish", "lice"], -1.0)
 	if lice >= 0.0:
-		if lice >= 1.0:
-			return COLOR_CRITICAL
 		if lice >= 0.5:
+			return COLOR_CRITICAL
+		if lice >= 0.2:
 			return COLOR_WARNING
 		return COLOR_HEALTHY
 	var health := _site_float(site, ["health", "health_score", "welfare"], -1.0)
@@ -323,22 +347,49 @@ func _create_fish_multimesh() -> MultiMesh:
 	mat.roughness = 0.6
 	body.material = mat
 	mm.mesh = body
-	mm.instance_count = fish_per_pen
+	# Allocated once at max; _apply_fish_density drives visible count.
+	mm.instance_count = FISH_MAX_INSTANCES
+	mm.visible_instance_count = 0
 	return mm
+
+
+## Visible fish scale with the sim: count follows stocking, body length
+## follows mean weight (L(cm) = (100*W_g/1.1)^(1/3), body mesh is 0.9 m).
+## The MultiMesh is allocated once at FISH_MAX_INSTANCES; only
+## visible_instance_count moves (changing instance_count resets transforms).
+const FISH_MAX_INSTANCES := 240
+
+func _apply_fish_density(pen_id: String, site: Dictionary) -> void:
+	if not (pen_id in _pens):
+		return
+	var pen_data: Dictionary = _pens[pen_id]
+	var school: MultiMeshInstance3D = pen_data["fish_school"]
+	if not school or not school.multimesh:
+		return
+	var fish_count := int(_site_float(site, ["fish_count"], 0.0))
+	var mean_w := _site_float(site, ["mean_weight_kg"], 0.0)
+	var visible := clampi(fish_count / 250, 0, FISH_MAX_INSTANCES)
+	school.multimesh.visible_instance_count = visible
+	# Body length from weight; clamp to sane bounds (smolt .. harvest).
+	var length_m := 0.2
+	if mean_w > 0.0:
+		length_m = clampf(pow(100.0 * mean_w * 1000.0 / 1.1, 1.0 / 3.0) / 100.0, 0.15, 1.0)
+	pen_data["fish_scale"] = length_m / 0.9
 
 
 func _animate_fish_school(pen_data: Dictionary, pen_id: String) -> void:
 	var school: MultiMeshInstance3D = pen_data["fish_school"]
 	if not school or not school.multimesh:
 		return
-	var count: int = school.multimesh.instance_count
+	var count: int = school.multimesh.visible_instance_count
+	var fish_scale: float = pen_data.get("fish_scale", 0.5)
 	var phase := float(abs(hash(pen_id)) % 1000) / 1000.0 * TAU
 	for i in range(count):
 		var t := _fish_time + phase + float(i) * 0.35
 		var r := fish_swim_radius * (0.55 + 0.45 * float(i % 3) / 2.0)
 		var depth := -3.0 - float(i % 4) * 2.0
 		var pos := Vector3(cos(t) * r, depth + sin(t * 1.7) * 0.6, sin(t) * r)
-		var basis := Basis(Vector3.UP, -t)
+		var basis := Basis(Vector3.UP, -t).scaled(Vector3.ONE * fish_scale)
 		school.multimesh.set_instance_transform(i, Transform3D(basis, pos))
 
 
@@ -346,11 +397,15 @@ func _set_ring_color(pen_id: String, color: Color) -> void:
 	if not (pen_id in _pens):
 		return
 	_pens[pen_id]["ring_color"] = color
+	# Per-instance tint: the collar material is a shared .tres, so a plain
+	# albedo write would recolor every pen (or be swallowed by
+	# material_override). The shader's instance uniform keeps it per-pen.
 	var cage = _pens[pen_id]["cage"]
 	if cage:
 		var collar = cage.get_node_or_null("Collar") as MeshInstance3D
-		if collar and collar.mesh and (collar.mesh as PrimitiveMesh).material is StandardMaterial3D:
-			((collar.mesh as PrimitiveMesh).material as StandardMaterial3D).albedo_color = color
+		if collar:
+			collar.set_instance_shader_parameter("lice_tint",
+				Vector4(color.r, color.g, color.b, 1.0))
 
 
 func _on_pen_input_event(_camera: Node, event: InputEvent, _position: Vector3, _normal: Vector3, _shape_idx: int, pen_id: String) -> void:

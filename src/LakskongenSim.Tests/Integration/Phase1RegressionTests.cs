@@ -174,4 +174,22 @@ public class Phase1RegressionTests
         // model dynamics did to it (a fishless test tank lets lice decline).
         Assert.Equal(engine.SeaLice.AverageLicePerFish, pop.SeaLiceLoad, precision: 10);
     }
+
+    [Fact]
+    public void LiceSync_SelfStarts_FromScenarioStockedFish()
+    {
+        // Scenario/hatchery stockings set population loads without seeding
+        // the company model — the weekly block must re-seed from the worst
+        // population instead of zeroing everyone's lice.
+        var engine = new SimulationEngine();
+        engine.Initialize(enableEvents: false, seed: 16);
+        var pop = new FishPopulation { SeaLiceLoad = 0.2 };
+        engine.State.Populations.Add(pop);
+        Assert.True(engine.SeaLice.AverageLicePerFish <= 0.001);
+
+        engine.Advance(8);
+
+        Assert.True(engine.SeaLice.AverageLicePerFish > 0.0);
+        Assert.Equal(engine.SeaLice.AverageLicePerFish, pop.SeaLiceLoad, precision: 10);
+    }
 }

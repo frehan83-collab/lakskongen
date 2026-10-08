@@ -1853,7 +1853,17 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
                 // S1: the company lice model is the authority — mirror its
                 // average onto every population first, so limits, traffic
                 // lights and the UI read live values instead of the
-                // stocking-time constant.
+                // stocking-time constant. Self-starting: scenario/hatchery
+                // stockings set population loads without touching the model,
+                // so re-seed from the worst population when extinct.
+                if ((SeaLice?.AverageLicePerFish ?? 0.0) <= 0.001 && SeaLice != null)
+                {
+                    double maxLoad = 0.0;
+                    foreach (var p in State.Populations)
+                        maxLoad = Math.Max(maxLoad, p.SeaLiceLoad);
+                    if (maxLoad > 0.01)
+                        SeaLice.SeedExternalInfection(Math.Min(maxLoad, 0.5));
+                }
                 double avgLice = SeaLice?.AverageLicePerFish ?? 0.0;
                 foreach (var pop in State.Populations)
                     pop.SeaLiceLoad = avgLice;

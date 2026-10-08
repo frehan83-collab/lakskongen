@@ -235,6 +235,14 @@ func _capture_genetics() -> void:
 func _capture_fjord_day() -> void:
 	_hide_ui()
 	await _wait(0.4)
+	# Live frame FIRST: the sim->3D sync is still enabled here, so this shot
+	# proves the live weather/wave path in a real frame (whatever regime the
+	# sim is in). Afterwards QA takes over staging.
+	await _wait(1.5)
+	await _shoot("08a_fjord_live_sync")
+	var vista := _find(_game, "FjordVistaBridge")
+	if vista != null:
+		vista.set("sim_weather_enabled", false)
 	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FJORD)
 	await _wait(1.5)
 	await _shoot("08_fjord_day")

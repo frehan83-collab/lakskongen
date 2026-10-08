@@ -711,6 +711,17 @@ public partial class GameBridge : Node
             // by either key misattributes biomass across sites.
             int fishCount = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
             double biomassKg = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count * (double)c.MeanWeightKg);
+            // Living-fjord payload: per-site lice drive collar tinting, mean
+            // weight scales the 3D fish, oxygen + appetite gate feeding FX.
+            double licePerFish = site.Pens.Count > 0
+                ? site.Pens.Average(p => p.SeaLiceLoad) : 0.0;
+            double meanWeightKg = fishCount > 0 ? biomassKg / fishCount : 0.0;
+            var zone = SimulationEngine?.State?.Zones?.FirstOrDefault(z => z.Id == site.ZoneId);
+            double oxygenMgL = zone?.WaterChemistry?.OxygenO2 ?? double.NaN;
+            double appetite = Appetite01;
+            bool isFeeding = appetite > 0.4
+                && (double.IsNaN(oxygenMgL) || oxygenMgL > 3.0)
+                && fishCount > 0;
 
             result.Add(new Godot.Collections.Dictionary
             {
@@ -719,6 +730,10 @@ public partial class GameBridge : Node
                 ["zone"]              = site.ZoneId,
                 ["fish_count"]        = fishCount,
                 ["biomass_kg"]        = biomassKg,
+                ["lice_per_fish"]     = licePerFish,
+                ["mean_weight_kg"]    = meanWeightKg,
+                ["oxygen_mgl"]        = oxygenMgL,
+                ["is_feeding"]        = isFeeding,
                 ["max_biomass"]       = site.MABTonnes * 1000,
                 ["escapes_this_year"] = site.EscapesThisYear,
                 ["net_integrity"]     = site.NetIntegrityPct,

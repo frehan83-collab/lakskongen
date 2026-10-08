@@ -91,6 +91,12 @@ var wind_ms: float:
 var wave_m: float:
 	get(): return _state.wave_m
 	set(v): _state.wave_m = v
+var weather_state: String:
+	get(): return _state.weather_state
+	set(v): _state.weather_state = v
+var season01: float:
+	get(): return _state.season01
+	set(v): _state.season01 = v
 var min_net_integrity: float:
 	get(): return _state.min_net_integrity
 	set(v): _state.min_net_integrity = v

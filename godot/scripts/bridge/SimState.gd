@@ -29,6 +29,10 @@ signal achievement_unlocked(id: String, achievement_name: String, description: S
 # ── Simulation snapshot (refreshed on each tick) ──────────────────────────────
 
 var current_day: int = 0
+## Sim weather regime: Calm / Moderate / Storm / Severe (drives 3D sky + waves).
+var weather_state: String = "Calm"
+## Season 0=winter, 0.25=spring, 0.5=summer, 0.75=autumn (drives 3D snow line).
+var season01: float = 0.0
 var balance: float = 0.0
 var fish_count: int = 0
 var fish_biomass_kg: float = 0.0
@@ -179,6 +183,10 @@ func _refresh_state() -> void:
 		return
 
 	current_day          = game_bridge.CurrentDay
+	if game_bridge.has_method("GetCurrentWeatherState"):
+		weather_state = str(game_bridge.GetCurrentWeatherState())
+	# Day 0 = Jan 1: winter 0, spring 0.25, summer 0.5, autumn 0.75.
+	season01 = fmod(float(current_day) / 365.0, 1.0)
 	balance              = game_bridge.Balance
 	fish_count           = game_bridge.TotalFishCount
 	fish_biomass_kg      = game_bridge.TotalBiomassKg
