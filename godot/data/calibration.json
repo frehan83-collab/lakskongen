@@ -1,5 +1,5 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "economy": {
     "startingCapitalNOK": 10000000,
     "smoltCostPerFishNOK": 12,
@@ -64,7 +64,8 @@
     "optimalTemperatureMinC": 8,
     "optimalTemperatureMaxC": 14,
     "lethalTemperatureMaxC": 22,
-    "fallowPeriodDays": 60
+    "fallowPeriodDays": 60,
+    "stormFishLossBaseFraction": 0.0003
   },
   "waterQuality": {
     "criticalDOSaturationThreshold": 0.60,

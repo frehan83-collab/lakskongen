@@ -128,6 +128,13 @@ namespace LakskongenSim.Tests.Calibration
             Assert.InRange(C.Environment.OptimalTemperatureMaxC, 12, 16);
             Assert.InRange(C.Environment.LethalTemperatureMaxC, 20, 24);
             Assert.InRange(C.Environment.FallowPeriodDays, 30, 90);
+
+            // PROVISIONAL storm-episode loss fraction: reconciled 2026-10-08 with
+            // the sea-mortality reference band (14-16%/cycle; the old 0.02 in-tick
+            // factor drove ~67%). Keep it in a corridor until the episodic storm
+            // model replaces it — the EFFECTIVE regression guard is
+            // BalanceReportTests.DiseaseStress_TotalMortality_WithinReferenceBand.
+            Assert.InRange(C.Environment.StormFishLossBaseFraction, 1e-4, 1e-3);
         }
 
         [Fact]

@@ -39,7 +39,7 @@ namespace LakskongenSim.Calibration
         public const string EmbeddedResourceName = "LakskongenSim.Calibration.calibration.json";
 
         /// <summary>Current schema/balancing version. Bump when reconciled values change.</summary>
-        public const string DefaultVersion = "1.0.3";
+        public const string DefaultVersion = "1.0.4";
 
         /// <summary>Calibration schema/balancing version.</summary>
         [JsonPropertyName("version")]
@@ -349,6 +349,19 @@ namespace LakskongenSim.Calibration
         public double LethalTemperatureMaxC { get; init; } = 22;
         /// <summary>Fallow period between cycles (days).</summary>
         public int FallowPeriodDays { get; init; } = 60;
+
+        /// <summary>
+        /// Storm-episode fish-loss fraction at severity 1.0 (a Storm episode
+        /// applies half). PROVISIONAL single-variable calibration reconciled
+        /// 2026-10-08 against the sea-mortality reference band (14-16%/cycle,
+        /// NVI 2024 ≈ 15.4%, see docs/BALANCE.md §1b): the previous in-code
+        /// factor 0.02 had never run in a measured probe and pushed cycle
+        /// mortality to ~67%. 0.0003 contributes ≈0.5-2% cycle-wide across
+        /// ~35 episodes; it MUST graduate into an episodic storm model with
+        /// net-integrity exposure and a magnitude band test
+        /// (docs/NEXT_LEVEL_PLAN.md follow-ups).
+        /// </summary>
+        public double StormFishLossBaseFraction { get; init; } = 0.0003;
     }
 
     /// <summary>Water quality configuration (DO &amp; stocking density).</summary>

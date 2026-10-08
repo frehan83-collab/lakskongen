@@ -226,17 +226,6 @@ namespace LakskongenSim.Core
         // Storm-impact edge tracking (moved from the bridge, Phase 1 wave 2).
         private LakskongenSim.Environment.WeatherState _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
 
-        /// <summary>
-        /// Storm-episode fish-loss fraction at severity 1.0; a Storm episode
-        /// (severity 0.5) applies half. Calibrated against the BALANCE reference
-        /// (sea mortality 14-16%/cycle, NVI 2024 ≈ 15.4%): the bridge's original
-        /// 0.02 factor had never run in any measured probe and pushed cycle
-        /// mortality to ~67% — a model bug, not a tuned band. 0.0003 yields
-        /// ≈ 1-2% cycle-wide storm contribution across ~35 episodes/cycle,
-        /// landing disease-stress total mortality inside the reference band.
-        /// </summary>
-        private const double StormFishLossBaseFraction = 0.0003;
-
         // ─── Events ───
         public event Action<int>? OnDayAdvanced;
         public event Action<ResearchNode>? OnResearchCompleted;
@@ -2352,7 +2341,7 @@ foreach (var postSmoltFacility in PostSmoltFacilities)
                     {
                         foreach (var cohort in pop.Cohorts)
                         {
-                            int mortalityCount = (int)(cohort.Count * severity * StormFishLossBaseFraction * stormMult);
+                            int mortalityCount = (int)(cohort.Count * severity * CalibrationRegistry.Default.Environment.StormFishLossBaseFraction * stormMult);
                             if (mortalityCount > 0)
                             {
                                 cohort.Count = Math.Max(0, cohort.Count - mortalityCount);
