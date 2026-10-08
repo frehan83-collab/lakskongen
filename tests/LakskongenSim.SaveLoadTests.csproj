@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CS1591;CS0618</NoWarn> <!-- CS1591: no XML docs; CS0618: GameState.Balance is intentional save-compat -->
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="xunit" Version="2.4.2" />

@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <NoWarn>$(NoWarn);CS1591;CS0618</NoWarn> <!-- CS1591: no XML docs; CS0618: GameState.Balance is intentional save-compat -->
   </PropertyGroup>
 
   <ItemGroup>

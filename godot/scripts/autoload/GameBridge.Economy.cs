@@ -31,8 +31,10 @@ public partial class GameBridge : Node
 {
     // ── Finance API ───────────────────────────────────────────────────────────
 
+#pragma warning disable CS0618 // State.Balance is the intentional save-compat mirror of FinanceManager.Balance
     /// <summary>Total revenue accumulated this period (read-only).</summary>
     public double Revenue => (double)(SimulationEngine?.State?.Balance ?? 0m);
+#pragma warning restore CS0618
 
     /// <summary>Total expenses accumulated this period (read-only).</summary>
     public double Expenses => 0.0; // FinanceManager lacks Expenses tracking

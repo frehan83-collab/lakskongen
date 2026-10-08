@@ -13,7 +13,8 @@ It fails fast: the first failing step prints a summary and exits non-zero.
 | 3 | Performance | `dotnet run --project src/PerformanceBenchmark -c Release` | Simulation slowdowns; the benchmark returns non-zero when the perf gate exceeds its hard budget (5 ms/day) |
 | 4 | Token sync | `python3 tools/sync_tokens.py --check` | UI theme drift between `design/tokens.json` and `godot/theme/tokens.json` |
 | 5 | JSON validation | `python3 -m json.tool` over `godot/data/*.json` and `godot/mods/**/manifest.json` | Malformed data or mod manifests that would crash the game/loader |
-| 6 | GDScript parse scan | `godot --headless --editor --quit-after 3` (only if Godot is present) | GDScript parse/syntax errors across the project |
+| 6 | Scene load validation | `tools/validate_scenes.sh` (only if Godot is present) | `.tscn` files that fail to load, dangling `[ext_resource]` paths, invalid meshes |
+| 7 | GDScript parse scan | `godot --headless --editor --quit-after 3` (only if Godot is present) | GDScript parse/syntax errors across the project |
 
 ## Running locally
 
@@ -29,12 +30,12 @@ step passed.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `GODOT_BIN` | `/Applications/Godot.app/Contents/MacOS/Godot` | Path to the Godot 4 editor binary used for step 6. |
+| `GODOT_BIN` | `/Applications/Godot.app/Contents/MacOS/Godot` | Path to the Godot 4 editor binary used for steps 6 and 7. |
 | `PYTHON` | `python3` | Python interpreter used for steps 4 and 5. |
 
-If `GODOT_BIN` does not point at an executable, step 6 is reported as `SKIP`
-and the gate still passes — Godot is optional. To run the parse scan locally
-against a non-default install:
+If `GODOT_BIN` does not point at an executable, steps 6 and 7 are reported as
+`SKIP` and the gate still passes — Godot is optional. To run the scene/parse
+checks locally against a non-default install:
 
 ```bash
 GODOT_BIN="/Applications/Godot_mono.app/Contents/MacOS/Godot" bash tools/ci.sh
@@ -50,8 +51,9 @@ every push and pull request:
 3. `actions/setup-python` with Python 3.12
 4. `bash tools/ci.sh`
 
-Godot is not installed on the runner, so step 6 is skipped there. To enable it
-in CI, download a Godot build and export `GODOT_BIN` before the gate step.
+Godot is not installed on the runner, so steps 6 and 7 are skipped there. To
+enable them in CI, download a Godot build and export `GODOT_BIN` before the gate
+step.
 
 ## Fixing failures
 
@@ -64,5 +66,9 @@ in CI, download a Godot build and export `GODOT_BIN` before the gate step.
   updated `godot/theme/tokens.json`.
 - **Invalid JSON** — the offending file and a parser message are printed; fix
   the syntax (trailing commas and comments are not valid JSON).
+- **Scene validation failures** — the validator prints the failing `.tscn` and
+  the reason (missing `[ext_resource]`, invalid mesh, load/instantiate error);
+  fix the scene or restore the referenced file. See
+  [SCENE_VALIDATION.md](SCENE_VALIDATION.md).
 - **GDScript parse errors** — run Godot locally with `GODOT_BIN` set and fix
   the scripts reported in the log.

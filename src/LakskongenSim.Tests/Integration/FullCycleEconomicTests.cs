@@ -267,7 +267,6 @@ namespace LakskongenSim.Tests.Integration
             // Arrange
             int fishCount = 10000;
             double baselineMortalityPct = 15.0; // Typical baseline
-            double smoltWeightKg = 0.1;
             double harvestWeightKg = 5.0;
             double marketPricePerKg = 70.0;
             double vaccineCostPerFish = 2.50;

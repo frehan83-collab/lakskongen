@@ -547,7 +547,9 @@ public partial class SaveLoadManager : Node
                 SaveName = saveData.SaveName ?? "Unknown",
                 SaveTime = saveData.SaveTime,
                 GameDay = saveData.GameState.Day,
+#pragma warning disable CS0618 // GameState.Balance is the intentional save-compat mirror
                 Cash = (long)saveData.GameState.Balance, // Use Balance and cast to long
+#pragma warning restore CS0618
                 FileSize = (int)fileSize
             };
         }

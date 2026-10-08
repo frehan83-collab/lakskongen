@@ -1,3 +1,4 @@
+#nullable enable annotations
 using Xunit;
 using LakskongenSim.Biology;
 using LakskongenSim.Data;

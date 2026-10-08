@@ -28,6 +28,7 @@ class Program
             manager.RegisterVehicle(wellboat);
 
             var (v, cost) = manager.ScheduleTransport((60.4, 5.3), (62.0, 5.5), 1000);
+            if (v == null) { Console.WriteLine("FAIL: no vehicle scheduled for 1000kg load"); return 1; }
             Console.WriteLine($"Scheduled vehicle: {v.Id}, estimated cost: {cost:F2}");
             if (v is Truck) Console.WriteLine("PASS: truck chosen for 1000kg load"); else { Console.WriteLine("FAIL: expected truck for 1000kg"); return 1; }
 
