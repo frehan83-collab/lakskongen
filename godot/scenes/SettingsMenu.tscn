@@ -2,4 +2,4 @@
 
 [ext_resource type="PackedScene" uid="uid://dc5j8wp6nvlqx" path="res://scenes/ui/SettingsMenu.tscn" id="1_canonical"]
 
-[node name="SettingsMenu" parent="." instance=ExtResource("1_canonical")]
+[node name="SettingsMenu" instance=ExtResource("1_canonical")]

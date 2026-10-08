@@ -46,9 +46,13 @@ func _ready() -> void:
 func _on_input_event(camera: Node, event: InputEvent, position: Vector3, normal: Vector3, shape_idx: int) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			var manager = get_parent() as FishPenManager
-			if manager:
-				manager.pen_clicked.emit(name, global_position)
+			# Intentionally untyped: referencing the FishPenManager class here
+			# creates a circular GDScript dependency (FishPenManager preloads
+			# pen_cage.tscn -> PenCage.gd), which prevents the scene from
+			# loading. Emitting by name keeps the edge dynamic.
+			var manager := get_parent()
+			if manager and manager.has_signal("pen_clicked"):
+				manager.emit_signal("pen_clicked", name, global_position)
 
 func set_health_color(color: Color) -> void:
 	health_color = color

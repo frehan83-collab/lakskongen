@@ -112,6 +112,103 @@ calibration registry into the live models:
   bFCR 1.15 / 25.7 NOK/kg references. Runtime authority is the `FeedSystem`
   constant; the registry field is the reconciled record.
 
+## 1c. Extended probe — disease, escapes, multi-site economics (seeds 1-20)
+
+`SimProbe` now also sweeps four extension scenarios, all pure in-process and
+deterministic for a given seed. Measured **Oct 2026, calibration v1.0.2**.
+
+### Disease-cycle mortality (`SimScenario.DiseaseStress`)
+
+`RunDisease` initialises with `enableEvents:true` (the disease subsystem live),
+silences the random storyteller shocks so the only mortality difference versus
+the deterministic baseline is the disease term, forces the disease LOD high, and
+measures disease-attributable deaths exactly from the injected per-population
+rate (`MortalityModel.GetSaveSnapshot`): for a one-day step
+`survivors(without) - survivors(with) = count x diseaseRate`.
+
+| Metric | Measured min / **median** / p90 | Reference / guard | Verdict |
+|---|---|---|---|
+| Disease mortality %/cycle | 0.00 / **0.00** / 0.00 | <=2 (additive guard) | DORMANT (see note) |
+| Total sea mortality %/cycle | 14.19 / **15.76** / 17.82 | 14-16 (NVI 2024) | IN BAND |
+
+**Note (engine deferral, see §5):** the additive disease subsystem is
+effectively dormant. The stochastic engine's base SIR is seeded at 1e-6
+prevalence and the high-fidelity path does not inject its mortality into
+`MortalityModel`, so the measured *additive* term is 0. The real disease burden
+is **not** missing from the game: NVI's all-cause 15.4% sea mortality (14-16%
+band) is already anchored in `Health.SeaMortalityPerCycle` and reproduced by the
+baseline total (15.76%). The guard exists to catch an accidental outbreak
+pushing the additive term beyond the calibrated anchor.
+
+### Storm escapes (`SimScenario.Storm`)
+
+`RunStorm` runs the seeded weather and applies a documented **test-side
+containment-risk model** through the engine's own `SeaSite.NetIntegrityPct` and
+`SeaSite.RecordEscape` (the live engine does not yet drive sea-site storm
+escapes; only `OffshoreFarm` has a live escape path — the same deferral pattern
+as disease). Each cycle starts with fresh nets (integrity 100). Ordinary storm
+days cost 0.3 integrity, severe days 1.0, with 0.2/day repair; on severe days a
+containment failure occurs with expectation 1% and releases, at full wear, 5% of
+the pen — so escapes stay rare and low.
+
+| Metric | Measured min / **median** / p90 | Reference / guard | Verdict |
+|---|---|---|---|
+| Escapes / site / year (fish) | 10.6 / **25.0** / 39.1 | low | IN BAND |
+| Escape events / site / year | 0.12 / **0.16** / 0.21 | <=1 guard | IN BAND |
+| Escapes % of stock / site / year | 0.06 / **0.15** / 0.30 | <=0.5% guard | IN BAND |
+| Storm days / year | 97 / **118.7** / 128.7 | scenario exposure proof | OK |
+| Min net integrity % | 72.1 / **83.4** / 89.5 | >=40 (SeaSite risk line) | IN BAND |
+
+Real mapping: Norwegian escape events are rare and per-site annual escape rates
+sit far below 1% of stock; the 0.5% guard is a conservative cap. This also keeps
+the site inside the sustainability scoring band (0 escapes = full 20 pts,
+1-10 = half, >10 = 0; `docs/SUSTAINABILITY_SYSTEM.md`).
+
+### Multi-site economics (`SimScenario.ThreeSite`)
+
+`RunThreeSite` operates three 50k-smolt sea sites together for the full horizon,
+harvesting/re-stocking each as it reaches 5.2 kg, and reports pooled, farm-gate
+P&L. OPEX uses the registry-consistent feed cost (price x economic FCR) plus the
+calibrated smolt, labour, maintenance and harvest constants; downstream
+processing is excluded so the EBIT/kg is comparable to how SalMar/Mowi report
+farming-segment EBIT/kg.
+
+| Metric | Measured min / **median** / p90 | Reference / guard | Verdict |
+|---|---|---|---|
+| Gross revenue NOK (3 sites) | 70.0M / **94.8M** / 112.8M | design | OK |
+| Total OPEX NOK (3 sites) | 67.3M / **76.1M** / 83.4M | design | OK |
+| **EBIT NOK/kg** | 2.31 / **16.43** / 22.13 | cyclical 8-25 | IN BAND |
+| Cost NOK/kg produced | 62.96 / **69.58** / 79.58 | farm-gate, feed-dominant | IN BAND |
+| Profit NOK / site | 0.65M / **6.09M** / 9.78M | positive | OK |
+| Harvested kg / site | 273.7k / **366.2k** / 441.5k | ~50k x 5.2 kg x cycles | OK |
+
+Cost stack per harvested kg: feed 25.645 (price x FCR), smolt 12/fish, sea labour
+(7 workers/site x 48k/month), site maintenance (0.01%/day of build cost) and
+wellboat harvest 4.0 — matching `docs/BALANCE.md` §2. Real mapping: the measured
+median EBIT/kg **16.4** sits inside the SalMar/Mowi cyclical **8-25** band
+(SalMar 23.4 FY24, 13.6 FY25); feed remains the dominant cost at ~25.7 NOK/kg
+produced (Fiskeridir Tab.38).
+
+### Lice control — treatments & resistance (`SimScenario.LiceControl`)
+
+`RunLiceControl` applies a proactive delousing policy (a pyrethroid + a
+mechanical pass at the calibrated trigger `Health.SeaLiceTreatmentThreshold`
+= 0.15 adult females/fish) and reports treatments per cycle and the resistance
+reached within a cycle (the engine resets the lice model at each sea stocking,
+so resistance is a per-cycle quantity).
+
+| Metric | Measured min / **median** / p90 | Reference / guard | Verdict |
+|---|---|---|---|
+| Treatments / cycle | 1.00 / **1.50** / 3.00 | proactive, low | OK |
+| Max resistance % (per cycle) | 0.07 / **0.07** / 0.15 | low (<=5%) | IN BAND |
+| Peak adult-female lice/fish | 0.15 / **0.15** / 0.15 | <=0.5 action limit | IN BAND |
+
+Real mapping: treatment at the 0.15 trigger keeps the treated peak well under
+the Mattilsynet 0.5 action limit (untreated cycles reach 0.49; §1b), and
+per-cycle resistance development stays low because the model resets lice state
+at sea stocking and resistance builds only from treatments applied within the
+cycle.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
@@ -216,6 +313,22 @@ The three metrics previously deferred to the engine owner are now wired into
   simulation cash. Recommended: derive it from the registry
   (`FeedPricePerKgFeedNOK`) and update the test, or document it explicitly as
   an abstract estimate.
+- **Disease-attributable mortality is dormant.** `IntegratedDiseaseSystem`
+  builds its own `DiseaseSystem` base SIR but `SetMortalityModel` wires the
+  `MortalityModel` only into the LOD system, not the base system; and the base
+  SIR starts from a 1e-6 prevalence seed. The high-fidelity path therefore never
+  injects disease mortality, so the measured additive term is 0 (§1c). The
+  all-cause disease burden is still represented via the calibrated
+  `Health.SeaMortalityPerCycle` anchor. Recommended (engine): call
+  `_baseSystem.SetMortalityModel(...)` and drive a realistic exogenous infection
+  ramp, then re-tune `DiseaseSystem.ExtraMortalityRatePerDay`.
+- **Sea-site storm escapes are not engine-driven.** `SeaSite.NetIntegrityPct`
+  and `SeaSite.RecordEscape` exist and are documented ("Storms degrade; below 40
+  during storms risks escapes") but no engine code degrades integrity or records
+  a sea-site escape; only `OffshoreFarm` has a live escape path. §1c measures a
+  documented **test-side** containment-risk model through the same public
+  counters. Recommended (engine): decrement `NetIntegrityPct` on storm days and
+  call `RecordEscape`, gated at the 40% threshold.
 
 ## 6. Guard coverage
 
@@ -236,3 +349,4 @@ The three metrics previously deferred to the engine owner are now wired into
 | 2026-10-07 | Balance consolidation | FeedSystem defaults now sourced from CalibrationRegistry; added standalone-drift guard; report created; feed row in REALISM_CHECKLIST reconciled. |
 | 2026-10-08 | Balance harness | Added `SimProbe` + `BalanceReportTests` (seeds 1-20, 3-year grow-out cycles); measured-band table (§1b); tuned `FCRTempSensitivity` 0.018 -> 0.008 (v1.0.1); recorded mortality/price/lice deferrals (§5). |
 | 2026-10-08 | Calibration v1.0.2 | Wired `Health.SeaMortalityPerCycle` into `MortalityModel` (per-cycle -> per-day; 10.8 -> 15.8%); sourced `MarketSimulation` O-U from `CalibrationRegistry.Market`, added supply/demand mean-reversion + normal-play band, seeded market intelligence RNG (153 -> 88.0 NOK/kg); seeded seasonal external lice pressure (0.00 -> 0.49/fish). Re-ran `SimProbe` seeds 1-20 both scenarios; full suite green (707 passed). Updated `BalanceReportTests` bands from deferred to the real references; bumped `calibration.json` to 1.0.2. |
+| 2026-10-08 | Extended probe | Added disease-cycle, storm-escape, multi-site economics and lice-control scenarios to `SimProbe` + `BalanceReportTests` (§1c). Measured disease term 0.00%/cycle (dormant; engine deferral recorded in §5), storm escapes 0.15%/site/yr vs 0.5 guard, multi-site EBIT/kg 16.43 (in the 8-25 cyclical band), cost 69.6 NOK/kg produced, 1.5 treatments/cycle with 0.07% per-cycle resistance. Documented the test-side containment-risk model and the farm-gate cost stack. |

@@ -1,7 +1,6 @@
-[gd_resource type="PrimitiveMesh" load_steps=1 format=3 uid="uid://pen_feedpipe_mesh_001"]
+[gd_resource type="CylinderMesh" load_steps=1 format=3 uid="uid://pen_feedpipe_mesh_001"]
 
 [resource]
-type = "CylinderMesh"
 top_radius = 0.3
 bottom_radius = 0.3
 height = 15.0

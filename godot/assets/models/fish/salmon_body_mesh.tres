@@ -1,7 +1,6 @@
-[gd_resource type="PrimitiveMesh" load_steps=1 format=3 uid="uid://salmon_body_mesh_001"]
+[gd_resource type="CapsuleMesh" load_steps=1 format=3 uid="uid://salmon_body_mesh_001"]
 
 [resource]
-type = "CapsuleMesh"
 radius = 0.25
 height = 1.5
 radial_segments = 8

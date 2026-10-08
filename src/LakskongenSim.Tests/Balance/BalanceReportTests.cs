@@ -28,6 +28,18 @@ namespace LakskongenSim.Tests.Balance
         private static readonly Lazy<ScenarioDistribution> HighStocking =
             new(() => SimProbe.Measure(SimScenario.HighStocking, SeedFrom, SeedTo));
 
+        private static readonly Lazy<DiseaseDistribution> Disease =
+            new(() => SimProbe.MeasureDisease(SeedFrom, SeedTo));
+
+        private static readonly Lazy<StormDistribution> Storm =
+            new(() => SimProbe.MeasureStorm(SeedFrom, SeedTo));
+
+        private static readonly Lazy<MultiSiteDistribution> ThreeSite =
+            new(() => SimProbe.MeasureThreeSite(SeedFrom, SeedTo));
+
+        private static readonly Lazy<LiceControlDistribution> LiceControl =
+            new(() => SimProbe.MeasureLiceControl(SeedFrom, SeedTo));
+
         private readonly ITestOutputHelper _output;
         public BalanceReportTests(ITestOutputHelper output) => _output = output;
 
@@ -46,6 +58,22 @@ namespace LakskongenSim.Tests.Balance
         private const double LiceMax = 0.5;
         // Escapes: real events are rare; guard the upper bound per year.
         private const double EscapesMax = 2.0;
+        // Additive disease-attributable mortality: the 15% calibrate sea-mortality
+        // anchor already subsumes disease, so the live additive term must stay
+        // negligible (docs/BALANCE.md §1c; engine deferral recorded).
+        private const double DiseaseMortalityMax = 2.0;
+        // Storm-escape rate as a share of stocked fish per site per year. Real
+        // Norwegian escape events release <<1% of a site's stock per year on
+        // average; a well-maintained net should stay well inside this guard.
+        private const double StormEscapePctMax = 0.5;
+        private const double StormEscapeEventsMax = 1.0;
+        // EBIT/kg cyclical band (SalMar 23.4 FY24, 13.6 FY25).
+        private const double EbitPerKgMin = 8.0, EbitPerKgMax = 25.0;
+        // Farm-gate production cost NOK/kg produced (feed-dominant; broad guard).
+        private const double CostPerKgMin = 55.0, CostPerKgMax = 85.0;
+        // Proactive delousing: at least one treatment per cycle, resistance low.
+        private const double TreatmentsPerCycleMin = 1.0;
+        private const double ResistancePercentMax = 5.0;
 
         [Fact]
         public void SimProbe_IsDeterministic_SameSeedSameMetrics()
@@ -62,6 +90,30 @@ namespace LakskongenSim.Tests.Balance
             Assert.Equal(a.PeakLicePerFish, b.PeakLicePerFish, 9);
             Assert.Equal(a.PeakAdultFemaleLicePerFish, b.PeakAdultFemaleLicePerFish, 9);
             Assert.Equal(a.RealizedPriceNokPerKg, b.RealizedPriceNokPerKg, 9);
+        }
+
+        [Fact]
+        public void ExtendedProbes_AreDeterministic_SameSeedSameMetrics()
+        {
+            var d1 = SimProbe.RunDisease(7);
+            var d2 = SimProbe.RunDisease(7);
+            Assert.Equal(d1.DiseaseMortalityPercentPerCycle, d2.DiseaseMortalityPercentPerCycle, 9);
+            Assert.Equal(d1.TotalMortalityPercentPerCycle, d2.TotalMortalityPercentPerCycle, 9);
+
+            var s1 = SimProbe.RunStorm(7);
+            var s2 = SimProbe.RunStorm(7);
+            Assert.Equal(s1.EscapesPerSitePerYear, s2.EscapesPerSitePerYear, 9);
+            Assert.Equal(s1.MinIntegrityPct, s2.MinIntegrityPct, 9);
+
+            var m1 = SimProbe.RunThreeSite(7);
+            var m2 = SimProbe.RunThreeSite(7);
+            Assert.Equal(m1.EbitPerKgNok, m2.EbitPerKgNok, 9);
+            Assert.Equal(m1.GrossRevenueNok, m2.GrossRevenueNok, 6);
+
+            var l1 = SimProbe.RunLiceControl(7);
+            var l2 = SimProbe.RunLiceControl(7);
+            Assert.Equal(l1.TreatmentsPerCycle, l2.TreatmentsPerCycle, 9);
+            Assert.Equal(l1.MaxResistancePercent, l2.MaxResistancePercent, 9);
         }
 
         [Fact]
@@ -135,17 +187,102 @@ namespace LakskongenSim.Tests.Balance
         }
 
         [Fact]
+        public void DiseaseMortality_StaysNegligible()
+        {
+            var d = Disease.Value;
+            // The additive disease subsystem is effectively dormant (prevalence is
+            // seeded at 1e-6 and the high-fidelity SIR path does not inject), so the
+            // measured term is ~0. The real disease burden is already baked into the
+            // calibrated 15% sea-mortality anchor, so this guards against an
+            // accidental outbreak blowing past the 14-16% total.
+            AssertWithin(d.DiseaseMortalityPercentPerCycle.P90, 0.0, DiseaseMortalityMax, 0.0,
+                "disease mortality %/cycle (p90)", d.DiseaseMortalityPercentPerCycle);
+            Assert.True(d.DiseaseMortalityPercentPerCycle.Median <= d.TotalMortalityPercentPerCycle.Median,
+                "disease term exceeded total mortality");
+        }
+
+        [Fact]
+        public void DiseaseStress_TotalMortality_WithinReferenceBand()
+        {
+            var d = Disease.Value.TotalMortalityPercentPerCycle;
+            AssertWithin(d.Median, MortalityMin, MortalityMax, 0.5,
+                "disease-stress total sea mortality %/cycle", d);
+        }
+
+        [Fact]
+        public void StormEscapes_StayWithinRegulatoryGuard()
+        {
+            var d = Storm.Value;
+            AssertWithin(d.EscapesPercentOfStockPerYear.Median, 0.0, StormEscapePctMax, 0.0,
+                "storm escapes % of stock/site/year", d.EscapesPercentOfStockPerYear);
+            Assert.True(d.EscapesPercentOfStockPerYear.P90 <= StormEscapePctMax * 2.0,
+                $"storm escapes p90 {d.EscapesPercentOfStockPerYear.P90:F3}% exceeded guard " +
+                $"{StormEscapePctMax * 2.0:F2}% {d.EscapesPercentOfStockPerYear.Triple()}");
+            AssertWithin(d.EscapeEventsPerSitePerYear.Median, 0.0, StormEscapeEventsMax, 0.0,
+                "storm escape events/site/year", d.EscapeEventsPerSitePerYear);
+            // Storms must actually have occurred for the scenario to mean anything.
+            Assert.True(d.StormDaysPerYear.Median > 1.0,
+                $"storm scenario produced only {d.StormDaysPerYear.Median:F1} storm days/year");
+            // Maintained nets stay above the documented 40% escape-risk threshold.
+            Assert.True(d.MinIntegrityPct.Median >= 40.0,
+                $"min net integrity median {d.MinIntegrityPct.Median:F1}% fell below the 40% risk " +
+                $"threshold {d.MinIntegrityPct.Triple()}");
+        }
+
+        [Fact]
+        public void MultiSite_EbitPerKg_WithinCyclicalBand()
+        {
+            var d = ThreeSite.Value;
+            AssertWithin(d.EbitPerKgNok.Median, EbitPerKgMin, EbitPerKgMax, 2.0,
+                "multi-site EBIT NOK/kg", d.EbitPerKgNok);
+        }
+
+        [Fact]
+        public void MultiSite_CostsAndRevenue_Sane()
+        {
+            var d = ThreeSite.Value;
+            AssertWithin(d.CostPerKgProducedNok.Median, CostPerKgMin, CostPerKgMax, 3.0,
+                "multi-site cost NOK/kg produced", d.CostPerKgProducedNok);
+            Assert.True(d.GrossRevenueNok.Median > 0, "gross revenue must be positive");
+            Assert.True(d.TotalOpexNok.Median > 0, "total OPEX must be positive");
+            Assert.True(d.ProfitPerSiteNok.Median > 0,
+                $"median profit/site {d.ProfitPerSiteNok.Median:N0} was not positive {d.ProfitPerSiteNok.Triple()}");
+            Assert.True(d.HarvestedKgPerSite.Median > 100_000,
+                $"harvested kg/site median {d.HarvestedKgPerSite.Median:N0} implausibly low");
+        }
+
+        [Fact]
+        public void LiceControl_TreatsProactively_WithLowResistance()
+        {
+            var d = LiceControl.Value;
+            AssertWithin(d.TreatmentsPerCycle.Median, TreatmentsPerCycleMin, 6.0, 0.0,
+                "lice treatments/cycle", d.TreatmentsPerCycle);
+            AssertWithin(d.MaxResistancePercent.Median, 0.0, ResistancePercentMax, 0.0,
+                "lice resistance % after a cycle", d.MaxResistancePercent);
+            Assert.True(d.PeakAdultFemaleLicePerFish.Median <= LiceMax + 0.05,
+                $"treated peak lice {d.PeakAdultFemaleLicePerFish.Median:F3} exceeded the action " +
+                $"limit {d.PeakAdultFemaleLicePerFish.Triple()}");
+        }
+
+        [Fact]
         public void MeasuredReport_MatchesReference_Printed()
         {
             _output.WriteLine("=== SimProbe measured distributions vs docs/BALANCE.md bands ===");
             _output.WriteLine(SimProbe.Format(Baseline.Value));
             _output.WriteLine(SimProbe.Format(HighStocking.Value));
+            _output.WriteLine(SimProbe.Format(Disease.Value));
+            _output.WriteLine(SimProbe.Format(Storm.Value));
+            _output.WriteLine(SimProbe.Format(ThreeSite.Value));
+            _output.WriteLine(SimProbe.Format(LiceControl.Value));
             _output.WriteLine("reference bands: FCR 1.10-1.30 | sea mortality 14-16%/cycle | " +
-                "harvest 4.5-5.5 kg | feed cost 22-30 NOK/kg | price 74-90 NOK/kg | lice <=0.5 | escapes <=2/yr");
+                "harvest 4.5-5.5 kg | feed cost 22-30 NOK/kg | price 74-90 NOK/kg | lice <=0.5 | escapes <=2/yr | " +
+                "disease <=2%/cycle | storm escapes <=0.5%/site/yr | EBIT 8-25 NOK/kg");
 
-            // Sanity: both scenarios must produce finite, positive distributions.
+            // Sanity: every scenario must produce finite, positive distributions.
             Assert.True(Baseline.Value.MeanFcr.Median > 0);
             Assert.True(HighStocking.Value.MeanFcr.Median > 0);
+            Assert.True(ThreeSite.Value.GrossRevenueNok.Median > 0);
+            Assert.True(Storm.Value.StormDaysPerYear.Median > 0);
         }
 
         private static void AssertWithin(double measured, double min, double max,

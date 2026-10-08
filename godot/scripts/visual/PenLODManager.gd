@@ -12,7 +12,7 @@ class_name PenLODManager
 @export_group("References")
 @export var camera: Camera3D
 @export var pen_cage_scene: PackedScene = preload("res://assets/models/pen_cage/pen_cage.tscn")
-@export var pen_ring_mesh: Mesh = preload("res://assets/models/pen_cage/pen_collar_mesh.res")
+@export var pen_ring_mesh: Mesh = preload("res://assets/models/pen_cage/pen_collar_mesh.tres")
 @export var pen_ring_material: Material
 
 var _pen_instances: Dictionary = {}  # pen_id -> {lod0, lod1, lod2, current_lod, position}

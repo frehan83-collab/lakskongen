@@ -86,286 +86,117 @@ theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
 theme_override_font_sizes/font_size = 15
 text = "Kulstoffintensitet: --"
 
-[node name="SummaryCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
-
-[node name="SummaryOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard"]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="SummaryHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter"]
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
-
-[node name="SummaryTitle" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryHeader"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
-text = "📊 Utslipp & Kreditter (akkumulert)"
-
-[node name="SummaryBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter"]
+[node name="KPIRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="KPIRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody"]
+[node name="Scope1Box" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KPIRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_kpi")
+
+[node name="Scope1Value" type="Label" parent="Margin/MainScroll/RootVBox/KPIRow/Scope1Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "-- t"
+
+[node name="Scope2Box" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KPIRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_kpi")
+
+[node name="Scope2Value" type="Label" parent="Margin/MainScroll/RootVBox/KPIRow/Scope2Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "-- t"
+
+[node name="Scope3Box" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KPIRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_kpi")
+
+[node name="Scope3Value" type="Label" parent="Margin/MainScroll/RootVBox/KPIRow/Scope3Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "-- t"
+
+[node name="KPIRow2" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Scope1Box" type="PanelContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow"]
+[node name="CreditsBox" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KPIRow2"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_kpi")
 
-[node name="Scope1VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope1Box"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="Scope1Label" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope1Box/Scope1VBox"]
+[node name="CreditsValue" type="Label" parent="Margin/MainScroll/RootVBox/KPIRow2/CreditsBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.533333, 0.752941, 0.815686, 1)
-theme_override_font_sizes/font_size = 12
-text = "Omfang 1 — Direkte brensel"
-
-[node name="Scope1Value" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope1Box/Scope1VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_colors/font_color = Color(0.3, 0.8, 0.3, 1)
 theme_override_font_sizes/font_size = 20
 text = "-- t"
 
-[node name="Scope2Box" type="PanelContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow"]
+[node name="NetBox" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KPIRow2"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_kpi")
 
-[node name="Scope2VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope2Box"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="Scope2Label" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope2Box/Scope2VBox"]
+[node name="NetValue" type="Label" parent="Margin/MainScroll/RootVBox/KPIRow2/NetBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.533333, 0.752941, 0.815686, 1)
-theme_override_font_sizes/font_size = 12
-text = "Omfang 2 — Elektrisitet"
-
-[node name="Scope2Value" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope2Box/Scope2VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
 theme_override_font_sizes/font_size = 20
 text = "-- t"
 
-[node name="Scope3Box" type="PanelContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_kpi")
-
-[node name="Scope3VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope3Box"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="Scope3Label" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope3Box/Scope3VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.533333, 0.752941, 0.815686, 1)
-theme_override_font_sizes/font_size = 12
-text = "Omfang 3 — Fôr & Transport"
-
-[node name="Scope3Value" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow/Scope3Box/Scope3VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 20
-text = "-- t"
-
-[node name="KPIRow2" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="CreditsBox" type="PanelContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_kpi")
-
-[node name="CreditsVBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2/CreditsBox"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="CreditsLabel" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2/CreditsBox/CreditsVBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.3, 0.8, 0.3)
-theme_override_font_sizes/font_size = 12
-text = "Kreditter (Biogass, Tang)"
-
-[node name="CreditsValue" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2/CreditsBox/CreditsVBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.3, 0.8, 0.3)
-theme_override_font_sizes/font_size = 20
-text = "-- t"
-
-[node name="NetBox" type="PanelContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_kpi")
-
-[node name="NetVBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2/NetBox"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="NetLabel" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2/NetBox/NetVBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 12
-text = "Netto utslipp"
-
-[node name="NetValue" type="Label" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2/NetBox/NetVBox"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 20
-text = "-- t"
-
-[node name="BtnRefresh" type="Button" parent="Margin/MainScroll/RootVBox/SummaryCard/SummaryOuter/SummaryBody/KPIRow2"]
+[node name="BtnRefresh" type="Button" parent="Margin/MainScroll/RootVBox/KPIRow2"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 1
 theme_override_font_sizes/font_size = 13
 text = "Oppdater"
 
-[node name="SitesCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
-
-[node name="SitesOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SitesCard"]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="SitesHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/SitesCard/SitesOuter"]
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
-
-[node name="SitesTitle" type="Label" parent="Margin/MainScroll/RootVBox/SitesCard/SitesOuter/SitesHeader"]
-unique_name_in_owner = true
+[node name="SitesHeader" type="Label" parent="Margin/MainScroll/RootVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
 theme_override_font_sizes/font_size = 15
 text = "🌊 Kystlokaliteter"
 
-[node name="SitesBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SitesCard/SitesOuter"]
+[node name="SitesList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="SitesList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/SitesCard/SitesOuter/SitesBody"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 8
-
-[node name="OffshoreCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
-
-[node name="OffshoreOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/OffshoreCard"]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="OffshoreHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/OffshoreCard/OffshoreOuter"]
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
-
-[node name="OffshoreTitle" type="Label" parent="Margin/MainScroll/RootVBox/OffshoreCard/OffshoreOuter/OffshoreHeader"]
-unique_name_in_owner = true
+[node name="OffshoreHeader" type="Label" parent="Margin/MainScroll/RootVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
 theme_override_font_sizes/font_size = 15
 text = "🌊 Offshore Anlegg"
 
-[node name="OffshoreBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/OffshoreCard/OffshoreOuter"]
+[node name="OffshoreList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="OffshoreList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/OffshoreCard/OffshoreOuter/OffshoreBody"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 8
-
-[node name="RasCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
-
-[node name="RasOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/RasCard"]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="RasHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/RasCard/RasOuter"]
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
-
-[node name="RasTitle" type="Label" parent="Margin/MainScroll/RootVBox/RasCard/RasOuter/RasHeader"]
-unique_name_in_owner = true
+[node name="RasHeader" type="Label" parent="Margin/MainScroll/RootVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
 theme_override_font_sizes/font_size = 15
 text = "🏭 RAS Anlegg"
 
-[node name="RasBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/RasCard/RasOuter"]
+[node name="RasList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="RasList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/RasCard/RasOuter/RasBody"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 8
-
-[node name="ProcessingCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
-
-[node name="ProcessingOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ProcessingCard"]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="ProcessingHeader" type="PanelContainer" parent="Margin/MainScroll/RootVBox/ProcessingCard/ProcessingOuter"]
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
-
-[node name="ProcessingTitle" type="Label" parent="Margin/MainScroll/RootVBox/ProcessingCard/ProcessingOuter/ProcessingHeader"]
-unique_name_in_owner = true
+[node name="ProcessingHeader" type="Label" parent="Margin/MainScroll/RootVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
 theme_override_font_sizes/font_size = 15
 text = "🏭 Foredlingsanlegg"
 
-[node name="ProcessingBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ProcessingCard/ProcessingOuter"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="ProcessingInfo" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/ProcessingCard/ProcessingOuter/ProcessingBody"]
+[node name="ProcessingInfo" type="VBoxContainer" parent="Margin/MainScroll/RootVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_horizontal = 3
 theme_override_constants/separation = 8

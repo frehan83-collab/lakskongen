@@ -1,7 +1,6 @@
-[gd_resource type="PrimitiveMesh" load_steps=1 format=3 uid="uid://pen_collar_mesh_001"]
+[gd_resource type="TorusMesh" load_steps=1 format=3 uid="uid://pen_collar_mesh_001"]
 
 [resource]
-type = "TorusMesh"
 inner_radius = 24.5
 outer_radius = 26.5
 radial_segments = 12

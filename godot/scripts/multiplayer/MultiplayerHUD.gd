@@ -254,7 +254,7 @@ func _set_expanded(expanded: bool) -> void:
 # ── Formatting helpers ────────────────────────────────────────────────────────
 
 func _format_nok_compact(value: float) -> String:
-	var abs_val := abs(value)
+	var abs_val: float = absf(value)
 	var sign_str := "-" if value < 0 else ""
 	if abs_val >= 1_000_000_000.0:
 		return "%s%.1fB" % [sign_str, abs_val / 1_000_000_000.0]

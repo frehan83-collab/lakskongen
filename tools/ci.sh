@@ -98,6 +98,20 @@ step_validate_json() {
     (( fail == 0 ))
 }
 
+step_scene_validation() {
+    if [[ ! -x "$GODOT_BIN" ]]; then
+        echo "   Godot not found at '$GODOT_BIN' — skipping scene validation."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+    if [[ ! -f "$REPO_ROOT/tools/validate_scenes.sh" ]]; then
+        echo "   tools/validate_scenes.sh missing — skipping."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+    GODOT_BIN="$GODOT_BIN" bash "$REPO_ROOT/tools/validate_scenes.sh"
+}
+
 step_gdscript_scan() {
     if [[ ! -x "$GODOT_BIN" ]]; then
         echo "   Godot not found at '$GODOT_BIN' — skipping GDScript parse scan."
@@ -149,6 +163,7 @@ run_step "dotnet test LakskongenSim.sln"               step_test
 run_step "Performance benchmark (perf gate)"           step_benchmark
 run_step "Design token sync check"                     step_tokens
 run_step "Validate JSON data + mod manifests"          step_validate_json
+run_step "Scene load validation"                       step_scene_validation
 run_step "Headless GDScript parse scan"                step_gdscript_scan
 
 CURRENT_STEP=""

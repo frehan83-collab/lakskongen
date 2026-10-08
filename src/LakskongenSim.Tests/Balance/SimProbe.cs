@@ -1,7 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using LakskongenSim.Biology;
+using LakskongenSim.Calibration;
 using LakskongenSim.Core;
+using LakskongenSim.Environment;
+using LakskongenSim.Farm;
+using LakskongenSim.Health;
 
 namespace LakskongenSim.Tests.Balance
 {
@@ -17,7 +22,25 @@ namespace LakskongenSim.Tests.Balance
 
         /// <summary>Same site at double stocking (100k smolt) to show the
         /// sensitivity of the distributions to a larger farm. Also deterministic.</summary>
-        HighStocking
+        HighStocking,
+
+        /// <summary>Storyteller events on (disease subsystem live), shocks
+        /// suppressed, high-fidelity disease LOD. Measures the additive
+        /// disease-attributable mortality term over a grow-out cycle.</summary>
+        DiseaseStress,
+
+        /// <summary>Seeded storms with a test-side containment-risk model that
+        /// applies the documented <see cref="SeaSite.NetIntegrityPct"/> wear
+        /// and records escapes through <see cref="SeaSite.RecordEscape"/>.</summary>
+        Storm,
+
+        /// <summary>Three commercial sea sites operated together for the full
+        /// horizon; pooled multi-site P&amp;L (revenue, OPEX, EBIT/kg).</summary>
+        ThreeSite,
+
+        /// <summary>Proactive delousing policy (treat at the registry trigger);
+        /// counts treatments per cycle and the resistance built within a cycle.</summary>
+        LiceControl
     }
 
     /// <summary>
@@ -76,6 +99,85 @@ namespace LakskongenSim.Tests.Balance
         public int Runs => SeedTo - SeedFrom + 1;
     }
 
+    /// <summary>One seeded run's disease-cycle figures (pooled completed cycles).</summary>
+    public sealed record DiseaseMetrics(
+        double DiseaseMortalityPercentPerCycle,
+        double TotalMortalityPercentPerCycle,
+        int CompletedCycles);
+
+    /// <summary>Disease distribution across seeds.</summary>
+    public sealed record DiseaseDistribution(
+        int SeedFrom, int SeedTo,
+        Distribution DiseaseMortalityPercentPerCycle,
+        Distribution TotalMortalityPercentPerCycle)
+    {
+        /// <summary>Number of seeded runs backing this distribution.</summary>
+        public int Runs => SeedTo - SeedFrom + 1;
+    }
+
+    /// <summary>One seeded run's storm/escape figures, normalised per site per year.</summary>
+    public sealed record StormMetrics(
+        double EscapesPerSitePerYear,
+        double EscapeEventsPerSitePerYear,
+        double EscapesPercentOfStockPerYear,
+        double StormDaysPerYear,
+        double MinIntegrityPct);
+
+    /// <summary>Storm/escape distribution across seeds.</summary>
+    public sealed record StormDistribution(
+        int SeedFrom, int SeedTo,
+        Distribution EscapesPerSitePerYear,
+        Distribution EscapeEventsPerSitePerYear,
+        Distribution EscapesPercentOfStockPerYear,
+        Distribution StormDaysPerYear,
+        Distribution MinIntegrityPct)
+    {
+        /// <summary>Number of seeded runs backing this distribution.</summary>
+        public int Runs => SeedTo - SeedFrom + 1;
+    }
+
+    /// <summary>One seeded 3-site session's pooled economics.</summary>
+    public sealed record MultiSiteMetrics(
+        double GrossRevenueNok,
+        double TotalOpexNok,
+        double EbitPerKgNok,
+        double CostPerKgProducedNok,
+        double ProfitPerSiteNok,
+        double HarvestedKgPerSite,
+        double RealizedPriceNokPerKg,
+        int CompletedCycles);
+
+    /// <summary>Multi-site economics distribution across seeds.</summary>
+    public sealed record MultiSiteDistribution(
+        int SeedFrom, int SeedTo,
+        Distribution GrossRevenueNok,
+        Distribution TotalOpexNok,
+        Distribution EbitPerKgNok,
+        Distribution CostPerKgProducedNok,
+        Distribution ProfitPerSiteNok,
+        Distribution HarvestedKgPerSite)
+    {
+        /// <summary>Number of seeded runs backing this distribution.</summary>
+        public int Runs => SeedTo - SeedFrom + 1;
+    }
+
+    /// <summary>One seeded run's proactive delousing figures.</summary>
+    public sealed record LiceControlMetrics(
+        double TreatmentsPerCycle,
+        double MaxResistancePercent,
+        double PeakAdultFemaleLicePerFish);
+
+    /// <summary>Lice-control distribution across seeds.</summary>
+    public sealed record LiceControlDistribution(
+        int SeedFrom, int SeedTo,
+        Distribution TreatmentsPerCycle,
+        Distribution MaxResistancePercent,
+        Distribution PeakAdultFemaleLicePerFish)
+    {
+        /// <summary>Number of seeded runs backing this distribution.</summary>
+        public int Runs => SeedTo - SeedFrom + 1;
+    }
+
     /// <summary>
     /// Deterministic balance harness. Runs N seeded three-year (1095-day) sims
     /// across scenario presets and reduces each metric to a min/median/p90/mean
@@ -111,6 +213,25 @@ namespace LakskongenSim.Tests.Balance
         /// <summary>Release count for the high-stocking sensitivity scenario.</summary>
         public const int HighStockingSmoltCount = 100_000;
 
+        /// <summary>Number of sites in the multi-site economics scenario.</summary>
+        public const int MultiSiteCount = 3;
+
+        // ── Test-side containment-risk model (Storm scenario) ───────────────
+        // The live engine exposes SeaSite.NetIntegrityPct and SeaSite.RecordEscape
+        // but does not yet drive them from sea-site storms (only OffshoreFarm has a
+        // live escape path). The probe therefore applies the documented behaviour
+        // from SeaSite: "Storms degrade; below 40 during storms risks escapes."
+        // Escape risk is modelled as a rare containment failure on severe-storm
+        // days (expectation-based, so the metric is smooth and deterministic). See
+        // docs/BALANCE.md §1c for the model and its real-world anchors.
+        private const double StormIntegrityLossPctPerDay = 0.3;
+        private const double SevereIntegrityLossPctPerDay = 1.0;
+        private const double IntegrityRepairPctPerDay = 0.2;
+        /// <summary>Expected probability of a net-containment failure on a severe-storm day.</summary>
+        private const double FailureProbabilityPerSevereDay = 0.01;
+        /// <summary>Fraction of the pen released by one containment failure at full wear.</summary>
+        private const double LossFractionPerFailure = 0.05;
+
         /// <summary>Smolt count used by a scenario preset.</summary>
         public static int SmoltCountFor(SimScenario scenario) => scenario switch
         {
@@ -128,14 +249,14 @@ namespace LakskongenSim.Tests.Balance
             int days = HorizonDays, int? smoltCount = null)
         {
             int count = smoltCount ?? SmoltCountFor(scenario);
-            double targetWeight = LakskongenSim.Calibration.CalibrationRegistry.Default
+            double targetWeight = CalibrationRegistry.Default
                 .Biology.TargetHarvestWeightKg;
 
             var engine = new SimulationEngine();
             engine.Initialize(enableEvents: false, seed: seed);
 
             // One commercial sea site. No zone on purpose (see class remarks).
-            var site = new LakskongenSim.Farm.SeaSite($"{scenario}-site");
+            var site = new SeaSite($"{scenario}-site");
             engine.State.SeaSites.Clear();
             engine.State.SeaSites.Add(site);
 
@@ -270,6 +391,435 @@ namespace LakskongenSim.Tests.Balance
                 Distribution.From(escapes));
         }
 
+        // ─────────────────────────────────────────────────────────────────
+        // Disease-cycle mortality
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Run one seeded disease-stress grow-out. Storyteller random shocks are
+        /// suppressed so the only extra mortality versus the baseline is the
+        /// disease subsystem itself; the disease LOD is forced high so the full
+        /// stochastic path executes. Disease-attributable deaths are measured
+        /// exactly from the injected per-population disease rate
+        /// (<see cref="MortalityModel.GetSaveSnapshot"/>): for a one-day step
+        /// survivors(with) - survivors(without) = count x diseaseRate.
+        /// </summary>
+        public static DiseaseMetrics RunDisease(int seed, int days = HorizonDays,
+            int? smoltCount = null)
+        {
+            int count = smoltCount ?? DefaultSmoltCount;
+            double targetWeight = CalibrationRegistry.Default.Biology.TargetHarvestWeightKg;
+
+            var engine = new SimulationEngine();
+            engine.Initialize(enableEvents: true, seed: seed);
+            // Keep the disease subsystem live (enableEvents:true) but silence the
+            // random storyteller shocks so the measured term is attributable to
+            // disease rather than to storms/blooms/crashes.
+            engine.Storyteller.BaseDailyChance = 0.0;
+            engine.Storyteller.MaxDailyChance = 0.0;
+            engine.IntegratedDisease.SetLODMode(LODMode.High);
+
+            var site = new SeaSite("DiseaseStress-site");
+            engine.State.SeaSites.Clear();
+            engine.State.SeaSites.Add(site);
+
+            double totalInitial = 0, totalFinal = 0, totalDiseaseDeaths = 0;
+            int completedCycles = 0;
+            int day = 0;
+
+            while (day < days)
+            {
+                engine.Hatchery.ReleaseSmolt(count);
+                var population = engine.State.Populations.Last();
+                site.Stock(population);
+
+                double initialCount = population.Cohorts.Sum(c => c.Count);
+                bool completed = false;
+                while (day < days)
+                {
+                    int before = population.Cohorts.Sum(c => c.Count);
+                    engine.Advance(1);
+                    day++;
+
+                    var snapshot = engine.Mortality.GetSaveSnapshot();
+                    if (snapshot.DiseaseRates.TryGetValue(population.Id, out double rate))
+                        totalDiseaseDeaths += before * rate;
+
+                    double meanWeight = population.Cohorts.Count > 0
+                        ? population.GetTotalBiomassKg() / Math.Max(population.TotalCount, 1)
+                        : 0.0;
+                    if (meanWeight >= targetWeight) { completed = true; break; }
+                }
+
+                if (!completed) break;
+
+                totalInitial += initialCount;
+                totalFinal += population.Cohorts.Sum(c => c.Count);
+                completedCycles++;
+
+                site.Pens.Remove(population);
+                engine.State.Populations.Remove(population);
+            }
+
+            double diseasePct = totalInitial > 0 ? 100.0 * totalDiseaseDeaths / totalInitial : 0.0;
+            double totalPct = totalInitial > 0 ? 100.0 * (totalInitial - totalFinal) / totalInitial : 0.0;
+            return new DiseaseMetrics(diseasePct, totalPct, completedCycles);
+        }
+
+        /// <summary>Sweep seeds and reduce the disease-cycle metrics.</summary>
+        public static DiseaseDistribution MeasureDisease(int seedFrom = 1, int seedTo = 20,
+            int days = HorizonDays)
+        {
+            var disease = new List<double>();
+            var total = new List<double>();
+            for (int seed = seedFrom; seed <= seedTo; seed++)
+            {
+                var m = RunDisease(seed, days);
+                disease.Add(m.DiseaseMortalityPercentPerCycle);
+                total.Add(m.TotalMortalityPercentPerCycle);
+            }
+            return new DiseaseDistribution(seedFrom, seedTo,
+                Distribution.From(disease), Distribution.From(total));
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // Storm escapes
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Run one seeded storm exposure. Storms come from the seeded weather
+        /// system; the probe applies the documented net-integrity wear and
+        /// records escapes when integrity drops below the 40% threshold. All
+        /// escapes flow through <see cref="SeaSite.RecordEscape"/>, so the
+        /// regulatory/sustainability counters see them exactly as the game would.
+        /// </summary>
+        public static StormMetrics RunStorm(int seed, int days = HorizonDays)
+        {
+            double targetWeight = CalibrationRegistry.Default.Biology.TargetHarvestWeightKg;
+            var engine = new SimulationEngine();
+            engine.Initialize(enableEvents: false, seed: seed);
+
+            var site = new SeaSite("Storm-site");
+            engine.State.SeaSites.Clear();
+            engine.State.SeaSites.Add(site);
+
+            double integrity = 100.0;
+            double minIntegrity = 100.0;
+            double escapes = 0;
+            double escapeEvents = 0;
+            int stormDays = 0;
+            int day = 0;
+            int cycle = 0;
+
+            while (day < days)
+            {
+                // Fresh nets each production cycle (annual maintenance).
+                integrity = 100.0;
+                cycle++;
+                engine.Hatchery.ReleaseSmolt(DefaultSmoltCount);
+                var population = engine.State.Populations.Last();
+                site.Stock(population);
+
+                bool completed = false;
+                while (day < days)
+                {
+                    engine.Advance(1);
+                    day++;
+
+                    var weather = engine.Weather.CurrentState;
+                    if (weather >= WeatherState.Storm)
+                    {
+                        stormDays++;
+                        bool severe = weather == WeatherState.Severe;
+                        integrity = Math.Max(0.0, integrity -
+                            (severe ? SevereIntegrityLossPctPerDay : StormIntegrityLossPctPerDay));
+
+                        if (severe)
+                        {
+                            // Expected escape from a rare severe-storm containment
+                            // failure, amplified by accumulated net wear.
+                            double exposure = Math.Max(0.0, 1.0 - integrity / 100.0);
+                            double expectedFish = population.TotalCount
+                                * LossFractionPerFailure * FailureProbabilityPerSevereDay * exposure;
+                            escapes += expectedFish;
+                            escapeEvents += FailureProbabilityPerSevereDay;
+                            int whole = (int)Math.Round(expectedFish);
+                            if (whole > 0) site.RecordEscape(whole);
+                        }
+                    }
+                    else
+                    {
+                        integrity = Math.Min(100.0, integrity + IntegrityRepairPctPerDay);
+                    }
+
+                    minIntegrity = Math.Min(minIntegrity, integrity);
+
+                    double meanWeight = population.Cohorts.Count > 0
+                        ? population.GetTotalBiomassKg() / Math.Max(population.TotalCount, 1)
+                        : 0.0;
+                    if (meanWeight >= targetWeight) { completed = true; break; }
+                }
+
+                if (!completed) break;
+                site.Pens.Remove(population);
+                engine.State.Populations.Remove(population);
+            }
+
+            double years = days / 365.0;
+            double stockedPerYear = (double)DefaultSmoltCount * cycle / years;
+            return new StormMetrics(
+                EscapesPerSitePerYear: escapes / years,
+                EscapeEventsPerSitePerYear: escapeEvents / years,
+                EscapesPercentOfStockPerYear: stockedPerYear > 0 ? 100.0 * escapes / stockedPerYear : 0.0,
+                StormDaysPerYear: stormDays / years,
+                MinIntegrityPct: minIntegrity);
+        }
+
+        /// <summary>Sweep seeds and reduce the storm/escape metrics.</summary>
+        public static StormDistribution MeasureStorm(int seedFrom = 1, int seedTo = 20,
+            int days = HorizonDays)
+        {
+            var escapes = new List<double>();
+            var events = new List<double>();
+            var pct = new List<double>();
+            var storms = new List<double>();
+            var integrity = new List<double>();
+            for (int seed = seedFrom; seed <= seedTo; seed++)
+            {
+                var m = RunStorm(seed, days);
+                escapes.Add(m.EscapesPerSitePerYear);
+                events.Add(m.EscapeEventsPerSitePerYear);
+                pct.Add(m.EscapesPercentOfStockPerYear);
+                storms.Add(m.StormDaysPerYear);
+                integrity.Add(m.MinIntegrityPct);
+            }
+            return new StormDistribution(seedFrom, seedTo,
+                Distribution.From(escapes), Distribution.From(events),
+                Distribution.From(pct), Distribution.From(storms),
+                Distribution.From(integrity));
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // Multi-site economics
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Run one seeded 3-site session for the whole horizon and return the
+        /// pooled P&amp;L. OPEX uses the registry-consistent feed-cost definition
+        /// (price x economic FCR, docs/BALANCE.md §1) plus the calibrated smolt,
+        /// labour, maintenance, harvest and processing costs, so the reported
+        /// EBIT/kg is comparable to the SalMar/Mowi cyclical 8-25 NOK/kg band.
+        /// </summary>
+        public static MultiSiteMetrics RunThreeSite(int seed, int siteCount = MultiSiteCount,
+            int days = HorizonDays)
+        {
+            var C = CalibrationRegistry.Default;
+            double targetWeight = C.Biology.TargetHarvestWeightKg;
+
+            var engine = new SimulationEngine();
+            engine.Initialize(enableEvents: false, seed: seed);
+            engine.State.SeaSites.Clear();
+
+            var sites = new List<SeaSite>();
+            var pops = new FishPopulation?[siteCount];
+            int totalReleased = 0;
+            for (int i = 0; i < siteCount; i++)
+            {
+                var s = new SeaSite($"ThreeSite-{i}");
+                sites.Add(s);
+                engine.State.SeaSites.Add(s);
+                engine.Hatchery.ReleaseSmolt(DefaultSmoltCount);
+                var p = engine.State.Populations.Last();
+                s.Stock(p);
+                pops[i] = p;
+                totalReleased += DefaultSmoltCount;
+            }
+
+            var prices = new List<double>();
+            double harvestedKg = 0, revenue = 0;
+            int completedCycles = 0;
+            int day = 0;
+
+            while (day < days)
+            {
+                engine.Advance(1);
+                day++;
+
+                for (int i = 0; i < siteCount; i++)
+                {
+                    var population = pops[i];
+                    if (population == null) continue;
+
+                    double meanWeight = population.Cohorts.Count > 0
+                        ? population.GetTotalBiomassKg() / Math.Max(population.TotalCount, 1)
+                        : 0.0;
+                    if (meanWeight < targetWeight) continue;
+
+                    double kg = population.GetTotalBiomassKg();
+                    double price = (double)engine.MarketSimulation.PricePerKg;
+                    harvestedKg += kg;
+                    revenue += kg * price;
+                    prices.Add(price);
+                    completedCycles++;
+
+                    sites[i].Pens.Remove(population);
+                    engine.State.Populations.Remove(population);
+
+                    engine.Hatchery.ReleaseSmolt(DefaultSmoltCount);
+                    var next = engine.State.Populations.Last();
+                    sites[i].Stock(next);
+                    pops[i] = next;
+                    totalReleased += DefaultSmoltCount;
+                }
+            }
+
+            // Registry-consistent feed cost (price x economic FCR applied to
+            // harvested biomass; docs/BALANCE.md §5 explains why the raw cash
+            // feed ledger is not used for the EBIT/kg comparison). This is a
+            // farm-gate P&L: harvest is included but downstream processing is
+            // not, matching how SalMar/Mowi report farming-segment EBIT/kg.
+            double feedCost = harvestedKg * (double)C.FeedCostPerKgProducedNOK;
+            double smoltCost = totalReleased * (double)C.Economy.SmoltCostPerFishNOK;
+            double laborCost = siteCount * C.Labor.WorkersPerSite
+                * (double)C.Labor.WorkerMonthlySalaryNOK * (days / 30.0);
+            double maintenanceCost = siteCount * (double)C.Infrastructure.SeaSiteBuildCostNOK * 0.0001 * days;
+            double harvestCost = harvestedKg * (double)C.Operations.HarvestCostPerKgNOK;
+
+            double totalOpex = feedCost + smoltCost + laborCost + maintenanceCost + harvestCost;
+            double ebit = revenue - totalOpex;
+            double realizedPrice = prices.Count > 0 ? Distribution.From(prices).Median : 0.0;
+
+            return new MultiSiteMetrics(
+                GrossRevenueNok: revenue,
+                TotalOpexNok: totalOpex,
+                EbitPerKgNok: harvestedKg > 0 ? ebit / harvestedKg : 0.0,
+                CostPerKgProducedNok: harvestedKg > 0 ? totalOpex / harvestedKg : 0.0,
+                ProfitPerSiteNok: ebit / siteCount,
+                HarvestedKgPerSite: harvestedKg / siteCount,
+                RealizedPriceNokPerKg: realizedPrice,
+                CompletedCycles: completedCycles);
+        }
+
+        /// <summary>Sweep seeds and reduce the multi-site economics.</summary>
+        public static MultiSiteDistribution MeasureThreeSite(int seedFrom = 1, int seedTo = 20,
+            int days = HorizonDays)
+        {
+            var revenue = new List<double>();
+            var opex = new List<double>();
+            var ebitPerKg = new List<double>();
+            var costPerKg = new List<double>();
+            var profitPerSite = new List<double>();
+            var harvestPerSite = new List<double>();
+            for (int seed = seedFrom; seed <= seedTo; seed++)
+            {
+                var m = RunThreeSite(seed, days: days);
+                revenue.Add(m.GrossRevenueNok);
+                opex.Add(m.TotalOpexNok);
+                ebitPerKg.Add(m.EbitPerKgNok);
+                costPerKg.Add(m.CostPerKgProducedNok);
+                profitPerSite.Add(m.ProfitPerSiteNok);
+                harvestPerSite.Add(m.HarvestedKgPerSite);
+            }
+            return new MultiSiteDistribution(seedFrom, seedTo,
+                Distribution.From(revenue), Distribution.From(opex),
+                Distribution.From(ebitPerKg), Distribution.From(costPerKg),
+                Distribution.From(profitPerSite), Distribution.From(harvestPerSite));
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // Lice control (treatments + resistance)
+        // ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Run one seeded grow-out with a proactive delousing policy: treat with
+        /// a pyrethroid + a mechanical pass whenever adult-female lice reach the
+        /// calibrated trigger (<see cref="HealthCalibration.SeaLiceTreatmentThreshold"/>).
+        /// Counts treatments per completed cycle and the resistance reached
+        /// within a cycle (the engine resets the lice model at each sea stocking,
+        /// so resistance is a per-cycle quantity).
+        /// </summary>
+        public static LiceControlMetrics RunLiceControl(int seed, int days = HorizonDays)
+        {
+            var C = CalibrationRegistry.Default;
+            double targetWeight = C.Biology.TargetHarvestWeightKg;
+            double trigger = C.Health.SeaLiceTreatmentThreshold;
+
+            var engine = new SimulationEngine();
+            engine.Initialize(enableEvents: false, seed: seed);
+
+            var site = new SeaSite("LiceControl-site");
+            engine.State.SeaSites.Clear();
+            engine.State.SeaSites.Add(site);
+
+            int treatments = 0;
+            int completedCycles = 0;
+            double maxResistance = 0;
+            double peakAdultFemale = 0;
+            int day = 0;
+
+            while (day < days)
+            {
+                engine.Hatchery.ReleaseSmolt(DefaultSmoltCount);
+                var population = engine.State.Populations.Last();
+                site.Stock(population);
+
+                bool completed = false;
+                while (day < days)
+                {
+                    if (engine.SeaLice.AdultFemalePerFish >= trigger)
+                    {
+                        engine.SeaLice.ApplyTreatment("pyrethroid");
+                        engine.SeaLice.ApplyTreatment("mechanical");
+                        treatments++;
+                    }
+
+                    engine.Advance(1);
+                    day++;
+
+                    maxResistance = Math.Max(maxResistance,
+                        Math.Max(engine.SeaLice.PyrethroidResistance, engine.SeaLice.MechanicalResistance));
+                    peakAdultFemale = Math.Max(peakAdultFemale, engine.SeaLice.AdultFemalePerFish);
+
+                    double meanWeight = population.Cohorts.Count > 0
+                        ? population.GetTotalBiomassKg() / Math.Max(population.TotalCount, 1)
+                        : 0.0;
+                    if (meanWeight >= targetWeight) { completed = true; break; }
+                }
+
+                if (!completed) break;
+                completedCycles++;
+                site.Pens.Remove(population);
+                engine.State.Populations.Remove(population);
+            }
+
+            return new LiceControlMetrics(
+                TreatmentsPerCycle: completedCycles > 0 ? (double)treatments / completedCycles : 0.0,
+                MaxResistancePercent: maxResistance * 100.0,
+                PeakAdultFemaleLicePerFish: peakAdultFemale);
+        }
+
+        /// <summary>Sweep seeds and reduce the lice-control metrics.</summary>
+        public static LiceControlDistribution MeasureLiceControl(int seedFrom = 1, int seedTo = 20,
+            int days = HorizonDays)
+        {
+            var treatments = new List<double>();
+            var resistance = new List<double>();
+            var peak = new List<double>();
+            for (int seed = seedFrom; seed <= seedTo; seed++)
+            {
+                var m = RunLiceControl(seed, days);
+                treatments.Add(m.TreatmentsPerCycle);
+                resistance.Add(m.MaxResistancePercent);
+                peak.Add(m.PeakAdultFemaleLicePerFish);
+            }
+            return new LiceControlDistribution(seedFrom, seedTo,
+                Distribution.From(treatments), Distribution.From(resistance), Distribution.From(peak));
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // Formatting
+        // ─────────────────────────────────────────────────────────────────
+
         /// <summary>Compact multi-line report of one scenario's distributions.</summary>
         public static string Format(ScenarioDistribution d)
         {
@@ -283,6 +833,58 @@ namespace LakskongenSim.Tests.Balance
             sb.AppendLine($"  {"realized price NOK/kg",-36} {d.RealizedPriceNokPerKg.Triple()}");
             sb.AppendLine($"  {"peak adult-female lice/fish",-36} {d.PeakLicePerFish.Triple()}");
             sb.AppendLine($"  {"escapes/year",-36} {d.EscapesPerYear.Triple()}");
+            return sb.ToString();
+        }
+
+        /// <summary>Compact report of the disease-cycle distribution.</summary>
+        public static string Format(DiseaseDistribution d)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"Scenario: DiseaseStress (seeds {d.SeedFrom}-{d.SeedTo}, n={d.Runs}, {HorizonDays}-day horizon)");
+            sb.AppendLine($"  {"metric",-36} {"min",9} / {"median",9} / {"p90",9}");
+            sb.AppendLine($"  {"disease mortality %/cycle",-36} {d.DiseaseMortalityPercentPerCycle.Triple()}");
+            sb.AppendLine($"  {"total sea mortality %/cycle",-36} {d.TotalMortalityPercentPerCycle.Triple()}");
+            return sb.ToString();
+        }
+
+        /// <summary>Compact report of the storm/escape distribution.</summary>
+        public static string Format(StormDistribution d)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"Scenario: Storm (seeds {d.SeedFrom}-{d.SeedTo}, n={d.Runs}, {HorizonDays}-day horizon)");
+            sb.AppendLine($"  {"metric",-36} {"min",9} / {"median",9} / {"p90",9}");
+            sb.AppendLine($"  {"escapes/site/year",-36} {d.EscapesPerSitePerYear.Triple()}");
+            sb.AppendLine($"  {"escape events/site/year",-36} {d.EscapeEventsPerSitePerYear.Triple()}");
+            sb.AppendLine($"  {"escapes % of stock/year",-36} {d.EscapesPercentOfStockPerYear.Triple()}");
+            sb.AppendLine($"  {"storm days/year",-36} {d.StormDaysPerYear.Triple()}");
+            sb.AppendLine($"  {"min net integrity %",-36} {d.MinIntegrityPct.Triple()}");
+            return sb.ToString();
+        }
+
+        /// <summary>Compact report of the multi-site economics distribution.</summary>
+        public static string Format(MultiSiteDistribution d)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"Scenario: ThreeSite (seeds {d.SeedFrom}-{d.SeedTo}, n={d.Runs}, {HorizonDays}-day horizon)");
+            sb.AppendLine($"  {"metric",-36} {"min",9} / {"median",9} / {"p90",9}");
+            sb.AppendLine($"  {"gross revenue NOK",-36} {d.GrossRevenueNok.Triple()}");
+            sb.AppendLine($"  {"total OPEX NOK",-36} {d.TotalOpexNok.Triple()}");
+            sb.AppendLine($"  {"EBIT NOK/kg",-36} {d.EbitPerKgNok.Triple()}");
+            sb.AppendLine($"  {"cost NOK/kg produced",-36} {d.CostPerKgProducedNok.Triple()}");
+            sb.AppendLine($"  {"profit NOK/site",-36} {d.ProfitPerSiteNok.Triple()}");
+            sb.AppendLine($"  {"harvested kg/site",-36} {d.HarvestedKgPerSite.Triple()}");
+            return sb.ToString();
+        }
+
+        /// <summary>Compact report of the lice-control distribution.</summary>
+        public static string Format(LiceControlDistribution d)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"Scenario: LiceControl (seeds {d.SeedFrom}-{d.SeedTo}, n={d.Runs}, {HorizonDays}-day horizon)");
+            sb.AppendLine($"  {"metric",-36} {"min",9} / {"median",9} / {"p90",9}");
+            sb.AppendLine($"  {"treatments/cycle",-36} {d.TreatmentsPerCycle.Triple()}");
+            sb.AppendLine($"  {"max resistance % (per cycle)",-36} {d.MaxResistancePercent.Triple()}");
+            sb.AppendLine($"  {"peak adult-female lice/fish",-36} {d.PeakAdultFemaleLicePerFish.Triple()}");
             return sb.ToString();
         }
     }
