@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using LakskongenSim.Core;
 namespace LakskongenSim.Finance
 {
     // =========================================================================
@@ -174,7 +175,8 @@ namespace LakskongenSim.Finance
     public class CompetitorAISystem
     {
         private readonly List<CompetitorCompany> _competitors = new();
-        private readonly Random _rng;
+        private readonly SimRandom _rng;
+        internal SimRandom RngForSnapshot => _rng;
         private readonly List<CompetitorAction> _pendingActions = new();
         private readonly List<CompetitorAction> _actionHistory = new();
         private int _currentQuarter;
@@ -199,7 +201,7 @@ namespace LakskongenSim.Finance
 
         public CompetitorAISystem(int? seed = null)
         {
-            _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+            _rng = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
             InitializeCompetitors();
         }
 

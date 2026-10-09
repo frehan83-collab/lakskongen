@@ -193,8 +193,11 @@ namespace LakskongenSim.Core
                 MarketPriceNok     = (double)(engine.MarketSimulation?.PricePerKg ?? 70m),
                 BalanceNok         = (double)(engine.FinanceManager?.Balance ?? 0m),
                 FCR                = engine.Feed?.CurrentFCR ?? 1.15,
-                LicePerFish        = engine.SeaLice?.AverageLicePerFish ?? 0.0,
-                SustainabilityScore = engine.SustainabilityManager?.CurrentScore ?? 0,
+                // Phase 1 wave 6: read the persisted mirrors / site authority,
+                // never live-only subsystem instances — a fresh engine after
+                // a load must record the same snapshot as an uninterrupted run.
+                LicePerFish        = engine.GetCompanyLiceAverage(),
+                SustainabilityScore = state.SustainabilityScore,
                 MortalityRate      = mortalityRate,
                 ExternalLicePressure = external?.IndustryLicePressure ?? 0.0,
                 ExternalDiseasePressure = external?.DiseasePressureIndex ?? 0.0,

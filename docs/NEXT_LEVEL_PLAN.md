@@ -128,11 +128,36 @@ Date: 2026-10-08. Reviewed at commit `b56ff2a`. The review covers the C# simulat
   RNG POSITIONS stay a documented gap: the hash-equivalence test is
   impossible until the legacy System.Random subsystems migrate onto
   SimRng streams (the bit-equivalence wave). Suite 700/1 skip.
-  **Still open:** legacy seeded subsystems onto SimRng streams with
-  golden-file bit-equivalence (+ per-stream position persistence to
-  enable the exact save-hash test), BuildSeaSite/ApplyForLicense
-  double-charge, the episodic storm model (net-integrity exposure +
-  magnitude band test).
+  **Phase 1 wave 6 DONE — exact save/load continuation (the hash gate).**
+  `SimRandom` (System.Random-compatible Knuth core incl. the net5+ `ii==0→55`
+  remap and `inextp=21`, verified bit-identical by an oracle test) replaced
+  `System.Random` in 11 subsystems + the engine without changing one drawn
+  value (all 700 pre-existing tests green through the swap). Every live
+  state the instrument found is now snapshotted: RNG stream positions
+  (subsystems + SimRng streams), interval clocks (identity-keyed),
+  storm edge, weather live state, market trajectory + intelligence +
+  shock window, financial statements, feed adaptivity, AI-feeding learning
+  state, price-council history, currency (+policy rate), storyteller
+  cooldowns, traffic-light colors, tutorial/achievement/research progress
+  rehydration, sustainability score rehydrate, the full GameState field
+  list in AdoptSavedState. `ExactSaveHashTests`: save at day N, load,
+  advance M — bit-identical serialization (3/3 green, incl. events-on).
+  Real bugs the instrument exposed and fixed: `[JsonIgnore]`d site lice
+  models, private-setter state dropped by STJ (`Zone.ElapsedDays`, full
+  `SeaLiceModel` surface), getter-only carbon journals, `FinanceManager`
+  instance replacement orphaning achievement/storyteller references
+  (now reset-in-place), tutorial/achievement double-pay on load, research
+  effects dead after load, analytics reading live-only subsystems.
+  Model fix (rule: fix the model, not the band): zone water chemistry is
+  now volume-consistent (`Zone.WaterVolumeM3`, O₂ flushing as exchange
+  toward inflow) — dissolved oxygen no longer pins at 0 under any real
+  biomass; careers recover toward reference (mort 67.6→61.2, price
+  42.7→68.5+in-band at harvest).
+  **Still open:** legacy seeded subsystems' full migration onto SimRng
+  *named streams* (bit-equivalence golden tests), BuildSeaSite/
+  ApplyForLicense double-charge, the episodic storm model, scenario
+  ActiveScenario rehydration, contract persistence.
+  Suite 713/1 skip.
   **Review follow-ups (from the post-impl adversarial pass, accepted):**
   (1) `StormFishLossBaseFraction = 0.0003` is a PROVISIONAL single-variable
   band fit — it must become an episodic storm model (NVI-attributed storm

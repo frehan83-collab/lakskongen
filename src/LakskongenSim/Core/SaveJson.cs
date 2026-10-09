@@ -29,7 +29,10 @@ public static class SaveJson
         Converters = { new JsonStringEnumConverter() },
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
         IgnoreReadOnlyProperties = false,
-        IncludeFields = true
+        IncludeFields = true,
+        // NaN/Infinity (e.g. an uncalibrated R²) serialize as named
+        // literals and read back identically on both sides.
+        NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals
     };
 }
 
@@ -70,4 +73,109 @@ public sealed class EngineRuntimeSnapshot
     /// wrong system (post-review hardening).
     /// </summary>
     public System.Collections.Generic.Dictionary<string, int>? ClocksBySystem { get; set; }
+
+    // ── RNG + stateful-model positions (Phase 1 wave 6) ───────────────────
+    /// <summary>System.Random-compatible stream positions, keyed by subsystem
+    /// name ("weather", "growth", "events", ...). Each value is 58 ints.</summary>
+    public System.Collections.Generic.Dictionary<string, int[]>? RngPositions { get; set; }
+
+    /// <summary>SimRng named-stream positions (stream key -> SplitMix64 state).</summary>
+    public System.Collections.Generic.Dictionary<string, ulong>? SimStreamPositions { get; set; }
+
+    /// <summary>PriceCouncil rolling weekly-spot history.</summary>
+    public decimal[]? PriceCouncilSpots { get; set; }
+
+    /// <summary>PriceCouncil bound monthly price at save time.</summary>
+    public decimal PriceCouncilMonthly { get; set; }
+
+    /// <summary>Storyteller last-event day (sentinel -9999 = never/legacy).</summary>
+    public int StorytellerLastEventDay { get; set; } = -9999;
+
+    /// <summary>Storyteller per-event cooldowns (day available again).</summary>
+    public System.Collections.Generic.Dictionary<string, int>? StorytellerCooldowns { get; set; }
+
+    /// <summary>True when currency state (below) was captured — legacy saves
+    /// have zeros everywhere and must not be imported as real rates.</summary>
+    public bool CurrencyStatePresent { get; set; }
+
+    public int CurrencyDay { get; set; }
+    public decimal CurrencyEur { get; set; }
+    public decimal CurrencyUsd { get; set; }
+    public decimal CurrencyJpy { get; set; }
+    public decimal CurrencyGbp { get; set; }
+    public decimal CurrencyBankRate { get; set; } = 2.5m;
+
+    // ── Financial statements (live P&L must survive a save) ───────────────
+    public decimal FinRevenue { get; set; }
+    public decimal FinCogs { get; set; }
+    public decimal FinOpex { get; set; }
+    public decimal FinInterest { get; set; }
+    public decimal FinTaxes { get; set; }
+    public decimal FinCash { get; set; }
+    public decimal FinAssets { get; set; }
+    public decimal FinLiabilities { get; set; }
+    public System.Collections.Generic.List<string>? FinEvents { get; set; }
+
+    // ── Market simulation (price trajectory + supply state) ───────────────
+    public decimal MktBase { get; set; }
+    public decimal MktPrice { get; set; }
+    public decimal MktWeeklyAvg { get; set; }
+    public decimal MktLongMean { get; set; }
+    public decimal MktMeanRev { get; set; }
+    public decimal MktVol { get; set; }
+    public decimal MktCertMult { get; set; } = 1.0m;
+    public double MktSupplyIdx { get; set; } = 1.0;
+    public double MktDemandIdx { get; set; } = 1.0;
+    public double MktLastR2 { get; set; } = double.NaN;
+    public int MktLastObs { get; set; }
+    public int MktSimDay { get; set; }
+    public System.Collections.Generic.List<LakskongenSim.Market.HistoricalPrice>? MktHistory { get; set; }
+    public double MktPlayerPressure { get; set; }
+    public int MktShockDays { get; set; }
+    public double MktSupplyOffset { get; set; }
+
+    // ── Market intelligence (weekly news/competitor state) ────────────────
+    public int IntelWeek { get; set; }
+    public System.Collections.Generic.List<LakskongenSim.Market.MarketNewsEvent>? IntelActive { get; set; }
+    public System.Collections.Generic.List<LakskongenSim.Market.MarketNewsEvent>? IntelHistory { get; set; }
+    public System.Collections.Generic.List<LakskongenSim.Market.CompetitorProducer>? IntelCompetitors { get; set; }
+    public System.Collections.Generic.List<decimal>? IntelPriceHistory { get; set; }
+    public double IntelBrandScore { get; set; } = 25.0;
+
+    // ── Plankton bloom deck (per-zone intensity/crash state) ───────────────
+    public System.Collections.Generic.Dictionary<string, LakskongenSim.Biology.PlanktonBloom.BloomState>? PlanktonBloomStates { get; set; }
+
+    // ── AI feeding live state ─────────────────────────────────────────────
+    public bool AiFeedInstalled { get; set; }
+    public double AiFeedCalibration { get; set; } = 0.5;
+    public int AiFeedDays { get; set; }
+    public double AiFeedCameraUptime { get; set; } = 1.0;
+    public double AiFeedAppetite { get; set; } = 0.7;
+    public double AiFeedWaste { get; set; } = 0.05;
+    public decimal AiFeedSavings { get; set; }
+    public double AiFeedFcrMult { get; set; } = 1.0;
+    public System.Collections.Generic.List<double>? AiFeedHistory { get; set; }
+    public int IntelBrandGood { get; set; }
+    public int IntelBrandTotal { get; set; }
+
+    /// <summary>Traffic-light per-zone color cache (the once-per-change rule).</summary>
+    public System.Collections.Generic.Dictionary<string, string>? TrafficLightColors { get; set; }
+
+    // ── Weather live state ────────────────────────────────────────────────
+    /// <summary>True when weather state (below) was captured — legacy saves
+    /// restart the season/Markov chain as before.</summary>
+    public bool WeatherStatePresent { get; set; }
+
+    public int WeatherDay { get; set; }
+    public double WeatherTempC { get; set; } = 8.0;
+    public double WeatherWindMs { get; set; } = 5.0;
+    public double WeatherWaveM { get; set; } = 0.5;
+    public string WeatherStateName { get; set; } = "Moderate";
+
+    // ── FeedSystem adaptive state ─────────────────────────────────────────
+    public double FeedFcr { get; set; } = LakskongenSim.Calibration.CalibrationRegistry.Default.Feed.BaseFCR;
+    public double FeedUsedKg { get; set; }
+    public double FeedGrowthKg { get; set; }
+    public double FeedLastAppetite { get; set; } = 1.0;
+    public float FeedSustainabilityRating { get; set; } = 0.7f;
 }

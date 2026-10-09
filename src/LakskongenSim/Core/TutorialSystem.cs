@@ -102,6 +102,14 @@ namespace LakskongenSim.Core
                                   $"{CompletedCount} steps completed");
             }
         }
+
+        /// <summary>
+        /// Re-run the restore AFTER AdoptSavedState copied the saved progress.
+        /// The constructor runs against a fresh state (index 0, nothing
+        /// completed); without this, CheckProgress re-completes finished
+        /// steps and re-pays their rewards (Phase 1 wave 6).
+        /// </summary>
+        internal void ResyncFromState() => RestoreTutorialState();
         
         /// <summary>Load tutorial steps from JSON file and parse condition strings.</summary>
         private List<TutorialStep> LoadStepsFromJson()
@@ -337,7 +345,7 @@ namespace LakskongenSim.Core
             }
         }
 
-        internal double SeaLicePerFish => _engine.SeaLice?.AverageLicePerFish ?? 0.0;
+        internal double SeaLicePerFish => _engine.GetCompanyLiceAverage();
 
         /// <summary>Returns the day step N was completed, or null if not yet completed.</summary>
         internal int? GetStepCompletedDay(int stepNumber)

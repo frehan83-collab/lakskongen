@@ -20,13 +20,24 @@ namespace LakskongenSim.Events
         private readonly TimeManager _time;
         private readonly GameState _state;
         private readonly Finance.FinanceManager? _financeManager;
-        private readonly Random _rng;
+        private readonly SimRandom _rng;
+        internal SimRandom RngForSnapshot => _rng;
         private readonly List<EventDefinition> _events = new();
         private readonly Dictionary<string, int> _cooldowns = new();
 
         // Minimum days between any two events to avoid stacking
         public int MinSpacingDays { get; set; } = 3;
         private int _lastEventDay = -9999;
+        internal int LastEventDayForSnapshot { get => _lastEventDay; set => _lastEventDay = value; }
+
+        /// <summary>Persistence (Phase 1 wave 6): per-event cooldowns must
+        /// survive a save or cooled-down events re-fire immediately after
+        /// a load, diverging weather/market/disease consequences.</summary>
+        internal System.Collections.Generic.Dictionary<string, int> CooldownsForSnapshot
+        {
+            get => new System.Collections.Generic.Dictionary<string, int>(_cooldowns);
+            set { _cooldowns.Clear(); foreach (var kvp in value) _cooldowns[kvp.Key] = kvp.Value; }
+        }
 
         // Tunables
         public double BaseDailyChance { get; set; } = 0.03; // baseline chance per day to attempt an event
@@ -39,7 +50,7 @@ namespace LakskongenSim.Events
             _time = time ?? throw new ArgumentNullException(nameof(time));
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _financeManager = financeManager;
-            _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+            _rng = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
             _time.OnAdvanceDays += HandleAdvance;
             if (enableDefaultEvents)
             {

@@ -57,23 +57,31 @@ namespace LakskongenSim.Environment
         /// <summary>
         /// Update chemistry for one day with fish waste inputs.
         /// Fish waste: NH4 and PO4 from feed conversion (FCR 1.1-1.3).
+        /// Phase 1 wave 6: fish-driven MASS inputs are normalized by the
+        /// zone's mixed volume (mg/day ÷ liters → mg/L/day); previously they
+        /// were added straight to concentrations, which pinned dissolved
+        /// oxygen at 0 under any real biomass. Oxygen flushing is an
+        /// exchange toward inflow concentration, not a drain toward zero.
         /// </summary>
         /// <param name="fishBiomassKg">Total fish biomass in zone (kg)</param>
         /// <param name="feedConversionRatio">FCR (kg feed/kg fish growth)</param>
         /// <param name="waterFlowRate">Water exchange rate (m³/day)</param>
-        public void UpdateOneDay(double fishBiomassKg, double feedConversionRatio, double waterFlowRate)
+        /// <param name="waterVolumeM3">Effective mixed zone volume (m³)</param>
+        public void UpdateOneDay(double fishBiomassKg, double feedConversionRatio, double waterFlowRate, double waterVolumeM3 = 500_000.0)
         {
             // Temperature-dependent rate modifiers (Q10=2.0)
             double tempFactor = Math.Pow(Q10TemperatureFactor, (_temperature - 10.0) / 10.0);
-            
+            double volumeL = Math.Max(1.0, waterVolumeM3 * 1000.0);
+
             // Fish waste inputs (based on Norwegian aquaculture data)
             // NH4 excretion: 0.05 g NH4/kg fish/day
             // PO4 excretion: 0.02 g PO4/kg fish/day
-            double ammoniaInput = fishBiomassKg * 0.05 * tempFactor;
-            double phosphorusInput = fishBiomassKg * 0.02 * tempFactor;
-            
+            // Converted g/day → mg/L/day through the zone volume.
+            double ammoniaInput = fishBiomassKg * 0.05 * tempFactor * 1000.0 / volumeL;
+            double phosphorusInput = fishBiomassKg * 0.02 * tempFactor * 1000.0 / volumeL;
+
             // Oxygen consumption: 0.1 mg O2/kg fish/day + nitrification oxygen demand
-            double oxygenConsumptionFish = fishBiomassKg * 0.1 * tempFactor;
+            double oxygenConsumptionFish = fishBiomassKg * 0.1 * tempFactor / volumeL;
             double oxygenConsumptionNitrification = (NitrificationRateNH4 * AmmoniaNH4 + NitrificationRateNO2 * NitriteNO2) * 4.3; // O2 per NH4
             
             // ODE updates (Euler integration, dt=1 day)
@@ -90,8 +98,12 @@ namespace LakskongenSim.Environment
             // Phosphorus: input + adsorption + flow dilution
             PhosphorusPO4 += phosphorusInput - (PhosphorusAdsorptionRate * tempFactor * PhosphorusPO4) - (PhosphorusPO4 * waterFlowRate * 0.01);
             
-            // Oxygen: reaeration - consumption - flow effect
-            OxygenO2 += OxygenReaerationRate - oxygenConsumptionFish - oxygenConsumptionNitrification - (OxygenO2 * waterFlowRate * 0.01);
+            // Oxygen: reaeration - consumption + tidal exchange toward
+            // inflow concentration (flushing brings saturated water, it does
+            // not drain oxygen toward zero).
+            const double OxygenInflowMgPerL = 8.0;
+            OxygenO2 += OxygenReaerationRate - oxygenConsumptionFish - oxygenConsumptionNitrification
+                + (OxygenInflowMgPerL - OxygenO2) * waterFlowRate * 0.01;
             
             // pH calculation simplified from carbonate equilibrium
             // pH decreases with ammonia accumulation, increases with photosynthesis

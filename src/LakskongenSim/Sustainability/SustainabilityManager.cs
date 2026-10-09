@@ -137,6 +137,16 @@ namespace LakskongenSim.Sustainability
         /// Update score and trigger events if changed.
         /// Call this periodically (e.g., weekly/monthly) from simulation engine.
         /// </summary>
+        /// <summary>Persistence (Phase 1 wave 6): rehydrate the live score
+        /// and level from saved state so the first post-load update does not
+        /// fire a spurious certification change (which would overwrite the
+        /// fully-computed market price with a partial formula).</summary>
+        internal void ImportState(int score, CertificationLevel level)
+        {
+            CurrentScore = score;
+            CurrentCertification = level;
+        }
+
         public void UpdateScore(GameState state)
         {
             var newScore = CalculateScore(state);

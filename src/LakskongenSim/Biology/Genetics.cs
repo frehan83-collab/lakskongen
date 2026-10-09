@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LakskongenSim.Data;
 
+using LakskongenSim.Core;
 namespace LakskongenSim.Biology
 {
     /// <summary>
@@ -39,11 +40,12 @@ namespace LakskongenSim.Biology
             [(GeneticTrait.LateMaturation, GeneticTrait.GrowthRate)] = -0.15,
         };
 
-        private readonly Random _rng;
+        private readonly SimRandom _rng;
+        internal SimRandom RngForSnapshot => _rng;
 
         public Genetics(int? seed = null)
         {
-            _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+            _rng = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
         }
 
         /// <summary>

@@ -64,6 +64,23 @@ public sealed class SimRng
         return stream;
     }
 
+    /// <summary>Capture every named stream position (Phase 1 wave 6).</summary>
+    public Dictionary<string, ulong> CaptureStates()
+    {
+        var states = new Dictionary<string, ulong>(StringComparer.Ordinal);
+        foreach (var kvp in _streams)
+            states[kvp.Key] = kvp.Value.ExportState();
+        return states;
+    }
+
+    /// <summary>Restore stream positions for the streams that exist.</summary>
+    public void ImportStates(Dictionary<string, ulong> states)
+    {
+        foreach (var kvp in states)
+            if (_streams.TryGetValue(kvp.Key, out var stream))
+                stream.ImportState(kvp.Value);
+    }
+
     internal static ulong Mix(ulong z)
     {
         z += 0x9E3779B97F4A7C15UL;
@@ -113,6 +130,9 @@ public sealed class SimRngStream
     private ulong _state;
 
     internal SimRngStream(ulong state) => _state = state;
+
+    internal ulong ExportState() => _state;
+    internal void ImportState(ulong state) => _state = state;
 
     public double NextDouble() => (MixStep() >> 11) * (1.0 / 9007199254740992.0); // 2^53 grid
 

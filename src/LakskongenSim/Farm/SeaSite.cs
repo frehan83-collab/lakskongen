@@ -88,9 +88,11 @@ namespace LakskongenSim.Farm
 
         // ── Per-site sea lice (Phase 2.1) ─────────────────────────────────
         /// <summary>Live lice model for THIS site (stage-structured).
-        /// Not serialized — re-seeded from population loads on load via the
-        /// weekly sync's self-start, same as a fresh stocking.</summary>
-        [JsonIgnore]
+        /// Serialized since Phase 1 wave 6: the model carries accumulated
+        /// state (stage structure, resistance, treatment effects) that the
+        /// weekly sync can only approximate — "re-seed on load" broke exact
+        /// save/load continuation. Old saves without lice data still fall
+        /// back to the self-start path.</summary>
         public Health.SeaLiceModel Lice { get; set; } = new Health.SeaLiceModel();
 
         /// <summary>Adult females per fish at the last weekly count.</summary>

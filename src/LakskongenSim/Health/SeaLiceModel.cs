@@ -14,16 +14,16 @@ namespace LakskongenSim.Health
     {
         #region Life Stage Counts (per fish)
         /// <summary>Chalimus (attached) stages I-II per fish.</summary>
-        public double ChalimusPerFish { get; private set; } = 0.0;
+        public double ChalimusPerFish { get; set; } = 0.0;
         
         /// <summary>Pre-adult (mobile) stages per fish.</summary>
-        public double PreAdultPerFish { get; private set; } = 0.0;
+        public double PreAdultPerFish { get; set; } = 0.0;
         
         /// <summary>Adult female lice per fish (egg-producing).</summary>
-        public double AdultFemalePerFish { get; private set; } = 0.0;
+        public double AdultFemalePerFish { get; set; } = 0.0;
         
         /// <summary>Adult male lice per fish.</summary>
-        public double AdultMalePerFish { get; private set; } = 0.0;
+        public double AdultMalePerFish { get; set; } = 0.0;
         
         /// <summary>Total lice per fish (all stages).</summary>
         public double AverageLicePerFish => ChalimusPerFish + PreAdultPerFish + AdultFemalePerFish + AdultMalePerFish;
@@ -31,36 +31,36 @@ namespace LakskongenSim.Health
 
         #region Environmental Drivers
         /// <summary>Current water temperature (°C).</summary>
-        public double TemperatureC { get; private set; } = 10.0;
+        public double TemperatureC { get; set; } = 10.0;
         
         /// <summary>Current salinity (PSU).</summary>
-        public double SalinityPSU { get; private set; } = 34.0;
+        public double SalinityPSU { get; set; } = 34.0;
         
         /// <summary>External lice pressure from neighboring farms/wild salmon (0.5-2.0).</summary>
-        public double ExternalPressureMultiplier { get; private set; } = 1.0;
+        public double ExternalPressureMultiplier { get; set; } = 1.0;
         
         /// <summary>Current speed at cage depth (m/s) - affects infection rate.</summary>
-        public double CurrentSpeedMs { get; private set; } = 0.15;
+        public double CurrentSpeedMs { get; set; } = 0.15;
         
         /// <summary>Stocking density in kg/m³ - affects transmission.</summary>
-        public double StockingDensityKgM3 { get; private set; } = 20.0;
+        public double StockingDensityKgM3 { get; set; } = 20.0;
         #endregion
 
         #region Treatment & Resistance
         /// <summary>Resistance level to pyrethroids (0.0 = susceptible, 1.0 = fully resistant).</summary>
-        public double PyrethroidResistance { get; private set; } = 0.0;
+        public double PyrethroidResistance { get; set; } = 0.0;
         
         /// <summary>Resistance level to azamethiphos/organophosphates.</summary>
-        public double OrganophosphateResistance { get; private set; } = 0.0;
+        public double OrganophosphateResistance { get; set; } = 0.0;
         
         /// <summary>Resistance level to hydrogen peroxide.</summary>
-        public double HydrogenPeroxideResistance { get; private set; } = 0.0;
+        public double HydrogenPeroxideResistance { get; set; } = 0.0;
         
         /// <summary>Resistance level to mechanical treatment (e.g., freshwater, thermal).</summary>
-        public double MechanicalResistance { get; private set; } = 0.0;
+        public double MechanicalResistance { get; set; } = 0.0;
         
         /// <summary>Cleaner fish efficiency multiplier (0.0-1.0).</summary>
-        public double CleanerFishEfficiency { get; private set; } = 0.0;
+        public double CleanerFishEfficiency { get; set; } = 0.0;
         #endregion
 
         #region Events
@@ -99,7 +99,10 @@ namespace LakskongenSim.Health
         #endregion
 
         #region State
-        private double _copepodidDensity = 0.0; // Free-swimming infective stages per m³
+        /// <summary>Free-swimming infective stages per m³. Public setter so
+        /// saves restore it (a private field would silently reset infection
+        /// pressure to zero on every load — Phase 1 wave 6).</summary>
+        public double CopepodidDensity { get; set; } = 0.0;
         #endregion
 
         #region Events
@@ -170,7 +173,7 @@ namespace LakskongenSim.Health
             double naturalMortality = NATURAL_MORTALITY_BASE * envFactor;
 
             // Infection pressure from copepodids
-            double infectionPressure = _copepodidDensity * INFECTION_RATE_BASE * (1.0 + CurrentSpeedMs * 2.0) * (1.0 + StockingDensityKgM3 / 50.0);
+            double infectionPressure = CopepodidDensity * INFECTION_RATE_BASE * (1.0 + CurrentSpeedMs * 2.0) * (1.0 + StockingDensityKgM3 / 50.0);
             infectionPressure *= ExternalPressureMultiplier;
 
             // New infections -> chalimus (skirts block settlement pre-attachment)
@@ -190,7 +193,7 @@ namespace LakskongenSim.Health
 
             // Egg production -> copepodids
             double eggs = AdultFemalePerFish * eggRate;
-            _copepodidDensity += eggs * hatchRate; // Simplified: eggs -> copepodids directly
+            CopepodidDensity += eggs * hatchRate; // Simplified: eggs -> copepodids directly
 
             // Natural mortality
             ApplyMortality(naturalMortality);
@@ -203,7 +206,7 @@ namespace LakskongenSim.Health
             }
 
             // Copepodid decay (mortality + settlement)
-            _copepodidDensity *= 0.95; // 5%/day loss
+            CopepodidDensity *= 0.95; // 5%/day loss
 
             // Notify
             OnLiceStageChanged?.Invoke(ChalimusPerFish, PreAdultPerFish, AdultFemalePerFish, AdultMalePerFish);
@@ -218,7 +221,7 @@ namespace LakskongenSim.Health
             PreAdultPerFish *= (1.0 - rate);
             AdultFemalePerFish *= (1.0 - rate);
             AdultMalePerFish *= (1.0 - rate);
-            _copepodidDensity *= (1.0 - rate);
+            CopepodidDensity *= (1.0 - rate);
         }
 
         /// <summary>
@@ -356,7 +359,7 @@ namespace LakskongenSim.Health
             };
             c.SetEnvironment(TemperatureC, SalinityPSU, CurrentSpeedMs, StockingDensityKgM3);
             c.SetExternalPressure(ExternalPressureMultiplier);
-            c._copepodidDensity = _copepodidDensity;
+            c.CopepodidDensity = CopepodidDensity;
             return c;
         }
 
@@ -366,7 +369,7 @@ namespace LakskongenSim.Health
         public void SeedExternalInfection(double intensity = 0.1)
         {
             ChalimusPerFish += intensity * 0.5;
-            _copepodidDensity += intensity * 10.0;
+            CopepodidDensity += intensity * 10.0;
         }
 
         /// <summary>
@@ -374,7 +377,7 @@ namespace LakskongenSim.Health
         /// </summary>
         public (double chalimus, double preAdult, double adultFemale, double adultMale, double total, double copepodidDensity) GetStageDistribution()
         {
-            return (ChalimusPerFish, PreAdultPerFish, AdultFemalePerFish, AdultMalePerFish, AverageLicePerFish, _copepodidDensity);
+            return (ChalimusPerFish, PreAdultPerFish, AdultFemalePerFish, AdultMalePerFish, AverageLicePerFish, CopepodidDensity);
         }
 
         /// <summary>
@@ -386,7 +389,7 @@ namespace LakskongenSim.Health
             PreAdultPerFish = initialLice * 0.3;
             AdultFemalePerFish = initialLice * 0.1;
             AdultMalePerFish = initialLice * 0.1;
-            _copepodidDensity = initialLice * 10.0;
+            CopepodidDensity = initialLice * 10.0;
             PyrethroidResistance = 0.0;
             OrganophosphateResistance = 0.0;
             HydrogenPeroxideResistance = 0.0;

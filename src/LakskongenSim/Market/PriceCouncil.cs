@@ -75,6 +75,19 @@ namespace LakskongenSim.Market
         /// Returns the new <see cref="MonthlyPenPrice"/>. Raises
         /// <see cref="OnMonthlyPenPriceChanged"/> only when the value changes.
         /// </summary>
+        /// <summary>State persistence: the rolling weekly-spot history and the
+        /// bound monthly price must survive a save so the council continues
+        /// its cadence instead of resetting (Phase 1 wave 6).</summary>
+        internal (decimal[] Spots, decimal Monthly) ExportState()
+            => (_weeklySpots.ToArray(), MonthlyPenPrice);
+
+        internal void ImportState((decimal[] Spots, decimal Monthly) s)
+        {
+            _weeklySpots.Clear();
+            _weeklySpots.AddRange(s.Spots);
+            MonthlyPenPrice = s.Monthly;
+        }
+
         public decimal Update(decimal weeklySpotPrice)
         {
             _weeklySpots.Add(weeklySpotPrice);

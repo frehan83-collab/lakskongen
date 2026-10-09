@@ -61,6 +61,7 @@ namespace LakskongenSim.Market
         /// 1 = maximum impact (price multiplier pinned at the cap).
         /// </summary>
         public double Pressure { get; private set; }
+        internal void ImportPressure(double v) => Pressure = v;
 
         /// <summary>
         /// Downward price multiplier in [1 − <see cref="MaxPriceImpact"/>, 1.0]

@@ -51,6 +51,21 @@ namespace LakskongenSim.Finance
 
         private readonly Dictionary<string, ZoneColor> _zoneColors = new();
 
+        /// <summary>Persistence: the per-zone color cache implements the
+        /// "MAB consequence applies ONCE per color change" rule — it must
+        /// survive a save or a loaded game re-applies the consequence
+        /// (Phase 1 wave 6).</summary>
+        internal Dictionary<string, string> ExportColors()
+            => _zoneColors.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToString());
+
+        internal void ImportColors(Dictionary<string, string> colors)
+        {
+            _zoneColors.Clear();
+            foreach (var kvp in colors)
+                if (Enum.TryParse<ZoneColor>(kvp.Value, out var parsed))
+                    _zoneColors[kvp.Key] = parsed;
+        }
+
         /// <summary>Raised whenever a zone's traffic-light color changes.</summary>
         public event Action<string, ZoneColor, ZoneColor>? OnZoneStatusChanged;
 

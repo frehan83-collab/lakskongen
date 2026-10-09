@@ -19,11 +19,12 @@ namespace LakskongenSim.Biology
         private PlanktonBloomConfig _config = new();
 
         // Deterministic RNG per zone per day
-        private readonly Random _globalRng;
+        private readonly SimRandom _globalRng;
+        internal SimRandom RngForSnapshot => _globalRng;
 
         public PlanktonBloom(int? seed = null)
         {
-            _globalRng = seed.HasValue ? new Random(seed.Value) : new Random();
+            _globalRng = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
         }
 
         /// <summary>

@@ -10,7 +10,7 @@
 | Check | Result |
 |---|---|
 | `dotnet build LakskongenSim.sln` | ✅ 0 errors, 0 warnings |
-| Tests | ✅ **700 passed**, 1 skipped, 0 failed (honest count; the old "727" included ~92 triplicates, fixed in Phase 0. Includes seeded 3-year soak, campaign smoke, PlayerScriptProbe careers) |
+| Tests | ✅ **713 passed**, 1 skipped, 0 failed (honest count; the old "727" included ~92 triplicates, fixed in Phase 0. Includes seeded 3-year soak, campaign smoke, PlayerScriptProbe careers, exact save-hash round-trips) |
 | CI gate (`tools/ci.sh`) | ✅ **9/9 locally** (nothing skipped) — builds both assemblies · dotnet tests · pytest · perf · token sync · JSON · scene validation · GDScript parse. GitHub CI runs the same gate headless |
 | Performance | ✅ 0.19 ms/day best avg (3 sites / ~103k fish; soft 2 ms/day, hard 5 ms/day) |
 | Godot editor scan | ✅ 0 GDScript parse errors (Godot 4.7) |
@@ -79,9 +79,13 @@ runtime cadence (interval clocks, storm edge, events flag) so loaded
 games continue without double-firing beats or re-settling storm
 insurance.
 
-Next on this track: migrate the legacy seeded subsystems onto SimRng
-streams with bit-equivalence golden tests (which also unlocks the exact
-save-hash round-trip test via per-stream positions).
+Wave 6 (done): `SimRandom` bit-identical RNG swap across 11 subsystems;
+  exact save/load continuation proven by hash test (save→load→advance ==
+  uninterrupted); oxygen chemistry fixed to volume-consistent (DO no longer
+  pinned at 0); one serializer; runtime cadence persistence.
+
+Next on this track: SimRng named-stream migration with golden tests,
+episodic storm model, license double-charge.
 
 - **Foundations (W1–2)** — audio truth pass, token-driven theme, data-viz,
   scenarios/mods wired, unified onboarding, `ConsequenceDirector`.

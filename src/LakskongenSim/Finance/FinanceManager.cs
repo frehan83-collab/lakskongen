@@ -65,6 +65,18 @@ namespace LakskongenSim.Finance
         }
 
         /// <summary>
+        /// Reset the balance on load WITHOUT replacing the instance.
+        /// Subsystems capture this manager at construction (achievements,
+        /// storyteller); replacing it orphaned their references and silently
+        /// dropped post-load revenue into a dead object (Phase 1 wave 6).
+        /// </summary>
+        internal void SetBalanceForLoad(decimal balance)
+        {
+            Balance = balance;
+            OnBalanceChanged?.Invoke(Balance);
+        }
+
+        /// <summary>
         /// Deduct expense from balance. Returns false if insufficient funds.
         /// IMPORTANT: Callers MUST check the return value and handle bankruptcy/debt logic.
         /// Failures are logged and broadcast via <see cref="OnSpendFailed"/>.

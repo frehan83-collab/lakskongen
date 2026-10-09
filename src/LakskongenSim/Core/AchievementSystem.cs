@@ -32,6 +32,18 @@ namespace LakskongenSim.Core
             _lockedAchievements.AddRange(_achievements.Values.Where(a => !_state.UnlockedAchievementIds.Contains(a.Id)));
         }
 
+        /// <summary>
+        /// Drop already-unlocked achievements from the locked list after
+        /// AdoptSavedState copied the saved progress. The constructor builds
+        /// the list from a fresh state; without this, CheckAchievements
+        /// re-unlocks finished achievements and RE-PAYS their rewards on the
+        /// first post-load tick (Phase 1 wave 6).
+        /// </summary>
+        internal void ResyncFromState()
+        {
+            _lockedAchievements.RemoveAll(a => _state.UnlockedAchievementIds.Contains(a.Id));
+        }
+
         /// <summary>Check all achievements and unlock any that meet conditions.</summary>
         public void CheckAchievements()
         {

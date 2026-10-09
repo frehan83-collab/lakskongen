@@ -192,11 +192,11 @@ namespace LakskongenSim.Core
         internal AquacultureGameplayModifiers _aquacultureModifiers = AquacultureGameplayModifiers.Default();
         private BarentsWatchClientOptions _barentsWatchClientOptions = new();
         private BarentsWatchFishHealthPipeline? _barentsWatchPipeline;
-        private Random _rng = new(); // For event registration randomization (seeded in Initialize)
+        private SimRandom _rng = SimRandom.CreateUnseeded(); // For event registration randomization (seeded in Initialize)
         /// <summary>Event gating for tick systems (Phase 1 wave 4).</summary>
         internal bool EventsEnabled => _enableEvents;
         /// <summary>Legacy seeded event RNG (seed+101) for night-policy and bloom-deck systems.</summary>
-        internal Random LegacyEventRng => _rng;
+        internal SimRandom LegacyEventRng => _rng;
         /// <summary>Tick access to the balancing feed price (BalancingConfig itself stays private).</summary>
         internal decimal TickFeedCostPerKgNOK => _balancing.FeedCostPerKgNOK;
         /// <summary>Event fire wrapper for tick systems (events are +=/-= only outside the type).</summary>
@@ -230,7 +230,7 @@ namespace LakskongenSim.Core
             // the previous game (S9).
             Reset();
             _enableEvents = enableEvents;
-            _rng = seed.HasValue ? new Random(seed.Value + 101) : new Random();
+            _rng = seed.HasValue ? new SimRandom(seed.Value + 101) : SimRandom.CreateUnseeded();
             Rng = seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded();
             
             // Create subsystems
@@ -482,6 +482,12 @@ namespace LakskongenSim.Core
             FishWelfare = new Health.FishWelfare();
             VisualMilestones = new VisualMilestones();
             CurrencySystem = new Market.CurrencySystem();
+            // Phase 1 wave 6: currency events were unseeded System.Random
+            // before (invisible to the ban scan); now deterministic from the
+            // game seed via a distinct offset stream.
+            CurrencySystem.SetRngForSeededRun(seed.HasValue
+                ? new SimRandom(seed.Value + 90210)
+                : SimRandom.CreateUnseeded());
 
             // Wire MarketIntelligence events
             MarketIntelligence.OnNewsEvent += evt =>
@@ -3098,6 +3104,117 @@ private class BalancingConfig
             }
             runtime.InDayClocks = clocks.ToArray();
             runtime.ClocksBySystem = new Dictionary<string, int>(clocksByName);
+
+            // Phase 1 wave 6: RNG stream positions + the stateful sub-models
+            // so a loaded game CONTINUES exactly (enables the save-hash test).
+            var rngPositions = new Dictionary<string, int[]>();
+            void AddRng(string name, SimRandom? rng)
+            {
+                if (rng != null) rngPositions[name] = rng.ExportState();
+            }
+            AddRng("weather", Weather?.RngForSnapshot);
+            AddRng("growth", Growth?.RngForSnapshot);
+            AddRng("genetics", Genetics?.RngForSnapshot);
+            AddRng("market", MarketSimulation?.RngForSnapshot);
+            AddRng("intelligence", MarketSimulation?.Intelligence?.RngForSnapshot);
+            AddRng("storyteller", Storyteller?.RngForSnapshot);
+            AddRng("competitors", CompetitorAI?.RngForSnapshot);
+            AddRng("crisis", CrisisCapitalism?.RngForSnapshot);
+            AddRng("factions", StakeholderFactionSystem?.RngForSnapshot);
+            AddRng("stockmarket", StockMarket?.RngForSnapshot);
+            AddRng("plankton", PlanktonBloom?.RngForSnapshot);
+            AddRng("currency", CurrencySystem?.RngForSnapshot);
+            AddRng("events", _rng);
+            runtime.RngPositions = rngPositions;
+            runtime.SimStreamPositions = Rng.CaptureStates();
+
+            var pcState = PenPriceCouncil?.ExportState();
+            runtime.PriceCouncilSpots = pcState?.Spots;
+            runtime.PriceCouncilMonthly = pcState?.Monthly ?? 0m;
+            runtime.StorytellerLastEventDay = Storyteller?.LastEventDayForSnapshot ?? -9999;
+            runtime.StorytellerCooldowns = Storyteller?.CooldownsForSnapshot;
+            runtime.CurrencyStatePresent = true;
+            runtime.TrafficLightColors = TrafficLightSystem?.ExportColors();
+            var feedState = Feed.ExportState();
+            runtime.FeedFcr = feedState.Fcr;
+            runtime.FeedUsedKg = feedState.FeedUsedKg;
+            runtime.FeedGrowthKg = feedState.GrowthKg;
+            runtime.FeedLastAppetite = feedState.LastAppetite;
+            runtime.FeedSustainabilityRating = feedState.SustainRating;
+            var cur = CurrencySystem?.ExportCurrencyState() ?? (0, 0m, 0m, 0m, 0m, 2.5m);
+            runtime.CurrencyBankRate = cur.BankRate;
+            runtime.CurrencyDay = cur.Day;
+            runtime.CurrencyEur = cur.Eur;
+            runtime.CurrencyUsd = cur.Usd;
+            runtime.CurrencyJpy = cur.Jpy;
+            runtime.CurrencyGbp = cur.Gbp;
+
+            // Phase 1 wave 6: weather live state (season day, temperature,
+            // wind, wave, Markov state) — without this the season restarts
+            // at January and every downstream system diverges.
+            var wth = Weather;
+            runtime.WeatherStatePresent = wth != null;
+            if (wth != null)
+            {
+                runtime.WeatherDay = wth.SimulationDay;
+                runtime.WeatherTempC = wth.CurrentTemperatureC;
+                runtime.WeatherWindMs = wth.CurrentWindSpeedMs;
+                runtime.WeatherWaveM = wth.CurrentWaveHeight;
+                runtime.WeatherStateName = wth.CurrentState.ToString();
+            }
+
+            // Phase 1 wave 6: live statements + market trajectory. These were
+            // silently reset on every load before (fresh instances), which
+            // broke quarterly taxes/earnings and the whole price path.
+            var finState = FinancialStatements!.ExportState();
+            runtime.FinRevenue = finState.Revenue;
+            runtime.FinCogs = finState.Cogs;
+            runtime.FinOpex = finState.Opex;
+            runtime.FinInterest = finState.Interest;
+            runtime.FinTaxes = finState.Taxes;
+            runtime.FinCash = finState.Cash;
+            runtime.FinAssets = finState.Assets;
+            runtime.FinLiabilities = finState.Liabilities;
+            runtime.FinEvents = finState.Events;
+            var mktState = MarketSimulation!.ExportState();
+            runtime.MktBase = mktState.Base;
+            runtime.MktPrice = mktState.Price;
+            runtime.MktWeeklyAvg = mktState.WeeklyAvg;
+            runtime.MktLongMean = mktState.LongMean;
+            runtime.MktMeanRev = mktState.MeanRev;
+            runtime.MktVol = mktState.Vol;
+            runtime.MktSupplyIdx = mktState.SupplyIdx;
+            runtime.MktDemandIdx = mktState.DemandIdx;
+            runtime.MktCertMult = mktState.CertMult;
+            runtime.MktLastR2 = mktState.LastR2;
+            runtime.MktLastObs = mktState.LastObs;
+            runtime.MktSimDay = mktState.SimDay;
+            runtime.MktHistory = mktState.History;
+            runtime.MktPlayerPressure = MarketSimulation!.PlayerSupply.Pressure;
+            var shockState = MarketSimulation!.ExportShockState();
+            runtime.MktShockDays = shockState.ShockDays;
+            runtime.MktSupplyOffset = shockState.SupplyOffset;
+            var intelState = MarketSimulation!.Intelligence.ExportState();
+            runtime.IntelWeek = intelState.Week;
+            runtime.IntelActive = intelState.Active;
+            runtime.IntelHistory = intelState.History;
+            runtime.IntelCompetitors = intelState.Competitors;
+            runtime.IntelPriceHistory = intelState.PriceHistory;
+            runtime.IntelBrandScore = intelState.BrandScore;
+            runtime.IntelBrandGood = intelState.BrandGood;
+            runtime.IntelBrandTotal = intelState.BrandTotal;
+            runtime.PlanktonBloomStates = PlanktonBloom?.GetAllBloomStates();
+            var aiState = AIFeeding.ExportState();
+            runtime.AiFeedInstalled = aiState.Installed;
+            runtime.AiFeedCalibration = aiState.Calibration;
+            runtime.AiFeedDays = aiState.Days;
+            runtime.AiFeedCameraUptime = aiState.CameraUptime;
+            runtime.AiFeedAppetite = aiState.Appetite;
+            runtime.AiFeedWaste = aiState.Waste;
+            runtime.AiFeedSavings = aiState.Savings;
+            runtime.AiFeedFcrMult = aiState.FcrMult;
+            runtime.AiFeedHistory = aiState.History;
+
             State.Runtime = runtime;
         }
 
@@ -3348,8 +3465,13 @@ private class BalancingConfig
 
             // 1. Restore balance from saved state (always assign — a bankrupt
             // or zero save must restore exactly that, not keep live cash).
+            // Reset IN PLACE: subsystems captured this instance at
+            // construction, and replacing it would orphan their references.
             #pragma warning disable CS0618 // Type or member is obsolete
-            FinanceManager = new Finance.FinanceManager(loadedState.Balance);
+            if (FinanceManager == null)
+                FinanceManager = new Finance.FinanceManager(loadedState.Balance);
+            else
+                FinanceManager.SetBalanceForLoad(loadedState.Balance);
             #pragma warning restore CS0618
 
             // 2. Re-inject GrowthModel and MortalityModel into all FishPopulations
@@ -3393,6 +3515,19 @@ private class BalancingConfig
             var runtime = loadedState.Runtime;
             if (runtime != null)
             {
+                // Weather live state first: the storm-edge fallback below
+                // reads Weather.CurrentState, which must already be the
+                // saved one (season day, temperature, wind, wave, Markov
+                // state) — otherwise the whole downstream chain diverges.
+                if (Weather != null && runtime.WeatherStatePresent &&
+                    Enum.TryParse(runtime.WeatherStateName, ignoreCase: true,
+                        out LakskongenSim.Environment.WeatherState wstate) &&
+                    Enum.IsDefined(wstate))
+                {
+                    Weather.ImportState(runtime.WeatherDay, runtime.WeatherTempC,
+                        runtime.WeatherWindMs, runtime.WeatherWaveM, wstate);
+                }
+
                 for (int i = 0; i < _inDayPhases.Length; i++)
                 {
                     if (_inDayPhases[i] is not ITickClock clockSystem) continue;
@@ -3426,6 +3561,71 @@ private class BalancingConfig
                 // Independent of the clock restore: length mismatches must
                 // never silently drop the events gating either.
                 _enableEvents = runtime.EventsEnabled;
+
+                // Phase 1 wave 6: resume exact RNG stream positions (and the
+                // stateful sub-models). Absent keys keep the freshly-seeded
+                // stream — legacy saves simply replay from day 0 as before.
+                if (runtime.RngPositions != null)
+                {
+                    void ImportRng(string name, SimRandom? rng)
+                    {
+                        if (rng != null && runtime.RngPositions.TryGetValue(name, out var state))
+                            rng.ImportState(state);
+                    }
+                    ImportRng("weather", Weather?.RngForSnapshot);
+                    ImportRng("growth", Growth?.RngForSnapshot);
+                    ImportRng("genetics", Genetics?.RngForSnapshot);
+                    ImportRng("market", MarketSimulation?.RngForSnapshot);
+                    ImportRng("intelligence", MarketSimulation?.Intelligence?.RngForSnapshot);
+                    ImportRng("storyteller", Storyteller?.RngForSnapshot);
+                    ImportRng("competitors", CompetitorAI?.RngForSnapshot);
+                    ImportRng("crisis", CrisisCapitalism?.RngForSnapshot);
+                    ImportRng("factions", StakeholderFactionSystem?.RngForSnapshot);
+                    ImportRng("stockmarket", StockMarket?.RngForSnapshot);
+                    ImportRng("plankton", PlanktonBloom?.RngForSnapshot);
+                    ImportRng("currency", CurrencySystem?.RngForSnapshot);
+                    ImportRng("events", _rng);
+                }
+                Rng.ImportStates(runtime.SimStreamPositions ?? new());
+                if (runtime.PriceCouncilSpots != null)
+                    PenPriceCouncil?.ImportState((runtime.PriceCouncilSpots, runtime.PriceCouncilMonthly));
+                if (Storyteller != null && runtime.StorytellerLastEventDay != -9999)
+                    Storyteller.LastEventDayForSnapshot = runtime.StorytellerLastEventDay;
+                if (Storyteller != null && runtime.StorytellerCooldowns != null)
+                    Storyteller.CooldownsForSnapshot = runtime.StorytellerCooldowns;
+                Feed.ImportState((runtime.FeedFcr, runtime.FeedUsedKg, runtime.FeedGrowthKg,
+                    runtime.FeedLastAppetite, runtime.FeedSustainabilityRating));
+                if (runtime.TrafficLightColors != null)
+                    TrafficLightSystem?.ImportColors(runtime.TrafficLightColors);
+                SustainabilityManager?.ImportState(State.SustainabilityScore, State.SustainabilityCertification);
+                if (runtime.CurrencyStatePresent)
+                    CurrencySystem?.ImportCurrencyState((
+                        runtime.CurrencyDay, runtime.CurrencyEur, runtime.CurrencyUsd,
+                        runtime.CurrencyJpy, runtime.CurrencyGbp, runtime.CurrencyBankRate));
+                FinancialStatements?.ImportState((runtime.FinRevenue, runtime.FinCogs,
+                    runtime.FinOpex, runtime.FinInterest, runtime.FinTaxes,
+                    runtime.FinCash, runtime.FinAssets, runtime.FinLiabilities,
+                    runtime.FinEvents ?? new System.Collections.Generic.List<string>()));
+                if (runtime.MktHistory != null)
+                    MarketSimulation?.ImportState((runtime.MktBase, runtime.MktPrice,
+                        runtime.MktWeeklyAvg, runtime.MktLongMean, runtime.MktMeanRev,
+                        runtime.MktVol, runtime.MktSupplyIdx, runtime.MktDemandIdx,
+                        runtime.MktCertMult, runtime.MktLastR2, runtime.MktLastObs,
+                        runtime.MktSimDay, runtime.MktHistory));
+                MarketSimulation?.PlayerSupply.ImportPressure(runtime.MktPlayerPressure);
+                MarketSimulation?.ImportShockState((runtime.MktShockDays, runtime.MktSupplyOffset));
+                if (runtime.PlanktonBloomStates != null)
+                    PlanktonBloom?.RestoreBloomStates(runtime.PlanktonBloomStates);
+                MarketSimulation?.Intelligence.ImportState((runtime.IntelWeek,
+                    runtime.IntelActive ?? new System.Collections.Generic.List<LakskongenSim.Market.MarketNewsEvent>(),
+                    runtime.IntelHistory ?? new System.Collections.Generic.List<LakskongenSim.Market.MarketNewsEvent>(),
+                    runtime.IntelCompetitors ?? new System.Collections.Generic.List<LakskongenSim.Market.CompetitorProducer>(),
+                    runtime.IntelPriceHistory ?? new System.Collections.Generic.List<decimal>(),
+                    runtime.IntelBrandScore, runtime.IntelBrandGood, runtime.IntelBrandTotal));
+                AIFeeding.ImportState((runtime.AiFeedInstalled, runtime.AiFeedCalibration,
+                    runtime.AiFeedDays, runtime.AiFeedCameraUptime, runtime.AiFeedAppetite,
+                    runtime.AiFeedWaste, runtime.AiFeedSavings, runtime.AiFeedFcrMult,
+                    runtime.AiFeedHistory ?? new System.Collections.Generic.List<double>()));
             }
             else
             {

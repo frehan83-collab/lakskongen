@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 
+using LakskongenSim.Core;
+
 namespace LakskongenSim.Market
 {
     /// <summary>
@@ -70,7 +72,21 @@ namespace LakskongenSim.Market
         };
 
         // ─── Simulation state ───
-        private readonly Random _rng = new();
+        private SimRandom _rng = SimRandom.CreateUnseeded();
+        internal SimRandom RngForSnapshot => _rng;
+        internal void SetRngForSeededRun(SimRandom rng) => _rng = rng;
+
+        /// <summary>State that must survive a save so exchange-rate noise
+        /// continues instead of resetting (Phase 1 wave 6).</summary>
+        internal (int Day, decimal Eur, decimal Usd, decimal Jpy, decimal Gbp, decimal BankRate) ExportCurrencyState()
+            => (_simulationDay, NokPerEur, NokPerUsd, NokPerJpy, NokPerGbp, CentralBankRate);
+
+        internal void ImportCurrencyState((int Day, decimal Eur, decimal Usd, decimal Jpy, decimal Gbp, decimal BankRate) s)
+        {
+            _simulationDay = s.Day;
+            NokPerEur = s.Eur; NokPerUsd = s.Usd; NokPerJpy = s.Jpy; NokPerGbp = s.Gbp;
+            CentralBankRate = s.BankRate;
+        }
         private int _simulationDay;
 
         // ─── Events ───

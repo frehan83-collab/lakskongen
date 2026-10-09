@@ -19,6 +19,11 @@ namespace LakskongenSim.Environment
         // Zone-specific parameters
         public double WaterFlowRate { get; set; } // m³/day (current speed affects dilution)
         public double FeedConversionRatio { get; set; } // FCR for fish in this zone
+        /// <summary>Effective mixed water volume (m³) for concentration math.
+        /// Phase 1 wave 6: without a volume, fish-driven mass inputs were added
+        /// straight to mg/L, collapsing dissolved oxygen to 0 under any real
+        /// biomass. 500,000 m³ ≈ a flushed multi-pen zone.</summary>
+        public double WaterVolumeM3 { get; set; } = 500_000.0;
         
         // Environmental parameters (added for currents, eutrophication, algal blooms)
         public double CurrentSpeed { get; set; } // m/s (ocean current velocity)
@@ -31,7 +36,10 @@ namespace LakskongenSim.Environment
         public double ExternalTemperatureStress { get; set; } = 1.0;
         public double ExternalTreatmentIntensity { get; set; } = 1.0;
         /// <summary>Cumulative simulated days in this zone; drives seasonality.</summary>
-        public long ElapsedDays { get; private set; }
+        /// <summary>Cumulative simulated days; public setter so saves restore it
+        /// (System.Text.Json skips private setters — a load used to restart
+        /// the seasonal cycle at day 0, Phase 1 wave 6).</summary>
+        public long ElapsedDays { get; set; }
 
         /// <summary>Parameterless constructor for JSON deserialization.</summary>
         public Zone() : this("") { }
@@ -58,7 +66,7 @@ namespace LakskongenSim.Environment
             {
                 ElapsedDays++;
                 // Update water chemistry based on current fish biomass
-                WaterChemistry.UpdateOneDay(CurrentFishBiomassKg, FeedConversionRatio, WaterFlowRate);
+                WaterChemistry.UpdateOneDay(CurrentFishBiomassKg, FeedConversionRatio, WaterFlowRate, WaterVolumeM3);
 
                 // Update ocean currents (seasonal/weather variation).
                 // Uses cumulative ElapsedDays so the seasonal cycle advances

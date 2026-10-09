@@ -62,6 +62,21 @@ namespace LakskongenSim.Farm
         public int MealsPerDay { get; set; } = 3; // More meals = better FCR but higher labour cost
 
         // ─── Sustainability ───
+        /// <summary>Persistence (Phase 1 wave 6): adaptive FCR + running totals
+        /// drive day-to-day feeding economics — must survive a save or the
+        /// resumed feeding diverges.</summary>
+        internal (double Fcr, double FeedUsedKg, double GrowthKg, double LastAppetite, float SustainRating) ExportState()
+            => (CurrentFCR, TotalFeedUsedKg, TotalGrowthKg, LastAppetite01, SustainabilityRating);
+
+        internal void ImportState((double Fcr, double FeedUsedKg, double GrowthKg, double LastAppetite, float SustainRating) s)
+        {
+            CurrentFCR = s.Fcr;
+            TotalFeedUsedKg = s.FeedUsedKg;
+            TotalGrowthKg = s.GrowthKg;
+            LastAppetite01 = s.LastAppetite;
+            SustainabilityRating = s.SustainRating;
+        }
+
         public float SustainabilityRating { get; private set; } = 0.7f;
         public Dictionary<string, float> IngredientSources { get; private set; } = new();
         public bool UsesInsectMeal { get; set; } = false;

@@ -112,7 +112,8 @@ namespace LakskongenSim.Politics
     {
         private Dictionary<FactionType, Faction> _factions;
         private List<Demand> _demandHistory;
-        private Random _random;
+        private SimRandom _random;
+        internal SimRandom RngForSnapshot => _random;
         private int _nextDemandId;
 
         public event Action<FactionType, float, string>? RelationshipChanged;
@@ -123,7 +124,7 @@ namespace LakskongenSim.Politics
         {
             _factions = new Dictionary<FactionType, Faction>();
             _demandHistory = new List<Demand>();
-            _random = seed.HasValue ? new Random(seed.Value) : new Random();
+            _random = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
             _nextDemandId = 1;
             InitializeFactions();
         }

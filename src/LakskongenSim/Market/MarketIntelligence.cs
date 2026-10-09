@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using LakskongenSim.Core;
 namespace LakskongenSim.Market
 {
     /// <summary>
@@ -104,6 +105,13 @@ namespace LakskongenSim.Market
         /// <summary>Total deliveries made.</summary>
         public int TotalDeliveries { get; private set; } = 0;
 
+        internal (double Score, int Good, int Total) ExportState() => (Score, ConsecutiveGoodDeliveries, TotalDeliveries);
+
+        internal void ImportState((double Score, int Good, int Total) s)
+        {
+            Score = s.Score; ConsecutiveGoodDeliveries = s.Good; TotalDeliveries = s.Total;
+        }
+
         public event Action<double>? OnReputationChanged;
 
         /// <summary>
@@ -160,7 +168,48 @@ namespace LakskongenSim.Market
         private readonly List<MarketNewsEvent> _eventHistory = new();
         private readonly List<CompetitorProducer> _competitors = new();
         private readonly Queue<decimal> _priceHistory = new();
-        private Random _rng = new();
+        private SimRandom _rng = SimRandom.CreateUnseeded();
+        internal SimRandom RngForSnapshot => _rng;
+
+        /// <summary>Persistence (Phase 1 wave 6): weekly news/competitor state.</summary>
+        internal (int Week, System.Collections.Generic.List<MarketNewsEvent> Active, System.Collections.Generic.List<MarketNewsEvent> History,
+            System.Collections.Generic.List<CompetitorProducer> Competitors, System.Collections.Generic.List<decimal> PriceHistory,
+            double BrandScore, int BrandGood, int BrandTotal) ExportState()
+            => (_currentWeek, new System.Collections.Generic.List<MarketNewsEvent>(_activeEvents),
+                new System.Collections.Generic.List<MarketNewsEvent>(_eventHistory),
+                _competitors.Select(c => new CompetitorProducer
+                {
+                    Name = c.Name, Country = c.Country, WeeklyHarvestTonnes = c.WeeklyHarvestTonnes,
+                    BaseWeeklyHarvestTonnes = c.BaseWeeklyHarvestTonnes, DisruptionFactor = c.DisruptionFactor
+                }).ToList(),
+                new System.Collections.Generic.List<decimal>(_priceHistory),
+                PlayerReputation.ExportState().Score, PlayerReputation.ExportState().Good, PlayerReputation.ExportState().Total);
+
+        internal void ImportState((int Week, System.Collections.Generic.List<MarketNewsEvent> Active, System.Collections.Generic.List<MarketNewsEvent> History,
+            System.Collections.Generic.List<CompetitorProducer> Competitors, System.Collections.Generic.List<decimal> PriceHistory,
+            double BrandScore, int BrandGood, int BrandTotal) s)
+        {
+            _currentWeek = s.Week;
+            _activeEvents.Clear(); _activeEvents.AddRange(s.Active);
+            // Shared-reference restore (like GameStateRelinker for Pens):
+            // at runtime Active and History hold the SAME event objects, but
+            // JSON persists two arrays. Re-unify by identity (template events
+            // never stack, so headline+trigger week is unique) or the weekly
+            // decrement would move only the Active copy.
+            _eventHistory.Clear();
+            foreach (var h in s.History)
+            {
+                var live = _activeEvents.FirstOrDefault(a =>
+                    a.Headline == h.Headline &&
+                    a.TriggeredAtWeek == h.TriggeredAtWeek &&
+                    a.Category == h.Category);
+                _eventHistory.Add(live ?? h);
+            }
+            _competitors.Clear(); _competitors.AddRange(s.Competitors);
+            _priceHistory.Clear();
+            foreach (var p in s.PriceHistory) _priceHistory.Enqueue(p);
+            PlayerReputation.ImportState((s.BrandScore, s.BrandGood, s.BrandTotal));
+        }
         private int _currentWeek = 0;
 
         public MarketBrandReputation PlayerReputation { get; } = new();
@@ -218,7 +267,7 @@ namespace LakskongenSim.Market
         /// </summary>
         public MarketIntelligenceSystem(int seed)
         {
-            _rng = new Random(seed);
+            _rng = new SimRandom(seed);
             InitializeCompetitors();
         }
 
@@ -226,7 +275,7 @@ namespace LakskongenSim.Market
         /// Replace the RNG with a deterministically-seeded one. Used by
         /// <see cref="MarketSimulation"/> when the engine supplies a seed.
         /// </summary>
-        public void Reseed(int seed) => _rng = new Random(seed);
+        public void Reseed(int seed) => _rng = new SimRandom(seed);
 
         private void InitializeCompetitors()
         {

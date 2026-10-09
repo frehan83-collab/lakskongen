@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using LakskongenSim.Core;
 namespace LakskongenSim.Finance
 {
     // =========================================================================
@@ -174,7 +175,8 @@ namespace LakskongenSim.Finance
         }
 
         // Private state
-        private readonly Random _rng;
+        private readonly SimRandom _rng;
+        internal SimRandom RngForSnapshot => _rng;
         private decimal _lastEPS;
         private decimal _annualDividendPerShare;
         private decimal _consensusGrowthRate = 0.10m;  // 10% expected growth
@@ -197,7 +199,7 @@ namespace LakskongenSim.Finance
 
         public StockMarketSystem(int? seed = null)
         {
-            _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+            _rng = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
         }
 
         /// <summary>

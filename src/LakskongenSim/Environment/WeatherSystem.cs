@@ -1,5 +1,6 @@
 using System;
 
+using LakskongenSim.Core;
 namespace LakskongenSim.Environment
 {
     /// <summary>
@@ -51,7 +52,9 @@ namespace LakskongenSim.Environment
         // ─── Storm season modifier (Oct-Mar = higher storm probability) ───
         private const double StormSeasonMultiplier = 1.5;
 
-        private readonly Random _rng;
+        private readonly SimRandom _rng;
+
+        internal SimRandom RngForSnapshot => _rng;
 
         // ─── Events ───
         public event Action<double>? OnTemperatureChanged;
@@ -60,7 +63,7 @@ namespace LakskongenSim.Environment
 
         public WeatherSystem(int? seed = null)
         {
-            _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+            _rng = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
         }
 
         /// <summary>
@@ -196,6 +199,20 @@ namespace LakskongenSim.Environment
                     OnWeatherAlert?.Invoke("🌊 STORM WARNING: Rough conditions ahead. Monitor pen integrity.");
                 }
             }
+        }
+
+        /// <summary>
+        /// Restore live weather state after a load so temperature, wind, wave
+        /// and the Markov state continue instead of restarting at January /
+        /// Moderate (Phase 1 wave 6 — required for the exact save-hash test).
+        /// </summary>
+        internal void ImportState(int simulationDay, double temperatureC, double windMs, double waveM, WeatherState state)
+        {
+            SimulationDay = simulationDay;
+            CurrentTemperatureC = temperatureC;
+            CurrentWindSpeedMs = windMs;
+            CurrentWaveHeight = waveM;
+            CurrentState = state;
         }
 
         /// <summary>

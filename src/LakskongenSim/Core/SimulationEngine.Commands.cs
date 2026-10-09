@@ -489,12 +489,53 @@ public partial class SimulationEngine
     {
         // Restore day counter and persistent collections.
         State.Day = snapshot.Day;
+        State.RandomSeed = snapshot.RandomSeed;
         // Ownership flags (were dropped on load; restored here incl. VAP tier).
         State.OwnsHatchery = snapshot.OwnsHatchery;
         State.OwnsFeedMill = snapshot.OwnsFeedMill;
         State.OwnsProcessingPlant = snapshot.OwnsProcessingPlant;
         State.ProcessingTier = snapshot.ProcessingTier ?? "";
         State.HasASCCertification = snapshot.HasASCCertification;
+        // AI feeding ownership + calibration (drives the live AIFeeding
+        // instance rehydration below; dropped on load before wave 6).
+        State.OwnsAIFeedingSystem = snapshot.OwnsAIFeedingSystem;
+        State.AIFeedingCalibration = snapshot.AIFeedingCalibration;
+        State.AIFeedingDaysSinceInstall = snapshot.AIFeedingDaysSinceInstall;
+        // Player-tuned policies lost on load before wave 6: feed recipe
+        // (the bridge re-applies it post-load), night-shift policy.
+        State.RecipeProteinPct = snapshot.RecipeProteinPct;
+        State.RecipeReplacePct = snapshot.RecipeReplacePct;
+        State.RecipeAstaxPpm = snapshot.RecipeAstaxPpm;
+        State.NightShiftPolicy = snapshot.NightShiftPolicy;
+        // Research / scenario / tutorial progress (scenario wins, tutorial
+        // gating and research effects all read these — all dropped before).
+        State.ActiveResearchId = snapshot.ActiveResearchId;
+        State.ResearchProgress = snapshot.ResearchProgress;
+        State.ActiveScenarioId = snapshot.ActiveScenarioId;
+        State.ScenarioIsWon = snapshot.ScenarioIsWon;
+        State.ScenarioIsLost = snapshot.ScenarioIsLost;
+        State.ScenarioLossReason = snapshot.ScenarioLossReason ?? "";
+        State.ScenarioStartDay = snapshot.ScenarioStartDay;
+        State.TutorialCurrentStepIndex = snapshot.TutorialCurrentStepIndex;
+        // Economy / sustainability / external-data continuity.
+        State.ContractActive = snapshot.ContractActive;
+        State.AcquisitionCount = snapshot.AcquisitionCount;
+        State.BestFCR = snapshot.BestFCR;
+        State.BestGrowthBreedingValue = snapshot.BestGrowthBreedingValue;
+        State.BestDiseaseResistanceBreedingValue = snapshot.BestDiseaseResistanceBreedingValue;
+        State.MinimumBalanceEver = snapshot.MinimumBalanceEver;
+        State.FeedSustainabilityRating = snapshot.FeedSustainabilityRating;
+        State.SustainabilityScore = snapshot.SustainabilityScore;
+        State.SustainabilityCertification = snapshot.SustainabilityCertification;
+        State.EnableResourceRentTax = snapshot.EnableResourceRentTax;
+        State.ResourceRentPaid = snapshot.ResourceRentPaid;
+        State.PenPriceCouncilLastValue = snapshot.PenPriceCouncilLastValue;
+        State.ExternalAquacultureSnapshot = snapshot.ExternalAquacultureSnapshot;
+        State.ExternalDataAnalytics = snapshot.ExternalDataAnalytics;
+        State.ExternalHealthCrisis = snapshot.ExternalHealthCrisis;
+        State.ExternalHealthAnalytics = snapshot.ExternalHealthAnalytics;
+        State.GrowthState = snapshot.GrowthState;
+        State.MortalityState = snapshot.MortalityState;
 
         State.Zones.Clear();
         State.SeaSites.Clear();
@@ -510,6 +551,20 @@ public partial class SimulationEngine
         State.Licenses.Clear();
         State.RecentMarketReports.Clear();
         State.AchievedVisualMilestones.Clear();
+        State.DailySnapshots.Clear();
+        State.ProcessingSnapshots.Clear();
+        State.Broodstock.Clear();
+        State.UnlockedResearchIds.Clear();
+        State.CompletedTutorialStepIds.Clear();
+        State.UnlockedAchievementIds.Clear();
+        State.ExportMarkets.Clear();
+        State.RASFacilities.Clear();
+        State.OffshoreFarms.Clear();
+        State.PostSmoltFacilities.Clear();
+        State.InsurancePolicies.Clear();
+        State.BloomMitigations.Clear();
+        if (State.ExternalHealthWarnings != null)
+            State.ExternalHealthWarnings.Clear();
         if (State.CompetitorCompanies != null)
             State.CompetitorCompanies.Clear();
 
@@ -530,6 +585,47 @@ public partial class SimulationEngine
         if (snapshot.ActiveBlooms != null)
             foreach (var bloom in snapshot.ActiveBlooms)
                 State.ActiveBlooms.Add(bloom);
+        if (snapshot.ExternalHealthWarnings != null)
+            foreach (var warning in snapshot.ExternalHealthWarnings)
+                State.ExternalHealthWarnings?.Add(warning);
+        foreach (var snap in snapshot.DailySnapshots)
+            State.DailySnapshots.Add(snap);
+        foreach (var snap in snapshot.ProcessingSnapshots)
+            State.ProcessingSnapshots.Add(snap);
+        foreach (var genome in snapshot.Broodstock)
+            State.Broodstock.Add(genome);
+        foreach (var id in snapshot.UnlockedResearchIds)
+            State.UnlockedResearchIds.Add(id);
+        foreach (var id in snapshot.CompletedTutorialStepIds)
+            State.CompletedTutorialStepIds.Add(id);
+        foreach (var id in snapshot.UnlockedAchievementIds)
+            State.UnlockedAchievementIds.Add(id);
+        foreach (var market in snapshot.ExportMarkets)
+            State.ExportMarkets.Add(market);
+        foreach (var facility in snapshot.RASFacilities)
+            State.RASFacilities.Add(facility);
+        foreach (var farm in snapshot.OffshoreFarms)
+            State.OffshoreFarms.Add(farm);
+        foreach (var facility in snapshot.PostSmoltFacilities)
+            State.PostSmoltFacilities.Add(facility);
+        foreach (var policy in snapshot.InsurancePolicies)
+            State.InsurancePolicies.Add(policy);
+        foreach (var mitigation in snapshot.BloomMitigations)
+            State.BloomMitigations.Add(mitigation);
+
+        // Live-system rehydration: TutorialSystem snapshots progress at
+        // construction (fresh state) and ResearchSystem owns node flags —
+        // both must re-read the adopted fields or the tutorial re-pays
+        // finished-step rewards and research effects stay dead after load.
+        Tutorial?.ResyncFromState();
+        Achievements?.ResyncFromState();
+        if (Research != null)
+        {
+            foreach (var id in State.UnlockedResearchIds)
+                Research.ForceUnlock(id);
+            if (State.ActiveResearchId != null)
+                Research.RestoreProgress(State.ActiveResearchId, State.ResearchProgress);
+        }
 
         // Empire-system DTOs (save-rounded; engine rehydrates live systems).
         State.StockMarket = snapshot.StockMarket;

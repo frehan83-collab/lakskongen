@@ -103,6 +103,23 @@ namespace LakskongenSim.Finance
             AddEvent($"Tax -{amount}");
         }
 
+        /// <summary>Persistence (Phase 1 wave 6): the live P and L must survive
+        /// a save or quarterly taxes/earnings diverge after a load.</summary>
+        #pragma warning disable CS0618 // Cash mirror: save-compat field by design
+        internal (decimal Revenue, decimal Cogs, decimal Opex, decimal Interest, decimal Taxes, decimal Cash, decimal Assets, decimal Liabilities, System.Collections.Generic.List<string> Events) ExportState()
+            => (Revenue, COGS, OperatingExpenses, InterestExpense, Taxes, Cash, Assets, Liabilities,
+                new System.Collections.Generic.List<string>(Events));
+        #pragma warning restore CS0618
+
+        internal void ImportState((decimal Revenue, decimal Cogs, decimal Opex, decimal Interest, decimal Taxes, decimal Cash, decimal Assets, decimal Liabilities, System.Collections.Generic.List<string> Events) s)
+        {
+#pragma warning disable CS0618 // Cash mirror: save-compat field by design
+            Revenue = s.Revenue; COGS = s.Cogs; OperatingExpenses = s.Opex; InterestExpense = s.Interest;
+            Taxes = s.Taxes; Cash = s.Cash; Assets = s.Assets; Liabilities = s.Liabilities;
+            Events.Clear(); Events.AddRange(s.Events);
+#pragma warning restore CS0618
+        }
+
         public decimal ComputeNetIncome()
         {
             return Revenue - COGS - OperatingExpenses - InterestExpense - Taxes;

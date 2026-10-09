@@ -6,6 +6,7 @@ using System.Linq;
 using LakskongenSim.Calibration;
 using LakskongenSim.Sustainability;
 
+using LakskongenSim.Core;
 namespace LakskongenSim.Market
 {
     /// <summary>
@@ -64,6 +65,27 @@ namespace LakskongenSim.Market
         public decimal PriceFloorPerKg => _priceFloor;
         public decimal PriceCeilingPerKg => _priceCeiling;
         public IReadOnlyList<HistoricalPrice> HistoricalSeries => _historicalSeries;
+
+        /// <summary>Persistence (Phase 1 wave 6): the full price-trajectory
+        /// state must survive a save or post-load prices diverge.</summary>
+        internal (decimal Base, decimal Price, decimal WeeklyAvg, decimal LongMean, decimal MeanRev, decimal Vol,
+            double SupplyIdx, double DemandIdx, decimal CertMult, double LastR2, int LastObs, int SimDay,
+            System.Collections.Generic.List<HistoricalPrice> History) ExportState()
+            => (BasePricePerKg, PricePerKg, WeeklyAvgPrice, LongTermMean, MeanReversionSpeedWeekly, VolatilityWeekly,
+                GlobalSupplyIndex, GlobalDemandIndex, _certificationMultiplier, LastCalibrationR2, LastCalibrationObservationCount,
+                _simulationDay, new System.Collections.Generic.List<HistoricalPrice>(_historicalSeries));
+
+        internal void ImportState((decimal Base, decimal Price, decimal WeeklyAvg, decimal LongMean, decimal MeanRev, decimal Vol,
+            double SupplyIdx, double DemandIdx, decimal CertMult, double LastR2, int LastObs, int SimDay,
+            System.Collections.Generic.List<HistoricalPrice> History) s)
+        {
+            BasePricePerKg = s.Base; PricePerKg = s.Price; WeeklyAvgPrice = s.WeeklyAvg;
+            LongTermMean = s.LongMean; MeanReversionSpeedWeekly = s.MeanRev; VolatilityWeekly = s.Vol;
+            GlobalSupplyIndex = s.SupplyIdx; GlobalDemandIndex = s.DemandIdx;
+            _certificationMultiplier = s.CertMult; LastCalibrationR2 = s.LastR2;
+            LastCalibrationObservationCount = s.LastObs; _simulationDay = s.SimDay;
+            _historicalSeries.Clear(); _historicalSeries.AddRange(s.History);
+        }
         public string CalibrationSummary { get; private set; } = "Using default market calibration";
 
         // ─── Seasonal parameters (Norwegian/global salmon market) ───
@@ -97,7 +119,22 @@ namespace LakskongenSim.Market
         public int LastCalibrationObservationCount { get; private set; }
 
         // ─── Random (TD-06: System.Random is not thread-safe; guard all draws) ───
-        private readonly Random _rng;
+        private readonly SimRandom _rng;
+        internal SimRandom RngForSnapshot => _rng;
+
+        /// <summary>Persistence (Phase 1 wave 6): the shock-window countdown
+        /// and the decaying supply/demand offset decide whether the
+        /// reference-band clamp engages — must survive a save.</summary>
+
+
+        internal (int ShockDays, double SupplyOffset) ExportShockState()
+            => (_shockDaysRemaining, _supplyDemandOffsetNok);
+
+        internal void ImportShockState((int ShockDays, double SupplyOffset) s)
+        {
+            _shockDaysRemaining = s.ShockDays;
+            _supplyDemandOffsetNok = s.SupplyOffset;
+        }
         private readonly object _rngLock = new();
         private int _simulationDay;
 
@@ -196,7 +233,7 @@ namespace LakskongenSim.Market
         /// </summary>
         public MarketSimulation(int? seed)
         {
-            _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+            _rng = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
             // The intelligence subsystem has its own RNG (news events, forecasts,
             // competitor variation); seed it too so a seeded engine is reproducible.
             if (seed.HasValue) Intelligence.Reseed(seed.Value);

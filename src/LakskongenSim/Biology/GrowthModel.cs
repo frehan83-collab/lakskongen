@@ -2,6 +2,7 @@ using System;
 using LakskongenSim.Data;
 using LakskongenSim.Environment;
 
+using LakskongenSim.Core;
 namespace LakskongenSim.Biology
 {
     /// <summary>
@@ -35,8 +36,9 @@ namespace LakskongenSim.Biology
         // concurrent use. All draws go through NextDoubleLocked(), guarded by _rngLock.
         // The default (unseeded) instance aliases Random.Shared — itself thread-safe —
         // while a seeded instance gives deterministic streams for tests.
-        private readonly Random _random;
+        private readonly SimRandom _random;
         private readonly object _rngLock = new();
+        internal SimRandom RngForSnapshot => _random;
         private const double AllometricExponent = 0.67; // Metabolism scaling exponent
         private const double OptimalTemperature = 11.0; // Norwegian optimal
         private const double ThermalTolerance = 3.0;    // Thermal tolerance width
@@ -59,7 +61,7 @@ namespace LakskongenSim.Biology
         /// <param name="seed">Seed for the RNG, or null for non-deterministic.</param>
         public GrowthModel(int? seed)
         {
-            _random = seed.HasValue ? new Random(seed.Value) : Random.Shared;
+            _random = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
         }
 
         /// <summary>Thread-safe uniform draw in [0,1).</summary>

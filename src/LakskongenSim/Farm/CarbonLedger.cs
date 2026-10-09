@@ -125,8 +125,12 @@ namespace LakskongenSim.Farm
     public class CarbonTracker
     {
         public string SourceId { get; init; } = "";
-        public List<CarbonLedger.EmissionEntry> Emissions { get; } = new();
-        public List<CarbonLedger.CreditEntry> Credits { get; } = new();
+        /// <summary>Emission journal. Public setter so saves restore it
+        /// (System.Text.Json skips getter-only collections on read —
+        /// a load used to silently drop the whole carbon history).</summary>
+        public List<CarbonLedger.EmissionEntry> Emissions { get; set; } = new();
+        /// <summary>Credit journal (same persistence note as Emissions).</summary>
+        public List<CarbonLedger.CreditEntry> Credits { get; set; } = new();
 
         public void AddEmission(string category, string source, double kgCO2e, int day)
         {
