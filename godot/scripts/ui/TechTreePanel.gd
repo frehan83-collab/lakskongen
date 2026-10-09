@@ -334,7 +334,7 @@ func _build_node_panel(nd: Dictionary) -> void:
 	# Tier badge
 	var tier_lbl := Label.new()
 	tier_lbl.text = _fmt("UI_TECH_TIER_LABEL", "Nivå %s", [tier])
-	tier_lbl.add_theme_font_size_override("font_size", 9)
+	tier_lbl.add_theme_font_size_override("font_size", 11)
 	tier_lbl.modulate = branch_color
 	vbox.add_child(tier_lbl)
 
@@ -342,7 +342,7 @@ func _build_node_panel(nd: Dictionary) -> void:
 	if is_unlocked:
 		var done_lbl := Label.new()
 		done_lbl.text = tr("UI_TECH_COMPLETED")
-		done_lbl.add_theme_font_size_override("font_size", 9)
+		done_lbl.add_theme_font_size_override("font_size", 11)
 		done_lbl.modulate = Color("#A3BE8C")  # Success
 		vbox.add_child(done_lbl)
 	elif is_active:
@@ -354,14 +354,14 @@ func _build_node_panel(nd: Dictionary) -> void:
 		vbox.add_child(prog)
 		var prog_lbl := Label.new()
 		prog_lbl.text = _fmt("UI_TECH_PROGRESS_DAYS", "%d av %d dager", [progress_days, research_days])
-		prog_lbl.add_theme_font_size_override("font_size", 9)
+		prog_lbl.add_theme_font_size_override("font_size", 11)
 		prog_lbl.modulate = Color(1.0, 0.80, 0.30)
 		vbox.add_child(prog_lbl)
 	else:
 		var cost_str: String = _format_nok(nd["cost_nok"])
 		var cost_lbl := Label.new()
 		cost_lbl.text = "%s  •  %dd" % [cost_str, research_days]
-		cost_lbl.add_theme_font_size_override("font_size", 9)
+		cost_lbl.add_theme_font_size_override("font_size", 11)
 		cost_lbl.modulate = COLOR_TEXT_DIM
 		vbox.add_child(cost_lbl)
 

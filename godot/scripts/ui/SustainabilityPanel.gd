@@ -26,21 +26,21 @@ var _sim_bridge: Node = null
 var _theme: Node = null
 
 # Color scheme from design tokens
-const COLOR_BG = "#0F1720"
-const COLOR_PANEL = "#121826"
+const COLOR_BG = "#2E3440"
+const COLOR_PANEL = "#3B4252"
 const COLOR_TEXT = "#2E3440"
 const COLOR_MUTED = "#7B8794"
-const COLOR_ACCENT = "#2AB7B5"
-const COLOR_ACCENT_2 = "#1F7A8C"
-const COLOR_DANGER = "#E06666"
+const COLOR_ACCENT = "#88C0D0"
+const COLOR_ACCENT_2 = "#0A4D68"
+const COLOR_DANGER = "#BF616A"
 
 # Certification level colors
 const CERT_COLORS = {
-	"NonCompliant": "#E06666",        # Red
-	"BasicCompliance": "#D4AF37",     # Gold
-	"ASCCertified": "#2AB7B5",        # Cyan (accent)
-	"OrganicCertified": "#4CAF50",    # Green
-	"SustainabilityLeader": "#00E676" # Bright green
+	"NonCompliant": "#BF616A",        # Red
+	"BasicCompliance": "#EBCB8B",     # Gold
+	"ASCCertified": "#88C0D0",        # Cyan (accent)
+	"OrganicCertified": "#A3BE8C",    # Green
+	"SustainabilityLeader": "#A3BE8C" # Bright green
 }
 
 # Current data
@@ -232,13 +232,13 @@ func _create_category_bar(label_text: String, score: int, max_score: int):
 func _get_score_color(score: int) -> Color:
 	"""Get color based on score (red -> yellow -> green gradient)"""
 	if score >= 85:
-		return Color("#00E676")  # Bright green
+		return Color("#A3BE8C")  # Bright green
 	elif score >= 70:
-		return Color("#4CAF50")  # Green
+		return Color("#A3BE8C")  # Green
 	elif score >= 50:
-		return Color("#D4AF37")  # Gold
+		return Color("#EBCB8B")  # Gold
 	else:
-		return Color("#E06666")  # Red/danger
+		return Color("#BF616A")  # Red/danger
 
 func _format_certification_badge(cert: String) -> String:
 	"""Certification badge text (own row, no warning prefix)."""

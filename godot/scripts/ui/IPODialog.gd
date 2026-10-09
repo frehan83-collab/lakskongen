@@ -57,11 +57,11 @@ func _update_eligibility_display():
 	# Eligibility status
 	if is_eligible:
 		eligibility_label.text = tr("✓ ELIGIBLE for IPO")
-		eligibility_label.add_theme_color_override("font_color", Color("#2AB7B5"))
+		eligibility_label.add_theme_color_override("font_color", Color("#88C0D0"))
 		go_public_button.disabled = false
 	else:
 		eligibility_label.text = tr("✗ NOT ELIGIBLE for IPO")
-		eligibility_label.add_theme_color_override("font_color", Color("#E06666"))
+		eligibility_label.add_theme_color_override("font_color", Color("#BF616A"))
 		go_public_button.disabled = true
 		
 		# Show reasons
@@ -97,7 +97,7 @@ func _update_capital_raised():
 	# Warning for high dilution
 	if dilution > 0.25:
 		warning_label.text = "WARNING: High dilution (>25%) may signal desperation to investors!"
-		warning_label.add_theme_color_override("font_color", Color("#E06666"))
+		warning_label.add_theme_color_override("font_color", Color("#BF616A"))
 		warning_label.visible = true
 	else:
 		warning_label.visible = false

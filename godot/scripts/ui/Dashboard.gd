@@ -292,7 +292,7 @@ func _build_kpi_sparklines() -> void:
 	if _sparkline_script == null:
 		return
 	var specs: Array = [
-		["biomass", _kpi_biomass_value, "total_biomass_kg", Color("#2E86AB"), "%.0f"],
+		["biomass", _kpi_biomass_value, "total_biomass_kg", Color("#5B8FA3"), "%.0f"],
 		["revenue", _kpi_revenue_value, "balance_nok", Color("#8FAD78"), "%.1f"],
 		["health", _kpi_health_value, "sustainability_score", Color("#88C0D0"), "%.0f"],
 		["fcr", _kpi_fcr_value, "fcr", Color("#D4B06A"), "%.2f"],
@@ -692,7 +692,7 @@ func _refresh_charts() -> void:
 	var fbio: Array[float] = []
 	for v in Array(fc.get("biomass_kg", [])):
 		fbio.append(float(v) / 1000.0)
-	_set_chart(_chart_biomass, "Biomasse (tonn)", biomass, "total_biomass_kg", -1.0, "%.0f", Color("#2E86AB"), fbio)
+	_set_chart(_chart_biomass, "Biomasse (tonn)", biomass, "total_biomass_kg", -1.0, "%.0f", Color("#5B8FA3"), fbio)
 	var price: Array[float] = _sim.get_analytics_data("market_price_nok", 30)
 	_set_chart(_chart_price, "Pris (NOK/kg)", price, "market_price_nok", -1.0, "%.0f", Color("#8FAD78"))
 	var lice: Array[float] = _sim.get_analytics_data("lice_per_fish", 30)

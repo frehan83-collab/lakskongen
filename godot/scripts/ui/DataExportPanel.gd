@@ -591,15 +591,15 @@ func _set_button_state(type_id: String, enabled: bool) -> void:
 
 func _log_ok(message: String) -> void:
 	if _export_log:
-		_export_log.append_text("[color=#25b35a]" + message + "[/color]\n")
+		_export_log.append_text("[color=#A3BE8C]" + message + "[/color]\n")
 
 func _log_error(message: String) -> void:
 	if _export_log:
-		_export_log.append_text("[color=#d94040]" + message + "[/color]\n")
+		_export_log.append_text("[color=#BF616A]" + message + "[/color]\n")
 
 func _log_info(message: String) -> void:
 	if _export_log:
-		_export_log.append_text("[color=#8899aa]" + message + "[/color]\n")
+		_export_log.append_text("[color=#7B8794]" + message + "[/color]\n")
 
 # ── Misc ──────────────────────────────────────────────────────────────────────
 

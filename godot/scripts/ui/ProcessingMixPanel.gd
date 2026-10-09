@@ -71,7 +71,7 @@ func _populate_product_list():
 func _create_product_item(product: Dictionary) -> Control:
 	var item = PanelContainer.new()
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color("#0F1720")
+	style.bg_color = Color("#2E3440")
 	style.corner_radius_top_left = 4
 	style.corner_radius_top_right = 4
 	style.corner_radius_bottom_left = 4
@@ -103,7 +103,7 @@ func _create_product_item(product: Dictionary) -> Control:
 	# Product name
 	var name_label = Label.new()
 	name_label.text = product.get("name", "Unknown Product")
-	name_label.add_theme_color_override("font_color", Color("#E6EEF3"))
+	name_label.add_theme_color_override("font_color", Color("#ECEFF4"))
 	name_label.add_theme_font_size_override("font_size", 14)
 	info_vbox.add_child(name_label)
 	
@@ -112,7 +112,7 @@ func _create_product_item(product: Dictionary) -> Control:
 	var yield_pct = product.get("baseYieldPercent", 0.0) * 100
 	var margin_pct = product.get("marginPercent", 0.0) * 100
 	metrics_label.text = "Yield: %.1f%% | Margin: %.1f%%" % [yield_pct, margin_pct]
-	metrics_label.add_theme_color_override("font_color", Color("#B0B8BF"))
+	metrics_label.add_theme_color_override("font_color", Color("#7B8794"))
 	metrics_label.add_theme_font_size_override("font_size", 11)
 	info_vbox.add_child(metrics_label)
 	
@@ -121,20 +121,20 @@ func _create_product_item(product: Dictionary) -> Control:
 	var expected_profit = _get_expected_profit(product_type)
 	if expected_profit > 0:
 		profit_label.text = "Est. Profit: NOK %.0f/day" % expected_profit
-		profit_label.add_theme_color_override("font_color", Color("#2AB7B5"))
+		profit_label.add_theme_color_override("font_color", Color("#88C0D0"))
 	else:
 		profit_label.text = tr("Not recommended")
-		profit_label.add_theme_color_override("font_color", Color("#666666"))
+		profit_label.add_theme_color_override("font_color", Color("#7B8794"))
 	profit_label.add_theme_font_size_override("font_size", 11)
 	info_vbox.add_child(profit_label)
 	
 	# Demand indicator
 	var demand_label = Label.new()
 	var demand = product.get("demandLevel", "Normal")
-	var demand_color = Color("#2AB7B5") if demand == "High" else Color("#E6EEF3")
+	var demand_color = Color("#88C0D0") if demand == "High" else Color("#ECEFF4")
 	demand_label.text = "Demand: " + demand
 	demand_label.add_theme_color_override("font_color", demand_color)
-	demand_label.add_theme_font_size_override("font_size", 10)
+	demand_label.add_theme_font_size_override("font_size", 11)
 	info_vbox.add_child(demand_label)
 	
 	return item

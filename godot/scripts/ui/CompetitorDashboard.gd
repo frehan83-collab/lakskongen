@@ -49,8 +49,8 @@ func _populate_competitor_list():
 func _create_competitor_item(competitor: Dictionary) -> Control:
 	var item = PanelContainer.new()
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color("#121826")
-	style.border_color = Color("#2AB7B5")
+	style.bg_color = Color("#3B4252")
+	style.border_color = Color("#88C0D0")
 	style.border_width_left = 1
 	style.border_width_top = 1
 	style.border_width_right = 1
@@ -81,7 +81,7 @@ func _create_competitor_item(competitor: Dictionary) -> Control:
 	var name = competitor.get("name", "Unknown")
 	var tagline = competitor.get("tagline", "")
 	name_label.text = name + " - " + tagline
-	name_label.add_theme_color_override("font_color", Color("#E6EEF3"))
+	name_label.add_theme_color_override("font_color", Color("#ECEFF4"))
 	name_label.add_theme_font_size_override("font_size", 16)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_hbox.add_child(name_label)
@@ -89,15 +89,15 @@ func _create_competitor_item(competitor: Dictionary) -> Control:
 	# Strategy badge
 	var strategy_label = Label.new()
 	strategy_label.text = competitor.get("strategy", "Unknown")
-	strategy_label.add_theme_color_override("font_color", Color("#2AB7B5"))
+	strategy_label.add_theme_color_override("font_color", Color("#88C0D0"))
 	strategy_label.add_theme_font_size_override("font_size", 11)
 	header_hbox.add_child(strategy_label)
 	
 	# Parody note
 	var parody_label = Label.new()
 	parody_label.text = "Parody of: " + competitor.get("parodyOf", "N/A")
-	parody_label.add_theme_color_override("font_color", Color("#888888"))
-	parody_label.add_theme_font_size_override("font_size", 10)
+	parody_label.add_theme_color_override("font_color", Color("#7B8794"))
+	parody_label.add_theme_font_size_override("font_size", 11)
 	vbox.add_child(parody_label)
 	
 	# Financial metrics row
@@ -109,21 +109,21 @@ func _create_competitor_item(competitor: Dictionary) -> Control:
 	var revenue_label = Label.new()
 	var revenue = competitor.get("revenue", 0.0) / 1_000_000_000.0  # Convert to billions
 	revenue_label.text = "Revenue: NOK %.2fB" % revenue
-	revenue_label.add_theme_color_override("font_color", Color("#B0B8BF"))
+	revenue_label.add_theme_color_override("font_color", Color("#7B8794"))
 	metrics_hbox.add_child(revenue_label)
 	
 	# Market share
 	var share_label = Label.new()
 	var market_share = competitor.get("marketShareNorway", 0.0) * 100
 	share_label.text = "Share: %.1f%%" % market_share
-	share_label.add_theme_color_override("font_color", Color("#B0B8BF"))
+	share_label.add_theme_color_override("font_color", Color("#7B8794"))
 	metrics_hbox.add_child(share_label)
 	
 	# Harvest volume
 	var volume_label = Label.new()
 	var harvest = competitor.get("weeklyHarvestTonnes", 0.0)
 	volume_label.text = "Harvest: %.0f t/week" % harvest
-	volume_label.add_theme_color_override("font_color", Color("#B0B8BF"))
+	volume_label.add_theme_color_override("font_color", Color("#7B8794"))
 	metrics_hbox.add_child(volume_label)
 	
 	# Recent actions
@@ -132,10 +132,10 @@ func _create_competitor_item(competitor: Dictionary) -> Control:
 	if recent_actions.size() > 0:
 		var latest = recent_actions[0] if recent_actions.size() > 0 else "No recent activity"
 		actions_label.text = "Recent: " + latest
-		actions_label.add_theme_color_override("font_color", Color("#E6EEF3"))
+		actions_label.add_theme_color_override("font_color", Color("#ECEFF4"))
 	else:
 		actions_label.text = tr("No recent activity")
-		actions_label.add_theme_color_override("font_color", Color("#666666"))
+		actions_label.add_theme_color_override("font_color", Color("#7B8794"))
 	actions_label.add_theme_font_size_override("font_size", 11)
 	vbox.add_child(actions_label)
 	
@@ -150,13 +150,13 @@ func _create_competitor_item(competitor: Dictionary) -> Control:
 	var status_text = ""
 	if is_distressed:
 		status_text = "[DISTRESSED]"
-		status_label.add_theme_color_override("font_color", Color("#E06666"))
+		status_label.add_theme_color_override("font_color", Color("#BF616A"))
 	elif is_public:
 		status_text = "[PUBLIC]"
-		status_label.add_theme_color_override("font_color", Color("#2AB7B5"))
+		status_label.add_theme_color_override("font_color", Color("#88C0D0"))
 	else:
 		status_text = "[PRIVATE]"
-		status_label.add_theme_color_override("font_color", Color("#888888"))
+		status_label.add_theme_color_override("font_color", Color("#7B8794"))
 	status_label.text = status_text
 	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bottom_hbox.add_child(status_label)

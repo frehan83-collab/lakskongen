@@ -319,7 +319,7 @@ func _build_entry_node(entry: Dictionary, index: int) -> Control:
 	var day_lbl := Label.new()
 	day_lbl.text = _tr_day_format(entry.get("day", 0))
 	day_lbl.add_theme_color_override("font_color", Color("#7B8794"))
-	day_lbl.add_theme_font_size_override("font_size", 10)
+	day_lbl.add_theme_font_size_override("font_size", 11)
 	header.add_child(day_lbl)
 
 	# Description (shown when expanded)

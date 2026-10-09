@@ -137,12 +137,12 @@ func _build_ui() -> void:
 	var caps := HBoxContainer.new()
 	v.add_child(caps)
 	_lo_label = Label.new()
-	_lo_label.add_theme_font_size_override("font_size", 10)
+	_lo_label.add_theme_font_size_override("font_size", 11)
 	_lo_label.add_theme_color_override("font_color", COL_MUTED)
 	_lo_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	caps.add_child(_lo_label)
 	_hi_label = Label.new()
-	_hi_label.add_theme_font_size_override("font_size", 10)
+	_hi_label.add_theme_font_size_override("font_size", 11)
 	_hi_label.add_theme_color_override("font_color", COL_MUTED)
 	_hi_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	caps.add_child(_hi_label)

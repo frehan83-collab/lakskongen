@@ -3,7 +3,7 @@ class_name CrisisPanel
 
 # CrisisPanel - Dramatic Modal for Crisis Responses
 # Design: Full-screen dark overlay with pulsing border and urgent typography
-# Uses LakskongenTheme Nordlys palette: DANGER = #E54D4D, ACCENT = #E8825C
+# Uses LakskongenTheme palette: DANGER = #BF616A, ACCENT = #5E81AC
 
 @onready var overlay: ColorRect = $Overlay
 @onready var panel: PanelContainer = $PanelContainer
@@ -251,7 +251,7 @@ func _get_severity_color(severity: int) -> Color:
         3:
             return LakskongenTheme.DANGER
         4, 5:
-            return Color("#8B0000")  # Dark red
+            return Color("#A54E56")  # Dark red (escalated danger)
         _:
             return LakskongenTheme.MUTED
 

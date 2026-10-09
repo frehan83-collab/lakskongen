@@ -273,7 +273,7 @@ func _show_detail(index: int) -> void:
 	_detail_name.text = mod.get("name", "Ukjent mod")
 	_detail_author.text = tr("UI_MODMANAGER_AUTHOR_FORMAT") % mod.get("author", tr("UI_MODMANAGER_AUTHOR_UNKNOWN"))
 	_detail_version.text = "Versjon: " + mod.get("version", "?")
-	_detail_desc.text = "[color=#8899aa]" + mod.get("description", "") + "[/color]"
+	_detail_desc.text = "[color=#7B8794]" + mod.get("description", "") + "[/color]"
 
 	var stats_parts: Array = []
 	var ec: int = mod.get("event_count", 0)

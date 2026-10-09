@@ -89,8 +89,8 @@ func _input(event: InputEvent) -> void:
 func _apply_tablet_theme() -> void:
 	# Tablet overlay uses scene StyleBoxFlat_tablet (dark, rounded)
 	# Ensure it's properly themed for diegetic look
-	tablet_overlay.add_theme_color_override("bg_color", Color("#1E222A"))
-	tablet_overlay.add_theme_color_override("border_color", Color("#3A4150"))
+	tablet_overlay.add_theme_color_override("bg_color", Color("#2E3440"))
+	tablet_overlay.add_theme_color_override("border_color", Color("#3B4252"))
 
 # ── Period Button Handling ─────────────────────────────────────────────────────
 
@@ -450,7 +450,7 @@ class _ChartArea extends Control:
 
 	func _draw_y_labels(w: float, h: float, pad: float) -> void:
 		var label_color = Color("#7B8794")
-		var font_size = 10
+		var font_size = 11
 		
 		for i in 5:
 			var val = _y_min + _y_range * (4 - i) / 4.0
@@ -460,7 +460,7 @@ class _ChartArea extends Control:
 
 	func _draw_x_labels(w: float, h: float, pad: float) -> void:
 		var label_color = Color("#7B8794")
-		var font_size = 10
+		var font_size = 11
 		var n = _series.size()
 		
 		if n < 2:
