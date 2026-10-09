@@ -3083,9 +3083,21 @@ private class BalancingConfig
                 EventsEnabled = _enableEvents
             };
             var clocks = new List<int>(_inDayPhases.Length);
+            var clocksByName = new List<KeyValuePair<string, int>>();
             foreach (var phase in _inDayPhases)
-                clocks.Add(phase is ITickClock clock ? clock.ClockValue : 0);
+            {
+                if (phase is ITickClock clock)
+                {
+                    clocks.Add(clock.ClockValue);
+                    clocksByName.Add(new(phase.GetType().Name, clock.ClockValue));
+                }
+                else
+                {
+                    clocks.Add(0);
+                }
+            }
             runtime.InDayClocks = clocks.ToArray();
+            runtime.ClocksBySystem = new Dictionary<string, int>(clocksByName);
             State.Runtime = runtime;
         }
 
@@ -3379,17 +3391,40 @@ private class BalancingConfig
             // re-settled mid-episode insurance). Legacy saves without a
             // snapshot align the storm edge with the current weather.
             var runtime = loadedState.Runtime;
-            if (runtime != null && runtime.InDayClocks != null &&
-                runtime.InDayClocks.Length == _inDayPhases.Length)
+            if (runtime != null)
             {
                 for (int i = 0; i < _inDayPhases.Length; i++)
                 {
-                    if (_inDayPhases[i] is ITickClock clockSystem)
+                    if (_inDayPhases[i] is not ITickClock clockSystem) continue;
+
+                    // Identity-keyed restore first (inserting/reordering
+                    // phases can never mis-map a clock); positional array is
+                    // the legacy fallback.
+                    if (runtime.ClocksBySystem != null &&
+                        runtime.ClocksBySystem.TryGetValue(_inDayPhases[i].GetType().Name, out var savedByKey))
+                    {
+                        clockSystem.SetClock(savedByKey);
+                    }
+                    else if (runtime.InDayClocks != null &&
+                             runtime.InDayClocks.Length == _inDayPhases.Length)
+                    {
                         clockSystem.SetClock(runtime.InDayClocks[i]);
+                    }
                 }
-                if (Enum.TryParse(runtime.WeatherEdgeState, ignoreCase: true,
-                        out LakskongenSim.Environment.WeatherState edge))
-                    _lastWeatherState = edge;
+
+                // Storm edge restore with a hard fallback: an unparsable or
+                // undefined edge value must resolve to "aligned with current
+                // weather" — a parse failure must never leave Initialize's
+                // Calm behind, which could re-fire a mid-episode storm.
+                bool edgeOk = Enum.TryParse(runtime.WeatherEdgeState, ignoreCase: true,
+                                  out LakskongenSim.Environment.WeatherState edge)
+                              && Enum.IsDefined(edge);
+                _lastWeatherState = edgeOk
+                    ? edge
+                    : Weather?.CurrentState ?? LakskongenSim.Environment.WeatherState.Calm;
+
+                // Independent of the clock restore: length mismatches must
+                // never silently drop the events gating either.
                 _enableEvents = runtime.EventsEnabled;
             }
             else

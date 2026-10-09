@@ -52,6 +52,13 @@ All public properties in `GameState` are automatically serialized to JSON by `Sa
 ### Excluded (JsonIgnore)
 - `LogisticsManager` (Logistics.LogisticsManager?) - Runtime manager, not serialized
 
+### Runtime cadence (Phase 1 wave 5)
+- `Runtime` (EngineRuntimeSnapshot?) - WeatherEdgeState (storm-impact edge),
+  EventsEnabled, InDayClocks (positional legacy clock array) and
+  ClocksBySystem (identity-keyed clock map, preferred restore source).
+  Null for pre-wave-5 saves; the engine then aligns the storm edge with
+  current weather.
+
 ## Backward Compatibility
 
 ### Collections

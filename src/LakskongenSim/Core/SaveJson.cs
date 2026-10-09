@@ -62,4 +62,12 @@ public sealed class EngineRuntimeSnapshot
     /// (or length-mismatched) snapshots fall back to the clockless restore.
     /// </summary>
     public int[] InDayClocks { get; set; } = System.Array.Empty<int>();
+
+    /// <summary>
+    /// Identity-keyed clock map (system type name -> clock). Preferred over
+    /// the positional <see cref="InDayClocks"/> array so inserting/reordering
+    /// tick phases in a future commit can never restore a clock onto the
+    /// wrong system (post-review hardening).
+    /// </summary>
+    public System.Collections.Generic.Dictionary<string, int>? ClocksBySystem { get; set; }
 }

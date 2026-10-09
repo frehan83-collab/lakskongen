@@ -167,12 +167,10 @@ public static class PlayerScriptProbe
     /// <summary>
     /// Mid-run save/load: write via the library SaveLoadManager, then resume on
     /// a fresh engine through <see cref="SimulationEngine.AdoptSavedState"/> —
-    /// the same adoption path GameBridge.LoadGame drives. Two honest caveats:
-    /// (1) the library serializer writes PascalCase/enum-strings while the game
-    /// writes camelCase/enum-ints — adoption is unified, the formats are not
-    /// (ISnapshotable rewrite, per plan); (2) bridge-only extras on load
-    /// (mitigation-registry restore, feed-recipe re-apply) are not exercised
-    /// because this career uses neither — a future wave must close that gap.
+    /// the same adoption path GameBridge.LoadGame drives. Since Phase 1 wave 5
+    /// both sides share the ONE serializer (SaveJson.Options). Remaining caveat:
+    /// RNG stream positions are not persisted yet (documented gap; the
+    /// exact hash test arrives with the SimRng migration).
     /// </summary>
     private static SimulationEngine ResumeAfterSaveLoadRoundTrip(SimulationEngine engine, int seed)
     {
