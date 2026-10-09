@@ -10,7 +10,7 @@
 | Check | Result |
 |---|---|
 | `dotnet build LakskongenSim.sln` | ✅ 0 errors, 0 warnings |
-| Tests | ✅ **695 passed**, 1 skipped, 0 failed (honest count; the old "727" included ~92 triplicates, fixed in Phase 0. Includes seeded 3-year soak, campaign smoke, PlayerScriptProbe careers) |
+| Tests | ✅ **701 passed**, 1 skipped, 0 failed (honest count; the old "727" included ~92 triplicates, fixed in Phase 0. Includes seeded 3-year soak, campaign smoke, PlayerScriptProbe careers) |
 | CI gate (`tools/ci.sh`) | ✅ **9/9 locally** (nothing skipped) — builds both assemblies · dotnet tests · pytest · perf · token sync · JSON · scene validation · GDScript parse. GitHub CI runs the same gate headless |
 | Performance | ✅ 0.19 ms/day best avg (3 sites / ~103k fish; soft 2 ms/day, hard 5 ms/day) |
 | Godot editor scan | ✅ 0 GDScript parse errors (Godot 4.7) |
@@ -73,9 +73,15 @@ analytics) with system-owned interval clocks rebuilt per Initialize
 (the `_quarterStartDay` leak is dead). Balance bands, soaks and
 determinism identity verified unchanged.
 
-Next on this track: ISnapshotable/one-serializer rewrite, then
-migrating the legacy seeded subsystems onto SimRng streams with
-bit-equivalence golden tests.
+Wave 5 (done): ONE serializer (`SaveJson`) shared by the game and the
+library, reading legacy v1/v2 saves for free; save v3 carries the
+runtime cadence (interval clocks, storm edge, events flag) so loaded
+games continue without double-firing beats or re-settling storm
+insurance.
+
+Next on this track: migrate the legacy seeded subsystems onto SimRng
+streams with bit-equivalence golden tests (which also unlocks the exact
+save-hash round-trip test via per-stream positions).
 
 - **Foundations (W1–2)** — audio truth pass, token-driven theme, data-viz,
   scenarios/mods wired, unified onboarding, `ConsequenceDirector`.

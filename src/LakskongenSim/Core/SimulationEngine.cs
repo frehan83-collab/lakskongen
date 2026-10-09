@@ -438,31 +438,31 @@ namespace LakskongenSim.Core
             // the simulation order. Rebuilt every Initialize => fresh clocks.
             _inDayPhases = new ITickSystem[]
             {
-                new WeatherAndEnvironmentSystem(),
-                new HealthPrepSystem(),
-                new BiologySystem(),
-                new FarmOpexSystem(),
-                new CarbonLedgerSystem(),
-                new EventsAndTimeSystem(),
-                new MarketSystem(),
-                new FinanceSystem(),
-                new StockMarketSystem(),
-                new SustainabilitySystem(),
-                new SludgeValorizationSystem(),
-                new TrafficLightSystem(),
-                new BrandReputationSystem(),
-                new CompetitorAISystem(),
-                new EmpireProgressionSystem(),
+                new WeatherAndEnvironmentTickSystem(),
+                new HealthPrepTickSystem(),
+                new BiologyTickSystem(),
+                new FarmOpexTickSystem(),
+                new CarbonLedgerTickSystem(),
+                new EventsAndTimeTickSystem(),
+                new MarketTickSystem(),
+                new FinanceTickSystem(),
+                new StockMarketTickSystem(),
+                new SustainabilityTickSystem(),
+                new SludgeValorizationTickSystem(),
+                new TrafficLightTickSystem(),
+                new BrandReputationTickSystem(),
+                new CompetitorAITickSystem(),
+                new EmpireProgressionTickSystem(),
                 new CrisisCapitalismTickSystem(),
                 new VerticalIntegrationTickSystem(),
-                new TaxAndResourceRentSystem(),
-                new InvestorSystem(),
-                new BloomDeckSystem(),
-                new MarketIntelligenceSystem(),
-                new ContractExpirySystem(),
-                new ProductMixOptimizerSystem(),
-                new TutorialAnalyticsSystem(),
-                new NightShiftPolicySystem()
+                new TaxAndResourceRentTickSystem(),
+                new InvestorTickSystem(),
+                new BloomDeckTickSystem(),
+                new MarketIntelligenceTickSystem(),
+                new ContractExpiryTickSystem(),
+                new ProductMixOptimizerTickSystem(),
+                new TutorialAnalyticsTickSystem(),
+                new NightShiftPolicyTickSystem()
             };
             PostSmoltFacilities = new();
 
@@ -1429,6 +1429,9 @@ private class BalancingConfig
         // ─── Post-tick phase pipeline (Phase 1 wave 3) ────────────────────────
 
         private ITickSystem[] _inDayPhases = Array.Empty<ITickSystem>();
+
+        /// <summary>Test observability for the migrated in-day pipeline (Phase 1 wave 5).</summary>
+        internal ITickSystem[] InDayPhasesForTests => _inDayPhases;
 
         private ITickSystem[] _postTickPhases = new ITickSystem[]
         {
@@ -3014,7 +3017,7 @@ private class BalancingConfig
         }
 
         /// <summary>
-        /// Build EmpireState snapshot for EmpireProgressionSystem.
+        /// Build EmpireState snapshot for EmpireProgressionTickSystem.
         /// </summary>
         internal Finance.EmpireState BuildEmpireState()
         {
@@ -3070,6 +3073,20 @@ private class BalancingConfig
             // P9/P11: Sync insurance, resource-rent tax, pen-price council and
             // bloom mitigations so top-tier depth state survives saves.
             SyncDepthSystemsToState();
+
+            // Phase 1 wave 5: snapshot the runtime cadence (interval clocks,
+            // storm edge, event gating) so a loaded game CONTINUES instead of
+            // resetting weekly/quarterly beats and edge detectors.
+            var runtime = new EngineRuntimeSnapshot
+            {
+                WeatherEdgeState = _lastWeatherState.ToString(),
+                EventsEnabled = _enableEvents
+            };
+            var clocks = new List<int>(_inDayPhases.Length);
+            foreach (var phase in _inDayPhases)
+                clocks.Add(phase is ITickClock clock ? clock.ClockValue : 0);
+            runtime.InDayClocks = clocks.ToArray();
+            State.Runtime = runtime;
         }
 
         /// <summary>
@@ -3355,6 +3372,31 @@ private class BalancingConfig
 
             // P9/P11: Restore insurance, resource-rent tax and pen-price state
             RestoreDepthSystemsFromState(loadedState);
+
+            // Phase 1 wave 5: restore the runtime cadence. Interval clocks
+            // and the storm edge come from the snapshot so a loaded game
+            // CONTINUES (no double-firing weekly/quarterly beats, no
+            // re-settled mid-episode insurance). Legacy saves without a
+            // snapshot align the storm edge with the current weather.
+            var runtime = loadedState.Runtime;
+            if (runtime != null && runtime.InDayClocks != null &&
+                runtime.InDayClocks.Length == _inDayPhases.Length)
+            {
+                for (int i = 0; i < _inDayPhases.Length; i++)
+                {
+                    if (_inDayPhases[i] is ITickClock clockSystem)
+                        clockSystem.SetClock(runtime.InDayClocks[i]);
+                }
+                if (Enum.TryParse(runtime.WeatherEdgeState, ignoreCase: true,
+                        out LakskongenSim.Environment.WeatherState edge))
+                    _lastWeatherState = edge;
+                _enableEvents = runtime.EventsEnabled;
+            }
+            else
+            {
+                _lastWeatherState = Weather?.CurrentState
+                    ?? LakskongenSim.Environment.WeatherState.Calm;
+            }
 
             SimLog.Info($"✅ Restored from save: Balance={FinanceManager.Balance:N0} NOK, {loadedState.Populations.Count} populations, Day {loadedState.Day}");
         }

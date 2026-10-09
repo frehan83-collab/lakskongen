@@ -288,6 +288,13 @@ namespace LakskongenSim.Core
         /// <summary>P9: last binding monthly pen price set by the Price Council (NOK/kg).</summary>
         public decimal PenPriceCouncilLastValue { get; set; }
 
+        /// <summary>
+        /// Engine runtime snapshot (interval clocks, storm edge, event gating).
+        /// Null for saves written before Phase 1 wave 5 — those falls back to
+        /// the align-with-current-weather restore.
+        /// </summary>
+        public EngineRuntimeSnapshot? Runtime { get; set; }
+
         /// <summary>Default constructor for serializer.</summary>
         public GameState()
         {

@@ -38,7 +38,7 @@ public partial class SaveLoadManager : Node
     /// migration step in MigrateSaveData. Old saves without the field read
     /// as version 0.
     /// </summary>
-    public const int CurrentSaveVersion = 2;
+    public const int CurrentSaveVersion = 3;
 
     private JsonSerializerOptions _jsonOptions;
     private GameBridge _gameBridge;
@@ -54,12 +54,11 @@ public partial class SaveLoadManager : Node
 
     private void SetupJsonOptions()
     {
-        _jsonOptions = new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            IncludeFields = true
-        };
+        // Phase 1 wave 5: the ONE save format (SaveJson.Options). It still
+        // READS legacy v1/v2 saves (camelCase via case-insensitive binding,
+        // int enums via the string converter), but writes v3 PascalCase +
+        // enum names + the runtime cadence snapshot.
+        _jsonOptions = LakskongenSim.Core.SaveJson.Options;
     }
 
     private void EnsureSaveDirectory()
@@ -495,6 +494,13 @@ public partial class SaveLoadManager : Node
                     // These are initialized with defaults in class constructors.
                     // Just bump version - deserializer will use defaults for missing fields.
                     saveData.SaveVersion = 2;
+                    break;
+                case 2:
+                    // v2 -> v3: unified serializer (SaveJson.Options) + the
+                    // EngineRuntimeSnapshot (interval clocks, storm edge).
+                    // Payload shape is unchanged — defaults apply for the
+                    // new members and the unified options read both formats.
+                    saveData.SaveVersion = 3;
                     break;
                 default:
                     GD.PrintErr($"No migrator for save version {saveData.SaveVersion}; loading as-is.");

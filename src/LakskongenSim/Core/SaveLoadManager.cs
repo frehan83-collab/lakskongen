@@ -20,14 +20,9 @@ namespace LakskongenSim.Core
         /// <summary>Number of backup generations to keep per save slot.</summary>
         public const int MaxBackups = 3;
 
-        private static readonly JsonSerializerOptions JsonOptions = new()
-        {
-            WriteIndented = true,
-            Converters = { new JsonStringEnumConverter() },
-            DefaultIgnoreCondition = JsonIgnoreCondition.Never, // Serialize all properties
-            IgnoreReadOnlyProperties = false,
-            IncludeFields = false
-        };
+        // Phase 1 wave 5: the one-serializer unification — the library writes and
+        // reads through SaveJson.Options, the exact same format the game uses.
+        private static readonly JsonSerializerOptions JsonOptions = SaveJson.Options;
 
         public SaveLoadManager(string saveDirectory)
         {

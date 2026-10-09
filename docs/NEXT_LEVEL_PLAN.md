@@ -112,11 +112,27 @@ Date: 2026-10-08. Reviewed at commit `b56ff2a`. The review covers the C# simulat
   enforcement pass unchanged (695/1). Shared engine surface widened
   minimally (internal helpers + EventsEnabled/LegacyEventRng/FireEvent/
   TickFeedCostPerKgNOK accessors).
-  **Still open:** ISnapshotable+one serializer (incl. weather
-  persistence for the load-mid-storm settlement gap),
-  BuildSeaSite/ApplyForLicense double-charge, migration of legacy seeded
-  subsystems onto SimRng streams with golden-file bit-equivalence, the
-  episodic storm model (net-integrity exposure + magnitude band test).
+  **Phase 1 wave 5 DONE — one serializer + runtime cadence persistence.**
+  `SaveJson.Options` is the single save format (PascalCase, enum NAMES,
+  case-insensitive reads, IncludeFields): the Godot SaveLoadManager and
+  the headless SaveLoadManager/PlayerScriptProbe share it, so "game
+  saves" and "probe saves" can no longer drift. Backward compatibility
+  is a property of the OPTIONS — legacy v1/v2 saves (camelCase, numeric
+  enums) deserialize unchanged; the save version bumped to 3 with a
+  2→3 migrator case. `EngineRuntimeSnapshot` rides the save payload:
+  all 16 in-day interval clocks (via ITickClock on the tick systems),
+  the storm-impact edge state, and the events flag — a loaded game now
+  CONTINUES its weekly/quarterly cadence and cannot re-settle a
+  mid-episode storm insurance claim (both regression-tested; legacy
+  saves without the snapshot align the storm edge with current weather).
+  RNG POSITIONS stay a documented gap: the hash-equivalence test is
+  impossible until the legacy System.Random subsystems migrate onto
+  SimRng streams (the bit-equivalence wave). Suite 701/1 skip.
+  **Still open:** legacy seeded subsystems onto SimRng streams with
+  golden-file bit-equivalence (+ per-stream position persistence to
+  enable the exact save-hash test), BuildSeaSite/ApplyForLicense
+  double-charge, the episodic storm model (net-integrity exposure +
+  magnitude band test).
   **Review follow-ups (from the post-impl adversarial pass, accepted):**
   (1) `StormFishLossBaseFraction = 0.0003` is a PROVISIONAL single-variable
   band fit — it must become an episodic storm model (NVI-attributed storm

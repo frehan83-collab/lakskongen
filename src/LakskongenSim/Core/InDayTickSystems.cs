@@ -16,8 +16,20 @@ using LakskongenSim.Processing;
 
 namespace LakskongenSim.Core;
 
-    /// <summary>WeatherAndEnvironmentSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class WeatherAndEnvironmentSystem : ITickSystem
+    /// <summary>
+    /// Optional clock persistence for migrated tick systems (Phase 1 wave 5):
+    /// the engine snapshots each clock into EngineRuntimeSnapshot.InDayClocks
+    /// so a loaded game continues the weekly/quarterly cadence instead of
+    /// double-firing on the first post-load tick.
+    /// </summary>
+    internal interface ITickClock
+    {
+        int ClockValue { get; }
+        void SetClock(int value);
+    }
+
+    /// <summary>WeatherAndEnvironmentTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class WeatherAndEnvironmentTickSystem : ITickSystem
     {
         public void Tick(SimulationEngine engine)
         {
@@ -44,8 +56,8 @@ namespace LakskongenSim.Core;
         }
     }
 
-    /// <summary>HealthPrepSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class HealthPrepSystem : ITickSystem
+    /// <summary>HealthPrepTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class HealthPrepTickSystem : ITickSystem
     {
         public void Tick(SimulationEngine engine)
         {
@@ -78,8 +90,8 @@ namespace LakskongenSim.Core;
         }
     }
 
-    /// <summary>BiologySystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class BiologySystem : ITickSystem
+    /// <summary>BiologyTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class BiologyTickSystem : ITickSystem
     {
         public void Tick(SimulationEngine engine)
         {
@@ -215,8 +227,8 @@ namespace LakskongenSim.Core;
         }
     }
 
-    /// <summary>FarmOpexSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class FarmOpexSystem : ITickSystem
+    /// <summary>FarmOpexTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class FarmOpexTickSystem : ITickSystem
     {
         public void Tick(SimulationEngine engine)
         {
@@ -253,8 +265,8 @@ namespace LakskongenSim.Core;
         }
     }
 
-    /// <summary>CarbonLedgerSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class CarbonLedgerSystem : ITickSystem
+    /// <summary>CarbonLedgerTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class CarbonLedgerTickSystem : ITickSystem
     {
         public void Tick(SimulationEngine engine)
         {
@@ -263,8 +275,8 @@ namespace LakskongenSim.Core;
         }
     }
 
-    /// <summary>EventsAndTimeSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class EventsAndTimeSystem : ITickSystem
+    /// <summary>EventsAndTimeTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class EventsAndTimeTickSystem : ITickSystem
     {
         public void Tick(SimulationEngine engine)
         {
@@ -273,8 +285,8 @@ namespace LakskongenSim.Core;
         }
     }
 
-    /// <summary>MarketSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class MarketSystem : ITickSystem
+    /// <summary>MarketTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class MarketTickSystem : ITickSystem
     {
         public void Tick(SimulationEngine engine)
         {
@@ -303,8 +315,8 @@ namespace LakskongenSim.Core;
         }
     }
 
-    /// <summary>FinanceSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class FinanceSystem : ITickSystem
+    /// <summary>FinanceTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class FinanceTickSystem : ITickSystem
     {
         public void Tick(SimulationEngine engine)
         {
@@ -320,8 +332,8 @@ namespace LakskongenSim.Core;
         }
     }
 
-    /// <summary>StockMarketSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class StockMarketSystem : ITickSystem
+    /// <summary>StockMarketTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class StockMarketTickSystem : ITickSystem, ITickClock
     {
         private int _quarterStartDay = 0;
         public void Tick(SimulationEngine engine)
@@ -358,10 +370,12 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _quarterStartDay;
+        void ITickClock.SetClock(int value) => _quarterStartDay = value;
     }
 
-    /// <summary>SustainabilitySystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class SustainabilitySystem : ITickSystem
+    /// <summary>SustainabilityTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class SustainabilityTickSystem : ITickSystem, ITickClock
     {
         private int _lastSustainabilityUpdate = 0;
         private const int SustainabilityUpdateInterval = 7;
@@ -376,10 +390,12 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _lastSustainabilityUpdate;
+        void ITickClock.SetClock(int value) => _lastSustainabilityUpdate = value;
     }
 
-    /// <summary>SludgeValorizationSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class SludgeValorizationSystem : ITickSystem
+    /// <summary>SludgeValorizationTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class SludgeValorizationTickSystem : ITickSystem, ITickClock
     {
         private int _lastSludgeValorizationUpdate = 0;
         private const int SludgeValorizationInterval = 7;
@@ -391,10 +407,12 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _lastSludgeValorizationUpdate;
+        void ITickClock.SetClock(int value) => _lastSludgeValorizationUpdate = value;
     }
 
-    /// <summary>TrafficLightSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class TrafficLightSystem : ITickSystem
+    /// <summary>TrafficLightTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class TrafficLightTickSystem : ITickSystem, ITickClock
     {
         private int _lastTrafficLightUpdate = 0;
         private const int TrafficLightUpdateInterval = 7;
@@ -411,10 +429,12 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _lastTrafficLightUpdate;
+        void ITickClock.SetClock(int value) => _lastTrafficLightUpdate = value;
     }
 
-    /// <summary>BrandReputationSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class BrandReputationSystem : ITickSystem
+    /// <summary>BrandReputationTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class BrandReputationTickSystem : ITickSystem, ITickClock
     {
         private int _lastBrandReputationUpdate = 0;
         private const int BrandReputationUpdateInterval = 7;
@@ -439,10 +459,12 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _lastBrandReputationUpdate;
+        void ITickClock.SetClock(int value) => _lastBrandReputationUpdate = value;
     }
 
-    /// <summary>CompetitorAISystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class CompetitorAISystem : ITickSystem
+    /// <summary>CompetitorAITickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class CompetitorAITickSystem : ITickSystem, ITickClock
     {
         private int _lastCompetitorAIUpdate = 0;
         private const int CompetitorAIUpdateInterval = 90;
@@ -461,10 +483,12 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _lastCompetitorAIUpdate;
+        void ITickClock.SetClock(int value) => _lastCompetitorAIUpdate = value;
     }
 
-    /// <summary>EmpireProgressionSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class EmpireProgressionSystem : ITickSystem
+    /// <summary>EmpireProgressionTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class EmpireProgressionTickSystem : ITickSystem, ITickClock
     {
         private int _lastEmpireProgressionUpdate = 0;
         private const int EmpireProgressionUpdateInterval = 7;
@@ -478,10 +502,12 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _lastEmpireProgressionUpdate;
+        void ITickClock.SetClock(int value) => _lastEmpireProgressionUpdate = value;
     }
 
     /// <summary>CrisisCapitalismTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class CrisisCapitalismTickSystem : ITickSystem
+    internal sealed class CrisisCapitalismTickSystem : ITickSystem, ITickClock
     {
         private int _lastCrisisCapitalismUpdate = 0;
         private const int CrisisCapitalismUpdateInterval = 7;
@@ -494,10 +520,12 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _lastCrisisCapitalismUpdate;
+        void ITickClock.SetClock(int value) => _lastCrisisCapitalismUpdate = value;
     }
 
     /// <summary>VerticalIntegrationTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class VerticalIntegrationTickSystem : ITickSystem
+    internal sealed class VerticalIntegrationTickSystem : ITickSystem, ITickClock
     {
         private int _lastVerticalIntegrationUpdate = 0;
         private const int VerticalIntegrationUpdateInterval = 30;
@@ -511,10 +539,12 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _lastVerticalIntegrationUpdate;
+        void ITickClock.SetClock(int value) => _lastVerticalIntegrationUpdate = value;
     }
 
-    /// <summary>TaxAndResourceRentSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class TaxAndResourceRentSystem : ITickSystem
+    /// <summary>TaxAndResourceRentTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class TaxAndResourceRentTickSystem : ITickSystem, ITickClock
     {
         private int _lastTaxUpdate = 0;
         private const int TaxUpdateInterval = 90;
@@ -571,10 +601,12 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _lastTaxUpdate;
+        void ITickClock.SetClock(int value) => _lastTaxUpdate = value;
     }
 
-    /// <summary>InvestorSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class InvestorSystem : ITickSystem
+    /// <summary>InvestorTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class InvestorTickSystem : ITickSystem, ITickClock
     {
         private int _lastInvestorUpdate = 0;
         private const int InvestorUpdateInterval = 30;
@@ -599,10 +631,12 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _lastInvestorUpdate;
+        void ITickClock.SetClock(int value) => _lastInvestorUpdate = value;
     }
 
-    /// <summary>BloomDeckSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class BloomDeckSystem : ITickSystem
+    /// <summary>BloomDeckTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class BloomDeckTickSystem : ITickSystem, ITickClock
     {
         private int _lastBloomUpdate = 0;
         private const int BloomUpdateInterval = 7;
@@ -615,10 +649,12 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _lastBloomUpdate;
+        void ITickClock.SetClock(int value) => _lastBloomUpdate = value;
     }
 
-    /// <summary>MarketIntelligenceSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class MarketIntelligenceSystem : ITickSystem
+    /// <summary>MarketIntelligenceTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class MarketIntelligenceTickSystem : ITickSystem, ITickClock
     {
         private int _lastMarketIntelligenceUpdate = 0;
         private const int MarketIntelligenceUpdateInterval = 7;
@@ -633,10 +669,12 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _lastMarketIntelligenceUpdate;
+        void ITickClock.SetClock(int value) => _lastMarketIntelligenceUpdate = value;
     }
 
-    /// <summary>ContractExpirySystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class ContractExpirySystem : ITickSystem
+    /// <summary>ContractExpiryTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class ContractExpiryTickSystem : ITickSystem, ITickClock
     {
         private int _lastContractUpdate = 0;
         private const int ContractExpiryInterval = 7;
@@ -666,10 +704,12 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _lastContractUpdate;
+        void ITickClock.SetClock(int value) => _lastContractUpdate = value;
     }
 
-    /// <summary>ProductMixOptimizerSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class ProductMixOptimizerSystem : ITickSystem
+    /// <summary>ProductMixOptimizerTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class ProductMixOptimizerTickSystem : ITickSystem, ITickClock
     {
         private int _lastProductMixOptimizerUpdate = 0;
         private const int ProductMixOptimizerUpdateInterval = 30;
@@ -684,10 +724,12 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _lastProductMixOptimizerUpdate;
+        void ITickClock.SetClock(int value) => _lastProductMixOptimizerUpdate = value;
     }
 
-    /// <summary>TutorialAnalyticsSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class TutorialAnalyticsSystem : ITickSystem
+    /// <summary>TutorialAnalyticsTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class TutorialAnalyticsTickSystem : ITickSystem
     {
         public void Tick(SimulationEngine engine)
         {
@@ -703,8 +745,8 @@ namespace LakskongenSim.Core;
         }
     }
 
-    /// <summary>NightShiftPolicySystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
-    internal sealed class NightShiftPolicySystem : ITickSystem
+    /// <summary>NightShiftPolicyTickSystem: migrated AdvanceOneDay phase (Phase 1 wave 4).</summary>
+    internal sealed class NightShiftPolicyTickSystem : ITickSystem, ITickClock
     {
         private int _lastNightPolicyUpdate = 0;
         private const int NightPolicyInterval = 1;
@@ -717,4 +759,6 @@ namespace LakskongenSim.Core;
             }
 
         }
+        int ITickClock.ClockValue => _lastNightPolicyUpdate;
+        void ITickClock.SetClock(int value) => _lastNightPolicyUpdate = value;
     }
