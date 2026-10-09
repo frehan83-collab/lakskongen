@@ -127,7 +127,7 @@ Date: 2026-10-08. Reviewed at commit `b56ff2a`. The review covers the C# simulat
   saves without the snapshot align the storm edge with current weather).
   RNG POSITIONS stay a documented gap: the hash-equivalence test is
   impossible until the legacy System.Random subsystems migrate onto
-  SimRng streams (the bit-equivalence wave). Suite 701/1 skip.
+  SimRng streams (the bit-equivalence wave). Suite 700/1 skip.
   **Still open:** legacy seeded subsystems onto SimRng streams with
   golden-file bit-equivalence (+ per-stream position persistence to
   enable the exact save-hash test), BuildSeaSite/ApplyForLicense
