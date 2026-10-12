@@ -229,6 +229,12 @@ func _connect_quick_actions() -> void:
 	_btn_hire.pressed.connect(_on_quick_action.bind("hire"))
 	_btn_contracts.pressed.connect(_on_quick_action.bind("contracts"))
 
+	# UIPolish: keyboard navigation for quick actions grid (GridContainer)
+	var actions_grid := get_node_or_null("%ActionsGrid")
+	if actions_grid:
+		UIPolish.link_horizontal_focus(actions_grid)
+		UIPolish.link_vertical_focus(actions_grid)
+
 func _apply_localization() -> void:
 	_title_label.text = _tr_or("UI_DASHBOARD_TITLE", "Fjordlaks AS — Oversikt")
 	_pens_title.text = tr("🏗️ Merdoversikt")
@@ -638,12 +644,7 @@ func _refresh_alerts() -> void:
 		alerts = alerts.slice(0, 6)
 
 	if alerts.is_empty():
-		var empty := Label.new()
-		empty.text = _tr_or("UI_DASHBOARD_ALERTS_EMPTY", "🎉 Ingen aktive varsler — alt ser bra ut")
-		empty.add_theme_font_size_override("font_size", 13)
-		empty.add_theme_color_override("font_color", Color("#7B8794"))
-		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_alerts_container.add_child(empty)
+		UIPolish.show_empty_state_localized(_alerts_container, _tr_or("UI_DASHBOARD_ALERTS_EMPTY", "🎉 Ingen aktive varsler — alt ser bra ut"), 13, "", _theme)
 		return
 
 	for alert in alerts:
@@ -677,6 +678,9 @@ func _refresh_alerts() -> void:
 		time_lbl.add_theme_font_size_override("font_size", 11)
 		time_lbl.add_theme_color_override("font_color", Color("#7B8794"))
 		text_vbox.add_child(time_lbl)
+
+	# UIPolish: vertical keyboard navigation for alerts list
+	UIPolish.link_vertical_focus(_alerts_container)
 
 
 func _refresh_charts() -> void:

@@ -6,7 +6,7 @@
     "starting_capital_nok": 5000000,
     "starting_region": "Vestland",
     "difficulty": 2,
-    "win_condition": "Reach 500000 kg of cumulative harvested biomass while keeping sea-lice below the regulatory limit.",
+    "win_condition": "Profit",
     "initial_balance_nok": 5000000,
     "starting_fish_count": 50000,
     "initial_events": [

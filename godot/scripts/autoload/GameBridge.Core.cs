@@ -351,6 +351,11 @@ public partial class GameBridge : Node
                 case "storm_impact":
                     EmitSignal(SignalName.WeatherEvent, note.EventType, note.Severity, note.Message);
                     break;
+                case "license_auction":
+                    // Phase 4.1: growth-licence auction opened/settled — push a
+                    // generic refresh so map/UI toasts re-read auction state.
+                    EmitSignal(SignalName.GameStateUpdated);
+                    break;
             }
         }
     }

@@ -9,6 +9,7 @@ signal region_selected(region_id: String)
 
 # Data-overlay legend embedded into the detail panel (see SiteOverlayLegend.gd).
 const SiteOverlayLegend = preload("res://scripts/ui/SiteOverlayLegend.gd")
+const NorwayCoastline = preload("res://scripts/ui/NorwayCoastline.gd")
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 const BG_DEEP        := Color("#ECEFF4")
@@ -39,6 +40,7 @@ const REGIONS := [
 		"norwegian_name": "PO 1: Svenskegrensen til Jæren",
 		"production_zone": "PO01",
 		"pos": Vector2(0.22, 0.96),
+		"lonlat": Vector2(8.00, 58.15),
 		"available_licenses": 28,
 		"temp_range": "7.5 – 13.5 °C",
 		"temp_min": 7.5,
@@ -59,6 +61,7 @@ const REGIONS := [
 		"norwegian_name": "PO 2: Ryfylke",
 		"production_zone": "PO02",
 		"pos": Vector2(0.24, 0.88),
+		"lonlat": Vector2(5.70, 59.00),
 		"available_licenses": 32,
 		"temp_range": "7.0 – 13.0 °C",
 		"temp_min": 7.0,
@@ -79,6 +82,7 @@ const REGIONS := [
 		"norwegian_name": "PO 3: Karmøy til Sotra",
 		"production_zone": "PO03",
 		"pos": Vector2(0.26, 0.81),
+		"lonlat": Vector2(5.27, 59.41),
 		"available_licenses": 24,
 		"temp_range": "7.0 – 12.5 °C",
 		"temp_min": 7.0,
@@ -99,6 +103,7 @@ const REGIONS := [
 		"norwegian_name": "PO 4: Nordhordland til Stadt",
 		"production_zone": "PO04",
 		"pos": Vector2(0.28, 0.73),
+		"lonlat": Vector2(5.32, 60.39),
 		"available_licenses": 18,
 		"temp_range": "6.5 – 12.0 °C",
 		"temp_min": 6.5,
@@ -119,6 +124,7 @@ const REGIONS := [
 		"norwegian_name": "PO 5: Stadt til Hustadvika",
 		"production_zone": "PO05",
 		"pos": Vector2(0.31, 0.65),
+		"lonlat": Vector2(6.15, 62.47),
 		"available_licenses": 22,
 		"temp_range": "6.5 – 11.5 °C",
 		"temp_min": 6.5,
@@ -139,6 +145,7 @@ const REGIONS := [
 		"norwegian_name": "PO 6: Nordmøre og Sør-Trøndelag",
 		"production_zone": "PO06",
 		"pos": Vector2(0.34, 0.58),
+		"lonlat": Vector2(7.73, 63.11),
 		"available_licenses": 20,
 		"temp_range": "6.0 – 11.0 °C",
 		"temp_min": 6.0,
@@ -159,6 +166,7 @@ const REGIONS := [
 		"norwegian_name": "PO 7: Nord-Trøndelag med Bindal",
 		"production_zone": "PO07",
 		"pos": Vector2(0.38, 0.50),
+		"lonlat": Vector2(11.24, 64.86),
 		"available_licenses": 16,
 		"temp_range": "5.5 – 10.5 °C",
 		"temp_min": 5.5,
@@ -179,6 +187,7 @@ const REGIONS := [
 		"norwegian_name": "PO 8: Helgeland til Bodø",
 		"production_zone": "PO08",
 		"pos": Vector2(0.42, 0.42),
+		"lonlat": Vector2(14.41, 67.28),
 		"available_licenses": 19,
 		"temp_range": "5.0 – 10.0 °C",
 		"temp_min": 5.0,
@@ -199,6 +208,7 @@ const REGIONS := [
 		"norwegian_name": "PO 9: Vestfjorden og Vesterålen",
 		"production_zone": "PO09",
 		"pos": Vector2(0.46, 0.35),
+		"lonlat": Vector2(14.57, 68.23),
 		"available_licenses": 21,
 		"temp_range": "4.5 – 9.5 °C",
 		"temp_min": 4.5,
@@ -219,6 +229,7 @@ const REGIONS := [
 		"norwegian_name": "PO 10: Andøya til Senja",
 		"production_zone": "PO10",
 		"pos": Vector2(0.50, 0.27),
+		"lonlat": Vector2(16.12, 69.31),
 		"available_licenses": 14,
 		"temp_range": "4.0 – 9.0 °C",
 		"temp_min": 4.0,
@@ -239,6 +250,7 @@ const REGIONS := [
 		"norwegian_name": "PO 11: Kvaløya til Loppa",
 		"production_zone": "PO11",
 		"pos": Vector2(0.54, 0.19),
+		"lonlat": Vector2(18.96, 69.65),
 		"available_licenses": 12,
 		"temp_range": "3.5 – 8.5 °C",
 		"temp_min": 3.5,
@@ -259,6 +271,7 @@ const REGIONS := [
 		"norwegian_name": "PO 12: Vest-Finnmark",
 		"production_zone": "PO12",
 		"pos": Vector2(0.58, 0.12),
+		"lonlat": Vector2(23.68, 70.66),
 		"available_licenses": 10,
 		"temp_range": "3.0 – 8.0 °C",
 		"temp_min": 3.0,
@@ -279,6 +292,7 @@ const REGIONS := [
 		"norwegian_name": "PO 13: Øst-Finnmark",
 		"production_zone": "PO13",
 		"pos": Vector2(0.64, 0.04),
+		"lonlat": Vector2(31.11, 70.37),
 		"available_licenses": 8,
 		"temp_range": "2.5 – 7.5 °C",
 		"temp_min": 2.5,
@@ -432,10 +446,17 @@ func _build_region_markers() -> void:
 	for region in REGIONS:
 		var marker := _RegionMarker.new()
 		marker.region_data = region
-		# Convert normalised pos to pixel coords with some horizontal centering
-		var px: float = region["pos"].x * map_size.x
-		var py: float = region["pos"].y * (map_size.y - 80) + 30
-		marker.position = Vector2(px - 60, py - 22)
+		# Real coastal anchor: project lon/lat into map space so the marker
+		# dot sits on the actual coastline (legacy "pos" kept as fallback).
+		var anchor := Vector2(region["pos"].x, region["pos"].y)
+		if region.has("lonlat"):
+			var ll: Vector2 = region["lonlat"]
+			anchor = NorwayCoastline.project(ll.x, ll.y)
+		var px: float = anchor.x * map_size.x
+		var py: float = anchor.y * (map_size.y - 80) + 30
+		# Dot lives at marker-local (9, 22): land the dot on the anchor so
+		# the label extends east over land.
+		marker.position = Vector2(px - 9, py - 22)
 		marker.custom_minimum_size = Vector2(120, 44)
 		marker.mouse_entered.connect(_on_region_hover.bind(region["id"]))
 		marker.mouse_exited.connect(_on_region_unhover.bind(region["id"]))
@@ -566,73 +587,121 @@ func _risk_color(risk: String) -> Color:
 
 # ── Inner classes ─────────────────────────────────────────────────────────────
 
-## Draws a simplified Norwegian coastline as a decorative backdrop.
+## Real Norwegian coastline (Natural Earth 50m) rendered as a light
+## nautical chart: sea gradient, landmass fill, coastline glow + stroke,
+## graticule with labels, and major coastal cities.
 class _CoastlineDrawer extends Control:
-	var _points: PackedVector2Array
+	const SEA_TOP := Color("#DCE9F2")
+	const SEA_BOTTOM := Color("#C3D8E8")
+	const LAND_FILL := Color("#E9EDE0")
+	const COAST_GLOW := Color(0.04, 0.30, 0.41, 0.22)
+	const COAST_LINE := Color("#0A4D68")
+	const GRID_LINE := Color(1, 1, 1, 0.55)
+	const GRID_TEXT := Color("#7B8794")
+
+	var _rings: Array = []
+	var _font: Font
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_rings = NorwayCoastline.rings()
+		_font = ThemeDB.fallback_font
+		resized.connect(queue_redraw)
+		queue_redraw()
 
 	func _draw() -> void:
 		var w := size.x
 		var h := size.y
-		# Sea background
-		draw_rect(Rect2(0, 0, w, h), Color("#ECEFF4"))
+		if w <= 1.0 or h <= 1.0:
+			return
+		_draw_sea(w, h)
+		_draw_graticule(w, h)
+		_draw_land(w, h)
+		_draw_cities(w, h)
 
-		# Simplified Norway coastline (normalised 0..1 coords)
-		# These points trace a rough west-coast outline from north to south
-		var pts: PackedVector2Array = PackedVector2Array([
-			Vector2(0.72, 0.0),
-			Vector2(0.68, 0.05),
-			Vector2(0.65, 0.08),
-			Vector2(0.62, 0.12),
-			Vector2(0.58, 0.18),
-			Vector2(0.56, 0.24),
-			Vector2(0.53, 0.28),
-			Vector2(0.50, 0.34),
-			Vector2(0.47, 0.40),
-			Vector2(0.44, 0.46),
-			Vector2(0.40, 0.52),
-			Vector2(0.37, 0.58),
-			Vector2(0.34, 0.64),
-			Vector2(0.31, 0.70),
-			Vector2(0.28, 0.76),
-			Vector2(0.25, 0.82),
-			Vector2(0.23, 0.88),
-			Vector2(0.22, 0.94),
-			Vector2(0.22, 1.0),
-			# Fill right side
-			Vector2(1.0, 1.0),
-			Vector2(1.0, 0.0),
-		])
-		var scaled: PackedVector2Array
-		for p in pts:
-			scaled.append(Vector2(p.x * w, p.y * h))
-		draw_colored_polygon(scaled, Color(0.92, 0.94, 0.96, 0.95))
-		# Coastline highlight
-		var coast_pts: PackedVector2Array
-		for i in range(pts.size() - 2):
-			coast_pts.append(Vector2(pts[i].x * w, pts[i].y * h))
-		draw_polyline(coast_pts, Color("#8FAD78"), 2.0)
+	func _draw_sea(w: float, h: float) -> void:
+		var bands := 28
+		for i in range(bands):
+			var t0 := float(i) / bands
+			var col := SEA_TOP.lerp(SEA_BOTTOM, t0)
+			draw_rect(Rect2(0, t0 * h, w, h / bands + 1.0), col)
 
-		# Fjord decorations (small blue wedges)
-		var fjords := [
-			[Vector2(0.62, 0.12), Vector2(0.75, 0.14)],
-			[Vector2(0.53, 0.28), Vector2(0.65, 0.31)],
-			[Vector2(0.47, 0.40), Vector2(0.60, 0.43)],
-			[Vector2(0.40, 0.52), Vector2(0.53, 0.56)],
-			[Vector2(0.34, 0.64), Vector2(0.48, 0.68)],
-			[Vector2(0.28, 0.76), Vector2(0.42, 0.80)],
-		]
-		for fjord in fjords:
-			var p1 := Vector2(fjord[0].x * w, fjord[0].y * h)
-			var p2 := Vector2(fjord[1].x * w, fjord[1].y * h)
-			draw_line(p1, p2, Color("#5E81AC"), 2.0)
+	func _draw_graticule(w: float, h: float) -> void:
+		# Latitude lines every 2 degrees with labels.
+		var lat := 58.0
+		while lat <= 72.0:
+			var y := NorwayCoastline.project(10.0, lat).y * h
+			if y >= 0.0 and y <= h:
+				draw_line(Vector2(0, y), Vector2(w, y), GRID_LINE, 1.0)
+				if _font:
+					draw_string(_font, Vector2(6, y - 4), "%d°N" % int(lat),
+						HORIZONTAL_ALIGNMENT_LEFT, -1, 11, GRID_TEXT)
+			lat += 2.0
+		# Longitude lines every 5 degrees with bottom labels.
+		var lon := 5.0
+		while lon <= 30.0:
+			var x := NorwayCoastline.project(lon, 65.0).x * w
+			if x >= 0.0 and x <= w:
+				draw_line(Vector2(x, 0), Vector2(x, h), GRID_LINE, 1.0)
+				if _font:
+					draw_string(_font, Vector2(x + 4, h - 6), "%d°E" % int(lon),
+						HORIZONTAL_ALIGNMENT_LEFT, -1, 11, GRID_TEXT)
+			lon += 5.0
 
-		# Latitude grid lines
-		for i in range(1, 8):
-			var y := h * i / 8.0
-			draw_line(Vector2(0, y), Vector2(w, y), Color(1, 1, 1, 0.04), 1.0)
+	func _scaled_ring(ring: Array, w: float, h: float, close_east: bool) -> PackedVector2Array:
+		var out := PackedVector2Array()
+		for p in ring:
+			var a: Array = p
+			out.append(Vector2(float(a[0]) * w, float(a[1]) * h))
+		if close_east and out.size() >= 2:
+			# Close the open mainland polyline via the eastern map edge
+			# (land = east). Off-canvas x clips cleanly.
+			out.append(Vector2(w * 1.08, out[out.size() - 1].y))
+			out.append(Vector2(w * 1.08, out[0].y))
+		return out
+
+	func _draw_land(w: float, h: float) -> void:
+		NorwayCoastline.draw_landmass(self, Vector2(w, h), LAND_FILL)
+		# Coastline glow + crisp edge on top of all fills.
+		for ring in _rings:
+			var open := NorwayCoastline.is_open_ring(ring)
+			var poly := _scaled_ring(ring, w, h, false)
+			if poly.size() < 2:
+				continue
+			if open:
+				draw_polyline(poly, COAST_GLOW, 8.0)
+			else:
+				var closed := poly + PackedVector2Array([poly[0]])
+				draw_polyline(closed, COAST_GLOW, 8.0)
+		for ring in _rings:
+			var poly := _scaled_ring(ring, w, h, false)
+			if poly.size() < 2:
+				continue
+			if NorwayCoastline.is_open_ring(ring):
+				draw_polyline(poly, COAST_LINE, 2.0)
+			else:
+				var closed := poly + PackedVector2Array([poly[0]])
+				draw_polyline(closed, COAST_LINE, 2.0)
+
+	func _draw_cities(w: float, h: float) -> void:
+		if _font == null:
+			return
+		for c in NorwayCoastline.cities():
+			var lon := float(c[0])
+			var pos := NorwayCoastline.project(lon, float(c[1])) * Vector2(w, h)
+			if pos.x < -20.0 or pos.x > w + 60.0 or pos.y < -10.0 or pos.y > h + 10.0:
+				continue
+			draw_circle(pos, 4.5, COAST_LINE)
+			draw_circle(pos, 2.5, Color.WHITE)
+			# Crowded south-west coast: label over open sea (west) instead
+			# of colliding with region names stacked on land (east).
+			if lon < 9.0:
+				var tw := _font.get_string_size(str(c[2]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+				draw_string(_font, pos + Vector2(-8.0 - tw, 4), str(c[2]),
+					HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#2E3440"))
+			else:
+				draw_string(_font, pos + Vector2(8, 4), str(c[2]),
+					HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#2E3440"))
 
 
 ## Interactive region marker button drawn directly on the map.

@@ -152,6 +152,10 @@ func set_time(hour: float) -> void:
 func set_season(s: float) -> void:
 	if time_system:
 		time_system.season = s
+	if terrain:
+		var mesh_inst := terrain.find_child("TerrainMesh")
+		if mesh_inst and mesh_inst.material_override is ShaderMaterial:
+			(mesh_inst.material_override as ShaderMaterial).set_shader_parameter("season", s)
 
 
 ## Move camera to look at world position

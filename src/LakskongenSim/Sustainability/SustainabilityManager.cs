@@ -147,9 +147,25 @@ namespace LakskongenSim.Sustainability
             CurrentCertification = level;
         }
 
-        public void UpdateScore(GameState state)
+        /// <summary>
+        /// Calculate sustainability score (0-100) from current game state.
+        /// Pure function - no side effects, testable.
+        /// </summary>
+        public int CalculateScore(GameState state, double bonus = 0.0)
         {
-            var newScore = CalculateScore(state);
+            if (state == null) throw new ArgumentNullException(nameof(state));
+
+            var scores = GetComponentScores(state);
+            var total = scores.Values.Sum();
+            return Math.Clamp((int)(total + bonus), 0, 100);
+        }
+
+        /// <summary>
+        /// Update score with research bonus.
+        /// </summary>
+        public void UpdateScore(GameState state, double bonus = 0.0)
+        {
+            var newScore = CalculateScore(state, bonus);
             var newLevel = GetCertificationLevel(newScore);
 
             var scoreChanged = newScore != CurrentScore;

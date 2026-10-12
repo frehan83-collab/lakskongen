@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://main_game_scene"]
+[gd_scene load_steps=9 format=3 uid="uid://main_game_scene"]
 
 [ext_resource type="Script" path="res://scripts/Main.gd" id="1"]
 [ext_resource type="PackedScene" uid="uid://bks2yj3v1fkl8" path="res://scenes/ui/HUD.tscn" id="2_hud"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://dpx7fmb1qnf3q" path="res://scenes/ui/PenManagement.tscn" id="5_pens"]
 [ext_resource type="PackedScene" uid="uid://cp2qf8v8jx7r7" path="res://scenes/ui/SaveLoadMenu.tscn" id="6_saveload"]
 [ext_resource type="PackedScene" uid="uid://dm4k8n2p7r0v6" path="res://scenes/PauseMenu.tscn" id="7_pausemenu"]
+[ext_resource type="PackedScene" uid="uid://d2kx4jnw5l83y" path="res://scenes/ui/AttentionInbox.tscn" id="8_inbox"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -36,4 +37,7 @@ visible = false
 visible = false
 
 [node name="SaveLoadMenu" parent="." instance=ExtResource("6_saveload")]
+visible = false
+
+[node name="AttentionInbox" parent="." instance=ExtResource("8_inbox")]
 visible = false

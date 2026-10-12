@@ -549,6 +549,7 @@ public partial class SimulationEngine
         State.TaxHistory.Clear();
         State.Acquisitions.Clear();
         State.Licenses.Clear();
+        State.LicenseAuctions.Clear();
         State.RecentMarketReports.Clear();
         State.AchievedVisualMilestones.Clear();
         State.DailySnapshots.Clear();
@@ -638,10 +639,14 @@ public partial class SimulationEngine
         foreach (var tax in snapshot.TaxHistory)
             State.TaxHistory.Add(tax);
         State.InvestorSystem = snapshot.InvestorSystem;
+        State.CorporateFinance = snapshot.CorporateFinance;
         foreach (var acq in snapshot.Acquisitions)
             State.Acquisitions.Add(acq);
         foreach (var lic in snapshot.Licenses)
             State.Licenses.Add(lic);
+        if (snapshot.LicenseAuctions != null)
+            foreach (var auction in snapshot.LicenseAuctions)
+                State.LicenseAuctions.Add(auction);
         foreach (var kvp in snapshot.FactionRelations)
             State.FactionRelations[kvp.Key] = kvp.Value;
         foreach (var rep in snapshot.RecentMarketReports)

@@ -75,6 +75,12 @@ func _run_sequence() -> void:
 	await _capture_map_overlay()
 	await _capture_finance()
 	await _capture_genetics()
+	await _capture_crew()
+	await _capture_contracts()
+	await _capture_offshore()
+	await _capture_carbon_ledger()
+	await _capture_pen_management()
+	await _capture_attention_inbox()
 
 	await _capture_fjord_day()
 	await _capture_fjord_farm()
@@ -230,6 +236,47 @@ func _capture_genetics() -> void:
 	await _shoot("07_genetics")
 	panel.queue_free()
 	await _wait(0.4)
+
+
+func _capture_crew() -> void:
+	await _show_tab("crew")
+	await _shoot("07b_crew")
+
+
+func _capture_contracts() -> void:
+	await _show_tab("contracts")
+	await _shoot("07c_contracts")
+
+
+func _capture_offshore() -> void:
+	await _show_tab("offshore")
+	await _shoot("07d_offshore")
+
+
+func _capture_carbon_ledger() -> void:
+	await _show_tab("carbon")
+	await _shoot("07e_carbon_ledger")
+
+
+func _capture_pen_management() -> void:
+	await _show_tab("pens")
+	await _shoot("07f_pen_management")
+
+
+## Opens the Attention Inbox overlay (Phase 4.5 wiring QA).
+func _capture_attention_inbox() -> void:
+	var inbox := _find(_game, "AttentionInbox")
+	if inbox == null:
+		push_warning("[ScreenshotHarness] AttentionInbox unavailable — skipped")
+		return
+	if inbox.has_method("open_inbox"):
+		inbox.call("open_inbox")
+	else:
+		inbox.visible = true
+	await _wait(1.0)
+	await _shoot("07g_attention_inbox")
+	inbox.visible = false
+	await _wait(0.3)
 
 
 # ── Fjord environment shots ───────────────────────────────────────────────────

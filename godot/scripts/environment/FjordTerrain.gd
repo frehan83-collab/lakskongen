@@ -17,6 +17,9 @@ extends Node3D
 @export_range(0.0, 0.5) var fjord_width: float = 0.15
 ## Steepness of cliff walls
 @export_range(1.0, 10.0) var cliff_steepness: float = 2.0
+## Minimum fairway depth in heightfield units (0.10 ~= 40 m at max_height
+## 400: clears the 40 m pen nets with margin).
+@export_range(0.02, 0.3) var channel_floor: float = 0.10
 ## Number of scattered islands
 @export_range(0, 10) var island_count: int = 4
 ## Random seed for terrain generation
@@ -29,9 +32,16 @@ extends Node3D
 			generate_terrain()
 			regenerate = false
 
+## C# bridge (TerrainGeneratorBridge.cs) exposing the seeded LakskongenSim
+## ridged-fractal + domain-warp generator. Loaded dynamically so headless or
+## non-.NET runs fall back to the GDScript ridged path below.
+const BRIDGE_PATH := "res://scripts/environment/TerrainGeneratorBridge.cs"
+
 var _mesh_instance: MeshInstance3D
 var _collision_shape: CollisionShape3D
 var _heightmap: PackedFloat32Array
+var _gen_thread: Thread = null
+var _pending_heightmap: PackedFloat32Array = PackedFloat32Array()
 
 
 func _ready() -> void:
@@ -39,16 +49,125 @@ func _ready() -> void:
 		generate_terrain()
 
 
+func _exit_tree() -> void:
+	_finish_thread()
+
+
+## Entry point. Headless (QA, screenshots prep) runs synchronously so the
+## heightmap is ready on return; interactive sessions generate on a worker
+## thread and build the mesh deferred on the main thread.
 func generate_terrain() -> void:
+	if DisplayServer.get_name() == "headless":
+		_heightmap = _build_heightmap_sync()
+		_build_terrain_mesh()
+	else:
+		generate_terrain_async()
+
+
+## Threaded generation for interactive sessions. The worker thread only
+## touches a local FastNoiseLite instance and local math (never the scene
+## tree); the mesh is built deferred on the main thread.
+func generate_terrain_async() -> void:
+	_finish_thread()
+	_gen_thread = Thread.new()
+	var params := {
+		"resolution": terrain_resolution,
+		"seed": terrain_seed,
+		"fjord_width": fjord_width,
+		"fjord_depth": fjord_depth,
+		"cliff_steepness": cliff_steepness,
+		"channel_floor": channel_floor,
+		"island_count": island_count,
+	}
+	var err := _gen_thread.start(_thread_build_heightmap.bind(params))
+	if err != OK:
+		push_warning("[FjordTerrain] Thread start failed (%s), falling back to sync" % err)
+		_gen_thread = null
+		_heightmap = _build_heightmap_sync()
+		_build_terrain_mesh()
+
+
+func _thread_build_heightmap(params: Dictionary) -> void:
+	var noise := _make_ridged_noise(int(params["seed"]))
+	var hm := _generate_heightmap_gd(
+		noise,
+		int(params["resolution"]),
+		float(params["fjord_width"]),
+		float(params["fjord_depth"]),
+		float(params["cliff_steepness"]),
+		float(params["channel_floor"]),
+		int(params["island_count"]))
+	_pending_heightmap = hm
+	call_deferred("_on_heightmap_ready")
+
+
+func _on_heightmap_ready() -> void:
+	_finish_thread()
+	if _pending_heightmap.is_empty():
+		return
+	_heightmap = _pending_heightmap
+	_pending_heightmap = PackedFloat32Array()
+	_build_terrain_mesh()
+
+
+func _finish_thread() -> void:
+	if _gen_thread != null:
+		if _gen_thread.is_started():
+			_gen_thread.wait_to_finish()
+		_gen_thread = null
+
+
+## Synchronous heightfield builder. Prefers the C# TerrainGenerator bridge
+## (seeded ridged fractal + domain warp, internally parallel); falls back to
+## the GDScript ridged + domain-warp implementation when .NET is missing.
+func _build_heightmap_sync() -> PackedFloat32Array:
+	var hm := _try_csharp_heightmap(terrain_resolution)
+	if not hm.is_empty():
+		return hm
+	var noise := _make_ridged_noise(terrain_seed)
+	return _generate_heightmap_gd(
+		noise, terrain_resolution, fjord_width, fjord_depth,
+		cliff_steepness, channel_floor, island_count)
+
+
+func _try_csharp_heightmap(size: int) -> PackedFloat32Array:
+	if not ResourceLoader.exists(BRIDGE_PATH):
+		return PackedFloat32Array()
+	var scr := load(BRIDGE_PATH)
+	if scr == null or not scr.can_instantiate():
+		return PackedFloat32Array()
+	# NOTE: dynamic dispatch (var + call) — the C# type is invisible to the
+	# GDScript compiler, so := inference and static calls fail parsing.
+	var bridge = scr.new()
+	var result: PackedFloat32Array = PackedFloat32Array(
+		bridge.call(
+			"GenerateHeightmap",
+			size, terrain_seed, fjord_width, fjord_depth,
+			cliff_steepness, island_count, channel_floor))
+	bridge.free()
+	return result
+
+
+## Ridged massifs + domain warp: sharp crests for fjord walls, warped domain
+## so ridges wander like real glacial valleys instead of lining up on axes.
+func _make_ridged_noise(seed_value: int) -> FastNoiseLite:
+	var noise := FastNoiseLite.new()
+	noise.seed = seed_value
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	noise.fractal_type = FastNoiseLite.FRACTAL_RIDGED
+	noise.fractal_octaves = 4
+	noise.frequency = 1.0
+	noise.domain_warp_enabled = true
+	noise.domain_warp_type = FastNoiseLite.DOMAIN_WARP_SIMPLEX
+	noise.domain_warp_amplitude = 30.0
+	noise.domain_warp_frequency = 0.5
+	return noise
+
+
+func _build_terrain_mesh() -> void:
 	# Clean up old mesh
 	for child in get_children():
 		child.queue_free()
-
-	var rng := RandomNumberGenerator.new()
-	rng.seed = terrain_seed
-
-	# Generate heightmap
-	_heightmap = _generate_heightmap(rng)
 
 	# Create mesh from heightmap
 	var mesh := _create_mesh_from_heightmap(_heightmap)
@@ -80,12 +199,22 @@ func generate_terrain() -> void:
 	print("[FjordTerrain] Generated %dx%d terrain" % [terrain_resolution, terrain_resolution])
 
 
-func _generate_heightmap(rng: RandomNumberGenerator) -> PackedFloat32Array:
-	var size := terrain_resolution
+## GDScript heightfield builder. Pure function of its arguments plus the
+## passed noise resource: safe to run on a worker thread (the noise instance
+## must be thread-local — see _make_ridged_noise — and callers must not
+## touch the scene tree). Mirrors LakskongenSim TerrainGenerator so the C#
+## and GDScript paths agree on channel, cliffs, inlets and islands.
+func _generate_heightmap_gd(
+	noise: FastNoiseLite,
+	size: int,
+	w: float,
+	depth: float,
+	steepness: float,
+	floor_depth: float,
+	islands: int,
+) -> PackedFloat32Array:
 	var heightmap := PackedFloat32Array()
 	heightmap.resize(size * size)
-
-	var half_size := float(size) / 2.0
 
 	for z in range(size):
 		for x in range(size):
@@ -101,37 +230,44 @@ func _generate_heightmap(rng: RandomNumberGenerator) -> PackedFloat32Array:
 			# Main fjord channel (runs roughly through center, Z-axis)
 			var fjord_center := sin(nz * 2.0) * 0.1  # Slightly winding
 			var dist_to_fjord := absf(nx - fjord_center)
-			var fjord_factor := smoothstep(fjord_width, fjord_width * 0.3, dist_to_fjord)
-			height -= fjord_factor * fjord_depth
+			var fjord_factor := smoothstep(w, w * 0.3, dist_to_fjord)
+			height -= fjord_factor * depth
 
-			# Cliff walls (steep transition)
-			var cliff_zone := smoothstep(fjord_width * 0.3, fjord_width, dist_to_fjord)
-			height += pow(cliff_zone, 1.0 / cliff_steepness) * 0.3
+			# Cliff walls (steep transition over a wider valley: the outer
+			# edge sits at 1.6x channel half-width so distant walls read as
+			# varied massifs instead of thin uniform streaks at FJORD zoom).
+			var cliff_zone := smoothstep(w * 0.3, w * 1.6, dist_to_fjord)
+			height += pow(cliff_zone, 1.0 / steepness) * 0.3
 
 			# Secondary inlet (branching fjord)
 			var inlet_x := nz * 0.5 + 0.2
 			var inlet_dist := absf(nx - inlet_x) + absf(nz - 0.3) * 0.3
 			var inlet_factor := smoothstep(0.15, 0.05, inlet_dist)
-			height -= inlet_factor * fjord_depth * 0.6
+			height -= inlet_factor * depth * 0.6
 
-			# Noise for natural variation
-			# Kept small on purpose: the sine-based _fbm builds diagonal
-			# corduroy ridges tall enough to poke through the fjord channel.
-			# (Proper fix: replace _fbm with FastNoiseLite ridged noise.)
-			var noise_val := _fbm(nx * 3.0 + float(terrain_seed), nz * 3.0, 4, rng)
-			height += noise_val * 0.05
+			# Ridged + domain-warped variation (get_noise_2d applies the
+			# warp internally when domain_warp_enabled). Ridged output is
+			# non-negative, so recenter to zero-mean like the old FBM; the
+			# channel cut (-depth at center) still dominates at waterline.
+			var noise_val := noise.get_noise_2d(nx * 3.0, nz * 3.0)
+			height += (noise_val - 0.5) * 2.0 * 0.15
 
-			# Islands
-			for i in range(island_count):
-				var island_x := rng.randf_range(-0.5, 0.5)
-				var island_z := rng.randf_range(-0.5, 0.5)
-				rng.seed = terrain_seed + i * 1000  # Deterministic per island
-				island_x = sin(float(i) * 2.3 + 0.5) * 0.4
-				island_z = cos(float(i) * 1.7 + 0.3) * 0.4
+			# Islands (pure functions of the index — no RNG state, so
+			# threaded generation stays allocation-free and deterministic).
+			for i in range(islands):
+				var island_x := sin(float(i) * 2.3 + 0.5) * 0.4
+				var island_z := cos(float(i) * 1.7 + 0.3) * 0.4
 				var island_dist := Vector2(nx - island_x, nz - island_z).length()
 				var island_radius := 0.05 + float(i % 3) * 0.02
 				var island_height := smoothstep(island_radius, island_radius * 0.3, island_dist) * 0.3
 				height += island_height
+
+			# Fairway floor: the navigable channel core must stay deep enough
+			# for 40 m pen nets. Noise bumps mid-channel would otherwise form
+			# awash skerries that paint thin foam streaks across open water.
+			# (Beaches live on the flanks outside this band, unaffected.)
+			if dist_to_fjord < w * 0.35:
+				height = minf(height, -floor_depth)
 
 			# Beaches (gentle slope near water level)
 			if height > -0.05 and height < 0.1:
@@ -140,20 +276,6 @@ func _generate_heightmap(rng: RandomNumberGenerator) -> PackedFloat32Array:
 			heightmap[z * size + x] = height
 
 	return heightmap
-
-
-func _fbm(x: float, z: float, octaves: int, _rng: RandomNumberGenerator) -> float:
-	var value := 0.0
-	var amplitude := 0.5
-	var frequency := 1.0
-
-	for _i in range(octaves):
-		value += sin(x * frequency * 7.13 + z * frequency * 3.97) * amplitude
-		value += cos(x * frequency * 5.31 - z * frequency * 8.21) * amplitude * 0.5
-		amplitude *= 0.5
-		frequency *= 2.0
-
-	return value
 
 
 func _create_mesh_from_heightmap(heightmap: PackedFloat32Array) -> ArrayMesh:
@@ -314,3 +436,30 @@ func get_height_at(world_x: float, world_z: float) -> float:
 
 	var h := lerpf(lerpf(h00, h10, tx), lerpf(h01, h11, tx), tz)
 	return h * max_height
+
+
+## Pen anchor positions along the fjord channel, in world metres (Y = 0).
+## Prefers the C# TerrainGenerator bridge so sim-side and visual placement
+## agree; falls back to the GDScript channel-center mirror (same math as
+## FishPenManager's TRUE channel center).
+func get_recommended_pen_positions(count: int = 12) -> Array[Vector3]:
+	if ResourceLoader.exists(BRIDGE_PATH):
+		var scr := load(BRIDGE_PATH)
+		if scr != null and scr.can_instantiate():
+			var bridge = scr.new()
+			var result: Array[Vector3] = []
+			result.assign(bridge.call(
+				"GetRecommendedPenPositions",
+				count, terrain_seed, terrain_size.x, terrain_size.y))
+			bridge.free()
+			if not result.is_empty():
+				return result
+	var positions: Array[Vector3] = []
+	var start_z := -terrain_size.y * 0.4
+	for i in range(count):
+		var progress := float(i) / float(maxi(count - 1, 1))
+		var z := start_z + progress * terrain_size.y * 0.8
+		var nz := (z + terrain_size.y / 2.0) / terrain_size.y * 2.0 - 1.0
+		var fjord_center := sin(nz * 2.0) * 0.1
+		positions.append(Vector3(fjord_center * terrain_size.x / 2.0, 0.0, z))
+	return positions

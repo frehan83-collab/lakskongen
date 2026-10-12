@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LakskongenSim.Core;
 namespace LakskongenSim.Farm
 {
     /// <summary>
@@ -83,6 +84,22 @@ namespace LakskongenSim.Farm
         public event Action<string>? OnAlert;
         public event Action<string>? OnMilestone;
 
+        // ─── Deterministic RNG (SimRngStreams.OffshoreFarm, per-farm suffix) ───
+        // Not serialized: stream position is captured via engine Rng.CaptureStates()
+        // once the tick loop binds this farm to Rng.Stream(scope, Id).
+        private SimRngStream _rng = SimRng.CreateUnseeded().Stream(SimRngStreams.OffshoreFarm);
+        internal SimRngStream RngForSnapshot => _rng;
+
+        public OffshoreFarm() { }
+
+        public OffshoreFarm(SimRngStream rng)
+        {
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+        }
+
+        /// <summary>Bind this farm to the engine's named stream (per-farm identity).</summary>
+        public void SetRng(SimRngStream rng) => _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+
         /// <summary>
         /// Daily tick: weather exposure, logistics, crew management.
         /// </summary>
@@ -126,9 +143,9 @@ namespace LakskongenSim.Farm
                 if (waveHeightM > 8.0)
                 {
                     double escapeChance = (waveHeightM - 8.0) * 0.02; // 2% per meter over 8m
-                    if (Random.Shared.NextDouble() < escapeChance)
+                    if (_rng.NextDouble() < escapeChance)
                     {
-                        int escapes = (int)(GetTotalFishCount() * Random.Shared.NextDouble() * 0.05); // Up to 5%
+                        int escapes = (int)(GetTotalFishCount() * _rng.NextDouble() * 0.05); // Up to 5%
                         result.FishEscaped = escapes;
                         OnAlert?.Invoke($"RØMMING: {escapes:N0} fisk har rømt under stormen!");
                     }

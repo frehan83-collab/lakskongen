@@ -52,12 +52,14 @@ namespace LakskongenSim.Health
         public event Action<LODMode>? OnLODModeChanged;
         public event Action<double>? OnPerformanceUpdate; // FPS update
         
-        public IntegratedDiseaseSystem(SeaLiceModel liceModel)
+        public IntegratedDiseaseSystem(SeaLiceModel liceModel, SimRngStream? diseaseStream = null, SimRngStream? lodStream = null)
         {
             _liceModel = liceModel ?? throw new ArgumentNullException(nameof(liceModel));
             _baseSystem = new DiseaseSystem(liceModel);
-            _stochasticEngine = new StochasticDiseaseEngine(_baseSystem);
-            _lodSystem = new DiseaseLODSystem(_stochasticEngine);
+            _stochasticEngine = diseaseStream != null
+                ? new StochasticDiseaseEngine(_baseSystem, diseaseStream)
+                : new StochasticDiseaseEngine(_baseSystem);
+            _lodSystem = new DiseaseLODSystem(_stochasticEngine, lodStream);
         }
 
         /// <summary>

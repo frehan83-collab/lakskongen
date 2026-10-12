@@ -110,7 +110,7 @@ namespace LakskongenSim.Tests.Integration
             _engine.Advance(90); // ~3 months
 
             // Check if system can track active crises (may be zero, but should not error)
-            var activeCrises = _engine.CrisisCapitalism.GetActiveCrises();
+            var activeCrises = _engine.CrisisCapitalism.GetActiveCrises(_engine.State.Day);
             Assert.NotNull(activeCrises);
             
             // Verify the system maintains a list of available distressed assets
@@ -304,7 +304,7 @@ namespace LakskongenSim.Tests.Integration
             Assert.Equal(EmpirePhase.SmallFarmer, _engine.EmpireProgression.CurrentPhase);
             Assert.Equal(OwnershipStatus.Private, _engine.StockMarket.Status);
             Assert.True(_engine.BrandReputation.OverallScore >= 0m);
-            Assert.NotNull(_engine.CrisisCapitalism.GetActiveCrises());
+            Assert.NotNull(_engine.CrisisCapitalism.GetActiveCrises(_engine.State.Day));
             Assert.NotNull(_engine.VerticalIntegration.GetOwnedAssets());
         }
     }

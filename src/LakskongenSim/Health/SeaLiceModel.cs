@@ -75,6 +75,7 @@ namespace LakskongenSim.Health
         private const double EGG_HATCH_RATE_BASE = 0.15;              // per day at 10°C
         private const double NATURAL_MORTALITY_BASE = 0.025;          // ↑ from 0.02 (slightly higher natural loss)
         private const double TEMPERATURE_Q10 = 2.0;                   // Rate doubles per 10°C
+        private const double MIN_WINTER_ENV_FACTOR = 0.08;            // Cold-water development floor (see AdvanceDay)
         private const double OPTIMAL_TEMP_C = 12.0;
         private const double SALINITY_OPTIMAL = 34.0;
         private const double SALINITY_MIN = 20.0;
@@ -158,6 +159,13 @@ namespace LakskongenSim.Health
             double densityFactor = Math.Min(1.0, StockingDensityKgM3 / 25.0); // Higher density = more transmission
             
             double envFactor = tempFactor * tempFactorOptimal * salinityFactor * (0.5 + 0.5 * densityFactor);
+            // Winter development floor: Q10 x Gaussian-optimal compounds to
+            // ~0.02 at 4C, freezing all stage transitions for months. Real
+            // L. salmonis develops slowly but nonzero in cold water, so floor
+            // the factor (binds only below ~5.5C; summer dynamics untouched
+            // since envFactor at 10C ~= 0.80). Ratios between rates are
+            // preserved because the floor applies uniformly.
+            envFactor = Math.Max(envFactor, MIN_WINTER_ENV_FACTOR);
             
             // Salinity mortality (lethal below 20 PSU)
             if (SalinityPSU < SALINITY_MIN)

@@ -44,38 +44,10 @@ func _on_day_advanced(day: int, season: String) -> void:
 	_set_season_visuals(season)
 
 func _sync_pens_from_sim() -> void:
-	# DISABLED: this is a second, broken pen spawner that duplicates
-	# FishPenManager. It calls get_all_sites() (does not exist on SimBridge),
-	# places pens at (0,-20,0), and assigns a Node to MultiMesh.mesh.
-	# Delete this once FishPenManager covers all sim-to-3D sync.
-	return
-	var sites = _sim_bridge.get_all_sites()
-	if not sites:
-		return
-	
-	for site in sites:
-		var site_id = site.get("id", "")
-		if not site_id:
-			continue
-		
-		var pen_id = "pen_%s" % site_id
-		var position = Vector3(
-			site.get("x", 0),
-			site.get("y", -20),
-			site.get("z", 0)
-		)
-		
-		if not _pen_instances.has(pen_id):
-			_add_pen_instance(pen_id, position, site)
-		
-		# Check for feeding event
-		var was_feeding = _pen_instances[pen_id].get("was_feeding", false)
-		var is_feeding = site.get("is_feeding", false)
-		if is_feeding and not was_feeding:
-			_trigger_feeding_visual({"pen_id": pen_id, "position": position})
-		
-		_pen_instances[pen_id].was_feeding = is_feeding
-		_update_pen_visual(pen_id, site)
+	# Pen spawning lives in FishPenManager (via FjordVistaBridge sync).
+	# The old duplicate spawner body was deleted (Phase 3 quick win); this
+	# no-op keeps the _on_state_updated call site stable.
+	pass
 
 func _add_pen_instance(pen_id: String, position: Vector3, site_data: Dictionary) -> void:
 	var cage = pen_cage_scene.instantiate()

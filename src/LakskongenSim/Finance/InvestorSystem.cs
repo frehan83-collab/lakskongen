@@ -11,6 +11,8 @@ namespace LakskongenSim.Finance
         public decimal OutstandingBondPrincipal { get; private set; }
         public decimal OutstandingShares { get; private set; } = 1_000_000m; // share count
         public decimal SharePrice { get; private set; } = 10m;
+        /// <summary>Available undrawn credit facility (revolving credit facility).</summary>
+        public decimal AvailableCreditFacility { get; private set; } = 200_000_000m; // Default 200M NOK facility
 
         public event Action<decimal, string>? OnIssued; // amount, type
 

@@ -30,10 +30,11 @@ void vertex() {
     wave_height_val = height * wave_height;
     VERTEX.y += wave_height_val;
     
-    // Recalculate normal based on wave displacement
+    // Surface normal must point UP (+Y): cross(tangent, bitangent) with
+    // +X/+Z axes yields -Y (inverted lighting, fresnel and specular).
     vec3 tangent = normalize(vec3(1.0, 0.0, 0.0));
     vec3 bitangent = normalize(vec3(0.0, 0.0, 1.0));
-    NORMAL = normalize(cross(tangent, bitangent));
+    NORMAL = normalize(cross(bitangent, tangent));
 }
 
 void fragment() {
@@ -43,8 +44,10 @@ void fragment() {
     // Mix colors based on depth and fresnel
     vec3 color = mix(water_color, water_color_deep, depth_blend * 0.6);
     
-    // Add wave crest highlights
-    float crest = pow(wave_height_val / wave_height, 3.0);
+    // Wave crest highlights. The noise sum ranges wider than [0,1], so the
+    // ratio can exceed 1 and pow() blows isolated cells out to near-white
+    // (the stray bright slivers on night water). Clamp to the intended range.
+    float crest = pow(clamp(wave_height_val / max(wave_height, 0.0001), 0.0, 1.0), 3.0);
     color = mix(color, vec3(1.0), crest * 0.15);
     
     ALBEDO = color;

@@ -1,6 +1,7 @@
 using Xunit;
 using LakskongenSim.Environment;
 using LakskongenSim.Farm;
+using LakskongenSim.Core;
 
 namespace LakskongenSim.Tests.StormPhase12
 {
@@ -10,10 +11,16 @@ namespace LakskongenSim.Tests.StormPhase12
     /// </summary>
     public class StormForecastTests
     {
+        private static WeatherSystem MakeWeather(int seed = 0)
+        {
+            var rng = new SimRng(seed);
+            return new WeatherSystem(rng.Stream(SimRngStreams.Weather));
+        }
+
         [Fact]
         public void StormRisk_IsProbability()
         {
-            var wx = new WeatherSystem(seed: 42);
+            var wx = MakeWeather(42);
             double risk = wx.StormRiskNext3Days();
             Assert.InRange(risk, 0.0, 1.0);
         }
@@ -21,9 +28,9 @@ namespace LakskongenSim.Tests.StormPhase12
         [Fact]
         public void StormRisk_HigherFromStormThanFromCalm()
         {
-            var calm = new WeatherSystem(seed: 1);
+            var calm = MakeWeather(1);
             calm.ForceWeatherState(WeatherState.Calm);
-            var storm = new WeatherSystem(seed: 1);
+            var storm = MakeWeather(1);
             storm.ForceWeatherState(WeatherState.Storm);
             // Same day-of-year (day 0) → comparable rows.
             Assert.True(storm.StormRiskNext3Days() >= calm.StormRiskNext3Days());

@@ -73,8 +73,8 @@ const FONT_XS     := 11
 const FONT_SM     := 13
 const FONT_BODY   := 15
 const FONT_LG     := 18
-const FONT_HEADER := 22
-const FONT_TITLE  := 28
+const FONT_HEADER := 24
+const FONT_TITLE  := 32
 const FONT_HERO   := 48
 const FONT_SMALL  := 12  # Legacy alias
 
@@ -154,6 +154,26 @@ func _ready() -> void:
 	# Local overrides still win, so panels that already tint themselves keep their look.
 	if get_tree() != null and get_tree().root != null:
 		get_tree().root.theme = _theme
+	_apply_saved_ui_scale()
+
+## Restore the accessibility UI scale (user://settings.json) at boot, so it
+## survives restarts even though SettingsMenu only exists in the main menu.
+func _apply_saved_ui_scale() -> void:
+	if not FileAccess.file_exists("user://settings.json"):
+		return
+	var file := FileAccess.open("user://settings.json", FileAccess.READ)
+	if file == null:
+		return
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not (json.data is Dictionary):
+		return
+	var acc: Variant = json.data.get("accessibility", {})
+	if not (acc is Dictionary):
+		return
+	var scale := float(acc.get("ui_scale", 1.0))
+	var win := get_window()
+	if win != null and scale > 0.0:
+		win.content_scale_factor = scale
 
 func _load_fonts() -> void:
 	# Inter for headings

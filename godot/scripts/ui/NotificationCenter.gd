@@ -243,12 +243,7 @@ func _rebuild_list() -> void:
 		child.queue_free()
 
 	if _entries.is_empty():
-		var empty := Label.new()
-		empty.text = _tr_or("UI_NOTIFY_EMPTY", "🔔 Ingen varsler ennå — vi gir beskjed når noe skjer.")
-		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		empty.add_theme_font_size_override("font_size", 12)
-		empty.add_theme_color_override("font_color", Color("#7B8794"))
-		entry_list.add_child(empty)
+		UIPolish.show_empty_state_localized(entry_list, _tr_or("UI_NOTIFY_EMPTY", "🔔 Ingen varsler ennå — vi gir beskjed når noe skjer."), 12, "", _theme)
 		return
 
 	var ordered: Array = []
@@ -276,6 +271,9 @@ func _rebuild_list() -> void:
 	await get_tree().process_frame
 	if scroll_container:
 		scroll_container.scroll_vertical = 0
+
+	# UIPolish: vertical keyboard navigation for notification entries
+	UIPolish.link_vertical_focus(entry_list)
 
 func _build_entry_node(entry: Dictionary, index: int) -> Control:
 	var sev: String   = entry.get("severity", "info")

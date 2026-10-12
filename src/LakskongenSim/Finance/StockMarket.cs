@@ -175,8 +175,8 @@ namespace LakskongenSim.Finance
         }
 
         // Private state
-        private readonly SimRandom _rng;
-        internal SimRandom RngForSnapshot => _rng;
+        private readonly SimRngStream _rng;
+        internal SimRngStream RngForSnapshot => _rng;
         private decimal _lastEPS;
         private decimal _annualDividendPerShare;
         private decimal _consensusGrowthRate = 0.10m;  // 10% expected growth
@@ -197,9 +197,14 @@ namespace LakskongenSim.Finance
         public event Action<string>? OnInvestorAction;
         public event Action<IPOResult>? OnIPOCompleted;
 
-        public StockMarketSystem(int? seed = null)
+        public StockMarketSystem(SimRngStream rng)
         {
-            _rng = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+        }
+
+        public StockMarketSystem(int? seed = null)
+            : this((seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.StockMarket))
+        {
         }
 
         /// <summary>

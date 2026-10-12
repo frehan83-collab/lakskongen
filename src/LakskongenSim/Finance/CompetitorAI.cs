@@ -175,8 +175,8 @@ namespace LakskongenSim.Finance
     public class CompetitorAISystem
     {
         private readonly List<CompetitorCompany> _competitors = new();
-        private readonly SimRandom _rng;
-        internal SimRandom RngForSnapshot => _rng;
+        private readonly SimRngStream _rng;
+        internal SimRngStream RngForSnapshot => _rng;
         private readonly List<CompetitorAction> _pendingActions = new();
         private readonly List<CompetitorAction> _actionHistory = new();
         private int _currentQuarter;
@@ -198,11 +198,18 @@ namespace LakskongenSim.Finance
         public event Action<CompetitorAction>? OnCompetitorAction;
         public event Action<IndustryReport>? OnQuarterlyReport;
         public event Action<string, string>? OnCompetitorAcquired;  // acquirerId, targetId
+        /// <summary>Fired when a competitor first enters distress. Provides the competitor and current simulation day.</summary>
+        public event Action<CompetitorCompany, int>? OnCompetitorDistressed;
+
+        public CompetitorAISystem(SimRngStream rng)
+        {
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+            InitializeCompetitors();
+        }
 
         public CompetitorAISystem(int? seed = null)
+            : this((seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.CompetitorAI))
         {
-            _rng = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
-            InitializeCompetitors();
         }
 
         /// <summary>
@@ -425,7 +432,7 @@ namespace LakskongenSim.Finance
                 UpdateCompetitorFinancials(competitor, spotPriceNOK);
 
                 // Check for distress
-                CheckForDistress(competitor);
+                CheckForDistress(competitor, _currentYear * 365 + _currentQuarter * 90);
 
                 // Generate strategic actions based on competitor personality
                 var actions = GenerateQuarterActions(competitor, playerMarketShare, spotPriceNOK, playerLicenseCount);
@@ -498,7 +505,7 @@ namespace LakskongenSim.Finance
             c.QuartersSinceLastAcquisition++;
         }
 
-        private void CheckForDistress(CompetitorCompany c)
+        private void CheckForDistress(CompetitorCompany c, int currentDay)
         {
             bool wasDistressed = c.IsDistressed;
             c.IsDistressed = c.FinancialHealth < DISTRESS_HEALTH_THRESHOLD
@@ -521,6 +528,8 @@ namespace LakskongenSim.Finance
                     SupplyImpact = 0.98f   // Slight supply reduction
                 };
                 _pendingActions.Add(action);
+
+                OnCompetitorDistressed?.Invoke(c, currentDay);
             }
         }
 

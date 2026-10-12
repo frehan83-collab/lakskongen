@@ -229,6 +229,7 @@ namespace LakskongenSim.Core
 
         /// <summary>CrisisCapitalism: Active crisis events.</summary>
         public List<CrisisEventState> ActiveCrises { get; set; } = new();
+        public List<DistressedAssetState> DistressedAssets { get; set; } = new();
 
         /// <summary>VerticalIntegration: Owned assets and integration score.</summary>
         public VerticalIntegrationState? VerticalIntegration { get; set; }
@@ -242,11 +243,17 @@ namespace LakskongenSim.Core
         /// <summary>InvestorSystem: Investors and equity dilution.</summary>
         public InvestorSystemState? InvestorSystem { get; set; }
 
+        /// <summary>CorporateFinanceSystem: Covenants, IPO, tax state (Phase 4.3).</summary>
+        public CorporateFinanceSystemState? CorporateFinance { get; set; }
+
         /// <summary>AcquisitionSystem: Owned acquisitions.</summary>
         public List<AcquisitionRecord> Acquisitions { get; set; } = new();
 
         /// <summary>LicenseSystem: Active licenses with expiry dates.</summary>
         public List<LicenseRecord> Licenses { get; set; } = new();
+
+        /// <summary>Phase 4.1: green-zone licence auctions (open + settled).</summary>
+        public List<LicenseAuctionState> LicenseAuctions { get; set; } = new();
 
         /// <summary>StakeholderFactionSystem: Faction relations.</summary>
         public Dictionary<string, decimal> FactionRelations { get; set; } = new();
@@ -358,9 +365,31 @@ namespace LakskongenSim.Core
         public string Id { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
         public string AffectedCompetitorId { get; set; } = string.Empty;
+        public string CompetitorName { get; set; } = string.Empty;
         public float SeverityScore { get; set; }
+        public float DiscountMultiplier { get; set; }
         public int DurationMonths { get; set; }
-        public DateTime StartDate { get; set; }
+        public int StartDay { get; set; }
+    }
+
+    /// <summary>Serializable snapshot of a DistressedAsset.</summary>
+    public class DistressedAssetState
+    {
+        public string Id { get; set; } = string.Empty;
+        public string AssetType { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Location { get; set; } = string.Empty;
+        public decimal OriginalValueNOK { get; set; }
+        public decimal DiscountedPriceNOK { get; set; }
+        public int TimeRemainingMonths { get; set; }
+        public float RiskScore { get; set; }
+        public string CrisisEventId { get; set; } = string.Empty;
+        public string OwningCompetitor { get; set; } = string.Empty;
+        public string? SourceCompetitorId { get; set; }
+        public string? SiteId { get; set; }
+        public int? LicenseCount { get; set; }
+        public float? MABTonnes { get; set; }
     }
 
     /// <summary>Serializable snapshot of VerticalIntegrationSystem.</summary>
@@ -408,6 +437,51 @@ namespace LakskongenSim.Core
         public decimal InvestmentAmount { get; set; }
     }
 
+    /// <summary>Serializable snapshot of CovenantSystem (Phase 4.3).</summary>
+    public class CovenantSystemState
+    {
+        public List<CovenantBreachState> Breaches { get; set; } = new();
+    }
+
+    /// <summary>Serializable covenant breach record.</summary>
+    public class CovenantBreachState
+    {
+        public string CovenantName { get; set; } = string.Empty;
+        public decimal BreachValue { get; set; }
+        public int BreachDay { get; set; }
+        public bool IsResolved { get; set; }
+    }
+
+    /// <summary>Serializable snapshot of IPOSession (Phase 4.3).</summary>
+    public class IPOSessionState
+    {
+        public string Stage { get; set; } = "Private";
+        public decimal SharesOutstanding { get; set; }
+        public decimal SharePriceNOK { get; set; }
+        public int QuartersSinceIPO { get; set; }
+        public List<GuidanceRecordState> GuidanceHistory { get; set; } = new();
+    }
+
+    /// <summary>Serializable guidance record.</summary>
+    public class GuidanceRecordState
+    {
+        public int Quarter { get; set; }
+        public int Day { get; set; }
+        public decimal GuidedRevenue { get; set; }
+        public decimal GuidedEBITDA { get; set; }
+        public decimal ActualRevenue { get; set; }
+        public decimal ActualEBITDA { get; set; }
+        public decimal RevenueMissPct { get; set; }
+        public decimal EBITDAMissPct { get; set; }
+    }
+
+    /// <summary>Serializable snapshot of CorporateFinanceSystem (Phase 4.3).</summary>
+    public class CorporateFinanceSystemState
+    {
+        public CovenantSystemState Covenants { get; set; } = new();
+        public IPOSessionState IPO { get; set; } = new();
+    }
+
     /// <summary>Serializable acquisition record.</summary>
     public class AcquisitionRecord
     {
@@ -423,6 +497,49 @@ namespace LakskongenSim.Core
         public string SiteId { get; set; } = string.Empty;
         public int ExpiryDay { get; set; }
         public decimal AnnualFee { get; set; }
+    }
+
+    /// <summary>
+    /// Phase 4.1: one green-zone growth-licence auction. Opens with a reserve
+    /// price from calibration (150M NOK), runs a 7-day bidding window against
+    /// AI rivals bidding from CashReserves, then settles: the highest bidder
+    /// who can actually pay wins (won_player grants the zone entry licence,
+    /// won_rival debits the rival and grows their MAB). Settled auctions are
+    /// kept for audit/history until pruned.
+    /// </summary>
+    public class LicenseAuctionState
+    {
+        /// <summary>Deterministic id: lic_{zoneId}_d{openDay}_{seq}.</summary>
+        public string Id { get; set; } = string.Empty;
+        public string ZoneId { get; set; } = string.Empty;
+        public int OpensDay { get; set; }
+        public int ClosesDay { get; set; }
+        /// <summary>Opening price floor, from BalancingConfig.LicenseCostNOK.</summary>
+        public decimal ReservePriceNOK { get; set; }
+        /// <summary>Highest bid recorded so far; 0 while no bids exist.</summary>
+        public decimal CurrentBidNOK { get; set; }
+        /// <summary>"none" | "player" | "rival" — who currently leads.</summary>
+        public string LeaderKind { get; set; } = "none";
+        /// <summary>Competitor id when LeaderKind is "rival", else "player"/"".</summary>
+        public string LeaderId { get; set; } = string.Empty;
+        /// <summary>"open" | "won_player" | "won_rival" | "expired" | "forfeited".</summary>
+        public string Status { get; set; } = "open";
+        /// <summary>True once the player opened or bid in this auction.</summary>
+        public bool PlayerEntered { get; set; }
+        /// <summary>won_player only: set when a site build consumes the licence.</summary>
+        public bool ConsumedByBuild { get; set; }
+        public List<LicenseBidRecord> Bids { get; set; } = new();
+    }
+
+    /// <summary>Serializable bid line inside a <see cref="LicenseAuctionState"/>.</summary>
+    public class LicenseBidRecord
+    {
+        public int Day { get; set; }
+        /// <summary>"player" | "rival".</summary>
+        public string Kind { get; set; } = string.Empty;
+        /// <summary>Competitor id for rival bids, "player" for the player.</summary>
+        public string BidderId { get; set; } = string.Empty;
+        public decimal AmountNOK { get; set; }
     }
 
     /// <summary>Serializable market intelligence report snapshot.</summary>

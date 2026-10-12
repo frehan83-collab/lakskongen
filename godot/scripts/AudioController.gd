@@ -10,6 +10,8 @@ const BUS_MASTER  := "Master"
 const BUS_MUSIC   := "Music"
 const BUS_AMBIENT := "Ambient"
 const BUS_SFX     := "SFX"
+const BUS_UNDERWATER := "Underwater"
+const BUS_SEAGULLS := "Seagulls"
 
 var _music_volume:   float = 0.7
 var _ambient_volume: float = 0.5
@@ -38,10 +40,29 @@ var _amb_weather: AudioStreamPlayer
 var _current_base_track:    String = ""
 var _current_weather_track: String = ""
 
+# Underwater low-pass
+var _underwater_active: bool = false
+
+# Seagull sounds
+var _seagull_players: Array[AudioStreamPlayer3D] = []
+var _seagull_active: bool = false
+
+# Positional barge/boat sounds
+var _barge_loops: Dictionary = {}  # job_id -> AudioStreamPlayer3D
+var _wellboat_loops: Dictionary = {}  # job_id -> AudioStreamPlayer3D
+var _feed_barge_loops: Dictionary = {}  # site_id -> AudioStreamPlayer3D
+
+# Wind layer (replaces single storm.ogg with layered wind)
+var _wind_light_player: AudioStreamPlayer
+var _wind_strong_player: AudioStreamPlayer
+var _wind_target_volume: float = 0.0
+
 const SFX_POOL_SIZE: int = 8
 var _sfx_pool: Array[AudioStreamPlayer] = []
 
 var _sim_bridge: Node = null
+var _fjord_env = null
+var _camera = null
 
 ## Safe linear->dB: -inf (from linear_to_db(0.0)) is rejected by Godot's
 ## volume_db setter and spams "Volume can't be set to NaN". Clamp to silence.
@@ -54,6 +75,9 @@ func _ready() -> void:
 	_create_players()
 	_connect_signals()
 	_start_ocean_ambient()
+	_init_seagull_emitters()
+	_init_underwater_bus()
+	_init_wind_layers()
 
 func _process(delta: float) -> void:
 	if _bgm_fading:
@@ -61,6 +85,9 @@ func _process(delta: float) -> void:
 	if _amb_base_fading:
 		_tick_ambient_crossfade(delta)
 	_tick_ocean_blend(delta)
+	_update_underwater_lowpass(delta)
+	_update_seagull_emitters(delta)
+	_update_wind_layers(delta)
 
 func _create_players() -> void:
 	_bgm_active  = _make_player(BUS_MUSIC)
@@ -78,6 +105,10 @@ func _create_players() -> void:
 	_amb_weather = _make_player(BUS_AMBIENT)
 	_amb_weather.volume_db = _l2db(WEATHER_LAYER_VOLUME * _ambient_volume)
 
+	# Wind layer (replaces single storm.ogg with layered wind)
+	_wind_light_player = _make_player(BUS_AMBIENT)
+	_wind_strong_player = _make_player(BUS_AMBIENT)
+	
 	for i in SFX_POOL_SIZE:
 		var p := _make_player(BUS_SFX)
 		p.finished.connect(_on_sfx_finished.bind(p))
@@ -89,6 +120,16 @@ func _make_player(bus: String) -> AudioStreamPlayer:
 	add_child(p)
 	return p
 
+func _make_3d_player(bus: String) -> AudioStreamPlayer3D:
+	var p := AudioStreamPlayer3D.new()
+	p.bus = bus
+	p.unit_db = 0.0
+	p.max_distance = 2000.0
+	p.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
+	p.pitch_scale = 1.0
+	add_child(p)
+	return p
+
 func _connect_signals() -> void:
 	if has_node("/root/SimBridge"):
 		_sim_bridge = get_node("/root/SimBridge")
@@ -96,6 +137,71 @@ func _connect_signals() -> void:
 		_sim_bridge.audio_alert_triggered.connect(_on_alert_triggered)
 	else:
 		push_warning("AudioController: SimBridge not found")
+
+func _init_underwater_bus() -> void:
+	# Ensure the Underwater bus has the low-pass filter enabled
+	var idx := AudioServer.get_bus_index(BUS_UNDERWATER)
+	if idx >= 0:
+		var fx := AudioServer.get_bus_effect(idx, 0)
+		if fx and fx is AudioEffectLowPassFilter:
+			fx.cutoff_hz = 800.0
+			fx.resonance = 1.0
+			fx.gain = 0.0
+			fx.enabled = true
+
+func _init_seagull_emitters() -> void:
+	# Create 8 seagull emitters around the camera
+	for i in range(8):
+		var emitter := AudioStreamPlayer3D.new()
+		emitter.bus = BUS_SEAGULLS
+		emitter.unit_db = 0.0
+		emitter.max_distance = 1500.0
+		emitter.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
+		emitter.stream = load("res://assets/audio/ambient/seagulls.ogg")
+		emitter.playing = false
+		emitter.pitch_scale = 1.0
+		add_child(emitter)
+		_seagull_players.append(emitter)
+
+func _update_seagull_emitters(delta: float) -> void:
+	# Seagulls only at FARM zoom and above water
+	if not _camera or not _camera.has_method("current_zoom"):
+		return
+	
+	var zoom: int = _camera.current_zoom
+	var is_farm_zoom: bool = zoom == 3  # FARM = 3
+	
+	# Only emit seagulls at FARM zoom and not underwater
+	var should_be_active: bool = is_farm_zoom and not _underwater_active
+	
+	if should_be_active != _seagull_active:
+		_seagull_active = should_be_active
+		if should_be_active:
+			_start_seagull_emitters()
+		else:
+			_stop_seagull_emitters()
+	
+	if _seagull_active and _camera:
+		# Distribute emitters in a circle around camera
+		var cam_pos: Vector3 = _camera.global_position
+		for i in range(_seagull_players.size()):
+			var emitter := _seagull_players[i]
+			var angle: float = float(i) / _seagull_players.size() * TAU
+			var radius: float = 800.0 + randf() * 400.0
+			emitter.global_position = cam_pos + Vector3(cos(angle) * radius, 50.0 + randf() * 100.0, sin(angle) * radius)
+			if not emitter.playing:
+				emitter.play()
+
+func _start_seagull_emitters() -> void:
+	for emitter in _seagull_players:
+		emitter.stream = load("res://assets/audio/ambient/seagulls.ogg")
+		emitter.playing = true
+		emitter.volume_db = linear_to_db(0.3)
+
+func _stop_seagull_emitters() -> void:
+	for emitter in _seagull_players:
+		emitter.stop()
+		emitter.playing = false
 
 func _start_ocean_ambient() -> void:
 	# Load and start ocean ambient layers from the real asset paths.
@@ -126,6 +232,102 @@ func _tick_ocean_blend(delta: float) -> void:
 	
 	_ocean_calm.volume_db = _l2db(calm_vol) if calm_vol > 0.001 else -80.0
 	_ocean_rough.volume_db = _l2db(rough_vol) if rough_vol > 0.001 else -80.0
+
+func _init_wind_layers() -> void:
+	# Initialize wind layer players (replaces single storm.ogg with layered wind)
+	_wind_light_player.stream = load("res://assets/audio/ambient/wind_light.ogg")
+	_wind_light_player.playing = true
+	_wind_light_player.volume_db = linear_to_db(0.0)
+	
+	_wind_strong_player.stream = load("res://assets/audio/ambient/wind_strong.ogg")
+	_wind_strong_player.playing = true
+	_wind_strong_player.volume_db = linear_to_db(0.0)
+
+func _update_underwater_lowpass(delta: float) -> void:
+	if not _camera:
+		return
+	
+	var level: float = 0.0
+	if _fjord_env and _camera:
+		var level_water: float = _fjord_env.terrain.water_level if _fjord_env.has_method("terrain") else 0.0
+		if _camera.global_position.y < level_water:
+			level = 1.0
+	
+	var idx: int = AudioServer.get_bus_index(BUS_UNDERWATER)
+	if idx >= 0:
+		var fx := AudioServer.get_bus_effect(idx, 0)
+		if fx and fx is AudioEffectLowPassFilter:
+			if level > 0.5 and not _underwater_active:
+				fx.enabled = true
+				_underwater_active = true
+			elif level < 0.1 and _underwater_active:
+				fx.enabled = false
+				_underwater_active = false
+
+func _update_wind_layers(delta: float) -> void:
+	# Crossfade between light and strong wind based on target volume
+	_wind_light_player.volume_db = move_toward(_wind_light_player.volume_db, _wind_target_volume, delta * 6.0)
+	_wind_strong_player.volume_db = move_toward(_wind_strong_player.volume_db, _wind_target_volume, delta * 6.0)
+
+func _on_sfx_finished(player: AudioStreamPlayer) -> void:
+	player.stream = null
+
+## Positional barge/boat sound methods
+func start_wellboat_sound(job_id: String, position: Vector3, kind: String) -> void:
+	if _wellboat_loops.has(job_id):
+		return
+	var player := AudioStreamPlayer3D.new()
+	player.bus = BUS_SFX
+	player.unit_db = 0.0
+	player.max_distance = 1000.0
+	player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
+	var stream := load("res://assets/audio/ambient/boat_engine.ogg")
+	if not stream:
+		stream = load("res://assets/audio/ambient/ocean_waves.ogg")
+	player.stream = stream
+	player.global_position = position
+	player.playing = true
+	player.volume_db = linear_to_db(0.4)
+	_wellboat_loops[job_id] = player
+	add_child(player)
+
+func stop_wellboat_sound(job_id: String) -> void:
+	if _wellboat_loops.has(job_id):
+		_wellboat_loops[job_id].stop()
+		_wellboat_loops.erase(job_id)
+
+func start_feed_barge_sound(site_id: String, position: Vector3) -> void:
+	if _feed_barge_loops.has(site_id):
+		return
+	var player := AudioStreamPlayer3D.new()
+	player.bus = BUS_SFX
+	player.unit_db = 0.0
+	player.max_distance = 800.0
+	player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
+	var stream := load("res://assets/audio/ambient/feed_barge.ogg")
+	if not stream:
+		stream = load("res://assets/audio/ambient/boat_engine.ogg")
+	if not stream:
+		stream = load("res://assets/audio/ambient/ocean_waves.ogg")
+	player.stream = stream
+	player.global_position = position
+	player.playing = true
+	player.volume_db = linear_to_db(0.5)
+	_feed_barge_loops[site_id] = player
+	add_child(player)
+
+func stop_feed_barge_sound(site_id: String) -> void:
+	if _feed_barge_loops.has(site_id):
+		_feed_barge_loops[site_id].stop()
+		_feed_barge_loops.erase(site_id)
+
+func update_wellboat_position(job_id: String, position: Vector3) -> void:
+	if _wellboat_loops.has(job_id):
+		_wellboat_loops[job_id].global_position = position
+
+func update_feed_barge_position(site_id: String, position: Vector3) -> void:
+	if _feed_barge_loops.has(site_id):
+		_feed_barge_loops[site_id].global_position = position
 
 func _on_state_updated() -> void:
 	if not _sim_bridge:
@@ -162,6 +364,14 @@ func _on_state_updated() -> void:
 	var pitch := 1.0 + (temp - 10.0) * 0.005
 	_amb_base_active.pitch_scale = clampf(pitch, 0.8, 1.2)
 	_amb_base_pending.pitch_scale = clampf(pitch, 0.8, 1.2)
+	
+	# Wind layer: drive wind layer volume based on wind speed
+	var wind_ms := 5.0
+	if "wind_ms" in _sim_bridge:
+		wind_ms = float(_sim_bridge.wind_ms)
+	# Map wind speed (0-30 m/s) to volume (-80 to -6 dB)
+	var target_vol := linear_to_db(clampf(wind_ms / 25.0, 0.0, 1.0) * 0.7)
+	_wind_target_volume = target_vol
 
 func _on_alert_triggered(alert_key: String) -> void:
 	_play_alert_sfx(alert_key)
@@ -404,6 +614,3 @@ func _get_free_sfx_player() -> AudioStreamPlayer:
 		if not p.playing:
 			return p
 	return null
-
-func _on_sfx_finished(player: AudioStreamPlayer) -> void:
-	player.stream = null

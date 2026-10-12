@@ -37,6 +37,7 @@ signal speed_changed(speed: float, paused: bool)
 @onready var alerts_value: Label = %AlertsValue
 @onready var weather_value: Label = %WeatherValue
 @onready var pause_btn: Button = %PauseBtn
+@onready var inbox_btn: Button = %InboxBtn
 @onready var speed_1x: Button = %Speed1x
 @onready var speed_2x: Button = %Speed2x
 @onready var speed_5x: Button = %Speed5x
@@ -85,6 +86,12 @@ func _connect_buttons() -> void:
 	speed_1x.pressed.connect(_set_speed.bind(1.0))
 	speed_2x.pressed.connect(_set_speed.bind(2.0))
 	speed_5x.pressed.connect(_set_speed.bind(5.0))
+	if inbox_btn:
+		inbox_btn.pressed.connect(_on_inbox_pressed)
+
+func _on_inbox_pressed() -> void:
+	if _sim and _sim.has_method("open_attention_inbox"):
+		_sim.open_attention_inbox()
 
 # ── Update helpers ─────────────────────────────────────────────────────────────
 
@@ -129,6 +136,32 @@ func _update_all() -> void:
 		C_DANGER if alert_count > 0 else C_NEUTRAL)
 
 	weather_value.text = _sim.get_current_weather_state()
+
+	_update_tooltips(alert_count)
+
+## "Why is this number what it is?" explanations for every HUD KPI.
+func _update_tooltips(alert_count: int) -> void:
+	balance_value.tooltip_text = (_tr_or("UI_HUD_TIP_BALANCE",
+		"Cash on hand — all income minus costs, loans and investments.\nCurrent: %s")
+		% _sim.format_nok(_sim.balance))
+	fish_value.tooltip_text = (_tr_or("UI_HUD_TIP_FISH",
+		"Total fish across all active pens.\nCurrent: %s")
+		% _sim.format_fish(_sim.fish_count))
+	temp_value.tooltip_text = (_tr_or("UI_HUD_TIP_TEMP",
+		"Sea temperature — drives growth rate and lice reproduction.\nCurrent: %.1f°C")
+		% _sim.temperature_c)
+	price_value.tooltip_text = (_tr_or("UI_HUD_TIP_PRICE",
+		"Spot price per kg — moves with market events, season and demand.\nCurrent: %.0f kr/kg")
+		% _sim.market_price_nok)
+	alerts_value.tooltip_text = (_tr_or("UI_HUD_TIP_ALERTS",
+		"Active alerts — press I or click 🔔 to open the Attention Inbox.\n%d active")
+		% alert_count)
+	weather_value.tooltip_text = _tr_or("UI_HUD_TIP_WEATHER",
+		"Current weather state — storms can damage pens and halt operations.")
+
+func _tr_or(key: String, fallback: String) -> String:
+	var t := tr(key)
+	return t if t != key else fallback
 
 func _update_season(season: String) -> void:
 	if season_icon:
@@ -205,3 +238,8 @@ func _refresh_speed_buttons() -> void:
 	speed_5x.button_pressed = (not _is_paused and _current_speed == 5.0)
 	pause_btn.text = "▶️" if _is_paused else "⏸️"
 	pause_btn.tooltip_text = "Resume" if _is_paused else "Pause"
+
+## Sync HUD with an external pause change (e.g. auto-pause on critical alerts).
+func set_paused_state(paused: bool) -> void:
+	_is_paused = paused
+	_refresh_speed_buttons()

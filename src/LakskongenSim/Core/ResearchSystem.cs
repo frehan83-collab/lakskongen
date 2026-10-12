@@ -219,6 +219,59 @@ namespace LakskongenSim.Core
             }
         }
 
+        // ─── Mod node integration (Phase 4.6) ─────────────────────────────────
+
+        /// <summary>
+        /// Add mod research nodes to the tech tree. Mod nodes are additive —
+        /// they never overwrite core nodes. If a mod node ID collides with a
+        /// core node ID, the mod node is skipped (core wins).
+        /// </summary>
+        public void AddModNodes(List<ModResearchNode> modNodes)
+        {
+            if (modNodes == null || modNodes.Count == 0) return;
+
+            var branchMap = new Dictionary<string, ResearchBranch>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Biology"] = ResearchBranch.Biology,
+                ["Genetics"] = ResearchBranch.Biology,
+                ["Technology"] = ResearchBranch.Technology,
+                ["Sustainability"] = ResearchBranch.Sustainability,
+                ["Processing"] = ResearchBranch.Processing,
+                ["Expansion"] = ResearchBranch.Expansion,
+                ["Automation"] = ResearchBranch.Automation,
+                ["Environment"] = ResearchBranch.Environment,
+                ["Health"] = ResearchBranch.Health,
+                ["Nutrition"] = ResearchBranch.Nutrition
+            };
+
+            foreach (var mod in modNodes)
+            {
+                if (_nodes.ContainsKey(mod.Id))
+                {
+                    // Core node with same ID exists — skip mod node
+                    continue;
+                }
+
+                var branch = ResearchBranch.Biology;
+                if (!string.IsNullOrEmpty(mod.Branch) && branchMap.TryGetValue(mod.Branch, out var mapped))
+                    branch = mapped;
+
+                _nodes[mod.Id] = new ResearchNode
+                {
+                    Id = mod.Id,
+                    Name = mod.Name,
+                    Description = mod.Description,
+                    Branch = branch,
+                    Tier = mod.Tier,
+                    CostNOK = mod.CostNOK,
+                    ResearchDays = mod.ResearchDays,
+                    Prerequisites = new List<string>(mod.Prerequisites),
+                    Effects = new Dictionary<string, double>(mod.Effects),
+                    Unlocked = false
+                };
+            }
+        }
+
         // ─── Node definitions ──────────────────────────────────────────────────
 
         private void InitializeNodes()

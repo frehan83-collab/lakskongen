@@ -68,6 +68,15 @@ func _find_panel(panel_name: String) -> Control:
 
 func _initial_sync() -> void:
 	_on_state_updated()
+	call_deferred("_focus_first_pen")
+
+
+func _focus_first_pen() -> void:
+	var pen_ids := pen_manager.get_pen_ids()
+	if pen_ids.is_empty() or vista_camera == null:
+		return
+	vista_camera.fly_to_position(pen_manager.get_pen_position(pen_ids[0]),
+		FjordCamera.ZoomLevel.FJORD)
 
 
 func _on_state_updated() -> void:
@@ -110,6 +119,11 @@ func _sync_environment(sim: Node) -> void:
 		wmat.set_shader_parameter("wind_strength", clampf(wind_ms / 8.0, 0.0, 3.0))
 		var temp_c := float(sim.get("temperature_c")) if "temperature_c" in sim else 8.0
 		wmat.set_shader_parameter("temperature_factor", clampf((temp_c - 2.0) / 18.0, 0.0, 1.0))
+		# Plankton bloom tint: read max bloom severity from sim and drive algae_density.
+		var gb := get_node_or_null("/root/GameBridge")
+		if gb != null and gb.has_method("GetMaxBloomSeverity"):
+			var max_severity := float(gb.GetMaxBloomSeverity())
+			wmat.set_shader_parameter("algae_density", clampf(max_severity, 0.0, 1.0))
 
 
 func _on_pen_clicked(pen_id: String, position: Vector3) -> void:

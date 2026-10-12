@@ -178,6 +178,16 @@ func get_intervention_ranking() -> Array[Dictionary]:
 		return _arr(game_bridge.GetInterventionRanking())
 	return []
 
+## Attention Inbox (Phase 4.5) — unified "what needs my attention" inbox.
+func get_attention_items() -> Array[Dictionary]:
+	if game_bridge and game_bridge.has_method("GetAttentionItems"):
+		return _arr(game_bridge.GetAttentionItems())
+	return []
+
+func open_attention_inbox() -> void:
+	if game_bridge and game_bridge.has_method("OpenAttentionInbox"):
+		game_bridge.OpenAttentionInbox()
+
 ## Night-shift ROC policy status (Phase 5.2).
 func get_night_shift_status() -> Dictionary:
 	if game_bridge and game_bridge.has_method("GetNightShiftStatus"):
@@ -400,8 +410,18 @@ func get_available_targets() -> Array[Dictionary]: return _arr(game_bridge.GetAv
 func get_owned_acquisitions() -> Array[Dictionary]: return _arr(game_bridge.GetOwnedAcquisitions()) if game_bridge else []
 func attempt_acquisition_target(target_id: String) -> Dictionary: return game_bridge.AttemptAcquisitionTarget(target_id) if game_bridge else {"success": false, "message": "Not initialized"}
 func get_active_licenses() -> Array[Dictionary]: return _arr(game_bridge.GetActiveLicenses()) if game_bridge else []
-func get_license_cost() -> float: return game_bridge.GetLicenseCost() if game_bridge else 30_000_000.0
+func get_license_cost() -> float: return game_bridge.GetLicenseCost() if game_bridge else 150_000_000.0
 func apply_for_license(zone_id: String) -> Dictionary: return game_bridge.ApplyForLicense(zone_id) if game_bridge else {"success": false, "message": "Not initialized"}
+func place_license_bid(zone_id: String, amount_nok: float) -> Dictionary: return game_bridge.PlaceLicenseBid(zone_id, amount_nok) if game_bridge else {"success": false, "message": "Not initialized"}
+func get_license_auctions() -> Array[Dictionary]: return _arr(game_bridge.GetLicenseAuctions()) if game_bridge else []
+func has_growth_license(zone_id: String) -> bool: return game_bridge.HasGrowthLicense(zone_id) if game_bridge else false
+func can_build_sea_site(zone_id: String) -> Dictionary: return game_bridge.CanBuildSeaSite(zone_id) if game_bridge else {"allowed": false, "reason": "Not initialized"}
+
+# ── Phase 4.2: Distressed asset acquisition ────────────────────────────────────────
+
+func get_distressed_assets() -> Array[Dictionary]: return _arr(game_bridge.GetDistressedAssets()) if game_bridge else []
+func acquire_distressed_asset(asset_id: String) -> Dictionary: return game_bridge.AcquireDistressedAsset(asset_id) if game_bridge else {"success": false, "message": "Not initialized"}
+
 func get_factions() -> Array[Dictionary]: return _arr(game_bridge.GetFactions()) if game_bridge else []
 func get_faction_relation(faction_id: String) -> float: return game_bridge.GetFactionRelation(faction_id) if game_bridge else 0.0
 func get_active_demands() -> Array[Dictionary]: return _arr(game_bridge.GetActiveDemands()) if game_bridge else []
@@ -409,6 +429,7 @@ func get_active_demands() -> Array[Dictionary]: return _arr(game_bridge.GetActiv
 # ── Wave 2: market intel + welfare + milestones ────────────────────────────────
 
 func get_market_report() -> Dictionary: return game_bridge.GetMarketReport() if game_bridge else {}
+func get_profit_loss_story(top_n: int = 3) -> Dictionary: return game_bridge.GetProfitLossStory(top_n) if game_bridge else {}
 func get_competitor_analysis() -> Array[Dictionary]: return _arr(game_bridge.GetCompetitorAnalysis()) if game_bridge else []
 func get_price_forecast() -> Array[Dictionary]: return _arr(game_bridge.GetPriceForecast()) if game_bridge else []
 func get_welfare_score() -> float: return game_bridge.GetWelfareScore() if game_bridge else 50.0

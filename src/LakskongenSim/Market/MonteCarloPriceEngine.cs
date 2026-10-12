@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using LakskongenSim.Core;
 
 namespace LakskongenSim.Market
 {
@@ -24,12 +25,18 @@ namespace LakskongenSim.Market
         /// <summary>Poisson intensity: expected jumps per year.</summary>
         public static readonly double JumpIntensity = 2.0;
 
-        private readonly Random _rng;
+        private readonly SimRngStream _rng;
+        internal SimRngStream RngForSnapshot => _rng;
 
         /// <summary>Create engine with optional seed for reproducibility.</summary>
-        public MonteCarloPriceEngine(int? seed = null)
+        public MonteCarloPriceEngine(SimRngStream rng)
         {
-            _rng = seed.HasValue ? new Random(seed.Value) : Random.Shared;
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+        }
+
+        public MonteCarloPriceEngine(int? seed = null)
+            : this((seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.MonteCarloPrice))
+        {
         }
 
         /// <summary>

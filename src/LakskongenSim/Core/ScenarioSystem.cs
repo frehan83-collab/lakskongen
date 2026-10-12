@@ -1173,6 +1173,39 @@ namespace LakskongenSim.Core
             }
         }
 
+        /// <summary>
+        /// Register mod scenarios. Converts ModScenario data to ScenarioDefinition
+        /// and adds them to the scenario registry. Mod scenarios never overwrite
+        /// core scenarios (same ID = skip).
+        /// </summary>
+        public void RegisterModScenarios(IEnumerable<ModScenario> modScenarios)
+        {
+            if (modScenarios == null) return;
+            foreach (var mod in modScenarios)
+            {
+                if (_scenarios.ContainsKey(mod.Id))
+                    continue; // Core scenario with same ID exists — skip
+
+                _scenarios[mod.Id] = new ScenarioDefinition
+                {
+                    Id = mod.Id,
+                    Name = mod.Name,
+                    Description = mod.Description,
+                    StartingCapitalNOK = mod.InitialBalanceNOK,
+                    StartingRegion = ParseRegion(mod.StartingRegion),
+                    Difficulty = mod.Difficulty,
+                    WinCondition = ParseWinCondition(mod.WinCondition),
+                    IsUnlocked = true,
+                };
+            }
+        }
+
+        private static ProductionRegion ParseRegion(string raw) =>
+            Enum.TryParse<ProductionRegion>(raw, ignoreCase: true, out var r) ? r : ProductionRegion.Vestland;
+
+        private static WinCondition ParseWinCondition(string raw) =>
+            Enum.TryParse<WinCondition>(raw, ignoreCase: true, out var w) ? w : WinCondition.Profit;
+
         private void Register(ScenarioDefinition scenario) => _scenarios[scenario.Id] = scenario;
     }
 

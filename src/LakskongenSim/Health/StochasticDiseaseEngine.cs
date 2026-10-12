@@ -47,8 +47,10 @@ namespace LakskongenSim.Health
         
         private readonly DiseaseSystem _baseSystem;
 
-        // Thread-safe RNG (TD-06): System.Random is not safe for concurrent use.
-        private readonly Random _random;
+        // Deterministic RNG (SimRngStreams.StochasticDisease). SimRngStream is
+        // single-threaded like the rest of the daily tick; the lock is kept
+        // as a guard so concurrent test harnesses fail loudly, not silently.
+        private readonly SimRngStream _rng;
         private readonly object _rngLock = new();
         
         // Agent‑based tracking
@@ -58,26 +60,31 @@ namespace LakskongenSim.Health
         // Resistance tracking
         private Dictionary<string, double> _resistanceGeneFrequency = new Dictionary<string, double>();
         
-        public StochasticDiseaseEngine(DiseaseSystem baseSystem)
-            : this(baseSystem, null)
-        {
-        }
-
-        /// <summary>
-        /// Create an engine with an optional deterministic seed (for tests).
-        /// </summary>
-        /// <param name="baseSystem">Underlying SIR disease system.</param>
-        /// <param name="seed">Seed for the RNG, or null for non-deterministic.</param>
-        public StochasticDiseaseEngine(DiseaseSystem baseSystem, int? seed)
+        public StochasticDiseaseEngine(DiseaseSystem baseSystem, SimRngStream rng)
         {
             _baseSystem = baseSystem ?? throw new ArgumentNullException(nameof(baseSystem));
-            _random = seed.HasValue ? new Random(seed.Value) : Random.Shared;
-            
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+
             // Initialize resistance genes for common pathogens
             _resistanceGeneFrequency["ISA"] = 0.01; // 1% initial resistance
             _resistanceGeneFrequency["PD"] = 0.05;  // 5% initial resistance
             _resistanceGeneFrequency["CMS"] = 0.02; // 2% initial resistance
         }
+
+        /// <summary>
+        /// Legacy/test compat: deterministic seed maps to the named stream.
+        /// </summary>
+        public StochasticDiseaseEngine(DiseaseSystem baseSystem, int? seed)
+            : this(baseSystem, (seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.StochasticDisease))
+        {
+        }
+
+        public StochasticDiseaseEngine(DiseaseSystem baseSystem)
+            : this(baseSystem, SimRng.CreateUnseeded().Stream(SimRngStreams.StochasticDisease))
+        {
+        }
+
+        internal SimRngStream RngForSnapshot => _rng;
         
         /// <summary>
         /// Simulate multi‑vector disease transmission across zones.
@@ -389,13 +396,13 @@ namespace LakskongenSim.Health
         /// <summary>Thread-safe uniform draw in [0,1).</summary>
         private double NextDoubleLocked()
         {
-            lock (_rngLock) { return _random.NextDouble(); }
+            lock (_rngLock) { return _rng.NextDouble(); }
         }
 
         /// <summary>Thread-safe uniform integer draw in [0, max).</summary>
         private int NextLocked(int max)
         {
-            lock (_rngLock) { return _random.Next(max); }
+            lock (_rngLock) { return _rng.Next(max); }
         }
         
         /// <summary>

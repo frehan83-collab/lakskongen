@@ -18,13 +18,19 @@ namespace LakskongenSim.Biology
         // Configuration (loaded from JSON)
         private PlanktonBloomConfig _config = new();
 
-        // Deterministic RNG per zone per day
-        private readonly SimRandom _globalRng;
-        internal SimRandom RngForSnapshot => _globalRng;
+        // Deterministic RNG per zone per day (named stream; per-zone draws
+        // should migrate to the suffix overload as stochastic triggers land).
+        private readonly SimRngStream _globalRng;
+        internal SimRngStream RngForSnapshot => _globalRng;
+
+        public PlanktonBloom(SimRngStream rng)
+        {
+            _globalRng = rng ?? throw new ArgumentNullException(nameof(rng));
+        }
 
         public PlanktonBloom(int? seed = null)
+            : this((seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.PlanktonBloom))
         {
-            _globalRng = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
         }
 
         /// <summary>

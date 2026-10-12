@@ -697,7 +697,11 @@ public partial class GameBridge : Node
 
     /// <summary>
     /// Build a new sea site in the specified zone.
-    /// Returns true on success, false if zone not found or insufficient funds.
+    /// Phase 4.1: the whole gate + charge + licence consumption lives in the
+    /// engine (<c>SimulationEngine.BuildSeaSite</c>) — this method is the
+    /// Godot-facing wrapper keeping the legacy bool + signal contract.
+    /// Returns true on success, false if the gate failed (zone not found,
+    /// growth licence required, insufficient funds).
     /// </summary>
     public bool BuildSeaSite(string zoneId, string name)
     {
@@ -708,54 +712,17 @@ public partial class GameBridge : Node
             return false;
         }
 
-        // Check if zone exists
-        var zone = SimulationEngine.State.Zones.FirstOrDefault(z => z.Id == zoneId);
-        if (zone == null)
+        var outcome = SimulationEngine.BuildSeaSite(zoneId, name);
+        if (!outcome.Ok)
         {
-            GD.PrintErr($"GameBridge: BuildSeaSite failed - zone '{zoneId}' not found");
+            GD.PrintErr($"GameBridge: BuildSeaSite failed - {outcome.ErrorKey}: {outcome.Message}");
             EmitSignal(SignalName.FarmActionCompleted, "build_site", zoneId, false);
             return false;
         }
-
-        // License cost: ~30M NOK for 780-tonne license (Norwegian market rate)
-        decimal licenseCost = 30_000_000m;
-        
-        // Check if player can afford it
-        if (SimulationEngine.FinanceManager.Balance < licenseCost)
-        {
-            GD.PrintErr($"GameBridge: BuildSeaSite failed - insufficient funds (need {licenseCost:N0} NOK)");
-            EmitSignal(SignalName.FarmActionCompleted, "build_site", zoneId, false);
-            return false;
-        }
-
-        // Create new sea site
-        var siteId = string.IsNullOrWhiteSpace(name) ? $"site_{SimulationEngine.State.SeaSites.Count + 1}" : name;
-        var newSite = new LakskongenSim.Farm.SeaSite(siteId, zoneId)
-        {
-            MABTonnes = 780.0, // Standard Norwegian license
-            NumberOfPens = 8,
-            PenVolume = 50000f,
-            MaxAllowedDensity = 25.0f
-        };
-
-        SimulationEngine.State.SeaSites.Add(newSite);
-
-        // Charge the player
-        SimulationEngine.FinanceManager.Spend(licenseCost);
-
-        // Record event
-        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
-        {
-            Day = SimulationEngine.State.Day,
-            Name = "License Acquisition",
-            Category = LakskongenSim.Events.EventCategory.Regulation,
-            Description = $"Built new sea site '{siteId}' in zone '{zoneId}' (780T MAB)",
-            BalanceChange = -licenseCost
-        });
 
         EmitSignal(SignalName.FarmActionCompleted, "build_site", zoneId, true);
         EmitSignal(SignalName.GameStateUpdated);
-        GD.Print($"GameBridge: Built sea site '{siteId}' in zone '{zoneId}' for {licenseCost:N0} NOK");
+        GD.Print($"GameBridge: {outcome.Message}");
         return true;
     }
 
@@ -778,6 +745,66 @@ public partial class GameBridge : Node
                 ["site_id"] = b.SiteId,
                 ["severity"] = b.Severity01,
                 ["days_left"] = b.DaysLeft(today)
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Maximum bloom severity (0-1) across all active blooms.
+    /// Used to drive the global algae_density water shader parameter.
+    /// </summary>
+    public double GetMaxBloomSeverity()
+    {
+        var blooms = SimulationEngine?.State?.ActiveBlooms;
+        if (blooms == null || blooms.Count == 0) return 0.0;
+        double max = 0.0;
+        foreach (var b in blooms)
+        {
+            if (b.Severity01 > max) max = b.Severity01;
+        }
+        return Math.Min(max, 1.0);
+    }
+
+    /// <summary>
+    /// AI competitor companies for grey farm visuals (Phase 3).
+    /// Keys: "id", "name", "market_share", "position_x", "position_z", "strategy".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetCompetitorCompanies()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var competitors = SimulationEngine?.CompetitorAI?.Competitors;
+        if (competitors == null || competitors.Count == 0) return result;
+        
+        // Assign fixed visual positions around the fjord for each competitor
+        // These are synthetic positions for visual representation only
+        var positions = new List<Vector3>
+        {
+            new Vector3(-800, 0, -400),   // SW
+            new Vector3(800, 0, -300),    // SE
+            new Vector3(-600, 0, 200),    // NW
+            new Vector3(600, 0, 300),     // NE
+            new Vector3(0, 0, -600),      // South
+            new Vector3(-1000, 0, 500),   // Far NW
+            new Vector3(1000, 0, 600),    // Far NE
+            new Vector3(-400, 0, 700),    // North
+        };
+        
+        int posIndex = 0;
+        foreach (var c in competitors)
+        {
+            var pos = positions[posIndex % positions.Count];
+            posIndex++;
+            
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = c.Id,
+                ["name"] = c.Name,
+                ["market_share"] = (double)c.MarketShareNorway,
+                ["position_x"] = pos.X,
+                ["position_z"] = pos.Z,
+                ["strategy"] = c.Strategy.ToString(),
+                ["market_cap"] = (double)c.MarketCap,
             });
         }
         return result;

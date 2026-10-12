@@ -1954,6 +1954,9 @@ private class BalancingConfig
 
         internal void ProcessDailyFinance()
         {
+            // Phase 5.5: Process Mattilsynet over-MAB orders (deadline checks + forced harvest)
+            ProcessMattilsynetOverMabOrders();
+
             // 1. Calculate operational costs (Wages, Maintenance)
             decimal dailyWages = 0m;
             int totalSites = State.SeaSites.Count;
@@ -2766,6 +2769,142 @@ private class BalancingConfig
                 }
             }
         }
+
+    /// <summary>
+    /// Phase 5.5: Regulatory chess — felt consequence.
+    /// When a zone goes RED, issue Mattilsynet over-MAB orders with deadlines.
+    /// When a zone exits RED, clear any remaining over-MAB orders.
+    /// </summary>
+    private void IssueMattilsynetOverMabOrders(string zoneId)
+    {
+        foreach (var site in State.SeaSites.Where(s => s.ZoneId == zoneId))
+        {
+            if (site.IsOverMAB && !site.HasActiveMattilsynetOrder)
+            {
+                int deadline = State.Day + 14; // 14-day deadline
+                site.MattilsynetDeadlineDay = deadline;
+                site.MattilsynetOrderFulfilled = false;
+
+                State.EventLog.Add(new EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Mattilsynet MAB-beskjed",
+                    Category = EventCategory.Regulation,
+                    Description = $"Sone {zoneId}: {site.Id} over MAB ({site.CurrentBiomassTonnes:F1}t > {site.MABTonnes:F1}t). Avlus/avslakt innen dag {deadline}, ellers tvangsavslakt til redusert pris.",
+                    BalanceChange = 0m
+                });
+                SimLog.Info($"📋 Mattilsynet MAB-beskjed: {site.Id} → deadline day {deadline}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clear Mattilsynet over-MAB orders when zone exits RED status.
+    /// </summary>
+    private void ClearMattilsynetOverMabOrders(string zoneId)
+    {
+        foreach (var site in State.SeaSites.Where(s => s.ZoneId == zoneId))
+        {
+            if (site.HasActiveMattilsynetOrder)
+            {
+                site.MattilsynetDeadlineDay = -1;
+                site.MattilsynetOrderFulfilled = false;
+
+                State.EventLog.Add(new EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Mattilsynet besked trukket",
+                    Category = EventCategory.Regulation,
+                    Description = $"Sone {zoneId}: {site.Id} ikke lenger i rød sone — MAB-beskjed trukket.",
+                    BalanceChange = 0m
+                });
+                SimLog.Info($"📋 Mattilsynet MAB-beskjed trukket for {site.Id} (sone {zoneId} ikke lenger rød)");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Process Mattilsynet over-MAB orders daily: check deadlines,
+    /// execute forced harvest at penalty price if missed.
+    /// </summary>
+    private void ProcessMattilsynetOverMabOrders()
+    {
+        foreach (var site in State.SeaSites.Where(s => s.HasActiveMattilsynetOrder && !s.MattilsynetOrderFulfilled))
+        {
+            if (State.Day >= site.MattilsynetDeadlineDay)
+            {
+                // Deadline missed → forced harvest at 70% of market price
+                decimal penaltyPrice = MarketSimulation?.PricePerKg ?? 70m;
+                penaltyPrice = Math.Round(penaltyPrice * 0.7m, 2);
+
+                double biomassT = site.CurrentBiomassTonnes;
+                double harvestT = Math.Min(biomassT, site.CurrentBiomassTonnes - site.MABTonnes);
+                if (harvestT < 0.1) harvestT = biomassT; // harvest all if barely over
+
+                decimal revenue = (decimal)(harvestT * 1000 * (double)penaltyPrice); // NOK
+                FinanceManager?.AddRevenue(revenue);
+                FinancialStatements?.RecordRevenue(revenue, "forced_harvest");
+
+                // Record event
+                State.EventLog.Add(new EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Tvangsavslakt (Mattilsynet)",
+                    Category = EventCategory.Regulation,
+                    Description = $"{site.Id}: Deadline overskredet. {harvestT:F1}t tvangsavslattet til {penaltyPrice:F2} NOK/kg (30% straff).",
+                    BalanceChange = revenue
+                });
+                SimLog.Info($"⚠️ Tvangsavslakt: {site.Id} {harvestT:F1}t til {penaltyPrice:F2} NOK/kg");
+
+                // Remove the over-MAB biomass from populations (simplified: reduce cohort weights proportionally)
+                ReduceSiteBiomass(site, harvestT);
+
+                site.MattilsynetOrderFulfilled = true;
+                site.MattilsynetDeadlineDay = -1;
+            }
+            else if (!site.IsOverMAB)
+            {
+                // Player harvested enough to get under MAB before deadline
+                site.MattilsynetOrderFulfilled = true;
+
+                State.EventLog.Add(new EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Mattilsynet MAB-oppgjør",
+                    Category = EventCategory.Regulation,
+                    Description = $"{site.Id}: Biomassen er under MAB. Beskjed oppfylt — ingen tvangsavslakt.",
+                    BalanceChange = 0m
+                });
+                SimLog.Info($"✅ Mattilsynet MAB-oppgjør: {site.Id} under MAB før deadline");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reduce site biomass proportionally across cohorts to simulate forced harvest.
+    /// </summary>
+    private void ReduceSiteBiomass(Farm.SeaSite site, double tonnesToRemove)
+    {
+        double kgToRemove = tonnesToRemove * 1000.0;
+        foreach (var pop in site.Pens)
+        {
+            foreach (var cohort in pop.Cohorts)
+            {
+                double cohortBiomassKg = cohort.Count * cohort.MeanWeightKg;
+                if (cohortBiomassKg <= 0) continue;
+
+                double removeFraction = Math.Min(1.0, kgToRemove / cohortBiomassKg);
+                int fishToRemove = (int)(cohort.Count * removeFraction);
+                fishToRemove = Math.Min(fishToRemove, cohort.Count);
+
+                cohort.Count -= fishToRemove;
+                kgToRemove -= fishToRemove * cohort.MeanWeightKg;
+                if (kgToRemove <= 0) break;
+            }
+            pop.TriggerOnPopulationChanged();
+        }
+    }
+
 
         /// <summary>
         /// P8: approximate tidal flow (m/s) at a site from its zone's current

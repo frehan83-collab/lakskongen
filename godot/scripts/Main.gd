@@ -17,6 +17,8 @@ const DEFAULT_PLAYER_NAME: String = "Player"
 var _game_started: bool = false
 # Optional PauseMenu instance (not currently in Main.tscn — toggle stays inert until wired).
 var _pause_menu: Control = null
+# Last critical message that triggered auto-pause (dedupe: conditions repeat daily).
+var _last_auto_pause_msg: String = ""
 
 func _ready() -> void:
 	print("Main: Initializing...")
@@ -69,6 +71,28 @@ func _on_day_advanced(day: int, season: String) -> void:
 
 func _on_alert_raised(level: String, message: String) -> void:
 	print("Main: Alert [%s] %s" % [level, message])
+	# Auto-pause on NEW critical alerts (settings: gameplay.auto_pause_critical).
+	if level != "critical" or message == _last_auto_pause_msg:
+		return
+	if not _should_auto_pause():
+		return
+	_last_auto_pause_msg = message
+	set_paused(true)
+	if _hud and _hud.has_method("set_paused_state"):
+		_hud.set_paused_state(true)
+
+## Auto-pause toggle from user://settings.json (default: on).
+func _should_auto_pause() -> bool:
+	if not FileAccess.file_exists("user://settings.json"):
+		return true
+	var file := FileAccess.open("user://settings.json", FileAccess.READ)
+	if file == null:
+		return true
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not (json.data is Dictionary):
+		return true
+	var gameplay: Dictionary = json.data.get("gameplay", {})
+	return bool(gameplay.get("auto_pause_critical", true))
 
 func _on_speed_changed(speed: float, paused: bool) -> void:
 	if _sim:

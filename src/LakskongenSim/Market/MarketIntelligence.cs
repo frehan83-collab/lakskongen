@@ -168,8 +168,8 @@ namespace LakskongenSim.Market
         private readonly List<MarketNewsEvent> _eventHistory = new();
         private readonly List<CompetitorProducer> _competitors = new();
         private readonly Queue<decimal> _priceHistory = new();
-        private SimRandom _rng = SimRandom.CreateUnseeded();
-        internal SimRandom RngForSnapshot => _rng;
+        private SimRngStream _rng = SimRng.CreateUnseeded().Stream(SimRngStreams.Intelligence);
+        internal SimRngStream RngForSnapshot => _rng;
 
         /// <summary>Persistence (Phase 1 wave 6): weekly news/competitor state.</summary>
         internal (int Week, System.Collections.Generic.List<MarketNewsEvent> Active, System.Collections.Generic.List<MarketNewsEvent> History,
@@ -255,9 +255,15 @@ namespace LakskongenSim.Market
             ("🌡️ Record sea temperatures", "Warm water causes stress and slower growth across industry.", MarketNewsCategory.Weather, 0.97, 1.0, 0m, 8, 0.04),
         };
 
-        public MarketIntelligenceSystem()
+        public MarketIntelligenceSystem(SimRngStream rng)
         {
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
             InitializeCompetitors();
+        }
+
+        public MarketIntelligenceSystem()
+            : this(SimRng.CreateUnseeded().Stream(SimRngStreams.Intelligence))
+        {
         }
 
         /// <summary>
@@ -266,16 +272,15 @@ namespace LakskongenSim.Market
         /// seeded engine.
         /// </summary>
         public MarketIntelligenceSystem(int seed)
+            : this(new SimRng(seed).Stream(SimRngStreams.Intelligence))
         {
-            _rng = new SimRandom(seed);
-            InitializeCompetitors();
         }
 
         /// <summary>
-        /// Replace the RNG with a deterministically-seeded one. Used by
-        /// <see cref="MarketSimulation"/> when the engine supplies a seed.
+        /// Replace the RNG stream. Used by <see cref="MarketSimulation"/>
+        /// when the engine supplies named streams.
         /// </summary>
-        public void Reseed(int seed) => _rng = new SimRandom(seed);
+        public void Reseed(SimRngStream rng) => _rng = rng ?? throw new ArgumentNullException(nameof(rng));
 
         private void InitializeCompetitors()
         {

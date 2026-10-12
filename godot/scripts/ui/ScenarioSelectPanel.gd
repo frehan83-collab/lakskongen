@@ -30,8 +30,8 @@ const CARDS_Y    := 80    # vertical offset below title bar
 
 # ── Deep-ocean colour palette ───────────────────────────────────────────────────
 
-const C_BG         := Color("#ECEFF4")   # near-black fjord
-const C_CARD_BASE  := Color("#FFFFFF")   # dark slate
+const C_BG         := Color("#ECEFF4")   # light gray-blue page bg
+const C_CARD_BASE  := Color("#FFFFFF")   # white cards
 const C_LOCKED_BG  := Color("#E5E9F0")   # muted locked card
 const C_TITLE      := Color("#2E3440")
 const C_TEXT       := Color("#4C566A")
@@ -214,12 +214,8 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	panel.add_theme_stylebox_override("panel", style)
 	add_child(panel)
 
-	# Dim overlay for locked cards
-	if locked:
-		var dim := ColorRect.new()
-		dim.color = Color(0, 0, 0, 0.42)
-		dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		panel.add_child(dim)
+	# No dim overlay: the gray card + darkened border + LÅST button already
+	# signal "locked", and an overlay would wash out the body text.
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 8)
@@ -242,7 +238,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	var name_lbl := Label.new()
 	name_lbl.text = s["name"]
 	name_lbl.add_theme_font_size_override("font_size", 16)
-	name_lbl.add_theme_color_override("font_color", C_LOCKED_TXT if locked else s["color"])
+	name_lbl.add_theme_color_override("font_color", C_TEXT if locked else s["color"])
 	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title_vbox.add_child(name_lbl)
 
@@ -283,7 +279,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	var desc_lbl := Label.new()
 	desc_lbl.text = s["description"]
 	desc_lbl.add_theme_font_size_override("font_size", 12)
-	desc_lbl.add_theme_color_override("font_color", C_LOCKED_TXT if locked else C_TEXT)
+	desc_lbl.add_theme_color_override("font_color", C_TEXT)
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc_lbl.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(desc_lbl)
@@ -313,7 +309,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	if not locked:
 		cap_lbl.add_theme_color_override("font_color", C_NEGATIVE if s["capital_neg"] else C_POSITIVE)
 	else:
-		cap_lbl.add_theme_color_override("font_color", C_LOCKED_TXT)
+		cap_lbl.add_theme_color_override("font_color", C_TEXT)
 	meta.add_child(cap_lbl)
 
 	var win_lbl := Label.new()

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LakskongenSim.Core;
 namespace LakskongenSim.Farm
 {
     /// <summary>
@@ -101,6 +102,20 @@ namespace LakskongenSim.Farm
         public event Action<string>? OnAlert;
         public event Action<string>? OnMilestone;
 
+        // ─── Deterministic RNG (SimRngStreams.RASFacility, per-facility suffix) ───
+        private SimRngStream _rng = SimRng.CreateUnseeded().Stream(SimRngStreams.RASFacility);
+        internal SimRngStream RngForSnapshot => _rng;
+
+        public RASFacility() { }
+
+        public RASFacility(SimRngStream rng)
+        {
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+        }
+
+        /// <summary>Bind this facility to the engine's named stream (per-facility identity).</summary>
+        public void SetRng(SimRngStream rng) => _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+
         /// <summary>
         /// Daily tick: update water chemistry, energy costs, construction progress.
         /// </summary>
@@ -128,7 +143,7 @@ namespace LakskongenSim.Farm
             // Temperature control (energy cost scales with delta from ambient)
             double tempDelta = Math.Abs(TargetWaterTemp - ambientTemp);
             double heatingCoolingFactor = 1.0 + (tempDelta * 0.05); // 5% more energy per °C difference
-            CurrentWaterTemp = TargetWaterTemp + (Random.Shared.NextDouble() - 0.5) * 0.3; // ±0.15°C noise
+            CurrentWaterTemp = TargetWaterTemp + (_rng.NextDouble() - 0.5) * 0.3; // ±0.15°C noise
 
             // Oxygen management
             double biomassKg = GetTotalBiomassKg();
@@ -192,7 +207,7 @@ namespace LakskongenSim.Farm
             BiofilterEfficiency = Math.Min(0.95, BiofilterEfficiency + 0.10);
             
             // Maintenance cost: ~500K-1M NOK per event
-            decimal cost = 500_000m + (decimal)(Random.Shared.NextDouble() * 500_000);
+            decimal cost = 500_000m + (decimal)(_rng.NextDouble() * 500_000);
             OnMilestone?.Invoke($"Vedlikehold gjennomført på '{Name}'. Biofilter: {BiofilterEfficiency:P0}");
             return cost;
         }

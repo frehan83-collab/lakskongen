@@ -1,4 +1,5 @@
 using System;
+using LakskongenSim.Core;
 using LakskongenSim.Environment;
 
 namespace LakskongenSim.Biology
@@ -93,12 +94,13 @@ namespace LakskongenSim.Biology
 
         #region Fields
 
-        private readonly Random _random;
+        private readonly SimRngStream _rng;
 
-        // Thread-safe guard (TD-06): System.Random is not safe for concurrent use.
-        // All draws funnel through NextDoubleLocked(). Seeded instances stay
-        // deterministic for single-threaded tests; unseeded aliases Random.Shared.
+        // All draws funnel through NextDoubleLocked(). The stream comes from
+        // the engine's named scope (SimRngStreams.SDEGrowth) or a test seed.
         private readonly object _rngLock = new();
+
+        internal SimRngStream RngForSnapshot => _rng;
 
         #endregion
 
@@ -107,10 +109,15 @@ namespace LakskongenSim.Biology
         /// <summary>
         /// Initializes a new instance of the SDEGrowthModel class.
         /// </summary>
+        public SDEGrowthModel(SimRngStream rng)
+        {
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+        }
+
         /// <param name="seed">Optional random seed for deterministic testing.</param>
         public SDEGrowthModel(int? seed = null)
+            : this((seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.SDEGrowth))
         {
-            _random = seed.HasValue ? new Random(seed.Value) : Random.Shared;
         }
 
         #endregion
@@ -172,7 +179,7 @@ namespace LakskongenSim.Biology
         /// <summary>Thread-safe uniform draw in [0,1).</summary>
         private double NextDoubleLocked()
         {
-            lock (_rngLock) { return _random.NextDouble(); }
+            lock (_rngLock) { return _rng.NextDouble(); }
         }
 
         /// <summary>

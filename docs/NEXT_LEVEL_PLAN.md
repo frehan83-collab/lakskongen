@@ -2,6 +2,12 @@
 
 Date: 2026-10-08. Reviewed at commit `b56ff2a`. The review covers the C# simulation, the 3D/visual/audio layer, and tests/CI/data/repo hygiene. The GDScript UI/bridge review pass did not finish (it ran out of credits), so the UI/UX items in Phase 4 still need a dedicated pass.
 
+> **⚠️ Status note (2026-10-12):** This document is a point-in-time review. Its
+> phase status markers and execution log are **stale** — Phases 4.1–4.6 are now
+> COMPLETE (see `AGENTS.md`, the single source of truth for phase status). This
+> plan is kept for its findings (S1–S10, V1–V7), its cross-cutting rules, and the
+> Phase 5 ship checklist, not as a live progress tracker.
+
 ## Execution status (2026-10-08, commits 6286df7 / ec7710a / d30bd94)
 
 - **Phase 0 DONE.** CI is 9/9 green locally with nothing skipped: builds both
@@ -171,6 +177,7 @@ Date: 2026-10-08. Reviewed at commit `b56ff2a`. The review covers the C# simulat
   them first-class tick phases with the mirror sync in a structured
   post-tick slot.
 - **Phases 2/4/5 NOT STARTED.** Phase 4 still needs the UI/bridge review pass.
+  *(Superseded 2026-10-12: Phases 4.1–4.6 complete, Phase 5 pending — see AGENTS.md.)*
 
 ## Verdict
 
@@ -360,6 +367,31 @@ These are the features that would make Lakskongen distinct from other management
 - Save fuzzing; weekly playtest builds.
 - Decide the licence; finish the Steam page, the demo build (`forste_sesong` plus `po3_red_sone`) and the Next Fest plan.
 - Update VISION/GDD to match reality (no Lua; multiplayer deferred).
+
+### Phase 5.5: The "feel" layer — dramatize the sim (benchmarked 2026-10-12)
+
+> Research-backed (see `docs/RESEARCH_TOP_TIER_BENCHMARK.md`): the sim is already
+> regulation-faithful; the gap to top-tier is dramatization, a live readout, and a
+> "why did I lose money" narrative — not more accuracy. Each item maps to a
+> cross-cutting rule: a player-path test, no clamps, and a screenshot diff.
+
+1. **Regulatory chess, felt.** Make the traffic-light → red-light → forced-cull →
+   financial-pain arc *visible and consequential* end-to-end. Reuse the real
+   industry tension (PO3 red for the third time; farmers suing the state) as
+   narrative framing. *Gate:* `PlayerScriptProbe` shows a red-light career measurably
+   diverges from a green-light one.
+2. **Causal P&L story screen.** One screen that traces a loss to its 2–3 dominant
+   causes (feed cost, lice treatments, red-light cull, market shock). This is *the*
+   thing that makes the Phase 4 playtest exit gate pass ("≥3/5 understand why they
+   lost money"). *Gate:* playtest comprehension, not just a green CI.
+3. **Living fjord as a readout.** Lice → collar tint, biomass → fish count, weather
+   → waves/foam, bloom → tint (already scoped in Phase 3 medium). *Gate:* the
+   screenshot harness shows distinct state-driven frames (non-identical diff).
+4. **CVD-safe + accessible floor.** Keep colour + emoji/text dual encoding; push
+   clickable targets to 44×44 px; validate with a colour-blindness simulator.
+   *Gate:* accessibility audit passes, not just "tokens exist".
+5. **Replace gauge walls with colour-coded time series** on finance/market panels
+   (EA's "165 gauges were overwhelming" finding applies directly to a P&L-heavy game).
 
 ---
 

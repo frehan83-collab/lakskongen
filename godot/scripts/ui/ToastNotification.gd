@@ -340,7 +340,9 @@ func _build_toast_node(data: QueuedToastData) -> Control:
 	progress_bar.visible = true
 	progress_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	progress_bar.custom_minimum_size = Vector2(0, 8)
-	progress_bar.add_theme_color_override("font_color", Color(0,0,0,0)) # Hide percentage text
+	# Hide the percentage label entirely (transparent text still reserves
+	# label height, which inflated the bar to ~35px).
+	progress_bar.show_percentage = false
 	vbox_main.add_child(progress_bar)
 
 	return container

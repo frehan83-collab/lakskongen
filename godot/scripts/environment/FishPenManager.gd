@@ -216,6 +216,7 @@ func _apply_site_data(pen_id: String, site: Dictionary, index: int) -> void:
 	var pen_data: Dictionary = _pens[pen_id]
 	pen_data["site_id"] = _site_string(site, ["id", "site_id", "zone_id"], pen_id)
 	pen_data["from_sim"] = true
+	_restore_stocked_style(pen_id)
 	var cage = pen_data["cage"]
 	if cage:
 		var label = cage.get_node_or_null("Label") as Label3D
@@ -278,11 +279,14 @@ func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 	markers_parent.add_child(cage)
 	cage.global_position = position
 
-	# Service boat
+	# Service boat moored alongside the collar: diagonal offset clears the
+	# 25.5 m collar radius, waterline y sits the hull IN the water instead
+	# of floating 2 m above it.
+	var moor_dir := Vector3(1, 0, 1).normalized()
 	var boat = service_boat_scene.instantiate()
 	boat.name = "%s_boat" % pen_id
 	markers_parent.add_child(boat)
-	boat.global_position = position + Vector3(30, 2, 30)
+	boat.global_position = position + moor_dir * 33.0 + Vector3(0, 0.2, 0)
 
 	# Fish school using MultiMesh
 	var school := MultiMeshInstance3D.new()
@@ -291,7 +295,9 @@ func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 	markers_parent.add_child(school)
 	school.global_position = position
 
-	# Store pen data
+	# Store pen data (keep the stock collar/net materials so stocked pens
+	# can be restored after ghosting).
+	var collar := cage.get_node_or_null("Collar") as MeshInstance3D
 	_pens[pen_id] = {
 		"position": position,
 		"active": active,
@@ -300,10 +306,60 @@ func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 		"depth": -_terrain_ref.get_height_at(position.x, position.z) if _terrain_ref else 30.0,
 		"cage": cage,
 		"boat": boat,
-		"fish_school": school
+		"fish_school": school,
+		"collar_mat": collar.material_override if collar else null,
 	}
+	if not active:
+		_apply_ghost_style(pen_id)
 
 	pen_added.emit(pen_id, position)
+
+## Shared ghost material for unstocked (available-site) pens: faded ring,
+## no boat, no net — a placeholder, not a farm.
+static var _ghost_mat: StandardMaterial3D
+
+static func _get_ghost_mat() -> StandardMaterial3D:
+	if _ghost_mat == null:
+		_ghost_mat = StandardMaterial3D.new()
+		_ghost_mat.albedo_color = Color(0.55, 0.65, 0.72, 0.30)
+		_ghost_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_ghost_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_ghost_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_ghost_mat.no_depth_test = false
+	return _ghost_mat
+
+func _apply_ghost_style(pen_id: String) -> void:
+	if not (pen_id in _pens):
+		return
+	var pen_data: Dictionary = _pens[pen_id]
+	var cage = pen_data.get("cage")
+	var collar := cage.get_node_or_null("Collar") as MeshInstance3D if cage else null
+	if collar:
+		collar.material_override = _get_ghost_mat()
+		collar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var net := cage.get_node_or_null("Net") as MeshInstance3D if cage else null
+	if net:
+		net.visible = false
+	var boat = pen_data.get("boat")
+	if boat is Node3D:
+		(boat as Node3D).visible = false
+
+func _restore_stocked_style(pen_id: String) -> void:
+	if not (pen_id in _pens):
+		return
+	var pen_data: Dictionary = _pens[pen_id]
+	var cage = pen_data.get("cage")
+	var collar := cage.get_node_or_null("Collar") as MeshInstance3D if cage else null
+	if collar:
+		if pen_data.get("collar_mat") != null:
+			collar.material_override = pen_data["collar_mat"]
+		collar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	var net := cage.get_node_or_null("Net") as MeshInstance3D if cage else null
+	if net:
+		net.visible = true
+	var boat = pen_data.get("boat")
+	if boat is Node3D:
+		(boat as Node3D).visible = true
 
 
 func _create_ring_mesh(color: Color) -> Mesh:

@@ -20,8 +20,8 @@ namespace LakskongenSim.Events
         private readonly TimeManager _time;
         private readonly GameState _state;
         private readonly Finance.FinanceManager? _financeManager;
-        private readonly SimRandom _rng;
-        internal SimRandom RngForSnapshot => _rng;
+        private readonly SimRngStream _rng;
+        internal SimRngStream RngForSnapshot => _rng;
         private readonly List<EventDefinition> _events = new();
         private readonly Dictionary<string, int> _cooldowns = new();
 
@@ -45,12 +45,12 @@ namespace LakskongenSim.Events
 
         public event Action<EventRecord>? OnEventRaised;
 
-        public Storyteller(TimeManager time, GameState state, Finance.FinanceManager? financeManager = null, int? seed = null, bool enableDefaultEvents = true)
+        public Storyteller(TimeManager time, GameState state, Finance.FinanceManager? financeManager = null, int? seed = null, bool enableDefaultEvents = true, SimRngStream? rng = null)
         {
             _time = time ?? throw new ArgumentNullException(nameof(time));
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _financeManager = financeManager;
-            _rng = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
+            _rng = rng ?? (seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.Storyteller);
             _time.OnAdvanceDays += HandleAdvance;
             if (enableDefaultEvents)
             {
@@ -62,6 +62,9 @@ namespace LakskongenSim.Events
         {
             _events.Add(def);
         }
+
+        /// <summary>Read-only access to all registered event definitions (for testing/mod verification).</summary>
+        public IReadOnlyList<EventDefinition> GetEventDefinitions() => _events;
 
         /// <summary>Detach from the clock so a discarded Storyteller stops
         /// firing events. SimulationEngine calls this before replacing the

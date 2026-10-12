@@ -11,6 +11,15 @@
 				"blender-mcp"
 			],
 			"enabled": true
+		},
+		"godot": {
+			"type": "local",
+			"command": [
+				"npx",
+				"-y",
+				"@npgamedev/godot-mcp-server"
+			],
+			"enabled": true
 		}
 	}
 }

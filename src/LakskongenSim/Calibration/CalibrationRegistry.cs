@@ -81,11 +81,15 @@ namespace LakskongenSim.Calibration
         [JsonPropertyName("environment")]
         public EnvironmentCalibration Environment { get; init; } = new();
 
-        /// <summary>Water quality: dissolved oxygen and stocking density.</summary>
+/// <summary>Water quality: dissolved oxygen and stocking density.</summary>
         [JsonPropertyName("waterQuality")]
         public WaterQualityCalibration WaterQuality { get; init; } = new();
 
-        /// <summary>Compliance &amp; certification: fines, ASC/organic costs and premiums.</summary>
+        /// <summary>Episodic storm model: NVI-attributed mortality with magnitude band validation.</summary>
+        [JsonPropertyName("stormEpisode")]
+        public StormEpisodeCalibration StormEpisode { get; init; } = new();
+
+        /// <summary>Compliance and certification: fines, ASC/organic costs and premiums.</summary>
         [JsonPropertyName("compliance")]
         public ComplianceCalibration Compliance { get; init; } = new();
 
@@ -362,6 +366,59 @@ namespace LakskongenSim.Calibration
         /// (docs/NEXT_LEVEL_PLAN.md follow-ups).
         /// </summary>
         public double StormFishLossBaseFraction { get; init; } = 0.0003;
+    }
+
+    /// <summary>
+    /// Episodic storm model calibration (NVI-attributed). Replaces the
+    /// provisional StormFishLossBaseFraction with a proper episode-based
+    /// model that attributes mortality to causes (mechanical damage,
+    /// stress, hypoxia, handling) and enforces a magnitude band
+    /// (0.5–3% per episode per site). New in Phase 1 wave 6 follow-up.
+    /// </summary>
+    public sealed record StormEpisodeCalibration
+    {
+        /// <summary>Base mortality fraction per episode at severity 1.0 (Severe).
+        /// Storm (severity 0.5) applies half. This replaces StormFishLossBaseFraction.
+        /// </summary>
+        public double BaseMortalityFraction { get; init; } = 0.0003;
+
+        /// <summary>Mechanical damage share of episode mortality (net tears, collisions).</summary>
+        public double MechanicalDamageShare { get; init; } = 0.35;
+
+        /// <summary>Stress mortality share (cortisol-mediated immune suppression).</summary>
+        public double StressMortalityShare { get; init; } = 0.30;
+
+        /// <summary>Hypoxia share (crowding + reduced water exchange during storm).</summary>
+        public double HypoxiaMortalityShare { get; init; } = 0.25;
+
+        /// <summary>Handling/secondary share (post-storm handling, transport).</summary>
+        public double HandlingMortalityShare { get; init; } = 0.10;
+
+        /// <summary>Net-integrity exposure exponent. 1.0 = linear, >1.0 = super-linear.</summary>
+        public double NetIntegrityExposureExponent { get; init; } = 1.2;
+
+        /// <summary>Containment technology mitigation factor per rung (0–1).
+        /// Applied multiplicatively to mechanical damage share.
+        /// </summary>
+        public double ContainmentMitigationPerRung { get; init; } = 0.15;
+
+        /// <summary>Minimum episode mortality magnitude (% of site biomass).
+        /// Used for validation/band test. 0.5% = 0.005.
+        /// </summary>
+        public double MinEpisodeMortalityPct { get; init; } = 0.005;
+
+        /// <summary>Maximum episode mortality magnitude (% of site biomass).
+        /// Used for validation/band test. 3% = 0.03.
+        /// </summary>
+        public double MaxEpisodeMortalityPct { get; init; } = 0.03;
+
+        /// <summary>Roekter (storm crew) mortality reduction multiplier.</summary>
+        public double StormCrewMortalityReduction { get; init; } = 0.5;
+
+        /// <summary>Temperature stress multiplier during storm episodes.
+        /// Cold water exacerbates stress mortality.
+        /// </summary>
+        public double ColdWaterStressMultiplier { get; init; } = 1.5;
     }
 
     /// <summary>Water quality configuration (DO &amp; stocking density).</summary>

@@ -102,24 +102,85 @@ public sealed class SimRng
 }
 
 /// <summary>
-/// Frozen stream scope names. One owner class per scope; per-identity draws
-/// go through the suffix overloads.
-/// </summary>
-public static class SimRngStreams
-{
-    /// <summary>AIFeedingSystem camera-reading noise (daily tick).</summary>
-    public const string AiFeeding = "ai_feeding";
+    /// Frozen stream scope names. One owner class per scope; per-identity draws
+    /// go through the suffix overloads.
+    /// </summary>
+    public static class SimRngStreams
+    {
+        /// <summary>AIFeedingSystem camera-reading noise (daily tick).</summary>
+        public const string AiFeeding = "ai_feeding";
 
-    /// <summary>New crew member morale roll (GameBridge.HireWorker).</summary>
-    public const string HireWorker = "hire_worker";
+        /// <summary>New crew member morale roll (GameBridge.HireWorker).</summary>
+        public const string HireWorker = "hire_worker";
 
-    /// <summary>Transfer losses on wellboat cohort moves (per source+destination).</summary>
-    public const string CohortTransfer = "cohort_transfer";
+        /// <summary>Transfer losses on wellboat cohort moves (per source+destination).</summary>
+        public const string CohortTransfer = "cohort_transfer";
 
-    /// <summary>Reserved for per-site delousing mortality once the treatment
-    /// model consumes randomness (DelouseSite).</summary>
-    public const string Delouse = "delouse";
-}
+        /// <summary>Treatment handling deaths: per-site + pen-index suffix
+        /// (DelouseSite, freshwater wellboat execution).</summary>
+        public const string Delouse = "delouse";
+
+        /// <summary>Weather system: temperature noise, wind, wave, Markov state transitions.</summary>
+        public const string Weather = "weather";
+
+        /// <summary>Market simulation: Ornstein-Uhlenbeck noise, weekly volatility, seasonality.</summary>
+        public const string Market = "market";
+
+        /// <summary>Monte Carlo price engine: multi-path simulation draws.</summary>
+        public const string MonteCarloPrice = "monte_carlo_price";
+
+        /// <summary>Competitor AI: strategy rolls, harvest timing, investment decisions.</summary>
+        public const string CompetitorAI = "competitor_ai";
+
+        /// <summary>Offshore farm: escape chance, escape count.</summary>
+        public const string OffshoreFarm = "offshore_farm";
+
+        /// <summary>RAS facility: temperature noise, capital cost variance.</summary>
+        public const string RASFacility = "ras_facility";
+
+        /// <summary>Stochastic disease engine: outbreak rolls, progression draws.</summary>
+        public const string StochasticDisease = "stochastic_disease";
+
+        /// <summary>Plankton bloom: bloom trigger, intensity, crash timing.</summary>
+        public const string PlanktonBloom = "plankton_bloom";
+
+        /// <summary>Genetics: mutation rolls, Mendelian inheritance draws.</summary>
+        public const string Genetics = "genetics";
+
+        /// <summary>SDE Growth Model: process noise in growth SDE.</summary>
+        public const string SDEGrowth = "sde_growth";
+
+        /// <summary>Vertical integration: construction timing variance, cost overruns.</summary>
+        public const string VerticalIntegration = "vertical_integration";
+
+        /// <summary>Acquisition system: target selection, valuation noise.</summary>
+        public const string Acquisition = "acquisition";
+
+        /// <summary>License auction: rival bid rolls, auction-openers (Phase 4.1).
+        /// Per-identity draws use suffix overloads: (auctionId, rivalId).</summary>
+        public const string LicenseAuction = "license_auction";
+
+        /// <summary>Stock market: price event generation, volatility draws.</summary>
+        public const string StockMarket = "stock_market";
+
+        /// <summary>Crisis capitalism: trigger rolls, severity draws.</summary>
+        public const string CrisisCapitalism = "crisis_capitalism";
+
+        /// <summary>Growth model: smolt weight spread, daily growth noise.</summary>
+        public const string Growth = "growth";
+
+        /// <summary>Storyteller: daily event chance, event/target picks.</summary>
+        public const string Storyteller = "storyteller";
+
+        /// <summary>Currency system: FX noise, intervention draws.</summary>
+        public const string Currency = "currency";
+
+        /// <summary>Market intelligence: forecast noise, news-event rolls.</summary>
+        public const string Intelligence = "intelligence";
+
+        /// <summary>Stakeholder factions: influence rolls, demand draws.</summary>
+        public const string Factions = "factions";
+    }
 
 /// <summary>
 /// A named RNG stream (SplitMix64 core). Returns uniform 53-bit doubles in
@@ -135,6 +196,8 @@ public sealed class SimRngStream
     internal void ImportState(ulong state) => _state = state;
 
     public double NextDouble() => (MixStep() >> 11) * (1.0 / 9007199254740992.0); // 2^53 grid
+
+    public float NextSingle() => (float)NextDouble();
 
     public int Next(int maxExclusive)
     {

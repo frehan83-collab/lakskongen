@@ -47,3 +47,7 @@ __pycache__/
 # Curated Steam capsules live in screenshots/steam_store/ and stay tracked.
 godot/screenshots/game/
 screenshots/qa/
+
+# Mod enable/disable state (generated at runtime by ModLoader).
+godot/mods/mods_config.json
+mods/mods_config.json
