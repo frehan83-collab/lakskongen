@@ -46,6 +46,42 @@ func start_new_game(player_name: String = "Player", starting_capital: int = 10_0
 	return true
 
 
+## QA-only: deterministic scenario start (fixed seed) for screenshot/headless
+## runs. Falls back to the unseeded path when the QA bridge is unavailable.
+func start_qa_scenario(scenario_id: String, seed: int) -> bool:
+	if not game_bridge:
+		push_error("SimBridge: Cannot start QA scenario - GameBridge not available")
+		return false
+	if game_bridge.has_method("StartQaScenario"):
+		var ok: bool = game_bridge.StartQaScenario(scenario_id, seed)
+		if ok and state != null:
+			state._refresh_state()
+		return ok
+	push_warning("SimBridge: StartQaScenario unavailable — falling back to start_new_game")
+	return start_new_game("Player", 10_000_000, scenario_id)
+
+
+## QA-only: inject an algal bloom at a site for the living-fjord visual state.
+func spawn_qa_bloom(site_id: String, severity: float = 0.7, duration_days: int = 21) -> Dictionary:
+	if game_bridge and game_bridge.has_method("SpawnQaBloom"):
+		return game_bridge.SpawnQaBloom(site_id, severity, duration_days)
+	return {"success": false, "message": "qa_bridge_unavailable"}
+
+
+## QA-only: set pen lice load for the living-fjord collar-tint state.
+func set_qa_pen_lice(site_id: String, lice_per_fish: float) -> Dictionary:
+	if game_bridge and game_bridge.has_method("SetQaPenLice"):
+		return game_bridge.SetQaPenLice(site_id, lice_per_fish)
+	return {"success": false, "message": "qa_bridge_unavailable"}
+
+
+## QA-only: clear all active blooms (paired control for the bloom readout).
+func clear_qa_blooms() -> Dictionary:
+	if game_bridge and game_bridge.has_method("ClearQaBlooms"):
+		return game_bridge.ClearQaBlooms()
+	return {"success": false, "message": "qa_bridge_unavailable"}
+
+
 ## Advance simulation by exactly 1 day
 func advance_day() -> void:
 	if game_bridge:

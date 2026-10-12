@@ -313,6 +313,10 @@ func _season_name(day: int) -> String: return Formatters.season_name(day)
 # ── Actions (delegated to SimActions) ─────────────────────────────────────────
 
 func start_new_game(player_name: String = "Player", starting_capital: int = 10_000_000, scenario_id: String = "default") -> bool: return _actions.start_new_game(player_name, starting_capital, scenario_id)
+func start_qa_scenario(scenario_id: String, seed: int) -> bool: return _actions.start_qa_scenario(scenario_id, seed)
+func spawn_qa_bloom(site_id: String, severity: float = 0.7, duration_days: int = 21) -> Dictionary: return _actions.spawn_qa_bloom(site_id, severity, duration_days)
+func set_qa_pen_lice(site_id: String, lice_per_fish: float) -> Dictionary: return _actions.set_qa_pen_lice(site_id, lice_per_fish)
+func clear_qa_blooms() -> Dictionary: return _actions.clear_qa_blooms()
 func advance_day() -> void: _actions.advance_day()
 func advance_days(days: int) -> void: _actions.advance_days(days)
 func set_paused(paused: bool) -> void: _actions.set_paused(paused)

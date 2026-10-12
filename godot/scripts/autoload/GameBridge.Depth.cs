@@ -69,7 +69,15 @@ public partial class GameBridge : Node
     /// applies the scenario's starting capital, and emits <c>ScenarioLoaded</c>.
     /// Returns true on success, false if unknown/locked or on error.
     /// </summary>
-    public bool StartScenario(string scenarioId)
+    public bool StartScenario(string scenarioId) => StartScenarioCore(scenarioId, seed: null);
+
+    /// <summary>
+    /// QA-only deterministic scenario start: fixed RNG seed so screenshot and
+    /// headless QA runs are reproducible. Not reachable from player UI.
+    /// </summary>
+    public bool StartQaScenario(string scenarioId, int seed) => StartScenarioCore(scenarioId, seed);
+
+    private bool StartScenarioCore(string scenarioId, int? seed)
     {
         if (string.IsNullOrWhiteSpace(scenarioId) || SimulationEngine == null)
             return false;
@@ -85,7 +93,7 @@ public partial class GameBridge : Node
                 GD.Print($"GameBridge.StartScenario: '{scenarioId}' unavailable (unknown or locked)");
                 return false;
             }
-            StartNewGame("Player", (int)candidate.StartingCapitalNOK);
+            StartNewGameInternal("Player", (int)candidate.StartingCapitalNOK, seed);
         }
 
         var scenario = SimulationEngine.Scenario!.GetScenario(scenarioId);
@@ -764,6 +772,101 @@ public partial class GameBridge : Node
             if (b.Severity01 > max) max = b.Severity01;
         }
         return Math.Min(max, 1.0);
+    }
+
+    /// <summary>
+    /// QA-only: inject an active algal bloom at a site (the same state the
+    /// scenario starting-bloom path creates). Deterministic id from site+day,
+    /// no RNG. Used by the screenshot harness to force the bloom visual state;
+    /// not reachable from player UI.
+    /// </summary>
+    public Godot.Collections.Dictionary SpawnQaBloom(string siteId, double severity01, int durationDays = 21)
+    {
+        var result = new Godot.Collections.Dictionary();
+        var state = SimulationEngine?.State;
+        var site = state?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        if (state == null || site == null)
+        {
+            result["success"] = false;
+            result["message"] = state == null ? "engine_not_ready" : "site_not_found";
+            return result;
+        }
+
+        state.ActiveBlooms ??= new List<LakskongenSim.Environment.BloomEvent>();
+        string bloomId = $"qa_bloom_{siteId}_{state.Day}";
+        bool existed = state.ActiveBlooms.Any(b => b.Id == bloomId);
+        if (!existed)
+        {
+            state.ActiveBlooms.Add(new LakskongenSim.Environment.BloomEvent
+            {
+                Id = bloomId,
+                Kind = "algae",
+                SiteId = siteId,
+                Severity01 = Math.Clamp(severity01, 0.0, 1.0),
+                StartDay = state.Day,
+                DurationDays = Math.Max(1, durationDays),
+            });
+        }
+        EmitSignal(SignalName.GameStateUpdated);
+        result["success"] = true;
+        result["message"] = existed ? "already_active" : "bloom_spawned";
+        result["id"] = bloomId;
+        result["severity"] = Math.Clamp(severity01, 0.0, 1.0);
+        return result;
+    }
+
+    /// <summary>
+    /// QA-only: set the sea-lice load on every pen of a site (the value the
+    /// per-site lice model evolves and the collar tint reads). Deterministic,
+    /// used by the screenshot harness to force the red-zone readout when the
+    /// scenario's semi-closed pens suppress natural growth. Not player-reachable.
+    /// </summary>
+    public Godot.Collections.Dictionary SetQaPenLice(string siteId, double licePerFish)
+    {
+        var result = new Godot.Collections.Dictionary();
+        var state = SimulationEngine?.State;
+        var site = state?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        if (state == null || site == null)
+        {
+            result["success"] = false;
+            result["message"] = state == null ? "engine_not_ready" : "site_not_found";
+            return result;
+        }
+
+        double clamped = Math.Clamp(licePerFish, 0.0, 10.0);
+        foreach (var pen in site.Pens)
+            pen.SeaLiceLoad = clamped;
+
+        EmitSignal(SignalName.GameStateUpdated);
+        result["success"] = true;
+        result["message"] = "lice_set";
+        result["site"] = siteId;
+        result["lice_per_fish"] = clamped;
+        return result;
+    }
+
+    /// <summary>
+    /// QA-only: clear ALL active blooms (the paired control for the bloom
+    /// readout screenshot — clear water vs tinted water). Not player-reachable.
+    /// </summary>
+    public Godot.Collections.Dictionary ClearQaBlooms()
+    {
+        var result = new Godot.Collections.Dictionary();
+        var state = SimulationEngine?.State;
+        if (state == null)
+        {
+            result["success"] = false;
+            result["message"] = "engine_not_ready";
+            return result;
+        }
+
+        int removed = state.ActiveBlooms?.Count ?? 0;
+        state.ActiveBlooms?.Clear();
+        EmitSignal(SignalName.GameStateUpdated);
+        result["success"] = true;
+        result["message"] = "blooms_cleared";
+        result["removed"] = removed;
+        return result;
     }
 
     /// <summary>

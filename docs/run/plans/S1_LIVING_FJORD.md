@@ -1,5 +1,12 @@
 # S1 — Living fjord readout (W2 first item) — execution plan
 
+> **STATUS (2026-10-12, session 1): DONE — gate PASSED.** Shipped: QA forcing
+> bridge methods (`StartQaScenario`/`SetQaPenLice`/`SpawnQaBloom`/`ClearQaBlooms`),
+> collar-tint rendering fix (per-pen material; instance uniforms never rendered),
+> harness hardening. Evidence: `docs/run/evidence/session_01_s1_frames.txt`
+> (lice pair phash 16, bloom pair phash 16, run14 capture set). Baseline
+> promotion + repeatability control deferred to W2 close.
+
 *Draft written session 0 (2026-10-12). Revisit after W1 decision memos. Gate: G-SHOT
 (forced-state frames distinct) + G-TEST (data test that visuals follow sim values).*
 

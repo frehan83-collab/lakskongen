@@ -37,6 +37,15 @@ const ZOOM_UNDERWATER := 3
 const QA_SCENARIO_ID := "po3_red_sone"
 const QA_STARTING_CAPITAL := 10_000_000
 const QA_DAYS_TO_SIMULATE := 12
+# Fixed RNG seed for the QA pass: makes every harness run replay identically
+# (lice trajectory, weather, market) so screenshot diffs are meaningful.
+const QA_SEED := 20261012
+
+# S1 living-fjord forced-state shots: set the QA lice load to the red-collar
+# threshold (FishPenManager: >=0.2 amber, >=0.5 critical/red).
+const LICE_FORCE_TARGET := 0.6
+const LICE_STEP_DAYS := 10
+const LICE_MAX_DAYS := 150
 
 var _project_dir_abs: String = ""
 var _captured: Array[String] = []
@@ -86,6 +95,8 @@ func _run_sequence() -> void:
 	await _capture_fjord_farm()
 	await _capture_fjord_night_aurora()
 	await _capture_fjord_storm()
+	await _capture_fjord_lice_red_zone()
+	await _capture_fjord_bloom()
 	await _capture_fjord_underwater()
 	await _capture_fjord_diagnostics()
 
@@ -130,7 +141,13 @@ func _boot_game() -> void:
 
 	var sim := get_node_or_null("/root/SimBridge")
 	if sim != null:
-		sim.start_new_game("Player", QA_STARTING_CAPITAL, QA_SCENARIO_ID)
+		# Deterministic QA start (fixed seed); fall back to the unseeded path
+		# when the QA bridge is unavailable (older builds).
+		var started := false
+		if sim.has_method("start_qa_scenario"):
+			started = sim.start_qa_scenario(QA_SCENARIO_ID, QA_SEED)
+		if not started:
+			sim.start_new_game("Player", QA_STARTING_CAPITAL, QA_SCENARIO_ID)
 
 	# Unlock advanced panels for this QA pass: skip the C# tutorial so TutorialState
 	# reports complete (it re-derives phase/complete from SimBridge every frame,
@@ -329,6 +346,106 @@ func _capture_fjord_underwater() -> void:
 	await _shoot("11_fjord_underwater")
 
 
+# ── S1 forced-state shots (living fjord readout) ──────────────────────────────
+
+## Max lice_per_fish across pens — the same value FishPenManager reads for the
+## collar tint (tints at >=0.2, stronger at >=0.5).
+func _max_lice_per_fish() -> float:
+	var sim := get_node_or_null("/root/SimBridge")
+	if sim == null or not sim.has_method("get_all_pens"):
+		return 0.0
+	var best := 0.0
+	for pen in sim.get_all_pens():
+		best = maxf(best, float(pen.get("lice_per_fish", 0.0)))
+	return best
+
+
+## First player site id (the harness stages state on the first pen site).
+func _first_pen_site_id() -> String:
+	var sim := get_node_or_null("/root/SimBridge")
+	if sim == null or not sim.has_method("get_all_pens"):
+		return ""
+	var pens: Array = sim.get_all_pens()
+	return str(pens[0].get("id", "")) if not pens.is_empty() else ""
+
+
+## Red-zone lice state: pause the sim, set the QA lice load, capture, resume.
+## Paused = no decay between set and capture (the live sim auto-treats >0.15).
+func _capture_fjord_lice_red_zone() -> void:
+	_hide_ui()
+	var sim := get_node_or_null("/root/SimBridge")
+	if sim == null:
+		push_warning("[ScreenshotHarness] lice shot: SimBridge unavailable — skipped")
+		return
+	var gb := get_node_or_null("/root/GameBridge")
+	var site_id := _first_pen_site_id()
+	if site_id == "":
+		push_warning("[ScreenshotHarness] lice shot: no site — skipped")
+		return
+	# Live-sync ON: SetQaPenLice emits state_updated → FjordVistaBridge repaints pens.
+	var vista := _find(_game, "FjordVistaBridge")
+	if vista != null:
+		vista.set("sim_weather_enabled", true)
+	if sim.has_method("set_paused"):
+		sim.set_paused(true)
+	var lice := _max_lice_per_fish()
+	if gb != null and gb.has_method("SetQaPenLice"):
+		var res: Dictionary = gb.SetQaPenLice(site_id, LICE_FORCE_TARGET)
+		await _wait(1.2)
+		lice = _max_lice_per_fish()
+		print("[ScreenshotHarness] lice force: %.3f via QA set (site %s, %s)" % [lice, site_id, str(res.get("message", ""))])
+	else:
+		var days := 0
+		while lice < LICE_FORCE_TARGET and days < LICE_MAX_DAYS:
+			sim.advance_days(LICE_STEP_DAYS)
+			days += LICE_STEP_DAYS
+			lice = _max_lice_per_fish()
+		print("[ScreenshotHarness] lice force: max %.3f after +%d days (target %.2f)" % [lice, days, LICE_FORCE_TARGET])
+	# Stage weather/time/zoom via the proven path — it also re-frames the camera
+	# after the underwater shot (zoom-only calls left it parked).
+	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FARM)
+	await _wait(1.0)
+	_hide_ui()
+	await _shoot("12_fjord_lice_red_zone")
+	if sim.has_method("set_paused"):
+		sim.set_paused(false)
+
+
+## Bloom pair (cleared vs injected), sim paused so the tint holds between shots.
+func _capture_fjord_bloom() -> void:
+	_hide_ui()
+	var sim := get_node_or_null("/root/SimBridge")
+	var gb := get_node_or_null("/root/GameBridge")
+	var site_id := _first_pen_site_id()
+	if gb == null or site_id == "" or not gb.has_method("SpawnQaBloom"):
+		push_warning("[ScreenshotHarness] bloom shot: QA injection unavailable (site=%s) — skipped" % site_id)
+		return
+	var vista := _find(_game, "FjordVistaBridge")
+	if vista != null:
+		vista.set("sim_weather_enabled", true)
+	if sim != null and sim.has_method("set_paused"):
+		sim.set_paused(true)
+	var sev := float(gb.GetMaxBloomSeverity()) if gb.has_method("GetMaxBloomSeverity") else 0.0
+	if gb.has_method("ClearQaBlooms"):
+		var cleared: Dictionary = gb.ClearQaBlooms()
+		await _wait(1.5)
+		sev = float(gb.GetMaxBloomSeverity()) if gb.has_method("GetMaxBloomSeverity") else 0.0
+		print("[ScreenshotHarness] bloom clear: removed %s -> severity %.2f" % [str(cleared.get("removed", "?")), sev])
+	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FJORD)
+	await _wait(0.8)
+	_hide_ui()
+	await _shoot("13_fjord_no_bloom")
+	var res: Dictionary = gb.SpawnQaBloom(site_id, 0.8, 21)
+	await _wait(1.5)
+	var after := float(gb.GetMaxBloomSeverity()) if gb.has_method("GetMaxBloomSeverity") else 0.0
+	print("[ScreenshotHarness] bloom force: %.2f -> %.2f (site %s, %s)" % [sev, after, site_id, str(res.get("message", ""))])
+	await _wait(0.8)
+	_hide_ui()
+	await _shoot("13b_fjord_bloom")
+	if sim != null and sim.has_method("set_paused"):
+		sim.set_paused(false)
+
+
 func _configure_env(season: float, hour: float, weather: int, aurora: float, zoom: int) -> void:
 	if _env == null or not is_instance_valid(_env):
 		return
@@ -447,8 +564,28 @@ func _show_tab(tab_id: String) -> void:
 
 
 func _shoot(shot_name: String) -> void:
-	# Wait for a fully drawn frame before grabbing the viewport texture.
-	await RenderingServer.frame_post_draw
+	# Raise the window and wait (bounded) for a fully drawn frame before
+	# grabbing the viewport texture. macOS can throttle rendering for occluded
+	# windows — without the bound, frame_post_draw may never fire and the
+	# harness hangs (seen in session 1).
+	DisplayServer.window_move_to_foreground()
+	# Belt & braces: enforce UI-hidden right before the grab. S1 session:
+	# some path re-showed the UI between the per-shot _hide_ui() and the
+	# capture; hide again here and log the effective state.
+	var ui := _find(_game, "UILayer")
+	var ui_vis := "missing"
+	if ui != null:
+		ui.visible = false
+		ui_vis = str(ui.visible)
+	print("[ScreenshotHarness] _shoot(%s) UILayer.visible=%s after force-hide" % [shot_name, ui_vis])
+	var frame_done := [false]
+	RenderingServer.frame_post_draw.connect(func(): frame_done[0] = true, CONNECT_ONE_SHOT)
+	var waited := 0.0
+	while not frame_done[0] and waited < 3.0:
+		await get_tree().create_timer(0.1).timeout
+		waited += 0.1
+	if not frame_done[0]:
+		push_warning("[ScreenshotHarness] frame wait timed out for '%s' — capturing last drawn frame" % shot_name)
 
 	var vp := get_viewport()
 	if vp == null:

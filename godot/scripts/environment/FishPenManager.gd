@@ -474,15 +474,22 @@ func _set_ring_color(pen_id: String, color: Color) -> void:
 	if not (pen_id in _pens):
 		return
 	_pens[pen_id]["ring_color"] = color
-	# Per-instance tint: the collar material is a shared .tres, so a plain
-	# albedo write would recolor every pen (or be swallowed by
-	# material_override). The shader's instance uniform keeps it per-pen.
+	# Per-pen tint via a duplicated ShaderMaterial (the .tres is shared, so a
+	# plain parameter write would recolor every pen). The duplicate is cached
+	# on the pen data and re-applied after the ghost/stocked material swaps.
 	var cage = _pens[pen_id]["cage"]
 	if cage:
 		var collar = cage.get_node_or_null("Collar") as MeshInstance3D
 		if collar:
-			collar.set_instance_shader_parameter("lice_tint",
-				Vector4(color.r, color.g, color.b, 1.0))
+			var tint_mat: ShaderMaterial = _pens[pen_id].get("tint_mat")
+			var base: Material = collar.material_override as Material
+			if base is ShaderMaterial and (tint_mat == null or tint_mat.resource_path == ""):
+				tint_mat = (base as ShaderMaterial).duplicate() as ShaderMaterial
+				_pens[pen_id]["tint_mat"] = tint_mat
+			if tint_mat != null:
+				collar.material_override = tint_mat
+				tint_mat.set_shader_parameter("lice_tint",
+					Vector4(color.r, color.g, color.b, 1.0))
 
 
 func _on_pen_input_event(_camera: Node, event: InputEvent, _position: Vector3, _normal: Vector3, _shape_idx: int, pen_id: String) -> void:

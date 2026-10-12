@@ -137,13 +137,25 @@ public partial class GameBridge : Node
 
     /// <summary>Initialize and start a new game.</summary>
     public void StartNewGame(string playerName, int startingCapital = 10_000_000)
+        => StartNewGameInternal(playerName, startingCapital, seed: null);
+
+    /// <summary>
+    /// Initialize and start a new game with an explicit RNG seed. QA/screenshot
+    /// path only (deterministic runs); players always get a fresh random seed
+    /// through <see cref="StartNewGame"/>. Not reachable from player UI.
+    /// </summary>
+    public void StartQaNewGame(string playerName, int startingCapital, int seed)
+        => StartNewGameInternal(playerName, startingCapital, seed);
+
+    private void StartNewGameInternal(string playerName, int startingCapital, int? seed)
     {
         SimulationEngine.FinanceManager = new FinanceManager(startingCapital);
         // S10: the live game was never seeded — every subsystem fell back to
-        // unseeded System.Random. Pick one seed, persist it on the state.
-        int seed = new System.Random().Next();
-        SimulationEngine.Initialize(seed: seed);
-        SimulationEngine.State.RandomSeed = seed;
+        // unseeded System.Random. Pick one seed, persist it on the state;
+        // the QA path passes a fixed seed so screenshot/headless runs replay.
+        int resolvedSeed = seed ?? new System.Random().Next();
+        SimulationEngine.Initialize(seed: resolvedSeed);
+        SimulationEngine.State.RandomSeed = resolvedSeed;
 
         // P11: a new game starts with no in-memory mitigation installs and a
         // clean serializable mirror (the registry outlives Initialize).
@@ -171,7 +183,7 @@ public partial class GameBridge : Node
         if (!_isPaused)
             _simulationTimer.Start();
 
-        GD.Print($"GameBridge: new game for '{playerName}', capital {startingCapital:N0} NOK");
+        GD.Print($"GameBridge: new game for '{playerName}', capital {startingCapital:N0} NOK, seed {resolvedSeed}");
     }
 
     /// <summary>Restore a saved game state.</summary>
