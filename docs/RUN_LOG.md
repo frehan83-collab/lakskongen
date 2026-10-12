@@ -57,10 +57,10 @@ blocked, and stop — editing the scoreboard is a human gate.
 
 ## 4. Status header — EDIT IN PLACE
 
-- **Run phase:** `W0 — in progress (session 0)`
-- **Active claim:** `session 0 — W0 ignition: baseline freeze @ bc46c90; MCP capabilities doc; Briefs A–E dispatched; lakskongen-feature + lakskongen-screenshot-evidence authored+validated`
+- **Run phase:** `W0 complete / W1 complete (session 0); next: W2 — S1 living fjord readout`
+- **Active claim:** `(none — session 1 claims W2/S1; cold-start plan: docs/run/plans/S1_LIVING_FJORD.md)`
 - **Gate state:** `no human gates hit`
-- **Last verified artifact:** `HEAD bc46c90; CI 15/15 @ 2026-10-12 (session 0, raw tail in docs/run/evidence/)`
+- **Last verified artifact:** `CI 15/15 on commit 673b6c2 (session 0; raw tails in docs/run/evidence/session_00_ci_*.txt); godot MCP auth verified post-CI: python3 tools/mcp_bridge_alias.py → exit 0 ("auth probe authed")`
 - **Baseline freeze:** `main suite 684 passed / 1 skipped (session 0 rerun, raw log docs/run/evidence/session_00_dotnet_test.txt); CI 15/15; save-hash: comparative gate green (ExactSaveHashTests); golden SHA artifact deferred to W4 save-fuzz`
 
 ### Session-0 note
@@ -74,13 +74,14 @@ deliverable, message format: `run: <wave> <item> — <one-line outcome>`.
 
 | # | Date | Wave | Claim | Evidence (path + cmd + result) | Audit of prior | CI |
 |---|------|------|-------|-------------------------------|----------------|----|
+| 0 | 2026-10-12 | W0+W1 | ignition: baseline freeze + MCP repair + Briefs A–E + 2 skills + W1 decisions | commits `bc46c90`, `8e8a272`, `673b6c2`; `docs/run/evidence/session_00_ci_*.txt` (CI 15/15 ×3); `docs/run/evidence/session_00_dotnet_test.txt` (684P/1S); `tools/mcp_bridge_alias.py` → exit 0 `auth probe authed` post-CI; `docs/research/MCP_CAPABILITIES.md` §5 raw logs | — (first session; audited inherited run-prep tree: CI green, 684/1) | PASSED 15/15 |
 
 ## 6. Wave register (pre-register BEFORE the wave)
 
 | Wave | Done-criteria (pre-registered) | Status | Evidence/Report |
 |------|-------------------------------|--------|-----------------|
-| W0 | MCP inventory doc; Briefs A–E dispatched; `lakskongen-feature` + `lakskongen-screenshot-evidence` authored+validated; baseline frozen | in progress (session 0) | |
-| W1 | Decision memos for R1–R4; skills-gap list; plan wave order updated if findings demand | not started | |
+| W0 | MCP inventory doc; Briefs A–E dispatched; `lakskongen-feature` + `lakskongen-screenshot-evidence` authored+validated; baseline frozen | **complete (session 0)** | session 0 report; `docs/research/MCP_CAPABILITIES.md`; commits bc46c90, 8e8a272, 673b6c2 |
+| W1 | Decision memos for R1–R4; skills-gap list; plan wave order updated if findings demand | **complete (session 0)** | `docs/research/W1_DECISIONS.md` (R1–R5); `SKILLS_AUDIT.md` §3 author-order; plan companion-doc note |
 | W2 | Living fjord frames distinct per forced state (lice/red, bloom, storm, night); time-series replaces gauge cluster; a11y audit passes | not started | |
 | W3 | Chosen datasets embedded offline with provenance + license notes; player-path test shows band movement | not started | |
 | W4 | 3-OS exports as CI artifacts; save fuzz 10k clean; version stamping; depot script written | not started | |
@@ -97,7 +98,8 @@ deliverable, message format: `run: <wave> <item> — <one-line outcome>`.
 | 2026-10-12 | Deferred the durable fix (env-wrap `GODOT_MCP_PROJECT_PATH` in `opencode.json`) to the next natural harness restart | Mid-session opencode service restart risks the live run; alias tool covers the gap | Yes |
 | 2026-10-12 | Killed two stale Godot processes (stuck headless `terrain_stats` from Sun; Friday editor) during the MCP repair | Both held ports/registry state; editor relaunched for a fresh MCP session | No (processes only) |
 | 2026-10-12 | Parallel research runs via harness `subagent` (Briefs A–E), not claude-devfleet | No devfleet MCP tools registered in this environment; run plan §3.2 specifies subagents | Yes |
-| 2026-10-12 | After every `./tools/ci.sh` run, re-run `python3 tools/mcp_bridge_alias.py` before using godot MCP tools | CI boots headless Godot instances that rebuild `projects.json` from `entries/` | Yes |
+| 2026-10-12 | After every `./tools/ci.sh` run, re-run `python3 tools/mcp_bridge_alias.py` before using godot MCP tools (token now survives CI; `entries/` churn remains) | CI's editor-boot steps are sandboxed via `GODOT_MCP_TOKEN_PATH` in `tools/ci.sh`; headless editors still register/deregister the shared entry file | Yes |
+| 2026-10-12 | W1 decisions are normative for wave order: S1→S2→S3 (W2), S4 = CMEMS/MET/Fiskeridir/BarentsWatch/ERA5 snapshots (W3), engine pinned 4.7.2, FFT ocean parked, Next Fest target 2027-02-22 | `docs/research/W1_DECISIONS.md` (§6 plan adjustments); owner gates added for Next Fest registration + price band | Yes |
 
 ## 8. Blocked / dead ends / disputes
 
@@ -116,7 +118,20 @@ deliverable, message format: `run: <wave> <item> — <one-line outcome>`.
 | Legal: EULA, privacy, AI-content disclosure, ratings | pending | review |
 | Push to remote | not started | standing approval or per-push review |
 
-## 10. Session report template (copy per session)
+## 10. Session reports (newest at top; template at the end)
+
+### Session 0: W0+W1 — ignition, MCP repair, research landed, decisions
+- **Shipped:** baseline `bc46c90` (run-prep tree); `8e8a272` (MCP inventory + bridge-repair tool + 2 skills); `673b6c2` (five research docs, W1 decisions, S1 cold-start plan, CI token sandboxes, alias tool v2, AGENTS/run-plan pointers)
+- **Evidence:** `./tools/ci.sh` → CI PASSED 15/15 (raw tails: `docs/run/evidence/session_00_ci_final_summary.txt`, `…_postfix_summary.txt`, `…_final2_summary.txt`); `dotnet test LakskongenSim.sln` → 684 passed / 1 skipped / 685 (`session_00_dotnet_test.txt`); MCP: `python3 tools/mcp_bridge_alias.py` → `OK: alias written …` + `OK: auth probe authed` exit 0 after a full CI (no editor restart); native tool calls raw results in `docs/research/MCP_CAPABILITIES.md` §2/§5
+- **Audit:** first session — no prior claim to audit; instead audited the inherited state (CI green, 684/1 matches RUN_LOG baseline line)
+- **CI:** PASSED 15/15 ×3 (start; post-export-sandbox; post-both-sandboxes)
+- **Next:** session 1 claims **W2/S1 living fjord readout** — cold-start plan `docs/run/plans/S1_LIVING_FJORD.md`; gate G-SHOT (forced-state frames: lice/red, bloom, storm, night; md5 + phash ≥9/16) + G-TEST
+- **Blocked:** none run-blocking. Note: `tools.godot.*` vanished from this session's tool list after bridge-process recycling (token/probe healthy; expected back next session start — Python WS fallback documented in MCP_CAPABILITIES §3)
+- **Gates:** none hit. Owner queue additions from W1: Next Fest registration (deadline 2027-01-10), launch price band ($19.99–24.99), any paid MCP/API sign-off
+
+---
+
+### Template (copy per session)
 
 ```markdown
 ### Session <#>: <wave> — <claim>
