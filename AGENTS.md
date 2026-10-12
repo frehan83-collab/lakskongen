@@ -19,7 +19,7 @@ lakskongen/
 │   ├── Events/                  # CrisisCapitalismSystem, Event types
 │   ├── Farm/                    # SeaSite, FishPopulation, Biology
 │   ├── Market/                  # MarketSimulation, PriceCouncil
-│   └── Tests/                   # xUnit tests (667 passing)
+│   └── Tests/                   # xUnit tests (684 passing / 1 skipped)
 ├── godot/                       # Godot 4.7.2 Mono project
 │   ├── scripts/
 │   │   ├── autoload/            # GameBridge partials (Core, Farm, Market, Depth, Economy, Licence, Content)
@@ -241,6 +241,7 @@ func my_bridge_method(arg: String) -> Dictionary: return _proxies.my_bridge_meth
 - **RNG divergence**: Check `SimRng.ImportStates` only imports keys already in `_streams` — streams MUST be created eagerly in `Initialize`
 - **Bridge contract test fails**: `tests/test_bridge_contract.py` parses all `GameBridge*.cs` — new methods must be in partials
 - **Save hash changes**: Any new serializable field in `GameState` changes hash — update golden files or accept comparative test
+- **godot MCP broken (esp. after CI)**: run `python3 tools/mcp_bridge_alias.py` — expect `OK: alias written …` + `OK: auth probe authed` (exit 0). Exit 2 = on-disk token ≠ editor memory → restart the Godot editor, then re-run. Root cause + full procedure: `docs/research/MCP_CAPABILITIES.md` §3
 
 ## Performance Targets
 - 60 FPS at 1440p on M1 Pro (Metal 3.2 Forward+)

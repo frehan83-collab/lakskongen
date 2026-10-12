@@ -203,7 +203,12 @@ step_gdscript_scan() {
     fi
 
     echo "   Using Godot: $GODOT_BIN"
-    "${timeout_cmd[@]}" "$GODOT_BIN" --headless --path "$project" \
+    # Sandbox the MCP session token: --editor boots the toolkit plugin, which
+    # would otherwise rotate the live editor's shared token (see
+    # docs/research/MCP_CAPABILITIES.md §3). The scan itself needs no token.
+    local mcp_token_sandbox
+    mcp_token_sandbox="$(mktemp -d -t lakskongen-mcp-token.XXXXXX)/mcp_token"
+    "${timeout_cmd[@]}" env GODOT_MCP_TOKEN_PATH="$mcp_token_sandbox" "$GODOT_BIN" --headless --path "$project" \
         --editor --quit-after 3 >"$log" 2>&1 || rc=$?
 
     if grep -qiE "parse error|script error" "$log"; then
@@ -350,7 +355,15 @@ step_godot_mcp_export_verify() {
     fi
 
     echo "   Running export verification..."
-    if ! GODOT_BIN="$GODOT_BIN" "$python_bin" "$script" export-verify; then
+    # Sandbox the MCP session token for this headless-editor export: an export
+    # boots a headless editor which would otherwise overwrite the live editor's
+    # published token (same per-project user:// path) and break its MCP bridge
+    # until relaunch. The exported game never needs the live token, so point it
+    # at a throwaway file. (Registry entry churn is handled post-CI by
+    # tools/mcp_bridge_alias.py --repair.)
+    local mcp_token_sandbox
+    mcp_token_sandbox="$(mktemp -d -t lakskongen-mcp-token.XXXXXX)/mcp_token"
+    if ! GODOT_BIN="$GODOT_BIN" GODOT_MCP_TOKEN_PATH="$mcp_token_sandbox" "$python_bin" "$script" export-verify; then
         echo "   Export verification failed."
         STEP_STATUS="FAIL"
         return 1

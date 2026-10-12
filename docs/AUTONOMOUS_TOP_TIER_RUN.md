@@ -1,7 +1,7 @@
 # Autonomous Top-Tier Run — Mission Plan
 
 *Created: 2026-10-12 · Status: READY TO EXECUTE · Scale: multi-wave, ~30–40 agent sessions*
-*Companion docs: `docs/NEXT_LEVEL_PLAN.md` (phase roadmap), `docs/RESEARCH_TOP_TIER_BENCHMARK.md` (benchmark evidence), `AGENTS.md` (engineering SSOT)*
+*Companion docs: `docs/NEXT_LEVEL_PLAN.md` (phase roadmap), `docs/RESEARCH_TOP_TIER_BENCHMARK.md` (benchmark evidence), `AGENTS.md` (engineering SSOT), `docs/research/W1_DECISIONS.md` (R1–R5 decisions + wave adjustments — normative for wave order)*
 
 ---
 

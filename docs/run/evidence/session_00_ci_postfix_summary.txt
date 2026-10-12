@@ -1,0 +1,30 @@
+  "command": "export-verify"
+}
+   Export verification passed.
+▶ Mod validation + cross-reference checks
+════════════════════════════════════════════════════════════
+  Lakskongen Mod Validation (Phase 4.6)
+════════════════════════════════════════════════════════════
+
+  Scanning: godot/mods
+  ✅ All mods valid!
+
+=================== CI SUMMARY ===================
+  PASS  dotnet build LakskongenSim.sln
+  PASS  dotnet build godot/LakskongenGame.csproj
+  PASS  dotnet test LakskongenSim.sln
+  PASS  pytest tests/ (bridge contract)
+  PASS  Performance benchmark (perf gate)
+  PASS  Design token sync check
+  PASS  Design token drift check
+  PASS  Validate JSON data + mod manifests
+  PASS  Scene load validation
+  PASS  Headless GDScript parse scan
+  PASS  Blender asset pipeline verification
+  PASS  Godot MCP: Autoload audit
+  PASS  Godot MCP: Shader check
+  PASS  Godot MCP: Export verify
+  PASS  Mod validation + cross-reference checks
+==================================================
+
+CI PASSED
