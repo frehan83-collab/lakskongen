@@ -2,6 +2,7 @@
 baseline-update — Promote current screenshots to baseline with git commit.
 """
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path

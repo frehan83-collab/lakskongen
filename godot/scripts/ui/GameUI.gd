@@ -25,7 +25,7 @@ class TabDefinition:
 var _tabs: Array[TabDefinition] = []
 var _tab_buttons: Dictionary = {} # id -> Button
 var _current_panel: Control = null
-var _active_tab_id: String = "dashboard"
+var _active_tab_id: String = ""
 var _panel_cache: Dictionary = {} # id -> Control (cached panel instances)
 
 # ── Autoload References ───────────────────────────────────────────────────────

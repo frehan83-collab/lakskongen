@@ -54,3 +54,6 @@ artifacts/
 # Mod enable/disable state (generated at runtime by ModLoader).
 godot/mods/mods_config.json
 mods/mods_config.json
+
+# Godot import metadata for the tracked visual baseline (regenerated locally).
+godot/screenshots/baseline/*.import

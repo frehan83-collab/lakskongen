@@ -80,6 +80,7 @@ func _run_sequence() -> void:
 	await _boot_game()
 
 	await _capture_dashboard()
+	await _capture_ui_scale_pairs()
 	await _capture_telemetry()
 	await _capture_map_overlay()
 	await _capture_finance()
@@ -99,9 +100,98 @@ func _run_sequence() -> void:
 	await _capture_fjord_bloom()
 	await _capture_fjord_underwater()
 	await _capture_fjord_diagnostics()
+	await _audit_a11y_targets()
 
 	_print_summary()
 	get_tree().quit(0)
+
+
+# ── S3 accessibility: ui_scale regression pair + interactive-target audit ─────
+
+const A11Y_MIN_TARGET := 44.0
+const CLICKABLE_CLASSES := ["Button", "CheckBox", "CheckButton", "OptionButton", "LinkButton", "TextureButton", "MenuButton"]
+
+## Implements Phase 5.5 #4's accessibility floor checks on the live UI:
+##  * dashboard at 80% / 125% UI scale (layout must not break),
+##  * every tab's clickable controls measured against the 44x44 target rule;
+##    violations are printed and written to screenshots/game/a11y_targets.json.
+func _capture_ui_scale_pairs() -> void:
+	var win := get_window()
+	if win == null:
+		return
+	win.content_scale_factor = 0.8
+	await _wait(0.8)
+	await _shoot("03b_scale80_dashboard")
+	win.content_scale_factor = 1.25
+	await _wait(0.8)
+	await _shoot("03c_scale125_dashboard")
+	win.content_scale_factor = 1.0
+	await _wait(0.5)
+
+
+func _audit_a11y_targets() -> void:
+	var tab_ids := ["dashboard", "telemetry", "map", "finance", "crew", "contracts", "offshore", "carbon", "pens"]
+	var total := 0
+	var violations: Array = []
+	for tab_id in tab_ids:
+		await _show_tab(tab_id)
+		await _wait(0.4)
+		var root: Node = _find(_game, "Panel_" + tab_id)
+		if root == null:
+			root = _game
+		var controls: Array[Control] = []
+		_collect_clickables(root, controls)
+		for c in controls:
+			total += 1
+			var s := c.size
+			if minf(s.x, s.y) < A11Y_MIN_TARGET and c.is_visible_in_tree():
+				violations.append({
+					"panel": tab_id, "class": c.get_class(), "name": str(c.name),
+					"w": int(s.x), "h": int(s.y),
+				})
+	# HUD buttons (always present).
+	if _ui_layer != null:
+		var hud_controls: Array[Control] = []
+		var hud := _find(_game, "HUD")
+		if hud != null:
+			_collect_clickables(hud, hud_controls)
+		for c in hud_controls:
+			total += 1
+			if minf(c.size.x, c.size.y) < A11Y_MIN_TARGET and c.is_visible_in_tree():
+				violations.append({
+					"panel": "hud", "class": c.get_class(), "name": str(c.name),
+					"w": int(c.size.x), "h": int(c.size.y),
+				})
+	# GameUI chrome (tab bar, footer buttons) — panels are children of GameUI,
+	# so scanning it also re-covers the active panel; duplicates are harmless.
+	var gameui := _find(_game, "GameUI")
+	if gameui != null:
+		var ui_controls: Array[Control] = []
+		_collect_clickables(gameui, ui_controls)
+		for c in ui_controls:
+			total += 1
+			if minf(c.size.x, c.size.y) < A11Y_MIN_TARGET and c.is_visible_in_tree():
+				violations.append({
+					"panel": "gameui", "class": c.get_class(), "name": str(c.name),
+					"w": int(c.size.x), "h": int(c.size.y),
+				})
+	print("[ScreenshotHarness] a11y targets: %d interactive controls, %d under %.0fpx" % [total, violations.size(), A11Y_MIN_TARGET])
+	for v in violations.slice(0, 20):
+		print("[ScreenshotHarness] a11y small target: %s/%s %s %dx%d" % [v["panel"], v["name"], v["class"], v["w"], v["h"]])
+	var f := FileAccess.open(PROJECT_SCREENSHOT_DIR.path_join("a11y_targets.json"), FileAccess.WRITE)
+	if f != null:
+		f.store_string(JSON.stringify({"min_target": A11Y_MIN_TARGET, "total": total, "violations": violations}, "\t"))
+		f.close()
+
+
+func _collect_clickables(node: Node, out: Array[Control]) -> void:
+	for child in node.get_children():
+		if child is Control:
+			var c := child as Control
+			if c is BaseButton or c.get_class() in CLICKABLE_CLASSES:
+				if c.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+					out.append(c)
+		_collect_clickables(child, out)
 
 
 func _capture_main_menu() -> void:
@@ -164,6 +254,11 @@ func _boot_game() -> void:
 	# shots show cages + fish instead of empty water (zoom presets apply
 	# per shot on top of this focus point).
 	_focus_camera_on_first_pen()
+	# Pinned-state QA (S3 control): freeze the sim clock after the boot state so
+	# UI numbers / market / alerts are reproducible run-to-run. Sections that
+	# need days move it explicitly (advance_days / QA forcing).
+	if sim != null and sim.has_method("set_paused"):
+		sim.set_paused(true)
 	await _wait(2.0)
 
 
@@ -415,11 +510,9 @@ func _capture_fjord_lice_red_zone() -> void:
 	await _wait(1.0)
 	_hide_ui()
 	await _shoot("12_fjord_lice_red_zone", true)
-	if sim.has_method("set_paused"):
-		sim.set_paused(false)
 
 
-## Bloom pair (cleared vs injected), sim paused so the tint holds between shots.
+## Bloom pair (cleared vs injected), sim pinned so the tint holds between shots.
 func _capture_fjord_bloom() -> void:
 	_hide_ui()
 	var sim := get_node_or_null("/root/SimBridge")
@@ -450,8 +543,6 @@ func _capture_fjord_bloom() -> void:
 	await _wait(0.8)
 	_hide_ui()
 	await _shoot("13b_fjord_bloom", true)
-	if sim != null and sim.has_method("set_paused"):
-		sim.set_paused(false)
 
 
 func _configure_env(season: float, hour: float, weather: int, aurora: float, zoom: int) -> void:

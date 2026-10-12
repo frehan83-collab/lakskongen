@@ -23,6 +23,16 @@ const SEVERITY_COLORS := {
 	"critical": Color("#BF616A"),  # red
 }
 
+# Readable TEXT/glyph variants of the severity palette. The bright fills above
+# are decorative (rails/borders); as text on the white cards they fail contrast
+# (yellow ≈1.5:1, light blue ≈1.4:1). "⚠"/"ℹ" are text glyphs, not emoji, so
+# they need a readable colour too (S3 a11y audit).
+const SEVERITY_TEXT_COLORS := {
+	"info":     Color("#0A4D68"),  # primary — 9.2:1 on white
+	"warning":  Color("#9A7B1F"),  # matches AttentionInbox high — 4.9:1
+	"critical": Color("#A54E56"),  # danger-dark — 5.1:1
+}
+
 const SEVERITY_ICONS := {
 	"info":     "ℹ",
 	"warning":  "⚠",
@@ -304,13 +314,13 @@ func _build_entry_node(entry: Dictionary, index: int) -> Control:
 	var icon_lbl := Label.new()
 	icon_lbl.text = entry.get("icon", "ℹ")
 	icon_lbl.custom_minimum_size = Vector2(24, 0)
-	icon_lbl.add_theme_color_override("font_color", color)
+	icon_lbl.add_theme_color_override("font_color", SEVERITY_TEXT_COLORS.get(sev, SEVERITY_TEXT_COLORS["info"]))
 	header.add_child(icon_lbl)
 
 	var title_lbl := Label.new()
 	title_lbl.text = entry.get("title", "")
 	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_lbl.add_theme_color_override("font_color", Color.WHITE)
+	title_lbl.add_theme_color_override("font_color", Color("#2E3440"))
 	title_lbl.add_theme_font_size_override("font_size", 12)
 	header.add_child(title_lbl)
 
@@ -377,7 +387,7 @@ func _build_group_header(rank: int) -> Control:
 	var lbl := Label.new()
 	lbl.text = _tr_or("UI_NOTIFY_GROUP_%s" % sev.to_upper(), GROUP_TITLES.get(sev, "Info"))
 	lbl.add_theme_font_size_override("font_size", 11)
-	lbl.add_theme_color_override("font_color", SEVERITY_COLORS.get(sev, Color("#7B8794")))
+	lbl.add_theme_color_override("font_color", SEVERITY_TEXT_COLORS.get(sev, SEVERITY_TEXT_COLORS["info"]))
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return lbl
 

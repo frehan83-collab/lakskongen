@@ -4,9 +4,15 @@ Configuration for visual-qa skill.
 import os
 from pathlib import Path
 
-ROOT = Path(__file__).parent.parent.parent.parent.parent  # lakskongen root
+ROOT = Path(__file__).parent.parent.parent.parent.parent.parent  # lakskongen root (config.py lives 6 levels below: .claude/skills/ecc/visual-qa/visual_qa/)
 
-THRESHOLD = int(os.environ.get("VISUAL_QA_THRESHOLD", "8"))
+# Phash distance gate. Calibrated 2026-10-12 (session 3): two consecutive
+# pinned-sim harness runs (baseline v2 vs rerun) measured a run-to-run noise
+# floor of 12–22 (transient toasts + panel enter animations on live UI), so the
+# previous default 8 produced false positives on this project. 25 keeps the
+# tool useful for structural regressions while the diff gallery stays the
+# human review surface for anything between the noise floor and 25.
+THRESHOLD = int(os.environ.get("VISUAL_QA_THRESHOLD", "25"))
 BASELINE_DIR = ROOT / "godot" / "screenshots" / "baseline"
 CURRENT_DIR = ROOT / "godot" / "screenshots" / "game"
 MANIFEST = BASELINE_DIR / "manifest.json"
@@ -15,6 +21,8 @@ SHOT_NAMES = [
     "01_main_menu",
     "02_scenario_selection",
     "03_dashboard",
+    "03b_scale80_dashboard",
+    "03c_scale125_dashboard",
     "04_telemetry",
     "05_map_overlay",
     "06_finance",

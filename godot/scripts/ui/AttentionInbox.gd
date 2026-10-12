@@ -230,8 +230,8 @@ func _create_priority_badge(priority: String) -> Label:
 		"medium": LakskongenTheme.ACCENT2, "low": LakskongenTheme.MUTED
 	}
 	var text_colors: Dictionary = {
-		"critical": LakskongenTheme.DANGER_DARK, "high": Color("#9A7B1F"),
-		"medium": Color("#4A6A8A"), "low": LakskongenTheme.TEXT_MUTED
+		"critical": Color("#9A444C"), "high": Color("#7A6118"),
+		"medium": Color("#33526F"), "low": Color("#4C566A")
 	}
 	var accent: Color = accents.get(priority, LakskongenTheme.MUTED)
 
@@ -242,7 +242,7 @@ func _create_priority_badge(priority: String) -> Label:
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var badge_style := StyleBoxFlat.new()
-	badge_style.bg_color = accent.lightened(0.4)
+	badge_style.bg_color = accent.lightened(0.78)
 	badge_style.border_color = accent
 	badge_style.set_border_width_all(1)
 	badge_style.set_corner_radius_all(4)
