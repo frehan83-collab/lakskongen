@@ -18,6 +18,7 @@ SHOT_NAMES = [
     "04_telemetry",
     "05_map_overlay",
     "06_finance",
+    "06b_finance_trends",
     "07_genetics",
     "07b_crew",
     "07c_contracts",

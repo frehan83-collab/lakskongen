@@ -72,6 +72,15 @@ var _kpi_tweens: Array[Tween] = []
 # Balance-trend sparkline (created in code; script loaded lazily).
 var _sparkline_script: GDScript = null
 var _balance_spark = null
+# S2 time-series readouts (finance/market): market-price spark + trend rows.
+var _price_spark = null
+var _trend_rows: Array = []
+var _trend_built: bool = false
+const TREND_DEFS := [
+	{"key": "balance_nok",   "title": "Kontanter",    "days": 90, "fmt": "short", "up_good": true},
+	{"key": "lice_per_fish", "title": "Lus per fisk", "days": 90, "fmt": "ff",    "up_good": false},
+	{"key": "fcr",           "title": "FCR",          "days": 90, "fmt": "ff",    "up_good": false},
+]
 
 # ── Colors (from design tokens) ──────────────────────────────────────────────
 const C_BG := Color("#ECEFF4")
@@ -188,6 +197,17 @@ func _build_deep_finance_row() -> void:
 	_pen_price_label.add_theme_color_override("font_color", C_TEXT)
 	_pen_price_label.add_theme_font_size_override("font_size", 12)
 	row.add_child(_pen_price_label)
+
+	# S2: market price as a colour-coded 30-day time series next to the value.
+	if _sparkline_script == null:
+		_sparkline_script = load("res://scripts/ui/Sparkline.gd")
+	if _sparkline_script != null:
+		_price_spark = _sparkline_script.new()
+		_price_spark.name = "PriceSpark"
+		_price_spark.custom_minimum_size = Vector2(120, 24)
+		_price_spark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_price_spark.unit_fmt = ""
+		row.add_child(_price_spark)
 
 	_resource_rent_title = Label.new()
 	_resource_rent_title.text = tr("Ressursrente")
@@ -512,7 +532,7 @@ func _apply_localization() -> void:
 	_chart_title.text = tr("📊 Inntekter vs Kostnader (6 mnd)")
 	_pl_title.text = tr("📋 Resultatregnskap")
 	_loan_title.text = tr("🏦 Lån & Finansiering")
-	_hist_title.text = tr("📈 Historikk (siste 10 dager)")
+	_hist_title.text = tr("📈 Trender (90 d)")
 	_loan_take_btn.text = tr("Ta lån (5M NOK)")
 	_loan_repay_btn.text = tr("Betal tilbake")
 
@@ -592,9 +612,8 @@ func _refresh() -> void:
 		_loan_take_btn.disabled = has_loan
 		_loan_repay_btn.disabled = not has_loan
 
-	# History
-	if _sim.has_method("get_financial_history"):
-		_refresh_history(_sim.get_financial_history(10))
+	# S2: trend block replaces the text history wall (color-coded time series).
+	_refresh_trends()
 
 	# Balance-trend sparkline (display only, no sim mutation).
 	if _balance_spark != null and is_instance_valid(_balance_spark) and _sim.has_method("get_analytics_data"):
@@ -614,6 +633,12 @@ func _refresh_deep_finance() -> void:
 		return
 	if _sim.has_method("get_pen_price"):
 		_pen_price_label.text = "%.2f NOK/kg" % float(_sim.get_pen_price())
+	# S2: price trend (colour = up-good trend; series = DailySnapshots).
+	if _price_spark != null and is_instance_valid(_price_spark) and _sim.has_method("get_analytics_data"):
+		var ps: Array[float] = _sim.get_analytics_data("market_price_nok", 30)
+		_price_spark.call("set_values", ps)
+		_price_spark.line_color = _trend_color("market_price_nok", true)
+		_price_spark.fill_color = Color(_price_spark.line_color, 0.10)
 	if _sim.has_method("get_resource_rent"):
 		var rr: Dictionary = _sim.get_resource_rent()
 		var enabled: bool = bool(rr.get("enabled", false))
@@ -622,59 +647,77 @@ func _refresh_deep_finance() -> void:
 		if enabled:
 			_resource_rent_label.text = _fmt(float(rr.get("paid", 0.0)))
 
-func _refresh_history(history: Array) -> void:
-	if not _history_container:
+# S2: colour-coded time series (Kontanter / Lus per fisk / FCR, 90 d).
+# Replaces the former last-10-days text wall. Data: State.DailySnapshots via
+# SimBridge.get_analytics_data — no new sim state.
+
+func _ensure_trend_rows() -> void:
+	if _trend_built or _history_container == null:
 		return
-	for child in _history_container.get_children():
-		child.queue_free()
-
-	if history.is_empty():
-		UIPolish.show_empty_state_localized(_history_container, _tr_or("UI_FINANCE_HISTORY_EMPTY",
-			"📈 Ingen historikk ennå — tallene kommer etter hvert som dagene går."), 12, "", _theme)
-		return
-
-	for entry in history:
-		var day: int = entry.get("day", 0)
-		var rev: float = entry.get("revenue", 0.0)
-		var exp: float = entry.get("expenses", 0.0)
-		var bal: float = entry.get("balance", 0.0)
-
+	_trend_built = true
+	_trend_rows.clear()
+	if _sparkline_script == null:
+		_sparkline_script = load("res://scripts/ui/Sparkline.gd")
+	for def in TREND_DEFS:
 		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 12)
+		row.add_theme_constant_override("separation", 8)
 		_history_container.add_child(row)
 
-		var d_lbl := Label.new()
-		d_lbl.text = tr("Dag %d") % day
-		d_lbl.custom_minimum_size.x = 60
-		d_lbl.add_theme_font_size_override("font_size", 12)
-		d_lbl.add_theme_color_override("font_color", C_MUTED)
-		row.add_child(d_lbl)
+		var t_lbl := Label.new()
+		t_lbl.text = tr(str(def["title"]))
+		t_lbl.custom_minimum_size.x = 110
+		t_lbl.add_theme_font_size_override("font_size", 12)
+		t_lbl.add_theme_color_override("font_color", C_TEXT2)
+		row.add_child(t_lbl)
 
-		var r_lbl := Label.new()
-		r_lbl.text = "+%s" % _fmt_short(rev)
-		r_lbl.add_theme_font_size_override("font_size", 12)
-		r_lbl.add_theme_color_override("font_color", C_SUCCESS_D)
-		if _theme and _theme.font_mono:
-			r_lbl.add_theme_font_override("font", _theme.font_mono)
-		row.add_child(r_lbl)
+		var spark = null
+		if _sparkline_script != null:
+			spark = _sparkline_script.new()
+			spark.custom_minimum_size = Vector2(140, 26)
+			spark.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			spark.unit_fmt = ""
+			row.add_child(spark)
 
-		var e_lbl := Label.new()
-		e_lbl.text = "-%s" % _fmt_short(exp)
-		e_lbl.add_theme_font_size_override("font_size", 12)
-		e_lbl.add_theme_color_override("font_color", C_DANGER)
+		var v_lbl := Label.new()
+		v_lbl.text = "--"
+		v_lbl.custom_minimum_size.x = 86
+		v_lbl.add_theme_font_size_override("font_size", 12)
+		v_lbl.add_theme_color_override("font_color", C_TEXT)
 		if _theme and _theme.font_mono:
-			e_lbl.add_theme_font_override("font", _theme.font_mono)
-		row.add_child(e_lbl)
+			v_lbl.add_theme_font_override("font", _theme.font_mono)
+		v_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(v_lbl)
 
-		var b_lbl := Label.new()
-		b_lbl.text = _fmt_short(bal)
-		b_lbl.add_theme_font_size_override("font_size", 12)
-		b_lbl.add_theme_color_override("font_color", C_TEXT if bal >= 0 else C_DANGER)
-		if _theme and _theme.font_mono:
-			b_lbl.add_theme_font_override("font", _theme.font_mono)
-		b_lbl.size_flags_horizontal = SIZE_EXPAND_FILL
-		b_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		row.add_child(b_lbl)
+		_trend_rows.append({"def": def, "spark": spark, "value": v_lbl})
+
+
+func _trend_color(metric: String, up_good: bool) -> Color:
+	var trend := "stable"
+	if _sim != null and _sim.has_method("get_analytics_trend"):
+		trend = str(_sim.get_analytics_trend(metric, 14))
+	if trend == "stable":
+		return C_ACCENT
+	var good := (trend == "up") == up_good
+	return C_SUCCESS_D if good else C_DANGER
+
+
+func _refresh_trends() -> void:
+	if not _sim:
+		return
+	_ensure_trend_rows()
+	for entry in _trend_rows:
+		var def: Dictionary = entry["def"]
+		var series: Array[float] = _sim.get_analytics_data(str(def["key"]), int(def["days"]))
+		if series.is_empty():
+			continue
+		var spark = entry["spark"]
+		if spark != null and is_instance_valid(spark):
+			spark.call("set_values", series)
+			spark.line_color = _trend_color(str(def["key"]), bool(def["up_good"]))
+			spark.fill_color = Color(spark.line_color, 0.12)
+		var last: float = series[series.size() - 1]
+		var v_lbl: Label = entry["value"]
+		v_lbl.text = _fmt_short(last) if str(def["fmt"]) == "short" else ("%.2f" % last)
 
 # ── Loan Actions ──────────────────────────────────────────────────────────────
 

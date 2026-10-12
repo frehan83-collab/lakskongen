@@ -241,6 +241,14 @@ func _capture_map_overlay() -> void:
 func _capture_finance() -> void:
 	await _show_tab("finance")
 	await _shoot("06_finance")
+	# S2: bottom-of-panel frame showing the time-series trend block (Trender).
+	var panel := _find(_game, "Panel_finance")
+	if panel != null:
+		var scroll := panel.find_child("MainScroll", true, false) as ScrollContainer
+		if scroll != null:
+			scroll.scroll_vertical = 100000
+			await _wait(0.8)
+			await _shoot("06b_finance_trends")
 
 
 func _capture_genetics() -> void:
@@ -305,13 +313,13 @@ func _capture_fjord_day() -> void:
 	# proves the live weather/wave path in a real frame (whatever regime the
 	# sim is in). Afterwards QA takes over staging.
 	await _wait(1.5)
-	await _shoot("08a_fjord_live_sync")
+	await _shoot("08a_fjord_live_sync", true)
 	var vista := _find(_game, "FjordVistaBridge")
 	if vista != null:
 		vista.set("sim_weather_enabled", false)
 	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FJORD)
 	await _wait(1.5)
-	await _shoot("08_fjord_day")
+	await _shoot("08_fjord_day", true)
 
 
 ## Asset-QA closeup: FARM zoom on the focused pen. Every Blender asset
@@ -321,19 +329,19 @@ func _capture_fjord_farm() -> void:
 	await _wait(0.4)
 	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FARM)
 	await _wait(2.5)
-	await _shoot("08b_fjord_farm")
+	await _shoot("08b_fjord_farm", true)
 
 
 func _capture_fjord_night_aurora() -> void:
 	_configure_env(0.0, 23.0, WEATHER_CLEAR, 1.0, ZOOM_FJORD)
 	await _wait(2.0)
-	await _shoot("09_fjord_night_aurora")
+	await _shoot("09_fjord_night_aurora", true)
 
 
 func _capture_fjord_storm() -> void:
 	_configure_env(0.5, 12.0, WEATHER_STORM, 0.0, ZOOM_FJORD)
 	await _wait(2.5)
-	await _shoot("10_fjord_storm")
+	await _shoot("10_fjord_storm", true)
 
 
 func _capture_fjord_underwater() -> void:
@@ -343,7 +351,7 @@ func _capture_fjord_underwater() -> void:
 		cam.set("auto_orbit_enabled", false)
 		cam.set("global_position", Vector3(0.0, -60.0, 0.0))
 	await _wait(2.6)
-	await _shoot("11_fjord_underwater")
+	await _shoot("11_fjord_underwater", true)
 
 
 # ── S1 forced-state shots (living fjord readout) ──────────────────────────────
@@ -406,7 +414,7 @@ func _capture_fjord_lice_red_zone() -> void:
 	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FARM)
 	await _wait(1.0)
 	_hide_ui()
-	await _shoot("12_fjord_lice_red_zone")
+	await _shoot("12_fjord_lice_red_zone", true)
 	if sim.has_method("set_paused"):
 		sim.set_paused(false)
 
@@ -434,14 +442,14 @@ func _capture_fjord_bloom() -> void:
 	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FJORD)
 	await _wait(0.8)
 	_hide_ui()
-	await _shoot("13_fjord_no_bloom")
+	await _shoot("13_fjord_no_bloom", true)
 	var res: Dictionary = gb.SpawnQaBloom(site_id, 0.8, 21)
 	await _wait(1.5)
 	var after := float(gb.GetMaxBloomSeverity()) if gb.has_method("GetMaxBloomSeverity") else 0.0
 	print("[ScreenshotHarness] bloom force: %.2f -> %.2f (site %s, %s)" % [sev, after, site_id, str(res.get("message", ""))])
 	await _wait(0.8)
 	_hide_ui()
-	await _shoot("13b_fjord_bloom")
+	await _shoot("13b_fjord_bloom", true)
 	if sim != null and sim.has_method("set_paused"):
 		sim.set_paused(false)
 
@@ -519,7 +527,7 @@ func _capture_fjord_diagnostics() -> void:
 			var was_visible: bool = node.visible
 			node.visible = false
 			await _wait(0.6)
-			await _shoot(t[1])
+			await _shoot(t[1], true)
 			node.visible = was_visible
 			await _wait(0.3)
 
@@ -563,21 +571,20 @@ func _show_tab(tab_id: String) -> void:
 	await _wait(1.0)
 
 
-func _shoot(shot_name: String) -> void:
+func _shoot(shot_name: String, force_hide_ui: bool = false) -> void:
 	# Raise the window and wait (bounded) for a fully drawn frame before
 	# grabbing the viewport texture. macOS can throttle rendering for occluded
 	# windows — without the bound, frame_post_draw may never fire and the
 	# harness hangs (seen in session 1).
 	DisplayServer.window_move_to_foreground()
-	# Belt & braces: enforce UI-hidden right before the grab. S1 session:
-	# some path re-showed the UI between the per-shot _hide_ui() and the
-	# capture; hide again here and log the effective state.
+	# Fjord shots only (force_hide_ui): enforce UI-hidden right before the grab.
+	# Some path re-showed the UI between the per-shot _hide_ui() and the capture
+	# (auto-pause alerts). UI shots (panels/tabs) pass false — hiding there
+	# silently produced fjord frames instead of panels (session 1 regression).
 	var ui := _find(_game, "UILayer")
-	var ui_vis := "missing"
-	if ui != null:
+	if force_hide_ui and ui != null:
 		ui.visible = false
-		ui_vis = str(ui.visible)
-	print("[ScreenshotHarness] _shoot(%s) UILayer.visible=%s after force-hide" % [shot_name, ui_vis])
+		print("[ScreenshotHarness] _shoot(%s) UILayer.visible=%s after force-hide" % [shot_name, str(ui.visible)])
 	var frame_done := [false]
 	RenderingServer.frame_post_draw.connect(func(): frame_done[0] = true, CONNECT_ONE_SHOT)
 	var waited := 0.0
