@@ -57,10 +57,10 @@ blocked, and stop — editing the scoreboard is a human gate.
 
 ## 4. Status header — EDIT IN PLACE
 
-- **Run phase:** `W2 — in progress (session 1): S1 DONE (forced-state frames distinct, phash 16); next: W2/S2 time-series UI; S1 baseline promotion at W2 close`
-- **Active claim:** `(none — session 2 claims W2/S2 per wave register)`
+- **Run phase:** `W2 — in progress (session 2): S1 DONE (phash 16); S2 DONE (Trender block + price spark, analytics test 2/2); next: W2/S3 accessibility floor`
+- **Active claim:** `session 2 — W2/S2 time-series UI (shipped; CI result in session 2 report)`
 - **Gate state:** `no human gates hit`
-- **Last verified artifact:** `CI 15/15 @ session-1 commit (see ledger); S1 evidence docs/run/evidence/session_01_s1_frames.txt (lice + bloom pairs phash 16, run14 capture set)`
+- **Last verified artifact:** `S2 evidence docs/run/evidence/session_02_s2_frames.txt (06_finance before↔after phash 18; 06b trend card 1920×1080); analytics series test 2/2`
 - **Baseline freeze:** `main suite 684 passed / 1 skipped (session 0 rerun, raw log docs/run/evidence/session_00_dotnet_test.txt); CI 15/15; save-hash: comparative gate green (ExactSaveHashTests); golden SHA artifact deferred to W4 save-fuzz`
 
 ### Session-0 note
@@ -74,8 +74,8 @@ deliverable, message format: `run: <wave> <item> — <one-line outcome>`.
 
 | # | Date | Wave | Claim | Evidence (path + cmd + result) | Audit of prior | CI |
 |---|------|------|-------|-------------------------------|----------------|----|
-| 1 | 2026-10-12 | W2/S1 | living fjord readout: forced-state frames (lice collar + bloom) distinct | `docs/run/evidence/session_01_s1_frames.txt` (phash 16 ×2, run14 set); `session_01_ci_final_summary.txt`; commits pending | session-0 MCP claim re-run: alias+probe exit 0 PASS | PASSED 15/15 (1 red fixed same session) |
-| 0 | 2026-10-12 | W0+W1 | ignition: baseline freeze + MCP repair + Briefs A–E + 2 skills + W1 decisions | commits `bc46c90`, `8e8a272`, `673b6c2`; `docs/run/evidence/session_00_ci_*.txt` (CI 15/15 ×3); `docs/run/evidence/session_00_dotnet_test.txt` (684P/1S); `tools/mcp_bridge_alias.py` → exit 0 `auth probe authed` post-CI; `docs/research/MCP_CAPABILITIES.md` §5 raw logs | — (first session; audited inherited run-prep tree: CI green, 684/1) | PASSED 15/15 |
+| 2 | 2026-10-12 | W2/S2 | time-series UI: price spark + Trender block replace finance text wall | `docs/run/evidence/session_02_s2_frames.txt` (phash 18; 06b md5 53eb0715; analytics test 2/2); `session_02_ci_final_summary.txt`; commits pending | session-1 phash/md5 re-run: exact match 16/16 PASS | PASSED 15/15 |
+| 1 | 2026-10-12 | W2/S1 | living fjord readout: forced-state frames (lice collar + bloom) distinct | `docs/run/evidence/session_01_s1_frames.txt` (phash 16 ×2, run14 set); `session_01_ci_final_summary.txt`; commits `8c58af7`, `956d586` | session-0 MCP claim re-run: alias+probe exit 0 PASS | PASSED 15/15 (1 red fixed same session) |
 
 ## 6. Wave register (pre-register BEFORE the wave)
 
@@ -83,7 +83,7 @@ deliverable, message format: `run: <wave> <item> — <one-line outcome>`.
 |------|-------------------------------|--------|-----------------|
 | W0 | MCP inventory doc; Briefs A–E dispatched; `lakskongen-feature` + `lakskongen-screenshot-evidence` authored+validated; baseline frozen | **complete (session 0)** | session 0 report; `docs/research/MCP_CAPABILITIES.md`; commits bc46c90, 8e8a272, 673b6c2 |
 | W1 | Decision memos for R1–R4; skills-gap list; plan wave order updated if findings demand | **complete (session 0)** | `docs/research/W1_DECISIONS.md` (R1–R5); `SKILLS_AUDIT.md` §3 author-order; plan companion-doc note |
-| W2 | Living fjord frames distinct per forced state (lice/red, bloom, storm, night); time-series replaces gauge cluster; a11y audit passes | **in progress (session 1: S1 done — phash 16 lice & bloom pairs; S2/S3 pending)** | `docs/run/evidence/session_01_s1_frames.txt` |
+| W2 | Living fjord frames distinct per forced state (lice/red, bloom, storm, night); time-series replaces gauge cluster; a11y audit passes | **in progress (S1 done s1 — phash 16; S2 done s2 — Trender block + price spark, analytics test 2/2; S3 pending)** | `session_01_s1_frames.txt`, `session_02_s2_frames.txt` |
 | W3 | Chosen datasets embedded offline with provenance + license notes; player-path test shows band movement | not started | |
 | W4 | 3-OS exports as CI artifacts; save fuzz 10k clean; version stamping; depot script written | not started | |
 | W5 | Demo slice (`forste_sesong` + `po3_red_sone`) polished; first-15-min script; demo build passes W4 gates | not started | |
@@ -100,6 +100,8 @@ deliverable, message format: `run: <wave> <item> — <one-line outcome>`.
 | 2026-10-12 | Killed two stale Godot processes (stuck headless `terrain_stats` from Sun; Friday editor) during the MCP repair | Both held ports/registry state; editor relaunched for a fresh MCP session | No (processes only) |
 | 2026-10-12 | Parallel research runs via harness `subagent` (Briefs A–E), not claude-devfleet | No devfleet MCP tools registered in this environment; run plan §3.2 specifies subagents | Yes |
 | 2026-10-12 | After every `./tools/ci.sh` run, re-run `python3 tools/mcp_bridge_alias.py` before using godot MCP tools (token now survives CI; `entries/` churn remains) | CI's editor-boot steps are sandboxed via `GODOT_MCP_TOKEN_PATH` in `tools/ci.sh`; headless editors still register/deregister the shared entry file | Yes |
+| 2026-10-12 | Harness `_shoot(force_hide_ui)` made opt-in (fjord shots only) | Session-1 regression: the unconditional force-hide turned UI captures (03–07g) into fjord frames; UI shots now pass false, fjord shots true | Yes |
+| 2026-10-12 | S2 scope: finance panel market-price spark + "Trender (90 d)" colour-coded series (Kontanter/Lus/FCR) replaces the last-10-days text wall; revenue/expense per-day rows dropped (no snapshot series exists; P&L statement + story bars retain the detail) | Plan §S2 "replace gauge walls with colour-coded time series"; free-first, no new sim state (DailySnapshots only) | Yes |
 | 2026-10-12 | S1 collar tint: instance-uniform approach replaced with per-pen duplicated ShaderMaterial + status-color shader (ring takes the sim tint directly) | Instance uniforms were set at the node but never rendered (node-probe value vs pixel-sampled identical ring hue); per-pen material is the boring verified path | Yes |
 | 2026-10-12 | QA forcing is bridge-level and player-unreachable: `StartQaScenario(seed)`, `SetQaPenLice`, `SpawnQaBloom`, `ClearQaBlooms`; harness pauses the sim around forced captures | Screenshot gates need deterministic states; po3_red_sone's semi-closed pens suppress natural lice growth below the tint threshold; paused sim prevents decay between set and capture | Yes |
 | 2026-10-12 | W1 decisions are normative for wave order: S1→S2→S3 (W2), S4 = CMEMS/MET/Fiskeridir/BarentsWatch/ERA5 snapshots (W3), engine pinned 4.7.2, FFT ocean parked, Next Fest target 2027-02-22 | `docs/research/W1_DECISIONS.md` (§6 plan adjustments); owner gates added for Next Fest registration + price band | Yes |
@@ -124,6 +126,17 @@ deliverable, message format: `run: <wave> <item> — <one-line outcome>`.
 | Push to remote | not started | standing approval or per-push review |
 
 ## 10. Session reports (newest at top; template at the end)
+
+### Session 2: W2/S2 — time-series UI (gate PASSED)
+- **Shipped:** finance panel market-price sparkline (30 d `market_price_nok`, trend-coloured) + **"📈 Trender (90 d)"** colour-coded series block (Kontanter / Lus per fisk / FCR from `State.DailySnapshots`, no new sim state) replacing the last-10-days text wall; harness `06b_finance_trends` scrolled capture; `_shoot(force_hide_ui)` made opt-in (fixes session-1 regression where UI shots were force-hidden into fjord frames); new `AnalyticsSeriesTests` (2 tests)
+- **Evidence:** run18 `tools/capture_screenshots.sh` → 06_finance before↔after md5 `a878c941…`→`88fa8ac9…` **phash 18**; `06b_finance_trends` md5 `53eb0715…` (Trender card, agent-viewed: blue stable Kontanter, red rising-bad Lus/FCR); `dotnet test … --filter AnalyticsSeriesTests` → **2 passed** (newest series value == live `State.Balance` 6-dp; series extends with days); CI tail `session_02_ci_final_summary.txt`; detail `docs/run/evidence/session_02_s2_frames.txt`
+- **Audit:** session-1 phash claim re-verified at bootstrap — md5s match the evidence file byte-for-byte; phash 16/16 recomputed → PASS
+- **CI:** PASSED 15/15 (bootstrap + final; full suite includes the new tests)
+- **Next:** session 3 claims **W2/S3 accessibility floor** (44×44 targets, CVD-safe palette audit, contrast pass, ui_scale regression) + W2 close items (baseline promotion, repeatability control)
+- **Blocked:** none
+- **Gates:** none hit
+
+---
 
 ### Session 1: W2/S1 — living fjord readout (gate PASSED)
 - **Shipped:** QA forcing bridge trio (`StartQaScenario` seeded boot, `SetQaPenLice`, `SpawnQaBloom`/`ClearQaBlooms`); collar-tint rendering fix (per-pen duplicated material — instance uniforms never rendered; shader uses the sim tint as the ring's status color); harness hardening (bounded frame wait, in-`_shoot` UI force-hide, sim-pause around forced captures, forced shots before the underwater shot); S1 plan marked done
