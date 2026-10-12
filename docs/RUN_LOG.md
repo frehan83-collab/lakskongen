@@ -57,11 +57,11 @@ blocked, and stop — editing the scoreboard is a human gate.
 
 ## 4. Status header — EDIT IN PLACE
 
-- **Run phase:** `W0 — not started`
-- **Active claim:** `(none)`
+- **Run phase:** `W0 — in progress (session 0)`
+- **Active claim:** `session 0 — W0 ignition: baseline freeze @ bc46c90; MCP capabilities doc; Briefs A–E dispatched; lakskongen-feature + lakskongen-screenshot-evidence authored+validated`
 - **Gate state:** `no human gates hit`
-- **Last verified artifact:** `HEAD 06ee6d4 + uncommitted run-prep tree; CI 15/15 @ 2026-10-12`
-- **Baseline freeze:** `main suite 684 passed / 1 skipped; CI 15/15; save-hash: TBD (session 0)`
+- **Last verified artifact:** `HEAD bc46c90; CI 15/15 @ 2026-10-12 (session 0, raw tail in docs/run/evidence/)`
+- **Baseline freeze:** `main suite 684 passed / 1 skipped (session 0 rerun, raw log docs/run/evidence/session_00_dotnet_test.txt); CI 15/15; save-hash: comparative gate green (ExactSaveHashTests); golden SHA artifact deferred to W4 save-fuzz`
 
 ### Session-0 note
 After CI is green, create a **local baseline commit** (do NOT push — pushing is a human
@@ -79,7 +79,7 @@ deliverable, message format: `run: <wave> <item> — <one-line outcome>`.
 
 | Wave | Done-criteria (pre-registered) | Status | Evidence/Report |
 |------|-------------------------------|--------|-----------------|
-| W0 | MCP inventory doc; Briefs A–E dispatched; `lakskongen-feature` + `lakskongen-screenshot-evidence` authored+validated; baseline frozen | not started | |
+| W0 | MCP inventory doc; Briefs A–E dispatched; `lakskongen-feature` + `lakskongen-screenshot-evidence` authored+validated; baseline frozen | in progress (session 0) | |
 | W1 | Decision memos for R1–R4; skills-gap list; plan wave order updated if findings demand | not started | |
 | W2 | Living fjord frames distinct per forced state (lice/red, bloom, storm, night); time-series replaces gauge cluster; a11y audit passes | not started | |
 | W3 | Chosen datasets embedded offline with provenance + license notes; player-path test shows band movement | not started | |
@@ -92,6 +92,12 @@ deliverable, message format: `run: <wave> <item> — <one-line outcome>`.
 
 | Date | Decision | Rationale | Reversible? |
 |------|----------|-----------|-------------|
+| 2026-10-12 | Baseline commit `bc46c90` = run-prep tree (local only, no push) | RUN_LOG §4 session-0 protocol | Yes (pre-push) |
+| 2026-10-12 | Restarted the Godot editor (fresh token + registry); added `tools/mcp_bridge_alias.py` bridging the npm-bridge cwd key (repo root) to the editor's registry key (`.../godot`) | Registry + token were clobbered by headless CI instances; bridge key mismatch is structural. Full root cause: `docs/research/MCP_CAPABILITIES.md` §3 | Yes |
+| 2026-10-12 | Deferred the durable fix (env-wrap `GODOT_MCP_PROJECT_PATH` in `opencode.json`) to the next natural harness restart | Mid-session opencode service restart risks the live run; alias tool covers the gap | Yes |
+| 2026-10-12 | Killed two stale Godot processes (stuck headless `terrain_stats` from Sun; Friday editor) during the MCP repair | Both held ports/registry state; editor relaunched for a fresh MCP session | No (processes only) |
+| 2026-10-12 | Parallel research runs via harness `subagent` (Briefs A–E), not claude-devfleet | No devfleet MCP tools registered in this environment; run plan §3.2 specifies subagents | Yes |
+| 2026-10-12 | After every `./tools/ci.sh` run, re-run `python3 tools/mcp_bridge_alias.py` before using godot MCP tools | CI boots headless Godot instances that rebuild `projects.json` from `entries/` | Yes |
 
 ## 8. Blocked / dead ends / disputes
 
