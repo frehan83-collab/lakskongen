@@ -12,6 +12,12 @@ namespace LakskongenSim.Tests
 {
     public class PlanktonBloomTests
     {
+        private static WeatherSystem MakeWeather(int seed = 0)
+        {
+            var rng = new SimRng(seed);
+            return new WeatherSystem(rng.Stream(SimRngStreams.Weather));
+        }
+
         private SimulationEngine CreateEngine(int seed = 12345)
         {
             var engine = new SimulationEngine();
@@ -273,7 +279,7 @@ namespace LakskongenSim.Tests
             zone.WaterFlowRate = 500.0;
             state.Zones.Add(zone);
             
-            var weather = new WeatherSystem();
+            var weather = MakeWeather();
             
             double initialO2 = zone.WaterChemistry.OxygenO2;
             bloom.AdvanceDay(state, weather);

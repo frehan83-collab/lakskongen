@@ -131,15 +131,17 @@ Because matching uses `StartsWith`, `scenario_fjord.json` and
   "starting_capital_nok": 5000000,
   "starting_region": "Vestland",
   "difficulty": 2,
-  "win_condition": "Reach 500000 kg harvested.",
+  "win_condition": "Profit",
   "initial_balance_nok": 5000000,
   "starting_fish_count": 50000,
   "initial_events": ["evt_winter_storm"]
 }
 ```
 
-`initial_events` references event `id`s (they may come from this mod or another
-loaded mod).
+`win_condition` is one of the `WinCondition` enum values — `Tutorial`, `Profit`,
+`Sustainability`, `Survival`, `Competition`. Unknown values fall back to
+`Profit`. `initial_events` references event `id`s (they may come from this mod
+or another loaded mod).
 
 ## Fish species (not used by this pack)
 

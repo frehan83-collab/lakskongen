@@ -13,6 +13,7 @@
 
 using System;
 using System.Collections.Generic;
+using LakskongenSim.Core;
 
 namespace LakskongenSim.Market
 {
@@ -66,8 +67,19 @@ namespace LakskongenSim.Market
     {
         public List<Contract> ActiveContracts { get; } = new();
         private readonly List<Contract> _completedContracts = new();
-        private readonly Random _rng = new();
+        private readonly SimRngStream _rng;
+        internal SimRngStream RngForSnapshot => _rng;
         private int _currentWeek = 0;
+
+        public ContractSystem(SimRngStream rng)
+        {
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+        }
+
+        public ContractSystem(int? seed = null)
+            : this((seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.Market, "contracts"))
+        {
+        }
 
         /// <summary>Completed/expired contracts for history and analytics.</summary>
         public IReadOnlyList<Contract> CompletedContracts => _completedContracts;

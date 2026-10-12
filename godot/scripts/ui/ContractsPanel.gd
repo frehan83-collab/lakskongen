@@ -147,9 +147,7 @@ func _refresh_buyers() -> void:
 	# Accept button that signs the contract at the locked price.
 	var offers: Array = _sim.get_available_offers() if _sim.has_method("get_available_offers") else []
 	if offers.is_empty():
-		var empty := Label.new()
-		empty.text = "Ingen tilbud i dag — kom tilbake i morgen"
-		_buyers_container.add_child(empty)
+		UIPolish.show_empty_state(_buyers_container, "Ingen tilbud i dag — kom tilbake i morgen", 13, "", _theme)
 		return
 
 	for offer in offers:
@@ -212,6 +210,9 @@ func _refresh_buyers() -> void:
 		accept.pressed.connect(_on_accept_offer.bind(idx))
 		hbox.add_child(accept)
 
+	# UIPolish: vertical keyboard navigation for buyers list
+	UIPolish.link_vertical_focus(_buyers_container)
+
 
 func _on_accept_offer(index: int) -> void:
 	if not _sim or not _sim.has_method("accept_offer"):
@@ -243,11 +244,7 @@ func _refresh_contracts() -> void:
 
 	if contracts.is_empty():
 		_add_table_cell(hdr, "", C_MUTED)
-		var empty := Label.new()
-		empty.text = "Ingen aktive kontrakter — signer et tilbud over"
-		empty.add_theme_font_size_override("font_size", 12)
-		empty.add_theme_color_override("font_color", C_MUTED)
-		_contracts_container.add_child(empty)
+		UIPolish.show_empty_state(_contracts_container, "Ingen aktive kontrakter — signer et tilbud over", 12, "", _theme)
 		return
 
 	for c in contracts:
@@ -260,6 +257,9 @@ func _refresh_contracts() -> void:
 		_add_table_cell(row, "%.2f" % float(c.get("price_per_kg", 0.0)), C_TEXT, false, true)
 		_add_table_cell(row, "%.0f%%" % float(c.get("fulfilled_percent", 0.0)), C_TEXT)
 		_add_table_cell(row, "Aktiv", C_SUCCESS_D)
+
+	# UIPolish: vertical keyboard navigation for contracts list
+	UIPolish.link_vertical_focus(_contracts_container)
 
 func _add_table_cell(row: HBoxContainer, text: String, color: Color, bold: bool = false, mono: bool = false) -> void:
 	var l := Label.new()

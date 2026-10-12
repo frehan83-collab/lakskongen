@@ -415,6 +415,222 @@ public partial class GameBridge : Node
         return result;
     }
 
+    // ── Phase 4.5: Attention Inbox (unified "what needs my attention" inbox) ──
+
+    /// <summary>Emitted when the UI should open the Attention Inbox panel.</summary>
+    [Signal] public delegate void AttentionInboxRequestedEventHandler();
+
+    /// <summary>
+    /// Get unified attention items from InterventionAdvisor + health/finance/market alerts.
+    /// Returns array of dictionaries with: type, priority, category, title, description,
+    /// delta_nok, days_out, site_id, callback, action_id.
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetAttentionItems()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var engine = SimulationEngine;
+        if (engine?.State == null) return result;
+
+        var state = engine.State;
+
+        // 1. InterventionAdvisor suggestions
+        if (engine.Growth != null && engine.SeaLice != null && engine.Analytics != null)
+        {
+            double tempC = engine.Weather?.CurrentTemperatureC ?? 10.0;
+            var forecast = LakskongenSim.Optimization.ForecastTwin.Project(
+                state, engine.Growth, engine.SeaLice, tempC, engine.Analytics);
+            double currentLice = engine.SeaLice.AverageLicePerFish;
+            double gillScore = 0.0;
+            if (state.SeaSites.Count > 0)
+                gillScore = state.SeaSites.Average(s => s.GillScore);
+            double feedFcr = engine.Feed?.CurrentFCR ?? 1.15;
+            var contracts = engine.ContractSystem?.ActiveContracts ?? new List<LakskongenSim.Market.Contract>();
+            int crewCount = state.Crew?.Count ?? 0;
+
+            var suggestions = LakskongenSim.Advisor.InterventionAdvisor.Rank(
+                state, forecast, currentLice, gillScore, feedFcr, contracts,
+                crewCount, state.Day);
+
+            foreach (var s in suggestions)
+            {
+                result.Add(new Godot.Collections.Dictionary
+                {
+                    ["type"] = "intervention",
+                    ["priority"] = _priority_from_confidence(s.Confidence),
+                    ["category"] = "intervention",
+                    ["title"] = s.Action,
+                    ["description"] = s.Reasoning,
+                    ["delta_nok"] = (double)s.DeltaNok,
+                    ["days_out"] = s.DaysOut,
+                    ["site_id"] = s.SiteId,
+                    ["callback"] = "open_intervention_detail",
+                    ["action_id"] = s.Id
+                });
+            }
+        }
+
+        // 2. Health alerts (gill health)
+        if (state.SeaSites != null)
+        {
+            foreach (var site in state.SeaSites)
+            {
+                if (site.GillScore > 0 && site.GillScore < 30)
+                {
+                    result.Add(new Godot.Collections.Dictionary
+                    {
+                        ["type"] = "health_critical",
+                        ["priority"] = "critical",
+                        ["category"] = "health",
+                        ["title"] = _tr_or("UI_ATTENTION_GILL_CRITICAL", "Critical Gill Health"),
+                        ["description"] = string.Format(_tr_or("UI_ATTENTION_GILL_CRITICAL_DESC", "Site {0} has critical gill health — immediate action required"), site.Id),
+                        ["site_id"] = site.Id,
+                        ["callback"] = "open_site_health"
+                    });
+                }
+                else if (site.GillScore >= 30 && site.GillScore < 60)
+                {
+                    result.Add(new Godot.Collections.Dictionary
+                    {
+                        ["type"] = "health_warning",
+                        ["priority"] = "high",
+                        ["category"] = "health",
+                        ["title"] = _tr_or("UI_ATTENTION_GILL_WARNING", "Gill Health Warning"),
+                        ["description"] = string.Format(_tr_or("UI_ATTENTION_GILL_WARNING_DESC", "Site {0} has elevated gill risk"), site.Id),
+                        ["site_id"] = site.Id,
+                        ["callback"] = "open_site_health"
+                    });
+                }
+            }
+        }
+
+        // 3. Financial alerts
+        if (engine.FinanceManager != null)
+        {
+            decimal balance = engine.FinanceManager.Balance;
+            if (balance < 0)
+            {
+                result.Add(new Godot.Collections.Dictionary
+                {
+                    ["type"] = "finance_critical",
+                    ["priority"] = "critical",
+                    ["category"] = "finance",
+                    ["title"] = _tr_or("UI_ATTENTION_NEGATIVE_BALANCE", "Negative Balance"),
+                    ["description"] = string.Format(_tr_or("UI_ATTENTION_NEGATIVE_BALANCE_DESC", "Company balance is negative: {0} NOK"), balance.ToString("N0")),
+                    ["callback"] = "open_finance_panel"
+                });
+            }
+            else if (balance < 1_000_000m)
+            {
+                result.Add(new Godot.Collections.Dictionary
+                {
+                    ["type"] = "finance_warning",
+                    ["priority"] = "high",
+                    ["category"] = "finance",
+                    ["title"] = _tr_or("UI_ATTENTION_LOW_LIQUIDITY", "Low Liquidity"),
+                    ["description"] = string.Format(_tr_or("UI_ATTENTION_LOW_LIQUIDITY_DESC", "Cash reserves below 1M NOK: {0} NOK"), balance.ToString("N0")),
+                    ["callback"] = "open_finance_panel"
+                });
+            }
+        }
+
+        // 4. Lice pressure alerts
+        if (engine.SeaLice != null)
+        {
+            double lice = engine.SeaLice.AverageLicePerFish;
+            if (lice > 0.5)
+            {
+                result.Add(new Godot.Collections.Dictionary
+                {
+                    ["type"] = "lice_critical",
+                    ["priority"] = "critical",
+                    ["category"] = "health",
+                    ["title"] = _tr_or("UI_ATTENTION_LICE_CRITICAL", "Lice Above Treatment Threshold"),
+                    ["description"] = string.Format(_tr_or("UI_ATTENTION_LICE_CRITICAL_DESC", "Sea lice at {0:F2}/fish — mandatory treatment required"), lice),
+                    ["callback"] = "open_health_panel"
+                });
+            }
+            else if (lice > 0.2)
+            {
+                result.Add(new Godot.Collections.Dictionary
+                {
+                    ["type"] = "lice_warning",
+                    ["priority"] = "high",
+                    ["category"] = "health",
+                    ["title"] = _tr_or("UI_ATTENTION_LICE_WARNING", "Elevated Lice Levels"),
+                    ["description"] = string.Format(_tr_or("UI_ATTENTION_LICE_WARNING_DESC", "Sea lice at {0:F2}/fish — approaching treatment threshold"), lice),
+                    ["callback"] = "open_health_panel"
+                });
+            }
+        }
+
+        // 5. Weather alerts
+        if (engine.Weather != null)
+        {
+            var weather = engine.Weather.CurrentState;
+            if (weather == LakskongenSim.Environment.WeatherState.Storm || weather == LakskongenSim.Environment.WeatherState.Severe)
+            {
+                result.Add(new Godot.Collections.Dictionary
+                {
+                    ["type"] = "weather_alert",
+                    ["priority"] = "critical",
+                    ["category"] = "weather",
+                    ["title"] = _tr_or("UI_ATTENTION_STORM", "Severe Weather"),
+                    ["description"] = string.Format(_tr_or("UI_ATTENTION_STORM_DESC", "{0} warning — secure sites and review operations"), weather),
+                    ["callback"] = "open_weather_panel"
+                });
+            }
+        }
+
+        // 6. Contract alerts (expiring within 3 weeks)
+        if (engine.ContractSystem != null)
+        {
+            int currentWeek = state.Day / 7;
+            foreach (var c in engine.ContractSystem.ActiveContracts)
+            {
+                if (!c.IsExpired(currentWeek) && c.IsExpired(currentWeek + 3))
+                {
+                    result.Add(new Godot.Collections.Dictionary
+                    {
+                        ["type"] = "contract_expiring",
+                        ["priority"] = "high",
+                        ["category"] = "contract",
+                        ["title"] = _tr_or("UI_ATTENTION_CONTRACT_EXPIRING", "Contract Expiring Soon"),
+                        ["description"] = string.Format(_tr_or("UI_ATTENTION_CONTRACT_EXPIRING_DESC", "Contract {0} expires in {1} weeks"), c.Id.ToString()[..8], c.DurationWeeks - (currentWeek - c.SignedAtWeek)),
+                        ["callback"] = "open_contracts_panel"
+                    });
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private static string _tr_or(string key, string fallback)
+    {
+        // Godot translation lookup; TranslationServer returns the key itself
+        // when no translation exists, in which case we use the fallback.
+        var translated = Godot.TranslationServer.Translate(key).ToString();
+        return translated == key ? fallback : translated;
+    }
+
+    private static string _priority_from_confidence(double conf)
+    {
+        if (conf >= 0.8) return "critical";
+        if (conf >= 0.6) return "high";
+        if (conf >= 0.4) return "medium";
+        return "low";
+    }
+
+    /// <summary>
+    /// Opens the Attention Inbox panel in the UI.
+    /// </summary>
+    public void OpenAttentionInbox()
+    {
+        // Notify the engine (analytics hook) and ask the UI to show the panel.
+        SimulationEngine?.OpenAttentionInbox();
+        EmitSignal(SignalName.AttentionInboxRequested);
+    }
+
     // ── Night-shift ROC policy (Phase 5.2) ──
 
     /// <summary>Current night-shift policy (Standard/ScanOnly/AutomatedROC).</summary>

@@ -40,12 +40,17 @@ namespace LakskongenSim.Biology
             [(GeneticTrait.LateMaturation, GeneticTrait.GrowthRate)] = -0.15,
         };
 
-        private readonly SimRandom _rng;
-        internal SimRandom RngForSnapshot => _rng;
+        private readonly SimRngStream _rng;
+        internal SimRngStream RngForSnapshot => _rng;
+
+        public Genetics(SimRngStream rng)
+        {
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+        }
 
         public Genetics(int? seed = null)
+            : this((seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.Genetics))
         {
-            _rng = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
         }
 
         /// <summary>

@@ -231,6 +231,12 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Varsler"
 
+[node name="AutoPauseCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Stopp ved kritiske varsler"
+
 [node name="SpeedRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
 layout_mode = 2
 theme_override_constants/separation = 8
@@ -263,6 +269,20 @@ theme_override_constants/separation = 12
 unique_name_in_owner = true
 layout_mode = 2
 text = "Høykontrast"
+
+[node name="UiScaleRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs/Tilgjengelighet"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="UiScaleCap" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Tilgjengelighet/UiScaleRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Skala grensesnitt"
+
+[node name="UiScaleOption" type="OptionButton" parent="./Center/DialogPanel/DialogVBox/Tabs/Tilgjengelighet/UiScaleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
 
 [node name="ButtonRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox"]
 layout_mode = 2

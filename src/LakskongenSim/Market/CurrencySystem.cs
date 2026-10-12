@@ -72,9 +72,16 @@ namespace LakskongenSim.Market
         };
 
         // ─── Simulation state ───
-        private SimRandom _rng = SimRandom.CreateUnseeded();
-        internal SimRandom RngForSnapshot => _rng;
-        internal void SetRngForSeededRun(SimRandom rng) => _rng = rng;
+        private SimRngStream _rng = SimRng.CreateUnseeded().Stream(SimRngStreams.Currency);
+        internal SimRngStream RngForSnapshot => _rng;
+        internal void SetRngForSeededRun(SimRngStream rng) => _rng = rng;
+
+        /// <summary>Engine-bound constructor: the engine passes its own seeded
+        /// stream so FX noise is deterministic and save-continuous.</summary>
+        public CurrencySystem(SimRngStream rng) => _rng = rng;
+
+        /// <summary>Parameterless constructor for tests/tools (unseeded fallback).</summary>
+        public CurrencySystem() { }
 
         /// <summary>State that must survive a save so exchange-rate noise
         /// continues instead of resetting (Phase 1 wave 6).</summary>

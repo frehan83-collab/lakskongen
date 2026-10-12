@@ -110,7 +110,7 @@ namespace LakskongenSim.Biology
         /// Apply mortality over days, return surviving count (rounded to int).
         /// Combines baseline, stage, and disease mortality in a single application.
         /// </summary>
-        public int ApplyMortality(int count, int days, LifeStage stage, string populationId = "")
+        public int ApplyMortality(int count, int days, LifeStage stage, string populationId = "", double mortalityReduction = 0.0, double diseaseResistanceBonus = 0.0)
         {
             if (count <= 0 || days <= 0) return count;
             
@@ -138,6 +138,13 @@ namespace LakskongenSim.Biology
             
             // Combine all mortality sources: baseline * stage_multiplier + disease
             double totalRate = (baseRate * stageMultiplier) + diseaseRate;
+            
+            // Apply research mortality reduction (additive reduction to total rate)
+            totalRate = Math.Max(0.0, totalRate - mortalityReduction);
+            
+            // Apply disease resistance bonus (reduces disease component)
+            diseaseRate = Math.Max(0.0, diseaseRate * (1.0 - diseaseResistanceBonus));
+            totalRate = (baseRate * stageMultiplier) + diseaseRate;
             
             // Clamp to prevent negative or >100% mortality
             totalRate = Math.Clamp(totalRate, 0.0, MaxTotalDailyMortalityRate); // Max 95% mortality per day
@@ -184,7 +191,9 @@ namespace LakskongenSim.Biology
             int days, 
             LifeStage stage, 
             EnvironmentalDataPoint environmentalData,
-            string populationId = "")
+            string populationId = "",
+            double mortalityReduction = 0.0,
+            double diseaseResistanceBonus = 0.0)
         {
             if (count <= 0 || days <= 0) return count;
             
@@ -215,6 +224,13 @@ namespace LakskongenSim.Biology
             
             // Combine all mortality sources
             double totalRate = (baseRate * stageMultiplier) + diseaseRate + environmentalMortality;
+            
+            // Apply research mortality reduction (additive reduction to total rate)
+            totalRate = Math.Max(0.0, totalRate - mortalityReduction);
+            
+            // Apply disease resistance bonus (reduces disease component)
+            diseaseRate = Math.Max(0.0, diseaseRate * (1.0 - diseaseResistanceBonus));
+            totalRate = (baseRate * stageMultiplier) + diseaseRate + environmentalMortality;
             
             // Clamp to prevent negative or >100% mortality
             totalRate = Math.Clamp(totalRate, 0.0, MaxTotalDailyMortalityRate);

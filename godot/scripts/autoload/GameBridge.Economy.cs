@@ -57,6 +57,58 @@ public partial class GameBridge : Node
     /// <summary>Current profit (Revenue - Expenses).</summary>
     public double Profit => Revenue - Expenses;
 
+    /// <summary>
+    /// Causal P&L story (Phase 5.5 "feel" layer): the dominant cost drivers and
+    /// revenue sources behind the current profit/loss, so the UI can answer
+    /// "why did I lose money" with the top 2–3 causes.
+    /// Keys: "net_income", "top_costs" (Array of {category, amount, share}),
+    ///       "top_revenue" (Array of {category, amount, share}).
+    /// </summary>
+    public Godot.Collections.Dictionary GetProfitLossStory(int topN = 3)
+    {
+        var result = new Godot.Collections.Dictionary();
+        var fs = SimulationEngine?.FinancialStatements;
+        if (fs == null)
+        {
+            result["net_income"] = 0.0;
+            result["top_costs"] = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+            result["top_revenue"] = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+            return result;
+        }
+
+        result["net_income"] = (double)fs.ComputeNetIncome();
+
+        decimal totalCost = fs.COGS + fs.OperatingExpenses + fs.InterestExpense + fs.Taxes;
+        var costs = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var (category, amount) in fs.GetTopCostDrivers(topN))
+        {
+            double share = totalCost > 0 ? (double)(amount / totalCost) : 0.0;
+            costs.Add(new Godot.Collections.Dictionary
+            {
+                ["category"] = category,
+                ["amount"] = (double)amount,
+                ["share"] = share
+            });
+        }
+        result["top_costs"] = costs;
+
+        decimal totalRevenue = fs.Revenue;
+        var revenues = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var (category, amount) in fs.GetTopRevenueSources(topN))
+        {
+            double share = totalRevenue > 0 ? (double)(amount / totalRevenue) : 0.0;
+            revenues.Add(new Godot.Collections.Dictionary
+            {
+                ["category"] = category,
+                ["amount"] = (double)amount,
+                ["share"] = share
+            });
+        }
+        result["top_revenue"] = revenues;
+
+        return result;
+    }
+
 
 
     // ── Empire Systems API (T65) ──────────────────────────────────────────────
@@ -147,7 +199,7 @@ public partial class GameBridge : Node
         var system = SimulationEngine?.CrisisCapitalism;
         if (system == null) return result;
 
-        foreach (var crisis in system.GetActiveCrises())
+        foreach (var crisis in system.GetActiveCrises(SimulationEngine.State.Day))
         {
             result.Add(new Godot.Collections.Dictionary
             {
@@ -567,55 +619,6 @@ public partial class GameBridge : Node
                 ["mab_tonnes"] = site.MABTonnes
             });
         }
-
-        return result;
-    }
-
-    /// <summary>License cost for a new site (NOK).</summary>
-    public double GetLicenseCost()
-    {
-        return 30_000_000.0; // ~30M NOK for 780-tonne MAB license
-    }
-
-    /// <summary>
-    /// Apply for a new license in a zone.
-    /// Returns a Dictionary with keys: "success", "message", "cost", "mab_tonnes", "site_id".
-    /// </summary>
-    public Godot.Collections.Dictionary ApplyForLicense(string zoneId)
-    {
-        var result = new Godot.Collections.Dictionary();
-        
-        // Check if zone exists
-        var zone = SimulationEngine?.State?.Zones?.FirstOrDefault(z => z.Id == zoneId);
-        if (zone == null)
-        {
-            result["success"] = false;
-            result["message"] = $"Zone '{zoneId}' not found";
-            return result;
-        }
-
-        // License cost
-        decimal licenseCost = 30_000_000m;
-        
-        // Check funds
-        if (SimulationEngine?.FinanceManager?.Balance < licenseCost)
-        {
-            result["success"] = false;
-            result["message"] = $"Insufficient funds (need {licenseCost:N0} NOK)";
-            return result;
-        }
-
-        // Create new site (license approval)
-        var siteId = $"site_{SimulationEngine.State.SeaSites.Count + 1}";
-        var success = BuildSeaSite(zoneId, siteId);
-        
-        result["success"] = success;
-        result["message"] = success ? 
-            $"License approved for zone {zoneId}" : 
-            "License application failed";
-        result["cost"] = (double)licenseCost;
-        result["mab_tonnes"] = 780.0;
-        result["site_id"] = siteId;
 
         return result;
     }

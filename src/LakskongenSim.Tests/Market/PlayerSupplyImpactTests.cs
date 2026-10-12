@@ -1,6 +1,7 @@
 using System;
 using Xunit;
 using Xunit.Abstractions;
+using LakskongenSim.Core;
 using LakskongenSim.Market;
 
 namespace LakskongenSim.Tests.Market
@@ -16,10 +17,16 @@ namespace LakskongenSim.Tests.Market
 
         public PlayerSupplyImpactTests(ITestOutputHelper output) => _output = output;
 
+        private static MarketSimulation MakeMarket(int seed = 0)
+        {
+            var rng = new SimRng(seed);
+            return new MarketSimulation(rng.Stream(SimRngStreams.Market));
+        }
+
         [Fact]
         public void LargerHarvest_ProducesLargerPressure()
         {
-            var market = new MarketSimulation();
+            var market = MakeMarket();
 
             market.ApplyPlayerHarvest(100.0);
             var pressureSmall = market.PlayerSupplyPressure;
@@ -35,7 +42,7 @@ namespace LakskongenSim.Tests.Market
         [Fact]
         public void ZeroHarvest_HasNoEffect()
         {
-            var market = new MarketSimulation();
+            var market = MakeMarket();
 
             market.ApplyPlayerHarvest(0.0);
             market.ApplyPlayerHarvest(-50.0);
@@ -53,7 +60,7 @@ namespace LakskongenSim.Tests.Market
         [Fact]
         public void Pressure_DecaysOverDays()
         {
-            var market = new MarketSimulation();
+            var market = MakeMarket();
             market.ApplyPlayerHarvest(1000.0);
 
             var initial = market.PlayerSupplyPressure;
@@ -74,7 +81,7 @@ namespace LakskongenSim.Tests.Market
         [Fact]
         public void CapRespected_AtMinusEightPercent()
         {
-            var market = new MarketSimulation();
+            var market = MakeMarket();
 
             // A harvest far larger than the national weekly baseline saturates the cap.
             market.ApplyPlayerHarvest(PlayerSupplyImpact.NationalWeeklyBaselineTonnes * 10.0);
@@ -87,7 +94,7 @@ namespace LakskongenSim.Tests.Market
         [Fact]
         public void RepeatedSmallHarvests_DoNotCompoundUnboundedly()
         {
-            var market = new MarketSimulation();
+            var market = MakeMarket();
 
             // Simulate a harvest every day for a long horizon.
             for (var day = 0; day < 200; day++)
@@ -109,8 +116,8 @@ namespace LakskongenSim.Tests.Market
         {
             // Same deterministic seed => identical O-U diffusion; the only
             // difference is the player-supply pressure applied to the price.
-            var baseline = new MarketSimulation(seed: 1234);
-            var harvested = new MarketSimulation(seed: 1234);
+            var baseline = MakeMarket(1234);
+            var harvested = MakeMarket(1234);
 
             harvested.ApplyPlayerHarvest(PlayerSupplyImpact.NationalWeeklyBaselineTonnes * 5.0);
 

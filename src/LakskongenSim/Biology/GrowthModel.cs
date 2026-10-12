@@ -36,9 +36,9 @@ namespace LakskongenSim.Biology
         // concurrent use. All draws go through NextDoubleLocked(), guarded by _rngLock.
         // The default (unseeded) instance aliases Random.Shared — itself thread-safe —
         // while a seeded instance gives deterministic streams for tests.
-        private readonly SimRandom _random;
+        private readonly SimRngStream _random;
         private readonly object _rngLock = new();
-        internal SimRandom RngForSnapshot => _random;
+        internal SimRngStream RngForSnapshot => _random;
         private const double AllometricExponent = 0.67; // Metabolism scaling exponent
         private const double OptimalTemperature = 11.0; // Norwegian optimal
         private const double ThermalTolerance = 3.0;    // Thermal tolerance width
@@ -52,16 +52,23 @@ namespace LakskongenSim.Biology
         private const double MinGrowthTemperatureC = 2.0;
         private const double MaxGrowthTemperatureC = 17.0; // ↓ from 18.0 (tighter upper bound)
 
+        public GrowthModel(SimRngStream rng)
+        {
+            _random = rng ?? throw new ArgumentNullException(nameof(rng));
+        }
+
         /// <summary>Create a growth model with a non-deterministic RNG.</summary>
-        public GrowthModel() : this(null) { }
+        public GrowthModel() : this(SimRng.CreateUnseeded().Stream(SimRngStreams.Growth)) { }
 
         /// <summary>
         /// Create a growth model with an optional deterministic seed (for tests).
         /// </summary>
         /// <param name="seed">Seed for the RNG, or null for non-deterministic.</param>
         public GrowthModel(int? seed)
+            : this(seed.HasValue
+                ? new SimRng(seed.Value).Stream(SimRngStreams.Growth)
+                : SimRng.CreateUnseeded().Stream(SimRngStreams.Growth))
         {
-            _random = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
         }
 
         /// <summary>Thread-safe uniform draw in [0,1).</summary>
@@ -104,8 +111,9 @@ namespace LakskongenSim.Biology
         /// <param name="individualVariance">Individual variance σ (epigenetic + stochastic)</param>
         /// <param name="lifeStage">Current life stage for stage-specific modifiers</param>
         /// <param name="environmentalMultiplier">Combined environmental multiplier (DO × density) (0.1-1.0)</param>
+        /// <param name="researchGrowthBonus">Additive growth rate bonus from unlocked research (e.g., 0.04 = +4%).</param>
         /// <returns>New weight after one day</returns>
-        public double ApplySDEGrowthOneDay(double weight, double temperature, double geneticAsymptoticWeight, double geneticGrowthRate, double individualVariance, LifeStage lifeStage, double environmentalMultiplier)
+        public double ApplySDEGrowthOneDay(double weight, double temperature, double geneticAsymptoticWeight, double geneticGrowthRate, double individualVariance, LifeStage lifeStage, double environmentalMultiplier = 1.0, double researchGrowthBonus = 0.0)
         {
             // Genetic variance (±15% on K, ±10% on α_max, ±20% on σ)
             double asymptoticWeightK = geneticAsymptoticWeight * (1.0 + (NextDoubleLocked() - 0.5) * AsymptoticWeightSpread);
@@ -123,7 +131,7 @@ namespace LakskongenSim.Biology
                 case LifeStage.Harvest: stageModifier = 0.8; break;
             }
 
-            double maxGrowthRate = geneticGrowthRate * GrowthRateScalingFactor * (1.0 + (NextDoubleLocked() - 0.5) * GrowthRateSpread) * stageModifier;
+            double maxGrowthRate = geneticGrowthRate * GrowthRateScalingFactor * (1.0 + (NextDoubleLocked() - 0.5) * GrowthRateSpread) * stageModifier * (1.0 + researchGrowthBonus);
             double variance = individualVariance * (1.0 + (NextDoubleLocked() - 0.5) * VarianceSpread);
 
             // Temperature-dependent growth rate: α(T) = α_max × exp(−(T − T_opt)^2 / (2τ^2))
@@ -158,13 +166,13 @@ namespace LakskongenSim.Biology
         /// </summary>
         public double ApplySDEGrowthMultipleDays(double initialWeight, int days, double temperature, double geneticAsymptoticWeight, double geneticGrowthRate, double individualVariance, LifeStage lifeStage)
         {
-            return ApplySDEGrowthMultipleDays(initialWeight, days, temperature, geneticAsymptoticWeight, geneticGrowthRate, individualVariance, lifeStage, 1.0);
+            return ApplySDEGrowthMultipleDays(initialWeight, days, temperature, geneticAsymptoticWeight, geneticGrowthRate, individualVariance, lifeStage, 1.0, 0.0);
         }
 
-/// <summary>
-        /// Apply SDE growth over multiple days with environmental multiplier.
+        /// <summary>
+        /// Apply SDE growth over multiple days with environmental multiplier and research bonus.
         /// </summary>
-        public double ApplySDEGrowthMultipleDays(double initialWeight, int days, double temperature, double geneticAsymptoticWeight, double geneticGrowthRate, double individualVariance, LifeStage lifeStage, double environmentalMultiplier)
+        public double ApplySDEGrowthMultipleDays(double initialWeight, int days, double temperature, double geneticAsymptoticWeight, double geneticGrowthRate, double individualVariance, LifeStage lifeStage, double environmentalMultiplier = 1.0, double researchGrowthBonus = 0.0)
         {
             if (days <= 0) return initialWeight;
             double weight = initialWeight;
@@ -198,7 +206,7 @@ namespace LakskongenSim.Biology
                 case LifeStage.Harvest: stageModifier = 0.8; break;
             }
             
-            maxGrowthRate *= stageModifier;
+            maxGrowthRate *= stageModifier * (1.0 + researchGrowthBonus);
             
             // Temperature effect (constant over batch)
             if (temperature < MinGrowthTemperatureC || temperature > MaxGrowthTemperatureC) return weight; // No growth

@@ -108,6 +108,9 @@ public partial class GameBridge : Node
             DirAccess.MakeDirRecursiveAbsolute(_modsDirectory);
             _modLoader = new ModLoader(_modsDirectory);
             _modLoader.DiscoverAndLoad();
+            // Phase 4.6: hand the resolved directory to the engine; every
+            // Initialize() then applies mod events/research/scenarios.
+            SimulationEngine?.LoadMods(_modsDirectory);
             GD.Print($"GameBridge: ModLoader ready at {_modsDirectory} " +
                      $"({_modLoader.LoadedMods.Count} loaded, {_modLoader.LoadErrors.Count} errors)");
         }
@@ -350,6 +353,11 @@ public partial class GameBridge : Node
                     break;
                 case "storm_impact":
                     EmitSignal(SignalName.WeatherEvent, note.EventType, note.Severity, note.Message);
+                    break;
+                case "license_auction":
+                    // Phase 4.1: growth-licence auction opened/settled — push a
+                    // generic refresh so map/UI toasts re-read auction state.
+                    EmitSignal(SignalName.GameStateUpdated);
                     break;
             }
         }
@@ -810,34 +818,16 @@ public partial class GameBridge : Node
     }
 
     /// <summary>
-    /// Project any mod-provided scenarios into the engine's ScenarioSystem so they
-    /// become startable via <see cref="StartScenario"/> in addition to built-ins.
-    /// Safe to call repeatedly (registering an id replaces it).
+    /// Phase 4.6: mod scenarios (plus events and research) are applied by the
+    /// engine itself — <see cref="SimulationEngine.Initialize"/> re-applies the
+    /// directory configured via <see cref="SimulationEngine.LoadMods"/>.
+    /// This bridge method just re-asserts the directory so a late-resolved
+    /// mods folder still lands; the engine guards against double registration.
     /// </summary>
     private void RegisterModScenariosIntoEngine()
     {
-        if (_modLoader == null || SimulationEngine?.Scenario == null) return;
-
-        var definitions = new List<ScenarioDefinition>();
-        foreach (var mod in _modLoader.GetAllScenarios())
-        {
-            definitions.Add(new ScenarioDefinition
-            {
-                Id = mod.Id,
-                Name = string.IsNullOrWhiteSpace(mod.Name) ? mod.Id : mod.Name,
-                Description = mod.Description,
-                StartingCapitalNOK = mod.StartingCapitalNOK,
-                StartingRegion = ParseRegion(mod.StartingRegion),
-                Difficulty = Math.Clamp(mod.Difficulty, 1, 5),
-                WinCondition = ParseWinCondition(mod.WinCondition),
-                SpecialRules = new Dictionary<string, string>(),
-                TimeLimitDays = null,
-                IsUnlocked = true
-            });
-        }
-
-        if (definitions.Count > 0)
-            SimulationEngine.Scenario.RegisterScenarios(definitions);
+        if (!string.IsNullOrEmpty(_modsDirectory))
+            SimulationEngine?.LoadMods(_modsDirectory);
     }
 
     private static LakskongenSim.Data.ProductionRegion ParseRegion(string raw)

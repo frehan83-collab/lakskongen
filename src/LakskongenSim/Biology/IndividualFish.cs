@@ -1,4 +1,5 @@
 using System;
+using LakskongenSim.Core;
 using LakskongenSim.Data;
 using LakskongenSim.Environment;
 
@@ -204,14 +205,18 @@ namespace LakskongenSim.Biology
             {
                 Die("Growth failure");
             }
-            else if (AccumulatedOxygenStress > 10.0 && _random.NextDouble() < 0.01)
+            else if (AccumulatedOxygenStress > 10.0 && _rng.NextDouble() < 0.01)
             {
                 // Small chance of death from chronic oxygen stress
                 Die("Chronic hypoxia");
             }
         }
         
-        private readonly Random _random = new Random();
+        // Chronic-hypoxia roll. Defaults to an unseeded stream (status quo);
+        // population/disease ticks may bind a per-fish named stream via SetRng.
+        private SimRngStream _rng = SimRng.CreateUnseeded().Stream(SimRngStreams.StochasticDisease);
+        /// <summary>Bind a deterministic stream (per-fish identity) for mortality rolls.</summary>
+        public void SetRng(SimRngStream rng) => _rng = rng ?? throw new ArgumentNullException(nameof(rng));
         
         /// <summary>
         /// Update accumulated stress metrics based on environmental conditions.

@@ -49,7 +49,7 @@ func _ready():
 	build_new_offshore_button.pressed.connect(_on_build_new_offshore_pressed)
 	transfer_plan_btn.pressed.connect(_on_transfer_plan)
 	transfer_execute_btn.pressed.connect(_on_transfer_execute)
-	transfer_source_select.changed.connect(_on_transfer_source_changed)
+	transfer_source_select.item_selected.connect(_on_transfer_source_changed)
 
 	refresh()
 
@@ -182,9 +182,7 @@ func _update_containment_ladder() -> void:
 	for lv in levels:
 		by_id[str(lv.get("id", ""))] = lv
 	if pens.is_empty():
-		var empty := Label.new()
-		empty.text = "Ingen kystlokaliteter"
-		contain_list.add_child(empty)
+		UIPolish.show_empty_state(contain_list, "Ingen kystlokaliteter", 13, "", _theme)
 		return
 	for site in pens:
 		var row := HBoxContainer.new()

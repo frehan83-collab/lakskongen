@@ -128,6 +128,32 @@ step_tokens() {
     "$PYTHON" tools/sync_tokens.py --check
 }
 
+step_design_token_drift() {
+    local script="$REPO_ROOT/.claude/skills/ecc/design-token-sync/design_token_sync/drift_check.py"
+    if [[ ! -f "$script" ]]; then
+        echo "   Design token drift check script not found at $script — skipping."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+
+    local python_bin
+    python_bin="$(command -v python3.12 || command -v python3.11 || command -v python3)"
+    if [[ -z "$python_bin" ]]; then
+        echo "   Python 3 not found — skipping design token drift check."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+
+    echo "   Running design token drift check..."
+    if ! "$python_bin" "$script"; then
+        echo "   Design token drift check failed."
+        STEP_STATUS="FAIL"
+        return 1
+    fi
+
+    echo "   Design token drift check passed."
+}
+
 step_validate_json() {
     local fail=0 count=0 f
     while IFS= read -r -d '' f; do
@@ -200,6 +226,143 @@ step_gdscript_scan() {
     rm -f "$log"
 }
 
+step_verify_assets() {
+    local script="$REPO_ROOT/.claude/skills/ecc/blender-asset-pipeline/blender_asset_pipeline.py"
+    if [[ ! -f "$script" ]]; then
+        echo "   Blender asset pipeline script not found at $script — skipping."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+
+    local python_bin
+    python_bin="$(command -v python3.12 || command -v python3.11 || command -v python3)"
+    if [[ -z "$python_bin" ]]; then
+        echo "   Python 3 not found — skipping asset verification."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+
+    echo "   Verifying exported assets against manifest..."
+    if ! "$python_bin" "$script" --verify-only; then
+        echo "   Asset verification failed."
+        STEP_STATUS="FAIL"
+        return 1
+    fi
+
+    echo "   Asset verification passed."
+}
+
+step_godot_mcp_scene_diff() {
+    local script="$REPO_ROOT/.claude/skills/ecc/godot-mcp-ops/godot_mcp_ops.py"
+    if [[ ! -f "$script" ]]; then
+        echo "   Godot MCP ops script not found at $script — skipping."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+
+    local python_bin
+    python_bin="$(command -v python3.12 || command -v python3.11 || command -v python3)"
+    if [[ -z "$python_bin" ]]; then
+        echo "   Python 3 not found — skipping."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+
+    # Scene diff requires a base and PR scene; in CI we compare against HEAD
+    # For now, skip if no obvious comparison target
+    echo "   Scene diff: requires explicit base/PR scenes (run manually with --base/--pr)"
+    STEP_STATUS="SKIP"
+    return 0
+}
+
+step_godot_mcp_autoload_audit() {
+    local script="$REPO_ROOT/.claude/skills/ecc/godot-mcp-ops/godot_mcp_ops.py"
+    if [[ ! -f "$script" ]]; then
+        echo "   Godot MCP ops script not found at $script — skipping."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+
+    local python_bin
+    python_bin="$(command -v python3.12 || command -v python3.11 || command -v python3)"
+    if [[ -z "$python_bin" ]]; then
+        echo "   Python 3 not found — skipping."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+
+    echo "   Running autoload audit..."
+    if ! GODOT_BIN="$GODOT_BIN" "$python_bin" "$script" autoload-audit; then
+        echo "   Autoload audit failed."
+        STEP_STATUS="FAIL"
+        return 1
+    fi
+
+    echo "   Autoload audit passed."
+}
+
+step_godot_mcp_shader_check() {
+    local script="$REPO_ROOT/.claude/skills/ecc/godot-mcp-ops/godot_mcp_ops.py"
+    if [[ ! -f "$script" ]]; then
+        echo "   Godot MCP ops script not found at $script — skipping."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+
+    local python_bin
+    python_bin="$(command -v python3.12 || command -v python3.11 || command -v python3)"
+    if [[ -z "$python_bin" ]]; then
+        echo "   Python 3 not found — skipping."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+
+    echo "   Running shader compilation check..."
+    if ! GODOT_BIN="$GODOT_BIN" "$python_bin" "$script" shader-check; then
+        echo "   Shader check failed."
+        STEP_STATUS="FAIL"
+        return 1
+    fi
+
+    echo "   Shader check passed."
+}
+
+step_godot_mcp_export_verify() {
+    local script="$REPO_ROOT/.claude/skills/ecc/godot-mcp-ops/godot_mcp_ops.py"
+    if [[ ! -f "$script" ]]; then
+        echo "   Godot MCP ops script not found at $script — skipping."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+
+    local python_bin
+    python_bin="$(command -v python3.12 || command -v python3.11 || command -v python3)"
+    if [[ -z "$python_bin" ]]; then
+        echo "   Python 3 not found — skipping."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+
+    if [[ ! -x "$GODOT_BIN" ]]; then
+        echo "   Godot not found at '$GODOT_BIN' — skipping export verify."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+
+    echo "   Running export verification..."
+    if ! GODOT_BIN="$GODOT_BIN" "$python_bin" "$script" export-verify; then
+        echo "   Export verification failed."
+        STEP_STATUS="FAIL"
+        return 1
+    fi
+
+    echo "   Export verification passed."
+}
+
+step_validate_mods() {
+    "$PYTHON" "$REPO_ROOT/tools/validate_mods.py"
+}
+
 echo "Lakskongen CI quality gate — repo: $REPO_ROOT"
 echo ""
 
@@ -209,9 +372,15 @@ run_step "dotnet test LakskongenSim.sln"               step_test
 run_step "pytest tests/ (bridge contract)"             step_pytest
 run_step "Performance benchmark (perf gate)"           step_benchmark
 run_step "Design token sync check"                     step_tokens
+run_step "Design token drift check"                    step_design_token_drift
 run_step "Validate JSON data + mod manifests"          step_validate_json
 run_step "Scene load validation"                       step_scene_validation
 run_step "Headless GDScript parse scan"                step_gdscript_scan
+run_step "Blender asset pipeline verification"         step_verify_assets
+run_step "Godot MCP: Autoload audit"                   step_godot_mcp_autoload_audit
+run_step "Godot MCP: Shader check"                     step_godot_mcp_shader_check
+run_step "Godot MCP: Export verify"                    step_godot_mcp_export_verify
+run_step "Mod validation + cross-reference checks"     step_validate_mods
 
 CURRENT_STEP=""
 print_summary

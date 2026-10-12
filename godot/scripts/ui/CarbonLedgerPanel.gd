@@ -112,12 +112,7 @@ func _update_sites(ledger: Dictionary):
 
 	var sites: Array = ledger.get("sites", [])
 	if sites.is_empty():
-		var empty = Label.new()
-		empty.text = "Ingen kystlokaliteter"
-		if _theme:
-			empty.add_theme_font_size_override("font_size", _theme.FONT_SMALL)
-			empty.add_theme_color_override("font_color", _theme.TEXT_SECONDARY)
-		sites_container.add_child(empty)
+		UIPolish.show_empty_state(sites_container, "Ingen kystlokaliteter", 12, "", _theme)
 		return
 
 	for site in sites:
@@ -141,6 +136,9 @@ func _update_sites(ledger: Dictionary):
 		scope_lbl.add_theme_color_override("font_color", _theme.TEXT_SECONDARY if _theme else Color(0.6, 0.6, 0.6))
 		row.add_child(scope_lbl)
 
+	# UIPolish: vertical keyboard navigation for sites list
+	UIPolish.link_vertical_focus(sites_container)
+
 func _update_offshore(ledger: Dictionary):
 	if offshore_container == null:
 		return
@@ -162,6 +160,9 @@ func _update_offshore(ledger: Dictionary):
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_lbl.add_theme_font_size_override("font_size", 13)
 		row.add_child(name_lbl)
+
+	# UIPolish: vertical keyboard navigation for offshore list
+	UIPolish.link_vertical_focus(offshore_container)
 
 func _update_ras(ledger: Dictionary):
 	if ras_container == null:
@@ -185,6 +186,9 @@ func _update_ras(ledger: Dictionary):
 		name_lbl.add_theme_font_size_override("font_size", 13)
 		row.add_child(name_lbl)
 
+	# UIPolish: vertical keyboard navigation for RAS list
+	UIPolish.link_vertical_focus(ras_container)
+
 func _update_processing(ledger: Dictionary):
 	if processing_container == null:
 		return
@@ -205,6 +209,9 @@ func _update_processing(ledger: Dictionary):
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_lbl.add_theme_font_size_override("font_size", 13)
 	row.add_child(name_lbl)
+
+	# UIPolish: vertical keyboard navigation for processing container
+	UIPolish.link_vertical_focus(processing_container)
 
 func _on_refresh_pressed():
 	refresh()

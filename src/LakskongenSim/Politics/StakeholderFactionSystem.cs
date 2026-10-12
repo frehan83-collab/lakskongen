@@ -112,21 +112,26 @@ namespace LakskongenSim.Politics
     {
         private Dictionary<FactionType, Faction> _factions;
         private List<Demand> _demandHistory;
-        private SimRandom _random;
-        internal SimRandom RngForSnapshot => _random;
+        private SimRngStream _random;
+        internal SimRngStream RngForSnapshot => _random;
         private int _nextDemandId;
 
         public event Action<FactionType, float, string>? RelationshipChanged;
         public event Action<Demand>? DemandIssued;
         public event Action<ConsequenceResult>? ConsequenceApplied;
 
-        public StakeholderFactionSystem(int? seed = null)
+        public StakeholderFactionSystem(SimRngStream rng)
         {
             _factions = new Dictionary<FactionType, Faction>();
             _demandHistory = new List<Demand>();
-            _random = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
+            _random = rng ?? throw new ArgumentNullException(nameof(rng));
             _nextDemandId = 1;
             InitializeFactions();
+        }
+
+        public StakeholderFactionSystem(int? seed = null)
+            : this((seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.Factions))
+        {
         }
 
         private void InitializeFactions()

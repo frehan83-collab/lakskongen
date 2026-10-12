@@ -34,7 +34,7 @@ namespace LakskongenSim.Advisor
         private readonly Storyteller? _storyteller;
         private readonly AlertSystem _alertSystem;
         private readonly RecommendationHistory _recommendationHistory;
-        private readonly Random _rng;
+        private readonly SimRngStream _rng;
 
         // Configuration thresholds
         private const double CRITICAL_OXYGEN_THRESHOLD = 5.0; // mg/L
@@ -82,7 +82,7 @@ namespace LakskongenSim.Advisor
             _storyteller = storyteller;
             _alertSystem = new AlertSystem();
             _recommendationHistory = new RecommendationHistory(historyStoragePath);
-            _rng = seed.HasValue ? new Random(seed.Value) : new Random();
+            _rng = (seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.Market, "advisor");
 
             // Wire up events
             _alertSystem.OnAlertGenerated += alert => OnAlertGenerated?.Invoke(alert);

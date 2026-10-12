@@ -15,7 +15,7 @@ enum ZoomLevel { COAST, FJORD, FARM, UNDERWATER }
 # stays in frame instead of staring straight down.
 const ZOOM_PRESETS := {
 	ZoomLevel.COAST:      { "altitude": 1400.0, "fov": 45.0, "pitch": -35.0, "tilt_focus": 0.45 },
-	ZoomLevel.FJORD:      { "altitude": 550.0,  "fov": 45.0, "pitch": -30.0, "tilt_focus": 0.5 },
+	ZoomLevel.FJORD:      { "altitude": 380.0,  "fov": 45.0, "pitch": -26.0, "tilt_focus": 0.5 },
 	ZoomLevel.FARM:       { "altitude": 70.0,   "fov": 50.0, "pitch": -28.0, "tilt_focus": 0.55 },
 	ZoomLevel.UNDERWATER: { "altitude": -10.0,  "fov": 70.0, "pitch": -10.0, "tilt_focus": 0.5 },
 }

@@ -41,9 +41,20 @@ internal sealed class WellboatExecutionTickSystem : ITickSystem
 }
 
 /// <summary>
-/// POST-TICK phase 3: balance mirror sync. Wellboat and storm economies land
-/// in FinanceManager after the in-day mirror, so the mirror is re-synced here
-/// every day — State.Balance never reads a day stale.
+/// POST-TICK phase 3: licence auctions (Phase 4.1). Runs BEFORE the balance
+/// mirror so settlement charges (player wins) sync into State.Balance the
+/// same day. Drives rival raises, settlement of closed auctions and
+/// rival-initiated openings.
+/// </summary>
+internal sealed class LicenseAuctionTickSystem : ITickSystem
+{
+    public void Tick(SimulationEngine engine) => engine.TickLicenseAuctions();
+}
+
+/// <summary>
+/// POST-TICK phase 4: balance mirror sync. Wellboat, storm and auction
+/// economies land in FinanceManager after the in-day mirror, so the mirror
+/// is re-synced here every day — State.Balance never reads a day stale.
 /// </summary>
 internal sealed class BalanceMirrorTickSystem : ITickSystem
 {

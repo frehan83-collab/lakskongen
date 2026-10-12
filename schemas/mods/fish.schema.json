@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lakskongen.local/schemas/mods/fish.schema.json",
+  "title": "Lakskongen Mod Fish Species",
+  "description": "Schema for mod fish species definitions (fish_*.json)",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "name"],
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "name": { "type": "string" },
+      "scientific_name": { "type": "string" },
+      "description": { "type": "string" },
+      "growth_rate_multiplier": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "optimal_temp_min": {
+        "type": "number"
+      },
+      "optimal_temp_max": {
+        "type": "number"
+      },
+      "base_fcr": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "price_multiplier": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "max_harvest_weight_kg": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      }
+    },
+    "additionalProperties": false
+  }
+}

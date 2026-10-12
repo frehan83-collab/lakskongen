@@ -71,3 +71,39 @@ static func panel_enter(panel: Control) -> void:
 	if panel == null or not is_instance_valid(panel):
 		return
 	JuiceEffects.panel_enter(panel)
+
+
+## Show a standardized empty state message in a container.
+## Clears existing children and adds a muted Label with the given text.
+## Uses LakskongenTheme if provided for consistent font/color, otherwise
+## falls back to Nordic Minimalist defaults.
+##
+## Args:
+##   container: VBoxContainer or similar to receive the empty state label
+##   text: Message to display (pre-localized by caller)
+##   font_size: Optional font size override (default: 12)
+##   icon: Optional emoji prefix (e.g. "🔔 ", "📈 ")
+##   theme: Optional LakskongenTheme node for themed label creation
+static func show_empty_state(container: Control, text: String, font_size: int = 12, icon: String = "", theme: Node = null) -> void:
+	if container == null:
+		return
+	for child in container.get_children():
+		child.queue_free()
+	var label := Label.new()
+	label.text = "%s%s" % [icon, text] if not icon.is_empty() else text
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if theme != null and theme.has_method("create_label"):
+		# Use theme helper for consistency
+		var themed_label: Label = theme.create_label(label.text, font_size, theme.MUTED)
+		container.add_child(themed_label)
+	else:
+		label.add_theme_font_size_override("font_size", font_size)
+		label.add_theme_color_override("font_color", Color("#7B8794"))
+		container.add_child(label)
+
+
+## Show an empty state with a localized key and fallback.
+## Convenience wrapper for panels using _tr_or pattern.
+## Caller must handle localization (using tr() or _tr_or) and pass the result.
+static func show_empty_state_localized(container: Control, text: String, font_size: int = 12, icon: String = "", theme: Node = null) -> void:
+	show_empty_state(container, text, font_size, icon, theme)

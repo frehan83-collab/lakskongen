@@ -229,6 +229,7 @@ namespace LakskongenSim.Core
 
         /// <summary>CrisisCapitalism: Active crisis events.</summary>
         public List<CrisisEventState> ActiveCrises { get; set; } = new();
+        public List<DistressedAssetState> DistressedAssets { get; set; } = new();
 
         /// <summary>VerticalIntegration: Owned assets and integration score.</summary>
         public VerticalIntegrationState? VerticalIntegration { get; set; }
@@ -242,11 +243,17 @@ namespace LakskongenSim.Core
         /// <summary>InvestorSystem: Investors and equity dilution.</summary>
         public InvestorSystemState? InvestorSystem { get; set; }
 
+        /// <summary>CorporateFinanceSystem: Covenants, IPO, tax state (Phase 4.3).</summary>
+        public CorporateFinanceSystemState? CorporateFinance { get; set; }
+
         /// <summary>AcquisitionSystem: Owned acquisitions.</summary>
         public List<AcquisitionRecord> Acquisitions { get; set; } = new();
 
         /// <summary>LicenseSystem: Active licenses with expiry dates.</summary>
         public List<LicenseRecord> Licenses { get; set; } = new();
+
+        /// <summary>Phase 4.1: green-zone licence auctions (open + settled).</summary>
+        public List<Finance.LicenseAuctionState> LicenseAuctions { get; set; } = new();
 
         /// <summary>StakeholderFactionSystem: Faction relations.</summary>
         public Dictionary<string, decimal> FactionRelations { get; set; } = new();
@@ -358,9 +365,31 @@ namespace LakskongenSim.Core
         public string Id { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
         public string AffectedCompetitorId { get; set; } = string.Empty;
+        public string CompetitorName { get; set; } = string.Empty;
         public float SeverityScore { get; set; }
+        public float DiscountMultiplier { get; set; }
         public int DurationMonths { get; set; }
-        public DateTime StartDate { get; set; }
+        public int StartDay { get; set; }
+    }
+
+    /// <summary>Serializable snapshot of a DistressedAsset.</summary>
+    public class DistressedAssetState
+    {
+        public string Id { get; set; } = string.Empty;
+        public string AssetType { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Location { get; set; } = string.Empty;
+        public decimal OriginalValueNOK { get; set; }
+        public decimal DiscountedPriceNOK { get; set; }
+        public int TimeRemainingMonths { get; set; }
+        public float RiskScore { get; set; }
+        public string CrisisEventId { get; set; } = string.Empty;
+        public string OwningCompetitor { get; set; } = string.Empty;
+        public string? SourceCompetitorId { get; set; }
+        public string? SiteId { get; set; }
+        public int? LicenseCount { get; set; }
+        public float? MABTonnes { get; set; }
     }
 
     /// <summary>Serializable snapshot of VerticalIntegrationSystem.</summary>
@@ -408,6 +437,65 @@ namespace LakskongenSim.Core
         public decimal InvestmentAmount { get; set; }
     }
 
+    /// <summary>Serializable snapshot of CovenantSystem (Phase 4.3).</summary>
+    public class CovenantSystemState
+    {
+        public List<CovenantBreachState> Breaches { get; set; } = new();
+    }
+
+    /// <summary>Serializable covenant breach record (Phase 4.3).</summary>
+    public class CovenantBreachState
+    {
+        public string CovenantId { get; set; } = string.Empty;
+        public string CovenantName { get; set; } = string.Empty;
+        public int BreachDay { get; set; } = 0;
+        public decimal RatioValue { get; set; } = 0m;
+        public decimal ThresholdValue { get; set; } = 0m;
+        public decimal BreachValue { get; set; } = 0m;
+        public bool IsResolved { get; set; } = false;
+        public int? ResolvedDay { get; set; }
+    }
+
+    /// <summary>Serializable snapshot of IPOSession (Phase 4.3).</summary>
+    public class IPOSessionState
+    {
+        public string Stage { get; set; } = "Private";
+        public decimal OfferPricePerShare { get; set; } = 0m;
+        public int SharesOutstanding { get; set; } = 0;
+        public decimal SharePriceNOK { get; set; } = 0m;
+        public int QuartersSinceIPO { get; set; } = 0;
+        public decimal MarketCap { get; set; } = 0m;
+        public List<decimal> GuidanceHistory { get; set; } = new();
+        public List<decimal> SharePriceHistory { get; set; } = new();
+        public List<GuidanceRecordState> GuidanceRecords { get; set; } = new();
+    }
+
+    /// <summary>Serializable guidance record (Phase 4.3).</summary>
+    public class GuidanceRecordState
+    {
+        public int Quarter { get; set; } = 0;
+        public int Day { get; set; } = 0;
+        public decimal GuidedRevenue { get; set; } = 0m;
+        public decimal GuidedEBITDA { get; set; } = 0m;
+        public decimal ActualRevenue { get; set; } = 0m;
+        public decimal ActualEBITDA { get; set; } = 0m;
+        public decimal RevenueMissPct { get; set; } = 0m;
+        public decimal EBITDAMissPct { get; set; } = 0m;
+    }
+
+    /// <summary>Serializable snapshot of CorporateFinanceSystem (Phase 4.3).</summary>
+    public class CorporateFinanceSystemState
+    {
+        public decimal LossCarryForward { get; set; } = 0m;
+        public int CurrentPeriod { get; set; } = 0;
+        public int CurrentYear { get; set; } = 1;
+        public decimal TotalTaxPaid { get; set; } = 0m;
+        public decimal ResourceRentTaxPaid { get; set; } = 0m;
+        public List<string> Events { get; set; } = new();
+        public List<CovenantBreachState> Covenants { get; set; } = new();
+        public IPOSessionState IPO { get; set; } = new();
+    }
+
     /// <summary>Serializable acquisition record.</summary>
     public class AcquisitionRecord
     {
@@ -424,6 +512,9 @@ namespace LakskongenSim.Core
         public int ExpiryDay { get; set; }
         public decimal AnnualFee { get; set; }
     }
+
+    // NOTE: LicenseAuctionState / LicenseBid / LicenseBidRecord live in
+    // Finance/LicenseAuctionSystem.cs — that class owns the auction model.
 
     /// <summary>Serializable market intelligence report snapshot.</summary>
     public class MarketReportSnapshot

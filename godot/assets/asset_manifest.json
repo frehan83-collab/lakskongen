@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "generated_by": "blender_asset_pipeline",
+  "assets": {
+    "salmon_LOD0": {
+      "path": "godot/assets/models/fish/salmon_LOD0.glb",
+      "sha256": "d1c93510292dd32093a339c1c849a28c2cf8f55a38ba26eb97d15514627f34a6",
+      "size": 8800,
+      "tri_count": 220,
+      "material_count": 3,
+      "bbox_size": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  }
+}

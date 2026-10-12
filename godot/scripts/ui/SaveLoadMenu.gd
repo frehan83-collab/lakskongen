@@ -10,6 +10,7 @@ signal game_loaded(slot_name: String)
 signal game_saved(slot_name: String)
 
 var _mode: String = "load"  # "save" or "load"
+var _theme: Node = null
 
 @onready var _title_label: Label = %TitleLabel
 @onready var _close_button: Button = %CloseButton
@@ -17,6 +18,7 @@ var _mode: String = "load"  # "save" or "load"
 @onready var _new_save_button: Button = %NewSaveButton
 
 func _ready() -> void:
+	_theme = get_node_or_null("/root/LakskongenTheme")
 	_apply_localization()
 	_close_button.pressed.connect(func(): close_requested.emit(); hide())
 	_new_save_button.pressed.connect(_on_new_save)
@@ -66,26 +68,7 @@ func _refresh_slots() -> void:
 		saves = save_mgr.get_save_list()
 
 	if saves.is_empty():
-		var empty_vbox := VBoxContainer.new()
-		empty_vbox.add_theme_constant_override("separation", 4)
-		var lbl := Label.new()
-		var empty_text := _tr_or("UI_SAVELOAD_EMPTY_LOAD", "Ingen lagrede spill funnet")
-		if _mode == "save":
-			empty_text = _tr_or("UI_SAVELOAD_EMPTY_SAVE", "Ingen eksisterende lagringer")
-		lbl.text = "💾 " + empty_text
-		lbl.add_theme_color_override("font_color", Color("#7B8794"))
-		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		empty_vbox.add_child(lbl)
-		var hint := Label.new()
-		if _mode == "save":
-			hint.text = _tr_or("UI_SAVELOAD_EMPTY_SAVE_HINT", "Trykk «Nytt Lagringspunkt» for å sikre framgangen din.")
-		else:
-			hint.text = _tr_or("UI_SAVELOAD_EMPTY_LOAD_HINT", "Start et nytt spill fra hovedmenyen for å komme i gang.")
-		hint.add_theme_font_size_override("font_size", 12)
-		hint.add_theme_color_override("font_color", Color("#7B8794"))
-		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		empty_vbox.add_child(hint)
-		_slots_container.add_child(empty_vbox)
+		UIPolish.show_empty_state_localized(_slots_container, _tr_or("UI_SAVELOAD_EMPTY_LOAD", "💾 Ingen lagrede spill funnet"), 14, "💾 ", _theme)
 		return
 
 	for save_info in saves:

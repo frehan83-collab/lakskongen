@@ -243,9 +243,12 @@ namespace LakskongenSim.Farm
         /// <param name="waterQualityPenalty">Water-quality multiplier (1.0 = no penalty).</param>
         /// <param name="spreadQuality01">Feed spreading precision 0 (poor) to 1 (perfect).
         /// Defaults to 1.0 so existing callers keep baseline behaviour.</param>
+        /// <param name="fcrReduction">Research FCR reduction (e.g., 0.06 = 6% lower FCR).</param>
+        /// <param name="feedWasteReduction">Research feed waste reduction (e.g., 0.12 = 12% less waste).</param>
         public FeedResult Feed(Biology.FishPopulation pop, int days,
             double temperatureC = 12.0, double stockingDensityKgM3 = 20.0,
-            double waterQualityPenalty = 1.0, double spreadQuality01 = 1.0)
+            double waterQualityPenalty = 1.0, double spreadQuality01 = 1.0,
+            double fcrReduction = 0.0, double feedWasteReduction = 0.0)
         {
             double biomassKg = pop.Cohorts.Sum(c => c.Count * c.MeanWeightKg);
             if (biomassKg <= 0) return FeedResult.Empty;
@@ -258,6 +261,8 @@ namespace LakskongenSim.Farm
 
             // Calculate dynamic FCR, then apply precision-feeding penalty.
             double fcr = CalculateFCR(temperatureC, dominantStage, stockingDensityKgM3, waterQualityPenalty);
+            // Apply research FCR reduction (multiplicative)
+            fcr *= (1.0 - fcrReduction);
             fcr = Math.Clamp(fcr * PrecisionFCRMultiplier(spreadQuality01), 0.9, 2.5);
             if (Math.Abs(fcr - CurrentFCR) > 1e-9)
             {
@@ -267,6 +272,8 @@ namespace LakskongenSim.Farm
 
             // Precision-feeding side outputs: waste and size spread.
             double wasteFraction = CalculateFeedWasteFraction(spreadQuality01);
+            // Apply research feed waste reduction
+            wasteFraction *= (1.0 - feedWasteReduction);
             double sizeVarianceCv = CalculateSizeVarianceCv(spreadQuality01);
 
             // Daily feed amount (% of bodyweight, adjustable by player),

@@ -91,7 +91,6 @@ namespace LakskongenSim.Market
     {
         private readonly Dictionary<SalesChannelType, SalesChannel> _channels = new();
         private readonly Dictionary<SalesChannelType, int> _weeklyVolumeUsed = new();
-        private readonly Random _rng = new();
 
         public event Action<SaleResult>? OnSaleCompleted;
         public event Action<SalesChannelType, bool>? OnChannelAccessChanged;

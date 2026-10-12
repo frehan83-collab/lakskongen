@@ -46,6 +46,10 @@ func _ready() -> void:
 	_apply_localization()
 	_apply_heading_fonts()
 	_hire_button.pressed.connect(_on_hire_pressed)
+
+	# UIPolish: keyboard navigation for crew list
+	UIPolish.link_vertical_focus(_crew_list)
+
 	_refresh()
 
 func _input(event: InputEvent) -> void:
@@ -146,15 +150,14 @@ func _refresh_crew_list() -> void:
 		]
 
 	if crew.is_empty():
-		var empty := Label.new()
-		empty.text = _tr_or("UI_CREW_EMPTY", "Ingen ansatte — bruk + Ansett ny (50k signering)")
-		empty.add_theme_font_size_override("font_size", 13)
-		empty.add_theme_color_override("font_color", C_MUTED)
-		_crew_list.add_child(empty)
+		UIPolish.show_empty_state_localized(_crew_list, _tr_or("UI_CREW_EMPTY", "Ingen ansatte — bruk + Ansett ny (50k signering)"), 13, "", _theme)
 		return
 
 	for w in crew:
 		_crew_list.add_child(_build_crew_row(w))
+
+	# UIPolish: vertical keyboard navigation for crew rows (re-apply after rebuild)
+	UIPolish.link_vertical_focus(_crew_list)
 
 # Dynamic row builder (content-driven, kept in code by design)
 func _build_crew_row(w: Dictionary) -> PanelContainer:

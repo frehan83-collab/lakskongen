@@ -40,6 +40,12 @@ var _insurance_total_label: Label = null
 var _insurance_rows: Array[Dictionary] = []
 var _insurance_updating: bool = false
 
+# Causal P&L story (Phase 5.5): "why did I lose money" — top cost drivers and
+# revenue sources, built in code and inserted near the top of the panel.
+var _story_card: PanelContainer = null
+var _story_list: VBoxContainer = null
+var _story_verdict: Label = null
+
 const _INSURANCE_KINDS := [
 	{"key": "mortality", "label": "Dødelighet", "icon": "🐟"},
 	{"key": "bloom", "label": "Oppblomstring", "icon": "🪼"},
@@ -99,10 +105,17 @@ func _ready() -> void:
 	_build_deep_finance_row()
 	_build_balance_sparkline()
 	_build_insurance_card()
+	_build_story_card()
 	_apply_localization()
 	_apply_theme_fonts()
 	_loan_take_btn.pressed.connect(_on_take_loan)
 	_loan_repay_btn.pressed.connect(_on_repay_loan)
+
+	# UIPolish: keyboard navigation for loan buttons row
+	var btn_row := get_node_or_null("%BtnRow")
+	if btn_row:
+		UIPolish.link_horizontal_focus(btn_row)
+
 	_refresh()
 
 	var audio := get_node_or_null("/root/AudioController")
@@ -352,6 +365,148 @@ func _refresh_insurance() -> void:
 	if _insurance_total_label != null:
 		_insurance_total_label.text = tr("Total årspremie: %s") % _fmt(float(status.get("total_premium", 0.0)))
 
+## Causal P&L story (Phase 5.5): a "why did I lose money" card that lists the
+## top cost drivers and revenue sources, each with a share bar. Built in code
+## (like the insurance card) so a missing bridge or scene degrades to a no-op.
+func _build_story_card() -> void:
+	if _title_label == null or _sim == null:
+		return
+	if not _sim.has_method("get_profit_loss_story"):
+		return
+	var root: Node = _title_label.get_parent()
+	if root == null:
+		return
+
+	_story_card = PanelContainer.new()
+	_story_card.name = "ProfitLossStoryCard"
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = C_SURFACE
+	sb.border_color = C_BORDER
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	sb.set_content_margin_all(10)
+	_story_card.add_theme_stylebox_override("panel", sb)
+
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 6)
+	_story_card.add_child(outer)
+
+	var header := Label.new()
+	header.text = tr("🧭 Hvorfor gikk det slik?")
+	header.add_theme_font_size_override("font_size", 15)
+	header.add_theme_color_override("font_color", C_TEXT)
+	outer.add_child(header)
+
+	_story_verdict = Label.new()
+	_story_verdict.text = ""
+	_story_verdict.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_story_verdict.add_theme_font_size_override("font_size", 12)
+	_story_verdict.add_theme_color_override("font_color", C_TEXT2)
+	outer.add_child(_story_verdict)
+
+	_story_list = VBoxContainer.new()
+	_story_list.add_theme_constant_override("separation", 4)
+	outer.add_child(_story_list)
+
+	root.add_child(_story_card)
+	root.move_child(_story_card, mini(3, root.get_child_count() - 1))
+
+## Map an internal cost/revenue category key to a short Norwegian label.
+func _story_label(category: String) -> String:
+	var labels := {
+		"feed": "Fôr", "delousing": "Avlusing", "insurance": "Forsikring",
+		"interest": "Renter", "loan_servicing": "Nedbetaling lån",
+		"wages_maintenance": "Lønn & vedlikehold", "mitigation": "Skjørt/skremmer",
+		"night_shift": "Nattskift", "operations": "Drift", "tax": "Skatt",
+		"harvest": "Slakt", "sludge": "Slam", "other": "Annet",
+	}
+	var label: String = labels.get(category, "")
+	if label != "":
+		return label
+	# Fall back to a readable version of the raw key.
+	return category.replace("_", " ").capitalize()
+
+func _refresh_story() -> void:
+	if _story_card == null or _story_list == null or _sim == null:
+		return
+	if not _sim.has_method("get_profit_loss_story"):
+		return
+	var story: Dictionary = _sim.get_profit_loss_story(3)
+
+	# Clear previous rows.
+	for child in _story_list.get_children():
+		child.queue_free()
+
+	var net: float = float(story.get("net_income", 0.0))
+	if _story_verdict != null:
+		if net >= 0:
+			_story_verdict.text = tr("Resultatet er positivt (%.1f MNOK). Største inntekt og kostnad under.") % (net / 1_000_000.0)
+		else:
+			_story_verdict.text = tr("Resultatet er negativt (%.1f MNOK). Største kostnadsdrivere under.") % (net / 1_000_000.0)
+
+	var costs: Array = story.get("top_costs", [])
+	if not costs.is_empty():
+		_story_list.add_child(_story_heading(tr("💸 Største kostnader")))
+		for item in costs:
+			_story_list.add_child(_story_row(item, true))
+
+	var revenues: Array = story.get("top_revenue", [])
+	if not revenues.is_empty():
+		_story_list.add_child(_story_heading(tr("💰 Største inntekter")))
+		for item in revenues:
+			_story_list.add_child(_story_row(item, false))
+
+func _story_heading(text: String) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_color_override("font_color", C_MUTED)
+	return lbl
+
+## One story row: label, amount, and a share bar. Costs are red, revenue green.
+func _story_row(item: Dictionary, is_cost: bool) -> Control:
+	var category := str(item.get("category", "other"))
+	var amount: float = float(item.get("amount", 0.0))
+	var share: float = clampf(float(item.get("share", 0.0)), 0.0, 1.0)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+
+	var name_lbl := Label.new()
+	name_lbl.text = _story_label(category)
+	name_lbl.custom_minimum_size.x = 140
+	name_lbl.add_theme_font_size_override("font_size", 12)
+	name_lbl.add_theme_color_override("font_color", C_TEXT)
+	row.add_child(name_lbl)
+
+	var bar_bg := PanelContainer.new()
+	bar_bg.custom_minimum_size = Vector2(120, 8)
+	bar_bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var bg_style := StyleBoxFlat.new()
+	bg_style.bg_color = C_ELEVATED
+	bg_style.set_corner_radius_all(4)
+	bar_bg.add_theme_stylebox_override("panel", bg_style)
+	bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(bar_bg)
+
+	var fill := ColorRect.new()
+	var fill_color: Color = C_DANGER if is_cost else C_SUCCESS_D
+	fill.color = fill_color
+	fill.custom_minimum_size = Vector2(120.0 * share, 8)
+	fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar_bg.add_child(fill)
+
+	var amount_lbl := Label.new()
+	amount_lbl.text = _fmt_short(amount if is_cost else amount)
+	amount_lbl.add_theme_font_size_override("font_size", 12)
+	amount_lbl.add_theme_color_override("font_color", fill_color)
+	if _theme and _theme.font_mono:
+		amount_lbl.add_theme_font_override("font", _theme.font_mono)
+	row.add_child(amount_lbl)
+
+	return row
+
 func _apply_localization() -> void:
 	_title_label.text = tr("💰 Økonomi")
 	_chart_title.text = tr("📊 Inntekter vs Kostnader (6 mnd)")
@@ -451,6 +606,7 @@ func _refresh() -> void:
 
 	_refresh_deep_finance()
 	_refresh_insurance()
+	_refresh_story()
 
 ## P9: pen price always shown; resource-rent row only when the scenario enables it.
 func _refresh_deep_finance() -> void:
@@ -473,13 +629,8 @@ func _refresh_history(history: Array) -> void:
 		child.queue_free()
 
 	if history.is_empty():
-		var empty := Label.new()
-		empty.text = _tr_or("UI_FINANCE_HISTORY_EMPTY",
-			"📈 Ingen historikk ennå — tallene kommer etter hvert som dagene går.")
-		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		empty.add_theme_font_size_override("font_size", 12)
-		empty.add_theme_color_override("font_color", C_MUTED)
-		_history_container.add_child(empty)
+		UIPolish.show_empty_state_localized(_history_container, _tr_or("UI_FINANCE_HISTORY_EMPTY",
+			"📈 Ingen historikk ennå — tallene kommer etter hvert som dagene går."), 12, "", _theme)
 		return
 
 	for entry in history:

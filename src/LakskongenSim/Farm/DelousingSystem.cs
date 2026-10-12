@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using LakskongenSim.Core;
 using LakskongenSim.Data;
 
 namespace LakskongenSim.Farm
@@ -139,7 +140,7 @@ namespace LakskongenSim.Farm
         public TreatmentResult Treat(Biology.FishPopulation pop, DelousingMethod method,
             Health.SeaLiceModel liceModel, Health.IntegratedDiseaseSystem diseaseSystem,
             double temperatureC = 10.0, double mortalityMultiplier = 1.0,
-            bool applyCompanyLiceKill = true)
+            bool applyCompanyLiceKill = true, SimRngStream? rng = null)
         {
             var profile = GetProfile(method);
             int totalFish = pop.Cohorts.Sum(c => c.Count);
@@ -198,7 +199,12 @@ namespace LakskongenSim.Farm
             pop.TreatmentHarm = Health.DelousingHarmModel.ApplyTreatment(
                 pop.TreatmentHarm, Health.DelousingHarmModel.MethodFor(method.ToString()), actualEfficacy);
             double actualMortalityRate = Math.Max(0, Math.Max(profileRate, harm.TotalMortalityContribution));
-            int deaths = (int)(totalFish * actualMortalityRate);
+            // Stochastic handling deaths from the per-site treatment stream
+            // (SimRngStreams.Delouse). Mean-preserving: expected deaths equal
+            // the deterministic value; null stream keeps legacy behavior.
+            int deaths = rng != null
+                ? DrawBinomialDeaths(rng, totalFish, Math.Clamp(actualMortalityRate, 0.0, 1.0))
+                : (int)(totalFish * actualMortalityRate);
 
             // Apply mortality to cohorts
             if (deaths > 0)
@@ -255,6 +261,30 @@ namespace LakskongenSim.Farm
         /// Owner of the method-name contract since Phase 1 wave 2 — the Godot
         /// bridge delegates to this instead of keeping its own table.
         /// </summary>
+        /// <summary>
+        /// Mean-preserving binomial draw. Exact Bernoulli loop for small means,
+        /// normal approximation (Box-Muller) for large ones where looping up
+        /// to hundreds of thousands of fish per pen would stall the tick.
+        /// </summary>
+        private static int DrawBinomialDeaths(SimRngStream rng, int n, double p)
+        {
+            if (n <= 0 || p <= 0.0) return 0;
+            if (p >= 1.0) return n;
+            double mean = n * p;
+            if (mean < 25.0)
+            {
+                int deaths = 0;
+                for (int i = 0; i < n; i++)
+                    if (rng.NextDouble() < p) deaths++;
+                return deaths;
+            }
+            double u1 = Math.Max(1e-10, rng.NextDouble());
+            double u2 = rng.NextDouble();
+            double z = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
+            double approx = mean + Math.Sqrt(mean * (1.0 - p)) * z;
+            return Math.Clamp((int)Math.Round(approx), 0, n);
+        }
+
         public static bool TryParseMethodName(string name, out DelousingMethod method)
         {
             switch ((name ?? "").ToLower())

@@ -66,6 +66,15 @@ tools/capture_screenshots.sh           # writes screenshots/game/*.png
 
 See [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) for the shot list.
 
+## MCP Servers (Live Development)
+
+| Server | Port | Config | Purpose |
+|--------|------|--------|---------|
+| **Blender MCP** | 9876 | `.mcp.json` / `opencode.json` | Procedural asset generation (`blender/build_salmon.py`) |
+| **Godot MCP Toolkit** | 6550 | `godot/.mcp.json` | Scene inspection, node queries, runtime control |
+
+Both servers auto-start when the Godot editor runs with the `godot_mcp_toolkit` plugin enabled. Blender MCP requires the official Blender Lab addon on port 9876 (`uv --directory $HOME/blender_mcp/mcp run blender-mcp`).
+
 ## Documentation
 
 - **[docs/INDEX.md](docs/INDEX.md)** — index of everything in `docs/`, plus the

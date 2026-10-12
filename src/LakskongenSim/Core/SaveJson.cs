@@ -114,7 +114,11 @@ public sealed class EngineRuntimeSnapshot
     public decimal FinCash { get; set; }
     public decimal FinAssets { get; set; }
     public decimal FinLiabilities { get; set; }
+    public decimal FinBiomassInventoryValue { get; set; }
+    public int FinCurrentPeriod { get; set; }
     public System.Collections.Generic.List<string>? FinEvents { get; set; }
+    public System.Collections.Generic.Dictionary<string, decimal>? FinCostBreakdown { get; set; }
+    public System.Collections.Generic.Dictionary<string, decimal>? FinRevenueBreakdown { get; set; }
 
     // ── Market simulation (price trajectory + supply state) ───────────────
     public decimal MktBase { get; set; }

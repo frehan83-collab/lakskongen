@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using LakskongenSim.Core;
+using LakskongenSim.Finance;
 
 namespace LakskongenSim.Events
 {
@@ -37,13 +38,10 @@ namespace LakskongenSim.Events
         EQUIPMENT
     }
 
-    /// <summary>
-    /// Represents a crisis event affecting a competitor
-    /// </summary>
     public class CrisisEvent
     {
         /// <summary>Unique identifier for the crisis event</summary>
-        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Id { get; set; } = string.Empty;
         /// <summary>Type of crisis</summary>
         public CrisisType Type { get; set; }
         /// <summary>ID of the affected competitor</summary>
@@ -56,10 +54,10 @@ namespace LakskongenSim.Events
         public float DiscountMultiplier { get; set; }
         /// <summary>Duration of the crisis in months</summary>
         public int DurationMonths { get; set; }
-        /// <summary>Start date of the crisis</summary>
-        public DateTime StartDate { get; set; }
+        /// <summary>Start day of the crisis (simulation day)</summary>
+        public int StartDay { get; set; }
         /// <summary>Whether the crisis is currently active</summary>
-        public bool IsActive => DateTime.Now < StartDate.AddMonths(DurationMonths);
+        public bool IsActive(int currentDay) => currentDay < StartDay + DurationMonths * 30;
 
         /// <inheritdoc/>
         public override string ToString()
@@ -74,7 +72,7 @@ namespace LakskongenSim.Events
     public class DistressedAsset
     {
         /// <summary>Unique identifier for the asset</summary>
-        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Id { get; set; } = string.Empty;
         /// <summary>Type of asset</summary>
         public AssetType AssetType { get; set; }
         /// <summary>Asset name</summary>
@@ -96,6 +94,12 @@ namespace LakskongenSim.Events
         /// <summary>Name of the distressed competitor</summary>
         public string OwningCompetitor { get; set; } = string.Empty;
         
+        /// <summary>Phase 4.2: Link to actual competitor assets for transfer on acquisition</summary>
+        public string? SourceCompetitorId { get; set; }
+        public string? SiteId { get; set; }
+        public int? LicenseCount { get; set; }
+        public float? MABTonnes { get; set; }
+
         /// <summary>Potential savings from the discount</summary>
         public decimal PotentialSavings => OriginalValueNOK - DiscountedPriceNOK;
         /// <summary>Discount percentage</summary>
@@ -146,12 +150,17 @@ namespace LakskongenSim.Events
     {
         private readonly List<CrisisEvent> _activeCrises = new List<CrisisEvent>();
         private readonly List<DistressedAsset> _availableAssets = new List<DistressedAsset>();
-        private readonly SimRandom _random;
-        internal SimRandom RngForSnapshot => _random;
+        private readonly SimRngStream _random;
+        internal SimRngStream RngForSnapshot => _random;
+
+        public CrisisCapitalismSystem(SimRngStream rng)
+        {
+            _random = rng ?? throw new ArgumentNullException(nameof(rng));
+        }
 
         public CrisisCapitalismSystem(int? seed = null)
+            : this((seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded()).Stream(SimRngStreams.CrisisCapitalism))
         {
-            _random = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
         }
 
         /// <summary>Event raised when a crisis is triggered for a competitor</summary>
@@ -171,9 +180,9 @@ namespace LakskongenSim.Events
         /// <summary>
         /// Get all currently active crisis events
         /// </summary>
-        public List<CrisisEvent> GetActiveCrises()
+        public List<CrisisEvent> GetActiveCrises(int currentDay)
         {
-            return _activeCrises.Where(c => c.IsActive).ToList();
+            return _activeCrises.Where(c => c.IsActive(currentDay)).ToList();
         }
 
         /// <summary>
@@ -238,53 +247,9 @@ namespace LakskongenSim.Events
         }
 
         /// <summary>
-        /// Calculate the integration risk for acquiring a distressed asset
-        /// </summary>
-        public float CalculateIntegrationRisk(DistressedAsset asset)
-        {
-            float baseRisk = asset.RiskScore;
-            
-            // Asset-specific risk factors
-            float assetTypeRisk = asset.AssetType switch
-            {
-                AssetType.LICENSE => 0.1f, // Licenses are generally lower risk
-                AssetType.FARM_SITE => 0.3f, // Farm sites may have contamination/disease issues
-                AssetType.PROCESSING_PLANT => 0.2f, // Processing plants may need significant upgrades
-                AssetType.EQUIPMENT => 0.15f, // Equipment may be outdated or damaged
-                _ => 0.2f
-            };
-
-            // Discount level indicates distress level
-            float discountRisk = asset.DiscountPercentage * 0.5f; // Higher discounts = higher risk
-
-            // Time pressure adds risk
-            float timeRisk = asset.TimeRemainingMonths <= 3 ? 0.2f : 0.0f;
-
-            return Math.Min(1.0f, baseRisk + assetTypeRisk + discountRisk + timeRisk);
-        }
-
-        /// <summary>
-        /// Calculate reputation impact of acquisition (negative for vulture capitalism)
-        /// </summary>
-        private float CalculateReputationImpact(DistressedAsset asset)
-        {
-            // Higher discounts and competitor distress = more negative reputation impact
-            float baseImpact = -asset.DiscountPercentage * 0.3f; // Up to -30% reputation impact
-            
-            // Crisis severity adds to negative impact
-            var relatedCrisis = _activeCrises.FirstOrDefault(c => c.Id == asset.CrisisEventId);
-            if (relatedCrisis != null)
-            {
-                baseImpact -= relatedCrisis.SeverityScore * 0.2f; // Up to additional -20%
-            }
-
-            return baseImpact;
-        }
-
-        /// <summary>
         /// Trigger a crisis affecting a competitor
         /// </summary>
-        public void TriggerCrisis(string competitorId, string competitorName, CrisisType type, float severity = -1)
+        public void TriggerCrisis(string competitorId, string competitorName, CrisisType type, int currentDay, IReadOnlyList<CompetitorCompany> competitors, float severity = -1)
         {
             // If severity not specified, use base range with some randomization
             if (severity < 0)
@@ -293,21 +258,23 @@ namespace LakskongenSim.Events
                 severity = Math.Min(1.0f, baseSeverity + ((float)_random.NextDouble() - 0.5f) * 0.3f);
             }
 
+            // Deterministic ID: crisis_{competitorId}_{type}_{day}
             var crisis = new CrisisEvent
             {
+                Id = $"crisis_{competitorId}_{type}_{currentDay}",
                 Type = type,
                 AffectedCompetitorId = competitorId,
                 CompetitorName = competitorName,
                 SeverityScore = Math.Max(0.1f, Math.Min(1.0f, severity)),
                 DiscountMultiplier = CalculateDiscountMultiplier(type, severity),
                 DurationMonths = CalculateCrisisDuration(type, severity),
-                StartDate = DateTime.Now
+                StartDay = currentDay
             };
 
             _activeCrises.Add(crisis);
 
-            // Generate distressed assets based on crisis type and severity
-            GenerateDistressedAssets(crisis);
+            // Generate distressed assets based on crisis type and severity, linked to actual competitor
+            GenerateDistressedAssets(crisis, competitors);
 
             // Trigger event
             CrisisTriggered?.Invoke(competitorId, type, severity);
@@ -318,9 +285,9 @@ namespace LakskongenSim.Events
         /// assets (load path only — TriggerCrisis is the live path).
         /// Expired crises (IsActive == false) are skipped.
         /// </summary>
-        public void RestoreCrisis(CrisisEvent crisis)
+        public void RestoreCrisis(CrisisEvent crisis, int currentDay)
         {
-            if (crisis == null || !crisis.IsActive) return;
+            if (crisis == null || !crisis.IsActive(currentDay)) return;
             if (_activeCrises.Any(c => c.Id == crisis.Id)) return;
             _activeCrises.Add(crisis);
         }
@@ -391,6 +358,88 @@ namespace LakskongenSim.Events
 
                 _availableAssets.Add(asset);
             }
+        }
+
+        /// <summary>
+        /// Generate distressed assets based on a crisis event, linked to actual competitor assets
+        /// </summary>
+        public void GenerateDistressedAssets(CrisisEvent crisis, IReadOnlyList<CompetitorCompany> competitors)
+        {
+            var targetCompetitor = competitors.FirstOrDefault(c => c.Id == crisis.AffectedCompetitorId);
+            if (targetCompetitor == null) return;
+
+            int assetCount = Math.Max(1, (int)(crisis.SeverityScore * 5)); // 1-5 assets based on severity
+
+            for (int i = 0; i < assetCount; i++)
+            {
+                var assetType = GetRandomAssetType(crisis.Type);
+                
+                // Generate asset linked to actual competitor state
+                var (baseValue, siteId, licenseCount, mabTonnes) = GenerateAssetFromCompetitor(assetType, targetCompetitor);
+                var discountedPrice = baseValue * (decimal)(1 - crisis.DiscountMultiplier);
+                var riskScore = Math.Min(1.0f, crisis.SeverityScore + ((float)_random.NextDouble() - 0.5f) * 0.3f);
+
+                // Deterministic ID: asset_{crisisId}_{type}_{index}
+                var asset = new DistressedAsset
+                {
+                    Id = $"asset_{crisis.Id}_{assetType}_{i}",
+                    AssetType = assetType,
+                    Name = GenerateAssetName(assetType, crisis.CompetitorName),
+                    Description = GenerateAssetDescription(assetType, crisis),
+                    Location = GenerateNorwegianLocation(),
+                    OriginalValueNOK = baseValue,
+                    DiscountedPriceNOK = Math.Max(baseValue * 0.1m, discountedPrice), // Min 10% of original value
+                    TimeRemainingMonths = _random.Next(2, crisis.DurationMonths + 3),
+                    RiskScore = Math.Max(0.0f, Math.Min(1.0f, riskScore)),
+                    CrisisEventId = crisis.Id,
+                    OwningCompetitor = crisis.CompetitorName,
+                    SourceCompetitorId = targetCompetitor.Id,
+                    SiteId = siteId,
+                    LicenseCount = licenseCount,
+                    MABTonnes = mabTonnes
+                };
+
+                _availableAssets.Add(asset);
+            }
+        }
+
+        /// <summary>
+        /// Generate asset value and link from actual competitor state
+        /// </summary>
+        private (decimal value, string? siteId, int? licenseCount, float? mabTonnes) GenerateAssetFromCompetitor(AssetType assetType, CompetitorCompany competitor)
+        {
+            return assetType switch
+            {
+                AssetType.LICENSE => (
+                    value: competitor.LicenseCount > 0 
+                        ? (decimal)(150_000_000m * Math.Max(1, competitor.LicenseCount / 10)) // ~150M per license batch
+                        : _random.Next(500_000, 2_000_000),
+                    siteId: null,
+                    licenseCount: Math.Max(1, competitor.LicenseCount / 10),
+                    mabTonnes: 780f * Math.Max(1, competitor.LicenseCount / 10)
+                ),
+                AssetType.FARM_SITE => (
+                    value: competitor.SiteCount > 0
+                        ? (decimal)(competitor.SiteCount * 50_000_000m) // ~50M per site
+                        : _random.Next(5_000_000, 50_000_000),
+                    siteId: competitor.SiteCount > 0 ? $"site_{competitor.Id}_{_random.Next(1000)}" : null,
+                    licenseCount: null,
+                    mabTonnes: competitor.SiteCount > 0 ? 780f : null
+                ),
+                AssetType.PROCESSING_PLANT => (
+                    value: _random.Next(20_000_000, 200_000_000),
+                    siteId: null,
+                    licenseCount: null,
+                    mabTonnes: null
+                ),
+                AssetType.EQUIPMENT => (
+                    value: _random.Next(100_000, 10_000_000),
+                    siteId: null,
+                    licenseCount: null,
+                    mabTonnes: null
+                ),
+                _ => (1_000_000m, null, null, null)
+            };
         }
 
         /// <summary>
@@ -517,12 +566,56 @@ namespace LakskongenSim.Events
         }
 
         /// <summary>
+        /// Calculate the integration risk for acquiring a distressed asset
+        /// </summary>
+        public float CalculateIntegrationRisk(DistressedAsset asset)
+        {
+            float baseRisk = asset.RiskScore;
+            
+            // Asset-specific risk factors
+            float assetTypeRisk = asset.AssetType switch
+            {
+                AssetType.LICENSE => 0.1f, // Licenses are generally lower risk
+                AssetType.FARM_SITE => 0.3f, // Farm sites may have contamination/disease issues
+                AssetType.PROCESSING_PLANT => 0.2f, // Processing plants may need significant upgrades
+                AssetType.EQUIPMENT => 0.15f, // Equipment may be outdated or damaged
+                _ => 0.2f
+            };
+
+            // Discount level indicates distress level
+            float discountRisk = asset.DiscountPercentage * 0.5f; // Higher discounts = higher risk
+
+            // Time pressure adds risk
+            float timeRisk = asset.TimeRemainingMonths <= 3 ? 0.2f : 0.0f;
+
+            return Math.Min(1.0f, baseRisk + assetTypeRisk + discountRisk + timeRisk);
+        }
+
+        /// <summary>
+        /// Calculate reputation impact of acquisition (negative for vulture capitalism)
+        /// </summary>
+        private float CalculateReputationImpact(DistressedAsset asset)
+        {
+            // Higher discounts and competitor distress = more negative reputation impact
+            float baseImpact = -asset.DiscountPercentage * 0.3f; // Up to -30% reputation impact
+            
+            // Crisis severity adds to negative impact
+            var relatedCrisis = _activeCrises.FirstOrDefault(c => c.Id == asset.CrisisEventId);
+            if (relatedCrisis != null)
+            {
+                baseImpact -= relatedCrisis.SeverityScore * 0.2f; // Up to additional -20%
+            }
+
+            return baseImpact;
+        }
+
+        /// <summary>
         /// Update system state (remove expired assets, update crisis status)
         /// </summary>
-        public void Update()
+        public void Update(int currentDay)
         {
             // Remove expired crises
-            _activeCrises.RemoveAll(c => !c.IsActive);
+            _activeCrises.RemoveAll(c => !c.IsActive(currentDay));
 
             // Decrement time remaining on assets and remove expired ones
             for (int i = _availableAssets.Count - 1; i >= 0; i--)

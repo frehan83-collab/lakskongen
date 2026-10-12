@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "salmon",
+      "type": "fish",
+      "scale_m": 0.9,
+      "orientation": "nose_neg_z",
+      "lod_levels": ["LOD0"],
+      "materials": ["skin", "belly", "fin"],
+      "tri_budget": { "LOD0": 220 },
+      "export_path": "godot/assets/models/fish/salmon_{lod}.glb",
+      "build_script": "blender/build_salmon.py"
+    }
+  ]
+}

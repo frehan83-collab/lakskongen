@@ -91,6 +91,7 @@ namespace LakskongenSim.Core
         public VerticalIntegrationSystem VerticalIntegration { get; private set; } = null!;
         public Finance.LoanSystem LoanSystem { get; private set; } = null!;
         public Finance.TaxSystem TaxSystem { get; private set; } = null!;
+        public Finance.CorporateFinanceSystem CorporateFinance { get; private set; } = null!;
         public Finance.InvestorSystem InvestorSystem { get; private set; } = null!;
         /// <summary>P11: catastrophe insurance policies (Mortality/Bloom/Storm/ISA).</summary>
         public Finance.InsuranceSystem Insurance { get; private set; } = new();
@@ -192,11 +193,11 @@ namespace LakskongenSim.Core
         internal AquacultureGameplayModifiers _aquacultureModifiers = AquacultureGameplayModifiers.Default();
         private BarentsWatchClientOptions _barentsWatchClientOptions = new();
         private BarentsWatchFishHealthPipeline? _barentsWatchPipeline;
-        private SimRandom _rng = SimRandom.CreateUnseeded(); // For event registration randomization (seeded in Initialize)
+        private SimRngStream _rng = null!; // Engine-level event draws ("storyteller/engine" stream, seeded in Initialize)
         /// <summary>Event gating for tick systems (Phase 1 wave 4).</summary>
         internal bool EventsEnabled => _enableEvents;
         /// <summary>Legacy seeded event RNG (seed+101) for night-policy and bloom-deck systems.</summary>
-        internal SimRandom LegacyEventRng => _rng;
+        internal SimRngStream LegacyEventRng => _rng;
         /// <summary>Tick access to the balancing feed price (BalancingConfig itself stays private).</summary>
         internal decimal TickFeedCostPerKgNOK => _balancing.FeedCostPerKgNOK;
         /// <summary>Event fire wrapper for tick systems (events are +=/-= only outside the type).</summary>
@@ -230,25 +231,27 @@ namespace LakskongenSim.Core
             // the previous game (S9).
             Reset();
             _enableEvents = enableEvents;
-            _rng = seed.HasValue ? new SimRandom(seed.Value + 101) : SimRandom.CreateUnseeded();
             Rng = seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded();
+            _rng = Rng.Stream(SimRngStreams.Storyteller, "engine");
             
             // Create subsystems
-            Weather = seed.HasValue ? new WeatherSystem(seed.Value) : new WeatherSystem();
+            Weather = new WeatherSystem(Rng.Stream(SimRngStreams.Weather));
             Environment = new EnvironmentModel();
-            Growth = seed.HasValue ? new GrowthModel(seed.Value) : new GrowthModel();
+            Growth = new GrowthModel(Rng.Stream(SimRngStreams.Growth));
             Mortality = new MortalityModel();
             Feed = new FeedSystem();
             SeaLice = new SeaLiceModel();
             Disease = new DiseaseSystem(SeaLice);
-            IntegratedDisease = new IntegratedDiseaseSystem(SeaLice);
+            IntegratedDisease = new IntegratedDiseaseSystem(SeaLice,
+                Rng.Stream(SimRngStreams.StochasticDisease),
+                Rng.Stream(SimRngStreams.StochasticDisease, "lod"));
             
             // Wire disease systems to MortalityModel to prevent double mortality application
             Disease.SetMortalityModel(Mortality);
             IntegratedDisease.SetMortalityModel(Mortality);
             
             Hatchery = new Hatchery();
-            Genetics = seed.HasValue ? new Genetics(seed.Value) : new Genetics();
+            Genetics = new Genetics(Rng.Stream(SimRngStreams.Genetics));
 
             // Default finance and market if not set externally
             FinanceManager ??= new Finance.FinanceManager(10_000_000m); // 10M NOK starting capital
@@ -267,7 +270,7 @@ namespace LakskongenSim.Core
             // Initialize CompetitorAI and EmpireProgression systems
             // (S10: every seeded subsystem gets the seed — previously most
             // ran on unseeded System.Random even in seeded games/tests.)
-            CompetitorAI = new Finance.CompetitorAISystem(seed);
+            CompetitorAI = new Finance.CompetitorAISystem(Rng.Stream(SimRngStreams.CompetitorAI));
             EmpireProgression = new Finance.EmpireProgressionSystem();
             // Traffic-light regulatory state machine. Constructed HERE (not
             // with the expansion systems below) because NorwegianEvents
@@ -301,8 +304,10 @@ namespace LakskongenSim.Core
                 Audio?.TriggerAlert("achievement");
             };
             
-            MarketSimulation ??= new Market.MarketSimulation(seed);
-            ContractSystem = new ContractSystem();
+            MarketSimulation ??= new Market.MarketSimulation(
+                Rng.Stream(SimRngStreams.Market),
+                Rng.Stream(SimRngStreams.Intelligence, "market_inner"));
+            ContractSystem = new ContractSystem(Rng.Stream(SimRngStreams.Market, "contracts"));
             InternationalMarketSystem = new InternationalMarketSystem();
 
             // Load sustainability configuration
@@ -325,7 +330,8 @@ namespace LakskongenSim.Core
 
             // Initialize Storyteller event director (only enable default events if enableEvents=true)
             // Pass FinanceManager so events can modify balance correctly
-            Storyteller = new Storyteller(Time, State, FinanceManager, seed: seed, enableDefaultEvents: enableEvents);
+            Storyteller = new Storyteller(Time, State, FinanceManager, seed: seed,
+                enableDefaultEvents: enableEvents, rng: Rng.Stream(SimRngStreams.Storyteller));
             if (enableEvents)
             {
                 NorwegianEvents.RegisterAll(Storyteller, FinanceManager, TrafficLightSystem);
@@ -334,7 +340,7 @@ namespace LakskongenSim.Core
             Storyteller.OnEventRaised += HandleStorytellerEvent;
 
             // Initialize PlanktonBloom system
-            PlanktonBloom = seed.HasValue ? new PlanktonBloom(seed.Value) : new PlanktonBloom();
+            PlanktonBloom = new PlanktonBloom(Rng.Stream(SimRngStreams.PlanktonBloom));
             LoadPlanktonBloomConfig();
 
             // Hatchery → population
@@ -392,7 +398,7 @@ namespace LakskongenSim.Core
             Research = new ResearchSystem();
 
             // StockMarket and BrandReputation systems
-            StockMarket = new Finance.StockMarketSystem(seed);
+            StockMarket = new Finance.StockMarketSystem(Rng.Stream(SimRngStreams.StockMarket));
             BrandReputation = new BrandReputation
             {
                 BrandName = "Lakskongen",
@@ -400,13 +406,15 @@ namespace LakskongenSim.Core
             };
 
             // CrisisCapitalism and VerticalIntegration systems
-            CrisisCapitalism = new CrisisCapitalismSystem(seed);
+            CrisisCapitalism = new CrisisCapitalismSystem(Rng.Stream(SimRngStreams.CrisisCapitalism));
             VerticalIntegration = new VerticalIntegrationSystem(FinanceManager);
 
             // Initialize financial systems (LoanSystem, TaxSystem, InvestorSystem)
             LoanSystem = new Finance.LoanSystem();
             TaxSystem = new Finance.TaxSystem();
             InvestorSystem = new Finance.InvestorSystem();
+            CorporateFinance = new Finance.CorporateFinanceSystem(
+                Rng.Stream(SimRngStreams.CorporateFinance));
 
             // Wire LoanSystem events
             LoanSystem.OnInterestCharged += interest =>
@@ -415,7 +423,7 @@ namespace LakskongenSim.Core
             };
 
             // Wire TaxSystem events
-            TaxSystem.OnTaxPaid += tax =>
+            TaxSystem.OnTaxPaid += (tax, period) =>
             {
                 OnEventTriggered?.Invoke($"💸 Tax paid: {tax:N0} NOK");
             };
@@ -455,7 +463,7 @@ namespace LakskongenSim.Core
                 new EmpireProgressionTickSystem(),
                 new CrisisCapitalismTickSystem(),
                 new VerticalIntegrationTickSystem(),
-                new TaxAndResourceRentTickSystem(),
+                new CorporateFinanceTickSystem(),
                 new InvestorTickSystem(),
                 new BloomDeckTickSystem(),
                 new MarketIntelligenceTickSystem(),
@@ -467,27 +475,22 @@ namespace LakskongenSim.Core
             PostSmoltFacilities = new();
 
             // Initialize expansion, license, and politics systems
-            AcquisitionSystem = new Expansion.AcquisitionSystem(seed);
+            AcquisitionSystem = new Expansion.AcquisitionSystem(Rng.Stream(SimRngStreams.Acquisition));
             LicenseSystem = new Finance.LicenseSystem();
+            LicenseAuctionSystem = new Finance.LicenseAuctionSystem(
+                Rng.Stream(SimRngStreams.LicenseAuction));
             // NOTE: TrafficLightSystem is constructed near the top of
             // Initialize (NorwegianEvents.RegisterAll needs it). Gate stays
             // off by default: legacy event-only MAB behavior preserved until
             // explicitly enabled.
-            StakeholderFactionSystem = new Politics.StakeholderFactionSystem(seed);
+            StakeholderFactionSystem = new Politics.StakeholderFactionSystem(Rng.Stream(SimRngStreams.Factions));
 
             // Initialize Market Intelligence, Fish Welfare, and Visual Milestones systems
-            MarketIntelligence = seed.HasValue
-                ? new Market.MarketIntelligenceSystem(seed.Value)
-                : new Market.MarketIntelligenceSystem();
+            MarketIntelligence = new Market.MarketIntelligenceSystem(
+                Rng.Stream(SimRngStreams.Intelligence));
             FishWelfare = new Health.FishWelfare();
             VisualMilestones = new VisualMilestones();
-            CurrencySystem = new Market.CurrencySystem();
-            // Phase 1 wave 6: currency events were unseeded System.Random
-            // before (invisible to the ban scan); now deterministic from the
-            // game seed via a distinct offset stream.
-            CurrencySystem.SetRngForSeededRun(seed.HasValue
-                ? new SimRandom(seed.Value + 90210)
-                : SimRandom.CreateUnseeded());
+            CurrencySystem = new Market.CurrencySystem(Rng.Stream(SimRngStreams.Currency));
 
             // Wire MarketIntelligence events
             MarketIntelligence.OnNewsEvent += evt =>
@@ -552,6 +555,11 @@ namespace LakskongenSim.Core
             InitializeBarentsWatchPipeline();
             LoadExternalAquacultureSnapshot();
             ApplyExternalAquacultureCalibration();
+
+            // Phase 4.6: re-apply configured mods onto the fresh systems
+            // (no-op when no mods directory has been set).
+            ApplyMods();
+
             SimLog.Info("✅ SimulationEngine initialized — all subsystems wired");
         }
 
@@ -1443,6 +1451,7 @@ private class BalancingConfig
         {
             new StormImpactsTickSystem(),
             new WellboatExecutionTickSystem(),
+            new LicenseAuctionTickSystem(),
             new BalanceMirrorTickSystem()
         };
 
@@ -1952,8 +1961,15 @@ private class BalancingConfig
             }
         }
 
+        /// <summary>Total live biomass across all populations, kg (annual-close input).</summary>
+        internal decimal GetTotalBiomassKg()
+            => (decimal)State.Populations.Sum(p => p.GetTotalBiomassKg());
+
         internal void ProcessDailyFinance()
         {
+            // Phase 5.5: Process Mattilsynet over-MAB orders (deadline checks + forced harvest)
+            ProcessMattilsynetOverMabOrders();
+
             // 1. Calculate operational costs (Wages, Maintenance)
             decimal dailyWages = 0m;
             int totalSites = State.SeaSites.Count;
@@ -2764,8 +2780,151 @@ private class BalancingConfig
                         site.RedZoneCreditApplied = false;
                     }
                 }
+
+                // Phase 5.5: regulatory chess — orders on RED entry, cleared on exit.
+                if (after.ToString() == "Red")
+                    IssueMattilsynetOverMabOrders(zone.Id);
+                else
+                    ClearMattilsynetOverMabOrders(zone.Id);
             }
         }
+
+    /// <summary>
+    /// Phase 5.5: Regulatory chess — felt consequence.
+    /// When a zone goes RED, issue Mattilsynet over-MAB orders with deadlines.
+    /// When a zone exits RED, clear any remaining over-MAB orders.
+    /// </summary>
+    private void IssueMattilsynetOverMabOrders(string zoneId)
+    {
+        foreach (var site in State.SeaSites.Where(s => s.ZoneId == zoneId))
+        {
+            if (site.IsOverMAB && !site.HasActiveMattilsynetOrder)
+            {
+                int deadline = State.Day + 14; // 14-day deadline
+                site.MattilsynetDeadlineDay = deadline;
+                site.MattilsynetOrderFulfilled = false;
+
+                State.EventLog.Add(new EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Mattilsynet MAB-beskjed",
+                    Category = EventCategory.Regulation,
+                    Description = $"Sone {zoneId}: {site.Id} over MAB ({site.CurrentBiomassTonnes:F1}t > {site.MABTonnes:F1}t). Avlus/avslakt innen dag {deadline}, ellers tvangsavslakt til redusert pris.",
+                    BalanceChange = 0m
+                });
+                SimLog.Info($"📋 Mattilsynet MAB-beskjed: {site.Id} → deadline day {deadline}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clear Mattilsynet over-MAB orders when zone exits RED status.
+    /// </summary>
+    private void ClearMattilsynetOverMabOrders(string zoneId)
+    {
+        foreach (var site in State.SeaSites.Where(s => s.ZoneId == zoneId))
+        {
+            if (site.HasActiveMattilsynetOrder)
+            {
+                site.MattilsynetDeadlineDay = -1;
+                site.MattilsynetOrderFulfilled = false;
+
+                State.EventLog.Add(new EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Mattilsynet besked trukket",
+                    Category = EventCategory.Regulation,
+                    Description = $"Sone {zoneId}: {site.Id} ikke lenger i rød sone — MAB-beskjed trukket.",
+                    BalanceChange = 0m
+                });
+                SimLog.Info($"📋 Mattilsynet MAB-beskjed trukket for {site.Id} (sone {zoneId} ikke lenger rød)");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Process Mattilsynet over-MAB orders daily: check deadlines,
+    /// execute forced harvest at penalty price if missed.
+    /// </summary>
+    internal void ProcessMattilsynetOverMabOrders()
+    {
+        foreach (var site in State.SeaSites.Where(s => s.HasActiveMattilsynetOrder && !s.MattilsynetOrderFulfilled))
+        {
+            if (State.Day >= site.MattilsynetDeadlineDay)
+            {
+                // Deadline missed → forced harvest at 70% of market price
+                decimal penaltyPrice = MarketSimulation?.PricePerKg ?? 70m;
+                penaltyPrice = Math.Round(penaltyPrice * 0.7m, 2);
+
+                double biomassT = site.CurrentBiomassTonnes;
+                double harvestT = Math.Min(biomassT, site.CurrentBiomassTonnes - site.MABTonnes);
+                if (harvestT < 0.1) harvestT = biomassT; // harvest all if barely over
+
+                decimal revenue = (decimal)(harvestT * 1000 * (double)penaltyPrice); // NOK
+                FinanceManager?.AddRevenue(revenue);
+                FinancialStatements?.RecordRevenue(revenue, "forced_harvest");
+
+                // Record event
+                State.EventLog.Add(new EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Tvangsavslakt (Mattilsynet)",
+                    Category = EventCategory.Regulation,
+                    Description = $"{site.Id}: Deadline overskredet. {harvestT:F1}t tvangsavslattet til {penaltyPrice:F2} NOK/kg (30% straff).",
+                    BalanceChange = revenue
+                });
+                SimLog.Info($"⚠️ Tvangsavslakt: {site.Id} {harvestT:F1}t til {penaltyPrice:F2} NOK/kg");
+
+                // Remove the over-MAB biomass from populations (simplified: reduce cohort weights proportionally)
+                ReduceSiteBiomass(site, harvestT);
+
+                site.MattilsynetOrderFulfilled = true;
+                site.MattilsynetDeadlineDay = -1;
+            }
+            else if (!site.IsOverMAB)
+            {
+                // Player harvested enough to get under MAB before deadline
+                site.MattilsynetOrderFulfilled = true;
+                site.MattilsynetDeadlineDay = -1;
+
+                State.EventLog.Add(new EventRecord
+                {
+                    Day = State.Day,
+                    Name = "Mattilsynet MAB-oppgjør",
+                    Category = EventCategory.Regulation,
+                    Description = $"{site.Id}: Biomassen er under MAB. Beskjed oppfylt — ingen tvangsavslakt.",
+                    BalanceChange = 0m
+                });
+                SimLog.Info($"✅ Mattilsynet MAB-oppgjør: {site.Id} under MAB før deadline");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reduce site biomass proportionally across cohorts to simulate forced harvest.
+    /// </summary>
+    private void ReduceSiteBiomass(Farm.SeaSite site, double tonnesToRemove)
+    {
+        double kgToRemove = tonnesToRemove * 1000.0;
+        foreach (var pop in site.Pens)
+        {
+            foreach (var cohort in pop.Cohorts)
+            {
+                double cohortBiomassKg = cohort.Count * cohort.MeanWeightKg;
+                if (cohortBiomassKg <= 0) continue;
+
+                double removeFraction = Math.Min(1.0, kgToRemove / cohortBiomassKg);
+                int fishToRemove = (int)(cohort.Count * removeFraction);
+                fishToRemove = Math.Min(fishToRemove, cohort.Count);
+
+                cohort.Count -= fishToRemove;
+                kgToRemove -= fishToRemove * cohort.MeanWeightKg;
+                if (kgToRemove <= 0) break;
+            }
+            pop.TriggerOnPopulationChanged();
+        }
+    }
+
 
         /// <summary>
         /// P8: approximate tidal flow (m/s) at a site from its zone's current
@@ -3107,25 +3266,9 @@ private class BalancingConfig
 
             // Phase 1 wave 6: RNG stream positions + the stateful sub-models
             // so a loaded game CONTINUES exactly (enables the save-hash test).
-            var rngPositions = new Dictionary<string, int[]>();
-            void AddRng(string name, SimRandom? rng)
-            {
-                if (rng != null) rngPositions[name] = rng.ExportState();
-            }
-            AddRng("weather", Weather?.RngForSnapshot);
-            AddRng("growth", Growth?.RngForSnapshot);
-            AddRng("genetics", Genetics?.RngForSnapshot);
-            AddRng("market", MarketSimulation?.RngForSnapshot);
-            AddRng("intelligence", MarketSimulation?.Intelligence?.RngForSnapshot);
-            AddRng("storyteller", Storyteller?.RngForSnapshot);
-            AddRng("competitors", CompetitorAI?.RngForSnapshot);
-            AddRng("crisis", CrisisCapitalism?.RngForSnapshot);
-            AddRng("factions", StakeholderFactionSystem?.RngForSnapshot);
-            AddRng("stockmarket", StockMarket?.RngForSnapshot);
-            AddRng("plankton", PlanktonBloom?.RngForSnapshot);
-            AddRng("currency", CurrencySystem?.RngForSnapshot);
-            AddRng("events", _rng);
-            runtime.RngPositions = rngPositions;
+            // Every subsystem RNG is a named SimRng stream owned by this
+            // engine's Rng service, so positions round-trip through
+            // SimStreamPositions (including per-identity streams).
             runtime.SimStreamPositions = Rng.CaptureStates();
 
             var pcState = PenPriceCouncil?.ExportState();
@@ -3175,7 +3318,11 @@ private class BalancingConfig
             runtime.FinCash = finState.Cash;
             runtime.FinAssets = finState.Assets;
             runtime.FinLiabilities = finState.Liabilities;
+            runtime.FinBiomassInventoryValue = finState.BiomassInventoryValue;
+            runtime.FinCurrentPeriod = finState.CurrentPeriod;
             runtime.FinEvents = finState.Events;
+            runtime.FinCostBreakdown = FinancialStatements.ExportCostBreakdown();
+            runtime.FinRevenueBreakdown = FinancialStatements.ExportRevenueBreakdown();
             var mktState = MarketSimulation!.ExportState();
             runtime.MktBase = mktState.Base;
             runtime.MktPrice = mktState.Price;
@@ -3376,7 +3523,7 @@ private class BalancingConfig
             // 5. CrisisCapitalism — active crises only (expired ones drop naturally)
             if (CrisisCapitalism != null)
             {
-                State.ActiveCrises = CrisisCapitalism.GetActiveCrises()
+                State.ActiveCrises = CrisisCapitalism.GetActiveCrises(State.Day)
                     .Select(c => new CrisisEventState
                     {
                         Id = c.Id,
@@ -3384,7 +3531,7 @@ private class BalancingConfig
                         AffectedCompetitorId = c.AffectedCompetitorId,
                         SeverityScore = c.SeverityScore,
                         DurationMonths = c.DurationMonths,
-                        StartDate = c.StartDate
+                        StartDay = c.StartDay
                     }).ToList();
             }
 
@@ -3414,6 +3561,7 @@ private class BalancingConfig
                     Investors = new List<InvestorRecord>()
                 };
             }
+            State.CorporateFinance = CorporateFinance?.ExportState();
 
             // 8. StakeholderFactionSystem — RAW relationship scores by faction
             // (not weighted: Influence is a constant per faction, re-applied live)
@@ -3565,27 +3713,6 @@ private class BalancingConfig
                 // Phase 1 wave 6: resume exact RNG stream positions (and the
                 // stateful sub-models). Absent keys keep the freshly-seeded
                 // stream — legacy saves simply replay from day 0 as before.
-                if (runtime.RngPositions != null)
-                {
-                    void ImportRng(string name, SimRandom? rng)
-                    {
-                        if (rng != null && runtime.RngPositions.TryGetValue(name, out var state))
-                            rng.ImportState(state);
-                    }
-                    ImportRng("weather", Weather?.RngForSnapshot);
-                    ImportRng("growth", Growth?.RngForSnapshot);
-                    ImportRng("genetics", Genetics?.RngForSnapshot);
-                    ImportRng("market", MarketSimulation?.RngForSnapshot);
-                    ImportRng("intelligence", MarketSimulation?.Intelligence?.RngForSnapshot);
-                    ImportRng("storyteller", Storyteller?.RngForSnapshot);
-                    ImportRng("competitors", CompetitorAI?.RngForSnapshot);
-                    ImportRng("crisis", CrisisCapitalism?.RngForSnapshot);
-                    ImportRng("factions", StakeholderFactionSystem?.RngForSnapshot);
-                    ImportRng("stockmarket", StockMarket?.RngForSnapshot);
-                    ImportRng("plankton", PlanktonBloom?.RngForSnapshot);
-                    ImportRng("currency", CurrencySystem?.RngForSnapshot);
-                    ImportRng("events", _rng);
-                }
                 Rng.ImportStates(runtime.SimStreamPositions ?? new());
                 if (runtime.PriceCouncilSpots != null)
                     PenPriceCouncil?.ImportState((runtime.PriceCouncilSpots, runtime.PriceCouncilMonthly));
@@ -3605,7 +3732,10 @@ private class BalancingConfig
                 FinancialStatements?.ImportState((runtime.FinRevenue, runtime.FinCogs,
                     runtime.FinOpex, runtime.FinInterest, runtime.FinTaxes,
                     runtime.FinCash, runtime.FinAssets, runtime.FinLiabilities,
+                    runtime.FinBiomassInventoryValue, runtime.FinCurrentPeriod,
                     runtime.FinEvents ?? new System.Collections.Generic.List<string>()));
+                FinancialStatements?.ImportBreakdowns(
+                    runtime.FinCostBreakdown, runtime.FinRevenueBreakdown);
                 if (runtime.MktHistory != null)
                     MarketSimulation?.ImportState((runtime.MktBase, runtime.MktPrice,
                         runtime.MktWeeklyAvg, runtime.MktLongMean, runtime.MktMeanRev,
@@ -3716,8 +3846,8 @@ private class BalancingConfig
                         AffectedCompetitorId = c.AffectedCompetitorId,
                         SeverityScore = c.SeverityScore,
                         DurationMonths = c.DurationMonths,
-                        StartDate = c.StartDate
-                    });
+                        StartDay = c.StartDay
+                    }, State.Day);
                 }
             }
 
@@ -3738,6 +3868,10 @@ private class BalancingConfig
                 InvestorSystem.RestoreState(loadedState.InvestorSystem.OutstandingShares,
                     loadedState.InvestorSystem.OutstandingBondPrincipal);
             }
+
+            // CorporateFinanceSystem — covenants, IPO, tax state (Phase 4.3)
+            if (loadedState.CorporateFinance != null && CorporateFinance != null)
+                CorporateFinance.ImportState(loadedState.CorporateFinance);
 
             // Faction relations — direct score restore (no delta replay)
             if (loadedState.FactionRelations?.Count > 0 && StakeholderFactionSystem != null)

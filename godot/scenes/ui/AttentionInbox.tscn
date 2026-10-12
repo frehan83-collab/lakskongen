@@ -1,0 +1,119 @@
+[gd_scene format=3 uid="uid://d2kx4jnw5l83y"]
+
+[ext_resource type="Script" path="res://scripts/ui/AttentionInbox.gd" id="1_attention"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_inbox_panel"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.368627, 0.505882, 0.67451, 0.35)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 20.0
+content_margin_top = 16.0
+content_margin_right = 20.0
+content_margin_bottom = 16.0
+
+[node name="AttentionInbox" type="CanvasLayer"]
+layer = 100
+script = ExtResource("1_attention")
+
+[node name="Overlay" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.18, 0.2, 0.25, 0.6)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="DialogPanel" type="PanelContainer" parent="./Center"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(780, 540)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_inbox_panel")
+
+[node name="DialogVBox" type="VBoxContainer" parent="./Center/DialogPanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HeaderRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HeaderLabel" type="Label" parent="./Center/DialogPanel/DialogVBox/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
+theme_override_font_sizes/font_size = 22
+text = "🔔 Attention Inbox"
+
+[node name="CloseButton" type="Button" parent="./Center/DialogPanel/DialogVBox/HeaderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "✕"
+
+[node name="Sep1" type="HSeparator" parent="./Center/DialogPanel/DialogVBox"]
+layout_mode = 2
+
+[node name="Scroll" type="ScrollContainer" parent="./Center/DialogPanel/DialogVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ListContainer" type="VBoxContainer" parent="./Center/DialogPanel/DialogVBox/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="EmptyLabel" type="Label" parent="./Center/DialogPanel/DialogVBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
+theme_override_font_sizes/font_size = 15
+text = "No items needing attention right now. ✨"
+horizontal_alignment = 1
+
+[node name="Sep2" type="HSeparator" parent="./Center/DialogPanel/DialogVBox"]
+layout_mode = 2
+
+[node name="FooterRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="AutoRefreshToggle" type="CheckButton" parent="./Center/DialogPanel/DialogVBox/FooterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "🔄 Auto-refresh"
+
+[node name="FooterSpacer" type="Control" parent="./Center/DialogPanel/DialogVBox/FooterRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="RefreshButton" type="Button" parent="./Center/DialogPanel/DialogVBox/FooterRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+text = "🔄 Refresh"

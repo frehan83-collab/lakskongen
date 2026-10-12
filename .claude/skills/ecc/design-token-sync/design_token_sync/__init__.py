@@ -1,0 +1,1 @@
+"""design-token-sync: Design token → Godot theme pipeline automation."""

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lakskongen.local/schemas/mods/events.schema.json",
+  "title": "Lakskongen Mod Events",
+  "description": "Schema for mod event definitions (events_*.json)",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "name"],
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]*$"
+      },
+      "name": { "type": "string" },
+      "category": {
+        "type": "string",
+        "enum": ["General", "Biology", "Finance", "Environment", "Regulatory", "Market", "Health", "Other"]
+      },
+      "weight": {
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "cooldown_days": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "min_day": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "max_day": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "description": { "type": "string" },
+      "effects": {
+        "type": "object",
+        "properties": {
+          "balance_change": { "type": "number" },
+          "lice_change": { "type": "number" },
+          "sustainability_change": { "type": "number" },
+          "mortality_change": { "type": "number" }
+        },
+        "additionalProperties": false
+      },
+      "condition_min_balance": {
+        "type": "number"
+      },
+      "condition_min_day": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "additionalProperties": false
+  }
+}

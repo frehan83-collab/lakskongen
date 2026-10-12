@@ -104,6 +104,15 @@ namespace LakskongenSim.Farm
         /// <summary>Mattilsynet treatment deadline (sim day), -1 = no order.</summary>
         public int TreatmentOrderDueDay { get; set; } = -1;
 
+        /// <summary>Mattilsynet over-MAB deadline (sim day), -1 = no order.</summary>
+        public int MattilsynetDeadlineDay { get; set; } = -1;
+
+        /// <summary>Whether a Mattilsynet over-MAB order is active on this site.</summary>
+        public bool HasActiveMattilsynetOrder => MattilsynetDeadlineDay > 0;
+
+        /// <summary>Whether a forced harvest has been executed for the current order.</summary>
+        public bool MattilsynetOrderFulfilled { get; set; } = false;
+
         public event Action<Biology.FishPopulation>? OnStocked;
         public event Action<int>? OnEscapeEvent;
         public event Action? OnMABExceeded;

@@ -12,9 +12,10 @@ const SETTINGS_PATH := "user://settings.json"
 const DEFAULT_SETTINGS := {
 	"audio": {"master": 1.0, "music": 0.7, "ambient": 0.5, "sfx": 0.8},
 	"graphics": {"resolution": "1920x1080", "fullscreen": false, "vsync": true},
-	"gameplay": {"autosave_minutes": 5, "tutorial_enabled": true, "notifications_enabled": true, "default_speed": 1.0},
-	"accessibility": {"high_contrast": false},
+	"gameplay": {"autosave_minutes": 5, "tutorial_enabled": true, "notifications_enabled": true, "default_speed": 1.0, "auto_pause_critical": true},
+	"accessibility": {"high_contrast": false, "ui_scale": 1.0},
 }
+const UI_SCALE_STEPS: Array[float] = [0.8, 0.9, 1.0, 1.1, 1.25]
 
 var _settings: Dictionary = {}
 var _dirty: bool = false
@@ -39,9 +40,11 @@ var _dirty: bool = false
 @onready var _autosave_option: OptionButton = %AutosaveOption
 @onready var _tutorial_check: CheckBox = %TutorialCheck
 @onready var _notifs_check: CheckBox = %NotifsCheck
+@onready var _autopause_check: CheckBox = %AutoPauseCheck
 @onready var _speed_slider: HSlider = %SpeedSlider
 @onready var _speed_val: Label = %SpeedValue
 @onready var _hc_check: CheckBox = %HighContrastCheck
+@onready var _ui_scale_option: OptionButton = %UiScaleOption
 @onready var _reset_button: Button = %ResetButton
 @onready var _apply_button: Button = %ApplyButton
 
@@ -52,6 +55,7 @@ func _ready() -> void:
 	_connect_signals()
 	_apply_to_widgets(_settings)
 	_apply_audio(_settings.get("audio", {}))
+	_apply_window_scale(float(_settings.get("accessibility", {}).get("ui_scale", 1.0)))
 	hide()
 
 func _apply_localization() -> void:
@@ -79,6 +83,10 @@ func _populate_options() -> void:
 	_autosave_option.clear()
 	for m in ["Av", "2 min", "5 min", "10 min", "30 min"]:
 		_autosave_option.add_item(m)
+	if _ui_scale_option:
+		_ui_scale_option.clear()
+		for pct in ["80%", "90%", "100%", "110%", "125%"]:
+			_ui_scale_option.add_item(pct)
 
 # ── Settings IO ─────────────────────────────────────────────────────────
 func _load_settings() -> Dictionary:
@@ -111,11 +119,18 @@ func _collect_from_widgets() -> Dictionary:
 			"tutorial_enabled": _tutorial_check.button_pressed if _tutorial_check else true,
 			"notifications_enabled": _notifs_check.button_pressed if _notifs_check else true,
 			"default_speed": _speed_slider.value if _speed_slider else 1.0,
+			"auto_pause_critical": _autopause_check.button_pressed if _autopause_check else true,
 		},
 		"accessibility": {
 			"high_contrast": _hc_check.button_pressed if _hc_check else false,
+			"ui_scale": _ui_scale(),
 		},
 	}
+
+func _ui_scale() -> float:
+	if _ui_scale_option == null:
+		return 1.0
+	return UI_SCALE_STEPS[clampi(_ui_scale_option.selected, 0, UI_SCALE_STEPS.size() - 1)]
 
 func _apply_to_widgets(data: Dictionary) -> void:
 	var audio = data.get("audio", {})
@@ -142,11 +157,15 @@ func _apply_to_widgets(data: Dictionary) -> void:
 		if idx >= 0: _autosave_option.selected = idx
 	if _tutorial_check: _tutorial_check.button_pressed = gp.get("tutorial_enabled", true)
 	if _notifs_check: _notifs_check.button_pressed = gp.get("notifications_enabled", true)
+	if _autopause_check: _autopause_check.button_pressed = gp.get("auto_pause_critical", true)
 	if _speed_slider: _speed_slider.value = gp.get("default_speed", 1.0)
 	_update_speed_label()
 
 	var acc = data.get("accessibility", {})
 	if _hc_check: _hc_check.button_pressed = acc.get("high_contrast", false)
+	if _ui_scale_option:
+		var scale_idx := UI_SCALE_STEPS.find(float(acc.get("ui_scale", 1.0)))
+		_ui_scale_option.selected = scale_idx if scale_idx >= 0 else 2
 
 func _update_pct_labels() -> void:
 	if _master_pct and _master_slider: _master_pct.text = "%d%%" % int(_master_slider.value * 100)
@@ -173,8 +192,15 @@ func _on_apply() -> void:
 	_settings = _collect_from_widgets()
 	_save_settings(_settings)
 	_apply_audio(_settings["audio"])
+	_apply_window_scale(float(_settings.get("accessibility", {}).get("ui_scale", 1.0)))
 	settings_applied.emit()
 	_dirty = false
+
+## Apply UI scale to the root window (canvas_items stretch honours this).
+func _apply_window_scale(scale: float) -> void:
+	var win := get_window()
+	if win:
+		win.content_scale_factor = scale
 
 func _on_reset() -> void:
 	_settings = DEFAULT_SETTINGS.duplicate(true)
@@ -186,6 +212,7 @@ func _on_close() -> void:
 	if _dirty:
 		_settings = _collect_from_widgets()
 		_save_settings(_settings)
+		_apply_window_scale(float(_settings.get("accessibility", {}).get("ui_scale", 1.0)))
 		_dirty = false
 	close_requested.emit()
 	hide()

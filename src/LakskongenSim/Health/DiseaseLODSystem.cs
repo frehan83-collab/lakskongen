@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using LakskongenSim.Biology;
+using LakskongenSim.Core;
 using LakskongenSim.Environment;
 
 namespace LakskongenSim.Health
@@ -33,7 +34,8 @@ namespace LakskongenSim.Health
         private double _lastUpdateTimeMs = 0.0;
         
         private readonly StochasticDiseaseEngine _diseaseEngine;
-        private readonly Random _random = new Random();
+        private SimRngStream _rng = SimRng.CreateUnseeded().Stream(SimRngStreams.StochasticDisease);
+        internal SimRngStream RngForSnapshot => _rng;
         
         // MortalityModel reference for rate injection
         private Biology.MortalityModel? _mortalityModel;
@@ -41,9 +43,10 @@ namespace LakskongenSim.Health
         // DiseaseSystem reference for prevalence queries
         private DiseaseSystem? _diseaseSystem;
         
-        public DiseaseLODSystem(StochasticDiseaseEngine diseaseEngine)
+        public DiseaseLODSystem(StochasticDiseaseEngine diseaseEngine, SimRngStream? rng = null)
         {
             _diseaseEngine = diseaseEngine ?? throw new ArgumentNullException(nameof(diseaseEngine));
+            if (rng != null) _rng = rng;
         }
 
         /// <summary>
@@ -269,7 +272,7 @@ namespace LakskongenSim.Health
         private double CalculateDistance(FishIndividual a, FishIndividual b)
         {
             // In full implementation, would use spatial coordinates
-            return _random.NextDouble();
+            return _rng.NextDouble();
         }
         
         /// <summary>

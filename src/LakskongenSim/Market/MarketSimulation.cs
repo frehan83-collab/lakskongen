@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using LakskongenSim.Calibration;
 using LakskongenSim.Sustainability;
 
@@ -104,6 +105,7 @@ namespace LakskongenSim.Market
         // ─── Market access ───
         private HashSet<string> _accessibleMarkets = new() { "Domestic", "EU", "USA" };
         private decimal _certificationMultiplier = 1.0m;
+        private decimal _researchPriceMultiplier = 1.0m;
 
         // ─── Price history (for charts/analytics) ───
         private readonly Queue<decimal> _priceHistory = new();
@@ -118,9 +120,9 @@ namespace LakskongenSim.Market
         /// <summary>Observation count backing <see cref="LastCalibrationR2"/>.</summary>
         public int LastCalibrationObservationCount { get; private set; }
 
-        // ─── Random (TD-06: System.Random is not thread-safe; guard all draws) ───
-        private readonly SimRandom _rng;
-        internal SimRandom RngForSnapshot => _rng;
+        // ─── Random ───
+        /// <summary>Named RNG stream for market simulation (O-U process, shocks, seasonality).</summary>
+        private readonly SimRngStream _rng;
 
         /// <summary>Persistence (Phase 1 wave 6): the shock-window countdown
         /// and the decaying supply/demand offset decide whether the
@@ -135,7 +137,6 @@ namespace LakskongenSim.Market
             _shockDaysRemaining = s.ShockDays;
             _supplyDemandOffsetNok = s.SupplyOffset;
         }
-        private readonly object _rngLock = new();
         private int _simulationDay;
 
         // ─── Daily-tick tuning (extracted literals; values unchanged) ───
@@ -223,21 +224,15 @@ namespace LakskongenSim.Market
         public event Action<HashSet<string>>? OnMarketAccessChanged;
         public event Action<string>? OnMarketEvent;
 
-        public MarketSimulation() : this(null)
+        public MarketSimulation(SimRngStream rng, SimRngStream? intelligenceRng = null)
         {
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+            Intelligence.Reseed(intelligenceRng ?? SimRng.CreateUnseeded().Stream(SimRngStreams.Intelligence));
+            Initialize();
         }
 
-        /// <summary>
-        /// Create the market with an optional deterministic seed. Pass a seed in
-        /// tests so price paths are reproducible (production uses a time-seeded RNG).
-        /// </summary>
-        public MarketSimulation(int? seed)
+        public MarketSimulation() : this(SimRng.CreateUnseeded().Stream(SimRngStreams.Market))
         {
-            _rng = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
-            // The intelligence subsystem has its own RNG (news events, forecasts,
-            // competitor variation); seed it too so a seeded engine is reproducible.
-            if (seed.HasValue) Intelligence.Reseed(seed.Value);
-            Initialize();
         }
 
         /// <summary>
@@ -372,8 +367,8 @@ namespace LakskongenSim.Market
                 var thetaDaily = (double)MeanReversionSpeedWeekly / _daysPerWeek;
                 var sigmaDaily = (double)VolatilityWeekly / Math.Sqrt(_daysPerWeek);
 
-                double u1 = Math.Max(1e-10, NextDoubleLocked());
-                double u2 = NextDoubleLocked();
+                double u1 = Math.Max(1e-10, _rng.NextDouble());
+                double u2 = _rng.NextDouble();
                 double normalShock = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
 
                 var drift = thetaDaily * ((double)seasonalTarget - currentPrice);
@@ -401,8 +396,8 @@ namespace LakskongenSim.Market
                     newPrice = Math.Clamp(newPrice, bandLow, bandHigh);
                 BasePricePerKg = ClampPrice((decimal)newPrice);
 
-                // Apply brand reputation premium and the P15 player-supply pressure.
-                decimal rawPrice = BasePricePerKg * _certificationMultiplier * Intelligence.PlayerReputation.PremiumMultiplier * (decimal)PlayerSupply.PriceMultiplier;
+                // Apply brand reputation premium, P15 player-supply pressure, AND research/vertical integration bonus.
+                decimal rawPrice = BasePricePerKg * _certificationMultiplier * _researchPriceMultiplier * Intelligence.PlayerReputation.PremiumMultiplier * (decimal)PlayerSupply.PriceMultiplier;
                 if (!shockActive)
                 {
                     // Certification/brand premiums are applied on top of the spot
@@ -419,7 +414,7 @@ namespace LakskongenSim.Market
 
                 WeeklyAvgPrice = _priceHistory.TakeLast(Math.Min(_daysPerWeek, _priceHistory.Count)).Average();
 
-                if (NextDoubleLocked() < DailyShockProbability)
+                if (_rng.NextDouble() < DailyShockProbability)
                     TriggerMarketShock();
             }
 
@@ -434,7 +429,7 @@ namespace LakskongenSim.Market
 
         private void TriggerMarketShock()
         {
-            double roll = NextDoubleLocked();
+            double roll = _rng.NextDouble();
 
             if (roll < ShockChileBloomUpper)
             {
@@ -458,7 +453,7 @@ namespace LakskongenSim.Market
             }
             else
             {
-                double currencyShift = (NextDoubleLocked() - 0.5) * ShockCurrencyHalfRange;
+                double currencyShift = (_rng.NextDouble() - 0.5) * ShockCurrencyHalfRange;
                 BasePricePerKg = ClampPrice(BasePricePerKg * (1.0m + (decimal)currencyShift));
                 OnMarketEvent?.Invoke($"📰 NOK {(currencyShift > 0 ? "weakens" : "strengthens")} — export {(currencyShift > 0 ? "revenues up" : "revenues down")}");
             }
@@ -508,10 +503,22 @@ namespace LakskongenSim.Market
         {
             _certificationMultiplier = priceMultiplier;
             _accessibleMarkets = GetAccessibleMarkets(level);
-            PricePerKg = BasePricePerKg * _certificationMultiplier;
+            PricePerKg = BasePricePerKg * _certificationMultiplier * _researchPriceMultiplier;
 
             OnPriceChanged?.Invoke(PricePerKg);
             OnMarketAccessChanged?.Invoke(_accessibleMarkets);
+        }
+
+        /// <summary>
+        /// Apply research and vertical integration price multiplier.
+        /// Called daily from MarketTickSystem to apply unlocked research effects
+        /// (market_price_bonus) and vertical integration quality premium.
+        /// </summary>
+        public void ApplyResearchPriceMultiplier(double multiplier)
+        {
+            _researchPriceMultiplier = (decimal)Math.Max(1.0, multiplier);
+            PricePerKg = BasePricePerKg * _certificationMultiplier * _researchPriceMultiplier * Intelligence.PlayerReputation.PremiumMultiplier * (decimal)PlayerSupply.PriceMultiplier;
+            OnPriceChanged?.Invoke(PricePerKg);
         }
 
         private HashSet<string> GetAccessibleMarkets(CertificationLevel level)
@@ -611,8 +618,10 @@ namespace LakskongenSim.Market
 
             // Side-effect-free OU rollout mirroring AdvanceDays() drift/diffusion
             // (seasonal target + daily mean reversion + Gaussian shock), but with
-            // a local seeded RNG and neutral supply/demand so live state is untouched.
-            var rng = new Random(seed);
+            // a local seeded stream and neutral supply/demand so live state is
+            // untouched. SplitMix core: cross-runtime stable (System.Random is
+            // implementation-defined).
+            var rng = new SimRng(seed).Stream(SimRngStreams.Market, "calibration");
             double price = (double)LongTermMean;
             double thetaDaily = (double)MeanReversionSpeedWeekly / _daysPerWeek;
             double sigmaDaily = (double)VolatilityWeekly / Math.Sqrt(_daysPerWeek);
@@ -692,12 +701,6 @@ namespace LakskongenSim.Market
 
         private decimal ClampPrice(decimal value)
             => Math.Clamp(value, _priceFloor, _priceCeiling);
-
-        /// <summary>Thread-safe uniform draw in [0,1).</summary>
-        private double NextDoubleLocked()
-        {
-            lock (_rngLock) { return _rng.NextDouble(); }
-        }
     }
 
     /// <summary>

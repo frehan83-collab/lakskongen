@@ -52,18 +52,18 @@ namespace LakskongenSim.Environment
         // ─── Storm season modifier (Oct-Mar = higher storm probability) ───
         private const double StormSeasonMultiplier = 1.5;
 
-        private readonly SimRandom _rng;
+        private readonly SimRngStream _rng;
 
-        internal SimRandom RngForSnapshot => _rng;
+        internal SimRngStream RngForSnapshot => _rng;
 
         // ─── Events ───
         public event Action<double>? OnTemperatureChanged;
         public event Action<WeatherState>? OnWeatherStateChanged;
         public event Action<string>? OnWeatherAlert; // Severe weather alerts
 
-        public WeatherSystem(int? seed = null)
+        public WeatherSystem(SimRngStream rng)
         {
-            _rng = seed.HasValue ? new SimRandom(seed.Value) : SimRandom.CreateUnseeded();
+            _rng = rng ?? throw new ArgumentNullException(nameof(rng));
         }
 
         /// <summary>
