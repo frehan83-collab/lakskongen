@@ -87,6 +87,9 @@ namespace LakskongenSim.Events
         public decimal DiscountedPriceNOK { get; set; }
         /// <summary>Months remaining before offer expires</summary>
         public int TimeRemainingMonths { get; set; }
+
+        /// <summary>Sim day the listing closes (TimeRemainingMonths is derived from it).</summary>
+        public int ExpiresOnDay { get; set; }
         /// <summary>Risk score on a 0-1 scale (disease contamination, reputation damage, etc.)</summary>
         public float RiskScore { get; set; }
         /// <summary>ID of the associated crisis event</summary>
@@ -329,38 +332,6 @@ namespace LakskongenSim.Events
         }
 
         /// <summary>
-        /// Generate distressed assets based on a crisis event
-        /// </summary>
-        private void GenerateDistressedAssets(CrisisEvent crisis)
-        {
-            int assetCount = Math.Max(1, (int)(crisis.SeverityScore * 5)); // 1-5 assets based on severity
-
-            for (int i = 0; i < assetCount; i++)
-            {
-                var assetType = GetRandomAssetType(crisis.Type);
-                var baseValue = GenerateAssetValue(assetType);
-                var discountedPrice = baseValue * (decimal)(1 - crisis.DiscountMultiplier);
-                var riskScore = Math.Min(1.0f, crisis.SeverityScore + ((float)_random.NextDouble() - 0.5f) * 0.3f);
-
-                var asset = new DistressedAsset
-                {
-                    AssetType = assetType,
-                    Name = GenerateAssetName(assetType, crisis.CompetitorName),
-                    Description = GenerateAssetDescription(assetType, crisis),
-                    Location = GenerateNorwegianLocation(),
-                    OriginalValueNOK = baseValue,
-                    DiscountedPriceNOK = Math.Max(baseValue * 0.1m, discountedPrice), // Min 10% of original value
-                    TimeRemainingMonths = _random.Next(2, crisis.DurationMonths + 3), // Available for 2 months to crisis duration + 3
-                    RiskScore = Math.Max(0.0f, Math.Min(1.0f, riskScore)),
-                    CrisisEventId = crisis.Id,
-                    OwningCompetitor = crisis.CompetitorName
-                };
-
-                _availableAssets.Add(asset);
-            }
-        }
-
-        /// <summary>
         /// Generate distressed assets based on a crisis event, linked to actual competitor assets
         /// </summary>
         public void GenerateDistressedAssets(CrisisEvent crisis, IReadOnlyList<CompetitorCompany> competitors)
@@ -378,6 +349,7 @@ namespace LakskongenSim.Events
                 var (baseValue, siteId, licenseCount, mabTonnes) = GenerateAssetFromCompetitor(assetType, targetCompetitor);
                 var discountedPrice = baseValue * (decimal)(1 - crisis.DiscountMultiplier);
                 var riskScore = Math.Min(1.0f, crisis.SeverityScore + ((float)_random.NextDouble() - 0.5f) * 0.3f);
+                int listedMonths = _random.Next(2, crisis.DurationMonths + 3);
 
                 // Deterministic ID: asset_{crisisId}_{type}_{index}
                 var asset = new DistressedAsset
@@ -389,7 +361,8 @@ namespace LakskongenSim.Events
                     Location = GenerateNorwegianLocation(),
                     OriginalValueNOK = baseValue,
                     DiscountedPriceNOK = Math.Max(baseValue * 0.1m, discountedPrice), // Min 10% of original value
-                    TimeRemainingMonths = _random.Next(2, crisis.DurationMonths + 3),
+                    TimeRemainingMonths = listedMonths,
+                    ExpiresOnDay = crisis.StartDay + listedMonths * DaysPerMonth,
                     RiskScore = Math.Max(0.0f, Math.Min(1.0f, riskScore)),
                     CrisisEventId = crisis.Id,
                     OwningCompetitor = crisis.CompetitorName,
@@ -617,17 +590,30 @@ namespace LakskongenSim.Events
             // Remove expired crises
             _activeCrises.RemoveAll(c => !c.IsActive(currentDay));
 
-            // Decrement time remaining on assets and remove expired ones
+            // Listings run on the calendar: the engine calls this weekly, and the
+            // old "one month per call" countdown expired them four times too fast.
             for (int i = _availableAssets.Count - 1; i >= 0; i--)
             {
                 var asset = _availableAssets[i];
-                asset.TimeRemainingMonths -= 1; // Assume this is called monthly
-                
-                if (asset.TimeRemainingMonths <= 0)
-                {
+                int daysLeft = asset.ExpiresOnDay - currentDay;
+                asset.TimeRemainingMonths = Math.Max(0, (daysLeft + DaysPerMonth - 1) / DaysPerMonth);
+                if (daysLeft <= 0)
                     _availableAssets.RemoveAt(i);
-                }
             }
+        }
+
+        /// <summary>Days in a listing month.</summary>
+        public const int DaysPerMonth = 30;
+
+        /// <summary>
+        /// Restore a saved listing without firing events (load path). Expired or
+        /// duplicate listings are skipped.
+        /// </summary>
+        public void RestoreAsset(DistressedAsset asset, int currentDay)
+        {
+            if (asset == null || asset.ExpiresOnDay <= currentDay) return;
+            if (_availableAssets.Any(a => a.Id == asset.Id)) return;
+            _availableAssets.Add(asset);
         }
     }
 }

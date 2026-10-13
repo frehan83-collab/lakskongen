@@ -201,21 +201,12 @@ public partial class GameBridge : Node
 
         if (outcome.Ok)
         {
-            var assets = SimulationEngine.CrisisCapitalism.GetAllAvailableDistressedAssets();
-            var asset = assets.FirstOrDefault(a => a.Id == assetId) 
-                ?? SimulationEngine.CrisisCapitalism.GetAllAvailableDistressedAssets()
-                    .FirstOrDefault(a => a.Id == assetId); // fallback if just removed
-            if (asset != null)
+            // The purchase removed the listing, so describe it from the outcome.
+            result["asset"] = new Godot.Collections.Dictionary
             {
-                result["asset"] = new Godot.Collections.Dictionary
-                {
-                    ["id"] = asset.Id,
-                    ["type"] = asset.AssetType.ToString(),
-                    ["name"] = asset.Name,
-                    ["competitor"] = asset.OwningCompetitor,
-                    ["price_paid"] = (double)outcome.Value
-                };
-            }
+                ["id"] = assetId,
+                ["price_paid"] = (double)outcome.Value
+            };
             EmitSignal(SignalName.GameStateUpdated);
         }
 

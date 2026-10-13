@@ -414,6 +414,7 @@ namespace LakskongenSim.Core
         public decimal OriginalValueNOK { get; set; }
         public decimal DiscountedPriceNOK { get; set; }
         public int TimeRemainingMonths { get; set; }
+        public int ExpiresOnDay { get; set; }
         public float RiskScore { get; set; }
         public string CrisisEventId { get; set; } = string.Empty;
         public string OwningCompetitor { get; set; } = string.Empty;

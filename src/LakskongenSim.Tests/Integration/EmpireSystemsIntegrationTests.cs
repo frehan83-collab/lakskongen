@@ -105,9 +105,11 @@ namespace LakskongenSim.Tests.Integration
             // Assert: CrisisCapitalism should be initialized
             Assert.NotNull(_engine.CrisisCapitalism);
 
-            // Advance simulation for many days to allow crisis generation
-            // Crises update weekly, so advance at least several weeks
-            _engine.Advance(90); // ~3 months
+            // An insolvent rival goes into distress at the first quarterly
+            // review (day 90) and its bankruptcy opens a crisis (review F499: the
+            // distress event had no subscriber and this test only checked >= 0).
+            _engine.CompetitorAI.Competitors[0].CashReserves = -50_000_000_000m;
+            _engine.Advance(95);
 
             // Check if system can track active crises (may be zero, but should not error)
             var activeCrises = _engine.CrisisCapitalism.GetActiveCrises(_engine.State.Day);
@@ -117,9 +119,9 @@ namespace LakskongenSim.Tests.Integration
             var distressedAssets = _engine.CrisisCapitalism.GetAllAvailableDistressedAssets();
             Assert.NotNull(distressedAssets);
             
-            // Both lists should be valid collections (empty or populated)
-            Assert.True(activeCrises.Count() >= 0);
-            Assert.True(distressedAssets.Count() >= 0);
+            // The crisis is open and its assets are on the market.
+            Assert.NotEmpty(activeCrises);
+            Assert.NotEmpty(distressedAssets);
         }
 
         [Fact]

@@ -204,6 +204,9 @@ public partial class GameBridge : Node
             result.Add(new Godot.Collections.Dictionary
             {
                 ["id"] = crisis.Id,
+                ["title"] = $"{crisis.CompetitorName}: {CrisisTypeLabel(crisis.Type)}",
+                ["description"] = $"{crisis.DurationMonths} måneder, eiendeler selges med " +
+                    $"{crisis.DiscountMultiplier:P0} rabatt.",
                 ["type"] = crisis.Type.ToString(),
                 ["competitor_name"] = crisis.CompetitorName,
                 ["severity"] = (double)crisis.SeverityScore,
@@ -214,24 +217,46 @@ public partial class GameBridge : Node
         return result;
     }
 
+    private static string CrisisTypeLabel(LakskongenSim.Events.CrisisType type) => type switch
+    {
+        LakskongenSim.Events.CrisisType.BANKRUPTCY => "konkurs",
+        LakskongenSim.Events.CrisisType.DISEASE_OUTBREAK => "sykdomsutbrudd",
+        LakskongenSim.Events.CrisisType.REGULATORY_SHUTDOWN => "pålagt stans",
+        LakskongenSim.Events.CrisisType.MARKET_CRASH => "markedskrakk",
+        LakskongenSim.Events.CrisisType.ENVIRONMENTAL_SCANDAL => "miljøskandale",
+        _ => type.ToString()
+    };
+
     /// <summary>
-    /// Return available distressed assets for acquisition as an Array of Dictionaries.
-    /// Keys: "id", "asset_type", "name", "location", "original_value", "discounted_price", "discount_pct", "risk_score".
+    /// Distressed assets on the market, in the empire panel's shape: "id",
+    /// "title", "description", "price" (the discounted asking price), plus
+    /// "seller" and "months_remaining". Was an always-empty stub; the listings
+    /// come from rivals' bankruptcies (review F499).
     /// </summary>
-    // CrisisCapitalism methods stubbed until engine implements GetAvailableAssets/AttemptAcquisition
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetAcquisitionOpportunities()
     {
-        return new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var system = SimulationEngine?.CrisisCapitalism;
+        if (system == null) return result;
+        foreach (var a in system.GetAllAvailableDistressedAssets())
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = a.Id,
+                ["title"] = a.Name,
+                ["description"] = $"{a.Description} Selger: {a.OwningCompetitor}. " +
+                    $"{a.DiscountPercentage:P0} under verdi, {a.TimeRemainingMonths} mnd igjen.",
+                ["price"] = (double)a.DiscountedPriceNOK,
+                ["seller"] = a.OwningCompetitor,
+                ["months_remaining"] = a.TimeRemainingMonths,
+            });
+        }
+        return result;
     }
 
+    /// <summary>Buy a distressed asset (delegates to <see cref="AcquireDistressedAsset"/>; was a stub).</summary>
     public Godot.Collections.Dictionary AttemptAcquisition(string assetId)
-    {
-        return new Godot.Collections.Dictionary
-        {
-            ["success"] = false,
-            ["message"] = "Acquisition system not yet implemented"
-        };
-    }
+        => AcquireDistressedAsset(assetId);
 
     // ── VerticalIntegration Methods ────────────────────────────────────────────
 

@@ -292,6 +292,11 @@ namespace LakskongenSim.Core
             // .RegisterAll, called further down, needs the live instance (S9).
             TrafficLightSystem = new Finance.TrafficLightSystem();
             
+            // A distressed rival puts its assets on the market (review F499: the
+            // event had no subscriber, so no crisis ever opened and the distressed-
+            // asset pipeline always saw empty lists).
+            CompetitorAI.OnCompetitorDistressed += HandleCompetitorDistressed;
+
             // Wire CompetitorAI events
             CompetitorAI.OnCompetitorAction += action =>
             {
@@ -2154,6 +2159,11 @@ private class BalancingConfig
         /// Tracks Scope 1 (fuel), Scope 2 (electricity), Scope 3 (feed, transport)
         /// and credits from biogas, kelp, avoided soy.
         /// </summary>
+        /// <summary>A rival in financial distress: bankruptcy proceedings list its assets.</summary>
+        private void HandleCompetitorDistressed(Finance.CompetitorCompany competitor, int _)
+            => CrisisCapitalism?.TriggerCrisis(competitor.Id, competitor.Name, Events.CrisisType.BANKRUPTCY,
+                State.Day, CompetitorAI.Competitors);
+
         internal void ProcessCarbonLedger()
         {
             int day = State.Day;
@@ -3537,7 +3547,9 @@ private class BalancingConfig
                 };
             }
 
-            // 5. CrisisCapitalism — active crises only (expired ones drop naturally)
+            // 5. CrisisCapitalism — active crises and the listings they put on the
+            // market (expired ones drop naturally). Listings were never saved, so
+            // a load emptied the market.
             if (CrisisCapitalism != null)
             {
                 State.ActiveCrises = CrisisCapitalism.GetActiveCrises(State.Day)
@@ -3549,6 +3561,26 @@ private class BalancingConfig
                         SeverityScore = c.SeverityScore,
                         DurationMonths = c.DurationMonths,
                         StartDay = c.StartDay
+                    }).ToList();
+                State.DistressedAssets = CrisisCapitalism.GetAllAvailableDistressedAssets()
+                    .Select(a => new DistressedAssetState
+                    {
+                        Id = a.Id,
+                        AssetType = a.AssetType.ToString(),
+                        Name = a.Name,
+                        Description = a.Description,
+                        Location = a.Location,
+                        OriginalValueNOK = a.OriginalValueNOK,
+                        DiscountedPriceNOK = a.DiscountedPriceNOK,
+                        TimeRemainingMonths = a.TimeRemainingMonths,
+                        ExpiresOnDay = a.ExpiresOnDay,
+                        RiskScore = a.RiskScore,
+                        CrisisEventId = a.CrisisEventId,
+                        OwningCompetitor = a.OwningCompetitor,
+                        SourceCompetitorId = a.SourceCompetitorId,
+                        SiteId = a.SiteId,
+                        LicenseCount = a.LicenseCount,
+                        MABTonnes = a.MABTonnes
                     }).ToList();
             }
 
@@ -3917,6 +3949,32 @@ private class BalancingConfig
                         SeverityScore = c.SeverityScore,
                         DurationMonths = c.DurationMonths,
                         StartDay = c.StartDay
+                    }, State.Day);
+                }
+            }
+            if (loadedState.DistressedAssets?.Count > 0 && CrisisCapitalism != null)
+            {
+                foreach (var a in loadedState.DistressedAssets)
+                {
+                    if (!Enum.TryParse<Events.AssetType>(a.AssetType, out var assetType)) continue;
+                    CrisisCapitalism.RestoreAsset(new Events.DistressedAsset
+                    {
+                        Id = a.Id,
+                        AssetType = assetType,
+                        Name = a.Name,
+                        Description = a.Description,
+                        Location = a.Location,
+                        OriginalValueNOK = a.OriginalValueNOK,
+                        DiscountedPriceNOK = a.DiscountedPriceNOK,
+                        TimeRemainingMonths = a.TimeRemainingMonths,
+                        ExpiresOnDay = a.ExpiresOnDay,
+                        RiskScore = a.RiskScore,
+                        CrisisEventId = a.CrisisEventId,
+                        OwningCompetitor = a.OwningCompetitor,
+                        SourceCompetitorId = a.SourceCompetitorId,
+                        SiteId = a.SiteId,
+                        LicenseCount = a.LicenseCount,
+                        MABTonnes = a.MABTonnes
                     }, State.Day);
                 }
             }
