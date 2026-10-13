@@ -5,8 +5,8 @@
     "difficulty": 1,
     "description": "Du har arvet bestefars lille oppdrett i Hardanger. Med én lisens og små midler må du lære grunnleggende oppdrett. Bygg opp gården fra bunnen av og vis at du kan drive lønnsomt.",
     "story": "Du har arvet bestefars lille oppdrett i Hardanger. Med én lisens og små midler må du lære grunnleggende oppdrett. Bygg opp gården fra bunnen av og vis at du kan drive lønnsomt.",
-    "starting_balance": 300000,
-    "starting_cash": 300000,
+    "starting_balance": 3000000,
+    "starting_cash": 3000000,
     "starting_region": "Vestland",
     "starting_day": 0,
     "starting_sites": [
@@ -15,7 +15,7 @@
         "name": "Bestefars Anlegg",
         "zone": "fjord_west",
         "pens": 1,
-        "smolt_count": 5000,
+        "smolt_count": 20000,
         "smolt_quality": "standard"
       }
     ],
@@ -24,7 +24,6 @@
     "starting_buildings": [],
     "win_condition": "Tutorial",
     "special_rules": {
-      "single_site": "true",
       "calm_weather": "true",
       "easy_market": "true"
     },
@@ -378,12 +377,12 @@
     "special_rules": {
       "resource_rent_tax": "0.25",
       "standard_deduction": "70000000",
-      "profit_target": "25000000"
+      "profit_target": "85000000"
     },
     "is_unlocked": true,
     "goal": {
       "type": "revenue",
-      "target": 25000000,
+      "target": 85000000,
       "time_limit_years": 0,
       "description": "Nå 25 000 000 NOK i overskudd under grunnrenteregimet"
     },

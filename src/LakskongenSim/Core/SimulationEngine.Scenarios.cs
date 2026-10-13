@@ -34,9 +34,17 @@ public partial class SimulationEngine
         else
             BookCapitalAdjustment(balanceBefore);
         scenario.ApplyStartingState(State, this);
+        ApplyScenarioRules(scenario);
         SyncScenarioToState();
         return CommandResult.Success($"Scenario '{scenario.Name}' started", id: scenario.Id);
     }
+
+    /// <summary>
+    /// Progress toward the active scenario's goal, measured as the win check
+    /// judges it (null when no scenario is active). The goal HUD reads this.
+    /// </summary>
+    public ScenarioGoalStatus? GetScenarioGoalStatus()
+        => Scenario?.GetGoalStatus(State?.SustainabilityScore ?? 0, Tutorial?.Progress01 ?? 0.0);
 
     /// <summary>Mirror the live scenario progress into GameState (save path).</summary>
     private void SyncScenarioToState()
@@ -54,5 +62,40 @@ public partial class SimulationEngine
     {
         Scenario?.RestoreActiveState(loadedState.ActiveScenarioId, loadedState.ScenarioStartDay,
             loadedState.ScenarioIsWon, loadedState.ScenarioIsLost, loadedState.ScenarioLossReason);
+        ApplyScenarioRules(Scenario?.ActiveScenario);
+    }
+
+    /// <summary>Storm and severe weather transitions under a "harsh_storms" scenario.</summary>
+    internal const double HarshStormFrequency = 1.5;
+
+    /// <summary>Price noise and shock probability under an "easy_market" scenario.</summary>
+    internal const double EasyMarketVolatilityScale = 0.5;
+
+    /// <summary>Export price premium under a "premium_prices" scenario.</summary>
+    internal const double PremiumPriceMultiplier = 1.10;
+
+    /// <summary>Price multiplier from the active scenario's rules (1 = none).</summary>
+    internal double ScenarioPriceMultiplier { get; private set; } = 1.0;
+
+    /// <summary>
+    /// Apply the active scenario's special rules to the live systems. They used
+    /// to be labels only: the tutorial advertised calm weather and stable prices
+    /// and got storms (550k NOK of repairs by day 150) and full volatility.
+    /// Rules: calm_weather, harsh_storms, easy_market, premium_prices.
+    /// </summary>
+    private void ApplyScenarioRules(ScenarioDefinition? scenario)
+    {
+        bool Has(string key) => scenario?.SpecialRules != null
+            && scenario.SpecialRules.TryGetValue(key, out var value)
+            && string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+
+        Weather?.ApplyScenarioWeather(
+            Has("calm_weather") ? LakskongenSim.Environment.WeatherState.Moderate : LakskongenSim.Environment.WeatherState.Severe,
+            Has("harsh_storms") ? HarshStormFrequency : 1.0);
+        if (MarketSimulation != null)
+            MarketSimulation.VolatilityScale = Has("easy_market") ? EasyMarketVolatilityScale : 1.0;
+        ScenarioPriceMultiplier = Has("premium_prices") ? PremiumPriceMultiplier : 1.0;
+        if (Storyteller != null)
+            Storyteller.SuppressStormEvents = Has("calm_weather");
     }
 }

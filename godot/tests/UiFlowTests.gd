@@ -41,6 +41,7 @@ func _run() -> void:
 	await _test_game_scene_keeps_menu_started_scenario()
 	await _test_dashboard_night_shift_policy()
 	await _test_tech_tree_lays_out_every_node()
+	await _test_goal_hud_shows_engine_progress()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -238,6 +239,28 @@ func _test_tech_tree_lays_out_every_node() -> void:
 	_check(tree.format_effect("mortality_reduction", 0.05) == "Dødelighet −5 %",
 		"tech tree: reductions read as minus percent")
 	tree.queue_free()
+	await get_tree().process_frame
+
+## F949: the goal HUD shows the engine's progress (it read a GDScript tracker
+## that was never initialised and sat at 0%), with time left since the start.
+func _test_goal_hud_shows_engine_progress() -> void:
+	_check(_sim.start_new_game("Player", 12_000_000, "po3_red_sone"), "goal: survival scenario starts")
+	_sim.set_paused(true)
+	_sim.advance_days(73)
+	var goal: Dictionary = _sim.get_scenario_goal()
+	_check(str(goal.get("scenario_id", "")) == "po3_red_sone", "goal: engine reports the active scenario")
+	_check(absf(float(goal.get("progress", -1.0)) - 73.0 / 1095.0) < 0.01,
+		"goal: survival progress is days survived / limit (%s)" % str(goal.get("progress")))
+	_check(int(goal.get("days_left", -1)) == 1022, "goal: 1022 days left (%s)" % str(goal.get("days_left")))
+	var hud: Control = (load("res://ui/ScenarioGoalHUD.tscn") as PackedScene).instantiate()
+	add_child(hud)
+	await get_tree().process_frame
+	var bar: ProgressBar = hud.get_node_or_null("PanelContainer/VBoxContainer/ProgressBar")
+	var time_label: Label = hud.get_node_or_null("PanelContainer/VBoxContainer/TimeLabel")
+	_check(bar != null and int(bar.value) == 7, "goal HUD: progress bar at 7%% (%s)" % str(bar.value if bar else "missing"))
+	_check(time_label != null and "2.8 år igjen" in time_label.text,
+		"goal HUD: time left counts from the scenario start (%s)" % (time_label.text if time_label else "missing"))
+	hud.queue_free()
 	await get_tree().process_frame
 
 ## F945: Phase 5.3–5.4 proxies are reachable through the SimBridge facade.

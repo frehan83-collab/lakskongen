@@ -1002,24 +1002,14 @@ public partial class GameBridge : Node
     /// </summary>
     public bool StartResearch(string nodeId)
     {
-        var engine   = SimulationEngine;
-        var research = engine?.Research;
-        if (research == null) return false;
-
-        if (!research.Nodes.TryGetValue(nodeId, out var node)) return false;
-        if (!research.CanResearch(nodeId)) return false;
-
-        // Balance check
-        if (engine!.FinanceManager.Balance < node.CostNOK)
+        var result = SimulationEngine?.StartResearchProject(nodeId);
+        if (result == null || !result.Ok)
         {
-            GD.Print($"GameBridge.StartResearch: insufficient funds for '{nodeId}' (need {node.CostNOK:N0} NOK)");
+            GD.Print($"GameBridge.StartResearch('{nodeId}'): {result?.ErrorKey ?? "engine_not_ready"} {result?.Message}");
             return false;
         }
-
-        engine.PayCost(node.CostNOK, LakskongenSim.Core.CostBooking.Opex, "research");
-        research.StartResearch(nodeId);
         EmitSignal(SignalName.GameStateUpdated);
-        GD.Print($"GameBridge: research started — {node.Name} ({node.ResearchDays}d, {node.CostNOK:N0} NOK)");
+        GD.Print($"GameBridge: {result.Message}");
         return true;
     }
 

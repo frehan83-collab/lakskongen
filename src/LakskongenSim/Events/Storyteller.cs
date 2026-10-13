@@ -46,6 +46,20 @@ namespace LakskongenSim.Events
         public event Action<EventRecord>? OnEventRaised;
 
         /// <summary>
+        /// Scale (0-1] for an event's cash COST, set by the engine from farm size.
+        /// Event costs are sized for a standard commercial site; a smaller farm
+        /// takes a proportionally smaller hit (a one-pen tutorial farm paid
+        /// ~20M NOK of flat event costs in four years). Gains are not scaled.
+        /// </summary>
+        public Func<double>? CostScale { get; set; }
+
+        /// <summary>Storm events, held back while a calm-weather scenario runs.</summary>
+        public static readonly IReadOnlySet<string> StormEventIds = new HashSet<string> { "storm-damage" };
+
+        /// <summary>True while the active scenario promises calm weather.</summary>
+        public bool SuppressStormEvents { get; set; }
+
+        /// <summary>
         /// Raised after an event's effect ran, with the cash it actually moved
         /// on the FinanceManager (0 when none), so the engine ledger can book it.
         /// </summary>
@@ -108,6 +122,16 @@ namespace LakskongenSim.Events
             var chosen = WeightedPick(pool);
             if (chosen == null) return;
 
+            Fire(chosen, currentDay);
+        }
+
+        /// <summary>
+        /// Run one event: apply its effect, scale its cost to the farm, report
+        /// the cash it moved, start its cooldown and log it. The daily roll uses
+        /// this; tests call it to fire a specific event through the same path.
+        /// </summary>
+        internal EventRecord Fire(EventDefinition chosen, int currentDay)
+        {
             var record = new EventRecord
             {
                 Day = currentDay,
@@ -127,7 +151,7 @@ namespace LakskongenSim.Events
                 record.Description = $"Event application threw: {ex.Message}";
             }
             if (_financeManager != null)
-                OnEventCashSettled?.Invoke(record, _financeManager.Balance - cashBefore);
+                OnEventCashSettled?.Invoke(record, ScaleEventCost(record, _financeManager.Balance - cashBefore));
 
             // apply cooldowns and pacing
             _cooldowns[chosen.Id] = currentDay + chosen.CooldownDays;
@@ -137,11 +161,30 @@ namespace LakskongenSim.Events
             _state.EventLog.Add(record);
             _state.TrimEventLog();
             OnEventRaised?.Invoke(record);
+            return record;
+        }
+
+        /// <summary>
+        /// Shrink an event's cost to the farm (<see cref="CostScale"/>): the
+        /// unscaled share is credited back and the record shows the cost paid.
+        /// Returns the net cash the event moved.
+        /// </summary>
+        private decimal ScaleEventCost(EventRecord record, decimal delta)
+        {
+            if (delta >= 0m || CostScale == null || _financeManager == null) return delta;
+            double scale = Math.Clamp(CostScale(), 0.0, 1.0);
+            if (scale >= 1.0) return delta;
+            decimal relief = -delta * (decimal)(1.0 - scale);
+            _financeManager.AddRevenue(relief);
+            if (record.BalanceChange < 0m)
+                record.BalanceChange = Math.Round(record.BalanceChange * (decimal)scale);
+            return delta + relief;
         }
 
         private bool IsAvailable(EventDefinition def, int day)
         {
             if (day < def.MinDay || day > def.MaxDay) return false;
+            if (SuppressStormEvents && StormEventIds.Contains(def.Id)) return false;
             if (_cooldowns.TryGetValue(def.Id, out var availableDay) && day < availableDay) return false;
             if (def.Condition != null && !def.Condition(_state)) return false;
             return true;

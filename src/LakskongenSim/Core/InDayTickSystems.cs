@@ -328,7 +328,8 @@ namespace LakskongenSim.Core;
             // (review F1003: the bare fraction was multiplied and then gated on
             // > 1.0, so neither premium ever applied).
             engine.MarketSimulation.SetResearchPriceMultiplier(
-                (1.0 + engine.MarketPriceBonus) * engine.VerticalIntegrationQualityMultiplier);
+                (1.0 + engine.MarketPriceBonus) * engine.VerticalIntegrationQualityMultiplier
+                * engine.ScenarioPriceMultiplier);
             engine.MarketSimulation.AdvanceDays(1);
             engine.CurrencySystem.AdvanceDays(1);
             // P9: Price Council binds the monthly pen price from the rolling spot series.

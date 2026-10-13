@@ -7,6 +7,17 @@ using LakskongenSim.Farm;
 
 namespace LakskongenSim.Core
 {
+    /// <summary>Player-facing progress toward the active scenario's win condition.</summary>
+    public sealed record ScenarioGoalStatus(
+        string ScenarioId,
+        string Objective,
+        WinCondition Condition,
+        double Progress01,
+        bool Won,
+        bool Lost,
+        string LossReason,
+        int? DaysLeft);
+
     /// <summary>
     /// A single starting sea site for a scenario: which zone it sits in, how many
     /// pens it has, how many smolts are stocked per pen, and the smolt strain
@@ -183,7 +194,6 @@ namespace LakskongenSim.Core
         ///   "profit_target"         — decimal NOK threshold for Profit/Competition win
         ///   "sustainability_target" — int score threshold for Sustainability win
         ///   "ai_competitors"        — int count for Competition scenario
-        ///   "single_site"           — "true" to restrict to one sea site
         ///   "harsh_storms"          — "true" for elevated storm frequency
         ///   "premium_prices"        — "true" for export price bonus
         ///   "start_disease"         — "true" to begin with an active disease outbreak
@@ -686,19 +696,9 @@ namespace LakskongenSim.Core
             int daysElapsed = _state.Day - _scenarioStartDay;
 
             // ── Universal loss: bankruptcy ────────────────────────────────────
-            decimal currentBalance = _financeManager?.Balance ??
-                #pragma warning disable CS0618
-                _state.Balance;
-                #pragma warning restore CS0618
-            // S5: judge profit/solvency on EQUITY (cash minus outstanding
-            // loan principal), not raw cash — otherwise one loan wins any
-            // profit scenario on day 1.
-            decimal outstandingLoans = 0m;
-            if (_state.ActiveLoans != null)
-                foreach (var loan in _state.ActiveLoans)
-                    outstandingLoans += System.Math.Max(0m, loan.Principal);
-            decimal equity = currentBalance - outstandingLoans;
-            
+            decimal currentBalance = CurrentCash();
+            decimal equity = CurrentEquity();
+
             if (currentBalance < -2_000_000m)
             {
                 TriggerLoss("Konkurs — gjelden oversteg 2 000 000 NOK.");
@@ -724,7 +724,7 @@ namespace LakskongenSim.Core
 
                 case WinCondition.Profit:
                 {
-                    decimal target = GetRuleDecimal("profit_target", 5_000_000m);
+                    decimal target = ProfitTarget();
                     if (equity >= target)
                         TriggerWin();
                     break;
@@ -754,7 +754,7 @@ namespace LakskongenSim.Core
 
                 case WinCondition.Competition:
                 {
-                    decimal target = GetRuleDecimal("profit_target", 10_000_000m);
+                    decimal target = ProfitTarget();
 
                     // AI competitors earn linearly from the scenario start (varied
                     // rate per AI); derived from days elapsed so it survives a load.
@@ -779,6 +779,83 @@ namespace LakskongenSim.Core
                     break;
                 }
             }
+        }
+
+        // ── Goal measures (shared by the win check and the goal HUD) ─────────
+
+        private decimal CurrentCash() => _financeManager?.Balance ??
+            #pragma warning disable CS0618
+            _state.Balance;
+            #pragma warning restore CS0618
+
+        /// <summary>
+        /// S5: profit and solvency are judged on EQUITY (cash minus outstanding
+        /// loan principal), not raw cash — otherwise one loan wins any profit
+        /// scenario on day 1.
+        /// </summary>
+        private decimal CurrentEquity()
+        {
+            decimal outstandingLoans = 0m;
+            if (_state.ActiveLoans != null)
+                foreach (var loan in _state.ActiveLoans)
+                    outstandingLoans += System.Math.Max(0m, loan.Principal);
+            return CurrentCash() - outstandingLoans;
+        }
+
+        /// <summary>Equity a Profit/Competition scenario must reach.</summary>
+        private decimal ProfitTarget() => GetRuleDecimal("profit_target",
+            ActiveScenario?.WinCondition == WinCondition.Competition ? 10_000_000m : 5_000_000m);
+
+        /// <summary>
+        /// Progress toward the active scenario's win condition, measured the way
+        /// <see cref="CheckWinConditions"/> judges it (review F949: the goal HUD
+        /// re-derived it in GDScript from a tracker that was never initialised
+        /// and sat at 0%). Profit/Competition: share of the way from the
+        /// starting capital to the equity target. Survival: share of the time
+        /// limit survived. Sustainability: score vs target. Tutorial: steps done.
+        /// Null when no scenario is active.
+        /// </summary>
+        public ScenarioGoalStatus? GetGoalStatus(int sustainabilityScore = 0, double tutorialProgress01 = 0.0)
+        {
+            if (ActiveScenario == null) return null;
+            int daysElapsed = System.Math.Max(0, _state.Day - _scenarioStartDay);
+            int? daysLeft = ActiveScenario.TimeLimitDays is int limit
+                ? System.Math.Max(0, limit - daysElapsed)
+                : null;
+
+            double progress;
+            switch (ActiveScenario.WinCondition)
+            {
+                case WinCondition.Profit:
+                case WinCondition.Competition:
+                {
+                    decimal start = ActiveScenario.StartingCapitalNOK;
+                    decimal span = ProfitTarget() - start;
+                    progress = span > 0m ? (double)((CurrentEquity() - start) / span) : 1.0;
+                    break;
+                }
+                case WinCondition.Survival:
+                    progress = ActiveScenario.TimeLimitDays is int days && days > 0
+                        ? daysElapsed / (double)days
+                        : 0.0;
+                    break;
+                case WinCondition.Sustainability:
+                    progress = sustainabilityScore / (double)GetRuleDecimal("sustainability_target", 95m);
+                    break;
+                case WinCondition.Tutorial:
+                    progress = tutorialProgress01;
+                    break;
+                default:
+                    progress = 0.0;
+                    break;
+            }
+            if (IsWon) progress = 1.0;
+
+            string objective = string.IsNullOrWhiteSpace(ActiveScenario.Objective)
+                ? ActiveScenario.Description
+                : ActiveScenario.Objective;
+            return new ScenarioGoalStatus(ActiveScenario.Id, objective, ActiveScenario.WinCondition,
+                System.Math.Clamp(progress, 0.0, 1.0), IsWon, IsLost, LossReason ?? "", daysLeft);
         }
 
         // ── Roster queries ────────────────────────────────────────────────────
@@ -851,15 +928,22 @@ namespace LakskongenSim.Core
                 Description =
                     "Du har arvet bestefars lille oppdrett i Hardanger. Med én lisens og små midler må du lære grunnleggende oppdrett. " +
                     "Bygg opp gården fra bunnen av og vis at du kan drive lønnsomt.",
-                StartingCapitalNOK = 300_000m,
+                StartingCapitalNOK = 3_000_000m,
                 StartingRegion = ProductionRegion.Vestland,
                 Difficulty = 1,
                 WinCondition = WinCondition.Tutorial,
                 SpecialRules = new Dictionary<string, string>
                 {
-                    ["single_site"]  = "true",
                     ["calm_weather"] = "true",
                     ["easy_market"]  = "true",
+                },
+                // The inherited farm. Without it the start could not afford a 6M
+                // site, so the tutorial could not be played (F1013). One pen of
+                // 20,000 smolts and 3M NOK: 5,000 smolts on 300k could not carry
+                // a crew to the first harvest (decision log, RUN_LOG §7).
+                StartingSites = new List<StartingSiteDefinition>
+                {
+                    new() { Id = "bestefars_anlegg", Name = "Bestefars Anlegg", Zone = "fjord_west", Pens = 1, SmoltCount = 20_000, SmoltQuality = "standard" },
                 },
                 TimeLimitDays = null,
                 IsUnlocked = true,
@@ -885,6 +969,10 @@ namespace LakskongenSim.Core
                     ["premium_prices"] = "true",
                     ["profit_target"]  = "5000000",
                 },
+                StartingSites = new List<StartingSiteDefinition>
+                {
+                    new() { Id = "nordland_premium", Name = "Nordland Premium", Zone = "fjord_north", Pens = 2, SmoltCount = 8_000, SmoltQuality = "standard" },
+                },
                 TimeLimitDays = null,
                 IsUnlocked = true,
             });
@@ -907,6 +995,10 @@ namespace LakskongenSim.Core
                 {
                     ["ai_competitors"] = "3",
                     ["profit_target"]  = "10000000",
+                },
+                StartingSites = new List<StartingSiteDefinition>
+                {
+                    new() { Id = "trondelag_base", Name = "Trøndelag Base", Zone = "fjord_west", Pens = 3, SmoltCount = 10_000, SmoltQuality = "standard" },
                 },
                 TimeLimitDays = null,
                 IsUnlocked = false,
@@ -932,6 +1024,10 @@ namespace LakskongenSim.Core
                     ["start_debt"]          = "true",
                     ["regulation_pressure"] = "true",
                 },
+                StartingSites = new List<StartingSiteDefinition>
+                {
+                    new() { Id = "finnmark_turnaround", Name = "Finnmark Turnaround", Zone = "fjord_north", Pens = 2, SmoltCount = 6_000, SmoltQuality = "standard" },
+                },
                 TimeLimitDays = 730,
                 IsUnlocked = false,
             });
@@ -955,6 +1051,10 @@ namespace LakskongenSim.Core
                     ["calm_weather"] = "true",
                     ["easy_market"]  = "true",
                     ["profit_target"] = "100000000",
+                },
+                StartingSites = new List<StartingSiteDefinition>
+                {
+                    new() { Id = "lakskongen_hovedanlegg", Name = "Lakskongen Hovedanlegg", Zone = "fjord_west", Pens = 4, SmoltCount = 12_000, SmoltQuality = "standard" },
                 },
                 TimeLimitDays = null,
                 IsUnlocked = false,
@@ -1194,7 +1294,9 @@ namespace LakskongenSim.Core
                 {
                     ["resource_rent_tax"] = "0.25",
                     ["standard_deduction"] = "70000000",
-                    ["profit_target"] = "25000000",
+                    // Equity target = 60M starting capital + the 25M profit the
+                    // objective asks for (25M won on day 1, review F1005).
+                    ["profit_target"] = "85000000",
                 },
                 TimeLimitDays = null,
                 IsUnlocked = true,

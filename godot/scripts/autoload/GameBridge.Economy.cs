@@ -343,12 +343,9 @@ public partial class GameBridge : Node
         return result;
     }
 
-    /// <summary>Total debt outstanding (NOK). Returns 0 for now (no debt tracking yet).</summary>
+    /// <summary>Total interest-bearing debt outstanding (NOK): loan principal plus bonds.</summary>
     public double GetTotalDebt()
-    {
-        // TODO: Implement when LoanSystem tracks outstanding principal
-        return 0.0;
-    }
+        => (double)(SimulationEngine?.TotalDebtNok ?? 0m);
 
     /// <summary>Total monthly payment obligation (NOK). Returns 0 for now.</summary>
     public double GetMonthlyPayment()

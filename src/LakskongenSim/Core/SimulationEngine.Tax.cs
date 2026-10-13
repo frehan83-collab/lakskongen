@@ -82,6 +82,9 @@ public partial class SimulationEngine
             provisional, settlement, TaxSystem.LossCarryForward);
     }
 
+    /// <summary>Interest-bearing debt (NOK): outstanding loan principal plus bonds.</summary>
+    public decimal TotalDebtNok => OutstandingDebt();
+
     /// <summary>Interest-bearing debt: outstanding loan principal plus bonds.</summary>
     internal decimal OutstandingDebt()
         => State.ActiveLoans.Sum(l => Math.Max(0m, l.Principal))

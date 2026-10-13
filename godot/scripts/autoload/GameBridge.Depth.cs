@@ -116,6 +116,29 @@ public partial class GameBridge : Node
     }
 
     /// <summary>
+    /// Progress toward the active scenario's goal for the goal HUD, measured as
+    /// the engine's win check judges it (review F949): scenario_id, objective,
+    /// condition, progress (0-1), won, lost, loss_reason, days_left (-1 when the
+    /// scenario has no time limit). Empty when no scenario is active.
+    /// </summary>
+    public Godot.Collections.Dictionary GetScenarioGoal()
+    {
+        var goal = SimulationEngine?.GetScenarioGoalStatus();
+        if (goal == null) return new Godot.Collections.Dictionary();
+        return new Godot.Collections.Dictionary
+        {
+            ["scenario_id"] = goal.ScenarioId,
+            ["objective"] = goal.Objective,
+            ["condition"] = goal.Condition.ToString(),
+            ["progress"] = goal.Progress01,
+            ["won"] = goal.Won,
+            ["lost"] = goal.Lost,
+            ["loss_reason"] = goal.LossReason,
+            ["days_left"] = goal.DaysLeft ?? -1,
+        };
+    }
+
+    /// <summary>
     /// Return the ID of the currently active scenario (empty when none).
     /// </summary>
     public string GetActiveScenarioId()
@@ -205,7 +228,6 @@ public partial class GameBridge : Node
             rules[kv.Key] = kv.Value;
 
         var special = new Godot.Collections.Array<string>();
-        if (s.SpecialRules.ContainsKey("single_site")) special.Add("1 anlegg");
         if (s.SpecialRules.ContainsKey("harsh_storms")) special.Add("Harde stormer");
         if (s.SpecialRules.ContainsKey("premium_prices")) special.Add("Premiumpriser");
         if (s.SpecialRules.ContainsKey("start_disease")) special.Add("Aktiv sykdom");

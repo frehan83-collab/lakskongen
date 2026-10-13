@@ -71,6 +71,8 @@ func get_research_progress() -> int: return game_bridge.ResearchProgress if game
 func get_research_days_remaining() -> int: return game_bridge.ResearchDaysRemaining if game_bridge else 0
 func get_available_scenarios() -> Array[Dictionary]: return _arr(game_bridge.GetAvailableScenarios()) if game_bridge else []
 func get_active_scenario_id() -> String: return game_bridge.GetActiveScenarioId() if game_bridge else ""
+## Goal progress of the active scenario from the engine's win check (F949).
+func get_scenario_goal() -> Dictionary: return game_bridge.GetScenarioGoal() if game_bridge else {}
 
 # ── Finance / sustainability ──────────────────────────────────────────────────
 

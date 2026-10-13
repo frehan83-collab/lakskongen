@@ -72,7 +72,9 @@ namespace LakskongenSim.Environment
         /// </summary>
         public void ForceWeatherState(WeatherState state)
         {
-            CurrentState = state;
+            // A calm-weather scenario caps forced weather too.
+            CurrentState = state > MaxState ? MaxState : state;
+            state = CurrentState;
             OnWeatherStateChanged?.Invoke(CurrentState);
 
             if (state >= WeatherState.Storm)
@@ -150,6 +152,36 @@ namespace LakskongenSim.Environment
         }
 
         /// <summary>
+        /// Scenario weather rule (set from the active scenario on start and on
+        /// load, so not saved): above 1 scales transitions into Storm and Severe
+        /// and renormalizes the row ("harsh_storms"). 1 leaves the chain as is.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public double StormFrequencyMultiplier { get; private set; } = 1.0;
+
+        /// <summary>
+        /// Highest weather state the scenario allows (Moderate under "calm_weather";
+        /// Severe otherwise). Not saved, like <see cref="StormFrequencyMultiplier"/>.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public WeatherState MaxState { get; private set; } = WeatherState.Severe;
+
+        /// <summary>
+        /// Apply a scenario's weather rule. A storm already raging is calmed at
+        /// once when the cap forbids it.
+        /// </summary>
+        public void ApplyScenarioWeather(WeatherState maxState, double stormFrequencyMultiplier)
+        {
+            MaxState = maxState;
+            StormFrequencyMultiplier = Math.Max(0.0, stormFrequencyMultiplier);
+            if (CurrentState > MaxState)
+            {
+                CurrentState = MaxState;
+                OnWeatherStateChanged?.Invoke(CurrentState);
+            }
+        }
+
+        /// <summary>
         /// Update weather state using Markov chain transitions.
         /// Storm probability increases in Oct-Mar.
         /// </summary>
@@ -162,25 +194,40 @@ namespace LakskongenSim.Environment
             int dayOfYear = SimulationDay % 365;
             bool isStormSeason = dayOfYear >= 270 || dayOfYear <= 90;
 
+            // Transition row: storm/severe probability rises in storm season.
+            var row = new double[4];
+            for (int nextState = 0; nextState < 4; nextState++)
+            {
+                row[nextState] = TransitionMatrix[currentStateIdx, nextState];
+                if (isStormSeason && (nextState == 2 || nextState == 3))
+                    row[nextState] *= StormSeasonMultiplier;
+            }
+            // Scenario rule "harsh_storms": scale storm and severe and renormalize
+            // (scaling without renormalizing would starve Severe, review F456).
+            if (StormFrequencyMultiplier != 1.0)
+            {
+                row[2] *= StormFrequencyMultiplier;
+                row[3] *= StormFrequencyMultiplier;
+                double sum = row[0] + row[1] + row[2] + row[3];
+                if (sum > 0.0)
+                    for (int i = 0; i < row.Length; i++) row[i] /= sum;
+            }
+
             // Cumulative probability check
             double cumulative = 0.0;
             WeatherState newState = CurrentState;
-
             for (int nextState = 0; nextState < 4; nextState++)
             {
-                double prob = TransitionMatrix[currentStateIdx, nextState];
-
-                // Modify storm/severe probability during storm season
-                if (isStormSeason && (nextState == 2 || nextState == 3))
-                    prob *= StormSeasonMultiplier;
-
-                cumulative += prob;
+                cumulative += row[nextState];
                 if (roll < cumulative)
                 {
                     newState = (WeatherState)nextState;
                     break;
                 }
             }
+            // Scenario rule "calm_weather": never above the cap.
+            if (newState > MaxState)
+                newState = MaxState;
 
             // Normalize (since we may have modified probabilities)
             if (newState != CurrentState)

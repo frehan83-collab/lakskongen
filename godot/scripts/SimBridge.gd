@@ -404,6 +404,7 @@ func get_research_progress() -> int: return _proxies.get_research_progress()
 func get_research_days_remaining() -> int: return _proxies.get_research_days_remaining()
 func get_available_scenarios() -> Array[Dictionary]: return _proxies.get_available_scenarios()
 func get_active_scenario_id() -> String: return _proxies.get_active_scenario_id()
+func get_scenario_goal() -> Dictionary: return _proxies.get_scenario_goal()
 
 # ── Proxies: finance / sustainability ─────────────────────────────────────────
 

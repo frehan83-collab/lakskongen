@@ -75,6 +75,11 @@ namespace LakskongenSim.Core
         /// <summary>How many steps have been completed so far.</summary>
         public int CompletedCount => _steps.Count(s => s.CompletedOnDay.HasValue);
 
+        /// <summary>Share of the tutorial completed (0-1).</summary>
+        public double Progress01 => _steps.Count == 0
+            ? 1.0
+            : System.Math.Min(_currentStepIndex, _steps.Count) / (double)_steps.Count;
+
         public TutorialSystem(SimulationEngine engine)
         {
             _engine = engine ?? throw new ArgumentNullException(nameof(engine));
@@ -195,15 +200,21 @@ namespace LakskongenSim.Core
                 "average_weight >= 4.0" => t => t.AverageFishWeightKg >= 4.0,
                 
                 // Health and treatment
-                "lice_detection_acknowledged" => t => t.SeaLicePerFish >= 0.8, // Trigger lice event at 0.8
+                // Lice step: on a lice event, or by day 150 for a player who kept lice
+                // low all along (it used to wait for 0.8 forever, review F1014).
+                "lice_detection_acknowledged" => t => t.SeaLicePerFish >= 0.8 || t.State.Day >= LiceStepFallbackDay,
                 "delousing_completed" => t => t.SeaLicePerFish < 0.5, // Completed when under threshold
                 "biosecurity_enabled" => t => t.State.Day >= 35, // Placeholder: needs BiosecurityManager
                 "cleaner_fish_deployed" => t => t.State.Day >= 40, // Placeholder: needs CleanerFish system
                 
                 // Harvest and sales
-                "first_harvest_initiated" => t => t.State.ProcessingSnapshots.Count >= 1,
-                "first_sale_completed" => t => t.State.ProcessingSnapshots.Count >= 1 && t.LiveBalance > 10_000_000m,
-                "pl_report_viewed" => t => t.State.ProcessingSnapshots.Count >= 1 && t.State.Day >= 1,
+                // A harvest sells at once (HarvestSite books the sale). Processing
+                // snapshots are only ever restored from saves, never produced in
+                // play, so these steps could never complete; the sale also needed
+                // a 10M balance a one-pen tutorial farm cannot reach (F1014).
+                "first_harvest_initiated" => t => HasSold(t),
+                "first_sale_completed" => t => HasSold(t),
+                "pl_report_viewed" => t => HasSold(t) && t.State.Day >= 1,
                 
                 // Expansion and systems
                 "feed_strategy_adjusted" => t => t.State.Day >= 1, // Placeholder: needs FeedStrategy tracking
@@ -232,8 +243,8 @@ namespace LakskongenSim.Core
                 "delousing_performed" => t => t.SeaLicePerFish < 0.5,
                 "day_90_reached" => t => t.State.Day >= 90,
                 "disease_event_handled" => t => t.State.Day >= 30,
-                "first_harvest" => t => t.State.ProcessingSnapshots.Count >= 1,
-                "first_sale" => t => t.State.ProcessingSnapshots.Count >= 1,
+                "first_harvest" => t => HasSold(t),
+                "first_sale" => t => HasSold(t),
                 "production_chain_viewed" => t => t.State.Day >= 1,
                 "weather_storm_survived" => t => t.State.Day >= 30,
                 "crew_hired" => t => t.State.Day >= 14,
@@ -330,6 +341,13 @@ namespace LakskongenSim.Core
         /// transactions — conditions must read this instead.
         /// </summary>
         internal decimal LiveBalance => _engine.FinanceManager?.Balance ?? State.Balance;
+
+        /// <summary>Day by which the lice step triggers even without a lice event.</summary>
+        internal const int LiceStepFallbackDay = 150;
+
+        /// <summary>A harvest has been sold (any sale path books TotalSalesRevenueNok).</summary>
+        private static bool HasSold(TutorialSystem t)
+            => t.State.TotalSalesRevenueNok > 0m || t.State.ProcessingSnapshots.Count >= 1;
 
         internal int TotalFishCount =>
             _engine.State.Populations.SelectMany(p => p.Cohorts).Sum(c => c.Count);
@@ -550,7 +568,7 @@ namespace LakskongenSim.Core
                 Hint            = "Go to Harvest → Initiate Harvest for your ready population. " +
                                   "Sell on the spot market or negotiate a contract price.",
                 RewardNok       = 0m,
-                CompletionCondition = t => t.State.ProcessingSnapshots.Count >= 1
+                CompletionCondition = HasSold
             },
 
             // ── Step 10: Check Your P&L ──────────────────────────────────────

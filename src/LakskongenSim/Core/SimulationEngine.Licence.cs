@@ -493,6 +493,30 @@ public partial class SimulationEngine
     // ─── Phase 4.4: Research & Vertical Integration helpers ──────────────────────
 
     /// <summary>
+    /// Start researching a node (player verb; the logic used to live only in
+    /// GameBridge.StartResearch). Pays the cost as OpEx and starts the project.
+    /// Fails before any mutation: engine_not_ready / unknown_node /
+    /// research_unavailable (prerequisites, already unlocked, or another
+    /// project running) / insufficient_funds.
+    /// </summary>
+    public CommandResult StartResearchProject(string nodeId)
+    {
+        if (Research == null || FinanceManager == null)
+            return CommandResult.Fail("engine_not_ready", "Engine not initialized");
+        if (!Research.Nodes.TryGetValue(nodeId ?? "", out var node))
+            return CommandResult.Fail("unknown_node", $"Unknown research node '{nodeId}'");
+        if (!Research.CanResearch(node.Id))
+            return CommandResult.Fail("research_unavailable",
+                $"'{node.Name}' cannot be researched now (prerequisites, already unlocked or another project running)");
+        if (!TryPayCost(node.CostNOK, CostBooking.Opex, "research"))
+            return CommandResult.Fail("insufficient_funds",
+                $"Insufficient funds: need {node.CostNOK:N0} NOK for '{node.Name}'", (double)node.CostNOK);
+        Research.StartResearch(node.Id);
+        return CommandResult.Success($"Research started: {node.Name} ({node.ResearchDays} days)",
+            (double)node.CostNOK, node.ResearchDays, node.Id);
+    }
+
+    /// <summary>
     /// Get the total unlocked research effect for a given key.
     /// Returns 0.0 if no unlocked research contributes to that key.
     /// </summary>

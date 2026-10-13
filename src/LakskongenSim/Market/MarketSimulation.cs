@@ -63,6 +63,13 @@ namespace LakskongenSim.Market
         public decimal LongTermMean { get; private set; } = DefaultLongTermMean;
         public decimal MeanReversionSpeedWeekly { get; private set; } = DefaultWeeklyTheta;
         public decimal VolatilityWeekly { get; private set; } = DefaultWeeklySigma;
+
+        /// <summary>
+        /// Scenario market rule: scales daily price noise and the market-shock
+        /// probability (an "easy market" halves both). Set from the active
+        /// scenario on start and on load, so it is not saved.
+        /// </summary>
+        public double VolatilityScale { get; set; } = 1.0;
         public decimal PriceFloorPerKg => _priceFloor;
         public decimal PriceCeilingPerKg => _priceCeiling;
         public IReadOnlyList<HistoricalPrice> HistoricalSeries => _historicalSeries;
@@ -365,7 +372,7 @@ namespace LakskongenSim.Market
                 var seasonalTarget = LongTermMean + GetSeasonalOffsetForSimulationDay(_simulationDay);
                 var currentPrice = (double)BasePricePerKg;
                 var thetaDaily = (double)MeanReversionSpeedWeekly / _daysPerWeek;
-                var sigmaDaily = (double)VolatilityWeekly / Math.Sqrt(_daysPerWeek);
+                var sigmaDaily = (double)VolatilityWeekly / Math.Sqrt(_daysPerWeek) * VolatilityScale;
 
                 double u1 = Math.Max(1e-10, _rng.NextDouble());
                 double u2 = _rng.NextDouble();
@@ -414,7 +421,7 @@ namespace LakskongenSim.Market
 
                 WeeklyAvgPrice = _priceHistory.TakeLast(Math.Min(_daysPerWeek, _priceHistory.Count)).Average();
 
-                if (_rng.NextDouble() < DailyShockProbability)
+                if (_rng.NextDouble() < DailyShockProbability * VolatilityScale)
                     TriggerMarketShock();
             }
 

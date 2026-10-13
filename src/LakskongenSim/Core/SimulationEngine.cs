@@ -321,6 +321,7 @@ namespace LakskongenSim.Core
             
             // Always a fresh market: a retained instance would keep the previous
             // game's price path and an RNG stream from the previous SimRng (F292).
+            ScenarioPriceMultiplier = 1.0; // scenario rules re-apply on scenario start / load
             MarketSimulation = new Market.MarketSimulation(
                 Rng.Stream(SimRngStreams.Market),
                 Rng.Stream(SimRngStreams.Intelligence, "market_inner"));
@@ -357,6 +358,8 @@ namespace LakskongenSim.Core
             Storyteller.OnEventRaised += HandleStorytellerEvent;
             // Event effects move cash inside the event; book exactly what moved.
             Storyteller.OnEventCashSettled += (_, delta) => BookSettledCash(delta, "events");
+            // Event costs follow farm size up to one standard site (larger farms unchanged).
+            Storyteller.CostScale = () => Math.Clamp(TotalSiteScale(), 1.0 / StandardPensPerSite, 1.0);
 
             // Initialize PlanktonBloom system
             PlanktonBloom = new PlanktonBloom(Rng.Stream(SimRngStreams.PlanktonBloom));
@@ -1824,7 +1827,7 @@ private class BalancingConfig
 
                 // Storm repair bill (infrastructure damage; escapes and net wear
                 // remain owned by ApplyStormHazards, the escape single source).
-                decimal repairCost = (decimal)(State.SeaSites.Count * 50000 * severity);
+                decimal repairCost = (decimal)(TotalSiteScale() * 50000 * severity);
                 if (repairCost > 0)
                 {
                     // Damage must be repaired: paid on credit when cash is short
@@ -1990,15 +1993,33 @@ private class BalancingConfig
         internal decimal GetTotalBiomassKg()
             => (decimal)State.Populations.Sum(p => p.GetTotalBiomassKg());
 
+        /// <summary>Pens in a standard sea site; calibrated crew and upkeep are per standard site.</summary>
+        internal const int StandardPensPerSite = 8;
+
+        /// <summary>A site's size relative to a standard 8-pen site.</summary>
+        internal static double SiteSizeScale(Farm.SeaSite site)
+            => Math.Max(1, site.NumberOfPens) / (double)StandardPensPerSite;
+
+        /// <summary>Sum of all sites' sizes in standard sites.</summary>
+        private double TotalSiteScale() => State.SeaSites.Sum(SiteSizeScale);
+
+        /// <summary>Crew of a site: the calibrated crew scaled to its size, at least one worker.</summary>
+        internal decimal SiteWorkers(Farm.SeaSite site)
+            => Math.Max(1m, Math.Round(_balancing.WorkersPerSite * (decimal)SiteSizeScale(site)));
+
         internal void ProcessDailyFinance()
         {
             // Phase 5.5: Process Mattilsynet over-MAB orders (deadline checks + forced harvest)
             ProcessMattilsynetOverMabOrders();
 
-            // 1. Calculate operational costs (Wages, Maintenance)
+            // 1. Calculate operational costs (Wages, Maintenance). Site crews and
+            // upkeep scale with the site's size: the calibrated crew is for a
+            // standard 8-pen site, and a one-pen family farm used to pay that full
+            // crew (11k NOK/day on 5,000 fish; the tutorial went bankrupt before
+            // its first harvest).
             decimal dailyWages = 0m;
-            int totalSites = State.SeaSites.Count;
-            dailyWages += totalSites * _balancing.WorkersPerSite * (_balancing.WorkerMonthlySalaryNOK / 30m);
+            foreach (var site in State.SeaSites)
+                dailyWages += SiteWorkers(site) * (_balancing.WorkerMonthlySalaryNOK / 30m);
             
             if (State.OwnsHatchery)
                 dailyWages += _balancing.WorkersPerHatchery * (_balancing.WorkerMonthlySalaryNOK / 30m);
@@ -2014,7 +2035,7 @@ private class BalancingConfig
             decimal vapOpex = State.OwnsProcessingPlant ? 5_000m : 0m;
 
             // 2. Fixed maintenance costs (e.g., 0.01% of build cost daily)
-            decimal dailyMaintenance = (totalSites * _balancing.SeaSiteBuildCostNOK * 0.0001m);
+            decimal dailyMaintenance = (decimal)TotalSiteScale() * _balancing.SeaSiteBuildCostNOK * 0.0001m;
             dailyMaintenance += _dailyAiFeedingLicenseCost; // Add AI Feeding license cost here
 
             // 3. Apply costs through the ledger (paid on credit when cash is short)

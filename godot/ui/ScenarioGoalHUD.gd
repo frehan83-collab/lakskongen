@@ -1,8 +1,10 @@
 extends Control
 
 ## ScenarioGoalHUD — top-right tracker for the active scenario goal.
-## Reads the active goal from ScenarioManager (autoload) and falls back to the
-## SimBridge scenario roster when a game was started outside ScenarioManager.
+## Reads progress from the engine (SimBridge.get_scenario_goal, measured the way
+## the win check judges it; review F949: the ScenarioManager tracker it used to
+## read was never initialised in the player flow and sat at 0%). Falls back to
+## ScenarioManager when no engine goal is available.
 ## Refreshes on scenario_loaded / goal_progress_updated and on SimBridge ticks.
 ## All node lookups are null-guarded so a partially-authored scene still loads.
 
@@ -47,6 +49,15 @@ func _on_state_updated() -> void:
 # ── Rendering ──────────────────────────────────────────────────────────────────
 
 func _refresh() -> void:
+	var sim = get_node_or_null("/root/SimBridge")
+	if sim != null and sim.has_method("get_scenario_goal"):
+		var goal: Dictionary = sim.get_scenario_goal()
+		if not goal.is_empty():
+			var progress := float(goal.get("progress", 0.0))
+			_apply(progress, str(goal.get("objective", "")), bool(goal.get("won", false)), bool(goal.get("lost", false)))
+			_set_days_left(int(goal.get("days_left", -1)), progress)
+			return
+
 	var manager = get_node_or_null("/root/ScenarioManager")
 	var scenario: Dictionary = {}
 	var progress := 0.0
@@ -84,6 +95,16 @@ func _apply(progress: float, description: String, achieved: bool, failed: bool) 
 		_goal_label.text = text
 	if _progress_bar != null:
 		_progress_bar.value = percent
+
+## Time left from the engine (days since the scenario started; -1 = no limit).
+func _set_days_left(days_left: int, progress: float) -> void:
+	if _time_label == null:
+		return
+	var percent := int(round(clampf(progress, 0.0, 1.0) * 100.0))
+	if days_left < 0:
+		_time_label.text = "%d%%" % percent
+	else:
+		_time_label.text = "%d%% — ⏰ %.1f år igjen" % [percent, float(days_left) / 365.0]
 
 func _set_time(scenario: Dictionary, progress: float) -> void:
 	if _time_label == null:
