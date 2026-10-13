@@ -36,23 +36,10 @@ func _ready() -> void:
 	_walkway_node = get_node_or_null("Walkway") as MeshInstance3D
 	_handrail_node = get_node_or_null("Handrail") as MeshInstance3D
 	_feedpipe_node = get_node_or_null("FeedPipe") as MeshInstance3D
+	# Owners wire clicks: they connect ClickArea.input_event (FishPenManager, VisualAdapter3D).
 	_click_area = get_node_or_null("ClickArea") as Area3D
-	
-	if _click_area:
-		_click_area.input_event.connect(_on_input_event.bind())
-	
-	_update_materials()
 
-func _on_input_event(camera: Node, event: InputEvent, position: Vector3, normal: Vector3, shape_idx: int) -> void:
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			# Intentionally untyped: referencing the FishPenManager class here
-			# creates a circular GDScript dependency (FishPenManager preloads
-			# pen_cage.tscn -> PenCage.gd), which prevents the scene from
-			# loading. Emitting by name keeps the edge dynamic.
-			var manager := get_parent()
-			if manager and manager.has_signal("pen_clicked"):
-				manager.emit_signal("pen_clicked", name, global_position)
+	_update_materials()
 
 func set_health_color(color: Color) -> void:
 	health_color = color

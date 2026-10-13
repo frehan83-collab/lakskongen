@@ -8,6 +8,9 @@ extends Control
 signal pen_selected(pen_id: String)
 signal action_requested(action: String, pen_id: String)
 
+## FjordVistaBridge.GROUP: the 3D view's selection hook.
+const FJORD_VISTA_GROUP := "fjord_vista"
+
 # ── Autoloads ─────────────────────────────────────────────────────────────────
 var _sim: Node = null
 var _theme: Node = null
@@ -337,6 +340,9 @@ func _show_detail() -> void:
 func _select_pen(pen_id: String) -> void:
 	_selected_pen_id = pen_id
 	pen_selected.emit(pen_id)
+	# The 3D view follows the list (highlight, indicator, "Fly to pen").
+	if is_inside_tree():
+		get_tree().call_group(FJORD_VISTA_GROUP, "select_pen_from_ui", pen_id)
 	_refresh()
 
 

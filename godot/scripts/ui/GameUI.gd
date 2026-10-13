@@ -27,6 +27,7 @@ var _tab_buttons: Dictionary = {} # id -> Button
 var _current_panel: Control = null
 var _active_tab_id: String = ""
 var _panel_cache: Dictionary = {} # id -> Control (cached panel instances)
+var _container_filters: Dictionary = {} # Control -> its own mouse_filter (see-through tab)
 
 # ── Autoload References ───────────────────────────────────────────────────────
 
@@ -38,6 +39,9 @@ var _tutorial_state: Node = null
 ## scripts/autoload/TutorialState.gd (which owns the authoritative mapping);
 ## this is only a fallback so the UI behaves if the autoload is absent.
 const ADVANCED_TABS: Array[String] = ["ras", "offshore", "analytics", "research", "sustainability", "telemetry"]
+
+## The see-through tab over the 3D vista (FjordViewPanel).
+const FJORD_TAB := "fjord"
 
 # ── UI Nodes ──────────────────────────────────────────────────────────────────
 
@@ -116,6 +120,7 @@ func _register_tabs() -> void:
 	
 	# Core tabs with F-key shortcuts
 	_tabs.append(TabDefinition.new("dashboard", "📊 Oversikt", "📊", "res://scripts/ui/Dashboard.gd", KEY_F1))
+	_tabs.append(TabDefinition.new(FJORD_TAB, "🏞️ Fjord", "🏞️", "res://scripts/ui/FjordViewPanel.gd"))
 	_tabs.append(TabDefinition.new("map", "🗺️ Kart", "🗺️", "res://scripts/ui/MapPanel.gd", KEY_F2))
 	_tabs.append(TabDefinition.new("finance", "💰 Økonomi", "💰", "res://scripts/ui/FinancePanel.gd", KEY_F3))
 	_tabs.append(TabDefinition.new("pens", "🐟 Merder", "🐟", "res://scripts/ui/PenManagement.gd", KEY_F4))
@@ -301,6 +306,7 @@ func _switch_to_tab(tab_id: String) -> void:
 
 		_current_panel = panel
 		_active_tab_id = tab_id
+		_set_see_through(tab_id == FJORD_TAB)
 
 		# Keep the active tab visible when the bar scrolls (overflow fix).
 		_scroll_tab_into_view(tab_id)
@@ -369,6 +375,21 @@ func _on_tab_button_pressed(tab_id: String) -> void:
 	_switch_to_tab(tab_id)
 
 # ── Juice helpers (additive; navigation logic above is untouched) ────────────
+
+## On the fjord tab the full-screen containers (panel container up to this
+## root) ignore the mouse, so clicks reach the 3D vista and the camera hint
+## drawn below this layer; the tab bar stays clickable. Every other tab
+## restores the containers' own filters.
+func _set_see_through(see_through: bool) -> void:
+	if _container_filters.is_empty():
+		var node: Control = panel_container
+		while node != null:
+			_container_filters[node] = node.mouse_filter
+			if node == self:
+				break
+			node = node.get_parent() as Control
+	for node: Control in _container_filters:
+		node.mouse_filter = Control.MOUSE_FILTER_IGNORE if see_through else _container_filters[node]
 
 ## Soft enter for tab panels: fade + rise. Falls back silently if the
 ## panel is not ready for tweens yet.

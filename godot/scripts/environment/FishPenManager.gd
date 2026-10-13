@@ -278,6 +278,11 @@ func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 	cage.name = pen_id
 	markers_parent.add_child(cage)
 	cage.global_position = position
+	# Clicks on the cage report here. PenCage cannot reach this manager through
+	# its parent (PenMarkers has no pen_clicked signal), so the click used to drop.
+	var click_area := cage.get_node_or_null("ClickArea") as Area3D
+	if click_area:
+		click_area.input_event.connect(_on_pen_input_event.bind(pen_id))
 
 	# Service boat moored alongside the collar: diagonal offset clears the
 	# 25.5 m collar radius, waterline y sits the hull IN the water instead
@@ -494,6 +499,8 @@ func _set_ring_color(pen_id: String, color: Color) -> void:
 
 func _on_pen_input_event(_camera: Node, event: InputEvent, _position: Vector3, _normal: Vector3, _shape_idx: int, pen_id: String) -> void:
 	"""Handle click events on pen markers."""
+	if not _pens.has(pen_id):
+		return  # a removed pen's queued click
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			select_pen(pen_id)

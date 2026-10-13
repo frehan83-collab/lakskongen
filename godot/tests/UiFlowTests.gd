@@ -46,6 +46,7 @@ func _run() -> void:
 	await _test_finance_panel_takes_and_repays_loans()
 	await _test_analytics_panel_charts_every_metric()
 	await _test_data_export_writes_csv()
+	await _test_fjord_pen_click_opens_details()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -378,6 +379,74 @@ func _test_data_export_writes_csv() -> void:
 	panel.queue_free()
 	await get_tree().process_frame
 
+## F738: on the see-through Fjord tab a real click on a 3D pen reaches it
+## (physics picking), selects it, opens its details and enables "Fly to pen";
+## every other tab keeps the click. F647: the Pens tab shows its pen list, and
+## choosing a pen there selects it in 3D.
+func _test_fjord_pen_click_opens_details() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "pen click: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var pens: FishPenManager = scene.get_node("FjordEnvironment/FishPenManager")
+	var vista: FjordVistaBridge = scene.get_node("FjordVistaBridge")
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var fly: Button = scene.get_node("UILayer/CameraHint").get_node("%FlyToFarmButton")
+	var ids := pens.get_pen_ids()
+	_check(ids.size() == 2, "pen click: both sites have a 3D pen (%s)" % str(ids))
+	if ids.size() != 2:
+		scene.queue_free()
+		return
+	var target := "po3_sor"
+	await _frame_pen(vista.vista_camera, pens.get_pen_position(target))
+
+	await _click_at(_pen_on_screen(vista.vista_camera, pens, target))
+	_check(pens.selected_pen_id.is_empty(), "pen click: the dashboard keeps the click")
+
+	await _click_control(ui.find_child("Tab_fjord", true, false))
+	_check(ui.get_active_tab() == "fjord", "pen click: the Fjord tab opens")
+	await _click_at(_pen_on_screen(vista.vista_camera, pens, target))
+	_check(pens.selected_pen_id == target, "pen click: clicking the 3D pen selects it ('%s')" % pens.selected_pen_id)
+	_check(ui.get_active_tab() == "pens", "pen click: the pen's details open (%s)" % ui.get_active_tab())
+	var panel: Control = ui.find_child("Panel_pens", true, false)
+	_check(panel != null and panel.get_selected_pen_id() == target, "pen click: the details show the clicked pen")
+	_check(not fly.disabled, "pen click: 'Fly to pen' is enabled for the selection")
+
+	await _click_control(ui.find_child("Tab_fjord", true, false))
+	var focused: Array = []
+	vista.farm_focused.connect(func(id: String) -> void: focused.append(id))
+	await _click_control(fly)
+	_check(focused == [target], "pen click: 'Fly to pen' focuses the selected pen (%s)" % str(focused))
+
+	await _click_control(ui.find_child("Tab_pens", true, false))
+	panel = ui.find_child("Panel_pens", true, false)
+	_check(panel != null and ui.get_active_tab() == "pens", "pen list: the Pens tab is open")
+	if panel == null:
+		scene.queue_free()
+		return
+	var list: Control = panel.get_node("%PenList")
+	var scroll := list.get_parent() as Control
+	_check(scroll.size.y >= 120.0, "pen list: the list has room (%.0f px)" % scroll.size.y)
+	var other := "po3_nord"
+	var item: Button = panel._pen_list_items.get(other)
+	_check(item != null and scroll.get_global_rect().encloses(item.get_global_rect()),
+		"pen list: %s is listed inside the visible list" % other)
+	if item != null:
+		await _click_control(item)
+	_check(panel.get_selected_pen_id() == other, "pen list: clicking a pen selects it")
+	_check(pens.selected_pen_id == other, "pen list: the 3D view follows the list selection")
+
+	await _click_control(ui.find_child("Tab_dashboard", true, false))
+	pens.selected_pen_id = ""
+	await _frame_pen(vista.vista_camera, pens.get_pen_position(target))
+	await _click_at(_pen_on_screen(vista.vista_camera, pens, target))
+	_check(pens.selected_pen_id.is_empty(), "pen click: after the Fjord tab the dashboard keeps clicks again")
+	scene.queue_free()
+	await get_tree().process_frame
+
 ## F945: Phase 5.3–5.4 proxies are reachable through the SimBridge facade.
 func _test_facade_forwards_phase5_systems() -> void:
 	for method in ["get_sludge_status", "toggle_sludge_hub", "valorize_sludge_now",
@@ -418,6 +487,45 @@ func _first_slot_button(container: Node, button_name: String) -> Button:
 			if btn is Button:
 				return btn
 	return null
+
+## A real left click at a viewport position: through _input, the GUI,
+## _unhandled_input and physics picking. Headless Godot never sends the
+## window's mouse-enter, and physics picking drops events while the cursor is
+## outside the viewport, so announce the cursor first.
+func _click_at(pos: Vector2) -> void:
+	var vp := get_viewport()
+	vp.notification(Node.NOTIFICATION_VP_MOUSE_ENTER)
+	for pressed in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.position = pos
+		ev.global_position = pos
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.pressed = pressed
+		vp.push_input(ev, true)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	await get_tree().process_frame
+
+func _click_control(control: Control) -> void:
+	_check(control != null and control.is_visible_in_tree(), "click target %s is on screen" % (control.name if control else "missing"))
+	if control != null:
+		await _click_at(control.get_global_rect().get_center())
+
+## Settle the fjord camera over a pen (no auto-orbit drift between a click's
+## screen position and the physics step that picks it).
+func _frame_pen(cam: FjordCamera, pos: Vector3) -> void:
+	cam.auto_orbit_enabled = false
+	cam.fly_to_position(pos, FjordCamera.ZoomLevel.FARM, 0.05)
+	await get_tree().create_timer(0.2).timeout
+	var last := Vector3.INF
+	for i in 3000:
+		await get_tree().process_frame
+		if cam.global_position.distance_to(last) < 0.001:
+			return
+		last = cam.global_position
+
+func _pen_on_screen(cam: Camera3D, pens: FishPenManager, pen_id: String) -> Vector2:
+	return cam.unproject_position(pens.get_pen_position(pen_id))
 
 func _clear_test_saves() -> void:
 	var dir := DirAccess.open(TEST_SAVE_DIR)

@@ -21,8 +21,13 @@ var sim_weather_enabled: bool = true
 
 signal farm_focused(pen_id: String)
 
+## UI lists (the Pens tab) select through this group, so a pen chosen in a
+## list is selected in 3D too ("Fly to pen" needs a selection).
+const GROUP := "fjord_vista"
+
 
 func _ready() -> void:
+	add_to_group(GROUP)
 	pen_manager = get_node_or_null(pen_manager_path) as FishPenManager
 	vista_camera = get_node_or_null(camera_path) as FjordCamera
 	game_ui = get_node_or_null(game_ui_path)
@@ -131,6 +136,16 @@ func _on_pen_clicked(pen_id: String, position: Vector3) -> void:
 	show_pen_detail(pen_id)
 	if vista_camera:
 		_fly_to(position)
+
+
+## A pen chosen in a UI list: select it in 3D without opening a tab or moving
+## the camera.
+func select_pen_from_ui(pen_id: String) -> void:
+	if pen_manager == null or not (pen_id in pen_manager.get_pen_ids()):
+		return
+	selected_pen_id = pen_id
+	if pen_manager.selected_pen_id != pen_id:
+		pen_manager.select_pen(pen_id)
 
 
 ## Eased fly-to-farm (no instant snaps). Falls back to the legacy instant
