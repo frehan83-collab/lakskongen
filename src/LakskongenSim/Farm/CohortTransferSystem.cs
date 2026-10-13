@@ -100,9 +100,12 @@ namespace LakskongenSim.Farm
         /// <c>payCost</c> (the engine ledger's PayCost) so it is booked as OpEx.
         /// </summary>
         public static TransferResult ExecuteTransfer(
-            TransferPlan plan, GameState state, Action<decimal> payCost, Random rng)
+            TransferPlan plan, GameState state, Action<decimal> payCost, Random rng,
+            GrowthModel growth, MortalityModel mortality)
         {
             ArgumentNullException.ThrowIfNull(payCost);
+            ArgumentNullException.ThrowIfNull(growth);
+            ArgumentNullException.ThrowIfNull(mortality);
             var sourceSite = state.SeaSites.FirstOrDefault(s => s.Id == plan.SourceSiteId);
             var destSite = state.SeaSites.FirstOrDefault(s => s.Id == plan.DestSiteId);
             if (sourceSite == null || destSite == null)
@@ -158,29 +161,41 @@ namespace LakskongenSim.Farm
                 var destPop = destSite.Pens.FirstOrDefault(p => p.ZoneId == destSite.ZoneId);
                 if (destPop == null)
                 {
-                    destPop = new FishPopulation { ZoneId = destSite.ZoneId };
+                    // A fresh pen gets the engine's shared models, like StockSmolts:
+                    // without them the next biology tick dereferenced null (F382).
+                    destPop = new FishPopulation
+                    {
+                        ZoneId = destSite.ZoneId,
+                        SiteId = destSite.Id,
+                        SeaLiceLoad = srcPop.SeaLiceLoad
+                    };
+                    destPop.InjectDependencies(growth, mortality);
                     destSite.Stock(destPop);
                     state.Populations.Add(destPop);
                 }
 
+                // Merge only into a cohort of the same stage, size, smolt quality
+                // tier and genome; anything else stays a separate cohort so the
+                // tier and breeding values survive the move (F386).
                 var existingCohort = destPop.Cohorts.FirstOrDefault(c =>
-                    c.Stage == srcCohort.Stage && Math.Abs(c.MeanWeightKg - srcCohort.MeanWeightKg) < 0.1);
+                    c.Stage == srcCohort.Stage
+                    && Math.Abs(c.MeanWeightKg - srcCohort.MeanWeightKg) < 0.1
+                    && c.Quality == srcCohort.Quality
+                    && ReferenceEquals(c.Genetics, srcCohort.Genetics));
                 if (existingCohort != null)
                 {
                     // Merge: weighted average weight
                     double totalW = existingCohort.Count * existingCohort.MeanWeightKg + arrived * srcCohort.MeanWeightKg;
                     existingCohort.Count += arrived;
                     existingCohort.MeanWeightKg = totalW / existingCohort.Count;
-                    // Merge genetics if both have it
-                    if (srcCohort.Genetics != null && existingCohort.Genetics != null)
-                    {
-                        // Simple average for now
-                    }
                 }
                 else
                 {
                     destPop.Cohorts.Add(new FishPopulation.Cohort(
-                        srcCohort.AgeDays, arrived, srcCohort.MeanWeightKg, srcCohort.Stage, srcCohort.Genetics));
+                        srcCohort.AgeDays, arrived, srcCohort.MeanWeightKg, srcCohort.Stage, srcCohort.Genetics)
+                    {
+                        Quality = srcCohort.Quality
+                    });
                 }
             }
 

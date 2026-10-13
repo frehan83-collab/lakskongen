@@ -2540,7 +2540,27 @@ private class BalancingConfig
                 else
                     site.ConsecutiveLiceBreaches = 0;
 
-                if (site.ConsecutiveLiceBreaches >= 2 && site.TreatmentOrderDueDay < 0)
+                if (site.TreatmentOrderDueDay >= 0 && site.LastLiceCount <= limit)
+                {
+                    // Back under the limit before the deadline: the order is
+                    // satisfied. Without this, a player who complied still got
+                    // a forced (paid, harmful) treatment at the deadline (F1133).
+                    site.TreatmentOrderDueDay = -1;
+                    site.ConsecutiveLiceBreaches = 0;
+                    State.EventLog.Add(new Events.EventRecord
+                    {
+                        Day = State.Day,
+                        Name = "Mattilsynet order closed",
+                        Category = Events.EventCategory.Regulation,
+                        Description = $"Mattilsynet: {site.Id} is back under the lice limit " +
+                            $"({site.LastLiceCount:F2} vs {limit:F1}); the treatment order is closed.",
+                        BalanceChange = 0m
+                    });
+                    State.TrimEventLog();
+                    OnEventTriggered?.Invoke(
+                        $"✅ Mattilsynet: {site.Id} under lusegrensen igjen ({site.LastLiceCount:F2} vs {limit:F1}) — pålegget er lukket.");
+                }
+                else if (site.ConsecutiveLiceBreaches >= 2 && site.TreatmentOrderDueDay < 0)
                 {
                     site.TreatmentOrderDueDay = State.Day + 14;
                     State.EventLog.Add(new Events.EventRecord

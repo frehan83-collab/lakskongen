@@ -125,7 +125,10 @@ public static class PlayerScriptProbe
                 // 0 counted the pre-save feed twice).
                 lastFeedUsed = engine.Feed.TotalFeedUsedKg;
                 lastGrowth = engine.Feed.TotalGrowthKg;
-                continue;
+                // No `continue`: the resumed engine is on the same day, so it takes
+                // the same harvest/termination check as the uninterrupted career.
+                // Skipping it ran a career that finished on the save day one
+                // extra chunk (15 days) and broke the exact-continuation check.
             }
 
             // ===== Harvest through the command surface, per site =====

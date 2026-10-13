@@ -209,7 +209,6 @@ namespace LakskongenSim.Demo
             var site = new SeaSite("SITE-001", "PO03")
             {
                 MABTonnes = 780,
-                CurrentStockingDensity = 18.0f,
                 PenVolume = 50000f,
                 NumberOfPens = 8
             };

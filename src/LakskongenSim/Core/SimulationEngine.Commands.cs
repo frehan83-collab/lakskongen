@@ -98,12 +98,23 @@ public partial class SimulationEngine
         if (State?.SeaSites == null || Hatchery == null || FinanceManager == null)
             return CommandResult.Fail("engine_not_ready", "Engine not initialized");
 
+        if (count <= 0)
+            return CommandResult.Fail("invalid_count", $"Smolt count must be positive (got {count})");
+
         var site = State.SeaSites.FirstOrDefault(s => s.Id == siteId);
         if (site == null)
             return CommandResult.Fail("site_not_found", $"Site '{siteId}' not found");
 
         var strain = SmoltStrainRegistry.Get(strainId);
         var quality = SmoltQualityRegistry.Get(qualityTier);
+
+        // MAB is a hard licence limit: refuse stocking that would put the
+        // site's live biomass over it, as cohort transfers already do (F1129).
+        double incomingTonnes = count * strain.ReleaseWeightKg / 1000.0;
+        if (site.CurrentBiomassTonnes + incomingTonnes > site.MABTonnes)
+            return CommandResult.Fail("mab_exceeded",
+                $"Stocking {count:N0} smolts ({incomingTonnes:F1} t) would put {siteId} over its MAB " +
+                $"({site.CurrentBiomassTonnes:F1} + {incomingTonnes:F1} > {site.MABTonnes:F0} t)");
         // Calibrated smolt price × strain premium (review F269: the old path
         // charged the hatchery rearing cost, ~54.75 NOK/fish vs 12 calibrated).
         decimal stockingCost = count * _balancing.SmoltCostPerFish * (decimal)strain.CostMultiplier;
@@ -250,9 +261,6 @@ public partial class SimulationEngine
             State.Populations.Remove(pop);
         }
         site.Pens.Clear();
-
-        // Reset site stocking density
-        site.CurrentStockingDensity = 0f;
 
         var message = $"Harvested {totalBiomassKg:N0} kg ({totalFishCount:N0} fish) at {siteId}";
 

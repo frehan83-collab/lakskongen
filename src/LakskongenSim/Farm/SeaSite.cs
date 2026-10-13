@@ -17,7 +17,9 @@ namespace LakskongenSim.Farm
 
         // License & MAB (Maximum Allowed Biomass)
         public double MABTonnes { get; set; } = 780.0; // Standard license: 780 tonnes
-        [JsonIgnore] public double CurrentBiomassTonnes => CurrentStockingDensity * PenVolume / 1000.0;
+        /// <summary>Live standing biomass of every pen (tonnes). Computed, never cached:
+        /// a stocking-time cache made MAB enforcement dead on the tick path (F1129).</summary>
+        [JsonIgnore] public double CurrentBiomassTonnes => Pens.Sum(p => p.GetTotalBiomassKg()) / 1000.0;
         [JsonIgnore] public bool IsOverMAB => CurrentBiomassTonnes > MABTonnes;
 
         // Sustainability integration properties
@@ -81,7 +83,10 @@ namespace LakskongenSim.Farm
         /// <summary>Carbon emissions/credits tracker for this site.</summary>
         public CarbonTracker CarbonTracker { get; set; } = new();
 
-        public float CurrentStockingDensity { get; set; } = 0f; // kg/m³
+        /// <summary>Live stocking density (kg/m³) from the pens' current biomass.</summary>
+        [JsonIgnore] public float CurrentStockingDensity => PenVolume > 0f
+            ? (float)(Pens.Sum(p => p.GetTotalBiomassKg()) / PenVolume)
+            : 0f;
         public float MaxAllowedDensity { get; set; } = 25.0f; // kg/m³ (Norwegian standard)
         public float PenVolume { get; set; } = 50000f; // m³ (default pen volume)
         public int NumberOfPens { get; set; } = 8; // Typical Norwegian site: 6-10 pens
@@ -132,7 +137,6 @@ namespace LakskongenSim.Farm
             pop.SiteId = Id;     // Direct site reference for O(1) lookup
             Pens.Add(pop);
             OnStocked?.Invoke(pop);
-            UpdateStockingDensity();
 
             // Check MAB limit
             if (IsOverMAB)
@@ -145,7 +149,6 @@ namespace LakskongenSim.Farm
         public void AdvanceDays(int days)
         {
             foreach (var p in Pens) p.AdvanceDays(days);
-            UpdateStockingDensity();
         }
 
         /// <summary>Record escape event for sustainability tracking.</summary>
@@ -161,18 +164,5 @@ namespace LakskongenSim.Farm
             EscapesThisYear = 0;
         }
 
-        /// <summary>Calculate current stocking density based on total biomass and pen volume.</summary>
-        private void UpdateStockingDensity()
-        {
-            double totalBiomassKg = 0.0;
-            foreach (var pen in Pens)
-            {
-                foreach (var cohort in pen.Cohorts)
-                {
-                    totalBiomassKg += cohort.Count * cohort.MeanWeightKg;
-                }
-            }
-            CurrentStockingDensity = (float)(totalBiomassKg / PenVolume);
-        }
     }
 }

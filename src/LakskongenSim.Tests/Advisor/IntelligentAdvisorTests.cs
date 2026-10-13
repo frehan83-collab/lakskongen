@@ -33,7 +33,6 @@ namespace LakskongenSim.Tests
             var site = new SeaSite("TEST-001", "PO03")
             {
                 MABTonnes = 780,
-                CurrentStockingDensity = (float)density,
                 PenVolume = 50000f
             };
 

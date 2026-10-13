@@ -1162,7 +1162,7 @@ public partial class GameBridge : Node
         var execResult = Farm.CohortTransferSystem.ExecuteTransfer(
             plan, engine.State,
             cost => engine.PayCost(cost, LakskongenSim.Core.CostBooking.Opex, "transfers"),
-            new Random(transferRngSeed));
+            new Random(transferRngSeed), engine.Growth, engine.Mortality);
 
         result["success"] = execResult.Success;
         result["fish_transferred"] = execResult.FishTransferred;

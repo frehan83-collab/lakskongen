@@ -97,6 +97,13 @@ namespace LakskongenSim.Core;
         {
             double temperature = engine.Weather.CurrentTemperatureC;
             var biologyStopwatch = Stopwatch.StartNew();
+
+            // Zone load is rebuilt from the pens every day: summed over all of a
+            // zone's populations, and zero once they are harvested (F054 — it
+            // used to hold only the last pen, and kept a phantom load after harvest).
+            for (int zi = 0; zi < engine.State.Zones.Count; zi++)
+                engine.State.Zones[zi].CurrentFishBiomassKg = 0.0;
+
             for (int popIdx = 0; popIdx < engine.State.Populations.Count; popIdx++)
             {
                 var population = engine.State.Populations[popIdx];
@@ -112,7 +119,7 @@ namespace LakskongenSim.Core;
 
                 if (zone != null)
                 {
-                    zone.CurrentFishBiomassKg = biomassKg;
+                    zone.CurrentFishBiomassKg += biomassKg;
                 }
 
                 // Calculate combined environmental multiplier (DO saturation × stocking density)

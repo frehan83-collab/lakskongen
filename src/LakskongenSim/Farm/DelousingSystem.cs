@@ -215,9 +215,9 @@ namespace LakskongenSim.Farm
                     var cohort = pop.Cohorts[i];
                     int take = Math.Min(remaining, (int)(cohort.Count * actualMortalityRate));
                     remaining -= take;
-                    pop.Cohorts[i] = new Biology.FishPopulation.Cohort(
-                        cohort.AgeDays, cohort.Count - take, cohort.MeanWeightKg, cohort.Stage,
-                        cohort.Genetics);
+                    // In place: rebuilding the cohort reset its smolt quality tier
+                    // to Standard (F386).
+                    cohort.Count -= take;
                 }
                 pop.Cohorts.RemoveAll(c => c.Count <= 0);
             }
