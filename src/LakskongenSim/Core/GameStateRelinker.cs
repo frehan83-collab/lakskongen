@@ -62,6 +62,36 @@ namespace LakskongenSim.Core
                     }
                 }
             }
+
+            // Facility tanks and pens hold the same instances as Populations too.
+            foreach (var ras in state.RASFacilities ?? new List<Farm.RASFacility>())
+                RelinkFacility(ras.Tanks, ras.Id, state, byId);
+            foreach (var farm in state.OffshoreFarms ?? new List<Farm.OffshoreFarm>())
+                RelinkFacility(farm.Pens, farm.Id, state, byId);
+        }
+
+        private static void RelinkFacility(List<Biology.FishPopulation>? pens, string facilityId,
+            GameState state, Dictionary<string, Biology.FishPopulation> byId)
+        {
+            if (pens == null) return;
+            for (int i = 0; i < pens.Count; i++)
+            {
+                var pen = pens[i];
+                if (pen == null) continue;
+                if (!string.IsNullOrEmpty(pen.Id) && byId.TryGetValue(pen.Id, out var canonical))
+                {
+                    pens[i] = canonical;
+                    canonical.SiteId = facilityId;
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(pen.Id))
+                        byId[pen.Id] = pen;
+                    pen.SiteId = facilityId;
+                    if (!state.Populations.Contains(pen))
+                        state.Populations.Add(pen);
+                }
+            }
         }
     }
 }

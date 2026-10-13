@@ -46,6 +46,16 @@ func start_new_game(player_name: String = "Player", starting_capital: int = 10_0
 	return true
 
 
+## QA-only: deterministic new game (fixed seed) for headless runs.
+func start_qa_new_game(player_name: String, starting_capital: int, seed: int) -> bool:
+	if not game_bridge or not game_bridge.has_method("StartQaNewGame"):
+		push_error("SimBridge: StartQaNewGame unavailable")
+		return false
+	game_bridge.StartQaNewGame(player_name, starting_capital, seed)
+	if state != null:
+		state._refresh_state()
+	return true
+
 ## QA-only: deterministic scenario start (fixed seed) for screenshot/headless
 ## runs. Falls back to the unseeded path when the QA bridge is unavailable.
 func start_qa_scenario(scenario_id: String, seed: int) -> bool:

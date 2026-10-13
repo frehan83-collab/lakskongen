@@ -1502,10 +1502,57 @@ public partial class GameBridge : Node
                 ["current_water_temp"] = facility.CurrentWaterTemp,
                 ["oxygen_level"] = facility.OxygenLevel,
                 ["water_ph"] = facility.WaterPH,
-                ["co2_level"] = facility.CO2Level
+                ["co2_level"] = facility.CO2Level,
+                ["operational"] = facility.IsOperational,
+                ["construction_progress"] = facility.ConstructionProgress,
+                ["needs_maintenance"] = facility.NeedsMaintenance,
+                ["fish_count"] = facility.Tanks.Sum(p => p.TotalCount),
+                ["biomass_tonnes"] = facility.GetTotalBiomassKg() / 1000.0,
+                ["mean_weight_kg"] = MeanWeightKg(facility.Tanks)
             });
         }
         return result;
+    }
+
+    /// <summary>Stock smolts in a RAS facility's tanks (engine verb). {success, message, error, value, value2, id}.</summary>
+    public Godot.Collections.Dictionary StockRASFacility(string facilityId, int count, string strainId = "standard")
+        => FacilityResult(SimulationEngine?.StockRASFacility(facilityId, count, strainId));
+
+    /// <summary>Harvest and sell every tank of a RAS facility. value = kg, value2 = NOK.</summary>
+    public Godot.Collections.Dictionary HarvestRASFacility(string facilityId)
+        => FacilityResult(SimulationEngine?.HarvestRASFacility(facilityId));
+
+    /// <summary>Stock smolts in an offshore farm (engine verb).</summary>
+    public Godot.Collections.Dictionary StockOffshoreFarm(string farmId, int count, string strainId = "standard")
+        => FacilityResult(SimulationEngine?.StockOffshoreFarm(farmId, count, strainId));
+
+    /// <summary>Harvest and sell every pen of an offshore farm. value = kg, value2 = NOK.</summary>
+    public Godot.Collections.Dictionary HarvestOffshoreFarm(string farmId)
+        => FacilityResult(SimulationEngine?.HarvestOffshoreFarm(farmId));
+
+    private Godot.Collections.Dictionary FacilityResult(LakskongenSim.Core.CommandResult? result)
+    {
+        if (result == null)
+            return new Godot.Collections.Dictionary { ["success"] = false, ["error"] = "engine_not_ready", ["message"] = "Engine not initialized" };
+        if (result.Ok)
+            EmitSignal(SignalName.GameStateUpdated);
+        else
+            GD.Print($"GameBridge: facility command refused - {result.ErrorKey}: {result.Message}");
+        return new Godot.Collections.Dictionary
+        {
+            ["success"] = result.Ok,
+            ["error"] = result.ErrorKey,
+            ["message"] = result.Message,
+            ["value"] = result.Value,
+            ["value2"] = result.Value2,
+            ["id"] = result.Id,
+        };
+    }
+
+    private static double MeanWeightKg(System.Collections.Generic.List<LakskongenSim.Biology.FishPopulation> pens)
+    {
+        int fish = pens.Sum(p => p.TotalCount);
+        return fish > 0 ? pens.Sum(p => p.GetTotalBiomassKg()) / fish : 0.0;
     }
 
     /// <summary>
@@ -1620,7 +1667,13 @@ public partial class GameBridge : Node
                 ["pen_count"] = farm.PenCount,
                 ["sea_lice_pressure"] = farm.SeaLicePressure,
                 ["water_flow_rate"] = farm.WaterFlowRate,
-                ["fcr"] = farm.FCR
+                ["fcr"] = farm.FCR,
+                ["operational"] = farm.IsOperational,
+                ["construction_progress"] = farm.ConstructionProgress,
+                ["storm_lockdown"] = farm.IsStormLockdown,
+                ["fish_count"] = farm.Pens.Sum(p => p.TotalCount),
+                ["biomass_tonnes"] = farm.Pens.Sum(p => p.GetTotalBiomassKg()) / 1000.0,
+                ["mean_weight_kg"] = MeanWeightKg(farm.Pens)
             });
         }
         return result;

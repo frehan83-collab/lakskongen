@@ -158,8 +158,7 @@ namespace LakskongenSim.Farm
             {
                 Id = id,
                 Count = count,
-                AverageWeightG = startWeightG,
-                StartDate = DateTime.Now
+                AverageWeightG = startWeightG
             };
             Batches.Add(batch);
             return batch;
@@ -215,7 +214,8 @@ namespace LakskongenSim.Farm
         public double TotalFeedConsumedKg { get; set; } = 0;
         public bool VaccinationComplete { get; set; } = false;
         public bool IsReadyForTransfer { get; set; } = false;
-        public DateTime StartDate { get; set; }
+        /// <summary>Sim day the batch started (was a wall-clock DateTime.Now stamp).</summary>
+        public int StartDay { get; set; }
     }
 
     public class PostSmoltTickResult

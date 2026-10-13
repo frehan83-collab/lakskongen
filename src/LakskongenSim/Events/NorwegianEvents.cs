@@ -50,6 +50,10 @@ namespace LakskongenSim.Events
             }
         }
 
+        /// <summary>The first population that sits in a sea site's pens (null when none).</summary>
+        internal static Biology.FishPopulation? FirstSeaPen(GameState gs)
+            => gs.Populations.FirstOrDefault(p => gs.SeaSites.Any(s => s.Pens.Contains(p)));
+
         // ═══════════════════════════════════════════════════════════
         // DISEASE EVENTS (10 events)
         // ═══════════════════════════════════════════════════════════
@@ -64,19 +68,18 @@ namespace LakskongenSim.Events
                 Weight = 0.8,
                 CooldownDays = 180,
                 MinDay = 365, // Not in first year
-                Condition = gs => gs.Populations.Any(),
+                // ISA is a sea-pen disease: land-based RAS tanks are biosecure. The
+                // cull used to take whatever population came first, which wiped a
+                // RAS facility's whole stock.
+                Condition = gs => FirstSeaPen(gs) != null,
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "Infectious Salmon Anemia detected. Mandatory culling and 2-year fallow period for affected zone.";
                     rec.BalanceChange = -2_500_000m; // Catastrophic
                     SettleBalanceChange(finance, gs, rec);
-                    
-                    // Cull all populations in the first zone (or random zone if multiple)
-                    if (gs.Populations.Any())
-                    {
-                        var firstPop = gs.Populations.First();
-                        firstPop.Cohorts.Clear();
-                    }
+
+                    // Cull the first sea pen
+                    FirstSeaPen(gs)?.Cohorts.Clear();
                     
                     // Set first zone to fallow (reduce capacity to effectively disable it)
                     if (gs.Zones.Any())

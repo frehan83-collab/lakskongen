@@ -108,7 +108,10 @@ func _update_farm_list():
 	if farm_list_container == null:
 		return
 	# Clear existing list items
+	# Detach before freeing: a queued node keeps its name until the frame
+	# ends, so the rebuilt rows would be renamed.
 	for child in farm_list_container.get_children():
+		farm_list_container.remove_child(child)
 		child.queue_free()
 
 	var farms: Array = _get_farms()
@@ -122,14 +125,52 @@ func _update_farm_list():
 		return
 
 	for farm in farms:
+		var row := HBoxContainer.new()
+		row.name = "Farm_%s" % str(farm.get("id", ""))
 		var farm_label = Label.new()
-		var status := "Aktiv" if farm.get("operational", true) else "Inaktiv"
+		var operational := bool(farm.get("operational", false))
+		var status := "Aktiv" if operational else "Under bygging %d%%" % int(round(float(farm.get("construction_progress", 0.0)) * 100.0))
 		var lockdown := " (stormsikret)" if farm.get("storm_lockdown", false) else ""
-		farm_label.text = "%s (%s)%s" % [farm.get("name", "Offshore-anlegg"), status, lockdown]
+		var fish := int(farm.get("fish_count", 0))
+		var stock := " — %d fisk, %.2f kg" % [fish, float(farm.get("mean_weight_kg", 0.0))] if fish > 0 else ""
+		farm_label.text = "%s (%s)%s%s" % [farm.get("name", "Offshore-anlegg"), status, lockdown, stock]
+		farm_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if _theme:
 			farm_label.add_theme_font_size_override("font_size", _theme.FONT_SMALL)
 			farm_label.add_theme_color_override("font_color", _theme.TEXT_SECONDARY)
-		farm_list_container.add_child(farm_label)
+		row.add_child(farm_label)
+		# F383: an offshore farm now holds fish — stock smolts, harvest when grown.
+		var stock_btn := Button.new()
+		stock_btn.name = "StockButton"
+		stock_btn.text = "Sett ut %d smolt" % OFFSHORE_STOCK_BATCH
+		stock_btn.disabled = not operational
+		stock_btn.pressed.connect(_on_stock_farm_pressed.bind(str(farm.get("id", ""))))
+		row.add_child(stock_btn)
+		var harvest_btn := Button.new()
+		harvest_btn.name = "HarvestButton"
+		harvest_btn.text = "Høst"
+		harvest_btn.disabled = fish <= 0
+		harvest_btn.pressed.connect(_on_harvest_farm_pressed.bind(str(farm.get("id", ""))))
+		row.add_child(harvest_btn)
+		farm_list_container.add_child(row)
+
+## Smolts per "Sett ut" press.
+const OFFSHORE_STOCK_BATCH := 200000
+
+func _on_stock_farm_pressed(farm_id: String) -> void:
+	if _sim != null and _sim.has_method("stock_offshore_farm"):
+		_report_farm(_sim.stock_offshore_farm(farm_id, OFFSHORE_STOCK_BATCH))
+	refresh()
+
+func _on_harvest_farm_pressed(farm_id: String) -> void:
+	if _sim != null and _sim.has_method("harvest_offshore_farm"):
+		_report_farm(_sim.harvest_offshore_farm(farm_id))
+	refresh()
+
+func _report_farm(result: Dictionary) -> void:
+	var mgr := get_node_or_null("/root/ToastNotification")
+	if mgr and mgr.has_method("show_toast"):
+		mgr.show_toast(str(result.get("message", "")), "SUCCESS" if result.get("success", false) else "WARNING", 4.0)
 
 func _update_weather_waves():
 	if weather_waves_label == null:

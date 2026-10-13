@@ -48,7 +48,6 @@ src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: asse
 src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: if (asset != null && asset.ConstructionCompleted <= DateTime.Now)
 src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: return adjacentTiers.Any(adjTier => _ownedAssets.Any(a => a.Tier == adjTier && a.ConstructionCompleted <= DateTime.Now));
 
-src/LakskongenSim/Farm/PostSmoltFacility.cs :: DateTime.Now :: StartDate = DateTime.Now
 src/LakskongenSim/Finance/EmpireProgression.cs :: DateTime.Now :: milestone.UnlockedAt = DateTime.Now;
 src/LakskongenSim/Finance/MarketCycleSimulator.cs :: DateTime.Now :: int futureMonth = (DateTime.Now.Month + m - 1) % 12 + 1;
 src/LakskongenSim/Finance/StockMarket.cs :: DateTime.Now :: PriceHistory.Add(new StockPriceEvent { OldPrice = price, NewPrice = price, Reason = "Save restore", Timestamp = DateTime.Now });

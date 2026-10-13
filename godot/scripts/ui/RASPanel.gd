@@ -75,7 +75,10 @@ func _update_facility_list():
 	if facility_list_container == null:
 		return
 	# Clear existing list items
+	# Detach before freeing: a queued node keeps its name until the frame
+	# ends, so the rebuilt rows would be renamed.
 	for child in facility_list_container.get_children():
+		facility_list_container.remove_child(child)
 		child.queue_free()
 
 	var facilities: Array = _get_facilities()
@@ -89,14 +92,34 @@ func _update_facility_list():
 		return
 
 	for f in facilities:
+		var row := HBoxContainer.new()
+		row.name = "Facility_%s" % str(f.get("id", ""))
 		var facility_label = Label.new()
-		var status := "Aktiv" if f.get("operational", true) else "Inaktiv"
+		var operational := bool(f.get("operational", false))
+		var status := "Aktiv" if operational else "Under bygging %d%%" % int(round(float(f.get("construction_progress", 0.0)) * 100.0))
 		var maint := " (trenger vedlikehold)" if f.get("needs_maintenance", false) else ""
-		facility_label.text = "%s (%s)%s" % [f.get("name", "RAS-anlegg"), status, maint]
+		var fish := int(f.get("fish_count", 0))
+		var stock := " — %s fisk, %.2f kg" % [_fmt_count(fish), float(f.get("mean_weight_kg", 0.0))] if fish > 0 else ""
+		facility_label.text = "%s (%s)%s%s" % [f.get("name", "RAS-anlegg"), status, maint, stock]
+		facility_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if _theme:
 			facility_label.add_theme_font_size_override("font_size", _theme.FONT_SMALL)
 			facility_label.add_theme_color_override("font_color", _theme.TEXT_SECONDARY)
-		facility_list_container.add_child(facility_label)
+		row.add_child(facility_label)
+		# F383: a facility now holds fish — stock smolts, harvest when grown.
+		var stock_btn := Button.new()
+		stock_btn.name = "StockButton"
+		stock_btn.text = "Sett ut %s smolt" % _fmt_count(STOCK_BATCH)
+		stock_btn.disabled = not operational
+		stock_btn.pressed.connect(_on_stock_pressed.bind(str(f.get("id", ""))))
+		row.add_child(stock_btn)
+		var harvest_btn := Button.new()
+		harvest_btn.name = "HarvestButton"
+		harvest_btn.text = "Høst"
+		harvest_btn.disabled = fish <= 0
+		harvest_btn.pressed.connect(_on_harvest_pressed.bind(str(f.get("id", ""))))
+		row.add_child(harvest_btn)
+		facility_list_container.add_child(row)
 
 func _update_water_chemistry():
 	if water_chemistry_label == null:
@@ -112,6 +135,32 @@ func _update_water_chemistry():
 	var temp := float(f.get("current_water_temp", f.get("water_temp", 12.0)))
 	var o2 := float(f.get("oxygen_level", f.get("oxygen", 8.0)))
 	water_chemistry_label.text = "Vannkjemi: pH %.1f, Temp %.1f°C, O2 %.1f mg/L" % [ph, temp, o2]
+
+## Smolts per "Sett ut" press (well under a small facility's tank capacity).
+const STOCK_BATCH := 100_000
+
+func _on_stock_pressed(facility_id: String) -> void:
+	if _sim != null and _sim.has_method("stock_ras_facility"):
+		_report(_sim.stock_ras_facility(facility_id, STOCK_BATCH))
+	refresh()
+
+func _on_harvest_pressed(facility_id: String) -> void:
+	if _sim != null and _sim.has_method("harvest_ras_facility"):
+		_report(_sim.harvest_ras_facility(facility_id))
+	refresh()
+
+func _report(result: Dictionary) -> void:
+	var mgr := get_node_or_null("/root/ToastNotification")
+	if mgr and mgr.has_method("show_toast"):
+		mgr.show_toast(str(result.get("message", "")), "SUCCESS" if result.get("success", false) else "WARNING", 4.0)
+
+func _fmt_count(n: int) -> String:
+	var s := str(n)
+	var out := ""
+	while s.length() > 3:
+		out = " " + s.substr(s.length() - 3) + out
+		s = s.substr(0, s.length() - 3)
+	return s + out
 
 func _on_build_new_pressed():
 	if _sim != null and _sim.has_method("build_ras_facility"):

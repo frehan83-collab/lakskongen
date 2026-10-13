@@ -104,10 +104,23 @@ namespace LakskongenSim.Core;
             for (int zi = 0; zi < engine.State.Zones.Count; zi++)
                 engine.State.Zones[zi].CurrentFishBiomassKg = 0.0;
 
+            // RAS tanks grow in the facility's controlled water, not the sea's
+            // (built only when a facility holds fish: no per-tick allocation otherwise).
+            Dictionary<FishPopulation, double>? rasWater = null;
+            foreach (var ras in engine.RASFacilities)
+                foreach (var tank in ras.Tanks)
+                {
+                    rasWater ??= new Dictionary<FishPopulation, double>(ReferenceEqualityComparer.Instance);
+                    rasWater[tank] = ras.CurrentWaterTemp;
+                }
+
             for (int popIdx = 0; popIdx < engine.State.Populations.Count; popIdx++)
             {
                 var population = engine.State.Populations[popIdx];
                 var zone = engine.State.Zones.FirstOrDefault(z => z.Id == population.ZoneId);
+                double waterTemperature = rasWater != null && rasWater.TryGetValue(population, out var tankTemp)
+                    ? tankTemp
+                    : temperature;
 
                 // Manual biomass sum — avoids LINQ delegate allocation (T56)
                 double biomassKg = 0.0;
@@ -168,7 +181,7 @@ namespace LakskongenSim.Core;
                     // Use SDE model for more realistic growth with environmental modifiers
                     double newCalculatedWeight = engine.Growth.ApplySDEGrowthOneDay(
                         cohort.MeanWeightKg,
-                        temperature,
+                        waterTemperature,
                         SimulationEngine.SdeTargetWeightKg,
                         SimulationEngine.SdeGeneticGrowthRateAlphaMax * (1.0 + engine.GrowthRateBonus), // calibrating: SDE-only growth with research bonus
                         SimulationEngine.SdeIndividualVarianceSigma, // kept small vs deterministic growth
@@ -211,7 +224,7 @@ namespace LakskongenSim.Core;
                 };
                 if (engine.AIFeeding != null && engine.AIFeeding.IsInstalled)
                     spreadQuality = Math.Min(1.0, spreadQuality + 0.1);
-                var feedResult = engine.Feed.Feed(population, 1, temperature, densityForO2, waterPenalty, spreadQuality,
+                var feedResult = engine.Feed.Feed(population, 1, waterTemperature, densityForO2, waterPenalty, spreadQuality,
                     engine.FCRReduction, engine.FeedWasteReduction, actualGrowthKg: grownKg);
 
                 if (zone != null && feedResult.FeedUsedKg > 0)

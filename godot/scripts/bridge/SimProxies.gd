@@ -276,6 +276,16 @@ func build_ras_facility(rname: String, scale: String) -> bool:
 	push_warning("SimProxies: BuildRASFacility unavailable — build refused")
 	return false
 
+## Stock / harvest facility fish (F383) — engine verbs; {success, message, error, value, value2, id}.
+func stock_ras_facility(facility_id: String, count: int, strain_id: String = "standard") -> Dictionary:
+	return game_bridge.StockRASFacility(facility_id, count, strain_id) if game_bridge else {"success": false, "message": "Not initialized"}
+func harvest_ras_facility(facility_id: String) -> Dictionary:
+	return game_bridge.HarvestRASFacility(facility_id) if game_bridge else {"success": false, "message": "Not initialized"}
+func stock_offshore_farm(farm_id: String, count: int, strain_id: String = "standard") -> Dictionary:
+	return game_bridge.StockOffshoreFarm(farm_id, count, strain_id) if game_bridge else {"success": false, "message": "Not initialized"}
+func harvest_offshore_farm(farm_id: String) -> Dictionary:
+	return game_bridge.HarvestOffshoreFarm(farm_id) if game_bridge else {"success": false, "message": "Not initialized"}
+
 ## Perform maintenance on RAS facility, returns cost
 func ras_maintenance(facility_id: String) -> float:
 	if game_bridge and game_bridge.has_method("PerformRASMaintenance"):

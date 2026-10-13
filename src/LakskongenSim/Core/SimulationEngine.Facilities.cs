@@ -95,13 +95,16 @@ public partial class SimulationEngine
             value: (double)facility.CAPEX, id: facility.Id);
     }
 
-    /// <summary>CAPEX leaves cash and is booked as a balance-sheet asset (not a P&amp;L cost).</summary>
+    /// <summary>
+    /// CAPEX leaves cash through the ledger and is booked as a balance-sheet
+    /// asset (not a P&amp;L cost). It used to Spend directly, so the daily
+    /// reconciliation booked every facility build as unclassified cash.
+    /// </summary>
     private CommandResult PayForFacility(decimal capex, string name)
     {
-        if (!FinanceManager.Spend(capex))
+        if (!TryPayCost(capex, CostBooking.Capex, "facilities"))
             return CommandResult.Fail("insufficient_funds",
                 $"Insufficient funds: need {capex:N0} NOK to build '{name}'", (double)capex);
-        FinancialStatements?.AddAsset(capex);
         return CommandResult.Success();
     }
 

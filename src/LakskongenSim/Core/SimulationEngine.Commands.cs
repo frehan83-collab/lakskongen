@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using LakskongenSim.Biology;
 using LakskongenSim.Data;
@@ -190,9 +191,20 @@ public partial class SimulationEngine
         // Harvest ONLY this site's pens (site.Pens identity). Populations
         // carry ZoneId (shared by every site in a zone), so filtering
         // State.Populations by zone would wipe neighbouring sites too.
+        return HarvestPopulations(site.Pens, siteId, siteId, "site_empty", $"Site '{siteId}' is empty", seaFarmed: true);
+    }
+
+    /// <summary>
+    /// Harvest and sell every population in <paramref name="pens"/> (a sea
+    /// site's pens or a facility's tanks/pens), remove them from the game and
+    /// log the harvest. Value = kg, Value2 = NOK revenue, Id = <paramref name="id"/>.
+    /// </summary>
+    private CommandResult HarvestPopulations(List<FishPopulation> pens, string id, string label,
+        string emptyKey, string emptyMessage, bool seaFarmed)
+    {
         double totalBiomassKg = 0.0;
         int totalFishCount = 0;
-        var populations = site.Pens.ToList();
+        var populations = pens.ToList();
 
         foreach (var pop in populations)
         {
@@ -205,8 +217,40 @@ public partial class SimulationEngine
         }
 
         if (totalBiomassKg < 0.1)
-            return CommandResult.Fail("site_empty", $"Site '{siteId}' is empty");
+            return CommandResult.Fail(emptyKey, emptyMessage);
 
+        decimal revenue = SellHarvest(totalBiomassKg, seaFarmed);
+
+        // Remove exactly the harvested populations
+        foreach (var pop in populations)
+        {
+            pop.Cohorts.Clear();
+            State.Populations.Remove(pop);
+        }
+        pens.Clear();
+
+        var message = $"Harvested {totalBiomassKg:N0} kg ({totalFishCount:N0} fish) at {label}";
+
+        State.EventLog.Add(new EventRecord
+        {
+            Day = State.Day,
+            Name = "Harvest",
+            Category = EventCategory.Market,
+            Description = $"{message} for {revenue:N0} NOK",
+            BalanceChange = revenue
+        });
+
+        return CommandResult.Success(message, totalBiomassKg, (double)revenue, id);
+    }
+
+    /// <summary>
+    /// Sell a harvest: oldest contracts first at their locked prices, the rest
+    /// at spot, the VAP premium when a processing plant is owned. Books the
+    /// income and the sale, adds sea-farmed volume to the resource-rent base
+    /// (land-based RAS is outside the sea-farming rent tax) and moves the market.
+    /// </summary>
+    private decimal SellHarvest(double totalBiomassKg, bool seaFarmed)
+    {
         // Calculate revenue: oldest contracts first at locked prices, remainder
         // at spot. The spot price already carries the certification multiplier
         // (MarketSimulation) and contract prices were offered from it, so no
@@ -248,32 +292,13 @@ public partial class SimulationEngine
 
         ReceiveIncome(revenue, "harvest");
         State.TotalSalesRevenueNok += revenue;
-        RecordHarvestForResourceRent(totalBiomassKg);
+        if (seaFarmed)
+            RecordHarvestForResourceRent(totalBiomassKg);
 
         // P15: player-supply market impact — the harvested tonnage moves the
         // market (accumulates downward price pressure, decays over days).
         MarketSimulation?.ApplyPlayerHarvest(totalBiomassKg / 1000.0);
-
-        // Remove exactly the harvested populations (this site only)
-        foreach (var pop in populations)
-        {
-            pop.Cohorts.Clear();
-            State.Populations.Remove(pop);
-        }
-        site.Pens.Clear();
-
-        var message = $"Harvested {totalBiomassKg:N0} kg ({totalFishCount:N0} fish) at {siteId}";
-
-        State.EventLog.Add(new EventRecord
-        {
-            Day = State.Day,
-            Name = "Harvest",
-            Category = EventCategory.Market,
-            Description = $"{message} for {revenue:N0} NOK",
-            BalanceChange = revenue
-        });
-
-        return CommandResult.Success(message, totalBiomassKg, (double)revenue, siteId);
+        return revenue;
     }
 
     // ── Finance ────────────────────────────────────────────────────────────

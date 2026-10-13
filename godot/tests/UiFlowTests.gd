@@ -42,6 +42,7 @@ func _run() -> void:
 	await _test_dashboard_night_shift_policy()
 	await _test_tech_tree_lays_out_every_node()
 	await _test_goal_hud_shows_engine_progress()
+	await _test_ras_panel_stocks_and_harvests()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -261,6 +262,48 @@ func _test_goal_hud_shows_engine_progress() -> void:
 	_check(time_label != null and "2.8 år igjen" in time_label.text,
 		"goal HUD: time left counts from the scenario start (%s)" % (time_label.text if time_label else "missing"))
 	hud.queue_free()
+	await get_tree().process_frame
+
+## F383: a RAS facility holds fish — the panel's buttons stock it once it is
+## operational and harvest it, through the engine verbs.
+func _test_ras_panel_stocks_and_harvests() -> void:
+	# Seeded: storyteller events (e.g. an ISA cull) must not decide the outcome.
+	_check(_sim.start_qa_new_game("Player", 2_000_000_000, 4242), "ras: seeded game starts")
+	_sim.set_paused(true)
+	_check(_sim.build_ras_facility("UI RAS", "small"), "ras: a small facility can be built")
+	var panel: Control = (load("res://scenes/ui/RASPanel.tscn") as PackedScene).instantiate()
+	add_child(panel)
+	await get_tree().process_frame
+	panel.refresh()
+	await get_tree().process_frame
+	var facility: Dictionary = _sim.get_ras_facilities()[0]
+	var row: Node = panel.find_child("Facility_%s" % facility["id"], true, false)
+	_check(row != null, "ras: the facility has a row")
+	if row == null:
+		panel.queue_free()
+		return
+	_check(row.get_node("StockButton").disabled, "ras: stocking is disabled under construction")
+	_sim.advance_days(735)
+	panel.refresh()
+	await get_tree().process_frame
+	row = panel.find_child("Facility_%s" % facility["id"], true, false)
+	var stock_btn: Button = row.get_node("StockButton")
+	_check(not stock_btn.disabled, "ras: stocking is enabled once operational")
+	stock_btn.pressed.emit()
+	await get_tree().process_frame
+	_check(int(_sim.get_ras_facilities()[0].get("fish_count", 0)) == 100000,
+		"ras: 'Sett ut' stocks 100 000 smolts (%s)" % str(_sim.get_ras_facilities()[0].get("fish_count")))
+	_sim.advance_days(300)
+	panel.refresh()
+	await get_tree().process_frame
+	row = panel.find_child("Facility_%s" % facility["id"], true, false)
+	_check(int(_sim.get_ras_facilities()[0].get("fish_count", 0)) > 0, "ras: the tanks hold fish before the harvest")
+	var cash_before: float = float(_sim.balance)
+	(row.get_node("HarvestButton") as Button).pressed.emit()
+	await get_tree().process_frame
+	_check(int(_sim.get_ras_facilities()[0].get("fish_count", -1)) == 0, "ras: 'Høst' empties the tanks")
+	_check(float(_sim.balance) > cash_before, "ras: the harvest is sold")
+	panel.queue_free()
 	await get_tree().process_frame
 
 ## F945: Phase 5.3–5.4 proxies are reachable through the SimBridge facade.
