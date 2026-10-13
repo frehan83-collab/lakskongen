@@ -5,19 +5,22 @@ import argparse
 import sys
 from pathlib import Path
 
-from .config import SHOT_NAMES
+from .config import SHOT_NAMES, THRESHOLD
 from .phash import (
     compute_phash,
     get_shot_paths,
     load_manifest,
     phash_distance,
 )
+from .verdict import problems, resolve_threshold, shot_status
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Diff current screenshots against baseline")
-    parser.add_argument("--threshold", type=int, help="Phash distance threshold (default 8)")
-    parser.add_argument("--fail-on-diff", action="store_true", help="Exit 1 if any shot exceeds threshold")
+    parser.add_argument("--threshold", type=int,
+                        help=f"Phash distance threshold (default: the manifest's, else {THRESHOLD})")
+    parser.add_argument("--fail-on-diff", action="store_true",
+                        help="Exit 1 if any shot exceeds the threshold or is missing")
     parser.add_argument("--json", action="store_true", help="Output JSON summary")
     args = parser.parse_args(argv)
 
@@ -26,12 +29,11 @@ def main(argv: list[str] | None = None) -> int:
         print("[diff] ERROR: No baseline manifest found. Run capture first.", file=sys.stderr)
         return 1
 
-    threshold = args.threshold or manifest.get("threshold", 8)
+    threshold = resolve_threshold(args.threshold, manifest, THRESHOLD)
     shots = manifest.get("shots", {})
 
     print(f"[diff] Comparing {len(SHOT_NAMES)} shots against baseline (threshold={threshold})")
 
-    failures = []
     results = []
 
     for shot in SHOT_NAMES:
@@ -50,18 +52,17 @@ def main(argv: list[str] | None = None) -> int:
             current_hash = compute_phash(current_path)
             baseline_hash = shots[shot]["phash"]
             dist = phash_distance(current_hash, baseline_hash)
-            status = "FAIL" if dist > threshold else "PASS"
-            if status == "FAIL":
-                failures.append((shot, dist))
+            status = shot_status(dist, threshold)
 
         mark = "✗" if status == "FAIL" else "✓" if status == "PASS" else "?"
         print(f"  {shot:30s} dist={dist:3d}  {mark}  {status}")
         results.append({"shot": shot, "distance": dist, "status": status})
 
+    failures = problems(results)
     if failures:
-        print(f"\n[diff] {len(failures)}/{len(SHOT_NAMES)} shots exceeded threshold:")
-        for shot, dist in failures:
-            print(f"  {shot}: distance {dist}")
+        print(f"\n[diff] {len(failures)}/{len(SHOT_NAMES)} shots failed (over the threshold or missing):")
+        for r in failures:
+            print(f"  {r['shot']}: {r['status']} (distance {r['distance']})")
     else:
         print(f"\n[diff] All {len(SHOT_NAMES)} shots within threshold ✓")
 

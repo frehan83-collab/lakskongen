@@ -96,17 +96,19 @@ python -m visual_qa.capture
 ### 2. diff — Compare current vs baseline (phash distance)
 
 ```bash
-python -m visual_qa.diff [--threshold 8] [--fail-on-diff]
+python -m visual_qa.diff [--threshold N] [--fail-on-diff]
 ```
 
 **What it does:**
 1. Loads `baseline/manifest.json`
 2. For each shot in manifest, loads current from `game/` and baseline from `baseline/`
 3. Computes phash distance (Hamming distance of 64-bit hash)
-4. Reports PASS/FAIL per shot; overall FAIL if any distance > threshold
-5. Exit code 1 on failure (for CI gating)
+4. Reports PASS/FAIL per shot; overall FAIL if any distance > threshold or
+   any shot is missing (an empty capture fails, review F1110)
+5. With `--fail-on-diff`, exit code 1 on failure (for CI gating)
 
-**Threshold:** Default 8 (≈ 12.5% bit difference). Lower = stricter.
+**Threshold:** `--threshold` when given (0 included), else the manifest's,
+else `config.THRESHOLD` (25, the calibrated noise floor). Lower = stricter.
 
 **Output example:**
 ```
@@ -268,9 +270,12 @@ jobs:
 ## Local Usage
 
 ```bash
-# Full cycle: capture → diff → (if happy) baseline-update
+# Diff the new shots against the committed baseline. Do NOT run
+# visual_qa.capture first: it copies the new shots over baseline/ and
+# rewrites the manifest, so the diff then compares the shots with
+# themselves (every distance 0). The PR workflow restores main's baseline
+# between the two steps for this reason.
 tools/capture_screenshots.sh
-python -m visual_qa.capture
 python -m visual_qa.diff
 
 # If diffs are expected (intentional changes):
@@ -287,7 +292,7 @@ python -m visual_qa.diff
 `visual_qa/config.py` (or env vars):
 
 ```python
-THRESHOLD = 8                    # phash distance fail threshold
+THRESHOLD = 25                   # phash distance fail threshold (env VISUAL_QA_THRESHOLD)
 BASELINE_DIR = "godot/screenshots/baseline"
 CURRENT_DIR = "godot/screenshots/game"
 MANIFEST = "manifest.json"
@@ -361,8 +366,8 @@ SHOT_NAMES = [                   # ordered list for consistent gallery
 # Capture + baseline init (first time)
 tools/capture_screenshots.sh && python -m visual_qa.capture
 
-# Daily diff check
-tools/capture_screenshots.sh && python -m visual_qa.diff
+# Daily diff check (against the committed baseline)
+tools/capture_screenshots.sh && python -m visual_qa.diff --fail-on-diff
 
 # PR workflow (automated via GH Actions)
 # 1. Push PR → workflow runs capture+diff

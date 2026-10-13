@@ -2,7 +2,6 @@
 Perceptual hash utilities using PIL + imagehash.
 """
 import json
-import os
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,7 +10,7 @@ from typing import Any
 from PIL import Image
 import imagehash
 
-from .config import BASELINE_DIR, CURRENT_DIR, MANIFEST, SHOT_NAMES
+from .config import BASELINE_DIR, CURRENT_DIR, MANIFEST, SHOT_NAMES, THRESHOLD
 
 
 def compute_phash(image_path: Path) -> str:
@@ -59,7 +58,8 @@ def save_manifest(manifest: dict[str, Any]) -> None:
 
 def build_manifest(threshold: int | None = None) -> dict[str, Any]:
     """Build manifest from current baseline images."""
-    threshold = threshold or int(os.environ.get("VISUAL_QA_THRESHOLD", "8"))
+    # The calibrated default (config.THRESHOLD, 25), not the old 8 (F1110).
+    threshold = threshold if threshold is not None else THRESHOLD
     manifest = {
         "version": 1,
         "git_sha": get_git_sha(),
