@@ -63,13 +63,9 @@ func _ready() -> void:
 ## stays with the GUI, so the focused button activates; this handler used to
 ## take ui_accept (Space and Enter) before any control saw it.
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("toggle_pause") and not _is_typing():
+	if event.is_action_pressed("toggle_pause") and not UIPolish.is_typing(self):
 		_toggle_pause()
 		get_viewport().set_input_as_handled()
-
-func _is_typing() -> bool:
-	var focus := get_viewport().gui_get_focus_owner()
-	return focus is LineEdit or focus is TextEdit
 
 # ── Wiring ─────────────────────────────────────────────────────────────────────
 

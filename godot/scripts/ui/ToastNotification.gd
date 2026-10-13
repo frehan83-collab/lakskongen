@@ -363,11 +363,8 @@ func _on_toast_gui_input(event: InputEvent, toast_node: Control) -> void:
 	_dismiss_toast(toast_node, false)
 	get_viewport().set_input_as_handled()
 
-func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
-		get_viewport().set_input_as_handled()
-		_on_close_requested()
-
-func _on_close_requested() -> void:
-	hide()
+# No ESC handler: toasts close by click or timeout. One consumed every ESC
+# that reached this autoload and hid the whole layer for good (nothing showed
+# it again), so after one ESC on the main menu no toast appeared for the rest
+# of the session, and the save list's own ESC close never ran (review F665).
 

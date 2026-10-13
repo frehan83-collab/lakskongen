@@ -9,6 +9,14 @@ class_name UIPolish
 
 ## Recursively attach press feedback to every Button under `root`.
 ## Safe to call repeatedly — JuiceEffects guards against double-attach.
+## True while a text field has keyboard focus: letter and Space hotkeys must
+## leave the key to the field.
+static func is_typing(node: Node) -> bool:
+	if node == null or not node.is_inside_tree():
+		return false
+	var focus := node.get_viewport().gui_get_focus_owner()
+	return focus is LineEdit or focus is TextEdit
+
 static func attach_press_feedback(root: Node) -> void:
 	if root == null:
 		return

@@ -68,14 +68,9 @@ func _ready() -> void:
 
 # ── Signal handlers ───────────────────────────────────────────────────────────
 
-func _input(event: InputEvent) -> void:
-	"""Handle keyboard navigation"""
-	if not visible:
-		return
-	
-	if event.is_action_pressed("ui_cancel"):
-		hide()
-		get_viewport().set_input_as_handled()
+# No ESC handler: the card is guidance, not a modal (its ✕ minimises it). It
+# is later in the tree than GameUI, so it took every ESC while shown and hid
+# itself until the next refresh re-showed it; ESC never closed a tab.
 
 func _on_state_updated() -> void:
 	_refresh_display()

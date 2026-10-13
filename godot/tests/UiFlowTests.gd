@@ -58,6 +58,10 @@ func _run() -> void:
 	await _test_offshore_rows_are_legible()
 	await _test_offshore_sludge_button_sells_sludge()
 	_test_load_resets_the_forecast_cache()
+	await _test_escape_spares_toasts_and_closes_the_save_list()
+	await _test_typing_hotkeys_and_close_buttons()
+	await _test_tutorial_card_leaves_escape_to_tabs()
+	await _test_event_alerts_and_vaccine_window()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -778,6 +782,93 @@ func _test_load_resets_the_forecast_cache() -> void:
 	var reloaded: Array = _sim.get_forecast().get("biomass_kg", [])
 	_check(not reloaded.is_empty() and float(reloaded[0]) > 0.0,
 		"forecast: after the load it shows the saved fish again (%s)" % str(reloaded.slice(0, 1)))
+
+## F665: the toast layer consumed every ESC and hid itself for good, so one
+## ESC on the main menu silenced all toasts and the save list's ESC never ran.
+func _test_escape_spares_toasts_and_closes_the_save_list() -> void:
+	var toasts: CanvasLayer = get_node("/root/ToastNotification")
+	var menu := await _spawn_main_menu()
+	await _press_key(KEY_ESCAPE)
+	_check(toasts.visible, "toasts: an ESC on the main menu leaves the toast layer up")
+	toasts.show_toast("CI toast", "INFO", 1.0)
+	await get_tree().process_frame
+	_check(toasts.visible and not toasts._active_nodes.is_empty(), "toasts: a toast still appears after that ESC")
+	menu.btn_load.pressed.emit()
+	await get_tree().process_frame
+	_check(menu.save_load_menu.visible, "toasts: 'Last Spill' opens the save list")
+	await _press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	_check(not menu.save_load_menu.visible and menu.center.visible, "toasts: ESC closes the save list back to the menu")
+	menu.queue_free()
+	await get_tree().process_frame
+
+## Re-review: N opened the notification panel while typing (and ate the "n");
+## the Export tab's ✕ only emitted a signal GameUI never connected.
+func _test_typing_hotkeys_and_close_buttons() -> void:
+	var scene := await _spawn_game_scene()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	ui.show_tab("encyclopedia")
+	await get_tree().process_frame
+	var search: LineEdit = ui.find_child("Panel_encyclopedia", true, false).get_node("%SearchField")
+	search.grab_focus()
+	search.text = ""
+	await _press_key(KEY_N, 110)
+	_check(search.text == "n", "keys: N types into a focused text field ('%s')" % search.text)
+	_check(not center._is_open, "keys: N while typing leaves the notification panel shut")
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_N, 110)
+	_check(center._is_open, "keys: N outside a text field opens the notifications")
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.5).timeout
+
+	await _click_control(ui.find_child("Tab_export", true, false))
+	_check(ui.get_active_tab() == "export", "close: the Export tab opens")
+	var export_panel: Control = ui.find_child("Panel_export", true, false)
+	get_node("/root/ToastNotification").clear_all()  # toasts sit over the top-right ✕
+	await get_tree().process_frame
+	await _click_control(export_panel.get_node("%CloseButton"))
+	await get_tree().process_frame
+	_check(ui.get_active_tab() == "dashboard", "close: the Export tab's ✕ returns to the dashboard (%s)" % ui.get_active_tab())
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Re-review: the tutorial card (later in the tree than GameUI) took every ESC
+## while shown and hid itself until the next refresh, so ESC never closed a tab.
+func _test_tutorial_card_leaves_escape_to_tabs() -> void:
+	_check(_sim.start_qa_scenario("forste_sesong", 41), "tutorial esc: tutorial scenario starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var card: Control = scene.get_node("UILayer/TutorialUI")
+	card.visible = true  # shown as for a first-run player (the test profile may disable it)
+	ui.show_tab("finance")
+	await get_tree().process_frame
+	await _press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	_check(ui.get_active_tab() == "dashboard", "tutorial esc: ESC closes the tab (%s)" % ui.get_active_tab())
+	_check(card.visible, "tutorial esc: the card stays")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Re-review: a weather alert pushed before the tick's refresh was stamped with
+## the previous day (a 2-day TTL), and the vaccination alert claimed an open
+## window from January (F763).
+func _test_event_alerts_and_vaccine_window() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "alert days: seeded scenario starts")
+	_sim.set_paused(true)
+	_sim.advance_days(10)
+	_check(_count_alerts("vaccine_window", "warning") == 0, "alert days: no open-window alert in January")
+	var today: int = _sim.current_day
+	_sim.current_day = today - 1  # a weather event arrives before the refresh
+	_sim._on_weather_event("storm", 0.9, "CI-stale-storm")
+	_sim.advance_days(2)
+	_check(_has_alert("Vær: CI-stale-storm"), "alert days: a weather alert pushed before the refresh lasts three days")
+	_sim.advance_days(270)  # day 282: inside the October window
+	_check(_count_alerts("vaccine_window", "warning") == 1, "alert days: the open-window alert shows in October")
 
 func _count_alerts(key: String, level: String) -> int:
 	var n := 0

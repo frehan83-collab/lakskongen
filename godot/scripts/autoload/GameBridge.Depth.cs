@@ -985,9 +985,22 @@ public partial class GameBridge : Node
         }
     }
 
-    /// <summary>October window days left, -1 when closed (Phase 5.1).</summary>
-    public int VaccineWindowDaysLeft =>
-        LakskongenSim.Health.VaccinationProgram.WindowDaysLeft(SimulationEngine?.State?.Day ?? 0);
+    /// <summary>
+    /// October window days left, -1 when closed (Phase 5.1). WindowDaysLeft
+    /// counts from the window's start before it opens (30 from January to
+    /// September), so the "vaccination window open" alert showed all year
+    /// (review F763).
+    /// </summary>
+    public int VaccineWindowDaysLeft
+    {
+        get
+        {
+            int day = SimulationEngine?.State?.Day ?? 0;
+            return LakskongenSim.Health.VaccinationProgram.IsWindowOpen(day)
+                ? LakskongenSim.Health.VaccinationProgram.WindowDaysLeft(day)
+                : -1;
+        }
+    }
 
     // ── Phase 5.3: Sludge Valorization ───────────────────────────────────────────
 

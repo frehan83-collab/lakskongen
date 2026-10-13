@@ -91,7 +91,8 @@ func _ready() -> void:
 		panel.hide()
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("toggle_notifications"):
+	# N types into a focused text field (it opened this panel and ate the "n").
+	if event.is_action_pressed("toggle_notifications") and not UIPolish.is_typing(self):
 		toggle()
 		get_viewport().set_input_as_handled()
 		return

@@ -364,6 +364,11 @@ func _get_or_create_panel(tab_def: TabDefinition) -> Control:
 	
 	panel.hide()
 	panel.visibility_changed.connect(_on_panel_visibility_changed.bind(tab_def.id))
+	# Panels whose ✕ only emits a close signal (Export, Research) did nothing
+	# as tabs; the close returns to the dashboard like ESC.
+	for close_signal in ["panel_close_requested", "close_requested"]:
+		if panel.has_signal(close_signal):
+			panel.connect(close_signal, _on_panel_close_requested.bind(tab_def.id))
 
 	# Cache it
 	_panel_cache[tab_def.id] = panel
@@ -385,6 +390,10 @@ func _on_panel_visibility_changed(tab_id: String) -> void:
 	if tab_id == "dashboard":
 		panel.show.call_deferred()
 	else:
+		_switch_to_tab.call_deferred("dashboard")
+
+func _on_panel_close_requested(tab_id: String) -> void:
+	if tab_id == _active_tab_id and tab_id != "dashboard":
 		_switch_to_tab.call_deferred("dashboard")
 
 func _on_tab_button_pressed(tab_id: String) -> void:
