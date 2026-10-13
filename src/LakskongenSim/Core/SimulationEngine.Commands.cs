@@ -339,6 +339,7 @@ public partial class SimulationEngine
         {
             Id = loanId,
             Principal = (decimal)amount,
+            OriginalPrincipal = (decimal)amount,
             InterestRate = (decimal)rate,
             TermDays = Math.Max(30, termMonths * 30),
             DaysTaken = 0
@@ -346,6 +347,57 @@ public partial class SimulationEngine
 
         var message = $"Loan of {amount:N0} NOK approved at {rate:P1} for {termMonths} months";
         return CommandResult.Success(message, amount, id: loanId);
+    }
+
+    /// <summary>
+    /// Repay loan principal early, oldest loan first (player verb; the finance
+    /// panel's repay button called a method that existed nowhere). Principal
+    /// only — interest accrues daily — booked as a liability repayment; a loan
+    /// paid down to zero closes. Value = principal repaid. Fails before any
+    /// mutation: invalid_amount / no_loans / insufficient_funds.
+    /// </summary>
+    public CommandResult RepayLoan(decimal amount)
+    {
+        if (State == null || FinanceManager == null)
+            return CommandResult.Fail("engine_not_ready", "Engine not initialized");
+        if (amount <= 0m)
+            return CommandResult.Fail("invalid_amount", $"Repayment must be positive (got {amount:N0})");
+        decimal outstanding = State.ActiveLoans.Sum(l => Math.Max(0m, l.Principal));
+        if (outstanding <= 0m)
+            return CommandResult.Fail("no_loans", "No outstanding loans");
+
+        decimal repay = Math.Min(amount, outstanding);
+        if (!TryPayCost(repay, CostBooking.LoanPrincipal, "loan_principal"))
+            return CommandResult.Fail("insufficient_funds",
+                $"Insufficient funds: need {repay:N0} NOK to repay", (double)repay);
+
+        decimal left = repay;
+        foreach (var loan in State.ActiveLoans.OrderByDescending(l => l.DaysTaken).ThenBy(l => l.Id, StringComparer.Ordinal).ToList())
+        {
+            if (left <= 0m) break;
+            decimal take = Math.Min(left, Math.Max(0m, loan.Principal));
+            loan.Principal -= take;
+            left -= take;
+            if (loan.Principal <= 0.01m)
+                State.ActiveLoans.Remove(loan);
+        }
+        return CommandResult.Success($"Repaid {repay:N0} NOK of loan principal", (double)repay);
+    }
+
+    /// <summary>
+    /// What the active loans cost per 30-day month at today's balances: each
+    /// loan's principal slice plus interest, as the daily amortization pays them.
+    /// </summary>
+    public decimal MonthlyLoanPaymentNok()
+    {
+        if (State?.ActiveLoans == null) return 0m;
+        decimal monthly = 0m;
+        foreach (var loan in State.ActiveLoans)
+        {
+            int remainingDays = Math.Max(1, loan.TermDays - loan.DaysTaken);
+            monthly += (loan.Principal / remainingDays + loan.Principal * loan.InterestRate / 365m) * 30m;
+        }
+        return monthly;
     }
 
     /// <summary>

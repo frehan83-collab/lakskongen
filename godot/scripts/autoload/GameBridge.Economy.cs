@@ -364,20 +364,69 @@ public partial class GameBridge : Node
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetActiveLoans()
     {
         var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
-        // TODO: When LoanSystem tracks individual loans, return them here
+        var loans = SimulationEngine?.State?.ActiveLoans;
+        if (loans == null) return result;
+        foreach (var loan in loans)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = loan.Id,
+                ["principal"] = (double)loan.Principal,
+                ["original_principal"] = (double)(loan.OriginalPrincipal > 0m ? loan.OriginalPrincipal : loan.Principal),
+                ["rate"] = (double)loan.InterestRate,
+                ["days_left"] = Math.Max(0, loan.TermDays - loan.DaysTaken),
+            });
+        }
         return result;
+    }
+
+    /// <summary>
+    /// Loan card summary (F943: the panel read a method that existed nowhere):
+    /// has_loan, count, amount (principal borrowed), remaining (principal
+    /// outstanding), monthly_payment, credit_available.
+    /// </summary>
+    public Godot.Collections.Dictionary GetLoanInfo()
+    {
+        var engine = SimulationEngine;
+        var loans = engine?.State?.ActiveLoans;
+        if (engine == null || loans == null)
+            return new Godot.Collections.Dictionary { ["has_loan"] = false };
+        decimal remaining = loans.Sum(l => Math.Max(0m, l.Principal));
+        decimal borrowed = loans.Sum(l => l.OriginalPrincipal > 0m ? l.OriginalPrincipal : l.Principal);
+        return new Godot.Collections.Dictionary
+        {
+            ["has_loan"] = remaining > 0m,
+            ["count"] = loans.Count,
+            ["amount"] = (double)borrowed,
+            ["remaining"] = (double)remaining,
+            ["monthly_payment"] = (double)engine.MonthlyLoanPaymentNok(),
+            ["credit_available"] = (double)Math.Max(0m, engine.LoanCapacityNok() - remaining),
+        };
+    }
+
+    /// <summary>Repay loan principal early, oldest first. {success, message, error, repaid}.</summary>
+    public Godot.Collections.Dictionary RepayLoan(double amount)
+    {
+        var cmd = SimulationEngine?.RepayLoan((decimal)amount);
+        if (cmd == null)
+            return new Godot.Collections.Dictionary { ["success"] = false, ["error"] = "engine_not_ready", ["message"] = "Engine not initialized" };
+        if (cmd.Ok) EmitSignal(SignalName.GameStateUpdated);
+        return new Godot.Collections.Dictionary
+        {
+            ["success"] = cmd.Ok,
+            ["error"] = cmd.ErrorKey,
+            ["message"] = cmd.Message,
+            ["repaid"] = cmd.Value,
+        };
     }
 
     /// <summary>Total interest-bearing debt outstanding (NOK): loan principal plus bonds.</summary>
     public double GetTotalDebt()
         => (double)(SimulationEngine?.TotalDebtNok ?? 0m);
 
-    /// <summary>Total monthly payment obligation (NOK). Returns 0 for now.</summary>
+    /// <summary>Monthly loan payment (principal slice + interest) at today's balances (NOK).</summary>
     public double GetMonthlyPayment()
-    {
-        // TODO: Calculate from active loans when implemented
-        return 0.0;
-    }
+        => (double)(SimulationEngine?.MonthlyLoanPaymentNok() ?? 0m);
 
     /// <summary>
     /// Take out a new loan.

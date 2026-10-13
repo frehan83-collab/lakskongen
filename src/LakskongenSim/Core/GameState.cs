@@ -440,6 +440,8 @@ namespace LakskongenSim.Core
     {
         public string Id { get; set; } = string.Empty;
         public decimal Principal { get; set; }
+        /// <summary>Principal borrowed (0 in saves from before it was recorded).</summary>
+        public decimal OriginalPrincipal { get; set; }
         public decimal InterestRate { get; set; }
         public int TermDays { get; set; }
         public int DaysTaken { get; set; }

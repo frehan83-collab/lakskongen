@@ -601,15 +601,15 @@ func _refresh() -> void:
 
 	_kpi_balance.add_theme_color_override("font_color", C_TEXT if balance >= 0 else C_DANGER)
 
-	# Loan
+	# Loan (F943: the card read a method that did not exist and never updated)
 	if _sim.has_method("get_loan_info"):
 		var loan: Dictionary = _sim.get_loan_info()
 		var has_loan: bool = loan.get("has_loan", false)
-		_loan_status.text = tr("Aktiv")
+		_loan_status.text = (tr("Aktiv") + " (%d)" % int(loan.get("count", 1))) if has_loan else tr("Ingen lån")
 		_loan_status.add_theme_color_override("font_color", C_WARNING if has_loan else C_SUCCESS_D)
 		_loan_amount.text = _fmt(loan.get("amount", 0.0)) if has_loan else "--"
 		_loan_remaining.text = _fmt(loan.get("remaining", 0.0)) if has_loan else "--"
-		_loan_take_btn.disabled = has_loan
+		_loan_take_btn.disabled = float(loan.get("credit_available", LOAN_AMOUNT)) < LOAN_AMOUNT
 		_loan_repay_btn.disabled = not has_loan
 
 	# S2: trend block replaces the text history wall (color-coded time series).
@@ -721,23 +721,34 @@ func _refresh_trends() -> void:
 
 # ── Loan Actions ──────────────────────────────────────────────────────────────
 
+## Loan button amounts and the term the bank offers (the bank sets the rate).
+const LOAN_AMOUNT := 5_000_000.0
+const LOAN_TERM_MONTHS := 36
+const REPAY_AMOUNT := 1_000_000.0
+
 func _on_take_loan() -> void:
 	if not _sim or not _sim.has_method("take_loan"):
 		return
-	var success: bool = bool(_sim.take_loan(5_000_000.0))
-	if success:
-		loan_taken.emit(5_000_000.0)
+	# All three arguments (F943: the one-argument call failed), and the result is
+	# a Dictionary — bool(dict) was true even for a refused loan.
+	var result: Dictionary = _sim.take_loan(LOAN_AMOUNT, LOAN_TERM_MONTHS, 0.0)
+	if result.get("success", false):
+		loan_taken.emit(LOAN_AMOUNT)
 		_toast(_tr_or("UI_TOAST_LOAN_TAKEN", "🏦 Lån tatt opp: 5,0 MNOK"), "SUCCESS")
-		_refresh()
+	else:
+		_toast("🏦 " + str(result.get("message", "Lånet ble avslått")), "WARNING")
+	_refresh()
 
 func _on_repay_loan() -> void:
 	if not _sim or not _sim.has_method("repay_loan"):
 		return
-	var success: bool = bool(_sim.repay_loan(1_000_000.0))
-	if success:
-		loan_repaid.emit(1_000_000.0)
+	var result: Dictionary = _sim.repay_loan(REPAY_AMOUNT)
+	if result.get("success", false):
+		loan_repaid.emit(float(result.get("repaid", REPAY_AMOUNT)))
 		_toast(_tr_or("UI_TOAST_LOAN_REPAID", "🏦 Nedbetaling fullført: 1,0 MNOK"), "SUCCESS")
-		_refresh()
+	else:
+		_toast("🏦 " + str(result.get("message", "Nedbetaling avslått")), "WARNING")
+	_refresh()
 
 func _tr_or(key: String, fallback: String) -> String:
 	var t := tr(key)

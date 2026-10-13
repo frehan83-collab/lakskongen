@@ -1,11 +1,10 @@
-[gd_scene load_steps=14 format=3 uid="uid://cx3r7m9t1q5n4"]
+[gd_scene load_steps=13 format=3 uid="uid://cx3r7m9t1q5n4"]
 
 [ext_resource type="Script" path="res://scripts/GameController.gd" id="1_gamecontroller"]
 [ext_resource type="PackedScene" uid="uid://bks2yj3v1fkl8" path="res://scenes/ui/HUD.tscn" id="3_hud"]
 [ext_resource type="PackedScene" uid="uid://bvn8m9x2kqr7t" path="res://scenes/GameUI.tscn" id="4_gameui"]
 [ext_resource type="PackedScene" path="res://scenes/ui/TutorialUI.tscn" id="5_tutorial"]
 [ext_resource type="PackedScene" path="res://scenes/ui/NotificationCenter.tscn" id="6_notifications"]
-[ext_resource type="PackedScene" uid="uid://boed2ck10n04b" path="res://scenes/ui/AnalyticsPanel.tscn" id="7_analytics"]
 [ext_resource type="Script" path="res://scripts/Main.gd" id="8_main"]
 [ext_resource type="PackedScene" uid="uid://fjord_environment_001" path="res://scenes/environment/FjordEnvironment.tscn" id="9_fjord"]
 [ext_resource type="Script" path="res://scripts/environment/FishPenManager.gd" id="10_penmanager"]
@@ -130,10 +129,6 @@ offset_top = 64.0
 offset_bottom = -4.0
 grow_horizontal = 0
 grow_vertical = 2
-
-[node name="AnalyticsPanel" parent="UILayer" instance=ExtResource("7_analytics")]
-unique_name_in_owner = true
-visible = false
 
 [node name="AttentionInbox" parent="." instance=ExtResource("14_inbox")]
 visible = false

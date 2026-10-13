@@ -767,6 +767,35 @@ public partial class GameBridge : Node
     public double GetCurrentTemperature() => SimulationEngine?.Weather?.CurrentTemperatureC ?? 0.0;
     public int GetCurrentDay() => SimulationEngine?.State?.Day ?? 0;
 
+    // ── Data export (DataExportPanel) ───────────────────────────────────────
+
+    /// <summary>Write the daily snapshots as CSV. Rows written, -1 on failure.</summary>
+    public int ExportDailySnapshots(string path) => RunExport(e => e.ExportDailySnapshots(path));
+
+    /// <summary>Write the 30-day financial report as CSV. Rows written, -1 on failure.</summary>
+    public int ExportFinancialReport(string path) => RunExport(e => e.ExportFinancialReport(path));
+
+    /// <summary>Write the daily population figures as CSV. Rows written, -1 on failure.</summary>
+    public int ExportPopulationData(string path) => RunExport(e => e.ExportPopulationData(path));
+
+    /// <summary>Write the event history as CSV. Rows written, -1 on failure.</summary>
+    public int ExportEventHistory(string path) => RunExport(e => e.ExportEventHistory(path));
+
+    private int RunExport(Func<LakskongenSim.Core.DataExporter, int> export)
+    {
+        var state = SimulationEngine?.State;
+        if (state == null) return -1;
+        try
+        {
+            return export(new LakskongenSim.Core.DataExporter(state));
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"GameBridge: export failed - {ex.Message}");
+            return -1;
+        }
+    }
+
     // ── Internal ──────────────────────────────────────────────────────────────
 
     private void OnSimulationTick()

@@ -39,7 +39,7 @@ const EXPORT_TYPES: Array[Dictionary] = [
 		"description": "Biomasse, fiskeantall, markedspris, bærekraftsscore og mer.\nBra for trendanalyse og visualisering.",
 		"filename": "daglig_oversikt",
 		"color": Color("#5E81AC"),
-		"method": "ExportDailySnapshots"
+		"method": "export_daily_snapshots"
 	},
 	{
 		"id": "financial_report",
@@ -49,7 +49,7 @@ const EXPORT_TYPES: Array[Dictionary] = [
 		"description": "Saldoendringer, gjennomsnittlig markedspris og FCR per periode.\nBra for lønnsomhetsanalyse.",
 		"filename": "finansrapport",
 		"color": Color("#D4B06A"),
-		"method": "ExportFinancialReport"
+		"method": "export_financial_report"
 	},
 	{
 		"id": "population_data",
@@ -59,7 +59,7 @@ const EXPORT_TYPES: Array[Dictionary] = [
 		"description": "Fiskeantall, gjennomsnittsvekt, lus per fisk, dødsrate.\nBra for biologisk analyse og velferdssporing.",
 		"filename": "populasjon",
 		"color": Color("#A3BE8C"),
-		"method": "ExportPopulationData"
+		"method": "export_population_data"
 	},
 	{
 		"id": "event_history",
@@ -69,7 +69,7 @@ const EXPORT_TYPES: Array[Dictionary] = [
 		"description": "Dato, kategori, beskrivelse og saldoendring for hver hendelse.\nBra for revisjon og risikoevaluering.",
 		"filename": "hendelseslogg",
 		"color": Color("#5E81AC"),
-		"method": "ExportEventHistory"
+		"method": "export_event_history"
 	}
 ]
 
@@ -254,11 +254,7 @@ func _on_export_single_pressed(type_id: String) -> void:
 	_progress_bar.visible = true
 	_progress_bar.value = 30
 
-	var day_str := "0000"
-	if Engine.has_singleton("GameBridge"):
-		var bridge = Engine.get_singleton("GameBridge")
-		if bridge.has_method("GetCurrentDay"):
-			day_str = "%04d" % bridge.GetCurrentDay()
+	var day_str := "%04d" % _current_day()
 
 	var filename: String = export_type.get("filename", type_id)
 	var path := dir.path_join("%s_dag%s.csv" % [filename, day_str])
@@ -298,11 +294,7 @@ func _on_export_all_pressed() -> void:
 		var export_type: Dictionary = EXPORT_TYPES[i]
 		_progress_bar.value = int((float(i) / total) * 90.0)
 
-		var day_str := "0000"
-		if Engine.has_singleton("GameBridge"):
-			var bridge = Engine.get_singleton("GameBridge")
-			if bridge.has_method("GetCurrentDay"):
-				day_str = "%04d" % bridge.GetCurrentDay()
+		var day_str := "%04d" % _current_day()
 
 		var path := dir.path_join("%s_dag%s.csv" % [export_type.get("filename", "data"), day_str])
 		var rows := _call_export_method(export_type.get("method", ""), path)
@@ -325,17 +317,25 @@ func _on_export_all_pressed() -> void:
 	for t in EXPORT_TYPES:
 		_set_button_state(t.get("id", ""), true)
 
-func _call_export_method(method_name: String, path: String) -> int:
-	if not Engine.has_singleton("GameBridge"):
-		_log_error("GameBridge ikke tilgjengelig.")
-		return -1
+## The SimBridge facade (an autoload node: Engine.has_singleton was always
+## false, so every export failed with "GameBridge ikke tilgjengelig").
+func _sim_bridge() -> Node:
+	return get_node_or_null("/root/SimBridge")
 
-	var bridge = Engine.get_singleton("GameBridge")
-	if not bridge.has_method(method_name):
+func _current_day() -> int:
+	var sim := _sim_bridge()
+	return int(sim.current_day) if sim != null else 0
+
+func _call_export_method(method_name: String, path: String) -> int:
+	var sim := _sim_bridge()
+	if sim == null:
+		_log_error("SimBridge ikke tilgjengelig.")
+		return -1
+	if not sim.has_method(method_name):
 		_log_error("Metode ikke funnet: " + method_name)
 		return -1
 
-	var result = bridge.call(method_name, path)
+	var result = sim.call(method_name, path)
 	if result is int:
 		return result
 	return -1

@@ -51,6 +51,12 @@ func get_export_markets() -> Array[Dictionary]: return _arr(game_bridge.GetExpor
 
 # ── Analytics ─────────────────────────────────────────────────────────────────
 
+## Data export (DataExportPanel): CSV files; rows written or -1.
+func export_daily_snapshots(path: String) -> int: return game_bridge.ExportDailySnapshots(path) if game_bridge else -1
+func export_financial_report(path: String) -> int: return game_bridge.ExportFinancialReport(path) if game_bridge else -1
+func export_population_data(path: String) -> int: return game_bridge.ExportPopulationData(path) if game_bridge else -1
+func export_event_history(path: String) -> int: return game_bridge.ExportEventHistory(path) if game_bridge else -1
+
 func get_analytics_data(metric: String, days: int = 30) -> Array[float]: return _farr(game_bridge.GetAnalyticsData(metric, days)) if game_bridge else []
 func get_analytics_moving_average(metric: String, days: int = 30, window_days: int = 7) -> Array[float]: return _farr(game_bridge.GetAnalyticsMovingAverage(metric, days, window_days)) if game_bridge else []
 func get_analytics_trend(metric: String, days: int = 14) -> String: return game_bridge.GetAnalyticsTrend(metric, days) if game_bridge else "stable"
@@ -405,6 +411,8 @@ func get_active_loans() -> Array[Dictionary]: return _arr(game_bridge.GetActiveL
 func get_total_debt() -> float: return game_bridge.GetTotalDebt() if game_bridge else 0.0
 func get_monthly_payment() -> float: return game_bridge.GetMonthlyPayment() if game_bridge else 0.0
 func take_loan(amount: float, term_months: int, rate: float) -> Dictionary: return game_bridge.TakeLoan(amount, term_months, rate) if game_bridge else {"success": false, "message": "Not initialized"}
+func get_loan_info() -> Dictionary: return game_bridge.GetLoanInfo() if game_bridge else {"has_loan": false}
+func repay_loan(amount: float) -> Dictionary: return game_bridge.RepayLoan(amount) if game_bridge else {"success": false, "message": "Not initialized"}
 func get_tax_rate() -> float: return game_bridge.GetTaxRate() if game_bridge else 0.22
 func get_last_tax_paid() -> float: return game_bridge.GetLastTaxPaid() if game_bridge else 0.0
 func get_annual_tax_burden() -> float: return game_bridge.GetAnnualTaxBurden() if game_bridge else 0.0

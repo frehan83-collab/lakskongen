@@ -179,10 +179,11 @@ func _build_charts() -> void:
 # ── Data Refresh ───────────────────────────────────────────────────────────────
 
 func _refresh() -> void:
-	if not Engine.has_singleton("SimBridge"):
+	# SimBridge is an autoload node, not an Engine singleton (F944: this gate
+	# was always false, so every chart stayed blank all session).
+	var sim = get_node_or_null("/root/SimBridge")
+	if sim == null:
 		return
-	
-	var sim = Engine.get_singleton("SimBridge")
 	
 	for meta in METRICS:
 		var key = meta["key"]
@@ -192,9 +193,9 @@ func _refresh() -> void:
 		
 		# Get raw series
 		var days_param = _active_period if _active_period > 0 else 365
-		var series: Array[float] = Array(sim.GetAnalyticsData(key, days_param))
-		var ma_series: Array[float] = Array(sim.GetAnalyticsMovingAverage(key, days_param, 7))
-		var trend: String = sim.GetAnalyticsTrend(key, min(days_param, 14))
+		var series: Array[float] = sim.get_analytics_data(key, days_param)
+		var ma_series: Array[float] = sim.get_analytics_moving_average(key, days_param, 7)
+		var trend: String = sim.get_analytics_trend(key, mini(days_param, 14))
 		
 		# Apply divisor for display
 		var divisor = meta["divisor"]
@@ -211,8 +212,9 @@ func _refresh() -> void:
 		# Update header labels
 		var container = _get_chart_container(key)
 		if container:
-			var trend_lbl = container.get_node_or_null("TrendLabel")
-			var value_lbl = container.get_node_or_null("ValueLabel")
+			# The labels live in the chart's header row, not directly under it.
+			var trend_lbl = container.find_child("TrendLabel", true, false)
+			var value_lbl = container.find_child("ValueLabel", true, false)
 			
 			if trend_lbl:
 				match trend:

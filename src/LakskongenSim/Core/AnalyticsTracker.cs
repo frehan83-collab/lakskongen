@@ -26,6 +26,12 @@ namespace LakskongenSim.Core
         public const string ExternalMarketSupport = "external_market_support";
         public const string ExternalWarningCount = "external_warning_count";
         public const string ExternalCompositeRisk = "external_composite_risk";
+        /// <summary>Year-to-date net income (the analytics tab charted it but it was never recorded).</summary>
+        public const string ProfitLoss = "profit_loss_nok";
+        /// <summary>Year-to-date feed cost.</summary>
+        public const string FeedCost = "feed_cost_nok";
+        /// <summary>Mean zone dissolved oxygen.</summary>
+        public const string DissolvedOxygen = "dissolved_oxygen";
     }
 
     /// <summary>
@@ -85,6 +91,15 @@ namespace LakskongenSim.Core
         /// <summary>Composite external health risk score.</summary>
         public double ExternalCompositeRisk { get; set; }
 
+        /// <summary>Net income this financial year to date (NOK).</summary>
+        public double ProfitLossNok { get; set; }
+
+        /// <summary>Feed cost this financial year to date (NOK).</summary>
+        public double FeedCostNok { get; set; }
+
+        /// <summary>Mean dissolved oxygen across zones holding fish (mg/L; 0 without zones).</summary>
+        public double DissolvedOxygen { get; set; }
+
         /// <summary>
         /// Return the value of a named metric. Returns NaN if unknown.
         /// </summary>
@@ -106,6 +121,9 @@ namespace LakskongenSim.Core
             AnalyticsMetric.ExternalMarketSupport => ExternalMarketSupport,
             AnalyticsMetric.ExternalWarningCount => ExternalWarningCount,
             AnalyticsMetric.ExternalCompositeRisk => ExternalCompositeRisk,
+            AnalyticsMetric.ProfitLoss          => ProfitLossNok,
+            AnalyticsMetric.FeedCost            => FeedCostNok,
+            AnalyticsMetric.DissolvedOxygen     => DissolvedOxygen,
             _                                   => double.NaN
         };
     }
@@ -204,12 +222,26 @@ namespace LakskongenSim.Core
                 ExternalBiomassUtilization = external?.NationalBiomassUtilization ?? 0.0,
                 ExternalMarketSupport = external?.MarketPriceSupportIndex ?? 0.0,
                 ExternalWarningCount = state.ExternalHealthWarnings?.Count ?? 0,
-                ExternalCompositeRisk = externalReport.CompositeRiskScore
+                ExternalCompositeRisk = externalReport.CompositeRiskScore,
+                ProfitLossNok = (double)(engine.FinancialStatements?.ComputeNetIncome() ?? 0m),
+                FeedCostNok = engine.FinancialStatements != null
+                    && engine.FinancialStatements.CostBreakdown.TryGetValue("feed", out var feedCost)
+                        ? (double)feedCost : 0.0,
+                DissolvedOxygen = MeanZoneOxygen(state)
             };
 
             _snapshots.Add(snap);
             if (_snapshots.Count > MaxSnapshotsRetained)
                 _snapshots.RemoveRange(0, _snapshots.Count - MaxSnapshotsRetained);
+        }
+
+        /// <summary>Mean O2 over zones holding fish (all zones when none hold fish; 0 without zones).</summary>
+        private static double MeanZoneOxygen(GameState state)
+        {
+            if (state.Zones == null || state.Zones.Count == 0) return 0.0;
+            var stocked = state.Zones.Where(z => z.CurrentFishBiomassKg > 0.0).ToList();
+            var zones = stocked.Count > 0 ? stocked : state.Zones;
+            return zones.Average(z => z.WaterChemistry?.OxygenO2 ?? 0.0);
         }
 
         // ── Query API ─────────────────────────────────────────────────────────

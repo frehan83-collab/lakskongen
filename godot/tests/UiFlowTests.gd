@@ -43,6 +43,9 @@ func _run() -> void:
 	await _test_tech_tree_lays_out_every_node()
 	await _test_goal_hud_shows_engine_progress()
 	await _test_ras_panel_stocks_and_harvests()
+	await _test_finance_panel_takes_and_repays_loans()
+	await _test_analytics_panel_charts_every_metric()
+	await _test_data_export_writes_csv()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -303,6 +306,75 @@ func _test_ras_panel_stocks_and_harvests() -> void:
 	await get_tree().process_frame
 	_check(int(_sim.get_ras_facilities()[0].get("fish_count", -1)) == 0, "ras: 'Høst' empties the tanks")
 	_check(float(_sim.balance) > cash_before, "ras: the harvest is sold")
+	panel.queue_free()
+	await get_tree().process_frame
+
+## F943: the loan card takes a loan (all arguments), shows it, and repays it.
+func _test_finance_panel_takes_and_repays_loans() -> void:
+	_check(_sim.start_qa_new_game("Player", 20_000_000, 77), "loan: seeded game starts")
+	_sim.set_paused(true)
+	var panel: Control = (load("res://scenes/ui/FinancePanel.tscn") as PackedScene).instantiate()
+	add_child(panel)
+	await get_tree().process_frame
+	var take: Button = panel.get_node("%BtnTakeLoan")
+	var repay: Button = panel.get_node("%BtnRepayLoan")
+	panel._refresh()
+	_check(repay.disabled, "loan: repay is disabled without a loan")
+	take.pressed.emit()
+	await get_tree().process_frame
+	_check(absf(float(_sim.get_total_debt()) - 5_000_000.0) < 1.0,
+		"loan: 'Ta lån' borrows 5 MNOK (%s)" % str(_sim.get_total_debt()))
+	_check(str(panel.get_node("%LoanStatus").text).begins_with("Aktiv"), "loan: the card shows an active loan")
+	_check(str(panel.get_node("%LoanRemaining").text) != "--", "loan: the card shows the remaining principal")
+	_check(not repay.disabled, "loan: repay is enabled with a loan")
+	repay.pressed.emit()
+	await get_tree().process_frame
+	_check(absf(float(_sim.get_total_debt()) - 4_000_000.0) < 1.0,
+		"loan: 'Betal tilbake' repays 1 MNOK (%s)" % str(_sim.get_total_debt()))
+	_check(float(_sim.get_monthly_payment()) > 0.0, "loan: a monthly payment is quoted")
+	panel.queue_free()
+	await get_tree().process_frame
+
+## F944: every analytics chart gets data (the panel gated on an Engine
+## singleton that never exists and three of its five metrics were never recorded).
+func _test_analytics_panel_charts_every_metric() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "analytics: seeded scenario starts")
+	_sim.set_paused(true)
+	_sim.advance_days(20)
+	var panel: Control = (load("res://scenes/ui/AnalyticsPanel.tscn") as PackedScene).instantiate()
+	add_child(panel)
+	await get_tree().process_frame
+	panel._refresh()
+	for key in ["total_biomass_kg", "profit_loss_nok", "dissolved_oxygen", "lice_per_fish", "feed_cost_nok"]:
+		var chart: Node = panel._chart_areas.get(key)
+		var points: int = chart._series.size() if chart != null else 0
+		_check(points >= 20, "analytics: %s has a series (%d points)" % [key, points])
+		var container: Node = panel._get_chart_container(key)
+		var value_lbl: Label = container.find_child("ValueLabel", true, false) if container else null
+		_check(value_lbl != null and value_lbl.text != "–", "analytics: %s shows a latest value" % key)
+	panel.queue_free()
+	await get_tree().process_frame
+
+## F944 pattern: the export panel looked GameBridge up as an Engine singleton
+## and called four methods that did not exist; every export failed.
+func _test_data_export_writes_csv() -> void:
+	var dir := ProjectSettings.globalize_path("user://ci_ui_tests/exports")
+	DirAccess.make_dir_recursive_absolute(dir)
+	for file in DirAccess.get_files_at(dir):
+		DirAccess.remove_absolute(dir.path_join(file))
+	var panel: Control = (load("res://scenes/ui/DataExportPanel.tscn") as PackedScene).instantiate()
+	add_child(panel)
+	await get_tree().process_frame
+	panel._path_display.text = dir
+	await panel._on_export_single_pressed("daily_snapshots")
+	var csv := ""
+	for file in DirAccess.get_files_at(dir):
+		if file.begins_with("daglig_oversikt") and file.ends_with(".csv"):
+			csv = dir.path_join(file)
+	_check(not csv.is_empty(), "export: the daily snapshot CSV is written")
+	if not csv.is_empty():
+		var lines := FileAccess.get_file_as_string(csv).strip_edges().split("\n")
+		_check(lines.size() >= 2, "export: the CSV has a header and data rows (%d lines)" % lines.size())
 	panel.queue_free()
 	await get_tree().process_frame
 
