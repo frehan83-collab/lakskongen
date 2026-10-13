@@ -116,6 +116,12 @@ step_test() {
 }
 
 step_pytest() {
+    if ! "$PYTHON" -m pytest --version >/dev/null 2>&1; then
+        echo "   No Python with pytest found (tried python3.12, python3.11, python3)."
+        echo "   Install the gate's Python packages: python3 -m pip install -r requirements-dev.txt"
+        STEP_STATUS="FAIL"
+        return 1
+    fi
     "$PYTHON" -m pytest tests/ -q
 }
 

@@ -8,8 +8,22 @@ and verifies output size > 0.
 
 import os
 import subprocess
+import sys
 from typing import Any, Dict, List
 from pathlib import Path
+
+# Preset platforms each host can export. A macOS .app bundle is built on macOS
+# hosts only, so a Linux CI runner exports the Linux preset.
+HOST_EXPORTABLE_PLATFORMS = {
+    "darwin": {"macOS", "Linux"},
+    "linux": {"Linux"},
+}
+
+
+def exportable_on_host(presets: List[Dict[str, Any]], host: str) -> List[Dict[str, Any]]:
+    """The presets this host can export (host as in sys.platform)."""
+    platforms = HOST_EXPORTABLE_PLATFORMS.get(host, {"Linux"})
+    return [p for p in presets if p.get("platform") in platforms]
 
 
 class ExportVerify:
@@ -32,24 +46,27 @@ class ExportVerify:
     def _verify_via_headless(self) -> Dict[str, Any]:
         """Use headless Godot to export each preset."""
         presets = self.ops.headless.get_export_presets()
+        runnable = exportable_on_host(presets, sys.platform)
 
-        if not presets:
+        # Nothing exported is a failure, not a pass: the gate used to report
+        # success with no presets (a clean checkout had none, review step 14).
+        if not runnable:
+            reason = ("No export presets found in export_presets.cfg" if not presets
+                      else f"No preset exportable on host '{sys.platform}' "
+                           f"(presets: {', '.join(p.get('platform', '?') for p in presets)})")
             return {
-                "success": True,
-                "data": {
-                    "mode": "headless",
-                    "presets": [],
-                    "message": "No export presets found"
-                },
-                "errors": [],
-                "warnings": ["No export presets found in export_presets.cfg"]
+                "success": False,
+                "data": {"mode": "headless", "presets": [], "message": reason},
+                "errors": [f"Export gate exported nothing: {reason}"],
+                "warnings": []
             }
 
         results = []
         all_errors = []
-        all_warnings = []
+        all_warnings = [f"Preset '{p.get('name')}' ({p.get('platform')}) is not exported on host '{sys.platform}'"
+                        for p in presets if p not in runnable]
 
-        for preset in presets:
+        for preset in runnable:
             preset_result = self._export_preset(preset)
             results.append(preset_result)
 
@@ -62,7 +79,7 @@ class ExportVerify:
             "data": {
                 "mode": "headless",
                 "presets": results,
-                "total": len(presets),
+                "total": len(runnable),
                 "passed": sum(1 for r in results if r["success"]),
                 "failed": sum(1 for r in results if not r["success"])
             },

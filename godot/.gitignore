@@ -2,7 +2,9 @@
 .godot/
 .import/
 export.cfg
-export_presets.cfg
+# export_presets.cfg is tracked (the root .gitignore un-ignores it): Godot 4
+# keeps export credentials in .godot/export_credentials.cfg, and CI exports
+# the presets.
 
 # Imported translations (automatically generated from CSV files)
 *.translation
