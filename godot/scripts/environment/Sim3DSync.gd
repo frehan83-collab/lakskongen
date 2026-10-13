@@ -58,45 +58,14 @@ func _process(delta: float) -> void:
 	_sync_all()
 
 func _sync_all() -> void:
-	var day: int = 0
-	var day_val: Variant = _sim_bridge.get("day")
-	if day_val:
-		day = int(day_val)
-	
-	var season: float = 0.5
-	var season_val: Variant = _sim_bridge.get("season01")
-	if season_val:
-		season = float(season_val)
-	else:
-		season = 0.5
-	
-	var weather_state: String = "Calm"
-	var weather_val: Variant = _sim_bridge.get("weather_state")
-	if weather_val:
-		weather_state = str(weather_val)
-	else:
-		weather_state = "Calm"
-	
-	var temperature_c: float = 8.0
-	var temp_val: Variant = _sim_bridge.get("temperature_c")
-	if temp_val:
-		temperature_c = float(temp_val)
-	else:
-		temperature_c = 8.0
-	
-	var wind_ms: float = 5.0
-	var wind_val: Variant = _sim_bridge.get("wind_ms")
-	if wind_val:
-		wind_ms = float(wind_val)
-	else:
-		wind_ms = 5.0
-	
-	var wave_m: float = 0.0
-	var wave_val: Variant = _sim_bridge.get("wave_m")
-	if wave_val:
-		wave_m = float(wave_val)
-	else:
-		wave_m = 0.0
+	# Explicit null checks, not truthiness: calm wind 0.0 and a year-start
+	# season of 0.0 are real values, not missing ones (review F745).
+	var day: int = int(_or(_sim_bridge.get("current_day"), 0))
+	var season: float = float(_or(_sim_bridge.get("season01"), 0.5))
+	var weather_state: String = str(_or(_sim_bridge.get("weather_state"), "Calm"))
+	var temperature_c: float = float(_or(_sim_bridge.get("temperature_c"), 8.0))
+	var wind_ms: float = float(_or(_sim_bridge.get("wind_ms"), 5.0))
+	var wave_m: float = float(_or(_sim_bridge.get("wave_m"), 0.0))
 	
 	# Only do heavy sync once per day
 	if day != _last_sync_day:
@@ -106,10 +75,12 @@ func _sync_all() -> void:
 	
 	# Every tick (1 Hz)
 	_sync_weather(weather_state, temperature_c, wind_ms, wave_m)
-	_sync_bloom()
 	_sync_feeding_particles()
 	_sync_wellboats()
 	_sync_feed_barges()
+
+func _or(value: Variant, fallback: Variant) -> Variant:
+	return fallback if value == null else value
 
 func _sync_seasonal(season: float) -> void:
 	# Season → snow line & grass color via terrain shader
@@ -148,17 +119,6 @@ func _sync_weather(weather_state: String, temperature_c: float, wind_ms: float, 
 			wmat.set_shader_parameter("wind_strength", clampf(wind_ms / 8.0, 0.0, 3.0))
 			wmat.set_shader_parameter("temperature_factor", clampf((temperature_c - 2.0) / 18.0, 0.0, 1.0))
 
-func _sync_bloom() -> void:
-	# Bloom tint around affected sites
-	if _sim_bridge.has_method("GetMaxBloomSeverity"):
-		var max_severity: float = float(_sim_bridge.GetMaxBloomSeverity())
-		var env2: Node = _fjord_env
-		if env2 and "water_plane" in env2:
-			var water: MeshInstance3D = env2.get("water_plane") as MeshInstance3D
-			if water and water.material_override is ShaderMaterial:
-				var wmat: ShaderMaterial = water.material_override as ShaderMaterial
-				wmat.set_shader_parameter("algae_density", clampf(max_severity, 0.0, 1.0))
-
 func _sync_feeding_particles() -> void:
 	# Feeding particles at daylight feeding times
 	if not _particle_effects or not _pen_manager or not _sim_bridge.has_method("get_all_pens"):
@@ -180,12 +140,9 @@ func _sync_feeding_particles() -> void:
 			_particle_effects.call("_emit_feeding", {"pen_id": site_id})
 
 func _sync_wellboats() -> void:
-	# Wellboats travelling along Path3D according to eta_days
-	if not _wellboat_manager or not _sim_bridge.has_method("get_all_wellboat_jobs"):
+	# WellboatVisualManager reads the wellboat jobs itself once it is bound.
+	if not _wellboat_manager:
 		return
-	var jobs: Array = _sim_bridge.get_all_wellboat_jobs()
-	# WellboatVisualManager handles spawning/animation via its own sync
-	# Just ensure it's bound to the sim
 	if _wellboat_manager.has_method("bind_simulation") and not _wellboat_manager.get("_sim_bridge"):
 		_wellboat_manager.bind_simulation(_sim_bridge)
 

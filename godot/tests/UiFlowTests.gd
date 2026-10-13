@@ -62,6 +62,7 @@ func _run() -> void:
 	await _test_typing_hotkeys_and_close_buttons()
 	await _test_tutorial_card_leaves_escape_to_tabs()
 	await _test_event_alerts_and_vaccine_window()
+	await _test_fjord_shows_rival_farms_and_wellboats()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -952,6 +953,120 @@ func _press_key(keycode: Key, unicode: int = 0) -> void:
 		ev.pressed = pressed
 		get_viewport().push_input(ev)
 	await get_tree().process_frame
+
+## F744: the fjord shows the AI rivals' farms and the player's wellboats.
+## Both managers asked SimBridge for methods it does not have (one of them a
+## GameBridge method), so neither had ever drawn anything.
+func _test_fjord_shows_rival_farms_and_wellboats() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "fjord visuals: seeded two-site scenario starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var rivals: CompetitorFarmVisualManager = env.get_node("CompetitorFarmVisualManager")
+	var boats: WellboatVisualManager = env.get_node("WellboatVisualManager")
+	boats.sail_seconds = 0.2
+	boats.return_delay = 0.0
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+
+	var expected := mini(_sim.get_competitor_farms().size(), rivals.max_competitors)
+	_check(expected > 0, "rival farms: the game has AI rivals (%d)" % expected)
+	_check(rivals.farm_ids().size() == expected,
+		"rival farms: one farm per rival (%d of %d)" % [rivals.farm_ids().size(), expected])
+	var greyed := not rivals.farm_ids().is_empty()
+	for id in rivals.farm_ids():
+		var meshes: Array = (rivals._competitor_farms[id].root as Node).find_children("*", "MeshInstance3D", true, false)
+		greyed = greyed and not meshes.is_empty()
+		for mesh in meshes:
+			greyed = greyed and (mesh as MeshInstance3D).material_override == rivals._grey_material()
+	_check(greyed, "rival farms: every rival cage is drawn grey")
+	# The bridge's fixed farm positions (x up to ±1000 m) lie inside the
+	# fjord walls; the farms take the pen manager's channel slots instead.
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var afloat := not rivals.farm_ids().is_empty()
+	var clear := true
+	for id in rivals.farm_ids():
+		for cage in rivals._competitor_farms[id].cages:
+			var at: Vector3 = (cage as Node3D).global_position
+			afloat = afloat and terrain.get_height_at(at.x, at.z) < 0.0
+			for pen_id in pens.get_pen_ids():
+				clear = clear and at.distance_to(pens.get_pen_position(pen_id)) > 60.0
+	_check(afloat, "rival farms: every rival cage floats on open water")
+	_check(clear, "rival farms: no rival cage overlaps a player pen")
+	_check(CompetitorFarmVisualManager.farm_slot(5, 6, 12) == 6 and CompetitorFarmVisualManager.farm_slot(5, 7, 12) == -1,
+		"rival farms: a rival gives up its slot once the player's sites reach it")
+
+	# Feed barges sail the channel at sea level; they used to leave from
+	# inside the fjord wall and arc 50 m over the terrain.
+	var barges: FeedBargeVisualManager = env.get_node("FeedBargeVisualManager")
+	var barge_sites: Array = barges.active_site_ids()
+	_check(not barge_sites.is_empty(), "feed barge: a barge sails to a stocked site (%d)" % barge_sites.size())
+	var barges_afloat := not barge_sites.is_empty()
+	var barges_yellow := not barge_sites.is_empty()
+	for id in barge_sites:
+		barges_afloat = barges_afloat and _route_on_water(barges._active_barges[id].path, terrain)
+		var barge_deck := (barges._active_barges[id].boat as Node).get_node("Deck") as MeshInstance3D
+		var barge_mat := barge_deck.material_override as ShaderMaterial
+		barges_yellow = barges_yellow and barge_mat.resource_path.is_empty() \
+			and barge_mat.get_shader_parameter("albedo_color") == FeedBargeVisualManager.FEED_YELLOW
+	_check(barges_afloat, "feed barge: every route point is at sea level on open water")
+	_check(barges_yellow, "feed barge: tinted yellow on its own copy of the deck material")
+
+	var sites: Array = _sim.get_all_pens()
+	_check(not sites.is_empty(), "wellboat: the player has a site to send a boat to")
+	if sites.is_empty():
+		scene.queue_free()
+		return
+	var site_id := str(sites[0].get("id", ""))
+	_check(_sim.request_wellboat(site_id, "rov"), "wellboat: an ROV inspection is booked for %s" % site_id)
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	var jobs: Array = boats.active_job_ids()
+	_check(jobs.size() == 1, "wellboat: a boat sails for the booked job (%d)" % jobs.size())
+	if jobs.size() != 1:
+		scene.queue_free()
+		return
+	var job_id: String = jobs[0]
+	var deck := (boats._active_wellboats[job_id].boat as Node).get_node("Deck") as MeshInstance3D
+	var deck_mat := deck.material_override as ShaderMaterial
+	_check(deck_mat.resource_path.is_empty(), "wellboat: the tint goes on the boat's own copy of the deck material")
+	_check(deck_mat.get_shader_parameter("albedo_color") == WellboatVisualManager.JOB_COLOURS["other"],
+		"wellboat: an ROV boat is tinted blue")
+	var boat_path: Path3D = boats._active_wellboats[job_id].path
+	_check(_route_on_water(boat_path, terrain), "wellboat: every route point is at sea level on open water")
+	await get_tree().create_timer(0.5).timeout
+	_check(boats.job_state(job_id) == "at_destination", "wellboat: the boat waits on site (%s)" % boats.job_state(job_id))
+	# The boat sits at the end of its route, level with its pen.
+	var route_end := boat_path.to_global(boat_path.curve.get_point_position(boat_path.curve.point_count - 1))
+	var boat_node: Node3D = boats._active_wellboats[job_id].boat
+	_check(boat_node.global_position.distance_to(route_end) < 1.0 and absf(route_end.z - pens.get_pen_position(site_id).z) < 1.0,
+		"wellboat: the waiting boat lies at the end of its route, level with its pen")
+
+	_sim.advance_days(3)
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	_check(_sim.get_wellboat_jobs().is_empty(), "wellboat: the ROV job is carried out")
+	_check(boats.job_state(job_id) == "return", "wellboat: the boat heads home once the job is done (%s)" % boats.job_state(job_id))
+	_check(is_equal_approx(boat_node.rotation.y, PI), "wellboat: the boat turns round for the trip home")
+	await get_tree().create_timer(0.5).timeout
+	_check(boats.active_job_ids().is_empty(), "wellboat: the boat leaves the fjord after the trip home")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## True when every baked point of a boat's path is at sea level over water.
+func _route_on_water(path: Path3D, terrain: FjordTerrain) -> bool:
+	var points := path.curve.get_baked_points() if path != null and path.curve != null else PackedVector3Array()
+	if points.size() < 2:
+		return false
+	for point in points:
+		var at := path.to_global(point)
+		if absf(at.y) > 0.01 or terrain.get_height_at(at.x, at.z) >= 0.0:
+			return false
+	return true
 
 ## A running GameScene over a seeded game, paused.
 func _spawn_game_scene() -> Node:

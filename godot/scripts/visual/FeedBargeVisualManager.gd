@@ -1,13 +1,20 @@
 extends Node
 class_name FeedBargeVisualManager
 
-## Visual feed barge manager: animates feed barges travelling between a
-## feed depot and active farming sites along spline paths. Runs continuously
+## Visual feed barge manager: animates feed barges sailing along the fjord
+## channel between a feed depot and active farming sites. Runs continuously
 ## while sites have fish (they need daily feeding).
 
+const ChannelBoat := preload("res://scripts/visual/ChannelBoat.gd")
+const FEED_YELLOW := Color(0.9, 0.7, 0.1, 1.0)
+
 @export var feed_barge_scene: PackedScene = preload("res://assets/models/boat/service_boat.tscn")
-@export var depot_position: Vector3 = Vector3(500.0, 0.0, 500.0)
-@export var travel_speed: float = 60.0  # m/s visual (accelerated for visibility)
+## The depot: a point on the fjord channel, as a fraction of the fjord's
+## length (-0.5 and 0.5 are its ends), at the player's end like the wellboat
+## harbour. It used to sit inside the fjord wall at (500, 0, 500).
+@export_range(-0.5, 0.5) var depot_along: float = -0.45
+## Metres beside the channel centreline: the other side from the wellboats.
+@export var lane_offset: float = -45.0
 @export var return_delay: float = 1.5  # seconds at destination before return
 @export var max_concurrent_barges: int = 4
 
@@ -72,7 +79,8 @@ func _sync_barges() -> void:
 		_remove_barge(sid)
 
 func _spawn_barge(site_id: String, site_data: Dictionary) -> void:
-	if not _terrain:
+	var terrain := _terrain as FjordTerrain
+	if terrain == null:
 		return
 	
 	var pen_mgr: FishPenManager = _fjord_env.get_node_or_null("FishPenManager")
@@ -86,56 +94,23 @@ func _spawn_barge(site_id: String, site_data: Dictionary) -> void:
 	if _active_barges.has(site_id):
 		return
 	
-	var boat := feed_barge_scene.instantiate()  # reuse service boat model
-	boat.name = "FeedBarge_%s" % site_id
-	_fjord_env.add_child(boat)
-	boat.global_position = depot_position
-	
-	var path3d := Path3D.new()
-	path3d.name = "FeedBargePath_%s" % site_id
-	_fjord_env.add_child(path3d)
-	
-	var curve := Curve3D.new()
-	var mid_point := (depot_position + target_pos) * 0.5 + Vector3(0, 50.0, 0)
-	curve.add_point(depot_position)
-	curve.add_point(mid_point)
-	curve.add_point(target_pos)
-	path3d.curve = curve
-	
-	var follow := PathFollow3D.new()
-	follow.name = "Follow"
-	path3d.add_child(follow)
-	follow.progress_ratio = 0.0
-	follow.rotation_mode = PathFollow3D.ROTATION_Y
-	
-	boat.reparent(follow)
-	boat.global_position = depot_position
-	
-	# Feed barge color (yellow/orange for feed)
-	_apply_feed_colour(boat)
+	# Along the channel at sea level (the old route arced 50 m over the
+	# terrain), reusing the service boat model, tinted feed yellow on its own
+	# copy of the deck material (the old Hull/Deck lookup tinted nothing).
+	var route := terrain.channel_route(depot_along * terrain.terrain_size.y, target_pos.z, lane_offset)
+	var parts := ChannelBoat.launch(_fjord_env, feed_barge_scene, route, "FeedBarge_%s" % site_id)
+	if not ChannelBoat.tint_deck(parts.boat, FEED_YELLOW):
+		push_warning("[FeedBargeVisualManager] boat scene has no tintable Deck")
 	
 	_active_barges[site_id] = {
-		"boat": boat,
-		"path": path3d,
-		"follow": follow,
+		"boat": parts.boat,
+		"path": parts.path,
+		"follow": parts.follow,
 		"target_pos": target_pos,
 		"state": "outbound",
 	}
 	
 	_animate_barge(site_id)
-
-func _apply_feed_colour(boat: Node3D) -> void:
-	var hull := boat.get_node_or_null("Hull")
-	if not hull:
-		return
-	var deck := hull.get_node_or_null("Deck")
-	if not deck:
-		return
-	var mat: BaseMaterial3D = deck.material_override
-	if not mat:
-		return
-	# Feed barge yellow
-	mat.albedo_color = Color(0.9, 0.7, 0.1, 1.0)
 
 func _animate_barge(site_id: String) -> void:
 	if not _active_barges.has(site_id):
@@ -165,6 +140,7 @@ func _start_return(site_id: String) -> void:
 		return
 	var data: Dictionary = _active_barges[site_id]
 	data.state = "return"
+	ChannelBoat.face_home(data.boat)
 	var follow: PathFollow3D = data.follow
 	var tween := create_tween()
 	tween.set_ease(Tween.EASE_IN_OUT)
@@ -182,8 +158,10 @@ func _remove_barge(site_id: String) -> void:
 	if not _active_barges.has(site_id):
 		return
 	var data: Dictionary = _active_barges[site_id]
-	if data.boat:
-		data.boat.queue_free()
 	if data.path:
-		data.path.queue_free()
+		data.path.queue_free()  # the boat rides on the path's follower
 	_active_barges.erase(site_id)
+
+## Site ids with a barge on the water.
+func active_site_ids() -> Array:
+	return _active_barges.keys()

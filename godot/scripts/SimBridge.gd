@@ -468,6 +468,7 @@ func transfer_batch_to_sea(batch_id: String) -> bool: return _proxies.transfer_b
 
 func get_competitors() -> Array[Dictionary]: return _proxies.get_competitors()
 func get_competitor_count() -> int: return _proxies.get_competitor_count()
+func get_competitor_farms() -> Array[Dictionary]: return _proxies.get_competitor_farms()
 func get_market_leader() -> Dictionary: return _proxies.get_market_leader()
 func get_empire_phase() -> String: return _proxies.get_empire_phase()
 func get_empire_score() -> int: return _proxies.get_empire_score()

@@ -145,9 +145,9 @@ func _on_sunset() -> void:
 
 
 func _on_storm_started() -> void:
-	# Notify simulation about storm risk
-	if _sim_bridge and _sim_bridge.has_method("set_weather"):
-		_sim_bridge.set_weather("Storm")
+	# The simulation owns the weather and the 3D follows it, never the other
+	# way: SimBridge has no set_weather, so this used to be a silent no-op.
+	pass
 
 
 func _on_storm_ended() -> void:

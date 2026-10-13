@@ -601,7 +601,10 @@ func get_pen_ids() -> Array[String]:
 
 
 func get_recommended_locations() -> Array[Vector3]:
-	"""Get list of recommended pen locations."""
+	"""Deep-water slots along the fjord channel (generated on first use).
+	The player's pens fill them from the start; rival farms from the end."""
+	if _recommended_locations.is_empty():
+		_generate_recommended_locations()
 	return _recommended_locations.duplicate()
 
 

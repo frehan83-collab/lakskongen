@@ -237,10 +237,18 @@ def test_simbridge_facade_parity():
 # guarded name and every call must exist on its target and fit its signature.
 
 BRIDGE_FILES = {"SimBridge": "SimBridge.gd", "GameBridge": "GameBridge*.cs"}
-# Orphaned panels: no scene, tab or script loads them. They call bridge methods
-# that do not exist and fall back to invented data. Exempt only while they stay
-# unreachable — wire them (bridge + tab) or delete them.
-ORPHANED_PANELS = {"godot/scripts/ui/EmpirePanel.gd", "godot/scripts/ui/StakeholderPanel.gd"}
+# Orphaned UI scripts: no scene, tab or script loads them. They call bridge
+# methods and signals that do not exist (Empire and Stakeholder fall back to
+# invented data). Exempt only while they stay unreachable — wire them (bridge
+# + tab) or delete them.
+ORPHANED_PANELS = {
+    "godot/scripts/ui/EmpirePanel.gd",
+    "godot/scripts/ui/StakeholderPanel.gd",
+    "godot/scripts/ui/CompetitorDashboard.gd",
+    "godot/scripts/ui/IPODialog.gd",
+    "godot/scripts/ui/MarketChannelPanel.gd",
+    "godot/scripts/ui/ProcessingMixPanel.gd",
+}
 GD_SIGNATURE_RE = re.compile(r"(?m)^(?:static\s+)?func\s+([A-Za-z_]\w*)\s*\(([^)]*)\)")
 CS_SIGNATURE_RE = re.compile(r"public\s+(?:static\s+|override\s+|virtual\s+)*[\w<>\[\],.?\s]+?\s+(\w+)\s*\(([^)]*)\)")
 BRIDGE_BIND_RE = re.compile(
@@ -249,6 +257,36 @@ BRIDGE_BIND_RE = re.compile(
 )
 BRIDGE_GETTER_RE = re.compile(
     r"(?m)^func\s+(\w+)\s*\(\)[^:\n]*:\s*\n\s*return\s+get_node(?:_or_null)?\(\s*\"/root/(SimBridge|GameBridge)\"\s*\)"
+)
+# Locals filled from a getter: `var sim := _sim()`.
+GETTER_LOCAL_RE = re.compile(r"(?m)^\s*var\s+(\w+)\s*(?::\s*\w+\s*)?:?=\s*(\w+)\(\)\s*$")
+# Bindings every script has (review R4): the autoload globals, direct
+# get_node("/root/...") chains, and the names this project always gives
+# SimBridge. `_sim_bridge` / `sim_bridge` arrive through NodePath exports or
+# bind_simulation() parameters, which the patterns above cannot follow; that
+# hid Sim3DSync and the 3D visual managers from this test entirely.
+IMPLICIT_BINDINGS = {
+    "SimBridge": "SimBridge",
+    "GameBridge": "GameBridge",
+    'get_node("/root/SimBridge")': "SimBridge",
+    'get_node_or_null("/root/SimBridge")': "SimBridge",
+    'get_node("/root/GameBridge")': "GameBridge",
+    'get_node_or_null("/root/GameBridge")': "GameBridge",
+    "_sim_bridge": "SimBridge",
+    "sim_bridge": "SimBridge",
+}
+GD_VAR_RE = re.compile(r"(?m)^(?:@\w+(?:\([^)]*\))?\s+)*var\s+(\w+)")
+GD_CONST_RE = re.compile(r"(?m)^const\s+(\w+)")
+GD_SIGNAL_RE = re.compile(r"(?m)^signal\s+(\w+)")
+# Node/Object properties and signals any bridge node has.
+NODE_PROPERTIES = frozenset(
+    "name owner script process_mode process_priority process_physics_priority "
+    "process_thread_group unique_name_in_owner scene_file_path editor_description "
+    "multiplayer physics_interpolation_mode auto_translate_mode".split()
+)
+NODE_SIGNALS = frozenset(
+    "ready renamed tree_entered tree_exiting tree_exited child_entered_tree "
+    "child_exiting_tree child_order_changed script_changed property_list_changed".split()
 )
 
 
@@ -315,16 +353,87 @@ def _signatures(target):
     return sigs
 
 
+def _properties(target):
+    """Names a script can read with get("name") or test with "name" in node."""
+    if target == "SimBridge":
+        src = (REPO / "godot" / "scripts" / BRIDGE_FILES[target]).read_text(encoding="utf-8")
+        return set(GD_VAR_RE.findall(src)) | set(GD_CONST_RE.findall(src)) | NODE_PROPERTIES
+    names = set(NODE_PROPERTIES)
+    for path in _bridge_sources():
+        src = path.read_text(encoding="utf-8")
+        names.update(m.group(1) for m in MEMBER_RE.finditer(src) if m.group(1) not in CS_KEYWORDS)
+    return names
+
+
+def _signals(target):
+    """Signal names a script can reach as an attribute (x.signal.connect(...))."""
+    if target == "SimBridge":
+        src = (REPO / "godot" / "scripts" / BRIDGE_FILES[target]).read_text(encoding="utf-8")
+        return set(GD_SIGNAL_RE.findall(src)) | NODE_SIGNALS
+    names = set(NODE_SIGNALS)
+    for path in _bridge_sources():
+        names.update(SIGNAL_RE.findall(path.read_text(encoding="utf-8")))
+    return names
+
+
+def _strip_gd_comments(src):
+    """Drop # comments outside strings, so prose never reads as a call."""
+    lines = []
+    for line in src.split("\n"):
+        quote = None
+        for i, ch in enumerate(line):
+            if quote:
+                if ch == quote:
+                    quote = None
+            elif ch in "\"'":
+                quote = ch
+            elif ch == "#":
+                line = line[:i]
+                break
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def _string_mask(text):
+    """1 for every character inside a string literal (after its opening
+    quote), so text in a message such as push_warning("SimBridge.x()") is not
+    read as a call. Opening quotes stay 0: "prop" in x starts on one."""
+    mask, quote, escaped = bytearray(len(text)), None, False
+    for i, ch in enumerate(text):
+        if quote:
+            mask[i] = 1
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == quote:
+                quote = None
+        elif ch in "\"'":
+            quote = ch
+    return mask
+
+
+def _ref(var):
+    """Regex for a binding: an identifier on a word boundary, or a literal expression."""
+    return rf"\b{re.escape(var)}" if re.fullmatch(r"\w+", var) else re.escape(var)
+
+
 def _bridge_bindings(text):
     found = {m.group(1): m.group(2) for m in BRIDGE_BIND_RE.finditer(text)}
     found.update({m.group(1) + "()": m.group(2) for m in BRIDGE_GETTER_RE.finditer(text)})
     return found
 
 
-def _bridge_consumer_problems(src, rel, signatures):
+def _bridge_consumer_problems(src, rel, signatures, properties=None, signals=None):
     """(checked, problems) for one GDScript source."""
+    if properties is None:
+        properties = {t: _properties(t) for t in BRIDGE_FILES}
+    if signals is None:
+        signals = {t: _signals(t) for t in BRIDGE_FILES}
+    src = _strip_gd_comments(src)
     class_text, funcs = _scopes(src)
-    class_bindings = _bridge_bindings(class_text)
+    class_bindings = dict(IMPLICIT_BINDINGS)
+    class_bindings.update(_bridge_bindings(class_text))
     if rel.startswith("godot/scripts/bridge/"):
         class_bindings["game_bridge"] = "GameBridge"  # injected by the SimBridge facade
     declared = set(re.findall(r"(?m)^(?:@onready\s+)?var\s+(\w+)", class_text))
@@ -337,14 +446,40 @@ def _bridge_consumer_problems(src, rel, signatures):
     for body in [class_text] + funcs:
         bindings = dict(class_bindings)
         bindings.update({k: v for k, v in _bridge_bindings(body).items() if not k.endswith("()")})
+        for m in GETTER_LOCAL_RE.finditer(body):
+            if m.group(2) + "()" in bindings:
+                bindings[m.group(1)] = bindings[m.group(2) + "()"]
+        in_string = _string_mask(body)
         for var, target in bindings.items():
             sigs = signatures[target]
-            ref = re.escape(var) if var.endswith("()") else rf"\b{re.escape(var)}"
-            for m in re.finditer(ref + r"\.has_method\(\"(\w+)\"\)", body):
+            ref = _ref(var)
+            def matches(pattern):
+                return (m for m in re.finditer(pattern, body) if not in_string[m.start()])
+            for m in matches(ref + r"\.(get|set)\(\s*\"(\w+)\""):
+                checked += 1
+                if m.group(2) not in properties[target]:
+                    problems.append(f"{rel}: {var}.{m.group(1)}(\"{m.group(2)}\") — {target} has no such property")
+            # Not "x" in sim.method()[0]: that tests a key of the returned value.
+            for m in matches(r"\"(\w+)\"\s+in\s+" + ref + r"(?![\w.(\[])"):
+                checked += 1
+                if m.group(1) not in properties[target]:
+                    problems.append(f"{rel}: \"{m.group(1)}\" in {var} — {target} has no such property")
+            for m in matches(ref + r"\.has_method\(\"(\w+)\"\)"):
                 checked += 1
                 if m.group(1) not in sigs:
                     problems.append(f"{rel}: {var}.has_method(\"{m.group(1)}\") — {target} has no such method")
-            for m in re.finditer(ref + r"\.(\w+)\s*\(", body):
+            for m in matches(ref + r"\.(?:call|call_deferred|callv)\(\s*\"(\w+)\""):
+                checked += 1
+                if m.group(1) not in sigs:
+                    problems.append(f"{rel}: {var}.call(\"{m.group(1)}\") — {target} has no such method")
+            # Attribute reads (sim.current_day, sim.state_updated.connect):
+            # a property, a signal, or a method used as a Callable.
+            for m in matches(ref + r"\.(\w+)\b(?!\s*\()"):
+                name = m.group(1)
+                checked += 1
+                if not (name in properties[target] or name in signals[target] or name in sigs):
+                    problems.append(f"{rel}: {var}.{name} — {target} has no such property or signal")
+            for m in matches(ref + r"\.(\w+)\s*\("):
                 name = m.group(1)
                 if name in NODE_BUILTINS or name == "get_tree":
                     continue
@@ -390,7 +525,8 @@ def test_bridge_consumers_call_real_methods_with_valid_arity():
                 f"{rel} is no longer orphaned: give it a real bridge contract and drop it from ORPHANED_PANELS")
             continue
         problems += found
-    assert checked > 300, f"contract harness broken: only {checked} bridge calls checked"
+    # 1,102 at the last count; 1,013 if the implicit bindings stop resolving.
+    assert checked > 1050, f"contract harness broken: only {checked} bridge calls checked"
     assert not problems, "Bridge calls that fail at runtime:\n  " + "\n  ".join(sorted(set(problems)))
 
 
@@ -433,6 +569,75 @@ def test_bridge_consumer_check_catches_the_known_failures():
     assert "take_loan() with 1 argument(s)" in text, text
     assert "has_method(\"get_ghost_report\") — SimBridge has no such method" in text, text
     assert "TakeLoan() with 4 argument(s)" in text, text
+
+
+def test_bridge_consumer_check_follows_every_way_scripts_reach_the_bridges():
+    """Non-vacuity for review R4: these reaches were all invisible to the check,
+    which is how Sim3DSync and the wellboat and competitor-farm visuals kept
+    calling methods and reading properties that do not exist."""
+    signatures = {t: _signatures(t) for t in BRIDGE_FILES}
+    sample = (
+        "@export var sim_bridge_path: NodePath = \"/root/SimBridge\"\n"
+        "var _sim_bridge = null\n"
+        "func _bridge() -> Node:\n"
+        "\treturn get_node_or_null(\"/root/SimBridge\")\n"
+        "func bind_simulation(sim_bridge) -> void:\n"
+        "\tsim_bridge.get_all_wellboat_jobs()\n"
+        "func _tick() -> void:\n"
+        "\tvar sim := _bridge()\n"
+        "\tsim.get_ghost_jobs()\n"
+        "\tSimBridge.get_phantom()\n"
+        "\tGameBridge.GetPhantom()\n"
+        "\tget_node(\"/root/SimBridge\").get_spectre()\n"
+        "\tvar day = _sim_bridge.get(\"day\")\n"
+        "\tif \"night_mode\" in _sim_bridge:\n"
+        "\t\t_sim_bridge.current_day\n"
+        "\t# SimBridge.get_commented_out() is prose, not a call\n"
+        "\tvar real = _sim_bridge.get(\"current_day\")\n"
+    )
+    _, problems = _bridge_consumer_problems(sample, "sample.gd", signatures)
+    text = "\n".join(problems)
+    for expected in (
+        "sim_bridge.get_all_wellboat_jobs() — SimBridge has no such method",
+        "sim.get_ghost_jobs() — SimBridge has no such method",
+        "SimBridge.get_phantom() — SimBridge has no such method",
+        "GameBridge.GetPhantom() — GameBridge has no such method",
+        "get_spectre() — SimBridge has no such method",
+        "_sim_bridge.get(\"day\") — SimBridge has no such property",
+        "\"night_mode\" in _sim_bridge — SimBridge has no such property",
+    ):
+        assert expected in text, text
+    assert "commented_out" not in text and "current_day" not in text, text
+
+
+def test_bridge_consumer_check_reads_strings_keys_and_attributes_correctly():
+    """Review of R4: a message string is not a call, a key test on a returned
+    value is not a property test, Node properties are allowed, a failed set()
+    says set(), and dynamic call() names and attribute reads are checked."""
+    signatures = {t: _signatures(t) for t in BRIDGE_FILES}
+    sample = (
+        "var _sim_bridge = null\n"
+        "func _tick() -> void:\n"
+        "\tpush_warning(\"SimBridge.get_x() is missing\")\n"
+        "\tif \"pen_id\" in _sim_bridge.get_all_pens()[0]:\n"
+        "\t\tpass\n"
+        "\t_sim_bridge.set(\"process_mode\", 0)\n"
+        "\tif \"script\" in _sim_bridge:\n"
+        "\t\tpass\n"
+        "\t_sim_bridge.set(\"night\", 1)\n"
+        "\tSimBridge.call_deferred(\"GetPhantom\")\n"
+        "\tvar d = _sim_bridge.curent_day\n"
+        "\t_sim_bridge.state_updated.connect(_tick)\n"
+        "\tvar ok = _sim_bridge.current_day\n"
+    )
+    _, problems = _bridge_consumer_problems(sample, "sample.gd", signatures)
+    text = "\n".join(problems)
+    assert "get_x" not in text and "pen_id" not in text, text
+    assert "process_mode" not in text and "\"script\"" not in text, text
+    assert "_sim_bridge.set(\"night\") — SimBridge has no such property" in text, text
+    assert "SimBridge.call(\"GetPhantom\") — SimBridge has no such method" in text, text
+    assert "_sim_bridge.curent_day — SimBridge has no such property or signal" in text, text
+    assert "state_updated" not in text and "current_day —" not in text, text
 
 
 if __name__ == "__main__":

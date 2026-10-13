@@ -38,7 +38,6 @@ func _on_state_updated() -> void:
 	if not _sim_bridge:
 		return
 	_sync_pens_from_sim()
-	_update_water_from_sim()
 
 func _on_day_advanced(day: int, season: String) -> void:
 	_set_season_visuals(season)
@@ -181,28 +180,14 @@ func _find_water_material() -> ShaderMaterial:
 			return water_node.get_surface_override_material(0) as ShaderMaterial
 	return null
 
-func _update_water_from_sim() -> void:
-	if not _sim_bridge or not _sim_bridge.has_method("get_water_quality"):
-		return
-	var wq: Dictionary = _sim_bridge.get_water_quality()
-	if wq.is_empty():
-		return
-	update_water_quality(
-		str(wq.get("zone", "")),
-		float(wq.get("dissolved_oxygen_mg_l", 8.0)),
-		float(wq.get("temperature_c", 8.0)),
-		float(wq.get("salinity", 34.0))
-	)
-
 func _set_season_visuals(season: String) -> void:
 	# Adjust water color, fog, lighting per season
 	pass
 
 func _on_pen_input(camera: Node, event: InputEvent, position: Vector3, normal: Vector3, shape_idx: int, pen_id: String) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		# Selection is visual only: SimBridge has no select_pen (review R4).
 		select_pen(pen_id)
-		if _sim_bridge:
-			_sim_bridge.select_pen(pen_id)
 
 func update_pen_visual(pen_id: String, state: Dictionary) -> void:
 	_update_pen_visual(pen_id, state)

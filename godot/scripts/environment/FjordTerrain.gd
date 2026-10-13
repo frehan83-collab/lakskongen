@@ -438,6 +438,34 @@ func get_height_at(world_x: float, world_z: float) -> float:
 	return h * max_height
 
 
+## World X of the fjord channel's centreline at world Z (the generator's
+## fjord_center). The fairway, at least channel_floor deep, runs
+## fairway_half_width() metres either side of it.
+func channel_center_x(world_z: float) -> float:
+	var nz := (world_z + terrain_size.y / 2.0) / terrain_size.y * 2.0 - 1.0
+	return sin(nz * 2.0) * 0.1 * terrain_size.x / 2.0
+
+
+## Half-width of the deep fairway around the channel centreline, in metres.
+func fairway_half_width() -> float:
+	return fjord_width * 0.35 * terrain_size.x / 2.0
+
+
+## Sea-level waypoints along the channel from from_z to to_z, `lane` metres
+## beside the centreline (clamped to the fairway) and every `step` metres. A
+## boat that follows them stays on open water and passes beside the pens
+## anchored on the centreline; boats used to leave from inside the fjord
+## wall and arc 50-80 m over the terrain.
+func channel_route(from_z: float, to_z: float, lane: float, step: float = 100.0) -> PackedVector3Array:
+	var offset := clampf(lane, -fairway_half_width(), fairway_half_width())
+	var count := maxi(1, ceili(absf(to_z - from_z) / step))
+	var points := PackedVector3Array()
+	for i in range(count + 1):
+		var z := lerpf(from_z, to_z, float(i) / float(count))
+		points.append(Vector3(channel_center_x(z) + offset, 0.0, z))
+	return points
+
+
 ## Pen anchor positions along the fjord channel, in world metres (Y = 0).
 ## Prefers the C# TerrainGenerator bridge so sim-side and visual placement
 ## agree; falls back to the GDScript channel-center mirror (same math as

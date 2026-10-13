@@ -377,6 +377,10 @@ func transfer_batch_to_sea(batch_id: String) -> bool:
 
 func get_competitors() -> Array[Dictionary]: return _arr(game_bridge.GetCompetitors()) if game_bridge else []
 func get_competitor_count() -> int: return game_bridge.GetCompetitorCount() if game_bridge else 0
+## AI competitor farms for the grey 3D silhouettes: id, name, market_share,
+## strategy, position_x/position_z (the bridge's fixed spots; the 3D view
+## uses the fjord's channel slots instead, these lie inside the fjord walls).
+func get_competitor_farms() -> Array[Dictionary]: return _arr(game_bridge.GetCompetitorCompanies()) if game_bridge else []
 func get_market_leader() -> Dictionary: return game_bridge.GetMarketLeader() if game_bridge else {}
 func get_empire_phase() -> String: return game_bridge.GetEmpirePhase() if game_bridge else "SmallFarmer"
 func get_empire_score() -> int: return game_bridge.GetEmpireScore() if game_bridge else 0
