@@ -613,7 +613,7 @@ public partial class GameBridge : Node
             return false;
         }
 
-        SimulationEngine.FinanceManager.Spend(cost);
+        SimulationEngine.PayCost(cost, LakskongenSim.Core.CostBooking.Capex, "barriers");
         site.Barrier = parsed;
         site.BarrierDaysSinceCleaning = 0;
 
@@ -644,7 +644,7 @@ public partial class GameBridge : Node
 
         decimal cost = Farm.BarrierTech.SpecFor(site.Barrier).WeeklyOpexNok;
         if (SimulationEngine!.FinanceManager.Balance < cost) return false;
-        SimulationEngine.FinanceManager.Spend(cost);
+        SimulationEngine.PayCost(cost, LakskongenSim.Core.CostBooking.Opex, "barriers");
         site.BarrierDaysSinceCleaning = 0;
 
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
@@ -930,7 +930,7 @@ public partial class GameBridge : Node
                 EmitSignal(SignalName.FarmActionCompleted, "countermeasure", siteId, false);
                 return false;
             }
-            SimulationEngine.FinanceManager.Spend(cost);
+            SimulationEngine.PayCost(cost, LakskongenSim.Core.CostBooking.Capex, "bloom_countermeasures");
             if (isBubble) site.HasBubbleCurtain = true; else site.HasO2Diffuser = true;
             SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
             {
@@ -1017,7 +1017,7 @@ public partial class GameBridge : Node
             bool hubExists = SimulationEngine.State.SeaSites.Any(s => s.HasSludgeHubConnection);
             decimal cost = hubExists ? 5_000_000m : 40_000_000m; // Connection vs new hub
             if (SimulationEngine!.FinanceManager.Balance < cost) return false;
-            SimulationEngine.FinanceManager.Spend(cost);
+            SimulationEngine.PayCost(cost, LakskongenSim.Core.CostBooking.Capex, "sludge");
             site.HasSludgeHubConnection = true;
 
             SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
@@ -1061,12 +1061,9 @@ public partial class GameBridge : Node
         decimal netRev = biogasRev + fertRev - opex;
 
         if (netRev > 0)
-            SimulationEngine!.FinanceManager.AddRevenue(netRev);
+            SimulationEngine!.ReceiveIncome(netRev, "sludge");
         else
-        {
-            if (!SimulationEngine!.FinanceManager.Spend(-netRev))
-                SimulationEngine!.FinanceManager.ForceSpend(-netRev);
-        }
+            SimulationEngine!.PayCost(-netRev, LakskongenSim.Core.CostBooking.Opex, "sludge");
 
         site.SludgeValorizedKgDs += site.SludgeAccumulatedKgDs;
         site.LastSludgeValorizationDay = SimulationEngine!.State.Day;
@@ -1163,7 +1160,9 @@ public partial class GameBridge : Node
             LakskongenSim.Core.SimRngStreams.CohortTransfer, plan.SourceSiteId, plan.DestSiteId)
             .Next(int.MaxValue);
         var execResult = Farm.CohortTransferSystem.ExecuteTransfer(
-            plan, engine.State, engine.FinanceManager, new Random(transferRngSeed));
+            plan, engine.State,
+            cost => engine.PayCost(cost, LakskongenSim.Core.CostBooking.Opex, "transfers"),
+            new Random(transferRngSeed));
 
         result["success"] = execResult.Success;
         result["fish_transferred"] = execResult.FishTransferred;

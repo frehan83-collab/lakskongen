@@ -96,11 +96,13 @@ namespace LakskongenSim.Farm
 
         /// <summary>
         /// Execute a transfer immediately (used when wellboat arrives).
-        /// Returns result with actual losses and cost.
+        /// Returns result with actual losses and cost. The cost is paid through
+        /// <c>payCost</c> (the engine ledger's PayCost) so it is booked as OpEx.
         /// </summary>
         public static TransferResult ExecuteTransfer(
-            TransferPlan plan, GameState state, FinanceManager finance, Random rng)
+            TransferPlan plan, GameState state, Action<decimal> payCost, Random rng)
         {
+            ArgumentNullException.ThrowIfNull(payCost);
             var sourceSite = state.SeaSites.FirstOrDefault(s => s.Id == plan.SourceSiteId);
             var destSite = state.SeaSites.FirstOrDefault(s => s.Id == plan.DestSiteId);
             if (sourceSite == null || destSite == null)
@@ -186,9 +188,8 @@ namespace LakskongenSim.Farm
             foreach (var pop in sourceSite.Pens)
                 pop.Cohorts.RemoveAll(c => c.Count <= 0);
 
-            // Charge cost
-            if (!finance.Spend(plan.EstimatedCostNok))
-                finance.ForceSpend(plan.EstimatedCostNok);
+            // Charge cost (on credit when cash is short)
+            payCost(plan.EstimatedCostNok);
 
             // Log event
             string reasonText = plan.Reason switch

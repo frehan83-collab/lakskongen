@@ -97,6 +97,9 @@ public static class PlayerScriptProbe
         double growthAccumulator = 0.0;
 
         bool saveLoadDone = false;
+        var harvestedSites = new HashSet<string>();
+        double fishAtHarvest = 0.0;
+        int sitesStocked = engine.State.SeaSites.Count(s => SiteFishCount(s) > 0);
         while (engine.State.Day < CareerHorizonDays)
         {
             engine.Advance(AdvanceChunkDays);
@@ -118,38 +121,43 @@ public static class PlayerScriptProbe
                 saveLoadDone = true;
                 engine = ResumeAfterSaveLoadRoundTrip(engine, seed);
                 result.SaveLoadRoundTripped = true;
-                lastFeedUsed = 0.0;   // resumed engine counters start at 0
-                lastGrowth = 0.0;
+                // The load restores the feed totals (review F896: re-anchoring at
+                // 0 counted the pre-save feed twice).
+                lastFeedUsed = engine.Feed.TotalFeedUsedKg;
+                lastGrowth = engine.Feed.TotalGrowthKg;
                 continue;
             }
 
-            if (AllSitesAtHarvestWeight(engine.State, HarvestTriggerWeightKg))
+            // ===== Harvest through the command surface, per site =====
+            // Like a farmer, harvest each site the day it reaches harvest
+            // weight: holding a ready site for the slowest one feeds fish at
+            // their growth ceiling for months (only "affordable" while unpaid
+            // feed was waived, review F1130).
+            foreach (var site in engine.State.SeaSites.OrderBy(s => s.Id).ToList())
+            {
+                if (harvestedSites.Contains(site.Id) || SiteFishCount(site) == 0) continue;
+                if (SiteMeanWeightKg(site) < HarvestTriggerWeightKg) continue;
+                fishAtHarvest += SiteFishCount(site);
+                var cmd = engine.HarvestSite(site.Id);
+                Assert.True(cmd.Ok, $"harvest of {site.Id} failed: {cmd.ErrorKey}");
+                harvestedSites.Add(site.Id);
+                result.HarvestedKg += cmd.Value;
+                result.RevenueNok += cmd.Value2;
+            }
+
+            // Both careers (with and without the round trip) run at least to
+            // the save day, so they stay comparable day for day.
+            if (engine.State.Day >= SaveLoadDay &&
+                engine.State.SeaSites.All(s => harvestedSites.Contains(s.Id) || SiteFishCount(s) == 0))
                 break;
         }
 
         Assert.True(!roundTripSaveLoad || saveLoadDone, "save/load round trip never ran (horizon hit first)");
-        Assert.True(AllSitesAtHarvestWeight(engine.State, HarvestTriggerWeightKg),
-            $"career never reached harvest weight within {CareerHorizonDays} days");
+        Assert.True(harvestedSites.Count > 0 && engine.State.SeaSites.All(s => harvestedSites.Contains(s.Id) || SiteFishCount(s) == 0),
+            $"career never reached harvest weight on every site within {CareerHorizonDays} days");
 
-        double fishBeforeHarvest = TotalFish(engine.State);
-        int nonEmptySitesBeforeHarvest = engine.State.SeaSites.Count(s => SiteFishCount(s) > 0);
-
-        // ===== Harvest through the command surface, per site =====
-        int sitesHarvested = 0;
-        foreach (var site in engine.State.SeaSites.OrderBy(s => s.Id).ToList())
-        {
-            var cmd = engine.HarvestSite(site.Id);
-            if (!cmd.Ok)
-            {
-                Assert.Equal("site_empty", cmd.ErrorKey);
-                continue;
-            }
-            sitesHarvested++;
-            result.HarvestedKg += cmd.Value;
-            result.RevenueNok += cmd.Value2;
-        }
-
-        result.HarvestedAllSites = sitesHarvested == nonEmptySitesBeforeHarvest;
+        double fishBeforeHarvest = fishAtHarvest;
+        result.HarvestedAllSites = harvestedSites.Count == sitesStocked;
         result.DaysRun = engine.State.Day;
         result.EndingBalance = engine.FinanceManager.Balance;
         result.RealizedPricePerKg = result.HarvestedKg > 0.001

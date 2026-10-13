@@ -136,7 +136,10 @@ namespace LakskongenSim.Core;
                 // Advance population: age and mortality only — growth handled by SDE below
                 population.AdvanceDays(1, skipGrowth: true, engine.MortalityReduction, engine.DiseaseResistanceBonus);
 
-                // Manual growth adjustment — indexed loop, in-place (T56)
+                // Manual growth adjustment — indexed loop, in-place (T56).
+                // grownKg = the biomass this population gained today; the feed
+                // ration below is derived from it.
+                double grownKg = 0.0;
                 for (int ci = 0; ci < population.Cohorts.Count; ci++)
                 {
                     var cohort = population.Cohorts[ci];
@@ -170,8 +173,10 @@ namespace LakskongenSim.Core;
                     // P5: post-smolt quality carryover (SuperSmolt grows faster).
                     double qualityGrowth = Farm.SmoltQualityRegistry.Get(cohort.Quality).GrowthMultiplier;
                     double delta = newCalculatedWeight - cohort.MeanWeightKg;
+                    double weightBefore = cohort.MeanWeightKg;
                     cohort.MeanWeightKg += (delta * geneticMultiplier * inbreedingGrowthFactor * containmentMods.GrowthMult * qualityGrowth);
                     if (cohort.MeanWeightKg < 0) cohort.MeanWeightKg = 0;
+                    grownKg += cohort.Count * Math.Max(0.0, cohort.MeanWeightKg - weightBefore);
                 }
 
                 // Feed the population — FCR-aware.
@@ -199,7 +204,8 @@ namespace LakskongenSim.Core;
                 };
                 if (engine.AIFeeding != null && engine.AIFeeding.IsInstalled)
                     spreadQuality = Math.Min(1.0, spreadQuality + 0.1);
-                var feedResult = engine.Feed.Feed(population, 1, temperature, densityForO2, waterPenalty, spreadQuality, engine.FCRReduction, engine.FeedWasteReduction);
+                var feedResult = engine.Feed.Feed(population, 1, temperature, densityForO2, waterPenalty, spreadQuality,
+                    engine.FCRReduction, engine.FeedWasteReduction, actualGrowthKg: grownKg);
 
                 if (zone != null && feedResult.FeedUsedKg > 0)
                 {
@@ -211,8 +217,7 @@ namespace LakskongenSim.Core;
                 if (spill > 0.0 && feedResult.CostNOK > 0)
                 {
                     decimal spillCost = feedResult.CostNOK * (decimal)spill;
-                    if (!engine.FinanceManager.Spend(spillCost))
-                        engine.FinanceManager.ForceSpend(spillCost);
+                    engine.PayCost(spillCost, CostBooking.Cogs, "feed_spill");
                 }
 
                 // Phase 5.3: Sludge accumulation from feed used.
@@ -557,8 +562,7 @@ namespace LakskongenSim.Core;
                     decimal monthlyOpex = engine.VerticalIntegrationAnnualOpexNOK / 12m;
                     if (monthlyOpex > 0)
                     {
-                        engine.FinanceManager.Spend(monthlyOpex);
-                        engine.FinancialStatements?.RecordOperatingExpense(monthlyOpex);
+                        engine.PayCost(monthlyOpex, CostBooking.Opex, "vertical_integration");
                         engine.FireEvent($"🏭 Vertical integration monthly OPEX: {monthlyOpex:N0} NOK");
                     }
 
@@ -588,21 +592,22 @@ namespace LakskongenSim.Core;
                 {
                     var result = engine.CorporateFinance.ExecuteQuarterly(
                         engine.FinancialStatements!,
-                        engine.TaxSystem!,
                         engine.FinanceManager!,
                         engine.InvestorSystem,
+                        engine.OutstandingDebt(),
                         engine.State.Day);
 
-                    // Handle year-end
+                    // Handle year-end: the engine ledger settles the year's tax
+                    // first, then corporate finance closes the books.
                     if (result.IsYearEnd)
                     {
+                        var tax = engine.SettleAnnualTax();
                         var annualResult = engine.CorporateFinance.ExecuteAnnualClose(
                             engine.FinancialStatements!,
-                            engine.TaxSystem!,
                             engine.FinanceManager!,
                             engine.InvestorSystem,
-                            engine.GetTotalBiomassKg(),
-                            (decimal)(engine.MarketSimulation?.PricePerKg ?? 70m),
+                            tax,
+                            engine.OutstandingDebt(),
                             engine.State.Day);
 
                         engine.FireEvent($"📋 YEAR {annualResult.Year} CLOSE: Net income {annualResult.NetIncomeBeforeTax:N0}, Tax {annualResult.TaxPaid:N0}, Covenants {(annualResult.CovenantTest.AllPassed ? "OK" : "BREACH")}");
@@ -719,8 +724,7 @@ namespace LakskongenSim.Core;
                 {
                     if (penalty > 0)
                     {
-                        if (!engine.FinanceManager.Spend(penalty))
-                            engine.FinanceManager.ForceSpend(penalty);
+                        engine.PayCost(penalty, CostBooking.Opex, "contract_penalties");
                         engine.State.EventLog.Add(new Events.EventRecord
                         {
                             Day = engine.State.Day,

@@ -46,33 +46,31 @@ namespace LakskongenSim.Finance
         }
 
         /// <summary>
-        /// Compute total tax for the period: corporate + resource rent.
+        /// Final corporate tax for a fiscal year's PRE-tax income, applying and
+        /// updating the loss carry-forward (review F1137): a loss year adds the
+        /// whole pre-tax loss to the carry-forward; a profit year may offset at
+        /// most <see cref="LossCarryForwardLimit"/> of its income with it.
         /// </summary>
-        /// <param name="netIncome">Accounting net income before tax</param>
-        /// <param name="resourceRentBase">Resource rent tax base (norm price × volume - deductions)</param>
-        /// <returns>Total tax payable</returns>
-        public decimal ComputeTotalTax(decimal netIncome, decimal resourceRentBase)
+        public decimal ComputeCorporateTax(decimal preTaxIncome)
         {
-            // Corporate tax: 22% on net income after loss carry-forward
-            var taxableIncome = Math.Max(0m, netIncome - _lossCarryForward * LossCarryForwardLimit);
-            var corporateTax = taxableIncome * CorporateTaxRate;
-
-            // Resource rent tax: 25% on resource rent base
-            var resourceRentTax = Math.Max(0m, resourceRentBase) * ResourceRentTaxRate;
-
-            var totalTax = corporateTax + resourceRentTax;
-
-            // Update loss carry-forward
-            if (netIncome < 0m)
+            if (preTaxIncome <= 0m)
             {
-                _lossCarryForward += Math.Abs(netIncome);
+                _lossCarryForward += -preTaxIncome;
+                return 0m;
             }
-            else
-            {
-                var utilized = Math.Min(_lossCarryForward * LossCarryForwardLimit, taxableIncome);
-                _lossCarryForward = Math.Max(0m, _lossCarryForward - utilized);
-            }
+            var offset = Math.Min(_lossCarryForward, preTaxIncome * LossCarryForwardLimit);
+            _lossCarryForward -= offset;
+            return (preTaxIncome - offset) * CorporateTaxRate;
+        }
 
+        /// <summary>
+        /// Corporate tax on <paramref name="preTaxIncome"/> (with carry-forward)
+        /// plus resource-rent tax on a positive <paramref name="resourceRentBase"/>.
+        /// </summary>
+        public decimal ComputeTotalTax(decimal preTaxIncome, decimal resourceRentBase)
+        {
+            var totalTax = ComputeCorporateTax(preTaxIncome)
+                + Math.Max(0m, resourceRentBase) * ResourceRentTaxRate;
             OnTaxPaid?.Invoke(totalTax, $"Year {CurrentYear} Q{CurrentQuarter + 1}");
             return totalTax;
         }

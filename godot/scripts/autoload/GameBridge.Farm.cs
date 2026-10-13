@@ -342,7 +342,7 @@ public partial class GameBridge : Node
                 EmitSignal(SignalName.FarmActionCompleted, "countermeasure", siteId, false);
                 return false;
             }
-            SimulationEngine.FinanceManager.Spend(cost);
+            SimulationEngine.PayCost(cost, LakskongenSim.Core.CostBooking.Capex, "bloom_mitigation");
             if (!_installedMitigations.TryGetValue(site.Id, out var set))
             {
                 set = new HashSet<Farm.MitigationKind>();
@@ -707,7 +707,7 @@ public partial class GameBridge : Node
             }
             pop.VaccinatedDay = state.Day;
         }
-        SimulationEngine.FinanceManager.Spend(cost);
+        SimulationEngine.PayCost(cost, LakskongenSim.Core.CostBooking.Opex, "vaccination");
         state.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
             Day = state.Day,
@@ -745,7 +745,7 @@ public partial class GameBridge : Node
                 EmitSignal(SignalName.FarmActionCompleted, "mitigation", siteId, false);
                 return false;
             }
-            SimulationEngine.FinanceManager.Spend(cost);
+            SimulationEngine.PayCost(cost, LakskongenSim.Core.CostBooking.Capex, "mitigation");
             if (isSkirt) site.HasLiceSkirt = true; else site.HasSealDeterrent = true;
             SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
             {
@@ -948,7 +948,7 @@ public partial class GameBridge : Node
         decimal due = cost - ownedValue;
         if (due <= 0) return true;
         if (SimulationEngine!.FinanceManager.Balance < due) return false;
-        SimulationEngine.FinanceManager.Spend(due);
+        SimulationEngine.PayCost(due, LakskongenSim.Core.CostBooking.Capex, "processing_plant");
         state.OwnsProcessingPlant = true;
         state.ProcessingTier = tier;
         state.EventLog.Add(new LakskongenSim.Events.EventRecord
@@ -1125,7 +1125,7 @@ public partial class GameBridge : Node
         if (target <= site.Containment) return false; // no downgrade / same-level
         var mods = LakskongenSim.Farm.ContainmentTech.ModifiersFor(target);
         if (SimulationEngine!.FinanceManager.Balance < mods.CapexNok) return false;
-        SimulationEngine.FinanceManager.Spend(mods.CapexNok);
+        SimulationEngine.PayCost(mods.CapexNok, LakskongenSim.Core.CostBooking.Capex, "containment");
         site.Containment = target;
         if (target >= LakskongenSim.Farm.ContainmentLevel.Skirt)
             site.HasLiceSkirt = true;
@@ -1181,7 +1181,7 @@ public partial class GameBridge : Node
             return false;
         }
         site.NetIntegrityPct = 100.0;
-        SimulationEngine.FinanceManager.Spend(cost);
+        SimulationEngine.PayCost(cost, LakskongenSim.Core.CostBooking.Opex, "net_repairs");
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
             Day = SimulationEngine.State.Day,
@@ -1449,7 +1449,7 @@ public partial class GameBridge : Node
         // per game seed + role), not a fresh unseeded Random.
         int moraleBonus = SimulationEngine?.Rng
             ?.Stream(LakskongenSim.Core.SimRngStreams.HireWorker, role)?.Next(0, 21) ?? 0;
-        SimulationEngine.FinanceManager.Spend(signingCost);
+        SimulationEngine.PayCost(signingCost, LakskongenSim.Core.CostBooking.Opex, "hiring");
         state.Crew.Add(new LakskongenSim.Core.CrewMember
         {
             Name = candidate.name,
@@ -1573,7 +1573,7 @@ public partial class GameBridge : Node
             return 0f;
         }
 
-        SimulationEngine.FinanceManager.Spend(maintenanceCost);
+        SimulationEngine.PayCost(maintenanceCost, LakskongenSim.Core.CostBooking.Opex, "ras_maintenance");
 
         // Restore optimal water conditions after maintenance
         facility.CurrentWaterTemp = facility.TargetWaterTemp;
@@ -1686,7 +1686,7 @@ public partial class GameBridge : Node
             return 0f;
         }
 
-        SimulationEngine.FinanceManager.Spend(repairCost);
+        SimulationEngine.PayCost(repairCost, LakskongenSim.Core.CostBooking.Opex, "offshore_repairs");
 
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
@@ -1759,7 +1759,7 @@ public partial class GameBridge : Node
             return 0f;
         }
 
-        SimulationEngine.FinanceManager.Spend(installCost);
+        SimulationEngine.PayCost(installCost, LakskongenSim.Core.CostBooking.Capex, "ai_feeding");
         SimulationEngine.AIFeeding.IsInstalled = true;
         SimulationEngine.AIFeeding.DaysSinceInstallation = 0;
         SimulationEngine.AIFeeding.CalibrationLevel = 0.5; // Starts at 50%, improves over time
@@ -1799,7 +1799,7 @@ public partial class GameBridge : Node
             return 0f;
         }
 
-        SimulationEngine.FinanceManager.Spend(cleaningCost);
+        SimulationEngine.PayCost(cleaningCost, LakskongenSim.Core.CostBooking.Opex, "ai_feeding");
         SimulationEngine.AIFeeding.CameraUptime = 1.0; // Restore full camera uptime
 
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
@@ -1879,7 +1879,7 @@ public partial class GameBridge : Node
             return false;
         }
 
-        SimulationEngine.FinanceManager.Spend(totalCost);
+        SimulationEngine.PayCost(totalCost, LakskongenSim.Core.CostBooking.Cogs, "smolts");
 
         // Create new batch (simplified - actual batch tracking would be in SmoltBatch class)
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
@@ -1919,7 +1919,7 @@ public partial class GameBridge : Node
             return 0f;
         }
 
-        SimulationEngine.FinanceManager.Spend(vaccineCost);
+        SimulationEngine.PayCost(vaccineCost, LakskongenSim.Core.CostBooking.Opex, "vaccination");
 
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
@@ -1965,7 +1965,7 @@ public partial class GameBridge : Node
             return false;
         }
 
-        SimulationEngine.FinanceManager.Spend(transferCost);
+        SimulationEngine.PayCost(transferCost, LakskongenSim.Core.CostBooking.Opex, "transfers");
 
         // Move batch to first available sea site (simplified)
         var targetSite = SimulationEngine.State.SeaSites.First();

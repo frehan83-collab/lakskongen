@@ -45,6 +45,12 @@ namespace LakskongenSim.Events
 
         public event Action<EventRecord>? OnEventRaised;
 
+        /// <summary>
+        /// Raised after an event's effect ran, with the cash it actually moved
+        /// on the FinanceManager (0 when none), so the engine ledger can book it.
+        /// </summary>
+        public event Action<EventRecord, decimal>? OnEventCashSettled;
+
         public Storyteller(TimeManager time, GameState state, Finance.FinanceManager? financeManager = null, int? seed = null, bool enableDefaultEvents = true, SimRngStream? rng = null)
         {
             _time = time ?? throw new ArgumentNullException(nameof(time));
@@ -110,7 +116,8 @@ namespace LakskongenSim.Events
                 Category = chosen.Category
             };
 
-            // apply effect
+            // apply effect (measure the cash it moves so the ledger books it)
+            decimal cashBefore = _financeManager?.Balance ?? 0m;
             try
             {
                 chosen.Apply?.Invoke(_state, record);
@@ -119,6 +126,8 @@ namespace LakskongenSim.Events
             {
                 record.Description = $"Event application threw: {ex.Message}";
             }
+            if (_financeManager != null)
+                OnEventCashSettled?.Invoke(record, _financeManager.Balance - cashBefore);
 
             // apply cooldowns and pacing
             _cooldowns[chosen.Id] = currentDay + chosen.CooldownDays;
@@ -172,9 +181,12 @@ namespace LakskongenSim.Events
                     // Use FinanceManager if available, otherwise fall back to direct balance modification (for tests)
                     if (_financeManager != null)
                     {
+                        // Costs apply even into debt (as NorwegianEvents): a broke
+                        // player must not dodge them.
                         if (!_financeManager.Spend(cost))
                         {
-                            rec.Description += " (Insufficient funds for cleanup!)";
+                            _financeManager.ForceSpend(cost);
+                            rec.Description += " (Insufficient funds: cleanup paid on credit)";
                         }
                     }
                     else
@@ -204,9 +216,12 @@ namespace LakskongenSim.Events
                     
                     if (_financeManager != null)
                     {
+                        // Costs apply even into debt (as NorwegianEvents): a broke
+                        // player must not dodge them.
                         if (!_financeManager.Spend(cost))
                         {
-                            rec.Description += " (Insufficient funds for treatment!)";
+                            _financeManager.ForceSpend(cost);
+                            rec.Description += " (Insufficient funds: treatment paid on credit)";
                         }
                     }
                     else
@@ -236,9 +251,12 @@ namespace LakskongenSim.Events
                     
                     if (_financeManager != null)
                     {
+                        // Costs apply even into debt (as NorwegianEvents): a broke
+                        // player must not dodge them.
                         if (!_financeManager.Spend(cost))
                         {
-                            rec.Description += " (Insufficient funds for market shock penalty!)";
+                            _financeManager.ForceSpend(cost);
+                            rec.Description += " (Insufficient funds: market shock penalty paid on credit)";
                         }
                     }
                     else
@@ -265,9 +283,12 @@ namespace LakskongenSim.Events
                     
                     if (_financeManager != null)
                     {
+                        // Costs apply even into debt (as NorwegianEvents): a broke
+                        // player must not dodge them.
                         if (!_financeManager.Spend(cost))
                         {
-                            rec.Description += " (Insufficient funds for repairs!)";
+                            _financeManager.ForceSpend(cost);
+                            rec.Description += " (Insufficient funds: repairs paid on credit)";
                         }
                     }
                     else
@@ -320,9 +341,12 @@ namespace LakskongenSim.Events
                     
                     if (_financeManager != null)
                     {
+                        // Costs apply even into debt (as NorwegianEvents): a broke
+                        // player must not dodge them.
                         if (!_financeManager.Spend(cost))
                         {
-                            rec.Description += " (Insufficient funds for compliance!)";
+                            _financeManager.ForceSpend(cost);
+                            rec.Description += " (Insufficient funds: compliance paid on credit)";
                         }
                     }
                     else

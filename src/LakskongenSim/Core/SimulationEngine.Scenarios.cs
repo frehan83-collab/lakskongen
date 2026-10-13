@@ -24,7 +24,15 @@ public partial class SimulationEngine
         if (!scenario.IsUnlocked)
             return CommandResult.Fail("scenario_locked", $"Scenario '{scenario.Name}' is locked");
 
+        decimal balanceBefore = FinanceManager?.Balance ?? 0m;
         Scenario.StartScenario(scenario.Id);
+        // The scenario resets cash to its starting capital. On day 0 that IS the
+        // opening balance; mid-game it is booked as a capital adjustment so the
+        // lifetime totals keep reconciling with cash.
+        if (State.Day == 0)
+            OpenBooks();
+        else
+            BookCapitalAdjustment(balanceBefore);
         scenario.ApplyStartingState(State, this);
         SyncScenarioToState();
         return CommandResult.Success($"Scenario '{scenario.Name}' started", id: scenario.Id);

@@ -104,8 +104,9 @@ public partial class SimulationEngine
 
         var strain = SmoltStrainRegistry.Get(strainId);
         var quality = SmoltQualityRegistry.Get(qualityTier);
-        decimal stockingCost = Hatchery.CalculateRearingCost(count, Hatchery.MaturationDays)
-            * (decimal)strain.CostMultiplier;
+        // Calibrated smolt price × strain premium (review F269: the old path
+        // charged the hatchery rearing cost, ~54.75 NOK/fish vs 12 calibrated).
+        decimal stockingCost = count * _balancing.SmoltCostPerFish * (decimal)strain.CostMultiplier;
 
         if (FinanceManager.Balance < stockingCost)
             return CommandResult.Fail("insufficient_funds",
@@ -140,7 +141,8 @@ public partial class SimulationEngine
         if (strain.InitialLiceLoad > 0)
             site.Lice.SeedExternalInfection(Math.Max(0.05, strain.InitialLiceLoad));
 
-        FinanceManager.Spend(stockingCost);
+        // Smolts are cost of goods (review F1132: they never reached the P&L).
+        PayCost(stockingCost, CostBooking.Cogs, "smolts");
 
         var message = $"Stocked {count:N0} {quality.Name} {strain.Name} smolts " +
                       $"({strain.ReleaseWeightKg * 1000:F0}g) at {siteId}";
@@ -194,8 +196,10 @@ public partial class SimulationEngine
         if (totalBiomassKg < 0.1)
             return CommandResult.Fail("site_empty", $"Site '{siteId}' is empty");
 
-        // Calculate revenue: oldest contracts first at locked prices,
-        // remainder at spot — all scaled by certification multiplier.
+        // Calculate revenue: oldest contracts first at locked prices, remainder
+        // at spot. The spot price already carries the certification multiplier
+        // (MarketSimulation) and contract prices were offered from it, so no
+        // second multiplier is applied (review F268: it was applied twice).
         // Partial deliveries accrue no penalty (expiry settles shortfalls).
         decimal revenue = 0m;
         double remainingKg = totalBiomassKg;
@@ -213,9 +217,6 @@ public partial class SimulationEngine
         }
         decimal spotPrice = MarketSimulation.PricePerKg;
         revenue += (decimal)remainingKg * spotPrice;
-        decimal certMultiplier = SustainabilityManager?.GetPriceMultiplier(
-            SustainabilityManager.CurrentCertification) ?? 1.0m;
-        revenue *= certMultiplier;
         // VAP fillet line (Phase 3.5): +12% when a plant is owned.
         // Phase 4.4: grade-C recipe (pale) halves the premium to +6%.
         bool vap = State.OwnsProcessingPlant;
@@ -234,10 +235,9 @@ public partial class SimulationEngine
                 });
         }
 
-        FinanceManager.AddRevenue(revenue);
-        // D1: the sale finally lands in the P&L — Revenue was previously
-        // maintained only by insurance payouts, so IPO gates read a lie.
-        FinancialStatements?.RecordRevenue(revenue);
+        ReceiveIncome(revenue, "harvest");
+        State.TotalSalesRevenueNok += revenue;
+        RecordHarvestForResourceRent(totalBiomassKg);
 
         // P15: player-supply market impact — the harvested tonnage moves the
         // market (accumulates downward price pressure, decays over days).
@@ -284,10 +284,24 @@ public partial class SimulationEngine
         if (State == null || FinanceManager == null)
             return CommandResult.Fail("engine_not_ready", "Engine not initialized");
 
-        // Cash in as liquidity (NOT revenue — it must be repaid).
-        FinanceManager.AddLoanPrincipal((decimal)amount);
+        // The bank prices the loan: never below the calibrated lending rate
+        // (the caller-chosen rate let a script borrow at 0%).
+        rate = Math.Max(rate, _balancing.LoanInterestRate);
 
-        string loanId = "loan_" + State.Day;
+        // Credit limit: total debt ≤ calibrated multiple of equity (cash +
+        // standing biomass at the norm price − existing loans). Both values were
+        // calibrated but unused, so borrowing was unlimited.
+        decimal limit = LoanCapacityNok();
+        decimal existing = State.ActiveLoans.Sum(l => Math.Max(0m, l.Principal));
+        if (existing + (decimal)amount > limit)
+            return CommandResult.Fail("credit_limit",
+                $"Credit limit reached: {Math.Max(0m, limit - existing):N0} NOK available", (double)Math.Max(0m, limit - existing));
+
+        // Cash in as liquidity and a balance-sheet liability (NOT revenue).
+        ReceiveLoan((decimal)amount);
+
+        // Unique even for two loans on the same day (the id was "loan_<day>").
+        string loanId = $"loan_{State.Day}_{State.ActiveLoans.Count(l => l.Id.StartsWith($"loan_{State.Day}", StringComparison.Ordinal)) + 1}";
         State.ActiveLoans.Add(new LoanState
         {
             Id = loanId,
@@ -299,6 +313,23 @@ public partial class SimulationEngine
 
         var message = $"Loan of {amount:N0} NOK approved at {rate:P1} for {termMonths} months";
         return CommandResult.Success(message, amount, id: loanId);
+    }
+
+    /// <summary>
+    /// Maximum total loan principal the bank extends: the calibrated multiple of
+    /// equity, where equity = cash + standing biomass valued at the norm price −
+    /// outstanding loan principal (never below zero).
+    /// </summary>
+    public decimal LoanCapacityNok()
+    {
+        if (State == null || FinanceManager == null) return 0m;
+        decimal normPrice = PenPriceCouncil?.MonthlyPenPrice > 0m
+            ? PenPriceCouncil.MonthlyPenPrice
+            : MarketSimulation?.PricePerKg ?? 0m;
+        decimal biomassValue = (decimal)State.Populations.Sum(p => p.GetTotalBiomassKg()) * normPrice;
+        decimal debt = State.ActiveLoans.Sum(l => Math.Max(0m, l.Principal));
+        decimal equity = Math.Max(0m, FinanceManager.Balance + biomassValue - debt);
+        return equity * (decimal)_balancing.MaxLoanMultiplier;
     }
 
     // ── Insurance ──────────────────────────────────────────────────────────
@@ -396,8 +427,9 @@ public partial class SimulationEngine
             return CommandResult.Fail("cancelled",
                 $"Treatment cancelled: {outcome.CancelReason}");
 
-        FinanceManager.Spend(outcome.Cost);
-        FinancialStatements?.RecordOperatingExpense(outcome.Cost);
+        // The treatment has happened: pay it even if the final cost exceeds the
+        // estimate checked above (it used to be free when Spend was refused).
+        PayCost(outcome.Cost, CostBooking.Opex, "delousing");
         site.GillScore = Math.Max(0.0, site.GillScore - outcome.GillDamage * 50.0);
 
         string description = $"Applied {delousingMethod} delousing to {siteId} " +
@@ -447,7 +479,7 @@ public partial class SimulationEngine
             return CommandResult.Fail("insufficient_funds",
                 $"Insufficient funds: need {hire:N0} NOK for the wellboat hire");
 
-        FinanceManager.Spend(hire);
+        PayCost(hire, CostBooking.Opex, "wellboat");
         State.WellboatJobs.Add(new Logistics.WellboatJob
         {
             SiteId = siteId,
@@ -529,6 +561,10 @@ public partial class SimulationEngine
         State.SustainabilityCertification = snapshot.SustainabilityCertification;
         State.EnableResourceRentTax = snapshot.EnableResourceRentTax;
         State.ResourceRentPaid = snapshot.ResourceRentPaid;
+        State.HarvestedKgThisTaxYear = snapshot.HarvestedKgThisTaxYear;
+        State.TotalSalesRevenueNok = snapshot.TotalSalesRevenueNok;
+        State.OpeningBalanceNok = snapshot.OpeningBalanceNok;
+        State.ResourceRentHarvestValueThisTaxYear = snapshot.ResourceRentHarvestValueThisTaxYear;
         State.PenPriceCouncilLastValue = snapshot.PenPriceCouncilLastValue;
         State.ExternalAquacultureSnapshot = snapshot.ExternalAquacultureSnapshot;
         State.ExternalDataAnalytics = snapshot.ExternalDataAnalytics;

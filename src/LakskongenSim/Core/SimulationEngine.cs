@@ -188,6 +188,12 @@ namespace LakskongenSim.Core
         private const double NetIntegrityEscapeRiskThresholdPct = 40.0;
         /// <summary>Regulatory escape fine (NOK per escaped fish).</summary>
         private const decimal EscapeFineNOKPerFish = 100m;
+        /// <summary>Quarterly fine while certification is NonCompliant (NOK).</summary>
+        private const decimal NonComplianceFineNok = 50_000m;
+        /// <summary>Freshwater-bath wellboat consumables per treatment (NOK).</summary>
+        private const decimal FreshwaterBathConsumablesNok = 60_000m;
+        /// <summary>Automated night-shift emergency oxygenation per event (NOK).</summary>
+        private const decimal NightOxygenEmergencyNok = 12_000m;
 
         /// <summary>
         /// Cumulative expected storm containment-failure events recorded by the
@@ -349,6 +355,8 @@ namespace LakskongenSim.Core
                 RegisterPlanktonEvents();
             }
             Storyteller.OnEventRaised += HandleStorytellerEvent;
+            // Event effects move cash inside the event; book exactly what moved.
+            Storyteller.OnEventCashSettled += (_, delta) => BookSettledCash(delta, "events");
 
             // Initialize PlanktonBloom system
             PlanktonBloom = new PlanktonBloom(Rng.Stream(SimRngStreams.PlanktonBloom));
@@ -382,15 +390,12 @@ namespace LakskongenSim.Core
 
             // Feed cost → finance (D1: the cash spend also books COGS so the P&L
             // finally sees the largest cost item — feed is ~35% of OPEX).
+            // Feed is paid like every other operating cost: on credit when cash
+            // is short. It used to be waived (booked as COGS, never paid), which
+            // made deliberate debt a free-feed strategy (review F1130).
             Feed.OnFeedCostIncurred += cost =>
-            {
-                if (!FinanceManager.Spend(cost))
-                {
-                    OnEventTriggered?.Invoke($"⚠️ Insufficient funds for feed: {cost:N0} NOK. Balance: {FinanceManager.Balance:N0} NOK");
-                    // Could trigger bankruptcy event here
-                }
-                FinancialStatements?.RecordCOGS(cost);
-            };
+                PayCost(cost, CostBooking.Cogs, "feed",
+                    $"⚠️ Insufficient funds for feed: {cost:N0} NOK paid on credit. Balance: {FinanceManager.Balance:N0} NOK");
 
             // Tutorial onboarding system
             Tutorial = new TutorialSystem(this);
@@ -404,6 +409,7 @@ namespace LakskongenSim.Core
             // Achievement system — initialized after State so conditions have full context
             Achievements = new AchievementSystem(State, FinanceManager);
             Achievements.OnAchievementUnlocked += a => OnAchievementUnlocked?.Invoke(a);
+            Achievements.OnRewardPaid += reward => BookSettledCash(reward, "achievements");
 
             // Research / Tech Tree — restore persisted state from GameState
             Research = new ResearchSystem();
@@ -419,6 +425,7 @@ namespace LakskongenSim.Core
             // CrisisCapitalism and VerticalIntegration systems
             CrisisCapitalism = new CrisisCapitalismSystem(Rng.Stream(SimRngStreams.CrisisCapitalism));
             VerticalIntegration = new VerticalIntegrationSystem(FinanceManager);
+            VerticalIntegration.OnCapexPaid += capex => BookSettledCash(-capex, "vertical_integration", CostBooking.Capex);
 
             // Initialize financial systems (LoanSystem, TaxSystem, InvestorSystem)
             LoanSystem = new Finance.LoanSystem();
@@ -529,12 +536,10 @@ namespace LakskongenSim.Core
             // Wire LicenseSystem events to FinanceManager
             LicenseSystem.OnLicenseCharged += (siteId, amount) =>
             {
-                if (!FinanceManager.Spend(amount))
-                {
-                    OnEventTriggered?.Invoke($"⚠️ Cannot pay license fee for {siteId}: {amount:N0} NOK. Balance: {FinanceManager.Balance:N0} NOK");
-                    FinanceManager.ForceSpend(amount);
-                }
-                else
+                bool affordable = FinanceManager.CanAfford(amount);
+                PayCost(amount, CostBooking.Opex, "licence_fees",
+                    $"⚠️ Cannot pay license fee for {siteId}: {amount:N0} NOK. Balance: {FinanceManager.Balance:N0} NOK");
+                if (affordable)
                 {
                     OnEventTriggered?.Invoke($"💰 License fee paid for {siteId}: {amount:N0} NOK");
                 }
@@ -567,6 +572,9 @@ namespace LakskongenSim.Core
             // Phase 4.6: re-apply configured mods onto the fresh systems
             // (no-op when no mods directory has been set).
             ApplyMods();
+
+            // Ledger baseline: the starting cash is the opening balance, not a flow.
+            OpenBooks();
 
             SimLog.Info("✅ SimulationEngine initialized — all subsystems wired");
         }
@@ -1130,6 +1138,14 @@ namespace LakskongenSim.Core
                 SimLog.Info($"  → Starting capital: {config.StartingCapital:N0} NOK");
             }
 
+            // Tax rates come from calibration (the tax system's own defaults
+            // were a second, unsynchronized copy).
+            if (TaxSystem != null)
+            {
+                TaxSystem.CorporateTaxRate = (decimal)config.CorporateTaxRate;
+                TaxSystem.ResourceRentTaxRate = (decimal)config.ResourceRentTaxRate;
+            }
+
             // Feed system parameters — applied, not just logged:
             // calibration registry is the override authority.
             if (Feed != null)
@@ -1443,6 +1459,10 @@ private class BalancingConfig
                 // (DueDay = bookedDay + delay) stays exact.
                 foreach (var phase in _postTickPhases)
                     phase.Tick(this);
+
+                // Any cash that moved without a booking today is booked as
+                // unclassified, so the statements always reconcile with cash.
+                ReconcileUnbookedCash();
             }
 
             OnDayAdvanced?.Invoke(State.Day);
@@ -1524,7 +1544,7 @@ private class BalancingConfig
                         applyCompanyLiceKill: !killDone).Deaths;
                     killDone = true;
                 }
-                FinanceManager?.Spend(60_000m); // bath consumables
+                PayCost(FreshwaterBathConsumablesNok, CostBooking.Opex, "delousing"); // bath consumables
                 message = $"Ferskvannsbåt behandlet {job.SiteId} ({deaths:N0} håndteringsdødsfall, null resistens)";
             }
             else
@@ -1538,7 +1558,7 @@ private class BalancingConfig
                 Name = ok ? "Ferskvannsbehandling" : "Brønnbåt returnerte",
                 Category = Events.EventCategory.Disease,
                 Description = message,
-                BalanceChange = ok ? -60_000m : 0m
+                BalanceChange = ok ? -FreshwaterBathConsumablesNok : 0m
             });
             _dayNotes.Add(new DayNote
             {
@@ -1715,8 +1735,7 @@ private class BalancingConfig
             site.RecordEscape(escapees);
 
             decimal fine = escapees * EscapeFineNOKPerFish;
-            if (!FinanceManager.Spend(fine))
-                FinanceManager.ForceSpend(fine);
+            PayCost(fine, CostBooking.Opex, "fines");
 
             State.EventLog.Add(new Events.EventRecord
             {
@@ -1806,9 +1825,11 @@ private class BalancingConfig
                 // Storm repair bill (infrastructure damage; escapes and net wear
                 // remain owned by ApplyStormHazards, the escape single source).
                 decimal repairCost = (decimal)(State.SeaSites.Count * 50000 * severity);
-                if (repairCost > 0 && FinanceManager.Balance >= repairCost)
+                if (repairCost > 0)
                 {
-                    FinanceManager.Spend(repairCost);
+                    // Damage must be repaired: paid on credit when cash is short
+                    // (it used to be skipped for free when the player was broke).
+                    PayCost(repairCost, CostBooking.Opex, "storm_repairs");
                     State.EventLog.Add(new Events.EventRecord
                     {
                         Day = State.Day,
@@ -1920,14 +1941,14 @@ private class BalancingConfig
                     if (State.NightShiftPolicy == Logistics.NightShiftPolicy.AutomatedROC)
                     {
                         // Auto O2 diffuser or aeration
-                        FinanceManager.Spend(12_000m); // emergency O2 cost
+                        PayCost(NightOxygenEmergencyNok, CostBooking.Opex, "night_shift"); // emergency O2 cost
                         State.EventLog.Add(new Events.EventRecord
                         {
                             Day = State.Day,
                             Name = "Natt-oksygen",
                             Category = Events.EventCategory.Weather,
                             Description = $"[AUTO-ROC] O2-krasj {site.Id} kl 03:00 — diffuser startet (12k)",
-                            BalanceChange = -12_000m
+                            BalanceChange = -NightOxygenEmergencyNok
                         });
                     }
                 }
@@ -1962,11 +1983,7 @@ private class BalancingConfig
 
             // Premium cost
             decimal premium = Logistics.NightShiftResolver.MonthlyCost(State.NightShiftPolicy) / 30m;
-            if (premium > 0)
-            {
-                FinanceManager.Spend(premium);
-                FinancialStatements?.RecordOperatingExpense(premium);
-            }
+            PayCost(premium, CostBooking.Opex, "night_shift");
         }
 
         /// <summary>Total live biomass across all populations, kg (annual-close input).</summary>
@@ -2000,20 +2017,10 @@ private class BalancingConfig
             decimal dailyMaintenance = (totalSites * _balancing.SeaSiteBuildCostNOK * 0.0001m);
             dailyMaintenance += _dailyAiFeedingLicenseCost; // Add AI Feeding license cost here
 
-            // 3. Apply costs to FinanceManager and FinancialStatements
+            // 3. Apply costs through the ledger (paid on credit when cash is short)
             decimal totalOpEx = dailyWages + dailyMaintenance + _dailyFarmSystemsOpex + vapOpex;
-            if (totalOpEx > 0)
-            {
-                if (!FinanceManager.Spend(totalOpEx))
-                {
-                    // Bankruptcy warning - insufficient funds for operations
-                    OnEventTriggered?.Invoke($"💸 BANKRUPTCY WARNING: Cannot pay {totalOpEx:N0} NOK in operating costs. Balance: {FinanceManager.Balance:N0} NOK");
-                    
-                    // Force spend to create negative balance (debt)
-                    FinanceManager.ForceSpend(totalOpEx);
-                }
-                FinancialStatements?.RecordOperatingExpense(totalOpEx);
-            }
+            PayCost(totalOpEx, CostBooking.Opex, "operations",
+                $"💸 BANKRUPTCY WARNING: Cannot pay {totalOpEx:N0} NOK in operating costs. Balance: {FinanceManager.Balance:N0} NOK");
 
             // 3B. Preventive mitigation OPEX (Phase 1.5): silent daily upkeep.
             // Skirt 2 000 NOK/site/day, deterrent 1 000 NOK/site/day.
@@ -2023,49 +2030,34 @@ private class BalancingConfig
                 if (site.HasLiceSkirt) mitigationOpex += 2_000m;
                 if (site.HasSealDeterrent) mitigationOpex += 1_000m;
             }
-            if (mitigationOpex > 0)
-            {
-                if (!FinanceManager.Spend(mitigationOpex))
-                    FinanceManager.ForceSpend(mitigationOpex);
-                FinancialStatements?.RecordOperatingExpense(mitigationOpex);
-            }
+            PayCost(mitigationOpex, CostBooking.Opex, "mitigation");
 
-            // 4. Interest on debt (LoanSystem - daily accrual)
-            // Use InvestorSystem's bond principal as debt source
+            // 4. Bond interest (LoanSystem daily accrual on the InvestorSystem's
+            // bond principal) is interest expense, not OpEx (review F1138).
             if (InvestorSystem != null && InvestorSystem.OutstandingBondPrincipal > 0 && LoanSystem != null)
             {
                 decimal dailyInterest = LoanSystem.ChargeInterest(InvestorSystem.OutstandingBondPrincipal, 1);
-                if (dailyInterest > 0)
-                {
-                    if (!FinanceManager.Spend(dailyInterest))
-                    {
-                        OnEventTriggered?.Invoke($"💸 Cannot pay {dailyInterest:N0} NOK in loan interest. Balance: {FinanceManager.Balance:N0} NOK");
-                        FinanceManager.ForceSpend(dailyInterest);
-                    }
-                    FinancialStatements?.RecordOperatingExpense(dailyInterest);
-                }
+                PayCost(dailyInterest, CostBooking.Interest, "interest",
+                    $"💸 Cannot pay {dailyInterest:N0} NOK in loan interest. Balance: {FinanceManager.Balance:N0} NOK");
             }
 
-            // 4B. Loan amortization (S5): GameBridge.TakeLoan records a
-            // LoanState liability; here principal + interest accrue daily.
-            // Previously loans were free money (principal booked as revenue
-            // with no repayment), winnable on day 1.
+            // 4B. Loan amortization (S5): TakeLoan records a LoanState liability;
+            // each day pays interest (P&L) and a principal slice (balance sheet).
+            // Principal used to be booked as tax-deductible OpEx (review F1138).
             foreach (var loan in State.ActiveLoans.ToList())
             {
                 if (loan.Principal <= 0) { State.ActiveLoans.Remove(loan); continue; }
                 loan.DaysTaken++;
                 int remainingDays = Math.Max(1, loan.TermDays - loan.DaysTaken + 1);
                 decimal dailyInterest = loan.Principal * loan.InterestRate / 365m;
-                decimal dailySlice = loan.Principal / remainingDays + dailyInterest;
+                decimal principalSlice = loan.Principal / remainingDays;
                 // Final day: clear exactly (avoid dust from rounding).
-                if (loan.DaysTaken >= loan.TermDays) dailySlice = loan.Principal + dailyInterest;
-                if (!FinanceManager.Spend(dailySlice))
-                {
-                    OnEventTriggered?.Invoke($"💸 Cannot pay {dailySlice:N0} NOK loan instalment. Balance: {FinanceManager.Balance:N0} NOK");
-                    FinanceManager.ForceSpend(dailySlice);
-                }
-                FinancialStatements?.RecordOperatingExpense(dailySlice);
-                loan.Principal -= (dailySlice - dailyInterest);
+                if (loan.DaysTaken >= loan.TermDays) principalSlice = loan.Principal;
+                if (!FinanceManager.CanAfford(dailyInterest + principalSlice))
+                    OnEventTriggered?.Invoke($"💸 Cannot pay {dailyInterest + principalSlice:N0} NOK loan instalment. Balance: {FinanceManager.Balance:N0} NOK");
+                PayCost(dailyInterest, CostBooking.Interest, "interest");
+                PayCost(principalSlice, CostBooking.LoanPrincipal, "loan_principal");
+                loan.Principal -= principalSlice;
                 if (loan.Principal <= 0.01m || loan.DaysTaken >= loan.TermDays)
                     State.ActiveLoans.Remove(loan);
             }
@@ -2077,29 +2069,12 @@ private class BalancingConfig
                 decimal dailyPremium = 0m;
                 foreach (var policy in Insurance.Policies)
                     dailyPremium += policy.PremiumNokPerYear / 365m;
-                if (dailyPremium > 0)
-                {
-                    if (!FinanceManager.Spend(dailyPremium))
-                        FinanceManager.ForceSpend(dailyPremium);
-                    FinancialStatements?.RecordOperatingExpense(dailyPremium);
-                }
+                PayCost(dailyPremium, CostBooking.Opex, "insurance");
             }
 
-            // 5. Taxes (apply monthly)
+            // 5. Monthly provisional corporate tax (true-up; see SettleProvisionalTax).
             if (State.Day % 30 == 0)
-            {
-                decimal netIncome = FinancialStatements?.ComputeNetIncome() ?? 0m;
-                if (netIncome > 0)
-                {
-                    decimal tax = netIncome * (decimal)_balancing.CorporateTaxRate;
-                    if (!FinanceManager.Spend(tax))
-                    {
-                        OnEventTriggered?.Invoke($"⚠️ Cannot pay {tax:N0} NOK in taxes. Balance: {FinanceManager.Balance:N0} NOK");
-                        FinanceManager.ForceSpend(tax);
-                    }
-                    FinancialStatements?.RecordTax(tax);
-                }
-            }
+                SettleProvisionalTax();
         }
 
 
@@ -2123,14 +2098,11 @@ private class BalancingConfig
                 {
                     if (netRevenue > 0)
                     {
-                        FinanceManager.AddRevenue(netRevenue);
-                        FinancialStatements?.RecordRevenue(netRevenue);
+                        ReceiveIncome(netRevenue, "sludge");
+                        State.TotalSalesRevenueNok += netRevenue;
                     }
                     else
-                    {
-                        if (!FinanceManager.Spend(-netRevenue))
-                            FinanceManager.ForceSpend(-netRevenue);
-                    }
+                        PayCost(-netRevenue, CostBooking.Opex, "sludge");
 
                     site.SludgeValorizedKgDs += site.SludgeAccumulatedKgDs;
                     site.LastSludgeValorizationDay = State.Day;
@@ -2296,15 +2268,11 @@ private class BalancingConfig
             {
                 if (FinanceManager != null)
                 {
-                    if (!FinanceManager.Spend(50_000m))
-                    {
-                        OnEventTriggered?.Invoke("⚠️ BANKRUPTCY WARNING: Cannot pay 50,000 NOK non-compliance fine. Balance: " + FinanceManager.Balance.ToString("N0") + " NOK");
-                        FinanceManager.ForceSpend(50_000m);
-                    }
-                    else
-                    {
+                    bool affordable = FinanceManager.CanAfford(NonComplianceFineNok);
+                    PayCost(NonComplianceFineNok, CostBooking.Opex, "fines",
+                        "⚠️ BANKRUPTCY WARNING: Cannot pay 50,000 NOK non-compliance fine. Balance: " + FinanceManager.Balance.ToString("N0") + " NOK");
+                    if (affordable)
                         OnEventTriggered?.Invoke("💸 Non-compliance fine: 50,000 NOK");
-                    }
                 }
             }
         }
@@ -2681,9 +2649,7 @@ private class BalancingConfig
 
             if (outcome.Applied)
             {
-                if (!FinanceManager.Spend(outcome.Cost))
-                    FinanceManager.ForceSpend(outcome.Cost);
-                FinancialStatements?.RecordOperatingExpense(outcome.Cost);
+                PayCost(outcome.Cost, CostBooking.Opex, "delousing");
                 site.GillScore = Math.Max(0.0, site.GillScore - outcome.GillDamage * 50.0);
 
                 State.EventLog.Add(new Events.EventRecord
@@ -2869,8 +2835,9 @@ private class BalancingConfig
                 if (harvestT < 0.1) harvestT = biomassT; // harvest all if barely over
 
                 decimal revenue = (decimal)(harvestT * 1000 * (double)penaltyPrice); // NOK
-                FinanceManager?.AddRevenue(revenue);
-                FinancialStatements?.RecordRevenue(revenue, "forced_harvest");
+                ReceiveIncome(revenue, "forced_harvest");
+                State.TotalSalesRevenueNok += revenue;
+                RecordHarvestForResourceRent(harvestT * 1000.0);
 
                 // Record event
                 State.EventLog.Add(new EventRecord
@@ -2972,24 +2939,14 @@ private class BalancingConfig
                     // efficiency (handled above), and cleaning costs standing opex.
                     site.BarrierDaysSinceCleaning += BARRIER_CLEANING_TICK_DAYS;
                     decimal barrierOpex = Farm.BarrierTech.SpecFor(site.Barrier).WeeklyOpexNok;
-                    if (barrierOpex > 0)
-                    {
-                        if (!FinanceManager.Spend(barrierOpex))
-                            FinanceManager.ForceSpend(barrierOpex);
-                        FinancialStatements?.RecordOperatingExpense(barrierOpex);
-                    }
+                    PayCost(barrierOpex, CostBooking.Opex, "barriers");
                 }
 
                 covered += fish * (1.0 - (1.0 - skirt) * (1.0 - excl) * (1.0 - barrier));
 
                 // Phase 4.1: standing energy opex per containment level.
                 decimal opex = Farm.ContainmentTech.ModifiersFor(site.Containment).WeeklyOpexNok;
-                if (opex > 0)
-                {
-                    if (!FinanceManager.Spend(opex))
-                        FinanceManager.ForceSpend(opex);
-                    FinancialStatements?.RecordOperatingExpense(opex);
-                }
+                PayCost(opex, CostBooking.Opex, "containment");
             }
             SeaLice.PreventiveCoverage01 = total > 0 ? covered / total : 0.0;
         }
@@ -3069,12 +3026,7 @@ private class BalancingConfig
                     var outcome = BloomMitigation.MitigationEffectiveness(
                         mitigation, bloom.Severity01, bloom.Kind);
                     mortRate *= 1.0 - Math.Clamp(outcome.MortalityReductionFraction, 0.0, 1.0);
-                    if (outcome.CostNok > 0m)
-                    {
-                        if (!FinanceManager.Spend(outcome.CostNok))
-                            FinanceManager.ForceSpend(outcome.CostNok);
-                        FinancialStatements?.RecordOperatingExpense(outcome.CostNok);
-                    }
+                    PayCost(outcome.CostNok, CostBooking.Opex, "bloom_mitigation");
                 }
 
                 int killed = 0;
@@ -3108,12 +3060,7 @@ private class BalancingConfig
                     site.GillScore = Math.Min(100.0, site.GillScore + LakskongenSim.Environment.BloomEventDeck.GillRecoveryPerWeek);
                 // Countermeasure standing opex.
                 decimal opex = (site.HasBubbleCurtain ? 90_000m : 0m) + (site.HasO2Diffuser ? 120_000m : 0m);
-                if (opex > 0)
-                {
-                    if (!FinanceManager.Spend(opex))
-                        FinanceManager.ForceSpend(opex);
-                    FinancialStatements?.RecordOperatingExpense(opex);
-                }
+                PayCost(opex, CostBooking.Opex, "bloom_countermeasures");
             }
         }
 
@@ -3173,8 +3120,8 @@ private class BalancingConfig
             decimal payout = Insurance.ComputePayout(kind, lossNok);
             if (payout <= 0m) return;
 
-            FinanceManager?.AddRevenue(payout);
-            FinancialStatements?.RecordRevenue(payout);
+            // Booked as insurance income, not harvest revenue (review F1132).
+            ReceiveIncome(payout, "insurance");
 
             State.EventLog.Add(new Events.EventRecord
             {
@@ -3236,6 +3183,7 @@ private class BalancingConfig
         /// </summary>
         public void PrepareForSave()
         {
+            ReconcileUnbookedCash();
             #pragma warning disable CS0618 // Type or member is obsolete
             State.Balance = FinanceManager.Balance;
             #pragma warning restore CS0618
@@ -3331,6 +3279,7 @@ private class BalancingConfig
             runtime.FinEvents = finState.Events;
             runtime.FinCostBreakdown = FinancialStatements.ExportCostBreakdown();
             runtime.FinRevenueBreakdown = FinancialStatements.ExportRevenueBreakdown();
+            runtime.FinLifetime = FinancialStatements.ExportLifetime();
             var mktState = MarketSimulation!.ExportState();
             runtime.MktBase = mktState.Base;
             runtime.MktPrice = mktState.Price;
@@ -3650,6 +3599,7 @@ private class BalancingConfig
             // day after a load (found by SaveLoadMatrixTests, seed 23 day 400).
             State.Balance = FinanceManager.Balance;
             #pragma warning restore CS0618
+            ResetLedgerBaseline();
 
             // 2. Re-inject GrowthModel and MortalityModel into all FishPopulations
             foreach (var pop in loadedState.Populations)
@@ -3768,6 +3718,8 @@ private class BalancingConfig
                     runtime.FinEvents ?? new System.Collections.Generic.List<string>()));
                 FinancialStatements?.ImportBreakdowns(
                     runtime.FinCostBreakdown, runtime.FinRevenueBreakdown);
+                if (runtime.FinLifetime != null)
+                    FinancialStatements?.ImportLifetime(runtime.FinLifetime);
                 if (runtime.MktHistory != null)
                     MarketSimulation?.ImportState((runtime.MktBase, runtime.MktPrice,
                         runtime.MktWeeklyAvg, runtime.MktLongMean, runtime.MktMeanRev,

@@ -34,7 +34,9 @@ public class PlayerScriptCareerTests
         Assert.True(r.EventLogEntries > 5, "events never fired — the events-on path is broken");
         Assert.True(double.IsFinite(r.PeakAdultFemaleLice), "lice metric went non-finite");
         Assert.True(r.PeakAdultFemaleLice < 5.0, $"lice ran away: {r.PeakAdultFemaleLice:F2}/fish");
-        Assert.True(r.EndingBalance > -10_000_000m, $"bankrupt at career end: {r.EndingBalance:N0} NOK");
+        // Solvent by the game's own rule (GameBridge ends the game below -1M NOK).
+        // Strengthened from -10M once the ledger stopped waiving unpaid feed.
+        Assert.True(r.EndingBalance > -1_000_000m, $"bankrupt at career end: {r.EndingBalance:N0} NOK");
 
         // The wellboat bookings must have been executed by the engine's daily
         // advance, through the same note ledger the game's bridge projects.
@@ -51,7 +53,12 @@ public class PlayerScriptCareerTests
         Assert.True(r.HarvestedKg > 50_000, $"harvest too small: {r.HarvestedKg:N0} kg");
         Assert.InRange(r.RealizedPricePerKg, 70.0, 96.0);
         Assert.InRange(r.EconomicFcr, 0.9, 2.6);
-        Assert.True(r.EndingBalance > -10_000_000m, $"bankrupt at career end: {r.EndingBalance:N0} NOK");
+        // Seed 13 is a disaster career (~61% sea mortality). Its old -10M bound
+        // held only while unpaid feed was waived (~18-20M NOK, review F1130) and
+        // starting pens were immune to disease (F1072); with an honest ledger it
+        // ends near -10.6M. This bound guards against runaway debt, not losses:
+        // see RUN_LOG §8 dispute "seed-13 career bound".
+        Assert.True(r.EndingBalance > -15_000_000m, $"runaway debt at career end: {r.EndingBalance:N0} NOK");
     }
 }
 

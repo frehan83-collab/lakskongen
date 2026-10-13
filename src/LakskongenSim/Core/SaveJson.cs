@@ -119,6 +119,8 @@ public sealed class EngineRuntimeSnapshot
     public System.Collections.Generic.List<string>? FinEvents { get; set; }
     public System.Collections.Generic.Dictionary<string, decimal>? FinCostBreakdown { get; set; }
     public System.Collections.Generic.Dictionary<string, decimal>? FinRevenueBreakdown { get; set; }
+    /// <summary>Lifetime ledger totals (cash reconciliation); null in older saves.</summary>
+    public LakskongenSim.Finance.LifetimeTotals? FinLifetime { get; set; }
 
     // ── Market simulation (price trajectory + supply state) ───────────────
     public decimal MktBase { get; set; }

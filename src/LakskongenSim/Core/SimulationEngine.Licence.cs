@@ -175,7 +175,7 @@ public partial class SimulationEngine
             MaxAllowedDensity = 25.0f
         };
         State.SeaSites.Add(site);
-        FinanceManager.Spend(cost);
+        PayCost(cost, CostBooking.Capex, "sea_site");   // affordability checked above
         ConsumeGrowthLicence(zoneId);
 
         State.EventLog.Add(new EventRecord
@@ -232,7 +232,9 @@ public partial class SimulationEngine
         {
             case "won_player":
             {
-                FinanceManager.Spend(settlement.AmountNOK);
+                // Settlement already required the player to be solvent; the
+                // licence is an intangible asset, not a P&L cost.
+                PayCost(settlement.AmountNOK, CostBooking.Capex, "growth_licence");
                 State.EventLog.Add(new EventRecord
                 {
                     Day = State.Day,
@@ -463,8 +465,8 @@ public partial class SimulationEngine
             }
         }
 
-        // Charge player
-        FinanceManager.Spend(asset.DiscountedPriceNOK);
+        // Charge player (acquired assets are capital spending)
+        PayCost(asset.DiscountedPriceNOK, CostBooking.Capex, "acquisitions");
 
         State.EventLog.Add(new EventRecord
         {

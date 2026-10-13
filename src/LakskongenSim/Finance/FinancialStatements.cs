@@ -41,6 +41,32 @@ namespace LakskongenSim.Finance
         public decimal Liabilities { get; private set; }
         public decimal Equity => Assets - Liabilities;
 
+        // ── Lifetime totals (never reset at the annual close; saved) ──────────
+        // Every cash movement is booked to exactly one of these, which gives the
+        // reconciliation identity the economy tests assert (review F1132):
+        //   Δcash = LifetimeRevenue − LifetimeCOGS − LifetimeOperatingExpenses
+        //         − LifetimeInterest − LifetimeTaxes − LifetimeCapex
+        //         + LifetimeLiabilitiesIncurred − LifetimeLiabilitiesRepaid
+        //         + LifetimeEquityRaised
+        public decimal LifetimeRevenue { get; private set; }
+        public decimal LifetimeCOGS { get; private set; }
+        public decimal LifetimeOperatingExpenses { get; private set; }
+        public decimal LifetimeInterest { get; private set; }
+        /// <summary>Net tax paid (provisional and final payments minus refunds).</summary>
+        public decimal LifetimeTaxes { get; private set; }
+        public decimal LifetimeCapex { get; private set; }
+        public decimal LifetimeLiabilitiesIncurred { get; private set; }
+        public decimal LifetimeLiabilitiesRepaid { get; private set; }
+        public decimal LifetimeEquityRaised { get; private set; }
+
+        /// <summary>Net cash effect of every booked flow since the game started.</summary>
+        public decimal LifetimeNetCashFlow =>
+            LifetimeRevenue - LifetimeCOGS - LifetimeOperatingExpenses - LifetimeInterest - LifetimeTaxes
+            - LifetimeCapex + LifetimeLiabilitiesIncurred - LifetimeLiabilitiesRepaid + LifetimeEquityRaised;
+
+        /// <summary>Pre-tax income for the current period (excludes tax already booked).</summary>
+        public decimal PreTaxIncome => Revenue - COGS - OperatingExpenses - InterestExpense;
+
         /// <summary>Biomass inventory (live fish value) - Phase 4.3.</summary>
         public decimal BiomassInventoryValue { get; private set; }
 
@@ -74,6 +100,7 @@ namespace LakskongenSim.Finance
         public void RecordRevenue(decimal amount, string category = "harvest")
         {
             Revenue += amount;
+            LifetimeRevenue += amount;
             _revenueBreakdown[category] = _revenueBreakdown.GetValueOrDefault(category) + amount;
             AddEvent($"Revenue +{amount}");
         }
@@ -85,6 +112,7 @@ namespace LakskongenSim.Finance
         public void RecordCOGS(decimal amount, string category = "feed")
         {
             COGS += amount;
+            LifetimeCOGS += amount;
             _costBreakdown[category] = _costBreakdown.GetValueOrDefault(category) + amount;
             AddEvent($"COGS -{amount}");
         }
@@ -96,6 +124,7 @@ namespace LakskongenSim.Finance
         public void RecordOperatingExpense(decimal amount, string category = "operations")
         {
             OperatingExpenses += amount;
+            LifetimeOperatingExpenses += amount;
             _costBreakdown[category] = _costBreakdown.GetValueOrDefault(category) + amount;
             AddEvent($"OpEx -{amount}");
         }
@@ -107,6 +136,7 @@ namespace LakskongenSim.Finance
         public void RecordInterest(decimal amount)
         {
             InterestExpense += amount;
+            LifetimeInterest += amount;
             _costBreakdown["interest"] = _costBreakdown.GetValueOrDefault("interest") + amount;
             AddEvent($"Interest -{amount}");
         }
@@ -118,8 +148,31 @@ namespace LakskongenSim.Finance
         public void RecordTax(decimal amount)
         {
             Taxes += amount;
+            LifetimeTaxes += amount;
             _costBreakdown["tax"] = _costBreakdown.GetValueOrDefault("tax") + amount;
             AddEvent($"Tax -{amount}");
+        }
+
+        /// <summary>
+        /// Record a tax refund (provisional tax paid above the liability). Reduces
+        /// booked tax. Does NOT modify cash - FinanceManager.AddRevenue() returns it.
+        /// </summary>
+        public void RecordTaxRefund(decimal amount)
+        {
+            Taxes -= amount;
+            LifetimeTaxes -= amount;
+            _costBreakdown["tax"] = _costBreakdown.GetValueOrDefault("tax") - amount;
+            AddEvent($"Tax refund +{amount}");
+        }
+
+        /// <summary>
+        /// Record new equity (share issue). Does NOT modify cash - caller must use
+        /// FinanceManager.AddRevenue().
+        /// </summary>
+        public void RecordEquityRaised(decimal amount)
+        {
+            LifetimeEquityRaised += amount;
+            AddEvent($"Equity raised {amount}");
         }
 
         /// <summary>Advance to next quarter. Returns true if year-end.</summary>
@@ -169,6 +222,25 @@ namespace LakskongenSim.Finance
             BiomassInventoryValue = s.BiomassInventoryValue; CurrentPeriod = s.CurrentPeriod;
             Events.Clear(); Events.AddRange(s.Events);
 #pragma warning restore CS0618
+        }
+
+        /// <summary>Lifetime totals for a save (see the reconciliation identity above).</summary>
+        public LifetimeTotals ExportLifetime() => new()
+        {
+            Revenue = LifetimeRevenue, Cogs = LifetimeCOGS, Opex = LifetimeOperatingExpenses,
+            Interest = LifetimeInterest, Taxes = LifetimeTaxes, Capex = LifetimeCapex,
+            LiabilitiesIncurred = LifetimeLiabilitiesIncurred, LiabilitiesRepaid = LifetimeLiabilitiesRepaid,
+            EquityRaised = LifetimeEquityRaised
+        };
+
+        /// <summary>Restore lifetime totals after a load.</summary>
+        public void ImportLifetime(LifetimeTotals t)
+        {
+            ArgumentNullException.ThrowIfNull(t);
+            LifetimeRevenue = t.Revenue; LifetimeCOGS = t.Cogs; LifetimeOperatingExpenses = t.Opex;
+            LifetimeInterest = t.Interest; LifetimeTaxes = t.Taxes; LifetimeCapex = t.Capex;
+            LifetimeLiabilitiesIncurred = t.LiabilitiesIncurred; LifetimeLiabilitiesRepaid = t.LiabilitiesRepaid;
+            LifetimeEquityRaised = t.EquityRaised;
         }
 
         /// <summary>Export the categorised cost breakdown (Phase 5.5). Ordered by key for
@@ -232,6 +304,7 @@ namespace LakskongenSim.Finance
         public void AddAsset(decimal amount)
         {
             Assets += amount;
+            LifetimeCapex += amount;
             AddEvent($"Buy asset {amount}");
         }
 
@@ -241,6 +314,7 @@ namespace LakskongenSim.Finance
         public void AddLiability(decimal amount)
         {
             Liabilities += amount;
+            LifetimeLiabilitiesIncurred += amount;
             AddEvent($"Take liability {amount}");
         }
 
@@ -251,7 +325,24 @@ namespace LakskongenSim.Finance
         {
             var repayment = Math.Min(amount, Liabilities);
             Liabilities -= repayment;
+            // The cash paid is the full amount even if older saves under-recorded
+            // the liability, so the lifetime (cash) total takes all of it.
+            LifetimeLiabilitiesRepaid += amount;
             AddEvent($"Repay liability {repayment}");
         }
+    }
+
+    /// <summary>Serializable lifetime ledger totals (EngineRuntimeSnapshot.FinLifetime).</summary>
+    public sealed class LifetimeTotals
+    {
+        public decimal Revenue { get; set; }
+        public decimal Cogs { get; set; }
+        public decimal Opex { get; set; }
+        public decimal Interest { get; set; }
+        public decimal Taxes { get; set; }
+        public decimal Capex { get; set; }
+        public decimal LiabilitiesIncurred { get; set; }
+        public decimal LiabilitiesRepaid { get; set; }
+        public decimal EquityRaised { get; set; }
     }
 }

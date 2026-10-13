@@ -1016,7 +1016,7 @@ public partial class GameBridge : Node
             return false;
         }
 
-        engine.FinanceManager.Spend(node.CostNOK);
+        engine.PayCost(node.CostNOK, LakskongenSim.Core.CostBooking.Opex, "research");
         research.StartResearch(nodeId);
         EmitSignal(SignalName.GameStateUpdated);
         GD.Print($"GameBridge: research started — {node.Name} ({node.ResearchDays}d, {node.CostNOK:N0} NOK)");

@@ -49,6 +49,9 @@ namespace LakskongenSim.Expansion
     
     public class VerticalIntegrationSystem
     {
+        /// <summary>Raised when construction CAPEX was deducted (the engine books it as an asset).</summary>
+        public event Action<decimal>? OnCapexPaid;
+
         private readonly FinanceManager _financeManager;
         private readonly List<IntegrationAsset> _allAssets;
         private readonly List<IntegrationAsset> _ownedAssets;
@@ -174,6 +177,7 @@ namespace LakskongenSim.Expansion
                     Asset = asset
                 };
             }
+            OnCapexPaid?.Invoke((decimal)asset.CapexNOK); // the exact amount TryDeductCapital spent
             asset.IsOwned = true;
             asset.ConstructionStarted = DateTime.Now; // In real game, use game time
             asset.ConstructionCompleted = asset.ConstructionStarted.Value.AddMonths(asset.ConstructionTimeMonths);

@@ -367,8 +367,8 @@ namespace LakskongenSim.Core
 
             if (step.RewardNok > 0)
             {
-                _engine.FinanceManager?.AddRevenue(step.RewardNok);
-                Console.WriteLine(
+                _engine.ReceiveIncome(step.RewardNok, "tutorial_rewards");
+                SimLog.Info(
                     $"🎓 Tutorial Step {step.StepNumber}/{TotalSteps} complete: {step.Title} " +
                     $"(+{step.RewardNok:N0} NOK)");
             }

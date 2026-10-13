@@ -23,6 +23,10 @@ namespace LakskongenSim.Core
 
         public event Action<Achievement>? OnAchievementUnlocked;
 
+        /// <summary>Raised when a reward was paid to the FinanceManager (the engine books it).</summary>
+
+        public event Action<decimal>? OnRewardPaid;
+
         public AchievementSystem(GameState state, Finance.FinanceManager? financeManager = null)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
@@ -63,15 +67,19 @@ namespace LakskongenSim.Core
         private void UnlockAchievement(Achievement achievement)
         {
             _state.UnlockedAchievementIds.Add(achievement.Id);
-            Console.WriteLine($"🏆 Achievement Unlocked: {achievement.Name}");
-            Console.WriteLine($"    {achievement.Description}");
+            SimLog.Info($"🏆 Achievement Unlocked: {achievement.Name} — {achievement.Description}");
             if (achievement.RewardNOK > 0)
             {
                 if (_financeManager != null)
+                {
                     _financeManager.AddRevenue(achievement.RewardNOK);
+                    OnRewardPaid?.Invoke(achievement.RewardNOK);
+                }
                 else
+                {
                     _state.Balance += achievement.RewardNOK; // Legacy fallback
-                Console.WriteLine($"    Reward: {achievement.RewardNOK:N0} NOK");
+                }
+                SimLog.Info($"    Reward: {achievement.RewardNOK:N0} NOK");
             }
             OnAchievementUnlocked?.Invoke(achievement);
         }
@@ -194,13 +202,22 @@ namespace LakskongenSim.Core
     // Static class to map condition keys to actual Func<GameState, bool> delegates
     public static class AchievementConditionMap
     {
+        /// <summary>Cash minus outstanding loan principal (a loan is not wealth).</summary>
+        private static decimal NetWorth(GameState gs)
+            => gs.Balance - gs.ActiveLoans.Sum(l => System.Math.Max(0m, l.Principal));
+
         public static readonly Dictionary<string, Func<GameState, bool>> Conditions = new()
         {
             {"HasAnyPopulations", gs => gs.Populations.Any()},
             {"SurvivedYearOne", gs => gs.Day >= 365 && gs.Balance > 0},
             {"HasHarvestedCohort", gs => gs.Populations.Any(p => p.Cohorts.Any(c => c.Stage == Data.LifeStage.Harvest))},
-            {"ProfitableQuarter", gs => gs.Balance > 1_000_000m && gs.Day >= 90},
-            {"MillionRevenue", gs => gs.Balance >= 2_000_000m}, // Assuming Balance is cumulative revenue here
+            // Positive cash flow over the last quarter (90 daily snapshots).
+            {"ProfitableQuarter", gs =>
+                gs.Day >= 90 && gs.DailySnapshots.Count > 90 &&
+                gs.DailySnapshots[^1].BalanceNok > gs.DailySnapshots[^91].BalanceNok},
+            // Revenue achievements measure cumulative SALES, not cash: cash
+            // includes the starting capital, so they all fired on day 1 (F1006).
+            {"MillionRevenue", gs => gs.TotalSalesRevenueNok >= 1_000_000m},
             {"Harvested100KFish", gs => gs.Populations.Sum(p => p.Cohorts.Where(c => c.Stage == Data.LifeStage.Harvest).Sum(c => c.Count)) >= 100_000},
             {"FCRExcellence", gs =>
                 {
@@ -231,7 +248,7 @@ namespace LakskongenSim.Core
                 }
             },
             {"ASCCertified", gs => gs.HasASCCertification},
-            {"FiveMillionRevenue", gs => gs.Balance >= 6_000_000m},
+            {"FiveMillionRevenue", gs => gs.TotalSalesRevenueNok >= 5_000_000m},
             {"GeneticSuperiority", gs => gs.BestGrowthBreedingValue >= 2.0},
             {"CrisisSurvivor", gs => 
                 {
@@ -251,7 +268,7 @@ namespace LakskongenSim.Core
                     return latest.SustainabilityScore >= 95;
                 }
             },
-            {"TenMillionRevenue", gs => gs.Balance >= 11_000_000m},
+            {"TenMillionRevenue", gs => gs.TotalSalesRevenueNok >= 10_000_000m},
             {"VerticalIntegration", gs => gs.OwnsFeedMill && gs.OwnsHatchery && gs.OwnsProcessingPlant && gs.SeaSites.Count > 0},
             {"AcquisitionSpree", gs => gs.AcquisitionCount >= 3},
             {"GlobalExporter", gs => gs.ExportMarkets.Contains("EU") &&
@@ -261,7 +278,7 @@ namespace LakskongenSim.Core
                                   gs.ExportMarkets.Contains("UK") &&
                                   gs.ExportMarkets.Contains("MiddleEast")
             },
-            {"HundredMillionNetWorth", gs => gs.Balance >= 105_000_000m},
+            {"HundredMillionNetWorth", gs => NetWorth(gs) >= 100_000_000m},
             {"PerfectFCR", gs => gs.BestFCR > 0 && gs.BestFCR <= 1.05},
             {"ZeroEscapes", gs => 
                 {
@@ -297,7 +314,8 @@ namespace LakskongenSim.Core
                     return false;
                 }
             },
-            {"SpeedrunMillionaire", gs => gs.Balance >= 2_000_000m && gs.Day < 500},
+            // 1M NOK profit = net worth (cash minus loan principal) up 1M on the opening balance.
+            {"SpeedrunMillionaire", gs => NetWorth(gs) - gs.OpeningBalanceNok >= 1_000_000m && gs.Day < 500},
             {"BankruptcyRecovery", gs => gs.MinimumBalanceEver < 0 && gs.Balance >= 1_000_000m},
 
             // ── Wave 7 depth-system achievements ──────────────────────────────

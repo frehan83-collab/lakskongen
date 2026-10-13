@@ -23,68 +23,43 @@ namespace LakskongenSim.Finance
         public IPOSession IPO { get; } = new IPOSession();
 
         /// <summary>
-        /// Execute annual closing: reset Profit and Loss, test covenants, process IPO quarterly guidance.
-        /// Called once per year (every 4 quarters).
+        /// Execute annual closing: record the year's tax settlement (computed and
+        /// paid/refunded by the engine ledger before this call), test covenants on
+        /// the year's figures with interest-bearing debt = loan principal plus
+        /// bonds, reset the P&amp;L, and report IPO state. Called once per year.
         /// </summary>
         public CorporateFinanceAnnualResult ExecuteAnnualClose(
             FinancialStatements statements,
-            TaxSystem taxSystem,
             FinanceManager financeManager,
-            InvestorSystem investorSystem,
-            decimal totalBiomassKg,
-            decimal normPricePerKg,
+            InvestorSystem? investorSystem,
+            AnnualTaxSettlement tax,
+            decimal outstandingDebt,
             int currentDay)
         {
+            ArgumentNullException.ThrowIfNull(statements);
+            ArgumentNullException.ThrowIfNull(financeManager);
+            ArgumentNullException.ThrowIfNull(tax);
+
             var result = new CorporateFinanceAnnualResult
             {
                 Year = statements.CurrentYear,
-                Day = currentDay
+                Day = currentDay,
+                NetIncomeBeforeTax = tax.PreTaxIncome,
+                CorporateTax = tax.CorporateTax + tax.ResourceRentTax,
+                ResourceRentBase = tax.ResourceRentBase,
+                LossCarryForward = tax.LossCarryForwardAfter,
+                TaxPaid = tax.CorporateTax + tax.ResourceRentTax
             };
 
-            // 1. Compute resource rent tax base (norm price × volume - standard deductions)
-            var resourceRentBase = ComputeResourceRentBase(totalBiomassKg, normPricePerKg, statements);
+            // Covenants use the year's figures, so test them BEFORE the P&L reset
+            // (the old order read interest and tax as 0 after AnnualClose).
+            result.CovenantTest = TestCovenants(statements, financeManager, investorSystem, outstandingDebt);
+            if (!result.CovenantTest.AllPassed)
+                result.CovenantBreachCount = Covenants.GetActiveBreaches().Count;
 
-            // 2. Compute total tax (corporate + resource rent)
-            var netIncome = statements.ComputeNetIncome();
-            var totalTax = taxSystem.ComputeTotalTax(netIncome, resourceRentBase);
-            result.CorporateTax = totalTax; // TaxSystem combines both
-            result.NetIncomeBeforeTax = netIncome;
-            result.ResourceRentBase = resourceRentBase;
-            result.LossCarryForward = taxSystem.LossCarryForward;
-
-            // 3. Pay tax from cash
-            if (totalTax > 0m)
-            {
-                financeManager.Spend(totalTax);
-                statements.RecordTax(totalTax);
-                result.TaxPaid = totalTax;
-            }
-
-            // 4. Annual close Profit and Loss accounts
             statements.AnnualClose();
             result.PnLReset = true;
 
-            // 5. Test covenants
-            var netDebt = investorSystem?.OutstandingBondPrincipal ?? 0m;
-            if (financeManager != null) netDebt -= financeManager.Balance; // Net debt = debt - cash
-            netDebt = Math.Max(0m, netDebt);
-
-            var ebitda = netIncome + statements.InterestExpense + statements.Taxes; // Simplified
-            var interestExpense = statements.InterestExpense;
-            var equity = statements.Equity;
-            var totalAssets = statements.Assets;
-            var cash = financeManager?.Balance ?? 0m;
-            var undrawn = investorSystem?.AvailableCreditFacility ?? 0m;
-
-            var covenantResult = Covenants.TestCovenants(netDebt, ebitda, interestExpense, equity, totalAssets, cash, undrawn);
-            result.CovenantTest = covenantResult;
-
-            if (!covenantResult.AllPassed)
-            {
-                result.CovenantBreachCount = Covenants.GetActiveBreaches().Count;
-            }
-
-            // 6. IPO quarterly guidance (if public)
             if (IPO.Stage == IPOSession.IPOStage.Listed)
             {
                 // Next quarter guidance would be set by player via bridge
@@ -97,28 +72,14 @@ namespace LakskongenSim.Finance
         }
 
         /// <summary>
-        /// Compute resource rent tax base per Norwegian model:
-        /// Norm price × harvested volume - standard deductions (feed, smolt, etc.)
-        /// </summary>
-        private decimal ComputeResourceRentBase(decimal totalBiomassKg, decimal normPricePerKg, FinancialStatements statements)
-        {
-            // Simplified: resource rent = (norm price × harvest volume) - operating costs allocated to harvest
-            // In reality: complex calculation with standard deductions for feed, smolt, wellboat, etc.
-            var harvestValue = totalBiomassKg / 1000m * normPricePerKg; // tonnes × norm price
-            var standardDeductionRate = 0.65m; // 65% standard deduction for resource rent
-            var deductibleCosts = statements.COGS + statements.OperatingExpenses * 0.5m; // Approximate
-            var resourceRentBase = Math.Max(0m, harvestValue * (1m - standardDeductionRate) - deductibleCosts);
-            return resourceRentBase;
-        }
-
-        /// <summary>
-        /// Quarterly processing: advance quarter, test covenants quarterly, apply market drift to share price.
+        /// Quarterly processing: advance quarter, test covenants quarterly (debt =
+        /// loan principal plus bonds), apply market drift to share price.
         /// </summary>
         public CorporateFinanceQuarterlyResult ExecuteQuarterly(
             FinancialStatements statements,
-            TaxSystem taxSystem,
             FinanceManager financeManager,
-            InvestorSystem investorSystem,
+            InvestorSystem? investorSystem,
+            decimal outstandingDebt,
             int currentDay)
         {
             var result = new CorporateFinanceQuarterlyResult
@@ -132,20 +93,7 @@ namespace LakskongenSim.Finance
             var isYearEnd = statements.AdvanceQuarter();
             result.IsYearEnd = isYearEnd;
 
-            // Quarterly covenant test (lightweight)
-            var netDebt = investorSystem?.OutstandingBondPrincipal ?? 0m;
-            if (financeManager != null) netDebt -= financeManager.Balance;
-            netDebt = Math.Max(0m, netDebt);
-
-            var ebitda = statements.ComputeNetIncome() + statements.InterestExpense + statements.Taxes;
-            var interestExpense = statements.InterestExpense;
-            var equity = statements.Equity;
-            var totalAssets = statements.Assets;
-            var cash = financeManager?.Balance ?? 0m;
-            var undrawn = investorSystem?.AvailableCreditFacility ?? 0m;
-
-            var covenantResult = Covenants.TestCovenants(netDebt, ebitda, interestExpense, equity, totalAssets, cash, undrawn);
-            result.CovenantTest = covenantResult;
+            result.CovenantTest = TestCovenants(statements, financeManager, investorSystem, outstandingDebt);
 
             // IPO market drift
             if (IPO.Stage == IPOSession.IPOStage.Listed)
@@ -156,6 +104,22 @@ namespace LakskongenSim.Finance
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Covenant test on the current (year-to-date) figures. EBITDA is
+        /// earnings before interest and tax (revenue − COGS − OpEx); net debt is
+        /// interest-bearing debt minus cash (never negative).
+        /// </summary>
+        private CovenantTestResult TestCovenants(FinancialStatements statements, FinanceManager financeManager,
+            InvestorSystem? investorSystem, decimal outstandingDebt)
+        {
+            var cash = financeManager?.Balance ?? 0m;
+            var netDebt = Math.Max(0m, outstandingDebt - cash);
+            var ebitda = statements.PreTaxIncome + statements.InterestExpense;
+            var undrawn = investorSystem?.AvailableCreditFacility ?? 0m;
+            return Covenants.TestCovenants(netDebt, ebitda, statements.InterestExpense,
+                statements.Equity, statements.Assets, cash, undrawn);
         }
 
         public void Reset()
@@ -212,4 +176,18 @@ namespace LakskongenSim.Finance
         public decimal SharePriceNOK { get; set; }
         public decimal MarketCapNOK { get; set; }
     }
+
+    /// <summary>
+    /// One fiscal year's tax settlement: final corporate tax (after loss
+    /// carry-forward) plus resource-rent tax, against the provisional tax paid
+    /// during the year. <see cref="Settlement"/> &gt; 0 was paid, &lt; 0 refunded.
+    /// </summary>
+    public sealed record AnnualTaxSettlement(
+        decimal PreTaxIncome,
+        decimal CorporateTax,
+        decimal ResourceRentBase,
+        decimal ResourceRentTax,
+        decimal ProvisionalPaid,
+        decimal Settlement,
+        decimal LossCarryForwardAfter);
 }

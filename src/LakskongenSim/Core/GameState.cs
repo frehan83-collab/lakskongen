@@ -292,6 +292,18 @@ namespace LakskongenSim.Core
         /// <summary>P9: cumulative resource-rent tax paid (NOK).</summary>
         public decimal ResourceRentPaid { get; set; }
 
+        /// <summary>Cumulative sales revenue (harvests, forced harvests, sludge) since the game started.</summary>
+        public decimal TotalSalesRevenueNok { get; set; }
+
+        /// <summary>Cash at the start of the game or scenario (profit/net-worth achievements).</summary>
+        public decimal OpeningBalanceNok { get; set; }
+
+        /// <summary>Harvested kg in the current fiscal year (resource-rent base).</summary>
+        public double HarvestedKgThisTaxYear { get; set; }
+
+        /// <summary>This fiscal year's harvest valued at the norm price (resource-rent base).</summary>
+        public decimal ResourceRentHarvestValueThisTaxYear { get; set; }
+
         /// <summary>P9: last binding monthly pen price set by the Price Council (NOK/kg).</summary>
         public decimal PenPriceCouncilLastValue { get; set; }
 

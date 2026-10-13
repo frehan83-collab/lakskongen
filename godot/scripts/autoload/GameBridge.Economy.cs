@@ -566,7 +566,7 @@ public partial class GameBridge : Node
         if (acquisitionResult.Success)
         {
             // Deduct cost
-            SimulationEngine?.FinanceManager?.Spend((decimal)acquisitionResult.ActualPrice * 1_000_000m);
+            SimulationEngine?.PayCost((decimal)acquisitionResult.ActualPrice * 1_000_000m, LakskongenSim.Core.CostBooking.Capex, "acquisitions");
             
             // Calculate synergies (simplified - 10% of asset value per year)
             float synergies = (target.AssetValue + target.LicenseValue) * 0.10f;

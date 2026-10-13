@@ -58,7 +58,16 @@ namespace LakskongenSim.Farm
         private const double FCRTempSensitivity = 0.008; // ↓ from 0.018 (balance tune)
 
         // ─── Feeding strategy ───
-        public double FeedingRatePercent { get; set; } = 1.5; // % of bodyweight per day (adjustable by player)
+        public double FeedingRatePercent { get; set; } = 1.5; // % of bodyweight per day (fallback when actual growth is unknown)
+
+        /// <summary>
+        /// Maintenance ration (% of body weight per day, appetite-scaled): the
+        /// floor fed when the fish barely grow (cold water, near the growth
+        /// asymptote), so holding fish is never free. 0.1 keeps the measured
+        /// economic FCR inside the REALISM_CHECKLIST band (BalanceReportTests):
+        /// the FCR model already carries the seasonal maintenance cost.
+        /// </summary>
+        public double MaintenanceRationPercent { get; set; } = 0.1;
         public int MealsPerDay { get; set; } = 3; // More meals = better FCR but higher labour cost
 
         // ─── Sustainability ───
@@ -245,10 +254,16 @@ namespace LakskongenSim.Farm
         /// Defaults to 1.0 so existing callers keep baseline behaviour.</param>
         /// <param name="fcrReduction">Research FCR reduction (e.g., 0.06 = 6% lower FCR).</param>
         /// <param name="feedWasteReduction">Research feed waste reduction (e.g., 0.12 = 12% less waste).</param>
+        /// <param name="actualGrowthKg">Biomass the population actually gained over
+        /// <paramref name="days"/> (from the growth model). When given, the ration is
+        /// growth × FCR (never below the maintenance ration), so feed follows real
+        /// growth and the reported FCR is real; without it the legacy fixed
+        /// %-of-bodyweight ration is used.</param>
         public FeedResult Feed(Biology.FishPopulation pop, int days,
             double temperatureC = 12.0, double stockingDensityKgM3 = 20.0,
             double waterQualityPenalty = 1.0, double spreadQuality01 = 1.0,
-            double fcrReduction = 0.0, double feedWasteReduction = 0.0)
+            double fcrReduction = 0.0, double feedWasteReduction = 0.0,
+            double? actualGrowthKg = null)
         {
             double biomassKg = pop.Cohorts.Sum(c => c.Count * c.MeanWeightKg);
             if (biomassKg <= 0) return FeedResult.Empty;
@@ -279,11 +294,25 @@ namespace LakskongenSim.Farm
             // Daily feed amount (% of bodyweight, adjustable by player),
             // scaled by appetite so uneaten feed doesn't wreck FCR/seabed.
             LastAppetite01 = CalculateAppetite(temperatureC, waterQualityPenalty);
-            double dailyFeedKg = biomassKg * (FeedingRatePercent / 100.0) * LastAppetite01;
-            double totalFeedKg = dailyFeedKg * days;
-
-            // Expected growth from this feed
-            double expectedGrowthKg = totalFeedKg / fcr;
+            double totalFeedKg;
+            double expectedGrowthKg;
+            if (actualGrowthKg.HasValue)
+            {
+                // Feed follows the growth the biology produced (the old fixed
+                // 1.5 %BW/day ration fed 4-5 kg fish ~2x what they convert,
+                // driving economic FCR to ~2.9 while the circular metric below
+                // still reported ~1.4).
+                double growthKg = Math.Max(0.0, actualGrowthKg.Value);
+                double maintenanceKg = biomassKg * (MaintenanceRationPercent / 100.0) * LastAppetite01 * days;
+                totalFeedKg = Math.Max(growthKg * fcr, maintenanceKg);
+                expectedGrowthKg = growthKg;
+            }
+            else
+            {
+                double dailyFeedKg = biomassKg * (FeedingRatePercent / 100.0) * LastAppetite01;
+                totalFeedKg = dailyFeedKg * days;
+                expectedGrowthKg = totalFeedKg / fcr; // Expected growth from this feed
+            }
 
             // Waste outputs (for water chemistry)
             // ~30% of feed N is retained, 70% excreted (Norwegian aquaculture data)
