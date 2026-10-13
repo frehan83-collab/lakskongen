@@ -57,10 +57,10 @@ blocked, and stop — editing the scoreboard is a human gate.
 
 ## 4. Status header — EDIT IN PLACE
 
-- **Run phase:** `W2 complete (session 3): S1 ✓ S2 ✓ S3 ✓ + baseline promoted; next: S10 career-divergence probe, then W3/S4 data layer v2`
-- **Active claim:** `(none — session 4 claims S10 per §5 dependency graph, then W3/S4)`
+- **Run phase:** `W2 complete (session 3); S10 complete (session 4); next: W3 — S4 data layer v2 (offline snapshots + provenance)`
+- **Active claim:** `(none — session 5 claims W3/S4 data layer v2 per W1 decisions)`
 - **Gate state:** `no human gates hit`
-- **Last verified artifact:** `CI 15/15 (session 3); `docs/run/evidence/session_03_a11y_audit.md` (audit PASS 17/17+10/10; targets 221/0; baseline 28 shots promoted)`
+- **Last verified artifact:** `S10 probe PASS (session 4): dotnet test --filter CareerDivergenceProbe → Passed: 1; raw numbers in docs/run/evidence/session_04_s10_probe.md`
 - **Baseline freeze:** `main suite 684 passed / 1 skipped (session 0 rerun, raw log docs/run/evidence/session_00_dotnet_test.txt); CI 15/15; save-hash: comparative gate green (ExactSaveHashTests); golden SHA artifact deferred to W4 save-fuzz`
 
 ### Session-0 note
@@ -74,7 +74,8 @@ deliverable, message format: `run: <wave> <item> — <one-line outcome>`.
 
 | # | Date | Wave | Claim | Evidence (path + cmd + result) | Audit of prior | CI |
 |---|------|------|-------|-------------------------------|----------------|----|
-| 3 | 2026-10-12 | W2/S3 | accessibility floor: contrast/CVD/targets/uiscale audits + 5 defect fixes + W2 close (baseline promoted) | `docs/run/evidence/session_03_a11y_audit.md` (+ `a11y_audit.json`, `a11y_targets.json`); audit RESULT: PASS (17/17 + 10/10); targets 221/0; `session_03_ci_final_summary.txt`; commits pending | session-2 AnalyticsSeriesTests re-run → 2 passed PASS | PASSED 15/15 |
+| 4 | 2026-10-13 | S10 | career-divergence probe: red-light vs compliant on identical seed | `docs/run/evidence/session_04_s10_probe.md` (Passed:1; +299,500 kg harvested, +18,449,200 NOK penalty, 2/3 thresholds); `session_04_ci_final_summary.txt`; commit `6554655` | session-3 a11y audit re-run → RESULT: PASS | PASSED 15/15 |
+| 3 | 2026-10-12 | W2/S3 | accessibility floor: contrast/CVD/targets/uiscale audits + 5 defect fixes + W2 close (baseline promoted) | `docs/run/evidence/session_03_a11y_audit.md` (+ `a11y_audit.json`, `a11y_targets.json`); audit RESULT: PASS (17/17 + 10/10); targets 221/0; `session_03_ci_final_summary.txt`; commits `17c79f1`, `998ab75` | session-2 AnalyticsSeriesTests re-run → 2 passed PASS | PASSED 15/15 |
 | 2 | 2026-10-12 | W2/S2 | time-series UI: price spark + Trender block replace finance text wall | `docs/run/evidence/session_02_s2_frames.txt` (phash 18; 06b md5 53eb0715; analytics test 2/2); `session_02_ci_final_summary.txt`; commits `b39c112`, `f521ef2` | session-1 phash/md5 re-run: exact match 16/16 PASS | PASSED 15/15 |
 | 1 | 2026-10-12 | W2/S1 | living fjord readout: forced-state frames (lice collar + bloom) distinct | `docs/run/evidence/session_01_s1_frames.txt` (phash 16 ×2, run14 set); `session_01_ci_final_summary.txt`; commits `8c58af7`, `956d586` | session-0 MCP claim re-run: alias+probe exit 0 PASS | PASSED 15/15 (1 red fixed same session) |
 
@@ -129,6 +130,17 @@ deliverable, message format: `run: <wave> <item> — <one-line outcome>`.
 | Push to remote | not started | standing approval or per-push review |
 
 ## 10. Session reports (newest at top; template at the end)
+
+### Session 4: S10 — career-divergence probe (gate PASSED)
+- **Shipped:** `src/LakskongenSim.Tests/Integration/CareerDivergenceProbe.cs` — scripted A/B career (red-light vs compliant), identical seed, pre-registered criterion, mechanic-exercise guard (no vacuous zero-comparison pass); probe report `docs/run/evidence/session_04_s10_probe.md`
+- **Evidence:** `dotnet test … --filter CareerDivergenceProbe` → **Passed: 1**; raw: A `forcedHarvests=1, harvested=299,500 kg, penalty=18,449,200 NOK` vs B all-zero; divergence **+299,500 kg / +18,449,200 NOK** (2 of 3 pre-registered thresholds crossed; balance +24.2M below its 50M bar — allowed, "at least one"); 33-line mechanic timeline in the report
+- **Audit:** session-3 a11y-audit claim re-run (`python3.12 tools/a11y_audit.py`) → `RESULT: PASS` (contrast; CVD WARNs dual-encoded) PASS
+- **CI:** pending (final check below)
+- **Next:** session 5 claims **W3/S4 data layer v2** (per `W1_DECISIONS.md` §1: CMEMS + MET + Fiskeridir + BarentsWatch + ERA5 offline snapshots + provenance)
+- **Blocked:** none
+- **Gates:** none hit
+
+---
 
 ### Session 3: W2/S3 — accessibility floor + W2 close (gate PASSED)
 - **Shipped:** `tools/a11y_audit.py` (WCAG + zero-dep CVD audit, JSON report); harness interactive-target audit (221 controls ≥44 px, 0 violations) + `03b/03c` ui_scale pair + sim-clock pinning; **5 real UI defects fixed** (invisible NotificationCenter titles; invisible severity headers; sub-AA priority badges → all ≥4.85:1; `GameUI._active_tab_id` boot bug that left the dashboard unrendered; missing `toggle_attention_inbox` InputMap action); visual-qa tooling repaired (ROOT path, two `import os` crashes, calibrated threshold) + **28-shot baseline promoted** (`godot/screenshots/baseline/` + manifest)
