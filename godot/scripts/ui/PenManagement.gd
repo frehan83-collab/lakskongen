@@ -269,15 +269,16 @@ func _refresh_detail() -> void:
 
 	# Water (live where simulated)
 	_det_temp.text = "%.1f°C" % _sim.temperature_c
-	var o2: float = float(_sim.oxygen_mgl)
+	var o2: float = float(pen.get("oxygen_mgl", _sim.oxygen_mgl))
 	_det_oxygen.text = "%.1f mg/L" % o2 if o2 == o2 and o2 > 0.0 else "–"
 	_det_current.text = "%d%%" % int(float(_sim.appetite) * 100.0)
 	_det_visibility.text = tr("8.5 m")
 	_det_algae.text = tr("Lav")
 	_det_algae.add_theme_color_override("font_color", C_SUCCESS_D)
 
-	# Health
-	var lice: float = _sim.sea_lice_per_fish if _sim.get("sea_lice_per_fish") != null else 0.1
+	# Health: this site's lice (its weekly count, as on the 3D collar), not
+	# the company average shown for every site before.
+	var lice: float = float(pen.get("lice_per_fish", 0.0))
 	_det_lice.text = "%.2f lus/fisk" % lice
 	_det_lice.add_theme_color_override("font_color", C_SUCCESS_D if lice < 0.2 else (C_WARNING_D if lice < 0.5 else C_DANGER))
 	_det_disease.text = tr("Ingen")

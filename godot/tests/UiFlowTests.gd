@@ -52,6 +52,7 @@ func _run() -> void:
 	await _test_escape_returns_tabs_to_the_dashboard()
 	await _test_space_and_enter_reach_the_gui()
 	await _test_alerts_announce_transitions_once()
+	await _test_pen_details_show_site_lice()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -616,6 +617,27 @@ func _test_alerts_announce_transitions_once() -> void:
 	_sim.alert_raised.disconnect(on_alert)
 	_sim.audio_alert_triggered.disconnect(on_cue)
 	scene.queue_free()
+	await get_tree().process_frame
+
+## The Pens tab showed the company lice average for every site; each site
+## now shows its own count (the value its 3D collar is tinted by).
+func _test_pen_details_show_site_lice() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "site lice: two-site scenario starts")
+	_sim.set_paused(true)
+	_sim.set_qa_pen_lice("po3_sor", 1.2)
+	_sim.set_qa_pen_lice("po3_nord", 0.05)
+	_sim.advance_days(1)
+	var panel: Control = (load("res://scenes/ui/PenManagement.tscn") as PackedScene).instantiate()
+	add_child(panel)
+	await get_tree().process_frame
+	var shown := {}
+	for id in ["po3_sor", "po3_nord"]:
+		panel.select_pen(id)
+		await get_tree().process_frame
+		shown[id] = str(panel.get_node("%DetLice").text).to_float()
+	_check(shown["po3_sor"] > 0.9 and shown["po3_sor"] < 1.5, "site lice: po3_sor shows its own lice (%.2f)" % shown["po3_sor"])
+	_check(shown["po3_nord"] < 0.3, "site lice: po3_nord shows its own lice (%.2f)" % shown["po3_nord"])
+	panel.queue_free()
 	await get_tree().process_frame
 
 func _count_alerts(key: String, level: String) -> int:
