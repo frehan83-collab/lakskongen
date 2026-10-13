@@ -547,7 +547,10 @@ namespace LakskongenSim.Core;
     internal sealed class CrisisCapitalismTickSystem : ITickSystem, ITickClock
     {
         private int _lastCrisisCapitalismUpdate = 0;
-        private const int CrisisCapitalismUpdateInterval = 7;
+        // Daily: purchase and availability read the listing countdown this
+        // refreshes, so a weekly update left listings buyable up to six days
+        // past ExpiresOnDay. The update is cheap and draws no RNG.
+        private const int CrisisCapitalismUpdateInterval = 1;
         public void Tick(SimulationEngine engine)
         {
             if (engine.State.Day - _lastCrisisCapitalismUpdate >= CrisisCapitalismUpdateInterval)

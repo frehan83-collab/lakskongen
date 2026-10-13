@@ -238,7 +238,7 @@ public partial class GameBridge : Node
         var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
         var system = SimulationEngine?.CrisisCapitalism;
         if (system == null) return result;
-        foreach (var a in system.GetAllAvailableDistressedAssets())
+        foreach (var a in system.GetAllAvailableDistressedAssets(SimulationEngine!.State.Day))
         {
             result.Add(new Godot.Collections.Dictionary
             {

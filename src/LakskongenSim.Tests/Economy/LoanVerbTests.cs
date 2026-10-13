@@ -68,6 +68,23 @@ public class LoanVerbTests
         Assert.Single(broke.State.ActiveLoans);
     }
 
+    /// <summary>Re-review: ids counted the same-day loans, so a third loan after an
+    /// early repayment took a live loan's id.</summary>
+    [Fact]
+    public void LoanIds_StayUnique_AfterAnEarlyRepayment()
+    {
+        var engine = NewEngine();
+        Assert.True(engine.TakeLoan(1_000_000, 36, 0.07).Ok);
+        Assert.True(engine.TakeLoan(1_000_000, 36, 0.07).Ok);
+        var oldest = engine.State.ActiveLoans.First();
+        Assert.True(engine.RepayLoan(oldest.Principal).Ok);
+        Assert.True(engine.TakeLoan(1_000_000, 36, 0.07).Ok);
+
+        var ids = engine.State.ActiveLoans.Select(l => l.Id).ToList();
+        Assert.Equal(2, ids.Count);
+        Assert.Equal(ids.Count, ids.Distinct().Count());
+    }
+
     [Fact]
     public void MonthlyPayment_IsThirtyDaysOfTheDailyAmortization()
     {

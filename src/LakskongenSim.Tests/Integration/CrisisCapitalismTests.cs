@@ -98,6 +98,38 @@ public class CrisisCapitalismTests
         Assert.True(a == b, "resumed game diverged at " + SaveStateComparer.FirstDifference(a, b));
     }
 
+    /// <summary>Re-review: the save dropped the crisis's rival name and discount.</summary>
+    [Fact]
+    public void ACrisisKeepsItsRivalNameAndDiscount_AcrossASave()
+    {
+        var engine = EngineWithInsolventRival(37, out var rival);
+        engine.Advance(AfterFirstQuarter);
+        var crisis = engine.CrisisCapitalism.GetActiveCrises(engine.State.Day).Single(c => c.AffectedCompetitorId == rival.Id);
+        Assert.False(string.IsNullOrEmpty(crisis.CompetitorName));
+
+        var resumed = SaveStateComparer.Resume(SaveStateComparer.Serialize(engine), events: false);
+        var restored = resumed.CrisisCapitalism.GetActiveCrises(resumed.State.Day).Single(c => c.Id == crisis.Id);
+        Assert.Equal(crisis.CompetitorName, restored.CompetitorName);
+        Assert.Equal(crisis.DiscountMultiplier, restored.DiscountMultiplier);
+    }
+
+    /// <summary>Re-review: availability followed a weekly countdown, so a listing
+    /// stayed buyable for up to six days after it closed.</summary>
+    [Fact]
+    public void AListingCannotBeBought_OnceItsDayHasPassed()
+    {
+        var engine = EngineWithInsolventRival(38, out _);
+        engine.Advance(AfterFirstQuarter);
+        var asset = engine.CrisisCapitalism.GetAllAvailableDistressedAssets()
+            .OrderBy(a => a.ExpiresOnDay).First();
+        engine.Advance(asset.ExpiresOnDay - engine.State.Day);
+        Assert.Equal(asset.ExpiresOnDay, engine.State.Day);
+        Assert.DoesNotContain(engine.CrisisCapitalism.GetAllAvailableDistressedAssets(engine.State.Day), a => a.Id == asset.Id);
+        decimal cash = engine.FinanceManager.Balance;
+        Assert.False(engine.AcquireDistressedAsset(asset.Id).Ok);
+        Assert.Equal(cash, engine.FinanceManager.Balance);
+    }
+
     [Fact]
     public void Buying_TransfersExactlyTheAdvertisedAssets_AtTheListedPrice()
     {

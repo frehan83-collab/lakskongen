@@ -161,6 +161,7 @@ public partial class GameBridge : Node
         // clean serializable mirror (the registry outlives Initialize).
         _installedMitigations.Clear();
         SyncMitigationsToState();
+        ResetSessionState();
         SimulationEngine.Tutorial.OnStepCompleted += step =>
             EmitSignal(SignalName.TutorialStepCompleted,
                 step.StepNumber, step.Title, (double)step.RewardNok);
@@ -226,6 +227,7 @@ public partial class GameBridge : Node
 
         // Phase 4.4: re-apply saved recipe to the fresh FeedSystem.
         ApplyFeedRecipe();
+        ResetSessionState();
 
         _gameRunning = true;
         EmitSignal(SignalName.GameStarted);
@@ -900,6 +902,20 @@ public partial class GameBridge : Node
 
     // Track last weather check to avoid spam
     private int _lastDiseaseCheckDay = 0;
+
+    /// <summary>
+    /// Bridge state that belongs to one game (review F064): the weekly lice
+    /// check's last day (a load or new game after day N skipped the checks until
+    /// day N + 7, so a reload could go ~100 days without a lice warning) and
+    /// the forecast cache (keyed by day number only, so a reload on the same day
+    /// served the pre-reload projection). Called by both start paths.
+    /// </summary>
+    private void ResetSessionState()
+    {
+        _lastDiseaseCheckDay = SimulationEngine?.State?.Day ?? 0;
+        _forecastCache = null;
+        _forecastCacheDay = -1;
+    }
 
     
 

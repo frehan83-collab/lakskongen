@@ -405,9 +405,14 @@ namespace LakskongenSim.Market
 
                 var predicted = currentPrice + meanPull + trendComponent + eventComponent;
 
-                // Add deliberate forecasting noise (±5-15% uncertainty)
+                // Add deliberate forecasting noise (±5-15% uncertainty). It is a
+                // hash of the week and horizon, not a draw: the Intelligence stream
+                // also rolls the weekly news and rival volumes, so every forecast
+                // read by the UI changed the economy (and the same forecast changed
+                // between refreshes).
                 var noiseRange = weeklyVolatility * (decimal)Math.Sqrt(w);
-                var noise = ((decimal)_rng.NextDouble() - 0.5m) * noiseRange * 0.3m;
+                double unit = StableHash.Unit01(StableHash.Of("price-forecast", _currentWeek * 8 + w));
+                var noise = ((decimal)unit - 0.5m) * noiseRange * 0.3m;
                 predicted += noise;
 
                 // Confidence decreases with horizon

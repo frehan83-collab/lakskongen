@@ -345,9 +345,14 @@ namespace LakskongenSim.Core
         /// <summary>Day by which the lice step triggers even without a lice event.</summary>
         internal const int LiceStepFallbackDay = 150;
 
-        /// <summary>A harvest has been sold (any sale path books TotalSalesRevenueNok).</summary>
-        private static bool HasSold(TutorialSystem t)
-            => t.State.TotalSalesRevenueNok > 0m || t.State.ProcessingSnapshots.Count >= 1;
+        /// <summary>
+        /// Fish have been sold (every harvest path books TotalHarvestRevenueNok).
+        /// The sales total also counts sludge income, which the weekly
+        /// valorization books automatically, so it completed these steps before
+        /// any harvest.
+        /// </summary>
+        internal static bool HasSold(TutorialSystem t)
+            => t.State.TotalHarvestRevenueNok > 0m || t.State.ProcessingSnapshots.Count >= 1;
 
         internal int TotalFishCount =>
             _engine.State.Populations.SelectMany(p => p.Cohorts).Sum(c => c.Count);

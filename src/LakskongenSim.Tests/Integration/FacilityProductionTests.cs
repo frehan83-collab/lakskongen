@@ -110,6 +110,28 @@ public class FacilityProductionTests
             $"RAS {MeanWeight(ras.Tanks):F3} kg vs sea-temperature reference {MeanWeight(new[] { reference }):F3} kg");
     }
 
+    /// <summary>Re-review: facility fish joined State.Populations and took the
+    /// sea's cold-water stress deaths although the tanks run at 12 °C.</summary>
+    [Fact]
+    public void SeaTemperatureStress_SparesRasTanks_ButNotSeaPens()
+    {
+        var engine = RichEngine(59);
+        Assert.True(engine.BuildRASFacility("Warm tanks", RASScale.Small).Ok);
+        var ras = engine.RASFacilities.Single();
+        FinishConstruction(engine, () => ras.ConstructionDays = 1);
+        Assert.True(engine.StockRASFacility(ras.Id, 100_000).Ok);
+        var site = new SeaSite("cold-sea", "zone-cold") { MABTonnes = 780 };
+        engine.State.SeaSites.Add(site);
+        Assert.True(engine.StockSmolts(site.Id, 100_000).Ok);
+        int tank = ras.Tanks.Sum(p => p.TotalCount);
+        int pen = site.Pens.Sum(p => p.TotalCount);
+
+        engine.ApplySeaTemperatureStress(0.0); // 4 degrees below the band: 0.02% a day
+
+        Assert.Equal(tank, ras.Tanks.Sum(p => p.TotalCount));
+        Assert.Equal(pen - (int)(pen * 0.04 * 0.005), site.Pens.Sum(p => p.TotalCount));
+    }
+
     [Fact]
     public void IsaOutbreak_CullsASeaPen_NeverARasTank()
     {

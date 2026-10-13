@@ -408,7 +408,7 @@ public partial class SimulationEngine
         if (State == null || FinanceManager == null || CrisisCapitalism == null)
             return CommandResult.Fail("engine_not_ready", "Engine not initialized");
 
-        var assets = CrisisCapitalism.GetAllAvailableDistressedAssets();
+        var assets = CrisisCapitalism.GetAllAvailableDistressedAssets(State.Day);
         var asset = assets.FirstOrDefault(a => a.Id == assetId);
         if (asset == null)
             return CommandResult.Fail("asset_not_found", $"Distressed asset '{assetId}' not found or expired");

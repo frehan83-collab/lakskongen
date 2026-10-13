@@ -394,6 +394,25 @@ def test_bridge_consumers_call_real_methods_with_valid_arity():
     assert not problems, "Bridge calls that fail at runtime:\n  " + "\n  ".join(sorted(set(problems)))
 
 
+DECIMAL_SIGNATURE_RE = re.compile(
+    r"public\s+(?:static\s+)?(?:[\w<>\[\],.?\s]+?\s+)?(\w+)\s*\(([^)]*)\)")
+
+
+def test_gamebridge_signatures_are_marshalable():
+    """Godot cannot marshal C# decimal: a public GameBridge method with decimal
+    in its signature is never registered, so has_method() is false and the
+    caller silently does nothing (F947: ValorizeSludgeNow, the sludge button)."""
+    offenders = []
+    for path in _bridge_sources():
+        src = path.read_text(encoding="utf-8")
+        for m in DECIMAL_SIGNATURE_RE.finditer(src):
+            head = src[m.start():m.end()]
+            if re.search(r"\bdecimal\b", head):
+                line = src[:m.start()].count("\n") + 1
+                offenders.append(f"{path.relative_to(REPO)}:{line} {m.group(1)}")
+    assert not offenders, "GameBridge methods Godot cannot expose (decimal):\n  " + "\n  ".join(offenders)
+
+
 def test_bridge_consumer_check_catches_the_known_failures():
     """Non-vacuity: the F943 loan card and a guarded ghost method are flagged."""
     signatures = {t: _signatures(t) for t in BRIDGE_FILES}
@@ -423,4 +442,5 @@ if __name__ == "__main__":
     test_simbridge_facade_parity()
     test_bridge_consumers_call_real_methods_with_valid_arity()
     test_bridge_consumer_check_catches_the_known_failures()
+    test_gamebridge_signatures_are_marshalable()
     print("bridge contract OK")

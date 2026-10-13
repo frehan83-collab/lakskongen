@@ -292,6 +292,7 @@ public partial class SimulationEngine
 
         ReceiveIncome(revenue, "harvest");
         State.TotalSalesRevenueNok += revenue;
+        State.TotalHarvestRevenueNok += revenue;
         if (seaFarmed)
             RecordHarvestForResourceRent(totalBiomassKg);
 
@@ -333,8 +334,15 @@ public partial class SimulationEngine
         // Cash in as liquidity and a balance-sheet liability (NOT revenue).
         ReceiveLoan((decimal)amount);
 
-        // Unique even for two loans on the same day (the id was "loan_<day>").
-        string loanId = $"loan_{State.Day}_{State.ActiveLoans.Count(l => l.Id.StartsWith($"loan_{State.Day}", StringComparison.Ordinal)) + 1}";
+        // Unique among live loans: the highest same-day suffix + 1. (Counting the
+        // same-day loans reused a live id after an early repayment, and the
+        // "loan_5" prefix also matched day 50.)
+        string prefix = $"loan_{State.Day}_";
+        int next = 1 + State.ActiveLoans
+            .Select(l => l.Id.StartsWith(prefix, StringComparison.Ordinal)
+                         && int.TryParse(l.Id.AsSpan(prefix.Length), out int n) ? n : 0)
+            .DefaultIfEmpty(0).Max();
+        string loanId = prefix + next;
         State.ActiveLoans.Add(new LoanState
         {
             Id = loanId,
@@ -648,6 +656,7 @@ public partial class SimulationEngine
         State.ResourceRentPaid = snapshot.ResourceRentPaid;
         State.HarvestedKgThisTaxYear = snapshot.HarvestedKgThisTaxYear;
         State.TotalSalesRevenueNok = snapshot.TotalSalesRevenueNok;
+        State.TotalHarvestRevenueNok = snapshot.TotalHarvestRevenueNok;
         State.OpeningBalanceNok = snapshot.OpeningBalanceNok;
         State.ResourceRentHarvestValueThisTaxYear = snapshot.ResourceRentHarvestValueThisTaxYear;
         State.PenPriceCouncilLastValue = snapshot.PenPriceCouncilLastValue;

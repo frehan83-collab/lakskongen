@@ -295,6 +295,13 @@ namespace LakskongenSim.Core
         /// <summary>Cumulative sales revenue (harvests, forced harvests, sludge) since the game started.</summary>
         public decimal TotalSalesRevenueNok { get; set; }
 
+        /// <summary>
+        /// Cumulative revenue from selling fish (harvests and forced harvests,
+        /// sea or facility) since the game started; excludes sludge. The
+        /// tutorial's harvest-and-sale steps read this, not the sales total.
+        /// </summary>
+        public decimal TotalHarvestRevenueNok { get; set; }
+
         /// <summary>Cash at the start of the game or scenario (profit/net-worth achievements).</summary>
         public decimal OpeningBalanceNok { get; set; }
 

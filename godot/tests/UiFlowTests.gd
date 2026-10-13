@@ -56,6 +56,8 @@ func _run() -> void:
 	await _test_carbon_tab_shows_the_ledger()
 	_test_scenario_start_replaces_the_running_game()
 	await _test_offshore_rows_are_legible()
+	await _test_offshore_sludge_button_sells_sludge()
+	_test_load_resets_the_forecast_cache()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -725,6 +727,57 @@ func _test_offshore_rows_are_legible() -> void:
 		_check(names.size() == 2 and legible, "offshore: %s names each site in dark text (%s)" % [list_name, str(names)])
 	panel.queue_free()
 	await get_tree().process_frame
+
+## F947: ValorizeSludgeNow returned decimal, which Godot cannot marshal, so the
+## method was never registered and "Valorisér nå" did nothing.
+func _test_offshore_sludge_button_sells_sludge() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "sludge: seeded scenario starts")
+	_sim.set_paused(true)
+	_sim.advance_days(120)  # ~140 kg DS: above the 100 kg button, below the 500 kg weekly sale
+	var site := {}
+	for s in _sim.get_sludge_status():
+		if float(s.get("accumulated_kg_ds", 0.0)) >= 100.0:
+			site = s
+	_check(not site.is_empty(), "sludge: a site has 100 kg of sludge to sell (%s)" % str(_sim.get_sludge_status().map(func(s: Dictionary) -> String: return "%s=%.1f" % [str(s.get("id", "")), float(s.get("accumulated_kg_ds", 0.0))])))
+	if site.is_empty():
+		return
+	var panel: Control = (load("res://scenes/ui/OffshorePanel.tscn") as PackedScene).instantiate()
+	add_child(panel)
+	await get_tree().process_frame
+	var button: Button = null
+	for b: Button in panel.get_node("%SludgeList").find_children("*", "Button", true, false):
+		if b.text.begins_with("Valorisér nå") and not b.is_queued_for_deletion():
+			button = b
+	_check(button != null, "sludge: the card offers 'Valorisér nå'")
+	if button != null:
+		var cash: float = float(_sim.balance)
+		button.pressed.emit()
+		await get_tree().process_frame
+		var after := {}
+		for s in _sim.get_sludge_status():
+			if str(s.get("id", "")) == str(site.get("id", "")):
+				after = s
+		_check(float(after.get("accumulated_kg_ds", -1.0)) == 0.0, "sludge: the button sells the site's sludge")
+		_check(float(_sim.balance) > cash, "sludge: the sale is paid (%.0f -> %.0f)" % [cash, float(_sim.balance)])
+	panel.queue_free()
+	await get_tree().process_frame
+
+## F064: a load resets per-game bridge state. The forecast cache was keyed by
+## day number only, so loading a save made the same day served the projection
+## of the game being left.
+func _test_load_resets_the_forecast_cache() -> void:
+	_check(_sim.start_qa_scenario("forste_sesong", 37), "forecast: seeded scenario starts")
+	_sim.set_paused(true)
+	_check(_sim.save_game("ci_forecast"), "forecast: saved with fish in the pen")
+	var site_id := str(_sim.get_all_pens()[0].get("id", ""))
+	_sim.harvest_pen(site_id)
+	var emptied: Array = _sim.get_forecast().get("biomass_kg", [])
+	_check(not emptied.is_empty() and float(emptied[0]) == 0.0, "forecast: no biomass after the harvest (%s)" % str(emptied.slice(0, 1)))
+	var entry := _find_save("ci_forecast")
+	_check(not entry.is_empty() and _sim.load_game(String(entry.get("file", ""))), "forecast: the save loads")
+	var reloaded: Array = _sim.get_forecast().get("biomass_kg", [])
+	_check(not reloaded.is_empty() and float(reloaded[0]) > 0.0,
+		"forecast: after the load it shows the saved fish again (%s)" % str(reloaded.slice(0, 1)))
 
 func _count_alerts(key: String, level: String) -> int:
 	var n := 0

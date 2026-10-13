@@ -1075,20 +1075,25 @@ public partial class GameBridge : Node
 
     /// <summary>
     /// Manually trigger sludge valorization at a site (Phase 5.3).
-    /// Returns net revenue (biogas + fertilizer - opex).
+    /// Returns net revenue (biogas + fertilizer - opex) in NOK. Returns double:
+    /// Godot cannot marshal decimal, so with a decimal return the method was
+    /// never registered and the panel's "Valorisér nå" button did nothing (F947).
     /// </summary>
-    public decimal ValorizeSludgeNow(string siteId)
+    public double ValorizeSludgeNow(string siteId)
     {
         var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
-        if (site == null) return 0m;
-        if (site.SludgeAccumulatedKgDs < 100.0) return 0m;
+        if (site == null) return 0.0;
+        if (site.SludgeAccumulatedKgDs < 100.0) return 0.0;
 
         var sludgeParams = Farm.SludgeValorization.Default;
         var (biogasRev, fertRev, opex) = Farm.SludgeValorization.Valorize(site.SludgeAccumulatedKgDs, sludgeParams);
         decimal netRev = biogasRev + fertRev - opex;
 
         if (netRev > 0)
+        {
             SimulationEngine!.ReceiveIncome(netRev, "sludge");
+            SimulationEngine.State.TotalSalesRevenueNok += netRev; // as the weekly valorization books it
+        }
         else
             SimulationEngine!.PayCost(-netRev, LakskongenSim.Core.CostBooking.Opex, "sludge");
 
@@ -1107,7 +1112,7 @@ public partial class GameBridge : Node
 
         site.SludgeAccumulatedKgDs = 0.0;
         EmitSignal(SignalName.GameStateUpdated);
-        return netRev;
+        return (double)netRev;
     }
 
     // ── Phase 5.3: Cohort Transfers ──────────────────────────────────────────────

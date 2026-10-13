@@ -155,7 +155,7 @@ public partial class GameBridge : Node
         var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
         if (SimulationEngine?.CrisisCapitalism == null) return result;
 
-        var assets = SimulationEngine.CrisisCapitalism.GetAllAvailableDistressedAssets();
+        var assets = SimulationEngine.CrisisCapitalism.GetAllAvailableDistressedAssets(SimulationEngine.State.Day);
         var crises = SimulationEngine.CrisisCapitalism.GetActiveCrises(SimulationEngine.State.Day);
 
         foreach (var a in assets)

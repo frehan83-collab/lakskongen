@@ -205,6 +205,16 @@ namespace LakskongenSim.Events
         }
 
         /// <summary>
+        /// Listings still open on <paramref name="currentDay"/> (closed on their
+        /// ExpiresOnDay). Exact to the day; the parameterless overload follows the
+        /// countdown the tick refreshes, which lags the calendar by a day.
+        /// </summary>
+        public List<DistressedAsset> GetAllAvailableDistressedAssets(int currentDay)
+        {
+            return _availableAssets.Where(a => a.ExpiresOnDay > currentDay).ToList();
+        }
+
+        /// <summary>
         /// Attempt to purchase a distressed asset
         /// </summary>
         public AcquisitionResult PurchaseDistressedAsset(DistressedAsset asset, decimal playerCashNOK)

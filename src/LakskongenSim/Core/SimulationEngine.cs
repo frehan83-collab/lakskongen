@@ -1860,20 +1860,7 @@ private class BalancingConfig
             }
 
             // Temperature extremes stress fish (daily, bridge parity).
-            double temp = Weather.CurrentTemperatureC;
-            if (temp < 4.0 || temp > 16.0)
-            {
-                double tempStress = temp < 4.0 ? (4.0 - temp) * 0.01 : (temp - 16.0) * 0.01;
-                foreach (var pop in State.Populations)
-                {
-                    foreach (var cohort in pop.Cohorts)
-                    {
-                        int tempMortality = (int)(cohort.Count * tempStress * 0.005); // 0.5% per degree deviation
-                        if (tempMortality > 0)
-                            cohort.Count = Math.Max(0, cohort.Count - tempMortality);
-                    }
-                }
-            }
+            ApplySeaTemperatureStress(Weather.CurrentTemperatureC);
 
             if (severity > 0.0)
             {
@@ -2103,6 +2090,31 @@ private class BalancingConfig
                 SettleProvisionalTax();
         }
 
+
+        /// <summary>
+        /// Sea-temperature extremes (below 4 °C or above 16 °C) kill 0.5% per
+        /// degree of deviation per day. Land-based RAS tanks run at their own
+        /// controlled temperature and are exempt (they joined State.Populations
+        /// with facility production and were losing ~10 fish/day per 100,000 in
+        /// a 2 °C winter sea).
+        /// </summary>
+        internal void ApplySeaTemperatureStress(double seaTempC)
+        {
+            if (seaTempC >= 4.0 && seaTempC <= 16.0) return;
+            double tempStress = seaTempC < 4.0 ? (4.0 - seaTempC) * 0.01 : (seaTempC - 16.0) * 0.01;
+            var landBased = new HashSet<FishPopulation>(
+                RASFacilities.SelectMany(r => r.Tanks), ReferenceEqualityComparer.Instance);
+            foreach (var pop in State.Populations)
+            {
+                if (landBased.Contains(pop)) continue;
+                foreach (var cohort in pop.Cohorts)
+                {
+                    int tempMortality = (int)(cohort.Count * tempStress * 0.005); // 0.5% per degree deviation
+                    if (tempMortality > 0)
+                        cohort.Count = Math.Max(0, cohort.Count - tempMortality);
+                }
+            }
+        }
 
         /// <summary>
         /// Process sludge valorization at sea sites (Phase 5.3).
@@ -2896,6 +2908,7 @@ private class BalancingConfig
                 decimal revenue = (decimal)(harvestT * 1000 * (double)penaltyPrice); // NOK
                 ReceiveIncome(revenue, "forced_harvest");
                 State.TotalSalesRevenueNok += revenue;
+                State.TotalHarvestRevenueNok += revenue;
                 RecordHarvestForResourceRent(harvestT * 1000.0);
 
                 // Record event
@@ -3558,7 +3571,9 @@ private class BalancingConfig
                         Id = c.Id,
                         Type = c.Type.ToString(),
                         AffectedCompetitorId = c.AffectedCompetitorId,
+                        CompetitorName = c.CompetitorName,
                         SeverityScore = c.SeverityScore,
+                        DiscountMultiplier = c.DiscountMultiplier,
                         DurationMonths = c.DurationMonths,
                         StartDay = c.StartDay
                     }).ToList();
@@ -3946,7 +3961,9 @@ private class BalancingConfig
                         Id = c.Id,
                         Type = type,
                         AffectedCompetitorId = c.AffectedCompetitorId,
+                        CompetitorName = c.CompetitorName ?? "",
                         SeverityScore = c.SeverityScore,
+                        DiscountMultiplier = c.DiscountMultiplier,
                         DurationMonths = c.DurationMonths,
                         StartDay = c.StartDay
                     }, State.Day);
