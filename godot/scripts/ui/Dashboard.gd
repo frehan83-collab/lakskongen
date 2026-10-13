@@ -790,7 +790,6 @@ func _refresh_ops() -> void:
 		name_lbl.text = str(site.get("name", "?"))
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_lbl.add_theme_font_size_override("font_size", 13)
-		_ops_list.add_child(row)
 		row.add_child(name_lbl)
 		var mode := str(site.get("watch_mode", "watch"))
 		var btn := Button.new()

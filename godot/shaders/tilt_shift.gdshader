@@ -31,7 +31,7 @@ vec3 blur_sample(sampler2D tex, vec2 uv, float amount) {
 
 	for (int i = -BLUR_SAMPLES; i <= BLUR_SAMPLES; i++) {
 		float fi = float(i);
-		float weight = exp(-0.5 * (fi * fi) / (amount * amount));
+		float weight = exp(-0.5 * (fi * fi) / max(amount * amount, 1e-4));
 
 		// Vertical blur (tilt-shift is primarily vertical)
 		vec2 offset = vec2(0.0, fi * pixel_size.y * amount);
@@ -54,13 +54,16 @@ void fragment() {
 	float dist_from_center = abs(uv.y - focus_center);
 	float blur_factor = smoothstep(focus_width, focus_width + 0.2, dist_from_center);
 
-	// Sample with blur. blur_sample() divides by amount^2, which is NaN
-	// for amount == 0 (0/0) and renders black on Metal — skip it inside
-	// the focus band instead of relying on mix(sharp, NaN, 0).
+	// Sample with blur. blur_sample() divides by amount^2, which is NaN for
+	// amount == 0 (0/0) and renders black on Metal. The amount is the product:
+	// outside the focus band blur_factor is 1, but FjordCamera sets
+	// blur_amount = 0 underwater, so gate on the product (a blur under 0.05 px
+	// is invisible) and keep the divisor guarded as well.
 	vec3 sharp = texture(screen_texture, uv).rgb;
 	vec3 blurred = sharp;
-	if (blur_factor >= 0.001) {
-		blurred = blur_sample(screen_texture, uv, blur_amount * blur_factor);
+	float amount = blur_amount * blur_factor;
+	if (amount >= 0.05) {
+		blurred = blur_sample(screen_texture, uv, amount);
 	}
 	vec3 color = mix(sharp, blurred, blur_factor);
 

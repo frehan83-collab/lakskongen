@@ -234,6 +234,9 @@ func _update_containment_ladder() -> void:
 		name_lbl.text = "%s · %s" % [str(site.get("name", "?")), cur]
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_lbl.add_theme_font_size_override("font_size", 13)
+		# Explicit colour: the default light label text vanished on the white
+		# card (visual QA shot 07d showed buttons with no site names).
+		name_lbl.add_theme_color_override("font_color", _theme.TEXT_PRIMARY if _theme else Color("#2E3440"))
 		row.add_child(name_lbl)
 		var idx := CONTAIN_ORDER.find(cur)
 		if idx < 0 or idx >= CONTAIN_ORDER.size() - 1:
@@ -336,6 +339,9 @@ func _update_sludge_status() -> void:
 		name_lbl.text = "%s: %.0f kg DS akkumulert (%.0f kg/dag proj.)" % [str(site_data.get("id", "?")), acc, proj]
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_lbl.add_theme_font_size_override("font_size", 13)
+		# Explicit colour: the default light label text vanished on the white
+		# card (visual QA shot 07d showed buttons with no site names).
+		name_lbl.add_theme_color_override("font_color", _theme.TEXT_PRIMARY if _theme else Color("#2E3440"))
 		row.add_child(name_lbl)
 
 		if hub:

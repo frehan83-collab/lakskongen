@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "git_sha": "f521ef2",
-  "timestamp": "2026-10-12T21:27:24.556653+00:00",
-  "threshold": 8,
+  "git_sha": "fd254ae",
+  "timestamp": "2026-10-13T21:14:02.494394+00:00",
+  "threshold": 25,
   "shots": {
     "01_main_menu": {
       "phash": "f38ccca37322768c",
@@ -19,105 +19,105 @@
       ]
     },
     "03_dashboard": {
-      "phash": "d1565a4f2f292d29",
+      "phash": "d1165a56564b366b",
       "size": [
         1920,
         1080
       ]
     },
     "03b_scale80_dashboard": {
-      "phash": "d15656590e2b2b2f",
+      "phash": "d156565956564b36",
       "size": [
         1920,
         1080
       ]
     },
     "03c_scale125_dashboard": {
-      "phash": "d05a52252d2d3d3f",
+      "phash": "d15a52535a2d3e2d",
       "size": [
         1920,
         1080
       ]
     },
     "04_telemetry": {
-      "phash": "d252525a6b2f2d2d",
+      "phash": "d55656577a522a2a",
       "size": [
         1920,
         1080
       ]
     },
     "05_map_overlay": {
-      "phash": "d05a5a253f785ad2",
+      "phash": "d05a6b253f385ad2",
       "size": [
         1920,
         1080
       ]
     },
     "06_finance": {
-      "phash": "8753707a075f7b01",
+      "phash": "9717707a077f2f00",
       "size": [
         1920,
         1080
       ]
     },
     "06b_finance_trends": {
-      "phash": "855f03761a7a3e61",
+      "phash": "955f0754037a3e78",
       "size": [
         1920,
         1080
       ]
     },
     "07_genetics": {
-      "phash": "855f0b764a7a3e60",
+      "phash": "dd7f05040b7a2e78",
       "size": [
         1920,
         1080
       ]
     },
     "07b_crew": {
-      "phash": "d45656565e6a6a2a",
+      "phash": "d55554565e6e2a2a",
       "size": [
         1920,
         1080
       ]
     },
     "07c_contracts": {
-      "phash": "94145a4a5f353f2b",
+      "phash": "94145b4b5f35352d",
       "size": [
         1920,
         1080
       ]
     },
     "07d_offshore": {
-      "phash": "d053392b5a527a2f",
+      "phash": "d1532b2f55526a2d",
       "size": [
         1920,
         1080
       ]
     },
     "07e_carbon_ledger": {
-      "phash": "d053392b5a527a2f",
+      "phash": "c1515f4a4a54757d",
       "size": [
         1920,
         1080
       ]
     },
     "07f_pen_management": {
-      "phash": "fb434b7a5e161614",
+      "phash": "f303437c7c5c5c1c",
       "size": [
         1920,
         1080
       ]
     },
     "07g_attention_inbox": {
-      "phash": "df23614e32348e9e",
+      "phash": "db21204e7274de9e",
       "size": [
         1920,
         1080
       ]
     },
     "08_fjord_day": {
-      "phash": "c5ed0ca52da33b16",
+      "phash": "c5ed0ca52da33b92",
       "size": [
         1920,
         1080
@@ -138,35 +138,35 @@
       ]
     },
     "09_fjord_night_aurora": {
-      "phash": "88da56565a5e554b",
+      "phash": "80da56565b5e554b",
       "size": [
         1920,
         1080
       ]
     },
     "10_fjord_storm": {
-      "phash": "c5a503ac1fa32bd6",
+      "phash": "c4a112b51fa32b77",
       "size": [
         1920,
         1080
       ]
     },
     "11_fjord_underwater": {
-      "phash": "ada5032bada53c8b",
+      "phash": "b59312388bc16dcf",
       "size": [
         1920,
         1080
       ]
     },
     "12_fjord_lice_red_zone": {
-      "phash": "e18795061b4ecb67",
+      "phash": "e1879506535e4b76",
       "size": [
         1920,
         1080
       ]
     },
     "13_fjord_no_bloom": {
-      "phash": "c16a0ca52fab3b96",
+      "phash": "c5ee14b51b933256",
       "size": [
         1920,
         1080

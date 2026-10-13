@@ -82,19 +82,18 @@ public partial class GameBridge : Node
         if (string.IsNullOrWhiteSpace(scenarioId) || SimulationEngine == null)
             return false;
 
-        // Not running yet (e.g. launched straight from the campaign menu):
-        // validate against the roster, then initialize the engine first.
-        if (!_gameRunning || SimulationEngine.Scenario == null)
+        // A scenario defines the starting state, so it always starts a fresh
+        // game: validate against the roster, then initialize the engine. Only
+        // a first start used to do this; a start during a running game layered
+        // the scenario's sites onto the old game and ignored the QA seed.
+        var probe = SimulationEngine.Scenario ?? new ScenarioSystem(SimulationEngine.State);
+        var candidate = probe.GetScenario(scenarioId);
+        if (candidate == null || !candidate.IsUnlocked)
         {
-            var probe = SimulationEngine.Scenario ?? new ScenarioSystem(SimulationEngine.State);
-            var candidate = probe.GetScenario(scenarioId);
-            if (candidate == null || !candidate.IsUnlocked)
-            {
-                GD.Print($"GameBridge.StartScenario: '{scenarioId}' unavailable (unknown or locked)");
-                return false;
-            }
-            StartNewGameInternal("Player", (int)candidate.StartingCapitalNOK, seed);
+            GD.Print($"GameBridge.StartScenario: '{scenarioId}' unavailable (unknown or locked)");
+            return false;
         }
+        StartNewGameInternal("Player", (int)candidate.StartingCapitalNOK, seed);
 
         var scenario = SimulationEngine.Scenario!.GetScenario(scenarioId);
         if (scenario == null) return false;

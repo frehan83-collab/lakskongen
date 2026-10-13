@@ -104,3 +104,10 @@ done
 
 echo
 echo "user:// copy: $USER_OUT_DIR"
+
+# Report first, then fail with the harness: a failed content check (e.g. a
+# mostly black underwater frame, review F957) must not reach the baseline.
+if [[ $status -ne 0 ]]; then
+  echo "ERROR: harness failed (status $status) — see $LOG_FILE" >&2
+  exit "$status"
+fi

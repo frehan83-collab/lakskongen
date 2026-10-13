@@ -49,6 +49,12 @@ const LICE_MAX_DAYS := 150
 
 var _project_dir_abs: String = ""
 var _captured: Array[String] = []
+## Content checks that failed (the run exits non-zero when any did).
+var _content_failures: PackedStringArray = []
+## F957: the tilt-shift pass divided 0/0 underwater and blacked out most of the
+## frame, and the baseline enshrined it. A fjord shot may not be more than this
+## fraction pure black.
+const MAX_BLACK_FRACTION := 0.30
 var _game: Node = null
 var _ui_layer: Node = null
 var _env: Node = null
@@ -103,7 +109,9 @@ func _run_sequence() -> void:
 	await _audit_a11y_targets()
 
 	_print_summary()
-	get_tree().quit(0)
+	for failure in _content_failures:
+		push_error("[ScreenshotHarness] content check failed: %s" % failure)
+	get_tree().quit(0 if _content_failures.is_empty() else 1)
 
 
 # ── S3 accessibility: ui_scale regression pair + interactive-target audit ─────
@@ -351,10 +359,15 @@ func _capture_genetics() -> void:
 	if panel == null:
 		push_warning("[ScreenshotHarness] GeneticsPanel unavailable — skipped")
 		return
-	add_child(panel)
+	# Above the game's UILayer (layer 2): as a plain child the panel drew under
+	# the active tab, and the shot (and its baseline) showed the Finance tab.
+	var layer := CanvasLayer.new()
+	layer.layer = 10
+	add_child(layer)
+	layer.add_child(panel)
 	await _wait(1.2)
 	await _shoot("07_genetics")
-	panel.queue_free()
+	layer.queue_free()
 	await _wait(0.4)
 
 
@@ -446,7 +459,7 @@ func _capture_fjord_underwater() -> void:
 		cam.set("auto_orbit_enabled", false)
 		cam.set("global_position", Vector3(0.0, -60.0, 0.0))
 	await _wait(2.6)
-	await _shoot("11_fjord_underwater", true)
+	_check_not_black("11_fjord_underwater", await _shoot("11_fjord_underwater", true))
 
 
 # ── S1 forced-state shots (living fjord readout) ──────────────────────────────
@@ -659,10 +672,15 @@ func _show_tab(tab_id: String) -> void:
 		ui.call("show_tab", tab_id)
 	else:
 		push_warning("[ScreenshotHarness] GameUI/show_tab unavailable for '%s'" % tab_id)
+	# Staging: a critical alert auto-opens the notification history, which
+	# then covers the right of every later tab shot; close it (as its X does).
+	var center := _find(_game, "NotificationCenter")
+	if center != null and center.has_method("hide_panel"):
+		center.call("hide_panel")
 	await _wait(1.0)
 
 
-func _shoot(shot_name: String, force_hide_ui: bool = false) -> void:
+func _shoot(shot_name: String, force_hide_ui: bool = false) -> Image:
 	# Raise the window and wait (bounded) for a fully drawn frame before
 	# grabbing the viewport texture. macOS can throttle rendering for occluded
 	# windows — without the bound, frame_post_draw may never fire and the
@@ -688,22 +706,22 @@ func _shoot(shot_name: String, force_hide_ui: bool = false) -> void:
 	var vp := get_viewport()
 	if vp == null:
 		push_error("[ScreenshotHarness] no viewport for '%s'" % shot_name)
-		return
+		return null
 	var tex := vp.get_texture()
 	if tex == null:
 		push_error("[ScreenshotHarness] no viewport texture for '%s'" % shot_name)
-		return
+		return null
 	var img := tex.get_image()
 	if img == null:
 		push_error("[ScreenshotHarness] empty image for '%s'" % shot_name)
-		return
+		return null
 
 	var filename := shot_name + ".png"
 	var user_path := USER_SCREENSHOT_DIR.path_join(filename)
 	var err := img.save_png(user_path)
 	if err != OK:
 		push_error("[ScreenshotHarness] failed user:// save for '%s' (err %d)" % [shot_name, err])
-		return
+		return null
 
 	var project_path := _project_dir_abs.path_join(filename)
 	var copy_err := img.save_png(project_path)
@@ -712,6 +730,26 @@ func _shoot(shot_name: String, force_hide_ui: bool = false) -> void:
 
 	_captured.append(project_path)
 	print("[ScreenshotHarness] captured %s -> %s" % [filename, project_path])
+	return img
+
+
+## Fail the run when a captured frame is mostly pure black (sampled every 8 px).
+func _check_not_black(shot_name: String, img: Image) -> void:
+	if img == null:
+		_content_failures.append("%s was not captured" % shot_name)
+		return
+	var black := 0
+	var total := 0
+	for y in range(0, img.get_height(), 8):
+		for x in range(0, img.get_width(), 8):
+			var c := img.get_pixel(x, y)
+			total += 1
+			if c.r < 0.02 and c.g < 0.02 and c.b < 0.02:
+				black += 1
+	var fraction := float(black) / float(maxi(total, 1))
+	print("[ScreenshotHarness] %s: %.0f%% pure black" % [shot_name, fraction * 100.0])
+	if fraction > MAX_BLACK_FRACTION:
+		_content_failures.append("%s is %.0f%% pure black (max %.0f%%)" % [shot_name, fraction * 100.0, MAX_BLACK_FRACTION * 100.0])
 
 
 func _prepare_dirs() -> void:

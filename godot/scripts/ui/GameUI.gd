@@ -137,6 +137,7 @@ func _register_tabs() -> void:
 	_tabs.append(TabDefinition.new("ai_feeding", "🤖 AI-Fôring", "🤖", "res://scripts/ui/AIFeedingPanel.gd"))
 	_tabs.append(TabDefinition.new("crew", "👥 Mannskap", "👥", "res://scripts/ui/CrewPanel.gd"))
 	_tabs.append(TabDefinition.new("contracts", "📈 Kontrakter", "📈", "res://scripts/ui/ContractsPanel.gd"))
+	_tabs.append(TabDefinition.new("carbon", "🌍 Karbon", "🌍", "res://scripts/ui/CarbonLedgerPanel.gd"))
 	_tabs.append(TabDefinition.new("encyclopedia", "📚 Leksikon", "📚", "res://scripts/ui/EncyclopediaPanel.gd"))
 	_tabs.append(TabDefinition.new("export", "📤 Eksport", "📤", "res://scripts/ui/DataExportPanel.gd"))
 	_tabs.append(TabDefinition.new("saveload", "💾 Lagre/Laste", "💾", "res://scripts/ui/SaveLoadMenu.gd"))

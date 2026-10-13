@@ -74,7 +74,7 @@ func refresh():
 
 	# Carbon intensity
 	var intensity: float = _sim.get_carbon_intensity() if _sim.has_method("get_carbon_intensity") else 0.0
-	intensity_label.text = "%s: %.2f kg CO2e/kg" % [tr("UI_CARBON_INTENSITY"), intensity]
+	intensity_label.text = "%s: %.2f" % [tr("UI_CARBON_INTENSITY"), intensity]  # the label carries the unit
 
 	# Carbon neutral status
 	var neutral: bool = _sim.is_carbon_neutral_year() if _sim.has_method("is_carbon_neutral_year") else false
@@ -86,19 +86,20 @@ func refresh():
 		status_label.add_theme_color_override("font_color", Color(1, 0.6, 0.2))
 
 func _show_unavailable():
-	var lbl := Label.new()
-	lbl.text = tr("UI_CARBON_LEDGER") + ": Data ikke tilgjengelig"
-	sites_container.add_child(lbl)
+	sites_container.add_child(_row_label(tr("UI_CARBON_LEDGER") + ": Data ikke tilgjengelig"))
 	status_label.text = ""
 
 func _update_summary(ledger: Dictionary):
-	scope1_label.text = "%.0f t" % (float(ledger.get("scope1_kg", 0.0)) / 1000.0)
-	scope2_label.text = "%.0f t" % (float(ledger.get("scope2_kg", 0.0)) / 1000.0)
-	scope3_label.text = "%.0f t" % (float(ledger.get("scope3_kg", 0.0)) / 1000.0)
-	credits_label.text = "%.0f t" % (float(ledger.get("total_credits_kg", 0.0)) / 1000.0)
+	# Captioned and coloured: the bare values took the default light label
+	# colour on the light cards and could not be told apart.
+	for pair in [[scope1_label, "Scope 1", "scope1_kg"], [scope2_label, "Scope 2", "scope2_kg"],
+			[scope3_label, "Scope 3", "scope3_kg"]]:
+		(pair[0] as Label).text = "%s: %.1f t" % [pair[1], float(ledger.get(pair[2], 0.0)) / 1000.0]
+		(pair[0] as Label).add_theme_color_override("font_color", _text_color())
+	credits_label.text = "Kreditter: %.1f t" % (float(ledger.get("total_credits_kg", 0.0)) / 1000.0)
 	
 	var net := float(ledger.get("net_emissions_kg", 0.0)) / 1000.0
-	net_label.text = "%.1f t" % net
+	net_label.text = "Netto: %.1f t" % net
 	if net <= 0:
 		net_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
 	else:
@@ -120,12 +121,8 @@ func _update_sites(ledger: Dictionary):
 		row.add_theme_constant_override("separation", 8)
 		sites_container.add_child(row)
 
-		var name_lbl := Label.new()
 		var net := float(site.get("net_kg", 0.0)) / 1000.0
-		name_lbl.text = "%s: %.1f t netto" % [str(site.get("id", "?")), net]
-		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.add_theme_font_size_override("font_size", 13)
-		row.add_child(name_lbl)
+		row.add_child(_row_label("%s: %.1f t netto" % [str(site.get("id", "?")), net]))
 
 		var scope_lbl := Label.new()
 		var s1 := float(site.get("scope1_kg", 0.0)) / 1000.0
@@ -154,12 +151,8 @@ func _update_offshore(ledger: Dictionary):
 		row.add_theme_constant_override("separation", 8)
 		offshore_container.add_child(row)
 
-		var name_lbl := Label.new()
 		var net := float(farm.get("net_kg", 0.0)) / 1000.0
-		name_lbl.text = "🌊 %s: %.1f t netto" % [str(farm.get("name", "?")), net]
-		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.add_theme_font_size_override("font_size", 13)
-		row.add_child(name_lbl)
+		row.add_child(_row_label("🌊 %s: %.1f t netto" % [str(farm.get("name", "?")), net]))
 
 	# UIPolish: vertical keyboard navigation for offshore list
 	UIPolish.link_vertical_focus(offshore_container)
@@ -179,12 +172,8 @@ func _update_ras(ledger: Dictionary):
 		row.add_theme_constant_override("separation", 8)
 		ras_container.add_child(row)
 
-		var name_lbl := Label.new()
 		var net := float(ras.get("net_kg", 0.0)) / 1000.0
-		name_lbl.text = "🏭 %s: %.1f t netto" % [str(ras.get("name", "?")), net]
-		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.add_theme_font_size_override("font_size", 13)
-		row.add_child(name_lbl)
+		row.add_child(_row_label("🏭 %s: %.1f t netto" % [str(ras.get("name", "?")), net]))
 
 	# UIPolish: vertical keyboard navigation for RAS list
 	UIPolish.link_vertical_focus(ras_container)
@@ -203,15 +192,24 @@ func _update_processing(ledger: Dictionary):
 	row.add_theme_constant_override("separation", 8)
 	processing_container.add_child(row)
 
-	var name_lbl := Label.new()
 	var net := float(proc.get("net_kg", 0.0)) / 1000.0
-	name_lbl.text = "🏭 Foredlingsanlegg (%s): %.1f t netto" % [str(proc.get("tier", "?")), net]
-	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_lbl.add_theme_font_size_override("font_size", 13)
-	row.add_child(name_lbl)
+	row.add_child(_row_label("🏭 Foredlingsanlegg (%s): %.1f t netto" % [str(proc.get("tier", "?")), net]))
 
 	# UIPolish: vertical keyboard navigation for processing container
 	UIPolish.link_vertical_focus(processing_container)
+
+## Row and value text colour. Labels default to the light theme text colour,
+## which vanished on this panel's light cards.
+func _text_color() -> Color:
+	return _theme.TEXT_PRIMARY if _theme else Color("#2E3440")
+
+func _row_label(text: String) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl.add_theme_font_size_override("font_size", 13)
+	lbl.add_theme_color_override("font_color", _text_color())
+	return lbl
 
 func _on_refresh_pressed():
 	refresh()
@@ -220,6 +218,7 @@ func _on_state_updated():
 	refresh()
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
+	# Only while shown: as a cached, hidden tab this would swallow every ESC.
+	if is_visible_in_tree() and event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
 		hide()

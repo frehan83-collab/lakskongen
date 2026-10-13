@@ -53,6 +53,9 @@ func _run() -> void:
 	await _test_space_and_enter_reach_the_gui()
 	await _test_alerts_announce_transitions_once()
 	await _test_pen_details_show_site_lice()
+	await _test_carbon_tab_shows_the_ledger()
+	_test_scenario_start_replaces_the_running_game()
+	await _test_offshore_rows_are_legible()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -637,6 +640,89 @@ func _test_pen_details_show_site_lice() -> void:
 		shown[id] = str(panel.get_node("%DetLice").text).to_float()
 	_check(shown["po3_sor"] > 0.9 and shown["po3_sor"] < 1.5, "site lice: po3_sor shows its own lice (%.2f)" % shown["po3_sor"])
 	_check(shown["po3_nord"] < 0.3, "site lice: po3_nord shows its own lice (%.2f)" % shown["po3_nord"])
+	panel.queue_free()
+	await get_tree().process_frame
+
+## The carbon ledger panel (Scope 1-3, credits, per-site rows) existed but was
+## never a tab, so players could not open it (the harness's "carbon" shot fell
+## back to the Offshore tab and the baseline enshrined that).
+func _test_carbon_tab_shows_the_ledger() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "carbon: seeded scenario starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	_sim.advance_days(30)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	ui.show_tab("map")
+	await get_tree().process_frame
+	await _click_control(ui.find_child("Tab_carbon", true, false))
+	var panel: Control = ui.find_child("Panel_carbon", true, false)
+	_check(ui.get_active_tab() == "carbon" and panel != null and panel.visible, "carbon: the Karbon tab opens the ledger")
+	if panel != null:
+		var ledger: Dictionary = _sim.get_carbon_ledger()
+		_check(float(ledger.get("scope1_kg", 0.0)) > 0.0, "carbon: the farm has emitted (scope 1 %.0f kg)" % float(ledger.get("scope1_kg", 0.0)))
+		_check(panel.scope1_label.text == "Scope 1: %.1f t" % (float(ledger.get("scope1_kg", 0.0)) / 1000.0),
+			"carbon: scope 1 shows the ledger (%s)" % panel.scope1_label.text)
+		var dark := func(lbl: Label) -> bool:
+			return lbl.has_theme_color_override("font_color") and lbl.get_theme_color("font_color").get_luminance() < 0.5
+		_check(dark.call(panel.scope1_label), "carbon: the scope values are dark text on the light cards")
+		var row_labels: Array = []
+		for child in panel.sites_container.get_children():
+			if child is HBoxContainer and not child.is_queued_for_deletion():
+				row_labels.append(child.get_child(0))
+		_check(not row_labels.is_empty() and row_labels.all(func(l: Label) -> bool: return dark.call(l)),
+			"carbon: the site rows are dark text on the light cards")
+		var rows := 0
+		for child in panel.sites_container.get_children():
+			if child is HBoxContainer and not child.is_queued_for_deletion():
+				rows += 1
+		var site_ids: Array = (ledger.get("sites", []) as Array).map(func(e: Dictionary) -> String: return str(e.get("id", "")))
+		_check(site_ids == ["po3_nord", "po3_sor"] and rows == 2, "carbon: one row per sea site (%d rows, %s)" % [rows, str(site_ids)])
+	ui.show_tab("map")  # the ledger is now a cached, hidden tab after the map panel
+	await get_tree().process_frame
+	await _press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	_check(ui.get_active_tab() == "dashboard", "carbon: the hidden ledger does not swallow ESC (%s)" % ui.get_active_tab())
+	scene.queue_free()
+	await get_tree().process_frame
+
+## A scenario start during a running game layered the scenario's sites onto
+## the old game (and ignored the QA seed): a scenario always starts afresh.
+func _test_scenario_start_replaces_the_running_game() -> void:
+	var fingerprints: Array = []
+	for run in 2:
+		_check(_sim.start_qa_scenario("forste_sesong", 5), "restart: first scenario starts")
+		_sim.set_paused(true)
+		_sim.advance_days(10)
+		_check(_sim.start_qa_scenario("po3_red_sone", 7), "restart: second scenario starts over it")
+		_sim.set_paused(true)
+		var ids: Array = _sim.get_all_pens().map(func(p: Dictionary) -> String: return str(p.get("id", "")))
+		_check(ids == ["po3_nord", "po3_sor"], "restart: only the new scenario's sites (%s)" % str(ids))
+		_check(_sim.current_day == 0, "restart: the clock starts at day 0 (%d)" % _sim.current_day)
+		_sim.advance_days(20)
+		fingerprints.append("%.2f|%d|%.6f" % [float(_sim.balance), int(_sim.fish_count), float(_sim.sea_lice_per_fish)])
+	_check(fingerprints[0] == fingerprints[1], "restart: the QA seed replays the same game (%s)" % str(fingerprints))
+
+## Visual QA (shot 07d): the Offshore tab's containment and sludge rows showed
+## buttons with no site names (default light label text on the white cards).
+func _test_offshore_rows_are_legible() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "offshore: seeded scenario starts")
+	_sim.set_paused(true)
+	var panel: Control = (load("res://scenes/ui/OffshorePanel.tscn") as PackedScene).instantiate()
+	add_child(panel)
+	await get_tree().process_frame
+	for list_name in ["ContainList", "SludgeList"]:
+		var names: Array = []
+		var legible := true
+		for row in panel.get_node("%" + list_name).get_children():
+			if row is HBoxContainer and not row.is_queued_for_deletion():
+				var lbl: Label = row.get_child(0)
+				names.append(lbl.text)
+				legible = legible and lbl.has_theme_color_override("font_color") \
+					and lbl.get_theme_color("font_color").get_luminance() < 0.5
+		_check(names.size() == 2 and legible, "offshore: %s names each site in dark text (%s)" % [list_name, str(names)])
 	panel.queue_free()
 	await get_tree().process_frame
 
