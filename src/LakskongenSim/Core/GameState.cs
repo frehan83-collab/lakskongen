@@ -302,6 +302,25 @@ namespace LakskongenSim.Core
         /// </summary>
         public EngineRuntimeSnapshot? Runtime { get; set; }
 
+        // ── Live-system state persisted since the save/load matrix (review F409,
+        //    F1071, F478, F1137). Null in older saves: the load path keeps the
+        //    freshly initialized system (or the legacy DTO) in that case. ──
+
+        /// <summary>Contract book: active/completed contracts, week, id counter, today's offers.</summary>
+        public Market.ContractSystemState? Contracts { get; set; }
+
+        /// <summary>Full competitor roster and quarter clock (supersedes <see cref="CompetitorCompanies"/>).</summary>
+        public Finance.CompetitorAISnapshot? CompetitorAI { get; set; }
+
+        /// <summary>Disease prevalence per FishPopulation.Id (population-level SIR).</summary>
+        public Dictionary<string, double>? DiseasePrevalence { get; set; }
+
+        /// <summary>Company-wide sea-lice model (drives disease transmission).</summary>
+        public Health.SeaLiceModelState? CompanyLice { get; set; }
+
+        /// <summary>Tax loss carry-forward and period counter.</summary>
+        public TaxSystemState? Tax { get; set; }
+
         /// <summary>Default constructor for serializer.</summary>
         public GameState()
         {
@@ -414,6 +433,13 @@ namespace LakskongenSim.Core
     }
 
     /// <summary>Serializable snapshot of a tax payment.</summary>
+    /// <summary>Serializable <see cref="Finance.TaxSystem"/> state.</summary>
+    public class TaxSystemState
+    {
+        public decimal LossCarryForward { get; set; }
+        public int Period { get; set; }
+    }
+
     public class TaxPaymentRecord
     {
         public int Day { get; set; }

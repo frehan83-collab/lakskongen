@@ -34,7 +34,7 @@ namespace LakskongenSim.Tests.StormPhase12
             var analytics = new AnalyticsTracker(state.DailySnapshots);
 
             var fc = InterventionAdvisor.Rank(state,
-                ForecastTwin.Project(state, new GrowthModel(), lice, 10.0, analytics),
+                ForecastTwin.Project(state, lice, 10.0, analytics),
                 0.9, 80.0, 1.15, new List<LakskongenSim.Market.Contract>(), 0, 10);
 
             Assert.Contains(fc, s => s.Action == "Preemptivt avlus");
@@ -56,7 +56,7 @@ namespace LakskongenSim.Tests.StormPhase12
             var analytics = new AnalyticsTracker(state.DailySnapshots);
 
             var fc = InterventionAdvisor.Rank(state,
-                ForecastTwin.Project(state, new GrowthModel(), lice, 10.0, analytics),
+                ForecastTwin.Project(state, lice, 10.0, analytics),
                 0.2, 80.0, 1.15, new List<LakskongenSim.Market.Contract>(), 0, 10);
 
             Assert.Contains(fc, s => s.Action == "Høsting i vindu");
@@ -71,7 +71,7 @@ namespace LakskongenSim.Tests.StormPhase12
             var analytics = new AnalyticsTracker(state.DailySnapshots);
 
             var fc = InterventionAdvisor.Rank(state,
-                ForecastTwin.Project(state, new GrowthModel(), new SeaLiceModel(), 10.0, analytics),
+                ForecastTwin.Project(state, new SeaLiceModel(), 10.0, analytics),
                 0.2, 80.0, 1.30, new List<LakskongenSim.Market.Contract>(), 0, 10);
 
             Assert.Contains(fc, s => s.Action == "Justere fôrresept");

@@ -30,22 +30,6 @@ public partial class GameBridge : Node
 {
     // ── Contract & Market API ──────────────────────────────────────────────────
 
-    /// <summary>Offer cache: real ContractSystem offers for the current day.</summary>
-    private List<LakskongenSim.Market.ContractOffer> _offerCache = new();
-    private int _offerCacheDay = -1;
-
-    private void RefreshOfferCache()
-    {
-        var cs = SimulationEngine?.ContractSystem;
-        if (cs == null) return;
-        int day = SimulationEngine?.State?.Day ?? 0;
-        if (day == _offerCacheDay) return;
-        _offerCacheDay = day;
-        decimal spot = SimulationEngine?.MarketSimulation?.PricePerKg ?? 70m;
-        double brand = (double)(SimulationEngine?.BrandReputation?.QualityReputation ?? 50m) / 100.0;
-        _offerCache = cs.GenerateOffers(spot, brand);
-    }
-
     /// <summary>
     /// Returns list of active contracts.
     /// Each entry is a Dictionary with keys: "id", "buyer", "type", "price_per_kg", "quantity_kg", "quality", "penalty_pct", "fulfilled_kg", "fulfilled_percent".
@@ -85,11 +69,13 @@ public partial class GameBridge : Node
         var contractSystem = SimulationEngine?.ContractSystem;
         if (contractSystem == null) return result;
 
-        // Real offers from ContractSystem, cached per day (stable within a day).
-        RefreshOfferCache();
-        for (int i = 0; i < _offerCache.Count; i++)
+        // Offers come from the engine: generated once per game day from a stream
+        // that is not part of the saved RNG state, so reading them is side-effect
+        // free and identical after a load (review F409).
+        var offers = SimulationEngine.GetContractOffers();
+        for (int i = 0; i < offers.Count; i++)
         {
-            var o = _offerCache[i];
+            var o = offers[i];
             result.Add(new Godot.Collections.Dictionary
             {
                 ["index"] = i,
@@ -106,27 +92,20 @@ public partial class GameBridge : Node
     }
 
     /// <summary>
-    /// Accept a cached offer by index (Phase 2.3). Returns the contract ID
+    /// Accept today's offer by index (Phase 2.3). Returns the contract ID
     /// string on success, empty string on failure.
     /// </summary>
     public string AcceptOffer(int index)
     {
-        var cs = SimulationEngine?.ContractSystem;
-        if (cs == null || index < 0 || index >= _offerCache.Count) return "";
-        var offer = _offerCache[index];
-        var contract = cs.AcceptOffer(offer);
-        _offerCache.RemoveAt(index);
-        SimulationEngine?.State?.EventLog.Add(new LakskongenSim.Events.EventRecord
+        var result = SimulationEngine?.AcceptContractOffer(index);
+        if (result == null || !result.Ok)
         {
-            Day = SimulationEngine?.State?.Day ?? 0,
-            Name = "Kontrakt signert",
-            Category = LakskongenSim.Events.EventCategory.Market,
-            Description = $"Kontrakt med {contract.Buyer}: {contract.QuantityKg:N0} kg @ {contract.PricePerKg:N0} NOK/kg ({contract.DurationWeeks} uker)",
-            BalanceChange = 0m
-        });
+            GD.PrintErr($"GameBridge: AcceptOffer({index}) failed - {result?.Message ?? "engine not initialized"}");
+            return "";
+        }
         EmitSignal(SignalName.GameStateUpdated);
-        GD.Print($"GameBridge: Contract signed — {contract.Buyer} {contract.QuantityKg:N0}kg @ {contract.PricePerKg:N0} NOK/kg");
-        return contract.Id.ToString();
+        GD.Print($"GameBridge: {result.Message}");
+        return result.Id;
     }
 
     /// <summary>

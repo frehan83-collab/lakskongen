@@ -73,12 +73,23 @@ public sealed class SimRng
         return states;
     }
 
-    /// <summary>Restore stream positions for the streams that exist.</summary>
+    /// <summary>
+    /// Restore every saved stream position. Streams that do not exist yet are
+    /// created at the saved position: per-identity streams (a site's delouse
+    /// stream, a facility's stream, an auction's rival stream) are created
+    /// lazily on first use, so after a load the next <see cref="Stream(string, string[])"/>
+    /// call must find the saved position instead of re-deriving the seed
+    /// position (which would replay that stream from day 0).
+    /// </summary>
     public void ImportStates(Dictionary<string, ulong> states)
     {
         foreach (var kvp in states)
+        {
             if (_streams.TryGetValue(kvp.Key, out var stream))
                 stream.ImportState(kvp.Value);
+            else
+                _streams[kvp.Key] = new SimRngStream(kvp.Value);
+        }
     }
 
     internal static ulong Mix(ulong z)

@@ -77,6 +77,27 @@ public class CommandErrorPathTests
         return engine;
     }
 
+    /// <summary>
+    /// Review F884: the day-300 save/load round trip used to be checked only by
+    /// counts. The resumed career must end in exactly the state of the same
+    /// career played without a save.
+    /// </summary>
+    [Theory]
+    [InlineData(7)]
+    [InlineData(13)]
+    public void Po3RedZone_SaveLoadCareer_EndsExactlyLikeTheUninterruptedCareer(int seed)
+    {
+        var roundTripped = PlayerScriptProbe.RunCareer(seed, roundTripSaveLoad: true);
+        var straight = PlayerScriptProbe.RunCareer(seed, roundTripSaveLoad: false);
+
+        Assert.True(roundTripped.SaveLoadRoundTripped);
+        Assert.Equal(straight.DaysRun, roundTripped.DaysRun);
+        Assert.True(straight.FinalStateJson == roundTripped.FinalStateJson,
+            "resumed career diverged at " +
+            SaveStateComparer.FirstDifference(straight.FinalStateJson, roundTripped.FinalStateJson));
+        Assert.Equal(straight.HarvestedKg, roundTripped.HarvestedKg);
+    }
+
     [Fact]
     public void StockSmolts_UnknownSite_FailsWithSiteNotFound()
     {

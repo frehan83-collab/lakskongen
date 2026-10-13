@@ -16,10 +16,9 @@ namespace LakskongenSim.Tests.Integration;
 /// adopts state through the identical engine path as GameBridge.LoadGame
 /// (SimulationEngine.AdoptSavedState). One implementation, one path.
 /// <para>
-/// Known determinism caveat (documented, fixed in the SimRng work):
-/// disease-RNG streams (IntegratedDiseaseSystem, StochasticDiseaseEngine,
-/// DiseaseLODSystem) are still unseeded, so band values can shift between
-/// runs of the same seed; the assertions use wide bands accordingly.
+/// Every subsystem stream is seeded and saved, so a career is exactly
+/// reproducible for a seed and the round-tripped career must equal the
+/// uninterrupted one (see <see cref="CareerResult.FinalStateJson"/>).
 /// </para>
 /// </summary>
 public static class PlayerScriptProbe
@@ -53,6 +52,8 @@ public static class PlayerScriptProbe
         public bool HarvestedAllSites = false;
         public decimal EndingBalance = 0m;
         public List<string> NoteKinds = new();
+        /// <summary>GUID-normalized save JSON at the end of the career (exact-continuation checks).</summary>
+        public string FinalStateJson = "";
     }
 
     /// <summary>
@@ -157,6 +158,7 @@ public static class PlayerScriptProbe
         result.EconomicFcr = growthAccumulator > 0.001
             ? feedAccumulator / growthAccumulator
             : double.MaxValue;
+        result.FinalStateJson = SaveStateComparer.Normalize(SaveStateComparer.Serialize(engine));
         result.SeaMortalityPct = fishBeforeGrowOut > 0
             ? (fishBeforeGrowOut - fishBeforeHarvest) / fishBeforeGrowOut * 100.0
             : 0.0;
@@ -168,9 +170,9 @@ public static class PlayerScriptProbe
     /// Mid-run save/load: write via the library SaveLoadManager, then resume on
     /// a fresh engine through <see cref="SimulationEngine.AdoptSavedState"/> —
     /// the same adoption path GameBridge.LoadGame drives. Since Phase 1 wave 5
-    /// both sides share the ONE serializer (SaveJson.Options). Remaining caveat:
-    /// RNG stream positions are not persisted yet (documented gap; the
-    /// exact hash test arrives with the SimRng migration).
+    /// both sides share the ONE serializer (SaveJson.Options), and every RNG
+    /// stream position is restored, so the resumed career must end in exactly
+    /// the uninterrupted career's state (PlayerScriptCareerTests, review F884).
     /// </summary>
     private static SimulationEngine ResumeAfterSaveLoadRoundTrip(SimulationEngine engine, int seed)
     {

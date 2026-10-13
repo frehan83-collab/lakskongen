@@ -388,6 +388,49 @@ namespace LakskongenSim.Health
             return (ChalimusPerFish, PreAdultPerFish, AdultFemalePerFish, AdultMalePerFish, AverageLicePerFish, CopepodidDensity);
         }
 
+        /// <summary>Every mutable value, for saves (the company-wide model feeds disease transmission).</summary>
+        public SeaLiceModelState ExportState() => new()
+        {
+            ChalimusPerFish = ChalimusPerFish,
+            PreAdultPerFish = PreAdultPerFish,
+            AdultFemalePerFish = AdultFemalePerFish,
+            AdultMalePerFish = AdultMalePerFish,
+            TemperatureC = TemperatureC,
+            SalinityPSU = SalinityPSU,
+            ExternalPressureMultiplier = ExternalPressureMultiplier,
+            CurrentSpeedMs = CurrentSpeedMs,
+            StockingDensityKgM3 = StockingDensityKgM3,
+            PyrethroidResistance = PyrethroidResistance,
+            OrganophosphateResistance = OrganophosphateResistance,
+            HydrogenPeroxideResistance = HydrogenPeroxideResistance,
+            MechanicalResistance = MechanicalResistance,
+            CleanerFishEfficiency = CleanerFishEfficiency,
+            CopepodidDensity = CopepodidDensity,
+            PreventiveCoverage01 = PreventiveCoverage01,
+        };
+
+        /// <summary>Restore a saved model state (no events fired).</summary>
+        public void ImportState(SeaLiceModelState state)
+        {
+            ArgumentNullException.ThrowIfNull(state);
+            ChalimusPerFish = state.ChalimusPerFish;
+            PreAdultPerFish = state.PreAdultPerFish;
+            AdultFemalePerFish = state.AdultFemalePerFish;
+            AdultMalePerFish = state.AdultMalePerFish;
+            TemperatureC = state.TemperatureC;
+            SalinityPSU = state.SalinityPSU;
+            ExternalPressureMultiplier = state.ExternalPressureMultiplier;
+            CurrentSpeedMs = state.CurrentSpeedMs;
+            StockingDensityKgM3 = state.StockingDensityKgM3;
+            PyrethroidResistance = state.PyrethroidResistance;
+            OrganophosphateResistance = state.OrganophosphateResistance;
+            HydrogenPeroxideResistance = state.HydrogenPeroxideResistance;
+            MechanicalResistance = state.MechanicalResistance;
+            CleanerFishEfficiency = state.CleanerFishEfficiency;
+            CopepodidDensity = state.CopepodidDensity;
+            PreventiveCoverage01 = state.PreventiveCoverage01;
+        }
+
         /// <summary>
         /// Reset to initial state.
         /// </summary>
@@ -409,5 +452,26 @@ namespace LakskongenSim.Health
             CurrentSpeedMs = 0.15;
             StockingDensityKgM3 = 20.0;
         }
+    }
+
+    /// <summary>Serializable <see cref="SeaLiceModel"/> state (GameState.CompanyLice).</summary>
+    public sealed class SeaLiceModelState
+    {
+        public double ChalimusPerFish { get; set; }
+        public double PreAdultPerFish { get; set; }
+        public double AdultFemalePerFish { get; set; }
+        public double AdultMalePerFish { get; set; }
+        public double TemperatureC { get; set; }
+        public double SalinityPSU { get; set; }
+        public double ExternalPressureMultiplier { get; set; }
+        public double CurrentSpeedMs { get; set; }
+        public double StockingDensityKgM3 { get; set; }
+        public double PyrethroidResistance { get; set; }
+        public double OrganophosphateResistance { get; set; }
+        public double HydrogenPeroxideResistance { get; set; }
+        public double MechanicalResistance { get; set; }
+        public double CleanerFishEfficiency { get; set; }
+        public double CopepodidDensity { get; set; }
+        public double PreventiveCoverage01 { get; set; }
     }
 }

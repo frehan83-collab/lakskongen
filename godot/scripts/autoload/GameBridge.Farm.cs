@@ -386,7 +386,7 @@ public partial class GameBridge : Node
         var state = engine.State;
         double tempC = engine.Weather?.CurrentTemperatureC ?? 10.0;
         var forecast = LakskongenSim.Optimization.ForecastTwin.Project(
-            state, engine.Growth, engine.SeaLice, tempC, engine.Analytics);
+            state, engine.SeaLice, tempC, engine.Analytics, engine.GrowthRateBonus);
         double currentLice = engine.SeaLice.AverageLicePerFish;
         double gillScore = 0.0;
         if (state.SeaSites.Count > 0)
@@ -438,7 +438,7 @@ public partial class GameBridge : Node
         {
             double tempC = engine.Weather?.CurrentTemperatureC ?? 10.0;
             var forecast = LakskongenSim.Optimization.ForecastTwin.Project(
-                state, engine.Growth, engine.SeaLice, tempC, engine.Analytics);
+                state, engine.SeaLice, tempC, engine.Analytics, engine.GrowthRateBonus);
             double currentLice = engine.SeaLice.AverageLicePerFish;
             double gillScore = 0.0;
             if (state.SeaSites.Count > 0)
@@ -1093,8 +1093,8 @@ public partial class GameBridge : Node
         if (engine?.State != null && engine.Growth != null && engine.SeaLice != null && engine.Analytics != null)
         {
             var fc = LakskongenSim.Optimization.ForecastTwin.Project(
-                engine.State, engine.Growth, engine.SeaLice,
-                engine.Weather?.CurrentTemperatureC ?? 8.0, engine.Analytics);
+                engine.State, engine.SeaLice,
+                engine.Weather?.CurrentTemperatureC ?? 8.0, engine.Analytics, engine.GrowthRateBonus);
             var bio = new Godot.Collections.Array<double>();
             var lice = new Godot.Collections.Array<double>();
             var cash = new Godot.Collections.Array<double>();
@@ -1515,13 +1515,12 @@ public partial class GameBridge : Node
     /// </summary>
     public bool BuildRASFacility(string name, string scale)
     {
-        if (SimulationEngine?.RASFacilities == null)
+        if (SimulationEngine?.State == null)
         {
             GD.PrintErr("GameBridge: BuildRASFacility failed - engine not initialized");
             EmitSignal(SignalName.FarmActionCompleted, "build_ras", name, false);
             return false;
         }
-
         if (!Enum.TryParse<LakskongenSim.Farm.RASScale>(scale, true, out var rasScale))
         {
             GD.PrintErr($"GameBridge: BuildRASFacility failed - invalid scale '{scale}'");
@@ -1529,52 +1528,15 @@ public partial class GameBridge : Node
             return false;
         }
 
-        // CAPEX by scale (based on real-world data)
-        decimal buildCost = rasScale switch
-        {
-            LakskongenSim.Farm.RASScale.Small => 500_000_000m,    // 500M NOK (~5,000t)
-            LakskongenSim.Farm.RASScale.Medium => 1_000_000_000m, // 1B NOK (~8,000t)
-            LakskongenSim.Farm.RASScale.Large => 1_800_000_000m,  // 1.8B NOK (~20,000t)
-            _ => 1_000_000_000m
-        };
-
-        if (SimulationEngine.FinanceManager.Balance < buildCost)
-        {
-            GD.PrintErr($"GameBridge: BuildRASFacility failed - insufficient funds (need {buildCost:N0} NOK)");
-            EmitSignal(SignalName.FarmActionCompleted, "build_ras", name, false);
-            return false;
-        }
-
-        var facility = new LakskongenSim.Farm.RASFacility
-        {
-            Id = $"ras_{SimulationEngine.RASFacilities.Count + 1}",
-            Name = name,
-            Scale = rasScale,
-            CapacityTonnesPerYear = rasScale switch
-            {
-                LakskongenSim.Farm.RASScale.Small => 5_000,
-                LakskongenSim.Farm.RASScale.Medium => 8_000,
-                LakskongenSim.Farm.RASScale.Large => 20_000,
-                _ => 8_000
-            }
-        };
-
-        SimulationEngine.RASFacilities.Add(facility);
-        SimulationEngine.FinanceManager.Spend(buildCost);
-
-        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
-        {
-            Day = SimulationEngine.State.Day,
-            Name = "RAS Facility Built",
-            Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"Built RAS facility '{name}' ({scale} scale, {facility.CapacityTonnesPerYear:N0}t capacity)",
-            BalanceChange = -buildCost
-        });
-
-        EmitSignal(SignalName.FarmActionCompleted, "build_ras", name, true);
-        EmitSignal(SignalName.GameStateUpdated);
-        GD.Print($"GameBridge: Built RAS facility '{name}' ({scale}) for {buildCost:N0} NOK");
-        return true;
+        // The engine owns the verb: model CAPEX, construction start, GameState
+        // persistence (review F383/F1069). The bridge only projects the result.
+        var result = SimulationEngine.BuildRASFacility(name, rasScale);
+        if (!result.Ok)
+            GD.PrintErr($"GameBridge: BuildRASFacility failed - {result.Message}");
+        EmitSignal(SignalName.FarmActionCompleted, "build_ras", name, result.Ok);
+        if (result.Ok)
+            EmitSignal(SignalName.GameStateUpdated);
+        return result.Ok;
     }
 
     /// <summary>
@@ -1671,7 +1633,7 @@ public partial class GameBridge : Node
     /// </summary>
     public bool BuildOffshoreFarm(string name, string farmType)
     {
-        if (SimulationEngine?.OffshoreFarms == null)
+        if (SimulationEngine?.State == null)
         {
             GD.PrintErr("GameBridge: BuildOffshoreFarm failed - engine not initialized");
             EmitSignal(SignalName.FarmActionCompleted, "build_offshore", name, false);
@@ -1687,46 +1649,13 @@ public partial class GameBridge : Node
             return false;
         }
 
-        // CAPEX by type (based on real-world offshore structures)
-        decimal buildCost = offshoreType switch
-        {
-            LakskongenSim.Farm.OffshoreType.SemiSubmersible => 800_000_000m,  // 800M NOK (Ocean Farm 1)
-            LakskongenSim.Farm.OffshoreType.ShipShaped => 1_000_000_000m,     // 1B NOK (Havfarm concept)
-            LakskongenSim.Farm.OffshoreType.Submersible => 1_200_000_000m,    // 1.2B NOK (Egg submersible)
-            _ => 800_000_000m
-        };
-
-        if (SimulationEngine.FinanceManager.Balance < buildCost)
-        {
-            GD.PrintErr($"GameBridge: BuildOffshoreFarm failed - insufficient funds (need {buildCost:N0} NOK)");
-            EmitSignal(SignalName.FarmActionCompleted, "build_offshore", name, false);
-            return false;
-        }
-
-        var farm = new LakskongenSim.Farm.OffshoreFarm
-        {
-            Id = $"offshore_{SimulationEngine.OffshoreFarms.Count + 1}",
-            Name = name,
-            FarmType = offshoreType,
-            CapacityTonnes = 8_000
-        };
-
-        SimulationEngine.OffshoreFarms.Add(farm);
-        SimulationEngine.FinanceManager.Spend(buildCost);
-
-        SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
-        {
-            Day = SimulationEngine.State.Day,
-            Name = "Offshore Farm Built",
-            Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"Built offshore farm '{name}' ({farmType} type, {farm.CapacityTonnes:N0}t capacity)",
-            BalanceChange = -buildCost
-        });
-
-        EmitSignal(SignalName.FarmActionCompleted, "build_offshore", name, true);
-        EmitSignal(SignalName.GameStateUpdated);
-        GD.Print($"GameBridge: Built offshore farm '{name}' ({farmType}) for {buildCost:N0} NOK");
-        return true;
+        var result = SimulationEngine.BuildOffshoreFarm(name, offshoreType);
+        if (!result.Ok)
+            GD.PrintErr($"GameBridge: BuildOffshoreFarm failed - {result.Message}");
+        EmitSignal(SignalName.FarmActionCompleted, "build_offshore", name, result.Ok);
+        if (result.Ok)
+            EmitSignal(SignalName.GameStateUpdated);
+        return result.Ok;
     }
 
     /// <summary>

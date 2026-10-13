@@ -46,6 +46,11 @@ namespace LakskongenSim.Core
             State = new GameState();
             Rng = new SimRng(0);
             _dayNotes.Clear();
+            // Run state that lives on the engine rather than in GameState (F292).
+            PenPriceCouncil = new Market.PriceCouncil(DefaultPenPriceNokPerKg);
+            ResourceRentPaid = 0m;
+            EnableResourceRentTax = false;
+            StormEscapeEvents = 0.0;
             _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
             Time.Reset();
         }
@@ -66,7 +71,8 @@ namespace LakskongenSim.Core
 
         // ─── Phase 3 depth systems (P5/P6/P7/P9/P10) ───
         /// <summary>P9: binding monthly pen price set by the Price Council.</summary>
-        public Market.PriceCouncil PenPriceCouncil { get; private set; } = new(82m);
+        public Market.PriceCouncil PenPriceCouncil { get; private set; } = new(DefaultPenPriceNokPerKg);
+        private const decimal DefaultPenPriceNokPerKg = 82m;
         /// <summary>P9: when true, the 25% resource-rent tax is charged (opt-in per scenario).</summary>
         public bool EnableResourceRentTax { get; set; } = false;
         /// <summary>P9: cumulative resource-rent tax paid. Settable so save/load
@@ -106,10 +112,12 @@ namespace LakskongenSim.Core
         public PlanktonBloom? PlanktonBloom { get; private set; }
 
         // ─── Farm Subsystems ───
-        public List<RASFacility> RASFacilities { get; private set; } = new();
-        public List<OffshoreFarm> OffshoreFarms { get; private set; } = new();
+        // Facilities live in GameState (the one serialized owner) so a build
+        // survives save/load (F1069); these are views, not parallel stores.
+        public List<RASFacility> RASFacilities => State.RASFacilities;
+        public List<OffshoreFarm> OffshoreFarms => State.OffshoreFarms;
         public AIFeedingSystem AIFeeding { get; private set; } = null!;
-        public List<PostSmoltFacility> PostSmoltFacilities { get; private set; } = new();
+        public List<PostSmoltFacility> PostSmoltFacilities => State.PostSmoltFacilities;
 
         // ─── Update intervals ───
         private const int SUSTAINABILITY_UPDATE_INTERVAL = 7; // Weekly
@@ -241,13 +249,14 @@ namespace LakskongenSim.Core
             Mortality = new MortalityModel();
             Feed = new FeedSystem();
             SeaLice = new SeaLiceModel();
-            Disease = new DiseaseSystem(SeaLice);
             IntegratedDisease = new IntegratedDiseaseSystem(SeaLice,
                 Rng.Stream(SimRngStreams.StochasticDisease),
                 Rng.Stream(SimRngStreams.StochasticDisease, "lod"));
-            
+            // ONE population-level SIR: scenario seeding, treatments, the daily
+            // tick and saves all act on the same prevalence map (F478/F244).
+            Disease = IntegratedDisease.BaseSystem;
+
             // Wire disease systems to MortalityModel to prevent double mortality application
-            Disease.SetMortalityModel(Mortality);
             IntegratedDisease.SetMortalityModel(Mortality);
             
             Hatchery = new Hatchery();
@@ -304,7 +313,9 @@ namespace LakskongenSim.Core
                 Audio?.TriggerAlert("achievement");
             };
             
-            MarketSimulation ??= new Market.MarketSimulation(
+            // Always a fresh market: a retained instance would keep the previous
+            // game's price path and an RNG stream from the previous SimRng (F292).
+            MarketSimulation = new Market.MarketSimulation(
                 Rng.Stream(SimRngStreams.Market),
                 Rng.Stream(SimRngStreams.Intelligence, "market_inner"));
             ContractSystem = new ContractSystem(Rng.Stream(SimRngStreams.Market, "contracts"));
@@ -438,9 +449,7 @@ namespace LakskongenSim.Core
             // via GameBridge.SetInsurancePolicy). Always present so payouts work.
             Insurance = new Finance.InsuranceSystem();
 
-            // Initialize new farm systems
-            RASFacilities = new();
-            OffshoreFarms = new();
+            // Initialize new farm systems (facility lists live in the fresh State)
             AIFeeding = new AIFeedingSystem(Rng.Stream(SimRngStreams.AiFeeding));
             // In-day tick pipeline (Phase 1 wave 4): registration order IS
             // the simulation order. Rebuilt every Initialize => fresh clocks.
@@ -472,7 +481,6 @@ namespace LakskongenSim.Core
                 new TutorialAnalyticsTickSystem(),
                 new NightShiftPolicyTickSystem()
             };
-            PostSmoltFacilities = new();
 
             // Initialize expansion, license, and politics systems
             AcquisitionSystem = new Expansion.AcquisitionSystem(Rng.Stream(SimRngStreams.Acquisition));
@@ -3456,7 +3464,9 @@ private class BalancingConfig
         /// </summary>
         private void SyncEmpireSystemsToState()
         {
-            // 1. CompetitorAI - use public Competitors property
+            // 1. CompetitorAI — full snapshot (F1071) plus the legacy DTO list
+            // that older builds read.
+            State.CompetitorAI = CompetitorAI?.ExportState();
             if (CompetitorAI != null)
             {
                 State.CompetitorCompanies = CompetitorAI.Competitors
@@ -3591,6 +3601,20 @@ private class BalancingConfig
             if (Mortality != null)
                 State.MortalityState = Mortality.GetSaveSnapshot();
 
+            // 12. Live systems persisted for the save/load matrix: contracts
+            // (F409), scenario progress (F243), disease prevalence + the
+            // company lice model it reads (F478), tax carry-forward (F1137).
+            State.Contracts = ContractSystem?.ExportState();
+            SyncScenarioToState();
+            if (Disease != null)
+                State.DiseasePrevalence = Disease.ExportPrevalence(LivePopulationIds());
+            State.CompanyLice = SeaLice?.ExportState();
+            if (TaxSystem != null)
+            {
+                var tax = TaxSystem.ExportState();
+                State.Tax = new TaxSystemState { LossCarryForward = tax.LossCarryForward, Period = tax.Period };
+            }
+
             // PRESERVED (never cleared): ActiveLoans, TaxHistory, Acquisitions,
             // Licenses, RecentMarketReports. These DTO slots have no live runtime
             // counterpart yet (LoanSystem/TaxSystem/LicenseSystem are stateless
@@ -3620,6 +3644,11 @@ private class BalancingConfig
                 FinanceManager = new Finance.FinanceManager(loadedState.Balance);
             else
                 FinanceManager.SetBalanceForLoad(loadedState.Balance);
+            // Restore the daily cash mirror too: storyteller event conditions
+            // read GameState.Balance, and until the next end-of-day sync it
+            // would read 0 and silently change the event pool on the first
+            // day after a load (found by SaveLoadMatrixTests, seed 23 day 400).
+            State.Balance = FinanceManager.Balance;
             #pragma warning restore CS0618
 
             // 2. Re-inject GrowthModel and MortalityModel into all FishPopulations
@@ -3651,6 +3680,9 @@ private class BalancingConfig
 
             // T74: Restore all empire systems from loaded state
             RestoreEmpireSystemsFromState(loadedState);
+
+            // Save/load matrix: contracts, scenario, disease, lice, tax.
+            RestoreLiveSystemsFromState(loadedState);
 
             // P9/P11: Restore insurance, resource-rent tax and pen-price state
             RestoreDepthSystemsFromState(loadedState);
@@ -3766,6 +3798,30 @@ private class BalancingConfig
             SimLog.Info($"✅ Restored from save: Balance={FinanceManager.Balance:N0} NOK, {loadedState.Populations.Count} populations, Day {loadedState.Day}");
         }
 
+        /// <summary>Ids of every population the engine simulates (sea pens and facility tanks).</summary>
+        private IEnumerable<string> LivePopulationIds()
+            => State.Populations.Select(p => p.Id)
+                .Concat(State.RASFacilities.SelectMany(f => f.Tanks).Select(p => p.Id))
+                .Concat(State.OffshoreFarms.SelectMany(f => f.Pens).Select(p => p.Id));
+
+        /// <summary>
+        /// Restore the live systems whose state used to be dropped on load.
+        /// Each is optional: a save from before the field existed keeps the
+        /// freshly initialized system (previous behavior).
+        /// </summary>
+        private void RestoreLiveSystemsFromState(GameState loadedState)
+        {
+            if (loadedState.Contracts != null)
+                ContractSystem?.ImportState(loadedState.Contracts);
+            RestoreScenarioFromState(loadedState);
+            if (loadedState.DiseasePrevalence != null)
+                Disease?.ImportPrevalence(loadedState.DiseasePrevalence);
+            if (loadedState.CompanyLice != null)
+                SeaLice?.ImportState(loadedState.CompanyLice);
+            if (loadedState.Tax != null)
+                TaxSystem?.ImportState((loadedState.Tax.LossCarryForward, loadedState.Tax.Period));
+        }
+
         /// <summary>
         /// Restore all empire systems from loaded GameState (T74).
         /// Backward-compatible: gracefully handles old saves without new fields.
@@ -3775,7 +3831,11 @@ private class BalancingConfig
         /// </summary>
         private void RestoreEmpireSystemsFromState(GameState loadedState)
         {
-            if (loadedState.CompetitorCompanies?.Count > 0)
+            if (loadedState.CompetitorAI != null && CompetitorAI != null)
+            {
+                CompetitorAI.ImportState(loadedState.CompetitorAI);
+            }
+            else if (loadedState.CompetitorCompanies?.Count > 0)
             {
                 SimLog.Info($"✓ Loaded {loadedState.CompetitorCompanies.Count} competitor companies from save");
                 if (CompetitorAI != null)

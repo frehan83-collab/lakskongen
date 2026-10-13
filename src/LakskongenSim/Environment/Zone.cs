@@ -131,10 +131,10 @@ namespace LakskongenSim.Environment
             int dayOfYear = day % 365;
             double seasonalFactor = 1.0 + SeasonalCurrentAmplitude * Math.Cos(2 * Math.PI * (dayOfYear - WinterCurrentPeakDay) / 365.0); // peak in January
 
-            // Add some random weather-driven variation
-            // Use a deterministic hash per day to avoid creating new Random every call
-            int dayHash = HashCode.Combine(day, Id);
-            double weatherNoise = WeatherNoiseMin + WeatherNoiseRange * ((dayHash & 0x7FFFFFFF) % 1000) / 1000.0; // 0.8-1.2x deterministic
+            // Weather-driven variation from a process-stable hash of (zone, day):
+            // HashCode.Combine is randomized per process, which made the same
+            // seed diverge between launches and across save/load (F453).
+            double weatherNoise = WeatherNoiseMin + WeatherNoiseRange * Core.StableHash.Unit01(Core.StableHash.Of(Id, day)); // 0.8-1.2x
 
             // Base current: 0.05-0.35 m/s typical for Norwegian coastal waters
             CurrentSpeed = BaseCurrentSpeedMs * seasonalFactor * weatherNoise;

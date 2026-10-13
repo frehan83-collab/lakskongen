@@ -321,12 +321,14 @@ namespace LakskongenSim.Core
                 site.Barrier = ParseBarrier(siteDef.Barrier);
                 for (int pen = 0; pen < penCount; pen++)
                 {
-                    var pop = new FishPopulation(new GrowthModel(), new MortalityModel())
-                    {
-                        ZoneId = zoneId,
-                        SiteId = siteId,
-                        SeaLiceLoad = strain.InitialLiceLoad
-                    };
+                    // With an engine, starting pens share its seeded, calibrated
+                    // models exactly like StockSmolts and load do (F1072).
+                    var pop = engine != null
+                        ? new FishPopulation(engine.Growth, engine.Mortality)
+                        : new FishPopulation(new GrowthModel(), new MortalityModel());
+                    pop.ZoneId = zoneId;
+                    pop.SiteId = siteId;
+                    pop.SeaLiceLoad = strain.InitialLiceLoad;
                     if (smoltPerPen > 0)
                     {
                         pop.AddCohort(new FishPopulation.Cohort(
@@ -562,9 +564,13 @@ namespace LakskongenSim.Core
         /// <summary>Human-readable loss reason set when <see cref="IsLost"/> becomes true.</summary>
         public string LossReason { get; private set; } = "";
 
-        // Tracks simulated AI competitor accumulated profit for Competition scenarios
+        // Simulated AI competitor profit for Competition scenarios. Derived from
+        // days elapsed (not accumulated per call) so a loaded run continues it.
         private readonly Dictionary<string, decimal> _aiProgress = new();
         private int _scenarioStartDay;
+
+        /// <summary>Game day the active scenario started (saved with the game).</summary>
+        public int ScenarioStartDay => _scenarioStartDay;
 
         // ── Events ────────────────────────────────────────────────────────────
 
@@ -605,16 +611,10 @@ namespace LakskongenSim.Core
             LossReason = "";
             _scenarioStartDay = _state.Day;
             
-            // Set starting capital via FinanceManager if available
+            // Reset cash to the scenario's starting capital.
             if (_financeManager != null)
             {
-                // Reset balance to scenario starting capital
-                // Use reflection to set the private setter on Balance property
-                var balanceProp = typeof(Finance.FinanceManager).GetProperty("Balance");
-                if (balanceProp != null && balanceProp.CanWrite)
-                {
-                    balanceProp.SetValue(_financeManager, scenario.StartingCapitalNOK);
-                }
+                _financeManager.SetBalanceForLoad(scenario.StartingCapitalNOK);
             }
             else
             {
@@ -623,7 +623,34 @@ namespace LakskongenSim.Core
                 #pragma warning restore CS0618
             }
 
-            // Seed AI competitors for Competition scenarios
+            SeedAiCompetitors(scenario);
+
+            SimLog.Info($"[ScenarioSystem] Started '{scenario.Name}' " +
+                        $"(difficulty {scenario.Difficulty}/5, goal: {scenario.WinCondition})");
+        }
+
+        /// <summary>
+        /// Re-activate a saved scenario without side effects (no cash reset, no
+        /// events): the load path's counterpart to <see cref="StartScenario"/> (F243).
+        /// Unknown ids clear the active scenario.
+        /// </summary>
+        public void RestoreActiveState(string? scenarioId, int startDay, bool isWon, bool isLost, string? lossReason)
+        {
+            ActiveScenario = !string.IsNullOrEmpty(scenarioId) && _scenarios.TryGetValue(scenarioId, out var scenario)
+                ? scenario
+                : null;
+            _scenarioStartDay = startDay;
+            IsWon = ActiveScenario != null && isWon;
+            IsLost = ActiveScenario != null && isLost;
+            LossReason = ActiveScenario != null ? lossReason ?? "" : "";
+            if (ActiveScenario != null)
+                SeedAiCompetitors(ActiveScenario);
+            else
+                _aiProgress.Clear();
+        }
+
+        private void SeedAiCompetitors(ScenarioDefinition scenario)
+        {
             _aiProgress.Clear();
             if (scenario.WinCondition == WinCondition.Competition &&
                 scenario.SpecialRules.TryGetValue("ai_competitors", out var countStr) &&
@@ -632,9 +659,6 @@ namespace LakskongenSim.Core
                 for (int i = 1; i <= count; i++)
                     _aiProgress[$"ai_{i}"] = 0m;
             }
-
-            Console.WriteLine($"[ScenarioSystem] Started '{scenario.Name}' " +
-                              $"(difficulty {scenario.Difficulty}/5, goal: {scenario.WinCondition})");
         }
 
         /// <summary>
@@ -720,12 +744,13 @@ namespace LakskongenSim.Core
                 {
                     decimal target = GetRuleDecimal("profit_target", 10_000_000m);
 
-                    // Advance AI competitors with simple linear accumulation (varied rate per AI)
+                    // AI competitors earn linearly from the scenario start (varied
+                    // rate per AI); derived from days elapsed so it survives a load.
                     int aiIdx = 0;
                     foreach (var key in _aiProgress.Keys.ToList())
                     {
                         decimal dailyRate = 3_500m + (aiIdx * 1_200m); // AI_1: 3.5k, AI_2: 4.7k, AI_3: 5.9k NOK/day
-                        _aiProgress[key] += dailyRate;
+                        _aiProgress[key] = dailyRate * System.Math.Max(0, daysElapsed);
                         aiIdx++;
                     }
 

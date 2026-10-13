@@ -92,6 +92,15 @@ namespace LakskongenSim.Finance
         public bool IsAcquisitionTarget { get; set; }   // Can player acquire this company?
         public decimal AcquisitionPrice { get; set; }   // Price to buy entire company
 
+        /// <summary>Independent copy (lists included) for save snapshots.</summary>
+        public CompetitorCompany Clone()
+        {
+            var copy = (CompetitorCompany)MemberwiseClone();
+            copy.OperatingRegions = new List<string>(OperatingRegions);
+            copy.RecentActions = new List<string>(RecentActions);
+            return copy;
+        }
+
         /// <summary>
         /// Debt-to-EBITDA ratio. Above 4x is considered risky in salmon industry.
         /// </summary>
@@ -194,6 +203,37 @@ namespace LakskongenSim.Finance
         public IReadOnlyList<CompetitorCompany> Competitors => _competitors;
         public IReadOnlyList<CompetitorAction> PendingActions => _pendingActions;
         public IReadOnlyList<CompetitorAction> ActionHistory => _actionHistory;
+
+        /// <summary>Action history entries kept in a save (UI history only; no logic reads it).</summary>
+        public const int ActionHistoryInSave = 100;
+
+        /// <summary>
+        /// Full roster + quarter clock for a save (F1071). The old DTO kept 14
+        /// financial fields, so acquired rivals came back on load and
+        /// FinancialHealth, appetite, counters and quarter/year reset.
+        /// </summary>
+        public CompetitorAISnapshot ExportState() => new()
+        {
+            Competitors = _competitors.Select(c => c.Clone()).ToList(),
+            CurrentQuarter = _currentQuarter,
+            CurrentYear = _currentYear,
+            PendingActions = _pendingActions.ToList(),
+            ActionHistory = _actionHistory.Skip(Math.Max(0, _actionHistory.Count - ActionHistoryInSave)).ToList()
+        };
+
+        /// <summary>Replace the roster and clock with a saved snapshot (no events fired).</summary>
+        public void ImportState(CompetitorAISnapshot snapshot)
+        {
+            ArgumentNullException.ThrowIfNull(snapshot);
+            _competitors.Clear();
+            _competitors.AddRange((snapshot.Competitors ?? new List<CompetitorCompany>()).Select(c => c.Clone()));
+            _currentQuarter = snapshot.CurrentQuarter;
+            _currentYear = snapshot.CurrentYear;
+            _pendingActions.Clear();
+            _pendingActions.AddRange(snapshot.PendingActions ?? new List<CompetitorAction>());
+            _actionHistory.Clear();
+            _actionHistory.AddRange(snapshot.ActionHistory ?? new List<CompetitorAction>());
+        }
 
         public event Action<CompetitorAction>? OnCompetitorAction;
         public event Action<IndustryReport>? OnQuarterlyReport;
@@ -902,5 +942,15 @@ namespace LakskongenSim.Finance
                 .ToList();
             return ranking;
         }
+    }
+
+    /// <summary>Serializable competitor AI state (GameState.CompetitorAI).</summary>
+    public sealed class CompetitorAISnapshot
+    {
+        public List<CompetitorCompany> Competitors { get; set; } = new();
+        public int CurrentQuarter { get; set; }
+        public int CurrentYear { get; set; }
+        public List<CompetitorAction> PendingActions { get; set; } = new();
+        public List<CompetitorAction> ActionHistory { get; set; } = new();
     }
 }

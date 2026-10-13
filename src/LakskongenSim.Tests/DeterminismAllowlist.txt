@@ -41,7 +41,6 @@ src/LakskongenSim/Data/RealData/Loaders/EmodnetDataLoader.cs :: DateTime.UtcNow 
 src/LakskongenSim/Data/RealData/Models/GeoCoordinate.cs :: HashCode.Combine( :: public override int GetHashCode() => HashCode.Combine(Latitude, Longitude);
 src/LakskongenSim/Environment/BloomEvent.cs :: Guid.NewGuid() :: public string Id { get; set; } = Guid.NewGuid().ToString();
 src/LakskongenSim/Environment/MareanoEnvironmentalDataProvider.cs :: DateTime.UtcNow :: _currentDate = startDate ?? DateTime.UtcNow;
-src/LakskongenSim/Environment/Zone.cs :: HashCode.Combine( :: int dayHash = HashCode.Combine(day, Id);
 src/LakskongenSim/Events/EventDefinition.cs :: Guid.NewGuid() :: public string Id { get; set; } = Guid.NewGuid().ToString();
 src/LakskongenSim/Events/VisualMilestones.cs :: DateTime.Now :: milestone.AchievedDate = DateTime.Now;
 src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: .Where(a => a.ConstructionCompleted <= DateTime.Now)
@@ -54,12 +53,9 @@ src/LakskongenSim/Finance/EmpireProgression.cs :: DateTime.Now :: milestone.Unlo
 src/LakskongenSim/Finance/MarketCycleSimulator.cs :: DateTime.Now :: int futureMonth = (DateTime.Now.Month + m - 1) % 12 + 1;
 src/LakskongenSim/Finance/StockMarket.cs :: DateTime.Now :: PriceHistory.Add(new StockPriceEvent { OldPrice = price, NewPrice = price, Reason = "Save restore", Timestamp = DateTime.Now });
 src/LakskongenSim/Finance/StockMarket.cs :: DateTime.Now :: Timestamp = DateTime.Now
-src/LakskongenSim/Health/IntegratedDiseaseSystem.cs :: HashCode.Combine( :: int hash = HashCode.Combine(zoneId1, zoneId2);
-src/LakskongenSim/Health/StochasticDiseaseEngine.cs :: HashCode.Combine( :: int hash = HashCode.Combine(zone1.Id, zone2.Id);
 src/LakskongenSim/Environment/VectorMath.cs :: HashCode.Combine( :: public override int GetHashCode() => HashCode.Combine(X, Y, Z);
 src/LakskongenSim/Environment/VectorMath.cs :: HashCode.Combine( :: public override int GetHashCode() => HashCode.Combine(X, Y);
 src/LakskongenSim/Logistics/WellboatJob.cs :: Guid.NewGuid() :: public string Id { get; set; } = Guid.NewGuid().ToString();
-src/LakskongenSim/Market/ContractSystem.cs :: Guid.NewGuid() :: var c = new Contract(offer.Buyer, offer.Type, offer.PricePerKg, offer.QuantityKg, offer.Quality, offer.PenaltyPct, Guid.NewGuid())
 src/LakskongenSim/Market/FuturesContract.cs :: Guid.NewGuid() :: public string ContractId { get; set; } = Guid.NewGuid().ToString("N")[..8];
 src/LakskongenSim/Performance/EconomicCalculationCache.cs :: DateTime.UtcNow :: Expiry = DateTime.UtcNow + (ttl ?? _defaultTtl),
 src/LakskongenSim/Performance/EconomicCalculationCache.cs :: DateTime.UtcNow :: if (_cache.TryGetValue(key, out var entry) && entry.Expiry > DateTime.UtcNow)

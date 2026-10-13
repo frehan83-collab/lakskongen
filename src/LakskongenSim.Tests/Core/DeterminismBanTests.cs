@@ -16,7 +16,7 @@ namespace LakskongenSim.Tests.Core;
 public class DeterminismBanTests
 {
     private static readonly Regex Banned = new(
-        @"new\s+(?:System\.)?Random\s*\(\)|Random\.Shared|(?:System\.)?DateTime\.(?:Now|UtcNow)|(?:System\.)?Guid\.NewGuid\s*\(\)|HashCode\.Combine\s*\(",
+        @"new\s+(?:System\.)?Random\s*\(\)|Random\.Shared|(?:System\.)?DateTime\.(?:Now|UtcNow)|(?:System\.)?Guid\.NewGuid\s*\(\)|HashCode\.Combine\s*\(|\.GetHashCode\s*\(\s*\)",
         RegexOptions.Compiled);
 
     private static string RepoRoot()

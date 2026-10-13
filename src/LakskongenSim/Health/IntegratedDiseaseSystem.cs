@@ -66,6 +66,13 @@ namespace LakskongenSim.Health
         /// Inject MortalityModel reference to enable disease rate injection.
         /// Called by SimulationEngine during initialization.
         /// </summary>
+        /// <summary>
+        /// The population-level SIR the daily tick and treatments use. The engine
+        /// exposes this same instance as SimulationEngine.Disease, so scenario
+        /// seeding and saves act on the live prevalence map.
+        /// </summary>
+        public DiseaseSystem BaseSystem => _baseSystem;
+
         public void SetMortalityModel(Biology.MortalityModel mortalityModel)
         {
             _mortalityModel = mortalityModel ?? throw new ArgumentNullException(nameof(mortalityModel));
@@ -332,11 +339,9 @@ namespace LakskongenSim.Health
         /// </summary>
         private double EstimateZoneDistance(string zoneId1, string zoneId2)
         {
-            // Deterministic hash-based distance: same zone pair always returns same distance
-            // Ensures disease spread calculations are reproducible
-            int hash = HashCode.Combine(zoneId1, zoneId2);
-            // Map to 0-30km range deterministically
-            return (Math.Abs(hash) % 3000) / 100.0;
+            // Process-stable hash distance (HashCode.Combine differs per launch):
+            // the same zone pair always maps to the same 0-30 km distance.
+            return (StableHash.Of(zoneId1, zoneId2) % 3000UL) / 100.0;
         }
         
         /// <summary>

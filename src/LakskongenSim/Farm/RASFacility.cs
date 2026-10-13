@@ -232,6 +232,15 @@ namespace LakskongenSim.Farm
             return total;
         }
 
+        /// <summary>Nameplate production capacity (tonnes/year) for a facility scale.</summary>
+        public static double DefaultCapacityTonnesPerYear(RASScale scale) => scale switch
+        {
+            RASScale.Small => 5_000,
+            RASScale.Medium => 8_000,   // Salmon Evolution phase 1 ≈ 7,900 t
+            RASScale.Large => 20_000,   // Atlantic Sapphire target
+            _ => 8_000
+        };
+
         /// <summary>Get CAPEX based on facility scale.</summary>
         public decimal GetCAPEX() => Scale switch
         {

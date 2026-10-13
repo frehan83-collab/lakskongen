@@ -10,25 +10,23 @@ namespace LakskongenSim.Optimization
 {
     /// <summary>
     /// Twin-lite 7-day projection (Phase 4.5): read-only forward estimate of
-    /// biomass / lice / cash. Steps cloned cohorts (deterministic drift,
-    /// sigma 0) + a cloned lice model + cash slope from analytics. NEVER
-    /// mutates live state. Cached per day by GameBridge. Labeled PROJECTION.
+    /// biomass / lice / cash. Steps cloned cohorts with the pure expected-growth
+    /// step (<see cref="GrowthModel.ProjectGrowthOneDay"/>: no RNG draws, so a
+    /// UI read can never move the saved growth stream — review F521/F835) + a
+    /// cloned lice model + cash slope from analytics. Never mutates live state.
+    /// Cached per day by GameBridge. Labeled PROJECTION.
     /// </summary>
     public static class ForecastTwin
     {
         public const int HorizonDays = 7;
-
-        // Mirror of SimulationEngine SDE calibration (documented duplication).
-        private const double SdeK = 5.5;
-        private const double SdeAlpha = 20.0;
 
         public sealed record ForecastResult(
             double[] BiomassKg, double[] LicePerFish, double[] CashNok,
             string Confidence, int GeneratedDay);
 
         public static ForecastResult Project(
-            GameState state, GrowthModel growth, SeaLiceModel lice,
-            double tempC, AnalyticsTracker analytics)
+            GameState state, SeaLiceModel lice,
+            double tempC, AnalyticsTracker analytics, double researchGrowthBonus = 0.0)
         {
             var cohorts = new List<(int count, double weight, LifeStage stage, double genMult, double envMult)>();
             foreach (var pop in state.Populations)
@@ -54,8 +52,11 @@ namespace LakskongenSim.Optimization
                 for (int i = 0; i < cohorts.Count; i++)
                 {
                     var (count, weight, stage, genMult, envMult) = cohorts[i];
-                    double w = growth.ApplySDEGrowthOneDay(
-                        weight, tempC, SdeK, SdeAlpha, 0.0, stage, envMult);
+                    // Same calibration as the daily tick (BiologyTickSystem).
+                    double w = GrowthModel.ProjectGrowthOneDay(
+                        weight, tempC, SimulationEngine.SdeTargetWeightKg,
+                        SimulationEngine.SdeGeneticGrowthRateAlphaMax * (1.0 + researchGrowthBonus),
+                        stage, envMult);
                     double delta = w - weight;
                     w = Math.Max(0.0, weight + delta * genMult);
                     cohorts[i] = (count, w, stage, genMult, envMult);

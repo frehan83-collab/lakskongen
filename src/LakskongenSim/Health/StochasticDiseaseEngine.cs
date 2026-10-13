@@ -323,9 +323,8 @@ namespace LakskongenSim.Health
         /// </summary>
         private double EstimateZoneDistance(Zone zone1, Zone zone2)
         {
-            // Deterministic hash-based distance for reproducibility
-            int hash = HashCode.Combine(zone1.Id, zone2.Id);
-            return (Math.Abs(hash) % 3000) / 100.0; // 0-30km range
+            // Process-stable hash distance (HashCode.Combine differs per launch).
+            return (StableHash.Of(zone1.Id, zone2.Id) % 3000UL) / 100.0; // 0-30km range
         }
         
         /// <summary>

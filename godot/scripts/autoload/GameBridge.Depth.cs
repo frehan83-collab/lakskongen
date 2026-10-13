@@ -99,16 +99,13 @@ public partial class GameBridge : Node
         var scenario = SimulationEngine.Scenario!.GetScenario(scenarioId);
         if (scenario == null) return false;
 
-        try
+        // Engine verb: activates the scenario and applies its starting state
+        // WITH the engine, so insurance, the resource-rent flag and the starting
+        // disease reach the live systems (review F244).
+        var started = SimulationEngine.StartScenario(scenarioId);
+        if (!started.Ok)
         {
-            SimulationEngine.Scenario!.StartScenario(scenarioId);
-            // Materialize the scenario's starting sites/populations/research into
-            // the live GameState (idempotent; SimulationEngine is left untouched).
-            scenario.ApplyStartingState(SimulationEngine.State);
-        }
-        catch (Exception ex)
-        {
-            GD.PrintErr($"GameBridge.StartScenario('{scenarioId}') failed: {ex.Message}");
+            GD.PrintErr($"GameBridge.StartScenario('{scenarioId}') failed: {started.Message}");
             return false;
         }
 

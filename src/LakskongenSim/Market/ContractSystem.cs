@@ -70,6 +70,19 @@ namespace LakskongenSim.Market
         private readonly SimRngStream _rng;
         internal SimRngStream RngForSnapshot => _rng;
         private int _currentWeek = 0;
+        // Sequential contract ids (deterministic and persisted; was Guid.NewGuid()).
+        private int _nextContractNumber = 1;
+        // Offers on the table for one game day (see SimulationEngine.GetContractOffers).
+        private readonly List<ContractOffer> _currentOffers = new();
+
+        /// <summary>Completed contracts kept in a save (history beyond is UI-only).</summary>
+        public const int CompletedHistoryInSave = 50;
+
+        /// <summary>Game day the <see cref="CurrentOffers"/> were generated for (-1: none).</summary>
+        public int OfferDay { get; private set; } = -1;
+
+        /// <summary>Offers currently on the table (accepted ones are removed).</summary>
+        public IReadOnlyList<ContractOffer> CurrentOffers => _currentOffers;
 
         public ContractSystem(SimRngStream rng)
         {
@@ -101,36 +114,45 @@ namespace LakskongenSim.Market
         /// Call weekly; returns 1-3 offers of varying attractiveness.
         /// </summary>
         public List<ContractOffer> GenerateOffers(decimal currentSpotPrice, double brandReputation)
+            => GenerateOffers(currentSpotPrice, brandReputation, _rng);
+
+        /// <summary>
+        /// Generate offers from a caller-supplied stream. The engine passes a
+        /// per-day stream that is not part of the persisted RNG state, so looking
+        /// at offers (a UI read) never advances the simulation's streams.
+        /// </summary>
+        public List<ContractOffer> GenerateOffers(decimal currentSpotPrice, double brandReputation, SimRngStream rng)
         {
+            ArgumentNullException.ThrowIfNull(rng);
             var offers = new List<ContractOffer>();
-            int numOffers = 1 + _rng.Next(3);  // 1-3 offers per week
+            int numOffers = 1 + rng.Next(3);  // 1-3 offers per week
 
             string[] buyers = { "SjømatKompaniet", "FiskExport AS", "Nordic Seafood", "EuroFish GmbH",
                                 "Tokyo Fish Market", "Whole Foods", "Coop Mega", "Lerøy Markets", "REMA 1000" };
 
             for (int i = 0; i < numOffers; i++)
             {
-                var buyer = buyers[_rng.Next(buyers.Length)];
-                var type = _rng.NextDouble() < 0.7 ? ContractType.Forward : ContractType.Exclusive;
+                var buyer = buyers[rng.Next(buyers.Length)];
+                var type = rng.NextDouble() < 0.7 ? ContractType.Forward : ContractType.Exclusive;
 
                 // Price: forward contracts typically offer 5-15% discount vs spot for price certainty
-                var discountPct = 0.05m + (decimal)_rng.NextDouble() * 0.10m;
+                var discountPct = 0.05m + (decimal)rng.NextDouble() * 0.10m;
                 // Higher reputation = better offers
                 var reputationBonus = (decimal)(brandReputation / 200.0);  // Max +0.50 = +50%... no, +5%
                 var offerPrice = currentSpotPrice * (1.0m - discountPct + reputationBonus);
 
                 // Volume: 10-200 tonnes
-                var volumeTonnes = 10 + _rng.Next(191);
+                var volumeTonnes = 10 + rng.Next(191);
                 var volumeKg = volumeTonnes * 1000;
 
                 // Duration: 4-16 weeks
-                var duration = 4 + _rng.Next(13);
+                var duration = 4 + rng.Next(13);
 
                 // Penalty: 5-15% for forward contracts
-                var penalty = type == ContractType.Forward ? 0.05m + (decimal)_rng.NextDouble() * 0.10m : 0m;
+                var penalty = type == ContractType.Forward ? 0.05m + (decimal)rng.NextDouble() * 0.10m : 0m;
 
                 // Quality requirement
-                var minGrade = _rng.NextDouble() < 0.3 ? FishQualityGrade.Superior : FishQualityGrade.Standard;
+                var minGrade = rng.NextDouble() < 0.3 ? FishQualityGrade.Superior : FishQualityGrade.Standard;
 
                 offers.Add(new ContractOffer(buyer, type, Math.Round(offerPrice, 2), volumeKg,
                     QualityGrade.Standard, Math.Round(penalty, 3))
@@ -180,9 +202,27 @@ namespace LakskongenSim.Market
         /// <summary>
         /// Accept an offer and convert it to an active contract.
         /// </summary>
+        /// <summary>Put a day's freshly generated offers on the table.</summary>
+        public void SetOffers(int day, IEnumerable<ContractOffer> offers)
+        {
+            OfferDay = day;
+            _currentOffers.Clear();
+            _currentOffers.AddRange(offers);
+        }
+
+        /// <summary>Accept the offer at <paramref name="index"/> and take it off the table.</summary>
+        public Contract AcceptOfferAt(int index)
+        {
+            if (index < 0 || index >= _currentOffers.Count)
+                throw new ArgumentOutOfRangeException(nameof(index));
+            var offer = _currentOffers[index];
+            _currentOffers.RemoveAt(index);
+            return AcceptOffer(offer);
+        }
+
         public Contract AcceptOffer(ContractOffer offer)
         {
-            var c = new Contract(offer.Buyer, offer.Type, offer.PricePerKg, offer.QuantityKg, offer.Quality, offer.PenaltyPct, Guid.NewGuid())
+            var c = new Contract(offer.Buyer, offer.Type, offer.PricePerKg, offer.QuantityKg, offer.Quality, offer.PenaltyPct, NewContractId())
             {
                 SignedAtWeek = _currentWeek,
                 DurationWeeks = offer.DurationWeeks,
@@ -318,5 +358,45 @@ namespace LakskongenSim.Market
         /// </summary>
         public decimal GetTotalPenaltyExposure()
             => ActiveContracts.Sum(c => c.RemainingKg * c.PricePerKg * c.PenaltyPct);
+
+        private Guid NewContractId() => new(_nextContractNumber++, 0, 0, new byte[8]);
+
+        /// <summary>Everything a save needs to continue the contract book exactly (F409).</summary>
+        public ContractSystemState ExportState() => new()
+        {
+            ActiveContracts = ActiveContracts.ToList(),
+            CompletedContracts = _completedContracts.Skip(
+                Math.Max(0, _completedContracts.Count - CompletedHistoryInSave)).ToList(),
+            CurrentWeek = _currentWeek,
+            NextContractNumber = _nextContractNumber,
+            OfferDay = OfferDay,
+            CurrentOffers = _currentOffers.ToList()
+        };
+
+        /// <summary>Replace the contract book with a saved one (no events fired).</summary>
+        public void ImportState(ContractSystemState state)
+        {
+            ArgumentNullException.ThrowIfNull(state);
+            ActiveContracts.Clear();
+            ActiveContracts.AddRange(state.ActiveContracts ?? new List<Contract>());
+            _completedContracts.Clear();
+            _completedContracts.AddRange(state.CompletedContracts ?? new List<Contract>());
+            _currentWeek = state.CurrentWeek;
+            _nextContractNumber = Math.Max(1, state.NextContractNumber);
+            OfferDay = state.OfferDay;
+            _currentOffers.Clear();
+            _currentOffers.AddRange(state.CurrentOffers ?? new List<ContractOffer>());
+        }
+    }
+
+    /// <summary>Serializable contract-book state (GameState.Contracts).</summary>
+    public sealed class ContractSystemState
+    {
+        public List<Contract> ActiveContracts { get; set; } = new();
+        public List<Contract> CompletedContracts { get; set; } = new();
+        public int CurrentWeek { get; set; }
+        public int NextContractNumber { get; set; } = 1;
+        public int OfferDay { get; set; } = -1;
+        public List<ContractOffer> CurrentOffers { get; set; } = new();
     }
 }

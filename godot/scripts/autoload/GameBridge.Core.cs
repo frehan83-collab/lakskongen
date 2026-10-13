@@ -190,10 +190,10 @@ public partial class GameBridge : Node
     public void LoadGame(GameState snapshot)
     {
         SimulationEngine.FinanceManager = new FinanceManager(snapshot.Balance);
-        // S10: resume with the stored seed when present. NOTE: subsystem RNG
-        // *positions* are not persisted (see ISnapshotable plan item), so a
-        // loaded game replays the same seed stream from day 0 rather than
-        // continuing the exact pre-save trajectory.
+        // S10: resume with the stored seed when present. RestoreFromLoad then
+        // imports every RNG stream position (including lazily created
+        // per-site/per-facility streams), so the loaded game continues the
+        // exact pre-save trajectory (SaveLoadMatrixTests).
         int? seed = snapshot.RandomSeed != 0 ? snapshot.RandomSeed : null;
         SimulationEngine.Initialize(seed: seed);
 

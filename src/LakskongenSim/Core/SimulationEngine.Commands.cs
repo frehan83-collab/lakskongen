@@ -479,10 +479,10 @@ public partial class SimulationEngine
     /// PlayerScriptProbe now share this method, so a drift between "player
     /// load" and "probe load" is impossible by construction.
     /// <para>
-    /// The copy list is deliberately unchanged from the bridge's. Fields the
-    /// old list missed (research progress, achievements, active scenario,
-    /// tutorial, RAS/offshore) are still missed until the ISnapshotable
-    /// rewrite — this method documents the gap, it does not fix it.
+    /// Every persisted GameState field is adopted here; the live systems are
+    /// then rehydrated in <see cref="RestoreFromLoad"/>. SaveLoadMatrixTests
+    /// guards the whole path: a save taken at any day must continue
+    /// bit-identically to the uninterrupted run.
     /// </para>
     /// </summary>
     public void AdoptSavedState(GameState snapshot)
@@ -658,6 +658,11 @@ public partial class SimulationEngine
             foreach (var c in snapshot.CompetitorCompanies)
                 State.CompetitorCompanies.Add(c);
         State.EmpireProgression = snapshot.EmpireProgression;
+        State.CompetitorAI = snapshot.CompetitorAI;
+        State.Contracts = snapshot.Contracts;
+        State.DiseasePrevalence = snapshot.DiseasePrevalence;
+        State.CompanyLice = snapshot.CompanyLice;
+        State.Tax = snapshot.Tax;
 
         // Re-inject dependencies into deserialized populations and restore
         // depth/empire systems + model snapshots (same call the game makes).

@@ -117,34 +117,10 @@ namespace LakskongenSim.Biology
         {
             // Genetic variance (±15% on K, ±10% on α_max, ±20% on σ)
             double asymptoticWeightK = geneticAsymptoticWeight * (1.0 + (NextDoubleLocked() - 0.5) * AsymptoticWeightSpread);
-            
-            // Stage-specific growth modifier (aligns with ApplyGrowth multipliers)
-            double stageModifier = 1.0;
-            switch (lifeStage)
-            {
-                case LifeStage.Egg: stageModifier = 0.1; break;
-                case LifeStage.Alevin: stageModifier = 0.2; break;
-                case LifeStage.Fry: stageModifier = 0.5; break;
-                case LifeStage.Parr: stageModifier = 0.8; break;
-                case LifeStage.Smolt: stageModifier = 0.9; break;
-                case LifeStage.Seawater: stageModifier = 1.2; break;
-                case LifeStage.Harvest: stageModifier = 0.8; break;
-            }
-
-            double maxGrowthRate = geneticGrowthRate * GrowthRateScalingFactor * (1.0 + (NextDoubleLocked() - 0.5) * GrowthRateSpread) * stageModifier * (1.0 + researchGrowthBonus);
+            double maxGrowthRate = geneticGrowthRate * GrowthRateScalingFactor * (1.0 + (NextDoubleLocked() - 0.5) * GrowthRateSpread) * StageModifier(lifeStage) * (1.0 + researchGrowthBonus);
             double variance = individualVariance * (1.0 + (NextDoubleLocked() - 0.5) * VarianceSpread);
 
-            // Temperature-dependent growth rate: α(T) = α_max × exp(−(T − T_opt)^2 / (2τ^2))
             if (temperature < MinGrowthTemperatureC || temperature > MaxGrowthTemperatureC) return weight; // No growth outside range
-            double alphaT = maxGrowthRate * Math.Exp(-Math.Pow(temperature - OptimalTemperature, 2) / (2.0 * Math.Pow(ThermalTolerance, 2)));
-
-            // Apply environmental multiplier ADDITIVELY in log-space to preserve VB baseline
-            // For small perturbations: log(1 + x) ≈ x, so multiplicative multiplier m
-            // becomes additive perturbation (m - 1) in log-space
-            // Combined effect: combinedMultiplier = 1.0 + (environmentalMultiplier - 1.0) * 0.5
-            // This makes environmental modifiers small perturbations (±50% max effect)
-            double combinedMultiplier = 1.0 + (environmentalMultiplier - 1.0) * 0.5;
-            combinedMultiplier = Math.Clamp(combinedMultiplier, 0.5, 1.5);
 
             // Proper SDE with time step dt = 1 day
             // Box-Muller transform for normal noise N(0,1)
@@ -153,12 +129,57 @@ namespace LakskongenSim.Biology
             double u1 = 1.0 - NextDoubleLocked();
             double u2 = NextDoubleLocked();
             double normalNoise = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
-            
-            double deterministicGrowth = alphaT * Math.Pow(weight, AllometricExponent) * (1.0 - weight / asymptoticWeightK) * combinedMultiplier;
+
+            double deterministicGrowth = DriftGrowth(weight, temperature, asymptoticWeightK, maxGrowthRate, environmentalMultiplier);
             double stochasticGrowth = variance * deterministicGrowth * Math.Sqrt(1.0) * normalNoise; // sqrt(dt) where dt=1
             double newWeight = weight + deterministicGrowth + stochasticGrowth;
 
             return newWeight > 0.0 ? newWeight : 0.0; // Non-negative weight
+        }
+
+        /// <summary>
+        /// Expected one-day weight under the SDE with every random term at its
+        /// mean (no genetic spread, no noise). Pure: draws nothing from the RNG,
+        /// so read-only projections (ForecastTwin, UI forecasts) can never move
+        /// the saved growth stream (review F521/F835). Shares
+        /// <see cref="DriftGrowth"/> with <see cref="ApplySDEGrowthOneDay(double, double, double, double, double, LifeStage, double, double)"/>.
+        /// </summary>
+        public static double ProjectGrowthOneDay(double weight, double temperature, double geneticAsymptoticWeight,
+            double geneticGrowthRate, LifeStage lifeStage, double environmentalMultiplier = 1.0, double researchGrowthBonus = 0.0)
+        {
+            if (temperature < MinGrowthTemperatureC || temperature > MaxGrowthTemperatureC) return weight;
+            double maxGrowthRate = geneticGrowthRate * GrowthRateScalingFactor * StageModifier(lifeStage) * (1.0 + researchGrowthBonus);
+            double newWeight = weight + DriftGrowth(weight, temperature, geneticAsymptoticWeight, maxGrowthRate, environmentalMultiplier);
+            return newWeight > 0.0 ? newWeight : 0.0;
+        }
+
+        /// <summary>Stage-specific growth modifier (aligns with ApplyGrowth multipliers).</summary>
+        private static double StageModifier(LifeStage lifeStage) => lifeStage switch
+        {
+            LifeStage.Egg => 0.1,
+            LifeStage.Alevin => 0.2,
+            LifeStage.Fry => 0.5,
+            LifeStage.Parr => 0.8,
+            LifeStage.Smolt => 0.9,
+            LifeStage.Seawater => 1.2,
+            LifeStage.Harvest => 0.8,
+            _ => 1.0
+        };
+
+        /// <summary>
+        /// Deterministic SDE drift for one day: temperature-dependent rate
+        /// α(T) = α_max × exp(−(T − T_opt)² / (2τ²)), allometric von Bertalanffy
+        /// term, and the environmental multiplier applied additively in log
+        /// space (log(1 + x) ≈ x), i.e. 1 + (m − 1) × 0.5 clamped to [0.5, 1.5]
+        /// so environment acts as a ±50% perturbation of the VB baseline.
+        /// </summary>
+        private static double DriftGrowth(double weight, double temperature, double asymptoticWeightK,
+            double maxGrowthRate, double environmentalMultiplier)
+        {
+            double alphaT = maxGrowthRate * Math.Exp(-Math.Pow(temperature - OptimalTemperature, 2) / (2.0 * Math.Pow(ThermalTolerance, 2)));
+            double combinedMultiplier = 1.0 + (environmentalMultiplier - 1.0) * 0.5;
+            combinedMultiplier = Math.Clamp(combinedMultiplier, 0.5, 1.5);
+            return alphaT * Math.Pow(weight, AllometricExponent) * (1.0 - weight / asymptoticWeightK) * combinedMultiplier;
         }
 
         /// <summary>

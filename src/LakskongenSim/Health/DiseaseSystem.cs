@@ -34,8 +34,9 @@ namespace LakskongenSim.Health
         public double TreatmentTempSensitivityPerDegC { get; set; } = -0.01; // efficacy decreases 1% per degC above ref
         public double TreatmentRefTempC { get; set; } = 10.0;
 
-        // Tracks infected fraction per population (0..1)
-        private readonly Dictionary<FishPopulation, double> _infected = new();
+        // Infected fraction per population (0..1), keyed by FishPopulation.Id so
+        // the map survives save/load (deserialized populations are new objects).
+        private readonly Dictionary<string, double> _infected = new(StringComparer.Ordinal);
 
         private readonly SeaLiceModel _liceModel;
         
@@ -70,7 +71,7 @@ namespace LakskongenSim.Health
             if (pop == null) throw new ArgumentNullException(nameof(pop));
             if (days <= 0) return;
 
-            if (!_infected.TryGetValue(pop, out var p)) p = Math.Clamp(InitialPrevalence, 0.0, 1.0);
+            if (!_infected.TryGetValue(pop.Id, out var p)) p = Math.Clamp(InitialPrevalence, 0.0, 1.0);
 
             // incorporate lice-driven increased transmission
             var liceEffect = 1.0 + LiceSusceptibilityFactor * _liceModel.AverageLicePerFish;
@@ -85,7 +86,7 @@ namespace LakskongenSim.Health
                 if (p > 1) p = 1;
             }
 
-            _infected[pop] = p;
+            _infected[pop.Id] = p;
 
             // Inject disease mortality rate instead of directly modifying cohorts
             var dailyRate = ExtraMortalityRatePerDay * p;
@@ -126,14 +127,14 @@ namespace LakskongenSim.Health
             }
 
             // reduce infected fraction: two effects - via lice (less susceptibility) and direct treatment
-            if (!_infected.TryGetValue(pop, out var p)) p = 0.0;
+            if (!_infected.TryGetValue(pop.Id, out var p)) p = 0.0;
 
             var liceContribution = reductionFraction * tempModifier * 0.5; // assume half of benefit via lice
             var directContribution = directTreatmentEfficacy * tempModifier * 0.5;
 
             var totalReduction = Math.Clamp(liceContribution + directContribution, 0.0, 1.0);
             p *= (1.0 - totalReduction);
-            _infected[pop] = p;
+            _infected[pop.Id] = p;
 
             OnInfection?.Invoke(pop, p);
         }
@@ -142,7 +143,28 @@ namespace LakskongenSim.Health
         public double GetPrevalence(FishPopulation pop)
         {
             if (pop == null) throw new ArgumentNullException(nameof(pop));
-            return _infected.TryGetValue(pop, out var p) ? p : 0.0;
+            return _infected.TryGetValue(pop.Id, out var p) ? p : 0.0;
+        }
+
+        /// <summary>
+        /// Prevalence per live population for a save. Entries for populations
+        /// no longer present (harvested, merged) are pruned here, so the map
+        /// stays bounded; pruning never changes a live population's value.
+        /// </summary>
+        public Dictionary<string, double> ExportPrevalence(IEnumerable<string> livePopulationIds)
+        {
+            var live = new HashSet<string>(livePopulationIds, StringComparer.Ordinal);
+            foreach (var stale in _infected.Keys.Where(k => !live.Contains(k)).ToList())
+                _infected.Remove(stale);
+            return new Dictionary<string, double>(_infected, StringComparer.Ordinal);
+        }
+
+        /// <summary>Replace the prevalence map with a saved one.</summary>
+        public void ImportPrevalence(IReadOnlyDictionary<string, double> saved)
+        {
+            _infected.Clear();
+            foreach (var kvp in saved)
+                _infected[kvp.Key] = Math.Clamp(kvp.Value, 0.0, 1.0);
         }
 
         /// <summary>

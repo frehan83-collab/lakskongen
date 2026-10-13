@@ -16,5 +16,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LakskongenSim\LakskongenSim.csproj" />
+    <!-- Cross-process determinism probe: referenced so it is always built with
+         the tests (CrossProcessDeterminismTests runs it as separate processes). -->
+    <ProjectReference Include="..\StateHashProbe\StateHashProbe.csproj" />
   </ItemGroup>
 </Project>
