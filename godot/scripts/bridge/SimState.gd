@@ -78,7 +78,8 @@ var external_snapshot_freshness_days: int = -1
 ## Most recent events (up to 10)
 var recent_events: Array[Dictionary] = []
 
-## Latest alert messages
+## Alerts in force: event alerts (newest first), then the conditions that
+## hold now. Each entry: {key, level, message} (+ day for events).
 var active_alerts: Array[Dictionary] = []
 
 # ── Achievement state ─────────────────────────────────────────────────────────
@@ -142,9 +143,21 @@ var owned_assets_count: int = 0
 ## C# GameBridge node, injected by the SimBridge facade.
 var game_bridge: Node = null
 
+## Event alerts (weather, disease, escape) stay listed this many days.
+const EVENT_ALERT_TTL_DAYS := 3
+## Level of each condition alert at the previous refresh, by key.
+var _alert_levels: Dictionary = {}
+## Levels raised during the refresh in progress.
+var _alert_levels_now: Dictionary = {}
+## Event alerts, oldest first; a refresh keeps them until their TTL.
+var _event_alerts: Array[Dictionary] = []
+
 # ── GameBridge signal handlers (invoked by the SimBridge facade) ─────────────
 
 func _on_game_started() -> void:
+	# A new or loaded game announces its conditions afresh.
+	_alert_levels = {}
+	_event_alerts.clear()
 	_refresh_state()
 
 
@@ -250,8 +263,7 @@ func _refresh_state() -> void:
 	for b in game_bridge.GetActiveBlooms():
 		active_blooms.append(b)
 
-	active_alerts.clear()
-	_check_alerts()
+	_rebuild_alerts()
 
 	# Achievement state
 	achievement_unlocked_count = game_bridge.AchievementUnlockedCount
@@ -292,60 +304,94 @@ func _refresh_state() -> void:
 func _check_alerts() -> void:
 	# Lice limits mirror SimulationEngine config: treatment @0.2, legal limit 0.5.
 	if sea_lice_per_fish > 0.5:
-		_push_alert("critical", "Lus KRITISK: %.2f / fisk (grense 0,5 — pålegg om tiltak)" % sea_lice_per_fish)
-		audio_alert_triggered.emit("lice_warning")
+		if _raise("lice", "critical", "Lus KRITISK: %.2f / fisk (grense 0,5 — pålegg om tiltak)" % sea_lice_per_fish):
+			audio_alert_triggered.emit("lice_warning")
 	elif sea_lice_per_fish > 0.2:
-		_push_alert("warning", "Lus forhøyet: %.2f / fisk (behandling vurderes ved 0,5)" % sea_lice_per_fish)
+		_raise("lice", "warning", "Lus forhøyet: %.2f / fisk (behandling vurderes ved 0,5)" % sea_lice_per_fish)
 
 	if fcr > 1.35:
-		_push_alert("warning", "FCR forverret: %.2f (mål <1,30)" % fcr)
+		_raise("fcr", "warning", "FCR forverret: %.2f (mål <1,30)" % fcr)
 
 	if appetite < 0.6:
-		_push_alert("warning", "Lav appetitt: %d%% rasjon — sjekk O2/temperatur" % int(appetite * 100.0))
+		_raise("appetite", "warning", "Lav appetitt: %d%% rasjon — sjekk O2/temperatur" % int(appetite * 100.0))
 
 	if mortality_rate > 0.01:
-		_push_alert("warning", "Dødelighet %.1f%% siste døgn" % (mortality_rate * 100.0))
+		_raise("mortality", "warning", "Dødelighet %.1f%% siste døgn" % (mortality_rate * 100.0))
 
 	if oxygen_mgl > 0.0 and oxygen_mgl < 5.0:
-		_push_alert("critical", "Oksygen kritisk lavt: %.1f mg/L" % oxygen_mgl)
+		_raise("oxygen", "critical", "Oksygen kritisk lavt: %.1f mg/L" % oxygen_mgl)
 	elif oxygen_mgl >= 5.0 and oxygen_mgl < 6.5:
-		_push_alert("warning", "Oksygen lavt: %.1f mg/L (appetitt faller)" % oxygen_mgl)
+		_raise("oxygen", "warning", "Oksygen lavt: %.1f mg/L (appetitt faller)" % oxygen_mgl)
 
 	if min_net_integrity < 40.0:
-		_push_alert("critical", "Nøter kritisk slitt: %.0f%% — rømmingsfare, reparer nå" % min_net_integrity)
+		_raise("nets", "critical", "Nøter kritisk slitt: %.0f%% — rømmingsfare, reparer nå" % min_net_integrity)
 	elif min_net_integrity < 70.0:
-		_push_alert("warning", "Nøter slitt: %.0f%% — vurder reparasjon" % min_net_integrity)
+		_raise("nets", "warning", "Nøter slitt: %.0f%% — vurder reparasjon" % min_net_integrity)
 
 	if storm_risk_3d > 0.5:
-		_push_alert("warning", "Stormfare 3 dager: %d%% — sjekk nøter" % int(storm_risk_3d * 100.0))
+		_raise("storm_risk", "warning", "Stormfare 3 dager: %d%% — sjekk nøter" % int(storm_risk_3d * 100.0))
 
 	if red_zone_count > 0:
-		_push_alert("warning", "Trafikklys RØDT i %d sone(r) — MAB strammet inn" % red_zone_count)
+		_raise("red_zones", "warning", "Trafikklys RØDT i %d sone(r) — MAB strammet inn" % red_zone_count)
 
 	if vaccine_window_left >= 0:
 		if vaccine_coverage < 0.9:
-			_push_alert("warning", "Vaksinasjonsvindu åpent (%dd igjen) — dekning %d%%" % [vaccine_window_left, int(vaccine_coverage * 100.0)])
+			_raise("vaccine_window", "warning", "Vaksinasjonsvindu åpent (%dd igjen) — dekning %d%%" % [vaccine_window_left, int(vaccine_coverage * 100.0)])
 	elif vaccine_coverage < 0.5 and current_day > 300:
-		_push_alert("info", "Uvaksinert bestand går mot vinter (dekning %d%%)" % int(vaccine_coverage * 100.0))
+		_raise("vaccine_winter", "info", "Uvaksinert bestand går mot vinter (dekning %d%%)" % int(vaccine_coverage * 100.0))
 
 	for j in wellboat_jobs:
-		_push_alert("info", "🚢 Brønnbåt (%s) → %s om %dd" % [str(j.get("kind", "?")), str(j.get("site_id", "?")), int(j.get("eta_days", 0))])
+		_raise("wellboat:%s:%s" % [str(j.get("site_id", "?")), str(j.get("kind", "?"))], "info",
+			"🚢 Brønnbåt (%s) → %s om %dd" % [str(j.get("kind", "?")), str(j.get("site_id", "?")), int(j.get("eta_days", 0))])
 
 	for b in active_blooms:
 		var kind_icon: String = {"jellyfish": "🪼", "algae": "🟤", "hypoxia": "💨"}.get(str(b.get("kind", "")), "⚠️")
-		_push_alert("critical" if float(b.get("severity", 0.0)) > 0.7 else "warning",
+		_raise("bloom:%s:%s" % [str(b.get("site_id", "?")), str(b.get("kind", "?"))],
+			"critical" if float(b.get("severity", 0.0)) > 0.7 else "warning",
 			"%s %s ved %s (%dd igjen)" % [str(kind_icon), str(b.get("kind", "?")).capitalize(), str(b.get("site_id", "?")), int(b.get("days_left", 0))])
 
 	if balance < 0.0:
-		_push_alert("warning", "Negative balance: %s" % Formatters.format_nok(balance))
+		_raise("balance", "warning", "Negative balance: %s" % Formatters.format_nok(balance))
 
 	if sustainability_score < 50:
-		_push_alert("warning", "Non-compliant sustainability: %d/100" % sustainability_score)
+		_raise("sustainability", "warning", "Non-compliant sustainability: %d/100" % sustainability_score)
 
 	if temperature_c > 18.0:
-		_push_alert("warning", "High temperature: %.1f°C (stress risk)" % temperature_c)
+		_raise("temperature", "warning", "High temperature: %.1f°C (stress risk)" % temperature_c)
 
 
+## Rebuild the alert list: event alerts still within their TTL, then the
+## conditions that hold now.
+func _rebuild_alerts() -> void:
+	_event_alerts = _event_alerts.filter(
+		func(a: Dictionary) -> bool: return current_day - int(a["day"]) < EVENT_ALERT_TTL_DAYS)
+	active_alerts.clear()
+	for i in range(_event_alerts.size() - 1, -1, -1):
+		active_alerts.append(_event_alerts[i])
+	_alert_levels_now = {}
+	_check_alerts()
+	_alert_levels = _alert_levels_now
+
+
+## A condition alert: listed while it holds, announced (alert_raised) only
+## when it starts or changes level. Every refresh (two per tick) used to
+## announce every live condition, and the messages carry daily values, so
+## the notification center flooded, the lice SFX replayed and auto-pause
+## re-fired. Returns true when announced.
+func _raise(key: String, level: String, message: String) -> bool:
+	active_alerts.append({"key": key, "level": level, "message": message})
+	var announce: bool = _alert_levels.get(key, "") != level
+	_alert_levels_now[key] = level
+	if announce:
+		alert_raised.emit(level, message)
+	return announce
+
+
+## An event alert (weather, disease, escape): announced once, listed for
+## EVENT_ALERT_TTL_DAYS (a refresh used to wipe it at once).
 func _push_alert(level: String, message: String) -> void:
-	active_alerts.append({"level": level, "message": message})
+	var alert := {"key": "event:%d:%s" % [current_day, message], "level": level,
+		"message": message, "day": current_day}
+	_event_alerts.append(alert)
+	active_alerts.push_front(alert)
 	alert_raised.emit(level, message)

@@ -855,6 +855,12 @@ public partial class GameBridge : Node
         double clamped = Math.Clamp(licePerFish, 0.0, 10.0);
         foreach (var pen in site.Pens)
             pen.SeaLiceLoad = clamped;
+        // The site model is what evolves daily and what the company KPI and its
+        // alerts read; split like SeaLiceModel.Reset.
+        site.Lice.ChalimusPerFish = clamped * 0.5;
+        site.Lice.PreAdultPerFish = clamped * 0.3;
+        site.Lice.AdultFemalePerFish = clamped * 0.1;
+        site.Lice.AdultMalePerFish = clamped * 0.1;
 
         EmitSignal(SignalName.GameStateUpdated);
         result["success"] = true;

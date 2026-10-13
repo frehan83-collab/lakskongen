@@ -51,6 +51,7 @@ func _run() -> void:
 	await _test_notification_center_escape()
 	await _test_escape_returns_tabs_to_the_dashboard()
 	await _test_space_and_enter_reach_the_gui()
+	await _test_alerts_announce_transitions_once()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -562,6 +563,73 @@ func _test_space_and_enter_reach_the_gui() -> void:
 	_check(_sim.current_day == day, "keys: D/W pan the camera without stepping the game (day %d -> %d)" % [day, _sim.current_day])
 	scene.queue_free()
 	await get_tree().process_frame
+
+## F762: a lasting condition is announced once, not on every refresh (two per
+## tick, each with that day's value in the text): one notification entry, one
+## lice SFX cue; it is announced again only when it returns. A weather alert
+## stays listed for three days instead of being wiped by the next refresh.
+func _test_alerts_announce_transitions_once() -> void:
+	_check(_sim.start_qa_scenario("forste_sesong", 23), "alerts: seeded scenario starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	var site := str(_sim.get_all_pens()[0].get("id", ""))
+	var announced: Array = []
+	var cues: Array = []
+	var on_alert := func(_level: String, message: String) -> void:
+		if message.begins_with("Lus KRITISK"):
+			announced.append(message)
+	var on_cue := func(key: String) -> void:
+		if key == "lice_warning":
+			cues.append(key)
+	_sim.alert_raised.connect(on_alert)
+	_sim.audio_alert_triggered.connect(on_cue)
+
+	_check(bool(_sim.set_qa_pen_lice(site, 1.5).get("success", false)), "alerts: lice set above the limit at %s" % site)
+	var listed_every_day := true
+	for day in 6:
+		_sim.advance_days(1)
+		listed_every_day = listed_every_day and _count_alerts("lice", "critical") == 1
+	_check(_sim.sea_lice_per_fish > 0.5, "alerts: lice stay above the limit (%.2f)" % _sim.sea_lice_per_fish)
+	_check(announced.size() == 1, "alerts: six days over the limit are announced once (%d)" % announced.size())
+	_check(cues.size() == 1, "alerts: the lice SFX cue fires once (%d)" % cues.size())
+	_check(listed_every_day, "alerts: the condition stays listed while it holds")
+	var entries: Array = center._entries.filter(func(e: Dictionary) -> bool: return str(e.get("description", "")).begins_with("Lus KRITISK"))
+	_check(entries.size() == 1, "alerts: the notification center has one lice entry (%d)" % entries.size())
+
+	_sim.set_qa_pen_lice(site, 0.0)
+	_sim.advance_days(1)
+	_check(_count_alerts("lice", "critical") == 0, "alerts: the condition clears")
+	_sim.set_qa_pen_lice(site, 1.5)
+	_sim.advance_days(1)
+	_check(announced.size() == 2 and cues.size() == 2,
+		"alerts: a returning condition is announced again (%d, %d)" % [announced.size(), cues.size()])
+
+	_sim._on_weather_event("storm", 0.9, "CI-storm")
+	_sim.advance_days(1)
+	_check(_has_alert("Vær: CI-storm"), "alerts: a weather alert outlives the next refresh")
+	_sim.advance_days(3)
+	_check(not _has_alert("Vær: CI-storm"), "alerts: it expires after three days")
+	_sim.alert_raised.disconnect(on_alert)
+	_sim.audio_alert_triggered.disconnect(on_cue)
+	scene.queue_free()
+	await get_tree().process_frame
+
+func _count_alerts(key: String, level: String) -> int:
+	var n := 0
+	for a in _sim.active_alerts:
+		if str(a.get("key", "")) == key and str(a.get("level", "")) == level:
+			n += 1
+	return n
+
+func _has_alert(message: String) -> bool:
+	for a in _sim.active_alerts:
+		if str(a.get("message", "")) == message:
+			return true
+	return false
 
 ## F945: Phase 5.3–5.4 proxies are reachable through the SimBridge facade.
 func _test_facade_forwards_phase5_systems() -> void:

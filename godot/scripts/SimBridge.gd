@@ -305,7 +305,7 @@ func _on_disease_outbreak(disease_type: String, site_id: String, severity: float
 # ── Internal passthroughs (preserved for compatibility) ─────────────────────
 
 func _refresh_state() -> void: _state._refresh_state()
-func _check_alerts() -> void: _state._check_alerts()
+func _check_alerts() -> void: _state._rebuild_alerts()
 func _push_alert(level: String, message: String) -> void: _state._push_alert(level, message)
 func _season_name(day: int) -> String: return Formatters.season_name(day)
 
