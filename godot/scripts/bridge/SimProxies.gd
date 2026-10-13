@@ -355,10 +355,6 @@ func transfer_batch_to_sea(batch_id: String) -> bool:
 	push_warning("SimProxies: TransferBatchToSea unavailable — transfer refused")
 	return false
 
-## Snapshot balance for mock-fallback affordability checks (facade wires SimState.balance; 0.0 unwired).
-var _balance_fn: Callable = Callable()
-func state_balance() -> float: return float(_balance_fn.call()) if _balance_fn.is_valid() else 0.0
-
 # ── Empire: competitors + progression ─────────────────────────────────────────
 
 func get_competitors() -> Array[Dictionary]: return _arr(game_bridge.GetCompetitors()) if game_bridge else []

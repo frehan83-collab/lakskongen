@@ -26,7 +26,7 @@ public partial class SaveLoadManager : Node
     [Signal]
     public delegate void LoadFailedEventHandler(string error);
 
-    private const string SAVE_DIRECTORY = "user://saves/";
+    private const string DefaultSaveDirectory = "user://saves/";
     private const string AUTOSAVE_PREFIX = "autosave";
     private const string QUICKSAVE_PREFIX = "quicksave";
     private const string BACKUP_SUFFIX = ".backup";
@@ -42,14 +42,66 @@ public partial class SaveLoadManager : Node
 
     private JsonSerializerOptions _jsonOptions;
     private GameBridge _gameBridge;
+    private string _saveDirectory = DefaultSaveDirectory;
+
+    /// <summary>
+    /// Reason for the most recent failed save/load (empty after a success).
+    /// Lets GDScript show the real error instead of a blind success toast.
+    /// </summary>
+    public string LastError { get; private set; } = "";
 
     public override void _Ready()
     {
         SetupJsonOptions();
         EnsureSaveDirectory();
         ConnectToGameBridge();
-        
+
         GD.Print("SaveLoadManager initialized");
+    }
+
+    /// <summary>
+    /// QA/test seam: redirect saves to another user:// directory so headless
+    /// UI tests never touch the player's real save slots.
+    /// </summary>
+    public void UseSaveDirectory(string directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory)) return;
+        _saveDirectory = directory.EndsWith("/") ? directory : directory + "/";
+        EnsureSaveDirectory();
+    }
+
+    private void ReportSaveFailure(string error)
+    {
+        LastError = error;
+        EmitSignal(SignalName.SaveFailed, error);
+    }
+
+    private void ReportLoadFailure(string error)
+    {
+        LastError = error;
+        EmitSignal(SignalName.LoadFailed, error);
+    }
+
+    /// <summary>
+    /// Save files as Variant-safe dictionaries for GDScript (newest first):
+    /// file (pass to LoadGame/DeleteSave), name, day, cash, time (ISO 8601 UTC).
+    /// <see cref="GetSaveFiles"/> returns a CLR list GDScript cannot marshal.
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetSaveList()
+    {
+        var list = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        foreach (var save in GetSaveFiles())
+        {
+            list.Add(new Godot.Collections.Dictionary
+            {
+                ["file"] = save.FileName,
+                ["name"] = save.SaveName,
+                ["day"] = save.GameDay,
+                ["cash"] = save.Cash,
+                ["time"] = save.SaveTime.ToString("o"),
+            });
+        }
+        return list;
     }
 
     private void SetupJsonOptions()
@@ -63,12 +115,22 @@ public partial class SaveLoadManager : Node
 
     private void EnsureSaveDirectory()
     {
-        using var dir = Godot.DirAccess.Open("user://");
-        if (dir != null && !dir.DirExists("saves"))
+        string absolute = ProjectSettings.GlobalizePath(_saveDirectory);
+        if (!Godot.DirAccess.DirExistsAbsolute(absolute))
         {
-            dir.MakeDir("saves");
-            GD.Print("Created saves directory");
+            Godot.DirAccess.MakeDirRecursiveAbsolute(absolute);
+            GD.Print($"Created saves directory {_saveDirectory}");
         }
+    }
+
+    /// <summary>
+    /// Reduce a UI-supplied save file name to a bare file name inside the save
+    /// directory (no "..", no separators), or "" when nothing usable is left.
+    /// </summary>
+    private static string ToSaveFileName(string fileName)
+    {
+        string bare = Path.GetFileName(fileName ?? "");
+        return bare == "." || bare == ".." ? "" : bare;
     }
 
     private void ConnectToGameBridge()
@@ -88,16 +150,17 @@ public partial class SaveLoadManager : Node
     /// </summary>
     public bool SaveGame(string saveName)
     {
+        LastError = "";
         if (_gameBridge?.SimulationEngine?.State == null)
         {
-            EmitSignal(SignalName.SaveFailed, "No game in progress");
+            ReportSaveFailure("No game in progress");
             return false;
         }
 
         try
         {
             string fileName = SanitizeFileName(saveName) + ".json";
-            string fullPath = Path.Combine(SAVE_DIRECTORY, fileName);
+            string fullPath = Path.Combine(_saveDirectory, fileName);
             
             // Create backup if save already exists
             CreateBackup(fullPath);
@@ -137,7 +200,7 @@ public partial class SaveLoadManager : Node
         catch (Exception ex)
         {
             string error = $"Failed to save game '{saveName}': {ex.Message}";
-            EmitSignal(SignalName.SaveFailed, error);
+            ReportSaveFailure(error);
             GD.PrintErr(error);
             return false;
         }
@@ -182,7 +245,14 @@ public partial class SaveLoadManager : Node
     /// </summary>
     public bool LoadGame(string fileName)
     {
-        string fullPath = Path.Combine(SAVE_DIRECTORY, fileName);
+        LastError = "";
+        fileName = ToSaveFileName(fileName);
+        if (fileName.Length == 0)
+        {
+            ReportLoadFailure("No save file selected.");
+            return false;
+        }
+        string fullPath = Path.Combine(_saveDirectory, fileName);
         
         try
         {
@@ -190,7 +260,7 @@ public partial class SaveLoadManager : Node
             if (file == null)
             {
                 string error = $"Save file not found: {fileName}. Please check that the file exists.";
-                EmitSignal(SignalName.LoadFailed, error);
+                ReportLoadFailure(error);
                 GD.PrintErr(error);
                 return false;
             }
@@ -202,7 +272,7 @@ public partial class SaveLoadManager : Node
             if (string.IsNullOrWhiteSpace(jsonString))
             {
                 string error = $"Save file '{fileName}' is empty or corrupted. Please try a different save file.";
-                EmitSignal(SignalName.LoadFailed, error);
+                ReportLoadFailure(error);
                 GD.PrintErr(error);
                 TryLoadBackup(fileName);
                 return false;
@@ -216,7 +286,7 @@ public partial class SaveLoadManager : Node
             catch (JsonException jsonEx)
             {
                 string error = $"Save file '{fileName}' is corrupted (invalid JSON). Please try a different save file.";
-                EmitSignal(SignalName.LoadFailed, error);
+                ReportLoadFailure(error);
                 GD.PrintErr($"{error} Details: {jsonEx.Message}");
                 TryLoadBackup(fileName);
                 return false;
@@ -225,7 +295,7 @@ public partial class SaveLoadManager : Node
             if (saveData?.GameState == null)
             {
                 string error = $"Save file '{fileName}' is missing game data. Please try a different save file.";
-                EmitSignal(SignalName.LoadFailed, error);
+                ReportLoadFailure(error);
                 GD.PrintErr(error);
                 return false;
             }
@@ -234,7 +304,7 @@ public partial class SaveLoadManager : Node
             if (saveData.SaveVersion > CurrentSaveVersion)
             {
                 string error = $"Save file '{fileName}' needs a newer game version (save v{saveData.SaveVersion}, game v{CurrentSaveVersion}). Please update the game.";
-                EmitSignal(SignalName.LoadFailed, error);
+                ReportLoadFailure(error);
                 GD.PrintErr(error);
                 return false;
             }
@@ -244,11 +314,12 @@ public partial class SaveLoadManager : Node
                 saveData = MigrateSaveData(saveData);
             }
             
+            // Sanitize BEFORE adoption: the engine copies collections and scalars
+            // out of the snapshot, so fixes applied afterwards never reach it.
+            ValidateAndFixGameState(saveData.GameState);
+
             // Load the game state into GameBridge
             _gameBridge.LoadGame(saveData.GameState);
-            
-            // Post-load validation: ensure all new fields have valid defaults
-            ValidateAndFixGameState(saveData.GameState);
             
             EmitSignal(SignalName.GameLoaded, saveData.SaveName);
             EventBus eventBus = GetNode<EventBus>("/root/EventBus");
@@ -260,7 +331,7 @@ public partial class SaveLoadManager : Node
         catch (Exception ex)
         {
             string error = $"Unexpected error loading '{fileName}': {ex.Message}. Please try a different save file.";
-            EmitSignal(SignalName.LoadFailed, error);
+            ReportLoadFailure(error);
             GD.PrintErr(error);
             return false;
         }
@@ -271,7 +342,7 @@ public partial class SaveLoadManager : Node
     /// </summary>
     private void TryLoadBackup(string fileName)
     {
-        string backupPath = Path.Combine(SAVE_DIRECTORY, fileName + BACKUP_SUFFIX);
+        string backupPath = Path.Combine(_saveDirectory, fileName + BACKUP_SUFFIX);
         if (Godot.FileAccess.FileExists(backupPath))
         {
             GD.Print($"Found backup file for '{fileName}'. You may try loading the backup manually.");
@@ -287,7 +358,7 @@ public partial class SaveLoadManager : Node
     {
         var saves = new List<SaveFileInfo>();
         
-        using var dir = Godot.DirAccess.Open(SAVE_DIRECTORY);
+        using var dir = Godot.DirAccess.Open(_saveDirectory);
         if (dir == null) return saves;
         
         dir.ListDirBegin();
@@ -441,12 +512,15 @@ public partial class SaveLoadManager : Node
     {
         try
         {
-            string fullPath = Path.Combine(SAVE_DIRECTORY, fileName);
+            fileName = ToSaveFileName(fileName);
+            if (fileName.Length == 0) return false;
             
-            using var dir = Godot.DirAccess.Open(SAVE_DIRECTORY);
+            using var dir = Godot.DirAccess.Open(_saveDirectory);
             if (dir != null && dir.FileExists(fileName))
             {
                 dir.Remove(fileName);
+                if (dir.FileExists(fileName + BACKUP_SUFFIX))
+                    dir.Remove(fileName + BACKUP_SUFFIX);
                 GD.Print($"Deleted save file: {fileName}");
                 return true;
             }
@@ -512,7 +586,7 @@ public partial class SaveLoadManager : Node
 
     private SaveFileInfo GetSaveFileInfo(string fileName)
     {
-        string fullPath = Path.Combine(SAVE_DIRECTORY, fileName);
+        string fullPath = Path.Combine(_saveDirectory, fileName);
         
         try
         {
@@ -592,7 +666,7 @@ public partial class SaveLoadManager : Node
     {
         var autoSaves = new List<string>();
         
-        using var dir = Godot.DirAccess.Open(SAVE_DIRECTORY);
+        using var dir = Godot.DirAccess.Open(_saveDirectory);
         if (dir == null) return;
         
         dir.ListDirBegin();

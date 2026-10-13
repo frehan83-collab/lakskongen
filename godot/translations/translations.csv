@@ -311,6 +311,7 @@ UI_MODMANAGER_TOOLTIP,Manage game modifications,Behandle spillmodifikasjoner
 UI_NOTIFICATION_DAY_FORMAT,Day %d,Dag %d
 UI_PAUSE_SAVE,Save game,Lagre spill
 UI_PAUSE_SAVED,Game saved,Spill lagret
+UI_PAUSE_SAVE_FAILED,⚠️ Save failed,⚠️ Lagring feilet
 UI_PAUSE_SAVING,Saving...,Lagrer...
 UI_PRODUCTION_MARKETS_FORMAT,%d markets,%d markeder
 UI_PRODUCTION_QUANTITY_TOOLTIP,Quantity produced,Produsert mengde
@@ -387,6 +388,14 @@ UI_DASHBOARD_ALERTS_EMPTY,🎉 No active alerts — everything looks good,🎉 I
 UI_FINANCE_HISTORY_EMPTY,📈 No history yet — figures will appear as the days pass.,📈 Ingen historikk ennå — tallene kommer etter hvert som dagene går.
 UI_SAVELOAD_EMPTY_SAVE_HINT,Press «New Save» to secure your progress.,Trykk «Nytt Lagringspunkt» for å sikre framgangen din.
 UI_SAVELOAD_EMPTY_LOAD_HINT,Start a new game from the main menu to get going.,Start et nytt spill fra hovedmenyen for å komme i gang.
+UI_SAVELOAD_TITLE_BOTH,Save / Load,Lagre / Laste
+UI_SAVELOAD_OVERWRITE,Overwrite,Overskriv
+UI_SAVELOAD_DELETE,Delete,Slett
+UI_SAVELOAD_DELETE_CONFIRM,Confirm delete,Bekreft sletting
+UI_TOAST_SAVE_FAILED,⚠️ Save failed: %s,⚠️ Lagring feilet: %s
+UI_TOAST_LOAD_FAILED,⚠️ Load failed: %s,⚠️ Lasting feilet: %s
+UI_TOAST_DELETED,🗑 Save deleted: %s,🗑 Lagring slettet: %s
+UI_TOAST_QUICKSAVED,💾 Quicksaved,💾 Hurtiglagret
 UI_NOTIFY_EMPTY,🔔 No notifications yet — we will let you know when something happens.,🔔 Ingen varsler ennå — vi gir beskjed når noe skjer.
 UI_BRIEFING_WEATHER,🌤️ Weather forecast,🌤️ Værmelding
 UI_BRIEFING_MARKET,💰 Market,💰 Marked

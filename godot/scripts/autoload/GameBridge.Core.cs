@@ -381,6 +381,12 @@ public partial class GameBridge : Node
     /// <summary>Current simulation day.</summary>
     public int CurrentDay => SimulationEngine?.State?.Day ?? 0;
 
+    /// <summary>
+    /// True once a game was started or loaded (and not ended). GameScene uses it
+    /// to keep a game the main menu already started or loaded (F056).
+    /// </summary>
+    public bool IsGameRunning => _gameRunning;
+
     /// <summary>Current balance in NOK.</summary>
     public double Balance => (double)(SimulationEngine?.FinanceManager?.Balance ?? 0m);
 

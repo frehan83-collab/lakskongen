@@ -231,6 +231,15 @@ step_gdscript_scan() {
     rm -f "$log"
 }
 
+step_ui_flow_tests() {
+    if [[ ! -x "$GODOT_BIN" ]]; then
+        echo "   Godot not found at '$GODOT_BIN' — skipping UI flow tests."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+    GODOT_BIN="$GODOT_BIN" bash "$REPO_ROOT/tools/run_ui_flow_tests.sh"
+}
+
 step_verify_assets() {
     local script="$REPO_ROOT/.claude/skills/ecc/blender-asset-pipeline/blender_asset_pipeline.py"
     if [[ ! -f "$script" ]]; then
@@ -389,6 +398,7 @@ run_step "Design token drift check"                    step_design_token_drift
 run_step "Validate JSON data + mod manifests"          step_validate_json
 run_step "Scene load validation"                       step_scene_validation
 run_step "Headless GDScript parse scan"                step_gdscript_scan
+run_step "Godot UI flow tests (headless)"              step_ui_flow_tests
 run_step "Blender asset pipeline verification"         step_verify_assets
 run_step "Godot MCP: Autoload audit"                   step_godot_mcp_autoload_audit
 run_step "Godot MCP: Shader check"                     step_godot_mcp_shader_check

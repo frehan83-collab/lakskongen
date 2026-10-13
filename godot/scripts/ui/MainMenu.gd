@@ -6,6 +6,7 @@ extends Control
 
 const SCENARIO_PANEL_SCRIPT = preload("res://scripts/ui/ScenarioSelectPanel.gd")
 const MOD_MANAGER_SCENE = "res://scenes/ui/ModManagerPanel.tscn"
+const GAME_SCENE = "res://scenes/GameScene.tscn"
 
 @onready var wave_effect: ColorRect = %WaveEffect
 @onready var center: CenterContainer = %Center
@@ -18,10 +19,15 @@ const MOD_MANAGER_SCENE = "res://scenes/ui/ModManagerPanel.tscn"
 @onready var btn_load: Button = %BtnLoad
 @onready var btn_settings: Button = %BtnSettings
 @onready var btn_quit: Button = %BtnQuit
+@onready var settings_menu: Control = %SettingsMenu
+@onready var save_load_menu: Control = %SaveLoadMenu
 
 var wave_tween: Tween
 var scenario_panel: Control = null
 var mod_manager_panel: Control = null
+## Test seam: when valid, called instead of changing to GAME_SCENE (headless UI
+## tests drive the menu without tearing down their own scene).
+var enter_game_override: Callable = Callable()
 
 signal new_game_requested
 signal load_game_requested
@@ -31,6 +37,7 @@ func _ready() -> void:
 	_apply_localization()
 	_apply_heading_font()
 	_connect_buttons()
+	_connect_submenus()
 	_ensure_mods_button()
 
 	# Fade in
@@ -72,6 +79,18 @@ func _connect_buttons() -> void:
 	# Keyboard accessibility: focus the primary action on entry.
 	btn_new_game.grab_focus.call_deferred()
 
+## The embedded SettingsMenu / SaveLoadMenu are shown in place of the button
+## column; closing either restores it (F616).
+func _connect_submenus() -> void:
+	settings_menu.close_requested.connect(_on_submenu_closed.bind(btn_settings))
+	save_load_menu.close_requested.connect(_on_submenu_closed.bind(btn_load))
+	save_load_menu.game_loaded.connect(_on_game_loaded)
+
+func _on_submenu_closed(focus_button: Button) -> void:
+	center.visible = true
+	_enable_all()
+	focus_button.grab_focus.call_deferred()
+
 func _on_btn_hover(button: Button, hovering: bool) -> void:
 	var target := Vector2(1.03, 1.03) if hovering else Vector2.ONE
 	var tw := create_tween()
@@ -87,15 +106,32 @@ func _start_wave_animation() -> void:
 # ── Handlers ───────────────────────────────────────────────────────────────────
 
 func _on_new_game_pressed() -> void:
-	_disable_all()
+	# Buttons stay enabled: the picker hides the column, and cancelling it must
+	# hand back a working menu (F617). They are disabled once a game is chosen.
 	emit_signal("new_game_requested")
 	_show_scenario_panel()
 
 func _on_load_pressed() -> void:
 	emit_signal("load_game_requested")
+	center.visible = false
+	save_load_menu.show_load()
 
 func _on_settings_pressed() -> void:
 	emit_signal("settings_requested")
+	center.visible = false
+	settings_menu.show()
+
+## A save was loaded from the menu: the engine already holds it, so enter the
+## game scene (Main.gd keeps a running game instead of starting a new one).
+func _on_game_loaded(_file_name: String) -> void:
+	_disable_all()
+	_enter_game()
+
+func _enter_game() -> void:
+	if enter_game_override.is_valid():
+		enter_game_override.call()
+		return
+	get_tree().change_scene_to_file(GAME_SCENE)
 
 func _on_quit_pressed() -> void:
 	_disable_all()
@@ -161,22 +197,29 @@ func _show_scenario_panel() -> void:
 func _on_scenario_selected(scenario_id: String) -> void:
 	var sim = get_node_or_null("/root/SimBridge")
 	if sim:
+		_disable_all()
 		# start_new_game(player_name, starting_capital, scenario_id) —
 		# pass the id in the scenario slot, not the player-name slot.
 		sim.start_new_game("Player", 10000000, scenario_id)
-		get_tree().change_scene_to_file("res://scenes/GameScene.tscn")
+		_enter_game()
 
 func _on_scenario_close() -> void:
 	if scenario_panel:
 		scenario_panel.queue_free()
 		scenario_panel = null
+	_enable_all()
 	center.visible = true
+	btn_new_game.grab_focus.call_deferred()
 
 func _disable_all() -> void:
-	btn_new_game.disabled = true
-	btn_load.disabled = true
-	btn_settings.disabled = true
-	btn_quit.disabled = true
+	_set_buttons_disabled(true)
+
+func _enable_all() -> void:
+	_set_buttons_disabled(false)
+
+func _set_buttons_disabled(disabled: bool) -> void:
+	for btn: Button in [btn_new_game, btn_load, btn_settings, btn_quit]:
+		btn.disabled = disabled
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):

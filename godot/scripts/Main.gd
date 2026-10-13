@@ -47,6 +47,13 @@ func _start_game() -> void:
 	if _game_started:
 		return
 
+	# The main menu already started a scenario or loaded a save before switching
+	# to this scene — keep that game instead of resetting it (F056).
+	if _sim.is_game_running():
+		_game_started = true
+		print("Main: Keeping the game started from the main menu (day %d)" % _sim.current_day)
+		return
+
 	print("Main: Starting new game...")
 
 	# Start the simulation via SimBridge
@@ -61,6 +68,26 @@ func _start_game() -> void:
 		_sim.set_time_speed(1.0)
 	else:
 		push_error("Main: Failed to start game!")
+
+## Ctrl/Cmd+S quicksave (project input action `quick_save`).
+func _unhandled_input(event: InputEvent) -> void:
+	if _game_started and event.is_action_pressed("quick_save"):
+		quick_save()
+		get_viewport().set_input_as_handled()
+
+func quick_save() -> bool:
+	var ok: bool = _sim.quick_save()
+	var toast := get_node_or_null("/root/ToastNotification")
+	if toast:
+		if ok:
+			toast.show_toast(_tr_or("UI_TOAST_QUICKSAVED", "💾 Hurtiglagret"), "SUCCESS", 3.0)
+		else:
+			toast.show_toast(_tr_or("UI_TOAST_SAVE_FAILED", "⚠️ Lagring feilet: %s") % _sim.get_last_save_error(), "ERROR", 5.0)
+	return ok
+
+func _tr_or(key: String, fallback: String) -> String:
+	var t := tr(key)
+	return t if t != key else fallback
 
 func _on_state_updated() -> void:
 	# UI components auto-update via their own SimBridge connections

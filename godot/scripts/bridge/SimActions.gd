@@ -335,21 +335,55 @@ func get_all_pens() -> Array[Dictionary]:
 	return result
 
 
-## Save game to slot
+## C# SaveLoadManager autoload (PascalCase API), or null when unavailable.
+func _save_mgr() -> Node:
+	var mgr := get_node_or_null("/root/SaveLoadManager")
+	if mgr == null:
+		push_error("SimBridge: SaveLoadManager not found")
+	return mgr
+
+
+## Save the running game as `slot_name` (written to <sanitized name>.json).
 func save_game(slot_name: String) -> bool:
-	if not has_node("/root/SaveLoadManager"):
-		push_error("SimBridge: SaveLoadManager not found")
+	var mgr := _save_mgr()
+	return mgr != null and bool(mgr.SaveGame(slot_name))
+
+
+## Load the save file `file_name` (the "file" key of get_save_list()).
+func load_game(file_name: String) -> bool:
+	var mgr := _save_mgr()
+	if mgr == null or not bool(mgr.LoadGame(file_name)):
 		return false
+	if state != null:
+		state._refresh_state()
+	return true
 
-	var save_manager = get_node("/root/SaveLoadManager")
-	return save_manager.SaveGame(slot_name)
+
+## Timestamped quicksave of the running game.
+func quick_save() -> bool:
+	var mgr := _save_mgr()
+	return mgr != null and bool(mgr.QuickSave())
 
 
-## Load game from slot
-func load_game(slot_name: String) -> bool:
-	if not has_node("/root/SaveLoadManager"):
-		push_error("SimBridge: SaveLoadManager not found")
-		return false
+## Delete the save file `file_name` (and its backup).
+func delete_save(file_name: String) -> bool:
+	var mgr := _save_mgr()
+	return mgr != null and bool(mgr.DeleteSave(file_name))
 
-	var save_manager = get_node("/root/SaveLoadManager")
-	return save_manager.LoadGame(slot_name)
+
+## Save slots, newest first: [{file, name, day, cash, time}, ...].
+func get_save_list() -> Array:
+	var mgr := _save_mgr()
+	return mgr.GetSaveList() if mgr != null else []
+
+
+## Reason the last save/load failed ("" after a success).
+func get_last_save_error() -> String:
+	var mgr := _save_mgr()
+	return String(mgr.LastError) if mgr != null else "SaveLoadManager not found"
+
+
+## True once a game is started or loaded (GameScene keeps it instead of
+## starting a fresh default game).
+func is_game_running() -> bool:
+	return game_bridge != null and bool(game_bridge.IsGameRunning)

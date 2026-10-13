@@ -261,7 +261,6 @@ func _ready() -> void:
 	add_child(_actions)
 	add_child(_proxies)
 	_actions.state = _state
-	_proxies._balance_fn = func() -> float: return _state.balance
 	_state.state_updated.connect(func() -> void: state_updated.emit())
 	_state.day_advanced.connect(func(day: int, season: String) -> void: day_advanced.emit(day, season))
 	_state.alert_raised.connect(func(level: String, message: String) -> void: alert_raised.emit(level, message))
@@ -343,6 +342,7 @@ func install_bloom_mitigation(site_id: String, kind: String) -> bool: return _pr
 func get_feed_recipe() -> Dictionary: return _proxies.get_feed_recipe()
 func get_forecast() -> Dictionary: return _proxies.get_forecast()
 func get_night_shift_status() -> Dictionary: return _proxies.get_night_shift_status()
+func set_night_shift_policy(policy: String) -> bool: return _actions.set_night_shift_policy(policy)
 func get_intervention_ranking() -> Array[Dictionary]: return _proxies.get_intervention_ranking()
 func get_attention_items() -> Array[Dictionary]: return _proxies.get_attention_items()
 func open_attention_inbox() -> void: _proxies.open_attention_inbox()
@@ -354,7 +354,12 @@ func request_wellboat(site_id: String, kind: String, method: String = "") -> boo
 func upgrade_containment(site_id: String, level_name: String) -> bool: return _actions.upgrade_containment(site_id, level_name)
 func get_all_pens() -> Array[Dictionary]: return _actions.get_all_pens()
 func save_game(slot_name: String) -> bool: return _actions.save_game(slot_name)
-func load_game(slot_name: String) -> bool: return _actions.load_game(slot_name)
+func load_game(file_name: String) -> bool: return _actions.load_game(file_name)
+func quick_save() -> bool: return _actions.quick_save()
+func delete_save(file_name: String) -> bool: return _actions.delete_save(file_name)
+func get_save_list() -> Array: return _actions.get_save_list()
+func get_last_save_error() -> String: return _actions.get_last_save_error()
+func is_game_running() -> bool: return _actions.is_game_running()
 
 # ── Formatters (delegated to SimFormatters) ───────────────────────────────────
 
@@ -512,3 +517,19 @@ func get_welfare_alerts() -> Array[String]: return _proxies.get_welfare_alerts()
 func get_achieved_milestones() -> Array[Dictionary]: return _proxies.get_achieved_milestones()
 func get_next_milestone_info() -> Dictionary: return _proxies.get_next_milestone_info()
 func get_milestone_progress() -> float: return _proxies.get_milestone_progress()
+
+# ── Proxies: Phase 5.3–5.4 farm systems (sludge, transfers, carbon, processing) ─
+# Every public SimProxies/SimActions func needs a forwarder here; callers use
+# has_method() on /root/SimBridge, so a missing line silently disables the UI
+# (F945). tests/test_bridge_contract.py::test_simbridge_facade_parity guards it.
+
+func processing_tier() -> String: return _proxies.processing_tier()
+func get_sludge_status() -> Array[Dictionary]: return _proxies.get_sludge_status()
+func toggle_sludge_hub(site_id: String) -> bool: return _proxies.toggle_sludge_hub(site_id)
+func valorize_sludge_now(site_id: String) -> float: return _proxies.valorize_sludge_now(site_id)
+func plan_cohort_transfer(source_site_id: String, dest_site_id: String, fish_count: int, mean_weight_kg: float, reason: String) -> Dictionary: return _proxies.plan_cohort_transfer(source_site_id, dest_site_id, fish_count, mean_weight_kg, reason)
+func execute_cohort_transfer(source_site_id: String, dest_site_id: String, fish_count: int, mean_weight_kg: float, reason: String) -> Dictionary: return _proxies.execute_cohort_transfer(source_site_id, dest_site_id, fish_count, mean_weight_kg, reason)
+func get_transfer_destinations(source_site_id: String, incoming_biomass_kg: float) -> Array[Dictionary]: return _proxies.get_transfer_destinations(source_site_id, incoming_biomass_kg)
+func get_carbon_ledger() -> Dictionary: return _proxies.get_carbon_ledger()
+func get_carbon_intensity() -> float: return _proxies.get_carbon_intensity()
+func is_carbon_neutral_year() -> bool: return _proxies.is_carbon_neutral_year()

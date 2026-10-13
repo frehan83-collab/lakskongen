@@ -108,7 +108,130 @@ def test_no_snake_case_signal_access():
     assert not offenders, f"snake_case GameBridge access (runtime failure): {offenders}"
 
 
+# ── C# autoload contract (F928) ──────────────────────────────────────────────
+# GDScript reaching a C# autoload through get_node("/root/<Name>") must use the
+# exact PascalCase member names the C# class declares. A has_method() guard on
+# a name that does not exist is the silent failure that killed save/load (the
+# menu asked for get_save_list/save_game/load_game; C# only had PascalCase).
+
+CS_AUTOLOADS = {
+    "SaveLoadManager": "SaveLoadManager.cs",
+    "EventBus": "EventBus.cs",
+    "AudioManager": "AudioManager.cs",
+    "MultiplayerBridge": "MultiplayerBridge.cs",
+}
+# Helper functions that return a C# autoload node (func name -> autoload).
+CS_AUTOLOAD_GETTERS = {"_save_mgr": "SaveLoadManager"}
+# Node/Object methods GDScript may legitimately call on any node.
+NODE_BUILTINS = frozenset(
+    "connect disconnect is_connected emit_signal has_method has_signal get set call "
+    "call_deferred get_node get_node_or_null get_parent get_path queue_free is_inside_tree "
+    "add_child remove_child get_children set_process set_physics_process get_class".split()
+)
+AUTOLOAD_VAR_RE = re.compile(
+    r"var\s+(\w+)\s*(?::\s*\w+\s*)?:?=\s*(?:get_node(?:_or_null)?\(\s*\"/root/(\w+)\"\s*\)|(\w+)\(\))"
+)
+
+
+def _cs_declared(cs_file):
+    src = (BRIDGE_DIR / cs_file).read_text(encoding="utf-8")
+    names = set(m.group(1) for m in SIGNAL_RE.finditer(src))
+    names.update(m.group(1) for m in METHOD_RE.finditer(src))
+    names.update(m.group(1) for m in MEMBER_RE.finditer(src) if m.group(1) not in CS_KEYWORDS)
+    return names
+
+
+def _scopes(src):
+    """Class-level text plus one text block per `func` body."""
+    parts = re.split(r"(?m)^(?=func |static func )", src)
+    return parts[0], parts[1:]
+
+
+ASSIGN_RE = re.compile(
+    r"(?m)^\s*(\w+)\s*=\s*(?:get_node(?:_or_null)?\(\s*\"/root/(\w+)\"\s*\)|(\w+)\(\))"
+)
+
+
+def _target(node, getter):
+    return node if node in CS_AUTOLOADS else CS_AUTOLOAD_GETTERS.get(getter or "")
+
+
+def _autoload_bindings(text):
+    found = {}
+    for m in AUTOLOAD_VAR_RE.finditer(text):
+        target = _target(m.group(2), m.group(3))
+        if target:
+            found[m.group(1)] = target
+    return found
+
+
+def _class_var_assignments(class_text, src):
+    """Class-level vars bound later by a plain assignment (e.g. in _ready())."""
+    declared = set(re.findall(r"(?m)^(?:@onready\s+)?var\s+(\w+)", class_text))
+    found = {}
+    for m in ASSIGN_RE.finditer(src):
+        target = _target(m.group(2), m.group(3))
+        if target and m.group(1) in declared:
+            found[m.group(1)] = target
+    return found
+
+
+def test_csharp_autoload_contract():
+    declared = {name: _cs_declared(f) for name, f in CS_AUTOLOADS.items()}
+    assert "SaveGame" in declared["SaveLoadManager"], "contract harness broken: SaveLoadManager not parsed"
+    checked, problems = 0, []
+    for path in sorted((REPO / "godot").rglob("*.gd")):
+        if "addons" in path.parts:
+            continue
+        try:
+            src = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        class_text, funcs = _scopes(src)
+        class_vars = _autoload_bindings(class_text)
+        class_vars.update(_class_var_assignments(class_text, src))
+        for body in [class_text] + funcs:
+            bindings = dict(class_vars)
+            bindings.update(_autoload_bindings(body))
+            for var, target in bindings.items():
+                names = declared[target]
+                for m in re.finditer(rf"\b{re.escape(var)}\.has_method\(\"(\w+)\"\)", body):
+                    checked += 1
+                    if m.group(1) not in names:
+                        problems.append(f"{path.relative_to(REPO)}: has_method(\"{m.group(1)}\") — {target} has no such member")
+                for m in re.finditer(rf"\b{re.escape(var)}\.(\w+)\s*\(", body):
+                    name = m.group(1)
+                    if name in NODE_BUILTINS:
+                        continue
+                    checked += 1
+                    if name not in names:
+                        problems.append(f"{path.relative_to(REPO)}: {var}.{name}() — {target} has no such member")
+    assert checked > 0, "contract harness broken: no C# autoload calls found"
+    assert not problems, "GDScript calls missing C# autoload members:\n  " + "\n  ".join(sorted(set(problems)))
+
+
+# ── SimBridge facade parity (F945) ───────────────────────────────────────────
+# UI code calls /root/SimBridge behind has_method(); a public SimProxies or
+# SimActions func without a facade forwarder therefore fails silently.
+
+GD_FUNC_RE = re.compile(r"(?m)^func ([a-z]\w*)\s*\(")
+
+
+def test_simbridge_facade_parity():
+    bridge_dir = REPO / "godot" / "scripts"
+    facade = set(GD_FUNC_RE.findall((bridge_dir / "SimBridge.gd").read_text(encoding="utf-8")))
+    assert "save_game" in facade, "contract harness broken: SimBridge.gd not parsed"
+    missing = []
+    for part in ("SimProxies.gd", "SimActions.gd"):
+        funcs = GD_FUNC_RE.findall((bridge_dir / "bridge" / part).read_text(encoding="utf-8"))
+        assert funcs, f"contract harness broken: no funcs parsed from {part}"
+        missing += [f"{part}::{name}" for name in funcs if name not in facade]
+    assert not missing, "SimBridge facade is missing forwarders:\n  " + "\n  ".join(missing)
+
+
 if __name__ == "__main__":
     test_bridge_contract()
     test_no_snake_case_signal_access()
+    test_csharp_autoload_contract()
+    test_simbridge_facade_parity()
     print("bridge contract OK")

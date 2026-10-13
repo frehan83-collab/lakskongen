@@ -53,14 +53,12 @@ const COLOR_BTN_DANGER_HOVER := Color("#A54E56")  # Danger dark
 # ── State ──────────────────────────────────────────────────────────────────────
 
 var _sim: Node          = null
-var _save_manager: Node = null
 var _game_bridge: Node  = null
 
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
 	_sim          = get_node_or_null("/root/SimBridge")
-	_save_manager = get_node_or_null("/root/SaveLoadManager")
 	_game_bridge  = get_node_or_null("/root/GameBridge")
 
 	_setup_visuals()
@@ -197,10 +195,15 @@ func _on_save_pressed() -> void:
 	save_requested.emit()
 	btn_save.text     = tr("UI_PAUSE_SAVING")
 	btn_save.disabled = true
-	if _save_manager and _save_manager.has_method("save_game"):
-		_save_manager.save_game("quicksave")
+	# Through the SimBridge facade (C# SaveLoadManager is PascalCase-only, F928);
+	# report what actually happened instead of an unconditional "saved".
+	var ok: bool = _sim != null and _sim.save_game("quicksave")
 	await get_tree().create_timer(0.5).timeout
-	btn_save.text = tr("UI_PAUSE_SAVED")
+	if ok:
+		btn_save.text = tr("UI_PAUSE_SAVED")
+	else:
+		var failed := tr("UI_PAUSE_SAVE_FAILED")
+		btn_save.text = failed if failed != "UI_PAUSE_SAVE_FAILED" else "⚠️ Lagring feilet"
 	await get_tree().create_timer(1.2).timeout
 	btn_save.text     = tr("UI_PAUSE_SAVE")
 	btn_save.disabled = false
@@ -208,7 +211,10 @@ func _on_save_pressed() -> void:
 
 func _on_load_pressed() -> void:
 	if save_load_menu:
-		save_load_menu.show()
+		if save_load_menu.has_method("show_load"):
+			save_load_menu.show_load()
+		else:
+			save_load_menu.show()
 		_set_buttons_disabled(true)
 	else:
 		push_warning("PauseMenu: SaveLoadMenu node not found")

@@ -53,6 +53,10 @@ var _juice: Node = null
 @onready var _ops_list: VBoxContainer = %OpsList
 @onready var _policy_option: OptionButton = %PolicyOption
 
+## NightShiftPolicy enum names (C# LakskongenSim.Logistics) and their labels.
+const NIGHT_SHIFT_POLICIES: Array[String] = ["Standard", "ScanOnly", "AutomatedROC"]
+const NIGHT_SHIFT_LABELS: Array[String] = ["Standard nattevakt", "Kun skanning", "Automatisert ROC"]
+
 @onready var _btn_feed_all: Button = %BtnFeedAll
 @onready var _btn_harvest: Button = %BtnHarvest
 @onready var _btn_delouse: Button = %BtnDelouse
@@ -103,6 +107,7 @@ func _ready() -> void:
 			_sim.state_updated.connect(_on_state_updated)
 
 	_collect_scene_refs()
+	_setup_policy_option()
 	_build_state_banner()
 	_build_kpi_sparklines()
 	_apply_localization()
@@ -796,25 +801,32 @@ func _refresh_ops() -> void:
 		btn.pressed.connect(_on_watch_cycle.bind(sid, nxt))
 		row.add_child(btn)
 
-# Night-shift policy selector (Phase 5.2)
+# Night-shift policy selector (Phase 5.2). Items + signal are set up once in
+	# _setup_policy_option(); a refresh only mirrors the engine's policy.
 	if _policy_option:
 		var status: Dictionary = _sim.get_night_shift_status() if _sim.has_method("get_night_shift_status") else {}
-		var current: String = str(status.get("policy", "Standard"))
-		var idx := ["Standard", "ScanOnly", "AutomatedROC"].find(current)
-		if idx >= 0:
+		var idx := NIGHT_SHIFT_POLICIES.find(str(status.get("policy", "Standard")))
+		if idx >= 0 and idx < _policy_option.item_count:
 			_policy_option.select(idx)
-		_policy_option.pressed.connect(_on_policy_changed)
 
 
 func _on_watch_cycle(site_id: String, mode: String) -> void:
 	if _sim and _sim.has_method("set_watch_mode"):
 		_sim.set_watch_mode(site_id, mode)
 
-func _on_policy_changed(_idx: int) -> void:
-	if _sim and _sim.has_method("set_night_shift_policy"):
-		var policies := ["Standard", "ScanOnly", "AutomatedROC"]
-		var policy := String(policies[_idx])
-		_sim.set_night_shift_policy(policy)
+## Populate the night-shift dropdown once. The scene ships it empty; selecting
+## on an empty OptionButton errors, and `pressed` never carried the index.
+func _setup_policy_option() -> void:
+	if _policy_option == null or _policy_option.item_count > 0:
+		return
+	for i in NIGHT_SHIFT_POLICIES.size():
+		var policy: String = NIGHT_SHIFT_POLICIES[i]
+		_policy_option.add_item(_tr_or("UI_NIGHT_SHIFT_" + policy.to_upper(), NIGHT_SHIFT_LABELS[i]), i)
+	_policy_option.item_selected.connect(_on_policy_changed)
+
+func _on_policy_changed(idx: int) -> void:
+	if _sim and idx >= 0 and idx < NIGHT_SHIFT_POLICIES.size():
+		_sim.set_night_shift_policy(NIGHT_SHIFT_POLICIES[idx])
 
 
 # ══════════════════════════════════════════════════════════════════════════════

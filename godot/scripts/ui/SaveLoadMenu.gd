@@ -1,16 +1,27 @@
 extends Control
 
-## SaveLoadMenu v2.1 — Nordic Minimalist (scene-based).
+## SaveLoadMenu v2.2 — Nordic Minimalist (scene-based).
 ## Layout lives in scenes/ui/SaveLoadMenu.tscn; script is wiring only:
 ## @onready % refs, signal hookups, slot refresh, localization.
-## Dynamic content (save slots) is still built in code from SaveLoadManager.
+## Save slots are built in code from SimBridge.get_save_list() — every save/load
+## goes through the SimBridge facade (C# SaveLoadManager, PascalCase API) and
+## the UI only reports success when the C# call returned true (F928).
+##
+## Two contexts:
+##   modal — opened by MainMenu / PauseMenu via show_load() / show_save();
+##           closes itself (close_requested) after an action or ESC.
+##   tab   — hosted by GameUI ("💾 Lagre/Laste"); on_panel_shown() refreshes,
+##           the panel stays open and offers save + load together.
 
 signal close_requested
-signal game_loaded(slot_name: String)
+signal game_loaded(file_name: String)
 signal game_saved(slot_name: String)
 
-var _mode: String = "load"  # "save" or "load"
+var _mode: String = "load"  # "save" or "load" (title + modal semantics)
+var _modal: bool = false
 var _theme: Node = null
+## Two-step delete: file name armed by the first "Slett" press.
+var _delete_armed: String = ""
 
 @onready var _title_label: Label = %TitleLabel
 @onready var _close_button: Button = %CloseButton
@@ -20,7 +31,7 @@ var _theme: Node = null
 func _ready() -> void:
 	_theme = get_node_or_null("/root/LakskongenTheme")
 	_apply_localization()
-	_close_button.pressed.connect(func(): close_requested.emit(); hide())
+	_close_button.pressed.connect(_close)
 	_new_save_button.pressed.connect(_on_new_save)
 	hide()
 
@@ -32,20 +43,56 @@ func _tr_or(key: String, fallback: String) -> String:
 	var t := tr(key)
 	return t if t != key else fallback
 
+func _sim() -> Node:
+	return get_node_or_null("/root/SimBridge")
+
+func _can_save() -> bool:
+	var sim := _sim()
+	return sim != null and sim.is_game_running()
+
+# ── Entry points ───────────────────────────────────────────────────────────────
+
 func show_load() -> void:
-	_mode = "load"
-	_update_title_text()
-	_refresh_slots()
-	show()
+	_open_modal("load")
 
 func show_save() -> void:
-	_mode = "save"
-	_update_title_text()
-	_refresh_slots()
+	_open_modal("save")
+
+## GameUI tab hook: refresh every time the tab becomes visible.
+func on_panel_shown() -> void:
+	_modal = false
+	_mode = "save" if _can_save() else "load"
+	_refresh()
+
+func _open_modal(mode: String) -> void:
+	_modal = true
+	_mode = mode
+	_refresh()
 	show()
+	_close_button.grab_focus.call_deferred()
+
+func _close() -> void:
+	_delete_armed = ""
+	hide()
+	close_requested.emit()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _modal and visible and event.is_action_pressed("ui_cancel"):
+		_close()
+		get_viewport().set_input_as_handled()
+
+# ── Rendering ──────────────────────────────────────────────────────────────────
+
+func _refresh() -> void:
+	_update_title_text()
+	_close_button.visible = _modal
+	_new_save_button.visible = _can_save() and not (_modal and _mode == "load")
+	_refresh_slots()
 
 func _update_title_text() -> void:
-	if _mode == "save":
+	if not _modal:
+		_title_label.text = _tr_or("UI_SAVELOAD_TITLE_BOTH", "Lagre / Laste")
+	elif _mode == "save":
 		_title_label.text = _tr_or("UI_SAVELOAD_TITLE_SAVE", "Lagre Spill")
 	else:
 		_title_label.text = _tr_or("UI_SAVELOAD_TITLE_LOAD", "Last Spill")
@@ -53,30 +100,31 @@ func _update_title_text() -> void:
 func _refresh_slots() -> void:
 	if not _slots_container: return
 	for child in _slots_container.get_children():
+		_slots_container.remove_child(child)
 		child.queue_free()
 
-	var save_mgr = get_node_or_null("/root/SaveLoadManager")
-	if not save_mgr:
+	var sim := _sim()
+	if sim == null:
 		var lbl := Label.new()
 		lbl.text = _tr_or("UI_SAVELOAD_MANAGER_UNAVAILABLE", "SaveLoadManager ikke tilgjengelig")
 		lbl.add_theme_color_override("font_color", Color("#7B8794"))
 		_slots_container.add_child(lbl)
 		return
 
-	var saves = []
-	if save_mgr.has_method("get_save_list"):
-		saves = save_mgr.get_save_list()
-
+	var saves: Array = sim.get_save_list()
 	if saves.is_empty():
 		UIPolish.show_empty_state_localized(_slots_container, _tr_or("UI_SAVELOAD_EMPTY_LOAD", "💾 Ingen lagrede spill funnet"), 14, "💾 ", _theme)
 		return
 
 	for save_info in saves:
-		var slot = _create_slot(save_info)
-		_slots_container.add_child(slot)
+		_slots_container.add_child(_create_slot(save_info))
 
-func _create_slot(save_info) -> PanelContainer:
+func _create_slot(save_info: Dictionary) -> PanelContainer:
+	var file_name := String(save_info.get("file", ""))
+	var slot_name := String(save_info.get("name", file_name.get_basename()))
+
 	var slot := PanelContainer.new()
+	slot.name = "Slot_" + file_name.get_basename().validate_node_name()
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color("#F8F9FB")
 	sb.border_color = Color("#D8DEE9")
@@ -94,54 +142,89 @@ func _create_slot(save_info) -> PanelContainer:
 	hbox.add_child(info_vbox)
 
 	var name_lbl := Label.new()
-	var slot_name = save_info.get("name", "Unknown") if save_info is Dictionary else str(save_info)
 	name_lbl.text = slot_name
 	name_lbl.add_theme_font_size_override("font_size", 16)
 	name_lbl.add_theme_color_override("font_color", Color("#2E3440"))
 	info_vbox.add_child(name_lbl)
 
 	var details := Label.new()
-	var day = save_info.get("day", "?") if save_info is Dictionary else "?"
 	var day_fmt := _tr_or("UI_SAVELOAD_DAY_FORMAT", "Dag %s")
-	details.text = day_fmt % str(day)
+	details.text = day_fmt % str(save_info.get("day", "?"))
+	var sim := _sim()
+	if sim != null and save_info.has("cash"):
+		details.text += "  ·  " + sim.format_nok(float(save_info["cash"]))
 	details.add_theme_font_size_override("font_size", 12)
 	details.add_theme_color_override("font_color", Color("#7B8794"))
 	info_vbox.add_child(details)
 
-	var action_btn := Button.new()
-	var load_text := _tr_or("UI_SAVELOAD_LOAD", "Last")
-	var save_text := _tr_or("UI_SAVELOAD_SAVE", "Lagre")
-	action_btn.text = load_text if _mode == "load" else save_text
-	action_btn.pressed.connect(func(): _on_slot_action(slot_name))
-	hbox.add_child(action_btn)
+	var load_btn := Button.new()
+	load_btn.name = "LoadButton"
+	load_btn.text = _tr_or("UI_SAVELOAD_LOAD", "Last inn")
+	load_btn.pressed.connect(_on_load.bind(file_name, slot_name))
+	hbox.add_child(load_btn)
+
+	if _can_save() and not (_modal and _mode == "load"):
+		var save_btn := Button.new()
+		save_btn.name = "OverwriteButton"
+		save_btn.text = _tr_or("UI_SAVELOAD_OVERWRITE", "Overskriv")
+		# Overwrite under the file's own base name so the same file is replaced.
+		save_btn.pressed.connect(_on_save.bind(file_name.get_basename()))
+		hbox.add_child(save_btn)
+
+	var delete_btn := Button.new()
+	delete_btn.name = "DeleteButton"
+	delete_btn.text = _tr_or("UI_SAVELOAD_DELETE", "Slett")
+	delete_btn.pressed.connect(_on_delete.bind(file_name, slot_name, delete_btn))
+	hbox.add_child(delete_btn)
 
 	return slot
 
-func _on_slot_action(slot_name: String) -> void:
-	var save_mgr = get_node_or_null("/root/SaveLoadManager")
-	if not save_mgr: return
-	if _mode == "load":
-		if save_mgr.has_method("load_game"):
-			save_mgr.load_game(slot_name)
-		game_loaded.emit(slot_name)
+# ── Actions ────────────────────────────────────────────────────────────────────
+
+func _on_load(file_name: String, slot_name: String) -> void:
+	var sim := _sim()
+	if sim == null: return
+	if sim.load_game(file_name):
 		_toast(_tr_or("UI_TOAST_LOADED", "💾 Lagring lastet: %s") % slot_name, "SUCCESS")
+		if _modal:
+			_close()
+		else:
+			_refresh()
+		# Last, so a listener that leaves the menu (MainMenu -> GameScene)
+		# sees the final state.
+		game_loaded.emit(file_name)
 	else:
-		if save_mgr.has_method("save_game"):
-			save_mgr.save_game(slot_name)
+		_toast(_tr_or("UI_TOAST_LOAD_FAILED", "⚠️ Lasting feilet: %s") % sim.get_last_save_error(), "ERROR")
+
+func _on_save(slot_name: String) -> void:
+	var sim := _sim()
+	if sim == null: return
+	if sim.save_game(slot_name):
 		game_saved.emit(slot_name)
 		_toast(_tr_or("UI_TOAST_SAVED", "💾 Spill lagret: %s") % slot_name, "SUCCESS")
-	hide()
+	else:
+		_toast(_tr_or("UI_TOAST_SAVE_FAILED", "⚠️ Lagring feilet: %s") % sim.get_last_save_error(), "ERROR")
+	_refresh()
+
+func _on_new_save() -> void:
+	var sim := _sim()
+	if sim == null or not sim.is_game_running(): return
+	var stamp := Time.get_datetime_string_from_system(false, true).replace(":", "-")
+	var day_fmt := _tr_or("UI_SAVELOAD_DAY_FORMAT", "Dag %s")
+	_on_save("%s — %s" % [day_fmt % str(sim.current_day), stamp])
+
+func _on_delete(file_name: String, slot_name: String, button: Button) -> void:
+	if _delete_armed != file_name:
+		_delete_armed = file_name
+		button.text = _tr_or("UI_SAVELOAD_DELETE_CONFIRM", "Bekreft sletting")
+		return
+	_delete_armed = ""
+	var sim := _sim()
+	if sim != null and sim.delete_save(file_name):
+		_toast(_tr_or("UI_TOAST_DELETED", "🗑 Lagring slettet: %s") % slot_name, "INFO")
+	_refresh()
 
 func _toast(message: String, level: String = "INFO") -> void:
 	var mgr := get_node_or_null("/root/ToastNotification")
 	if mgr and mgr.has_method("show_toast"):
 		mgr.show_toast(message, level, 4.0)
-
-func _on_new_save() -> void:
-	var save_mgr = get_node_or_null("/root/SaveLoadManager")
-	if save_mgr and save_mgr.has_method("save_game"):
-		var ts = Time.get_datetime_string_from_system().replace(":", "-")
-		save_mgr.save_game("save_%s" % ts)
-		game_saved.emit("save_%s" % ts)
-		_toast(_tr_or("UI_TOAST_SAVED", "💾 Spill lagret: %s") % ("save_%s" % ts), "SUCCESS")
-	_refresh_slots()
