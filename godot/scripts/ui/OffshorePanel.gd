@@ -504,7 +504,8 @@ func _on_valorize_sludge(site_id: String) -> void:
 	refresh()
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
+	# Only while shown: as a cached, hidden tab this used to swallow every ESC.
+	if is_visible_in_tree() and event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
 		_on_close_requested()
 

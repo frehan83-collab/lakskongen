@@ -59,16 +59,17 @@ func _ready() -> void:
 	_update_all()
 	_refresh_speed_buttons()
 
+## Space (toggle_pause) pauses/resumes anywhere except while typing. Enter
+## stays with the GUI, so the focused button activates; this handler used to
+## take ui_accept (Space and Enter) before any control saw it.
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_accept"):
+	if event.is_action_pressed("toggle_pause") and not _is_typing():
 		_toggle_pause()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("ui_cancel"):
-		# Toggle pause menu through signal
-		var game_ui = get_node_or_null("/root/GameUI")
-		if game_ui and game_ui.has_method("toggle_pause"):
-			game_ui.toggle_pause()
-			get_viewport().set_input_as_handled()
+
+func _is_typing() -> bool:
+	var focus := get_viewport().gui_get_focus_owner()
+	return focus is LineEdit or focus is TextEdit
 
 # ── Wiring ─────────────────────────────────────────────────────────────────────
 

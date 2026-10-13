@@ -215,7 +215,8 @@ func _refresh():
     _esg_overall_score_label.add_theme_color_override("font_color", overall_esg_color)
 
 func _input(event: InputEvent) -> void:
-    if event.is_action_pressed("ui_cancel"):
+    # Only while shown: hidden, this used to swallow every ESC.
+    if is_visible_in_tree() and event.is_action_pressed("ui_cancel"):
         get_viewport().set_input_as_handled()
         _on_close_requested()
 

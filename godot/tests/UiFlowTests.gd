@@ -47,6 +47,10 @@ func _run() -> void:
 	await _test_analytics_panel_charts_every_metric()
 	await _test_data_export_writes_csv()
 	await _test_fjord_pen_click_opens_details()
+	await _test_mod_toggle_takes_clicks()
+	await _test_notification_center_escape()
+	await _test_escape_returns_tabs_to_the_dashboard()
+	await _test_space_and_enter_reach_the_gui()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -447,6 +451,118 @@ func _test_fjord_pen_click_opens_details() -> void:
 	scene.queue_free()
 	await get_tree().process_frame
 
+## F620: a mod row's toggle takes its own click (a full-row Button overlay
+## swallowed it), and a click on the row's text selects the row.
+func _test_mod_toggle_takes_clicks() -> void:
+	var panel: Control = (load("res://scenes/ui/ModManagerPanel.tscn") as PackedScene).instantiate()
+	add_child(panel)
+	await get_tree().process_frame
+	panel._mods = [
+		{"id": "ci_mod_a", "name": "CI Mod A", "version": "1.0", "author": "CI", "enabled": false, "errors": []},
+		{"id": "ci_mod_b", "name": "CI Mod B", "version": "1.0", "author": "CI", "enabled": true, "errors": []},
+	]
+	panel._rebuild_list()
+	await get_tree().process_frame
+	var toggle: CheckBox = _mod_row(panel, 0).find_children("*", "CheckBox", true, false)[0]
+	await _click_control(toggle)
+	_check(bool(panel._mods[0].get("enabled")), "mods: clicking the toggle enables the mod")
+	await get_tree().process_frame
+	var name_label: Label = null
+	for lbl: Label in _mod_row(panel, 1).find_children("*", "Label", true, false):
+		if lbl.text == "CI Mod B":
+			name_label = lbl
+	await _click_control(name_label)
+	_check(panel._selected_index == 1, "mods: clicking a row selects it (%d)" % panel._selected_index)
+	_check(panel._detail_name.text == "CI Mod B", "mods: the detail pane shows the selected mod")
+	_check(bool(panel._mods[1].get("enabled")), "mods: selecting a row does not toggle it")
+	panel.queue_free()
+	await get_tree().process_frame
+
+## F641: ESC with the notification panel closed passes on (GameUI returns to
+## the dashboard) and never hides the center; with the panel open ESC closes
+## only the panel, and N opens it again.
+func _test_notification_center_escape() -> void:
+	var scene := await _spawn_game_scene()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	ui.show_tab("finance")
+	await _press_key(KEY_ESCAPE)
+	_check(ui.get_active_tab() == "dashboard", "notifications: ESC reaches GameUI while the panel is closed")
+	_check(center.visible, "notifications: ESC leaves the notification center in place")
+	await _press_key(KEY_N)
+	_check(center.panel.visible, "notifications: N opens the panel")
+	ui.show_tab("finance")
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.5).timeout  # slide-out
+	_check(not center.panel.visible, "notifications: ESC closes the open panel")
+	_check(ui.get_active_tab() == "finance", "notifications: that ESC closed only the panel")
+	await _press_key(KEY_N)
+	_check(center.visible and center.panel.visible, "notifications: N opens the panel again after ESC")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## F593: a tab panel that hides itself on ESC returns GameUI to the dashboard
+## (it left a blank tab that its own button could not reopen), and a cached,
+## hidden tab no longer swallows ESC for the rest of the session.
+func _test_escape_returns_tabs_to_the_dashboard() -> void:
+	var scene := await _spawn_game_scene()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	ui.show_tab("map")
+	ui.show_tab("ai_feeding")  # cached and hidden after the next switch
+	ui.show_tab("map")
+	await get_tree().process_frame
+	await _press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	var dashboard: Control = ui.find_child("Panel_dashboard", true, false)
+	_check(ui.get_active_tab() == "dashboard", "esc: ESC closes a tab to the dashboard (%s)" % ui.get_active_tab())
+	_check(dashboard != null and dashboard.visible, "esc: the dashboard is shown")
+	await _press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	_check(dashboard != null and dashboard.visible, "esc: ESC on the dashboard keeps it shown")
+	await _click_control(ui.find_child("Tab_map", true, false))
+	var map: Control = ui.find_child("Panel_map", true, false)
+	_check(ui.get_active_tab() == "map" and map != null and map.visible, "esc: the closed tab opens again from its button")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## F618: Space pauses unless a text field has focus (then it types), and Enter
+## activates the focused button instead of pausing. F1061: D and W, the fjord
+## camera's pan keys, no longer step the game.
+func _test_space_and_enter_reach_the_gui() -> void:
+	var scene := await _spawn_game_scene()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var hud: Control = scene.get_node("UILayer/HUD")
+	var pauses: Array = []
+	hud.speed_changed.connect(func(_speed: float, paused: bool) -> void: pauses.append(paused))
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_SPACE, 32)
+	await _press_key(KEY_SPACE, 32)
+	_check(pauses == [true, false], "keys: Space pauses and resumes with nothing focused (%s)" % str(pauses))
+
+	ui.show_tab("encyclopedia")
+	await get_tree().process_frame
+	var search: LineEdit = ui.find_child("Panel_encyclopedia", true, false).get_node("%SearchField")
+	search.grab_focus()
+	search.text = "laks"
+	search.caret_column = 4
+	await _press_key(KEY_SPACE, 32)
+	_check(search.text == "laks ", "keys: Space types into a focused text field ('%s')" % search.text)
+
+	var finance_tab: Button = ui.find_child("Tab_finance", true, false)
+	finance_tab.grab_focus()
+	await _press_key(KEY_ENTER)
+	_check(ui.get_active_tab() == "finance", "keys: Enter activates the focused button (%s)" % ui.get_active_tab())
+	_check(pauses.size() == 2, "keys: typing a space and Enter do not pause (%s)" % str(pauses))
+
+	_sim.set_paused(true)
+	get_viewport().gui_release_focus()
+	var day: int = _sim.current_day
+	await _press_key(KEY_D, 100)
+	await _press_key(KEY_W, 119)
+	_check(_sim.current_day == day, "keys: D/W pan the camera without stepping the game (day %d -> %d)" % [day, _sim.current_day])
+	scene.queue_free()
+	await get_tree().process_frame
+
 ## F945: Phase 5.3–5.4 proxies are reachable through the SimBridge facade.
 func _test_facade_forwards_phase5_systems() -> void:
 	for method in ["get_sludge_status", "toggle_sludge_hub", "valorize_sludge_now",
@@ -505,6 +621,30 @@ func _click_at(pos: Vector2) -> void:
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	await get_tree().process_frame
+
+## A real key press and release (unicode for typed characters).
+func _press_key(keycode: Key, unicode: int = 0) -> void:
+	for pressed in [true, false]:
+		var ev := InputEventKey.new()
+		ev.keycode = keycode
+		ev.physical_keycode = keycode
+		ev.unicode = unicode if pressed else 0
+		ev.pressed = pressed
+		get_viewport().push_input(ev)
+	await get_tree().process_frame
+
+## A running GameScene over a seeded game, paused.
+func _spawn_game_scene() -> Node:
+	_check(_sim.start_qa_new_game("Player", 20_000_000, 77), "setup: seeded game starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	return scene
+
+func _mod_row(panel: Control, index: int) -> Control:
+	return panel._list_container.get_child(index)
 
 func _click_control(control: Control) -> void:
 	_check(control != null and control.is_visible_in_tree(), "click target %s is on screen" % (control.name if control else "missing"))

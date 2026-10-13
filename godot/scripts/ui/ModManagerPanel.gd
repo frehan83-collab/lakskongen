@@ -246,14 +246,11 @@ func _build_mod_row(index: int) -> Control:
 	status_lbl.custom_minimum_size.x = 90
 	hbox.add_child(status_lbl)
 
-	# Make row clickable via a transparent button overlay
-	var click_area := Button.new()
-	click_area.flat = true
-	click_area.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	click_area.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	click_area.pressed.connect(_on_row_clicked.bind(index))
-	click_area.z_index = 1
-	row.add_child(click_area)
+	# The row selects on clicks that reach it; the toggle keeps its own clicks
+	# (a full-row Button overlay used to sit on top and swallow them).
+	row.mouse_filter = Control.MOUSE_FILTER_STOP
+	row.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	row.gui_input.connect(_on_row_gui_input.bind(index))
 
 	return row
 
@@ -300,6 +297,10 @@ func _update_status_label() -> void:
 	_status_label.text = "%d av %d aktive" % [enabled, total]
 
 # ── Event handlers ────────────────────────────────────────────────────────────
+
+func _on_row_gui_input(event: InputEvent, index: int) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_on_row_clicked(index)
 
 func _on_row_clicked(index: int) -> void:
 	_selected_index = index

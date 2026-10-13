@@ -28,6 +28,7 @@ var _current_panel: Control = null
 var _active_tab_id: String = ""
 var _panel_cache: Dictionary = {} # id -> Control (cached panel instances)
 var _container_filters: Dictionary = {} # Control -> its own mouse_filter (see-through tab)
+var _switching: bool = false # GameUI itself is hiding the current panel
 
 # ── Autoload References ───────────────────────────────────────────────────────
 
@@ -252,8 +253,8 @@ func _style_tab_button(btn: Button, is_active: bool) -> void:
 # ── Tab Navigation ────────────────────────────────────────────────────────────
 
 func _switch_to_tab(tab_id: String) -> void:
-	if tab_id == _active_tab_id:
-		return # Already on this tab
+	if tab_id == _active_tab_id and _current_panel != null and _current_panel.visible:
+		return # Already on this tab (a hidden one is shown again below)
 	
 	# Progressive disclosure gate — locked tabs cannot be switched to.
 	if not _is_tab_unlocked(tab_id):
@@ -273,7 +274,9 @@ func _switch_to_tab(tab_id: String) -> void:
 	
 	# Hide current panel
 	if _current_panel:
+		_switching = true
 		_current_panel.hide()
+		_switching = false
 	
 	# Update button states
 	for id in _tab_buttons:
@@ -359,13 +362,29 @@ func _get_or_create_panel(tab_def: TabDefinition) -> Control:
 		print("GameUI: Created panel for '%s' (programmatic, base %s)" % [tab_def.id, panel.get_class()])
 	
 	panel.hide()
-	
+	panel.visibility_changed.connect(_on_panel_visibility_changed.bind(tab_def.id))
+
 	# Cache it
 	_panel_cache[tab_def.id] = panel
 	
 	return panel
 
 # ── Signal Handlers ───────────────────────────────────────────────────────────
+
+## Tab panels written as standalone popups hide themselves on ESC (or a close
+## button) before GameUI sees the key. GameUI owns tab navigation: a tab that
+## hides itself returns to the dashboard, and the dashboard (home) shows again,
+## instead of leaving a blank tab that its own button could not reopen.
+func _on_panel_visibility_changed(tab_id: String) -> void:
+	if _switching or tab_id != _active_tab_id:
+		return
+	var panel: Control = _panel_cache.get(tab_id)
+	if panel == null or panel.visible:
+		return
+	if tab_id == "dashboard":
+		panel.show.call_deferred()
+	else:
+		_switch_to_tab.call_deferred("dashboard")
 
 func _on_tab_button_pressed(tab_id: String) -> void:
 	# Juice: press feedback without touching navigation logic.

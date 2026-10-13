@@ -96,8 +96,11 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
-	if visible and event.is_action_pressed("ui_cancel"):
-		hide()
+	# ESC closes an open panel the way the X button does. The root stays
+	# visible (and mouse-transparent): hiding it disabled the N key and
+	# critical auto-open for the rest of the session.
+	if _is_open and event.is_action_pressed("ui_cancel"):
+		hide_panel()
 		get_viewport().set_input_as_handled()
 
 # ── Scene wiring ──────────────────────────────────────────────────────────────
