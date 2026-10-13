@@ -19,22 +19,25 @@ lakskongen/
 │   ├── Events/                  # CrisisCapitalismSystem, Event types
 │   ├── Farm/                    # SeaSite, FishPopulation, Biology
 │   ├── Market/                  # MarketSimulation, PriceCouncil
-│   └── Tests/                   # xUnit tests (684 passing / 1 skipped)
+│   └── Tests/                   # xUnit tests (914 passing / 1 skipped across the solution)
 ├── godot/                       # Godot 4.7.2 Mono project
 │   ├── scripts/
 │   │   ├── autoload/            # GameBridge partials (Core, Farm, Market, Depth, Economy, Licence, Content)
 │   │   ├── bridge/              # SimProxies.gd, SimActions.gd, SimFormatters.gd, SimState.gd
 │   │   └── SimBridge.gd         # Facade forwarding to proxies
 │   └── data/                    # calibration.json, scenarios.json, tutorial_steps.json
-├── tools/ci.sh                  # 14-step CI pipeline
+├── tools/ci.sh                  # 17-step CI pipeline (tools/ci_clean_checkout.sh runs it on a fresh clone)
 ├── docs/NEXT_LEVEL_PLAN.md      # Phase 4+ roadmap
 └── docs/REALISM_CHECKLIST.md    # Calibration bands
 ```
 
 ## Development Commands
 ```bash
-# Full CI (run before any commit)
+# Full CI (run before any commit). A missing tool makes a step SKIP;
+# CI_REQUIRE_ALL=1 (set in GitHub CI) turns every SKIP into a failure.
+# The shader step opens a small window: headless Godot parses no shaders.
 ./tools/ci.sh
+CI_REQUIRE_ALL=1 ./tools/ci.sh
 
 # Build only
 dotnet build LakskongenSim.sln
@@ -71,13 +74,13 @@ cd godot && dotnet run -- --headless --quit
   - `DateTime.Now` → `StartDay` (simulation day)
   - `Guid.NewGuid()` → deterministic IDs (`crisis_{id}_{type}_{day}`, `asset_{crisisId}_{type}_{idx}`)
   - `IsActive(int currentDay)` instead of property
-- **Distress wiring**: `CompetitorAI.OnCompetitorDistressed` event → `CrisisCapitalism.TriggerCrisis` with competitor roster
+- **Distress wiring**: `CompetitorAI.OnCompetitorDistressed` event → `CrisisCapitalism.TriggerCrisis` with competitor roster (subscribed by the engine since review commit `1467d03`; before that the event had no subscriber and this line was not true, review F499)
 - **Distressed assets linked to actual competitor state**: 
   - `SourceCompetitorId`, `SiteId`, `LicenseCount`, `MABTonnes`
   - Values derived from competitor's actual `SiteCount`, `LicenseCount`, `TotalMABTonnes`
 - **Player acquisition transfers real assets**: `AcquireDistressedAsset` → adds `SeaSite`, `LicenseRecord`, reduces competitor holdings
 - **Save/load**: `CrisisEventState` + `DistressedAssetState` in `GameState`, restored via reflection on private `_availableAssets`
-- **Bridge**: `GetDistressedAssets()`, `AcquireDistressedAsset()` in `GameBridge.Licence.cs`, proxied via `SimProxies.gd`/`SimBridge.gd`
+- **Bridge**: `GetDistressedAssets()`, `AcquireDistressedAsset()` in `GameBridge.Licence.cs`, proxied via `SimProxies.gd`/`SimBridge.gd`; `GetAcquisitionOpportunities()`/`AttemptAcquisition()` return the live listings. No player UI reaches them yet: `EmpirePanel` is orphaned (no scene or tab loads it) and the bridge returns stubs for empire phase, share price and IPO
 
 ### ✅ Phase 4.3 — Corporate Finance (COMPLETE)
 - **Annual closing & periods**: Quarterly AdvanceQuarter() with year-end AnnualClose() resetting P&L accounts
@@ -163,7 +166,7 @@ The Phase 4 "Exit" in `NEXT_LEVEL_PLAN.md` has two gates an agent cannot close a
 - Crisis types: `DISEASE_OUTBREAK`, `BANKRUPTCY`, `REGULATORY_SHUTDOWN`, `MARKET_CRASH`, `ENVIRONMENTAL_SCANDAL`
 - Asset types: `LICENSE`, `FARM_SITE`, `PROCESSING_PLANT`, `EQUIPMENT`
 - Discounts: 20-80% based on crisis type + severity
-- Assets expire after `TimeRemainingMonths` (decremented monthly in `Update`)
+- Assets expire on `ExpiresOnDay` (simulation day; `TimeRemainingMonths` is derived from it)
 - Player purchase: `PurchaseDistressedAsset` → `AcquisitionResult` with integration risk + reputation impact
 
 ### Licence Auctions (Phase 4.1)
