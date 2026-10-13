@@ -40,6 +40,7 @@ func _run() -> void:
 	await _test_main_menu_load_enters_game()
 	await _test_game_scene_keeps_menu_started_scenario()
 	await _test_dashboard_night_shift_policy()
+	await _test_tech_tree_lays_out_every_node()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -208,6 +209,35 @@ func _test_dashboard_night_shift_policy() -> void:
 	_check(String(_sim.get_night_shift_status().get("policy", "")) == "AutomatedROC",
 		"dashboard: choosing a policy sets it in the engine")
 	dash.queue_free()
+	await get_tree().process_frame
+
+## F1004/F1001: every research node gets its own visible panel (the panel
+## dropped nodes on unknown branches and stacked same-tier nodes on top of each
+## other), and effects are labelled by kind (points vs percent).
+func _test_tech_tree_lays_out_every_node() -> void:
+	_start_paused_game()
+	var tree: Control = (load("res://scripts/ui/TechTreePanel.gd") as GDScript).new()
+	add_child(tree)
+	await get_tree().process_frame
+	tree.on_panel_shown()
+	var nodes: Array = Array(_sim.get_research_nodes())
+	_check(nodes.size() == 25, "tech tree: bridge lists the 25 shipped research nodes (%d)" % nodes.size())
+	_check(tree._node_panels.size() == nodes.size(),
+		"tech tree: every node has a panel (%d of %d)" % [tree._node_panels.size(), nodes.size()])
+	var rects: Array = []
+	for panel in tree._node_panels.values():
+		rects.append(Rect2(panel.position, Vector2(tree.NODE_W, tree.NODE_H)))
+	var overlaps := 0
+	for i in rects.size():
+		for j in range(i + 1, rects.size()):
+			if rects[i].intersects(rects[j]):
+				overlaps += 1
+	_check(overlaps == 0, "tech tree: no two node panels overlap (%d overlaps)" % overlaps)
+	_check(tree.format_effect("sustainability_score_bonus", 8.0) == "Bærekraftscore +8",
+		"tech tree: score effects read as points, not +800%")
+	_check(tree.format_effect("mortality_reduction", 0.05) == "Dødelighet −5 %",
+		"tech tree: reductions read as minus percent")
+	tree.queue_free()
 	await get_tree().process_frame
 
 ## F945: Phase 5.3–5.4 proxies are reachable through the SimBridge facade.

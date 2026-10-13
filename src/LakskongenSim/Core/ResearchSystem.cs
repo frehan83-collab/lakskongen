@@ -36,7 +36,8 @@ namespace LakskongenSim.Core
     }
 
     /// <summary>
-    /// Tech tree with 25 research nodes across 5 branches.
+    /// Tech tree with 25 research nodes across 5 branches (the same tree ships as
+    /// godot/data/research_nodes.json; ResearchTreeContractTests keeps them equal).
     /// Tracks active research progress and fires OnResearchCompleted on completion.
     /// </summary>
     public class ResearchSystem
@@ -163,60 +164,38 @@ namespace LakskongenSim.Core
         // ─── JSON population ───────────────────────────────────────────────────
 
         /// <summary>
-        /// Replace the hardcoded node definitions with nodes loaded from JSON.
-        /// Preserves any existing unlock state if node IDs match.
+        /// Replace the code-defined node definitions with nodes loaded from JSON
+        /// (godot/data/research_nodes.json, which ships the same tree). Branches
+        /// are kept as written — the tech-tree UI lays out every branch — and
+        /// unlock state is preserved for matching ids. Effect keys the engine does
+        /// not read are reported (review F1001: a whole shipped tree once carried
+        /// only dead keys).
         /// </summary>
         public void PopulateFromJson(List<ResearchNode> jsonNodes)
         {
             if (jsonNodes == null || jsonNodes.Count == 0) return;
 
-            // Map JSON branch strings to enum values
-            var branchMap = new Dictionary<string, ResearchBranch>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["Biology"] = ResearchBranch.Biology,
-                ["Genetics"] = ResearchBranch.Biology,
-                ["Technology"] = ResearchBranch.Technology,
-                ["Sustainability"] = ResearchBranch.Sustainability,
-                ["Processing"] = ResearchBranch.Processing,
-                ["Expansion"] = ResearchBranch.Expansion
-            };
-
-            // Snapshot current unlock state before replacing
             var previousState = new Dictionary<string, bool>();
             foreach (var kvp in _nodes)
                 previousState[kvp.Key] = kvp.Value.Unlocked;
 
             _nodes.Clear();
-
             foreach (var node in jsonNodes)
             {
-                // Resolve branch from JSON string if needed
-                if (branchMap.TryGetValue(node.Branch.ToString(), out var mappedBranch))
-                {
-                    // Create a copy with the correct enum branch
-                    var resolved = new ResearchNode
-                    {
-                        Id = node.Id,
-                        Name = node.Name,
-                        Description = node.Description,
-                        Branch = mappedBranch,
-                        Tier = node.Tier,
-                        CostNOK = node.CostNOK,
-                        ResearchDays = node.ResearchDays,
-                        Prerequisites = node.Prerequisites,
-                        Effects = node.Effects,
-                        Unlocked = previousState.TryGetValue(node.Id, out var wasUnlocked) && wasUnlocked
-                    };
-                    _nodes[resolved.Id] = resolved;
-                }
-                else
-                {
-                    // Use node as-is, preserve unlock state
-                    if (previousState.TryGetValue(node.Id, out var wasUnlocked))
-                        node.Unlocked = wasUnlocked;
-                    _nodes[node.Id] = node;
-                }
+                node.Unlocked = previousState.TryGetValue(node.Id, out var wasUnlocked) && wasUnlocked;
+                ReportUnknownEffectKeys(node.Id, node.Effects?.Keys);
+                _nodes[node.Id] = node;
             }
+        }
+
+        /// <summary>Effect keys of a node that no engine system reads.</summary>
+        public static IEnumerable<string> UnknownEffectKeys(IEnumerable<string>? keys)
+            => (keys ?? Enumerable.Empty<string>()).Where(k => !ResearchEffectKeys.Live.Contains(k));
+
+        private static void ReportUnknownEffectKeys(string nodeId, IEnumerable<string>? keys)
+        {
+            foreach (var key in UnknownEffectKeys(keys))
+                SimLog.Warn($"Research node '{nodeId}': effect key '{key}' has no effect (not in ResearchEffectKeys.Live)");
         }
 
         // ─── Mod node integration (Phase 4.6) ─────────────────────────────────
@@ -230,19 +209,6 @@ namespace LakskongenSim.Core
         {
             if (modNodes == null || modNodes.Count == 0) return;
 
-            var branchMap = new Dictionary<string, ResearchBranch>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["Biology"] = ResearchBranch.Biology,
-                ["Genetics"] = ResearchBranch.Biology,
-                ["Technology"] = ResearchBranch.Technology,
-                ["Sustainability"] = ResearchBranch.Sustainability,
-                ["Processing"] = ResearchBranch.Processing,
-                ["Expansion"] = ResearchBranch.Expansion,
-                ["Automation"] = ResearchBranch.Automation,
-                ["Environment"] = ResearchBranch.Environment,
-                ["Health"] = ResearchBranch.Health,
-                ["Nutrition"] = ResearchBranch.Nutrition
-            };
 
             foreach (var mod in modNodes)
             {
@@ -252,9 +218,13 @@ namespace LakskongenSim.Core
                     continue;
                 }
 
+                // Any of the schema's ten branch names; the tech-tree UI lays out all of them.
                 var branch = ResearchBranch.Biology;
-                if (!string.IsNullOrEmpty(mod.Branch) && branchMap.TryGetValue(mod.Branch, out var mapped))
-                    branch = mapped;
+                if (!string.IsNullOrEmpty(mod.Branch)
+                    && Enum.TryParse<ResearchBranch>(mod.Branch, ignoreCase: true, out var parsed)
+                    && Enum.IsDefined(parsed))
+                    branch = parsed;
+                ReportUnknownEffectKeys(mod.Id, mod.Effects.Keys);
 
                 _nodes[mod.Id] = new ResearchNode
                 {
@@ -387,7 +357,7 @@ namespace LakskongenSim.Core
                 CostNOK = 4_500_000m,
                 ResearchDays = 110,
                 Prerequisites = new() { "sensor-networks" },
-                Effects = new() { ["disease_detection_bonus"] = 0.15, ["lice_detection_bonus"] = 0.12 }
+                Effects = new() { [ResearchEffectKeys.DiseaseResistanceBonus] = 0.10, [ResearchEffectKeys.LiceReduction] = 0.12 }
             });
 
             Add(new ResearchNode
@@ -571,7 +541,7 @@ namespace LakskongenSim.Core
                 CostNOK = 900_000m,
                 ResearchDays = 55,
                 Prerequisites = new(),
-                Effects = new() { ["expansion_capacity_bonus"] = 0.25 }
+                Effects = new() { [ResearchEffectKeys.LiceReduction] = 0.10, [ResearchEffectKeys.DiseaseResistanceBonus] = 0.06 }
             });
 
             Add(new ResearchNode
@@ -623,7 +593,7 @@ namespace LakskongenSim.Core
                 CostNOK = 9_000_000m,
                 ResearchDays = 200,
                 Prerequisites = new() { "international-export", "land-based-ras" },
-                Effects = new() { ["market_price_bonus"] = 0.09, ["expansion_capacity_bonus"] = 0.35 }
+                Effects = new() { ["market_price_bonus"] = 0.09 }
             });
         }
 

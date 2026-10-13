@@ -277,8 +277,13 @@ namespace LakskongenSim.Farm
             // Calculate dynamic FCR, then apply precision-feeding penalty.
             double fcr = CalculateFCR(temperatureC, dominantStage, stockingDensityKgM3, waterQualityPenalty);
             // Apply research FCR reduction (multiplicative)
-            fcr *= (1.0 - fcrReduction);
-            fcr = Math.Clamp(fcr * PrecisionFCRMultiplier(spreadQuality01), 0.9, 2.5);
+            fcr *= (1.0 - Core.ResearchEffectKeys.ClampReduction(fcrReduction));
+            // Imperfect spreading wastes pellets, which shows up as a higher
+            // economic FCR. Research feed-waste reduction removes that share of the
+            // penalty (it used to shrink only a waste figure nothing reads).
+            double precisionPenalty = PrecisionFCRMultiplier(spreadQuality01) - 1.0;
+            fcr = Math.Clamp(fcr * (1.0 + precisionPenalty * (1.0 - Core.ResearchEffectKeys.ClampReduction(feedWasteReduction))),
+                0.9, 2.5);
             if (Math.Abs(fcr - CurrentFCR) > 1e-9)
             {
                 CurrentFCR = fcr;
@@ -288,7 +293,7 @@ namespace LakskongenSim.Farm
             // Precision-feeding side outputs: waste and size spread.
             double wasteFraction = CalculateFeedWasteFraction(spreadQuality01);
             // Apply research feed waste reduction
-            wasteFraction *= (1.0 - feedWasteReduction);
+            wasteFraction *= (1.0 - Core.ResearchEffectKeys.ClampReduction(feedWasteReduction));
             double sizeVarianceCv = CalculateSizeVarianceCv(spreadQuality01);
 
             // Daily feed amount (% of bodyweight, adjustable by player),

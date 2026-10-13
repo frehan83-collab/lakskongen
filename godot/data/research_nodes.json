@@ -1,277 +1,390 @@
 [
   {
     "id": "selective-breeding",
-    "name": "Selective Breeding Program",
-    "description": "Establish a systematic breeding program to improve growth rate and disease resistance through genetic selection.",
-    "branch": "Genetics",
+    "name": "Selective Breeding Programme",
+    "description": "Establish a systematic genetic selection programme to identify and propagate fast-growing broodstock. Improves baseline growth rates across all cohorts.",
+    "branch": "Biology",
     "tier": 1,
-    "costNOK": 500000,
-    "researchDays": 30,
-    "prerequisites": [],
-    "effects": {"growth_rate": 0.05, "disease_resistance": 0.05}
-  },
-  {
-    "id": "genetic-markers",
-    "name": "Genetic Marker Analysis",
-    "description": "Use DNA markers to identify superior broodstock traits before breeding, dramatically improving selection accuracy.",
-    "branch": "Genetics",
-    "tier": 2,
-    "costNOK": 1200000,
+    "costNOK": 800000,
     "researchDays": 45,
-    "prerequisites": ["selective-breeding"],
-    "effects": {"breeding_accuracy": 0.15, "growth_rate": 0.08}
-  },
-  {
-    "id": "advanced-breeding",
-    "name": "Advanced Genomic Selection",
-    "description": "Full genomic profiling enables multi-trait optimization across growth, disease resistance, fillet quality, and color.",
-    "branch": "Genetics",
-    "tier": 3,
-    "costNOK": 3000000,
-    "researchDays": 90,
-    "prerequisites": ["genetic-markers"],
-    "effects": {"growth_rate": 0.12, "disease_resistance": 0.10, "fillet_quality": 0.08}
+    "prerequisites": [],
+    "effects": {
+      "growth_rate_bonus": 0.04
+    }
   },
   {
     "id": "disease-resistance",
-    "name": "Disease Resistance Breeding",
-    "description": "Breed salmon strains with enhanced innate immunity to common Norwegian aquaculture diseases.",
-    "branch": "Genetics",
-    "tier": 2,
-    "costNOK": 1500000,
-    "researchDays": 60,
-    "prerequisites": ["selective-breeding"],
-    "effects": {"disease_resistance": 0.15, "mortality_reduction": 0.10}
-  },
-  {
-    "id": "isa-resistance",
-    "name": "ISA Resistance Program",
-    "description": "Develop ISA-resistant salmon strains through targeted breeding. ISA outbreaks can devastate entire farms.",
-    "branch": "Genetics",
-    "tier": 3,
-    "costNOK": 4000000,
-    "researchDays": 120,
-    "prerequisites": ["disease-resistance", "genetic-markers"],
-    "effects": {"isa_resistance": 0.25, "disease_resistance": 0.10}
-  },
-  {
-    "id": "feed-optimization",
-    "name": "Feed Formula Optimization",
-    "description": "Develop custom feed formulas optimized for Norwegian conditions. Better FCR means lower costs and faster growth.",
-    "branch": "Nutrition",
-    "tier": 1,
-    "costNOK": 400000,
-    "researchDays": 25,
-    "prerequisites": [],
-    "effects": {"fcr_improvement": 0.05, "feed_cost_reduction": 0.03}
-  },
-  {
-    "id": "insect-meal",
-    "name": "Insect Meal Integration",
-    "description": "Replace fishmeal with black soldier fly larvae protein. Sustainable, cost-effective, and reduces ocean dependency.",
-    "branch": "Nutrition",
-    "tier": 2,
-    "costNOK": 1000000,
-    "researchDays": 40,
-    "prerequisites": ["feed-optimization"],
-    "effects": {"feed_sustainability": 0.15, "feed_cost_reduction": 0.05}
-  },
-  {
-    "id": "algae-feed",
-    "name": "Algae-Based Omega-3",
-    "description": "Supplement feed with microalgae-derived omega-3 fatty acids, reducing reliance on wild fish stocks.",
-    "branch": "Nutrition",
-    "tier": 2,
-    "costNOK": 1200000,
-    "researchDays": 45,
-    "prerequisites": ["feed-optimization"],
-    "effects": {"feed_sustainability": 0.20, "fillet_quality": 0.05}
-  },
-  {
-    "id": "smolt-optimization",
-    "name": "Smolt Quality Enhancement",
-    "description": "Improve hatchery conditions and photoperiod manipulation for stronger, larger smolts with better sea survival.",
-    "branch": "Nutrition",
-    "tier": 1,
-    "costNOK": 600000,
-    "researchDays": 30,
-    "prerequisites": [],
-    "effects": {"smolt_survival": 0.08, "initial_growth": 0.05}
-  },
-  {
-    "id": "vaccine-development",
-    "name": "Next-Gen Vaccine Program",
-    "description": "Develop improved vaccines against PD, IHN, and furunculosis. Reduces mortality and antibiotic dependency.",
-    "branch": "Health",
-    "tier": 1,
-    "costNOK": 800000,
-    "researchDays": 35,
-    "prerequisites": [],
-    "effects": {"disease_resistance": 0.10, "mortality_reduction": 0.08}
-  },
-  {
-    "id": "mechanical-delousing",
-    "name": "Mechanical Delousing Systems",
-    "description": "Invest in Hydrolicer and Thermolicer technology for chemical-free sea lice removal. Better for sustainability score.",
-    "branch": "Health",
-    "tier": 1,
-    "costNOK": 700000,
-    "researchDays": 20,
-    "prerequisites": [],
-    "effects": {"delousing_efficiency": 0.15, "sustainability_bonus": 5}
-  },
-  {
-    "id": "water-quality-sensors",
-    "name": "Real-Time Water Quality Monitoring",
-    "description": "Deploy IoT sensors for continuous oxygen, temperature, salinity, and turbidity monitoring across all sites.",
-    "branch": "Health",
-    "tier": 2,
-    "costNOK": 1500000,
-    "researchDays": 30,
-    "prerequisites": ["vaccine-development"],
-    "effects": {"early_warning": 0.20, "mortality_reduction": 0.05}
-  },
-  {
-    "id": "closed-containment",
-    "name": "Semi-Closed Containment Systems",
-    "description": "Install semi-closed pen systems that dramatically reduce sea lice, escapes, and environmental impact.",
-    "branch": "Environment",
-    "tier": 3,
-    "costNOK": 5000000,
-    "researchDays": 90,
-    "prerequisites": ["water-quality-sensors", "waste-recycling"],
-    "effects": {"escape_prevention": 0.30, "lice_reduction": 0.25, "sustainability_bonus": 10}
-  },
-  {
-    "id": "waste-recycling",
-    "name": "Sludge Collection & Recycling",
-    "description": "Capture and recycle fish waste from net pens. Reduces eutrophication and produces biogas/fertilizer.",
-    "branch": "Environment",
-    "tier": 2,
-    "costNOK": 2000000,
-    "researchDays": 50,
-    "prerequisites": [],
-    "effects": {"eutrophication_reduction": 0.20, "sustainability_bonus": 5, "revenue_biogas": 0.02}
-  },
-  {
-    "id": "renewable-energy",
-    "name": "Renewable Energy Transition",
-    "description": "Power farm operations with solar, wind, or tidal energy. Reduces carbon footprint and operating costs long-term.",
-    "branch": "Environment",
-    "tier": 2,
-    "costNOK": 2500000,
-    "researchDays": 60,
-    "prerequisites": [],
-    "effects": {"carbon_reduction": 0.20, "energy_cost_reduction": 0.15}
-  },
-  {
-    "id": "solar-power",
-    "name": "Solar Panel Arrays",
-    "description": "Install solar panels on feed barges and shore facilities. Limited by Norwegian daylight but effective in summer.",
-    "branch": "Environment",
-    "tier": 1,
-    "costNOK": 800000,
-    "researchDays": 25,
-    "prerequisites": [],
-    "effects": {"carbon_reduction": 0.08, "energy_cost_reduction": 0.05}
-  },
-  {
-    "id": "wind-power",
-    "name": "Offshore Wind Integration",
-    "description": "Leverage Norway's strong coastal winds to power operations. Excellent synergy with exposed ocean sites.",
-    "branch": "Environment",
+    "name": "Disease-Resistant Genetics",
+    "description": "Use genomic selection tools (GEBV) to breed salmon with heritable resistance to ISA, PD, and CMS. Reduces disease outbreak probability and severity.",
+    "branch": "Biology",
     "tier": 2,
     "costNOK": 1800000,
-    "researchDays": 45,
-    "prerequisites": ["solar-power"],
-    "effects": {"carbon_reduction": 0.15, "energy_cost_reduction": 0.12}
+    "researchDays": 75,
+    "prerequisites": [
+      "selective-breeding"
+    ],
+    "effects": {
+      "disease_resistance_bonus": 0.12,
+      "mortality_reduction": 0.02
+    }
   },
   {
-    "id": "harvest-automation",
-    "name": "Automated Harvest Systems",
-    "description": "Deploy robotic harvest equipment for faster, less stressful fish handling. Improves welfare and fillet quality.",
-    "branch": "Processing",
-    "tier": 2,
-    "costNOK": 2000000,
-    "researchDays": 40,
-    "prerequisites": [],
-    "effects": {"harvest_efficiency": 0.15, "fillet_quality": 0.05, "welfare_bonus": 3}
-  },
-  {
-    "id": "cold-chain-logistics",
-    "name": "Cold Chain Optimization",
-    "description": "Improve temperature-controlled logistics from harvest to market. Reduces spoilage and opens distant export markets.",
-    "branch": "Processing",
+    "id": "feed-efficiency-genetics",
+    "name": "Feed Efficiency Genetics",
+    "description": "Select broodstock traits linked to superior feed conversion. Lower FCR means less feed cost per kg of fish produced and reduced environmental loading.",
+    "branch": "Biology",
     "tier": 2,
     "costNOK": 1500000,
-    "researchDays": 35,
-    "prerequisites": [],
-    "effects": {"spoilage_reduction": 0.15, "export_range": 0.20, "price_premium": 0.03}
+    "researchDays": 60,
+    "prerequisites": [
+      "selective-breeding"
+    ],
+    "effects": {
+      "fcr_reduction": 0.06
+    }
   },
   {
-    "id": "blockchain-traceability",
-    "name": "Blockchain Traceability",
-    "description": "Implement farm-to-fork blockchain tracking. Premium buyers pay more for verified origin and handling data.",
-    "branch": "Processing",
+    "id": "growth-optimization",
+    "name": "Growth Optimisation Protocols",
+    "description": "Fine-tuned photoperiod, temperature, and feeding window protocols derived from smoltification research. Accelerates seawater growth phase by controlling TGC predictively.",
+    "branch": "Biology",
     "tier": 3,
-    "costNOK": 2500000,
-    "researchDays": 60,
-    "prerequisites": ["cold-chain-logistics"],
-    "effects": {"price_premium": 0.05, "trust_bonus": 0.10, "export_markets": 1}
+    "costNOK": 3500000,
+    "researchDays": 100,
+    "prerequisites": [
+      "disease-resistance"
+    ],
+    "effects": {
+      "growth_rate_bonus": 0.06,
+      "mortality_reduction": 0.02
+    }
+  },
+  {
+    "id": "smolt-excellence",
+    "name": "Smolt Excellence Programme",
+    "description": "Integrated hatchery and smolt quality programme combining genetics, nutrition, and light management. Produces grade-A smolts with superior seawater adaptation and reduced post-smolt mortality.",
+    "branch": "Biology",
+    "tier": 4,
+    "costNOK": 6000000,
+    "researchDays": 150,
+    "prerequisites": [
+      "growth-optimization",
+      "feed-efficiency-genetics"
+    ],
+    "effects": {
+      "growth_rate_bonus": 0.04,
+      "fcr_reduction": 0.03,
+      "mortality_reduction": 0.03
+    }
   },
   {
     "id": "automated-feeding",
-    "name": "AI-Driven Feeding Systems",
-    "description": "Computer vision and appetite sensors optimize feed delivery in real-time. Reduces waste and improves FCR.",
-    "branch": "Automation",
+    "name": "Automated Feeding Systems",
+    "description": "Replace manual feed distribution with demand-driven automated pellet dispensers linked to underwater appetite cameras. Eliminates overfeeding and reduces waste.",
+    "branch": "Technology",
     "tier": 1,
-    "costNOK": 900000,
-    "researchDays": 30,
+    "costNOK": 700000,
+    "researchDays": 40,
     "prerequisites": [],
-    "effects": {"fcr_improvement": 0.08, "feed_waste_reduction": 0.15}
+    "effects": {
+      "fcr_reduction": 0.05,
+      "feed_waste_reduction": 0.12
+    }
+  },
+  {
+    "id": "sensor-networks",
+    "name": "Sensor Networks",
+    "description": "Deploy a mesh of IoT buoys and in-pen sensors monitoring dissolved oxygen, salinity, pH, temperature, and current in real time. Enables early warning on water quality anomalies.",
+    "branch": "Technology",
+    "tier": 2,
+    "costNOK": 2000000,
+    "researchDays": 70,
+    "prerequisites": [
+      "automated-feeding"
+    ],
+    "effects": {
+      "mortality_reduction": 0.02,
+      "sustainability_score_bonus": 3
+    }
   },
   {
     "id": "underwater-drones",
-    "name": "Underwater ROV Inspection",
-    "description": "Deploy ROVs for net inspection, mortality removal, and behavioral monitoring without diver risk.",
-    "branch": "Automation",
-    "tier": 1,
-    "costNOK": 600000,
-    "researchDays": 20,
-    "prerequisites": [],
-    "effects": {"net_damage_detection": 0.20, "escape_prevention": 0.10, "labor_reduction": 0.05}
+    "name": "Underwater ROV Drones",
+    "description": "Remotely operated vehicles for pen inspection, net integrity checks, and early sea-lice counting. Reduces diving labour costs and gives daily biomass estimates via stereo cameras.",
+    "branch": "Technology",
+    "tier": 3,
+    "costNOK": 4500000,
+    "researchDays": 110,
+    "prerequisites": [
+      "sensor-networks"
+    ],
+    "effects": {
+      "disease_resistance_bonus": 0.1,
+      "lice_reduction": 0.12
+    }
   },
   {
     "id": "ai-monitoring",
     "name": "AI Health Monitoring",
-    "description": "Machine learning analyzes fish behavior, swimming patterns, and feeding response to detect disease 3-5 days earlier.",
-    "branch": "Automation",
-    "tier": 2,
-    "costNOK": 2000000,
+    "description": "Computer-vision models trained on millions of salmon images detect fin damage, skin lesions, cataract, and abnormal behaviour patterns. Provides daily welfare scores per pen.",
+    "branch": "Technology",
+    "tier": 4,
+    "costNOK": 7000000,
+    "researchDays": 160,
+    "prerequisites": [
+      "underwater-drones"
+    ],
+    "effects": {
+      "disease_resistance_bonus": 0.08,
+      "mortality_reduction": 0.04
+    }
+  },
+  {
+    "id": "predictive-analytics",
+    "name": "Predictive Analytics Platform",
+    "description": "Combines multi-year sensor data, weather forecasts, genomics, and market signals into a unified ML platform. Predicts disease outbreaks 14 days ahead, optimises harvest windows, and recommends feed adjustments.",
+    "branch": "Technology",
+    "tier": 5,
+    "costNOK": 12000000,
+    "researchDays": 270,
+    "prerequisites": [
+      "ai-monitoring"
+    ],
+    "effects": {
+      "mortality_reduction": 0.05,
+      "disease_resistance_bonus": 0.1,
+      "growth_rate_bonus": 0.03
+    }
+  },
+  {
+    "id": "organic-certification",
+    "name": "Organic Certification",
+    "description": "Achieve Debio organic aquaculture certification. Requires lower stocking density, no synthetic additives, and higher welfare standards. Commands a significant retail price premium.",
+    "branch": "Sustainability",
+    "tier": 1,
+    "costNOK": 600000,
     "researchDays": 50,
-    "prerequisites": ["automated-feeding", "underwater-drones"],
-    "effects": {"early_warning": 0.25, "mortality_reduction": 0.10, "disease_detection_days": 4}
-  },
-  {
-    "id": "electric-vehicles",
-    "name": "Electric Service Vessels",
-    "description": "Replace diesel workboats with electric vessels. Zero emissions, lower fuel costs, and sustainability points.",
-    "branch": "Automation",
-    "tier": 2,
-    "costNOK": 3000000,
-    "researchDays": 45,
     "prerequisites": [],
-    "effects": {"carbon_reduction": 0.15, "fuel_cost_reduction": 0.20, "sustainability_bonus": 3}
+    "effects": {
+      "market_price_bonus": 0.08,
+      "sustainability_score_bonus": 8
+    }
   },
   {
-    "id": "hybrid-vessels",
-    "name": "Hybrid Wellboat Technology",
-    "description": "Upgrade wellboats to diesel-electric hybrid. Critical for large-scale live fish transport with lower emissions.",
-    "branch": "Automation",
+    "id": "renewable-energy",
+    "name": "Renewable Energy Integration",
+    "description": "Install offshore wind turbines, shore-side solar arrays, and tidal current generators to power site operations. Reduces diesel dependency and Scope 2 emissions.",
+    "branch": "Sustainability",
+    "tier": 2,
+    "costNOK": 2200000,
+    "researchDays": 80,
+    "prerequisites": [
+      "organic-certification"
+    ],
+    "effects": {
+      "sustainability_score_bonus": 6,
+      "carbon_reduction": 0.22
+    }
+  },
+  {
+    "id": "carbon-capture",
+    "name": "Carbon Capture via Kelp Farming",
+    "description": "Integrate kelp and mussel cultivation around sea pens. Kelp sequesters CO₂, mussels filter particulates — creating a natural bioremediation buffer and saleable co-products.",
+    "branch": "Sustainability",
+    "tier": 2,
+    "costNOK": 1800000,
+    "researchDays": 75,
+    "prerequisites": [
+      "organic-certification"
+    ],
+    "effects": {
+      "sustainability_score_bonus": 8,
+      "carbon_reduction": 0.28
+    }
+  },
+  {
+    "id": "circular-economy",
+    "name": "Circular Economy Operations",
+    "description": "Convert sludge and processing waste into biogas and fertiliser. Implement closed-loop water treatment to reuse process water. Zero-discharge certification eligible.",
+    "branch": "Sustainability",
     "tier": 3,
     "costNOK": 4000000,
+    "researchDays": 105,
+    "prerequisites": [
+      "carbon-capture"
+    ],
+    "effects": {
+      "sustainability_score_bonus": 10,
+      "fcr_reduction": 0.02
+    }
+  },
+  {
+    "id": "sustainability-leader",
+    "name": "Sustainability Leadership",
+    "description": "Full integration of renewable energy, circular economy, and biodiversity net gain. Qualifies for Havbruk green licence renewal, ESG investor premium, and top-tier ASC score. The gold standard in Norwegian aquaculture.",
+    "branch": "Sustainability",
+    "tier": 4,
+    "costNOK": 7500000,
+    "researchDays": 180,
+    "prerequisites": [
+      "circular-economy",
+      "renewable-energy"
+    ],
+    "effects": {
+      "market_price_bonus": 0.07,
+      "sustainability_score_bonus": 12
+    }
+  },
+  {
+    "id": "premium-products",
+    "name": "Premium Product Lines",
+    "description": "Develop branded retail products: Lakskongen Premium and Lakskongen Reserve. Differentiated sizing, trimming standards, and traceability QR codes to capture retail margin.",
+    "branch": "Processing",
+    "tier": 1,
+    "costNOK": 500000,
+    "researchDays": 35,
+    "prerequisites": [],
+    "effects": {
+      "market_price_bonus": 0.05
+    }
+  },
+  {
+    "id": "value-added-processing",
+    "name": "Value-Added Processing",
+    "description": "Expand processing into hot- and cold-smoked salmon, gravlaks, skin-on portions, and sashimi-trim blocks. Each category commands higher NOK/kg than fresh whole head-on gutted.",
+    "branch": "Processing",
+    "tier": 2,
+    "costNOK": 2500000,
+    "researchDays": 85,
+    "prerequisites": [
+      "premium-products"
+    ],
+    "effects": {
+      "market_price_bonus": 0.09
+    }
+  },
+  {
+    "id": "cold-chain-optimization",
+    "name": "Cold Chain Optimisation",
+    "description": "Upgrade to HiCO₂ slurry ice packing, real-time temperature-logging cartons, and predictive logistics routing. Extends shelf life, reduces wastage, and unlocks longer-haul export lanes.",
+    "branch": "Processing",
+    "tier": 2,
+    "costNOK": 1800000,
+    "researchDays": 65,
+    "prerequisites": [
+      "premium-products"
+    ],
+    "effects": {
+      "market_price_bonus": 0.04,
+      "mortality_reduction": 0.01
+    }
+  },
+  {
+    "id": "packaging-innovation",
+    "name": "Packaging Innovation",
+    "description": "Modified atmosphere packaging (MAP) with bio-based films extends fresh fillet shelf life to 21 days. Replaces polystyrene with certified-recyclable alternatives, supporting sustainability targets.",
+    "branch": "Processing",
+    "tier": 3,
+    "costNOK": 3200000,
+    "researchDays": 95,
+    "prerequisites": [
+      "value-added-processing"
+    ],
+    "effects": {
+      "market_price_bonus": 0.04,
+      "sustainability_score_bonus": 3
+    }
+  },
+  {
+    "id": "sashimi-grade",
+    "name": "Sashimi-Grade Export",
+    "description": "Achieve Japanese import standards for sashimi-grade fresh salmon: strict parasite controls, guaranteed fat content ranges, and ultra-cold chain with ice slurry. Unlocks the highest-value market segment globally.",
+    "branch": "Processing",
+    "tier": 4,
+    "costNOK": 6500000,
+    "researchDays": 160,
+    "prerequisites": [
+      "cold-chain-optimization",
+      "packaging-innovation"
+    ],
+    "effects": {
+      "market_price_bonus": 0.16
+    }
+  },
+  {
+    "id": "deep-sea-farming",
+    "name": "Deep-Sea Exposed Farming",
+    "description": "Develop offshore semi-submersible pen systems (Salmar Ocean Farm concept) for exposed, high-current sites. Access to pristine water and large volume capacity, reducing fjord crowding pressure.",
+    "branch": "Expansion",
+    "tier": 1,
+    "costNOK": 900000,
+    "researchDays": 55,
+    "prerequisites": [],
+    "effects": {
+      "lice_reduction": 0.1,
+      "disease_resistance_bonus": 0.06
+    }
+  },
+  {
+    "id": "land-based-ras",
+    "name": "Land-Based RAS Facility",
+    "description": "Recirculating Aquaculture System on shore. Zero sea lice, no escape risk, controlled environment year-round. High capital cost but biosecure smolt production and ability to site near markets.",
+    "branch": "Expansion",
+    "tier": 1,
+    "costNOK": 1200000,
     "researchDays": 60,
-    "prerequisites": ["electric-vehicles"],
-    "effects": {"carbon_reduction": 0.10, "transport_capacity": 0.15, "sustainability_bonus": 5}
+    "prerequisites": [],
+    "effects": {
+      "mortality_reduction": 0.05,
+      "disease_resistance_bonus": 0.14
+    }
+  },
+  {
+    "id": "arctic-aquaculture",
+    "name": "Arctic Aquaculture Methods",
+    "description": "Cold-adapted strains and winterised equipment for sites above 70°N. Unique Arctic salmon products command premium branding. Collaboration with Tromsø and Finnmark local authorities.",
+    "branch": "Expansion",
+    "tier": 2,
+    "costNOK": 2500000,
+    "researchDays": 80,
+    "prerequisites": [
+      "deep-sea-farming"
+    ],
+    "effects": {
+      "growth_rate_bonus": 0.02,
+      "mortality_reduction": 0.03,
+      "sustainability_score_bonus": 4
+    }
+  },
+  {
+    "id": "international-export",
+    "name": "International Export Programme",
+    "description": "Establish dedicated export desks for USA, Japan, and China markets with in-market sales agents, regulatory compliance teams, and currency hedging. Diversifies revenue beyond EU dependence.",
+    "branch": "Expansion",
+    "tier": 3,
+    "costNOK": 4500000,
+    "researchDays": 120,
+    "prerequisites": [
+      "arctic-aquaculture"
+    ],
+    "effects": {
+      "market_price_bonus": 0.07
+    }
+  },
+  {
+    "id": "global-operations",
+    "name": "Global Operations Platform",
+    "description": "Integrate all sites, processing plants, logistics, and export markets into a single management platform. Real-time global supply optimisation, multi-currency finance, and multinational regulatory compliance.",
+    "branch": "Expansion",
+    "tier": 4,
+    "costNOK": 9000000,
+    "researchDays": 200,
+    "prerequisites": [
+      "international-export",
+      "land-based-ras"
+    ],
+    "effects": {
+      "market_price_bonus": 0.09
+    }
   }
 ]

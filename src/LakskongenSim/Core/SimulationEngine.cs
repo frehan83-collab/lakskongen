@@ -2137,6 +2137,9 @@ private class BalancingConfig
         {
             int day = State.Day;
             double feedReplacementPct = State.RecipeReplacePct;
+            // Research (renewable energy, carbon capture) cuts fuel and power
+            // emissions, Scope 1-2; feed and transport (Scope 3) are unaffected.
+            double energyEmissionFactor = 1.0 - ResearchEffectKeys.ClampReduction(CarbonReduction);
 
             // ─── Sea Sites ───
             foreach (var site in State.SeaSites)
@@ -2146,12 +2149,12 @@ private class BalancingConfig
 
                 // Scope 1: Diesel fuel
                 double fuelL = Farm.CarbonLedger.DailySiteFuelLiters(site, biomassTonnes);
-                double fuelCO2e = fuelL * Farm.CarbonLedger.DieselKgCO2ePerLiter;
+                double fuelCO2e = fuelL * Farm.CarbonLedger.DieselKgCO2ePerLiter * energyEmissionFactor;
                 site.CarbonTracker.AddEmission("Scope1_Fuel", site.Id, fuelCO2e, day);
 
                 // Scope 2: Electricity
                 double elecKwh = Farm.CarbonLedger.DailySiteElectricityKwh(site, biomassTonnes);
-                double elecCO2e = elecKwh * Farm.CarbonLedger.GridElectricityKgCO2ePerKwh;
+                double elecCO2e = elecKwh * Farm.CarbonLedger.GridElectricityKgCO2ePerKwh * energyEmissionFactor;
                 site.CarbonTracker.AddEmission("Scope2_Electricity", site.Id, elecCO2e, day);
             }
 
@@ -2175,7 +2178,7 @@ private class BalancingConfig
             foreach (var ras in RASFacilities)
             {
                 if (!ras.IsOperational) continue;
-                double elecCO2e = ras.DailyEnergyKWh * Farm.CarbonLedger.GridElectricityKgCO2ePerKwh;
+                double elecCO2e = ras.DailyEnergyKWh * Farm.CarbonLedger.GridElectricityKgCO2ePerKwh * energyEmissionFactor;
                 ras.CarbonTracker.AddEmission("Scope2_Electricity", ras.Id, elecCO2e, day);
             }
 
@@ -2187,12 +2190,12 @@ private class BalancingConfig
 
                 // Scope 1: Generator fuel (higher than fjord sites)
                 double fuelL = 200.0 + biomassTonnes * 1.0; // base + per tonne
-                double fuelCO2e = fuelL * Farm.CarbonLedger.DieselKgCO2ePerLiter;
+                double fuelCO2e = fuelL * Farm.CarbonLedger.DieselKgCO2ePerLiter * energyEmissionFactor;
                 off.CarbonTracker.AddEmission("Scope1_Fuel", off.Id, fuelCO2e, day);
 
                 // Scope 2: Grid/shore power (assume partial)
                 double elecKwh = 500.0 + biomassTonnes * 2.0;
-                double elecCO2e = elecKwh * Farm.CarbonLedger.GridElectricityKgCO2ePerKwh;
+                double elecCO2e = elecKwh * Farm.CarbonLedger.GridElectricityKgCO2ePerKwh * energyEmissionFactor;
                 off.CarbonTracker.AddEmission("Scope2_Electricity", off.Id, elecCO2e, day);
 
                 // Scope 3: Crew rotation (helicopter) - only on rotation days
@@ -2971,8 +2974,8 @@ private class BalancingConfig
 
         /// <summary>
         /// Fraction of new lice settlement blocked at one site: lice skirt,
-        /// containment exclusion (Phase 4.1) and a permeable barrier (P8, flow-
-        /// and cleaning-dependent) combine multiplicatively.
+        /// containment exclusion (Phase 4.1), a permeable barrier (P8, flow- and
+        /// cleaning-dependent) and research lice reduction combine multiplicatively.
         /// </summary>
         private double SiteSettlementBlocking(Farm.SeaSite site)
         {
@@ -2981,7 +2984,8 @@ private class BalancingConfig
             double barrier = site.Barrier != Farm.BarrierKind.None
                 ? Farm.BarrierTech.EffectiveLiceBlocking(site.Barrier, SiteFlowMs(site), site.BarrierDaysSinceCleaning)
                 : 0.0;
-            return 1.0 - (1.0 - skirt) * (1.0 - exclusion) * (1.0 - barrier);
+            double research = ResearchEffectKeys.ClampReduction(LiceReduction);
+            return 1.0 - (1.0 - skirt) * (1.0 - exclusion) * (1.0 - barrier) * (1.0 - research);
         }
 
         /// <summary>

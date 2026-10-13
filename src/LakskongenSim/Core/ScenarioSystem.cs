@@ -349,8 +349,20 @@ namespace LakskongenSim.Core
 
             foreach (var research in StartingResearch ?? System.Array.Empty<string>())
             {
-                if (!string.IsNullOrWhiteSpace(research) && !state.UnlockedResearchIds.Contains(research))
-                    state.UnlockedResearchIds.Add(research);
+                if (string.IsNullOrWhiteSpace(research) || state.UnlockedResearchIds.Contains(research))
+                    continue;
+                // Unknown ids used to be granted silently (review F1012): the player
+                // was told they owned research with no node, effect or UI row.
+                if (engine?.Research != null && !engine.Research.Nodes.ContainsKey(research))
+                {
+                    SimLog.Warn($"Scenario '{Id}': starting research '{research}' is not in the research tree; skipped");
+                    continue;
+                }
+                state.UnlockedResearchIds.Add(research);
+                // Unlock it on the live tree too: the effect getters read the live
+                // tree, and the next research sync rewrites the mirror from it, so
+                // granting only the mirror gave no effect and was then erased.
+                engine?.Research?.ForceUnlock(research);
             }
 
             foreach (var building in StartingBuildings ?? System.Array.Empty<string>())

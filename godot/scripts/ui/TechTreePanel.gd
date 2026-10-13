@@ -1,10 +1,11 @@
 ## TechTreePanel.gd
-## Visual tech tree with 25 nodes across 5 branches.
+## Visual tech tree (25 nodes, 5 branches in the shipped tree).
 ## Builds its layout procedurally - no external scene file required.
 ##
-## Layout: 5 branch columns, 5 tier rows. Nodes are PanelContainers
-## sized at NODE_W × NODE_H. Connection lines are drawn on a canvas
-## overlay behind the buttons.
+## Layout: one column per branch present in the data (any of the ten branch
+## names), one band per tier. Nodes sharing a branch and tier stack inside the
+## band, so none overlap. Nodes are PanelContainers sized NODE_W × NODE_H;
+## connection lines are drawn on a canvas overlay behind the buttons.
 ##
 ## Node status colours:
 ##   LOCKED      - dark grey, no interaction
@@ -29,20 +30,48 @@ const NODE_W     := 175
 const NODE_H     := 90
 const H_GAP      := 200   # horizontal spacing between branch columns
 const V_GAP      := 115   # vertical spacing between tier rows
+const CELL_GAP   := 10    # gap between nodes stacked in one branch/tier cell
 const START_X    := 20
 const START_Y    := 90    # space for branch headers and title bar
 
 # ── Branch metadata ─────────────────────────────────────────────────────────────
 
-const BRANCH_ORDER: Array = ["Biology", "Technology", "Sustainability", "Processing", "Expansion"]
+## Column order for every ResearchBranch value (review F1004: the panel knew
+## five and silently dropped nodes on the other five). Only branches that
+## have nodes get a column; an unknown name still gets one at the end.
+const BRANCH_ORDER: Array = ["Biology", "Genetics", "Nutrition", "Health", "Technology",
+	"Automation", "Sustainability", "Environment", "Processing", "Expansion"]
 
 const BRANCH_META: Dictionary = {
 	"Biology":       { "label": "Biologi",        "icon": "🧬", "color": Color("#A3BE8C") },
+	"Genetics":      { "label": "Genetikk",       "icon": "🧪", "color": Color("#A3BE8C") },
+	"Nutrition":     { "label": "Ernæring",       "icon": "🌾", "color": Color("#EBCB8B") },
+	"Health":        { "label": "Helse",          "icon": "🩺", "color": Color("#BF616A") },
 	"Technology":    { "label": "Teknologi",       "icon": "⚙️", "color": Color("#5E81AC") },
+	"Automation":    { "label": "Automasjon",     "icon": "🤖", "color": Color("#5E81AC") },
 	"Sustainability":{ "label": "Bærekraft",       "icon": "🌿", "color": Color("#A3BE8C") },
+	"Environment":   { "label": "Miljø",          "icon": "🌍", "color": Color("#A3BE8C") },
 	"Processing":    { "label": "Foredling",       "icon": "🐟", "color": Color("#EBCB8B") },
 	"Expansion":     { "label": "Ekspansjon",      "icon": "🌊", "color": Color("#5E81AC") },
 }
+const DEFAULT_BRANCH_META: Dictionary = { "label": "", "icon": "🔬", "color": Color("#5E81AC") }
+
+## Effect labels (ResearchEffectKeys.Live). Reductions show as −N %, the
+## sustainability score as points (it used to print "+800%").
+const EFFECT_LABELS: Dictionary = {
+	"growth_rate_bonus": "Vekst",
+	"fcr_reduction": "Fôrfaktor (FCR)",
+	"feed_waste_reduction": "Fôrsvinn",
+	"mortality_reduction": "Dødelighet",
+	"disease_resistance_bonus": "Sykdomsresistens",
+	"market_price_bonus": "Pris",
+	"sustainability_score_bonus": "Bærekraftscore",
+	"lice_reduction": "Lusepåslag",
+	"carbon_reduction": "CO₂ fra energi",
+}
+const POINT_EFFECTS: Array = ["sustainability_score_bonus"]
+const REDUCTION_EFFECTS: Array = ["fcr_reduction", "feed_waste_reduction", "mortality_reduction",
+	"lice_reduction", "carbon_reduction"]
 
 # Node state colours - Nordic Minimalist v2.0
 const COLOR_LOCKED      := Color("#D8DEE9")   # Light gray (border)
@@ -60,6 +89,14 @@ var _node_centres: Dictionary = {}
 var _node_data: Dictionary    = {}
 # Map: nodeId → the PanelContainer widget
 var _node_panels: Dictionary  = {}
+# Map: nodeId → top-left position from the data-driven layout
+var _node_pos: Dictionary     = {}
+# Branch columns currently laid out (headers are rebuilt when this changes)
+var _branches: Array          = []
+var _header_labels: Array     = []
+# Node-state signature of the last build; unchanged data skips the rebuild (F672)
+var _built_signature: String  = ""
+var _close_btn: Button = null
 
 # Confirmation dialog target
 var _pending_node_id: String = ""
@@ -114,15 +151,10 @@ func _input(event: InputEvent) -> void:
 		hide()
 		get_viewport().set_input_as_handled()
 
-func _process(_delta: float) -> void:
-	# Light polling - refreshes every ~2 s (120 frames at 60 fps)
-	if Engine.get_process_frames() % 120 == 0:
-		_refresh()
-
 # ── Skeleton build (runs once) ──────────────────────────────────────────────────
 
 func _build_skeleton() -> void:
-	var total_w := START_X * 2 + BRANCH_ORDER.size() * H_GAP
+	var total_w := START_X * 2 + 5 * H_GAP
 	var total_h := START_Y + 5 * V_GAP + NODE_H + 50
 	custom_minimum_size = Vector2(total_w, total_h)
 
@@ -142,13 +174,13 @@ func _build_skeleton() -> void:
 	add_child(title)
 
 	# ── Close button ──
-	var close_btn := Button.new()
-	close_btn.text = tr("✕")
-	close_btn.position = Vector2(total_w - 40, 8)
-	close_btn.size = Vector2(28, 28)
-	close_btn.tooltip_text = tr("UI_TECH_CLOSE_TOOLTIP")
-	close_btn.pressed.connect(func(): emit_signal("panel_close_requested"))
-	add_child(close_btn)
+	_close_btn = Button.new()
+	_close_btn.text = tr("✕")
+	_close_btn.position = Vector2(total_w - 40, 8)
+	_close_btn.size = Vector2(28, 28)
+	_close_btn.tooltip_text = tr("UI_TECH_CLOSE_TOOLTIP")
+	_close_btn.pressed.connect(func(): emit_signal("panel_close_requested"))
+	add_child(_close_btn)
 
 	# ── Research status bar ──
 	var status_lbl := Label.new()
@@ -159,19 +191,6 @@ func _build_skeleton() -> void:
 	status_lbl.position = Vector2(START_X, 36)
 	status_lbl.tooltip_text = tr("UI_TECH_STATUS_TOOLTIP")
 	add_child(status_lbl)
-
-	# ── Branch headers ──
-	for bi in BRANCH_ORDER.size():
-		var branch: String = BRANCH_ORDER[bi]
-		var meta: Dictionary = BRANCH_META[branch]
-		var x := START_X + bi * H_GAP
-		var hdr := Label.new()
-		hdr.text = _fmt("UI_TECH_TIER_NODE", "%s %s", [meta["icon"], meta["label"]])
-		hdr.add_theme_font_size_override("font_size", 12)
-		hdr.modulate = meta["color"]
-		hdr.position = Vector2(x, 58)
-		hdr.custom_minimum_size = Vector2(NODE_W, 24)
-		add_child(hdr)
 
 	# ── Line canvas (drawn BEHIND node panels) ──
 	_line_canvas = _LineCanvas.new()
@@ -210,8 +229,13 @@ func _refresh() -> void:
 	for nd in nodes_raw:
 		_node_data[nd["id"]] = nd
 
-	# Build or update node panels
-	_build_node_panels()
+	# Rebuild panels only when a node's state changed (F672: the tree used to
+	# be destroyed and rebuilt every state update and every ~2 s while hidden).
+	var signature := _state_signature()
+	if signature != _built_signature:
+		_layout_nodes()
+		_build_node_panels()
+		_built_signature = signature
 
 	# Update status bar
 	var active_id: String = gb.get_active_research_id()
@@ -227,18 +251,98 @@ func _refresh() -> void:
 
 # ── Node panel builder ──────────────────────────────────────────────────────────
 
-func _build_node_panels() -> void:
-	# Calculate tier-index per branch
-	var branch_tier_count: Dictionary = {}
-	for nd_dict in _node_data.values():
-		var branch: String = nd_dict["branch"]
-		if branch not in branch_tier_count:
-			branch_tier_count[branch] = {}
-		var tier: int = nd_dict["tier"]
-		if tier not in branch_tier_count[branch]:
-			branch_tier_count[branch][tier] = []
-		branch_tier_count[branch][tier].append(nd_dict["id"])
+## Everything a node panel shows, so an unchanged tree is not rebuilt.
+func _state_signature() -> String:
+	var ids: Array = _node_data.keys()
+	ids.sort()
+	var parts: PackedStringArray = []
+	for id in ids:
+		var nd: Dictionary = _node_data[id]
+		parts.append("%s|%s|%s|%s|%s|%d" % [id, nd["branch"], nd["unlocked"], nd["is_active"],
+			nd["can_research"], int(nd["progress_days"])])
+	return ",".join(parts)
 
+## One column per branch present (BRANCH_ORDER first), one band per tier;
+## nodes sharing a branch and tier stack inside the band.
+func _layout_nodes() -> void:
+	var cells: Dictionary = {}   # branch -> tier -> [ids]
+	for nd in _node_data.values():
+		var branch: String = str(nd["branch"])
+		var tier: int = int(nd["tier"])
+		if not cells.has(branch):
+			cells[branch] = {}
+		if not cells[branch].has(tier):
+			cells[branch][tier] = []
+		cells[branch][tier].append(str(nd["id"]))
+
+	var branches: Array = []
+	for b in BRANCH_ORDER:
+		if cells.has(b):
+			branches.append(b)
+	for b in cells.keys():
+		if b not in branches:
+			branches.append(b)
+
+	var tiers: Array = []
+	for b in branches:
+		for t in cells[b].keys():
+			if t not in tiers:
+				tiers.append(t)
+	tiers.sort()
+
+	var band_y: Dictionary = {}
+	var y := START_Y
+	for t in tiers:
+		band_y[t] = y
+		var stacked := 1
+		for b in branches:
+			if cells[b].has(t):
+				stacked = maxi(stacked, cells[b][t].size())
+		y += stacked * (NODE_H + CELL_GAP) - CELL_GAP + (V_GAP - NODE_H)
+
+	_node_pos.clear()
+	for bi in branches.size():
+		var x := START_X + bi * H_GAP
+		for t in cells[branches[bi]].keys():
+			var ids: Array = cells[branches[bi]][t]
+			ids.sort()
+			for i in ids.size():
+				_node_pos[ids[i]] = Vector2(x, band_y[t] + i * (NODE_H + CELL_GAP))
+
+	var total_w: int = START_X * 2 + maxi(branches.size(), 1) * H_GAP
+	custom_minimum_size = Vector2(total_w, y + 50)
+	if _close_btn != null:
+		_close_btn.position = Vector2(total_w - 40, 8)
+	if branches != _branches:
+		_branches = branches
+		_rebuild_headers()
+
+func _rebuild_headers() -> void:
+	for hdr in _header_labels:
+		hdr.queue_free()
+	_header_labels.clear()
+	for bi in _branches.size():
+		var branch: String = _branches[bi]
+		var meta: Dictionary = BRANCH_META.get(branch, DEFAULT_BRANCH_META)
+		var hdr := Label.new()
+		var label: String = meta["label"] if meta["label"] != "" else branch
+		hdr.text = _fmt("UI_TECH_TIER_NODE", "%s %s", [meta["icon"], label])
+		hdr.add_theme_font_size_override("font_size", 12)
+		hdr.modulate = meta["color"]
+		hdr.position = Vector2(START_X + bi * H_GAP, 58)
+		hdr.custom_minimum_size = Vector2(NODE_W, 24)
+		add_child(hdr)
+		_header_labels.append(hdr)
+
+## Tooltip text for one effect: fractions as ±N %, score effects as points.
+static func format_effect(key: String, value: float) -> String:
+	var label: String = EFFECT_LABELS.get(key, key.replace("_", " ").capitalize())
+	if key in POINT_EFFECTS:
+		return "%s +%d" % [label, int(round(value))]
+	var prefix: String = "−" if key in REDUCTION_EFFECTS else "+"
+	return "%s %s%d %%" % [label, prefix, int(round(value * 100.0))]
+
+func _build_node_panels() -> void:
 	# Remove old panels
 	for old_panel in _node_panels.values():
 		old_panel.queue_free()
@@ -251,12 +355,9 @@ func _build_node_panels() -> void:
 func _build_node_panel(nd: Dictionary) -> void:
 	var branch: String = nd["branch"]
 	var tier: int      = nd["tier"]
-	var bi: int        = BRANCH_ORDER.find(branch)
-	if bi < 0:
-		return
-
-	var x := START_X + bi * H_GAP
-	var y := START_Y + (tier - 1) * V_GAP
+	var pos: Vector2   = _node_pos.get(nd["id"], Vector2(START_X, START_Y + (tier - 1) * V_GAP))
+	var x := pos.x
+	var y := pos.y
 
 	# Store centre for line drawing
 	_node_centres[nd["id"]] = Vector2(x + NODE_W * 0.5, y + NODE_H * 0.5)
@@ -284,7 +385,7 @@ func _build_node_panel(nd: Dictionary) -> void:
 	style.corner_radius_bottom_left  = 5
 	style.corner_radius_bottom_right = 5
 
-	var branch_color: Color = BRANCH_META[branch]["color"]
+	var branch_color: Color = BRANCH_META.get(branch, DEFAULT_BRANCH_META)["color"]
 	if is_unlocked:
 		style.bg_color     = COLOR_UNLOCKED
 		style.border_color = branch_color
@@ -447,7 +548,7 @@ func _on_node_hover(node_id: String) -> void:
 	if not effects.is_empty():
 		var fx_parts: PackedStringArray = []
 		for k in effects:
-			fx_parts.append("%s: +%.0f%%" % [k.replace("_", " ").capitalize(), effects[k] * 100])
+			fx_parts.append(format_effect(k, float(effects[k])))
 		lines.append("Effekter: " + ", ".join(fx_parts))
 
 	_tooltip_label.text = "\n".join(lines)

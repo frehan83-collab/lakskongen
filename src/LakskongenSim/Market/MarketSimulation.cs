@@ -510,16 +510,13 @@ namespace LakskongenSim.Market
         }
 
         /// <summary>
-        /// Apply research and vertical integration price multiplier.
-        /// Called daily from MarketTickSystem to apply unlocked research effects
-        /// (market_price_bonus) and vertical integration quality premium.
+        /// Set the research + vertical-integration price multiplier (floored at
+        /// 1). It is applied by the next <see cref="AdvanceDays"/> inside the
+        /// realized price band, like the certification and brand premiums; the
+        /// engine sets it every day before advancing the market (review F1003).
         /// </summary>
-        public void ApplyResearchPriceMultiplier(double multiplier)
-        {
-            _researchPriceMultiplier = (decimal)Math.Max(1.0, multiplier);
-            PricePerKg = BasePricePerKg * _certificationMultiplier * _researchPriceMultiplier * Intelligence.PlayerReputation.PremiumMultiplier * (decimal)PlayerSupply.PriceMultiplier;
-            OnPriceChanged?.Invoke(PricePerKg);
-        }
+        public void SetResearchPriceMultiplier(double multiplier)
+            => _researchPriceMultiplier = (decimal)Math.Max(1.0, multiplier);
 
         private HashSet<string> GetAccessibleMarkets(CertificationLevel level)
         {

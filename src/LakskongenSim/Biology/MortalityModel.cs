@@ -136,18 +136,12 @@ namespace LakskongenSim.Biology
                 diseaseRate = rate;
             }
             
-            // Combine all mortality sources: baseline * stage_multiplier + disease
-            double totalRate = (baseRate * stageMultiplier) + diseaseRate;
-            
-            // Apply research mortality reduction (additive reduction to total rate)
-            totalRate = Math.Max(0.0, totalRate - mortalityReduction);
-            
-            // Apply disease resistance bonus (reduces disease component)
-            diseaseRate = Math.Max(0.0, diseaseRate * (1.0 - diseaseResistanceBonus));
-            totalRate = (baseRate * stageMultiplier) + diseaseRate;
-            
-            // Clamp to prevent negative or >100% mortality
-            totalRate = Math.Clamp(totalRate, 0.0, MaxTotalDailyMortalityRate); // Max 95% mortality per day
+            // Research removes a fraction of each hazard once (review F1027: the
+            // reduction was subtracted from the total and then overwritten, so it
+            // never acted; as an absolute 0.02-0.10/day it would also have zeroed a
+            // ~3e-4/day sea hazard).
+            double totalRate = ResearchAdjustedRate(baseRate * stageMultiplier, diseaseRate, 0.0,
+                mortalityReduction, diseaseResistanceBonus);
             
             // survivors = count * (1-rate)^days
             var survivors = count * Math.Pow(1.0 - totalRate, days);
@@ -222,18 +216,8 @@ namespace LakskongenSim.Biology
             // Calculate environmental stress mortality
             double environmentalMortality = CalculateEnvironmentalMortality(environmentalData, stage);
             
-            // Combine all mortality sources
-            double totalRate = (baseRate * stageMultiplier) + diseaseRate + environmentalMortality;
-            
-            // Apply research mortality reduction (additive reduction to total rate)
-            totalRate = Math.Max(0.0, totalRate - mortalityReduction);
-            
-            // Apply disease resistance bonus (reduces disease component)
-            diseaseRate = Math.Max(0.0, diseaseRate * (1.0 - diseaseResistanceBonus));
-            totalRate = (baseRate * stageMultiplier) + diseaseRate + environmentalMortality;
-            
-            // Clamp to prevent negative or >100% mortality
-            totalRate = Math.Clamp(totalRate, 0.0, MaxTotalDailyMortalityRate);
+            double totalRate = ResearchAdjustedRate(baseRate * stageMultiplier, diseaseRate, environmentalMortality,
+                mortalityReduction, diseaseResistanceBonus);
             
             // survivors = count * (1-rate)^days
             var survivors = count * Math.Pow(1.0 - totalRate, days);
@@ -241,6 +225,21 @@ namespace LakskongenSim.Biology
             return Math.Max(0, (int)Math.Round(survivors));
         }
         
+        /// <summary>
+        /// Daily hazard after research: <paramref name="mortalityReduction"/> removes
+        /// that fraction of the baseline hazard and <paramref name="diseaseResistanceBonus"/>
+        /// that fraction of the disease hazard (each capped at
+        /// <see cref="Core.ResearchEffectKeys.MaxReduction"/>); environmental stress is
+        /// not reduced. Clamped to [0, <see cref="MaxTotalDailyMortalityRate"/>].
+        /// </summary>
+        internal static double ResearchAdjustedRate(double baselineHazard, double diseaseHazard,
+            double environmentalHazard, double mortalityReduction, double diseaseResistanceBonus)
+        {
+            double baseline = baselineHazard * (1.0 - Core.ResearchEffectKeys.ClampReduction(mortalityReduction));
+            double disease = Math.Max(0.0, diseaseHazard) * (1.0 - Core.ResearchEffectKeys.ClampReduction(diseaseResistanceBonus));
+            return Math.Clamp(baseline + disease + environmentalHazard, 0.0, MaxTotalDailyMortalityRate);
+        }
+
         /// <summary>
         /// Calculate mortality rate contribution from environmental stress.
         /// Based on scientifically-validated thresholds for Atlantic salmon.

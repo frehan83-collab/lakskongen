@@ -26,7 +26,7 @@
     ],
     "effects": {
       "fcr_reduction": 0.04,
-      "price_bonus": 0.03
+      "market_price_bonus": 0.03
     }
   }
 ]

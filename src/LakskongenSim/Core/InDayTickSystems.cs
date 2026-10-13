@@ -323,14 +323,16 @@ namespace LakskongenSim.Core;
                     engine.State.ExternalAquacultureSnapshot.MarketPriceSupportIndex * crisis.MarketPriceSupportMultiplier);
             }
 
+            // Phase 4.4: research premium and vertical-integration quality combine
+            // as multipliers and enter today's price inside the realized band
+            // (review F1003: the bare fraction was multiplied and then gated on
+            // > 1.0, so neither premium ever applied).
+            engine.MarketSimulation.SetResearchPriceMultiplier(
+                (1.0 + engine.MarketPriceBonus) * engine.VerticalIntegrationQualityMultiplier);
             engine.MarketSimulation.AdvanceDays(1);
             engine.CurrencySystem.AdvanceDays(1);
             // P9: Price Council binds the monthly pen price from the rolling spot series.
             engine.PenPriceCouncil.Update(engine.MarketSimulation.PricePerKg);
-            // Phase 4.4: Apply research and vertical integration price multiplier
-            double marketPriceMultiplier = engine.MarketPriceBonus * engine.VerticalIntegrationQualityMultiplier;
-            if (marketPriceMultiplier > 1.0)
-                engine.MarketSimulation.ApplyResearchPriceMultiplier(marketPriceMultiplier);
 
         }
     }
@@ -403,7 +405,8 @@ namespace LakskongenSim.Core;
         {
             if (engine.State.Day - _lastSustainabilityUpdate >= SustainabilityUpdateInterval)
             {
-                engine.SustainabilityManager?.UpdateScore(engine.State);
+                // Research sustainability points (review F1001: the bonus was never passed).
+                engine.SustainabilityManager?.UpdateScore(engine.State, engine.SustainabilityScoreBonus);
                 engine.State.SustainabilityScore = engine.SustainabilityManager?.CurrentScore ?? engine.State.SustainabilityScore;
                 engine.State.SustainabilityCertification = engine.SustainabilityManager?.CurrentCertification ?? engine.State.SustainabilityCertification;
                 _lastSustainabilityUpdate = engine.State.Day;

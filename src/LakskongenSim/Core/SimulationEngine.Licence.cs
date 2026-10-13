@@ -506,43 +506,56 @@ public partial class SimulationEngine
     /// Growth rate bonus from unlocked research (e.g., selective breeding, growth optimization).
     /// Additive bonus applied to SDE growth rate.
     /// </summary>
-    public double GrowthRateBonus => GetResearchEffect("growth_rate_bonus");
+    public double GrowthRateBonus => GetResearchEffect(ResearchEffectKeys.GrowthRateBonus);
 
     /// <summary>
     /// FCR reduction from unlocked research (e.g., feed efficiency genetics, automated feeding).
     /// Multiplicative reduction applied to base FCR.
     /// </summary>
-    public double FCRReduction => GetResearchEffect("fcr_reduction");
+    public double FCRReduction => GetResearchEffect(ResearchEffectKeys.FcrReduction);
 
     /// <summary>
     /// Feed waste reduction from unlocked research (e.g., automated feeding systems).
     /// Reduces feed spill and overfeeding losses.
     /// </summary>
-    public double FeedWasteReduction => GetResearchEffect("feed_waste_reduction");
+    public double FeedWasteReduction => GetResearchEffect(ResearchEffectKeys.FeedWasteReduction);
 
     /// <summary>
-    /// Mortality reduction from unlocked research (e.g., disease resistance, sensor networks).
-    /// Additive reduction applied to daily mortality rate.
+    /// Mortality reduction from unlocked research (e.g., disease resistance, sensor networks):
+    /// the fraction of the baseline daily hazard removed (capped, see ResearchEffectKeys).
     /// </summary>
-    public double MortalityReduction => GetResearchEffect("mortality_reduction");
+    public double MortalityReduction => GetResearchEffect(ResearchEffectKeys.MortalityReduction);
 
     /// <summary>
     /// Disease resistance bonus from unlocked research (e.g., disease-resistant genetics, AI monitoring).
     /// Redases disease outbreak probability and severity.
     /// </summary>
-    public double DiseaseResistanceBonus => GetResearchEffect("disease_resistance_bonus");
+    public double DiseaseResistanceBonus => GetResearchEffect(ResearchEffectKeys.DiseaseResistanceBonus);
 
     /// <summary>
     /// Market price bonus from unlocked research (e.g., premium products, organic certification).
     /// Multiplicative bonus applied to salmon spot price.
     /// </summary>
-    public double MarketPriceBonus => GetResearchEffect("market_price_bonus");
+    public double MarketPriceBonus => GetResearchEffect(ResearchEffectKeys.MarketPriceBonus);
 
     /// <summary>
     /// Sustainability score bonus from unlocked research (e.g., organic certification, circular economy).
     /// Additive bonus to sustainability score.
     /// </summary>
-    public double SustainabilityScoreBonus => GetResearchEffect("sustainability_score_bonus");
+    public double SustainabilityScoreBonus => GetResearchEffect(ResearchEffectKeys.SustainabilityScoreBonus);
+
+    /// <summary>
+    /// Fraction of new sea-lice settlement blocked at every site by research
+    /// (e.g., underwater drones, deep-sea farming). Combined with skirts,
+    /// containment and barriers in the per-site settlement blocking.
+    /// </summary>
+    public double LiceReduction => GetResearchEffect(ResearchEffectKeys.LiceReduction);
+
+    /// <summary>
+    /// Fractional reduction of fuel and electricity emissions (Scope 1-2) in the
+    /// carbon ledger from research (e.g., renewable energy, carbon capture).
+    /// </summary>
+    public double CarbonReduction => GetResearchEffect(ResearchEffectKeys.CarbonReduction);
 
     /// <summary>
     /// Vertical Integration: Total cost savings per kg from owned and completed integration tiers.
