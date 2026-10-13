@@ -71,15 +71,14 @@ def test_bridge_contract():
     """
     declared = _declared_members()
     assert "GameStateUpdated" in declared, "contract harness broken: no signals parsed"
-    accesses, guarded = _gdscript_accesses()
+    accesses, _guarded = _gdscript_accesses()
     assert accesses, "contract harness broken: no GDScript accesses found"
+    # No has_method() exemption (F945): a guarded call to a member that does
+    # not exist is dead code that hides a broken feature.
     missing = {}
     for name, files in accesses.items():
-        if name in declared:
-            continue
-        unguarded = [f for f in set(files) if name not in guarded.get(f, set())]
-        if unguarded:
-            missing[name] = sorted(unguarded)
+        if name not in declared:
+            missing[name] = sorted(set(files))
     assert not missing, (
         "GDScript accesses missing GameBridge members:\n"
         + "\n".join(f"  {name} used in: {', '.join(fs[:4])}" for name, fs in sorted(missing.items()))
@@ -229,9 +228,199 @@ def test_simbridge_facade_parity():
     assert not missing, "SimBridge facade is missing forwarders:\n  " + "\n  ".join(missing)
 
 
+# ── Bridge consumers: has_method guards and call arity (F945) ────────────────
+# UI code reaches the bridges through local names (_sim, sim_bridge, gb, ...)
+# and hid missing members behind has_method(), which turned panels inert (the
+# loan card asked for get_loan_info/repay_loan, which existed nowhere) or fed
+# them invented data. A wrong argument count fails only at runtime (the loan
+# card called take_loan(amount) against take_loan(amount, term, rate)). Every
+# guarded name and every call must exist on its target and fit its signature.
+
+BRIDGE_FILES = {"SimBridge": "SimBridge.gd", "GameBridge": "GameBridge*.cs"}
+# Orphaned panels: no scene, tab or script loads them. They call bridge methods
+# that do not exist and fall back to invented data. Exempt only while they stay
+# unreachable — wire them (bridge + tab) or delete them.
+ORPHANED_PANELS = {"godot/scripts/ui/EmpirePanel.gd", "godot/scripts/ui/StakeholderPanel.gd"}
+GD_SIGNATURE_RE = re.compile(r"(?m)^(?:static\s+)?func\s+([A-Za-z_]\w*)\s*\(([^)]*)\)")
+CS_SIGNATURE_RE = re.compile(r"public\s+(?:static\s+|override\s+|virtual\s+)*[\w<>\[\],.?\s]+?\s+(\w+)\s*\(([^)]*)\)")
+BRIDGE_BIND_RE = re.compile(
+    r"(?m)^\s*(?:@onready\s+)?(?:var\s+)?(\w+)\s*(?::\s*\w+\s*)?:?=\s*"
+    r"get_node(?:_or_null)?\(\s*\"/root/(SimBridge|GameBridge)\"\s*\)"
+)
+BRIDGE_GETTER_RE = re.compile(
+    r"(?m)^func\s+(\w+)\s*\(\)[^:\n]*:\s*\n\s*return\s+get_node(?:_or_null)?\(\s*\"/root/(SimBridge|GameBridge)\"\s*\)"
+)
+
+
+def _split_top_level(text, openers="([{<", closers=")]}>"):
+    """Split on commas outside brackets and strings."""
+    parts, cur, depth, quote = [], "", 0, None
+    for ch in text:
+        if quote:
+            cur += ch
+            if ch == quote:
+                quote = None
+            continue
+        if ch in "\"'":
+            quote = ch
+        elif ch in openers:
+            depth += 1
+        elif ch in closers:
+            depth -= 1
+        if ch == "," and depth == 0:
+            parts.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    parts.append(cur)
+    return [p for p in parts if p.strip()]
+
+
+def _call_arg_count(src, open_paren):
+    """Number of arguments of the call whose '(' is at open_paren (None if unbalanced)."""
+    depth, quote = 0, None
+    for i in range(open_paren, len(src)):
+        ch = src[i]
+        if quote:
+            if ch == quote:
+                quote = None
+            continue
+        if ch in "\"'":
+            quote = ch
+        elif ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                return len(_split_top_level(src[open_paren + 1:i], "([{", ")]}"))
+    return None
+
+
+def _signatures(target):
+    """name -> list of (required, maximum) argument counts (overloads, defaults)."""
+    sigs = {}
+    if target == "SimBridge":
+        src = (REPO / "godot" / "scripts" / BRIDGE_FILES[target]).read_text(encoding="utf-8")
+        for m in GD_SIGNATURE_RE.finditer(src):
+            params = _split_top_level(m.group(2), "([{", ")]}")
+            sigs.setdefault(m.group(1), []).append((sum("=" not in p for p in params), len(params)))
+        return sigs
+    for path in _bridge_sources():
+        src = path.read_text(encoding="utf-8")
+        for m in CS_SIGNATURE_RE.finditer(src):
+            params = _split_top_level(m.group(2))
+            unbounded = any(p.split()[0] == "params" for p in params if p.split())
+            required = sum("=" not in p and not p.split()[0] == "params" for p in params)
+            sigs.setdefault(m.group(1), []).append((required, 10**6 if unbounded else len(params)))
+    return sigs
+
+
+def _bridge_bindings(text):
+    found = {m.group(1): m.group(2) for m in BRIDGE_BIND_RE.finditer(text)}
+    found.update({m.group(1) + "()": m.group(2) for m in BRIDGE_GETTER_RE.finditer(text)})
+    return found
+
+
+def _bridge_consumer_problems(src, rel, signatures):
+    """(checked, problems) for one GDScript source."""
+    class_text, funcs = _scopes(src)
+    class_bindings = _bridge_bindings(class_text)
+    if rel.startswith("godot/scripts/bridge/"):
+        class_bindings["game_bridge"] = "GameBridge"  # injected by the SimBridge facade
+    declared = set(re.findall(r"(?m)^(?:@onready\s+)?var\s+(\w+)", class_text))
+    # Class vars bound later by a plain assignment (e.g. _sim = get_node(...) in _ready).
+    for m in BRIDGE_BIND_RE.finditer(src):
+        if m.group(1) in declared:
+            class_bindings[m.group(1)] = m.group(2)
+    class_bindings.update({k: v for k, v in _bridge_bindings(src).items() if k.endswith("()")})
+    checked, problems = 0, []
+    for body in [class_text] + funcs:
+        bindings = dict(class_bindings)
+        bindings.update({k: v for k, v in _bridge_bindings(body).items() if not k.endswith("()")})
+        for var, target in bindings.items():
+            sigs = signatures[target]
+            ref = re.escape(var) if var.endswith("()") else rf"\b{re.escape(var)}"
+            for m in re.finditer(ref + r"\.has_method\(\"(\w+)\"\)", body):
+                checked += 1
+                if m.group(1) not in sigs:
+                    problems.append(f"{rel}: {var}.has_method(\"{m.group(1)}\") — {target} has no such method")
+            for m in re.finditer(ref + r"\.(\w+)\s*\(", body):
+                name = m.group(1)
+                if name in NODE_BUILTINS or name == "get_tree":
+                    continue
+                checked += 1
+                if name not in sigs:
+                    problems.append(f"{rel}: {var}.{name}() — {target} has no such method")
+                    continue
+                n = _call_arg_count(body, m.end() - 1)
+                if n is not None and not any(lo <= n <= hi for lo, hi in sigs[name]):
+                    want = " or ".join(f"{lo}..{hi}" if lo != hi else str(lo) for lo, hi in sigs[name])
+                    problems.append(f"{rel}: {var}.{name}() with {n} argument(s) — {target} takes {want}")
+    return checked, problems
+
+
+def _is_referenced_elsewhere(rel):
+    stem = Path(rel).stem
+    own = {rel, str(Path(rel).with_suffix(".gd.uid"))}
+    for path in (REPO / "godot").rglob("*"):
+        if path.suffix not in (".gd", ".tscn") or "addons" in path.parts:
+            continue
+        r = str(path.relative_to(REPO))
+        if r in own or r.endswith(f"/{stem}.tscn"):
+            continue
+        if stem in path.read_text(encoding="utf-8", errors="ignore"):
+            return True
+    return False
+
+
+def test_bridge_consumers_call_real_methods_with_valid_arity():
+    signatures = {t: _signatures(t) for t in BRIDGE_FILES}
+    assert "take_loan" in signatures["SimBridge"], "contract harness broken: SimBridge.gd not parsed"
+    assert "TakeLoan" in signatures["GameBridge"], "contract harness broken: GameBridge*.cs not parsed"
+    checked, problems = 0, []
+    for path in sorted((REPO / "godot").rglob("*.gd")):
+        if "addons" in path.parts or path.name == "SimBridge.gd":
+            continue
+        rel = str(path.relative_to(REPO))
+        src = path.read_text(encoding="utf-8", errors="ignore")
+        n, found = _bridge_consumer_problems(src, rel, signatures)
+        checked += n
+        if rel in ORPHANED_PANELS:
+            assert not _is_referenced_elsewhere(rel), (
+                f"{rel} is no longer orphaned: give it a real bridge contract and drop it from ORPHANED_PANELS")
+            continue
+        problems += found
+    assert checked > 300, f"contract harness broken: only {checked} bridge calls checked"
+    assert not problems, "Bridge calls that fail at runtime:\n  " + "\n  ".join(sorted(set(problems)))
+
+
+def test_bridge_consumer_check_catches_the_known_failures():
+    """Non-vacuity: the F943 loan card and a guarded ghost method are flagged."""
+    signatures = {t: _signatures(t) for t in BRIDGE_FILES}
+    sample = (
+        "var _sim: Node = null\n"
+        "func _ready() -> void:\n"
+        "\t_sim = get_node_or_null(\"/root/SimBridge\")\n"
+        "func _on_take_loan() -> void:\n"
+        "\t_sim.take_loan(5_000_000.0)\n"
+        "\tif _sim.has_method(\"get_ghost_report\"):\n"
+        "\t\tpass\n"
+        "func _paint() -> void:\n"
+        "\tvar gb := get_node_or_null(\"/root/GameBridge\")\n"
+        "\tgb.TakeLoan(1.0, 2, 0.05, \"extra\")\n"
+    )
+    _, problems = _bridge_consumer_problems(sample, "sample.gd", signatures)
+    text = "\n".join(problems)
+    assert "take_loan() with 1 argument(s)" in text, text
+    assert "has_method(\"get_ghost_report\") — SimBridge has no such method" in text, text
+    assert "TakeLoan() with 4 argument(s)" in text, text
+
+
 if __name__ == "__main__":
     test_bridge_contract()
     test_no_snake_case_signal_access()
     test_csharp_autoload_contract()
     test_simbridge_facade_parity()
+    test_bridge_consumers_call_real_methods_with_valid_arity()
+    test_bridge_consumer_check_catches_the_known_failures()
     print("bridge contract OK")

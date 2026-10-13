@@ -74,9 +74,9 @@ func is_panel_unlocked(panel_id: String) -> bool:
 # ── Internal ──────────────────────────────────────────────────────────────────
 
 func _refresh() -> void:
-	_has_data = _sim != null and ("tutorial_step_number" in _sim or _sim.has_method("GetTutorialStepNumber"))
-	var new_phase: int = int(_read_sim_value("tutorial_step_number", ["GetTutorialStepNumber"], 0))
-	var new_complete: bool = bool(_read_sim_value("tutorial_is_complete", ["GetTutorialIsComplete"], false))
+	_has_data = _sim != null and "tutorial_step_number" in _sim
+	var new_phase: int = int(_read_sim_value("tutorial_step_number", 0))
+	var new_complete: bool = bool(_read_sim_value("tutorial_is_complete", false))
 
 	var changed: bool = (not _phase_seen) or new_phase != phase or new_complete != is_complete
 	phase = new_phase
@@ -96,15 +96,11 @@ func _emit_new_unlocks() -> void:
 			panel_unlocked.emit(panel_id)
 
 ## Read a value from SimBridge, tolerating a missing node/property/method.
-func _read_sim_value(property_name: String, method_names: Array, fallback: Variant) -> Variant:
+## SimBridge exposes the tutorial state as properties. (A PascalCase getter
+## fallback asked the GDScript facade for C# names it never has.)
+func _read_sim_value(property_name: String, fallback: Variant) -> Variant:
 	if _sim == null:
 		return fallback
-	# Property check: Object.get() returns null when the property is absent.
+	# Object.get() returns null when the property is absent.
 	var value: Variant = _sim.get(property_name)
-	if value != null:
-		return value
-	# Method fallback (for bridges that expose getters instead of properties).
-	for method_name: String in method_names:
-		if _sim.has_method(method_name):
-			return _sim.call(method_name)
-	return fallback
+	return value if value != null else fallback
