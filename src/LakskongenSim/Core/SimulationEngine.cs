@@ -2473,6 +2473,11 @@ private class BalancingConfig
                     zone?.CurrentSpeed ?? 0.15,
                     biomassKg / volumeM3);
                 site.Lice.SetExternalPressure(SeasonalLicePressure(State.Day));
+                // The site's own skirt, containment and barrier block settlement on
+                // the lice that are counted and regulated. They used to reach only
+                // the company-wide rollup, so paid mitigation never lowered a
+                // site's count, traffic light or Mattilsynet exposure.
+                site.Lice.PreventiveCoverage01 = SiteSettlementBlocking(site);
                 site.Lice.AdvanceDay();
                 site.Lice.AdvanceResistanceDecay(1);
             }
@@ -2943,32 +2948,40 @@ private class BalancingConfig
             {
                 int fish = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
                 total += fish;
-                double skirt = site.HasLiceSkirt ? 0.70 : 0.0;
-                double excl = Farm.ContainmentTech.ModifiersFor(site.Containment).LiceExclusion01;
+                covered += fish * SiteSettlementBlocking(site);
 
-                // P8: a permeable barrier blocks a flow-dependent share of new
-                // chalimus settlement. Guarded: no barrier installed leaves the
-                // existing skirt/containment formula exactly as before.
-                double barrier = 0.0;
                 if (site.Barrier != Farm.BarrierKind.None)
                 {
-                    barrier = Farm.BarrierTech.EffectiveLiceBlocking(
-                        site.Barrier, SiteFlowMs(site), site.BarrierDaysSinceCleaning);
-
                     // Periodic cleaning requirement: uncleaned barriers lose
-                    // efficiency (handled above), and cleaning costs standing opex.
+                    // efficiency (SiteSettlementBlocking), and cleaning costs standing opex.
                     site.BarrierDaysSinceCleaning += BARRIER_CLEANING_TICK_DAYS;
                     decimal barrierOpex = Farm.BarrierTech.SpecFor(site.Barrier).WeeklyOpexNok;
                     PayCost(barrierOpex, CostBooking.Opex, "barriers");
                 }
-
-                covered += fish * (1.0 - (1.0 - skirt) * (1.0 - excl) * (1.0 - barrier));
 
                 // Phase 4.1: standing energy opex per containment level.
                 decimal opex = Farm.ContainmentTech.ModifiersFor(site.Containment).WeeklyOpexNok;
                 PayCost(opex, CostBooking.Opex, "containment");
             }
             SeaLice.PreventiveCoverage01 = total > 0 ? covered / total : 0.0;
+        }
+
+        /// <summary>Settlement blocked by a lice skirt (Phase 1.5).</summary>
+        private const double LiceSkirtSettlementBlocking = 0.70;
+
+        /// <summary>
+        /// Fraction of new lice settlement blocked at one site: lice skirt,
+        /// containment exclusion (Phase 4.1) and a permeable barrier (P8, flow-
+        /// and cleaning-dependent) combine multiplicatively.
+        /// </summary>
+        private double SiteSettlementBlocking(Farm.SeaSite site)
+        {
+            double skirt = site.HasLiceSkirt ? LiceSkirtSettlementBlocking : 0.0;
+            double exclusion = Farm.ContainmentTech.ModifiersFor(site.Containment).LiceExclusion01;
+            double barrier = site.Barrier != Farm.BarrierKind.None
+                ? Farm.BarrierTech.EffectiveLiceBlocking(site.Barrier, SiteFlowMs(site), site.BarrierDaysSinceCleaning)
+                : 0.0;
+            return 1.0 - (1.0 - skirt) * (1.0 - exclusion) * (1.0 - barrier);
         }
 
         /// <summary>
