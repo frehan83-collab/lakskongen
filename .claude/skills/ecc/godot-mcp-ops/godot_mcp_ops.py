@@ -5,6 +5,9 @@ godot_mcp_ops.py — Godot MCP Operator Workflows
 CLI for running operator workflows against a Godot project via:
 - MCP bridge (ws://localhost:6550) when Godot editor is running
 - Headless Godot fallback for compile/export checks
+
+Exit codes: 0 passed, 1 failed, 3 passed but part of the check was skipped
+(the result's "skipped" flag; e.g. shader-check without a display).
 """
 
 import argparse
@@ -27,11 +30,15 @@ from autoload_audit import AutoloadAudit
 from shader_check import ShaderCheck
 from export_verify import ExportVerify
 
+EXIT_PASSED = 0
+EXIT_FAILED = 1
+EXIT_PARTLY_SKIPPED = 3
+
 
 class GodotMCPOps:
     def __init__(self, project_path: Path, godot_bin: Optional[str] = None):
         self.project_path = project_path
-        self.godot_bin = godot_bin or self._find_godot()
+        self.godot_bin = godot_bin or os.environ.get("GODOT_BIN") or self._find_godot()
         self.mcp_client: Optional[MCPClient] = None
         self.headless = HeadlessRunner(self.godot_bin, project_path)
         self._use_mcp = False
@@ -118,7 +125,10 @@ def main():
     subparsers.add_parser("autoload-audit", help="Audit project.godot autoloads")
 
     # shader-check
-    subparsers.add_parser("shader-check", help="Compile all .gdshader files")
+    subparsers.add_parser(
+        "shader-check",
+        help="Check uniform hints and compile all .gdshader files under a real renderer",
+    )
 
     # export-verify
     subparsers.add_parser("export-verify", help="Run headless export for all presets")
@@ -182,7 +192,9 @@ def main():
         result["command"] = args.command
         output_json(result)
 
-        sys.exit(0 if result.get("success") else 1)
+        if not result.get("success"):
+            sys.exit(EXIT_FAILED)
+        sys.exit(EXIT_PARTLY_SKIPPED if result.get("skipped") else EXIT_PASSED)
 
     except Exception as e:
         output_json({
@@ -191,7 +203,7 @@ def main():
             "errors": [f"Unhandled error: {str(e)}"],
             "warnings": []
         })
-        sys.exit(1)
+        sys.exit(EXIT_FAILED)
     finally:
         asyncio.run(ops.disconnect_mcp())
 

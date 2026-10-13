@@ -8,7 +8,9 @@ uniform float wave_height : hint_range(0.0, 1.0) = 0.3;
 uniform float wave_scale : hint_range(1.0, 100.0) = 20.0;
 uniform float roughness : hint_range(0.0, 1.0) = 0.02;
 
-uniform sampler2D wave_noise : hint_default_noise;
+// Godot has no noise default (hint_default_noise does not exist, review
+// F958): assign a NoiseTexture2D. Unassigned, the black default gives flat water.
+uniform sampler2D wave_noise : hint_default_black, repeat_enable;
 
 varying vec3 world_position;
 varying float wave_height_val;

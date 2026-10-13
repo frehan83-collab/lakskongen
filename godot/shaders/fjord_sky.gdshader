@@ -10,7 +10,9 @@ uniform float season : hint_range(0.0, 1.0) = 0.5; // 0=winter, 0.5=summer
 uniform float cloud_coverage : hint_range(0.0, 1.0) = 0.3;
 uniform float cloud_softness : hint_range(0.0, 1.0) = 0.3;
 
-uniform sampler2D cloud_noise : hint_default_noise;
+// Godot has no noise default (hint_default_noise does not exist, review
+// F958): assign a NoiseTexture2D. Unassigned, the black default means no clouds.
+uniform sampler2D cloud_noise : hint_default_black, repeat_enable;
 
 void sky() {
     vec3 view_dir = EYEDIR;

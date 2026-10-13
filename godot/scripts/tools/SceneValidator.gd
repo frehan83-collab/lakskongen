@@ -24,12 +24,16 @@ const SKIP_DIRS: Array[String] = ["res://addons"]
 var _scenes: Array[String] = []
 var _failures: Array[String] = []
 var _roots: Array[String] = []
+var _empty_roots: Array[String] = []
 var _started := false
 
 func _init() -> void:
 	_roots = _resolve_roots()
 	for root in _roots:
+		var before := _scenes.size()
 		_collect(root)
+		if _scenes.size() == before:
+			_empty_roots.append(root)
 	_scenes.sort()
 
 func _process(_delta: float) -> bool:
@@ -39,6 +43,10 @@ func _process(_delta: float) -> bool:
 	print("[SceneValidator] scanning %d scene(s) under %s" % [
 		_scenes.size(), ", ".join(_roots)
 	])
+	for root in _empty_roots:
+		# A root with nothing to validate is a mistake, not a pass (a mistyped
+		# or missing root used to be skipped silently).
+		_failures.append("%s: no scenes found" % root)
 	for scene_path in _scenes:
 		_validate(scene_path)
 	_report()

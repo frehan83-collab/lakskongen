@@ -5,6 +5,7 @@ failed every clean checkout on a git-ignored tooling addon. These pin the
 fixed behaviour without needing Godot.
 """
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -73,3 +74,18 @@ def test_a_missing_git_ignored_tooling_autoload_warns_but_a_tracked_one_fails(tm
     assert result["errors"] == ["Autoload 'Ghost': missing script at 'res://scripts/Ghost.gd'"]
     assert any("Tooling" in w and "git-ignored" in w for w in result["warnings"])
     assert not result["success"]
+
+
+def test_every_ui_flow_test_is_run_exactly_once():
+    """UiFlowTests.gd calls its tests by hand from _run(): a test that is
+    written but never called passes silently (the check count in
+    tools/run_ui_flow_tests.sh only notices checks that existed before)."""
+    source = (REPO / "godot" / "tests" / "UiFlowTests.gd").read_text()
+    defined = re.findall(r"^func (_test_\w+)\(", source, re.MULTILINE)
+    run_body = source.split("\nfunc _run()", 1)[1].split("\nfunc ", 1)[0]
+    run_body = re.sub(r"#[^\n]*", "", run_body)  # a commented-out call does not run
+    called = re.findall(r"\b(_test_\w+)\(\)", run_body)
+    assert len(defined) >= 29
+    assert sorted(set(defined) - set(called)) == [], "defined but never run"
+    assert sorted(set(called) - set(defined)) == [], "run but not defined"
+    assert len(called) == len(set(called)), "a test runs twice"

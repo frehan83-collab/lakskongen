@@ -49,6 +49,15 @@ class HeadlessRunner:
     def run(self, args: List[str], capture_output: bool = True, timeout: int = 300) -> subprocess.CompletedProcess:
         """Run Godot headless with given arguments."""
         cmd = [self.godot_bin, "--headless", "--path", str(self.project_path)] + args
+        return self._execute(cmd, capture_output, timeout)
+
+    def run_with_display(self, args: List[str], prefix: List[str], timeout: int = 300) -> subprocess.CompletedProcess:
+        """Run Godot with a real renderer (no --headless). `prefix` supplies a
+        display where there is none, e.g. ["xvfb-run", "-a"]."""
+        cmd = prefix + [self.godot_bin, "--path", str(self.project_path)] + args
+        return self._execute(cmd, True, timeout)
+
+    def _execute(self, cmd: List[str], capture_output: bool, timeout: int) -> subprocess.CompletedProcess:
         env = os.environ.copy()
         env["TERM"] = "dumb"  # Avoid ANSI codes in output
 
@@ -62,11 +71,11 @@ class HeadlessRunner:
             )
             return result
         except subprocess.TimeoutExpired as e:
-            raise HeadlessError(f"Godot headless timed out after {timeout}s: {e}")
+            raise HeadlessError(f"Godot timed out after {timeout}s: {e}")
         except FileNotFoundError:
             raise HeadlessError(f"Godot binary not found: {self.godot_bin}")
         except Exception as e:
-            raise HeadlessError(f"Failed to run Godot headless: {e}")
+            raise HeadlessError(f"Failed to run Godot: {e}")
 
     def run_script(self, script_path: str, args: List[str] = None) -> subprocess.CompletedProcess:
         """Run a GDScript file headless."""
@@ -155,55 +164,6 @@ func _init():
             return _extract_json(result.stdout)
         except HeadlessError:
             raise HeadlessError(f"Invalid JSON output: {result.stdout}")
-
-    def find_shaders(self) -> List[str]:
-        """Find all .gdshader files in the project."""
-        code = '''
-extends SceneTree
-
-func _init():
-    var shaders = []
-    var dir = DirAccess.open("res://")
-    _find_shaders_recursive(dir, "res://", shaders)
-    print(JSON.stringify(shaders))
-    quit(0)
-
-func _find_shaders_recursive(dir: DirAccess, base_path: String, shaders: Array):
-    for file in dir.get_files():
-        if file.get_extension().to_lower() == "gdshader":
-            shaders.append(base_path.path_join(file))
-    for subdir in dir.get_directories():
-        var sub = DirAccess.open(base_path.path_join(subdir))
-        if sub:
-            _find_shaders_recursive(sub, base_path.path_join(subdir), shaders)
-'''
-        result = self.run_gdscript(code)
-        if result.returncode != 0:
-            raise HeadlessError(f"Failed to find shaders: {result.stderr}")
-        try:
-            return _extract_json(result.stdout)
-        except HeadlessError:
-            raise HeadlessError(f"Invalid JSON output: {result.stdout}")
-
-    def compile_shader(self, shader_path: str) -> Dict[str, Any]:
-        """Compile a single shader and return errors/warnings."""
-        code = f'''
-extends SceneTree
-
-func _init():
-    var shader = load("{shader_path}")
-    if shader == null:
-        print(JSON.stringify({{"error": "failed to load shader"}}))
-        quit(1)
-    # Shader compilation happens on load in Godot 4
-    print(JSON.stringify({{"success": true, "path": "{shader_path}"}}))
-    quit(0)
-'''
-        result = self.run_gdscript(code)
-        try:
-            return _extract_json(result.stdout)
-        except HeadlessError:
-            return {"error": "Failed to parse shader compilation output", "raw": result.stdout}
 
     def get_export_presets(self) -> List[Dict[str, Any]]:
         """Get all export presets from export_presets.cfg."""

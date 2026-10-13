@@ -64,7 +64,7 @@ singletons are registered. Otherwise scripts that reference autoloads such as
 | Code | Meaning |
 | --- | --- |
 | `0` | Every scanned scene loaded cleanly. |
-| `1` | One or more scenes failed validation (or the engine printed a scene/resource error). |
+| `1` | One or more scenes failed validation (or the engine printed a scene/resource error), a root held no scenes, or the validator never printed its result line (crash, early exit, or the 600 s timeout). |
 | `2` | Tooling error (Godot not found, project missing). |
 
 The wrapper prints a final `SCENE VALIDATION: PASSED/FAILED` line and the

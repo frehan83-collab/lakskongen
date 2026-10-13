@@ -6,10 +6,13 @@
 # Every step is recorded so the summary always shows what ran.
 #
 # Environment:
-#   GODOT_BIN   Path to the Godot 4 editor binary. Defaults to the standard
-#               macOS install. If the binary is missing the GDScript parse
-#               scan is skipped gracefully (never a hard failure).
-#   PYTHON      Python interpreter to use. Defaults to python3.
+#   GODOT_BIN       Path to the Godot 4 editor binary. Defaults to the first
+#                   one found on PATH or in the usual macOS install places.
+#                   Without one, every Godot step is skipped.
+#   PYTHON          Python interpreter to use. Defaults to the first of
+#                   python3.12, python3.11, python3 that has pytest.
+#   CI_REQUIRE_ALL  1 turns every skipped step into a failure (GitHub CI sets
+#                   it), so a missing tool cannot produce a green run.
 #
 # Usage:
 #   bash tools/ci.sh
@@ -100,6 +103,36 @@ run_step() {
     CURRENT_STEP=""
 }
 
+# A skipped step is a hole in the gate. Locally it is reported and the run
+# goes on; with CI_REQUIRE_ALL=1 it fails the run instead (its non-zero
+# status trips the ERR trap). Call it as `skip_step "why"; return` so a
+# skipped step ends there.
+skip_step() {
+    echo "   $1"
+    if [[ "${CI_REQUIRE_ALL:-0}" == "1" ]]; then
+        echo "   CI_REQUIRE_ALL=1: a skipped step fails the gate."
+        STEP_STATUS="FAIL"
+        return 1
+    fi
+    STEP_STATUS="SKIP"
+}
+
+# Runs "$@" with a time limit. macOS ships without coreutils `timeout`, so
+# fall back to perl's alarm (SIGALRM ends the command: exit 142). A plain
+# function rather than a command array, because bash 3.2 (/bin/bash on macOS)
+# aborts on an empty "${array[@]}" under `set -u`.
+with_timeout() {
+    local secs="$1"
+    shift
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$secs" "$@"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        gtimeout "$secs" "$@"
+    else
+        perl -e 'alarm shift; exec @ARGV or die "exec failed: $!\n"' "$secs" "$@"
+    fi
+}
+
 step_build() {
     dotnet build LakskongenSim.sln --nologo
 }
@@ -137,21 +170,12 @@ step_tokens() {
 step_design_token_drift() {
     local script="$REPO_ROOT/.claude/skills/ecc/design-token-sync/design_token_sync/drift_check.py"
     if [[ ! -f "$script" ]]; then
-        echo "   Design token drift check script not found at $script — skipping."
-        STEP_STATUS="SKIP"
-        return 0
-    fi
-
-    local python_bin
-    python_bin="$(command -v python3.12 || command -v python3.11 || command -v python3)"
-    if [[ -z "$python_bin" ]]; then
-        echo "   Python 3 not found — skipping design token drift check."
-        STEP_STATUS="SKIP"
-        return 0
+        skip_step "Design token drift check script not found at $script — skipping."
+        return
     fi
 
     echo "   Running design token drift check..."
-    if ! "$python_bin" "$script"; then
+    if ! "$PYTHON" "$script"; then
         echo "   Design token drift check failed."
         STEP_STATUS="FAIL"
         return 1
@@ -182,26 +206,18 @@ step_validate_json() {
 # imported working tree it is a quick no-op.
 step_godot_import() {
     if [[ ! -x "$GODOT_BIN" ]]; then
-        echo "   Godot not found at '$GODOT_BIN' — skipping import."
-        STEP_STATUS="SKIP"
-        return 0
+        skip_step "Godot not found at '$GODOT_BIN' — skipping import."
+        return
     fi
 
     local project="$REPO_ROOT/godot"
     local log rc=0
     log="$(mktemp -t lakskongen-import.XXXXXX)"
 
-    local -a timeout_cmd=()
-    if command -v timeout >/dev/null 2>&1; then
-        timeout_cmd=(timeout 900)
-    elif command -v gtimeout >/dev/null 2>&1; then
-        timeout_cmd=(gtimeout 900)
-    fi
-
     # Same MCP token sandbox as the parse scan: the import boots the editor.
     local mcp_token_sandbox
     mcp_token_sandbox="$(mktemp -d -t lakskongen-mcp-token.XXXXXX)/mcp_token"
-    "${timeout_cmd[@]}" env GODOT_MCP_TOKEN_PATH="$mcp_token_sandbox" "$GODOT_BIN" --headless --path "$project" \
+    with_timeout 900 env GODOT_MCP_TOKEN_PATH="$mcp_token_sandbox" "$GODOT_BIN" --headless --path "$project" \
         --import >"$log" 2>&1 || rc=$?
 
     if (( rc != 0 )); then
@@ -218,36 +234,25 @@ step_godot_import() {
 
 step_scene_validation() {
     if [[ ! -x "$GODOT_BIN" ]]; then
-        echo "   Godot not found at '$GODOT_BIN' — skipping scene validation."
-        STEP_STATUS="SKIP"
-        return 0
+        skip_step "Godot not found at '$GODOT_BIN' — skipping scene validation."
+        return
     fi
     if [[ ! -f "$REPO_ROOT/tools/validate_scenes.sh" ]]; then
-        echo "   tools/validate_scenes.sh missing — skipping."
-        STEP_STATUS="SKIP"
-        return 0
+        skip_step "tools/validate_scenes.sh missing — skipping."
+        return
     fi
     GODOT_BIN="$GODOT_BIN" bash "$REPO_ROOT/tools/validate_scenes.sh"
 }
 
 step_gdscript_scan() {
     if [[ ! -x "$GODOT_BIN" ]]; then
-        echo "   Godot not found at '$GODOT_BIN' — skipping GDScript parse scan."
-        echo "   Set GODOT_BIN=/path/to/Godot to enable it."
-        STEP_STATUS="SKIP"
-        return 0
+        skip_step "Godot not found at '$GODOT_BIN' — skipping GDScript parse scan. Set GODOT_BIN=/path/to/Godot to enable it."
+        return
     fi
 
     local project="$REPO_ROOT/godot"
     local log rc=0
     log="$(mktemp -t lakskongen-godot.XXXXXX)"
-
-    local -a timeout_cmd=()
-    if command -v timeout >/dev/null 2>&1; then
-        timeout_cmd=(timeout 300)
-    elif command -v gtimeout >/dev/null 2>&1; then
-        timeout_cmd=(gtimeout 300)
-    fi
 
     echo "   Using Godot: $GODOT_BIN"
     # Sandbox the MCP session token: --editor boots the toolkit plugin, which
@@ -255,7 +260,7 @@ step_gdscript_scan() {
     # docs/research/MCP_CAPABILITIES.md §3). The scan itself needs no token.
     local mcp_token_sandbox
     mcp_token_sandbox="$(mktemp -d -t lakskongen-mcp-token.XXXXXX)/mcp_token"
-    "${timeout_cmd[@]}" env GODOT_MCP_TOKEN_PATH="$mcp_token_sandbox" "$GODOT_BIN" --headless --path "$project" \
+    with_timeout 300 env GODOT_MCP_TOKEN_PATH="$mcp_token_sandbox" "$GODOT_BIN" --headless --path "$project" \
         --editor --quit-after 3 >"$log" 2>&1 || rc=$?
 
     if grep -qiE "parse error|script error" "$log"; then
@@ -280,9 +285,8 @@ step_gdscript_scan() {
 
 step_ui_flow_tests() {
     if [[ ! -x "$GODOT_BIN" ]]; then
-        echo "   Godot not found at '$GODOT_BIN' — skipping UI flow tests."
-        STEP_STATUS="SKIP"
-        return 0
+        skip_step "Godot not found at '$GODOT_BIN' — skipping UI flow tests."
+        return
     fi
     GODOT_BIN="$GODOT_BIN" bash "$REPO_ROOT/tools/run_ui_flow_tests.sh"
 }
@@ -290,21 +294,12 @@ step_ui_flow_tests() {
 step_verify_assets() {
     local script="$REPO_ROOT/.claude/skills/ecc/blender-asset-pipeline/blender_asset_pipeline.py"
     if [[ ! -f "$script" ]]; then
-        echo "   Blender asset pipeline script not found at $script — skipping."
-        STEP_STATUS="SKIP"
-        return 0
-    fi
-
-    local python_bin
-    python_bin="$(command -v python3.12 || command -v python3.11 || command -v python3)"
-    if [[ -z "$python_bin" ]]; then
-        echo "   Python 3 not found — skipping asset verification."
-        STEP_STATUS="SKIP"
-        return 0
+        skip_step "Blender asset pipeline script not found at $script — skipping."
+        return
     fi
 
     echo "   Verifying exported assets against manifest..."
-    if ! "$python_bin" "$script" --verify-only; then
+    if ! "$PYTHON" "$script" --verify-only; then
         echo "   Asset verification failed."
         STEP_STATUS="FAIL"
         return 1
@@ -313,50 +308,31 @@ step_verify_assets() {
     echo "   Asset verification passed."
 }
 
-step_godot_mcp_scene_diff() {
-    local script="$REPO_ROOT/.claude/skills/ecc/godot-mcp-ops/godot_mcp_ops.py"
-    if [[ ! -f "$script" ]]; then
-        echo "   Godot MCP ops script not found at $script — skipping."
-        STEP_STATUS="SKIP"
-        return 0
-    fi
-
-    local python_bin
-    python_bin="$(command -v python3.12 || command -v python3.11 || command -v python3)"
-    if [[ -z "$python_bin" ]]; then
-        echo "   Python 3 not found — skipping."
-        STEP_STATUS="SKIP"
-        return 0
-    fi
-
-    # Scene diff requires a base and PR scene; in CI we compare against HEAD
-    # For now, skip if no obvious comparison target
-    echo "   Scene diff: requires explicit base/PR scenes (run manually with --base/--pr)"
-    STEP_STATUS="SKIP"
-    return 0
-}
-
-# The three godot-mcp-ops steps run with --no-mcp: by default the tool asks a
+# The godot-mcp-ops steps run with --no-mcp: by default the tool asks a
 # running editor's MCP bridge (ws://localhost:6550) instead, so the result
 # depended on whichever project that editor had open, not on this checkout.
-step_godot_mcp_autoload_audit() {
-    local script="$REPO_ROOT/.claude/skills/ecc/godot-mcp-ops/godot_mcp_ops.py"
-    if [[ ! -f "$script" ]]; then
-        echo "   Godot MCP ops script not found at $script — skipping."
-        STEP_STATUS="SKIP"
-        return 0
-    fi
+# They get --godot-bin so they use the Godot this gate resolved.
+GODOT_MCP_OPS="$REPO_ROOT/.claude/skills/ecc/godot-mcp-ops/godot_mcp_ops.py"
 
-    local python_bin
-    python_bin="$(command -v python3.12 || command -v python3.11 || command -v python3)"
-    if [[ -z "$python_bin" ]]; then
-        echo "   Python 3 not found — skipping."
-        STEP_STATUS="SKIP"
-        return 0
+# Prints why a godot-mcp-ops step cannot run, or nothing when it can.
+godot_mcp_ops_missing() {
+    if [[ ! -f "$GODOT_MCP_OPS" ]]; then
+        echo "Godot MCP ops script not found at $GODOT_MCP_OPS — skipping."
+    elif [[ ! -x "$GODOT_BIN" ]]; then
+        echo "Godot not found at '$GODOT_BIN' — skipping."
+    fi
+}
+
+step_godot_mcp_autoload_audit() {
+    local missing
+    missing="$(godot_mcp_ops_missing)"
+    if [[ -n "$missing" ]]; then
+        skip_step "$missing"
+        return
     fi
 
     echo "   Running autoload audit..."
-    if ! GODOT_BIN="$GODOT_BIN" "$python_bin" "$script" --no-mcp autoload-audit; then
+    if ! "$PYTHON" "$GODOT_MCP_OPS" --no-mcp --godot-bin "$GODOT_BIN" autoload-audit; then
         echo "   Autoload audit failed."
         STEP_STATUS="FAIL"
         return 1
@@ -365,24 +341,29 @@ step_godot_mcp_autoload_audit() {
     echo "   Autoload audit passed."
 }
 
+# Checks every uniform hint, then compiles every shader under a real renderer:
+# the old check only loaded them headless, where nothing is parsed (F958).
+# Without a display the compile is skipped and the tool exits 3.
 step_godot_mcp_shader_check() {
-    local script="$REPO_ROOT/.claude/skills/ecc/godot-mcp-ops/godot_mcp_ops.py"
-    if [[ ! -f "$script" ]]; then
-        echo "   Godot MCP ops script not found at $script — skipping."
-        STEP_STATUS="SKIP"
-        return 0
+    local missing
+    missing="$(godot_mcp_ops_missing)"
+    if [[ -n "$missing" ]]; then
+        skip_step "$missing"
+        return
     fi
 
-    local python_bin
-    python_bin="$(command -v python3.12 || command -v python3.11 || command -v python3)"
-    if [[ -z "$python_bin" ]]; then
-        echo "   Python 3 not found — skipping."
-        STEP_STATUS="SKIP"
-        return 0
-    fi
+    echo "   Checking shader hints and compiling every shader..."
+    # The compile runs the game, whose MCP runtime would publish a token.
+    local mcp_token_sandbox rc=0
+    mcp_token_sandbox="$(mktemp -d -t lakskongen-mcp-token.XXXXXX)/mcp_token"
+    GODOT_MCP_TOKEN_PATH="$mcp_token_sandbox" "$PYTHON" "$GODOT_MCP_OPS" --no-mcp --godot-bin "$GODOT_BIN" \
+        shader-check || rc=$?
 
-    echo "   Running shader compilation check..."
-    if ! GODOT_BIN="$GODOT_BIN" "$python_bin" "$script" --no-mcp shader-check; then
+    if (( rc == 3 )); then
+        skip_step "Shader hints passed, but without a display the shaders were not compiled."
+        return
+    fi
+    if (( rc != 0 )); then
         echo "   Shader check failed."
         STEP_STATUS="FAIL"
         return 1
@@ -392,25 +373,11 @@ step_godot_mcp_shader_check() {
 }
 
 step_godot_mcp_export_verify() {
-    local script="$REPO_ROOT/.claude/skills/ecc/godot-mcp-ops/godot_mcp_ops.py"
-    if [[ ! -f "$script" ]]; then
-        echo "   Godot MCP ops script not found at $script — skipping."
-        STEP_STATUS="SKIP"
-        return 0
-    fi
-
-    local python_bin
-    python_bin="$(command -v python3.12 || command -v python3.11 || command -v python3)"
-    if [[ -z "$python_bin" ]]; then
-        echo "   Python 3 not found — skipping."
-        STEP_STATUS="SKIP"
-        return 0
-    fi
-
-    if [[ ! -x "$GODOT_BIN" ]]; then
-        echo "   Godot not found at '$GODOT_BIN' — skipping export verify."
-        STEP_STATUS="SKIP"
-        return 0
+    local missing
+    missing="$(godot_mcp_ops_missing)"
+    if [[ -n "$missing" ]]; then
+        skip_step "$missing"
+        return
     fi
 
     echo "   Running export verification..."
@@ -422,7 +389,8 @@ step_godot_mcp_export_verify() {
     # tools/mcp_bridge_alias.py --repair.)
     local mcp_token_sandbox
     mcp_token_sandbox="$(mktemp -d -t lakskongen-mcp-token.XXXXXX)/mcp_token"
-    if ! GODOT_BIN="$GODOT_BIN" GODOT_MCP_TOKEN_PATH="$mcp_token_sandbox" "$python_bin" "$script" --no-mcp export-verify; then
+    if ! GODOT_MCP_TOKEN_PATH="$mcp_token_sandbox" "$PYTHON" "$GODOT_MCP_OPS" --no-mcp --godot-bin "$GODOT_BIN" \
+        export-verify; then
         echo "   Export verification failed."
         STEP_STATUS="FAIL"
         return 1

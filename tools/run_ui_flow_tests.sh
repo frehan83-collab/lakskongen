@@ -4,7 +4,7 @@
 #
 # Boots the real project headless (autoloads included), drives menus and the
 # save/load flow through button signals, and fails non-zero when:
-#   - the runner reports any failed check, or reports zero checks (vacuous);
+#   - the runner reports any failed check, or fewer than MIN_CHECKS checks;
 #   - GDScript raises a script/parse error while the flows run;
 #   - Godot exits non-zero or does not finish within the timeout.
 #
@@ -19,6 +19,11 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT="$REPO_ROOT/godot"
 TIMEOUT_SECS=300
+# The exact number of checks the suite makes: fewer means tests stopped
+# running (an early return, a call dropped from _run()). Raise it with every
+# check you add; lowering it weakens the gate and needs a dispute entry in
+# docs/RUN_LOG.md §8.
+MIN_CHECKS=202
 
 find_godot() {
     if [[ -n "${GODOT_BIN:-}" && -x "$GODOT_BIN" ]]; then
@@ -62,12 +67,15 @@ grep -E "^  (ok|FAIL) " "$LOG"
 result="$(grep -o "UI_FLOW_RESULT checks=[0-9]* failures=[0-9]*" "$LOG" | tail -1)"
 echo "${result:-UI_FLOW_RESULT missing}"
 
+checks="${result#UI_FLOW_RESULT checks=}"
+checks="${checks%% *}"
+
 fail=0
 if [[ -z "$result" ]]; then
     echo "FAIL: runner did not report a result (crash or timeout, rc=$rc)."
     fail=1
-elif [[ "$result" == "UI_FLOW_RESULT checks=0 "* ]]; then
-    echo "FAIL: zero checks ran (vacuous pass)."
+elif (( checks < MIN_CHECKS )); then
+    echo "FAIL: only $checks checks ran, expected at least $MIN_CHECKS (did tests stop running?)."
     fail=1
 elif [[ "$result" != *" failures=0" ]]; then
     fail=1

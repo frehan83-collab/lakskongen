@@ -129,8 +129,11 @@ harness restart — noted in `docs/RUN_LOG.md` decision log).
 
 `step_godot_mcp_autoload_audit`, `step_godot_mcp_shader_check`,
 `step_godot_mcp_export_verify` + the `godot-mcp-ops` skill commands (scene-diff)
-— these run through the Python client/headless paths and passed 15/15 in the
-session-0 CI run. They do not depend on the editor bridge.
+— these run with `--no-mcp --godot-bin "$GODOT_BIN"` and do not depend on the
+editor bridge. The shader check is not headless: the dummy renderer parses no
+shader code, so it checks uniform hints statically and compiles every shader
+in a small window (`xvfb-run` on Linux); the old headless load passed broken
+shaders (review F958).
 
 ---
 

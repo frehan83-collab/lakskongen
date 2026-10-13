@@ -4,7 +4,8 @@
 #
 # Walks every .tscn under the given project roots (default: the whole project,
 # skipping res://addons), loads each PackedScene, and fails non-zero when a
-# scene cannot load or references a missing script/resource.
+# scene cannot load or references a missing script/resource, or when the
+# validator never reports its result (crash, early exit or timeout).
 #
 # Environment:
 #   GODOT_BIN   Path to the Godot 4 editor/mono binary. Auto-detected from
@@ -18,6 +19,7 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT="$REPO_ROOT/godot"
+TIMEOUT_SECS=600
 
 find_godot() {
     if [[ -n "${GODOT_BIN:-}" && -x "$GODOT_BIN" ]]; then
@@ -64,7 +66,9 @@ echo "Scene validator using: $GODOT_BIN"
 echo "Project: $PROJECT"
 echo ""
 
-"$GODOT_BIN" --headless --path "$PROJECT" \
+# perl alarm = portable timeout (macOS ships without coreutils `timeout`).
+perl -e 'alarm shift; exec @ARGV' "$TIMEOUT_SECS" \
+    "$GODOT_BIN" --headless --path "$PROJECT" \
     --script res://scripts/tools/SceneValidator.gd -- "$@" 2>&1 | tee "$LOG"
 godot_rc="${PIPESTATUS[0]}"
 
@@ -75,11 +79,14 @@ if grep -qiE "Parse Error|non-existent resource|failed to load (script|resource)
     engine_fail=1
 fi
 
-if grep -q "SCENE_VALIDATION_RESULT failures=" "$LOG"; then
-    declared="$(grep -o "SCENE_VALIDATION_RESULT failures=[0-9]*" "$LOG" | tail -1)"
-    if [[ "$declared" != "SCENE_VALIDATION_RESULT failures=0" ]]; then
-        engine_fail=1
-    fi
+# No result line means the validator never finished: that is a failure, not
+# a pass (a crash or early quit used to exit 0 with nothing validated).
+declared="$(grep -o "SCENE_VALIDATION_RESULT failures=[0-9]*" "$LOG" | tail -1)"
+if [[ -z "$declared" ]]; then
+    echo "FAIL: SceneValidator.gd did not report a result (crash, early exit or timeout, rc=$godot_rc)."
+    engine_fail=1
+elif [[ "$declared" != "SCENE_VALIDATION_RESULT failures=0" ]]; then
+    engine_fail=1
 fi
 
 echo ""
