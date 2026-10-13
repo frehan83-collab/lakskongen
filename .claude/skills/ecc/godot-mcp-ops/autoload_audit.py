@@ -11,6 +11,7 @@ Scans project.godot autoloads for:
 
 import asyncio
 import re
+import subprocess
 from typing import Any, Dict, List
 from pathlib import Path
 
@@ -77,9 +78,17 @@ class AutoloadAudit:
             if name_counts.get(name, 0) > 1:
                 errors.append(f"Duplicate autoload name: '{name}'")
 
-            # Missing script file
+            # Missing script file. A script under a git-ignored path is local
+            # tooling each developer installs (the Godot MCP toolkit plugin
+            # re-registers its runtime autoload in project.godot whenever the
+            # editor opens), so a clean checkout lacks it by design (F177).
             if script_path and not self._script_exists(script_path):
-                errors.append(f"Autoload '{name}': missing script at '{script_path}'")
+                if self._is_git_ignored(script_path):
+                    warnings.append(
+                        f"Autoload '{name}': optional local tooling not installed "
+                        f"('{script_path}' is git-ignored)")
+                else:
+                    errors.append(f"Autoload '{name}': missing script at '{script_path}'")
 
             # Check for circular references (autoloads referencing each other)
             if script_path and self._has_circular_ref(script_path, autoloads):
@@ -106,6 +115,17 @@ class AutoloadAudit:
             "errors": errors,
             "warnings": warnings
         }
+
+    def _is_git_ignored(self, script_path: str) -> bool:
+        """True when git ignores the script's path (False without git)."""
+        rel = script_path[6:] if script_path.startswith("res://") else script_path
+        try:
+            result = subprocess.run(
+                ["git", "check-ignore", "-q", rel],
+                cwd=self.project_path, capture_output=True, timeout=10)
+        except (OSError, subprocess.SubprocessError):
+            return False
+        return result.returncode == 0
 
     def _script_exists(self, script_path: str) -> bool:
         """Check if script file exists."""

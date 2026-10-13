@@ -169,6 +169,47 @@ step_validate_json() {
     (( fail == 0 ))
 }
 
+# A clean checkout has no godot/.godot cache: class_name globals are unknown
+# (parse errors on JuiceEffects & co.) and imported resources such as the
+# translation files do not exist, so every later Godot step failed on a fresh
+# clone (review F177). Importing first builds the cache; on an already
+# imported working tree it is a quick no-op.
+step_godot_import() {
+    if [[ ! -x "$GODOT_BIN" ]]; then
+        echo "   Godot not found at '$GODOT_BIN' — skipping import."
+        STEP_STATUS="SKIP"
+        return 0
+    fi
+
+    local project="$REPO_ROOT/godot"
+    local log rc=0
+    log="$(mktemp -t lakskongen-import.XXXXXX)"
+
+    local -a timeout_cmd=()
+    if command -v timeout >/dev/null 2>&1; then
+        timeout_cmd=(timeout 900)
+    elif command -v gtimeout >/dev/null 2>&1; then
+        timeout_cmd=(gtimeout 900)
+    fi
+
+    # Same MCP token sandbox as the parse scan: the import boots the editor.
+    local mcp_token_sandbox
+    mcp_token_sandbox="$(mktemp -d -t lakskongen-mcp-token.XXXXXX)/mcp_token"
+    "${timeout_cmd[@]}" env GODOT_MCP_TOKEN_PATH="$mcp_token_sandbox" "$GODOT_BIN" --headless --path "$project" \
+        --import >"$log" 2>&1 || rc=$?
+
+    if (( rc != 0 )); then
+        echo "   Godot import failed (exit $rc):"
+        tail -20 "$log"
+        echo "   Full log: $log"
+        STEP_STATUS="FAIL"
+        return 1
+    fi
+
+    echo "   Project imported (class cache and imported resources ready)."
+    rm -f "$log"
+}
+
 step_scene_validation() {
     if [[ ! -x "$GODOT_BIN" ]]; then
         echo "   Godot not found at '$GODOT_BIN' — skipping scene validation."
@@ -289,6 +330,9 @@ step_godot_mcp_scene_diff() {
     return 0
 }
 
+# The three godot-mcp-ops steps run with --no-mcp: by default the tool asks a
+# running editor's MCP bridge (ws://localhost:6550) instead, so the result
+# depended on whichever project that editor had open, not on this checkout.
 step_godot_mcp_autoload_audit() {
     local script="$REPO_ROOT/.claude/skills/ecc/godot-mcp-ops/godot_mcp_ops.py"
     if [[ ! -f "$script" ]]; then
@@ -306,7 +350,7 @@ step_godot_mcp_autoload_audit() {
     fi
 
     echo "   Running autoload audit..."
-    if ! GODOT_BIN="$GODOT_BIN" "$python_bin" "$script" autoload-audit; then
+    if ! GODOT_BIN="$GODOT_BIN" "$python_bin" "$script" --no-mcp autoload-audit; then
         echo "   Autoload audit failed."
         STEP_STATUS="FAIL"
         return 1
@@ -332,7 +376,7 @@ step_godot_mcp_shader_check() {
     fi
 
     echo "   Running shader compilation check..."
-    if ! GODOT_BIN="$GODOT_BIN" "$python_bin" "$script" shader-check; then
+    if ! GODOT_BIN="$GODOT_BIN" "$python_bin" "$script" --no-mcp shader-check; then
         echo "   Shader check failed."
         STEP_STATUS="FAIL"
         return 1
@@ -372,7 +416,7 @@ step_godot_mcp_export_verify() {
     # tools/mcp_bridge_alias.py --repair.)
     local mcp_token_sandbox
     mcp_token_sandbox="$(mktemp -d -t lakskongen-mcp-token.XXXXXX)/mcp_token"
-    if ! GODOT_BIN="$GODOT_BIN" GODOT_MCP_TOKEN_PATH="$mcp_token_sandbox" "$python_bin" "$script" export-verify; then
+    if ! GODOT_BIN="$GODOT_BIN" GODOT_MCP_TOKEN_PATH="$mcp_token_sandbox" "$python_bin" "$script" --no-mcp export-verify; then
         echo "   Export verification failed."
         STEP_STATUS="FAIL"
         return 1
@@ -396,6 +440,7 @@ run_step "Performance benchmark (perf gate)"           step_benchmark
 run_step "Design token sync check"                     step_tokens
 run_step "Design token drift check"                    step_design_token_drift
 run_step "Validate JSON data + mod manifests"          step_validate_json
+run_step "Godot import (class cache + resources)"      step_godot_import
 run_step "Scene load validation"                       step_scene_validation
 run_step "Headless GDScript parse scan"                step_gdscript_scan
 run_step "Godot UI flow tests (headless)"              step_ui_flow_tests
