@@ -8,7 +8,7 @@ namespace LakskongenSim.Tests.DataLayers
     {
         private readonly SalinityLayer _salinity = new();
         private readonly OxygenLayer _oxygen = new();
-        private readonly CurrentLayer _current = new();
+        private readonly ZoneCurrentLayer _current = new();
 
         // Salinity Tests
 

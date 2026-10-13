@@ -35,23 +35,13 @@ src/LakskongenSim/Data/RealData/Cache/CacheEntry.cs :: DateTime.UtcNow :: public
 src/LakskongenSim/Data/RealData/Cache/DataCache.cs :: DateTime.UtcNow :: CreatedAt = DateTime.UtcNow
 src/LakskongenSim/Data/RealData/Cache/DataCache.cs :: DateTime.UtcNow :: public bool IsExpired => DateTime.UtcNow > ExpiresAt;
 src/LakskongenSim/Data/RealData/Cache/DataCache.cs :: DateTime.UtcNow :: var expiresAt = DateTime.UtcNow.Add(expiration ?? _defaultExpiration);
-src/LakskongenSim/Data/RealData/Layers/TemperatureLayer.cs :: DateTime.UtcNow :: LatestData = DateTime.UtcNow.AddDays(-1),
 src/LakskongenSim/Data/RealData/Loaders/EmodnetDataLoader.cs :: DateTime.UtcNow :: LastSuccessfulQuery = DateTime.UtcNow
 src/LakskongenSim/Data/RealData/Loaders/EmodnetDataLoader.cs :: DateTime.UtcNow :: LatestData = DateTime.UtcNow.AddDays(-1),
 src/LakskongenSim/Data/RealData/Loaders/EmodnetDataLoader.cs :: DateTime.UtcNow :: Timestamp = DateTime.UtcNow,
 src/LakskongenSim/Data/RealData/Models/GeoCoordinate.cs :: HashCode.Combine( :: public override int GetHashCode() => HashCode.Combine(Latitude, Longitude);
-src/LakskongenSim/Data/RealData/RealDataOrchestrator.cs :: DateTime.UtcNow :: LastCheck = DateTime.UtcNow,
-src/LakskongenSim/Data/RealData/RealDataOrchestrator.cs :: DateTime.UtcNow :: return OxygenLayer.GetOxygen(zoneId, date ?? DateTime.UtcNow, depthM);
-src/LakskongenSim/Data/RealData/RealDataOrchestrator.cs :: DateTime.UtcNow :: return SalinityLayer.GetSalinity(zoneId, date ?? DateTime.UtcNow, depthM);
-src/LakskongenSim/Data/RealData/RealDataOrchestrator.cs :: DateTime.UtcNow :: return await BathymetryLayer.GetGridAsync(bbox, DateTime.UtcNow, resolutionKm);
-src/LakskongenSim/Data/RealData/RealDataOrchestrator.cs :: DateTime.UtcNow :: return await TemperatureLayer.GetGridAsync(bbox, date ?? DateTime.UtcNow, resolutionKm);
-src/LakskongenSim/Data/RealData/RealDataOrchestrator.cs :: DateTime.UtcNow :: var timestamp = date ?? DateTime.UtcNow;
 src/LakskongenSim/Environment/BloomEvent.cs :: Guid.NewGuid() :: public string Id { get; set; } = Guid.NewGuid().ToString();
 src/LakskongenSim/Environment/MareanoEnvironmentalDataProvider.cs :: DateTime.UtcNow :: _currentDate = startDate ?? DateTime.UtcNow;
 src/LakskongenSim/Environment/Zone.cs :: HashCode.Combine( :: int dayHash = HashCode.Combine(day, Id);
-src/LakskongenSim/Events/CrisisCapitalismSystem.cs :: DateTime.Now :: StartDate = DateTime.Now
-src/LakskongenSim/Events/CrisisCapitalismSystem.cs :: DateTime.Now :: public bool IsActive => DateTime.Now < StartDate.AddMonths(DurationMonths);
-src/LakskongenSim/Events/CrisisCapitalismSystem.cs :: Guid.NewGuid() :: public string Id { get; set; } = Guid.NewGuid().ToString();
 src/LakskongenSim/Events/EventDefinition.cs :: Guid.NewGuid() :: public string Id { get; set; } = Guid.NewGuid().ToString();
 src/LakskongenSim/Events/VisualMilestones.cs :: DateTime.Now :: milestone.AchievedDate = DateTime.Now;
 src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: .Where(a => a.ConstructionCompleted <= DateTime.Now)

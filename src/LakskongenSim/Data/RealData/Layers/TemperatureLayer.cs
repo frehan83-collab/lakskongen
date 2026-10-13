@@ -20,14 +20,16 @@ namespace Lakskongen.Data.RealData.Layers
         private readonly ISpatialInterpolator _spatialInterpolator;
         private readonly TemporalInterpolator _temporalInterpolator;
         private readonly List<IDataLoader> _dataLoaders;
+        private readonly DateTime _snapshotDate;
 
         // Fallback climatology data (simplified)
         private readonly Dictionary<int, float[]> _seasonalProfile;
 
-        public TemperatureLayer(DataCache cache, List<IDataLoader> dataLoaders)
+        public TemperatureLayer(DataCache cache, List<IDataLoader> dataLoaders, DateTime? snapshotDate = null)
         {
             _cache = cache;
             _dataLoaders = dataLoaders;
+            _snapshotDate = snapshotDate ?? RealDataConfig.DefaultSnapshotDate;
             _spatialInterpolator = new IdwInterpolator(maxPoints: 8, power: 2.0);
             _temporalInterpolator = new TemporalInterpolator();
             
@@ -151,7 +153,7 @@ namespace Lakskongen.Data.RealData.Layers
             return Task.FromResult(new DataAvailability
             {
                 EarliestData = new DateTime(1860, 1, 1),
-                LatestData = DateTime.UtcNow.AddDays(-1),
+                LatestData = _snapshotDate.AddDays(-1),
                 TemporalResolution = TimeSpan.FromDays(1),
                 SpatialResolutionKm = 6.0f,
                 TotalDataPoints = 1000000,
