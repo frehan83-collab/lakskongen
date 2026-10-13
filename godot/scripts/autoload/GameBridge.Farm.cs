@@ -807,7 +807,7 @@ public partial class GameBridge : Node
                 ["oxygen_mgl"]        = oxygenMgL,
                 ["is_feeding"]        = isFeeding,
                 ["max_biomass"]       = site.MABTonnes * 1000,
-                ["escapes_this_year"] = site.EscapesThisYear,
+                ["escapes_this_year"] = site.EscapedFishInLastYear(SimulationEngine?.State?.Day ?? 0),
                 ["net_integrity"]     = site.NetIntegrityPct,
                 ["has_skirt"]         = site.HasLiceSkirt,
                 ["has_deterrent"]     = site.HasSealDeterrent,

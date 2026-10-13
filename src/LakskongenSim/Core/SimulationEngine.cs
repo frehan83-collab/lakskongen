@@ -1590,7 +1590,7 @@ private class BalancingConfig
                 int fish = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
                 message = $"ROV ved {site.Id}: {fish:N0} fisk, lus {GetCompanyLiceAverage():F2}/fisk, " +
                           $"gjeller {site.GillScore:F0}/100, nøter {site.NetIntegrityPct:F0}% (+15 renset), " +
-                          $"rømminger i år: {site.EscapesThisYear}";
+                          $"rømminger siste år: {site.EscapedFishInLastYear(State.Day)}";
                 State.EventLog.Add(new Events.EventRecord
                 {
                     Day = State.Day,
@@ -1740,7 +1740,7 @@ private class BalancingConfig
                 if (remaining <= 0) break;
             }
 
-            site.RecordEscape(escapees);
+            site.RecordEscape(escapees, State.Day);
 
             decimal fine = escapees * EscapeFineNOKPerFish;
             PayCost(fine, CostBooking.Opex, "fines");

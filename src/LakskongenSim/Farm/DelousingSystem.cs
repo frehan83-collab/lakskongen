@@ -175,15 +175,15 @@ namespace LakskongenSim.Farm
                 _ => "mechanical"
             };
 
-            // Apply lice reduction. S8: normalize the operational efficacy
-            // by the model's base so the kill is efficacy x (1-resistance),
-            // not base x profile (double-dip); and only for the flagged
-            // population — the model is company-wide.
+            // Apply lice reduction: the kill is the method's efficacy x
+            // (1 - resistance), once, and only for the flagged population —
+            // the model is company-wide (S8). Normalising the efficacy by the
+            // model's per-type base capped Laser at 0.50 and Thermolicer and
+            // Hydrolicer at 0.82 (F480).
             double efficacyResult = 0.0;
             if (applyCompanyLiceKill)
             {
-                double dose = actualEfficacy / Math.Max(0.01, Health.SeaLiceModel.GetBaseEfficacy(treatmentType));
-                efficacyResult = liceModel.ApplyTreatment(treatmentType, Math.Clamp(dose, 0.0, 1.0));
+                efficacyResult = liceModel.ApplyTreatmentEfficacy(treatmentType, actualEfficacy);
             }
             else
             {

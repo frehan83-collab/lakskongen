@@ -23,7 +23,13 @@ namespace LakskongenSim.Farm
         [JsonIgnore] public bool IsOverMAB => CurrentBiomassTonnes > MABTonnes;
 
         // Sustainability integration properties
+        /// <summary>Fish escaped since the game started. Despite the name it is
+        /// never reset (the balance probe reads it as the cumulative count);
+        /// the escape score and the UI use <see cref="EscapeIncidents"/>.</summary>
         public int EscapesThisYear { get; set; } = 0;
+        /// <summary>This site's escape incidents, kept for the rolling year
+        /// the escape score counts (F457).</summary>
+        public List<EscapeIncident> EscapeIncidents { get; set; } = new();
         public bool IsClosedContainment { get; set; } = false;
 
         /// <summary>Containment tech level 0-5 (Phase 4.1). Old saves default 0;
@@ -151,18 +157,34 @@ namespace LakskongenSim.Farm
             foreach (var p in Pens) p.AdvanceDays(days);
         }
 
-        /// <summary>Record escape event for sustainability tracking.</summary>
-        public void RecordEscape(int fishCount)
+        /// <summary>Days an escape incident counts towards the escape score.</summary>
+        public const int EscapeWindowDays = 365;
+
+        /// <summary>Record an escape on <paramref name="day"/>: one incident for
+        /// the escape score's rolling year, plus its fish. The engine passes
+        /// the current day; the default keeps the old one-argument callers.</summary>
+        public void RecordEscape(int fishCount, int day = 0)
         {
             EscapesThisYear += fishCount;
+            EscapeIncidents.RemoveAll(e => e.Day <= day - EscapeWindowDays);
+            EscapeIncidents.Add(new EscapeIncident { Day = day, Fish = fishCount });
             OnEscapeEvent?.Invoke(fishCount);
         }
 
-        /// <summary>Reset annual counters (call at year start).</summary>
-        public void ResetAnnualCounters()
-        {
-            EscapesThisYear = 0;
-        }
+        /// <summary>Escape incidents in the 365 days up to <paramref name="today"/>.</summary>
+        public int EscapeIncidentsInLastYear(int today)
+            => EscapeIncidents.Count(e => e.Day > today - EscapeWindowDays);
 
+        /// <summary>Fish escaped in the 365 days up to <paramref name="today"/>.</summary>
+        public int EscapedFishInLastYear(int today)
+            => EscapeIncidents.Where(e => e.Day > today - EscapeWindowDays).Sum(e => e.Fish);
+
+    }
+
+    /// <summary>One escape from a site: the day and the number of fish (F457).</summary>
+    public sealed class EscapeIncident
+    {
+        public int Day { get; set; }
+        public int Fish { get; set; }
     }
 }

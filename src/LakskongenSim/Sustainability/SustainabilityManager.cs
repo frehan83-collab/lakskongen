@@ -228,32 +228,26 @@ namespace LakskongenSim.Sustainability
 
         private int CalculateEscapeScore(GameState state)
         {
-            // Zero escapes/year = 20 pts, 1-10 = 10 pts, >10 = 0 pts
-            // Bonus: +5 pts for closed containment systems
-
-            // Count escape events from EventLog in last 365 days
-            var totalEscapes = state.EventLog
-                .Where(e => e.Id.Contains("escape", StringComparison.OrdinalIgnoreCase) && 
-                           e.Day >= state.Day - 365)
-                .Count();
-
-            // Also add tracked escapes from SeaSites
-            foreach (var site in state.SeaSites)
-            {
-                totalEscapes += site.EscapesThisYear;
-            }
+            // Escape incidents in the last 365 days, not fish (F457): this
+            // used to add every site's escaped-fish counter, which is never
+            // reset, so one storm escape of 11+ fish zeroed the category for
+            // the rest of the game (its event-log Id filter matched nothing:
+            // escape records carry no Id). Zero incidents = full points, up to
+            // AcceptableMax = half, more = none; closed containment adds a bonus.
+            var thresholds = _config.Escapes;
+            int incidents = state.SeaSites.Sum(s => s.EscapeIncidentsInLastYear(state.Day));
 
             int score;
-            if (totalEscapes == 0)
+            if (incidents <= thresholds.PerfectMax)
                 score = WEIGHT_ESCAPE_PREVENTION;
-            else if (totalEscapes <= 10)
+            else if (incidents <= thresholds.AcceptableMax)
                 score = WEIGHT_ESCAPE_PREVENTION / 2;
             else
                 score = 0;
 
             // Bonus for closed containment (RAS, semi-closed)
-            if (state.SeaSites.Any(s => s.IsClosedContainment)) 
-                score = Math.Min(score + 5, WEIGHT_ESCAPE_PREVENTION);
+            if (state.SeaSites.Any(s => s.IsClosedContainment))
+                score = Math.Min(score + thresholds.ClosedContainmentBonus, WEIGHT_ESCAPE_PREVENTION);
 
             return Math.Clamp(score, 0, WEIGHT_ESCAPE_PREVENTION);
         }

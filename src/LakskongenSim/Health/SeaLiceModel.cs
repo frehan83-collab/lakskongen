@@ -89,6 +89,7 @@ namespace LakskongenSim.Health
         private const double ORGANOPHOSPHATE_EFFICACY_BASE = 0.88; // ↓ from 0.90
         private const double H2O2_EFFICACY_BASE = 0.65; // ↓ from 0.70
         private const double MECHANICAL_EFFICACY_BASE = 0.82; // ↓ from 0.85
+        private const double UNSLOTTED_EFFICACY_BASE = 0.5;   // laser, cleaner fish, skirts (dose-based path only)
         
         // Resistance development
         private const double RESISTANCE_DEVELOPMENT_RATE = 0.0008; // ↓ from 0.001 (slower resistance)
@@ -233,93 +234,76 @@ namespace LakskongenSim.Health
         }
 
         /// <summary>
-        /// Base (resistance-free) efficacy for a treatment type. Callers that
-        /// already computed an operational efficacy should normalize their
-        /// dose by this so the kill is efficacy x (1 - resistance), not the
-        /// product of two efficacy estimates (S8 double-dip).
+        /// One row per treatment type (F480; the three string switches it
+        /// replaces had drifted): the base kill the dose-based
+        /// <see cref="ApplyTreatment"/> scales, the resistance slot the type
+        /// selects for, and the share of the kill that reaches attached
+        /// chalimus (peroxide baths and thermal/mechanical stripping clear
+        /// mobiles far better). Laser, cleaner fish and preventive skirts have
+        /// no resistance slot.
         /// </summary>
-        public static double GetBaseEfficacy(string treatmentType)
+        private readonly record struct TreatmentSpec(double BaseEfficacy, string? ResistanceSlot, double ChalimusFactor);
+
+        private static TreatmentSpec SpecFor(string treatmentType) => treatmentType.ToLowerInvariant() switch
         {
-            return treatmentType.ToLower() switch
-            {
-                "pyrethroid" or "deltamethrin" or "cypermethrin" => PYRETHROID_EFFICACY_BASE,
-                "organophosphate" or "azamethiphos" => ORGANOPHOSPHATE_EFFICACY_BASE,
-                "hydrogen_peroxide" or "h2o2" => H2O2_EFFICACY_BASE,
-                "mechanical" or "freshwater" or "thermal" => MECHANICAL_EFFICACY_BASE,
-                _ => 0.5,
-            };
-        }
+            "pyrethroid" or "deltamethrin" or "cypermethrin" =>
+                new(PYRETHROID_EFFICACY_BASE, nameof(PyrethroidResistance), 1.0),
+            "organophosphate" or "azamethiphos" =>
+                new(ORGANOPHOSPHATE_EFFICACY_BASE, nameof(OrganophosphateResistance), 1.0),
+            "hydrogen_peroxide" or "h2o2" =>
+                new(H2O2_EFFICACY_BASE, nameof(HydrogenPeroxideResistance), 0.35),
+            "mechanical" or "freshwater" or "thermal" =>
+                new(MECHANICAL_EFFICACY_BASE, nameof(MechanicalResistance), 0.6),
+            _ => new(UNSLOTTED_EFFICACY_BASE, null, 1.0),
+        };
 
         /// <summary>
-        /// Apply chemical treatment.
+        /// Base (resistance-free) efficacy the dose-based
+        /// <see cref="ApplyTreatment"/> scales for a treatment type.
         /// </summary>
-        /// <param name="treatmentType">"pyrethroid", "organophosphate", "hydrogen_peroxide"</param>
+        public static double GetBaseEfficacy(string treatmentType) => SpecFor(treatmentType).BaseEfficacy;
+
+        /// <summary>
+        /// Apply a treatment dosed as a fraction of the type's base efficacy.
+        /// </summary>
+        /// <param name="treatmentType">"pyrethroid", "organophosphate", "hydrogen_peroxide", "thermal", ...</param>
         /// <param name="doseFraction">Dose fraction 0-1 (default 1.0)</param>
         /// <returns>Fraction of lice killed (0-1)</returns>
         public double ApplyTreatment(string treatmentType, double doseFraction = 1.0)
+            => Kill(treatmentType, SpecFor(treatmentType).BaseEfficacy * doseFraction);
+
+        /// <summary>
+        /// Apply a treatment whose operational efficacy is already known (a
+        /// delousing method's profile): the kill is efficacy x (1 - resistance
+        /// of the type's slot). Normalising that efficacy by the type's base
+        /// capped Laser at 0.50 and Thermolicer and Hydrolicer at 0.82 (F480).
+        /// </summary>
+        /// <returns>Fraction of mobile lice killed (0-1)</returns>
+        public double ApplyTreatmentEfficacy(string treatmentType, double efficacy)
+            => Kill(treatmentType, efficacy);
+
+        private double Kill(string treatmentType, double efficacyBeforeResistance)
         {
-            double efficacy = 0.0;
-            string resistanceField = "";
-            
-            switch (treatmentType.ToLower())
-            {
-                case "pyrethroid":
-                case "deltamethrin":
-                case "cypermethrin":
-                    efficacy = PYRETHROID_EFFICACY_BASE * (1.0 - PyrethroidResistance);
-                    resistanceField = nameof(PyrethroidResistance);
-                    break;
-                case "organophosphate":
-                case "azamethiphos":
-                    efficacy = ORGANOPHOSPHATE_EFFICACY_BASE * (1.0 - OrganophosphateResistance);
-                    resistanceField = nameof(OrganophosphateResistance);
-                    break;
-                case "hydrogen_peroxide":
-                case "h2o2":
-                    efficacy = H2O2_EFFICACY_BASE * (1.0 - HydrogenPeroxideResistance);
-                    resistanceField = nameof(HydrogenPeroxideResistance);
-                    break;
-                case "mechanical":
-                case "freshwater":
-                case "thermal":
-                    efficacy = MECHANICAL_EFFICACY_BASE * (1.0 - MechanicalResistance);
-                    resistanceField = nameof(MechanicalResistance);
-                    break;
-                default:
-                    efficacy = 0.5;
-                    resistanceField = "";
-                    break;
-            }
+            var spec = SpecFor(treatmentType);
+            double resistance = spec.ResistanceSlot == null ? 0.0 : ResistanceOf(spec.ResistanceSlot);
+            double efficacy = Math.Clamp(efficacyBeforeResistance * (1.0 - resistance), 0.0, 0.99);
 
-            efficacy *= doseFraction;
-            efficacy = Math.Clamp(efficacy, 0.0, 0.99);
-
-            // Stage-specific efficacy (Phase 2.1): attached chalimus shrug
-            // off peroxide baths and thermal/mechanical stripping that clear
-            // mobiles effectively — follow-up treatments stay necessary.
-            double chalimusFactor = treatmentType.ToLower() switch
-            {
-                "hydrogen_peroxide" or "h2o2" => 0.35,
-                "thermal" or "mechanical" or "freshwater" => 0.6,
-                _ => 1.0,
-            };
             double survival = 1.0 - efficacy;
-            ChalimusPerFish *= 1.0 - efficacy * chalimusFactor;
+            ChalimusPerFish *= 1.0 - efficacy * spec.ChalimusFactor;
             PreAdultPerFish *= survival;
             AdultFemalePerFish *= survival;
             AdultMalePerFish *= survival;
 
             // Develop resistance (simplified)
-            if (!string.IsNullOrEmpty(resistanceField))
+            if (spec.ResistanceSlot != null)
             {
-                var prop = GetType().GetProperty(resistanceField);
+                var prop = GetType().GetProperty(spec.ResistanceSlot);
                 if (prop != null)
                 {
-                    double current = prop.GetValue(this) is double d ? d : 0.0;
                     double increase = RESISTANCE_DEVELOPMENT_RATE * efficacy; // Stronger selection = faster resistance
-                    prop.SetValue(this, Math.Min(1.0, current + increase));
+                    prop.SetValue(this, Math.Min(1.0, resistance + increase));
                     double newVal = prop.GetValue(this) is double nd ? nd : 0.0;
-                    OnResistanceChanged?.Invoke($"{resistanceField}: {newVal:P1}");
+                    OnResistanceChanged?.Invoke($"{spec.ResistanceSlot}: {newVal:P1}");
                 }
             }
 
@@ -330,6 +314,15 @@ namespace LakskongenSim.Health
 
             return efficacy;
         }
+
+        private double ResistanceOf(string slot) => slot switch
+        {
+            nameof(PyrethroidResistance) => PyrethroidResistance,
+            nameof(OrganophosphateResistance) => OrganophosphateResistance,
+            nameof(HydrogenPeroxideResistance) => HydrogenPeroxideResistance,
+            nameof(MechanicalResistance) => MechanicalResistance,
+            _ => 0.0,
+        };
 
         /// <summary>
         /// Advance resistance decay (fitness cost) when no selection pressure.
