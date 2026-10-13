@@ -57,8 +57,8 @@ blocked, and stop — editing the scoreboard is a human gate.
 
 ## 4. Status header — EDIT IN PLACE
 
-- **Run phase:** `W2 complete (session 3); S10 complete (session 4); next: W3 — S4 data layer v2 (offline snapshots + provenance)`
-- **Active claim:** `(none — session 5 claims W3/S4 data layer v2 per W1 decisions)`
+- **Run phase:** `W3 — in progress (session 5)`
+- **Active claim:** `session 5 — W3/S4 data layer v2: embed CMEMS + MET + Fiskeridir + BarentsWatch + ERA5 offline snapshots in godot/data/ with provenance + license metadata`
 - **Gate state:** `no human gates hit`
 - **Last verified artifact:** `S10 probe PASS (session 4): dotnet test --filter CareerDivergenceProbe → Passed: 1; raw numbers in docs/run/evidence/session_04_s10_probe.md`
 - **Baseline freeze:** `main suite 684 passed / 1 skipped (session 0 rerun, raw log docs/run/evidence/session_00_dotnet_test.txt); CI 15/15; save-hash: comparative gate green (ExactSaveHashTests); golden SHA artifact deferred to W4 save-fuzz`
@@ -86,7 +86,7 @@ deliverable, message format: `run: <wave> <item> — <one-line outcome>`.
 | W0 | MCP inventory doc; Briefs A–E dispatched; `lakskongen-feature` + `lakskongen-screenshot-evidence` authored+validated; baseline frozen | **complete (session 0)** | session 0 report; `docs/research/MCP_CAPABILITIES.md`; commits bc46c90, 8e8a272, 673b6c2 |
 | W1 | Decision memos for R1–R4; skills-gap list; plan wave order updated if findings demand | **complete (session 0)** | `docs/research/W1_DECISIONS.md` (R1–R5); `SKILLS_AUDIT.md` §3 author-order; plan companion-doc note |
 | W2 | Living fjord frames distinct per forced state (lice/red, bloom, storm, night); time-series replaces gauge cluster; a11y audit passes | **complete (session 3)** | S1 `session_01_s1_frames.txt` (phash 16 ×2); S2 `session_02_s2_frames.txt` (phash 18 + analytics test 2/2); S3 `session_03_a11y_audit.md` (audit PASS, targets 221/0, baseline promoted) |
-| W3 | Chosen datasets embedded offline with provenance + license notes; player-path test shows band movement | not started | |
+| W3 | Chosen datasets embedded offline with provenance + license notes; player-path test shows band movement | in progress (session 5) | |
 | W4 | 3-OS exports as CI artifacts; save fuzz 10k clean; version stamping; depot script written | not started | |
 | W5 | Demo slice (`forste_sesong` + `po3_red_sone`) polished; first-15-min script; demo build passes W4 gates | not started | |
 | W6 | Ranked visual items shipped (perf + screenshot gates each); audio pass; store art with licenses | not started | |
