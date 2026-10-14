@@ -29,14 +29,14 @@
       "scale_m": 53.63,
       "orientation": "y_up_centre_on_waterline",
       "lod_levels": ["LOD0", "LOD1", "LOD2"],
-      "materials": ["LK_Band", "LK_BirdNet", "LK_HDPE", "LK_Marker", "LK_Net", "LK_NetAbove", "LK_Skirt", "LK_Walkway"],
-      "tri_budget": { "LOD0": 51768, "LOD1": 13036, "LOD2": 1962 },
+      "materials": ["LK_Band", "LK_BirdNet", "LK_BirdNetGreen", "LK_HDPE", "LK_Hose", "LK_Marker", "LK_Net", "LK_NetAbove", "LK_PoleBlue", "LK_Skirt", "LK_Spreader", "LK_Walkway"],
+      "tri_budget": { "LOD0": 54772, "LOD1": 13940, "LOD2": 1910 },
       "tri_max": { "LOD0": 60000, "LOD2": 2000 },
       "export_path": "godot/assets/models/pen_cage/pen_cage_{lod}.glb",
       "build_script": "blender/build_pen.py",
       "godot_scene": "godot/assets/models/pen_cage/pen_cage.tscn",
       "licence": "Proprietary (Lakskongen). In-house geometry and generated textures; no third-party assets.",
-      "reference": "AKVA group, 'AKVA Polarcirkel 500RS' product page, https://www.akvagroup.com/plastic-pens/akva-polarcirkel-500rs (retrieved 2026-10-14); roadmap A2-01 spec.",
+      "reference": "AKVA group, 'AKVA Polarcirkel 500RS' product page, https://www.akvagroup.com/plastic-pens/akva-polarcirkel-500rs (retrieved 2026-10-14); roadmap A2-01 spec; owner references 2 and 4 (bird-net tent on a centre mast) and 5 (green bird net on blue rim poles, light-grey rotor spreader); roadmap G2-04 (the feed hose ends at the pen's hose port, 30 m out, where the site hose takes over).",
       "spec_tolerance": 0.05,
       "spec": {
         "collar_outer_diameter_m": 53.63,
@@ -49,6 +49,7 @@
         "upright_diameter_m": 0.16,
         "handrail_diameter_m": 0.14,
         "bird_net_mast_m": [6.0, 8.0],
+        "bird_net_rim_pole_m": [6.0, 8.0],
         "net_depth_m": [20.0, 40.0],
         "lice_skirt_depth_m": [6.0, 15.0]
       }
@@ -80,6 +81,22 @@
       "licence": "Proprietary (Lakskongen). In-house geometry; no third-party assets.",
       "spec_tolerance": 0.05,
       "spec": { "bbox_m": [0.22, 1.26, 0.22], "lamp_colour": "#FFC23A" }
+    },
+    {
+      "id": "hose_float",
+      "type": "site_kit",
+      "scale_m": 0.72,
+      "orientation": "y_up_waterline",
+      "lod_levels": ["LOD0", "LOD1", "LOD2"],
+      "materials": ["LK_Buoy", "LK_HDPE"],
+      "tri_budget": { "LOD0": 236, "LOD1": 70, "LOD2": 60 },
+      "export_path": "godot/assets/models/site_kit/hose_float_{lod}.glb",
+      "build_script": "blender/build_site_kit.py",
+      "build_args": ["--asset", "hose_float"],
+      "licence": "Proprietary (Lakskongen). In-house geometry; no third-party assets.",
+      "reference": "Roadmap G2-04 and owner reference 1: yellow floats along the white feed hoses.",
+      "spec_tolerance": 0.05,
+      "spec": { "bbox_m": [0.724, 0.565, 0.7058] }
     },
     {
       "id": "workboat",

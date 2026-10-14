@@ -77,6 +77,7 @@ func _run() -> void:
 	await _test_pen_models_read_as_equipment()
 	await _test_hero_pen_and_site_kit()
 	await _test_vessel_fleet()
+	await _test_multi_pen_sites()
 	_test_facade_forwards_phase5_systems()
 	await _test_terrain_faces_up_and_shares_one_heightfield()
 	await _test_camera_frames_sky_and_avoids_terrain()
@@ -2255,13 +2256,21 @@ func _test_pen_models_read_as_equipment() -> void:
 	var env: Node = scene.get_node("FjordEnvironment")
 	var pens: FishPenManager = env.get_node("FishPenManager")
 	var site_id := str(_sim.get_all_pens()[0].get("id", "")) if not _sim.get_all_pens().is_empty() else ""
-	var cage := pens.get_node_or_null("PenMarkers/" + site_id) as PenCage
-	_check(cage != null, "pen models: site %s has a pen cage" % site_id)
+	# G2-04 replaced "the site has a pen cage" (one PenCage per site, named
+	# after it): the site has as many pen cages as the engine gives it.
+	var engine_pens := int(_sim.get_all_pens()[0].get("pen_count", -1)) if not _sim.get_all_pens().is_empty() else -1
+	var cages := pens.get_site_cages(site_id)
+	var cage: PenCage = cages[0] if not cages.is_empty() else null
+	_check(cage != null and engine_pens > 1 and cages.size() == engine_pens,
+		"pen models: site %s has its %d pen cages (%d drawn)" % [site_id, engine_pens, cages.size()])
 	if cage == null:
 		scene.queue_free()
 		return
 
-	_check(_net_lid_faces(cage) == 0, "pen models: the net has no lid (%d top faces)" % _net_lid_faces(cage))
+	var lids := 0
+	for c in cages:
+		lids += _net_lid_faces(c)
+	_check(lids == 0, "pen models: no pen's net has a lid (%d top faces)" % lids)
 
 	pens.select_pen(site_id)
 	var spheres := 0
@@ -2287,17 +2296,31 @@ func _test_pen_models_read_as_equipment() -> void:
 	var ring := cage.get_health_ring()
 	_check(healthy == FishPenManager.COLOR_HEALTHY and red == FishPenManager.COLOR_CRITICAL,
 		"pen models: lice 0.05 -> healthy ring, 0.6 -> critical ring (%s, %s)" % [healthy, red])
-	_check(ring != null and ring.visible and ring.get_instance_shader_parameter("ring_color") == red,
-		"pen models: the health ring on the water shows the site state")
+	var rings_red := true
+	for c in cages:
+		var r := c.get_health_ring()
+		rings_red = rings_red and r != null and r.visible and r.get_instance_shader_parameter("ring_color") == red
+	_check(ring != null and rings_red,
+		"pen models: the health ring on the water of every pen of the site shows the site state")
 	_check(_delta_e76(healthy, red) >= 20.0, "pen models: healthy vs red ring dE %.1f >= 20" % _delta_e76(healthy, red))
 	var collar_after := _albedo_of(cage.get_node("Collar") as MeshInstance3D)
 	_check(collar_after == collar_before and _linear_luminance(collar_after) < 0.1,
 		"pen models: the collar stays black HDPE (luminance %.3f) whatever the lice" % _linear_luminance(collar_after))
 
-	var label := cage.get_node_or_null("Label") as Label3D
+	# G2-04: one name per site, over its grid (it was on the site's one
+	# pen), and a number on each pen.
+	var label := pens.get_site_label(site_id)
+	var farm := pens.get_site(site_id)
 	_check(label != null and label.billboard == BaseMaterial3D.BILLBOARD_ENABLED and label.fixed_size
-		and label.position.y > 3.0,
-		"pen models: the site label is a constant-size billboard above the pen")
+		and label.position.y > 3.0 and Vector2(label.position.x, label.position.z).length() < 0.01
+		and farm.find_children("Label", "Label3D", true, false).size() == 1,
+		"pen models: the site label is one constant-size billboard above the grid's centre")
+	var numbered := true
+	for k in cages.size():
+		var number := cages[k].get_node_or_null("Number") as Label3D
+		numbered = numbered and number != null and number.text == str(k + 1) and number.fixed_size \
+			and number.visibility_range_end > 0.0
+	_check(numbered, "pen models: every pen carries its number (1-%d), shown up close" % cages.size())
 
 	# A3-01 retired the capsule service boat: the site's boat is the 15 x 10 m
 	# workboat catamaran. Its twin hulls must still lie flat along the boat
@@ -2327,8 +2350,11 @@ func _test_hero_pen_and_site_kit() -> void:
 	var env: Node = scene.get_node("FjordEnvironment")
 	var pens: FishPenManager = env.get_node("FishPenManager")
 	var site_id := str(_sim.get_all_pens()[0].get("id", "")) if not _sim.get_all_pens().is_empty() else ""
-	var cage := pens.get_node_or_null("PenMarkers/" + site_id) as PenCage
-	_check(cage != null, "hero pen: site %s has a pen" % site_id)
+	# G2-04: a site is a grid of pens (it was one PenCage named after it).
+	var cages := pens.get_site_cages(site_id)
+	var cage: PenCage = cages[0] if not cages.is_empty() else null
+	_check(cage != null and cages.size() == int(_sim.get_all_pens()[0].get("pen_count", -1)),
+		"hero pen: site %s has its %d pens" % [site_id, cages.size()])
 	if cage == null:
 		scene.queue_free()
 		return
@@ -2341,13 +2367,19 @@ func _test_hero_pen_and_site_kit() -> void:
 		lod_tris.append(tris)
 	_check(lod_tris[0] > 30000 and lod_tris[0] <= 60000 and lod_tris[2] > 0 and lod_tris[2] <= 2000,
 		"hero pen: LOD0 %d tris <= 60k, LOD2 %d tris <= 2k" % [lod_tris[0], lod_tris[2]])
+	# A pen on its own hands its LODs over by camera distance; in a site the
+	# site's MultiMeshes draw LOD1 and LOD2 (SiteFlowChecks: the hand-over).
+	var lone := (load("res://assets/models/pen_cage/pen_cage.tscn") as PackedScene).instantiate() as PenCage
+	add_child(lone)
 	var lods_chain := true
 	for level in [1, 2]:
-		for mesh in cage.get_lod_meshes(level):
-			lods_chain = lods_chain and is_equal_approx(mesh.visibility_range_begin, PenCage.LOD_SWITCH[level - 1])
-	for mesh in cage.get_lod_meshes(0):
+		for mesh in lone.get_lod_meshes(level):
+			lods_chain = lods_chain and is_equal_approx(mesh.visibility_range_begin, PenCage.LOD_SWITCH[level - 1]) \
+				and mesh.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	for mesh in lone.get_lod_meshes(0):
 		lods_chain = lods_chain and is_equal_approx(mesh.visibility_range_end, PenCage.LOD_SWITCH[0])
-	_check(lods_chain, "hero pen: LOD0 -> LOD1 -> LOD2 hand over by camera distance")
+	lone.free()
+	_check(lods_chain, "hero pen: LOD0 -> LOD1 -> LOD2 hand over by camera distance, nothing past LOD0 casts a shadow")
 	var collar := (cage.get_node("Collar") as MeshInstance3D).get_aabb()
 	var net := (cage.get_node("Net") as MeshInstance3D).get_aabb()
 	_check(absf(collar.size.x - 53.63) / 53.63 <= 0.05 and absf(collar.size.z - 53.63) / 53.63 <= 0.05,
@@ -2355,26 +2387,41 @@ func _test_hero_pen_and_site_kit() -> void:
 	_check(-net.position.y >= 20.0 and -net.position.y <= 40.0 * 1.05,
 		"hero pen: the net hangs %.1f m deep (20-40 m with a cone bottom)" % -net.position.y)
 
-	_check(not cage.has_lice_skirt() and cage.get_parts("LiceSkirt").all(func(m: MeshInstance3D) -> bool: return not m.visible),
-		"hero pen: no lice skirt before the site buys one")
+	var no_skirt := true
+	for c in cages:
+		no_skirt = no_skirt and not c.has_lice_skirt() and c.get_parts("LiceSkirt").all(func(m: MeshInstance3D) -> bool: return not m.visible)
+	_check(no_skirt, "hero pen: no lice skirt on any pen before the site buys one")
 	_check(_sim.toggle_mitigation(site_id, "skirt"), "hero pen: the site buys a lice skirt")
 	_sim.state_updated.emit()
 	await get_tree().process_frame
-	_check(cage.has_lice_skirt() and cage.get_parts("LiceSkirt").size() == 3
-		and cage.get_parts("LiceSkirt").all(func(m: MeshInstance3D) -> bool: return m.visible),
-		"hero pen: the skirt variant shows on every LOD of the pen")
+	var skirted := true
+	for c in cages:
+		skirted = skirted and c.has_lice_skirt() and c.get_parts("LiceSkirt").size() == 3 \
+			and c.get_parts("LiceSkirt").all(func(m: MeshInstance3D) -> bool: return m.visible)
+	var site_skirts: Array = []
+	for level in [FarmSite.Lod.MID, FarmSite.Lod.FAR]:
+		site_skirts.append(pens.get_site(site_id).get_lod_multimeshes(level).get("LiceSkirt"))
+	_check(skirted and not site_skirts.has(null),
+		"hero pen: the skirt variant shows on every LOD of every pen of the site (and its LOD1/LOD2 MultiMeshes)")
 
+	# G2-04 replaced "the pen lies in one 70-100 m frame mooring cell": the
+	# site's pens lie one to a cell of a grid of 70-100 m cells.
 	var grid := pens.get_pen_mooring(site_id)
-	_check(grid != null and grid.cells_x == 1 and grid.cells_z == 1
+	var n := cages.size()
+	var dims := SiteLayout.grid_dims(n)
+	_check(grid != null and grid.cells_x == dims.x and grid.cells_z == dims.y and dims.x * dims.y >= n
 		and MooringGrid.CELL_M >= 70.0 and MooringGrid.CELL_M <= 100.0,
-		"site kit: the pen lies in one 70-100 m frame mooring cell")
+		"site kit: the %d pens lie in a %d x %d frame mooring of %.0f m cells (70-100 m)" % [n, dims.x, dims.y, MooringGrid.CELL_M])
 	if grid != null:
-		_check(grid.buoy_positions.size() == 4 and grid.ropes_of("bridle").size() == 8
-			and grid.ropes_of("anchor").size() == 8 and grid.ropes_of("frame").size() == 4,
-			"site kit: 4 grid buoys, 8 bridles, 8 anchor lines, 4 frame lines")
+		var nodes := (dims.x + 1) * (dims.y + 1)
+		_check(grid.buoy_positions.size() == nodes and grid.ropes_of("bridle").size() == 8 * n
+			and grid.ropes_of("anchor").size() == 2 * (dims.x + dims.y) + 4
+			and grid.ropes_of("frame").size() == dims.x * (dims.y + 1) + dims.y * (dims.x + 1),
+			"site kit: %d grid buoys, %d bridles, %d anchor lines, %d frame lines" % [grid.buoy_positions.size(),
+				grid.ropes_of("bridle").size(), grid.ropes_of("anchor").size(), grid.ropes_of("frame").size()])
 		var buoys_drawn := not grid.get_buoy_instances().is_empty()
 		for mmi in grid.get_buoy_instances():
-			buoys_drawn = buoys_drawn and mmi.multimesh.instance_count == 4
+			buoys_drawn = buoys_drawn and mmi.multimesh.instance_count == nodes
 		_check(buoys_drawn and grid.get_buoy_instances().size() == 3, "site kit: buoys drawn at all three LODs")
 		var lamps_ok := grid.light_positions.size() == 4 and grid.get_light_instances().size() == 3
 		for mmi in grid.get_light_instances():
@@ -2389,13 +2436,20 @@ func _test_hero_pen_and_site_kit() -> void:
 	var rival_moorings := not rivals.farm_ids().is_empty()
 	for id in rivals.farm_ids():
 		var farm: Dictionary = rivals._competitor_farms[id]
-		var n: int = farm.cages.size()
+		var rn: int = farm.cages.size()
+		var rd := SiteLayout.grid_dims(rn)
 		var rg: MooringGrid = farm.get("mooring")
-		rival_moorings = rival_moorings and rg != null and rg.cells_z == n \
-			and rg.buoy_positions.size() == 2 * (n + 1) and rg.ropes_of("bridle").size() == 8 * n
+		rival_moorings = rival_moorings and rg != null and rn >= 2 and rg.cells_x == rd.x and rg.cells_z == rd.y \
+			and rg.buoy_positions.size() == (rd.x + 1) * (rd.y + 1) and rg.ropes_of("bridle").size() == 8 * rn
 	_check(rival_moorings, "site kit: every rival farm lies in its own frame mooring, one cell per pen")
 	scene.queue_free()
 	await get_tree().process_frame
+
+## G2-04: multi-pen sites in a mooring grid, their feed hoses, clicks, pen
+## LODs and floating gear (tests/SiteFlowChecks.gd).
+func _test_multi_pen_sites() -> void:
+	var checks: RefCounted = (load("res://tests/SiteFlowChecks.gd") as GDScript).new()
+	await checks.run(self)
 
 ## A3-01: the fleet is the Blender vessel set at real dimensions (barges 37 x
 ## 11 m and 64.8 x 13 m, wellboats 77 x 17.8 m and 116 x 23 m, workboat
@@ -2469,8 +2523,9 @@ func _test_vessel_fleet() -> void:
 	_check(on_station, "vessels: sites stocked when the game starts have their barge on station, no tow-in (%s)" % ", ".join(states))
 	var sites: Array = _sim.get_all_pens()
 	var site_id := str(sites[0].get("id", "")) if not sites.is_empty() else ""
-	var cage := pens.get_node_or_null("PenMarkers/" + site_id) as PenCage
-	_check(cage != null, "vessels: site %s has a pen" % site_id)
+	var site_cages := pens.get_site_cages(site_id)
+	var cage: PenCage = site_cages[0] if not site_cages.is_empty() else null
+	_check(cage != null, "vessels: site %s has its pens (%d)" % [site_id, site_cages.size()])
 	if cage == null:
 		scene.queue_free()
 		return
@@ -2508,17 +2563,25 @@ func _test_vessel_fleet() -> void:
 
 	_check(barges.barge_state(site_id) == "moored", "vessels: the feed barge lies moored on station (%s)" % barges.barge_state(site_id))
 	var barge := barges.barge_of(site_id) as VesselModel
+	# G2-04 replaced "beside its pen (< 80 m)": the barge lies beside its
+	# site's grid, its inner hull side BARGE_GRID_GAP_M outside the outer
+	# frame line, alongside the grid, feed side to the pens.
 	var feed_side_ok := barge != null
-	if barge != null:
-		var to_pen := cage.global_position - barge.global_position
-		feed_side_ok = barge.global_transform.basis.x.dot(to_pen) > 0.0 and to_pen.length() < 80.0
-	_check(feed_side_ok, "vessels: the moored barge lies beside its pen with its feed lines towards it")
+	var farm := pens.get_site(site_id)
+	var gap := -1.0
+	if barge != null and farm != null:
+		var to_site := pens.get_pen_position(site_id) - barge.global_position
+		var local := farm.to_local(barge.global_position)
+		gap = absf(local.x) - barge.beam_m * 0.5 - farm.half_extent().x
+		feed_side_ok = barge.global_transform.basis.x.dot(to_site) > 0.0 \
+			and absf(gap - FishPenManager.BARGE_GRID_GAP_M) < 1.0 and absf(local.z) < farm.half_extent().y
+	_check(feed_side_ok, "vessels: the moored barge lies beside its site's grid (%.1f m off the frame), feed side to the pens" % gap)
 	var tender := barge.get_node_or_null("Tender") as VesselModel if barge else null
 	var tender_ok := tender != null and tender.asset_id == "rib"
 	if tender_ok:
-		var away := barge.to_local(cage.global_position).x * tender.position.x
+		var away := barge.to_local(pens.get_pen_position(site_id)).x * tender.position.x
 		tender_ok = away < 0.0 and absf(tender.position.x) > barge.beam_m * 0.5 + tender.beam_m * 0.5
-	_check(tender_ok, "vessels: the barge keeps its tender RIB alongside, on the side away from the pen")
+	_check(tender_ok, "vessels: the barge keeps its tender RIB alongside, on the side away from the pens")
 	_check(_no_material_overrides(barge) and _no_material_overrides(carrier) and barge.get_node("Hull").get_active_material(0)
 		== load("res://assets/models/vessel_kit/vessel_hull_slate_material.tres"),
 		"vessels: barge and wellboat hulls keep the shared vessel paint, no per-boat material")
@@ -3234,7 +3297,11 @@ func _check_waves_carry_pens_and_boats(director: EnvironmentDirector, pens: Fish
 		"water: the CPU wave carries the shader's own wave, grid and bake uniforms and lands within %.6f m of its vertex displacement at 96 points (drawn heights to %.2f m)"
 			% [worst_vertex, drawn_height])
 
-	var cage := pens._pens[site_id]["node"] as PenCage
+	# G2-04: a site is a grid of pens; every one of them rides its own ring
+	# (this checked the site's one pen, sampled at the site's position).
+	var cages := pens.get_site_cages(site_id)
+	var farm := pens.get_site(site_id)
+	var cage: PenCage = cages[0] if not cages.is_empty() else null
 	var collar := cage.get_node_or_null("Collar") as MeshInstance3D if cage != null else null
 	var collar_top := (collar.transform * collar.mesh.get_aabb()).end.y if collar != null else 0.0
 	var worst_heave := 0.0
@@ -3246,45 +3313,49 @@ func _check_waves_carry_pens_and_boats(director: EnvironmentDirector, pens: Fish
 		director.compose(RIDE_SAMPLE_STEP_S)
 		if cage == null:
 			break
-		cage.ride_waves()
-		# The ring's least-squares plane, sampled point by point.
-		var mean := 0.0
-		var xh := 0.0
-		var zh := 0.0
-		var xx := 0.0
-		var zz := 0.0
-		for k in RIDE_RING_POINTS:
-			var a := TAU * float(k) / RIDE_RING_POINTS
-			var dx := cos(a) * PenCage.RING_RADIUS
-			var dz := sin(a) * PenCage.RING_RADIUS
-			var h := field.height_at(pen_at.x + dx, pen_at.z + dz)
-			mean += h
-			xh += dx * h
-			zh += dz * h
-			xx += dx * dx
-			zz += dz * dz
-		mean /= RIDE_RING_POINTS
-		worst_heave = maxf(worst_heave, absf(cage.global_position.y - mean))
-		var up := cage.global_transform.basis.y
-		worst_tilt = maxf(worst_tilt, maxf(absf(-up.x / up.y - xh / xx), absf(-up.z / up.y - zh / zz)))
-		heaves.append(cage.global_position.y)
-		# The collar's inner and outer pipe (build_pen.py R_IN, R_OUT) round the ring.
-		for k in RIDE_RING_POINTS * 2:
-			var a := TAU * (floorf(float(k) * 0.5) + 0.5 * float(k % 2)) / RIDE_RING_POINTS
-			var radius := 25.465 if k % 2 == 0 else 26.565
-			var waterline := cage.global_transform * Vector3(cos(a) * radius, 0.0, sin(a) * radius)
-			var top := cage.global_transform * Vector3(cos(a) * radius, collar_top, sin(a) * radius)
-			var water := field.height_at(top.x, top.z)
-			worst_rise = maxf(worst_rise, water - waterline.y)
-			least_margin = minf(least_margin, top.y - water)
+		for k in cages.size():
+			var c := cages[k]
+			c.ride_waves()
+			var rest := farm.pen_rest_position(k)
+			# The ring's least-squares plane, sampled point by point.
+			var mean := 0.0
+			var xh := 0.0
+			var zh := 0.0
+			var xx := 0.0
+			var zz := 0.0
+			for j in RIDE_RING_POINTS:
+				var a := TAU * float(j) / RIDE_RING_POINTS
+				var dx := cos(a) * PenCage.RING_RADIUS
+				var dz := sin(a) * PenCage.RING_RADIUS
+				var h := field.height_at(rest.x + dx, rest.z + dz)
+				mean += h
+				xh += dx * h
+				zh += dz * h
+				xx += dx * dx
+				zz += dz * dz
+			mean /= RIDE_RING_POINTS
+			worst_heave = maxf(worst_heave, absf(c.global_position.y - mean))
+			var up := c.global_transform.basis.y
+			worst_tilt = maxf(worst_tilt, maxf(absf(-up.x / up.y - xh / xx), absf(-up.z / up.y - zh / zz)))
+			if k == 0:
+				heaves.append(c.global_position.y)
+			# The collar's inner and outer pipe (build_pen.py R_IN, R_OUT) round the ring.
+			for j in RIDE_RING_POINTS * 2:
+				var a := TAU * (floorf(float(j) * 0.5) + 0.5 * float(j % 2)) / RIDE_RING_POINTS
+				var radius := 25.465 if j % 2 == 0 else 26.565
+				var waterline := c.global_transform * Vector3(cos(a) * radius, 0.0, sin(a) * radius)
+				var top := c.global_transform * Vector3(cos(a) * radius, collar_top, sin(a) * radius)
+				var water := field.height_at(top.x, top.z)
+				worst_rise = maxf(worst_rise, water - waterline.y)
+				least_margin = minf(least_margin, top.y - water)
 	var heave_range := 0.0
 	if not heaves.is_empty():
 		heave_range = Array(heaves).max() - Array(heaves).min()
-	_check(cage != null and worst_heave <= 0.1 and heave_range > 0.05 and worst_tilt <= 0.005,
-		"water: in a 25 m/s storm the pen rides its ring's mean surface and slope (|y - mean| <= %.3f m, slope within %.4f, over %d moments, heave range %.2f m)"
-			% [worst_heave, worst_tilt, RIDE_SAMPLES, heave_range])
+	_check(cage != null and cages.size() > 1 and worst_heave <= 0.1 and heave_range > 0.05 and worst_tilt <= 0.005,
+		"water: in a 25 m/s storm each of the site's %d pens rides its ring's mean surface and slope (|y - mean| <= %.3f m, slope within %.4f, over %d moments, heave range %.2f m)"
+			% [cages.size(), worst_heave, worst_tilt, RIDE_SAMPLES, heave_range])
 	_check(collar != null and worst_rise > 0.0 and least_margin > 0.0,
-		"water: ... and the water round the riding collar rises at most %.2f m above its waterline, under its %.2f m top (least margin %.2f m)"
+		"water: ... and the water round every riding collar rises at most %.2f m above its waterline, under its %.2f m top (least margin %.2f m)"
 			% [worst_rise, collar_top, least_margin])
 
 	var boats: WellboatVisualManager = pens.get_parent().get_node("WellboatVisualManager")

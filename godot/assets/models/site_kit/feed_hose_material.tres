@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://feed_hose_mat_001"]
+
+[ext_resource type="Shader" path="res://shaders/feed_hose.gdshader" id="1_shader"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/hose_color = Color(0.929412, 0.937255, 0.937255, 1)
+shader_parameter/roughness = 0.42
+shader_parameter/hose_radius = 0.055
+shader_parameter/float_y = 0.035
+shader_parameter/min_pixels = 1.6

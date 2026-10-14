@@ -48,8 +48,8 @@ _subresources={
 },
 "LK_HDPE": {
 "use_external/enabled": true,
-"use_external/fallback_path": "res://assets/models/pen_cage/pen_collar_material.tres",
-"use_external/path": "res://assets/models/pen_cage/pen_collar_material.tres"
+"use_external/fallback_path": "res://assets/models/site_kit/mooring_hdpe_material.tres",
+"use_external/path": "res://assets/models/site_kit/mooring_hdpe_material.tres"
 },
 "LK_Lamp": {
 "use_external/enabled": true,

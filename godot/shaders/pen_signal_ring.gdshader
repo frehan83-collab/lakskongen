@@ -31,7 +31,7 @@ void vertex() {
 void fragment() {
 	float r = length(local_xz);
 	// Metres covered by one pixel at this fragment's depth.
-	float m_per_px = 2.0 * length(VERTEX) / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y);
+	float m_per_px = 2.0 * length(VERTEX) / (abs(PROJECTION_MATRIX[1][1]) * VIEWPORT_SIZE.y);
 	float hw = max(ring_half_width, 0.5 * min_pixel_width * m_per_px);
 	float d = abs(r - ring_radius);
 	float aa = max(fwidth(r), 1e-4);

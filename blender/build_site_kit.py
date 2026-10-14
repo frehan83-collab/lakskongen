@@ -12,11 +12,17 @@ Pieces (Godot assembles them into a frame mooring with MooringGrid.gd):
                  top and a chain eye below. Grey or orange (instance colour).
   mooring_light  the synchronised yellow corner light (#FFC23A) that sits on
                  the corner buoys: a short mast, a lantern base and the lens.
+  hose_float     the small float that carries the feed hoses (roadmap G2-04,
+                 owner reference 1: yellow floats along the white hoses): a
+                 0.7 m oval HDPE float riding half out of the water, with a
+                 black strap and a saddle the hoses lie in. Buoy yellow
+                 (instance colour).
 
 Each export writes <name>_<LOD>.glb plus a <name>_<LOD>.json sidecar
 (tri_count, material_count, bbox_size) for blender_asset_pipeline.py.
-Node names: Buoy, CornerLight. Materials map to Godot .tres files through the
-.glb.import "use_external" settings: LK_Buoy, LK_Steel, LK_HDPE, LK_Lamp.
+Node names: Buoy, CornerLight, HoseFloat. Materials map to Godot .tres files
+through the .glb.import "use_external" settings: LK_Buoy, LK_Steel, LK_HDPE,
+LK_Lamp.
 
 Licence: in-house geometry, no third-party assets.
 """
@@ -101,9 +107,35 @@ def build_light(p) -> kit.MeshBuilder:
     return mb
 
 
+FLOAT_R = 0.35
+FLOAT_TOP = 0.26
+FLOAT_BOTTOM = -0.26
+
+
+def build_hose_float(p) -> kit.MeshBuilder:
+    """Hose float: an oval yellow float half out of the water, a black strap
+    round its waist and a shallow saddle on top for the hoses."""
+    mb = kit.MeshBuilder()
+    around = max(p["around"] // 2 + 2, 6)
+    body = [(0.0, FLOAT_TOP), (0.20, FLOAT_TOP - 0.02), (0.31, FLOAT_TOP - 0.10), (FLOAT_R, 0.04),
+            (FLOAT_R, -0.04), (0.31, FLOAT_BOTTOM + 0.10), (0.20, FLOAT_BOTTOM + 0.02), (0.0, FLOAT_BOTTOM)]
+    if not p["rib"]:
+        body = [(0.0, FLOAT_TOP), (0.27, FLOAT_TOP - 0.06), (FLOAT_R, 0.0), (0.27, FLOAT_BOTTOM + 0.06),
+                (0.0, FLOAT_BOTTOM)]
+    kit.surface_of_revolution(mb, body, around, "LK_Buoy")
+    strap = [(FLOAT_R + 0.012, 0.035), (FLOAT_R + 0.012, -0.035)]
+    kit.surface_of_revolution(mb, strap, around, "LK_HDPE")
+    if p["rib"]:
+        # Saddle: a short black cradle across the top.
+        kit.box(mb, (0.0, 0.0, FLOAT_TOP + 0.02), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0),
+                0.22, 0.05, 0.025, "LK_HDPE")
+    return mb
+
+
 ASSETS = {
     "mooring_buoy": ("Buoy", build_buoy),
     "mooring_light": ("CornerLight", build_light),
+    "hose_float": ("HoseFloat", build_hose_float),
 }
 
 

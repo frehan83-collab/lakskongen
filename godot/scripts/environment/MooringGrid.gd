@@ -12,10 +12,17 @@ extends Node3D
 ## everything is drawn through MultiMeshes, so a site costs a handful of
 ## draw calls however many cells it has. Local space: the grid is centred on
 ## this node, y = 0 is the waterline.
+##
+## The buoys, the lights and the top of every chain and bridle ride the drawn
+## water in their shaders (site_float.gdshaderinc, SiteFloat.gd); the frame
+## and the anchor lines lie still, deep under the waves.
 
 ## Frame cell size. A 160 m pen (53.6 m across the outer pipe) sits in a
-## 70 m cell, which leaves ~8 m between the collar and the frame lines.
-const CELL_M := 70.0
+## 90 m cell, ~18 m between the collar and the frame lines: Scottish site
+## plans hold 160 m pens in a 90-110 m grid (Mowi, Loch Seaforth: a 90 m
+## matrix; Loch Ainort and Inner Sound: 100 m) and a Norwegian application
+## (Strandmo) asks for 100 x 100 m cells (roadmap A2-01: 70-100 m).
+const CELL_M := 90.0
 ## Depth of the frame lines and coupling plates below the surface.
 const FRAME_DEPTH := 6.0
 ## Anchor lines: horizontal reach from the outer couplings and the depth
@@ -34,9 +41,22 @@ const CHAIN_R := 0.03
 ## The buoy rides with its chain eye this far under the water.
 const BUOY_CHAIN_Y := -0.95
 
-## Buoy colours: D13 granite grey, and the classic orange.
+## Buoy colours: D13 buoy yellow (the player's sites, owner references 1,
+## 2 and 5), granite grey, and the classic orange (rival farms).
+const BUOY_YELLOW := Color(0.910, 0.725, 0.165)  # #E8B92A
 const BUOY_GREY := Color(0.420, 0.451, 0.471)    # #6B7378
 const BUOY_ORANGE := Color(0.878, 0.400, 0.165)  # #E0662A
+## How much of the water's heave each end of a line takes (first end,
+## second end): a chain hangs from its buoy, a bridle runs up to the pen.
+const ROPE_HEAVE := {
+	"chain": Vector2(1.0, 0.0),
+	"bridle": Vector2(0.0, 1.0),
+	"frame": Vector2(0.0, 0.0),
+	"anchor": Vector2(0.0, 0.0),
+}
+## Floating gear moves up to this far off its rest place (m): it is drawn
+## where the GPU puts it, so its culling box grows by this much.
+const FLOAT_CULL_MARGIN := 4.0
 ## Height of the corner light's lens above the waterline (build_site_kit.py).
 const LAMP_Y := 1.72
 
@@ -79,7 +99,7 @@ var _glows: MultiMeshInstance3D = null
 ## return the seabed height under a local point (negative below water) so
 ## anchor lines stop at the bottom; return NAN or leave it unset to use
 ## ANCHOR_DEPTH.
-func build(nx: int, nz: int, pen_cells: Array, buoy_color: Color = BUOY_GREY,
+func build(nx: int, nz: int, pen_cells: Array, buoy_color: Color = BUOY_YELLOW,
 		anchor_floor: Callable = Callable()) -> void:
 	cells_x = maxi(nx, 1)
 	cells_z = maxi(nz, 1)
@@ -130,6 +150,10 @@ func get_rope_instance() -> MultiMeshInstance3D:
 func get_glow_instance() -> MultiMeshInstance3D:
 	return _glows
 
+## Half the grid's extent across (x) and along (z), metres.
+func half_extent() -> Vector2:
+	return Vector2(cells_x, cells_z) * CELL_M * 0.5
+
 ## Camera-facing flash halos over the corner lamps (they keep a minimum
 ## on-screen size, so the synchronised flashes read at every zoom).
 func _spawn_glows() -> MultiMeshInstance3D:
@@ -138,16 +162,17 @@ func _spawn_glows() -> MultiMeshInstance3D:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = quad
-	mm.instance_count = light_positions.size()
+	var xforms: Array[Transform3D] = []
 	for k in light_positions.size():
-		mm.set_instance_transform(k, Transform3D(Basis.IDENTITY, light_positions[k] + Vector3(0.0, LAMP_Y, 0.0)))
+		xforms.append(Transform3D(Basis.IDENTITY, light_positions[k] + Vector3(0.0, LAMP_Y, 0.0)))
+	MultiMeshPack.upload(mm, xforms)
 	var mmi := MultiMeshInstance3D.new()
 	mmi.name = "LightGlow"
 	mmi.multimesh = mm
 	mmi.material_override = GLOW_MATERIAL
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# The halo grows past the 1 m quad on screen; keep it from being culled.
-	mmi.extra_cull_margin = 40.0
+	mmi.extra_cull_margin = 40.0 + FLOAT_CULL_MARGIN
 	add_child(mmi)
 	return mmi
 
@@ -224,17 +249,20 @@ func _spawn_lods(paths: Array, node_name: String, points: Array[Vector3], tint: 
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.use_colors = true
 		mm.mesh = mesh
-		mm.instance_count = points.size()
+		var xforms: Array[Transform3D] = []
+		var tints: Array = []
 		for k in points.size():
 			# A small fixed yaw per buoy so the lifting eyes do not all line up.
 			var yaw := float(k * 37 % 180) * PI / 180.0
-			mm.set_instance_transform(k, Transform3D(Basis(Vector3.UP, yaw), points[k]))
-			mm.set_instance_color(k, tint)
+			xforms.append(Transform3D(Basis(Vector3.UP, yaw), points[k]))
+			tints.append(tint)
+		MultiMeshPack.upload(mm, xforms, tints)
 		var mmi := MultiMeshInstance3D.new()
 		mmi.name = "%s_LOD%d" % [node_name, level]
 		mmi.multimesh = mm
 		mmi.visibility_range_begin = 0.0 if level == 0 else LOD_SWITCH[level - 1]
 		mmi.visibility_range_end = LOD_SWITCH[level] if level < LOD_SWITCH.size() else 0.0
+		mmi.extra_cull_margin = FLOAT_CULL_MARGIN
 		if level > 0:
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mmi)
@@ -253,9 +281,13 @@ func _spawn_ropes() -> MultiMeshInstance3D:
 	cyl.material = ROPE_MATERIAL
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_custom_data = true
 	mm.mesh = cyl
-	mm.instance_count = ropes.size()
+	var xforms: Array[Transform3D] = []
+	var heaves: Array = []
 	for k in ropes.size():
+		var heave: Vector2 = ROPE_HEAVE.get(ropes[k][3], Vector2.ZERO)
+		heaves.append(Color(heave.x, heave.y, 0.0, 0.0))
 		var a: Vector3 = ropes[k][0]
 		var b: Vector3 = ropes[k][1]
 		var r: float = ropes[k][2]
@@ -265,11 +297,13 @@ func _spawn_ropes() -> MultiMeshInstance3D:
 		var x := y.cross(Vector3.UP if absf(y.y) < 0.99 else Vector3.RIGHT).normalized()
 		var z := x.cross(y)
 		var basis := Basis(x * r, y * length, z * r)
-		mm.set_instance_transform(k, Transform3D(basis, (a + b) * 0.5))
+		xforms.append(Transform3D(basis, (a + b) * 0.5))
+	MultiMeshPack.upload(mm, xforms, [], heaves)
 	var mmi := MultiMeshInstance3D.new()
 	mmi.name = "Ropes"
 	mmi.multimesh = mm
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.extra_cull_margin = FLOAT_CULL_MARGIN
 	mmi.visibility_range_end = ROPE_VISIBLE_M
 	add_child(mmi)
 	return mmi

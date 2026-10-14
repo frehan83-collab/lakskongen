@@ -23,7 +23,7 @@ import pytest
 REPO = Path(__file__).parent.parent
 MANIFEST = json.loads((REPO / "blender" / "asset_manifest.json").read_text())
 ASSETS = {a["id"]: a for a in MANIFEST["assets"]}
-KIT_IDS = ["pen_cage", "mooring_buoy", "mooring_light"]
+KIT_IDS = ["pen_cage", "mooring_buoy", "mooring_light", "hose_float"]
 
 sys.path.insert(0, str(REPO / ".claude" / "skills" / "ecc" / "blender-asset-pipeline"))
 import blender_asset_pipeline as pipeline  # noqa: E402
@@ -77,7 +77,7 @@ def test_pen_dimensions_match_the_polarcirkel_spec():
     assert side["bbox_size"][1] >= dims["net_depth_m"]
 
 
-@pytest.mark.parametrize("asset_id", ["mooring_buoy", "mooring_light"])
+@pytest.mark.parametrize("asset_id", ["mooring_buoy", "mooring_light", "hose_float"])
 def test_site_kit_bounding_boxes_match_the_spec(asset_id):
     asset = ASSETS[asset_id]
     bbox = _sidecar(asset, "LOD0")["bbox_size"]
@@ -141,6 +141,7 @@ def _blender() -> str | None:
 @pytest.mark.parametrize("script,asset_id,args", [
     ("build_pen.py", "pen_cage", ["--lod", "LOD2"]),
     ("build_site_kit.py", "mooring_light", ["--asset", "mooring_light", "--lod", "LOD0"]),
+    ("build_site_kit.py", "hose_float", ["--asset", "hose_float", "--lod", "LOD0"]),
 ])
 def test_build_scripts_reproduce_the_committed_assets(tmp_path, script, asset_id, args):
     out = subprocess.run(

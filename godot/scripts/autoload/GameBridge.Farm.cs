@@ -832,8 +832,11 @@ public partial class GameBridge : Node
 
     /// <summary>
     /// Return detailed information about all sea sites as an Array of Dictionaries.
-    /// Keys: "id", "name", "zone", "fish_count", "biomass_kg", "max_biomass",
-    ///       "escapes_this_year", "net_integrity", "has_skirt", "has_deterrent".
+    /// Keys: "id", "name", "zone", "pen_count", "fish_count", "biomass_kg",
+    ///       "max_biomass", "escapes_this_year", "net_integrity", "has_skirt",
+    ///       "has_deterrent". "pen_count" is the site's number of pens
+    ///       (<c>SeaSite.NumberOfPens</c>, at least 1): the fjord draws that
+    ///       many pens in the site's mooring grid (roadmap G2-04).
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetSeaSiteDetails()
     {
@@ -865,6 +868,7 @@ public partial class GameBridge : Node
                 ["id"]                = site.Id,
                 ["name"]              = site.Label,
                 ["zone"]              = site.ZoneId,
+                ["pen_count"]         = System.Math.Max(1, site.NumberOfPens),
                 ["fish_count"]        = fishCount,
                 ["biomass_kg"]        = biomassKg,
                 ["lice_per_fish"]     = licePerFish,

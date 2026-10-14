@@ -20,18 +20,29 @@ recessed sinker-tube suspension. Roadmap A2-01 adds: stanchions ~1.0 m,
 bird-net poles 6-8 m, net 20-40 m deep with a cone bottom, lice-skirt
 variant 6-15 m deep in #C9CCC6.
 
+Two bird-net styles (owner references 2 and 4: a dark tent from a centre
+mast; reference 5: a green net on blue poles round the rim, over a low
+centre pole); a site shows one of them. The feed hose runs from the grey
+rotor spreader on the centre float, over the collar on its hose guide, out
+to the pen's hose port PORT_R from the centre, where the site's floating
+hose from the feed barge takes over (Godot SiteLayout.PORT_R, roadmap G2-04).
+
 Node names are the Godot API (PenCage.gd, FishPenManager.gd look them up):
-Collar, Handrail, Walkway, Band, Net, BirdNet, BirdNetPoles, FeedPipe,
-SinkerTube, LiceSkirt. Material names map to Godot .tres files through the
-.glb.import "use_external" settings:
-  LK_HDPE      black HDPE #1C1E20 (pipes, brackets, uprights, poles, ropes)
-  LK_Walkway   grey anti-slip decking
-  LK_Net       submerged net (drawn before the water)
-  LK_NetAbove  jump net above the waterline (drawn after the water)
-  LK_BirdNet   bird net
-  LK_Band      owner colour band (rival farms)
-  LK_Skirt     lice skirt tarpaulin #C9CCC6
-  LK_Marker    buoy-yellow floats #E8B92A
+Collar, Handrail, Walkway, Band, Net, BirdNet, BirdNetPoles, BirdNetRim,
+BirdNetRimPoles, FeedPipe, SinkerTube, LiceSkirt. Material names map to
+Godot .tres files through the .glb.import "use_external" settings:
+  LK_HDPE          black HDPE #1C1E20 (pipes, brackets, uprights, poles, ropes)
+  LK_Walkway       grey anti-slip decking
+  LK_Net           submerged net (drawn before the water)
+  LK_NetAbove      jump net above the waterline (drawn after the water)
+  LK_BirdNet       bird net (tent)
+  LK_BirdNetGreen  bird net on rim poles, rope/net green #2E8B57
+  LK_PoleBlue      rim bird-net poles, pole blue #2F6DB5
+  LK_Band          owner colour band (rival farms)
+  LK_Skirt         lice skirt tarpaulin #C9CCC6
+  LK_Marker        buoy-yellow floats #E8B92A
+  LK_Spreader      the light-grey rotor spreader on the centre float
+  LK_Hose          the white feed hose #EDEFEF (the site hoses' colour)
 
 Licence: in-house geometry and textures, no third-party assets.
 """
@@ -98,7 +109,17 @@ SKIRT_R = 25.10
 SKIRT_TOP = 1.0
 SKIRT_DEPTH = 10.0                  # 6-15 m spec
 HOSE_R = 0.055                      # 110 mm feed hose
-HOSE_END = 40.0                     # hose end float, metres from the centre
+PORT_R = 30.0                       # hose port: the site hose takes over here
+# Rim bird net (reference 5): blue poles on the handrail uprights, leaning
+# in, a green net from the handrail up over the pole tops and across, held
+# up in the middle by a low centre pole.
+N_RIM_POLES = 16
+RIM_POLE_R = 0.05
+RIM_POLE_TOP = 6.6                  # above the waterline, 6-8 m spec
+RIM_LEAN = 0.6                      # the pole tops lean in this far
+RIM_SCALLOP = 0.8                   # the net sags this much between poles
+RIM_CENTRE_POLE_TOP = 5.4
+RIM_ROOF_SAG = 0.45
 
 # glTF material names -> (base colour hex, roughness, metallic, alpha)
 MATERIALS = {
@@ -110,6 +131,10 @@ MATERIALS = {
     "LK_Band": ("#E8B92A", 0.5, 0.0, 1.0),
     "LK_Skirt": ("#C9CCC6", 0.8, 0.0, 1.0),
     "LK_Marker": ("#E8B92A", 0.45, 0.0, 1.0),
+    "LK_BirdNetGreen": ("#2E8B57", 0.9, 0.0, 0.25),
+    "LK_PoleBlue": ("#2F6DB5", 0.5, 0.0, 1.0),
+    "LK_Spreader": ("#A9AFB2", 0.55, 0.0, 1.0),
+    "LK_Hose": ("#EDEFEF", 0.42, 0.0, 1.0),
 }
 
 # Per-LOD level of detail. Every LOD carries every material, so the asset
@@ -120,22 +145,28 @@ LODS = {
                  net_around=96, net_wall_rows=10, net_cone_rows=7,
                  bird_around=96, bird_rows=12, pole_sides=8, sinker_sides=10,
                  sinker_segs=120, ropes=16, rope_sides=6, hose_sides=8,
-                 hose_pts=120, skirt_around=180, skirt_rows=5, mooring_collars=True,
-                 bollards=True, deadfish=True),
+                 hose_pts=110, skirt_around=180, skirt_rows=5, mooring_collars=True,
+                 bollards=True, deadfish=True, rim_around=96, rim_side_rows=4,
+                 rim_roof_rows=8, rim_poles=N_RIM_POLES, rim_pole_sides=8,
+                 spreader_sides=20),
     "LOD1": dict(pipe_sides=8, ring_segs=120, rail_sides=6, rail_segs=120,
                  brackets="boxes", stanch_sides=4, walk="ring", band_rows=2,
                  net_around=48, net_wall_rows=5, net_cone_rows=3,
                  bird_around=48, bird_rows=6, pole_sides=4, sinker_sides=6,
                  sinker_segs=60, ropes=0, rope_sides=4, hose_sides=5,
-                 hose_pts=40, skirt_around=96, skirt_rows=3, mooring_collars=False,
-                 bollards=False, deadfish=True),
-    "LOD2": dict(pipe_sides=4, ring_segs=48, rail_sides=3, rail_segs=48,
+                 hose_pts=36, skirt_around=96, skirt_rows=3, mooring_collars=False,
+                 bollards=False, deadfish=True, rim_around=48, rim_side_rows=2,
+                 rim_roof_rows=4, rim_poles=N_RIM_POLES, rim_pole_sides=4,
+                 spreader_sides=10),
+    "LOD2": dict(pipe_sides=4, ring_segs=40, rail_sides=3, rail_segs=40,
                  brackets="none", stanch_sides=0, walk="flat", band_rows=1,
                  net_around=24, net_wall_rows=2, net_cone_rows=1,
                  bird_around=16, bird_rows=2, pole_sides=0, sinker_sides=3,
-                 sinker_segs=24, ropes=0, rope_sides=0, hose_sides=3,
+                 sinker_segs=12, ropes=0, rope_sides=0, hose_sides=3,
                  hose_pts=6, skirt_around=24, skirt_rows=1, mooring_collars=False,
-                 bollards=False, deadfish=False),
+                 bollards=False, deadfish=False, rim_around=16, rim_side_rows=1,
+                 rim_roof_rows=2, rim_poles=8, rim_pole_sides=3,
+                 spreader_sides=6),
 }
 
 TRI_LIMITS = {"LOD0": 60000, "LOD2": 2000}
@@ -327,14 +358,75 @@ def build_bird_poles(p) -> kit.MeshBuilder:
     return mb
 
 
+def build_bird_net_rim(p) -> kit.MeshBuilder:
+    """Rim bird net (reference 5): from the handrail up the outside of the
+    blue poles, scalloped between their tops, then across as a roof that
+    sags a little on its way to the low centre pole."""
+    mb = kit.MeshBuilder()
+    n_around = p["rim_around"]
+    side_rows, roof_rows = p["rim_side_rows"], p["rim_roof_rows"]
+    base_r = R_STANCH + 0.03
+    top_r = R_STANCH + 0.11 - RIM_LEAN
+
+    def rim_z(th):
+        s = abs(math.sin(th * N_RIM_POLES / 2.0))
+        return RIM_POLE_TOP - RIM_SCALLOP * s
+
+    grid = []
+    for i in range(n_around):
+        th = TAU * (i + 0.5) / n_around
+        top = rim_z(th - TAU * 0.5 / N_RIM_POLES)
+        row = []
+        for k in range(side_rows + 1):
+            t = k / side_rows
+            r = base_r + (top_r - base_r) * t + 0.25 * math.sin(math.pi * t)
+            row.append(mb.vert(polar(r, th, (RAIL_Z + 0.05) * (1 - t) + top * t)))
+        for k in range(1, roof_rows + 1):
+            t = k / roof_rows
+            r = top_r + (0.15 - top_r) * t
+            z = top * (1 - t) + RIM_CENTRE_POLE_TOP * t - RIM_ROOF_SAG * math.sin(math.pi * t)
+            row.append(mb.vert(polar(r, th, z)))
+        grid.append(row)
+    rows = side_rows + roof_rows + 1
+    for i in range(n_around):
+        i2 = (i + 1) % n_around
+        u0 = base_r * TAU * i / n_around
+        u1 = base_r * TAU * (i + 1) / n_around
+        for k in range(rows - 1):
+            v0 = k * 2.0
+            v1 = (k + 1) * 2.0
+            mb.face((grid[i][k], grid[i][k + 1], grid[i2][k + 1], grid[i2][k]), "LK_BirdNetGreen", True,
+                    [(u0, v0), (u0, v1), (u1, v1), (u1, v0)])
+    return mb
+
+
+def build_bird_rim_poles(p) -> kit.MeshBuilder:
+    """Blue rim poles on the handrail uprights, the centre float and its low
+    blue pole."""
+    mb = kit.MeshBuilder()
+    sides = p["rim_pole_sides"]
+    float_profile = [(0.0, 0.42), (FLOAT_R * 0.8, 0.40), (FLOAT_R, 0.30), (FLOAT_R, -0.45),
+                     (FLOAT_R * 0.8, -0.58), (0.0, -0.60)]
+    if sides <= 3:
+        float_profile = [(0.0, 0.40), (FLOAT_R, 0.35), (FLOAT_R, -0.5), (0.0, -0.55)]
+    kit.surface_of_revolution(mb, float_profile, 24 if sides > 4 else 6, "LK_HDPE")
+    kit.cylinder(mb, (0, 0, 0.35), (0, 0, RIM_CENTRE_POLE_TOP), 0.06, max(sides, 3), "LK_PoleBlue")
+    # Between the hose guide (at angle 0) and the poles: half a pitch off.
+    for k in range(p["rim_poles"]):
+        th = TAU * (k + 0.5) / p["rim_poles"]
+        kit.cylinder(mb, polar(R_STANCH + 0.11, th, BEAM_TOP),
+                     polar(R_STANCH + 0.11 - RIM_LEAN, th, RIM_POLE_TOP), RIM_POLE_R, max(sides, 3), "LK_PoleBlue")
+    return mb
+
+
 def hose_path(n_pts: int):
     """Feed hose: centre spreader -> across the pen on the water -> over the
-    collar on a hose guide -> out to the hose-end float."""
+    collar on a hose guide -> out on the water to the hose port, where the
+    site's floating hose from the feed barge takes over."""
     key = [
-        (FLOAT_R + 0.1, 0.0, 0.25), (4.0, 0.25, 0.02), (12.0, 0.9, 0.02), (20.0, 0.4, 0.02),
+        (FLOAT_R + 0.1, 0.0, 0.35), (4.0, 0.25, 0.02), (12.0, 0.9, 0.02), (20.0, 0.4, 0.02),
         (NET_R - 0.4, 0.0, 0.03), (R_STANCH - 0.25, 0.0, RAIL_Z - 0.2), (R_STANCH, 0.0, RAIL_Z + 0.12),
-        (R_OUT, 0.0, RAIL_Z - 0.15), (R_OUT + 0.9, 0.0, 0.25), (30.0, -0.4, 0.02),
-        (36.0, -1.2, 0.02), (HOSE_END - 0.9, -1.0, 0.04),
+        (R_OUT, 0.0, RAIL_Z - 0.15), (R_OUT + 0.9, 0.0, 0.25), (PORT_R - 1.2, 0.0, 0.03), (PORT_R, 0.0, 0.03),
     ]
     return smooth_path(key, n_pts)
 
@@ -369,19 +461,14 @@ def smooth_path(key, n_pts: int):
 
 def build_feed(p) -> kit.MeshBuilder:
     mb = kit.MeshBuilder()
-    kit.path_tube(mb, hose_path(p["hose_pts"]), HOSE_R, p["hose_sides"], "LK_HDPE", caps=False)
-    # Rotor spreader on the central float, and the hose-end float.
-    spreader = [(0.0, 0.95), (0.18, 0.92), (0.38, 0.62), (0.34, 0.42), (0.0, 0.42)]
-    endfloat = [(0.0, 0.32), (0.32, 0.26), (0.42, 0.02), (0.32, -0.26), (0.0, -0.32)]
-    sides = 16 if p["hose_sides"] >= 8 else 6
-    kit.surface_of_revolution(mb, spreader, sides, "LK_Marker")
-    off = kit.MeshBuilder()
-    kit.surface_of_revolution(off, endfloat, sides, "LK_Marker")
-    base = len(mb.verts)
-    for v in off.verts:
-        mb.vert((v[0] + HOSE_END - 0.45, v[1] - 1.0, v[2]))
-    for f, m, s, uv in zip(off.faces, off.face_mat, off.face_smooth, off.face_uv):
-        mb.face(tuple(i + base for i in f), off.slots[m], s, uv)
+    kit.path_tube(mb, hose_path(p["hose_pts"]), HOSE_R, p["hose_sides"], "LK_Hose", caps=False)
+    # The rotor spreader on the centre float (reference 5): a light-grey
+    # hopper cone on a neck, with a yellow ring round its rim.
+    spreader = [(0.0, 1.30), (0.50, 1.28), (0.62, 1.20), (0.62, 1.02), (0.30, 0.66), (0.20, 0.55),
+                (0.20, 0.42), (0.0, 0.42)]
+    kit.surface_of_revolution(mb, spreader, p["spreader_sides"], "LK_Spreader")
+    ring = [(0.0, 1.31), (0.64, 1.31), (0.66, 1.25), (0.0, 1.25)]
+    kit.surface_of_revolution(mb, ring, p["spreader_sides"], "LK_Marker")
     return mb
 
 
@@ -432,13 +519,15 @@ PARTS = [
     ("Net", build_net),
     ("BirdNet", build_bird_net),
     ("BirdNetPoles", build_bird_poles),
+    ("BirdNetRim", build_bird_net_rim),
+    ("BirdNetRimPoles", build_bird_rim_poles),
     ("FeedPipe", build_feed),
     ("SinkerTube", build_sinker),
     ("LiceSkirt", build_skirt),
 ]
 
 # Parts that get baked AO in the vertex colour (the rest use no AO).
-AO_PARTS = {"Collar", "Handrail", "Walkway", "Band", "BirdNetPoles", "FeedPipe"}
+AO_PARTS = {"Collar", "Handrail", "Walkway", "Band", "BirdNetPoles", "BirdNetRimPoles", "FeedPipe"}
 
 
 # --------------------------------------------------------------------------
@@ -633,6 +722,8 @@ def export_lod(lod: str, objs, out_dir: str) -> dict:
             "upright_diameter_m": 2 * STANCH_R,
             "handrail_diameter_m": 2 * RAIL_R,
             "bird_net_mast_m": MAST_TOP,
+            "bird_net_rim_pole_m": RIM_POLE_TOP,
+            "hose_port_m": PORT_R,
             "net_depth_m": round(-nlo[2], 4),
             "lice_skirt_depth_m": SKIRT_DEPTH,
         },

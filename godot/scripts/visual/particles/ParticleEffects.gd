@@ -153,12 +153,13 @@ func _emit_feeding(params: Dictionary) -> void:
 	if not pen_id:
 		return
 	
-	# Get pen position from fish pen manager
+	# The pen's own position when the caller gives it (a site's pens, G2-04),
+	# else the site's from the fish pen manager.
 	var pos = Vector3.ZERO
-	if fish_pen_manager and fish_pen_manager.has_method("get_pen_position"):
-		pos = fish_pen_manager.get_pen_position(params.get("pen_id", ""))
-	elif params.has("position"):
+	if params.has("position"):
 		pos = params["position"]
+	elif fish_pen_manager and fish_pen_manager.has_method("get_pen_position"):
+		pos = fish_pen_manager.get_pen_position(params.get("pen_id", ""))
 	else:
 		return
 	
