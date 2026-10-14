@@ -262,5 +262,29 @@ namespace LakskongenSim.Tests.Calibration
             var defaults = new SeaTemperatureCalibration();
             Assert.Equal(defaults, C.SeaTemperature);
         }
+
+        [Fact]
+        public void Growth_MatchesItsSources()
+        {
+            // S2-03. Sea-phase TGC 2.8-3.2 (roadmap; Reid et al. 2013a average 3.0,
+            // Karlsen et al. 2018 open net pen 2.80, semi-closed 3.04).
+            Assert.InRange(C.Growth.ThermalGrowthCoefficient, 2.8, 3.2);
+            // Growth optimum 13-14 °C (Kleiven et al. 2026), growth stops near the
+            // incremental thermal maximum ~22 °C (Calado et al. 2021).
+            Assert.InRange(C.Growth.OptimalTemperatureC, 12.5, 14.5);
+            Assert.InRange(C.Growth.UpperGrowthLimitC, 20.0, 23.0);
+            // Degree-days below the optimum: at 4 °C at least 0.3 of the optimum.
+            Assert.True(4.0 / C.Growth.OptimalTemperatureC >= 0.3);
+            // The TGC holds to ~3 kg (Alanärä et al. 2001); grown-on fish pass 6 kg.
+            Assert.InRange(C.Growth.TgcValidToKg, 2.5, 3.5);
+            Assert.True(C.Growth.AsymptoticWeightKg > 10.0);
+            // Smolt weight CV 17-21% one month after transfer (Karlsen et al. 2018).
+            Assert.InRange(C.Growth.SmoltWeightCv, 0.15, 0.22);
+            Assert.InRange(C.Growth.BaseWeightCv, 0.15, 0.30);
+            Assert.InRange(C.Growth.MaintenanceRationFraction, 0.0, 0.3);
+            Assert.InRange(C.Growth.PhotoperiodGrowthSlope, 0.0, 0.3);
+            // The file and the code defaults agree (the embedded copy is the file).
+            Assert.Equal(new GrowthCalibration(), C.Growth);
+        }
     }
 }

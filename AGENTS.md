@@ -162,6 +162,11 @@ The Phase 4 "Exit" in `NEXT_LEVEL_PLAN.md` has two gates an agent cannot close a
 - `WeatherSystem` owns the shared anomaly; `SimulationEngine.HoldingWaterOf(population)` (`Environment/HoldingWater.cs`) is the water growth, feeding, stress deaths and the disease tick take — land-based and offshore farm types plug in there
 - D18: no network I/O in the sim; BarentsWatch reads offline files only (`OfflineDataTests`)
 
+### Growth, appetite, ration (S2-03)
+- `Biology/TgcGrowthLaw.cs` is the growth law every holding runs (calibration section `growth`): TGC 3.0 on degree-days up to a 13 °C optimum, falling to 0 at 22 °C, a size tail above 3 kg toward 20 kg, a day-length factor, appetite = satiation gain × satiation FCR, growth along a growth-ration curve, and a cohort weight CV. Pure (no RNG): the tick, `ForecastTwin` and scenario starting stock share it. The old SDE in `GrowthModel.cs` has no engine caller
+- Seam for farm types: `GrowthConditions` is all the law reads; `SimulationEngine.GrowAndFeedOneDay(population, HoldingHusbandry)` (`SimulationEngine.Growth.cs`) fills it from `HoldingWaterOf` and `DayLengthHoursOf` (land tanks 24 h light). `FishPopulation.Ration` (`Farm/RationPolicy.cs`) is the feeding-plan input (U2-04); `Cohort.WeightCv` (0 = unknown) and `SizeSpreadOf(pens)` feed grading (S2-04)
+- Scenario starting sites carry `days_at_sea` (S0 mid-September in PO1-PO7, S1 mid-June in PO8-PO13), grown by `GrowOnClimatology`; `SimProbe` sites lie in PO4 water with a mid-April first release; save format v5
+
 ### CompetitorAI
 - 7 parody competitors (Mowier, SalMax, Herøy, Greed Gregarious, Offshore Optimists, NordLaks Nord)
 - Quarterly `AdvanceQuarter` (every 90 days) with financial updates, distress check, strategic actions

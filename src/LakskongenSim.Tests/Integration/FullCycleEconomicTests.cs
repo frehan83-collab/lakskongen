@@ -55,13 +55,18 @@ namespace LakskongenSim.Tests.Integration
         private static double SiteKg(SeaSite site) => site.Pens.Sum(p => p.TotalCount > 0 ? p.GetTotalBiomassKg() : 0.0);
         private static double SiteMeanKg(SeaSite site) => SiteFish(site) > 0 ? SiteKg(site) / SiteFish(site) : 0.0;
 
-        /// <summary>A fresh engine with one sea site in production area <paramref name="zoneId"/>.</summary>
-        private static (SimulationEngine Engine, SeaSite Site) EngineWithSite(string zoneId, int seed, decimal cash)
+        /// <summary>
+        /// A fresh engine with one sea site in zone <paramref name="zoneId"/>,
+        /// which lies in production area <paramref name="productionArea"/> by data
+        /// (S2-02: zone ids are never parsed; 0 = no area, the home area's water).
+        /// </summary>
+        private static (SimulationEngine Engine, SeaSite Site) EngineWithSite(string zoneId, int seed, decimal cash,
+            int productionArea = 0)
         {
             var engine = new SimulationEngine();
             engine.FinanceManager = new FinanceManager(cash);
             engine.Initialize(enableEvents: false, seed: seed);
-            engine.State.Zones.Add(new Zone(zoneId));
+            engine.State.Zones.Add(new Zone(zoneId) { ProductionArea = productionArea });
             var site = new SeaSite(zoneId.ToLowerInvariant() + "_site", zoneId);
             engine.State.SeaSites.Add(site);
             return (engine, site);
@@ -115,7 +120,8 @@ namespace LakskongenSim.Tests.Integration
         public void FullProductionCycle_OnTheEnginePath_FeedPerKgGainInBand(int seed)
         {
             const int smolts = 10_000;
-            var (engine, site) = EngineWithSite("PO04", seed, 10_000_000m);
+            // S2-03: the site lies in PO4 by data (it ran on the national reference curve).
+            var (engine, site) = EngineWithSite("PO04", seed, 10_000_000m, productionArea: 4);
             var c = RunEngineCycle(engine, site, smolts);
 
             System.Console.WriteLine($"seed {seed}: {c.DaysToHarvestWeight} d, survival {(double)c.Survivors / smolts:P1}, " +
@@ -138,14 +144,12 @@ namespace LakskongenSim.Tests.Integration
         }
 
         /// <summary>
-        /// Roadmap D2, replaces ZonePO04_Optimal_ProducesBetterMarginsThanPO12_Cold:
-        /// that claim is false in this model. Growth, feeding and mortality read
-        /// one sea temperature for every production area (S2-02 gives each its
-        /// own), so two identical stockings in PO04 and a cold zone grow, survive
-        /// and earn alike. This parity test is honest about that;
-        /// <see cref="Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13"/> is the
-        /// pre-registered test S2-02/S2-03 must make pass, after which this one
-        /// is retired by the same owner decision.
+        /// Roadmap D2, replaces ZonePO04_Optimal_ProducesBetterMarginsThanPO12_Cold.
+        /// Since S2-02 zones lie in a production area only by data, and these two
+        /// zones are only named PO04/PO12/PO13: both lie in the home area and so
+        /// grow, survive and earn alike. The area comparison is
+        /// <see cref="Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13"/> and
+        /// <c>TgcGrowthAcceptanceTests.Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13_InNormalYears</c> (S2-03).
         /// </summary>
         [Theory]
         [InlineData("PO12")]
@@ -173,18 +177,22 @@ namespace LakskongenSim.Tests.Integration
         /// temperatures) and S2-03 (TGC growth): the same spring S1 release (100 g,
         /// mid-April) in PO4 (Vestland) reaches 5 kg 2-4 months before PO13
         /// (Finnmark), on every seed. The criterion is fixed: S2-02 may change how
-        /// the test puts a site in a production area, never the band. It fails
-        /// today (both areas grow identically), so it is skipped until S2-03.
+        /// the test puts a site in a production area, never the band.
+        /// S2-03 (TGC growth, sites in PO4/PO13 by data): seeds 2, 3 and 5 pass,
+        /// seeds 1 and 4 do not (gaps 157 and 168 days): their cold springs
+        /// (shared anomaly -2 to -3 °C for months) keep PO13 at sea through a
+        /// second winter. In normal years the gap is 92-115 days on every seed
+        /// (TgcGrowthAcceptanceTests). Owner decision pending: RUN_LOG §8.
         /// </summary>
-        [Fact(Skip = "Pre-registered (roadmap D2): S2-02/S2-03 must make this pass; S2-03 removes the Skip")]
+        [Fact(Skip = "Pre-registered (roadmap D2), disputed after S2-03: fails on seeds 1 and 4 (cold years); RUN_LOG §8")]
         public void Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13()
         {
             const int smolts = 10_000;
             const int springReleaseDay = 105; // mid-April (ISO week 16) on the sim calendar
             for (int seed = 1; seed <= 5; seed++)
             {
-                var (engine4, site4) = EngineWithSite("PO04", seed, 10_000_000m);
-                var (engine13, site13) = EngineWithSite("PO13", seed, 10_000_000m);
+                var (engine4, site4) = EngineWithSite("PO04", seed, 10_000_000m, productionArea: 4);
+                var (engine13, site13) = EngineWithSite("PO13", seed, 10_000_000m, productionArea: 13);
                 engine4.Advance(springReleaseDay);
                 engine13.Advance(springReleaseDay);
                 int po4 = RunEngineCycle(engine4, site4, smolts).DaysToHarvestWeight;

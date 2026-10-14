@@ -833,7 +833,9 @@ public partial class GameBridge : Node
     /// <summary>
     /// Return detailed information about all sea sites as an Array of Dictionaries.
     /// Keys: "id", "name", "zone", "fish_count", "biomass_kg", "max_biomass",
-    ///       "escapes_this_year", "net_integrity", "has_skirt", "has_deterrent".
+    ///       "escapes_this_year", "net_integrity", "has_skirt", "has_deterrent",
+    ///       "weight_cv" (size spread of the site's fish, S2-03) and "ration"
+    ///       (mean fraction of appetite its pens are fed, S2-03).
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetSeaSiteDetails()
     {
@@ -859,6 +861,9 @@ public partial class GameBridge : Node
             bool isFeeding = appetite > 0.4
                 && (double.IsNaN(oxygenMgL) || oxygenMgL > 3.0)
                 && fishCount > 0;
+            double weightCv = SimulationEngine != null ? SimulationEngine.SizeSpreadOf(site.Pens).WeightCv : 0.0;
+            double ration = site.Pens.Count > 0
+                ? site.Pens.Average(p => p.Ration?.EffectiveFraction ?? 1.0) : 1.0;
 
             result.Add(new Godot.Collections.Dictionary
             {
@@ -869,6 +874,8 @@ public partial class GameBridge : Node
                 ["biomass_kg"]        = biomassKg,
                 ["lice_per_fish"]     = licePerFish,
                 ["mean_weight_kg"]    = meanWeightKg,
+                ["weight_cv"]         = weightCv,
+                ["ration"]            = ration,
                 ["oxygen_mgl"]        = oxygenMgL,
                 ["is_feeding"]        = isFeeding,
                 ["max_biomass"]       = site.MABTonnes * 1000,

@@ -74,6 +74,7 @@ func _run() -> void:
 	await _test_fjord_shows_rival_farms_and_wellboats()
 	await _test_telemetry_oxygen_saturation_follows_the_sim()
 	await _test_zones_report_their_production_area_water()
+	await _test_pens_report_their_size_spread_and_ration()
 	await _test_honest_economy_reaches_the_ui()
 	await _test_pen_models_read_as_equipment()
 	await _test_hero_pen_and_site_kit()
@@ -974,6 +975,23 @@ func _test_zones_report_their_production_area_water() -> void:
 	var south_temp := float(south[0].get("water_temp_c", 0.0)) if south.size() > 0 else 0.0
 	_check(south_temp > north_temp + 2.5,
 		"areas: mid-August PO3 water (%.1f C) is warmer than PO12 (%.1f C)" % [south_temp, north_temp])
+
+## S2-03: the scenario farm's fish went to sea in the last release window (an
+## autumn S0 generation in Vestland), grow on the TGC law, and their size spread
+## and the pen's ration reach the game through the bridge.
+func _test_pens_report_their_size_spread_and_ration() -> void:
+	_check(_sim.start_qa_scenario("forste_sesong", 17), "growth: tutorial scenario starts")
+	_sim.set_paused(true)
+	var start: Array = _sim.get_all_pens()
+	var w0 := float(start[0].get("mean_weight_kg", 0.0)) if start.size() > 0 else 0.0
+	_check(start.size() == 1 and w0 > 0.3 and w0 < 0.7,
+		"growth: the inherited fish are post-smolts on day 0 (%.2f kg)" % w0)
+	_sim.advance_days(120)
+	var pens: Array = _sim.get_all_pens()
+	var cv := float(pens[0].get("weight_cv", 0.0)) if pens.size() > 0 else 0.0
+	var ration := float(pens[0].get("ration", 0.0)) if pens.size() > 0 else 0.0
+	_check(cv > 0.15 and cv < 0.35 and is_equal_approx(ration, 1.0),
+		"growth: the site reports its size spread (CV %.3f) and full-appetite ration (%.2f)" % [cv, ration])
 
 ## S1-03 (owner decision D16): each scenario's bankruptcy floor and the warning
 ## ladder reach the game; achievements carry a medal and tutorial steps no cash

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using LakskongenSim.Biology;
 using LakskongenSim.Environment;
 using LakskongenSim.Farm;
@@ -87,6 +88,35 @@ public partial class SimulationEngine
 
         double appetite = law.ThermalAppetiteIndex(temperature) * husbandry.AppetiteModifier;
         return Feed.FeedRation(population, eatenKg, grownKg, husbandry.SpreadQuality, FeedWasteReduction, appetite);
+    }
+
+    /// <summary>
+    /// Mean weight and weight CV of all fish in <paramref name="pens"/> (S2-03):
+    /// the pooled spread of their cohorts, within-cohort spread (each cohort's
+    /// CV, or the CV of a standard cohort of its weight when not yet known)
+    /// plus the spread between cohorts. What a harvest grading or a weight
+    /// histogram of the site reads. (0, 0) for empty pens.
+    /// </summary>
+    public (double MeanWeightKg, double WeightCv) SizeSpreadOf(IEnumerable<FishPopulation> pens)
+    {
+        if (pens == null) throw new ArgumentNullException(nameof(pens));
+        var law = Growth?.Law ?? TgcGrowthLaw.Default;
+        double n = 0, sum = 0, sumSquares = 0;
+        foreach (var pen in pens)
+            foreach (var cohort in pen.Cohorts)
+            {
+                if (cohort.Count <= 0) continue;
+                double mean = cohort.MeanWeightKg;
+                double cv = cohort.WeightCv > 0.0 ? cohort.WeightCv : law.InitialWeightCv(mean);
+                double sd = cv * mean;
+                n += cohort.Count;
+                sum += cohort.Count * mean;
+                sumSquares += cohort.Count * (sd * sd + mean * mean);
+            }
+        if (n <= 0 || sum <= 0) return (0.0, 0.0);
+        double overall = sum / n;
+        double variance = Math.Max(0.0, sumSquares / n - overall * overall);
+        return (overall, Math.Sqrt(variance) / overall);
     }
 
     /// <summary>

@@ -654,6 +654,134 @@ financial year), months on their last day. Wages and night-shift premiums are
 monthly x 12 / 365 per day (/30 paid 12.17 months a year, 1.4% too much); loan
 terms run whole calendar months; a crisis lasts calendar months.
 
+## 1g. S2-03: TGC growth, appetite, ration policy (2026-10-14, branch `wave2/sim-b-2`)
+
+Roadmap S2-03. Calibration v1.0.7 (new section `growth`), save format v5.
+Measured with `GrowthCycleProbe` (engine path: a zone in its production area by
+data, blooms and the shared anomaly on, storyteller events off), the S2-03
+acceptance tests (`TgcGrowthAcceptanceTests`, `TgcGrowthEngineTests`,
+`TgcGrowthLawTests`) and a temporary probe calling the same harnesses.
+
+### The growth law (`Biology/TgcGrowthLaw.cs`)
+
+Each day a cohort's satiation gain adds `TGC/1000 × E(T) × size × light × multipliers`
+to the cube root of its weight in grams:
+
+| Term | Value | Source |
+|---|---|---|
+| TGC | 3.0 | Reid et al. 2013a average 3.0 (remedial 2.5, elite 3.5) via Dempsey et al. 2023, Front. Mar. Sci. 10:1094247; Karlsen et al. 2018, Sci. Rep. 8:9510: 2.80 open net pen, 3.04 semi-closed (first 4 months); Arctic Fish 3.38 (Benchmark Genetics) |
+| E(T) up to the optimum | T (degree-days) | the TGC definition; valid 4-14 °C (Alanärä et al. 2001); growth at 4/4.5/5 °C = 0.31/0.35/0.38 of the optimum |
+| Optimum | 13 °C | Kleiven et al. 2026, Front. Aquac.: "around 13 to 14 °C"; Calado et al. 2021, Animals 11:1800: 13-16 °C |
+| Above the optimum | T × (22 − T)/9, 0 at 22 °C | Calado et al. 2021: ITmax ~22 °C; 2 kg fish at 19 °C ate and grew ≥ 50% less than at 14 °C (law: 51%); Thyholdt 2014: warm periods slow growth in the south |
+| Size | 1 to 3 kg, then linear in cube-root weight to 0 at 20 kg | TGC valid to 3 kg (Alanärä et al. 2001); 20 kg game estimate (0.79 at 5 kg) |
+| Light | 1 + 0.2 × (day length − 12)/12; land tanks 24 h | Aunsmo et al. 2014 (TGC tied to day length on 827 Norwegian groups); slope a game estimate (sea-cage light trials, Endal et al. 2000); CtrlAQUA 2023 (24 h light in RAS) |
+| Multipliers | genome, smolt quality, containment, research, density stress (Oppedal et al. 2011) | unchanged inputs |
+
+Appetite (satiation intake) = satiation gain × the biological FCR at satiation
+(temperature, size factor (W/2 kg)^0.07 at sea, feed, density, water, research):
+a Cho (1992) feeding standard, so appetite follows temperature and size. The
+holding's ration policy (`FishPopulation.Ration`, fraction of appetite) times the
+appetite left by water and gills is the ration eaten r; growth = satiation gain ×
+g(r) with maintenance at 10% and the best conversion near 70% (Brett 1979). The
+law draws no random numbers; the daily tick, the forecast twin and the scenario
+starting stock all run it.
+
+### Acceptance over 10 seeds
+
+| Criterion | Band | Measured |
+|---|---|---|
+| PO4 mid-April S1 100 g: harvest window | 4.5-5.5 kg within months 14-18 | 4.5 kg on days 400-480, 5.5 kg on days 435-516 on every seed; 5 kg median day 448 (14.7 months), 418-497 |
+| Economic FCR (feed / net harvested gain), commercial pen, PO4 | 1.20-1.35 | 1.230-1.246 (mortality 13.3-15.1%); FCR on growth 1.162-1.170 |
+| Relative growth at 4-5 °C | ≥ 0.3 of the optimum | 0.31 / 0.35 / 0.38 at 4 / 4.5 / 5 °C |
+| Fish grown on | pass 6 kg | 6.5 kg on days 474-536 (PO4 April release) |
+| Per-cohort weight CV | reported | 0.211-0.216 at 5 kg (watch mode); bridge `weight_cv` |
+| Pre-registered D2: PO4 2-4 months before PO13 | 60-120 days, seeds 1-5 | normal years: 92-115 on every seed; weather years: 157 / 117 / 68 / 168 / 120 (fails seeds 1 and 4, RUN_LOG §8 dispute) |
+
+Realized cycle TGC on the zone path (PO4, gills and blooms included): 2.61-2.97.
+
+### Days for 100 g S1 smolts to reach 5 kg, per area (10 seeds, engine path)
+
+| PO | 1 Jan release: median [min-max] | Mid-April release: median [min-max] | S2-02 law, mid-April (§1f) |
+|---|---|---|---|
+| 1 | 547 [499-581] | 477 [445-517] | 444 [348-545] |
+| 2 | 526 [462-551] | 462 [418-498] | 307 [242-437] |
+| 3 | 498 [432-545] | 448 [417-483] | 263 [241-416] |
+| 4 | 500 [453-527] | 448 [418-497] | 278 [241-424] |
+| 5 | 501 [432-529] | 451 [404-483] | 256 [227-396] |
+| 6 | 488 [427-517] | 446 [405-485] | 245 [218-304] |
+| 7 | 520 [464-551] | 466 [419-491] | 243 [211-313] |
+| 8 | 537 [486-561] | 480 [430-508] | 267 [216-410] |
+| 9 | 551 [490-580] | 494 [441-526] | 258 [213-388] |
+| 10 | 554 [501-578] | 493 [439-526] | 298 [217-407] |
+| 11 | 602 [535-634] | 540 [474-626] | 445 [236-482] |
+| 12 | 605 [544-640] | 548 [478-605] | 451 [239-489] |
+| 13 | 616 [549-659] | 568 [486-665] | 477 [280-519] |
+
+A spring release reaches 5 kg in 14.7-15.7 months in PO1-PO7, 15.8-16.2 in
+PO8-PO10 and 17.8-18.7 in PO11-PO13: real Norwegian grow-out is 14-18 months,
+longer in Finnmark. PO1's 16-17 °C summers are now merely slower than PO3-PO6
+(the Gaussian stalled them).
+
+### PO4 against PO13: why the pre-registered test fails on two seeds
+
+The same mid-April release in weather years 1-10: gaps 157, 117, 68, 168, 120,
+156, 106, 95, 122, 63 days (median 118.5). Seeds 1 and 4 have springs 2-3 °C below
+normal for 3-6 months (the shared anomaly, SD 1.0 °C, e-folding 90 days, S2-02):
+PO13's fish then miss the second autumn and spend a second winter at sea. With
+the anomaly off the gap is 92-115 on every seed. A 300-year Monte Carlo of the
+climatologies gives P(gap in 60-120) of 0.40-0.78 per weather year for every
+plausible TGC (2.8-3.2), optimum (12.5-13 °C) and light slope (0-0.3), so no growth
+law makes all five seeds pass; the criterion is the owner's (RUN_LOG §8).
+
+### Ration policy (PO4, from day 165, 120 days, 5 seeds)
+
+| Fraction of appetite | Gain per fish | FCR on growth | Feed cost per day (10,000 fish) | Weight CV |
+|---|---|---|---|---|
+| 100% | 1.113 kg | 1.103 | 2 141 NOK | 0.207 |
+| 85% | 0.891 kg | 1.077 | 1 673 NOK | 0.215 |
+| 70% | 0.678 kg | 1.061 | 1 255 NOK | 0.222 |
+| 50% | 0.417 kg | 1.068 | 777 NOK | 0.226 |
+
+U2-04's acceptance 1 holds on the engine path (70% vs full: less growth, lower
+biological FCR, lower cost per day; `TgcGrowthEngineTests`).
+
+### The re-measure (roadmap R2: scenario data, not mechanics)
+
+| Change | Why | Measured |
+|---|---|---|
+| Scenario sites `days_at_sea`: S0 mid-September (110 d) in PO1-PO7, S1 mid-June (200 d) in PO8-PO13 | a farm on 1 January holds its last release window's fish; 1 January smolts could not be sold before day ~460 | day-0 weights 0.48-1.33 kg (CV 0.226-0.296); passive first 4.5 kg day: algekatastrofe 210, barekraft 294, forste 300, isa 287, krise 252, laksebaronene 288, lofoten 217, po3 286, ressursrente 234 |
+| `forste_sesong` 22,000 fish (was 20,000) | step 16's 6M second site from the first harvest | minimal player: 5 of 6 seeds win (days 281-737), seed 13 solvent at step 16 (20,000: 4 of 6) |
+| Hatchery batches: standard strain genome | one random individual's genome (growth SD 15%) on a whole cohort | SimProbe cycle spread 464-921 days → one climate's |
+| SimProbe in PO4 water, first release mid-April | the national reference with a 1 January release is a 19-20 month cycle | see below |
+
+| Measure | S2-02 (`wave2/sim-b-1`) | S2-03 | Band |
+|---|---|---|---|
+| SimProbe Baseline FCR (median) | 1.23 | 1.17 | 1.10-1.30 |
+| Baseline sea mortality %/cycle (min / median / p90) | 12.05 / 15.48 / 19.00 | 14.05 / 14.54 / 14.74 | 14-16 median |
+| Baseline peak adult-female lice (min / median / p90) | 0.52 (median) | 0.52 / 0.61 / 0.75 | 0.30-0.65 (+0.05), p90 ≤ 1.0 |
+| Baseline feed cost NOK/kg produced | 27.40 | 26.04 | 22-30 |
+| DiseaseStress disease / total mortality % | 4.38 / 15.84 | 4.39 / 14.76 | 0.5-10 / 14-16 (±0.5) |
+| ThreeSite EBIT NOK/kg / cost NOK/kg | 19.63 / 63.25 | 21.74 / 62.67 | 8-25 (±2) |
+| Storm escapes % / events / storm days / min integrity | 0.36 / 0.41 / 145.0 / 83.2 | 0.31 / 0.42 / 146.3 / 83.4 | ≤ 0.5 / ≤ 1 / exposure / ≥ 40 |
+| LiceControl treatments, resistance, peak | 1.50, 0.07%, 0.15 | unchanged | |
+| Career po3 seed 7: days, kg, FCR, mortality, balance | 315, 460,912, 1.179, 23.9%, +21.24M | 348, 507,436, 1.182, 20.1%, +23.74M | FCR 1.0-1.6, mort ≤ 65%, > -1M |
+| Career po3 seed 13 | 331, 493,072, 1.176, 20.6%, +22.94M | 345, 495,497, 1.183, 20.6%, +27.84M | > -15M (D4), 70-96 NOK/kg (88.00) |
+| FullCycle PO4 by data (was the national reference): days, bio FCR, eFCR, survival | 503 / 368 / 453 / 483 d | 490-522 d, 1.177-1.187, 1.326-1.509, 56-69% | 360-600 d, 1.0-1.6 |
+
+The zone path's economic FCR (1.33-1.51) is the bloom deck's 31-44% cycle
+mortality, not the feeding (RUN_LOG §8, S2-05/S4-03).
+
+### The seam for farm types
+
+`GrowthConditions` (water temperature, ration, appetite modifier, growth and
+density multipliers, spreading, day length) is everything the law reads;
+`SimulationEngine.GrowAndFeedOneDay(population, HoldingHusbandry)` fills it from
+`HoldingWaterOf(population)` (S2-02) and `DayLengthHoursOf(water)`. A land tank
+(RAS, flow-through) supplies its controlled temperature and 24 h light, an
+offshore hull its area's sea and latitude; `FishPopulation.Ration` is the
+holding's feeding plan. `TgcGrowthEngineTests.ALandTankAtTwelveDegrees_GrowsOnTheSameLaw_InItsOwnWaterAndLight`
+proves a 12 °C tank grows exactly as the law predicts from its own water.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
@@ -699,6 +827,13 @@ terms run whole calendar months; a crisis lasts calendar months.
 | `SeaTemperature.DailyFluctuationStdDevC` | 0.3 | (game estimate) | none | 0-0.6 |
 | `SeaTemperature.EventAnomalyEFoldingDays` | 21 | July 2025 heatwave ~3 weeks | HI Rapport fra havforskningen 2025-69 | 7-45 |
 | Production-area climatology (13 x 12, `ProductionAreas`) | §1f | HI normals 2012-2024 (NorKyst v3) | HI 2025-69 + station shapes | data, not a knob |
+| `Growth.ThermalGrowthCoefficient` | 3.0 | 2.5-3.5 commercial sea TGC | Reid et al. 2013a / Dempsey et al. 2023; Karlsen et al. 2018 | 2.8-3.2 |
+| `Growth.OptimalTemperatureC` | 13 | 13-14 °C (post-smolt to adult) | Kleiven et al. 2026; Calado et al. 2021 | 12.5-14 |
+| `Growth.UpperGrowthLimitC` | 22 | ITmax ~22 °C | Calado et al. 2021 | 20-23 |
+| `Growth.TgcValidToKg` / `AsymptoticWeightKg` | 3 / 20 | TGC valid 100-3000 g | Alanärä et al. 2001 / game estimate | 2.5-3.5 / 15-25 |
+| `Growth.PhotoperiodGrowthSlope` | 0.2 | growth tied to day length | Aunsmo et al. 2014 (effect); game estimate (size) | 0-0.3 |
+| `Growth.MaintenanceRationFraction` / `RationCurvature` | 0.10 / 0.5 | optimum ration below satiation | Brett 1979 (shape); game estimate | 0.05-0.2 / 0.3-1.0 |
+| `Growth.SmoltWeightCv` / `BaseWeightCv` | 0.18 / 0.20 | CV 17-21% a month after transfer | Karlsen et al. 2018 / game estimate | 0.15-0.22 / 0.15-0.30 |
 
 ## 4. Playtest tuning priorities
 
