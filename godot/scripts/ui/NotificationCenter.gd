@@ -16,6 +16,11 @@ signal panel_toggled(is_open: bool)
 # ── Constants ──────────────────────────────────────────────────────────────────
 
 const MAX_ENTRIES := 20
+## Space between the open drawer and the toast stack beside it.
+const TOAST_GAP := 12.0
+## Moved beside the drawer, the stack also rises above the bottom-centre band
+## (the fjord camera hint and its "Fly til merd" button, 104 px tall).
+const TOAST_LIFT := 112.0
 
 # Severity -> Kyst & Stål tone. Entries are "Callout<Tone>" cards on the panel's
 # Ink surface and glyphs/headers use "<Role><Tone>" labels, so every colour
@@ -169,6 +174,7 @@ func show_panel() -> void:
 		return
 	_is_open = true
 	panel.show()
+	_reserve_toast_room(true)
 	if anim_player and anim_player.has_animation("slide_in"):
 		anim_player.play("slide_in")
 	else:
@@ -179,6 +185,7 @@ func hide_panel() -> void:
 	if not _is_open:
 		return
 	_is_open = false
+	_reserve_toast_room(false)
 	if anim_player and anim_player.has_animation("slide_out"):
 		anim_player.play("slide_out")
 		await anim_player.animation_finished
@@ -186,6 +193,25 @@ func hide_panel() -> void:
 		await _slide_out()
 	panel.hide()
 	panel_toggled.emit(false)
+
+## Screen regions (roadmap U1-04): the open history is a drawer on the right
+## edge, under the tab rail; the toast stack moves left of it while it is open
+## and back to the corner when it closes (or the game scene goes away).
+func _reserve_toast_room(open: bool) -> void:
+	var toasts := get_node_or_null("/root/ToastNotification")
+	if toasts == null or not toasts.has_method("set_right_inset"):
+		return
+	var inset := 0.0
+	var lift := 0.0
+	if open:
+		var drawer_left := get_global_rect().position.x
+		inset = get_viewport_rect().size.x - drawer_left - float(toasts.STACK_MARGIN_RIGHT) + TOAST_GAP
+		lift = TOAST_LIFT
+	toasts.set_right_inset(inset, lift)
+
+func _exit_tree() -> void:
+	if _is_open:
+		_reserve_toast_room(false)
 
 ## Slide-in juice (display only): fade + rise from the right edge.
 func _slide_in() -> void:

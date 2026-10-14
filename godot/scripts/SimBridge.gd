@@ -304,19 +304,21 @@ func _on_tutorial_step_completed(step_number: int, title: String, reward_nok: fl
 func _on_audio_alert_triggered(alert_key: String) -> void: _state._on_audio_alert_triggered(alert_key)
 func _on_achievement_unlocked(id: String, achievement_name: String, description: String, reward_nok: float, tier: String) -> void: _state._on_achievement_unlocked(id, achievement_name, description, reward_nok, tier)
 func _on_weather_event(event_type: String, severity: float, description: String) -> void:
-	_state._push_alert("critical" if severity >= 0.8 else "warning", tr("ALERT_WEATHER") % description)
+	_state._push_alert("critical" if severity >= 0.8 else "warning", tr("ALERT_WEATHER") % description, "weather")
 func _on_disease_outbreak(disease_type: String, site_id: String, severity: float, treatment_cost: float) -> void:
 	if disease_type == "Escape":
-		_state._push_alert("critical", tr("ALERT_ESCAPE") % [_state.site_name(site_id), Formatters.format_nok(treatment_cost)])
+		_state._push_alert("critical", tr("ALERT_ESCAPE") % [_state.site_name(site_id), Formatters.format_nok(treatment_cost)],
+			"escape", site_id)
 	else:
 		_state._push_alert("critical" if severity >= 0.5 else "warning", tr("ALERT_DISEASE") % [
-			SimLabels.disease(disease_type), _state.site_name(site_id), Formatters.format_nok(treatment_cost)])
+			SimLabels.disease(disease_type), _state.site_name(site_id), Formatters.format_nok(treatment_cost)],
+			"disease", site_id)
 
 # ── Internal passthroughs (preserved for compatibility) ─────────────────────
 
 func _refresh_state() -> void: _state._refresh_state()
 func _check_alerts() -> void: _state._rebuild_alerts()
-func _push_alert(level: String, message: String) -> void: _state._push_alert(level, message)
+func _push_alert(level: String, message: String, category: String = "event", site: String = "") -> void: _state._push_alert(level, message, category, site)
 func _season_name(day: int) -> String: return Formatters.season_name(day)
 
 # ── Display helpers (roadmap U1-03 / U1-08) ───────────────────────────────────

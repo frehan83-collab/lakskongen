@@ -439,13 +439,14 @@ func _raise(key: String, level: String, message: String) -> bool:
 
 
 ## An event alert (weather, disease, escape): announced once, listed for
-## EVENT_ALERT_TTL_DAYS (a refresh used to wipe it at once).
-func _push_alert(level: String, message: String) -> void:
+## EVENT_ALERT_TTL_DAYS (a refresh used to wipe it at once). category and
+## site say what it is about, so lists can show one row per (category, site).
+func _push_alert(level: String, message: String, category: String = "event", site: String = "") -> void:
 	# The engine's day: weather events arrive before the tick's refresh, when
 	# current_day still holds yesterday, which cut the TTL to two days.
 	var day: int = int(game_bridge.CurrentDay) if game_bridge else current_day
 	var alert := {"key": "event:%d:%s" % [day, message], "level": level,
-		"message": message, "day": day}
+		"message": message, "day": day, "category": category, "site": site}
 	_event_alerts.append(alert)
 	active_alerts.push_front(alert)
 	alert_raised.emit(level, message)

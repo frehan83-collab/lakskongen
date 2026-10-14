@@ -70,6 +70,10 @@ const WEATHER_ICONS := {"Calm": "☀️", "Moderate": "⛅", "Storm": "⛈️", 
 # Pen mini-cards are static scene nodes; collected into an array in _ready.
 var _pen_cards: Array[Dictionary] = []
 
+## Rows of the alert card (one per category and site), newest first.
+const ALERT_ROWS_MAX := 6
+var _alert_rows: Array[Dictionary] = []
+
 var _fin_bars_revenue: Array[ColorRect] = []
 var _fin_bars_cost: Array[ColorRect] = []
 var _fin_month_labels: Array[Label] = []
@@ -611,19 +615,8 @@ func _refresh_alerts() -> void:
 	for child in _alerts_container.get_children():
 		child.queue_free()
 
-	# Real alerts: live SimState thresholds first, then recent sim events.
-	var alerts: Array[Dictionary] = []
-	if _sim:
-		for a in _sim.active_alerts:
-			var lvl: String = str(a.get("level", "info"))
-			alerts.append({"text": str(a.get("message", "")), "level": lvl, "time": tr("UI_TIME_NOW")})
-		for e in _sim.recent_events:
-			var desc: String = str(e.get("description", ""))
-			if desc.is_empty():
-				continue
-			alerts.append({"text": "%s — %s" % [str(e.get("name", tr("UI_EVENT_FALLBACK"))), desc], "level": "info",
-				"time": tr("UI_DAY_N") % int(e.get("day", 0))})
-		alerts = alerts.slice(0, 6)
+	var alerts: Array[Dictionary] = _collect_alert_rows()
+	_alert_rows = alerts
 
 	if alerts.is_empty():
 		UIPolish.show_empty_state_localized(_alerts_container, tr("UI_DASHBOARD_ALERTS_EMPTY"), 13, "", _theme)
@@ -657,12 +650,66 @@ func _refresh_alerts() -> void:
 
 		var time_lbl := Label.new()
 		time_lbl.text = alert.time
+		if int(alert.count) > 1:
+			time_lbl.text += " · " + tr("UI_DASHBOARD_ALERT_REPEATS") % int(alert.count)
 		LakskongenTheme.set_size(time_lbl, 11)
 		LakskongenTheme.set_tone(time_lbl, &"Muted")
 		text_vbox.add_child(time_lbl)
+		hbox.set_meta("alert_category", alert.category)
+		hbox.set_meta("alert_site", alert.site)
 
 	# UIPolish: vertical keyboard navigation for alerts list
 	UIPolish.link_vertical_focus(_alerts_container)
+
+## The alert rows: live alerts first (newest event alerts, then conditions),
+## then recent sim events, newest first. One row per (category, site)
+## (roadmap U1-04): a storm reported on three days, or the storm alert and the
+## storm event behind it, is one row that counts its repeats. At most
+## ALERT_ROWS_MAX rows.
+func _collect_alert_rows() -> Array[Dictionary]:
+	var rows: Array[Dictionary] = []
+	if not _sim:
+		return rows
+	var by_identity: Dictionary = {}
+	for a in _sim.active_alerts:
+		var identity := alert_identity(a)
+		_add_alert_row(rows, by_identity, identity, {"text": str(a.get("message", "")),
+			"level": str(a.get("level", "info")), "time": tr("UI_TIME_NOW")})
+	var events: Array = _sim.recent_events
+	for i in range(events.size() - 1, -1, -1):
+		var e: Dictionary = events[i]
+		var desc: String = str(e.get("description", ""))
+		if desc.is_empty():
+			continue
+		var identity := [str(e.get("category", "event")).to_lower(), str(e.get("site_id", ""))]
+		_add_alert_row(rows, by_identity, identity, {
+			"text": "%s — %s" % [str(e.get("name", tr("UI_EVENT_FALLBACK"))), desc], "level": "info",
+			"time": tr("UI_DAY_N") % int(e.get("day", 0))})
+	return rows.slice(0, ALERT_ROWS_MAX)
+
+func _add_alert_row(rows: Array[Dictionary], by_identity: Dictionary, identity: Array, row: Dictionary) -> void:
+	var key := "%s|%s" % identity
+	if by_identity.has(key):
+		var kept: Dictionary = rows[int(by_identity[key])]
+		kept["count"] = int(kept["count"]) + 1
+		return
+	row["category"] = identity[0]
+	row["site"] = identity[1]
+	row["count"] = 1
+	by_identity[key] = rows.size()
+	rows.append(row)
+
+## What an alert is about, as [category, site]. Event alerts carry both;
+## condition alerts are keyed "<category>" or "<category>:<site>:<kind>".
+static func alert_identity(alert: Dictionary) -> Array:
+	if alert.has("category"):
+		return [str(alert["category"]).to_lower(), str(alert.get("site", ""))]
+	var parts := str(alert.get("key", "")).split(":")
+	return [parts[0], parts[1] if parts.size() > 2 else ""]
+
+## The rows the alert card shows now (category, site, level, text, count).
+func get_alert_rows() -> Array[Dictionary]:
+	return _alert_rows.duplicate(true)
 
 
 func _refresh_charts() -> void:

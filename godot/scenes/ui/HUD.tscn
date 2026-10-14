@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://bks2yj3v1fkl8"]
+[gd_scene load_steps=3 format=3 uid="uid://bks2yj3v1fkl8"]
 
 [ext_resource type="Script" path="res://scripts/ui/HUD.gd" id="1_hud"]
+[ext_resource type="PackedScene" uid="uid://scenario_goal_hud_001" path="res://ui/ScenarioGoalHUD.tscn" id="2_goal"]
 
 [node name="HUD" type="Control"]
 layout_mode = 3
@@ -167,6 +168,14 @@ theme_type_variation = &"Figure"
 unique_name_in_owner = true
 layout_mode = 2
 text = "--"
+
+[node name="GoalChip" parent="MainHBox" instance=ExtResource("2_goal")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 8
+
+[node name="Sep5" type="VSeparator" parent="MainHBox"]
+layout_mode = 2
 
 [node name="Right" type="HBoxContainer" parent="MainHBox"]
 layout_mode = 2

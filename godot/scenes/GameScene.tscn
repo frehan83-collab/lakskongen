@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://cx3r7m9t1q5n4"]
+[gd_scene load_steps=12 format=3 uid="uid://cx3r7m9t1q5n4"]
 
 [ext_resource type="Script" path="res://scripts/GameController.gd" id="1_gamecontroller"]
 [ext_resource type="PackedScene" uid="uid://bks2yj3v1fkl8" path="res://scenes/ui/HUD.tscn" id="3_hud"]
@@ -10,7 +10,6 @@
 [ext_resource type="Script" path="res://scripts/environment/FishPenManager.gd" id="10_penmanager"]
 [ext_resource type="Script" path="res://scripts/environment/FjordVistaBridge.gd" id="11_bridge"]
 [ext_resource type="PackedScene" path="res://scenes/ui/FjordCameraHint.tscn" id="12_camerahint"]
-[ext_resource type="PackedScene" uid="uid://scenario_goal_hud_001" path="res://ui/ScenarioGoalHUD.tscn" id="13_goalhud"]
 [ext_resource type="PackedScene" uid="uid://d2kx4jnw5l83y" path="res://scenes/ui/AttentionInbox.tscn" id="14_inbox"]
 
 [node name="GameScene" type="Control"]
@@ -78,20 +77,6 @@ offset_bottom = 48.0
 grow_horizontal = 2
 grow_vertical = 1
 
-[node name="ScenarioGoalHUD" parent="UILayer" instance=ExtResource("13_goalhud")]
-unique_name_in_owner = true
-layout_mode = 1
-anchor_left = 1.0
-anchor_top = 0.0
-anchor_right = 1.0
-anchor_bottom = 0.0
-offset_left = -340.0
-offset_top = 56.0
-offset_right = -16.0
-offset_bottom = 176.0
-grow_horizontal = 0
-grow_vertical = 0
-
 [node name="GameUI" parent="UILayer" instance=ExtResource("4_gameui")]
 unique_name_in_owner = true
 layout_mode = 1
@@ -126,8 +111,9 @@ anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -360.0
-offset_top = 64.0
-offset_bottom = -4.0
+offset_top = 120.0
+offset_right = -8.0
+offset_bottom = -8.0
 grow_horizontal = 0
 grow_vertical = 2
 

@@ -78,6 +78,10 @@ func _run() -> void:
 	await _test_banner_and_inbox_open_the_right_tab()
 	await _test_text_reads_norwegian_in_young_and_red_zone_farms()
 	await _test_every_button_answers()
+	await _test_screen_regions_never_overlap()
+	await _test_overflow_menu_opens_hidden_tabs()
+	await _test_tab_shortcuts_are_command_digits()
+	await _test_dashboard_alerts_one_row_per_category_and_site()
 
 	_clear_test_saves()
 	_finish()
@@ -1197,6 +1201,189 @@ func _test_every_button_answers() -> void:
 	await get_tree().process_frame
 	_clear_test_saves()
 
+## U1-04 (screen regions): at UI scale 80/100/125 % and three window sizes the
+## HUD readouts, goal chip, HUD controls, tab rail, notification drawer, toast
+## stack, tutorial card and camera hint never overlap, touch or leave the
+## screen. Five queued toasts show as at most three disjoint cards in the
+## bottom-right corner, clear of the speed, pause and inbox buttons; the open
+## drawer moves them beside it. No tab label is cut: every tab on the rail
+## sits whole inside it, and the rest are in the "Mer" menu.
+const OverlapLint := preload("res://tests/OverlapLint.gd")
+const REGION_WINDOW_SIZES := [Vector2i(1280, 720), Vector2i(1920, 1080), Vector2i(2560, 1440)]
+const REGION_UI_SCALES := [0.8, 1.0, 1.25]
+
+func _test_screen_regions_never_overlap() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "regions: a scenario with a goal starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	_sim.skip_tutorial()
+	var win := get_window()
+	var old_size := win.size
+	var old_scale := win.content_scale_factor
+	var toasts := get_node("/root/ToastNotification")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var chip: Control = scene.get_node("UILayer/HUD/MainHBox/GoalChip")
+	_check(chip.is_visible_in_tree() and chip.has_goal(), "regions: the goal chip sits in the HUD bar")
+	_check(chip.tooltip_text.contains(str(_sim.get_scenario_goal().get("objective", "?"))),
+		"regions: the chip's tooltip holds the full objective ('%s')" % chip.tooltip_text)
+	var levels := ["INFO", "WARNING", "SUCCESS", "CRITICAL", "INFO"]
+	for size: Vector2i in REGION_WINDOW_SIZES:
+		for scale: float in REGION_UI_SCALES:
+			win.size = size
+			win.content_scale_factor = scale
+			var where := "%dx%d at %d %%" % [size.x, size.y, int(round(scale * 100.0))]
+			toasts.clear_all()
+			center.hide_panel()
+			await get_tree().create_timer(0.4).timeout
+			for n in 5:
+				toasts.show_toast("CI region toast %d" % n, levels[n], 30.0)
+			await get_tree().create_timer(1.4).timeout  # slide-ins and the two make-room exits
+			var screen := get_viewport().get_visible_rect()
+			var found := OverlapLint.regions(scene)
+			var bad := OverlapLint.overlaps(found, screen)
+			_check(bad.is_empty(), "regions: nothing overlaps at %s %s" % [where, str(bad)])
+			var rects: Array = toasts.get_toast_rects()
+			var corner := screen.end - Vector2(toasts.STACK_MARGIN_RIGHT, toasts.STACK_MARGIN_BOTTOM)
+			var newest: Rect2 = rects[0] if not rects.is_empty() else Rect2()
+			_check(rects.size() == 3 and newest.end.distance_to(corner) < 2.0,
+				"regions: five toasts show as three, newest in the bottom-right corner at %s (%d, %s)" % [where, rects.size(), str(newest)])
+			var controls: Rect2 = found.get("hud_controls", Rect2())
+			var clear := controls.has_area()
+			for r: Rect2 in rects:
+				clear = clear and not r.intersects(controls.grow(8.0), true)
+			_check(clear, "regions: no toast comes near the speed, pause or inbox buttons at %s" % where)
+			_check(_rail_tabs_whole(ui), "regions: every tab on the rail is whole, the rest in 'Mer', at %s %s" % [where, str(ui.get_overflow_tabs())])
+			center.show_panel()
+			await get_tree().create_timer(0.5).timeout
+			found = OverlapLint.regions(scene)
+			bad = OverlapLint.overlaps(found, screen)
+			_check(found.has("notification_panel") and found.has("toast_0") and bad.is_empty(),
+				"regions: the open drawer moves the toasts beside it at %s %s" % [where, str(bad)])
+	center.hide_panel()
+	toasts.clear_all()
+	win.content_scale_factor = old_scale
+	win.size = old_size
+	await get_tree().process_frame
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Every visible rail tab lies whole inside the rail at its full label width,
+## and the tabs on the rail plus the "Mer" menu are all the tabs.
+func _rail_tabs_whole(ui: Control) -> bool:
+	var rail: Control = ui.find_child("TabBarScroll", true, false)
+	var bar: Control = ui.find_child("TabBar", true, false)
+	var view := rail.get_global_rect().grow(0.5)
+	var shown := 0
+	var total := 0
+	for child in bar.get_children():
+		if not String(child.name).begins_with("Tab_"):
+			continue
+		total += 1
+		var b := child as Button
+		if not b.visible:
+			continue
+		shown += 1
+		if not view.encloses(b.get_global_rect()) or b.size.x + 0.5 < b.get_combined_minimum_size().x:
+			return false
+	var more: Control = bar.get_node_or_null("TabMore")
+	var in_menu: int = ui.get_overflow_tabs().size()
+	if in_menu > 0 and (more == null or not more.visible or not view.encloses(more.get_global_rect())):
+		return false
+	return shown + in_menu == total
+
+## U1-04: a tab in the "Mer" menu opens from it with real input (click the
+## menu, arrow down, Enter) and takes a whole place on the rail.
+func _test_overflow_menu_opens_hidden_tabs() -> void:
+	var scene := await _spawn_game_scene()
+	_sim.skip_tutorial()
+	var win := get_window()
+	var old_scale := win.content_scale_factor
+	win.content_scale_factor = 1.25
+	await get_tree().create_timer(0.3).timeout
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var hidden: Array = ui.get_overflow_tabs()
+	_check(not hidden.is_empty(), "overflow: at 125 %% some tabs move into 'Mer' (%s)" % str(hidden))
+	if not hidden.is_empty():
+		var more: MenuButton = ui.find_child("TabMore", true, false)
+		await _click_control(more)
+		_check(more.get_popup().visible, "overflow: clicking 'Mer' opens the menu")
+		await _press_key(KEY_DOWN)
+		await _press_key(KEY_ENTER)
+		await get_tree().process_frame
+		var opened := String(hidden[0])
+		_check(ui.get_active_tab() == opened, "overflow: the menu opens %s (%s)" % [opened, ui.get_active_tab()])
+		var tab: Control = ui.find_child("Tab_" + opened, true, false)
+		_check(tab.visible and _rail_tabs_whole(ui), "overflow: the opened tab takes a whole place on the rail")
+	win.content_scale_factor = old_scale
+	await get_tree().process_frame
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-04/D15: no function keys (F1–F12 belong to macOS); Cmd/Ctrl+digit opens
+## the core tabs, and a bare digit does not.
+func _test_tab_shortcuts_are_command_digits() -> void:
+	var scene := await _spawn_game_scene()
+	_sim.skip_tutorial()
+	await get_tree().process_frame
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	get_viewport().gui_release_focus()
+	for f in [KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F10, KEY_F12]:
+		await _press_key(f)
+	_check(ui.get_active_tab() == "dashboard", "shortcuts: F-keys switch no tab (%s)" % ui.get_active_tab())
+	for case in [[KEY_3, "finance"], [KEY_0, "analytics"], [KEY_2, "map"], [KEY_1, "dashboard"]]:
+		await _press_command_key(case[0])
+		_check(ui.get_active_tab() == case[1], "shortcuts: Cmd/Ctrl+%s opens %s (%s)" % [OS.get_keycode_string(case[0]), case[1], ui.get_active_tab()])
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_3, 51)
+	_check(ui.get_active_tab() == "dashboard", "shortcuts: a bare 3 opens no tab (%s)" % ui.get_active_tab())
+	var finance_tab: Control = ui.find_child("Tab_finance", true, false)
+	_check(finance_tab.tooltip_text.contains("3"), "shortcuts: the tab names its shortcut ('%s')" % finance_tab.tooltip_text)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-04: the dashboard's alert card shows one row per (category, site). A
+## storm reported on three days (and the storm event behind it) is one row
+## that counts its repeats; two sites with a disease are two rows.
+func _test_dashboard_alerts_one_row_per_category_and_site() -> void:
+	var scene := await _spawn_game_scene()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	for day in 3:
+		_sim._push_alert("warning", "CI: storm i fjorden dag %d" % day, "weather")
+		_sim.advance_days(1)
+	_sim._push_alert("warning", "CI: sykdom på A", "disease", "ci_site_a")
+	_sim._push_alert("critical", "CI: sykdom på A igjen", "disease", "ci_site_a")
+	_sim._push_alert("warning", "CI: sykdom på B", "disease", "ci_site_b")
+	ui.show_tab("dashboard")
+	var dash: Control = ui.find_child("Panel_dashboard", true, false)
+	dash._refresh_all()
+	await get_tree().process_frame
+	var rows: Array = dash.get_alert_rows()
+	var seen := {}
+	var dupes: Array = []
+	for r: Dictionary in rows:
+		var key := "%s|%s" % [r["category"], r["site"]]
+		if seen.has(key):
+			dupes.append(key)
+		seen[key] = r
+	_check(dupes.is_empty() and not rows.is_empty(), "alerts: one row per category and site (%d rows, dupes %s)" % [rows.size(), str(dupes)])
+	_check(seen.has("weather|") and int(seen["weather|"]["count"]) >= 3,
+		"alerts: three storm reports are one counted row (%s)" % str(seen.get("weather|", {}).get("count", 0)))
+	_check(seen.has("disease|ci_site_a") and seen.has("disease|ci_site_b") and int(seen["disease|ci_site_a"]["count"]) == 2,
+		"alerts: a disease at each of two sites is two rows, the repeat counted")
+	var drawn := {}
+	var drawn_rows := 0
+	for row in dash.find_children("*", "HBoxContainer", true, false):
+		if row.has_meta("alert_category"):
+			drawn_rows += 1
+			drawn["%s|%s" % [row.get_meta("alert_category"), row.get_meta("alert_site")]] = true
+	_check(drawn_rows == rows.size() and drawn.size() == rows.size(), "alerts: the card draws each row once (%d drawn)" % drawn_rows)
+	scene.queue_free()
+	await get_tree().process_frame
+
 func _point_export_at_test_dir(panel: Node) -> void:
 	var dir := ProjectSettings.globalize_path(TEST_ROOT + "exports")
 	DirAccess.make_dir_recursive_absolute(dir)
@@ -1283,6 +1470,17 @@ func _press_key(keycode: Key, unicode: int = 0) -> void:
 		ev.keycode = keycode
 		ev.physical_keycode = keycode
 		ev.unicode = unicode if pressed else 0
+		ev.pressed = pressed
+		get_viewport().push_input(ev)
+	await get_tree().process_frame
+
+## A real Cmd+key (macOS) / Ctrl+key (elsewhere) press and release.
+func _press_command_key(keycode: Key) -> void:
+	for pressed in [true, false]:
+		var ev := InputEventKey.new()
+		ev.keycode = keycode
+		ev.physical_keycode = keycode
+		ev.command_or_control_autoremap = true
 		ev.pressed = pressed
 		get_viewport().push_input(ev)
 	await get_tree().process_frame

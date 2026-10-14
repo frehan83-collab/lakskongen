@@ -1433,3 +1433,11 @@ ENUM_ACHIEVEMENT_TIER_INTERMEDIATE,Intermediate,Viderekommen
 ENUM_ACHIEVEMENT_TIER_ADVANCED,Advanced,Erfaren
 ENUM_ACHIEVEMENT_TIER_MASTER,Master,Mester
 ENUM_ACHIEVEMENT_TIER_HIDDEN,Hidden,Skjult
+UI_DASHBOARD_ALERT_REPEATS,%d times,%d ganger
+UI_GOAL_CHIP,Goal %s,Mål %s
+UI_GOAL_CHIP_WON,Goal reached,Mål nådd
+UI_GOAL_CHIP_LOST,Goal not reached,Mål ikke nådd
+UI_GOAL_DETAILS_TITLE,Scenario goal,Scenariomål
+UI_TAB_MORE,More ▾,Mer ▾
+UI_TAB_MORE_TIP,Tabs that do not fit the bar,Faner som ikke får plass i linjen
+UI_TAB_SHORTCUT_TIP,Shortcut: %s,Snarvei: %s
