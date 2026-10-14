@@ -382,6 +382,16 @@ public partial class GameBridge : Node
                     EmitSignal(SignalName.FarmActionCompleted, "harvest", note.SiteId, note.Success);
                     engine.Audio?.TriggerAlert("harvest");
                     break;
+                case "harvest_batch":
+                    // S2-04: a planned harvest slaughtered a batch (cash moved).
+                    EmitSignal(SignalName.GameStateUpdated);
+                    break;
+                case "harvest_completed":
+                    // S2-04: the order's last batch: one harvest toast per harvest.
+                    EmitSignal(SignalName.FarmActionCompleted, "harvest", note.SiteId, note.Success);
+                    if (note.Success) engine.Audio?.TriggerAlert("harvest");
+                    EmitSignal(SignalName.GameStateUpdated);
+                    break;
                 case "wellboat_rov":
                 case "wellboat_freshwater":
                     EmitSignal(SignalName.FarmActionCompleted, "wellboat", note.SiteId, note.Success);

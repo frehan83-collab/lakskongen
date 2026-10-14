@@ -75,6 +75,7 @@ func _run() -> void:
 	await _test_telemetry_oxygen_saturation_follows_the_sim()
 	await _test_zones_report_their_production_area_water()
 	await _test_pens_report_their_size_spread_and_ration()
+	await _test_harvest_pipeline_reaches_the_ui()
 	await _test_honest_economy_reaches_the_ui()
 	await _test_pen_models_read_as_equipment()
 	await _test_hero_pen_and_site_kit()
@@ -992,6 +993,63 @@ func _test_pens_report_their_size_spread_and_ration() -> void:
 	var ration := float(pens[0].get("ration", 0.0)) if pens.size() > 0 else 0.0
 	_check(cv > 0.15 and cv < 0.35 and is_equal_approx(ration, 1.0),
 		"growth: the site reports its size spread (CV %.3f) and full-appetite ration (%.2f)" % [cv, ration])
+
+## S2-04: the harvest pipeline reaches the game through the bridge: a quote in
+## gutted kilos, size classes and grades; an order that fasts the fish, waits for
+## its wellboat slot and is slaughtered at the price of the day; one report per
+## batch that reconciles with the cash; a partial harvest; the express verb.
+func _test_harvest_pipeline_reaches_the_ui() -> void:
+	_check(_sim.start_qa_scenario("forste_sesong", 29), "harvest: tutorial scenario starts")
+	_sim.set_paused(true)
+	_sim.advance_days(200)
+	var site_id := str(_sim.get_all_pens()[0].get("id", ""))
+	var q: Dictionary = _sim.quote_harvest(site_id)
+	var live := float(q.get("live_kg", 0.0))
+	var classes: Array = q.get("size_classes", [])
+	_check(bool(q.get("success", false)) and live > 0.0 and is_equal_approx(float(q.get("hog_kg", 0.0)), live * 0.84),
+		"harvest: the quote sells gutted kilos, 84%% of %.0f kg live (%s)" % [live, str(q.get("hog_kg"))])
+	var shares := float(q.get("superior", 0.0)) + float(q.get("ordinary", 0.0)) + float(q.get("production", 0.0))
+	_check(classes.size() == 8 and is_equal_approx(shares, 1.0) and float(q.get("superior", 0.0)) > 0.5,
+		"harvest: the quote splits the fish into 8 size classes and three grades (%.3f)" % shares)
+	_check(int(q.get("first_day", 0)) >= _sim.current_day + 5 and float(q.get("surcharge_nok", -1.0)) == 0.0,
+		"harvest: a planned harvest waits for the wellboat slot and pays no surcharge (day %d)" % int(q.get("first_day", 0)))
+	var all_pens: Array[String] = []
+	var express: Dictionary = _sim.quote_harvest(site_id, all_pens, 1.0, true)
+	_check(float(express.get("surcharge_nok", 0.0)) > 0.0 and int(express.get("first_day", -1)) == _sim.current_day,
+		"harvest: an express harvest is today, with the surcharge")
+
+	var order: Dictionary = _sim.order_harvest(site_id)
+	var order_id := str(order.get("id", ""))
+	_check(bool(order.get("success", false)) and order_id != "" and _sim.get_harvest_orders().size() == 1,
+		"harvest: the order is placed (%s)" % order_id)
+	_check(str(_sim.order_harvest(site_id).get("error", "")) == "pen_in_order",
+		"harvest: the same pens cannot be ordered twice")
+	_check(bool(_sim.cancel_harvest_order(order_id).get("success", false)) and _sim.get_harvest_orders().is_empty(),
+		"harvest: the order can be called off")
+
+	var cash0 := float(_sim.balance)
+	order = _sim.order_harvest(site_id, all_pens, 0.5)
+	order_id = str(order.get("id", ""))
+	_sim.advance_days(12)
+	var reports: Array = _sim.get_harvest_reports().filter(func(r: Dictionary) -> bool: return str(r.get("order_id", "")) == order_id)
+	var fish := 0
+	var net := 0.0
+	var reconciled := true
+	for r in reports:
+		fish += int(r.get("fish", 0))
+		net += float(r.get("net_nok", 0.0))
+		reconciled = reconciled and is_equal_approx(float(r.get("net_nok", 0.0)), float(r.get("gross_nok", 0.0)) - float(r.get("cost_nok", 0.0)))
+	_check(_sim.get_harvest_orders().is_empty() and not reports.is_empty() and reconciled,
+		"harvest: the half harvest was slaughtered and every report reconciles (%d reports)" % reports.size())
+	var left := int(_sim.get_all_pens()[0].get("fish_count", 0))
+	_check(fish > 0 and left > 0 and absi(fish - left) <= maxi(1, (fish + left) / 50),
+		"harvest: half the fish went (%d), half stayed (%d)" % [fish, left])
+	_check(net > 0.0 and float(_sim.balance) > cash0,
+		"harvest: the sale reached the cash (+%.0f net)" % net)
+
+	var kg: float = _sim.harvest_pen(site_id)
+	_check(kg > 0.0 and int(_sim.get_all_pens()[0].get("fish_count", 0)) == 0,
+		"harvest: the express harvest verb still empties the site (%.0f kg)" % kg)
 
 ## S1-03 (owner decision D16): each scenario's bankruptcy floor and the warning
 ## ladder reach the game; achievements carry a medal and tutorial steps no cash
