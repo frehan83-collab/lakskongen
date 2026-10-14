@@ -6,11 +6,22 @@
       "type": "fish",
       "scale_m": 0.9,
       "orientation": "nose_neg_z",
-      "lod_levels": ["LOD0"],
-      "materials": ["skin", "belly", "fin"],
-      "tri_budget": { "LOD0": 220 },
+      "lod_levels": ["LOD0", "LOD1"],
+      "materials": ["LK_SalmonSkin"],
+      "tri_budget": { "LOD0": 1564, "LOD1": 270 },
+      "tri_max": { "LOD0": 1800, "LOD1": 400 },
       "export_path": "godot/assets/models/fish/salmon_{lod}.glb",
-      "build_script": "blender/build_salmon.py"
+      "build_script": "blender/build_salmon.py",
+      "godot_material": "godot/assets/models/fish/salmon_skin_material.tres",
+      "licence": "Proprietary (Lakskongen). In-house geometry and generated texture; no third-party assets.",
+      "reference": "Roadmap G3-01 (UVs, LOD0 about 1.5k triangles, LOD1 about 300, countershaded silver); Atlantic salmon (Salmo salar) proportions as fractions of fork length from standard species descriptions.",
+      "spec_tolerance": 0.05,
+      "spec": {
+        "fork_length_m": 0.9,
+        "depth_over_fork_length": [0.2, 0.28],
+        "width_over_depth": [0.45, 0.65],
+        "total_over_fork_length": [1.02, 1.08]
+      }
     },
     {
       "id": "pen_cage",

@@ -1,0 +1,31 @@
+{
+  "asset": "salmon",
+  "bbox_size": [
+    0.1528,
+    0.3214,
+    0.9416
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "depth_over_fork_length": 0.2433,
+    "fork_length_m": 0.9,
+    "max_depth_m": 0.219,
+    "max_width_m": 0.12,
+    "nose_y_m": 0.452,
+    "total_length_m": 0.9416,
+    "width_over_depth": 0.5479
+  },
+  "file": "salmon_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 1,
+  "materials": [
+    "LK_SalmonSkin"
+  ],
+  "tri_count": 1564,
+  "uv_bounds": [
+    0.0,
+    0.01,
+    1.0,
+    1.0
+  ]
+}

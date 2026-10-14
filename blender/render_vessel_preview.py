@@ -31,8 +31,35 @@ def parse():
     ap.add_argument("--samples", type=int, default=32)
     ap.add_argument("--shots", default="bow,stern,side,top,deck")
     ap.add_argument("--fish", action="store_true")
+    ap.add_argument("--texture", default=None,
+                    help="fish skin atlas: RGB albedo, A silver (metallic) mask, like salmon_skin.gdshader")
     ap.add_argument("--res", default="1600x900")
     return ap.parse_args(argv)
+
+
+def skin_material(objs, path):
+    """Approximate the Godot salmon shader: albedo from RGB, metallic and
+    smoothness from the silver mask in A."""
+    img = bpy.data.images.load(path, check_existing=True)
+    img.alpha_mode = "CHANNEL_PACKED"
+    for obj in objs:
+        for slot in obj.material_slots:
+            mat = slot.material
+            nt = mat.node_tree
+            bsdf = nt.nodes.get("Principled BSDF")
+            tex = nt.nodes.new("ShaderNodeTexImage")
+            tex.image = img
+            nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+            metal = nt.nodes.new("ShaderNodeMapRange")
+            metal.inputs["To Min"].default_value = 0.15
+            metal.inputs["To Max"].default_value = 0.85
+            nt.links.new(tex.outputs["Alpha"], metal.inputs["Value"])
+            nt.links.new(metal.outputs["Result"], bsdf.inputs["Metallic"])
+            rough = nt.nodes.new("ShaderNodeMapRange")
+            rough.inputs["To Min"].default_value = 0.55
+            rough.inputs["To Max"].default_value = 0.28
+            nt.links.new(tex.outputs["Alpha"], rough.inputs["Value"])
+            nt.links.new(rough.outputs["Result"], bsdf.inputs["Roughness"])
 
 
 def clear_scene():
@@ -137,7 +164,10 @@ def main():
     before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=args.glb)
     objs = [o for o in bpy.data.objects if o not in before and o.type == "MESH"]
-    vertex_ao(objs)
+    if args.texture:
+        skin_material(objs, args.texture)
+    else:
+        vertex_ao(objs)
     lo = Vector((min(v[0] for o in objs for v in o.bound_box), min(v[1] for o in objs for v in o.bound_box),
                  min(v[2] for o in objs for v in o.bound_box)))
     hi = Vector((max(v[0] for o in objs for v in o.bound_box), max(v[1] for o in objs for v in o.bound_box),

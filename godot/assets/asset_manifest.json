@@ -4,14 +4,26 @@
   "assets": {
     "salmon_LOD0": {
       "path": "godot/assets/models/fish/salmon_LOD0.glb",
-      "sha256": "d1c93510292dd32093a339c1c849a28c2cf8f55a38ba26eb97d15514627f34a6",
-      "size": 8800,
-      "tri_count": 220,
-      "material_count": 3,
+      "sha256": "bf1c1e7acee685377ef6e32b45348fa47f484f65d5c9fdae42cbdbe00722c11d",
+      "size": 45660,
+      "tri_count": 1564,
+      "material_count": 1,
       "bbox_size": [
-        0.0,
-        0.0,
-        0.0
+        0.1528,
+        0.3214,
+        0.9416
+      ]
+    },
+    "salmon_LOD1": {
+      "path": "godot/assets/models/fish/salmon_LOD1.glb",
+      "sha256": "7eabe4a2f935ce2520a63708b515f40d0cbe1b4d55bdb5056535ed4a434c9bde",
+      "size": 8384,
+      "tri_count": 270,
+      "material_count": 1,
+      "bbox_size": [
+        0.1528,
+        0.2906,
+        0.9344
       ]
     },
     "pen_cage_LOD0": {

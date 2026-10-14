@@ -1360,7 +1360,42 @@ func _test_vessel_fleet() -> void:
 	await get_tree().create_timer(0.5).timeout
 	_check(barges.barge_state(site_id) == "" and not barges.active_site_ids().has(site_id),
 		"vessels: a barge sent home leaves the fjord")
+	await _check_salmon_school(pens, site_id)
 	scene.queue_free()
+	await get_tree().process_frame
+
+## G3-01 (asset part): the pen's school draws the Blender Atlantic salmon in
+## its countershaded skin, nose along -Z, ~300 triangles from the farm
+## camera and ~1.5k close up; the swap keeps every fish where it was.
+func _check_salmon_school(pens: FishPenManager, site_id: String) -> void:
+	var school: MultiMeshInstance3D = pens._pens[site_id]["fish_school"] if pens._pens.has(site_id) else null
+	var mesh: Mesh = school.multimesh.mesh if school else null
+	var skin := load("res://assets/models/fish/salmon_skin_material.tres")
+	_check(mesh != null and mesh.get_surface_count() == 1 and mesh.surface_get_material(0) == skin,
+		"salmon: the school draws the Blender salmon in its one countershaded skin material")
+	var box: AABB = mesh.get_aabb() if mesh else AABB()
+	_check(absf(box.position.z + 0.452) < 0.01 and box.end.z > 0.45 and box.size.z > box.size.y * 2.5,
+		"salmon: the nose leads along -Z, 0.9 m fork length (%.3f .. %.3f)" % [box.position.z, box.end.z])
+	var cam := Camera3D.new()
+	add_child(cam)
+	cam.current = true
+	cam.global_position = school.global_position + Vector3(0, 300, 300) if school else Vector3.ZERO
+	await get_tree().process_frame
+	var far_tris := _mesh_triangles(school.multimesh.mesh) if school else 0
+	var before: Transform3D = school.multimesh.get_instance_transform(3) if school else Transform3D()
+	var count_before: int = school.multimesh.visible_instance_count if school else -1
+	pens.set_process(false)  # freeze the swim so the swap alone is measured
+	cam.global_position = school.global_position + Vector3(0, -4, 12) if school else Vector3.ZERO
+	if school:
+		pens._update_fish_lod(school)
+	var near_tris := _mesh_triangles(school.multimesh.mesh) if school else 0
+	_check(far_tris >= 200 and far_tris <= 400 and near_tris >= 1200 and near_tris <= 1800,
+		"salmon: %d triangles from the farm camera, %d close up (about 300 and 1.5k)" % [far_tris, near_tris])
+	_check(school != null and school.multimesh.get_instance_transform(3).is_equal_approx(before)
+		and school.multimesh.visible_instance_count == count_before,
+		"salmon: the close-up swap keeps every fish where it was (%d fish)" % count_before)
+	pens.set_process(true)
+	cam.queue_free()
 	await get_tree().process_frame
 
 ## True when no mesh under `root` has a material override (job state or

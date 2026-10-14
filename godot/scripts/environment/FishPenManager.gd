@@ -465,36 +465,55 @@ func _create_net_mesh() -> Mesh:
 	return cyl
 
 
-## Blender-built salmon (blender/build_salmon.py -> salmon_v2.glb).
-## Falls back to a plain box if the import is missing.
-var _salmon_mesh: Mesh = null
+## Blender-built Atlantic salmon (blender/build_salmon.py, 0.9 m fork length,
+## nose along -Z): LOD0 (~1.5k triangles) close to the camera, LOD1 (~300)
+## for a school seen from the farm camera. Falls back to a plain box if the
+## import is missing.
+const SALMON_LOD_SCENES := ["res://assets/models/fish/salmon_LOD0.glb", "res://assets/models/fish/salmon_LOD1.glb"]
+## Camera distance (m) from a pen where its school swaps to the far mesh.
+const FISH_LOD_SWITCH := 70.0
+var _salmon_meshes: Dictionary = {}  # lod -> Mesh
 
-func _get_salmon_mesh() -> Mesh:
-	if _salmon_mesh:
-		return _salmon_mesh
-	var packed: PackedScene = load("res://assets/models/fish/salmon_v2.glb") as PackedScene
+func _get_salmon_mesh(lod: int = 1) -> Mesh:
+	if _salmon_meshes.has(lod):
+		return _salmon_meshes[lod]
+	var mesh: Mesh = null
+	var packed: PackedScene = load(SALMON_LOD_SCENES[clampi(lod, 0, 1)]) as PackedScene
 	if packed != null:
 		var inst: Node = packed.instantiate()
-		var mi := inst.find_child("LK_Salmon", true, false) as MeshInstance3D
+		var mi := inst.find_child("Salmon", true, false) as MeshInstance3D
 		if mi and mi.mesh:
-			_salmon_mesh = mi.mesh
-		inst.queue_free()
-	if _salmon_mesh == null:
+			mesh = mi.mesh
+		inst.free()
+	if mesh == null:
 		var body := BoxMesh.new()
-		body.size = Vector3(0.9, 0.3, 0.25)
+		body.size = Vector3(0.25, 0.3, 0.9)
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = Color(0.5, 0.58, 0.65, 1.0)
 		mat.roughness = 0.6
 		body.material = mat
-		_salmon_mesh = body
-	return _salmon_mesh
+		mesh = body
+	_salmon_meshes[lod] = mesh
+	return mesh
+
+
+## Close schools get the detailed salmon, far ones the light mesh (one
+## MultiMesh per pen: only its mesh changes, the transforms stay).
+func _update_fish_lod(school: MultiMeshInstance3D) -> void:
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	if cam == null or school.multimesh == null:
+		return
+	var lod := 0 if cam.global_position.distance_to(school.global_position) < FISH_LOD_SWITCH else 1
+	var mesh := _get_salmon_mesh(lod)
+	if school.multimesh.mesh != mesh:
+		school.multimesh.mesh = mesh
 
 
 func _create_fish_multimesh() -> MultiMesh:
 	"""One shared low-poly fish school mesh per pen (modest count)."""
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = _get_salmon_mesh()
+	mm.mesh = _get_salmon_mesh(1)
 	# Allocated once at max; _apply_fish_density drives visible count.
 	mm.instance_count = FISH_MAX_INSTANCES
 	mm.visible_instance_count = 0
@@ -529,6 +548,7 @@ func _animate_fish_school(pen_data: Dictionary, pen_id: String) -> void:
 	var school: MultiMeshInstance3D = pen_data["fish_school"]
 	if not school or not school.multimesh:
 		return
+	_update_fish_lod(school)
 	var count: int = school.multimesh.visible_instance_count
 	var fish_scale: float = pen_data.get("fish_scale", 0.5)
 	var phase := float(abs(hash(pen_id)) % 1000) / 1000.0 * TAU
@@ -538,7 +558,7 @@ func _animate_fish_school(pen_data: Dictionary, pen_id: String) -> void:
 		var depth := -3.0 - float(i % 4) * 2.0
 		var pos := Vector3(cos(t) * r, depth + sin(t * 1.7) * 0.6, sin(t) * r)
 		# Tangential heading: velocity of the circle path; the salmon model's
-		# nose points along local -Z (Blender -Y -> Godot -Z on import).
+		# nose points along local -Z (Blender +Y -> Godot -Z on import).
 		var vel := Vector3(-sin(t), 0.0, cos(t))
 		var basis := Basis.looking_at(vel, Vector3.UP).scaled(Vector3.ONE * fish_scale)
 		school.multimesh.set_instance_transform(i, Transform3D(basis, pos))
