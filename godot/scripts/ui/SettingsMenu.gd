@@ -11,11 +11,15 @@ signal close_requested
 const SETTINGS_PATH := "user://settings.json"
 const DEFAULT_SETTINGS := {
 	"audio": {"master": 1.0, "music": 0.7, "ambient": 0.5, "sfx": 0.8},
-	"graphics": {"resolution": "1920x1080", "fullscreen": false, "vsync": true},
+	"graphics": {"resolution": "1920x1080", "fullscreen": false, "vsync": true, "quality": "high"},
 	"gameplay": {"autosave_minutes": 5, "tutorial_enabled": true, "notifications_enabled": true, "default_speed": 1.0, "auto_pause_critical": true},
 	"accessibility": {"high_contrast": false, "ui_scale": 1.0},
 }
 const UI_SCALE_STEPS: Array[float] = [0.8, 0.9, 1.0, 1.1, 1.25]
+## Graphics quality tiers (RenderQuality.NAMES), in menu order.
+const QUALITY_TIERS: Array[String] = ["low", "medium", "high", "ultra"]
+const QUALITY_KEYS: Array[String] = ["UI_SETTINGS_QUALITY_LOW", "UI_SETTINGS_QUALITY_MEDIUM", "UI_SETTINGS_QUALITY_HIGH", "UI_SETTINGS_QUALITY_ULTRA"]
+const QUALITY_FALLBACK: Array[String] = ["Lav", "Middels", "Høy", "Ultra"]
 
 var _settings: Dictionary = {}
 var _dirty: bool = false
@@ -37,6 +41,8 @@ var _dirty: bool = false
 @onready var _res_option: OptionButton = %ResOption
 @onready var _fs_check: CheckBox = %FullscreenCheck
 @onready var _vsync_check: CheckBox = %VsyncCheck
+@onready var _quality_cap: Label = %QualityCap
+@onready var _quality_option: OptionButton = %QualityOption
 @onready var _autosave_option: OptionButton = %AutosaveOption
 @onready var _tutorial_check: CheckBox = %TutorialCheck
 @onready var _notifs_check: CheckBox = %NotifsCheck
@@ -62,6 +68,8 @@ func _apply_localization() -> void:
 	_title_label.text = _tr_or("UI_SETTINGS_TITLE", "Innstillinger")
 	_reset_button.text = _tr_or("UI_SETTINGS_RESET", "Tilbakestill")
 	_apply_button.text = _tr_or("UI_SETTINGS_APPLY", "Bruk")
+	if _quality_cap:
+		_quality_cap.text = _tr_or("UI_SETTINGS_QUALITY_LABEL", "Grafikkvalitet")
 
 func _tr_or(key: String, fallback: String) -> String:
 	var t := tr(key)
@@ -75,6 +83,8 @@ func _connect_signals() -> void:
 	_music_slider.value_changed.connect(func(v): _music_pct.text = "%d%%" % int(v * 100); _apply_audio_live())
 	_ambient_slider.value_changed.connect(func(v): _ambient_pct.text = "%d%%" % int(v * 100); _apply_audio_live())
 	_sfx_slider.value_changed.connect(func(v): _sfx_pct.text = "%d%%" % int(v * 100); _apply_audio_live())
+	if _quality_option:
+		_quality_option.item_selected.connect(func(_i): _apply_quality(_quality_name()); _dirty = true)
 
 func _populate_options() -> void:
 	_res_option.clear()
@@ -87,6 +97,10 @@ func _populate_options() -> void:
 		_ui_scale_option.clear()
 		for pct in ["80%", "90%", "100%", "110%", "125%"]:
 			_ui_scale_option.add_item(pct)
+	if _quality_option:
+		_quality_option.clear()
+		for i in QUALITY_TIERS.size():
+			_quality_option.add_item(_tr_or(QUALITY_KEYS[i], QUALITY_FALLBACK[i]))
 
 # ── Settings IO ─────────────────────────────────────────────────────────
 func _load_settings() -> Dictionary:
@@ -113,6 +127,7 @@ func _collect_from_widgets() -> Dictionary:
 			"resolution": _res_option.get_item_text(_res_option.selected) if _res_option else "1920x1080",
 			"fullscreen": _fs_check.button_pressed if _fs_check else false,
 			"vsync": _vsync_check.button_pressed if _vsync_check else true,
+			"quality": _quality_name(),
 		},
 		"gameplay": {
 			"autosave_minutes": [0, 2, 5, 10, 30][_autosave_option.selected] if _autosave_option else 5,
@@ -126,6 +141,17 @@ func _collect_from_widgets() -> Dictionary:
 			"ui_scale": _ui_scale(),
 		},
 	}
+
+func _quality_name() -> String:
+	if _quality_option == null or _quality_option.selected < 0:
+		return "high"
+	return QUALITY_TIERS[clampi(_quality_option.selected, 0, QUALITY_TIERS.size() - 1)]
+
+## A new quality tier applies at once to every live fjord (the
+## EnvironmentDirector group); a fjord opened later reads the saved tier.
+func _apply_quality(tier: String) -> void:
+	if is_inside_tree():
+		get_tree().call_group(RenderQuality.DIRECTOR_GROUP, "set_quality", tier)
 
 func _ui_scale() -> float:
 	if _ui_scale_option == null:
@@ -149,6 +175,9 @@ func _apply_to_widgets(data: Dictionary) -> void:
 				break
 	if _fs_check: _fs_check.button_pressed = gfx.get("fullscreen", false)
 	if _vsync_check: _vsync_check.button_pressed = gfx.get("vsync", true)
+	if _quality_option:
+		var q := QUALITY_TIERS.find(str(gfx.get("quality", "high")))
+		_quality_option.selected = q if q >= 0 else QUALITY_TIERS.find("high")
 
 	var gp = data.get("gameplay", {})
 	if _autosave_option:
@@ -193,6 +222,7 @@ func _on_apply() -> void:
 	_save_settings(_settings)
 	_apply_audio(_settings["audio"])
 	_apply_window_scale(float(_settings.get("accessibility", {}).get("ui_scale", 1.0)))
+	_apply_quality(str(_settings["graphics"].get("quality", "high")))
 	settings_applied.emit()
 	_dirty = false
 
@@ -206,6 +236,7 @@ func _on_reset() -> void:
 	_settings = DEFAULT_SETTINGS.duplicate(true)
 	_apply_to_widgets(_settings)
 	_apply_audio(_settings["audio"])
+	_apply_quality(_quality_name())
 	_dirty = true
 
 func _on_close() -> void:

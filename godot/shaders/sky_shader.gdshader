@@ -1,4 +1,9 @@
 shader_type sky;
+// The cloud layers can be drawn in the half- or quarter-resolution pass and
+// composited in the full-resolution one (cloud_pass, from the quality tier,
+// P0-04): clouds are soft, so a quarter of the pixels gives the same look for
+// a quarter of the cost. The pass not in use returns at once.
+render_mode use_half_res_pass, use_quarter_res_pass;
 
 // === Vestland Light sky (G1-04) ===
 // Written for this project. Physical references (formulas, not code):
@@ -38,6 +43,25 @@ uniform vec3 haze_color : source_color = vec3(0.6, 0.66, 0.72);
 uniform float haze_amount : hint_range(0.0, 1.0) = 0.0;
 // Scene-linear scale of the scattered skylight.
 uniform float sky_energy = 1.0;
+// The clear sky at the zenith (scene-linear, sky_energy applied): the same
+// for every pixel, so the director computes it once a frame
+// (EnvironmentDirector sky_radiance + twilight + night floor) instead of
+// every pixel marching it. It lights the clouds from above.
+uniform vec3 sky_zenith = vec3(0.06, 0.12, 0.3);
+// Quality (EnvironmentDirector, RenderQuality): where the clouds are drawn
+// (0 full resolution, 1 half, 2 quarter), the low layer's march steps and
+// its noise octaves in the background pass.
+uniform int cloud_pass : hint_range(0, 2) = 0;
+uniform int cloud_steps : hint_range(2, 12) = 6;
+uniform int cloud_octaves : hint_range(3, 6) = 6;
+// The engine blends the environment's fog into every sky pass, the reduced-
+// resolution ones too (Godot sky.glsl fog_process: rgb' = rgb (1 - k) +
+// k fog_light_color + s sun_scatter_light, with k = sky_affect (1 -
+// aerial_perspective) and s = sky_affect sun_scatter), so composited clouds
+// would be fogged twice. The director hands over k and s; the full pass
+// takes the first fogging back out (haze_color is the fog light colour).
+uniform float sky_fog_k = 0.0;
+uniform float sky_fog_scatter = 0.0;
 
 const float PI_ = 3.14159265;
 const float R_EARTH = 6360.0;      // km
@@ -482,13 +506,42 @@ vec3 night_sky(vec3 dir) {
 	return mix(vec3(0.0013, 0.0019, 0.0040), vec3(0.0022, 0.0027, 0.0045), pow(1.0 - clamp(dir.y, 0.0, 1.0), 3.0));
 }
 
+// The three cloud layers composited over an unknown background:
+// premultiplied colour and coverage (rgb over, a).
+vec4 clouds(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int octaves, int steps, int scud_octaves) {
+	vec4 high = cloud_layer_high(dir, sun_dir, sky_top, moon_light, octaves - 2);
+	vec4 acc = vec4(high.rgb * high.a, high.a);
+	vec4 low = cloud_layer_low(dir, sun_dir, sky_top, moon_light, octaves, steps, 0.5);
+	acc = vec4(low.rgb * low.a + acc.rgb * (1.0 - low.a), low.a + acc.a * (1.0 - low.a));
+	vec4 scud = cloud_layer_scud(dir, sky_top, scud_octaves);
+	acc = vec4(scud.rgb * scud.a + acc.rgb * (1.0 - scud.a), scud.a + acc.a * (1.0 - scud.a));
+	return acc;
+}
+
+vec3 moon_sky_light() {
+	float moon_up = smoothstep(-0.02, 0.06, moon_direction.y);
+	return vec3(0.012, 0.016, 0.024) * moon_illumination * moon_up;
+}
+
 // ── Compose ───────────────────────────────────────────────────────────────
 void sky() {
 	vec3 dir = normalize(EYEDIR);
 	vec3 sun_dir = LIGHT0_ENABLED ? normalize(LIGHT0_DIRECTION) : vec3(0.0, -1.0, 0.0);
+	vec3 sky_top = sky_zenith;
+	// Reduced-resolution passes: the clouds only, premultiplied, when the
+	// quality tier puts them there; otherwise nothing.
+	if (AT_HALF_RES_PASS || AT_QUARTER_RES_PASS) {
+		int wanted = AT_HALF_RES_PASS ? 1 : 2;
+		vec4 c = vec4(0.0);
+		if (cloud_pass == wanted && dir.y > 0.0) {
+			c = clouds(dir, sun_dir, sky_top, moon_sky_light(), cloud_octaves, cloud_steps, 4);
+		}
+		COLOR = c.rgb;
+		ALPHA = c.a;
+	} else {
 	bool cubemap = AT_CUBEMAP_PASS;
 	int atm_steps = cubemap ? 6 : 12;
-	int cloud_octaves = cubemap ? 3 : 6;
+	int octaves = cubemap ? 3 : cloud_octaves;
 
 	vec3 view_t;
 	// The radiance pass widens the Mie aureole: the sun's glare must not leak
@@ -497,14 +550,9 @@ void sky() {
 	sky_rgb += (twilight(dir, sun_dir) + night_sky(dir)) * sky_energy;
 	// Moonlit sky: a faint blue wash around the moon.
 	float moon_up = smoothstep(-0.02, 0.06, moon_direction.y);
-	vec3 moon_light = vec3(0.012, 0.016, 0.024) * moon_illumination * moon_up;
+	vec3 moon_light = moon_sky_light();
 	float mu_moon = dot(dir, moon_direction);
 	sky_rgb += vec3(0.006, 0.009, 0.016) * moon_illumination * moon_up * (0.35 + phase_hg(mu_moon, 0.75) * 0.6);
-
-	vec3 zenith_t;
-	vec3 up_dir = vec3(0.0, 1.0, 0.0);
-	vec3 sky_top = atmosphere(up_dir, sun_dir, 4, MIE_G, zenith_t) * SKY_SCALE * sky_energy
-		+ (twilight(up_dir, sun_dir) + night_sky(up_dir)) * sky_energy;
 
 	float above = smoothstep(-0.02, 0.01, dir.y);
 	vec3 color = sky_rgb;
@@ -530,13 +578,22 @@ void sky() {
 		color += aurora(dir) * view_t;
 	}
 
-	vec4 high = cloud_layer_high(dir, sun_dir, sky_top, moon_light, cloud_octaves - 2);
-	color = mix(color, high.rgb, high.a);
-	float jitter = 0.5;
-	vec4 low = cloud_layer_low(dir, sun_dir, sky_top, moon_light, cloud_octaves, cubemap ? 3 : 6, jitter);
-	color = mix(color, low.rgb, low.a);
-	vec4 scud = cloud_layer_scud(dir, sky_top, cubemap ? 2 : 4);
-	color = mix(color, scud.rgb, scud.a);
+	// The clouds: marched here, or read from the reduced-resolution pass
+	// (premultiplied, so the bilinear upsample keeps soft edges right).
+	vec4 cl;
+	if (cubemap) {
+		cl = clouds(dir, sun_dir, sky_top, moon_light, octaves, 3, 2);
+	} else if (cloud_pass > 0) {
+		cl = cloud_pass == 1 ? HALF_RES_COLOR : QUARTER_RES_COLOR;
+		vec3 scatter = vec3(0.0);
+		if (LIGHT0_ENABLED) {
+			scatter = LIGHT0_COLOR * LIGHT0_ENERGY * pow(max(dot(dir, sun_dir), 0.0), 8.0) * PI_;
+		}
+		cl.rgb = max((cl.rgb - sky_fog_k * haze_color - sky_fog_scatter * scatter) / max(1.0 - sky_fog_k, 0.05), vec3(0.0));
+	} else {
+		cl = clouds(dir, sun_dir, sky_top, moon_light, octaves, cloud_steps, 4);
+	}
+	color = color * (1.0 - cl.a) + cl.rgb;
 
 	// Haze toward the horizon in poor visibility. Below the horizon the map
 	// holds the fog colour itself: the engine's aerial perspective samples
@@ -567,4 +624,5 @@ void sky() {
 	}
 
 	COLOR = max(color, vec3(0.0));
+	}
 }

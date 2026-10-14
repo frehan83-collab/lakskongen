@@ -83,6 +83,7 @@ func _run() -> void:
 	await _test_camera_keys_leave_focused_controls_alone()
 	await _test_environment_director_owns_the_look()
 	await _test_water_grid_bake_and_sea_state()
+	await _test_quality_tiers_and_covered_world()
 	await _test_theme_and_contrast_on_every_screen()
 	_test_formatters_speak_the_locale()
 	await _test_dashboard_title_names_the_company()
@@ -2853,6 +2854,161 @@ func _test_camera_frames_sky_and_avoids_terrain() -> void:
 	cam.set_zoom_level(FjordCamera.ZoomLevel.FJORD)
 	scene.queue_free()
 	await get_tree().process_frame
+
+## P0-04 / G5-01 / G1-06: quality tiers through the EnvironmentDirector.
+## The saved tier is the player's (High when none is saved); each tier's
+## knobs reach the viewport (MSAA, SMAA, 3D scale), the environment (SSAO,
+## glow), the camera (depth of field) and the sky (where its clouds are
+## drawn); clouds composited from a reduced-resolution pass get the engine's
+## sky fog taken back out with the fog the director wrote; behind an opaque
+## panel the 3D renders at half scale and the sky stops updating, and the
+## world on screen (or a hidden UI layer) restores both; the terrain's
+## pipelines are warmed with its chunks' own vertex format on the first
+## frames; the settings menu's quality list applies a tier at once.
+func _test_quality_tiers_and_covered_world() -> void:
+	var scene := await _spawn_game_scene()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var env: FjordEnvironment = scene.get_node("FjordEnvironment")
+	var director: EnvironmentDirector = env.get_node("EnvironmentDirector")
+	var cam: FjordCamera = env.get_node("FjordCamera")
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	var world_env: Environment = (env.get_node("WorldEnvironment") as WorldEnvironment).environment
+	var sky_mat := world_env.sky.sky_material as ShaderMaterial
+	var vp := get_viewport()
+	cam.auto_orbit_enabled = false
+
+	# The tier: the saved one, High when none is saved; a settings file's shape.
+	_check(RenderQuality.DEFAULT_TIER == RenderQuality.Tier.HIGH and RenderQuality.tier_from_settings({}) == RenderQuality.Tier.HIGH
+		and RenderQuality.tier_from_settings({"graphics": {"quality": "ultra"}}) == RenderQuality.Tier.ULTRA
+		and RenderQuality.tier_from_settings({"graphics": {"quality": "nonsense"}}) == RenderQuality.Tier.HIGH
+		and RenderQuality.tier_from_settings("not a dictionary") == RenderQuality.Tier.HIGH,
+		"quality: High is the default tier; a saved graphics.quality picks another, anything else falls back to High")
+	_check(director.get_quality_name() == RenderQuality.NAMES[RenderQuality.load_saved_tier()],
+		"quality: the director starts on the saved tier (%s)" % director.get_quality_name())
+	_check(scene.get_tree().get_nodes_in_group(RenderQuality.DIRECTOR_GROUP).has(director), "quality: the director joins the group the settings menu applies tiers through")
+
+	# The terrain's pipelines were warmed on the first frames, with its chunks' vertex format.
+	_check(director.prewarmed_shaders.has(FjordTerrain.TERRAIN_SHADER) and not is_instance_valid(director.prewarm),
+		"quality: the terrain shader was warmed on the first frames and the warm-up has freed itself")
+	for i in 600:
+		if terrain.is_ready():
+			break
+		await get_tree().process_frame
+	var chunks := terrain.get_chunk_meshes()
+	var warm_format := _vertex_layout(ShaderPrewarm.triangle_mesh(ShaderPrewarm.TERRAIN_FORMAT))
+	var chunk_format := _vertex_layout(chunks[0].mesh if not chunks.is_empty() else null)
+	_check(warm_format == chunk_format and warm_format > 0,
+		"quality: the warm-up triangle carries the terrain chunks' vertex arrays (%d vs %d)" % [warm_format, chunk_format])
+
+	# Every tier reaches the viewport, the environment, the camera and the sky.
+	ui.show_tab("fjord")
+	await get_tree().process_frame
+	_check(director.is_world_visible(), "quality: the Fjord tab shows the world")
+	for tier_name in RenderQuality.NAMES:
+		director.set_quality(tier_name)
+		await get_tree().process_frame
+		var k: Dictionary = director.get_quality_knobs()
+		var attrs := cam.attributes as CameraAttributesPractical
+		_check(director.get_quality_name() == tier_name and vp.msaa_3d == int(k["msaa"]) and vp.screen_space_aa == int(k["screen_aa"])
+			and is_equal_approx(vp.scaling_3d_scale, float(k["scale"])) and world_env.ssao_enabled == bool(k["ssao"])
+			and world_env.glow_enabled == bool(k["glow"]) and int(sky_mat.get_shader_parameter("cloud_pass")) == int(k["cloud_pass"])
+			and int(sky_mat.get_shader_parameter("cloud_steps")) == int(k["cloud_steps"])
+			and (bool(k["dof"]) or not attrs.dof_blur_far_enabled),
+			"quality: %s reaches the viewport (MSAA %d, SMAA %d, scale %.2f), SSAO %s, glow, DOF and the sky (clouds in pass %d)" % [
+				tier_name, vp.msaa_3d, vp.screen_space_aa, vp.scaling_3d_scale, str(world_env.ssao_enabled), int(k["cloud_pass"])])
+		_check(vp.scaling_3d_scale >= 0.999 or vp.scaling_3d_mode == RenderQuality.upscaler(),
+			"quality: %s upscales a reduced 3D scale with MetalFX or FSR, not bilinear" % tier_name)
+	director.set_quality("high")
+	await get_tree().process_frame
+	var high: Dictionary = director.get_quality_knobs()
+	var ultra := RenderQuality.knobs_for(RenderQuality.Tier.ULTRA)
+	_check(int(high["msaa"]) == Viewport.MSAA_4X and int(high["screen_aa"]) == Viewport.SCREEN_SPACE_AA_SMAA,
+		"quality: High keeps MSAA 4x + SMAA (D12; the pen net resolves its threads with alpha-to-coverage)")
+	_check(int(ultra["cloud_pass"]) == 0 and bool(ultra["ssao"]) and is_equal_approx(float(ultra["scale"]), 1.0),
+		"quality: Ultra keeps the full-cost sky, SSAO and native scale (the reference High is judged against)")
+	director.set_quality("ultra", {"cloud_pass": 1, "no_such_knob": 3})
+	_check(int(director.get_quality_knobs()["cloud_pass"]) == 1 and not director.get_quality_knobs().has("no_such_knob"),
+		"quality: an override sets a known knob and an unknown one is ignored")
+	director.set_quality("nonsense")
+	_check(director.get_quality_name() == "ultra", "quality: an unknown tier name keeps the tier in force")
+
+	# Clouds from a reduced-resolution pass: the shader takes the engine's sky fog back out.
+	director.set_quality("high")
+	director.compose(0.0, true)
+	var fog_k := world_env.fog_sky_affect * (1.0 - world_env.fog_aerial_perspective)
+	var fog_s := world_env.fog_sky_affect * world_env.fog_sun_scatter
+	_check(absf(float(sky_mat.get_shader_parameter("sky_fog_k")) - fog_k) < 1e-5 and absf(float(sky_mat.get_shader_parameter("sky_fog_scatter")) - fog_s) < 1e-5
+		and (sky_mat.get_shader_parameter("haze_color") as Color).is_equal_approx(world_env.fog_light_color),
+		"quality: the sky undoes exactly the fog the director wrote (k %.4f, scatter %.4f)" % [fog_k, fog_s])
+	var zenith: Vector3 = sky_mat.get_shader_parameter("sky_zenith")
+	_check(zenith.is_equal_approx(director.get_composed()["sky_zenith"]) and zenith.length() > 0.0,
+		"quality: the sky reads the zenith colour the director measured, once a frame")
+
+	# Behind an opaque panel: half scale, the sky holds still; back: native, live.
+	ui.show_tab("finance")
+	await get_tree().process_frame
+	var updates := director.sky_updates
+	var sky_time: float = sky_mat.get_shader_parameter("sky_time")
+	for i in 10:
+		await get_tree().process_frame
+	_check(not director.is_world_visible() and is_equal_approx(vp.scaling_3d_scale, float(high["hidden_scale"]))
+		and vp.scaling_3d_mode == Viewport.SCALING_3D_MODE_BILINEAR,
+		"quality: an opaque panel drops the 3D to %.2f scale" % vp.scaling_3d_scale)
+	_check(director.sky_updates == updates and is_equal_approx(float(sky_mat.get_shader_parameter("sky_time")), sky_time),
+		"quality: behind an opaque panel the sky material holds still (no radiance re-render)")
+	_check(not cam.input_enabled, "quality: camera input stays off behind the panel")
+	var ui_layer: CanvasLayer = scene.get_node("UILayer")
+	ui_layer.visible = false
+	await get_tree().process_frame
+	_check(director.is_world_visible() and is_equal_approx(vp.scaling_3d_scale, float(high["scale"])),
+		"quality: with the UI layer hidden (the screenshot harness) the world renders at full quality")
+	ui_layer.visible = true
+	await get_tree().process_frame
+	_check(not director.is_world_visible(), "quality: the UI layer back covers the world again")
+	ui.show_tab("fjord")
+	for i in 3:
+		await get_tree().process_frame
+	_check(director.is_world_visible() and is_equal_approx(vp.scaling_3d_scale, float(high["scale"])) and director.sky_updates > updates
+		and not is_equal_approx(float(sky_mat.get_shader_parameter("sky_time")), sky_time),
+		"quality: the Fjord tab restores the tier's scale and a live sky")
+
+	# Underwater the clouds are marched per pixel (the fog replaces the sky).
+	cam.look_at_position(cam.get_focus_point(), FjordCamera.ZoomLevel.UNDERWATER)
+	await _settle_camera(cam)
+	director.compose(0.0, true)
+	_check(int(sky_mat.get_shader_parameter("cloud_pass")) == 0, "quality: underwater the sky marches its clouds itself")
+	cam.set_zoom_level(FjordCamera.ZoomLevel.FJORD)
+	await _settle_camera(cam)
+
+	# The settings menu's quality list applies a tier at once (nothing saved here).
+	var menu: Control = (load("res://scenes/ui/SettingsMenu.tscn") as PackedScene).instantiate()
+	add_child(menu)
+	await get_tree().process_frame
+	var option: OptionButton = menu.get_node("%QualityOption")
+	_check(option.item_count == RenderQuality.NAMES.size() and option.get_item_text(2) == "Høy" and option.get_item_text(0) == "Lav",
+		"quality: the settings menu lists Lav, Middels, Høy and Ultra")
+	option.select(3)
+	option.item_selected.emit(3)
+	await get_tree().process_frame
+	_check(director.get_quality_name() == "ultra" and vp.msaa_3d == Viewport.MSAA_4X and is_equal_approx(vp.scaling_3d_scale, 1.0),
+		"quality: choosing Ultra in the settings applies it to the running fjord")
+	_check(str(menu._collect_from_widgets()["graphics"]["quality"]) == "ultra", "quality: the settings menu saves the chosen tier under graphics.quality")
+	menu.set("_dirty", false)
+	menu.queue_free()
+	director.set_quality(RenderQuality.load_saved_tier())
+	scene.queue_free()
+	await get_tree().process_frame
+	_check(is_equal_approx(vp.scaling_3d_scale, 1.0), "quality: leaving the game leaves the viewport at native 3D scale")
+
+
+## The vertex arrays a mesh's first surface carries (Mesh.ARRAY_FORMAT_* bits
+## for vertex, normal, tangent, colour, UV, UV2, index).
+func _vertex_layout(mesh: Mesh) -> int:
+	if mesh == null or not (mesh is ArrayMesh):
+		return -1
+	var mask := Mesh.ARRAY_FORMAT_VERTEX | Mesh.ARRAY_FORMAT_NORMAL | Mesh.ARRAY_FORMAT_TANGENT | Mesh.ARRAY_FORMAT_COLOR \
+		| Mesh.ARRAY_FORMAT_TEX_UV | Mesh.ARRAY_FORMAT_TEX_UV2 | Mesh.ARRAY_FORMAT_INDEX
+	return (mesh as ArrayMesh).surface_get_format(0) & mask
 
 ## G1-03: camera keys never steal input from a focused Control: arrows on the
 ## tab bar and WASD in a text field leave the camera still; with nothing

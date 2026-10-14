@@ -197,15 +197,34 @@ var sea_state: Dictionary = {}
 ## wave uniforms get, every frame. WaveField.active points at it while this
 ## director is in the tree; PenCage and VesselModel float on it.
 var wave_field := WaveField.new()
+## Quality tier (P0-04, G5-01 groundwork): the knobs this director composes
+## with, and the global render settings it applies through RenderQuality.
+var quality := RenderQuality.new()
+## Sky uniform writes made so far (tests read it: none while the world is
+## hidden, so the sky's radiance map is not re-rendered behind a panel).
+var sky_updates := 0
+## The pipeline warm-up of the scene's first frames (frees itself), and the
+## shaders it warmed (tests read them).
+var prewarm: ShaderPrewarm = null
+var prewarmed_shaders := PackedStringArray()
+## Off only for the perf harness's A/B of the warm-up itself.
+static var prewarm_enabled := true
 
 
 func _enter_tree() -> void:
 	WaveField.active = wave_field
+	add_to_group(RenderQuality.DIRECTOR_GROUP)
 
 
 func _exit_tree() -> void:
 	if WaveField.active == wave_field:
 		WaveField.active = null
+	# The 3D scale lives on the shared viewport: leave it native for whatever
+	# renders next (a menu scene with its own director sets its own).
+	var vp := get_viewport()
+	if vp != null:
+		vp.scaling_3d_scale = 1.0
+		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
 
 
 func _ready() -> void:
@@ -218,12 +237,72 @@ func _ready() -> void:
 		# shader draws it from moon_direction.
 		moon_light.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
 	_static_setup()
+	quality.set_tier(RenderQuality.load_saved_tier())
+	_apply_quality()
 	wave_field.bind_grid(water_grid)
+	_prewarm()
 	compose(0.0, true)
 
 
 func _process(delta: float) -> void:
 	compose(delta)
+
+
+# ── Quality (P0-04, G5-01) ────────────────────────────────────────────────────
+
+## Switch the quality tier ("low", "medium", "high", "ultra" or a
+## RenderQuality.Tier) with optional knob overrides (the perf harness's A/B
+## variants); applies at once. Unknown names keep the current tier.
+func set_quality(tier: Variant, overrides: Dictionary = {}) -> void:
+	var index := RenderQuality.tier_of(String(tier)) if tier is String else int(tier)
+	if index < 0:
+		push_warning("EnvironmentDirector: unknown quality tier '%s'" % str(tier))
+		index = quality.tier
+	quality.set_tier(index, overrides)
+	_apply_quality()
+	compose(0.0, true)
+
+
+func get_quality_name() -> String:
+	return quality.tier_name()
+
+
+func get_quality_knobs() -> Dictionary:
+	return quality.knobs.duplicate()
+
+
+## The world is on screen (the Fjord tab) or covered by an opaque full-screen
+## panel (FjordVistaBridge, from GameUI.world_view_changed). Behind a panel
+## the 3D renders at the tier's hidden_scale (0.5: only thin margins show)
+## and the sky stops updating, so its radiance map is not re-rendered for a
+## world nobody sees (G1-06).
+func set_world_visible(world_visible: bool) -> void:
+	if quality.world_hidden == (not world_visible):
+		return
+	quality.world_hidden = not world_visible
+	quality.apply_scale(get_viewport())
+	if world_visible:
+		compose(0.0, true)
+
+
+func is_world_visible() -> bool:
+	return not quality.world_hidden
+
+
+func _apply_quality() -> void:
+	var env := _env()
+	quality.apply_global(get_viewport() if is_inside_tree() else null, sun_light, moon_light, env.sky if env != null else null)
+
+
+## Compile the terrain shader's pipelines on the scene's first frames,
+## before its chunks arrive from the worker thread (ShaderPrewarm).
+func _prewarm() -> void:
+	if not prewarm_enabled or camera == null or not ResourceLoader.exists(FjordTerrain.TERRAIN_SHADER):
+		return
+	var terrain_warm := ShaderMaterial.new()
+	terrain_warm.shader = load(FjordTerrain.TERRAIN_SHADER)
+	prewarm = ShaderPrewarm.warm(self, camera, [terrain_warm] as Array[Material])
+	prewarmed_shaders.append(FjordTerrain.TERRAIN_SHADER)
 
 
 ## Sim water conditions (FjordVistaBridge): sea temperature and the worst
@@ -273,11 +352,22 @@ func compose(delta: float, snap: bool = false) -> void:
 	_apply_moon(sun_elev, cloud, c)
 	var snowfall := weather_system.get_snow() if weather_system else 0.0
 	_measure_sky(sun_dir, cloud, density, sea_fog, snowfall, c)
-	_apply_sky(delta, sun_elev, cloud, density, visibility, sea_fog, k_slow, c)
+	# Behind an opaque panel the sky holds still: an unchanged sky material
+	# re-renders no radiance map (set_world_visible). A snap (staging) still
+	# writes it.
+	var sky_live := snap or not (quality.world_hidden and bool(quality.knobs["hidden_pause"]))
+	if sky_live:
+		_apply_sky(delta, sun_elev, cloud, density, visibility, sea_fog, k_slow, c)
+	else:
+		for key in ["aurora_intensity", "haze_amount"]:
+			c[key] = _composed.get(key, 0.0)
 	_apply_fog(sun_elev, cloud, visibility, sea_fog, underwater, c)
 	_apply_image(sun_elev, distance, underwater, c)
 	_apply_water(delta, c)
 	_refresh_probe(delta, snap, sun_elev, cloud, sea_fog)
+	c["world_visible"] = not quality.world_hidden
+	c["sky_live"] = sky_live
+	c["quality"] = quality.tier_name()
 	_composed = c
 
 
@@ -358,8 +448,32 @@ func _apply_sky(delta: float, sun_elev: float, cloud: float, density: float, vis
 	mat.set_shader_parameter("moon_illumination", time_system.get_moon_illumination())
 	mat.set_shader_parameter("haze_color", c["horizon_color"])
 	mat.set_shader_parameter("haze_amount", haze)
+	# The zenith sky lights the clouds; one value for every pixel.
+	mat.set_shader_parameter("sky_zenith", c["sky_zenith"])
+	# Clouds from a reduced-resolution pass come back fogged by the engine;
+	# the shader takes that fog out again with these terms (the fog
+	# _apply_fog writes, in the engine's sky formula). Underwater the fog
+	# replaces the sky outright: the clouds are marched per pixel there.
+	var terms := sky_fog_terms(cloud, sea_fog)
+	var underwater: bool = c.get("underwater", false)
+	mat.set_shader_parameter("sky_fog_k", terms.x)
+	mat.set_shader_parameter("sky_fog_scatter", terms.y)
+	mat.set_shader_parameter("cloud_pass", 0 if underwater else int(quality.knobs["cloud_pass"]))
+	mat.set_shader_parameter("cloud_steps", int(quality.knobs["cloud_steps"]))
+	mat.set_shader_parameter("cloud_octaves", int(quality.knobs["cloud_octaves"]))
+	sky_updates += 1
 	c["aurora_intensity"] = _aurora
 	c["haze_amount"] = haze
+
+
+## The engine's fog on the sky (Godot sky.glsl fog_process), for the fog
+## _apply_fog writes above water: rgb' = rgb (1 - k) + k fog_light_color +
+## s sun_light pow(cos, 8) pi, with k = sky_affect (1 - aerial_perspective)
+## and s = sky_affect sun_scatter (0 at or below the engine's 0.001 gate).
+static func sky_fog_terms(cloud: float, sea_fog: float) -> Vector2:
+	var sky_affect := lerpf(SKY_AFFECT, 0.5, sea_fog)
+	var sun_scatter := SUN_SCATTER * (1.0 - cloud * 0.7)
+	return Vector2(sky_affect * (1.0 - AERIAL_PERSPECTIVE), sky_affect * sun_scatter if sun_scatter > 0.001 else 0.0)
 
 
 ## Sample the clear sky model (the shader's own atmosphere, twilight and
@@ -486,17 +600,19 @@ func _apply_image(sun_elev: float, distance: float, underwater: bool, c: Diction
 		# The night boost only once the sky is dark: twilight lights the walls itself.
 		env.ambient_light_energy = lerpf(AMBIENT_DAY, AMBIENT_NIGHT, smoothstep(-6.0, -14.0, sun_elev))
 		var zoom := zoom_settings(distance)
-		env.ssao_enabled = true
+		env.ssao_enabled = bool(quality.knobs["ssao"])
 		env.ssao_radius = zoom.y
+		env.glow_enabled = bool(quality.knobs["glow"])
 		c["exposure"] = exposure
 		c["ssao_radius"] = zoom.y
 	var zs := zoom_settings(distance)
+	var shadow_distance := zs.x * float(quality.knobs["shadow_distance"])
 	if sun_light:
-		sun_light.directional_shadow_max_distance = zs.x
+		sun_light.directional_shadow_max_distance = shadow_distance
 	if moon_light:
-		moon_light.directional_shadow_max_distance = zs.x
-	c["shadow_distance"] = zs.x
-	_apply_depth_of_field(distance, zs.z, underwater, c)
+		moon_light.directional_shadow_max_distance = shadow_distance
+	c["shadow_distance"] = shadow_distance
+	_apply_depth_of_field(distance, zs.z if bool(quality.knobs["dof"]) else 0.0, underwater, c)
 
 
 func _apply_depth_of_field(distance: float, amount: float, underwater: bool, c: Dictionary) -> void:
