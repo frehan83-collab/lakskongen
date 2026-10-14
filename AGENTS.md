@@ -238,9 +238,14 @@ func my_bridge_method(arg: String) -> Dictionary: return _proxies.my_bridge_meth
 - Severity picks the channel (`ConsequenceDirector.route_for`): critical = a pausing card with actions, warning = one toast + an unread inbox entry + the bell's badge, info = the inbox log. The bus drops repeats of (category, subject, variant) within 3 days and delivers escalations.
 - Never decide anything by reading message text (`tests/test_event_bus.py` greps for it). New counter verbs go in `GameEventCatalog`, `GameEventText.VERBS` and `GameEventActions`.
 
+### Pacing the clock (roadmap U2-07)
+- The game clock has one owner, `GameBridge.Clock.cs`: speeds 1×/3×/10×/30× (keys 1–4), Space pause, N "Til neste hendelse", and holds. UI that waits for the player holds the clock (`SimBridge.hold_clock(reason)` / `release_clock(reason)`; the critical card, the pause menu and the briefing do) instead of calling `set_paused`, which is the player's own pause. Draw the clock from `SimBridge.clock_changed` / `get_clock_state()`, never from a flag of your own.
+- Deadlines slow and stop the clock by the farm-types rule (`PacingRules`: 1× at ≤ 7 days left, stop at ≤ 1 day left without a response). An event with a counter verb and a `DeadlineDay` (catalog `GameEventDeadlineRule.SetByPublisher`) is watched as soon as the bus delivers it; anything else registers with `engine.Pacing.Register(new PacingDeadline { Key, DeadlineDay, … })` or `SimBridge.register_pacing_deadline(...)`. The publisher resolves the deadline when its cause is met (`engine.Pacing.Resolve(key)`; the event's key is its dedupe key), as `PublishStandingOrders` does for Mattilsynet's orders.
+- A player's new game starts paused on its `BriefingCard`; QA starts (seeded) and loads do not show one. The calendar the player reads is `GameCalendar.gd` (ISO weeks; it mirrors `SimCalendar`).
+
 ## Godot / C# Interop Notes
 - Godot resolves autoload by filename: `GameBridge.cs` must exist as anchor
-- Partials: `GameBridge.Core.cs`, `GameBridge.Farm.cs`, `GameBridge.Market.cs`, `GameBridge.Depth.cs`, `GameBridge.Economy.cs`, `GameBridge.Licence.cs`, `GameBridge.Content.cs`, `GameBridge.Events.cs` (the `GameEventRaised` signal of the typed event bus)
+- Partials: `GameBridge.Core.cs`, `GameBridge.Farm.cs`, `GameBridge.Market.cs`, `GameBridge.Depth.cs`, `GameBridge.Economy.cs`, `GameBridge.Licence.cs`, `GameBridge.Content.cs`, `GameBridge.Events.cs` (the `GameEventRaised` signal of the typed event bus), `GameBridge.Clock.cs` (the game clock: speeds, holds, pacing, `ClockChanged`)
 - `InternalsVisibleTo("LakskongenSim.Tests")` in `SaveJson.cs` allows tests to call `internal` methods (`TickLicenseAuctions`, `DrainDayNotes`, etc.)
 - `Nullable enable`, `ImplicitUsings`, `TreatWarningsAsErrors` in csproj
 

@@ -25,6 +25,10 @@ const BLOCKED_ACTIONS := [&"toggle_pause", &"toggle_notifications", &"toggle_att
 const FADE_IN_S := 0.35
 const FADE_OUT_S := 0.2
 const SLIDE_PX := 36.0
+## FjordCamera.ZoomLevel.FJORD, and how long to wait for the pens to appear.
+const FJORD_ZOOM := 1
+const FRAME_TRIES := 30
+const FRAME_RETRY_S := 0.1
 const Picker := preload("res://scripts/ui/ScenarioSelectPanel.gd")
 
 @onready var _column: Control = %Column
@@ -80,8 +84,29 @@ func present() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		show()
 		_animate_in()
+		_frame_the_farm()
 		briefing_shown.emit()
 	start_button.grab_focus.call_deferred()
+
+
+## The camera shows the player's own farm beside the column (FJORD zoom on
+## the first site's pens); the pens arrive a few frames after the start.
+func _frame_the_farm() -> void:
+	var scene := owner if owner != null else get_parent()
+	if scene == null:
+		return
+	var pens := scene.find_child("FishPenManager", true, false)
+	var env := scene.find_child("FjordEnvironment", true, false)
+	if pens == null or env == null or not pens.has_method("get_pen_ids") or not env.has_method("focus_camera_on"):
+		return
+	for i in FRAME_TRIES:
+		if not is_inside_tree() or not _open:
+			return
+		var ids: Array = pens.call("get_pen_ids")
+		if not ids.is_empty():
+			env.call("focus_camera_on", pens.call("get_pen_position", ids[0]), FJORD_ZOOM)
+			return
+		await get_tree().create_timer(FRAME_RETRY_S).timeout
 
 
 ## A new game: its card, after the scenario is in place (a scenario start
