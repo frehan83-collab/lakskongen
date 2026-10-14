@@ -40,8 +40,8 @@ public partial class TerrainGeneratorBridge : RefCounted
     /// distance, exposure, seabed slope), sheltered_fetch_m and sea_direction;
     /// and for the vegetation (G2-02) the masks baked into the chunk colours
     /// (<see cref="VegetationMasks"/>), vegetation (an Array of chunk
-    /// Dictionaries, <see cref="VegetationChunks"/>), tree_count and
-    /// treeline_m.
+    /// Dictionaries, <see cref="VegetationChunks"/>), tree_count,
+    /// treeline_m and shore_props (<see cref="ShorePropsToGodot"/>).
     /// </summary>
     public Godot.Collections.Dictionary Build()
     {
@@ -56,7 +56,11 @@ public partial class TerrainGeneratorBridge : RefCounted
             exposure[i] = water.Rgba[i * 4 + 2];
         var vegetation = new VegetationSettings { Seed = settings.Seed };
         var masks = VegetationScatter.BuildMasks(heights, n, settings.WorldSizeM, vegetation, exposure);
-        var trees = VegetationScatter.Scatter(heights, masks, vegetation);
+        var shoreDistance = new float[n * n];
+        for (int i = 0; i < shoreDistance.Length; i++)
+            shoreDistance[i] = water.Rgba[i * 4 + 1];
+        var props = ShorePropPlacer.Place(heights, n, settings.WorldSizeM, shoreDistance, masks.LandExposure);
+        var trees = VegetationScatter.Scatter(heights, masks, vegetation, ShorePropPlacer.Clearings(props));
         var mesh = TerrainMesh.Build(heights, n, settings.WorldSizeM, ChunkQuads, masks);
 
         var chunks = new Godot.Collections.Array();
@@ -80,9 +84,27 @@ public partial class TerrainGeneratorBridge : RefCounted
             ["resolution"] = n,
             ["vegetation"] = VegetationChunks(trees, heights, n, settings.WorldSizeM),
             ["tree_count"] = trees.Count,
+            ["shore_props"] = ShorePropsToGodot(props),
             ["treeline_m"] = vegetation.TreelineMeanM,
         };
         result["build_ms"] = watch.Elapsed.TotalMilliseconds;
+        return result;
+    }
+
+    /// <summary>The shore buildings: kind (0 naust, 1 quay), position, yaw (rad), variant.</summary>
+    public static Godot.Collections.Array ShorePropsToGodot(List<ShoreProp> props)
+    {
+        var result = new Godot.Collections.Array();
+        foreach (var p in props)
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["kind"] = (int)p.Kind,
+                ["position"] = new Godot.Vector3(p.X, p.Y, p.Z),
+                ["yaw"] = p.Yaw,
+                ["variant"] = p.Variant,
+            });
+        }
         return result;
     }
 

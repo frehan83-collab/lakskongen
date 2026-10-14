@@ -43,6 +43,8 @@ const DETAIL_TEXTURES := {
 ## Birch and spruce on the slopes (G2-02): MultiMesh cells built from the
 ## same masks the shader paints the woods with.
 const VEGETATION_SCENE := "res://scenes/environment/Vegetation.tscn"
+## Naust boathouses and a quay on sheltered shore (G2-02, ShorePropPlacer).
+const SHORE_PROPS_SCENE := "res://scenes/environment/ShoreProps.tscn"
 
 ## Heightfield fingerprint (FNV-1a 64 over the height bits), set when built.
 var heightfield_hash: String = ""
@@ -70,6 +72,9 @@ var tree_count: int = 0
 var treeline_m: float = 500.0
 ## The Vegetation node (scenes/environment/Vegetation.tscn), once the terrain is up.
 var vegetation: Node = null
+## Shore buildings from the build ({kind, position, yaw, variant}) and their node.
+var shore_props: Array = []
+var shore_props_node: Node = null
 
 var _generator: RefCounted = null
 var _heights := PackedFloat32Array()
@@ -158,7 +163,9 @@ func _apply_build(result: Dictionary) -> void:
 	vegetation_chunks = result.get("vegetation", [])
 	tree_count = int(result.get("tree_count", 0))
 	treeline_m = float(result.get("treeline_m", treeline_m))
+	shore_props = result.get("shore_props", [])
 	vegetation = null
+	shore_props_node = null
 
 	for child in get_children():
 		child.queue_free()
@@ -202,7 +209,21 @@ func _process(_delta: float) -> void:
 			terrain_resolution, terrain_resolution, _spacing, heightfield_hash, tree_count, last_generation_ms,
 			", ".join(Array(upload_steps_ms).map(func(ms: float) -> String: return "%.1f" % ms))])
 		_add_vegetation()
+		_add_shore_props()
 		terrain_ready.emit()
+
+
+## The shore buildings go up with the trees (a handful of instances).
+func _add_shore_props() -> void:
+	if shore_props.is_empty() or not ResourceLoader.exists(SHORE_PROPS_SCENE):
+		return
+	var scene := load(SHORE_PROPS_SCENE) as PackedScene
+	if scene == null:
+		return
+	shore_props_node = scene.instantiate()
+	shore_props_node.name = "ShoreProps"
+	add_child(shore_props_node)
+	shore_props_node.call("build", shore_props)
 
 
 ## The trees go up after the terrain, a few cells per frame (Vegetation.gd).

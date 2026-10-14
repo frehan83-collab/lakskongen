@@ -192,9 +192,11 @@ namespace LakskongenSim.Environment
         /// Trees for the masks: one candidate per <see cref="VegetationSettings.CellM"/>
         /// cell, jittered inside it, kept with probability density × fill.
         /// Every kept tree also passes the slope, altitude and treeline test at
-        /// its own position, so none stands outside the masks.
+        /// its own position, so none stands outside the masks, and none stands
+        /// inside a clearing (x, z, radius: the shore buildings' yards).
         /// </summary>
-        public static List<TreeInstance> Scatter(float[] heights, VegetationMasks masks, VegetationSettings s)
+        public static List<TreeInstance> Scatter(float[] heights, VegetationMasks masks, VegetationSettings s,
+            IReadOnlyList<(float x, float z, float r)>? clearings = null)
         {
             int n = masks.Size;
             float world = masks.WorldSizeM;
@@ -214,7 +216,7 @@ namespace LakskongenSim.Environment
                         continue;
                     float h = Bilinear(heights, n, spacing, half, x, z);
                     float slope = SlopeTanAt(heights, n, spacing, half, x, z);
-                    if (!IsInsideMask(s, h, slope, x, z))
+                    if (!IsInsideMask(s, h, slope, x, z) || InClearing(clearings, x, z))
                         continue;
                     float birchShare = Bilinear(masks.Birch, n, spacing, half, x, z);
                     var species = Hash01(s.Seed, i, j, SaltSpecies) < birchShare || slope >= s.SpruceMaxSlopeTan || h >= s.SpruceTopM
@@ -232,6 +234,19 @@ namespace LakskongenSim.Environment
             foreach (var row in rows)
                 trees.AddRange(row);
             return trees;
+        }
+
+        /// <summary>True inside any of the clearings.</summary>
+        public static bool InClearing(IReadOnlyList<(float x, float z, float r)>? clearings, float x, float z)
+        {
+            if (clearings == null)
+                return false;
+            foreach (var (cx, cz, r) in clearings)
+            {
+                if ((x - cx) * (x - cx) + (z - cz) * (z - cz) < r * r)
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>The hard mask every tree satisfies: above the shore, below the treeline, gentler than the cliff limit.</summary>

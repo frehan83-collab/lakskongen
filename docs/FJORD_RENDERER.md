@@ -120,6 +120,17 @@ bare crown to lace with alpha scissor + alpha to coverage; snow settles on
 the up-facing foliage of trees above the snow line. Meshes:
 `blender/build_vegetation.py` (in-house, manifest entries `spruce`, `birch`).
 
+Shore buildings (`ShorePropPlacer`, sim; `ShoreProps.gd`,
+`scenes/environment/ShoreProps.tscn`): up to three rows of two or three naust
+(boathouses on a dry-stone base, slate roofs, the walls red ochre or tar
+black per building) on sheltered, gentle (under 14°), dry shore 1.8-9 m above
+the sea and 5-28 m from it, doors turned to the water by the shore distance
+field's gradient, rows 300 m apart; one solid quay beside a row, from the
+waterline 18 m out to at least 2.5 m of water. The trees keep a 14 m yard
+around each. On the seed-42 fjord: two rows on the head delta and a row with
+the quay on the spruce spit by the mouth (in the default FJORD view). Meshes:
+`blender/build_shore_props.py` (manifest entries `naust`, `quay`).
+
 ## Camera (G1-03)
 
 `FjordCamera.gd` orbits a focus point on the water.

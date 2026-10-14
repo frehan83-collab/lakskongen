@@ -83,6 +83,10 @@ uniform float near_fade_start : hint_range(50.0, 2000.0) = 450.0;
 uniform float near_fade_end : hint_range(100.0, 4000.0) = 1100.0;
 uniform float near_normal_strength : hint_range(0.0, 2.0) = 1.0;
 uniform float far_normal_strength : hint_range(0.0, 2.0) = 0.8;
+// Quality tier hook (the later performance-tier track sets it): 0 drops the
+// wall noise (tone, seepage streaks, buttress bump: up to 10 fetches on a
+// steep pixel) and the second projection beyond the near range.
+uniform float wall_detail : hint_range(0.0, 1.0) = 1.0;
 // Height-blend depth: smaller gives crisper layer edges.
 uniform float blend_depth : hint_range(0.02, 1.0) = 0.18;
 
@@ -329,7 +333,7 @@ void fragment() {
 	vec4 n_streak_z = vec4(0.0);
 	vec3 bump_x = vec3(0.5);
 	vec3 bump_z = vec3(0.5);
-	if (slope_tan > 0.8) {
+	if (slope_tan > 0.8 && wall_detail > 0.5) {
 		n_wall_x = noise_at(vec2(p.z, p.y), 800.0, footprint);
 		n_wall_z = noise_at(vec2(p.x + 77.0, p.y), 800.0, footprint);
 		// The narrow streak and bump slices repeat every 54 and 228 m along
@@ -394,7 +398,8 @@ void fragment() {
 
 	// Soils: shingle at the shore, meadow and woods from the masks, heath
 	// and grass on open ground (heath above the treeline).
-	float shore = (1.0 - smoothstep(2.0, 3.5, h)) * gentle_shore;
+	// Shingle is a strip at the waterline (the 2.5 m head delta is meadow).
+	float shore = (1.0 - smoothstep(1.3, 2.3, h)) * gentle_shore;
 	float wood = clamp(forest * 1.6, 0.0, 1.0) * (1.0 - shore);
 	float open_ground = (1.0 - wood) * (1.0 - shore);
 	float alpine = smoothstep(treeline_m - 120.0, treeline_m + 40.0, h + (macro - 0.5) * 80.0);
@@ -431,7 +436,7 @@ void fragment() {
 	vec2 far_warp = (vec2(n_big.b, n_big.r) - 0.5) * 2.0 * FAR_WARP_M;
 	Proj pa = make_proj(major, w_major / w_sum, p, dpdx, dpdy, near_warp, far_warp);
 	Proj pb = make_proj(median, w_median / w_sum, p, dpdx, dpdy, near_warp, far_warp);
-	bool use_b = pb.weight > mix(0.05, 0.2, far_view);
+	bool use_b = pb.weight > mix(0.05, 0.2, max(far_view, (1.0 - wall_detail) * (1.0 - near_w)));
 	if (!use_b) {
 		pa.weight = 1.0;
 	}
@@ -577,7 +582,7 @@ void fragment() {
 		n_world += whiteout(normalize(tn_b), g, pb.axis) * pb.weight;
 	}
 	n_world = normalize(n_world + vec3(0.0, 1.3 * ledge - 0.35 * under, 0.0) * (1.0 - snow * 0.5));
-	if (cliff > 0.01) {
+	if (cliff > 0.01 && wall_detail > 0.5) {
 		// Buttresses and shallow grooves, 20-60 m across: a bump from the
 		// bump field's gradient (finite differences) in the two vertical planes.
 		float k = 9.0 * cliff;

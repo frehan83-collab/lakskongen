@@ -3289,6 +3289,27 @@ func _test_terrain_material_and_vegetation() -> void:
 	_check(steep == 0, "vegetation: no tree on a slope steeper than 55 degrees (%d)" % steep)
 	_check(spruce_bad == 0, "vegetation: spruce only low and on gentle ground (%d out)" % spruce_bad)
 	_check(floating == 0, "vegetation: every tree's base sits on, and its trunk sinks into, the ground (%d off)" % floating)
+
+	# The shore buildings: naust rows and a quay, on dry ground, doors to the water.
+	var props: Array = terrain.shore_props
+	var node: Node = terrain.shore_props_node
+	var naust := 0
+	var quays := 0
+	var facing_water := 0
+	for prop: Dictionary in props:
+		var pos: Vector3 = prop["position"]
+		var yaw := float(prop["yaw"])
+		var ahead := pos + Vector3(-sin(yaw), 0.0, -cos(yaw)) * 40.0
+		if terrain.get_height_at(ahead.x, ahead.z) < 0.0:
+			facing_water += 1
+		if int(prop["kind"]) == 0:
+			naust += 1
+		else:
+			quays += 1
+	_check(naust >= 2 and quays == 1 and facing_water == props.size(),
+		"shore: %d naust and %d quay stand facing the water (%d of %d)" % [naust, quays, facing_water, props.size()])
+	_check(node != null and node.get_child_count() == props.size(),
+		"shore: every building is in the scene (%d)" % (node.get_child_count() if node != null else -1))
 	scene.queue_free()
 	await get_tree().process_frame
 

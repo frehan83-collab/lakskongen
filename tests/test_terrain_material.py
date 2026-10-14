@@ -241,3 +241,59 @@ def test_build_script_reproduces_the_committed_trees(tmp_path):
             assert {k: new_side.get(k) for k in geometry} == {k: old_side.get(k) for k in geometry}
             if new_side.get("blender_version") == old_side.get("blender_version"):
                 assert hashlib.sha256(rebuilt.read_bytes()).hexdigest() == hashlib.sha256(committed.read_bytes()).hexdigest()
+
+
+# ── The shore buildings ─────────────────────────────────────────────────────
+
+SHORE = ("naust", "quay")
+# The naust's stone base sinks 2.5 m into sloping ground; the roof is 0.12 m thick.
+NAUST_BASE_SINK_M = 2.5
+NAUST_ROOF_M = 0.12
+# The quay reaches 4 m into the land behind the waterline.
+QUAY_INLAND_M = 4.0
+
+
+def test_shore_props_meet_the_manifest():
+    naust, quay = ASSETS["naust"], ASSETS["quay"]
+    for asset in (naust, quay):
+        assert asset["type"] == "shore_prop" and asset["build_script"] == "blender/build_shore_props.py"
+        side = _side(asset["id"], "LOD0")
+        assert side["tri_count"] <= asset["tri_max"]["LOD0"]
+        assert side["materials"] == asset["materials"]
+    tol = naust["spec_tolerance"]
+    w, h, length = _side("naust", "LOD0")["bbox_size"]
+    assert abs(w - naust["spec"]["width_m"]) <= tol * naust["spec"]["width_m"]
+    assert abs(length - naust["spec"]["length_m"]) <= tol * naust["spec"]["length_m"]
+    ridge = h - NAUST_BASE_SINK_M - NAUST_ROOF_M
+    assert abs(ridge - naust["spec"]["ridge_m"]) <= tol * naust["spec"]["ridge_m"], ridge
+    w, h, length = _side("quay", "LOD0")["bbox_size"]
+    tol = quay["spec_tolerance"]
+    assert abs(w - quay["spec"]["width_m"]) <= tol * quay["spec"]["width_m"]
+    assert abs(length - QUAY_INLAND_M - quay["spec"]["out_m"]) <= tol * quay["spec"]["out_m"]
+
+
+def test_naust_walls_take_a_paint_per_building():
+    script = (GODOT / "scripts" / "environment" / "ShoreProps.gd").read_text()
+    # The wall material the Blender build names is the one Godot repaints.
+    assert 'const WALL_MATERIAL := "LK_NaustWall"' in script
+    assert "LK_NaustWall" in ASSETS["naust"]["materials"]
+    paints = re.findall(r'Color\("#([0-9A-Fa-f]{6})"\)', script[script.index("NAUST_PAINT"):script.index("\n", script.index("NAUST_PAINT"))])
+    assert len(paints) == 2, paints
+
+
+@pytest.mark.skipif(_blender() is None, reason="Blender is not installed")
+def test_build_script_reproduces_the_committed_shore_props(tmp_path):
+    out = subprocess.run(
+        [_blender(), "-b", "--factory-startup", "--python", str(REPO / "blender" / "build_shore_props.py"), "--",
+         "--out", str(tmp_path)],
+        capture_output=True, text=True, timeout=600)
+    assert out.returncode == 0, out.stderr[-2000:]
+    for prop in SHORE:
+        committed = REPO / ASSETS[prop]["export_path"].format(lod="LOD0")
+        rebuilt = tmp_path / committed.name
+        new_side = json.loads(rebuilt.with_suffix(".json").read_text())
+        old_side = json.loads(committed.with_suffix(".json").read_text())
+        geometry = ("tri_count", "material_count", "materials", "bbox_size")
+        assert {k: new_side.get(k) for k in geometry} == {k: old_side.get(k) for k in geometry}
+        if new_side.get("blender_version") == old_side.get("blender_version"):
+            assert hashlib.sha256(rebuilt.read_bytes()).hexdigest() == hashlib.sha256(committed.read_bytes()).hexdigest()

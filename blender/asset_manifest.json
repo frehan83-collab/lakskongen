@@ -242,6 +242,40 @@
       "reference": "Roadmap G2-02: MultiMesh birch with a LOD beyond ~600 m. Downy birch (Betula pubescens) of western Norwegian fjord sides: about 11 m tall with an oval crown about 6 m across.",
       "spec_tolerance": 0.1,
       "spec": {"height_m": 11.0, "crown_width_m": 6.0}
+    },
+    {
+      "id": "naust",
+      "type": "shore_prop",
+      "scale_m": 9.0,
+      "orientation": "door_neg_z_base_top_origin",
+      "lod_levels": ["LOD0"],
+      "materials": ["LK_DoorDark", "LK_DryStone", "LK_NaustWall", "LK_Slate"],
+      "tri_budget": {"LOD0": 38},
+      "tri_max": {"LOD0": 200},
+      "export_path": "godot/assets/models/shore/naust_{lod}.glb",
+      "build_script": "blender/build_shore_props.py",
+      "build_args": ["--asset", "naust"],
+      "licence": "Proprietary (Lakskongen). In-house geometry; no third-party assets.",
+      "reference": "Roadmap G2-02 shore props: a western Norwegian naust (boathouse) on a dry-stone base with a gabled slate roof and a boat door to the water, 5 x 9 m with a 4.6 m ridge.",
+      "spec_tolerance": 0.1,
+      "spec": {"width_m": 5.8, "length_m": 9.6, "ridge_m": 4.6}
+    },
+    {
+      "id": "quay",
+      "type": "shore_prop",
+      "scale_m": 22.0,
+      "orientation": "head_neg_z_waterline_origin",
+      "lod_levels": ["LOD0"],
+      "materials": ["LK_Bollard", "LK_Concrete", "LK_DryStone", "LK_Fender"],
+      "tri_budget": {"LOD0": 302},
+      "tri_max": {"LOD0": 600},
+      "export_path": "godot/assets/models/shore/quay_{lod}.glb",
+      "build_script": "blender/build_shore_props.py",
+      "build_args": ["--asset", "quay"],
+      "licence": "Proprietary (Lakskongen). In-house geometry; no third-party assets.",
+      "reference": "Roadmap G2-02 shore props: a small solid quay (stone crib, concrete deck 1.6 m above the sea) 6 m wide, 18 m out from the waterline.",
+      "spec_tolerance": 0.1,
+      "spec": {"width_m": 6.0, "out_m": 18.0, "deck_m": 1.6}
     }
   ]
 }
