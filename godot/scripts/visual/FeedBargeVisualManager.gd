@@ -120,8 +120,10 @@ func _spawn_barge(site_id: String, site_data: Dictionary, on_station: bool = fal
 		return
 	# Towed along the channel at sea level, never over the terrain or through
 	# another site, to the barge berth beside its pen.
-	var barge := barge_scene_for(site_data).instantiate() as VesselModel
+	var node := barge_scene_for(site_data).instantiate()
+	var barge := node as VesselModel
 	if barge == null:
+		node.free()
 		return
 	var berth := pen_mgr.get_berth(site_id, "barge", barge.beam_m)
 	var route := ChannelBoat.berth_route(terrain, depot_along * terrain.terrain_size.y, berth,

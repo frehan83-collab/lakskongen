@@ -67,9 +67,14 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if WaveField.active == null or not rides_waves:
 		return
+	# A carried vessel rides on its carrier's schedule, so it never keeps a
+	# stale pose on a carrier that has moved.
+	var carrier := _carrier()
+	var gauge: VesselModel = self if carrier == null else carrier
+	var near := gauge.lod_switch.y
 	var cam := get_viewport().get_camera_3d()
-	if cam != null and cam.global_position.distance_squared_to(global_position) > lod_switch.y * lod_switch.y \
-			and (Engine.get_process_frames() + _ride_slot) % FAR_RIDE_FRAMES != 0:
+	if cam != null and cam.global_position.distance_squared_to(gauge.global_position) > near * near \
+			and (Engine.get_process_frames() + gauge._ride_slot) % FAR_RIDE_FRAMES != 0:
 		return
 	ride_waves()
 

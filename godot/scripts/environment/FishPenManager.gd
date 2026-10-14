@@ -87,13 +87,17 @@ const WELLBOAT_HULL_SIDE_M := 38.5
 ## wellboat (23 m beam) on its side, the large barge (13 m) with its tender
 ## RIB (3 m and a 0.5 m gap) on the other, over this half-length along the
 ## grid axis (a 116 m hull alongside, plus room to turn in).
-const GRID_CLEAR_HALF_M := 36.0
 const WELLBOAT_RESERVE_BEAM_M := 23.0
 const BARGE_RESERVE_BEAM_M := 16.5
 const SITE_RESERVE_HALF_LENGTH_M := 80.0
-## Water a berth side needs under its footprint (m), and the footprint's
-## along-axis reach either side of the pen (m).
-const BERTH_MIN_DEPTH_M := 10.0
+## A boat heading for a berth sees that side of its site clear from this far
+## inside its own inner hull side, more than ChannelBoat's 4 m lane
+## clearance, so the berth's own lane stays open all the way in.
+const OPEN_BERTH_SLACK_M := 5.0
+## Water a berth side needs under its footprint (m: the 116 m carrier's
+## 8.5 m draught plus ChannelBoat's 2 m keel clearance, and a margin), and
+## the footprint's along-axis reach either side of the pen (m).
+const BERTH_MIN_DEPTH_M := 12.0
 const BERTH_SAMPLE_REACH_M := 60.0
 ## The channel's heading at a pen is the centreline's slope over +-this (m).
 const CHANNEL_HEADING_SPAN_M := 20.0
@@ -499,9 +503,9 @@ func site_zones(open_pen_id: String = "", open_role: String = "") -> Array:
 		var barge_reach := BARGE_HULL_SIDE_M + BARGE_RESERVE_BEAM_M
 		var wellboat_reach := WELLBOAT_HULL_SIDE_M + WELLBOAT_RESERVE_BEAM_M
 		if pen_id == open_pen_id and open_role == "barge":
-			barge_reach = GRID_CLEAR_HALF_M
+			barge_reach = BARGE_HULL_SIDE_M - OPEN_BERTH_SLACK_M
 		if pen_id == open_pen_id and open_role == "wellboat":
-			wellboat_reach = GRID_CLEAR_HALF_M
+			wellboat_reach = WELLBOAT_HULL_SIDE_M - OPEN_BERTH_SLACK_M
 		var plus := (barge_reach if barge_side > 0.0 else wellboat_reach) / cos(yaw)
 		var minus := (wellboat_reach if barge_side > 0.0 else barge_reach) / cos(yaw)
 		zones.append({

@@ -197,7 +197,11 @@ rectangle (`hull()`: sinc for the mean, 3(sin u − u cos u)/u³ for the
 slopes). `PenCage.ride_waves()` and `VesselModel.ride_waves()` set height and
 tilt every frame (every 8th past the LOD2 distance) and leave x, z and yaw to
 their owners; the barge's tender floats on its own water while staying tied
-to the barge. 26 bodies cost 0.19 ms a frame (M1 Pro), with no allocations.
+to the barge (on the barge's schedule). Each component is carried to second
+order in its steepness (over fixed ground a Gerstner wave sits Q·k·a²/2
+lower, with a 2k ripple), which keeps a 116 m hull within 0.05 m of the
+sampled water on the open coast in a 25 m/s gale. 26 bodies cost 0.25 ms a
+frame in a storm (M1 Pro), with no allocations.
 The UI flow test pins the mirror to the shader numerically and the bodies to
 the water (RUN_LOG §7, 2026-10-14). Grid buoys, lamps and ropes stay at rest
 height for now.

@@ -121,8 +121,10 @@ func _spawn_wellboat(job_id: String, site_id: String, kind: String, due_day: int
 	# pen. The old route left from inside the fjord wall and arced 80 m over
 	# the terrain.
 	var scene := harvest_wellboat_scene if kind == "harvest" and harvest_wellboat_scene else wellboat_scene
-	var wellboat := scene.instantiate() as VesselModel
+	var node := scene.instantiate()
+	var wellboat := node as VesselModel
 	if wellboat == null:
+		node.free()
 		return
 	var berth := pen_mgr.get_berth(site_id, "wellboat", wellboat.beam_m)
 	var route := ChannelBoat.berth_route(terrain, harbour_along * terrain.terrain_size.y, berth,

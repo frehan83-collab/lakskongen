@@ -19,7 +19,11 @@ extends RefCounted
 ## A rigid body cannot follow a wave shorter than itself: it settles on the
 ## least-squares plane of the water under it, not on the surface at its
 ## centre. These are that plane, in closed form, so riding costs one pass
-## over the components per body and frame and allocates nothing.
+## over the components per body and frame and allocates nothing. The
+## closed forms carry each Gerstner component to second order in its
+## steepness (over fixed ground the water sits Q k a^2 / 2 lower on average,
+## with a 2k ripple), which keeps them within 0.1 m of the point-sampled
+## plane even on the open coast in a 25 m/s gale (UiFlowTests).
 ##
 ## Only what the grid draws moves a body: like the shader, a component needs
 ## a wavelength of WAVE_MIN_SPACINGS grid spacings where the body is and
@@ -76,6 +80,8 @@ var _bake: Image = null
 var _ring_radius := -1.0
 var _ring_mean := PackedFloat32Array()
 var _ring_slope := PackedFloat32Array()
+var _ring_mean2 := PackedFloat32Array()
+var _ring_slope2 := PackedFloat32Array()
 
 
 ## Follow a water grid: its origin moves with the camera and sets how fine
@@ -207,9 +213,12 @@ func ring(x: float, z: float, radius: float, bake: Variant = null) -> Vector3:
 			continue
 		var wk := wave_k[i]
 		var ph := wk.x * x + wk.y * z - wave_amp[i].z
-		mean += a * _ring_mean[i] * sin(ph)
+		# Second order: the crests sharpen and the troughs widen, so the
+		# water over fixed ground sits q lower on average, with a 2k ripple.
+		var q := 0.5 * wk.w * wk.z * a * a
+		mean += a * _ring_mean[i] * sin(ph) - q * (1.0 + _ring_mean2[i] * cos(2.0 * ph))
 		# Along the wave's heading (wk.xy / k).
-		var s := a * _ring_slope[i] * cos(ph) / wk.z
+		var s := (a * _ring_slope[i] * cos(ph) + q * _ring_slope2[i] * sin(2.0 * ph)) / wk.z
 		sx += s * wk.x
 		sz += s * wk.y
 	return Vector3(grid_origin().y + mean * reach.y, sx * reach.y, sz * reach.y)
@@ -241,9 +250,14 @@ func hull(x: float, z: float, along: Vector2, across: Vector2, half_length: floa
 		var sinc_w := sinc(w)
 		var ph := wk.x * x + wk.y * z - wave_amp[i].z
 		var c := a * cos(ph)
-		mean += a * sinc_u * sinc_w * sin(ph)
-		s_along += c * k_along * plane_fit(u) * sinc_w
-		s_across += c * k_across * plane_fit(w) * sinc_u
+		# Second order (see ring()): q lower on average, with a 2k ripple.
+		var q := 0.5 * wk.w * wk.z * a * a
+		var q2 := q * sin(2.0 * ph)
+		var sinc_2u := sinc(2.0 * u)
+		var sinc_2w := sinc(2.0 * w)
+		mean += a * sinc_u * sinc_w * sin(ph) - q * (1.0 + sinc_2u * sinc_2w * cos(2.0 * ph))
+		s_along += c * k_along * plane_fit(u) * sinc_w + q2 * 2.0 * k_along * plane_fit(2.0 * u) * sinc_2w
+		s_across += c * k_across * plane_fit(w) * sinc_u + q2 * 2.0 * k_across * plane_fit(2.0 * w) * sinc_2u
 	return Vector3(grid_origin().y + mean * reach.y, s_along * reach.y, s_across * reach.y)
 
 
@@ -305,7 +319,11 @@ func _ensure_ring(radius: float) -> void:
 	_ring_radius = radius
 	_ring_mean.resize(wave_k.size())
 	_ring_slope.resize(wave_k.size())
+	_ring_mean2.resize(wave_k.size())
+	_ring_slope2.resize(wave_k.size())
 	for i in wave_k.size():
 		var kr := wave_k[i].z * radius
 		_ring_mean[i] = bessel_j0(kr)
 		_ring_slope[i] = 2.0 * bessel_j1(kr) / radius
+		_ring_mean2[i] = bessel_j0(2.0 * kr)
+		_ring_slope2[i] = 2.0 * bessel_j1(2.0 * kr) / radius

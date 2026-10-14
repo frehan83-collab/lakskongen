@@ -3183,6 +3183,7 @@ func _test_water_grid_bake_and_sea_state() -> void:
 const RIDE_SAMPLE_STEP_S := 0.137
 const RIDE_SAMPLES := 160
 const RIDE_RING_POINTS := 16
+const OPEN_COAST_SAMPLES := 40
 
 ## G2-03: what the water draws carries the pens and boats.
 ## 1. WaveField is the shader's wave: it holds the very wave, grid and bake
@@ -3199,6 +3200,8 @@ const RIDE_RING_POINTS := 16
 ##    sit on the mean surface under their waterplanes (|y - mean| <= 0.1 m)
 ##    and lie on its slope (pitch and roll within 0.01 of the sampled
 ##    least-squares plane).
+## 4. On the open coast (exposure 1, Hs 4 m) the closed-form plane of a
+##    116 m hull stays within 0.1 m and 0.01 of the sampled one.
 func _check_waves_carry_pens_and_boats(director: EnvironmentDirector, pens: FishPenManager, grid: WaterGrid,
 		terrain: FjordTerrain, site_id: String) -> void:
 	var field := director.wave_field
@@ -3323,19 +3326,52 @@ func _check_waves_carry_pens_and_boats(director: EnvironmentDirector, pens: Fish
 		"water: barge, tender, workboat and wellboat sit on the mean surface under their waterplanes and lie on its slope (%s)"
 			% ", ".join(report))
 
+	# The open coast, where boats sail out from the harbour: past the bake
+	# the sea is the exposed one (100 km fetch, Hs 4 m at 25 m/s), its long
+	# steep waves the hardest case for the closed forms (second order).
+	var coast := Vector3(0.0, 0.0, -2150.0)
+	var hull_rest := Transform3D(Basis(Vector3.UP, 0.3), coast)
+	# Framed at FARM zoom, so the grid draws the coast's waves down to 26 m.
+	var cam: FjordCamera = pens.get_parent().get_node("FjordCamera")
+	cam.look_at_position(coast, FjordCamera.ZoomLevel.FARM)
+	await _settle_camera(cam)
+	var coast_y := 0.0
+	var coast_slope := 0.0
+	var coast_heave := 0.0
+	var coast_sea := 0.0
+	for step in OPEN_COAST_SAMPLES:
+		director.compose(RIDE_SAMPLE_STEP_S * 5.0)
+		var plane := field.hull(coast.x, coast.z, Vector2(hull_rest.basis.z.x, hull_rest.basis.z.z),
+			Vector2(hull_rest.basis.x.x, hull_rest.basis.x.z), 58.0, 11.5)
+		var fit := _waterplane_fit(field, hull_rest, 58.0, 11.5)
+		coast_y = maxf(coast_y, absf(plane.x - fit.x))
+		coast_slope = maxf(coast_slope, maxf(absf(plane.y - fit.y), absf(plane.z - fit.z)))
+		coast_heave = maxf(coast_heave, absf(fit.x))
+		coast_sea = maxf(coast_sea, absf(field.height_at(coast.x, coast.z)))
+	_check(field.bake_at(coast.x, coast.z).b > 0.99 and coast_sea > 0.5 and coast_y <= 0.1 and coast_slope <= 0.01,
+		"water: on the open coast in the 25 m/s gale a 116 m hull's plane stays within %.3f m and %.4f of the sampled water (sea to %.2f m, hull heave to %.2f m, %d moments)"
+			% [coast_y, coast_slope, coast_sea, coast_heave, OPEN_COAST_SAMPLES])
 
-## The least-squares plane of the drawn water under a waterplane (sampled
-## 9 x 5 over its length and beam): Vector3(mean, slope along +Z, slope along +X).
+
+## Point spacing (m) of the sampled waterplane: under half the shortest wave
+## the 2 m grid draws (6 m), so the reference does not alias.
+const WATERPLANE_SAMPLE_M := 2.9
+
+## The least-squares plane of the drawn water under a waterplane, sampled
+## every WATERPLANE_SAMPLE_M over its length and beam: Vector3(mean, slope
+## along +Z, slope along +X).
 func _waterplane_fit(field: WaveField, rest: Transform3D, half_length: float, half_beam: float) -> Vector3:
+	var n_along := maxi(3, ceili(2.0 * half_length / WATERPLANE_SAMPLE_M) + 1)
+	var n_across := maxi(3, ceili(2.0 * half_beam / WATERPLANE_SAMPLE_M) + 1)
 	var sum := 0.0
 	var along := 0.0
 	var across := 0.0
 	var along_sq := 0.0
 	var across_sq := 0.0
-	for i in 9:
-		for j in 5:
-			var u := (float(i) / 8.0 * 2.0 - 1.0) * half_length
-			var v := (float(j) / 4.0 * 2.0 - 1.0) * half_beam
+	for i in n_along:
+		for j in n_across:
+			var u := (float(i) / float(n_along - 1) * 2.0 - 1.0) * half_length
+			var v := (float(j) / float(n_across - 1) * 2.0 - 1.0) * half_beam
 			var p := rest * Vector3(v, 0.0, u)
 			var h := field.height_at(p.x, p.z)
 			sum += h
@@ -3343,7 +3379,7 @@ func _waterplane_fit(field: WaveField, rest: Transform3D, half_length: float, ha
 			across += v * h
 			along_sq += u * u
 			across_sq += v * v
-	return Vector3(sum / 45.0, along / along_sq, across / across_sq)
+	return Vector3(sum / float(n_along * n_across), along / along_sq, across / across_sq)
 
 
 ## water_shader.gdshader vertex(): the displacement of the grid vertex at

@@ -17,13 +17,9 @@ const LANE_CLEARANCE_M := 4.0
 const RUN_IN_EXTRA_M := 30.0
 
 
-## Builds parent > Path3D > PathFollow3D > boat along `route`, the boat at
-## the route's start. Returns {path, follow, boat}.
-static func launch(parent: Node, scene: PackedScene, route: PackedVector3Array, boat_name: String) -> Dictionary:
-	return launch_boat(parent, scene.instantiate() as Node3D, route, boat_name)
-
-
-## launch() for a boat already instantiated (its size planned the route).
+## Builds parent > Path3D > PathFollow3D > boat along `route`, the boat
+## (already instantiated: its size planned the route) at the route's start.
+## Returns {path, follow, boat}.
 static func launch_boat(parent: Node, boat: Node3D, route: PackedVector3Array, boat_name: String) -> Dictionary:
 	var curve := Curve3D.new()
 	for point in route:
@@ -60,37 +56,41 @@ static func berth_route(terrain: FjordTerrain, from_z: float, berth: Dictionary,
 	var run_in := at - heading * (half_len + RUN_IN_EXTRA_M)
 	var lane := at.x - terrain.channel_center_x(at.z)
 	var points := PackedVector3Array()
-	var count := maxi(1, ceili(absf(run_in.z - from_z) / ROUTE_STEP_M))
-	for i in count:
-		var z := lerpf(from_z, run_in.z, float(i) / float(count))
-		var offset := _clear_lane(terrain, z, lane, half_len, half_beam, depth, zones)
-		points.append(Vector3(terrain.channel_center_x(z) + offset, 0.0, z))
-	points.append(Vector3(run_in.x, 0.0, run_in.z))
+	if (run_in.z - from_z) * signf(at.z - from_z) > 0.0:
+		var count := maxi(1, ceili(absf(run_in.z - from_z) / ROUTE_STEP_M))
+		for i in count:
+			var z := lerpf(from_z, run_in.z, float(i) / float(count))
+			var offset := _clear_lane(terrain, z, lane, half_len, half_beam, depth, zones)
+			points.append(Vector3(terrain.channel_center_x(z) + offset, 0.0, z))
+		points.append(Vector3(run_in.x, 0.0, run_in.z))
+	else:
+		# A berth closer to the start than the run-in: straight in from there.
+		points.append(Vector3(terrain.channel_center_x(from_z) + lane, 0.0, from_z))
 	points.append(Vector3(at.x, 0.0, at.z))
 	return points
 
 
 ## The lateral offset from the centreline nearest `lane` where a hull at z
-## floats clear (the lane itself when nothing near is clear).
+## floats clear (the lane itself, with a warning, when nothing near is).
 static func _clear_lane(terrain: FjordTerrain, z: float, lane: float, half_len: float, half_beam: float,
 		depth: float, zones: Array) -> float:
+	# The centreline under the stern, amidships and the bow: it does not
+	# depend on the lane, and every lookup is a call into the C# generator.
+	var centres := Vector3(terrain.channel_center_x(z - half_len), terrain.channel_center_x(z),
+		terrain.channel_center_x(z + half_len))
 	for j in int(LANE_SEARCH_M / LANE_STEP_M) + 1:
 		for side in [1.0, -1.0]:
 			var offset: float = lane + float(side) * float(j) * LANE_STEP_M
-			if _lane_is_clear(terrain, z, offset, half_len, half_beam, depth, zones):
+			if _lane_is_clear(terrain, z, centres, offset, half_len, half_beam, depth, zones):
 				return offset
+	push_warning("[ChannelBoat] no clear lane within %.0f m at z %.0f: the route keeps lane %.0f m"
+		% [LANE_SEARCH_M, z, lane])
 	return lane
 
 
-static func _lane_is_clear(terrain: FjordTerrain, z: float, offset: float, half_len: float, half_beam: float,
-		depth: float, zones: Array) -> bool:
-	for along in [-half_len, 0.0, half_len]:
-		var zz: float = z + along
-		var cx := terrain.channel_center_x(zz) + offset
-		for across in [-(half_beam + 1.0), 0.0, half_beam + 1.0]:
-			if terrain.get_height_at(cx + across, zz) > -depth:
-				return false
-	var x := terrain.channel_center_x(z) + offset
+static func _lane_is_clear(terrain: FjordTerrain, z: float, centres: Vector3, offset: float, half_len: float,
+		half_beam: float, depth: float, zones: Array) -> bool:
+	var x := centres.y + offset
 	for zone in zones:
 		var dz := z - float(zone["z"])
 		if absf(dz) > float(zone["half_z"]) + half_len + ROUTE_STEP_M:
@@ -99,6 +99,12 @@ static func _lane_is_clear(terrain: FjordTerrain, z: float, offset: float, half_
 		if x + half_beam + LANE_CLEARANCE_M > float(zone["lo"]) + shift \
 				and x - half_beam - LANE_CLEARANCE_M < float(zone["hi"]) + shift:
 			return false
+	for k in 3:
+		var zz := z + (float(k) - 1.0) * half_len
+		var cx := centres[k] + offset
+		for across in [-(half_beam + 1.0), 0.0, half_beam + 1.0]:
+			if terrain.get_height_at(cx + float(across), zz) > -depth:
+				return false
 	return true
 
 
