@@ -1,25 +1,33 @@
 class_name PenCage
 extends Node3D
 
-## A floating salmon pen (AKVA Polarcirkel 500-class circular HDPE pen).
-## Components: Collar, Net, Walkway, Handrail, FeedPipe (the names other code
-## looks up), an owner colour Band, the HealthRing signal on the water and
-## the ClickArea owners connect to.
-## Scale: 160 m circumference (radius ~25.5 m), net 40 m deep.
+## A floating salmon pen: the AKVA Polarcirkel 500-class hero asset built by
+## blender/build_pen.py (160 m twin HDPE collar, brackets every 2.67 m,
+## uprights and handrail, walkway, bird net on a central mast, 30 m net wall
+## with a cone bottom, sinker tube, feed hose to a central spreader, and an
+## optional lice skirt).
+##
+## The scene inherits pen_cage_LOD0.glb, so the LOD0 parts are direct
+## children under the names other code looks up (Collar, Net, Walkway,
+## Handrail, FeedPipe, Band, BirdNet, BirdNetPoles, SinkerTube, LiceSkirt).
+## LOD1 and LOD2 are the same parts, simpler, under the LOD1/LOD2 nodes;
+## visibility ranges switch between them. HealthRing is the signal on the
+## water and ClickArea is what owners connect clicks to.
 ##
 ## Per-pen state goes through instance shader parameters, so every pen and
 ## every rival farm shares the same materials (roadmap G1-07):
 ##   set_health_state() / set_health_color()  the ring on the water
 ##   set_owner_band()                         rival colour band
 ##   set_net_opacity()                        quieter rival nets
+##   set_lice_skirt()                         the skirt variant
 
 @export_group("Pen Dimensions")
-@export var collar_radius: float = 25.5  # ~160m circumference / (2*PI)
-@export var collar_thickness: float = 2.0
-@export var net_depth: float = 40.0
-@export var walkway_width: float = 1.5
-@export var handrail_height: float = 1.1
-@export var feedpipe_radius: float = 0.3
+@export var collar_radius: float = 25.5  # 160 m inner pipe circumference / (2*PI)
+@export var collar_thickness: float = 1.6  # twin 500 mm pipes at 1.1 m centres
+@export var net_depth: float = 38.0  # 30 m wall + 8 m cone
+@export var walkway_width: float = 1.205
+@export var handrail_height: float = 0.95
+@export var feedpipe_radius: float = 0.055
 
 @export_group("Materials")
 @export var collar_material: Material
@@ -50,8 +58,20 @@ const HEALTH_PULSE_HZ := {
 }
 ## Ink surface (#0B2A3A) behind world text, for label outlines.
 const INK := Color(0.043, 0.165, 0.227, 0.92)
-## Label text sits this high above the waterline.
-const LABEL_HEIGHT := 9.0
+## Label text sits this high above the waterline (above the bird-net mast).
+const LABEL_HEIGHT := 11.0
+
+## Camera distance (m) where each LOD hands over to the next. LOD0 keeps the
+## brackets and uprights while they are a few pixels wide; LOD2 (< 2k
+## triangles) takes over once the whole pen is ~100 px across.
+const LOD_SWITCH := [260.0, 850.0]
+const LOD_HYSTERESIS := 8.0
+const LOD_NAMES := ["", "LOD1", "LOD2"]
+## Parts drawn with the net shader (translucent, no shadows).
+const NET_PARTS := ["Net", "BirdNet"]
+## Parts that cast no shadow: the see-through nets and what hangs under the
+## water (a shadow there is never seen, but every cascade would draw it).
+const NO_SHADOW_PARTS := ["Net", "BirdNet", "SinkerTube", "LiceSkirt"]
 
 var health_state: int = Health.UNKNOWN
 
@@ -60,11 +80,11 @@ var _net_node: MeshInstance3D
 var _walkway_node: MeshInstance3D
 var _handrail_node: MeshInstance3D
 var _feedpipe_node: MeshInstance3D
-var _band_node: MeshInstance3D
 var _health_ring: MeshInstance3D
 var _click_area: Area3D
 var _band_color: Color = Color(0, 0, 0, 0)
 var _net_opacity: float = 1.0
+var _lice_skirt: bool = false
 
 func _ready() -> void:
 	_collar_node = get_node_or_null("Collar") as MeshInstance3D
@@ -72,13 +92,47 @@ func _ready() -> void:
 	_walkway_node = get_node_or_null("Walkway") as MeshInstance3D
 	_handrail_node = get_node_or_null("Handrail") as MeshInstance3D
 	_feedpipe_node = get_node_or_null("FeedPipe") as MeshInstance3D
-	_band_node = get_node_or_null("Band") as MeshInstance3D
 	_health_ring = get_node_or_null("HealthRing") as MeshInstance3D
 	# Owners wire clicks: they connect ClickArea.input_event (FishPenManager, VisualAdapter3D).
 	_click_area = get_node_or_null("ClickArea") as Area3D
+	_configure_lods()
 	_apply_health()
 	_apply_band()
 	_apply_net_opacity()
+	_apply_lice_skirt()
+
+## The meshes of one LOD level (0 = the direct children).
+func get_lod_meshes(level: int) -> Array[MeshInstance3D]:
+	var meshes: Array[MeshInstance3D] = []
+	var holder: Node = self if level == 0 else get_node_or_null(LOD_NAMES[level])
+	if holder == null:
+		return meshes
+	for child in holder.get_children():
+		if child is MeshInstance3D and child != _health_ring and child.name != "HealthRing":
+			meshes.append(child as MeshInstance3D)
+	return meshes
+
+## Every mesh part of one name across the LODs (e.g. "Net", "Band").
+func get_parts(part: String) -> Array[MeshInstance3D]:
+	var out: Array[MeshInstance3D] = []
+	for level in LOD_NAMES.size():
+		for mesh in get_lod_meshes(level):
+			if mesh.name == part:
+				out.append(mesh)
+	return out
+
+func _configure_lods() -> void:
+	for level in LOD_NAMES.size():
+		var begin: float = 0.0 if level == 0 else LOD_SWITCH[level - 1]
+		var end: float = LOD_SWITCH[level] if level < LOD_SWITCH.size() else 0.0
+		for mesh in get_lod_meshes(level):
+			mesh.visibility_range_begin = begin
+			mesh.visibility_range_end = end
+			mesh.visibility_range_begin_margin = LOD_HYSTERESIS if begin > 0.0 else 0.0
+			mesh.visibility_range_end_margin = LOD_HYSTERESIS if end > 0.0 else 0.0
+			mesh.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+			if String(mesh.name) in NO_SHADOW_PARTS or level == 2:
+				mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 ## The ring colour for a health state.
 static func health_color_of(state: int) -> Color:
@@ -123,11 +177,13 @@ func set_owner_band(color: Color) -> void:
 func get_owner_band() -> Color:
 	return _band_color
 
+func get_band_nodes() -> Array[MeshInstance3D]:
+	return get_parts("Band")
+
 func _apply_band() -> void:
-	if _band_node == null:
-		return
-	_band_node.visible = _band_color.a > 0.0
-	_band_node.set_instance_shader_parameter("band_color", _band_color)
+	for band in get_band_nodes():
+		band.visible = _band_color.a > 0.0
+		band.set_instance_shader_parameter("band_color", _band_color)
 
 ## Net visibility, 0..1 (rival pens are drawn quieter than the player's).
 func set_net_opacity(value: float) -> void:
@@ -141,12 +197,25 @@ func _apply_net_opacity() -> void:
 	for net in get_net_nodes():
 		net.set_instance_shader_parameter("net_opacity", _net_opacity)
 
-## Every mesh drawn with the net shader.
+## Every mesh drawn with the net shader (pen net and bird net, all LODs).
 func get_net_nodes() -> Array[MeshInstance3D]:
 	var nets: Array[MeshInstance3D] = []
-	if _net_node:
-		nets.append(_net_node)
+	for part in NET_PARTS:
+		nets.append_array(get_parts(part))
 	return nets
+
+## The lice-skirt variant: a tarpaulin round the top 10 m of the net
+## (GameBridge sends it per site as "has_skirt").
+func set_lice_skirt(on: bool) -> void:
+	_lice_skirt = on
+	_apply_lice_skirt()
+
+func has_lice_skirt() -> bool:
+	return _lice_skirt
+
+func _apply_lice_skirt() -> void:
+	for skirt in get_parts("LiceSkirt"):
+		skirt.visible = _lice_skirt
 
 func get_click_area() -> Area3D:
 	return _click_area
@@ -158,8 +227,13 @@ func get_net_depth() -> float:
 	return net_depth
 
 ## Readable world label: billboarded, constant on-screen size, light text on
-## an Ink outline so it reads over water, rock and sky alike.
-static func style_label(label: Label3D, text_color: Color) -> void:
+## an Ink outline so it reads over water, rock and sky alike. Constant-size
+## labels of far farms pile up on the horizon, so they fade out past
+## `max_distance` metres.
+static func style_label(label: Label3D, text_color: Color, max_distance: float = 1600.0) -> void:
+	label.visibility_range_end = max_distance
+	label.visibility_range_end_margin = max_distance * 0.1
+	label.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.fixed_size = true
 	label.pixel_size = 0.0005

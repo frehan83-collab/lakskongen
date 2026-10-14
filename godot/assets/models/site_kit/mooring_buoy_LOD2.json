@@ -1,0 +1,16 @@
+{
+  "asset": "mooring_buoy",
+  "bbox_size": [
+    1.1306,
+    1.7874,
+    1.1888
+  ],
+  "file": "mooring_buoy_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 2,
+  "materials": [
+    "LK_Buoy",
+    "LK_Steel"
+  ],
+  "tri_count": 110
+}

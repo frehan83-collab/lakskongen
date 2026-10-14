@@ -104,6 +104,8 @@ class AssetSpec:
     export_path: str
     build_script: str
     variants: list[str] | None = None
+    # Hard triangle ceilings per LOD (roadmap budgets, e.g. pen LOD0 <= 60k).
+    tri_max: dict[str, int] | None = None
 
     @classmethod
     def from_dict(cls, d: dict) -> "AssetSpec":
@@ -117,7 +119,8 @@ class AssetSpec:
             tri_budget=d["tri_budget"],
             export_path=d["export_path"],
             build_script=d["build_script"],
-            variants=d.get("variants")
+            variants=d.get("variants"),
+            tri_max=d.get("tri_max"),
         )
 
 
@@ -257,6 +260,11 @@ def validate_asset(spec: AssetSpec, lod: str, variant: str | None, export_path: 
         tolerance = budget * 0.1
         if not (budget - tolerance <= tri_count <= budget + tolerance):
             errors.append(f"Triangle count {tri_count} outside budget {budget}±{tolerance:.0f}")
+
+    # Hard ceiling, independent of the pinned budget above.
+    ceiling = (spec.tri_max or {}).get(lod)
+    if ceiling is not None and tri_count > ceiling:
+        errors.append(f"Triangle count {tri_count} over the {lod} ceiling {ceiling}")
 
     # Material count validation
     if material_count != expected_materials:

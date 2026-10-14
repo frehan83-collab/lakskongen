@@ -1,9 +1,0 @@
-[gd_resource type="CylinderMesh" load_steps=1 format=3 uid="uid://pen_net_mesh_001"]
-
-[resource]
-top_radius = 25.5
-bottom_radius = 25.5
-height = 40.0
-radial_segments = 48
-rings = 8
-cap_top = false

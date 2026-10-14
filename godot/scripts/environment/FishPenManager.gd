@@ -63,6 +63,9 @@ const SELECTION_RING_Y := 0.2
 const SELECTION_RING_MATERIAL := preload("res://assets/models/pen_cage/pen_selection_ring_material.tres")
 ## Selected-pen ring colour: Ink text (#E8EEF0).
 const SELECTION_COLOR := Color(0.910, 0.933, 0.941, 0.9)
+## The service boat lies broadside to the collar this far from the centre
+## (outer pipe edge at 26.8 m, half the boat's 9 m beam, a 1.7 m gap).
+const BOAT_MOORING_OFFSET := 33.0
 
 
 func _ready() -> void:
@@ -237,6 +240,8 @@ func _apply_site_data(pen_id: String, site: Dictionary, index: int) -> void:
 			PenCage.style_label(label, Color(0.910, 0.933, 0.941))
 			cage.add_child(label)
 		label.text = _site_string(site, ["name", "pen_name", "id"], pen_id)
+		if cage is PenCage:
+			(cage as PenCage).set_lice_skirt(bool(site.get("has_skirt", false)))
 	_set_health(pen_id, health_state_for(site))
 	_apply_fish_density(pen_id, site)
 	_maybe_emit_feeding(pen_id, site)
@@ -301,14 +306,22 @@ func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 	if click_area:
 		click_area.input_event.connect(_on_pen_input_event.bind(pen_id))
 
-	# Service boat moored alongside the collar: diagonal offset clears the
-	# 25.5 m collar radius, waterline y sits the hull IN the water instead
-	# of floating 2 m above it.
-	var moor_dir := Vector3(1, 0, 1).normalized()
+	# Service boat moored alongside the collar, broadside to it, between the
+	# frame corners (the bridles run to the corners) and away from the feed
+	# hose (+X); the waterline y sits the hull IN the water.
 	var boat = service_boat_scene.instantiate()
 	boat.name = "%s_boat" % pen_id
 	markers_parent.add_child(boat)
-	boat.global_position = position + moor_dir * 33.0 + Vector3(0, 0.2, 0)
+	boat.global_position = position + Vector3(0.0, 0.2, BOAT_MOORING_OFFSET)
+	boat.rotation.y = PI * 0.5
+
+	# The site's frame mooring: one 70 m cell round the pen, grid buoys,
+	# bridles, anchor lines and the synchronised corner lights.
+	var mooring := MooringGrid.new()
+	mooring.name = "%s_mooring" % pen_id
+	markers_parent.add_child(mooring)
+	mooring.global_position = position
+	mooring.build(1, 1, [Vector2i(0, 0)], MooringGrid.BUOY_GREY, _seabed_lookup())
 
 	# Fish school using MultiMesh
 	var school := MultiMeshInstance3D.new()
@@ -317,11 +330,11 @@ func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 	markers_parent.add_child(school)
 	school.global_position = position
 
-	# Store pen data (keep the stock material of every pen mesh so stocked
-	# pens can be restored after ghosting).
+	# Store pen data (keep the stock material and shadow setting of every pen
+	# mesh so stocked pens can be restored after ghosting).
 	var stock_mats := {}
 	for mesh in _pen_meshes(cage):
-		stock_mats[mesh] = mesh.material_override
+		stock_mats[mesh] = [mesh.material_override, mesh.cast_shadow]
 	_pens[pen_id] = {
 		"position": position,
 		"active": active,
@@ -331,12 +344,29 @@ func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 		"cage": cage,
 		"boat": boat,
 		"fish_school": school,
+		"mooring": mooring,
 		"stock_mats": stock_mats,
 	}
 	if not active:
 		_apply_ghost_style(pen_id)
 
 	pen_added.emit(pen_id, position)
+
+## Seabed height lookup for mooring anchor lines (world x, z -> y), or an
+## empty Callable when there is no terrain.
+func _seabed_lookup() -> Callable:
+	if _terrain_ref == null:
+		_terrain_ref = get_node_or_null("../Terrain") as FjordTerrain
+	if _terrain_ref == null:
+		return Callable()
+	var terrain := _terrain_ref
+	return func(x: float, z: float) -> float: return terrain.get_height_at(x, z)
+
+## The frame mooring laid round a pen (null for an unknown pen).
+func get_pen_mooring(pen_id: String) -> MooringGrid:
+	if pen_id in _pens:
+		return _pens[pen_id].get("mooring") as MooringGrid
+	return null
 
 ## Shared ghost material for unstocked (available-site) pens: faded ring,
 ## no boat, no net — a placeholder, not a farm.
@@ -378,6 +408,9 @@ func _apply_ghost_style(pen_id: String) -> void:
 	var boat = pen_data.get("boat")
 	if boat is Node3D:
 		(boat as Node3D).visible = false
+	var mooring = pen_data.get("mooring")
+	if mooring is Node3D:
+		(mooring as Node3D).visible = false
 
 func _restore_stocked_style(pen_id: String) -> void:
 	if not (pen_id in _pens):
@@ -387,16 +420,18 @@ func _restore_stocked_style(pen_id: String) -> void:
 	var stock_mats: Dictionary = pen_data.get("stock_mats", {})
 	for mesh in _pen_meshes(cage):
 		if mesh in stock_mats:
-			mesh.material_override = stock_mats[mesh]
-		mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+			mesh.material_override = stock_mats[mesh][0]
+			mesh.cast_shadow = stock_mats[mesh][1]
 	if cage is PenCage:
 		for net in (cage as PenCage).get_net_nodes():
 			net.visible = true
-			net.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		(cage as PenCage).show_health_ring(true)
 	var boat = pen_data.get("boat")
 	if boat is Node3D:
 		(boat as Node3D).visible = true
+	var mooring = pen_data.get("mooring")
+	if mooring is Node3D:
+		(mooring as Node3D).visible = true
 
 
 func _create_ring_mesh(color: Color) -> Mesh:
@@ -580,6 +615,8 @@ func remove_pen(pen_id: String) -> bool:
 		pen_data["boat"].queue_free()
 	if pen_data["fish_school"]:
 		pen_data["fish_school"].queue_free()
+	if pen_data.get("mooring"):
+		pen_data["mooring"].queue_free()
 	_pens.erase(pen_id)
 	if pen_id == selected_pen_id:
 		selected_pen_id = ""

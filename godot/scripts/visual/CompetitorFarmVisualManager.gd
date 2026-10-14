@@ -91,7 +91,8 @@ func _spawn_competitor_farm(comp_id: String, name: String, position: Vector3, ma
 	# in a row along the channel: a 180 m ring around the centre reached the
 	# fjord walls. Cages are 51 m across.
 	var pen_count := 2 + absi(hash(comp_id)) % 3
-	var cage_spacing := 70.0
+	# One pen per 70 m cell of the farm's frame mooring.
+	var cage_spacing := MooringGrid.CELL_M
 	var cages: Array = []
 	
 	var band := band_color_for(comp_id)
@@ -105,18 +106,28 @@ func _spawn_competitor_farm(comp_id: String, name: String, position: Vector3, ma
 
 		_style_rival_pen(cage, band)
 
+	# The farm's frame mooring: a row of cells, orange buoys for rivals.
+	var mooring := MooringGrid.new()
+	mooring.name = "Mooring"
+	farm_root.add_child(mooring)
+	var pen_cells: Array = []
+	for i in range(pen_count):
+		pen_cells.append(Vector2i(0, i))
+	mooring.build(1, pen_count, pen_cells, MooringGrid.BUOY_ORANGE)
+
 	# Name label in the rival's colour, above the middle pen.
 	var label := Label3D.new()
 	label.name = "Label"
 	label.text = name
 	label.position = Vector3(0, PenCage.LABEL_HEIGHT, 0)
-	PenCage.style_label(label, band.lerp(Color.WHITE, 0.35))
+	PenCage.style_label(label, band.lerp(Color.WHITE, 0.35), RIVAL_LABEL_RANGE)
 	farm_root.add_child(label)
 	
 	_competitor_farms[comp_id] = {
 		"root": farm_root,
 		"cages": cages,
 		"label": label,
+		"mooring": mooring,
 	}
 	
 	competitor_farm_added.emit(comp_id)
@@ -135,6 +146,8 @@ func _style_rival_pen(cage: Node3D, band: Color) -> void:
 
 ## Net opacity of rival pens (the player's own nets draw at 1.0).
 const RIVAL_NET_OPACITY := 0.5
+## Rival names fade out sooner than the player's own site labels.
+const RIVAL_LABEL_RANGE := 1000.0
 
 ## Rival band colours: saturated equipment hues that read against dark water
 ## and black HDPE, none of them the health-ring green/amber/red.

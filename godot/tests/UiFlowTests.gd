@@ -68,6 +68,7 @@ func _run() -> void:
 	await _test_event_alerts_and_vaccine_window()
 	await _test_fjord_shows_rival_farms_and_wellboats()
 	await _test_pen_models_read_as_equipment()
+	await _test_hero_pen_and_site_kit()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -1148,6 +1149,112 @@ func _test_pen_models_read_as_equipment() -> void:
 	boat.free()
 	scene.queue_free()
 	await get_tree().process_frame
+
+## A2-01: the pen in the game is the Blender hero asset with hand-made LODs
+## inside their triangle budgets and at Polarcirkel 500 dimensions; a site's
+## lice skirt shows on its pen; every site lies in a frame mooring with grid
+## buoys, bridles, anchor lines and four synchronised corner lights.
+func _test_hero_pen_and_site_kit() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "hero pen: seeded two-site scenario starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var site_id := str(_sim.get_all_pens()[0].get("id", "")) if not _sim.get_all_pens().is_empty() else ""
+	var cage := pens.get_node_or_null("PenMarkers/" + site_id) as PenCage
+	_check(cage != null, "hero pen: site %s has a pen" % site_id)
+	if cage == null:
+		scene.queue_free()
+		return
+
+	var lod_tris: Array[int] = []
+	for level in 3:
+		var tris := 0
+		for mesh in cage.get_lod_meshes(level):
+			tris += _mesh_triangles(mesh.mesh)
+		lod_tris.append(tris)
+	_check(lod_tris[0] > 30000 and lod_tris[0] <= 60000 and lod_tris[2] > 0 and lod_tris[2] <= 2000,
+		"hero pen: LOD0 %d tris <= 60k, LOD2 %d tris <= 2k" % [lod_tris[0], lod_tris[2]])
+	var lods_chain := true
+	for level in [1, 2]:
+		for mesh in cage.get_lod_meshes(level):
+			lods_chain = lods_chain and is_equal_approx(mesh.visibility_range_begin, PenCage.LOD_SWITCH[level - 1])
+	for mesh in cage.get_lod_meshes(0):
+		lods_chain = lods_chain and is_equal_approx(mesh.visibility_range_end, PenCage.LOD_SWITCH[0])
+	_check(lods_chain, "hero pen: LOD0 -> LOD1 -> LOD2 hand over by camera distance")
+	var collar := (cage.get_node("Collar") as MeshInstance3D).get_aabb()
+	var net := (cage.get_node("Net") as MeshInstance3D).get_aabb()
+	_check(absf(collar.size.x - 53.63) / 53.63 <= 0.05 and absf(collar.size.z - 53.63) / 53.63 <= 0.05,
+		"hero pen: collar %.2f m across, within 5%% of the 160 m Polarcirkel collar" % collar.size.x)
+	_check(-net.position.y >= 20.0 and -net.position.y <= 40.0 * 1.05,
+		"hero pen: the net hangs %.1f m deep (20-40 m with a cone bottom)" % -net.position.y)
+
+	_check(not cage.has_lice_skirt() and cage.get_parts("LiceSkirt").all(func(m: MeshInstance3D) -> bool: return not m.visible),
+		"hero pen: no lice skirt before the site buys one")
+	_check(_sim.toggle_mitigation(site_id, "skirt"), "hero pen: the site buys a lice skirt")
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	_check(cage.has_lice_skirt() and cage.get_parts("LiceSkirt").size() == 3
+		and cage.get_parts("LiceSkirt").all(func(m: MeshInstance3D) -> bool: return m.visible),
+		"hero pen: the skirt variant shows on every LOD of the pen")
+
+	var grid := pens.get_pen_mooring(site_id)
+	_check(grid != null and grid.cells_x == 1 and grid.cells_z == 1
+		and MooringGrid.CELL_M >= 70.0 and MooringGrid.CELL_M <= 100.0,
+		"site kit: the pen lies in one 70-100 m frame mooring cell")
+	if grid != null:
+		_check(grid.buoy_positions.size() == 4 and grid.ropes_of("bridle").size() == 8
+			and grid.ropes_of("anchor").size() == 8 and grid.ropes_of("frame").size() == 4,
+			"site kit: 4 grid buoys, 8 bridles, 8 anchor lines, 4 frame lines")
+		var buoys_drawn := not grid.get_buoy_instances().is_empty()
+		for mmi in grid.get_buoy_instances():
+			buoys_drawn = buoys_drawn and mmi.multimesh.instance_count == 4
+		_check(buoys_drawn and grid.get_buoy_instances().size() == 3, "site kit: buoys drawn at all three LODs")
+		var lamps_ok := grid.light_positions.size() == 4 and grid.get_light_instances().size() == 3
+		for mmi in grid.get_light_instances():
+			var lamp := _surface_material(mmi.multimesh.mesh, "mooring_lamp_material")
+			lamps_ok = lamps_ok and lamp != null \
+				and (lamp.get_shader_parameter("lamp_color") as Color).is_equal_approx(Color("#FFC23A"))
+		_check(lamps_ok, "site kit: four corner lights, all on the one #FFC23A flashing lamp material")
+
+	var rivals: CompetitorFarmVisualManager = env.get_node("CompetitorFarmVisualManager")
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	var rival_moorings := not rivals.farm_ids().is_empty()
+	for id in rivals.farm_ids():
+		var farm: Dictionary = rivals._competitor_farms[id]
+		var n: int = farm.cages.size()
+		var rg: MooringGrid = farm.get("mooring")
+		rival_moorings = rival_moorings and rg != null and rg.cells_z == n \
+			and rg.buoy_positions.size() == 2 * (n + 1) and rg.ropes_of("bridle").size() == 8 * n
+	_check(rival_moorings, "site kit: every rival farm lies in its own frame mooring, one cell per pen")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Triangles in a mesh (all surfaces).
+func _mesh_triangles(mesh: Mesh) -> int:
+	if mesh == null:
+		return 0
+	var tris := 0
+	for s in mesh.get_surface_count():
+		var count: int = mesh.surface_get_array_index_len(s)
+		if count <= 0:
+			count = mesh.surface_get_array_len(s)
+		tris += count / 3
+	return tris
+
+## The surface material of a mesh whose resource path contains `name`.
+func _surface_material(mesh: Mesh, name: String) -> ShaderMaterial:
+	if mesh == null:
+		return null
+	for s in mesh.get_surface_count():
+		var mat := mesh.surface_get_material(s)
+		if mat is ShaderMaterial and name in mat.resource_path:
+			return mat as ShaderMaterial
+	return null
 
 ## Triangles of a pen's net meshes lying flat at the net's top edge (a lid).
 func _net_lid_faces(cage: PenCage) -> int:

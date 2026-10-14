@@ -1,38 +1,46 @@
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_disabled, diffuse_burley, specular_schlick_ggx;
 
-// Pen net: a fine dark mesh, drawn translucent. Close up the threads read as
-// a knotless diamond mesh; once a mesh cell shrinks below a few pixels the
-// pattern fades to its mean coverage, so the net becomes an even veil instead
-// of shimmering moire. Drawn before the (transparent) water (material
-// render_priority -1) so the sea tints the submerged part.
+// Pen net and bird net: a tiling knotless-mesh texture (alpha = thread
+// coverage, blender/build_pen.py --textures), drawn translucent. The mip
+// chain averages the threads into their mean coverage, so the far net is an
+// even veil instead of shimmering moire, and the threads resolve up close.
+// The submerged net material draws before the transparent water
+// (render_priority -1) so the sea tints it; the jump net and bird net above
+// the waterline draw after it (render_priority 1).
+//
+// UV is in metres (u round the pen, v down the net) on the Blender meshes.
 uniform vec3 albedo_color : source_color = vec3(0.10, 0.13, 0.15);
-// Mesh cells per UV unit (u runs round the pen, v down the wall).
-uniform vec2 mesh_scale = vec2(180.0, 45.0);
-uniform float thread_width : hint_range(0.01, 0.4) = 0.09;
-// Coverage of a solid thread and of the far-field veil.
+uniform sampler2D net_texture : hint_default_white, source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+// Metres of net per texture tile (the tile holds 2 x 2 diamonds).
+uniform float tile_m = 0.25;
 uniform float thread_alpha : hint_range(0.0, 1.0) = 0.9;
-uniform float fade_start = 0.25;
-uniform float fade_end = 0.6;
-uniform sampler2D net_texture : hint_default_white, source_color, filter_linear_mipmap;
+// The far veil reads a little denser than the raw mean coverage, the way a
+// real net darkens the water behind it.
+uniform float far_boost : hint_range(1.0, 3.0) = 1.6;
+// Marine growth near the surface: greener, denser threads in the top metres.
+uniform vec3 fouling_color : source_color = vec3(0.16, 0.20, 0.13);
+uniform float fouling_depth = 4.0;
+uniform float fouling_amount : hint_range(0.0, 1.0) = 0.45;
 // Per-pen visibility (rival pens are drawn quieter, roadmap G1-07).
 instance uniform float net_opacity = 1.0;
 
+varying float model_y;
+
+void vertex() {
+	model_y = VERTEX.y;
+}
+
 void fragment() {
-	vec4 tex = texture(net_texture, UV);
-	vec2 gv = UV * mesh_scale;
-	float d1 = abs(fract((gv.x + gv.y) * 0.5) - 0.5) * 2.0;
-	float d2 = abs(fract((gv.x - gv.y) * 0.5) - 0.5) * 2.0;
-	float d = min(d1, d2);
-	float aa = fwidth(d) * 1.5 + 0.0001;
-	float pattern = 1.0 - smoothstep(thread_width - aa, thread_width + aa, d);
-	// Area share of the two thread families: 1 - (1 - w)^2.
-	float mean_cover = 1.0 - (1.0 - thread_width) * (1.0 - thread_width);
-	vec2 cells_per_px = fwidth(gv);
-	float far = smoothstep(fade_start, fade_end, max(cells_per_px.x, cells_per_px.y));
-	float cover = mix(pattern, mean_cover, far) * tex.a;
-	ALBEDO = albedo_color;
+	vec2 uv = UV / tile_m;
+	float cover = texture(net_texture, uv).a;
+	// How many texture tiles one pixel spans: 0 up close, >1 far away.
+	vec2 fw = fwidth(uv);
+	float far = smoothstep(0.15, 0.6, max(fw.x, fw.y));
+	cover = min(cover * mix(1.0, far_boost, far), 1.0);
+	float foul = fouling_amount * (1.0 - smoothstep(0.0, fouling_depth, -model_y)) * step(model_y, 0.3);
+	ALBEDO = mix(albedo_color, fouling_color, foul);
 	ROUGHNESS = 0.9;
 	SPECULAR = 0.2;
-	ALPHA = clamp(cover * thread_alpha * net_opacity, 0.0, 1.0);
+	ALPHA = clamp(cover * thread_alpha * (1.0 + 0.4 * foul) * net_opacity, 0.0, 1.0);
 }

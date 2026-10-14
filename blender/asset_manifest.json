@@ -11,6 +11,64 @@
       "tri_budget": { "LOD0": 220 },
       "export_path": "godot/assets/models/fish/salmon_{lod}.glb",
       "build_script": "blender/build_salmon.py"
+    },
+    {
+      "id": "pen_cage",
+      "type": "pen",
+      "scale_m": 53.63,
+      "orientation": "y_up_centre_on_waterline",
+      "lod_levels": ["LOD0", "LOD1", "LOD2"],
+      "materials": ["LK_Band", "LK_BirdNet", "LK_HDPE", "LK_Marker", "LK_Net", "LK_NetAbove", "LK_Skirt", "LK_Walkway"],
+      "tri_budget": { "LOD0": 50088, "LOD1": 12786, "LOD2": 1962 },
+      "tri_max": { "LOD0": 60000, "LOD2": 2000 },
+      "export_path": "godot/assets/models/pen_cage/pen_cage_{lod}.glb",
+      "build_script": "blender/build_pen.py",
+      "godot_scene": "godot/assets/models/pen_cage/pen_cage.tscn",
+      "licence": "Proprietary (Lakskongen). In-house geometry and generated textures; no third-party assets.",
+      "reference": "AKVA group, 'AKVA Polarcirkel 500RS' product page, https://www.akvagroup.com/plastic-pens/akva-polarcirkel-500rs (retrieved 2026-10-14); roadmap A2-01 spec.",
+      "spec_tolerance": 0.05,
+      "spec": {
+        "collar_outer_diameter_m": 53.63,
+        "inner_pipe_circumference_m": 160.0,
+        "pipe_diameter_m": [0.45, 0.5],
+        "pipe_centre_spacing_m": 1.1,
+        "bracket_spacing_m": [2.5, 2.7],
+        "walkway_width_m": 1.2,
+        "handrail_height_above_deck_m": 1.0,
+        "upright_diameter_m": 0.16,
+        "handrail_diameter_m": 0.14,
+        "bird_net_mast_m": [6.0, 8.0],
+        "net_depth_m": [20.0, 40.0],
+        "lice_skirt_depth_m": [6.0, 15.0]
+      }
+    },
+    {
+      "id": "mooring_buoy",
+      "type": "site_kit",
+      "scale_m": 1.3,
+      "orientation": "y_up_waterline",
+      "lod_levels": ["LOD0", "LOD1", "LOD2"],
+      "materials": ["LK_Buoy", "LK_Steel"],
+      "tri_budget": { "LOD0": 1080, "LOD1": 244, "LOD2": 110 },
+      "export_path": "godot/assets/models/site_kit/mooring_buoy_{lod}.glb",
+      "build_script": "blender/build_site_kit.py",
+      "licence": "Proprietary (Lakskongen). In-house geometry; no third-party assets.",
+      "spec_tolerance": 0.05,
+      "spec": { "bbox_m": [1.3, 1.822, 1.3] }
+    },
+    {
+      "id": "mooring_light",
+      "type": "site_kit",
+      "scale_m": 0.22,
+      "orientation": "y_up_on_buoy_top",
+      "lod_levels": ["LOD0", "LOD1", "LOD2"],
+      "materials": ["LK_HDPE", "LK_Lamp", "LK_Steel"],
+      "tri_budget": { "LOD0": 208, "LOD1": 86, "LOD2": 72 },
+      "export_path": "godot/assets/models/site_kit/mooring_light_{lod}.glb",
+      "build_script": "blender/build_site_kit.py",
+      "licence": "Proprietary (Lakskongen). In-house geometry; no third-party assets.",
+      "spec_tolerance": 0.05,
+      "spec": { "bbox_m": [0.22, 1.26, 0.22], "lamp_colour": "#FFC23A" }
     }
   ]
 }

@@ -13,6 +13,114 @@
         0.0,
         0.0
       ]
+    },
+    "pen_cage_LOD0": {
+      "path": "godot/assets/models/pen_cage/pen_cage_LOD0.glb",
+      "sha256": "9febd48ce13616f336ea5c2f092c3e0501f9b505f3d85d2a344bb1b7105898e2",
+      "size": 1634236,
+      "tri_count": 50088,
+      "material_count": 8,
+      "bbox_size": [
+        67.0048,
+        46.0,
+        54.0696
+      ]
+    },
+    "pen_cage_LOD1": {
+      "path": "godot/assets/models/pen_cage/pen_cage_LOD1.glb",
+      "sha256": "9befb81a4971442a4570ef6d9c2cee0e64ba4f246135b38e0632bb452304e9fc",
+      "size": 483712,
+      "tri_count": 12786,
+      "material_count": 8,
+      "bbox_size": [
+        66.8237,
+        46.0,
+        53.7074
+      ]
+    },
+    "pen_cage_LOD2": {
+      "path": "godot/assets/models/pen_cage/pen_cage_LOD2.glb",
+      "sha256": "eddabb1cb2d3b24ac4d599dda9d2d39657bfc482ac58fa77bc83d4b059cbce5a",
+      "size": 56172,
+      "tri_count": 1962,
+      "material_count": 8,
+      "bbox_size": [
+        66.7848,
+        45.5,
+        53.6296
+      ]
+    },
+    "mooring_buoy_LOD0": {
+      "path": "godot/assets/models/site_kit/mooring_buoy_LOD0.glb",
+      "sha256": "ee12f56d4fc54064f15b9f73cb967a23e6890107134ca545de8e055cc605fdf6",
+      "size": 28328,
+      "tri_count": 1080,
+      "material_count": 2,
+      "bbox_size": [
+        1.3,
+        1.822,
+        1.3
+      ]
+    },
+    "mooring_buoy_LOD1": {
+      "path": "godot/assets/models/site_kit/mooring_buoy_LOD1.glb",
+      "sha256": "6d8484579fc80d10d112dbc089e4cb58e42ea8c356be27bb4b4fbcf9fed63dad",
+      "size": 8708,
+      "tri_count": 244,
+      "material_count": 2,
+      "bbox_size": [
+        1.25,
+        1.822,
+        1.1888
+      ]
+    },
+    "mooring_buoy_LOD2": {
+      "path": "godot/assets/models/site_kit/mooring_buoy_LOD2.glb",
+      "sha256": "e47607c58ab1476dd32a20762bc22cafad51904cd031c65fad9def2fdfc4e341",
+      "size": 5484,
+      "tri_count": 110,
+      "material_count": 2,
+      "bbox_size": [
+        1.1306,
+        1.7874,
+        1.1888
+      ]
+    },
+    "mooring_light_LOD0": {
+      "path": "godot/assets/models/site_kit/mooring_light_LOD0.glb",
+      "sha256": "018b2a7192c185c6f836faf85c95e0dfa0662aa269a197718588a40f5949de47",
+      "size": 9620,
+      "tri_count": 208,
+      "material_count": 3,
+      "bbox_size": [
+        0.22,
+        1.26,
+        0.22
+      ]
+    },
+    "mooring_light_LOD1": {
+      "path": "godot/assets/models/site_kit/mooring_light_LOD1.glb",
+      "sha256": "3829fcca3a9079216a549332d3d0c7bd13235f61b5443c210ad2606b53a8b5ef",
+      "size": 6100,
+      "tri_count": 86,
+      "material_count": 3,
+      "bbox_size": [
+        0.199,
+        1.26,
+        0.2092
+      ]
+    },
+    "mooring_light_LOD2": {
+      "path": "godot/assets/models/site_kit/mooring_light_LOD2.glb",
+      "sha256": "c092bf7c37cb5fc51d703320099f7e0e50b383960e5252f0bf2b577e71732f39",
+      "size": 5728,
+      "tri_count": 72,
+      "material_count": 3,
+      "bbox_size": [
+        0.22,
+        1.26,
+        0.22
+      ]
     }
   }
 }

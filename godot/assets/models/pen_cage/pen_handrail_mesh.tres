@@ -1,7 +1,0 @@
-[gd_resource type="TorusMesh" load_steps=1 format=3 uid="uid://pen_handrail_mesh_001"]
-
-[resource]
-inner_radius = 25.38
-outer_radius = 25.52
-rings = 96
-ring_segments = 6
