@@ -3569,7 +3569,18 @@ func _test_dashboard_site_cards_match_the_sites() -> void:
 func _test_skipped_days_date_their_alerts() -> void:
 	var scene := await _spawn_po3_scene(20261012)
 	var ui: Control = scene.get_node("UILayer/GameUI")
+	var toasts := get_node("/root/ToastNotification")
+	toasts.clear_all()
 	_sim.advance_days(12)
+	var storm_toasts := []
+	for n in toasts._active_nodes:
+		for l in (n as Node).find_children("*", "Label", true, false):
+			if (l as Label).text.contains("Stormen gir") or (l as Label).text.contains("Ekstremvær"):
+				storm_toasts.append((l as Label).text)
+	for q in toasts._queue:
+		if str(q.message).contains("Stormen gir") or str(q.message).contains("Ekstremvær"):
+			storm_toasts.append(str(q.message))
+	_check(storm_toasts.is_empty(), "alerts: storms from skipped days do not toast as news %s" % str(storm_toasts))
 	var today := int(_sim.current_day)
 	var stale := 0
 	for a in _sim.active_alerts:

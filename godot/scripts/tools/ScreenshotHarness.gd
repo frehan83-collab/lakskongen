@@ -312,6 +312,11 @@ func _boot_game() -> void:
 			started = sim.start_qa_scenario(QA_SCENARIO_ID, QA_SEED)
 		if not started:
 			sim.start_new_game("Player", QA_STARTING_CAPITAL, QA_SCENARIO_ID)
+		# Toasts left by the game GameScene ran during the wait above (a storm
+		# in it toasted over 03) are not the QA game's.
+		var toasts := get_node_or_null("/root/ToastNotification")
+		if toasts != null and toasts.has_method("clear_all"):
+			toasts.clear_all()
 
 	# Unlock advanced panels for this QA pass: skip the C# tutorial so TutorialState
 	# reports complete (it re-derives phase/complete from SimBridge every frame,
