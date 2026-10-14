@@ -30,6 +30,7 @@ const GROUP_PEN_ACTION := "UI_PEN_ACTION"
 const GROUP_CONTRACT_TYPE := "ENUM_CONTRACT_TYPE"
 const GROUP_GILL_REASON := "GILL_REASON"
 const GROUP_GE_STATUS := "ENUM_GE_STATUS"
+const GROUP_ACHIEVEMENT_TIER := "ENUM_ACHIEVEMENT_TIER"
 const GROUP_GE_TRAIT := "GE_TRAIT"
 const GROUP_RISK := "ENUM_RISK"
 const GROUP_LEDGER := "LEDGER"
@@ -110,6 +111,11 @@ static func gill_reason(reason: String) -> String:
 ## A GM regulatory status (Biology.RegulatoryStatus).
 static func ge_status(status: String) -> String:
 	return label(GROUP_GE_STATUS, status)
+
+
+## An achievement tier (Core.AchievementTier: Beginner … Master, Hidden).
+static func achievement_tier(tier: String) -> String:
+	return label(GROUP_ACHIEVEMENT_TIER, tier)
 
 
 ## A GM trait by its id ("ge_sterility" …).

@@ -1427,3 +1427,9 @@ ACHIEVEMENT_SUPER_SMOLT_NAME,SuperSmolt,Supersmolt
 ACHIEVEMENT_SUPER_SMOLT_DESC,"Stock a post-smolt facility and raise large, sea-ready smolts","Sett ut i et postsmoltanlegg og fôr fram stor, sjøklar smolt"
 ACHIEVEMENT_BLOOM_READY_NAME,Bloom Ready,Klar for oppblomstring
 ACHIEVEMENT_BLOOM_READY_DESC,Install bloom countermeasures (bubble curtain or O2 diffuser) at a site,Installer tiltak mot oppblomstring (boblegardin eller oksygendiffusor) på en lokalitet
+ENUM_ACHIEVEMENT_TIER_BEGINNER,Beginner,Nybegynner
+ENUM_ACHIEVEMENT_TIER_NOVICE,Novice,Lærling
+ENUM_ACHIEVEMENT_TIER_INTERMEDIATE,Intermediate,Viderekommen
+ENUM_ACHIEVEMENT_TIER_ADVANCED,Advanced,Erfaren
+ENUM_ACHIEVEMENT_TIER_MASTER,Master,Mester
+ENUM_ACHIEVEMENT_TIER_HIDDEN,Hidden,Skjult

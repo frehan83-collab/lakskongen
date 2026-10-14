@@ -151,6 +151,38 @@ def test_translations_csv_is_well_formed():
     assert not bad_names, f"keys must be UPPER_SNAKE: {bad_names[:10]}"
 
 
+# A GDScript (%s %d %.1f) or .NET ({0} {1:N0}) placeholder; "%%" is a literal.
+PLACEHOLDER = re.compile(r"%(?:%|[-+0#]*[0-9]*(?:\.[0-9]+)?[sdifxXoceEgGv])|\{[0-9]+(?::[^}]*)?\}")
+
+
+def _placeholders(text: str) -> tuple[list[str], list[str]]:
+    """The arguments a translated text consumes: GDScript conversion letters
+    in order (positional; a float stays a float whatever its precision) and
+    the .NET argument indexes as a sorted list (a language may reorder them)."""
+    gd, net = [], []
+    for m in PLACEHOLDER.finditer(text):
+        tok = m.group(0)
+        if tok == "%%":
+            continue
+        if tok.startswith("{"):
+            net.append(tok.split(":")[0].strip("{}"))
+        else:
+            gd.append(tok[-1])
+    return gd, sorted(net)
+
+
+def test_english_and_norwegian_take_the_same_arguments():
+    """Both languages are formatted with the same arguments: a placeholder
+    missing in one language garbles the text ("not all arguments converted")
+    or prints a raw "%s" there only."""
+    bad = []
+    for key, (en, no) in KEYS.items():
+        a, b = _placeholders(en), _placeholders(no)
+        if a != b:
+            bad.append(f"{key}: en {a} / no {b}")
+    assert not bad, "en and no placeholders differ:\n" + "\n".join(bad)
+
+
 TR_LITERAL = re.compile(r'(?<![\w.])tr\(\s*(["\'])((?:\\.|(?!\1).)*)\1(\s*[%+])?')
 TR_OR = re.compile(r'_tr_or(?:_format)?\(\s*"((?:\\.|[^"\\])*)"(\s*[%+])?')
 TS_TRANSLATE = re.compile(r'TranslationServer\.[Tt]ranslate\(\s*"((?:\\.|[^"\\])*)"(\s*[%+])?')
@@ -227,6 +259,7 @@ ENUM_SOURCES = [
     ("Farm/SmoltQuality.cs", "SmoltQualityTier", "ENUM_SMOLT_TIER"),
     ("Market/ContractSystem.cs", "ContractType", "ENUM_CONTRACT_TYPE"),
     ("Biology/GeneticEngineering.cs", "RegulatoryStatus", "ENUM_GE_STATUS"),
+    ("Core/AchievementSystem.cs", "AchievementTier", "ENUM_ACHIEVEMENT_TIER"),
 ]
 
 

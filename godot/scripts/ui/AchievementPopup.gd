@@ -89,7 +89,7 @@ func show_achievement(achievement_name: String, description: String, reward_nok:
 
 	_name_label.text = achievement_name
 	_desc_label.text = description
-	_tier_label.text = tier.to_upper()
+	_tier_label.text = SimLabels.achievement_tier(tier).to_upper()
 	_tier_label.modulate = TIER_COLORS.get(tier, COL_GOLD_LIGHT)
 
 	if reward_nok > 0.0:
@@ -135,8 +135,4 @@ func _apply_theme_fonts() -> void:
 # ── Format helper ─────────────────────────────────────────────────────────────
 
 func _format_nok(amount: float) -> String:
-	if amount >= 1_000_000.0:
-		return "%.2f M" % (amount / 1_000_000.0)
-	elif amount >= 1_000.0:
-		return "%.0f k" % (amount / 1_000.0)
-	return "%.0f" % amount
+	return SimFormatters.format_nok(amount)
