@@ -209,6 +209,22 @@ namespace LakskongenSim.Environment
             return (w, depth, shoulder, Settings.WallRunM * shoulder / Settings.ShoulderHeightM);
         }
 
+        /// <summary>
+        /// How much fine relief a sample carries. The play area takes it all
+        /// (<see cref="CellM"/> 0); the far field (G2-01) reads the same fjord
+        /// system band-limited for its ring's cells of <see cref="CellM"/>
+        /// metres (octaves shorter than about six cells fade out, coast
+        /// transitions widen), without the gullies, ledges and wall noise
+        /// (<see cref="Relief"/>), with rounder ridge crests
+        /// (<see cref="Softness"/>) and, beyond the world, without the
+        /// strandflat's shelf at the world edge (<see cref="Shelf"/>), so the
+        /// skerry belt runs on along the coast.
+        /// </summary>
+        private readonly record struct FieldDetail(bool Shelf, float Softness, int Octaves, int StrandOctaves, bool Relief, float CellM);
+
+        private static readonly FieldDetail PlayAreaDetail = new(true, RidgeSoftness, DetailOctaves, StrandOctaves, true, 0f);
+        private const int StrandOctaves = 4;
+
         private readonly struct Point
         {
             public readonly float Height;
@@ -216,14 +232,10 @@ namespace LakskongenSim.Environment
             public Point(float height, float wallU) { Height = height; WallU = wallU; }
         }
 
-        /// <summary>
-        /// The fjord system at (x, z). <paramref name="shelfAtWorldEdge"/>
-        /// shelves the strandflat into open sea over the world's last
-        /// <see cref="OffshoreShelfM"/> (the play area's heightfield); the
-        /// far field (G2-01) reads it without the shelf, so the skerry belt
-        /// runs on along the coast beyond the world.
-        /// </summary>
-        private Point Sample(float x, float z, bool shelfAtWorldEdge = true)
+        private Point Sample(float x, float z) => Sample(x, z, PlayAreaDetail);
+
+        /// <summary>The fjord system at (x, z) with the given fine relief.</summary>
+        private Point Sample(float x, float z, FieldDetail detail)
         {
             var st = Settings;
             float cx = CenterX(Math.Min(z, st.HeadZ));
@@ -264,9 +276,10 @@ namespace LakskongenSim.Environment
             }
 
             h = DeltaAtHead(h, d, w, z);
-            h = BlendStrandflat(h, x, z, cx, shelfAtWorldEdge, out float coast);
-            h = WallRelief(h, x, z, d, u, coast);
-            h += Detail(x, z, h, u, Coastal(z));
+            h = BlendStrandflat(h, x, z, cx, detail, out float coast);
+            if (detail.Relief)
+                h = WallRelief(h, x, z, d, u, coast);
+            h += Detail(x, z, h, u, Coastal(z), detail);
             return new Point(h, u);
         }
 
@@ -348,19 +361,22 @@ namespace LakskongenSim.Environment
         /// platform with skerries, a fairway kept clear along the centreline,
         /// shelving into open sea toward the world edge.
         /// </summary>
-        private float BlendStrandflat(float h, float x, float z, float cx, bool shelfAtWorldEdge, out float coast)
+        private float BlendStrandflat(float h, float x, float z, float cx, FieldDetail detail, out float coast)
         {
             var st = Settings;
             // An irregular coastline: headlands and coves, not a straight cut.
             float coastZ = st.MouthZ - 40f + 120f * OpenSimplex2.Noise2(st.Seed + SeedCoast, x / 700f, 0.7f);
-            coast = SmoothStep(coastZ + 160f, coastZ - 220f, z);
+            float widen = CoastWidening * detail.CellM;
+            coast = SmoothStep(coastZ + 160f + widen, coastZ - 220f - widen, z);
             if (coast <= 0f)
                 return h;
-            float strand = -7f + 22f * FractalNoise.Fbm(st.Seed + SeedStrand, x / 260f, z / 260f, 4);
+            float strand = -7f + 22f * (detail.CellM > 0f
+                ? FbmLod(st.Seed + SeedStrand, x / 260f, z / 260f, detail.StrandOctaves, 260f, detail.CellM)
+                : FractalNoise.Fbm(st.Seed + SeedStrand, x / 260f, z / 260f, detail.StrandOctaves));
             strand -= 26f * SmoothStep(st.MouthZ - 450f, st.MouthZ - 900f, z);
             // Shelve into open sea at the world's edge, so the shallow
             // skerry water meets the deep ocean skirt without a seam.
-            if (shelfAtWorldEdge)
+            if (detail.Shelf)
             {
                 float half = st.WorldSizeM * 0.5f;
                 float edge = Math.Max(SmoothStep(half - OffshoreShelfM, half, -z), SmoothStep(half - OffshoreShelfM, half, MathF.Abs(x)));
@@ -372,7 +388,7 @@ namespace LakskongenSim.Environment
             return h + (strand - h) * coast;
         }
 
-        private float Detail(float x, float z, float h, float u, float coastal)
+        private float Detail(float x, float z, float h, float u, float coastal, FieldDetail fine)
         {
             float mask = SmoothStep(3f, 80f, h);
             if (mask <= 0f)
@@ -381,14 +397,20 @@ namespace LakskongenSim.Environment
             float wx = WarpAmplitudeM * OpenSimplex2.Noise2(seed + SeedWarpX, x * WarpFrequency, z * WarpFrequency);
             float wz = WarpAmplitudeM * OpenSimplex2.Noise2(seed + SeedWarpZ, x * WarpFrequency + 31.4f, z * WarpFrequency - 17.2f);
             float px = x + wx, pz = z + wz;
-            float detail = DetailAmplitudeM * FractalNoise.Fbm(seed + SeedDetail, px * DetailFrequency, pz * DetailFrequency, DetailOctaves);
+            float detail = DetailAmplitudeM * (fine.CellM > 0f
+                ? FbmLod(seed + SeedDetail, px * DetailFrequency, pz * DetailFrequency, fine.Octaves, 1f / DetailFrequency, fine.CellM)
+                : FractalNoise.Fbm(seed + SeedDetail, px * DetailFrequency, pz * DetailFrequency, fine.Octaves));
             float ridgeMask = SmoothStep(150f, 400f, h) * SmoothStep(0.7f, 1.5f, u) * (1f - 0.75f * coastal);
-            float ridge = ridgeMask > 0f
-                ? ridgeMask * RidgeAmplitudeM * (FractalNoise.Ridged(seed + SeedRidge, px * RidgeFrequency, pz * RidgeFrequency,
-                    RidgeOctaves, 2f, RidgeGain, RidgeSoftness) - RidgeBias)
-                : 0f;
+            float ridge = 0f;
+            if (ridgeMask > 0f)
+            {
+                float ridged = fine.CellM > 0f
+                    ? RidgedLod(seed + SeedRidge, px * RidgeFrequency, pz * RidgeFrequency, RidgeOctaves, RidgeGain, fine.Softness, 1f / RidgeFrequency, fine.CellM)
+                    : FractalNoise.Ridged(seed + SeedRidge, px * RidgeFrequency, pz * RidgeFrequency, RidgeOctaves, 2f, RidgeGain, fine.Softness);
+                ridge = ridgeMask * RidgeAmplitudeM * (ridged - RidgeBias);
+            }
             float wallMask = SmoothStep(-0.1f, 0.15f, u) * SmoothStep(1.3f, 1.0f, u);
-            float wall = wallMask > 0f
+            float wall = wallMask > 0f && fine.Relief
                 ? wallMask * WallDetailAmplitudeM * FractalNoise.Fbm(seed + SeedWall, px * WallDetailFrequency, pz * WallDetailFrequency, WallDetailOctaves)
                 : 0f;
             return mask * (detail + wall) + ridge;

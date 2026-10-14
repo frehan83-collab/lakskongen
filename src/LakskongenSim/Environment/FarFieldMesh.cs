@@ -25,13 +25,13 @@ namespace LakskongenSim.Environment
     ///
     /// Chunks: <see cref="SectorsPerSide"/> sectors per side × radial bands,
     /// each a separate mesh the renderer can cull. Heights come from
-    /// <see cref="TerrainGenerator.FarFieldHeightAt"/>; normals are central
-    /// differences over a step that grows from the heightfield's spacing at
-    /// the world edge (so the slopes, and with them the rock and soil the
-    /// material picks, match across the seam) to the loop spacing farther out;
-    /// the colour carries the heightfield's masks (cavity, woods, birch share,
-    /// meadow) from the same vegetation rules, so the terrain shader paints
-    /// the far slopes like the near ones.
+    /// <see cref="TerrainGenerator.FarFieldHeightAt"/>; normals are the
+    /// area-weighted mean of the drawn faces round each vertex (a crest
+    /// sharper than the loop spacing never turns a face against its corners),
+    /// the border loop keeping the heightfield mesh's own; the colour carries
+    /// the heightfield's masks (cavity, woods, birch share, meadow) from the
+    /// same vegetation rules, so the terrain shader paints the far slopes like
+    /// the near ones.
     /// </summary>
     public sealed class FarFieldMesh
     {
@@ -105,6 +105,7 @@ namespace LakskongenSim.Environment
 
             var ring = new RingSampler(generator, heights, masks, radii, segments);
             ring.SampleAll();
+            ring.MeshNormals(bands);
 
             int sectors = 4 * SectorsPerSide;
             var chunks = new TerrainMesh.Chunk[bands.Count * sectors];
@@ -224,9 +225,8 @@ namespace LakskongenSim.Environment
                 var nrm = new float[count * 3];
                 var col = new float[count * 4];
                 float rk = _radii[k];
-                float loopSpacing = 2f * rk / s;
-                // The slope step: the heightfield's spacing at the seam, the loop's farther out.
-                float step = _spacing + (loopSpacing - _spacing) * SmoothStep01((rk - _half) / _half);
+                // Slope and cavity for the masks: differences over the loop spacing.
+                float step = 2f * rk / s;
                 for (int j = 0; j < count; j++)
                 {
                     var (x, z) = LoopPoint(rk, j, s);
@@ -234,9 +234,7 @@ namespace LakskongenSim.Environment
                     float hx0 = _gen.FarFieldHeightAt(x - step, z), hx1 = _gen.FarFieldHeightAt(x + step, z);
                     float hz0 = _gen.FarFieldHeightAt(x, z - step), hz1 = _gen.FarFieldHeightAt(x, z + step);
                     float dhdx = (hx1 - hx0) / (2f * step), dhdz = (hz1 - hz0) / (2f * step);
-                    float inv = 1f / MathF.Sqrt(dhdx * dhdx + 1f + dhdz * dhdz);
                     pos[j * 3] = x; pos[j * 3 + 1] = h; pos[j * 3 + 2] = z;
-                    nrm[j * 3] = -dhdx * inv; nrm[j * 3 + 1] = inv; nrm[j * 3 + 2] = -dhdz * inv;
                     // Cavity as TerrainMesh (gain 3 per m⁻¹ of Laplacian), over the slope step.
                     float lap = (hx0 + hx1 + hz0 + hz1 - 4f * h) / (step * step);
                     float cavity = Math.Clamp(0.5f + 3f * lap, 0f, 1f);
@@ -253,10 +251,107 @@ namespace LakskongenSim.Environment
                 _col[k] = col;
             }
 
-            private static float SmoothStep01(float t)
+            /// <summary>
+            /// Normals of loops k ≥ 1: the area-weighted mean of the faces round
+            /// each vertex, over exactly the triangles the chunks draw (every
+            /// sector's strips, the zippers included). A sharp crest the loop
+            /// spacing cannot carry then never leaves a face turned against
+            /// its corners' normals. The border loop keeps the heightfield
+            /// mesh's normals, so the seam shades alike on both sides.
+            /// </summary>
+            public void MeshNormals(IReadOnlyList<(int first, int last)> bands)
             {
-                t = t < 0f ? 0f : (t > 1f ? 1f : t);
-                return t * t * (3f - 2f * t);
+                var acc = new double[_radii.Count][];
+                for (int k = 1; k < _radii.Count; k++)
+                    acc[k] = new double[_pos[k].Length];
+                int sectors = 4 * SectorsPerSide;
+                foreach (var (first, last) in bands)
+                {
+                    for (int sector = 0; sector < sectors; sector++)
+                    {
+                        for (int k = first; k < last; k++)
+                        {
+                            var (a0, a1) = SectorRange(k, sector);
+                            var (b0, b1) = SectorRange(k + 1, sector);
+                            int na = a1 - a0 + 1, nb = b1 - b0 + 1;
+                            int ta = 4 * _segments[k], tb = 4 * _segments[k + 1];
+                            foreach (var (i, j, l) in ZipTriangles(na, nb))
+                            {
+                                var v0 = Ref(i, na, k, a0, ta, b0, tb);
+                                var v1 = Ref(j, na, k, a0, ta, b0, tb);
+                                var v2 = Ref(l, na, k, a0, ta, b0, tb);
+                                AddFace(acc, v0, v1, v2);
+                            }
+                        }
+                    }
+                }
+                for (int k = 1; k < _radii.Count; k++)
+                {
+                    var a = acc[k];
+                    var nrm = _nrm[k];
+                    for (int j = 0; j < a.Length; j += 3)
+                    {
+                        double len = Math.Sqrt(a[j] * a[j] + a[j + 1] * a[j + 1] + a[j + 2] * a[j + 2]);
+                        nrm[j] = (float)(a[j] / len);
+                        nrm[j + 1] = (float)(a[j + 1] / len);
+                        nrm[j + 2] = (float)(a[j + 2] / len);
+                    }
+                }
+            }
+
+            /// <summary>Global (loop, vertex) of zip vertex v: row A (loop k) below na, row B (loop k + 1) above.</summary>
+            private static (int loop, int index) Ref(int v, int na, int k, int a0, int ta, int b0, int tb)
+                => v < na ? (k, (a0 + v) % ta) : (k + 1, (b0 + v - na) % tb);
+
+            private void AddFace(double[][] acc, (int loop, int index) a, (int loop, int index) b, (int loop, int index) c)
+            {
+                var pa = _pos[a.loop]; var pb = _pos[b.loop]; var pc = _pos[c.loop];
+                double ux = pb[b.index * 3] - pa[a.index * 3], uy = pb[b.index * 3 + 1] - pa[a.index * 3 + 1], uz = pb[b.index * 3 + 2] - pa[a.index * 3 + 2];
+                double vx = pc[c.index * 3] - pa[a.index * 3], vy = pc[c.index * 3 + 1] - pa[a.index * 3 + 1], vz = pc[c.index * 3 + 2] - pa[a.index * 3 + 2];
+                // u × v, turned up (twice the area as its length: area weighting).
+                double nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+                if (ny < 0.0)
+                {
+                    nx = -nx; ny = -ny; nz = -nz;
+                }
+                foreach (var (loop, index) in new[] { a, b, c })
+                {
+                    if (loop == 0)
+                        continue;
+                    var t = acc[loop];
+                    t[index * 3] += nx;
+                    t[index * 3 + 1] += ny;
+                    t[index * 3 + 2] += nz;
+                }
+            }
+
+            /// <summary>
+            /// Triangles of the strip between an inner row of na vertices and
+            /// an outer row of nb that span the same stretch: walk both by the
+            /// fraction of the stretch each vertex sits at, always advancing the
+            /// row whose next vertex comes first (equal counts give quads).
+            /// Indices below na are the inner row's, the rest the outer row's
+            /// (offset by na). Winding is left to the caller.
+            /// </summary>
+            private static IEnumerable<(int, int, int)> ZipTriangles(int na, int nb)
+            {
+                int ia = 0, ib = 0;
+                int sa = na - 1, sb = nb - 1;
+                while (ia < sa || ib < sb)
+                {
+                    float fa = ia < sa ? (float)(ia + 1) / sa : float.MaxValue;
+                    float fb = ib < sb ? (float)(ib + 1) / sb : float.MaxValue;
+                    if (fa <= fb)
+                    {
+                        yield return (ia, ia + 1, na + ib);
+                        ia++;
+                    }
+                    else
+                    {
+                        yield return (ia, na + ib + 1, na + ib);
+                        ib++;
+                    }
+                }
             }
 
             /// <summary>First and last vertex index (inclusive, may run past the loop's end) of a sector on loop k.</summary>
@@ -317,7 +412,11 @@ namespace LakskongenSim.Environment
 
                 var indices = new List<int>(count * 6);
                 for (int l = 0; l < rows - 1; l++)
-                    Zip(positions, indices, rowStart[l], rowLength[l], rowStart[l + 1], rowLength[l + 1]);
+                {
+                    int a0 = rowStart[l], na = rowLength[l], b0 = rowStart[l + 1];
+                    foreach (var (i, j, k) in ZipTriangles(na, rowLength[l + 1]))
+                        Tri(positions, indices, i < na ? a0 + i : b0 + i - na, j < na ? a0 + j : b0 + j - na, k < na ? a0 + k : b0 + k - na);
+                }
 
                 return new TerrainMesh.Chunk
                 {
@@ -332,33 +431,6 @@ namespace LakskongenSim.Environment
                     Columns = count,
                     Rows = 1,
                 };
-            }
-
-            /// <summary>
-            /// Triangulate the strip between an inner row (a) and an outer row
-            /// (b) that span the same stretch of the sector: walk both by the
-            /// fraction of the stretch each vertex sits at, always advancing
-            /// the row whose next vertex comes first (equal counts give quads).
-            /// </summary>
-            private static void Zip(float[] positions, List<int> indices, int a0, int na, int b0, int nb)
-            {
-                int ia = 0, ib = 0;
-                int sa = na - 1, sb = nb - 1;
-                while (ia < sa || ib < sb)
-                {
-                    float ta = ia < sa ? (float)(ia + 1) / sa : float.MaxValue;
-                    float tb = ib < sb ? (float)(ib + 1) / sb : float.MaxValue;
-                    if (ta <= tb)
-                    {
-                        Tri(positions, indices, a0 + ia, a0 + ia + 1, b0 + ib);
-                        ia++;
-                    }
-                    else
-                    {
-                        Tri(positions, indices, a0 + ia, b0 + ib + 1, b0 + ib);
-                        ib++;
-                    }
-                }
             }
 
             /// <summary>Add a triangle wound clockwise seen from +Y (Godot's front face; cross.y &lt; 0, as TerrainMesh).</summary>

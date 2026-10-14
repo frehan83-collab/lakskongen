@@ -80,6 +80,7 @@ func _run() -> void:
 	_test_facade_forwards_phase5_systems()
 	await _test_terrain_faces_up_and_shares_one_heightfield()
 	await _test_camera_frames_sky_and_avoids_terrain()
+	await _test_far_field_surrounds_the_world()
 	await _test_camera_keys_leave_focused_controls_alone()
 	await _test_environment_director_owns_the_look()
 	await _test_terrain_material_and_vegetation()
@@ -2855,6 +2856,100 @@ func _test_camera_frames_sky_and_avoids_terrain() -> void:
 	scene.queue_free()
 	await get_tree().process_frame
 
+## G2-01: a far field surrounds the 4 km world out to 16 km. Its ring of
+## chunks goes up after the terrain with the terrain's material (the band
+## next to the world casts shadows, the outer bands do not); height queries
+## outside the world answer from it; at COAST the camera may leave the world
+## while the focus stays inside it; no COAST view, looking any way, shows
+## the world's end (edge-of-world mask 0; the same views measured with the
+## land cut at the 4 km edge show the old island); and the farm-type plots
+## (farm-types spec §4) are reserved: three shore pads in the world, three
+## offshore slots in open sea beyond it.
+func _test_far_field_surrounds_the_world() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "far field: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var cam: FjordCamera = env.get_node("FjordCamera")
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	cam.auto_orbit_enabled = false
+	for i in 3000:
+		if terrain.is_far_field_ready():
+			break
+		await get_tree().process_frame
+	_check(terrain.is_ready() and terrain.is_far_field_ready(), "far field: the ring goes up after the terrain")
+	var chunks: Array = terrain.far_field.get_children() if terrain.far_field != null else []
+	var shadowed := 0
+	var shared_material := chunks.size() > 0
+	for chunk in chunks:
+		var mi := chunk as MeshInstance3D
+		shared_material = shared_material and mi != null and mi.material_override == terrain.get_material()
+		if mi != null and mi.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+			shadowed += 1
+	_check(chunks.size() == 48 and shadowed == 16,
+		"far field: 48 chunks to %.0f km, the 16 next to the world cast shadows (%d chunks, %d shadowed)" % [
+			terrain.far_field_half_extent() / 1000.0, chunks.size(), shadowed])
+	_check(shared_material, "far field: the ring wears the terrain's own material")
+	var half := terrain.terrain_size * 0.5
+	var outside := Vector2(half.x + 2600.0, 300.0)
+	_check(terrain.far_field_half_extent() >= 16000.0
+		and absf(terrain.get_height_at(outside.x, outside.y) - terrain.far_field_height_at(outside.x, outside.y)) < 0.01
+		and terrain.get_height_at(outside.x, outside.y) > 200.0,
+		"far field: outside the world the height is the far field's (%.0f m on the plateau 2.6 km beyond the edge)" % terrain.get_height_at(outside.x, outside.y))
+
+	# At COAST, looking up the fjord from the sea, the camera leaves the world;
+	# the focus stays EDGE_MARGIN inside it.
+	var first := pens.get_pen_position(pens.get_pen_ids()[0])
+	cam.home_focus = first
+	cam.look_at_position(first, FjordCamera.ZoomLevel.COAST)
+	cam.rotate_view(PI)
+	await _settle_camera(cam)
+	var focus := cam.get_focus_point()
+	_check(absf(cam.global_position.x) > half.x or absf(cam.global_position.z) > half.y,
+		"far field: at COAST the camera leaves the 4 km world (%s)" % str(cam.global_position.round()))
+	_check(absf(focus.x) <= half.x - FjordCamera.EDGE_MARGIN + 0.01 and absf(focus.z) <= half.y - FjordCamera.EDGE_MARGIN + 0.01,
+		"far field: the focus stays inside the world (%s)" % str(focus.round()))
+
+	# Edge-of-world mask at COAST, eight headings round the first pen and round
+	# the fjord head.
+	var worst := 0.0
+	var island := 0.0
+	var head := Vector3(terrain.channel_center_x(1000.0), 0.0, 1000.0)
+	for target in [first, head]:
+		for k in 8:
+			cam.look_at_position(target, FjordCamera.ZoomLevel.COAST)
+			cam._user_rotated = true
+			cam._yaw_target = cam.home_yaw(target) + k * PI / 4.0
+			await _settle_camera(cam)
+			worst = maxf(worst, _edge_of_world_fraction(cam, terrain, terrain.far_field_half_extent()))
+			island = maxf(island, _edge_of_world_fraction(cam, terrain, half.x))
+	_check(worst == 0.0, "far field: no COAST view shows the world's end (edge-of-world mask %.3f)" % worst)
+	_check(island > 0.02, "far field: with the land cut at the 4 km edge the same views would (mask %.3f)" % island)
+
+	# The farm-type plots (spec §4).
+	var pads: Array = terrain.land_pad_slots()
+	var pad_ids: Array = pads.map(func(p: Dictionary) -> String: return str(p["id"]))
+	var pads_ok := pad_ids == ["pad_a", "pad_b", "pad_delta"]
+	for pad in pads:
+		var c: Vector3 = pad["centre"]
+		var size: Vector2 = pad["size"]
+		pads_ok = pads_ok and absf(c.x) + size.x * 0.5 < half.x and absf(c.z) + size.y * 0.5 < half.y \
+			and is_equal_approx(c.y, 3.6) and float(pad["intake_reach_m"]) > 0.0
+	_check(pads_ok, "far field: the land pads %s lie in the world with a computed intake" % str(pad_ids))
+	var slots: Array = terrain.offshore_slots()
+	var slot_ids: Array = slots.map(func(o: Dictionary) -> String: return str(o["id"]))
+	var slots_ok := slot_ids == ["off_1", "off_2", "hav_1"]
+	for slot in slots:
+		var at: Vector3 = slot["position"]
+		slots_ok = slots_ok and (absf(at.x) > half.x or absf(at.z) > half.y) and float(slot["exposure"]) == 1.0 \
+			and float(slot["water_depth_m"]) > 100.0 and terrain.get_height_at(at.x, at.z) < -100.0
+	_check(slots_ok, "far field: the offshore slots %s lie in open sea beyond the world" % str(slot_ids))
+	cam.set_zoom_level(FjordCamera.ZoomLevel.FJORD)
+	scene.queue_free()
+	await get_tree().process_frame
+
 ## G1-03: camera keys never steal input from a focused Control: arrows on the
 ## tab bar and WASD in a text field leave the camera still; with nothing
 ## focused the same keys pan it.
@@ -3357,6 +3452,50 @@ func _sky_fraction(cam: FjordCamera) -> float:
 			if cam.project_ray_normal(p).y > 0.0 and not cam.pick_ground(p).is_finite():
 				sky += 1
 	return float(sky) / float(48 * 27)
+
+## G2-01 edge-of-world mask: the share of a 32x18 grid of screen rays below
+## the horizon whose first hit of the rendered surface (land within `extent`
+## of the origin, sea everywhere) is open water where the land goes on (the
+## far field is above the sea there): land cut off by the world's end. With
+## the far field's extent this is what the player sees; with the world's own
+## half-size it is the old 4 km island. Rays that meet nothing before the
+## camera's far plane are the haze band just under the horizon (the sea
+## there lies beyond 20 km, with or without a far field) and count for
+## neither side.
+func _edge_of_world_fraction(cam: Camera3D, terrain: FjordTerrain, extent: float) -> float:
+	var size := get_viewport().get_visible_rect().size
+	var below := 0
+	var edge := 0
+	for gy in 18:
+		for gx in 32:
+			var p := Vector2((gx + 0.5) / 32.0 * size.x, (gy + 0.5) / 18.0 * size.y)
+			var dir := cam.project_ray_normal(p)
+			if dir.y >= 0.0:
+				continue
+			var hit := _march_rendered_surface(cam.project_ray_origin(p), dir, terrain, extent, cam.far)
+			if not hit.is_finite():
+				continue
+			below += 1
+			if hit.y <= terrain.water_level + 0.01 and terrain.far_field_height_at(hit.x, hit.z) > terrain.water_level + 1.0:
+				edge += 1
+	return float(edge) / float(maxi(below, 1))
+
+## First point where a ray meets the rendered surface (land within `extent`
+## of the origin, the sea everywhere), or INF before `far` metres.
+func _march_rendered_surface(origin: Vector3, dir: Vector3, terrain: FjordTerrain, extent: float, far: float) -> Vector3:
+	var travelled := 0.0
+	var p := origin
+	while travelled < far:
+		var ground := terrain.water_level
+		if absf(p.x) <= extent and absf(p.z) <= extent:
+			ground = maxf(terrain.get_height_at(p.x, p.z), ground)
+		var gap := p.y - ground
+		if gap <= 0.5:
+			return Vector3(p.x, ground, p.z)
+		var step := clampf(gap * 0.5, 2.0, 400.0)
+		p += dir * step
+		travelled += step
+	return Vector3.INF
 
 ## True when the straight line from the camera to the focus passes over the
 ## terrain all the way (water never hides the focus).

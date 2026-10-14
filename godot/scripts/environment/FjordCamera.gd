@@ -55,10 +55,13 @@ const SNAP_EPSILON := 0.0005
 ## Terrain avoidance: clearance over the ground under the camera, and over
 ## the terrain along the sight line, sampled SIGHT_SAMPLES times. Six samples
 ## (the roadmap's first sketch) let ridges between them hide the focus in 9 %
-## of COAST orbits; 32 samples with 15 m clearance hide it in 0.5 %.
+## of COAST orbits; 32 samples with 15 m clearance hid it in 0.5 % while the
+## camera stayed in the world. With the far field (G2-01) a COAST camera
+## stands out over the plateau beyond it and its longer, flatter sight line
+## needs 48 (32 hid the focus in 1.5 %).
 const GROUND_CLEARANCE := 32.0
 const SIGHT_CLEARANCE := 15.0
-const SIGHT_SAMPLES := 32
+const SIGHT_SAMPLES := 48
 ## Steepest view the avoidance may force before it pulls the camera closer.
 const MAX_ELEVATION_DEG := 78.0
 const MIN_PITCH_DEG := -85.0
