@@ -38,5 +38,12 @@
     "Superstructure": 6474,
     "Windows": 24
   },
+  "pivots": {
+    "Gangway": [
+      5.7,
+      2.5,
+      -5.021
+    ]
+  },
   "tri_count": 19377
 }

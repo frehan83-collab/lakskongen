@@ -33,8 +33,11 @@ and the wellboat LOD1 checked: `.glb` and sidecars unchanged).
 integration fixer) is unchanged: the gangway is a separate part only at
 LOD0, and `offshore_service.tscn` gives the inherited `Gangway` node the
 LOD0 visibility range (ends at `lod_switch.x`, 300 m); LOD1 and LOD2 fold
-it into the superstructure. F2-22 slews and luffs it to the unit's
-`W2WLanding` marker.
+it into the superstructure. The node's origin is the tower's slewing axis
+(sidecar `pivots.Gangway`, (5.7, 2.5, -5.0) m: starboard, deck level, just
+aft of the house), so F2-22 slews it by turning the node and luffs it to the
+unit's `W2WLanding` marker; telescoping the boom is F2-22's (the stowed
+length is 26 m).
 
 **The anchor tug.** `anchor_tug.tscn` inherits `offshore_service.tscn` and
 overrides `surface_material_override/0` on `Hull`, `LOD1/Hull` and

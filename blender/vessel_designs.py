@@ -568,6 +568,8 @@ def _gangway(parts, base, d, length=26.0, heading=180.0, deck_z=0.0):
     superstructure further out."""
     g = parts["Gangway"]
     bx, by, bz = base
+    if parts.aliases.get("Gangway", "Gangway") == "Gangway" and hasattr(parts, "pivots"):
+        parts.pivots["Gangway"] = base   # the node slews about the tower axis
     tower_top = bz + 7.5
     hull.cyl(g, (bx, by, bz), (bx, by, tower_top), 1.25, 16 if d >= 2 else 8)
     hull.cyl(g, (bx, by, tower_top), (bx, by, tower_top + 0.5), 1.7, 16 if d >= 2 else 8)

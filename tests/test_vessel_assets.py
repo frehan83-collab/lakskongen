@@ -315,7 +315,17 @@ def test_the_service_vessel_is_shorter_than_of1_and_has_its_gangway():
     length = _sidecar(ASSETS["offshore_service"], "LOD0")["dimensions"]["length_m"]
     assert length <= 0.75 * diameter, (length, diameter)
     assert "Gangway" in _gltf_nodes(_glb(ASSETS["offshore_service"], "LOD0"))
-    assert _sidecar(ASSETS["offshore_service"], "LOD0")["parts"]["Gangway"] > 0
+    side = _sidecar(ASSETS["offshore_service"], "LOD0")
+    assert side["parts"]["Gangway"] > 0
+    # The node turns about the tower axis (F2-22 slews it to the unit's
+    # W2WLanding): its origin is the pivot, on the deck inside the hull.
+    data = _glb(ASSETS["offshore_service"], "LOD0").read_bytes()
+    nodes = json.loads(data[20:20 + int.from_bytes(data[12:16], "little")])["nodes"]
+    gangway = next(n for n in nodes if n["name"] == "Gangway")
+    pivot = side["pivots"]["Gangway"]
+    assert [round(v, 3) for v in gangway["translation"]] == pivot
+    assert abs(pivot[0]) < side["dimensions"]["beam_m"] / 2 and 0.0 < pivot[1] < 5.0
+    assert abs(pivot[2]) < side["dimensions"]["length_m"] / 2
     scene = (GODOT / "assets/models/offshore_service/offshore_service.tscn").read_text()
     switch = float(re.search(r"lod_switch = Vector2\(([\d.]+),", scene).group(1))
     block = scene[scene.index('[node name="Gangway" parent="."]'):]

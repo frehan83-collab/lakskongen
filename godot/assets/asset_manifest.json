@@ -880,8 +880,8 @@
     },
     "offshore_service_LOD0": {
       "path": "godot/assets/models/offshore_service/offshore_service_LOD0.glb",
-      "sha256": "a758aaa9a9b872c1c417be311353279dc161c5ee74986778fa043bb2be46bddb",
-      "size": 898916,
+      "sha256": "510a016cc1c74680465674549bf89dcba8b13735a56278cf5c2cca66931b0878",
+      "size": 898988,
       "tri_count": 19377,
       "material_count": 8,
       "bbox_size": [

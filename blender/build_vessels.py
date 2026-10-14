@@ -52,6 +52,7 @@ import os
 import sys
 
 import bpy
+import mathutils
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lk_hull as hull  # noqa: E402
@@ -156,6 +157,9 @@ def build_asset(asset: str, lod: str, mats: dict):
     part_mats = dict(PART_MATERIALS, Hull=ASSETS[asset][1], **ASSET_PARTS.get(asset, {}))
     aliases = dict(LOD2_ALIASES if d == 0 else {}, **ASSET_ALIASES.get(asset, {}).get(d, {}))
     parts = hull.Parts(part_mats, aliases or None)
+    # A design may name a part's pivot (the gangway's slewing axis): that
+    # part's node gets its origin there, so Godot turns it about the axis.
+    parts.pivots = {}
     spec = designs.DESIGNS[asset](parts, d)
     objs = []
     for name, mb in parts.used():
@@ -163,6 +167,11 @@ def build_asset(asset: str, lod: str, mats: dict):
         obj["lk_build"] = PREFIX
         if name in DENSIFY_PARTS and DENSIFY_EDGE_M.get(lod) and asset not in SUBSEA:
             densify(obj, DENSIFY_EDGE_M[lod])
+        if name in parts.pivots:
+            px, py, pz = parts.pivots[name]
+            obj.data.transform(mathutils.Matrix.Translation((-px, -py, -pz)))
+            obj.location = (px, py, pz)
+            obj["lk_pivot"] = [px, py, pz]
         objs.append(obj)
     return objs, spec
 
@@ -272,6 +281,9 @@ def export_lod(asset: str, lod: str, objs, spec, out_dir: str) -> dict:
             "stern_y_m": round(hlo[1], 3),
         },
         "file": os.path.basename(path),
+        **({"pivots": {o.name.split(".")[0]: [round(o["lk_pivot"][0], 3), round(o["lk_pivot"][2], 3),
+                                              round(-o["lk_pivot"][1], 3)] for o in objs if "lk_pivot" in o}}
+           if any("lk_pivot" in o for o in objs) else {}),
         "blender_version": bpy.app.version_string,
     }
     with open(os.path.join(out_dir, f"{asset}_{lod}.json"), "w") as f:
