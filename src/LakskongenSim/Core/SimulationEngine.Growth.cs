@@ -90,6 +90,36 @@ public partial class SimulationEngine
     }
 
     /// <summary>
+    /// Weight and weight CV of a cohort of <paramref name="releaseWeightKg"/>
+    /// smolts released <paramref name="daysAtSea"/> days before
+    /// <paramref name="firstDay"/> when that day comes: grown on
+    /// <paramref name="law"/> in production area <paramref name="productionArea"/>'s
+    /// normal sea temperature (its climatology, no anomaly) and natural day
+    /// length, healthy and fed to appetite. The starting stock of a scenario farm
+    /// (<c>days_at_sea</c>, S2-03). Pure: draws no random numbers.
+    /// </summary>
+    public static (double WeightKg, double WeightCv) GrowOnClimatology(TgcGrowthLaw law, int productionArea,
+        int firstDay, int daysAtSea, double releaseWeightKg, double growthMultiplier = 1.0)
+    {
+        if (law == null) throw new ArgumentNullException(nameof(law));
+        double weight = releaseWeightKg;
+        double cv = law.Calibration.SmoltWeightCv;
+        if (daysAtSea <= 0) return (weight, cv);
+        int area = ProductionAreas.HasClimatology(productionArea) ? productionArea : ProductionAreas.NationalReference;
+        double latitude = ProductionAreas.LatitudeDeg(area);
+        for (int day = firstDay - daysAtSea; day < firstDay; day++)
+        {
+            var conditions = new GrowthConditions(ProductionAreas.ClimatologyC(area, day),
+                GrowthMultiplier: growthMultiplier,
+                DayLengthHours: DayLength.Hours(latitude, SimCalendar.DayOfYear(day)));
+            var grown = law.GrowOneDay(weight, cv, LifeStage.Seawater, conditions, satiationFcr: 0.0);
+            weight = grown.WeightKg;
+            cv = grown.WeightCv;
+        }
+        return (weight, cv);
+    }
+
+    /// <summary>
     /// Genetic and smolt-quality growth of a cohort: the genome's growth
     /// multiplier, inbreeding depression (Wave 6: zero inbreeding = 1.0) and the
     /// post-smolt quality carryover (P5).

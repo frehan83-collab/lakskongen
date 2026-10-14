@@ -16,7 +16,8 @@
         "zone": "fjord_west",
         "production_area": 3,
         "pens": 1,
-        "smolt_count": 20000,
+        "smolt_count": 22000,
+        "days_at_sea": 110,
         "smolt_quality": "standard"
       }
     ],
@@ -57,6 +58,7 @@
         "production_area": 9,
         "pens": 2,
         "smolt_count": 8000,
+        "days_at_sea": 200,
         "smolt_quality": "standard"
       }
     ],
@@ -98,6 +100,7 @@
         "production_area": 6,
         "pens": 3,
         "smolt_count": 10000,
+        "days_at_sea": 110,
         "smolt_quality": "standard"
       }
     ],
@@ -138,6 +141,7 @@
         "production_area": 12,
         "pens": 2,
         "smolt_count": 6000,
+        "days_at_sea": 200,
         "smolt_quality": "standard"
       }
     ],
@@ -180,6 +184,7 @@
         "production_area": 4,
         "pens": 4,
         "smolt_count": 12000,
+        "days_at_sea": 110,
         "smolt_quality": "standard"
       }
     ],
@@ -215,8 +220,8 @@
     "starting_region": "Vestland",
     "starting_day": 0,
     "starting_sites": [
-      { "id": "po3_nord", "name": "PO3 Nord", "zone": "po3_nord", "production_area": 3, "pens": 6, "smolt_count": 12000, "smolt_quality": "robust", "containment": "semi_closed" },
-      { "id": "po3_sor", "name": "PO3 Sør", "zone": "po3_sor", "production_area": 3, "pens": 4, "smolt_count": 10000, "smolt_quality": "standard" }
+      { "id": "po3_nord", "name": "PO3 Nord", "zone": "po3_nord", "production_area": 3, "pens": 6, "smolt_count": 12000, "days_at_sea": 110, "smolt_quality": "robust", "containment": "semi_closed" },
+      { "id": "po3_sor", "name": "PO3 Sør", "zone": "po3_sor", "production_area": 3, "pens": 4, "smolt_count": 10000, "days_at_sea": 110, "smolt_quality": "standard" }
     ],
     "starting_debt": 0,
     "starting_research": ["sensor-networks", "deep-sea-farming"],
@@ -258,9 +263,9 @@
     "starting_region": "Trøndelag",
     "starting_day": 0,
     "starting_sites": [
-      { "id": "isa_kjerne", "name": "Infisert kjerneanlegg", "zone": "isa_kjerne", "production_area": 6, "pens": 4, "smolt_count": 8000, "smolt_quality": "standard" },
-      { "id": "isa_nord", "name": "Nabofelt nord", "zone": "isa_nord", "production_area": 6, "pens": 6, "smolt_count": 12000, "smolt_quality": "robust", "barrier": "smoltscreen" },
-      { "id": "isa_sor", "name": "Nabofelt sør", "zone": "isa_sor", "production_area": 6, "pens": 6, "smolt_count": 12000, "smolt_quality": "robust", "barrier": "smoltscreen" }
+      { "id": "isa_kjerne", "name": "Infisert kjerneanlegg", "zone": "isa_kjerne", "production_area": 6, "pens": 4, "smolt_count": 8000, "days_at_sea": 110, "smolt_quality": "standard" },
+      { "id": "isa_nord", "name": "Nabofelt nord", "zone": "isa_nord", "production_area": 6, "pens": 6, "smolt_count": 12000, "days_at_sea": 110, "smolt_quality": "robust", "barrier": "smoltscreen" },
+      { "id": "isa_sor", "name": "Nabofelt sør", "zone": "isa_sor", "production_area": 6, "pens": 6, "smolt_count": 12000, "days_at_sea": 110, "smolt_quality": "robust", "barrier": "smoltscreen" }
     ],
     "starting_debt": 0,
     "starting_research": ["disease-resistance", "sensor-networks"],
@@ -311,9 +316,9 @@
     "starting_region": "Nordland",
     "starting_day": 0,
     "starting_sites": [
-      { "id": "alge_sor", "name": "Algeutsatt sør", "zone": "alge_sor", "production_area": 9, "pens": 8, "smolt_count": 14000, "smolt_quality": "standard" },
-      { "id": "alge_midt", "name": "Algeutsatt midt", "zone": "alge_midt", "production_area": 9, "pens": 8, "smolt_count": 14000, "smolt_quality": "standard" },
-      { "id": "alge_indre", "name": "Innlandsbeskyttet", "zone": "alge_indre", "production_area": 9, "pens": 5, "smolt_count": 9000, "smolt_quality": "robust" }
+      { "id": "alge_sor", "name": "Algeutsatt sør", "zone": "alge_sor", "production_area": 9, "pens": 8, "smolt_count": 14000, "days_at_sea": 200, "smolt_quality": "standard" },
+      { "id": "alge_midt", "name": "Algeutsatt midt", "zone": "alge_midt", "production_area": 9, "pens": 8, "smolt_count": 14000, "days_at_sea": 200, "smolt_quality": "standard" },
+      { "id": "alge_indre", "name": "Innlandsbeskyttet", "zone": "alge_indre", "production_area": 9, "pens": 5, "smolt_count": 9000, "days_at_sea": 200, "smolt_quality": "robust" }
     ],
     "starting_debt": 0,
     "starting_research": ["sensor-networks", "predictive-analytics"],
@@ -367,9 +372,9 @@
     "starting_region": "Vestland",
     "starting_day": 0,
     "starting_sites": [
-      { "id": "vest_1", "name": "Hovedanlegg vest", "zone": "vest_1", "production_area": 4, "pens": 8, "smolt_count": 15000, "smolt_quality": "postsmolt" },
-      { "id": "vest_2", "name": "Vekstanlegg nord", "zone": "vest_2", "production_area": 4, "pens": 8, "smolt_count": 15000, "smolt_quality": "postsmolt" },
-      { "id": "vest_3", "name": "Utvidelse sør", "zone": "vest_3", "production_area": 4, "pens": 6, "smolt_count": 12000, "smolt_quality": "robust" }
+      { "id": "vest_1", "name": "Hovedanlegg vest", "zone": "vest_1", "production_area": 4, "pens": 8, "smolt_count": 15000, "days_at_sea": 110, "smolt_quality": "postsmolt" },
+      { "id": "vest_2", "name": "Vekstanlegg nord", "zone": "vest_2", "production_area": 4, "pens": 8, "smolt_count": 15000, "days_at_sea": 110, "smolt_quality": "postsmolt" },
+      { "id": "vest_3", "name": "Utvidelse sør", "zone": "vest_3", "production_area": 4, "pens": 6, "smolt_count": 12000, "days_at_sea": 110, "smolt_quality": "robust" }
     ],
     "starting_debt": 0,
     "starting_research": ["international-export", "value-added-processing"],

@@ -400,10 +400,14 @@ namespace LakskongenSim.Core
             // Hatchery → population
             Hatchery.OnNewCohort += cohort =>
             {
-                // Assign genetics if missing (hatchery produces cohorts with specific genomes)
+                // Assign genetics if missing. A released batch is a commercial
+                // batch of standard S1 smolts, so it carries the standard
+                // strain's genome, as StockSmolts does (S2-03): one random
+                // individual's breeding values (growth SD 15%) on a whole
+                // cohort made one batch grow 37% slower than the next.
                 if (cohort.Genetics == null)
                 {
-                    cohort.Genetics = Genetics.GenerateRandomGenome();
+                    cohort.Genetics = SmoltStrainRegistry.Get("standard").BuildGenome();
                 }
 
                 // Create a new population for this cohort (tests expect separate populations per release)
