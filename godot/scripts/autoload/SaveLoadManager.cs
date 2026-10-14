@@ -38,7 +38,7 @@ public partial class SaveLoadManager : Node
     /// migration step in MigrateSaveData. Old saves without the field read
     /// as version 0.
     /// </summary>
-    public const int CurrentSaveVersion = 7;
+    public const int CurrentSaveVersion = 8;
 
     private JsonSerializerOptions _jsonOptions;
     private GameBridge _gameBridge;
@@ -609,6 +609,16 @@ public partial class SaveLoadManager : Node
                     // its old MAB in its production area and opens capacity v1
                     // (SimulationEngine.MigrateCapacityRegisterAfterLoad).
                     saveData.SaveVersion = 7;
+                    break;
+                case 7:
+                    // v7 -> v8 (S2-01b): sea sites carry their pens (PhysicalPens:
+                    // number, net, volume, the population each holds) and harvest
+                    // orders the pen of each population (PenId). A v7 save loads
+                    // with no pens: the engine gives each site its locality's layout
+                    // with one pen per population, a population too large for a pen
+                    // keeping the volume it was simulated in
+                    // (SimulationEngine.MigratePensAfterLoad); order pens keep "".
+                    saveData.SaveVersion = 8;
                     break;
                 default:
                     GD.PrintErr($"No migrator for save version {saveData.SaveVersion}; loading as-is.");

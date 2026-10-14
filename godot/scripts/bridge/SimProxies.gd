@@ -478,6 +478,10 @@ func get_mortality_breakdown(site_id: String = "", last_days: int = 0) -> Dictio
 func get_capacity_overview() -> Dictionary: return game_bridge.GetCapacityOverview() if game_bridge else {"success": false, "message": "Not initialized", "areas": [], "sites": [], "licences": [], "breaches": []}
 ## S2-01a: what stocking would do to the caps (the check stock_smolts runs) and the most smolts that fit.
 func preview_stocking(site_id: String, count: int, strain_id: String = "standard") -> Dictionary: return game_bridge.PreviewStocking(site_id, count, strain_id) if game_bridge else {"success": false, "allowed": false, "message": "Not initialized"}
+## S2-01b: a site's real pens in mooring order (number, occupancy, fish, density, net).
+func get_site_pens(site_id: String) -> Array[Dictionary]: return _arr(game_bridge.GetSitePens(site_id)) if game_bridge else ([] as Array[Dictionary])
+## S2-01b: what stocking a count of smolts in one pen would do (§ 47a fish, § 25 projected density, MTB) and the most it takes.
+func preview_pen_stocking(site_id: String, pen_id: String, count: int, strain_id: String = "standard", quality_tier: int = 0) -> Dictionary: return game_bridge.PreviewPenStocking(site_id, pen_id, count, strain_id, quality_tier) if game_bridge else {"success": false, "allowed": false, "message": "Not initialized"}
 ## S2-01a: what building a site in a zone costs and adds (a locality, 0 t of licence MTB).
 func preview_build_sea_site(zone_id: String) -> Dictionary: return game_bridge.PreviewBuildSeaSite(zone_id) if game_bridge else {"success": false, "allowed": false, "reason": "Not initialized"}
 func get_competitor_analysis() -> Array[Dictionary]: return _arr(game_bridge.GetCompetitorAnalysis()) if game_bridge else []

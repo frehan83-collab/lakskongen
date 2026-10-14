@@ -198,7 +198,7 @@ public partial class SimulationEngine
         allocation = AllocateToPens(site, count, forecast);
         if (allocation != null) return null;
         long room = SitePenRoom(site, forecast);
-        return CommandResult.Fail(CapacityReasons.PensFull,
+        return CommandResult.Fail(PenReasons.PensFull,
             $"The empty pens at {site.Id} take {room:N0} of {count:N0} fish within {MaxFishPerPen:N0} fish and " +
             $"{PenDensityLimitKgPerM3:F0} kg/m³ a pen");
     }
@@ -228,7 +228,7 @@ public partial class SimulationEngine
         int today = State.Day;
         double limit = PenDensityLimitKgPerM3;
         if (pen == null)
-            return new PenStockingPreview(false, CapacityReasons.PenNotFound, $"Site '{site.Id}' has no pen '{penKey}'",
+            return new PenStockingPreview(false, PenReasons.NotFound, $"Site '{site.Id}' has no pen '{penKey}'",
                 "", 0, 0.0, PenFishLimit, limit, 0.0, today, 0.0, 0);
 
         var forecast = ForecastPenStocking(site, strain, qualityTier);
@@ -246,13 +246,13 @@ public partial class SimulationEngine
                 forecast.WeightAtPeakKg, maxCount);
 
         if (!site.IsPenFree(pen))
-            return Verdict(false, CapacityReasons.PenOccupied,
+            return Verdict(false, PenReasons.Occupied,
                 $"Pen {pen.Number} at {site.Id} holds fish: one stocking per pen");
         if (count > PenFishLimit)
-            return Verdict(false, CapacityReasons.PenFishLimit,
+            return Verdict(false, PenReasons.FishLimit,
                 $"{count:N0} fish in pen {pen.Number} is over the {MaxFishPerPen:N0} a production unit may hold");
         if (density > limit)
-            return Verdict(false, CapacityReasons.PenDensity,
+            return Verdict(false, PenReasons.Density,
                 $"{count:N0} smolts in pen {pen.Number} ({pen.VolumeM3:N0} m³) peak at {density:F1} kg/m³ on day {peakDay}, " +
                 $"over {limit:F0} kg/m³");
         var capacity = EvaluateStocking(site, count, strain.ReleaseWeightKg, includeMaxCount: false);
@@ -445,7 +445,7 @@ public partial class SimulationEngine
             return CommandResult.Fail("site_not_found", $"Site '{siteId}' not found");
         var pens = PopulationsNamed(site, penKeys, out var unknown);
         if (pens == null)
-            return CommandResult.Fail(CapacityReasons.PenNotFound, $"Site '{siteId}' has no pen '{unknown}'");
+            return CommandResult.Fail(PenReasons.NotFound, $"Site '{siteId}' has no pen '{unknown}'");
         pens = pens.Where(p => p.TotalCount > 0).ToList();
         int treatedFish = pens.Sum(p => p.TotalCount);
         int siteFish = site.Pens.Sum(p => Math.Max(0, p.TotalCount));

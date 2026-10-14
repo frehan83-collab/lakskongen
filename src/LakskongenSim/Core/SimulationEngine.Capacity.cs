@@ -171,7 +171,7 @@ public partial class SimulationEngine
             preview = preview with
             {
                 Allowed = false,
-                ReasonKey = CapacityReasons.PensFull,
+                ReasonKey = PenReasons.PensFull,
                 Message = $"The empty pens at {site.Id} take {penRoom:N0} of {count:N0} fish within " +
                     $"{MaxFishPerPen:N0} fish and {PenDensityLimitKgPerM3:F0} kg/m³ a pen",
             };

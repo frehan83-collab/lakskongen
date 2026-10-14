@@ -755,7 +755,7 @@ UI_PEN_DELOUSE,Delouse,Avlus
 UI_PEN_HARVEST,Harvest,Høst
 UI_PEN_REPAIR,Repair nets,Reparer nøter
 UI_PEN_STOCK,Stock %s,Sett ut %s
-UI_PEN_STOCK_TIP,Stock %s smolts of the chosen strain and quality at this site,Sett ut %s smolt av valgt stamme og kvalitet på denne lokaliteten
+UI_PEN_STOCK_TIP,Stock %s smolts of the chosen strain and quality in the chosen pen,Sett ut %s smolt av valgt stamme og kvalitet i valgt merd
 UI_PEN_DELOUSE_METHOD_TIP,Treatment method: efficacy against mortality and resistance,Behandlingsmetode: effekt mot dødelighet og resistens
 UI_PEN_SKIRT,Lice skirt,Luseskjørt
 UI_PEN_DETERRENT,Seal deterrent,Selskremme
@@ -1572,3 +1572,20 @@ CAPACITY_LOCALITY_MTB,Locality MTB,Lokalitets-MTB
 CAPACITY_HEADROOM,MTB headroom,Ledig MTB
 CAPACITY_PROJECTED_PEAK,Plan peak,Planlagt topp
 CAPACITY_BUILD_ADDS_NO_MTB,"A new site adds a locality, not MTB: the fish it can hold come from your licences in the production area","Et nytt anlegg gir en lokalitet, ikke MTB: fisken det kan holde, kommer fra tillatelsene dine i produksjonsområdet"
+PENS_TITLE,Pens and stocking,Merder og utsett
+PENS_CHIP_EMPTY,Pen %d · empty,Merd %d · tom
+PENS_CHIP_FISH,Pen %d · %s fish · %s kg/m³,Merd %d · %s fisk · %s kg/m³
+PENS_OPTION_FREE,Pen %d (%s m³),Merd %d (%s m³)
+PENS_PEN_PICK_TIP,"The pen to stock: only an empty pen takes smolts (one stocking, one year class per pen)",Merden det settes ut i: bare en tom merd tar smolt (ett utsett og én årsklasse per merd)
+PENS_NONE_FREE,No empty pen: harvest a pen before stocking,Ingen tom merd: høst en merd før utsett
+PENS_COUNT_TIP,"Smolts to stock in the chosen pen: at most %s a pen, and the plan's peak density at most %s kg/m³","Smolt å sette ut i valgt merd: høyst %s per merd, og planlagt topptetthet høyst %s kg/m³"
+PENS_PREVIEW,Plan peak %s of %s kg/m³ at %s kg · room for %s smolts,Planlagt topp %s av %s kg/m³ ved %s kg · plass til %s smolt
+CAPACITY_REASON_PEN_FISH_LIMIT,"A pen may hold at most 200,000 fish",En merd kan ha høyst 200 000 fisk
+CAPACITY_REASON_PEN_DENSITY,The plan's peak density in this pen would pass 25 kg/m³,Planlagt topptetthet i merden ville gått over 25 kg/m³
+CAPACITY_REASON_PEN_OCCUPIED,The pen already holds fish: one stocking per pen,Merden har allerede fisk: ett utsett per merd
+CAPACITY_REASON_PEN_NOT_FOUND,The site has no such pen,Lokaliteten har ingen slik merd
+CAPACITY_REASON_PENS_FULL,"The site's empty pens cannot take that many fish within 200,000 fish and 25 kg/m³ a pen",De tomme merdene på lokaliteten kan ikke ta så mye fisk innenfor 200 000 fisk og 25 kg/m³ per merd
+CAPACITY_REASON_INSUFFICIENT_FUNDS,Not enough money for the smolts,Ikke nok penger til smolten
+CAPACITY_REASON_MAB_EXCEEDED,The smolts would put the site over its MTB,Smolten ville satt lokaliteten over MTB-en
+CAPACITY_REASON_INVALID_COUNT,Choose a number of smolts above zero,Velg et antall smolt over null
+CAPACITY_REASON_SITE_NOT_FOUND,The site was not found,Fant ikke lokaliteten

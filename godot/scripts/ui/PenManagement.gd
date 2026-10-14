@@ -68,6 +68,12 @@ const NETS_WHOLE_PCT := 99.5
 @onready var _btn_deterrent: Button = %BtnDeterrent
 @onready var _delouse_option: OptionButton = %DelouseOption
 @onready var _btn_rov: Button = %BtnROV
+# S2-01b: the site's pens and the stocking of one pen.
+@onready var _stock_title: Label = %StockTitle
+@onready var _pen_chips: HFlowContainer = %PenChips
+@onready var _pen_option: OptionButton = %PenOption
+@onready var _count_spin: SpinBox = %CountSpin
+@onready var _stock_preview: Label = %StockPreview
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 const C_BG := Color("#F4F1EA")
@@ -107,6 +113,9 @@ func _ready() -> void:
 	_btn_skirt.pressed.connect(_on_toggle_mitigation.bind("skirt"))
 	_btn_deterrent.pressed.connect(_on_toggle_mitigation.bind("deterrent"))
 	_btn_rov.pressed.connect(_on_rov)
+	_pen_option.item_selected.connect(func(_i: int) -> void: _update_stock_preview())
+	_count_spin.value_changed.connect(func(_v: float) -> void: _update_stock_preview())
+	_strain_option.item_selected.connect(func(_i: int) -> void: _update_stock_preview())
 	_populate_strains()
 	_build_quality_selector()
 	_populate_quality_tiers()
@@ -133,6 +142,8 @@ func _apply_localization() -> void:
 	_btn_repair.text = "🔧 " + tr("UI_PEN_REPAIR")
 	_btn_stock.text = "🐣 " + tr("UI_PEN_STOCK") % SimFormatters.integer(STOCK_BATCH)
 	_btn_stock.tooltip_text = tr("UI_PEN_STOCK_TIP") % SimFormatters.integer(STOCK_BATCH)
+	_stock_title.text = "🐟 " + tr("PENS_TITLE")
+	_pen_option.tooltip_text = tr("PENS_PEN_PICK_TIP")
 	_delouse_option.tooltip_text = tr("UI_PEN_DELOUSE_METHOD_TIP")
 	_btn_skirt.tooltip_text = tr("UI_PEN_SKIRT_TIP")
 	_btn_deterrent.tooltip_text = tr("UI_PEN_DETERRENT_TIP")
@@ -314,6 +325,71 @@ func _refresh_detail() -> void:
 	var has_det: bool = bool(pen.get("has_deterrent", false))
 	_btn_skirt.text = ("🔛 " if has_skirt else "⚪ ") + tr("UI_PEN_SKIRT")
 	_btn_deterrent.text = ("🔛 " if has_det else "⚪ ") + tr("UI_PEN_DETERRENT")
+	_refresh_pens()
+
+# ── Pens and stocking (S2-01b) ────────────────────────────────────────────────
+
+## The site's pens as chips (number, fish, density) and the empty pens in the
+## stocking picker; the picked pen survives a refresh while it stays empty.
+func _refresh_pens() -> void:
+	var pens: Array = _sim.get_site_pens(_selected_pen_id) if _sim and _sim.has_method("get_site_pens") else []
+	for child in _pen_chips.get_children():
+		child.queue_free()
+	var keep := _selected_stock_pen_id()
+	_pen_option.clear()
+	for pen in pens:
+		var number := int(pen.get("number", 0))
+		var chip := Label.new()
+		chip.theme_type_variation = &"SmallMuted"
+		if bool(pen.get("occupied", false)):
+			chip.text = tr("PENS_CHIP_FISH") % [number, SimFormatters.integer(int(pen.get("fish_count", 0))),
+				SimFormatters.num(float(pen.get("density_kg_m3", 0.0)), 1)]
+		else:
+			chip.text = tr("PENS_CHIP_EMPTY") % number
+			_pen_option.add_item(tr("PENS_OPTION_FREE") % [number,
+				SimFormatters.integer(int(round(float(pen.get("volume_m3", 0.0)))))])
+			_pen_option.set_item_metadata(_pen_option.item_count - 1, str(pen.get("id", "")))
+		_pen_chips.add_child(chip)
+	for i in _pen_option.item_count:
+		if str(_pen_option.get_item_metadata(i)) == keep:
+			_pen_option.select(i)
+	_update_stock_preview()
+
+## Id of the pen picked for stocking ("" when no empty pen).
+func _selected_stock_pen_id() -> String:
+	if _pen_option.item_count == 0 or _pen_option.selected < 0:
+		return ""
+	return str(_pen_option.get_item_metadata(_pen_option.selected))
+
+## What stocking the chosen count in the chosen pen would do, from the engine's
+## own check (the 200,000-fish and 25 kg/m³ limits, MTB): the plan's peak and
+## the room, or the reason it is refused, which also disables the button.
+func _update_stock_preview() -> void:
+	if not _sim or _selected_pen_id.is_empty():
+		return
+	var count := int(_count_spin.value)
+	_btn_stock.text = "🐣 " + tr("UI_PEN_STOCK") % SimFormatters.integer(count)
+	_btn_stock.tooltip_text = tr("UI_PEN_STOCK_TIP") % SimFormatters.integer(count)
+	var pen_id := _selected_stock_pen_id()
+	if pen_id.is_empty():
+		_stock_preview.text = tr("PENS_NONE_FREE")
+		UIPolish.set_available(_btn_stock, tr("PENS_NONE_FREE"))
+		return
+	var strain_id := _strain_ids[clampi(_strain_option.selected, 0, _strain_ids.size() - 1)]
+	var tier := maxi(0, _quality_option.selected) if _quality_option != null else 0
+	var p: Dictionary = _sim.preview_pen_stocking(_selected_pen_id, pen_id, count, strain_id, tier)
+	_count_spin.tooltip_text = tr("PENS_COUNT_TIP") % [SimFormatters.integer(int(p.get("max_fish_per_pen", 0))),
+		SimFormatters.num(float(p.get("density_limit_kg_m3", 0.0)), 0)]
+	var reason := ""
+	if not bool(p.get("allowed", false)):
+		var key := str(p.get("label_key", ""))
+		reason = tr(key) if not key.is_empty() else str(p.get("message", ""))
+	_stock_preview.text = tr("PENS_PREVIEW") % [
+		SimFormatters.num(float(p.get("projected_peak_density_kg_m3", 0.0)), 1),
+		SimFormatters.num(float(p.get("density_limit_kg_m3", 0.0)), 0),
+		SimFormatters.num(float(p.get("projected_peak_weight_kg", 0.0)), 1),
+		SimFormatters.integer(int(p.get("max_count", 0)))] + ("" if reason.is_empty() else " · " + reason)
+	UIPolish.set_available(_btn_stock, reason)
 
 ## Why the pen cannot be deloused now ("" when it can).
 func _delouse_blocker(fish: int, lice: float) -> String:
@@ -436,6 +512,7 @@ func _build_quality_selector() -> void:
 	_quality_option.tooltip_text = tr("UI_PEN_QUALITY_TIP")
 	parent.add_child(_quality_option)
 	parent.move_child(_quality_option, _btn_stock.get_index())
+	_quality_option.item_selected.connect(func(_i: int) -> void: _update_stock_preview())
 
 ## Populate quality tiers + tooltips describing expected carryover.
 func _populate_quality_tiers() -> void:
@@ -472,14 +549,27 @@ func _populate_strains() -> void:
 		_strain_ids.append("standard")
 		_strain_option.add_item(SimLabels.smolt_tier("Standard"))
 
+## S2-01b: stock the chosen count of the chosen strain and quality in the
+## chosen empty pen of the open site.
 func _on_stock() -> void:
 	if _selected_pen_id.is_empty() or not _sim:
 		return
+	var pen_id := _selected_stock_pen_id()
+	if pen_id.is_empty():
+		return
 	var strain_id := _strain_ids[clampi(_strain_option.selected, 0, _strain_ids.size() - 1)]
 	var quality_tier := maxi(0, _quality_option.selected) if _quality_option != null else 0
-	if _sim.has_method("stock_smolts"):
-		_sim.stock_smolts(_selected_pen_id, STOCK_BATCH, strain_id, quality_tier)
+	_last_stock_count = int(_count_spin.value)
+	# The verb's completion signal (and its toast) fires before it returns, so
+	# the reason comes from the same check run first as a preview.
+	var check: Dictionary = _sim.preview_pen_stocking(_selected_pen_id, pen_id, _last_stock_count, strain_id, quality_tier)
+	_last_stock_reason = str(check.get("label_key", ""))
+	_sim.stock_smolts_in_pen(_selected_pen_id, pen_id, _last_stock_count, strain_id, quality_tier)
 	action_requested.emit("stock_smolts", _selected_pen_id)
+
+## The count and refusal of the last stocking, for its toast.
+var _last_stock_count := STOCK_BATCH
+var _last_stock_reason := ""
 
 func _on_toggle_mitigation(kind: String) -> void:
 	if _selected_pen_id.is_empty() or not _sim:
@@ -510,7 +600,7 @@ func _on_pen_action_completed(action: String, pen_id: String, _success: bool) ->
 			"repair_nets":
 				_toast("🔧 " + tr("UI_TOAST_REPAIR_OK") % site, "SUCCESS")
 			"stock_smolts":
-				_toast("🐣 " + tr("UI_TOAST_STOCK_OK") % [SimFormatters.integer(STOCK_BATCH), site], "SUCCESS")
+				_toast("🐣 " + tr("UI_TOAST_STOCK_OK") % [SimFormatters.integer(_last_stock_count), site], "SUCCESS")
 			"mitigation":
 				_toast("🛡️ " + tr("UI_TOAST_MITIGATION_OK") % site, "SUCCESS")
 			"wellboat":
@@ -519,6 +609,9 @@ func _on_pen_action_completed(action: String, pen_id: String, _success: bool) ->
 				_toast("🏗️ " + tr("UI_TOAST_BUY_PEN"), "SUCCESS")
 			"sell":
 				_toast("💰 " + tr("UI_TOAST_SELL_PEN") % site, "INFO")
+	elif action == "stock_smolts" and not _last_stock_reason.is_empty() and tr(_last_stock_reason) != _last_stock_reason:
+		# S2-01b: say why the pen refused (200,000 fish, 25 kg/m³, MTB, money).
+		_toast("⚠️ " + tr(_last_stock_reason), "WARNING")
 	else:
 		_toast("⚠️ " + tr("UI_TOAST_ACTION_FAILED") % [SimLabels.pen_action(action), site], "WARNING")
 

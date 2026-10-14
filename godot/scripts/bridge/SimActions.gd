@@ -239,6 +239,37 @@ func stock_smolts(site_id: String, count: int = 10000, strain_id: String = "stan
 	return success
 
 
+## S2-01b: stock smolts in one pen of a site (the pen's id or number). The
+## result carries "success", "reason_key", "label_key" (translation key of a
+## refusal), "message", "fish", "site_id" and "pen_id".
+func stock_smolts_in_pen(site_id: String, pen_id: String, count: int, strain_id: String = "standard", quality_tier: int = 0) -> Dictionary:
+	if not game_bridge:
+		return {"success": false, "message": "Not initialized"}
+
+	var result: Dictionary = game_bridge.StockSmoltsInPen(site_id, pen_id, count, strain_id, quality_tier)
+	var success := bool(result.get("success", false))
+	pen_action_completed.emit("stock_smolts", site_id, success)
+	if not success:
+		push_warning("SimBridge: Stocking failed for pen '%s' at '%s' (%s)" % [pen_id, site_id, str(result.get("reason_key", ""))])
+	else:
+		state._refresh_state()
+	return result
+
+
+## S2-01b: delouse chosen pens of a site (pen ids or numbers; empty = the whole site).
+func delouse_pens(site_id: String, method: String, pen_ids: Array[String] = []) -> bool:
+	if not game_bridge:
+		return false
+
+	var success: bool = game_bridge.DelousePens(site_id, method, pen_ids)
+	pen_action_completed.emit("delouse", site_id, success)
+	if not success:
+		push_warning("SimBridge: Delousing failed for pens %s at '%s'" % [str(pen_ids), site_id])
+	else:
+		state._refresh_state()
+	return success
+
+
 ## Toggle a preventive mitigation: kind "skirt" or "deterrent" (Phase 1.5).
 func toggle_mitigation(site_id: String, kind: String) -> bool:
 	if not game_bridge:
