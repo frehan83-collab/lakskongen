@@ -1,8 +1,10 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/StockMarketPanel.gd" id="1_stock"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
 [node name="StockMarketPanel" type="PanelContainer"]
+theme = ExtResource("theme_chart")
 theme_type_variation = &"Card"
 anchors_preset = 15
 anchor_right = 1.0

@@ -1,8 +1,10 @@
-[gd_scene load_steps=2 format=3 uid="uid://d4dataexport01"]
+[gd_scene load_steps=3 format=3 uid="uid://d4dataexport01"]
 
 [ext_resource type="Script" path="res://scripts/ui/DataExportPanel.gd" id="1_export"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
 [node name="DataExportPanel" type="Control"]
+theme = ExtResource("theme_chart")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

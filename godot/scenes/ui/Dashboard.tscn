@@ -1,9 +1,11 @@
-[gd_scene load_steps=3 format=3 uid="uid://cmj8vk2n9xy1z"]
+[gd_scene load_steps=4 format=3 uid="uid://cmj8vk2n9xy1z"]
 
 [ext_resource type="Script" path="res://scripts/ui/Dashboard.gd" id="1_4n8xm"]
 [ext_resource type="Script" path="res://scripts/ui/LineChart.gd" id="2_chart"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
 [node name="Dashboard" type="Control"]
+theme = ExtResource("theme_chart")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

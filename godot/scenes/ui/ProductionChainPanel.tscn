@@ -1,8 +1,10 @@
-[gd_scene load_steps=2 format=3 uid="uid://bmv8x3y4n5o6p"]
+[gd_scene load_steps=3 format=3 uid="uid://bmv8x3y4n5o6p"]
 
 [ext_resource type="Script" path="res://scripts/ui/ProductionChainPanel.gd" id="1_production_chain"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
 [node name="ProductionChainPanel" type="PanelContainer"]
+theme = ExtResource("theme_chart")
 custom_minimum_size = Vector2(400, 500)
 script = ExtResource("1_production_chain")
 

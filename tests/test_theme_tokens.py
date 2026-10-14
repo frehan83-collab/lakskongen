@@ -304,3 +304,28 @@ def test_every_literal_type_variation_exists_in_both_themes():
         declared = _declared_types(theme_path)
         missing = {name: where for name, where in used.items() if name not in declared}
         assert missing == {}, f"{theme_path.name}: {missing}"
+
+
+# ── surfaces ──────────────────────────────────────────────────────────────────
+
+DOCUMENT_SCENES = ["Dashboard", "FinancePanel", "PenManagement", "ContractsPanel", "CrewPanel", "OffshorePanel",
+                   "CarbonLedgerPanel", "TelemetryPanel", "MapPanel", "EncyclopediaPanel", "DataExportPanel",
+                   "RASPanel", "AIFeedingPanel", "ProductionChainPanel", "SustainabilityPanel",
+                   "WeatherDiseasePanel", "StockMarketPanel", "StakeholderPanel", "EmpirePanel", "GeneticsPanel"]
+
+
+@pytest.mark.parametrize("name", DOCUMENT_SCENES)
+def test_document_panels_sit_on_chart_paper(name):
+    """D13: documents are Chart paper — on their root, so editor previews and
+    standalone use (harness, tests) match the game."""
+    text = (GODOT / "scenes" / "ui" / f"{name}.tscn").read_text(encoding="utf-8")
+    ext = re.search(r'\[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="([^"]+)"\]', text)
+    assert ext, f"{name} does not load the Chart theme"
+    root = re.search(r'^\[node name="[^"]+" type="[^"]+"\]\n((?:[^\[\n][^\n]*\n)*)', text, flags=re.M)
+    assert root and f'theme = ExtResource("{ext.group(1)}")' in root.group(1), f"{name} root lacks the Chart theme"
+
+
+def test_gameui_documents_area_is_chart_and_rail_is_ink():
+    text = (GODOT / "scenes" / "GameUI.tscn").read_text(encoding="utf-8")
+    assert re.search(r'\[node name="PanelContainer" type="Control"[^\]]*\]\n(?:[^\[\n][^\n]*\n)*theme = ExtResource\("2_chart"\)', text)
+    assert 'theme_type_variation = &"Rail"' in text

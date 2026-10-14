@@ -1,8 +1,10 @@
-[gd_scene load_steps=2 format=3 uid="uid://c8vk2n9xy1zp1"]
+[gd_scene load_steps=3 format=3 uid="uid://c8vk2n9xy1zp1"]
 
 [ext_resource type="Script" path="res://scripts/ui/SustainabilityPanel.gd" id="1_sustainability"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
 [node name="SustainabilityPanel" type="PanelContainer"]
+theme = ExtResource("theme_chart")
 theme_type_variation = &"Card"
 custom_minimum_size = Vector2(400, 500)
 anchors_preset = 15
