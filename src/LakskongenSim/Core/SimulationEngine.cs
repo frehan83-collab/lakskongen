@@ -43,7 +43,7 @@ namespace LakskongenSim.Core
         {
             Storyteller?.Detach();
             Storyteller = null!;
-            State = new GameState();
+            State = new GameState { CapacityRules = Finance.CapacityRegime.Unregulated }; // S2-01a: a scenario start opens the licence register
             Rng = new SimRng(0);
             _dayNotes.Clear();
             // Run state that lives on the engine rather than in GameState (F292).
@@ -1540,6 +1540,7 @@ private class BalancingConfig
         {
             new StormImpactsTickSystem(),
             new WellboatExecutionTickSystem(),
+            new CapacityEnforcementTickSystem(),
             new LicenseAuctionTickSystem(),
             new BalanceMirrorTickSystem(),
             new SolvencyTickSystem()
@@ -2905,6 +2906,10 @@ private class BalancingConfig
     /// </summary>
     private void IssueMattilsynetOverMabOrders(string zoneId)
     {
+        // Capacity v1 (S2-01a) reads every site against its MTB every day and
+        // orders the reduction itself; this red-zone order is the rule of an
+        // engine without a licence register.
+        if (CapacityRulesActive) return;
         foreach (var site in State.SeaSites.Where(s => s.ZoneId == zoneId))
         {
             if (site.IsOverMAB && !site.HasActiveMattilsynetOrder)

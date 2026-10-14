@@ -273,6 +273,26 @@ namespace LakskongenSim.Core
         /// <summary>Phase 4.1: green-zone licence auctions (open + settled).</summary>
         public List<Finance.LicenseAuctionState> LicenseAuctions { get; set; } = new();
 
+        // ─── Capacity v1 (S2-01a): licences and MTB ────────────────────────────
+
+        /// <summary>
+        /// The capacity rules this game runs under. A new engine starts
+        /// <see cref="Finance.CapacityRegime.Unregulated"/>; a scenario start opens
+        /// the licence register (<see cref="Finance.CapacityRegime.LicencesV1"/>).
+        /// Null only in a save written before S2-01: the load migrates it (each
+        /// site's old MAB becomes one licence in its production area).
+        /// </summary>
+        public Finance.CapacityRegime? CapacityRules { get; set; }
+
+        /// <summary>The company's sea licences (S2-01a); their MTB pools per production area.</summary>
+        public List<Finance.LicenceHolding> LicenceHoldings { get; set; } = new();
+
+        /// <summary>Licences granted this game: the sequence in each licence's deterministic id.</summary>
+        public int LicencesGranted { get; set; }
+
+        /// <summary>Biomass-over-MTB episodes (S2-01a): every open one and the latest closed ones.</summary>
+        public List<Finance.CapacityBreach> CapacityBreaches { get; set; } = new();
+
         /// <summary>StakeholderFactionSystem: Faction relations.</summary>
         public Dictionary<string, decimal> FactionRelations { get; set; } = new();
 

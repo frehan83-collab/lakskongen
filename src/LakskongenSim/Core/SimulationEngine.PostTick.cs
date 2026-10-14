@@ -41,6 +41,18 @@ internal sealed class WellboatExecutionTickSystem : ITickSystem
 }
 
 /// <summary>
+/// POST-TICK phase (S2-01a): capacity enforcement. Runs after the day's
+/// wellboat harvests (so a harvest that lands today counts) and before the
+/// balance mirror (so a fee, a confiscation or a forced harvest syncs into
+/// State.Balance the same day): every production area's standing biomass
+/// against its licence MTB and every site against its locality MTB.
+/// </summary>
+internal sealed class CapacityEnforcementTickSystem : ITickSystem
+{
+    public void Tick(SimulationEngine engine) => engine.EnforceCapacity();
+}
+
+/// <summary>
 /// POST-TICK phase 3: licence auctions (Phase 4.1). Runs BEFORE the balance
 /// mirror so settlement charges (player wins) sync into State.Balance the
 /// same day. Drives rival raises, settlement of closed auctions and

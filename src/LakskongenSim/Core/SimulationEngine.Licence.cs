@@ -146,9 +146,14 @@ public partial class SimulationEngine
     }
 
     /// <summary>
-    /// Build a sea site (780 t MAB, 8 pens). Charges the calibration
-    /// construction cost and consumes a held growth licence when the build
-    /// enters a new zone. This is the single build path the bridge proxies.
+    /// Build a sea site: a locality cleared for the calibration's locality MTB
+    /// (<see cref="BuiltSiteLocalityMtbTonnes"/>, 3,120 t) with 8 pens. A build
+    /// adds no licence and 0 t of licence MTB (S2-01a: licences cannot clear a
+    /// locality, and a locality needs no licences to fill it, NFD 20.09.2017):
+    /// the fish it can hold come from the licences the company holds in the
+    /// site's production area. Charges the calibration construction cost and
+    /// consumes a held growth licence's zone right when the build enters a new
+    /// zone. This is the single build path the bridge proxies.
     /// </summary>
     public CommandResult BuildSeaSite(string zoneId, string name)
     {
@@ -169,8 +174,8 @@ public partial class SimulationEngine
         var site = new SeaSite(siteId, zoneId)
         {
             DisplayName = SiteNames.NextFor(State.SeaSites),
-            MABTonnes = 780.0,
-            NumberOfPens = 8,
+            MABTonnes = BuiltSiteLocalityMtbTonnes,
+            NumberOfPens = StandardPensPerSite,
             PenVolume = 50000f,
             MaxAllowedDensity = 25.0f
         };
@@ -183,7 +188,7 @@ public partial class SimulationEngine
             Day = State.Day,
             Name = "Nytt sjøanlegg",
             Category = EventCategory.Regulation,
-            Description = $"Bygde sjøanlegget {site.Label} i {ZoneLabel(zoneId)} (780 t MTB)",
+            Description = SimText.Nb($"Bygde sjøanlegget {site.Label} i {ZoneLabel(zoneId)}: lokaliteten er klarert for {site.MABTonnes:N0} t MTB. Biomassen den kan holde, kommer fra tillatelsene i produksjonsområdet."),
             BalanceChange = -cost
         });
         State.TrimEventLog();
@@ -235,6 +240,10 @@ public partial class SimulationEngine
                 // Settlement already required the player to be solvent; the
                 // licence is an intangible asset, not a P&L cost.
                 PayCost(settlement.AmountNOK, CostBooking.Capex, "growth_licence");
+                // S2-01a: the licence's MTB (780 t, 945 t in Troms and Finnmark)
+                // joins the company's biomass cap in the zone's production area.
+                GrantLicence(State, ProductionAreaOfZone(auction.ZoneId), StandardLicenceMtbTonnes(auction.ZoneId),
+                    "", LicenceOrigin.Auction, settlement.AmountNOK);
                 State.EventLog.Add(new EventRecord
                 {
                     Day = State.Day,
@@ -266,7 +275,7 @@ public partial class SimulationEngine
                     rival.CashReserves -= settlement.AmountNOK;
                     rival.LicenseCount++;
                     rival.SiteCount++;
-                    rival.TotalMABTonnes += 780f;
+                    rival.TotalMABTonnes += StandardLicenceMtbTonnes(auction.ZoneId);
                 }
                 State.EventLog.Add(new EventRecord
                 {
@@ -439,6 +448,11 @@ public partial class SimulationEngine
             // Transfer licenses
             if (asset.LicenseCount.HasValue && asset.LicenseCount > 0)
             {
+                // S2-01a: each licence's MTB joins the company's biomass cap in
+                // the production area of the asset's site (the home area when it
+                // comes without one).
+                string zone = asset.Location ?? "zone-1";
+                int area = ProductionAreaOfZone(zone);
                 for (int i = 0; i < asset.LicenseCount.Value; i++)
                 {
                     State.Licenses.Add(new LicenseRecord
@@ -447,6 +461,8 @@ public partial class SimulationEngine
                         ExpiryDay = State.Day + 3650, // 10 years
                         AnnualFee = _balancing.LicenseCostNOK * 0.1m
                     });
+                    GrantLicence(State, area, StandardLicenceMtbTonnes(zone),
+                        string.IsNullOrEmpty(asset.SiteId) ? "" : asset.SiteId!, LicenceOrigin.Acquisition);
                 }
             }
 
