@@ -41,6 +41,8 @@ var _switching: bool = false # GameUI itself is hiding the current panel
 var _more_button: MenuButton = null
 var _overflow_ids: Array[String] = []
 var _overflow_queued: bool = false
+## True while the see-through Fjord tab shows the world (camera input on).
+signal world_view_changed(world_visible: bool)
 
 # ── Autoload References ───────────────────────────────────────────────────────
 
@@ -518,6 +520,7 @@ func _set_see_through(see_through: bool) -> void:
 			node = node.get_parent() as Control
 	for node: Control in _container_filters:
 		node.mouse_filter = Control.MOUSE_FILTER_IGNORE if see_through else _container_filters[node]
+	world_view_changed.emit(see_through)
 
 ## Soft enter for tab panels: fade + rise. Falls back silently if the
 ## panel is not ready for tweens yet.

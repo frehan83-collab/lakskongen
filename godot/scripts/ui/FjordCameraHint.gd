@@ -24,6 +24,9 @@ func _ready() -> void:
 	if _bridge:
 		if _bridge.pen_manager:
 			_bridge.pen_manager.pen_selection_changed.connect(_on_selection_changed)
+		if _bridge.has_signal("world_view_changed"):
+			_bridge.world_view_changed.connect(_on_world_view_changed)
+			visible = _bridge.world_visible
 		set_process(true)
 	_update_button()
 
@@ -54,3 +57,8 @@ func _on_selection_changed(_pen_id: String) -> void:
 func _on_fly_pressed() -> void:
 	if _bridge:
 		_bridge.focus_selected_pen()
+
+
+## Hidden while an opaque panel covers the world.
+func _on_world_view_changed(world_visible: bool) -> void:
+	visible = world_visible

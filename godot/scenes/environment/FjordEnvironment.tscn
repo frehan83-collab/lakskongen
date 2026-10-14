@@ -5,10 +5,8 @@
 [ext_resource type="Script" path="res://scripts/environment/FjordCamera.gd" id="3_camera"]
 [ext_resource type="Script" path="res://scripts/environment/TimeOfDay.gd" id="4_time"]
 [ext_resource type="Script" path="res://scripts/environment/WeatherController.gd" id="5_weather"]
-[ext_resource type="Script" path="res://scripts/visual/VisualAdapter3D.gd" id="9_visual_adapter"]
 [ext_resource type="Script" path="res://scripts/visual/particles/ParticleEffects.gd" id="10_particles"]
 [ext_resource type="Shader" path="res://shaders/water_shader.gdshader" id="6_water_shader"]
-[ext_resource type="Shader" path="res://shaders/tilt_shift.gdshader" id="7_tilt_shader"]
 [ext_resource type="Shader" path="res://shaders/sky_shader.gdshader" id="8_sky_shader"]
 [ext_resource type="Texture2D" path="res://assets/textures/water/ocean_normal_1.png" id="10_normal_map_1"]
 [ext_resource type="Texture2D" path="res://assets/textures/water/ocean_normal_2.png" id="11_normal_map_2"]
@@ -18,134 +16,98 @@
 [ext_resource type="Script" path="res://scripts/visual/WellboatVisualManager.gd" id="15_wellboat_vm_script"]
 [ext_resource type="Script" path="res://scripts/visual/FeedBargeVisualManager.gd" id="16_feedbarge_vm_script"]
 [ext_resource type="Script" path="res://scripts/visual/CompetitorFarmVisualManager.gd" id="17_competitorfarm_vm_script"]
-[ext_resource type="Script" path="res://scripts/environment/Sim3DSync.gd" id="18_sim3d_sync"]
+[ext_resource type="Script" path="res://scripts/environment/EnvironmentDirector.gd" id="18_director"]
+[ext_resource type="Script" path="res://scripts/environment/WaterGrid.gd" id="19_water_grid"]
 
 [sub_resource type="ShaderMaterial" id="water_mat"]
 shader = ExtResource("6_water_shader")
-shader_parameter/wave_speed = 1.0
-shader_parameter/wave_amplitude = 0.3
-shader_parameter/wave_frequency = 0.15
-shader_parameter/wave_count = 3
-shader_parameter/wave_steepness = 0.4
-shader_parameter/shallow_color = Color(0.1, 0.32, 0.36, 1)
-shader_parameter/medium_color = Color(0.04, 0.18, 0.24, 1)
-shader_parameter/deep_color = Color(0.01, 0.07, 0.11, 1)
-shader_parameter/depth_fade_distance = 25.0
-shader_parameter/transparency = 0.85
-shader_parameter/foam_amount = 1.5
-shader_parameter/foam_cutoff = 0.8
-shader_parameter/foam_color = Color(0.9, 0.95, 1.0, 1)
-shader_parameter/metallic_value = 0.0
-shader_parameter/roughness_value = 0.08
-shader_parameter/fresnel_power = 5.0
-shader_parameter/caustic_scale = 8.0
-shader_parameter/caustic_speed = 0.3
-shader_parameter/caustic_intensity = 0.3
-shader_parameter/normal_map_scale = 0.05
-shader_parameter/normal_map_scroll_dir1 = Vector2(1, 0.2)
-shader_parameter/normal_map_scroll_dir2 = Vector2(-0.3, 1)
-shader_parameter/normal_map_scroll_speed = 0.02
-shader_parameter/normal_map_strength = 1.0
+shader_parameter/whitecaps = 0.0
+shader_parameter/ripple_strength = 0.3
+shader_parameter/sea_height = Vector2(0.1, 0.5)
+shader_parameter/sea_direction = Vector2(0.287, 0.958)
+shader_parameter/sea_time = 0.0
+shader_parameter/absorption = Vector3(0.4, 0.09, 0.14)
+shader_parameter/deep_scatter = Vector3(0.0022, 0.0085, 0.0105)
+shader_parameter/seabed_sediment = Vector3(0.11, 0.105, 0.075)
+shader_parameter/seabed_rock = Vector3(0.04, 0.042, 0.04)
+shader_parameter/foam_color = Vector3(0.86, 0.9, 0.92)
+shader_parameter/base_roughness = 0.04
+shader_parameter/algae_density = 0.0
+shader_parameter/temperature_factor = 0.2
+shader_parameter/turbidity = 0.0
+shader_parameter/underside_light = Vector3(0.3, 0.45, 0.5)
+shader_parameter/has_bake = 0.0
 shader_parameter/normal_map_1 = ExtResource("10_normal_map_1")
 shader_parameter/normal_map_2 = ExtResource("11_normal_map_2")
 shader_parameter/foam_texture = ExtResource("13_foam_tex")
 shader_parameter/caustics_texture = ExtResource("14_caustics_tex")
-shader_parameter/foam_scale = 0.03
-shader_parameter/foam_scroll_speed = 0.02
-shader_parameter/foam_texture_strength = 0.25
-shader_parameter/caustics_tile_scale = 0.05
-shader_parameter/caustics_tile_speed = 0.05
-shader_parameter/caustics_tile_strength = 0.6
-shader_parameter/wind_direction = Vector2(1, 0.3)
-shader_parameter/wind_strength = 1.0
-shader_parameter/water_clarity = 0.85
-shader_parameter/temperature_factor = 0.2
-shader_parameter/algae_density = 0.0
-shader_parameter/turbidity = 0.0
-
-[sub_resource type="PlaneMesh" id="water_plane_mesh"]
-size = Vector2(4000, 4000)
-subdivide_width = 128
-subdivide_depth = 128
+shader_parameter/grid_half_units = 128.0
+shader_parameter/grid_base_spacing = 2.0
 
 [sub_resource type="ShaderMaterial" id="sky_mat"]
 shader = ExtResource("8_sky_shader")
-shader_parameter/time_of_day = 0.35
-shader_parameter/season = 0.5
+shader_parameter/sky_time = 0.0
+shader_parameter/cloud_coverage = 0.18
+shader_parameter/cloud_density = 0.15
+shader_parameter/cloud_offset = Vector2(0, 0)
 shader_parameter/aurora_intensity = 0.0
-shader_parameter/aurora_enabled = true
-shader_parameter/aurora_band_height = 0.35
-shader_parameter/aurora_band_width = 0.18
-shader_parameter/cloud_coverage = 0.3
-shader_parameter/star_density = 0.5
-shader_parameter/sun_size = 0.02
+shader_parameter/aurora_offset_km = 200.0
+shader_parameter/aurora_kp = 2.0
+shader_parameter/moon_direction = Vector3(0, -1, 0)
+shader_parameter/moon_illumination = 0.0
+shader_parameter/haze_color = Color(0.58, 0.68, 0.8, 1)
+shader_parameter/haze_amount = 0.0
+shader_parameter/sky_energy = 1.0
 
 [sub_resource type="Sky" id="sky_resource"]
 sky_material = SubResource("sky_mat")
+process_mode = 2
 
 [sub_resource type="Environment" id="environment_resource"]
 background_mode = 2
 sky = SubResource("sky_resource")
 ambient_light_source = 3
-ambient_light_color = Color(0.529, 0.808, 0.922, 1)
-ambient_light_sky_contribution = 0.6
-ambient_light_energy = 0.6
+ambient_light_color = Color(0.58, 0.68, 0.8, 1)
+ambient_light_sky_contribution = 0.85
 reflected_light_source = 2
 tonemap_mode = 4
-tonemap_exposure = 0.95
-tonemap_white = 6.0
+tonemap_agx_white = 6.0
+tonemap_agx_contrast = 1.3
 ssao_enabled = true
-ssao_radius = 2.0
-ssao_intensity = 0.7
+ssao_radius = 4.0
+ssao_intensity = 1.2
 ssao_power = 1.5
 ssao_detail = 0.5
 ssao_horizon = 0.06
 ssao_sharpness = 0.98
-ssao_light_affect = 0.1
 glow_enabled = true
 glow_normalized = true
 glow_levels/1 = 0.0
 glow_levels/2 = 0.0
-glow_levels/3 = 0.1
-glow_levels/4 = 0.3
-glow_levels/5 = 0.5
-glow_levels/6 = 0.3
-glow_levels/7 = 0.1
-glow_intensity = 0.35
+glow_levels/3 = 1.0
+glow_levels/4 = 1.0
+glow_levels/5 = 1.0
+glow_levels/6 = 0.0
+glow_levels/7 = 0.0
+glow_intensity = 0.25
 glow_strength = 1.0
 glow_bloom = 0.0
-glow_blend_mode = 2
-glow_hdr_threshold = 1.3
-glow_hdr_scale = 2.0
-glow_hdr_luminance_cap = 12.0
-glow_map_strength = 0.8
+glow_blend_mode = 1
+glow_hdr_threshold = 1.0
 fog_enabled = true
-fog_light_color = Color(0.75, 0.82, 0.9, 1)
-fog_light_energy = 1.0
-fog_sun_scatter = 0.2
-fog_density = 0.0006
-fog_aerial_perspective = 0.3
-fog_sky_affect = 0.35
-fog_height = 30.0
-fog_height_density = 0.003
-adjustments_enabled = true
-adjustment_brightness = 1.0
-adjustment_contrast = 1.08
-adjustment_saturation = 1.12
-volumetric_fog_enabled = false
-volumetric_fog_density = 0.01
-volumetric_fog_albedo = Color(0.9, 0.92, 0.95, 1)
+fog_light_color = Color(0.58, 0.68, 0.8, 1)
+fog_sun_scatter = 0.25
+fog_density = 0.0001
+fog_aerial_perspective = 0.6
+fog_sky_affect = 0.15
+fog_height = 45.0
+fog_height_density = 0.0
 
-[sub_resource type="ShaderMaterial" id="tilt_shift_mat"]
-shader = ExtResource("7_tilt_shader")
-shader_parameter/focus_center = 0.5
-shader_parameter/focus_width = 0.15
-shader_parameter/blur_amount = 3.0
-shader_parameter/saturation_boost = 1.3
-shader_parameter/vignette_strength = 0.3
-shader_parameter/vignette_radius = 0.8
-shader_parameter/warmth = 0.02
-shader_parameter/contrast = 1.1
+[sub_resource type="CameraAttributesPractical" id="camera_attributes"]
+dof_blur_far_enabled = true
+dof_blur_far_distance = 1200.0
+dof_blur_far_transition = 2000.0
+dof_blur_amount = 0.1
 
 [sub_resource type="ShaderMaterial" id="underwater_mat"]
 shader = ExtResource("12_underwater_shader")
@@ -161,88 +123,117 @@ shader_parameter/caustics_texture = ExtResource("14_caustics_tex")
 
 [sub_resource type="ParticleProcessMaterial" id="rain_process"]
 particle_flag_disable_z = false
-direction = Vector3(0, -1, 0)
-spread = 8.0
-initial_velocity_min = 18.0
-initial_velocity_max = 26.0
-gravity = Vector3(0, -30, 0)
-scale_min = 0.5
+emission_shape = 3
+emission_box_extents = Vector3(60, 4, 60)
+direction = Vector3(0.08, -1, 0.03)
+spread = 4.0
+initial_velocity_min = 16.0
+initial_velocity_max = 22.0
+gravity = Vector3(0, -12, 0)
+scale_min = 0.6
 scale_max = 1.0
 
 [sub_resource type="StandardMaterial3D" id="rain_draw_mat"]
 transparency = 1
 shading_mode = 0
-albedo_color = Color(0.65, 0.75, 0.95, 0.5)
-billboard_mode = 3
+albedo_color = Color(0.72, 0.78, 0.86, 0.22)
+billboard_mode = 2
+distance_fade_mode = 1
+distance_fade_min_distance = 2.5
+distance_fade_max_distance = 16.0
 
 [sub_resource type="QuadMesh" id="rain_mesh"]
 material = SubResource("rain_draw_mat")
-size = Vector2(0.04, 0.7)
+size = Vector2(0.012, 0.55)
 
 [sub_resource type="ParticleProcessMaterial" id="snow_process"]
+emission_shape = 3
+emission_box_extents = Vector3(45, 12, 45)
 direction = Vector3(0, -1, 0)
 spread = 30.0
 initial_velocity_min = 1.0
-initial_velocity_max = 3.0
-gravity = Vector3(0, -2, 0)
+initial_velocity_max = 2.0
+gravity = Vector3(0, -1.2, 0)
 damping_min = 0.1
 damping_max = 0.3
+scale_min = 0.5
+scale_max = 1.0
 turbulence_enabled = true
 turbulence_noise_strength = 0.6
 turbulence_noise_speed = Vector3(0.2, 0.1, 0.2)
 
+[sub_resource type="Gradient" id="snowflake_gradient"]
+offsets = PackedFloat32Array(0, 0.45, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="snowflake_texture"]
+gradient = SubResource("snowflake_gradient")
+width = 32
+height = 32
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
 [sub_resource type="StandardMaterial3D" id="snow_draw_mat"]
 transparency = 1
 shading_mode = 0
-albedo_color = Color(0.95, 0.97, 1, 0.85)
+albedo_color = Color(0.92, 0.94, 0.98, 0.85)
+albedo_texture = SubResource("snowflake_texture")
 billboard_mode = 3
+distance_fade_mode = 1
+distance_fade_min_distance = 1.5
+distance_fade_max_distance = 10.0
 
 [sub_resource type="QuadMesh" id="snow_mesh"]
 material = SubResource("snow_draw_mat")
-size = Vector2(0.12, 0.12)
+size = Vector2(0.09, 0.09)
 
 
-[node name="FjordEnvironment" type="Node3D" node_paths=PackedStringArray("terrain", "camera", "time_system", "weather_system", "water_plane", "visual_adapter", "particle_effects", "underwater_rect", "wellboat_visual_manager", "feed_barge_visual_manager", "competitor_farm_visual_manager", "sim_3d_sync")]
+[node name="FjordEnvironment" type="Node3D" node_paths=PackedStringArray("terrain", "camera", "time_system", "weather_system", "water_grid", "particle_effects", "underwater_rect", "director")]
 script = ExtResource("1_env")
 terrain = NodePath("Terrain")
 camera = NodePath("FjordCamera")
 time_system = NodePath("TimeOfDay")
 weather_system = NodePath("WeatherSystem")
-water_plane = NodePath("WaterPlane")
-visual_adapter = NodePath("VisualAdapter3D")
+water_grid = NodePath("WaterGrid")
 particle_effects = NodePath("ParticleEffects")
 underwater_rect = NodePath("UnderwaterCanvas/UnderwaterRect")
+director = NodePath("EnvironmentDirector")
 
 [node name="Terrain" type="Node3D" parent="."]
 script = ExtResource("2_terrain")
 terrain_size = Vector2(4000, 4000)
-terrain_resolution = 256
-max_height = 400.0
-fjord_depth = 0.8
-fjord_width = 0.15
-cliff_steepness = 2.0
-island_count = 4
+terrain_resolution = 512
 terrain_seed = 42
 
-[node name="WaterPlane" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("water_plane_mesh")
-material_override = SubResource("water_mat")
+[node name="WaterGrid" type="Node3D" parent="."]
+script = ExtResource("19_water_grid")
+material = SubResource("water_mat")
 
 [node name="FjordCamera" type="Camera3D" parent="." node_paths=PackedStringArray("terrain")]
 script = ExtResource("3_camera")
 transform = Transform3D(1, 0, 0, 0, 0.766, -0.643, 0, 0.643, 0.766, 0, 200, 100)
 current = true
+attributes = SubResource("camera_attributes")
 fov = 50.0
 terrain = NodePath("../Terrain")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.5, -0.866, 0, 0.866, 0.5, 0, 0, 0)
 light_color = Color(1, 0.957, 0.902, 1)
-light_energy = 1.2
+light_energy = 3.0
+light_angular_distance = 0.53
 shadow_enabled = true
 directional_shadow_mode = 2
-directional_shadow_max_distance = 1200.0
+directional_shadow_max_distance = 1600.0
+
+[node name="Moon" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.5, 0.866, 0, -0.866, 0.5, 0, 0, 0)
+light_color = Color(0.78, 0.843, 0.91, 1)
+light_energy = 0.0
+directional_shadow_mode = 2
+directional_shadow_max_distance = 1600.0
+sky_mode = 1
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("environment_resource")
@@ -254,27 +245,39 @@ origin_offset = Vector3(0, 0, 0)
 intensity = 1.0
 max_distance = 4000.0
 box_projection = false
+reflection_mask = 524287
+ambient_mode = 0
 update_mode = 0
 
-[node name="TimeOfDay" type="Node" parent="." node_paths=PackedStringArray("sun_light", "world_environment")]
+[node name="TimeOfDay" type="Node" parent="."]
 script = ExtResource("4_time")
-time_of_day = 0.35
+time_of_day = 0.45
 time_scale = 2.0
-sun_light = NodePath("../Sun")
-world_environment = NodePath("../WorldEnvironment")
 
-[node name="WeatherSystem" type="Node3D" parent="." node_paths=PackedStringArray("rain_particles", "snow_particles", "world_environment")]
+[node name="WeatherSystem" type="Node3D" parent="." node_paths=PackedStringArray("rain_particles", "snow_particles")]
 script = ExtResource("5_weather")
 rain_particles = NodePath("RainParticles")
 snow_particles = NodePath("SnowParticles")
+
+[node name="EnvironmentDirector" type="Node" parent="." node_paths=PackedStringArray("world_environment", "sun_light", "moon_light", "time_system", "weather_system", "camera", "water_grid", "terrain", "reflection_probe")]
+script = ExtResource("18_director")
 world_environment = NodePath("../WorldEnvironment")
+sun_light = NodePath("../Sun")
+moon_light = NodePath("../Moon")
+time_system = NodePath("../TimeOfDay")
+weather_system = NodePath("../WeatherSystem")
+camera = NodePath("../FjordCamera")
+water_grid = NodePath("../WaterGrid")
+terrain = NodePath("../Terrain")
+reflection_probe = NodePath("../ReflectionProbe")
 
 [node name="RainParticles" type="GPUParticles3D" parent="WeatherSystem"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 50, 0)
 emitting = false
 amount = 2000
-lifetime = 2.0
-visibility_aabb = AABB(-100, -50, -100, 200, 100, 200)
+lifetime = 2.2
+preprocess = 2.2
+visibility_aabb = AABB(-80, -60, -80, 160, 80, 160)
 process_material = SubResource("rain_process")
 draw_pass_1 = SubResource("rain_mesh")
 
@@ -282,22 +285,11 @@ draw_pass_1 = SubResource("rain_mesh")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 60, 0)
 emitting = false
 amount = 1500
-lifetime = 5.0
-visibility_aabb = AABB(-100, -60, -100, 200, 120, 200)
+lifetime = 14.0
+preprocess = 14.0
+visibility_aabb = AABB(-60, -40, -60, 120, 60, 120)
 process_material = SubResource("snow_process")
 draw_pass_1 = SubResource("snow_mesh")
-
-[node name="TiltShiftCanvas" type="CanvasLayer" parent="."]
-layer = 1
-
-[node name="TiltShiftRect" type="ColorRect" parent="TiltShiftCanvas"]
-visible = true
-material = SubResource("tilt_shift_mat")
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 
 [node name="UnderwaterCanvas" type="CanvasLayer" parent="."]
 layer = 1
@@ -312,9 +304,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="VisualAdapter3D" type="Node" parent="."]
-script = ExtResource("9_visual_adapter")
-
 [node name="ParticleEffects" type="Node3D" parent="."]
 script = ExtResource("10_particles")
 [node name="WellboatVisualManager" type="Node" parent="."]
@@ -326,6 +315,4 @@ script = ExtResource("16_feedbarge_vm_script")
 [node name="CompetitorFarmVisualManager" type="Node" parent="."]
 script = ExtResource("17_competitorfarm_vm_script")
 
-[node name="Sim3DSync" type="Node" parent="."]
-script = ExtResource("18_sim3d_sync")
 

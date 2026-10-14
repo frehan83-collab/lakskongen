@@ -14,12 +14,18 @@ var pen_manager: FishPenManager = null
 var vista_camera: FjordCamera = null
 var game_ui: Control = null
 var selected_pen_id: String = ""
-## When false, sim weather/waves/season do NOT touch the 3D environment.
-## Used by the screenshot harness, which stages each weather regime itself —
-## otherwise every sim tick overrides the staged shot weather.
+## When false, the sim's calendar, latitude and weather do NOT touch the 3D
+## sky. Used by the screenshot harness, which stages each regime itself —
+## otherwise every sim tick overrides the staged shot. The water state
+## (temperature, bloom) always follows the sim.
 var sim_weather_enabled: bool = true
 
 signal farm_focused(pen_id: String)
+## The world is on screen (the see-through Fjord tab) or covered by a panel.
+signal world_view_changed(world_visible: bool)
+
+## True while the world is on screen; camera input and the camera hint follow it.
+var world_visible: bool = true
 
 ## UI lists (the Pens tab) select through this group, so a pen chosen in a
 ## list is selected in 3D too ("Fly to pen" needs a selection).
@@ -31,6 +37,8 @@ func _ready() -> void:
 	pen_manager = get_node_or_null(pen_manager_path) as FishPenManager
 	vista_camera = get_node_or_null(camera_path) as FjordCamera
 	game_ui = get_node_or_null(game_ui_path)
+	if game_ui and game_ui.has_signal("world_view_changed"):
+		game_ui.world_view_changed.connect(_on_world_view_changed)
 	if pen_manager:
 		pen_manager.pen_clicked.connect(_on_pen_clicked)
 		call_deferred("_initial_sync")
@@ -80,8 +88,17 @@ func _focus_first_pen() -> void:
 	var pen_ids := pen_manager.get_pen_ids()
 	if pen_ids.is_empty() or vista_camera == null:
 		return
-	vista_camera.fly_to_position(pen_manager.get_pen_position(pen_ids[0]),
-		FjordCamera.ZoomLevel.FJORD)
+	vista_camera.home_focus = pen_manager.get_pen_position(pen_ids[0])
+	vista_camera.fly_to_position(vista_camera.home_focus, FjordCamera.ZoomLevel.FJORD)
+
+
+## Camera keys, wheel and drags act only while the world is on screen; the
+## camera hint and "Fly to pen" hide behind opaque panels.
+func _on_world_view_changed(visible_now: bool) -> void:
+	world_visible = visible_now
+	if vista_camera:
+		vista_camera.input_enabled = visible_now
+	world_view_changed.emit(visible_now)
 
 
 func _on_state_updated() -> void:
@@ -94,41 +111,26 @@ func _on_state_updated() -> void:
 	_sync_environment(sim)
 
 
-## Living-fjord sync (~1 Hz via state_updated): sim weather drives the 3D
-## sky, sim waves/wind drive the water shader, sim season drives the clock.
+## Living-fjord sync (~1 Hz via state_updated): the sim's calendar, latitude
+## and atmosphere (GameBridge.GetSkyContext: Koschmieder visibility, cloud,
+## rain or snow, sea fog, wind, waves) drive the sky and weather; the sea
+## temperature and bloom severity drive the water. The environment's
+## EnvironmentDirector is the only writer of the resulting fog, sky, light
+## and wave uniforms; this presenter only hands it the inputs.
 ## Everything is guarded — a missing node skips quietly, never errors.
 func _sync_environment(sim: Node) -> void:
-	if not sim_weather_enabled:
-		return
 	var env := pen_manager.get_parent() as Node
-	if env == null or not env.has_method("set_weather"):
+	if env == null or not env.has_method("apply_sky_context"):
 		return
-	# Weather regime: Calm -> CLEAR, Moderate -> OVERCAST, Storm/Severe -> STORM.
-	var w := str(sim.get("weather_state") if "weather_state" in sim else "Calm")
-	var wstate := 0 # WeatherController.WeatherState.CLEAR
-	if w == "Moderate":
-		wstate = 1 # OVERCAST
-	elif w == "Storm" or w == "Severe":
-		wstate = 4 # STORM
-	env.call("set_weather", wstate)
-	# Season drives the day/night clock's seasonal track.
-	if env.has_method("set_season") and "season01" in sim:
-		env.call("set_season", float(sim.get("season01")))
-	# Waves + wind on the water shader.
-	var water := env.get("water_plane") as MeshInstance3D
-	if water != null and water.material_override is ShaderMaterial:
-		var wmat := water.material_override as ShaderMaterial
-		var wave_m := float(sim.get("wave_m")) if "wave_m" in sim else 0.0
-		var wind_ms := float(sim.get("wind_ms")) if "wind_ms" in sim else 0.0
-		wmat.set_shader_parameter("wave_amplitude", clampf(wave_m * 0.5, 0.05, 2.0))
-		wmat.set_shader_parameter("wind_strength", clampf(wind_ms / 8.0, 0.0, 3.0))
-		var temp_c := float(sim.get("temperature_c")) if "temperature_c" in sim else 8.0
-		wmat.set_shader_parameter("temperature_factor", clampf((temp_c - 2.0) / 18.0, 0.0, 1.0))
-		# Plankton bloom tint: read max bloom severity from sim and drive algae_density.
-		var gb := get_node_or_null("/root/GameBridge")
-		if gb != null and gb.has_method("GetMaxBloomSeverity"):
-			var max_severity := float(gb.GetMaxBloomSeverity())
-			wmat.set_shader_parameter("algae_density", clampf(max_severity, 0.0, 1.0))
+	if sim_weather_enabled and sim.has_method("get_sky_context"):
+		env.call("apply_sky_context", sim.get_sky_context())
+	# The water state is the farm's, not the weather's: always synced.
+	var temp_c := float(sim.get("temperature_c")) if "temperature_c" in sim else 8.0
+	var algae := 0.0
+	var gb := get_node_or_null("/root/GameBridge")
+	if gb != null and gb.has_method("GetMaxBloomSeverity"):
+		algae = float(gb.GetMaxBloomSeverity())
+	env.call("set_water_state", temp_c, algae)
 
 
 func _on_pen_clicked(pen_id: String, position: Vector3) -> void:

@@ -119,6 +119,8 @@ func get_achievement_list() -> Array[Dictionary]: return _arr(game_bridge.GetAch
 func get_current_weather_state() -> String: return game_bridge.GetCurrentWeatherState() if game_bridge else "Calm"
 ## FCR goal and failing ceiling from CalibrationRegistry: {"target", "poor"}.
 func get_fcr_targets() -> Dictionary: return game_bridge.GetFcrTargets() if game_bridge else {}
+func get_sky_context() -> Dictionary: return game_bridge.GetSkyContext() if game_bridge else {}
+func get_scene_latitude() -> float: return game_bridge.GetSceneLatitude() if game_bridge else 60.39
 func get_current_temperature() -> float: return float(game_bridge.GetCurrentTemperature()) if game_bridge else 0.0
 func get_current_day() -> int: return int(game_bridge.GetCurrentDay()) if game_bridge else 0
 

@@ -78,6 +78,11 @@ func _run() -> void:
 	await _test_hero_pen_and_site_kit()
 	await _test_vessel_fleet()
 	_test_facade_forwards_phase5_systems()
+	await _test_terrain_faces_up_and_shares_one_heightfield()
+	await _test_camera_frames_sky_and_avoids_terrain()
+	await _test_camera_keys_leave_focused_controls_alone()
+	await _test_environment_director_owns_the_look()
+	await _test_water_grid_bake_and_sea_state()
 	await _test_theme_and_contrast_on_every_screen()
 	_test_formatters_speak_the_locale()
 	await _test_dashboard_title_names_the_company()
@@ -2710,3 +2715,521 @@ func _finish() -> void:
 	for f in _failures:
 		print("  failed: %s" % f)
 	get_tree().quit(1 if not _failures.is_empty() else 0)
+
+## Golden heightfield hash of the game's fjord (seed 42, 512², 4 km): the
+## same value TerrainGeneratorTests.GoldenHashSeed42 pins in xUnit, so the
+## headless path, the windowed path (FjordTerrain logs it) and the .NET test
+## process all build one heightfield.
+const TERRAIN_GOLDEN_HASH := "5a84dfe1202f180d"
+
+## G1-01: the fjord is one heightfield, wound so every triangle faces up,
+## with a HeightMapShape3D collider, uploaded without a long main-thread frame.
+func _test_terrain_faces_up_and_shares_one_heightfield() -> void:
+	var terrain := FjordTerrain.new()
+	add_child(terrain)
+	var analytic := terrain.get_height_at(150.0, 600.0)
+	for i in 600:
+		if terrain.is_ready():
+			break
+		await get_tree().process_frame
+	_check(terrain.is_ready(), "terrain: the worker thread builds the fjord")
+	if not terrain.is_ready():
+		terrain.queue_free()
+		return
+	_check(terrain.heightfield_hash == TERRAIN_GOLDEN_HASH,
+		"terrain: the heightfield hash matches the xUnit golden (%s)" % terrain.heightfield_hash)
+	_check(terrain.max_upload_frame_ms < 50.0,
+		"terrain: no main-thread upload step over 50 ms (%.1f ms)" % terrain.max_upload_frame_ms)
+	_check(absf(terrain.get_height_at(150.0, 600.0) - analytic) < 3.0,
+		"terrain: grid heights match the generator queried before the grid existed")
+
+	var faces := 0
+	var up := true
+	var agree := true
+	for mesh_instance in terrain.get_chunk_meshes():
+		var arrays := mesh_instance.mesh.surface_get_arrays(0)
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+		var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+		for t in range(0, indices.size(), 3):
+			var a := indices[t]
+			var b := indices[t + 1]
+			var c := indices[t + 2]
+			var n := Plane(verts[a], verts[b], verts[c]).normal
+			up = up and n.y > 0.0
+			agree = agree and n.dot(normals[a]) > 0.0 and n.dot(normals[b]) > 0.0 and n.dot(normals[c]) > 0.0
+			faces += 1
+	var n_side := terrain.terrain_resolution - 1
+	_check(faces == n_side * n_side * 2, "terrain: the chunks cover the grid (%d triangles)" % faces)
+	_check(up, "terrain: every triangle's Plane normal points up (clockwise winding)")
+	_check(agree, "terrain: every triangle agrees with its vertex normals")
+
+	# The collider is a HeightMapShape3D scaled to the grid: a ray finds the
+	# same ground the height query reports.
+	var shape_node := terrain.get_node("TerrainBody").get_child(0) as CollisionShape3D
+	_check(shape_node != null and shape_node.shape is HeightMapShape3D, "terrain: the collider is a HeightMapShape3D")
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var space := terrain.get_world_3d().direct_space_state
+	var hits_match := true
+	for probe in [Vector2(900.0, 300.0), Vector2(-1100.0, -200.0), Vector2(0.0, 1700.0), Vector2(-60.0, 0.0)]:
+		var query := PhysicsRayQueryParameters3D.create(Vector3(probe.x, 3000.0, probe.y), Vector3(probe.x, -800.0, probe.y))
+		var hit := space.intersect_ray(query)
+		hits_match = hits_match and not hit.is_empty() \
+			and absf((hit["position"] as Vector3).y - terrain.get_height_at(probe.x, probe.y)) < 1.5
+	_check(hits_match, "terrain: physics rays hit the collider at the queried heights")
+	terrain.queue_free()
+	await get_tree().process_frame
+
+## G1-03: at the FJORD and COAST defaults the horizon sits 10-25 % from the
+## top with >= 10 % sky; 200 seeded orbits per zoom keep the camera >= 20 m
+## over the ground with the focus in view; a 10 s orbit and zoom sweep never
+## moves the camera more than 2 % of its distance in a frame; UNDERWATER
+## goes below the surface.
+func _test_camera_frames_sky_and_avoids_terrain() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "camera: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var cam: FjordCamera = env.get_node("FjordCamera")
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	cam.auto_orbit_enabled = false
+	var first: Vector3 = pens.get_pen_position(pens.get_pen_ids()[0])
+	for zoom in [FjordCamera.ZoomLevel.FJORD, FjordCamera.ZoomLevel.COAST]:
+		cam.home_focus = first
+		cam.recentre()
+		cam.look_at_position(first, zoom)
+		await _settle_camera(cam)
+		var label: String = "FJORD" if zoom == FjordCamera.ZoomLevel.FJORD else "COAST"
+		var row := _horizon_row(cam)
+		_check(row >= 0.10 and row <= 0.25, "camera: %s horizon row %.3f of the frame height" % [label, row])
+		var sky := _sky_fraction(cam)
+		_check(sky >= 0.10, "camera: %s shows %.0f %% sky" % [label, sky * 100.0])
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1301
+	var slots := pens.get_recommended_locations()
+	for zoom in [FjordCamera.ZoomLevel.FARM, FjordCamera.ZoomLevel.FJORD, FjordCamera.ZoomLevel.COAST]:
+		var distance: float = FjordCamera.ZOOM_DISTANCE[zoom]
+		var pitch: float = FjordCamera.view_for_distance(distance).x
+		var clear := 0
+		var seen := 0
+		for i in 200:
+			var focus: Vector3 = slots[rng.randi_range(0, slots.size() - 1)] + Vector3(rng.randf_range(-60.0, 60.0), 0.0, rng.randf_range(-60.0, 60.0))
+			var pos := cam.solve_rig(focus, rng.randf_range(-PI, PI), distance, pitch)
+			if pos.y - maxf(terrain.get_height_at(pos.x, pos.z), terrain.water_level) >= 20.0:
+				clear += 1
+			if _line_clears_terrain(terrain, pos, focus):
+				seen += 1
+		_check(clear >= 198, "camera: zoom %d sits >= 20 m above the ground in %d/200 orbits" % [zoom, clear])
+		_check(seen >= 198, "camera: zoom %d sees the focus in %d/200 orbits" % [zoom, seen])
+
+	# 10 s orbit and zoom sweep at 60 fps, stepped by hand.
+	cam.set_process(false)
+	cam.look_at_position(first, FjordCamera.ZoomLevel.FJORD)
+	for i in 240:
+		cam._process(1.0 / 60.0)
+	var last := cam.global_position
+	var worst := 0.0
+	var centre := get_viewport().get_visible_rect().size * 0.5
+	for frame in 600:
+		cam._yaw_target += cam.rotate_speed / 60.0
+		if frame % 30 == 0:
+			cam._zoom_by(FjordCamera.ZOOM_STEP if (frame / 180) % 2 == 0 else 1.0 / FjordCamera.ZOOM_STEP, centre)
+		cam._process(1.0 / 60.0)
+		worst = maxf(worst, cam.global_position.distance_to(last) / cam.get_current_distance())
+		last = cam.global_position
+	_check(worst <= 0.02, "camera: the largest per-frame move in a 10 s orbit and zoom sweep is %.2f %% of the distance" % (worst * 100.0))
+	cam.set_process(true)
+
+	cam.look_at_position(first, FjordCamera.ZoomLevel.UNDERWATER)
+	await _settle_camera(cam)
+	_check(cam.global_position.y < 0.0, "camera: UNDERWATER goes below the surface (y = %.1f)" % cam.global_position.y)
+	cam.set_zoom_level(FjordCamera.ZoomLevel.FJORD)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## G1-03: camera keys never steal input from a focused Control: arrows on the
+## tab bar and WASD in a text field leave the camera still; with nothing
+## focused the same keys pan it.
+func _test_camera_keys_leave_focused_controls_alone() -> void:
+	var scene := await _spawn_game_scene()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var cam: FjordCamera = scene.get_node("FjordEnvironment/FjordCamera")
+	cam.auto_orbit_enabled = false
+	ui.show_tab("fjord")
+	await get_tree().process_frame
+	_check(cam.input_enabled, "camera keys: the Fjord tab turns camera input on")
+	var tab: Button = ui.find_child("Tab_fjord", true, false)
+	tab.grab_focus()
+	var before := cam.get_focus_point()
+	await _hold_key(KEY_RIGHT, 20)
+	_check(cam.get_focus_point() == before, "camera keys: the right arrow on the tab bar leaves the camera still")
+	_check(get_viewport().gui_get_focus_owner() != null, "camera keys: the arrow walked the tab bar instead")
+
+	var field := LineEdit.new()
+	scene.get_node("UILayer").add_child(field)
+	field.grab_focus()
+	before = cam.get_focus_point()
+	await _hold_key(KEY_W, 20)
+	_check(cam.get_focus_point() == before, "camera keys: W typed into a text field leaves the camera still")
+	_check(field.text.to_lower().contains("w"), "camera keys: the text field got the W ('%s')" % field.text)
+
+	get_viewport().gui_release_focus()
+	before = cam.get_focus_point()
+	await _hold_key(KEY_W, 20)
+	_check(cam.get_focus_point().distance_to(before) > 1.0, "camera keys: with nothing focused W pans the camera")
+	ui.show_tab("dashboard")
+	await get_tree().process_frame
+	_check(not cam.input_enabled, "camera keys: an opaque panel turns camera input off")
+	var hint: Control = scene.get_node("UILayer/CameraHint")
+	_check(not hint.visible, "camera keys: the camera hint hides behind an opaque panel")
+	before = cam.get_focus_point()
+	await _hold_key(KEY_W, 20)
+	_check(cam.get_focus_point() == before, "camera keys: W behind an opaque panel leaves the camera still")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## G1-02 / G1-04 / G1-06: the EnvironmentDirector composes fog, light, sky
+## and the image settings from its inputs. The calendar and latitude come
+## from the sim; fog is Koschmieder's (3.912 / visibility): a clear day
+## leaves the FJORD focus >= 85 % visible, a storm <= 35 %; leaving the water
+## restores the day fog; the sky's LIGHT0 is the sun light; the sun's energy
+## never jumps > 10 % in a frame through a day and a storm; the aurora needs
+## a dark, clear northern night; depth of field and shadow distance follow
+## the zoom; the reflection probe is captured once the terrain is built.
+func _test_environment_director_owns_the_look() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "environment: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: FjordEnvironment = scene.get_node("FjordEnvironment")
+	var director: EnvironmentDirector = env.get_node("EnvironmentDirector")
+	var ts: TimeOfDay = env.get_node("TimeOfDay")
+	var weather: WeatherController = env.get_node("WeatherSystem")
+	var cam: FjordCamera = env.get_node("FjordCamera")
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var vista: FjordVistaBridge = scene.get_node("FjordVistaBridge")
+	var world_env: Environment = (env.get_node("WorldEnvironment") as WorldEnvironment).environment
+	var sun: DirectionalLight3D = env.get_node("Sun")
+	var moon: DirectionalLight3D = env.get_node("Moon")
+	cam.auto_orbit_enabled = false
+
+	# The calendar and the latitude are the sim's (D20).
+	var ctx: Dictionary = _sim.get_sky_context()
+	weather.transition_duration = 0.0
+	vista._on_state_updated()
+	await get_tree().process_frame
+	_check(absf(ts.latitude_deg - 63.43) < 0.01, "environment: the sky's latitude is the scenario region's (Trøndelag 63.43, got %.2f)" % ts.latitude_deg)
+	_check(ts.sim_day == int(ctx.get("sim_day", -1)), "environment: the sky's date is the sim day (%d)" % ts.sim_day)
+	_check(absf(weather.get_visibility_m() - float(ctx.get("visibility_km", 0.0)) * 1000.0) < 1.0
+		and is_equal_approx(weather.get_cloud_cover(), float(ctx.get("cloud_cover", -1.0))),
+		"environment: the weather shows the sim's visibility (%.1f km) and cloud cover" % (weather.get_visibility_m() / 1000.0))
+
+	# Stage the rest: the sim stops driving the sky.
+	vista.sim_weather_enabled = false
+	ts.paused = true
+	weather.transition_duration = 0.0
+	env.set_season(0.5)
+	env.set_time(12.0)
+	var focus_m: float = FjordCamera.ZOOM_DISTANCE[FjordCamera.ZoomLevel.FJORD]
+	env.set_weather(WeatherController.WeatherState.CLEAR)
+	director.compose(0.0, true)
+	_check(absf(world_env.fog_density - 3.912 / weather.get_visibility_m()) < 1e-9,
+		"environment: fog density is Koschmieder's 3.912 / visibility (%.6f)" % world_env.fog_density)
+	var t_clear := director.transmittance(focus_m)
+	_check(t_clear >= 0.85, "environment: a clear day leaves %.0f %% of the FJORD focus visible" % (t_clear * 100.0))
+	var sky_mat := world_env.sky.sky_material as ShaderMaterial
+	_check(is_equal_approx(float(sky_mat.get_shader_parameter("cloud_coverage")), weather.get_cloud_cover()),
+		"environment: the sky's cloud cover is the weather's")
+	var clear_energy: float = director.get_composed()["sun_energy"]
+	env.set_weather(WeatherController.WeatherState.STORM)
+	director.compose(0.0, true)
+	var t_storm := director.transmittance(focus_m)
+	_check(t_storm <= 0.35, "environment: a storm leaves %.0f %% of the FJORD focus visible" % (t_storm * 100.0))
+	var storm_energy: float = director.get_composed()["sun_energy"]
+	_check(storm_energy <= clear_energy * 0.2, "environment: storm clouds dim the sun (%.2f -> %.2f)" % [clear_energy, storm_energy])
+	_check(sun.shadow_opacity < 0.5 and sun.light_angular_distance > 1.5 and sun.light_specular < 0.01, "environment: storm clouds soften the sun's shadows and take its glint off the water")
+
+	# Underwater on entry, the day's fog back on exit.
+	env.set_weather(WeatherController.WeatherState.CLEAR)
+	director.compose(0.0, true)
+	var day_color := world_env.fog_light_color
+	var day_density := world_env.fog_density
+	var first: Vector3 = pens.get_pen_position(pens.get_pen_ids()[0])
+	cam.look_at_position(first, FjordCamera.ZoomLevel.UNDERWATER)
+	await _settle_camera(cam)
+	director.compose(0.0, true)
+	_check(cam.global_position.y < 0.0 and world_env.fog_density > day_density * 20.0,
+		"environment: under the surface the water's fog applies (%.4f)" % world_env.fog_density)
+	cam.set_zoom_level(FjordCamera.ZoomLevel.FJORD)
+	await _settle_camera(cam)
+	director.compose(0.0, true)
+	_check(cam.global_position.y > 0.0 and world_env.fog_light_color.is_equal_approx(day_color) and is_equal_approx(world_env.fog_density, day_density),
+		"environment: leaving the water restores the day fog colour")
+
+	# The sky's LIGHT0 is the sun light, pointed from the sky's sun.
+	var angle := rad_to_deg((-sun.global_transform.basis.z).angle_to(-ts.get_sun_direction()))
+	_check(angle < 0.5, "environment: the sun light shines from the sky's sun (%.3f deg apart)" % angle)
+	_check(sun.sky_mode == DirectionalLight3D.SKY_MODE_LIGHT_AND_SKY and moon.sky_mode == DirectionalLight3D.SKY_MODE_LIGHT_ONLY,
+		"environment: the sun is the sky's LIGHT0 (the moon light stays out of the sky)")
+
+	# A day at 10 game minutes per second, 60 fps, a storm rolling in at noon.
+	weather.transition_duration = 10.0
+	ts.time_scale = 10.0
+	ts.paused = false
+	ts.set_hour(0.0)
+	director.set_process(false)
+	ts.set_process(false)
+	weather.set_process(false)
+	director.compose(0.0, true)
+	var prev := sun.light_energy
+	var floor_energy := EnvironmentDirector.SUN_ENERGY * 0.1
+	var worst := 0.0
+	var max_energy := 0.0
+	for frame in 8640:
+		if frame == 4320:
+			env.set_weather(WeatherController.WeatherState.STORM)
+		ts._process(1.0 / 60.0)
+		weather._process(1.0 / 60.0)
+		director.compose(1.0 / 60.0)
+		var e := sun.light_energy
+		worst = maxf(worst, absf(e - prev) / maxf(prev, floor_energy))
+		max_energy = maxf(max_energy, e)
+		prev = e
+	director.set_process(true)
+	ts.set_process(true)
+	weather.set_process(true)
+	ts.paused = true
+	weather.transition_duration = 0.0
+	_check(max_energy > 1.0 and worst <= 0.10,
+		"environment: through a day and a storm the sun's energy never steps more than 10 %% in a frame (worst %.1f %%)" % (worst * 100.0))
+
+	# The aurora: a clear winter night in Nordland, gone under cloud and by day.
+	env.set_latitude(68.2)
+	env.set_season(15.0 / 365.0)
+	env.set_time(22.0)
+	env.set_weather(WeatherController.WeatherState.CLEAR)
+	director.compose(0.0, true)
+	var night_aurora: float = director.get_composed()["aurora_intensity"]
+	_check(night_aurora > 0.2, "environment: a clear Nordland winter night has its aurora (%.2f)" % night_aurora)
+	env.set_weather(WeatherController.WeatherState.OVERCAST)
+	director.compose(0.0, true)
+	_check(director.get_composed()["aurora_intensity"] == 0.0, "environment: an overcast sky hides the aurora")
+	env.set_weather(WeatherController.WeatherState.CLEAR)
+	env.set_time(12.0)
+	env.set_season(0.5)
+	director.compose(0.0, true)
+	_check(director.get_composed()["aurora_intensity"] == 0.0, "environment: no aurora in daylight")
+
+	# Depth of field and shadows by zoom.
+	var attrs := cam.attributes as CameraAttributesPractical
+	cam.look_at_position(first, FjordCamera.ZoomLevel.FARM)
+	await _settle_camera(cam)
+	director.compose(0.0, true)
+	_check(attrs != null and attrs.dof_blur_far_enabled and absf(attrs.dof_blur_amount - 0.06) < 0.005 and absf(sun.directional_shadow_max_distance - 350.0) < 5.0,
+		"environment: FARM focuses near (DOF %.3f, shadows %.0f m)" % [attrs.dof_blur_amount if attrs else -1.0, sun.directional_shadow_max_distance])
+	cam.look_at_position(first, FjordCamera.ZoomLevel.COAST)
+	await _settle_camera(cam)
+	director.compose(0.0, true)
+	_check(absf(attrs.dof_blur_amount - 0.14) < 0.005 and absf(sun.directional_shadow_max_distance - 4500.0) < 5.0 and absf(world_env.ssao_radius - 8.0) < 0.05,
+		"environment: COAST softens the far fjord (DOF %.3f, shadows %.0f m, SSAO %.1f m)" % [attrs.dof_blur_amount, sun.directional_shadow_max_distance, world_env.ssao_radius])
+	_check(world_env.tonemap_mode == Environment.TONE_MAPPER_AGX and is_equal_approx(world_env.tonemap_agx_white, 6.0) and not world_env.sdfgi_enabled,
+		"environment: AgX tonemapping, white 6, no SDFGI")
+
+	# The reflection probe is captured once the terrain is built.
+	for i in 600:
+		if terrain.is_ready():
+			break
+		await get_tree().process_frame
+	for i in 60:
+		await get_tree().process_frame
+	_check(terrain.is_ready() and director.probe_captures >= 1,
+		"environment: the reflection probe is captured after the terrain build (%d captures)" % director.probe_captures)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## G1-05: the water is a grid snapped to the camera, 2 m apart within 256 m
+## of it; the terrain's bake reaches the water and puts the pens over deep,
+## sheltered water; the sea comes from the wind and the fetch (a 3 m/s
+## breeze leaves the basin near flat, a 20 m/s gale rolls 2-4 m seas on the
+## open coast, wind never scales a fixed wave), its phases run on, and in a
+## 25 m/s storm the basin's highest stacked crest stays under the collar
+## top. The reflection probe never mirrors the water.
+func _test_water_grid_bake_and_sea_state() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "water: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: FjordEnvironment = scene.get_node("FjordEnvironment")
+	var director: EnvironmentDirector = env.get_node("EnvironmentDirector")
+	var grid: WaterGrid = env.get_node("WaterGrid")
+	var cam: FjordCamera = env.get_node("FjordCamera")
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var weather: WeatherController = env.get_node("WeatherSystem")
+	var vista: FjordVistaBridge = scene.get_node("FjordVistaBridge")
+	var probe: ReflectionProbe = env.get_node("ReflectionProbe")
+	cam.auto_orbit_enabled = false
+	for i in 600:
+		if terrain.is_ready():
+			break
+		await get_tree().process_frame
+	_check(terrain.is_ready(), "water: the terrain (and its water bake) is built")
+	var first: Vector3 = pens.get_pen_position(pens.get_pen_ids()[0])
+	cam.look_at_position(first, FjordCamera.ZoomLevel.FARM)
+	await _settle_camera(cam)
+	await get_tree().process_frame
+
+	# The grid: centred on the camera in whole 2 m steps, 2 m apart within 256 m.
+	var step := grid.base_spacing
+	var gp := grid.global_position
+	var cp := cam.global_position
+	_check(absf(gp.x - cp.x) <= step * 0.5 + 1e-3 and absf(gp.z - cp.z) <= step * 0.5 + 1e-3
+		and is_zero_approx(fposmod(gp.x, step)) and is_zero_approx(fposmod(gp.z, step)),
+		"water: the grid is centred on the camera in whole %.0f m steps" % step)
+	var fine := true
+	for i in 400:
+		var a := float(i) * 2.399963
+		var r := 256.0 * sqrt(float(i) / 400.0)
+		fine = fine and grid.spacing_at(cp + Vector3(cos(a) * r, 0.0, sin(a) * r)) <= 2.0
+	var level0: Array[MeshInstance3D] = []
+	for piece in grid.get_pieces():
+		if piece.name.begins_with("L0_"):
+			level0.append(piece)
+	var covered := AABB()
+	var spaced := level0.size() == 4
+	for piece in level0:
+		var plane := piece.mesh as PlaneMesh
+		var world_box: AABB = piece.global_transform * plane.get_aabb()
+		covered = world_box if covered.size == Vector3.ZERO else covered.merge(world_box)
+		# Unit quads (size / (subdivisions + 1) = 1) scaled by the level's spacing.
+		var unit_quads := is_equal_approx(plane.size.x / float(plane.subdivide_width + 1), 1.0)
+		spaced = spaced and unit_quads and is_equal_approx(piece.global_transform.basis.get_scale().x, 2.0)
+	var reach := minf(minf(cp.x - covered.position.x, covered.end.x - cp.x), minf(cp.z - covered.position.z, covered.end.z - cp.z))
+	_check(fine and spaced and reach >= 256.0 - step,
+		"water: vertices 2 m apart within 256 m of the camera (level 0 reaches %.0f m)" % reach)
+	cam.look_at_position(first + Vector3(37.0, 0.0, -53.0), FjordCamera.ZoomLevel.FARM)
+	await _settle_camera(cam)
+	await get_tree().process_frame
+	_check(grid.global_position.distance_to(Vector3(cam.global_position.x, 0.0, cam.global_position.z)) <= step,
+		"water: the grid follows the camera")
+
+	# The bake.
+	var mat := director.water_material()
+	_check(mat != null and is_equal_approx(float(mat.get_shader_parameter("has_bake")), 1.0)
+		and mat.get_shader_parameter("water_bake") == terrain.water_bake_texture,
+		"water: the terrain's bathymetry bake reaches the water")
+	var at_pen := terrain.water_bake_at(first.x, first.z)
+	_check(at_pen.r > 15.0 and at_pen.g > 30.0 and at_pen.b < 0.25,
+		"water: the pens float over deep, sheltered water (depth %.0f m, shore %.0f m, exposure %.2f)" % [at_pen.r, at_pen.g, at_pen.b])
+	_check(absf(terrain.water_bake_at(150.0, 600.0).r + terrain.get_height_at(150.0, 600.0)) < 2.0,
+		"water: the baked depth is the terrain's depth below sea level")
+
+	# The sea from the wind and the fetch.
+	vista.sim_weather_enabled = false
+	weather.transition_duration = 0.0
+	env.apply_sky_context({"weather_state": "Calm", "wind_ms": 3.0, "cloud_cover": 0.2, "visibility_km": 40.0})
+	director.compose(1.0 / 60.0)
+	var calm: Dictionary = director.sea_state.duplicate()
+	_check(float(calm["sheltered_hs"]) >= 0.03 and float(calm["sheltered_hs"]) <= 0.15,
+		"water: a 3 m/s breeze leaves the sheltered basin near flat (Hs %.2f m over %.0f m of fetch)" % [calm["sheltered_hs"], calm["fetch_m"]])
+	env.apply_sky_context({"weather_state": "Storm", "wind_ms": 20.0, "cloud_cover": 0.97, "visibility_km": 4.0})
+	director.compose(1.0 / 60.0)
+	var gale: Dictionary = director.sea_state.duplicate()
+	_check(float(gale["exposed_hs"]) >= 2.0 and float(gale["exposed_hs"]) <= 4.0 and float(gale["sheltered_hs"]) < float(gale["exposed_hs"]) * 0.5,
+		"water: a 20 m/s gale rolls %.1f m seas on the open coast, %.2f m in the basin" % [gale["exposed_hs"], gale["sheltered_hs"]])
+	_check(float(gale["whitecaps"]) > float(calm["whitecaps"]) * 100.0,
+		"water: whitecaps follow the wind (Monahan %.4f -> %.3f)" % [calm["whitecaps"], gale["whitecaps"]])
+	var amps: PackedVector4Array = mat.get_shader_parameter("wave_amp")
+	var sum_sq := 0.0
+	for amp in amps:
+		sum_sq += amp.x * amp.x
+	_check(absf(sqrt(8.0 * sum_sq) - float(gale["sheltered_hs"])) < 0.01,
+		"water: the drawn waves carry the basin's significant height (sum a^2 = Hs^2 / 8)")
+	var phase_before := amps[0].z
+	director.compose(0.25)
+	var phase_after: float = (mat.get_shader_parameter("wave_amp") as PackedVector4Array)[0].z
+	_check(not is_equal_approx(phase_before, phase_after), "water: the wave phases run on")
+
+	# Freeboard: until G2-03 makes the pens bob, the basin's waves stay under the collar.
+	env.apply_sky_context({"weather_state": "Severe", "wind_ms": 25.0, "cloud_cover": 1.0, "visibility_km": 2.0})
+	director.compose(1.0 / 60.0)
+	var pen_node := pens._pens[pens.get_pen_ids()[0]]["node"] as Node3D
+	var collar := pen_node.get_node_or_null("Collar") as MeshInstance3D if pen_node != null else null
+	var collar_top := (collar.global_transform * collar.mesh.get_aabb()).end.y if collar != null else 0.0
+	var crest := director.max_crest_at(terrain.water_bake_at(first.x, first.z).b)
+	_check(collar != null and crest > 0.0 and crest < collar_top,
+		"water: a 25 m/s storm's highest crest at the pen (%.2f m) stays under the collar top (%.2f m)" % [crest, collar_top])
+
+	_check(probe.reflection_mask & WaterGrid.RENDER_LAYER == 0 and grid.get_pieces()[0].layers == WaterGrid.RENDER_LAYER,
+		"water: the reflection probe leaves the water's layer out")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Hold a key down through the Input singleton for `frames` frames.
+func _hold_key(keycode: Key, frames: int) -> void:
+	var down := InputEventKey.new()
+	down.keycode = keycode
+	down.physical_keycode = keycode
+	down.unicode = keycode + 32 if keycode >= KEY_A and keycode <= KEY_Z else 0
+	down.pressed = true
+	Input.parse_input_event(down)
+	for i in frames:
+		await get_tree().process_frame
+	var up := InputEventKey.new()
+	up.keycode = keycode
+	up.physical_keycode = keycode
+	up.pressed = false
+	Input.parse_input_event(up)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+func _settle_camera(cam: FjordCamera) -> void:
+	var last := Vector3.INF
+	for i in 3000:
+		await get_tree().process_frame
+		if cam.global_position.distance_to(last) < 0.001:
+			return
+		last = cam.global_position
+
+## Where the horizon (the horizontal through the camera) crosses the screen,
+## as a fraction of the frame height from the top.
+func _horizon_row(cam: Camera3D) -> float:
+	var forward := -cam.global_transform.basis.z
+	forward.y = 0.0
+	var far_point := cam.global_position + forward.normalized() * 100000.0
+	return cam.unproject_position(far_point).y / get_viewport().get_visible_rect().size.y
+
+## Fraction of a 48x27 grid of screen rays that rise into open sky.
+func _sky_fraction(cam: FjordCamera) -> float:
+	var size := get_viewport().get_visible_rect().size
+	var sky := 0
+	for gy in 27:
+		for gx in 48:
+			var p := Vector2((gx + 0.5) / 48.0 * size.x, (gy + 0.5) / 27.0 * size.y)
+			if cam.project_ray_normal(p).y > 0.0 and not cam.pick_ground(p).is_finite():
+				sky += 1
+	return float(sky) / float(48 * 27)
+
+## True when the straight line from the camera to the focus passes over the
+## terrain all the way (water never hides the focus).
+func _line_clears_terrain(terrain: FjordTerrain, from: Vector3, to: Vector3) -> bool:
+	for i in range(1, 100):
+		var p := from.lerp(to, float(i) / 100.0)
+		var ground := terrain.get_height_at(p.x, p.z)
+		if ground > terrain.water_level and p.y < ground:
+			return false
+	return true
