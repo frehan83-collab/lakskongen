@@ -180,6 +180,14 @@ namespace LakskongenSim.Core
         // stock per site per year; see docs/BALANCE.md §1c and the 0.5% guard.
         private const double StormIntegrityLossPctPerDay = 0.3;
         private const double SevereIntegrityLossPctPerDay = 1.0;
+        /// <summary>
+        /// Routine net maintenance on a non-storm day. Re-fit with S1-02 (0.2 -> 0.5):
+        /// the 0.2 was fitted to a weather chain that never reached Severe in
+        /// Oct-Mar (F456). The honest chain wears nets ~57% more per year
+        /// (~74 vs ~47 integrity points), and at 0.2 maintained nets fell below
+        /// the 40% risk line within two years (escapes 173% of stock/site/year).
+        /// 0.5 restores the measured maintained-net outcome of BALANCE.md §1c.
+        /// </summary>
         private const double NetIntegrityRepairPctPerDay = 0.5;
         /// <summary>Expected containment-failure probability on a severe-storm day.</summary>
         private const double StormFailureProbabilityPerSevereDay = 0.01;

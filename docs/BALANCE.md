@@ -8,7 +8,8 @@ outside the reality bands named below.
 This document is the human-readable companion to the registry: it records the
 current game value, the real Norwegian reference, the source, and the
 recommended playtest band for each high-leverage knob. Last reconciled:
-**Oct 2026, calibration v1.0.3**.
+**Oct 2026, calibration v1.0.3**; bands re-measured **2026-10-14** after the
+S1-01 water-chemistry and S1-02 storm-season fixes (§1d).
 
 ## 1. Feed-cost path audit (end-to-end)
 
@@ -51,31 +52,34 @@ engine path.
 `src/LakskongenSim.Tests/Balance/SimProbe.cs` runs 20 seeded 3-year (1095-day)
 grow-out sims per scenario, harvesting and re-stocking each time the stock
 reaches the calibrated 5.2 kg target. `BalanceReportTests` asserts the medians
-below against the reference bands in this document. Measured **Oct 2026,
-calibration v1.0.3** (fully deterministic: the engine seeds growth, weather,
-market O-U and market intelligence RNG from the same seed).
+below against the reference bands in this document. Re-measured
+**2026-10-14** after S1-01 and S1-02 (the before/after is §1d; fully
+deterministic: the engine seeds growth, weather, market O-U and market
+intelligence RNG from the same seed).
 
 Scenario `Baseline`: one 50k-smolt sea site, storyteller events off, no zone.
 This is the deterministic no-disease/no-storm path; its numbers are unchanged
-by v1.0.3 (the calibrated all-cause anchor still drives the whole total).
+by v1.0.3 (the calibrated all-cause anchor still drives the whole total). The
+S1-02 weather chain moves them slightly (the sea temperature follows the weather
+state).
 
 | Metric | Measured min / **median** / p90 | Reference band | Verdict |
 |---|---|---|---|
-| Mean economic FCR | 1.20 / **1.20** / 1.21 | 1.10-1.30 (bFCR 1.15) | IN BAND |
-| Sea mortality %/cycle | 14.19 / **15.76** / 17.82 | 14-16 (NVI 2024) | IN BAND |
+| Mean economic FCR | 1.20 / **1.22** / 1.25 | 1.10-1.30 (bFCR 1.15) | IN BAND |
+| Sea mortality %/cycle | 14.25 / **15.67** / 20.18 | 14-16 (NVI 2024) | IN BAND |
 | Mean harvest weight kg | 5.20 / **5.20** / 5.20 | 4.5-5.5 | IN BAND |
-| Feed cost NOK/kg produced | 26.65 / **26.76** / 26.96 | 22-30 (~25.7) | IN BAND |
-| Realized price NOK/kg | 80.89 / **88.00** / 88.00 | 74-90 | IN BAND |
-| Peak adult-female lice/fish | 0.36 / **0.49** / 0.76 | ~0.5 action limit | IN BAND (median at limit) |
+| Feed cost NOK/kg produced | 26.85 / **27.23** / 27.98 | 22-30 (~25.7) | IN BAND |
+| Realized price NOK/kg | 81.21 / **88.00** / 88.00 | 74-90 | IN BAND |
+| Peak adult-female lice/fish | 0.38 / **0.54** / 0.88 | ~0.5 action limit | IN BAND (median at limit) |
 | Escapes/year | 0.00 / **0.00** / 0.00 | low (<=2 guard) | IN BAND |
 
 Scenario `HighStocking` (100k smolt) is statistically identical on these
-per-fish/per-cycle metrics — FCR 1.20, mortality 15.75%/cycle, harvest 5.20 kg,
-feed cost 26.76 NOK/kg, realized price 88.0, lice 0.49 — confirming the bands
+per-fish/per-cycle metrics — FCR 1.22, mortality 15.68%/cycle, harvest 5.20 kg,
+feed cost 27.23 NOK/kg, realized price 88.0, lice 0.54 — confirming the bands
 hold as farm size changes.
 
 Note on the tails: the realized-price p90 sits at the normal-play band ceiling
-(88 NOK/kg) rather than the hard ceiling; the lice p90 (0.76) exceeds the 0.5
+(88 NOK/kg) rather than the hard ceiling; the lice p90 (0.88) exceeds the 0.5
 action limit, which is expected for an *untreated* long/warm cycle and is the
 whole reason delousing earns its cost.
 
@@ -141,7 +145,8 @@ This pass wired the two dormant depth systems into the live engine:
 ## 1c. Extended probe — disease, escapes, multi-site economics (seeds 1-20)
 
 `SimProbe` now also sweeps four extension scenarios, all pure in-process and
-deterministic for a given seed. Measured **Oct 2026, calibration v1.0.3**.
+deterministic for a given seed. Re-measured **2026-10-14** after S1-01 and
+S1-02 (before/after in §1d).
 
 ### Disease-cycle mortality (`SimScenario.DiseaseStress`)
 
@@ -154,8 +159,8 @@ deaths exactly from the injected per-population rate
 
 | Metric | Measured min / **median** / p90 | Reference / guard | Verdict |
 |---|---|---|---|
-| Disease mortality %/cycle | 4.34 / **4.39** / 8.62 | 0.5-10 (calibrated slice) | IN BAND |
-| Total sea mortality %/cycle | 13.37 / **14.88** / 16.84 | 14-16 (NVI 2024) | IN BAND |
+| Disease mortality %/cycle | 4.29 / **4.37** / 8.53 | 0.5-10 (calibrated slice) | IN BAND |
+| Total sea mortality %/cycle | 14.67 / **16.11** / 21.00 | 14-16 (NVI 2024) | IN BAND |
 
 **v1.0.3 (wired):** the disease subsystem is no longer dormant. The base SIR is
 ticked deterministically every day for every population and injects its mortality
@@ -173,7 +178,8 @@ stays in the baseline and disease never injects (deterministic path).
 `RunStorm` runs the seeded weather; the **engine itself** now owns storm
 containment: `SimulationEngine.ApplyStormHazards` decays
 `SeaSite.NetIntegrityPct` on storm days (0.3/day storm, 1.0/day severe, scaled by
-containment/crew multipliers), repairs it 0.2/day in calm weather, and records
+containment/crew multipliers), repairs it 0.5/day on non-storm days (re-fit in
+S1-02 from 0.2, which matched the old chain's Severe-free winters), and records
 escapes through `SeaSite.RecordEscape`. A severe storm can cause a containment
 failure (expected 1% per severe day releasing up to 5% of the pen at full wear,
 scaled by containment `EscapeRiskMult`, `RemoteOpsCentre` watch-mode response and
@@ -181,15 +187,18 @@ scaled by containment `EscapeRiskMult`, `RemoteOpsCentre` watch-mode response an
 also leaks on a storm day. Escapes charge the regulatory fine and write the event
 log. The probe only reads the engine counters — there is no test-side model and
 `GameBridge.CheckWeatherImpacts` no longer duplicates it. Deterministic for a
-given seed (storm timing is seeded).
+given seed (storm timing is seeded). Storm mortality, repair bills and
+insurance claims (`ApplyStormAndTemperatureImpacts`) are charged once per storm
+episode, plus once when it escalates from Storm to Severe (S1-02); they used to
+fire on every Storm/Severe flip.
 
 | Metric | Measured min / **median** / p90 | Reference / guard | Verdict |
 |---|---|---|---|
-| Escapes / site / year (fish) | 10.3 / **30.7** / 59.0 | low | IN BAND |
-| Escape events / site / year | 0.12 / **0.16** / 0.21 | <=1 guard | IN BAND |
-| Escapes % of stock / site / year | 0.06 / **0.22** / 0.44 | <=0.5% guard | IN BAND |
-| Storm days / year | 97 / **118.7** / 128.7 | scenario exposure proof | OK |
-| Min net integrity % | 63.3 / **80.7** / 86.3 | >=40 (SeaSite risk line) | IN BAND |
+| Escapes / site / year (fish) | 21.7 / **49.0** / 84.0 | low | IN BAND |
+| Escape events / site / year | 0.32 / **0.42** / 0.46 | <=1 guard | IN BAND |
+| Escapes % of stock / site / year | 0.13 / **0.36** / 0.50 | <=0.5% guard | IN BAND |
+| Storm days / year | 136.0 / **145.0** / 155.3 | scenario exposure proof | OK |
+| Min net integrity % | 68.8 / **82.9** / 85.9 | >=40 (SeaSite risk line) | IN BAND |
 
 Real mapping: Norwegian escape events are rare and per-site annual escape rates
 sit far below 1% of stock; the 0.5% guard is a conservative cap. This also keeps
@@ -207,17 +216,17 @@ farming-segment EBIT/kg.
 
 | Metric | Measured min / **median** / p90 | Reference / guard | Verdict |
 |---|---|---|---|
-| Gross revenue NOK (3 sites) | 70.0M / **94.8M** / 112.8M | design | OK |
-| Total OPEX NOK (3 sites) | 67.3M / **76.1M** / 83.4M | design | OK |
-| **EBIT NOK/kg** | 2.31 / **16.43** / 22.13 | cyclical 8-25 | IN BAND |
-| Cost NOK/kg produced | 62.96 / **69.58** / 79.58 | farm-gate, feed-dominant | IN BAND |
-| Profit NOK / site | 0.65M / **6.09M** / 9.78M | positive | OK |
-| Harvested kg / site | 273.7k / **366.2k** / 441.5k | ~50k x 5.2 kg x cycles | OK |
+| Gross revenue NOK (3 sites) | 54.1M / **110.0M** / 113.1M | design | OK |
+| Total OPEX NOK (3 sites) | 61.3M / **83.2M** / 83.6M | design | OK |
+| **EBIT NOK/kg** | -11.20 / **20.11** / 22.48 | cyclical 8-25 | IN BAND |
+| Cost NOK/kg produced | 62.63 / **63.21** / 79.39 | farm-gate, feed-dominant | IN BAND |
+| Profit NOK / site | -2.38M / **8.87M** / 9.89M | positive | OK |
+| Harvested kg / site | 212.6k / **439.0k** / 443.9k | ~50k x 5.2 kg x cycles | OK |
 
 Cost stack per harvested kg: feed 25.645 (price x FCR), smolt 12/fish, sea labour
 (7 workers/site x 48k/month), site maintenance (0.01%/day of build cost) and
 wellboat harvest 4.0 — matching `docs/BALANCE.md` §2. Real mapping: the measured
-median EBIT/kg **16.4** sits inside the SalMar/Mowi cyclical **8-25** band
+median EBIT/kg **20.1** sits inside the SalMar/Mowi cyclical **8-25** band
 (SalMar 23.4 FY24, 13.6 FY25); feed remains the dominant cost at ~25.7 NOK/kg
 produced (Fiskeridir Tab.38).
 
@@ -240,6 +249,149 @@ the Mattilsynet 0.5 action limit (untreated cycles reach 0.49; §1b), and
 per-cycle resistance development stays low because the model resets lice state
 at sea stocking and resistance builds only from treatments applied within the
 cycle.
+
+## 1d. Re-measurement after S1-01 and S1-02 (2026-10-14, branch `wave1/sim-1`)
+
+**S1-01** merged the F1024 water-chemistry fix (each species relaxes exactly over
+the day toward its inflow baseline, oxygen toward saturation; the fish nutrient
+load is a concentration over the zone volume; a bloom runs at least 14 days),
+corrected the seawater oxygen solubility (Benson & Krause 1984 / APHA 4500-O:
+9.02 mg/L at 10 °C and 35 PSU, was 10.9), raised the pH baseline to coastal
+seawater (8.05, was 7.8) and lets every zone take the sea temperature each day.
+**S1-02** renormalized the storm-season weather chain through one transition
+helper shared with the 3-day forecast, charges storm damage once per storm
+episode, re-fits routine net repair (0.2 to 0.5 integrity points per non-storm
+day) and limits storm cooling to the stratified half of the year (Apr-Sep).
+
+Columns: **base** = `3cfd4b2` (before S1-01), **S1-01** = `932d759`,
+**S1-02** = the branch head. Measured with a temporary probe that calls the
+harnesses the tests use (`SimProbe`, `PlayerScriptProbe`, the
+`ScenarioCampaignTests` tutorial player); the S1-01 acceptance numbers are also
+asserted by `WaterChemistryStabilityTests` and the S1-02 numbers by
+`StormSeasonTests`.
+
+### Water chemistry: the 600-day po3 probe
+
+The po3 career script (events on, never harvested, so the load only grows),
+seeds 7 and 13, both zones.
+
+| Metric | base | S1-02 | S1-01 acceptance |
+|---|---|---|---|
+| Days with a species on a clamp | 599 of 600 | **0** | 0 |
+| Days DO below 70% saturation | 306-307 (51%) | **4-5 (0.7-0.8%)**, Apr-Sep only | <= 10%, summer only |
+| Days with an algal bloom | 593-597 (99%) | **0-14 (<= 2.3%)** | <= 15% |
+| pH | 7.78-8.50 (on the 8.5 clamp) | **8.049-8.050** | 7.8-8.2 |
+| Zone O2 min / mean / max, mg/L | 0.00 / 6.1 / 12.5-14.0 | 2.3-3.1 / 9.2-9.4 / 11.0 | |
+| Nutrient level max, mg/L | 379-1,586 | 0.51-3.0 | |
+
+Across 20 seeds (600 days, 24,000 zone-days, measured at S1-01) DO fell below
+70% saturation on 0.69% of zone-days: 157 of 165 in June-September, 6 in late
+April (spring-bloom crashes) and 2 in December/January. Those two come from a
+plankton bloom that started in autumn and crashed in winter: `PlanktonBloom`
+has no loss term while a bloom is active (follow-up for the mortality items).
+
+### Algae and oxygen alerts: a 365-day default run
+
+`forste_sesong` played passively, events on, seeds 4/7/9/13.
+
+| Signal | base | S1-02 |
+|---|---|---|
+| Days with a zone algal bloom | 345-346 (near-permanent) | **0-14** (one storyteller bloom of 14 days, or none) |
+| Days zone O2 = 0 mg/L | 184-185 | 0 |
+| HUD oxygen alerts (`SimState`: 0 < O2 < 5 critical, 5-6.5 warning) | 6-8 critical days (the 184 zero days slipped past the `> 0` guard) | 2 critical (plankton-crash days), 0 warning |
+| Days DO below 70% saturation | 186 | 2 |
+
+### Weather (WeatherSystem alone, 10 seeds x 3 years)
+
+| Metric | base | S1-02 |
+|---|---|---|
+| Oct-Mar Calm / Moderate / Storm / Severe | 32.1 / 37.2 / 30.7 / **0.0%** | 22.9 / 30.3 / 33.6 / **13.2%** |
+| Apr-Sep Calm / Moderate / Storm / Severe | 31.5 / 37.5 / 22.7 / 8.3% | 31.4 / 37.5 / 22.7 / 8.4% |
+| Exact stationary Storm+Severe, Oct-Mar vs Apr-Sep | 0.313 (Severe 0) vs 0.337 | **0.480 (Severe 0.138)** vs 0.337 |
+| Storm episodes per year | 44.6 | 46.3 |
+| Storm/Severe flips per year (the old charge rule) | 56.3 | 79.4 (now charged as 46.3 episodes plus escalations) |
+| 3-day forecast vs realized, 400 seeds | 39.5% vs 32.5% (7.1 points high) | 40.95% vs 40.91% |
+
+`StormSeasonTests` asserts the forecast within 2 points on 10 seeds (40.7% vs
+39.2%), within 0.5 points on 200 seeds (40.95% vs 40.84%), and within 3 points
+in each season.
+
+### Careers (`PlayerScriptProbe`, po3_red_sone, events on, mid-run save/load)
+
+| Seed | Stage | Days | Harvested kg | Realized NOK/kg | Econ FCR | Sea mortality | Ending balance |
+|---|---|---|---|---|---|---|---|
+| 7 | base | 480 | 444,117 | 78.12 | 1.531 | 26.7% | +10.68M |
+| 7 | S1-01 | 311 | 515,767 | 75.52 (spot that day; career mean 80.46) | 1.178 | 18.4% | +23.83M |
+| 7 | S1-02 | 311 | 520,293 | 75.52 (career mean 79.62) | 1.178 | 18.2% | +24.68M |
+| 13 | base | 495 | 395,780 | 88.00 | 1.540 | 34.8% | +7.71M |
+| 13 | S1-01 | 300 | 537,029 | 85.47 | 1.163 | 12.8% | +33.83M |
+| 13 | S1-02 | 285 | 531,843 | 80.97 (career mean 83.13) | 1.163 | 12.5% | +29.97M |
+
+The base column used the old probe (sell at 4.5 kg, 15-day steps, save on day
+300); S1-01 and S1-02 use the D2 harvest rule (from 4.5 kg on a day spot is at
+or above its 30-day mean, forced at 6 kg) and save on day 210, while both sites
+still hold fish. Seed 7's bands: realized >= 0.95 x spot on the harvest days
+(ratio 1.00), spot on the harvest days >= 0.9 x the career's mean spot (0.95),
+FCR 1.0-1.6, mortality <= 65%, balance > -1M. Seed 13 keeps 70-96 NOK/kg,
+FCR 0.9-2.6 and the D4 guard (balance > -15M); its old 61% mortality record is
+now 12.5% (S2-05 still attributes the mortality).
+
+### Tutorial (`forste_sesong`, the minimal player, seeds 4/7/9/21/13/42)
+
+| Stage | Won | Finish day | First harvest day |
+|---|---|---|---|
+| base | 4 of 6 (seeds 13 and 42 stalled at step 16 by day 1500) | 428-1212 | 381-462 |
+| S1-01 = S1-02 | **6 of 6** | 273-279 | 271-277 |
+
+Removing the hidden hypoxia brake (growth x0.2 on half the days) exposes how
+fast the growth model is: a January release of 100 g S1 smolts reaches 4.5 kg
+in about 275 days, where real Norwegian grow-out takes 14-18 months. S2-03
+(TGC growth) owns that; the tutorial should not be tuned around it.
+
+### Engine-path production cycle (`FullCycleEconomicTests`)
+
+PO04, 10,000 standard S1 smolts, events off, seeds 1/7/11/13, harvested at 5 kg.
+
+| Metric | base | S1-01 | S1-02 |
+|---|---|---|---|
+| Days to 5 kg | 554-562 | 457-479 | 414-461 |
+| Biological FCR (feed / biomass built incl. fish that died) | | 1.231-1.258 | **1.212-1.248** |
+| Economic FCR (feed / net harvested gain) | 1.80-2.63 | 1.466-1.981 | 1.460-1.947 |
+| Survival | 41-72% | 46-74% | 47-74% |
+
+The ledger books smolts plus feed kg x 22.3 NOK exactly (the test asserts it).
+Survival on any zone path is far below the NVI band (85%) because the seasonal
+bloom deck (jellyfish, algae, hypoxia) kills 25-55% of a cycle; without a zone
+the same cycle keeps 85% and an economic FCR of 1.34-1.37. That mortality is
+S2-05/S4-03's to attribute and fix.
+
+### SimProbe medians (seeds 1-20), base to S1-02
+
+S1-01 alone moves none of these (the probes run without a zone).
+
+| Scenario | Metric | base | S1-02 | Band |
+|---|---|---|---|---|
+| Baseline | Mean FCR | 1.22 | 1.22 | 1.10-1.30 |
+| Baseline | Sea mortality %/cycle | 15.86 | 15.67 | 14-16 |
+| Baseline | Feed cost NOK/kg produced | 27.15 | 27.23 | 22-30 |
+| Baseline | Realized price NOK/kg | 84.07 | 88.00 | 74-90 |
+| Baseline | Peak adult-female lice | 0.62 | 0.54 | ~0.5 |
+| DiseaseStress | Disease mortality %/cycle | 4.36 | 4.37 | 0.5-10 |
+| DiseaseStress | Total sea mortality %/cycle | 16.48 | 16.11 | 14-16 (+-0.5) |
+| Storm | Escapes % of stock/site/year | 0.19 | 0.36 (p90 0.50) | <= 0.5 (p90 <= 1.0) |
+| Storm | Escape events/site/year | 0.16 | 0.42 | <= 1 |
+| Storm | Storm days/year | 116.3 | 145.0 | exposure |
+| Storm | Min net integrity % | 84.1 | 82.9 | >= 40 |
+| ThreeSite | EBIT NOK/kg | 14.80 | 20.11 | 8-25 |
+| ThreeSite | Cost NOK/kg produced | 69.52 | 63.21 | |
+| LiceControl | Treatments/cycle, resistance, peak lice | 1.50, 0.07%, 0.15 | unchanged | |
+
+No band was loosened. The honest weather chain alone broke two of them, and the
+S1-02 model fixes restore them: with net repair left at 0.2 the nets fall below
+the 40% line within two years (storm escapes 173% of stock/site/year, DiseaseStress
+total 55.4%); with repair re-fit but the old per-flip storm charging, the
+DiseaseStress total is 16.89%; with storm episodes but winter storm cooling it is
+16.60%.
 
 ## 2. Key economic knobs
 
@@ -398,6 +550,26 @@ v1.0.3 depth-system guards in `BalanceReportTests`:
   `ExtendedProbes_AreDeterministic_SameSeedSameMetrics` — two identical seeds
   produce byte-identical metrics for the baseline, disease and storm scenarios.
 
+S1-01 / S1-02 guards (§1d):
+
+- `WaterChemistryStabilityTests.Po3Probe600Days_StaysOffTheClamps_WithRareSummerOnlyOxygenDips`
+  — 600 days, seeds 7 and 13: no clamp, pH 7.8-8.2, DO below 70% saturation on
+  at most 10% of days and only in Apr-Sep, a bloom on at most 15% of days.
+- `WaterChemistryStabilityTests.ZoneWater_FollowsTheSeaTemperature_AndItsOxygenTheSeasonalSolubility`.
+- `SDEGrowthModelTests.CalculateOxygenSaturation_*` — 9.02 +-0.05 mg/L at 10 °C
+  and 35 PSU, Garcia & Gordon (1992) to 0.01 mg/L, freshwater reference values.
+- `FullCycleEconomicTests.FullProductionCycle_OnTheEnginePath_FeedPerKgGainInBand`
+  — kg feed per kg gain 1.0-1.6 on the engine path, reconciled with the ledger.
+- `FullCycleEconomicTests.ZonePO04_AndAColdZone_GrowAndEarnAlike_UntilZonesGetTheirOwnTemperature`
+  and the pre-registered, skipped `Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13`
+  (S2-02/S2-03 remove the Skip).
+- `PlayerScriptCareerTests.Po3RedZone_CommandDrivenCareer_CompletesInBand` —
+  realized >= 0.95 x spot on the harvest days under the D2 harvest rule.
+- `StormSeasonTests` — every transition row sums to 1; winter has severe storms
+  and at least the summer storm share (stationary and sampled); the forecast
+  matches realized storms within 2 points (10 seeds) and 0.5 points (200 seeds);
+  storm damage once per episode, across a save; winter storms do not cool.
+
 ## Review log
 
 | Date | Reviewer | Changes |
@@ -407,3 +579,4 @@ v1.0.3 depth-system guards in `BalanceReportTests`:
 | 2026-10-08 | Calibration v1.0.2 | Wired `Health.SeaMortalityPerCycle` into `MortalityModel` (per-cycle -> per-day; 10.8 -> 15.8%); sourced `MarketSimulation` O-U from `CalibrationRegistry.Market`, added supply/demand mean-reversion + normal-play band, seeded market intelligence RNG (153 -> 88.0 NOK/kg); seeded seasonal external lice pressure (0.00 -> 0.49/fish). Re-ran `SimProbe` seeds 1-20 both scenarios; full suite green (707 passed). Updated `BalanceReportTests` bands from deferred to the real references; bumped `calibration.json` to 1.0.2. |
 | 2026-10-08 | Extended probe | Added disease-cycle, storm-escape, multi-site economics and lice-control scenarios to `SimProbe` + `BalanceReportTests` (§1c). Measured disease term 0.00%/cycle (dormant; engine deferral recorded in §5), storm escapes 0.15%/site/yr vs 0.5 guard, multi-site EBIT/kg 16.43 (in the 8-25 cyclical band), cost 69.6 NOK/kg produced, 1.5 treatments/cycle with 0.07% per-cycle resistance. Documented the test-side containment-risk model and the farm-gate cost stack. |
 | 2026-10-08 | Calibration v1.0.3 | Wired the two dormant depth systems into the live engine in-band. Disease: `IntegratedDiseaseSystem` injects via `MortalityModel.SetDiseaseMortalityRate`, anchor split by new `Health.SeaMortalityDiseaseShare` (0.30), measured disease 4.39%/cycle of a 14.88% total (was 0.00 / 15.76). Storms: `SimulationEngine.ApplyStormHazards` owns `SeaSite.NetIntegrityPct` wear/repair + `RecordEscape` (fine + event log); removed the duplicate block from `GameBridge.CheckWeatherImpacts`. Measured storm escapes 0.22%/site/yr, 0.16 events, min integrity 80.7% (was test-side 0.15% / 0.16 / 83.4). Re-ran `SimProbe` seeds 1-20; full solution suite green; `enableEvents:false` path unchanged and deterministic; bumped `calibration.json` to 1.0.3. |
+| 2026-10-14 | wave1/sim-1 (S1-01, S1-02) | F1024 water chemistry merged; seawater O2 solubility (Benson & Krause, 9.02 mg/L at 10 °C/35 PSU, was 10.9); pH baseline 8.05; zones take the sea temperature; F456 storm season renormalized through one helper shared with the forecast; storm damage once per episode; net repair 0.2 -> 0.5; storm cooling Apr-Sep only. Re-measured every band (§1b, §1c updated, before/after in §1d); no band loosened. |
