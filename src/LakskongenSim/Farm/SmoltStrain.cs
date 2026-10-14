@@ -71,7 +71,7 @@ namespace LakskongenSim.Farm
                 FcrTrait = 0.50, InitialLiceLoad = 0.25
             },
             new() {
-                Id = "qtl", Name = "QTL lusresistent",
+                Id = "qtl", Name = "QTL luseresistent",
                 Description = "Avlsresistens mot lus (heritabilitet utnyttet): færre påslag.",
                 ReleaseWeightKg = 0.10, CostMultiplier = 2.0,
                 GrowthTrait = 0.10, DiseaseTrait = 0.80, LiceTrait = 0.80,

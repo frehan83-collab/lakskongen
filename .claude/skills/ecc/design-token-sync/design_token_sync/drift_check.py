@@ -37,7 +37,9 @@ def extract_consts_from_theme() -> dict[str, Any]:
     
     for match in const_pattern.finditer(content):
         name = match.group(1)
-        value = match.group(2).strip().rstrip(',')
+        # Drop a trailing "  # comment" (a '#' inside Color("#hex") has no
+        # whitespace before it, so it survives).
+        value = re.sub(r'\s+#.*$', '', match.group(2)).strip().rstrip(',')
         
         # Parse Color("#HEX") or simple values
         if value.startswith('Color("'):
@@ -82,60 +84,94 @@ def compare_dicts(source: dict, target: dict, prefix: str = "") -> tuple[int, li
     return drift_count, messages
 
 
+def _flatten(prefix: str, value: Any) -> dict[str, Any]:
+    """{"a": {"b": 1}} -> {"a.b": 1}"""
+    if not isinstance(value, dict):
+        return {prefix: value}
+    out: dict[str, Any] = {}
+    for key, sub in value.items():
+        out.update(_flatten(f"{prefix}.{key}" if prefix else key, sub))
+    return out
+
+
+# LakskongenTheme constant -> token path (tokens v3, "Kyst & Stål", roadmap D13).
+# The pre-v3 names stay pinned to the surface they now resolve to.
+CONST_COLOR_MAP = {
+    "INK": "surfaces.ink.base",
+    "INK_RAISED": "surfaces.ink.raised",
+    "INK_SUNKEN": "surfaces.ink.sunken",
+    "INK_HAIRLINE": "surfaces.ink.hairline",
+    "INK_STROKE": "surfaces.ink.stroke",
+    "INK_TEXT": "surfaces.ink.text",
+    "INK_MUTED": "surfaces.ink.muted",
+    "INK_OK": "surfaces.ink.ok",
+    "INK_WARN": "surfaces.ink.warn",
+    "INK_CRIT": "surfaces.ink.crit",
+    "INK_INFO": "surfaces.ink.info",
+    "INK_ACCENT": "surfaces.ink.accent",
+    "CHART": "surfaces.chart.base",
+    "CHART_RAISED": "surfaces.chart.raised",
+    "CHART_SUNKEN": "surfaces.chart.sunken",
+    "CHART_HAIRLINE": "surfaces.chart.hairline",
+    "CHART_STROKE": "surfaces.chart.stroke",
+    "CHART_TEXT": "surfaces.chart.text",
+    "CHART_MUTED": "surfaces.chart.muted",
+    "CHART_OK": "surfaces.chart.ok",
+    "CHART_WARN": "surfaces.chart.warn",
+    "CHART_CRIT": "surfaces.chart.crit",
+    "CHART_INFO": "surfaces.chart.info",
+    "CHART_ACCENT": "surfaces.chart.accent",
+    "SALMON": "brand.salmon",
+    "SALMON_DEEP": "brand.salmon-deep",
+    "ON_SALMON": "brand.on-salmon",
+    "BG": "surfaces.chart.base",
+    "SURFACE": "surfaces.chart.raised",
+    "TEXT_PRIMARY": "surfaces.chart.text",
+    "TEXT_SECONDARY": "surfaces.chart.muted",
+    "TEXT_MUTED": "surfaces.chart.muted",
+    "TEXT_INVERSE": "surfaces.ink.text",
+    "BORDER": "surfaces.chart.hairline",
+    "SUCCESS": "surfaces.chart.ok",
+    "WARNING": "surfaces.chart.warn",
+    "DANGER": "surfaces.chart.crit",
+    "INFO": "surfaces.chart.info",
+    "PRIMARY": "surfaces.chart.info",
+    "ACCENT": "surfaces.chart.info",
+    "TEXT": "surfaces.ink.text",
+    "MUTED": "surfaces.ink.muted",
+    "PANEL": "surfaces.ink.raised",
+    "BG_DARK": "surfaces.ink.base",
+    "SALMON_PINK": "brand.salmon",
+}
+
+
 def compare_colors(design: dict, godot: dict, consts: dict) -> tuple[int, list[str]]:
     drift_count = 0
     messages = ["colors:"]
-    
-    design_colors = design.get("colors", {})
-    godot_colors = godot.get("colors", {})
-    
-    # Compare design vs godot tokens
-    dc, msgs = compare_dicts(design_colors, godot_colors, "colors")
-    drift_count += dc
-    messages.extend(msgs)
-    
-    # Check LakskongenTheme consts against tokens
-    const_color_map = {
-        "PRIMARY": "primary",
-        "PRIMARY_LIGHT": "primary-light",
-        "PRIMARY_DARK": "primary-dark",
-        "SECONDARY": "secondary",
-        "SECONDARY_LIGHT": "secondary-light",
-        "ACCENT": "accent",
-        "ACCENT_LIGHT": "accent-light",
-        "BG": "bg",
-        "BG_DARK": "bg-dark",
-        "SURFACE": "surface",
-        "SURFACE_ELEVATED": "surface-elevated",
-        "SURFACE_DARK": "surface-dark",
-        "TEXT_PRIMARY": "text",
-        "TEXT_SECONDARY": "text-secondary",
-        "TEXT_MUTED": "text-muted",
-        "TEXT_INVERSE": "text-inverse",
-        "BORDER": "border",
-        "BORDER_LIGHT": "border-light",
-        "SUCCESS": "success",
-        "SUCCESS_DARK": "success-dark",
-        "WARNING": "warning",
-        "WARNING_DARK": "warning-dark",
-        "DANGER": "danger",
-        "DANGER_DARK": "danger-dark",
-        "INFO": "info",
-        "WATER_BLUE": "water-blue",
-        "SALMON_PINK": "salmon-pink",
-        "FJORD_TEAL": "fjord-teal",
-    }
-    
-    for const_name, token_key in const_color_map.items():
-        if const_name in consts and token_key in design_colors:
-            const_val = consts[const_name].upper()
-            token_val = design_colors[token_key].upper()
-            if const_val != token_val:
-                drift_count += 1
-                messages.append(f"  const.{const_name}: DRIFT — const={const_val} vs token={token_val}")
-            else:
-                messages.append(f"  const.{const_name}: ✓ ({const_val})")
-    
+
+    for section in ("surfaces", "brand", "landscape"):
+        dc, msgs = compare_dicts(_flatten("", design.get(section, {})), _flatten("", godot.get(section, {})), section)
+        drift_count += dc
+        messages.extend(msgs)
+
+    tokens = _flatten("", {k: design.get(k, {}) for k in ("surfaces", "brand")})
+    for const_name, token_key in CONST_COLOR_MAP.items():
+        if const_name not in consts:
+            drift_count += 1
+            messages.append(f"  const.{const_name}: MISSING in default_theme.gd (token {token_key})")
+            continue
+        if token_key not in tokens:
+            drift_count += 1
+            messages.append(f"  const.{const_name}: token {token_key} MISSING")
+            continue
+        const_val = str(consts[const_name]).upper()
+        token_val = str(tokens[token_key]).upper()
+        if const_val != token_val:
+            drift_count += 1
+            messages.append(f"  const.{const_name}: DRIFT — const={const_val} vs token={token_val}")
+        else:
+            messages.append(f"  const.{const_name}: ✓ ({const_val})")
+
     return drift_count, messages
 
 
@@ -213,13 +249,14 @@ def compare_fonts(design: dict, godot: dict, consts: dict) -> tuple[int, list[st
     messages.extend(msgs)
     
     const_font_map = {
-        "FONT_XS": "xs",
-        "FONT_SM": "sm",
-        "FONT_BODY": "md",
+        "FONT_XS": "caption",
+        "FONT_SM": "small",
+        "FONT_BODY": "body",
         "FONT_LG": "lg",
-        "FONT_HEADER": "xl",
-        "FONT_TITLE": "xxl",
-        "FONT_HERO": "hero",
+        "FONT_HEADER": "heading",
+        "FONT_TITLE": "title",
+        "FONT_KPI": "kpi",
+        "FONT_HERO": "display",
     }
     
     for const_name, token_key in const_font_map.items():

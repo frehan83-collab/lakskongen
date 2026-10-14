@@ -151,6 +151,10 @@ namespace LakskongenSim.Core
         private BalancingConfig _balancing = new();
         // Phase A: single source of truth for balancing values.
         private CalibrationRegistry _calibration = CalibrationRegistry.Default;
+
+        /// <summary>The calibration this engine runs on (read-only; the UI reads
+        /// targets such as the FCR goal from here instead of its own constants).</summary>
+        public CalibrationRegistry Calibration => _calibration;
         private bool _enableEvents = true;
         private Finance.FinanceManager? _financeManager;
 
@@ -567,7 +571,7 @@ namespace LakskongenSim.Core
             // Wire VisualMilestones events
             VisualMilestones.MilestoneAchieved += (title, description) =>
             {
-                OnEventTriggered?.Invoke($"🎯 Milestone: {title} — {description}");
+                OnEventTriggered?.Invoke($"🎯 Milepæl: {title} — {description}");
                 Audio?.TriggerAlert("achievement");
             };
 
@@ -576,10 +580,10 @@ namespace LakskongenSim.Core
             {
                 bool affordable = FinanceManager.CanAfford(amount);
                 PayCost(amount, CostBooking.Opex, "licence_fees",
-                    $"⚠️ Cannot pay license fee for {siteId}: {amount:N0} NOK. Balance: {FinanceManager.Balance:N0} NOK");
+                    SimText.Nb($"⚠️ Kan ikke betale lisensavgiften for {SiteLabelOf(siteId)}: {amount:N0} kr. Saldo: {FinanceManager.Balance:N0} kr"));
                 if (affordable)
                 {
-                    OnEventTriggered?.Invoke($"💰 License fee paid for {siteId}: {amount:N0} NOK");
+                    OnEventTriggered?.Invoke(SimText.Nb($"💰 Lisensavgift betalt for {SiteLabelOf(siteId)}: {amount:N0} kr"));
                 }
             };
             foreach (var id in State.UnlockedResearchIds)
@@ -919,7 +923,7 @@ namespace LakskongenSim.Core
             Storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "plankton-bloom-spring",
-                Name = "Spring Plankton Bloom",
+                Name = "Planteplankton om våren",
                 Category = EventCategory.PlanktonBloom,
                 Weight = 1.5,
                 CooldownDays = 60,
@@ -928,7 +932,7 @@ namespace LakskongenSim.Core
                 Condition = gs => gs.Zones != null && gs.Zones.Any(z => z.CurrentFishBiomassKg > 0) && gs.Day >= 60 && gs.Day <= 150,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Spring phytoplankton bloom fueled by increasing light and nutrient upwelling. Risk of oxygen depletion if bloom crashes.";
+                    rec.Description = "Mer lys og næringsrikt vann gir oppblomstring av planteplankton. Fare for oksygensvikt hvis oppblomstringen kollapser.";
                     rec.BalanceChange = -50000m;
                     NorwegianEvents.SettleBalanceChange(_financeManager, gs, rec);
                     
@@ -951,7 +955,7 @@ namespace LakskongenSim.Core
             Storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "plankton-bloom-autumn",
-                Name = "Autumn Plankton Bloom",
+                Name = "Planteplankton om høsten",
                 Category = EventCategory.PlanktonBloom,
                 Weight = 1.2,
                 CooldownDays = 90,
@@ -960,7 +964,7 @@ namespace LakskongenSim.Core
                 Condition = gs => gs.Zones != null && gs.Zones.Any(z => z.CurrentFishBiomassKg > 0) && gs.Day >= 240 && gs.Day <= 330,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Autumn bloom driven by nutrient remineralization and cooling waters. Higher crash risk due to shorter days reducing photosynthesis.";
+                    rec.Description = "Næringssalter og kaldere vann gir høstoppblomstring. Kortere dager gir større fare for kollaps.";
                     rec.BalanceChange = -75000m;
                     NorwegianEvents.SettleBalanceChange(_financeManager, gs, rec);
                 }
@@ -970,7 +974,7 @@ namespace LakskongenSim.Core
             Storyteller.RegisterEvent(new EventDefinition
             {
                 Id = "plankton-crash",
-                Name = "Plankton Bloom Crash",
+                Name = "Planktonkollaps",
                 Category = EventCategory.PlanktonCrash,
                 Weight = 0.8,
                 CooldownDays = 30,
@@ -980,7 +984,7 @@ namespace LakskongenSim.Core
                     z.WaterChemistry != null && z.WaterChemistry.OxygenO2 < 3.0), // DO below critical
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Massive phytoplankton die-off triggers bacterial respiration spike. Dissolved oxygen crashes below 30% saturation causing acute fish mortality.";
+                    rec.Description = "Planteplankton dør i stor skala og bakteriene bruker opp oksygenet. Oksygenmetningen faller under 30 % og fisk dør.";
                     rec.BalanceChange = -200000m;
                     NorwegianEvents.SettleBalanceChange(_financeManager, gs, rec);
                     
@@ -1431,8 +1435,9 @@ private class BalancingConfig
             public double TargetHarvestWeightKg { get; set; } = 5.2; // ↑ from 5.0
             public double MinHarvestWeightKg { get; set; } = 3.8; // ↑ from 3.5
             public double MaxHarvestWeightKg { get; set; } = 7.5; // ↑ from 7.0
-            public double OptimalFCR { get; set; } = 1.15; // ↓ from 1.15 (industry best)
-            public double PoorFCR { get; set; } = 1.35; // ↓ from 1.4
+            // One FCR target in the code base: the calibration registry (U1-03).
+            public double OptimalFCR { get; set; } = CalibrationRegistry.Default.Biology.OptimalFCR;
+            public double PoorFCR { get; set; } = CalibrationRegistry.Default.Biology.PoorFCR;
             /// <summary>Base FCR used by FeedSystem. Reconciled to 1.15 (checklist).</summary>
             public double BaseFCR { get; set; } = 1.15;
 
@@ -1593,11 +1598,11 @@ private class BalancingConfig
                     killDone = true;
                 }
                 PayCost(FreshwaterBathConsumablesNok, CostBooking.Opex, "delousing"); // bath consumables
-                message = $"Ferskvannsbåt behandlet {job.SiteId} ({deaths:N0} håndteringsdødsfall, null resistens)";
+                message = SimText.Nb($"Ferskvannsbåten behandlet {SiteLabelOf(job.SiteId)} ({deaths:N0} døde under håndteringen, ingen resistens)");
             }
             else
             {
-                message = $"Ferskvannsbåt kunne ikke behandle {job.SiteId}";
+                message = $"Ferskvannsbåten kunne ikke behandle {SiteLabelOf(job.SiteId)}";
             }
 
             State.EventLog.Add(new Events.EventRecord
@@ -1622,15 +1627,13 @@ private class BalancingConfig
             var site = State.SeaSites.FirstOrDefault(s => s.Id == job.SiteId);
             bool ok = site != null;
             string message = ok
-                ? $"ROV ved {site!.Id}: nøter renset (+15%)"
-                : $"ROV kunne ikke inspisere {job.SiteId}";
+                ? $"ROV på {site!.Label}: nøtene er renset (+15 %)"
+                : $"ROV-en kunne ikke inspisere {SiteLabelOf(job.SiteId)}";
             if (ok)
             {
                 site!.NetIntegrityPct = Math.Min(100.0, site.NetIntegrityPct + 15.0);
                 int fish = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
-                message = $"ROV ved {site.Id}: {fish:N0} fisk, lus {GetCompanyLiceAverage():F2}/fisk, " +
-                          $"gjeller {site.GillScore:F0}/100, nøter {site.NetIntegrityPct:F0}% (+15 renset), " +
-                          $"rømminger siste år: {site.EscapedFishInLastYear(State.Day)}";
+                message = SimText.Nb($"ROV på {site.Label}: {fish:N0} fisk, {GetCompanyLiceAverage():F2} lus per fisk, gjeller {site.GillScore:F0}/100, nøter {site.NetIntegrityPct:F0} % (+15 renset), rømte fisk siste år: {site.EscapedFishInLastYear(State.Day)}");
                 State.EventLog.Add(new Events.EventRecord
                 {
                     Day = State.Day,
@@ -1661,8 +1664,8 @@ private class BalancingConfig
                 Name = cmd.Ok ? "Brønnbåt ankommet" : "Brønnbåt returnerte",
                 Category = Events.EventCategory.Equipment,
                 Description = cmd.Ok
-                    ? $"Brønnbåt utførte {job.Kind} ved {job.SiteId}"
-                    : $"Brønnbåt kunne ikke utføre {job.Kind} ved {job.SiteId}: {cmd.Message}",
+                    ? $"Brønnbåten utførte {WellboatJobName(job.Kind)} på {SiteLabelOf(job.SiteId)}"
+                    : $"Brønnbåten kunne ikke utføre {WellboatJobName(job.Kind)} på {SiteLabelOf(job.SiteId)}",
                 BalanceChange = 0m
             });
             _dayNotes.Add(new DayNote
@@ -1788,15 +1791,14 @@ private class BalancingConfig
             State.EventLog.Add(new Events.EventRecord
             {
                 Day = State.Day,
-                Name = "Escape",
+                Name = "Rømming",
                 Category = Events.EventCategory.Equipment,
-                Description = $"RØMMING: {escapees:N0} fish escaped at {site.Id} " +
-                              $"(nets {site.NetIntegrityPct:F0}%, storm severity {severity:F1})",
+                Description = SimText.Nb($"{escapees:N0} fisk rømte fra {site.Label} (nøter {site.NetIntegrityPct:F0} %, stormstyrke {severity:F1})"),
                 BalanceChange = -fine
             });
             State.TrimEventLog();
 
-            OnEventTriggered?.Invoke($"🌊 RØMMING: {escapees:N0} fisk rømte ved {site.Id} (bot {fine:N0} NOK)");
+            OnEventTriggered?.Invoke(SimText.Nb($"🌊 RØMMING: {escapees:N0} fisk rømte fra {site.Label} (bot {fine:N0} kr)"));
         }
 
         /// <summary>
@@ -1891,7 +1893,9 @@ private class BalancingConfig
                         Day = State.Day,
                         Name = "Storm Damage",
                         Category = Events.EventCategory.Weather,
-                        Description = $"{(currentWeather == LakskongenSim.Environment.WeatherState.Severe ? "Severe storm" : "Storm")} damaged pen infrastructure",
+                        Description = currentWeather == LakskongenSim.Environment.WeatherState.Severe
+                            ? "Ekstremværet skadet merdene og fortøyningene"
+                            : "Stormen skadet merdene og fortøyningene",
                         BalanceChange = -repairCost
                     });
                 }
@@ -1903,8 +1907,8 @@ private class BalancingConfig
                 PayInsurance(InsuranceKind.Storm, stormLossNok, "stormtap", Events.EventCategory.Weather);
 
                 weatherDesc = currentWeather == LakskongenSim.Environment.WeatherState.Severe
-                    ? "Severe storm causing major infrastructure damage and fish stress"
-                    : "Storm causing moderate damage and increased mortality";
+                    ? "Ekstremvær gir store skader på anlegget og stresset fisk"
+                    : "Stormen gir moderate skader og økt dødelighet";
             }
 
             // Temperature extremes stress fish (daily, bridge parity).
@@ -1959,7 +1963,7 @@ private class BalancingConfig
                                 Day = State.Day,
                                 Name = "Natt-deteksjon",
                                 Category = Events.EventCategory.Weather,
-                                Description = $"[AUTO-ROC] Oppblomstring oppdaget ved {site.Id} kl 02:00 — mottiltak initiert",
+                                Description = $"Driftssentralen oppdaget oppblomstring på {site.Label} kl. 02.00 — tiltak er satt i gang",
                                 BalanceChange = 0m
                             });
                         }
@@ -1970,7 +1974,7 @@ private class BalancingConfig
                                 Day = State.Day,
                                 Name = "Natt-skanning",
                                 Category = Events.EventCategory.Weather,
-                                Description = $"[SCAN-ONLY] Oppblomstring oppdaget ved {site.Id} kl 02:00 — køet til 06:00",
+                                Description = $"Nattskanningen oppdaget oppblomstring på {site.Label} kl. 02.00 — venter til kl. 06.00",
                                 BalanceChange = 0m
                             });
                         }
@@ -1990,7 +1994,7 @@ private class BalancingConfig
                             Day = State.Day,
                             Name = "Natt-oksygen",
                             Category = Events.EventCategory.Weather,
-                            Description = $"[AUTO-ROC] O2-krasj {site.Id} kl 03:00 — diffuser startet (12k)",
+                            Description = $"Oksygenfall på {site.Label} kl. 03.00 — driftssentralen startet diffuseren (12k)",
                             BalanceChange = -NightOxygenEmergencyNok
                         });
                     }
@@ -2015,9 +2019,9 @@ private class BalancingConfig
                     State.EventLog.Add(new Events.EventRecord
                     {
                         Day = State.Day,
-                        Name = "AUTO-ROC feilaktivering",
+                        Name = "Feil i automatisk nattdrift",
                         Category = Events.EventCategory.Equipment,
-                        Description = "Automatisk natt-ROV feil: feil merd / feil tiltak — crew stress +5%",
+                        Description = "Den automatiske nattdriften slo feil: feil merd eller feil tiltak — mannskapet stresses (+5 %)",
                         BalanceChange = -25_000m
                     });
                     foreach (var c in State.Crew) c.Morale = Math.Max(10, c.Morale - 5);
@@ -2201,9 +2205,9 @@ private class BalancingConfig
                     State.EventLog.Add(new Events.EventRecord
                     {
                         Day = State.Day,
-                        Name = "Slam-valorisering",
+                        Name = "Slamgjenvinning",
                         Category = Events.EventCategory.Equipment,
-                        Description = $"{site.Id}: {site.SludgeAccumulatedKgDs:F0} kg DS → biogas {biogasRev:N0} + gjødsel {fertRev:N0} - OPEX {opex:N0} = {netRevenue:+#,0;-#,0;0} NOK (CO2e credit: {biogasCredit:F0} kg)",
+                        Description = SimText.Nb($"{site.Label}: {site.SludgeAccumulatedKgDs:F0} kg tørrstoff → biogass {biogasRev:N0} + gjødsel {fertRev:N0} − drift {opex:N0} = {netRevenue:+#,0;-#,0;0} kr (CO₂e-kreditt: {biogasCredit:F0} kg)"),
                         BalanceChange = netRevenue
                     });
                     State.TrimEventLog();
@@ -2651,13 +2655,12 @@ private class BalancingConfig
                         Day = State.Day,
                         Name = "Mattilsynet order closed",
                         Category = Events.EventCategory.Regulation,
-                        Description = $"Mattilsynet: {site.Id} is back under the lice limit " +
-                            $"({site.LastLiceCount:F2} vs {limit:F1}); the treatment order is closed.",
+                        Description = SimText.Nb($"Mattilsynet: {site.Label} er under lusegrensen igjen ({site.LastLiceCount:F2} mot {limit:F1}); pålegget om behandling er lukket."),
                         BalanceChange = 0m
                     });
                     State.TrimEventLog();
                     OnEventTriggered?.Invoke(
-                        $"✅ Mattilsynet: {site.Id} under lusegrensen igjen ({site.LastLiceCount:F2} vs {limit:F1}) — pålegget er lukket.");
+                        SimText.Nb($"✅ Mattilsynet: {site.Label} er under lusegrensen igjen ({site.LastLiceCount:F2} mot {limit:F1}) — pålegget er lukket."));
                 }
                 else if (site.ConsecutiveLiceBreaches >= 2 && site.TreatmentOrderDueDay < 0)
                 {
@@ -2667,14 +2670,12 @@ private class BalancingConfig
                         Day = State.Day,
                         Name = "Mattilsynet order",
                         Category = Events.EventCategory.Regulation,
-                        Description = $"Mattilsynet: {site.Id} exceeded the lice limit " +
-                            $"({site.LastLiceCount:F2} adult females vs {limit:F1} allowed). " +
-                            $"Delouse within 14 days.",
+                        Description = SimText.Nb($"Mattilsynet: {site.Label} er over lusegrensen ({site.LastLiceCount:F2} voksne hunnlus mot {limit:F1} tillatt). Avlus innen 14 dager."),
                         BalanceChange = 0m
                     });
                     State.TrimEventLog();
                     OnEventTriggered?.Invoke(
-                        $"📋 Mattilsynet: {site.Id} over lusenivå ({site.LastLiceCount:F2} vs {limit:F1}) — avlus innen 14 dager!");
+                        SimText.Nb($"📋 Mattilsynet: {site.Label} er over lusegrensen ({site.LastLiceCount:F2} mot {limit:F1}) — avlus innen 14 dager!"));
                 }
                 else if (site.TreatmentOrderDueDay >= 0 && State.Day > site.TreatmentOrderDueDay)
                 {
@@ -2776,12 +2777,11 @@ private class BalancingConfig
                     Day = State.Day,
                     Name = "Forced delousing",
                     Category = Events.EventCategory.Regulation,
-                    Description = $"Mattilsynet ordered delousing at {site.Id} was ignored — " +
-                        $"forced Thermolicer treatment of {outcome.TotalFish:N0} fish cost {outcome.Cost:N0} NOK.",
+                    Description = SimText.Nb($"Pålegget fra Mattilsynet om avlusing på {site.Label} ble ikke fulgt — tvangsbehandling med termisk avlusing av {outcome.TotalFish:N0} fisk kostet {outcome.Cost:N0} kr."),
                     BalanceChange = -outcome.Cost
                 });
                 State.TrimEventLog();
-                OnEventTriggered?.Invoke($"⚖️ Tvangsavlusning ved {site.Id}: {outcome.Cost:N0} NOK.");
+                OnEventTriggered?.Invoke(SimText.Nb($"⚖️ Tvangsavlusing på {site.Label}: {outcome.Cost:N0} kr."));
             }
             else
             {
@@ -2792,7 +2792,7 @@ private class BalancingConfig
                     Day = State.Day,
                     Name = "Forced delousing",
                     Category = Events.EventCategory.Regulation,
-                    Description = $"Mattilsynet order at {site.Id} could not be executed: {outcome.CancelReason}",
+                    Description = $"Pålegget fra Mattilsynet på {site.Label} kunne ikke gjennomføres: {outcome.CancelReason}",
                     BalanceChange = 0m
                 });
                 State.TrimEventLog();
@@ -2826,6 +2826,38 @@ private class BalancingConfig
             return SeaLice?.AverageLicePerFish ?? 0.0;
         }
 
+        /// <summary>The name of a site id as the player reads it.</summary>
+        private string SiteLabelOf(string siteId) =>
+            State.SeaSites.FirstOrDefault(s => s.Id == siteId)?.Label ?? Farm.SiteNames.Humanize(siteId);
+
+        /// <summary>Norwegian name of a bloom kind for the event log.</summary>
+        private static string BloomName(string kind) => kind switch
+        {
+            "jellyfish" => "Maneter",
+            "algae" => "Algeoppblomstring",
+            "hypoxia" => "Oksygensvikt",
+            _ => "Oppblomstring"
+        };
+
+        /// <summary>The Norwegian name of a traffic-light colour ("Green" → "grønn").</summary>
+        private static string TrafficLightName(ZoneColor color) => color switch
+        {
+            ZoneColor.Green => "grønn",
+            ZoneColor.Yellow => "gul",
+            ZoneColor.Red => "rød",
+            _ => color.ToString()
+        };
+
+        /// <summary>A zone as the player reads it: the name of its first site
+        /// ("PO3 Nord"), else a readable form of the id.</summary>
+        private string ZoneLabel(string zoneId)
+        {
+            var site = State.SeaSites.FirstOrDefault(s => s.ZoneId == zoneId);
+            return site != null && !string.IsNullOrWhiteSpace(site.DisplayName)
+                ? site.DisplayName
+                : Farm.SiteNames.Humanize(zoneId);
+        }
+
         internal void UpdateTrafficLightZones()
         {
             if (TrafficLightSystem == null || State.Zones.Count == 0) return;
@@ -2846,9 +2878,9 @@ private class BalancingConfig
                 State.EventLog.Add(new EventRecord
                 {
                     Day = State.Day,
-                    Name = $"Trafikklys: {after}",
+                    Name = $"Trafikklys: {TrafficLightName(after)}",
                     Category = EventCategory.Regulation,
-                    Description = $"Sone {zone.Id} → {after} (lus {lice:F2}/fisk, MAB ×{factor:F2})",
+                    Description = SimText.Nb($"{ZoneLabel(zone.Id)} → {TrafficLightName(after)} (lus {lice:F2} per fisk, MTB ×{factor:F2})"),
                     BalanceChange = 0m
                 });
                 State.TrimEventLog();
@@ -2902,7 +2934,7 @@ private class BalancingConfig
                     Day = State.Day,
                     Name = "Mattilsynet MAB-beskjed",
                     Category = EventCategory.Regulation,
-                    Description = $"Sone {zoneId}: {site.Id} over MAB ({site.CurrentBiomassTonnes:F1}t > {site.MABTonnes:F1}t). Avlus/avslakt innen dag {deadline}, ellers tvangsavslakt til redusert pris.",
+                    Description = SimText.Nb($"{ZoneLabel(zoneId)}: {site.Label} er over MTB ({site.CurrentBiomassTonnes:F1}t > {site.MABTonnes:F1}t). Avlus eller slakt ned innen dag {deadline}, ellers tvangsavslakt til redusert pris."),
                     BalanceChange = 0m
                 });
                 SimLog.Info($"📋 Mattilsynet MAB-beskjed: {site.Id} → deadline day {deadline}");
@@ -2927,7 +2959,7 @@ private class BalancingConfig
                     Day = State.Day,
                     Name = "Mattilsynet besked trukket",
                     Category = EventCategory.Regulation,
-                    Description = $"Sone {zoneId}: {site.Id} ikke lenger i rød sone — MAB-beskjed trukket.",
+                    Description = $"{ZoneLabel(zoneId)}: {site.Label} er ikke lenger i rød sone — MTB-pålegget er trukket.",
                     BalanceChange = 0m
                 });
                 SimLog.Info($"📋 Mattilsynet MAB-beskjed trukket for {site.Id} (sone {zoneId} ikke lenger rød)");
@@ -2965,7 +2997,7 @@ private class BalancingConfig
                     Day = State.Day,
                     Name = "Tvangsavslakt (Mattilsynet)",
                     Category = EventCategory.Regulation,
-                    Description = $"{site.Id}: Deadline overskredet. {harvestT:F1}t tvangsavslattet til {penaltyPrice:F2} NOK/kg (30% straff).",
+                    Description = SimText.Nb($"{site.Label}: Fristen er ute. {harvestT:F1}t tvangsavslattet til {penaltyPrice:F2} kr/kg (30 % straff)."),
                     BalanceChange = revenue
                 });
                 SimLog.Info($"⚠️ Tvangsavslakt: {site.Id} {harvestT:F1}t til {penaltyPrice:F2} NOK/kg");
@@ -2987,7 +3019,7 @@ private class BalancingConfig
                     Day = State.Day,
                     Name = "Mattilsynet MAB-oppgjør",
                     Category = EventCategory.Regulation,
-                    Description = $"{site.Id}: Biomassen er under MAB. Beskjed oppfylt — ingen tvangsavslakt.",
+                    Description = $"{site.Label}: Biomassen er under MTB. Pålegget er oppfylt — ingen tvangsslakting.",
                     BalanceChange = 0m
                 });
                 SimLog.Info($"✅ Mattilsynet MAB-oppgjør: {site.Id} under MAB før deadline");
@@ -3177,7 +3209,7 @@ private class BalancingConfig
                     PayInsurance(
                         InsuranceKind.Bloom,
                         (decimal)lostKg * bloomPrice,
-                        $"Oppblomstring ({bloom.Kind}) ved {site.Id}",
+                        $"{BloomName(bloom.Kind)} på {site.Label}",
                         EventCategory.PlanktonBloom);
                 }
             }
@@ -3209,7 +3241,7 @@ private class BalancingConfig
                 Day = State.Day,
                 Name = kind == "jellyfish" ? "Manetoppblomstring" : kind == "algae" ? "Algeoppblomstring" : "Oksygenfall",
                 Category = Events.EventCategory.Weather,
-                Description = $"Oppblomstring ({bloom.Kind}) ved {site.Id} — sjekk gjeller, vurder mottiltak",
+                Description = $"{BloomName(bloom.Kind)} på {site.Label} — sjekk gjellene og vurder tiltak",
                 BalanceChange = 0m
             });
             State.TrimEventLog();
@@ -3258,7 +3290,7 @@ private class BalancingConfig
                 Id = $"insurance-{kind.ToString().ToLowerInvariant()}",
                 Name = "Forsikringsoppgjør",
                 Category = category,
-                Description = $"Forsikring ({kind}) dekket {payout:N0} av {lossNok:N0} NOK tap — {cause}",
+                Description = SimText.Nb($"Forsikringen dekket {payout:N0} av {lossNok:N0} kr i tap — {cause}"),
                 BalanceChange = payout
             });
             State.TrimEventLog();

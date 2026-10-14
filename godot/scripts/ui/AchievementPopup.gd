@@ -33,21 +33,21 @@ var _visible_flag: bool = false
 
 # ── Gold colour palette ───────────────────────────────────────────────────────
 
-const COL_GOLD_DARK := Color("#D4B06A")
-const COL_GOLD_MID := Color("#D4B06A")
-const COL_GOLD_LIGHT := Color(1.00, 0.93, 0.50)
-const COL_TEXT_DARK := Color("#F8F9FB")
+const COL_GOLD_DARK := Color("#8A5A00")
+const COL_GOLD_MID := Color("#8A5A00")
+const COL_GOLD_LIGHT := Color("#F2B705")  # Ink warn (tier fallback)
+const COL_TEXT_DARK := Color("#E8EEF0")  # Ink text
 const COL_TEXT_WHITE := Color(1.0, 1.0, 1.0)
 
 # ── Tier colour map ───────────────────────────────────────────────────────────
 
 const TIER_COLORS := {
-	"Beginner": Color("#A3BE8C"),
-	"Novice": Color("#88C0D0"),
-	"Intermediate": Color("#5E81AC"),
+	"Beginner": Color("#2E6B45"),
+	"Novice": Color("#1F5E73"),
+	"Intermediate": Color("#1F5E73"),
 	"Advanced": Color(1.00, 0.55, 0.10),
 	"Master": Color(1.00, 0.20, 0.20),
-	"Hidden": Color("#7B8794"),
+	"Hidden": Color("#5A6168"),
 }
 
 # ── Godot lifecycle ───────────────────────────────────────────────────────────
@@ -90,7 +90,7 @@ func show_achievement(_id: String, achievement_name: String, description: String
 
 	_name_label.text = achievement_name
 	_desc_label.text = description
-	_tier_label.text = tier.to_upper()
+	_tier_label.text = SimLabels.achievement_tier(tier).to_upper()
 	_tier_label.modulate = TIER_COLORS.get(tier, COL_GOLD_LIGHT)
 
 	# The medal the achievement awards (D16: medals, never cash).
@@ -129,5 +129,4 @@ func _tr_or(key: String, fallback: String) -> String:
 
 func _apply_theme_fonts() -> void:
 	var theme_node = get_node_or_null("/root/LakskongenTheme")
-	if theme_node and theme_node.font_heading_bold:
-		_name_label.add_theme_font_override("font", theme_node.font_heading_bold)
+	LakskongenTheme.set_strong(_name_label)

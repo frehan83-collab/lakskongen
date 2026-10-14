@@ -26,46 +26,22 @@ signal sites_updated()
 
 const SIM_BRIDGE_PATH := "/root/SimBridge"
 
-const COL_GREEN := Color("#A3BE8C")
-const COL_AMBER := Color("#EBCB8B")
-const COL_RED   := Color("#BF616A")
-const COL_TEXT  := Color("#2E3440")
-const COL_MUTED := Color("#7B8794")
+const COL_GREEN := Color("#2E6B45")
+const COL_AMBER := Color("#8A5A00")
+const COL_RED   := Color("#B3172F")
+const COL_TEXT  := Color("#1C1E20")
+const COL_MUTED := Color("#5A6168")
 
 const METRIC_ORDER := ["lice", "oxygen", "biomass", "gill", "containment"]
 
-# "lo"/"hi" are the legend end-captions; "note" explains the derivation.
+# Translation keys: "label" names the overlay, "lo"/"hi" are the legend
+# end-captions, "note" explains the derivation.
 const METRICS := {
-	"lice": {
-		"label": "Lice risk",
-		"lo": "0.0 lus/fisk",
-		"hi": "≥0.5 (grense)",
-		"note": "Globalt lusetrykk, hevet av per-anlegg gillevarsel.",
-	},
-	"oxygen": {
-		"label": "Oxygen",
-		"lo": "7.0 mg/L (god)",
-		"hi": "≤4.0 mg/L (kritisk)",
-		"note": "Oksygennivå; boblekortin/diffusor demper risiko.",
-	},
-	"biomass": {
-		"label": "Biomass",
-		"lo": "0 %",
-		"hi": "100 % av MTB",
-		"note": "Biomasse / maks tillatt biomasse (MTB).",
-	},
-	"gill": {
-		"label": "Gill risk",
-		"lo": "0.0",
-		"hi": "≥0.75 kritisk",
-		"note": "Gjellehelse — tidlig varsel per anlegg.",
-	},
-	"containment": {
-		"label": "Containment",
-		"lo": "Lukket (lav)",
-		"hi": "Åpen not (høy)",
-		"note": "Eksponering etter containement-nivå.",
-	},
+	"lice": {"label": "UI_OVERLAY_LICE", "lo": "UI_OVERLAY_LICE_LO", "hi": "UI_OVERLAY_LICE_HI", "note": "UI_OVERLAY_LICE_NOTE"},
+	"oxygen": {"label": "UI_OVERLAY_OXYGEN", "lo": "UI_OVERLAY_OXYGEN_LO", "hi": "UI_OVERLAY_OXYGEN_HI", "note": "UI_OVERLAY_OXYGEN_NOTE"},
+	"biomass": {"label": "UI_OVERLAY_BIOMASS", "lo": "UI_OVERLAY_BIOMASS_LO", "hi": "UI_OVERLAY_BIOMASS_HI", "note": "UI_OVERLAY_BIOMASS_NOTE"},
+	"gill": {"label": "UI_OVERLAY_GILL", "lo": "UI_OVERLAY_GILL_LO", "hi": "UI_OVERLAY_GILL_HI", "note": "UI_OVERLAY_GILL_NOTE"},
+	"containment": {"label": "UI_OVERLAY_CONTAINMENT", "lo": "UI_OVERLAY_CONTAINMENT_LO", "hi": "UI_OVERLAY_CONTAINMENT_HI", "note": "UI_OVERLAY_CONTAINMENT_NOTE"},
 }
 
 # Exposure per ContainmentLevel.ToString() from the C# sim.
@@ -84,6 +60,7 @@ var _metric: String = "lice"
 var _sites: Array = []            # raw site dicts from get_all_pens()
 var _intensity: Dictionary = {}   # site_id -> float 0..1
 var _values: Dictionary = {}      # site_id -> display string
+var _no_data: Dictionary = {}     # site_id -> true when the metric is not measured
 
 var _cycle_btn: Button = null
 var _gradient: Control = null
@@ -117,9 +94,9 @@ func _build_ui() -> void:
 	v.add_child(header)
 
 	var title := Label.new()
-	title.text = tr("DATA OVERLAY")
-	title.add_theme_font_size_override("font_size", 11)
-	title.add_theme_color_override("font_color", COL_MUTED)
+	title.text = tr("UI_OVERLAY_TITLE")
+	LakskongenTheme.set_size(title, 11)
+	LakskongenTheme.set_text_color(title, COL_MUTED)
 	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	header.add_child(title)
 
@@ -127,7 +104,7 @@ func _build_ui() -> void:
 	_cycle_btn.focus_mode = Control.FOCUS_NONE
 	_cycle_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_cycle_btn.alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_cycle_btn.tooltip_text = tr("Bytt kartoverlegg: lus → oksygen → biomasse → gjeller → containement")
+	_cycle_btn.tooltip_text = tr("UI_OVERLAY_CYCLE_TIP")
 	_cycle_btn.pressed.connect(cycle_metric)
 	header.add_child(_cycle_btn)
 
@@ -137,19 +114,19 @@ func _build_ui() -> void:
 	var caps := HBoxContainer.new()
 	v.add_child(caps)
 	_lo_label = Label.new()
-	_lo_label.add_theme_font_size_override("font_size", 11)
-	_lo_label.add_theme_color_override("font_color", COL_MUTED)
+	LakskongenTheme.set_size(_lo_label, 11)
+	LakskongenTheme.set_text_color(_lo_label, COL_MUTED)
 	_lo_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	caps.add_child(_lo_label)
 	_hi_label = Label.new()
-	_hi_label.add_theme_font_size_override("font_size", 11)
-	_hi_label.add_theme_color_override("font_color", COL_MUTED)
+	LakskongenTheme.set_size(_hi_label, 11)
+	LakskongenTheme.set_text_color(_hi_label, COL_MUTED)
 	_hi_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	caps.add_child(_hi_label)
 
 	_note_label = Label.new()
-	_note_label.add_theme_font_size_override("font_size", 11)
-	_note_label.add_theme_color_override("font_color", COL_MUTED)
+	LakskongenTheme.set_size(_note_label, 11)
+	LakskongenTheme.set_text_color(_note_label, COL_MUTED)
 	_note_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(_note_label)
 
@@ -157,9 +134,9 @@ func _build_ui() -> void:
 	v.add_child(sep)
 
 	_empty_label = Label.new()
-	_empty_label.text = tr("Ingen sjøanlegg å vise ennå.")
-	_empty_label.add_theme_font_size_override("font_size", 11)
-	_empty_label.add_theme_color_override("font_color", COL_MUTED)
+	_empty_label.text = tr("UI_OVERLAY_EMPTY")
+	LakskongenTheme.set_size(_empty_label, 11)
+	LakskongenTheme.set_text_color(_empty_label, COL_MUTED)
 	_empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(_empty_label)
 
@@ -197,6 +174,8 @@ func get_site_intensity(site_id: String) -> float:
 	return float(_intensity.get(site_id, 0.0))
 
 func get_site_color(site_id: String) -> Color:
+	if _no_data.has(site_id):
+		return COL_MUTED
 	return intensity_to_color(float(_intensity.get(site_id, 0.0)))
 
 ## Average overlay intensity for every site in a zone, or -1.0 if none.
@@ -224,9 +203,16 @@ func refresh() -> void:
 	_sites = _read_sites()
 	_intensity.clear()
 	_values.clear()
+	_no_data.clear()
 	for site in _sites:
 		var sid := str((site as Dictionary).get("id", ""))
 		if sid.is_empty():
+			continue
+		if _metric == "oxygen" and not _oxygen_measured():
+			# No oxygen reading: say so instead of "0,0 mg/L" in alarm red.
+			_no_data[sid] = true
+			_intensity[sid] = 0.0
+			_values[sid] = "–"
 			continue
 		_intensity[sid] = _compute_intensity(site)
 		_values[sid] = _format_value(site)
@@ -267,6 +253,10 @@ func _lice_intensity(site: Dictionary) -> float:
 		t = maxf(t, clampf(float(r.get("risk", t)), 0.0, 1.0))
 	return t
 
+func _oxygen_measured() -> bool:
+	var o2 := _sim_float("oxygen_mgl", NAN)
+	return is_finite(o2) and o2 > 0.0
+
 func _oxygen_intensity(site: Dictionary) -> float:
 	var o2 := _sim_float("oxygen_mgl", 7.0)
 	# 7.0 mg/L healthy -> 0.0 ; 4.0 mg/L critical -> 1.0
@@ -303,22 +293,22 @@ func _gill_risk(site_id: String) -> Dictionary:
 func _format_value(site: Dictionary) -> String:
 	match _metric:
 		"lice":
-			return "%.2f" % _sim_float("sea_lice_per_fish", 0.0)
+			return SimFormatters.num(_sim_float("sea_lice_per_fish", 0.0), 2)
 		"oxygen":
-			return "%.1f mg/L" % _sim_float("oxygen_mgl", 0.0)
+			return SimFormatters.num(_sim_float("oxygen_mgl", 0.0), 1) + " mg/L"
 		"biomass":
 			var bio := float(site.get("biomass_kg", 0.0)) / 1000.0
 			var mx := float(site.get("max_biomass", 0.0)) / 1000.0
 			if mx > 0.0:
-				return "%.0f / %.0f t" % [bio, mx]
-			return "%.0f t" % bio
+				return "%s / %s t" % [SimFormatters.num(bio, 0), SimFormatters.num(mx, 0)]
+			return SimFormatters.num(bio, 0) + " t"
 		"gill":
 			var r := _gill_risk(str(site.get("id", "")))
 			if not r.is_empty():
-				return "%.2f" % float(r.get("risk", 0.0))
-			return "%.0f" % float(site.get("gill_score", 0.0))
+				return SimFormatters.num(float(r.get("risk", 0.0)), 2)
+			return SimFormatters.num(float(site.get("gill_score", 0.0)), 0)
 		"containment":
-			return str(site.get("containment", "—"))
+			return SimLabels.containment(str(site.get("containment", "")))
 	return ""
 
 # ── UI refresh ────────────────────────────────────────────────────────────────
@@ -357,29 +347,29 @@ func _rebuild_list() -> void:
 
 		var swatch := ColorRect.new()
 		swatch.custom_minimum_size = Vector2(12, 12)
-		swatch.color = intensity_to_color(t)
+		swatch.color = COL_MUTED if _no_data.has(sid) else intensity_to_color(t)
 		swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(swatch)
 
 		var name_lbl := Label.new()
 		name_lbl.text = str(d.get("name", sid))
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.add_theme_font_size_override("font_size", 12)
+		LakskongenTheme.set_size(name_lbl, 12)
 		row.add_child(name_lbl)
 
 		var val_lbl := Label.new()
 		val_lbl.text = str(_values.get(sid, ""))
-		val_lbl.add_theme_font_size_override("font_size", 12)
-		val_lbl.add_theme_color_override("font_color", COL_MUTED)
+		LakskongenTheme.set_size(val_lbl, 12)
+		LakskongenTheme.set_text_color(val_lbl, COL_MUTED)
 		row.add_child(val_lbl)
 
 # ── Inner widgets ─────────────────────────────────────────────────────────────
 
 ## Three-stop gradient bar: green → amber → red.
 class _GradientBar extends Control:
-	var c1 := Color("#A3BE8C")
-	var c2 := Color("#EBCB8B")
-	var c3 := Color("#BF616A")
+	var c1 := Color("#2E6B45")
+	var c2 := Color("#8A5A00")
+	var c3 := Color("#B3172F")
 
 	func _ready() -> void:
 		custom_minimum_size = Vector2(0, 10)

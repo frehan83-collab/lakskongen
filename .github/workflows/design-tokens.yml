@@ -41,6 +41,13 @@ jobs:
         run: |
           pip install -r .claude/skills/ecc/design-token-sync/requirements.txt
           pip install -r .claude/skills/ecc/visual-qa/requirements.txt
+          pip install pytest
+
+      # Order matters: "before" is the committed theme, so capture it before
+      # the payload rewrites design/tokens.json.
+      - name: Capture UI shots (before the token change)
+        run: |
+          python -m design_token_sync.capture_panels --before
 
       - name: Extract tokens from webhook
         id: extract
@@ -48,22 +55,25 @@ jobs:
           python -m design_token_sync.figma_webhook --write
           echo "tokens_written=true" >> $GITHUB_OUTPUT
 
-      - name: Sync tokens + reload theme
+      - name: Sync tokens + rebuild the theme
         run: |
           python -m design_token_sync.sync_tokens_extended --write
 
-      - name: Capture baseline screenshots (before)
+      - name: Token, contrast and theme checks
         run: |
-          python -m design_token_sync.capture_panels --before
+          python -m pytest tests/test_theme_tokens.py -q
+          python .claude/skills/ecc/design-token-sync/design_token_sync/drift_check.py
+          python tools/a11y_audit.py
 
-      - name: Capture post-sync screenshots (after)
+      - name: Capture UI shots (after)
         run: |
           python -m design_token_sync.capture_panels --after
 
+      # 25 = the harness's measured run-to-run noise floor (visual_qa/config.py).
       - name: Visual regression diff
         id: visual_diff
         run: |
-          python -m design_token_sync.visual_diff --threshold 8 || echo "DIFF_FAILED=true" >> $GITHUB_OUTPUT
+          python -m design_token_sync.visual_diff --threshold 25 || echo "DIFF_FAILED=true" >> $GITHUB_OUTPUT
 
       - name: Generate visual diff gallery
         if: always()
@@ -85,8 +95,8 @@ jobs:
             
             **Changes:**
             - Synced `design/tokens.json` → `godot/theme/tokens.json`
-            - Reloaded `LakskongenTheme` via headless Godot
-            - Visual regression test on key panels
+            - Rebuilt the generated theme (`godot/theme/lakskongen_theme.tres`, `lakskongen_chart_theme.tres`, fonts) via headless Godot
+            - Token, contrast and theme tests; visual regression on the 16 UI shots (01-07g)
             
             **Visual QA:**
             ${{ steps.visual_diff.outputs.DIFF_FAILED == 'true' && '⚠️ Visual regression detected — see diff gallery below' || '✅ All panels match baseline' }}

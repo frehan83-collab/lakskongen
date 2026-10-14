@@ -72,7 +72,7 @@ func _on_alert_raised(level: String, message: String) -> void:
 	var msg := message.to_lower()
 	# Weather/storm consequences are owned by GameBridge.WeatherEvent; skipping
 	# here avoids double-firing and misclassifying "stormfare" (risk) as a storm.
-	if msg.contains("vær:") or msg.contains("storm"):
+	if msg.contains("vær:") or msg.contains("weather:") or msg.contains("storm"):
 		return
 	var lvl := level.to_upper()
 	if _has_any(msg, ESCAPE_KEYS):
@@ -143,7 +143,7 @@ func _on_pen_action_completed(action: String, pen_id: String, success: bool) -> 
 		return
 	if _is_duplicate("harvest:%s" % pen_id):
 		return
-	_toast("🐟 Høsting fullført — %s" % pen_id, "SUCCESS", 5.0)
+	_toast("🐟 " + tr("UI_TOAST_HARVEST_OK") % _site(pen_id), "SUCCESS", 5.0)
 	_audio_call("play_harvest_stinger")
 	_pulse_feedback()
 
@@ -154,19 +154,19 @@ func _on_farm_action_completed(action: String, site_id: String, success: bool) -
 		"harvest":
 			if _is_duplicate("harvest:%s" % site_id):
 				return
-			_toast("🐟 Høsting fullført — %s" % site_id, "SUCCESS", 5.0)
+			_toast("🐟 " + tr("UI_TOAST_HARVEST_OK") % _site(site_id), "SUCCESS", 5.0)
 			_audio_call("play_harvest_stinger")
 			_pulse_feedback()
 		"mitigation", "countermeasure":
 			if _is_duplicate("mitigation:%s" % site_id):
 				return
-			_toast("🛡️ Mottiltak installert — %s" % site_id, "SUCCESS", 4.0)
+			_toast("🛡️ " + tr("UI_TOAST_COUNTERMEASURE_OK") % _site(site_id), "SUCCESS", 4.0)
 			_audio_call("play_mitigation_install")
 			_pulse_feedback()
 		"ge", "deploy_ge", "ge_deploy", "ge_deployment":
 			if _is_duplicate("ge:%s" % site_id):
 				return
-			_toast("🧬 GE-trakt satt ut — %s" % site_id, "WARNING", 5.0)
+			_toast("🧬 " + tr("UI_TOAST_GE_DEPLOYED") % _site(site_id), "WARNING", 5.0)
 			_audio_call("play_ge_deployment")
 			_pulse_feedback()
 
@@ -216,23 +216,23 @@ func _scan_depth_once_per_day() -> void:
 		if not (g is Dictionary):
 			continue
 		if bool(g.get("critical", false)):
-			_on_gill_alert("Gjellehelse kritisk ved %s" % sid, true, "error")
+			_on_gill_alert("Gjellehelsen er kritisk på %s" % str(_sim.site_name(sid)), true, "error")
 		elif bool(g.get("warning", false)):
-			_on_gill_alert("Gjellehelse-varsel ved %s" % sid, false, "notification")
+			_on_gill_alert("Varsel om gjellehelse på %s" % str(_sim.site_name(sid)), false, "notification")
 
 func _dispatch_log_event(name: String, desc: String) -> void:
 	var lname := name.to_lower()
 	if _has_any(lname, INSURANCE_KEYS) or _has_any(desc.to_lower(), INSURANCE_KEYS):
-		_toast("🛡️ Forsikringsutbetaling: %s" % desc, "SUCCESS", 6.0)
+		_toast("🛡️ " + tr("UI_TOAST_INSURANCE_PAYOUT") % desc, "SUCCESS", 6.0)
 		_audio_call("play_insurance_payout")
 		return
 	if lname.begins_with(TRAFFIC_PREFIX):
-		var is_red := lname.contains("red")
+		var is_red := lname.contains("rød") or lname.contains("red")
 		_toast(("🔴 " if is_red else "🚦 ") + name, "WARNING" if is_red else "SUCCESS", 5.0)
 		_audio_call("play_red_zone_alert", [is_red])
 		return
 	if _looks_like_ge(name, desc):
-		_toast("🧬 %s" % (name if not name.is_empty() else "GE-utsetting"), "WARNING", 5.0)
+		_toast("🧬 %s" % (name if not name.is_empty() else tr("UI_TOAST_GE_DEPLOYED_SHORT")), "WARNING", 5.0)
 		_audio_call("play_ge_deployment")
 
 func _on_finance_transaction(type: String, _amount: float, description: String) -> void:
@@ -240,7 +240,7 @@ func _on_finance_transaction(type: String, _amount: float, description: String) 
 		return
 	if _is_duplicate("ge_finance:%s" % description):
 		return
-	_toast("🧬 %s" % (description if not description.is_empty() else "GE-utsetting"), "WARNING", 5.0)
+	_toast("🧬 %s" % (description if not description.is_empty() else tr("UI_TOAST_GE_DEPLOYED_SHORT")), "WARNING", 5.0)
 	_audio_call("play_ge_deployment")
 
 func _looks_like_ge(text_a: String, text_b: String) -> bool:
@@ -258,16 +258,17 @@ func _prune_seen_events() -> void:
 
 func _on_weather_event(event_type: String, severity: float, description: String) -> void:
 	if severity >= 0.8 or event_type.to_lower().contains("storm"):
-		_fire_critical("storm", "⛈ Storm: %s" % description)
+		_fire_critical("storm", "⛈ %s" % description)
 	# Mild weather is logged by NotificationCenter — no theater needed.
 
 func _on_disease_outbreak(disease_type: String, site_id: String, severity: float, _treatment_cost: float) -> void:
+	var where := tr("UI_ALL_SITES") if site_id == "all_sites" else _site(site_id)
 	if disease_type == "Escape":
-		_fire_critical("escape", "🚨 RØMMING @ %s — reparer nøtene nå" % site_id)
+		_fire_critical("escape", "🚨 " + tr("UI_TOAST_ESCAPE") % where)
 	elif severity >= 0.5:
-		_fire_critical("disease", "🦠 Sykdom (%s @ %s)" % [disease_type, site_id])
+		_fire_critical("disease", "🦠 " + tr("UI_TOAST_DISEASE") % [SimLabels.disease(disease_type), where])
 	else:
-		_fire_warning("disease", "⚠ Sykdom (%s @ %s)" % [disease_type, site_id])
+		_fire_warning("disease", "⚠ " + tr("UI_TOAST_DISEASE") % [SimLabels.disease(disease_type), where])
 
 func _on_game_ended(reason: String) -> void:
 	if _is_duplicate("game_ended"):
@@ -275,7 +276,7 @@ func _on_game_ended(reason: String) -> void:
 	_shake(20.0, 0.6)
 	# The reason is a translation key when the engine ended the game
 	# (GAME_OVER_BANKRUPTCY, S1-03); tr() leaves other text as it is.
-	_toast("💥 Spillet er over: %s" % tr(reason), "CRITICAL", 9.0)
+	_toast("💥 " + tr("UI_TOAST_GAME_OVER") % tr(reason), "CRITICAL", 9.0)
 	_audio_call("play_ui", ["notification"])
 
 # ── Consequence primitives ─────────────────────────────────────────────────────
@@ -378,3 +379,8 @@ func _is_duplicate(key: String) -> bool:
 		return true
 	_dedup[key] = now
 	return false
+
+
+## The name the player reads for a site id.
+func _site(site_id: String) -> String:
+	return str(_sim.site_name(site_id)) if _sim and _sim.has_method("site_name") else site_id

@@ -1,28 +1,6 @@
-[gd_scene load_steps=4 format=3 uid="uid://save_load_menu"]
+[gd_scene load_steps=2 format=3 uid="uid://save_load_menu"]
 
 [ext_resource type="Script" path="res://scripts/ui/SaveLoadMenu.gd" id="1"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(1, 1, 1, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-content_margin_left = 20.0
-content_margin_top = 20.0
-content_margin_right = 20.0
-content_margin_bottom = 20.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_primary"]
-bg_color = Color(0.0392157, 0.301961, 0.407843, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 10.0
-content_margin_top = 10.0
-content_margin_right = 10.0
-content_margin_bottom = 10.0
 
 [node name="SaveLoadMenu" type="Control"]
 layout_mode = 3
@@ -41,7 +19,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
-color = Color(0.18, 0.2, 0.25, 0.65)
+color = Color(0.043137, 0.164706, 0.227451, 0.65)
 
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -52,10 +30,10 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="DialogPanel" type="PanelContainer" parent="./Center"]
+theme_type_variation = &"Dialog"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(600, 450)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="DialogVBox" type="VBoxContainer" parent="./Center/DialogPanel"]
 layout_mode = 2
@@ -65,11 +43,10 @@ theme_override_constants/separation = 12
 layout_mode = 2
 
 [node name="TitleLabel" type="Label" parent="./Center/DialogPanel/DialogVBox/HeaderRow"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "Last Spill"
 
 [node name="CloseButton" type="Button" parent="./Center/DialogPanel/DialogVBox/HeaderRow"]
@@ -88,8 +65,7 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
 [node name="NewSaveButton" type="Button" parent="./Center/DialogPanel/DialogVBox"]
+theme_type_variation = &"PrimaryButton"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_primary")
 text = "💾 Nytt Lagringspunkt"

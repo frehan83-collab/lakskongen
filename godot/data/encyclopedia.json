@@ -1,0 +1,475 @@
+{
+  "_comment": "In-game encyclopedia (Leksikon). Every title and paragraph exists in English (en) and Norwegian Bokmål (nb); tests/test_text_correctness.py checks the pairs. No real company or product names (roadmap D17).",
+  "categories": [
+    {"id": "species", "title": {"en": "Fish species", "nb": "Fiskearter"}},
+    {"id": "diseases", "title": {"en": "Diseases", "nb": "Sykdommer"}},
+    {"id": "equipment", "title": {"en": "Equipment", "nb": "Utstyr"}},
+    {"id": "regulations", "title": {"en": "Regulations", "nb": "Regelverk"}},
+    {"id": "feed", "title": {"en": "Feed", "nb": "Fôr"}},
+    {"id": "markets", "title": {"en": "Markets", "nb": "Marked"}}
+  ],
+  "entries": [
+    {
+      "id": "atlantic_salmon", "category": "species", "icon": "🐟",
+      "title": {"en": "Atlantic salmon (Salmo salar)", "nb": "Atlantisk laks (Salmo salar)"},
+      "paragraphs": {
+        "en": [
+          "The Atlantic salmon is Norway's most valuable farmed fish and the backbone of the global salmon industry. Native to both sides of the North Atlantic, it has been farmed in Norwegian fjords since the 1970s.",
+          "Wild Atlantic salmon are anadromous: they hatch in rivers, migrate to the ocean to grow and return to fresh water to spawn. In farming, the whole life cycle is managed in controlled environments.",
+          "Farmed Atlantic salmon reach harvest weight (4–6 kg) after 14–24 months at sea, depending on water temperature, feed quality and genetics. The pink flesh colour comes from astaxanthin in the feed.",
+          "Norway produces about 1.4 million tonnes of Atlantic salmon a year, roughly half of the world's supply. The main export markets are the EU, the USA, Japan and China."
+        ],
+        "nb": [
+          "Atlantisk laks er Norges mest verdifulle oppdrettsfisk og ryggraden i den globale lakseindustrien. Arten hører hjemme på begge sider av Nord-Atlanteren og har vært oppdrettet i norske fjorder siden 1970-tallet.",
+          "Villaksen er anadrom: den klekkes i elver, vandrer ut i havet for å vokse og vender tilbake til ferskvann for å gyte. I oppdrett styres hele livssyklusen i kontrollerte omgivelser.",
+          "Oppdrettslaks når slaktevekt (4–6 kg) etter 14–24 måneder i sjøen, avhengig av sjøtemperatur, fôrkvalitet og genetikk. Den rosa fargen i kjøttet kommer fra astaxanthin i fôret.",
+          "Norge produserer om lag 1,4 millioner tonn atlantisk laks i året, omtrent halvparten av verdens tilbud. De viktigste eksportmarkedene er EU, USA, Japan og Kina."
+        ]
+      },
+      "related": ["smolt_stage", "parr_stage", "salmon_lifecycle", "sea_lice", "feed_types"]
+    },
+    {
+      "id": "salmon_lifecycle", "category": "species", "icon": "🔄",
+      "title": {"en": "The salmon life cycle", "nb": "Laksens livssyklus"},
+      "paragraphs": {
+        "en": [
+          "Farmed Atlantic salmon pass through distinct biological stages, each with its own management needs. Knowing them is the foundation of good farming.",
+          "Stage 1 — Egg (0–3 months): fertilised eggs incubate in fresh water at 6–10 °C. The eyed-egg stage (visible eye spots) shows healthy development, and losses during incubation are a key quality indicator.",
+          "Stage 2 — Alevin (3–5 months): newly hatched fish with a yolk sac. They need no feed while they live off the yolk, and in nature they stay hidden in the river gravel.",
+          "Stage 3 — Fry (5–8 months): first feeding begins. Fry are very active and need energy-rich starter feed. Without regular size grading, cannibalism can occur.",
+          "Stage 4 — Parr (8–18 months): recognised by the dark vertical parr marks on the flanks. The fish grow fast in freshwater RAS or flow-through tanks and reach 60–100 g before smoltification.",
+          "Stage 5 — Smolt (18–24 months): a physiological change that lets the fish live in sea water. The smolt loses its parr marks, turns silvery and goes through the hormonal changes needed to regulate salt balance.",
+          "Stage 6 — Post-smolt to harvest (24–36 months): growth at sea from about 100 g to 4–6 kg. This is the economically most important phase and the core of net-pen farming."
+        ],
+        "nb": [
+          "Oppdrettslaks går gjennom tydelige biologiske stadier, og hvert stadium har egne krav til drift. Å kjenne dem er grunnlaget for godt oppdrett.",
+          "Stadium 1 — Rogn (0–3 måneder): befruktet rogn inkuberes i ferskvann ved 6–10 °C. Øyerognstadiet (synlige øyepunkter) viser sunn utvikling, og tap under inkubasjonen er en viktig kvalitetsindikator.",
+          "Stadium 2 — Plommesekkyngel (3–5 måneder): nyklekket fisk med plommesekk. Den trenger ikke fôr mens den lever av plommen, og i naturen holder den seg skjult i elvegrusen.",
+          "Stadium 3 — Yngel (5–8 måneder): startfôringen begynner. Yngelen er svært aktiv og trenger energirikt startfôr. Uten jevnlig størrelsessortering kan det oppstå kannibalisme.",
+          "Stadium 4 — Parr (8–18 måneder): kjennetegnes av de mørke, loddrette parrmerkene på sidene. Fisken vokser raskt i RAS eller gjennomstrømningskar i ferskvann og når 60–100 g før smoltifiseringen.",
+          "Stadium 5 — Smolt (18–24 måneder): en fysiologisk omstilling som gjør at fisken tåler sjøvann. Smolten mister parrmerkene, blir sølvblank og gjennomgår hormonendringene som trengs for å regulere saltbalansen.",
+          "Stadium 6 — Postsmolt til slakt (24–36 måneder): vekst i sjøen fra om lag 100 g til 4–6 kg. Dette er den økonomisk viktigste fasen og kjernen i oppdrett i åpne merder."
+        ]
+      },
+      "related": ["smolt_stage", "parr_stage", "atlantic_salmon", "pen_equipment"]
+    },
+    {
+      "id": "smolt_stage", "category": "species", "icon": "✨",
+      "title": {"en": "Smoltification", "nb": "Smoltifisering"},
+      "paragraphs": {
+        "en": [
+          "Smoltification is the physiological and behavioural change that prepares young salmon to move from fresh water to the sea. It is triggered by day length (photoperiod), temperature and hormones.",
+          "During smoltification the gills are rebuilt to secrete salt, the skin turns from brown with parr marks to silvery, cortisol and thyroid hormone levels rise, and the fish start to swim downstream.",
+          "Farms steer smoltification with artificial light to produce smolts out of season (called S0 or S1 depending on age). This makes sea stocking possible all year round.",
+          "The smolt window — when the fish are ready for sea transfer — usually lasts 4–8 weeks. Missing it leads to desmoltification: the fish partly revert and die more often in sea water.",
+          "Smolt quality is tested with seawater challenge tests that measure survival after 24 hours in sea water. Good smolts show more than 95 % survival."
+        ],
+        "nb": [
+          "Smoltifisering er den fysiologiske omstillingen og atferdsendringen som gjør ung laks klar til å gå fra ferskvann til sjø. Den utløses av daglengde (fotoperiode), temperatur og hormoner.",
+          "Under smoltifiseringen bygges gjellene om til å skille ut salt, huden skifter fra brun med parrmerker til sølvblank, nivået av kortisol og skjoldbruskhormon stiger, og fisken begynner å svømme nedstrøms.",
+          "Oppdretterne styrer smoltifiseringen med kunstig lys for å produsere smolt utenom sesong (kalt S0 eller S1 etter alder). Det gjør det mulig å sette ut fisk i sjøen hele året.",
+          "Smoltvinduet — tiden da fisken er klar for sjøsetting — varer vanligvis 4–8 uker. Bommer man på det, blir fisken avsmoltifisert: den går delvis tilbake og dør oftere i sjøvann.",
+          "Smoltkvaliteten testes med sjøvannstester som måler overlevelsen etter 24 timer i sjøvann. God smolt har over 95 % overlevelse."
+        ]
+      },
+      "related": ["salmon_lifecycle", "parr_stage", "atlantic_salmon"]
+    },
+    {
+      "id": "parr_stage", "category": "species", "icon": "🐠",
+      "title": {"en": "Parr", "nb": "Parr"},
+      "paragraphs": {
+        "en": [
+          "The parr stage is the long juvenile phase in fresh water: 1–3 years in the wild and 8–18 months in farming. Parr carry 8–12 dark vertical parr marks along the flanks, camouflage for life in the river.",
+          "On farms, parr are kept in recirculating systems (RAS) or flow-through tanks with tightly controlled water: 12–16 °C, dissolved oxygen above 85 % saturation, pH 6.5–7.5 and ammonia below 0.5 mg/L.",
+          "Feed conversion is very efficient at the parr stage (FCR 0.9–1.1), which makes it one of the cheapest phases of growth. Dense RAS units hold 50–80 kg of fish per cubic metre.",
+          "Regular size grading keeps the variation in size down (target below 15 %) and prevents a pecking order at feeding time. Even size at smoltification gives better results at sea."
+        ],
+        "nb": [
+          "Parrstadiet er den lange ungdomsfasen i ferskvann: 1–3 år i naturen og 8–18 måneder i oppdrett. Parren har 8–12 mørke, loddrette parrmerker langs sidene, kamuflasje for livet i elva.",
+          "I oppdrett holdes parren i resirkuleringsanlegg (RAS) eller gjennomstrømningskar med nøye styrt vannkvalitet: 12–16 °C, oppløst oksygen over 85 % metning, pH 6,5–7,5 og ammoniakk under 0,5 mg/L.",
+          "Fôrutnyttelsen er svært god på parrstadiet (FCR 0,9–1,1), og fasen er en av de billigste delene av veksten. Tette RAS-anlegg rommer 50–80 kg fisk per kubikkmeter.",
+          "Jevnlig størrelsessortering holder størrelsesforskjellene nede (mål under 15 %) og hindrer hakkeorden ved fôring. Jevn størrelse ved smoltifisering gir bedre resultater i sjøen."
+        ]
+      },
+      "related": ["smolt_stage", "salmon_lifecycle", "atlantic_salmon", "rearing_equipment"]
+    },
+    {
+      "id": "isa_virus", "category": "diseases", "icon": "🦠",
+      "title": {"en": "ISA — infectious salmon anaemia", "nb": "ILA — infeksiøs lakseanemi"},
+      "paragraphs": {
+        "en": [
+          "Infectious salmon anaemia (ISA) is a serious viral disease caused by an orthomyxovirus. It is notifiable to the World Organisation for Animal Health and to the Norwegian authorities, and an outbreak can bring restrictions on the whole production area.",
+          "Signs include pale gills from severe anaemia, bulging eyes, fluid in the abdomen, pinpoint bleeding in the organs and a dark liver. Untreated, 20–100 % of the fish can die within 4–8 weeks.",
+          "The virus spreads mainly through the water, through moving fish and through contaminated equipment. Sea lice may carry it mechanically. It survives well in cold sea water.",
+          "There is no approved treatment. Control relies on biosecurity: control zones, mandatory slaughter at infected sites, at least six months of fallowing and strict disinfection of equipment.",
+          "Norway's ISA crisis in 1990–1992 hit the industry hard and led to strict biosecurity rules that became a model for the world. A vaccine is available and widely used."
+        ],
+        "nb": [
+          "Infeksiøs lakseanemi (ILA) er en alvorlig virussykdom som skyldes et orthomyxovirus. Den er meldepliktig til Verdens dyrehelseorganisasjon og norske myndigheter, og et utbrudd kan gi restriksjoner i hele produksjonsområdet.",
+          "Tegnene er bleke gjeller på grunn av alvorlig blodmangel, utstående øyne, væske i bukhulen, punktblødninger i organene og mørk lever. Uten tiltak kan 20–100 % av fisken dø i løpet av 4–8 uker.",
+          "Viruset smitter hovedsakelig gjennom vannet, ved flytting av fisk og via forurenset utstyr. Lakselus kan bære det med seg mekanisk. Det overlever godt i kaldt sjøvann.",
+          "Det finnes ingen godkjent behandling. Kontrollen bygger på biosikkerhet: kontrollsoner, påbudt slakting på smittede lokaliteter, minst seks måneders brakklegging og streng desinfeksjon av utstyr.",
+          "ILA-krisen i Norge i 1990–1992 rammet næringen hardt og førte til strenge regler for biosikkerhet som ble et forbilde i hele verden. Det finnes en vaksine som er mye brukt."
+        ]
+      },
+      "related": ["sea_lice", "pd_disease", "traffic_light_system", "escape_reporting"]
+    },
+    {
+      "id": "pd_disease", "category": "diseases", "icon": "🧫",
+      "title": {"en": "PD — pancreas disease", "nb": "PD — pankreassykdom"},
+      "paragraphs": {
+        "en": [
+          "Pancreas disease (PD) is caused by salmonid alphavirus (SAV). It is one of the costliest diseases in Norwegian salmon farming, with high losses and poor growth. PD is endemic in western Norway, while northern Norway works to keep it out.",
+          "Signs appear 4–8 weeks after infection: poor appetite, sluggish fish, damage to the pancreas, heart and muscle, and odd swimming. Sick fish often hang at the surface.",
+          "Two subtypes, SAV2 and SAV3, dominate in Norway, and outbreaks peak in spring and autumn when many fish are moved.",
+          "Vaccines give partial protection and reduce losses markedly. Combination vaccines against several diseases are usually given before sea transfer.",
+          "North of about 65° N, PD is under strict surveillance. Suspected cases must be reported within 24 hours and can lead to slaughter orders and zone restrictions."
+        ],
+        "nb": [
+          "Pankreassykdom (PD) skyldes salmonid alfavirus (SAV). Det er en av de dyreste sykdommene i norsk lakseoppdrett, med store tap og dårlig vekst. PD er endemisk på Vestlandet, mens Nord-Norge arbeider for å holde sykdommen ute.",
+          "Tegnene kommer 4–8 uker etter smitte: dårlig appetitt, slapp fisk, skader i bukspyttkjertel, hjerte og muskler, og unormal svømming. Syk fisk står ofte i overflaten.",
+          "To undertyper, SAV2 og SAV3, dominerer i Norge, og utbruddene topper seg om våren og høsten når mye fisk flyttes.",
+          "Vaksiner gir delvis beskyttelse og reduserer tapene betydelig. Kombinasjonsvaksiner mot flere sykdommer gis som regel før sjøsetting.",
+          "Nord for om lag 65° N er PD under streng overvåking. Mistanke må meldes innen 24 timer og kan føre til slaktepålegg og soneregler."
+        ]
+      },
+      "related": ["isa_virus", "ihn_disease", "sea_lice", "traffic_light_system"]
+    },
+    {
+      "id": "ihn_disease", "category": "diseases", "icon": "🧬",
+      "title": {"en": "IHN — infectious haematopoietic necrosis", "nb": "IHN — infeksiøs hematopoetisk nekrose"},
+      "paragraphs": {
+        "en": [
+          "Infectious haematopoietic necrosis (IHN) is caused by a rhabdovirus. It is rarer in Norway than ISA or PD, but notifiable: Mattilsynet (the Norwegian Food Safety Authority) must be told at the first suspicion.",
+          "The disease mainly strikes young salmon and trout. Signs include dark skin, pale gills, bulging eyes, a swollen belly and bleeding at the fin bases. In acute outbreaks up to 90 % of fry and parr can die.",
+          "The virus spreads through the water and through eggs, although disinfection of the eggs cuts that route sharply. It is most stable at 4–10 °C, so the cold months carry the highest risk.",
+          "There is no approved treatment. Prevention means disinfecting eggs, strict biosecurity, watching the wild fish in the water source and vaccinating where a vaccine is approved."
+        ],
+        "nb": [
+          "Infeksiøs hematopoetisk nekrose (IHN) skyldes et rhabdovirus. Den er sjeldnere i Norge enn ILA og PD, men meldepliktig: Mattilsynet skal varsles ved første mistanke.",
+          "Sykdommen rammer først og fremst ung laks og ørret. Tegnene er mørk hud, bleke gjeller, utstående øyne, oppblåst buk og blødninger ved finnefestene. Ved akutte utbrudd kan opptil 90 % av yngel og parr dø.",
+          "Viruset smitter gjennom vannet og via rogn, men desinfeksjon av rogna reduserer den smitteveien kraftig. Det er mest stabilt ved 4–10 °C, så de kalde månedene gir størst risiko.",
+          "Det finnes ingen godkjent behandling. Forebygging handler om desinfeksjon av rogn, streng biosikkerhet, overvåking av villfisk i vannkilden og vaksinering der vaksine er godkjent."
+        ]
+      },
+      "related": ["isa_virus", "bkd_disease", "pd_disease"]
+    },
+    {
+      "id": "bkd_disease", "category": "diseases", "icon": "🔬",
+      "title": {"en": "BKD — bacterial kidney disease", "nb": "BKD — bakteriell nyresyke"},
+      "paragraphs": {
+        "en": [
+          "Bacterial kidney disease (BKD) is a chronic infection caused by Renibacterium salmoninarum. It is among the hardest fish diseases to eradicate, because the bacterium hides inside the fish's own cells and resists common antibiotics.",
+          "BKD develops slowly over months: swollen kidneys with white nodules, an enlarged spleen, a swollen belly, blisters on the skin and bulging eyes. Expect a steady trickle of deaths rather than sudden outbreaks.",
+          "The bacterium survives inside the immune cells and passes from parents to offspring through the eggs, so health programmes for broodstock are essential. It also spreads through water and faeces.",
+          "Antibiotics have been used, but resistance is a concern. In Norway BKD is kept down by biosecurity: disinfected eggs, screened broodstock and limits on moving fish from infected sites."
+        ],
+        "nb": [
+          "Bakteriell nyresyke (BKD) er en kronisk infeksjon som skyldes Renibacterium salmoninarum. Den er blant de vanskeligste fiskesykdommene å utrydde, fordi bakterien gjemmer seg inne i fiskens egne celler og tåler vanlige antibiotika.",
+          "BKD utvikler seg sakte over måneder: forstørrede nyrer med hvite knuter, forstørret milt, oppblåst buk, blemmer i huden og utstående øyne. Man ser et jevnt sig av dødsfall heller enn plutselige utbrudd.",
+          "Bakterien overlever inne i immuncellene og går fra foreldre til avkom via rogna, så helseprogram for stamfisk er avgjørende. Den smitter også gjennom vann og avføring.",
+          "Antibiotika har vært brukt, men resistens er en bekymring. I Norge holdes BKD nede med biosikkerhet: desinfisert rogn, testet stamfisk og begrensninger på flytting av fisk fra smittede lokaliteter."
+        ]
+      },
+      "related": ["isa_virus", "ihn_disease", "regulations_mab"]
+    },
+    {
+      "id": "sea_lice", "category": "diseases", "icon": "🦐",
+      "title": {"en": "Sea lice (Lepeophtheirus salmonis)", "nb": "Lakselus (Lepeophtheirus salmonis)"},
+      "paragraphs": {
+        "en": [
+          "Sea lice are parasitic copepods and the single costliest biological problem in Norwegian salmon farming: more than 500 million NOK a year in direct treatment costs, plus large indirect losses from slower growth and mortality.",
+          "The salmon louse has ten moult stages: two free-swimming nauplii, the infective copepodid, four attached chalimus stages, two pre-adult stages and the adult. Development takes 3–5 weeks at 10 °C.",
+          "Norwegian rules set the limit at 0.5 adult female lice per fish on average at a site. Above it, treatment is mandatory. Near the national salmon fjords the limit is stricter (0.2).",
+          "Treatments include medicinal baths (hydrogen peroxide and other bath agents), medicated feed and non-medicinal methods: warm-water baths, flushing and lasers. Lice have developed resistance to several medicines.",
+          "The traffic light system uses the lice pressure in each production area as its main indicator. High pressure gives a red light, which stops growth and can force production cuts."
+        ],
+        "nb": [
+          "Lakselus er parasittiske hoppekreps og det enkeltproblemet som koster norsk lakseoppdrett mest: over 500 millioner kroner i året i direkte behandlingskostnader, i tillegg til store indirekte tap gjennom dårligere vekst og dødelighet.",
+          "Lakselusa har ti stadier: to frittsvømmende naupliusstadier, det smittsomme kopepoditten, fire fastsittende chalimusstadier, to preadulte stadier og den voksne lusa. Utviklingen tar 3–5 uker ved 10 °C.",
+          "Norske regler setter grensen ved 0,5 voksne hunnlus per fisk i snitt på en lokalitet. Over grensen er behandling påbudt. Nær de nasjonale laksefjordene er grensen strengere (0,2).",
+          "Behandlingen omfatter medisinske bad (hydrogenperoksid og andre badmidler), medisinfôr og ikke-medikamentelle metoder: varmtvannsbad, spyling og laser. Lusa har utviklet resistens mot flere midler.",
+          "Trafikklyssystemet bruker lusepresset i hvert produksjonsområde som hovedindikator. Høyt press gir rødt lys, som stanser veksten og kan tvinge fram kutt i produksjonen."
+        ]
+      },
+      "related": ["isa_virus", "traffic_light_system", "pen_equipment", "atlantic_salmon"]
+    },
+    {
+      "id": "pen_equipment", "category": "equipment", "icon": "⭕",
+      "title": {"en": "Net pens and moorings", "nb": "Merder og fortøyning"},
+      "paragraphs": {
+        "en": [
+          "The net pen is the basic production unit of open salmon farming in Norway. A standard pen measures 90–160 metres around (29–51 m across) with nets 15–35 metres deep, and holds up to 2,000 tonnes of fish.",
+          "A modern pen has a floating collar of high-density polyethylene (HDPE), the net, a predator net and a sinker ring at the bottom. A pen costs from 500,000 to 2,000,000 NOK.",
+          "Moorings must hold in Norwegian storms with significant wave heights of 3–5 metres. A spread mooring with 4–8 anchors is standard; exposed sites can use single-point moorings. The Norwegian standard NS 9415 sets the structural requirements.",
+          "For exposed sites there are semi-submersible offshore pens with steel structures more than 100 metres across, and deep-water pens that can be lowered beneath the waves during storms.",
+          "Net integrity must be monitored by law. More and more farms use sensors and cameras that detect tears automatically, and net-cleaning robots keep the mesh open for water flow and oxygen."
+        ],
+        "nb": [
+          "Merden er den grunnleggende produksjonsenheten i åpent lakseoppdrett i Norge. En vanlig merd har en omkrets på 90–160 meter (29–51 meter i diameter) og not som går 15–35 meter ned, og rommer opptil 2 000 tonn fisk.",
+          "En moderne merd består av en flytekrage i polyetylen (PE), nota, et rovdyrnett og en bunnring som holder nota nede. En merd koster fra 500 000 til 2 000 000 kroner.",
+          "Fortøyningen må tåle norske stormer med signifikante bølgehøyder på 3–5 meter. Rammefortøyning med 4–8 ankre er vanlig; eksponerte lokaliteter kan bruke punktfortøyning. Norsk standard NS 9415 setter de tekniske kravene.",
+          "For eksponerte lokaliteter finnes halvt nedsenkbare havmerder med stålkonstruksjoner på over 100 meter i diameter, og dypvannsmerder som kan senkes under bølgene i storm.",
+          "Nøtene skal overvåkes etter loven. Stadig flere bruker sensorer og kameraer som oppdager hull automatisk, og notvaskeroboter holder maskene åpne for vanngjennomstrømning og oksygen."
+        ]
+      },
+      "related": ["feeding_systems", "camera_systems", "regulations_mab", "sea_lice"]
+    },
+    {
+      "id": "feeding_systems", "category": "equipment", "icon": "⚙️",
+      "title": {"en": "Automated feeding systems", "nb": "Automatiske fôringsanlegg"},
+      "paragraphs": {
+        "en": [
+          "Modern salmon farms use sensor-driven feeding systems to improve the feed conversion ratio (FCR) and cut uneaten pellets, which lowers both costs and the environmental footprint.",
+          "Compressed air blows the pellets from a feed barge holding 30–100 tonnes through pipes to the spreaders in each pen. A distribution centre controls the flow to many pens at once.",
+          "Underwater cameras and hydroacoustic sensors watch the feeding in real time. When pellets are seen sinking past a set depth (usually 3–5 m), the feeding rate is turned down. Machine-learning models recognise pellets with more than 95 % accuracy.",
+          "Sonar-based systems map how the fish are spread through the pen and how actively they feed, giving a 3D estimate of the biomass and the ration without divers.",
+          "A feed barge usually carries 30–80 days of feed and automatic dosing equipment. Modern barges also have water-quality sensors, cameras and live connections to the operations centre."
+        ],
+        "nb": [
+          "Moderne lakseanlegg bruker sensorstyrte fôringsanlegg for å forbedre fôrfaktoren (FCR) og redusere uspist fôr, noe som senker både kostnadene og miljøavtrykket.",
+          "Trykkluft blåser fôret fra en fôrflåte med 30–100 tonn gjennom rør ut til sprederne i hver merd. En fordelingssentral styrer fôrstrømmen til mange merder samtidig.",
+          "Undervannskameraer og hydroakustiske sensorer følger fôringen i sanntid. Når pellets synker forbi et gitt dyp (vanligvis 3–5 m), skrus fôringen ned. Maskinlæringsmodeller kjenner igjen pellets med over 95 % treffsikkerhet.",
+          "Sonarbaserte systemer kartlegger hvordan fisken fordeler seg i merden og hvor aktivt den spiser, og gir et tredimensjonalt anslag over biomasse og rasjon uten dykkere.",
+          "En fôrflåte har vanligvis fôr for 30–80 dager og automatisk doseringsutstyr. Moderne flåter har også sensorer for vannkvalitet, kameraer og direkte forbindelse til driftssentralen."
+        ]
+      },
+      "related": ["pen_equipment", "feed_types", "feed_fcr", "camera_systems"]
+    },
+    {
+      "id": "camera_systems", "category": "equipment", "icon": "📹",
+      "title": {"en": "Underwater cameras", "nb": "Undervannskameraer"},
+      "paragraphs": {
+        "en": [
+          "Underwater cameras have changed how salmon farms are run: behaviour, health, feeding and lice can be followed continuously without handling the fish.",
+          "Fixed cameras sit 3–8 metres down, facing the feeding zone. Standard systems have wide-angle and zoom cameras with LED lights, and modern 4K cameras can follow individual fish.",
+          "AI-based lice-counting cameras count lice in real time as the fish swim past a camera station. They come within 10 % of manual counts and reduce the need for costly diver checks.",
+          "Biomass systems combine camera-based length measurements with population models to track the standing biomass every day and estimate the harvest weight automatically.",
+          "Surface cameras on drones and masts complement the underwater cameras: they check the pens, follow surface behaviour and spot predators. Automatic detection can trigger acoustic deterrents."
+        ],
+        "nb": [
+          "Undervannskameraer har endret måten lakseanlegg drives på: atferd, helse, fôring og lus kan følges hele tiden uten at fisken må håndteres.",
+          "Faste kameraer står 3–8 meter nede, rettet mot fôringssonen. Vanlige systemer har vidvinkel- og zoomkameraer med LED-lys, og moderne 4K-kameraer kan følge enkeltfisk.",
+          "KI-baserte lusetellende kameraer teller lusa i sanntid når fisken svømmer forbi en kamerastasjon. De treffer innenfor 10 % av manuell telling og reduserer behovet for kostbare dykkerkontroller.",
+          "Biomassesystemer kombinerer lengdemålinger fra kamera med populasjonsmodeller for å følge den stående biomassen hver dag og anslå slaktevekten automatisk.",
+          "Overflatekameraer på droner og master utfyller undervannskameraene: de sjekker merdene, følger atferden i overflaten og oppdager rovdyr. Automatisk gjenkjenning kan utløse akustiske skremmere."
+        ]
+      },
+      "related": ["feeding_systems", "pen_equipment", "sea_lice"]
+    },
+    {
+      "id": "rearing_equipment", "category": "equipment", "icon": "🏭",
+      "title": {"en": "Freshwater RAS", "nb": "Resirkuleringsanlegg (RAS) i ferskvann"},
+      "paragraphs": {
+        "en": [
+          "Recirculating aquaculture systems (RAS) have become the main technology for producing salmon smolts. They replaced flow-through systems thanks to better biosecurity, lower water use and year-round production.",
+          "A RAS has rearing tanks (round or oval, 500–3,000 m³), mechanical filters, biofilters with nitrifying bacteria, UV and ozone treatment, CO₂ strippers, oxygen dosing and heat exchangers.",
+          "A modern RAS reuses 95–99 % of its water and holds tight limits: temperature within ±0.5 °C, dissolved oxygen at 90–110 % saturation, pH 7.0–7.5, total ammonia nitrogen below 1.0 mg/L and CO₂ below 10 mg/L.",
+          "RAS is expensive to build: 50,000–150,000 NOK per tonne of annual smolt capacity. Electricity for oxygenation, pumping and heating typically costs 3–8 NOK per smolt.",
+          "Post-smolt RAS — land-based units that grow the fish to 500 g–2 kg before sea transfer — is a growing segment. It shortens the time at sea and improves biosecurity."
+        ],
+        "nb": [
+          "Resirkuleringsanlegg (RAS) har blitt hovedteknologien for å produsere laksesmolt. De har erstattet gjennomstrømningsanlegg fordi de gir bedre biosikkerhet, bruker mindre vann og kan produsere hele året.",
+          "Et RAS har oppdrettskar (runde eller ovale, 500–3 000 m³), mekaniske filtre, biofiltre med nitrifiserende bakterier, UV- og ozonbehandling, CO₂-luftere, oksygentilsetting og varmevekslere.",
+          "Et moderne RAS gjenbruker 95–99 % av vannet og holder snevre grenser: temperatur innenfor ±0,5 °C, oppløst oksygen på 90–110 % metning, pH 7,0–7,5, total ammoniakknitrogen under 1,0 mg/L og CO₂ under 10 mg/L.",
+          "RAS er dyrt å bygge: 50 000–150 000 kroner per tonn årlig smoltkapasitet. Strøm til oksygenering, pumping og oppvarming koster typisk 3–8 kroner per smolt.",
+          "Postsmolt-RAS — landbaserte anlegg som fôrer fisken opp til 500 g–2 kg før sjøsetting — er et voksende segment. Det korter ned tiden i sjøen og gir bedre biosikkerhet."
+        ]
+      },
+      "related": ["parr_stage", "smolt_stage", "pen_equipment"]
+    },
+    {
+      "id": "regulations_mab", "category": "regulations", "icon": "⚖️",
+      "title": {"en": "MAB — maximum allowed biomass", "nb": "MTB — maksimalt tillatt biomasse"},
+      "paragraphs": {
+        "en": [
+          "Maximum allowed biomass (MAB, in Norwegian MTB) is the basic unit of production capacity in Norwegian salmon farming. Each licence gives the holder a set MAB in tonnes of live fish.",
+          "Since the 2005 reform, capacity has been measured in MAB rather than in numbers of fish or pen volume. A standard licence carries 780 tonnes of MAB, although this has varied over time and with adjustment rounds.",
+          "Farmers may spread their MAB across several sites in the licence area, but the standing biomass at all sites together must never exceed the licensed total. That makes stocking plans an important decision.",
+          "MAB use drives profitability. High use (above 85 %) means the licensed capacity is used well. Disease zones and the traffic light system can force a farm to run below capacity.",
+          "Licences can be bought and sold between companies. Prices have ranged from 30 million to more than 200 million NOK per 780-tonne unit, a scarcity value created by Norway's limited issuing of licences."
+        ],
+        "nb": [
+          "Maksimalt tillatt biomasse (MTB) er den grunnleggende enheten for produksjonskapasitet i norsk lakseoppdrett. Hver tillatelse gir innehaveren en fast MTB målt i tonn levende fisk.",
+          "Siden reformen i 2005 har kapasiteten vært målt i MTB i stedet for antall fisk eller merdvolum. En vanlig tillatelse gir 780 tonn MTB, selv om dette har variert over tid og med justeringsrunder.",
+          "Oppdretteren kan fordele MTB på flere lokaliteter i tillatelsesområdet, men den stående biomassen på alle lokalitetene samlet må aldri overstige den samlede tillatelsen. Derfor er utsettsplanen en viktig beslutning.",
+          "Utnyttelsen av MTB driver lønnsomheten. Høy utnyttelse (over 85 %) betyr at den tillatte kapasiteten brukes godt. Sykdomssoner og trafikklyssystemet kan tvinge et anlegg til å drive under kapasitet.",
+          "Tillatelser kan kjøpes og selges mellom selskaper. Prisene har ligget fra 30 millioner til over 200 millioner kroner per enhet på 780 tonn, en knapphetsverdi skapt av at staten deler ut få tillatelser."
+        ]
+      },
+      "related": ["traffic_light_system", "escape_reporting", "pen_equipment"]
+    },
+    {
+      "id": "traffic_light_system", "category": "regulations", "icon": "🚦",
+      "title": {"en": "The traffic light system", "nb": "Trafikklyssystemet"},
+      "paragraphs": {
+        "en": [
+          "Norway's traffic light system, introduced in 2017, ties permitted growth in production to environmental indicators — above all the lice burden on wild salmon.",
+          "The coast is divided into 13 production areas (PO 1–PO 13) from Agder in the south to Finnmark in the north. Every other year each area is assessed against the indicators.",
+          "Three colours:\n• Green: lice cause less than 10 % mortality in wild salmon. Farms in the area may apply to grow their MAB by 6 %.\n• Yellow: 10–30 %. No change in capacity.\n• Red: more than 30 %. Farms must cut their MAB by 6 % within two years.",
+          "The lice burden is modelled with spread models that combine ocean data, farm positions, stocking and the lice counts that farms must report every week.",
+          "The system is disputed. The industry points to model uncertainty and to area-wide rules that also hit farms with good lice control; environmental groups say the limits are too lenient. It is under review."
+        ],
+        "nb": [
+          "Trafikklyssystemet, innført i 2017, knytter tillatt vekst i produksjonen til miljøindikatorer — først og fremst lusepåslaget på villaks.",
+          "Kysten er delt i 13 produksjonsområder (PO 1–PO 13) fra Agder i sør til Finnmark i nord. Hvert annet år vurderes hvert område opp mot indikatorene.",
+          "Tre farger:\n• Grønn: lus gir under 10 % dødelighet hos villaks. Oppdretterne i området kan søke om å øke MTB med 6 %.\n• Gul: 10–30 %. Ingen endring i kapasitet.\n• Rød: over 30 %. Oppdretterne må kutte MTB med 6 % innen to år.",
+          "Lusepåslaget modelleres med spredningsmodeller som kombinerer havdata, anleggenes plassering, utsett og lusetellingene som oppdretterne må rapportere hver uke.",
+          "Systemet er omstridt. Næringen peker på usikre modeller og på at områderegler også rammer anlegg med god lusekontroll; miljøorganisasjoner mener grensene er for slappe. Ordningen er under evaluering."
+        ]
+      },
+      "related": ["sea_lice", "regulations_mab", "escape_reporting"]
+    },
+    {
+      "id": "escape_reporting", "category": "regulations", "icon": "🚨",
+      "title": {"en": "Escapes: reporting and prevention", "nb": "Rømming: varsling og forebygging"},
+      "paragraphs": {
+        "en": [
+          "Escapes are among the most serious environmental and regulatory concerns in Norwegian salmon farming. Escaped farmed salmon can breed with wild salmon, dilute the local genetic adaptations and compete for food and space in the rivers.",
+          "The aquaculture operations regulations require every escape, or suspected escape, to be reported to the Directorate of Fisheries within 24 hours of discovery. Failing to report is a criminal offence.",
+          "After an escape the farmer must estimate how many fish got out, fish for them nearby, notify the affected river owners, pay for recapture in the rivers and deliver a cause analysis within a month.",
+          "Escape numbers in Norway have fallen from hundreds of thousands a year in the 1990s to 100,000–400,000 in the 2010s, and below 200,000 in recent years, thanks to better pens and routines.",
+          "NS 9415 requires net inspections every other week, ROV or diver inspections every six months, automatic tear detection on new installations and a mesh of at least 20 mm for fish above 500 g. Dead fish must be removed so they do not damage the nets."
+        ],
+        "nb": [
+          "Rømming er blant de alvorligste miljø- og reguleringsutfordringene i norsk lakseoppdrett. Rømt oppdrettslaks kan krysse seg med villaks, svekke de lokale genetiske tilpasningene og konkurrere om mat og plass i elvene.",
+          "Akvakulturdriftsforskriften krever at enhver rømming, eller mistanke om rømming, meldes til Fiskeridirektoratet innen 24 timer etter at den er oppdaget. Å unnlate å melde er straffbart.",
+          "Etter en rømming må oppdretteren anslå hvor mange fisk som slapp ut, sette i gang gjenfangst i nærområdet, varsle berørte elveeiere, betale for gjenfangst i elvene og levere en årsaksanalyse innen en måned.",
+          "Antall rømte fisk i Norge har falt fra flere hundre tusen i året på 1990-tallet til 100 000–400 000 på 2010-tallet, og under 200 000 de siste årene, takket være bedre merder og rutiner.",
+          "NS 9415 krever notinspeksjon annenhver uke, ROV- eller dykkerinspeksjon hvert halvår, automatisk hulldeteksjon på nye anlegg og maskevidde på minst 20 mm for fisk over 500 g. Død fisk må fjernes så den ikke skader nøtene."
+        ]
+      },
+      "related": ["regulations_mab", "traffic_light_system", "pen_equipment"]
+    },
+    {
+      "id": "feed_types", "category": "feed", "icon": "🌾",
+      "title": {"en": "Salmon feed", "nb": "Laksefôr"},
+      "paragraphs": {
+        "en": [
+          "Salmon feed has moved from fishmeal-heavy recipes to complex diets that balance growth, cost and sustainability. Feed is 50–60 % of the total cost of producing salmon.",
+          "All commercial salmon feed is extruded. Extrusion at 120–150 °C binds the starch, sterilises the feed and gives a porous pellet that soaks up oil afterwards. Pellets range from 0.5 mm (first feeding) to 12 mm (harvest-size fish).",
+          "Pellets by energy content:\n• Standard: 19–21 MJ/kg, for smolts and periods of reduced feeding.\n• High-energy: 23–26 MJ/kg, the standard for growing salmon, with more fat.\n• Extra high-energy: 26–28 MJ/kg, for winter or fast catch-up growth.",
+          "Functional feeds add immune boosters (beta-glucans, nucleotides) for disease resistance, probiotics and prebiotics for gut health, carotenoids such as astaxanthin for flesh colour (target 25–35 mg per kg of feed) and omega-3 concentrate for product quality.",
+          "A handful of large feed producers supply almost all Norwegian salmon farms. Norway uses about 1.9 million tonnes of salmon feed a year."
+        ],
+        "nb": [
+          "Laksefôret har gått fra fiskemelrike resepter til sammensatte dietter som balanserer vekst, kostnad og bærekraft. Fôret utgjør 50–60 % av den samlede kostnaden ved å produsere laks.",
+          "Alt kommersielt laksefôr ekstruderes. Ekstrudering ved 120–150 °C binder stivelsen, steriliserer fôret og gir en porøs pellet som suger opp olje etterpå. Pelletene går fra 0,5 mm (startfôr) til 12 mm (slakteklar fisk).",
+          "Pellets etter energiinnhold:\n• Standard: 19–21 MJ/kg, for smolt og perioder med redusert fôring.\n• Høyenergi: 23–26 MJ/kg, standarden for laks i vekst, med mer fett.\n• Ekstra høyenergi: 26–28 MJ/kg, for vinteren eller rask innhenting av vekst.",
+          "Funksjonelt fôr tilsettes immunstimulanter (betaglukaner, nukleotider) for sykdomsresistens, pro- og prebiotika for tarmhelsen, karotenoider som astaxanthin for fargen i kjøttet (mål 25–35 mg per kg fôr) og omega-3-konsentrat for produktkvaliteten.",
+          "Noen få store fôrprodusenter leverer nesten alt fôret til norske lakseoppdrettere. Norge bruker om lag 1,9 millioner tonn laksefôr i året."
+        ]
+      },
+      "related": ["feed_ingredients", "feed_fcr", "feeding_systems"]
+    },
+    {
+      "id": "feed_ingredients", "category": "feed", "icon": "🌱",
+      "title": {"en": "Feed ingredients and sustainability", "nb": "Fôrråvarer og bærekraft"},
+      "paragraphs": {
+        "en": [
+          "The ingredients in salmon feed have changed fundamentally over 30 years. In 1990 the feed was about 65 % fishmeal and 25 % fish oil. By 2023 fishmeal was down to 12–15 % and fish oil to 10–15 %, replaced mainly by plant ingredients.",
+          "Main ingredients today:\n• Plant proteins (soy, wheat gluten, pea, rapeseed): 40–50 % of the feed. They give protein and energy but can make the feed less tasty and affect gut health.\n• Marine proteins (fishmeal, krill meal, single-cell protein): 12–20 %. Important for the amino acid balance and taste.\n• Plant oils (rapeseed, soy): 15–20 %. An energy source with less omega-3 than fish oil.\n• Fish oil: 8–15 %. The main source of the omega-3 fatty acids EPA and DHA.",
+          "New ingredients on the way in:\n• Insect meal (black soldier fly): rich in protein and part of a circular economy.\n• Algal oil: omega-3 straight from algae, without forage fish.\n• Single-cell proteins from fermentation: protein with very little land use.\n• Oil crops bred to produce omega-3: plant-based EPA and DHA.",
+          "The fish-in:fish-out ratio shows how much wild fish it takes to produce farmed salmon. The Norwegian average has improved from about 5:1 in 1990 to about 1.2:1 today."
+        ],
+        "nb": [
+          "Råvarene i laksefôret har endret seg grunnleggende på 30 år. I 1990 var fôret om lag 65 % fiskemel og 25 % fiskeolje. I 2023 var fiskemelet nede i 12–15 % og fiskeoljen i 10–15 %, erstattet hovedsakelig av planteråvarer.",
+          "Hovedråvarer i dag:\n• Planteproteiner (soya, hvetegluten, erter, raps): 40–50 % av fôret. De gir protein og energi, men kan gjøre fôret mindre smakfullt og påvirke tarmhelsen.\n• Marine proteiner (fiskemel, krillmel, encelleprotein): 12–20 %. Viktige for aminosyrebalansen og smaken.\n• Planteoljer (raps, soya): 15–20 %. En energikilde med mindre omega-3 enn fiskeolje.\n• Fiskeolje: 8–15 %. Hovedkilden til omega-3-fettsyrene EPA og DHA.",
+          "Nye råvarer på vei inn:\n• Insektmel (svart soldatflue): proteinrikt og del av en sirkulær økonomi.\n• Algeolje: omega-3 rett fra alger, uten fôrfisk.\n• Encelleprotein fra fermentering: protein med svært lite arealbruk.\n• Oljevekster foredlet for å lage omega-3: plantebasert EPA og DHA.",
+          "Forholdet mellom fisk inn og fisk ut viser hvor mye villfisk som går med til å produsere oppdrettslaks. Det norske snittet har bedret seg fra om lag 5:1 i 1990 til om lag 1,2:1 i dag."
+        ]
+      },
+      "related": ["feed_types", "feed_fcr", "markets_nasdaq"]
+    },
+    {
+      "id": "feed_fcr", "category": "feed", "icon": "📊",
+      "title": {"en": "FCR — feed conversion ratio", "nb": "FCR — fôrfaktor"},
+      "paragraphs": {
+        "en": [
+          "The feed conversion ratio (FCR) measures how efficiently the fish use their feed: the kilograms of feed it takes to grow one kilogram of fish. It is the most important efficiency figure in salmon farming.",
+          "FCR = feed used (kg) ÷ biomass gain (kg). An FCR of 1.15 means that 1.15 kg of feed gives 1 kg of growth.",
+          "Industry benchmarks:\n• Excellent: below 1.05\n• Good: 1.05–1.15\n• Average: 1.15–1.25\n• Weak: above 1.25",
+          "What drives the FCR:\n• Water temperature (best at 12–16 °C for Atlantic salmon)\n• Dissolved oxygen (too little raises the FCR)\n• Feed quality and pellet stability\n• How precisely the feed is delivered (uneaten feed is money lost)\n• Fish health (sick fish stop eating)\n• Crowding stress and pecking order",
+          "Improving the FCR by 0.05 on a 780-tonne licence, at a feed price of 12 NOK/kg, saves about 1.2 million NOK per production cycle. Few other improvements pay as well.",
+          "Biological FCR uses the actual weight gain; economic FCR also counts the fish that ate and then died. The economic FCR is always higher, and telling the two apart is essential for correct cost figures."
+        ],
+        "nb": [
+          "Fôrfaktoren (FCR) måler hvor godt fisken utnytter fôret: hvor mange kilo fôr som skal til for at fisken vokser én kilo. Det er det viktigste effektivitetstallet i lakseoppdrett.",
+          "FCR = fôr brukt (kg) ÷ biomassetilvekst (kg). En fôrfaktor på 1,15 betyr at 1,15 kg fôr gir 1 kg tilvekst.",
+          "Referanseverdier i næringen:\n• Svært god: under 1,05\n• God: 1,05–1,15\n• Middels: 1,15–1,25\n• Svak: over 1,25",
+          "Dette styrer fôrfaktoren:\n• Sjøtemperatur (best ved 12–16 °C for atlantisk laks)\n• Oppløst oksygen (for lite gir høyere FCR)\n• Fôrkvalitet og pelletstabilitet\n• Hvor presist fôret leveres (uspist fôr er tapte penger)\n• Fiskehelse (syk fisk slutter å spise)\n• Trengselsstress og hakkeorden",
+          "Å forbedre fôrfaktoren med 0,05 på en tillatelse på 780 tonn, med en fôrpris på 12 kr/kg, sparer om lag 1,2 millioner kroner per produksjonssyklus. Få andre forbedringer lønner seg like godt.",
+          "Biologisk fôrfaktor bruker den faktiske tilveksten; økonomisk fôrfaktor regner også med fisken som spiste og så døde. Den økonomiske fôrfaktoren er alltid høyere, og det er avgjørende å skille de to for å få riktige kostnadstall."
+        ]
+      },
+      "related": ["feed_types", "feed_ingredients", "feeding_systems"]
+    },
+    {
+      "id": "markets_nasdaq", "category": "markets", "icon": "📈",
+      "title": {"en": "The salmon spot price index", "nb": "Spotprisindeksen for laks"},
+      "paragraphs": {
+        "en": [
+          "The salmon spot price index is the reference price for Atlantic salmon in the spot market. It is published every week and shows the volume-weighted average price per kilo of fresh whole salmon (superior quality, gutted with the head on, 3–6 kg) exported from Norway.",
+          "The price has ranged from about 15 NOK/kg (the 2003 crisis) to more than 100 NOK/kg (the 2016 peak, the pandemic disruptions in 2020 and the strong demand in 2022–2023). The long trend points up, as demand grows faster than supply.",
+          "Price drivers:\n• Norwegian supply (harvest plans, biomass reports)\n• Global demand (consumer trends in the EU, exports to Asia and the USA)\n• Exchange rates (NOK against EUR, USD and JPY)\n• Disease outbreaks and regulatory limits\n• Season (the Christmas premium in the EU)\n• Supply from other countries (Chile, the UK, Canada, the Faroe Islands)",
+          "There is also a futures market for salmon, with monthly contracts up to 18 months ahead. Farmers use it to hedge their price risk and buyers to lock in their costs. One contract covers one tonne of salmon.",
+          "Season: Norwegian salmon prices are usually lowest in the third quarter (July–September, the peak harvest) and highest in the fourth and first quarters (Christmas demand and smaller harvests). Knowing the pattern is essential for timing the harvest."
+        ],
+        "nb": [
+          "Spotprisindeksen for laks er referanseprisen for atlantisk laks i spotmarkedet. Den publiseres hver uke og viser den volumveide snittprisen per kilo fersk, hel laks (superior kvalitet, sløyd med hode, 3–6 kg) eksportert fra Norge.",
+          "Prisen har ligget fra om lag 15 kr/kg (krisen i 2003) til over 100 kr/kg (toppen i 2016, pandemiforstyrrelsene i 2020 og den sterke etterspørselen i 2022–2023). Den lange trenden peker oppover fordi etterspørselen vokser raskere enn tilbudet.",
+          "Prisdrivere:\n• Norsk tilbud (slakteplaner, biomasserapporter)\n• Global etterspørsel (forbrukertrender i EU, eksport til Asia og USA)\n• Valutakurser (kronen mot euro, dollar og yen)\n• Sykdomsutbrudd og reguleringer\n• Sesong (julepremien i EU)\n• Tilbud fra andre land (Chile, Storbritannia, Canada, Færøyene)",
+          "Det finnes også et terminmarked for laks, med månedskontrakter opptil 18 måneder fram i tid. Oppdretterne bruker det til å sikre seg mot prisfall, og kjøperne til å låse kostnadene. Én kontrakt gjelder ett tonn laks.",
+          "Sesong: Norske laksepriser er som regel lavest i tredje kvartal (juli–september, når slaktingen er størst) og høyest i fjerde og første kvartal (julehandel og mindre slakting). Å kjenne mønsteret er avgjørende for når man skal høste."
+        ]
+      },
+      "related": ["markets_contracts", "markets_seasonal", "feed_types"]
+    },
+    {
+      "id": "markets_contracts", "category": "markets", "icon": "📋",
+      "title": {"en": "Contracts and sales channels", "nb": "Kontrakter og salgskanaler"},
+      "paragraphs": {
+        "en": [
+          "Norwegian salmon is sold in several ways, each with its own balance between price security and the chance of a higher price.",
+          "Spot sales: negotiated every week, usually early in the week for delivery at the end of it. Prices follow the spot price index closely. Spot gives full exposure to the market — good when prices rise, risky when they fall. Most Norwegian salmon (60–70 %) is sold spot.",
+          "Fixed-price contracts: agreements for 3–12 months at a set price per kilo. Buyers are large retail chains, food service companies and processors. They give predictable income for budgets and debt, but miss out when the market is strong.",
+          "Formula contracts: the price follows the spot index with an agreed discount or premium. They are common in large, long customer relationships, and the discount reflects the buyer's volume commitment and payment record.",
+          "Processed products — fresh fillets, portions, smoked salmon and ready meals — give higher margins but need processing capacity or partners. The Japanese sashimi market and premium food service pay the most per kilo.",
+          "Export markets by region: the EU (France, Poland and Denmark import the most) takes about 70 % of the volume, Asia (Japan, China and Vietnam for processing) about 15 %, North America about 8 % and Norway itself about 7 %."
+        ],
+        "nb": [
+          "Norsk laks selges på flere måter, og hver har sin egen balanse mellom sikker pris og muligheten for høyere pris.",
+          "Spotsalg: forhandles hver uke, vanligvis tidlig i uka for levering mot slutten av den. Prisen følger spotprisindeksen tett. Spot gir full eksponering mot markedet — bra når prisene stiger, risikabelt når de faller. Mesteparten av norsk laks (60–70 %) selges i spot.",
+          "Fastpriskontrakter: avtaler for 3–12 måneder til en fast pris per kilo. Kjøperne er store dagligvarekjeder, storhusholdning og foredlingsbedrifter. De gir forutsigbare inntekter for budsjett og gjeld, men går glipp av gevinsten når markedet er sterkt.",
+          "Formelkontrakter: prisen følger spotindeksen med et avtalt fradrag eller tillegg. De er vanlige i store, langvarige kundeforhold, og fradraget gjenspeiler kjøperens volumforpliktelse og betalingsevne.",
+          "Bearbeidede produkter — fersk filet, porsjoner, røkelaks og ferdigretter — gir høyere marginer, men krever foredlingskapasitet eller partnere. Det japanske sashimimarkedet og eksklusiv storhusholdning betaler mest per kilo.",
+          "Eksportmarkeder etter region: EU (Frankrike, Polen og Danmark importerer mest) tar om lag 70 % av volumet, Asia (Japan, Kina og Vietnam for foredling) om lag 15 %, Nord-Amerika om lag 8 % og Norge selv om lag 7 %."
+        ]
+      },
+      "related": ["markets_nasdaq", "markets_seasonal"]
+    },
+    {
+      "id": "markets_seasonal", "category": "markets", "icon": "📅",
+      "title": {"en": "Seasonal market patterns", "nb": "Sesongmønstre i markedet"},
+      "paragraphs": {
+        "en": [
+          "Salmon prices follow a steady seasonal pattern, driven by both supply and demand. Knowing it helps you time the harvest and choose your contracts.",
+          "First quarter (January–March): demand falls back after Christmas and prices usually ease from the December highs. Norwegian biomass is seasonally low (the fish stocked the previous autumn are still growing), which limits supply. Prices often recover by March, helped by Asian New Year demand.",
+          "Second quarter (April–June): spring is a transition. Easter gives a short demand spike, and supply grows as spring harvests reach the market. Prices level out.",
+          "Third quarter (July–September): the summer dip. Norwegian harvests peak as the large fish stocked two years earlier are slaughtered, while European consumers buy less in the summer. Prices are typically 10–20 % below the yearly average.",
+          "Fourth quarter (October–December): the Christmas premium. European retailers and restaurants buy hard for the Christmas menus, with peak consumption in France, the UK, Germany and the Nordic countries. December prices are typically 15–30 % above the yearly average, and the Christmas market steers harvest decisions all year.",
+          "Disease outbreaks, exchange rates and the prices of other proteins can strengthen or weaken the pattern a lot. The 2016 price spike (an ISA outbreak in Chile cut competing supply) and the 2020 pandemic show how outside events can override the seasons."
+        ],
+        "nb": [
+          "Lakseprisene følger et stabilt sesongmønster, styrt av både tilbud og etterspørsel. Å kjenne det hjelper deg å velge tidspunkt for høsting og riktige kontrakter.",
+          "Første kvartal (januar–mars): etterspørselen faller tilbake etter jul, og prisene går som regel ned fra desembertoppen. Den norske biomassen er sesongmessig lav (fisken som ble satt ut høsten før vokser fortsatt), noe som begrenser tilbudet. Prisene tar seg ofte opp igjen i mars, hjulpet av etterspørselen rundt det asiatiske nyttåret.",
+          "Andre kvartal (april–juni): våren er en overgangsperiode. Påsken gir en kort topp i etterspørselen, og tilbudet øker når vårslaktingen kommer på markedet. Prisene flater ut.",
+          "Tredje kvartal (juli–september): sommerbunnen. Norsk slakting topper seg når den store fisken som ble satt ut to år tidligere slaktes, samtidig som europeiske forbrukere kjøper mindre om sommeren. Prisene ligger typisk 10–20 % under årssnittet.",
+          "Fjerde kvartal (oktober–desember): julepremien. Europeiske dagligvarekjeder og restauranter kjøper inn mye laks til julemenyene, med toppforbruk i Frankrike, Storbritannia, Tyskland og Norden. Desemberprisene ligger typisk 15–30 % over årssnittet, og julemarkedet styrer slaktebeslutningene hele året.",
+          "Sykdomsutbrudd, valutakurser og prisene på andre proteiner kan forsterke eller svekke mønsteret mye. Pristoppen i 2016 (et ILA-utbrudd i Chile kuttet konkurrerende tilbud) og pandemien i 2020 viser hvordan ytre hendelser kan overstyre sesongene."
+        ]
+      },
+      "related": ["markets_nasdaq", "markets_contracts", "regulations_mab"]
+    }
+  ]
+}

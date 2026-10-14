@@ -16,18 +16,18 @@ signal panel_close_requested
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 
-const COLOR_BG := Color("#ECEFF4")
+const COLOR_BG := Color("#F4F1EA")
 const COLOR_HEADER := Color("#FFFFFF")
-const COLOR_ROW_EVEN := Color("#ECEFF4")
+const COLOR_ROW_EVEN := Color("#F4F1EA")
 const COLOR_ROW_ODD := Color("#FFFFFF")
-const COLOR_ROW_HOVER := Color("#F8F9FB")
-const COLOR_ROW_SEL := Color("#5E81AC")
-const COLOR_ENABLED := Color("#A3BE8C")
-const COLOR_DISABLED := Color("#A54E56")
-const COLOR_TEXT_BRIGHT := Color("#2E3440")
-const COLOR_TEXT_DIM := Color("#7B8794")
-const COLOR_ACCENT := Color("#5E81AC")
-const COLOR_DETAIL_BG := Color("#ECEFF4")
+const COLOR_ROW_HOVER := Color("#EDE9E0")
+const COLOR_ROW_SEL := Color("#1F5E73")
+const COLOR_ENABLED := Color("#2E6B45")
+const COLOR_DISABLED := Color("#B3172F")
+const COLOR_TEXT_BRIGHT := Color("#1C1E20")
+const COLOR_TEXT_DIM := Color("#5A6168")
+const COLOR_ACCENT := Color("#1F5E73")
+const COLOR_DETAIL_BG := Color("#F4F1EA")
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -146,8 +146,8 @@ func _rebuild_list() -> void:
 	if _mods.is_empty():
 		var empty_lbl := Label.new()
 		empty_lbl.text = tr("UI_MODMANAGER_EMPTY")
-		empty_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-		empty_lbl.add_theme_font_size_override("font_size", 13)
+		LakskongenTheme.set_text_color(empty_lbl, COLOR_TEXT_DIM)
+		LakskongenTheme.set_size(empty_lbl, 13)
 		empty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_list_container.add_child(empty_lbl)
 		return
@@ -185,9 +185,9 @@ func _build_mod_row(index: int) -> Control:
 
 	# Drag handle
 	var drag_lbl := Label.new()
-	drag_lbl.text = tr("⠿")
-	drag_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	drag_lbl.add_theme_font_size_override("font_size", 16)
+	drag_lbl.text = "⠿"
+	LakskongenTheme.set_text_color(drag_lbl, COLOR_TEXT_DIM)
+	LakskongenTheme.set_size(drag_lbl, 16)
 	drag_lbl.custom_minimum_size.x = 20
 	drag_lbl.mouse_default_cursor_shape = Control.CURSOR_VSIZE
 	drag_lbl.set_meta("drag_row", index)
@@ -210,39 +210,39 @@ func _build_mod_row(index: int) -> Control:
 		name_color = COLOR_TEXT_DIM
 	elif has_errors:
 		name_color = Color(1.0, 0.65, 0.35)
-	name_lbl.add_theme_color_override("font_color", name_color)
-	name_lbl.add_theme_font_size_override("font_size", 14)
+	LakskongenTheme.set_text_color(name_lbl, name_color)
+	LakskongenTheme.set_size(name_lbl, 14)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(name_lbl)
 
 	# Version
 	var ver_lbl := Label.new()
 	ver_lbl.text = mod.get("version", "?")
-	ver_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	ver_lbl.add_theme_font_size_override("font_size", 12)
+	LakskongenTheme.set_text_color(ver_lbl, COLOR_TEXT_DIM)
+	LakskongenTheme.set_size(ver_lbl, 12)
 	ver_lbl.custom_minimum_size.x = 60
 	hbox.add_child(ver_lbl)
 
 	# Author
 	var auth_lbl := Label.new()
 	auth_lbl.text = mod.get("author", "?")
-	auth_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	auth_lbl.add_theme_font_size_override("font_size", 12)
+	LakskongenTheme.set_text_color(auth_lbl, COLOR_TEXT_DIM)
+	LakskongenTheme.set_size(auth_lbl, 12)
 	auth_lbl.custom_minimum_size.x = 90
 	hbox.add_child(auth_lbl)
 
 	# Status badge
 	var status_lbl := Label.new()
 	if has_errors:
-		status_lbl.text = tr("⚠ Feil")
-		status_lbl.add_theme_color_override("font_color", Color(1.0, 0.55, 0.25))
+		status_lbl.text = "⚠ " + tr("UI_MODS_ERROR")
+		LakskongenTheme.set_text_color(status_lbl, Color(1.0, 0.55, 0.25))
 	elif is_enabled:
-		status_lbl.text = tr("● Aktiv")
-		status_lbl.add_theme_color_override("font_color", COLOR_ENABLED)
+		status_lbl.text = "● " + tr("UI_MODS_ACTIVE")
+		LakskongenTheme.set_text_color(status_lbl, COLOR_ENABLED)
 	else:
-		status_lbl.text = tr("○ Deaktivert")
-		status_lbl.add_theme_color_override("font_color", COLOR_DISABLED)
-	status_lbl.add_theme_font_size_override("font_size", 12)
+		status_lbl.text = "○ " + tr("UI_MODS_DISABLED")
+		LakskongenTheme.set_text_color(status_lbl, COLOR_DISABLED)
+	LakskongenTheme.set_size(status_lbl, 12)
 	status_lbl.custom_minimum_size.x = 90
 	hbox.add_child(status_lbl)
 
@@ -258,7 +258,7 @@ func _build_mod_row(index: int) -> Control:
 
 func _show_detail(index: int) -> void:
 	if index < 0 or index >= _mods.size():
-		_detail_name.text = tr("Ingen mod valgt")
+		_detail_name.text = tr("UI_MODS_NONE_SELECTED")
 		_detail_author.text = ""
 		_detail_version.text = ""
 		_detail_desc.text = ""
@@ -270,7 +270,7 @@ func _show_detail(index: int) -> void:
 	_detail_name.text = mod.get("name", "Ukjent mod")
 	_detail_author.text = tr("UI_MODMANAGER_AUTHOR_FORMAT") % mod.get("author", tr("UI_MODMANAGER_AUTHOR_UNKNOWN"))
 	_detail_version.text = "Versjon: " + mod.get("version", "?")
-	_detail_desc.text = "[color=#7B8794]" + mod.get("description", "") + "[/color]"
+	_detail_desc.text = "[color=#5A6168]" + mod.get("description", "") + "[/color]"
 
 	var stats_parts: Array = []
 	var ec: int = mod.get("event_count", 0)

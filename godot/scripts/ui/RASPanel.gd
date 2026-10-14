@@ -46,15 +46,29 @@ func _apply_localization() -> void:
 func _apply_theme_fonts() -> void:
 	if not _theme:
 		return
-	if _theme.font_heading_bold:
-		ras_header_label.add_theme_font_override("font", _theme.font_heading_bold)
-	if _theme.font_heading_semibold:
-		_facility_section_title.add_theme_font_override("font", _theme.font_heading_semibold)
+	LakskongenTheme.set_strong(ras_header_label)
+	LakskongenTheme.set_strong(_facility_section_title)
 
 func refresh():
 	# Refresh UI with live data from SimBridge (fallback to placeholders offline)
 	_update_facility_list()
 	_update_water_chemistry()
+	_update_maintenance_button()
+	if build_new_button != null and _sim != null:
+		UIPolish.set_available(build_new_button,
+			UIPolish.funds_blocker(UIPolish.build_cost(_sim, "ras"), float(_sim.balance)))
+
+## U1-08: maintenance only does something when a facility needs it.
+func _update_maintenance_button() -> void:
+	if maintenance_button == null:
+		return
+	var facilities := _get_facilities()
+	var reason := ""
+	if facilities.is_empty():
+		reason = tr("UI_WHY_NO_RAS")
+	elif not facilities.any(func(f: Dictionary) -> bool: return bool(f.get("needs_maintenance", false))):
+		reason = tr("UI_WHY_RAS_NO_MAINTENANCE")
+	UIPolish.set_available(maintenance_button, reason)
 
 func on_panel_shown() -> void:
 	refresh()
@@ -67,8 +81,8 @@ func _get_facilities() -> Array:
 	if _sim != null and _sim.has_method("get_ras_facilities"):
 		return _sim.get_ras_facilities()
 	return [
-		{"id": "ras_001", "name": "RAS Anlegg 1", "operational": true, "water_temp": 12.0, "oxygen": 8.0, "ph": 7.2, "needs_maintenance": false},
-		{"id": "ras_002", "name": "RAS Anlegg 2", "operational": true, "water_temp": 12.0, "oxygen": 8.0, "ph": 7.2, "needs_maintenance": false},
+		{"id": "ras_001", "name": "RAS-anlegg 1", "operational": true, "water_temp": 12.0, "oxygen": 8.0, "ph": 7.2, "needs_maintenance": false},
+		{"id": "ras_002", "name": "RAS-anlegg 2", "operational": true, "water_temp": 12.0, "oxygen": 8.0, "ph": 7.2, "needs_maintenance": false},
 	]
 
 func _update_facility_list():
@@ -86,8 +100,8 @@ func _update_facility_list():
 		var empty_label = Label.new()
 		empty_label.text = tr("UI_RAS_EMPTY")
 		if _theme:
-			empty_label.add_theme_font_size_override("font_size", _theme.FONT_SMALL)
-			empty_label.add_theme_color_override("font_color", _theme.TEXT_SECONDARY)
+			LakskongenTheme.set_size(empty_label, _theme.FONT_SMALL)
+			LakskongenTheme.set_text_color(empty_label, _theme.TEXT_SECONDARY)
 		facility_list_container.add_child(empty_label)
 		return
 
@@ -103,20 +117,20 @@ func _update_facility_list():
 		facility_label.text = "%s (%s)%s%s" % [f.get("name", "RAS-anlegg"), status, maint, stock]
 		facility_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if _theme:
-			facility_label.add_theme_font_size_override("font_size", _theme.FONT_SMALL)
-			facility_label.add_theme_color_override("font_color", _theme.TEXT_SECONDARY)
+			LakskongenTheme.set_size(facility_label, _theme.FONT_SMALL)
+			LakskongenTheme.set_text_color(facility_label, _theme.TEXT_SECONDARY)
 		row.add_child(facility_label)
 		# F383: a facility now holds fish — stock smolts, harvest when grown.
 		var stock_btn := Button.new()
 		stock_btn.name = "StockButton"
-		stock_btn.text = "Sett ut %s smolt" % _fmt_count(STOCK_BATCH)
-		stock_btn.disabled = not operational
+		stock_btn.text = tr("UI_RAS_STOCK") % _fmt_count(STOCK_BATCH)
+		UIPolish.set_available(stock_btn, "" if operational else tr("UI_WHY_UNDER_CONSTRUCTION"))
 		stock_btn.pressed.connect(_on_stock_pressed.bind(str(f.get("id", ""))))
 		row.add_child(stock_btn)
 		var harvest_btn := Button.new()
 		harvest_btn.name = "HarvestButton"
-		harvest_btn.text = "Høst"
-		harvest_btn.disabled = fish <= 0
+		harvest_btn.text = tr("UI_PEN_HARVEST")
+		UIPolish.set_available(harvest_btn, "" if fish > 0 else tr("UI_WHY_NOTHING_TO_HARVEST"))
 		harvest_btn.pressed.connect(_on_harvest_pressed.bind(str(f.get("id", ""))))
 		row.add_child(harvest_btn)
 		facility_list_container.add_child(row)
@@ -126,7 +140,7 @@ func _update_water_chemistry():
 		return
 	var facilities: Array = _get_facilities()
 	if facilities.is_empty():
-		water_chemistry_label.text = "Vannkjemi: Ingen anlegg"
+		water_chemistry_label.text = tr("UI_RAS_WATER_NONE")
 		return
 	var f: Dictionary = facilities[0]
 	# C# backend keys (current_water_temp/oxygen_level/water_ph) with
@@ -134,7 +148,7 @@ func _update_water_chemistry():
 	var ph := float(f.get("water_ph", f.get("ph", 7.2)))
 	var temp := float(f.get("current_water_temp", f.get("water_temp", 12.0)))
 	var o2 := float(f.get("oxygen_level", f.get("oxygen", 8.0)))
-	water_chemistry_label.text = "Vannkjemi: pH %.1f, Temp %.1f°C, O2 %.1f mg/L" % [ph, temp, o2]
+	water_chemistry_label.text = tr("UI_RAS_WATER") % [SimFormatters.num(ph, 1), SimFormatters.num(temp, 1), SimFormatters.num(o2, 1)]
 
 ## Smolts per "Sett ut" press (well under a small facility's tank capacity).
 const STOCK_BATCH := 100_000
@@ -152,19 +166,15 @@ func _on_harvest_pressed(facility_id: String) -> void:
 func _report(result: Dictionary) -> void:
 	var mgr := get_node_or_null("/root/ToastNotification")
 	if mgr and mgr.has_method("show_toast"):
-		mgr.show_toast(str(result.get("message", "")), "SUCCESS" if result.get("success", false) else "WARNING", 4.0)
+		var ok := bool(result.get("success", false))
+		mgr.show_toast(tr("UI_OFFSHORE_DONE") if ok else SimLabels.command_error(result), "SUCCESS" if ok else "WARNING", 4.0)
 
 func _fmt_count(n: int) -> String:
-	var s := str(n)
-	var out := ""
-	while s.length() > 3:
-		out = " " + s.substr(s.length() - 3) + out
-		s = s.substr(0, s.length() - 3)
-	return s + out
+	return SimFormatters.integer(n)
 
 func _on_build_new_pressed():
 	if _sim != null and _sim.has_method("build_ras_facility"):
-		_sim.build_ras_facility("Nytt RAS-anlegg", "medium")
+		_sim.build_ras_facility(tr("UI_RAS_NEW_FACILITY_NAME"), "medium")
 	refresh()
 
 func _on_maintenance_pressed():

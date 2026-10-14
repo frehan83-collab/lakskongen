@@ -9,11 +9,11 @@ extends Control
 # ── Configuration ──────────────────────────────────────────────────────────────
 
 const METRICS: Array[Dictionary] = [
-	{ "key": "total_biomass_kg",  "label": "Biomass (t)",       "unit": "t",      "color": Color("#A3BE8C"), "decimals": 1, "divisor": 1000.0 },
-	{ "key": "profit_loss_nok",   "label": "Profit/Loss (MNOK)", "unit": "MNOK",   "color": Color("#BF616A"), "decimals": 2, "divisor": 1_000_000.0 },
-	{ "key": "dissolved_oxygen",  "label": "Dissolved O₂ (mg/L)", "unit": "mg/L",   "color": Color("#88C0D0"), "decimals": 1, "divisor": 1.0 },
-	{ "key": "lice_per_fish",     "label": "Lice Count",         "unit": "/fish",  "color": Color("#EBCB8B"), "decimals": 2, "divisor": 1.0 },
-	{ "key": "feed_cost_nok",     "label": "Feed Cost (MNOK)",   "unit": "MNOK",   "color": Color("#B48EAD"), "decimals": 2, "divisor": 1_000_000.0 },
+	{ "key": "total_biomass_kg",  "label": "UI_ANALYTICS_BIOMASS",     "unit": "UI_UNIT_TONNES",       "color": LakskongenTheme.INK_OK, "decimals": 1, "divisor": 1000.0 },
+	{ "key": "profit_loss_nok",   "label": "UI_ANALYTICS_PROFIT",      "unit": "UI_UNIT_MNOK",         "color": LakskongenTheme.INK_ACCENT, "decimals": 2, "divisor": 1_000_000.0 },
+	{ "key": "dissolved_oxygen",  "label": "UI_ANALYTICS_DO",          "unit": "UI_UNIT_MG_PER_L",     "color": LakskongenTheme.INK_INFO, "decimals": 1, "divisor": 1.0 },
+	{ "key": "lice_per_fish",     "label": "UI_ANALYTICS_LICE",        "unit": "UI_UNIT_PER_FISH",     "color": LakskongenTheme.INK_WARN, "decimals": 2, "divisor": 1.0 },
+	{ "key": "feed_cost_nok",     "label": "UI_ANALYTICS_FEED",        "unit": "UI_UNIT_MNOK",         "color": LakskongenTheme.INK_CRIT, "decimals": 2, "divisor": 1_000_000.0 },
 ]
 
 const CHART_MIN_W := 280
@@ -86,11 +86,12 @@ func _input(event: InputEvent) -> void:
 
 # ── Theme & Styling ────────────────────────────────────────────────────────────
 
+## The analytics "tablet" is an Ink surface inside the Chart document area:
+## its subtree takes the Ink (project) theme, so every variation resolves dark.
 func _apply_tablet_theme() -> void:
-	# Tablet overlay uses scene StyleBoxFlat_tablet (dark, rounded)
-	# Ensure it's properly themed for diegetic look
-	tablet_overlay.add_theme_color_override("bg_color", Color("#2E3440"))
-	tablet_overlay.add_theme_color_override("border_color", Color("#3B4252"))
+	var ink := ThemeDB.get_project_theme()
+	if ink != null:
+		theme = ink
 
 # ── Period Button Handling ─────────────────────────────────────────────────────
 
@@ -110,17 +111,12 @@ func _on_period_pressed(days: int) -> void:
 
 func _update_period_button_states() -> void:
 	var buttons: Dictionary = { 7: btn_7d, 30: btn_30d, 90: btn_90d, -1: btn_all }
-	# Normal style comes from the scene; active is derived by recoloring a duplicate
-	# (keeps a single source of truth for radii/borders defined in the .tscn).
-	var normal_sb := btn_7d.get_theme_stylebox("normal") as StyleBoxFlat
-	var active_sb := normal_sb.duplicate() as StyleBoxFlat
-	active_sb.bg_color = Color(0.039, 0.302, 0.408)
-	active_sb.border_color = Color(0.533, 0.753, 0.816)
-	
+	# A segmented control: rail-tab toggles, the active period shown pressed.
 	for days in buttons:
-		var btn = buttons[days]
-		var is_active = (days == _active_period)
-		btn.add_theme_stylebox_override("normal", active_sb if is_active else normal_sb)
+		var btn: Button = buttons[days]
+		btn.theme_type_variation = &"RailTab"
+		btn.toggle_mode = true
+		btn.set_pressed_no_signal(days == _active_period)
 
 # ── Chart Building ─────────────────────────────────────────────────────────────
 
@@ -156,22 +152,22 @@ func _build_charts() -> void:
 		container.move_child(header, 0)
 		
 		var name_lbl = Label.new()
-		name_lbl.text = meta["label"]
-		name_lbl.add_theme_font_size_override("font_size", 14)
-		name_lbl.add_theme_color_override("font_color", Color("#ECEFF4"))
+		name_lbl.text = tr(meta["label"])
+		LakskongenTheme.set_size(name_lbl, 14)
+		name_lbl.theme_type_variation = &"BodySmallStrong"
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		header.add_child(name_lbl)
 		
 		var trend_lbl = Label.new()
 		trend_lbl.text = " ◆"
-		trend_lbl.add_theme_font_size_override("font_size", 16)
+		LakskongenTheme.set_size(trend_lbl, 16)
 		trend_lbl.name = "TrendLabel"
 		header.add_child(trend_lbl)
 		
 		var value_lbl = Label.new()
 		value_lbl.text = "–"
-		value_lbl.add_theme_font_size_override("font_size", 12)
-		value_lbl.add_theme_color_override("font_color", Color("#7B8794"))
+		LakskongenTheme.set_size(value_lbl, 12)
+		LakskongenTheme.set_tone(value_lbl, &"Muted")
 		value_lbl.name = "ValueLabel"
 		value_lbl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		header.add_child(value_lbl)
@@ -220,13 +216,13 @@ func _refresh() -> void:
 				match trend:
 					"up":
 						trend_lbl.text = " ▲"
-						trend_lbl.add_theme_color_override("font_color", Color("#A3BE8C"))
+						LakskongenTheme.set_tone(trend_lbl, &"Ok")
 					"down":
 						trend_lbl.text = " ▼"
-						trend_lbl.add_theme_color_override("font_color", Color("#BF616A"))
+						LakskongenTheme.set_tone(trend_lbl, &"Crit")
 					_:
 						trend_lbl.text = " ◆"
-						trend_lbl.add_theme_color_override("font_color", Color("#7B8794"))
+						LakskongenTheme.set_tone(trend_lbl, &"Muted")
 			
 			if value_lbl and series.size() > 0:
 				var last_val = series[-1]
@@ -245,9 +241,7 @@ func _get_chart_container(key: String) -> PanelContainer:
 		_: return null
 
 func _format_value(meta: Dictionary, value: float) -> String:
-	var fmt = "%." + str(meta["decimals"]) + "f"
-	var formatted = fmt % value
-	return formatted + " " + meta["unit"]
+	return SimFormatters.num(value, int(meta["decimals"])) + " " + tr(meta["unit"])
 
 # ── Input Handling (Pan/Zoom) ──────────────────────────────────────────────────
 
@@ -409,11 +403,11 @@ class _ChartArea extends Control:
 	func _draw_empty_state() -> void:
 		var w = size.x
 		var h = size.y
-		draw_string(ThemeDB.fallback_font, Vector2(w/2, h/2), "No data", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, Color("#7B8794"))
+		draw_string(get_theme_default_font(), Vector2(w/2, h/2), "No data", HORIZONTAL_ALIGNMENT_CENTER, -1, 14, get_theme_color(&"muted", &"Palette"))
 
 	func _draw_grid(w: float, h: float, pad: float) -> void:
-		var grid_color = Color(0.3, 0.35, 0.42, 0.5)
-		var axis_color = Color(0.4, 0.45, 0.52, 0.8)
+		var grid_color = Color(get_theme_color(&"hairline", &"Palette"), 0.8)
+		var axis_color = get_theme_color(&"stroke", &"Palette")
 		
 		# Horizontal grid lines (5)
 		for i in 5:
@@ -451,18 +445,18 @@ class _ChartArea extends Control:
 		return Vector2(x, y)
 
 	func _draw_y_labels(w: float, h: float, pad: float) -> void:
-		var label_color = Color("#7B8794")
-		var font_size = 11
+		var label_color = get_theme_color(&"muted", &"Palette")
+		var font_size = 13
 		
 		for i in 5:
 			var val = _y_min + _y_range * (4 - i) / 4.0
 			var gy = pad + (h - 2 * pad) * i / 4.0
 			var text = _short_num(val)
-			draw_string(ThemeDB.fallback_font, Vector2(4, gy + font_size/2), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, label_color)
+			draw_string(get_theme_default_font(), Vector2(4, gy + font_size/2), text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, label_color)
 
 	func _draw_x_labels(w: float, h: float, pad: float) -> void:
-		var label_color = Color("#7B8794")
-		var font_size = 11
+		var label_color = get_theme_color(&"muted", &"Palette")
+		var font_size = 13
 		var n = _series.size()
 		
 		if n < 2:
@@ -474,7 +468,7 @@ class _ChartArea extends Control:
 			var pt = _data_to_screen(_series[i], i, n, w, h, pad)
 			var day_offset = n - 1 - i
 			var day_text = _format_day_offset(day_offset)
-			draw_string(ThemeDB.fallback_font, Vector2(pt.x, h - pad + 18), day_text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, label_color)
+			draw_string(get_theme_default_font(), Vector2(pt.x, h - pad + 18), day_text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, label_color)
 
 	func _format_day_offset(days_ago: int) -> String:
 		if days_ago == 0:
@@ -503,34 +497,33 @@ class _ChartArea extends Control:
 		tooltip_y = clamp(tooltip_y, 10, h - 80)
 		
 		var bg_rect = Rect2(tooltip_x, tooltip_y, 150, 70)
-		var tooltip_bg = Color(0.1, 0.12, 0.15, 0.95)
+		var tooltip_bg = Color(LakskongenTheme.INK_RAISED, 0.97)
 		var tooltip_border = metric_meta["color"]
 		
 		draw_rect(bg_rect, tooltip_bg, true)
 		draw_rect(bg_rect, tooltip_border, false, 1.5, 6)
 		
-		var text_color = Color("#ECEFF4")
-		var font_size = 11
+		var text_color = LakskongenTheme.INK_TEXT
+		var font_size = 13
 		var y_off = tooltip_y + 14
 		
-		draw_string(ThemeDB.fallback_font, Vector2(tooltip_x + 10, y_off), metric_meta["label"], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size + 1, text_color)
+		draw_string(get_theme_default_font(), Vector2(tooltip_x + 10, y_off), tr(metric_meta["label"]), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size + 1, text_color)
 		y_off += 18
-		draw_string(ThemeDB.fallback_font, Vector2(tooltip_x + 10, y_off), "Current: %s" % _format_value_full(value), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, text_color)
+		draw_string(get_theme_default_font(), Vector2(tooltip_x + 10, y_off), tr("UI_ANALYTICS_TIP_CURRENT") % _format_value_full(value), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, text_color)
 		y_off += 16
 		if _ma_series.size() > idx:
-			draw_string(ThemeDB.fallback_font, Vector2(tooltip_x + 10, y_off), "7d Avg: %s" % _format_value_full(ma_value), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color("#88C0D0"))
+			draw_string(get_theme_default_font(), Vector2(tooltip_x + 10, y_off), tr("UI_ANALYTICS_TIP_AVG_7D") % _format_value_full(ma_value), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, LakskongenTheme.INK_INFO)
 
 	func _format_value_full(value: float) -> String:
 		var meta = metric_meta
-		var fmt = "%." + str(meta["decimals"]) + "f"
-		return (fmt % value) + " " + meta["unit"]
+		return SimFormatters.num(value, int(meta["decimals"])) + " " + tr(meta["unit"])
 
 	func _short_num(v: float) -> String:
 		if absf(v) >= 1_000_000.0:
-			return "%.1fM" % (v / 1_000_000.0)
+			return SimFormatters.num(v / 1_000_000.0, 1) + "M"
 		if absf(v) >= 1_000.0:
-			return "%.0fk" % (v / 1_000.0)
-		return "%.1f" % v
+			return SimFormatters.num(v / 1_000.0, 0) + "k"
+		return SimFormatters.num(v, 1)
 
 	func _get_closest_point_index(pos: Vector2) -> int:
 		if _series.size() < 2:

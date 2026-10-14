@@ -221,9 +221,9 @@ namespace LakskongenSim.Farm
             state.EventLog.Add(new Events.EventRecord
             {
                 Day = state.Day,
-                Name = "Kohort-overføring",
+                Name = "Flytting av fisk",
                 Category = Events.EventCategory.Equipment,
-                Description = $"{reasonText}: {totalMoved:N0} fisk ({plan.MeanWeightKg:F1} kg) {plan.SourceSiteId} → {plan.DestSiteId}, {totalLost:N0} tap ({mortPct:F1}%)",
+                Description = Core.SimText.Nb($"{reasonText}: {totalMoved:N0} fisk ({plan.MeanWeightKg:F1} kg) {LabelOf(state, plan.SourceSiteId)} → {LabelOf(state, plan.DestSiteId)}, {totalLost:N0} tapt ({mortPct:F1} %)"),
                 BalanceChange = -plan.EstimatedCostNok
             });
             state.TrimEventLog();
@@ -231,6 +231,10 @@ namespace LakskongenSim.Farm
             return new TransferResult(true, totalMoved, totalLost, plan.EstimatedCostNok,
                 $"{totalMoved:N0} fisk overført, {totalLost:N0} tap");
         }
+
+        /// <summary>A site as the player reads it, for the event log.</summary>
+        private static string LabelOf(GameState state, string siteId) =>
+            state.SeaSites.FirstOrDefault(s => s.Id == siteId)?.Label ?? SiteNames.Humanize(siteId);
 
         /// <summary>
         /// Get all possible destination sites for a transfer (same zone, MAB headroom).

@@ -1,69 +1,10 @@
-[gd_scene load_steps=9 format=3 uid="uid://encyclopedia_panel_01"]
+[gd_scene load_steps=3 format=3 uid="uid://encyclopedia_panel_01"]
 
 [ext_resource type="Script" path="res://scripts/ui/EncyclopediaPanel.gd" id="1_encyclopedia"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_bg"]
-bg_color = Color(1, 1, 1, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sidebar"]
-bg_color = Color(0.972549, 0.976471, 0.984314, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_content"]
-bg_color = Color(0.972549, 0.976471, 0.984314, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_search"]
-bg_color = Color(0.972549, 0.976471, 0.984314, 1)
-border_width_bottom = 2
-border_color = Color(0.847059, 0.870588, 0.913725, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-content_margin_left = 12.0
-content_margin_right = 12.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cat_header"]
-bg_color = Color(0.972549, 0.976471, 0.984314, 1)
-border_width_bottom = 1
-border_color = Color(0.847059, 0.870588, 0.913725, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_close_normal"]
-bg_color = Color(0.74902, 0.380392, 0.415686, 0.12)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.74902, 0.380392, 0.415686, 0.5)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 14.0
-content_margin_bottom = 8.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_close_hover"]
-bg_color = Color(0.74902, 0.380392, 0.415686, 0.25)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.74902, 0.380392, 0.415686, 0.5)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 14.0
-content_margin_bottom = 8.0
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
 [node name="EncyclopediaPanel" type="Control"]
+theme = ExtResource("theme_chart")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -79,7 +20,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.18, 0.2, 0.25, 0.6)
+color = Color(0.043137, 0.164706, 0.227451, 0.6)
 
 [node name="PanelAnchor" type="Control" parent="."]
 layout_mode = 1
@@ -102,10 +43,10 @@ theme_override_constants/margin_right = 60
 theme_override_constants/margin_bottom = 60
 
 [node name="PanelBg" type="PanelContainer" parent="PanelAnchor/OuterMargin"]
+theme_type_variation = &"Surface"
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel_bg")
 
 [node name="Layout" type="VBoxContainer" parent="PanelAnchor/OuterMargin/PanelBg"]
 layout_mode = 2
@@ -127,11 +68,10 @@ layout_mode = 2
 alignment = 1
 
 [node name="HeaderTitle" type="Label" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Header/HeaderMargin/HeaderInner"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "Leksikon"
 
 [node name="SearchField" type="LineEdit" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Header/HeaderMargin/HeaderInner"]
@@ -139,26 +79,18 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(280, 38)
 layout_mode = 2
 tooltip_text = "Søk i leksikon etter fisk, sykdommer, utstyr, regelverk og markeder."
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_colors/font_placeholder_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_search")
-placeholder_text = "🔍  Search entries…"
+placeholder_text = "🔍  Søk i leksikonet…"
 
 [node name="HeaderSpacer" type="Control" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Header/HeaderMargin/HeaderInner"]
 custom_minimum_size = Vector2(20, 0)
 layout_mode = 2
 
 [node name="CloseBtn" type="Button" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Header/HeaderMargin/HeaderInner"]
+theme_type_variation = &"LargeGhostButton"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(44, 44)
 layout_mode = 2
 tooltip_text = "Lukk leksikonet (Esc)"
-theme_override_colors/font_color = Color(0.74902, 0.380392, 0.415686, 1)
-theme_override_colors/font_hover_color = Color(0.8, 0.5, 0.53, 1)
-theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_close_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_close_hover")
 text = "✕"
 
 [node name="HeaderSep" type="HSeparator" parent="PanelAnchor/OuterMargin/PanelBg/Layout"]
@@ -170,20 +102,18 @@ size_flags_vertical = 3
 split_offset = 520
 
 [node name="Sidebar" type="PanelContainer" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Body"]
+theme_type_variation = &"Surface"
 custom_minimum_size = Vector2(260, 0)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_sidebar")
 
 [node name="SidebarVBox" type="VBoxContainer" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Body/Sidebar"]
 layout_mode = 2
 
 [node name="CatHeader" type="Label" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Body/Sidebar/SidebarVBox"]
+theme_type_variation = &"CaptionMuted"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 12
-theme_override_styles/normal = SubResource("StyleBoxFlat_cat_header")
 text = "Kategorier"
 
 [node name="CatScroll" type="ScrollContainer" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Body/Sidebar/SidebarVBox"]
@@ -207,19 +137,17 @@ layout_mode = 2
 layout_mode = 2
 
 [node name="EntryHeader" type="Label" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Body/Sidebar/SidebarVBox/EntryHeaderRow"]
+theme_type_variation = &"SmallMuted"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 12
-text = "Oppføringer"
+text = "Oppslag"
 
 [node name="EntryCountLabel" type="Label" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Body/Sidebar/SidebarVBox/EntryHeaderRow"]
+theme_type_variation = &"SmallMuted"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 
 [node name="EntryScroll" type="ScrollContainer" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Body/Sidebar/SidebarVBox"]
 layout_mode = 2
@@ -236,9 +164,9 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="ContentBg" type="PanelContainer" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Body"]
+theme_type_variation = &"Surface"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_content")
 
 [node name="ContentScroll" type="ScrollContainer" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Body/ContentBg"]
 unique_name_in_owner = true
@@ -268,17 +196,16 @@ layout_mode = 2
 theme_override_constants/separation = 16
 
 [node name="IconLabel" type="Label" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Body/ContentBg/ContentScroll/ContentBox/ContentMargin/ContentInner/TitleRow"]
+theme_type_variation = &"Display"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
 text = "📖"
 
 [node name="TitleLabel" type="Label" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Body/ContentBg/ContentScroll/ContentBox/ContentMargin/ContentInner/TitleRow"]
+theme_type_variation = &"KpiSmall"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 24
 text = "Velkommen"
 autowrap_mode = 3
 
@@ -295,10 +222,9 @@ theme_override_constants/separation = 12
 layout_mode = 2
 
 [node name="RelatedLabel" type="Label" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Body/ContentBg/ContentScroll/ContentBox/ContentMargin/ContentInner"]
+theme_type_variation = &"SmallMuted"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 12
 text = "Se også"
 
 [node name="RelatedBox" type="HBoxContainer" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Body/ContentBg/ContentScroll/ContentBox/ContentMargin/ContentInner"]

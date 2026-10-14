@@ -10,8 +10,9 @@ extends Control
 ## Two contexts:
 ##   modal — opened by MainMenu / PauseMenu via show_load() / show_save();
 ##           closes itself (close_requested) after an action or ESC.
-##   tab   — hosted by GameUI ("💾 Lagre/Laste"); on_panel_shown() refreshes,
-##           the panel stays open and offers save + load together.
+##   panel — on_panel_shown() refreshes and offers save + load together (the
+##           old "Lagre/last inn" tab; save and load now live in the pause
+##           menu, roadmap D15).
 
 signal close_requested
 signal game_loaded(file_name: String)
@@ -107,7 +108,7 @@ func _refresh_slots() -> void:
 	if sim == null:
 		var lbl := Label.new()
 		lbl.text = _tr_or("UI_SAVELOAD_MANAGER_UNAVAILABLE", "SaveLoadManager ikke tilgjengelig")
-		lbl.add_theme_color_override("font_color", Color("#7B8794"))
+		LakskongenTheme.set_tone(lbl, &"Muted")
 		_slots_container.add_child(lbl)
 		return
 
@@ -119,19 +120,31 @@ func _refresh_slots() -> void:
 	for save_info in saves:
 		_slots_container.add_child(_create_slot(save_info))
 
+## Saves the game writes itself are named by file ("autosave_latest",
+## "autosave_3", "quicksave"); the player reads them as Norwegian labels.
+func slot_display_name(slot_name: String) -> String:
+	return _slot_display_name(slot_name)
+
+func _slot_display_name(slot_name: String) -> String:
+	if slot_name == "autosave_latest":
+		return tr("UI_SAVELOAD_AUTOSAVE_LATEST")
+	if slot_name.begins_with("autosave"):
+		var suffix := slot_name.trim_prefix("autosave").lstrip("_")
+		return tr("UI_SAVELOAD_AUTOSAVE_N") % suffix if suffix.is_valid_int() else tr("UI_SAVELOAD_AUTOSAVE")
+	if slot_name.begins_with("quicksave"):
+		return tr("UI_SAVELOAD_QUICKSAVE")
+	return slot_name
+
 func _create_slot(save_info: Dictionary) -> PanelContainer:
 	var file_name := String(save_info.get("file", ""))
 	var slot_name := String(save_info.get("name", file_name.get_basename()))
 
 	var slot := PanelContainer.new()
 	slot.name = "Slot_" + file_name.get_basename().validate_node_name()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color("#F8F9FB")
-	sb.border_color = Color("#D8DEE9")
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(8)
-	sb.set_content_margin_all(12)
-	slot.add_theme_stylebox_override("panel", sb)
+	# A theme tile, so the slot sits right on the surface it is shown on: Ink
+	# in the main and pause menus, Chart paper in a document panel. (A fixed
+	# Chart colour put light Ink text on a light card: 1.03:1.)
+	slot.theme_type_variation = &"Tile"
 
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 12)
@@ -142,9 +155,11 @@ func _create_slot(save_info: Dictionary) -> PanelContainer:
 	hbox.add_child(info_vbox)
 
 	var name_lbl := Label.new()
-	name_lbl.text = slot_name
-	name_lbl.add_theme_font_size_override("font_size", 16)
-	name_lbl.add_theme_color_override("font_color", Color("#2E3440"))
+	name_lbl.text = _slot_display_name(slot_name)
+	if name_lbl.text == slot_name:
+		name_lbl.set_meta(&"player_text", true)  # a name the player chose (text lint: data)
+	LakskongenTheme.set_size(name_lbl, 16)
+	LakskongenTheme.set_tone(name_lbl, &"")
 	info_vbox.add_child(name_lbl)
 
 	var details := Label.new()
@@ -153,8 +168,8 @@ func _create_slot(save_info: Dictionary) -> PanelContainer:
 	var sim := _sim()
 	if sim != null and save_info.has("cash"):
 		details.text += "  ·  " + sim.format_nok(float(save_info["cash"]))
-	details.add_theme_font_size_override("font_size", 12)
-	details.add_theme_color_override("font_color", Color("#7B8794"))
+	LakskongenTheme.set_size(details, 12)
+	LakskongenTheme.set_tone(details, &"Muted")
 	info_vbox.add_child(details)
 
 	var load_btn := Button.new()

@@ -154,7 +154,7 @@ func _refresh():
             _esg_progress_label.visible = false
 
     _esg_certification_label.text = current_certification
-    _esg_certification_label.add_theme_color_override("font_color", cert_color)
+    LakskongenTheme.set_text_color(_esg_certification_label, cert_color)
 
     # Update stat rows
     # Carbon Footprint
@@ -164,7 +164,7 @@ func _refresh():
     elif carbon_footprint > 5.0:
         cf_color = LakskongenTheme.DANGER
     _esg_stats_sections[0].get_child(1).text = "%.1f kg CO2e/kg" % carbon_footprint
-    _esg_stats_sections[0].get_child(1).add_theme_color_override("font_color", cf_color)
+    LakskongenTheme.set_text_color(_esg_stats_sections[0].get_child(1), cf_color)
 
     # Antibiotic Use
     var au_color = LakskongenTheme.TEXT
@@ -173,7 +173,7 @@ func _refresh():
     elif antibiotic_use > 1.0:
         au_color = LakskongenTheme.DANGER
     _esg_stats_sections[1].get_child(1).text = "%.1f mg/kg" % antibiotic_use
-    _esg_stats_sections[1].get_child(1).add_theme_color_override("font_color", au_color)
+    LakskongenTheme.set_text_color(_esg_stats_sections[1].get_child(1), au_color)
 
     # Fish Welfare
     var fw_color = LakskongenTheme.TEXT
@@ -182,7 +182,7 @@ func _refresh():
     elif fish_welfare < 40:
         fw_color = LakskongenTheme.DANGER
     _esg_stats_sections[2].get_child(1).text = "%d/100" % fish_welfare
-    _esg_stats_sections[2].get_child(1).add_theme_color_override("font_color", fw_color)
+    LakskongenTheme.set_text_color(_esg_stats_sections[2].get_child(1), fw_color)
 
     # Feed Sustainability
     # Assuming Feed Sustainability has similar color coding as others
@@ -192,7 +192,7 @@ func _refresh():
     elif feed_sustainability < 40: # Example threshold
         fs_color = LakskongenTheme.DANGER
     _esg_stats_sections[3].get_child(1).text = "%d/100" % feed_sustainability
-    _esg_stats_sections[3].get_child(1).add_theme_color_override("font_color", fs_color)
+    LakskongenTheme.set_text_color(_esg_stats_sections[3].get_child(1), fs_color)
 
     # Escape Risk
     var er_color = LakskongenTheme.TEXT
@@ -201,7 +201,7 @@ func _refresh():
     elif escape_risk > 20.0:
         er_color = LakskongenTheme.DANGER
     _esg_stats_sections[4].get_child(1).text = "%.0f%%" % escape_risk
-    _esg_stats_sections[4].get_child(1).add_theme_color_override("font_color", er_color)
+    LakskongenTheme.set_text_color(_esg_stats_sections[4].get_child(1), er_color)
 
     # Overall ESG Score
     var overall_esg_color = LakskongenTheme.MUTED
@@ -212,7 +212,7 @@ func _refresh():
     else:
         overall_esg_color = LakskongenTheme.DANGER
     _esg_overall_score_label.text = str(overall_esg_score)
-    _esg_overall_score_label.add_theme_color_override("font_color", overall_esg_color)
+    LakskongenTheme.set_text_color(_esg_overall_score_label, overall_esg_color)
 
 func _input(event: InputEvent) -> void:
     # Only while shown: hidden, this used to swallow every ESC.

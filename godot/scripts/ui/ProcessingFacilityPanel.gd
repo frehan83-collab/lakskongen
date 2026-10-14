@@ -25,17 +25,17 @@ func _ready() -> void:
 
 	var title := Label.new()
 	title.text = "🏭 Foredling (VAP)"
-	title.add_theme_font_size_override("font_size", 20)
+	LakskongenTheme.set_size(title, 20)
 	main_vbox.add_child(title)
 
 	_status_label = Label.new()
-	_status_label.add_theme_font_size_override("font_size", 14)
+	LakskongenTheme.set_size(_status_label, 14)
 	main_vbox.add_child(_status_label)
 
 	_info_label = Label.new()
 	_info_label.text = "Filetlinje gir +12% på all høsteinntekt. Drift: 5k NOK/dag.\nSmall 1M · Medium 5M · Large 15M (oppgradering = mellomlegg)."
 	_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_info_label.add_theme_font_size_override("font_size", 12)
+	LakskongenTheme.set_size(_info_label, 12)
 	main_vbox.add_child(_info_label)
 
 	_tier_option = OptionButton.new()

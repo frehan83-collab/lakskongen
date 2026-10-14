@@ -1,35 +1,16 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/WeatherDiseasePanel.gd" id="1_weather"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.898039, 0.913725, 0.941176, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
-bg_color = Color(1, 1, 1, 1)
-border_width_bottom = 1
-border_color = Color(0.898039, 0.913725, 0.941176, 1)
-content_margin_left = 20.0
-content_margin_top = 14.0
-content_margin_right = 20.0
-content_margin_bottom = 14.0
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
 [node name="WeatherDiseasePanel" type="PanelContainer"]
+theme = ExtResource("theme_chart")
+theme_type_variation = &"Card"
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 script = ExtResource("1_weather")
 
 [node name="Margin" type="MarginContainer" parent="."]
@@ -50,66 +31,61 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 16
 
 [node name="TitleLabel" type="Label" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 20
-text = "🌊 Weather & Disease Monitoring"
+text = "UI_WD_TITLE"
 
 [node name="WeatherCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/WeatherCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/WeatherCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="WeatherHeader" type="Label" parent="Margin/MainScroll/RootVBox/WeatherCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 16
-text = "Current Weather Conditions"
+text = "UI_WD_CURRENT_WEATHER"
 
 [node name="WeatherBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/WeatherCard/Outer"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="WeatherStatusLabel" type="Label" parent="Margin/MainScroll/RootVBox/WeatherCard/Outer/WeatherBody"]
+theme_type_variation = &"BodySmall"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 14
 text = "--"
 
 [node name="TemperatureLabel" type="Label" parent="Margin/MainScroll/RootVBox/WeatherCard/Outer/WeatherBody"]
+theme_type_variation = &"BodyMuted"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
 text = "--"
 
 [node name="AlertCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/AlertCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/AlertCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="AlertHeader" type="Label" parent="Margin/MainScroll/RootVBox/AlertCard/Outer/Header"]
+theme_type_variation = &"BodyWarn"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.921569, 0.796078, 0.545098, 1)
-theme_override_font_sizes/font_size = 16
-text = "⚠️ Weather Alerts"
+text = "UI_WD_WEATHER_ALERTS"
 
 [node name="AlertBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/AlertCard/Outer"]
 layout_mode = 2
@@ -121,23 +97,22 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="DiseaseCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/DiseaseCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/DiseaseCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="DiseaseHeader" type="Label" parent="Margin/MainScroll/RootVBox/DiseaseCard/Outer/Header"]
+theme_type_variation = &"BodyCrit"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.74902, 0.380392, 0.415686, 1)
-theme_override_font_sizes/font_size = 16
-text = "🦠 Disease Outbreaks"
+text = "UI_WD_DISEASE_OUTBREAKS"
 
 [node name="DiseaseBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/DiseaseCard/Outer"]
 layout_mode = 2
@@ -149,23 +124,21 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="TreatmentCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/TreatmentCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/TreatmentCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="TreatmentHeader" type="Label" parent="Margin/MainScroll/RootVBox/TreatmentCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 16
-text = "💊 Treatment Options"
+text = "UI_WD_TREATMENTS"
 
 [node name="TreatmentBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/TreatmentCard/Outer"]
 layout_mode = 2
@@ -177,22 +150,20 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="BloomCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BloomCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BloomCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="BloomHeader" type="Label" parent="Margin/MainScroll/RootVBox/BloomCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 16
 text = "🪼 Oppblomstring & mottiltak"
 
 [node name="BloomBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BloomCard/Outer"]

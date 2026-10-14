@@ -327,7 +327,7 @@ namespace LakskongenSim.Core
                 int smoltPerPen = siteDef.SmoltCount > 0 ? siteDef.SmoltCount : 0;
                 var strain = SmoltStrainRegistry.Get(siteDef.SmoltQuality);
 
-                var site = new SeaSite(siteId, zoneId) { NumberOfPens = penCount };
+                var site = new SeaSite(siteId, zoneId) { NumberOfPens = penCount, DisplayName = siteDef.Name ?? "" };
                 site.Containment = ParseContainment(siteDef.Containment);
                 site.Barrier = ParseBarrier(siteDef.Barrier);
                 for (int pen = 0; pen < penCount; pen++)
@@ -352,6 +352,7 @@ namespace LakskongenSim.Core
                     site.Stock(pop);
                     state.Populations.Add(pop);
                 }
+                if (smoltPerPen > 0) site.LastStockedDay = state.Day;
                 // Keep site and global biomass/zone accounting coherent from day 0.
                 state.SeaSites.Add(site);
                 var zone = state.Zones.First(z => z.Id == zoneId);
@@ -502,6 +503,16 @@ namespace LakskongenSim.Core
             }
         }
 
+        /// <summary>Norwegian name of a scenario disease code ("ISA" is ILA in Norway).</summary>
+        private static string DiseaseName(string type) => type.Trim().ToUpperInvariant() switch
+        {
+            "ISA" or "ILA" => "ILA",
+            "PD" => "pankreassykdom (PD)",
+            "CMS" => "hjertesprekk (CMS)",
+            "AGD" => "amøbegjellesykdom (AGD)",
+            "IHN" => "IHN",
+            _ => type
+        };
         private void ApplyDiseaseMarker(GameState state)
         {
             var disease = StartingDisease;
@@ -514,11 +525,11 @@ namespace LakskongenSim.Core
             {
                 Day = state.Day,
                 Id = eventId,
-                Name = $"Utbrudd: {disease.Type}",
+                Name = $"Utbrudd: {DiseaseName(disease.Type)}",
                 Category = Events.EventCategory.Disease,
                 Description = string.IsNullOrWhiteSpace(disease.SiteId)
-                    ? $"Scenariostart med aktiv {disease.Type}."
-                    : $"Scenariostart med aktiv {disease.Type} ved {disease.SiteId}.",
+                    ? $"Scenarioet starter med et aktivt utbrudd av {DiseaseName(disease.Type)}."
+                    : $"Scenarioet starter med et aktivt utbrudd av {DiseaseName(disease.Type)} på {state.SeaSites.FirstOrDefault(s => s.Id == disease.SiteId)?.Label ?? disease.SiteId}.",
                 BalanceChange = 0m
             });
             state.TrimEventLog();
@@ -1008,7 +1019,7 @@ namespace LakskongenSim.Core
                     new() { Id = "trondelag_base", Name = "Trøndelag Base", Zone = "fjord_west", Pens = 3, SmoltCount = 10_000, SmoltQuality = "standard" },
                 },
                 TimeLimitDays = null,
-                IsUnlocked = false,
+                IsUnlocked = true, // No progression yet: every scenario is open until U2-03 (roadmap U1-07).
             });
 
             // ─── 4. FINNMARKS GJENFØDSEL — Survival (Difficulty 5) ───────────
@@ -1036,7 +1047,7 @@ namespace LakskongenSim.Core
                     new() { Id = "finnmark_turnaround", Name = "Finnmark Turnaround", Zone = "fjord_north", Pens = 2, SmoltCount = 6_000, SmoltQuality = "standard" },
                 },
                 TimeLimitDays = 730,
-                IsUnlocked = false,
+                IsUnlocked = true, // No progression yet: every scenario is open until U2-03 (roadmap U1-07).
             });
 
             // ─── 5. LAKSKONGEN — Freeplay (Difficulty 1) ──────────────────────
@@ -1046,9 +1057,9 @@ namespace LakskongenSim.Core
                 Id = "barekraft_mester",
                 Name = "Lakskongen",
                 Description =
-                    "Fri lek – start hvor som helst i Norge uten begrensninger. " +
-                    "Bygg ditt lakseimperium fra bunnen av, uten tidspress eller konkurrenter. " +
-                    "Målet er å skape den største og mest lønnsomme oppdrettsvirksomheten.",
+                    "Fri lek med god kapital: du starter med et etablert anlegg i Vestland og bygger " +
+                    "lakseimperiet ditt uten tidspress eller konkurrenter. " +
+                    "Målet er å nå 100 MNOK i egenkapital.",
                 StartingCapitalNOK = 50_000_000m,
                 StartingRegion = ProductionRegion.Vestland,
                 Difficulty = 1,
@@ -1064,7 +1075,7 @@ namespace LakskongenSim.Core
                     new() { Id = "lakskongen_hovedanlegg", Name = "Lakskongen Hovedanlegg", Zone = "fjord_west", Pens = 4, SmoltCount = 12_000, SmoltQuality = "standard" },
                 },
                 TimeLimitDays = null,
-                IsUnlocked = false,
+                IsUnlocked = true, // No progression yet: every scenario is open until U2-03 (roadmap U1-07).
             });
 
             // ══════════════════════════════════════════════════════════════════
@@ -1084,13 +1095,13 @@ namespace LakskongenSim.Core
                 Story =
                     "Produksjonsområde PO3 har gått over til RØDT lys etter lakselustrykk og rømningsrisiko. " +
                     "Mattilsynet og Nærings- og fiskeridepartementet strammer inn: maksimal tillatt biomasse (MTB) " +
-                    "kuttes med 6 %. Din eneste vei til 'miljøfleksibilitet' er lukket containement-teknologi " +
+                    "kuttes med 6 %. Din eneste vei til 'miljøfleksibilitet' er lukket teknologi " +
                     "(semi-lukket og høyere), som gir biomassekreditt selv i rød sone. " +
                     "Behold lønnsomheten og overlev reguleringsbølgen.",
                 Description =
-                    "PO3 rød sone: −6 % MTB, lukket containement er eneste vei til miljøfleksibilitet. Overlev i 3 år.",
+                    "PO3 i rød sone: −6 % MTB, og lukkede anlegg er eneste vei til miljøfleksibilitet. Overlev i 3 år.",
                 Objective =
-                    "Gjenopprett MAB ved å drifte minst ett anlegg på semi-lukket containement og overlev 1095 dager i rød sone.",
+                    "Gjenvinn MTB ved å drifte minst ett anlegg som semilukket og overlev 1095 dager i rød sone.",
                 StartingCapitalNOK = 12_000_000m,
                 StartingCash = 12_000_000m,
                 StartingRegion = ProductionRegion.Trøndelag,
@@ -1106,10 +1117,10 @@ namespace LakskongenSim.Core
                 Restrictions = new[]
                 {
                     "Rød sone: −6 % MTB på alle åpne anlegg",
-                    "Bare lukket containement (semi-lukket eller høyere) kvalifiserer for miljøfleksibilitet",
-                    "Minst ett anlegg må holdes på semi-lukket nivå for å gjenvinne MAB",
+                    "Bare lukkede anlegg (semilukket eller bedre) kvalifiserer for miljøfleksibilitet",
+                    "Minst ett anlegg må holdes semilukket for å gjenvinne MTB",
                 },
-                Tags = new[] { "regulering", "rød_sone", "containement", "survival", "mtb" },
+                Tags = new[] { "regulering", "rød_sone", "containment", "survival", "mtb" },
                 SpecialRules = new Dictionary<string, string>
                 {
                     ["red_zone"] = "true",
@@ -1131,14 +1142,14 @@ namespace LakskongenSim.Core
                 Id = "isa_utbrudd",
                 Name = "ISA-utbruddet",
                 Story =
-                    "SalMar varslet om ILA/ISA ved et anlegg, og Mattilsynet har opprettet bekjempelsessone. " +
-                    "Hele det infiserte anlegget må slaktes ut (tvungen nedslaktning). " +
-                    "Du må bygge biosikkerhetsbranner (firewalls) mellom sonene, aktivere forsikringsdekning " +
-                    "og hindre smitte til nabofelt. Hvert minutt teller — klarer du å slukke brannen?",
+                    "En nabooppdretter har varslet om ILA ved et anlegg, og Mattilsynet har opprettet en bekjempelsessone. " +
+                    "Hele det smittede anlegget må slaktes ned. " +
+                    "Du må bygge smittevern mellom sonene, aktivere forsikringen " +
+                    "og hindre smitte til nabolokalitetene. Hver dag teller — klarer du å stanse utbruddet?",
                 Description =
-                    "Aktiv ISA med tvungen nedslaktningssone. Bygg firewalls, krev inn forsikring, redd de friske anleggene.",
+                    "Aktivt ILA-utbrudd med tvungen nedslakting. Bygg smittevern, krev inn forsikring og redd de friske anleggene.",
                 Objective =
-                    "Hold ISA-utbruddet isolert i kjerneanlegget, bygg Smoltscreen-biosikkerhet mellom sonene og overlev 540 dager med forsikringsdekning.",
+                    "Hold ILA-utbruddet isolert i kjerneanlegget, bygg lusebarrierer mellom sonene og overlev 540 dager med forsikringsdekning.",
                 StartingCapitalNOK = 18_000_000m,
                 StartingCash = 18_000_000m,
                 StartingRegion = ProductionRegion.Trøndelag,
@@ -1166,8 +1177,8 @@ namespace LakskongenSim.Core
                 },
                 Restrictions = new[]
                 {
-                    "Tvungen nedslaktning i bekjempelsessonen",
-                    "Biosikkerhetsbranner (firewalls) mellom produksjonsområder",
+                    "Tvungen nedslakting i bekjempelsessonen",
+                    "Smittevern mellom produksjonsområdene",
                     "Forsikringsdekning kreves for utbruddsansvar",
                     "Utbruddet må ikke spre seg til nabofeltene",
                 },
@@ -1198,7 +1209,7 @@ namespace LakskongenSim.Core
                 Id = "algekatastrofe",
                 Name = "Algekatastrofen",
                 Story =
-                    "Høsten rammet Grieg Seafood hardt: et massivt skadelig algeoppblomstring drepte rundt " +
+                    "Høsten rammet en stor vestlandsoppdretter hardt: en massiv, skadelig algeoppblomstring drepte rundt " +
                     "1 000 tonn laks i ett enkelt hendelsesforløp. Alger tapper oksygenet og skader gjellene. " +
                     "Tidlig varsling fra sensorer, umiddelbar mitigering (boblegardin og O2-tilførsel) og " +
                     "forsikring er forskjellen mellom overlevelse og total tap.",

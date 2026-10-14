@@ -36,21 +36,21 @@ var _theme: Node = null
 var _price_chart_bars: Array[ColorRect] = []
 
 # ── Colors ────────────────────────────────────────────────────────────────────
-const C_BG := Color("#ECEFF4")
+const C_BG := Color("#F4F1EA")
 const C_SURFACE := Color("#FFFFFF")
-const C_ELEVATED := Color("#F8F9FB")
-const C_TEXT := Color("#2E3440")
-const C_TEXT2 := Color("#4C566A")
-const C_MUTED := Color("#7B8794")
-const C_BORDER := Color("#E5E9F0")
-const C_PRIMARY := Color("#0A4D68")
-const C_SECONDARY := Color("#88C0D0")
-const C_SUCCESS := Color("#A3BE8C")
-const C_SUCCESS_D := Color("#8FAD78")
-const C_WARNING := Color("#EBCB8B")
-const C_WARNING_D := Color("#D4B06A")
-const C_DANGER := Color("#BF616A")
-const C_ACCENT := Color("#5E81AC")
+const C_ELEVATED := Color("#EDE9E0")
+const C_TEXT := Color("#1C1E20")
+const C_TEXT2 := Color("#5A6168")
+const C_MUTED := Color("#5A6168")
+const C_BORDER := Color("#E7E2D7")
+const C_PRIMARY := Color("#1F5E73")
+const C_SECONDARY := Color("#1F5E73")
+const C_SUCCESS := Color("#2E6B45")
+const C_SUCCESS_D := Color("#2E6B45")
+const C_WARNING := Color("#8A5A00")
+const C_WARNING_D := Color("#8A5A00")
+const C_DANGER := Color("#B3172F")
+const C_ACCENT := Color("#1F5E73")
 
 func _ready() -> void:
 	_sim = get_node_or_null("/root/SimBridge")
@@ -78,35 +78,26 @@ func _collect_scene_refs() -> void:
 		_price_chart_bars.append(get_node_or_null("%PriceBar" + str(i)) as ColorRect)
 
 func _apply_localization() -> void:
-	_title_label.text = tr("📈 Marked & Handel")
-	_btn_new_contract.text = tr("📝 Ny kontrakt")
-	_btn_sell_spot.text = tr("📦 Selg spot")
-	_chart_title.text = tr("💹 Prisutvikling (12 uker)")
-	_buyers_title.text = tr("🏢 Kjøpere")
-	_contracts_title.text = tr("📋 Kontrakter")
-	_regions_title.text = tr("🌍 Markedsregioner")
+	_title_label.text = "📈 " + tr("UI_CONTRACTS_TITLE")
+	_btn_new_contract.text = "📝 " + tr("UI_CONTRACTS_NEW")
+	_btn_sell_spot.text = "📦 " + tr("UI_CONTRACTS_SELL_SPOT")
+	_chart_title.text = "💹 " + tr("UI_CONTRACTS_CHART_TITLE")
+	_buyers_title.text = "🏢 " + tr("UI_CONTRACTS_BUYERS")
+	_contracts_title.text = "📋 " + tr("UI_CONTRACTS_ACTIVE")
+	_regions_title.text = "🌍 " + tr("UI_CONTRACTS_REGIONS")
 
 func _apply_theme_fonts() -> void:
 	if not _theme:
 		return
-	if _theme.font_heading_bold:
-		_title_label.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_spot.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_contract.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_volume.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_open.add_theme_font_override("font", _theme.font_heading_bold)
-	if _theme.font_heading_semibold:
-		_chart_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_buyers_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_contracts_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_regions_title.add_theme_font_override("font", _theme.font_heading_semibold)
-	if _theme.font_mono:
-		_price_summary_lo.add_theme_font_override("font", _theme.font_mono)
-		_price_summary_avg.add_theme_font_override("font", _theme.font_mono)
-		_price_summary_hi.add_theme_font_override("font", _theme.font_mono)
-		_price_summary_trend.add_theme_font_override("font", _theme.font_mono)
-		_kpi_spot.add_theme_font_override("font", _theme.font_mono)
-		_kpi_contract.add_theme_font_override("font", _theme.font_mono)
+	LakskongenTheme.set_strong(_title_label)
+	LakskongenTheme.set_strong(_kpi_spot)
+	LakskongenTheme.set_strong(_kpi_contract)
+	LakskongenTheme.set_strong(_kpi_volume)
+	LakskongenTheme.set_strong(_kpi_open)
+	LakskongenTheme.set_strong(_chart_title)
+	LakskongenTheme.set_strong(_buyers_title)
+	LakskongenTheme.set_strong(_contracts_title)
+	LakskongenTheme.set_strong(_regions_title)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DATA REFRESH
@@ -119,19 +110,19 @@ func _refresh() -> void:
 	var spot: float = float(_sim.market_price_nok) if _sim else 75.0
 	var weekly: float = float(_sim.weekly_avg_price_nok) if _sim else 75.0
 
-	_kpi_spot.text = "%.2f NOK/kg" % spot
-	_kpi_contract.text = "%.2f NOK/kg" % (weekly * 0.93)  # Contract ~7% below spot
-	_kpi_volume.text = "%.0f tonn" % (_sim.fish_biomass_kg / 1000.0 * 0.2)  # 20% harvestable
+	_kpi_spot.text = SimFormatters.format_price_kg(spot)
+	_kpi_contract.text = SimFormatters.format_price_kg(weekly * 0.93)  # Contract ~7% below spot
+	_kpi_volume.text = tr("UI_CONTRACTS_TONNES") % SimFormatters.num(_sim.fish_biomass_kg / 1000.0 * 0.2, 0)  # 20% harvestable
 	_kpi_open.text = str(_sim.get_active_contracts().size()) if _sim.has_method("get_active_contracts") else "0"
 
 	# Price summary
-	_price_summary_lo.text = "%.2f" % (spot * 0.83)
-	_price_summary_lo.add_theme_color_override("font_color", C_DANGER)
-	_price_summary_avg.text = "%.2f" % (spot * 0.91)
-	_price_summary_hi.text = "%.2f" % spot
-	_price_summary_hi.add_theme_color_override("font_color", C_SUCCESS_D)
-	_price_summary_trend.text = tr("▲ Stigende")
-	_price_summary_trend.add_theme_color_override("font_color", C_SUCCESS_D if spot > weekly else C_DANGER)
+	_price_summary_lo.text = SimFormatters.num(spot * 0.83, 2)
+	LakskongenTheme.set_text_color(_price_summary_lo, C_DANGER)
+	_price_summary_avg.text = SimFormatters.num(spot * 0.91, 2)
+	_price_summary_hi.text = SimFormatters.num(spot, 2)
+	LakskongenTheme.set_text_color(_price_summary_hi, C_SUCCESS_D)
+	_price_summary_trend.text = ("▲ " + tr("UI_TREND_UP")) if spot > weekly else ("▼ " + tr("UI_TREND_DOWN"))
+	LakskongenTheme.set_text_color(_price_summary_trend, C_SUCCESS_D if spot > weekly else C_DANGER)
 
 	_refresh_buyers()
 	_refresh_contracts()
@@ -147,7 +138,7 @@ func _refresh_buyers() -> void:
 	# Accept button that signs the contract at the locked price.
 	var offers: Array = _sim.get_available_offers() if _sim.has_method("get_available_offers") else []
 	if offers.is_empty():
-		UIPolish.show_empty_state(_buyers_container, "Ingen tilbud i dag — kom tilbake i morgen", 13, "", _theme)
+		UIPolish.show_empty_state(_buyers_container, tr("UI_CONTRACTS_NO_OFFERS"), 13, "", _theme)
 		return
 
 	for offer in offers:
@@ -172,41 +163,39 @@ func _refresh_buyers() -> void:
 
 		var name_lbl := Label.new()
 		name_lbl.text = str(offer.get("buyer", "?"))
-		name_lbl.add_theme_font_size_override("font_size", 14)
-		name_lbl.add_theme_color_override("font_color", C_TEXT)
-		if _theme and _theme.font_heading_semibold:
-			name_lbl.add_theme_font_override("font", _theme.font_heading_semibold)
+		LakskongenTheme.set_size(name_lbl, 14)
+		LakskongenTheme.set_text_color(name_lbl, C_TEXT)
+		LakskongenTheme.set_strong(name_lbl)
 		left.add_child(name_lbl)
 
 		var type_lbl := Label.new()
-		type_lbl.text = "%s · %d uker · bot %.0f%%" % [
-			str(offer.get("type", "?")), int(offer.get("duration_weeks", 0)),
-			float(offer.get("penalty_pct", 0.0)) * 100.0]
-		type_lbl.add_theme_font_size_override("font_size", 12)
-		type_lbl.add_theme_color_override("font_color", C_MUTED)
+		type_lbl.text = tr("UI_CONTRACTS_OFFER_TERMS") % [
+			SimLabels.contract_type(str(offer.get("type", ""))), int(offer.get("duration_weeks", 0)),
+			SimFormatters.percent(float(offer.get("penalty_pct", 0.0)))]
+		LakskongenTheme.set_size(type_lbl, 12)
+		LakskongenTheme.set_text_color(type_lbl, C_MUTED)
 		left.add_child(type_lbl)
 
 		var right := VBoxContainer.new()
 		hbox.add_child(right)
 
 		var price_lbl := Label.new()
-		price_lbl.text = "%.2f" % float(offer.get("price_per_kg", 0.0))
-		price_lbl.add_theme_font_size_override("font_size", 16)
-		price_lbl.add_theme_color_override("font_color", C_PRIMARY)
-		if _theme and _theme.font_mono:
-			price_lbl.add_theme_font_override("font", _theme.font_mono)
+		price_lbl.text = SimFormatters.num(float(offer.get("price_per_kg", 0.0)), 2)
+		LakskongenTheme.set_size(price_lbl, 16)
+		LakskongenTheme.set_text_color(price_lbl, C_PRIMARY)
 		price_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		right.add_child(price_lbl)
 
 		var vol_lbl := Label.new()
-		vol_lbl.text = "%.0f t" % (float(offer.get("quantity_kg", 0.0)) / 1000.0)
-		vol_lbl.add_theme_font_size_override("font_size", 11)
-		vol_lbl.add_theme_color_override("font_color", C_MUTED)
+		vol_lbl.text = SimFormatters.num(float(offer.get("quantity_kg", 0.0)) / 1000.0, 0) + " t"
+		LakskongenTheme.set_size(vol_lbl, 11)
+		LakskongenTheme.set_text_color(vol_lbl, C_MUTED)
 		vol_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		right.add_child(vol_lbl)
 
 		var accept := Button.new()
-		accept.text = "Signer"
+		accept.text = tr("UI_CONTRACTS_SIGN")
+		accept.tooltip_text = tr("UI_CONTRACTS_SIGN_TIP")
 		accept.pressed.connect(_on_accept_offer.bind(idx))
 		hbox.add_child(accept)
 
@@ -234,17 +223,18 @@ func _refresh_contracts() -> void:
 	var hdr := HBoxContainer.new()
 	hdr.add_theme_constant_override("separation", 8)
 	_contracts_container.add_child(hdr)
-	for col in ["Kjøper", "Volum", "Pris", "Oppfylt", "Status"]:
+	for col in ["UI_CONTRACTS_COL_BUYER", "UI_CONTRACTS_COL_VOLUME", "UI_CONTRACTS_COL_PRICE",
+			"UI_CONTRACTS_COL_FULFILLED", "UI_CONTRACTS_COL_STATUS"]:
 		var l := Label.new()
-		l.text = col
-		l.add_theme_font_size_override("font_size", 11)
-		l.add_theme_color_override("font_color", C_MUTED)
+		l.text = tr(col)
+		LakskongenTheme.set_size(l, 11)
+		LakskongenTheme.set_text_color(l, C_MUTED)
 		l.size_flags_horizontal = SIZE_EXPAND_FILL
 		hdr.add_child(l)
 
 	if contracts.is_empty():
 		_add_table_cell(hdr, "", C_MUTED)
-		UIPolish.show_empty_state(_contracts_container, "Ingen aktive kontrakter — signer et tilbud over", 12, "", _theme)
+		UIPolish.show_empty_state(_contracts_container, tr("UI_CONTRACTS_NONE_ACTIVE"), 12, "", _theme)
 		return
 
 	for c in contracts:
@@ -253,10 +243,10 @@ func _refresh_contracts() -> void:
 		_contracts_container.add_child(row)
 
 		_add_table_cell(row, str(c.get("buyer", "?")), C_TEXT, true)
-		_add_table_cell(row, "%.0f t" % (float(c.get("quantity_kg", 0.0)) / 1000.0), C_TEXT)
-		_add_table_cell(row, "%.2f" % float(c.get("price_per_kg", 0.0)), C_TEXT, false, true)
-		_add_table_cell(row, "%.0f%%" % float(c.get("fulfilled_percent", 0.0)), C_TEXT)
-		_add_table_cell(row, "Aktiv", C_SUCCESS_D)
+		_add_table_cell(row, SimFormatters.num(float(c.get("quantity_kg", 0.0)) / 1000.0, 0) + " t", C_TEXT)
+		_add_table_cell(row, SimFormatters.num(float(c.get("price_per_kg", 0.0)), 2), C_TEXT, false, true)
+		_add_table_cell(row, SimFormatters.percent(float(c.get("fulfilled_percent", 0.0)) / 100.0), C_TEXT)
+		_add_table_cell(row, tr("UI_CONTRACTS_STATUS_ACTIVE"), C_SUCCESS_D)
 
 	# UIPolish: vertical keyboard navigation for contracts list
 	UIPolish.link_vertical_focus(_contracts_container)
@@ -264,13 +254,13 @@ func _refresh_contracts() -> void:
 func _add_table_cell(row: HBoxContainer, text: String, color: Color, bold: bool = false, mono: bool = false) -> void:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", 13)
-	l.add_theme_color_override("font_color", color)
+	LakskongenTheme.set_size(l, 13)
+	LakskongenTheme.set_text_color(l, color)
 	l.size_flags_horizontal = SIZE_EXPAND_FILL
-	if mono and _theme and _theme.font_mono:
-		l.add_theme_font_override("font", _theme.font_mono)
-	if bold and _theme and _theme.font_heading_semibold:
-		l.add_theme_font_override("font", _theme.font_heading_semibold)
+	if mono:
+		LakskongenTheme.set_role(l, &"FigureSmall")
+	if bold:
+		LakskongenTheme.set_strong(l)
 	row.add_child(l)
 
 func _refresh_regions() -> void:
@@ -281,10 +271,10 @@ func _refresh_regions() -> void:
 
 	var spot: float = float(_sim.market_price_nok) if _sim else 75.0
 	var regions := [
-		{"flag": "🇪🇺", "name": "EU (Frankrike/Spania)", "price": "€%.2f/kg" % (spot * 0.09), "demand": "Høy", "level": "high"},
-		{"flag": "🇬🇧", "name": "Storbritannia", "price": "£%.2f/kg" % (spot * 0.085), "demand": "Middels", "level": "medium"},
-		{"flag": "🇯🇵", "name": "Japan", "price": "¥%.0f/kg" % (spot * 15.8), "demand": "Høy", "level": "high"},
-		{"flag": "🇺🇸", "name": "USA", "price": "$%.2f/kg" % (spot * 0.099), "demand": "Middels", "level": "medium"},
+		{"flag": "🇪🇺", "name": tr("UI_REGION_EU"), "price": "€%s/kg" % SimFormatters.num(spot * 0.09, 2), "level": "high"},
+		{"flag": "🇬🇧", "name": tr("UI_REGION_UK"), "price": "£%s/kg" % SimFormatters.num(spot * 0.085, 2), "level": "medium"},
+		{"flag": "🇯🇵", "name": tr("UI_REGION_JAPAN"), "price": "¥%s/kg" % SimFormatters.num(spot * 15.8, 0), "level": "high"},
+		{"flag": "🇺🇸", "name": tr("UI_REGION_USA"), "price": "$%s/kg" % SimFormatters.num(spot * 0.099, 2), "level": "medium"},
 	]
 
 	for r in regions:
@@ -305,30 +295,27 @@ func _refresh_regions() -> void:
 
 		var flag := Label.new()
 		flag.text = r.flag
-		flag.add_theme_font_size_override("font_size", 20)
+		LakskongenTheme.set_size(flag, 20)
 		vbox.add_child(flag)
 
 		var name_lbl := Label.new()
 		name_lbl.text = r.name
-		name_lbl.add_theme_font_size_override("font_size", 13)
-		name_lbl.add_theme_color_override("font_color", C_TEXT)
-		if _theme and _theme.font_heading_semibold:
-			name_lbl.add_theme_font_override("font", _theme.font_heading_semibold)
+		LakskongenTheme.set_size(name_lbl, 13)
+		LakskongenTheme.set_text_color(name_lbl, C_TEXT)
+		LakskongenTheme.set_strong(name_lbl)
 		vbox.add_child(name_lbl)
 
 		var price_lbl := Label.new()
 		price_lbl.text = r.price
-		price_lbl.add_theme_font_size_override("font_size", 15)
-		price_lbl.add_theme_color_override("font_color", C_TEXT)
-		if _theme and _theme.font_mono:
-			price_lbl.add_theme_font_override("font", _theme.font_mono)
+		LakskongenTheme.set_size(price_lbl, 15)
+		LakskongenTheme.set_text_color(price_lbl, C_TEXT)
 		vbox.add_child(price_lbl)
 
 		var demand := Label.new()
-		demand.text = "● %s etterspørsel" % r.demand
-		demand.add_theme_font_size_override("font_size", 11)
+		demand.text = "● " + tr("UI_DEMAND_" + str(r.level).to_upper())
+		LakskongenTheme.set_size(demand, 11)
 		match r.level:
-			"high": demand.add_theme_color_override("font_color", C_SUCCESS_D)
-			"medium": demand.add_theme_color_override("font_color", C_WARNING_D)
-			_: demand.add_theme_color_override("font_color", C_DANGER)
+			"high": LakskongenTheme.set_text_color(demand, C_SUCCESS_D)
+			"medium": LakskongenTheme.set_text_color(demand, C_WARNING_D)
+			_: LakskongenTheme.set_text_color(demand, C_DANGER)
 		vbox.add_child(demand)

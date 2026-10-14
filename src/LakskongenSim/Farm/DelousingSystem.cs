@@ -308,7 +308,12 @@ namespace LakskongenSim.Farm
                 case "medicated_feed": method = DelousingMethod.MedicatedFeed; return true;
                 case "skirt":
                 case "liceskirts": method = DelousingMethod.LiceSkirts; return true;
-                default: method = default; return false;
+                default:
+                    // The bridge lists treatments by enum name ("HydrogenPeroxide"),
+                    // and that is what the pen panel sends back (U1-08).
+                    return Enum.TryParse(name, ignoreCase: true, out method)
+                        && !int.TryParse(name, out _)
+                        && Enum.IsDefined(method);
             }
         }
     }

@@ -123,6 +123,23 @@ public partial class GameBridge : Node
         }
     }
 
+    /// <summary>
+    /// Point the mod loader (and the engine) at another mods directory and
+    /// load it; an empty path goes back to the player's user://mods. A test
+    /// seam like SaveLoadManager.UseSaveDirectory: the UI flow tests load a
+    /// mod from a per-checkout folder instead of the player's. Returns the
+    /// number of mods loaded.
+    /// </summary>
+    public int UseModsDirectory(string directory)
+    {
+        _modsDirectory = string.IsNullOrWhiteSpace(directory) ? ResolveModsDirectory() : directory;
+        DirAccess.MakeDirRecursiveAbsolute(_modsDirectory);
+        _modLoader = new ModLoader(_modsDirectory);
+        var loaded = _modLoader.DiscoverAndLoad();
+        SimulationEngine?.LoadMods(_modsDirectory);
+        return loaded.Count;
+    }
+
     private static string ResolveModsDirectory()
     {
         // user://mods is writable and survives game updates/installs.
@@ -248,6 +265,10 @@ public partial class GameBridge : Node
         _simulationTimer.WaitTime = 1.0f / _timeSpeed;
         GD.Print($"GameBridge: time speed → {_timeSpeed}x");
     }
+
+    /// <summary>True while the auto-tick timer is paused (the pause menu
+    /// restores this state when it closes).</summary>
+    public bool IsPaused() => _isPaused;
 
     /// <summary>Pause or resume the auto-tick timer.</summary>
     public void SetPaused(bool paused)
@@ -517,6 +538,41 @@ public partial class GameBridge : Node
     /// <summary>Current feed conversion ratio (live from FeedSystem).</summary>
     public double CurrentFCR => SimulationEngine?.Feed?.CurrentFCR ?? 1.15;
 
+    /// <summary>The player's company as the UI names it (the brand the engine
+    /// trades under; the dashboard title is "&lt;company&gt; — Oversikt").</summary>
+    public string CompanyName =>
+        SimulationEngine?.BrandReputation?.BrandName is { Length: > 0 } name ? name : "Lakskongen";
+
+    /// <summary>
+    /// The FCR goal and the ceiling where feeding is failing, read from
+    /// CalibrationRegistry (roadmap U1-03: one FCR target for every panel; the
+    /// banner, dashboard, telemetry and alerts each kept their own before).
+    /// Keys: "target" (best-practice FCR), "poor" (above it feeding is failing).
+    /// </summary>
+    public Godot.Collections.Dictionary GetFcrTargets()
+    {
+        var bio = SimulationEngine?.Calibration?.Biology
+            ?? LakskongenSim.Calibration.CalibrationRegistry.Default.Biology;
+        return new Godot.Collections.Dictionary { ["target"] = bio.OptimalFCR, ["poor"] = bio.PoorFCR };
+    }
+
+    /// <summary>Days since the latest stocking at a site that holds fish, or -1
+    /// when no stocked site has a known stocking day (roadmap U1-08: the FCR
+    /// alarm waits until freshly stocked fish have settled).</summary>
+    public int DaysSinceStocking
+    {
+        get
+        {
+            var state = SimulationEngine?.State;
+            if (state?.SeaSites == null) return -1;
+            int latest = -1;
+            foreach (var site in state.SeaSites)
+                if (site.LastStockedDay >= 0 && site.Pens.Any(p => p.Cohorts.Any(c => c.Count > 0)))
+                    latest = Math.Max(latest, site.LastStockedDay);
+            return latest < 0 ? -1 : state.Day - latest;
+        }
+    }
+
     /// <summary>Current appetite 0-1 (Phase 2.1). Low = fish won't eat; cut ration.</summary>
     public double Appetite01 => SimulationEngine?.Feed?.LastAppetite01 ?? 1.0;
 
@@ -637,7 +693,7 @@ public partial class GameBridge : Node
             var d = new Godot.Collections.Dictionary
             {
                 ["day"]            = evt.Day,
-                ["name"]           = evt.Name,
+                ["name"]           = _tr_or("EVENT_" + UpperSnake(evt.Name), evt.Name),
                 ["category"]       = evt.Category.ToString(),
                 ["description"]    = evt.Description,
                 ["balance_change"] = (double)evt.BalanceChange
@@ -865,7 +921,7 @@ public partial class GameBridge : Node
         catch (Exception ex)
         {
             GD.PrintErr($"GameBridge tick error: {ex.Message}");
-            EndGame($"Simulation error: {ex.Message}");
+            EndGame(string.Format(UiCulture, _tr_or("GAME_OVER_SIM_ERROR", "Simulation error: {0}"), ex.Message));
         }
     }
 
@@ -901,7 +957,7 @@ public partial class GameBridge : Node
     private void HandleScenarioLost(ScenarioDefinition scenario, string reason)
     {
         EmitSignal(SignalName.ScenarioLost, scenario.Id, reason);
-        EndGame($"Scenario '{scenario.Name}' failed: {reason}");
+        EndGame(string.Format(UiCulture, _tr_or("GAME_OVER_SCENARIO_FAILED", "Scenario '{0}' is lost: {1}"), scenario.Name, reason));
     }
 
     /// <summary>
@@ -982,8 +1038,8 @@ public partial class GameBridge : Node
             decimal treatmentCost = totalFish * 50m;
             
             string description = severity < 0.5 
-                ? $"Moderate sea lice levels detected ({licePerFish:F2} per fish). Consider treatment."
-                : $"High sea lice levels detected ({licePerFish:F2} per fish)! Immediate treatment recommended.";
+                ? LakskongenSim.Core.SimText.Nb($"Moderat lusenivå ({licePerFish:F2} per fisk). Vurder behandling.")
+                : LakskongenSim.Core.SimText.Nb($"Høyt lusenivå ({licePerFish:F2} per fisk)! Behandle snarest.");
             
             EmitSignal(SignalName.DiseaseOutbreak, "SeaLice", "all_sites", severity, (double)treatmentCost);
             
@@ -991,7 +1047,7 @@ public partial class GameBridge : Node
             SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
             {
                 Day = SimulationEngine.State.Day,
-                Name = "Sea Lice Warning",
+                Name = "Luseadvarsel",
                 Category = LakskongenSim.Events.EventCategory.Disease,
                 Description = description,
                 BalanceChange = 0m

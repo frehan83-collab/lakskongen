@@ -1,56 +1,10 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/FinancePanel.gd" id="1"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.898039, 0.913725, 0.941176, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
-bg_color = Color(1, 1, 1, 1)
-border_width_bottom = 1
-border_color = Color(0.898039, 0.913725, 0.941176, 1)
-content_margin_left = 20.0
-content_margin_top = 14.0
-content_margin_right = 20.0
-content_margin_bottom = 14.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_primary"]
-bg_color = Color(0.0392157, 0.301961, 0.407843, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 10.0
-content_margin_top = 10.0
-content_margin_right = 10.0
-content_margin_bottom = 10.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_light"]
-bg_color = Color(0.972549, 0.976471, 0.984314, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.847059, 0.870588, 0.913725, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 10.0
-content_margin_top = 10.0
-content_margin_right = 10.0
-content_margin_bottom = 10.0
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
 [node name="FinancePanel" type="Control"]
+theme = ExtResource("theme_chart")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -68,7 +22,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.92549, 0.937255, 0.956863, 0.82)
+color = Color(0.956863, 0.945098, 0.917647, 0.96)
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -93,10 +47,9 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 20
 
 [node name="TitleLabel" type="Label" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"KpiSmall"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 24
 text = "💰 Økonomi"
 
 [node name="KpiStrip" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
@@ -104,115 +57,83 @@ layout_mode = 2
 theme_override_constants/separation = 16
 
 [node name="KpiRevenue" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardOk"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue/VBox"]
-custom_minimum_size = Vector2(0, 4)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.639216, 0.745098, 0.54902, 1)
-
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue/VBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "INNTEKTER"
 
 [node name="KpiRevenueValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue/VBox"]
+theme_type_variation = &"KpiSmall"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 24
 text = "--"
 
 [node name="KpiExpenses" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardCrit"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiExpenses"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiExpenses/VBox"]
-custom_minimum_size = Vector2(0, 4)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.74902, 0.380392, 0.415686, 1)
-
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiExpenses/VBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "KOSTNADER"
 
 [node name="KpiExpensesValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiExpenses/VBox"]
+theme_type_variation = &"KpiSmall"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 24
 text = "--"
 
 [node name="KpiProfit" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardInfo"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiProfit"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiProfit/VBox"]
-custom_minimum_size = Vector2(0, 4)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.0392157, 0.301961, 0.407843, 1)
-
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiProfit/VBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "RESULTAT"
 
 [node name="KpiProfitValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiProfit/VBox"]
+theme_type_variation = &"KpiSmall"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 24
 text = "--"
 
 [node name="KpiBalance" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardInfo"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiBalance"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiBalance/VBox"]
-custom_minimum_size = Vector2(0, 4)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.368627, 0.505882, 0.67451, 1)
-
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiBalance/VBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "KONTANTER"
 
 [node name="KpiBalanceValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiBalance/VBox"]
+theme_type_variation = &"KpiSmall"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 24
 text = "--"
 
 [node name="MidRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
@@ -220,24 +141,22 @@ layout_mode = 2
 theme_override_constants/separation = 16
 
 [node name="ChartCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow"]
+theme_type_variation = &"Card"
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 1.5
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="ChartTitle" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "📊 Inntekter vs Kostnader (6 mnd)"
 
 [node name="ChartBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer"]
@@ -265,19 +184,18 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(14, 30)
 layout_mode = 2
 mouse_filter = 2
-color = Color(0.0392157, 0.301961, 0.407843, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="ChartCost1" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month1/Bars"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(14, 20)
 layout_mode = 2
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month1"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 10
 text = "Okt"
 horizontal_alignment = 1
 
@@ -296,19 +214,18 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(14, 40)
 layout_mode = 2
 mouse_filter = 2
-color = Color(0.0392157, 0.301961, 0.407843, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="ChartCost2" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month2/Bars"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(14, 25)
 layout_mode = 2
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month2"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 10
 text = "Nov"
 horizontal_alignment = 1
 
@@ -327,19 +244,18 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(14, 50)
 layout_mode = 2
 mouse_filter = 2
-color = Color(0.0392157, 0.301961, 0.407843, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="ChartCost3" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month3/Bars"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(14, 30)
 layout_mode = 2
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month3"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 10
 text = "Des"
 horizontal_alignment = 1
 
@@ -358,19 +274,18 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(14, 60)
 layout_mode = 2
 mouse_filter = 2
-color = Color(0.0392157, 0.301961, 0.407843, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="ChartCost4" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month4/Bars"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(14, 35)
 layout_mode = 2
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month4"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 10
 text = "Jan"
 horizontal_alignment = 1
 
@@ -389,19 +304,18 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(14, 70)
 layout_mode = 2
 mouse_filter = 2
-color = Color(0.0392157, 0.301961, 0.407843, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="ChartCost5" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month5/Bars"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(14, 40)
 layout_mode = 2
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month5"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 10
 text = "Feb"
 horizontal_alignment = 1
 
@@ -420,19 +334,18 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(14, 80)
 layout_mode = 2
 mouse_filter = 2
-color = Color(0.0392157, 0.301961, 0.407843, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="ChartCost6" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month6/Bars"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(14, 45)
 layout_mode = 2
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month6"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 10
 text = "Mar"
 horizontal_alignment = 1
 
@@ -448,12 +361,11 @@ theme_override_constants/separation = 6
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 mouse_filter = 2
-color = Color(0.0392157, 0.301961, 0.407843, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/Legend/RevLegend"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 12
 text = "Inntekt"
 
 [node name="CostLegend" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/Legend"]
@@ -464,32 +376,29 @@ theme_override_constants/separation = 6
 custom_minimum_size = Vector2(10, 10)
 layout_mode = 2
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/Legend/CostLegend"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 12
 text = "Kostnad"
 
 [node name="PlCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow"]
+theme_type_variation = &"Card"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="PlTitle" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "📋 Resultatregnskap"
 
 [node name="PlBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer"]
@@ -500,17 +409,15 @@ theme_override_constants/separation = 10
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/FeedRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Fôrkostnader"
 
 [node name="PlFeed" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/FeedRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -518,17 +425,15 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/SalaryRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Lønnskostnader"
 
 [node name="PlSalary" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/SalaryRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -536,17 +441,15 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/MaintRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Vedlikehold"
 
 [node name="PlMaintenance" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/MaintRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -554,17 +457,15 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/InsuranceRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Forsikring"
 
 [node name="PlInsurance" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/InsuranceRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -572,17 +473,15 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/DelousingRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Avlusing"
 
 [node name="PlDelousing" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/DelousingRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -590,17 +489,15 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/TransportRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Transport"
 
 [node name="PlTransport" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/TransportRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -608,17 +505,15 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/OtherRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Andre kostnader"
 
 [node name="PlOther" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/OtherRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -629,17 +524,15 @@ layout_mode = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/TotalRow"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "TOTALE KOSTNADER"
 
 [node name="PlTotal" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/TotalRow"]
+theme_type_variation = &"SmallCrit"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.74902, 0.380392, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -648,23 +541,21 @@ layout_mode = 2
 theme_override_constants/separation = 16
 
 [node name="LoanCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow"]
+theme_type_variation = &"Card"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="LoanTitle" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "🏦 Lån & Finansiering"
 
 [node name="LoanBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer"]
@@ -675,17 +566,15 @@ theme_override_constants/separation = 10
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/StatusRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Status:"
 
 [node name="LoanStatus" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/StatusRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "Ingen lån"
 horizontal_alignment = 2
 
@@ -693,17 +582,15 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/AmountRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Lånebeløp:"
 
 [node name="LoanAmount" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/AmountRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -711,17 +598,15 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/RemainingRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Gjenstående:"
 
 [node name="LoanRemaining" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/RemainingRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -730,44 +615,37 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="BtnTakeLoan" type="Button" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/BtnRow"]
+theme_type_variation = &"SmallPrimaryButton"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_primary")
 text = "Ta lån (5M NOK)"
 
 [node name="BtnRepayLoan" type="Button" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/BtnRow"]
+theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 disabled = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_light")
 text = "Betal tilbake"
 
 [node name="HistCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow"]
+theme_type_variation = &"Card"
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 1.5
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/HistCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow/HistCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="HistTitle" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/HistCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "📈 Historikk (siste 10 dager)"
 
 [node name="HistBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/HistCard/Outer"]

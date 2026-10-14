@@ -46,6 +46,7 @@ __pycache__/
 # Screenshot harness output (rewritten on every capture; keep repo lean).
 # Curated Steam capsules live in screenshots/steam_store/ and stay tracked.
 godot/screenshots/game/
+godot/screenshots/design-token-sync/
 screenshots/qa/
 
 # Balance-probe report output (CSV/HTML regenerated per probe run).

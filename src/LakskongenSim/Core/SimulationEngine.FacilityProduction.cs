@@ -141,7 +141,7 @@ public partial class SimulationEngine
         string batchId = NextFacilityId($"{facility.Id}_batch", facility.Batches.Select(b => b.Id));
         var batch = facility.StartNewBatch(batchId, count);
         batch.StartDay = State.Day;
-        LogFacilityEvent("Post-smolt batch", $"{facility.Name}: batch {batchId} started with {count:N0} smolts", -cost);
+        LogFacilityEvent("Ny postsmoltgruppe", SimText.Nb($"{facility.Name}: ny gruppe med {count:N0} smolt"), -cost);
         return CommandResult.Success($"Started batch {batchId} ({count:N0} smolts) at {facility.Name}",
             (double)cost, id: batchId);
     }
@@ -205,12 +205,13 @@ public partial class SimulationEngine
             Quality = tier
         });
         site.Stock(population);
+        site.LastStockedDay = State.Day;
         State.Populations.Add(population);
         if (strain.InitialLiceLoad > 0)
             site.Lice.SeedExternalInfection(Math.Max(0.05, strain.InitialLiceLoad));
 
-        LogFacilityEvent("Post-smolt transfer",
-            $"{facility.Name}: {batch.Count:N0} post-smolt ({batch.AverageWeightG:F0} g, {tier}) to {siteId}", 0m);
+        LogFacilityEvent("Postsmolt flyttet til sjø",
+            SimText.Nb($"{facility.Name}: {batch.Count:N0} postsmolt ({batch.AverageWeightG:F0} g) til {site.Label}"), 0m);
         return CommandResult.Success($"Transferred {batch.Count:N0} post-smolt ({tier}) to {siteId}",
             batch.Count, batch.AverageWeightG, siteId);
     }
@@ -241,7 +242,7 @@ public partial class SimulationEngine
         pens.Add(population);
         State.Populations.Add(population);
 
-        LogFacilityEvent("Smolt Stocking", $"Stocked {count:N0} {strain.Name} smolts at {name}", -cost);
+        LogFacilityEvent("Utsett av smolt", SimText.Nb($"Satte ut {count:N0} smolt ({strain.Name}) i {name}"), -cost);
         return CommandResult.Success($"Stocked {count:N0} smolts at {name}", count, (double)cost, facilityId);
     }
 

@@ -29,7 +29,7 @@ func _ready():
     price_label.set_anchors_preset(Control.PRESET_FULL_RECT)
     price_label.set_align(HorizontalAlignment.HORIZONTAL_ALIGNMENT_RIGHT)
     price_label.set_valign(VerticalAlignment.VERTICAL_ALIGNMENT_CENTER)
-    price_label.add_theme_font_size_override("font_size", 24) # Large text
+    LakskongenTheme.set_size(price_label, 24) # Large text
     price_label.add_theme_constant_override("line_spacing", 0)
     price_label.set_modulate(Color.WHITE)
     price_label.set_text("SPOT PRICE: --.-- NOK/kg")

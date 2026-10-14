@@ -43,18 +43,18 @@ const BRANCH_ORDER: Array = ["Biology", "Genetics", "Nutrition", "Health", "Tech
 	"Automation", "Sustainability", "Environment", "Processing", "Expansion"]
 
 const BRANCH_META: Dictionary = {
-	"Biology":       { "label": "Biologi",        "icon": "🧬", "color": Color("#A3BE8C") },
-	"Genetics":      { "label": "Genetikk",       "icon": "🧪", "color": Color("#A3BE8C") },
-	"Nutrition":     { "label": "Ernæring",       "icon": "🌾", "color": Color("#EBCB8B") },
-	"Health":        { "label": "Helse",          "icon": "🩺", "color": Color("#BF616A") },
-	"Technology":    { "label": "Teknologi",       "icon": "⚙️", "color": Color("#5E81AC") },
-	"Automation":    { "label": "Automasjon",     "icon": "🤖", "color": Color("#5E81AC") },
-	"Sustainability":{ "label": "Bærekraft",       "icon": "🌿", "color": Color("#A3BE8C") },
-	"Environment":   { "label": "Miljø",          "icon": "🌍", "color": Color("#A3BE8C") },
-	"Processing":    { "label": "Foredling",       "icon": "🐟", "color": Color("#EBCB8B") },
-	"Expansion":     { "label": "Ekspansjon",      "icon": "🌊", "color": Color("#5E81AC") },
+	"Biology":       { "label": "Biologi",        "icon": "🧬", "color": Color("#2E6B45") },
+	"Genetics":      { "label": "Genetikk",       "icon": "🧪", "color": Color("#2E6B45") },
+	"Nutrition":     { "label": "Ernæring",       "icon": "🌾", "color": Color("#8A5A00") },
+	"Health":        { "label": "Helse",          "icon": "🩺", "color": Color("#B3172F") },
+	"Technology":    { "label": "Teknologi",       "icon": "⚙️", "color": Color("#1F5E73") },
+	"Automation":    { "label": "Automasjon",     "icon": "🤖", "color": Color("#1F5E73") },
+	"Sustainability":{ "label": "Bærekraft",       "icon": "🌿", "color": Color("#2E6B45") },
+	"Environment":   { "label": "Miljø",          "icon": "🌍", "color": Color("#2E6B45") },
+	"Processing":    { "label": "Foredling",       "icon": "🐟", "color": Color("#8A5A00") },
+	"Expansion":     { "label": "Ekspansjon",      "icon": "🌊", "color": Color("#1F5E73") },
 }
-const DEFAULT_BRANCH_META: Dictionary = { "label": "", "icon": "🔬", "color": Color("#5E81AC") }
+const DEFAULT_BRANCH_META: Dictionary = { "label": "", "icon": "🔬", "color": Color("#1F5E73") }
 
 ## Effect labels (ResearchEffectKeys.Live). Reductions show as −N %, the
 ## sustainability score as points (it used to print "+800%").
@@ -73,13 +73,6 @@ const POINT_EFFECTS: Array = ["sustainability_score_bonus"]
 const REDUCTION_EFFECTS: Array = ["fcr_reduction", "feed_waste_reduction", "mortality_reduction",
 	"lice_reduction", "carbon_reduction"]
 
-# Node state colours - Nordic Minimalist v2.0
-const COLOR_LOCKED      := Color("#D8DEE9")   # Light gray (border)
-const COLOR_AVAILABLE   := Color("#5E81AC")   # Accent blue
-const COLOR_RESEARCHING := Color("#EBCB8B")   # Warning amber
-const COLOR_UNLOCKED    := Color("#A3BE8C")   # Success green
-const COLOR_TEXT_DIM    := Color("#7B8794")   # Muted
-const COLOR_TEXT_BRIGHT := Color("#2E3440")   # Dark text
 
 # ── Runtime state ───────────────────────────────────────────────────────────────
 
@@ -153,6 +146,11 @@ func _input(event: InputEvent) -> void:
 
 # ── Skeleton build (runs once) ──────────────────────────────────────────────────
 
+## Branch accent colour -> theme tone (labels resolve per surface).
+static func _tone(accent: Color) -> StringName:
+	var tone: StringName = LakskongenTheme.tone_for_color(accent)
+	return tone if tone != &"?" else &"Info"
+
 func _build_skeleton() -> void:
 	var total_w := START_X * 2 + 5 * H_GAP
 	var total_h := START_Y + 5 * V_GAP + NODE_H + 50
@@ -160,22 +158,22 @@ func _build_skeleton() -> void:
 
 	# ── Background panel ──
 	var bg := ColorRect.new()
-	bg.color = Color(0.92549, 0.937255, 0.956863, 0.82)  # Nordic Minimalist light bg, lets 3D vista show through
+	bg.color = Color(LakskongenTheme.CHART, 0.97)  # Chart paper (document surface)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
 	# ── Title bar ──
 	var title := Label.new()
 	title.text = tr("UI_TECH_TITLE")
-	title.add_theme_font_size_override("font_size", 16)
-	title.modulate = Color("#2E3440")  # Dark text
+	title.theme_type_variation = &"Subheading"
 	title.position = Vector2(START_X, 10)
 	title.tooltip_text = tr("UI_TECH_TITLE_TOOLTIP")
 	add_child(title)
 
 	# ── Close button ──
 	_close_btn = Button.new()
-	_close_btn.text = tr("✕")
+	_close_btn.text = "×"
+	_close_btn.theme_type_variation = &"LargeGhostButton"
 	_close_btn.position = Vector2(total_w - 40, 8)
 	_close_btn.size = Vector2(28, 28)
 	_close_btn.tooltip_text = tr("UI_TECH_CLOSE_TOOLTIP")
@@ -186,8 +184,7 @@ func _build_skeleton() -> void:
 	var status_lbl := Label.new()
 	status_lbl.name = "StatusLabel"
 	status_lbl.text = tr("UI_TECH_NO_RESEARCH")
-	status_lbl.add_theme_font_size_override("font_size", 11)
-	status_lbl.modulate = Color("#4C566A")  # Secondary text
+	status_lbl.theme_type_variation = &"SmallMuted"
 	status_lbl.position = Vector2(START_X, 36)
 	status_lbl.tooltip_text = tr("UI_TECH_STATUS_TOOLTIP")
 	add_child(status_lbl)
@@ -210,7 +207,7 @@ func _build_skeleton() -> void:
 	_tooltip_popup.size = Vector2(280, 120)
 	_tooltip_label = Label.new()
 	_tooltip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_tooltip_label.add_theme_font_size_override("font_size", 10)
+	LakskongenTheme.set_size(_tooltip_label, 10)
 	_tooltip_popup.add_child(_tooltip_label)
 	add_child(_tooltip_popup)
 
@@ -227,6 +224,15 @@ func _refresh() -> void:
 	# Rebuild lookup maps
 	_node_data.clear()
 	for nd in nodes_raw:
+		# The sim names nodes in English; the player reads the translation
+		# (RESEARCH_<ID>_NAME / _DESC; mod nodes without one keep their own).
+		var key := "RESEARCH_" + SimLabels.upper_snake(str(nd["id"]))
+		var nm := tr(key + "_NAME")
+		var desc := tr(key + "_DESC")
+		if nm != key + "_NAME":
+			nd["name"] = nm
+		if desc != key + "_DESC":
+			nd["description"] = desc
 		_node_data[nd["id"]] = nd
 
 	# Rebuild panels only when a node's state changed (F672: the tree used to
@@ -242,9 +248,9 @@ func _refresh() -> void:
 	if active_id != "":
 		var remaining: int = gb.get_research_days_remaining()
 		var nd: Dictionary = _node_data.get(active_id, {})
-		_update_status_label("Forsker: %s - %d dager gjenstår" % [nd.get("name", active_id), remaining])
+		_update_status_label(tr("UI_TECH_ACTIVE") % [nd.get("name", active_id), remaining])
 	else:
-		_update_status_label("Ingen aktiv forskning  |  Velg en node for å starte")
+		_update_status_label(tr("UI_TECH_IDLE"))
 
 	# Redraw connection lines
 	_line_canvas.queue_redraw()
@@ -327,8 +333,7 @@ func _rebuild_headers() -> void:
 		var hdr := Label.new()
 		var label: String = meta["label"] if meta["label"] != "" else branch
 		hdr.text = _fmt("UI_TECH_TIER_NODE", "%s %s", [meta["icon"], label])
-		hdr.add_theme_font_size_override("font_size", 12)
-		hdr.modulate = meta["color"]
+		hdr.theme_type_variation = StringName("Caption" + String(_tone(meta["color"])))
 		hdr.position = Vector2(START_X + bi * H_GAP, 58)
 		hdr.custom_minimum_size = Vector2(NODE_W, 24)
 		add_child(hdr)
@@ -374,32 +379,16 @@ func _build_node_panel(nd: Dictionary) -> void:
 	panel.position = Vector2(x, y)
 	panel.size = Vector2(NODE_W, NODE_H)
 
-	# Style
-	var style := StyleBoxFlat.new()
-	style.border_width_top    = 2
-	style.border_width_bottom = 2
-	style.border_width_left   = 2
-	style.border_width_right  = 2
-	style.corner_radius_top_left     = 5
-	style.corner_radius_top_right    = 5
-	style.corner_radius_bottom_left  = 5
-	style.corner_radius_bottom_right = 5
-
+	# Card by research state (theme variations, resolved on the Chart surface).
 	var branch_color: Color = BRANCH_META.get(branch, DEFAULT_BRANCH_META)["color"]
 	if is_unlocked:
-		style.bg_color     = COLOR_UNLOCKED
-		style.border_color = branch_color
+		panel.theme_type_variation = &"CalloutOk"
 	elif is_active:
-		style.bg_color     = COLOR_RESEARCHING
-		style.border_color = Color(1.0, 0.75, 0.20)
+		panel.theme_type_variation = &"CalloutWarn"
 	elif can_research:
-		style.bg_color     = COLOR_AVAILABLE
-		style.border_color = branch_color.lightened(0.3)
+		panel.theme_type_variation = &"CalloutInfo"
 	else:
-		style.bg_color     = COLOR_LOCKED
-		style.border_color = Color("#D8DEE9")  # Border
-
-	panel.add_theme_stylebox_override("panel", style)
+		panel.theme_type_variation = &"Tile"
 	add_child(panel)
 	_node_panels[nd["id"]] = panel
 
@@ -413,21 +402,20 @@ func _build_node_panel(nd: Dictionary) -> void:
 	vbox.add_child(title_row)
 
 	var status_icon := Label.new()
-	status_icon.add_theme_font_size_override("font_size", 11)
+	status_icon.theme_type_variation = &"Small"
 	if is_unlocked:
-		status_icon.text = tr("✅")
+		status_icon.text = "✅"
 	elif is_active:
-		status_icon.text = tr("⏳")
+		status_icon.text = "⏳"
 	elif can_research:
-		status_icon.text = tr("🔬")
+		status_icon.text = "🔬"
 	else:
-		status_icon.text = tr("🔒")
+		status_icon.text = "🔒"
 	title_row.add_child(status_icon)
 
 	var name_lbl := Label.new()
 	name_lbl.text = nd["name"]
-	name_lbl.add_theme_font_size_override("font_size", 10)
-	name_lbl.modulate = COLOR_TEXT_BRIGHT if (is_unlocked or is_active or can_research) else COLOR_TEXT_DIM
+	name_lbl.theme_type_variation = &"Caption" if (is_unlocked or is_active or can_research) else &"CaptionMuted"
 	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(name_lbl)
@@ -435,16 +423,14 @@ func _build_node_panel(nd: Dictionary) -> void:
 	# Tier badge
 	var tier_lbl := Label.new()
 	tier_lbl.text = _fmt("UI_TECH_TIER_LABEL", "Nivå %s", [tier])
-	tier_lbl.add_theme_font_size_override("font_size", 11)
-	tier_lbl.modulate = branch_color
+	tier_lbl.theme_type_variation = StringName("Small" + String(_tone(branch_color)))
 	vbox.add_child(tier_lbl)
 
 	# Cost / progress row
 	if is_unlocked:
 		var done_lbl := Label.new()
 		done_lbl.text = tr("UI_TECH_COMPLETED")
-		done_lbl.add_theme_font_size_override("font_size", 11)
-		done_lbl.modulate = Color("#A3BE8C")  # Success
+		done_lbl.theme_type_variation = &"SmallOk"
 		vbox.add_child(done_lbl)
 	elif is_active:
 		# Progress bar
@@ -455,15 +441,13 @@ func _build_node_panel(nd: Dictionary) -> void:
 		vbox.add_child(prog)
 		var prog_lbl := Label.new()
 		prog_lbl.text = _fmt("UI_TECH_PROGRESS_DAYS", "%d av %d dager", [progress_days, research_days])
-		prog_lbl.add_theme_font_size_override("font_size", 11)
-		prog_lbl.modulate = Color(1.0, 0.80, 0.30)
+		prog_lbl.theme_type_variation = &"SmallWarn"
 		vbox.add_child(prog_lbl)
 	else:
 		var cost_str: String = _format_nok(nd["cost_nok"])
 		var cost_lbl := Label.new()
-		cost_lbl.text = "%s  •  %dd" % [cost_str, research_days]
-		cost_lbl.add_theme_font_size_override("font_size", 11)
-		cost_lbl.modulate = COLOR_TEXT_DIM
+		cost_lbl.text = tr("UI_TECH_COST_DAYS") % [cost_str, research_days]
+		cost_lbl.theme_type_variation = &"SmallMuted"
 		vbox.add_child(cost_lbl)
 
 	# Clickable hitbox (only for available / active nodes)
@@ -498,7 +482,7 @@ func _on_node_clicked(node_id: String) -> void:
 
 	_pending_node_id = node_id
 	var cost_str: String = _format_nok(nd["cost_nok"])
-	_confirm_dialog.dialog_text = "%s\n\nKostnad: %s\nForskningsvarighet: %d dager\n\n%s" % [
+	_confirm_dialog.dialog_text = tr("UI_TECH_CONFIRM_TEXT") % [
 		nd["name"],
 		cost_str,
 		nd["research_days"],
@@ -523,8 +507,8 @@ func _on_research_confirmed() -> void:
 	else:
 		# Show brief error - insufficient funds or state changed
 		var err := AcceptDialog.new()
-		err.title = "Kan ikke starte forskning"
-		err.dialog_text = "Ikke nok midler eller et krav er ikke oppfylt."
+		err.title = tr("UI_TECH_START_FAILED_TITLE")
+		err.dialog_text = tr("UI_TECH_START_FAILED")
 		add_child(err)
 		err.popup_centered()
 		err.confirmed.connect(func(): err.queue_free())
@@ -542,14 +526,14 @@ func _on_node_hover(node_id: String) -> void:
 
 	var lines: PackedStringArray = [nd["description"]]
 	if prereq_names.size() > 0:
-		lines.append("Krever: " + ", ".join(prereq_names))
+		lines.append(tr("UI_TECH_REQUIRES") % ", ".join(prereq_names))
 
 	var effects: Dictionary = nd["effects"]
 	if not effects.is_empty():
 		var fx_parts: PackedStringArray = []
 		for k in effects:
 			fx_parts.append(format_effect(k, float(effects[k])))
-		lines.append("Effekter: " + ", ".join(fx_parts))
+		lines.append(tr("UI_TECH_EFFECTS") % ", ".join(fx_parts))
 
 	_tooltip_label.text = "\n".join(lines)
 	_tooltip_label.custom_minimum_size = Vector2(260, 0)
@@ -566,9 +550,7 @@ func _toast_research(node_id: String) -> void:
 	if mgr and mgr.has_method("show_toast"):
 		var nd: Dictionary = _node_data.get(node_id, {})
 		var label := str(nd.get("name", node_id))
-		var t := tr("UI_TOAST_RESEARCH")
-		var msg := (t % label) if t != "UI_TOAST_RESEARCH" else ("🔬 Forskning startet: %s" % label)
-		mgr.show_toast(msg, "SUCCESS", 4.0)
+		mgr.show_toast("🔬 " + tr("UI_TOAST_RESEARCH") % label, "SUCCESS", 4.0)
 
 func _update_status_label(text: String) -> void:
 	var lbl: Label = get_node_or_null("StatusLabel")
@@ -576,11 +558,7 @@ func _update_status_label(text: String) -> void:
 		lbl.text = text
 
 func _format_nok(value: float) -> String:
-	if value >= 1_000_000.0:
-		return "%.1f M NOK" % (value / 1_000_000.0)
-	if value >= 1_000.0:
-		return "%.0f k NOK" % (value / 1_000.0)
-	return "%.0f NOK" % value
+	return SimFormatters.format_nok(value)
 
 # ── Inner class: connection line canvas ────────────────────────────────────────
 
@@ -614,11 +592,11 @@ class _LineCanvas extends Control:
 
 				var line_color: Color
 				if is_unlocked and prereq_unlocked:
-					line_color = Color(0.64, 0.74, 0.55, 0.75)  # success green - fully connected
+					line_color = Color(get_theme_color(&"ok", &"Palette"), 0.75)  # fully connected
 				elif prereq_unlocked:
-					line_color = Color(0.37, 0.51, 0.67, 0.60)  # accent blue - prereq done
+					line_color = Color(get_theme_color(&"info", &"Palette"), 0.6)  # prerequisite done
 				else:
-					line_color = Color(0.85, 0.87, 0.91, 0.40)  # border gray - locked chain
+					line_color = get_theme_color(&"stroke", &"Palette")  # locked chain
 
 				# Draw the connector with an elbow: src → mid-x → target
 				var mid_y := (src_pt.y + target_pt.y) * 0.5

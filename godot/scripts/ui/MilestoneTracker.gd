@@ -257,8 +257,8 @@ func _show_notification(text: String):
 	# Simple notification using a temporary label (could be replaced with a proper notification system)
 	var notif := Label.new()
 	notif.text = text
-	notif.add_theme_font_size_override("font_size", LakskongenTheme.FONT_SM)
-	notif.add_theme_color_override("font_color", ACCENT)
+	LakskongenTheme.set_size(notif, LakskongenTheme.FONT_SM)
+	LakskongenTheme.set_text_color(notif, ACCENT)
 	notif.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	notif.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	

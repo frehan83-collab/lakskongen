@@ -1,56 +1,10 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/ContractsPanel.gd" id="1_contracts"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.898039, 0.913725, 0.941176, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
-bg_color = Color(1, 1, 1, 1)
-border_width_bottom = 1
-border_color = Color(0.898039, 0.913725, 0.941176, 1)
-content_margin_left = 20.0
-content_margin_top = 14.0
-content_margin_right = 20.0
-content_margin_bottom = 14.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_primary"]
-bg_color = Color(0.0392157, 0.301961, 0.407843, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 10.0
-content_margin_top = 10.0
-content_margin_right = 10.0
-content_margin_bottom = 10.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_light"]
-bg_color = Color(0.972549, 0.976471, 0.984314, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.847059, 0.870588, 0.913725, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 10.0
-content_margin_top = 10.0
-content_margin_right = 10.0
-content_margin_bottom = 10.0
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
 [node name="ContractsPanel" type="Control"]
+theme = ExtResource("theme_chart")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -67,7 +21,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.92549, 0.937255, 0.956863, 0.82)
+color = Color(0.956863, 0.945098, 0.917647, 0.96)
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -95,27 +49,22 @@ theme_override_constants/separation = 20
 layout_mode = 2
 
 [node name="TitleLabel" type="Label" parent="Margin/MainScroll/RootVBox/HeaderBar"]
+theme_type_variation = &"KpiSmall"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 24
 text = "📈 Marked & Handel"
 
 [node name="BtnNewContract" type="Button" parent="Margin/MainScroll/RootVBox/HeaderBar"]
+theme_type_variation = &"SmallPrimaryButton"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_primary")
 text = "📝 Ny kontrakt"
 
 [node name="BtnSellSpot" type="Button" parent="Margin/MainScroll/RootVBox/HeaderBar"]
+theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_light")
 text = "📦 Selg spot"
 
 [node name="KpiStrip" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
@@ -123,115 +72,83 @@ layout_mode = 2
 theme_override_constants/separation = 16
 
 [node name="KpiSpot" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardOk"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiSpot"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiSpot/VBox"]
-custom_minimum_size = Vector2(0, 4)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.639216, 0.745098, 0.54902, 1)
-
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiSpot/VBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
-text = "SPOTPRIS (NASDAQ)"
+text = "SPOTPRIS"
 
 [node name="KpiSpotValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiSpot/VBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "--"
 
 [node name="KpiContract" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardCrit"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiContract"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiContract/VBox"]
-custom_minimum_size = Vector2(0, 4)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.74902, 0.380392, 0.415686, 1)
-
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiContract/VBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
-text = "KONTRAKTPRIS (SNITT)"
+text = "KONTRAKTSPRIS (SNITT)"
 
 [node name="KpiContractValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiContract/VBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "--"
 
 [node name="KpiVolume" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardInfo"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiVolume"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiVolume/VBox"]
-custom_minimum_size = Vector2(0, 4)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.368627, 0.505882, 0.67451, 1)
-
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiVolume/VBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "TILGJENGELIG VOLUM"
 
 [node name="KpiVolumeValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiVolume/VBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "--"
 
 [node name="KpiOpen" type="PanelContainer" parent="Margin/MainScroll/RootVBox/KpiStrip"]
+theme_type_variation = &"KpiCardWarn"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiOpen"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Stripe" type="ColorRect" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiOpen/VBox"]
-custom_minimum_size = Vector2(0, 4)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.921569, 0.796078, 0.545098, 1)
-
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiOpen/VBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "ÅPNE KONTRAKTER"
 
 [node name="KpiOpenValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiOpen/VBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "--"
 
 [node name="MidRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
@@ -239,24 +156,22 @@ layout_mode = 2
 theme_override_constants/separation = 16
 
 [node name="ChartCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow"]
+theme_type_variation = &"Card"
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 2.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="ChartTitle" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "💹 Prisutvikling (12 uker)"
 
 [node name="ChartBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer"]
@@ -275,7 +190,7 @@ custom_minimum_size = Vector2(0, 82)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="PriceBar2" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
 unique_name_in_owner = true
@@ -283,7 +198,7 @@ custom_minimum_size = Vector2(0, 78)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="PriceBar3" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
 unique_name_in_owner = true
@@ -291,7 +206,7 @@ custom_minimum_size = Vector2(0, 87)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="PriceBar4" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
 unique_name_in_owner = true
@@ -299,7 +214,7 @@ custom_minimum_size = Vector2(0, 90)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="PriceBar5" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
 unique_name_in_owner = true
@@ -307,7 +222,7 @@ custom_minimum_size = Vector2(0, 81)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="PriceBar6" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
 unique_name_in_owner = true
@@ -315,7 +230,7 @@ custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="PriceBar7" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
 unique_name_in_owner = true
@@ -323,7 +238,7 @@ custom_minimum_size = Vector2(0, 67)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-color = Color(0.74902, 0.380392, 0.415686, 1)
+color = Color(0.701961, 0.090196, 0.184314, 1)
 
 [node name="PriceBar8" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
 unique_name_in_owner = true
@@ -331,7 +246,7 @@ custom_minimum_size = Vector2(0, 75)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="PriceBar9" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
 unique_name_in_owner = true
@@ -339,7 +254,7 @@ custom_minimum_size = Vector2(0, 93)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 1)
+color = Color(0.121569, 0.368627, 0.45098, 1)
 
 [node name="PriceBar10" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
 unique_name_in_owner = true
@@ -347,7 +262,7 @@ custom_minimum_size = Vector2(0, 102)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-color = Color(0.639216, 0.745098, 0.54902, 1)
+color = Color(0.180392, 0.419608, 0.270588, 1)
 
 [node name="PriceBar11" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
 unique_name_in_owner = true
@@ -355,7 +270,7 @@ custom_minimum_size = Vector2(0, 108)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-color = Color(0.639216, 0.745098, 0.54902, 1)
+color = Color(0.180392, 0.419608, 0.270588, 1)
 
 [node name="PriceBar12" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
 unique_name_in_owner = true
@@ -363,105 +278,93 @@ custom_minimum_size = Vector2(0, 123)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-color = Color(0.639216, 0.745098, 0.54902, 1)
+color = Color(0.180392, 0.419608, 0.270588, 1)
 
 [node name="PriceLabels" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="L1" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 9
 text = "U1"
 horizontal_alignment = 1
 
 [node name="L2" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 9
 text = "U2"
 horizontal_alignment = 1
 
 [node name="L3" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 9
 text = "U3"
 horizontal_alignment = 1
 
 [node name="L4" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 9
 text = "U4"
 horizontal_alignment = 1
 
 [node name="L5" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 9
 text = "U5"
 horizontal_alignment = 1
 
 [node name="L6" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 9
 text = "U6"
 horizontal_alignment = 1
 
 [node name="L7" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 9
 text = "U7"
 horizontal_alignment = 1
 
 [node name="L8" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 9
 text = "U8"
 horizontal_alignment = 1
 
 [node name="L9" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 9
 text = "U9"
 horizontal_alignment = 1
 
 [node name="L10" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 9
 text = "U10"
 horizontal_alignment = 1
 
 [node name="L11" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 9
 text = "U11"
 horizontal_alignment = 1
 
 [node name="L12" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 9
 text = "U12"
 horizontal_alignment = 1
 
@@ -474,17 +377,14 @@ layout_mode = 2
 theme_override_constants/separation = 2
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumLoBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "LAV (12U)"
 horizontal_alignment = 1
 
 [node name="SumLo" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumLoBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 16
 text = "--"
 horizontal_alignment = 1
 
@@ -493,17 +393,14 @@ layout_mode = 2
 theme_override_constants/separation = 2
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumAvgBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "SNITT (12U)"
 horizontal_alignment = 1
 
 [node name="SumAvg" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumAvgBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 16
 text = "--"
 horizontal_alignment = 1
 
@@ -512,17 +409,14 @@ layout_mode = 2
 theme_override_constants/separation = 2
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumHiBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "HØY (12U)"
 horizontal_alignment = 1
 
 [node name="SumHi" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumHiBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 16
 text = "--"
 horizontal_alignment = 1
 
@@ -531,38 +425,33 @@ layout_mode = 2
 theme_override_constants/separation = 2
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumTrendBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "TREND"
 horizontal_alignment = 1
 
 [node name="SumTrend" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumTrendBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 16
 text = "--"
 horizontal_alignment = 1
 
 [node name="BuyersCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow"]
+theme_type_variation = &"Card"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="BuyersTitle" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "🏢 Kjøpere"
 
 [node name="BuyersBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer"]
@@ -580,23 +469,21 @@ layout_mode = 2
 theme_override_constants/separation = 16
 
 [node name="ContractsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow"]
+theme_type_variation = &"Card"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="ContractsTitle" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "📋 Kontrakter"
 
 [node name="ContractsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer"]
@@ -610,23 +497,21 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
 [node name="RegionsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow"]
+theme_type_variation = &"Card"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/RegionsCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow/RegionsCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="RegionsTitle" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/RegionsCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "🌍 Markedsregioner"
 
 [node name="RegionsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/RegionsCard/Outer"]

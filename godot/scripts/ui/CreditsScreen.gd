@@ -1,256 +1,188 @@
 extends Control
 
-## CreditsScreen — auto-scrolling credits for Lakskongen.
-## Builds the credits list procedurally from CREDITS_DATA.
-## Scroll speed is constant; player can also drag/scroll manually.
-## Close button or Escape returns to the previous screen.
+## CreditsScreen — Medvirkende (roadmap U1-06, D6/D24).
 ##
-## Expected node layout:
-##   CreditsScreen (Control, full-screen)
-##   ├─ BgRect     (ColorRect, full-screen dark ocean)
-##   ├─ TopFade    (ColorRect, gradient fade at top, full-width, 120 px tall)
-##   ├─ BottomFade (ColorRect, gradient fade at bottom)
-##   ├─ ScrollContainer (full-screen, clip_contents = true)
-##   │  └─ CreditsContainer (VBoxContainer, anchored top-centre)
-##   └─ CloseButton (Button, anchored top-right) "✕"
+## Reachable from the main menu and the pause menu. The page is built from
+## res://data/credits.json: who made the game, then every third-party work the
+## game ships with its source and licence — the list THIRD_PARTY.md keeps
+## (tests/test_credits.py holds the two together; CC BY works carry their
+## attribution notice). The page drifts upward after a moment; the wheel, a
+## drag or a key takes over and it drifts on again after a pause. × or Esc
+## closes it (close_requested).
 
 signal close_requested
 
-# ── Credits data ──────────────────────────────────────────────────────────────
+const CREDITS_PATH := "res://data/credits.json"
+const DRIFT_PX_PER_S := 36.0
+const DRIFT_DELAY_S := 1.4
+## After the player scrolls, the page waits this long before drifting on.
+const DRIFT_RESUME_S := 4.0
+const SECTION_GAP := 48.0
 
-const CREDITS_DATA: Array[Dictionary] = [
-	{"type": "game_title",  "text": "🐟 LAKSKONGEN"},
-	{"type": "subtitle",    "text": "Norsk Lakseoppdrett Simulator"},
-	{"type": "spacer"},
-	{"type": "section",     "text": "Produksjon"},
-	{"type": "role",        "text": "Produsent"},
-	{"type": "name",        "text": "Fredrik Hansen"},
-	{"type": "spacer_small"},
-	{"type": "role",        "text": "Tech Lead"},
-	{"type": "name",        "text": "Aksel Berg"},
-	{"type": "spacer"},
-	{"type": "section",     "text": "Design & Kunst"},
-	{"type": "role",        "text": "Art Director"},
-	{"type": "name",        "text": "Camilla Johansen"},
-	{"type": "spacer_small"},
-	{"type": "role",        "text": "UI/UX Design"},
-	{"type": "name",        "text": "Ingrid Lunde"},
-	{"type": "spacer"},
-	{"type": "section",     "text": "Programmering"},
-	{"type": "role",        "text": "Simuleringsmotor"},
-	{"type": "name",        "text": "Jonas Karlsen"},
-	{"type": "spacer_small"},
-	{"type": "role",        "text": "Gameplay-programmering"},
-	{"type": "name",        "text": "Kaja Nilsen"},
-	{"type": "spacer_small"},
-	{"type": "role",        "text": "Frontend / UI"},
-	{"type": "name",        "text": "Erik Dahl"},
-	{"type": "spacer"},
-	{"type": "section",     "text": "Lyd & Musikk"},
-	{"type": "role",        "text": "Lyddesign & Komponist"},
-	{"type": "name",        "text": "Mina Sørensen"},
-	{"type": "spacer"},
-	{"type": "section",     "text": "QA & Testing"},
-	{"type": "role",        "text": "Spilltesting & QA"},
-	{"type": "name",        "text": "Lars Pettersen"},
-	{"type": "spacer"},
-	{"type": "section",     "text": "Takk til"},
-	{"type": "body",        "text": "Norsk lakseoppdrettsnæring\nog alle som støttet prosjektet."},
-	{"type": "spacer"},
-	{"type": "section",     "text": "Teknologi"},
-	{"type": "role",        "text": "Spillmotor"},
-	{"type": "name",        "text": "Godot Engine 4"},
-	{"type": "spacer_small"},
-	{"type": "role",        "text": "AI / Simuleringsplattform"},
-	{"type": "name",        "text": "OpenClaw"},
-	{"type": "spacer_small"},
-	{"type": "role",        "text": "Scripting"},
-	{"type": "name",        "text": "GDScript + C#"},
-	{"type": "spacer"},
-	{"type": "divider"},
-	{"type": "spacer"},
-	{"type": "body",        "text": "Lakskongen er laget med\nkjærlighet til norsk natur\nog havbruksnæringen."},
-	{"type": "spacer"},
-	{"type": "body",        "text": "© 2026 Lakskongen-teamet\nAlle rettigheter forbeholdt."},
-	{"type": "spacer"},
-	{"type": "spacer"},
-]
+@onready var scroll_container: ScrollContainer = %ScrollContainer
+@onready var credits_container: VBoxContainer = %CreditsContainer
+@onready var close_button: Button = %CloseButton
 
-# ── Style constants ───────────────────────────────────────────────────────────
-
-const COLOR_BG          := Color("#ECEFF4")
-const COLOR_GAME_TITLE  := Color("#2E3440")
-const COLOR_SUBTITLE    := Color("#A3D1DE")
-const COLOR_SECTION     := Color("#88C0D0")
-const COLOR_ROLE        := Color("#4C566A")
-const COLOR_NAME        := Color(1.00, 1.00, 1.00)
-const COLOR_BODY        := Color("#4C566A")
-
-const FONT_SIZE_GAME_TITLE := 52
-const FONT_SIZE_SUBTITLE   := 24
-const FONT_SIZE_SECTION    := 28
-const FONT_SIZE_ROLE       := 18
-const FONT_SIZE_NAME       := 22
-const FONT_SIZE_BODY       := 18
-
-const SCROLL_SPEED := 55.0      # pixels per second
-const SPACER_HEIGHT       := 48
-const SPACER_SMALL_HEIGHT := 20
-
-# ── Node references ────────────────────────────────────────────────────────────
-
-@onready var bg_rect:          ColorRect      = $BgRect
-@onready var scroll_container: ScrollContainer = $ScrollContainer
-@onready var credits_container: VBoxContainer = $ScrollContainer/CreditsContainer
-@onready var close_button:     Button         = $CloseButton
-
-# ── State ──────────────────────────────────────────────────────────────────────
-
-var _scrolling: bool     = true
-var _total_height: float = 0.0
-
-# ── Lifecycle ──────────────────────────────────────────────────────────────────
+var _wait: float = DRIFT_DELAY_S
+var _drift: float = 0.0
+var _entries: Array[Dictionary] = []
 
 func _ready() -> void:
-	bg_rect.color = COLOR_BG
+	close_button.tooltip_text = tr("UI_CREDITS_CLOSE_TIP")
+	close_button.pressed.connect(close)
+	scroll_container.gui_input.connect(_on_scroll_input)
+	_build()
+	visibility_changed.connect(_on_visibility_changed)
+	_on_visibility_changed()
 
-	_style_close_button()
-	close_button.pressed.connect(_on_close_pressed)
-
-	_build_credits()
-
-	# Start scroll from bottom of viewport (credits enter from the bottom)
-	await get_tree().process_frame
-	_total_height = credits_container.size.y
-	scroll_container.scroll_vertical = int(_total_height + get_viewport_rect().size.y)
-
-	# Fade in
-	modulate = Color(1, 1, 1, 0)
-	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 1.0, 0.6)
-
+func _on_visibility_changed() -> void:
+	if not visible:
+		return
+	_wait = DRIFT_DELAY_S
+	_drift = 0.0
+	scroll_container.scroll_vertical = 0
+	modulate.a = 0.0
+	create_tween().tween_property(self, "modulate:a", 1.0, 0.3)
+	close_button.grab_focus.call_deferred()
 
 func _process(delta: float) -> void:
-	if not _scrolling:
+	if not visible:
 		return
-	scroll_container.scroll_vertical -= int(SCROLL_SPEED * delta)
-	# Stop once credits have fully scrolled off the top
-	if scroll_container.scroll_vertical <= -int(get_viewport_rect().size.y * 0.25):
-		_scrolling = false
-
+	if _wait > 0.0:
+		_wait -= delta
+		return
+	_drift += DRIFT_PX_PER_S * delta
+	var step := int(_drift)
+	if step > 0:
+		_drift -= step
+		scroll_container.scroll_vertical += step
 
 func _input(event: InputEvent) -> void:
-	if visible and event.is_action_pressed("ui_cancel"):
-		_on_close_pressed()
+	if not visible:
+		return
+	if event.is_action_pressed("ui_cancel"):
+		close()
 		get_viewport().set_input_as_handled()
-	# Allow manual scroll to pause auto-scroll temporarily
-	if event is InputEventMouseButton or event is InputEventScreenDrag:
-		_scrolling = false
-		# Resume after 2 seconds of no input
-		get_tree().create_timer(2.0).timeout.connect(func(): _scrolling = true)
+	elif event is InputEventKey and event.pressed:
+		_wait = DRIFT_RESUME_S
 
-# ── Credits builder ───────────────────────────────────────────────────────────
+func _on_scroll_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton or event is InputEventScreenDrag or event is InputEventPanGesture:
+		_wait = DRIFT_RESUME_S
 
-func _build_credits() -> void:
-	for entry in CREDITS_DATA:
-		var node := _make_entry(entry)
-		if node:
-			credits_container.add_child(node)
-
-
-func _make_entry(entry: Dictionary) -> Control:
-	var kind: String = entry.get("type", "")
-
-	match kind:
-		"spacer":
-			return _make_spacer(SPACER_HEIGHT)
-
-		"spacer_small":
-			return _make_spacer(SPACER_SMALL_HEIGHT)
-
-		"divider":
-			var line := HSeparator.new()
-			line.custom_minimum_size = Vector2(400, 2)
-			line.add_theme_color_override("color", COLOR_SECTION)
-			return line
-
-		"game_title":
-			return _make_label(entry.get("text", ""), FONT_SIZE_GAME_TITLE, COLOR_GAME_TITLE, true)
-
-		"subtitle":
-			return _make_label(entry.get("text", ""), FONT_SIZE_SUBTITLE, COLOR_SUBTITLE, false)
-
-		"section":
-			var vbox := VBoxContainer.new()
-			var lbl := _make_label(entry.get("text", "").to_upper(), FONT_SIZE_SECTION, COLOR_SECTION, false)
-			lbl.add_theme_color_override("font_color", COLOR_SECTION)
-			var sep := HSeparator.new()
-			sep.custom_minimum_size = Vector2(300, 1)
-			sep.add_theme_color_override("color", COLOR_SECTION * Color(1, 1, 1, 0.4))
-			vbox.add_child(lbl)
-			vbox.add_child(sep)
-			return vbox
-
-		"role":
-			return _make_label(entry.get("text", ""), FONT_SIZE_ROLE, COLOR_ROLE, false)
-
-		"name":
-			return _make_label(entry.get("text", ""), FONT_SIZE_NAME, COLOR_NAME, false)
-
-		"body":
-			return _make_label(entry.get("text", ""), FONT_SIZE_BODY, COLOR_BODY, false)
-
-		_:
-			return null
-
-
-func _make_label(text: String, font_size: int, color: Color, bold: bool) -> Label:
-	var lbl := Label.new()
-	lbl.text = text
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	lbl.custom_minimum_size = Vector2(600, 0)
-	lbl.add_theme_font_size_override("font_size", font_size)
-	lbl.add_theme_color_override("font_color", color)
-	if bold:
-		# Bold via outline to avoid needing a separate font resource
-		lbl.add_theme_constant_override("outline_size", 2)
-		lbl.add_theme_color_override("font_outline_color", color * Color("#7B8794"))
-	return lbl
-
-
-func _make_spacer(height: int) -> Control:
-	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(0, height)
-	return spacer
-
-# ── Visual helpers ─────────────────────────────────────────────────────────────
-
-func _style_close_button() -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color                     = Color(0.92, 0.94, 0.96, 0.90)
-	style.corner_radius_top_left       = 6
-	style.corner_radius_top_right      = 6
-	style.corner_radius_bottom_left    = 6
-	style.corner_radius_bottom_right   = 6
-	style.content_margin_left          = 14
-	style.content_margin_right         = 14
-	style.content_margin_top           = 8
-	style.content_margin_bottom        = 8
-	close_button.add_theme_stylebox_override("normal", style)
-	var hover_style := style.duplicate() as StyleBoxFlat
-	hover_style.bg_color = Color("#5E81AC")
-	close_button.add_theme_stylebox_override("hover", hover_style)
-	close_button.add_theme_color_override("font_color", Color("#2E3440"))
-	close_button.add_theme_font_size_override("font_size", 18)
-
-# ── Close ─────────────────────────────────────────────────────────────────────
-
-func _on_close_pressed() -> void:
-	_scrolling = false
+## Close (× or Esc): fade out, hide, and tell the menu underneath.
+func close() -> void:
+	if not visible:
+		return
 	var tween := create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, 0.35)
+	tween.tween_property(self, "modulate:a", 0.0, 0.2)
 	tween.tween_callback(func():
 		hide()
 		close_requested.emit()
 	)
+
+## The third-party works listed on the page (credits.json entries, in order).
+func get_listed_entries() -> Array[Dictionary]:
+	return _entries.duplicate(true)
+
+## The name a work is shown under.
+func display_name(entry: Dictionary) -> String:
+	var key := str(entry.get("display_key", ""))
+	return tr(key) if not key.is_empty() else str(entry.get("name", ""))
+
+# ── Page ───────────────────────────────────────────────────────────────────────
+
+func _build() -> void:
+	var data := _load_data()
+	_add_space(96.0)
+	var title := _label(tr("UI_MAINMENU_TITLE"), &"DisplayAccent")
+	credits_container.add_child(title)
+	credits_container.add_child(_label(tr("UI_MAINMENU_SUBTITLE"), &"HeadingMuted"))
+
+	_section("UI_CREDITS_MADE_BY")
+	for member: Dictionary in data.get("team", []):
+		credits_container.add_child(_label(tr(str(member.get("role_key", ""))), &"BodySmallMuted"))
+		credits_container.add_child(_label(str(member.get("name", "")), &"Heading"))
+
+	_section("UI_CREDITS_THIRD_PARTY")
+	var intro := _label(tr("UI_CREDITS_THIRD_PARTY_INTRO"), &"BodySmallMuted")
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	credits_container.add_child(intro)
+	_entries.clear()
+	for entry: Dictionary in data.get("third_party", []):
+		_entries.append(entry)
+		credits_container.add_child(_work_row(entry))
+
+	_section("UI_CREDITS_THANKS")
+	var thanks := _label(tr("UI_CREDITS_THANKS_BODY"), &"Body")
+	thanks.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	credits_container.add_child(thanks)
+	_add_space(SECTION_GAP)
+	credits_container.add_child(_label(tr("UI_CREDITS_COPYRIGHT"), &"SmallMuted"))
+	# Room to drift the last line up to the middle of the screen.
+	_add_space(get_viewport_rect().size.y * 0.5)
+
+## One third-party work: what it is for, its name, author and source, the
+## licence as a tag, and an attribution notice where the licence asks for one.
+func _work_row(entry: Dictionary) -> Control:
+	var row := PanelContainer.new()
+	row.name = "Work"
+	row.theme_type_variation = &"Tile"
+	row.set_meta("credit_name", str(entry.get("name", "")))
+	row.set_meta("credit_licence", str(entry.get("licence", "")))
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 16)
+	row.add_child(line)
+	var text := VBoxContainer.new()
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text.add_theme_constant_override("separation", 2)
+	line.add_child(text)
+	var use := _label(tr(str(entry.get("use_key", ""))), &"OverlineMuted", HORIZONTAL_ALIGNMENT_LEFT)
+	text.add_child(use)
+	var name_label := _label(display_name(entry), &"Subheading", HORIZONTAL_ALIGNMENT_LEFT)
+	name_label.name = "WorkName"
+	text.add_child(name_label)
+	var by := "%s · %s" % [str(entry.get("author", "")), str(entry.get("source", ""))]
+	text.add_child(_label(by, &"BodySmallMuted", HORIZONTAL_ALIGNMENT_LEFT))
+	var notice_key := str(entry.get("notice_key", ""))
+	if not notice_key.is_empty():
+		var notice := _label(tr(notice_key), &"BodySmall", HORIZONTAL_ALIGNMENT_LEFT)
+		notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		text.add_child(notice)
+	var licence_key := str(entry.get("licence_key", ""))
+	var licence := _label(tr(licence_key) if not licence_key.is_empty() else str(entry.get("licence", "")),
+		&"TagInfo", HORIZONTAL_ALIGNMENT_CENTER)
+	licence.name = "Licence"
+	licence.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	line.add_child(licence)
+	return row
+
+func _section(title_key: String) -> void:
+	_add_space(SECTION_GAP)
+	credits_container.add_child(_label(tr(title_key), &"OverlineAccent"))
+	var rule := HSeparator.new()
+	credits_container.add_child(rule)
+
+func _label(text: String, variation: StringName, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_CENTER) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.theme_type_variation = variation
+	lbl.horizontal_alignment = align
+	return lbl
+
+func _add_space(height: float) -> void:
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(0, height)
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	credits_container.add_child(spacer)
+
+func _load_data() -> Dictionary:
+	var file := FileAccess.open(CREDITS_PATH, FileAccess.READ)
+	if file == null:
+		push_error("CreditsScreen: cannot read %s" % CREDITS_PATH)
+		return {}
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	if not (parsed is Dictionary):
+		push_error("CreditsScreen: %s is not a JSON object" % CREDITS_PATH)
+		return {}
+	return parsed

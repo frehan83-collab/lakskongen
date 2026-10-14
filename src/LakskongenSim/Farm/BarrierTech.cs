@@ -100,7 +100,7 @@ namespace LakskongenSim.Farm
                     Notes: "Kontrollbaseline."),
                 [BarrierKind.Smoltscreen] = new(
                     Kind: BarrierKind.Smoltscreen,
-                    DisplayName: "Smoltscreen",
+                    DisplayName: "Permeabel lusebarriere",
                     LiceMeshUm: 150,
                     JellyMeshUm: 200,
                     CapexNok: 6_000_000m,
@@ -218,7 +218,7 @@ namespace LakskongenSim.Farm
         /// </summary>
         public static string EnvironmentalFlexibilityRationale(BarrierKind kind) =>
             kind == BarrierKind.Smoltscreen
-                ? "Smoltscreen er permeabel — vann passerer (full utskifting <3 min ved 0,7 m/s). "
+                ? "Lusebarrieren er permeabel — vann passerer (full utskifting <3 min ved 0,7 m/s). "
                     + "Miljøfleksibilitetsordningen krever «tett» anlegg, som regulatorer tolker som "
                     + "impermeabelt. Permeabel returliner kvalifiserer derfor ikke — ennå."
                 : "Ingen permeabel barriere installert.";

@@ -21,7 +21,7 @@ var unit_fmt: String = "%.1f":
 var line_color: Color = LakskongenTheme.ACCENT:
 	set(v): line_color = v; queue_redraw()
 ## Shown when the series has no drawable data.
-var empty_text: String = "Ingen data ennå":
+var empty_text: String = "UI_CHART_NO_DATA":
 	set(v): empty_text = v; queue_redraw()
 
 const PAD_LEFT := 8.0
@@ -29,7 +29,9 @@ const PAD_RIGHT := 8.0
 const PAD_TOP := 22.0
 const PAD_BOTTOM := 8.0
 const GRID_LINES := 4
-const VALUE_FONT_SIZE := 12
+const VALUE_FONT_SIZE := 13
+## Chart text follows the theme: the UI face and the 13 px floor.
+const TITLE_FONT_SIZE := 13
 
 func set_series(values: Array[float], ma: Array[float] = []) -> void:
 	series = values
@@ -72,10 +74,10 @@ func _draw() -> void:
 	if is_equal_approx(hi, lo):
 		hi = lo + 1.0
 	# Frame + light horizontal gridlines.
-	draw_rect(Rect2(PAD_LEFT, PAD_TOP, w, h), Color(LakskongenTheme.BORDER, 0.5), false, 1.0)
+	draw_rect(Rect2(PAD_LEFT, PAD_TOP, w, h), Color(_pal(&"hairline"), 0.9), false, 1.0)
 	for i in range(1, GRID_LINES):
 		var gy: float = PAD_TOP + h * (float(i) / float(GRID_LINES))
-		draw_line(Vector2(PAD_LEFT, gy), Vector2(PAD_LEFT + w, gy), Color(LakskongenTheme.BORDER, 0.4), 1.0)
+		draw_line(Vector2(PAD_LEFT, gy), Vector2(PAD_LEFT + w, gy), Color(_pal(&"hairline"), 0.55), 1.0)
 	var map := func(v: float, i: int) -> Vector2:
 		var span := float(maxi(1, series.size() - 1 + future.size()))
 		var x := PAD_LEFT + w * (float(i) / span)
@@ -84,7 +86,7 @@ func _draw() -> void:
 	# Threshold line
 	if threshold >= 0.0:
 		var ty: float = PAD_TOP + h * (1.0 - (threshold - lo) / (hi - lo))
-		draw_line(Vector2(PAD_LEFT, ty), Vector2(PAD_LEFT + w, ty), LakskongenTheme.DANGER, 1.0)
+		draw_line(Vector2(PAD_LEFT, ty), Vector2(PAD_LEFT + w, ty), _pal(&"crit"), 1.0)
 	# Moving average (dashed feel: shorter segments)
 	if moving_avg.size() == series.size():
 		var prev := Vector2.ZERO
@@ -116,7 +118,7 @@ func _draw() -> void:
 	if is_finite(last):
 		var lp: Vector2 = map.call(last, series.size() - 1)
 		draw_circle(lp, 3.0, line_color)
-		_draw_value_pill(unit_fmt % last, lp, w)
+		_draw_value_pill(SimFormatters.chart_value(last, unit_fmt), lp, w)
 	# PROJECTION: dashed continuation into the future (same scale).
 	if future.size() >= 2 and is_finite(last):
 		var prev2: Vector2 = map.call(last, series.size() - 1)
@@ -131,14 +133,14 @@ func _draw() -> void:
 func _draw_title() -> void:
 	if title.is_empty():
 		return
-	draw_string(ThemeDB.fallback_font, Vector2(PAD_LEFT, 14), title,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 13, LakskongenTheme.TEXT_PRIMARY)
+	draw_string(get_theme_default_font(), Vector2(PAD_LEFT, 14), title,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, TITLE_FONT_SIZE, _pal(&"text"))
 
 ## Last-value label drawn on a small pill for contrast against the plot.
 func _draw_value_pill(text: String, lp: Vector2, w: float) -> void:
 	if text.is_empty():
 		return
-	var font := ThemeDB.fallback_font
+	var font := get_theme_default_font()
 	var tw := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, VALUE_FONT_SIZE).x
 	var th := float(VALUE_FONT_SIZE) + 6.0
 	var pad := 4.0
@@ -148,11 +150,16 @@ func _draw_value_pill(text: String, lp: Vector2, w: float) -> void:
 	origin.x = clampf(origin.x, PAD_LEFT, maxf(PAD_LEFT, PAD_LEFT + w - (tw + pad * 2.0)))
 	origin.y = clampf(origin.y, 0.0, maxf(0.0, size.y - th))
 	var rect := Rect2(origin, Vector2(tw + pad * 2.0, th))
-	draw_rect(rect, Color(LakskongenTheme.SURFACE, 0.92), true)
-	draw_rect(rect, Color(LakskongenTheme.BORDER, 0.9), false, 1.0)
+	draw_rect(rect, Color(_pal(&"raised"), 0.95), true)
+	draw_rect(rect, _pal(&"hairline"), false, 1.0)
 	draw_string(font, Vector2(rect.position.x + pad, rect.position.y + float(VALUE_FONT_SIZE) + 1.0), text,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, VALUE_FONT_SIZE, LakskongenTheme.TEXT_PRIMARY)
+		HORIZONTAL_ALIGNMENT_LEFT, -1, VALUE_FONT_SIZE, _pal(&"text"))
 
 func _draw_empty(w: float) -> void:
-	draw_string(ThemeDB.fallback_font, Vector2(PAD_LEFT, PAD_TOP + 20), empty_text,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 12, LakskongenTheme.TEXT_MUTED)
+	draw_string(get_theme_default_font(), Vector2(PAD_LEFT, PAD_TOP + 20), tr(empty_text),
+		HORIZONTAL_ALIGNMENT_LEFT, -1, TITLE_FONT_SIZE, _pal(&"muted"))
+
+
+## A palette colour on the surface this chart is drawn on (Ink or Chart).
+func _pal(key: StringName) -> Color:
+	return get_theme_color(key, &"Palette")

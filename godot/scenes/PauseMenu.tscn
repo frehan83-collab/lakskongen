@@ -1,73 +1,220 @@
-[gd_scene load_steps=2 format=3 uid="uid://dm4k8n2p7r0v6"]
+[gd_scene load_steps=6 format=3 uid="uid://dm4k8n2p7r0v6"]
 
 [ext_resource type="Script" path="res://scripts/ui/PauseMenu.gd" id="1_pausemenu"]
+[ext_resource type="Shader" path="res://shaders/ui_frost.gdshader" id="2_frost"]
+[ext_resource type="PackedScene" uid="uid://dc5j8wp6nvlqx" path="res://scenes/ui/SettingsMenu.tscn" id="3_settings"]
+[ext_resource type="PackedScene" path="res://scenes/ui/SaveLoadMenu.tscn" id="4_saveload"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_frost"]
+shader = ExtResource("2_frost")
+shader_parameter/tint_amount = 0.74
+shader_parameter/vignette = 0.45
 
 [node name="PauseMenu" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-mouse_filter = 0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_pausemenu")
 
-[node name="Overlay" type="ColorRect" parent="."]
+[node name="Backdrop" type="ColorRect" parent="."]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_frost")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.0, 0.0, 0.0, 0.65)
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.043137, 0.164706, 0.227451, 0.92)
+
+[node name="Center" type="CenterContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 
-[node name="PanelContainer" type="PanelContainer" parent="."]
+[node name="Panel" type="PanelContainer" parent="Center"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+theme_type_variation = &"Dialog"
+
+[node name="Box" type="VBoxContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Overline" type="Label" parent="Center/Panel/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineMuted"
+text = "UI_PAUSE_OVERLINE"
+
+[node name="TitleLabel" type="Label" parent="Center/Panel/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Title"
+text = "UI_PAUSE_TITLE"
+
+[node name="ContextLabel" type="Label" parent="Center/Panel/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodySmallMuted"
+text = "–"
+text_overrun_behavior = 3
+
+[node name="TopSeparator" type="HSeparator" parent="Center/Panel/Box"]
+layout_mode = 2
+
+[node name="ResumeButton" type="Button" parent="Center/Panel/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"LargePrimaryButton"
+text = "UI_PAUSE_RESUME"
+
+[node name="SaveButton" type="Button" parent="Center/Panel/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"LargeButton"
+text = "UI_PAUSE_SAVE"
+
+[node name="LoadButton" type="Button" parent="Center/Panel/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"LargeButton"
+text = "UI_PAUSE_LOAD"
+
+[node name="SettingsButton" type="Button" parent="Center/Panel/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"LargeButton"
+text = "UI_BUTTON_SETTINGS"
+
+[node name="CreditsButton" type="Button" parent="Center/Panel/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"LargeButton"
+text = "UI_BUTTON_CREDITS"
+
+[node name="BottomSeparator" type="HSeparator" parent="Center/Panel/Box"]
+layout_mode = 2
+
+[node name="MainMenuButton" type="Button" parent="Center/Panel/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"LargeButton"
+text = "UI_PAUSE_MAIN_MENU"
+
+[node name="QuitButton" type="Button" parent="Center/Panel/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"LargeButton"
+text = "UI_PAUSE_QUIT"
+
+[node name="SettingsMenu" parent="." instance=ExtResource("3_settings")]
+unique_name_in_owner = true
+visible = false
 layout_mode = 1
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -240.0
-offset_right = 200.0
-offset_bottom = 240.0
+
+[node name="SaveLoadMenu" parent="." instance=ExtResource("4_saveload")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="SaveGuard" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer"]
-layout_mode = 2
-theme_override_constants/separation = 16
+[node name="GuardScrim" type="ColorRect" parent="SaveGuard"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.027451, 0.121569, 0.168627, 0.25)
 
-[node name="PausedLabel" type="Label" parent="PanelContainer/VBoxContainer"]
-layout_mode = 2
-text = "Pause"
-horizontal_alignment = 1
-theme_override_font_sizes/font_size = 48
+[node name="GuardCenter" type="CenterContainer" parent="SaveGuard"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
-[node name="Separator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
+[node name="GuardPanel" type="PanelContainer" parent="SaveGuard/GuardCenter"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
+theme_type_variation = &"Dialog"
 
-[node name="ResumeButton" type="Button" parent="PanelContainer/VBoxContainer"]
+[node name="GuardBox" type="VBoxContainer" parent="SaveGuard/GuardCenter/GuardPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="GuardTitle" type="Label" parent="SaveGuard/GuardCenter/GuardPanel/GuardBox"]
 unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(320, 52)
-text = "Fortsett spillet"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"Heading"
+text = "UI_GUARD_QUIT_TITLE"
 
-[node name="SaveButton" type="Button" parent="PanelContainer/VBoxContainer"]
+[node name="GuardBody" type="Label" parent="SaveGuard/GuardCenter/GuardPanel/GuardBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"BodySmallMuted"
+text = "–"
+autowrap_mode = 3
+
+[node name="GuardError" type="Label" parent="SaveGuard/GuardCenter/GuardPanel/GuardBox"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_type_variation = &"BodySmallCrit"
+text = "–"
+autowrap_mode = 3
+
+[node name="GuardButtons" type="HBoxContainer" parent="SaveGuard/GuardCenter/GuardPanel/GuardBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 2
+
+[node name="GuardCancel" type="Button" parent="SaveGuard/GuardCenter/GuardPanel/GuardBox/GuardButtons"]
 unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(320, 52)
-text = "Lagre spill"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"GhostButton"
+text = "UI_GUARD_CANCEL"
 
-[node name="SettingsButton" type="Button" parent="PanelContainer/VBoxContainer"]
+[node name="GuardDiscard" type="Button" parent="SaveGuard/GuardCenter/GuardPanel/GuardBox/GuardButtons"]
 unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(320, 52)
-text = "Innstillinger"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"SecondaryButton"
+text = "UI_GUARD_QUIT_DISCARD"
 
-[node name="QuitButton" type="Button" parent="PanelContainer/VBoxContainer"]
+[node name="GuardSave" type="Button" parent="SaveGuard/GuardCenter/GuardPanel/GuardBox/GuardButtons"]
 unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(320, 52)
-text = "Avslutt til meny"
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"PrimaryButton"
+text = "UI_GUARD_QUIT_SAVE"

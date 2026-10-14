@@ -49,8 +49,19 @@ public partial class GameBridge : Node
         ScenarioSystem? system = SimulationEngine.Scenario;
         system ??= new ScenarioSystem(SimulationEngine.State);
 
+        // A mod scenario the engine has registered (after a game started) is
+        // still a mod's: the picker tags it and shows its text as the mod's.
+        var builtIn = new ScenarioSystem(new GameState()).All.Keys.ToHashSet();
         foreach (var scenario in system.GetAll())
-            result.Add(ScenarioToDictionary(scenario));
+        {
+            var entry = ScenarioToDictionary(scenario);
+            if (!builtIn.Contains(scenario.Id))
+            {
+                entry["is_mod"] = true;
+                entry["subtitle"] = "Mod";
+            }
+            result.Add(entry);
+        }
 
         // Merge mod scenarios that are not already in the engine roster.
         if (_modLoader != null)
@@ -87,6 +98,11 @@ public partial class GameBridge : Node
         // a first start used to do this; a start during a running game layered
         // the scenario's sites onto the old game and ignored the QA seed.
         var probe = SimulationEngine.Scenario ?? new ScenarioSystem(SimulationEngine.State);
+        // F692: on a fresh launch the engine has no roster yet, so the probe
+        // holds the built-in scenarios only — the mod scenarios the picker
+        // lists (GetAvailableScenarios merges them) must be valid here too.
+        if (probe.GetScenario(scenarioId) == null && _modLoader != null)
+            probe.RegisterModScenarios(_modLoader.GetAllScenarios());
         var candidate = probe.GetScenario(scenarioId);
         if (candidate == null || !candidate.IsUnlocked)
         {
@@ -313,12 +329,19 @@ public partial class GameBridge : Node
     private static string DescribeWinCondition(ScenarioDefinition s) => s.WinCondition switch
     {
         WinCondition.Tutorial => "Fullfør opplæringen",
-        WinCondition.Profit => $"Nå {FormatCapital(RuleDecimal(s, "profit_target", 5_000_000m))} i overskudd",
+        // The win check compares equity with profit_target (ScenarioSystem),
+        // so the goal names equity: "overskudd" read as profit on top of the
+        // start (ressursrente showed 85 MNOK "overskudd" for a 25 MNOK goal).
+        WinCondition.Profit => $"Bygg egenkapitalen til {FormatMillions(RuleDecimal(s, "profit_target", 5_000_000m))}",
         WinCondition.Sustainability => $"Nå bærekraftsmål {RuleDecimal(s, "sustainability_target", 95m):0}",
         WinCondition.Survival => $"Overlev {(s.TimeLimitDays ?? 730)} dager med positiv saldo",
-        WinCondition.Competition => $"Nå {FormatCapital(RuleDecimal(s, "profit_target", 10_000_000m))} før konkurrentene",
+        WinCondition.Competition => $"Nå {FormatMillions(RuleDecimal(s, "profit_target", 10_000_000m))} i egenkapital før konkurrentene",
         _ => s.WinCondition.ToString()
     };
+
+    /// <summary>"85 MNOK", "2,5 MNOK" — nb-NO millions for goal text.</summary>
+    private static string FormatMillions(decimal amount)
+        => (amount / 1_000_000m).ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("nb-NO")) + " MNOK";
 
     private static decimal RuleDecimal(ScenarioDefinition s, string key, decimal fallback)
         => s.SpecialRules.TryGetValue(key, out var raw) &&
@@ -641,9 +664,9 @@ public partial class GameBridge : Node
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
             Day = SimulationEngine.State.Day,
-            Name = $"{Farm.BarrierTech.SpecFor(parsed).DisplayName} installert",
+            Name = $"{EnumText("ENUM_BARRIER", parsed)} installert",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"{Farm.BarrierTech.SpecFor(parsed).DisplayName} ved {siteId} ({cost:N0} NOK)",
+            Description = LakskongenSim.Core.SimText.Nb($"{EnumText("ENUM_BARRIER", parsed)} på {SiteLabel(siteId)} ({cost:N0} kr)"),
             BalanceChange = -cost
         });
 
@@ -673,7 +696,7 @@ public partial class GameBridge : Node
             Day = SimulationEngine.State.Day,
             Name = "Barriere rengjort",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"{Farm.BarrierTech.SpecFor(site.Barrier).DisplayName} rengjort ved {siteId}",
+            Description = $"{EnumText("ENUM_BARRIER", site.Barrier)} rengjort på {site.Label}",
             BalanceChange = -cost
         });
 
@@ -962,9 +985,9 @@ public partial class GameBridge : Node
             SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
             {
                 Day = SimulationEngine.State.Day,
-                Name = isBubble ? "Boblegardin installert" : "O2-diffuser installert",
+                Name = isBubble ? "Boblegardin installert" : "Oksygendiffusor installert",
                 Category = LakskongenSim.Events.EventCategory.Equipment,
-                Description = $"{(isBubble ? "Boblegardin" : "O2-diffuser")} ved {siteId}",
+                Description = $"{(isBubble ? "Boblegardin" : "Oksygendiffusor")} på {site.Label}",
                 BalanceChange = -cost
             });
         }
@@ -1063,9 +1086,9 @@ public partial class GameBridge : Node
             SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
             {
                 Day = SimulationEngine.State.Day,
-                Name = hubExists ? "Slam-hub tilkobling" : "Slam-hub byggd",
+                Name = hubExists ? "Koblet til slamanlegget" : "Slamanlegg bygget",
                 Category = LakskongenSim.Events.EventCategory.Equipment,
-                Description = $"{site.Id} koblet til sentral slam-hub ({cost:N0} NOK)",
+                Description = LakskongenSim.Core.SimText.Nb($"{site.Label} er koblet til det felles slamanlegget ({cost:N0} kr)"),
                 BalanceChange = -cost
             });
         }
@@ -1075,9 +1098,9 @@ public partial class GameBridge : Node
             SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
             {
                 Day = SimulationEngine.State.Day,
-                Name = "Slam-hub frakoblet",
+                Name = "Koblet fra slamanlegget",
                 Category = LakskongenSim.Events.EventCategory.Equipment,
-                Description = $"{site.Id} frakoblet fra sentral slam-hub",
+                Description = $"{site.Label} er koblet fra det felles slamanlegget",
                 BalanceChange = 0m
             });
         }
@@ -1116,9 +1139,9 @@ public partial class GameBridge : Node
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
             Day = SimulationEngine.State.Day,
-            Name = "Manuell slam-valorisering",
+            Name = "Slamgjenvinning",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"{site.Id}: {site.SludgeAccumulatedKgDs:F0} kg DS → biogas {biogasRev:N0} + gjødsel {fertRev:N0} - OPEX {opex:N0} = {netRev:+#,0;-#,0;0} NOK",
+            Description = LakskongenSim.Core.SimText.Nb($"{site.Label}: {site.SludgeAccumulatedKgDs:F0} kg tørrstoff → biogass {biogasRev:N0} + gjødsel {fertRev:N0} − drift {opex:N0} = {netRev:+#,0;-#,0;0} kr"),
             BalanceChange = netRev
         });
         SimulationEngine.State.TrimEventLog();
@@ -1236,7 +1259,7 @@ public partial class GameBridge : Node
             result.Add(new Godot.Collections.Dictionary
             {
                 ["id"] = site.Id,
-                ["name"] = site.Id,
+                ["name"] = site.Label,
                 ["zone"] = site.ZoneId,
                 ["current_biomass_kg"] = currentBio,
                 ["mab_tonnes"] = site.MABTonnes,

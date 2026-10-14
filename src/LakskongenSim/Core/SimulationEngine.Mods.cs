@@ -40,9 +40,17 @@ public partial class SimulationEngine
     /// </summary>
     public void LoadMods(string? modsDirectory)
     {
-        _modsDirectory = string.IsNullOrWhiteSpace(modsDirectory)
+        var directory = string.IsNullOrWhiteSpace(modsDirectory)
             ? null
             : Path.GetFullPath(modsDirectory);
+        // Another directory needs its own loader (the old one keeps reading
+        // the old folder).
+        if (directory != _modsDirectory)
+        {
+            _modLoader = null;
+            _modsAppliedForState = null;
+        }
+        _modsDirectory = directory;
 
         if (_modsDirectory == null)
             return;

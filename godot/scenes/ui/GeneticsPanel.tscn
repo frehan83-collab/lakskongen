@@ -1,8 +1,11 @@
-[gd_scene load_steps=2 format=3 uid="uid://genetics_panel_001"]
+[gd_scene load_steps=3 format=3 uid="uid://genetics_panel_001"]
 
 [ext_resource type="Script" path="res://scripts/ui/GeneticsPanel.gd" id="1"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="2_chart"]
 
 [node name="GeneticsPanel" type="PanelContainer"]
+theme = ExtResource("2_chart")
+theme_type_variation = &"Dialog"
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -22,10 +25,10 @@ layout_mode = 2
 theme_override_constants/separation = 12
 
 [node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+theme_type_variation = &"KpiSmall"
 layout_mode = 2
-text = "Genetics & Breeding"
+text = "Genetikk og avl"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 24
 
 [node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -41,25 +44,24 @@ offset_left = 8.0
 offset_top = 8.0
 offset_right = 400.0
 offset_bottom = 32.0
-text = "⚠ Inbreeding depression detected! Genetic diversity declining."
-theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "⚠ Innavlsdepresjon påvist — den genetiske variasjonen faller."
 
 [node name="InbreedingLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+theme_type_variation = &"BodySmall"
 unique_name_in_owner = true
 layout_mode = 2
-text = "Inbreeding: 0.0%"
-theme_override_font_sizes/font_size = 14
+text = "Innavl: –"
 
 [node name="InbreedingDetailLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-text = "Innavel: — · vekststraff: —"
-theme_override_font_sizes/font_size = 13
+text = "Innavl: – · vekststraff: –"
 
 [node name="GainHeader" type="Label" parent="MarginContainer/VBoxContainer"]
+theme_type_variation = &"BodySmall"
 layout_mode = 2
 text = "Forventet genetisk gevinst (per generasjon)"
-theme_override_font_sizes/font_size = 14
 
 [node name="GainList" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
@@ -67,9 +69,9 @@ layout_mode = 2
 theme_override_constants/separation = 2
 
 [node name="GeHeader" type="Label" parent="MarginContainer/VBoxContainer"]
+theme_type_variation = &"BodySmall"
 layout_mode = 2
-text = "Genetisk engineering (GE) — reguleringsstatus (Norge)"
-theme_override_font_sizes/font_size = 14
+text = "Genmodifisering (GM) — reguleringsstatus i Norge"
 
 [node name="GeList" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
@@ -84,32 +86,28 @@ layout_mode = 2
 theme_override_constants/separation = 12
 
 [node name="TraitNameLabel" type="Label" parent="MarginContainer/VBoxContainer/TraitHeader"]
+theme_type_variation = &"BodySmallMuted"
 layout_mode = 2
 custom_minimum_size = Vector2(150, 0)
-text = "Trait"
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+text = "Egenskap"
 
 [node name="HeritabilityLabel" type="Label" parent="MarginContainer/VBoxContainer/TraitHeader"]
+theme_type_variation = &"BodySmallMuted"
 layout_mode = 2
 custom_minimum_size = Vector2(80, 0)
-text = "Heritability"
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+text = "Arvbarhet"
 
 [node name="BreedingValueLabel" type="Label" parent="MarginContainer/VBoxContainer/TraitHeader"]
+theme_type_variation = &"BodySmallMuted"
 layout_mode = 2
 custom_minimum_size = Vector2(80, 0)
-text = "Breed Value"
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+text = "Avlsverdi"
 
 [node name="CurrentValueLabel" type="Label" parent="MarginContainer/VBoxContainer/TraitHeader"]
+theme_type_variation = &"BodySmallMuted"
 layout_mode = 2
 custom_minimum_size = Vector2(80, 0)
-text = "Current"
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+text = "Nå"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -128,5 +126,5 @@ layout_mode = 2
 [node name="BreedButton" type="Button" parent="MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Select Broodstock (Coming Soon)"
+text = "Velg stamfisk"
 disabled = true

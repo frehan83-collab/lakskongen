@@ -1,35 +1,16 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/RASPanel.gd" id="1_ras"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.898039, 0.913725, 0.941176, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
-bg_color = Color(1, 1, 1, 1)
-border_width_bottom = 1
-border_color = Color(0.898039, 0.913725, 0.941176, 1)
-content_margin_left = 20.0
-content_margin_top = 14.0
-content_margin_right = 20.0
-content_margin_bottom = 14.0
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
 [node name="RASPanel" type="PanelContainer"]
+theme = ExtResource("theme_chart")
+theme_type_variation = &"Card"
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 script = ExtResource("1_ras")
 
 [node name="Margin" type="MarginContainer" parent="."]
@@ -50,29 +31,27 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
 [node name="RasTitle" type="Label" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "RAS-anlegg Oversikt"
 
 [node name="FacilityCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/FacilityCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/FacilityCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="FacilityHeader" type="Label" parent="Margin/MainScroll/RootVBox/FacilityCard/Outer/Header"]
+theme_type_variation = &"BodyInfo"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.533333, 0.752941, 0.815686, 1)
-theme_override_font_sizes/font_size = 15
 text = "Fasiliteter"
 
 [node name="FacilityBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/FacilityCard/Outer"]
@@ -87,8 +66,6 @@ theme_override_constants/separation = 8
 [node name="WaterChemistryLabel" type="Label" parent="Margin/MainScroll/RootVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "Vannkjemi: Optimal"
 
 [node name="ButtonRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
@@ -99,12 +76,10 @@ theme_override_constants/separation = 8
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 15
 text = "Bygg Ny RAS"
 
 [node name="BtnMaintenance" type="Button" parent="Margin/MainScroll/RootVBox/ButtonRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 15
 text = "Vedlikehold"

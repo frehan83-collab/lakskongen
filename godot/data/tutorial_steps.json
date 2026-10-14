@@ -3,7 +3,7 @@
     "id": "welcome",
     "stepNumber": 1,
     "title": "Velkommen til Lakskongen!",
-    "description": "Du har overtatt et lite lakseoppdrett på norskekysten. Målet er å bygge et lønnsomt og bærekraftig oppdrettsanlegg — fra smolt til slakteklar laks. Denne tutorialen tar deg gjennom de første 30 minuttene av bedriften.",
+    "description": "Du har overtatt et lite lakseoppdrett på norskekysten. Målet er å bygge et lønnsomt og bærekraftig oppdrettsanlegg — fra smolt til slakteklar laks. Denne opplæringen tar deg gjennom de første 30 minuttene av bedriften.",
     "hint": "Hold øye med nøkkeltallene i dashbordet: kontanter (NOK), antall fisk, lakselus per fisk og bærekraft.",
     "highlightTarget": "dashboard",
     "completionCondition": "game_started"
@@ -161,7 +161,7 @@
     "id": "free-play",
     "stepNumber": 18,
     "title": "Tutorial fullført — fri spilling!",
-    "description": "Gratulerer, oppdrettskonge! Du har fullført Lakskongen-tutorialen og forstår hele verdikjeden: Lisens → Lokalitet → Smolt → Fôr → Helse → Avlusing → Høsting → Salg.\n\nNå venter hele spillet: utvid lisensporteføljen, oppnå ASC- og økologisk sertifisering, naviger reguleringspolitikken og bygg integrerte foredlingsanlegg. Lykke til — målet er 10 000 tonn årlig produksjon med Sustainability Leader-sertifisering.",
+    "description": "Gratulerer, oppdrettskonge! Du har fullført Lakskongen-opplæringen og forstår hele verdikjeden: Lisens → Lokalitet → Smolt → Fôr → Helse → Avlusing → Høsting → Salg.\n\nNå venter hele spillet: utvid lisensporteføljen, oppnå ASC- og økologisk sertifisering, naviger reguleringspolitikken og bygg integrerte foredlingsanlegg. Lykke til — målet er 10 000 tonn årlig produksjon med sertifisering som bærekraftsleder.",
     "hint": "Utforsk alle paneler fritt. Bygg ditt laksimperium!",
     "highlightTarget": "",
     "completionCondition": "tutorial_complete"

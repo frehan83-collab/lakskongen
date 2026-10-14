@@ -4,60 +4,6 @@
 [ext_resource type="PackedScene" uid="uid://dc5j8wp6nvlqx" path="res://scenes/ui/SettingsMenu.tscn" id="2_settings"]
 [ext_resource type="PackedScene" path="res://scenes/ui/SaveLoadMenu.tscn" id="3_saveload"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_primary_normal"]
-content_margin_left = 12.0
-content_margin_top = 12.0
-content_margin_right = 12.0
-content_margin_bottom = 12.0
-bg_color = Color(0.0392157, 0.301961, 0.407843, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_primary_hover"]
-content_margin_left = 12.0
-content_margin_top = 12.0
-content_margin_right = 12.0
-content_margin_bottom = 12.0
-bg_color = Color(0.0509804, 0.372549, 0.501961, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_secondary_normal"]
-content_margin_left = 12.0
-content_margin_top = 12.0
-content_margin_right = 12.0
-content_margin_bottom = 12.0
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.847059, 0.870588, 0.913725, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_secondary_hover"]
-content_margin_left = 12.0
-content_margin_top = 12.0
-content_margin_right = 12.0
-content_margin_bottom = 12.0
-bg_color = Color(0.972549, 0.976471, 0.984314, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.0392157, 0.301961, 0.407843, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
 [node name="MainMenu" type="Control" unique_id=195540674]
 layout_mode = 3
 anchors_preset = 15
@@ -76,7 +22,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.92549, 0.937255, 0.956863, 1)
+color = Color(0.043137, 0.164706, 0.227451, 1)
 
 [node name="WaveEffect" type="ColorRect" parent="." unique_id=844958962]
 unique_name_in_owner = true
@@ -89,7 +35,7 @@ offset_top = -200.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-color = Color(0.533333, 0.752941, 0.815686, 0.05)
+color = Color(0.027451, 0.121569, 0.168627, 0.05)
 
 [node name="Center" type="CenterContainer" parent="." unique_id=1118442127]
 unique_name_in_owner = true
@@ -111,26 +57,24 @@ theme_override_constants/separation = 12
 alignment = 1
 
 [node name="FishIcon" type="Label" parent="Center/MenuVBox" unique_id=1558407112]
+theme_type_variation = &"Display"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 48
 text = "🐟"
 horizontal_alignment = 1
 
 [node name="TitleLabel" type="Label" parent="Center/MenuVBox" unique_id=769588498]
+theme_type_variation = &"Display"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.0392157, 0.301961, 0.407843, 1)
-theme_override_font_sizes/font_size = 56
 text = "LAKSKONGEN"
 horizontal_alignment = 1
 
 [node name="SubtitleLabel" type="Label" parent="Center/MenuVBox" unique_id=1351872890]
+theme_type_variation = &"HeadingMuted"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 20
 text = "Norsk Lakseoppdrett Simulator"
 horizontal_alignment = 1
 
@@ -138,55 +82,65 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 
+[node name="BtnContinue" type="Button" parent="Center/MenuVBox"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(320, 52)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_type_variation = &"LargePrimaryButton"
+text = "UI_BUTTON_CONTINUE"
+
+[node name="ContinueCaption" type="Label" parent="Center/MenuVBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+text = "–"
+horizontal_alignment = 1
+
 [node name="BtnNewGame" type="Button" parent="Center/MenuVBox" unique_id=1203839895]
+theme_type_variation = &"LargePrimaryButton"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(320, 52)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 16
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_primary_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_btn_primary_hover")
 text = "🐟  Nytt Spill"
 
 [node name="BtnLoad" type="Button" parent="Center/MenuVBox" unique_id=634776068]
+theme_type_variation = &"LargeButton"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(320, 52)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_colors/font_hover_color = Color(0.0392157, 0.301961, 0.407843, 1)
-theme_override_font_sizes/font_size = 16
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_secondary_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_btn_secondary_hover")
 text = "💾  Last Spill"
 
 [node name="BtnSettings" type="Button" parent="Center/MenuVBox" unique_id=1399585766]
+theme_type_variation = &"LargeButton"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(320, 52)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_colors/font_hover_color = Color(0.0392157, 0.301961, 0.407843, 1)
-theme_override_font_sizes/font_size = 16
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_secondary_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_btn_secondary_hover")
 text = "⚙️  Innstillinger"
 
-[node name="BtnQuit" type="Button" parent="Center/MenuVBox" unique_id=446962358]
+[node name="BtnCredits" type="Button" parent="Center/MenuVBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(320, 52)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_colors/font_hover_color = Color(0.0392157, 0.301961, 0.407843, 1)
-theme_override_font_sizes/font_size = 16
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_secondary_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_btn_secondary_hover")
+theme_type_variation = &"LargeButton"
+text = "UI_BUTTON_CREDITS"
+
+[node name="BtnQuit" type="Button" parent="Center/MenuVBox" unique_id=446962358]
+theme_type_variation = &"LargeButton"
+unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 52)
+layout_mode = 2
+size_flags_horizontal = 4
 text = "🚪  Avslutt"
 
 [node name="VersionLabel" type="Label" parent="." unique_id=1565958237]
+theme_type_variation = &"SmallMuted"
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 3
@@ -200,9 +154,7 @@ offset_right = -20.0
 offset_bottom = -15.0
 grow_horizontal = 0
 grow_vertical = 0
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 12
-text = "v0.2.0 Alpha — Nordic Minimalist"
+text = "v0.2.0 Alpha"
 horizontal_alignment = 2
 
 [node name="SettingsMenu" parent="." unique_id=2006515767 instance=ExtResource("2_settings")]

@@ -77,6 +77,15 @@ var sea_lice_per_fish: float:
 var fcr: float:
 	get(): return _state.fcr
 	set(v): _state.fcr = v
+## FCR goal and failing ceiling from CalibrationRegistry (read-only).
+var fcr_target: float:
+	get(): return _state.fcr_target
+var fcr_poor: float:
+	get(): return _state.fcr_poor
+var days_since_stocking: int:
+	get(): return _state.days_since_stocking
+var company_name: String:
+	get(): return _state.company_name
 var appetite: float:
 	get(): return _state.appetite
 	set(v): _state.appetite = v
@@ -305,19 +314,30 @@ func _on_tutorial_step_completed(step_number: int, title: String) -> void: _stat
 func _on_audio_alert_triggered(alert_key: String) -> void: _state._on_audio_alert_triggered(alert_key)
 func _on_achievement_unlocked(id: String, achievement_name: String, description: String, medal: String, tier: String) -> void: _state._on_achievement_unlocked(id, achievement_name, description, medal, tier)
 func _on_weather_event(event_type: String, severity: float, description: String) -> void:
-	_state._push_alert("critical" if severity >= 0.8 else "warning", "Vær: %s" % description)
+	_state._push_alert("critical" if severity >= 0.8 else "warning", tr("ALERT_WEATHER") % description, "weather")
 func _on_disease_outbreak(disease_type: String, site_id: String, severity: float, treatment_cost: float) -> void:
 	if disease_type == "Escape":
-		_state._push_alert("critical", "RØMMING @ %s — bot %s, reparer nøter nå" % [site_id, Formatters.format_nok(treatment_cost)])
+		_state._push_alert("critical", tr("ALERT_ESCAPE") % [_state.site_name(site_id), Formatters.format_nok(treatment_cost)],
+			"escape", site_id)
 	else:
-		_state._push_alert("critical" if severity >= 0.5 else "warning", "Sykdom (%s @ %s): behandling ca. %s" % [disease_type, site_id, Formatters.format_nok(treatment_cost)])
+		_state._push_alert("critical" if severity >= 0.5 else "warning", tr("ALERT_DISEASE") % [
+			SimLabels.disease(disease_type), _state.site_name(site_id), Formatters.format_nok(treatment_cost)],
+			"disease", site_id)
 
 # ── Internal passthroughs (preserved for compatibility) ─────────────────────
 
 func _refresh_state() -> void: _state._refresh_state()
 func _check_alerts() -> void: _state._rebuild_alerts()
-func _push_alert(level: String, message: String) -> void: _state._push_alert(level, message)
+func _push_alert(level: String, message: String, category: String = "event", site: String = "") -> void: _state._push_alert(level, message, category, site)
 func _season_name(day: int) -> String: return Formatters.season_name(day)
+
+# ── Display helpers (roadmap U1-03 / U1-08) ───────────────────────────────────
+
+## The name the player reads for a site id.
+func site_name(site_id: String) -> String: return _state.site_name(site_id)
+## False while the FCR says nothing about feeding (fresh smolts, no fish).
+func fcr_is_settled() -> bool: return _state.fcr_is_settled()
+func get_fcr_targets() -> Dictionary: return _proxies.get_fcr_targets()
 
 # ── Actions (delegated to SimActions) ─────────────────────────────────────────
 
@@ -330,6 +350,7 @@ func clear_qa_blooms() -> Dictionary: return _actions.clear_qa_blooms()
 func advance_day() -> void: _actions.advance_day()
 func advance_days(days: int) -> void: _actions.advance_days(days)
 func set_paused(paused: bool) -> void: _actions.set_paused(paused)
+func is_paused() -> bool: return _actions.is_paused()
 func set_time_speed(speed: float) -> void: _actions.set_time_speed(speed)
 func skip_tutorial() -> void: _actions.skip_tutorial()
 func get_game_state_json() -> String: return _actions.get_game_state_json()
@@ -461,6 +482,7 @@ func build_ras_facility(rname: String, scale: String) -> bool: return _proxies.b
 func ras_maintenance(facility_id: String) -> float: return _proxies.ras_maintenance(facility_id)
 func stock_ras_facility(facility_id: String, count: int, strain_id: String = "standard") -> Dictionary: return _proxies.stock_ras_facility(facility_id, count, strain_id)
 func harvest_ras_facility(facility_id: String) -> Dictionary: return _proxies.harvest_ras_facility(facility_id)
+func get_build_costs() -> Dictionary: return _proxies.get_build_costs()
 func stock_offshore_farm(farm_id: String, count: int, strain_id: String = "standard") -> Dictionary: return _proxies.stock_offshore_farm(farm_id, count, strain_id)
 func harvest_offshore_farm(farm_id: String) -> Dictionary: return _proxies.harvest_offshore_farm(farm_id)
 func get_offshore_farms() -> Array[Dictionary]: return _proxies.get_offshore_farms()

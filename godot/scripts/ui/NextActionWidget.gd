@@ -62,10 +62,10 @@ func _update_suggestion():
 	
 	# Color-code by urgency
 	if text.contains("⚠️"):
-		suggestion_label.add_theme_color_override("font_color", LakskongenTheme.WARNING)
+		LakskongenTheme.set_text_color(suggestion_label, LakskongenTheme.WARNING)
 	elif text.contains("💰"):
-		suggestion_label.add_theme_color_override("font_color", LakskongenTheme.DANGER)
+		LakskongenTheme.set_text_color(suggestion_label, LakskongenTheme.DANGER)
 	elif text.contains("🐟"):
-		suggestion_label.add_theme_color_override("font_color", LakskongenTheme.KELP_LIGHT)
+		LakskongenTheme.set_text_color(suggestion_label, LakskongenTheme.KELP_LIGHT)
 	else:
-		suggestion_label.add_theme_color_override("font_color", LakskongenTheme.TEXT)
+		LakskongenTheme.set_text_color(suggestion_label, LakskongenTheme.TEXT)

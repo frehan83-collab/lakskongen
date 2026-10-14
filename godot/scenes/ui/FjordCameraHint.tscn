@@ -1,28 +1,6 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/FjordCameraHint.gd" id="1_hint"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn"]
-bg_color = Color(0.0392157, 0.301961, 0.407843, 0.88)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-content_margin_left = 8.0
-content_margin_top = 8.0
-content_margin_right = 8.0
-content_margin_bottom = 8.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_hover"]
-bg_color = Color(0.0588235, 0.376471, 0.509804, 0.95)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-content_margin_left = 8.0
-content_margin_top = 8.0
-content_margin_right = 8.0
-content_margin_bottom = 8.0
 
 [node name="FjordCameraHint" type="Control"]
 layout_mode = 1
@@ -50,26 +28,24 @@ grow_vertical = 0
 mouse_filter = 2
 theme_override_constants/separation = 6
 
-[node name="HintLabel" type="Label" parent="CameraHintBox"]
+[node name="HintChip" type="PanelContainer" parent="CameraHintBox"]
+theme_type_variation = &"Chip"
+layout_mode = 2
+size_flags_horizontal = 0
+mouse_filter = 2
+
+[node name="HintLabel" type="Label" parent="CameraHintBox/HintChip"]
+theme_type_variation = &"SmallMuted"
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
-theme_override_colors/font_color = Color(1, 1, 1, 0.92)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
-theme_override_constants/shadow_offset_x = 1
-theme_override_constants/shadow_offset_y = 1
-theme_override_font_sizes/font_size = 12
-text = "Høyre-/midthyreklikk + dra: roter  •  Scroll: zoom  •  Klikk en merd for detaljer"
-autowrap_mode = 2
+text = "UI_FJORD_HINT"
+autowrap_mode = 0
 
 [node name="FlyToFarmButton" type="Button" parent="CameraHintBox"]
+theme_type_variation = &"Button"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(160, 32)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_colors/font_color = Color(0.92549, 0.937255, 0.956863, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn")
-theme_override_styles/hover = SubResource("StyleBoxFlat_btn_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_btn")
 text = "🐟 Fly til merd"

@@ -104,7 +104,7 @@ static func flash_damage(node: Control) -> Tween:
 
 ## Green income flash
 static func flash_income(node: Control) -> Tween:
-	return flash_color(node, Color("#A3BE8C"), 0.4)
+	return flash_color(node, Color("#2E6B45"), 0.4)
 
 ## Amber warning flash
 static func flash_warning(node: Control) -> Tween:
@@ -208,8 +208,8 @@ static func panel_enter(panel: Control, duration: float = 0.28) -> Tween:
 static func floating_text(parent: Node, text: String, start_pos: Vector2, color: Color = Color.WHITE, duration: float = 1.5) -> void:
 	var label = Label.new()
 	label.text = text
-	label.add_theme_color_override("font_color", color)
-	label.add_theme_font_size_override("font_size", 18)
+	LakskongenTheme.set_text_color(label, color)
+	LakskongenTheme.set_size(label, 18)
 	label.position = start_pos
 	label.z_index = 100
 	parent.add_child(label)

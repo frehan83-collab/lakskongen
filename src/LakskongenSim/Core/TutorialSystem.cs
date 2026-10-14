@@ -567,7 +567,7 @@ namespace LakskongenSim.Core
                                   "Feed Cost (~50% of OpEx), " +
                                   "EBIT/kg (industry benchmark: NOK 20–35/kg), " +
                                   "and Return on Invested Capital (ROIC). " +
-                                  "Norwegian leaders like Mowi and SalMar achieve EBIT > 30 NOK/kg.",
+                                  "The best Norwegian farmers achieve EBIT above 30 NOK/kg.",
                 Hint            = "Open Finance → P&L Summary to see your full cost-per-kg breakdown. " +
                                   "Compare your FCR and mortality % against industry benchmarks.",
                 CompletionCondition = t =>
@@ -583,7 +583,7 @@ namespace LakskongenSim.Core
                 Id              = "explore-genetics",
                 StepNumber      = 11,
                 Title           = "Explore Genetics & Breeding",
-                Description     = "Norwegian salmon breeding programs (AquaGen, SalmoBreed) have " +
+                Description     = "Norwegian salmon breeding programmes have " +
                                   "doubled growth rates over 40 years of selective breeding. " +
                                   "In Lakskongen, you can select broodstock for traits: " +
                                   "growth rate, disease resistance, FCR efficiency, and flesh quality. " +

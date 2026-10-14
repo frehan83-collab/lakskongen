@@ -7,6 +7,29 @@ class_name UIPolish
 ## place so panels don't each reinvent them. All methods are static and
 ## side-effect-light: calling them never changes gameplay state.
 
+## U1-08: a control the player cannot use says why. An empty `reason`
+## enables the button and restores the tooltip it had before; otherwise the
+## button is disabled and the reason is its tooltip.
+static func set_available(button: BaseButton, reason: String) -> void:
+	if button == null:
+		return
+	if not button.has_meta(&"enabled_tooltip"):
+		button.set_meta(&"enabled_tooltip", button.tooltip_text)
+	button.disabled = reason != ""
+	button.tooltip_text = reason if reason != "" else String(button.get_meta(&"enabled_tooltip"))
+
+## Why the player cannot pay `cost` from `balance` ("" when they can).
+static func funds_blocker(cost: float, balance: float) -> String:
+	if cost <= 0.0 or balance >= cost:
+		return ""
+	return String(TranslationServer.translate("UI_WHY_FUNDS")) % [SimFormatters.format_nok(cost), SimFormatters.format_nok(balance)]
+
+## The price of a build button from the bridge (0 when unknown).
+static func build_cost(sim: Node, key: String) -> float:
+	if sim == null or not sim.has_method("get_build_costs"):
+		return 0.0
+	return float((sim.call("get_build_costs") as Dictionary).get(key, 0.0))
+
 ## Recursively attach press feedback to every Button under `root`.
 ## Safe to call repeatedly — JuiceEffects guards against double-attach.
 ## True while a text field has keyboard focus: letter and Space hotkeys must
@@ -105,8 +128,8 @@ static func show_empty_state(container: Control, text: String, font_size: int = 
 		var themed_label: Label = theme.create_label(label.text, font_size, theme.MUTED)
 		container.add_child(themed_label)
 	else:
-		label.add_theme_font_size_override("font_size", font_size)
-		label.add_theme_color_override("font_color", Color("#7B8794"))
+		LakskongenTheme.set_size(label, font_size)
+		LakskongenTheme.set_tone(label, &"Muted")
 		container.add_child(label)
 
 

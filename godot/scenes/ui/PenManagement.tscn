@@ -1,78 +1,10 @@
-[gd_scene load_steps=7 format=3 uid="uid://dpx7fmb1qnf3q"]
+[gd_scene load_steps=3 format=3 uid="uid://dpx7fmb1qnf3q"]
 
 [ext_resource type="Script" path="res://scripts/ui/PenManagement.gd" id="1"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.898039, 0.913725, 0.941176, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
-bg_color = Color(1, 1, 1, 1)
-border_width_bottom = 1
-border_color = Color(0.898039, 0.913725, 0.941176, 1)
-content_margin_left = 16.0
-content_margin_top = 12.0
-content_margin_right = 16.0
-content_margin_bottom = 12.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_primary"]
-bg_color = Color(0.0392157, 0.301961, 0.407843, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 8.0
-content_margin_top = 8.0
-content_margin_right = 8.0
-content_margin_bottom = 8.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_green"]
-bg_color = Color(0.639216, 0.745098, 0.54902, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 8.0
-content_margin_top = 8.0
-content_margin_right = 8.0
-content_margin_bottom = 8.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_yellow"]
-bg_color = Color(0.921569, 0.796078, 0.545098, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 8.0
-content_margin_top = 8.0
-content_margin_right = 8.0
-content_margin_bottom = 8.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_light"]
-bg_color = Color(0.972549, 0.976471, 0.984314, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.847059, 0.870588, 0.913725, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 8.0
-content_margin_top = 8.0
-content_margin_right = 8.0
-content_margin_bottom = 8.0
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
 [node name="PenManagement" type="Control"]
+theme = ExtResource("theme_chart")
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -89,7 +21,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.92549, 0.937255, 0.956863, 0.82)
+color = Color(0.956863, 0.945098, 0.917647, 0.96)
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -110,23 +42,22 @@ size_flags_vertical = 3
 theme_override_constants/separation = 16
 
 [node name="LeftCard" type="PanelContainer" parent="Margin/MainSplit"]
+theme_type_variation = &"Card"
 custom_minimum_size = Vector2(250, 0)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="LeftOuter" type="VBoxContainer" parent="Margin/MainSplit/LeftCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="LeftHeader" type="PanelContainer" parent="Margin/MainSplit/LeftCard/LeftOuter"]
+theme_type_variation = &"CardHeaderCompact"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="LeftTitle" type="Label" parent="Margin/MainSplit/LeftCard/LeftOuter/LeftHeader"]
+theme_type_variation = &"BodySmall"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 14
 text = "🐟 Merder"
 
 [node name="LeftBody" type="VBoxContainer" parent="Margin/MainSplit/LeftCard/LeftOuter"]
@@ -146,12 +77,11 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
 [node name="NoPenLabel" type="Label" parent="Margin/MainSplit"]
+theme_type_variation = &"BodyMuted"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 16
 text = "Velg en merd for detaljer"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -176,17 +106,15 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="DetailName" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderLeft"]
+theme_type_variation = &"KpiSmall"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 24
 text = "Merd 1"
 
 [node name="DetailSubtitle" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderLeft"]
+theme_type_variation = &"SmallMuted"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 
 [node name="HeaderRight" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader"]
@@ -194,92 +122,65 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="DetailBadge" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderRight"]
+theme_type_variation = &"SmallOk"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.560784, 0.678431, 0.470588, 1)
-theme_override_font_sizes/font_size = 12
 text = "● Frisk"
 
 [node name="BtnDelouse" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderRight"]
+theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_yellow")
 text = "🧪 Avlus"
 
 [node name="DelouseOption" type="OptionButton" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderRight"]
+theme_type_variation = &"SmallOptionButton"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
 tooltip_text = "Behandlingsmetode: effekt vs dødelighet vs resistens"
 
-[node name="BtnFeed" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderRight"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_primary")
-text = "🐟 Fôr"
-
 [node name="BtnHarvest" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderRight"]
+theme_type_variation = &"SmallSuccessButton"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_green")
 text = "📦 Høst"
 
 [node name="BtnRepair" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderRight"]
+theme_type_variation = &"SmallPrimaryButton"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_primary")
 text = "🔧 Reparer nøter"
 
 [node name="StrainOption" type="OptionButton" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderRight"]
+theme_type_variation = &"SmallOptionButton"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
 
 [node name="BtnStock" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderRight"]
+theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_light")
 text = "🐣 Sett ut 10k"
 tooltip_text = "Sett ut 10 000 smolt av valgt stamme i valgt lokalitet"
 
 [node name="BtnSkirt" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderRight"]
+theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_light")
 text = "⚪ Luseskjørt"
 tooltip_text = "Luseskjørt: 500k installasjon + 2k/dag. Reduserer luspåslag ~70% ved full dekning."
 
 [node name="BtnDeterrent" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderRight"]
+theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_light")
-text = "⚪ Seldeterrent"
+text = "⚪ Selskremme"
 tooltip_text = "Seldeterrent: 200k installasjon + 1k/dag. Beskytter mot selpredasjon."
 
 [node name="BtnROV" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderRight"]
+theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_light")
 text = "🤖 ROV"
 tooltip_text = "ROV-inspeksjon: 75k, 2 dager. Renser nøter (+15%) + funnrapport."
 
@@ -288,91 +189,83 @@ layout_mode = 2
 theme_override_constants/separation = 12
 
 [node name="CountCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
+theme_type_variation = &"CardCompact"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/CountCard"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/CountCard/VBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "ANTALL FISK"
 
 [node name="DetCount" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/CountCard/VBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "--"
 
 [node name="WeightCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
+theme_type_variation = &"CardCompact"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/WeightCard"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/WeightCard/VBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
-text = "SNITT VEKT"
+text = "SNITTVEKT"
 
 [node name="DetWeight" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/WeightCard/VBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "--"
 
 [node name="BiomassCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
+theme_type_variation = &"CardCompact"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/BiomassCard"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/BiomassCard/VBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "BIOMASSE"
 
 [node name="DetBiomass" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/BiomassCard/VBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "--"
 
 [node name="FcrCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow"]
+theme_type_variation = &"CardCompact"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="VBox" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/FcrCard"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/FcrCard/VBox"]
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "FCR (AKTUELL)"
 
 [node name="DetFcr" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/FcrCard/VBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "--"
 
 [node name="BottomRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot"]
@@ -380,23 +273,22 @@ layout_mode = 2
 theme_override_constants/separation = 16
 
 [node name="WaterCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow"]
+theme_type_variation = &"Card"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer"]
+theme_type_variation = &"CardHeaderCompact"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="WaterTitle" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/Header"]
+theme_type_variation = &"BodySmall"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 14
 text = "🌊 Miljø"
 
 [node name="WaterBody" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer"]
@@ -407,17 +299,15 @@ theme_override_constants/separation = 8
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterBody/TempRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Temperatur"
 
 [node name="DetTemp" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterBody/TempRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -425,17 +315,15 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterBody/OxygenRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Oksygen"
 
 [node name="DetOxygen" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterBody/OxygenRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -443,17 +331,15 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterBody/CurrentRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Appetitt"
 
 [node name="DetCurrent" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterBody/CurrentRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -461,17 +347,15 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterBody/VisibilityRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Sikt"
 
 [node name="DetVisibility" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterBody/VisibilityRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -479,38 +363,35 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterBody/AlgaeRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Algevekst"
 
 [node name="DetAlgae" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/WaterCard/Outer/WaterBody/AlgaeRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
 [node name="HealthCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow"]
+theme_type_variation = &"Card"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer"]
+theme_type_variation = &"CardHeaderCompact"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="HealthTitle" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/Header"]
+theme_type_variation = &"BodySmall"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 14
 text = "💀 Helse"
 
 [node name="HealthBody" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer"]
@@ -521,17 +402,15 @@ theme_override_constants/separation = 8
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthBody/LiceRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Lusetall"
 
 [node name="DetLice" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthBody/LiceRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -539,17 +418,15 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthBody/DiseaseRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Resistens"
 
 [node name="DetDisease" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthBody/DiseaseRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -557,17 +434,15 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthBody/MortalityRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Dødelighet (uke)"
 
 [node name="DetMortality" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthBody/MortalityRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -575,38 +450,35 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthBody/MortalityTotalRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Dødelighet (total)"
 
 [node name="DetMortalityTotal" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/HealthCard/Outer/HealthBody/MortalityTotalRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
 [node name="GeneCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow"]
+theme_type_variation = &"Card"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer"]
+theme_type_variation = &"CardHeaderCompact"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="GeneTitle" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/Header"]
+theme_type_variation = &"BodySmall"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 14
 text = "🧬 Genetikk"
 
 [node name="GeneBody" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer"]
@@ -617,17 +489,15 @@ theme_override_constants/separation = 8
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GeneBody/GrowthRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Veksthastighet"
 
 [node name="DetGeneGrowth" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GeneBody/GrowthRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -635,17 +505,15 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GeneBody/LiceResRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Luseresistens"
 
 [node name="DetGeneLice" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GeneBody/LiceResRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -653,17 +521,15 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GeneBody/DiseaseResRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
 text = "Sykdomsresistens"
 
 [node name="DetGeneDisease" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GeneBody/DiseaseResRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2
 
@@ -671,16 +537,14 @@ horizontal_alignment = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GeneBody/FilletRow"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 13
-text = "Filétkvalitet"
+text = "Filetkvalitet"
 
 [node name="DetGeneFillet" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GeneBody/FilletRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 horizontal_alignment = 2

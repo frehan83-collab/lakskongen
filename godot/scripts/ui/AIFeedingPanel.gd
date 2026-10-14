@@ -51,8 +51,7 @@ func _apply_localization() -> void:
 func _apply_theme_fonts() -> void:
 	if not _theme:
 		return
-	if _theme.font_heading_bold:
-		ai_feeding_header_label.add_theme_font_override("font", _theme.font_heading_bold)
+	LakskongenTheme.set_strong(ai_feeding_header_label)
 
 func refresh():
 	# Refresh UI with live data from SimBridge (fallback to placeholders offline)
@@ -62,6 +61,7 @@ func refresh():
 	_update_fcr_savings()
 	_sync_recipe_sliders()
 	_update_recipe_preview()
+	_update_install_button()
 
 
 ## Feed recipe (Phase 4.4): sliders → preview → apply. Preview is computed
@@ -86,10 +86,10 @@ func _update_recipe_preview() -> void:
 	var cost := 12.0 + (p - 38.0) * 0.18 + r * 0.05 + a * 0.025
 	var fcr := 1.0 - (p - 38.0) * 0.003 - r * 0.0006 - minf(a, 60.0) * 0.0002
 	var grade := "A" if a >= 50.0 and p >= 42.0 else ("B" if a >= 40.0 else "C")
-	recipe_preview.text = "%.1f NOK/kg · FCR ×%.3f · Klasse %s (%s)" % [
-		cost, fcr, grade, "+12% VAP" if grade != "C" else "+6% VAP (blek)"]
+	recipe_preview.text = tr("UI_AIFEED_RECIPE_PREVIEW") % [SimFormatters.num(cost, 1), SimFormatters.num(fcr, 3), grade,
+		tr("UI_AIFEED_VAP_FULL") if grade != "C" else tr("UI_AIFEED_VAP_PALE")]
 	recipe_preview.add_theme_color_override("font_color",
-		Color("#8FAD78") if grade == "A" else (Color("#D4B06A") if grade == "B" else Color("#A54E56")))
+		Color("#2E6B45") if grade == "A" else (Color("#8A5A00") if grade == "B" else Color("#B3172F")))
 
 
 func _on_apply_recipe() -> void:
@@ -122,36 +122,44 @@ func _update_calibration_status():
 		return
 	var st := _get_status()
 	if not _is_installed(st):
-		calibration_status_label.text = "Kalibrering: Ikke installert"
+		calibration_status_label.text = tr("UI_AIFEED_CALIBRATION") % tr("UI_AIFEED_NOT_INSTALLED")
 	else:
-		calibration_status_label.text = "Kalibrering: %.0f%%" % _pct(st, "calibration_level", "calibration", 0.0)
+		calibration_status_label.text = tr("UI_AIFEED_CALIBRATION") % SimFormatters.percent(_pct(st, "calibration_level", "calibration", 0.0) / 100.0)
 
 func _update_cameras_status():
 	if cameras_status_label == null:
 		return
 	var st := _get_status()
 	if not _is_installed(st):
-		cameras_status_label.text = "Kameraer: Ikke installert"
+		cameras_status_label.text = tr("UI_AIFEED_CAMERAS") % tr("UI_AIFEED_NOT_INSTALLED")
 	else:
-		cameras_status_label.text = "Kameraer: Oppetid %.1f%%" % _pct(st, "camera_uptime", "camera_uptime", 0.0)
+		cameras_status_label.text = tr("UI_AIFEED_CAMERAS") % (tr("UI_AIFEED_UPTIME") % SimFormatters.percent(_pct(st, "camera_uptime", "camera_uptime", 0.0) / 100.0, 1))
 
 func _update_appetite_level():
 	if appetite_level_label == null:
 		return
 	var st := _get_status()
 	var score := _pct(st, "appetite_score", "appetite_score", 0.0)
-	var level := "Lav" if score < 40.0 else ("Middels" if score < 70.0 else "Høyt")
-	appetite_level_label.text = "Appetittnivå: %s (%.0f%%)" % [level, score]
+	var level := tr("UI_LEVEL_LOW") if score < 40.0 else (tr("UI_LEVEL_MEDIUM") if score < 70.0 else tr("UI_LEVEL_HIGH"))
+	appetite_level_label.text = tr("UI_AIFEED_APPETITE") % [level, SimFormatters.percent(score / 100.0)]
 
 func _update_fcr_savings():
 	if fcr_savings_label == null:
 		return
 	var st := _get_status()
 	if not _is_installed(st):
-		fcr_savings_label.text = "FCR Besparelser: — (installer systemet først)"
+		fcr_savings_label.text = tr("UI_AIFEED_FCR_SAVINGS") % tr("UI_AIFEED_INSTALL_FIRST")
 	else:
-		var saving_pct := (1.0 - float(st.get("fcr_multiplier", 1.0))) * 100.0
-		fcr_savings_label.text = "FCR Besparelser: %.1f%%" % saving_pct
+		var saving := 1.0 - float(st.get("fcr_multiplier", 1.0))
+		fcr_savings_label.text = tr("UI_AIFEED_FCR_SAVINGS") % SimFormatters.percent(saving, 1)
+
+## U1-08: installing twice or without the money failed with a log line only.
+func _update_install_button() -> void:
+	if install_ai_button == null or _sim == null:
+		return
+	var reason := tr("UI_WHY_AI_INSTALLED") if _is_installed(_get_status()) \
+		else UIPolish.funds_blocker(UIPolish.build_cost(_sim, "ai_feeding"), float(_sim.balance))
+	UIPolish.set_available(install_ai_button, reason)
 
 func _on_install_ai_pressed():
 	if _sim != null and _sim.has_method("install_ai_feeding"):

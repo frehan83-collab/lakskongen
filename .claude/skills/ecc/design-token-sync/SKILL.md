@@ -59,16 +59,22 @@ python -m design_token_sync.sync_tokens_extended --write
 ```
 
 **What it does:**
-1. Runs `tools/sync_tokens.py --write` (copies `design/tokens.json` → `godot/theme/tokens.json`)
-2. Invokes headless Godot: `godot --headless --path godot -s res://theme/default_theme.gd --reload-tokens`
-3. Validates `_tokens_loaded == true` and `_tokens_source == "res://theme/tokens.json"`
-4. Exits 0 on success, non-zero on failure
+1. Runs `tools/sync_tokens.py --write`: copies `design/tokens.json` → `godot/theme/tokens.json`,
+   then runs headless Godot (`--script res://scripts/tools/build_theme.gd`) to rebuild the
+   generated "Kyst & Stål" theme: `godot/theme/lakskongen_theme.tres` (Ink, the project theme in
+   `project.godot [gui] theme/custom`), `lakskongen_chart_theme.tres` (Chart paper, document
+   panels) and the fonts in `godot/theme/fonts/`. Each theme is stamped with the SHA-256 of
+   `tokens.json` and of the builder sources.
+2. Runs `tools/sync_tokens.py --check`: the token copy, the project setting and both stamps
+   must match (no Godot needed).
+3. Exits 0 on success, non-zero on failure.
 
 **Output:**
 ```
-[design-token-sync] Synced design/tokens.json → godot/theme/tokens.json
-[design-token-sync] Invoking LakskongenTheme.reload_tokens() via headless Godot...
-[design-token-sync] Theme reloaded — source: res://theme/tokens.json (tokens v2.0, 'nordic-minimalist')
+Synced design/tokens.json -> godot/theme/tokens.json
+build_theme: wrote res://theme/lakskongen_theme.tres (ink, … types, display font: …)
+build_theme: wrote res://theme/lakskongen_chart_theme.tres (chart, … types, display font: …)
+OK: godot/theme/tokens.json is in sync with design/tokens.json; generated themes are current
 [design-token-sync] Sync complete ✓
 ```
 
@@ -153,45 +159,24 @@ gh api repos/:owner/:repo/dispatches \
 
 ---
 
-### 4. visual-regression — Capture key panels before/after sync, diff with visual-qa
+### 4. visual-regression — Capture the UI shots before/after sync, diff by pHash
 
 ```bash
-# From lakskongen root
-python -m design_token_sync.capture_panels --before  # captures baseline
+# From lakskongen root (a display is required: the harness renders for real)
+python -m design_token_sync.capture_panels --before  # the committed theme
+python -m design_token_sync.figma_webhook --write    # or edit design/tokens.json
 python -m design_token_sync.sync_tokens_extended --write
-python -m design_token_sync.capture_panels --after   # captures post-sync
-python -m design_token_sync.visual_diff --threshold 8
+python -m design_token_sync.capture_panels --after
+python -m design_token_sync.visual_diff --threshold 25
 ```
 
 **What it does:**
-1. Launches headless Godot with a minimal test scene
-2. Instantiates `Dashboard`, `FinancePanel`, `ToastNotification` panels
-3. Renders each at 1920×1080 to `godot/screenshots/design-token-sync/{before,after}/`
-4. Runs `visual_qa.diff` comparing before vs after (perceptual hash)
-5. Reports PASS/FAIL per panel; exit 1 if any panel exceeds threshold
-
-**Key panels (configurable in `capture_panels.py`):**
-- `Dashboard` — Main KPI dashboard (tokens: colors, spacing, fonts, radii)
-- `FinancePanel` — Financial tables (tokens: colors, mono font, success/danger)
-- `ToastNotification` — Toast/alert (tokens: danger/warning/success, radii, shadows)
-
-**Output:**
-```
-[design-token-sync] Capturing panels: Dashboard, FinancePanel, ToastNotification
-[design-token-sync] Launching headless Godot...
-[design-token-sync] Rendered Dashboard → godot/screenshots/design-token-sync/before/01_dashboard.png
-[design-token-sync] Rendered FinancePanel → godot/screenshots/design-token-sync/before/02_finance.png
-[design-token-sync] Rendered ToastNotification → godot/screenshots/design-token-sync/before/03_toast.png
-[design-token-sync] Sync applied...
-[design-token-sync] Rendered Dashboard → godot/screenshots/design-token-sync/after/01_dashboard.png
-[design-token-sync] Rendered FinancePanel → godot/screenshots/design-token-sync/after/02_finance.png
-[design-token-sync] Rendered ToastNotification → godot/screenshots/design-token-sync/after/03_toast.png
-[design-token-sync] Diffing via visual-qa (threshold=8)...
-  01_dashboard:           dist=0  ✓
-  02_finance:             dist=3  ✓
-  03_toast:               dist=12 ✗  (FAIL)
-[design-token-sync] 1/3 panels exceeded threshold
-```
+1. Runs `tools/capture_screenshots.sh` (the project's screenshot harness, non-headless).
+2. Copies the 16 UI shots (01–07g: menus, every document panel, the inbox) into
+   `godot/screenshots/design-token-sync/{before,after}/`.
+3. Compares before/after per shot by perceptual hash; 25 is the harness's measured
+   run-to-run noise floor. It never touches `godot/screenshots/baseline/`.
+4. Writes `visual_diff.json`; exit 1 if any shot exceeds the threshold or is missing.
 
 ---
 

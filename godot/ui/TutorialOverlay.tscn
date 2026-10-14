@@ -47,9 +47,9 @@ text = "Step 1/23"
 horizontal_alignment = 0
 
 [node name="TitleLabel" type="Label" parent="Panel/VBoxContainer"]
+theme_type_variation = &"Title"
 unique_name_in_owner = true
 layout_mode = 2
-theme_type_variation = &"HeaderLarge"
 text = "Tutorial Title"
 horizontal_alignment = 1
 

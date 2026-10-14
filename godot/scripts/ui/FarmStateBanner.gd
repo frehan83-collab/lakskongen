@@ -9,13 +9,20 @@ class_name FarmStateBanner
 ## MorningBriefing.gd so the two surfaces can never disagree.
 ##
 ## Deliberately self-contained (no LakskongenTheme autoload reference) so the
-## class can be parse-checked in isolation; palette values match the theme.
+## class can be parse-checked in isolation: styling is by theme type variation
+## name only ("Callout<Tone>" banner, "<Role><Tone>" labels), resolved on
+## whichever surface hosts the banner.
 ##
 ## Thresholds mirror SimState._check_alerts where an equivalent exists:
 ##   lice  : warning @ 0.20, legal limit @ 0.50 per fish
 ##   O2    : warning @ 6.5, critical @ 6.0 mg/L   (task threshold: under 6)
-##   FCR   : strained @ 1.15, over target @ 1.30
+##   FCR   : strained above the calibrated target, critical above the
+##           calibrated "poor" ceiling (both from CalibrationRegistry through
+##           the bridge); silent while the fish settle (SimState.fcr_is_settled)
 ##   saldo : low @ 1 000 000, critical when negative
+##
+## When something needs attention the banner offers one call to action that
+## opens the panel where it is fixed (action_requested(tab_id)).
 
 const STATE_HEALTHY := "healthy"
 const STATE_STRAINED := "strained"
@@ -25,28 +32,30 @@ const LICE_STRAINED := 0.2
 const LICE_CRITICAL := 0.5
 const OXYGEN_STRAINED := 6.5
 const OXYGEN_CRITICAL := 6.0
-const FCR_STRAINED := 1.15
-const FCR_CRITICAL := 1.3
 const BALANCE_LOW := 1_000_000.0
 const BALANCE_CRITICAL := 0.0
 
-const EMPTY_SUMMARY := "Alt i rute — ingen kritiske avvik"
-const EMPTY_DETAIL := "Lus, oksygen, fôr og likviditet innenfor mål"
+## The panel that fixes each factor, and the call-to-action caption key.
+const ACTION_TABS := {"lice": "pens", "oxygen": "telemetry", "fcr": "ai_feeding", "balance": "finance"}
+const ACTION_KEYS := {"lice": "UI_FARM_STATE_CTA_LICE", "oxygen": "UI_FARM_STATE_CTA_OXYGEN",
+	"fcr": "UI_FARM_STATE_CTA_FCR", "balance": "UI_FARM_STATE_CTA_BALANCE"}
 
-# Palette (matches LakskongenTheme *_DARK / text tokens).
-const COLOR_HEALTHY := Color("#8FAD78")
-const COLOR_STRAINED := Color("#D4B06A")
-const COLOR_CRITICAL := Color("#A54E56")
-const COLOR_TEXT := Color("#2E3440")
-const COLOR_MUTED := Color("#7B8794")
-const FONT_ICON := 18
-const FONT_TITLE := 13
-const FONT_DETAIL := 11
-const RADIUS := 8
+## The player pressed the call to action: open `tab_id`.
+signal action_requested(tab_id: String)
+
+# State -> theme tone; Chart-surface colours for callers that need a Color.
+const TONE_HEALTHY := &"Ok"
+const TONE_STRAINED := &"Warn"
+const TONE_CRITICAL := &"Crit"
+const COLOR_HEALTHY := Color("#2E6B45")
+const COLOR_STRAINED := Color("#8A5A00")
+const COLOR_CRITICAL := Color("#B3172F")
 
 var _icon: Label = null
 var _title: Label = null
 var _detail: Label = null
+var _action: Button = null
+var _action_tab: String = ""
 var _built: bool = false
 var _state: String = ""
 
@@ -63,7 +72,7 @@ func _build() -> void:
 	row.add_theme_constant_override("separation", 10)
 	add_child(row)
 
-	_icon = _make_label("●", FONT_ICON, COLOR_HEALTHY)
+	_icon = _make_label("●", &"SubheadingOk")
 	_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(_icon)
 
@@ -72,19 +81,36 @@ func _build() -> void:
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(col)
 
-	_title = _make_label("", FONT_TITLE, COLOR_TEXT)
+	_title = _make_label("", &"BodyStrong")
 	col.add_child(_title)
 
-	_detail = _make_label("", FONT_DETAIL, COLOR_MUTED)
+	_detail = _make_label("", &"SmallMuted")
 	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(_detail)
 
-func _make_label(text: String, font_size: int, color: Color) -> Label:
+	_action = Button.new()
+	_action.name = "ActionButton"
+	_action.theme_type_variation = &"SmallSecondaryButton"
+	_action.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_action.visible = false
+	_action.pressed.connect(func() -> void: action_requested.emit(_action_tab))
+	row.add_child(_action)
+
+func _make_label(text: String, variation: StringName) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", font_size)
-	lbl.add_theme_color_override("font_color", color)
+	lbl.theme_type_variation = variation
 	return lbl
+
+## Show the call to action for `factor` (the worst one), or hide it ("").
+func set_action(factor: String) -> void:
+	if not _built:
+		_build()
+	_action_tab = str(ACTION_TABS.get(factor, ""))
+	_action.visible = _action_tab != ""
+	if _action.visible:
+		_action.text = tr(str(ACTION_KEYS[factor])) + " →"
+		_action.tooltip_text = tr("UI_FARM_STATE_CTA_TIP")
 
 ## Update the banner. Text is set every call (cheap) but the pulse only fires
 ## when the state actually changes, so frequent state_updated signals cannot
@@ -94,29 +120,23 @@ func set_state(state: String, title: String, detail: String = "") -> void:
 		_build()
 	var changed := state != _state
 	_state = state
-	var tint := tint_for(state)
+	var tone := tone_for(state)
 	if _icon:
-		_icon.add_theme_color_override("font_color", tint)
+		_icon.theme_type_variation = StringName("Subheading" + String(tone))
 	if _title:
 		_title.text = title
 	if _detail:
 		_detail.text = detail
 		_detail.visible = not detail.is_empty()
-	add_theme_stylebox_override("panel", _make_panel(tint))
+	theme_type_variation = StringName("Callout" + String(tone))
 	if changed and is_inside_tree():
 		JuiceEffects.pulse(self, 1.01, 0.25)
 
-func _make_panel(tint: Color) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(tint, 0.10)
-	sb.border_color = Color(tint, 0.45)
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(RADIUS)
-	sb.content_margin_left = 12.0
-	sb.content_margin_right = 12.0
-	sb.content_margin_top = 6.0
-	sb.content_margin_bottom = 6.0
-	return sb
+static func tone_for(state: String) -> StringName:
+	match state:
+		STATE_CRITICAL: return TONE_CRITICAL
+		STATE_STRAINED: return TONE_STRAINED
+		_: return TONE_HEALTHY
 
 static func tint_for(state: String) -> Color:
 	match state:
@@ -136,16 +156,16 @@ static func icon_for(state: String) -> String:
 ##   severity   : 0 | 1 | 2
 ##   factors    : {"lice","oxygen","fcr","balance"} each 0 | 1 | 2
 ##   worst_key  : the factor driving the severity ("" when healthy)
-##   summary_no : Norwegian one-liner (feed to tr() at the call site)
-##   detail_no  : Norwegian contributing factors
+##   summary    : one-line verdict in the active language
+##   detail     : the contributing factors in the active language
 static func evaluate(sim: Node) -> Dictionary:
 	var result := {
 		"state": STATE_HEALTHY,
 		"severity": 0,
 		"factors": {"lice": 0, "oxygen": 0, "fcr": 0, "balance": 0},
 		"worst_key": "",
-		"summary_no": EMPTY_SUMMARY,
-		"detail_no": EMPTY_DETAIL,
+		"summary": _t("UI_FARM_STATE_HEALTHY"),
+		"detail": _t("UI_FARM_STATE_DETAIL_HEALTHY"),
 	}
 	if sim == null:
 		return result
@@ -157,37 +177,40 @@ static func evaluate(sim: Node) -> Dictionary:
 	if lice >= 0.0:
 		if lice >= LICE_CRITICAL:
 			factors["lice"] = 2
-			notes.append("lus %.2f (grense 0,50)" % lice)
+			notes.append(_t("FARM_FACTOR_LICE_CRITICAL") % [SimFormatters.num(lice, 2), SimFormatters.num(LICE_CRITICAL, 2)])
 		elif lice >= LICE_STRAINED:
 			factors["lice"] = 1
-			notes.append("lus %.2f" % lice)
+			notes.append(_t("FARM_FACTOR_LICE") % SimFormatters.num(lice, 2))
 
 	var oxygen := _read_float(sim, "oxygen_mgl", -1.0)
 	if oxygen > 0.0:
 		if oxygen < OXYGEN_CRITICAL:
 			factors["oxygen"] = 2
-			notes.append("O2 %.1f mg/L" % oxygen)
+			notes.append(_t("FARM_FACTOR_OXYGEN") % SimFormatters.num(oxygen, 1))
 		elif oxygen < OXYGEN_STRAINED:
 			factors["oxygen"] = 1
-			notes.append("O2 %.1f mg/L" % oxygen)
+			notes.append(_t("FARM_FACTOR_OXYGEN") % SimFormatters.num(oxygen, 1))
 
 	var fcr := _read_float(sim, "fcr", -1.0)
-	if fcr > 0.0:
-		if fcr > FCR_CRITICAL:
+	var target := _read_float(sim, "fcr_target", 0.0)
+	var poor := _read_float(sim, "fcr_poor", 0.0)
+	var settled: bool = sim.has_method("fcr_is_settled") and bool(sim.call("fcr_is_settled"))
+	if fcr > 0.0 and target > 0.0 and settled:
+		if poor > 0.0 and fcr > poor:
 			factors["fcr"] = 2
-			notes.append("FCR %.2f (mål 1,30)" % fcr)
-		elif fcr > FCR_STRAINED:
+			notes.append(_t("FARM_FACTOR_FCR_CRITICAL") % [SimFormatters.num(fcr, 2), SimFormatters.num(target, 2)])
+		elif fcr > target:
 			factors["fcr"] = 1
-			notes.append("FCR %.2f" % fcr)
+			notes.append(_t("FARM_FACTOR_FCR") % SimFormatters.num(fcr, 2))
 
 	var balance := _read_float(sim, "balance", NAN)
 	if is_finite(balance):
 		if balance < BALANCE_CRITICAL:
 			factors["balance"] = 2
-			notes.append("saldo negativ")
+			notes.append(_t("FARM_FACTOR_BALANCE_NEGATIVE"))
 		elif balance > 0.0 and balance < BALANCE_LOW:
 			factors["balance"] = 1
-			notes.append("lav likviditet")
+			notes.append(_t("FARM_FACTOR_BALANCE_LOW"))
 
 	var worst_key := ""
 	var worst_sev := 0
@@ -202,19 +225,17 @@ static func evaluate(sim: Node) -> Dictionary:
 	result["worst_key"] = worst_key
 	if worst_sev >= 2:
 		result["state"] = STATE_CRITICAL
-		result["summary_no"] = "Kritisk tilstand — handling kreves nå"
+		result["summary"] = _t("UI_FARM_STATE_CRITICAL")
 	elif worst_sev == 1:
 		result["state"] = STATE_STRAINED
-		result["summary_no"] = "Driften under press — følg med"
+		result["summary"] = _t("UI_FARM_STATE_STRAINED")
 
 	if not notes.is_empty():
-		var detail := ""
-		for i in range(notes.size()):
-			if i > 0:
-				detail += " · "
-			detail += notes[i]
-		result["detail_no"] = detail
+		result["detail"] = " · ".join(notes)
 	return result
+
+static func _t(key: String) -> String:
+	return String(TranslationServer.translate(key))
 
 static func _read_float(sim: Node, prop: String, fallback: float) -> float:
 	if sim == null:

@@ -51,10 +51,8 @@ func _apply_localization() -> void:
 func _apply_theme_fonts() -> void:
 	if not _theme:
 		return
-	if _theme.font_heading_bold:
-		header_label.add_theme_font_override("font", _theme.font_heading_bold)
-	if _theme.font_heading_semibold:
-		status_label.add_theme_font_override("font", _theme.font_heading_semibold)
+	LakskongenTheme.set_strong(header_label)
+	LakskongenTheme.set_strong(status_label)
 
 func refresh():
 	if _sim == null or not _sim.has_method("get_carbon_ledger"):
@@ -74,19 +72,19 @@ func refresh():
 
 	# Carbon intensity
 	var intensity: float = _sim.get_carbon_intensity() if _sim.has_method("get_carbon_intensity") else 0.0
-	intensity_label.text = "%s: %.2f" % [tr("UI_CARBON_INTENSITY"), intensity]  # the label carries the unit
+	intensity_label.text = "%s: %s" % [tr("UI_CARBON_INTENSITY"), SimFormatters.num(intensity, 2)]  # the label carries the unit
 
 	# Carbon neutral status
 	var neutral: bool = _sim.is_carbon_neutral_year() if _sim.has_method("is_carbon_neutral_year") else false
 	if neutral:
 		status_label.text = tr("UI_CARBON_NEUTRAL")
-		status_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
+		LakskongenTheme.set_text_color(status_label, LakskongenTheme.CHART_OK)
 	else:
-		status_label.text = "Ikke kulstoffneutral ennå"
-		status_label.add_theme_color_override("font_color", Color(1, 0.6, 0.2))
+		status_label.text = tr("UI_CARBON_NOT_NEUTRAL")
+		LakskongenTheme.set_text_color(status_label, LakskongenTheme.CHART_WARN)
 
 func _show_unavailable():
-	sites_container.add_child(_row_label(tr("UI_CARBON_LEDGER") + ": Data ikke tilgjengelig"))
+	sites_container.add_child(_row_label(tr("UI_CARBON_LEDGER") + ": " + tr("UI_DATA_UNAVAILABLE")))
 	status_label.text = ""
 
 func _update_summary(ledger: Dictionary):
@@ -94,16 +92,16 @@ func _update_summary(ledger: Dictionary):
 	# colour on the light cards and could not be told apart.
 	for pair in [[scope1_label, "Scope 1", "scope1_kg"], [scope2_label, "Scope 2", "scope2_kg"],
 			[scope3_label, "Scope 3", "scope3_kg"]]:
-		(pair[0] as Label).text = "%s: %.1f t" % [pair[1], float(ledger.get(pair[2], 0.0)) / 1000.0]
+		(pair[0] as Label).text = "%s: %s t" % [pair[1], SimFormatters.num(float(ledger.get(pair[2], 0.0)) / 1000.0, 1)]
 		(pair[0] as Label).add_theme_color_override("font_color", _text_color())
-	credits_label.text = "Kreditter: %.1f t" % (float(ledger.get("total_credits_kg", 0.0)) / 1000.0)
+	credits_label.text = tr("UI_CARBON_CREDITS_VALUE") % SimFormatters.num(float(ledger.get("total_credits_kg", 0.0)) / 1000.0, 1)
 	
 	var net := float(ledger.get("net_emissions_kg", 0.0)) / 1000.0
-	net_label.text = "Netto: %.1f t" % net
+	net_label.text = tr("UI_CARBON_NET_VALUE") % SimFormatters.num(net, 1)
 	if net <= 0:
-		net_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
+		LakskongenTheme.set_text_color(net_label, LakskongenTheme.CHART_OK)
 	else:
-		net_label.add_theme_color_override("font_color", Color(1, 0.3, 0.3))
+		LakskongenTheme.set_text_color(net_label, LakskongenTheme.CHART_CRIT)
 
 func _update_sites(ledger: Dictionary):
 	if sites_container == null:
@@ -113,7 +111,7 @@ func _update_sites(ledger: Dictionary):
 
 	var sites: Array = ledger.get("sites", [])
 	if sites.is_empty():
-		UIPolish.show_empty_state(sites_container, "Ingen kystlokaliteter", 12, "", _theme)
+		UIPolish.show_empty_state(sites_container, tr("UI_CARBON_NO_SITES"), 12, "", _theme)
 		return
 
 	for site in sites:
@@ -122,15 +120,15 @@ func _update_sites(ledger: Dictionary):
 		sites_container.add_child(row)
 
 		var net := float(site.get("net_kg", 0.0)) / 1000.0
-		row.add_child(_row_label("%s: %.1f t netto" % [str(site.get("id", "?")), net]))
+		row.add_child(_row_label(tr("UI_CARBON_ROW_NET") % [str(site.get("name", _site_name(str(site.get("id", "?"))))), SimFormatters.num(net, 1)]))
 
 		var scope_lbl := Label.new()
 		var s1 := float(site.get("scope1_kg", 0.0)) / 1000.0
 		var s2 := float(site.get("scope2_kg", 0.0)) / 1000.0
 		var s3 := float(site.get("scope3_kg", 0.0)) / 1000.0
-		scope_lbl.text = "S1: %.1f S2: %.1f S3: %.1f" % [s1, s2, s3]
-		scope_lbl.add_theme_font_size_override("font_size", 11)
-		scope_lbl.add_theme_color_override("font_color", _theme.TEXT_SECONDARY if _theme else Color(0.6, 0.6, 0.6))
+		scope_lbl.text = "S1: %s · S2: %s · S3: %s" % [SimFormatters.num(s1, 1), SimFormatters.num(s2, 1), SimFormatters.num(s3, 1)]
+		LakskongenTheme.set_size(scope_lbl, 11)
+		LakskongenTheme.set_text_color(scope_lbl, _theme.TEXT_SECONDARY if _theme else Color(0.6, 0.6, 0.6))
 		row.add_child(scope_lbl)
 
 	# UIPolish: vertical keyboard navigation for sites list
@@ -152,7 +150,7 @@ func _update_offshore(ledger: Dictionary):
 		offshore_container.add_child(row)
 
 		var net := float(farm.get("net_kg", 0.0)) / 1000.0
-		row.add_child(_row_label("🌊 %s: %.1f t netto" % [str(farm.get("name", "?")), net]))
+		row.add_child(_row_label("🌊 " + tr("UI_CARBON_ROW_NET") % [str(farm.get("name", "?")), SimFormatters.num(net, 1)]))
 
 	# UIPolish: vertical keyboard navigation for offshore list
 	UIPolish.link_vertical_focus(offshore_container)
@@ -173,7 +171,7 @@ func _update_ras(ledger: Dictionary):
 		ras_container.add_child(row)
 
 		var net := float(ras.get("net_kg", 0.0)) / 1000.0
-		row.add_child(_row_label("🏭 %s: %.1f t netto" % [str(ras.get("name", "?")), net]))
+		row.add_child(_row_label("🏭 " + tr("UI_CARBON_ROW_NET") % [str(ras.get("name", "?")), SimFormatters.num(net, 1)]))
 
 	# UIPolish: vertical keyboard navigation for RAS list
 	UIPolish.link_vertical_focus(ras_container)
@@ -193,21 +191,25 @@ func _update_processing(ledger: Dictionary):
 	processing_container.add_child(row)
 
 	var net := float(proc.get("net_kg", 0.0)) / 1000.0
-	row.add_child(_row_label("🏭 Foredlingsanlegg (%s): %.1f t netto" % [str(proc.get("tier", "?")), net]))
+	row.add_child(_row_label("🏭 " + tr("UI_CARBON_ROW_NET") % [tr("UI_CARBON_PROCESSING_PLANT") % str(proc.get("tier", "?")), SimFormatters.num(net, 1)]))
 
 	# UIPolish: vertical keyboard navigation for processing container
 	UIPolish.link_vertical_focus(processing_container)
 
-## Row and value text colour. Labels default to the light theme text colour,
-## which vanished on this panel's light cards.
+## Row and value text colour: Chart ink-black, kept as an explicit override
+## (the rows must stay dark on the light cards, UiFlowTests carbon checks).
 func _text_color() -> Color:
-	return _theme.TEXT_PRIMARY if _theme else Color("#2E3440")
+	return _theme.TEXT_PRIMARY if _theme else Color("#1C1E20")
+
+func _site_name(site_id: String) -> String:
+	var sim := get_node_or_null("/root/SimBridge")
+	return str(sim.site_name(site_id)) if sim and sim.has_method("site_name") else site_id
 
 func _row_label(text: String) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lbl.add_theme_font_size_override("font_size", 13)
+	LakskongenTheme.set_size(lbl, 13)
 	lbl.add_theme_color_override("font_color", _text_color())
 	return lbl
 

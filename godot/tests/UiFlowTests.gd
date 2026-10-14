@@ -36,7 +36,12 @@ func _run() -> void:
 		return
 	mgr.UseSaveDirectory(TEST_SAVE_DIR)
 	_clear_test_saves()
+	# The checks read Norwegian text (the game's default language); a
+	# language.cfg left on English in the shared user dir must not flip them.
+	TranslationServer.set_locale("no")
 
+	# First, while no game has started in this process (a fresh launch).
+	await _test_mod_scenario_starts_on_a_fresh_launch()
 	await _test_bridge_save_load_roundtrip()
 	await _test_save_load_menu_tab()
 	await _test_main_menu_load_and_settings()
@@ -73,6 +78,25 @@ func _run() -> void:
 	await _test_hero_pen_and_site_kit()
 	await _test_vessel_fleet()
 	_test_facade_forwards_phase5_systems()
+	await _test_theme_and_contrast_on_every_screen()
+	_test_formatters_speak_the_locale()
+	await _test_dashboard_title_names_the_company()
+	await _test_young_smolts_raise_no_fcr_alarm()
+	await _test_banner_and_inbox_open_the_right_tab()
+	await _test_text_reads_norwegian_in_young_and_red_zone_farms()
+	await _test_every_button_answers()
+	await _test_screen_regions_never_overlap()
+	await _test_overflow_menu_opens_hidden_tabs()
+	await _test_tab_shortcuts_are_command_digits()
+	await _test_dashboard_alerts_one_row_per_category_and_site()
+	await _test_escape_opens_the_pause_menu()
+	await _test_pause_menu_reaches_the_main_menu()
+	await _test_pause_settings_and_back()
+	await _test_window_close_asks_to_save()
+	await _test_continue_restores_the_latest_save()
+	await _test_credits_list_every_third_party_work()
+	await _test_pause_save_list_buttons_answer()
+	await _test_scenario_picker()
 
 	_clear_test_saves()
 	_finish()
@@ -288,7 +312,7 @@ func _test_goal_hud_shows_engine_progress() -> void:
 	var bar: ProgressBar = hud.get_node_or_null("PanelContainer/VBoxContainer/ProgressBar")
 	var time_label: Label = hud.get_node_or_null("PanelContainer/VBoxContainer/TimeLabel")
 	_check(bar != null and int(bar.value) == 7, "goal HUD: progress bar at 7%% (%s)" % str(bar.value if bar else "missing"))
-	_check(time_label != null and "2.8 år igjen" in time_label.text,
+	_check(time_label != null and "2,8 år igjen" in time_label.text,
 		"goal HUD: time left counts from the scenario start (%s)" % (time_label.text if time_label else "missing"))
 	hud.queue_free()
 	await get_tree().process_frame
@@ -540,6 +564,13 @@ func _test_escape_returns_tabs_to_the_dashboard() -> void:
 	await _press_key(KEY_ESCAPE)
 	await get_tree().process_frame
 	_check(dashboard != null and dashboard.visible, "esc: ESC on the dashboard keeps it shown")
+	# U1-06/D15: that ESC opened the pause menu over the dashboard; ESC again
+	# closes it, then the tab button takes the click.
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	_check(pause.is_open(), "esc: ESC on the dashboard opens the pause menu")
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.3).timeout
+	_check(not pause.is_open() and not pause.visible, "esc: ESC in the pause menu closes it")
 	await _click_control(ui.find_child("Tab_map", true, false))
 	var map: Control = ui.find_child("Panel_map", true, false)
 	_check(ui.get_active_tab() == "map" and map != null and map.visible, "esc: the closed tab opens again from its button")
@@ -679,7 +710,7 @@ func _test_carbon_tab_shows_the_ledger() -> void:
 	if panel != null:
 		var ledger: Dictionary = _sim.get_carbon_ledger()
 		_check(float(ledger.get("scope1_kg", 0.0)) > 0.0, "carbon: the farm has emitted (scope 1 %.0f kg)" % float(ledger.get("scope1_kg", 0.0)))
-		_check(panel.scope1_label.text == "Scope 1: %.1f t" % (float(ledger.get("scope1_kg", 0.0)) / 1000.0),
+		_check(panel.scope1_label.text == "Scope 1: %s t" % SimFormatters.num(float(ledger.get("scope1_kg", 0.0)) / 1000.0, 1),
 			"carbon: scope 1 shows the ledger (%s)" % panel.scope1_label.text)
 		var dark := func(lbl: Label) -> bool:
 			return lbl.has_theme_color_override("font_color") and lbl.get_theme_color("font_color").get_luminance() < 0.5
@@ -760,9 +791,9 @@ func _test_offshore_sludge_button_sells_sludge() -> void:
 	await get_tree().process_frame
 	var button: Button = null
 	for b: Button in panel.get_node("%SludgeList").find_children("*", "Button", true, false):
-		if b.text.begins_with("Valorisér nå") and not b.is_queued_for_deletion():
+		if b.text.begins_with("Gjenvinn nå") and not b.is_queued_for_deletion():
 			button = b
-	_check(button != null, "sludge: the card offers 'Valorisér nå'")
+	_check(button != null, "sludge: the card offers 'Gjenvinn nå'")
 	if button != null:
 		var cash: float = float(_sim.balance)
 		button.pressed.emit()
@@ -1002,6 +1033,1000 @@ func _test_facade_forwards_phase5_systems() -> void:
 			"processing_tier", "set_night_shift_policy"]:
 		_check(_sim.has_method(method), "facade forwards %s" % method)
 
+## U1-01/U1-02: the Kyst & Stål project theme (gui/theme/custom) reaches every
+## Control under every CanvasLayer — no Godot-default look on any screen — and
+## every visible text meets WCAG contrast (4.5:1; 3:1 large) against what is
+## really drawn behind it. Each screen is judged after its fade-in.
+const THEME_SCREENS_TABS := ["dashboard", "fjord", "map", "finance", "pens", "production", "research",
+	"sustainability", "ras", "offshore", "analytics", "telemetry", "ai_feeding", "crew", "contracts",
+	"carbon", "encyclopedia", "export"]
+const THEME_SETTLE_S := 0.9
+
+func _test_theme_and_contrast_on_every_screen() -> void:
+	var project_theme := ThemeDB.get_project_theme()
+	_check(project_theme != null and project_theme.resource_path == "res://theme/lakskongen_theme.tres"
+		and project_theme.get_meta("surface", "") == "ink",
+		"theme: gui/theme/custom is the generated Kyst & Stål Ink theme")
+	var menu := await _spawn_main_menu()
+	await _lint_screen("main menu")
+	menu.btn_new_game.pressed.emit()
+	await _lint_screen("scenario picker")
+	menu.queue_free()
+	await get_tree().process_frame
+
+	var scene := await _spawn_game_scene()
+	_sim.skip_tutorial()
+	await get_tree().process_frame
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	var docs: Control = ui.get_node("%PanelContainer")
+	_check(docs.theme != null and docs.theme.resource_path == "res://theme/lakskongen_chart_theme.tres",
+		"theme: GameUI documents sit on the Chart-paper theme")
+	for tab in THEME_SCREENS_TABS:
+		ui.show_tab(tab)
+		center.hide_panel()
+		await _lint_screen("tab " + tab)
+		if tab == "telemetry":
+			_check_telemetry_headers(ui.find_child("Panel_telemetry", true, false))
+	center.show_panel()
+	await _lint_screen("notification center")
+	center.hide_panel()
+	# U1-06/D15: save and load moved from a tab into the pause menu; its
+	# screens are judged like the tab was (and the menu, settings and the
+	# save guard besides).
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	pause.show_menu()
+	await _lint_screen("pause menu")
+	pause.btn_save.pressed.emit()
+	await _lint_screen("pause save list")
+	pause.save_load_menu._close()
+	pause.btn_settings.pressed.emit()
+	await _lint_screen("pause settings")
+	pause.settings_menu._on_close()
+	pause.request_quit()
+	await _lint_screen("pause save guard")
+	pause.hide_menu()
+	await get_tree().create_timer(0.3).timeout
+	var inbox := scene.get_node("AttentionInbox")
+	inbox.open_inbox()
+	await _lint_screen("attention inbox")
+	inbox.visible = false
+	# The genetics panel is shot standalone over the game (harness shot 07).
+	var layer := CanvasLayer.new()
+	layer.layer = 10
+	add_child(layer)
+	layer.add_child((load("res://scenes/ui/GeneticsPanel.tscn") as PackedScene).instantiate())
+	await _lint_screen("genetics panel")
+	layer.queue_free()
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Two checks per screen: theme resolution and contrast, offenders listed.
+func _lint_screen(screen: String) -> void:
+	await get_tree().create_timer(THEME_SETTLE_S).timeout
+	var lint := preload("res://tests/ThemeLint.gd")
+	var root := get_tree().root
+	var unthemed: PackedStringArray = lint.unthemed(root)
+	_check(unthemed.is_empty(), "theme: %s has no Godot-default controls %s" % [screen, str(unthemed.slice(0, 4))])
+	var low: PackedStringArray = lint.low_contrast(root)
+	_check(low.is_empty(), "contrast: %s text meets 4.5:1 (3:1 large) %s" % [screen, str(low.slice(0, 4))])
+	# U1-03: the same screen reads as Norwegian — no format tokens, ids,
+	# CamelCase enums, raw values, decimal points or English words.
+	var wrong: PackedStringArray = TextLint.offenders(root, "nb")
+	_check(wrong.is_empty(), "text: %s reads as Norwegian %s" % [screen, str(wrong.slice(0, 4))])
+
+## Roadmap U1-01 #3: the panel title and the four section headers are drawn
+## (they rendered white on white before the theme reached the CanvasLayer).
+func _check_telemetry_headers(panel: Node) -> void:
+	var shown := []
+	if panel != null:
+		for lbl: Label in panel.find_children("*", "Label", true, false):
+			if lbl.is_visible_in_tree():
+				shown.append(lbl.text)
+	var wanted := ["Driftstelemetri", "Vann & Oksygen", "Lus & resistens", "Gjellehelse", "Fôr & FCR"]
+	var missing := wanted.filter(func(w: String) -> bool: return not shown.any(func(t: String) -> bool: return t.contains(w)))
+	_check(missing.is_empty(), "telemetry: title and section headers are shown (missing %s)" % str(missing))
+
+# ── U1-03 text correctness / U1-08 no dead verbs ───────────────────────────────
+
+## Buttons the press-everything walk leaves alone: they open the OS folder
+## picker (no window in a headless run).
+const BUTTONS_NOT_PRESSED := ["BrowseButton"]
+const BUTTON_SETTLE_S := 0.5
+const TextLint := preload("res://tests/TextLint.gd")
+
+## Captures push_warning / push_error / printerr lines while a test runs
+## (Godot's Logger; called from any thread, hence the mutex).
+class _WarningLog extends Logger:
+	var _lines: PackedStringArray = []
+	var _mutex := Mutex.new()
+
+	func _log_error(function: String, file: String, line: int, code: String, rationale: String,
+			_editor_notify: bool, error_type: int, _script_backtraces: Array[ScriptBacktrace]) -> void:
+		var kind := "warning" if error_type == ERROR_TYPE_WARNING else "error"
+		_add("%s: %s (%s:%d %s)" % [kind, rationale if rationale != "" else code, file.get_file(), line, function])
+
+	func _log_message(message: String, error: bool) -> void:
+		if error:
+			_add("printerr: " + message.strip_edges())
+
+	func _add(line: String) -> void:
+		_mutex.lock()
+		_lines.append(line)
+		_mutex.unlock()
+
+	func take() -> PackedStringArray:
+		_mutex.lock()
+		var out := _lines.duplicate()
+		_lines.clear()
+		_mutex.unlock()
+		return out
+
+## U1-03: money, counts, percentages and dates read the Norwegian way in nb
+## and the English way in en — the formatter every panel goes through.
+func _test_formatters_speak_the_locale() -> void:
+	var nbsp := " "
+	var nok := SimFormatters.format_nok(11_490_000.0, "nb")
+	_check(nok == "11,49 MNOK", "format: 11 490 000 kr reads '11,49 MNOK' in nb (%s)" % nok)
+	var count := SimFormatters.integer(71_472, "nb")
+	_check(count == "71" + nbsp + "472", "format: 71472 is grouped with a no-break space in nb (%s)" % count.replace(nbsp, "⍽"))
+	var date := SimFormatters.format_date(2027, 1, 12, "nb")
+	_check(date == "12. jan. 2027", "format: a date reads '12. jan. 2027' in nb (%s)" % date)
+	var share := SimFormatters.percent(0.44, 0, "nb")
+	_check(share == "44" + nbsp + "%", "format: a share reads '44 %%' in nb (%s)" % share.replace(nbsp, "⍽"))
+	var tonnes := SimFormatters.fmt("%.1f t", [2.5], "nb")
+	_check(tonnes == "2,5 t", "format: decimals take a comma in nb (%s)" % tonnes)
+	_check(SimFormatters.format_nok(11_490_000.0, "en") == "11.49 MNOK", "format: en keeps '11.49 MNOK'")
+	_check(SimFormatters.integer(71_472, "en") == "71,472", "format: en groups thousands with a comma")
+	_check(SimFormatters.format_date(2027, 1, 12, "en") == "Jan 12, 2027", "format: en reads 'Jan 12, 2027'")
+
+## U1-03: the dashboard title names the company (it printed "%s — Oversikt").
+func _test_dashboard_title_names_the_company() -> void:
+	var scene := await _spawn_game_scene()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	ui.show_tab("dashboard")
+	await get_tree().process_frame
+	var dashboard := _node_with(ui.find_child("Panel_dashboard", true, false), "_title_label")
+	var title: String = dashboard._title_label.text if dashboard != null else ""
+	var company := str(_sim.company_name)
+	_check(company != "" and title.contains(company) and not title.contains("%"),
+		"dashboard: the title names the company '%s' (%s)" % [company, title])
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-08: day 12 of Første sesong — 100 g smolts eat for growth, so the feed
+## factor is not judged yet and the farm is not called critical for it.
+## Once the fish settle the same check runs on the calibrated target.
+func _test_young_smolts_raise_no_fcr_alarm() -> void:
+	_check(_sim.start_qa_scenario(SCENARIO_ID, 91), "fcr: Første sesong starts")
+	_sim.set_paused(true)
+	_sim.advance_days(12)
+	var targets: Dictionary = _sim.get_fcr_targets()
+	_check(float(targets.get("target", 0.0)) > 0.0 and float(targets.get("poor", 0.0)) > float(targets.get("target", 0.0)),
+		"fcr: the bridge serves the calibrated target and poor FCR (%s)" % str(targets))
+	_check(not _sim.fcr_is_settled(), "fcr: 12 days after stocking 100 g smolts the FCR is not judged yet")
+	var verdict := FarmStateBanner.evaluate(_sim)
+	_check(int((verdict["factors"] as Dictionary).get("fcr", -1)) == 0,
+		"fcr: the farm banner raises no FCR factor on day 12 (%s, FCR %s)" % [str(verdict["factors"]), str(_sim.fcr)])
+	_check(verdict["summary"] != tr("UI_FARM_STATE_CRITICAL") or str(verdict["worst_key"]) != "fcr",
+		"fcr: no 'Kritisk tilstand' from the feed factor on day 12 (%s)" % str(verdict["summary"]))
+
+## U1-08: the banner's call to action and the inbox's feed advice open the tab
+## where the player can act on them.
+func _test_banner_and_inbox_open_the_right_tab() -> void:
+	var scene := await _spawn_game_scene()
+	_sim.skip_tutorial()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	ui.show_tab("dashboard")
+	await get_tree().process_frame
+	var dashboard := _node_with(ui.find_child("Panel_dashboard", true, false), "_state_banner")
+	var banner: FarmStateBanner = dashboard._state_banner if dashboard != null else null
+	_check(banner != null, "banner: the dashboard shows the farm-state banner")
+	if banner != null:
+		for factor in FarmStateBanner.ACTION_TABS:
+			ui.show_tab("dashboard")
+			await get_tree().process_frame
+			banner.set_action(factor)
+			banner._action.pressed.emit()
+			await get_tree().process_frame
+			var want: String = FarmStateBanner.ACTION_TABS[factor]
+			_check(ui.get_active_tab() == want, "banner: the %s call to action opens '%s' (%s)" % [factor, want, ui.get_active_tab()])
+	var inbox := scene.get_node("AttentionInbox")
+	inbox._on_item_action("open_intervention_detail", "recipe-tune", "")
+	await get_tree().process_frame
+	_check(ui.get_active_tab() == "ai_feeding", "inbox: feed-recipe advice opens AI feeding (%s)" % ui.get_active_tab())
+	inbox._on_item_action("open_intervention_detail", "preemptive-delouse", "")
+	await get_tree().process_frame
+	_check(ui.get_active_tab() == "pens", "inbox: delousing advice opens the pens (%s)" % ui.get_active_tab())
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-03: every tab of a brand-new Første sesong and of PO3 on day 12 (red
+## zone, young fish, live alerts) reads as Norwegian in nb.
+func _test_text_reads_norwegian_in_young_and_red_zone_farms() -> void:
+	var locale := TranslationServer.get_locale()
+	TranslationServer.set_locale("no")
+	for run in [[SCENARIO_ID, 91, 0], ["po3_red_sone", 20261012, 12]]:
+		_check(_sim.start_qa_scenario(run[0], run[1]), "text: %s starts" % run[0])
+		var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+		add_child(scene)
+		for i in 5:
+			await get_tree().process_frame
+		_sim.set_paused(true)
+		_sim.skip_tutorial()
+		if int(run[2]) > 0:
+			_sim.advance_days(int(run[2]))
+		var ui: Control = scene.get_node("UILayer/GameUI")
+		var center: Control = scene.get_node("UILayer/NotificationCenter")
+		var found: PackedStringArray = []
+		for tab in THEME_SCREENS_TABS:
+			ui.show_tab(tab)
+			center.hide_panel()
+			await get_tree().create_timer(THEME_SETTLE_S).timeout
+			for o in TextLint.offenders(get_tree().root, "nb"):
+				found.append("%s: %s" % [tab, o])
+		_check(found.is_empty(), "text: every tab of %s day %d reads as Norwegian %s" % [run[0], run[2], str(found.slice(0, 4))])
+		scene.queue_free()
+		await get_tree().process_frame
+	TranslationServer.set_locale(locale)
+
+## U1-08 (no dead verbs): in a fresh Første sesong every enabled button on
+## every tab is pressed once. None may answer with a failure toast or a
+## push_warning / push_error, and every disabled button says why.
+func _test_every_button_answers() -> void:
+	_clear_test_saves()
+	_check(_sim.start_qa_scenario(SCENARIO_ID, 91), "buttons: fresh Første sesong starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	_sim.skip_tutorial()
+	await get_tree().create_timer(THEME_SETTLE_S).timeout
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	var toasts: Array = []
+	var toast_node := get_node("/root/ToastNotification")
+	var on_toast := func(message: String, level: String) -> void: toasts.append([level, message])
+	toast_node.toast_shown.connect(on_toast)
+	var log := _WarningLog.new()
+	OS.add_logger(log)
+	for tab in THEME_SCREENS_TABS:
+		ui.show_tab(tab)
+		center.hide_panel()
+		await get_tree().create_timer(BUTTON_SETTLE_S).timeout
+		var panel: Node = ui.find_child("Panel_" + tab, true, false)
+		if panel == null:
+			_check(false, "buttons: tab %s has a panel" % tab)
+			continue
+		if tab == "export":
+			_point_export_at_test_dir(panel)
+		var silent: Array = []
+		for node in panel.find_children("*", "BaseButton", true, false):
+			var b := node as BaseButton
+			if b.is_visible_in_tree() and b.disabled and b.tooltip_text.strip_edges() == "":
+				silent.append(_button_label(b))
+		_check(silent.is_empty(), "buttons: every disabled button on %s says why %s" % [tab, str(silent)])
+		var failures: Array = []
+		var presses := 0
+		for node in panel.find_children("*", "BaseButton", true, false):
+			if not is_instance_valid(node) or node.is_queued_for_deletion():
+				continue
+			var b := node as BaseButton
+			if not b.is_visible_in_tree() or b.disabled or BUTTONS_NOT_PRESSED.has(String(b.name)):
+				continue
+			var label := _button_label(b)
+			log.take()
+			toasts.clear()
+			if b.toggle_mode:
+				b.button_pressed = not b.button_pressed
+			b.pressed.emit()
+			presses += 1
+			for i in 3:
+				await get_tree().process_frame
+			var bad := toasts.filter(func(t: Array) -> bool: return t[0] in ["WARNING", "CRITICAL"])
+			var warned := log.take()
+			if not bad.is_empty() or not warned.is_empty():
+				failures.append("%s → %s %s" % [label, str(bad.map(func(t: Array) -> String: return str(t[1]))), str(warned)])
+			_close_popups()
+			if ui.get_active_tab() != tab:
+				ui.show_tab(tab)
+				center.hide_panel()
+				await get_tree().process_frame
+		_check(failures.is_empty(), "buttons: %d presses on %s, no failure toast or warning %s" % [presses, tab, str(failures.slice(0, 3))])
+	OS.remove_logger(log)
+	toast_node.toast_shown.disconnect(on_toast)
+	scene.queue_free()
+	await get_tree().process_frame
+	_clear_test_saves()
+
+## U1-04 (screen regions): at UI scale 80/100/125 % and three window sizes the
+## HUD readouts, goal chip, HUD controls, tab rail, notification drawer, toast
+## stack, tutorial card and camera hint never overlap, touch or leave the
+## screen. Five queued toasts show as at most three disjoint cards in the
+## bottom-right corner, clear of the speed, pause and inbox buttons; the open
+## drawer moves them beside it. No tab label is cut: every tab on the rail
+## sits whole inside it, and the rest are in the "Mer" menu.
+const OverlapLint := preload("res://tests/OverlapLint.gd")
+const REGION_WINDOW_SIZES := [Vector2i(1280, 720), Vector2i(1920, 1080), Vector2i(2560, 1440)]
+const REGION_UI_SCALES := [0.8, 1.0, 1.25]
+
+func _test_screen_regions_never_overlap() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "regions: a scenario with a goal starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	_sim.skip_tutorial()
+	var win := get_window()
+	var old_size := win.size
+	var old_scale := win.content_scale_factor
+	var toasts := get_node("/root/ToastNotification")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var chip: Control = scene.get_node("UILayer/HUD/MainHBox/GoalChip")
+	_check(chip.is_visible_in_tree() and chip.has_goal(), "regions: the goal chip sits in the HUD bar")
+	_check(chip.tooltip_text.contains(str(_sim.get_scenario_goal().get("objective", "?"))),
+		"regions: the chip's tooltip holds the full objective ('%s')" % chip.tooltip_text)
+	var levels := ["INFO", "WARNING", "SUCCESS", "CRITICAL", "INFO"]
+	for size: Vector2i in REGION_WINDOW_SIZES:
+		for scale: float in REGION_UI_SCALES:
+			win.size = size
+			win.content_scale_factor = scale
+			var where := "%dx%d at %d %%" % [size.x, size.y, int(round(scale * 100.0))]
+			toasts.clear_all()
+			center.hide_panel()
+			await get_tree().create_timer(0.4).timeout
+			for n in 5:
+				toasts.show_toast("CI region toast %d" % n, levels[n], 30.0)
+			await get_tree().create_timer(1.4).timeout  # slide-ins and the two make-room exits
+			var screen := get_viewport().get_visible_rect()
+			var found := OverlapLint.regions(scene)
+			var bad := OverlapLint.overlaps(found, screen)
+			_check(bad.is_empty(), "regions: nothing overlaps at %s %s" % [where, str(bad)])
+			var rects: Array = toasts.get_toast_rects()
+			var corner := screen.end - Vector2(toasts.STACK_MARGIN_RIGHT, toasts.STACK_MARGIN_BOTTOM)
+			var newest: Rect2 = rects[0] if not rects.is_empty() else Rect2()
+			_check(rects.size() == 3 and newest.end.distance_to(corner) < 2.0,
+				"regions: five toasts show as three, newest in the bottom-right corner at %s (%d, %s)" % [where, rects.size(), str(newest)])
+			var controls: Rect2 = found.get("hud_controls", Rect2())
+			var clear := controls.has_area()
+			for r: Rect2 in rects:
+				clear = clear and not r.intersects(controls.grow(8.0), true)
+			_check(clear, "regions: no toast comes near the speed, pause or inbox buttons at %s" % where)
+			_check(_rail_tabs_whole(ui), "regions: every tab on the rail is whole, the rest in 'Mer', at %s %s" % [where, str(ui.get_overflow_tabs())])
+			center.show_panel()
+			await get_tree().create_timer(0.5).timeout
+			found = OverlapLint.regions(scene)
+			bad = OverlapLint.overlaps(found, screen)
+			_check(found.has("notification_panel") and found.has("toast_0") and bad.is_empty(),
+				"regions: the open drawer moves the toasts beside it at %s %s" % [where, str(bad)])
+	win.content_scale_factor = old_scale
+	win.size = old_size
+	# The drawer is open but the game UI is hidden (fjord views, photo shots):
+	# the stack goes back to the corner instead of making room for nothing.
+	scene.get_node("UILayer").visible = false
+	await get_tree().create_timer(0.3).timeout
+	var corner_now := get_viewport().get_visible_rect().end - Vector2(toasts.STACK_MARGIN_RIGHT, toasts.STACK_MARGIN_BOTTOM)
+	var shown: Array = toasts.get_toast_rects()
+	_check(not shown.is_empty() and (shown[0] as Rect2).end.distance_to(corner_now) < 2.0,
+		"regions: with the game UI hidden the toasts sit in the corner, not beside a hidden drawer (%s)" % str(shown.slice(0, 1)))
+	scene.get_node("UILayer").visible = true
+	center.hide_panel()
+	toasts.clear_all()
+	await get_tree().process_frame
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Every visible rail tab lies whole inside the rail at its full label width,
+## and the tabs on the rail plus the "Mer" menu are all the tabs.
+func _rail_tabs_whole(ui: Control) -> bool:
+	var rail: Control = ui.find_child("TabBarScroll", true, false)
+	var bar: Control = ui.find_child("TabBar", true, false)
+	var view := rail.get_global_rect().grow(0.5)
+	var shown := 0
+	var total := 0
+	for child in bar.get_children():
+		if not String(child.name).begins_with("Tab_"):
+			continue
+		total += 1
+		var b := child as Button
+		if not b.visible:
+			continue
+		shown += 1
+		if not view.encloses(b.get_global_rect()) or b.size.x + 0.5 < b.get_combined_minimum_size().x:
+			return false
+	var more: Control = bar.get_node_or_null("TabMore")
+	var in_menu: int = ui.get_overflow_tabs().size()
+	if in_menu > 0 and (more == null or not more.visible or not view.encloses(more.get_global_rect())):
+		return false
+	return shown + in_menu == total
+
+## U1-04: a tab in the "Mer" menu opens from it with real input (click the
+## menu, arrow down, Enter) and takes a whole place on the rail.
+func _test_overflow_menu_opens_hidden_tabs() -> void:
+	var scene := await _spawn_game_scene()
+	_sim.skip_tutorial()
+	var win := get_window()
+	var old_scale := win.content_scale_factor
+	win.content_scale_factor = 1.25
+	await get_tree().create_timer(0.3).timeout
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var hidden: Array = ui.get_overflow_tabs()
+	_check(not hidden.is_empty(), "overflow: at 125 %% some tabs move into 'Mer' (%s)" % str(hidden))
+	if not hidden.is_empty():
+		var more: MenuButton = ui.find_child("TabMore", true, false)
+		await _click_control(more)
+		_check(more.get_popup().visible, "overflow: clicking 'Mer' opens the menu")
+		await _press_key(KEY_DOWN)
+		await _press_key(KEY_ENTER)
+		await get_tree().process_frame
+		var opened := String(hidden[0])
+		_check(ui.get_active_tab() == opened, "overflow: the menu opens %s (%s)" % [opened, ui.get_active_tab()])
+		var tab: Control = ui.find_child("Tab_" + opened, true, false)
+		_check(tab.visible and _rail_tabs_whole(ui), "overflow: the opened tab takes a whole place on the rail")
+	win.content_scale_factor = old_scale
+	await get_tree().process_frame
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-04/D15: no function keys (F1–F12 belong to macOS); Cmd/Ctrl+digit opens
+## the core tabs, and a bare digit does not.
+func _test_tab_shortcuts_are_command_digits() -> void:
+	var scene := await _spawn_game_scene()
+	_sim.skip_tutorial()
+	await get_tree().process_frame
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	get_viewport().gui_release_focus()
+	for f in [KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F10, KEY_F12]:
+		await _press_key(f)
+	_check(ui.get_active_tab() == "dashboard", "shortcuts: F-keys switch no tab (%s)" % ui.get_active_tab())
+	for case in [[KEY_3, "finance"], [KEY_0, "analytics"], [KEY_2, "map"], [KEY_1, "dashboard"]]:
+		await _press_command_key(case[0])
+		_check(ui.get_active_tab() == case[1], "shortcuts: Cmd/Ctrl+%s opens %s (%s)" % [OS.get_keycode_string(case[0]), case[1], ui.get_active_tab()])
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_3, 51)
+	_check(ui.get_active_tab() == "dashboard", "shortcuts: a bare 3 opens no tab (%s)" % ui.get_active_tab())
+	var finance_tab: Control = ui.find_child("Tab_finance", true, false)
+	_check(finance_tab.tooltip_text.contains("3"), "shortcuts: the tab names its shortcut ('%s')" % finance_tab.tooltip_text)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-04: the dashboard's alert card shows one row per (category, site). A
+## storm reported on three days (and the storm event behind it) is one row
+## that counts its repeats; two sites with a disease are two rows.
+func _test_dashboard_alerts_one_row_per_category_and_site() -> void:
+	var scene := await _spawn_game_scene()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	for day in 3:
+		_sim._push_alert("warning", "CI: storm i fjorden dag %d" % day, "weather")
+		_sim.advance_days(1)
+	_sim._push_alert("warning", "CI: sykdom på A", "disease", "ci_site_a")
+	_sim._push_alert("critical", "CI: sykdom på A igjen", "disease", "ci_site_a")
+	_sim._push_alert("warning", "CI: sykdom på B", "disease", "ci_site_b")
+	ui.show_tab("dashboard")
+	var dash: Control = ui.find_child("Panel_dashboard", true, false)
+	dash._refresh_all()
+	await get_tree().process_frame
+	var rows: Array = dash.get_alert_rows()
+	var seen := {}
+	var dupes: Array = []
+	for r: Dictionary in rows:
+		var key := "%s|%s" % [r["category"], r["site"]]
+		if seen.has(key):
+			dupes.append(key)
+		seen[key] = r
+	_check(dupes.is_empty() and not rows.is_empty(), "alerts: one row per category and site (%d rows, dupes %s)" % [rows.size(), str(dupes)])
+	_check(seen.has("weather|") and int(seen["weather|"]["count"]) >= 3,
+		"alerts: three storm reports are one counted row (%s)" % str(seen.get("weather|", {}).get("count", 0)))
+	_check(seen.has("disease|ci_site_a") and seen.has("disease|ci_site_b") and int(seen["disease|ci_site_a"]["count"]) == 2,
+		"alerts: a disease at each of two sites is two rows, the repeat counted")
+	var drawn := {}
+	var drawn_rows := 0
+	for row in dash.find_children("*", "HBoxContainer", true, false):
+		if row.has_meta("alert_category"):
+			drawn_rows += 1
+			drawn["%s|%s" % [row.get_meta("alert_category"), row.get_meta("alert_site")]] = true
+	_check(drawn_rows == rows.size() and drawn.size() == rows.size(), "alerts: the card draws each row once (%d drawn)" % drawn_rows)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-06 #1: Esc on the dashboard opens the pause menu and stops the clock;
+## Esc again (or Fortsett) closes it and gives the clock back its state. While
+## it is open the game's own keys (Space, Cmd/Ctrl+digit) wait, and the HUD
+## shows the clock paused. Esc on another tab still goes home first.
+func _test_escape_opens_the_pause_menu() -> void:
+	var scene := await _spawn_game_scene()
+	_sim.skip_tutorial()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var hud: Control = scene.get_node("UILayer/HUD")
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	ui.show_tab("finance")
+	_sim.set_paused(false)
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_ESCAPE)
+	_check(ui.get_active_tab() == "dashboard" and not pause.is_open(), "pause: Esc on a tab goes home first, no menu")
+	await _press_key(KEY_ESCAPE)
+	_check(pause.is_open() and pause.visible, "pause: Esc on the dashboard opens the pause menu")
+	_check(_sim.is_paused(), "pause: the open menu stops the clock")
+	_check(hud._is_paused, "pause: the HUD shows the clock paused")
+	var pauses: Array = []
+	hud.speed_changed.connect(func(_speed: float, paused: bool) -> void: pauses.append(paused))
+	await _press_key(KEY_SPACE, 32)
+	await _press_command_key(KEY_3)
+	_check(pauses.is_empty() and ui.get_active_tab() == "dashboard",
+		"pause: Space and Cmd/Ctrl+3 wait while the menu is open (%s, %s)" % [str(pauses), ui.get_active_tab()])
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.3).timeout
+	_check(not pause.is_open() and not pause.visible, "pause: Esc closes the menu")
+	_check(not _sim.is_paused() and not hud._is_paused, "pause: closing gives the running clock back")
+	_sim.set_paused(true)
+	hud.set_paused_state(true)
+	await _press_key(KEY_ESCAPE)
+	await _click_control(pause.btn_resume)
+	await get_tree().create_timer(0.3).timeout
+	_check(not pause.is_open() and _sim.is_paused(), "pause: Fortsett keeps a clock the player had paused paused")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-06 #2: Pause → Til hovedmenyen asks to save first, then reaches a
+## usable main menu; the abandoned game's clock stays stopped.
+func _test_pause_menu_reaches_the_main_menu() -> void:
+	var scene := await _spawn_game_scene()
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	var target := [""]
+	pause.scene_change_override = func(path: String) -> void: target[0] = path
+	_sim.set_paused(false)
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.3).timeout
+	await _click_control(pause.btn_main_menu)
+	_check(pause.guard.visible and pause.guard_title.text == "Lagre før du går til hovedmenyen?",
+		"pause: Til hovedmenyen asks to save first ('%s')" % pause.guard_title.text)
+	await _click_control(pause.guard_discard)
+	_check(target[0] == "res://scenes/MainMenu.tscn", "pause: 'Gå uten å lagre' goes to the main menu (%s)" % target[0])
+	_check(_sim.is_paused(), "pause: the game left behind does not tick")
+	var menu: Control = (load(target[0]) as PackedScene).instantiate()
+	add_child(menu)
+	await get_tree().process_frame
+	var usable: bool = menu.center.visible
+	for btn: Button in [menu.btn_new_game, menu.btn_load, menu.btn_settings, menu.btn_credits, menu.btn_quit]:
+		usable = usable and btn.is_visible_in_tree() and not btn.disabled
+	_check(usable, "pause: the main menu it reaches is usable")
+	menu.queue_free()
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-06 #3: Pause → Innstillinger → back (Esc, and the close button) returns
+## to the open pause menu with focus on Innstillinger.
+func _test_pause_settings_and_back() -> void:
+	var scene := await _spawn_game_scene()
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.3).timeout
+	await _click_control(pause.btn_settings)
+	_check(pause.settings_menu.visible and not pause.get_node("%Center").visible,
+		"pause: Innstillinger opens the settings in place of the menu")
+	await _press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	_check(not pause.settings_menu.visible and pause.get_node("%Center").visible and pause.is_open(),
+		"pause: Esc in the settings returns to the pause menu")
+	await get_tree().process_frame
+	_check(get_viewport().gui_get_focus_owner() == pause.btn_settings, "pause: focus returns to Innstillinger")
+	await _click_control(pause.btn_settings)
+	await _click_control(pause.settings_menu.get_node("%CloseButton"))
+	_check(not pause.settings_menu.visible and pause.get_node("%Center").visible and pause.is_open(),
+		"pause: the settings' close button also returns to the pause menu")
+	pause.hide_menu()
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-06 #4: the window's close request asks "Lagre før du avslutter?" over
+## the pause menu instead of quitting; Avbryt goes back to the menu; "Lagre og
+## avslutt" writes the quick-save slot, then quits.
+func _test_window_close_asks_to_save() -> void:
+	_clear_test_saves()
+	var scene := await _spawn_game_scene()
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	var quits := [0]
+	pause.quit_override = func() -> void: quits[0] += 1
+	_check(not get_tree().auto_accept_quit, "quit: the game screen takes the window's close request")
+	get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST)
+	await get_tree().create_timer(0.3).timeout
+	_check(pause.is_open() and pause.guard.visible and pause.guard_title.text == "Lagre før du avslutter?",
+		"quit: closing the window asks 'Lagre før du avslutter?' ('%s')" % pause.guard_title.text)
+	_check(quits[0] == 0, "quit: nothing quits before the player answers")
+	await _click_control(pause.guard_cancel)
+	_check(not pause.guard.visible and pause.is_open(), "quit: Avbryt returns to the pause menu")
+	await _click_control(pause.btn_quit)
+	_check(pause.guard.visible, "quit: Avslutt spillet asks the same question")
+	await _click_control(pause.guard_save)
+	_check(quits[0] == 1, "quit: 'Lagre og avslutt' quits once")
+	var saved := false
+	for entry in _sim.get_save_list():
+		saved = saved or str(entry.get("name", "")).begins_with("quicksave")
+	_check(saved, "quit: 'Lagre og avslutt' wrote the quick-save slot first")
+	scene.queue_free()
+	await get_tree().process_frame
+	_check(get_tree().auto_accept_quit, "quit: leaving the game screen gives the close button back")
+	_clear_test_saves()
+
+## U1-06 #5: Fortsett on the main menu loads the newest save: the day and the
+## balance come back exactly. With no save there is no Fortsett and Nytt spill
+## is the primary action.
+func _test_continue_restores_the_latest_save() -> void:
+	_clear_test_saves()
+	var empty := await _spawn_main_menu()
+	_check(not empty.btn_continue.visible and empty.btn_new_game.theme_type_variation == &"LargePrimaryButton",
+		"continue: no save, no Fortsett; Nytt spill is the primary action")
+	empty.queue_free()
+	# A farm with fish and costs, so the balance moves from day to day.
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "setup: a farm whose balance moves")
+	_sim.set_paused(true)
+	_sim.advance_days(4)
+	var older_balance: float = float(_sim.balance)
+	_check(_sim.save_game("ci_continue_older"), "setup: an older save")
+	await get_tree().create_timer(0.05).timeout
+	_sim.advance_days(9)
+	var day: int = _sim.current_day
+	var balance: float = float(_sim.balance)
+	_check(not is_equal_approx(balance, older_balance), "setup: the balance moved between the saves (%s → %s)" % [str(older_balance), str(balance)])
+	_check(_sim.save_game("ci_continue_newest"), "setup: the newest save")
+	_start_paused_game()
+	_sim.advance_days(2)
+	_check(_sim.current_day != day and not is_equal_approx(float(_sim.balance), balance), "setup: a different game is running")
+	var menu := await _spawn_main_menu()
+	var entered := [false]
+	menu.enter_game_override = func() -> void: entered[0] = true
+	_check(menu.btn_continue.visible and menu.btn_continue.theme_type_variation == &"LargePrimaryButton",
+		"continue: a save exists, Fortsett is the primary action")
+	_check(menu.continue_caption.text.contains(str(day)), "continue: the caption names the save's day ('%s')" % menu.continue_caption.text)
+	await _click_control(menu.btn_continue)
+	_check(entered[0], "continue: Fortsett enters the game")
+	_check(_sim.current_day == day and is_equal_approx(float(_sim.balance), balance),
+		"continue: day %d and balance %s restored exactly (%d, %s)" % [day, str(balance), _sim.current_day, str(_sim.balance)])
+	menu.queue_free()
+	await get_tree().process_frame
+	_clear_test_saves()
+
+## U1-06 #6: Medvirkende, from the main menu and from the pause menu, lists
+## every work in THIRD_PARTY.md with its licence; Esc closes it back to the
+## menu it came from. The page is themed and readable.
+func _test_credits_list_every_third_party_work() -> void:
+	var inventory := _third_party_inventory()
+	_check(inventory.size() >= 7, "credits: THIRD_PARTY.md lists the shipped works (%d)" % inventory.size())
+	var menu := await _spawn_main_menu()
+	await _click_control(menu.btn_credits)
+	await get_tree().create_timer(0.5).timeout
+	var credits: Control = menu.credits_screen
+	_check(credits != null and credits.visible and not menu.center.visible, "credits: Medvirkende opens from the main menu")
+	if credits != null:
+		_check_credits_rows(credits, inventory, "main menu")
+		var lint := preload("res://tests/ThemeLint.gd")
+		var unthemed: PackedStringArray = lint.unthemed(credits)
+		var low: PackedStringArray = lint.low_contrast(credits)
+		_check(unthemed.is_empty() and low.is_empty(), "credits: themed and readable %s %s" % [str(unthemed.slice(0, 3)), str(low.slice(0, 3))])
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.4).timeout
+	_check(credits != null and not credits.visible and menu.center.visible, "credits: Esc returns to the main menu")
+	menu.queue_free()
+	await get_tree().process_frame
+
+	var scene := await _spawn_game_scene()
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.3).timeout
+	await _click_control(pause.btn_credits)
+	await get_tree().create_timer(0.5).timeout
+	var from_pause: Control = pause.credits_screen
+	_check(from_pause != null and from_pause.visible, "credits: Medvirkende opens from the pause menu")
+	if from_pause != null:
+		_check_credits_rows(from_pause, inventory, "pause menu")
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.4).timeout
+	_check(pause.is_open() and pause.get_node("%Center").visible, "credits: Esc returns to the pause menu")
+	pause.hide_menu()
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Every inventory row has one drawn row with its name and licence.
+func _check_credits_rows(credits: Control, inventory: Dictionary, where: String) -> void:
+	var drawn := {}
+	for row in credits.find_children("*", "PanelContainer", true, false):
+		if not row.has_meta("credit_name"):
+			continue
+		var name_label: Label = row.find_child("WorkName", true, false)
+		var licence_label: Label = row.find_child("Licence", true, false)
+		drawn[str(row.get_meta("credit_name"))] = {"licence": str(row.get_meta("credit_licence")),
+			"shown": name_label != null and name_label.is_visible_in_tree() and name_label.text != ""
+				and licence_label != null and licence_label.text != ""}
+	var missing: Array = []
+	for component in inventory:
+		var row: Dictionary = drawn.get(component, {})
+		if row.is_empty() or row["licence"] != inventory[component] or not row["shown"]:
+			missing.append(component)
+	_check(missing.is_empty() and drawn.size() == inventory.size(),
+		"credits: every THIRD_PARTY.md work and licence is listed from the %s %s" % [where, str(missing)])
+
+## Component -> licence from the THIRD_PARTY.md table at the repository root.
+func _third_party_inventory() -> Dictionary:
+	var path := ProjectSettings.globalize_path("res://").path_join("../THIRD_PARTY.md").simplify_path()
+	var text := FileAccess.get_file_as_string(path)
+	var rows := {}
+	var header: PackedStringArray = []
+	for line in text.split("\n"):
+		if not line.begins_with("|"):
+			continue
+		var cells: PackedStringArray = []
+		for cell in line.strip_edges().trim_prefix("|").trim_suffix("|").split("|"):
+			cells.append(cell.strip_edges())
+		if header.is_empty():
+			header = cells
+			continue
+		if cells[0].replace("-", "").replace(":", "") == "":
+			continue
+		rows[cells[header.find("Component")]] = cells[header.find("Licence")]
+	return rows
+
+## The save list behind the pause menu's Lagre spill: every enabled button
+## answers without a failure toast or a warning, every disabled one says why
+## (the coverage the removed "Lagre/last inn" tab had in _test_every_button_answers).
+func _test_pause_save_list_buttons_answer() -> void:
+	_clear_test_saves()
+	_check(_sim.start_qa_scenario(SCENARIO_ID, 91), "buttons: fresh Første sesong starts (pause save list)")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	_sim.skip_tutorial()
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	pause.show_menu()
+	pause.btn_save.pressed.emit()
+	await get_tree().create_timer(BUTTON_SETTLE_S).timeout
+	var list: Control = pause.save_load_menu
+	var toasts: Array = []
+	var toast_node := get_node("/root/ToastNotification")
+	var on_toast := func(message: String, level: String) -> void: toasts.append([level, message])
+	toast_node.toast_shown.connect(on_toast)
+	var log := _WarningLog.new()
+	OS.add_logger(log)
+	var silent: Array = []
+	for node in list.find_children("*", "BaseButton", true, false):
+		var b := node as BaseButton
+		if b.is_visible_in_tree() and b.disabled and b.tooltip_text.strip_edges() == "":
+			silent.append(_button_label(b))
+	_check(silent.is_empty(), "buttons: every disabled button on the pause save list says why %s" % str(silent))
+	var failures: Array = []
+	var presses := 0
+	for node in list.find_children("*", "BaseButton", true, false):
+		if not is_instance_valid(node) or node.is_queued_for_deletion():
+			continue
+		var b := node as BaseButton
+		if not b.is_visible_in_tree() or b.disabled or b.name == "CloseButton":
+			continue
+		log.take()
+		toasts.clear()
+		b.pressed.emit()
+		presses += 1
+		for i in 3:
+			await get_tree().process_frame
+		var bad := toasts.filter(func(t: Array) -> bool: return t[0] in ["WARNING", "CRITICAL"])
+		var warned := log.take()
+		if not bad.is_empty() or not warned.is_empty():
+			failures.append("%s → %s %s" % [_button_label(b), str(bad), str(warned)])
+		if not list.visible:
+			pause.btn_save.pressed.emit()
+			await get_tree().process_frame
+	_check(presses > 0 and failures.is_empty(), "buttons: %d presses on the pause save list, no failure toast or warning %s" % [presses, str(failures.slice(0, 3))])
+	OS.remove_logger(log)
+	toast_node.toast_shown.disconnect(on_toast)
+	pause.hide_menu()
+	scene.queue_free()
+	await get_tree().process_frame
+	_clear_test_saves()
+
+## U1-07 #5 (review F692): on a fresh launch — no game started yet in this
+## process, so the engine has no roster — a mod's scenario that the picker
+## lists starts as itself when it is clicked and started, instead of the
+## default game. Runs first in _run(). The mod is the repo's example pack,
+## copied into this checkout's test folder (never the player's user://mods).
+const MOD_SCENARIO_ID := "scenario_fjord_pioneer"
+const EXAMPLE_MOD := "res://mods/example_norwegian_pack"
+
+func _test_mod_scenario_starts_on_a_fresh_launch() -> void:
+	var bridge := get_node("/root/GameBridge")
+	_check(not _sim.is_game_running(), "mods: a fresh launch, no game started yet")
+	var mods_dir := TEST_ROOT + "mods/"
+	_copy_dir(EXAMPLE_MOD, mods_dir + EXAMPLE_MOD.get_file())
+	var loaded: int = bridge.UseModsDirectory(ProjectSettings.globalize_path(mods_dir))
+	_check(loaded == 1, "mods: the example pack loads from the test mods folder (%d)" % loaded)
+	var menu := await _spawn_main_menu()
+	var entered := [false]
+	menu.enter_game_override = func() -> void: entered[0] = true
+	await _click_control(menu.btn_new_game)
+	await get_tree().create_timer(0.4).timeout
+	var picker: Control = menu.scenario_panel
+	var card: Button = picker.get_card(MOD_SCENARIO_ID) if picker != null else null
+	_check(card != null, "mods: the picker lists the mod's scenario")
+	if card != null:
+		await _scroll_into_view(picker, card)
+		await _click_control(card)
+		_check(picker.get_selected_id() == MOD_SCENARIO_ID, "mods: a click selects the mod's card")
+		await _click_control(picker.get_start_button())
+	_check(entered[0], "mods: Start enters the game")
+	_check(_sim.get_active_scenario_id() == MOD_SCENARIO_ID,
+		"mods: the mod's scenario is the running game ('%s')" % _sim.get_active_scenario_id())
+	_check(is_equal_approx(float(_sim.balance), 5_000_000.0), "mods: with the mod's starting capital (%s)" % str(_sim.balance))
+	_sim.set_paused(true)
+	menu.queue_free()
+	await get_tree().process_frame
+	bridge.UseModsDirectory("")
+	_remove_dir(mods_dir)
+
+## U1-07 #1–#4: the picker shows a card for every scenario in the roster (the
+## nine built-in plus mods), each with its capital formatted from the data; a
+## padlock shows only on a locked card (none are locked until U2-03); at
+## 1280 and 1920 px windows and UI scale 100/125 % every card lies whole
+## inside the panel once scrolled to; a click selects a card into the detail
+## pane; a real Esc returns to a usable menu.
+const PICKER_WINDOWS := [Vector2i(1280, 720), Vector2i(1920, 1080)]
+const PICKER_SCALES := [1.0, 1.25]
+
+func _test_scenario_picker() -> void:
+	var menu := await _spawn_main_menu()
+	await _click_control(menu.btn_new_game)
+	await get_tree().create_timer(0.4).timeout
+	var picker: Control = menu.scenario_panel
+	var roster: Array = _sim.get_available_scenarios()
+	var entries: Array = picker.get_scenarios()
+	_check(entries.size() == roster.size() and entries.size() >= 9,
+		"picker: a card for every scenario in the roster (%d cards, %d in the roster)" % [entries.size(), roster.size()])
+	var wrong_capital: Array = []
+	var wrong_lock: Array = []
+	var wrong_mod: Array = []
+	var locked := 0
+	for e: Dictionary in entries:
+		var id := str(e["id"])
+		var card: Button = picker.get_card(id)
+		var capital: Label = card.find_child("Capital", true, false) if card != null else null
+		var want := SimFormatters.format_nok(float(e.get("starting_capital", 0.0)))
+		if capital == null or capital.text != want:
+			wrong_capital.append("%s: '%s' ≠ '%s'" % [id, capital.text if capital else "?", want])
+		var is_locked := not bool(e.get("unlocked", true))
+		locked += 1 if is_locked else 0
+		if card == null or (card.find_child("LockTag", true, false) != null) != is_locked:
+			wrong_lock.append(id)
+		if card == null or (card.find_child("ModTag", true, false) != null) != bool(e.get("is_mod", false)):
+			wrong_mod.append(id)
+	_check(wrong_capital.is_empty(), "picker: every card shows its starting balance formatted %s" % str(wrong_capital))
+	var first: Button = picker.get_card("forste_sesong")
+	var first_capital: Label = first.find_child("Capital", true, false) if first != null else null
+	_check(first_capital != null and first_capital.text == SimFormatters.format_nok(3_000_000.0),
+		"picker: Familiegården starts with 3 000 000 (it read 300 000)")
+	_check(wrong_lock.is_empty(), "picker: a padlock only on a locked card %s" % str(wrong_lock))
+	_check(locked == 0, "picker: no scenario is locked until progression lands (%d locked)" % locked)
+	_check(wrong_mod.is_empty(), "picker: exactly the mods' scenarios carry the Mod tag %s" % str(wrong_mod))
+	# The roadmap's text faults: the goal is equity (ressursrente showed 85 MNOK
+	# "overskudd" for a 25 MNOK goal) and Lakskongen starts in Vestland.
+	for e: Dictionary in entries:
+		if str(e["id"]) == "ressursrente":
+			_check(str(e["win"]).contains("egenkapital") and str(e["win"]).contains("85 MNOK"),
+				"picker: the ressursrente goal names its equity target ('%s')" % str(e["win"]))
+		if str(e["id"]) == "barekraft_mester":
+			_check(not str(e["description"]).contains("hvor som helst") and str(e["description"]).contains("Vestland"),
+				"picker: Lakskongen no longer promises a free choice of region")
+
+	var win := get_window()
+	var old_size := win.size
+	var old_scale := win.content_scale_factor
+	for size: Vector2i in PICKER_WINDOWS:
+		for scale: float in PICKER_SCALES:
+			win.size = size
+			win.content_scale_factor = scale
+			await get_tree().create_timer(0.3).timeout
+			var where := "%dx%d at %d %%" % [size.x, size.y, int(round(scale * 100.0))]
+			var screen := get_viewport().get_visible_rect()
+			var view: Rect2 = picker.find_child("CardScroll", true, false).get_global_rect().grow(0.5)
+			var outside: Array = []
+			for e: Dictionary in entries:
+				var card: Button = picker.get_card(str(e["id"]))
+				await _scroll_into_view(picker, card)
+				var r := card.get_global_rect()
+				if not view.encloses(r) or not picker.get_global_rect().encloses(r):
+					outside.append(str(e["id"]))
+			_check(outside.is_empty(), "picker: every card lies inside the panel once scrolled to at %s %s" % [where, str(outside)])
+			var detail: Control = picker.find_child("Detail", true, false)
+			_check(screen.encloses(detail.get_global_rect()) and screen.encloses(picker.get_start_button().get_global_rect()),
+				"picker: the detail pane and Start fit the screen at %s" % where)
+	win.content_scale_factor = old_scale
+	win.size = old_size
+	await get_tree().process_frame
+
+	var other: Button = picker.get_card("lofoten_eventyr")
+	await _scroll_into_view(picker, other)
+	await _click_control(other)
+	var shown: Label = null
+	for lbl: Label in picker.find_child("Detail", true, false).find_children("*", "Label", true, false):
+		if lbl.theme_type_variation == &"Title":
+			shown = lbl
+	var want_name := ""
+	for e: Dictionary in entries:
+		if str(e["id"]) == "lofoten_eventyr":
+			want_name = str(e["name"])
+	_check(picker.get_selected_id() == "lofoten_eventyr" and shown != null and shown.text == want_name,
+		"picker: a click on a card shows it in the detail pane ('%s')" % (shown.text if shown else "?"))
+
+	await _press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	var usable: bool = menu.center.visible and (menu.scenario_panel == null)
+	for btn: Button in [menu.btn_new_game, menu.btn_load, menu.btn_settings, menu.btn_credits, menu.btn_quit]:
+		usable = usable and btn.is_visible_in_tree() and not btn.disabled
+	_check(usable, "picker: a real Esc returns to a usable menu")
+	await get_tree().process_frame
+	var focus := get_viewport().gui_get_focus_owner()
+	_check(focus == menu.btn_new_game or focus == menu.btn_continue, "picker: focus is back on the menu's primary action")
+	menu.queue_free()
+	await get_tree().process_frame
+
+## Scroll the picker's card grid so a card is on screen.
+func _scroll_into_view(picker: Control, card: Control) -> void:
+	var scroll: ScrollContainer = picker.find_child("CardScroll", true, false)
+	if scroll != null and card != null:
+		scroll.ensure_control_visible(card)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+func _copy_dir(from: String, to: String) -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(to))
+	for file in DirAccess.get_files_at(from):
+		var data := FileAccess.get_file_as_bytes(from.path_join(file))
+		var out := FileAccess.open(to.path_join(file), FileAccess.WRITE)
+		if out != null:
+			out.store_buffer(data)
+			out.close()
+
+func _remove_dir(path: String) -> void:
+	var dir := DirAccess.open(path)
+	if dir == null:
+		return
+	for sub in dir.get_directories():
+		_remove_dir(path.path_join(sub))
+	for file in dir.get_files():
+		dir.remove(file)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+func _point_export_at_test_dir(panel: Node) -> void:
+	var dir := ProjectSettings.globalize_path(TEST_ROOT + "exports")
+	DirAccess.make_dir_recursive_absolute(dir)
+	var export_panel := _node_with(panel, "_export_directory")
+	if export_panel != null:
+		export_panel._path_display.text = dir
+		export_panel._export_directory = dir
+
+func _button_label(b: BaseButton) -> String:
+	var text := str(b.call("get_text")) if b.has_method("get_text") else ""
+	return "%s '%s'" % [b.name, text.replace("\n", " ").left(40)]
+
+func _close_popups() -> void:
+	for w in get_tree().root.find_children("*", "Window", true, false):
+		if (w is AcceptDialog or w is PopupMenu) and (w as Window).visible:
+			(w as Window).hide()
+
+## The node at or under `root` whose script declares `property`.
+func _node_with(root: Node, property: String) -> Node:
+	if root == null:
+		return null
+	if property in root:
+		return root
+	for n in root.find_children("*", "", true, false):
+		if property in n:
+			return n
+	return null
+
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 func _start_paused_game() -> void:
@@ -1060,6 +2085,17 @@ func _press_key(keycode: Key, unicode: int = 0) -> void:
 		ev.keycode = keycode
 		ev.physical_keycode = keycode
 		ev.unicode = unicode if pressed else 0
+		ev.pressed = pressed
+		get_viewport().push_input(ev)
+	await get_tree().process_frame
+
+## A real Cmd+key (macOS) / Ctrl+key (elsewhere) press and release.
+func _press_command_key(keycode: Key) -> void:
+	for pressed in [true, false]:
+		var ev := InputEventKey.new()
+		ev.keycode = keycode
+		ev.physical_keycode = keycode
+		ev.command_or_control_autoremap = true
 		ev.pressed = pressed
 		get_viewport().push_input(ev)
 	await get_tree().process_frame

@@ -11,7 +11,6 @@ class_name TelemetryPanel
 ## Sparkline / LineChart primitives.
 
 const LICE_LIMIT := 0.5          ## Regulatory sea-lice limit (lice/fish).
-const FCR_TARGET := 1.15         ## Feed-conversion target.
 const O2_CRITICAL := 5.0         ## mg/L — appetite/growth collapse.
 const O2_LOW := 6.5              ## mg/L — appetite starts falling.
 const DO_HISTORY_MAX := 60       ## Rolling samples kept for the DO sparkline.
@@ -80,7 +79,7 @@ func _build_header() -> void:
 	var day_lbl := Label.new()
 	day_lbl.text = ("Dag %d" % day) if day >= 0 else "Dag –"
 	_style_label(day_lbl, false, LakskongenTheme.FONT_SM)
-	day_lbl.add_theme_color_override("font_color", LakskongenTheme.TEXT_SECONDARY)
+	LakskongenTheme.set_text_color(day_lbl, LakskongenTheme.TEXT_SECONDARY)
 	head.add_child(day_lbl)
 
 	var btn := Button.new()
@@ -98,7 +97,7 @@ func _build_water() -> void:
 	var temp_txt := "–"
 	var temp_col := LakskongenTheme.TEXT_PRIMARY
 	if not is_nan(temp):
-		temp_txt = "%.1f °C" % temp
+		temp_txt = SimFormatters.fmt("%.1f °C", temp)
 		if temp > 18.0 or temp < 2.0:
 			temp_col = LakskongenTheme.DANGER
 		elif temp > 16.0 or temp < 5.0:
@@ -109,7 +108,7 @@ func _build_water() -> void:
 	var o2_txt := "–"
 	var o2_col := LakskongenTheme.TEXT_MUTED
 	if not is_nan(do_mgl) and do_mgl > 0.0:
-		o2_txt = "%.1f mg/L" % do_mgl
+		o2_txt = SimFormatters.fmt("%.1f mg/L", do_mgl)
 		if do_mgl < O2_CRITICAL:
 			o2_col = LakskongenTheme.DANGER
 		elif do_mgl < O2_LOW:
@@ -129,7 +128,7 @@ func _build_water() -> void:
 				sat_col = LakskongenTheme.DANGER
 			elif sat_frac < 0.80:
 				sat_col = LakskongenTheme.WARNING
-			_add_row(body, "Oksygenmetning", "%.0f %%" % (sat_frac * 100.0), sat_col)
+			_add_row(body, "Oksygenmetning", SimFormatters.percent(sat_frac), sat_col)
 		else:
 			_add_row(body, "Oksygenmetning", "–", LakskongenTheme.TEXT_MUTED)
 	else:
@@ -181,7 +180,7 @@ func _build_lice() -> void:
 	var lice_txt := "–"
 	var lice_col := LakskongenTheme.TEXT_MUTED
 	if not is_nan(lice):
-		lice_txt = "%.2f / fisk (grense %.2f)" % [lice, LICE_LIMIT]
+		lice_txt = SimFormatters.fmt("%.2f / fisk (grense %.2f)", [lice, LICE_LIMIT])
 		if lice >= LICE_LIMIT:
 			lice_col = LakskongenTheme.DANGER
 		elif lice >= 0.2:
@@ -216,7 +215,7 @@ func _build_lice() -> void:
 				col = LakskongenTheme.DANGER
 			elif v >= 0.33:
 				col = LakskongenTheme.WARNING
-			_add_bar(body, _res_label(key), v, col, "%.0f%%" % (v * 100.0))
+			_add_bar(body, _res_label(key), v, col, SimFormatters.percent(v))
 	else:
 		_add_row(body, "Resistens", "–", LakskongenTheme.TEXT_MUTED)
 
@@ -274,11 +273,11 @@ func _build_gill() -> void:
 		col = LakskongenTheme.WARNING
 		tag = "🟡"
 	_add_row(body, "Verste lokalitet", "%s %s" % [tag, worst_name], col)
-	_add_row(body, "Risiko", "%.0f %%" % (worst_risk * 100.0), col)
+	_add_row(body, "Risiko", SimFormatters.percent(worst_risk), col)
 	_add_bar(body, "Risikonivå", worst_risk, col)
 	if not worst_reason.is_empty():
-		_add_row(body, "Årsak", worst_reason, LakskongenTheme.TEXT_SECONDARY)
-	_add_row(body, "Varsler", "%d lokalitet(er)" % warnings,
+		_add_row(body, "Årsak", SimLabels.gill_reason(worst_reason), LakskongenTheme.TEXT_SECONDARY)
+	_add_row(body, "Varsler", ("%d lokalitet" if warnings == 1 else "%d lokaliteter") % warnings,
 		col if warnings > 0 else LakskongenTheme.TEXT_SECONDARY)
 
 # ── Feed & FCR ────────────────────────────────────────────────────────────────
@@ -286,14 +285,21 @@ func _build_gill() -> void:
 func _build_feed() -> void:
 	var body := _add_section("🍽️ Fôr & FCR")
 
+	# Target and ceiling come from CalibrationRegistry through the bridge (one
+	# FCR target for every panel); fresh smolts are not judged (U1-08).
 	var fcr := _num("fcr")
+	var fcr_target := _num("fcr_target")
+	var fcr_poor := _num("fcr_poor")
+	var settled: bool = _sim != null and _sim.has_method("fcr_is_settled") and bool(_sim.fcr_is_settled())
 	var fcr_txt := "–"
 	var fcr_col := LakskongenTheme.TEXT_MUTED
 	if not is_nan(fcr) and fcr > 0.0:
-		fcr_txt = "%.2f (mål %.2f)" % [fcr, FCR_TARGET]
-		if fcr > 1.35:
+		fcr_txt = SimFormatters.fmt("%.2f (mål %.2f)", [fcr, fcr_target])
+		if not settled:
+			fcr_txt += " · smolten er i tilvenning"
+		elif fcr > fcr_poor:
 			fcr_col = LakskongenTheme.DANGER
-		elif fcr > FCR_TARGET:
+		elif fcr > fcr_target:
 			fcr_col = LakskongenTheme.WARNING
 		else:
 			fcr_col = LakskongenTheme.SUCCESS
@@ -303,7 +309,7 @@ func _build_feed() -> void:
 	if _has_finite(series):
 		var lc := LineChart.new()
 		lc.title = "FCR (30 d)"
-		lc.threshold = FCR_TARGET
+		lc.threshold = fcr_target
 		lc.unit_fmt = "%.2f"
 		lc.line_color = LakskongenTheme.ACCENT
 		body.add_child(lc)
@@ -318,14 +324,14 @@ func _build_feed() -> void:
 	if recipe is Dictionary and not (recipe as Dictionary).is_empty():
 		var r := recipe as Dictionary
 		_add_row(body, "Fôrresept",
-			"Kvalitet %s · FCR-faktor ×%.2f" % [str(r.get("grade", "?")), float(r.get("fcr_mult", 1.0))],
+			SimFormatters.fmt("Kvalitet %s · FCR-faktor ×%.2f", [str(r.get("grade", "?")), float(r.get("fcr_mult", 1.0))]),
 			LakskongenTheme.TEXT_SECONDARY)
 	else:
 		_add_row(body, "Fôrresept", "–", LakskongenTheme.TEXT_MUTED)
 
 	var temp := _num("temperature_c")
 	if not is_nan(temp):
-		_add_row(body, "Temperatur", "%.1f °C — %s" % [temp, _temp_phrase(temp)], LakskongenTheme.TEXT_SECONDARY)
+		_add_row(body, "Temperatur", SimFormatters.fmt("%.1f °C — %s", [temp, _temp_phrase(temp)]), LakskongenTheme.TEXT_SECONDARY)
 	else:
 		_add_row(body, "Temperatur", "–", LakskongenTheme.TEXT_MUTED)
 
@@ -336,7 +342,7 @@ func _build_feed() -> void:
 			dcol = LakskongenTheme.DANGER
 		elif dens > 0.75:
 			dcol = LakskongenTheme.WARNING
-		_add_row(body, "Tetthet", "%.0f %% av MAB — %s" % [dens * 100.0, _density_phrase(dens)], dcol)
+		_add_row(body, "Tetthet", "%s av MTB — %s" % [SimFormatters.percent(dens), _density_phrase(dens)], dcol)
 	else:
 		_add_row(body, "Tetthet", "–", LakskongenTheme.TEXT_MUTED)
 
@@ -396,12 +402,12 @@ func _build_smolt() -> void:
 			if not (t is Dictionary):
 				continue
 			var td := t as Dictionary
-			var name := str(td.get("name", td.get("id", "?")))
+			var name := SimLabels.smolt_tier(str(td.get("id", "")))
 			var mort := float(td.get("mortality_mult", 1.0))
 			var growth := float(td.get("growth_mult", 1.0))
 			var quality := float(td.get("quality", 0.0))
 			_add_row(body, name,
-				"dødelighet ×%.2f · vekst ×%.2f · kvalitet %.0f%%" % [mort, growth, quality * 100.0],
+				SimFormatters.fmt("dødelighet ×%.2f · vekst ×%.2f · kvalitet %s", [mort, growth, SimFormatters.percent(quality)]),
 				LakskongenTheme.TEXT_SECONDARY)
 	else:
 		_add_row(body, "Katalog", "–", LakskongenTheme.TEXT_MUTED)
@@ -427,21 +433,19 @@ func _derive_smolt_mix() -> Dictionary:
 func _tier_name(v) -> String:
 	if v is int or v is float:
 		match int(v):
-			0: return "Standard"
 			1: return "Large"
 			2: return "SuperSmolt"
 			_: return "Standard"
-	var s := str(v)
-	return s
+	return str(v)
 
 func _mix_summary(mix: Dictionary) -> String:
 	var parts := PackedStringArray()
 	for tier in ["Standard", "Large", "SuperSmolt"]:
 		if mix.has(tier):
-			parts.append("%s: %d" % [tier, int(mix[tier])])
+			parts.append("%s: %d" % [SimLabels.smolt_tier(tier), int(mix[tier])])
 	for tier in mix.keys():
 		if tier not in ["Standard", "Large", "SuperSmolt"]:
-			parts.append("%s: %d" % [str(tier), int(mix[tier])])
+			parts.append("%s: %d" % [SimLabels.smolt_tier(str(tier)), int(mix[tier])])
 	if parts.is_empty():
 		return "–"
 	return ", ".join(parts)
@@ -462,7 +466,7 @@ func _build_insurance() -> void:
 		["mortality", "Dødelighet"],
 		["bloom", "Algeblomst"],
 		["storm", "Storm"],
-		["isa", "ISA"],
+		["isa", "ILA"],
 	]
 	for entry in kinds:
 		var key: String = entry[0]
@@ -479,7 +483,7 @@ func _build_insurance() -> void:
 			var prem := float(id.get("premium", 0.0))
 			var cov := float(id.get("coverage", 0.0))
 			_add_row(body, label,
-				"✅ Aktiv · dekning %.0f%% · %s" % [cov * 100.0, _format_nok(prem)],
+				"✅ Aktiv · dekning %s · %s" % [SimFormatters.percent(cov), _format_nok(prem)],
 				LakskongenTheme.SUCCESS)
 		else:
 			_add_row(body, label, "— Ikke tegnet", LakskongenTheme.TEXT_MUTED)
@@ -491,14 +495,14 @@ func _build_market() -> void:
 
 	var pen_price := float(_callp("get_pen_price", 0.0))
 	if pen_price > 0.0:
-		_add_row(body, "Bindende pen-pris", "%.2f NOK/kg" % pen_price, LakskongenTheme.TEXT_PRIMARY)
+		_add_row(body, "Bindende pen-pris", SimFormatters.fmt("%.2f NOK/kg", pen_price), LakskongenTheme.TEXT_PRIMARY)
 	else:
 		_add_row(body, "Bindende pen-pris", "–", LakskongenTheme.TEXT_MUTED)
 
 	if _has("market_price_nok"):
 		var mp := _num("market_price_nok")
 		if not is_nan(mp):
-			_add_row(body, "Spotmarkedspris", "%.2f NOK/kg" % mp, LakskongenTheme.TEXT_SECONDARY)
+			_add_row(body, "Spotmarkedspris", SimFormatters.fmt("%.2f NOK/kg", mp), LakskongenTheme.TEXT_SECONDARY)
 
 	var pressure := float(_callp("get_player_supply_pressure", -1.0))
 	if pressure >= 0.0:
@@ -507,7 +511,7 @@ func _build_market() -> void:
 			col = LakskongenTheme.DANGER
 		elif pressure > 0.33:
 			col = LakskongenTheme.WARNING
-		_add_bar(body, "Spillertilbud-press", pressure, col, "%.0f%%" % (pressure * 100.0))
+		_add_bar(body, "Spillertilbud-press", pressure, col, SimFormatters.percent(pressure))
 		_add_row(body, "Prispåvirkning", _pressure_phrase(pressure), col)
 	else:
 		_add_row(body, "Spillertilbud-press", "– (ikke tilgjengelig)", LakskongenTheme.TEXT_MUTED)
@@ -645,7 +649,7 @@ func _add_unavailable(msg: String) -> void:
 	var lbl := Label.new()
 	lbl.text = msg
 	_style_label(lbl, false, LakskongenTheme.FONT_BODY)
-	lbl.add_theme_color_override("font_color", LakskongenTheme.TEXT_MUTED)
+	LakskongenTheme.set_text_color(lbl, LakskongenTheme.TEXT_MUTED)
 	_root.add_child(lbl)
 
 func _add_section(title: String) -> VBoxContainer:
@@ -696,7 +700,7 @@ func _add_subheader(body: VBoxContainer, text: String) -> void:
 	var lbl := Label.new()
 	lbl.text = text
 	_style_label(lbl, true, LakskongenTheme.FONT_XS)
-	lbl.add_theme_color_override("font_color", LakskongenTheme.ACCENT)
+	LakskongenTheme.set_text_color(lbl, LakskongenTheme.ACCENT)
 	body.add_child(lbl)
 
 func _add_note(body: VBoxContainer, text: String) -> void:
@@ -704,7 +708,7 @@ func _add_note(body: VBoxContainer, text: String) -> void:
 	lbl.text = text
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_style_label(lbl, false, LakskongenTheme.FONT_XS)
-	lbl.add_theme_color_override("font_color", LakskongenTheme.TEXT_MUTED)
+	LakskongenTheme.set_text_color(lbl, LakskongenTheme.TEXT_MUTED)
 	body.add_child(lbl)
 
 func _add_row(body: VBoxContainer, label: String, value: String,
@@ -717,14 +721,14 @@ func _add_row(body: VBoxContainer, label: String, value: String,
 	l.text = label
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_label(l, false, LakskongenTheme.FONT_SM)
-	l.add_theme_color_override("font_color", LakskongenTheme.TEXT_SECONDARY)
+	LakskongenTheme.set_text_color(l, LakskongenTheme.TEXT_SECONDARY)
 	row.add_child(l)
 
 	var v := Label.new()
 	v.text = value
 	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_style_label(v, true, LakskongenTheme.FONT_SM)
-	v.add_theme_color_override("font_color", color)
+	LakskongenTheme.set_text_color(v, color)
 	row.add_child(v)
 	return row
 
@@ -738,7 +742,7 @@ func _add_bar(body: VBoxContainer, label: String, frac: float, color: Color,
 	l.text = label
 	l.custom_minimum_size = Vector2(150, 0)
 	_style_label(l, false, LakskongenTheme.FONT_XS)
-	l.add_theme_color_override("font_color", LakskongenTheme.TEXT_SECONDARY)
+	LakskongenTheme.set_text_color(l, LakskongenTheme.TEXT_SECONDARY)
 	row.add_child(l)
 
 	var pb := ProgressBar.new()
@@ -764,17 +768,10 @@ func _add_bar(body: VBoxContainer, label: String, frac: float, color: Color,
 		v.custom_minimum_size = Vector2(56, 0)
 		v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		_style_label(v, false, LakskongenTheme.FONT_XS)
-		v.add_theme_color_override("font_color", color)
+		LakskongenTheme.set_text_color(v, color)
 		row.add_child(v)
 
 func _style_label(lbl: Label, heading: bool, size_px: int) -> void:
-	lbl.add_theme_font_size_override("font_size", size_px)
-	if _theme == null:
-		return
-	var f: Font = null
-	if heading and _theme.font_heading_semibold != null:
-		f = _theme.font_heading_semibold
-	elif _theme.font_body != null:
-		f = _theme.font_body
-	if f != null:
-		lbl.add_theme_font_override("font", f)
+	if heading:
+		LakskongenTheme.set_strong(lbl)
+	LakskongenTheme.set_size(lbl, size_px)

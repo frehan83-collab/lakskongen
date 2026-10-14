@@ -1,45 +1,7 @@
-[gd_scene load_steps=7 format=3 uid="uid://bks2yj3v1fkl8"]
+[gd_scene load_steps=3 format=3 uid="uid://bks2yj3v1fkl8"]
 
 [ext_resource type="Script" path="res://scripts/ui/HUD.gd" id="1_hud"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud_bg"]
-bg_color = Color(0.0392157, 0.301961, 0.407843, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_speed_normal"]
-bg_color = Color(1, 1, 1, 0.08)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 4.0
-content_margin_top = 4.0
-content_margin_right = 4.0
-content_margin_bottom = 4.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_speed_hover"]
-bg_color = Color(1, 1, 1, 0.15)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 4.0
-content_margin_top = 4.0
-content_margin_right = 4.0
-content_margin_bottom = 4.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_speed_pressed"]
-bg_color = Color(0.533333, 0.752941, 0.815686, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 4.0
-content_margin_top = 4.0
-content_margin_right = 4.0
-content_margin_bottom = 4.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud_sep"]
-bg_color = Color(1, 1, 1, 0.12)
+[ext_resource type="PackedScene" uid="uid://scenario_goal_hud_001" path="res://ui/ScenarioGoalHUD.tscn" id="2_goal"]
 
 [node name="HUD" type="Control"]
 layout_mode = 3
@@ -57,7 +19,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_hud_bg")
+theme_type_variation = &"Rail"
 
 [node name="MainHBox" type="HBoxContainer" parent="."]
 layout_mode = 1
@@ -82,14 +44,12 @@ theme_override_constants/separation = 4
 
 [node name="DayIcon" type="Label" parent="MainHBox/Left/DayItem"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "📅"
 
 [node name="DayValue" type="Label" parent="MainHBox/Left/DayItem"]
+theme_type_variation = &"Figure"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.92549, 0.937255, 0.956863, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 
 [node name="SeasonItem" type="HBoxContainer" parent="MainHBox/Left"]
@@ -99,19 +59,16 @@ theme_override_constants/separation = 4
 [node name="SeasonIcon" type="Label" parent="MainHBox/Left/SeasonItem"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "?"
 
 [node name="SeasonValue" type="Label" parent="MainHBox/Left/SeasonItem"]
+theme_type_variation = &"FigureInfo"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.639216, 0.819608, 0.870588, 1)
-theme_override_font_sizes/font_size = 13
 text = "---"
 
 [node name="Sep1" type="VSeparator" parent="MainHBox/Left"]
 layout_mode = 2
-theme_override_styles/separator = SubResource("StyleBoxFlat_hud_sep")
 
 [node name="BalanceItem" type="HBoxContainer" parent="MainHBox/Left"]
 layout_mode = 2
@@ -120,19 +77,16 @@ theme_override_constants/separation = 4
 
 [node name="BalanceIcon" type="Label" parent="MainHBox/Left/BalanceItem"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "💰"
 
 [node name="BalanceValue" type="Label" parent="MainHBox/Left/BalanceItem"]
+theme_type_variation = &"Figure"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.92549, 0.937255, 0.956863, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 
 [node name="Sep2" type="VSeparator" parent="MainHBox/Left"]
 layout_mode = 2
-theme_override_styles/separator = SubResource("StyleBoxFlat_hud_sep")
 
 [node name="FishItem" type="HBoxContainer" parent="MainHBox/Left"]
 layout_mode = 2
@@ -141,19 +95,16 @@ theme_override_constants/separation = 4
 
 [node name="FishIcon" type="Label" parent="MainHBox/Left/FishItem"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "🐟"
 
 [node name="FishValue" type="Label" parent="MainHBox/Left/FishItem"]
+theme_type_variation = &"Figure"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.92549, 0.937255, 0.956863, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 
 [node name="Sep3" type="VSeparator" parent="MainHBox/Left"]
 layout_mode = 2
-theme_override_styles/separator = SubResource("StyleBoxFlat_hud_sep")
 
 [node name="TempItem" type="HBoxContainer" parent="MainHBox/Left"]
 layout_mode = 2
@@ -162,14 +113,12 @@ theme_override_constants/separation = 4
 
 [node name="TempIcon" type="Label" parent="MainHBox/Left/TempItem"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "🌡️"
 
 [node name="TempValue" type="Label" parent="MainHBox/Left/TempItem"]
+theme_type_variation = &"Figure"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.92549, 0.937255, 0.956863, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 
 [node name="PriceItem" type="HBoxContainer" parent="MainHBox/Left"]
@@ -179,19 +128,16 @@ theme_override_constants/separation = 4
 
 [node name="PriceIcon" type="Label" parent="MainHBox/Left/PriceItem"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "📈"
 
 [node name="PriceValue" type="Label" parent="MainHBox/Left/PriceItem"]
+theme_type_variation = &"Figure"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.92549, 0.937255, 0.956863, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 
 [node name="Sep4" type="VSeparator" parent="MainHBox/Left"]
 layout_mode = 2
-theme_override_styles/separator = SubResource("StyleBoxFlat_hud_sep")
 
 [node name="AlertItem" type="HBoxContainer" parent="MainHBox/Left"]
 layout_mode = 2
@@ -200,14 +146,12 @@ theme_override_constants/separation = 4
 
 [node name="AlertIcon" type="Label" parent="MainHBox/Left/AlertItem"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "⚠️"
 
 [node name="AlertsValue" type="Label" parent="MainHBox/Left/AlertItem"]
+theme_type_variation = &"Figure"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.92549, 0.937255, 0.956863, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
 
 [node name="WeatherItem" type="HBoxContainer" parent="MainHBox/Left"]
@@ -217,15 +161,18 @@ theme_override_constants/separation = 4
 
 [node name="WeatherIcon" type="Label" parent="MainHBox/Left/WeatherItem"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "🌤️"
 
 [node name="WeatherValue" type="Label" parent="MainHBox/Left/WeatherItem"]
+theme_type_variation = &"Figure"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.92549, 0.937255, 0.956863, 1)
-theme_override_font_sizes/font_size = 13
 text = "--"
+
+[node name="GoalChip" parent="MainHBox" instance=ExtResource("2_goal")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 8
 
 [node name="Right" type="HBoxContainer" parent="MainHBox"]
 layout_mode = 2
@@ -233,75 +180,45 @@ theme_override_constants/separation = 4
 alignment = 2
 
 [node name="InboxBtn" type="Button" parent="MainHBox/Right"]
+theme_type_variation = &"GhostButton"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
-tooltip_text = "Attention inbox (I)"
-theme_override_colors/font_color = Color(0.92549, 0.937255, 0.956863, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 12
-theme_override_styles/normal = SubResource("StyleBoxFlat_speed_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_speed_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_speed_pressed")
+tooltip_text = "Varslingsinnboks (I)"
 text = "🔔"
 
 [node name="PauseBtn" type="Button" parent="MainHBox/Right"]
+theme_type_variation = &"RailTab"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
-tooltip_text = "Pause/Resume (Space)"
-theme_override_colors/font_color = Color(0.92549, 0.937255, 0.956863, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 12
-theme_override_styles/normal = SubResource("StyleBoxFlat_speed_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_speed_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_speed_pressed")
+tooltip_text = "Pause/fortsett (mellomrom)"
 toggle_mode = true
 text = "⏸"
 
 [node name="Speed1x" type="Button" parent="MainHBox/Right"]
+theme_type_variation = &"RailTab"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
 tooltip_text = "Normal hastighet"
-theme_override_colors/font_color = Color(0.92549, 0.937255, 0.956863, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 12
-theme_override_styles/normal = SubResource("StyleBoxFlat_speed_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_speed_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_speed_pressed")
 toggle_mode = true
 text = "1x"
 
 [node name="Speed2x" type="Button" parent="MainHBox/Right"]
+theme_type_variation = &"RailTab"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
 tooltip_text = "Dobbel hastighet"
-theme_override_colors/font_color = Color(0.92549, 0.937255, 0.956863, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 12
-theme_override_styles/normal = SubResource("StyleBoxFlat_speed_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_speed_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_speed_pressed")
 toggle_mode = true
 text = "2x"
 
 [node name="Speed5x" type="Button" parent="MainHBox/Right"]
+theme_type_variation = &"RailTab"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
-tooltip_text = "5x hastighet"
-theme_override_colors/font_color = Color(0.92549, 0.937255, 0.956863, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 12
-theme_override_styles/normal = SubResource("StyleBoxFlat_speed_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_speed_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_speed_pressed")
+tooltip_text = "5× hastighet"
 toggle_mode = true
 text = "5x"

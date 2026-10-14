@@ -182,15 +182,15 @@ func _get_stage_quantity(stage_data: Dictionary) -> float:
 func _get_status_color(stage_data: Dictionary, quantity: float) -> Color:
 	# Gray if not unlocked
 	if not _is_stage_unlocked(stage_data):
-		return Color("#D8DEE9")  # Gray
+		return Color("#D6CFBF")  # Gray
 
 	# Green/yellow/red based on thresholds
 	if quantity >= stage_data.threshold_green:
-		return Color("#A3BE8C")  # Green (flowing)
+		return Color("#2E6B45")  # Green (flowing)
 	elif quantity >= stage_data.threshold_yellow:
-		return Color("#EBCB8B")  # Yellow (slow)
+		return Color("#8A5A00")  # Yellow (slow)
 	else:
-		return Color("#BF616A")  # Red (bottleneck)
+		return Color("#B3172F")  # Red (bottleneck)
 
 func _is_stage_unlocked(stage_data: Dictionary) -> bool:
 	match stage_data.id:

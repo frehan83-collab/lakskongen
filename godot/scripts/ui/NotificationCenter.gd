@@ -16,21 +16,20 @@ signal panel_toggled(is_open: bool)
 # ── Constants ──────────────────────────────────────────────────────────────────
 
 const MAX_ENTRIES := 20
+## Space between the open drawer and the toast stack beside it.
+const TOAST_GAP := 12.0
+## Moved beside the drawer, the stack also rises above the bottom-centre band
+## (the fjord camera hint and its "Fly til merd" button, 104 px tall).
+const TOAST_LIFT := 112.0
 
-const SEVERITY_COLORS := {
-	"info":     Color("#A3D1DE"),  # light blue
-	"warning":  Color(1.00, 0.80, 0.10),  # yellow
-	"critical": Color("#BF616A"),  # red
-}
-
-# Readable TEXT/glyph variants of the severity palette. The bright fills above
-# are decorative (rails/borders); as text on the white cards they fail contrast
-# (yellow ≈1.5:1, light blue ≈1.4:1). "⚠"/"ℹ" are text glyphs, not emoji, so
-# they need a readable colour too (S3 a11y audit).
-const SEVERITY_TEXT_COLORS := {
-	"info":     Color("#0A4D68"),  # primary — 9.2:1 on white
-	"warning":  Color("#9A7B1F"),  # matches AttentionInbox high — 4.9:1
-	"critical": Color("#A54E56"),  # danger-dark — 5.1:1
+# Severity -> Kyst & Stål tone. Entries are "Callout<Tone>" cards on the panel's
+# Ink surface and glyphs/headers use "<Role><Tone>" labels, so every colour
+# comes from the theme and meets the D13 contrast table ("⚠"/"ℹ" are text
+# glyphs, not emoji, so they need a readable colour too).
+const SEVERITY_TONES := {
+	"info":     &"Info",
+	"warning":  &"Warn",
+	"critical": &"Crit",
 }
 
 const SEVERITY_ICONS := {
@@ -70,6 +69,9 @@ var _is_open: bool = false
 var _expanded_index: int = -1   # which entry is currently expanded (-1 = none)
 var _slide_tween: Tween = null
 var _clear_button: Button = null
+## The toast-stack room last asked for (open drawer and its left edge).
+var _toast_room_open: bool = false
+var _toast_room_left: float = -1.0
 
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
 
@@ -113,10 +115,8 @@ func _apply_localization() -> void:
 		close_button.tooltip_text = tr("UI_NOTIFY_TITLE")
 
 func _apply_theme_fonts() -> void:
-	if not _theme or not _theme.font_heading_semibold:
-		return
 	if _title_label:
-		_title_label.add_theme_font_override("font", _theme.font_heading_semibold)
+		LakskongenTheme.set_strong(_title_label)
 
 ## The scene ships without a clear-all button; add one to the header if absent.
 func _ensure_clear_button() -> void:
@@ -177,6 +177,7 @@ func show_panel() -> void:
 		return
 	_is_open = true
 	panel.show()
+	_sync_toast_room()
 	if anim_player and anim_player.has_animation("slide_in"):
 		anim_player.play("slide_in")
 	else:
@@ -187,6 +188,7 @@ func hide_panel() -> void:
 	if not _is_open:
 		return
 	_is_open = false
+	_sync_toast_room()
 	if anim_player and anim_player.has_animation("slide_out"):
 		anim_player.play("slide_out")
 		await anim_player.animation_finished
@@ -194,6 +196,36 @@ func hide_panel() -> void:
 		await _slide_out()
 	panel.hide()
 	panel_toggled.emit(false)
+
+## Screen regions (roadmap U1-04): the open history is a drawer on the right
+## edge, under the tab rail; the toast stack moves left of it while it is open
+## and on screen, and back to the corner when it closes, is hidden with the
+## game UI (fjord views, photo shots) or the game scene goes away. Checked
+## every frame, so a UI-scale change moves the stack with the drawer.
+func _process(_delta: float) -> void:
+	_sync_toast_room()
+
+func _sync_toast_room() -> void:
+	var open := _is_open and panel != null and panel.is_visible_in_tree()
+	var drawer_left := get_global_rect().position.x if open else -1.0
+	if open == _toast_room_open and is_equal_approx(drawer_left, _toast_room_left):
+		return
+	_toast_room_open = open
+	_toast_room_left = drawer_left
+	var toasts := get_node_or_null("/root/ToastNotification")
+	if toasts == null or not toasts.has_method("set_right_inset"):
+		return
+	var inset := 0.0
+	var lift := 0.0
+	if open:
+		inset = get_viewport_rect().size.x - drawer_left - float(toasts.STACK_MARGIN_RIGHT) + TOAST_GAP
+		lift = TOAST_LIFT
+	toasts.set_right_inset(inset, lift)
+
+func _exit_tree() -> void:
+	if _toast_room_open:
+		_is_open = false
+		_sync_toast_room()
 
 ## Slide-in juice (display only): fade + rise from the right edge.
 func _slide_in() -> void:
@@ -291,21 +323,15 @@ func _rebuild_list() -> void:
 
 func _build_entry_node(entry: Dictionary, index: int) -> Control:
 	var sev: String   = entry.get("severity", "info")
-	var color: Color  = SEVERITY_COLORS.get(sev, SEVERITY_COLORS["info"])
+	var tone: StringName = SEVERITY_TONES.get(sev, &"Info")
 	var is_expanded   := (_expanded_index == index)
 
 	# Outer panel
 	var panel_node := PanelContainer.new()
 	panel_node.name = "Entry_%d" % index
 
-	# Style the panel border to match severity color
-	var style := StyleBoxFlat.new()
-	style.border_color = color
-	style.set_border_width_all(0)
-	style.border_width_left = 3
-	style.bg_color = Color("#FFFFFF")
-	style.set_corner_radius_all(4)
-	panel_node.add_theme_stylebox_override("panel", style)
+	# Severity-tinted callout with a tone edge (theme variation).
+	panel_node.theme_type_variation = StringName("Callout" + String(tone))
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 2)
@@ -318,28 +344,28 @@ func _build_entry_node(entry: Dictionary, index: int) -> Control:
 	var icon_lbl := Label.new()
 	icon_lbl.text = entry.get("icon", "ℹ")
 	icon_lbl.custom_minimum_size = Vector2(24, 0)
-	icon_lbl.add_theme_color_override("font_color", SEVERITY_TEXT_COLORS.get(sev, SEVERITY_TEXT_COLORS["info"]))
+	icon_lbl.theme_type_variation = StringName("BodyStrong" + String(tone))
 	header.add_child(icon_lbl)
 
 	var title_lbl := Label.new()
 	title_lbl.text = entry.get("title", "")
 	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_lbl.add_theme_color_override("font_color", Color("#2E3440"))
-	title_lbl.add_theme_font_size_override("font_size", 12)
+	LakskongenTheme.set_tone(title_lbl, &"")
+	LakskongenTheme.set_size(title_lbl, 12)
 	header.add_child(title_lbl)
 
 	var day_lbl := Label.new()
 	day_lbl.text = _tr_day_format(entry.get("day", 0))
-	day_lbl.add_theme_color_override("font_color", Color("#7B8794"))
-	day_lbl.add_theme_font_size_override("font_size", 11)
+	LakskongenTheme.set_tone(day_lbl, &"Muted")
+	LakskongenTheme.set_size(day_lbl, 11)
 	header.add_child(day_lbl)
 
 	# Description (shown when expanded)
 	var desc_lbl := Label.new()
 	desc_lbl.text = entry.get("description", "")
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc_lbl.add_theme_color_override("font_color", Color("#4C566A"))
-	desc_lbl.add_theme_font_size_override("font_size", 11)
+	LakskongenTheme.set_tone(desc_lbl, &"Muted")
+	LakskongenTheme.set_size(desc_lbl, 11)
 	desc_lbl.visible = is_expanded
 	desc_lbl.name = "Desc"
 	vbox.add_child(desc_lbl)
@@ -390,8 +416,7 @@ func _build_group_header(rank: int) -> Control:
 	var sev := _rank_to_severity(rank)
 	var lbl := Label.new()
 	lbl.text = _tr_or("UI_NOTIFY_GROUP_%s" % sev.to_upper(), GROUP_TITLES.get(sev, "Info"))
-	lbl.add_theme_font_size_override("font_size", 11)
-	lbl.add_theme_color_override("font_color", SEVERITY_TEXT_COLORS.get(sev, SEVERITY_TEXT_COLORS["info"]))
+	lbl.theme_type_variation = StringName("Caption" + String(SEVERITY_TONES.get(sev, &"Info")))
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return lbl
 

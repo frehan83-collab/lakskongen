@@ -8,6 +8,8 @@ extends Control
 @onready var _hud: Control = %HUD
 @onready var _game_ui: Control = %GameUI
 @onready var _dashboard: Control = null  # Dashboard is now loaded dynamically by GameUI
+## The pause menu (Esc, roadmap U1-06): on its own layer above the game UI.
+@onready var _pause_menu: Control = get_node_or_null("%PauseMenu")
 
 # Configuration
 const STARTING_CAPITAL: int = 10_000_000
@@ -15,8 +17,6 @@ const DEFAULT_PLAYER_NAME: String = "Player"
 
 # State
 var _game_started: bool = false
-# Optional PauseMenu instance (not currently in Main.tscn — toggle stays inert until wired).
-var _pause_menu: Control = null
 # Last critical message that triggered auto-pause (dedupe: conditions repeat daily).
 var _last_auto_pause_msg: String = ""
 
@@ -36,6 +36,13 @@ func _ready() -> void:
 	# Connect HUD speed change signal
 	if _hud:
 		_hud.speed_changed.connect(_on_speed_changed)
+
+	# The window's close button asks "Lagre før du avslutter?" (U1-06): the
+	# game screen takes the close request instead of quitting outright.
+	get_tree().set_auto_accept_quit(false)
+	if _pause_menu:
+		_pause_menu.opened.connect(_sync_hud_pause)
+		_pause_menu.closed.connect(_sync_hud_pause)
 
 	# Start the game after a short delay to ensure everything is ready
 	call_deferred("_start_game")
@@ -69,11 +76,40 @@ func _start_game() -> void:
 	else:
 		push_error("Main: Failed to start game!")
 
-## Ctrl/Cmd+S quicksave (project input action `quick_save`).
+func _exit_tree() -> void:
+	get_tree().set_auto_accept_quit(true)
+
+## The window's close button (and Cmd+Q on macOS) ask before leaving.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		request_quit()
+
+## Ask "Lagre før du avslutter?" (over the pause menu); quits outright only
+## when the scene has no pause menu.
+func request_quit() -> void:
+	if _pause_menu == null:
+		get_tree().quit()
+		return
+	var inbox := get_node_or_null("AttentionInbox")
+	if inbox != null:
+		inbox.visible = false
+	_pause_menu.request_quit()
+
+## Ctrl/Cmd+S quicksave (project input action `quick_save`). Esc that nothing
+## else on the screen took (an open panel, popup or tab closes first; the
+## dashboard is home) opens the pause menu.
 func _unhandled_input(event: InputEvent) -> void:
 	if _game_started and event.is_action_pressed("quick_save"):
 		quick_save()
 		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("ui_cancel") and _pause_menu != null and not _pause_menu.is_open():
+		_pause_menu.show_menu()
+		get_viewport().set_input_as_handled()
+
+## The HUD's pause button follows the clock while the pause menu holds it.
+func _sync_hud_pause() -> void:
+	if _hud and _hud.has_method("set_paused_state") and _sim:
+		_hud.set_paused_state(_sim.is_paused())
 
 func quick_save() -> bool:
 	var ok: bool = _sim.quick_save()
@@ -142,19 +178,5 @@ func get_current_day() -> int:
 func is_game_started() -> bool:
 	return _game_started
 
-func _toggle_pause_menu() -> void:
-	if not _pause_menu:
-		return
-	
-	if _pause_menu.visible:
-		_pause_menu.hide_menu()
-	else:
-		_pause_menu.show_menu()
-
-func _on_resume_requested() -> void:
-	# Resume is handled by PauseMenu itself
-	pass
-
-func _on_quit_to_menu() -> void:
-	# This is handled by PauseMenu, but we could add cleanup here if needed
-	pass
+func is_pause_menu_open() -> bool:
+	return _pause_menu != null and _pause_menu.is_open()

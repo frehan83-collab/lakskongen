@@ -126,7 +126,7 @@ func _setup_progress_dots() -> void:
 	for i in range(TOTAL_STEPS):
 		var dot = ColorRect.new()
 		dot.custom_minimum_size = Vector2(8, 8)
-		dot.color = Color(0.85, 0.87, 0.91, 0.5)  # Gray inactive
+		dot.color = Color(LakskongenTheme.INK_STROKE, 0.6)  # inactive
 		dot.tooltip_text = "Steg %d" % (i + 1)
 		progress_dots_container.add_child(dot)
 
@@ -141,14 +141,11 @@ func _update_progress_dots(current_step: int, completed_count: int) -> void:
 			continue
 		
 		if i < completed_count:
-			# Completed steps — green
-			dot.color = Color("#A3BE8C")
+			dot.color = LakskongenTheme.INK_OK      # completed
 		elif i == current_step - 1:
-			# Current step — yellow/orange
-			dot.color = Color(1.0, 0.8, 0.2, 1.0)
+			dot.color = LakskongenTheme.INK_ACCENT  # current (salmon)
 		else:
-			# Incomplete steps — gray
-			dot.color = Color(0.85, 0.87, 0.91, 0.5)
+			dot.color = Color(LakskongenTheme.INK_STROKE, 0.6)  # still to do
 
 # ── Display update ────────────────────────────────────────────────────────────
 
@@ -217,11 +214,14 @@ func _play_completion_animation(step_number: int, title: String) -> void:
 		_tween.kill()
 	_tween = create_tween()
 
-	# Flash the panel border green
-	var style: StyleBoxFlat = get_theme_stylebox("panel") as StyleBoxFlat
+	# Flash the panel border green. Tween a private copy: the stylebox comes
+	# from the shared project theme, and animating it would recolour every panel.
+	var base_style: StyleBoxFlat = get_theme_stylebox("panel") as StyleBoxFlat
+	var style: StyleBoxFlat = base_style.duplicate() if base_style else null
 	if style:
+		add_theme_stylebox_override("panel", style)
 		var original_color: Color = style.border_color
-		_tween.tween_property(style, "border_color", Color.GREEN, 0.15)
+		_tween.tween_property(style, "border_color", LakskongenTheme.INK_OK, 0.15)
 		_tween.tween_interval(0.5)
 		_tween.tween_property(style, "border_color", original_color, 0.3)
 
@@ -230,6 +230,7 @@ func _play_completion_animation(step_number: int, title: String) -> void:
 	if reward_label:
 		reward_label.text    = _tr_step_complete(step_number, title)
 		reward_label.visible = true
+		LakskongenTheme.set_tone(reward_label, &"Ok")
 		_tween.tween_interval(0.1)
 		_tween.tween_property(reward_label, "modulate:a", 0.0, 2.5).set_delay(1.5)
 		await _tween.finished
@@ -238,7 +239,7 @@ func _play_completion_animation(step_number: int, title: String) -> void:
 func _show_completion_screen() -> void:
 	visible = true
 	if title_label:
-		title_label.text = tr("🏆 Tutorial fullført!")
+		title_label.text = "🏆 " + tr("UI_TUTUI_DONE")
 	if description_label:
 		description_label.text = (
 			"Gratulerer — du er nå en ekte oppdrettskonge!\n\n" +
