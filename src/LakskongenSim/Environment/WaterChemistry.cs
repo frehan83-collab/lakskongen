@@ -48,8 +48,11 @@ namespace LakskongenSim.Environment
 
         // pH: carbonate buffering holds it at a seawater equilibrium that
         // respiration (O2 deficit ⇒ CO2) and ammonia nitrification pull down.
-        // It used to drift +0.04/day into the 8.5 clamp.
-        private const double BaselinePH = 7.8;
+        // It used to drift +0.04/day into the 8.5 clamp. Norwegian coastal
+        // surface water sits at pH ≈ 8.0-8.1 (national ocean-acidification
+        // monitoring, Miljødirektoratet/IMR/NIVA); the old 7.8 baseline put
+        // every stocked zone below 7.8, at the low edge of seawater (S1-01).
+        internal const double BaselinePH = 8.05;
         private const double PhBufferRatePerDay = 0.1;
         private const double PhPerMgOxygenDeficit = 0.05;
         private const double PhPerMgExcessAmmonia = 0.1;
@@ -78,7 +81,7 @@ namespace LakskongenSim.Environment
             NitrateNO3 = 0.5;     // mg/L
             PhosphorusPO4 = 0.1;  // mg/L
             OxygenO2 = Biology.WaterQuality.CalculateOxygenSaturation(temperature); // saturated at the start
-            pH = 7.8;             // Typical fjord pH
+            pH = BaselinePH;      // Coastal seawater equilibrium
         }
         
         /// <summary>

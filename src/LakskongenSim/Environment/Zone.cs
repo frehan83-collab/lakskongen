@@ -274,11 +274,32 @@ namespace LakskongenSim.Environment
         }
         
         /// <summary>
-        /// Set zone temperature (affects water chemistry rates).
+        /// True while the zone's water takes the shared sea temperature every day
+        /// (<see cref="TakeSeaTemperature"/>, S1-01). A zone given its own
+        /// temperature through <see cref="SetTemperature"/> (a scenario, a data
+        /// layer or a test) keeps it. Saved. S2-02 replaces the shared sea
+        /// temperature with per-production-area climatologies.
+        /// </summary>
+        public bool FollowsSeaTemperature { get; set; } = true;
+
+        /// <summary>
+        /// Give the zone its own water temperature (affects water chemistry rates
+        /// and oxygen solubility). The zone stops following the sea temperature.
         /// </summary>
         public void SetTemperature(double temperature)
         {
+            FollowsSeaTemperature = false;
             WaterChemistry.SetTemperature(temperature);
+        }
+
+        /// <summary>
+        /// Today's sea temperature reaches the zone's water unless the zone has a
+        /// temperature of its own. Called by the engine before the chemistry runs.
+        /// </summary>
+        public void TakeSeaTemperature(double seaTemperatureC)
+        {
+            if (FollowsSeaTemperature)
+                WaterChemistry.SetTemperature(seaTemperatureC);
         }
     }
     

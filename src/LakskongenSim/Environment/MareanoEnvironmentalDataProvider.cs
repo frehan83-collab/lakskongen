@@ -170,10 +170,11 @@ namespace LakskongenSim.Environment
             var riskProfile = NorwegianZoneEnvironmentalProfile.GetRiskProfile(zoneId);
             
             // Set Zone's water chemistry from environmental data
-            zone.WaterChemistry.Temperature = data.TemperatureAtCageDepth;
+            // The data layer's temperature is the zone's own (it no longer
+            // follows the shared sea temperature, S1-01).
+            zone.SetTemperature(data.TemperatureAtCageDepth);
             zone.WaterChemistry.OxygenO2 = data.OxygenAtCageDepth;
             zone.WaterChemistry.pH = data.pH;
-            zone.WaterChemistry.SetTemperature(data.TemperatureAtCageDepth);
             
             // Set current speed (affects water flow and nutrient dilution)
             zone.CurrentSpeed = data.CurrentSpeedAtCageDepth;

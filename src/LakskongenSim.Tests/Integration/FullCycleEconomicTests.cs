@@ -9,6 +9,7 @@ using LakskongenSim.Market;
 using LakskongenSim.Data;
 using LakskongenSim.Farm;
 using LakskongenSim.Core;
+using LakskongenSim.Calibration;
 
 namespace LakskongenSim.Tests.Integration
 {
@@ -18,247 +19,178 @@ namespace LakskongenSim.Tests.Integration
     /// </summary>
     public class FullCycleEconomicTests
     {
-        private readonly GrowthModel _growthModel;
-        private readonly MortalityModel _mortalityModel;
-        private readonly FeedingOptimizer _feedingOptimizer;
-        private readonly HarvestOptimizer _harvestOptimizer;
-        private readonly PenManagementOptimizer _penManagementOptimizer;
         private readonly TreatmentCostBenefitAnalyzer _treatmentAnalyzer;
-        private readonly FinanceManager _financeManager;
-        private readonly FinancialStatements _financialStatements;
-        private readonly MarketSimulation _marketSimulation;
 
         public FullCycleEconomicTests()
         {
-            _growthModel = new GrowthModel();
-            _mortalityModel = new MortalityModel();
-            _feedingOptimizer = new FeedingOptimizer();
-            _harvestOptimizer = new HarvestOptimizer();
-            _penManagementOptimizer = new PenManagementOptimizer();
             _treatmentAnalyzer = new TreatmentCostBenefitAnalyzer();
-            _financeManager = new FinanceManager(10_000_000m); // 10M NOK starting capital
-            _financialStatements = new FinancialStatements(startingCash: 0m, startingAssets: 5_000_000m, startingLiabilities: 0m);
-            _marketSimulation = new MarketSimulation();
-            _marketSimulation.Initialize();
         }
 
-        [Fact]
-        public void FullProductionCycle_SmoltToHarvest_ProducesRealisticPnL()
+        // ── Roadmap D2: engine-path production cycles ──────────────────────────
+        // The two tests these replace ran a standalone harness whose ration came
+        // from FeedingOptimizer and never followed growth: its "FCR" was NOK of
+        // feed per kg gained, and the PO04-vs-PO12 margins differed only because
+        // the broken oxygen signal zeroed the ration on sampled days (F1024).
+        // These cycles run on the engine: the player's commands, the engine's
+        // feeding, growth, mortality and ledger.
+
+        /// <summary>Release weight of the "standard" S1 smolt (SmoltStrainRegistry).</summary>
+        private const double StandardSmoltKg = 0.10;
+        private const double CycleHarvestWeightKg = 5.0;
+        private const int CycleHorizonDays = 900;
+
+        private sealed record EngineCycle(
+            int DaysToHarvestWeight, int Stocked, int Survivors, double StockedKg, double HarvestKg,
+            double DeadKg, double FeedKg, decimal CogsDelta, decimal RevenueNok, decimal SpotAtHarvest,
+            decimal FeedPricePerKg, decimal NetCashNok)
         {
-            // Arrange: Set up a complete production cycle
-            int startingFishCount = 10000;
-            double smoltWeightKg = 0.1; // 100g smolt
-            
-            // Typical Norwegian production cycle: ~14-18 months at sea for optimal growth
-            // With Seawater stage (1.2x growth multiplier), fish reach harvest weight in ~400-500 days
-            int cycleDays = 450; // ~15 months - sufficient for 0.1kg smolt to reach 3.5-6kg
-            
-            // Create zone with optimal conditions (PO04 - Hordaland)
-            var zone = new Zone("PO04_Test", temperature: 9.0);
-            zone.CarryingCapacityTonnes = 1250.0; // ~50,000 m³ at 25 kg/m³
-            zone.CurrentFishBiomassKg = startingFishCount * smoltWeightKg;
+            /// <summary>Feed per kg of biomass the fish built, including fish that died after growing.</summary>
+            public double BiologicalFcr => FeedKg / (HarvestKg + DeadKg - StockedKg);
+            /// <summary>Feed per kg of net harvested gain (losses count against it).</summary>
+            public double EconomicFcr => FeedKg / (HarvestKg - StockedKg);
+            public double MarginPct => (double)(NetCashNok / RevenueNok) * 100.0;
+        }
 
-            // Create fish population - fish that have just been transferred to sea
-            // Start with Seawater stage (post-smolt) for active growth phase
-            var population = new FishPopulation(_growthModel, _mortalityModel);
-            population.AddCohort(new FishPopulation.Cohort(
-                ageDays: 400, // ~13 months old, recently transferred to sea
-                count: startingFishCount,
-                meanWeightKg: smoltWeightKg,
-                stage: LifeStage.Seawater  // Seawater stage for active growth
-            ));
+        private static double SiteFish(SeaSite site) => site.Pens.Sum(p => (double)p.TotalCount);
+        private static double SiteKg(SeaSite site) => site.Pens.Sum(p => p.TotalCount > 0 ? p.GetTotalBiomassKg() : 0.0);
+        private static double SiteMeanKg(SeaSite site) => SiteFish(site) > 0 ? SiteKg(site) / SiteFish(site) : 0.0;
 
-            // Financial tracking
-            decimal smoltCostPerFish = 12.0m;
-            double feedCostPerKg = 15.0; // NOK/kg
-            double totalFeedCost = 0.0;
-            
-            // Initial investment (smolt purchase)
-            decimal initialInvestment = (decimal)startingFishCount * smoltCostPerFish;
-            _financeManager.Spend(initialInvestment);
-            _financialStatements.RecordCOGS(initialInvestment);
+        /// <summary>A fresh engine with one sea site in production area <paramref name="zoneId"/>.</summary>
+        private static (SimulationEngine Engine, SeaSite Site) EngineWithSite(string zoneId, int seed, decimal cash)
+        {
+            var engine = new SimulationEngine();
+            engine.FinanceManager = new FinanceManager(cash);
+            engine.Initialize(enableEvents: false, seed: seed);
+            engine.State.Zones.Add(new Zone(zoneId));
+            var site = new SeaSite(zoneId.ToLowerInvariant() + "_site", zoneId);
+            engine.State.SeaSites.Add(site);
+            return (engine, site);
+        }
 
-            // Act: Simulate the production cycle
-            int daysSimulated = 0;
-            int reportInterval = 30; // Monthly reports
-            
-            while (daysSimulated < cycleDays && population.TotalCount > 0)
+        /// <summary>
+        /// Stock <paramref name="smolts"/> standard S1 smolts, grow them to
+        /// harvest weight on the engine path and sell them through HarvestSite.
+        /// </summary>
+        private static EngineCycle RunEngineCycle(SimulationEngine engine, SeaSite site, int smolts)
+        {
+            var statements = engine.FinancialStatements;
+            decimal cash0 = engine.FinanceManager.Balance;
+            decimal cogs0 = statements.LifetimeCOGS;
+            double feed0 = engine.Feed.TotalFeedUsedKg;
+            Assert.True(engine.StockSmolts(site.Id, smolts, "standard").Ok, "stocking failed");
+            double stockedKg = SiteKg(site);
+            Assert.Equal(smolts * StandardSmoltKg, stockedKg, 6);
+
+            int days = 0;
+            double deadKg = 0.0;
+            while (SiteMeanKg(site) < CycleHarvestWeightKg && days < CycleHorizonDays)
             {
-                int daysToAdvance = Math.Min(reportInterval, cycleDays - daysSimulated);
-                
-                // Get current cohort
-                var cohort = population.Cohorts.First();
-                double currentAvgWeight = cohort.MeanWeightKg;
-                int currentCount = cohort.Count;
-                
-                // Calculate feed requirements for this period
-                double temp = zone.WaterChemistry.Temperature;
-                double oxygen = zone.WaterChemistry.OxygenO2;
-                double marketPrice = (double)_marketSimulation.PricePerKg;
-                
-                double dailyRationPerFish = _feedingOptimizer.CalculateOptimalDailyRation(
-                    currentAvgWeight, temp, oxygen, feedCostPerKg, marketPrice);
-                
-                double periodFeedKg = dailyRationPerFish * currentCount * daysToAdvance;
-                double periodFeedCost = periodFeedKg * feedCostPerKg;
-                totalFeedCost += periodFeedCost;
-                
-                // Pay for feed
-                _financeManager.Spend((decimal)periodFeedCost);
-                _financialStatements.RecordCOGS((decimal)periodFeedCost);
-                
-                // Advance population
-                population.AdvanceDays(daysToAdvance);
-                zone.AdvanceDays(daysToAdvance);
-                _marketSimulation.AdvanceDays(daysToAdvance);
-                
-                daysSimulated += daysToAdvance;
+                double fishBefore = SiteFish(site);
+                engine.Advance(1);
+                days++;
+                deadKg += Math.Max(0.0, fishBefore - SiteFish(site)) * SiteMeanKg(site);
             }
+            Assert.True(SiteMeanKg(site) >= CycleHarvestWeightKg,
+                $"never reached {CycleHarvestWeightKg} kg in {CycleHorizonDays} days ({SiteMeanKg(site):F2} kg)");
 
-            // Calculate harvest results
-            var finalCohort = population.Cohorts.FirstOrDefault();
-            Assert.NotNull(finalCohort);
-            
-            int harvestedFish = finalCohort.Count;
-            double harvestWeightKg = finalCohort.MeanWeightKg;
-            double totalHarvestBiomassKg = harvestedFish * harvestWeightKg;
-            
-            // Calculate revenue
-            double harvestPricePerKg = (double)_marketSimulation.PricePerKg;
-            decimal totalRevenue = (decimal)(totalHarvestBiomassKg * harvestPricePerKg);
-            
-            // Record revenue
-            _financeManager.AddRevenue(totalRevenue);
-            _financialStatements.RecordRevenue(totalRevenue);
-
-            // Assert: Verify realistic production outcomes
-            
-            // 1. Survival rate should be realistic (Norwegian industry: 80-90%)
-            double survivalRate = (double)harvestedFish / startingFishCount;
-            Assert.True(survivalRate >= 0.75 && survivalRate <= 0.95,
-                $"Survival rate ({survivalRate:P1)}) should be realistic (75-95%)");
-
-            // 2. Harvest weight should be in target range (3-7 kg) - allowing broader range for simulation variance
-            Assert.True(harvestWeightKg >= 1.0 && harvestWeightKg <= 20.0,
-                $"Harvest weight ({harvestWeightKg:F2} kg) should be in plausible simulation range (1.0-20.0 kg)");
-
-            // 3. Total biomass should be substantial
-            Assert.True(totalHarvestBiomassKg >= 5000, // At least 5 tonnes (depends on growth model + mortality)
-                $"Total harvest biomass ({totalHarvestBiomassKg:F0} kg) should be substantial");
-
-            // 4. FCR should be realistic (1.0 - 1.4 for Norwegian salmon)
-            double fcr = totalFeedCost / (totalHarvestBiomassKg - (startingFishCount * smoltWeightKg));
-            Assert.True(fcr > 0 && fcr < 20.0,
-                $"FCR ({fcr:F2}) should be positive and bounded");
-
-            // 5. Financial results
-            decimal totalCosts = initialInvestment + (decimal)totalFeedCost;
-            decimal grossProfit = totalRevenue - totalCosts;
-            double marginPct = (double)(grossProfit / totalRevenue) * 100.0;
-
-            // Margin should be realistic (Norwegian industry: 15-40%)
-            Assert.True(marginPct >= -50.0 && marginPct <= 99.0,
-                $"Profit margin ({marginPct:F1}%) should be bounded (-50% to 99%)");
-
-            // 6. Financial statements should balance
-            decimal netIncome = _financialStatements.ComputeNetIncome();
-            Assert.True(netIncome > 0, "Net income should be positive for successful cycle");
-
-            // 7. Cost breakdown sanity checks
-            decimal feedCostPct = (decimal)totalFeedCost / totalCosts;
-            Assert.True(feedCostPct >= 0.4m && feedCostPct <= 0.7m,
-                $"Feed cost ({feedCostPct:P0}) should be 40-70% of total costs");
-
-            // Log results for analysis
-            System.Console.WriteLine("\n=== Full Production Cycle Results ===");
-            System.Console.WriteLine($"Starting fish: {startingFishCount:N0}");
-            System.Console.WriteLine($"Harvested fish: {harvestedFish:N0}");
-            System.Console.WriteLine($"Survival rate: {survivalRate:P1}");
-            System.Console.WriteLine($"Average harvest weight: {harvestWeightKg:F2} kg");
-            System.Console.WriteLine($"Total biomass: {totalHarvestBiomassKg:N0} kg");
-            System.Console.WriteLine($"FCR: {fcr:F2}");
-            System.Console.WriteLine($"Total revenue: {totalRevenue:N0} NOK");
-            System.Console.WriteLine($"Total costs: {totalCosts:N0} NOK");
-            System.Console.WriteLine($"Gross profit: {grossProfit:N0} NOK");
-            System.Console.WriteLine($"Margin: {marginPct:F1}%");
+            int survivors = (int)SiteFish(site);
+            decimal spot = engine.MarketSimulation.PricePerKg;
+            var harvest = engine.HarvestSite(site.Id);
+            Assert.True(harvest.Ok, harvest.ErrorKey);
+            return new EngineCycle(days, smolts, survivors, stockedKg, harvest.Value, deadKg,
+                engine.Feed.TotalFeedUsedKg - feed0, statements.LifetimeCOGS - cogs0, (decimal)harvest.Value2,
+                spot, engine.Feed.FeedCostPerKg, engine.FinanceManager.Balance - cash0);
         }
 
-        [Fact]
-        public void ZonePO04_Optimal_ProducesBetterMarginsThanPO12_Cold()
+        /// <summary>
+        /// Roadmap D2, replaces FullProductionCycle_SmoltToHarvest_ProducesRealisticPnL:
+        /// FCR in kg feed per kg gain on the engine path, band 1.0-1.6, with the
+        /// feed the FCR counts reconciled against the ledger.
+        /// </summary>
+        [Theory]
+        [InlineData(1)]
+        [InlineData(7)]
+        [InlineData(11)]
+        [InlineData(13)]
+        public void FullProductionCycle_OnTheEnginePath_FeedPerKgGainInBand(int seed)
         {
-            // Arrange: Set up identical production in two different zones
-            int startingFishCount = 10000;
-            double smoltWeightKg = 0.1;
-            int cycleDays = 545; // 18 months
-            
-            decimal smoltCostPerFish = 12.0m;
-            double feedCostPerKg = 15.0;
+            const int smolts = 10_000;
+            var (engine, site) = EngineWithSite("PO04", seed, 10_000_000m);
+            var c = RunEngineCycle(engine, site, smolts);
 
-            // Zone PO04 (Hordaland) - optimal conditions
-            var zonePO04 = new Zone("PO04", temperature: 9.0);
-            var popPO04 = new FishPopulation(_growthModel, _mortalityModel);
-            popPO04.AddCohort(new FishPopulation.Cohort(365, startingFishCount, smoltWeightKg, LifeStage.Smolt));
+            System.Console.WriteLine($"seed {seed}: {c.DaysToHarvestWeight} d, survival {(double)c.Survivors / smolts:P1}, " +
+                $"harvest {c.HarvestKg:N0} kg, dead {c.DeadKg:N0} kg, feed {c.FeedKg:N0} kg, " +
+                $"FCR bio {c.BiologicalFcr:F3} econ {c.EconomicFcr:F3}, spot {c.SpotAtHarvest:F2}");
 
-            // Zone PO12 (Finnmark) - cold conditions
-            var zonePO12 = new Zone("PO12", temperature: 5.0);
-            var popPO12 = new FishPopulation(_growthModel, _mortalityModel);
-            popPO12.AddCohort(new FishPopulation.Cohort(365, startingFishCount, smoltWeightKg, LifeStage.Smolt));
+            // D2: FCR in kg feed per kg gain, 1.0-1.6.
+            Assert.InRange(c.BiologicalFcr, 1.0, 1.6);
+            Assert.True(c.EconomicFcr >= c.BiologicalFcr, "losses must raise the economic FCR, never lower it");
+            // 100 g S1 to 5 kg in 12-20 months at sea.
+            Assert.InRange(c.DaysToHarvestWeight, 360, 600);
+            Assert.InRange(c.HarvestKg / c.Survivors, CycleHarvestWeightKg, CycleHarvestWeightKg + 0.1);
+            // The ledger charges every kilo the engine fed at the calibrated feed
+            // price, plus the smolts: the FCR above is the FCR the player pays for.
+            decimal expectedCogs = smolts * CalibrationRegistry.Default.Economy.SmoltCostPerFishNOK
+                + (decimal)c.FeedKg * c.FeedPricePerKg;
+            Assert.InRange((double)c.CogsDelta, (double)expectedCogs * 0.9999, (double)expectedCogs * 1.0001);
+            // Sold at the day's spot (no contracts, no processing plant).
+            Assert.Equal((double)c.SpotAtHarvest, (double)c.RevenueNok / c.HarvestKg, 6);
+        }
 
-            // Track costs for each zone
-            double feedCostPO04 = 0.0, feedCostPO12 = 0.0;
-            decimal revenuePO04 = 0m, revenuePO12 = 0m;
+        /// <summary>
+        /// Roadmap D2, replaces ZonePO04_Optimal_ProducesBetterMarginsThanPO12_Cold:
+        /// that claim is false in this model. Growth, feeding and mortality read
+        /// one sea temperature for every production area (S2-02 gives each its
+        /// own), so two identical stockings in PO04 and a cold zone grow, survive
+        /// and earn alike. This parity test is honest about that;
+        /// <see cref="Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13"/> is the
+        /// pre-registered test S2-02/S2-03 must make pass, after which this one
+        /// is retired by the same owner decision.
+        /// </summary>
+        [Theory]
+        [InlineData("PO12")]
+        [InlineData("PO13")]
+        public void ZonePO04_AndAColdZone_GrowAndEarnAlike_UntilZonesGetTheirOwnTemperature(string coldZone)
+        {
+            const int smolts = 10_000;
+            const int seed = 7;
+            var (engine04, site04) = EngineWithSite("PO04", seed, 10_000_000m);
+            var (engineCold, siteCold) = EngineWithSite(coldZone, seed, 10_000_000m);
+            var po04 = RunEngineCycle(engine04, site04, smolts);
+            var cold = RunEngineCycle(engineCold, siteCold, smolts);
 
-            // Act: Simulate production in both zones
-            SimulateZoneProduction(zonePO04, popPO04, cycleDays, feedCostPerKg, ref feedCostPO04, out revenuePO04);
-            SimulateZoneProduction(zonePO12, popPO12, cycleDays, feedCostPerKg, ref feedCostPO12, out revenuePO12);
+            System.Console.WriteLine($"PO04: {po04.DaysToHarvestWeight} d, {po04.Survivors:N0} fish, FCR {po04.BiologicalFcr:F3}, margin {po04.MarginPct:F1}%");
+            System.Console.WriteLine($"{coldZone}: {cold.DaysToHarvestWeight} d, {cold.Survivors:N0} fish, FCR {cold.BiologicalFcr:F3}, margin {cold.MarginPct:F1}%");
 
-            // Get final results
-            var cohortPO04 = popPO04.Cohorts.First();
-            var cohortPO12 = popPO12.Cohorts.First();
+            Assert.InRange(cold.DaysToHarvestWeight - po04.DaysToHarvestWeight, -3, 3);
+            Assert.InRange((double)cold.Survivors / po04.Survivors, 0.98, 1.02);
+            Assert.InRange(cold.BiologicalFcr - po04.BiologicalFcr, -0.02, 0.02);
+            Assert.InRange(cold.MarginPct - po04.MarginPct, -2.0, 2.0);
+        }
 
-            double biomassPO04 = cohortPO04.Count * cohortPO04.MeanWeightKg;
-            double biomassPO12 = cohortPO12.Count * cohortPO12.MeanWeightKg;
-
-            // Calculate P&L for each zone
-            decimal smoltCost = (decimal)startingFishCount * smoltCostPerFish;
-            
-            decimal totalCostPO04 = smoltCost + (decimal)feedCostPO04;
-            decimal totalCostPO12 = smoltCost + (decimal)feedCostPO12;
-
-            decimal profitPO04 = revenuePO04 - totalCostPO04;
-            decimal profitPO12 = revenuePO12 - totalCostPO12;
-
-            double marginPO04 = (double)(profitPO04 / revenuePO04) * 100.0;
-            double marginPO12 = (double)(profitPO12 / revenuePO12) * 100.0;
-
-            // Assert: PO04 should outperform PO12
-            
-            // 1. PO04 should have better survival (warmer = less stress)
-            Assert.True(cohortPO04.Count >= cohortPO12.Count * 0.95,
-                $"PO04 survival ({cohortPO04.Count}) should be comparable or better than PO12 ({cohortPO12.Count})");
-
-            // 2. PO04 should reach harvest weight faster (better growth)
-            Assert.True(cohortPO04.MeanWeightKg >= cohortPO12.MeanWeightKg * 0.95,
-                $"PO04 harvest weight ({cohortPO04.MeanWeightKg:F2} kg) should be comparable or better than PO12 ({cohortPO12.MeanWeightKg:F2} kg)");
-
-            // 3. PO04 should have better or equal margins
-            // Note: Cold water can sometimes produce higher quality fish, so we allow close margins
-            Assert.True(marginPO04 >= marginPO12 * 0.85,
-                $"PO04 margin ({marginPO04:F1}%) should be reasonably close to or better than PO12 ({marginPO12:F1}%)");
-
-            // 4. Cold zone may have longer production time (simulated above with fixed days)
-            // In reality, PO12 might need longer to reach target weight
-
-            // Log comparison
-            System.Console.WriteLine("\n=== Zone Comparison (PO04 vs PO12) ===");
-            System.Console.WriteLine($"{"Metric",-25} {"PO04 (Hordaland)",-20} {"PO12 (Finnmark)",-20}");
-            System.Console.WriteLine($"{"Survivors",-25} {cohortPO04.Count,-20:N0} {cohortPO12.Count,-20:N0}");
-            System.Console.WriteLine($"{"Avg Weight (kg)",-25} {cohortPO04.MeanWeightKg,-20:F2} {cohortPO12.MeanWeightKg,-20:F2}");
-            System.Console.WriteLine($"{"Total Biomass (kg)",-25} {biomassPO04,-20:N0} {biomassPO12,-20:N0}");
-            System.Console.WriteLine($"{"Feed Cost (NOK)",-25} {feedCostPO04,-20:N0} {feedCostPO12,-20:N0}");
-            System.Console.WriteLine($"{"Revenue (NOK)",-25} {revenuePO04,-20:N0} {revenuePO12,-20:N0}");
-            System.Console.WriteLine($"{"Profit (NOK)",-25} {profitPO04,-20:N0} {profitPO12,-20:N0}");
-            System.Console.WriteLine($"{"Margin (%)",-25} {marginPO04,-20:F1} {marginPO12,-20:F1}");
+        /// <summary>
+        /// Pre-registered (roadmap D2, 2026-10-14) for S2-02 (production-area sea
+        /// temperatures) and S2-03 (TGC growth): the same spring S1 release (100 g,
+        /// mid-April) in PO4 (Vestland) reaches 5 kg 2-4 months before PO13
+        /// (Finnmark), on every seed. The criterion is fixed: S2-02 may change how
+        /// the test puts a site in a production area, never the band. It fails
+        /// today (both areas grow identically), so it is skipped until S2-03.
+        /// </summary>
+        [Fact(Skip = "Pre-registered (roadmap D2): S2-02/S2-03 must make this pass; S2-03 removes the Skip")]
+        public void Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13()
+        {
+            const int smolts = 10_000;
+            const int springReleaseDay = 105; // mid-April (ISO week 16) on the sim calendar
+            for (int seed = 1; seed <= 5; seed++)
+            {
+                var (engine4, site4) = EngineWithSite("PO04", seed, 10_000_000m);
+                var (engine13, site13) = EngineWithSite("PO13", seed, 10_000_000m);
+                engine4.Advance(springReleaseDay);
+                engine13.Advance(springReleaseDay);
+                int po4 = RunEngineCycle(engine4, site4, smolts).DaysToHarvestWeight;
+                int po13 = RunEngineCycle(engine13, site13, smolts).DaysToHarvestWeight;
+                Assert.InRange(po13 - po4, 60, 120);
+            }
         }
 
         [Fact]
@@ -366,43 +298,6 @@ namespace LakskongenSim.Tests.Integration
                 Assert.True(Math.Abs(scaledAnalysis.ROIPct - expectedROI) < 0.1,
                     $"ROI should be consistent across scale. Count: {count}, ROI: {scaledAnalysis.ROIPct:F2}%, Expected: {expectedROI:F2}%");
             }
-        }
-
-        // Helper method to simulate zone production
-        private void SimulateZoneProduction(
-            Zone zone, 
-            FishPopulation population, 
-            int days, 
-            double feedCostPerKg,
-            ref double totalFeedCost,
-            out decimal revenue)
-        {
-            int daysSimulated = 0;
-            int interval = 30;
-            totalFeedCost = 0.0;
-            var marketSim = new MarketSimulation();
-            marketSim.Initialize();
-
-            while (daysSimulated < days && population.TotalCount > 0)
-            {
-                int daysToAdvance = Math.Min(interval, days - daysSimulated);
-                var cohort = population.Cohorts.First();
-                
-                double dailyRation = _feedingOptimizer.CalculateOptimalDailyRation(
-                    cohort.MeanWeightKg, zone.WaterChemistry.Temperature, 
-                    zone.WaterChemistry.OxygenO2, feedCostPerKg, 70.0);
-                
-                totalFeedCost += dailyRation * cohort.Count * daysToAdvance * feedCostPerKg;
-                
-                population.AdvanceDays(daysToAdvance);
-                zone.AdvanceDays(daysToAdvance);
-                marketSim.AdvanceDays(daysToAdvance);
-                daysSimulated += daysToAdvance;
-            }
-
-            var finalCohort = population.Cohorts.First();
-            double biomass = finalCohort.Count * finalCohort.MeanWeightKg;
-            revenue = (decimal)(biomass * (double)marketSim.PricePerKg);
         }
     }
 }
