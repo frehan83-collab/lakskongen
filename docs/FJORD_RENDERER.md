@@ -346,7 +346,7 @@ the threads, and fades to its mean coverage 1 − (1 − w)² once the mesh pass
 | `shaders/water_shader.gdshader` | `WaterGrid` |
 | `shaders/sky_shader.gdshader` | `WorldEnvironment` sky |
 | `shaders/underwater_post.gdshader` | `UnderwaterCanvas` |
-| `shaders/pen_*.gdshader`, `fish_shader.gdshader` | pen and fish assets |
+| `shaders/pen_*.gdshader`, `salmon_skin.gdshader` | pen and fish assets |
 | `shaders/fish_school.gdshaderinc` (in `salmon_school`, `fish_shoal`) | the salmon schools (G3-01) |
 | `shaders/light_glow.gdshaderinc` (in `mooring_light_glow`, `vessel_light_glow`) | night lights and their glitter |
 | `shaders/site_float.gdshaderinc` (in `feed_hose`, `mooring_buoy`, `mooring_lamp`, `mooring_light_glow`, `mooring_rope`, `site_kit_float`) | the site's floating gear |
