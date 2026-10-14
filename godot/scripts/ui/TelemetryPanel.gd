@@ -14,16 +14,7 @@ const LICE_LIMIT := 0.5          ## Regulatory sea-lice limit (lice/fish).
 const FCR_TARGET := 1.15         ## Feed-conversion target.
 const O2_CRITICAL := 5.0         ## mg/L — appetite/growth collapse.
 const O2_LOW := 6.5              ## mg/L — appetite starts falling.
-const SALINITY_PSU := 35.0       ## Seawater salinity for O₂ saturation.
 const DO_HISTORY_MAX := 60       ## Rolling samples kept for the DO sparkline.
-
-## Seawater O₂ solubility table (mg/L at 100% sat, 35 PSU), mirroring the sim's
-## WaterQuality table. Used only for the saturation read-out.
-const O2_SAT_TABLE := [
-	[0.0, 14.6], [2.0, 13.8], [4.0, 13.1], [6.0, 12.4],
-	[8.0, 11.8], [10.0, 11.3], [12.0, 10.8], [14.0, 10.3],
-	[16.0, 9.8], [18.0, 9.4], [20.0, 9.0], [22.0, 8.6], [24.0, 8.3],
-]
 
 @onready var _root: VBoxContainer = %RootVBox
 
@@ -127,9 +118,11 @@ func _build_water() -> void:
 			o2_col = LakskongenTheme.SUCCESS
 	_add_row(body, "Oppløst oksygen (DO)", o2_txt, o2_col)
 
-	if not is_nan(do_mgl) and do_mgl > 0.0 and not is_nan(temp):
-		var sat_mgl := _o2_saturation_mgl(temp)
-		if sat_mgl > 0.0:
+	if not is_nan(do_mgl) and do_mgl > 0.0:
+		# The sim's seawater solubility at the zone's own temperature; the panel
+		# kept a copy of the old freshwater table and drifted from it (S1-01).
+		var sat_mgl := _num("oxygen_saturation_mgl")
+		if not is_nan(sat_mgl) and sat_mgl > 0.0:
 			var sat_frac := clampf(do_mgl / sat_mgl, 0.0, 1.5)
 			var sat_col := LakskongenTheme.SUCCESS
 			if sat_frac < 0.60:
@@ -156,27 +149,6 @@ func _build_water() -> void:
 		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	else:
 		_add_note(body, "DO-trend samles opp fra live-verdier.")
-
-## Replicate the sim's seawater O₂ solubility table for the % read-out.
-func _o2_saturation_mgl(temp_c: float, salinity_psu: float = SALINITY_PSU) -> float:
-	if is_nan(temp_c):
-		return 0.0
-	var n := O2_SAT_TABLE.size()
-	var t0: float = float(O2_SAT_TABLE[0][0])
-	var tN: float = float(O2_SAT_TABLE[n - 1][0])
-	if temp_c <= t0:
-		return float(O2_SAT_TABLE[0][1]) * (1.0 - 0.001 * salinity_psu)
-	if temp_c >= tN:
-		return float(O2_SAT_TABLE[n - 1][1]) * (1.0 - 0.001 * salinity_psu)
-	for i in range(n - 1):
-		var t1: float = float(O2_SAT_TABLE[i][0])
-		var t2: float = float(O2_SAT_TABLE[i + 1][0])
-		if temp_c >= t1 and temp_c <= t2:
-			var o1: float = float(O2_SAT_TABLE[i][1])
-			var o2: float = float(O2_SAT_TABLE[i + 1][1])
-			var t := (temp_c - t1) / (t2 - t1)
-			return (o1 + t * (o2 - o1)) * (1.0 - 0.001 * salinity_psu)
-	return 0.0
 
 func _o2_status(v: float) -> String:
 	if is_nan(v) or v <= 0.0:

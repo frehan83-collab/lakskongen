@@ -523,6 +523,23 @@ public partial class GameBridge : Node
     /// <summary>Dissolved oxygen (mg/L) in the first zone's water chemistry.</summary>
     public double ZoneOxygenMgL => SimulationEngine?.State?.Zones?.FirstOrDefault()?.WaterChemistry?.OxygenO2 ?? double.NaN;
 
+    /// <summary>
+    /// Oxygen the first zone's water holds at 100% saturation (mg/L) at its own
+    /// temperature, from the sim's seawater solubility. The telemetry panel kept
+    /// its own copy of the old freshwater table and read 82% for saturated water
+    /// once the sim's solubility was corrected (S1-01).
+    /// </summary>
+    public double ZoneOxygenSaturationMgL
+    {
+        get
+        {
+            var chemistry = SimulationEngine?.State?.Zones?.FirstOrDefault()?.WaterChemistry;
+            return chemistry == null
+                ? double.NaN
+                : LakskongenSim.Biology.WaterQuality.CalculateOxygenSaturation(chemistry.Temperature);
+        }
+    }
+
     /// <summary>pH in the first zone's water chemistry.</summary>
     public double ZonePh => SimulationEngine?.State?.Zones?.FirstOrDefault()?.WaterChemistry?.pH ?? double.NaN;
 

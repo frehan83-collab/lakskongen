@@ -45,6 +45,8 @@ var appetite: float = 1.0
 var avg_weight_kg: float = 0.0
 var mortality_rate: float = 0.0
 var oxygen_mgl: float = 0.0
+## mg/L the first zone's water holds at 100% saturation (sim's seawater solubility).
+var oxygen_saturation_mgl: float = 0.0
 var water_ph: float = 7.8
 var wind_ms: float = 0.0
 var wave_m: float = 0.0
@@ -212,6 +214,7 @@ func _refresh_state() -> void:
 	avg_weight_kg        = game_bridge.AvgWeightKg
 	mortality_rate       = game_bridge.MortalityRateToday
 	oxygen_mgl           = game_bridge.ZoneOxygenMgL
+	oxygen_saturation_mgl = game_bridge.ZoneOxygenSaturationMgL
 	water_ph             = game_bridge.ZonePh
 	wind_ms              = game_bridge.WindSpeedMs
 	wave_m               = game_bridge.WaveHeightM

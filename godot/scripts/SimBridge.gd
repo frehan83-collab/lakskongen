@@ -82,6 +82,9 @@ var mortality_rate: float:
 var oxygen_mgl: float:
 	get(): return _state.oxygen_mgl
 	set(v): _state.oxygen_mgl = v
+var oxygen_saturation_mgl: float:
+	get(): return _state.oxygen_saturation_mgl
+	set(v): _state.oxygen_saturation_mgl = v
 var water_ph: float:
 	get(): return _state.water_ph
 	set(v): _state.water_ph = v

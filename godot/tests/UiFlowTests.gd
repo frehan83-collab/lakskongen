@@ -67,6 +67,7 @@ func _run() -> void:
 	await _test_tutorial_card_leaves_escape_to_tabs()
 	await _test_event_alerts_and_vaccine_window()
 	await _test_fjord_shows_rival_farms_and_wellboats()
+	await _test_telemetry_oxygen_saturation_follows_the_sim()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -887,6 +888,32 @@ func _has_alert(message: String) -> bool:
 		if str(a.get("message", "")) == message:
 			return true
 	return false
+
+## S1-01: the telemetry's oxygen saturation reads the sim's seawater solubility.
+## The panel kept its own copy of the old freshwater table, so once the sim's
+## solubility was corrected it showed 82% for fully saturated water.
+func _test_telemetry_oxygen_saturation_follows_the_sim() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "telemetry: seeded scenario starts")
+	_sim.set_paused(true)
+	_sim.advance_days(5)
+	var sat := float(_sim.oxygen_saturation_mgl)
+	var o2 := float(_sim.oxygen_mgl)
+	_check(sat > 7.0 and sat < 11.5,
+		"telemetry: the bridge reports seawater O2 solubility (%.2f mg/L)" % sat)
+	var panel: Control = (load("res://scenes/ui/TelemetryPanel.tscn") as PackedScene).instantiate()
+	add_child(panel)
+	await get_tree().process_frame
+	panel.refresh()
+	var shown := ""
+	for node in panel.find_children("*", "Label", true, false):
+		var label := node as Label
+		if label.text == "Oksygenmetning" and label.get_parent().get_child_count() > 1:
+			shown = (label.get_parent().get_child(1) as Label).text
+	var expected := "%.0f %%" % (clampf(o2 / sat, 0.0, 1.5) * 100.0)
+	_check(shown == expected and o2 / sat > 0.9,
+		"telemetry: saturation reads %s for %.2f of %.2f mg/L (shown '%s')" % [expected, o2, sat, shown])
+	panel.queue_free()
+	await get_tree().process_frame
 
 ## F945: Phase 5.3–5.4 proxies are reachable through the SimBridge facade.
 func _test_facade_forwards_phase5_systems() -> void:
