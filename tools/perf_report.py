@@ -52,6 +52,11 @@ def summarize(report: dict) -> dict:
             runs = var.pop("_runs")
             for key in ("p10", "p50", "p95", "p99"):
                 var[key] = round(statistics.median(r["frame_ms"].get(key, 0.0) for r in runs), 2)
+            # The least disturbed repeat: on a shared machine the closest to
+            # the frame's own cost (reported beside the medians, never gated).
+            best = min(runs, key=lambda r: r["frame_ms"]["p50"])
+            var["best_p50"] = best["frame_ms"]["p50"]
+            var["best_p95"] = best["frame_ms"]["p95"]
             var["repeats"] = len(runs)
             var["frames"] = sum(r["frames"] for r in runs)
             var["draw_calls"] = statistics.median(r.get("draw_calls", 0) for r in runs)
@@ -118,8 +123,8 @@ def markdown(report: dict, summary: dict) -> str:
         f"### {report.get('label', '')} — {res[0]}x{res[1]}, {report.get('adapter', '')}, "
         f"{report.get('godot', '')}, {report.get('timestamp', '')}",
         "",
-        "| Segment | Variant | p10 ms | p50 ms | p95 ms | p99 ms | Δp10 vs first | Δp50 vs first | draws | shadow draws | script ms | repeats |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Segment | Variant | p10 ms | p50 ms | p95 ms | p99 ms | best p50 / p95 | Δp10 vs first | Δp50 vs first | draws | shadow draws | script ms | repeats |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for seg, variants in summary.items():
         base = next(iter(variants.values()))
@@ -128,6 +133,7 @@ def markdown(report: dict, summary: dict) -> str:
             delta10 = s["p10"] - base["p10"]
             lines.append(
                 f"| {seg} | {name} | {s['p10']:.2f} | {s['p50']:.2f} | {s['p95']:.2f} | {s['p99']:.2f} | "
+                f"{s['best_p50']:.2f} / {s['best_p95']:.2f} | "
                 f"{delta10:+.2f} | {delta:+.2f} | {s['draw_calls']:.0f} | {s['shadow_draw_calls']:.0f} | "
                 f"{s['script_ms']:.2f} | {s['repeats']} |"
             )

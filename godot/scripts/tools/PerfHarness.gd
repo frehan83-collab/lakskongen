@@ -41,6 +41,7 @@ extends Node
 ##   --hour=H           presentation hour (default 12)
 ##   --pitch=DEG        tilt the view from the zoom's pitch (positive looks up)
 ##   --shots            save a frame per segment and variant next to the JSON
+##   --burst=N          with --shots, also N consecutive frames of a slow orbit
 ##   --boot-only        record the boot (first frames, terrain upload) and quit
 ##   --no-prewarm       boot without the terrain pipeline warm-up (its A/B)
 ##
@@ -533,11 +534,21 @@ func _run_segment(seg: String, seconds: float, warmup: float, variant: Dictionar
 		seg, res["variant"], repeat, res["frames"], res["frame_ms"]["p50"], res["frame_ms"]["p95"], res["frame_ms"]["p99"],
 		res["gpu_ms"]["p50"], res["script_phase_ms"]["p50"], res["render_phase_ms"]["p50"], int(res["draw_calls"]), int(res["shadow_draw_calls"])])
 	if _args.has("shots") and repeat == 0:
+		var dir := _out_dir if not _out_dir.begins_with("user://") else ProjectSettings.globalize_path(_out_dir)
+		var stem := "perf_%s_%s_%s_r%d" % [_label(), seg, _slug(String(res["variant"])), repeat]
 		await RenderingServer.frame_post_draw
 		var img := vp.get_texture().get_image()
 		if img:
-			var dir := _out_dir if not _out_dir.begins_with("user://") else ProjectSettings.globalize_path(_out_dir)
-			img.save_png(dir.path_join("perf_%s_%s_%s_r%d.png" % [_label(), seg, _slug(String(res["variant"])), repeat]))
+			img.save_png(dir.path_join(stem + ".png"))
+		# A short burst while the camera keeps orbiting slowly (temporal
+		# stability checks: the net's shimmer, G1-06).
+		var burst := int(_args.get("burst", 0))
+		for i in burst:
+			_camera.call("rotate_view", deg_to_rad(0.05))
+			await RenderingServer.frame_post_draw
+			var frame := vp.get_texture().get_image()
+			if frame:
+				frame.save_png(dir.path_join("%s_b%02d.png" % [stem, i]))
 	return res
 
 

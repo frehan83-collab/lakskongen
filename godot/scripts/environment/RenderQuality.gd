@@ -44,6 +44,8 @@ const UPSCALER_OTHER := Viewport.SCALING_3D_MODE_FSR
 ##   scale           3D render scale (1 = native)
 ##   hidden_scale    3D render scale while an opaque panel covers the world
 ##   hidden_pause    the sky holds still while a panel covers the world
+##   upscaler        "auto" (MetalFX spatial on macOS, FSR 1 elsewhere) or
+##                   "fsr"; fsr_sharpness for FSR (0 sharpest, 2 softest)
 ##   ssao            screen-space ambient occlusion on or off
 ##   ssao_quality    RenderingServer.ENV_SSAO_QUALITY_*
 ##   ssao_half       SSAO at half resolution
@@ -70,6 +72,7 @@ const UPSCALER_OTHER := Viewport.SCALING_3D_MODE_FSR
 const PRESETS := {
 	"low": {
 		"msaa": Viewport.MSAA_DISABLED, "screen_aa": Viewport.SCREEN_SPACE_AA_FXAA, "scale": 0.67, "hidden_scale": 0.5, "hidden_pause": true,
+		"upscaler": "auto", "fsr_sharpness": 0.2,
 		"ssao": false, "ssao_quality": RenderingServer.ENV_SSAO_QUALITY_VERY_LOW, "ssao_half": true, "ssao_blur": 1,
 		"dof": false, "dof_quality": RenderingServer.DOF_BLUR_QUALITY_VERY_LOW, "dof_shape": RenderingServer.DOF_BOKEH_BOX,
 		"dof_reach": 0.0, "dof_near": false,
@@ -78,6 +81,7 @@ const PRESETS := {
 	},
 	"medium": {
 		"msaa": Viewport.MSAA_2X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 0.75, "hidden_scale": 0.5, "hidden_pause": true,
+		"upscaler": "auto", "fsr_sharpness": 0.2,
 		"ssao": false, "ssao_quality": RenderingServer.ENV_SSAO_QUALITY_VERY_LOW, "ssao_half": true, "ssao_blur": 1,
 		"dof": true, "dof_quality": RenderingServer.DOF_BLUR_QUALITY_VERY_LOW, "dof_shape": RenderingServer.DOF_BOKEH_BOX,
 		"dof_reach": 700.0, "dof_near": false,
@@ -86,6 +90,7 @@ const PRESETS := {
 	},
 	"high": {
 		"msaa": Viewport.MSAA_4X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 0.8, "hidden_scale": 0.5, "hidden_pause": true,
+		"upscaler": "auto", "fsr_sharpness": 0.2,
 		"ssao": false, "ssao_quality": RenderingServer.ENV_SSAO_QUALITY_LOW, "ssao_half": true, "ssao_blur": 2,
 		"dof": true, "dof_quality": RenderingServer.DOF_BLUR_QUALITY_VERY_LOW, "dof_shape": RenderingServer.DOF_BOKEH_BOX,
 		"dof_reach": 700.0, "dof_near": false,
@@ -94,6 +99,7 @@ const PRESETS := {
 	},
 	"ultra": {
 		"msaa": Viewport.MSAA_4X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 1.0, "hidden_scale": 0.5, "hidden_pause": true,
+		"upscaler": "auto", "fsr_sharpness": 0.2,
 		"ssao": true, "ssao_quality": RenderingServer.ENV_SSAO_QUALITY_MEDIUM, "ssao_half": true, "ssao_blur": 2,
 		"dof": true, "dof_quality": RenderingServer.DOF_BLUR_QUALITY_LOW, "dof_shape": RenderingServer.DOF_BOKEH_HEXAGON,
 		"dof_reach": 100000.0, "dof_near": true,
@@ -199,7 +205,9 @@ func apply_scale(viewport: Viewport) -> void:
 		# Behind a panel only thin margins show: bilinear is enough.
 		viewport.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
 	else:
-		viewport.scaling_3d_mode = upscaler()
+		var mode := str(knobs.get("upscaler", "auto"))
+		viewport.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if mode == "fsr" else upscaler()
+		viewport.fsr_sharpness = float(knobs.get("fsr_sharpness", 0.2))
 
 
 static func upscaler() -> Viewport.Scaling3DMode:
