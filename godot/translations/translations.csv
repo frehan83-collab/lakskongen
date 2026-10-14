@@ -551,6 +551,17 @@ UI_TOAST_MITIGATION_OK,🛡️ Measure updated in %s,🛡️ Tiltak oppdatert i 
 UI_TOAST_REPAIR_OK,🔧 Nets repaired in %s (100%),🔧 Nøter reparert i %s (100%)
 UI_TOAST_STOCK_OK,"🐣 10,000 smolt released in %s",🐣 10 000 smolt satt ut i %s
 UI_TOAST_WELLBOAT_OK,🚢 Wellboat ordered to %s,🚢 Brønnbåt bestilt til %s
+UI_VESSEL_JOB_HARVEST,Harvest,Slakting
+UI_VESSEL_JOB_DELOUSE,Delousing,Avlusing
+UI_VESSEL_JOB_ROV,ROV inspection,ROV-inspeksjon
+UI_VESSEL_JOB_FRESHWATER,Freshwater bath,Ferskvannsbad
+UI_VESSEL_JOB_OTHER,Wellboat job,Brønnbåtoppdrag
+UI_VESSEL_JOB_ETA,%s · in %d d,%s · om %d d
+UI_VESSEL_JOB_TODAY,%s · today,%s · i dag
+UI_VESSEL_JOB_DONE,%s · done,%s · ferdig
+UI_VESSEL_FEED_BARGE,Feed barge,Fôrflåte
+UI_VESSEL_BARGE_FEEDING,%s · feeding,%s · fôrer
+UI_VESSEL_BARGE_IDLE,%s · idle,%s · i ro
 UI_DASHBOARD_FCR_BAD,▼ Over target — check feeding,▼ Over mål — sjekk fôring
 UI_DASHBOARD_TRENDS_TITLE,📈 Trends (30 days),📈 Trender (30 dager)
 UI_DASHBOARD_OPS_TITLE,🎛️ Operations Centre,🎛️ Driftssentral

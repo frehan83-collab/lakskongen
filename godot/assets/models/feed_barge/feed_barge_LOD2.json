@@ -1,0 +1,35 @@
+{
+  "asset": "feed_barge",
+  "bbox_size": [
+    11.2,
+    11.4,
+    37.0
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "air_draught_m": 8.8,
+    "beam_m": 11.2,
+    "bow_y_m": 18.5,
+    "draught_m": 2.6,
+    "length_m": 37.0,
+    "stern_y_m": -18.5
+  },
+  "file": "feed_barge_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 5,
+  "materials": [
+    "LK_VCrane",
+    "LK_VDeck",
+    "LK_VGlass",
+    "LK_VHullSlate",
+    "LK_VWhite"
+  ],
+  "parts": {
+    "Crane": 10,
+    "Deck": 28,
+    "Hull": 110,
+    "Superstructure": 48,
+    "Windows": 8
+  },
+  "tri_count": 204
+}

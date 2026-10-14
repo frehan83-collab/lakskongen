@@ -16,7 +16,8 @@ extends Node3D
 
 @export_group("Models")
 @export var pen_cage_scene: PackedScene = preload("res://assets/models/pen_cage/pen_cage.tscn")
-@export var service_boat_scene: PackedScene = preload("res://assets/models/boat/service_boat.tscn")
+## The site's service boat: the 15 x 10 m workboat catamaran (A3-01).
+@export var service_boat_scene: PackedScene = preload("res://assets/models/workboat/workboat.tscn")
 @export var salmon_scene: PackedScene = preload("res://assets/models/fish/salmon.tscn")
 
 @export_group("Fish School")
@@ -63,9 +64,10 @@ const SELECTION_RING_Y := 0.2
 const SELECTION_RING_MATERIAL := preload("res://assets/models/pen_cage/pen_selection_ring_material.tres")
 ## Selected-pen ring colour: Ink text (#E8EEF0).
 const SELECTION_COLOR := Color(0.910, 0.933, 0.941, 0.9)
-## The service boat lies broadside to the collar this far from the centre
-## (outer pipe edge at 26.8 m, half the boat's 9 m beam, a 1.7 m gap).
-const BOAT_MOORING_OFFSET := 33.0
+## The workboat lies broadside to the collar this far from the centre
+## (outer pipe edge at 26.8 m, half the boat's 10 m beam, the tyre fenders
+## and a 1.4 m gap).
+const BOAT_MOORING_OFFSET := 33.6
 
 
 func _ready() -> void:
@@ -308,11 +310,11 @@ func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 
 	# Service boat moored alongside the collar, broadside to it, between the
 	# frame corners (the bridles run to the corners) and away from the feed
-	# hose (+X); the waterline y sits the hull IN the water.
+	# hose (+X); the workboat's origin is its waterline.
 	var boat = service_boat_scene.instantiate()
 	boat.name = "%s_boat" % pen_id
 	markers_parent.add_child(boat)
-	boat.global_position = position + Vector3(0.0, 0.2, BOAT_MOORING_OFFSET)
+	boat.global_position = position + Vector3(0.0, 0.0, BOAT_MOORING_OFFSET)
 	boat.rotation.y = PI * 0.5
 
 	# The site's frame mooring: one 70 m cell round the pen, grid buoys,

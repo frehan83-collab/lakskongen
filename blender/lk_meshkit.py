@@ -80,6 +80,9 @@ class MeshBuilder:
     face_mat: list[int] = field(default_factory=list)
     face_smooth: list[bool] = field(default_factory=list)
     face_uv: list[tuple | None] = field(default_factory=list)
+    # Opt-in (vessel kit): faces whose corners repeat a vertex shrink to a
+    # triangle or vanish, so lofted surfaces may pinch to a point.
+    drop_degenerate: bool = False
 
     def vert(self, co) -> int:
         self.verts.append((float(co[0]), float(co[1]), float(co[2])))
@@ -91,6 +94,10 @@ class MeshBuilder:
         return self.slots.index(name)
 
     def face(self, idx, mat: str, smooth: bool = True, uv=None) -> None:
+        if self.drop_degenerate:
+            idx, uv = _dedupe_ring(list(idx), uv)
+            if idx is None:
+                return
         self.faces.append(tuple(idx))
         self.face_mat.append(self.slot(mat))
         self.face_smooth.append(smooth)
@@ -100,7 +107,12 @@ class MeshBuilder:
     def tri_count(self) -> int:
         return sum(len(f) - 2 for f in self.faces)
 
-    def build(self, name: str, materials: dict) -> bpy.types.Object:
+    def build(self, name: str, materials: dict, auto_uv: float | None = None) -> bpy.types.Object:
+        """auto_uv: box-project every face without UVs, `auto_uv` UV units
+        per metre (a tiling detail texture keeps its world scale)."""
+        if auto_uv is not None:
+            self.face_uv = [uv if uv is not None else box_uv(self.verts, f, auto_uv)
+                            for f, uv in zip(self.faces, self.face_uv)]
         mesh = bpy.data.meshes.new(name)
         mesh.from_pydata(self.verts, [], self.faces)
         mesh.validate(clean_customdata=False)
@@ -117,6 +129,35 @@ class MeshBuilder:
         obj = bpy.data.objects.new(name, mesh)
         bpy.context.scene.collection.objects.link(obj)
         return obj
+
+
+def _dedupe_ring(idx, uv):
+    """Drop repeated corners of a face ring; None if fewer than 3 remain."""
+    keep = []
+    for k, v in enumerate(idx):
+        if v != idx[k - 1] or len(idx) == 1:
+            keep.append(k)
+    if len(keep) < 3 or len({idx[k] for k in keep}) < 3:
+        return None, None
+    return [idx[k] for k in keep], ([uv[k] for k in keep] if uv is not None else None)
+
+
+def box_uv(verts, face, scale: float):
+    """Per-corner UVs by projecting on the plane the face normal is closest
+    to (metres times scale): sides read (horizontal, z), tops read (x, y)."""
+    pts = [verts[i] for i in face]
+    n = (0.0, 0.0, 0.0)
+    for k in range(len(pts)):
+        a, b = pts[k], pts[(k + 1) % len(pts)]
+        n = (n[0] + (a[1] - b[1]) * (a[2] + b[2]),
+             n[1] + (a[2] - b[2]) * (a[0] + b[0]),
+             n[2] + (a[0] - b[0]) * (a[1] + b[1]))
+    ax, ay, az = abs(n[0]), abs(n[1]), abs(n[2])
+    if az >= ax and az >= ay:
+        return [(p[0] * scale, p[1] * scale) for p in pts]
+    if ax >= ay:
+        return [(p[1] * scale, p[2] * scale) for p in pts]
+    return [(p[0] * scale, p[2] * scale) for p in pts]
 
 
 # --------------------------------------------------------------------------

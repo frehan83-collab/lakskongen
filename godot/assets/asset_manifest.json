@@ -121,6 +121,186 @@
         1.26,
         0.22
       ]
+    },
+    "workboat_LOD0": {
+      "path": "godot/assets/models/workboat/workboat_LOD0.glb",
+      "sha256": "4efcc9014232c4de397d4ac60688c4338fefeb3aebce80a12b29a2572b0a51f0",
+      "size": 410084,
+      "tri_count": 9060,
+      "material_count": 8,
+      "bbox_size": [
+        10.6371,
+        9.41,
+        15.02
+      ]
+    },
+    "workboat_LOD1": {
+      "path": "godot/assets/models/workboat/workboat_LOD1.glb",
+      "sha256": "661e4975ad2a5d8d91e50e28fc38aaa1964b665699a6bcb391bc0e2062c41a39",
+      "size": 91452,
+      "tri_count": 1718,
+      "material_count": 7,
+      "bbox_size": [
+        10.0,
+        9.3805,
+        15.02
+      ]
+    },
+    "workboat_LOD2": {
+      "path": "godot/assets/models/workboat/workboat_LOD2.glb",
+      "sha256": "c0885dfd5f527118652f17539f0f87b0b51b05292908a73dc874e984b7e5a920",
+      "size": 32476,
+      "tri_count": 464,
+      "material_count": 5,
+      "bbox_size": [
+        10.0,
+        6.25,
+        15.02
+      ]
+    },
+    "feed_barge_LOD0": {
+      "path": "godot/assets/models/feed_barge/feed_barge_LOD0.glb",
+      "sha256": "f856bb8831a1d00447f04f8e31baaacec92f637735cc878cf02865d8c47b8461",
+      "size": 723800,
+      "tri_count": 15108,
+      "material_count": 8,
+      "bbox_size": [
+        18.0453,
+        16.16,
+        37.05
+      ]
+    },
+    "feed_barge_LOD1": {
+      "path": "godot/assets/models/feed_barge/feed_barge_LOD1.glb",
+      "sha256": "746cce6923ff1bf0d13b0b4e3690cbc3bd551a953ffe58dd7d98444c4f4b9d44",
+      "size": 101888,
+      "tri_count": 1916,
+      "material_count": 7,
+      "bbox_size": [
+        17.9763,
+        15.26,
+        37.0
+      ]
+    },
+    "feed_barge_LOD2": {
+      "path": "godot/assets/models/feed_barge/feed_barge_LOD2.glb",
+      "sha256": "da26d45906f8ee4c701c7d3e44f71e55d8e605b4f4bee6c037a7993fa1d8bc25",
+      "size": 17812,
+      "tri_count": 204,
+      "material_count": 5,
+      "bbox_size": [
+        11.2,
+        11.4,
+        37.0
+      ]
+    },
+    "feed_barge_large_LOD0": {
+      "path": "godot/assets/models/feed_barge/feed_barge_large_LOD0.glb",
+      "sha256": "73fe2722eae41b7dccbfd2a5c6858fe92e2ee9918e420b323a91ad5f155ec09e",
+      "size": 602852,
+      "tri_count": 12993,
+      "material_count": 7,
+      "bbox_size": [
+        19.8506,
+        21.76,
+        65.0858
+      ]
+    },
+    "feed_barge_large_LOD1": {
+      "path": "godot/assets/models/feed_barge/feed_barge_large_LOD1.glb",
+      "sha256": "6dc49a83ec4e9a7c09b453cd0fc21016fb1c78c5f38b35f7ae33a6778cb47360",
+      "size": 166356,
+      "tri_count": 3099,
+      "material_count": 7,
+      "bbox_size": [
+        19.8433,
+        20.86,
+        65.0858
+      ]
+    },
+    "feed_barge_large_LOD2": {
+      "path": "godot/assets/models/feed_barge/feed_barge_large_LOD2.glb",
+      "sha256": "57e1190cd2386ac1272038da9ac074e72a2d08e4e3305244cdbb102667709136",
+      "size": 28708,
+      "tri_count": 354,
+      "material_count": 5,
+      "bbox_size": [
+        13.0,
+        15.5,
+        64.8
+      ]
+    },
+    "wellboat_LOD0": {
+      "path": "godot/assets/models/wellboat/wellboat_LOD0.glb",
+      "sha256": "705df41d4697b21c950b39be7f613af73d37597bfc97fb7d8538b609ae5a3d1c",
+      "size": 1065696,
+      "tri_count": 22951,
+      "material_count": 8,
+      "bbox_size": [
+        18.504,
+        25.22,
+        76.96
+      ]
+    },
+    "wellboat_LOD1": {
+      "path": "godot/assets/models/wellboat/wellboat_LOD1.glb",
+      "sha256": "a11e5458d2aac4777e1d027daa33dc2203f25a4fdd64909f240e677d85acba82",
+      "size": 216816,
+      "tri_count": 4117,
+      "material_count": 7,
+      "bbox_size": [
+        18.504,
+        24.32,
+        76.96
+      ]
+    },
+    "wellboat_LOD2": {
+      "path": "godot/assets/models/wellboat/wellboat_LOD2.glb",
+      "sha256": "f5124962df588004253943ad04f0ac4ed50fd2b46702e9e67f53f10e7bb70e72",
+      "size": 47752,
+      "tri_count": 576,
+      "material_count": 5,
+      "bbox_size": [
+        17.8,
+        19.1,
+        76.96
+      ]
+    },
+    "wellboat_large_LOD0": {
+      "path": "godot/assets/models/wellboat/wellboat_large_LOD0.glb",
+      "sha256": "3d1045bd8503add8b16d5fd424e24d59a6fa8853ef94d1e8d1d56610083c1af2",
+      "size": 1496084,
+      "tri_count": 32413,
+      "material_count": 8,
+      "bbox_size": [
+        23.704,
+        32.9437,
+        116.0
+      ]
+    },
+    "wellboat_large_LOD1": {
+      "path": "godot/assets/models/wellboat/wellboat_large_LOD1.glb",
+      "sha256": "ab122001611f416f80912ff8307cb994cda7feb9cd3c075b133833f391d221ff",
+      "size": 329220,
+      "tri_count": 6863,
+      "material_count": 7,
+      "bbox_size": [
+        23.704,
+        32.0437,
+        116.0
+      ]
+    },
+    "wellboat_large_LOD2": {
+      "path": "godot/assets/models/wellboat/wellboat_large_LOD2.glb",
+      "sha256": "a6ee49945572786059f5932febab0621f352e11b1c4020a7a83e39a7e481b9f2",
+      "size": 61352,
+      "tri_count": 734,
+      "material_count": 5,
+      "bbox_size": [
+        23.0,
+        23.78,
+        116.0
+      ]
     }
   }
 }

@@ -69,6 +69,113 @@
       "licence": "Proprietary (Lakskongen). In-house geometry; no third-party assets.",
       "spec_tolerance": 0.05,
       "spec": { "bbox_m": [0.22, 1.26, 0.22], "lamp_colour": "#FFC23A" }
+    },
+    {
+      "id": "workboat",
+      "type": "vessel",
+      "scale_m": 15.0,
+      "orientation": "bow_neg_z_waterline_origin",
+      "lod_levels": ["LOD0", "LOD1", "LOD2"],
+      "materials": ["LK_VCrane", "LK_VDark", "LK_VDeck", "LK_VGlass", "LK_VHullOrange", "LK_VSafety", "LK_VSteel", "LK_VWhite"],
+      "lod_materials": {
+        "LOD1": ["LK_VCrane", "LK_VDark", "LK_VDeck", "LK_VGlass", "LK_VHullOrange", "LK_VSteel", "LK_VWhite"],
+        "LOD2": ["LK_VCrane", "LK_VDeck", "LK_VGlass", "LK_VHullOrange", "LK_VWhite"]
+      },
+      "tri_budget": {"LOD0": 9060, "LOD1": 1718, "LOD2": 464},
+      "tri_max": {"LOD0": 20000, "LOD1": 5000, "LOD2": 1000},
+      "export_path": "godot/assets/models/workboat/workboat_{lod}.glb",
+      "build_script": "blender/build_vessels.py",
+      "build_args": ["--asset", "workboat"],
+      "godot_scene": "godot/assets/models/workboat/workboat.tscn",
+      "licence": "Proprietary (Lakskongen). In-house geometry and generated textures; no third-party assets.",
+      "reference": "Roadmap A3-01: aquaculture service catamaran 15 x 10 m.",
+      "spec_tolerance": 0.05,
+      "spec": {"length_m": 15.0, "beam_m": 10.0}
+    },
+    {
+      "id": "feed_barge",
+      "type": "vessel",
+      "scale_m": 37.0,
+      "orientation": "bow_neg_z_waterline_origin",
+      "lod_levels": ["LOD0", "LOD1", "LOD2"],
+      "materials": ["LK_VCrane", "LK_VDark", "LK_VDeck", "LK_VGlass", "LK_VHullSlate", "LK_VSafety", "LK_VSteel", "LK_VWhite"],
+      "lod_materials": {
+        "LOD1": ["LK_VCrane", "LK_VDark", "LK_VDeck", "LK_VGlass", "LK_VHullSlate", "LK_VSteel", "LK_VWhite"],
+        "LOD2": ["LK_VCrane", "LK_VDeck", "LK_VGlass", "LK_VHullSlate", "LK_VWhite"]
+      },
+      "tri_budget": {"LOD0": 15108, "LOD1": 1916, "LOD2": 204},
+      "tri_max": {"LOD0": 30000, "LOD1": 8000, "LOD2": 1500},
+      "export_path": "godot/assets/models/feed_barge/feed_barge_{lod}.glb",
+      "build_script": "blender/build_vessels.py",
+      "build_args": ["--asset", "feed_barge"],
+      "godot_scene": "godot/assets/models/feed_barge/feed_barge.tscn",
+      "licence": "Proprietary (Lakskongen). In-house geometry and generated textures; no third-party assets.",
+      "reference": "ScaleAQ SeaFarm Feeder 500 (37 x 11.2 m, 500 t): Salmon Business, 'ScaleAQ signs major contract with Mowi for five new feed barges' (retrieved 2026-10-14); roadmap A3-01 (37 x 11 m).",
+      "spec_tolerance": 0.05,
+      "spec": {"length_m": 37.0, "beam_m": 11.0}
+    },
+    {
+      "id": "feed_barge_large",
+      "type": "vessel",
+      "scale_m": 64.8,
+      "orientation": "bow_neg_z_waterline_origin",
+      "lod_levels": ["LOD0", "LOD1", "LOD2"],
+      "materials": ["LK_VCrane", "LK_VDark", "LK_VDeck", "LK_VGlass", "LK_VHullSlate", "LK_VSteel", "LK_VWhite"],
+      "lod_materials": {"LOD2": ["LK_VCrane", "LK_VDeck", "LK_VGlass", "LK_VHullSlate", "LK_VWhite"]},
+      "tri_budget": {"LOD0": 12993, "LOD1": 3099, "LOD2": 354},
+      "tri_max": {"LOD0": 40000, "LOD1": 10000, "LOD2": 2000},
+      "export_path": "godot/assets/models/feed_barge/feed_barge_large_{lod}.glb",
+      "build_script": "blender/build_vessels.py",
+      "build_args": ["--asset", "feed_barge_large"],
+      "godot_scene": "godot/assets/models/feed_barge/feed_barge_large.tscn",
+      "licence": "Proprietary (Lakskongen). In-house geometry and generated textures; no third-party assets.",
+      "reference": "AKVA AC800-class exposed-site barge (64.8 x 13 m): AKVA group / Fish Farming Expert on the Arctic Offshore Farming order (retrieved 2026-10-14); roadmap A3-01.",
+      "spec_tolerance": 0.05,
+      "spec": {"length_m": 64.8, "beam_m": 13.0}
+    },
+    {
+      "id": "wellboat",
+      "type": "vessel",
+      "scale_m": 77.0,
+      "orientation": "bow_neg_z_waterline_origin",
+      "lod_levels": ["LOD0", "LOD1", "LOD2"],
+      "materials": ["LK_VCrane", "LK_VDark", "LK_VDeck", "LK_VGlass", "LK_VHullRed", "LK_VSafety", "LK_VSteel", "LK_VWhite"],
+      "lod_materials": {
+        "LOD1": ["LK_VCrane", "LK_VDark", "LK_VDeck", "LK_VGlass", "LK_VHullRed", "LK_VSteel", "LK_VWhite"],
+        "LOD2": ["LK_VCrane", "LK_VDeck", "LK_VGlass", "LK_VHullRed", "LK_VWhite"]
+      },
+      "tri_budget": {"LOD0": 22951, "LOD1": 4117, "LOD2": 576},
+      "tri_max": {"LOD0": 45000, "LOD1": 12000, "LOD2": 2000},
+      "export_path": "godot/assets/models/wellboat/wellboat_{lod}.glb",
+      "build_script": "blender/build_vessels.py",
+      "build_args": ["--asset", "wellboat"],
+      "godot_scene": "godot/assets/models/wellboat/wellboat.tscn",
+      "licence": "Proprietary (Lakskongen). In-house geometry and generated textures; no third-party assets.",
+      "reference": "Solvtrans Ronja Queen / Ronja Princess (Aas Mek AAS 3002 ST, LOA 76.96 m, beam 17.8 m): Baird Maritime vessel reviews (retrieved 2026-10-14); roadmap A3-01.",
+      "spec_tolerance": 0.05,
+      "spec": {"length_m": 77.0, "beam_m": 17.8}
+    },
+    {
+      "id": "wellboat_large",
+      "type": "vessel",
+      "scale_m": 116.0,
+      "orientation": "bow_neg_z_waterline_origin",
+      "lod_levels": ["LOD0", "LOD1", "LOD2"],
+      "materials": ["LK_VCrane", "LK_VDark", "LK_VDeck", "LK_VGlass", "LK_VHullRed", "LK_VSafety", "LK_VSteel", "LK_VWhite"],
+      "lod_materials": {
+        "LOD1": ["LK_VCrane", "LK_VDark", "LK_VDeck", "LK_VGlass", "LK_VHullRed", "LK_VSteel", "LK_VWhite"],
+        "LOD2": ["LK_VCrane", "LK_VDeck", "LK_VGlass", "LK_VHullRed", "LK_VWhite"]
+      },
+      "tri_budget": {"LOD0": 32413, "LOD1": 6863, "LOD2": 734},
+      "tri_max": {"LOD0": 60000, "LOD1": 15000, "LOD2": 2500},
+      "export_path": "godot/assets/models/wellboat/wellboat_large_{lod}.glb",
+      "build_script": "blender/build_vessels.py",
+      "build_args": ["--asset", "wellboat_large"],
+      "godot_scene": "godot/assets/models/wellboat/wellboat_large.tscn",
+      "licence": "Proprietary (Lakskongen). In-house geometry and generated textures; no third-party assets.",
+      "reference": "Ronja Storm class (116 m): Salmon Business 'Largest wellboat on Earth arrives at yard' (retrieved 2026-10-14); roadmap A3-01 (116 x 23 m).",
+      "spec_tolerance": 0.05,
+      "spec": {"length_m": 116.0, "beam_m": 23.0}
     }
   ]
 }

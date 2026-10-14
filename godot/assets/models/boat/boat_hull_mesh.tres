@@ -1,7 +1,0 @@
-[gd_resource type="CapsuleMesh" load_steps=1 format=3 uid="uid://boat_hull_mesh_001"]
-
-[resource]
-radius = 1.0
-height = 12.0
-radial_segments = 12
-rings = 6

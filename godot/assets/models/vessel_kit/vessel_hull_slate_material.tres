@@ -1,0 +1,18 @@
+[gd_resource type="ShaderMaterial" load_steps=4 format=3 uid="uid://vessel_hull_slate_mat_001"]
+
+[ext_resource type="Shader" path="res://shaders/vessel_paint.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" path="res://assets/models/vessel_kit/textures/vessel_weathering.png" id="2_weather"]
+[ext_resource type="Texture2D" path="res://assets/models/vessel_kit/textures/vessel_plates_normal.png" id="3_normal"]
+
+[resource]
+resource_name = "LK_VHullSlate"
+shader = ExtResource("1_shader")
+shader_parameter/albedo_color = Color(0.203922, 0.258824, 0.294118, 1)
+shader_parameter/roughness = 0.6
+shader_parameter/metallic = 0.0
+shader_parameter/weathering = ExtResource("2_weather")
+shader_parameter/plates_normal = ExtResource("3_normal")
+shader_parameter/waterline_paint = true
+shader_parameter/grime = 0.6
+shader_parameter/streaks = 0.5
+shader_parameter/boottop_color = Color(0.11, 0.12, 0.13, 1)

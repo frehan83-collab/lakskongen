@@ -10,20 +10,35 @@ class_name WellboatVisualManager
 
 const ChannelBoat := preload("res://scripts/visual/ChannelBoat.gd")
 
+## Job colours: the D13 Ink signal tokens (ok #7FD69B, warn #F2B705, info
+## #8CC7DA). They colour the boat's job chip, never its hull (A3-01).
 const JOB_COLOURS := {
-	"harvest": Color(0.3, 0.6, 0.3, 1.0),
-	"delouse": Color(0.8, 0.4, 0.2, 1.0),
-	"other": Color(0.2, 0.4, 0.8, 1.0),
+	"harvest": Color(0.498, 0.839, 0.608, 1.0),
+	"delouse": Color(0.949, 0.718, 0.020, 1.0),
+	"other": Color(0.549, 0.780, 0.855, 1.0),
+}
+## Chip text per job kind: translation key and Norwegian fallback.
+const JOB_LABELS := {
+	"harvest": ["UI_VESSEL_JOB_HARVEST", "Slakting"],
+	"delouse": ["UI_VESSEL_JOB_DELOUSE", "Avlusing"],
+	"rov": ["UI_VESSEL_JOB_ROV", "ROV-inspeksjon"],
+	"freshwater": ["UI_VESSEL_JOB_FRESHWATER", "Ferskvannsbad"],
+	"other": ["UI_VESSEL_JOB_OTHER", "Brønnbåtoppdrag"],
 }
 
-@export var wellboat_scene: PackedScene = preload("res://assets/models/boat/service_boat.tscn")
+## The Ronja-class 77 x 17.8 m wellboat; harvest jobs send the 116 x 23 m
+## Ronja Storm-class carrier.
+@export var wellboat_scene: PackedScene = preload("res://assets/models/wellboat/wellboat.tscn")
+@export var harvest_wellboat_scene: PackedScene = preload("res://assets/models/wellboat/wellboat_large.tscn")
 ## The harbour: a point on the fjord channel, as a fraction of the fjord's
 ## length (-0.5 and 0.5 are its ends). The player's pens fill the channel
 ## slots from the -0.5 end and the rival farms from the other, so boats from
 ## here pass only the player's own pens.
 @export_range(-0.5, 0.5) var harbour_along: float = -0.47
-## Metres beside the channel centreline the boats sail (the pens sit on it).
-@export var lane_offset: float = 45.0
+## Metres beside the channel centreline the boats sail (the pens sit on
+## it): the pen's port side, clear of the mooring frame's corner buoys (35 m
+## out) for the widest wellboat. The feed barges lie on the other side.
+@export var lane_offset: float = -50.0
 @export var return_delay: float = 2.0  # seconds a boat lingers after its job is done
 @export var sail_seconds: float = 4.0  # one way, harbour to site
 
@@ -105,10 +120,13 @@ func _spawn_wellboat(job_id: String, site_id: String, kind: String, due_day: int
 	# Along the channel at sea level to alongside the pen. The old route left
 	# from inside the fjord wall and arced 80 m over the terrain.
 	var route := terrain.channel_route(harbour_along * terrain.terrain_size.y, target_pos.z, lane_offset)
-	var parts := ChannelBoat.launch(_fjord_env, wellboat_scene, route, "Wellboat_%s" % job_id)
-	if not ChannelBoat.tint_deck(parts.boat, JOB_COLOURS.get(kind, JOB_COLOURS["other"])):
-		push_warning("[WellboatVisualManager] boat scene has no tintable Deck")
-	
+	var scene := harvest_wellboat_scene if kind == "harvest" and harvest_wellboat_scene else wellboat_scene
+	var parts := ChannelBoat.launch(_fjord_env, scene, route, "Wellboat_%s" % job_id)
+	# The job shows on a chip above the boat; the hull keeps its paint.
+	var chip := VesselChip.new()
+	parts.boat.add_child(chip)
+	chip.position = parts.boat.get_chip_anchor() if parts.boat.has_method("get_chip_anchor") else Vector3(0, 24, 0)
+
 	_active_wellboats[job_id] = {
 		"boat": parts.boat,
 		"path": parts.path,
@@ -120,8 +138,10 @@ func _spawn_wellboat(job_id: String, site_id: String, kind: String, due_day: int
 		"due_day": due_day,
 		"state": "outbound",
 		"tween": null,
+		"chip": chip,
 	}
-	
+	_update_chip(job_id, int(_sim_bridge.current_day) if _sim_bridge else due_day)
+
 	_animate_wellboat(job_id)
 
 func _animate_wellboat(job_id: String) -> void:
@@ -152,6 +172,7 @@ func _start_return(job_id: String) -> void:
 	if data.tween:
 		data.tween.kill()
 	ChannelBoat.face_home(data.boat)
+	_update_chip(job_id, int(data.due_day))
 	var tween := create_tween()
 	tween.set_ease(Tween.EASE_IN_OUT)
 	tween.set_trans(Tween.TRANS_QUART)
@@ -170,6 +191,33 @@ func _update_wellboat_progress(job_id: String, sim_day: int, due_day: int) -> vo
 	if not _active_wellboats.has(job_id):
 		return
 	_active_wellboats[job_id].due_day = due_day
+	_update_chip(job_id, sim_day)
+
+## The job chip a boat carries (null when the job has no boat).
+func job_chip(job_id: String) -> VesselChip:
+	return _active_wellboats[job_id].chip if _active_wellboats.has(job_id) else null
+
+## "Avlusing · om 2 d" while the job waits, "Avlusing · ferdig" on the way home.
+static func chip_text(kind: String, days_left: int, done: bool) -> String:
+	var entry: Array = JOB_LABELS.get(kind, JOB_LABELS["other"])
+	var job := _tr_or(entry[0], entry[1])
+	if done:
+		return _tr_or("UI_VESSEL_JOB_DONE", "%s · ferdig") % job
+	if days_left <= 0:
+		return _tr_or("UI_VESSEL_JOB_TODAY", "%s · i dag") % job
+	return _tr_or("UI_VESSEL_JOB_ETA", "%s · om %d d") % [job, days_left]
+
+func _update_chip(job_id: String, sim_day: int) -> void:
+	var data: Dictionary = _active_wellboats[job_id]
+	var chip: VesselChip = data.get("chip")
+	if chip == null:
+		return
+	var colour: Color = JOB_COLOURS.get(data.kind, JOB_COLOURS["other"])
+	chip.set_chip(chip_text(data.kind, int(data.due_day) - sim_day, data.state == "return"), colour)
+
+static func _tr_or(key: String, fallback: String) -> String:
+	var text := TranslationServer.translate(key)
+	return fallback if text == key else text
 
 func _remove_wellboat(job_id: String) -> void:
 	if not _active_wellboats.has(job_id):

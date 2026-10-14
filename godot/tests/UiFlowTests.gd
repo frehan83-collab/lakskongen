@@ -69,6 +69,7 @@ func _run() -> void:
 	await _test_fjord_shows_rival_farms_and_wellboats()
 	await _test_pen_models_read_as_equipment()
 	await _test_hero_pen_and_site_kit()
+	await _test_vessel_fleet()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -1029,15 +1030,19 @@ func _test_fjord_shows_rival_farms_and_wellboats() -> void:
 	var barge_sites: Array = barges.active_site_ids()
 	_check(not barge_sites.is_empty(), "feed barge: a barge sails to a stocked site (%d)" % barge_sites.size())
 	var barges_afloat := not barge_sites.is_empty()
-	var barges_yellow := not barge_sites.is_empty()
+	var barges_chipped := not barge_sites.is_empty()
 	for id in barge_sites:
 		barges_afloat = barges_afloat and _route_on_water(barges._active_barges[id].path, terrain)
-		var barge_deck := (barges._active_barges[id].boat as Node).get_node("Deck") as MeshInstance3D
-		var barge_mat := barge_deck.material_override as ShaderMaterial
-		barges_yellow = barges_yellow and barge_mat.resource_path.is_empty() \
-			and barge_mat.get_shader_parameter("albedo_color") == FeedBargeVisualManager.FEED_YELLOW
+		# A3-01 replaced the yellow deck tint: the barge is the feed-barge
+		# asset, its state shows on a chip, and no mesh gets a one-off paint.
+		var barge := barges.barge_of(id) as VesselModel
+		var chip: VesselChip = barges._active_barges[id].chip
+		barges_chipped = barges_chipped and barge != null and barge.asset_id.begins_with("feed_barge") \
+			and chip != null and chip.get_text().begins_with("Fôrflåte") \
+			and chip.get_accent() in [FeedBargeVisualManager.FEED_YELLOW, FeedBargeVisualManager.IDLE_GREY] \
+			and _no_material_overrides(barge)
 	_check(barges_afloat, "feed barge: every route point is at sea level on open water")
-	_check(barges_yellow, "feed barge: tinted yellow on its own copy of the deck material")
+	_check(barges_chipped, "feed barge: the barge asset shows its state on a chip, its paint stays the shared material")
 
 	var sites: Array = _sim.get_all_pens()
 	_check(not sites.is_empty(), "wellboat: the player has a site to send a boat to")
@@ -1054,11 +1059,14 @@ func _test_fjord_shows_rival_farms_and_wellboats() -> void:
 		scene.queue_free()
 		return
 	var job_id: String = jobs[0]
-	var deck := (boats._active_wellboats[job_id].boat as Node).get_node("Deck") as MeshInstance3D
-	var deck_mat := deck.material_override as ShaderMaterial
-	_check(deck_mat.resource_path.is_empty(), "wellboat: the tint goes on the boat's own copy of the deck material")
-	_check(deck_mat.get_shader_parameter("albedo_color") == WellboatVisualManager.JOB_COLOURS["other"],
-		"wellboat: an ROV boat is tinted blue")
+	# A3-01: job state is a UI chip, never hull colour (this replaced the
+	# deck-tint checks: the chip names the job and carries its colour).
+	var wb_chip := boats.job_chip(job_id)
+	_check(wb_chip != null and _no_material_overrides(boats._active_wellboats[job_id].boat),
+		"wellboat: the job shows on a chip; no mesh of the boat gets a one-off material")
+	_check(wb_chip != null and wb_chip.get_text().begins_with("ROV-inspeksjon")
+		and wb_chip.get_accent() == WellboatVisualManager.JOB_COLOURS["other"],
+		"wellboat: an ROV boat's chip reads '%s' with the info-blue dot" % (wb_chip.get_text() if wb_chip else ""))
 	var boat_path: Path3D = boats._active_wellboats[job_id].path
 	_check(_route_on_water(boat_path, terrain), "wellboat: every route point is at sea level on open water")
 	await get_tree().create_timer(0.5).timeout
@@ -1139,14 +1147,17 @@ func _test_pen_models_read_as_equipment() -> void:
 		and label.position.y > 3.0,
 		"pen models: the site label is a constant-size billboard above the pen")
 
-	var boat: Node3D = (load("res://assets/models/boat/service_boat.tscn") as PackedScene).instantiate()
-	var flat := true
-	for hull_name in ["HullLeft", "HullRight"]:
-		var hull := boat.get_node(hull_name) as MeshInstance3D
+	# A3-01 retired the capsule service boat: the site's boat is the 15 x 10 m
+	# workboat catamaran. Its twin hulls must still lie flat along the boat
+	# (longer than wide, wider than tall), now at the real dimensions.
+	var boat := pens.get_node_or_null("PenMarkers/%s_boat" % site_id) as VesselModel
+	var flat := boat != null and boat.asset_id == "workboat"
+	if flat:
+		var hull := boat.get_node("Hull") as MeshInstance3D
 		var box: AABB = hull.transform * hull.get_aabb()
-		flat = flat and maxf(box.size.x, box.size.z) > box.size.y and box.size.z > box.size.x
-	_check(flat, "pen models: the service boat's hulls lie flat along the boat")
-	boat.free()
+		flat = box.size.z > box.size.x and box.size.x > box.size.y \
+			and absf(box.size.z - 15.0) / 15.0 <= 0.05 and absf(box.size.x - 10.0) / 10.0 <= 0.05
+	_check(flat, "pen models: the site's workboat hulls lie flat along the boat, 15 x 10 m")
 	scene.queue_free()
 	await get_tree().process_frame
 
@@ -1233,6 +1244,134 @@ func _test_hero_pen_and_site_kit() -> void:
 	_check(rival_moorings, "site kit: every rival farm lies in its own frame mooring, one cell per pen")
 	scene.queue_free()
 	await get_tree().process_frame
+
+## A3-01: the fleet is the Blender vessel set at real dimensions (barges 37 x
+## 11 m and 64.8 x 13 m, wellboats 77 x 17.8 m and 116 x 23 m, workboat
+## 15 x 10 m) inside its triangle budgets with an LOD hand-over chain; the
+## wellboat is longer than a pen is wide; a harvest sends the big carrier;
+## a feed barge is towed out and moors with its feed lines towards its pen;
+## job state is a chip, never paint.
+func _test_vessel_fleet() -> void:
+	# Hull length/beam spec and the LOD0/LOD1/LOD2 triangle ceilings
+	# (blender/asset_manifest.json tri_max).
+	var fleet := {
+		"workboat/workboat": [15.0, 10.0, [20000, 5000, 1000]],
+		"feed_barge/feed_barge": [37.0, 11.0, [30000, 8000, 1500]],
+		"feed_barge/feed_barge_large": [64.8, 13.0, [40000, 10000, 2000]],
+		"wellboat/wellboat": [77.0, 17.8, [45000, 12000, 2000]],
+		"wellboat/wellboat_large": [116.0, 23.0, [60000, 15000, 2500]],
+	}
+	var dims_ok := true
+	var budgets_ok := true
+	var chains_ok := true
+	var report := []
+	for path in fleet:
+		var v := (load("res://assets/models/%s.tscn" % path) as PackedScene).instantiate() as VesselModel
+		add_child(v)
+		var spec: Array = fleet[path]
+		var hull := (v.get_node("Hull") as MeshInstance3D).get_aabb()
+		dims_ok = dims_ok and absf(hull.size.z - spec[0]) / spec[0] <= 0.05 and absf(hull.size.x - spec[1]) / spec[1] <= 0.05
+		var tris: Array[int] = []
+		for level in 3:
+			var t := 0
+			for mesh in v.get_lod_meshes(level):
+				t += _mesh_triangles(mesh.mesh)
+			tris.append(t)
+			budgets_ok = budgets_ok and t > 0 and t <= int(spec[2][level])
+		budgets_ok = budgets_ok and tris[0] > tris[1] and tris[1] > tris[2]
+		for mesh in v.get_lod_meshes(0):
+			chains_ok = chains_ok and is_equal_approx(mesh.visibility_range_end, v.lod_switch.x)
+		for mesh in v.get_lod_meshes(1):
+			chains_ok = chains_ok and is_equal_approx(mesh.visibility_range_begin, v.lod_switch.x) \
+				and is_equal_approx(mesh.visibility_range_end, v.lod_switch.y)
+		for mesh in v.get_lod_meshes(2):
+			chains_ok = chains_ok and is_equal_approx(mesh.visibility_range_begin, v.lod_switch.y) \
+				and mesh.visibility_range_end == 0.0 and mesh.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		report.append("%s %.1fx%.1f %s" % [path.get_file(), hull.size.z, hull.size.x, tris])
+		v.free()
+	_check(dims_ok, "vessels: hull length and beam within 5%% of spec (%s)" % ", ".join(report))
+	_check(budgets_ok, "vessels: every LOD inside its triangle ceiling, LOD0 > LOD1 > LOD2")
+	_check(chains_ok, "vessels: LOD0 -> LOD1 -> LOD2 hand over by camera distance, LOD2 casts no shadow")
+
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "vessels: seeded two-site scenario starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var boats: WellboatVisualManager = env.get_node("WellboatVisualManager")
+	var barges: FeedBargeVisualManager = env.get_node("FeedBargeVisualManager")
+	boats.sail_seconds = 0.2
+	barges.tow_seconds = 0.2
+	for id in barges.active_site_ids():
+		barges._tow_out(id)  # restart the tows that began at the 6 s default
+	var sites: Array = _sim.get_all_pens()
+	var site_id := str(sites[0].get("id", "")) if not sites.is_empty() else ""
+	var cage := pens.get_node_or_null("PenMarkers/" + site_id) as PenCage
+	_check(cage != null, "vessels: site %s has a pen" % site_id)
+	if cage == null:
+		scene.queue_free()
+		return
+
+	_check(_sim.request_wellboat(site_id, "harvest"), "vessels: a harvest wellboat is booked for %s" % site_id)
+	_sim.state_updated.emit()
+	await get_tree().create_timer(0.5).timeout
+	var job_id := ""
+	for id in boats.active_job_ids():
+		if boats._active_wellboats[id].kind == "harvest":
+			job_id = id
+	var carrier := boats._active_wellboats[job_id].boat as VesselModel if job_id != "" else null
+	_check(carrier != null and carrier.asset_id == "wellboat_large",
+		"vessels: a harvest sends the 116 m carrier (%s)" % (carrier.asset_id if carrier else "none"))
+	var collar := (cage.get_node("Collar") as MeshInstance3D).get_aabb()
+	var wb := (load("res://assets/models/wellboat/wellboat.tscn") as PackedScene).instantiate() as VesselModel
+	var wb_len := (wb.get_node("Hull") as MeshInstance3D).get_aabb().size.z
+	wb.free()
+	_check(wb_len > collar.size.x * 1.3,
+		"vessels: the wellboat (%.1f m) is visibly longer than the pen is wide (%.1f m)" % [wb_len, collar.size.x])
+	var chip := boats.job_chip(job_id) if job_id != "" else null
+	var days_left := int(boats._active_wellboats[job_id].due_day) - int(_sim.current_day) if job_id != "" else -1
+	_check(chip != null and chip.get_text() == WellboatVisualManager.chip_text("harvest", days_left, false)
+		and chip.get_text().begins_with("Slakting") and chip.get_accent() == WellboatVisualManager.JOB_COLOURS["harvest"]
+		and chip.get_size_px().x > 120.0,
+		"vessels: the harvest chip reads '%s' with the ok-green dot" % (chip.get_text() if chip else ""))
+	var carrier_mid := carrier.global_position if carrier else Vector3.ZERO
+	var buoy_clear := carrier != null
+	var grid := pens.get_pen_mooring(site_id)
+	if grid != null and carrier != null:
+		for b in grid.buoy_positions:
+			var local := carrier.to_local(grid.to_global(b))
+			buoy_clear = buoy_clear and (absf(local.x) > carrier.beam_m * 0.5 + 0.5 or absf(local.z) > carrier.length_m * 0.5 + 0.5)
+	_check(buoy_clear, "vessels: the waiting carrier lies clear of the mooring buoys (at %s)" % carrier_mid)
+
+	_check(barges.barge_state(site_id) == "moored", "vessels: the feed barge is towed out and moors on station (%s)" % barges.barge_state(site_id))
+	var barge := barges.barge_of(site_id) as VesselModel
+	var feed_side_ok := barge != null
+	if barge != null:
+		var to_pen := cage.global_position - barge.global_position
+		feed_side_ok = barge.global_transform.basis.x.dot(to_pen) > 0.0 and to_pen.length() < 80.0
+	_check(feed_side_ok, "vessels: the moored barge lies beside its pen with its feed lines towards it")
+	_check(_no_material_overrides(barge) and _no_material_overrides(carrier) and barge.get_node("Hull").get_active_material(0)
+		== load("res://assets/models/vessel_kit/vessel_hull_slate_material.tres"),
+		"vessels: barge and wellboat hulls keep the shared vessel paint, no per-boat material")
+	barges._start_return(site_id)
+	await get_tree().create_timer(0.5).timeout
+	_check(barges.barge_state(site_id) == "" and not barges.active_site_ids().has(site_id),
+		"vessels: a barge sent home leaves the fjord")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## True when no mesh under `root` has a material override (job state or
+## owner colour never gets painted onto one boat).
+func _no_material_overrides(root: Node) -> bool:
+	if root == null:
+		return false
+	for mesh in root.find_children("*", "MeshInstance3D", true, false):
+		if (mesh as MeshInstance3D).material_override != null and not ((mesh as MeshInstance3D).get_parent() is VesselChip):
+			return false
+	return true
 
 ## Triangles in a mesh (all surfaces).
 func _mesh_triangles(mesh: Mesh) -> int:
