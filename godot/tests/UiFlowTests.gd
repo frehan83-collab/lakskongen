@@ -102,6 +102,7 @@ func _run() -> void:
 	await _test_credits_list_every_third_party_work()
 	await _test_pause_save_list_buttons_answer()
 	await _test_scenario_picker()
+	_test_farm_type_graybox()
 
 	_clear_test_saves()
 	_finish()
@@ -2701,6 +2702,99 @@ func _clear_test_saves() -> void:
 		return
 	for file in dir.get_files():
 		dir.remove(file)
+
+## F2-18: the gray-box campus stands on the spec's plots with the spec's
+## lots, nothing on a pad overlaps, and the gray box draws it the way F2-20
+## will (one MultiMesh per tank type per plot, statics merged).
+func _test_farm_type_graybox() -> void:
+	var layout := load("res://scripts/qa/LandCampusLayout.gd")
+	var builder := load("res://scripts/qa/GrayBoxBuilder.gd")
+	var runner := load("res://scripts/qa/FarmTypeGrayBox.gd")
+	_check(layout.tank_count("pad_a") == 64 and layout.tank_count("pad_a", "tank_growout") == 48,
+		"farm types: pad_a holds 4 full lots and 4 post-smolt modules (%d tanks, 64 expected)" % layout.tank_count("pad_a"))
+	_check(layout.tank_count("pad_b") == 28 and layout.tank_count("pad_delta") == 8,
+		"farm types: pad_b holds 2 lots (%d tanks) and the delta 4 modules (%d tanks)" % [layout.tank_count("pad_b"), layout.tank_count("pad_delta")])
+	# One full lot: two rows of 6 grow-out tanks 4 m apart (188 m) and a
+	# pre-grow tank at each row end, about 208 x 90 m.
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	var row_x: Array[float] = []
+	for p in layout.plot_placements("pad_a"):
+		if int(p["lot"]) != 0 or not str(p["asset"]).begins_with("tank_"):
+			continue
+		var pos: Vector3 = p["pos"]
+		var r: float = (p["size"] as Vector3).x * 0.5
+		lo = Vector2(minf(lo.x, pos.x - r), minf(lo.y, pos.z - r))
+		hi = Vector2(maxf(hi.x, pos.x + r), maxf(hi.y, pos.z + r))
+		if p["asset"] == "tank_growout" and is_equal_approx(pos.z, (layout.plot_placements("pad_a")[0]["pos"] as Vector3).z):
+			row_x.append(pos.x)
+	var row_len: float = (row_x.max() - row_x.min()) + 28.0 if not row_x.is_empty() else 0.0
+	_check(absf(row_len - 188.0) < 0.01 and absf(hi.x - lo.x - 208.0) < 0.5 and absf(hi.y - lo.y - 90.0) < 0.5,
+		"farm types: a lot is %.0f x %.0f m with a %.0f m row (208 x 90, 188)" % [hi.x - lo.x, hi.y - lo.y, row_len])
+	var clashes: Array[String] = []
+	var outside: Array[String] = []
+	for plot_id in ["pad_a", "pad_b", "pad_delta"]:
+		var placements: Array = layout.plot_placements(plot_id)
+		var pad: Dictionary = layout.PLOTS[plot_id]
+		var c: Vector3 = layout.plot_centre(plot_id)
+		var half: Vector2 = (pad["size"] as Vector2) * 0.5
+		for i in placements.size():
+			var a: Dictionary = placements[i]
+			var ra := _footprint(a)
+			if not (str(a["asset"]) in ["quay", "intake_basin", "pipe_bridge_span"]):
+				if ra.position.x < c.x - half.x - 0.01 or ra.end.x > c.x + half.x + 0.01 or ra.position.y < c.z - half.y - 0.01 or ra.end.y > c.z + half.y + 0.01:
+					outside.append("%s %s" % [plot_id, a["asset"]])
+			for j in range(i + 1, placements.size()):
+				var b: Dictionary = placements[j]
+				var pair := [str(a["asset"]), str(b["asset"])]
+				if pair.has("pipe_bridge_span") and (pair.has("quay") or pair.count("pipe_bridge_span") == 2):
+					continue  # the bridge starts on the quay; its spans join
+				if pair.count("process_hall_bay") == 2:
+					continue  # hall bays are built end to end
+				if ra.grow(-0.25).intersects(_footprint(b).grow(-0.25)):
+					clashes.append("%s %s/%s" % [plot_id, a["asset"], b["asset"]])
+	_check(clashes.is_empty(), "farm types: no two campus pieces overlap %s" % str(clashes.slice(0, 4)))
+	_check(outside.is_empty(), "farm types: every building stands on its pad %s" % str(outside.slice(0, 4)))
+
+	var host := Node3D.new()
+	add_child(host)
+	var box: Node3D = builder.build(host, {"pad_a": 0})
+	var names: Array[String] = []
+	for child in box.get_children():
+		names.append(str(child.name))
+	_check(names == ["pad_a", "pad_b", "pad_delta", "off_1", "off_2"], "farm types: the gray box covers every plot %s" % str(names))
+	var growout := box.get_node_or_null("pad_a/Growout") as MultiMeshInstance3D
+	var pregrow := box.get_node_or_null("pad_a/Pregrow") as MultiMeshInstance3D
+	var instanced := (growout.multimesh.instance_count if growout else 0) + (pregrow.multimesh.instance_count if pregrow else 0)
+	_check(instanced == 63 and box.get_node_or_null("pad_a/SampleWall") != null and box.get_node_or_null("pad_a/SampleLid") != null,
+		"farm types: pad_a draws 63 instanced tanks plus its sample tank (%d)" % instanced)
+	var draws := {}
+	var classes_ok := true
+	for gi in box.find_children("*", "GeometryInstance3D", true, false):
+		var plot := str(gi.get_parent().name)
+		draws[plot] = int(draws.get(plot, 0)) + 1
+		classes_ok = classes_ok and str(gi.get_meta("graybox_class", "")).begins_with(plot)
+	_check(classes_ok, "farm types: every gray-box node names its plot's mask class")
+	_check(int(draws.get("pad_b", 0)) == 4 and int(draws.get("pad_a", 0)) == 6 and int(draws.get("off_1", 0)) == 1,
+		"farm types: one pad is 4 draws (pad, 2 tank MultiMeshes, merged statics), a unit 1: %s" % str(draws))
+	var unit := box.get_node_or_null("off_1/Unit") as MeshInstance3D
+	var aabb := unit.get_aabb() if unit else AABB()
+	_check(aabb.size.x > 110.0 and aabb.size.x < 118.0 and absf(aabb.end.y - 25.0) < 1.0,
+		"farm types: the OF1 ring is %.1f m across (Ø110 + columns) and tops out at %.1f m" % [aabb.size.x, aabb.end.y])
+	host.queue_free()
+	var shots: Array = runner.load_shots()
+	_check(shots.size() >= 8 and shots.all(func(s: Dictionary) -> bool: return str(s.get("item", "")) == "F2-18"),
+		"farm types: shots.json gives the gray-box scene its %d shots" % shots.size())
+
+
+## Ground footprint (x, z) of a layout piece, its model axes turned by yaw.
+func _footprint(p: Dictionary) -> Rect2:
+	var s: Vector3 = p["size"]
+	var pos: Vector3 = p["pos"]
+	var turned := absf(sin(float(p["yaw"]))) > 0.5
+	var ext := Vector2(s.z, s.x) if turned else Vector2(s.x, s.z)
+	return Rect2(Vector2(pos.x, pos.z) - ext * 0.5, ext)
+
 
 func _check(condition: bool, label: String) -> void:
 	_checks += 1

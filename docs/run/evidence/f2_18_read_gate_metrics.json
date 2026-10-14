@@ -1,0 +1,4455 @@
+{
+  "chip_transmittance": 0.4,
+  "generated_by": "res://scripts/qa/FarmTypeGrayBox.gd",
+  "item": "F2-18",
+  "resolution": [
+    1920,
+    1080
+  ],
+  "shots": {
+    "36_graybox_home_clear": {
+      "camera": {
+        "fov_deg": 45.0,
+        "home_focus": [
+          -116.735069274902,
+          0.0,
+          -1140.0
+        ],
+        "pitch_deg": -17.0,
+        "position": [
+          -385.39,
+          263.13,
+          -322.33
+        ],
+        "spec": {
+          "mode": "home"
+        },
+        "yaw_deg": -18.19
+      },
+      "environment": {
+        "fog_density": 0.00006520000169985,
+        "sea_fog": 0.0,
+        "sun_elevation_deg": 49.57,
+        "visibility_m": 60000.0
+      },
+      "perf": {
+        "all": {
+          "added_frame_ms": 2.908,
+          "added_opaque_draws": 10,
+          "added_shadow_draws": 7,
+          "frame_ms": 44.694,
+          "frame_ms_samples": [
+            44.375,
+            45.012
+          ],
+          "opaque_draws": 92,
+          "opaque_primitives": 500786,
+          "shadow_draws": 66
+        },
+        "land": {
+          "added_frame_ms": 0.338,
+          "added_opaque_draws": 8,
+          "added_shadow_draws": 7,
+          "frame_ms": 42.124,
+          "frame_ms_samples": [
+            45.17,
+            39.077
+          ],
+          "opaque_draws": 90,
+          "opaque_primitives": 498086,
+          "shadow_draws": 66
+        },
+        "off": {
+          "frame_ms": 41.786,
+          "frame_ms_samples": [
+            44.098,
+            39.474
+          ],
+          "opaque_draws": 82,
+          "opaque_primitives": 480246,
+          "shadow_draws": 59
+        },
+        "offshore": {
+          "added_frame_ms": 0.92,
+          "added_opaque_draws": 2,
+          "added_shadow_draws": 0,
+          "frame_ms": 42.706,
+          "frame_ms_samples": [
+            42.464,
+            42.947
+          ],
+          "opaque_draws": 84,
+          "opaque_primitives": 482946,
+          "shadow_draws": 59
+        }
+      },
+      "plot_overrides": {},
+      "targets": {
+        "off_1": {
+          "centre": [
+            -450.0,
+            0.0,
+            -2750.0
+          ],
+          "contrast_vs_clear": 1.0,
+          "depression_deg": 6.18,
+          "distance_m": 2442.7,
+          "horizontal_m": 2428.5,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              453,
+              285,
+              521,
+              302
+            ],
+            "delta_l": 5.43,
+            "height_px": 18,
+            "l_object": 74.42,
+            "l_surround": 69.0,
+            "mean_abs_delta_l": 5.87,
+            "mean_delta_e": 22.26,
+            "pixels": 382,
+            "pixels_without_terrain": 382,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 69
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              452.7,
+              282.1,
+              521.4,
+              303.7
+            ],
+            "height_px": 21.6,
+            "width_px": 68.7
+          },
+          "transmittance": 0.8528,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "off_2": {
+          "centre": [
+            850.0,
+            0.0,
+            -3400.0
+          ],
+          "contrast_vs_clear": 1.0,
+          "depression_deg": 4.54,
+          "distance_m": 3326.8,
+          "horizontal_m": 3316.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              969,
+              238,
+              1121,
+              254
+            ],
+            "delta_l": 2.38,
+            "height_px": 17,
+            "l_object": 68.18,
+            "l_surround": 70.56,
+            "mean_abs_delta_l": 5.57,
+            "mean_delta_e": 5.99,
+            "pixels": 1109,
+            "pixels_without_terrain": 1109,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 153
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              968.4,
+              244.9,
+              1121.6,
+              255.0
+            ],
+            "height_px": 10.2,
+            "width_px": 153.1
+          },
+          "transmittance": 0.805,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "pad_a": {
+          "centre": [
+            -450.0,
+            3.59999990463257,
+            -1720.0
+          ],
+          "contrast_vs_clear": 1.0,
+          "depression_deg": 10.51,
+          "distance_m": 1423.0,
+          "horizontal_m": 1399.2,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              304,
+              361,
+              822,
+              426
+            ],
+            "delta_l": 5.75,
+            "height_px": 66,
+            "l_object": 61.31,
+            "l_surround": 55.56,
+            "mean_abs_delta_l": 10.58,
+            "mean_delta_e": 12.59,
+            "pixels": 13215,
+            "pixels_without_terrain": 24201,
+            "visible": true,
+            "visible_fraction": 0.546,
+            "width_px": 519
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              533,
+              387,
+              559,
+              390
+            ],
+            "delta_l": 13.04,
+            "height_px": 4,
+            "l_object": 50.43,
+            "l_surround": 63.47,
+            "mean_abs_delta_l": 13.04,
+            "mean_delta_e": 13.18,
+            "pixels": 84,
+            "visible": true,
+            "width_px": 27
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              533,
+              390,
+              560,
+              403
+            ],
+            "delta_l": 2.05,
+            "height_px": 14,
+            "l_object": 65.97,
+            "l_surround": 63.93,
+            "mean_abs_delta_l": 9.16,
+            "mean_delta_e": 10.8,
+            "pixels": 316,
+            "visible": true,
+            "width_px": 28
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              93.3,
+              360.8,
+              815.8,
+              468.7
+            ],
+            "height_px": 107.9,
+            "width_px": 722.5
+          },
+          "sample_tank": {
+            "depression_deg": 9.91,
+            "distance_m": 1433.1,
+            "lid_projected": {
+              "bbox": [
+                532.3,
+                386.5,
+                560.4,
+                391.4
+              ],
+              "height_px": 4.9,
+              "width_px": 28.1
+            },
+            "lod": 2,
+            "position": [
+              -375.0,
+              3.59999990463257,
+              -1734.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                532.3,
+                386.5,
+                561.5,
+                403.9
+              ],
+              "height_px": 17.3,
+              "width_px": 29.2
+            }
+          },
+          "transmittance": 0.9114,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              48,
+              64
+            ],
+            "total": 14972
+          }
+        },
+        "pad_b": {
+          "centre": [
+            750.0,
+            3.59999990463257,
+            -1640.0
+          ],
+          "contrast_vs_clear": 1.0,
+          "depression_deg": 8.49,
+          "distance_m": 1758.6,
+          "horizontal_m": 1739.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              1265,
+              331,
+              1585,
+              398
+            ],
+            "delta_l": 2.32,
+            "height_px": 68,
+            "l_object": 65.18,
+            "l_surround": 62.86,
+            "mean_abs_delta_l": 12.15,
+            "mean_delta_e": 14.24,
+            "pixels": 8115,
+            "pixels_without_terrain": 9010,
+            "visible": true,
+            "visible_fraction": 0.901,
+            "width_px": 321
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              1491,
+              355,
+              1509,
+              356
+            ],
+            "delta_l": 12.71,
+            "height_px": 2,
+            "l_object": 52.22,
+            "l_surround": 64.93,
+            "mean_abs_delta_l": 12.71,
+            "mean_delta_e": 13.09,
+            "pixels": 33,
+            "visible": true,
+            "width_px": 19
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              1488,
+              357,
+              1512,
+              367
+            ],
+            "delta_l": 5.26,
+            "height_px": 11,
+            "l_object": 73.96,
+            "l_surround": 68.7,
+            "mean_abs_delta_l": 9.57,
+            "mean_delta_e": 11.4,
+            "pixels": 246,
+            "visible": true,
+            "width_px": 25
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              1264.4,
+              330.3,
+              1731.6,
+              398.1
+            ],
+            "height_px": 67.8,
+            "width_px": 467.2
+          },
+          "sample_tank": {
+            "depression_deg": 8.29,
+            "distance_m": 1710.4,
+            "lid_projected": {
+              "bbox": [
+                1488.5,
+                354.2,
+                1513.6,
+                357.8
+              ],
+              "height_px": 3.7,
+              "width_px": 25.1
+            },
+            "lod": 2,
+            "position": [
+              720.0,
+              3.59999990463257,
+              -1604.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                1487.3,
+                354.2,
+                1513.6,
+                368.7
+              ],
+              "height_px": 14.5,
+              "width_px": 26.3
+            }
+          },
+          "transmittance": 0.8917,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              29,
+              28
+            ],
+            "total": 9010
+          }
+        },
+        "pad_delta": {
+          "centre": [
+            0.0,
+            3.59999990463257,
+            1450.0
+          ],
+          "depression_deg": 8.14,
+          "distance_m": 1832.2,
+          "horizontal_m": 1813.7,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": false,
+          "projected": {
+            "behind": true
+          },
+          "transmittance": 0.8874,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              8,
+              8
+            ],
+            "total": 1672
+          }
+        }
+      },
+      "weather": "clear"
+    },
+    "36_graybox_home_clear_pad_a_east": {
+      "camera": {
+        "fov_deg": 45.0,
+        "home_focus": [
+          -116.735069274902,
+          0.0,
+          -1140.0
+        ],
+        "pitch_deg": -17.0,
+        "position": [
+          -385.39,
+          263.13,
+          -322.33
+        ],
+        "spec": {
+          "mode": "home"
+        },
+        "yaw_deg": -18.19
+      },
+      "environment": {
+        "fog_density": 0.00006520000169985,
+        "sea_fog": 0.0,
+        "sun_elevation_deg": 49.57,
+        "visibility_m": 60000.0
+      },
+      "plot_overrides": {
+        "pad_a": [
+          -470.0,
+          -1650.0
+        ]
+      },
+      "targets": {
+        "off_1": {
+          "centre": [
+            -450.0,
+            0.0,
+            -2750.0
+          ],
+          "depression_deg": 6.18,
+          "distance_m": 2442.7,
+          "horizontal_m": 2428.5,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              453,
+              285,
+              521,
+              302
+            ],
+            "delta_l": 6.26,
+            "height_px": 18,
+            "l_object": 74.03,
+            "l_surround": 67.77,
+            "mean_abs_delta_l": 6.55,
+            "mean_delta_e": 23.33,
+            "pixels": 382,
+            "pixels_without_terrain": 382,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 69
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              452.7,
+              282.1,
+              521.4,
+              303.7
+            ],
+            "height_px": 21.6,
+            "width_px": 68.7
+          },
+          "transmittance": 0.8528,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "off_2": {
+          "centre": [
+            850.0,
+            0.0,
+            -3400.0
+          ],
+          "depression_deg": 4.54,
+          "distance_m": 3326.8,
+          "horizontal_m": 3316.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              969,
+              238,
+              1121,
+              254
+            ],
+            "delta_l": 2.37,
+            "height_px": 17,
+            "l_object": 68.22,
+            "l_surround": 70.59,
+            "mean_abs_delta_l": 5.44,
+            "mean_delta_e": 5.74,
+            "pixels": 1109,
+            "pixels_without_terrain": 1109,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 153
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              968.4,
+              244.9,
+              1121.6,
+              255.0
+            ],
+            "height_px": 10.2,
+            "width_px": 153.1
+          },
+          "transmittance": 0.805,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "pad_a": {
+          "centre": [
+            -470.0,
+            3.59999990463257,
+            -1650.0
+          ],
+          "depression_deg": 11.04,
+          "distance_m": 1355.4,
+          "horizontal_m": 1330.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              314,
+              371,
+              817,
+              443
+            ],
+            "delta_l": 6.1,
+            "height_px": 73,
+            "l_object": 60.49,
+            "l_surround": 54.39,
+            "mean_abs_delta_l": 11.0,
+            "mean_delta_e": 13.17,
+            "pixels": 13599,
+            "pixels_without_terrain": 27931,
+            "visible": true,
+            "visible_fraction": 0.487,
+            "width_px": 504
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              513,
+              400,
+              540,
+              403
+            ],
+            "delta_l": 11.98,
+            "height_px": 4,
+            "l_object": 48.85,
+            "l_surround": 60.82,
+            "mean_abs_delta_l": 11.98,
+            "mean_delta_e": 12.02,
+            "pixels": 93,
+            "visible": true,
+            "width_px": 28
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              513,
+              403,
+              542,
+              417
+            ],
+            "delta_l": 2.82,
+            "height_px": 15,
+            "l_object": 65.55,
+            "l_surround": 62.72,
+            "mean_abs_delta_l": 9.35,
+            "mean_delta_e": 11.01,
+            "pixels": 367,
+            "visible": true,
+            "width_px": 30
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              37.3,
+              371.2,
+              810.4,
+              491.2
+            ],
+            "height_px": 120.0,
+            "width_px": 773.1
+          },
+          "sample_tank": {
+            "depression_deg": 10.41,
+            "distance_m": 1364.2,
+            "lid_projected": {
+              "bbox": [
+                512.0,
+                399.6,
+                541.7,
+                405.1
+              ],
+              "height_px": 5.4,
+              "width_px": 29.7
+            },
+            "lod": 2,
+            "position": [
+              -395.0,
+              3.59999990463257,
+              -1664.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                512.0,
+                399.6,
+                543.0,
+                418.1
+              ],
+              "height_px": 18.5,
+              "width_px": 31.0
+            }
+          },
+          "transmittance": 0.9154,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              48,
+              64
+            ],
+            "total": 14972
+          }
+        },
+        "pad_b": {
+          "centre": [
+            750.0,
+            3.59999990463257,
+            -1640.0
+          ],
+          "depression_deg": 8.49,
+          "distance_m": 1758.6,
+          "horizontal_m": 1739.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              1265,
+              331,
+              1585,
+              398
+            ],
+            "delta_l": 2.22,
+            "height_px": 68,
+            "l_object": 65.07,
+            "l_surround": 62.85,
+            "mean_abs_delta_l": 12.12,
+            "mean_delta_e": 14.2,
+            "pixels": 8115,
+            "pixels_without_terrain": 9010,
+            "visible": true,
+            "visible_fraction": 0.901,
+            "width_px": 321
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              1491,
+              355,
+              1509,
+              356
+            ],
+            "delta_l": 12.73,
+            "height_px": 2,
+            "l_object": 52.09,
+            "l_surround": 64.82,
+            "mean_abs_delta_l": 12.73,
+            "mean_delta_e": 13.11,
+            "pixels": 33,
+            "visible": true,
+            "width_px": 19
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              1488,
+              357,
+              1512,
+              367
+            ],
+            "delta_l": 5.24,
+            "height_px": 11,
+            "l_object": 73.82,
+            "l_surround": 68.59,
+            "mean_abs_delta_l": 9.62,
+            "mean_delta_e": 11.44,
+            "pixels": 246,
+            "visible": true,
+            "width_px": 25
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              1264.4,
+              330.3,
+              1731.6,
+              398.1
+            ],
+            "height_px": 67.8,
+            "width_px": 467.2
+          },
+          "sample_tank": {
+            "depression_deg": 8.29,
+            "distance_m": 1710.4,
+            "lid_projected": {
+              "bbox": [
+                1488.5,
+                354.2,
+                1513.6,
+                357.8
+              ],
+              "height_px": 3.7,
+              "width_px": 25.1
+            },
+            "lod": 2,
+            "position": [
+              720.0,
+              3.59999990463257,
+              -1604.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                1487.3,
+                354.2,
+                1513.6,
+                368.7
+              ],
+              "height_px": 14.5,
+              "width_px": 26.3
+            }
+          },
+          "transmittance": 0.8917,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              29,
+              28
+            ],
+            "total": 9010
+          }
+        },
+        "pad_delta": {
+          "centre": [
+            0.0,
+            3.59999990463257,
+            1450.0
+          ],
+          "depression_deg": 8.14,
+          "distance_m": 1832.2,
+          "horizontal_m": 1813.7,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": false,
+          "projected": {
+            "behind": true
+          },
+          "transmittance": 0.8874,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              8,
+              8
+            ],
+            "total": 1672
+          }
+        }
+      },
+      "weather": "clear"
+    },
+    "36_graybox_home_clear_pad_a_spec_r2": {
+      "camera": {
+        "fov_deg": 45.0,
+        "home_focus": [
+          -116.735069274902,
+          0.0,
+          -1140.0
+        ],
+        "pitch_deg": -17.0,
+        "position": [
+          -385.39,
+          263.13,
+          -322.33
+        ],
+        "spec": {
+          "mode": "home"
+        },
+        "yaw_deg": -18.19
+      },
+      "environment": {
+        "fog_density": 0.00006520000169985,
+        "sea_fog": 0.0,
+        "sun_elevation_deg": 49.57,
+        "visibility_m": 60000.0
+      },
+      "plot_overrides": {
+        "pad_a": [
+          -700.0,
+          -1650.0
+        ]
+      },
+      "targets": {
+        "off_1": {
+          "centre": [
+            -450.0,
+            0.0,
+            -2750.0
+          ],
+          "depression_deg": 6.18,
+          "distance_m": 2442.7,
+          "horizontal_m": 2428.5,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              453,
+              285,
+              521,
+              302
+            ],
+            "delta_l": 6.26,
+            "height_px": 18,
+            "l_object": 74.03,
+            "l_surround": 67.77,
+            "mean_abs_delta_l": 6.54,
+            "mean_delta_e": 23.31,
+            "pixels": 382,
+            "pixels_without_terrain": 382,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 69
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              452.7,
+              282.1,
+              521.4,
+              303.7
+            ],
+            "height_px": 21.6,
+            "width_px": 68.7
+          },
+          "transmittance": 0.8528,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "off_2": {
+          "centre": [
+            850.0,
+            0.0,
+            -3400.0
+          ],
+          "depression_deg": 4.54,
+          "distance_m": 3326.8,
+          "horizontal_m": 3316.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              969,
+              238,
+              1121,
+              254
+            ],
+            "delta_l": 2.39,
+            "height_px": 17,
+            "l_object": 68.16,
+            "l_surround": 70.55,
+            "mean_abs_delta_l": 5.47,
+            "mean_delta_e": 5.78,
+            "pixels": 1109,
+            "pixels_without_terrain": 1109,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 153
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              968.4,
+              244.9,
+              1121.6,
+              255.0
+            ],
+            "height_px": 10.2,
+            "width_px": 153.1
+          },
+          "transmittance": 0.805,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "pad_a": {
+          "centre": [
+            -700.0,
+            3.59999990463257,
+            -1650.0
+          ],
+          "depression_deg": 10.77,
+          "distance_m": 1388.9,
+          "horizontal_m": 1364.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              315,
+              383,
+              571,
+              462
+            ],
+            "delta_l": 5.19,
+            "height_px": 80,
+            "l_object": 57.57,
+            "l_surround": 52.38,
+            "mean_abs_delta_l": 11.43,
+            "mean_delta_e": 15.36,
+            "pixels": 5699,
+            "pixels_without_terrain": 19326,
+            "visible": true,
+            "visible_fraction": 0.295,
+            "width_px": 257
+          },
+          "mask_tank_lid": {
+            "pixels": 0,
+            "visible": false
+          },
+          "mask_tank_wall": {
+            "pixels": 0,
+            "visible": false
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              -332.7,
+              382.5,
+              571.6,
+              516.7
+            ],
+            "height_px": 134.2,
+            "width_px": 904.3
+          },
+          "sample_tank": {
+            "depression_deg": 10.29,
+            "distance_m": 1379.8,
+            "lid_projected": {
+              "bbox": [
+                290.0,
+                411.9,
+                322.9,
+                417.9
+              ],
+              "height_px": 6.0,
+              "width_px": 32.9
+            },
+            "lod": 2,
+            "position": [
+              -593.0,
+              3.59999990463257,
+              -1664.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                290.0,
+                411.9,
+                324.9,
+                431.6
+              ],
+              "height_px": 19.6,
+              "width_px": 34.9
+            }
+          },
+          "transmittance": 0.9134,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              48,
+              64
+            ],
+            "total": 14972
+          }
+        },
+        "pad_b": {
+          "centre": [
+            750.0,
+            3.59999990463257,
+            -1640.0
+          ],
+          "depression_deg": 8.49,
+          "distance_m": 1758.6,
+          "horizontal_m": 1739.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              1265,
+              331,
+              1585,
+              398
+            ],
+            "delta_l": 2.2,
+            "height_px": 68,
+            "l_object": 65.06,
+            "l_surround": 62.87,
+            "mean_abs_delta_l": 12.13,
+            "mean_delta_e": 14.19,
+            "pixels": 8115,
+            "pixels_without_terrain": 9010,
+            "visible": true,
+            "visible_fraction": 0.901,
+            "width_px": 321
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              1491,
+              355,
+              1509,
+              356
+            ],
+            "delta_l": 12.73,
+            "height_px": 2,
+            "l_object": 52.09,
+            "l_surround": 64.82,
+            "mean_abs_delta_l": 12.73,
+            "mean_delta_e": 13.1,
+            "pixels": 33,
+            "visible": true,
+            "width_px": 19
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              1488,
+              357,
+              1512,
+              367
+            ],
+            "delta_l": 5.23,
+            "height_px": 11,
+            "l_object": 73.82,
+            "l_surround": 68.58,
+            "mean_abs_delta_l": 9.62,
+            "mean_delta_e": 11.44,
+            "pixels": 246,
+            "visible": true,
+            "width_px": 25
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              1264.4,
+              330.3,
+              1731.6,
+              398.1
+            ],
+            "height_px": 67.8,
+            "width_px": 467.2
+          },
+          "sample_tank": {
+            "depression_deg": 8.29,
+            "distance_m": 1710.4,
+            "lid_projected": {
+              "bbox": [
+                1488.5,
+                354.2,
+                1513.6,
+                357.8
+              ],
+              "height_px": 3.7,
+              "width_px": 25.1
+            },
+            "lod": 2,
+            "position": [
+              720.0,
+              3.59999990463257,
+              -1604.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                1487.3,
+                354.2,
+                1513.6,
+                368.7
+              ],
+              "height_px": 14.5,
+              "width_px": 26.3
+            }
+          },
+          "transmittance": 0.8917,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              29,
+              28
+            ],
+            "total": 9010
+          }
+        },
+        "pad_delta": {
+          "centre": [
+            0.0,
+            3.59999990463257,
+            1450.0
+          ],
+          "depression_deg": 8.14,
+          "distance_m": 1832.2,
+          "horizontal_m": 1813.7,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": false,
+          "projected": {
+            "behind": true
+          },
+          "transmittance": 0.8874,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              8,
+              8
+            ],
+            "total": 1672
+          }
+        }
+      },
+      "weather": "clear"
+    },
+    "36_graybox_home_fog": {
+      "camera": {
+        "fov_deg": 45.0,
+        "home_focus": [
+          -116.735069274902,
+          0.0,
+          -1140.0
+        ],
+        "pitch_deg": -17.0,
+        "position": [
+          -385.39,
+          263.13,
+          -322.33
+        ],
+        "spec": {
+          "mode": "home"
+        },
+        "yaw_deg": -18.19
+      },
+      "environment": {
+        "fog_density": 0.0002608000067994,
+        "sea_fog": 1.0,
+        "sun_elevation_deg": 49.57,
+        "visibility_m": 400.0
+      },
+      "plot_overrides": {},
+      "targets": {
+        "off_1": {
+          "centre": [
+            -450.0,
+            0.0,
+            -2750.0
+          ],
+          "contrast_vs_clear": 0.23,
+          "depression_deg": 6.18,
+          "distance_m": 2442.7,
+          "horizontal_m": 2428.5,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              453,
+              285,
+              521,
+              302
+            ],
+            "delta_l": 0.67,
+            "height_px": 18,
+            "l_object": 73.56,
+            "l_surround": 72.89,
+            "mean_abs_delta_l": 1.24,
+            "mean_delta_e": 5.13,
+            "pixels": 382,
+            "pixels_without_terrain": 382,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 69
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              452.7,
+              282.1,
+              521.4,
+              303.7
+            ],
+            "height_px": 21.6,
+            "width_px": 68.7
+          },
+          "transmittance": 0.5288,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "off_2": {
+          "centre": [
+            850.0,
+            0.0,
+            -3400.0
+          ],
+          "contrast_vs_clear": 0.25,
+          "depression_deg": 4.54,
+          "distance_m": 3326.8,
+          "horizontal_m": 3316.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              969,
+              238,
+              1121,
+              254
+            ],
+            "delta_l": 0.31,
+            "height_px": 17,
+            "l_object": 72.77,
+            "l_surround": 73.07,
+            "mean_abs_delta_l": 1.38,
+            "mean_delta_e": 1.5,
+            "pixels": 1109,
+            "pixels_without_terrain": 1109,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 153
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              968.4,
+              244.9,
+              1121.6,
+              255.0
+            ],
+            "height_px": 10.2,
+            "width_px": 153.1
+          },
+          "transmittance": 0.4199,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "pad_a": {
+          "centre": [
+            -450.0,
+            3.59999990463257,
+            -1720.0
+          ],
+          "contrast_vs_clear": 0.273,
+          "depression_deg": 10.51,
+          "distance_m": 1423.0,
+          "horizontal_m": 1399.2,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              304,
+              361,
+              822,
+              426
+            ],
+            "delta_l": 3.18,
+            "height_px": 66,
+            "l_object": 71.05,
+            "l_surround": 67.87,
+            "mean_abs_delta_l": 3.19,
+            "mean_delta_e": 3.44,
+            "pixels": 13215,
+            "pixels_without_terrain": 24201,
+            "visible": true,
+            "visible_fraction": 0.546,
+            "width_px": 519
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              533,
+              387,
+              559,
+              390
+            ],
+            "delta_l": 2.62,
+            "height_px": 4,
+            "l_object": 68.69,
+            "l_surround": 71.31,
+            "mean_abs_delta_l": 2.62,
+            "mean_delta_e": 2.67,
+            "pixels": 84,
+            "visible": true,
+            "width_px": 27
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              533,
+              390,
+              560,
+              403
+            ],
+            "delta_l": 0.53,
+            "height_px": 14,
+            "l_object": 72.27,
+            "l_surround": 71.75,
+            "mean_abs_delta_l": 1.17,
+            "mean_delta_e": 1.38,
+            "pixels": 316,
+            "visible": true,
+            "width_px": 28
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              93.3,
+              360.8,
+              815.8,
+              468.7
+            ],
+            "height_px": 107.9,
+            "width_px": 722.5
+          },
+          "sample_tank": {
+            "depression_deg": 9.91,
+            "distance_m": 1433.1,
+            "lid_projected": {
+              "bbox": [
+                532.3,
+                386.5,
+                560.4,
+                391.4
+              ],
+              "height_px": 4.9,
+              "width_px": 28.1
+            },
+            "lod": 2,
+            "position": [
+              -375.0,
+              3.59999990463257,
+              -1734.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                532.3,
+                386.5,
+                561.5,
+                403.9
+              ],
+              "height_px": 17.3,
+              "width_px": 29.2
+            }
+          },
+          "transmittance": 0.69,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              48,
+              64
+            ],
+            "total": 14972
+          }
+        },
+        "pad_b": {
+          "centre": [
+            750.0,
+            3.59999990463257,
+            -1640.0
+          ],
+          "contrast_vs_clear": 0.193,
+          "depression_deg": 8.49,
+          "distance_m": 1758.6,
+          "horizontal_m": 1739.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              1265,
+              331,
+              1585,
+              398
+            ],
+            "delta_l": 1.29,
+            "height_px": 68,
+            "l_object": 71.7,
+            "l_surround": 70.4,
+            "mean_abs_delta_l": 2.39,
+            "mean_delta_e": 2.75,
+            "pixels": 8115,
+            "pixels_without_terrain": 9010,
+            "visible": true,
+            "visible_fraction": 0.901,
+            "width_px": 321
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              1491,
+              355,
+              1509,
+              356
+            ],
+            "delta_l": 2.49,
+            "height_px": 2,
+            "l_object": 68.74,
+            "l_surround": 71.22,
+            "mean_abs_delta_l": 2.49,
+            "mean_delta_e": 2.54,
+            "pixels": 33,
+            "visible": true,
+            "width_px": 19
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              1488,
+              357,
+              1512,
+              367
+            ],
+            "delta_l": 1.49,
+            "height_px": 11,
+            "l_object": 73.64,
+            "l_surround": 72.15,
+            "mean_abs_delta_l": 2.04,
+            "mean_delta_e": 2.3,
+            "pixels": 246,
+            "visible": true,
+            "width_px": 25
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              1264.4,
+              330.3,
+              1731.6,
+              398.1
+            ],
+            "height_px": 67.8,
+            "width_px": 467.2
+          },
+          "sample_tank": {
+            "depression_deg": 8.29,
+            "distance_m": 1710.4,
+            "lid_projected": {
+              "bbox": [
+                1488.5,
+                354.2,
+                1513.6,
+                357.8
+              ],
+              "height_px": 3.7,
+              "width_px": 25.1
+            },
+            "lod": 2,
+            "position": [
+              720.0,
+              3.59999990463257,
+              -1604.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                1487.3,
+                354.2,
+                1513.6,
+                368.7
+              ],
+              "height_px": 14.5,
+              "width_px": 26.3
+            }
+          },
+          "transmittance": 0.6321,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              29,
+              28
+            ],
+            "total": 9010
+          }
+        },
+        "pad_delta": {
+          "centre": [
+            0.0,
+            3.59999990463257,
+            1450.0
+          ],
+          "depression_deg": 8.14,
+          "distance_m": 1832.2,
+          "horizontal_m": 1813.7,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": false,
+          "projected": {
+            "behind": true
+          },
+          "transmittance": 0.6201,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              8,
+              8
+            ],
+            "total": 1672
+          }
+        }
+      },
+      "weather": "fog"
+    },
+    "36_graybox_home_overcast": {
+      "camera": {
+        "fov_deg": 45.0,
+        "home_focus": [
+          -116.735069274902,
+          0.0,
+          -1140.0
+        ],
+        "pitch_deg": -17.0,
+        "position": [
+          -385.39,
+          263.13,
+          -322.33
+        ],
+        "spec": {
+          "mode": "home"
+        },
+        "yaw_deg": -18.19
+      },
+      "environment": {
+        "fog_density": 0.00019560000509955,
+        "sea_fog": 0.0,
+        "sun_elevation_deg": 49.57,
+        "visibility_m": 20000.0
+      },
+      "plot_overrides": {},
+      "targets": {
+        "off_1": {
+          "centre": [
+            -450.0,
+            0.0,
+            -2750.0
+          ],
+          "contrast_vs_clear": 0.758,
+          "depression_deg": 6.18,
+          "distance_m": 2442.7,
+          "horizontal_m": 2428.5,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              453,
+              285,
+              521,
+              302
+            ],
+            "delta_l": 5.73,
+            "height_px": 18,
+            "l_object": 61.05,
+            "l_surround": 55.31,
+            "mean_abs_delta_l": 5.74,
+            "mean_delta_e": 16.87,
+            "pixels": 382,
+            "pixels_without_terrain": 382,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 69
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              452.7,
+              282.1,
+              521.4,
+              303.7
+            ],
+            "height_px": 21.6,
+            "width_px": 68.7
+          },
+          "transmittance": 0.6201,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "off_2": {
+          "centre": [
+            850.0,
+            0.0,
+            -3400.0
+          ],
+          "contrast_vs_clear": 0.601,
+          "depression_deg": 4.54,
+          "distance_m": 3326.8,
+          "horizontal_m": 3316.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              969,
+              238,
+              1121,
+              254
+            ],
+            "delta_l": 1.54,
+            "height_px": 17,
+            "l_object": 57.06,
+            "l_surround": 58.6,
+            "mean_abs_delta_l": 3.56,
+            "mean_delta_e": 3.6,
+            "pixels": 1109,
+            "pixels_without_terrain": 1109,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 153
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              968.4,
+              244.9,
+              1121.6,
+              255.0
+            ],
+            "height_px": 10.2,
+            "width_px": 153.1
+          },
+          "transmittance": 0.5217,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "pad_a": {
+          "centre": [
+            -450.0,
+            3.59999990463257,
+            -1720.0
+          ],
+          "contrast_vs_clear": 0.724,
+          "depression_deg": 10.51,
+          "distance_m": 1423.0,
+          "horizontal_m": 1399.2,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              304,
+              361,
+              822,
+              426
+            ],
+            "delta_l": 2.56,
+            "height_px": 66,
+            "l_object": 50.61,
+            "l_surround": 48.05,
+            "mean_abs_delta_l": 8.16,
+            "mean_delta_e": 9.11,
+            "pixels": 13215,
+            "pixels_without_terrain": 24201,
+            "visible": true,
+            "visible_fraction": 0.546,
+            "width_px": 519
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              533,
+              387,
+              559,
+              390
+            ],
+            "delta_l": 11.32,
+            "height_px": 4,
+            "l_object": 41.17,
+            "l_surround": 52.5,
+            "mean_abs_delta_l": 11.32,
+            "mean_delta_e": 11.33,
+            "pixels": 84,
+            "visible": true,
+            "width_px": 27
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              533,
+              390,
+              560,
+              403
+            ],
+            "delta_l": 1.89,
+            "height_px": 14,
+            "l_object": 54.88,
+            "l_surround": 52.99,
+            "mean_abs_delta_l": 7.28,
+            "mean_delta_e": 7.74,
+            "pixels": 316,
+            "visible": true,
+            "width_px": 28
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              93.3,
+              360.8,
+              815.8,
+              468.7
+            ],
+            "height_px": 107.9,
+            "width_px": 722.5
+          },
+          "sample_tank": {
+            "depression_deg": 9.91,
+            "distance_m": 1433.1,
+            "lid_projected": {
+              "bbox": [
+                532.3,
+                386.5,
+                560.4,
+                391.4
+              ],
+              "height_px": 4.9,
+              "width_px": 28.1
+            },
+            "lod": 2,
+            "position": [
+              -375.0,
+              3.59999990463257,
+              -1734.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                532.3,
+                386.5,
+                561.5,
+                403.9
+              ],
+              "height_px": 17.3,
+              "width_px": 29.2
+            }
+          },
+          "transmittance": 0.757,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              48,
+              64
+            ],
+            "total": 14972
+          }
+        },
+        "pad_b": {
+          "centre": [
+            750.0,
+            3.59999990463257,
+            -1640.0
+          ],
+          "contrast_vs_clear": 0.704,
+          "depression_deg": 8.49,
+          "distance_m": 1758.6,
+          "horizontal_m": 1739.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              1265,
+              331,
+              1585,
+              398
+            ],
+            "delta_l": 0.64,
+            "height_px": 68,
+            "l_object": 53.12,
+            "l_surround": 52.48,
+            "mean_abs_delta_l": 8.93,
+            "mean_delta_e": 10.02,
+            "pixels": 8115,
+            "pixels_without_terrain": 9010,
+            "visible": true,
+            "visible_fraction": 0.901,
+            "width_px": 321
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              1491,
+              355,
+              1509,
+              356
+            ],
+            "delta_l": 8.92,
+            "height_px": 2,
+            "l_object": 43.66,
+            "l_surround": 52.59,
+            "mean_abs_delta_l": 8.92,
+            "mean_delta_e": 8.94,
+            "pixels": 33,
+            "visible": true,
+            "width_px": 19
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              1488,
+              357,
+              1512,
+              367
+            ],
+            "delta_l": 4.4,
+            "height_px": 11,
+            "l_object": 59.36,
+            "l_surround": 54.97,
+            "mean_abs_delta_l": 7.75,
+            "mean_delta_e": 8.35,
+            "pixels": 246,
+            "visible": true,
+            "width_px": 25
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              1264.4,
+              330.3,
+              1731.6,
+              398.1
+            ],
+            "height_px": 67.8,
+            "width_px": 467.2
+          },
+          "sample_tank": {
+            "depression_deg": 8.29,
+            "distance_m": 1710.4,
+            "lid_projected": {
+              "bbox": [
+                1488.5,
+                354.2,
+                1513.6,
+                357.8
+              ],
+              "height_px": 3.7,
+              "width_px": 25.1
+            },
+            "lod": 2,
+            "position": [
+              720.0,
+              3.59999990463257,
+              -1604.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                1487.3,
+                354.2,
+                1513.6,
+                368.7
+              ],
+              "height_px": 14.5,
+              "width_px": 26.3
+            }
+          },
+          "transmittance": 0.7089,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              29,
+              28
+            ],
+            "total": 9010
+          }
+        },
+        "pad_delta": {
+          "centre": [
+            0.0,
+            3.59999990463257,
+            1450.0
+          ],
+          "depression_deg": 8.14,
+          "distance_m": 1832.2,
+          "horizontal_m": 1813.7,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": false,
+          "projected": {
+            "behind": true
+          },
+          "transmittance": 0.6988,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              8,
+              8
+            ],
+            "total": 1672
+          }
+        }
+      },
+      "weather": "overcast"
+    },
+    "36_graybox_home_rain": {
+      "camera": {
+        "fov_deg": 45.0,
+        "home_focus": [
+          -116.735069274902,
+          0.0,
+          -1140.0
+        ],
+        "pitch_deg": -17.0,
+        "position": [
+          -385.39,
+          263.13,
+          -322.33
+        ],
+        "spec": {
+          "mode": "home"
+        },
+        "yaw_deg": -18.19
+      },
+      "environment": {
+        "fog_density": 0.000869333336595446,
+        "sea_fog": 0.0,
+        "sun_elevation_deg": 49.57,
+        "visibility_m": 4500.0
+      },
+      "plot_overrides": {},
+      "targets": {
+        "off_1": {
+          "centre": [
+            -450.0,
+            0.0,
+            -2750.0
+          ],
+          "contrast_vs_clear": 0.136,
+          "depression_deg": 6.18,
+          "distance_m": 2442.7,
+          "horizontal_m": 2428.5,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              453,
+              285,
+              521,
+              302
+            ],
+            "delta_l": 1.14,
+            "height_px": 18,
+            "l_object": 47.97,
+            "l_surround": 46.83,
+            "mean_abs_delta_l": 1.15,
+            "mean_delta_e": 3.03,
+            "pixels": 382,
+            "pixels_without_terrain": 382,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 69
+          },
+          "needs_chip": true,
+          "projected": {
+            "bbox": [
+              452.7,
+              282.1,
+              521.4,
+              303.7
+            ],
+            "height_px": 21.6,
+            "width_px": 68.7
+          },
+          "transmittance": 0.1196,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "off_2": {
+          "centre": [
+            850.0,
+            0.0,
+            -3400.0
+          ],
+          "contrast_vs_clear": 0.092,
+          "depression_deg": 4.54,
+          "distance_m": 3326.8,
+          "horizontal_m": 3316.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              969,
+              238,
+              1121,
+              254
+            ],
+            "delta_l": 0.03,
+            "height_px": 17,
+            "l_object": 47.78,
+            "l_surround": 47.8,
+            "mean_abs_delta_l": 0.4,
+            "mean_delta_e": 0.55,
+            "pixels": 1109,
+            "pixels_without_terrain": 1109,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 153
+          },
+          "needs_chip": true,
+          "projected": {
+            "bbox": [
+              968.4,
+              244.9,
+              1121.6,
+              255.0
+            ],
+            "height_px": 10.2,
+            "width_px": 153.1
+          },
+          "transmittance": 0.0555,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "pad_a": {
+          "centre": [
+            -450.0,
+            3.59999990463257,
+            -1720.0
+          ],
+          "contrast_vs_clear": 0.221,
+          "depression_deg": 10.51,
+          "distance_m": 1423.0,
+          "horizontal_m": 1399.2,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              304,
+              361,
+              822,
+              426
+            ],
+            "delta_l": 1.89,
+            "height_px": 66,
+            "l_object": 44.32,
+            "l_surround": 42.43,
+            "mean_abs_delta_l": 2.49,
+            "mean_delta_e": 2.78,
+            "pixels": 13215,
+            "pixels_without_terrain": 24201,
+            "visible": true,
+            "visible_fraction": 0.546,
+            "width_px": 519
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              533,
+              387,
+              559,
+              390
+            ],
+            "delta_l": 3.12,
+            "height_px": 4,
+            "l_object": 41.31,
+            "l_surround": 44.43,
+            "mean_abs_delta_l": 3.12,
+            "mean_delta_e": 3.13,
+            "pixels": 84,
+            "visible": true,
+            "width_px": 27
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              533,
+              390,
+              560,
+              403
+            ],
+            "delta_l": 1.07,
+            "height_px": 14,
+            "l_object": 45.34,
+            "l_surround": 44.27,
+            "mean_abs_delta_l": 2.38,
+            "mean_delta_e": 2.52,
+            "pixels": 316,
+            "visible": true,
+            "width_px": 28
+          },
+          "needs_chip": true,
+          "projected": {
+            "bbox": [
+              93.3,
+              360.8,
+              815.8,
+              468.7
+            ],
+            "height_px": 107.9,
+            "width_px": 722.5
+          },
+          "sample_tank": {
+            "depression_deg": 9.91,
+            "distance_m": 1433.1,
+            "lid_projected": {
+              "bbox": [
+                532.3,
+                386.5,
+                560.4,
+                391.4
+              ],
+              "height_px": 4.9,
+              "width_px": 28.1
+            },
+            "lod": 2,
+            "position": [
+              -375.0,
+              3.59999990463257,
+              -1734.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                532.3,
+                386.5,
+                561.5,
+                403.9
+              ],
+              "height_px": 17.3,
+              "width_px": 29.2
+            }
+          },
+          "transmittance": 0.2902,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              48,
+              64
+            ],
+            "total": 14972
+          }
+        },
+        "pad_b": {
+          "centre": [
+            750.0,
+            3.59999990463257,
+            -1640.0
+          ],
+          "contrast_vs_clear": 0.209,
+          "depression_deg": 8.49,
+          "distance_m": 1758.6,
+          "horizontal_m": 1739.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              1265,
+              331,
+              1585,
+              398
+            ],
+            "delta_l": 1.44,
+            "height_px": 68,
+            "l_object": 46.04,
+            "l_surround": 44.6,
+            "mean_abs_delta_l": 2.67,
+            "mean_delta_e": 2.98,
+            "pixels": 8114,
+            "pixels_without_terrain": 9009,
+            "visible": true,
+            "visible_fraction": 0.901,
+            "width_px": 321
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              1491,
+              355,
+              1509,
+              356
+            ],
+            "delta_l": 2.37,
+            "height_px": 2,
+            "l_object": 43.3,
+            "l_surround": 45.67,
+            "mean_abs_delta_l": 2.37,
+            "mean_delta_e": 2.38,
+            "pixels": 33,
+            "visible": true,
+            "width_px": 19
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              1488,
+              357,
+              1512,
+              367
+            ],
+            "delta_l": 1.84,
+            "height_px": 11,
+            "l_object": 47.78,
+            "l_surround": 45.94,
+            "mean_abs_delta_l": 2.68,
+            "mean_delta_e": 2.86,
+            "pixels": 246,
+            "visible": true,
+            "width_px": 25
+          },
+          "needs_chip": true,
+          "projected": {
+            "bbox": [
+              1264.4,
+              330.3,
+              1731.6,
+              398.1
+            ],
+            "height_px": 67.8,
+            "width_px": 467.2
+          },
+          "sample_tank": {
+            "depression_deg": 8.29,
+            "distance_m": 1710.4,
+            "lid_projected": {
+              "bbox": [
+                1488.5,
+                354.2,
+                1513.6,
+                357.8
+              ],
+              "height_px": 3.7,
+              "width_px": 25.1
+            },
+            "lod": 2,
+            "position": [
+              720.0,
+              3.59999990463257,
+              -1604.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                1487.3,
+                354.2,
+                1513.6,
+                368.7
+              ],
+              "height_px": 14.5,
+              "width_px": 26.3
+            }
+          },
+          "transmittance": 0.2168,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              29,
+              28
+            ],
+            "total": 9010
+          }
+        },
+        "pad_delta": {
+          "centre": [
+            0.0,
+            3.59999990463257,
+            1450.0
+          ],
+          "depression_deg": 8.14,
+          "distance_m": 1832.2,
+          "horizontal_m": 1813.7,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": true,
+          "projected": {
+            "behind": true
+          },
+          "transmittance": 0.2034,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              8,
+              8
+            ],
+            "total": 1672
+          }
+        }
+      },
+      "weather": "rain"
+    },
+    "36_graybox_home_snow": {
+      "camera": {
+        "fov_deg": 45.0,
+        "home_focus": [
+          -116.735069274902,
+          0.0,
+          -1140.0
+        ],
+        "pitch_deg": -17.0,
+        "position": [
+          -385.39,
+          263.13,
+          -322.33
+        ],
+        "spec": {
+          "mode": "home"
+        },
+        "yaw_deg": -18.19
+      },
+      "environment": {
+        "fog_density": 0.0015648000407964,
+        "sea_fog": 0.0,
+        "sun_elevation_deg": 49.57,
+        "visibility_m": 2500.0
+      },
+      "plot_overrides": {},
+      "targets": {
+        "off_1": {
+          "centre": [
+            -450.0,
+            0.0,
+            -2750.0
+          ],
+          "contrast_vs_clear": 0.021,
+          "depression_deg": 6.18,
+          "distance_m": 2442.7,
+          "horizontal_m": 2428.5,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              453,
+              285,
+              521,
+              302
+            ],
+            "delta_l": 0.11,
+            "height_px": 18,
+            "l_object": 84.3,
+            "l_surround": 84.19,
+            "mean_abs_delta_l": 0.12,
+            "mean_delta_e": 0.46,
+            "pixels": 382,
+            "pixels_without_terrain": 382,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 69
+          },
+          "needs_chip": true,
+          "projected": {
+            "bbox": [
+              452.7,
+              282.1,
+              521.4,
+              303.7
+            ],
+            "height_px": 21.6,
+            "width_px": 68.7
+          },
+          "transmittance": 0.0219,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "off_2": {
+          "centre": [
+            850.0,
+            0.0,
+            -3400.0
+          ],
+          "contrast_vs_clear": 0.048,
+          "depression_deg": 4.54,
+          "distance_m": 3326.8,
+          "horizontal_m": 3316.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              969,
+              238,
+              1121,
+              254
+            ],
+            "delta_l": 0.08,
+            "height_px": 17,
+            "l_object": 84.46,
+            "l_surround": 84.54,
+            "mean_abs_delta_l": 0.15,
+            "mean_delta_e": 0.29,
+            "pixels": 1109,
+            "pixels_without_terrain": 1109,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 153
+          },
+          "needs_chip": true,
+          "projected": {
+            "bbox": [
+              968.4,
+              244.9,
+              1121.6,
+              255.0
+            ],
+            "height_px": 10.2,
+            "width_px": 153.1
+          },
+          "transmittance": 0.0055,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "pad_a": {
+          "centre": [
+            -450.0,
+            3.59999990463257,
+            -1720.0
+          ],
+          "contrast_vs_clear": 0.057,
+          "depression_deg": 10.51,
+          "distance_m": 1423.0,
+          "horizontal_m": 1399.2,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              304,
+              361,
+              822,
+              426
+            ],
+            "delta_l": 0.71,
+            "height_px": 66,
+            "l_object": 83.18,
+            "l_surround": 82.47,
+            "mean_abs_delta_l": 0.71,
+            "mean_delta_e": 0.72,
+            "pixels": 13215,
+            "pixels_without_terrain": 24201,
+            "visible": true,
+            "visible_fraction": 0.546,
+            "width_px": 519
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              533,
+              387,
+              559,
+              390
+            ],
+            "delta_l": 0.5,
+            "height_px": 4,
+            "l_object": 82.65,
+            "l_surround": 83.15,
+            "mean_abs_delta_l": 0.5,
+            "mean_delta_e": 0.68,
+            "pixels": 84,
+            "visible": true,
+            "width_px": 27
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              533,
+              390,
+              560,
+              403
+            ],
+            "delta_l": 0.34,
+            "height_px": 14,
+            "l_object": 83.27,
+            "l_surround": 82.93,
+            "mean_abs_delta_l": 0.37,
+            "mean_delta_e": 0.44,
+            "pixels": 316,
+            "visible": true,
+            "width_px": 28
+          },
+          "needs_chip": true,
+          "projected": {
+            "bbox": [
+              93.3,
+              360.8,
+              815.8,
+              468.7
+            ],
+            "height_px": 107.9,
+            "width_px": 722.5
+          },
+          "sample_tank": {
+            "depression_deg": 9.91,
+            "distance_m": 1433.1,
+            "lid_projected": {
+              "bbox": [
+                532.3,
+                386.5,
+                560.4,
+                391.4
+              ],
+              "height_px": 4.9,
+              "width_px": 28.1
+            },
+            "lod": 2,
+            "position": [
+              -375.0,
+              3.59999990463257,
+              -1734.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                532.3,
+                386.5,
+                561.5,
+                403.9
+              ],
+              "height_px": 17.3,
+              "width_px": 29.2
+            }
+          },
+          "transmittance": 0.1079,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              48,
+              64
+            ],
+            "total": 14972
+          }
+        },
+        "pad_b": {
+          "centre": [
+            750.0,
+            3.59999990463257,
+            -1640.0
+          ],
+          "contrast_vs_clear": 0.037,
+          "depression_deg": 8.49,
+          "distance_m": 1758.6,
+          "horizontal_m": 1739.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              1265,
+              331,
+              1585,
+              398
+            ],
+            "delta_l": 0.43,
+            "height_px": 68,
+            "l_object": 83.66,
+            "l_surround": 83.23,
+            "mean_abs_delta_l": 0.43,
+            "mean_delta_e": 0.52,
+            "pixels": 8115,
+            "pixels_without_terrain": 9010,
+            "visible": true,
+            "visible_fraction": 0.901,
+            "width_px": 321
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              1491,
+              355,
+              1509,
+              356
+            ],
+            "delta_l": 0.34,
+            "height_px": 2,
+            "l_object": 83.31,
+            "l_surround": 83.65,
+            "mean_abs_delta_l": 0.34,
+            "mean_delta_e": 0.4,
+            "pixels": 33,
+            "visible": true,
+            "width_px": 19
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              1488,
+              357,
+              1512,
+              367
+            ],
+            "delta_l": 0.25,
+            "height_px": 11,
+            "l_object": 83.86,
+            "l_surround": 83.61,
+            "mean_abs_delta_l": 0.27,
+            "mean_delta_e": 0.4,
+            "pixels": 246,
+            "visible": true,
+            "width_px": 25
+          },
+          "needs_chip": true,
+          "projected": {
+            "bbox": [
+              1264.4,
+              330.3,
+              1731.6,
+              398.1
+            ],
+            "height_px": 67.8,
+            "width_px": 467.2
+          },
+          "sample_tank": {
+            "depression_deg": 8.29,
+            "distance_m": 1710.4,
+            "lid_projected": {
+              "bbox": [
+                1488.5,
+                354.2,
+                1513.6,
+                357.8
+              ],
+              "height_px": 3.7,
+              "width_px": 25.1
+            },
+            "lod": 2,
+            "position": [
+              720.0,
+              3.59999990463257,
+              -1604.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                1487.3,
+                354.2,
+                1513.6,
+                368.7
+              ],
+              "height_px": 14.5,
+              "width_px": 26.3
+            }
+          },
+          "transmittance": 0.0638,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              29,
+              28
+            ],
+            "total": 9010
+          }
+        },
+        "pad_delta": {
+          "centre": [
+            0.0,
+            3.59999990463257,
+            1450.0
+          ],
+          "depression_deg": 8.14,
+          "distance_m": 1832.2,
+          "horizontal_m": 1813.7,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": true,
+          "projected": {
+            "behind": true
+          },
+          "transmittance": 0.0569,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              8,
+              8
+            ],
+            "total": 1672
+          }
+        }
+      },
+      "weather": "snow"
+    },
+    "36_graybox_home_storm": {
+      "camera": {
+        "fov_deg": 45.0,
+        "home_focus": [
+          -116.735069274902,
+          0.0,
+          -1140.0
+        ],
+        "pitch_deg": -17.0,
+        "position": [
+          -385.39,
+          263.13,
+          -322.33
+        ],
+        "spec": {
+          "mode": "home"
+        },
+        "yaw_deg": -18.19
+      },
+      "environment": {
+        "fog_density": 0.00195599999278784,
+        "sea_fog": 0.0,
+        "sun_elevation_deg": 49.57,
+        "visibility_m": 2000.0
+      },
+      "plot_overrides": {},
+      "targets": {
+        "off_1": {
+          "centre": [
+            -450.0,
+            0.0,
+            -2750.0
+          ],
+          "contrast_vs_clear": 0.017,
+          "depression_deg": 6.18,
+          "distance_m": 2442.7,
+          "horizontal_m": 2428.5,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              453,
+              285,
+              521,
+              302
+            ],
+            "delta_l": 0.22,
+            "height_px": 18,
+            "l_object": 33.01,
+            "l_surround": 32.78,
+            "mean_abs_delta_l": 0.22,
+            "mean_delta_e": 0.37,
+            "pixels": 382,
+            "pixels_without_terrain": 382,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 69
+          },
+          "needs_chip": true,
+          "projected": {
+            "bbox": [
+              452.7,
+              282.1,
+              521.4,
+              303.7
+            ],
+            "height_px": 21.6,
+            "width_px": 68.7
+          },
+          "transmittance": 0.0084,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "off_2": {
+          "centre": [
+            850.0,
+            0.0,
+            -3400.0
+          ],
+          "contrast_vs_clear": 0.052,
+          "depression_deg": 4.54,
+          "distance_m": 3326.8,
+          "horizontal_m": 3316.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              969,
+              238,
+              1121,
+              254
+            ],
+            "delta_l": 0.11,
+            "height_px": 17,
+            "l_object": 32.94,
+            "l_surround": 32.83,
+            "mean_abs_delta_l": 0.11,
+            "mean_delta_e": 0.31,
+            "pixels": 1109,
+            "pixels_without_terrain": 1109,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 153
+          },
+          "needs_chip": true,
+          "projected": {
+            "bbox": [
+              968.4,
+              244.9,
+              1121.6,
+              255.0
+            ],
+            "height_px": 10.2,
+            "width_px": 153.1
+          },
+          "transmittance": 0.0015,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "pad_a": {
+          "centre": [
+            -450.0,
+            3.59999990463257,
+            -1720.0
+          ],
+          "contrast_vs_clear": 0.078,
+          "depression_deg": 10.51,
+          "distance_m": 1423.0,
+          "horizontal_m": 1399.2,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              304,
+              361,
+              822,
+              426
+            ],
+            "delta_l": 0.89,
+            "height_px": 66,
+            "l_object": 32.11,
+            "l_surround": 31.21,
+            "mean_abs_delta_l": 0.9,
+            "mean_delta_e": 0.98,
+            "pixels": 13215,
+            "pixels_without_terrain": 24201,
+            "visible": true,
+            "visible_fraction": 0.546,
+            "width_px": 519
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              533,
+              387,
+              559,
+              390
+            ],
+            "delta_l": 0.73,
+            "height_px": 4,
+            "l_object": 31.3,
+            "l_surround": 32.03,
+            "mean_abs_delta_l": 0.73,
+            "mean_delta_e": 0.74,
+            "pixels": 84,
+            "visible": true,
+            "width_px": 27
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              533,
+              390,
+              560,
+              403
+            ],
+            "delta_l": 0.19,
+            "height_px": 14,
+            "l_object": 32.19,
+            "l_surround": 32.0,
+            "mean_abs_delta_l": 0.53,
+            "mean_delta_e": 0.71,
+            "pixels": 316,
+            "visible": true,
+            "width_px": 28
+          },
+          "needs_chip": true,
+          "projected": {
+            "bbox": [
+              93.3,
+              360.8,
+              815.8,
+              468.7
+            ],
+            "height_px": 107.9,
+            "width_px": 722.5
+          },
+          "sample_tank": {
+            "depression_deg": 9.91,
+            "distance_m": 1433.1,
+            "lid_projected": {
+              "bbox": [
+                532.3,
+                386.5,
+                560.4,
+                391.4
+              ],
+              "height_px": 4.9,
+              "width_px": 28.1
+            },
+            "lod": 2,
+            "position": [
+              -375.0,
+              3.59999990463257,
+              -1734.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                532.3,
+                386.5,
+                561.5,
+                403.9
+              ],
+              "height_px": 17.3,
+              "width_px": 29.2
+            }
+          },
+          "transmittance": 0.0618,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              48,
+              64
+            ],
+            "total": 14972
+          }
+        },
+        "pad_b": {
+          "centre": [
+            750.0,
+            3.59999990463257,
+            -1640.0
+          ],
+          "contrast_vs_clear": 0.052,
+          "depression_deg": 8.49,
+          "distance_m": 1758.6,
+          "horizontal_m": 1739.4,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              1265,
+              331,
+              1585,
+              398
+            ],
+            "delta_l": 0.57,
+            "height_px": 68,
+            "l_object": 32.34,
+            "l_surround": 31.77,
+            "mean_abs_delta_l": 0.62,
+            "mean_delta_e": 0.74,
+            "pixels": 8114,
+            "pixels_without_terrain": 9009,
+            "visible": true,
+            "visible_fraction": 0.901,
+            "width_px": 321
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              1491,
+              355,
+              1509,
+              356
+            ],
+            "delta_l": 0.5,
+            "height_px": 2,
+            "l_object": 31.72,
+            "l_surround": 32.21,
+            "mean_abs_delta_l": 0.5,
+            "mean_delta_e": 0.53,
+            "pixels": 33,
+            "visible": true,
+            "width_px": 19
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              1488,
+              357,
+              1512,
+              367
+            ],
+            "delta_l": 0.43,
+            "height_px": 11,
+            "l_object": 32.58,
+            "l_surround": 32.15,
+            "mean_abs_delta_l": 0.53,
+            "mean_delta_e": 0.65,
+            "pixels": 246,
+            "visible": true,
+            "width_px": 25
+          },
+          "needs_chip": true,
+          "projected": {
+            "bbox": [
+              1264.4,
+              330.3,
+              1731.6,
+              398.1
+            ],
+            "height_px": 67.8,
+            "width_px": 467.2
+          },
+          "sample_tank": {
+            "depression_deg": 8.29,
+            "distance_m": 1710.4,
+            "lid_projected": {
+              "bbox": [
+                1488.5,
+                354.2,
+                1513.6,
+                357.8
+              ],
+              "height_px": 3.7,
+              "width_px": 25.1
+            },
+            "lod": 2,
+            "position": [
+              720.0,
+              3.59999990463257,
+              -1604.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                1487.3,
+                354.2,
+                1513.6,
+                368.7
+              ],
+              "height_px": 14.5,
+              "width_px": 26.3
+            }
+          },
+          "transmittance": 0.0321,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              29,
+              28
+            ],
+            "total": 9010
+          }
+        },
+        "pad_delta": {
+          "centre": [
+            0.0,
+            3.59999990463257,
+            1450.0
+          ],
+          "depression_deg": 8.14,
+          "distance_m": 1832.2,
+          "horizontal_m": 1813.7,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": true,
+          "projected": {
+            "behind": true
+          },
+          "transmittance": 0.0278,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              8,
+              8
+            ],
+            "total": 1672
+          }
+        }
+      },
+      "weather": "storm"
+    },
+    "36_graybox_land_focus": {
+      "camera": {
+        "fov_deg": 46.35,
+        "home_focus": [
+          -116.735069274902,
+          0.0,
+          -1140.0
+        ],
+        "pitch_deg": -40.0,
+        "position": [
+          -522.7,
+          337.85,
+          -1328.35
+        ],
+        "spec": {
+          "distance_m": 520.0,
+          "mode": "focus",
+          "pitch_deg": -40.0,
+          "target": "pad_a"
+        },
+        "yaw_deg": -10.52
+      },
+      "environment": {
+        "fog_density": 0.00006520000169985,
+        "sea_fog": 0.0,
+        "sun_elevation_deg": 49.57,
+        "visibility_m": 60000.0
+      },
+      "perf": {
+        "all": {
+          "added_frame_ms": -1.866,
+          "added_opaque_draws": 4,
+          "added_shadow_draws": 9,
+          "frame_ms": 34.279,
+          "frame_ms_samples": [
+            36.716,
+            31.841
+          ],
+          "opaque_draws": 15,
+          "opaque_primitives": 339740,
+          "shadow_draws": 26
+        },
+        "land": {
+          "added_frame_ms": -3.016,
+          "added_opaque_draws": 4,
+          "added_shadow_draws": 8,
+          "frame_ms": 33.129,
+          "frame_ms_samples": [
+            31.741,
+            34.517
+          ],
+          "opaque_draws": 15,
+          "opaque_primitives": 339740,
+          "shadow_draws": 25
+        },
+        "off": {
+          "frame_ms": 36.145,
+          "frame_ms_samples": [
+            35.029,
+            37.261
+          ],
+          "opaque_draws": 11,
+          "opaque_primitives": 327688,
+          "shadow_draws": 17
+        },
+        "offshore": {
+          "added_frame_ms": 1.532,
+          "added_opaque_draws": 0,
+          "added_shadow_draws": 1,
+          "frame_ms": 37.677,
+          "frame_ms_samples": [
+            37.69,
+            37.663
+          ],
+          "opaque_draws": 11,
+          "opaque_primitives": 327688,
+          "shadow_draws": 18
+        }
+      },
+      "plot_overrides": {},
+      "targets": {
+        "off_1": {
+          "centre": [
+            -450.0,
+            0.0,
+            -2750.0
+          ],
+          "depression_deg": 13.35,
+          "distance_m": 1463.1,
+          "horizontal_m": 1423.5,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              720.4,
+              -129.3,
+              830.6,
+              -75.5
+            ],
+            "height_px": 53.8,
+            "width_px": 110.2
+          },
+          "transmittance": 0.909,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              1,
+              0
+            ],
+            "total": 12000
+          }
+        },
+        "off_2": {
+          "centre": [
+            850.0,
+            0.0,
+            -3400.0
+          ],
+          "depression_deg": 7.74,
+          "distance_m": 2508.0,
+          "horizontal_m": 2485.2,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              1458.7,
+              -250.9,
+              1707.9,
+              -228.7
+            ],
+            "height_px": 22.2,
+            "width_px": 249.2
+          },
+          "transmittance": 0.8491,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "pad_a": {
+          "centre": [
+            -450.0,
+            3.59999990463257,
+            -1720.0
+          ],
+          "depression_deg": 40.0,
+          "distance_m": 520.0,
+          "horizontal_m": 398.3,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              45,
+              267,
+              1919,
+              1027
+            ],
+            "delta_l": 4.72,
+            "height_px": 761,
+            "l_object": 54.12,
+            "l_surround": 49.41,
+            "mean_abs_delta_l": 11.79,
+            "mean_delta_e": 12.97,
+            "pixels": 300507,
+            "pixels_without_terrain": 306208,
+            "visible": true,
+            "visible_fraction": 0.981,
+            "width_px": 1875
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              947,
+              472,
+              1012,
+              511
+            ],
+            "delta_l": 9.57,
+            "height_px": 40,
+            "l_object": 40.04,
+            "l_surround": 49.6,
+            "mean_abs_delta_l": 9.63,
+            "mean_delta_e": 10.7,
+            "pixels": 2104,
+            "visible": true,
+            "width_px": 66
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              946,
+              497,
+              1012,
+              536
+            ],
+            "delta_l": 7.02,
+            "height_px": 40,
+            "l_object": 65.68,
+            "l_surround": 58.67,
+            "mean_abs_delta_l": 13.12,
+            "mean_delta_e": 15.53,
+            "pixels": 1553,
+            "visible": true,
+            "width_px": 67
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              35.1,
+              266.9,
+              2008.9,
+              1064.1
+            ],
+            "height_px": 797.2,
+            "width_px": 1973.8
+          },
+          "sample_tank": {
+            "depression_deg": 37.8,
+            "distance_m": 524.2,
+            "lid_projected": {
+              "bbox": [
+                946.2,
+                471.3,
+                1013.6,
+                512.7
+              ],
+              "height_px": 41.4,
+              "width_px": 67.4
+            },
+            "lod": 1,
+            "position": [
+              -439.0,
+              3.59999990463257,
+              -1734.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                946.2,
+                471.3,
+                1013.6,
+                537.2
+              ],
+              "height_px": 65.9,
+              "width_px": 67.4
+            }
+          },
+          "transmittance": 0.9667,
+          "triangles": {
+            "lod0_tris_inside_600m": 97720,
+            "pieces_per_lod": [
+              12,
+              100,
+              0
+            ],
+            "total": 55610
+          }
+        },
+        "pad_b": {
+          "centre": [
+            750.0,
+            3.59999990463257,
+            -1640.0
+          ],
+          "depression_deg": 14.31,
+          "distance_m": 1352.3,
+          "horizontal_m": 1310.3,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "mask_tank_lid": {
+            "pixels": 0,
+            "visible": false
+          },
+          "mask_tank_wall": {
+            "pixels": 0,
+            "visible": false
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              2670.9,
+              190.0,
+              4305.7,
+              680.4
+            ],
+            "height_px": 490.4,
+            "width_px": 1634.8
+          },
+          "sample_tank": {
+            "depression_deg": 13.88,
+            "distance_m": 1338.8,
+            "lid_projected": {
+              "bbox": [
+                3096.0,
+                262.2,
+                3183.8,
+                287.7
+              ],
+              "height_px": 25.5,
+              "width_px": 87.8
+            },
+            "lod": 2,
+            "position": [
+              720.0,
+              3.59999990463257,
+              -1709.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                3069.9,
+                262.2,
+                3183.8,
+                309.8
+              ],
+              "height_px": 47.6,
+              "width_px": 113.9
+            }
+          },
+          "transmittance": 0.9156,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              29,
+              28
+            ],
+            "total": 9010
+          }
+        },
+        "pad_delta": {
+          "centre": [
+            0.0,
+            3.59999990463257,
+            1450.0
+          ],
+          "depression_deg": 6.74,
+          "distance_m": 2846.8,
+          "horizontal_m": 2827.1,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": false,
+          "projected": {
+            "behind": true
+          },
+          "transmittance": 0.8306,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              16
+            ],
+            "total": 608
+          }
+        }
+      },
+      "weather": "clear"
+    },
+    "36_graybox_land_focus_no_tank_shadows": {
+      "camera": {
+        "fov_deg": 46.35,
+        "home_focus": [
+          -116.735069274902,
+          0.0,
+          -1140.0
+        ],
+        "pitch_deg": -40.0,
+        "position": [
+          -522.7,
+          337.85,
+          -1328.35
+        ],
+        "spec": {
+          "distance_m": 520.0,
+          "mode": "focus",
+          "pitch_deg": -40.0,
+          "target": "pad_a"
+        },
+        "yaw_deg": -10.52
+      },
+      "environment": {
+        "fog_density": 0.00006520000169985,
+        "sea_fog": 0.0,
+        "sun_elevation_deg": 49.57,
+        "visibility_m": 60000.0
+      },
+      "plot_overrides": {},
+      "targets": {
+        "off_1": {
+          "centre": [
+            -450.0,
+            0.0,
+            -2750.0
+          ],
+          "depression_deg": 13.35,
+          "distance_m": 1463.1,
+          "horizontal_m": 1423.5,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              720.4,
+              -129.3,
+              830.6,
+              -75.5
+            ],
+            "height_px": 53.8,
+            "width_px": 110.2
+          },
+          "transmittance": 0.909,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              1,
+              0
+            ],
+            "total": 12000
+          }
+        },
+        "off_2": {
+          "centre": [
+            850.0,
+            0.0,
+            -3400.0
+          ],
+          "depression_deg": 7.74,
+          "distance_m": 2508.0,
+          "horizontal_m": 2485.2,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              1458.7,
+              -250.9,
+              1707.9,
+              -228.7
+            ],
+            "height_px": 22.2,
+            "width_px": 249.2
+          },
+          "transmittance": 0.8491,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              1
+            ],
+            "total": 1500
+          }
+        },
+        "pad_a": {
+          "centre": [
+            -450.0,
+            3.59999990463257,
+            -1720.0
+          ],
+          "depression_deg": 40.0,
+          "distance_m": 520.0,
+          "horizontal_m": 398.3,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              45,
+              267,
+              1919,
+              1027
+            ],
+            "delta_l": 4.68,
+            "height_px": 761,
+            "l_object": 54.35,
+            "l_surround": 49.67,
+            "mean_abs_delta_l": 11.93,
+            "mean_delta_e": 13.07,
+            "pixels": 300507,
+            "pixels_without_terrain": 306208,
+            "visible": true,
+            "visible_fraction": 0.981,
+            "width_px": 1875
+          },
+          "mask_tank_lid": {
+            "bbox": [
+              947,
+              472,
+              1012,
+              511
+            ],
+            "delta_l": 24.47,
+            "height_px": 40,
+            "l_object": 40.06,
+            "l_surround": 64.53,
+            "mean_abs_delta_l": 24.47,
+            "mean_delta_e": 24.58,
+            "pixels": 2104,
+            "visible": true,
+            "width_px": 66
+          },
+          "mask_tank_wall": {
+            "bbox": [
+              946,
+              497,
+              1012,
+              536
+            ],
+            "delta_l": 1.73,
+            "height_px": 40,
+            "l_object": 67.2,
+            "l_surround": 65.47,
+            "mean_abs_delta_l": 10.33,
+            "mean_delta_e": 12.95,
+            "pixels": 1553,
+            "visible": true,
+            "width_px": 67
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              35.1,
+              266.9,
+              2008.9,
+              1064.1
+            ],
+            "height_px": 797.2,
+            "width_px": 1973.8
+          },
+          "sample_tank": {
+            "depression_deg": 37.8,
+            "distance_m": 524.2,
+            "lid_projected": {
+              "bbox": [
+                946.2,
+                471.3,
+                1013.6,
+                512.7
+              ],
+              "height_px": 41.4,
+              "width_px": 67.4
+            },
+            "lod": 1,
+            "position": [
+              -439.0,
+              3.59999990463257,
+              -1734.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                946.2,
+                471.3,
+                1013.6,
+                537.2
+              ],
+              "height_px": 65.9,
+              "width_px": 67.4
+            }
+          },
+          "transmittance": 0.9667,
+          "triangles": {
+            "lod0_tris_inside_600m": 97720,
+            "pieces_per_lod": [
+              12,
+              100,
+              0
+            ],
+            "total": 55610
+          }
+        },
+        "pad_b": {
+          "centre": [
+            750.0,
+            3.59999990463257,
+            -1640.0
+          ],
+          "depression_deg": 14.31,
+          "distance_m": 1352.3,
+          "horizontal_m": 1310.3,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "mask_tank_lid": {
+            "pixels": 0,
+            "visible": false
+          },
+          "mask_tank_wall": {
+            "pixels": 0,
+            "visible": false
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              2670.9,
+              190.0,
+              4305.7,
+              680.4
+            ],
+            "height_px": 490.4,
+            "width_px": 1634.8
+          },
+          "sample_tank": {
+            "depression_deg": 13.88,
+            "distance_m": 1338.8,
+            "lid_projected": {
+              "bbox": [
+                3096.0,
+                262.2,
+                3183.8,
+                287.7
+              ],
+              "height_px": 25.5,
+              "width_px": 87.8
+            },
+            "lod": 2,
+            "position": [
+              720.0,
+              3.59999990463257,
+              -1709.0
+            ],
+            "tank_projected": {
+              "bbox": [
+                3069.9,
+                262.2,
+                3183.8,
+                309.8
+              ],
+              "height_px": 47.6,
+              "width_px": 113.9
+            }
+          },
+          "transmittance": 0.9156,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              29,
+              28
+            ],
+            "total": 9010
+          }
+        },
+        "pad_delta": {
+          "centre": [
+            0.0,
+            3.59999990463257,
+            1450.0
+          ],
+          "depression_deg": 6.74,
+          "distance_m": 2846.8,
+          "horizontal_m": 2827.1,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": false,
+          "projected": {
+            "behind": true
+          },
+          "transmittance": 0.8306,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              16
+            ],
+            "total": 608
+          }
+        }
+      },
+      "weather": "clear"
+    },
+    "36_graybox_of1_focus": {
+      "camera": {
+        "fov_deg": 48.71,
+        "home_focus": [
+          -116.735069274902,
+          0.0,
+          -1140.0
+        ],
+        "pitch_deg": -18.0,
+        "position": [
+          -450.0,
+          76.98,
+          -2540.77
+        ],
+        "spec": {
+          "distance_m": 220.0,
+          "focus_y": 9.0,
+          "mode": "focus",
+          "pitch_deg": -18.0,
+          "target": "off_1"
+        },
+        "yaw_deg": 0.0
+      },
+      "environment": {
+        "fog_density": 0.00006520000169985,
+        "sea_fog": 0.0,
+        "sun_elevation_deg": 49.57,
+        "visibility_m": 60000.0
+      },
+      "plot_overrides": {},
+      "targets": {
+        "off_1": {
+          "centre": [
+            -450.0,
+            0.0,
+            -2750.0
+          ],
+          "depression_deg": 20.2,
+          "distance_m": 222.9,
+          "horizontal_m": 209.2,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              651,
+              421,
+              1268,
+              723
+            ],
+            "delta_l": 30.28,
+            "height_px": 303,
+            "l_object": 71.01,
+            "l_surround": 40.73,
+            "mean_abs_delta_l": 30.28,
+            "mean_delta_e": 58.23,
+            "pixels": 63490,
+            "pixels_without_terrain": 63490,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 618
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              645.5,
+              396.3,
+              1274.5,
+              718.8
+            ],
+            "height_px": 322.6,
+            "width_px": 629.0
+          },
+          "transmittance": 0.9856,
+          "triangles": {
+            "lod0_tris_inside_600m": 60000,
+            "pieces_per_lod": [
+              1,
+              0,
+              0
+            ],
+            "total": 60000
+          }
+        },
+        "off_2": {
+          "centre": [
+            850.0,
+            0.0,
+            -3400.0
+          ],
+          "depression_deg": 2.83,
+          "distance_m": 1560.2,
+          "horizontal_m": 1558.3,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              2479.9,
+              248.0,
+              3160.1,
+              271.2
+            ],
+            "height_px": 23.2,
+            "width_px": 680.2
+          },
+          "transmittance": 0.9033,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              1,
+              0
+            ],
+            "total": 12000
+          }
+        },
+        "pad_a": {
+          "centre": [
+            -450.0,
+            3.59999990463257,
+            -1720.0
+          ],
+          "depression_deg": 5.11,
+          "distance_m": 824.0,
+          "horizontal_m": 820.8,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "mask_tank_lid": {
+            "pixels": 0,
+            "visible": false
+          },
+          "mask_tank_wall": {
+            "pixels": 0,
+            "visible": false
+          },
+          "needs_chip": false,
+          "projected": {
+            "behind": true
+          },
+          "sample_tank": {
+            "depression_deg": 5.39,
+            "distance_m": 642.7,
+            "lid_projected": {
+              "behind": true
+            },
+            "lod": 1,
+            "position": [
+              -439.0,
+              3.59999990463257,
+              -1901.0
+            ],
+            "tank_projected": {
+              "behind": true
+            }
+          },
+          "transmittance": 0.9477,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              112,
+              0
+            ],
+            "total": 48380
+          }
+        },
+        "pad_b": {
+          "centre": [
+            750.0,
+            3.59999990463257,
+            -1640.0
+          ],
+          "depression_deg": 2.8,
+          "distance_m": 1502.3,
+          "horizontal_m": 1500.5,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "mask_tank_lid": {
+            "pixels": 0,
+            "visible": false
+          },
+          "mask_tank_wall": {
+            "pixels": 0,
+            "visible": false
+          },
+          "needs_chip": false,
+          "projected": {
+            "behind": true
+          },
+          "sample_tank": {
+            "depression_deg": 2.47,
+            "distance_m": 1401.8,
+            "lid_projected": {
+              "behind": true
+            },
+            "lod": 2,
+            "position": [
+              720.0,
+              3.59999990463257,
+              -1771.0
+            ],
+            "tank_projected": {
+              "behind": true
+            }
+          },
+          "transmittance": 0.9067,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              29,
+              28
+            ],
+            "total": 9010
+          }
+        },
+        "pad_delta": {
+          "centre": [
+            0.0,
+            3.59999990463257,
+            1450.0
+          ],
+          "depression_deg": 1.05,
+          "distance_m": 4016.7,
+          "horizontal_m": 4016.1,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": false,
+          "projected": {
+            "behind": true
+          },
+          "transmittance": 0.7696,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              16
+            ],
+            "total": 608
+          }
+        }
+      },
+      "weather": "clear"
+    },
+    "36_graybox_of1_focus_spec_r2": {
+      "camera": {
+        "fov_deg": 47.82,
+        "home_focus": [
+          -116.735069274902,
+          0.0,
+          -1140.0
+        ],
+        "pitch_deg": -22.0,
+        "position": [
+          -450.0,
+          121.38,
+          -2471.84
+        ],
+        "spec": {
+          "distance_m": 300.0,
+          "focus_y": 9.0,
+          "mode": "focus",
+          "pitch_deg": -22.0,
+          "target": "off_1"
+        },
+        "yaw_deg": 0.0
+      },
+      "environment": {
+        "fog_density": 0.00006520000169985,
+        "sea_fog": 0.0,
+        "sun_elevation_deg": 49.57,
+        "visibility_m": 60000.0
+      },
+      "plot_overrides": {},
+      "targets": {
+        "off_1": {
+          "centre": [
+            -450.0,
+            0.0,
+            -2750.0
+          ],
+          "depression_deg": 23.58,
+          "distance_m": 303.5,
+          "horizontal_m": 278.2,
+          "in_frame": true,
+          "mask": {
+            "bbox": [
+              729,
+              434,
+              1190,
+              682
+            ],
+            "delta_l": 37.02,
+            "height_px": 249,
+            "l_object": 71.84,
+            "l_surround": 34.82,
+            "mean_abs_delta_l": 37.02,
+            "mean_delta_e": 61.66,
+            "pixels": 36005,
+            "pixels_without_terrain": 36005,
+            "visible": true,
+            "visible_fraction": 1.0,
+            "width_px": 462
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              729.6,
+              414.9,
+              1190.4,
+              679.7
+            ],
+            "height_px": 264.8,
+            "width_px": 460.8
+          },
+          "transmittance": 0.9804,
+          "triangles": {
+            "lod0_tris_inside_600m": 60000,
+            "pieces_per_lod": [
+              1,
+              0,
+              0
+            ],
+            "total": 60000
+          }
+        },
+        "off_2": {
+          "centre": [
+            850.0,
+            0.0,
+            -3400.0
+          ],
+          "depression_deg": 4.35,
+          "distance_m": 1601.9,
+          "horizontal_m": 1597.3,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": false,
+          "projected": {
+            "bbox": [
+              2404.8,
+              203.9,
+              3039.0,
+              229.4
+            ],
+            "height_px": 25.5,
+            "width_px": 634.3
+          },
+          "transmittance": 0.9008,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              1,
+              0
+            ],
+            "total": 12000
+          }
+        },
+        "pad_a": {
+          "centre": [
+            -450.0,
+            3.59999990463257,
+            -1720.0
+          ],
+          "depression_deg": 8.9,
+          "distance_m": 761.0,
+          "horizontal_m": 751.8,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "mask_tank_lid": {
+            "pixels": 0,
+            "visible": false
+          },
+          "mask_tank_wall": {
+            "pixels": 0,
+            "visible": false
+          },
+          "needs_chip": false,
+          "projected": {
+            "behind": true
+          },
+          "sample_tank": {
+            "depression_deg": 10.4,
+            "distance_m": 580.5,
+            "lid_projected": {
+              "behind": true
+            },
+            "lod": 1,
+            "position": [
+              -439.0,
+              3.59999990463257,
+              -1901.0
+            ],
+            "tank_projected": {
+              "behind": true
+            }
+          },
+          "transmittance": 0.9516,
+          "triangles": {
+            "lod0_tris_inside_600m": 21980,
+            "pieces_per_lod": [
+              0,
+              112,
+              0
+            ],
+            "total": 48380
+          }
+        },
+        "pad_b": {
+          "centre": [
+            750.0,
+            3.59999990463257,
+            -1640.0
+          ],
+          "depression_deg": 4.61,
+          "distance_m": 1464.9,
+          "horizontal_m": 1460.1,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "mask_tank_lid": {
+            "pixels": 0,
+            "visible": false
+          },
+          "mask_tank_wall": {
+            "pixels": 0,
+            "visible": false
+          },
+          "needs_chip": false,
+          "projected": {
+            "behind": true
+          },
+          "sample_tank": {
+            "depression_deg": 4.39,
+            "distance_m": 1367.9,
+            "lid_projected": {
+              "behind": true
+            },
+            "lod": 2,
+            "position": [
+              720.0,
+              3.59999990463257,
+              -1771.0
+            ],
+            "tank_projected": {
+              "behind": true
+            }
+          },
+          "transmittance": 0.9089,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              29,
+              28
+            ],
+            "total": 9010
+          }
+        },
+        "pad_delta": {
+          "centre": [
+            0.0,
+            3.59999990463257,
+            1450.0
+          ],
+          "depression_deg": 1.71,
+          "distance_m": 3949.3,
+          "horizontal_m": 3947.6,
+          "in_frame": false,
+          "mask": {
+            "pixels": 0,
+            "pixels_without_terrain": 0,
+            "visible": false,
+            "visible_fraction": 0.0
+          },
+          "needs_chip": false,
+          "projected": {
+            "behind": true
+          },
+          "transmittance": 0.773,
+          "triangles": {
+            "lod0_tris_inside_600m": 0,
+            "pieces_per_lod": [
+              0,
+              0,
+              16
+            ],
+            "total": 608
+          }
+        }
+      },
+      "weather": "clear"
+    }
+  }
+}

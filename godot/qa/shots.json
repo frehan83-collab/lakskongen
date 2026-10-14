@@ -1,0 +1,268 @@
+{
+  "$schema": "./shots.schema.json",
+  "schema": "lakskongen.qa.shots/1",
+  "doc": "QA shot list (roadmap P0-03, farm-types spec section 7): items append shots here instead of editing a harness. A shot names the scene that captures it; ids are unique and keep their number prefix.",
+  "shots": [
+    {
+      "id": "36_graybox_home_clear",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {
+        "mode": "home"
+      },
+      "perf": true,
+      "purpose": "Shipped home view (FJORD, 900 m at -17 deg on the first pen) in clear weather: pixel sizes, depression angles and fog transmittance of a tank, the campus and OF1; draw calls and GPU time the farm types add."
+    },
+    {
+      "id": "36_graybox_home_overcast",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "overcast",
+      "camera": {
+        "mode": "home"
+      },
+      "purpose": "Shipped home view, overcast (20 km visibility)."
+    },
+    {
+      "id": "36_graybox_home_rain",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "rain",
+      "camera": {
+        "mode": "home"
+      },
+      "purpose": "Shipped home view, rain (4.5 km visibility)."
+    },
+    {
+      "id": "36_graybox_home_snow",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "snow",
+      "camera": {
+        "mode": "home"
+      },
+      "purpose": "Shipped home view, snow (2.5 km visibility)."
+    },
+    {
+      "id": "36_graybox_home_storm",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "storm",
+      "camera": {
+        "mode": "home"
+      },
+      "purpose": "Shipped home view, storm (2 km visibility)."
+    },
+    {
+      "id": "36_graybox_home_fog",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "fog",
+      "camera": {
+        "mode": "home"
+      },
+      "purpose": "Shipped home view, sea fog (0.4 km visibility in the layer)."
+    },
+    {
+      "id": "36_graybox_land_focus",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {
+        "mode": "focus",
+        "target": "pad_a",
+        "distance_m": 520.0,
+        "pitch_deg": -40.0
+      },
+      "perf": true,
+      "purpose": "Full-campus framing (spec section 4, 520 m at -40 deg): a grow-out tank's lid ellipse must be at least 40 px tall."
+    },
+    {
+      "id": "36_graybox_of1_focus",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {
+        "mode": "focus",
+        "target": "off_1",
+        "distance_m": 220.0,
+        "pitch_deg": -18.0,
+        "focus_y": 9.0
+      },
+      "purpose": "OF1 framing as the read gate set it (220 m at -18 deg; spec revision 2 said 300 m at -22 deg): the 110 m ring fills 25-45% of the frame width and the horizon sits 10-25% from the top."
+    },
+    {
+      "id": "36_graybox_of1_focus_spec_r2",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {
+        "mode": "focus",
+        "target": "off_1",
+        "distance_m": 300.0,
+        "pitch_deg": -22.0,
+        "focus_y": 9.0
+      },
+      "purpose": "Before: the spec revision 2 OF1 framing (300 m at -22 deg), kept as the evidence for the change.",
+      "variant_of": "36_graybox_of1_focus"
+    },
+    {
+      "id": "36_graybox_land_focus_no_tank_shadows",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {
+        "mode": "focus",
+        "target": "pad_a",
+        "distance_m": 520.0,
+        "pitch_deg": -40.0
+      },
+      "tank_shadows": false,
+      "purpose": "The land framing without tank shadows, as spec revision 2's 'LOD1 and beyond cast no shadow' would draw it: every tank there stands in the LOD1 band.",
+      "variant_of": "36_graybox_land_focus"
+    },
+    {
+      "id": "36_graybox_home_clear_pad_a_east",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {
+        "mode": "home"
+      },
+      "plot_overrides": {
+        "pad_a": [
+          -470.0,
+          -1650.0
+        ]
+      },
+      "purpose": "Alternative tried: pad_a at (-470, -1650), shifted east only.",
+      "variant_of": "36_graybox_home_clear"
+    },
+    {
+      "id": "36_graybox_home_clear_pad_a_spec_r2",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {
+        "mode": "home"
+      },
+      "plot_overrides": {
+        "pad_a": [
+          -700.0,
+          -1650.0
+        ]
+      },
+      "purpose": "Before: pad_a at the spec revision 2 centre (-700, -1650), kept as the evidence for the move.",
+      "variant_of": "36_graybox_home_clear"
+    }
+  ]
+}
