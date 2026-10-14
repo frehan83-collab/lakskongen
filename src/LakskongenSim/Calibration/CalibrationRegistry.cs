@@ -264,7 +264,7 @@ namespace LakskongenSim.Calibration
     /// <summary>Operations OPEX constants.</summary>
     public sealed record OperationsCalibration
     {
-        /// <summary>Harvest cost per kg (wellboat rates). Real ~3-5 NOK/kg.</summary>
+        /// <summary>Harvest cost per kg live (wellboat rates). Real ~3-5 NOK/kg. Since S2-04 the engine prices the harvest from <see cref="HarvestCalibration"/>; only SimProbe's synthetic P&amp;L reads this.</summary>
         public decimal HarvestCostPerKgNOK { get; init; } = 4.0m;
         /// <summary>Processing cost per kg.</summary>
         public decimal ProcessingCostPerKgNOK { get; init; } = 9m;

@@ -14,7 +14,11 @@ the review date and any changes at the bottom of this file.
 | Feed NOK/kg feed | FeedPricePerKgFeedNOK = 22.3 (registry) | ~20-24 delivered feed | Fiskeridir Key Figures, Mowi annual |
 | Feed NOK/kg *produced* | price × FCR = 22.3 × 1.15 ≈ 25.6 | ~25.7 feed cost/kg produced (2024) | Fiskeridir Key Figures (Tab.38), Mowi annual |
 | FCR | BaseFCR 1.15 | bFCR 1.14-1.15, econ 1.2-1.5 | SalMar sustainability reports |
-| EBIT/kg band | (tune after first playtests) | Cyclical 8-25 (SalMar 23.4 FY24, 13.6 FY25) | SalMar/Mowi quarterlies |
+| EBIT/kg band | player-path farm cycle median 17.63 NOK/kg HOG (S2-04) | Cyclical 8-25 (SalMar 23.4 FY24, 13.6 FY25) | SalMar/Mowi quarterlies |
+| Live → gutted (HOG) yield | Harvest.HogYieldFraction 0.84 | ~84% | Mowi Salmon Farming Industry Handbook (annual, appendix) |
+| Harvest + wellboat cost | 1.55 + 3.45 = 5.0 NOK/kg HOG | 4.45 NOK/kg round (2023) ≈ 5.0/kg HOG; Mowi EUR 0.40/kg GWT | Fiskeridir lønnsomhetsundersøkelse; Mowi Handbook |
+| Size-class prices | ladder 1-2 kg 0.72 … 6-7 kg 1.08 of 4-5 kg | 2-3 kg ~86%, 6-7 kg ~108% (2015-2024) | Kontali chart in the Mowi Handbook; Euronext/Nasdaq per class |
+| Quality grades | superior ~90% after summer, ~65-76% after winter; production ×0.70 | 2024: 80.6% superior (H1 ~65%, H2 ~90%), downgraded ~30% off | VetInst Fish Health Report §slaughter data; Mowi Handbook |
 | Resource rent tax | 25% effective, 70M basic deduction | Same (from 1 Jan 2023); watch Storting changes | Skatteetaten, Prop.1LS |
 | MAB per licence | (check licence constants) | 780t standard (945t far north), ~150-200M NOK market value | Fiskeridir |
 

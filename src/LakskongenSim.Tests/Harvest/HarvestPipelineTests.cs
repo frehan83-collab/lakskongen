@@ -84,7 +84,7 @@ namespace LakskongenSim.Tests.Harvest
             double referenceKg = 0.0;
             foreach (var (fish, kg, cv) in new[] { (6_000, 4.8, 0.20), (5_000, 5.6, 0.25) })
             {
-                Span<double> classes = stackalloc double[SizeClassPriceLadder.ClassCount];
+                var classes = new double[SizeClassPriceLadder.ClassCount];
                 SizeClassPriceLadder.AddCohort(classes, fish, kg, cv, Cal.HogYieldFraction);
                 double sized = 0.0;
                 for (int c = 0; c < classes.Length; c++) sized += classes[c] * SizeClassPriceLadder.Factor(Cal, c);

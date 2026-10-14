@@ -167,6 +167,11 @@ The Phase 4 "Exit" in `NEXT_LEVEL_PLAN.md` has two gates an agent cannot close a
 - Seam for farm types: `GrowthConditions` is all the law reads; `SimulationEngine.GrowAndFeedOneDay(population, HoldingHusbandry)` (`SimulationEngine.Growth.cs`) fills it from `HoldingWaterOf` and `DayLengthHoursOf` (land tanks 24 h light). `FishPopulation.Ration` (`Farm/RationPolicy.cs`) is the feeding-plan input (U2-04); `Cohort.WeightCv` (0 = unknown) and `SizeSpreadOf(pens)` feed grading (S2-04)
 - Scenario starting sites carry `days_at_sea` (S0 mid-September in PO1-PO7, S1 mid-June in PO8-PO13), grown by `GrowOnClimatology`; `SimProbe` sites lie in PO4 water with a mid-April first release; save format v5
 
+### Harvest pipeline (S2-04)
+- A harvest sells gutted kilos: live kg × 0.84 (HOG) split into size classes on the gutted weight (`Harvest/SizeClassPriceLadder.cs`, lognormal from each cohort's CV) and grades (`Harvest/HarvestGrading.cs`: superior/ordinary/production by cause), at the price × class factor × grade factor; the harvest cost (wellboat + slaughter, 5.0 NOK/kg HOG) is COGS `harvest` (F270). Calibration section `harvest` (v1.0.8); every batch files a `HarvestReport` equal to its ledger entries
+- Verbs (`SimulationEngine.Harvest.cs`, `.HarvestOrders.cs`): `OrderHarvest(holding, pens, fraction)` (planned: wellboat slot, slaughterhouse capacity per pool, pens fast just ahead of their turn by degree-days, partial and per-pen), `QuoteHarvest` (pure), `CancelHarvestOrder`, `HarvestNow`/`HarvestSite` (express: today, waiting pen, surcharge); post-tick `HarvestOrdersTickSystem`. Bridge: `GameBridge.Harvest.cs` (`quote_harvest`, `order_harvest`, `cancel_harvest_order`, `get_harvest_orders`, `get_harvest_reports`); `harvest_pen` stays express
+- Seam for farm types: `HarvestRoute.For(HoldingKind, …, hallCapacityTonnesHog)` (sea wellboat / offshore wellboat / a land farm's own hall) and `HarvestCondition` (cold-water memory and fast from `HoldingWaterOf`; `ExtraProductionShare` for a holding's own downgrade). Resource rent: HOG kg × norm price, the harvest cost is no sea-phase deduction. Save format v6
+
 ### CompetitorAI
 - 7 parody competitors (Mowier, SalMax, Herøy, Greed Gregarious, Offshore Optimists, NordLaks Nord)
 - Quarterly `AdvanceQuarter` (every 90 days) with financial updates, distress check, strategic actions
