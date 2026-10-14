@@ -159,7 +159,8 @@ The Phase 4 "Exit" in `NEXT_LEVEL_PLAN.md` has two gates an agent cannot close a
 - `Core/SimCalendar.cs` is the one calendar: day 0 = Friday 1 January 2027, 365-day years, real months, ISO weeks. No `% 360`, `% 365` or 30-day months anywhere else (`CalendarGovernanceTests` greps for them); books close on the last day of the month/quarter
 - `Environment/ProductionAreas.cs`: 13 production areas (3 m monthly climatology from `tools/derive_po_sea_temperature.py`, lice spring weeks, PD zone, licence size); the national reference (area 0) only serves games with no scenario
 - A zone lies in an area only by data (`Zone.ProductionArea`, `production_area` on scenario sites; ids are never parsed); no area = the home area (`GameState.HomeProductionArea`)
-- `WeatherSystem` owns the shared anomaly; `SimulationEngine.HoldingWaterOf(population)` (`Environment/HoldingWater.cs`) is the water growth, feeding, stress deaths and the disease tick take — land-based and offshore farm types plug in there
+- `WeatherSystem` owns the shared anomaly; `SimulationEngine.HoldingWaterOf(population)` (`Environment/HoldingWater.cs`) is the water growth, feeding, stress deaths, the disease tick and the mortality hazards take — land-based and offshore farm types plug in there
+- One holding seam (wave 2 sim-a-1, `Core/SimulationEngine.Holdings.cs`): `HoldingOf(population)` resolves sea pen / offshore pen / land tank once per simulated step (`Core/HoldingIndex.cs`; between steps it scans afresh); `HoldingKind` is the one enum (`Biology.FishHolding` = S2-05's names for its values); never add a parallel lookup of facilities or zones in a hazard or model (docs/FARM_TYPES_SPEC.md §3.1a)
 - D18: no network I/O in the sim; BarentsWatch reads offline files only (`OfflineDataTests`)
 
 ### CompetitorAI
@@ -195,7 +196,7 @@ The Phase 4 "Exit" in `NEXT_LEVEL_PLAN.md` has two gates an agent cannot close a
 ### Mortality ledger (S2-05)
 - Every fish leaving a cohort goes through `FishPopulation.RemoveDead(cohort, n, MortalityCause)` or `RemoveAlive(cohort, n, FishRemoval)`; never decrement `Cohort.Count` directly (`MortalityLedgerEngineTests` checks lost == booked for every cohort every day)
 - Causes map to the NVI level-1 classes (`MortalityCauses.CategoryOf`); escapes, harvests and transfers are removals, not deaths; holdings without cohorts book with `MortalityLedger.BookHoldingDeaths`
-- Hazards read a `CohortEnvironment` from `SimulationEngine.ResolveCohortEnvironment` (RAS tank / offshore pen / sea pen), never a global zone value; a new farm type extends the resolver and adds a cause
+- Hazards read a `CohortEnvironment` from `SimulationEngine.ResolveCohortEnvironment` (RAS tank / offshore pen / sea pen), never a global zone value; it is built from `HoldingWaterOf` plus the holding id, CO2 and wave height (`CohortEnvironment.From`); a new farm type extends `HoldingOf`/`WaterOf` and adds a cause
 - Saved in `MortalityModelSnapshot.Ledger`; bridge: `GameBridge.GetMortalityBreakdown` → `SimBridge.get_mortality_breakdown`
 
 ## Adding New Features Checklist

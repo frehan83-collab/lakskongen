@@ -72,13 +72,19 @@ public partial class SimulationEngine
     public double SeaTemperatureOfZone(string? zoneId)
     {
         var zone = FindZone(zoneId);
-        if (zone != null && !zone.FollowsSeaTemperature)
-            return zone.WaterChemistry.Temperature;
-        int area = zone != null ? ProductionAreaOf(zone) : ProductionAreaOfZone(zoneId);
-        return Weather != null
+        return zone != null ? SeaTemperatureOf(zone) : SeaTemperatureOfArea(ProductionAreaOfZone(zoneId));
+    }
+
+    /// <summary>Today's water temperature (°C, cage depth) in <paramref name="zone"/> (see <see cref="SeaTemperatureOfZone"/>).</summary>
+    private double SeaTemperatureOf(Zone zone)
+        => !zone.FollowsSeaTemperature
+            ? zone.WaterChemistry.Temperature
+            : SeaTemperatureOfArea(ProductionAreaOf(zone));
+
+    private double SeaTemperatureOfArea(int area)
+        => Weather != null
             ? Weather.SeaTemperatureAt(area)
             : ProductionAreas.ClimatologyC(area, State?.Day ?? 0);
-    }
 
     /// <summary>Today's water temperature (°C) at a sea site.</summary>
     public double SeaTemperatureAtSite(SeaSite site)
@@ -164,54 +170,38 @@ public partial class SimulationEngine
     }
 
     /// <summary>
-    /// The water a population lives in today (the S2-02 seam). Sea pens get
-    /// their zone's water; offshore farm pens the sea water of their area; RAS
-    /// tanks the facility's controlled water. Growth, appetite, feeding,
-    /// temperature-stress deaths and lice take this value, never a global one.
+    /// The water a population lives in today (the S2-02 seam, the one source of
+    /// truth for the water at the fish): sea pens get their zone's water;
+    /// offshore pens the sea water of their farm's area with the farm's
+    /// current-fed oxygen; land tanks the facility's controlled water. Growth,
+    /// appetite, feeding, the disease tick, temperature-stress deaths and the
+    /// mortality hazards (<see cref="ResolveCohortEnvironment"/>) take this
+    /// value, never a global one. The holding is resolved once per simulated
+    /// step (<see cref="HoldingOf"/>); the water is read live.
     /// </summary>
     public HoldingWater HoldingWaterOf(FishPopulation population)
-        => HoldingWaterOf(population, BuildFacilityWater());
+        => WaterOf(HoldingOf(population), population);
 
     /// <summary>
-    /// Water of the populations a facility holds (land tanks and offshore pens),
-    /// built once per tick; null when no facility holds fish.
+    /// Compatibility for callers written against S2-02, which built a map of
+    /// facility water once per phase: the holding is now resolved once per
+    /// step by the engine (<see cref="HoldingOf"/>), so no map is needed and
+    /// this returns null; <see cref="HoldingWaterOf(FishPopulation, IReadOnlyDictionary{FishPopulation, HoldingWater}?)"/>
+    /// then answers from the step's holdings.
     /// </summary>
-    internal Dictionary<FishPopulation, HoldingWater>? BuildFacilityWater()
-    {
-        Dictionary<FishPopulation, HoldingWater>? water = null;
-        foreach (var ras in RASFacilities)
-        {
-            // A land-based farm pumps sea water from the home area; the tank
-            // runs at the facility's controlled temperature and oxygen.
-            var tankWater = new HoldingWater(ras.CurrentWaterTemp, ras.OxygenLevel,
-                HoldingWater.SeawaterSalinityPsu, HomeProductionArea, HoldingKind.LandTank);
-            foreach (var tank in ras.Tanks)
-            {
-                water ??= new Dictionary<FishPopulation, HoldingWater>(ReferenceEqualityComparer.Instance);
-                water[tank] = tankWater;
-            }
-        }
-        foreach (var farm in OffshoreFarms)
-        {
-            if (farm.Pens.Count == 0) continue;
-            var seaWater = SeaWaterOfZone(farm.ZoneId, HoldingKind.Offshore);
-            foreach (var pen in farm.Pens)
-            {
-                water ??= new Dictionary<FishPopulation, HoldingWater>(ReferenceEqualityComparer.Instance);
-                water[pen] = seaWater;
-            }
-        }
-        return water;
-    }
+    internal Dictionary<FishPopulation, HoldingWater>? BuildFacilityWater() => null;
 
-    /// <summary>The water of <paramref name="population"/> given this tick's facility map.</summary>
+    /// <summary>
+    /// The water of <paramref name="population"/>: from <paramref name="facilityWater"/>
+    /// when a caller supplies an entry for it, else <see cref="HoldingWaterOf(FishPopulation)"/>.
+    /// </summary>
     internal HoldingWater HoldingWaterOf(FishPopulation population,
         IReadOnlyDictionary<FishPopulation, HoldingWater>? facilityWater)
     {
         if (population == null) throw new ArgumentNullException(nameof(population));
         if (facilityWater != null && facilityWater.TryGetValue(population, out var water))
             return water;
-        return SeaWaterOfZone(population.ZoneId, HoldingKind.SeaPen);
+        return HoldingWaterOf(population);
     }
 
     /// <summary>
@@ -219,28 +209,19 @@ public partial class SimulationEngine
     /// in a 4 °C March and a PO1 pen in a 17 °C August no longer share one sea
     /// temperature. Land tanks run at controlled temperature and stay exempt.
     /// Deaths go through the S2-05 hazard and are booked by cause
-    /// (<see cref="ApplyTemperatureStressHazard"/>).
+    /// (<see cref="ApplyTemperatureStressHazard"/>). Each population's holding
+    /// is resolved once (<see cref="HoldingOf"/>) and its environment built
+    /// from it.
     /// </summary>
     internal void ApplyHoldingWaterTemperatureStress()
     {
-        var facilityWater = BuildFacilityWater();
         for (int i = 0; i < State.Populations.Count; i++)
         {
             var population = State.Populations[i];
-            var water = HoldingWaterOf(population, facilityWater);
-            if (water.Kind == HoldingKind.LandTank) continue;
-            ApplyTemperatureStressHazard(population, ResolveCohortEnvironment(population, water.TemperatureC));
+            var holding = HoldingOf(population);
+            if (holding.Kind == HoldingKind.LandTank) continue;
+            ApplyTemperatureStressHazard(population, EnvironmentOf(holding, population, seaTemperatureC: null));
         }
-    }
-
-    private HoldingWater SeaWaterOfZone(string? zoneId, HoldingKind kind)
-    {
-        var zone = FindZone(zoneId);
-        double temperature = SeaTemperatureOfZone(zoneId);
-        double oxygen = zone?.WaterChemistry.OxygenO2
-            ?? WaterQuality.CalculateOxygenSaturation(temperature, HoldingWater.SeawaterSalinityPsu);
-        int area = zone != null ? ProductionAreaOf(zone) : ProductionAreaOfZone(zoneId);
-        return new HoldingWater(temperature, oxygen, HoldingWater.SeawaterSalinityPsu, area, kind);
     }
 
     private Zone? FindZone(string? zoneId)

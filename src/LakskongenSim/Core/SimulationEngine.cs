@@ -1501,20 +1501,28 @@ private class BalancingConfig
             for (int day = 0; day < days; day++)
             {
                 BeginMortalityDay(); // S2-05: this step's deaths carry the day it ends on
-                AdvanceOneDay();
-                State.Day++; // Single source of truth for day counter
+                BeginHoldingDay();   // sim-a-1: every population's holding, resolved once for the step
+                try
+                {
+                    AdvanceOneDay();
+                    State.Day++; // Single source of truth for day counter
 
-                // Post-tick phases (ordered): storm impacts -> wellboat
-                // execution -> balance mirror. Registration order IS the
-                // execution order (see ITickSystem). Wellboat runs AFTER
-                // State.Day++ so the booking contract
-                // (DueDay = bookedDay + delay) stays exact.
-                foreach (var phase in _postTickPhases)
-                    phase.Tick(this);
+                    // Post-tick phases (ordered): storm impacts -> wellboat
+                    // execution -> balance mirror. Registration order IS the
+                    // execution order (see ITickSystem). Wellboat runs AFTER
+                    // State.Day++ so the booking contract
+                    // (DueDay = bookedDay + delay) stays exact.
+                    foreach (var phase in _postTickPhases)
+                        phase.Tick(this);
 
-                // Any cash that moved without a booking today is booked as
-                // unclassified, so the statements always reconcile with cash.
-                ReconcileUnbookedCash();
+                    // Any cash that moved without a booking today is booked as
+                    // unclassified, so the statements always reconcile with cash.
+                    ReconcileUnbookedCash();
+                }
+                finally
+                {
+                    EndHoldingDay();
+                }
             }
 
             OnDayAdvanced?.Invoke(State.Day);

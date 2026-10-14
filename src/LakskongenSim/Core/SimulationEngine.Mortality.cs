@@ -1,4 +1,3 @@
-using System.Linq;
 using LakskongenSim.Biology;
 
 namespace LakskongenSim.Core;
@@ -49,37 +48,19 @@ public partial class SimulationEngine
 
     /// <summary>
     /// The water and exposure <paramref name="population"/> lives in today,
-    /// from whatever holds it: a RAS facility's tank (its controlled water
-    /// temperature, oxygen and CO2), an offshore farm's pen (the sea, the
-    /// zone's oxygen plus the farm's current-fed boost, the farm's wave
-    /// height) or a sea site's pen (the sea and its zone's water).
-    /// <paramref name="seaTemperatureC"/> overrides the sea temperature (by
-    /// default the population's own production-area water,
-    /// <see cref="HoldingWaterOf(FishPopulation)"/>); it never changes a
-    /// land-based tank's water.
+    /// built from the one source of truth for the water at the fish
+    /// (<see cref="HoldingWaterOf(FishPopulation)"/>) plus what the hazards
+    /// need beyond it: the holding's id, a land tank's CO2 and the wave height
+    /// (an offshore farm's own, the weather's at a sea site, none in a tank).
+    /// A land facility's tank has its controlled water; an offshore farm's pen
+    /// the sea of its area with the farm's current-fed oxygen; a sea site's
+    /// pen the sea and its zone's water. <paramref name="seaTemperatureC"/>
+    /// pins the sea temperature (by default the population's own
+    /// production-area water); it never changes a land-based tank's water.
+    /// The holding is resolved once per simulated step (<see cref="HoldingOf"/>).
     /// </summary>
     public CohortEnvironment ResolveCohortEnvironment(FishPopulation population, double? seaTemperatureC = null)
-    {
-        // The sea of the population's own production area (S2-02) unless the
-        // caller pins one temperature for every holding.
-        double seaTemp = seaTemperatureC ?? HoldingWaterOf(population).TemperatureC;
-
-        foreach (var ras in RASFacilities)
-            if (ras.Tanks.Contains(population))
-                return new CohortEnvironment(FishHolding.LandBasedTank, ras.Id,
-                    ras.CurrentWaterTemp, ras.OxygenLevel, ras.CO2Level, WaveHeightM: 0.0);
-
-        double zoneOxygen = State.Zones.FirstOrDefault(z => z.Id == population.ZoneId)?.WaterChemistry?.OxygenO2
-            ?? double.NaN;
-
-        foreach (var farm in OffshoreFarms)
-            if (farm.Pens.Contains(population))
-                return new CohortEnvironment(FishHolding.OffshoreStructure, farm.Id,
-                    seaTemp, zoneOxygen + farm.OxygenBoost, double.NaN, farm.CurrentWaveHeight);
-
-        return new CohortEnvironment(FishHolding.SeaPen, population.SiteId,
-            seaTemp, zoneOxygen, double.NaN, Weather?.CurrentWaveHeight ?? 0.0);
-    }
+        => EnvironmentOf(HoldingOf(population), population, seaTemperatureC);
 
     /// <summary>
     /// Water temperature outside the stress-free band (4-16 °C) kills
