@@ -23,7 +23,7 @@ TIMEOUT_SECS=300
 # running (an early return, a call dropped from _run()). Raise it with every
 # check you add; lowering it weakens the gate and needs a dispute entry in
 # docs/RUN_LOG.md §8.
-MIN_CHECKS=686  # wave2/sim-a-1: 686 measured (683 on the base + 3 sky-latitude checks)
+MIN_CHECKS=695  # wave2/sim-a-2: 695 measured (686 on wave2/sim-a-1 + 9 capacity checks)
 
 find_godot() {
     if [[ -n "${GODOT_BIN:-}" && -x "$GODOT_BIN" ]]; then

@@ -540,6 +540,8 @@ LEDGER_LICENCE_FEES,Licence fees,Lisensavgifter
 LEDGER_LOAN_PRINCIPAL,Loan repayment,Avdrag på lån
 LEDGER_LOAN_SERVICING,Loan servicing,Nedbetaling lån
 LEDGER_MITIGATION,Skirts and deterrents,Skjørt og skremmere
+LEDGER_MTB_CONFISCATION,Confiscated gain (biomass over MTB),Inndratt vinning (biomasse over MTB)
+LEDGER_MTB_FEE,Infringement fee (biomass over MTB),Overtredelsesgebyr (biomasse over MTB)
 LEDGER_NIGHT_SHIFT,Night shift,Nattskift
 LEDGER_OPERATIONS,Operations,Drift
 LEDGER_OTHER,Other,Annet
@@ -1558,3 +1560,15 @@ FISH_REMOVAL_ESCAPE,Escaped,Rømt
 FISH_REMOVAL_HARVEST,Harvested,Slaktet
 FISH_REMOVAL_FORCED_HARVEST,Forced harvest,Tvangsslaktet
 FISH_REMOVAL_TRANSFER_OUT,Moved to another site,Flyttet til en annen lokalitet
+CAPACITY_REASON_MTB_AREA_PROJECTED_PEAK,The production plan's peak would pass the licence MTB in this production area,Produksjonsplanens topp ville gått over tillatelsenes MTB i produksjonsområdet
+CAPACITY_REASON_MTB_SITE_PROJECTED_PEAK,The production plan's peak would pass this site's locality MTB,Produksjonsplanens topp ville gått over lokalitetens MTB
+CAPACITY_REASON_MTB_ORDER_OPEN,A biomass reduction order runs in this production area: no stocking until it is met,Et pålegg om å redusere biomassen gjelder i produksjonsområdet: ingen utsett før det er oppfylt
+CAPACITY_REASON_MTB_NO_LICENCE,The company holds no licence in this production area,Selskapet har ingen tillatelse i dette produksjonsområdet
+CAPACITY_BREACH_OPEN,Order running,Pålegg løper
+CAPACITY_BREACH_COMPLIED,Order met,Pålegg oppfylt
+CAPACITY_BREACH_FORCED_HARVEST,Forced harvest,Tvangsslakting
+CAPACITY_LICENCE_MTB,Licence MTB,Tillatelses-MTB
+CAPACITY_LOCALITY_MTB,Locality MTB,Lokalitets-MTB
+CAPACITY_HEADROOM,MTB headroom,Ledig MTB
+CAPACITY_PROJECTED_PEAK,Plan peak,Planlagt topp
+CAPACITY_BUILD_ADDS_NO_MTB,"A new site adds a locality, not MTB: the fish it can hold come from your licences in the production area","Et nytt anlegg gir en lokalitet, ikke MTB: fisken det kan holde, kommer fra tillatelsene dine i produksjonsområdet"
