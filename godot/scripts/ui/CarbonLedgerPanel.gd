@@ -51,10 +51,8 @@ func _apply_localization() -> void:
 func _apply_theme_fonts() -> void:
 	if not _theme:
 		return
-	if _theme.font_heading_bold:
-		header_label.add_theme_font_override("font", _theme.font_heading_bold)
-	if _theme.font_heading_semibold:
-		status_label.add_theme_font_override("font", _theme.font_heading_semibold)
+	LakskongenTheme.set_strong(header_label)
+	LakskongenTheme.set_strong(status_label)
 
 func refresh():
 	if _sim == null or not _sim.has_method("get_carbon_ledger"):
@@ -80,10 +78,10 @@ func refresh():
 	var neutral: bool = _sim.is_carbon_neutral_year() if _sim.has_method("is_carbon_neutral_year") else false
 	if neutral:
 		status_label.text = tr("UI_CARBON_NEUTRAL")
-		status_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
+		LakskongenTheme.set_text_color(status_label, LakskongenTheme.CHART_OK)
 	else:
 		status_label.text = "Ikke kulstoffneutral ennå"
-		status_label.add_theme_color_override("font_color", Color(1, 0.6, 0.2))
+		LakskongenTheme.set_text_color(status_label, LakskongenTheme.CHART_WARN)
 
 func _show_unavailable():
 	sites_container.add_child(_row_label(tr("UI_CARBON_LEDGER") + ": Data ikke tilgjengelig"))
@@ -101,9 +99,9 @@ func _update_summary(ledger: Dictionary):
 	var net := float(ledger.get("net_emissions_kg", 0.0)) / 1000.0
 	net_label.text = "Netto: %.1f t" % net
 	if net <= 0:
-		net_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
+		LakskongenTheme.set_text_color(net_label, LakskongenTheme.CHART_OK)
 	else:
-		net_label.add_theme_color_override("font_color", Color(1, 0.3, 0.3))
+		LakskongenTheme.set_text_color(net_label, LakskongenTheme.CHART_CRIT)
 
 func _update_sites(ledger: Dictionary):
 	if sites_container == null:
@@ -129,8 +127,8 @@ func _update_sites(ledger: Dictionary):
 		var s2 := float(site.get("scope2_kg", 0.0)) / 1000.0
 		var s3 := float(site.get("scope3_kg", 0.0)) / 1000.0
 		scope_lbl.text = "S1: %.1f S2: %.1f S3: %.1f" % [s1, s2, s3]
-		scope_lbl.add_theme_font_size_override("font_size", 11)
-		scope_lbl.add_theme_color_override("font_color", _theme.TEXT_SECONDARY if _theme else Color(0.6, 0.6, 0.6))
+		LakskongenTheme.set_size(scope_lbl, 11)
+		LakskongenTheme.set_text_color(scope_lbl, _theme.TEXT_SECONDARY if _theme else Color(0.6, 0.6, 0.6))
 		row.add_child(scope_lbl)
 
 	# UIPolish: vertical keyboard navigation for sites list
@@ -198,16 +196,16 @@ func _update_processing(ledger: Dictionary):
 	# UIPolish: vertical keyboard navigation for processing container
 	UIPolish.link_vertical_focus(processing_container)
 
-## Row and value text colour. Labels default to the light theme text colour,
-## which vanished on this panel's light cards.
+## Row and value text colour: Chart ink-black, kept as an explicit override
+## (the rows must stay dark on the light cards, UiFlowTests carbon checks).
 func _text_color() -> Color:
-	return _theme.TEXT_PRIMARY if _theme else Color("#2E3440")
+	return _theme.TEXT_PRIMARY if _theme else Color("#1C1E20")
 
 func _row_label(text: String) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lbl.add_theme_font_size_override("font_size", 13)
+	LakskongenTheme.set_size(lbl, 13)
 	lbl.add_theme_color_override("font_color", _text_color())
 	return lbl
 

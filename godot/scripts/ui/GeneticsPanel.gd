@@ -82,7 +82,7 @@ func _update_traits() -> void:
 		var h2 = trait_data.get("heritability", 0.0)
 		h2_label.text = tr("UI_GENETICS_H2_FORMAT") % h2
 		h2_label.custom_minimum_size = Vector2(80, 0)
-		h2_label.add_theme_color_override("font_color", _heritability_color(h2))
+		LakskongenTheme.set_text_color(h2_label, _heritability_color(h2))
 		h2_label.tooltip_text = "Arvelighet (h²): Hvor stor del av variasjonen i egenskapen som skyldes genetikk. Høyere h² betyr mer effektiv avl."
 		row.add_child(h2_label)
 		
@@ -91,7 +91,7 @@ func _update_traits() -> void:
 		var bv = trait_data.get("breeding_value", 0.0)
 		bv_label.text = tr("UI_GENETICS_BV_FORMAT") % bv if bv != 0.0 else "0.00"
 		bv_label.custom_minimum_size = Vector2(80, 0)
-		bv_label.add_theme_color_override("font_color", _breeding_value_color(bv))
+		LakskongenTheme.set_text_color(bv_label, _breeding_value_color(bv))
 		bv_label.tooltip_text = "Avlverdi: Estimert genetisk verdi for egenskapen. Positive verdier er bedre, negative dårligere."
 		row.add_child(bv_label)
 		
@@ -118,9 +118,9 @@ func _update_inbreeding() -> void:
 		inbreeding_warning.visible = coef > 0.15
 		inbreeding_warning.tooltip_text = tr("Advarsel: Innavelsnivået er høyt. Vurder å introdusere ny stamfisk for å unngå negative effekter.")
 		if coef > 0.25:
-			inbreeding_warning.modulate = Color.RED
+			inbreeding_warning.theme_type_variation = &"CalloutCrit"
 		elif coef > 0.15:
-			inbreeding_warning.modulate = Color.ORANGE
+			inbreeding_warning.theme_type_variation = &"CalloutWarn"
 
 func _update_genomic_preview() -> void:
 	if not gain_list or not _sim_bridge:
@@ -148,7 +148,7 @@ func _update_genomic_preview() -> void:
 		var gain := float(entry.get("gain", 0.0))
 		gain_label.text = "+%.3f" % gain if gain > 0.0 else "%.3f" % gain
 		gain_label.custom_minimum_size = Vector2(80, 0)
-		gain_label.add_theme_color_override("font_color", Color("#A3BE8C") if gain > 0.0 else Color.WHITE)
+		LakskongenTheme.set_tone(gain_label, &"Ok" if gain > 0.0 else &"")
 		row.add_child(gain_label)
 		gain_list.add_child(row)
 
@@ -167,11 +167,11 @@ func _update_inbreeding_status() -> void:
 	inbreeding_detail_label.tooltip_text = tr("Koeffisient og forventet veksttap fra innavlsdepresjon (GenomicSelection).")
 	match level:
 		"high":
-			inbreeding_detail_label.add_theme_color_override("font_color", Color.RED)
+			LakskongenTheme.set_tone(inbreeding_detail_label, &"Crit")
 		"elevated":
-			inbreeding_detail_label.add_theme_color_override("font_color", Color.ORANGE)
+			LakskongenTheme.set_tone(inbreeding_detail_label, &"Warn")
 		_:
-			inbreeding_detail_label.add_theme_color_override("font_color", Color.WHITE)
+			LakskongenTheme.set_tone(inbreeding_detail_label, &"")
 
 func _update_ge_traits() -> void:
 	if not ge_list or not _sim_bridge:
@@ -199,46 +199,46 @@ func _update_ge_traits() -> void:
 		var region_status := str(entry.get("region_status", "NotSubmitted"))
 		status_label.text = tr("%s (repr. %.0f%%)") % [tr(region_status), float(entry.get("reputation_cost", 0.0)) * 100.0]
 		status_label.custom_minimum_size = Vector2(150, 0)
-		status_label.add_theme_color_override("font_color", _ge_status_color(region_status))
+		LakskongenTheme.set_text_color(status_label, _ge_status_color(region_status))
 		row.add_child(status_label)
 		ge_list.add_child(row)
 
 func _ge_status_color(region_status: String) -> Color:
 	match region_status:
 		"Approved":
-			return Color("#A3BE8C")
+			return Color("#2E6B45")
 		"Banned":
-			return Color("#BF616A")
+			return Color("#B3172F")
 		"UnderReview":
-			return Color.ORANGE
+			return LakskongenTheme.CHART_WARN
 		_:
-			return Color("#7B8794")
+			return Color("#5A6168")
 
 func _note_label(text: String) -> Label:
 	var label := Label.new()
 	label.text = text
-	label.add_theme_color_override("font_color", Color("#7B8794"))
+	LakskongenTheme.set_tone(label, &"Muted")
 	return label
 
 func _breeding_value_color(bv: float) -> Color:
 	if bv > 0.5:
-		return Color("#A3BE8C")  # Bright green
+		return Color("#2E6B45")  # Bright green
 	elif bv > 0.0:
-		return Color("#A3BE8C")  # Light green
+		return Color("#2E6B45")  # Light green
 	elif bv < -0.5:
-		return Color("#BF616A")  # Bright red
+		return Color("#B3172F")  # Bright red
 	elif bv < 0.0:
-		return Color(1.0, 0.6, 0.6)  # Light red
+		return LakskongenTheme.CHART_CRIT  # Light red
 	else:
 		return Color.WHITE
 
 func _heritability_color(h2: float) -> Color:
 	if h2 > 0.3:
-		return Color("#88C0D0")  # Blue (high heritability = good for selection)
+		return Color("#1F5E73")  # Blue (high heritability = good for selection)
 	elif h2 > 0.15:
-		return Color("#4C566A")  # Gray
+		return Color("#5A6168")  # Gray
 	else:
-		return Color("#7B8794")  # Dim gray
+		return Color("#5A6168")  # Dim gray
 
 func _on_breed_pressed() -> void:
 	# Placeholder for breeding action

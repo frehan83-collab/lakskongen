@@ -29,11 +29,11 @@ var stock_price_history: Array[float] = []
 var quarterly_earnings: Array[Dictionary] = []
 
 # Color scheme
-const COLOR_GREEN = Color("#A3BE8C")
-const COLOR_YELLOW = Color("#EBCB8B")
-const COLOR_RED = Color("#BF616A")
-const COLOR_TEXT = "#2E3440"
-const COLOR_MUTED = "#7B8794"
+const COLOR_GREEN = Color("#2E6B45")
+const COLOR_YELLOW = Color("#8A5A00")
+const COLOR_RED = Color("#B3172F")
+const COLOR_TEXT = "#1C1E20"
+const COLOR_MUTED = "#5A6168"
 
 # IPO eligibility criteria (Norwegian stock market requirements)
 const IPO_MIN_REVENUE = 50_000_000.0  # 50M NOK annual revenue
@@ -83,13 +83,11 @@ func _apply_theme_fonts() -> void:
 	_theme = get_node_or_null("/root/LakskongenTheme")
 	if not _theme:
 		return
-	if _theme.font_heading_bold:
-		_title_label.add_theme_font_override("font", _theme.font_heading_bold)
-	if _theme.font_heading_semibold:
-		_ipo_section_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_stock_section_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_earnings_section_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_dividend_section_title.add_theme_font_override("font", _theme.font_heading_semibold)
+	LakskongenTheme.set_strong(_title_label)
+	LakskongenTheme.set_strong(_ipo_section_title)
+	LakskongenTheme.set_strong(_stock_section_title)
+	LakskongenTheme.set_strong(_earnings_section_title)
+	LakskongenTheme.set_strong(_dividend_section_title)
 
 func _on_state_updated():
 	_refresh_from_bridge()
@@ -138,14 +136,14 @@ func _check_ipo_eligibility(revenue: float, profit: float, site_count: int, days
 func _update_ipo_status(eligible: bool, revenue: float, profit: float, site_count: int, days: int):
 	if is_public:
 		ipo_status_label.text = tr("✅ Company is publicly traded on Oslo Stock Exchange")
-		ipo_status_label.add_theme_color_override("font_color", COLOR_GREEN)
+		LakskongenTheme.set_text_color(ipo_status_label, COLOR_GREEN)
 		ipo_button.disabled = true
 		ipo_button.text = tr("Already Public")
 		return
 
 	if eligible:
 		ipo_status_label.text = tr("✅ Eligible for IPO — All requirements met!")
-		ipo_status_label.add_theme_color_override("font_color", COLOR_GREEN)
+		LakskongenTheme.set_text_color(ipo_status_label, COLOR_GREEN)
 		ipo_button.disabled = false
 	else:
 		var requirements = []
@@ -159,7 +157,7 @@ func _update_ipo_status(eligible: bool, revenue: float, profit: float, site_coun
 			requirements.append("Days: %d / %d" % [days, IPO_MIN_DAYS])
 
 		ipo_status_label.text = "❌ IPO Requirements:\n" + "\n".join(requirements)
-		ipo_status_label.add_theme_color_override("font_color", COLOR_RED)
+		LakskongenTheme.set_text_color(ipo_status_label, COLOR_RED)
 		ipo_button.disabled = true
 
 func _on_ipo_button_pressed():
@@ -210,15 +208,13 @@ func _display_stock_chart():
 
 	var color = COLOR_GREEN if day_change >= 0 else COLOR_RED
 	stock_price_label.text = "Current Price: %.2f NOK (%+.2f%%)" % [current_price, day_change]
-	stock_price_label.add_theme_color_override("font_color", color)
+	LakskongenTheme.set_text_color(stock_price_label, color)
 
 	# Simple ASCII chart (TODO: replace with GraphEdit or custom drawing)
 	_clear_container(stock_chart_container)
 	var chart_label = Label.new()
 	chart_label.text = _generate_ascii_chart(stock_price_history)
-	if _theme and _theme.font_mono:
-		chart_label.add_theme_font_override("font", _theme.font_mono)
-	chart_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
+	LakskongenTheme.set_text_color(chart_label, Color(COLOR_MUTED))
 	stock_chart_container.add_child(chart_label)
 
 func _display_quarterly_earnings():
@@ -227,7 +223,7 @@ func _display_quarterly_earnings():
 	if quarterly_earnings.is_empty():
 		var label = Label.new()
 		label.text = tr("No quarterly data yet")
-		label.add_theme_color_override("font_color", Color(COLOR_MUTED))
+		LakskongenTheme.set_text_color(label, Color(COLOR_MUTED))
 		quarterly_earnings_container.add_child(label)
 		return
 
@@ -240,18 +236,18 @@ func _display_quarterly_earnings():
 		var quarter_label = Label.new()
 		quarter_label.text = "Q%d (Day %d)" % [quarter.get("quarter", 0), quarter.get("day", 0)]
 		quarter_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		quarter_label.add_theme_color_override("font_color", Color(COLOR_TEXT))
+		LakskongenTheme.set_text_color(quarter_label, Color(COLOR_TEXT))
 		row.add_child(quarter_label)
 
 		var revenue_label = Label.new()
 		revenue_label.text = "Revenue: %s" % _format_currency(quarter.get("revenue", 0.0))
-		revenue_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
+		LakskongenTheme.set_text_color(revenue_label, Color(COLOR_MUTED))
 		row.add_child(revenue_label)
 
 		var profit_label = Label.new()
 		var profit = quarter.get("profit", 0.0)
 		profit_label.text = "Profit: %s" % _format_currency(profit)
-		profit_label.add_theme_color_override("font_color", COLOR_GREEN if profit > 0 else COLOR_RED)
+		LakskongenTheme.set_text_color(profit_label, COLOR_GREEN if profit > 0 else COLOR_RED)
 		row.add_child(profit_label)
 
 		quarterly_earnings_container.add_child(row)
@@ -266,12 +262,12 @@ func _display_dividend_policy(annual_profit: float):
 
 	var policy_label = Label.new()
 	policy_label.text = "Payout Ratio: %.0f%%" % (dividend_payout_ratio * 100)
-	policy_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
+	LakskongenTheme.set_text_color(policy_label, Color(COLOR_MUTED))
 	dividend_policy_container.add_child(policy_label)
 
 	var dividend_label = Label.new()
 	dividend_label.text = "Annual Dividend: %s NOK (%.2f NOK/share)" % [_format_currency(annual_dividend), dividend_per_share]
-	dividend_label.add_theme_color_override("font_color", Color(COLOR_TEXT))
+	LakskongenTheme.set_text_color(dividend_label, Color(COLOR_TEXT))
 	dividend_policy_container.add_child(dividend_label)
 
 func _record_quarterly_earnings(day: int):

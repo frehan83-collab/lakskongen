@@ -31,11 +31,11 @@ var active_weather_alerts: Array[Dictionary] = []
 var active_disease_alerts: Array[Dictionary] = []
 
 # Color scheme
-const COLOR_CRITICAL = Color("#BF616A")
-const COLOR_WARNING = Color("#EBCB8B")
-const COLOR_INFO = Color("#88C0D0")
-const COLOR_TEXT = "#2E3440"
-const COLOR_MUTED = "#7B8794"
+const COLOR_CRITICAL = Color("#B3172F")
+const COLOR_WARNING = Color("#8A5A00")
+const COLOR_INFO = Color("#1F5E73")
+const COLOR_TEXT = "#1C1E20"
+const COLOR_MUTED = "#5A6168"
 
 var _theme: Node = null
 
@@ -91,13 +91,11 @@ func _apply_theme_fonts() -> void:
 	_theme = get_node_or_null("/root/LakskongenTheme")
 	if not _theme:
 		return
-	if _theme.font_heading_bold:
-		_title_label.add_theme_font_override("font", _theme.font_heading_bold)
-	if _theme.font_heading_semibold:
-		_weather_section_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_alert_section_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_disease_section_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_treatment_section_title.add_theme_font_override("font", _theme.font_heading_semibold)
+	LakskongenTheme.set_strong(_title_label)
+	LakskongenTheme.set_strong(_weather_section_title)
+	LakskongenTheme.set_strong(_alert_section_title)
+	LakskongenTheme.set_strong(_disease_section_title)
+	LakskongenTheme.set_strong(_treatment_section_title)
 
 ## P10 gill-health card: per-site risk chip (green/amber/red). Built in code and
 ## inserted under the weather card; guards empty site lists.
@@ -122,8 +120,8 @@ func _build_gill_card() -> void:
 
 	var header := Label.new()
 	header.text = tr("🫁 Gjellehelse (tidligvarsling)")
-	header.add_theme_font_size_override("font_size", 16)
-	header.add_theme_color_override("font_color", Color(COLOR_TEXT))
+	LakskongenTheme.set_size(header, 16)
+	LakskongenTheme.set_text_color(header, Color(COLOR_TEXT))
 	header.custom_minimum_size.y = 30
 	outer.add_child(header)
 
@@ -145,7 +143,7 @@ func _refresh_gill_health() -> void:
 	if pens.is_empty():
 		var none := Label.new()
 		none.text = tr("Ingen lokaliteter — gjelleovervåking inaktiv")
-		none.add_theme_color_override("font_color", Color(COLOR_MUTED))
+		LakskongenTheme.set_text_color(none, Color(COLOR_MUTED))
 		_gill_container.add_child(none)
 		return
 	for p in pens:
@@ -170,12 +168,12 @@ func _refresh_gill_health() -> void:
 		var name_lbl := Label.new()
 		name_lbl.text = "%s %s" % [tag, str(p.get("name", site_id))]
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.add_theme_color_override("font_color", color)
+		LakskongenTheme.set_text_color(name_lbl, color)
 		row.add_child(name_lbl)
 		var chip := Label.new()
 		var reason := str(risk.get("reason", ""))
 		chip.text = "%d%% · %s" % [int(r * 100.0), tr(reason)]
-		chip.add_theme_color_override("font_color", color)
+		LakskongenTheme.set_text_color(chip, color)
 		row.add_child(chip)
 
 ## Build the additive mitigation list container right below the existing bloom
@@ -212,8 +210,8 @@ func _refresh_bloom_mitigations() -> void:
 
 	var title := Label.new()
 	title.text = tr("Mottiltak: kostnad · effekt")
-	title.add_theme_font_size_override("font_size", 13)
-	title.add_theme_color_override("font_color", Color(COLOR_TEXT))
+	LakskongenTheme.set_size(title, 13)
+	LakskongenTheme.set_text_color(title, Color(COLOR_TEXT))
 	_mitigation_list.add_child(title)
 
 	for entry in catalog:
@@ -232,13 +230,13 @@ func _refresh_bloom_mitigations() -> void:
 		var name_lbl := Label.new()
 		name_lbl.text = ("🔛 " if installed else "⚪ ") + tr(str(entry.get("label", kind)))
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.add_theme_color_override("font_color", Color(COLOR_TEXT))
+		LakskongenTheme.set_text_color(name_lbl, Color(COLOR_TEXT))
 		row.add_child(name_lbl)
 
 		var info := Label.new()
 		info.text = "%s · −%.0f%% død." % [_format_currency(cost) + " NOK", max_red * 100.0]
-		info.add_theme_font_size_override("font_size", 11)
-		info.add_theme_color_override("font_color", Color(COLOR_MUTED))
+		LakskongenTheme.set_size(info, 11)
+		LakskongenTheme.set_text_color(info, Color(COLOR_MUTED))
 		row.add_child(info)
 
 		var btn := Button.new()
@@ -316,7 +314,7 @@ func _refresh_from_bridge():
 	var weather_color = _get_weather_color(weather_state)
 
 	weather_status_label.text = "%s %s" % [weather_icon, weather_state]
-	weather_status_label.add_theme_color_override("font_color", weather_color)
+	LakskongenTheme.set_text_color(weather_status_label, weather_color)
 
 	var temp_color = COLOR_INFO
 	if temp < 4.0:
@@ -325,7 +323,7 @@ func _refresh_from_bridge():
 		temp_color = COLOR_CRITICAL
 
 	temperature_label.text = "Sea Temperature: %.1f°C" % temp
-	temperature_label.add_theme_color_override("font_color", temp_color)
+	LakskongenTheme.set_text_color(temperature_label, temp_color)
 
 	_refresh_blooms()
 	_refresh_bloom_mitigations()
@@ -365,7 +363,7 @@ func _refresh_blooms() -> void:
 	if blooms.is_empty():
 		var none := Label.new()
 		none.text = "Ingen aktive oppblomstringer — sesongrisiko: maneter sep–jan, alger mai–jul"
-		none.add_theme_color_override("font_color", Color(COLOR_MUTED))
+		LakskongenTheme.set_text_color(none, Color(COLOR_MUTED))
 		bloom_alert_container.add_child(none)
 		return
 	var icons := {"jellyfish": "🪼", "algae": "🟤", "hypoxia": "💨"}
@@ -381,7 +379,7 @@ func _refresh_blooms() -> void:
 			float(b.get("severity", 0.0)) * 100.0,
 			int(b.get("days_left", 0))]
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		lbl.add_theme_color_override("font_color", Color(COLOR_TEXT))
+		LakskongenTheme.set_text_color(lbl, Color(COLOR_TEXT))
 		row.add_child(lbl)
 
 
@@ -409,7 +407,7 @@ func _display_weather_alerts():
 	if active_weather_alerts.is_empty():
 		var label = Label.new()
 		label.text = tr("No active weather alerts")
-		label.add_theme_color_override("font_color", Color(COLOR_MUTED))
+		LakskongenTheme.set_text_color(label, Color(COLOR_MUTED))
 		weather_alert_container.add_child(label)
 		return
 
@@ -429,13 +427,13 @@ func _display_weather_alerts():
 
 		var type_label = Label.new()
 		type_label.text = "⚠️ %s" % alert.get("type", "Unknown")
-		type_label.add_theme_font_size_override("font_size", 14)
-		type_label.add_theme_color_override("font_color", Color(COLOR_TEXT))
+		LakskongenTheme.set_size(type_label, 14)
+		LakskongenTheme.set_text_color(type_label, Color(COLOR_TEXT))
 		vbox.add_child(type_label)
 
 		var desc_label = Label.new()
 		desc_label.text = alert.get("description", "")
-		desc_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
+		LakskongenTheme.set_text_color(desc_label, Color(COLOR_MUTED))
 		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(desc_label)
 
@@ -447,7 +445,7 @@ func _display_disease_alerts():
 	if active_disease_alerts.is_empty():
 		var label = Label.new()
 		label.text = tr("No active disease outbreaks")
-		label.add_theme_color_override("font_color", Color(COLOR_MUTED))
+		LakskongenTheme.set_text_color(label, Color(COLOR_MUTED))
 		disease_alert_container.add_child(label)
 		return
 
@@ -468,20 +466,20 @@ func _display_disease_alerts():
 		var type_label = Label.new()
 		var disease_icon = "🦠" if alert.get("disease_type", "") != "SeaLice" else "🐛"
 		type_label.text = "%s %s Outbreak" % [disease_icon, alert.get("disease_type", "Unknown")]
-		type_label.add_theme_font_size_override("font_size", 14)
-		type_label.add_theme_color_override("font_color", Color(COLOR_CRITICAL))
+		LakskongenTheme.set_size(type_label, 14)
+		LakskongenTheme.set_text_color(type_label, Color(COLOR_CRITICAL))
 		vbox.add_child(type_label)
 
 		var site_label = Label.new()
 		var site_id = alert.get("site_id", "")
 		site_label.text = tr("Location: %s") % ("All sites" if site_id == "all_sites" else site_id)
-		site_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
+		LakskongenTheme.set_text_color(site_label, Color(COLOR_MUTED))
 		vbox.add_child(site_label)
 
 		var severity_label = Label.new()
 		var severity = alert.get("severity", 0.0)
 		severity_label.text = "Severity: %s" % _get_severity_text(severity)
-		severity_label.add_theme_color_override("font_color", _get_severity_color(severity))
+		LakskongenTheme.set_text_color(severity_label, _get_severity_color(severity))
 		vbox.add_child(severity_label)
 
 		disease_alert_container.add_child(panel)
@@ -504,18 +502,18 @@ func _display_treatment_options(disease_type: String, site_id: String, estimated
 		var name_label = Label.new()
 		name_label.text = "%s %s" % [treatment.get("icon", ""), treatment.get("name", "")]
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_label.add_theme_color_override("font_color", Color(COLOR_TEXT))
+		LakskongenTheme.set_text_color(name_label, Color(COLOR_TEXT))
 		row.add_child(name_label)
 
 		var effectiveness_label = Label.new()
 		effectiveness_label.text = "%d%% effective" % treatment.get("effectiveness", 0)
-		effectiveness_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
+		LakskongenTheme.set_text_color(effectiveness_label, Color(COLOR_MUTED))
 		row.add_child(effectiveness_label)
 
 		var cost_label = Label.new()
 		var cost = estimated_cost * treatment.get("cost_multiplier", 1.0)
 		cost_label.text = "%s NOK" % _format_currency(cost)
-		cost_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
+		LakskongenTheme.set_text_color(cost_label, Color(COLOR_MUTED))
 		row.add_child(cost_label)
 
 		var apply_button = Button.new()

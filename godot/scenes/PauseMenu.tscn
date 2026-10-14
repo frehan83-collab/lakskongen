@@ -36,38 +36,38 @@ layout_mode = 2
 theme_override_constants/separation = 16
 
 [node name="PausedLabel" type="Label" parent="PanelContainer/VBoxContainer"]
+theme_type_variation = &"Display"
 layout_mode = 2
 text = "Pause"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 48
 
 [node name="Separator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 
 [node name="ResumeButton" type="Button" parent="PanelContainer/VBoxContainer"]
+theme_type_variation = &"LargeButton"
 unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(320, 52)
 text = "Fortsett spillet"
-theme_override_font_sizes/font_size = 18
 
 [node name="SaveButton" type="Button" parent="PanelContainer/VBoxContainer"]
+theme_type_variation = &"LargeButton"
 unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(320, 52)
 text = "Lagre spill"
-theme_override_font_sizes/font_size = 18
 
 [node name="SettingsButton" type="Button" parent="PanelContainer/VBoxContainer"]
+theme_type_variation = &"LargeButton"
 unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(320, 52)
 text = "Innstillinger"
-theme_override_font_sizes/font_size = 18
 
 [node name="QuitButton" type="Button" parent="PanelContainer/VBoxContainer"]
+theme_type_variation = &"LargeButton"
 unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(320, 52)
 text = "Avslutt til meny"
-theme_override_font_sizes/font_size = 18

@@ -1,35 +1,14 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/StockMarketPanel.gd" id="1_stock"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.898039, 0.913725, 0.941176, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
-bg_color = Color(1, 1, 1, 1)
-border_width_bottom = 1
-border_color = Color(0.898039, 0.913725, 0.941176, 1)
-content_margin_left = 20.0
-content_margin_top = 14.0
-content_margin_right = 20.0
-content_margin_bottom = 14.0
-
 [node name="StockMarketPanel" type="PanelContainer"]
+theme_type_variation = &"Card"
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 script = ExtResource("1_stock")
 
 [node name="Margin" type="MarginContainer" parent="."]
@@ -50,29 +29,26 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 16
 
 [node name="TitleLabel" type="Label" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 20
 text = "📈 Stock Market & IPO"
 
 [node name="IpoCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/IpoCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/IpoCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="IpoHeader" type="Label" parent="Margin/MainScroll/RootVBox/IpoCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 16
 text = "IPO Eligibility"
 
 [node name="IpoBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/IpoCard/Outer"]
@@ -80,16 +56,15 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="IpoStatusLabel" type="Label" parent="Margin/MainScroll/RootVBox/IpoCard/Outer/IpoBody"]
+theme_type_variation = &"BodyMuted"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
 text = "--"
 autowrap_mode = 2
 
 [node name="CompanyValuationLabel" type="Label" parent="Margin/MainScroll/RootVBox/IpoCard/Outer/IpoBody"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
 text = "--"
 
 [node name="IpoButton" type="Button" parent="Margin/MainScroll/RootVBox/IpoCard/Outer/IpoBody"]
@@ -98,22 +73,20 @@ layout_mode = 2
 text = "Launch IPO"
 
 [node name="StockCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/StockCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/StockCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="StockHeader" type="Label" parent="Margin/MainScroll/RootVBox/StockCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 16
 text = "Stock Performance"
 
 [node name="StockBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/StockCard/Outer"]
@@ -121,10 +94,9 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="StockPriceLabel" type="Label" parent="Margin/MainScroll/RootVBox/StockCard/Outer/StockBody"]
+theme_type_variation = &"BodySmall"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 14
 text = "--"
 
 [node name="StockChartBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/StockCard/Outer/StockBody"]
@@ -134,22 +106,20 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="EarningsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/EarningsCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/EarningsCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="EarningsHeader" type="Label" parent="Margin/MainScroll/RootVBox/EarningsCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 16
 text = "Quarterly Earnings"
 
 [node name="EarningsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/EarningsCard/Outer"]
@@ -162,22 +132,20 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="DividendCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/DividendCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/DividendCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="DividendHeader" type="Label" parent="Margin/MainScroll/RootVBox/DividendCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 16
 text = "Dividend Policy"
 
 [node name="DividendBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/DividendCard/Outer"]

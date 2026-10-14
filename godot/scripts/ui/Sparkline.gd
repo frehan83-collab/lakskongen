@@ -31,7 +31,7 @@ var unit_fmt: String = "":
 
 const LINE_WIDTH := 2.0
 const DOT_RADIUS := 2.5
-const LABEL_SIZE := 10
+const LABEL_SIZE := 13  ## the 13 px floor (roadmap U1-02 font lint)
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(80, 28)
@@ -101,7 +101,7 @@ func _draw() -> void:
 	# Baseline reference (drawn under the trend line).
 	if is_finite(baseline):
 		var by: float = to_y.call(baseline)
-		draw_line(Vector2(0.0, by), Vector2(w, by), Color(LakskongenTheme.TEXT_MUTED, 0.4), 1.0)
+		draw_line(Vector2(0.0, by), Vector2(w, by), Color(get_theme_color(&"muted", &"Palette"), 0.4), 1.0)
 
 	# Trend line with rounded caps.
 	draw_polyline(pts, line_color, LINE_WIDTH, true)
@@ -125,7 +125,7 @@ func _draw() -> void:
 		_draw_label(unit_fmt % last_v, lp, w, h)
 
 func _draw_label(text: String, lp: Vector2, w: float, h: float) -> void:
-	var font := ThemeDB.fallback_font
+	var font := get_theme_default_font()
 	var tw := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE).x
 	var tx := lp.x + 5.0
 	if tx + tw > w:
@@ -133,4 +133,4 @@ func _draw_label(text: String, lp: Vector2, w: float, h: float) -> void:
 	tx = clampf(tx, 0.0, maxf(0.0, w - tw))
 	var ty := clampf(lp.y - 3.0, float(LABEL_SIZE), h)
 	draw_string(font, Vector2(tx, ty), text,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE, LakskongenTheme.TEXT_PRIMARY)
+		HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE, get_theme_color(&"text", &"Palette"))

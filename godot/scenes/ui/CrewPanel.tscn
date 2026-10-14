@@ -1,100 +1,6 @@
-[gd_scene load_steps=8 format=3 uid="uid://c9crewpanel01"]
+[gd_scene load_steps=2 format=3 uid="uid://c9crewpanel01"]
 
 [ext_resource type="Script" path="res://scripts/ui/CrewPanel.gd" id="1_crew"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
-bg_color = Color(0.92549, 0.937255, 0.956863, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.898039, 0.913725, 0.941176, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-content_margin_left = 16.0
-content_margin_top = 16.0
-content_margin_right = 16.0
-content_margin_bottom = 16.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kpi_primary"]
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 1
-border_width_top = 4
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.0392157, 0.301961, 0.407843, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-content_margin_left = 16.0
-content_margin_top = 16.0
-content_margin_right = 16.0
-content_margin_bottom = 16.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kpi_danger"]
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 1
-border_width_top = 4
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.74902, 0.380392, 0.415686, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-content_margin_left = 16.0
-content_margin_top = 16.0
-content_margin_right = 16.0
-content_margin_bottom = 16.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kpi_success"]
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 1
-border_width_top = 4
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.639216, 0.745098, 0.54902, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-content_margin_left = 16.0
-content_margin_top = 16.0
-content_margin_right = 16.0
-content_margin_bottom = 16.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kpi_accent"]
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 1
-border_width_top = 4
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.368627, 0.505882, 0.67451, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-content_margin_left = 16.0
-content_margin_top = 16.0
-content_margin_right = 16.0
-content_margin_bottom = 16.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_primary"]
-bg_color = Color(0.0392157, 0.301961, 0.407843, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-content_margin_left = 10.0
-content_margin_top = 10.0
-content_margin_right = 10.0
-content_margin_bottom = 10.0
 
 [node name="CrewPanel" type="Control"]
 layout_mode = 3
@@ -106,13 +12,13 @@ grow_vertical = 2
 script = ExtResource("1_crew")
 
 [node name="Background" type="Panel" parent="."]
+theme_type_variation = &"Sheet"
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
 
 [node name="Scroll" type="ScrollContainer" parent="."]
 layout_mode = 1
@@ -135,19 +41,16 @@ theme_override_constants/separation = 20
 layout_mode = 2
 
 [node name="TitleLabel" type="Label" parent="./Scroll/Root/HeaderRow"]
+theme_type_variation = &"KpiSmall"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 24
 text = "👷 Mannskap"
 
 [node name="HireButton" type="Button" parent="./Scroll/Root/HeaderRow"]
+theme_type_variation = &"SmallPrimaryButton"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = SubResource("StyleBoxFlat_btn_primary")
 text = "+ Ansett ny"
 
 [node name="KPIRow" type="HBoxContainer" parent="./Scroll/Root"]
@@ -155,91 +58,83 @@ layout_mode = 2
 theme_override_constants/separation = 16
 
 [node name="KPICount" type="PanelContainer" parent="./Scroll/Root/KPIRow"]
+theme_type_variation = &"KpiCardInfo"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_kpi_primary")
 
 [node name="VBox" type="VBoxContainer" parent="./Scroll/Root/KPIRow/KPICount"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Cap" type="Label" parent="./Scroll/Root/KPIRow/KPICount/VBox"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "ANSATTE"
 
 [node name="KpiCountValue" type="Label" parent="./Scroll/Root/KPIRow/KPICount/VBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "--"
 
 [node name="KPIPayroll" type="PanelContainer" parent="./Scroll/Root/KPIRow"]
+theme_type_variation = &"KpiCardCrit"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_kpi_danger")
 
 [node name="VBox" type="VBoxContainer" parent="./Scroll/Root/KPIRow/KPIPayroll"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Cap" type="Label" parent="./Scroll/Root/KPIRow/KPIPayroll/VBox"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "LØNNSKOSTNAD/MND"
 
 [node name="KpiPayrollValue" type="Label" parent="./Scroll/Root/KPIRow/KPIPayroll/VBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "--"
 
 [node name="KPIMorale" type="PanelContainer" parent="./Scroll/Root/KPIRow"]
+theme_type_variation = &"KpiCardOk"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_kpi_success")
 
 [node name="VBox" type="VBoxContainer" parent="./Scroll/Root/KPIRow/KPIMorale"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Cap" type="Label" parent="./Scroll/Root/KPIRow/KPIMorale/VBox"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "SNITT MORAL"
 
 [node name="KpiMoraleValue" type="Label" parent="./Scroll/Root/KPIRow/KPIMorale/VBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "--"
 
 [node name="KPIEfficiency" type="PanelContainer" parent="./Scroll/Root/KPIRow"]
+theme_type_variation = &"KpiCardInfo"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_kpi_accent")
 
 [node name="VBox" type="VBoxContainer" parent="./Scroll/Root/KPIRow/KPIEfficiency"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Cap" type="Label" parent="./Scroll/Root/KPIRow/KPIEfficiency/VBox"]
+theme_type_variation = &"SmallMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 11
 text = "EFFEKTIVITET"
 
 [node name="KpiEfficiencyValue" type="Label" parent="./Scroll/Root/KPIRow/KPIEfficiency/VBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "--"
 
 [node name="MidRow" type="HBoxContainer" parent="./Scroll/Root"]
@@ -247,10 +142,10 @@ layout_mode = 2
 theme_override_constants/separation = 16
 
 [node name="ListCard" type="PanelContainer" parent="./Scroll/Root/MidRow"]
+theme_type_variation = &"CardPadded"
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 2.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="./Scroll/Root/MidRow/ListCard"]
 layout_mode = 2
@@ -258,8 +153,6 @@ theme_override_constants/separation = 0
 
 [node name="CardHeader" type="Label" parent="./Scroll/Root/MidRow/ListCard/Outer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "📋 Ansattliste"
 
 [node name="CrewList" type="VBoxContainer" parent="./Scroll/Root/MidRow/ListCard/Outer"]
@@ -268,9 +161,9 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="SkillsCard" type="PanelContainer" parent="./Scroll/Root/MidRow"]
+theme_type_variation = &"CardPadded"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="./Scroll/Root/MidRow/SkillsCard"]
 layout_mode = 2
@@ -278,8 +171,6 @@ theme_override_constants/separation = 0
 
 [node name="CardHeader" type="Label" parent="./Scroll/Root/MidRow/SkillsCard/Outer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "🎯 Ferdigheter"
 
 [node name="SkillsGrid" type="GridContainer" parent="./Scroll/Root/MidRow/SkillsCard/Outer"]

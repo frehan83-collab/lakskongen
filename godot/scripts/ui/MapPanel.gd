@@ -12,23 +12,23 @@ const SiteOverlayLegend = preload("res://scripts/ui/SiteOverlayLegend.gd")
 const NorwayCoastline = preload("res://scripts/ui/NorwayCoastline.gd")
 
 # ── Colors ────────────────────────────────────────────────────────────────────
-const BG_DEEP        := Color("#ECEFF4")
+const BG_DEEP        := Color("#F4F1EA")
 const BG_PANEL       := Color("#FFFFFF")
-const BG_DETAIL      := Color("#F8F9FB")
-const BG_MAP         := Color("#ECEFF4")
-const BORDER_COLOR   := Color("#D8DEE9")
-const TEXT_TITLE     := Color("#2E3440")
-const TEXT_BODY      := Color("#4C566A")
-const TEXT_MUTED     := Color("#7B8794")
-const TEXT_ACCENT    := Color("#0A4D68")
-const LAND_COLOR     := Color("#D8DEE9")
+const BG_DETAIL      := Color("#EDE9E0")
+const BG_MAP         := Color("#F4F1EA")
+const BORDER_COLOR   := Color("#D6CFBF")
+const TEXT_TITLE     := Color("#1C1E20")
+const TEXT_BODY      := Color("#5A6168")
+const TEXT_MUTED     := Color("#5A6168")
+const TEXT_ACCENT    := Color("#1F5E73")
+const LAND_COLOR     := Color("#D6CFBF")
 const LAND_HOVER     := Color("#C8D3E5")
 const LAND_SELECTED  := Color("#B0BED4")
-const SEA_COLOR      := Color("#88C0D0")
-const RISK_LOW       := Color("#A3BE8C")
-const RISK_MEDIUM    := Color("#EBCB8B")
-const RISK_HIGH      := Color("#BF616A")
-const FJORD_COLOR    := Color("#5E81AC")
+const SEA_COLOR      := Color("#1F5E73")
+const RISK_LOW       := Color("#2E6B45")
+const RISK_MEDIUM    := Color("#8A5A00")
+const RISK_HIGH      := Color("#B3172F")
+const FJORD_COLOR    := Color("#1F5E73")
 
 # ── Region data ───────────────────────────────────────────────────────────────
 # Positions are normalised [0..1] in a vertical layout (0 = top = north, 1 = south).
@@ -53,7 +53,7 @@ const REGIONS := [
 		"key_operators": ["Skagerak Salmon", "Mowi"],
 		"description": "Norway's southernmost production zone, stretching from the Swedish border to Jæren. Summer peaks can approach 20°C in shallow areas, making thermal stress a consideration. Relatively few sheltered deep-water fjord locations compared to the west coast, making it a smaller but strategic production area.",
 		"icon": "🌊",
-		"color": Color("#5E81AC"),
+		"color": Color("#1F5E73"),
 	},
 	{
 		"id": "po02",
@@ -74,7 +74,7 @@ const REGIONS := [
 		"key_operators": ["Grieg Seafood", "Bremnes Seashore", "Mowi"],
 		"description": "Rogaland's main salmon farming region, characterized by deep, sheltered fjords like the Boknafjord system. Strong logistics infrastructure tied to the Stavanger region. Summer temperatures are generally favorable, with excellent deep-water exchange providing good oxygenation.",
 		"icon": "⚓",
-		"color": Color("#5E81AC"),
+		"color": Color("#1F5E73"),
 	},
 	{
 		"id": "po03",
@@ -95,7 +95,7 @@ const REGIONS := [
 		"key_operators": ["Lerøy", "Mowi", "Bremnes Seashore"],
 		"description": "Spanning the outer coastal archipelago and inner fjords between Rogaland and Vestland. High density of farming activity historically led to elevated biological pressures, making this a complex but highly productive zone. Key hub for maritime technology and aquaculture innovation.",
 		"icon": "🐟",
-		"color": Color("#5E81AC"),
+		"color": Color("#1F5E73"),
 	},
 	{
 		"id": "po04",
@@ -200,7 +200,7 @@ const REGIONS := [
 		"key_operators": ["Nova Sea", "Cermaq", "Kvarøy"],
 		"description": "The stunning Helgeland coast features thousands of islands providing sheltered farming locations with strong ocean currents. A major engine for Northern Norway's aquaculture economy, with strong community integration and innovative local producers.",
 		"icon": "⛰️",
-		"color": Color("#88C0D0"),
+		"color": Color("#1F5E73"),
 	},
 	{
 		"id": "po09",
@@ -221,7 +221,7 @@ const REGIONS := [
 		"key_operators": ["Nordlaks", "Cermaq", "Eidsfjord Sjøfarm"],
 		"description": "Encompassing the massive Vestfjorden basin and the Vesterålen archipelago. Known for pioneering offshore and semi-closed containment systems to utilize exposed areas. The cold, oxygen-rich waters produce excellent fish welfare and quality, though winter darkness slows growth.",
 		"icon": "❄️",
-		"color": Color("#88C0D0"),
+		"color": Color("#1F5E73"),
 	},
 	{
 		"id": "po10",
@@ -242,7 +242,7 @@ const REGIONS := [
 		"key_operators": ["SalMar", "Wilsgård", "Lerøy"],
 		"description": "Bridging northern Nordland and southern Troms. The region is dominated by the large islands of Andøya and Senja. The harsh, exposed environment requires heavy-duty equipment but rewards operators with minimal lice issues and premium quality output.",
 		"icon": "🌊",
-		"color": Color("#A3D1DE"),
+		"color": Color("#8CC7DA"),
 	},
 	{
 		"id": "po11",
@@ -263,7 +263,7 @@ const REGIONS := [
 		"key_operators": ["Lerøy Aurora", "Cermaq", "Arnøy Laks"],
 		"description": "Centered around the Tromsø region, offering pristine arctic fjord conditions. The cold water requires specialized feed and light regimes to optimize growth and prevent winter maturation. Excellent biological performance makes it a highly profitable zone for established players.",
 		"icon": "🚢",
-		"color": Color("#A3D1DE"),
+		"color": Color("#8CC7DA"),
 	},
 	{
 		"id": "po12",
@@ -284,7 +284,7 @@ const REGIONS := [
 		"key_operators": ["Grieg Seafood", "Cermaq", "SalMar"],
 		"description": "Norway's western Arctic frontier. The Altafjord is a historically important area for salmon farming development in the north. The extreme photoperiod (midnight sun and polar night) profoundly affects fish biology. Exceptional water quality and low lice counts.",
 		"icon": "❄️",
-		"color": Color("#A3D1DE"),
+		"color": Color("#8CC7DA"),
 	},
 	{
 		"id": "po13",
@@ -305,7 +305,7 @@ const REGIONS := [
 		"key_operators": ["SalMar", "Grieg Seafood"],
 		"description": "The northeasternmost point of Norway's salmon production, bordering the Barents Sea. Extremely low water temperatures can slow growth and cause winter sores, requiring careful handling and specific diet formulations. However, the region represents the ultimate pristine environment for arctic salmon.",
 		"icon": "🧊",
-		"color": Color("#A3D1DE"),
+		"color": Color("#8CC7DA"),
 	}
 ]
 
@@ -489,7 +489,7 @@ func _show_region(region_id: String) -> void:
 	var risk: String = r["disease_risk"]
 	_detail_risk_label.text = risk
 	var risk_color := _risk_color(risk)
-	_detail_risk_label.add_theme_color_override("font_color", risk_color)
+	LakskongenTheme.set_text_color(_detail_risk_label, risk_color)
 	_detail_risk_indicator.color = risk_color
 
 	# Update disease details label
@@ -515,7 +515,7 @@ func _clear_selection() -> void:
 	_detail_harvest.text = tr("—")
 	_detail_operators.text = tr("—")
 	_detail_risk_label.text = tr("—")
-	_detail_risk_label.add_theme_color_override("font_color", TEXT_BODY)
+	LakskongenTheme.set_text_color(_detail_risk_label, TEXT_BODY)
 	_detail_risk_indicator.color = TEXT_MUTED
 	_confirm_btn.disabled = true
 	_confirm_btn.text = tr("  SELECT THIS REGION  ")
@@ -595,9 +595,9 @@ class _CoastlineDrawer extends Control:
 	const SEA_BOTTOM := Color("#C3D8E8")
 	const LAND_FILL := Color("#E9EDE0")
 	const COAST_GLOW := Color(0.04, 0.30, 0.41, 0.22)
-	const COAST_LINE := Color("#0A4D68")
+	const COAST_LINE := Color("#1F5E73")
 	const GRID_LINE := Color(1, 1, 1, 0.55)
-	const GRID_TEXT := Color("#7B8794")
+	const GRID_TEXT := Color("#5A6168")
 
 	var _rings: Array = []
 	var _font: Font
@@ -605,7 +605,7 @@ class _CoastlineDrawer extends Control:
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_rings = NorwayCoastline.rings()
-		_font = ThemeDB.fallback_font
+		_font = get_theme_default_font()
 		resized.connect(queue_redraw)
 		queue_redraw()
 
@@ -635,7 +635,7 @@ class _CoastlineDrawer extends Control:
 				draw_line(Vector2(0, y), Vector2(w, y), GRID_LINE, 1.0)
 				if _font:
 					draw_string(_font, Vector2(6, y - 4), "%d°N" % int(lat),
-						HORIZONTAL_ALIGNMENT_LEFT, -1, 11, GRID_TEXT)
+						HORIZONTAL_ALIGNMENT_LEFT, -1, 13, GRID_TEXT)
 			lat += 2.0
 		# Longitude lines every 5 degrees with bottom labels.
 		var lon := 5.0
@@ -645,7 +645,7 @@ class _CoastlineDrawer extends Control:
 				draw_line(Vector2(x, 0), Vector2(x, h), GRID_LINE, 1.0)
 				if _font:
 					draw_string(_font, Vector2(x + 4, h - 6), "%d°E" % int(lon),
-						HORIZONTAL_ALIGNMENT_LEFT, -1, 11, GRID_TEXT)
+						HORIZONTAL_ALIGNMENT_LEFT, -1, 13, GRID_TEXT)
 			lon += 5.0
 
 	func _scaled_ring(ring: Array, w: float, h: float, close_east: bool) -> PackedVector2Array:
@@ -696,12 +696,12 @@ class _CoastlineDrawer extends Control:
 			# Crowded south-west coast: label over open sea (west) instead
 			# of colliding with region names stacked on land (east).
 			if lon < 9.0:
-				var tw := _font.get_string_size(str(c[2]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+				var tw := _font.get_string_size(str(c[2]), HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 				draw_string(_font, pos + Vector2(-8.0 - tw, 4), str(c[2]),
-					HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#2E3440"))
+					HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#1C1E20"))
 			else:
 				draw_string(_font, pos + Vector2(8, 4), str(c[2]),
-					HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#2E3440"))
+					HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#1C1E20"))
 
 
 ## Interactive region marker button drawn directly on the map.
@@ -711,15 +711,15 @@ class _RegionMarker extends Control:
 	var region_data: Dictionary = {}
 	var state: int = STATE_NORMAL
 	var overlay_active: bool = false
-	var overlay_color: Color = Color("#7B8794")
+	var overlay_color: Color = Color("#5A6168")
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		var lbl := Label.new()
 		lbl.name = "NameLabel"
 		lbl.text = region_data.get("name", "")
-		lbl.add_theme_font_size_override("font_size", 13)
-		lbl.add_theme_color_override("font_color", Color("#2E3440"))
+		LakskongenTheme.set_size(lbl, 13)
+		LakskongenTheme.set_tone(lbl, &"")
 		lbl.position = Vector2(22, 0)
 		lbl.size = Vector2(max(size.x - 22, 80), size.y)
 		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -731,7 +731,7 @@ class _RegionMarker extends Control:
 		var w := size.x
 		var h := size.y
 		var risk: String = region_data.get("disease_risk", "Low")
-		var region_color: Color = region_data.get("color", Color("#88C0D0"))
+		var region_color: Color = region_data.get("color", Color("#1F5E73"))
 
 		# Background highlight on hover/select
 		var bg_color := Color.TRANSPARENT
@@ -754,10 +754,10 @@ class _RegionMarker extends Control:
 
 	func _risk_dot_color(risk: String) -> Color:
 		if risk.begins_with("Low"):
-			return Color("#A3BE8C")
+			return Color("#2E6B45")
 		elif risk.begins_with("High") or risk.ends_with("High"):
-			return Color("#BF616A")
-		return Color("#EBCB8B")
+			return Color("#B3172F")
+		return Color("#8A5A00")
 
 
 ## Temperature range bar visualisation.
@@ -776,22 +776,22 @@ class _TempBar extends Control:
 		var total_range := 22.0  # 0°C to 22°C shown on bar
 
 		# Background track
-		draw_rect(Rect2(0, h * 0.3, w, h * 0.4), Color("#5E81AC"), true)
+		draw_rect(Rect2(0, h * 0.3, w, h * 0.4), Color("#1F5E73"), true)
 
 		# Optimal zone (12–16°C)
 		var opt_start := 12.0 / total_range * w
 		var opt_end := 16.0 / total_range * w
 		draw_rect(Rect2(opt_start, h * 0.1, opt_end - opt_start, h * 0.8),
-				Color("#A3BE8C"), true)
+				Color("#2E6B45"), true)
 		draw_rect(Rect2(opt_start, h * 0.1, opt_end - opt_start, h * 0.8),
-				Color("#A3BE8C"), false, 1.0)
+				Color("#2E6B45"), false, 1.0)
 
 		# Region range
 		var range_start := _temp_min / total_range * w
 		var range_end := _temp_max / total_range * w
-		var range_color := Color("#88C0D0") if _temp_max < 17.0 else Color("#EBCB8B")
+		var range_color := Color("#1F5E73") if _temp_max < 17.0 else Color("#8A5A00")
 		if _temp_max >= 19.0:
-			range_color = Color("#BF616A")
+			range_color = Color("#B3172F")
 		draw_rect(Rect2(range_start, h * 0.25, range_end - range_start, h * 0.5),
 				Color(range_color, 0.7), true)
 

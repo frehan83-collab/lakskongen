@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/ui/TutorialUI.gd" id="1_tutorial"]
 
 [node name="TutorialUI" type="PanelContainer"]
+theme_type_variation = &"Glass"
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -29,10 +30,10 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="StepLabel" type="Label" parent="VBox/Header"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 12
 text = "Steg 1 / 12"
 
 [node name="ProgressBar" type="ProgressBar" parent="VBox/Header"]
@@ -45,21 +46,22 @@ max_value = 12.0
 show_percentage = false
 
 [node name="SkipButton" type="Button" parent="VBox/Header"]
+theme_type_variation = &"SmallGhostButton"
 unique_name_in_owner = true
 layout_mode = 2
 tooltip_text = "Hopp over tutorial og aktiver fri spilling"
 text = "Hopp over"
 
 [node name="CloseButton" type="Button" parent="VBox/Header"]
+theme_type_variation = &"SmallGhostButton"
 unique_name_in_owner = true
 layout_mode = 2
 tooltip_text = "Minimer/utvid tutorial-panelet"
-text = "✕"
+text = "×"
 
 [node name="TitleLabel" type="Label" parent="VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
 text = "Tutorial"
 
 [node name="Sep1" type="HSeparator" parent="VBox"]
@@ -84,18 +86,18 @@ layout_mode = 2
 text = "💡"
 
 [node name="HintLabel" type="Label" parent="VBox/HintRow"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 12
 text = "Hint"
 autowrap_mode = 3
 
 [node name="RewardLabel" type="Label" parent="VBox"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
 text = "Belønning"
 
 [node name="ProgressDots" type="HBoxContainer" parent="VBox"]

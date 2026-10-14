@@ -107,7 +107,7 @@ func _refresh_slots() -> void:
 	if sim == null:
 		var lbl := Label.new()
 		lbl.text = _tr_or("UI_SAVELOAD_MANAGER_UNAVAILABLE", "SaveLoadManager ikke tilgjengelig")
-		lbl.add_theme_color_override("font_color", Color("#7B8794"))
+		LakskongenTheme.set_tone(lbl, &"Muted")
 		_slots_container.add_child(lbl)
 		return
 
@@ -126,8 +126,8 @@ func _create_slot(save_info: Dictionary) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.name = "Slot_" + file_name.get_basename().validate_node_name()
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color("#F8F9FB")
-	sb.border_color = Color("#D8DEE9")
+	sb.bg_color = Color("#EDE9E0")
+	sb.border_color = Color("#D6CFBF")
 	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(8)
 	sb.set_content_margin_all(12)
@@ -143,8 +143,8 @@ func _create_slot(save_info: Dictionary) -> PanelContainer:
 
 	var name_lbl := Label.new()
 	name_lbl.text = slot_name
-	name_lbl.add_theme_font_size_override("font_size", 16)
-	name_lbl.add_theme_color_override("font_color", Color("#2E3440"))
+	LakskongenTheme.set_size(name_lbl, 16)
+	LakskongenTheme.set_tone(name_lbl, &"")
 	info_vbox.add_child(name_lbl)
 
 	var details := Label.new()
@@ -153,8 +153,8 @@ func _create_slot(save_info: Dictionary) -> PanelContainer:
 	var sim := _sim()
 	if sim != null and save_info.has("cash"):
 		details.text += "  ·  " + sim.format_nok(float(save_info["cash"]))
-	details.add_theme_font_size_override("font_size", 12)
-	details.add_theme_color_override("font_color", Color("#7B8794"))
+	LakskongenTheme.set_size(details, 12)
+	LakskongenTheme.set_tone(details, &"Muted")
 	info_vbox.add_child(details)
 
 	var load_btn := Button.new()

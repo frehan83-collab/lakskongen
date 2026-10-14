@@ -51,8 +51,7 @@ func _apply_localization() -> void:
 func _apply_theme_fonts() -> void:
 	if not _theme:
 		return
-	if _theme.font_heading_bold:
-		ai_feeding_header_label.add_theme_font_override("font", _theme.font_heading_bold)
+	LakskongenTheme.set_strong(ai_feeding_header_label)
 
 func refresh():
 	# Refresh UI with live data from SimBridge (fallback to placeholders offline)
@@ -89,7 +88,7 @@ func _update_recipe_preview() -> void:
 	recipe_preview.text = "%.1f NOK/kg · FCR ×%.3f · Klasse %s (%s)" % [
 		cost, fcr, grade, "+12% VAP" if grade != "C" else "+6% VAP (blek)"]
 	recipe_preview.add_theme_color_override("font_color",
-		Color("#8FAD78") if grade == "A" else (Color("#D4B06A") if grade == "B" else Color("#A54E56")))
+		Color("#2E6B45") if grade == "A" else (Color("#8A5A00") if grade == "B" else Color("#B3172F")))
 
 
 func _on_apply_recipe() -> void:

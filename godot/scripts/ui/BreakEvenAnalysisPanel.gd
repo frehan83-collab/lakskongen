@@ -98,7 +98,7 @@ func _update_display(fixed_costs: float, variable_cost_per_kg: float, price_per_
 	
 	if contribution_margin_label:
 		contribution_margin_label.text = "Contribution Margin: %.2f NOK/kg" % contribution_margin
-		contribution_margin_label.add_theme_color_override("font_color", _get_profit_color(contribution_margin))
+		LakskongenTheme.set_text_color(contribution_margin_label, _get_profit_color(contribution_margin))
 	
 	if break_even_volume_label:
 		break_even_volume_label.text = "Break-Even Volume: %s kg" % _format_number(break_even_kg)
@@ -111,7 +111,7 @@ func _update_display(fixed_costs: float, variable_cost_per_kg: float, price_per_
 	
 	if margin_of_safety_label:
 		margin_of_safety_label.text = "Margin of Safety: %.1f%%" % margin_of_safety_pct
-		margin_of_safety_label.add_theme_color_override("font_color", _get_safety_color(margin_of_safety_pct))
+		LakskongenTheme.set_text_color(margin_of_safety_label, _get_safety_color(margin_of_safety_pct))
 	
 	if status_label:
 		status_label.text = _get_break_even_status(current_volume, break_even_kg, margin_of_safety_pct)
@@ -145,14 +145,14 @@ func _format_number(value: float) -> String:
 		return "%.0f" % value
 
 func _get_profit_color(value: float) -> Color:
-	return Color(0.2, 0.8, 0.2) if value > 0 else Color(0.8, 0.2, 0.2)
+	return LakskongenTheme.CHART_OK if value > 0 else LakskongenTheme.CHART_CRIT
 
 func _get_safety_color(margin_pct: float) -> Color:
 	if margin_pct > 30.0:
-		return Color(0.2, 0.8, 0.2) # Healthy
+		return LakskongenTheme.CHART_OK # Healthy
 	elif margin_pct > 15.0:
-		return Color(0.6, 0.8, 0.4) # Good
+		return LakskongenTheme.CHART_OK # Good
 	elif margin_pct > 0:
-		return Color(0.8, 0.8, 0.2) # Caution
+		return LakskongenTheme.CHART_WARN # Caution
 	else:
-		return Color(0.8, 0.2, 0.2) # Critical
+		return LakskongenTheme.CHART_CRIT # Critical

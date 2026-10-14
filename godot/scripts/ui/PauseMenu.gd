@@ -28,12 +28,7 @@ signal quit_to_menu_requested
 
 # ── Color palette ─────────────────────────────────────────────────────────────
 
-const COLOR_OVERLAY        := Color(0.18, 0.20, 0.25, 0.65)  # Nordic dark overlay
-const COLOR_PANEL_BG       := Color("#FFFFFF")
-const COLOR_BTN_NORMAL     := Color("#0A4D68")   # Primary
-const COLOR_BTN_HOVER      := Color("#0D5F80")   # Primary light
-const COLOR_BTN_DANGER     := Color("#BF616A")   # Danger
-const COLOR_BTN_DANGER_HOVER := Color("#A54E56")  # Danger dark
+const COLOR_OVERLAY        := Color(0.043137, 0.164706, 0.227451, 0.6)  # Ink scrim
 
 # ── Node references ────────────────────────────────────────────────────────────
 
@@ -112,48 +107,23 @@ func _setup_visuals() -> void:
 	if overlay:
 		overlay.color = COLOR_OVERLAY
 
+	# An Ink dialog (theme variations, roadmap D13): the primary action in
+	# salmon, the rest neutral, the exits as danger.
 	if panel:
-		var panel_style := StyleBoxFlat.new()
-		panel_style.bg_color                  = COLOR_PANEL_BG
-		panel_style.corner_radius_top_left    = 14
-		panel_style.corner_radius_top_right   = 14
-		panel_style.corner_radius_bottom_left = 14
-		panel_style.corner_radius_bottom_right = 14
-		panel_style.content_margin_left   = 48
-		panel_style.content_margin_right  = 48
-		panel_style.content_margin_top    = 36
-		panel_style.content_margin_bottom = 36
-		panel.add_theme_stylebox_override("panel", panel_style)
+		panel.theme_type_variation = &"Dialog"
 
 	if title_label:
-		title_label.add_theme_font_size_override("font_size", 32)
-		title_label.add_theme_color_override("font_color", Color("#2E3440"))
+		title_label.theme_type_variation = &"Title"
 
-	_style_button(btn_resume,    COLOR_BTN_NORMAL,     COLOR_BTN_HOVER,         22)
-	_style_button(btn_save,      COLOR_BTN_NORMAL,     COLOR_BTN_HOVER,         19)
-	_style_button(btn_load,      COLOR_BTN_NORMAL,     COLOR_BTN_HOVER,         19)
-	_style_button(btn_settings,  COLOR_BTN_NORMAL,     COLOR_BTN_HOVER,         19)
-	_style_button(btn_main_menu, COLOR_BTN_DANGER,     COLOR_BTN_DANGER_HOVER,  19)
-	_style_button(btn_quit,      COLOR_BTN_DANGER,     COLOR_BTN_DANGER_HOVER,  19)
-
-
-func _style_button(btn: Button, normal: Color, hover: Color, font_size: int) -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color                     = normal
-	style.corner_radius_top_left       = 8
-	style.corner_radius_top_right      = 8
-	style.corner_radius_bottom_left    = 8
-	style.corner_radius_bottom_right   = 8
-	style.content_margin_left          = 36
-	style.content_margin_right         = 36
-	style.content_margin_top           = 10
-	style.content_margin_bottom        = 10
-	btn.add_theme_stylebox_override("normal", style)
-	var hover_style := style.duplicate() as StyleBoxFlat
-	hover_style.bg_color = hover
-	btn.add_theme_stylebox_override("hover", hover_style)
-	btn.add_theme_color_override("font_color", Color("#ECEFF4"))
-	btn.add_theme_font_size_override("font_size", font_size)
+	for btn in [btn_resume]:
+		if btn != null:
+			btn.theme_type_variation = &"LargePrimaryButton"
+	for btn in [btn_save, btn_load, btn_settings]:
+		if btn != null:
+			btn.theme_type_variation = &"LargeButton"
+	for btn in [btn_main_menu, btn_quit]:
+		if btn != null:
+			btn.theme_type_variation = &"LargeDangerButton"
 
 # ── Signal connections ─────────────────────────────────────────────────────────
 

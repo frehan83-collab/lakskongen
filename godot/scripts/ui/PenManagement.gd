@@ -66,21 +66,21 @@ var _pen_list_items: Dictionary = {}  # pen_id -> Button
 @onready var _btn_rov: Button = %BtnROV
 
 # ── Colors ────────────────────────────────────────────────────────────────────
-const C_BG := Color("#ECEFF4")
+const C_BG := Color("#F4F1EA")
 const C_SURFACE := Color("#FFFFFF")
-const C_ELEVATED := Color("#F8F9FB")
-const C_TEXT := Color("#2E3440")
-const C_TEXT2 := Color("#4C566A")
-const C_MUTED := Color("#7B8794")
-const C_BORDER := Color("#E5E9F0")
-const C_PRIMARY := Color("#0A4D68")
-const C_SECONDARY := Color("#88C0D0")
-const C_SUCCESS := Color("#A3BE8C")
-const C_SUCCESS_D := Color("#8FAD78")
-const C_WARNING := Color("#EBCB8B")
-const C_WARNING_D := Color("#D4B06A")
-const C_DANGER := Color("#BF616A")
-const C_ACCENT := Color("#5E81AC")
+const C_ELEVATED := Color("#EDE9E0")
+const C_TEXT := Color("#1C1E20")
+const C_TEXT2 := Color("#5A6168")
+const C_MUTED := Color("#5A6168")
+const C_BORDER := Color("#E7E2D7")
+const C_PRIMARY := Color("#1F5E73")
+const C_SECONDARY := Color("#1F5E73")
+const C_SUCCESS := Color("#2E6B45")
+const C_SUCCESS_D := Color("#2E6B45")
+const C_WARNING := Color("#8A5A00")
+const C_WARNING_D := Color("#8A5A00")
+const C_DANGER := Color("#B3172F")
+const C_ACCENT := Color("#1F5E73")
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -151,22 +151,15 @@ func _toast(message: String, level: String = "INFO") -> void:
 func _apply_theme_fonts() -> void:
 	if not _theme:
 		return
-	if _theme.font_heading_bold:
-		_detail_name.add_theme_font_override("font", _theme.font_heading_bold)
-		_det_count.add_theme_font_override("font", _theme.font_heading_bold)
-		_det_weight.add_theme_font_override("font", _theme.font_heading_bold)
-		_det_biomass.add_theme_font_override("font", _theme.font_heading_bold)
-		_det_fcr.add_theme_font_override("font", _theme.font_heading_bold)
-	if _theme.font_heading_semibold:
-		_left_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_water_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_health_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_gene_title.add_theme_font_override("font", _theme.font_heading_semibold)
-	if _theme.font_mono:
-		for lbl in [_det_temp, _det_oxygen, _det_current, _det_visibility, _det_algae,
-				_det_lice, _det_disease, _det_mortality, _det_mortality_total,
-				_det_gene_growth, _det_gene_lice, _det_gene_disease, _det_gene_fillet]:
-			(lbl as Label).add_theme_font_override("font", _theme.font_mono)
+	LakskongenTheme.set_strong(_detail_name)
+	LakskongenTheme.set_strong(_det_count)
+	LakskongenTheme.set_strong(_det_weight)
+	LakskongenTheme.set_strong(_det_biomass)
+	LakskongenTheme.set_strong(_det_fcr)
+	LakskongenTheme.set_strong(_left_title)
+	LakskongenTheme.set_strong(_water_title)
+	LakskongenTheme.set_strong(_health_title)
+	LakskongenTheme.set_strong(_gene_title)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DATA REFRESH
@@ -194,7 +187,7 @@ func _refresh_pen_list() -> void:
 		lbl.text = _tr_or("UI_PEN_LIST_EMPTY_GUIDE",
 			"🐟 Ingen merder ennå\nKjøp din første merd, eller velg en produksjonssone på kartet for å komme i gang.")
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		lbl.add_theme_color_override("font_color", C_MUTED)
+		LakskongenTheme.set_text_color(lbl, C_MUTED)
 		_pen_list_vbox.add_child(lbl)
 		_show_no_pen()
 		return
@@ -210,15 +203,10 @@ func _refresh_pen_list() -> void:
 		btn.size_flags_horizontal = SIZE_EXPAND_FILL
 		btn.custom_minimum_size.y = 50
 
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = C_PRIMARY if is_selected else C_ELEVATED
-		sb.border_color = C_PRIMARY if is_selected else C_BORDER
-		sb.set_border_width_all(1)
-		sb.set_corner_radius_all(6)
-		sb.set_content_margin_all(10)
-		btn.add_theme_stylebox_override("normal", sb)
-		btn.add_theme_color_override("font_color", Color.WHITE if is_selected else C_TEXT)
-		btn.add_theme_font_size_override("font_size", 13)
+		# A selectable row (theme "ListItemButton"): the open pen shows pressed.
+		btn.theme_type_variation = &"ListItemButton"
+		btn.toggle_mode = true
+		btn.set_pressed_no_signal(is_selected)
 		btn.pressed.connect(_select_pen.bind(pen_id))
 
 		_pen_list_vbox.add_child(btn)
@@ -274,15 +262,15 @@ func _refresh_detail() -> void:
 	_det_current.text = "%d%%" % int(float(_sim.appetite) * 100.0)
 	_det_visibility.text = tr("8.5 m")
 	_det_algae.text = tr("Lav")
-	_det_algae.add_theme_color_override("font_color", C_SUCCESS_D)
+	LakskongenTheme.set_text_color(_det_algae, C_SUCCESS_D)
 
 	# Health: this site's lice (its weekly count, as on the 3D collar), not
 	# the company average shown for every site before.
 	var lice: float = float(pen.get("lice_per_fish", 0.0))
 	_det_lice.text = "%.2f lus/fisk" % lice
-	_det_lice.add_theme_color_override("font_color", C_SUCCESS_D if lice < 0.2 else (C_WARNING_D if lice < 0.5 else C_DANGER))
+	LakskongenTheme.set_text_color(_det_lice, C_SUCCESS_D if lice < 0.2 else (C_WARNING_D if lice < 0.5 else C_DANGER))
 	_det_disease.text = tr("Ingen")
-	_det_disease.add_theme_color_override("font_color", C_SUCCESS_D)
+	LakskongenTheme.set_text_color(_det_disease, C_SUCCESS_D)
 	# Resistance: worst chemical track (Phase 2.2) — overuse bites back.
 	var max_res := 0.0
 	if _sim and _sim.has_method("get_resistance_levels"):
@@ -298,24 +286,24 @@ func _refresh_detail() -> void:
 
 	# Genetics (mock for now)
 	_det_gene_growth.text = tr("A+")
-	_det_gene_growth.add_theme_color_override("font_color", C_SUCCESS_D)
+	LakskongenTheme.set_text_color(_det_gene_growth, C_SUCCESS_D)
 	_det_gene_lice.text = tr("B")
-	_det_gene_lice.add_theme_color_override("font_color", C_WARNING_D)
+	LakskongenTheme.set_text_color(_det_gene_lice, C_WARNING_D)
 	_det_gene_disease.text = tr("A")
-	_det_gene_disease.add_theme_color_override("font_color", C_ACCENT)
+	LakskongenTheme.set_text_color(_det_gene_disease, C_ACCENT)
 	_det_gene_fillet.text = tr("A+")
-	_det_gene_fillet.add_theme_color_override("font_color", C_SUCCESS_D)
+	LakskongenTheme.set_text_color(_det_gene_fillet, C_SUCCESS_D)
 
 	# Status badge
 	if integrity < 40.0:
 		_detail_status_badge.text = tr("🚨 Nøter kritisk — rømmingsfare")
-		_detail_status_badge.add_theme_color_override("font_color", C_DANGER)
+		LakskongenTheme.set_text_color(_detail_status_badge, C_DANGER)
 	elif lice >= 0.5:
 		_detail_status_badge.text = tr("⚠ Forhøyet lusetall")
-		_detail_status_badge.add_theme_color_override("font_color", C_WARNING_D)
+		LakskongenTheme.set_text_color(_detail_status_badge, C_WARNING_D)
 	else:
 		_detail_status_badge.text = tr("● Frisk")
-		_detail_status_badge.add_theme_color_override("font_color", C_SUCCESS_D)
+		LakskongenTheme.set_text_color(_detail_status_badge, C_SUCCESS_D)
 
 	# Button states
 	_btn_feed.disabled = (fish == 0)
@@ -435,7 +423,7 @@ func _build_quality_selector() -> void:
 		return
 	_quality_option = OptionButton.new()
 	_quality_option.name = "SmoltQualityOption"
-	_quality_option.add_theme_font_size_override("font_size", 12)
+	LakskongenTheme.set_size(_quality_option, 12)
 	_quality_option.tooltip_text = tr("Smoltkvalitet — forventet bæreevne i sjøfasen")
 	parent.add_child(_quality_option)
 	parent.move_child(_quality_option, _btn_stock.get_index())

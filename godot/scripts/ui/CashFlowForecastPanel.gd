@@ -72,11 +72,11 @@ func _update_forecast_grid(forecast: Array) -> void:
 		
 		var net_cash: float = month_data.get("net_cash", 0.0)
 		var net_label: Label = _add_grid_label(_format_currency(net_cash))
-		net_label.add_theme_color_override("font_color", _get_cash_color(net_cash))
+		LakskongenTheme.set_text_color(net_label, _get_cash_color(net_cash))
 		
 		var cumulative: float = month_data.get("cumulative_cash", 0.0)
 		var cum_label: Label = _add_grid_label(_format_currency(cumulative))
-		cum_label.add_theme_color_override("font_color", _get_cash_color(cumulative))
+		LakskongenTheme.set_text_color(cum_label, _get_cash_color(cumulative))
 
 func _update_summary(forecast: Array) -> void:
 	if forecast.is_empty():
@@ -88,20 +88,20 @@ func _update_summary(forecast: Array) -> void:
 	
 	if cumulative_label:
 		cumulative_label.text = "12-Month Cumulative: %s NOK" % _format_currency(final_cumulative)
-		cumulative_label.add_theme_color_override("font_color", _get_cash_color(final_cumulative))
+		LakskongenTheme.set_text_color(cumulative_label, _get_cash_color(final_cumulative))
 	
 	# Calculate runway (months until cash runs out)
 	if runway_label:
 		var runway_months: int = _calculate_runway(forecast)
 		if runway_months > 12:
 			runway_label.text = "Cash Runway: >12 months ✅"
-			runway_label.add_theme_color_override("font_color", Color(0.2, 0.8, 0.2))
+			LakskongenTheme.set_text_color(runway_label, LakskongenTheme.CHART_OK)
 		elif runway_months > 6:
 			runway_label.text = "Cash Runway: %d months ⚠️" % runway_months
-			runway_label.add_theme_color_override("font_color", Color(0.8, 0.6, 0.2))
+			LakskongenTheme.set_text_color(runway_label, LakskongenTheme.CHART_WARN)
 		else:
 			runway_label.text = "Cash Runway: %d months 🚨" % runway_months
-			runway_label.add_theme_color_override("font_color", Color(0.8, 0.2, 0.2))
+			LakskongenTheme.set_text_color(runway_label, LakskongenTheme.CHART_CRIT)
 
 func _calculate_runway(forecast: Array) -> int:
 	var runway: int = 12
@@ -116,8 +116,8 @@ func _add_grid_label(text: String, is_header: bool = false) -> Label:
 	var label: Label = Label.new()
 	label.text = text
 	if is_header:
-		label.add_theme_font_size_override("font_size", 14)
-		label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+		LakskongenTheme.set_size(label, 14)
+		LakskongenTheme.set_text_color(label, Color(0.9, 0.9, 0.9))
 	forecast_grid.add_child(label)
 	return label
 
@@ -133,10 +133,10 @@ func _format_currency(value: float) -> String:
 
 func _get_cash_color(value: float) -> Color:
 	if value > 10_000_000:
-		return Color(0.2, 0.8, 0.2) # Green (healthy)
+		return LakskongenTheme.CHART_OK # Green (healthy)
 	elif value > 1_000_000:
-		return Color(0.8, 0.8, 0.2) # Yellow (caution)
+		return LakskongenTheme.CHART_WARN # Yellow (caution)
 	elif value > 0:
-		return Color(0.8, 0.6, 0.2) # Orange (warning)
+		return LakskongenTheme.CHART_WARN # Orange (warning)
 	else:
-		return Color(0.8, 0.2, 0.2) # Red (critical)
+		return LakskongenTheme.CHART_CRIT # Red (critical)

@@ -35,13 +35,13 @@ class_name StakeholderPanel
 @onready var _btn_media_campaign: Button = %BtnMediaCampaign
 
 # Color scheme (matching existing panels)
-const COLOR_GREEN = Color("#A3BE8C")
-const COLOR_YELLOW = Color("#EBCB8B")
-const COLOR_RED = Color("#BF616A")
-const COLOR_BLUE = Color("#5E81AC")
-const COLOR_TEXT = "#2E3440"
-const COLOR_MUTED = "#7B8794"
-const COLOR_HIGHLIGHT = "#0A4D68"
+const COLOR_GREEN = Color("#2E6B45")
+const COLOR_YELLOW = Color("#8A5A00")
+const COLOR_RED = Color("#B3172F")
+const COLOR_BLUE = Color("#1F5E73")
+const COLOR_TEXT = "#1C1E20"
+const COLOR_MUTED = "#5A6168"
+const COLOR_HIGHLIGHT = "#1F5E73"
 
 # Stakeholder factions
 const STAKEHOLDER_FACTIONS = [
@@ -127,13 +127,11 @@ func _apply_theme_fonts() -> void:
 	_theme = get_node_or_null("/root/LakskongenTheme")
 	if not _theme:
 		return
-	if _theme.font_heading_bold:
-		_title_label.add_theme_font_override("font", _theme.font_heading_bold)
-	if _theme.font_heading_semibold:
-		_faction_section_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_demands_section_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_reputation_section_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_actions_section_title.add_theme_font_override("font", _theme.font_heading_semibold)
+	LakskongenTheme.set_strong(_title_label)
+	LakskongenTheme.set_strong(_faction_section_title)
+	LakskongenTheme.set_strong(_demands_section_title)
+	LakskongenTheme.set_strong(_reputation_section_title)
+	LakskongenTheme.set_strong(_actions_section_title)
 
 func _on_state_updated():
 	_refresh_from_bridge()
@@ -179,20 +177,20 @@ func _update_faction_overview(faction_relationships: Dictionary):
 
 		var icon_label = Label.new()
 		icon_label.text = faction_icon
-		icon_label.add_theme_font_size_override("font_size", 20)
+		LakskongenTheme.set_size(icon_label, 20)
 		header_row.add_child(icon_label)
 
 		var name_label = Label.new()
 		name_label.text = faction_name
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_label.add_theme_font_size_override("font_size", 15)
-		name_label.add_theme_color_override("font_color", Color(COLOR_TEXT))
+		LakskongenTheme.set_size(name_label, 15)
+		LakskongenTheme.set_text_color(name_label, Color(COLOR_TEXT))
 		header_row.add_child(name_label)
 
 		var score_label = Label.new()
 		score_label.text = "%d / 100" % int(relationship_score)
-		score_label.add_theme_font_size_override("font_size", 14)
-		score_label.add_theme_color_override("font_color", _relationship_color(relationship_score))
+		LakskongenTheme.set_size(score_label, 14)
+		LakskongenTheme.set_text_color(score_label, _relationship_color(relationship_score))
 		header_row.add_child(score_label)
 
 		faction_row.add_child(header_row)
@@ -212,8 +210,8 @@ func _update_faction_overview(faction_relationships: Dictionary):
 		# Status label
 		var status_label = Label.new()
 		status_label.text = _relationship_status_text(relationship_score)
-		status_label.add_theme_font_size_override("font_size", 12)
-		status_label.add_theme_color_override("font_color", _relationship_color(relationship_score))
+		LakskongenTheme.set_size(status_label, 12)
+		LakskongenTheme.set_text_color(status_label, _relationship_color(relationship_score))
 		bar_container.add_child(status_label)
 
 		faction_row.add_child(bar_container)
@@ -249,8 +247,8 @@ func _update_active_demands(demands: Array[Dictionary]):
 	if demands.is_empty():
 		var no_demands = Label.new()
 		no_demands.text = tr("✅ Ingen aktive krav for øyeblikket")
-		no_demands.add_theme_font_size_override("font_size", 13)
-		no_demands.add_theme_color_override("font_color", COLOR_GREEN)
+		LakskongenTheme.set_size(no_demands, 13)
+		LakskongenTheme.set_text_color(no_demands, COLOR_GREEN)
 		active_demands_container.add_child(no_demands)
 		return
 
@@ -280,21 +278,21 @@ func _update_active_demands(demands: Array[Dictionary]):
 
 		var icon = Label.new()
 		icon.text = faction_icon
-		icon.add_theme_font_size_override("font_size", 16)
+		LakskongenTheme.set_size(icon, 16)
 		title_row.add_child(icon)
 
 		var title_label = Label.new()
 		title_label.text = title
 		title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		title_label.add_theme_font_size_override("font_size", 14)
-		title_label.add_theme_color_override("font_color", Color(COLOR_TEXT))
+		LakskongenTheme.set_size(title_label, 14)
+		LakskongenTheme.set_text_color(title_label, Color(COLOR_TEXT))
 		title_row.add_child(title_label)
 
 		var deadline_label = Label.new()
 		var deadline_color = COLOR_RED if deadline_days < 7 else COLOR_YELLOW if deadline_days < 30 else COLOR_GREEN
 		deadline_label.text = "⏳ %d dager" % deadline_days
-		deadline_label.add_theme_font_size_override("font_size", 12)
-		deadline_label.add_theme_color_override("font_color", deadline_color)
+		LakskongenTheme.set_size(deadline_label, 12)
+		LakskongenTheme.set_text_color(deadline_label, deadline_color)
 		deadline_label.tooltip_text = "Frist før konsekvenser aktiveres"
 		title_row.add_child(deadline_label)
 
@@ -304,16 +302,16 @@ func _update_active_demands(demands: Array[Dictionary]):
 		if description != "":
 			var desc_label = Label.new()
 			desc_label.text = description
-			desc_label.add_theme_font_size_override("font_size", 12)
-			desc_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
+			LakskongenTheme.set_size(desc_label, 12)
+			LakskongenTheme.set_text_color(desc_label, Color(COLOR_MUTED))
 			desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			demand_vbox.add_child(desc_label)
 
 		# Consequence
 		var consequence_label = Label.new()
 		consequence_label.text = "⚠️ Konsekvens: %s" % consequence
-		consequence_label.add_theme_font_size_override("font_size", 12)
-		consequence_label.add_theme_color_override("font_color", COLOR_RED)
+		LakskongenTheme.set_size(consequence_label, 12)
+		LakskongenTheme.set_text_color(consequence_label, COLOR_RED)
 		demand_vbox.add_child(consequence_label)
 
 		# Action buttons
@@ -364,22 +362,22 @@ func _update_reputation_impact(impacts: Dictionary):
 
 		var icon_label = Label.new()
 		icon_label.text = faction_icon
-		icon_label.add_theme_font_size_override("font_size", 16)
+		LakskongenTheme.set_size(icon_label, 16)
 		impact_row.add_child(icon_label)
 
 		var name_label = Label.new()
 		name_label.text = faction_name + ":"
 		name_label.custom_minimum_size = Vector2(180, 0)
-		name_label.add_theme_font_size_override("font_size", 13)
-		name_label.add_theme_color_override("font_color", Color(COLOR_MUTED))
+		LakskongenTheme.set_size(name_label, 13)
+		LakskongenTheme.set_text_color(name_label, Color(COLOR_MUTED))
 		impact_row.add_child(name_label)
 
 		var effect_label = Label.new()
 		effect_label.text = impact_text
 		effect_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		effect_label.add_theme_font_size_override("font_size", 13)
+		LakskongenTheme.set_size(effect_label, 13)
 		var effect_color = COLOR_GREEN if impact_severity == "positive" else COLOR_RED if impact_severity == "negative" else Color(COLOR_TEXT)
-		effect_label.add_theme_color_override("font_color", effect_color)
+		LakskongenTheme.set_text_color(effect_label, effect_color)
 		impact_row.add_child(effect_label)
 
 		reputation_impact_container.add_child(impact_row)

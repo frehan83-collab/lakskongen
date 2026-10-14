@@ -26,21 +26,21 @@ var _sim_bridge: Node = null
 var _theme: Node = null
 
 # Color scheme from design tokens
-const COLOR_BG = "#2E3440"
-const COLOR_PANEL = "#3B4252"
-const COLOR_TEXT = "#2E3440"
-const COLOR_MUTED = "#7B8794"
-const COLOR_ACCENT = "#88C0D0"
-const COLOR_ACCENT_2 = "#0A4D68"
-const COLOR_DANGER = "#BF616A"
+const COLOR_BG = "#1C1E20"
+const COLOR_PANEL = "#13394B"
+const COLOR_TEXT = "#1C1E20"
+const COLOR_MUTED = "#5A6168"
+const COLOR_ACCENT = "#1F5E73"
+const COLOR_ACCENT_2 = "#1F5E73"
+const COLOR_DANGER = "#B3172F"
 
 # Certification level colors
 const CERT_COLORS = {
-	"NonCompliant": "#BF616A",        # Red
-	"BasicCompliance": "#EBCB8B",     # Gold
-	"ASCCertified": "#88C0D0",        # Cyan (accent)
-	"OrganicCertified": "#A3BE8C",    # Green
-	"SustainabilityLeader": "#A3BE8C" # Bright green
+	"NonCompliant": "#B3172F",        # Red
+	"BasicCompliance": "#8A5A00",     # Gold
+	"ASCCertified": "#1F5E73",        # Cyan (accent)
+	"OrganicCertified": "#2E6B45",    # Green
+	"SustainabilityLeader": "#2E6B45" # Bright green
 }
 
 # Current data
@@ -84,12 +84,10 @@ func _apply_localization() -> void:
 func _apply_theme_fonts() -> void:
 	if not _theme:
 		return
-	if _theme.font_heading_bold:
-		_header_label.add_theme_font_override("font", _theme.font_heading_bold)
-		score_value_label.add_theme_font_override("font", _theme.font_heading_bold)
-	if _theme.font_heading_semibold:
-		certification_label.add_theme_font_override("font", _theme.font_heading_semibold)
-		_breakdown_header.add_theme_font_override("font", _theme.font_heading_semibold)
+	LakskongenTheme.set_strong(_header_label)
+	LakskongenTheme.set_strong(score_value_label)
+	LakskongenTheme.set_strong(certification_label)
+	LakskongenTheme.set_strong(_breakdown_header)
 
 func update_display(score: int, certification: String, categories: Dictionary):
 	"""Update all UI elements with new sustainability data"""
@@ -100,7 +98,7 @@ func update_display(score: int, certification: String, categories: Dictionary):
 	# Update score value cell (numeric only) + unit cell (static "/100").
 	if score_value_label:
 		score_value_label.text = str(score)
-		score_value_label.add_theme_color_override("font_color", _get_score_color(score))
+		LakskongenTheme.set_text_color(score_value_label, _get_score_color(score))
 	score_label = score_value_label
 	if score_unit_label:
 		score_unit_label.text = "/100"
@@ -116,7 +114,7 @@ func update_display(score: int, certification: String, categories: Dictionary):
 	if certification_label:
 		var cert_display = _format_certification_badge(certification)
 		certification_label.text = cert_display
-		certification_label.add_theme_color_override("font_color", Color(CERT_COLORS.get(certification, COLOR_MUTED)))
+		LakskongenTheme.set_text_color(certification_label, Color(CERT_COLORS.get(certification, COLOR_MUTED)))
 
 	# Update warning on its own row (visible only when non-compliant).
 	if warning_label:
@@ -171,8 +169,8 @@ func _update_traffic_strip() -> void:
 	var lbl := Label.new()
 	lbl.text = "🚦 Soner: 🟢 %d  🟡 %d  🔴 %d%s" % [greens, yellows, reds,
 		" — RØDT strammer MAB" if reds > 0 else ""]
-	lbl.add_theme_font_size_override("font_size", 13)
-	lbl.add_theme_color_override("font_color", Color(COLOR_TEXT))
+	LakskongenTheme.set_size(lbl, 13)
+	LakskongenTheme.set_text_color(lbl, Color(COLOR_TEXT))
 	row.add_child(lbl)
 
 func _update_categories(categories: Dictionary) -> void:
@@ -209,8 +207,8 @@ func _create_category_bar(label_text: String, score: int, max_score: int):
 	var label = Label.new()
 	label.text = label_text
 	label.custom_minimum_size = Vector2(200, 0)
-	label.add_theme_font_size_override("font_size", 12)
-	label.add_theme_color_override("font_color", Color(COLOR_TEXT))
+	LakskongenTheme.set_size(label, 12)
+	LakskongenTheme.set_text_color(label, Color(COLOR_TEXT))
 	container.add_child(label)
 
 	# Progress bar
@@ -225,20 +223,20 @@ func _create_category_bar(label_text: String, score: int, max_score: int):
 	var score_text = Label.new()
 	score_text.text = tr("UI_SUSTAINABILITY_CATEGORY_SCORE") % [score, max_score]
 	score_text.custom_minimum_size = Vector2(50, 0)
-	score_text.add_theme_font_size_override("font_size", 12)
-	score_text.add_theme_color_override("font_color", Color(COLOR_MUTED))
+	LakskongenTheme.set_size(score_text, 12)
+	LakskongenTheme.set_text_color(score_text, Color(COLOR_MUTED))
 	container.add_child(score_text)
 
 func _get_score_color(score: int) -> Color:
 	"""Get color based on score (red -> yellow -> green gradient)"""
 	if score >= 85:
-		return Color("#A3BE8C")  # Bright green
+		return Color("#2E6B45")  # Bright green
 	elif score >= 70:
-		return Color("#A3BE8C")  # Green
+		return Color("#2E6B45")  # Green
 	elif score >= 50:
-		return Color("#EBCB8B")  # Gold
+		return Color("#8A5A00")  # Gold
 	else:
-		return Color("#BF616A")  # Red/danger
+		return Color("#B3172F")  # Red/danger
 
 func _format_certification_badge(cert: String) -> String:
 	"""Certification badge text (own row, no warning prefix)."""

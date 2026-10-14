@@ -197,61 +197,43 @@ func _create_category_header(category: String, count: int) -> HBoxContainer:
 	var icon: String = icons.get(category, "📌")
 	var label_text: String = labels.get(category, str(category).to_upper())
 
-	var icon_label := LakskongenTheme.create_label("%s %s (%d)" % [icon, label_text, count], LakskongenTheme.FONT_SM, LakskongenTheme.ACCENT)
+	var icon_label := Label.new()
+	icon_label.text = "%s %s (%d)" % [icon, label_text, count]
+	icon_label.theme_type_variation = &"CaptionInfo"
 	header.add_child(icon_label)
 
-	# Category color indicator strip.
+	# Category colour indicator strip (theme swatch, resolved on the surface).
 	var color_strip := PanelContainer.new()
-	var strip_style := StyleBoxFlat.new()
-	strip_style.bg_color = _category_color(category)
-	strip_style.set_corner_radius_all(4)
+	color_strip.theme_type_variation = StringName("Swatch" + String(_category_tone(category)))
 	color_strip.custom_minimum_size = Vector2(4, 20)
-	color_strip.add_theme_stylebox_override("panel", strip_style)
 	color_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	header.add_child(color_strip)
 
 	return header
 
-func _category_color(category: String) -> Color:
+## Category -> theme tone (strip and tag colour).
+func _category_tone(category: String) -> StringName:
 	match category:
-		"health": return LakskongenTheme.DANGER
-		"finance": return LakskongenTheme.WARNING
-		"intervention": return LakskongenTheme.ACCENT
-		"decision": return LakskongenTheme.DANGER
-		"weather": return Color(0.6, 0.4, 1.0)
-		"market": return LakskongenTheme.ACCENT2
-		"contract": return LakskongenTheme.ACCENT
-		_: return LakskongenTheme.MUTED
+		"health", "decision": return &"Crit"
+		"finance": return &"Warn"
+		"intervention", "weather", "market", "contract": return &"Info"
+		_: return &"Muted"
+
+## Priority -> theme tone (badge and card edge).
+func _priority_tone(priority: String) -> StringName:
+	match priority:
+		"critical": return &"Crit"
+		"high": return &"Warn"
+		"medium": return &"Info"
+		_: return &"Muted"
 
 func _create_priority_badge(priority: String) -> Label:
 	var texts: Dictionary = {"critical": "🔴 CRITICAL", "high": "🟠 HIGH", "medium": "🟡 MEDIUM", "low": "🔵 LOW"}
-	var accents: Dictionary = {
-		"critical": LakskongenTheme.DANGER, "high": LakskongenTheme.WARNING,
-		"medium": LakskongenTheme.ACCENT2, "low": LakskongenTheme.MUTED
-	}
-	var text_colors: Dictionary = {
-		"critical": Color("#9A444C"), "high": Color("#7A6118"),
-		"medium": Color("#33526F"), "low": Color("#4C566A")
-	}
-	var accent: Color = accents.get(priority, LakskongenTheme.MUTED)
-
 	var badge := Label.new()
 	badge.text = texts.get(priority, str(priority).to_upper())
-	badge.add_theme_color_override("font_color", text_colors.get(priority, LakskongenTheme.TEXT_MUTED))
-	badge.add_theme_font_size_override("font_size", LakskongenTheme.FONT_XS)
+	# "Tag<Tone>": tone text on a tinted pill (CVD-safe with the emoji + text).
+	badge.theme_type_variation = StringName("Tag" + String(_priority_tone(priority)))
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	var badge_style := StyleBoxFlat.new()
-	badge_style.bg_color = accent.lightened(0.78)
-	badge_style.border_color = accent
-	badge_style.set_border_width_all(1)
-	badge_style.set_corner_radius_all(4)
-	badge_style.content_margin_left = 6
-	badge_style.content_margin_right = 6
-	badge_style.content_margin_top = 1
-	badge_style.content_margin_bottom = 1
-	badge.add_theme_stylebox_override("normal", badge_style)
-
 	return badge
 
 func _create_attention_item(item: Dictionary) -> PanelContainer:
@@ -264,19 +246,7 @@ func _create_attention_item(item: Dictionary) -> PanelContainer:
 	var days_out := int(item.get("days_out", 0))
 
 	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = LakskongenTheme.SURFACE
-	style.border_color = _priority_border_color(priority)
-	style.border_width_left = 4
-	style.border_width_right = 1
-	style.border_width_top = 1
-	style.border_width_bottom = 1
-	style.set_corner_radius_all(LakskongenTheme.RADIUS_SM)
-	style.content_margin_left = LakskongenTheme.SPACE_MD
-	style.content_margin_right = LakskongenTheme.SPACE_MD
-	style.content_margin_top = LakskongenTheme.SPACE_SM
-	style.content_margin_bottom = LakskongenTheme.SPACE_SM
-	panel.add_theme_stylebox_override("panel", style)
+	panel.theme_type_variation = StringName("Callout" + String(_priority_tone(priority)))
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 
 	var vbox := VBoxContainer.new()
@@ -287,7 +257,9 @@ func _create_attention_item(item: Dictionary) -> PanelContainer:
 	var title_row := HBoxContainer.new()
 	title_row.add_theme_constant_override("separation", LakskongenTheme.SPACE_SM)
 
-	var title_label := LakskongenTheme.create_label(title, LakskongenTheme.FONT_MD, LakskongenTheme.TEXT_PRIMARY)
+	var title_label := Label.new()
+	title_label.text = title
+	title_label.theme_type_variation = &"BodyStrong"
 	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(title_label)
@@ -296,15 +268,16 @@ func _create_attention_item(item: Dictionary) -> PanelContainer:
 	if site_id != "":
 		var site_badge := Label.new()
 		site_badge.text = "📍 %s" % site_id
-		site_badge.add_theme_color_override("font_color", LakskongenTheme.TEXT_MUTED)
-		site_badge.add_theme_font_size_override("font_size", LakskongenTheme.FONT_XS)
+		site_badge.theme_type_variation = &"SmallMuted"
 		site_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		title_row.add_child(site_badge)
 
 	vbox.add_child(title_row)
 
 	# Description.
-	var desc_label := LakskongenTheme.create_label(description, LakskongenTheme.FONT_SM, LakskongenTheme.TEXT_SECONDARY)
+	var desc_label := Label.new()
+	desc_label.text = description
+	desc_label.theme_type_variation = &"BodySmallMuted"
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(desc_label)
 
@@ -313,20 +286,20 @@ func _create_attention_item(item: Dictionary) -> PanelContainer:
 	meta_row.add_theme_constant_override("separation", LakskongenTheme.SPACE_SM)
 
 	if delta_nok != 0.0:
-		var delta_label := LakskongenTheme.create_label(
-			"Δ %s" % _format_nok(delta_nok), LakskongenTheme.FONT_XS,
-			LakskongenTheme.SUCCESS_DARK if delta_nok > 0 else LakskongenTheme.DANGER_DARK)
+		var delta_label := Label.new()
+		delta_label.text = "Δ %s" % _format_nok(delta_nok)
+		delta_label.theme_type_variation = &"FigureSmallOk" if delta_nok > 0 else &"FigureSmallCrit"
 		meta_row.add_child(delta_label)
 
 	if days_out > 0:
-		var days_label := LakskongenTheme.create_label(
-			"📅 %d %s" % [days_out, _tr_or("UI_ATTENTION_DAYS", "days")],
-			LakskongenTheme.FONT_XS, LakskongenTheme.TEXT_MUTED)
+		var days_label := Label.new()
+		days_label.text = "📅 %d %s" % [days_out, _tr_or("UI_ATTENTION_DAYS", "days")]
+		days_label.theme_type_variation = &"SmallMuted"
 		meta_row.add_child(days_label)
 
-	var cat_label := LakskongenTheme.create_label(
-		str(item.get("category", "")).to_upper(), LakskongenTheme.FONT_XS,
-		_category_color(str(item.get("category", "other"))))
+	var cat_label := Label.new()
+	cat_label.text = str(item.get("category", "")).to_upper()
+	cat_label.theme_type_variation = StringName("Caption" + String(_category_tone(str(item.get("category", "other")))))
 	meta_row.add_child(cat_label)
 
 	vbox.add_child(meta_row)
@@ -336,43 +309,13 @@ func _create_attention_item(item: Dictionary) -> PanelContainer:
 		var action_btn := Button.new()
 		action_btn.text = _tr_or("UI_ATTENTION_ACTION_VIEW", "View Details →")
 		action_btn.custom_minimum_size = Vector2(140, 28)
-		var btn_style := StyleBoxFlat.new()
-		btn_style.bg_color = LakskongenTheme.PRIMARY
-		btn_style.set_corner_radius_all(4)
-		btn_style.content_margin_left = 10
-		btn_style.content_margin_right = 10
-		btn_style.content_margin_top = 3
-		btn_style.content_margin_bottom = 3
-		action_btn.add_theme_stylebox_override("normal", btn_style)
-		var btn_hover := btn_style.duplicate()
-		btn_hover.bg_color = LakskongenTheme.PRIMARY_LIGHT
-		action_btn.add_theme_stylebox_override("hover", btn_hover)
-		action_btn.add_theme_color_override("font_color", LakskongenTheme.TEXT_INVERSE)
-		action_btn.add_theme_color_override("font_hover_color", Color.WHITE)
+		action_btn.theme_type_variation = &"SmallPrimaryButton"
+		action_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
 		action_btn.pressed.connect(_on_item_action.bind(callback, str(item.get("action_id", "")), site_id))
 		vbox.add_child(action_btn)
 
 	panel.add_child(vbox)
-
-	# Hover effect (light card → elevated).
-	panel.mouse_entered.connect(func():
-		var hover_style := style.duplicate()
-		hover_style.bg_color = LakskongenTheme.SURFACE_ELEVATED
-		hover_style.border_color = LakskongenTheme.ACCENT
-		panel.add_theme_stylebox_override("panel", hover_style)
-	)
-	panel.mouse_exited.connect(func():
-		panel.add_theme_stylebox_override("panel", style)
-	)
-
 	return panel
-
-func _priority_border_color(priority: String) -> Color:
-	match priority:
-		"critical": return LakskongenTheme.DANGER
-		"high": return LakskongenTheme.WARNING
-		"medium": return LakskongenTheme.ACCENT2
-		_: return LakskongenTheme.MUTED
 
 # ── Item actions ──
 

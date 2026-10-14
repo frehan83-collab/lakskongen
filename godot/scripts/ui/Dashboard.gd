@@ -264,32 +264,21 @@ func _tr_or(key: String, fallback: String) -> String:
 func _apply_theme_fonts() -> void:
 	if not _theme:
 		return
-	if _theme.font_heading_bold:
-		_title_label.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_biomass_value.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_revenue_value.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_health_value.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_fcr_value.add_theme_font_override("font", _theme.font_heading_bold)
-		_weather_temp.add_theme_font_override("font", _theme.font_heading_bold)
-	if _theme.font_heading_semibold:
-		_pens_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_water_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_weather_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_fin_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_alerts_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_actions_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		for pen in _pen_cards:
-			if pen.name_label:
-				(pen.name_label as Label).add_theme_font_override("font", _theme.font_heading_semibold)
-	if _theme.font_mono:
-		_water_temp.add_theme_font_override("font", _theme.font_mono)
-		_water_oxygen.add_theme_font_override("font", _theme.font_mono)
-		_water_salinity.add_theme_font_override("font", _theme.font_mono)
-		_water_ph.add_theme_font_override("font", _theme.font_mono)
-		for pen in _pen_cards:
-			for key in ["count_value", "weight_value", "temp_value"]:
-				if pen[key]:
-					(pen[key] as Label).add_theme_font_override("font", _theme.font_mono)
+	LakskongenTheme.set_strong(_title_label)
+	LakskongenTheme.set_strong(_kpi_biomass_value)
+	LakskongenTheme.set_strong(_kpi_revenue_value)
+	LakskongenTheme.set_strong(_kpi_health_value)
+	LakskongenTheme.set_strong(_kpi_fcr_value)
+	LakskongenTheme.set_strong(_weather_temp)
+	LakskongenTheme.set_strong(_pens_title)
+	LakskongenTheme.set_strong(_water_title)
+	LakskongenTheme.set_strong(_weather_title)
+	LakskongenTheme.set_strong(_fin_title)
+	LakskongenTheme.set_strong(_alerts_title)
+	LakskongenTheme.set_strong(_actions_title)
+	for pen in _pen_cards:
+		if pen.name_label:
+			LakskongenTheme.set_strong((pen.name_label as Label))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # KPI SPARKLINES (created in code; additive juice, no sim mutation)
@@ -304,9 +293,9 @@ func _build_kpi_sparklines() -> void:
 		return
 	var specs: Array = [
 		["biomass", _kpi_biomass_value, "total_biomass_kg", Color("#5B8FA3"), "%.0f"],
-		["revenue", _kpi_revenue_value, "balance_nok", Color("#8FAD78"), "%.1f"],
-		["health", _kpi_health_value, "sustainability_score", Color("#88C0D0"), "%.0f"],
-		["fcr", _kpi_fcr_value, "fcr", Color("#D4B06A"), "%.2f"],
+		["revenue", _kpi_revenue_value, "balance_nok", Color("#2E6B45"), "%.1f"],
+		["health", _kpi_health_value, "sustainability_score", Color("#1F5E73"), "%.0f"],
+		["fcr", _kpi_fcr_value, "fcr", Color("#8A5A00"), "%.2f"],
 	]
 	for spec in specs:
 		var key: String = spec[0]
@@ -426,9 +415,9 @@ func _trend_text(trend: String) -> String:
 
 func _trend_color(trend: String, good_when_up: bool) -> Color:
 	if trend == "stable":
-		return Color("#7B8794")
+		return Color("#5A6168")
 	var good := (trend == "up") == good_when_up
-	return Color("#8FAD78") if good else Color("#A54E56")
+	return Color("#2E6B45") if good else Color("#B3172F")
 
 func _refresh_kpis() -> void:
 	if not _sim:
@@ -442,7 +431,7 @@ func _refresh_kpis() -> void:
 	_prev_biomass = biomass_tonnes
 	var biomass_trend: String = _sim.get_analytics_trend("total_biomass_kg") if _sim.has_method("get_analytics_trend") else "stable"
 	_kpi_biomass_change.text = _trend_text(biomass_trend)
-	_kpi_biomass_change.add_theme_color_override("font_color", _trend_color(biomass_trend, true))
+	LakskongenTheme.set_text_color(_kpi_biomass_change, _trend_color(biomass_trend, true))
 
 	# Revenue (juice: count-up tween, display only)
 	var revenue: float = float(_sim.get_revenue())
@@ -453,7 +442,7 @@ func _refresh_kpis() -> void:
 	_prev_revenue = revenue_m
 	var balance_trend: String = _sim.get_analytics_trend("balance_nok") if _sim.has_method("get_analytics_trend") else "stable"
 	_kpi_revenue_change.text = _trend_text(balance_trend)
-	_kpi_revenue_change.add_theme_color_override("font_color", _trend_color(balance_trend, true))
+	LakskongenTheme.set_text_color(_kpi_revenue_change, _trend_color(balance_trend, true))
 
 	# Health (use sustainability score as proxy)
 	var health: int = int(_sim.sustainability_score)
@@ -462,13 +451,13 @@ func _refresh_kpis() -> void:
 	_prev_health = float(health)
 	if health >= 90:
 		_kpi_health_change.text = _tr_or("UI_DASHBOARD_HEALTH_GOOD", "▲ God status")
-		_kpi_health_change.add_theme_color_override("font_color", Color("#8FAD78"))
+		LakskongenTheme.set_tone(_kpi_health_change, &"Ok")
 	elif health >= 70:
 		_kpi_health_change.text = _tr_or("UI_DASHBOARD_HEALTH_STABLE", "─ Stabil")
-		_kpi_health_change.add_theme_color_override("font_color", Color("#D4B06A"))
+		LakskongenTheme.set_tone(_kpi_health_change, &"Warn")
 	else:
 		_kpi_health_change.text = _tr_or("UI_DASHBOARD_HEALTH_LOW", "▼ Lav")
-		_kpi_health_change.add_theme_color_override("font_color", Color("#A54E56"))
+		LakskongenTheme.set_tone(_kpi_health_change, &"Crit")
 
 	# FCR — live from FeedSystem via SimState (target <1.30).
 	var fcr: float = float(_sim.fcr)
@@ -478,13 +467,13 @@ func _refresh_kpis() -> void:
 	var fcr_trend: String = _sim.get_analytics_trend("fcr") if _sim.has_method("get_analytics_trend") else "stable"
 	if fcr <= 1.15:
 		_kpi_fcr_change.text = _tr_or("UI_DASHBOARD_FCR_BETTER", "▲ Bedre enn mål (1.15)")
-		_kpi_fcr_change.add_theme_color_override("font_color", Color("#8FAD78"))
+		LakskongenTheme.set_tone(_kpi_fcr_change, &"Ok")
 	elif fcr <= 1.30:
 		_kpi_fcr_change.text = "%s · %.2f" % [_trend_text(fcr_trend), fcr]
-		_kpi_fcr_change.add_theme_color_override("font_color", Color("#D4B06A"))
+		LakskongenTheme.set_tone(_kpi_fcr_change, &"Warn")
 	else:
 		_kpi_fcr_change.text = _tr_or("UI_DASHBOARD_FCR_BAD", "▼ Over mål — sjekk fôring")
-		_kpi_fcr_change.add_theme_color_override("font_color", Color("#A54E56"))
+		LakskongenTheme.set_tone(_kpi_fcr_change, &"Crit")
 
 	_refresh_kpi_sparklines()
 	_refresh_kpi_tooltips(biomass_tonnes, revenue_m, health, fcr)
@@ -553,11 +542,11 @@ func _refresh_pens() -> void:
 			(pen.count_value as Label).text = _format_number(count)
 			(pen.weight_value as Label).text = "%.1f kg" % avg_w if count > 0 else "--"
 			(pen.temp_value as Label).text = "%.1f°C" % temp
-			var dot_color := Color("#A3BE8C")
+			var dot_color := Color("#2E6B45")
 			if escapes > 0 or (max_bio > 0.0 and biomass > max_bio):
-				dot_color = Color("#BF616A")
+				dot_color = Color("#B3172F")
 			elif lice > 0.2 or (max_bio > 0.0 and biomass > max_bio * 0.8):
-				dot_color = Color("#EBCB8B")
+				dot_color = Color("#8A5A00")
 			(pen.status_dot as ColorRect).color = dot_color
 		else:
 			if pen.name_label:
@@ -566,7 +555,7 @@ func _refresh_pens() -> void:
 			(pen.count_value as Label).text = tr("Tom")
 			(pen.weight_value as Label).text = "--"
 			(pen.temp_value as Label).text = "--"
-			(pen.status_dot as ColorRect).color = Color("#D8DEE9")
+			(pen.status_dot as ColorRect).color = Color("#D6CFBF")
 
 func _refresh_water() -> void:
 	if not _sim:
@@ -578,11 +567,11 @@ func _refresh_water() -> void:
 	_water_oxygen.text = "%.1f mg/L" % o2 if o2 == o2 and o2 > 0.0 else "–"
 	if o2 == o2 and o2 > 0.0:
 		if o2 < 5.0:
-			_water_oxygen.add_theme_color_override("font_color", Color("#A54E56"))
+			LakskongenTheme.set_tone(_water_oxygen, &"Crit")
 		elif o2 < 6.5:
-			_water_oxygen.add_theme_color_override("font_color", Color("#D4B06A"))
+			LakskongenTheme.set_tone(_water_oxygen, &"Warn")
 		else:
-			_water_oxygen.add_theme_color_override("font_color", Color("#2E3440"))
+			LakskongenTheme.set_tone(_water_oxygen, &"")
 	_water_salinity.text = "%.1f m" % float(_sim.wave_m)
 	var ph: float = float(_sim.water_ph)
 	_water_ph.text = "%.1f" % ph if ph == ph and ph > 0.0 else "–"
@@ -621,9 +610,9 @@ func _refresh_weather() -> void:
 	var risk: float = float(_sim.storm_risk_3d)
 	if risk > 0.15:
 		_weather_desc.text += " · ☔ %d%% (3d)" % int(risk * 100.0)
-		_weather_desc.add_theme_color_override("font_color", Color("#A54E56") if risk > 0.5 else Color("#D4B06A"))
+		LakskongenTheme.set_text_color(_weather_desc, Color("#B3172F") if risk > 0.5 else Color("#8A5A00"))
 	else:
-		_weather_desc.add_theme_color_override("font_color", Color("#2E3440"))
+		LakskongenTheme.set_tone(_weather_desc, &"")
 	_weather_visibility.text = "%.0f%% nøter" % float(_sim.min_net_integrity)
 	_weather_humidity.text = "Lus %.2f" % float(_sim.sea_lice_per_fish)
 
@@ -660,10 +649,10 @@ func _refresh_alerts() -> void:
 		var dot := ColorRect.new()
 		dot.custom_minimum_size = Vector2(8, 8)
 		match alert.level:
-			"warning": dot.color = Color("#EBCB8B")
-			"danger", "critical": dot.color = Color("#BF616A")
-			"info": dot.color = Color("#88C0D0")
-			_: dot.color = Color("#7B8794")
+			"warning": dot.color = Color("#8A5A00")
+			"danger", "critical": dot.color = Color("#B3172F")
+			"info": dot.color = Color("#1F5E73")
+			_: dot.color = Color("#5A6168")
 		hbox.add_child(dot)
 
 		var text_vbox := VBoxContainer.new()
@@ -673,15 +662,15 @@ func _refresh_alerts() -> void:
 
 		var text_lbl := Label.new()
 		text_lbl.text = alert.text
-		text_lbl.add_theme_font_size_override("font_size", 13)
-		text_lbl.add_theme_color_override("font_color", Color("#2E3440"))
+		LakskongenTheme.set_size(text_lbl, 13)
+		LakskongenTheme.set_tone(text_lbl, &"")
 		text_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		text_vbox.add_child(text_lbl)
 
 		var time_lbl := Label.new()
 		time_lbl.text = alert.time
-		time_lbl.add_theme_font_size_override("font_size", 11)
-		time_lbl.add_theme_color_override("font_color", Color("#7B8794"))
+		LakskongenTheme.set_size(time_lbl, 11)
+		LakskongenTheme.set_tone(time_lbl, &"Muted")
 		text_vbox.add_child(time_lbl)
 
 	# UIPolish: vertical keyboard navigation for alerts list
@@ -703,14 +692,14 @@ func _refresh_charts() -> void:
 		fbio.append(float(v) / 1000.0)
 	_set_chart(_chart_biomass, "Biomasse (tonn)", biomass, "total_biomass_kg", -1.0, "%.0f", Color("#5B8FA3"), fbio)
 	var price: Array[float] = _sim.get_analytics_data("market_price_nok", 30)
-	_set_chart(_chart_price, "Pris (NOK/kg)", price, "market_price_nok", -1.0, "%.0f", Color("#8FAD78"))
+	_set_chart(_chart_price, "Pris (NOK/kg)", price, "market_price_nok", -1.0, "%.0f", Color("#2E6B45"))
 	var lice: Array[float] = _sim.get_analytics_data("lice_per_fish", 30)
 	var flice: Array[float] = []
 	for v in Array(fc.get("lice", [])):
 		flice.append(float(v))
-	_set_chart(_chart_lice, "Lus/fisk (grense 0,5)", lice, "lice_per_fish", 0.5, "%.2f", Color("#A54E56"), flice)
+	_set_chart(_chart_lice, "Lus/fisk (grense 0,5)", lice, "lice_per_fish", 0.5, "%.2f", Color("#B3172F"), flice)
 	var fcr: Array[float] = _sim.get_analytics_data("fcr", 30)
-	_set_chart(_chart_fcr, "FCR (mål 1,30)", fcr, "fcr", 1.3, "%.2f", Color("#D4B06A"))
+	_set_chart(_chart_fcr, "FCR (mål 1,30)", fcr, "fcr", 1.3, "%.2f", Color("#8A5A00"))
 
 
 func _set_chart(chart: Control, title: String, values: Array[float], metric: String, threshold: float, fmt: String, color: Color, future: Array[float] = []) -> void:
@@ -780,7 +769,7 @@ func _refresh_ops() -> void:
 	_ops_title.text = _tr_or("UI_DASHBOARD_OPS_TITLE", "🎛️ Driftssentral")
 	_ops_budget.text = "Brukt %d/%d oppmerksomhet (👁️ 25 · 🔍 10 · 🤖 0 +8%% spill)" % [used, b]
 	_ops_budget.add_theme_color_override("font_color",
-		Color("#A54E56") if used > b else Color("#7B8794"))
+		Color("#B3172F") if used > b else Color("#5A6168"))
 	var pens: Array = _sim.get_all_pens() if _sim.has_method("get_all_pens") else []
 	for site in pens:
 		var row := HBoxContainer.new()
@@ -789,7 +778,7 @@ func _refresh_ops() -> void:
 		var name_lbl := Label.new()
 		name_lbl.text = str(site.get("name", "?"))
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.add_theme_font_size_override("font_size", 13)
+		LakskongenTheme.set_size(name_lbl, 13)
 		row.add_child(name_lbl)
 		var mode := str(site.get("watch_mode", "watch"))
 		var btn := Button.new()

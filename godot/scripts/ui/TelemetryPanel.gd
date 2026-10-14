@@ -89,7 +89,7 @@ func _build_header() -> void:
 	var day_lbl := Label.new()
 	day_lbl.text = ("Dag %d" % day) if day >= 0 else "Dag –"
 	_style_label(day_lbl, false, LakskongenTheme.FONT_SM)
-	day_lbl.add_theme_color_override("font_color", LakskongenTheme.TEXT_SECONDARY)
+	LakskongenTheme.set_text_color(day_lbl, LakskongenTheme.TEXT_SECONDARY)
 	head.add_child(day_lbl)
 
 	var btn := Button.new()
@@ -673,7 +673,7 @@ func _add_unavailable(msg: String) -> void:
 	var lbl := Label.new()
 	lbl.text = msg
 	_style_label(lbl, false, LakskongenTheme.FONT_BODY)
-	lbl.add_theme_color_override("font_color", LakskongenTheme.TEXT_MUTED)
+	LakskongenTheme.set_text_color(lbl, LakskongenTheme.TEXT_MUTED)
 	_root.add_child(lbl)
 
 func _add_section(title: String) -> VBoxContainer:
@@ -724,7 +724,7 @@ func _add_subheader(body: VBoxContainer, text: String) -> void:
 	var lbl := Label.new()
 	lbl.text = text
 	_style_label(lbl, true, LakskongenTheme.FONT_XS)
-	lbl.add_theme_color_override("font_color", LakskongenTheme.ACCENT)
+	LakskongenTheme.set_text_color(lbl, LakskongenTheme.ACCENT)
 	body.add_child(lbl)
 
 func _add_note(body: VBoxContainer, text: String) -> void:
@@ -732,7 +732,7 @@ func _add_note(body: VBoxContainer, text: String) -> void:
 	lbl.text = text
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_style_label(lbl, false, LakskongenTheme.FONT_XS)
-	lbl.add_theme_color_override("font_color", LakskongenTheme.TEXT_MUTED)
+	LakskongenTheme.set_text_color(lbl, LakskongenTheme.TEXT_MUTED)
 	body.add_child(lbl)
 
 func _add_row(body: VBoxContainer, label: String, value: String,
@@ -745,14 +745,14 @@ func _add_row(body: VBoxContainer, label: String, value: String,
 	l.text = label
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_style_label(l, false, LakskongenTheme.FONT_SM)
-	l.add_theme_color_override("font_color", LakskongenTheme.TEXT_SECONDARY)
+	LakskongenTheme.set_text_color(l, LakskongenTheme.TEXT_SECONDARY)
 	row.add_child(l)
 
 	var v := Label.new()
 	v.text = value
 	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_style_label(v, true, LakskongenTheme.FONT_SM)
-	v.add_theme_color_override("font_color", color)
+	LakskongenTheme.set_text_color(v, color)
 	row.add_child(v)
 	return row
 
@@ -766,7 +766,7 @@ func _add_bar(body: VBoxContainer, label: String, frac: float, color: Color,
 	l.text = label
 	l.custom_minimum_size = Vector2(150, 0)
 	_style_label(l, false, LakskongenTheme.FONT_XS)
-	l.add_theme_color_override("font_color", LakskongenTheme.TEXT_SECONDARY)
+	LakskongenTheme.set_text_color(l, LakskongenTheme.TEXT_SECONDARY)
 	row.add_child(l)
 
 	var pb := ProgressBar.new()
@@ -792,17 +792,10 @@ func _add_bar(body: VBoxContainer, label: String, frac: float, color: Color,
 		v.custom_minimum_size = Vector2(56, 0)
 		v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		_style_label(v, false, LakskongenTheme.FONT_XS)
-		v.add_theme_color_override("font_color", color)
+		LakskongenTheme.set_text_color(v, color)
 		row.add_child(v)
 
 func _style_label(lbl: Label, heading: bool, size_px: int) -> void:
-	lbl.add_theme_font_size_override("font_size", size_px)
-	if _theme == null:
-		return
-	var f: Font = null
-	if heading and _theme.font_heading_semibold != null:
-		f = _theme.font_heading_semibold
-	elif _theme.font_body != null:
-		f = _theme.font_body
-	if f != null:
-		lbl.add_theme_font_override("font", f)
+	if heading:
+		LakskongenTheme.set_strong(lbl)
+	LakskongenTheme.set_size(lbl, size_px)

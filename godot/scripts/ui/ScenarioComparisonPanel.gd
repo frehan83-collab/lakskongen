@@ -88,21 +88,21 @@ func _populate_grid(scenarios: Array) -> void:
 		_add_grid_label(_format_currency(cost))
 		
 		var profit_label: Label = _add_grid_label(_format_currency(profit))
-		profit_label.add_theme_color_override("font_color", _get_profit_color(profit))
+		LakskongenTheme.set_text_color(profit_label, _get_profit_color(profit))
 		
 		var roi_label: Label = _add_grid_label("%.1f%%" % roi_pct)
-		roi_label.add_theme_color_override("font_color", _get_roi_color(roi_pct))
+		LakskongenTheme.set_text_color(roi_label, _get_roi_color(roi_pct))
 		
 		var risk_label: Label = _add_grid_label("%.1f" % risk_score)
-		risk_label.add_theme_color_override("font_color", _get_risk_color(risk_score))
+		LakskongenTheme.set_text_color(risk_label, _get_risk_color(risk_score))
 		
 		var score_label: Label = _add_grid_label("%.0f" % composite_score)
-		score_label.add_theme_color_override("font_color", _get_score_color(composite_score, best_score))
+		LakskongenTheme.set_text_color(score_label, _get_score_color(composite_score, best_score))
 	
 	# Highlight best scenario
 	if best_scenario_label:
 		best_scenario_label.text = "Recommended Strategy: %s" % best_scenario_name
-		best_scenario_label.add_theme_color_override("font_color", Color(0.2, 0.8, 0.2))
+		LakskongenTheme.set_text_color(best_scenario_label, LakskongenTheme.CHART_OK)
 
 func _update_recommendations(scenarios: Array) -> void:
 	if not recommendation_label or scenarios.is_empty():
@@ -137,8 +137,8 @@ func _add_grid_label(text: String, is_header: bool = false) -> Label:
 	var label: Label = Label.new()
 	label.text = text
 	if is_header:
-		label.add_theme_font_size_override("font_size", 14)
-		label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+		LakskongenTheme.set_size(label, 14)
+		LakskongenTheme.set_text_color(label, Color(0.9, 0.9, 0.9))
 	label.custom_minimum_size = Vector2(100, 0)
 	scenario_grid.add_child(label)
 	return label
@@ -154,30 +154,30 @@ func _format_currency(value: float) -> String:
 		return "%.0f" % value
 
 func _get_profit_color(value: float) -> Color:
-	return Color(0.2, 0.8, 0.2) if value > 0 else Color(0.8, 0.2, 0.2)
+	return LakskongenTheme.CHART_OK if value > 0 else LakskongenTheme.CHART_CRIT
 
 func _get_roi_color(roi_pct: float) -> Color:
 	if roi_pct > 20.0:
-		return Color(0.2, 0.8, 0.2)
+		return LakskongenTheme.CHART_OK
 	elif roi_pct > 15.0:
-		return Color(0.6, 0.8, 0.4)
+		return LakskongenTheme.CHART_OK
 	elif roi_pct > 10.0:
-		return Color(0.8, 0.8, 0.2)
+		return LakskongenTheme.CHART_WARN
 	else:
-		return Color(0.8, 0.2, 0.2)
+		return LakskongenTheme.CHART_CRIT
 
 func _get_risk_color(risk: float) -> Color:
 	if risk < 3.0:
-		return Color(0.2, 0.8, 0.2) # Low risk (good)
+		return LakskongenTheme.CHART_OK # Low risk (good)
 	elif risk < 5.0:
-		return Color(0.8, 0.8, 0.2) # Medium risk
+		return LakskongenTheme.CHART_WARN # Medium risk
 	else:
-		return Color(0.8, 0.2, 0.2) # High risk (bad)
+		return LakskongenTheme.CHART_CRIT # High risk (bad)
 
 func _get_score_color(score: float, best_score: float) -> Color:
 	if score >= best_score * 0.95:
-		return Color(0.2, 0.8, 0.2) # Best or near-best
+		return LakskongenTheme.CHART_OK # Best or near-best
 	elif score >= best_score * 0.8:
-		return Color(0.6, 0.8, 0.4) # Good
+		return LakskongenTheme.CHART_OK # Good
 	else:
-		return Color(0.8, 0.8, 0.2) # Suboptimal
+		return LakskongenTheme.CHART_WARN # Suboptimal

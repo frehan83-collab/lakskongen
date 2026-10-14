@@ -35,8 +35,7 @@ func _ready():
     # Assuming a default system font for now, replace with actual theme font later
     # Example: theme_font.base_font = preload("res://themes/LakskongenTheme.tres").get_font("body_small")
     # For now, just set a default font size
-    tooltip_label.add_theme_font_size_override("normal_font_size", 14)
-    tooltip_label.add_theme_color_override("default_color", Color(0.9, 0.9, 0.9, 1.0)) # Placeholder for LakskongenTheme.TEXT
+    # Size and colour come from the project theme (RichTextLabel, Ink surface).
 
     tooltip_panel.add_child(tooltip_label)
     add_child(tooltip_panel)

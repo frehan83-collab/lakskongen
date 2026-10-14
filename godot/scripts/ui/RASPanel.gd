@@ -46,10 +46,8 @@ func _apply_localization() -> void:
 func _apply_theme_fonts() -> void:
 	if not _theme:
 		return
-	if _theme.font_heading_bold:
-		ras_header_label.add_theme_font_override("font", _theme.font_heading_bold)
-	if _theme.font_heading_semibold:
-		_facility_section_title.add_theme_font_override("font", _theme.font_heading_semibold)
+	LakskongenTheme.set_strong(ras_header_label)
+	LakskongenTheme.set_strong(_facility_section_title)
 
 func refresh():
 	# Refresh UI with live data from SimBridge (fallback to placeholders offline)
@@ -86,8 +84,8 @@ func _update_facility_list():
 		var empty_label = Label.new()
 		empty_label.text = tr("UI_RAS_EMPTY")
 		if _theme:
-			empty_label.add_theme_font_size_override("font_size", _theme.FONT_SMALL)
-			empty_label.add_theme_color_override("font_color", _theme.TEXT_SECONDARY)
+			LakskongenTheme.set_size(empty_label, _theme.FONT_SMALL)
+			LakskongenTheme.set_text_color(empty_label, _theme.TEXT_SECONDARY)
 		facility_list_container.add_child(empty_label)
 		return
 
@@ -103,8 +101,8 @@ func _update_facility_list():
 		facility_label.text = "%s (%s)%s%s" % [f.get("name", "RAS-anlegg"), status, maint, stock]
 		facility_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if _theme:
-			facility_label.add_theme_font_size_override("font_size", _theme.FONT_SMALL)
-			facility_label.add_theme_color_override("font_color", _theme.TEXT_SECONDARY)
+			LakskongenTheme.set_size(facility_label, _theme.FONT_SMALL)
+			LakskongenTheme.set_text_color(facility_label, _theme.TEXT_SECONDARY)
 		row.add_child(facility_label)
 		# F383: a facility now holds fish — stock smolts, harvest when grown.
 		var stock_btn := Button.new()

@@ -53,6 +53,10 @@ project/assembly_name="LakskongenGame"
 
 enabled=PackedStringArray("godot_mcp_toolkit")
 
+[gui]
+
+theme/custom="res://theme/lakskongen_theme.tres"
+
 [input]
 
 toggle_notifications={

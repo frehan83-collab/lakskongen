@@ -6,25 +6,25 @@ extends Control
 signal close_requested
 
 # ── Colors (Norwegian ocean theme) ──────────────────────────────────────────
-const BG_DEEP       := Color("#ECEFF4")
+const BG_DEEP       := Color("#F4F1EA")
 const BG_PANEL      := Color("#FFFFFF")
-const BG_SIDEBAR    := Color("#F8F9FB")
-const BG_ENTRY      := Color("#F8F9FB")
-const BG_SELECTED   := Color("#0A4D68")
-const BG_HOVER      := Color("#5E81AC")
-const BG_SEARCH     := Color("#F8F9FB")
-const BORDER_COLOR  := Color("#D8DEE9")
-const TEXT_TITLE    := Color("#2E3440")
-const TEXT_BODY     := Color("#4C566A")
-const TEXT_MUTED    := Color("#7B8794")
-const TEXT_ACCENT   := Color("#0A4D68")
-const TEXT_RELATED  := Color("#88C0D0")
+const BG_SIDEBAR    := Color("#EDE9E0")
+const BG_ENTRY      := Color("#EDE9E0")
+const BG_SELECTED   := Color("#1F5E73")
+const BG_HOVER      := Color("#1F5E73")
+const BG_SEARCH     := Color("#EDE9E0")
+const BORDER_COLOR  := Color("#D6CFBF")
+const TEXT_TITLE    := Color("#1C1E20")
+const TEXT_BODY     := Color("#5A6168")
+const TEXT_MUTED    := Color("#5A6168")
+const TEXT_ACCENT   := Color("#1F5E73")
+const TEXT_RELATED  := Color("#1F5E73")
 const CAT_COLORS := {
-	"Fish Species": Color("#A3BE8C"),
-	"Diseases":     Color("#BF616A"),
-	"Equipment":    Color("#88C0D0"),
-	"Regulations":  Color("#EBCB8B"),
-	"Feed":         Color("#A3BE8C"),
+	"Fish Species": Color("#2E6B45"),
+	"Diseases":     Color("#B3172F"),
+	"Equipment":    Color("#1F5E73"),
+	"Regulations":  Color("#8A5A00"),
+	"Feed":         Color("#2E6B45"),
 	"Markets":      Color("#7B9BC0"),
 }
 
@@ -428,8 +428,8 @@ func _show_welcome() -> void:
 	_clear_desc()
 	var lbl := Label.new()
 	lbl.text = tr("UI_ENCYCLOPEDIA_SELECT_INFO")
-	lbl.add_theme_font_size_override("font_size", 16)
-	lbl.add_theme_color_override("font_color", TEXT_BODY)
+	LakskongenTheme.set_size(lbl, 16)
+	LakskongenTheme.set_text_color(lbl, TEXT_BODY)
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_desc_box.add_child(lbl)
 	_clear_related()
@@ -447,8 +447,8 @@ func _show_entry(entry_id: String) -> void:
 	for para: String in entry.get("description", []):
 		var lbl := Label.new()
 		lbl.text = para
-		lbl.add_theme_font_size_override("font_size", 15)
-		lbl.add_theme_color_override("font_color", TEXT_BODY)
+		LakskongenTheme.set_size(lbl, 15)
+		LakskongenTheme.set_text_color(lbl, TEXT_BODY)
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_desc_box.add_child(lbl)
@@ -547,86 +547,36 @@ func _make_category_button(cat: String) -> Button:
 	btn.text = "  " + cat
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.custom_minimum_size = Vector2(0, 46)
-	btn.add_theme_font_size_override("font_size", 15)
 	_style_category_button(btn, cat, false)
 	btn.pressed.connect(_select_category.bind(cat))
 	return btn
 
-func _style_category_button(btn: Button, cat: String, selected: bool) -> void:
-	var cat_color: Color = CAT_COLORS.get(cat, TEXT_ACCENT)
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = BG_SELECTED if selected else BG_SIDEBAR
-	normal.border_color = cat_color if selected else Color(cat_color, 0.3)
-	normal.border_width_left = 4 if selected else 2
-	normal.content_margin_left = 16
-	normal.content_margin_right = 12
-	normal.content_margin_top = 8
-	normal.content_margin_bottom = 8
-	btn.add_theme_stylebox_override("normal", normal)
-	btn.add_theme_stylebox_override("pressed", normal)
-	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = BG_HOVER
-	btn.add_theme_stylebox_override("hover", hover)
-	btn.add_theme_color_override("font_color", cat_color if selected else TEXT_BODY)
-	btn.add_theme_color_override("font_hover_color", cat_color)
+## Category and entry rows are "ListItemButton" toggles: quiet rows, the
+## selected one tinted with an info edge (theme variation, Chart surface).
+func _style_category_button(btn: Button, _cat: String, selected: bool) -> void:
+	btn.theme_type_variation = &"ListItemButton"
+	btn.toggle_mode = true
+	btn.set_pressed_no_signal(selected)
 
 func _make_entry_button(entry: Dictionary) -> Button:
 	var btn := Button.new()
 	btn.text = "  " + entry.get("icon", "") + "  " + entry["title"]
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.custom_minimum_size = Vector2(0, 40)
-	btn.add_theme_font_size_override("font_size", 14)
-	btn.add_theme_color_override("font_color", TEXT_BODY)
-	btn.add_theme_color_override("font_hover_color", TEXT_ACCENT)
 	_style_entry_button_active(btn, false)
 	btn.pressed.connect(_select_entry.bind(entry["id"]))
 	return btn
 
 func _style_entry_button_active(btn: Button, selected: bool) -> void:
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = BG_SELECTED if selected else Color(0, 0, 0, 0)
-	normal.border_color = BORDER_COLOR if selected else Color(0, 0, 0, 0)
-	normal.border_width_left = 3 if selected else 0
-	normal.content_margin_left = 20
-	normal.content_margin_right = 12
-	normal.content_margin_top = 6
-	normal.content_margin_bottom = 6
-	btn.add_theme_stylebox_override("normal", normal)
-	btn.add_theme_stylebox_override("pressed", normal)
-	var hover := StyleBoxFlat.new()
-	hover.bg_color = BG_HOVER
-	hover.content_margin_left = 20
-	hover.content_margin_right = 12
-	hover.content_margin_top = 6
-	hover.content_margin_bottom = 6
-	btn.add_theme_stylebox_override("hover", hover)
-	btn.add_theme_color_override("font_color", TEXT_ACCENT if selected else TEXT_BODY)
+	btn.theme_type_variation = &"ListItemButton"
+	btn.toggle_mode = true
+	btn.set_pressed_no_signal(selected)
 
-func _make_button(text: String, font_size: int, color: Color) -> Button:
+## Related-entry chips: compact neutral buttons.
+func _make_button(text: String, _font_size: int, _color: Color) -> Button:
 	var btn := Button.new()
 	btn.text = text
-	btn.add_theme_font_size_override("font_size", font_size)
-	btn.add_theme_color_override("font_color", color)
-	btn.add_theme_color_override("font_hover_color", color.lightened(0.2))
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(color, 0.12)
-	style.border_color = Color(color, 0.50)
-	style.border_width_bottom = 1
-	style.border_width_top = 1
-	style.border_width_left = 1
-	style.border_width_right = 1
-	style.corner_radius_top_left = 6
-	style.corner_radius_top_right = 6
-	style.corner_radius_bottom_left = 6
-	style.corner_radius_bottom_right = 6
-	style.content_margin_left = 14
-	style.content_margin_right = 14
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
-	btn.add_theme_stylebox_override("normal", style)
-	var hover_style := style.duplicate() as StyleBoxFlat
-	hover_style.bg_color = Color(color, 0.25)
-	btn.add_theme_stylebox_override("hover", hover_style)
+	btn.theme_type_variation = &"SmallButton"
 	return btn
 
 # (Static box/separator factories removed — shell styling lives in scenes/ui/EncyclopediaPanel.tscn.)

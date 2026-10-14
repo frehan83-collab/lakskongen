@@ -164,7 +164,6 @@ func _build_tab_bar() -> void:
 		# Size to the full label (emoji + text); the bar scrolls when it overflows.
 		btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		btn.clip_text = false
-		btn.add_theme_font_size_override("font_size", 12)
 		
 		# Style button
 		_style_tab_button(btn, false)
@@ -220,36 +219,13 @@ func _on_panel_unlocked(_panel_id: String) -> void:
 
 # ── Tab Button Styling ────────────────────────────────────────────────────────
 
+## Kyst & Stål rail tab (theme variation "RailTab"): quiet Ink tabs, the
+## active one raised with a salmon underline. The pressed state is the toggle
+## state set in _switch_to_tab, so no per-button styleboxes are built here.
 func _style_tab_button(btn: Button, is_active: bool) -> void:
-	# Nordic Minimalist v2.0 tab styling
 	btn.modulate = Color.WHITE
-	
-	if is_active:
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color("#0A4D68")  # PRIMARY
-		sb.set_corner_radius_all(4)
-		sb.set_content_margin_all(8)
-		btn.add_theme_stylebox_override("normal", sb)
-		btn.add_theme_stylebox_override("hover", sb)
-		btn.add_theme_color_override("font_color", Color("#ECEFF4"))
-		btn.add_theme_color_override("font_hover_color", Color("#ECEFF4"))
-	else:
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color("#FFFFFF")
-		sb.border_color = Color("#D8DEE9")
-		sb.set_border_width_all(1)
-		sb.set_corner_radius_all(4)
-		sb.set_content_margin_all(8)
-		btn.add_theme_stylebox_override("normal", sb)
-		var sb_hover := StyleBoxFlat.new()
-		sb_hover.bg_color = Color("#F8F9FB")
-		sb_hover.border_color = Color("#88C0D0")
-		sb_hover.set_border_width_all(1)
-		sb_hover.set_corner_radius_all(4)
-		sb_hover.set_content_margin_all(8)
-		btn.add_theme_stylebox_override("hover", sb_hover)
-		btn.add_theme_color_override("font_color", Color("#4C566A"))
-		btn.add_theme_color_override("font_hover_color", Color("#0A4D68"))
+	btn.theme_type_variation = &"RailTab"
+	btn.set_pressed_no_signal(is_active)
 
 # ── Tab Navigation ────────────────────────────────────────────────────────────
 
@@ -402,6 +378,10 @@ func _on_tab_button_pressed(tab_id: String) -> void:
 	if btn:
 		JuiceEffects.button_pop(btn)
 	_switch_to_tab(tab_id)
+	# A toggle button un-presses when its already-active tab is clicked again;
+	# the rail always shows exactly the active tab as pressed.
+	for id in _tab_buttons:
+		(_tab_buttons[id] as Button).set_pressed_no_signal(id == _active_tab_id)
 
 # ── Juice helpers (additive; navigation logic above is untouched) ────────────
 

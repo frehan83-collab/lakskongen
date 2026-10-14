@@ -9,7 +9,9 @@ class_name FarmStateBanner
 ## MorningBriefing.gd so the two surfaces can never disagree.
 ##
 ## Deliberately self-contained (no LakskongenTheme autoload reference) so the
-## class can be parse-checked in isolation; palette values match the theme.
+## class can be parse-checked in isolation: styling is by theme type variation
+## name only ("Callout<Tone>" banner, "<Role><Tone>" labels), resolved on
+## whichever surface hosts the banner.
 ##
 ## Thresholds mirror SimState._check_alerts where an equivalent exists:
 ##   lice  : warning @ 0.20, legal limit @ 0.50 per fish
@@ -33,16 +35,13 @@ const BALANCE_CRITICAL := 0.0
 const EMPTY_SUMMARY := "Alt i rute — ingen kritiske avvik"
 const EMPTY_DETAIL := "Lus, oksygen, fôr og likviditet innenfor mål"
 
-# Palette (matches LakskongenTheme *_DARK / text tokens).
-const COLOR_HEALTHY := Color("#8FAD78")
-const COLOR_STRAINED := Color("#D4B06A")
-const COLOR_CRITICAL := Color("#A54E56")
-const COLOR_TEXT := Color("#2E3440")
-const COLOR_MUTED := Color("#7B8794")
-const FONT_ICON := 18
-const FONT_TITLE := 13
-const FONT_DETAIL := 11
-const RADIUS := 8
+# State -> theme tone; Chart-surface colours for callers that need a Color.
+const TONE_HEALTHY := &"Ok"
+const TONE_STRAINED := &"Warn"
+const TONE_CRITICAL := &"Crit"
+const COLOR_HEALTHY := Color("#2E6B45")
+const COLOR_STRAINED := Color("#8A5A00")
+const COLOR_CRITICAL := Color("#B3172F")
 
 var _icon: Label = null
 var _title: Label = null
@@ -63,7 +62,7 @@ func _build() -> void:
 	row.add_theme_constant_override("separation", 10)
 	add_child(row)
 
-	_icon = _make_label("●", FONT_ICON, COLOR_HEALTHY)
+	_icon = _make_label("●", &"SubheadingOk")
 	_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(_icon)
 
@@ -72,18 +71,17 @@ func _build() -> void:
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(col)
 
-	_title = _make_label("", FONT_TITLE, COLOR_TEXT)
+	_title = _make_label("", &"BodyStrong")
 	col.add_child(_title)
 
-	_detail = _make_label("", FONT_DETAIL, COLOR_MUTED)
+	_detail = _make_label("", &"SmallMuted")
 	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(_detail)
 
-func _make_label(text: String, font_size: int, color: Color) -> Label:
+func _make_label(text: String, variation: StringName) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", font_size)
-	lbl.add_theme_color_override("font_color", color)
+	lbl.theme_type_variation = variation
 	return lbl
 
 ## Update the banner. Text is set every call (cheap) but the pulse only fires
@@ -94,29 +92,23 @@ func set_state(state: String, title: String, detail: String = "") -> void:
 		_build()
 	var changed := state != _state
 	_state = state
-	var tint := tint_for(state)
+	var tone := tone_for(state)
 	if _icon:
-		_icon.add_theme_color_override("font_color", tint)
+		_icon.theme_type_variation = StringName("Subheading" + String(tone))
 	if _title:
 		_title.text = title
 	if _detail:
 		_detail.text = detail
 		_detail.visible = not detail.is_empty()
-	add_theme_stylebox_override("panel", _make_panel(tint))
+	theme_type_variation = StringName("Callout" + String(tone))
 	if changed and is_inside_tree():
 		JuiceEffects.pulse(self, 1.01, 0.25)
 
-func _make_panel(tint: Color) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(tint, 0.10)
-	sb.border_color = Color(tint, 0.45)
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(RADIUS)
-	sb.content_margin_left = 12.0
-	sb.content_margin_right = 12.0
-	sb.content_margin_top = 6.0
-	sb.content_margin_bottom = 6.0
-	return sb
+static func tone_for(state: String) -> StringName:
+	match state:
+		STATE_CRITICAL: return TONE_CRITICAL
+		STATE_STRAINED: return TONE_STRAINED
+		_: return TONE_HEALTHY
 
 static func tint_for(state: String) -> Color:
 	match state:

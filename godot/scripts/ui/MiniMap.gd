@@ -20,11 +20,12 @@ var region_data = {
 }
 
 var player_regions: Array = []
-var font_sm: Font = ThemeDB.fallback_font
+var font_sm: Font = null  # the theme's UI face, set in _ready
 var text_color: Color = Color.WHITE
 
 func _ready():
     custom_minimum_size = Vector2(250, 400)
+    font_sm = get_theme_default_font()
     text_color = LakskongenTheme.TEXT
 
 func _draw():

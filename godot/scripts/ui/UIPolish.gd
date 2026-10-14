@@ -105,8 +105,8 @@ static func show_empty_state(container: Control, text: String, font_size: int = 
 		var themed_label: Label = theme.create_label(label.text, font_size, theme.MUTED)
 		container.add_child(themed_label)
 	else:
-		label.add_theme_font_size_override("font_size", font_size)
-		label.add_theme_color_override("font_color", Color("#7B8794"))
+		LakskongenTheme.set_size(label, font_size)
+		LakskongenTheme.set_tone(label, &"Muted")
 		container.add_child(label)
 
 

@@ -72,8 +72,8 @@ func _create_channel_item(channel: Dictionary) -> Control:
 	var channel_name = channel.get("name", "Unknown")
 	var is_locked = not channel.get("isAccessible", true)
 	name_label.text = channel_name + (" [LOCKED]" if is_locked else "")
-	name_label.add_theme_color_override("font_color", Color("#ECEFF4") if not is_locked else Color("#7B8794"))
-	name_label.add_theme_font_size_override("font_size", 16)
+	LakskongenTheme.set_tone(name_label, &"" if not is_locked else &"Muted")
+	LakskongenTheme.set_size(name_label, 16)
 	info_vbox.add_child(name_label)
 	
 	# Premium and volume info
@@ -81,15 +81,15 @@ func _create_channel_item(channel: Dictionary) -> Control:
 	var premium = (channel.get("basePriceMultiplier", 1.0) - 1.0) * 100
 	var volume_cap = channel.get("maxWeeklyVolumeKg", 0) / 1000.0  # Convert to tonnes
 	details_label.text = "Premium: %+.1f%% | Cap: %.0f tonnes/week" % [premium, volume_cap]
-	details_label.add_theme_color_override("font_color", Color("#7B8794"))
-	details_label.add_theme_font_size_override("font_size", 12)
+	LakskongenTheme.set_tone(details_label, &"Muted")
+	LakskongenTheme.set_size(details_label, 12)
 	info_vbox.add_child(details_label)
 	
 	# Price estimate
 	var price_label = Label.new()
 	var est_price = channel.get("currentPrice", 0.0)
 	price_label.text = "Est. Price: NOK %.2f/kg" % est_price
-	price_label.add_theme_color_override("font_color", Color("#88C0D0"))
+	LakskongenTheme.set_tone(price_label, &"Info")
 	info_vbox.add_child(price_label)
 	
 	# Requirements (if any)
@@ -97,8 +97,8 @@ func _create_channel_item(channel: Dictionary) -> Control:
 	if req_certs.size() > 0:
 		var req_label = Label.new()
 		req_label.text = "Requires: " + ", ".join(req_certs)
-		req_label.add_theme_color_override("font_color", Color("#BF616A"))
-		req_label.add_theme_font_size_override("font_size", 11)
+		LakskongenTheme.set_tone(req_label, &"Crit")
+		LakskongenTheme.set_size(req_label, 11)
 		info_vbox.add_child(req_label)
 	
 	# Right side - Sell button
@@ -113,8 +113,8 @@ func _create_channel_item(channel: Dictionary) -> Control:
 
 func _get_channel_style(channel: Dictionary) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color("#3B4252")
-	style.border_color = Color("#88C0D0") if channel.get("isAccessible", true) else Color("#4C566A")
+	style.bg_color = Color("#1C1E20")
+	style.border_color = Color("#1F5E73") if channel.get("isAccessible", true) else Color("#5A6168")
 	style.border_width_left = 2
 	style.border_width_top = 2
 	style.border_width_right = 2

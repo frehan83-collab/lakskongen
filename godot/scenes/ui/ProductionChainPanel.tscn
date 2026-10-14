@@ -18,10 +18,9 @@ unique_name_in_owner = true
 layout_mode = 2
 
 [node name="HeaderLabel" type="Label" parent="MarginContainer/ChainContainer"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 20
 text = "Produksjonskjede"
 
 [node name="HeaderSep" type="HSeparator" parent="MarginContainer/ChainContainer"]
@@ -32,15 +31,15 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 
 [node name="StageLabel" type="Label" parent="MarginContainer/ChainContainer/Row_broodstock"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "Stamfisk"
 
 [node name="Quantity" type="Label" parent="MarginContainer/ChainContainer/Row_broodstock"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "--"
 horizontal_alignment = 2
 
@@ -50,10 +49,9 @@ layout_mode = 2
 color = Color(0.5, 0.5, 0.5, 1)
 
 [node name="Throughput" type="Label" parent="MarginContainer/ChainContainer/Row_broodstock"]
+theme_type_variation = &"SmallMuted"
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 12
 text = "--"
 
 [node name="Arrow_broodstock" type="CenterContainer" parent="MarginContainer/ChainContainer"]
@@ -61,9 +59,8 @@ custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
 [node name="ArrowLabel" type="Label" parent="MarginContainer/ChainContainer/Arrow_broodstock"]
+theme_type_variation = &"BodyMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 16
 text = "▼"
 
 [node name="Row_eggs" type="HBoxContainer" parent="MarginContainer/ChainContainer"]
@@ -71,15 +68,15 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 
 [node name="StageLabel" type="Label" parent="MarginContainer/ChainContainer/Row_eggs"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "Rogn"
 
 [node name="Quantity" type="Label" parent="MarginContainer/ChainContainer/Row_eggs"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "--"
 horizontal_alignment = 2
 
@@ -89,10 +86,9 @@ layout_mode = 2
 color = Color(0.5, 0.5, 0.5, 1)
 
 [node name="Throughput" type="Label" parent="MarginContainer/ChainContainer/Row_eggs"]
+theme_type_variation = &"SmallMuted"
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 12
 text = "--"
 
 [node name="Arrow_eggs" type="CenterContainer" parent="MarginContainer/ChainContainer"]
@@ -100,9 +96,8 @@ custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
 [node name="ArrowLabel" type="Label" parent="MarginContainer/ChainContainer/Arrow_eggs"]
+theme_type_variation = &"BodyMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 16
 text = "▼"
 
 [node name="Row_fry" type="HBoxContainer" parent="MarginContainer/ChainContainer"]
@@ -110,15 +105,15 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 
 [node name="StageLabel" type="Label" parent="MarginContainer/ChainContainer/Row_fry"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "Yngel"
 
 [node name="Quantity" type="Label" parent="MarginContainer/ChainContainer/Row_fry"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "--"
 horizontal_alignment = 2
 
@@ -128,10 +123,9 @@ layout_mode = 2
 color = Color(0.5, 0.5, 0.5, 1)
 
 [node name="Throughput" type="Label" parent="MarginContainer/ChainContainer/Row_fry"]
+theme_type_variation = &"SmallMuted"
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 12
 text = "--"
 
 [node name="Arrow_fry" type="CenterContainer" parent="MarginContainer/ChainContainer"]
@@ -139,9 +133,8 @@ custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
 [node name="ArrowLabel" type="Label" parent="MarginContainer/ChainContainer/Arrow_fry"]
+theme_type_variation = &"BodyMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 16
 text = "▼"
 
 [node name="Row_smolt" type="HBoxContainer" parent="MarginContainer/ChainContainer"]
@@ -149,15 +142,15 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 
 [node name="StageLabel" type="Label" parent="MarginContainer/ChainContainer/Row_smolt"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "Smolt"
 
 [node name="Quantity" type="Label" parent="MarginContainer/ChainContainer/Row_smolt"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "--"
 horizontal_alignment = 2
 
@@ -167,10 +160,9 @@ layout_mode = 2
 color = Color(0.5, 0.5, 0.5, 1)
 
 [node name="Throughput" type="Label" parent="MarginContainer/ChainContainer/Row_smolt"]
+theme_type_variation = &"SmallMuted"
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 12
 text = "--"
 
 [node name="Arrow_smolt" type="CenterContainer" parent="MarginContainer/ChainContainer"]
@@ -178,9 +170,8 @@ custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
 [node name="ArrowLabel" type="Label" parent="MarginContainer/ChainContainer/Arrow_smolt"]
+theme_type_variation = &"BodyMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 16
 text = "▼"
 
 [node name="Row_sea_fish" type="HBoxContainer" parent="MarginContainer/ChainContainer"]
@@ -188,15 +179,15 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 
 [node name="StageLabel" type="Label" parent="MarginContainer/ChainContainer/Row_sea_fish"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "Sjøfisk"
 
 [node name="Quantity" type="Label" parent="MarginContainer/ChainContainer/Row_sea_fish"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "--"
 horizontal_alignment = 2
 
@@ -206,10 +197,9 @@ layout_mode = 2
 color = Color(0.5, 0.5, 0.5, 1)
 
 [node name="Throughput" type="Label" parent="MarginContainer/ChainContainer/Row_sea_fish"]
+theme_type_variation = &"SmallMuted"
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 12
 text = "--"
 
 [node name="Arrow_sea_fish" type="CenterContainer" parent="MarginContainer/ChainContainer"]
@@ -217,9 +207,8 @@ custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
 [node name="ArrowLabel" type="Label" parent="MarginContainer/ChainContainer/Arrow_sea_fish"]
+theme_type_variation = &"BodyMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 16
 text = "▼"
 
 [node name="Row_harvest" type="HBoxContainer" parent="MarginContainer/ChainContainer"]
@@ -227,15 +216,15 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 
 [node name="StageLabel" type="Label" parent="MarginContainer/ChainContainer/Row_harvest"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "Høsting"
 
 [node name="Quantity" type="Label" parent="MarginContainer/ChainContainer/Row_harvest"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "--"
 horizontal_alignment = 2
 
@@ -245,10 +234,9 @@ layout_mode = 2
 color = Color(0.5, 0.5, 0.5, 1)
 
 [node name="Throughput" type="Label" parent="MarginContainer/ChainContainer/Row_harvest"]
+theme_type_variation = &"SmallMuted"
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 12
 text = "--"
 
 [node name="Arrow_harvest" type="CenterContainer" parent="MarginContainer/ChainContainer"]
@@ -256,9 +244,8 @@ custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
 [node name="ArrowLabel" type="Label" parent="MarginContainer/ChainContainer/Arrow_harvest"]
+theme_type_variation = &"BodyMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 16
 text = "▼"
 
 [node name="Row_processing" type="HBoxContainer" parent="MarginContainer/ChainContainer"]
@@ -266,15 +253,15 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 
 [node name="StageLabel" type="Label" parent="MarginContainer/ChainContainer/Row_processing"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "Prosessering"
 
 [node name="Quantity" type="Label" parent="MarginContainer/ChainContainer/Row_processing"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "--"
 horizontal_alignment = 2
 
@@ -284,10 +271,9 @@ layout_mode = 2
 color = Color(0.5, 0.5, 0.5, 1)
 
 [node name="Throughput" type="Label" parent="MarginContainer/ChainContainer/Row_processing"]
+theme_type_variation = &"SmallMuted"
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 12
 text = "--"
 
 [node name="Arrow_processing" type="CenterContainer" parent="MarginContainer/ChainContainer"]
@@ -295,9 +281,8 @@ custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
 
 [node name="ArrowLabel" type="Label" parent="MarginContainer/ChainContainer/Arrow_processing"]
+theme_type_variation = &"BodyMuted"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.482353, 0.529412, 0.580392, 1)
-theme_override_font_sizes/font_size = 16
 text = "▼"
 
 [node name="Row_export" type="HBoxContainer" parent="MarginContainer/ChainContainer"]
@@ -305,15 +290,15 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 
 [node name="StageLabel" type="Label" parent="MarginContainer/ChainContainer/Row_export"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "Eksport"
 
 [node name="Quantity" type="Label" parent="MarginContainer/ChainContainer/Row_export"]
+theme_type_variation = &"BodySmall"
 custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
 text = "--"
 horizontal_alignment = 2
 
@@ -323,8 +308,7 @@ layout_mode = 2
 color = Color(0.5, 0.5, 0.5, 1)
 
 [node name="Throughput" type="Label" parent="MarginContainer/ChainContainer/Row_export"]
+theme_type_variation = &"SmallMuted"
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.298039, 0.337255, 0.415686, 1)
-theme_override_font_sizes/font_size = 12
 text = "--"

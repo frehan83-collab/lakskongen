@@ -16,7 +16,7 @@ func _ready():
     # Title Label
     var title_label = Label.new()
     title_label.text = tr("M&A Dashboard - Competitors")
-    title_label.add_theme_font_size_override("font_size", 24)
+    LakskongenTheme.set_size(title_label, 24)
     title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     main_vbox.add_child(title_label)
 
@@ -85,9 +85,9 @@ func _refresh_competitors_list():
             acquire_button.focus_mode = Control.FOCUS_NONE
 
             if competitor.IsBankrupt:
-                name_label.add_theme_color_override("font_color", Color.RED)
-                balance_label.add_theme_color_override("font_color", Color.RED)
-                pens_label.add_theme_color_override("font_color", Color.RED)
+                LakskongenTheme.set_text_color(name_label, Color.RED)
+                LakskongenTheme.set_text_color(balance_label, Color.RED)
+                LakskongenTheme.set_text_color(pens_label, Color.RED)
 
                 acquire_button.text = "ACQUIRE FOR %s NOK" % [str(round(competitor.AssetValueNoK))]
                 acquire_button.disabled = false

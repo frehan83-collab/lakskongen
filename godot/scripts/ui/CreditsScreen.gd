@@ -78,13 +78,13 @@ const CREDITS_DATA: Array[Dictionary] = [
 
 # ── Style constants ───────────────────────────────────────────────────────────
 
-const COLOR_BG          := Color("#ECEFF4")
-const COLOR_GAME_TITLE  := Color("#2E3440")
-const COLOR_SUBTITLE    := Color("#A3D1DE")
-const COLOR_SECTION     := Color("#88C0D0")
-const COLOR_ROLE        := Color("#4C566A")
+const COLOR_BG          := Color("#F4F1EA")
+const COLOR_GAME_TITLE  := Color("#1C1E20")
+const COLOR_SUBTITLE    := Color("#1F5E73")
+const COLOR_SECTION     := Color("#1F5E73")
+const COLOR_ROLE        := Color("#5A6168")
 const COLOR_NAME        := Color(1.00, 1.00, 1.00)
-const COLOR_BODY        := Color("#4C566A")
+const COLOR_BODY        := Color("#5A6168")
 
 const FONT_SIZE_GAME_TITLE := 52
 const FONT_SIZE_SUBTITLE   := 24
@@ -183,7 +183,7 @@ func _make_entry(entry: Dictionary) -> Control:
 		"section":
 			var vbox := VBoxContainer.new()
 			var lbl := _make_label(entry.get("text", "").to_upper(), FONT_SIZE_SECTION, COLOR_SECTION, false)
-			lbl.add_theme_color_override("font_color", COLOR_SECTION)
+			LakskongenTheme.set_text_color(lbl, COLOR_SECTION)
 			var sep := HSeparator.new()
 			sep.custom_minimum_size = Vector2(300, 1)
 			sep.add_theme_color_override("color", COLOR_SECTION * Color(1, 1, 1, 0.4))
@@ -210,12 +210,12 @@ func _make_label(text: String, font_size: int, color: Color, bold: bool) -> Labe
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	lbl.custom_minimum_size = Vector2(600, 0)
-	lbl.add_theme_font_size_override("font_size", font_size)
-	lbl.add_theme_color_override("font_color", color)
+	LakskongenTheme.set_size(lbl, font_size)
+	LakskongenTheme.set_text_color(lbl, color)
 	if bold:
 		# Bold via outline to avoid needing a separate font resource
 		lbl.add_theme_constant_override("outline_size", 2)
-		lbl.add_theme_color_override("font_outline_color", color * Color("#7B8794"))
+		lbl.add_theme_color_override("font_outline_color", color * Color("#5A6168"))
 	return lbl
 
 
@@ -239,10 +239,10 @@ func _style_close_button() -> void:
 	style.content_margin_bottom        = 8
 	close_button.add_theme_stylebox_override("normal", style)
 	var hover_style := style.duplicate() as StyleBoxFlat
-	hover_style.bg_color = Color("#5E81AC")
+	hover_style.bg_color = Color("#1F5E73")
 	close_button.add_theme_stylebox_override("hover", hover_style)
-	close_button.add_theme_color_override("font_color", Color("#2E3440"))
-	close_button.add_theme_font_size_override("font_size", 18)
+	LakskongenTheme.set_tone(close_button, &"")
+	LakskongenTheme.set_size(close_button, 18)
 
 # ── Close ─────────────────────────────────────────────────────────────────────
 

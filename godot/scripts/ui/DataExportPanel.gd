@@ -16,17 +16,17 @@ signal panel_close_requested
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 
-const COLOR_BG := Color("#ECEFF4")
+const COLOR_BG := Color("#F4F1EA")
 const COLOR_HEADER := Color("#FFFFFF")
-const COLOR_CARD := Color("#ECEFF4")
+const COLOR_CARD := Color("#F4F1EA")
 const COLOR_CARD_HOVER := Color("#FFFFFF")
-const COLOR_TEXT_BRIGHT := Color("#2E3440")
-const COLOR_TEXT_DIM := Color("#7B8794")
-const COLOR_ACCENT := Color("#5E81AC")
-const COLOR_SUCCESS := Color("#A3BE8C")
-const COLOR_WARNING := Color("#EBCB8B")
-const COLOR_ERROR := Color("#BF616A")
-const COLOR_EXPORT_ALL := Color("#5E81AC")
+const COLOR_TEXT_BRIGHT := Color("#1C1E20")
+const COLOR_TEXT_DIM := Color("#5A6168")
+const COLOR_ACCENT := Color("#1F5E73")
+const COLOR_SUCCESS := Color("#2E6B45")
+const COLOR_WARNING := Color("#8A5A00")
+const COLOR_ERROR := Color("#B3172F")
+const COLOR_EXPORT_ALL := Color("#1F5E73")
 
 # ── Export type definitions ───────────────────────────────────────────────────
 
@@ -38,7 +38,7 @@ const EXPORT_TYPES: Array[Dictionary] = [
 		"icon": "📊",
 		"description": "Biomasse, fiskeantall, markedspris, bærekraftsscore og mer.\nBra for trendanalyse og visualisering.",
 		"filename": "daglig_oversikt",
-		"color": Color("#5E81AC"),
+		"color": Color("#1F5E73"),
 		"method": "export_daily_snapshots"
 	},
 	{
@@ -48,7 +48,7 @@ const EXPORT_TYPES: Array[Dictionary] = [
 		"icon": "💰",
 		"description": "Saldoendringer, gjennomsnittlig markedspris og FCR per periode.\nBra for lønnsomhetsanalyse.",
 		"filename": "finansrapport",
-		"color": Color("#D4B06A"),
+		"color": Color("#8A5A00"),
 		"method": "export_financial_report"
 	},
 	{
@@ -58,7 +58,7 @@ const EXPORT_TYPES: Array[Dictionary] = [
 		"icon": "🐟",
 		"description": "Fiskeantall, gjennomsnittsvekt, lus per fisk, dødsrate.\nBra for biologisk analyse og velferdssporing.",
 		"filename": "populasjon",
-		"color": Color("#A3BE8C"),
+		"color": Color("#2E6B45"),
 		"method": "export_population_data"
 	},
 	{
@@ -68,7 +68,7 @@ const EXPORT_TYPES: Array[Dictionary] = [
 		"icon": "📋",
 		"description": "Dato, kategori, beskrivelse og saldoendring for hver hendelse.\nBra for revisjon og risikoevaluering.",
 		"filename": "hendelseslogg",
-		"color": Color("#5E81AC"),
+		"color": Color("#1F5E73"),
 		"method": "export_event_history"
 	}
 ]
@@ -194,7 +194,7 @@ func _build_export_card(export_type: Dictionary) -> Control:
 
 	var icon_lbl := Label.new()
 	icon_lbl.text = export_type.get("icon", "📄")
-	icon_lbl.add_theme_font_size_override("font_size", 22)
+	LakskongenTheme.set_size(icon_lbl, 22)
 	header_hbox.add_child(icon_lbl)
 
 	var title_vbox := VBoxContainer.new()
@@ -204,21 +204,21 @@ func _build_export_card(export_type: Dictionary) -> Control:
 
 	var title_lbl := Label.new()
 	title_lbl.text = export_type.get("title", "")
-	title_lbl.add_theme_color_override("font_color", COLOR_TEXT_BRIGHT)
-	title_lbl.add_theme_font_size_override("font_size", 14)
+	LakskongenTheme.set_text_color(title_lbl, COLOR_TEXT_BRIGHT)
+	LakskongenTheme.set_size(title_lbl, 14)
 	title_vbox.add_child(title_lbl)
 
 	var sub_lbl := Label.new()
 	sub_lbl.text = export_type.get("subtitle", "")
-	sub_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	sub_lbl.add_theme_font_size_override("font_size", 11)
+	LakskongenTheme.set_text_color(sub_lbl, COLOR_TEXT_DIM)
+	LakskongenTheme.set_size(sub_lbl, 11)
 	title_vbox.add_child(sub_lbl)
 
 	# Description
 	var desc_lbl := Label.new()
 	desc_lbl.text = export_type.get("description", "")
-	desc_lbl.add_theme_color_override("font_color", COLOR_TEXT_DIM)
-	desc_lbl.add_theme_font_size_override("font_size", 11)
+	LakskongenTheme.set_text_color(desc_lbl, COLOR_TEXT_DIM)
+	LakskongenTheme.set_size(desc_lbl, 11)
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc_lbl.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(desc_lbl)
@@ -591,15 +591,15 @@ func _set_button_state(type_id: String, enabled: bool) -> void:
 
 func _log_ok(message: String) -> void:
 	if _export_log:
-		_export_log.append_text("[color=#A3BE8C]" + message + "[/color]\n")
+		_export_log.append_text("[color=#2E6B45]" + message + "[/color]\n")
 
 func _log_error(message: String) -> void:
 	if _export_log:
-		_export_log.append_text("[color=#BF616A]" + message + "[/color]\n")
+		_export_log.append_text("[color=#B3172F]" + message + "[/color]\n")
 
 func _log_info(message: String) -> void:
 	if _export_log:
-		_export_log.append_text("[color=#7B8794]" + message + "[/color]\n")
+		_export_log.append_text("[color=#5A6168]" + message + "[/color]\n")
 
 # ── Misc ──────────────────────────────────────────────────────────────────────
 
@@ -620,8 +620,8 @@ func _make_panel(bg_color: Color) -> PanelContainer:
 func _make_small_button(label_text: String, color: Color) -> Button:
 	var btn := Button.new()
 	btn.text = label_text
-	btn.add_theme_color_override("font_color", COLOR_TEXT_BRIGHT)
-	btn.add_theme_font_size_override("font_size", 12)
+	LakskongenTheme.set_text_color(btn, COLOR_TEXT_BRIGHT)
+	LakskongenTheme.set_size(btn, 12)
 	var style := StyleBoxFlat.new()
 	style.bg_color = color
 	style.set_corner_radius_all(3)

@@ -3,7 +3,7 @@ class_name CrisisPanel
 
 # CrisisPanel - Dramatic Modal for Crisis Responses
 # Design: Full-screen dark overlay with pulsing border and urgent typography
-# Uses LakskongenTheme palette: DANGER = #BF616A, ACCENT = #5E81AC
+# Uses LakskongenTheme palette constants (DANGER, ACCENT).
 
 @onready var overlay: ColorRect = $Overlay
 @onready var panel: PanelContainer = $PanelContainer
@@ -56,18 +56,18 @@ func _setup_appearance():
     panel_style.content_margin_bottom = 30
     panel.add_theme_stylebox_override("panel", panel_style)
     
-    title_label.add_theme_font_size_override("font_size", LakskongenTheme.FONT_TITLE)
-    title_label.add_theme_color_override("font_color", LakskongenTheme.DANGER)
+    LakskongenTheme.set_size(title_label, LakskongenTheme.FONT_TITLE)
+    LakskongenTheme.set_text_color(title_label, LakskongenTheme.DANGER)
     
     desc_label.bbcode_enabled = true
-    desc_label.add_theme_font_size_override("font_size", LakskongenTheme.FONT_LG)
+    LakskongenTheme.set_size(desc_label, LakskongenTheme.FONT_LG)
     desc_label.add_theme_color_override("default_color", LakskongenTheme.MUTED)
     
-    timer_label.add_theme_font_size_override("font_size", LakskongenTheme.FONT_XL)
-    timer_label.add_theme_color_override("font_color", LakskongenTheme.DANGER)
+    LakskongenTheme.set_size(timer_label, LakskongenTheme.FONT_XL)
+    LakskongenTheme.set_text_color(timer_label, LakskongenTheme.DANGER)
     
-    advisor_hint.add_theme_font_size_override("font_size", LakskongenTheme.FONT_SM)
-    advisor_hint.add_theme_color_override("font_color", LakskongenTheme.WARNING)
+    LakskongenTheme.set_size(advisor_hint, LakskongenTheme.FONT_SM)
+    LakskongenTheme.set_text_color(advisor_hint, LakskongenTheme.WARNING)
     
     # Create warning animation
     var animation = Animation.new()
@@ -177,7 +177,7 @@ func _create_response_button(response_data: Dictionary, index: int) -> Button:
     btn.text = response_data["label"]
     btn.tooltip_text = _format_response_tooltip(response_data)
     btn.custom_minimum_size = Vector2(500, 50)
-    btn.add_theme_font_size_override("font_size", LakskongenTheme.FONT_LG)
+    LakskongenTheme.set_size(btn, LakskongenTheme.FONT_LG)
     
     # Style based on effectiveness
     var effectiveness = response_data.get("effectiveness", 50)
@@ -209,7 +209,7 @@ func _create_response_button(response_data: Dictionary, index: int) -> Button:
     pressed_style.bg_color = btn_color.darkened(0.15)
     btn.add_theme_stylebox_override("pressed", pressed_style)
     
-    btn.add_theme_color_override("font_color", LakskongenTheme.TEXT)
+    LakskongenTheme.set_text_color(btn, LakskongenTheme.TEXT)
     btn.add_theme_color_override("font_hover_color", LakskongenTheme.TEXT)
     btn.add_theme_color_override("font_pressed_color", LakskongenTheme.MUTED)
     
@@ -251,7 +251,7 @@ func _get_severity_color(severity: int) -> Color:
         3:
             return LakskongenTheme.DANGER
         4, 5:
-            return Color("#A54E56")  # Dark red (escalated danger)
+            return Color("#B3172F")  # Dark red (escalated danger)
         _:
             return LakskongenTheme.MUTED
 
@@ -276,13 +276,13 @@ func _process(delta):
             timer_label.text = tr("TIME EXPIRED")
         elif time_left == 1:
             timer_label.text = tr("FINAL DAY TO ACT")
-            timer_label.add_theme_color_override("font_color", LakskongenTheme.DANGER)
+            LakskongenTheme.set_text_color(timer_label, LakskongenTheme.DANGER)
         elif time_left <= 3:
             timer_label.text = "URGENT: %d DAYS REMAINING" % time_left
-            timer_label.add_theme_color_override("font_color", LakskongenTheme.DANGER)
+            LakskongenTheme.set_text_color(timer_label, LakskongenTheme.DANGER)
         else:
             timer_label.text = "ACT IN %d DAYS" % time_left
-            timer_label.add_theme_color_override("font_color", LakskongenTheme.WARNING)
+            LakskongenTheme.set_text_color(timer_label, LakskongenTheme.WARNING)
     else:
         timer_label.text = tr("TIME LIMITED")
 

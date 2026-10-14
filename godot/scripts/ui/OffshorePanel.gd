@@ -68,13 +68,11 @@ func _apply_localization() -> void:
 func _apply_theme_fonts() -> void:
 	if not _theme:
 		return
-	if _theme.font_heading_bold:
-		offshore_header_label.add_theme_font_override("font", _theme.font_heading_bold)
-	if _theme.font_heading_semibold:
-		_farm_section_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		contain_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		sludge_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		transfer_title.add_theme_font_override("font", _theme.font_heading_semibold)
+	LakskongenTheme.set_strong(offshore_header_label)
+	LakskongenTheme.set_strong(_farm_section_title)
+	LakskongenTheme.set_strong(contain_title)
+	LakskongenTheme.set_strong(sludge_title)
+	LakskongenTheme.set_strong(transfer_title)
 
 func refresh():
 	# Refresh UI with live data from SimBridge (fallback to placeholders offline)
@@ -119,8 +117,8 @@ func _update_farm_list():
 		var empty_label = Label.new()
 		empty_label.text = tr("UI_OFFSHORE_EMPTY")
 		if _theme:
-			empty_label.add_theme_font_size_override("font_size", _theme.FONT_SMALL)
-			empty_label.add_theme_color_override("font_color", _theme.TEXT_SECONDARY)
+			LakskongenTheme.set_size(empty_label, _theme.FONT_SMALL)
+			LakskongenTheme.set_text_color(empty_label, _theme.TEXT_SECONDARY)
 		farm_list_container.add_child(empty_label)
 		return
 
@@ -136,8 +134,8 @@ func _update_farm_list():
 		farm_label.text = "%s (%s)%s%s" % [farm.get("name", "Offshore-anlegg"), status, lockdown, stock]
 		farm_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if _theme:
-			farm_label.add_theme_font_size_override("font_size", _theme.FONT_SMALL)
-			farm_label.add_theme_color_override("font_color", _theme.TEXT_SECONDARY)
+			LakskongenTheme.set_size(farm_label, _theme.FONT_SMALL)
+			LakskongenTheme.set_text_color(farm_label, _theme.TEXT_SECONDARY)
 		row.add_child(farm_label)
 		# F383: an offshore farm now holds fish — stock smolts, harvest when grown.
 		var stock_btn := Button.new()
@@ -233,10 +231,10 @@ func _update_containment_ladder() -> void:
 		var name_lbl := Label.new()
 		name_lbl.text = "%s · %s" % [str(site.get("name", "?")), cur]
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.add_theme_font_size_override("font_size", 13)
+		LakskongenTheme.set_size(name_lbl, 13)
 		# Explicit colour: the default light label text vanished on the white
 		# card (visual QA shot 07d showed buttons with no site names).
-		name_lbl.add_theme_color_override("font_color", _theme.TEXT_PRIMARY if _theme else Color("#2E3440"))
+		name_lbl.add_theme_color_override("font_color", LakskongenTheme.CHART_TEXT)
 		row.add_child(name_lbl)
 		var idx := CONTAIN_ORDER.find(cur)
 		if idx < 0 or idx >= CONTAIN_ORDER.size() - 1:
@@ -321,8 +319,8 @@ func _update_sludge_status() -> void:
 		var empty := Label.new()
 		empty.text = tr("UI_SLUDGE_NO_DATA")
 		if _theme:
-			empty.add_theme_font_size_override("font_size", _theme.FONT_SMALL)
-			empty.add_theme_color_override("font_color", _theme.TEXT_SECONDARY)
+			LakskongenTheme.set_size(empty, _theme.FONT_SMALL)
+			LakskongenTheme.set_text_color(empty, _theme.TEXT_SECONDARY)
 		sludge_list.add_child(empty)
 		return
 
@@ -338,17 +336,17 @@ func _update_sludge_status() -> void:
 		var proj := float(site_data.get("projected_daily_kg_ds", 0.0))
 		name_lbl.text = "%s: %.0f kg DS akkumulert (%.0f kg/dag proj.)" % [str(site_data.get("id", "?")), acc, proj]
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.add_theme_font_size_override("font_size", 13)
+		LakskongenTheme.set_size(name_lbl, 13)
 		# Explicit colour: the default light label text vanished on the white
 		# card (visual QA shot 07d showed buttons with no site names).
-		name_lbl.add_theme_color_override("font_color", _theme.TEXT_PRIMARY if _theme else Color("#2E3440"))
+		name_lbl.add_theme_color_override("font_color", LakskongenTheme.CHART_TEXT)
 		row.add_child(name_lbl)
 
 		if hub:
 			var hub_lbl := Label.new()
 			hub_lbl.text = "🔗 Hub"
-			hub_lbl.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
-			hub_lbl.add_theme_font_size_override("font_size", 12)
+			LakskongenTheme.set_text_color(hub_lbl, LakskongenTheme.CHART_OK)
+			LakskongenTheme.set_size(hub_lbl, 12)
 			row.add_child(hub_lbl)
 		else:
 			var hub_btn := Button.new()
@@ -450,13 +448,13 @@ func _on_transfer_plan() -> void:
 
 	if source_id == "" or dest_id == "" or fish_count <= 0 or mean_weight <= 0:
 		transfer_info_label.text = tr("UI_TRANSFER_INVALID_INPUT")
-		transfer_info_label.add_theme_color_override("font_color", Color(1, 0.3, 0.3))
+		LakskongenTheme.set_text_color(transfer_info_label, LakskongenTheme.CHART_CRIT)
 		return
 
 	var plan: Dictionary = _sim.plan_cohort_transfer(source_id, dest_id, fish_count, mean_weight, reason)
 	if plan.has("error"):
 		transfer_info_label.text = "Feil: %s" % plan.get("error", "Ukjent")
-		transfer_info_label.add_theme_color_override("font_color", Color(1, 0.3, 0.3))
+		LakskongenTheme.set_text_color(transfer_info_label, LakskongenTheme.CHART_CRIT)
 		transfer_execute_btn.disabled = true
 		return
 
@@ -466,7 +464,7 @@ func _on_transfer_plan() -> void:
 	var eta := int(plan.get("eta_days", 3))
 	transfer_info_label.text = "Plan: %d fisk · %.1f kg · %s · %.1f%% tap · %d dager · %.1fM NOK" % [
 		fish_count, mean_weight, reason, mort, eta, cost / 1_000_000.0]
-	transfer_info_label.add_theme_color_override("font_color", _theme.TEXT_PRIMARY if _theme else Color(1,1,1))
+	LakskongenTheme.set_text_color(transfer_info_label, _theme.TEXT_PRIMARY if _theme else Color(1,1,1))
 	transfer_execute_btn.disabled = false
 
 func _on_transfer_execute() -> void:
@@ -487,10 +485,10 @@ func _on_transfer_execute() -> void:
 
 	if success:
 		transfer_info_label.text = "✅ %s (%d overført, %d tap)" % [msg, moved, lost]
-		transfer_info_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3))
+		LakskongenTheme.set_text_color(transfer_info_label, LakskongenTheme.CHART_OK)
 	else:
 		transfer_info_label.text = "❌ %s" % msg
-		transfer_info_label.add_theme_color_override("font_color", Color(1, 0.3, 0.3))
+		LakskongenTheme.set_text_color(transfer_info_label, LakskongenTheme.CHART_CRIT)
 
 	transfer_execute_btn.disabled = true
 	_pending_transfer = {}
@@ -506,7 +504,7 @@ func _on_valorize_sludge(site_id: String) -> void:
 		var rev: float = float(_sim.valorize_sludge_now(site_id))
 		var msg := ("Valorisert: %.0f NOK" % rev) if rev != 0.0 else "Ingen slam å valorisere"
 		transfer_info_label.text = msg
-		transfer_info_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3) if rev > 0 else Color(1, 0.6, 0.2))
+		LakskongenTheme.set_text_color(transfer_info_label, LakskongenTheme.CHART_OK if rev > 0 else LakskongenTheme.CHART_WARN)
 	refresh()
 
 func _input(event: InputEvent) -> void:

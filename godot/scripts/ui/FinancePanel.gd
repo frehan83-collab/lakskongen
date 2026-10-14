@@ -83,20 +83,20 @@ const TREND_DEFS := [
 ]
 
 # ── Colors (from design tokens) ──────────────────────────────────────────────
-const C_BG := Color("#ECEFF4")
+const C_BG := Color("#F4F1EA")
 const C_SURFACE := Color("#FFFFFF")
-const C_ELEVATED := Color("#F8F9FB")
-const C_TEXT := Color("#2E3440")
-const C_TEXT2 := Color("#4C566A")
-const C_MUTED := Color("#7B8794")
-const C_BORDER := Color("#E5E9F0")
-const C_PRIMARY := Color("#0A4D68")
-const C_SECONDARY := Color("#88C0D0")
-const C_SUCCESS := Color("#A3BE8C")
-const C_SUCCESS_D := Color("#8FAD78")
-const C_WARNING := Color("#EBCB8B")
-const C_DANGER := Color("#BF616A")
-const C_ACCENT := Color("#5E81AC")
+const C_ELEVATED := Color("#EDE9E0")
+const C_TEXT := Color("#1C1E20")
+const C_TEXT2 := Color("#5A6168")
+const C_MUTED := Color("#5A6168")
+const C_BORDER := Color("#E7E2D7")
+const C_PRIMARY := Color("#1F5E73")
+const C_SECONDARY := Color("#1F5E73")
+const C_SUCCESS := Color("#2E6B45")
+const C_SUCCESS_D := Color("#2E6B45")
+const C_WARNING := Color("#8A5A00")
+const C_DANGER := Color("#B3172F")
+const C_ACCENT := Color("#1F5E73")
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -189,13 +189,13 @@ func _build_deep_finance_row() -> void:
 
 	var pp_title := Label.new()
 	pp_title.text = tr("Pen price (binding)")
-	pp_title.add_theme_color_override("font_color", C_TEXT2)
-	pp_title.add_theme_font_size_override("font_size", 12)
+	LakskongenTheme.set_text_color(pp_title, C_TEXT2)
+	LakskongenTheme.set_size(pp_title, 12)
 	row.add_child(pp_title)
 	_pen_price_label = Label.new()
 	_pen_price_label.text = "--"
-	_pen_price_label.add_theme_color_override("font_color", C_TEXT)
-	_pen_price_label.add_theme_font_size_override("font_size", 12)
+	LakskongenTheme.set_text_color(_pen_price_label, C_TEXT)
+	LakskongenTheme.set_size(_pen_price_label, 12)
 	row.add_child(_pen_price_label)
 
 	# S2: market price as a colour-coded 30-day time series next to the value.
@@ -211,14 +211,14 @@ func _build_deep_finance_row() -> void:
 
 	_resource_rent_title = Label.new()
 	_resource_rent_title.text = tr("Ressursrente")
-	_resource_rent_title.add_theme_color_override("font_color", C_TEXT2)
-	_resource_rent_title.add_theme_font_size_override("font_size", 12)
+	LakskongenTheme.set_text_color(_resource_rent_title, C_TEXT2)
+	LakskongenTheme.set_size(_resource_rent_title, 12)
 	_resource_rent_title.visible = false
 	row.add_child(_resource_rent_title)
 	_resource_rent_label = Label.new()
 	_resource_rent_label.text = "--"
-	_resource_rent_label.add_theme_color_override("font_color", C_DANGER)
-	_resource_rent_label.add_theme_font_size_override("font_size", 12)
+	LakskongenTheme.set_text_color(_resource_rent_label, C_DANGER)
+	LakskongenTheme.set_size(_resource_rent_label, 12)
 	_resource_rent_label.visible = false
 	row.add_child(_resource_rent_label)
 
@@ -253,15 +253,15 @@ func _build_insurance_card() -> void:
 
 	var header := Label.new()
 	header.text = tr("🛡️ Forsikring per katastrofe")
-	header.add_theme_font_size_override("font_size", 15)
-	header.add_theme_color_override("font_color", C_TEXT)
+	LakskongenTheme.set_size(header, 15)
+	LakskongenTheme.set_text_color(header, C_TEXT)
 	outer.add_child(header)
 
 	var hint := Label.new()
 	hint.text = tr("Premie betales årlig; dekning og egenandel avgjør utbetaling ved tap.")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint.add_theme_font_size_override("font_size", 11)
-	hint.add_theme_color_override("font_color", C_MUTED)
+	LakskongenTheme.set_size(hint, 11)
+	LakskongenTheme.set_text_color(hint, C_MUTED)
 	outer.add_child(hint)
 
 	_insurance_rows.clear()
@@ -271,8 +271,8 @@ func _build_insurance_card() -> void:
 	outer.add_child(HSeparator.new())
 	_insurance_total_label = Label.new()
 	_insurance_total_label.text = tr("Total årspremie: --")
-	_insurance_total_label.add_theme_font_size_override("font_size", 13)
-	_insurance_total_label.add_theme_color_override("font_color", C_TEXT2)
+	LakskongenTheme.set_size(_insurance_total_label, 13)
+	LakskongenTheme.set_text_color(_insurance_total_label, C_TEXT2)
 	outer.add_child(_insurance_total_label)
 
 	root.add_child(_insurance_card)
@@ -297,8 +297,8 @@ func _build_insurance_row(entry: Dictionary) -> Control:
 
 	var premium := Label.new()
 	premium.text = "--"
-	premium.add_theme_font_size_override("font_size", 12)
-	premium.add_theme_color_override("font_color", C_MUTED)
+	LakskongenTheme.set_size(premium, 12)
+	LakskongenTheme.set_text_color(premium, C_MUTED)
 	premium.custom_minimum_size.x = 120
 	premium.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	top.add_child(premium)
@@ -309,8 +309,8 @@ func _build_insurance_row(entry: Dictionary) -> Control:
 
 	var cov_lbl := Label.new()
 	cov_lbl.text = tr("Dekning")
-	cov_lbl.add_theme_font_size_override("font_size", 12)
-	cov_lbl.add_theme_color_override("font_color", C_MUTED)
+	LakskongenTheme.set_size(cov_lbl, 12)
+	LakskongenTheme.set_text_color(cov_lbl, C_MUTED)
 	controls.add_child(cov_lbl)
 
 	var coverage := SpinBox.new()
@@ -325,8 +325,8 @@ func _build_insurance_row(entry: Dictionary) -> Control:
 
 	var ded_lbl := Label.new()
 	ded_lbl.text = tr("Egenandel")
-	ded_lbl.add_theme_font_size_override("font_size", 12)
-	ded_lbl.add_theme_color_override("font_color", C_MUTED)
+	LakskongenTheme.set_size(ded_lbl, 12)
+	LakskongenTheme.set_text_color(ded_lbl, C_MUTED)
 	controls.add_child(ded_lbl)
 
 	var deductible := SpinBox.new()
@@ -380,7 +380,7 @@ func _refresh_insurance() -> void:
 		(r["deductible"] as SpinBox).value = maxf(0.0, float(s.get("deductible", 0.0)))
 		var premium_lbl := r["premium"] as Label
 		premium_lbl.text = ("%s/år" % _fmt(float(s.get("premium", 0.0)))) if enabled else tr("Ingen")
-		premium_lbl.add_theme_color_override("font_color", C_TEXT if enabled else C_MUTED)
+		LakskongenTheme.set_text_color(premium_lbl, C_TEXT if enabled else C_MUTED)
 	_insurance_updating = false
 	if _insurance_total_label != null:
 		_insurance_total_label.text = tr("Total årspremie: %s") % _fmt(float(status.get("total_premium", 0.0)))
@@ -413,15 +413,15 @@ func _build_story_card() -> void:
 
 	var header := Label.new()
 	header.text = tr("🧭 Hvorfor gikk det slik?")
-	header.add_theme_font_size_override("font_size", 15)
-	header.add_theme_color_override("font_color", C_TEXT)
+	LakskongenTheme.set_size(header, 15)
+	LakskongenTheme.set_text_color(header, C_TEXT)
 	outer.add_child(header)
 
 	_story_verdict = Label.new()
 	_story_verdict.text = ""
 	_story_verdict.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_story_verdict.add_theme_font_size_override("font_size", 12)
-	_story_verdict.add_theme_color_override("font_color", C_TEXT2)
+	LakskongenTheme.set_size(_story_verdict, 12)
+	LakskongenTheme.set_text_color(_story_verdict, C_TEXT2)
 	outer.add_child(_story_verdict)
 
 	_story_list = VBoxContainer.new()
@@ -479,8 +479,8 @@ func _refresh_story() -> void:
 func _story_heading(text: String) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", 12)
-	lbl.add_theme_color_override("font_color", C_MUTED)
+	LakskongenTheme.set_size(lbl, 12)
+	LakskongenTheme.set_text_color(lbl, C_MUTED)
 	return lbl
 
 ## One story row: label, amount, and a share bar. Costs are red, revenue green.
@@ -495,8 +495,8 @@ func _story_row(item: Dictionary, is_cost: bool) -> Control:
 	var name_lbl := Label.new()
 	name_lbl.text = _story_label(category)
 	name_lbl.custom_minimum_size.x = 140
-	name_lbl.add_theme_font_size_override("font_size", 12)
-	name_lbl.add_theme_color_override("font_color", C_TEXT)
+	LakskongenTheme.set_size(name_lbl, 12)
+	LakskongenTheme.set_text_color(name_lbl, C_TEXT)
 	row.add_child(name_lbl)
 
 	var bar_bg := PanelContainer.new()
@@ -519,10 +519,8 @@ func _story_row(item: Dictionary, is_cost: bool) -> Control:
 
 	var amount_lbl := Label.new()
 	amount_lbl.text = _fmt_short(amount if is_cost else amount)
-	amount_lbl.add_theme_font_size_override("font_size", 12)
-	amount_lbl.add_theme_color_override("font_color", fill_color)
-	if _theme and _theme.font_mono:
-		amount_lbl.add_theme_font_override("font", _theme.font_mono)
+	LakskongenTheme.set_size(amount_lbl, 12)
+	LakskongenTheme.set_text_color(amount_lbl, fill_color)
 	row.add_child(amount_lbl)
 
 	return row
@@ -539,23 +537,17 @@ func _apply_localization() -> void:
 func _apply_theme_fonts() -> void:
 	if not _theme:
 		return
-	if _theme.font_heading_bold:
-		_title_label.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_revenue.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_expenses.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_profit.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_balance.add_theme_font_override("font", _theme.font_heading_bold)
-	if _theme.font_heading_semibold:
-		_chart_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_pl_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_loan_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		_hist_title.add_theme_font_override("font", _theme.font_heading_semibold)
-		if _pl_rows.get("total"):
-			(_pl_rows["total"] as Label).add_theme_font_override("font", _theme.font_heading_semibold)
-	if _theme.font_mono:
-		for key in _pl_rows:
-			if _pl_rows[key]:
-				(_pl_rows[key] as Label).add_theme_font_override("font", _theme.font_mono)
+	LakskongenTheme.set_strong(_title_label)
+	LakskongenTheme.set_strong(_kpi_revenue)
+	LakskongenTheme.set_strong(_kpi_expenses)
+	LakskongenTheme.set_strong(_kpi_profit)
+	LakskongenTheme.set_strong(_kpi_balance)
+	LakskongenTheme.set_strong(_chart_title)
+	LakskongenTheme.set_strong(_pl_title)
+	LakskongenTheme.set_strong(_loan_title)
+	LakskongenTheme.set_strong(_hist_title)
+	if _pl_rows.get("total"):
+		LakskongenTheme.set_strong((_pl_rows["total"] as Label))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DATA REFRESH
@@ -593,20 +585,20 @@ func _refresh() -> void:
 	_prev_profit = profit
 	_count_up(_kpi_balance, _prev_balance, balance, Callable(self, "_fmt"))
 	_prev_balance = balance
-	_kpi_revenue.add_theme_color_override("font_color", C_SUCCESS_D)
+	LakskongenTheme.set_text_color(_kpi_revenue, C_SUCCESS_D)
 
-	_kpi_expenses.add_theme_color_override("font_color", C_DANGER)
+	LakskongenTheme.set_text_color(_kpi_expenses, C_DANGER)
 
-	_kpi_profit.add_theme_color_override("font_color", C_SUCCESS_D if profit >= 0 else C_DANGER)
+	LakskongenTheme.set_text_color(_kpi_profit, C_SUCCESS_D if profit >= 0 else C_DANGER)
 
-	_kpi_balance.add_theme_color_override("font_color", C_TEXT if balance >= 0 else C_DANGER)
+	LakskongenTheme.set_text_color(_kpi_balance, C_TEXT if balance >= 0 else C_DANGER)
 
 	# Loan (F943: the card read a method that did not exist and never updated)
 	if _sim.has_method("get_loan_info"):
 		var loan: Dictionary = _sim.get_loan_info()
 		var has_loan: bool = loan.get("has_loan", false)
 		_loan_status.text = (tr("Aktiv") + " (%d)" % int(loan.get("count", 1))) if has_loan else tr("Ingen lån")
-		_loan_status.add_theme_color_override("font_color", C_WARNING if has_loan else C_SUCCESS_D)
+		LakskongenTheme.set_text_color(_loan_status, C_WARNING if has_loan else C_SUCCESS_D)
 		_loan_amount.text = _fmt(loan.get("amount", 0.0)) if has_loan else "--"
 		_loan_remaining.text = _fmt(loan.get("remaining", 0.0)) if has_loan else "--"
 		_loan_take_btn.disabled = float(loan.get("credit_available", LOAN_AMOUNT)) < LOAN_AMOUNT
@@ -666,8 +658,8 @@ func _ensure_trend_rows() -> void:
 		var t_lbl := Label.new()
 		t_lbl.text = tr(str(def["title"]))
 		t_lbl.custom_minimum_size.x = 110
-		t_lbl.add_theme_font_size_override("font_size", 12)
-		t_lbl.add_theme_color_override("font_color", C_TEXT2)
+		LakskongenTheme.set_size(t_lbl, 12)
+		LakskongenTheme.set_text_color(t_lbl, C_TEXT2)
 		row.add_child(t_lbl)
 
 		var spark = null
@@ -681,10 +673,8 @@ func _ensure_trend_rows() -> void:
 		var v_lbl := Label.new()
 		v_lbl.text = "--"
 		v_lbl.custom_minimum_size.x = 86
-		v_lbl.add_theme_font_size_override("font_size", 12)
-		v_lbl.add_theme_color_override("font_color", C_TEXT)
-		if _theme and _theme.font_mono:
-			v_lbl.add_theme_font_override("font", _theme.font_mono)
+		LakskongenTheme.set_size(v_lbl, 12)
+		LakskongenTheme.set_text_color(v_lbl, C_TEXT)
 		v_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(v_lbl)
 

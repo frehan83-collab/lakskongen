@@ -17,19 +17,16 @@ extends CanvasLayer
 
 const SLIDE_IN_OUT_DURATION := 0.3 # seconds for in/out animation (ease-out)
 const TOAST_WIDTH           := 380.0
-const TOAST_MARGIN          := 15.0 # right/top margin from screen edge
+const TOAST_MARGIN          := 15.0 # right margin from the screen edge
+## Top of the stack: below the HUD and the tab rail, so a toast never covers
+## the rail tabs (interim; U1-04 moves the stack bottom-right).
+const TOAST_TOP             := 120.0
 const MAX_VISIBLE_TOASTS    := 3    # Maximum toasts visible at once
 const DEDUP_WINDOW_SEC      := 2.5  # Suppress an identical message within this window
 
-# Color definitions for toast levels (Nordic Minimalist palette)
-const COLOR_INFO     := Color("#5E81AC") # Steel blue accent
-const COLOR_WARNING  := Color("#EBCB8B") # Muted amber
-const COLOR_CRITICAL := Color("#BF616A") # Nordic red
-const COLOR_SUCCESS  := Color("#A3BE8C") # Aurora green
-const COLOR_TEXT     := Color("#ECEFF4") # Snow white
-
-# Toast surface tint (darkened accent keeps text legible)
-const TOAST_SURFACE_DARKEN := 0.62
+# Toast level -> Kyst & Stål tone. Toasts are Ink cards ("Toast<Tone>" theme
+# variations: raised Ink glass with a tone accent edge, roadmap D13).
+const LEVEL_TONES := {"INFO": &"Info", "WARNING": &"Warn", "CRITICAL": &"Crit", "SUCCESS": &"Ok"}
 
 const SEVERITY_ICONS := {
 	"INFO":     "ℹ️",
@@ -235,7 +232,7 @@ func _build_layout() -> void:
 	anchor.grow_vertical   = Control.GROW_DIRECTION_END
 	anchor.custom_minimum_size = Vector2(TOAST_WIDTH, 0)
 	anchor.offset_left  = -TOAST_WIDTH - TOAST_MARGIN
-	anchor.offset_top   = TOAST_MARGIN
+	anchor.offset_top   = TOAST_TOP
 	anchor.offset_right = -TOAST_MARGIN
 	anchor.offset_bottom = 0
 	add_child(anchor)
@@ -258,40 +255,12 @@ func _build_toast_node(data: QueuedToastData) -> Control:
 		container.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	container.gui_input.connect(_on_toast_gui_input.bind(container))
 
-	var bg_color: Color
-	var border_color: Color
-
-	match data.level:
-		"INFO":
-			bg_color = COLOR_INFO.darkened(TOAST_SURFACE_DARKEN)
-			border_color = COLOR_INFO
-		"WARNING":
-			bg_color = COLOR_WARNING.darkened(TOAST_SURFACE_DARKEN)
-			border_color = COLOR_WARNING
-		"CRITICAL":
-			bg_color = COLOR_CRITICAL.darkened(TOAST_SURFACE_DARKEN)
-			border_color = COLOR_CRITICAL
-			# Pulsing effect is started after slide-in (see _display_toast)
-			# so it never fights the entry animation's modulate tween.
-		"SUCCESS":
-			bg_color = COLOR_SUCCESS.darkened(TOAST_SURFACE_DARKEN)
-			border_color = COLOR_SUCCESS
-		_: # Fallback for unknown levels
-			bg_color = COLOR_INFO.darkened(TOAST_SURFACE_DARKEN)
-			border_color = COLOR_INFO
-			push_warning("ToastNotification: Unknown toast level '%s', defaulting to 'INFO'." % data.level)
-
-	var style := StyleBoxFlat.new()
-	style.bg_color = bg_color
-	style.border_color = border_color
-	style.set_border_width_all(1)
-	style.border_width_left = 6 # Thicker left border for accent
-	style.set_corner_radius_all(8) # 8px rounded corners
-	style.content_margin_left   = 15.0
-	style.content_margin_right  = 15.0
-	style.content_margin_top    = 10.0
-	style.content_margin_bottom = 10.0
-	container.add_theme_stylebox_override("panel", style)
+	# CRITICAL pulses after slide-in (see _display_toast), so the pulse never
+	# fights the entry animation's modulate tween.
+	if not LEVEL_TONES.has(data.level):
+		push_warning("ToastNotification: Unknown toast level '%s', defaulting to 'INFO'." % data.level)
+	var tone: StringName = LEVEL_TONES.get(data.level, &"Info")
+	container.theme_type_variation = StringName("Toast" + String(tone))
 
 	var vbox_main := VBoxContainer.new()
 	vbox_main.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -308,8 +277,7 @@ func _build_toast_node(data: QueuedToastData) -> Control:
 	icon_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	icon_lbl.custom_minimum_size = Vector2(30, 0)
 	icon_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon_lbl.add_theme_color_override("font_color", border_color)
-	icon_lbl.add_theme_font_size_override("font_size", 24)
+	icon_lbl.theme_type_variation = StringName("Subheading" + String(tone))
 	hbox_content.add_child(icon_lbl)
 
 	# Message Text
@@ -318,18 +286,16 @@ func _build_toast_node(data: QueuedToastData) -> Control:
 	message_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	message_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	message_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	message_lbl.add_theme_color_override("font_color", COLOR_TEXT)
-	message_lbl.add_theme_font_size_override("font_size", 16)
+	message_lbl.theme_type_variation = &"Body"
 	hbox_content.add_child(message_lbl)
 
 	# Close Button
 	var close_button := Button.new()
-	close_button.text = tr("X")
+	close_button.text = "×"
+	close_button.tooltip_text = tr("UI_CLOSE") if tr("UI_CLOSE") != "UI_CLOSE" else "Lukk"
 	close_button.custom_minimum_size = Vector2(30, 30)
 	close_button.size_flags_horizontal = Control.SIZE_SHRINK_END
-	close_button.add_theme_color_override("font_color", COLOR_TEXT.darkened(0.2))
-	close_button.add_theme_font_size_override("font_size", 18)
-	close_button.flat = true # Make it flat
+	close_button.theme_type_variation = &"LargeGhostButton"
 	# Connect the pressed signal
 	close_button.pressed.connect(func(): _on_close_button_pressed(container))
 	hbox_content.add_child(close_button)
@@ -343,6 +309,7 @@ func _build_toast_node(data: QueuedToastData) -> Control:
 	# Hide the percentage label entirely (transparent text still reserves
 	# label height, which inflated the bar to ~35px).
 	progress_bar.show_percentage = false
+	progress_bar.theme_type_variation = StringName("ProgressBar" + String(tone))
 	vbox_main.add_child(progress_bar)
 
 	return container

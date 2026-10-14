@@ -22,21 +22,21 @@ var _theme: Node = null
 @onready var _skills_grid: GridContainer = %SkillsGrid
 
 # Colors
-const C_BG := Color("#ECEFF4")
+const C_BG := Color("#F4F1EA")
 const C_SURFACE := Color("#FFFFFF")
-const C_ELEVATED := Color("#F8F9FB")
-const C_TEXT := Color("#2E3440")
-const C_TEXT2 := Color("#4C566A")
-const C_MUTED := Color("#7B8794")
-const C_BORDER := Color("#E5E9F0")
-const C_PRIMARY := Color("#0A4D68")
-const C_SECONDARY := Color("#88C0D0")
-const C_SUCCESS := Color("#A3BE8C")
-const C_SUCCESS_D := Color("#8FAD78")
-const C_WARNING := Color("#EBCB8B")
-const C_WARNING_D := Color("#D4B06A")
-const C_DANGER := Color("#BF616A")
-const C_ACCENT := Color("#5E81AC")
+const C_ELEVATED := Color("#EDE9E0")
+const C_TEXT := Color("#1C1E20")
+const C_TEXT2 := Color("#5A6168")
+const C_MUTED := Color("#5A6168")
+const C_BORDER := Color("#E7E2D7")
+const C_PRIMARY := Color("#1F5E73")
+const C_SECONDARY := Color("#1F5E73")
+const C_SUCCESS := Color("#2E6B45")
+const C_SUCCESS_D := Color("#2E6B45")
+const C_WARNING := Color("#8A5A00")
+const C_WARNING_D := Color("#8A5A00")
+const C_DANGER := Color("#B3172F")
+const C_ACCENT := Color("#1F5E73")
 
 func _ready() -> void:
 	_sim = get_node_or_null("/root/SimBridge")
@@ -95,12 +95,11 @@ func _toast(message: String) -> void:
 		mgr.show_toast(message, "INFO", 3.0)
 
 func _apply_heading_fonts() -> void:
-	if _theme and _theme.font_heading_bold:
-		_title_label.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_count.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_payroll.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_morale.add_theme_font_override("font", _theme.font_heading_bold)
-		_kpi_efficiency.add_theme_font_override("font", _theme.font_heading_bold)
+	LakskongenTheme.set_strong(_title_label)
+	LakskongenTheme.set_strong(_kpi_count)
+	LakskongenTheme.set_strong(_kpi_payroll)
+	LakskongenTheme.set_strong(_kpi_morale)
+	LakskongenTheme.set_strong(_kpi_efficiency)
 
 func _refresh() -> void:
 	_refresh_kpis()
@@ -178,8 +177,8 @@ func _build_crew_row(w: Dictionary) -> PanelContainer:
 	# Avatar placeholder
 	var avatar := Label.new()
 	avatar.text = w.name.substr(0, 2).to_upper() if w.has("name") else "??"
-	avatar.add_theme_font_size_override("font_size", 14)
-	avatar.add_theme_color_override("font_color", Color.WHITE)
+	LakskongenTheme.set_size(avatar, 14)
+	LakskongenTheme.set_text_color(avatar, Color.WHITE)
 	avatar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	avatar.custom_minimum_size = Vector2(36, 36)
 
@@ -200,16 +199,15 @@ func _build_crew_row(w: Dictionary) -> PanelContainer:
 
 	var name_lbl := Label.new()
 	name_lbl.text = w.get("name", "Ukjent")
-	name_lbl.add_theme_font_size_override("font_size", 14)
-	name_lbl.add_theme_color_override("font_color", C_TEXT)
-	if _theme and _theme.font_heading_semibold:
-		name_lbl.add_theme_font_override("font", _theme.font_heading_semibold)
+	LakskongenTheme.set_size(name_lbl, 14)
+	LakskongenTheme.set_text_color(name_lbl, C_TEXT)
+	LakskongenTheme.set_strong(name_lbl)
 	info.add_child(name_lbl)
 
 	var role_lbl := Label.new()
 	role_lbl.text = _role_name(str(w.get("role", "Generell")))
-	role_lbl.add_theme_font_size_override("font_size", 12)
-	role_lbl.add_theme_color_override("font_color", C_MUTED)
+	LakskongenTheme.set_size(role_lbl, 12)
+	LakskongenTheme.set_text_color(role_lbl, C_MUTED)
 	info.add_child(role_lbl)
 
 	# Tenure (real: hired day; mock rows carry xp instead)
@@ -218,29 +216,23 @@ func _build_crew_row(w: Dictionary) -> PanelContainer:
 		xp_lbl.text = "Dag %d" % int(w.get("hired_day", 0))
 	else:
 		xp_lbl.text = tr("%d XP") % int(w.get("xp", 0))
-	xp_lbl.add_theme_font_size_override("font_size", 12)
-	xp_lbl.add_theme_color_override("font_color", C_ACCENT)
-	if _theme and _theme.font_mono:
-		xp_lbl.add_theme_font_override("font", _theme.font_mono)
+	LakskongenTheme.set_size(xp_lbl, 12)
+	LakskongenTheme.set_text_color(xp_lbl, C_ACCENT)
 	hbox.add_child(xp_lbl)
 
 	# Morale
 	var morale: int = w.get("morale", 75)
 	var morale_lbl := Label.new()
 	morale_lbl.text = tr("%d%%") % morale
-	morale_lbl.add_theme_font_size_override("font_size", 12)
-	morale_lbl.add_theme_color_override("font_color", C_SUCCESS_D if morale >= 80 else (C_WARNING_D if morale >= 60 else C_DANGER))
-	if _theme and _theme.font_mono:
-		morale_lbl.add_theme_font_override("font", _theme.font_mono)
+	LakskongenTheme.set_size(morale_lbl, 12)
+	LakskongenTheme.set_text_color(morale_lbl, C_SUCCESS_D if morale >= 80 else (C_WARNING_D if morale >= 60 else C_DANGER))
 	hbox.add_child(morale_lbl)
 
 	# Salary
 	var sal_lbl := Label.new()
 	sal_lbl.text = "%dk" % int(float(w.get("salary_nok", w.get("salary", 0))) / 1000.0)
-	sal_lbl.add_theme_font_size_override("font_size", 12)
-	sal_lbl.add_theme_color_override("font_color", C_TEXT2)
-	if _theme and _theme.font_mono:
-		sal_lbl.add_theme_font_override("font", _theme.font_mono)
+	LakskongenTheme.set_size(sal_lbl, 12)
+	LakskongenTheme.set_text_color(sal_lbl, C_TEXT2)
 	hbox.add_child(sal_lbl)
 
 	# Status — or fire button for real hires (Phase 3.1).
@@ -255,11 +247,11 @@ func _build_crew_row(w: Dictionary) -> PanelContainer:
 		var status: String = str(w.get("status", "Aktiv"))
 		var status_lbl := Label.new()
 		status_lbl.text = status
-		status_lbl.add_theme_font_size_override("font_size", 11)
+		LakskongenTheme.set_size(status_lbl, 11)
 		match status:
-			"Aktiv": status_lbl.add_theme_color_override("font_color", C_SUCCESS_D)
-			"Permisjon": status_lbl.add_theme_color_override("font_color", C_WARNING_D)
-			_: status_lbl.add_theme_color_override("font_color", C_MUTED)
+			"Aktiv": LakskongenTheme.set_text_color(status_lbl, C_SUCCESS_D)
+			"Permisjon": LakskongenTheme.set_text_color(status_lbl, C_WARNING_D)
+			_: LakskongenTheme.set_text_color(status_lbl, C_MUTED)
 		hbox.add_child(status_lbl)
 
 	return row
@@ -295,16 +287,14 @@ func _refresh_skills() -> void:
 
 		var name_lbl := Label.new()
 		name_lbl.text = s.name
-		name_lbl.add_theme_font_size_override("font_size", 12)
-		name_lbl.add_theme_color_override("font_color", C_TEXT2)
+		LakskongenTheme.set_size(name_lbl, 12)
+		LakskongenTheme.set_text_color(name_lbl, C_TEXT2)
 		vbox.add_child(name_lbl)
 
 		var val := Label.new()
 		val.text = "%d%%" % s.level
-		val.add_theme_font_size_override("font_size", 18)
-		val.add_theme_color_override("font_color", C_TEXT)
-		if _theme and _theme.font_mono:
-			val.add_theme_font_override("font", _theme.font_mono)
+		LakskongenTheme.set_size(val, 18)
+		LakskongenTheme.set_text_color(val, C_TEXT)
 		vbox.add_child(val)
 
 		# Progress bar

@@ -60,7 +60,7 @@ func _refresh_data() -> void:
 	if gross_profit_label:
 		var gross_profit: float = pl_data.get("gross_profit", 0.0)
 		gross_profit_label.text = "Gross Profit: %s NOK" % _format_currency(gross_profit)
-		gross_profit_label.add_theme_color_override("font_color", _get_profit_color(gross_profit))
+		LakskongenTheme.set_text_color(gross_profit_label, _get_profit_color(gross_profit))
 	
 	if opex_label:
 		opex_label.text = "Operating Expenses: %s NOK" % _format_currency(pl_data.get("operating_expenses", 0.0))
@@ -68,17 +68,17 @@ func _refresh_data() -> void:
 	if ebitda_label:
 		var ebitda: float = pl_data.get("ebitda", 0.0)
 		ebitda_label.text = "EBITDA: %s NOK" % _format_currency(ebitda)
-		ebitda_label.add_theme_color_override("font_color", _get_profit_color(ebitda))
+		LakskongenTheme.set_text_color(ebitda_label, _get_profit_color(ebitda))
 	
 	if ebit_label:
 		var ebit: float = pl_data.get("ebit", 0.0)
 		ebit_label.text = "EBIT: %s NOK" % _format_currency(ebit)
-		ebit_label.add_theme_color_override("font_color", _get_profit_color(ebit))
+		LakskongenTheme.set_text_color(ebit_label, _get_profit_color(ebit))
 	
 	if net_profit_label:
 		var net_profit: float = pl_data.get("net_profit", 0.0)
 		net_profit_label.text = "Net Profit: %s NOK" % _format_currency(net_profit)
-		net_profit_label.add_theme_color_override("font_color", _get_profit_color(net_profit))
+		LakskongenTheme.set_text_color(net_profit_label, _get_profit_color(net_profit))
 	
 	if gross_margin_label:
 		gross_margin_label.text = "Gross Margin: %.1f%%" % pl_data.get("gross_margin_pct", 0.0)
@@ -101,8 +101,8 @@ func _format_currency(value: float) -> String:
 
 func _get_profit_color(value: float) -> Color:
 	if value > 0:
-		return Color(0.2, 0.8, 0.2) # Green for profit
+		return LakskongenTheme.CHART_OK # Green for profit
 	elif value < 0:
-		return Color(0.8, 0.2, 0.2) # Red for loss
+		return LakskongenTheme.CHART_CRIT # Red for loss
 	else:
 		return Color(0.8, 0.8, 0.8) # Gray for break-even

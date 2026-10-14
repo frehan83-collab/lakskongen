@@ -1,35 +1,14 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/AIFeedingPanel.gd" id="1_aifeed"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.898039, 0.913725, 0.941176, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
-bg_color = Color(1, 1, 1, 1)
-border_width_bottom = 1
-border_color = Color(0.898039, 0.913725, 0.941176, 1)
-content_margin_left = 20.0
-content_margin_top = 14.0
-content_margin_right = 20.0
-content_margin_bottom = 14.0
-
 [node name="AIFeedingPanel" type="PanelContainer"]
+theme_type_variation = &"Card"
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 script = ExtResource("1_aifeed")
 
 [node name="Margin" type="MarginContainer" parent="."]
@@ -50,29 +29,26 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
 [node name="AiTitle" type="Label" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 22
 text = "AI Fôrings Dashboard"
 
 [node name="StatusCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/StatusCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/StatusCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="StatusHeader" type="Label" parent="Margin/MainScroll/RootVBox/StatusCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "Status"
 
 [node name="StatusBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/StatusCard/Outer"]
@@ -82,56 +58,46 @@ theme_override_constants/separation = 8
 [node name="CalibrationLabel" type="Label" parent="Margin/MainScroll/RootVBox/StatusCard/Outer/StatusBody"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "Kalibrering: --"
 
 [node name="CamerasLabel" type="Label" parent="Margin/MainScroll/RootVBox/StatusCard/Outer/StatusBody"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "Kameraer: --"
 
 [node name="AppetiteLabel" type="Label" parent="Margin/MainScroll/RootVBox/StatusCard/Outer/StatusBody"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "Appetittnivå: --"
 
 [node name="FcrLabel" type="Label" parent="Margin/MainScroll/RootVBox/StatusCard/Outer/StatusBody"]
+theme_type_variation = &"BodyInfo"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.533333, 0.752941, 0.815686, 1)
-theme_override_font_sizes/font_size = 15
 text = "FCR Besparelser: --"
 
 [node name="BtnInstallAi" type="Button" parent="Margin/MainScroll/RootVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
 text = "Installer AI Fôringssystem"
 
 [node name="RecipeCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
+theme_type_variation = &"Card"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/RecipeCard"]
 layout_mode = 2
 theme_override_constants/separation = 0
 
 [node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer"]
+theme_type_variation = &"CardHeader"
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="RecipeHeader" type="Label" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.180392, 0.203922, 0.25098, 1)
-theme_override_font_sizes/font_size = 15
 text = "🧪 Fôrresept"
 
 [node name="RecipeBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer"]
@@ -191,9 +157,9 @@ step = 1.0
 value = 50.0
 
 [node name="RecipePreview" type="Label" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipeBody"]
+theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
 text = "--"
 
 [node name="BtnApplyRecipe" type="Button" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipeBody"]

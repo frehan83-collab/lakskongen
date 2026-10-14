@@ -60,7 +60,7 @@ func _update_display(cost_data: Dictionary) -> void:
 	
 	if total_cost_label:
 		total_cost_label.text = "Total Cost per kg: %.2f NOK" % total_cost_per_kg
-		total_cost_label.add_theme_color_override("font_color", _get_cost_efficiency_color(total_cost_per_kg, benchmark_cost_per_kg))
+		LakskongenTheme.set_text_color(total_cost_label, _get_cost_efficiency_color(total_cost_per_kg, benchmark_cost_per_kg))
 	
 	if feed_cost_label:
 		feed_cost_label.text = "Feed: %.2f NOK/kg (%.1f%%)" % [feed_cost_per_kg, _get_pct(feed_cost_per_kg, total_cost_per_kg)]
@@ -79,7 +79,7 @@ func _update_display(cost_data: Dictionary) -> void:
 	
 	if fcr_label:
 		fcr_label.text = "FCR: %.2f" % fcr
-		fcr_label.add_theme_color_override("font_color", _get_fcr_color(fcr))
+		LakskongenTheme.set_text_color(fcr_label, _get_fcr_color(fcr))
 	
 	if benchmark_label:
 		benchmark_label.text = "Industry Benchmark: %.2f NOK/kg" % benchmark_cost_per_kg
@@ -87,7 +87,7 @@ func _update_display(cost_data: Dictionary) -> void:
 	if vs_benchmark_label:
 		var comparison: String = "Above" if vs_benchmark_pct > 0 else "Below"
 		vs_benchmark_label.text = "vs Benchmark: %.1f%% %s" % [abs(vs_benchmark_pct), comparison]
-		vs_benchmark_label.add_theme_color_override("font_color", _get_benchmark_color(vs_benchmark_pct))
+		LakskongenTheme.set_text_color(vs_benchmark_label, _get_benchmark_color(vs_benchmark_pct))
 	
 	if efficiency_label:
 		efficiency_label.text = _get_efficiency_verdict(total_cost_per_kg, benchmark_cost_per_kg, fcr)
@@ -119,32 +119,32 @@ func _get_cost_efficiency_color(cost: float, benchmark: float) -> Color:
 	var ratio: float = cost / benchmark if benchmark > 0 else 1.0
 	
 	if ratio < 0.85:
-		return Color(0.2, 0.8, 0.2) # Excellent
+		return LakskongenTheme.CHART_OK # Excellent
 	elif ratio < 1.0:
-		return Color(0.6, 0.8, 0.4) # Good
+		return LakskongenTheme.CHART_OK # Good
 	elif ratio < 1.1:
-		return Color(0.8, 0.8, 0.2) # Average
+		return LakskongenTheme.CHART_WARN # Average
 	elif ratio < 1.25:
-		return Color(0.8, 0.6, 0.2) # Below average
+		return LakskongenTheme.CHART_WARN # Below average
 	else:
-		return Color(0.8, 0.2, 0.2) # Poor
+		return LakskongenTheme.CHART_CRIT # Poor
 
 func _get_fcr_color(fcr: float) -> Color:
 	if fcr < 1.1:
-		return Color(0.2, 0.8, 0.2) # Excellent
+		return LakskongenTheme.CHART_OK # Excellent
 	elif fcr < 1.2:
-		return Color(0.6, 0.8, 0.4) # Good
+		return LakskongenTheme.CHART_OK # Good
 	elif fcr < 1.3:
-		return Color(0.8, 0.8, 0.2) # Average
+		return LakskongenTheme.CHART_WARN # Average
 	else:
-		return Color(0.8, 0.2, 0.2) # Poor
+		return LakskongenTheme.CHART_CRIT # Poor
 
 func _get_benchmark_color(vs_benchmark_pct: float) -> Color:
 	if vs_benchmark_pct < -15.0:
-		return Color(0.2, 0.8, 0.2) # Well below (good)
+		return LakskongenTheme.CHART_OK # Well below (good)
 	elif vs_benchmark_pct < 0:
-		return Color(0.6, 0.8, 0.4) # Below (good)
+		return LakskongenTheme.CHART_OK # Below (good)
 	elif vs_benchmark_pct < 10.0:
-		return Color(0.8, 0.8, 0.2) # Slightly above (caution)
+		return LakskongenTheme.CHART_WARN # Slightly above (caution)
 	else:
-		return Color(0.8, 0.2, 0.2) # Well above (poor)
+		return LakskongenTheme.CHART_CRIT # Well above (poor)

@@ -54,16 +54,15 @@ func _apply_localization() -> void:
 	btn_load.text = "💾  " + _tr_or("UI_BUTTON_LOAD_GAME", "Last Spill")
 	btn_settings.text = "⚙️  " + _tr_or("UI_BUTTON_SETTINGS", "Innstillinger")
 	btn_quit.text = "🚪  " + _tr_or("UI_BUTTON_QUIT", "Avslutt")
-	version_label.text = _tr_or("UI_VERSION_TEXT", "v0.2.0 Alpha — Nordic Minimalist")
+	version_label.text = _tr_or("UI_VERSION_TEXT", "v0.2.0 Alpha")
 
 func _tr_or(key: String, fallback: String) -> String:
 	var t := tr(key)
 	return t if t != key else fallback
 
 func _apply_heading_font() -> void:
-	var theme_node = get_node_or_null("/root/LakskongenTheme")
-	if theme_node and theme_node.font_heading_bold:
-		title_label.add_theme_font_override("font", theme_node.font_heading_bold)
+	# The title's Display role (theme variation) already sets the display face.
+	LakskongenTheme.set_strong(title_label)
 
 func _connect_buttons() -> void:
 	btn_new_game.pressed.connect(_on_new_game_pressed)
@@ -151,7 +150,7 @@ func _ensure_mods_button() -> void:
 	btn.text = "🧩  " + _tr_or("UI_BUTTON_MODS", "Mods")
 	btn.custom_minimum_size = Vector2(320, 52)
 	btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	btn.add_theme_font_size_override("font_size", 16)
+	btn.theme_type_variation = &"LargeButton"
 	btn.pressed.connect(_on_mods_pressed)
 	UIPolish.attach_press_feedback(btn)
 	menu_vbox.add_child(btn)

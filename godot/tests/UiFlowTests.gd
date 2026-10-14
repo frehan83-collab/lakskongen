@@ -68,6 +68,7 @@ func _run() -> void:
 	await _test_event_alerts_and_vaccine_window()
 	await _test_fjord_shows_rival_farms_and_wellboats()
 	_test_facade_forwards_phase5_systems()
+	await _test_theme_and_contrast_on_every_screen()
 
 	_clear_test_saves()
 	_finish()
@@ -895,6 +896,73 @@ func _test_facade_forwards_phase5_systems() -> void:
 			"get_carbon_ledger", "get_carbon_intensity", "is_carbon_neutral_year",
 			"processing_tier", "set_night_shift_policy"]:
 		_check(_sim.has_method(method), "facade forwards %s" % method)
+
+## U1-01/U1-02: the Kyst & Stål project theme (gui/theme/custom) reaches every
+## Control under every CanvasLayer — no Godot-default look on any screen — and
+## every visible text meets WCAG contrast (4.5:1; 3:1 large) against what is
+## really drawn behind it. Each screen is judged after its fade-in.
+const THEME_SCREENS_TABS := ["dashboard", "fjord", "map", "finance", "pens", "production", "research",
+	"sustainability", "ras", "offshore", "analytics", "telemetry", "ai_feeding", "crew", "contracts",
+	"carbon", "encyclopedia", "export", "saveload"]
+const THEME_SETTLE_S := 0.9
+
+func _test_theme_and_contrast_on_every_screen() -> void:
+	var project_theme := ThemeDB.get_project_theme()
+	_check(project_theme != null and project_theme.resource_path == "res://theme/lakskongen_theme.tres"
+		and project_theme.get_meta("surface", "") == "ink",
+		"theme: gui/theme/custom is the generated Kyst & Stål Ink theme")
+	var menu := await _spawn_main_menu()
+	await _lint_screen("main menu")
+	menu.btn_new_game.pressed.emit()
+	await _lint_screen("scenario picker")
+	menu.queue_free()
+	await get_tree().process_frame
+
+	var scene := await _spawn_game_scene()
+	_sim.skip_tutorial()
+	await get_tree().process_frame
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	var docs: Control = ui.get_node("%PanelContainer")
+	_check(docs.theme != null and docs.theme.resource_path == "res://theme/lakskongen_chart_theme.tres",
+		"theme: GameUI documents sit on the Chart-paper theme")
+	for tab in THEME_SCREENS_TABS:
+		ui.show_tab(tab)
+		center.hide_panel()
+		await _lint_screen("tab " + tab)
+		if tab == "telemetry":
+			_check_telemetry_headers(ui.find_child("Panel_telemetry", true, false))
+	center.show_panel()
+	await _lint_screen("notification center")
+	center.hide_panel()
+	var inbox := scene.get_node("AttentionInbox")
+	inbox.open_inbox()
+	await _lint_screen("attention inbox")
+	inbox.visible = false
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Two checks per screen: theme resolution and contrast, offenders listed.
+func _lint_screen(screen: String) -> void:
+	await get_tree().create_timer(THEME_SETTLE_S).timeout
+	var lint := preload("res://tests/ThemeLint.gd")
+	var root := get_tree().root
+	var unthemed: PackedStringArray = lint.unthemed(root)
+	_check(unthemed.is_empty(), "theme: %s has no Godot-default controls %s" % [screen, str(unthemed.slice(0, 4))])
+	var low: PackedStringArray = lint.low_contrast(root)
+	_check(low.is_empty(), "contrast: %s text meets 4.5:1 (3:1 large) %s" % [screen, str(low.slice(0, 4))])
+
+## Roadmap U1-01 #3: the panel title and the four section headers are drawn
+## (they rendered white on white before the theme reached the CanvasLayer).
+func _check_telemetry_headers(panel: Node) -> void:
+	var shown := []
+	if panel != null:
+		for lbl: Label in panel.find_children("*", "Label", true, false):
+			if lbl.is_visible_in_tree():
+				shown.append(lbl.text)
+	var wanted := ["Driftstelemetri", "Vann & Oksygen", "Lus & resistens", "Gjellehelse", "Fôr & FCR"]
+	var missing := wanted.filter(func(w: String) -> bool: return not shown.any(func(t: String) -> bool: return t.contains(w)))
+	_check(missing.is_empty(), "telemetry: title and section headers are shown (missing %s)" % str(missing))
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 

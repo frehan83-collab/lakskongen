@@ -4,13 +4,14 @@
 Reads the design-token SSOT (godot/theme/tokens.json, mirrored from
 design/tokens.json) and checks:
 
-  1. WCAG 2.1 contrast ratios for the pairs the UI ACTUALLY uses (curated from
-     the code: badges use lightened fills + dark text; toasts use darkened
-     fills + white text; buttons use primary + white text).
+  1. WCAG 2.1 contrast ratios for every pair declared in tokens.json
+     contrast.pairs ("Kyst & Stål", roadmap D13: Ink and Chart text, status and
+     accent colours on their base/raised/sunken surfaces, button fills).
      AA thresholds: >=4.5 normal text, >=3.0 large text / non-text UI pieces.
   2. Colour-vision-deficiency separation: status fills pairwise CIELAB delta-E
      under simulated protanopia / deuteranopia / tritanopia (Viénot 1999 for
-     protan/deutan, Machado 2009 approximation for tritan; severity 100).
+     protan/deutan, Machado 2009 approximation for tritan; severity 100),
+     on each surface.
      Threshold delta-E >= 15 keeps a pair distinguishable by colour alone;
      sub-threshold pairs are WARN (dual encoding: emoji + text carries meaning).
 
@@ -108,59 +109,49 @@ def cvd_delta_e(a: str, b: str) -> dict[str, float]:
     return {kind: round(delta_e76(cvd_lab(a, kind), cvd_lab(b, kind)), 1) for kind in CVD_MATRICES}
 
 
+def resolve(tokens: dict, path: str) -> str:
+    """'surfaces.ink.text' -> '#E8EEF0'."""
+    node = tokens
+    for part in path.split("."):
+        node = node[part]
+    return str(node)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", help="write a machine-readable report here")
     args = ap.parse_args()
 
     tokens = json.loads(TOKENS.read_text(encoding="utf-8"))
-    c: dict[str, str] = tokens["colors"]
-
-    # Pairs the UI actually renders (curated from the panel code; see commit log).
-    toast_darken = 0.62  # ToastNotification.TOAST_SURFACE_DARKEN
-    pairs: list[tuple[str, str, str, float, str]] = [
-        (c["text"], c["bg"], "body text on app background", 4.5, "text"),
-        (c["text"], c["surface"], "body text on cards", 4.5, "text"),
-        (c["text-secondary"], c["surface"], "secondary text on cards", 4.5, "text"),
-        (c["text-muted"], c["surface"], "muted/meta text on cards", 3.0, "large"),
-        (c["text-inverse"], c["primary"], "text on primary buttons", 4.5, "text"),
-        (c["danger-dark"], c["surface"], "danger badge text (NotificationCenter)", 4.5, "text"),
-        ("#9A444C", lightened(c["danger"], 0.78), "critical priority badge (AttentionInbox)", 4.5, "text"),
-        ("#7A6118", lightened(c["warning"], 0.78), "high priority badge (AttentionInbox)", 4.5, "text"),
-        ("#33526F", lightened("#81A1C1", 0.78), "medium priority badge (AttentionInbox)", 4.5, "text"),
-        (c["text-secondary"], lightened(c["text-muted"], 0.78), "low priority badge (AttentionInbox)", 4.5, "text"),
-        ("#7A6118", c["surface"], "warning badge text (NotificationCenter)", 4.5, "text"),
-        (c["primary"], c["surface"], "info badge text / headings", 4.5, "text"),
-        (c["text-inverse"], darkened(c["danger"], toast_darken), "toast critical: white on darkened fill", 4.5, "text"),
-        (c["text-inverse"], darkened(c["warning"], toast_darken), "toast warning: white on darkened fill", 4.5, "text"),
-        (c["text-inverse"], darkened(c["info"], toast_darken), "toast info: white on darkened fill", 4.5, "text"),
-        (c["text-inverse"], darkened(c["success"], toast_darken), "toast success: white on darkened fill", 4.5, "text"),
-        (c["danger"], c["surface"], "critical accent rail/icon (non-text)", 3.0, "nontext"),
-    ]
+    contrast = tokens["contrast"]
 
     hard_fail = False
     report: dict = {"token_file": str(TOKENS.relative_to(REPO)), "contrast": [], "cvd": []}
 
-    print("=== WCAG contrast — real usage pairs (%s) ===" % TOKENS.relative_to(REPO))
-    for fg, bg, label, minimum, kind in pairs:
+    # 1. Every declared pair (roadmap D13 table + the raised/sunken/button pairs).
+    print("=== WCAG contrast — declared pairs (%s) ===" % TOKENS.relative_to(REPO))
+    for pair in contrast["pairs"]:
+        fg, bg = resolve(tokens, pair["fg"]), resolve(tokens, pair["bg"])
+        minimum = float(pair["min"])
         ratio = wcag_ratio(fg, bg)
         ok = ratio >= minimum
         hard_fail |= not ok
-        print(f"  {'PASS' if ok else 'FAIL'}  {ratio:5.2f} (min {minimum}, {kind})  {label}  [{fg} on {bg}]")
-        report["contrast"].append({"fg": fg, "bg": bg, "label": label, "ratio": round(ratio, 2), "min": minimum, "pass": ok})
+        print(f"  {'PASS' if ok else 'FAIL'}  {ratio:5.2f} (min {minimum})  {pair['use']}  [{fg} on {bg}]")
+        report["contrast"].append({"fg": fg, "bg": bg, "label": pair["use"], "ratio": round(ratio, 2),
+                                   "min": minimum, "pass": ok})
 
+    # 2. Status colours pairwise under CVD, per surface (dual encoding covers WARNs).
     print("\n=== Status-colour separation under CVD (delta-E, min %.0f; WARN = dual-encoded) ===" % CVD_MIN_DELTA_E)
-    status = ["success", "warning", "danger", "info", "accent"]
-    for i, a in enumerate(status):
-        for b in status[i + 1:]:
-            if a not in c or b not in c:
-                continue
-            res = cvd_delta_e(c[a], c[b])
-            worst = min(res.values())
-            ok = worst >= CVD_MIN_DELTA_E
-            print(f"  {'PASS' if ok else 'WARN'}  worst {worst:5.1f}  {a} vs {b}  " +
-                  " ".join(f"{k[:6]}={v:.1f}" for k, v in res.items()))
-            report["cvd"].append({"a": a, "b": b, "worst": worst, **res, "pass": ok})
+    status = ["ok", "warn", "crit", "info", "accent"]
+    for surface, colours in tokens["surfaces"].items():
+        for i, a in enumerate(status):
+            for b in status[i + 1:]:
+                res = cvd_delta_e(colours[a], colours[b])
+                worst = min(res.values())
+                ok = worst >= CVD_MIN_DELTA_E
+                print(f"  {'PASS' if ok else 'WARN'}  worst {worst:5.1f}  {surface}.{a} vs {surface}.{b}  " +
+                      " ".join(f"{k[:6]}={v:.1f}" for k, v in res.items()))
+                report["cvd"].append({"surface": surface, "a": a, "b": b, "worst": worst, **res, "pass": ok})
 
     if args.json:
         out = Path(args.json)

@@ -26,11 +26,11 @@ signal sites_updated()
 
 const SIM_BRIDGE_PATH := "/root/SimBridge"
 
-const COL_GREEN := Color("#A3BE8C")
-const COL_AMBER := Color("#EBCB8B")
-const COL_RED   := Color("#BF616A")
-const COL_TEXT  := Color("#2E3440")
-const COL_MUTED := Color("#7B8794")
+const COL_GREEN := Color("#2E6B45")
+const COL_AMBER := Color("#8A5A00")
+const COL_RED   := Color("#B3172F")
+const COL_TEXT  := Color("#1C1E20")
+const COL_MUTED := Color("#5A6168")
 
 const METRIC_ORDER := ["lice", "oxygen", "biomass", "gill", "containment"]
 
@@ -118,8 +118,8 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = tr("DATA OVERLAY")
-	title.add_theme_font_size_override("font_size", 11)
-	title.add_theme_color_override("font_color", COL_MUTED)
+	LakskongenTheme.set_size(title, 11)
+	LakskongenTheme.set_text_color(title, COL_MUTED)
 	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	header.add_child(title)
 
@@ -137,19 +137,19 @@ func _build_ui() -> void:
 	var caps := HBoxContainer.new()
 	v.add_child(caps)
 	_lo_label = Label.new()
-	_lo_label.add_theme_font_size_override("font_size", 11)
-	_lo_label.add_theme_color_override("font_color", COL_MUTED)
+	LakskongenTheme.set_size(_lo_label, 11)
+	LakskongenTheme.set_text_color(_lo_label, COL_MUTED)
 	_lo_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	caps.add_child(_lo_label)
 	_hi_label = Label.new()
-	_hi_label.add_theme_font_size_override("font_size", 11)
-	_hi_label.add_theme_color_override("font_color", COL_MUTED)
+	LakskongenTheme.set_size(_hi_label, 11)
+	LakskongenTheme.set_text_color(_hi_label, COL_MUTED)
 	_hi_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	caps.add_child(_hi_label)
 
 	_note_label = Label.new()
-	_note_label.add_theme_font_size_override("font_size", 11)
-	_note_label.add_theme_color_override("font_color", COL_MUTED)
+	LakskongenTheme.set_size(_note_label, 11)
+	LakskongenTheme.set_text_color(_note_label, COL_MUTED)
 	_note_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(_note_label)
 
@@ -158,8 +158,8 @@ func _build_ui() -> void:
 
 	_empty_label = Label.new()
 	_empty_label.text = tr("Ingen sjøanlegg å vise ennå.")
-	_empty_label.add_theme_font_size_override("font_size", 11)
-	_empty_label.add_theme_color_override("font_color", COL_MUTED)
+	LakskongenTheme.set_size(_empty_label, 11)
+	LakskongenTheme.set_text_color(_empty_label, COL_MUTED)
 	_empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(_empty_label)
 
@@ -364,22 +364,22 @@ func _rebuild_list() -> void:
 		var name_lbl := Label.new()
 		name_lbl.text = str(d.get("name", sid))
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.add_theme_font_size_override("font_size", 12)
+		LakskongenTheme.set_size(name_lbl, 12)
 		row.add_child(name_lbl)
 
 		var val_lbl := Label.new()
 		val_lbl.text = str(_values.get(sid, ""))
-		val_lbl.add_theme_font_size_override("font_size", 12)
-		val_lbl.add_theme_color_override("font_color", COL_MUTED)
+		LakskongenTheme.set_size(val_lbl, 12)
+		LakskongenTheme.set_text_color(val_lbl, COL_MUTED)
 		row.add_child(val_lbl)
 
 # ── Inner widgets ─────────────────────────────────────────────────────────────
 
 ## Three-stop gradient bar: green → amber → red.
 class _GradientBar extends Control:
-	var c1 := Color("#A3BE8C")
-	var c2 := Color("#EBCB8B")
-	var c3 := Color("#BF616A")
+	var c1 := Color("#2E6B45")
+	var c2 := Color("#8A5A00")
+	var c3 := Color("#B3172F")
 
 	func _ready() -> void:
 		custom_minimum_size = Vector2(0, 10)

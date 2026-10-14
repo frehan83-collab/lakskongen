@@ -1,0 +1,14 @@
+[gd_resource type="FontVariation" format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/Inter-SemiBold.otf" id="1_6qidr"]
+
+[sub_resource type="SystemFont" id="ui_semibold_fallback_0"]
+font_names = PackedStringArray("Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji", "Android Emoji", "EmojiOne Color")
+
+[resource]
+resource_name = "ui_semibold"
+fallbacks = Array[Font]([SubResource("ui_semibold_fallback_0")])
+base_font = ExtResource("1_6qidr")
+opentype_features = {
+1953396077: 1
+}
