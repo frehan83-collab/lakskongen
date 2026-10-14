@@ -264,7 +264,7 @@ func _request_resources() -> void:
 	var paths: Array = [TERRAIN_SHADER]
 	paths.append_array(DETAIL_TEXTURES.values())
 	for path: String in paths:
-		if ResourceLoader.exists(path) and not ResourceLoader.has_cached(path):
+		if ResourceLoader.exists(path) and not ResourceLoader.has_cached(path) and not (path in _requested):
 			ResourceLoader.load_threaded_request(path)
 			_requested.append(path)
 

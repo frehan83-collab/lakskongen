@@ -150,6 +150,8 @@ func set_zoom_level(level: ZoomLevel) -> void:
 func look_at_position(world_pos: Vector3, zoom: ZoomLevel = current_zoom) -> void:
 	_cancel_fly()
 	_set_focus_target(world_pos)
+	if not _user_rotated:
+		_yaw_target = _nearest_angle(_yaw, home_yaw(_focus_target))
 	set_zoom_level(zoom)
 
 
