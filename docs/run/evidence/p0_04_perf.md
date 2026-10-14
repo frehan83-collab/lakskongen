@@ -83,12 +83,13 @@ field at FARM −7 %.
 
 | Segment | p50 ms | p95 ms | p99 ms | vs baseline p95 |
 |---|---:|---:|---:|---:|
-| FARM | 14.80 | **16.15** | 18.19 | −45 % |
-| FJORD | 13.65 | **14.98** | 16.39 | −54 % |
-| COAST | 13.20 | **14.33** | 15.52 | −54 % |
-| Finance panel open (06) | 7.67 | 8.18 | 8.36 | −74 % p50 (31.09 → 7.67) |
+| FARM | 14.91 | **15.86** | 16.82 | −46 % |
+| FJORD | 13.84 | **15.00** | 15.88 | −54 % |
+| COAST | 13.32 | **14.78** | 16.16 | −52 % |
+| Finance panel open (06) | 7.93 | 8.55 | 8.97 | −74 % p50 (31.09 → 7.93) |
 
-`PERF_GATE PASS: p95 <= 16.7 ms on farm,fjord,coast`. FARM has the least margin (the pen,
+`PERF_GATE PASS: p95 <= 16.7 ms on farm,fjord,coast` (final High, clouds in the half pass;
+the same gate run with the quarter pass measured 16.15 / 14.98 / 14.33 ms). FARM has the least margin (the pen,
 its net and the work boat fill the frame and depth of field stays on there): the Wave-2
 site grid (G2-04/A2-01: several pens, hoses, bird nets) must be measured against this
 budget when it lands.
@@ -97,8 +98,8 @@ budget when it lands.
 vs 29.62 ms median), 0.48 at COAST, 0.52-0.63 at FARM (FARM blocks were disturbed in that run;
 the quiet `perf_series` run had 14.79/16.41 and 15.61/16.57 ms p50/p95 against Ultra's 28.14).
 
-`perf/perf_tiers.json` / `.md` (all tiers, 3 × 5 s, interleaved; some blocks disturbed, see
-the best column): best p50 / p95 —
+`perf/perf_tiers.json` / `.md` (all tiers, 3 × 5 s, interleaved, High with the clouds still in
+the quarter pass; some blocks disturbed, see the best column): best p50 / p95 —
 
 | Segment | Ultra | High | Medium | Low |
 |---|---|---|---|---|
@@ -126,11 +127,16 @@ bottom left, Low bottom right): `perf/p0_04_final_farm.jpg`, `perf/p0_04_final_f
   0.60 on Ultra (+35 %; +26 % at 0.8 scale). It reads as the net hanging in the pen (owner
   ref 4), with a little more shimmer in motion; the net shader can take that back (follow-up:
   widen its fade to mean coverage by the 3D scale).
-- Clouds: drawn in the quarter-resolution pass they keep their shape and edges
+- Clouds: by day the half and quarter passes keep the clouds' shape and soft edges
   (`perf/p0_04_cmp_cloud2.jpg`: broken cumulus per pixel, half and quarter pass, and an
   overcast deck); mean sky luminance within 0.4 / 1.5 / 0.1 (of 255) of the per-pixel
   march for overcast / broken / clear, after the engine's double sky fog is taken out
-  (before that correction the reduced pass read +4 to +14 brighter).
+  (before that correction the reduced pass read +4 to +14 brighter). At night the dark
+  cumulus silhouettes against an aurora showed the quarter pass's blocks in shot 09, so High
+  uses the half pass: `perf/p0_04_night_clouds.jpg` (Nordland winter night, 22:00, Ultra per
+  pixel top left, High half pass top right, quarter pass bottom) — High matches Ultra,
+  including the horizontal streaks the per-pixel march already draws at the horizon. The
+  half pass costs +1.0 to +1.5 % over the quarter pass (`perf/perf_cloud_pass.json`, paired).
 - Medium shows the net as a coarse dot grid (MSAA 2×) and Low drops it (no MSAA): those
   tiers are for smaller GPUs.
 
@@ -139,7 +145,8 @@ bottom left, Low bottom right): `perf/p0_04_final_farm.jpg`, `perf/p0_04_final_f
 With any tab but Fjord open and the UI layer drawn, the 3D renders at half scale
 (bilinear) and the sky material holds still, so its radiance map is not re-rendered.
 `perf/perf_panel_ab.json` (paired, 6 pairs, High): 18.73 → 7.68 ms p50 (−59 %) against the
-same tier without the optimisation; against the Wave-1 build 31.09 → 7.67 ms (−75 %). The
+same tier at native scale without the pause; against the Wave-1 build 31.09 → 7.93 ms (−74 %,
+the final gate run). The
 roadmap's acceptance (GPU time on 06 drops ≥ 40 %) is met. The thin margins of world that
 show round the panel are blurred by the scale, which nobody can see at 8-16 px.
 
@@ -151,7 +158,7 @@ own vertex arrays in front of the camera on the first two frames. Boot A/B, 4 ru
 chunk peaked at a median 57 ms with the warm-up and 98 ms without, but single runs ranged
 39-543 ms on the shared machine, so the difference is not significant at n = 4. With a warm
 shader cache the boot is ~4 frames of 50-130 ms (scene load, behind the dashboard), then
-steady. The worst frame after the first ten: 16.7-17.8 ms in the final runs (it was 39-75 ms
+steady. The worst frame after the first ten: 16.7-18.3 ms in the final runs (it was 39-75 ms
 in the baseline runs). The first frame of a cold shader cache (first launch after an
 install or a shader change) is still a long compile; that needs a loading screen or the
 main menu to warm the pipelines (follow-up).

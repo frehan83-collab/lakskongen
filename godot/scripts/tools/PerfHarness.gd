@@ -40,6 +40,8 @@ extends Node
 ##   --weather=NAME     clear | overcast | storm (default clear)
 ##   --hour=H           presentation hour (default 12)
 ##   --pitch=DEG        tilt the view from the zoom's pitch (positive looks up)
+##   --season=S         fraction of the year from 1 January (default 0.5)
+##   --latitude=DEG     the sky's latitude (default: the scenario's)
 ##   --shots            save a frame per segment and variant next to the JSON
 ##   --burst=N          with --shots, also N consecutive frames of a slow orbit
 ##   --series           keep every frame's time, phases and draw counts
@@ -333,7 +335,9 @@ func _boot_game() -> bool:
 	var weather: Node = _env.get("weather_system")
 	if weather:
 		weather.set("transition_duration", 0.0)
-	_env.call("set_season", 0.5)
+	if _args.has("latitude"):
+		_env.call("set_latitude", float(_args["latitude"]))
+	_env.call("set_season", float(_args.get("season", 0.5)))
 	_env.call("set_time", float(_args.get("hour", 12.0)))
 	_env.call("set_weather", WEATHER.get(String(_args.get("weather", "clear")), 0))
 	# Focus: the first pen (the site the player starts on).

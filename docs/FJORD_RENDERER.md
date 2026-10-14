@@ -150,9 +150,10 @@ radiance pass (`Sky.process_mode` incremental) skips the sun disc, the
 aurora and the fine detail so ambient light and fog never count the sun
 twice or turn green.
 
-The three cloud layers can be marched in the sky's quarter- (or half-)
-resolution pass instead of per pixel (`cloud_pass`, from the quality tier;
-High and below use the quarter pass). The pass writes them premultiplied
+The three cloud layers can be marched in the sky's half- or quarter-
+resolution pass instead of per pixel (`cloud_pass`, from the quality tier:
+High uses the half pass, Medium and Low the quarter pass, which turns the
+dark cumulus against an aurora blocky). The pass writes them premultiplied
 and the full-resolution pass composites them over the sky. The engine
 blends the environment's fog into every sky pass, the reduced ones too
 (Godot `sky.glsl`: rgb' = rgb (1 − k) + k fog colour + s sun light ·
@@ -265,7 +266,7 @@ group). High is the default.
 | SSAO | off | off | off | medium, half size |
 | Depth of field | off | box, very low, to 700 m | box, very low, to 700 m (FARM) | hexagon, low, every zoom, near blur |
 | Shadows | 2048, 2 cascades, 0.6× distance, hard | 4096, 2 cascades, 0.8×, very low | 4096, 4 cascades, 1.0×, very low | 4096, 4 cascades, 1.0×, low |
-| Clouds | quarter pass, 4 steps, 4 octaves | quarter, 5, 5 | quarter, 6, 6 | per pixel, 6, 6 |
+| Clouds | quarter pass, 4 steps, 4 octaves | quarter, 5, 5 | half, 6, 6 | per pixel, 6, 6 |
 | Sky radiance map | 64 | 128 | 256 | 256 |
 | Terrain detail (`quality_detail` for the terrain shader) | 0 | 0.5 | 1 | 1 |
 
@@ -274,7 +275,8 @@ Ultra is the Wave-1 image unchanged. High trims what does not show at
 (its depth and normal prepass is the single most expensive effect on
 Metal and lights nothing the baked cavity colour does not), depth of field
 past 700 m (the haze softens the far fjord as much at FJORD and COAST),
-per-pixel clouds (soft: a quarter of the pixels gives the same sky), and
+per-pixel clouds (soft: the half-resolution pass, a quarter of the
+pixels, draws the same sky, even dark cumulus against an aurora), and
 renders the 3D at 0.75 with MetalFX spatial upscaling. It keeps MSAA 4× +
 SMAA (D12): the pen net resolves its threads with alpha-to-coverage, and
 the thin rails, ropes and masts stay whole. Temporal upscalers (FSR 2,
@@ -284,7 +286,7 @@ and carry no motion vectors, so they would smear.
 Behind an opaque full-screen panel (any tab but Fjord, with the UI layer
 drawn) the 3D renders at half scale and the sky material holds still, so
 its radiance map is not re-rendered for a world nobody sees (G1-06): the
-panel frame drops from 31 ms to 7.7 ms on High. The screenshot harness
+panel frame drops from 31 ms to 7.9 ms on High. The screenshot harness
 hides the UI layer for its fjord shots, which counts as the world showing.
 
 `ShaderPrewarm` draws a millimetre triangle per late-arriving material
@@ -302,7 +304,7 @@ time is the measure (the frame is GPU-bound: script ≈ 0.8 ms). Variants
 (tiers and knob overrides) run interleaved, or `--paired` next to a
 reference block, because other GPU work on a shared machine slows every
 frame; compare inside one run. CI step 18 runs it warn-only. On High the
-gate run measures p95 FARM 16.2, FJORD 15.0 and COAST 14.3 ms (the Wave-1
+gate run measures p95 FARM 15.9, FJORD 15.0 and COAST 14.8 ms (the Wave-1
 build: 29.3, 32.6 and 30.9 ms); `docs/run/evidence/p0_04_perf.md` has the
 runs, the cost breakdown and the frames.
 

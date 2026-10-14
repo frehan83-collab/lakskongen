@@ -103,7 +103,7 @@ const PRESETS := {
 		"dof": true, "dof_quality": RenderingServer.DOF_BLUR_QUALITY_VERY_LOW, "dof_shape": RenderingServer.DOF_BOKEH_BOX,
 		"dof_reach": 700.0, "dof_near": false,
 		"shadow_atlas": 4096, "shadow_splits": 4, "shadow_distance": 1.0, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW,
-		"glow": true, "cloud_pass": 2, "cloud_steps": 6, "cloud_octaves": 6, "radiance_size": Sky.RADIANCE_SIZE_256,
+		"glow": true, "cloud_pass": 1, "cloud_steps": 6, "cloud_octaves": 6, "radiance_size": Sky.RADIANCE_SIZE_256,
 		"terrain_detail": 1.0,
 	},
 	"ultra": {
