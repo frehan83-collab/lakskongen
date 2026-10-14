@@ -206,20 +206,24 @@ namespace LakskongenSim.Farm
                 ? DrawBinomialDeaths(rng, totalFish, Math.Clamp(actualMortalityRate, 0.0, 1.0))
                 : (int)(totalFish * actualMortalityRate);
 
-            // Apply mortality to cohorts
+            // Apply mortality to cohorts: the drawn deaths in full, shared over
+            // the cohorts by their fish (whole fish, exact sum). S2-05: each
+            // cohort used to be capped at floor(count x rate), so a draw above
+            // the expectation was cut back (the treatment killed fewer fish
+            // than drawn, a downward bias) while the result, the event log and
+            // the player still read the drawn number.
+            int applied = 0;
             if (deaths > 0)
             {
-                int remaining = deaths;
-                for (int i = 0; i < pop.Cohorts.Count && remaining > 0; i++)
-                {
-                    var cohort = pop.Cohorts[i];
-                    int take = Math.Min(remaining, (int)(cohort.Count * actualMortalityRate));
+                var weights = pop.Cohorts.Select(c => (double)Math.Max(0, c.Count)).ToArray();
+                var shares = Biology.MortalityLedger.Split(Math.Min(deaths, totalFish), weights);
+                for (int i = 0; i < shares.Length; i++)
                     // In place: rebuilding the cohort reset its smolt quality tier
                     // to Standard (F386). Booked as a treatment death (S2-05).
-                    remaining -= pop.RemoveDead(cohort, take, Biology.MortalityCause.Delousing);
-                }
+                    applied += pop.RemoveDead(pop.Cohorts[i], shares[i], Biology.MortalityCause.Delousing);
                 pop.Cohorts.RemoveAll(c => c.Count <= 0);
             }
+            deaths = applied;
 
             // Update disease system — treatment affects disease prevalence.
             // The per-population infected-fraction bookkeeping always runs;

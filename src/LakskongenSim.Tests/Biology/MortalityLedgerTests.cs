@@ -221,4 +221,57 @@ namespace LakskongenSim.Tests.Biology
             Assert.Equal(30, model.Ledger.ForDays(MortalityLedger.HistoryDays + 21, MortalityLedger.HistoryDays + 50).Total.Fish);
         }
     }
+
+    /// <summary>
+    /// S2-05: a delousing applies the deaths it draws, books them, and reports
+    /// what it applied. Each cohort used to be capped at floor(count x rate),
+    /// so a draw above the expectation was cut back while the result (and the
+    /// event log) still carried the drawn number.
+    /// </summary>
+    public class DelousingDeathsTests
+    {
+        private static FishPopulation Pen(MortalityModel model, params int[] cohortCounts)
+        {
+            var pop = new FishPopulation(new GrowthModel(seed: 1), model) { Id = "pen-d", SiteId = "site-d" };
+            foreach (int n in cohortCounts)
+                pop.AddCohort(new FishPopulation.Cohort(400, n, 0.8, LifeStage.Seawater));
+            return pop;
+        }
+
+        [Fact]
+        public void Treatment_KillsWhatItReports_AndTheLedgerBooksIt_MeanPreserving()
+        {
+            const int draws = 300;
+            double sum = 0.0;
+            double expected = 0.0;
+            int aboveExpectation = 0;
+            for (int i = 0; i < draws; i++)
+            {
+                var model = new MortalityModel();
+                var pop = Pen(model, 60_000, 25_000, 15_000);
+                var lice = new LakskongenSim.Health.SeaLiceModel();
+                lice.SeedExternalInfection(1.0);
+                var disease = new LakskongenSim.Health.IntegratedDiseaseSystem(lice);
+                var rng = new SimRng(5_000 + i).Stream(SimRngStreams.Delouse, "site-d", "0");
+                var legacy = new LakskongenSim.Farm.DelousingSystem().Treat(Pen(new MortalityModel(), 60_000, 25_000, 15_000),
+                    DelousingMethod.Hydrolicer, lice, disease, 10.0, 1.0);
+                expected = legacy.Deaths;
+
+                var result = new LakskongenSim.Farm.DelousingSystem().Treat(pop, DelousingMethod.Hydrolicer, lice, disease,
+                    10.0, 1.0, rng: rng);
+
+                Assert.Equal(100_000 - pop.TotalCount, result.Deaths);
+                Assert.Equal(result.Deaths, model.Ledger.Cumulative().Deaths(MortalityCause.Delousing).Fish);
+                Assert.Equal(result.Deaths, model.Ledger.Cumulative().Total.Fish);
+                sum += result.Deaths;
+                if (result.Deaths > expected) aboveExpectation++;
+            }
+            // A draw above the expectation is applied in full (the cap held
+            // every treatment at or below it).
+            Assert.InRange(aboveExpectation, draws / 4, 3 * draws / 4);
+            // The drawn deaths are mean-preserving against the expected value;
+            // the applied deaths now are too (they were biased low by the cap).
+            Assert.InRange(sum / draws, expected * 0.99, expected * 1.01);
+        }
+    }
 }
