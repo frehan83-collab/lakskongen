@@ -222,6 +222,12 @@ namespace LakskongenSim.Tests.Environment
                     bestExposure = Math.Max(bestExposure, Sample(2, x, edgeZ));
             Assert.True(bestExposure > 0.8f, $"edge exposure {bestExposure}");
 
+            // Every pen slot lies in sheltered water: the open sea reaches it
+            // only up a long channel.
+            foreach (var slot in gen.GetRecommendedLocations(6))
+                Assert.True(Sample(2, slot.X, slot.Z) < WaterBake.ShelteredExposure,
+                    $"pen slot ({slot.X:F0}, {slot.Z:F0}) exposure {Sample(2, slot.X, slot.Z)}");
+
             // The sheltered basin's fetch is a few kilometres, not the open sea's.
             Assert.InRange(bake.ShelteredFetchM, 800.0, 4500.0);
         }

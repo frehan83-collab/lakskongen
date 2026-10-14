@@ -682,15 +682,17 @@ static func normal_quantile(p: float) -> float:
 	return z if q > 0.5 else -z
 
 
-## Highest crest (m) the sheltered basin's waves can stack to: the sum of
-## every component's amplitude (all crests at one point).
-func max_sheltered_crest() -> float:
+## Highest crest (m) the drawn waves can stack to where the open-sea
+## exposure is `exposure` (the water bake's B channel): the sum of every
+## component's amplitude there, all crests at one point.
+func max_crest_at(exposure: float) -> float:
 	if sea_state.is_empty():
 		return 0.0
 	var a_sh: PackedFloat32Array = sea_state["sheltered_amplitudes"]
+	var a_ex: PackedFloat32Array = sea_state["exposed_amplitudes"]
 	var total := 0.0
 	for i in _comp_k.size():
-		total += a_sh[_comp_band[i]] * _comp_weight[i]
+		total += lerpf(a_sh[_comp_band[i]], a_ex[_comp_band[i]], exposure) * _comp_weight[i]
 	return total
 
 

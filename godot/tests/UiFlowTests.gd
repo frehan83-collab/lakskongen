@@ -72,6 +72,7 @@ func _run() -> void:
 	await _test_camera_frames_sky_and_avoids_terrain()
 	await _test_camera_keys_leave_focused_controls_alone()
 	await _test_environment_director_owns_the_look()
+	await _test_water_grid_bake_and_sea_state()
 
 	_clear_test_saves()
 	_finish()
@@ -1404,6 +1405,127 @@ func _test_environment_director_owns_the_look() -> void:
 		await get_tree().process_frame
 	_check(terrain.is_ready() and director.probe_captures >= 1,
 		"environment: the reflection probe is captured after the terrain build (%d captures)" % director.probe_captures)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## G1-05: the water is a grid snapped to the camera, 2 m apart within 256 m
+## of it; the terrain's bake reaches the water and puts the pens over deep,
+## sheltered water; the sea comes from the wind and the fetch (a 3 m/s
+## breeze leaves the basin near flat, a 20 m/s gale rolls 2-4 m seas on the
+## open coast, wind never scales a fixed wave), its phases run on, and in a
+## 25 m/s storm the basin's highest stacked crest stays under the collar
+## top. The reflection probe never mirrors the water.
+func _test_water_grid_bake_and_sea_state() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "water: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: FjordEnvironment = scene.get_node("FjordEnvironment")
+	var director: EnvironmentDirector = env.get_node("EnvironmentDirector")
+	var grid: WaterGrid = env.get_node("WaterGrid")
+	var cam: FjordCamera = env.get_node("FjordCamera")
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var weather: WeatherController = env.get_node("WeatherSystem")
+	var vista: FjordVistaBridge = scene.get_node("FjordVistaBridge")
+	var probe: ReflectionProbe = env.get_node("ReflectionProbe")
+	cam.auto_orbit_enabled = false
+	for i in 600:
+		if terrain.is_ready():
+			break
+		await get_tree().process_frame
+	_check(terrain.is_ready(), "water: the terrain (and its water bake) is built")
+	var first: Vector3 = pens.get_pen_position(pens.get_pen_ids()[0])
+	cam.look_at_position(first, FjordCamera.ZoomLevel.FARM)
+	await _settle_camera(cam)
+	await get_tree().process_frame
+
+	# The grid: centred on the camera in whole 2 m steps, 2 m apart within 256 m.
+	var step := grid.base_spacing
+	var gp := grid.global_position
+	var cp := cam.global_position
+	_check(absf(gp.x - cp.x) <= step * 0.5 + 1e-3 and absf(gp.z - cp.z) <= step * 0.5 + 1e-3
+		and is_zero_approx(fposmod(gp.x, step)) and is_zero_approx(fposmod(gp.z, step)),
+		"water: the grid is centred on the camera in whole %.0f m steps" % step)
+	var fine := true
+	for i in 400:
+		var a := float(i) * 2.399963
+		var r := 256.0 * sqrt(float(i) / 400.0)
+		fine = fine and grid.spacing_at(cp + Vector3(cos(a) * r, 0.0, sin(a) * r)) <= 2.0
+	var level0: Array[MeshInstance3D] = []
+	for piece in grid.get_pieces():
+		if piece.name.begins_with("L0_"):
+			level0.append(piece)
+	var covered := AABB()
+	var spaced := level0.size() == 4
+	for piece in level0:
+		var plane := piece.mesh as PlaneMesh
+		var world_box: AABB = piece.global_transform * plane.get_aabb()
+		covered = world_box if covered.size == Vector3.ZERO else covered.merge(world_box)
+		# Unit quads (size / (subdivisions + 1) = 1) scaled by the level's spacing.
+		var unit_quads := is_equal_approx(plane.size.x / float(plane.subdivide_width + 1), 1.0)
+		spaced = spaced and unit_quads and is_equal_approx(piece.global_transform.basis.get_scale().x, 2.0)
+	var reach := minf(minf(cp.x - covered.position.x, covered.end.x - cp.x), minf(cp.z - covered.position.z, covered.end.z - cp.z))
+	_check(fine and spaced and reach >= 256.0 - step,
+		"water: vertices 2 m apart within 256 m of the camera (level 0 reaches %.0f m)" % reach)
+	cam.look_at_position(first + Vector3(37.0, 0.0, -53.0), FjordCamera.ZoomLevel.FARM)
+	await _settle_camera(cam)
+	await get_tree().process_frame
+	_check(grid.global_position.distance_to(Vector3(cam.global_position.x, 0.0, cam.global_position.z)) <= step,
+		"water: the grid follows the camera")
+
+	# The bake.
+	var mat := director.water_material()
+	_check(mat != null and is_equal_approx(float(mat.get_shader_parameter("has_bake")), 1.0)
+		and mat.get_shader_parameter("water_bake") == terrain.water_bake_texture,
+		"water: the terrain's bathymetry bake reaches the water")
+	var at_pen := terrain.water_bake_at(first.x, first.z)
+	_check(at_pen.r > 15.0 and at_pen.g > 30.0 and at_pen.b < 0.25,
+		"water: the pens float over deep, sheltered water (depth %.0f m, shore %.0f m, exposure %.2f)" % [at_pen.r, at_pen.g, at_pen.b])
+	_check(absf(terrain.water_bake_at(150.0, 600.0).r + terrain.get_height_at(150.0, 600.0)) < 2.0,
+		"water: the baked depth is the terrain's depth below sea level")
+
+	# The sea from the wind and the fetch.
+	vista.sim_weather_enabled = false
+	weather.transition_duration = 0.0
+	env.apply_sky_context({"weather_state": "Calm", "wind_ms": 3.0, "cloud_cover": 0.2, "visibility_km": 40.0})
+	director.compose(1.0 / 60.0)
+	var calm: Dictionary = director.sea_state.duplicate()
+	_check(float(calm["sheltered_hs"]) >= 0.03 and float(calm["sheltered_hs"]) <= 0.15,
+		"water: a 3 m/s breeze leaves the sheltered basin near flat (Hs %.2f m over %.0f m of fetch)" % [calm["sheltered_hs"], calm["fetch_m"]])
+	env.apply_sky_context({"weather_state": "Storm", "wind_ms": 20.0, "cloud_cover": 0.97, "visibility_km": 4.0})
+	director.compose(1.0 / 60.0)
+	var gale: Dictionary = director.sea_state.duplicate()
+	_check(float(gale["exposed_hs"]) >= 2.0 and float(gale["exposed_hs"]) <= 4.0 and float(gale["sheltered_hs"]) < float(gale["exposed_hs"]) * 0.5,
+		"water: a 20 m/s gale rolls %.1f m seas on the open coast, %.2f m in the basin" % [gale["exposed_hs"], gale["sheltered_hs"]])
+	_check(float(gale["whitecaps"]) > float(calm["whitecaps"]) * 100.0,
+		"water: whitecaps follow the wind (Monahan %.4f -> %.3f)" % [calm["whitecaps"], gale["whitecaps"]])
+	var amps: PackedVector4Array = mat.get_shader_parameter("wave_amp")
+	var sum_sq := 0.0
+	for amp in amps:
+		sum_sq += amp.x * amp.x
+	_check(absf(sqrt(8.0 * sum_sq) - float(gale["sheltered_hs"])) < 0.01,
+		"water: the drawn waves carry the basin's significant height (sum a^2 = Hs^2 / 8)")
+	var phase_before := amps[0].z
+	director.compose(0.25)
+	var phase_after: float = (mat.get_shader_parameter("wave_amp") as PackedVector4Array)[0].z
+	_check(not is_equal_approx(phase_before, phase_after), "water: the wave phases run on")
+
+	# Freeboard: until G2-03 makes the pens bob, the basin's waves stay under the collar.
+	env.apply_sky_context({"weather_state": "Severe", "wind_ms": 25.0, "cloud_cover": 1.0, "visibility_km": 2.0})
+	director.compose(1.0 / 60.0)
+	var pen_node := pens._pens[pens.get_pen_ids()[0]]["node"] as Node3D
+	var collar := pen_node.get_node_or_null("Collar") as MeshInstance3D if pen_node != null else null
+	var collar_top := (collar.global_transform * collar.mesh.get_aabb()).end.y if collar != null else 0.0
+	var crest := director.max_crest_at(terrain.water_bake_at(first.x, first.z).b)
+	_check(collar != null and crest > 0.0 and crest < collar_top,
+		"water: a 25 m/s storm's highest crest at the pen (%.2f m) stays under the collar top (%.2f m)" % [crest, collar_top])
+
+	_check(probe.reflection_mask & WaterGrid.RENDER_LAYER == 0 and grid.get_pieces()[0].layers == WaterGrid.RENDER_LAYER,
+		"water: the reflection probe leaves the water's layer out")
 	scene.queue_free()
 	await get_tree().process_frame
 

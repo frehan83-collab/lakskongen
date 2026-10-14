@@ -73,6 +73,7 @@ var _collision_shape: CollisionShape3D
 var _material: ShaderMaterial
 var _season: float = 0.5
 var _gen_thread: Thread = null
+var _water_bake_image: Image = null
 var _requested: Array[String] = []
 
 
@@ -196,10 +197,22 @@ func _apply_water_bake(result: Dictionary) -> void:
 	if not result.has("water_bake"):
 		return
 	var n := int(result["resolution"])
-	var image := Image.create_from_data(n, n, false, Image.FORMAT_RGBAH, result["water_bake"])
-	water_bake_texture = ImageTexture.create_from_image(image)
+	_water_bake_image = Image.create_from_data(n, n, false, Image.FORMAT_RGBAH, result["water_bake"])
+	water_bake_texture = ImageTexture.create_from_image(_water_bake_image)
 	sheltered_fetch_m = float(result["sheltered_fetch_m"])
 	sea_direction = result["sea_direction"]
+
+
+## The water bake at a world position (nearest texel): r depth (m), g shore
+## distance (m), b open-sea exposure, a seabed slope. Black before the build.
+func water_bake_at(world_x: float, world_z: float) -> Color:
+	if _water_bake_image == null:
+		return Color(0.0, 0.0, 0.0, 0.0)
+	var n := _water_bake_image.get_width()
+	var spacing := terrain_size.x / float(n - 1)
+	var c := clampi(roundi((world_x + terrain_size.x * 0.5) / spacing), 0, n - 1)
+	var r := clampi(roundi((world_z + terrain_size.y * 0.5) / spacing), 0, n - 1)
+	return _water_bake_image.get_pixel(c, r)
 
 
 ## World-space rectangle the water bake covers (x, z, width, depth).

@@ -290,7 +290,6 @@ void fragment() {
 		// fields.
 		float caps = 0.0;
 		if (breaking) {
-			float groups = texture(foam_texture, q / 420.0 + vec2(0.31, 0.17)).a;
 			vec2 bq = q - vec2(sea_time * 0.6, 0.0);
 			float fade = 0.5 + 0.5 * sin(sea_time * 0.21);
 			// Stretched along the crests (q.y), short across them; the basin's
@@ -305,12 +304,11 @@ void fragment() {
 			float core = smoothstep(whitecap_threshold, whitecap_threshold + 0.3, crest_z);
 			float spent = smoothstep(whitecap_threshold - 0.35, whitecap_threshold, crest_z) * lace * lace;
 			caps = max(core * (0.65 + 0.35 * lace) * (0.85 + 0.15 * bubbles), spent * 0.35);
-			// Towards the horizon the foam fields' texture would tile into a
-			// visible lattice: past a few metres per pixel they fade to their mean.
-			float tile_fade = smoothstep(1.5, 6.0, footprint);
-			float clumps = mix(smoothstep(0.3, 0.85, groups) * (0.75 + 0.5 * patches), 0.45, tile_fade);
-			float far_caps = clamp(whitecaps * 2.6 * clumps, 0.0, 0.5);
-			caps = mix(caps, far_caps, smoothstep(0.05, 0.22, footprint / max(dominant_lambda, 0.1)));
+			// Once the crests are too small to follow, the caps are their mean:
+			// a faint whitening by Monahan's share (any pattern drawn at that
+			// scale tiles into a lattice towards the horizon).
+			float far_caps = whitecaps * 0.6;
+			caps = mix(caps, far_caps, smoothstep(0.1, 0.35, footprint / max(dominant_lambda, 0.1)));
 			// Below about 5 m/s Monahan's share is a few isolated caps: none drawn.
 			caps *= smoothstep(0.0, 3.0, depth) * smoothstep(0.0008, 0.004, whitecaps);
 		}

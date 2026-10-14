@@ -27,10 +27,12 @@ namespace LakskongenSim.Environment
     /// whose heights are the bilinear interpolant of the coarse grid, minus half
     /// a fine cell: within ±2 m of the true waterline at a 7.8 m grid.</item>
     /// <item>Exposure: from every point of a coarse sample grid, 16 rays march
-    /// over the water; the share that leave the world without meeting land is
-    /// how open the point is to the sea. A basin behind a sill and skerries
-    /// sees a sliver of sky through its mouth; an open coast sees half the
-    /// compass.</item>
+    /// over the water; a ray that leaves the world without meeting land lets
+    /// the open sea in, less the farther it ran over sheltered water to get
+    /// there (exp(−distance / 1.5 km): swell loses itself in a long channel
+    /// by refraction and diffraction). An open coast sees about half the
+    /// compass at once (exposure 1); a basin a few kilometres up a fjord,
+    /// behind a sill and skerries, sees a sliver of it far away (near 0).</item>
     /// <item>Sheltered fetch: the CEM effective fetch (mean over radials
     /// within ±15° of the wind) upwind of the basin's sheltered water, median
     /// over the basin.</item>
@@ -46,6 +48,8 @@ namespace LakskongenSim.Environment
         private const int ExposureStride = 4;
         /// <summary>Escaping share of the compass that counts as fully exposed (an open coast sees about half).</summary>
         private const float FullExposureShare = 0.4f;
+        /// <summary>An escaping ray's weight falls by e over this much water before the world edge.</summary>
+        private const float ExposureDecayM = 1500f;
         private const int ExposureBlurPasses = 2;
         /// <summary>Exposure below which water counts as sheltered basin.</summary>
         public const float ShelteredExposure = 0.25f;
@@ -223,14 +227,15 @@ namespace LakskongenSim.Environment
                         coarse[sr * s + sc] = 0f;
                         continue;
                     }
-                    int escaped = 0;
+                    float escaped = 0f;
                     for (int k = 0; k < ExposureDirections; k++)
                     {
                         double a = 2.0 * Math.PI * k / ExposureDirections;
-                        if (MarchToLand(heights, n, c, r, (float)Math.Cos(a), (float)Math.Sin(a), seaLevel, 2f) < 0f)
-                            escaped++;
+                        float dx = (float)Math.Cos(a), dz = (float)Math.Sin(a);
+                        if (MarchToLand(heights, n, c, r, dx, dz, seaLevel, 2f) < 0f)
+                            escaped += MathF.Exp(-EdgeDistanceCells(n, c, r, dx, dz) * spacing / ExposureDecayM);
                     }
-                    float share = (float)escaped / ExposureDirections;
+                    float share = escaped / ExposureDirections;
                     coarse[sr * s + sc] = Math.Min(share / FullExposureShare, 1f);
                 }
             });
