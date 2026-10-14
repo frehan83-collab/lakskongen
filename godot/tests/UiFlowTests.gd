@@ -1305,8 +1305,14 @@ func _test_vessel_fleet() -> void:
 	var barges: FeedBargeVisualManager = env.get_node("FeedBargeVisualManager")
 	boats.sail_seconds = 0.2
 	barges.tow_seconds = 0.2
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	var on_station := not barges.active_site_ids().is_empty()
+	var states := []
 	for id in barges.active_site_ids():
-		barges._tow_out(id)  # restart the tows that began at the 6 s default
+		on_station = on_station and barges.barge_state(id) == "moored"
+		states.append("%s %s" % [id, barges.barge_state(id)])
+	_check(on_station, "vessels: sites stocked when the game starts have their barge on station, no tow-in (%s)" % ", ".join(states))
 	var sites: Array = _sim.get_all_pens()
 	var site_id := str(sites[0].get("id", "")) if not sites.is_empty() else ""
 	var cage := pens.get_node_or_null("PenMarkers/" + site_id) as PenCage
@@ -1346,7 +1352,7 @@ func _test_vessel_fleet() -> void:
 			buoy_clear = buoy_clear and (absf(local.x) > carrier.beam_m * 0.5 + 0.5 or absf(local.z) > carrier.length_m * 0.5 + 0.5)
 	_check(buoy_clear, "vessels: the waiting carrier lies clear of the mooring buoys (at %s)" % carrier_mid)
 
-	_check(barges.barge_state(site_id) == "moored", "vessels: the feed barge is towed out and moors on station (%s)" % barges.barge_state(site_id))
+	_check(barges.barge_state(site_id) == "moored", "vessels: the feed barge lies moored on station (%s)" % barges.barge_state(site_id))
 	var barge := barges.barge_of(site_id) as VesselModel
 	var feed_side_ok := barge != null
 	if barge != null:
@@ -1360,6 +1366,14 @@ func _test_vessel_fleet() -> void:
 	await get_tree().create_timer(0.5).timeout
 	_check(barges.barge_state(site_id) == "" and not barges.active_site_ids().has(site_id),
 		"vessels: a barge sent home leaves the fjord")
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	var towing := barges.barge_state(site_id)
+	await get_tree().create_timer(0.5).timeout
+	_check(towing == "towing" and barges.barge_state(site_id) == "moored"
+		and _route_on_water(barges._active_barges[site_id].path, (env.get_node("Terrain") as FjordTerrain)),
+		"vessels: a site that needs a barge again sees it towed out along the channel and moored (%s -> %s)"
+			% [towing, barges.barge_state(site_id)])
 	await _check_salmon_school(pens, site_id)
 	scene.queue_free()
 	await get_tree().process_frame

@@ -67,9 +67,10 @@ The wellboat (77.0 m) is 1.42 times the pen's collar (54.1 m).
 
 - `FishPenManager` moors the workboat broadside to every pen (it replaces
   the capsule `service_boat.tscn`, now deleted with its meshes).
-- `FeedBargeVisualManager` tows a barge out to every stocked site; it moors
-  on the hose side of the pen with its feed lines towards it, stays while the
-  site holds fish and is towed home when the site empties. Sites licensed
+- `FeedBargeVisualManager` keeps a barge at every stocked site, moored on
+  the hose side of the pen with its feed lines towards it. Sites stocked when
+  the game starts or loads have theirs on station; a site stocked later sees
+  it towed out from the depot; an emptied site sends it home. Sites licensed
   for >= 6,000 t get the 64.8 m barge.
 - `WellboatVisualManager` sends the 77 m wellboat (the 116 m carrier for a
   harvest) along the other side of the pen, clear of the mooring buoys.

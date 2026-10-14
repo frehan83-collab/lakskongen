@@ -4,10 +4,11 @@ class_name FeedBargeVisualManager
 ## Feed barges: every stocked site keeps one moored on station beside its
 ## pen, the way Norwegian farms store and blow their feed (roadmap A3-01).
 ## A barge is towed out along the fjord channel at sea level from the feed
-## depot when a site is first stocked, lies moored with its feed lines
-## towards the pen while the site holds fish, and is towed home once the
-## site is emptied. Sites licensed for a large biomass get the 64.8 m
-## exposed-site barge instead of the 37 m one.
+## depot when a site is stocked, lies moored with its feed lines towards the
+## pen while the site holds fish, and is towed home once the site is
+## emptied; sites already stocked when the fjord first syncs (a new game or
+## a loaded save) have theirs on station from the start. Sites licensed for
+## a large biomass get the 64.8 m exposed-site barge instead of the 37 m one.
 ##
 ## Each barge carries a VesselChip (FARM zoom only): "Fôrflåte · fôrer" in
 ## feed yellow while the sim reports feeding, "Fôrflåte · i ro" otherwise.
@@ -43,6 +44,8 @@ var _sim_bridge = null
 var _terrain = null
 var _fjord_env = null
 var _active_barges: Dictionary = {}  # site_id -> {boat, path, follow, target_pos, state, tween, chip}
+var _first_sync_done := false
+var _on_station_at_start: Dictionary = {}  # site ids stocked when the fjord first synced
 
 func _ready() -> void:
 	_fjord_env = get_parent()
@@ -74,10 +77,21 @@ func _sync_barges() -> void:
 		if site_id.is_empty() or biomass <= 0.0 or fish_count <= 0:
 			continue
 		stocked.append(site_id)
+	# Sites already stocked when the fjord first sees the farm (a new game or
+	# a loaded save) have their barge on station; later stockings see it
+	# towed out.
+	if not _first_sync_done and not sites.is_empty():
+		_first_sync_done = true
+		for site_id in stocked:
+			_on_station_at_start[site_id] = true
+	for site_dict in sites:
+		var site_id: String = str(site_dict.get("id", ""))
+		if site_id not in stocked:
+			continue
 		if not _active_barges.has(site_id):
 			if _active_barges.size() >= max_concurrent_barges:
 				continue
-			_spawn_barge(site_id, site_dict)
+			_spawn_barge(site_id, site_dict, _on_station_at_start.has(site_id))
 		elif _active_barges[site_id].state == "return":
 			_tow_out(site_id)  # restocked while it was being towed home
 		_update_chip(site_id, bool(site_dict.get("is_feeding", false)))
@@ -92,7 +106,7 @@ func barge_scene_for(site: Dictionary) -> PackedScene:
 		return large_feed_barge_scene
 	return feed_barge_scene
 
-func _spawn_barge(site_id: String, site_data: Dictionary) -> void:
+func _spawn_barge(site_id: String, site_data: Dictionary, on_station: bool = false) -> void:
 	var terrain := _terrain as FjordTerrain
 	if terrain == null:
 		return
@@ -118,7 +132,11 @@ func _spawn_barge(site_id: String, site_data: Dictionary) -> void:
 		"chip": chip,
 	}
 	_update_chip(site_id, bool(site_data.get("is_feeding", false)))
-	_tow_out(site_id)
+	if on_station:
+		(parts.follow as PathFollow3D).progress_ratio = 1.0
+		_on_barge_arrived(site_id)
+	else:
+		_tow_out(site_id)
 
 func _tow_out(site_id: String) -> void:
 	var data: Dictionary = _active_barges[site_id]
@@ -160,6 +178,7 @@ func _start_return(site_id: String) -> void:
 	if data.state == "return":
 		return
 	data.state = "return"
+	_on_station_at_start.erase(site_id)  # a restocked site sees its barge towed out
 	if data.tween:
 		data.tween.kill()
 	ChannelBoat.face_home(data.boat)
