@@ -3991,7 +3991,10 @@ func _test_terrain_material_and_vegetation() -> void:
 	_check(mat != null and float(mat.get_shader_parameter("use_textures")) == 1.0,
 		"terrain material: textured (not the palette fallback)")
 
-	# The season from the calendar at 63.43 N (GroundSeasonModel).
+	# The season from the calendar at 63.43 N (GroundSeasonModel). The
+	# scenario's own region sets the latitude since S2-02 (po3 is Vestland,
+	# 60.39 N), so the checks below pin the latitude they are written for.
+	env.set_latitude(63.43)
 	env.set_weather(WeatherController.WeatherState.CLEAR)
 	env.set_season(50.0 / 365.0)
 	director.compose(0.0, true)
@@ -4008,8 +4011,16 @@ func _test_terrain_material_and_vegetation() -> void:
 		"ground: midsummer lifts the snow line above the summits (%.0f m) and leafs out the birch" % float(summer["snow_line_m"]))
 	env.set_season(270.0 / 365.0)
 	director.compose(0.0, true)
-	_check(float(director.get_composed()["autumn"]) > 0.4,
-		"ground: late September turns the birch yellow (%.2f)" % float(director.get_composed()["autumn"]))
+	var autumn_north := float(director.get_composed()["autumn"])
+	_check(autumn_north > 0.4,
+		"ground: late September turns the birch yellow (%.2f)" % autumn_north)
+	# Autumn comes later in the south: the same day at Vestland's 60.39 N.
+	env.set_latitude(60.39)
+	director.compose(0.0, true)
+	var autumn_south := float(director.get_composed()["autumn"])
+	_check(autumn_south < autumn_north,
+		"ground: the birch turns later at 60.39 N than at 63.43 N (%.2f < %.2f)" % [autumn_south, autumn_north])
+	env.set_latitude(63.43)
 
 	# Weather: a snowfall lowers the line now, rain wets the ground.
 	env.set_season(320.0 / 365.0)
