@@ -11,8 +11,8 @@ Writes two layered images that Godot imports as Texture2DArrays:
       directions (u along +column, v along +row: n = normalize(-dh/du,
       -dh/dv, 1) * 0.5 + 0.5), B roughness, A ambient occlusion; then two
       noise slices the shader samples instead of computing value noise per
-      pixel (NOISE_SLICES): four independent smooth fields, and one field
-      with its u and v derivatives (for bump mapping).
+      pixel (NOISE_SLICES): four independent smooth fields, and one smooth
+      field for bump mapping (R; the shader takes its gradient).
 
 Layers (LAYERS below, in order) are drawn for the game's camera, which sits
 25-3,000 m from the ground: one slice spans NEAR_TILE_M metres of ground at
@@ -55,8 +55,6 @@ PX_PER_M = SIZE / NEAR_TILE_M
 LAYERS = ("rock", "grass", "heath", "snow", "shingle", "spruce_canopy", "birch_canopy")
 # Extra slices at the end of the normal array (terrain_shader.gdshader L_NOISE, L_BUMP).
 NOISE_SLICES = ("noise4", "bump")
-# The bump slice stores dB/du and dB/dv (per slice length) as 0.5 + d / (2 BUMP_GRADIENT_RANGE).
-BUMP_GRADIENT_RANGE = 48.0
 
 
 # --------------------------------------------------------------------------- #
@@ -417,20 +415,20 @@ def build_layer(index: int, name: str):
 
 def noise_slice(name: str) -> np.ndarray:
     """RGBA 0-1. noise4: four independent smooth fields, features about a
-    sixth of the slice (A twice as fine). bump: a smooth field and its u, v
-    derivatives (per slice length, encoded around 0.5)."""
+    sixth of the slice (A twice as fine). bump: one smooth field (in R, G
+    and B, so block compression keeps it as grey)."""
     rng = np.random.default_rng(4242 if name == "noise4" else 4343)
+    # A smooth squash (tanh of the standard score), not percentile clipping:
+    # a clipped plateau has a kink at its edge, and a warp or a bump read
+    # from it folds there. The values still spread over most of 0-1.
+    smooth01 = lambda f: 0.5 + 0.5 * np.tanh((f - f.mean()) / f.std() * 0.9)  # noqa: E731
     if name == "noise4":
-        chans = [norm01(spectral(rng, 2.0, 2, 40)) for _ in range(3)]
-        chans.append(norm01(spectral(rng, 2.0, 6, 80)))
+        chans = [smooth01(spectral(rng, 2.0, 2, 40)) for _ in range(3)]
+        chans.append(smooth01(spectral(rng, 2.0, 6, 80)))
         return np.dstack(chans)
-    b = norm01(spectral(rng, 2.4, 2, 32))
-    du = (np.roll(b, -1, axis=1) - np.roll(b, 1, axis=1)) * 0.5 * SIZE
-    dv = (np.roll(b, -1, axis=0) - np.roll(b, 1, axis=0)) * 0.5 * SIZE
-    peak = max(np.abs(du).max(), np.abs(dv).max())
-    assert peak <= BUMP_GRADIENT_RANGE, f"bump gradient {peak:.1f} exceeds the encoded range"
-    enc = lambda d: 0.5 + d / (2.0 * BUMP_GRADIENT_RANGE)  # noqa: E731
-    return np.dstack([b, enc(du), enc(dv), np.ones_like(b)])
+    b = spectral(rng, 2.4, 2, 32)
+    b = (b - b.min()) / (b.max() - b.min())
+    return np.dstack([b, b, b, np.ones_like(b)])
 
 
 def to_u8(img: np.ndarray) -> np.ndarray:

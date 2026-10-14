@@ -79,18 +79,18 @@ rock (gneiss/granite slabs between two joint sets, lichen, moss in the
 joints), grass, heath (crowberry, heather, reindeer lichen, outcrops), snow
 (drifts, sastrugi), shingle, spruce canopy and birch canopy. Albedo + height
 in one array (sRGB), normal + roughness + AO in the other, plus two noise
-slices (four smooth fields; one field with its derivatives) the shader reads
-instead of computing value noise. One slice covers 20 m of ground at the
+slices (four smooth fields; a bump field) the shader reads with an explicit
+LOD from the pixel's footprint instead of computing value noise. One slice covers 20 m of ground at the
 near scale; 1024² is 2 cm a texel, finer than a pixel at the 25 m minimum
 camera distance at 4K, so 2K slices would never reach their top mip.
 
 | Part | Rule |
 |---|---|
 | Sampling | Biplanar: the major and median world-axis projections, weights with local support (no texel smears along a wall); whiteout normal blend against the geometric normal (B. Golus, 2017, implemented from the method); `textureGrad` with each projection's own derivatives; samples blend, UVs never do |
-| Scales | Near 20 m, far 107.4 m turned 37°, each slowly domain-warped (±9 m, ±40 m); near detail fades out 450-1,100 m from the camera; the far albedo reads three mips softer (tones, not joint lines); far relief only on rock, heath and snow |
+| Scales | Near 20 m, far 107.4 m turned 37°, each slowly domain-warped (±4 m over an ~85 m field, ±22 m over a ~330 m one: slopes well under 1, so nothing folds); near detail fades out 450-1,100 m from the camera; the far albedo reads three mips softer (tones, not joint lines); far relief only on rock, heath and snow; beyond 900-2,200 m the projection blend narrows and a weak second soil is dropped |
 | Layer choice | Bare rock by slope (soil holds to tan 0.72, gone by 1.05, later in gullies), upland outcrops above the treeline, rock at the waterline; woods, birch share and meadow from the vertex colour (the vegetation masks); heath above 500 m ± noise, shingle on gentle shores; the two strongest soils sampled, height-blended with the rock |
-| Cliffs | Bands 15-40 m tall (dipping a few degrees) with ledges that face the sky, hold snow and moss, and break off; shadow under each ledge; lichen-dark and pale faces tens of metres across; seepage streaks 9 m wide and 140 m long; a bump field 20-60 m across from the noise slice |
-| Shore | Wet band to 1.5 m above the waterline (more on cliffs) at half the albedo and roughness 0.32, olive wrack below 0.9 m, the black lichen zone above it |
+| Cliffs | Bands about 24 m tall (dipping a few degrees, warped only by ground-plane noise so they never fold up a wall) with ledges that face the sky, hold snow and moss, and break off; shadow under each ledge; lichen-dark and pale faces tens of metres across; seepage streaks 9 m wide and 140 m long; buttresses 20-60 m across from the bump field's finite-difference gradient (6 m step); the narrow wall slices are shifted along the wall by ground-plane noise so they never line up |
+| Shore | Wet band to 1.5 m above the waterline (more on cliffs) at 0.42 of the albedo under a film of sea water (roughness 0.45, F0 0.02, the rock's micro-relief damped), olive wrack below 0.9 m, the black lichen zone above it |
 | Season | `ground_season.gdshaderinc`: snow above the director's line (north faces, hollows and noise move it), lingering patches in north-facing hollows up to 350 m below it, a dusting on cliffs that grows far above the line and under fresh snow, snow first in the hollows of the surface texture; grass yellows, heath reddens, birch turns and drops its leaves; rain darkens and glosses rock |
 
 The EnvironmentDirector composes the ground (`_apply_ground`) every frame and

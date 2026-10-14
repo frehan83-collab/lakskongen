@@ -105,8 +105,6 @@ def test_layer_constants_follow_the_generator():
         assert consts[names[layer]] == index, (layer, index)
     assert consts["NOISE"] == len(gen.LAYERS) + gen.NOISE_SLICES.index("noise4")
     assert consts["BUMP"] == len(gen.LAYERS) + gen.NOISE_SLICES.index("bump")
-    bump_range = float(re.search(r"BUMP_GRADIENT_RANGE\s*=\s*([\d.]+)", code).group(1))
-    assert bump_range == gen.BUMP_GRADIENT_RANGE
     assert float(re.search(r"NEAR_TILE_M\s*=\s*([\d.]+)", code).group(1)) == gen.NEAR_TILE_M
     assert float(re.search(r"NOISE_TEXELS\s*=\s*([\d.]+)", code).group(1)) == gen.SIZE
 

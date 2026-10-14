@@ -47,9 +47,10 @@ const float L_BIRCH = 6.0;
 // Noise slices at the end of the normal array (tools/gen_terrain_textures.py NOISE_SLICES).
 const float L_NOISE = 7.0;
 const float L_BUMP = 8.0;
-// The bump slice's derivatives are encoded as 0.5 + d / (2 * this) (per slice length).
-const float BUMP_GRADIENT_RANGE = 48.0;
 const float BUMP_SLICE_M = 228.0;
+// Finite-difference step for the bump field's gradient (m): wide enough that
+// the 8-bit field's steps do not show as contour lines in the shading.
+const float BUMP_STEP_M = 6.0;
 // Texels across a slice (tools/gen_terrain_textures.py SIZE).
 const float NOISE_TEXELS = 1024.0;
 const float NEAR_TILE_M = 20.0;
@@ -58,8 +59,8 @@ const float FAR_TILE_M = 107.4;
 const vec2 FAR_ROTATION = vec2(0.7986355, 0.6018150);
 const vec2 FAR_OFFSET = vec2(0.371, 0.613);
 const float FAR_ALBEDO_BLUR = 3.0;
-const float NEAR_WARP_M = 9.0;
-const float FAR_WARP_M = 40.0;
+const float NEAR_WARP_M = 4.0;
+const float FAR_WARP_M = 22.0;
 
 uniform sampler2DArray albedo_height : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray normal_rough_ao : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -70,7 +71,7 @@ uniform float water_level = 0.0;
 // Wet band: tide plus splash above the waterline (m).
 uniform float wet_band_m : hint_range(0.0, 4.0) = 1.5;
 // How much darker the wet band is (albedo multiplier).
-uniform float wet_band_albedo : hint_range(0.2, 1.0) = 0.5;
+uniform float wet_band_albedo : hint_range(0.2, 1.0) = 0.42;
 uniform float treeline_m : hint_range(200.0, 900.0) = 500.0;
 
 // Bare rock: below this slope (rise over run) soil holds; above the second it is bare.
@@ -124,6 +125,11 @@ vec4 noise_lod(float layer, vec2 uv, float slice_m, float footprint_m) {
 
 vec4 noise_at(vec2 world, float slice_m, float footprint_m) {
 	return noise_lod(L_NOISE, world / slice_m, slice_m, footprint_m);
+}
+
+// The bump field (0-1, features ~38 m) at a point of a wall plane.
+float bump_field(vec2 world, float footprint_m) {
+	return noise_lod(L_BUMP, world / BUMP_SLICE_M, BUMP_SLICE_M, footprint_m).r;
 }
 
 // ── Biplanar projection ──────────────────────────────────────────────────────
@@ -310,6 +316,10 @@ void fragment() {
 	vec4 n_mid = noise_at(skew + 517.0, 520.0, footprint);
 	float macro = n_big.r;
 	float mottle = n_mid.g;
+	// Noise over the ground plane only (constant up a wall): the cliff bands'
+	// warp and the shift of the narrow wall slices. Anything that changed
+	// with height would shear them into swirls and fold the bands.
+	vec4 n_band = noise_at(p.xz + 913.0, 2000.0, footprint);
 	// Wall-plane noise, only on steep ground: tone (features ~130 m),
 	// seepage streaks (9 m wide, 140 m long; A twice as fine) and the bump
 	// field with its derivatives. Explicit LODs, so the branch is safe.
@@ -317,15 +327,24 @@ void fragment() {
 	vec4 n_wall_z = vec4(0.5);
 	vec4 n_streak_x = vec4(0.0);
 	vec4 n_streak_z = vec4(0.0);
-	vec4 bump_x = vec4(0.5);
-	vec4 bump_z = vec4(0.5);
+	vec3 bump_x = vec3(0.5);
+	vec3 bump_z = vec3(0.5);
 	if (slope_tan > 0.8) {
 		n_wall_x = noise_at(vec2(p.z, p.y), 800.0, footprint);
 		n_wall_z = noise_at(vec2(p.x + 77.0, p.y), 800.0, footprint);
-		n_streak_x = noise_lod(L_NOISE, vec2(p.z / 54.0, p.y / 840.0), 54.0, footprint);
-		n_streak_z = noise_lod(L_NOISE, vec2(p.x / 54.0 + 0.31, p.y / 840.0), 54.0, footprint);
-		bump_x = noise_lod(L_BUMP, vec2(p.z, p.y * 0.6) / BUMP_SLICE_M, BUMP_SLICE_M, footprint);
-		bump_z = noise_lod(L_BUMP, vec2(p.x + 107.0, p.y * 0.6) / BUMP_SLICE_M, BUMP_SLICE_M, footprint);
+		// The narrow streak and bump slices repeat every 54 and 228 m along
+		// a wall: a slow shift along the wall keeps them from lining up.
+		float shift_x = (n_band.b - 0.5) * 120.0;
+		float shift_z = (n_band.r - 0.5) * 120.0;
+		n_streak_x = noise_lod(L_NOISE, vec2((p.z + shift_x) / 54.0, p.y / 840.0), 54.0, footprint);
+		n_streak_z = noise_lod(L_NOISE, vec2((p.x + shift_z) / 54.0 + 0.31, p.y / 840.0), 54.0, footprint);
+		// The bump field and its neighbours one step along and one step up.
+		vec2 bx = vec2(p.z + shift_x * 2.0, p.y * 0.6);
+		vec2 bz = vec2(p.x + 107.0 + shift_z * 2.0, p.y * 0.6);
+		bump_x = vec3(bump_field(bx, footprint), bump_field(bx + vec2(BUMP_STEP_M, 0.0), footprint),
+			bump_field(bx + vec2(0.0, 0.6 * BUMP_STEP_M), footprint));
+		bump_z = vec3(bump_field(bz, footprint), bump_field(bz + vec2(BUMP_STEP_M, 0.0), footprint),
+			bump_field(bz + vec2(0.0, 0.6 * BUMP_STEP_M), footprint));
 	}
 	vec3 aw = abs(g);
 	// Share of the Z-facing plane among the vertical ones: horizontal noise on
@@ -338,7 +357,7 @@ void fragment() {
 	// just under a ledge lies in shadow. A ledge runs for a stretch and
 	// breaks off; its width varies.
 	float cliff = smoothstep(0.9, 1.7, slope_tan);
-	float band_t = (p.y + dot(p.xz, vec2(0.09, -0.05))) / 24.0 + n_big.g * 2.2 + n_mid.b * 1.1;
+	float band_t = (p.y + dot(p.xz, vec2(0.09, -0.05))) / 24.0 + n_band.g * 2.2 + n_band.a * 0.6;
 	float band_f = fract(band_t);
 	float band_id = floor(band_t);
 	float band_tone = hash12(vec2(band_id, 7.3));
@@ -406,8 +425,10 @@ void fragment() {
 	float w_major = pow(sharp[major], blend_power);
 	float w_median = pow(sharp[median], blend_power);
 	float w_sum = max(w_major + w_median, 1e-4);
-	vec2 near_warp = (vec2(n_mid.r, n_mid.a) - 0.5) * 2.0 * NEAR_WARP_M;
-	vec2 far_warp = (vec2(n_big.b, n_big.a) - 0.5) * 2.0 * FAR_WARP_M;
+	vec2 near_warp = (vec2(n_mid.r, n_mid.b) - 0.5) * 2.0 * NEAR_WARP_M;
+	// Warps stay well under a slope of 1 (no fold, no swirl): ±4 m over the
+	// ~85 m field, ±22 m over the ~330 m one.
+	vec2 far_warp = (vec2(n_big.b, n_big.r) - 0.5) * 2.0 * FAR_WARP_M;
 	Proj pa = make_proj(major, w_major / w_sum, p, dpdx, dpdy, near_warp, far_warp);
 	Proj pb = make_proj(median, w_median / w_sum, p, dpdx, dpdy, near_warp, far_warp);
 	bool use_b = pb.weight > mix(0.05, 0.2, far_view);
@@ -545,6 +566,10 @@ void fragment() {
 	float seep_wet = seep * (0.25 + 0.75 * lk_ground_wetness);
 
 	// ── Normal ──
+	// A water film fills the rock's micro-relief on the wet band.
+	float relief = 1.0 - 0.6 * wet;
+	tn_r_a.xy *= relief;
+	tn_r_b.xy *= relief;
 	vec3 tn_a = tn_r_a * br + tn_a_a * ba + tn_b_a * bb + tn_s_a * snow;
 	vec3 tn_b = tn_r_b * br + tn_a_b * ba + tn_b_b * bb + tn_s_b * snow;
 	vec3 n_world = whiteout(normalize(tn_a), g, pa.axis) * pa.weight;
@@ -554,10 +579,10 @@ void fragment() {
 	n_world = normalize(n_world + vec3(0.0, 1.3 * ledge - 0.35 * under, 0.0) * (1.0 - snow * 0.5));
 	if (cliff > 0.01) {
 		// Buttresses and shallow grooves, 20-60 m across: a bump from the
-		// bump slice's field gradient in the two vertical planes.
+		// bump field's gradient (finite differences) in the two vertical planes.
 		float k = 9.0 * cliff;
-		vec2 gx = (bump_x.gb * 2.0 - 1.0) * BUMP_GRADIENT_RANGE / BUMP_SLICE_M * vec2(1.0, 0.6);
-		vec2 gz = (bump_z.gb * 2.0 - 1.0) * BUMP_GRADIENT_RANGE / BUMP_SLICE_M * vec2(1.0, 0.6);
+		vec2 gx = vec2(bump_x.y - bump_x.x, bump_x.z - bump_x.x) / BUMP_STEP_M;
+		vec2 gz = vec2(bump_z.y - bump_z.x, bump_z.z - bump_z.x) / BUMP_STEP_M;
 		vec3 grad_x = vec3(0.0, gx.y, gx.x);
 		vec3 grad_z = vec3(gz.x, gz.y, 0.0);
 		vec3 bump = -k * mix(grad_x, grad_z, wz);
@@ -567,13 +592,16 @@ void fragment() {
 
 	vec2 ra = ra_r * br + ra_a * ba + ra_b * bb + ra_s * snow;
 	float rough = ra.x;
-	rough = mix(rough, 0.32, max(wet * 0.8, max(wetness * br * 0.7, seep_wet * 0.6)));
+	// A film of sea water on the wet band; rain and seepage gloss the rock.
+	rough = mix(rough, 0.45, wet * 0.8);
+	rough = mix(rough, 0.32, max(wetness * br * 0.7, seep_wet * 0.6));
 	ALBEDO = clamp(col, vec3(0.0), vec3(1.0));
 	ROUGHNESS = clamp(rough, 0.05, 1.0);
 	METALLIC = 0.0;
 	// Matte landscape (D13): vegetation reflects little; wet rock and snow more.
 	float veg = clamp(ba + bb, 0.0, 1.0) * (1.0 - wet);
-	SPECULAR = mix(mix(0.42, 0.22, veg), 0.5, max(wet, snow * 0.6));
+	// A wet film reflects like sea water (F0 0.02, SPECULAR 0.354); snow more.
+	SPECULAR = mix(mix(mix(0.42, 0.22, veg), 0.354, wet), 0.5, snow * 0.6);
 	AO = clamp(ra.y * mix(1.05, 0.72, smoothstep(0.55, 0.95, cavity)), 0.0, 1.0);
 	AO_LIGHT_AFFECT = 0.35;
 }
