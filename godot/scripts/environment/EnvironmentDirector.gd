@@ -477,9 +477,13 @@ func _refresh_probe(delta: float, snap: bool, sun_elev: float, cloud: float, sea
 	if reflection_probe == null:
 		return
 	_probe_timer += delta
-	var terrain_ready := terrain != null and terrain.has_method("is_ready") and terrain.is_ready()
+	var terrain_ready := terrain == null or not terrain.has_method("is_ready") or terrain.is_ready()
 	var terrain_arrived := terrain_ready and not _terrain_was_ready
 	_terrain_was_ready = terrain_ready
+	# Nothing before the terrain is up: a capture renders the scene six times
+	# and would stall the chunk uploads (and capture a fjord without walls).
+	if not terrain_ready:
+		return
 	var signature := "%d|%d|%d" % [roundi(sun_elev / PROBE_SUN_STEP), roundi(cloud / PROBE_CLOUD_STEP), roundi(sea_fog)]
 	if terrain_arrived or (signature != _probe_signature and (snap or _probe_timer >= PROBE_MIN_INTERVAL)):
 		_probe_signature = signature
