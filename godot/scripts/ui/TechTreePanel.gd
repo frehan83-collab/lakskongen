@@ -157,8 +157,9 @@ func _build_skeleton() -> void:
 	custom_minimum_size = Vector2(total_w, total_h)
 
 	# ── Background panel ──
-	var bg := ColorRect.new()
-	bg.color = Color(LakskongenTheme.CHART, 0.97)  # Chart paper (document surface)
+	# Chart paper (the document surface), from the theme's tokens.
+	var bg := Panel.new()
+	bg.theme_type_variation = &"Sheet"
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 

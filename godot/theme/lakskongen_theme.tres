@@ -5608,5 +5608,5 @@ Window/icons/close_pressed = SubResource("ink_icon_362")
 Window/styles/embedded_border = SubResource("ink_sb_360")
 Window/styles/embedded_unfocused_border = SubResource("ink_sb_360")
 metadata/surface = "ink"
-metadata/tokens_sha256 = "1d5fb5fb819ba75d17766d32fd1270cb72d8539199cedbe87871fa29224f20b1"
+metadata/tokens_sha256 = "b699424617b838173a4c1c9a4ea08ce9410aba92ae76652b08551222b0da862c"
 metadata/builder_sha256 = "1e727ed0a51197a0b545d7251667e88401cdaf648799d003aaf2f994aeca5a5b"
