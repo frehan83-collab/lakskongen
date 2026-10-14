@@ -488,6 +488,136 @@ mortality 15.67%, price 88.0; DiseaseStress 16.11%; Storm 0.36% / 0.42 events /
 82.9% integrity; ThreeSite EBIT 20.11 NOK/kg, cost 63.21): the probe books no
 reward lines and its sites stay below the deduction.
 
+## 1f. S2-05: mortality by cause (2026-10-14, branch `wave2/sim-c-1`)
+
+Roadmap S2-05 / D4. Every fish that leaves a cohort is booked on the
+mortality ledger (`Biology/MortalityLedger.cs`): a death under one cause, or a
+live removal (escape, harvest, forced harvest, transfer). Escapes are not
+deaths. Categories are the six level-1 classes of the industry cause-of-death
+database the Veterinary Institute reports, plus the roadmap's predator row.
+
+| Category | NVI | Causes in the game | NVI 2024 share of dead salmon |
+|---|---|---|---|
+| Infectious | A | disease (SIR hazard), disease cull (ISA order) | 32.9 % |
+| Environment | B | temperature, low oxygen, harmful algae, jellyfish, storm | 8.8 % (75 % of it jellyfish) |
+| Injury and treatment | C | delousing, handling (transfer, vaccination) | 26.6 % |
+| Physiological | D | (none yet) | 5.7 % |
+| Predators | — | (none yet: the seal event kills no fish) | not a level-1 class |
+| Other | E | (none yet) | 4.8 % |
+| Unexplained | F | baseline anchor (the calibrated whole-cycle hazard; post-smolt batch losses) | 21.2 % |
+
+Source: Fiskehelserapporten 2024 (Veterinærinstituttet rapportserie 1a/2025),
+table 2.4.2 p. 35, from "Fiskehelsedatabasen" (Sjømat Norge / AquaCloud, 387
+salmon sites, about half the standing biomass);
+https://www.vetinst.no/rapporter-og-publikasjoner/rapporter/2025/fiskehelserapporten-2024.
+The shares are registrations by participating companies, not national prevalence.
+
+### Seed 13 (input to S4-03)
+
+`PlayerScriptProbe.RunCareer(13)` (po3_red_sone start plus 22,000 smolts,
+events on, save/load at day 210), printed by
+`MortalityLedgerEngineTests.CareerProbe_AccountsForEveryFish_AndPrintsTheBreakdownInNviCategories`:
+
+```
+po3_red_sone seed 13: 134 000 fish at the start, 285 days, sea loss 12,48 % (deaths + escapes + forced harvest)
+  category / cause                    NVI         fish    share             kg        value NOK
+  infectious                            A        3,378   20.3 %          5,210          382,191
+    disease                                      3,378   20.3 %          5,210          382,191
+  environment                           B          859    5.2 %            915           67,594
+    temperature                                    107    0.6 %             18            1,682
+    storm                                          752    4.5 %            897           65,912
+  injury_treatment                      C        2,290   13.7 %            247           19,729
+    delousing                                    2,290   13.7 %            247           19,729
+  physiological                         D            0    0.0 %              0                0
+  predators                                          0    0.0 %              0                0
+  other                                 E            0    0.0 %              0                0
+  unexplained                           F       10,141   60.8 %         12,020          888,560
+    baseline_anchor                             10,141   60.8 %         12,020          888,560
+  all deaths                                    16,668  100.0 %         18,392        1,358,074
+  left alive: escape                                49                      23            1,870
+  left alive: harvest                          117,283                 531,843       42,231,724
+```
+
+134,000 = 16,668 dead + 49 escaped + 117,283 harvested, exactly. Value is
+live kg at the day's spot price. The 2,290 delousing deaths are the probe's
+day-3 hydrolicer treatment of freshly stocked 0.1 kg smolts.
+
+### D4: what the 61 % disaster was
+
+The ledger cherry-picked onto the pre-wave-1 base (`4a5290d`) and the same
+probe, 20 seeds:
+
+| Base | Sea loss median (min-max) | Worst seed | Low-oxygen deaths |
+|---|---|---|---|
+| pre-wave-1 `4a5290d` | 28.5 % (19.1-62.7) | 16: 62.7 %, 63,814 of 83,949 deaths low oxygen | seeds 1, 13, 16: 37,335 / 21,374 / 63,814 (plankton crash at zone O2 < 3 mg/L) |
+| wave 1 + S2-05 | 17.9 % (12.3-29.2) | 2: 29.2 % (algae 13,013, jellyfish 6,659, hypoxia 5,964) | 0-5,964, from the bloom deck's hypoxia events only |
+
+Seed 13 on the old base: 34.8 % lost, 21,374 of 46,545 deaths low oxygen,
+ending +7.71M. The disaster careers were the plankton-crash event firing on
+the O2 square wave (0 mg/L on 293 of 600 days) that S1-01 removed; the 61 %
+and -10.6M of the §8 dispute were measured on an earlier review commit. On the
+current base seeds 7 and 13 lose 18.2 % and 12.5 % and end +24.37M and
++29.66M, so D4's band (at most 35 % cycle mortality) and the -1M bound hold;
+`D4_Po3Career_LosesAtMost35Percent_AndEndsAboveTheDefaultBankruptcyFloor`
+guards both.
+
+### Twenty seeds (wave 1 + S2-05)
+
+Probe careers, seeds 1-20 (285-311 days each; the fish reach 4.5 kg fast, S2-03):
+
+| Measure | Median | Min | Max |
+|---|---|---|---|
+| Sea loss (deaths + escapes), % of stock | 17.91 | 12.33 | 29.20 |
+| Infectious, % of stock | 2.35 | 1.93 | 2.69 |
+| Environment, % of stock | 6.52 | 0.49 | 19.64 |
+| Injury and treatment, % of stock | 1.71 | 0 | 1.71 |
+| Unexplained (anchor), % of stock | 7.69 | 7.43 | 8.06 |
+| Infectious, share of deaths | 12.7 % | 7.3 % | 20.5 % |
+| Environment, share of deaths | 35.7 % | 4.0 % | 67.3 % |
+| Injury and treatment, share of deaths | 8.9 % | 0 % | 13.9 % |
+| Unexplained, share of deaths | 44.1 % | 25.5 % | 61.7 % |
+
+Pooled causes (489,619 deaths): anchor 42.3 %, harmful algae 19.9 %, disease
+12.7 %, jellyfish 11.7 %, delousing 7.5 %, low oxygen 2.8 %, storm 2.7 %,
+temperature 0.4 %.
+
+Inputs for S4-03 (not tuned here; S2-05 attributes, S4-03 changes hazards):
+- The mix is far from NVI's: unexplained 44 % (NVI F 21 %), environment 36 %
+  (NVI B 9 %), infectious 13 % (NVI A 33 %), injury and treatment 9 % (NVI C 27 %).
+- The bloom deck is the environment surplus: one harmful-algae event kills
+  5-10 % of a career's stock (seed 2: 13,013 of 134,000), and blooms hit
+  18 of 20 careers. Real catastrophic blooms are rare events (Calado et al.
+  2021 cite one northern-Norway algal bloom that killed several million
+  salmon), and NVI books all environmental causes at 8.8 % of deaths.
+- The anchor alone kills 7.4-8.1 % of the stock in under ten months; it is a
+  top-down hazard with no mechanism and should give way to hazards per cause.
+- No predator or physiological deaths exist; the seal event says seals kill
+  fish but removes none.
+- Temperature stress is small, as calibrated: 0.4 % of deaths.
+
+### Temperature stress constant
+
+`MortalityCalibration.TemperatureStressDailyFractionPerDegreeC` = 0.00005
+(0.005 % of the fish per °C outside 4-16 °C per day), the value the engine
+always applied (0.01 x 0.005); the method's documentation said 0.5 %, a
+hundred times more. Held against Calado et al. 2021 (Animals 11(6):1800,
+https://pmc.ncbi.nlm.nih.gov/articles/PMC8234874/): weeks above 18 °C cost
+appetite and growth, not stock; at this rate a Tasmania-2015/16-like summer
+(117 days above 18 °C) kills about 1-3 % directly and a 2 °C northern winter of
+90 days about 0.9 %. `TemperatureStressDocumentationTests` reads the compiled
+XML documentation of the engine method and the registry entry and holds both to
+the applied value.
+
+### The cohort-environment seam
+
+Hazards read `CohortEnvironment` (holding kind and id, water temperature, O2,
+CO2, wave height), resolved per population by
+`SimulationEngine.ResolveCohortEnvironment`. Measured effects of reading the
+holding's own water instead of the zone's: a RAS tank in a zone whose fjord
+oxygen crashes to 1.5 mg/L loses nothing (it lost 25 % before); a RAS tank whose
+chiller fails (0 °C water) loses 0.02 % a day to temperature while the sea pen
+at 10 °C loses none.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
