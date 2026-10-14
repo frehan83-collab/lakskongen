@@ -108,3 +108,13 @@ def test_the_net_uses_alpha_to_coverage_and_fades_to_its_mean():
     assert "mean_coverage" in code
     # The hard 0.5 cutout that aliased into moire is gone.
     assert "discard" not in code
+
+
+def test_water_reflects_with_f0_two_percent():
+    # Godot's F0 is 0.16 * SPECULAR^2, and it treats F0 below 0.02 as specular
+    # occlusion (the grazing reflection scales by 50 * F0): SPECULAR 0.25 gave
+    # F0 0.01 and halved the water's horizon reflection.
+    code = _code(WATER)
+    spec = float(re.search(r"const float WATER_SPECULAR = ([\d.]+);", code).group(1))
+    assert 0.0195 <= 0.16 * spec * spec <= 0.022
+    assert re.search(r"SPECULAR = mix\(WATER_SPECULAR,", code)

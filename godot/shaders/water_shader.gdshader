@@ -8,9 +8,11 @@ render_mode world_vertex_coords, cull_disabled, depth_draw_opaque, diffuse_burle
 // (FjordTerrain's water bake: depth, shore distance, exposure, seabed slope),
 // so deep water reads dark teal-black and the terrain never shows through it,
 // while shallow water lets the seabed through. The surface reflects the sky
-// radiance through the engine's Schlick Fresnel (F0 = 0.02, SPECULAR 0.25)
-// and GGX highlight; it draws on its own render layer, which the fjord's
-// ReflectionProbe leaves out of its reflection mask (WaterGrid.gd).
+// radiance through the engine's Schlick Fresnel and GGX highlight (F0 0.02:
+// SPECULAR 0.354, since the engine's F0 is 0.16 SPECULAR^2 and it fades the
+// grazing reflection of anything below F0 0.02 as specular occlusion). It
+// draws on its own render layer, which the fjord's ReflectionProbe leaves out
+// of its reflection mask (WaterGrid.gd).
 //
 // Waves: the eight fixed bands of SeaStateModel (JONSWAP from the wind and
 // the fetch, Carter 1982), each drawn as two Gerstner components either side
@@ -94,6 +96,8 @@ const float INV_TAU = 0.159154943092;
 const float IOR_WATER = 1.333;
 const float SNELL_COS = 0.6615; // cos(48.6 deg)
 const float MIN_REFLECTION_UP = 0.03;
+// F0 = 0.16 * SPECULAR^2 = 0.02, water's normal-incidence reflectance.
+const float WATER_SPECULAR = 0.354;
 // The whitecap field: a crest gate (0 in the troughs, CREST_WEIGHT on the
 // crests) plus breaker noise of BREAKER_SPREAD (texture A, uniform on 0-1),
 // so short patches break at random along the crests instead of
@@ -351,7 +355,7 @@ void fragment() {
 		}
 		ALBEDO = mix(body, foam_color, foam);
 		ROUGHNESS = mix(clamp(roughness, 0.02, 0.4), 0.85, foam);
-		SPECULAR = mix(0.25, 0.1, foam);
+		SPECULAR = mix(WATER_SPECULAR, 0.1, foam);
 		METALLIC = 0.0;
 		vec3 nf = normalize(mix(n, vec3(0.0, 1.0, 0.0), foam * 0.6));
 		NORMAL = normalize((VIEW_MATRIX * vec4(nf, 0.0)).xyz);
