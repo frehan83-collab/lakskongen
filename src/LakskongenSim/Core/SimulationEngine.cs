@@ -399,6 +399,7 @@ namespace LakskongenSim.Core
             // Initialize PlanktonBloom system
             PlanktonBloom = new PlanktonBloom(Rng.Stream(SimRngStreams.PlanktonBloom));
             LoadPlanktonBloomConfig();
+            ApplyWaterOxygenCalibration(); // wave 2 sim-a-1: the crash's oxygen demand from the registry
 
             // Hatchery → population
             Hatchery.OnNewCohort += cohort =>
@@ -978,7 +979,7 @@ namespace LakskongenSim.Core
                 MinDay = 1,
                 MaxDay = 365,
                 Condition = gs => gs.Zones != null && gs.Zones.Any(z => 
-                    z.WaterChemistry != null && z.WaterChemistry.OxygenO2 < 3.0), // DO below critical
+                    z.WaterChemistry != null && z.WaterChemistry.OxygenO2 < _calibration.Mortality.AcuteLowOxygenMgL), // DO below the acute limit
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "Planteplankton dør i stor skala og bakteriene bruker opp oksygenet. Oksygenmetningen faller under 30 % og fisk dør.";
@@ -995,7 +996,7 @@ namespace LakskongenSim.Core
         {
             if (gs.Populations == null || gs.Zones == null) return;
             
-            var affectedZones = gs.Zones.Where(z => z.WaterChemistry != null && z.WaterChemistry.OxygenO2 < 3.0).ToList();
+            var affectedZones = gs.Zones.Where(z => z.WaterChemistry != null && z.WaterChemistry.OxygenO2 < _calibration.Mortality.AcuteLowOxygenMgL).ToList();
             if (!affectedZones.Any()) return;
 
             foreach (var zone in affectedZones)
@@ -1008,7 +1009,7 @@ namespace LakskongenSim.Core
                     // keeps its controlled oxygen and an offshore pen its
                     // current-fed boost, so a fjord crash no longer kills them.
                     var environment = ResolveCohortEnvironment(pop);
-                    double mortalityRate = MortalityHazards.PlanktonCrashFraction(environment);
+                    double mortalityRate = MortalityHazards.LowOxygenFraction(environment, _calibration.Mortality);
                     if (mortalityRate <= 0.0) continue;
 
                     for (int ci = 0; ci < pop.Cohorts.Count; ci++)
@@ -3154,10 +3155,17 @@ private class BalancingConfig
                 } * bloom.Severity01 * cm;
                 site.GillScore = Math.Max(0.0, site.GillScore - gillDmg);
 
-                double mortRate = bloom.Kind switch
-                {
-                    "jellyfish" => 0.05, "algae" => 0.07, _ => 0.03
-                } * bloom.Severity01 * cm;
+                // Wave 2 sim-a-1: the hypoxia card is an in-cage oxygen sag that
+                // lowers the pens' water (HoldingWaterOf); it kills only the fish
+                // whose own oxygen is below the acute limit (per pen, below), not
+                // a flat share of the site whatever the water held.
+                bool oxygenSag = bloom.Kind == "hypoxia";
+                double mortRate = oxygenSag
+                    ? (vet ? 0.8 : 1.0)
+                    : bloom.Kind switch
+                    {
+                        "jellyfish" => 0.05, "algae" => 0.07, _ => 0.03
+                    } * bloom.Severity01 * cm;
 
                 // P11: an installed bloom mitigation blunts mortality and incurs
                 // an incident deployment/operating cost. No installed kit keeps
@@ -3175,12 +3183,15 @@ private class BalancingConfig
                 double lostKg = 0.0;
                 var bloomCause = MortalityCauses.ForBloomKind(bloom.Kind);
                 foreach (var pop in site.Pens)
+                {
+                    double popRate = oxygenSag ? mortRate * LowOxygenDeathFraction(pop) : mortRate;
                     foreach (var cohort in pop.Cohorts)
                     {
-                        int take = pop.RemoveDead(cohort, (int)(cohort.Count * mortRate), bloomCause);
+                        int take = pop.RemoveDead(cohort, (int)(cohort.Count * popRate), bloomCause);
                         killed += take;
                         lostKg += take * cohort.MeanWeightKg;
                     }
+                }
                 if (killed > 0)
                 {
                     SimLog.Info($"🪼 Bloom {bloom.Kind} killed {killed:N0} at {site.Id} (gill {site.GillScore:F0})");

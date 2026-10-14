@@ -228,12 +228,13 @@ Before F2-01, the roadmap's S2-02 and S2-05 each built a seam for "the water and
   - A step costs O(populations): no hazard, growth, feeding or disease call scans the facility lists. `HoldingSeamTests` asserts one index per step and zero scans inside steps.
   - F2-03's `UnitResolver.Resolve` replaces the body of the index build (plots, `OffshoreUnit`, migrated land fish) and keeps the signature. The hatchery exemption stays: such a population resolves as a sea pen with no site.
 - **One water.** `SimulationEngine.HoldingWaterOf(population)` (`HoldingWater`: temperature, O₂, salinity, area, kind) is the water at the fish.
-  - A sea pen takes its zone's water.
+  - A sea pen takes its zone's water. While an oxygen sag (the bloom deck's `hypoxia` card) runs at the site, the pen's water also carries the in-cage O₂ deficit (`waterOxygen.hypoxiaSagMaxDepth`).
   - An offshore pen takes its area's sea plus the structure's current-fed `OxygenBoost`.
   - A land tank takes the facility's controlled temperature and O₂.
   - Growth, appetite and feeding, the disease tick and the temperature-stress pass all read this water. It is the default body of `UnitWaterTemperatureC(pop)`, and the O₂ that `AppetiteFactorFor(pop)` reads (F2-07 adds Hs, F2-12 CO₂/TAN).
 - **One environment for the hazards.** `SimulationEngine.ResolveCohortEnvironment(population)` returns `CohortEnvironment.From(water, holding id, CO₂, Hs)`. Its temperature and O₂ are that water's: only the ledger id, a land tank's CO₂ and the wave height are added.
   - `UnitMortalityTerms(pop)` hazards (F2-08 offshore causes, F2-15/F2-16 land causes) read this record and book a new `MortalityCause`.
+  - Low oxygen has one hazard, `MortalityHazards.LowOxygenFraction` (none at or above 3 mg/L, US EPA 1986). It reads this record's O₂, so a land tank's O₂ failure (F2-15) or an offshore structure's exchange (F2-08) needs no new oxygen rule, only the water.
   - A pinned sea temperature (`ApplySeaTemperatureStress(t)`, tests and scenarios) reaches sea and offshore pens, never a land tank.
 - **Rules for the lanes.** A hazard or model never reads a zone, the weather or a facility list itself. A lane adds a holding kind by extending `HoldingOf`/`WaterOf` (and, from F2-02, its `*Hooks.cs`). It never adds a parallel lookup.
 

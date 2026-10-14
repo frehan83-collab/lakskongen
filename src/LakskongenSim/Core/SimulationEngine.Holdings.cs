@@ -63,7 +63,8 @@ public partial class SimulationEngine
     /// read live from the holding: a land tank's controlled temperature and
     /// oxygen (the area of its sea-water intake is the home area); an offshore
     /// pen's area sea water, with the oxygen its current-fed exchange adds
-    /// (<see cref="Farm.OffshoreFarm.OxygenBoost"/>); a sea pen's zone water.
+    /// (<see cref="Farm.OffshoreFarm.OxygenBoost"/>); a sea pen's zone water,
+    /// less the oxygen a running in-cage sag takes (<see cref="HypoxiaSagDepthAt"/>).
     /// </summary>
     internal HoldingWater WaterOf(in PopulationHolding holding, FishPopulation population)
     {
@@ -78,7 +79,14 @@ public partial class SimulationEngine
                 return sea with { OxygenMgPerL = sea.OxygenMgPerL + holding.OffshoreFarm.OxygenBoost };
             }
             default:
-                return SeaWaterOf(holding.Zone, population.ZoneId, HoldingKind.SeaPen);
+            {
+                var sea = SeaWaterOf(holding.Zone, population.ZoneId, HoldingKind.SeaPen);
+                // An oxygen sag running at the site (the bloom deck's hypoxia
+                // card): the cage's water holds that fraction less oxygen than
+                // the zone's (SimulationEngine.Oxygen.cs).
+                double sag = holding.Site != null ? HypoxiaSagDepthAt(holding.Site) : 0.0;
+                return sag > 0.0 ? sea with { OxygenMgPerL = sea.OxygenMgPerL * (1.0 - sag) } : sea;
+            }
         }
     }
 

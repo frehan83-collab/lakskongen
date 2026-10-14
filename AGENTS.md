@@ -197,6 +197,7 @@ The Phase 4 "Exit" in `NEXT_LEVEL_PLAN.md` has two gates an agent cannot close a
 - Every fish leaving a cohort goes through `FishPopulation.RemoveDead(cohort, n, MortalityCause)` or `RemoveAlive(cohort, n, FishRemoval)`; never decrement `Cohort.Count` directly (`MortalityLedgerEngineTests` checks lost == booked for every cohort every day)
 - Causes map to the NVI level-1 classes (`MortalityCauses.CategoryOf`); escapes, harvests and transfers are removals, not deaths; holdings without cohorts book with `MortalityLedger.BookHoldingDeaths`
 - Hazards read a `CohortEnvironment` from `SimulationEngine.ResolveCohortEnvironment` (RAS tank / offshore pen / sea pen), never a global zone value; it is built from `HoldingWaterOf` plus the holding id, CO2 and wave height (`CohortEnvironment.From`); a new farm type extends `HoldingOf`/`WaterOf` and adds a cause
+- Low oxygen (wave 2 sim-a-1): one hazard, `MortalityHazards.LowOxygenFraction` at the fish's own water (none at or above 3 mg/L); the bloom deck's `hypoxia` card is an in-cage oxygen sag carried by the pens' `HoldingWater`, and a plankton crash takes only the oxygen its carbon needs (`waterOxygen` registry section, docs/BALANCE.md §1g)
 - Saved in `MortalityModelSnapshot.Ledger`; bridge: `GameBridge.GetMortalityBreakdown` → `SimBridge.get_mortality_breakdown`
 
 ## Adding New Features Checklist

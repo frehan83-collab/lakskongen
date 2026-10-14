@@ -9,8 +9,9 @@ This document is the human-readable companion to the registry: it records the
 current game value, the real Norwegian reference, the source, and the
 recommended playtest band for each high-leverage knob. Last reconciled:
 **Oct 2026, calibration v1.0.3**; bands re-measured **2026-10-14** after the
-S1-01 water-chemistry and S1-02 storm-season fixes (§1d), and again after S2-02
-(production-area sea temperatures and one calendar, calibration v1.0.6, §1f).
+S1-01 water-chemistry and S1-02 storm-season fixes (§1d), again after S2-02
+(production-area sea temperatures and one calendar, calibration v1.0.6, §1f),
+and after wave 2 sim-a-1 (low oxygen at the fish, calibration v1.0.7, §1g).
 
 ## 1. Feed-cost path audit (end-to-end)
 
@@ -783,6 +784,162 @@ oxygen crashes to 1.5 mg/L loses nothing (it lost 25 % before); a RAS tank whose
 chiller fails (0 °C water) loses 0.02 % a day to temperature while the sea pen
 at 10 °C loses none.
 
+## 1g. Wave 2 sim-a-1: low oxygen at the fish (2026-10-14, branch `wave2/sim-a-1`)
+
+S2-05's `D4_Po3Career_LosesAtMost35Percent_AndEndsAboveTheDefaultBankruptcyFloor`
+was red on the wave-2 base `68cce8b`. Once S2-02 put the po3 careers in real
+PO3 water, low-oxygen deaths were 19.5 % (seed 7) and 18.7 % (seed 13) of all
+deaths, and the test allows under 10 %. Calibration v1.0.7 (new keys in
+`mortality`, new section `waterOxygen`).
+
+### Where the low-oxygen deaths came from
+
+There are two places in the engine that book `MortalityCause.LowOxygen`. One is
+the bloom deck's `hypoxia` card (`RollBloomWeek`). The other is the storyteller's
+`plankton-crash` event, which fires when a zone's oxygen is below 3 mg/L. The
+diagnosis ran the po3 career probe (save/load at day 210) over seeds 1-20 with a
+log sink that books each death to its source. A day-by-day replica of the same
+script supplied the timing and the water.
+
+| Source | Low-oxygen deaths, 20 careers | Careers hit | Notes |
+|---|---|---|---|
+| Bloom-deck `hypoxia` card | **65,225 (100 %)** | 14 | 18 sags, July (8), August (4), September (5), October (1); zone water 14.1-16.4 °C and **7.6-8.2 mg/L (saturated) at every sag** |
+| Storyteller `plankton-crash` event | 0 | 0 | never fired: its trigger day exists only on a crash day |
+| Plankton-bloom crashes (the zone water itself) | (no direct deaths) | — | 83 crashes in 20 careers, about 4 per career, in every zone each summer (May-October); 45 of them took the zone below 3 mg/L, the lowest to 2.41 mg/L |
+
+Pooled over the 20 careers, low oxygen was 65,225 of 525,255 deaths (12.4 %).
+The card killed `0.03 x severity x countermeasures` of the site's fish at each
+weekly tick, whatever oxygen the water held. A sag of severity 0.4-1.0 lasting
+7-21 days (one to three ticks) therefore took 1-9 % of the site. In PO3, the
+14 °C gate is crossed from mid-July to late September, so about one sag fell
+in each career summer. The national reference curve that the careers used
+before S2-02 peaks at 13.5 °C and almost never crossed it.
+
+### The real numbers the model is held to
+
+- **Frequency.** NVI's environment class (B) was 1 % of all dead-fish
+  registrations in PO1-PO4 in 2024. Nationally it was 0.2-2.7 % in 2021-2023 and
+  8.8 % in 2024, three quarters of it jellyfish. Sources: Fiskehelserapporten
+  2024, table 2.4.2 and pp. 36-38,
+  https://www.vetinst.no/rapporter-og-publikasjoner/rapporter/2025/fiskehelserapporten-2024.
+  Low oxygen is a small part of that 1 %.
+- **Severity: in-cage hypoxia is common and mostly sub-lethal.** In a
+  commercial Norwegian cage, oxygen readings ranged over 26-90 % saturation and
+  about one reading in four was growth-limiting. The reference site stayed at
+  levels for maximum growth throughout (Solstorm et al. 2018, Aquaculture
+  486:122-129). Oldham's PhD thesis (University of Tasmania, 2018) concluded
+  that DO conditions in cages rarely threaten the survival of farmed salmon,
+  while hypoxia that hurts production and welfare is common.
+- **Lethal limit.** US EPA (1986), EPA 440/5-86-003, gives 3 mg/L as the
+  "Limit to Avoid Acute Mortality" for salmonid waters, other life stages.
+  Severe, moderate and slight production impairment sit at 4, 5 and 6 mg/L.
+  Atlantic salmon's critical oxygen level is 3.46 mg/L at 14 °C and 3.39 mg/L at
+  18 °C (Barnes, King & Carter 2011, Aquaculture 318:397-401). The limiting
+  saturation rises from 30 % at 6 °C to 55 % at 18 °C (Remen et al. 2013,
+  Aquaculture 416:41-47).
+- **Solubility.** Saturated seawater (35 PSU) holds 9.0 mg/L at 10 °C, 8.0 at
+  16 °C and 7.7 at 18 °C (Benson & Krause 1984, in the engine since S1-01). The
+  same fractional sag therefore leaves less oxygen in warm water.
+- **A bloom's oxygen budget.** A seasonal coastal bloom reaches 1-6.5 µg/L
+  chlorophyll a (NIVA FerryBox, Indre Oslofjord 2017), and below 0.3 to 10 µg/L
+  in 2018. At about 50 g C per g chlorophyll (inside the range Cloern et al.
+  1995 compiled) and Redfield's 138 O2 per 106 C (3.47 g O2 per g C), the whole
+  of a 10 µg/L bloom holds 1.7 mg/L of oxygen demand.
+
+### What changed (the model, not the band)
+
+1. **One low-oxygen hazard at the fish's own water.**
+   `MortalityHazards.LowOxygenFraction(environment, calibration)` kills nothing
+   at or above 3 mg/L, a tenth below it, a quarter below 2 mg/L and half below
+   1 mg/L (the plankton-crash event's steps, now registry keys). Both the
+   plankton-crash event and the hypoxia card use it, and it reads
+   `ResolveCohortEnvironment`. A land tank or an offshore structure therefore
+   answers with its own water.
+2. **The `hypoxia` card is an in-cage oxygen sag.** While it runs, the site's
+   pens' water carries `O2 x (1 - severity x 0.42 x diffuser x containment)`,
+   where `waterOxygen.hypoxiaSagMaxDepth` is 0.42. The worst open-net sag holds
+   the cage's daily mean at 58 % of ambient, the middle of Solstorm's 26-90 %
+   range. An O2 diffuser scales the depth by 0.3; semi-closed and closed pens
+   scale it by their oxygen demand (1.4 and 1.6). The water reaches the fish
+   through the seam (`HoldingWaterOf`), so appetite reads it every day and the
+   card's weekly tick kills only the fish whose water is below 3 mg/L. Gill
+   damage is unchanged.
+3. **A plankton crash takes the oxygen its carbon needs.** That is the dying
+   biomass's share of capacity times
+   `waterOxygen.bloomChlorophyllAtCapacityUgL x phytoplanktonCarbonPerChlorophyll x oxygenPerOrganicCarbon`
+   (10 x 50 x 3.47 / 1000 = 1.735 mg/L). The old crash cut 75 % x the peak from
+   the zone's oxygen, which took every zone from about 8 mg/L to about 3 mg/L
+   twice a summer. Bloom growth, frequency and respiration are unchanged.
+
+In saturated 16 °C water, the worst open-net sag leaves 4.6 mg/L, which costs
+appetite but kills no fish. A sag kills only when the cage's water is already
+low or a closed pen's demand deepens it. The worst sag in a closed floating pen
+leaves 33 % of ambient: 3.2 mg/L in saturated 7 °C water (no deaths) and 2.5
+mg/L at 18 °C (a tenth die). `LowOxygenModelTests` pins each of these cases.
+
+### Measured after the fix
+
+The po3 career probe was run on seeds 1-20, with the base and the fix on the
+same script and seeds.
+
+| Measure | Base `68cce8b` | sim-a-1 |
+|---|---|---|
+| Low-oxygen deaths, pooled | 65,225 of 525,255 (12.4 %) | **0 of 462,613** |
+| Careers with any low-oxygen death | 14 of 20 | **0 of 20** |
+| Low-oxygen share of deaths, median / max | 9.0 % / 31.4 % | 0 / 0 |
+| Sea loss, median (min-max) | 18.20 % (13.21-29.98) | **16.72 % (11.74-24.05)** |
+| Environment share of deaths, median (min-max) | 37.9 % (4.3-61.1) | 30.7 % (3.2-48.5) |
+| Environment, % of stock, median | 6.93 | 5.28 |
+| Ending balance, median / min | +26.10M / +21.24M | +26.95M / +22.90M |
+| Economic FCR, median | 1.179 | 1.177 |
+| Pooled causes | anchor 39.7, jellyfish 14.8, **low oxygen 12.4**, disease 12.3, algae 9.4, delousing 8.7, storm 2.6 % | anchor 45.5, jellyfish 17.0, disease 14.1, algae 10.7, delousing 9.9, storm 2.9 % |
+
+The 200-seed sweep (probe without save/load, seeds 1-200) gives the tail:
+
+| Measure | Base | Sag model only (crash unchanged) | sim-a-1 (sag + crash) |
+|---|---|---|---|
+| Careers with low-oxygen deaths | 123 | 13 | **1** |
+| Low-oxygen share of pooled deaths | 11.9 % | 3.06 % | **0.157 %** |
+| Sea loss median / p95 / max | 20.59 / 28.93 / 31.69 % | 18.05 / 25.17 / 38.52 % | **17.88 / 24.05 / 26.99 %** |
+| Ending balance, min | +4.64M | +5.00M | +5.04M |
+
+The middle column explains why step 3 is part of the fix. With the sag reading
+the water but the crash still taking 75 % of the oxygen, a sag tick that fell on
+a crash day killed 10-25 % of a site in 13 careers. The worst career, seed 37,
+lost 38.5 %. The one career left in the sim-a-1 column is a compound event:
+seed 121's semi-closed `po3_nord` had a severity-0.98 sag on the day of a
+plankton crash in late June. The zone held 6.95 mg/L, the cage 2.95 mg/L, and
+7,761 fish died.
+
+The 600-day po3 water probe (`WaterChemistryStabilityTests`' script) was run on
+seeds 7 and 13:
+
+| Measure | Base | sim-a-1 |
+|---|---|---|
+| Zone oxygen minimum | 2.88-2.96 mg/L | **6.51-6.95 mg/L** |
+| Days below 70 % saturation, per zone | 4 | **0** |
+| Days below 5 mg/L, per zone | 4 | 0 |
+
+### Careers (`PlayerScriptProbe`, po3_red_sone, events on, save/load at day 210)
+
+| Seed | Stage | Days | Harvested kg | Realized NOK/kg | Econ FCR | Sea loss | Low-oxygen deaths | Ending balance |
+|---|---|---|---|---|---|---|---|---|
+| 7 | base `68cce8b` | 315 | 460,912 | 75.52 | 1.179 | 23.86 % | 6,210 of 31,927 (19.5 %) | +21.24M |
+| 7 | sim-a-1 | 315 | 487,858 | 75.52 | 1.178 | **19.45 %** | **0 of 26,019** | **+22.90M** |
+| 13 | base `68cce8b` | 331 | 493,072 | 78.40 | 1.176 | 20.59 % | 5,144 of 27,546 (18.7 %) | +22.94M |
+| 13 | sim-a-1 | 331 | 516,432 | 78.40 | 1.175 | **16.87 %** | **0 of 22,551** | **+24.56M** |
+
+D4 holds as written for both seeds: at most 35 % lost, above the -1M floor,
+and low oxygen under 10 % of deaths. The other probe bands also hold:
+`PlayerScriptCareerTests` and `FullCycleEconomicTests` pass unchanged, as do
+the tutorial (`ScenarioCampaignTests`) and the water bands
+(`WaterChemistryStabilityTests`).
+
+Seed 13's breakdown (input to S4-03): infectious 16.6 %, environment 23.3 %
+(jellyfish 9.8, algae 9.5, storm 4.0), injury and treatment 10.2 %,
+unexplained 50.0 %. The environment class is still far above NVI's 1 % in
+PO1-PO4, now from jellyfish and algae alone (RUN_LOG §8).
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
@@ -828,6 +985,12 @@ at 10 °C loses none.
 | `SeaTemperature.DailyFluctuationStdDevC` | 0.3 | (game estimate) | none | 0-0.6 |
 | `SeaTemperature.EventAnomalyEFoldingDays` | 21 | July 2025 heatwave ~3 weeks | HI Rapport fra havforskningen 2025-69 | 7-45 |
 | Production-area climatology (13 x 12, `ProductionAreas`) | §1f | HI normals 2012-2024 (NorKyst v3) | HI 2025-69 + station shapes | data, not a knob |
+| `Mortality.AcuteLowOxygenMgL` | 3.0 | salmonid acute-mortality limit 3 mg/L; Pcrit 3.4-3.5 mg/L at 14-18 °C | US EPA 1986 (EPA 440/5-86-003); Barnes et al. 2011 | 2.5-3.5 |
+| `Mortality.LowOxygenDeathFraction` (/Severe/Anoxic) | 0.10 / 0.25 / 0.50 below 3 / 2 / 1 mg/L | (game estimate: the limit is sourced, the kill above it is not) | plankton-crash steps, kept | monotone, 0-1 |
+| `WaterOxygen.HypoxiaSagMaxDepth` | 0.42 | in-cage 26-90 % saturation, 1 reading in 4 growth-limiting | Solstorm et al. 2018 (Aquaculture 486:122-129) | 0.25-0.6 |
+| `WaterOxygen.BloomChlorophyllAtCapacityUgL` | 10 | seasonal bloom 1-6.5 µg/L (2017), <0.3-10 (2018) | NIVA FerryBox Indre Oslofjord 2017/2018 | 5-20 |
+| `WaterOxygen.PhytoplanktonCarbonPerChlorophyll` | 50 g/g | ~10-330 g/g by light, temperature, nutrients | Cloern et al. 1995 (game estimate inside the range) | 30-100 |
+| `WaterOxygen.OxygenPerOrganicCarbon` | 3.47 g/g | 138 O2 : 106 C (mol) | Redfield et al. 1963 | 3.4-3.8 |
 
 ## 4. Playtest tuning priorities
 
