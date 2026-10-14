@@ -39,7 +39,7 @@ namespace LakskongenSim.Calibration
         public const string EmbeddedResourceName = "LakskongenSim.Calibration.calibration.json";
 
         /// <summary>Current schema/balancing version. Bump when reconciled values change.</summary>
-        public const string DefaultVersion = "1.0.9";
+        public const string DefaultVersion = "1.0.10";
 
         /// <summary>Calibration schema/balancing version.</summary>
         [JsonPropertyName("version")]
@@ -143,6 +143,14 @@ namespace LakskongenSim.Calibration
         /// </summary>
         [JsonPropertyName("capacity")]
         public CapacityCalibration Capacity { get; init; } = new();
+
+        /// <summary>
+        /// Real pens (S2-01b): the fish and density limits of one production
+        /// unit and the standard sea pen's net (the locality layouts of the
+        /// scenario sites are scenario data).
+        /// </summary>
+        [JsonPropertyName("pens")]
+        public PenCalibration Pens { get; init; } = new();
 
         /// <summary>
         /// Derived feed cost per kg of fish produced = feed price × base FCR.
@@ -1309,6 +1317,77 @@ namespace LakskongenSim.Calibration
         /// <summary>Ceiling of one infringement fee in NOK (<see cref="InfringementFeeCeilingG"/> × G).</summary>
         [JsonIgnore]
         public decimal InfringementFeeCeilingNok => Math.Round((decimal)InfringementFeeCeilingG * GrunnbelopNok, 0);
+    }
+
+    #endregion
+
+    #region S2-01b real pens
+
+    /// <summary>
+    /// Real pens (roadmap S2-01b). A sea site is a frame mooring of pens
+    /// (production units, <see cref="Farm.Pen"/>); the regulator caps the fish
+    /// and the density of each unit, and the volume the fish can move in follows
+    /// from the net: the wall's cylinder plus the cone,
+    /// C² / (4π) × (wall + cone / 3). The density limit itself is
+    /// <see cref="CapacityCalibration.MaxStockingDensityKgPerM3"/> (§ 25); the
+    /// projected density of a stocking grows the smolts on the S2-03 growth law
+    /// to the plan's harvest weight (<see cref="BiologyCalibration.TargetHarvestWeightKg"/>)
+    /// with the plan's survival (<see cref="HealthCalibration.SeaMortalityPerCycle"/>
+    /// over <see cref="BiologyCalibration.GrowthToHarvestDays"/>), the plan of
+    /// S2-01a.
+    /// </summary>
+    public sealed record PenCalibration
+    {
+        /// <summary>
+        /// Most fish one production unit in the sea may hold (unit fish):
+        /// 200,000. Source: akvakulturdriftsforskriften (FOR-2008-06-17-822)
+        /// § 47a "Maksimalt antall fisk": "Antall fisk per produksjonsenhet i
+        /// sjø skal ikke overstige 200 000"
+        /// (https://lovdata.no/dokument/SF/forskrift/2008-06-17-822), added by
+        /// FOR-2011-12-20-1413 and in force from 1 January 2013; § 70 exempts
+        /// units holding fish stocked before that day. Year 2013 (read 2026).
+        /// </summary>
+        public int MaxFishPerPen { get; init; } = 200_000;
+
+        /// <summary>
+        /// Collar circumference of the standard sea pen (unit m): 160. Source:
+        /// iLaks, "Her ferdigstilles nettene til en 160 meters merd", 9 March
+        /// 2020: the largest pens in Norway are 200 m around, "men 160 meter er
+        /// etter hvert blitt standard"; slightly smaller circumferences are used
+        /// in the north and on rough sites
+        /// (https://ilaks.no/her-ferdigstilles-nettene-til-en-160-meters-merd/).
+        /// Bergheim (2012, Lat. Am. J. Aquat. Res. 40(3): 800-807) gives a
+        /// maximum of 157 m and 20-50 m net depths
+        /// (https://www.redalyc.org/pdf/1750/175024151027.pdf). Year 2020.
+        /// </summary>
+        public double StandardCircumferenceM { get; init; } = 160.0;
+
+        /// <summary>
+        /// Depth of the standard net's vertical wall (unit m): 25. Source: the
+        /// net of the 160 m pen in the iLaks article above is "40 meter dypt";
+        /// the split into a 25 m wall and a 15 m cone bottom is a game estimate
+        /// (2026) inside Bergheim's 20-50 m net depths, and gives the standard
+        /// pen 61,116 m³, inside the 20,000-60,000+ m³ of the industry's large
+        /// cages (Bergheim 2012). Year 2020.
+        /// </summary>
+        public double StandardNetWallDepthM { get; init; } = 25.0;
+
+        /// <summary>
+        /// Height of the standard net's cone bottom (unit m): 15. See
+        /// <see cref="StandardNetWallDepthM"/>: 25 m wall + 15 m cone = the 40 m
+        /// net of a 160 m pen (iLaks 2020); the split is a game estimate (2026).
+        /// </summary>
+        public double StandardConeDepthM { get; init; } = 15.0;
+
+        /// <summary>
+        /// Pens in the mooring frame of a site the player builds (unit pens):
+        /// 8. Game estimate (2026) inside the 6-12 pens of a Norwegian salmon
+        /// locality (roadmap S2-01b), equal to the standard site the crew and
+        /// upkeep are calibrated for (<c>SimulationEngine.StandardPensPerSite</c>).
+        /// Eight 160 m pens hold 1.6 M smolts, enough to fill the 3,120 t
+        /// locality a build clears (<see cref="CapacityCalibration.BuiltSiteLocalityMtbTonnes"/>).
+        /// </summary>
+        public int BuiltSitePenCount { get; init; } = 8;
     }
 
     #endregion

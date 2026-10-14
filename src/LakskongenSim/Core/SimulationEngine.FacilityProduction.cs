@@ -195,22 +195,22 @@ public partial class SimulationEngine
         // S2-01a: a transfer to sea is a stocking; the plan's peak must fit.
         var capacity = CheckStockingCapacity(site, batch.Count, weightKg);
         if (capacity != null) return capacity;
+        // S2-01b: the post-smolts go into empty pens like any stocking.
+        var penRoom = CheckSitePenRoom(site, batch.Count, ForecastPenStocking(site, weightKg), out var allocation);
+        if (penRoom != null) return penRoom;
 
         facility.TransferToSea(batchId);
         var tier = batch.AverageWeightG >= SuperSmoltTransferWeightG ? SmoltQualityTier.SuperSmolt
             : batch.AverageWeightG >= LargeSmoltTransferWeightG ? SmoltQualityTier.Large
             : SmoltQualityTier.Standard;
         var strain = SmoltStrainRegistry.Get("standard");
-        var population = new FishPopulation { ZoneId = site.ZoneId, SeaLiceLoad = strain.InitialLiceLoad };
-        population.InjectDependencies(Growth, Mortality);
-        population.Cohorts.Add(new FishPopulation.Cohort(Hatchery.MaturationDays + batch.DaysInFacility,
-            batch.Count, weightKg, LifeStage.Smolt, strain.BuildGenome())
-        {
-            Quality = tier
-        });
-        site.Stock(population);
+        foreach (var (pen, n) in allocation!)
+            PlacePopulation(site, pen, new FishPopulation.Cohort(Hatchery.MaturationDays + batch.DaysInFacility,
+                n, weightKg, LifeStage.Smolt, strain.BuildGenome())
+            {
+                Quality = tier
+            }, strain.InitialLiceLoad);
         site.LastStockedDay = State.Day;
-        State.Populations.Add(population);
         if (strain.InitialLiceLoad > 0)
             site.Lice.SeedExternalInfection(Math.Max(0.05, strain.InitialLiceLoad));
 

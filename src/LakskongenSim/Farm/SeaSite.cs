@@ -23,7 +23,22 @@ namespace LakskongenSim.Farm
         /// UI never shows a raw id such as "po3_nord".</summary>
         [JsonIgnore] public string Label =>
             string.IsNullOrWhiteSpace(DisplayName) ? SiteNames.Humanize(Id) : DisplayName;
+        /// <summary>
+        /// The fish populations at the site (a legacy name: each population is
+        /// the fish of one stocking, held in one of <see cref="PhysicalPens"/>).
+        /// </summary>
         public List<Biology.FishPopulation> Pens { get; set; } = new();
+
+        /// <summary>
+        /// The site's production units (S2-01b): the pens of its mooring frame,
+        /// numbered from 1, each empty or holding one population
+        /// (<see cref="Pen.PopulationId"/>). A site built through the id
+        /// constructor gets the calibration's standard layout; a scenario site
+        /// gets its locality's layout from the scenario data; a save from before
+        /// S2-01b gets one pen per population on load
+        /// (<c>SimulationEngine.MigratePensAfterLoad</c>).
+        /// </summary>
+        public List<Pen> PhysicalPens { get; set; } = new();
 
         // License & MAB (Maximum Allowed Biomass)
         public double MABTonnes { get; set; } = 780.0; // Standard license: 780 tonnes
@@ -104,12 +119,45 @@ namespace LakskongenSim.Farm
         /// <summary>Carbon emissions/credits tracker for this site.</summary>
         public CarbonTracker CarbonTracker { get; set; } = new();
 
-        /// <summary>Live stocking density (kg/m³) from the pens' current biomass.</summary>
+        /// <summary>
+        /// Live stocking density (kg/m³) of the site's fish over the legacy
+        /// <see cref="PenVolume"/> (one pen's volume for all its fish). The
+        /// figure a production unit is held to is <see cref="DensestPenKgPerM3"/>.
+        /// </summary>
         [JsonIgnore] public float CurrentStockingDensity => PenVolume > 0f
             ? (float)(Pens.Sum(p => p.GetTotalBiomassKg()) / PenVolume)
             : 0f;
+
+        /// <summary>
+        /// Density (kg/m³) of the site's densest occupied pen (S2-01b): the
+        /// figure akvakulturdriftsforskriften § 25 holds each production unit
+        /// to. A site whose populations sit in no pen (a fixture that adds them
+        /// to <see cref="Pens"/> directly) falls back to
+        /// <see cref="CurrentStockingDensity"/>.
+        /// </summary>
+        [JsonIgnore] public double DensestPenKgPerM3
+        {
+            get
+            {
+                double densest = -1.0;
+                foreach (var pen in PhysicalPens)
+                {
+                    var population = PopulationIn(pen);
+                    if (population == null) continue;
+                    densest = Math.Max(densest, pen.DensityKgPerM3(population.GetTotalBiomassKg()));
+                }
+                return densest >= 0.0 ? densest : CurrentStockingDensity;
+            }
+        }
         public float MaxAllowedDensity { get; set; } = 25.0f; // kg/m³ (Norwegian standard)
+        /// <summary>Legacy pen volume (m³) of the site's old density figure; the real volumes are <see cref="PhysicalPens"/>'.</summary>
         public float PenVolume { get; set; } = 50000f; // m³ (default pen volume)
+        /// <summary>
+        /// The size the site's crew and upkeep scale with, in pens
+        /// (<c>SimulationEngine.SiteSizeScale</c>: a scenario site's stocked pens,
+        /// 8 for a built site). Not the pen count: that is
+        /// <see cref="PhysicalPens"/>' (S2-01b).
+        /// </summary>
         public int NumberOfPens { get; set; } = 8; // Typical Norwegian site: 6-10 pens
 
         // ── Per-site sea lice (Phase 2.1) ─────────────────────────────────
@@ -146,17 +194,90 @@ namespace LakskongenSim.Farm
         /// <summary>Parameterless constructor for JSON deserialization.</summary>
         public SeaSite() { Id = ""; }
 
+        /// <summary>
+        /// A site with the calibration's standard pen layout
+        /// (<see cref="PenLayout.Standard"/>): the engine replaces it with the
+        /// locality's layout where it knows one (a scenario site).
+        /// </summary>
         public SeaSite(string id, string zoneId = "")
         {
             Id = id;
             ZoneId = zoneId;
+            PhysicalPens = PenLayout.Standard(Calibration.CalibrationRegistry.Default.Pens).Build(id);
         }
 
-        public void Stock(Biology.FishPopulation pop)
+        // ── Pens (S2-01b) ────────────────────────────────────────────────────
+
+        /// <summary>The pen holding <paramref name="population"/>, or null.</summary>
+        public Pen? PenOf(Biology.FishPopulation population)
+        {
+            if (population == null || string.IsNullOrEmpty(population.Id)) return null;
+            foreach (var pen in PhysicalPens)
+                if (pen.PopulationId == population.Id) return pen;
+            return null;
+        }
+
+        /// <summary>The population in <paramref name="pen"/> (one of <see cref="Pens"/>), or null when the pen is empty.</summary>
+        public Biology.FishPopulation? PopulationIn(Pen pen)
+        {
+            if (pen == null || pen.IsEmpty) return null;
+            foreach (var population in Pens)
+                if (population.Id == pen.PopulationId) return population;
+            return null;
+        }
+
+        /// <summary>
+        /// True when <paramref name="pen"/> can take a stocking: it holds no
+        /// population of the site, or only one without a live fish (all
+        /// harvested or dead, waiting to be cleared).
+        /// </summary>
+        public bool IsPenFree(Pen pen)
+        {
+            if (pen == null) return false;
+            var population = PopulationIn(pen);
+            return population == null || population.TotalCount <= 0;
+        }
+
+        /// <summary>
+        /// The pen named by <paramref name="key"/>: its id ("po3_nord/p03") or
+        /// its number ("3"). Null when the site has no such pen.
+        /// </summary>
+        public Pen? FindPen(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return null;
+            foreach (var pen in PhysicalPens)
+                if (pen.Id == key) return pen;
+            if (int.TryParse(key, System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture, out int number))
+                foreach (var pen in PhysicalPens)
+                    if (pen.Number == number) return pen;
+            return null;
+        }
+
+        /// <summary>
+        /// Free the pen of <paramref name="population"/> (its fish are all
+        /// harvested or dead): the pen lies empty until the next stocking.
+        /// </summary>
+        public void ReleasePen(Biology.FishPopulation population)
+        {
+            var pen = PenOf(population);
+            if (pen != null) pen.PopulationId = "";
+        }
+
+        /// <summary>
+        /// Stock <paramref name="pop"/> at the site, in <paramref name="pen"/>
+        /// when given (one of <see cref="PhysicalPens"/>), else in the first free
+        /// pen. The engine's stocking verbs choose and check the pen (S2-01b); a
+        /// low-level caller with every pen taken (a test fixture) gets one more
+        /// pen of the site's first pen's net, so every population at a site
+        /// stands in a pen.
+        /// </summary>
+        public void Stock(Biology.FishPopulation pop, Pen? pen = null)
         {
             pop.ZoneId = ZoneId; // Link population to this site's zone
             pop.SiteId = Id;     // Direct site reference for O(1) lookup
             Pens.Add(pop);
+            AssignPen(pop, pen);
             OnStocked?.Invoke(pop);
 
             // Check MAB limit
@@ -164,6 +285,25 @@ namespace LakskongenSim.Farm
             {
                 OnMABExceeded?.Invoke();
             }
+        }
+
+        private void AssignPen(Biology.FishPopulation pop, Pen? pen)
+        {
+            if (string.IsNullOrEmpty(pop.Id) || PenOf(pop) != null) return;
+            if (pen == null)
+            {
+                foreach (var candidate in PhysicalPens)
+                    if (IsPenFree(candidate)) { pen = candidate; break; }
+            }
+            if (pen == null)
+            {
+                var geometry = PhysicalPens.Count > 0
+                    ? new PenGeometry(PhysicalPens[0].CircumferenceM, PhysicalPens[0].NetWallDepthM, PhysicalPens[0].ConeDepthM)
+                    : PenGeometry.Standard(Calibration.CalibrationRegistry.Default.Pens);
+                pen = Pen.Build(Id, PhysicalPens.Count + 1, geometry);
+                PhysicalPens.Add(pen);
+            }
+            pen.PopulationId = pop.Id;
         }
 
         /// <summary>Advance all pens by days.</summary>

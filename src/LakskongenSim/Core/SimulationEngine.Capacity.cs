@@ -161,10 +161,24 @@ public partial class SimulationEngine
             return new StockingCapacityPreview(false, "site_not_found", $"Site '{siteId}' not found",
                 0, 0.0, 0.0, 0.0, 0.0, State?.Day ?? 0, 0);
         var strain = SmoltStrainRegistry.Get(strainId);
-        return EvaluateStocking(site, Math.Max(0, count), strain.ReleaseWeightKg, includeMaxCount: true);
+        var preview = EvaluateStocking(site, Math.Max(0, count), strain.ReleaseWeightKg, includeMaxCount: true);
+        // S2-01b: the site verb also needs empty pens that hold the fish under
+        // the per-pen limits; the most smolts it takes is the lesser room.
+        var forecast = ForecastPenStocking(site, strain, SmoltQualityTier.Standard);
+        int penRoom = (int)Math.Min(int.MaxValue, SitePenRoom(site, forecast));
+        preview = preview with { MaxCount = Math.Min(preview.MaxCount, penRoom) };
+        if (preview.Allowed && count > penRoom)
+            preview = preview with
+            {
+                Allowed = false,
+                ReasonKey = CapacityReasons.PensFull,
+                Message = $"The empty pens at {site.Id} take {penRoom:N0} of {count:N0} fish within " +
+                    $"{MaxFishPerPen:N0} fish and {PenDensityLimitKgPerM3:F0} kg/m³ a pen",
+            };
+        return preview;
     }
 
-    /// <summary>Most smolts of a strain a site can take now under every capacity check (0 when none).</summary>
+    /// <summary>Most smolts of a strain a site can take now under every capacity check and its empty pens' room (0 when none).</summary>
     public int MaxStockableSmolts(string siteId, string strainId = "standard")
         => PreviewStocking(siteId, 0, strainId).MaxCount;
 
@@ -254,13 +268,13 @@ public partial class SimulationEngine
         if (!CanBuildSeaSite(zoneId, out var reason))
         {
             string key = State?.Zones?.Any(z => z.Id == zoneId) == true ? "growth_licence_required" : "zone_not_found";
-            return new SiteBuildPreview(false, key, reason, cost, area, BuiltSiteLocalityMtbTonnes, 0.0, areaMtb, StandardPensPerSite);
+            return new SiteBuildPreview(false, key, reason, cost, area, BuiltSiteLocalityMtbTonnes, 0.0, areaMtb, BuiltSitePenLayout.Count);
         }
         if (FinanceManager == null || FinanceManager.Balance < cost)
             return new SiteBuildPreview(false, "insufficient_funds",
                 $"Insufficient funds: need {cost:N0} NOK to build the site", cost, area, BuiltSiteLocalityMtbTonnes,
-                0.0, areaMtb, StandardPensPerSite);
-        return new SiteBuildPreview(true, "", "", cost, area, BuiltSiteLocalityMtbTonnes, 0.0, areaMtb, StandardPensPerSite);
+                0.0, areaMtb, BuiltSitePenLayout.Count);
+        return new SiteBuildPreview(true, "", "", cost, area, BuiltSiteLocalityMtbTonnes, 0.0, areaMtb, BuiltSitePenLayout.Count);
     }
 
     // ─── Daily enforcement (post-tick) ─────────────────────────────────────

@@ -62,6 +62,17 @@ public partial class SimulationEngine
         => PenVolumeProxyM3 * Math.Max(1.0, population.TotalCount / FishPerDensityProxyPen);
 
     /// <summary>
+    /// Water (m³) the density stress on growth and FCR reads for
+    /// <paramref name="population"/> in <paramref name="holding"/>: the volume
+    /// of the sea pen that holds it (S2-01b, <see cref="Farm.Pen.VolumeM3"/>);
+    /// the density proxy (<see cref="StockingVolumeM3"/>) for fish in no pen
+    /// (offshore pens and land tanks until F2-03/F2-12 give them units, and
+    /// fixtures that add populations to a site's list directly).
+    /// </summary>
+    internal double DensityVolumeM3(in PopulationHolding holding, FishPopulation population)
+        => holding.Pen is { VolumeM3: > 0.0 } pen ? pen.VolumeM3 : StockingVolumeM3(population);
+
+    /// <summary>
     /// Hours of light a holding in <paramref name="water"/> gets today: a land
     /// tank runs continuous light (Nofima CtrlAQUA 2023: 24 h light for post-smolt
     /// growth in RAS); a sea or offshore pen the natural day length at its

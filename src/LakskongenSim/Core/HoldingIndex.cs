@@ -19,13 +19,15 @@ namespace LakskongenSim.Core;
 /// <param name="Site">The sea site whose pen list holds the population (null for a population in no site's pens).</param>
 /// <param name="LandFacility">The land-based facility whose tank holds the population.</param>
 /// <param name="OffshoreFarm">The offshore farm whose pen holds the population.</param>
+/// <param name="Pen">The sea site's production unit holding the population (S2-01b): the volume its density is read in; null outside a site's pens.</param>
 public readonly record struct PopulationHolding(
     HoldingKind Kind,
     string Id,
     Zone? Zone,
     SeaSite? Site,
     RASFacility? LandFacility,
-    OffshoreFarm? OffshoreFarm);
+    OffshoreFarm? OffshoreFarm,
+    Pen? Pen = null);
 
 /// <summary>
 /// Every population's holding for one simulated step, resolved once
@@ -87,7 +89,7 @@ internal sealed class HoldingIndex
         => new(HoldingKind.Offshore, farm.Id ?? "", zone, null, null, farm);
 
     internal static PopulationHolding SeaPen(FishPopulation population, SeaSite? site, Zone? zone)
-        => new(HoldingKind.SeaPen, population.SiteId ?? "", zone, site, null, null);
+        => new(HoldingKind.SeaPen, population.SiteId ?? "", zone, site, null, null, site?.PenOf(population));
 
     private static Zone? Lookup(Dictionary<string, Zone> zones, string? zoneId)
         => !string.IsNullOrEmpty(zoneId) && zones.TryGetValue(zoneId, out var zone) ? zone : null;

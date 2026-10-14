@@ -136,6 +136,7 @@ public partial class SimulationEngine
             order.Pens.Add(new HarvestOrderPen
             {
                 PopulationId = pen.Id,
+                PenId = holding.Site?.PenOf(pen)?.Id ?? "",
                 FishToHarvest = FishToHarvest(pen.TotalCount, fraction)
             });
         State.HarvestOrders.Add(order);

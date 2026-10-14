@@ -163,6 +163,8 @@ public partial class SimulationEngine
         foreach (var pen in holding.Pens.Where(p => p.TotalCount <= 0).ToList())
         {
             pen.Cohorts.Clear();
+            // S2-01b: the sea pen lies empty until the next stocking.
+            holding.Site?.ReleasePen(pen);
             holding.Pens.Remove(pen);
             State.Populations.Remove(pen);
             Mortality?.ClearEnvironmentalStress(pen.Id);
@@ -171,8 +173,10 @@ public partial class SimulationEngine
 
     /// <summary>
     /// The pens of <paramref name="holding"/> a harvest takes: the listed ones
-    /// (all pens with fish when none are listed). Null with an error when a
-    /// listed pen is not in the holding.
+    /// (all pens with fish when none are listed). A sea site's pen is named by
+    /// its population id or, since S2-01b, by its pen's id ("po3_nord/p03") or
+    /// number; an empty pen names no fish. Null with an error when a listed
+    /// pen is not in the holding.
     /// </summary>
     private List<FishPopulation>? SelectHarvestPens(HarvestHolding holding, IReadOnlyCollection<string>? penIds,
         out string errorKey, out string message)
@@ -185,13 +189,18 @@ public partial class SimulationEngine
         foreach (var id in penIds.Distinct())
         {
             var pen = holding.Pens.FirstOrDefault(p => p.Id == id);
+            if (pen == null && holding.Site?.FindPen(id) is { } unit)
+            {
+                pen = holding.Site.PopulationIn(unit);
+                if (pen == null) continue;
+            }
             if (pen == null)
             {
                 errorKey = "pen_not_found";
                 message = $"Pen '{id}' is not at '{holding.Id}'";
                 return null;
             }
-            if (pen.TotalCount > 0) pens.Add(pen);
+            if (pen.TotalCount > 0 && !pens.Contains(pen)) pens.Add(pen);
         }
         return pens;
     }

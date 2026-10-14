@@ -26,6 +26,12 @@ namespace LakskongenSim.Harvest
         /// <summary>The pen's population id.</summary>
         public string PopulationId { get; set; } = "";
 
+        /// <summary>
+        /// The sea pen holding that population (S2-01b, "po3_nord/p03"); empty
+        /// for a land tank or an offshore pen, and in orders saved before S2-01b.
+        /// </summary>
+        public string PenId { get; set; } = "";
+
         /// <summary>Fish the order takes from this pen (the pen's count times the order's fraction).</summary>
         public int FishToHarvest { get; set; }
 

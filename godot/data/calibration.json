@@ -1,5 +1,5 @@
 {
-  "version": "1.0.9",
+  "version": "1.0.10",
   "economy": {
     "startingCapitalNOK": 10000000,
     "smoltCostPerFishNOK": 12,
@@ -207,5 +207,12 @@
     "forcedHarvestHeadroomFraction": 0.05,
     "maxStockingDensityKgPerM3": 25.0,
     "densityReferenceWeightKg": 5.0
+  },
+  "pens": {
+    "maxFishPerPen": 200000,
+    "standardCircumferenceM": 160.0,
+    "standardNetWallDepthM": 25.0,
+    "standardConeDepthM": 15.0,
+    "builtSitePenCount": 8
   }
 }

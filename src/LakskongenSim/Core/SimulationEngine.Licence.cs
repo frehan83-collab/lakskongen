@@ -179,6 +179,8 @@ public partial class SimulationEngine
             PenVolume = 50000f,
             MaxAllowedDensity = 25.0f
         };
+        // S2-01b: a built site's mooring frame is the calibration's standard layout.
+        site.PhysicalPens = BuiltSitePenLayout.Build(siteId);
         State.SeaSites.Add(site);
         PayCost(cost, CostBooking.Capex, "sea_site");   // affordability checked above
         ConsumeGrowthLicence(zoneId);

@@ -2708,17 +2708,20 @@ private class BalancingConfig
         /// spend) and regulation (force-paid) share one model.
         /// </summary>
         private SiteDelousingOutcome ApplySiteDelousing(Farm.SeaSite site,
-            Data.DelousingMethod method, double tempC, double mortMult)
+            Data.DelousingMethod method, double tempC, double mortMult,
+            IReadOnlyList<FishPopulation>? pens = null, double liceKillShare = 1.0)
         {
             var outcome = new SiteDelousingOutcome();
             var delousing = new Farm.DelousingSystem();
             bool siteLiceKillDone = false;
             bool gillCaptured = false;
-            foreach (var pop in site.Pens)
+            // S2-01b: a treatment of chosen pens handles only their fish and
+            // kills the site model's lice on the treated share of the fish.
+            foreach (var pop in pens ?? site.Pens)
             {
                 if (pop.TotalCount <= 0) continue;
                 var result = delousing.Treat(pop, method, site.Lice, IntegratedDisease,
-                    tempC, mortMult, applyCompanyLiceKill: !siteLiceKillDone);
+                    tempC, mortMult, applyCompanyLiceKill: !siteLiceKillDone, liceKillShare: liceKillShare);
                 if (!result.Success)
                 {
                     outcome.CancelReason = result.Message;

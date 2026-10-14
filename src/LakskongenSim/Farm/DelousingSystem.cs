@@ -140,7 +140,7 @@ namespace LakskongenSim.Farm
         public TreatmentResult Treat(Biology.FishPopulation pop, DelousingMethod method,
             Health.SeaLiceModel liceModel, Health.IntegratedDiseaseSystem diseaseSystem,
             double temperatureC = 10.0, double mortalityMultiplier = 1.0,
-            bool applyCompanyLiceKill = true, SimRngStream? rng = null)
+            bool applyCompanyLiceKill = true, SimRngStream? rng = null, double liceKillShare = 1.0)
         {
             var profile = GetProfile(method);
             int totalFish = pop.Cohorts.Sum(c => c.Count);
@@ -183,7 +183,11 @@ namespace LakskongenSim.Farm
             double efficacyResult = 0.0;
             if (applyCompanyLiceKill)
             {
-                efficacyResult = liceModel.ApplyTreatmentEfficacy(treatmentType, actualEfficacy);
+                // S2-01b: treating some of a site's pens kills the lice of the
+                // treated share of its fish; the site model is a mean over all.
+                double share = Math.Clamp(liceKillShare, 0.0, 1.0);
+                efficacyResult = liceModel.ApplyTreatmentEfficacy(treatmentType,
+                    share >= 1.0 ? actualEfficacy : actualEfficacy * share);
             }
             else
             {

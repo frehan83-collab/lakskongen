@@ -123,59 +123,12 @@ public partial class SimulationEngine
         // no reduction order may run in the area.
         var capacity = CheckStockingCapacity(site, count, strain.ReleaseWeightKg);
         if (capacity != null) return capacity;
-        // Calibrated smolt price × strain premium (review F269: the old path
-        // charged the hatchery rearing cost, ~54.75 NOK/fish vs 12 calibrated).
-        decimal stockingCost = count * _balancing.SmoltCostPerFish * (decimal)strain.CostMultiplier;
+        // S2-01b: the smolts go into the fewest empty pens that hold them
+        // within § 47a's 200,000 fish and § 25's 25 kg/m³ at the plan's peak.
+        var penRoom = CheckSitePenRoom(site, count, ForecastPenStocking(site, strain, qualityTier), out var allocation);
+        if (penRoom != null) return penRoom;
 
-        if (FinanceManager.Balance < stockingCost)
-            return CommandResult.Fail("insufficient_funds",
-                $"Insufficient funds: need {stockingCost:N0} NOK for {count:N0} smolts");
-
-        var population = new FishPopulation
-        {
-            ZoneId = site.ZoneId,
-            SeaLiceLoad = strain.InitialLiceLoad
-        };
-        population.InjectDependencies(Growth, Mortality);
-
-        var smoltCohort = new FishPopulation.Cohort(
-            Hatchery.MaturationDays,
-            count,
-            strain.ReleaseWeightKg,
-            LifeStage.Smolt,
-            strain.BuildGenome()
-        )
-        {
-            Quality = quality.Tier
-        };
-        population.Cohorts.Add(smoltCohort);
-
-        site.Stock(population);
-        site.LastStockedDay = State.Day;
-        State.Populations.Add(population);
-
-        // Phase 2.1: seed the SITE's lice model from the incoming smolts
-        // (no Reset — that would wipe resistance built up by earlier
-        // cohorts). Without this the model sits at 0 lice forever and
-        // AdvanceDay early-outs.
-        if (strain.InitialLiceLoad > 0)
-            site.Lice.SeedExternalInfection(Math.Max(0.05, strain.InitialLiceLoad));
-
-        // Smolts are cost of goods (review F1132: they never reached the P&L).
-        PayCost(stockingCost, CostBooking.Cogs, "smolts");
-
-        var message = SimText.Nb($"Satte ut {count:N0} smolt ({strain.Name}, {strain.ReleaseWeightKg * 1000:F0} g) på {site.Label}");
-
-        State.EventLog.Add(new EventRecord
-        {
-            Day = State.Day,
-            Name = "Utsett av smolt",
-            Category = EventCategory.Equipment,
-            Description = SimText.Nb($"{message} for {stockingCost:N0} kr"),
-            BalanceChange = -stockingCost
-        });
-
-        return CommandResult.Success(message, count, id: siteId);
+        return PlaceSmolts(site, allocation!, strain, quality);
     }
 
     /// <summary>Norwegian name of a delousing method for the event log.</summary>
@@ -767,6 +720,8 @@ public partial class SimulationEngine
         // S2-01a: a pre-S2-01 save gets one licence per site (its old MAB) in
         // the site's production area, resolved after the load assigned areas.
         MigrateCapacityRegisterAfterLoad();
+        // S2-01b: a save from before real pens gets one pen per population.
+        MigratePensAfterLoad();
     }
 
     // ─── Phase 4.5: Attention Inbox hook ─────────────────────────────────
