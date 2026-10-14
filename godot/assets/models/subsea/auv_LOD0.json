@@ -9,11 +9,10 @@
   "dimensions": {
     "air_draught_m": 0.47,
     "beam_m": 0.5,
-    "bow_y_m": 2.0,
+    "bow_y_m": 1.92,
     "draught_m": 0.327,
-    "height_m": 0.797,
-    "length_m": 3.95,
-    "stern_y_m": -1.95
+    "length_m": 3.88,
+    "stern_y_m": -1.96
   },
   "file": "auv_LOD0.glb",
   "lod": "LOD0",
@@ -24,7 +23,7 @@
   ],
   "parts": {
     "Hull": 156,
-    "Rubber": 180
+    "Rubber": 276
   },
-  "tri_count": 336
+  "tri_count": 432
 }

@@ -953,6 +953,8 @@ def _box_beam(mb, a, b, side, hw, hh):
 def cranes(u: Unit, lod: int) -> None:
     n = u.sides
     ka, kb = 5 * n // 12, 11 * n // 12
+    if kb == n - max(1, n // 6):   # the 8-gon puts the power house there
+        kb -= 1
     for node, k, out in (("CraneA", ka, 0.35), ("CraneB", kb, 0.0)):
         p = vertex(k, DECK_Z, sides=n)
         ang = vertex_angle(k, n)

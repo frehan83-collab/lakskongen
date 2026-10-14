@@ -841,6 +841,162 @@
         8.0,
         12.0
       ]
+    },
+    "of1_class_LOD0": {
+      "path": "godot/assets/models/offshore/of1_class_LOD0.glb",
+      "sha256": "1cd14e3159cf298076bd137b3c4f4d1cc1d816808b3eb09b4f778ef4a386e0d6",
+      "size": 2663816,
+      "tri_count": 46638,
+      "material_count": 2,
+      "bbox_size": [
+        126.0044,
+        71.8,
+        122.3546
+      ]
+    },
+    "of1_class_LOD1": {
+      "path": "godot/assets/models/offshore/of1_class_LOD1.glb",
+      "sha256": "27d4dcba91607cdd1c3f91d931649bdaf9d007958b0a7c13e4d389ce58703f43",
+      "size": 355984,
+      "tri_count": 5478,
+      "material_count": 2,
+      "bbox_size": [
+        125.9042,
+        71.8,
+        122.3546
+      ]
+    },
+    "of1_class_LOD2": {
+      "path": "godot/assets/models/offshore/of1_class_LOD2.glb",
+      "sha256": "65ea7f3447875363a0b85936a4c2f6ff33432cb4aa7464abc13531ad65542bf8",
+      "size": 110428,
+      "tri_count": 1198,
+      "material_count": 2,
+      "bbox_size": [
+        122.4458,
+        30.7176,
+        122.3546
+      ]
+    },
+    "offshore_service_LOD0": {
+      "path": "godot/assets/models/offshore_service/offshore_service_LOD0.glb",
+      "sha256": "a758aaa9a9b872c1c417be311353279dc161c5ee74986778fa043bb2be46bddb",
+      "size": 898916,
+      "tri_count": 19377,
+      "material_count": 8,
+      "bbox_size": [
+        17.768,
+        27.82,
+        75.02
+      ]
+    },
+    "offshore_service_LOD1": {
+      "path": "godot/assets/models/offshore_service/offshore_service_LOD1.glb",
+      "sha256": "83d28c1ab435dee55a77720ed72481aee1e15d5631c848663eeb06e4cc516850",
+      "size": 189052,
+      "tri_count": 3697,
+      "material_count": 7,
+      "bbox_size": [
+        17.768,
+        26.92,
+        75.02
+      ]
+    },
+    "offshore_service_LOD2": {
+      "path": "godot/assets/models/offshore_service/offshore_service_LOD2.glb",
+      "sha256": "6d6b2e402e38cfd1c1280ed052e0a5069cde90b639f6d28b679f54ab33f5c329",
+      "size": 48312,
+      "tri_count": 620,
+      "material_count": 5,
+      "bbox_size": [
+        17.0,
+        22.38,
+        75.0
+      ]
+    },
+    "crew_boat_LOD0": {
+      "path": "godot/assets/models/crew_boat/crew_boat_LOD0.glb",
+      "sha256": "d9a67b7df4a60b048bbde10799851051201f7aa34a4c746a95a67d06787f24c7",
+      "size": 299308,
+      "tri_count": 7186,
+      "material_count": 8,
+      "bbox_size": [
+        7.38,
+        11.18,
+        20.4075
+      ]
+    },
+    "crew_boat_LOD1": {
+      "path": "godot/assets/models/crew_boat/crew_boat_LOD1.glb",
+      "sha256": "af1c56bd87331dd4a188c3bae5cfed8139576e0fd3ec683e5a235a866c23363d",
+      "size": 78964,
+      "tri_count": 1288,
+      "material_count": 8,
+      "bbox_size": [
+        7.38,
+        10.28,
+        20.4075
+      ]
+    },
+    "crew_boat_LOD2": {
+      "path": "godot/assets/models/crew_boat/crew_boat_LOD2.glb",
+      "sha256": "61d44c2b4932b754c1373cef882b9cb0f2d54b95b0b3f2cd75c8f6f4f71910bf",
+      "size": 23480,
+      "tri_count": 292,
+      "material_count": 5,
+      "bbox_size": [
+        7.0,
+        7.22,
+        20.3
+      ]
+    },
+    "rov_LOD0": {
+      "path": "godot/assets/models/subsea/rov_LOD0.glb",
+      "sha256": "a42862b73ae254c5f0fbc4777db773db2b0a1d5c68e5a20ab916896382c07699",
+      "size": 73140,
+      "tri_count": 1094,
+      "material_count": 4,
+      "bbox_size": [
+        1.624,
+        1.4901,
+        2.7602
+      ]
+    },
+    "rov_LOD1": {
+      "path": "godot/assets/models/subsea/rov_LOD1.glb",
+      "sha256": "e3433e5e054d5741410d882cb4b889a4d9d6b5f0922d16b86e49e21462396788",
+      "size": 13980,
+      "tri_count": 152,
+      "material_count": 2,
+      "bbox_size": [
+        1.6,
+        1.44,
+        2.6
+      ]
+    },
+    "auv_LOD0": {
+      "path": "godot/assets/models/subsea/auv_LOD0.glb",
+      "sha256": "54ba9b2460a5d1c070c1b6cc954da1872da1fe85eca4430adb50721671590b70",
+      "size": 23644,
+      "tri_count": 432,
+      "material_count": 2,
+      "bbox_size": [
+        0.6534,
+        0.7967,
+        4.055
+      ]
+    },
+    "auv_LOD1": {
+      "path": "godot/assets/models/subsea/auv_LOD1.glb",
+      "sha256": "572d504625ea14e5777f9264fa21c461a1f2e1b3775ab530b7bb19478356cc94",
+      "size": 9992,
+      "tri_count": 120,
+      "material_count": 2,
+      "bbox_size": [
+        0.6534,
+        0.6534,
+        3.96
+      ]
     }
   }
 }

@@ -73,6 +73,8 @@ def parse():
     ap.add_argument("--sun-elev", type=float, default=7.0)
     ap.add_argument("--sun-az", type=float, default=200.0)
     ap.add_argument("--no-sea", action="store_true", help="hide the sea (the yard view)")
+    ap.add_argument("--studio", action="store_true",
+                    help="the --vessel alone at the origin, framed three-quarter from its bounding box")
     ap.add_argument("--prefix", default="")
     return ap.parse_args(argv)
 
@@ -249,14 +251,43 @@ def main():
     scene.render.resolution_x, scene.render.resolution_y = w, h
     scene.view_settings.view_transform = "AgX"
     kit_mat, net_mat = kit_material(a.atlas), net_material()
-    import_glb(os.path.join(a.offshore, f"{a.stem}_{a.lod}.glb"), kit_mat, net_mat)
+    if a.studio:
+        vdir = a.vessel_dir or os.path.join(MODELS, VESSEL_DIRS.get(a.vessel, a.vessel))
+        objs = import_glb(os.path.join(vdir, f"{a.vessel}_{a.lod}.glb"), kit_mat, net_mat, vessel=True)
+        pts = [o.matrix_world @ Vector(c) for o in objs if o.type == "MESH" for c in o.bound_box]
+        lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
+        hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
+        size = max(hi - lo)
+        centre = (lo + hi) * 0.5
+        subsea = a.vessel in ("rov", "auv")
+        if not a.no_sea and not subsea:
+            sea()
+        world_and_sun(a.sun_elev, a.sun_az)
+        loc = centre + Vector((1.15, 1.25, 0.55 if subsea else 0.45)) * size * (1.5 if subsea else 1.0)
+        camera(loc, centre, 50)
+        scene.render.filepath = os.path.join(a.out, f"{a.prefix}studio_{a.vessel}.png")
+        bpy.ops.render.render(write_still=True)
+        print(f"PREVIEW {scene.render.filepath}")
+        return
+    unit = import_glb(os.path.join(a.offshore, f"{a.stem}_{a.lod}.glb"), kit_mat, net_mat)
     if a.vessel:
         vdir = a.vessel_dir or os.path.join(MODELS, VESSEL_DIRS.get(a.vessel, a.vessel))
         objs = import_glb(os.path.join(vdir, f"{a.vessel}_{a.lod}.glb"), kit_mat, net_mat, vessel=True)
-        root = [o for o in objs if o.parent is None]
-        # Alongside the walk-to-work landing (Blender -X side), bow to +Y.
-        for o in root:
-            o.location = (o.location.x - 72.0, o.location.y - 8.0, o.location.z)
+        holder = bpy.data.objects.new("Vessel", None)
+        bpy.context.scene.collection.objects.link(holder)
+        for o in objs:
+            if o.parent is None:
+                o.parent = holder
+        # Alongside the walk-to-work landing as the Godot preview moors it:
+        # hull side 6 m off the ring, bow along the ring.
+        landing = next((o for o in unit if o.name.startswith("W2WLanding")), None)
+        p = landing.location if landing else Vector((-50.0, -14.0, 15.4))
+        out = Vector((p.x, p.y, 0.0)).normalized()
+        along = Vector((-out.y, out.x, 0.0))
+        pos = Vector((p.x, p.y, 0.0)) + out * 14.5 - along * 6.0
+        holder.location = pos
+        bow = along
+        holder.rotation_euler = (0.0, 0.0, math.atan2(-bow.x, bow.y))
     if not a.no_sea:
         sea()
     world_and_sun(a.sun_elev, a.sun_az)

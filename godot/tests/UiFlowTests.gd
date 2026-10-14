@@ -104,6 +104,7 @@ func _run() -> void:
 	await _test_scenario_picker()
 	_test_farm_type_graybox()
 	_test_land_kit_imports()
+	_test_offshore_unit_and_fleet()
 
 	_clear_test_saves()
 	_finish()
@@ -2415,6 +2416,9 @@ func _test_vessel_fleet() -> void:
 		"wellboat/wellboat": [77.0, 17.8, [45000, 12000, 2000]],
 		"wellboat/wellboat_large": [116.0, 23.0, [60000, 15000, 2500]],
 		"rib/rib": [8.5, 3.0, [6000, 1500, 400]],
+		# Farm-types spec §5.2 (F2-27): the offshore fleet's surface vessels.
+		"offshore_service/offshore_service": [75.0, 17.0, [30000, 6000, 800]],
+		"crew_boat/crew_boat": [20.0, 7.0, [8000, 1500, 300]],
 	}
 	var dims_ok := true
 	var budgets_ok := true
@@ -2828,6 +2832,107 @@ func _test_land_kit_imports() -> void:
 			root.free()
 	_check(bad.is_empty() and lods == 41,
 		"land kit: %d LODs are one LK_FacilityKit surface inside the spec budgets %s" % [lods, str(bad.slice(0, 3))])
+
+
+## F2-26/F2-27 (farm-types spec §5.2): the OF1-class unit and the offshore
+## fleet import with their nodes, budgets, LOD chains and materials, and the
+## unit's yard reveal, crane slew and beacon answer.
+func _test_offshore_unit_and_fleet() -> void:
+	var unit := (load("res://assets/models/offshore/of1_class.tscn") as PackedScene).instantiate() as OffshoreUnitModel
+	_check(unit != null, "offshore: of1_class.tscn is an OffshoreUnitModel")
+	if unit == null:
+		return
+	add_child(unit)
+	var missing: Array[String] = []
+	for path in ["Hull", "Columns", "Bracing", "Topsides", "Net", "Bulkhead", "NavLights", "Cranes/CraneA",
+			"Cranes/CraneB", "Beacon", "W2WLanding", "LOD1/Hull", "LOD1/Net", "LOD2/Hull", "LOD2/Net"]:
+		if unit.get_node_or_null(path) == null:
+			missing.append(path)
+	_check(missing.is_empty(), "offshore: the unit has the spec's fixed nodes, Beacon included (missing %s)" % str(missing))
+	var budgets := [60000, 12000, 1500]
+	var tris: Array[int] = []
+	for level in 3:
+		var t := 0
+		for mesh in unit.get_lod_meshes(level):
+			t += _mesh_triangles(mesh.mesh)
+		tris.append(t)
+	_check(tris[0] <= budgets[0] and tris[1] <= budgets[1] and tris[2] <= budgets[2] and tris[0] > tris[1] and tris[1] > tris[2] and tris[2] > 0,
+		"offshore: LOD0/LOD1/LOD2 inside 60k/12k/1.5k triangles, stepping down (%s)" % str(tris))
+	var chain_ok := true
+	var shadow_ok := true
+	var mats_ok := true
+	for level in 3:
+		for mesh in unit.get_lod_meshes(level):
+			var begin: float = [0.0, 500.0, 2000.0][level]
+			var end: float = [500.0, 2000.0, 0.0][level]
+			chain_ok = chain_ok and is_equal_approx(mesh.visibility_range_begin, begin) and is_equal_approx(mesh.visibility_range_end, end)
+			var casts := mesh.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			shadow_ok = shadow_ok and casts == (level == 0 and not (String(mesh.name) in ["Net", "NavLights"]))
+			for s in mesh.mesh.get_surface_count():
+				var mat := mesh.mesh.surface_get_material(s) as ShaderMaterial
+				var net := mat != null and mat.resource_name == "LK_OffshoreNet"
+				var shader := "res://shaders/pen_net_shader.gdshader" if net else "res://shaders/offshore_kit.gdshader"
+				mats_ok = mats_ok and mat != null and mat.shader.resource_path == shader
+	_check(chain_ok, "offshore: the unit hands over LOD0 -> LOD1 -> LOD2 at 500 m and 2,000 m (spec §5.5 rule 4)")
+	_check(shadow_ok, "offshore: only LOD0 solids cast shadows; the net and lanterns never do")
+	_check(mats_ok, "offshore: solids use LK_OffshoreKit (offshore_kit.gdshader), nets LK_OffshoreNet (pen_net_shader)")
+	var cols := (unit.get_node("Columns") as MeshInstance3D).get_aabb()
+	var radius := (cols.size.x - 3.56) * 0.5
+	var hull := (unit.get_node("Hull") as MeshInstance3D).get_aabb()
+	_check(absf(radius - 55.0) <= 2.75 and absf(hull.position.y + 43.0) < 0.01,
+		"offshore: 110 m ring (circumradius %.2f m), keel at the 43 m draft (%.2f m)" % [radius, hull.position.y])
+	unit.set_build_stage(4.5)
+	var hidden := not (unit.get_node("Net") as Node3D).visible and not (unit.get_node("Bulkhead") as Node3D).visible
+	var param := float((unit.get_node("Hull") as GeometryInstance3D).get_instance_shader_parameter("build_stage"))
+	unit.set_build_stage(6.0)
+	var shown := (unit.get_node("Net") as Node3D).visible and (unit.get_node("LOD1/Net") as Node3D).visible
+	_check(hidden and is_equal_approx(param, 4.5) and shown,
+		"offshore: the yard reveal holds the net back until its stage and drives the kit per instance")
+	var crane := unit.get_node("Cranes/CraneA") as Node3D
+	var rest := crane.rotation.y
+	unit.slew_crane("CraneA", 30.0)
+	var slewed := is_equal_approx(crane.rotation.y - rest, deg_to_rad(30.0))
+	unit.slew_crane("CraneA", 0.0)
+	_check(slewed and unit.get_beacon_position().y > 27.0 and unit.get_w2w_landing().y > 15.0,
+		"offshore: cranes slew on their pedestals; the beacon tops the mast; the gangway landing is on the deck")
+	unit.free()
+
+	var service := (load("res://assets/models/offshore_service/offshore_service.tscn") as PackedScene).instantiate() as VesselModel
+	add_child(service)
+	var gangway := service.get_node_or_null("Gangway") as MeshInstance3D
+	_check(gangway != null and is_equal_approx(gangway.visibility_range_end, service.lod_switch.x)
+		and service.length_m < 0.75 * 110.0,
+		"offshore fleet: the %.0f m service vessel is visibly shorter than the 110 m ring and has its gangway node" % service.length_m)
+	service.free()
+	var tug := (load("res://assets/models/offshore_service/anchor_tug.tscn") as PackedScene).instantiate() as VesselModel
+	add_child(tug)
+	var red := true
+	for part in tug.get_parts("Hull"):
+		var m := part.get_surface_override_material(0)
+		red = red and m != null and m.resource_name == "LK_VHullRed"
+	_check(red and tug.get_parts("Hull").size() == 3,
+		"offshore fleet: the anchor tug is the service vessel's mesh with a red hull at every LOD")
+	tug.free()
+	var props := {"subsea/rov": [2.6, 1.6, [1200, 300]], "subsea/auv": [4.0, 0.5, [600, 150]]}
+	var props_ok := true
+	var report := []
+	for path in props:
+		var v := (load("res://assets/models/%s.tscn" % path) as PackedScene).instantiate() as VesselModel
+		add_child(v)
+		var spec: Array = props[path]
+		var aabb := (v.get_node("Hull") as MeshInstance3D).get_aabb()
+		props_ok = props_ok and absf(aabb.size.z - spec[0]) / spec[0] <= 0.05 and absf(aabb.size.x - spec[1]) / spec[1] <= 0.05
+		var t: Array[int] = []
+		for level in 2:
+			var n := 0
+			for mesh in v.get_lod_meshes(level):
+				n += _mesh_triangles(mesh.mesh)
+			t.append(n)
+			props_ok = props_ok and n > 0 and n <= int(spec[2][level])
+		props_ok = props_ok and v.get_lod_meshes(2).is_empty()
+		report.append("%s %.2fx%.2f %s" % [path.get_file(), aabb.size.z, aabb.size.x, t])
+		v.free()
+	_check(props_ok, "offshore fleet: ROV and AUV inside their size and two-LOD budgets (%s)" % ", ".join(report))
 
 
 ## Ground footprint (x, z) of a layout piece, its model axes turned by yaw.

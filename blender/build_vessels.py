@@ -268,7 +268,6 @@ def export_lod(asset: str, lod: str, objs, spec, out_dir: str) -> dict:
             "beam_m": round(hhi[0] - hlo[0], 3),
             "draught_m": round(-lo[2], 3),
             "air_draught_m": round(hi[2], 3),
-            "height_m": round(hi[2] - lo[2], 3),
             "bow_y_m": round(hhi[1], 3),
             "stern_y_m": round(hlo[1], 3),
         },

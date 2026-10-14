@@ -3,7 +3,7 @@
   "bbox_size": [
     0.6534,
     0.6534,
-    3.95
+    3.96
   ],
   "blender_version": "5.2.2 LTS",
   "dimensions": {
@@ -11,9 +11,8 @@
     "beam_m": 0.5,
     "bow_y_m": 2.0,
     "draught_m": 0.327,
-    "height_m": 0.653,
-    "length_m": 3.95,
-    "stern_y_m": -1.95
+    "length_m": 3.96,
+    "stern_y_m": -1.96
   },
   "file": "auv_LOD1.glb",
   "lod": "LOD1",

@@ -792,11 +792,29 @@ def crew_boat(parts: Parts, d: int, L=20.0, B=7.0):
     return spec
 
 
+def _loft_y(part, prof, n, smooth=True, cap_tail=False):
+    """Revolve a (radius, y) profile (nose first) about the Y axis into a
+    part; cap_tail closes the last ring with a point."""
+    mb, mat = part
+    rows = [[mb.vert((rr * math.cos(TAU * i / n), y, rr * math.sin(TAU * i / n))) for i in range(n)]
+            for rr, y in prof]
+    for k in range(len(rows) - 1):
+        for i in range(n):
+            j = (i + 1) % n
+            mb.face((rows[k][i], rows[k][j], rows[k + 1][j], rows[k + 1][i]), mat, smooth)
+    if cap_tail:
+        c = mb.vert((0.0, prof[-1][1] - 0.01, 0.0))
+        for i in range(n):
+            mb.face((rows[-1][i], rows[-1][(i + 1) % n], c), mat, smooth)
+
+
 def rov(parts: Parts, d: int, L=2.6, W=1.6, H=1.5):
-    """Work-class ROV (spec §5.2, ref O1): yellow syntactic-foam buoyancy
-    block over a dark open frame, four vectored horizontal thrusters, two
-    vertical ones through the foam, cameras and lights forward, a folded
-    manipulator. Origin at the centre; forward along +Y."""
+    """Work-class ROV (spec §5.2, ref O1): a yellow syntactic-foam buoyancy
+    block (two blocks, a seam between) over a dark open frame on skids, four
+    vectored horizontal thrusters in nozzles under the foam, two vertical
+    ones through it, a camera and light bar and a bumper forward, a folded
+    manipulator, grab rails, a lifting point and a sonar head on top.
+    Origin at the centre; forward along +Y."""
     foam_z0, foam_z1 = 0.05, H / 2 - 0.1
     hb, hm = parts["Hull"]
     # Foam block with chamfered top edges.
@@ -814,8 +832,9 @@ def rov(parts: Parts, d: int, L=2.6, W=1.6, H=1.5):
         hb.face((vm[i], vm[j], vt[j], vt[i]), hm, False)
     hb.face((vt[0], vt[1], vt[2], vt[3]), hm, False)
     hb.face((vb[3], vb[2], vb[1], vb[0]), hm, False)
-    # Dark frame: posts and skids, the lower deck.
     dk = parts["Rubber"]
+    sides = 10 if d >= 2 else 5
+    # Dark frame: corner posts, skids, the lower deck.
     for x in (-W / 2 + 0.06, W / 2 - 0.06):
         if d >= 2:
             for y in (-L / 2 + 0.06, L / 2 - 0.06):
@@ -823,50 +842,66 @@ def rov(parts: Parts, d: int, L=2.6, W=1.6, H=1.5):
         hull.block(dk, (x, 0.0, -H / 2 + 0.05), 0.06, L / 2, 0.05, skip_bottom=False)
     hull.block(dk, (0.0, 0.0, (-H / 2 + 0.1 + foam_z0) / 2 if d < 2 else -0.18), W / 2 - 0.08, L / 2 - 0.25,
                (foam_z0 + H / 2 - 0.1) / 2 if d < 2 else 0.04, skip_bottom=False)
-    # Thrusters: four vectored at the corners, two vertical in the foam.
-    sides = 10 if d >= 2 else 5
+    # Thrusters: four vectored at the corners (nozzles round the props), two
+    # vertical through the foam.
     for sx in (-1, 1):
         for sy in (-1, 1):
-            p = (sx * (W / 2 - 0.28), sy * (L / 2 - 0.38), -0.3)
+            p = (sx * (W / 2 - 0.3), sy * (L / 2 - 0.42), -0.32)
             a = v_norm((sx * 0.7, sy * 0.7, 0.0))
-            hull.cyl(dk, v_sub(p, v_mul(a, 0.2)), v_add(p, v_mul(a, 0.2)), 0.16, sides)
+            if d >= 2:
+                hull.torus(dk, p, a, 0.17, 0.04, 12, 4)
+                hull.cyl(parts["Machinery"], v_sub(p, v_mul(a, 0.22)), p, 0.07, 8)
+            else:
+                hull.cyl(dk, v_sub(p, v_mul(a, 0.15)), v_add(p, v_mul(a, 0.15)), 0.17, sides)
     for sy in (-0.45, 0.45):
         hull.cyl(dk, (0.0, sy, foam_z1 - 0.05), (0.0, sy, foam_z1 + 0.04), 0.2, sides)
-    # Forward: camera pod, two lights, the manipulator folded under.
-    if d >= 2:
-        gl = parts["Windows"]
-        hull.cyl(gl, (0.0, L / 2 - 0.05, -0.05), (0.0, L / 2 + 0.06, -0.05), 0.11, 10)
-        for x in (-0.5, 0.5):
-            hull.cyl(gl, (x, L / 2 - 0.05, 0.25), (x, L / 2 + 0.04, 0.25), 0.08, 8)
-        st = parts["Machinery"]
-        hull.tube(st, [(0.35, L / 2 - 0.4, -0.45), (0.35, L / 2 + 0.05, -0.45), (0.2, L / 2 + 0.15, -0.6)], 0.05, 6)
-        hull.tube(dk, [(0.0, -0.2, foam_z1), (0.0, -0.2, foam_z1 + 0.08)], 0.07, 6)
+    if d < 2:
+        return None
+    # Foam seam, grab rails, lifting point, sonar head on top.
+    hull.block(dk, (0.0, 0.0, (foam_z0 + foam_z1) / 2 + 0.01), W / 2 + 0.012, 0.02, (foam_z1 - foam_z0) / 2 - 0.02,
+               skip_bottom=True)
+    st = parts["Machinery"]
+    for x in (-0.55, 0.55):
+        hull.tube(st, [(x, -0.9, foam_z1), (x, -0.9, foam_z1 + 0.07), (x, -0.2, foam_z1 + 0.07),
+                       (x, -0.2, foam_z1)], 0.025, 5, caps=False)
+    hull.cyl(st, (0.0, 0.0, foam_z1), (0.0, 0.0, foam_z1 + 0.06), 0.09, 8)
+    hull.cyl(dk, (0.45, L / 2 - 0.3, foam_z1), (0.45, L / 2 - 0.3, foam_z1 + 0.08), 0.09, 8)
+    # Forward: bumper bar, a camera and light bar under the foam, the
+    # manipulator folded on the right.
+    hull.block(dk, (0.0, L / 2 + 0.04, -0.55), W / 2 - 0.05, 0.04, 0.05, skip_bottom=False)
+    hull.block(st, (0.0, L / 2 - 0.08, -0.05), 0.55, 0.06, 0.05, skip_bottom=False)
+    gl = parts["Windows"]
+    hull.cyl(gl, (0.0, L / 2 - 0.12, -0.12), (0.0, L / 2 + 0.04, -0.12), 0.1, 10)
+    for x in (-0.45, -0.25, 0.25, 0.45):
+        hull.cyl(st, (x, L / 2 - 0.05, -0.05), (x, L / 2 + 0.03, -0.05), 0.05, 6)
+        hull.cyl(gl, (x, L / 2 + 0.03, -0.05), (x, L / 2 + 0.045, -0.05), 0.04, 6)
+    hull.tube(st, [(0.5, L / 2 - 0.5, -0.4), (0.5, L / 2 - 0.05, -0.4), (0.38, L / 2 + 0.12, -0.52),
+                   (0.3, L / 2 + 0.1, -0.62)], 0.045, 6)
+    hull.block(dk, (0.3, L / 2 + 0.08, -0.66), 0.05, 0.06, 0.05, skip_bottom=False)
+    hull.tube(dk, [(0.0, -0.2, foam_z1), (0.0, -0.2, foam_z1 + 0.08)], 0.07, 6)
     return None
 
 
 def auv(parts: Parts, d: int, L=4.0, D=0.5):
     """Autonomous underwater vehicle (spec §5.2, ref O1): an orange torpedo
-    body with a rounded nose and a tapered tail, four dark control fins and
-    a ducted propeller, a short antenna mast. Origin at the centre; forward
-    along +Y."""
+    body with a dark nose cap and a dark sensor band, a tapered tail, four
+    dark control fins in an X and a ducted propeller, a short antenna mast.
+    Origin at the centre; forward along +Y."""
     r = D / 2
     n = 12 if d >= 2 else 8
-    prof = [(0.0, L / 2), (r * 0.55, L / 2 - 0.08), (r * 0.85, L / 2 - 0.22), (r, L / 2 - 0.5),
-            (r, -L / 2 + 0.9), (r * 0.7, -L / 2 + 0.35), (r * 0.42, -L / 2 + 0.05)]
-    if d < 2:
-        prof = [(0.0, L / 2), (r * 0.8, L / 2 - 0.2), (r, L / 2 - 0.5), (r, -L / 2 + 0.9), (r * 0.42, -L / 2 + 0.05)]
-    mb, mat = parts["Hull"]
-    rows = []
-    for rr, y in prof:
-        rows.append([mb.vert((rr * math.cos(TAU * i / n), y, rr * math.sin(TAU * i / n))) for i in range(n)])
-    for k in range(len(rows) - 1):
-        for i in range(n):
-            j = (i + 1) % n
-            mb.face((rows[k][i], rows[k][j], rows[k + 1][j], rows[k + 1][i]), mat, True)
-    c = mb.vert((0.0, -L / 2 + 0.05, 0.0))
-    for i in range(n):
-        mb.face((rows[-1][i], rows[-1][(i + 1) % n], c), mat, True)
     dk = parts["Rubber"]
+    if d >= 2:
+        nose = [(0.0, L / 2), (r * 0.55, L / 2 - 0.08)]
+        body = [(r * 0.55, L / 2 - 0.08), (r * 0.85, L / 2 - 0.22), (r, L / 2 - 0.5), (r, 0.55), (r * 1.02, 0.55),
+                (r * 1.02, 0.4), (r, 0.4),
+                (r, -L / 2 + 0.9), (r * 0.7, -L / 2 + 0.35), (r * 0.42, -L / 2 + 0.05)]
+        _loft_y(dk, nose, n)
+        _loft_y(parts["Hull"], body[:4], n)
+        _loft_y(dk, body[3:7], n)
+        _loft_y(parts["Hull"], body[6:], n, cap_tail=True)
+    else:
+        _loft_y(parts["Hull"], [(0.0, L / 2), (r * 0.8, L / 2 - 0.2), (r, L / 2 - 0.5), (r, -L / 2 + 0.9),
+                                (r * 0.42, -L / 2 + 0.05)], n, cap_tail=True)
     fy = -L / 2 + 0.55
     for a in range(4):
         th = TAU * a / 4 + TAU / 8
@@ -879,7 +914,6 @@ def auv(parts: Parts, d: int, L=4.0, D=0.5):
         hull.torus(dk, (0.0, -L / 2 - 0.02, 0.0), (0, 1, 0), r * 0.62, 0.035, 14, 4)
         hull.cyl(dk, (0.0, 0.6, r - 0.02), (0.0, 0.6, r + 0.22), 0.025, 6)
     return None
-
 
 DESIGNS = {
     "workboat": workboat,

@@ -1,0 +1,314 @@
+{
+  "generated_by": "res://scripts/qa/OffshorePreview.gd",
+  "item": "F2-26/F2-27",
+  "resolution": [
+    1920,
+    1080
+  ],
+  "shots": {
+    "40_offshore_close": {
+      "camera": {
+        "distance_to_unit_m": 134.6,
+        "fov_deg": 50.7,
+        "position": [
+          -570.295776367188,
+          38.6114082336426,
+          -2703.49536132812
+        ],
+        "spec": {
+          "distance_m": 110.0,
+          "focus_y": 12.0,
+          "mode": "focus",
+          "offset": [
+            -20.0,
+            10.0
+          ],
+          "pitch_deg": -14.0,
+          "target": "off_1",
+          "yaw_deg": 290.0
+        }
+      },
+      "environment": {
+        "nav_lights": 0.0,
+        "sun_elevation_deg": 7.2,
+        "weather": "clear"
+      },
+      "unit": {
+        "build_stage": 6.0,
+        "lod": 0
+      }
+    },
+    "40_offshore_dusk": {
+      "camera": {
+        "distance_to_unit_m": 261.8,
+        "fov_deg": 48.23,
+        "position": [
+          -670.246154785156,
+          62.0570411682129,
+          -2622.8408203125
+        ],
+        "spec": {
+          "distance_m": 260.0,
+          "focus_y": 8.0,
+          "mode": "focus",
+          "pitch_deg": -12.0,
+          "target": "off_1",
+          "yaw_deg": 300.0
+        }
+      },
+      "environment": {
+        "nav_lights": 1.0,
+        "sun_elevation_deg": -6.85,
+        "weather": "clear"
+      },
+      "unit": {
+        "build_stage": 6.0,
+        "lod": 0
+      }
+    },
+    "40_offshore_framing": {
+      "camera": {
+        "distance_to_unit_m": 222.9,
+        "fov_deg": 48.71,
+        "position": [
+          -450.0,
+          76.9837417602539,
+          -2540.767578125
+        ],
+        "spec": {
+          "distance_m": 220.0,
+          "focus_y": 9.0,
+          "mode": "focus",
+          "pitch_deg": -18.0,
+          "target": "off_1"
+        }
+      },
+      "environment": {
+        "nav_lights": 0.0,
+        "sun_elevation_deg": 7.2,
+        "weather": "clear"
+      },
+      "perf": {
+        "added_all": {
+          "opaque_draws": 27,
+          "primitives": 67303,
+          "shadow_draws": 29
+        },
+        "added_unit": {
+          "opaque_draws": 10,
+          "primitives": 46638,
+          "shadow_draws": 11
+        },
+        "added_unit_service": {
+          "opaque_draws": 19,
+          "primitives": 66015,
+          "shadow_draws": 25
+        },
+        "all": {
+          "opaque_draws": 32,
+          "primitives": 329451,
+          "shadow_draws": 29
+        },
+        "off": {
+          "opaque_draws": 5,
+          "primitives": 262148,
+          "shadow_draws": 0
+        },
+        "unit": {
+          "opaque_draws": 15,
+          "primitives": 308786,
+          "shadow_draws": 11
+        },
+        "unit_service": {
+          "opaque_draws": 24,
+          "primitives": 328163,
+          "shadow_draws": 25
+        }
+      },
+      "ring": {
+        "height_px": 330,
+        "pixels": 113631,
+        "top_px": 393,
+        "width_frac": 0.332,
+        "width_px": 638
+      },
+      "unit": {
+        "build_stage": 6.0,
+        "lod": 0
+      }
+    },
+    "40_offshore_hero": {
+      "camera": {
+        "distance_to_unit_m": 291.4,
+        "fov_deg": 47.92,
+        "position": [
+          -694.71044921875,
+          71.2358093261719,
+          -2608.71630859375
+        ],
+        "spec": {
+          "distance_m": 290.0,
+          "focus_y": 6.0,
+          "mode": "focus",
+          "pitch_deg": -13.0,
+          "target": "off_1",
+          "yaw_deg": 300.0
+        }
+      },
+      "environment": {
+        "nav_lights": 0.0,
+        "sun_elevation_deg": 7.2,
+        "weather": "clear"
+      },
+      "unit": {
+        "build_stage": 6.0,
+        "lod": 0
+      }
+    },
+    "40_offshore_home": {
+      "camera": {
+        "distance_to_unit_m": 2442.7,
+        "fov_deg": 45.0,
+        "position": [
+          -385.391540527344,
+          263.134521484375,
+          -322.330200195312
+        ],
+        "spec": {
+          "mode": "home"
+        }
+      },
+      "environment": {
+        "nav_lights": 0.0,
+        "sun_elevation_deg": 49.57,
+        "weather": "clear"
+      },
+      "perf": {
+        "added_all": {
+          "opaque_draws": 12,
+          "primitives": 2110,
+          "shadow_draws": 0
+        },
+        "added_unit": {
+          "opaque_draws": 2,
+          "primitives": 1198,
+          "shadow_draws": 0
+        },
+        "added_unit_service": {
+          "opaque_draws": 7,
+          "primitives": 1818,
+          "shadow_draws": 0
+        },
+        "all": {
+          "opaque_draws": 94,
+          "primitives": 482356,
+          "shadow_draws": 59
+        },
+        "off": {
+          "opaque_draws": 82,
+          "primitives": 480246,
+          "shadow_draws": 59
+        },
+        "unit": {
+          "opaque_draws": 84,
+          "primitives": 481444,
+          "shadow_draws": 59
+        },
+        "unit_service": {
+          "opaque_draws": 89,
+          "primitives": 482064,
+          "shadow_draws": 59
+        }
+      },
+      "unit": {
+        "build_stage": 6.0,
+        "lod": 2
+      }
+    },
+    "40_offshore_lineup": {
+      "camera": {
+        "distance_to_unit_m": 280.0,
+        "fov_deg": 48.23,
+        "position": [
+          -350.0,
+          68.8996887207031,
+          -2497.72314453125
+        ],
+        "spec": {
+          "distance_m": 260.0,
+          "focus_y": 6.0,
+          "mode": "focus",
+          "offset": [
+            100.0,
+            0.0
+          ],
+          "pitch_deg": -14.0,
+          "target": "off_1"
+        }
+      },
+      "environment": {
+        "nav_lights": 0.0,
+        "sun_elevation_deg": 7.2,
+        "weather": "clear"
+      },
+      "unit": {
+        "build_stage": 6.0,
+        "lod": 0
+      }
+    },
+    "40_offshore_overcast": {
+      "camera": {
+        "distance_to_unit_m": 222.9,
+        "fov_deg": 48.71,
+        "position": [
+          -450.0,
+          76.9837417602539,
+          -2540.767578125
+        ],
+        "spec": {
+          "distance_m": 220.0,
+          "focus_y": 9.0,
+          "mode": "focus",
+          "pitch_deg": -18.0,
+          "target": "off_1"
+        }
+      },
+      "environment": {
+        "nav_lights": 0.0,
+        "sun_elevation_deg": 49.57,
+        "weather": "overcast"
+      },
+      "unit": {
+        "build_stage": 6.0,
+        "lod": 0
+      }
+    },
+    "40_offshore_yard": {
+      "camera": {
+        "distance_to_unit_m": 231.1,
+        "fov_deg": 48.58,
+        "position": [
+          -450.0,
+          67.3965911865234,
+          -2528.90991210938
+        ],
+        "spec": {
+          "distance_m": 230.0,
+          "focus_y": 4.0,
+          "mode": "focus",
+          "pitch_deg": -16.0,
+          "target": "off_1"
+        }
+      },
+      "environment": {
+        "nav_lights": 0.0,
+        "sun_elevation_deg": 7.2,
+        "weather": "clear"
+      },
+      "unit": {
+        "build_stage": 4.55,
+        "lod": 0
+      }
+    }
+  }
+}

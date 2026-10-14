@@ -1014,6 +1014,8 @@ Assets are built headless by Python scripts, following the `build_vessels.py` ex
 | `crew_boat` | Catamaran | 20 × 7 | #E9ECEA, #34424B, orange trim | 8,000 / 1,500 / 300 |
 | `rov` / `auv` | Subsea props | 2.6 × 1.6 × 1.5 / 4.0 × Ø0.5 | #E6BE2E / #C9531F | 1,200 / 300 · 600 / 150 |
 
+**As built (F2-26, F2-27).** `of1_class` follows the owner's 12-gon ruling (the 8-gon only in the evidence side-by-side): feet at the 43 m draft, rings at −35 / −10.5 / +14, decks at +15.4, structural height 68.4 m (feet to the control block and silo tops), mast and `Beacon` at +28.2; 46.6 k / 5.5 k / 1.2 k triangles. LOD0 keeps the node names above plus `Cranes/CraneA`, `Cranes/CraneB` (origins on their slew axes) and a `W2WLanding` marker; LOD1 and LOD2 are `Hull` + `Net`, LOD2 only what stands above z = −3 m. Solids share `LK_OffshoreKit` (`offshore_kit.gdshader`, a 15-strip trim atlas built with the land kit's code), nets `LK_OffshoreNet`; the part groups ride in TEXCOORD_1 and `OffshoreUnitModel.set_build_stage()` reveals them; the splash zone is painted from −2.5 to +4 m for heave. The fleet runs through `build_vessels.py`: `offshore_service` (its gangway a LOD0 node `Gangway`), `anchor_tug.tscn` (Hull material overrides only), `crew_boat`, and `rov` / `auv` with two LODs. Evidence: `docs/run/evidence/f2_26_of1.md`, `docs/run/evidence/f2_27_offshore_fleet.md`.
+
 ### 5.3 Closed-pen kit (stage 3) and construction kit (supersede G5-02)
 
 | Asset id | Dimensions (m) | Swatches | LOD0 / LOD1 / LOD2 |
