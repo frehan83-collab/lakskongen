@@ -1,0 +1,35 @@
+{
+  "asset": "workboat",
+  "bbox_size": [
+    10.0,
+    6.25,
+    15.02
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "air_draught_m": 5.15,
+    "beam_m": 10.0,
+    "bow_y_m": 7.5,
+    "draught_m": 1.1,
+    "length_m": 15.02,
+    "stern_y_m": -7.52
+  },
+  "file": "workboat_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 5,
+  "materials": [
+    "LK_VCrane",
+    "LK_VDeck",
+    "LK_VGlass",
+    "LK_VHullOrange",
+    "LK_VWhite"
+  ],
+  "parts": {
+    "Crane": 10,
+    "Deck": 84,
+    "Hull": 322,
+    "Superstructure": 40,
+    "Windows": 8
+  },
+  "tri_count": 464
+}

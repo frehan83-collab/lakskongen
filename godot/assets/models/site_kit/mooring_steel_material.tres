@@ -1,0 +1,6 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://mooring_steel_mat_001"]
+
+[resource]
+albedo_color = Color(0.541176, 0.560784, 0.576471, 1)
+metallic = 0.8
+roughness = 0.45

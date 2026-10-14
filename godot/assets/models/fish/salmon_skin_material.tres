@@ -1,0 +1,9 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://salmon_skin_mat_001"]
+
+[ext_resource type="Shader" path="res://shaders/salmon_skin.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" path="res://assets/models/fish/textures/salmon_skin.png" id="2_skin"]
+
+[resource]
+resource_name = "LK_SalmonSkin"
+shader = ExtResource("1_shader")
+shader_parameter/skin = ExtResource("2_skin")

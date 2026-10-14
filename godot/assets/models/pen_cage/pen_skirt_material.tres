@@ -1,0 +1,6 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://pen_skirt_mat_001"]
+
+[resource]
+cull_mode = 2
+albedo_color = Color(0.788235, 0.8, 0.776471, 1)
+roughness = 0.85

@@ -1,50 +1,32 @@
-[gd_scene load_steps=12 format=3 uid="uid://pen_cage_001"]
+[gd_scene load_steps=8 format=3 uid="uid://pen_cage_001"]
 
-[ext_resource type="Script" path="res://scripts/environment/PenCage.gd" id="1_pen_cage_script"]
-[ext_resource type="Material" path="res://assets/models/pen_cage/pen_collar_material.tres" id="2_collar_mat"]
-[ext_resource type="Material" path="res://assets/models/pen_cage/pen_net_material.tres" id="3_net_mat"]
-[ext_resource type="Material" path="res://assets/models/pen_cage/pen_walkway_material.tres" id="4_walkway_mat"]
-[ext_resource type="Material" path="res://assets/models/pen_cage/pen_handrail_material.tres" id="5_handrail_mat"]
-[ext_resource type="Material" path="res://assets/models/pen_cage/pen_feedpipe_material.tres" id="6_feedpipe_mat"]
-[ext_resource type="Mesh" path="res://assets/models/pen_cage/pen_collar_mesh.tres" id="7_collar_mesh"]
-[ext_resource type="Mesh" path="res://assets/models/pen_cage/pen_net_mesh.tres" id="8_net_mesh"]
-[ext_resource type="Mesh" path="res://assets/models/pen_cage/pen_walkway_mesh.tres" id="9_walkway_mesh"]
-[ext_resource type="Mesh" path="res://assets/models/pen_cage/pen_handrail_mesh.tres" id="10_handrail_mesh"]
-[ext_resource type="Mesh" path="res://assets/models/pen_cage/pen_feedpipe_mesh.tres" id="11_feedpipe_mesh"]
+[ext_resource type="PackedScene" path="res://assets/models/pen_cage/pen_cage_LOD0.glb" id="1_lod0"]
+[ext_resource type="PackedScene" path="res://assets/models/pen_cage/pen_cage_LOD1.glb" id="2_lod1"]
+[ext_resource type="PackedScene" path="res://assets/models/pen_cage/pen_cage_LOD2.glb" id="3_lod2"]
+[ext_resource type="Script" path="res://scripts/environment/PenCage.gd" id="4_pen_cage_script"]
+[ext_resource type="Material" path="res://assets/models/pen_cage/pen_health_ring_material.tres" id="5_health_ring_mat"]
 
-[sub_resource type="SphereShape3D" id="12_click_shape"]
+[sub_resource type="SphereShape3D" id="6_click_shape"]
 radius = 18.0
 
-[node name="PenCage" type="Node3D"]
-script = ExtResource("1_pen_cage_script")
+[sub_resource type="PlaneMesh" id="7_ring_plane"]
+size = Vector2(78, 78)
 
-[node name="Collar" type="MeshInstance3D" parent="."]
-mesh = ExtResource("7_collar_mesh")
-material_override = ExtResource("2_collar_mat")
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+[node name="PenCage" instance=ExtResource("1_lod0")]
+script = ExtResource("4_pen_cage_script")
 
-[node name="Net" type="MeshInstance3D" parent="."]
-mesh = ExtResource("8_net_mesh")
-material_override = ExtResource("3_net_mat")
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -19.5, 0)
+[node name="LOD1" parent="." instance=ExtResource("2_lod1")]
 
-[node name="Walkway" type="MeshInstance3D" parent="."]
-mesh = ExtResource("9_walkway_mesh")
-material_override = ExtResource("4_walkway_mat")
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+[node name="LOD2" parent="." instance=ExtResource("3_lod2")]
 
-[node name="Handrail" type="MeshInstance3D" parent="."]
-mesh = ExtResource("10_handrail_mesh")
-material_override = ExtResource("5_handrail_mat")
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
-
-[node name="FeedPipe" type="MeshInstance3D" parent="."]
-mesh = ExtResource("11_feedpipe_mesh")
-material_override = ExtResource("6_feedpipe_mat")
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.5, 0.5, 0)
+[node name="HealthRing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+cast_shadow = 0
+mesh = SubResource("7_ring_plane")
+material_override = ExtResource("5_health_ring_mat")
 
 [node name="ClickArea" type="Area3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -10, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ClickArea"]
-shape = SubResource("12_click_shape")
+shape = SubResource("6_click_shape")

@@ -69,6 +69,9 @@ func _run() -> void:
 	await _test_fjord_shows_rival_farms_and_wellboats()
 	await _test_telemetry_oxygen_saturation_follows_the_sim()
 	await _test_honest_economy_reaches_the_ui()
+	await _test_pen_models_read_as_equipment()
+	await _test_hero_pen_and_site_kit()
+	await _test_vessel_fleet()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -1083,13 +1086,30 @@ func _test_fjord_shows_rival_farms_and_wellboats() -> void:
 	_check(expected > 0, "rival farms: the game has AI rivals (%d)" % expected)
 	_check(rivals.farm_ids().size() == expected,
 		"rival farms: one farm per rival (%d of %d)" % [rivals.farm_ids().size(), expected])
-	var greyed := not rivals.farm_ids().is_empty()
+	# G1-07 replaced the grey 60% override: a rival cage is the player's pen
+	# asset with its owner's colour band, a quieter net and no health ring,
+	# and every material is the shared stock one (the old check only asked
+	# for "grey"; this one pins the asset, the band and the net alpha).
+	var banded := not rivals.farm_ids().is_empty()
+	var quiet_nets := not rivals.farm_ids().is_empty()
+	var stock_materials := not rivals.farm_ids().is_empty()
 	for id in rivals.farm_ids():
-		var meshes: Array = (rivals._competitor_farms[id].root as Node).find_children("*", "MeshInstance3D", true, false)
-		greyed = greyed and not meshes.is_empty()
-		for mesh in meshes:
-			greyed = greyed and (mesh as MeshInstance3D).material_override == rivals._grey_material()
-	_check(greyed, "rival farms: every rival cage is drawn grey")
+		var band: Color = CompetitorFarmVisualManager.band_color_for(id)
+		for cage in rivals._competitor_farms[id].cages:
+			var pen := cage as PenCage
+			banded = banded and pen != null and pen.get_owner_band() == band \
+				and pen.get_node("Band").visible \
+				and pen.get_node("Band").get_instance_shader_parameter("band_color") == band \
+				and not pen.get_health_ring().visible
+			quiet_nets = quiet_nets and pen != null and not pen.get_net_nodes().is_empty()
+			for net in (pen.get_net_nodes() if pen != null else []):
+				quiet_nets = quiet_nets and float(net.get_instance_shader_parameter("net_opacity")) <= 0.55
+			for mesh in (cage as Node).find_children("*", "MeshInstance3D", true, false):
+				var mat := (mesh as MeshInstance3D).material_override
+				stock_materials = stock_materials and (mat == null or not mat.resource_path.is_empty())
+	_check(banded, "rival farms: every rival cage carries its owner's colour band and no health ring")
+	_check(quiet_nets, "rival farms: every rival net is drawn at alpha <= 0.55")
+	_check(stock_materials, "rival farms: no rival mesh gets a one-off material override")
 	# The bridge's fixed farm positions (x up to ±1000 m) lie inside the
 	# fjord walls; the farms take the pen manager's channel slots instead.
 	var terrain: FjordTerrain = env.get_node("Terrain")
@@ -1113,15 +1133,19 @@ func _test_fjord_shows_rival_farms_and_wellboats() -> void:
 	var barge_sites: Array = barges.active_site_ids()
 	_check(not barge_sites.is_empty(), "feed barge: a barge sails to a stocked site (%d)" % barge_sites.size())
 	var barges_afloat := not barge_sites.is_empty()
-	var barges_yellow := not barge_sites.is_empty()
+	var barges_chipped := not barge_sites.is_empty()
 	for id in barge_sites:
 		barges_afloat = barges_afloat and _route_on_water(barges._active_barges[id].path, terrain)
-		var barge_deck := (barges._active_barges[id].boat as Node).get_node("Deck") as MeshInstance3D
-		var barge_mat := barge_deck.material_override as ShaderMaterial
-		barges_yellow = barges_yellow and barge_mat.resource_path.is_empty() \
-			and barge_mat.get_shader_parameter("albedo_color") == FeedBargeVisualManager.FEED_YELLOW
+		# A3-01 replaced the yellow deck tint: the barge is the feed-barge
+		# asset, its state shows on a chip, and no mesh gets a one-off paint.
+		var barge := barges.barge_of(id) as VesselModel
+		var chip: VesselChip = barges._active_barges[id].chip
+		barges_chipped = barges_chipped and barge != null and barge.asset_id.begins_with("feed_barge") \
+			and chip != null and chip.get_text().begins_with("Fôrflåte") \
+			and chip.get_accent() in [FeedBargeVisualManager.FEED_YELLOW, FeedBargeVisualManager.IDLE_GREY] \
+			and _no_material_overrides(barge)
 	_check(barges_afloat, "feed barge: every route point is at sea level on open water")
-	_check(barges_yellow, "feed barge: tinted yellow on its own copy of the deck material")
+	_check(barges_chipped, "feed barge: the barge asset shows its state on a chip, its paint stays the shared material")
 
 	var sites: Array = _sim.get_all_pens()
 	_check(not sites.is_empty(), "wellboat: the player has a site to send a boat to")
@@ -1138,11 +1162,14 @@ func _test_fjord_shows_rival_farms_and_wellboats() -> void:
 		scene.queue_free()
 		return
 	var job_id: String = jobs[0]
-	var deck := (boats._active_wellboats[job_id].boat as Node).get_node("Deck") as MeshInstance3D
-	var deck_mat := deck.material_override as ShaderMaterial
-	_check(deck_mat.resource_path.is_empty(), "wellboat: the tint goes on the boat's own copy of the deck material")
-	_check(deck_mat.get_shader_parameter("albedo_color") == WellboatVisualManager.JOB_COLOURS["other"],
-		"wellboat: an ROV boat is tinted blue")
+	# A3-01: job state is a UI chip, never hull colour (this replaced the
+	# deck-tint checks: the chip names the job and carries its colour).
+	var wb_chip := boats.job_chip(job_id)
+	_check(wb_chip != null and _no_material_overrides(boats._active_wellboats[job_id].boat),
+		"wellboat: the job shows on a chip; no mesh of the boat gets a one-off material")
+	_check(wb_chip != null and wb_chip.get_text().begins_with("ROV-inspeksjon")
+		and wb_chip.get_accent() == WellboatVisualManager.JOB_COLOURS["other"],
+		"wellboat: an ROV boat's chip reads '%s' with the info-blue dot" % (wb_chip.get_text() if wb_chip else ""))
 	var boat_path: Path3D = boats._active_wellboats[job_id].path
 	_check(_route_on_water(boat_path, terrain), "wellboat: every route point is at sea level on open water")
 	await get_tree().create_timer(0.5).timeout
@@ -1163,6 +1190,416 @@ func _test_fjord_shows_rival_farms_and_wellboats() -> void:
 	_check(boats.active_job_ids().is_empty(), "wellboat: the boat leaves the fjord after the trip home")
 	scene.queue_free()
 	await get_tree().process_frame
+
+## G1-07: the placeholder pen and boat models read as equipment. The net has
+## no lid, no unshaded debug sphere floats over the selection, the collar is
+## black HDPE whatever the fish health, health shows on the ring on the
+## water (healthy vs red-zone lice differ by CIE76 dE >= 20), the site label
+## is a constant-size billboard and the boat hulls lie flat.
+func _test_pen_models_read_as_equipment() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "pen models: seeded two-site scenario starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var site_id := str(_sim.get_all_pens()[0].get("id", "")) if not _sim.get_all_pens().is_empty() else ""
+	var cage := pens.get_node_or_null("PenMarkers/" + site_id) as PenCage
+	_check(cage != null, "pen models: site %s has a pen cage" % site_id)
+	if cage == null:
+		scene.queue_free()
+		return
+
+	_check(_net_lid_faces(cage) == 0, "pen models: the net has no lid (%d top faces)" % _net_lid_faces(cage))
+
+	pens.select_pen(site_id)
+	var spheres := 0
+	for mesh in env.find_children("*", "MeshInstance3D", true, false):
+		if (mesh as MeshInstance3D).mesh is SphereMesh:
+			spheres += 1
+	_check(spheres == 0, "pen models: no sphere mesh anywhere in the fjord (%d)" % spheres)
+	var marker := pens.active_indicator
+	_check(marker != null and marker.visible and not (marker.mesh is SphereMesh)
+		and absf(marker.global_position.y - cage.global_position.y) < 1.0,
+		"pen models: the selection marker is a ring on the water around the pen")
+
+	var gb := get_node("/root/GameBridge")
+	gb.SetQaPenLice(site_id, 0.05)
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	var healthy := pens.get_pen_health_color(site_id)
+	var collar_before := _albedo_of(cage.get_node("Collar") as MeshInstance3D)
+	gb.SetQaPenLice(site_id, 0.6)
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	var red := pens.get_pen_health_color(site_id)
+	var ring := cage.get_health_ring()
+	_check(healthy == FishPenManager.COLOR_HEALTHY and red == FishPenManager.COLOR_CRITICAL,
+		"pen models: lice 0.05 -> healthy ring, 0.6 -> critical ring (%s, %s)" % [healthy, red])
+	_check(ring != null and ring.visible and ring.get_instance_shader_parameter("ring_color") == red,
+		"pen models: the health ring on the water shows the site state")
+	_check(_delta_e76(healthy, red) >= 20.0, "pen models: healthy vs red ring dE %.1f >= 20" % _delta_e76(healthy, red))
+	var collar_after := _albedo_of(cage.get_node("Collar") as MeshInstance3D)
+	_check(collar_after == collar_before and _linear_luminance(collar_after) < 0.1,
+		"pen models: the collar stays black HDPE (luminance %.3f) whatever the lice" % _linear_luminance(collar_after))
+
+	var label := cage.get_node_or_null("Label") as Label3D
+	_check(label != null and label.billboard == BaseMaterial3D.BILLBOARD_ENABLED and label.fixed_size
+		and label.position.y > 3.0,
+		"pen models: the site label is a constant-size billboard above the pen")
+
+	# A3-01 retired the capsule service boat: the site's boat is the 15 x 10 m
+	# workboat catamaran. Its twin hulls must still lie flat along the boat
+	# (longer than wide, wider than tall), now at the real dimensions.
+	var boat := pens.get_node_or_null("PenMarkers/%s_boat" % site_id) as VesselModel
+	var flat := boat != null and boat.asset_id == "workboat"
+	if flat:
+		var hull := boat.get_node("Hull") as MeshInstance3D
+		var box: AABB = hull.transform * hull.get_aabb()
+		flat = box.size.z > box.size.x and box.size.x > box.size.y \
+			and absf(box.size.z - 15.0) / 15.0 <= 0.05 and absf(box.size.x - 10.0) / 10.0 <= 0.05
+	_check(flat, "pen models: the site's workboat hulls lie flat along the boat, 15 x 10 m")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## A2-01: the pen in the game is the Blender hero asset with hand-made LODs
+## inside their triangle budgets and at Polarcirkel 500 dimensions; a site's
+## lice skirt shows on its pen; every site lies in a frame mooring with grid
+## buoys, bridles, anchor lines and four synchronised corner lights.
+func _test_hero_pen_and_site_kit() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "hero pen: seeded two-site scenario starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var site_id := str(_sim.get_all_pens()[0].get("id", "")) if not _sim.get_all_pens().is_empty() else ""
+	var cage := pens.get_node_or_null("PenMarkers/" + site_id) as PenCage
+	_check(cage != null, "hero pen: site %s has a pen" % site_id)
+	if cage == null:
+		scene.queue_free()
+		return
+
+	var lod_tris: Array[int] = []
+	for level in 3:
+		var tris := 0
+		for mesh in cage.get_lod_meshes(level):
+			tris += _mesh_triangles(mesh.mesh)
+		lod_tris.append(tris)
+	_check(lod_tris[0] > 30000 and lod_tris[0] <= 60000 and lod_tris[2] > 0 and lod_tris[2] <= 2000,
+		"hero pen: LOD0 %d tris <= 60k, LOD2 %d tris <= 2k" % [lod_tris[0], lod_tris[2]])
+	var lods_chain := true
+	for level in [1, 2]:
+		for mesh in cage.get_lod_meshes(level):
+			lods_chain = lods_chain and is_equal_approx(mesh.visibility_range_begin, PenCage.LOD_SWITCH[level - 1])
+	for mesh in cage.get_lod_meshes(0):
+		lods_chain = lods_chain and is_equal_approx(mesh.visibility_range_end, PenCage.LOD_SWITCH[0])
+	_check(lods_chain, "hero pen: LOD0 -> LOD1 -> LOD2 hand over by camera distance")
+	var collar := (cage.get_node("Collar") as MeshInstance3D).get_aabb()
+	var net := (cage.get_node("Net") as MeshInstance3D).get_aabb()
+	_check(absf(collar.size.x - 53.63) / 53.63 <= 0.05 and absf(collar.size.z - 53.63) / 53.63 <= 0.05,
+		"hero pen: collar %.2f m across, within 5%% of the 160 m Polarcirkel collar" % collar.size.x)
+	_check(-net.position.y >= 20.0 and -net.position.y <= 40.0 * 1.05,
+		"hero pen: the net hangs %.1f m deep (20-40 m with a cone bottom)" % -net.position.y)
+
+	_check(not cage.has_lice_skirt() and cage.get_parts("LiceSkirt").all(func(m: MeshInstance3D) -> bool: return not m.visible),
+		"hero pen: no lice skirt before the site buys one")
+	_check(_sim.toggle_mitigation(site_id, "skirt"), "hero pen: the site buys a lice skirt")
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	_check(cage.has_lice_skirt() and cage.get_parts("LiceSkirt").size() == 3
+		and cage.get_parts("LiceSkirt").all(func(m: MeshInstance3D) -> bool: return m.visible),
+		"hero pen: the skirt variant shows on every LOD of the pen")
+
+	var grid := pens.get_pen_mooring(site_id)
+	_check(grid != null and grid.cells_x == 1 and grid.cells_z == 1
+		and MooringGrid.CELL_M >= 70.0 and MooringGrid.CELL_M <= 100.0,
+		"site kit: the pen lies in one 70-100 m frame mooring cell")
+	if grid != null:
+		_check(grid.buoy_positions.size() == 4 and grid.ropes_of("bridle").size() == 8
+			and grid.ropes_of("anchor").size() == 8 and grid.ropes_of("frame").size() == 4,
+			"site kit: 4 grid buoys, 8 bridles, 8 anchor lines, 4 frame lines")
+		var buoys_drawn := not grid.get_buoy_instances().is_empty()
+		for mmi in grid.get_buoy_instances():
+			buoys_drawn = buoys_drawn and mmi.multimesh.instance_count == 4
+		_check(buoys_drawn and grid.get_buoy_instances().size() == 3, "site kit: buoys drawn at all three LODs")
+		var lamps_ok := grid.light_positions.size() == 4 and grid.get_light_instances().size() == 3
+		for mmi in grid.get_light_instances():
+			var lamp := _surface_material(mmi.multimesh.mesh, "mooring_lamp_material")
+			lamps_ok = lamps_ok and lamp != null \
+				and (lamp.get_shader_parameter("lamp_color") as Color).is_equal_approx(Color("#FFC23A"))
+		_check(lamps_ok, "site kit: four corner lights, all on the one #FFC23A flashing lamp material")
+
+	var rivals: CompetitorFarmVisualManager = env.get_node("CompetitorFarmVisualManager")
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	var rival_moorings := not rivals.farm_ids().is_empty()
+	for id in rivals.farm_ids():
+		var farm: Dictionary = rivals._competitor_farms[id]
+		var n: int = farm.cages.size()
+		var rg: MooringGrid = farm.get("mooring")
+		rival_moorings = rival_moorings and rg != null and rg.cells_z == n \
+			and rg.buoy_positions.size() == 2 * (n + 1) and rg.ropes_of("bridle").size() == 8 * n
+	_check(rival_moorings, "site kit: every rival farm lies in its own frame mooring, one cell per pen")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## A3-01: the fleet is the Blender vessel set at real dimensions (barges 37 x
+## 11 m and 64.8 x 13 m, wellboats 77 x 17.8 m and 116 x 23 m, workboat
+## 15 x 10 m) inside its triangle budgets with an LOD hand-over chain; the
+## wellboat is longer than a pen is wide; a harvest sends the big carrier;
+## a feed barge is towed out and moors with its feed lines towards its pen;
+## job state is a chip, never paint.
+func _test_vessel_fleet() -> void:
+	# Hull length/beam spec and the LOD0/LOD1/LOD2 triangle ceilings
+	# (blender/asset_manifest.json tri_max).
+	var fleet := {
+		"workboat/workboat": [15.0, 10.0, [20000, 5000, 1000]],
+		"feed_barge/feed_barge": [37.0, 11.0, [30000, 8000, 1500]],
+		"feed_barge/feed_barge_large": [64.8, 13.0, [40000, 10000, 2000]],
+		"wellboat/wellboat": [77.0, 17.8, [45000, 12000, 2000]],
+		"wellboat/wellboat_large": [116.0, 23.0, [60000, 15000, 2500]],
+		"rib/rib": [8.5, 3.0, [6000, 1500, 400]],
+	}
+	var dims_ok := true
+	var budgets_ok := true
+	var chains_ok := true
+	var report := []
+	for path in fleet:
+		var v := (load("res://assets/models/%s.tscn" % path) as PackedScene).instantiate() as VesselModel
+		add_child(v)
+		var spec: Array = fleet[path]
+		var hull := (v.get_node("Hull") as MeshInstance3D).get_aabb()
+		dims_ok = dims_ok and absf(hull.size.z - spec[0]) / spec[0] <= 0.05 and absf(hull.size.x - spec[1]) / spec[1] <= 0.05
+		var tris: Array[int] = []
+		for level in 3:
+			var t := 0
+			for mesh in v.get_lod_meshes(level):
+				t += _mesh_triangles(mesh.mesh)
+			tris.append(t)
+			budgets_ok = budgets_ok and t > 0 and t <= int(spec[2][level])
+		budgets_ok = budgets_ok and tris[0] > tris[1] and tris[1] > tris[2]
+		for mesh in v.get_lod_meshes(0):
+			chains_ok = chains_ok and is_equal_approx(mesh.visibility_range_end, v.lod_switch.x)
+		for mesh in v.get_lod_meshes(1):
+			chains_ok = chains_ok and is_equal_approx(mesh.visibility_range_begin, v.lod_switch.x) \
+				and is_equal_approx(mesh.visibility_range_end, v.lod_switch.y)
+		for mesh in v.get_lod_meshes(2):
+			chains_ok = chains_ok and is_equal_approx(mesh.visibility_range_begin, v.lod_switch.y) \
+				and is_equal_approx(mesh.visibility_range_end, v.max_distance) \
+				and mesh.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		report.append("%s %.1fx%.1f %s" % [path.get_file(), hull.size.z, hull.size.x, tris])
+		v.free()
+	_check(dims_ok, "vessels: hull length and beam within 5%% of spec (%s)" % ", ".join(report))
+	_check(budgets_ok, "vessels: every LOD inside its triangle ceiling, LOD0 > LOD1 > LOD2")
+	_check(chains_ok, "vessels: LOD0 -> LOD1 -> LOD2 hand over by camera distance, LOD2 casts no shadow")
+
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "vessels: seeded two-site scenario starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var boats: WellboatVisualManager = env.get_node("WellboatVisualManager")
+	var barges: FeedBargeVisualManager = env.get_node("FeedBargeVisualManager")
+	boats.sail_seconds = 0.2
+	barges.tow_seconds = 0.2
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	var on_station := not barges.active_site_ids().is_empty()
+	var states := []
+	for id in barges.active_site_ids():
+		on_station = on_station and barges.barge_state(id) == "moored"
+		states.append("%s %s" % [id, barges.barge_state(id)])
+	_check(on_station, "vessels: sites stocked when the game starts have their barge on station, no tow-in (%s)" % ", ".join(states))
+	var sites: Array = _sim.get_all_pens()
+	var site_id := str(sites[0].get("id", "")) if not sites.is_empty() else ""
+	var cage := pens.get_node_or_null("PenMarkers/" + site_id) as PenCage
+	_check(cage != null, "vessels: site %s has a pen" % site_id)
+	if cage == null:
+		scene.queue_free()
+		return
+
+	_check(_sim.request_wellboat(site_id, "harvest"), "vessels: a harvest wellboat is booked for %s" % site_id)
+	_sim.state_updated.emit()
+	await get_tree().create_timer(0.5).timeout
+	var job_id := ""
+	for id in boats.active_job_ids():
+		if boats._active_wellboats[id].kind == "harvest":
+			job_id = id
+	var carrier := boats._active_wellboats[job_id].boat as VesselModel if job_id != "" else null
+	_check(carrier != null and carrier.asset_id == "wellboat_large",
+		"vessels: a harvest sends the 116 m carrier (%s)" % (carrier.asset_id if carrier else "none"))
+	var collar := (cage.get_node("Collar") as MeshInstance3D).get_aabb()
+	var wb := (load("res://assets/models/wellboat/wellboat.tscn") as PackedScene).instantiate() as VesselModel
+	var wb_len := (wb.get_node("Hull") as MeshInstance3D).get_aabb().size.z
+	wb.free()
+	_check(wb_len > collar.size.x * 1.3,
+		"vessels: the wellboat (%.1f m) is visibly longer than the pen is wide (%.1f m)" % [wb_len, collar.size.x])
+	var chip := boats.job_chip(job_id) if job_id != "" else null
+	var days_left := int(boats._active_wellboats[job_id].due_day) - int(_sim.current_day) if job_id != "" else -1
+	_check(chip != null and chip.get_text() == WellboatVisualManager.chip_text("harvest", days_left, false)
+		and chip.get_text().begins_with("Slakting") and chip.get_accent() == WellboatVisualManager.JOB_COLOURS["harvest"]
+		and chip.get_size_px().x > 120.0,
+		"vessels: the harvest chip reads '%s' with the ok-green dot" % (chip.get_text() if chip else ""))
+	var carrier_mid := carrier.global_position if carrier else Vector3.ZERO
+	var buoy_clear := carrier != null
+	var grid := pens.get_pen_mooring(site_id)
+	if grid != null and carrier != null:
+		for b in grid.buoy_positions:
+			var local := carrier.to_local(grid.to_global(b))
+			buoy_clear = buoy_clear and (absf(local.x) > carrier.beam_m * 0.5 + 0.5 or absf(local.z) > carrier.length_m * 0.5 + 0.5)
+	_check(buoy_clear, "vessels: the waiting carrier lies clear of the mooring buoys (at %s)" % carrier_mid)
+
+	_check(barges.barge_state(site_id) == "moored", "vessels: the feed barge lies moored on station (%s)" % barges.barge_state(site_id))
+	var barge := barges.barge_of(site_id) as VesselModel
+	var feed_side_ok := barge != null
+	if barge != null:
+		var to_pen := cage.global_position - barge.global_position
+		feed_side_ok = barge.global_transform.basis.x.dot(to_pen) > 0.0 and to_pen.length() < 80.0
+	_check(feed_side_ok, "vessels: the moored barge lies beside its pen with its feed lines towards it")
+	var tender := barge.get_node_or_null("Tender") as VesselModel if barge else null
+	var tender_ok := tender != null and tender.asset_id == "rib"
+	if tender_ok:
+		var away := barge.to_local(cage.global_position).x * tender.position.x
+		tender_ok = away < 0.0 and absf(tender.position.x) > barge.beam_m * 0.5 + tender.beam_m * 0.5
+	_check(tender_ok, "vessels: the barge keeps its tender RIB alongside, on the side away from the pen")
+	_check(_no_material_overrides(barge) and _no_material_overrides(carrier) and barge.get_node("Hull").get_active_material(0)
+		== load("res://assets/models/vessel_kit/vessel_hull_slate_material.tres"),
+		"vessels: barge and wellboat hulls keep the shared vessel paint, no per-boat material")
+	barges._start_return(site_id)
+	await get_tree().create_timer(0.5).timeout
+	_check(barges.barge_state(site_id) == "" and not barges.active_site_ids().has(site_id),
+		"vessels: a barge sent home leaves the fjord")
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	var towing := barges.barge_state(site_id)
+	await get_tree().create_timer(0.5).timeout
+	_check(towing == "towing" and barges.barge_state(site_id) == "moored"
+		and _route_on_water(barges._active_barges[site_id].path, (env.get_node("Terrain") as FjordTerrain)),
+		"vessels: a site that needs a barge again sees it towed out along the channel and moored (%s -> %s)"
+			% [towing, barges.barge_state(site_id)])
+	await _check_salmon_school(pens, site_id)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## G3-01 (asset part): the pen's school draws the Blender Atlantic salmon in
+## its countershaded skin, nose along -Z, ~300 triangles from the farm
+## camera and ~1.5k close up; the swap keeps every fish where it was.
+func _check_salmon_school(pens: FishPenManager, site_id: String) -> void:
+	var school: MultiMeshInstance3D = pens._pens[site_id]["fish_school"] if pens._pens.has(site_id) else null
+	var mesh: Mesh = school.multimesh.mesh if school else null
+	var skin := load("res://assets/models/fish/salmon_skin_material.tres")
+	_check(mesh != null and mesh.get_surface_count() == 1 and mesh.surface_get_material(0) == skin,
+		"salmon: the school draws the Blender salmon in its one countershaded skin material")
+	var box: AABB = mesh.get_aabb() if mesh else AABB()
+	_check(absf(box.position.z + 0.452) < 0.01 and box.end.z > 0.45 and box.size.z > box.size.y * 2.5,
+		"salmon: the nose leads along -Z, 0.9 m fork length (%.3f .. %.3f)" % [box.position.z, box.end.z])
+	var cam := Camera3D.new()
+	add_child(cam)
+	cam.current = true
+	cam.global_position = school.global_position + Vector3(0, 300, 300) if school else Vector3.ZERO
+	await get_tree().process_frame
+	var far_tris := _mesh_triangles(school.multimesh.mesh) if school else 0
+	var before: Transform3D = school.multimesh.get_instance_transform(3) if school else Transform3D()
+	var count_before: int = school.multimesh.visible_instance_count if school else -1
+	pens.set_process(false)  # freeze the swim so the swap alone is measured
+	cam.global_position = school.global_position + Vector3(0, -4, 12) if school else Vector3.ZERO
+	if school:
+		pens._update_fish_lod(school)
+	var near_tris := _mesh_triangles(school.multimesh.mesh) if school else 0
+	_check(far_tris >= 200 and far_tris <= 400 and near_tris >= 1200 and near_tris <= 1800,
+		"salmon: %d triangles from the farm camera, %d close up (about 300 and 1.5k)" % [far_tris, near_tris])
+	_check(school != null and school.multimesh.get_instance_transform(3).is_equal_approx(before)
+		and school.multimesh.visible_instance_count == count_before,
+		"salmon: the close-up swap keeps every fish where it was (%d fish)" % count_before)
+	pens.set_process(true)
+	cam.queue_free()
+	await get_tree().process_frame
+
+## True when no mesh under `root` has a material override (job state or
+## owner colour never gets painted onto one boat).
+func _no_material_overrides(root: Node) -> bool:
+	if root == null:
+		return false
+	for mesh in root.find_children("*", "MeshInstance3D", true, false):
+		if (mesh as MeshInstance3D).material_override != null and not ((mesh as MeshInstance3D).get_parent() is VesselChip):
+			return false
+	return true
+
+## Triangles in a mesh (all surfaces).
+func _mesh_triangles(mesh: Mesh) -> int:
+	if mesh == null:
+		return 0
+	var tris := 0
+	for s in mesh.get_surface_count():
+		var count: int = mesh.surface_get_array_index_len(s)
+		if count <= 0:
+			count = mesh.surface_get_array_len(s)
+		tris += count / 3
+	return tris
+
+## The surface material of a mesh whose resource path contains `name`.
+func _surface_material(mesh: Mesh, name: String) -> ShaderMaterial:
+	if mesh == null:
+		return null
+	for s in mesh.get_surface_count():
+		var mat := mesh.surface_get_material(s)
+		if mat is ShaderMaterial and name in mat.resource_path:
+			return mat as ShaderMaterial
+	return null
+
+## Triangles of a pen's net meshes lying flat at the net's top edge (a lid).
+func _net_lid_faces(cage: PenCage) -> int:
+	var lid := 0
+	for net in cage.get_net_nodes():
+		var faces: PackedVector3Array = net.mesh.get_faces() if net.mesh else PackedVector3Array()
+		var xf: Transform3D = cage.global_transform.affine_inverse() * net.global_transform
+		var top := -INF
+		for v in faces:
+			top = maxf(top, (xf * v).y)
+		for t in range(0, faces.size(), 3):
+			if (xf * faces[t]).y > top - 0.01 and (xf * faces[t + 1]).y > top - 0.01 and (xf * faces[t + 2]).y > top - 0.01:
+				lid += 1
+	return lid
+
+## The albedo a pen mesh renders with (shader parameter or StandardMaterial).
+func _albedo_of(mesh: MeshInstance3D) -> Color:
+	var mat: Material = mesh.material_override if mesh.material_override else mesh.get_active_material(0)
+	if mat is ShaderMaterial:
+		var c = (mat as ShaderMaterial).get_shader_parameter("albedo_color")
+		return c if c is Color else Color(c.x, c.y, c.z) if c is Vector3 else Color.WHITE
+	if mat is BaseMaterial3D:
+		return (mat as BaseMaterial3D).albedo_color
+	return Color.WHITE
+
+## WCAG relative luminance of an sRGB colour (0 black .. 1 white).
+func _linear_luminance(c: Color) -> float:
+	var l := c.srgb_to_linear()
+	return 0.2126 * l.r + 0.7152 * l.g + 0.0722 * l.b
+
+## CIE76 colour difference between two sRGB colours (D65 white).
+func _delta_e76(a: Color, b: Color) -> float:
+	var la := _lab(a)
+	var lb := _lab(b)
+	return la.distance_to(lb)
+
+func _lab(c: Color) -> Vector3:
+	var l := c.srgb_to_linear()
+	var x := (0.4124 * l.r + 0.3576 * l.g + 0.1805 * l.b) / 0.95047
+	var y := 0.2126 * l.r + 0.7152 * l.g + 0.0722 * l.b
+	var z := (0.0193 * l.r + 0.1192 * l.g + 0.9505 * l.b) / 1.08883
+	var f := func(t: float) -> float: return pow(t, 1.0 / 3.0) if t > 0.008856 else 7.787 * t + 16.0 / 116.0
+	var fx: float = f.call(x)
+	var fy: float = f.call(y)
+	var fz: float = f.call(z)
+	return Vector3(116.0 * fy - 16.0, 500.0 * (fx - fy), 200.0 * (fy - fz))
 
 ## True when every baked point of a boat's path is at sea level over water.
 func _route_on_water(path: Path3D, terrain: FjordTerrain) -> bool:

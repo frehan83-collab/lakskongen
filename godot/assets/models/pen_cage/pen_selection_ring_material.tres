@@ -1,0 +1,15 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://pen_selection_ring_mat_001"]
+
+[ext_resource type="Shader" path="res://shaders/pen_signal_ring.gdshader" id="1_shader"]
+
+[resource]
+render_priority = 1
+shader = ExtResource("1_shader")
+shader_parameter/ring_radius = 31.2
+shader_parameter/ring_half_width = 0.16
+shader_parameter/min_pixel_width = 2.5
+shader_parameter/halo_width = 1.6
+shader_parameter/halo_strength = 0.16
+shader_parameter/dash_count = 36.0
+shader_parameter/dash_duty = 0.6
+shader_parameter/spin_speed = 0.06

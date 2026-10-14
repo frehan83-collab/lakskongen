@@ -104,6 +104,16 @@ class AssetSpec:
     export_path: str
     build_script: str
     variants: list[str] | None = None
+    # Hard triangle ceilings per LOD (roadmap budgets, e.g. pen LOD0 <= 60k).
+    tri_max: dict[str, int] | None = None
+    # Per-LOD material lists where a LOD drops parts (vessel LOD2 folds the
+    # small gear into the big parts); other LODs use `materials`.
+    lod_materials: dict[str, list[str]] | None = None
+    # Extra build-script arguments (one script building several assets).
+    build_args: list[str] | None = None
+
+    def materials_for(self, lod: str) -> list[str]:
+        return (self.lod_materials or {}).get(lod, self.materials)
 
     @classmethod
     def from_dict(cls, d: dict) -> "AssetSpec":
@@ -117,7 +127,10 @@ class AssetSpec:
             tri_budget=d["tri_budget"],
             export_path=d["export_path"],
             build_script=d["build_script"],
-            variants=d.get("variants")
+            variants=d.get("variants"),
+            tri_max=d.get("tri_max"),
+            lod_materials=d.get("lod_materials"),
+            build_args=d.get("build_args"),
         )
 
 
@@ -165,7 +178,8 @@ def ensure_manifest() -> dict:
     return load_manifest(MANIFEST_IN)
 
 
-def run_blender_build(script_path: Path, lod: str, variant: str | None = None) -> tuple[int, str, str]:
+def run_blender_build(script_path: Path, lod: str, variant: str | None = None,
+                      extra_args: list[str] | None = None) -> tuple[int, str, str]:
     """Run Blender in background mode to build asset."""
     blender_bin = os.environ.get("BLENDER_BIN", "blender")
     env = os.environ.copy()
@@ -181,6 +195,7 @@ def run_blender_build(script_path: Path, lod: str, variant: str | None = None) -
     ]
     if variant:
         cmd.extend(["--variant", variant])
+    cmd.extend(extra_args or [])
 
     result = subprocess.run(cmd, capture_output=True, text=True, env=env, cwd=REPO_ROOT)
     return result.returncode, result.stdout, result.stderr
@@ -233,7 +248,7 @@ def validate_asset(spec: AssetSpec, lod: str, variant: str | None, export_path: 
     file_size = export_path.stat().st_size
 
     budget = spec.tri_budget.get(lod, 0)
-    expected_materials = len(spec.materials)
+    expected_materials = len(spec.materials_for(lod))
 
     # Parse validation data from a sidecar JSON if available
     validation_file = export_path.with_suffix(".json")
@@ -257,6 +272,11 @@ def validate_asset(spec: AssetSpec, lod: str, variant: str | None, export_path: 
         tolerance = budget * 0.1
         if not (budget - tolerance <= tri_count <= budget + tolerance):
             errors.append(f"Triangle count {tri_count} outside budget {budget}±{tolerance:.0f}")
+
+    # Hard ceiling, independent of the pinned budget above.
+    ceiling = (spec.tri_max or {}).get(lod)
+    if ceiling is not None and tri_count > ceiling:
+        errors.append(f"Triangle count {tri_count} over the {lod} ceiling {ceiling}")
 
     # Material count validation
     if material_count != expected_materials:
@@ -306,7 +326,7 @@ def build_asset(spec: AssetSpec, use_mcp: bool) -> list[AssetResult]:
             if use_mcp:
                 rc, stdout, stderr = run_blender_mcp(script_path, lod, variant)
             else:
-                rc, stdout, stderr = run_blender_build(script_path, lod, variant)
+                rc, stdout, stderr = run_blender_build(script_path, lod, variant, spec.build_args)
 
             if rc != 0:
                 print(f"    Build failed (rc={rc}): {stderr[:200]}")
@@ -323,16 +343,19 @@ def build_asset(spec: AssetSpec, use_mcp: bool) -> list[AssetResult]:
             # Parse build output for validation data
             build_data = parse_build_output(stdout)
 
-            # Write validation sidecar for verify-only mode
+            # Write validation sidecar for verify-only mode, unless the build
+            # script wrote its own (richer) sidecar: those name their asset.
             export_path = REPO_ROOT / spec.export_path.format(lod=lod, variant=variant or "")
             validation_file = export_path.with_suffix(".json")
             validation_file.parent.mkdir(parents=True, exist_ok=True)
-            with validation_file.open("w") as f:
-                json.dump({
-                    "tri_count": build_data.get("tri_count", 0),
-                    "material_count": build_data.get("materials", 0),
-                    "bbox_size": build_data.get("bbox", [0, 0, 0])
-                }, f)
+            own_sidecar = validation_file.exists() and "asset" in json.loads(validation_file.read_text())
+            if not own_sidecar:
+                with validation_file.open("w") as f:
+                    json.dump({
+                        "tri_count": build_data.get("tri_count", 0),
+                        "material_count": build_data.get("materials", 0),
+                        "bbox_size": build_data.get("bbox", [0, 0, 0])
+                    }, f)
 
             result = validate_asset(spec, lod, variant, export_path)
             results.append(result)

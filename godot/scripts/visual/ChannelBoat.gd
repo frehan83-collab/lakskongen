@@ -30,13 +30,19 @@ static func face_home(boat: Node3D) -> void:
 	boat.rotation.y = PI
 
 
-## Tints a copy of the boat's deck ShaderMaterial: every boat shares the
-## scene's material. False when the scene has no tintable Deck.
+## Tints a copy of the boat's deck ShaderMaterial (its override, or the
+## Blender vessels' imported surface material): every boat shares the
+## scene's material. False when the scene has no tintable Deck. The vessel
+## managers no longer call it: job state shows on a VesselChip, never in a
+## boat's paint (roadmap A3-01).
 static func tint_deck(boat: Node3D, colour: Color) -> bool:
 	var deck := boat.get_node_or_null("Deck") as MeshInstance3D
-	if deck == null or not (deck.material_override is ShaderMaterial):
+	if deck == null:
 		return false
-	var mat := deck.material_override.duplicate() as ShaderMaterial
+	var source: Material = deck.material_override if deck.material_override else deck.get_active_material(0)
+	if not (source is ShaderMaterial):
+		return false
+	var mat := source.duplicate() as ShaderMaterial
 	mat.set_shader_parameter("albedo_color", colour)
 	deck.material_override = mat
 	return true

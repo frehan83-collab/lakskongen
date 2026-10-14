@@ -4,9 +4,6 @@
 
 [resource]
 shader = ExtResource("1_shader")
-shader_parameter/albedo_color = Color(0.9, 0.6, 0.2, 0.85)
-shader_parameter/emission_color = Color(0, 0, 0, 0)
-shader_parameter/metallic = 0.3
-shader_parameter/roughness = 0.4
-shader_parameter/transparency = 0
-shader_parameter/cull_mode = 2
+shader_parameter/albedo_color = Color(0.109804, 0.117647, 0.12549, 1)
+shader_parameter/metallic = 0.0
+shader_parameter/roughness = 0.6

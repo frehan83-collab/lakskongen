@@ -5,7 +5,7 @@ extends Node
 ## Drives all 3D state purely from simulation tick via SimBridge.
 
 @export var pen_cage_scene: PackedScene = preload("res://assets/models/pen_cage/pen_cage.tscn")
-@export var service_boat_scene: PackedScene = preload("res://assets/models/boat/service_boat.tscn")
+@export var service_boat_scene: PackedScene = preload("res://assets/models/workboat/workboat.tscn")
 @export var salmon_scene: PackedScene = preload("res://assets/models/fish/salmon.tscn")
 
 var _sim_bridge = null

@@ -16,7 +16,8 @@ extends Node3D
 
 @export_group("Models")
 @export var pen_cage_scene: PackedScene = preload("res://assets/models/pen_cage/pen_cage.tscn")
-@export var service_boat_scene: PackedScene = preload("res://assets/models/boat/service_boat.tscn")
+## The site's service boat: the 15 x 10 m workboat catamaran (A3-01).
+@export var service_boat_scene: PackedScene = preload("res://assets/models/workboat/workboat.tscn")
 @export var salmon_scene: PackedScene = preload("res://assets/models/fish/salmon.tscn")
 
 @export_group("Fish School")
@@ -47,11 +48,26 @@ signal pen_selection_changed(pen_id: String)
 
 var selected_pen_id: String = ""
 
-# Health tint palette (collar ring color)
-const COLOR_HEALTHY := Color(0.25, 0.75, 0.35, 0.85)
-const COLOR_WARNING := Color(0.95, 0.75, 0.25, 0.85)
-const COLOR_CRITICAL := Color(0.85, 0.3, 0.3, 0.9)
-const COLOR_DEFAULT := Color(0.9, 0.6, 0.2, 0.6)
+# Health ring palette (the signal ring on the water; the collar stays black
+# HDPE). Same values as PenCage.HEALTH_COLORS.
+const COLOR_HEALTHY := Color(0.498, 0.839, 0.608, 0.55)
+const COLOR_WARNING := Color(0.949, 0.718, 0.020, 0.85)
+const COLOR_CRITICAL := Color(1.0, 0.541, 0.502, 0.95)
+const COLOR_DEFAULT := Color(0.624, 0.706, 0.733, 0.35)
+## Regulatory lice limits (adult female lice per fish): the spring limit and
+## the standing limit the sim enforces.
+const LICE_WARN := 0.2
+const LICE_CRIT := 0.5
+## The selection ring is a flat quad on the water around the selected pen.
+const SELECTION_RING_SIZE := 84.0
+const SELECTION_RING_Y := 0.2
+const SELECTION_RING_MATERIAL := preload("res://assets/models/pen_cage/pen_selection_ring_material.tres")
+## Selected-pen ring colour: Ink text (#E8EEF0).
+const SELECTION_COLOR := Color(0.910, 0.933, 0.941, 0.9)
+## The workboat lies broadside to the collar this far from the centre
+## (outer pipe edge at 26.8 m, half the boat's 10 m beam, the tyre fenders
+## and a 1.4 m gap).
+const BOAT_MOORING_OFFSET := 33.6
 
 
 func _ready() -> void:
@@ -92,19 +108,18 @@ func _ensure_expected_nodes() -> void:
 		visualization.mesh = _create_ring_mesh(COLOR_DEFAULT)
 		visualization.visible = false
 		add_child(visualization)
+	# Selection marker: a dashed ring on the water around the selected pen
+	# (it replaced a green debug sphere floating above the collar, G1-07).
 	active_indicator = get_node_or_null("ActivePenIndicator") as MeshInstance3D
 	if active_indicator == null:
 		active_indicator = MeshInstance3D.new()
 		active_indicator.name = "ActivePenIndicator"
-		var sphere := SphereMesh.new()
-		sphere.radius = 2.0
-		sphere.height = 4.0
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.3, 0.9, 0.4, 0.9)
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		sphere.material = mat
-		active_indicator.mesh = sphere
+		var plane := PlaneMesh.new()
+		plane.size = Vector2(SELECTION_RING_SIZE, SELECTION_RING_SIZE)
+		active_indicator.mesh = plane
+		active_indicator.material_override = SELECTION_RING_MATERIAL
+		active_indicator.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		active_indicator.set_instance_shader_parameter("ring_color", SELECTION_COLOR)
 		active_indicator.visible = false
 		add_child(active_indicator)
 
@@ -223,35 +238,44 @@ func _apply_site_data(pen_id: String, site: Dictionary, index: int) -> void:
 		if not label:
 			label = Label3D.new()
 			label.name = "Label"
-			label.position.y = 3.0
-			label.font_size = 64
-			label.modulate = Color(1, 1, 1, 0.9)
+			label.position.y = PenCage.LABEL_HEIGHT
+			PenCage.style_label(label, Color(0.910, 0.933, 0.941))
 			cage.add_child(label)
 		label.text = _site_string(site, ["name", "pen_name", "id"], pen_id)
-	var color := health_color_for(site)
-	_set_ring_color(pen_id, color)
+		if cage is PenCage:
+			(cage as PenCage).set_lice_skirt(bool(site.get("has_skirt", false)))
+	_set_health(pen_id, health_state_for(site))
 	_apply_fish_density(pen_id, site)
 	_maybe_emit_feeding(pen_id, site)
 
 
-static func health_color_for(site: Dictionary) -> Color:
-	# Thresholds mirror the sim's regulatory limits: green below 0.2
-	# (spring limit), amber 0.2-0.5, red at/above the 0.5 adult-female limit.
-	var lice := _site_float(site, ["sea_lice", "lice_per_fish", "lice"], -1.0)
+## Site health for the ring, from the keys GameBridge.GetSeaSiteDetails
+## really sends: an empty site is UNKNOWN (neutral), otherwise the lice level
+## against the sim's regulatory limits (green below the 0.2 spring limit,
+## amber up to the 0.5 adult-female limit, red at or above it). The legacy
+## "health"/"health_score" keys are honoured for other callers.
+static func health_state_for(site: Dictionary) -> int:
+	if site.has("fish_count") and _site_float(site, ["fish_count"], 0.0) <= 0.0:
+		return PenCage.Health.UNKNOWN
+	var lice := _site_float(site, ["lice_per_fish", "sea_lice", "lice"], -1.0)
 	if lice >= 0.0:
-		if lice >= 0.5:
-			return COLOR_CRITICAL
-		if lice >= 0.2:
-			return COLOR_WARNING
-		return COLOR_HEALTHY
+		if lice >= LICE_CRIT:
+			return PenCage.Health.CRIT
+		if lice >= LICE_WARN:
+			return PenCage.Health.WARN
+		return PenCage.Health.OK
 	var health := _site_float(site, ["health", "health_score", "welfare"], -1.0)
 	if health >= 0.0:
 		if health < 0.4:
-			return COLOR_CRITICAL
+			return PenCage.Health.CRIT
 		if health < 0.7:
-			return COLOR_WARNING
-		return COLOR_HEALTHY
-	return COLOR_DEFAULT
+			return PenCage.Health.WARN
+		return PenCage.Health.OK
+	return PenCage.Health.UNKNOWN
+
+
+static func health_color_for(site: Dictionary) -> Color:
+	return PenCage.health_color_of(health_state_for(site))
 
 
 static func _site_string(site: Dictionary, keys: Array, fallback: String) -> String:
@@ -284,14 +308,22 @@ func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 	if click_area:
 		click_area.input_event.connect(_on_pen_input_event.bind(pen_id))
 
-	# Service boat moored alongside the collar: diagonal offset clears the
-	# 25.5 m collar radius, waterline y sits the hull IN the water instead
-	# of floating 2 m above it.
-	var moor_dir := Vector3(1, 0, 1).normalized()
+	# Service boat moored alongside the collar, broadside to it, between the
+	# frame corners (the bridles run to the corners) and away from the feed
+	# hose (+X); the workboat's origin is its waterline.
 	var boat = service_boat_scene.instantiate()
 	boat.name = "%s_boat" % pen_id
 	markers_parent.add_child(boat)
-	boat.global_position = position + moor_dir * 33.0 + Vector3(0, 0.2, 0)
+	boat.global_position = position + Vector3(0.0, 0.0, BOAT_MOORING_OFFSET)
+	boat.rotation.y = PI * 0.5
+
+	# The site's frame mooring: one 70 m cell round the pen, grid buoys,
+	# bridles, anchor lines and the synchronised corner lights.
+	var mooring := MooringGrid.new()
+	mooring.name = "%s_mooring" % pen_id
+	markers_parent.add_child(mooring)
+	mooring.global_position = position
+	mooring.build(1, 1, [Vector2i(0, 0)], MooringGrid.BUOY_GREY, _seabed_lookup())
 
 	# Fish school using MultiMesh
 	var school := MultiMeshInstance3D.new()
@@ -300,9 +332,11 @@ func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 	markers_parent.add_child(school)
 	school.global_position = position
 
-	# Store pen data (keep the stock collar/net materials so stocked pens
-	# can be restored after ghosting).
-	var collar := cage.get_node_or_null("Collar") as MeshInstance3D
+	# Store pen data (keep the stock material and shadow setting of every pen
+	# mesh so stocked pens can be restored after ghosting).
+	var stock_mats := {}
+	for mesh in _pen_meshes(cage):
+		stock_mats[mesh] = [mesh.material_override, mesh.cast_shadow]
 	_pens[pen_id] = {
 		"position": position,
 		"active": active,
@@ -312,12 +346,29 @@ func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 		"cage": cage,
 		"boat": boat,
 		"fish_school": school,
-		"collar_mat": collar.material_override if collar else null,
+		"mooring": mooring,
+		"stock_mats": stock_mats,
 	}
 	if not active:
 		_apply_ghost_style(pen_id)
 
 	pen_added.emit(pen_id, position)
+
+## Seabed height lookup for mooring anchor lines (world x, z -> y), or an
+## empty Callable when there is no terrain.
+func _seabed_lookup() -> Callable:
+	if _terrain_ref == null:
+		_terrain_ref = get_node_or_null("../Terrain") as FjordTerrain
+	if _terrain_ref == null:
+		return Callable()
+	var terrain := _terrain_ref
+	return func(x: float, z: float) -> float: return terrain.get_height_at(x, z)
+
+## The frame mooring laid round a pen (null for an unknown pen).
+func get_pen_mooring(pen_id: String) -> MooringGrid:
+	if pen_id in _pens:
+		return _pens[pen_id].get("mooring") as MooringGrid
+	return null
 
 ## Shared ghost material for unstocked (available-site) pens: faded ring,
 ## no boat, no net — a placeholder, not a farm.
@@ -333,38 +384,56 @@ static func _get_ghost_mat() -> StandardMaterial3D:
 		_ghost_mat.no_depth_test = false
 	return _ghost_mat
 
+## The pen's structure meshes (everything but the signal ring), the ones the
+## ghost style fades. Nets are handled apart: a ghost pen has none.
+static func _pen_meshes(cage: Node) -> Array[MeshInstance3D]:
+	var meshes: Array[MeshInstance3D] = []
+	if cage == null:
+		return meshes
+	for node in cage.find_children("*", "MeshInstance3D", true, false):
+		if node.name != "HealthRing":
+			meshes.append(node as MeshInstance3D)
+	return meshes
+
 func _apply_ghost_style(pen_id: String) -> void:
 	if not (pen_id in _pens):
 		return
 	var pen_data: Dictionary = _pens[pen_id]
 	var cage = pen_data.get("cage")
-	var collar := cage.get_node_or_null("Collar") as MeshInstance3D if cage else null
-	if collar:
-		collar.material_override = _get_ghost_mat()
-		collar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var net := cage.get_node_or_null("Net") as MeshInstance3D if cage else null
-	if net:
-		net.visible = false
+	for mesh in _pen_meshes(cage):
+		mesh.material_override = _get_ghost_mat()
+		mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if cage is PenCage:
+		for net in (cage as PenCage).get_net_nodes():
+			net.visible = false
+		(cage as PenCage).show_health_ring(false)
 	var boat = pen_data.get("boat")
 	if boat is Node3D:
 		(boat as Node3D).visible = false
+	var mooring = pen_data.get("mooring")
+	if mooring is Node3D:
+		(mooring as Node3D).visible = false
 
 func _restore_stocked_style(pen_id: String) -> void:
 	if not (pen_id in _pens):
 		return
 	var pen_data: Dictionary = _pens[pen_id]
 	var cage = pen_data.get("cage")
-	var collar := cage.get_node_or_null("Collar") as MeshInstance3D if cage else null
-	if collar:
-		if pen_data.get("collar_mat") != null:
-			collar.material_override = pen_data["collar_mat"]
-		collar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-	var net := cage.get_node_or_null("Net") as MeshInstance3D if cage else null
-	if net:
-		net.visible = true
+	var stock_mats: Dictionary = pen_data.get("stock_mats", {})
+	for mesh in _pen_meshes(cage):
+		if mesh in stock_mats:
+			mesh.material_override = stock_mats[mesh][0]
+			mesh.cast_shadow = stock_mats[mesh][1]
+	if cage is PenCage:
+		for net in (cage as PenCage).get_net_nodes():
+			net.visible = true
+		(cage as PenCage).show_health_ring(true)
 	var boat = pen_data.get("boat")
 	if boat is Node3D:
 		(boat as Node3D).visible = true
+	var mooring = pen_data.get("mooring")
+	if mooring is Node3D:
+		(mooring as Node3D).visible = true
 
 
 func _create_ring_mesh(color: Color) -> Mesh:
@@ -396,36 +465,55 @@ func _create_net_mesh() -> Mesh:
 	return cyl
 
 
-## Blender-built salmon (blender/build_salmon.py -> salmon_v2.glb).
-## Falls back to a plain box if the import is missing.
-var _salmon_mesh: Mesh = null
+## Blender-built Atlantic salmon (blender/build_salmon.py, 0.9 m fork length,
+## nose along -Z): LOD0 (~1.5k triangles) close to the camera, LOD1 (~300)
+## for a school seen from the farm camera. Falls back to a plain box if the
+## import is missing.
+const SALMON_LOD_SCENES := ["res://assets/models/fish/salmon_LOD0.glb", "res://assets/models/fish/salmon_LOD1.glb"]
+## Camera distance (m) from a pen where its school swaps to the far mesh.
+const FISH_LOD_SWITCH := 70.0
+var _salmon_meshes: Dictionary = {}  # lod -> Mesh
 
-func _get_salmon_mesh() -> Mesh:
-	if _salmon_mesh:
-		return _salmon_mesh
-	var packed: PackedScene = load("res://assets/models/fish/salmon_v2.glb") as PackedScene
+func _get_salmon_mesh(lod: int = 1) -> Mesh:
+	if _salmon_meshes.has(lod):
+		return _salmon_meshes[lod]
+	var mesh: Mesh = null
+	var packed: PackedScene = load(SALMON_LOD_SCENES[clampi(lod, 0, 1)]) as PackedScene
 	if packed != null:
 		var inst: Node = packed.instantiate()
-		var mi := inst.find_child("LK_Salmon", true, false) as MeshInstance3D
+		var mi := inst.find_child("Salmon", true, false) as MeshInstance3D
 		if mi and mi.mesh:
-			_salmon_mesh = mi.mesh
-		inst.queue_free()
-	if _salmon_mesh == null:
+			mesh = mi.mesh
+		inst.free()
+	if mesh == null:
 		var body := BoxMesh.new()
-		body.size = Vector3(0.9, 0.3, 0.25)
+		body.size = Vector3(0.25, 0.3, 0.9)
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = Color(0.5, 0.58, 0.65, 1.0)
 		mat.roughness = 0.6
 		body.material = mat
-		_salmon_mesh = body
-	return _salmon_mesh
+		mesh = body
+	_salmon_meshes[lod] = mesh
+	return mesh
+
+
+## Close schools get the detailed salmon, far ones the light mesh (one
+## MultiMesh per pen: only its mesh changes, the transforms stay).
+func _update_fish_lod(school: MultiMeshInstance3D) -> void:
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	if cam == null or school.multimesh == null:
+		return
+	var lod := 0 if cam.global_position.distance_to(school.global_position) < FISH_LOD_SWITCH else 1
+	var mesh := _get_salmon_mesh(lod)
+	if school.multimesh.mesh != mesh:
+		school.multimesh.mesh = mesh
 
 
 func _create_fish_multimesh() -> MultiMesh:
 	"""One shared low-poly fish school mesh per pen (modest count)."""
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = _get_salmon_mesh()
+	mm.mesh = _get_salmon_mesh(1)
 	# Allocated once at max; _apply_fish_density drives visible count.
 	mm.instance_count = FISH_MAX_INSTANCES
 	mm.visible_instance_count = 0
@@ -460,6 +548,7 @@ func _animate_fish_school(pen_data: Dictionary, pen_id: String) -> void:
 	var school: MultiMeshInstance3D = pen_data["fish_school"]
 	if not school or not school.multimesh:
 		return
+	_update_fish_lod(school)
 	var count: int = school.multimesh.visible_instance_count
 	var fish_scale: float = pen_data.get("fish_scale", 0.5)
 	var phase := float(abs(hash(pen_id)) % 1000) / 1000.0 * TAU
@@ -469,32 +558,31 @@ func _animate_fish_school(pen_data: Dictionary, pen_id: String) -> void:
 		var depth := -3.0 - float(i % 4) * 2.0
 		var pos := Vector3(cos(t) * r, depth + sin(t * 1.7) * 0.6, sin(t) * r)
 		# Tangential heading: velocity of the circle path; the salmon model's
-		# nose points along local -Z (Blender -Y -> Godot -Z on import).
+		# nose points along local -Z (Blender +Y -> Godot -Z on import).
 		var vel := Vector3(-sin(t), 0.0, cos(t))
 		var basis := Basis.looking_at(vel, Vector3.UP).scaled(Vector3.ONE * fish_scale)
 		school.multimesh.set_instance_transform(i, Transform3D(basis, pos))
 
 
-func _set_ring_color(pen_id: String, color: Color) -> void:
+## Show a site's health on its pen's signal ring (an instance parameter on
+## the shared ring material; the collar albedo stays black HDPE).
+func _set_health(pen_id: String, state: int) -> void:
 	if not (pen_id in _pens):
 		return
-	_pens[pen_id]["ring_color"] = color
-	# Per-pen tint via a duplicated ShaderMaterial (the .tres is shared, so a
-	# plain parameter write would recolor every pen). The duplicate is cached
-	# on the pen data and re-applied after the ghost/stocked material swaps.
+	_pens[pen_id]["ring_color"] = PenCage.health_color_of(state)
+	_pens[pen_id]["health_state"] = state
 	var cage = _pens[pen_id]["cage"]
-	if cage:
-		var collar = cage.get_node_or_null("Collar") as MeshInstance3D
-		if collar:
-			var tint_mat: ShaderMaterial = _pens[pen_id].get("tint_mat")
-			var base: Material = collar.material_override as Material
-			if base is ShaderMaterial and (tint_mat == null or tint_mat.resource_path == ""):
-				tint_mat = (base as ShaderMaterial).duplicate() as ShaderMaterial
-				_pens[pen_id]["tint_mat"] = tint_mat
-			if tint_mat != null:
-				collar.material_override = tint_mat
-				tint_mat.set_shader_parameter("lice_tint",
-					Vector4(color.r, color.g, color.b, 1.0))
+	if cage is PenCage:
+		(cage as PenCage).set_health_state(state)
+
+
+## The colour a pen's health ring shows ("" or unknown pen: COLOR_DEFAULT).
+func get_pen_health_color(pen_id: String) -> Color:
+	if pen_id in _pens:
+		var cage = _pens[pen_id]["cage"]
+		if cage is PenCage:
+			return (cage as PenCage).get_health_color()
+	return COLOR_DEFAULT
 
 
 func _on_pen_input_event(_camera: Node, event: InputEvent, _position: Vector3, _normal: Vector3, _shape_idx: int, pen_id: String) -> void:
@@ -512,33 +600,12 @@ func select_pen(pen_id: String) -> void:
 	if not (pen_id in _pens):
 		return
 	selected_pen_id = pen_id
-	_highlight_pen(pen_id)
 	if active_indicator:
+		# Flat on the water around the collar, not floating above it.
+		var at: Vector3 = _pens[pen_id]["node"].global_position
 		active_indicator.visible = true
-		active_indicator.global_position = _pens[pen_id]["node"].global_position + Vector3(0, 6, 0)
+		active_indicator.global_position = Vector3(at.x, at.y + SELECTION_RING_Y, at.z)
 	pen_selection_changed.emit(pen_id)
-
-
-func _highlight_pen(pen_id: String) -> void:
-	"""Visually highlight the selected pen."""
-	# Reset all pens
-	for id in _pens:
-		var pen_data = _pens[id]
-		var cage = pen_data["cage"]
-		if cage:
-			var collar = cage.get_node_or_null("Collar") as MeshInstance3D
-			if collar and collar.mesh and (collar.mesh as PrimitiveMesh).material is StandardMaterial3D:
-				var site_color: Color = pen_data.get("ring_color", COLOR_DEFAULT)
-				((collar.mesh as PrimitiveMesh).material as StandardMaterial3D).albedo_color = site_color
-
-	# Highlight selected
-	if pen_id in _pens:
-		var selected = _pens[pen_id]
-		var cage = selected["cage"]
-		if cage:
-			var collar = cage.get_node_or_null("Collar") as MeshInstance3D
-			if collar and collar.mesh and (collar.mesh as PrimitiveMesh).material is StandardMaterial3D:
-				((collar.mesh as PrimitiveMesh).material as StandardMaterial3D).albedo_color = Color(0.2, 0.9, 0.3, 0.8)
 
 
 # === Public API ===
@@ -570,7 +637,13 @@ func remove_pen(pen_id: String) -> bool:
 		pen_data["boat"].queue_free()
 	if pen_data["fish_school"]:
 		pen_data["fish_school"].queue_free()
+	if pen_data.get("mooring"):
+		pen_data["mooring"].queue_free()
 	_pens.erase(pen_id)
+	if pen_id == selected_pen_id:
+		selected_pen_id = ""
+		if active_indicator:
+			active_indicator.visible = false
 
 	pen_removed.emit(pen_id)
 	return true

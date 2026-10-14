@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://pen_lod_manager"]
-
-[ext_resource type="Script" uid="uid://iysavlk335x7" path="res://scripts/visual/PenLODManager.gd" id="1_lod"]
-
-[node name="PenLODManager" type="Node3D"]
-script = ExtResource("1_lod")

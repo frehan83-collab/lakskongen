@@ -1,0 +1,9 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://mooring_lamp_mat_001"]
+
+[ext_resource type="Shader" path="res://shaders/mooring_lamp_shader.gdshader" id="1_shader"]
+
+[resource]
+shader = ExtResource("1_shader")
+shader_parameter/lamp_color = Color(1, 0.760784, 0.227451, 1)
+shader_parameter/period_s = 4.0
+shader_parameter/flash_s = 0.5
