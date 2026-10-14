@@ -72,7 +72,7 @@
       "type": "revenue",
       "target": 5000000,
       "time_limit_years": 0,
-      "description": "Nå 5 000 000 NOK i overskudd"
+      "description": "Bygg egenkapitalen til 5 MNOK"
     },
     "restrictions": [],
     "tutorial_recommended": false,
@@ -106,7 +106,7 @@
       "ai_competitors": "3",
       "profit_target": "10000000"
     },
-    "is_unlocked": false,
+    "is_unlocked": true,
     "goal": {
       "type": "revenue",
       "target": 10000000,
@@ -147,7 +147,7 @@
       "regulation_pressure": "true"
     },
     "time_limit_days": 730,
-    "is_unlocked": false,
+    "is_unlocked": true,
     "goal": {
       "type": "debt_and_profit",
       "target": 0,
@@ -162,8 +162,8 @@
     "id": "barekraft_mester",
     "name": "Lakskongen",
     "difficulty": 1,
-    "description": "Fri lek – start hvor som helst i Norge uten begrensninger. Bygg ditt lakseimperium fra bunnen av, uten tidspress eller konkurrenter. Målet er å skape den største og mest lønnsomme oppdrettsvirksomheten.",
-    "story": "Fri lek – start hvor som helst i Norge uten begrensninger. Bygg ditt lakseimperium fra bunnen av, uten tidspress eller konkurrenter. Målet er å skape den største og mest lønnsomme oppdrettsvirksomheten.",
+    "description": "Fri lek med god kapital: du starter med et etablert anlegg i Vestland og bygger lakseimperiet ditt uten tidspress eller konkurrenter. Målet er å nå 100 MNOK i egenkapital.",
+    "story": "Fri lek med god kapital: du starter med et etablert anlegg i Vestland og bygger lakseimperiet ditt uten tidspress eller konkurrenter. Målet er å nå 100 MNOK i egenkapital.",
     "starting_balance": 50000000,
     "starting_cash": 50000000,
     "starting_region": "Vestland",
@@ -187,12 +187,12 @@
       "easy_market": "true",
       "profit_target": "100000000"
     },
-    "is_unlocked": false,
+    "is_unlocked": true,
     "goal": {
       "type": "revenue",
       "target": 100000000,
       "time_limit_years": 0,
-      "description": "Nå 100 000 000 NOK i overskudd"
+      "description": "Bygg egenkapitalen til 100 MNOK"
     },
     "restrictions": [],
     "tutorial_recommended": false,
@@ -384,7 +384,7 @@
       "type": "revenue",
       "target": 85000000,
       "time_limit_years": 0,
-      "description": "Nå 25 000 000 NOK i overskudd under grunnrenteregimet"
+      "description": "Tjen 25 MNOK under grunnrenteregimet (85 MNOK i egenkapital)"
     },
     "restrictions": [
       "25 % grunnrenteskatt på kontantstrøm",

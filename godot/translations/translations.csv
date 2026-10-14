@@ -1486,3 +1486,32 @@ UI_CREDITS_MUSIC_NOTICE,"“Lotus”, “Soaring”, “Morning”, “Dreamer�
 UI_CREDITS_THANKS,Thanks,Takk til
 UI_CREDITS_THANKS_BODY,The Norwegian aquaculture industry and everyone who tested the game.,Norsk havbruksnæring og alle som har testet spillet.
 UI_CREDITS_COPYRIGHT,© 2026 Lakskongen. All rights reserved.,© 2026 Lakskongen. Alle rettigheter forbeholdt.
+UI_SCENARIO_OVERLINE,New game,Nytt spill
+UI_SCENARIO_HEADING,Choose a scenario,Velg scenario
+UI_SCENARIO_COUNT,%d scenarios,%d scenarioer
+UI_SCENARIO_COUNT_MODS,"%d scenarios, %d from mods","%d scenarioer, %d fra mods"
+UI_SCENARIO_BACK,Back,Tilbake
+UI_SCENARIO_BACK_TIP,Back to the main menu (Esc),Tilbake til hovedmenyen (Esc)
+UI_SCENARIO_EMPTY,No scenarios are available.,Ingen scenarioer er tilgjengelige.
+UI_SCENARIO_MOD_TAG,Mod,Mod
+UI_SCENARIO_LOCKED_TAG,Locked,Låst
+UI_SCENARIO_FACT_TIME,Time limit,Tidsfrist
+UI_SCENARIO_NO_LIMIT,None,Ingen
+UI_SCENARIO_YEARS,%s years,%s år
+UI_SCENARIO_DAYS,%d days,%d dager
+UI_SCENARIO_START_BUTTON,Start scenario,Start scenarioet
+UI_SCENARIO_START_FAILED,Could not start the scenario: %s,Kunne ikke starte scenarioet: %s
+UI_SCENARIO_UNAVAILABLE,it is unknown or locked,det er ukjent eller låst
+UI_DIFFICULTY_1,Easy,Enkel
+UI_DIFFICULTY_2,Gentle,Lett
+UI_DIFFICULTY_3,Moderate,Middels
+UI_DIFFICULTY_4,Hard,Vanskelig
+UI_DIFFICULTY_5,Expert,Ekspert
+UI_REGION_NORDLAND,Nordland,Nordland
+UI_REGION_TROMS,Troms,Troms
+UI_REGION_FINNMARK,Finnmark,Finnmark
+UI_REGION_TRONDELAG,Trøndelag,Trøndelag
+UI_REGION_VESTLAND,Vestland,Vestland
+UI_REGION_ROGALAND,Rogaland,Rogaland
+UI_REGION_MORE_OG_ROMSDAL,Møre og Romsdal,Møre og Romsdal
+UI_REGION_SORLANDET,Sørlandet,Sørlandet

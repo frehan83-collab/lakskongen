@@ -121,6 +121,23 @@ public partial class GameBridge : Node
         }
     }
 
+    /// <summary>
+    /// Point the mod loader (and the engine) at another mods directory and
+    /// load it; an empty path goes back to the player's user://mods. A test
+    /// seam like SaveLoadManager.UseSaveDirectory: the UI flow tests load a
+    /// mod from a per-checkout folder instead of the player's. Returns the
+    /// number of mods loaded.
+    /// </summary>
+    public int UseModsDirectory(string directory)
+    {
+        _modsDirectory = string.IsNullOrWhiteSpace(directory) ? ResolveModsDirectory() : directory;
+        DirAccess.MakeDirRecursiveAbsolute(_modsDirectory);
+        _modLoader = new ModLoader(_modsDirectory);
+        var loaded = _modLoader.DiscoverAndLoad();
+        SimulationEngine?.LoadMods(_modsDirectory);
+        return loaded.Count;
+    }
+
     private static string ResolveModsDirectory()
     {
         // user://mods is writable and survives game updates/installs.

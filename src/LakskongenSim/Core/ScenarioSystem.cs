@@ -1012,7 +1012,7 @@ namespace LakskongenSim.Core
                     new() { Id = "trondelag_base", Name = "Trøndelag Base", Zone = "fjord_west", Pens = 3, SmoltCount = 10_000, SmoltQuality = "standard" },
                 },
                 TimeLimitDays = null,
-                IsUnlocked = false,
+                IsUnlocked = true, // No progression yet: every scenario is open until U2-03 (roadmap U1-07).
             });
 
             // ─── 4. FINNMARKS GJENFØDSEL — Survival (Difficulty 5) ───────────
@@ -1040,7 +1040,7 @@ namespace LakskongenSim.Core
                     new() { Id = "finnmark_turnaround", Name = "Finnmark Turnaround", Zone = "fjord_north", Pens = 2, SmoltCount = 6_000, SmoltQuality = "standard" },
                 },
                 TimeLimitDays = 730,
-                IsUnlocked = false,
+                IsUnlocked = true, // No progression yet: every scenario is open until U2-03 (roadmap U1-07).
             });
 
             // ─── 5. LAKSKONGEN — Freeplay (Difficulty 1) ──────────────────────
@@ -1050,9 +1050,9 @@ namespace LakskongenSim.Core
                 Id = "barekraft_mester",
                 Name = "Lakskongen",
                 Description =
-                    "Fri lek – start hvor som helst i Norge uten begrensninger. " +
-                    "Bygg ditt lakseimperium fra bunnen av, uten tidspress eller konkurrenter. " +
-                    "Målet er å skape den største og mest lønnsomme oppdrettsvirksomheten.",
+                    "Fri lek med god kapital: du starter med et etablert anlegg i Vestland og bygger " +
+                    "lakseimperiet ditt uten tidspress eller konkurrenter. " +
+                    "Målet er å nå 100 MNOK i egenkapital.",
                 StartingCapitalNOK = 50_000_000m,
                 StartingRegion = ProductionRegion.Vestland,
                 Difficulty = 1,
@@ -1068,7 +1068,7 @@ namespace LakskongenSim.Core
                     new() { Id = "lakskongen_hovedanlegg", Name = "Lakskongen Hovedanlegg", Zone = "fjord_west", Pens = 4, SmoltCount = 12_000, SmoltQuality = "standard" },
                 },
                 TimeLimitDays = null,
-                IsUnlocked = false,
+                IsUnlocked = true, // No progression yet: every scenario is open until U2-03 (roadmap U1-07).
             });
 
             // ══════════════════════════════════════════════════════════════════

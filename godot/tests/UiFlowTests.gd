@@ -40,6 +40,8 @@ func _run() -> void:
 	# language.cfg left on English in the shared user dir must not flip them.
 	TranslationServer.set_locale("no")
 
+	# First, while no game has started in this process (a fresh launch).
+	await _test_mod_scenario_starts_on_a_fresh_launch()
 	await _test_bridge_save_load_roundtrip()
 	await _test_save_load_menu_tab()
 	await _test_main_menu_load_and_settings()
@@ -89,6 +91,7 @@ func _run() -> void:
 	await _test_continue_restores_the_latest_save()
 	await _test_credits_list_every_third_party_work()
 	await _test_pause_save_list_buttons_answer()
+	await _test_scenario_picker()
 
 	_clear_test_saves()
 	_finish()
@@ -1293,10 +1296,19 @@ func _test_screen_regions_never_overlap() -> void:
 			bad = OverlapLint.overlaps(found, screen)
 			_check(found.has("notification_panel") and found.has("toast_0") and bad.is_empty(),
 				"regions: the open drawer moves the toasts beside it at %s %s" % [where, str(bad)])
-	center.hide_panel()
-	toasts.clear_all()
 	win.content_scale_factor = old_scale
 	win.size = old_size
+	# The drawer is open but the game UI is hidden (fjord views, photo shots):
+	# the stack goes back to the corner instead of making room for nothing.
+	scene.get_node("UILayer").visible = false
+	await get_tree().create_timer(0.3).timeout
+	var corner_now := get_viewport().get_visible_rect().end - Vector2(toasts.STACK_MARGIN_RIGHT, toasts.STACK_MARGIN_BOTTOM)
+	var shown: Array = toasts.get_toast_rects()
+	_check(not shown.is_empty() and (shown[0] as Rect2).end.distance_to(corner_now) < 2.0,
+		"regions: with the game UI hidden the toasts sit in the corner, not beside a hidden drawer (%s)" % str(shown.slice(0, 1)))
+	scene.get_node("UILayer").visible = true
+	center.hide_panel()
+	toasts.clear_all()
 	await get_tree().process_frame
 	scene.queue_free()
 	await get_tree().process_frame
@@ -1710,6 +1722,176 @@ func _test_pause_save_list_buttons_answer() -> void:
 	scene.queue_free()
 	await get_tree().process_frame
 	_clear_test_saves()
+
+## U1-07 #5 (review F692): on a fresh launch — no game started yet in this
+## process, so the engine has no roster — a mod's scenario that the picker
+## lists starts as itself when it is clicked and started, instead of the
+## default game. Runs first in _run(). The mod is the repo's example pack,
+## copied into this checkout's test folder (never the player's user://mods).
+const MOD_SCENARIO_ID := "scenario_fjord_pioneer"
+const EXAMPLE_MOD := "res://mods/example_norwegian_pack"
+
+func _test_mod_scenario_starts_on_a_fresh_launch() -> void:
+	var bridge := get_node("/root/GameBridge")
+	_check(not _sim.is_game_running(), "mods: a fresh launch, no game started yet")
+	var mods_dir := TEST_ROOT + "mods/"
+	_copy_dir(EXAMPLE_MOD, mods_dir + EXAMPLE_MOD.get_file())
+	var loaded: int = bridge.UseModsDirectory(ProjectSettings.globalize_path(mods_dir))
+	_check(loaded == 1, "mods: the example pack loads from the test mods folder (%d)" % loaded)
+	var menu := await _spawn_main_menu()
+	var entered := [false]
+	menu.enter_game_override = func() -> void: entered[0] = true
+	await _click_control(menu.btn_new_game)
+	await get_tree().create_timer(0.4).timeout
+	var picker: Control = menu.scenario_panel
+	var card: Button = picker.get_card(MOD_SCENARIO_ID) if picker != null else null
+	_check(card != null, "mods: the picker lists the mod's scenario")
+	if card != null:
+		await _scroll_into_view(picker, card)
+		await _click_control(card)
+		_check(picker.get_selected_id() == MOD_SCENARIO_ID, "mods: a click selects the mod's card")
+		await _click_control(picker.get_start_button())
+	_check(entered[0], "mods: Start enters the game")
+	_check(_sim.get_active_scenario_id() == MOD_SCENARIO_ID,
+		"mods: the mod's scenario is the running game ('%s')" % _sim.get_active_scenario_id())
+	_check(is_equal_approx(float(_sim.balance), 5_000_000.0), "mods: with the mod's starting capital (%s)" % str(_sim.balance))
+	_sim.set_paused(true)
+	menu.queue_free()
+	await get_tree().process_frame
+	bridge.UseModsDirectory("")
+	_remove_dir(mods_dir)
+
+## U1-07 #1–#4: the picker shows a card for every scenario in the roster (the
+## nine built-in plus mods), each with its capital formatted from the data; a
+## padlock shows only on a locked card (none are locked until U2-03); at
+## 1280 and 1920 px windows and UI scale 100/125 % every card lies whole
+## inside the panel once scrolled to; a click selects a card into the detail
+## pane; a real Esc returns to a usable menu.
+const PICKER_WINDOWS := [Vector2i(1280, 720), Vector2i(1920, 1080)]
+const PICKER_SCALES := [1.0, 1.25]
+
+func _test_scenario_picker() -> void:
+	var menu := await _spawn_main_menu()
+	await _click_control(menu.btn_new_game)
+	await get_tree().create_timer(0.4).timeout
+	var picker: Control = menu.scenario_panel
+	var roster: Array = _sim.get_available_scenarios()
+	var entries: Array = picker.get_scenarios()
+	_check(entries.size() == roster.size() and entries.size() >= 9,
+		"picker: a card for every scenario in the roster (%d cards, %d in the roster)" % [entries.size(), roster.size()])
+	var wrong_capital: Array = []
+	var wrong_lock: Array = []
+	var wrong_mod: Array = []
+	var locked := 0
+	for e: Dictionary in entries:
+		var id := str(e["id"])
+		var card: Button = picker.get_card(id)
+		var capital: Label = card.find_child("Capital", true, false) if card != null else null
+		var want := SimFormatters.format_nok(float(e.get("starting_capital", 0.0)))
+		if capital == null or capital.text != want:
+			wrong_capital.append("%s: '%s' ≠ '%s'" % [id, capital.text if capital else "?", want])
+		var is_locked := not bool(e.get("unlocked", true))
+		locked += 1 if is_locked else 0
+		if card == null or (card.find_child("LockTag", true, false) != null) != is_locked:
+			wrong_lock.append(id)
+		if card == null or (card.find_child("ModTag", true, false) != null) != bool(e.get("is_mod", false)):
+			wrong_mod.append(id)
+	_check(wrong_capital.is_empty(), "picker: every card shows its starting balance formatted %s" % str(wrong_capital))
+	var first: Button = picker.get_card("forste_sesong")
+	var first_capital: Label = first.find_child("Capital", true, false) if first != null else null
+	_check(first_capital != null and first_capital.text == SimFormatters.format_nok(3_000_000.0),
+		"picker: Familiegården starts with 3 000 000 (it read 300 000)")
+	_check(wrong_lock.is_empty(), "picker: a padlock only on a locked card %s" % str(wrong_lock))
+	_check(locked == 0, "picker: no scenario is locked until progression lands (%d locked)" % locked)
+	_check(wrong_mod.is_empty(), "picker: exactly the mods' scenarios carry the Mod tag %s" % str(wrong_mod))
+	# The roadmap's text faults: the goal is equity (ressursrente showed 85 MNOK
+	# "overskudd" for a 25 MNOK goal) and Lakskongen starts in Vestland.
+	for e: Dictionary in entries:
+		if str(e["id"]) == "ressursrente":
+			_check(str(e["win"]).contains("egenkapital") and str(e["win"]).contains("85 MNOK"),
+				"picker: the ressursrente goal names its equity target ('%s')" % str(e["win"]))
+		if str(e["id"]) == "barekraft_mester":
+			_check(not str(e["description"]).contains("hvor som helst") and str(e["description"]).contains("Vestland"),
+				"picker: Lakskongen no longer promises a free choice of region")
+
+	var win := get_window()
+	var old_size := win.size
+	var old_scale := win.content_scale_factor
+	for size: Vector2i in PICKER_WINDOWS:
+		for scale: float in PICKER_SCALES:
+			win.size = size
+			win.content_scale_factor = scale
+			await get_tree().create_timer(0.3).timeout
+			var where := "%dx%d at %d %%" % [size.x, size.y, int(round(scale * 100.0))]
+			var screen := get_viewport().get_visible_rect()
+			var view: Rect2 = picker.find_child("CardScroll", true, false).get_global_rect().grow(0.5)
+			var outside: Array = []
+			for e: Dictionary in entries:
+				var card: Button = picker.get_card(str(e["id"]))
+				await _scroll_into_view(picker, card)
+				var r := card.get_global_rect()
+				if not view.encloses(r) or not picker.get_global_rect().encloses(r):
+					outside.append(str(e["id"]))
+			_check(outside.is_empty(), "picker: every card lies inside the panel once scrolled to at %s %s" % [where, str(outside)])
+			var detail: Control = picker.find_child("Detail", true, false)
+			_check(screen.encloses(detail.get_global_rect()) and screen.encloses(picker.get_start_button().get_global_rect()),
+				"picker: the detail pane and Start fit the screen at %s" % where)
+	win.content_scale_factor = old_scale
+	win.size = old_size
+	await get_tree().process_frame
+
+	var other: Button = picker.get_card("lofoten_eventyr")
+	await _scroll_into_view(picker, other)
+	await _click_control(other)
+	var shown: Label = null
+	for lbl: Label in picker.find_child("Detail", true, false).find_children("*", "Label", true, false):
+		if lbl.theme_type_variation == &"Title":
+			shown = lbl
+	var want_name := ""
+	for e: Dictionary in entries:
+		if str(e["id"]) == "lofoten_eventyr":
+			want_name = str(e["name"])
+	_check(picker.get_selected_id() == "lofoten_eventyr" and shown != null and shown.text == want_name,
+		"picker: a click on a card shows it in the detail pane ('%s')" % (shown.text if shown else "?"))
+
+	await _press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	var usable: bool = menu.center.visible and (menu.scenario_panel == null)
+	for btn: Button in [menu.btn_new_game, menu.btn_load, menu.btn_settings, menu.btn_credits, menu.btn_quit]:
+		usable = usable and btn.is_visible_in_tree() and not btn.disabled
+	_check(usable, "picker: a real Esc returns to a usable menu")
+	await get_tree().process_frame
+	var focus := get_viewport().gui_get_focus_owner()
+	_check(focus == menu.btn_new_game or focus == menu.btn_continue, "picker: focus is back on the menu's primary action")
+	menu.queue_free()
+	await get_tree().process_frame
+
+## Scroll the picker's card grid so a card is on screen.
+func _scroll_into_view(picker: Control, card: Control) -> void:
+	var scroll: ScrollContainer = picker.find_child("CardScroll", true, false)
+	if scroll != null and card != null:
+		scroll.ensure_control_visible(card)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+func _copy_dir(from: String, to: String) -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(to))
+	for file in DirAccess.get_files_at(from):
+		var data := FileAccess.get_file_as_bytes(from.path_join(file))
+		var out := FileAccess.open(to.path_join(file), FileAccess.WRITE)
+		if out != null:
+			out.store_buffer(data)
+			out.close()
+
+func _remove_dir(path: String) -> void:
+	var dir := DirAccess.open(path)
+	if dir == null:
+		return
+	for sub in dir.get_directories():
+		_remove_dir(path.path_join(sub))
+	for file in dir.get_files():
+		dir.remove(file)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 func _point_export_at_test_dir(panel: Node) -> void:
 	var dir := ProjectSettings.globalize_path(TEST_ROOT + "exports")

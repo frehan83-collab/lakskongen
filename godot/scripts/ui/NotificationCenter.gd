@@ -69,6 +69,9 @@ var _is_open: bool = false
 var _expanded_index: int = -1   # which entry is currently expanded (-1 = none)
 var _slide_tween: Tween = null
 var _clear_button: Button = null
+## The toast-stack room last asked for (open drawer and its left edge).
+var _toast_room_open: bool = false
+var _toast_room_left: float = -1.0
 
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
 
@@ -174,7 +177,7 @@ func show_panel() -> void:
 		return
 	_is_open = true
 	panel.show()
-	_reserve_toast_room(true)
+	_sync_toast_room()
 	if anim_player and anim_player.has_animation("slide_in"):
 		anim_player.play("slide_in")
 	else:
@@ -185,7 +188,7 @@ func hide_panel() -> void:
 	if not _is_open:
 		return
 	_is_open = false
-	_reserve_toast_room(false)
+	_sync_toast_room()
 	if anim_player and anim_player.has_animation("slide_out"):
 		anim_player.play("slide_out")
 		await anim_player.animation_finished
@@ -196,22 +199,33 @@ func hide_panel() -> void:
 
 ## Screen regions (roadmap U1-04): the open history is a drawer on the right
 ## edge, under the tab rail; the toast stack moves left of it while it is open
-## and back to the corner when it closes (or the game scene goes away).
-func _reserve_toast_room(open: bool) -> void:
+## and on screen, and back to the corner when it closes, is hidden with the
+## game UI (fjord views, photo shots) or the game scene goes away. Checked
+## every frame, so a UI-scale change moves the stack with the drawer.
+func _process(_delta: float) -> void:
+	_sync_toast_room()
+
+func _sync_toast_room() -> void:
+	var open := _is_open and panel != null and panel.is_visible_in_tree()
+	var drawer_left := get_global_rect().position.x if open else -1.0
+	if open == _toast_room_open and is_equal_approx(drawer_left, _toast_room_left):
+		return
+	_toast_room_open = open
+	_toast_room_left = drawer_left
 	var toasts := get_node_or_null("/root/ToastNotification")
 	if toasts == null or not toasts.has_method("set_right_inset"):
 		return
 	var inset := 0.0
 	var lift := 0.0
 	if open:
-		var drawer_left := get_global_rect().position.x
 		inset = get_viewport_rect().size.x - drawer_left - float(toasts.STACK_MARGIN_RIGHT) + TOAST_GAP
 		lift = TOAST_LIFT
 	toasts.set_right_inset(inset, lift)
 
 func _exit_tree() -> void:
-	if _is_open:
-		_reserve_toast_room(false)
+	if _toast_room_open:
+		_is_open = false
+		_sync_toast_room()
 
 ## Slide-in juice (display only): fade + rise from the right edge.
 func _slide_in() -> void:

@@ -49,8 +49,19 @@ public partial class GameBridge : Node
         ScenarioSystem? system = SimulationEngine.Scenario;
         system ??= new ScenarioSystem(SimulationEngine.State);
 
+        // A mod scenario the engine has registered (after a game started) is
+        // still a mod's: the picker tags it and shows its text as the mod's.
+        var builtIn = new ScenarioSystem(new GameState()).All.Keys.ToHashSet();
         foreach (var scenario in system.GetAll())
-            result.Add(ScenarioToDictionary(scenario));
+        {
+            var entry = ScenarioToDictionary(scenario);
+            if (!builtIn.Contains(scenario.Id))
+            {
+                entry["is_mod"] = true;
+                entry["subtitle"] = "Mod";
+            }
+            result.Add(entry);
+        }
 
         // Merge mod scenarios that are not already in the engine roster.
         if (_modLoader != null)
@@ -87,6 +98,11 @@ public partial class GameBridge : Node
         // a first start used to do this; a start during a running game layered
         // the scenario's sites onto the old game and ignored the QA seed.
         var probe = SimulationEngine.Scenario ?? new ScenarioSystem(SimulationEngine.State);
+        // F692: on a fresh launch the engine has no roster yet, so the probe
+        // holds the built-in scenarios only — the mod scenarios the picker
+        // lists (GetAvailableScenarios merges them) must be valid here too.
+        if (probe.GetScenario(scenarioId) == null && _modLoader != null)
+            probe.RegisterModScenarios(_modLoader.GetAllScenarios());
         var candidate = probe.GetScenario(scenarioId);
         if (candidate == null || !candidate.IsUnlocked)
         {
@@ -313,12 +329,19 @@ public partial class GameBridge : Node
     private static string DescribeWinCondition(ScenarioDefinition s) => s.WinCondition switch
     {
         WinCondition.Tutorial => "Fullfør opplæringen",
-        WinCondition.Profit => $"Nå {FormatCapital(RuleDecimal(s, "profit_target", 5_000_000m))} i overskudd",
+        // The win check compares equity with profit_target (ScenarioSystem),
+        // so the goal names equity: "overskudd" read as profit on top of the
+        // start (ressursrente showed 85 MNOK "overskudd" for a 25 MNOK goal).
+        WinCondition.Profit => $"Bygg egenkapitalen til {FormatMillions(RuleDecimal(s, "profit_target", 5_000_000m))}",
         WinCondition.Sustainability => $"Nå bærekraftsmål {RuleDecimal(s, "sustainability_target", 95m):0}",
         WinCondition.Survival => $"Overlev {(s.TimeLimitDays ?? 730)} dager med positiv saldo",
-        WinCondition.Competition => $"Nå {FormatCapital(RuleDecimal(s, "profit_target", 10_000_000m))} før konkurrentene",
+        WinCondition.Competition => $"Nå {FormatMillions(RuleDecimal(s, "profit_target", 10_000_000m))} i egenkapital før konkurrentene",
         _ => s.WinCondition.ToString()
     };
+
+    /// <summary>"85 MNOK", "2,5 MNOK" — nb-NO millions for goal text.</summary>
+    private static string FormatMillions(decimal amount)
+        => (amount / 1_000_000m).ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("nb-NO")) + " MNOK";
 
     private static decimal RuleDecimal(ScenarioDefinition s, string key, decimal fallback)
         => s.SpecialRules.TryGetValue(key, out var raw) &&

@@ -30,14 +30,16 @@ func start_new_game(player_name: String = "Player", starting_capital: int = 10_0
 		push_error("SimBridge: Cannot start game - GameBridge not available")
 		return false
 
-	# If scenario_id is provided, try to start scenario
+	# A named scenario starts as itself or not at all: an unknown or locked id
+	# returns false (the picker says so) instead of quietly starting the
+	# default game in its place (review F692).
 	if scenario_id != "default":
 		if game_bridge.StartScenario(scenario_id):
 			if state != null:
 				state._refresh_state()
 			return true
-		else:
-			push_warning("SimBridge: Scenario '%s' not found, starting default game" % scenario_id)
+		push_warning("SimBridge: scenario '%s' could not be started" % scenario_id)
+		return false
 
 	# Start default game
 	game_bridge.StartNewGame(player_name, starting_capital)

@@ -255,7 +255,7 @@ func _on_mods_closed() -> void:
 		mod_manager_panel.hide()
 
 func _show_scenario_panel() -> void:
-	if scenario_panel != null:
+	if is_instance_valid(scenario_panel):
 		scenario_panel.queue_free()
 	scenario_panel = SCENARIO_PANEL_SCRIPT.new()
 	add_child(scenario_panel)
@@ -265,22 +265,31 @@ func _show_scenario_panel() -> void:
 		scenario_panel.panel_close_requested.connect(_on_scenario_close)
 	center.visible = false
 
+## The picker started a scenario: enter the game when it started, or keep the
+## picker open and say why (an unknown or locked id no longer falls back to
+## the default game, F692).
 func _on_scenario_selected(scenario_id: String) -> void:
 	var sim = get_node_or_null("/root/SimBridge")
-	if sim:
-		_disable_all()
-		# start_new_game(player_name, starting_capital, scenario_id) —
-		# pass the id in the scenario slot, not the player-name slot.
-		sim.start_new_game("Player", 10000000, scenario_id)
+	if sim == null:
+		return
+	_disable_all()
+	# start_new_game(player_name, starting_capital, scenario_id) —
+	# pass the id in the scenario slot, not the player-name slot.
+	if sim.start_new_game("Player", 10000000, scenario_id):
 		_enter_game()
+		return
+	_enable_all()
+	if is_instance_valid(scenario_panel):
+		scenario_panel.start_failed(tr("UI_SCENARIO_UNAVAILABLE"))
 
+## Esc or Tilbake in the picker: back to a usable menu.
 func _on_scenario_close() -> void:
-	if scenario_panel:
+	if is_instance_valid(scenario_panel):
 		scenario_panel.queue_free()
-		scenario_panel = null
+	scenario_panel = null
 	_enable_all()
 	center.visible = true
-	btn_new_game.grab_focus.call_deferred()
+	refresh_continue()
 
 func _disable_all() -> void:
 	_set_buttons_disabled(true)
@@ -292,8 +301,11 @@ func _set_buttons_disabled(disabled: bool) -> void:
 	for btn: Button in [btn_continue, btn_new_game, btn_load, btn_settings, btn_credits, btn_quit]:
 		btn.disabled = disabled
 
+## Esc in the picker is the picker's own (it emits panel_close_requested,
+## U1-07); it used to hide itself first, so this never ran and the menu stayed
+## empty behind it.
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
-		if scenario_panel and scenario_panel.visible:
+		if is_instance_valid(scenario_panel) and scenario_panel.visible:
 			_on_scenario_close()
 			get_viewport().set_input_as_handled()
