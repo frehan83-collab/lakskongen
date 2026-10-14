@@ -1,0 +1,16 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/models/subsea/rov_LOD0.glb" id="1_lod0"]
+[ext_resource type="PackedScene" path="res://assets/models/subsea/rov_LOD1.glb" id="2_lod1"]
+[ext_resource type="Script" path="res://scripts/visual/VesselModel.gd" id="3_vessel"]
+
+[node name="ROV" instance=ExtResource("1_lod0")]
+script = ExtResource("3_vessel")
+asset_id = "rov"
+length_m = 2.6
+beam_m = 1.6
+air_draught_m = 0.73
+lod_switch = Vector2(40.0, 250.0)
+max_distance = 250.0
+
+[node name="LOD1" parent="." instance=ExtResource("2_lod1")]

@@ -1,0 +1,36 @@
+{
+  "asset": "crew_boat",
+  "bbox_size": [
+    7.0,
+    7.22,
+    20.3
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "air_draught_m": 6.07,
+    "beam_m": 7.0,
+    "bow_y_m": 10.0,
+    "draught_m": 1.15,
+    "height_m": 7.22,
+    "length_m": 20.0,
+    "stern_y_m": -10.0
+  },
+  "file": "crew_boat_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 5,
+  "materials": [
+    "LK_VCrane",
+    "LK_VGlass",
+    "LK_VHullSlate",
+    "LK_VHullWhite",
+    "LK_VWhite"
+  ],
+  "parts": {
+    "Crane": 10,
+    "Deck": 52,
+    "Hull": 142,
+    "Superstructure": 72,
+    "Windows": 16
+  },
+  "tri_count": 292
+}

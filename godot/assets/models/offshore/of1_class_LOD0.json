@@ -1,0 +1,197 @@
+{
+  "asset": "of1_class",
+  "atlas": "godot/assets/models/facility_kit/textures/offshore_atlas.png",
+  "bbox_size": [
+    126.0044,
+    71.8,
+    122.3546
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "air_draught_m": 28.8,
+    "bottom_ring_d_m": 2.05,
+    "circumradius_m": 55.0,
+    "column_centre_d_m": 3.56,
+    "column_large_d_m": 3.56,
+    "column_slim_d_m": 2.8,
+    "columns": 12,
+    "crane_reach_m": 18.626,
+    "deck_z_m": 15.4,
+    "deckhouse_m": [
+      14.0,
+      14.0,
+      9.8
+    ],
+    "diagonal_d_m": 1.0,
+    "draft_m": 43.0,
+    "feet": 6,
+    "foot_d_m": 10.0,
+    "gantry_d_m": 2.05,
+    "height_m": 68.4,
+    "mid_ring_d_m": 1.0,
+    "net_bottom_m": -34.0,
+    "net_top_m": 14.6,
+    "sides": 12,
+    "silo_d_m": 4.0,
+    "silo_height_m": 10.0,
+    "silos": 4,
+    "top_ring_d_m": 2.29,
+    "topsides_top_m": 26.85
+  },
+  "file": "of1_class_LOD0.glb",
+  "groups": {
+    "Bracing": 3904,
+    "Columns": 11560,
+    "Net": 1360,
+    "Pontoons": 2324,
+    "Rings": 8660,
+    "Topsides": 15328
+  },
+  "lod": "LOD0",
+  "markers": {
+    "Beacon": [
+      0.0,
+      28.2,
+      1.5
+    ],
+    "W2WLanding": [
+      -14.501,
+      15.4,
+      54.117
+    ]
+  },
+  "material_count": 2,
+  "materials": [
+    "LK_OffshoreKit",
+    "LK_OffshoreNet"
+  ],
+  "net_colour": "#A8ADB0",
+  "node_order": [
+    "Hull",
+    "Columns",
+    "Bracing",
+    "Topsides",
+    "Net",
+    "Bulkhead",
+    "CraneA",
+    "CraneB",
+    "NavLights",
+    "Beacon",
+    "W2WLanding",
+    "Cranes"
+  ],
+  "nodes": {
+    "Bracing": 3904,
+    "Bulkhead": 1164,
+    "Columns": 11560,
+    "CraneA": 264,
+    "CraneB": 264,
+    "Hull": 10984,
+    "NavLights": 490,
+    "Net": 196,
+    "Topsides": 17812
+  },
+  "parts": {
+    "BlowerHouse": 34,
+    "BoatLanding": 400,
+    "BottomRing": 2016,
+    "Bulkhead": 616,
+    "BulkheadNet": 12,
+    "BulkheadWalk": 144,
+    "BulkheadWalkRail": 392,
+    "CentrePontoon": 140,
+    "Chute": 538,
+    "Collars": 2880,
+    "ColumnCentre": 640,
+    "ColumnLarge": 3840,
+    "ColumnSlim": 4200,
+    "Cranes": 528,
+    "DeckLights": 264,
+    "Deckhouse": 1200,
+    "DeckhouseTrim": 60,
+    "DeckhouseWindows": 24,
+    "Diagonals": 3840,
+    "FeedPipes": 144,
+    "Feet": 2184,
+    "Gantry": 588,
+    "GantryWalk": 320,
+    "GantryWalkRail": 816,
+    "LanternPosts": 72,
+    "Lanterns": 490,
+    "LifeRafts": 72,
+    "Lifebuoys": 720,
+    "Mast": 168,
+    "MidRing": 1440,
+    "NetBottom": 48,
+    "NetBulkheads": 4,
+    "NetSides": 144,
+    "NetWinches": 184,
+    "Platform": 42,
+    "PlatformRail": 480,
+    "PlatformStruts": 64,
+    "PowerDeck": 44,
+    "PowerHouse": 338,
+    "RadialBeams": 2400,
+    "RescueBoat": 84,
+    "RingRail": 3264,
+    "RingWalkway": 1872,
+    "RoofGear": 76,
+    "RoofRail": 512,
+    "SiloDeck": 192,
+    "SiloFittings": 528,
+    "SiloRail": 48,
+    "Silos": 1040,
+    "Spoke": 200,
+    "SpokeWalk": 160,
+    "SpokeWalkRail": 408,
+    "StairTower": 70,
+    "TopRing": 2016,
+    "W2WLanding": 136
+  },
+  "pivots": {
+    "CraneA": [
+      -47.631,
+      15.4,
+      -27.5
+    ],
+    "CraneB": [
+      47.631,
+      15.4,
+      27.5
+    ]
+  },
+  "surfaces": 10,
+  "swatches": {
+    "Deckhouse": {
+      "hex": "#EAEDEB",
+      "spec": "#E9ECEA",
+      "strip": "white"
+    },
+    "Hull": {
+      "hex": "#E6BE2E",
+      "spec": "#E6BE2E",
+      "strip": "hull_yellow"
+    },
+    "NavLights": {
+      "hex": "#FFC33A",
+      "spec": "#FFC23A",
+      "strip": "nav_light"
+    },
+    "PowerHouse": {
+      "hex": "#80838E",
+      "spec": "#80838D",
+      "strip": "grey"
+    },
+    "Silos": {
+      "hex": "#777888",
+      "spec": "#777887",
+      "strip": "silo"
+    },
+    "SplashZone": {
+      "hex": "#B9912A",
+      "spec": "#B8902A",
+      "strip": "hull_splash"
+    }
+  },
+  "tri_count": 46638
+}

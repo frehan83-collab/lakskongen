@@ -40,15 +40,14 @@ import argparse
 import json
 import math
 import os
-import struct
 import sys
-import zlib
 
 import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import land_designs as designs  # noqa: E402
 import lk_meshkit as kit  # noqa: E402
+import lk_trim_atlas as trim  # noqa: E402
 from land_parts import M, Build  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -143,7 +142,7 @@ AO_DISTANCE = {"harvest_hall": 8.0, "process_hall_bay": 5.0, "quay": 4.0, "intak
 
 def strip_v(name: str) -> float:
     """Blender UV V of a strip's centre row (glTF flips V: row r -> v_gltf = (r+0.5)/32)."""
-    return 1.0 - (STRIP_INDEX[name] + 0.5) / STRIP_ROWS
+    return trim.strip_v(STRIP_INDEX[name], STRIP_ROWS)
 
 
 # --------------------------------------------------------------------------
@@ -224,62 +223,20 @@ def measure(asset: str, b: Build) -> dict:
 
 
 # --------------------------------------------------------------------------
-# Trim atlas
+# Trim atlas (the shared strip atlas code lives in lk_trim_atlas.py)
 # --------------------------------------------------------------------------
-
-def _srgb(code: str):
-    code = code.lstrip("#")
-    return [int(code[i:i + 2], 16) / 255.0 for i in (0, 2, 4)]
-
 
 def atlas_rows():
     """The atlas as ATLAS_PX rows (top first) of RGBA bytes: each strip is
     its swatch, modulated along U only (seams, panels, corrugation, a faint
     wrap-around tone drift), constant down its 32 rows, so every mip level
     down to 32 x 32 keeps a strip on its own rows."""
-    rows = []
-    px_per_m = ATLAS_PX / TILE_M
-    for idx in range(STRIP_ROWS):
-        if idx < len(STRIPS):
-            _name, hexc, rough, pattern, period, depth = STRIPS[idx]
-        else:
-            _name, hexc, rough, pattern, period, depth = ("unused", "#808080", 0.8, "flat", 0.0, 0.0)
-        base = _srgb(hexc)
-        line = bytearray()
-        for x in range(ATLAS_PX):
-            u = (x + 0.5) / px_per_m
-            lum = 1.0
-            # Low tone drift: integer harmonics of the tile, fixed phases.
-            for k, (amp, ph) in enumerate(((0.012, 0.3 + idx), (0.008, 1.7 + 2 * idx), (0.006, 4.1 + 3 * idx))):
-                lum += amp * math.sin(math.tau * (k + 1) * u / TILE_M + ph)
-            if pattern in ("panel", "seam", "grating") and period > 0.0:
-                m = u % period
-                d_px = min(m, period - m) * px_per_m
-                lum -= depth * math.exp(-(d_px / 1.1) ** 2)
-            if pattern == "panel" and period > 0.0:
-                panel = int(u // period)
-                lum += 0.018 * math.sin(12.9898 * (panel + 1) * (idx + 3))
-            if pattern == "corrugated" and period > 0.0:
-                lum += depth * math.sin(math.tau * u / period)
-            alpha = 1.0 if rough is None else rough
-            for c in base:
-                line.append(max(0, min(255, int(round(c * lum * 255.0)))))
-            line.append(int(round(alpha * 255.0)))
-        rows.extend([bytes(line)] * STRIP_PX)
-    return rows
+    return trim.atlas_rows(STRIPS, TILE_M, ATLAS_PX, STRIP_ROWS)
 
 
 def write_png(path: str, rows, width: int) -> None:
     """A plain RGBA8 PNG (filter 0, zlib level 9): byte-identical per input."""
-    raw = b"".join(b"\x00" + r for r in rows)
-
-    def chunk(tag, data):
-        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
-    png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, len(rows), 8, 6, 0, 0, 0))
-    png += chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b"")
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "wb") as f:
-        f.write(png)
+    trim.write_png(path, rows, width)
 
 
 _STRIP_COLOURS: dict = {}
@@ -287,16 +244,9 @@ _STRIP_COLOURS: dict = {}
 
 def strip_colours():
     """Measured colour of every strip: the median texel of its centre row."""
-    if _STRIP_COLOURS:
-        return _STRIP_COLOURS
-    rows = atlas_rows()
-    out = _STRIP_COLOURS
-    for idx, s in enumerate(STRIPS):
-        line = rows[idx * STRIP_PX + STRIP_PX // 2]
-        px = sorted((line[4 * x:4 * x + 3] for x in range(ATLAS_PX)), key=lambda c: sum(c))
-        r, g, b = px[ATLAS_PX // 2]
-        out[s[0]] = "#%02X%02X%02X" % (r, g, b)
-    return out
+    if not _STRIP_COLOURS:
+        _STRIP_COLOURS.update(trim.strip_colours(STRIPS, atlas_rows(), ATLAS_PX, STRIP_ROWS))
+    return _STRIP_COLOURS
 
 
 # --------------------------------------------------------------------------

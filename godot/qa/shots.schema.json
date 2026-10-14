@@ -42,6 +42,12 @@
         "tank_shadows": {"type": "boolean"},
         "night_light": {"type": "number", "minimum": 0, "maximum": 1},
         "lid_variant": {"type": "number", "minimum": 0, "maximum": 1},
+        "nav_lights": {"type": "number", "minimum": 0, "maximum": 1},
+        "build_stage": {"type": "number", "minimum": 0, "maximum": 6},
+        "fleet": {"type": "boolean"},
+        "tug": {"type": "boolean"},
+        "lineup": {"type": "boolean"},
+        "measure": {"type": "boolean"},
         "plot_overrides": {
           "type": "object",
           "additionalProperties": {
