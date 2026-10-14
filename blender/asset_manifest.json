@@ -261,7 +261,7 @@
       "spec": {"width_m": 5.8, "length_m": 9.6, "ridge_m": 4.6}
     },
     {
-      "id": "quay",
+      "id": "shore_quay",
       "type": "shore_prop",
       "scale_m": 22.0,
       "orientation": "head_neg_z_waterline_origin",
@@ -269,9 +269,9 @@
       "materials": ["LK_Bollard", "LK_Concrete", "LK_DryStone", "LK_Fender"],
       "tri_budget": {"LOD0": 302},
       "tri_max": {"LOD0": 600},
-      "export_path": "godot/assets/models/shore/quay_{lod}.glb",
+      "export_path": "godot/assets/models/shore/shore_quay_{lod}.glb",
       "build_script": "blender/build_shore_props.py",
-      "build_args": ["--asset", "quay"],
+      "build_args": ["--asset", "shore_quay"],
       "licence": "Proprietary (Lakskongen). In-house geometry; no third-party assets.",
       "reference": "Roadmap G2-02 shore props: a small solid quay (stone crib, concrete deck 1.6 m above the sea) 6 m wide, 18 m out from the waterline.",
       "spec_tolerance": 0.1,

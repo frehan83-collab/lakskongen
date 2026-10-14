@@ -2,14 +2,14 @@
 
 Run headless (reproducible, no UI):
   /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup \
-      --python blender/build_shore_props.py -- [--asset naust|quay] [--out DIR]
+      --python blender/build_shore_props.py -- [--asset naust|shore_quay] [--out DIR]
 
   naust  A western Norwegian boathouse: a dry-stone base (sunk 2.5 m so it
          meets sloping ground), board walls, a gabled roof of dark slate
          with a 0.4 m overhang, a wide boat door in the gable that faces
          the water. 5 x 9 m, ridge 4.6 m over the base top. The walls use
          LK_NaustWall, which Godot paints red ochre or tar black per instance.
-  quay   A small solid quay: a stone crib from 4 m under the sea to a
+  shore_quay  A small solid quay: a stone crib from 4 m under the sea to a
          concrete deck 1.6 m above it, 6 m wide, running 18 m out from the
          waterline plus 4 m into the land, with timber fenders along both
          sides and four bollards.
@@ -155,7 +155,7 @@ def build_quay():
 
 ASSETS = {
     "naust": ("Naust", build_naust),
-    "quay": ("Quay", build_quay),
+    "shore_quay": ("Quay", build_quay),
 }
 
 

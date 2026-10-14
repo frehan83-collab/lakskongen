@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://cgi1f242ecdld"
-path="res://.godot/imported/quay_LOD0.glb-df70c474bc739aa640b01cc82e0bfaf4.scn"
+uid="uid://cnjlsbnd64byc"
+path="res://.godot/imported/shore_quay_LOD0.glb-31b901c503cca13c017076be5b2c2e38.scn"
 
 [deps]
 
-source_file="res://assets/models/shore/quay_LOD0.glb"
-dest_files=["res://.godot/imported/quay_LOD0.glb-df70c474bc739aa640b01cc82e0bfaf4.scn"]
+source_file="res://assets/models/shore/shore_quay_LOD0.glb"
+dest_files=["res://.godot/imported/shore_quay_LOD0.glb-31b901c503cca13c017076be5b2c2e38.scn"]
 
 [params]
 

@@ -350,6 +350,78 @@
         8.4729
       ]
     },
+    "spruce_LOD0": {
+      "path": "godot/assets/models/vegetation/spruce_LOD0.glb",
+      "sha256": "9155aaf16dc4c040d801cb20aa0a84cf938a97f153a0bcb3a71c86bfd350184e",
+      "size": 4304,
+      "tri_count": 116,
+      "material_count": 1,
+      "bbox_size": [
+        5.1697,
+        16.4,
+        5.6815
+      ]
+    },
+    "spruce_LOD1": {
+      "path": "godot/assets/models/vegetation/spruce_LOD1.glb",
+      "sha256": "42d57e655a74d21420d636f12914e8c7d4acb200b87af8209b0cfe2075d8de7d",
+      "size": 1496,
+      "tri_count": 12,
+      "material_count": 1,
+      "bbox_size": [
+        5.0,
+        14.6,
+        4.3301
+      ]
+    },
+    "birch_LOD0": {
+      "path": "godot/assets/models/vegetation/birch_LOD0.glb",
+      "sha256": "86112c8a0bfe7b1d5c841d71eb537adce8476ef1cc684f795c8e41822bc4062b",
+      "size": 5580,
+      "tri_count": 170,
+      "material_count": 1,
+      "bbox_size": [
+        5.9404,
+        11.2441,
+        6.3853
+      ]
+    },
+    "birch_LOD1": {
+      "path": "godot/assets/models/vegetation/birch_LOD1.glb",
+      "sha256": "d11d3f388c3a5d9aa473f40175c97c68ef609e160eff0f1af93f6f7c9ba61d7f",
+      "size": 1952,
+      "tri_count": 26,
+      "material_count": 1,
+      "bbox_size": [
+        5.2946,
+        10.9457,
+        5.4704
+      ]
+    },
+    "naust_LOD0": {
+      "path": "godot/assets/models/shore/naust_LOD0.glb",
+      "sha256": "0a947e68e8cd72683fcc0e8e2369614b9cb512bf643fc7dffb7c8902b1ee9372",
+      "size": 5396,
+      "tri_count": 38,
+      "material_count": 4,
+      "bbox_size": [
+        5.8,
+        7.22,
+        9.6
+      ]
+    },
+    "shore_quay_LOD0": {
+      "path": "godot/assets/models/shore/shore_quay_LOD0.glb",
+      "sha256": "df133bc84202f1456c8eb00072388ecd687678b8b8838b3fce6ad8ca61a86587",
+      "size": 17172,
+      "tri_count": 302,
+      "material_count": 4,
+      "bbox_size": [
+        6.48,
+        6.15,
+        22.24
+      ]
+    },
     "tank_growout_LOD0": {
       "path": "godot/assets/models/land_kit/tank_growout_LOD0.glb",
       "sha256": "c7766a42ef8a3d8bccc65e07affae4dab229bd538cf25d270d9a0ad7c34d4a4d",

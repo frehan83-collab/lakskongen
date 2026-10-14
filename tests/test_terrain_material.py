@@ -255,7 +255,7 @@ def test_build_script_reproduces_the_committed_trees(tmp_path):
 
 # ── The shore buildings ─────────────────────────────────────────────────────
 
-SHORE = ("naust", "quay")
+SHORE = ("naust", "shore_quay")
 # The naust's stone base sinks 2.5 m into sloping ground; the roof is 0.12 m thick.
 NAUST_BASE_SINK_M = 2.5
 NAUST_ROOF_M = 0.12
@@ -264,7 +264,7 @@ QUAY_INLAND_M = 4.0
 
 
 def test_shore_props_meet_the_manifest():
-    naust, quay = ASSETS["naust"], ASSETS["quay"]
+    naust, quay = ASSETS["naust"], ASSETS["shore_quay"]
     for asset in (naust, quay):
         assert asset["type"] == "shore_prop" and asset["build_script"] == "blender/build_shore_props.py"
         side = _side(asset["id"], "LOD0")
@@ -276,7 +276,7 @@ def test_shore_props_meet_the_manifest():
     assert abs(length - naust["spec"]["length_m"]) <= tol * naust["spec"]["length_m"]
     ridge = h - NAUST_BASE_SINK_M - NAUST_ROOF_M
     assert abs(ridge - naust["spec"]["ridge_m"]) <= tol * naust["spec"]["ridge_m"], ridge
-    w, h, length = _side("quay", "LOD0")["bbox_size"]
+    w, h, length = _side("shore_quay", "LOD0")["bbox_size"]
     tol = quay["spec_tolerance"]
     assert abs(w - quay["spec"]["width_m"]) <= tol * quay["spec"]["width_m"]
     assert abs(length - QUAY_INLAND_M - quay["spec"]["out_m"]) <= tol * quay["spec"]["out_m"]

@@ -9,7 +9,7 @@ extends Node3D
 
 const SCENES := {
 	0: "res://assets/models/shore/naust_LOD0.glb",
-	1: "res://assets/models/shore/quay_LOD0.glb",
+	1: "res://assets/models/shore/shore_quay_LOD0.glb",
 }
 ## Paints for the naust walls (sRGB): red ochre, tar black.
 const NAUST_PAINT := [Color("#8E3B2A"), Color("#2E2620")]
