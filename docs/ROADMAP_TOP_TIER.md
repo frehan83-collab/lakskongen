@@ -817,6 +817,30 @@ The owner has authorised me to decide these. Each decision is reversible unless 
 
 ---
 
+## 9a. Farm types: land-based and offshore (F2)
+
+On 2026-10-14 the owner sent reference photos titled "Land base farming" (a tank campus on a coastal
+granite pad with an orange pipe bridge and a processing hall) and "offshore farming" (a safety-yellow
+semi-submersible ring with a service vessel alongside). Farm types are therefore a full feature, not
+Phase 5 art. The design is `docs/FARM_TYPES_SPEC.md` (items F2-01 to F2-35, three player-facing
+families Sjø / Land / Hav, seven variants, about 235 agent-days in six lanes), with its sources in
+`docs/research/FARM_TYPES_RESEARCH.md` and the codebase map in `docs/research/FARM_TYPES_CODEMAP.md`.
+
+Amendments to this roadmap (spec §7.6):
+- G5-02 is superseded by F2-25 to F2-30.
+- S4-11 keeps only the orphaned-panel half; F2-13 takes post-smolt.
+- U3-03 skips the 07d offshore panel; F2-33 replaces it.
+- S4-06's weather gate calls `OperationPossible`; Q4-01's families include F2-17's; S4-10 covers every
+  F2 calibration key; U2-07's auto-slow/auto-pause API is consumed by F2-34.
+- OF1-class polygon (owner ruling needed before F2-26, decided by the merge captain under the
+  autonomy mandate): **12-gon**, circumradius 55 m, large columns on cone-ended pontoon feet
+  alternating with slimmer columns, as on the built structure in the owner's photo O3; the 8-sided
+  concept render O2 is an artistic simplification.
+
+The stage plan is spec §7.5; items start as soon as their dependencies merge.
+
+---
+
 ## 10. File-conflict map and merge order
 
 | Hot file | Items | Rule |
