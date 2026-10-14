@@ -22,6 +22,9 @@ Assets (blender/vessel_designs.py places the parts):
                     wings, pump house, two wells, four cranes, aft control
                     house.
   wellboat_large    116 x 23 m (Ronja Storm class): four wells, three tiers.
+  rib               8.5 x 3.0 m work RIB, the site tender: deep-V hull in an
+                    orange buoyancy tube, centre console, radar arch, twin
+                    outboards.
 
 References (retrieved 2026-10-14): Baird Maritime vessel reviews of Ronja
 Queen and Ronja Princess (LOA 76.96 m, beam 17.8 m, draught 5.0 m, depth
@@ -92,6 +95,7 @@ ASSETS = {
     "feed_barge_large": ("feed_barge", "LK_VHullSlate"),
     "wellboat": ("wellboat", "LK_VHullRed"),
     "wellboat_large": ("wellboat", "LK_VHullRed"),
+    "rib": ("rib", "LK_VSafety"),
 }
 
 LODS = {"LOD0": 2, "LOD1": 1, "LOD2": 0}
@@ -105,6 +109,7 @@ TRI_LIMITS = {
     "feed_barge_large": (40000, 10000, 2000),
     "wellboat": (45000, 12000, 2000),
     "wellboat_large": (60000, 15000, 2500),
+    "rib": (6000, 1500, 400),
 }
 
 # Parts that get baked AO in the vertex colour.
@@ -233,7 +238,7 @@ def export_lod(asset: str, lod: str, objs, spec, out_dir: str) -> dict:
         "dimensions": {
             "length_m": round(hhi[1] - hlo[1], 3),
             "beam_m": round(hhi[0] - hlo[0], 3),
-            "draught_m": round(-hlo[2], 3),
+            "draught_m": round(-lo[2], 3),
             "air_draught_m": round(hi[2], 3),
             "bow_y_m": round(hhi[1], 3),
             "stern_y_m": round(hlo[1], 3),

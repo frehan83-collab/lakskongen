@@ -37,6 +37,7 @@ by `tests/test_vessel_assets.py` (5%) and in the running game by
 | feed_barge_large | 64.8 x 13 m | 64.8 x 13.0 m, draught 4.2 m | 12,993 / 3,099 / 354 | 40k / 10k / 2k |
 | wellboat | 77 x 17.8 m | 76.96 x 17.8 m, draught 4.6 m | 22,951 / 4,117 / 576 | 45k / 12k / 2k |
 | wellboat_large | 116 x 23 m | 116.0 x 23.0 m, draught 6.2 m | 32,413 / 6,863 / 734 | 60k / 15k / 2.5k |
+| rib | 8.5 x 3.0 m (work RIB) | 8.53 x 2.94 m over the tube, 0.72 m with the legs down | 3,865 / 1,183 / 263 | 6k / 1.5k / 400 |
 
 The wellboat (77.0 m) is 1.42 times the pen's collar (54.1 m).
 
@@ -56,6 +57,10 @@ The wellboat (77.0 m) is 1.42 times the pen's collar (54.1 m).
 - **Workboat**: catamaran demihulls with V bottoms and push knees on both
   bows, bridging deck, wheelhouse with visor and mast, a 10 m and a small
   knuckle crane, capstans, winch, tyre fenders, rails.
+- **RIB** (the site tender): deep-V hard hull inside an orange buoyancy
+  tube with a rounded bow, centre console with windscreen, radar arch,
+  jockey seats, twin outboards. It lies alongside every feed barge on the
+  side away from the feed lines and is not drawn past 1.5 km.
 - **Materials**: one shared shader (`vessel_paint.gdshader`) for ten
   materials in `assets/models/vessel_kit/`: box-projected UVs in metres, a
   generated 4 m weathering tile (grime, roughness, run-down streaks) plus a

@@ -1260,6 +1260,7 @@ func _test_vessel_fleet() -> void:
 		"feed_barge/feed_barge_large": [64.8, 13.0, [40000, 10000, 2000]],
 		"wellboat/wellboat": [77.0, 17.8, [45000, 12000, 2000]],
 		"wellboat/wellboat_large": [116.0, 23.0, [60000, 15000, 2500]],
+		"rib/rib": [8.5, 3.0, [6000, 1500, 400]],
 	}
 	var dims_ok := true
 	var budgets_ok := true
@@ -1286,7 +1287,8 @@ func _test_vessel_fleet() -> void:
 				and is_equal_approx(mesh.visibility_range_end, v.lod_switch.y)
 		for mesh in v.get_lod_meshes(2):
 			chains_ok = chains_ok and is_equal_approx(mesh.visibility_range_begin, v.lod_switch.y) \
-				and mesh.visibility_range_end == 0.0 and mesh.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				and is_equal_approx(mesh.visibility_range_end, v.max_distance) \
+				and mesh.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		report.append("%s %.1fx%.1f %s" % [path.get_file(), hull.size.z, hull.size.x, tris])
 		v.free()
 	_check(dims_ok, "vessels: hull length and beam within 5%% of spec (%s)" % ", ".join(report))
@@ -1359,6 +1361,12 @@ func _test_vessel_fleet() -> void:
 		var to_pen := cage.global_position - barge.global_position
 		feed_side_ok = barge.global_transform.basis.x.dot(to_pen) > 0.0 and to_pen.length() < 80.0
 	_check(feed_side_ok, "vessels: the moored barge lies beside its pen with its feed lines towards it")
+	var tender := barge.get_node_or_null("Tender") as VesselModel if barge else null
+	var tender_ok := tender != null and tender.asset_id == "rib"
+	if tender_ok:
+		var away := barge.to_local(cage.global_position).x * tender.position.x
+		tender_ok = away < 0.0 and absf(tender.position.x) > barge.beam_m * 0.5 + tender.beam_m * 0.5
+	_check(tender_ok, "vessels: the barge keeps its tender RIB alongside, on the side away from the pen")
 	_check(_no_material_overrides(barge) and _no_material_overrides(carrier) and barge.get_node("Hull").get_active_material(0)
 		== load("res://assets/models/vessel_kit/vessel_hull_slate_material.tres"),
 		"vessels: barge and wellboat hulls keep the shared vessel paint, no per-boat material")

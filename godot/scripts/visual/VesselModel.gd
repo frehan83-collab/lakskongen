@@ -2,8 +2,8 @@ class_name VesselModel
 extends Node3D
 
 ## A vessel built by blender/build_vessels.py (roadmap A3-01): the 15 x 10 m
-## workboat, the 37 x 11.2 m and 64.8 x 13 m feed barges and the 77 x 17.8 m
-## and 116 x 23 m wellboats.
+## workboat, the 37 x 11.2 m and 64.8 x 13 m feed barges, the 77 x 17.8 m
+## and 116 x 23 m wellboats and the 8.5 x 3 m work RIB.
 ##
 ## The scene inherits <asset>_LOD0.glb, so the LOD0 parts are direct
 ## children: Hull, Deck, Superstructure, Windows, Machinery, Rubber, Crane,
@@ -24,6 +24,8 @@ extends Node3D
 @export var air_draught_m: float = 20.6
 ## Camera distance (m) where LOD0 hands over to LOD1, and LOD1 to LOD2.
 @export var lod_switch: Vector2 = Vector2(260.0, 900.0)
+## Past this camera distance (m) the vessel is not drawn at all (0: always).
+@export var max_distance: float = 0.0
 
 const LOD_NAMES := ["", "LOD1", "LOD2"]
 const LOD_HYSTERESIS := 6.0
@@ -68,7 +70,7 @@ func get_chip_anchor() -> Vector3:
 func _configure_lods() -> void:
 	for level in LOD_NAMES.size():
 		var begin: float = 0.0 if level == 0 else lod_switch[level - 1]
-		var end: float = lod_switch[level] if level < 2 else 0.0
+		var end: float = lod_switch[level] if level < 2 else max_distance
 		for mesh in get_lod_meshes(level):
 			mesh.visibility_range_begin = begin
 			mesh.visibility_range_end = end

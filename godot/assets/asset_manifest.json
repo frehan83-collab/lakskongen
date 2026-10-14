@@ -313,6 +313,42 @@
         23.78,
         116.0
       ]
+    },
+    "rib_LOD0": {
+      "path": "godot/assets/models/rib/rib_LOD0.glb",
+      "sha256": "f0ed74d145fc4148cf2c43afa9dffe215d5072982f2d6a491a341cbd7681bf5b",
+      "size": 152732,
+      "tri_count": 3865,
+      "material_count": 6,
+      "bbox_size": [
+        2.937,
+        3.73,
+        8.7502
+      ]
+    },
+    "rib_LOD1": {
+      "path": "godot/assets/models/rib/rib_LOD1.glb",
+      "sha256": "555df2f9bfa12095b460e1b4464b7a2cd4ae9686e5132e55921d83043faa6d40",
+      "size": 59836,
+      "tri_count": 1183,
+      "material_count": 6,
+      "bbox_size": [
+        2.887,
+        3.73,
+        8.7118
+      ]
+    },
+    "rib_LOD2": {
+      "path": "godot/assets/models/rib/rib_LOD2.glb",
+      "sha256": "c5f51cebd053db2721d0ff767d9168f02792f121e1c628ef731ef0db1e8cdc47",
+      "size": 17548,
+      "tri_count": 263,
+      "material_count": 3,
+      "bbox_size": [
+        2.8856,
+        2.22,
+        8.4729
+      ]
     }
   }
 }

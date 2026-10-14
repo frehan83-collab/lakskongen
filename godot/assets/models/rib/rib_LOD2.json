@@ -1,0 +1,31 @@
+{
+  "asset": "rib",
+  "bbox_size": [
+    2.8856,
+    2.22,
+    8.4729
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "air_draught_m": 1.72,
+    "beam_m": 2.886,
+    "bow_y_m": 3.998,
+    "draught_m": 0.5,
+    "length_m": 8.473,
+    "stern_y_m": -4.475
+  },
+  "file": "rib_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 3,
+  "materials": [
+    "LK_VDeck",
+    "LK_VSafety",
+    "LK_VWhite"
+  ],
+  "parts": {
+    "Deck": 28,
+    "Hull": 225,
+    "Superstructure": 10
+  },
+  "tri_count": 263
+}

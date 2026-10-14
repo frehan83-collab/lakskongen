@@ -24,6 +24,9 @@ const CHIP_DISTANCE := 700.0
 
 @export var feed_barge_scene: PackedScene = preload("res://assets/models/feed_barge/feed_barge.tscn")
 @export var large_feed_barge_scene: PackedScene = preload("res://assets/models/feed_barge/feed_barge_large.tscn")
+## The site's tender: a work RIB tied up alongside the barge, on the side
+## away from the feed lines.
+@export var tender_scene: PackedScene = preload("res://assets/models/rib/rib.tscn")
 ## Sites licensed for at least this much biomass (kg) get the large barge.
 @export var large_barge_min_biomass_kg: float = 6000000.0
 ## The depot: a point on the fjord channel, as a fraction of the fjord's
@@ -122,6 +125,7 @@ func _spawn_barge(site_id: String, site_data: Dictionary, on_station: bool = fal
 	var chip := VesselChip.new(CHIP_DISTANCE)
 	parts.boat.add_child(chip)
 	chip.position = parts.boat.get_chip_anchor() if parts.boat.has_method("get_chip_anchor") else Vector3(0, 16, 0)
+	_add_tender(parts.boat)
 	_active_barges[site_id] = {
 		"boat": parts.boat,
 		"path": parts.path,
@@ -137,6 +141,20 @@ func _spawn_barge(site_id: String, site_data: Dictionary, on_station: bool = fal
 		_on_barge_arrived(site_id)
 	else:
 		_tow_out(site_id)
+
+## Ties the tender RIB alongside the barge's port side (local -X; the feed
+## lines go out to starboard), near the stern, clear of the tyre fenders.
+func _add_tender(barge: Node3D) -> void:
+	if tender_scene == null:
+		return
+	var rib := tender_scene.instantiate() as Node3D
+	rib.name = "Tender"
+	barge.add_child(rib)
+	var model := barge as VesselModel
+	var half_beam := model.beam_m * 0.5 if model else 5.6
+	var half_len := model.length_m * 0.5 if model else 18.5
+	var rib_beam := (rib as VesselModel).beam_m if rib is VesselModel else 3.0
+	rib.position = Vector3(-(half_beam + 0.5 + rib_beam * 0.5), 0.0, half_len - 7.0)
 
 func _tow_out(site_id: String) -> void:
 	var data: Dictionary = _active_barges[site_id]

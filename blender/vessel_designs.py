@@ -475,10 +475,86 @@ def wellboat_large(parts: Parts, d: int):
     return wellboat(parts, d, L=116.0, B=23.0, T=6.2, tanks=4, tiers=3)
 
 
+# --------------------------------------------------------------------------
+# RIB: 8.5 x 3.0 m work RIB (site tender)
+# --------------------------------------------------------------------------
+
+def rib(parts: Parts, d: int, L=8.5, B=3.0):
+    """Deep-V hard hull (dark) inside an orange buoyancy tube, a centre
+    console with windscreen and a radar arch, jockey seats, twin outboards.
+    On a RIB the tube is the hull's outline: the Hull part is the tube (in
+    the orange safety paint), the hard hull goes in the dark Rubber part."""
+    hull_b, tube_r, deck = 2.1, 0.27, 0.62
+    spec = HullSpec(length=L - 0.55, beam=hull_b, draught=0.5, deck_z=lambda u: deck + 0.25 * max(u - 0.55, 0.0) / 0.45,
+                    bulwark=0.0, bow_rake=1.7, stern_rake=0.05, rake_power=(1.4, 1.0), pmb=(0.12, 0.42),
+                    bow_fullness=(1.3, 2.0), stern_frac=(0.82, 0.95), stern_power=2.0, vee=0.42)
+    st = hull.stations(STATIONS[d] // 2 + 4)
+    hull.loft_hull(spec, st, LEVELS[d], parts["Rubber"], parts["Deck"], x_offset=0.0)
+    # The tube: round the gunwale from the stern on one side, round the bow,
+    # back to the stern on the other, its ends sticking out past the transom.
+    n = 9 if d >= 2 else (6 if d >= 1 else 3)
+    z = deck + 0.12
+    side = []  # starboard, stern to the start of the bow arc
+    for i in range(n + 1):
+        u = 0.02 + 0.86 * i / n
+        side.append((hull.hull_half_beam(spec, u, z) + tube_r * 0.55, hull.hull_y(spec, u, z),
+                     z + 0.05 * max(u - 0.6, 0.0) / 0.28))
+    # The bow: a half circle joining the two sides, its tip just ahead of
+    # the stem.
+    r_bow = side[-1][0]
+    tip = hull.hull_y(spec, 1.0, z) + tube_r * 0.4
+    yc = max(tip - r_bow, side[-1][1])
+    k = 7 if d >= 2 else (5 if d >= 1 else 3)
+    arc = [(r_bow * math.cos(math.pi * j / k), yc + r_bow * math.sin(math.pi * j / k), side[-1][2] + 0.02)
+           for j in range(k + 1)]
+    stern_y = -L / 2 + 0.02
+    path = ([(-side[0][0], stern_y, z - 0.02)] + [(-p[0], p[1], p[2]) for p in reversed(side)]
+            + list(reversed(arc))[1:-1] + side + [(side[0][0], stern_y, z - 0.02)])
+    # Soften the corners (Chaikin corner cutting, ends kept).
+    for _ in range(1 if d >= 1 else 0):
+        cut = [path[0]]
+        for a, b in zip(path[:-1], path[1:]):
+            cut.append(hull._lerp(a, b, 0.25))
+            cut.append(hull._lerp(a, b, 0.75))
+        path = cut + [path[-1]]
+    hull.tube(parts["Hull"], path, tube_r, 10 if d >= 2 else (7 if d >= 1 else 5))
+    # Rubbing strake and lifeline loops on the tube (dark).
+    if d >= 2:
+        hull.tube(parts["Rubber"], [(p[0], p[1], p[2] - 0.14) for p in path[1:-1:2]], 0.04, 4, caps=False)
+    # Centre console with a windscreen, radar arch and seats.
+    cy = 0.2
+    hull.block(parts["Superstructure"], (0.0, cy, deck + 0.55), 0.48, 0.42, 0.55)
+    if d >= 1:
+        gb, gm = parts["Windows"]
+        a, b2 = (-0.46, cy + 0.42, deck + 1.1), (0.46, cy + 0.42, deck + 1.1)
+        c, d2 = (0.42, cy + 0.12, deck + 1.55), (-0.42, cy + 0.12, deck + 1.55)
+        gb.face((gb.vert(b2), gb.vert(a), gb.vert(d2), gb.vert(c)), gm, False)
+        gb.face((gb.vert(a), gb.vert(b2), gb.vert(c), gb.vert(d2)), gm, False)
+        for x in (-0.75, 0.75):
+            hull.tube(parts["Machinery"], [(x, cy - 0.9, deck), (x, cy - 0.85, deck + 1.9), (x * 0.6, cy - 0.8, deck + 2.25)],
+                      0.03, 6)
+        hull.tube(parts["Machinery"], [(-0.45, cy - 0.8, deck + 2.25), (0.45, cy - 0.8, deck + 2.25)], 0.03, 6)
+        hull.block(parts["Rubber"], (0.0, cy - 0.8, deck + 2.32), 0.4, 0.1, 0.07)
+        for y in (cy - 0.9, cy - 1.7):
+            hull.block(parts["Rubber"], (0.0, y, deck + 0.45), 0.22, 0.28, 0.45)
+    # Twin outboards on the transom.
+    for x in (-0.42, 0.42):
+        ty = -spec.length / 2 - 0.2
+        hull.block(parts["Rubber"], (x, ty, deck + 0.5), 0.24, 0.3, 0.42)
+        if d >= 1:
+            hull.block(parts["Machinery"], (x, ty + 0.03, deck - 0.3), 0.08, 0.14, 0.45)
+            hull.cyl(parts["Rubber"], (x, ty + 0.03, -0.6), (x, ty - 0.15, -0.6), 0.12, 8)
+    if d >= 2:
+        hull.bollard_pair(parts["Machinery"], (0.0, L / 2 - 1.2, deck + 0.2), along=(1, 0, 0), r=0.06, h=0.18, gap=0.3)
+        hull.cyl(parts["Machinery"], (0.0, -L / 2 + 0.8, deck), (0.0, -L / 2 + 0.8, deck + 1.1), 0.025, 4)
+    return spec
+
+
 DESIGNS = {
     "workboat": workboat,
     "feed_barge": feed_barge,
     "feed_barge_large": feed_barge_large,
     "wellboat": wellboat,
     "wellboat_large": wellboat_large,
+    "rib": rib,
 }

@@ -25,7 +25,7 @@ REPO = Path(__file__).parent.parent
 GODOT = REPO / "godot"
 MANIFEST = json.loads((REPO / "blender" / "asset_manifest.json").read_text())
 ASSETS = {a["id"]: a for a in MANIFEST["assets"]}
-VESSELS = ["workboat", "feed_barge", "feed_barge_large", "wellboat", "wellboat_large"]
+VESSELS = ["workboat", "feed_barge", "feed_barge_large", "wellboat", "wellboat_large", "rib"]
 MANAGERS = [GODOT / "scripts" / "visual" / "WellboatVisualManager.gd",
             GODOT / "scripts" / "visual" / "FeedBargeVisualManager.gd"]
 
@@ -64,7 +64,8 @@ def test_every_lod_is_exported_with_its_manifest_materials(vid):
     # Every LOD keeps the hull, deck, superstructure, glass and crane.
     for lod in asset["lod_levels"]:
         parts = set(_sidecar(asset, lod)["parts"])
-        assert {"Hull", "Deck", "Superstructure", "Windows", "Crane"} <= parts, (vid, lod, parts)
+        need = {"Hull", "Deck", "Superstructure"} | ({"Windows", "Crane"} if vid != "rib" else set())
+        assert need <= parts, (vid, lod, parts)
 
 
 @pytest.mark.parametrize("vid", VESSELS)

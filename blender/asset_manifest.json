@@ -187,6 +187,25 @@
       "reference": "Ronja Storm class (116 m): Salmon Business 'Largest wellboat on Earth arrives at yard' (retrieved 2026-10-14); roadmap A3-01 (116 x 23 m).",
       "spec_tolerance": 0.05,
       "spec": {"length_m": 116.0, "beam_m": 23.0}
+    },
+    {
+      "id": "rib",
+      "type": "vessel",
+      "scale_m": 8.5,
+      "orientation": "bow_neg_z_waterline_origin",
+      "lod_levels": ["LOD0", "LOD1", "LOD2"],
+      "materials": ["LK_VDark", "LK_VDeck", "LK_VGlass", "LK_VSafety", "LK_VSteel", "LK_VWhite"],
+      "lod_materials": {"LOD2": ["LK_VDeck", "LK_VSafety", "LK_VWhite"]},
+      "tri_budget": {"LOD0": 3865, "LOD1": 1183, "LOD2": 263},
+      "tri_max": {"LOD0": 6000, "LOD1": 1500, "LOD2": 400},
+      "export_path": "godot/assets/models/rib/rib_{lod}.glb",
+      "build_script": "blender/build_vessels.py",
+      "build_args": ["--asset", "rib"],
+      "godot_scene": "godot/assets/models/rib/rib.tscn",
+      "licence": "Proprietary (Lakskongen). In-house geometry and generated textures; no third-party assets.",
+      "reference": "Roadmap A3-01 (RIB): an 8-9 m aquaculture work RIB with a centre console and twin outboards; 8.5 x 3.0 m over the tube.",
+      "spec_tolerance": 0.05,
+      "spec": {"length_m": 8.5, "beam_m": 3.0}
     }
   ]
 }
