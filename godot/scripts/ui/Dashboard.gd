@@ -120,10 +120,9 @@ func _ready() -> void:
 	_connect_quick_actions()
 	_refresh_all()
 
-func _input(event: InputEvent) -> void:
-	if visible and event.is_action_pressed("ui_cancel"):
-		hide()
-		get_viewport().set_input_as_handled()
+# No Esc handler: the dashboard is home. Esc here reaches the game scene,
+# which opens the pause menu (U1-06); hiding the dashboard only made GameUI
+# show it again and swallowed the key.
 
 # ── Signal handlers ───────────────────────────────────────────────────────────
 

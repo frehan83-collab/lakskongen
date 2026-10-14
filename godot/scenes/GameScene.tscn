@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://cx3r7m9t1q5n4"]
+[gd_scene load_steps=13 format=3 uid="uid://cx3r7m9t1q5n4"]
 
 [ext_resource type="Script" path="res://scripts/GameController.gd" id="1_gamecontroller"]
 [ext_resource type="PackedScene" uid="uid://bks2yj3v1fkl8" path="res://scenes/ui/HUD.tscn" id="3_hud"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scripts/environment/FjordVistaBridge.gd" id="11_bridge"]
 [ext_resource type="PackedScene" path="res://scenes/ui/FjordCameraHint.tscn" id="12_camerahint"]
 [ext_resource type="PackedScene" uid="uid://d2kx4jnw5l83y" path="res://scenes/ui/AttentionInbox.tscn" id="14_inbox"]
+[ext_resource type="PackedScene" uid="uid://dm4k8n2p7r0v6" path="res://scenes/PauseMenu.tscn" id="15_pause"]
 
 [node name="GameScene" type="Control"]
 layout_mode = 3
@@ -118,4 +119,11 @@ grow_horizontal = 0
 grow_vertical = 2
 
 [node name="AttentionInbox" parent="." instance=ExtResource("14_inbox")]
+visible = false
+
+[node name="MenuLayer" type="CanvasLayer" parent="."]
+layer = 5
+
+[node name="PauseMenu" parent="MenuLayer" instance=ExtResource("15_pause")]
+unique_name_in_owner = true
 visible = false

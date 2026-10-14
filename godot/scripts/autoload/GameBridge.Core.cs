@@ -249,6 +249,10 @@ public partial class GameBridge : Node
         GD.Print($"GameBridge: time speed → {_timeSpeed}x");
     }
 
+    /// <summary>True while the auto-tick timer is paused (the pause menu
+    /// restores this state when it closes).</summary>
+    public bool IsPaused() => _isPaused;
+
     /// <summary>Pause or resume the auto-tick timer.</summary>
     public void SetPaused(bool paused)
     {

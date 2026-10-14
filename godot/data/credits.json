@@ -1,0 +1,72 @@
+{
+  "_comment": "In-game credits (CreditsScreen). third_party mirrors THIRD_PARTY.md row for row (tests/test_credits.py). Text the player reads goes through translation keys; names, sources and licence ids are shown as written.",
+  "team": [
+    {
+      "role_key": "UI_CREDITS_ROLE_CREATOR",
+      "name": "Fredrik Hansen"
+    }
+  ],
+  "third_party": [
+    {
+      "name": "Godot Engine",
+      "use_key": "UI_CREDITS_USE_ENGINE",
+      "author": "Juan Linietsky, Ariel Manzur og bidragsytere",
+      "source": "godotengine.org",
+      "licence": "MIT",
+      "notice_key": ""
+    },
+    {
+      "name": ".NET runtime",
+      "display_key": "UI_CREDITS_DOTNET_TITLE",
+      "use_key": "UI_CREDITS_USE_RUNTIME",
+      "author": ".NET Foundation og bidragsytere",
+      "source": "dotnet.microsoft.com",
+      "licence": "MIT",
+      "notice_key": ""
+    },
+    {
+      "name": "Inter",
+      "use_key": "UI_CREDITS_USE_FONT",
+      "author": "The Inter Project Authors (Rasmus Andersson)",
+      "source": "rsms.me/inter",
+      "licence": "SIL OFL 1.1",
+      "notice_key": ""
+    },
+    {
+      "name": "Kenney UI Audio",
+      "use_key": "UI_CREDITS_USE_UI_SOUNDS",
+      "author": "Kenney",
+      "source": "kenney.nl",
+      "licence": "CC0 1.0",
+      "notice_key": ""
+    },
+    {
+      "name": "Freesound sounds",
+      "display_key": "UI_CREDITS_FREESOUND_TITLE",
+      "use_key": "UI_CREDITS_USE_ALERT_SOUNDS",
+      "author": "Freesound.org",
+      "source": "freesound.org",
+      "licence": "CC0 1.0",
+      "notice_key": ""
+    },
+    {
+      "name": "Mixkit sound effects",
+      "display_key": "UI_CREDITS_MIXKIT_TITLE",
+      "use_key": "UI_CREDITS_USE_AMBIENCE",
+      "author": "Mixkit",
+      "source": "mixkit.co",
+      "licence": "Mixkit Sound Effects Free License",
+      "licence_key": "UI_CREDITS_LICENCE_MIXKIT",
+      "notice_key": ""
+    },
+    {
+      "name": "Music by Kevin MacLeod",
+      "display_key": "UI_CREDITS_MUSIC_TITLE",
+      "use_key": "UI_CREDITS_USE_MUSIC",
+      "author": "Kevin MacLeod",
+      "source": "incompetech.com",
+      "licence": "CC BY 4.0",
+      "notice_key": "UI_CREDITS_MUSIC_NOTICE"
+    }
+  ]
+}

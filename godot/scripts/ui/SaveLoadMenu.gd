@@ -10,8 +10,9 @@ extends Control
 ## Two contexts:
 ##   modal — opened by MainMenu / PauseMenu via show_load() / show_save();
 ##           closes itself (close_requested) after an action or ESC.
-##   tab   — hosted by GameUI ("💾 Lagre/Laste"); on_panel_shown() refreshes,
-##           the panel stays open and offers save + load together.
+##   panel — on_panel_shown() refreshes and offers save + load together (the
+##           old "Lagre/last inn" tab; save and load now live in the pause
+##           menu, roadmap D15).
 
 signal close_requested
 signal game_loaded(file_name: String)
@@ -121,6 +122,9 @@ func _refresh_slots() -> void:
 
 ## Saves the game writes itself are named by file ("autosave_latest",
 ## "autosave_3", "quicksave"); the player reads them as Norwegian labels.
+func slot_display_name(slot_name: String) -> String:
+	return _slot_display_name(slot_name)
+
 func _slot_display_name(slot_name: String) -> String:
 	if slot_name == "autosave_latest":
 		return tr("UI_SAVELOAD_AUTOSAVE_LATEST")
@@ -137,13 +141,10 @@ func _create_slot(save_info: Dictionary) -> PanelContainer:
 
 	var slot := PanelContainer.new()
 	slot.name = "Slot_" + file_name.get_basename().validate_node_name()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color("#EDE9E0")
-	sb.border_color = Color("#D6CFBF")
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(8)
-	sb.set_content_margin_all(12)
-	slot.add_theme_stylebox_override("panel", sb)
+	# A theme tile, so the slot sits right on the surface it is shown on: Ink
+	# in the main and pause menus, Chart paper in a document panel. (A fixed
+	# Chart colour put light Ink text on a light card: 1.03:1.)
+	slot.theme_type_variation = &"Tile"
 
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 12)

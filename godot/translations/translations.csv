@@ -1441,3 +1441,48 @@ UI_GOAL_DETAILS_TITLE,Scenario goal,Scenariomål
 UI_TAB_MORE,More ▾,Mer ▾
 UI_TAB_MORE_TIP,Tabs that do not fit the bar,Faner som ikke får plass i linjen
 UI_TAB_SHORTCUT_TIP,Shortcut: %s,Snarvei: %s
+UI_PAUSE_OVERLINE,Game paused,Spillet står stille
+UI_PAUSE_TITLE,Paused,Pause
+UI_PAUSE_RESUME,Resume,Fortsett
+UI_PAUSE_RESUME_TIP,Back to the game (Esc),Tilbake til spillet (Esc)
+UI_PAUSE_SAVE_TIP,Save to a new or an existing slot,Lagre på en ny eller en eksisterende plass
+UI_PAUSE_LOAD,Load game,Last inn spill
+UI_PAUSE_LOAD_TIP,Load a saved game,Last inn et lagret spill
+UI_PAUSE_MAIN_MENU,Main menu,Til hovedmenyen
+UI_PAUSE_MAIN_MENU_TIP,Leave this game for the main menu,Forlat spillet og gå til hovedmenyen
+UI_PAUSE_QUIT,Quit game,Avslutt spillet
+UI_PAUSE_QUIT_TIP,Close Lakskongen,Lukk Lakskongen
+UI_GUARD_QUIT_TITLE,Save before you quit?,Lagre før du avslutter?
+UI_GUARD_MENU_TITLE,Save before you leave?,Lagre før du går til hovedmenyen?
+UI_GUARD_BODY,"Progress since your last save is lost. Saving writes the quick-save slot, which Continue on the main menu loads.","Det du har gjort siden du sist lagret, går tapt. Lagring skriver til hurtiglagringen, som Fortsett i hovedmenyen laster inn."
+UI_GUARD_CANCEL,Cancel,Avbryt
+UI_GUARD_QUIT_DISCARD,Quit without saving,Avslutt uten å lagre
+UI_GUARD_QUIT_SAVE,Save and quit,Lagre og avslutt
+UI_GUARD_MENU_DISCARD,Leave without saving,Gå uten å lagre
+UI_GUARD_MENU_SAVE,Save and leave,Lagre og gå
+UI_GUARD_SAVE_FAILED,"Save failed: %s. The game is still open.","Lagring feilet: %s. Spillet er fortsatt åpent."
+UI_BUTTON_CONTINUE,Continue,Fortsett
+UI_BUTTON_CONTINUE_TIP,Load your newest save,Last inn den nyeste lagringen
+UI_CONTINUE_CAPTION,Day %d · %s,Dag %d · %s
+UI_BUTTON_CREDITS,Credits,Medvirkende
+UI_CREDITS_CLOSE_TIP,Close (Esc),Lukk (Esc)
+UI_CREDITS_MADE_BY,Made by,Laget av
+UI_CREDITS_ROLE_CREATOR,"Design, development and production","Spilldesign, utvikling og produksjon"
+UI_CREDITS_THIRD_PARTY,Third-party works,Tredjepartsverk
+UI_CREDITS_THIRD_PARTY_INTRO,Lakskongen is built with these works. Thank you to everyone who shares their work.,Lakskongen er bygget med disse verkene. Takk til alle som deler arbeidet sitt.
+UI_CREDITS_USE_ENGINE,Game engine,Spillmotor
+UI_CREDITS_USE_RUNTIME,C# runtime,C#-kjøretid
+UI_CREDITS_USE_FONT,Typeface,Skrift
+UI_CREDITS_USE_UI_SOUNDS,Interface sounds,Lyder i grensesnittet
+UI_CREDITS_USE_ALERT_SOUNDS,Alert sounds,Varsellyder
+UI_CREDITS_USE_AMBIENCE,Ambient sound,Naturlyder
+UI_CREDITS_USE_MUSIC,Music,Musikk
+UI_CREDITS_DOTNET_TITLE,.NET runtime,.NET-kjøretiden
+UI_CREDITS_FREESOUND_TITLE,Sounds from Freesound,Lyder fra Freesound
+UI_CREDITS_MIXKIT_TITLE,Sound effects from Mixkit,Lydeffekter fra Mixkit
+UI_CREDITS_MUSIC_TITLE,Music by Kevin MacLeod,Musikk av Kevin MacLeod
+UI_CREDITS_LICENCE_MIXKIT,Mixkit free licence,Mixkit fri lisens
+UI_CREDITS_MUSIC_NOTICE,"“Lotus”, “Soaring”, “Morning”, “Dreamer”, “Evening” and “Bittersweet” by Kevin MacLeod (incompetech.com). Licensed under Creative Commons: By Attribution 4.0 (creativecommons.org/licenses/by/4.0). Converted to Ogg Vorbis.","«Lotus», «Soaring», «Morning», «Dreamer», «Evening» og «Bittersweet» av Kevin MacLeod (incompetech.com). Lisensiert under Creative Commons Navngivelse 4.0 (creativecommons.org/licenses/by/4.0). Konvertert til Ogg Vorbis."
+UI_CREDITS_THANKS,Thanks,Takk til
+UI_CREDITS_THANKS_BODY,The Norwegian aquaculture industry and everyone who tested the game.,Norsk havbruksnæring og alle som har testet spillet.
+UI_CREDITS_COPYRIGHT,© 2026 Lakskongen. All rights reserved.,© 2026 Lakskongen. Alle rettigheter forbeholdt.

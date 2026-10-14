@@ -110,6 +110,11 @@ func set_paused(paused: bool) -> void:
 		game_bridge.SetPaused(paused)
 
 
+## True while the game clock is paused.
+func is_paused() -> bool:
+	return game_bridge.IsPaused() if game_bridge else true
+
+
 ## Set time speed multiplier (1x, 2x, 5x, etc.)
 func set_time_speed(speed: float) -> void:
 	if game_bridge:

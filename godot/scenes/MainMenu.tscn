@@ -82,6 +82,23 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 
+[node name="BtnContinue" type="Button" parent="Center/MenuVBox"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(320, 52)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_type_variation = &"LargePrimaryButton"
+text = "UI_BUTTON_CONTINUE"
+
+[node name="ContinueCaption" type="Label" parent="Center/MenuVBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+text = "–"
+horizontal_alignment = 1
+
 [node name="BtnNewGame" type="Button" parent="Center/MenuVBox" unique_id=1203839895]
 theme_type_variation = &"LargePrimaryButton"
 unique_name_in_owner = true
@@ -105,6 +122,14 @@ custom_minimum_size = Vector2(320, 52)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "⚙️  Innstillinger"
+
+[node name="BtnCredits" type="Button" parent="Center/MenuVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 52)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_type_variation = &"LargeButton"
+text = "UI_BUTTON_CREDITS"
 
 [node name="BtnQuit" type="Button" parent="Center/MenuVBox" unique_id=446962358]
 theme_type_variation = &"LargeButton"

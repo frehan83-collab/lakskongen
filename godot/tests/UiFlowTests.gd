@@ -82,6 +82,13 @@ func _run() -> void:
 	await _test_overflow_menu_opens_hidden_tabs()
 	await _test_tab_shortcuts_are_command_digits()
 	await _test_dashboard_alerts_one_row_per_category_and_site()
+	await _test_escape_opens_the_pause_menu()
+	await _test_pause_menu_reaches_the_main_menu()
+	await _test_pause_settings_and_back()
+	await _test_window_close_asks_to_save()
+	await _test_continue_restores_the_latest_save()
+	await _test_credits_list_every_third_party_work()
+	await _test_pause_save_list_buttons_answer()
 
 	_clear_test_saves()
 	_finish()
@@ -549,6 +556,13 @@ func _test_escape_returns_tabs_to_the_dashboard() -> void:
 	await _press_key(KEY_ESCAPE)
 	await get_tree().process_frame
 	_check(dashboard != null and dashboard.visible, "esc: ESC on the dashboard keeps it shown")
+	# U1-06/D15: that ESC opened the pause menu over the dashboard; ESC again
+	# closes it, then the tab button takes the click.
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	_check(pause.is_open(), "esc: ESC on the dashboard opens the pause menu")
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.3).timeout
+	_check(not pause.is_open() and not pause.visible, "esc: ESC in the pause menu closes it")
 	await _click_control(ui.find_child("Tab_map", true, false))
 	var map: Control = ui.find_child("Panel_map", true, false)
 	_check(ui.get_active_tab() == "map" and map != null and map.visible, "esc: the closed tab opens again from its button")
@@ -916,7 +930,7 @@ func _test_facade_forwards_phase5_systems() -> void:
 ## really drawn behind it. Each screen is judged after its fade-in.
 const THEME_SCREENS_TABS := ["dashboard", "fjord", "map", "finance", "pens", "production", "research",
 	"sustainability", "ras", "offshore", "analytics", "telemetry", "ai_feeding", "crew", "contracts",
-	"carbon", "encyclopedia", "export", "saveload"]
+	"carbon", "encyclopedia", "export"]
 const THEME_SETTLE_S := 0.9
 
 func _test_theme_and_contrast_on_every_screen() -> void:
@@ -948,6 +962,22 @@ func _test_theme_and_contrast_on_every_screen() -> void:
 	center.show_panel()
 	await _lint_screen("notification center")
 	center.hide_panel()
+	# U1-06/D15: save and load moved from a tab into the pause menu; its
+	# screens are judged like the tab was (and the menu, settings and the
+	# save guard besides).
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	pause.show_menu()
+	await _lint_screen("pause menu")
+	pause.btn_save.pressed.emit()
+	await _lint_screen("pause save list")
+	pause.save_load_menu._close()
+	pause.btn_settings.pressed.emit()
+	await _lint_screen("pause settings")
+	pause.settings_menu._on_close()
+	pause.request_quit()
+	await _lint_screen("pause save guard")
+	pause.hide_menu()
+	await get_tree().create_timer(0.3).timeout
 	var inbox := scene.get_node("AttentionInbox")
 	inbox.open_inbox()
 	await _lint_screen("attention inbox")
@@ -1383,6 +1413,303 @@ func _test_dashboard_alerts_one_row_per_category_and_site() -> void:
 	_check(drawn_rows == rows.size() and drawn.size() == rows.size(), "alerts: the card draws each row once (%d drawn)" % drawn_rows)
 	scene.queue_free()
 	await get_tree().process_frame
+
+## U1-06 #1: Esc on the dashboard opens the pause menu and stops the clock;
+## Esc again (or Fortsett) closes it and gives the clock back its state. While
+## it is open the game's own keys (Space, Cmd/Ctrl+digit) wait, and the HUD
+## shows the clock paused. Esc on another tab still goes home first.
+func _test_escape_opens_the_pause_menu() -> void:
+	var scene := await _spawn_game_scene()
+	_sim.skip_tutorial()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var hud: Control = scene.get_node("UILayer/HUD")
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	ui.show_tab("finance")
+	_sim.set_paused(false)
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_ESCAPE)
+	_check(ui.get_active_tab() == "dashboard" and not pause.is_open(), "pause: Esc on a tab goes home first, no menu")
+	await _press_key(KEY_ESCAPE)
+	_check(pause.is_open() and pause.visible, "pause: Esc on the dashboard opens the pause menu")
+	_check(_sim.is_paused(), "pause: the open menu stops the clock")
+	_check(hud._is_paused, "pause: the HUD shows the clock paused")
+	var pauses: Array = []
+	hud.speed_changed.connect(func(_speed: float, paused: bool) -> void: pauses.append(paused))
+	await _press_key(KEY_SPACE, 32)
+	await _press_command_key(KEY_3)
+	_check(pauses.is_empty() and ui.get_active_tab() == "dashboard",
+		"pause: Space and Cmd/Ctrl+3 wait while the menu is open (%s, %s)" % [str(pauses), ui.get_active_tab()])
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.3).timeout
+	_check(not pause.is_open() and not pause.visible, "pause: Esc closes the menu")
+	_check(not _sim.is_paused() and not hud._is_paused, "pause: closing gives the running clock back")
+	_sim.set_paused(true)
+	hud.set_paused_state(true)
+	await _press_key(KEY_ESCAPE)
+	await _click_control(pause.btn_resume)
+	await get_tree().create_timer(0.3).timeout
+	_check(not pause.is_open() and _sim.is_paused(), "pause: Fortsett keeps a clock the player had paused paused")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-06 #2: Pause → Til hovedmenyen asks to save first, then reaches a
+## usable main menu; the abandoned game's clock stays stopped.
+func _test_pause_menu_reaches_the_main_menu() -> void:
+	var scene := await _spawn_game_scene()
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	var target := [""]
+	pause.scene_change_override = func(path: String) -> void: target[0] = path
+	_sim.set_paused(false)
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.3).timeout
+	await _click_control(pause.btn_main_menu)
+	_check(pause.guard.visible and pause.guard_title.text == "Lagre før du går til hovedmenyen?",
+		"pause: Til hovedmenyen asks to save first ('%s')" % pause.guard_title.text)
+	await _click_control(pause.guard_discard)
+	_check(target[0] == "res://scenes/MainMenu.tscn", "pause: 'Gå uten å lagre' goes to the main menu (%s)" % target[0])
+	_check(_sim.is_paused(), "pause: the game left behind does not tick")
+	var menu: Control = (load(target[0]) as PackedScene).instantiate()
+	add_child(menu)
+	await get_tree().process_frame
+	var usable: bool = menu.center.visible
+	for btn: Button in [menu.btn_new_game, menu.btn_load, menu.btn_settings, menu.btn_credits, menu.btn_quit]:
+		usable = usable and btn.is_visible_in_tree() and not btn.disabled
+	_check(usable, "pause: the main menu it reaches is usable")
+	menu.queue_free()
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-06 #3: Pause → Innstillinger → back (Esc, and the close button) returns
+## to the open pause menu with focus on Innstillinger.
+func _test_pause_settings_and_back() -> void:
+	var scene := await _spawn_game_scene()
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.3).timeout
+	await _click_control(pause.btn_settings)
+	_check(pause.settings_menu.visible and not pause.get_node("%Center").visible,
+		"pause: Innstillinger opens the settings in place of the menu")
+	await _press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	_check(not pause.settings_menu.visible and pause.get_node("%Center").visible and pause.is_open(),
+		"pause: Esc in the settings returns to the pause menu")
+	await get_tree().process_frame
+	_check(get_viewport().gui_get_focus_owner() == pause.btn_settings, "pause: focus returns to Innstillinger")
+	await _click_control(pause.btn_settings)
+	await _click_control(pause.settings_menu.get_node("%CloseButton"))
+	_check(not pause.settings_menu.visible and pause.get_node("%Center").visible and pause.is_open(),
+		"pause: the settings' close button also returns to the pause menu")
+	pause.hide_menu()
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-06 #4: the window's close request asks "Lagre før du avslutter?" over
+## the pause menu instead of quitting; Avbryt goes back to the menu; "Lagre og
+## avslutt" writes the quick-save slot, then quits.
+func _test_window_close_asks_to_save() -> void:
+	_clear_test_saves()
+	var scene := await _spawn_game_scene()
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	var quits := [0]
+	pause.quit_override = func() -> void: quits[0] += 1
+	_check(not get_tree().auto_accept_quit, "quit: the game screen takes the window's close request")
+	get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST)
+	await get_tree().create_timer(0.3).timeout
+	_check(pause.is_open() and pause.guard.visible and pause.guard_title.text == "Lagre før du avslutter?",
+		"quit: closing the window asks 'Lagre før du avslutter?' ('%s')" % pause.guard_title.text)
+	_check(quits[0] == 0, "quit: nothing quits before the player answers")
+	await _click_control(pause.guard_cancel)
+	_check(not pause.guard.visible and pause.is_open(), "quit: Avbryt returns to the pause menu")
+	await _click_control(pause.btn_quit)
+	_check(pause.guard.visible, "quit: Avslutt spillet asks the same question")
+	await _click_control(pause.guard_save)
+	_check(quits[0] == 1, "quit: 'Lagre og avslutt' quits once")
+	var saved := false
+	for entry in _sim.get_save_list():
+		saved = saved or str(entry.get("name", "")).begins_with("quicksave")
+	_check(saved, "quit: 'Lagre og avslutt' wrote the quick-save slot first")
+	scene.queue_free()
+	await get_tree().process_frame
+	_check(get_tree().auto_accept_quit, "quit: leaving the game screen gives the close button back")
+	_clear_test_saves()
+
+## U1-06 #5: Fortsett on the main menu loads the newest save: the day and the
+## balance come back exactly. With no save there is no Fortsett and Nytt spill
+## is the primary action.
+func _test_continue_restores_the_latest_save() -> void:
+	_clear_test_saves()
+	var empty := await _spawn_main_menu()
+	_check(not empty.btn_continue.visible and empty.btn_new_game.theme_type_variation == &"LargePrimaryButton",
+		"continue: no save, no Fortsett; Nytt spill is the primary action")
+	empty.queue_free()
+	# A farm with fish and costs, so the balance moves from day to day.
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "setup: a farm whose balance moves")
+	_sim.set_paused(true)
+	_sim.advance_days(4)
+	var older_balance: float = float(_sim.balance)
+	_check(_sim.save_game("ci_continue_older"), "setup: an older save")
+	await get_tree().create_timer(0.05).timeout
+	_sim.advance_days(9)
+	var day: int = _sim.current_day
+	var balance: float = float(_sim.balance)
+	_check(not is_equal_approx(balance, older_balance), "setup: the balance moved between the saves (%s → %s)" % [str(older_balance), str(balance)])
+	_check(_sim.save_game("ci_continue_newest"), "setup: the newest save")
+	_start_paused_game()
+	_sim.advance_days(2)
+	_check(_sim.current_day != day and not is_equal_approx(float(_sim.balance), balance), "setup: a different game is running")
+	var menu := await _spawn_main_menu()
+	var entered := [false]
+	menu.enter_game_override = func() -> void: entered[0] = true
+	_check(menu.btn_continue.visible and menu.btn_continue.theme_type_variation == &"LargePrimaryButton",
+		"continue: a save exists, Fortsett is the primary action")
+	_check(menu.continue_caption.text.contains(str(day)), "continue: the caption names the save's day ('%s')" % menu.continue_caption.text)
+	await _click_control(menu.btn_continue)
+	_check(entered[0], "continue: Fortsett enters the game")
+	_check(_sim.current_day == day and is_equal_approx(float(_sim.balance), balance),
+		"continue: day %d and balance %s restored exactly (%d, %s)" % [day, str(balance), _sim.current_day, str(_sim.balance)])
+	menu.queue_free()
+	await get_tree().process_frame
+	_clear_test_saves()
+
+## U1-06 #6: Medvirkende, from the main menu and from the pause menu, lists
+## every work in THIRD_PARTY.md with its licence; Esc closes it back to the
+## menu it came from. The page is themed and readable.
+func _test_credits_list_every_third_party_work() -> void:
+	var inventory := _third_party_inventory()
+	_check(inventory.size() >= 7, "credits: THIRD_PARTY.md lists the shipped works (%d)" % inventory.size())
+	var menu := await _spawn_main_menu()
+	await _click_control(menu.btn_credits)
+	await get_tree().create_timer(0.5).timeout
+	var credits: Control = menu.credits_screen
+	_check(credits != null and credits.visible and not menu.center.visible, "credits: Medvirkende opens from the main menu")
+	if credits != null:
+		_check_credits_rows(credits, inventory, "main menu")
+		var lint := preload("res://tests/ThemeLint.gd")
+		var unthemed: PackedStringArray = lint.unthemed(credits)
+		var low: PackedStringArray = lint.low_contrast(credits)
+		_check(unthemed.is_empty() and low.is_empty(), "credits: themed and readable %s %s" % [str(unthemed.slice(0, 3)), str(low.slice(0, 3))])
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.4).timeout
+	_check(credits != null and not credits.visible and menu.center.visible, "credits: Esc returns to the main menu")
+	menu.queue_free()
+	await get_tree().process_frame
+
+	var scene := await _spawn_game_scene()
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.3).timeout
+	await _click_control(pause.btn_credits)
+	await get_tree().create_timer(0.5).timeout
+	var from_pause: Control = pause.credits_screen
+	_check(from_pause != null and from_pause.visible, "credits: Medvirkende opens from the pause menu")
+	if from_pause != null:
+		_check_credits_rows(from_pause, inventory, "pause menu")
+	await _press_key(KEY_ESCAPE)
+	await get_tree().create_timer(0.4).timeout
+	_check(pause.is_open() and pause.get_node("%Center").visible, "credits: Esc returns to the pause menu")
+	pause.hide_menu()
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Every inventory row has one drawn row with its name and licence.
+func _check_credits_rows(credits: Control, inventory: Dictionary, where: String) -> void:
+	var drawn := {}
+	for row in credits.find_children("*", "PanelContainer", true, false):
+		if not row.has_meta("credit_name"):
+			continue
+		var name_label: Label = row.find_child("WorkName", true, false)
+		var licence_label: Label = row.find_child("Licence", true, false)
+		drawn[str(row.get_meta("credit_name"))] = {"licence": str(row.get_meta("credit_licence")),
+			"shown": name_label != null and name_label.is_visible_in_tree() and name_label.text != ""
+				and licence_label != null and licence_label.text != ""}
+	var missing: Array = []
+	for component in inventory:
+		var row: Dictionary = drawn.get(component, {})
+		if row.is_empty() or row["licence"] != inventory[component] or not row["shown"]:
+			missing.append(component)
+	_check(missing.is_empty() and drawn.size() == inventory.size(),
+		"credits: every THIRD_PARTY.md work and licence is listed from the %s %s" % [where, str(missing)])
+
+## Component -> licence from the THIRD_PARTY.md table at the repository root.
+func _third_party_inventory() -> Dictionary:
+	var path := ProjectSettings.globalize_path("res://").path_join("../THIRD_PARTY.md").simplify_path()
+	var text := FileAccess.get_file_as_string(path)
+	var rows := {}
+	var header: PackedStringArray = []
+	for line in text.split("\n"):
+		if not line.begins_with("|"):
+			continue
+		var cells: PackedStringArray = []
+		for cell in line.strip_edges().trim_prefix("|").trim_suffix("|").split("|"):
+			cells.append(cell.strip_edges())
+		if header.is_empty():
+			header = cells
+			continue
+		if cells[0].replace("-", "").replace(":", "") == "":
+			continue
+		rows[cells[header.find("Component")]] = cells[header.find("Licence")]
+	return rows
+
+## The save list behind the pause menu's Lagre spill: every enabled button
+## answers without a failure toast or a warning, every disabled one says why
+## (the coverage the removed "Lagre/last inn" tab had in _test_every_button_answers).
+func _test_pause_save_list_buttons_answer() -> void:
+	_clear_test_saves()
+	_check(_sim.start_qa_scenario(SCENARIO_ID, 91), "buttons: fresh Første sesong starts (pause save list)")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	_sim.skip_tutorial()
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	pause.show_menu()
+	pause.btn_save.pressed.emit()
+	await get_tree().create_timer(BUTTON_SETTLE_S).timeout
+	var list: Control = pause.save_load_menu
+	var toasts: Array = []
+	var toast_node := get_node("/root/ToastNotification")
+	var on_toast := func(message: String, level: String) -> void: toasts.append([level, message])
+	toast_node.toast_shown.connect(on_toast)
+	var log := _WarningLog.new()
+	OS.add_logger(log)
+	var silent: Array = []
+	for node in list.find_children("*", "BaseButton", true, false):
+		var b := node as BaseButton
+		if b.is_visible_in_tree() and b.disabled and b.tooltip_text.strip_edges() == "":
+			silent.append(_button_label(b))
+	_check(silent.is_empty(), "buttons: every disabled button on the pause save list says why %s" % str(silent))
+	var failures: Array = []
+	var presses := 0
+	for node in list.find_children("*", "BaseButton", true, false):
+		if not is_instance_valid(node) or node.is_queued_for_deletion():
+			continue
+		var b := node as BaseButton
+		if not b.is_visible_in_tree() or b.disabled or b.name == "CloseButton":
+			continue
+		log.take()
+		toasts.clear()
+		b.pressed.emit()
+		presses += 1
+		for i in 3:
+			await get_tree().process_frame
+		var bad := toasts.filter(func(t: Array) -> bool: return t[0] in ["WARNING", "CRITICAL"])
+		var warned := log.take()
+		if not bad.is_empty() or not warned.is_empty():
+			failures.append("%s → %s %s" % [_button_label(b), str(bad), str(warned)])
+		if not list.visible:
+			pause.btn_save.pressed.emit()
+			await get_tree().process_frame
+	_check(presses > 0 and failures.is_empty(), "buttons: %d presses on the pause save list, no failure toast or warning %s" % [presses, str(failures.slice(0, 3))])
+	OS.remove_logger(log)
+	toast_node.toast_shown.disconnect(on_toast)
+	pause.hide_menu()
+	scene.queue_free()
+	await get_tree().process_frame
+	_clear_test_saves()
 
 func _point_export_at_test_dir(panel: Node) -> void:
 	var dir := ProjectSettings.globalize_path(TEST_ROOT + "exports")
