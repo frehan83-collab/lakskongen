@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "lakskongen.qa.shots/1",
+  "title": "Lakskongen QA shot list",
+  "description": "godot/qa/shots.json: every QA capture shot, appended by the item that adds it (roadmap P0-03, farm-types spec section 7). The capture scene named by `scene` reads the shots that name it. tests/test_farm_type_graybox.py validates the file against this schema.",
+  "type": "object",
+  "required": ["schema", "shots"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {"type": "string"},
+    "schema": {"const": "lakskongen.qa.shots/1"},
+    "doc": {"type": "string"},
+    "shots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/shot"}
+    }
+  },
+  "$defs": {
+    "shot": {
+      "type": "object",
+      "required": ["id", "item", "scene", "kind", "resolution", "weather", "camera", "purpose"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[0-9]{2}[a-z]?_[a-z0-9_]+$"},
+        "item": {"type": "string", "pattern": "^[A-Z][0-9A-Z]*-[0-9]{2}[a-z]?$"},
+        "scene": {"type": "string", "pattern": "^res://.+\\.tscn$"},
+        "kind": {"enum": ["graybox_read", "beauty", "ui"]},
+        "resolution": {
+          "type": "array",
+          "items": {"type": "integer", "minimum": 320},
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "scenario": {"type": "string"},
+        "seed": {"type": "integer"},
+        "season": {"type": "number", "minimum": 0, "maximum": 1},
+        "hour": {"type": "number", "minimum": 0, "maximum": 24},
+        "weather": {"enum": ["clear", "overcast", "rain", "snow", "storm", "fog"]},
+        "camera": {"$ref": "#/$defs/camera"},
+        "perf": {"type": "boolean"},
+        "tank_shadows": {"type": "boolean"},
+        "night_light": {"type": "number", "minimum": 0, "maximum": 1},
+        "lid_variant": {"type": "number", "minimum": 0, "maximum": 1},
+        "nav_lights": {"type": "number", "minimum": 0, "maximum": 1},
+        "build_stage": {"type": "number", "minimum": 0, "maximum": 6},
+        "fleet": {"type": "boolean"},
+        "tug": {"type": "boolean"},
+        "lineup": {"type": "boolean"},
+        "measure": {"type": "boolean"},
+        "plot_overrides": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {"type": "number"},
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "variant_of": {"type": "string"},
+        "purpose": {"type": "string", "minLength": 10}
+      }
+    },
+    "camera": {
+      "type": "object",
+      "required": ["mode"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {"enum": ["home", "focus"]},
+        "target": {"type": "string"},
+        "distance_m": {"type": "number", "exclusiveMinimum": 0},
+        "pitch_deg": {"type": "number", "minimum": -90, "maximum": 0},
+        "yaw_deg": {"type": "number"},
+        "focus_y": {"type": "number"},
+        "offset": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}
+      }
+    }
+  }
+}

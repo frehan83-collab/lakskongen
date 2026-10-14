@@ -8,6 +8,11 @@ Hull, Deck, Superstructure, Windows, Machinery, Rubber, Crane, Safety.
 `d` is the detail level: 2 = LOD0 (everything), 1 = LOD1 (no railings,
 mullions or small gear), 0 = LOD2 (silhouette blocks).
 
+The offshore fleet (farm-types spec §5.2, item F2-27) adds the DP
+offshore service vessel with its walk-to-work gangway (part Gangway), the
+crew transfer catamaran, and the subsea ROV and AUV; the anchor tug is the
+service vessel's mesh with a red hull swatch (no geometry of its own).
+
 Licence: part of the Lakskongen repository (proprietary); no third-party code.
 """
 
@@ -16,7 +21,9 @@ from __future__ import annotations
 import math
 
 import lk_hull as hull
+import lk_meshkit as kit
 from lk_hull import HullSpec, Parts
+from lk_meshkit import TAU, v_add, v_cross, v_mul, v_norm, v_sub
 
 LEVELS = {
     2: [0.0, 0.03, 0.08, 0.15, 0.24, 0.34, 0.45, 0.56, 0.66, 0.75, 0.83, 0.9, 0.95, 1.0],
@@ -550,6 +557,366 @@ def rib(parts: Parts, d: int, L=8.5, B=3.0):
     return spec
 
 
+# --------------------------------------------------------------------------
+# Offshore fleet (farm-types spec §5.2, item F2-27)
+# --------------------------------------------------------------------------
+
+def _gangway(parts, base, d, length=26.0, heading=180.0, deck_z=0.0):
+    """Motion-compensated walk-to-work gangway: a pedestal tower, a slewing
+    head and a telescopic box-truss gangway stowed along the deck. Part
+    `Gangway` at LOD0 (the node F2-22 slews); folded into the
+    superstructure further out."""
+    g = parts["Gangway"]
+    bx, by, bz = base
+    if parts.aliases.get("Gangway", "Gangway") == "Gangway" and hasattr(parts, "pivots"):
+        parts.pivots["Gangway"] = base   # the node slews about the tower axis
+    tower_top = bz + 7.5
+    hull.cyl(g, (bx, by, bz), (bx, by, tower_top), 1.25, 16 if d >= 2 else 8)
+    hull.cyl(g, (bx, by, tower_top), (bx, by, tower_top + 0.5), 1.7, 16 if d >= 2 else 8)
+    hd = math.radians(heading)
+    fwd = (math.sin(hd), math.cos(hd), 0.0)
+    side = (math.cos(hd), -math.sin(hd), 0.0)
+    head_c = (bx, by, tower_top + 1.6)
+    mb, mat = g
+    kit.box(mb, head_c, side, fwd, (0, 0, 1), 1.4, 1.6, 1.1, mat)
+    # The gangway: two side trusses (top and bottom chords, posts) and a deck.
+    z0 = tower_top + 1.2
+    start = v_add(head_c, v_mul(fwd, 1.2))
+    end = v_add(start, v_mul(fwd, length))
+    hw, h = 0.75, 1.3
+    for s in (-1, 1):
+        o = v_mul(side, s * hw)
+        a, b = v_add((start[0], start[1], z0), o), v_add((end[0], end[1], z0), o)
+        hull.tube(g, [a, b], 0.09, 6 if d >= 2 else 4)
+        hull.tube(g, [v_add(a, (0, 0, h)), v_add(b, (0, 0, h))], 0.08, 6 if d >= 2 else 4)
+        if d >= 2:
+            n = int(length / 1.6)
+            for k in range(n + 1):
+                p = hull._lerp(a, b, k / n)
+                hull.cyl(g, p, v_add(p, (0, 0, h)), 0.05, 4, caps=False)
+                if k < n:
+                    q = hull._lerp(a, b, (k + 1) / n)
+                    hull.cyl(g, p, v_add(q, (0, 0, h)), 0.04, 4, caps=False)
+    deck_c = v_add(hull._lerp((start[0], start[1], z0), (end[0], end[1], z0), 0.5), (0, 0, -0.05))
+    kit.box(mb, deck_c, side, fwd, (0, 0, 1), hw, length / 2, 0.08, mat)
+    # Telescope joint and the landing foot at the tip.
+    kit.box(mb, v_add(deck_c, v_mul(fwd, length * 0.12)), side, fwd, (0, 0, 1), hw + 0.1, 0.25, h * 0.6, mat)
+    kit.box(mb, (end[0], end[1], z0 - 0.25), side, fwd, (0, 0, 1), hw + 0.15, 0.6, 0.18, mat)
+    # Rest cradle on the deck under the tip.
+    if deck_z:
+        cr = hull._lerp(start, end, 0.86)
+        hull.cyl(parts["Machinery"], (cr[0], cr[1], deck_z), (cr[0], cr[1], z0 - 0.15), 0.18, 8 if d >= 2 else 4)
+
+
+def _a_frame(parts, y, z, width, height, d):
+    """Stern A-frame (yellow) leaning aft."""
+    c = parts["Crane"]
+    for s in (-1, 1):
+        a = (s * width / 2, y + 1.2, z)
+        b = (s * width / 2 * 0.92, y - 1.6, z + height)
+        hull.tube(c, [a, b], 0.38, 10 if d >= 2 else 5)
+    hull.tube(c, [(-width / 2 * 0.92, y - 1.6, z + height), (width / 2 * 0.92, y - 1.6, z + height)], 0.42,
+              10 if d >= 2 else 5)
+    if d >= 2:
+        for s in (-1, 1):
+            hull.cyl(parts["Rubber"], (s * width / 2, y + 2.6, z), (s * width / 2 * 0.95, y + 0.4, z + height * 0.55),
+                     0.16, 8)
+        hull.block(parts["Machinery"], (0.0, y - 1.6, z + height - 0.6), 0.5, 0.3, 0.6)
+
+
+def offshore_service(parts: Parts, d: int, L=75.0, B=17.0, T=6.0):
+    """DP offshore service vessel (spec §5.2, ref O3's orange vessel): a
+    forward superstructure with the bridge and wings, a motion-compensated
+    walk-to-work gangway amidships to starboard, the long aft cargo deck
+    with cargo rails, an offshore knuckle crane and a stern A-frame."""
+    main, fc_u, fc_h = 2.5, 0.6, 2.7
+
+    def deck_z(u):
+        if u <= fc_u - 0.004:
+            return main
+        if u >= fc_u + 0.004:
+            t = (u - fc_u) / (1 - fc_u)
+            return main + fc_h + 1.2 * t ** 2.2
+        return main + fc_h * (u - fc_u + 0.004) / 0.008
+
+    spec = HullSpec(length=L, beam=B, draught=T, deck_z=deck_z, bulwark=1.3, bulwark_t=0.25,
+                    bow_rake=0.11 * L, stern_rake=0.02 * L, rake_power=(1.6, 2.0), pmb=(0.12, 0.58),
+                    bow_fullness=(1.9, 3.8), stern_frac=(0.78, 0.97), stern_power=2.6, bilge_r=0.11 * B,
+                    camber=0.15)
+    hull.loft_hull(spec, hull.stations(STATIONS[d], dense=(fc_u,)), LEVELS[d], parts["Hull"], parts["Deck"],
+                   parts["Superstructure"])
+    _fender_strake(parts, spec, main + 0.2, 0.05, fc_u - 0.01, d, r=0.24)
+    sup = parts["Superstructure"]
+    fz = main + fc_h
+    y_fc = hull.hull_y(spec, fc_u + 0.006, fz)
+    x1 = B / 2 - 0.9
+    y_back = y_fc + 0.8
+    y_front = y_where(spec, fz, x1 + 0.4) - 0.4
+    # Accommodation: two tiers stepping in, then the bridge with a raked front.
+    z = fz
+    for t in range(2):
+        xt = x1 - 0.6 * t
+        ty0, ty1 = y_back + 0.5 * t, y_front - 1.2 * t
+        _house_with_bands(parts, xt, ty0, ty1, z, 2.9, (0.42, 0.75), "fblr", d, mullion=1.5)
+        _doors(parts, xt, [ty0 + 1.8], z, d)
+        _doors(parts, -xt, [ty0 + 1.8], z, d, facing=-1.0)
+        z += 2.9
+        hull.slab(sup, xt + 0.3, ty0 - 0.3, ty1 + 0.3, z, 0.18)
+        z += 0.18
+    wx = x1 - 1.4
+    wy0, wy1 = y_back + 2.2, y_front - 2.2
+    _house_with_bands(parts, wx, wy0, wy1, z, 3.1, (0.3, 0.93), "fblr", d, front_rake=0.8, mullion=1.0)
+    # Bridge wings out to the side, and an aft-facing bridge window band (DP
+    # vessels steer from the aft bridge too).
+    hull.slab(sup, B / 2 - 0.2, wy1 - 4.6, wy1 - 0.4, z - 0.22, 0.22)
+    _rail_rect(parts, B / 2 - 0.3, wy1 - 4.5, wy1 - 0.5, z, 1.0, d)
+    roof = z + 3.1
+    _visor(parts, wx + 0.4, wy0 - 0.3, wy1 + 1.2, roof, d)
+    roof += 0.16 if d else 0.1
+    if d >= 1:
+        hull.mast(sup, parts["Machinery"], parts["Rubber"], (0.0, wy0 + 2.4, roof), 6.0, radar=4.0,
+                  detail=d >= 2)
+        hull.cyl(sup, (2.2, wy0 + 1.0, roof), (2.2, wy0 + 1.0, roof + 1.1), 0.45, 12 if d >= 2 else 6)
+        hull.cyl(sup, (-2.2, wy0 + 1.0, roof), (-2.2, wy0 + 1.0, roof + 0.9), 0.38, 12 if d >= 2 else 6)
+        _rail_rect(parts, wx, wy0, wy1 + 0.5, roof, 0.9, d)
+    # Twin exhaust casings behind the bridge, black tops.
+    ez = fz + 2 * 3.08
+    for s in (-1, 1):
+        hull.block(sup, (s * 2.6, y_back + 1.2, ez + 2.4), 0.9, 1.0, 2.4)
+        hull.block(parts["Rubber"], (s * 2.6, y_back + 1.2, ez + 4.9), 0.92, 1.02, 0.12)
+    # Foredeck: windlass, bollards, foremast.
+    if d >= 2:
+        fy = y_front + 3.4
+        bz = deck_z(0.94)
+        hull.winch(parts["Machinery"], parts["Rubber"], (0.0, fy, bz + 0.75), width=3.2)
+        for x in (-3.6, 3.6):
+            hull.bollard_pair(parts["Machinery"], (x, fy - 1.0, bz))
+        hull.cyl(sup, (0.0, fy + 3.0, bz), (0.0, fy + 3.0, bz + 4.0), 0.12, 8)
+        for s in (1.0, -1.0):
+            for y in (y_back + 1.5, y_back + 3.4):
+                hull.liferaft(sup, parts["Machinery"], (s * (x1 - 0.2), y, fz + 3.08 + 0.4), axis_x=False)
+        rb = (-(x1 - 1.6), y_back + 6.0, fz + 3.08 + 0.75)
+        hull.block(parts["Safety"], rb, 0.95, 2.6, 0.42, skip_bottom=False)
+        hull.block(parts["Superstructure"], (rb[0], rb[1] + 0.6, rb[2] + 0.55), 0.55, 0.7, 0.2)
+    # Aft cargo deck: cargo rails along both sides, tugger winches, the
+    # offshore crane to port, the A-frame at the stern.
+    aft_y = -L / 2
+    deck_y0, deck_y1 = aft_y + 3.5, y_fc - 1.0
+    if d >= 1:
+        for s in (1.0, -1.0):
+            x = s * (B / 2 - 1.1)
+            n = int((deck_y1 - deck_y0) / 3.0) if d >= 2 else 2
+            for k in range(n + 1):
+                y = deck_y0 + (deck_y1 - deck_y0) * k / n
+                hull.block(parts["Machinery"], (x, y, main + 0.75), 0.12, 0.12, 0.75)
+            hull.block(parts["Machinery"], (x, (deck_y0 + deck_y1) / 2, main + 1.5), 0.15, (deck_y1 - deck_y0) / 2, 0.1)
+        hull.knuckle_crane(parts["Crane"], parts["Machinery"], parts["Rubber"], (-(B / 2 - 2.6), y_fc - 6.0, main),
+                           200.0, reach=1.9, sides=10 if d >= 2 else 6, detail=d >= 2)
+        _a_frame(parts, aft_y + 2.0, main, B * 0.62, 8.5, d)
+    else:
+        hull.block(parts["Crane"], (-(B / 2 - 2.6), y_fc - 6.0, main + 3.2), 0.9, 0.9, 3.2)
+        hull.block(parts["Crane"], (0.0, aft_y + 1.0, main + 4.0), B * 0.3, 0.4, 4.0)
+    if d >= 2:
+        for x in (-3.0, 3.0):
+            hull.winch(parts["Machinery"], parts["Rubber"], (x, y_fc - 3.0, main + 0.75), width=2.0)
+        for x in (-6.0, 6.0):
+            hull.bollard_pair(parts["Machinery"], (x, aft_y + 3.0, main))
+        hull.cyl(parts["Rubber"], (-2.8, aft_y + 0.6, main + 0.3), (2.8, aft_y + 0.6, main + 0.3), 0.55, 14)
+    # The walk-to-work gangway: tower to starboard just aft of the house,
+    # gangway stowed aft along the cargo deck on a rest.
+    _gangway(parts, (B / 2 - 2.8, y_fc - 2.6, main), d, length=26.0, heading=180.0, deck_z=main)
+    return spec
+
+
+def crew_boat(parts: Parts, d: int, L=20.0, B=7.0):
+    """Crew transfer catamaran: white demihulls with orange fender strakes,
+    a big bow fender for pushing onto a boat landing, a dark passenger cabin
+    forward with the wheelhouse on top, an aft deck with a small crane and
+    twin waterjets."""
+    demi_b = 2.1
+    cx = B / 2 - demi_b / 2
+    deck = 1.75
+    spec = HullSpec(length=L, beam=demi_b, draught=1.15, deck_z=lambda u: deck + 0.3 * max(u - 0.65, 0.0) / 0.35,
+                    bulwark=0.0, bow_rake=3.2, stern_rake=0.12, rake_power=(1.6, 1.0), pmb=(0.1, 0.45),
+                    bow_fullness=(1.5, 2.6), stern_frac=(0.7, 0.95), stern_power=2.0, vee=0.85)
+    st = hull.stations({2: STATIONS[2] // 2 + 6, 1: 9, 0: 6}[d])
+    for side in (1.0, -1.0):
+        hull.loft_hull(spec, st, LEVELS[d], parts["Hull"], parts["Deck"], x_offset=side * cx)
+    y_aft, y_fwd = -L / 2 + 0.1, L / 2 - 2.6
+    wet = 1.15
+    hb, hm = parts["Hull"]
+    hull.kit.box(hb, (0.0, (y_aft + y_fwd) / 2, (wet + deck) / 2), (1, 0, 0), (0, 1, 0), (0, 0, 1),
+                 B / 2, (y_fwd - y_aft) / 2, (deck - wet) / 2, hm)
+    hull.slab(parts["Deck"], B / 2 - 0.1, y_aft + 0.1, y_fwd - 0.1, deck, 0.03)
+    # Orange trim: a rubbing strake along each outer side; the bow fender
+    # across both bows (the transfer push-on fender). Not at LOD2, where
+    # they would fold into the hull's outline.
+    stem = hull.hull_y(spec, 1.0, deck)
+    if d >= 1:
+        for side in (1.0, -1.0):
+            hull.tube(parts["Safety"], [(side * (B / 2 + 0.06), y_aft + 0.4, deck - 0.15),
+                                        (side * (B / 2 + 0.06), y_fwd - 0.2, deck - 0.15)], 0.13,
+                      8 if d >= 2 else 4)
+            hull.block(parts["Rubber"], (side * cx, stem - 0.25, 1.5), 0.55, 0.42, 0.75, skip_bottom=False)
+        hull.tube(parts["Rubber"], [(-cx - 0.5, stem - 0.1, 2.05), (cx + 0.5, stem - 0.1, 2.05)], 0.28,
+                  10 if d >= 2 else 6)
+    # Passenger cabin with big windows, the wheelhouse on top.
+    cy0, cy1, cz = -1.6, 6.2, deck
+    _house_with_bands(parts, B / 2 - 0.55, cy0, cy1, cz, 2.3, (0.35, 0.86), "fblr", d, front_rake=0.45,
+                      mullion=1.2)
+    croof = cz + 2.3
+    hull.slab(parts["Superstructure"], B / 2 - 0.4, cy0 - 0.2, cy1 + 0.6, croof, 0.12)
+    _house_with_bands(parts, 1.7, 1.2, 4.6, croof + 0.12, 1.9, (0.3, 0.92), "fblr", d, front_rake=0.4,
+                      mullion=0.9)
+    wroof = croof + 0.12 + 1.9
+    if d >= 1:
+        _visor(parts, 1.85, 1.0, 5.2, wroof, d)
+    if d >= 1:
+        hull.mast(parts["Superstructure"], parts["Machinery"], parts["Rubber"], (0.0, 2.2, wroof + 0.16), 2.6,
+                  radar=1.4, detail=d >= 2)
+    # Aft deck: a small knuckle crane, rails, twin waterjets on the transoms.
+    if d >= 1:
+        hull.knuckle_crane(parts["Crane"], parts["Machinery"], parts["Rubber"], (-2.2, -6.4, deck), 30.0,
+                           reach=0.5, sides=8 if d >= 2 else 5, detail=d >= 2)
+    else:
+        hull.block(parts["Crane"], (-2.2, -6.4, deck + 1.0), 0.3, 0.3, 1.0)
+    if d >= 2:
+        hull.railing(parts["Machinery"], [(B / 2 - 0.15, cy0 - 0.4, deck), (B / 2 - 0.15, y_aft + 0.3, deck),
+                                          (-(B / 2 - 0.15), y_aft + 0.3, deck), (-(B / 2 - 0.15), cy0 - 0.4, deck)],
+                     1.0)
+        for x in (-2.6, 2.6):
+            hull.bollard_pair(parts["Machinery"], (x, -8.6, deck), r=0.1, h=0.35, gap=0.4)
+        hull.liferaft(parts["Superstructure"], parts["Machinery"], (1.2, 3.0, croof + 0.5))
+    for side in (1.0, -1.0):
+        ty = -L / 2 + 0.05
+        hull.cyl(parts["Machinery"], (side * cx, ty + 0.4, 0.15), (side * cx, ty - 0.35, 0.15), 0.32,
+                 10 if d >= 1 else 4)
+    return spec
+
+
+def _loft_y(part, prof, n, smooth=True, cap_tail=False):
+    """Revolve a (radius, y) profile (nose first) about the Y axis into a
+    part; cap_tail closes the last ring with a point."""
+    mb, mat = part
+    rows = [[mb.vert((rr * math.cos(TAU * i / n), y, rr * math.sin(TAU * i / n))) for i in range(n)]
+            for rr, y in prof]
+    for k in range(len(rows) - 1):
+        for i in range(n):
+            j = (i + 1) % n
+            mb.face((rows[k][i], rows[k][j], rows[k + 1][j], rows[k + 1][i]), mat, smooth)
+    if cap_tail:
+        c = mb.vert((0.0, prof[-1][1] - 0.01, 0.0))
+        for i in range(n):
+            mb.face((rows[-1][i], rows[-1][(i + 1) % n], c), mat, smooth)
+
+
+def rov(parts: Parts, d: int, L=2.6, W=1.6, H=1.5):
+    """Work-class ROV (spec §5.2, ref O1): a yellow syntactic-foam buoyancy
+    block (two blocks, a seam between) over a dark open frame on skids, four
+    vectored horizontal thrusters in nozzles under the foam, two vertical
+    ones through it, a camera and light bar and a bumper forward, a folded
+    manipulator, grab rails, a lifting point and a sonar head on top.
+    Origin at the centre; forward along +Y."""
+    foam_z0, foam_z1 = 0.05, H / 2 - 0.1
+    hb, hm = parts["Hull"]
+    # Foam block with chamfered top edges.
+    c = 0.14
+    pts_bot = [(-W / 2, -L / 2, foam_z0), (W / 2, -L / 2, foam_z0), (W / 2, L / 2, foam_z0), (-W / 2, L / 2, foam_z0)]
+    pts_mid = [(p[0], p[1], foam_z1 - c) for p in pts_bot]
+    pts_top = [(-W / 2 + c, -L / 2 + c, foam_z1), (W / 2 - c, -L / 2 + c, foam_z1), (W / 2 - c, L / 2 - c, foam_z1),
+               (-W / 2 + c, L / 2 - c, foam_z1)]
+    vb = [hb.vert(p) for p in pts_bot]
+    vm = [hb.vert(p) for p in pts_mid]
+    vt = [hb.vert(p) for p in pts_top]
+    for i in range(4):
+        j = (i + 1) % 4
+        hb.face((vb[i], vb[j], vm[j], vm[i]), hm, False)
+        hb.face((vm[i], vm[j], vt[j], vt[i]), hm, False)
+    hb.face((vt[0], vt[1], vt[2], vt[3]), hm, False)
+    hb.face((vb[3], vb[2], vb[1], vb[0]), hm, False)
+    dk = parts["Rubber"]
+    sides = 10 if d >= 2 else 5
+    # Dark frame: corner posts, skids, the lower deck.
+    for x in (-W / 2 + 0.06, W / 2 - 0.06):
+        if d >= 2:
+            for y in (-L / 2 + 0.06, L / 2 - 0.06):
+                hull.block(dk, (x, y, (-H / 2 + foam_z0) / 2), 0.05, 0.05, (foam_z0 + H / 2) / 2, skip_bottom=False)
+        hull.block(dk, (x, 0.0, -H / 2 + 0.05), 0.06, L / 2, 0.05, skip_bottom=False)
+    hull.block(dk, (0.0, 0.0, (-H / 2 + 0.1 + foam_z0) / 2 if d < 2 else -0.18), W / 2 - 0.08, L / 2 - 0.25,
+               (foam_z0 + H / 2 - 0.1) / 2 if d < 2 else 0.04, skip_bottom=False)
+    # Thrusters: four vectored at the corners (nozzles round the props), two
+    # vertical through the foam.
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            p = (sx * (W / 2 - 0.3), sy * (L / 2 - 0.42), -0.32)
+            a = v_norm((sx * 0.7, sy * 0.7, 0.0))
+            if d >= 2:
+                hull.torus(dk, p, a, 0.17, 0.04, 12, 4)
+                hull.cyl(parts["Machinery"], v_sub(p, v_mul(a, 0.22)), p, 0.07, 8)
+            else:
+                hull.cyl(dk, v_sub(p, v_mul(a, 0.15)), v_add(p, v_mul(a, 0.15)), 0.17, sides)
+    for sy in (-0.45, 0.45):
+        hull.cyl(dk, (0.0, sy, foam_z1 - 0.05), (0.0, sy, foam_z1 + 0.04), 0.2, sides)
+    if d < 2:
+        return None
+    # Foam seam, grab rails, lifting point, sonar head on top.
+    hull.block(dk, (0.0, 0.0, (foam_z0 + foam_z1) / 2 + 0.01), W / 2 + 0.012, 0.02, (foam_z1 - foam_z0) / 2 - 0.02,
+               skip_bottom=True)
+    st = parts["Machinery"]
+    for x in (-0.55, 0.55):
+        hull.tube(st, [(x, -0.9, foam_z1), (x, -0.9, foam_z1 + 0.07), (x, -0.2, foam_z1 + 0.07),
+                       (x, -0.2, foam_z1)], 0.025, 5, caps=False)
+    hull.cyl(st, (0.0, 0.0, foam_z1), (0.0, 0.0, foam_z1 + 0.06), 0.09, 8)
+    hull.cyl(dk, (0.45, L / 2 - 0.3, foam_z1), (0.45, L / 2 - 0.3, foam_z1 + 0.08), 0.09, 8)
+    # Forward: bumper bar, a camera and light bar under the foam, the
+    # manipulator folded on the right.
+    hull.block(dk, (0.0, L / 2 + 0.04, -0.55), W / 2 - 0.05, 0.04, 0.05, skip_bottom=False)
+    hull.block(st, (0.0, L / 2 - 0.08, -0.05), 0.55, 0.06, 0.05, skip_bottom=False)
+    gl = parts["Windows"]
+    hull.cyl(gl, (0.0, L / 2 - 0.12, -0.12), (0.0, L / 2 + 0.04, -0.12), 0.1, 10)
+    for x in (-0.45, -0.25, 0.25, 0.45):
+        hull.cyl(st, (x, L / 2 - 0.05, -0.05), (x, L / 2 + 0.03, -0.05), 0.05, 6)
+        hull.cyl(gl, (x, L / 2 + 0.03, -0.05), (x, L / 2 + 0.045, -0.05), 0.04, 6)
+    hull.tube(st, [(0.5, L / 2 - 0.5, -0.4), (0.5, L / 2 - 0.05, -0.4), (0.38, L / 2 + 0.12, -0.52),
+                   (0.3, L / 2 + 0.1, -0.62)], 0.045, 6)
+    hull.block(dk, (0.3, L / 2 + 0.08, -0.66), 0.05, 0.06, 0.05, skip_bottom=False)
+    hull.tube(dk, [(0.0, -0.2, foam_z1), (0.0, -0.2, foam_z1 + 0.08)], 0.07, 6)
+    return None
+
+
+def auv(parts: Parts, d: int, L=4.0, D=0.5):
+    """Autonomous underwater vehicle (spec §5.2, ref O1): an orange torpedo
+    body with a dark nose cap and a dark sensor band, a tapered tail, four
+    dark control fins in an X and a ducted propeller, a short antenna mast.
+    Origin at the centre; forward along +Y."""
+    r = D / 2
+    n = 12 if d >= 2 else 8
+    dk = parts["Rubber"]
+    if d >= 2:
+        nose = [(0.0, L / 2), (r * 0.55, L / 2 - 0.08)]
+        body = [(r * 0.55, L / 2 - 0.08), (r * 0.85, L / 2 - 0.22), (r, L / 2 - 0.5), (r, 0.55), (r * 1.02, 0.55),
+                (r * 1.02, 0.4), (r, 0.4),
+                (r, -L / 2 + 0.9), (r * 0.7, -L / 2 + 0.35), (r * 0.42, -L / 2 + 0.05)]
+        _loft_y(dk, nose, n)
+        _loft_y(parts["Hull"], body[:4], n)
+        _loft_y(dk, body[3:7], n)
+        _loft_y(parts["Hull"], body[6:], n, cap_tail=True)
+    else:
+        _loft_y(parts["Hull"], [(0.0, L / 2), (r * 0.8, L / 2 - 0.2), (r, L / 2 - 0.5), (r, -L / 2 + 0.9),
+                                (r * 0.42, -L / 2 + 0.05)], n, cap_tail=True)
+    fy = -L / 2 + 0.55
+    for a in range(4):
+        th = TAU * a / 4 + TAU / 8
+        e = (math.cos(th), 0.0, math.sin(th))
+        root = v_mul(e, r * 0.75)
+        tip = v_mul(e, r + 0.2)
+        kit.box(dk[0], v_add((0.0, fy, 0.0), v_mul(v_add(root, tip), 0.5)), e, (0, 1, 0), v_norm(v_cross(e, (0, 1, 0))),
+                (r + 0.2 - r * 0.75) / 2, 0.16, 0.012, dk[1])
+    if d >= 2:
+        hull.torus(dk, (0.0, -L / 2 - 0.02, 0.0), (0, 1, 0), r * 0.62, 0.035, 14, 4)
+        hull.cyl(dk, (0.0, 0.6, r - 0.02), (0.0, 0.6, r + 0.22), 0.025, 6)
+    return None
+
 DESIGNS = {
     "workboat": workboat,
     "feed_barge": feed_barge,
@@ -557,4 +924,8 @@ DESIGNS = {
     "wellboat": wellboat,
     "wellboat_large": wellboat_large,
     "rib": rib,
+    "offshore_service": offshore_service,
+    "crew_boat": crew_boat,
+    "rov": rov,
+    "auv": auv,
 }

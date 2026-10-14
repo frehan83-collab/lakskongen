@@ -1,0 +1,58 @@
+{
+  "asset": "process_hall_bay",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    30.6,
+    11.32,
+    21.04
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "height_m": 9.98,
+    "length_m": 30.0,
+    "width_m": 20.0
+  },
+  "file": "process_hall_bay_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Doors": "door",
+    "Plinth": "concrete",
+    "Roof": "hall_roof",
+    "Roofgear": "steel",
+    "Trim": "steel",
+    "Walls": "hall_clad",
+    "Windows": "window"
+  },
+  "parts": {
+    "Doors": 30,
+    "Plinth": 90,
+    "Roof": 88,
+    "Roofgear": 40,
+    "Trim": 52,
+    "Walls": 336,
+    "Windows": 44
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Roof": {
+      "hex": "#4A5056",
+      "spec": "#4A5056",
+      "strip": "hall_roof"
+    },
+    "Walls": {
+      "hex": "#D6DADC",
+      "spec": "#D5D9DB",
+      "strip": "hall_clad"
+    },
+    "Windows": {
+      "hex": "#F3D9A1",
+      "spec": "#F2D8A0",
+      "strip": "window"
+    }
+  },
+  "tri_count": 680
+}

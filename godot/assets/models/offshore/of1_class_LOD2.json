@@ -1,0 +1,119 @@
+{
+  "asset": "of1_class",
+  "atlas": "godot/assets/models/facility_kit/textures/offshore_atlas.png",
+  "bbox_size": [
+    122.4458,
+    30.7176,
+    122.3546
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "air_draught_m": 27.457,
+    "circumradius_m": 55.0,
+    "column_large_d_m": 3.56,
+    "column_slim_d_m": 2.8,
+    "columns": 12,
+    "crane_reach_m": 18.473,
+    "deck_z_m": 15.4,
+    "deckhouse_m": [
+      14.0,
+      14.0,
+      9.8
+    ],
+    "draft_m": 3.26,
+    "height_m": 28.66,
+    "net_bottom_m": -3.0,
+    "net_top_m": 14.6,
+    "sides": 12,
+    "silo_height_m": 10.0,
+    "topsides_top_m": 25.4
+  },
+  "file": "of1_class_LOD2.glb",
+  "groups": {
+    "Bracing": 288,
+    "Columns": 468,
+    "Net": 24,
+    "Pontoons": 0,
+    "Rings": 164,
+    "Topsides": 254
+  },
+  "lod": "LOD2",
+  "markers": {
+    "Beacon": [
+      0.0,
+      28.2,
+      1.5
+    ]
+  },
+  "material_count": 2,
+  "materials": [
+    "LK_OffshoreKit",
+    "LK_OffshoreNet"
+  ],
+  "net_colour": "#A8ADB0",
+  "node_order": [
+    "Hull",
+    "Net"
+  ],
+  "nodes": {
+    "Hull": 1174,
+    "Net": 24
+  },
+  "parts": {
+    "BlowerHouse": 10,
+    "Chute": 12,
+    "ColumnCentre": 36,
+    "ColumnLarge": 216,
+    "ColumnSlim": 216,
+    "Cranes": 112,
+    "Deckhouse": 10,
+    "Diagonals": 288,
+    "Gantry": 12,
+    "GantryWalk": 4,
+    "NetSides": 24,
+    "Platform": 10,
+    "PowerDeck": 10,
+    "PowerHouse": 10,
+    "RingWalkway": 24,
+    "SiloDeck": 10,
+    "Silos": 40,
+    "Spoke": 8,
+    "SpokeWalk": 2,
+    "TopRing": 144
+  },
+  "pivots": {},
+  "surfaces": 2,
+  "swatches": {
+    "Deckhouse": {
+      "hex": "#EAEDEB",
+      "spec": "#E9ECEA",
+      "strip": "white"
+    },
+    "Hull": {
+      "hex": "#E6BE2E",
+      "spec": "#E6BE2E",
+      "strip": "hull_yellow"
+    },
+    "NavLights": {
+      "hex": "#FFC33A",
+      "spec": "#FFC23A",
+      "strip": "nav_light"
+    },
+    "PowerHouse": {
+      "hex": "#80838E",
+      "spec": "#80838D",
+      "strip": "grey"
+    },
+    "Silos": {
+      "hex": "#777888",
+      "spec": "#777887",
+      "strip": "silo"
+    },
+    "SplashZone": {
+      "hex": "#B9912A",
+      "spec": "#B8902A",
+      "strip": "hull_splash"
+    }
+  },
+  "tri_count": 1198
+}

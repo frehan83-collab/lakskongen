@@ -9,6 +9,9 @@
 # Usage:
 #   tools/capture_screenshots.sh
 #   GODOT_BIN=/path/to/Godot tools/capture_screenshots.sh
+#   tools/capture_screenshots.sh --scene res://qa/scenes/FarmTypeGrayBox.tscn [-- <scene args>]
+#     runs a QA capture scene that reads its shots from godot/qa/shots.json
+#     (F2-18 gray box) instead of the harness; arguments after -- go to it.
 #
 set -euo pipefail
 
@@ -16,6 +19,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 GODOT_DIR="$ROOT_DIR/godot"
 HARNESS_SCENE="res://scenes/tools/ScreenshotHarness.tscn"
+SCENE_ARGS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --scene) HARNESS_SCENE="$2"; shift 2 ;;
+    --) shift; SCENE_ARGS=("$@"); break ;;
+    *) echo "ERROR: unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
 OUT_DIR="$GODOT_DIR/screenshots/game"
 USER_OUT_DIR="$HOME/Library/Application Support/Godot/app_userdata/Lakskongen/screenshots"
 
@@ -80,7 +91,7 @@ LOG_FILE="$OUT_DIR/harness.log"
 # capture breaks the live editor's MCP bridge until it is restarted.
 MCP_TOKEN_SANDBOX="$(mktemp -d -t lakskongen-mcp-token.XXXXXX)/mcp_token"
 set +e
-GODOT_MCP_TOKEN_PATH="$MCP_TOKEN_SANDBOX" "$GODOT_BIN" --path "$GODOT_DIR" "$HARNESS_SCENE" 2>&1 | tee "$LOG_FILE"
+GODOT_MCP_TOKEN_PATH="$MCP_TOKEN_SANDBOX" "$GODOT_BIN" --path "$GODOT_DIR" "$HARNESS_SCENE" ${SCENE_ARGS[@]+-- "${SCENE_ARGS[@]}"} 2>&1 | tee "$LOG_FILE"
 status=${PIPESTATUS[0]}
 set -e
 

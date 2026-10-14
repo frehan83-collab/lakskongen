@@ -1,0 +1,35 @@
+{
+  "asset": "offshore_service",
+  "bbox_size": [
+    17.0,
+    22.38,
+    75.0
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "air_draught_m": 16.38,
+    "beam_m": 17.0,
+    "bow_y_m": 37.5,
+    "draught_m": 6.0,
+    "length_m": 75.0,
+    "stern_y_m": -37.5
+  },
+  "file": "offshore_service_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 5,
+  "materials": [
+    "LK_VCrane",
+    "LK_VDeck",
+    "LK_VGlass",
+    "LK_VHullOrange",
+    "LK_VWhite"
+  ],
+  "parts": {
+    "Crane": 20,
+    "Deck": 40,
+    "Hull": 166,
+    "Superstructure": 370,
+    "Windows": 24
+  },
+  "tri_count": 620
+}

@@ -1,0 +1,17 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://shaders/pen_net_shader.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" path="res://assets/models/pen_cage/textures/net_mesh.png" id="2_net"]
+
+[resource]
+resource_name = "LK_OffshoreNet"
+render_priority = -1
+shader = ExtResource("1_shader")
+shader_parameter/albedo_color = Color(0.658824, 0.678431, 0.690196, 1)
+shader_parameter/net_texture = ExtResource("2_net")
+shader_parameter/tile_m = 0.08
+shader_parameter/thread_alpha = 1.0
+shader_parameter/far_boost = 2.0
+shader_parameter/fouling_color = Color(0.36, 0.36, 0.3, 1)
+shader_parameter/fouling_depth = 4.0
+shader_parameter/fouling_amount = 0.2

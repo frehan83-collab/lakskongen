@@ -1,0 +1,29 @@
+{
+  "asset": "rov",
+  "bbox_size": [
+    1.6,
+    1.44,
+    2.6
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "air_draught_m": 0.69,
+    "beam_m": 1.6,
+    "bow_y_m": 1.3,
+    "draught_m": 0.75,
+    "length_m": 2.6,
+    "stern_y_m": -1.3
+  },
+  "file": "rov_LOD1.glb",
+  "lod": "LOD1",
+  "material_count": 2,
+  "materials": [
+    "LK_VDark",
+    "LK_VSubseaYellow"
+  ],
+  "parts": {
+    "Hull": 20,
+    "Rubber": 132
+  },
+  "tri_count": 152
+}

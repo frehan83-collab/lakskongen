@@ -1,0 +1,39 @@
+{
+  "asset": "tank_feeder",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    3.819,
+    1.2,
+    1.75
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "diameter_m": 1.6,
+    "height_m": 1.2
+  },
+  "file": "tank_feeder_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Feeder": "feeder",
+    "Hose": "pipe",
+    "Rotor": "rotor"
+  },
+  "parts": {
+    "Feeder": 102,
+    "Hose": 24,
+    "Rotor": 48
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Feeder": {
+      "hex": "#8B9197",
+      "spec": "#8A9096",
+      "strip": "feeder"
+    }
+  },
+  "tri_count": 174
+}

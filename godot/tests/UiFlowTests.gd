@@ -106,6 +106,9 @@ func _run() -> void:
 	await _test_credits_list_every_third_party_work()
 	await _test_pause_save_list_buttons_answer()
 	await _test_scenario_picker()
+	_test_farm_type_graybox()
+	_test_land_kit_imports()
+	_test_offshore_unit_and_fleet()
 
 	_clear_test_saves()
 	_finish()
@@ -2480,6 +2483,9 @@ func _test_vessel_fleet() -> void:
 		"wellboat/wellboat": [77.0, 17.8, [45000, 12000, 2000]],
 		"wellboat/wellboat_large": [116.0, 23.0, [60000, 15000, 2500]],
 		"rib/rib": [8.5, 3.0, [6000, 1500, 400]],
+		# Farm-types spec §5.2 (F2-27): the offshore fleet's surface vessels.
+		"offshore_service/offshore_service": [75.0, 17.0, [30000, 6000, 800]],
+		"crew_boat/crew_boat": [20.0, 7.0, [8000, 1500, 300]],
 	}
 	var dims_ok := true
 	var budgets_ok := true
@@ -2768,6 +2774,242 @@ func _clear_test_saves() -> void:
 		return
 	for file in dir.get_files():
 		dir.remove(file)
+
+## F2-18: the gray-box campus stands on the spec's plots with the spec's
+## lots, nothing on a pad overlaps, and the gray box draws it the way F2-20
+## will (one MultiMesh per tank type per plot, statics merged).
+func _test_farm_type_graybox() -> void:
+	var layout := load("res://scripts/qa/LandCampusLayout.gd")
+	var builder := load("res://scripts/qa/GrayBoxBuilder.gd")
+	var runner := load("res://scripts/qa/FarmTypeGrayBox.gd")
+	_check(layout.tank_count("pad_a") == 64 and layout.tank_count("pad_a", "tank_growout") == 48,
+		"farm types: pad_a holds 4 full lots and 4 post-smolt modules (%d tanks, 64 expected)" % layout.tank_count("pad_a"))
+	_check(layout.tank_count("pad_b") == 28 and layout.tank_count("pad_delta") == 8,
+		"farm types: pad_b holds 2 lots (%d tanks) and the delta 4 modules (%d tanks)" % [layout.tank_count("pad_b"), layout.tank_count("pad_delta")])
+	# One full lot: two rows of 6 grow-out tanks 4 m apart (188 m) and a
+	# pre-grow tank at each row end, about 208 x 90 m.
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	var row_x: Array[float] = []
+	for p in layout.plot_placements("pad_a"):
+		if int(p["lot"]) != 0 or not str(p["asset"]).begins_with("tank_"):
+			continue
+		var pos: Vector3 = p["pos"]
+		var r: float = (p["size"] as Vector3).x * 0.5
+		lo = Vector2(minf(lo.x, pos.x - r), minf(lo.y, pos.z - r))
+		hi = Vector2(maxf(hi.x, pos.x + r), maxf(hi.y, pos.z + r))
+		if p["asset"] == "tank_growout" and is_equal_approx(pos.z, (layout.plot_placements("pad_a")[0]["pos"] as Vector3).z):
+			row_x.append(pos.x)
+	var row_len: float = (row_x.max() - row_x.min()) + 28.0 if not row_x.is_empty() else 0.0
+	_check(absf(row_len - 188.0) < 0.01 and absf(hi.x - lo.x - 208.0) < 0.5 and absf(hi.y - lo.y - 90.0) < 0.5,
+		"farm types: a lot is %.0f x %.0f m with a %.0f m row (208 x 90, 188)" % [hi.x - lo.x, hi.y - lo.y, row_len])
+	var clashes: Array[String] = []
+	var outside: Array[String] = []
+	for plot_id in ["pad_a", "pad_b", "pad_delta"]:
+		var placements: Array = layout.plot_placements(plot_id)
+		var pad: Dictionary = layout.PLOTS[plot_id]
+		var c: Vector3 = layout.plot_centre(plot_id)
+		var half: Vector2 = (pad["size"] as Vector2) * 0.5
+		for i in placements.size():
+			var a: Dictionary = placements[i]
+			var ra := _footprint(a)
+			if not (str(a["asset"]) in ["quay", "intake_basin", "pipe_bridge_span"]):
+				if ra.position.x < c.x - half.x - 0.01 or ra.end.x > c.x + half.x + 0.01 or ra.position.y < c.z - half.y - 0.01 or ra.end.y > c.z + half.y + 0.01:
+					outside.append("%s %s" % [plot_id, a["asset"]])
+			for j in range(i + 1, placements.size()):
+				var b: Dictionary = placements[j]
+				var pair := [str(a["asset"]), str(b["asset"])]
+				if pair.has("pipe_bridge_span") and (pair.has("quay") or pair.count("pipe_bridge_span") == 2):
+					continue  # the bridge starts on the quay; its spans join
+				if pair.count("process_hall_bay") == 2:
+					continue  # hall bays are built end to end
+				if ra.grow(-0.25).intersects(_footprint(b).grow(-0.25)):
+					clashes.append("%s %s/%s" % [plot_id, a["asset"], b["asset"]])
+	_check(clashes.is_empty(), "farm types: no two campus pieces overlap %s" % str(clashes.slice(0, 4)))
+	_check(outside.is_empty(), "farm types: every building stands on its pad %s" % str(outside.slice(0, 4)))
+
+	var host := Node3D.new()
+	add_child(host)
+	var box: Node3D = builder.build(host, {"pad_a": 0})
+	var names: Array[String] = []
+	for child in box.get_children():
+		names.append(str(child.name))
+	_check(names == ["pad_a", "pad_b", "pad_delta", "off_1", "off_2"], "farm types: the gray box covers every plot %s" % str(names))
+	var growout := box.get_node_or_null("pad_a/Growout") as MultiMeshInstance3D
+	var pregrow := box.get_node_or_null("pad_a/Pregrow") as MultiMeshInstance3D
+	var instanced := (growout.multimesh.instance_count if growout else 0) + (pregrow.multimesh.instance_count if pregrow else 0)
+	_check(instanced == 63 and box.get_node_or_null("pad_a/SampleWall") != null and box.get_node_or_null("pad_a/SampleLid") != null,
+		"farm types: pad_a draws 63 instanced tanks plus its sample tank (%d)" % instanced)
+	var draws := {}
+	var classes_ok := true
+	for gi in box.find_children("*", "GeometryInstance3D", true, false):
+		var plot := str(gi.get_parent().name)
+		draws[plot] = int(draws.get(plot, 0)) + 1
+		classes_ok = classes_ok and str(gi.get_meta("graybox_class", "")).begins_with(plot)
+	_check(classes_ok, "farm types: every gray-box node names its plot's mask class")
+	_check(int(draws.get("pad_b", 0)) == 4 and int(draws.get("pad_a", 0)) == 6 and int(draws.get("off_1", 0)) == 1,
+		"farm types: one pad is 4 draws (pad, 2 tank MultiMeshes, merged statics), a unit 1: %s" % str(draws))
+	var unit := box.get_node_or_null("off_1/Unit") as MeshInstance3D
+	var aabb := unit.get_aabb() if unit else AABB()
+	_check(aabb.size.x > 110.0 and aabb.size.x < 118.0 and absf(aabb.end.y - 25.0) < 1.0,
+		"farm types: the OF1 ring is %.1f m across (Ø110 + columns) and tops out at %.1f m" % [aabb.size.x, aabb.end.y])
+	host.queue_free()
+	var shots: Array = runner.load_shots()
+	_check(shots.size() >= 8 and shots.all(func(s: Dictionary) -> bool: return str(s.get("item", "")) == "F2-18"),
+		"farm types: shots.json gives the gray-box scene its %d shots" % shots.size())
+
+
+## F2-25: every land-kit LOD imports as one mesh with one surface that uses
+## the kit's single material (the shader reads the trim atlas), within the
+## spec §5.1 triangle budgets, so F2-20 can instance a campus per tank type.
+func _test_land_kit_imports() -> void:
+	const KIT := "res://assets/models/land_kit/"
+	const BUDGETS := {
+		"tank_growout": [2400, 600, 96], "tank_pregrow": [1600, 400, 64], "tank_feeder": [220, 60],
+		"process_hall_bay": [900, 160, 12], "harvest_hall": [3000, 450, 24], "pipe_bridge_span": [1800, 320, 24],
+		"quay": [2500, 400, 30], "intake_basin": [2200, 380, 40], "river_intake": [600, 120, 12],
+		"lox_tank": [640, 120, 12], "genset_container": [320, 60, 12], "substation": [1500, 220, 12],
+		"feed_silo_land": [900, 160, 12], "sludge_station": [800, 150, 12],
+	}
+	var kit_mat := load("res://assets/models/facility_kit/LK_FacilityKit.tres") as ShaderMaterial
+	_check(kit_mat != null and kit_mat.shader != null and kit_mat.shader.resource_path == "res://shaders/facility_kit.gdshader"
+		and kit_mat.get_shader_parameter("atlas") is Texture2D,
+		"land kit: LK_FacilityKit is the facility-kit shader reading the trim atlas")
+	var lods := 0
+	var bad: Array[String] = []
+	for asset in BUDGETS:
+		var budgets: Array = BUDGETS[asset]
+		for i in budgets.size():
+			var path := "%s%s_LOD%d.glb" % [KIT, asset, i]
+			var packed := load(path) as PackedScene
+			if packed == null:
+				bad.append("%s missing" % path)
+				continue
+			var root := packed.instantiate()
+			var meshes := root.find_children("*", "MeshInstance3D", true, false)
+			var mesh: Mesh = (meshes[0] as MeshInstance3D).mesh if meshes.size() == 1 else null
+			if mesh == null or mesh.get_surface_count() != 1:
+				bad.append("%s: %d meshes" % [path, meshes.size()])
+			elif mesh.surface_get_material(0) == null or mesh.surface_get_material(0).resource_path != kit_mat.resource_path:
+				bad.append("%s: not LK_FacilityKit" % path)
+			elif _mesh_triangles(mesh) > int(budgets[i]):
+				bad.append("%s: %d tris > %d" % [path, _mesh_triangles(mesh), int(budgets[i])])
+			else:
+				lods += 1
+			root.free()
+	_check(bad.is_empty() and lods == 41,
+		"land kit: %d LODs are one LK_FacilityKit surface inside the spec budgets %s" % [lods, str(bad.slice(0, 3))])
+
+
+## F2-26/F2-27 (farm-types spec §5.2): the OF1-class unit and the offshore
+## fleet import with their nodes, budgets, LOD chains and materials, and the
+## unit's yard reveal, crane slew and beacon answer.
+func _test_offshore_unit_and_fleet() -> void:
+	var unit := (load("res://assets/models/offshore/of1_class.tscn") as PackedScene).instantiate() as OffshoreUnitModel
+	_check(unit != null, "offshore: of1_class.tscn is an OffshoreUnitModel")
+	if unit == null:
+		return
+	add_child(unit)
+	var missing: Array[String] = []
+	for path in ["Hull", "Columns", "Bracing", "Topsides", "Net", "Bulkhead", "NavLights", "Cranes/CraneA",
+			"Cranes/CraneB", "Beacon", "W2WLanding", "LOD1/Hull", "LOD1/Net", "LOD2/Hull", "LOD2/Net"]:
+		if unit.get_node_or_null(path) == null:
+			missing.append(path)
+	_check(missing.is_empty(), "offshore: the unit has the spec's fixed nodes, Beacon included (missing %s)" % str(missing))
+	var budgets := [60000, 12000, 1500]
+	var tris: Array[int] = []
+	for level in 3:
+		var t := 0
+		for mesh in unit.get_lod_meshes(level):
+			t += _mesh_triangles(mesh.mesh)
+		tris.append(t)
+	_check(tris[0] <= budgets[0] and tris[1] <= budgets[1] and tris[2] <= budgets[2] and tris[0] > tris[1] and tris[1] > tris[2] and tris[2] > 0,
+		"offshore: LOD0/LOD1/LOD2 inside 60k/12k/1.5k triangles, stepping down (%s)" % str(tris))
+	var chain_ok := true
+	var shadow_ok := true
+	var mats_ok := true
+	for level in 3:
+		for mesh in unit.get_lod_meshes(level):
+			var begin: float = [0.0, 500.0, 2000.0][level]
+			var end: float = [500.0, 2000.0, 0.0][level]
+			chain_ok = chain_ok and is_equal_approx(mesh.visibility_range_begin, begin) and is_equal_approx(mesh.visibility_range_end, end)
+			var casts := mesh.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			shadow_ok = shadow_ok and casts == (level == 0 and not (String(mesh.name) in ["Net", "NavLights"]))
+			for s in mesh.mesh.get_surface_count():
+				var mat := mesh.mesh.surface_get_material(s) as ShaderMaterial
+				var net := mat != null and mat.resource_name == "LK_OffshoreNet"
+				var shader := "res://shaders/pen_net_shader.gdshader" if net else "res://shaders/offshore_kit.gdshader"
+				mats_ok = mats_ok and mat != null and mat.shader.resource_path == shader
+	_check(chain_ok, "offshore: the unit hands over LOD0 -> LOD1 -> LOD2 at 500 m and 2,000 m (spec §5.5 rule 4)")
+	_check(shadow_ok, "offshore: only LOD0 solids cast shadows; the net and lanterns never do")
+	_check(mats_ok, "offshore: solids use LK_OffshoreKit (offshore_kit.gdshader), nets LK_OffshoreNet (pen_net_shader)")
+	var cols := (unit.get_node("Columns") as MeshInstance3D).get_aabb()
+	var radius := (cols.size.x - 3.56) * 0.5
+	var hull := (unit.get_node("Hull") as MeshInstance3D).get_aabb()
+	_check(absf(radius - 55.0) <= 2.75 and absf(hull.position.y + 43.0) < 0.01,
+		"offshore: 110 m ring (circumradius %.2f m), keel at the 43 m draft (%.2f m)" % [radius, hull.position.y])
+	unit.set_build_stage(4.5)
+	var hidden := not (unit.get_node("Net") as Node3D).visible and not (unit.get_node("Bulkhead") as Node3D).visible
+	var param := float((unit.get_node("Hull") as GeometryInstance3D).get_instance_shader_parameter("build_stage"))
+	unit.set_build_stage(6.0)
+	var shown := (unit.get_node("Net") as Node3D).visible and (unit.get_node("LOD1/Net") as Node3D).visible
+	_check(hidden and is_equal_approx(param, 4.5) and shown,
+		"offshore: the yard reveal holds the net back until its stage and drives the kit per instance")
+	var crane := unit.get_node("Cranes/CraneA") as Node3D
+	var rest := crane.rotation.y
+	unit.slew_crane("CraneA", 30.0)
+	var slewed := is_equal_approx(crane.rotation.y - rest, deg_to_rad(30.0))
+	unit.slew_crane("CraneA", 0.0)
+	_check(slewed and unit.get_beacon_position().y > 27.0 and unit.get_w2w_landing().y > 15.0,
+		"offshore: cranes slew on their pedestals; the beacon tops the mast; the gangway landing is on the deck")
+	unit.free()
+
+	var service := (load("res://assets/models/offshore_service/offshore_service.tscn") as PackedScene).instantiate() as VesselModel
+	add_child(service)
+	var gangway := service.get_node_or_null("Gangway") as MeshInstance3D
+	_check(gangway != null and is_equal_approx(gangway.visibility_range_end, service.lod_switch.x)
+		and service.length_m < 0.75 * 110.0,
+		"offshore fleet: the %.0f m service vessel is visibly shorter than the 110 m ring and has its gangway node" % service.length_m)
+	service.free()
+	var tug := (load("res://assets/models/offshore_service/anchor_tug.tscn") as PackedScene).instantiate() as VesselModel
+	add_child(tug)
+	var red := true
+	for part in tug.get_parts("Hull"):
+		var m := part.get_surface_override_material(0)
+		red = red and m != null and m.resource_name == "LK_VHullRed"
+	_check(red and tug.get_parts("Hull").size() == 3,
+		"offshore fleet: the anchor tug is the service vessel's mesh with a red hull at every LOD")
+	tug.free()
+	var props := {"subsea/rov": [2.6, 1.6, [1200, 300]], "subsea/auv": [4.0, 0.5, [600, 150]]}
+	var props_ok := true
+	var report := []
+	for path in props:
+		var v := (load("res://assets/models/%s.tscn" % path) as PackedScene).instantiate() as VesselModel
+		add_child(v)
+		var spec: Array = props[path]
+		var aabb := (v.get_node("Hull") as MeshInstance3D).get_aabb()
+		props_ok = props_ok and absf(aabb.size.z - spec[0]) / spec[0] <= 0.05 and absf(aabb.size.x - spec[1]) / spec[1] <= 0.05
+		var t: Array[int] = []
+		for level in 2:
+			var n := 0
+			for mesh in v.get_lod_meshes(level):
+				n += _mesh_triangles(mesh.mesh)
+			t.append(n)
+			props_ok = props_ok and n > 0 and n <= int(spec[2][level])
+		props_ok = props_ok and v.get_lod_meshes(2).is_empty()
+		report.append("%s %.2fx%.2f %s" % [path.get_file(), aabb.size.z, aabb.size.x, t])
+		v.free()
+	_check(props_ok, "offshore fleet: ROV and AUV inside their size and two-LOD budgets (%s)" % ", ".join(report))
+
+
+## Ground footprint (x, z) of a layout piece, its model axes turned by yaw.
+func _footprint(p: Dictionary) -> Rect2:
+	var s: Vector3 = p["size"]
+	var pos: Vector3 = p["pos"]
+	var turned := absf(sin(float(p["yaw"]))) > 0.5
+	var ext := Vector2(s.z, s.x) if turned else Vector2(s.x, s.z)
+	return Rect2(Vector2(pos.x, pos.z) - ext * 0.5, ext)
+
 
 func _check(condition: bool, label: String) -> void:
 	_checks += 1

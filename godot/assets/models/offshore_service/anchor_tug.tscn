@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/models/offshore_service/offshore_service.tscn" id="1_base"]
+[ext_resource type="Material" path="res://assets/models/vessel_kit/vessel_hull_red_material.tres" id="2_red"]
+
+[node name="AnchorTug" instance=ExtResource("1_base")]
+asset_id = "anchor_tug"
+
+[node name="Hull" parent="."]
+surface_material_override/0 = ExtResource("2_red")
+
+[node name="Hull" parent="LOD1"]
+surface_material_override/0 = ExtResource("2_red")
+
+[node name="Hull" parent="LOD2"]
+surface_material_override/0 = ExtResource("2_red")
+
+[editable path="LOD1"]
+[editable path="LOD2"]

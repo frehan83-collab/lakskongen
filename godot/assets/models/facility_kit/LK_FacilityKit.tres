@@ -1,0 +1,22 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[ext_resource type="Shader" path="res://shaders/facility_kit.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" path="res://assets/models/facility_kit/textures/facility_atlas.png" id="2_atlas"]
+
+[resource]
+resource_name = "LK_FacilityKit"
+shader = ExtResource("1_shader")
+shader_parameter/atlas = ExtResource("2_atlas")
+shader_parameter/atlas_strips = 32.0
+shader_parameter/max_lod = 5.0
+shader_parameter/ao_strength = 0.85
+shader_parameter/ao_light_affect = 0.35
+shader_parameter/night_light = 0.0
+shader_parameter/emission_energy = 2.4
+shader_parameter/glass_color = Color(0.1, 0.13, 0.15, 1)
+shader_parameter/lid_variant = 0.0
+shader_parameter/plain_wall = 0.0
+shader_parameter/leg_scale = 1.0
+shader_parameter/rotor_turns_per_s = 0.5
+shader_parameter/use_instance_custom = false
+shader_parameter/build_height_m = 13.0

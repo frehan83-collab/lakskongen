@@ -1,0 +1,481 @@
+{
+  "$schema": "./shots.schema.json",
+  "schema": "lakskongen.qa.shots/1",
+  "doc": "QA shot list (roadmap P0-03, farm-types spec section 7): items append shots here instead of editing a harness. A shot names the scene that captures it; ids are unique and keep their number prefix.",
+  "shots": [
+    {
+      "id": "36_graybox_home_clear",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {
+        "mode": "home"
+      },
+      "perf": true,
+      "purpose": "Shipped home view (FJORD, 900 m at -17 deg on the first pen) in clear weather: pixel sizes, depression angles and fog transmittance of a tank, the campus and OF1; draw calls and GPU time the farm types add."
+    },
+    {
+      "id": "36_graybox_home_overcast",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "overcast",
+      "camera": {
+        "mode": "home"
+      },
+      "purpose": "Shipped home view, overcast (20 km visibility)."
+    },
+    {
+      "id": "36_graybox_home_rain",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "rain",
+      "camera": {
+        "mode": "home"
+      },
+      "purpose": "Shipped home view, rain (4.5 km visibility)."
+    },
+    {
+      "id": "36_graybox_home_snow",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "snow",
+      "camera": {
+        "mode": "home"
+      },
+      "purpose": "Shipped home view, snow (2.5 km visibility)."
+    },
+    {
+      "id": "36_graybox_home_storm",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "storm",
+      "camera": {
+        "mode": "home"
+      },
+      "purpose": "Shipped home view, storm (2 km visibility)."
+    },
+    {
+      "id": "36_graybox_home_fog",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "fog",
+      "camera": {
+        "mode": "home"
+      },
+      "purpose": "Shipped home view, sea fog (0.4 km visibility in the layer)."
+    },
+    {
+      "id": "36_graybox_land_focus",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {
+        "mode": "focus",
+        "target": "pad_a",
+        "distance_m": 520.0,
+        "pitch_deg": -40.0
+      },
+      "perf": true,
+      "purpose": "Full-campus framing (spec section 4, 520 m at -40 deg): a grow-out tank's lid ellipse must be at least 40 px tall."
+    },
+    {
+      "id": "36_graybox_of1_focus",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {
+        "mode": "focus",
+        "target": "off_1",
+        "distance_m": 220.0,
+        "pitch_deg": -18.0,
+        "focus_y": 9.0
+      },
+      "purpose": "OF1 framing as the read gate set it (220 m at -18 deg; spec revision 2 said 300 m at -22 deg): the 110 m ring fills 25-45% of the frame width and the horizon sits 10-25% from the top."
+    },
+    {
+      "id": "36_graybox_of1_focus_spec_r2",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {
+        "mode": "focus",
+        "target": "off_1",
+        "distance_m": 300.0,
+        "pitch_deg": -22.0,
+        "focus_y": 9.0
+      },
+      "purpose": "Before: the spec revision 2 OF1 framing (300 m at -22 deg), kept as the evidence for the change.",
+      "variant_of": "36_graybox_of1_focus"
+    },
+    {
+      "id": "36_graybox_land_focus_no_tank_shadows",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {
+        "mode": "focus",
+        "target": "pad_a",
+        "distance_m": 520.0,
+        "pitch_deg": -40.0
+      },
+      "tank_shadows": false,
+      "purpose": "The land framing without tank shadows, as spec revision 2's 'LOD1 and beyond cast no shadow' would draw it: every tank there stands in the LOD1 band.",
+      "variant_of": "36_graybox_land_focus"
+    },
+    {
+      "id": "36_graybox_home_clear_pad_a_east",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {
+        "mode": "home"
+      },
+      "plot_overrides": {
+        "pad_a": [
+          -470.0,
+          -1650.0
+        ]
+      },
+      "purpose": "Alternative tried: pad_a at (-470, -1650), shifted east only.",
+      "variant_of": "36_graybox_home_clear"
+    },
+    {
+      "id": "36_graybox_home_clear_pad_a_spec_r2",
+      "item": "F2-18",
+      "scene": "res://qa/scenes/FarmTypeGrayBox.tscn",
+      "kind": "graybox_read",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {
+        "mode": "home"
+      },
+      "plot_overrides": {
+        "pad_a": [
+          -700.0,
+          -1650.0
+        ]
+      },
+      "purpose": "Before: pad_a at the spec revision 2 centre (-700, -1650), kept as the evidence for the move.",
+      "variant_of": "36_graybox_home_clear"
+    },
+    {
+      "id": "39_landkit_day",
+      "item": "F2-25",
+      "scene": "res://qa/scenes/LandKitPreview.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {"mode": "focus", "target": "pad_a", "distance_m": 520.0, "pitch_deg": -40.0},
+      "perf": true,
+      "purpose": "The land kit at the spec's land framing (520 m at -40 deg) by day: lid ellipse at least 40 px, dark lids against pale walls dL at least 30 (spec F2-25 accept 5)."
+    },
+    {
+      "id": "39_landkit_dusk",
+      "item": "F2-25",
+      "scene": "res://qa/scenes/LandKitPreview.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.65,
+      "hour": 19.4,
+      "weather": "clear",
+      "camera": {"mode": "focus", "target": "pad_a", "distance_m": 520.0, "pitch_deg": -40.0},
+      "night_light": 0.8,
+      "purpose": "The land framing at dusk (ref L2's mood): low sun, hall windows and lid work-lights lit."
+    },
+    {
+      "id": "39_landkit_lot",
+      "item": "F2-25",
+      "scene": "res://qa/scenes/LandKitPreview.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {"mode": "focus", "target": "pad_a", "distance_m": 380.0, "pitch_deg": -40.0, "offset": [37.0, -45.0]},
+      "purpose": "The one-lot framing (spec section 4: 380 m at -40 deg) on lot 4: the LOD0/LOD1 hand-over."
+    },
+    {
+      "id": "39_landkit_lot_pale_lids",
+      "item": "F2-25",
+      "scene": "res://qa/scenes/LandKitPreview.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {"mode": "focus", "target": "pad_a", "distance_m": 380.0, "pitch_deg": -40.0, "offset": [37.0, -45.0]},
+      "lid_variant": 1.0,
+      "variant_of": "39_landkit_lot",
+      "purpose": "The cosmetic pale-lid swatch (#EDEFEF, ref L2) through the shader's lid swap, against the default dark lids (ref L1)."
+    },
+    {
+      "id": "39_landkit_close",
+      "item": "F2-25",
+      "scene": "res://qa/scenes/LandKitPreview.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {"mode": "focus", "target": "pad_a", "distance_m": 150.0, "pitch_deg": -28.0, "offset": [130.0, -95.0]},
+      "purpose": "Close look at the LOD0 kit: tanks, walkways, rails, the hall, the orange pipe bridge."
+    },
+    {
+      "id": "39_landkit_home_overcast",
+      "item": "F2-25",
+      "scene": "res://qa/scenes/LandKitPreview.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "overcast",
+      "camera": {"mode": "home"},
+      "purpose": "The shipped home view with the kit, overcast: the campuses as landmarks at the mouth (LOD1/LOD2 read)."
+    },
+    {
+      "id": "40_offshore_hero",
+      "item": "F2-26",
+      "scene": "res://qa/scenes/OffshorePreview.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.08,
+      "hour": 13.4,
+      "weather": "clear",
+      "camera": {"mode": "focus", "target": "off_1", "distance_m": 290.0, "pitch_deg": -13.0, "focus_y": 6.0, "yaw_deg": 300.0},
+      "fleet": true,
+      "purpose": "Hero frame in ref O3's mood: low winter sun on the safety-yellow 12-gon over the open sea, the orange service vessel alongside, the crew boat at the boat landing."
+    },
+    {
+      "id": "40_offshore_framing",
+      "item": "F2-26",
+      "scene": "res://qa/scenes/OffshorePreview.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.08,
+      "hour": 13.4,
+      "weather": "clear",
+      "camera": {"mode": "focus", "target": "off_1", "distance_m": 220.0, "pitch_deg": -18.0, "focus_y": 9.0},
+      "fleet": true,
+      "measure": true,
+      "perf": true,
+      "purpose": "The spec's OF1 framing (section 4: 220 m at -18 deg, set by the F2-18 read gate): the ring fills 25-45% of the frame width; draw calls the unit and its fleet add at LOD0."
+    },
+    {
+      "id": "40_offshore_close",
+      "item": "F2-26",
+      "scene": "res://qa/scenes/OffshorePreview.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.08,
+      "hour": 13.4,
+      "weather": "clear",
+      "camera": {"mode": "focus", "target": "off_1", "distance_m": 110.0, "pitch_deg": -14.0, "focus_y": 12.0, "offset": [-20.0, 10.0], "yaw_deg": 290.0},
+      "fleet": true,
+      "purpose": "Close look at the LOD0 detail: columns with the splash zone, the zig-zag bracing, walkways and rails, the control block, cranes, the net above the water."
+    },
+    {
+      "id": "40_offshore_dusk",
+      "item": "F2-26",
+      "scene": "res://qa/scenes/OffshorePreview.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.08,
+      "hour": 16.6,
+      "weather": "clear",
+      "camera": {"mode": "focus", "target": "off_1", "distance_m": 260.0, "pitch_deg": -12.0, "focus_y": 8.0, "yaw_deg": 300.0},
+      "fleet": true,
+      "nav_lights": 1.0,
+      "night_light": 0.8,
+      "purpose": "After sunset: the nav lanterns flash in sync (1 Hz, Kystverket yellow), the control block's windows and deck lights lit."
+    },
+    {
+      "id": "40_offshore_overcast",
+      "item": "F2-26",
+      "scene": "res://qa/scenes/OffshorePreview.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "overcast",
+      "camera": {"mode": "focus", "target": "off_1", "distance_m": 220.0, "pitch_deg": -18.0, "focus_y": 9.0},
+      "fleet": true,
+      "purpose": "The OF1 framing on a grey summer day: the yellow hull and orange vessel stay the only saturation."
+    },
+    {
+      "id": "40_offshore_yard",
+      "item": "F2-26",
+      "scene": "res://qa/scenes/OffshorePreview.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.08,
+      "hour": 13.4,
+      "weather": "clear",
+      "camera": {"mode": "focus", "target": "off_1", "distance_m": 230.0, "pitch_deg": -16.0, "focus_y": 4.0},
+      "build_stage": 4.55,
+      "purpose": "Yard / timelapse reveal through the part groups in yard order: Pontoons, Columns, Rings and Bracing done, the Topsides rising through their height band, the Net (and the sliding bulkhead) still to come."
+    },
+    {
+      "id": "40_offshore_home",
+      "item": "F2-26",
+      "scene": "res://qa/scenes/OffshorePreview.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.5,
+      "hour": 12.0,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "fleet": true,
+      "perf": true,
+      "purpose": "The shipped home view: the unit as a yellow sliver at the mouth (LOD2), the draw calls it and its fleet add against the spec section 5.5 budget (<= 8 opaque + <= 6 shadow)."
+    },
+    {
+      "id": "40_offshore_lineup",
+      "item": "F2-27",
+      "scene": "res://qa/scenes/OffshorePreview.tscn",
+      "kind": "beauty",
+      "resolution": [1920, 1080],
+      "scenario": "po3_red_sone",
+      "seed": 20261012,
+      "season": 0.08,
+      "hour": 13.4,
+      "weather": "clear",
+      "camera": {"mode": "focus", "target": "off_1", "distance_m": 260.0, "pitch_deg": -14.0, "focus_y": 6.0, "offset": [100.0, 0.0]},
+      "lineup": true,
+      "purpose": "The offshore fleet in a row beside the unit: the 75 m service vessel visibly shorter than the 110 m ring, the anchor tug (red swatch variant of the same mesh), the 20 m crew boat."
+    }
+  ]
+}

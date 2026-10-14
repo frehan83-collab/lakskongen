@@ -25,7 +25,11 @@ REPO = Path(__file__).parent.parent
 GODOT = REPO / "godot"
 MANIFEST = json.loads((REPO / "blender" / "asset_manifest.json").read_text())
 ASSETS = {a["id"]: a for a in MANIFEST["assets"]}
-VESSELS = ["workboat", "feed_barge", "feed_barge_large", "wellboat", "wellboat_large", "rib"]
+VESSELS = ["workboat", "feed_barge", "feed_barge_large", "wellboat", "wellboat_large", "rib",
+           # Farm-types spec §5.2, item F2-27: the offshore fleet's surface vessels.
+           "offshore_service", "crew_boat"]
+# F2-27 subsea props (two LODs, no deck): checked on their own below.
+SUBSEA = ["rov", "auv"]
 MANAGERS = [GODOT / "scripts" / "visual" / "WellboatVisualManager.gd",
             GODOT / "scripts" / "visual" / "FeedBargeVisualManager.gd"]
 
@@ -249,4 +253,152 @@ def test_build_script_reproduces_the_committed_vessels(tmp_path, vid, lod):
     geometry = ("tri_count", "material_count", "materials", "bbox_size", "parts", "dimensions")
     assert {k: new_side.get(k) for k in geometry} == {k: old_side.get(k) for k in geometry}
     if new_side.get("blender_version") == old_side.get("blender_version"):
+        assert hashlib.sha256(rebuilt.read_bytes()).hexdigest() == hashlib.sha256(committed.read_bytes()).hexdigest()
+
+
+# ── Offshore fleet (farm-types spec §5.2, item F2-27) ─────────────────────────
+
+SPEC_TEXT = (REPO / "docs" / "FARM_TYPES_SPEC.md").read_text()
+BUILD_VESSELS = (REPO / "blender" / "build_vessels.py").read_text()
+
+
+def _spec_row(asset_id: str) -> list[str]:
+    line = next(l for l in SPEC_TEXT.splitlines() if l.startswith(f"| `{asset_id}`"))
+    return [c.strip() for c in line.strip("|").split("|")]
+
+
+def _budgets(cell: str) -> list[tuple[int, ...]]:
+    """'30,000 / 6,000 / 800' -> [(30000, 6000, 800)]; 'a / b · c / d' -> two."""
+    return [tuple(int(n.replace(",", "")) for n in re.split(r"\s*/\s*", part.strip())) for part in cell.split("·")]
+
+
+def _gltf_nodes(path: Path) -> list[str]:
+    data = path.read_bytes()
+    length = int.from_bytes(data[12:16], "little")
+    return [n["name"] for n in json.loads(data[20:20 + length])["nodes"]]
+
+
+def test_offshore_fleet_triangle_budgets_are_the_spec_rows():
+    # F2-27 accept 3: the build's TRI_LIMITS and the manifest equal spec §5.2.
+    rows = {"offshore_service": _budgets(_spec_row("offshore_service")[-1])[0],
+            "crew_boat": _budgets(_spec_row("crew_boat")[-1])[0]}
+    rov, auv = _budgets(_spec_row("rov")[-1])
+    rows["rov"], rows["auv"] = rov, auv
+    tri_limits = BUILD_VESSELS[BUILD_VESSELS.index("TRI_LIMITS = {"):]
+    tri_limits = tri_limits[:tri_limits.index("\n}\n")]
+    for vid, want in rows.items():
+        limits = re.search(r'"%s": \(([^)]*)\)' % vid, tri_limits).group(1)
+        built = tuple(int(v) for v in limits.split(",") if v.strip() != "None")
+        assert built == want, (vid, built, want)
+        asset = ASSETS[vid]
+        assert tuple(asset["tri_max"][lod] for lod in asset["lod_levels"]) == want, vid
+        for lod in asset["lod_levels"]:
+            assert _sidecar(asset, lod)["tri_count"] <= asset["tri_max"][lod], (vid, lod)
+
+
+@pytest.mark.parametrize("vid,length,beam", [("offshore_service", 75.0, 17.0), ("crew_boat", 20.0, 7.0)])
+def test_offshore_fleet_dimensions_are_the_spec(vid, length, beam):
+    # F2-27 accept 1: service vessel 75 x 17 and crew boat 20 x 7 m ± 5%.
+    cells = _spec_row(vid)
+    assert f"{int(length)} × {int(beam)}" in cells[2]
+    assert (ASSETS[vid]["spec"]["length_m"], ASSETS[vid]["spec"]["beam_m"]) == (length, beam)
+    for lod in ASSETS[vid]["lod_levels"]:
+        dims = _sidecar(ASSETS[vid], lod)["dimensions"]
+        assert _within(dims["length_m"], length, 0.05) and _within(dims["beam_m"], beam, 0.05), (vid, lod, dims)
+
+
+def test_the_service_vessel_is_shorter_than_of1_and_has_its_gangway():
+    # F2-27 accept 4: visibly shorter than the OF1-class ring's diameter, and
+    # the walk-to-work gangway is its own node.
+    of1 = json.loads((GODOT / "assets/models/offshore/of1_class_LOD0.json").read_text())
+    diameter = 2.0 * of1["dimensions"]["circumradius_m"]
+    length = _sidecar(ASSETS["offshore_service"], "LOD0")["dimensions"]["length_m"]
+    assert length <= 0.75 * diameter, (length, diameter)
+    assert "Gangway" in _gltf_nodes(_glb(ASSETS["offshore_service"], "LOD0"))
+    side = _sidecar(ASSETS["offshore_service"], "LOD0")
+    assert side["parts"]["Gangway"] > 0
+    # The node turns about the tower axis (F2-22 slews it to the unit's
+    # W2WLanding): its origin is the pivot, on the deck inside the hull.
+    data = _glb(ASSETS["offshore_service"], "LOD0").read_bytes()
+    nodes = json.loads(data[20:20 + int.from_bytes(data[12:16], "little")])["nodes"]
+    gangway = next(n for n in nodes if n["name"] == "Gangway")
+    pivot = side["pivots"]["Gangway"]
+    assert [round(v, 3) for v in gangway["translation"]] == pivot
+    assert abs(pivot[0]) < side["dimensions"]["beam_m"] / 2 and 0.0 < pivot[1] < 5.0
+    assert abs(pivot[2]) < side["dimensions"]["length_m"] / 2
+    scene = (GODOT / "assets/models/offshore_service/offshore_service.tscn").read_text()
+    switch = float(re.search(r"lod_switch = Vector2\(([\d.]+),", scene).group(1))
+    block = scene[scene.index('[node name="Gangway" parent="."]'):]
+    assert float(re.search(r"visibility_range_end = ([\d.]+)", block).group(1)) == switch
+    # LOD1/LOD2 fold the gangway into the superstructure.
+    for lod in ("LOD1", "LOD2"):
+        assert "Gangway" not in _gltf_nodes(_glb(ASSETS["offshore_service"], lod))
+
+
+def test_the_anchor_tug_is_a_swatch_variant_with_no_new_meshes():
+    # F2-27 accept 2.
+    tug = (GODOT / "assets/models/offshore_service/anchor_tug.tscn").read_text()
+    exts = re.findall(r'\[ext_resource type="(\w+)" path="([^"]+)"', tug)
+    assert sorted(exts) == [("Material", "res://assets/models/vessel_kit/vessel_hull_red_material.tres"),
+                            ("PackedScene", "res://assets/models/offshore_service/offshore_service.tscn")]
+    assert ".glb" not in tug and "sub_resource" not in tug and "Mesh" not in tug
+    for parent in (".", "LOD1", "LOD2"):
+        assert f'[node name="Hull" parent="{parent}"]\nsurface_material_override/0 = ExtResource(' in tug, parent
+    assert not list((GODOT / "assets/models").rglob("anchor_tug*.glb"))
+    assert "no new geometry" in _spec_row("anchor_tug")[3]
+
+
+@pytest.mark.parametrize("vid", SUBSEA)
+def test_subsea_props_meet_the_spec(vid):
+    asset = ASSETS[vid]
+    assert asset["type"] == "subsea" and asset["build_script"] == "blender/build_vessels.py"
+    assert asset["lod_levels"] == ["LOD0", "LOD1"] and asset["spec_tolerance"] <= 0.05
+    spec = pipeline.AssetSpec.from_dict(asset)
+    tris = []
+    for lod in asset["lod_levels"]:
+        side = _sidecar(asset, lod)
+        assert sorted(side["materials"]) == sorted(spec.materials_for(lod)), (vid, lod)
+        dims = side["dimensions"]
+        assert _within(dims["length_m"], asset["spec"]["length_m"], 0.05), (vid, lod, dims)
+        assert _within(dims["beam_m"], asset["spec"]["beam_m"], 0.05), (vid, lod, dims)
+        if "height_m" in asset["spec"]:
+            assert _within(side["bbox_size"][1], asset["spec"]["height_m"], 0.05), (vid, lod, side["bbox_size"])
+        tris.append(side["tri_count"])
+        assert pipeline.validate_asset(spec, lod, None, _glb(asset, lod)).passed, (vid, lod)
+    assert tris[0] > tris[1] > 0
+    swatch = {"rov": ("LK_VSubseaYellow", "#E6BE2E"), "auv": ("LK_VSubseaOrange", "#C9531F")}[vid]
+    assert swatch[0] in _sidecar(asset, "LOD0")["materials"] and swatch[1] in _spec_row("rov")[3]
+    hexc = re.search(r'"%s": \("(#[0-9A-F]{6})"' % swatch[0], BUILD_VESSELS).group(1)
+    assert hexc == swatch[1]
+
+
+def test_subsea_paint_has_no_waterline_and_the_white_hull_has_one():
+    for stem in ("subsea_yellow", "subsea_orange"):
+        tres = (GODOT / f"assets/models/vessel_kit/vessel_{stem}_material.tres").read_text()
+        assert "waterline_paint = true" not in tres and 'path="res://shaders/vessel_paint.gdshader"' in tres
+    white = (GODOT / "assets/models/vessel_kit/vessel_hull_white_material.tres").read_text()
+    assert "shader_parameter/waterline_paint = true" in white
+    for vid in SUBSEA:
+        for lod in ASSETS[vid]["lod_levels"]:
+            text = Path(str(_glb(ASSETS[vid], lod)) + ".import").read_text()
+            assert "meshes/generate_lods=false" in text
+            for name in pipeline.AssetSpec.from_dict(ASSETS[vid]).materials_for(lod):
+                assert f'"{name}": {{' in text, (vid, lod, name)
+
+
+@pytest.mark.skipif(_blender() is None, reason="Blender is not installed")
+@pytest.mark.parametrize("vid,lod", [("crew_boat", "LOD2"), ("rov", "LOD1")])
+def test_build_script_reproduces_the_committed_offshore_fleet(tmp_path, vid, lod):
+    out = subprocess.run(
+        [_blender(), "-b", "--factory-startup", "--python", str(REPO / "blender" / "build_vessels.py"), "--",
+         "--asset", vid, "--lod", lod, "--out", str(tmp_path)],
+        capture_output=True, text=True, timeout=600)
+    assert out.returncode == 0, out.stderr[-2000:]
+    committed = _glb(ASSETS[vid], lod)
+    rebuilt = tmp_path / committed.name
+    new_side = json.loads(rebuilt.with_suffix(".json").read_text())
+    old_side = _sidecar(ASSETS[vid], lod)
+    assert {k: v for k, v in new_side.items() if k != "blender_version"} == \
+        {k: v for k, v in old_side.items() if k != "blender_version"}
+    if new_side["blender_version"] == old_side["blender_version"]:
         assert hashlib.sha256(rebuilt.read_bytes()).hexdigest() == hashlib.sha256(committed.read_bytes()).hexdigest()

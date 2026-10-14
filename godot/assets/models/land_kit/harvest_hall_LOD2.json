@@ -1,0 +1,40 @@
+{
+  "asset": "harvest_hall",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    120.0,
+    15.0,
+    74.0
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "height_m": 15.0,
+    "length_m": 120.0,
+    "width_m": 60.0
+  },
+  "file": "harvest_hall_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Annex": "hall_clad",
+    "HallRoof": "harvest_clad",
+    "Walls": "harvest_clad"
+  },
+  "parts": {
+    "Annex": 10,
+    "HallRoof": 2,
+    "Walls": 8
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Walls": {
+      "hex": "#3A4046",
+      "spec": "#3A4046",
+      "strip": "harvest_clad"
+    }
+  },
+  "tri_count": 20
+}

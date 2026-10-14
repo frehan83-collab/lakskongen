@@ -52,6 +52,7 @@ import os
 import sys
 
 import bpy
+import mathutils
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lk_hull as hull  # noqa: E402
@@ -76,6 +77,10 @@ MATERIALS = {
     "LK_VDark": ("#1E2124", 0.75, 0.0),
     "LK_VCrane": ("#E8B92A", 0.45, 0.0),
     "LK_VSafety": ("#E0662A", 0.5, 0.0),
+    # Offshore fleet (F2-27): the crew boat's white hull, the subsea props.
+    "LK_VHullWhite": ("#E9ECEA", 0.5, 0.0),
+    "LK_VSubseaYellow": ("#E6BE2E", 0.45, 0.0),
+    "LK_VSubseaOrange": ("#C9531F", 0.5, 0.0),
 }
 
 PART_MATERIALS = {
@@ -96,7 +101,25 @@ ASSETS = {
     "wellboat": ("wellboat", "LK_VHullRed"),
     "wellboat_large": ("wellboat", "LK_VHullRed"),
     "rib": ("rib", "LK_VSafety"),
+    "offshore_service": ("offshore_service", "LK_VHullOrange"),
+    "crew_boat": ("crew_boat", "LK_VHullWhite"),
+    "rov": ("subsea", "LK_VSubseaYellow"),
+    "auv": ("subsea", "LK_VSubseaOrange"),
 }
+
+# Per-asset parts beyond PART_MATERIALS, or a part on another material:
+# the service vessel's walk-to-work gangway is its own node (F2-27 accept
+# 4) at LOD0; the crew boat's deck is dark slate (spec §5.2 #34424B).
+ASSET_PARTS = {
+    "offshore_service": {"Gangway": "LK_VWhite"},
+    "crew_boat": {"Deck": "LK_VHullSlate"},
+}
+# Per-asset part folds by detail level (2 = LOD0, 1 = LOD1, 0 = LOD2).
+ASSET_ALIASES = {
+    "offshore_service": {1: {"Gangway": "Superstructure"}, 0: {"Gangway": "Superstructure"}},
+}
+# Subsea props: no third LOD, no plate densifying (they are 2-4 m long).
+SUBSEA = {"rov", "auv"}
 
 LODS = {"LOD0": 2, "LOD1": 1, "LOD2": 0}
 # LOD2 folds the small parts into the big ones: five draw calls at most.
@@ -110,10 +133,15 @@ TRI_LIMITS = {
     "wellboat": (45000, 12000, 2000),
     "wellboat_large": (60000, 15000, 2500),
     "rib": (6000, 1500, 400),
+    # Farm-types spec §5.2 (F2-27); the subsea props have two LODs.
+    "offshore_service": (30000, 6000, 800),
+    "crew_boat": (8000, 1500, 300),
+    "rov": (1200, 300, None),
+    "auv": (600, 150, None),
 }
 
 # Parts that get baked AO in the vertex colour.
-AO_PARTS = {"Hull", "Deck", "Superstructure", "Machinery", "Rubber", "Crane", "Safety"}
+AO_PARTS = {"Hull", "Deck", "Superstructure", "Machinery", "Rubber", "Crane", "Safety", "Gangway"}
 UV_PER_M = 1.0
 
 
@@ -126,15 +154,24 @@ def materials() -> dict:
 
 def build_asset(asset: str, lod: str, mats: dict):
     d = LODS[lod]
-    part_mats = dict(PART_MATERIALS, Hull=ASSETS[asset][1])
-    parts = hull.Parts(part_mats, LOD2_ALIASES if d == 0 else None)
+    part_mats = dict(PART_MATERIALS, Hull=ASSETS[asset][1], **ASSET_PARTS.get(asset, {}))
+    aliases = dict(LOD2_ALIASES if d == 0 else {}, **ASSET_ALIASES.get(asset, {}).get(d, {}))
+    parts = hull.Parts(part_mats, aliases or None)
+    # A design may name a part's pivot (the gangway's slewing axis): that
+    # part's node gets its origin there, so Godot turns it about the axis.
+    parts.pivots = {}
     spec = designs.DESIGNS[asset](parts, d)
     objs = []
     for name, mb in parts.used():
         obj = mb.build(name, mats, auto_uv=UV_PER_M)
         obj["lk_build"] = PREFIX
-        if name in DENSIFY_PARTS and DENSIFY_EDGE_M.get(lod):
+        if name in DENSIFY_PARTS and DENSIFY_EDGE_M.get(lod) and asset not in SUBSEA:
             densify(obj, DENSIFY_EDGE_M[lod])
+        if name in parts.pivots:
+            px, py, pz = parts.pivots[name]
+            obj.data.transform(mathutils.Matrix.Translation((-px, -py, -pz)))
+            obj.location = (px, py, pz)
+            obj["lk_pivot"] = [px, py, pz]
         objs.append(obj)
     return objs, spec
 
@@ -244,6 +281,9 @@ def export_lod(asset: str, lod: str, objs, spec, out_dir: str) -> dict:
             "stern_y_m": round(hlo[1], 3),
         },
         "file": os.path.basename(path),
+        **({"pivots": {o.name.split(".")[0]: [round(o["lk_pivot"][0], 3), round(o["lk_pivot"][2], 3),
+                                              round(-o["lk_pivot"][1], 3)] for o in objs if "lk_pivot" in o}}
+           if any("lk_pivot" in o for o in objs) else {}),
         "blender_version": bpy.app.version_string,
     }
     with open(os.path.join(out_dir, f"{asset}_{lod}.json"), "w") as f:
@@ -254,7 +294,7 @@ def export_lod(asset: str, lod: str, objs, spec, out_dir: str) -> dict:
     print(f"MATERIALS: {len(used)}")
     print(f"VESSEL_EXPORT {asset} {lod} {path} tris={data['tri_count']} dims={data['dimensions']} parts={tris}")
     limit = TRI_LIMITS[asset][list(LODS).index(lod)]
-    if data["tri_count"] > limit:
+    if limit is not None and data["tri_count"] > limit:
         raise SystemExit(f"{asset} {lod} has {data['tri_count']} triangles, over its {limit} budget")
     return data
 
@@ -338,6 +378,11 @@ def build_textures() -> list[str]:
     return written
 
 
+def lods_for(asset: str) -> list[str]:
+    """The LODs an asset has (the subsea props stop at LOD1)."""
+    return [lod for lod, lim in zip(LODS, TRI_LIMITS[asset]) if lim is not None]
+
+
 def parse_args():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     ap = argparse.ArgumentParser()
@@ -357,11 +402,10 @@ def main():
             print(f"TEXTURE {path}")
     mats = materials()
     assets = [args.asset] if args.asset else list(ASSETS)
-    lods = [args.lod] if args.lod else list(LODS)
     for asset in assets:
         out_dir = args.out or os.path.join(MODELS, ASSETS[asset][0])
         os.makedirs(out_dir, exist_ok=True)
-        for lod in lods:
+        for lod in ([args.lod] if args.lod else lods_for(asset)):
             kit.clear_prefixed(PREFIX)
             objs, spec = build_asset(asset, lod, mats)
             if lod != "LOD2" and not args.no_bake:
