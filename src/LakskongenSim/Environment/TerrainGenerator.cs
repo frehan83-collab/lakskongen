@@ -92,6 +92,9 @@ namespace LakskongenSim.Environment
         private const float SideBlendM = 150f;
         /// <summary>Depth of the lead kept open through the skerries.</summary>
         private const float FairwayDepthM = 32f;
+        /// <summary>The strandflat drops this much over the last OffshoreShelfM before the world edge.</summary>
+        private const float OffshoreDepthM = 50f;
+        private const float OffshoreShelfM = 260f;
         private const float BayAmplitudeM = 55f;
         private const float BayFrequency = 1f / 520f;
         /// <summary>Upland slope just behind the shoulder (rise per metre).</summary>
@@ -342,6 +345,11 @@ namespace LakskongenSim.Environment
                 return h;
             float strand = -7f + 22f * FractalNoise.Fbm(st.Seed + SeedStrand, x / 260f, z / 260f, 4);
             strand -= 26f * SmoothStep(st.MouthZ - 450f, st.MouthZ - 900f, z);
+            // Shelve into open sea at the world's edge, so the shallow
+            // skerry water meets the deep ocean skirt without a seam.
+            float half = st.WorldSizeM * 0.5f;
+            float edge = Math.Max(SmoothStep(half - OffshoreShelfM, half, -z), SmoothStep(half - OffshoreShelfM, half, MathF.Abs(x)));
+            strand -= OffshoreDepthM * edge;
             float lane = MathF.Abs(x - cx);
             float fairway = -FairwayDepthM;
             strand += (Math.Min(strand, fairway) - strand) * SmoothStep(st.FairwayHalfWidthM + 80f, st.FairwayHalfWidthM, lane);

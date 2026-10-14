@@ -31,8 +31,9 @@ signal terrain_ready
 
 const BRIDGE_PATH := "res://scripts/environment/TerrainGeneratorBridge.cs"
 const TERRAIN_SHADER := "res://shaders/terrain_shader.gdshader"
-## Main-thread time per frame for chunk uploads (each chunk costs ~1 ms).
-const CHUNK_FRAME_BUDGET_MS := 6.0
+## Main-thread time per frame for chunk uploads (a chunk costs 0.2-1 ms on an
+## idle M1 Pro, more under load).
+const CHUNK_FRAME_BUDGET_MS := 4.0
 ## Detail textures for the terrain shader (luminance and normal detail only).
 const DETAIL_TEXTURES := {
 	"rock_tex": "res://assets/textures/terrain_rock.png",
@@ -47,6 +48,8 @@ var heightfield_hash: String = ""
 ## Main-thread time of the latest terrain upload step, and the slowest one.
 var last_main_thread_ms: float = 0.0
 var max_upload_frame_ms: float = 0.0
+## Every main-thread upload step of the latest build (ms), in order.
+var upload_steps_ms := PackedFloat32Array()
 ## Worker-thread time for the heightfield and the render arrays.
 var last_generation_ms: float = 0.0
 
@@ -132,6 +135,7 @@ func _apply_build(result: Dictionary) -> void:
 	last_generation_ms = float(result["build_ms"])
 	_build_result = result
 	max_upload_frame_ms = 0.0
+	upload_steps_ms = PackedFloat32Array()
 
 	for child in get_children():
 		child.queue_free()
@@ -139,7 +143,7 @@ func _apply_build(result: Dictionary) -> void:
 	_chunk_root.name = "TerrainChunks"
 	add_child(_chunk_root)
 	_pending_chunks = (result["chunks"] as Array).duplicate()
-	_create_terrain_material()
+	_material = null
 	_note_upload_frame(started)
 	set_process(true)
 
@@ -150,6 +154,14 @@ func _apply_build(result: Dictionary) -> void:
 func _process(_delta: float) -> void:
 	if _pending_chunks.is_empty():
 		set_process(false)
+		return
+	# The material waits for the loader threads instead of blocking on them.
+	if _material == null:
+		if not _resources_loaded():
+			return
+		var material_started := Time.get_ticks_usec()
+		_create_terrain_material()
+		_note_upload_frame(material_started)
 		return
 	var started := Time.get_ticks_usec()
 	while not _pending_chunks.is_empty():
@@ -163,14 +175,16 @@ func _process(_delta: float) -> void:
 		_note_upload_frame(collider_started)
 		_build_result = {}
 		set_process(false)
-		print("[FjordTerrain] %dx%d fjord, %.1f m grid, hash %s (worker %.0f ms, slowest main-thread step %.1f ms)" % [
-			terrain_resolution, terrain_resolution, _spacing, heightfield_hash, last_generation_ms, max_upload_frame_ms])
+		print("[FjordTerrain] %dx%d fjord, %.1f m grid, hash %s (worker %.0f ms, main-thread steps %s ms)" % [
+			terrain_resolution, terrain_resolution, _spacing, heightfield_hash, last_generation_ms,
+			", ".join(Array(upload_steps_ms).map(func(ms: float) -> String: return "%.1f" % ms))])
 		terrain_ready.emit()
 
 
 func _note_upload_frame(started_usec: int) -> void:
 	last_main_thread_ms = float(Time.get_ticks_usec() - started_usec) / 1000.0
 	max_upload_frame_ms = maxf(max_upload_frame_ms, last_main_thread_ms)
+	upload_steps_ms.append(last_main_thread_ms)
 
 
 func _add_chunk(chunk: Dictionary) -> void:
@@ -253,6 +267,14 @@ func _request_resources() -> void:
 		if ResourceLoader.exists(path) and not ResourceLoader.has_cached(path):
 			ResourceLoader.load_threaded_request(path)
 			_requested.append(path)
+
+
+## True once every queued shader/texture load has finished (or failed).
+func _resources_loaded() -> bool:
+	for path in _requested:
+		if ResourceLoader.load_threaded_get_status(path) == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			return false
+	return true
 
 
 func _take_resource(path: String) -> Resource:

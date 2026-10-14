@@ -187,7 +187,7 @@ namespace LakskongenSim.Tests.Environment
         }
 
         /// <summary>Seed 42 at 512² over 4 km (the game's fjord). Update only with a deliberate terrain change.</summary>
-        internal const string GoldenHashSeed42 = "75de3c1de415c49e";
+        internal const string GoldenHashSeed42 = "5a84dfe1202f180d";
 
         [Fact]
         public void Channel_IsNavigableFromTheHarbourToTheLastPenSlot()

@@ -95,6 +95,11 @@ func _build_ocean_skirt() -> void:
 	skirt.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	skirt.position = water_plane.position
 	add_child(skirt)
+	# The skirt lies outside the ReflectionProbe's box and reflects the live
+	# sky. Stretching the box over it would mirror the probe's mountains
+	# (no box projection) across the open sea; at night the plane still
+	# shows the probe's daytime capture until G1-05 re-captures it per day
+	# phase.
 
 
 ## Fade the underwater post-process overlay based on camera depth.

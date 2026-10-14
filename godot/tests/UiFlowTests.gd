@@ -1068,7 +1068,7 @@ func _test_fjord_shows_rival_farms_and_wellboats() -> void:
 ## same value TerrainGeneratorTests.GoldenHashSeed42 pins in xUnit, so the
 ## headless path, the windowed path (FjordTerrain logs it) and the .NET test
 ## process all build one heightfield.
-const TERRAIN_GOLDEN_HASH := "75de3c1de415c49e"
+const TERRAIN_GOLDEN_HASH := "5a84dfe1202f180d"
 
 ## G1-01: the fjord is one heightfield, wound so every triangle faces up,
 ## with a HeightMapShape3D collider, uploaded without a long main-thread frame.
