@@ -286,5 +286,38 @@ namespace LakskongenSim.Tests.Calibration
             // The file and the code defaults agree (the embedded copy is the file).
             Assert.Equal(new GrowthCalibration(), C.Growth);
         }
+
+        [Fact]
+        public void Harvest_MatchesItsSources()
+        {
+            var h = C.Harvest;
+            // S2-04. Live to gutted (HOG) 84% (Mowi Salmon Farming Industry Handbook 2025, p. 114; 2018 edition 84%).
+            Assert.Equal(0.84, h.HogYieldFraction);
+            // Harvest and transport 5.0 NOK/kg HOG: Fiskeridirektoratet 2023 "slakting og
+            // transport" 4.45 NOK/kg round weight x 1.125 gutting loss (Fiskehelserapporten
+            // 2024, table 3.2.1); Mowi Handbook 2025 EUR 0.40/kg GWT (~4.7 NOK).
+            Assert.InRange((double)(h.WellboatCostPerKgHogNok + h.SlaughterCostPerKgHogNok), 4.45 * 1.125 * 0.99, 4.45 * 1.125 * 1.01);
+            // Wellboat ~31% of it (Marine Harvest Norway 2017: well boat 0.15 of 0.48 EUR/kg GWE).
+            Assert.InRange((double)(h.WellboatCostPerKgHogNok / (h.WellboatCostPerKgHogNok + h.SlaughterCostPerKgHogNok)), 0.29, 0.33);
+            // Size ladder on gutted weight, 4-5 kg the reference; Kontali 2015-2024 means:
+            // 2-3 kg ~86%, 6-7 kg ~108% of 4-5 kg (Mowi Handbook 2025, §6.7).
+            Assert.Equal(1.00, h.PriceFactor4To5Kg);
+            Assert.InRange(h.PriceFactor2To3Kg, 0.84, 0.88);
+            Assert.InRange(h.PriceFactor6To7Kg, 1.06, 1.10);
+            Assert.True(h.PriceFactorUnder1Kg < h.PriceFactor1To2Kg && h.PriceFactor1To2Kg < h.PriceFactor2To3Kg
+                && h.PriceFactor2To3Kg < h.PriceFactor3To4Kg && h.PriceFactor3To4Kg < h.PriceFactor4To5Kg
+                && h.PriceFactor4To5Kg < h.PriceFactor5To6Kg && h.PriceFactor5To6Kg < h.PriceFactor6To7Kg
+                && h.PriceFactor6To7Kg <= h.PriceFactorOver7Kg);
+            // Downgraded fish ~30% below superior (Mowi Handbook 2025, p. 116).
+            Assert.Equal(0.70, h.ProductionPriceFactor);
+            Assert.True(h.OrdinaryPriceFactor > h.ProductionPriceFactor && h.OrdinaryPriceFactor < 1.0);
+            // Norway 2024: ordinary 1.5% of slaughtered salmon (Fiskehelserapporten 2024, table 5.8.1).
+            Assert.Equal(20_976.0 / 1_408_650.0, h.OrdinaryShare, 3);
+            // Kvalitetsforskriften § 16: fasting until the gut is empty; at least a few days.
+            Assert.True(h.FastingDegreeDays > 0 && h.MinFastingDays >= 1);
+            Assert.InRange(h.SlaughterCapacityTonnesHogPerDay, 50.0, 500.0);
+            // The file and the code defaults agree (the embedded copy is the file).
+            Assert.Equal(new HarvestCalibration(), h);
+        }
     }
 }
