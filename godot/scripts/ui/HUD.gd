@@ -26,6 +26,7 @@ var _prev_balance: float = 0.0
 var _balance_init: bool = false
 ## The bell's unread badge (U2-06): warnings and criticals not yet seen.
 var _badge: Label = null
+var _badge_panel: PanelContainer = null
 var _unread: int = 0
 
 signal speed_changed(speed: float, paused: bool)
@@ -110,36 +111,48 @@ func _connect_inbox() -> void:
 		inbox.unread_changed.connect(_on_unread_changed)
 	_on_unread_changed(inbox.unread_count(), inbox.has_unread_critical())
 
-## A small tone pill on the bell's corner: the unread count, red when one of
-## them is critical. Hidden at zero.
+## A small solid tone tag on the bell's corner: the unread count in Ink on
+## warn, on crit when one of them is critical (D13's "Ink on a tone"; a
+## tinted pill read 4.4:1). Hidden at zero.
 func _build_badge() -> void:
 	if inbox_btn == null:
 		return
+	_badge_panel = PanelContainer.new()
+	_badge_panel.name = "UnreadBadgePanel"
+	_badge_panel.theme_type_variation = &"SwatchWarn"
+	_badge_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_badge_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_badge_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_badge_panel.offset_right = 8.0
+	_badge_panel.offset_top = 1.0
+	_badge_panel.visible = false
+	var pad := MarginContainer.new()
+	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pad.add_theme_constant_override("margin_left", 4)
+	pad.add_theme_constant_override("margin_right", 4)
+	_badge_panel.add_child(pad)
 	_badge = Label.new()
 	_badge.name = "UnreadBadge"
-	_badge.theme_type_variation = &"TagWarn"
+	_badge.theme_type_variation = &"Caption"
 	_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	_badge.offset_right = 8.0
-	_badge.offset_top = 1.0
-	_badge.visible = false
-	inbox_btn.add_child(_badge)
+	pad.add_child(_badge)
+	inbox_btn.add_child(_badge_panel)
+	_badge.add_theme_color_override("font_color", get_theme_color("on_salmon", "Palette"))
 
 ## Badge = unread warnings and criticals in the inbox.
 func _on_unread_changed(count: int, has_critical: bool) -> void:
 	_unread = count
 	if _badge != null:
-		_badge.visible = count > 0
+		_badge_panel.visible = count > 0
 		_badge.text = str(count) if count < 100 else "99+"
-		_badge.theme_type_variation = &"TagCrit" if has_critical else &"TagWarn"
+		_badge_panel.theme_type_variation = &"SwatchCrit" if has_critical else &"SwatchWarn"
 	if inbox_btn:
 		inbox_btn.tooltip_text = tr("UI_HUD_TIP_NOTIFICATIONS") % count
 
 ## Unread warnings and criticals the badge shows (QA and tests).
 func unread_badge_count() -> int:
-	return _unread if _badge != null and _badge.visible else 0
+	return _unread if _badge_panel != null and _badge_panel.visible else 0
 
 # ── Update helpers ─────────────────────────────────────────────────────────────
 

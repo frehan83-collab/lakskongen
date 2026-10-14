@@ -3954,12 +3954,15 @@ func _test_critical_card_actions() -> void:
 	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
 	await _drain_cards(card)
 	_sim.set_paused(false)
-	_sim.publish_condition_event("lice_above_limit", "critical", "", "CI: lus KRITISK 0,9")
+	var lice_text := "Lus KRITISK: 0,90 / fisk (grense 0,5 — pålegg om tiltak)"
+	_sim.publish_condition_event("lice_above_limit", "critical", "", lice_text)
 	await get_tree().process_frame
 	_check(card.verb_button.visible and card.verb_button.text == tr("UI_EVENT_VERB_DELOUSE"),
 		"card: the lice card offers 'Planlegg avlusing' ('%s')" % card.verb_button.text)
-	_check(card._title.text == tr("GAME_EVENT_LICE_ABOVE_LIMIT") and card._message.text == "CI: lus KRITISK 0,9"
+	_check(card._title.text == tr("GAME_EVENT_LICE_ABOVE_LIMIT") and card._message.text == lice_text
 		and card._meta.text.contains(tr("UI_EVENT_SUBJECT_COMPANY")), "card: title, subject and message are shown")
+	# The card is Ink glass over the frosted game: themed, readable, Norwegian.
+	await _lint_screen("critical event card")
 	await _press_key(KEY_SPACE)
 	_check(_sim.is_paused() and card.is_open(), "card: Space waits while the card is open")
 	card.verb_button.pressed.emit()
@@ -3996,10 +3999,12 @@ func _test_inbox_lists_what_happened() -> void:
 	var center: Control = scene.get_node("UILayer/NotificationCenter")
 	await _drain_cards(card)
 	center.clear_all()
-	_sim.publish_condition_event("mortality_high", "warning", "", "CI: dødelighet 1,4 % siste døgn")
-	_sim.publish_condition_event("wellboat_scheduled", "info", "po3_sor", "CI: brønnbåt om 3 d", "delouse")
+	_sim.publish_condition_event("mortality_high", "warning", "", "Dødelighet 1,4 % siste døgn")
+	_sim.publish_condition_event("wellboat_scheduled", "info", "po3_sor", "Brønnbåt (avlusing) til PO3 Sør om 3 d", "delouse")
 	center.show_panel()
 	await get_tree().create_timer(0.4).timeout
+	# The drawer is Ink glass: its entries are themed, readable and Norwegian.
+	await _lint_screen("event inbox")
 	var bad: Array = []
 	var rows := 0
 	for node in center.entry_list.get_children():

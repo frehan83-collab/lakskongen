@@ -438,9 +438,11 @@ func _build_entry_node(entry: Dictionary, index: int) -> Control:
 	header.add_theme_constant_override("separation", 8)
 	body.add_child(header)
 
+	# Severity chip: the glyph in Ink on a solid tone fill (D13's "Ink on a
+	# tone"; a tinted pill read 4.1:1 for the info "i").
 	var badge := PanelContainer.new()
-	badge.theme_type_variation = StringName("Badge" + String(tone))
-	badge.custom_minimum_size = Vector2(24, 22)
+	badge.theme_type_variation = StringName("Swatch" + String(tone))
+	badge.custom_minimum_size = Vector2(22, 20)
 	badge.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	header.add_child(badge)
@@ -448,7 +450,9 @@ func _build_entry_node(entry: Dictionary, index: int) -> Control:
 	icon_lbl.name = "Glyph"
 	icon_lbl.text = str(entry.get("icon", "i"))
 	icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon_lbl.theme_type_variation = StringName("Caption" + String(tone))
+	icon_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon_lbl.theme_type_variation = &"Caption"
+	icon_lbl.add_theme_color_override("font_color", get_theme_color("on_salmon", "Palette"))
 	badge.add_child(icon_lbl)
 
 	var title_lbl := Label.new()

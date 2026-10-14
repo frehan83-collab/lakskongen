@@ -63,6 +63,9 @@ func _ready() -> void:
 	_card.add_to_group(&"toast_keep_clear")
 	_sim = get_node_or_null("/root/SimBridge")
 	_severity_label.text = tr("UI_EVENT_CARD_OVERLINE")
+	# A solid alarm tag: Ink text on the crit fill (D13's "Ink on a tone"
+	# pairing; the tinted pill read 4.4:1).
+	_severity_label.add_theme_color_override("font_color", get_theme_color("on_salmon", "Palette"))
 	site_button.text = tr("UI_EVENT_CARD_SHOW_SITE")
 	continue_button.text = tr("UI_EVENT_CARD_CONTINUE")
 	var bridge := get_node_or_null("/root/GameBridge")
