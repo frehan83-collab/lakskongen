@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://vessel_light_mat_001"]
+
+[ext_resource type="Shader" path="res://shaders/vessel_light_glow.gdshader" id="1_shader"]
+
+[resource]
+resource_name = "LK_VLight"
+render_priority = 2
+shader = ExtResource("1_shader")
+shader_parameter/size_m = 0.45
+shader_parameter/min_pixels = 6.0
+shader_parameter/flash_s = 0.5

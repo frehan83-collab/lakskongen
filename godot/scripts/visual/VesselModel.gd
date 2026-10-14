@@ -63,6 +63,8 @@ var _ride_slot := 0
 func _ready() -> void:
 	_configure_lods()
 	_ride_slot = int(get_instance_id() % FAR_RIDE_FRAMES)
+	# Navigation, mast and deck lights after dark (VesselLights, SiteLights).
+	VesselLights.attach(self)
 
 func _process(_delta: float) -> void:
 	if WaveField.active == null or not rides_waves:

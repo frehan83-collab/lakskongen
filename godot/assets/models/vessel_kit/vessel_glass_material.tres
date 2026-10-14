@@ -16,3 +16,4 @@ shader_parameter/grime = 0.15
 shader_parameter/streaks = 0.0
 shader_parameter/normal_strength = 0.0
 shader_parameter/ao_strength = 0.0
+shader_parameter/window_light = Color(1, 0.851, 0.627, 1)

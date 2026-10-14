@@ -11,10 +11,15 @@ render_mode world_vertex_coords, cull_back, diffuse_burley, specular_schlick_ggx
 uniform vec3 lamp_color : source_color = vec3(1.0, 0.761, 0.227);
 uniform float period_s = 4.0;
 uniform float flash_s = 0.5;
-uniform float emission_on = 8.0;
-uniform float emission_off = 0.2;
+uniform float emission_on = 3.0;
+uniform float emission_off = 0.1;
 // The float the gear belongs to is this wide (m): the grid buoy.
 uniform float gear_size_m = 1.3;
+// The lamp works on a photocell: dark by day (0), lit at night (1). Its
+// glow keeps its screen brightness whatever the eye's exposure
+// (exposure_comp = 1 / exposure). SiteLights.sync sets both.
+uniform float night : hint_range(0.0, 1.0) = 1.0;
+uniform float exposure_comp = 1.0;
 
 void vertex() {
 	vec3 origin = MODEL_MATRIX[3].xyz;
@@ -31,5 +36,5 @@ void fragment() {
 	float on = smoothstep(0.0, 0.05, t) * (1.0 - smoothstep(flash_s, flash_s + 0.08, t));
 	ALBEDO = lamp_color * 0.7;
 	ROUGHNESS = 0.25;
-	EMISSION = lamp_color * mix(emission_off, emission_on, on);
+	EMISSION = lamp_color * mix(emission_off, emission_on, on) * night * exposure_comp;
 }

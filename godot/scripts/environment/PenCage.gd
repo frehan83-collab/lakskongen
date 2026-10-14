@@ -396,3 +396,5 @@ static func style_label(label: Label3D, text_color: Color, max_distance: float =
 	label.render_priority = 2
 	label.outline_render_priority = 1
 	label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Its colour holds at night (the eye's exposure would bloom it).
+	SiteLights.keep_text_colour(label)

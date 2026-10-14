@@ -24,6 +24,9 @@ instance uniform float pulse_hz = 0.0;
 // How much of the soft halo shows: a healthy ring stays a quiet line, a
 // warning glows (PenCage.HEALTH_GLOW).
 instance uniform float glow = 1.0;
+// 1 / the eye's exposure (SiteLights.sync): the ring keeps its day
+// brightness at night instead of blooming into a halo.
+uniform float exposure_comp = 1.0;
 
 varying vec2 local_xz;
 
@@ -51,6 +54,6 @@ void fragment() {
 	}
 	float mask = max(line, halo);
 	float pulse = pulse_hz > 0.0 ? 0.78 + 0.22 * sin(TIME * TAU * pulse_hz) : 1.0;
-	ALBEDO = ring_color.rgb;
+	ALBEDO = ring_color.rgb * exposure_comp;
 	ALPHA = clamp(mask * ring_color.a * pulse, 0.0, 1.0);
 }

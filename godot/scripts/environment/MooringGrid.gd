@@ -157,11 +157,10 @@ func half_extent() -> Vector2:
 ## Camera-facing flash halos over the corner lamps (they keep a minimum
 ## on-screen size, so the synchronised flashes read at every zoom).
 func _spawn_glows() -> MultiMeshInstance3D:
-	var quad := QuadMesh.new()
-	quad.size = Vector2.ONE
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = quad
+	# The halo and its glitter on the water at night (SiteLights.glow_mesh).
+	mm.mesh = SiteLights.glow_mesh()
 	var xforms: Array[Transform3D] = []
 	for k in light_positions.size():
 		xforms.append(Transform3D(Basis.IDENTITY, light_positions[k] + Vector3(0.0, LAMP_Y, 0.0)))

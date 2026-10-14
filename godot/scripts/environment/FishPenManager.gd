@@ -27,19 +27,20 @@ extends Node3D
 @export var service_boat_scene: PackedScene = preload("res://assets/models/workboat/workboat.tscn")
 @export var salmon_scene: PackedScene = preload("res://assets/models/fish/salmon.tscn")
 
-@export_group("Fish School")
-@export var fish_per_pen: int = 16
-@export var fish_swim_radius: float = 9.0
-@export var fish_swim_speed: float = 0.6
-
 # === Internal State ===
 ## site_id -> {position, active, node, cage, cages, site, from_sim, depth,
 ## boat, fish_school, fish_schools, mooring, grid_yaw, barge_side,
-## pen_count, slots}. "node"/"cage"/"fish_school" are pen 1's.
+## pen_count, slots, is_feeding}. "node"/"cage"/"fish_school" are pen 1's.
 var _pens: Dictionary = {}
 var _terrain_ref: FjordTerrain = null
 var _recommended_locations: Array[Vector3] = []
-var _fish_time: float = 0.0
+## The feed barge feeds a site's pens in turn (G3-01): FEED_SLOT_S seconds a
+## pen, in daylight, while the sim feeds the site.
+const FEED_SLOT_S := 24.0
+const FEED_MIN_SUN_DEG := 2.0
+var _feed_clock: float = 0.0
+## Set false to hide every school (the harness's fish A/B).
+var fish_shown := true
 
 # === Node References (auto-created if the scene lacks them) ===
 var markers_parent: Node3D
@@ -173,19 +174,44 @@ static func _selection_plane() -> PlaneMesh:
 
 
 func _process(delta: float) -> void:
+	# The site's and the boats' lights follow the dusk and the eye's exposure.
+	var director := get_node_or_null("../EnvironmentDirector") as EnvironmentDirector
+	SiteLights.sync(director, get_tree())
 	if _pens.is_empty():
 		return
 	# The floating gear samples the water bake the water does.
 	if _terrain_ref != null and _terrain_ref.water_bake_texture != SiteFloat.bake_texture:
 		SiteFloat.bake_texture = _terrain_ref.water_bake_texture
 	SiteFloat.sync()
-	_fish_time += delta * fish_swim_speed
+	FishSchool.sync(director.water_material() if director else null, SiteLights.fog_density(director))
+	_feed_clock += delta
+	var daylight := director == null or float(director.get_composed().get("sun_elevation", 30.0)) > FEED_MIN_SUN_DEG
 	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
 	for pen_id in _pens:
-		var pen_data: Dictionary = _pens[pen_id]
-		for k in pen_data["fish_schools"].size():
-			FishSchool.animate(pen_data["fish_schools"][k], _fish_time, "%s#%d" % [pen_id, k], fish_swim_radius, cam)
+		var schools: Array = _pens[pen_id]["fish_schools"]
+		var fed := feeding_pen(pen_id) if daylight else -1
+		for k in schools.size():
+			FishSchool.set_feeding(schools[k], k == fed)
+			FishSchool.animate(schools[k], delta, cam)
 	_follow_selected_pen()
+
+
+## The pen of a site the feed barge is feeding now (0-based), or -1: the
+## sim feeds the site ("is_feeding") and the barge serves its pens in turn,
+## FEED_SLOT_S seconds each.
+func feeding_pen(pen_id: String) -> int:
+	if not (pen_id in _pens) or not bool(_pens[pen_id].get("is_feeding", false)):
+		return -1
+	return int(_feed_clock / FEED_SLOT_S) % maxi(int(_pens[pen_id]["pen_count"]), 1)
+
+
+## Show or hide every school (the harness's fish A/B).
+func set_fish_shown(on: bool) -> void:
+	fish_shown = on
+	for pen_id in _pens:
+		var farm: FarmSite = _pens[pen_id]["site"]
+		for school in _pens[pen_id]["fish_schools"]:
+			(school as Node3D).visible = on and not farm.is_ghost()
 
 
 ## The selection rings lie on the water round the selected pens, so they
@@ -350,6 +376,20 @@ static func pen_payload(site: Dictionary, k: int, pen_count: int) -> Dictionary:
 	return out
 
 
+## What a pen's school needs from the sim: the pen's fish, weight and so its
+## biomass, the site's oxygen and lice skirt.
+static func school_payload(site: Dictionary, pen: Dictionary) -> Dictionary:
+	var count := _site_float(pen, ["fish_count"], 0.0)
+	var weight := _site_float(pen, ["mean_weight_kg"], _site_float(site, ["mean_weight_kg"], 0.0))
+	return {
+		"fish_count": count,
+		"mean_weight_kg": weight,
+		"biomass_kg": count * weight,
+		"oxygen_mgl": _site_float(pen, ["oxygen_mgl"], _site_float(site, ["oxygen_mgl"], NAN)),
+		"has_skirt": bool(site.get("has_skirt", false)),
+	}
+
+
 func _apply_site_data(pen_id: String, site: Dictionary) -> void:
 	if not (pen_id in _pens):
 		return
@@ -368,10 +408,10 @@ func _apply_site_data(pen_id: String, site: Dictionary) -> void:
 		var state := health_state_for(pen)
 		farm.get_cage(k).set_health_state(state)
 		states.append(state)
-		FishSchool.apply_density(pen_data["fish_schools"][k], int(_site_float(pen, ["fish_count"], 0.0)),
-			_site_float(pen, ["mean_weight_kg"], 0.0))
+		FishSchool.apply_pen(pen_data["fish_schools"][k], school_payload(site, pen))
 	pen_data["health_state"] = health_state_for(site)
 	pen_data["pen_states"] = states
+	pen_data["is_feeding"] = bool(site.get("is_feeding", false))
 	_maybe_emit_feeding(pen_id, site)
 
 
@@ -459,12 +499,11 @@ func _add_site(pen_id: String, pen_count: int, slots: Vector2i, active: bool, si
 	boat.global_position = farm.to_global(boat_local)
 	boat.rotation.y = grid_yaw + PI * 0.5
 
-	# One fish school per pen.
+	# One fish school per pen, riding the water with its collar.
 	var schools: Array[MultiMeshInstance3D] = []
 	for k in pen_count:
-		var school := FishSchool.create("FishSchool%d" % (k + 1))
-		farm.add_child(school)
-		school.position = farm.pen_local_positions()[k]
+		var school := FishSchool.create("FishSchool%d" % (k + 1), "%s#%d" % [pen_id, k])
+		farm.get_cage(k).add_child(school)
 		schools.append(school)
 
 	_pens[pen_id] = {
@@ -496,7 +535,7 @@ func _set_site_extras_visible(pen_id: String, on: bool) -> void:
 	if boat is Node3D:
 		(boat as Node3D).visible = on
 	for school in _pens[pen_id].get("fish_schools", []):
-		(school as Node3D).visible = on
+		(school as Node3D).visible = on and fish_shown
 
 
 ## Seabed height lookup for mooring anchor lines (world x, z -> y), or an

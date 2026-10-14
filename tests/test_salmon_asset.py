@@ -104,7 +104,8 @@ def _region_mean(img: _Png, u0: float, u1: float, v0: float, v1: float):
 
 
 def test_both_lods_are_exported_with_the_skin_material():
-    assert SALMON["lod_levels"] == ["LOD0", "LOD1"]
+    # G3-01 added LOD2 (the school seen through the surface): every LOD.
+    assert SALMON["lod_levels"] == ["LOD0", "LOD1", "LOD2"]
     assert SALMON["materials"] == ["LK_SalmonSkin"]
     for lod in SALMON["lod_levels"]:
         assert (FISH / f"salmon_{lod}.glb").is_file()
@@ -113,15 +114,18 @@ def test_both_lods_are_exported_with_the_skin_material():
 
 
 def test_triangle_counts_match_the_roadmap():
-    # G3-01: LOD0 about 1.5k triangles, LOD1 about 300.
+    # G3-01: LOD0 about 1.5k triangles, LOD1 about 300, LOD2 about 40
+    # (thousands per pen through the surface).
     lod0, lod1 = _side("LOD0")["tri_count"], _side("LOD1")["tri_count"]
     assert 1200 <= lod0 <= 1800, lod0
     assert 200 <= lod1 <= 400, lod1
+    lod2 = _side("LOD2")["tri_count"]
+    assert 30 <= lod2 <= 64, lod2
     for lod, ceiling in SALMON["tri_max"].items():
         assert _side(lod)["tri_count"] <= ceiling
 
 
-@pytest.mark.parametrize("lod", ["LOD0", "LOD1"])
+@pytest.mark.parametrize("lod", ["LOD0", "LOD1", "LOD2"])
 def test_proportions_are_an_atlantic_salmon(lod):
     dims = _side(lod)["dimensions"]
     spec = SALMON["spec"]
@@ -134,7 +138,7 @@ def test_proportions_are_an_atlantic_salmon(lod):
     assert lo <= dims["total_length_m"] / dims["fork_length_m"] <= hi
 
 
-@pytest.mark.parametrize("lod", ["LOD0", "LOD1"])
+@pytest.mark.parametrize("lod", ["LOD0", "LOD1", "LOD2"])
 def test_nose_points_along_godot_minus_z(lod):
     # The snout is at Blender +Y = Godot -Z, half a fork length ahead of the
     # origin; the school code heads fish with Basis.looking_at (-Z forward).
@@ -144,7 +148,7 @@ def test_nose_points_along_godot_minus_z(lod):
     assert bbox[2] > 2.5 * bbox[1] > 0  # long along z, then tall, then narrow
 
 
-@pytest.mark.parametrize("lod", ["LOD0", "LOD1"])
+@pytest.mark.parametrize("lod", ["LOD0", "LOD1", "LOD2"])
 def test_uvs_cover_the_atlas(lod):
     u0, v0, u1, v1 = _side(lod)["uv_bounds"]
     assert 0.0 <= u0 and u1 <= 1.0 and 0.0 <= v0 and v1 <= 1.0
@@ -175,7 +179,7 @@ def test_skin_is_countershaded_silver():
 
 
 def test_godot_import_maps_the_skin_material():
-    for lod in ("LOD0", "LOD1"):
+    for lod in ("LOD0", "LOD1", "LOD2"):
         text = (FISH / f"salmon_{lod}.glb.import").read_text()
         assert "meshes/generate_lods=false" in text
         assert '"LK_SalmonSkin": {' in text
@@ -193,7 +197,7 @@ def test_the_game_loads_the_new_salmon():
     # manager builds every pen's school through it.
     code = (GODOT / "scripts" / "environment" / "FishSchool.gd").read_text()
     manager = (GODOT / "scripts" / "environment" / "FishPenManager.gd").read_text()
-    assert "salmon_LOD0.glb" in code and "salmon_LOD1.glb" in code
+    assert "salmon_LOD0.glb" in code and "salmon_LOD1.glb" in code and "salmon_LOD2.glb" in code
     assert 'find_child("Salmon"' in code
     assert "FishSchool.create(" in manager and "FishSchool.animate(" in manager
     assert "salmon_v2" not in code and "salmon_v2" not in manager
