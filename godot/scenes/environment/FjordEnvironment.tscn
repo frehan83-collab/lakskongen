@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3 uid="uid://fjord_environment_001"]
+[gd_scene load_steps=33 format=3 uid="uid://fjord_environment_001"]
 
 [ext_resource type="Script" path="res://scripts/environment/FjordEnvironment.gd" id="1_env"]
 [ext_resource type="Script" path="res://scripts/environment/FjordTerrain.gd" id="2_terrain"]
@@ -170,7 +170,7 @@ size = Vector2(0.012, 0.55)
 
 [sub_resource type="ParticleProcessMaterial" id="snow_process"]
 emission_shape = 3
-emission_box_extents = Vector3(45, 4, 45)
+emission_box_extents = Vector3(45, 12, 45)
 direction = Vector3(0, -1, 0)
 spread = 30.0
 initial_velocity_min = 1.0
@@ -184,10 +184,23 @@ turbulence_enabled = true
 turbulence_noise_strength = 0.6
 turbulence_noise_speed = Vector3(0.2, 0.1, 0.2)
 
+[sub_resource type="Gradient" id="snowflake_gradient"]
+offsets = PackedFloat32Array(0, 0.45, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="snowflake_texture"]
+gradient = SubResource("snowflake_gradient")
+width = 32
+height = 32
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
 [sub_resource type="StandardMaterial3D" id="snow_draw_mat"]
 transparency = 1
 shading_mode = 0
-albedo_color = Color(0.92, 0.94, 0.98, 0.8)
+albedo_color = Color(0.92, 0.94, 0.98, 0.85)
+albedo_texture = SubResource("snowflake_texture")
 billboard_mode = 3
 distance_fade_mode = 1
 distance_fade_min_distance = 1.5
@@ -195,7 +208,7 @@ distance_fade_max_distance = 10.0
 
 [sub_resource type="QuadMesh" id="snow_mesh"]
 material = SubResource("snow_draw_mat")
-size = Vector2(0.07, 0.07)
+size = Vector2(0.09, 0.09)
 
 
 [node name="FjordEnvironment" type="Node3D" node_paths=PackedStringArray("terrain", "camera", "time_system", "weather_system", "water_plane", "particle_effects", "underwater_rect", "director")]
@@ -285,6 +298,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 50, 0)
 emitting = false
 amount = 2000
 lifetime = 2.2
+preprocess = 2.2
 visibility_aabb = AABB(-80, -60, -80, 160, 80, 160)
 process_material = SubResource("rain_process")
 draw_pass_1 = SubResource("rain_mesh")
@@ -294,6 +308,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 60, 0)
 emitting = false
 amount = 1500
 lifetime = 14.0
+preprocess = 14.0
 visibility_aabb = AABB(-60, -40, -60, 120, 60, 120)
 process_material = SubResource("snow_process")
 draw_pass_1 = SubResource("snow_mesh")

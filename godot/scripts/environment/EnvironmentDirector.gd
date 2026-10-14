@@ -233,7 +233,7 @@ func _apply_sun(sun_dir: Vector3, cloud: float, c: Dictionary) -> void:
 	var tint := Color(balanced.x / peak, balanced.y / peak, balanced.z / peak) if peak > 0.0 else Color.BLACK
 	# Through a closed deck the light arrives diffused and near-neutral.
 	var neutral := tint.get_luminance()
-	sun_light.light_color = tint.lerp(Color(neutral, neutral, neutral), 0.7 * smoothstep(0.8, 0.97, cloud))
+	sun_light.light_color = tint.lerp(Color(neutral, neutral, neutral), 0.9 * smoothstep(0.8, 0.97, cloud))
 	sun_light.light_energy = energy
 	sun_light.shadow_enabled = energy > 0.002
 	sun_light.shadow_opacity = lerpf(1.0, 0.25, smoothstep(0.35, 1.0, cloud))
@@ -322,15 +322,19 @@ func _measure_sky(sun_dir: Vector3, cloud: float, density: float, sea_fog: float
 	var fog_rgb := horizon.lerp(grey, overcast)
 	# A sea-fog layer: bright, nearly white, lit from above.
 	fog_rgb = fog_rgb.lerp(Vector3(0.95, 0.97, 1.0) * _luminance(horizon) * 0.8, sea_fog * 0.85)
-	# Falling snow scatters the light: a brighter, whiter veil than rain.
+	# Falling snow scatters the light (and snow on the ground sends it back
+	# up into the deck): a brighter, cooler veil than rain.
 	var snow_veil := clampf(snowfall, 0.0, 1.0)
-	fog_rgb = fog_rgb.lerp(Vector3(0.9, 0.93, 0.97) * _luminance(fog_rgb) * 1.6, snow_veil * 0.8)
+	fog_rgb = fog_rgb.lerp(Vector3(0.88, 0.93, 1.0) * _luminance(fog_rgb) * 2.4, snow_veil * 0.85)
 	var clear_key := _luminance(zenith) + 0.04 * float(c.get("sun_clear_energy", 0.0)) + 0.15 * _luminance(horizon) \
 		+ 0.3 * float(c.get("moon_energy", 0.0))
 	# Under a deck the eye adapts part of the way: by the square root of how
 	# much darker the deck is than the clear horizon (storms stay darker).
 	var deck_ratio := clampf(deck / maxf(_luminance(horizon), 1e-4), 0.02, 1.0)
 	var key := clear_key * lerpf(1.0, pow(deck_ratio, 1.0 - OVERCAST_KEEP), overcast)
+	# Snowfall is bright: snow on the ground and the deck reflect the light
+	# back and forth, so a snowy day reads light grey, not gloomy.
+	key /= 1.0 + 2.0 * snow_veil
 	c["sky_zenith"] = zenith
 	c["horizon_color"] = Color(fog_rgb.x, fog_rgb.y, fog_rgb.z)
 	c["scene_key"] = key

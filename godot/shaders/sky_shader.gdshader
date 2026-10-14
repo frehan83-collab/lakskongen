@@ -257,7 +257,7 @@ vec4 cloud_layer_low(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int 
 	float closed = smoothstep(0.8, 0.97, cloud_coverage);
 	vec3 sun_in = sun_transmittance(0.5 * (H0 + H1), sun_dir.y) * CLOUD_LIGHT;
 	// Under a closed deck the eye sees the diffused light as near-neutral.
-	sun_in = mix(sun_in, vec3(dot(sun_in, vec3(0.2126, 0.7152, 0.0722))), 0.7 * closed);
+	sun_in = mix(sun_in, vec3(dot(sun_in, vec3(0.2126, 0.7152, 0.0722))), 0.9 * closed);
 	float mu = dot(dir, sun_dir);
 	float sun_up = max(sun_dir.y, 0.0);
 	float low_sun = pow(1.0 - clamp(sun_dir.y * 5.0, 0.0, 1.0), 2.0) * smoothstep(-0.06, 0.0, sun_dir.y)
@@ -295,7 +295,9 @@ vec4 cloud_layer_low(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int 
 		float d_sun = low_density_at(low_noise(p.xz + toward, max(octaves - 3, 2)), min(hn + 0.15, 1.0));
 		float shade = exp(-d_sun * tau_max * 0.08) * mix(0.75, 1.0, hn);
 		vec3 c = sun_in * sun_up * t_d * (0.45 + 0.55 * shade) * mix(0.8, 1.2, hn);
-		c += sun_in * low_sun * (0.2 + 0.8 * pow(max(mu, 0.0), 3.0)) * 0.55 * shade;
+		// The sunlit sides face the low sun: seen from anywhere, a little
+		// brighter toward it (the silver lining adds the forward peak).
+		c += sun_in * low_sun * (0.6 + 0.4 * mu) * 0.9 * shade;
 		c += sun_in * silver * exp(-tau_column * 0.5) * shade;
 		c += ambient * (1.0 - 0.3 * d) * (0.8 + 0.4 * hn);
 		c += moon_light * (0.25 + 0.6 * shade);

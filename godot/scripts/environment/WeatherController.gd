@@ -36,7 +36,7 @@ const WEATHER_PRESETS := {
 
 ## Particle counts at 1 mm/h (rain) and 1 mm/h water equivalent (snow).
 const RAIN_PER_MM := 900.0
-const SNOW_PER_MM := 2500.0
+const SNOW_PER_MM := 5000.0
 
 var _target: Dictionary = {}
 var _current: Dictionary = {}
@@ -154,11 +154,18 @@ func _apply_particles() -> void:
 	var rain: float = _current.get("rain", 0.0)
 	if rain_particles:
 		rain_particles.emitting = rain > 0.05
-		rain_particles.amount = int(clampf(rain * RAIN_PER_MM, 1.0, 8000.0))
+		_set_amount(rain_particles, int(clampf(rain * RAIN_PER_MM, 1.0, 8000.0)))
 	var snow: float = _current.get("snow", 0.0)
 	if snow_particles:
 		snow_particles.emitting = snow > 0.02
-		snow_particles.amount = int(clampf(snow * SNOW_PER_MM, 1.0, 5000.0))
+		_set_amount(snow_particles, int(clampf(snow * SNOW_PER_MM, 1.0, 6000.0)))
+
+
+## Changing `amount` restarts the emitter, so a blend that set it every
+## frame left the sky empty: only steps of 20 % or more take effect.
+static func _set_amount(particles: GPUParticles3D, amount: int) -> void:
+	if absi(amount - particles.amount) > maxi(1, int(particles.amount * 0.2)):
+		particles.amount = amount
 
 
 func _update_particle_positions() -> void:
@@ -170,7 +177,7 @@ func _update_particle_positions() -> void:
 	if rain_particles:
 		rain_particles.global_position = Vector3(cam_pos.x, cam_pos.y + 30.0, cam_pos.z)
 	if snow_particles:
-		snow_particles.global_position = Vector3(cam_pos.x, cam_pos.y + 25.0, cam_pos.z)
+		snow_particles.global_position = Vector3(cam_pos.x, cam_pos.y + 10.0, cam_pos.z)
 
 
 ## Blended values, for the director.
