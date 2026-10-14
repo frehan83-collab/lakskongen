@@ -55,13 +55,31 @@ public static class PlayerScriptProbe
 
     public sealed class CareerResult
     {
+        /// <summary>Live kilos slaughtered.</summary>
         public double HarvestedKg = 0.0;
+        /// <summary>Gutted (HOG) kilos sold (S2-04).</summary>
+        public double HarvestedHogKg = 0.0;
+        /// <summary>Reference-equivalent kilos sold: HOG kg × size-class × grade factors (S2-04).</summary>
+        public double ReferenceEquivalentKg = 0.0;
+        /// <summary>Gross sales (NOK), as booked as harvest revenue.</summary>
         public double RevenueNok = 0.0;
+        /// <summary>Harvest cost (NOK), as booked as cost of goods sold (S2-04, F270).</summary>
+        public double HarvestCostNok = 0.0;
+        /// <summary>
+        /// Price realized per reference-equivalent kilo (NOK/kg): gross sales over
+        /// the HOG kilos weighted by their size-class and grade factors, i.e. the
+        /// price per kilo of the product the spot is quoted for (superior HOG).
+        /// Before S2-04 the game sold live kilos at that price.
+        /// </summary>
         public double RealizedPricePerKg = 0.0;
+        /// <summary>Price achievement: gross sales per HOG kilo over the spot of the harvest days (S2-04).</summary>
+        public double PriceAchievement = 0.0;
+        /// <summary>Superior share of the HOG kilos sold (S2-04).</summary>
+        public double SuperiorShare = 0.0;
         public double EconomicFcr = 0.0;
         public double SeaMortalityPct = 0.0;
         public double PeakAdultFemaleLice = 0.0;
-        /// <summary>Spot price on each harvest, weighted by the kilos sold that day (NOK/kg).</summary>
+        /// <summary>Spot price on each slaughter day, weighted by the reference-equivalent kilos sold that day (NOK/kg).</summary>
         public double MeanSpotOnHarvestDaysNok = 0.0;
         /// <summary>Mean of every daily spot price the career saw (NOK/kg).</summary>
         public double MeanSpotOverCareerNok = 0.0;
@@ -85,10 +103,17 @@ public static class PlayerScriptProbe
         public LakskongenSim.Biology.MortalityBreakdown Mortality;
         /// <summary>Fish in the sea sites after the scenario start and the probe's stocking.</summary>
         public double FishBeforeGrowOut = 0.0;
-        /// <summary>Fish in the sea sites when each was harvested (summed).</summary>
+        /// <summary>
+        /// Fish the career's harvest orders slaughtered (summed over the
+        /// S2-04 harvest reports): every one must be on the ledger as a harvest.
+        /// </summary>
         public double FishAtHarvest = 0.0;
         /// <summary>Fish still in the sea sites when the career ended.</summary>
         public double FishLeftAtEnd = 0.0;
+        /// <summary>Harvest orders the career placed (S2-04).</summary>
+        public int HarvestOrders = 0;
+        /// <summary>Slaughter days the orders took (S2-04).</summary>
+        public int SlaughterDays = 0;
     }
 
     /// <summary>
@@ -141,16 +166,16 @@ public static class PlayerScriptProbe
         double growthAccumulator = 0.0;
 
         bool saveLoadDone = false;
-        var harvestedSites = new HashSet<string>();
-        double fishAtHarvest = 0.0;
-        double spotTimesKg = 0.0;
+        var orderedSites = new HashSet<string>();
+        var orderIds = new HashSet<string>();
         // Daily spot as the career saw it (kept across the save/load round trip,
         // like the player's memory of the market).
         var spotHistory = new List<double>();
         int sitesStocked = engine.State.SeaSites.Count(s => SiteFishCount(s) > 0);
         while (engine.State.Day < CareerHorizonDays)
         {
-            int step = AnySiteReadyToSell(engine.State, harvestedSites) ? 1 : AdvanceChunkDays;
+            bool busy = engine.HarvestOrders.Count > 0 || AnySiteReadyToSell(engine.State, orderedSites);
+            int step = busy ? 1 : AdvanceChunkDays;
             for (int d = 0; d < step; d++)
             {
                 engine.Advance(1);
@@ -187,58 +212,80 @@ public static class PlayerScriptProbe
             // ===== Harvest through the command surface, per site =====
             // Each site is sold on its own (holding a ready site for the slowest
             // one feeds fish at their growth ceiling for months, review F1130).
-            // Rule (roadmap D2): from 4.5 kg, sell on a day when spot is at or
-            // above its 30-day mean; at 6 kg, sell whatever the price.
+            // Rule (roadmap D2): from 4.5 kg, order the harvest on a day when spot
+            // is at or above its 30-day mean; at 6 kg, order it whatever the price.
+            // S2-04: the order is the planned pipeline the harvest planner books:
+            // the fish fast, the wellboat comes on its slot and the slaughterhouse
+            // takes them within its daily capacity, each batch at that day's price.
             double spotToday = (double)engine.MarketSimulation.PricePerKg;
             double spotMean = spotHistory.Skip(Math.Max(0, spotHistory.Count - SpotMeanWindowDays)).Average();
             foreach (var site in engine.State.SeaSites.OrderBy(s => s.Id).ToList())
             {
-                if (harvestedSites.Contains(site.Id) || SiteFishCount(site) == 0) continue;
+                if (orderedSites.Contains(site.Id) || SiteFishCount(site) == 0) continue;
                 double weightKg = SiteMeanWeightKg(site);
                 if (weightKg < HarvestTriggerWeightKg) continue;
                 bool forced = weightKg >= ForcedHarvestWeightKg;
                 if (!forced && spotToday < spotMean) continue;
-                fishAtHarvest += SiteFishCount(site);
-                var cmd = engine.HarvestSite(site.Id);
-                Assert.True(cmd.Ok, $"harvest of {site.Id} failed: {cmd.ErrorKey}");
-                harvestedSites.Add(site.Id);
-                result.HarvestedKg += cmd.Value;
-                result.RevenueNok += cmd.Value2;
+                var cmd = engine.OrderHarvest(site.Id);
+                Assert.True(cmd.Ok, $"harvest order at {site.Id} failed: {cmd.ErrorKey}");
+                orderedSites.Add(site.Id);
+                orderIds.Add(cmd.Id);
+                result.HarvestOrders++;
                 result.HarvestWeightsKg.Add(weightKg);
                 if (forced) result.ForcedHarvests++;
-                spotTimesKg += spotToday * cmd.Value;
             }
 
             // Both careers (with and without the round trip) run at least to
             // the save day, so they stay comparable day for day.
-            if (engine.State.Day >= SaveLoadDay &&
-                engine.State.SeaSites.All(s => harvestedSites.Contains(s.Id) || SiteFishCount(s) == 0))
+            if (engine.State.Day >= SaveLoadDay && engine.HarvestOrders.Count == 0 &&
+                engine.State.SeaSites.All(s => orderedSites.Contains(s.Id) || SiteFishCount(s) == 0))
                 break;
         }
 
         Assert.True(!roundTripSaveLoad || saveLoadDone, "save/load round trip never ran (horizon hit first)");
-        Assert.True(harvestedSites.Count > 0 && engine.State.SeaSites.All(s => harvestedSites.Contains(s.Id) || SiteFishCount(s) == 0),
+        Assert.True(orderedSites.Count > 0 && engine.HarvestOrders.Count == 0
+            && engine.State.SeaSites.All(s => orderedSites.Contains(s.Id) || SiteFishCount(s) == 0),
             $"career never reached harvest weight on every site within {CareerHorizonDays} days");
 
-        double fishBeforeHarvest = fishAtHarvest;
-        result.HarvestedAllSites = harvestedSites.Count == sitesStocked;
+        // The harvest reports carry what each slaughtered batch sold, exactly as booked.
+        double fishSlaughtered = 0.0, spotTimesReferenceKg = 0.0, spotTimesHogKg = 0.0, superiorKg = 0.0;
+        var slaughterDays = new HashSet<int>();
+        foreach (var report in engine.HarvestReports.Where(r => orderIds.Contains(r.OrderId)))
+        {
+            fishSlaughtered += report.Fish;
+            result.HarvestedKg += report.LiveKg;
+            result.HarvestedHogKg += report.HogKg;
+            result.ReferenceEquivalentKg += report.ReferenceEquivalentKg;
+            result.RevenueNok += (double)report.GrossRevenueNok;
+            result.HarvestCostNok += (double)report.HarvestCostNok;
+            spotTimesReferenceKg += (double)report.ReferencePriceNok * report.ReferenceEquivalentKg;
+            spotTimesHogKg += (double)report.ReferencePriceNok * report.HogKg;
+            superiorKg += report.SuperiorShare * report.HogKg;
+            slaughterDays.Add(report.Day);
+        }
+        result.SlaughterDays = slaughterDays.Count;
+        result.HarvestedAllSites = orderedSites.Count == sitesStocked;
         result.DaysRun = engine.State.Day;
         result.EndingBalance = engine.FinanceManager.Balance;
-        result.RealizedPricePerKg = result.HarvestedKg > 0.001
-            ? result.RevenueNok / result.HarvestedKg
+        result.RealizedPricePerKg = result.ReferenceEquivalentKg > 0.001
+            ? result.RevenueNok / result.ReferenceEquivalentKg
             : 0.0;
-        result.MeanSpotOnHarvestDaysNok = result.HarvestedKg > 0.001 ? spotTimesKg / result.HarvestedKg : 0.0;
+        result.MeanSpotOnHarvestDaysNok = result.ReferenceEquivalentKg > 0.001
+            ? spotTimesReferenceKg / result.ReferenceEquivalentKg
+            : 0.0;
+        result.PriceAchievement = spotTimesHogKg > 0.001 ? result.RevenueNok / spotTimesHogKg : 0.0;
+        result.SuperiorShare = result.HarvestedHogKg > 0.001 ? superiorKg / result.HarvestedHogKg : 0.0;
         result.MeanSpotOverCareerNok = spotHistory.Count > 0 ? spotHistory.Average() : 0.0;
         result.EconomicFcr = growthAccumulator > 0.001
             ? feedAccumulator / growthAccumulator
             : double.MaxValue;
         result.FinalStateJson = SaveStateComparer.Normalize(SaveStateComparer.Serialize(engine));
         result.SeaMortalityPct = fishBeforeGrowOut > 0
-            ? (fishBeforeGrowOut - fishBeforeHarvest) / fishBeforeGrowOut * 100.0
+            ? (fishBeforeGrowOut - fishSlaughtered) / fishBeforeGrowOut * 100.0
             : 0.0;
         result.Mortality = engine.MortalityLedger.Cumulative();
         result.FishBeforeGrowOut = fishBeforeGrowOut;
-        result.FishAtHarvest = fishAtHarvest;
+        result.FishAtHarvest = fishSlaughtered;
         result.FishLeftAtEnd = TotalFish(engine.State);
 
         return result;

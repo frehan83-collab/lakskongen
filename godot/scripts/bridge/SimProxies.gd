@@ -296,6 +296,20 @@ func stock_offshore_farm(farm_id: String, count: int, strain_id: String = "stand
 func harvest_offshore_farm(farm_id: String) -> Dictionary:
 	return game_bridge.HarvestOffshoreFarm(farm_id) if game_bridge else {"success": false, "message": "Not initialized"}
 
+## Harvest pipeline (S2-04): quote, order and cancel a planned harvest of a sea
+## site, land facility or offshore farm (empty pen_ids = every pen with fish;
+## fraction of each pen's fish), and read the open orders and harvest reports.
+func quote_harvest(holding_id: String, pen_ids: Array[String] = [], fraction: float = 1.0, express: bool = false) -> Dictionary:
+	return game_bridge.QuoteHarvest(holding_id, pen_ids, fraction, express) if game_bridge else {"success": false, "message": "Not initialized"}
+func order_harvest(holding_id: String, pen_ids: Array[String] = [], fraction: float = 1.0) -> Dictionary:
+	return game_bridge.OrderHarvest(holding_id, pen_ids, fraction) if game_bridge else {"success": false, "message": "Not initialized"}
+func cancel_harvest_order(order_id: String) -> Dictionary:
+	return game_bridge.CancelHarvestOrder(order_id) if game_bridge else {"success": false, "message": "Not initialized"}
+func get_harvest_orders() -> Array[Dictionary]:
+	return _arr(game_bridge.GetHarvestOrders()) if game_bridge else ([] as Array[Dictionary])
+func get_harvest_reports() -> Array[Dictionary]:
+	return _arr(game_bridge.GetHarvestReports()) if game_bridge else ([] as Array[Dictionary])
+
 ## Perform maintenance on RAS facility, returns cost
 func ras_maintenance(facility_id: String) -> float:
 	if game_bridge and game_bridge.has_method("PerformRASMaintenance"):

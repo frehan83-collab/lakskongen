@@ -270,7 +270,21 @@ public class EconomyLedgerTests
         var harvest = engine.HarvestSite(site.Id);
 
         Assert.True(harvest.Ok);
-        Assert.Equal((decimal)harvest.Value * spot, (decimal)harvest.Value2, 2);
+        // S2-04: the spot (which carries the certification multiplier once) is
+        // the price of a reference kilo, superior HOG of 4-5 kg. The sale is each
+        // size class's gutted kilos at the class factor times the grade factor
+        // times that spot, rebuilt here from the report's classes and grades and
+        // the calibration: no second certification multiplier (F268). It was
+        // live kilos × spot.
+        var cal = LakskongenSim.Calibration.CalibrationRegistry.Default.Harvest;
+        var report = engine.HarvestReports[^1];
+        Assert.Equal(harvest.Value * cal.HogYieldFraction, report.HogKg, 6);
+        double gradeFactor = report.SuperiorShare + report.OrdinaryShare * cal.OrdinaryPriceFactor
+            + report.ProductionShare * cal.ProductionPriceFactor;
+        double referenceKg = report.HogKgBySizeClass
+            .Select((kg, sizeClass) => kg * LakskongenSim.Harvest.SizeClassPriceLadder.Factor(cal, sizeClass))
+            .Sum() * gradeFactor;
+        Assert.Equal(referenceKg * (double)spot, harvest.Value2, 2);
     }
 
     // ── Achievements (F1006) ───────────────────────────────────────────────────

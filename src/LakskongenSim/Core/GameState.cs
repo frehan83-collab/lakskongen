@@ -288,6 +288,33 @@ namespace LakskongenSim.Core
         /// <summary>Wellboat bookings made this game: the sequence number in each job's deterministic id (P0-07).</summary>
         public int WellboatJobsBooked { get; set; }
 
+        /// <summary>
+        /// Harvest orders (S2-04): fish fasting toward a wellboat slot or being
+        /// slaughtered batch by batch within the slaughterhouse's daily
+        /// capacity. Finished and cancelled orders are dropped. Empty in saves
+        /// from before S2-04.
+        /// </summary>
+        public List<Harvest.HarvestOrder> HarvestOrders { get; set; } = new();
+
+        /// <summary>Harvest orders placed this game: the sequence number in each order's deterministic id (S2-04).</summary>
+        public int HarvestOrdersPlaced { get; set; }
+
+        /// <summary>
+        /// The latest harvest reports (S2-04), newest last, one per slaughtered
+        /// batch: fish, live and gutted kilos, size classes, grades, prices and
+        /// the harvest cost exactly as booked in the ledger.
+        /// </summary>
+        public List<Harvest.HarvestReport> HarvestReports { get; set; } = new();
+
+        /// <summary>Slaughtered batches sold this game: the sequence number in each harvest report's id (S2-04).</summary>
+        public int HarvestBatchesSold { get; set; }
+
+        /// <summary>Gutted (HOG) kilos sold since the game started (S2-04).</summary>
+        public double TotalHarvestedHogKg { get; set; }
+
+        /// <summary>Live kilos slaughtered since the game started (S2-04).</summary>
+        public double TotalHarvestedLiveKg { get; set; }
+
         /// <summary>Staff roster (Phase 3.1).</summary>
         public List<CrewMember> Crew { get; set; } = new();
 
@@ -336,6 +363,13 @@ namespace LakskongenSim.Core
 
         /// <summary>This fiscal year's harvest valued at the norm price (resource-rent base).</summary>
         public decimal ResourceRentHarvestValueThisTaxYear { get; set; }
+
+        /// <summary>
+        /// This fiscal year's harvest cost (wellboat, slaughter, packing; S2-04):
+        /// booked as cost of goods sold but not a sea-phase cost, so it is left
+        /// out of the resource-rent deductions (skatteloven § 19-5/19-6).
+        /// </summary>
+        public decimal HarvestCostThisTaxYear { get; set; }
 
         /// <summary>P9: last binding monthly pen price set by the Price Council (NOK/kg).</summary>
         public decimal PenPriceCouncilLastValue { get; set; }

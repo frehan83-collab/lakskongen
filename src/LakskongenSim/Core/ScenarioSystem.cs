@@ -55,6 +55,19 @@ namespace LakskongenSim.Core
         [System.Text.Json.Serialization.JsonPropertyName("smolt_count")]
         public int SmoltCount { get; set; }
 
+        /// <summary>
+        /// Days the starting fish have been at sea on the scenario's first day
+        /// (S2-03). 0 = smolts released that day. A farm taken over on 1 January
+        /// holds the generation its last release window put to sea: autumn S0
+        /// smolts (released mid-September, 110 days) in PO1-PO7, spring S1 smolts
+        /// in PO8-PO13, where the sea warms later (released mid-June, 200 days).
+        /// The starting weight and size
+        /// spread are grown by the engine's growth law over the area's normal sea
+        /// temperature (<see cref="SimulationEngine.GrowOnClimatology"/>).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("days_at_sea")]
+        public int DaysAtSea { get; set; }
+
         /// <summary>Smolt strain id (see <see cref="Farm.SmoltStrainRegistry"/>), e.g. "standard", "robust", "postsmolt".</summary>
         [System.Text.Json.Serialization.JsonPropertyName("smolt_quality")]
         public string SmoltQuality { get; set; } = "standard";
@@ -360,12 +373,18 @@ namespace LakskongenSim.Core
                     pop.SeaLiceLoad = strain.InitialLiceLoad;
                     if (smoltPerPen > 0)
                     {
+                        var genome = strain.BuildGenome();
+                        var stock = SimulationEngine.GrowOnClimatology(engine?.Growth.Law ?? TgcGrowthLaw.Default,
+                            area, state.Day, siteDef.DaysAtSea, strain.ReleaseWeightKg, genome.GetGrowthMultiplier());
                         pop.AddCohort(new FishPopulation.Cohort(
-                            ageDays: 300,
+                            ageDays: 300 + Math.Max(0, siteDef.DaysAtSea),
                             count: smoltPerPen,
-                            meanWeightKg: strain.ReleaseWeightKg,
-                            stage: LifeStage.Smolt,
-                            genetics: strain.BuildGenome()));
+                            meanWeightKg: stock.WeightKg,
+                            stage: siteDef.DaysAtSea > 0 ? LifeStage.Seawater : LifeStage.Smolt,
+                            genetics: genome)
+                        {
+                            WeightCv = stock.WeightCv
+                        });
                     }
                     site.Stock(pop);
                     state.Populations.Add(pop);
@@ -977,7 +996,7 @@ namespace LakskongenSim.Core
                 Description =
                     "Du har arvet bestefars lille oppdrett i Hardanger. Med én lisens og små midler må du lære grunnleggende oppdrett. " +
                     "Bygg opp gården fra bunnen av og vis at du kan drive lønnsomt.",
-                StartingCapitalNOK = 3_000_000m,
+                StartingCapitalNOK = 4_000_000m,
                 StartingRegion = ProductionRegion.Vestland,
                 Difficulty = 1,
                 WinCondition = WinCondition.Tutorial,
@@ -989,10 +1008,14 @@ namespace LakskongenSim.Core
                 // The inherited farm. Without it the start could not afford a 6M
                 // site, so the tutorial could not be played (F1013). One pen of
                 // 20,000 smolts and 3M NOK: 5,000 smolts on 300k could not carry
-                // a crew to the first harvest (decision log, RUN_LOG §7).
+                // a crew to the first harvest (decision log, RUN_LOG §7). S2-03
+                // raised it to 22,000; S2-04 (fish sold as gutted kilos at the
+                // size-class and grade prices, less the harvest cost: ~27% less
+                // per live kilo) to 36,000 fish and 4M NOK, so the first harvest
+                // still funds the second site (RUN_LOG §7, docs/BALANCE.md §1h).
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "bestefars_anlegg", Name = "Bestefars Anlegg", Zone = "fjord_west", ProductionArea = 3, Pens = 1, SmoltCount = 20_000, SmoltQuality = "standard" },
+                    new() { Id = "bestefars_anlegg", Name = "Bestefars Anlegg", Zone = "fjord_west", ProductionArea = 3, Pens = 1, SmoltCount = 36_000, DaysAtSea = 110, SmoltQuality = "standard" },
                 },
                 TimeLimitDays = null,
                 IsUnlocked = true,
@@ -1020,7 +1043,7 @@ namespace LakskongenSim.Core
                 },
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "nordland_premium", Name = "Nordland Premium", Zone = "fjord_north", ProductionArea = 9, Pens = 2, SmoltCount = 8_000, SmoltQuality = "standard" },
+                    new() { Id = "nordland_premium", Name = "Nordland Premium", Zone = "fjord_north", ProductionArea = 9, Pens = 2, SmoltCount = 8_000, DaysAtSea = 200, SmoltQuality = "standard" },
                 },
                 TimeLimitDays = null,
                 IsUnlocked = true,
@@ -1047,7 +1070,7 @@ namespace LakskongenSim.Core
                 },
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "trondelag_base", Name = "Trøndelag Base", Zone = "fjord_west", ProductionArea = 6, Pens = 3, SmoltCount = 10_000, SmoltQuality = "standard" },
+                    new() { Id = "trondelag_base", Name = "Trøndelag Base", Zone = "fjord_west", ProductionArea = 6, Pens = 3, SmoltCount = 10_000, DaysAtSea = 110, SmoltQuality = "standard" },
                 },
                 TimeLimitDays = null,
                 IsUnlocked = true, // No progression yet: every scenario is open until U2-03 (roadmap U1-07).
@@ -1075,7 +1098,7 @@ namespace LakskongenSim.Core
                 },
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "finnmark_turnaround", Name = "Finnmark Turnaround", Zone = "fjord_north", ProductionArea = 12, Pens = 2, SmoltCount = 6_000, SmoltQuality = "standard" },
+                    new() { Id = "finnmark_turnaround", Name = "Finnmark Turnaround", Zone = "fjord_north", ProductionArea = 12, Pens = 2, SmoltCount = 6_000, DaysAtSea = 200, SmoltQuality = "standard" },
                 },
                 TimeLimitDays = 730,
                 IsUnlocked = true, // No progression yet: every scenario is open until U2-03 (roadmap U1-07).
@@ -1103,7 +1126,7 @@ namespace LakskongenSim.Core
                 },
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "lakskongen_hovedanlegg", Name = "Lakskongen Hovedanlegg", Zone = "fjord_west", ProductionArea = 4, Pens = 4, SmoltCount = 12_000, SmoltQuality = "standard" },
+                    new() { Id = "lakskongen_hovedanlegg", Name = "Lakskongen Hovedanlegg", Zone = "fjord_west", ProductionArea = 4, Pens = 4, SmoltCount = 12_000, DaysAtSea = 110, SmoltQuality = "standard" },
                 },
                 TimeLimitDays = null,
                 IsUnlocked = true, // No progression yet: every scenario is open until U2-03 (roadmap U1-07).
@@ -1141,8 +1164,8 @@ namespace LakskongenSim.Core
                 WinCondition = WinCondition.Survival,
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "po3_nord", Name = "PO3 Nord", Zone = "po3_nord", ProductionArea = 3, Pens = 6, SmoltCount = 12_000, SmoltQuality = "robust", Containment = "semi_closed" },
-                    new() { Id = "po3_sor",  Name = "PO3 Sør",  Zone = "po3_sor", ProductionArea = 3,  Pens = 4, SmoltCount = 10_000, SmoltQuality = "standard" },
+                    new() { Id = "po3_nord", Name = "PO3 Nord", Zone = "po3_nord", ProductionArea = 3, Pens = 6, SmoltCount = 12_000, DaysAtSea = 110, SmoltQuality = "robust", Containment = "semi_closed" },
+                    new() { Id = "po3_sor",  Name = "PO3 Sør",  Zone = "po3_sor", ProductionArea = 3,  Pens = 4, SmoltCount = 10_000, DaysAtSea = 110, SmoltQuality = "standard" },
                 },
                 StartingResearch = new[] { "sensor-networks", "deep-sea-farming" },
                 StartingBuildings = new[] { "ai_feeding" },
@@ -1189,9 +1212,9 @@ namespace LakskongenSim.Core
                 WinCondition = WinCondition.Survival,
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "isa_kjerne", Name = "Infisert kjerneanlegg", Zone = "isa_kjerne", ProductionArea = 6, Pens = 4, SmoltCount = 8_000,  SmoltQuality = "standard" },
-                    new() { Id = "isa_nord",   Name = "Nabofelt nord",          Zone = "isa_nord", ProductionArea = 6,   Pens = 6, SmoltCount = 12_000, SmoltQuality = "robust",   Barrier = "smoltscreen" },
-                    new() { Id = "isa_sor",    Name = "Nabofelt sør",           Zone = "isa_sor", ProductionArea = 6,    Pens = 6, SmoltCount = 12_000, SmoltQuality = "robust",   Barrier = "smoltscreen" },
+                    new() { Id = "isa_kjerne", Name = "Infisert kjerneanlegg", Zone = "isa_kjerne", ProductionArea = 6, Pens = 4, SmoltCount = 8_000, DaysAtSea = 110, SmoltQuality = "standard" },
+                    new() { Id = "isa_nord",   Name = "Nabofelt nord",          Zone = "isa_nord", ProductionArea = 6,   Pens = 6, SmoltCount = 12_000, DaysAtSea = 110, SmoltQuality = "robust",   Barrier = "smoltscreen" },
+                    new() { Id = "isa_sor",    Name = "Nabofelt sør",           Zone = "isa_sor", ProductionArea = 6,    Pens = 6, SmoltCount = 12_000, DaysAtSea = 110, SmoltQuality = "robust",   Barrier = "smoltscreen" },
                 },
                 StartingResearch = new[] { "disease-resistance", "sensor-networks" },
                 StartingBuildings = new[] { "hatchery" }, // biosecure smolt production
@@ -1256,9 +1279,9 @@ namespace LakskongenSim.Core
                 WinCondition = WinCondition.Survival,
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "alge_sor",   Name = "Algeutsatt sør", Zone = "alge_sor", ProductionArea = 9,  Pens = 8, SmoltCount = 14_000, SmoltQuality = "standard" },
-                    new() { Id = "alge_midt",  Name = "Algeutsatt midt", Zone = "alge_midt", ProductionArea = 9, Pens = 8, SmoltCount = 14_000, SmoltQuality = "standard" },
-                    new() { Id = "alge_indre", Name = "Innlandsbeskyttet", Zone = "alge_indre", ProductionArea = 9, Pens = 5, SmoltCount = 9_000, SmoltQuality = "robust" },
+                    new() { Id = "alge_sor",   Name = "Algeutsatt sør", Zone = "alge_sor", ProductionArea = 9,  Pens = 8, SmoltCount = 14_000, DaysAtSea = 200, SmoltQuality = "standard" },
+                    new() { Id = "alge_midt",  Name = "Algeutsatt midt", Zone = "alge_midt", ProductionArea = 9, Pens = 8, SmoltCount = 14_000, DaysAtSea = 200, SmoltQuality = "standard" },
+                    new() { Id = "alge_indre", Name = "Innlandsbeskyttet", Zone = "alge_indre", ProductionArea = 9, Pens = 5, SmoltCount = 9_000, DaysAtSea = 200, SmoltQuality = "robust" },
                 },
                 StartingResearch = new[] { "sensor-networks", "predictive-analytics" },
                 StartingBuildings = new[] { "ai_feeding" },
@@ -1323,9 +1346,9 @@ namespace LakskongenSim.Core
                 EnableResourceRentTax = true,
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "vest_1", Name = "Hovedanlegg vest", Zone = "vest_1", ProductionArea = 4, Pens = 8,  SmoltCount = 15_000, SmoltQuality = "postsmolt" },
-                    new() { Id = "vest_2", Name = "Vekstanlegg nord", Zone = "vest_2", ProductionArea = 4, Pens = 8,  SmoltCount = 15_000, SmoltQuality = "postsmolt" },
-                    new() { Id = "vest_3", Name = "Utvidelse sør",    Zone = "vest_3", ProductionArea = 4, Pens = 6,  SmoltCount = 12_000, SmoltQuality = "robust" },
+                    new() { Id = "vest_1", Name = "Hovedanlegg vest", Zone = "vest_1", ProductionArea = 4, Pens = 8,  SmoltCount = 15_000, DaysAtSea = 110, SmoltQuality = "postsmolt" },
+                    new() { Id = "vest_2", Name = "Vekstanlegg nord", Zone = "vest_2", ProductionArea = 4, Pens = 8,  SmoltCount = 15_000, DaysAtSea = 110, SmoltQuality = "postsmolt" },
+                    new() { Id = "vest_3", Name = "Utvidelse sør",    Zone = "vest_3", ProductionArea = 4, Pens = 6,  SmoltCount = 12_000, DaysAtSea = 110, SmoltQuality = "robust" },
                 },
                 StartingResearch = new[] { "international-export", "value-added-processing" },
                 StartingBuildings = new[] { "processing_plant", "feed_mill" },

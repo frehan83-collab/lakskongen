@@ -157,10 +157,7 @@ namespace LakskongenSim.Core
         internal decimal _dailyFarmSystemsOpex = 0m;
         internal decimal _dailyAiFeedingLicenseCost = 0m;
 
-        // ─── Per-day biology call tuning (values unchanged; see GrowthModel docs) ───
-        internal const double SdeTargetWeightKg = 5.5; // genetic asymptote K used by the daily SDE step
-        internal const double SdeGeneticGrowthRateAlphaMax = 20.0; // α_max scale for SDE-only growth
-        internal const double SdeIndividualVarianceSigma = 0.002; // σ kept small vs deterministic drift
+        // ─── Per-day biology inputs (growth itself: the S2-03 TGC law, calibration "growth") ───
         internal const double PenVolumeProxyM3 = 10_000.0; // pen-volume proxy for density estimate
         internal const double DefaultStockingDensityKgM3 = 20.0; // fallback when no zone is known
         internal const double WarmingPerYearC = 0.02; // P10: documented warming trend applied to lice development
@@ -403,10 +400,14 @@ namespace LakskongenSim.Core
             // Hatchery → population
             Hatchery.OnNewCohort += cohort =>
             {
-                // Assign genetics if missing (hatchery produces cohorts with specific genomes)
+                // Assign genetics if missing. A released batch is a commercial
+                // batch of standard S1 smolts, so it carries the standard
+                // strain's genome, as StockSmolts does (S2-03): one random
+                // individual's breeding values (growth SD 15%) on a whole
+                // cohort made one batch grow 37% slower than the next.
                 if (cohort.Genetics == null)
                 {
-                    cohort.Genetics = Genetics.GenerateRandomGenome();
+                    cohort.Genetics = SmoltStrainRegistry.Get("standard").BuildGenome();
                 }
 
                 // Create a new population for this cohort (tests expect separate populations per release)
@@ -864,6 +865,7 @@ namespace LakskongenSim.Core
             // (private, same property names) purely as the engine's local view.
             _calibration = CalibrationRegistry.Load(dataPath);
             Weather?.ApplySeaTemperatureCalibration(_calibration.SeaTemperature);
+            Growth?.ApplyCalibration(_calibration.Growth);
             var config = BalancingConfig.FromRegistry(_calibration);
             _balancing = config;
             ApplyBalancingConfig(config);
@@ -1531,6 +1533,7 @@ private class BalancingConfig
         {
             new StormImpactsTickSystem(),
             new WellboatExecutionTickSystem(),
+            new HarvestOrdersTickSystem(),
             new LicenseAuctionTickSystem(),
             new BalanceMirrorTickSystem(),
             new SolvencyTickSystem()
@@ -1656,7 +1659,8 @@ private class BalancingConfig
         {
             var cmd = job.Kind == "delouse"
                 ? DelouseSite(job.SiteId, string.IsNullOrEmpty(job.Method) ? "hydrolicer" : job.Method)
-                : HarvestSite(job.SiteId);
+                : HarvestNowAs(job.SiteId, null, 1.0, LakskongenSim.Harvest.HarvestMode.HiredWellboat,
+                    "site_empty", $"Site '{job.SiteId}' is empty"); // S2-04: the hire paid the transport
 
             State.EventLog.Add(new Events.EventRecord
             {
@@ -2960,11 +2964,11 @@ private class BalancingConfig
                 double harvestT = Math.Min(biomassT, site.CurrentBiomassTonnes - site.MABTonnes);
                 if (harvestT < 0.1) harvestT = biomassT; // harvest all if barely over
 
-                decimal revenue = (decimal)(harvestT * 1000 * (double)penaltyPrice); // NOK
-                ReceiveIncome(revenue, "forced_harvest");
-                State.TotalSalesRevenueNok += revenue;
-                State.TotalHarvestRevenueNok += revenue;
-                RecordHarvestForResourceRent(harvestT * 1000.0);
+                // S2-04: sold through the harvest pipeline (HOG kilos, size
+                // classes, grades) at 70% of the price, less the harvest cost.
+                // The pipeline takes the fish themselves (S2-05 ledger:
+                // FishRemoval.ForcedHarvest), so the sale and the removal match.
+                decimal revenue = SellForcedHarvest(site, harvestT, 0.7m);
 
                 // Record event
                 State.EventLog.Add(new EventRecord
@@ -2976,9 +2980,6 @@ private class BalancingConfig
                     BalanceChange = revenue
                 });
                 SimLog.Info($"⚠️ Tvangsavslakt: {site.Id} {harvestT:F1}t til {penaltyPrice:F2} NOK/kg");
-
-                // Remove the over-MAB biomass from populations (simplified: reduce cohort weights proportionally)
-                ReduceSiteBiomass(site, harvestT);
 
                 site.MattilsynetOrderFulfilled = true;
                 site.MattilsynetDeadlineDay = -1;
@@ -2999,29 +3000,6 @@ private class BalancingConfig
                 });
                 SimLog.Info($"✅ Mattilsynet MAB-oppgjør: {site.Id} under MAB før deadline");
             }
-        }
-    }
-
-    /// <summary>
-    /// Reduce site biomass proportionally across cohorts to simulate forced harvest.
-    /// </summary>
-    private void ReduceSiteBiomass(Farm.SeaSite site, double tonnesToRemove)
-    {
-        double kgToRemove = tonnesToRemove * 1000.0;
-        foreach (var pop in site.Pens)
-        {
-            foreach (var cohort in pop.Cohorts)
-            {
-                double cohortBiomassKg = cohort.Count * cohort.MeanWeightKg;
-                if (cohortBiomassKg <= 0) continue;
-
-                double removeFraction = Math.Min(1.0, kgToRemove / cohortBiomassKg);
-                int fishToRemove = (int)(cohort.Count * removeFraction);
-                fishToRemove = pop.RemoveAlive(cohort, fishToRemove, FishRemoval.ForcedHarvest);
-                kgToRemove -= fishToRemove * cohort.MeanWeightKg;
-                if (kgToRemove <= 0) break;
-            }
-            pop.TriggerOnPopulationChanged();
         }
     }
 

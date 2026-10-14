@@ -39,7 +39,7 @@ namespace LakskongenSim.Calibration
         public const string EmbeddedResourceName = "LakskongenSim.Calibration.calibration.json";
 
         /// <summary>Current schema/balancing version. Bump when reconciled values change.</summary>
-        public const string DefaultVersion = "1.0.6";
+        public const string DefaultVersion = "1.0.8";
 
         /// <summary>Calibration schema/balancing version.</summary>
         [JsonPropertyName("version")]
@@ -112,9 +112,26 @@ namespace LakskongenSim.Calibration
         /// </summary>
         [JsonPropertyName("seaTemperature")]
         public SeaTemperatureCalibration SeaTemperature { get; init; } = new();
+
         /// <summary>Mortality hazards by cause (S2-05): the temperature-stress band and rate.</summary>
         [JsonPropertyName("mortality")]
         public MortalityCalibration Mortality { get; init; } = new();
+
+        /// <summary>
+        /// Sea-phase growth (S2-03): thermal growth coefficient, thermal response,
+        /// size tail, growth-ration curve, FCR size factor and cohort weight CV.
+        /// </summary>
+        [JsonPropertyName("growth")]
+        public GrowthCalibration Growth { get; init; } = new();
+
+        /// <summary>
+        /// Harvest pipeline (S2-04): live-to-gutted yield, fasting, wellboat and
+        /// slaughter capacity and cost, the size-class price ladder and the
+        /// quality grades.
+        /// </summary>
+        [JsonPropertyName("harvest")]
+        public HarvestCalibration Harvest { get; init; } = new();
+
         /// <summary>
         /// Derived feed cost per kg of fish produced = feed price × base FCR.
         /// This is the reconciled "~25.7 NOK/kg produced" figure in
@@ -252,7 +269,7 @@ namespace LakskongenSim.Calibration
     /// <summary>Operations OPEX constants.</summary>
     public sealed record OperationsCalibration
     {
-        /// <summary>Harvest cost per kg (wellboat rates). Real ~3-5 NOK/kg.</summary>
+        /// <summary>Harvest cost per kg live (wellboat rates). Real ~3-5 NOK/kg. Since S2-04 the engine prices the harvest from <see cref="HarvestCalibration"/>; only SimProbe's synthetic P&amp;L reads this.</summary>
         public decimal HarvestCostPerKgNOK { get; init; } = 4.0m;
         /// <summary>Processing cost per kg.</summary>
         public decimal ProcessingCostPerKgNOK { get; init; } = 9m;
@@ -665,6 +682,349 @@ namespace LakskongenSim.Calibration
         /// matches it (a test reads both).
         /// </summary>
         public double TemperatureStressDailyFractionPerDegreeC { get; init; } = 0.00005;
+    }
+
+    #endregion
+
+    #region S2-03 growth (TGC), appetite and ration
+
+    /// <summary>
+    /// The sea-phase growth law (roadmap S2-03): growth by the thermal growth
+    /// coefficient, a thermal response with an optimum and an upper limit, a
+    /// size factor for large fish, appetite (satiation intake) by temperature and
+    /// size, the growth response to the ration fed, and the cohort weight CV.
+    /// The law takes the water a cohort lives in as an input
+    /// (<c>Environment.HoldingWater</c>), so sea pens, offshore hulls and land
+    /// tanks at a controlled temperature share it.
+    /// </summary>
+    public sealed record GrowthCalibration
+    {
+        /// <summary>
+        /// Thermal growth coefficient at full appetite, sea phase:
+        /// TGC = (W1^(1/3) − W0^(1/3)) / Σ(°C·day) × 1000, W in grams. 3.0.
+        /// Sources: Reid et al. 2013a, commercial Atlantic salmon, average 3.0
+        /// (remedial 2.5, elite 3.5), as used by Dempsey et al. 2023, Front. Mar.
+        /// Sci. 10:1094247 (doi:10.3389/fmars.2023.1094247); Karlsen et al. 2018,
+        /// Sci. Rep. 8:9510 (doi:10.1038/s41598-018-27818-y): 2.80 in an open net
+        /// pen and 3.04 in a semi-closed pen over the first 4 months at sea;
+        /// Benchmark Genetics 2024 (Arctic Fish, 6.5 kg after 16 months): 3.38.
+        /// Roadmap band 2.8-3.2.
+        /// </summary>
+        public double ThermalGrowthCoefficient { get; init; } = 3.0;
+
+        /// <summary>
+        /// Temperature with the highest growth (°C). 13. Source: Kleiven,
+        /// Abdel-Fattah &amp; Bøhn 2026, Front. Aquac. 5 (doi:10.3389/faquc.2026.1835152):
+        /// "optimal growth is commonly reported around 13 to 14 °C" for post-smolts
+        /// and adults in seawater; Calado et al. 2021, Animals 11(6):1800
+        /// (doi:10.3390/ani11061800): optimum 13-16 °C. Thyholdt 2014 (Aquac.
+        /// Econ. Manag. 18:189-204): warm periods speed growth in the north and
+        /// slow it in the south. Below the optimum the law counts degrees (TGC).
+        /// </summary>
+        public double OptimalTemperatureC { get; init; } = 13.0;
+
+        /// <summary>
+        /// Temperature at which growth stops (°C). 22. Source: Calado et al. 2021:
+        /// incremental thermal maximum ~22 °C (CTmax ~26 °C); 2 kg salmon held at
+        /// 19 °C ate and grew at least 50% less than at 14 °C over 56 days. With
+        /// a linear fall of the degree weight from 13 to 22 °C, growth at 19 °C is
+        /// 51% of growth at 14 °C.
+        /// </summary>
+        public double UpperGrowthLimitC { get; init; } = 22.0;
+
+        /// <summary>
+        /// Growth per 12 hours of day length above 12 h (photoperiod slope): the
+        /// satiation gain is multiplied by 1 + slope × (D − 12) / 12, D the hours of
+        /// daylight the holding gets. 0.2 (+20% under continuous light, −20% in
+        /// polar night). Game estimate in the range of sea-cage light trials
+        /// (Endal et al. 2000, Aquaculture 191:337-349: continuous additional light
+        /// raised growth). Source of the effect: Aunsmo et al. 2014, Aquaculture
+        /// 428-429:249-257 (doi:10.1016/j.aquaculture.2014.03.007): on 827
+        /// Norwegian fish groups the TGC was strongly associated with mean day
+        /// length, so a temperature-only TGC is biased along the coast; the Ewos
+        /// growth index that fitted best accounts for light. Below the optimum the
+        /// law counts degree-days (TGC; valid at 4-14 °C, Alanärä et al. 2001):
+        /// growth at 4 °C is 4/13 = 0.31 of the optimum, at 5 °C 0.38.
+        /// </summary>
+        public double PhotoperiodGrowthSlope { get; init; } = 0.2;
+
+        /// <summary>
+        /// Weight (kg) above which the TGC law no longer holds and growth slows
+        /// toward <see cref="AsymptoticWeightKg"/>. 3.0. Source: Alanärä et al.
+        /// 2001: TGC valid for 100-3000 g; Dumas et al. 2007 (cited by Kleiven et
+        /// al. 2026): the cube-root TGC fits intermediate-sized fish better than
+        /// very small or large fish.
+        /// </summary>
+        public double TgcValidToKg { get; init; } = 3.0;
+
+        /// <summary>
+        /// Weight (kg) at which growth stops: above <see cref="TgcValidToKg"/> the
+        /// cube-root increment falls linearly in cube-root weight to zero here
+        /// (a von Bertalanffy tail). 20. Game estimate: large farmed broodstock;
+        /// gives ~0.79 of the TGC rate at 5 kg and lets fish grown on pass 6 kg.
+        /// </summary>
+        public double AsymptoticWeightKg { get; init; } = 20.0;
+
+        /// <summary>
+        /// Maintenance ration as a fraction of satiation: the ration at which a
+        /// fish neither gains nor loses weight. 0.10. Game estimate on the shape
+        /// of Brett 1979 (Fish Physiology VIII, growth-ration curves of salmonids):
+        /// maintenance is a small fraction of the maximum ration.
+        /// </summary>
+        public double MaintenanceRationFraction { get; init; } = 0.10;
+
+        /// <summary>
+        /// Curvature of the growth-ration curve
+        /// g(r) = (1 − e^(−a(r − m))) / (1 − e^(−a(1 − m))). 0.5 puts the optimum
+        /// ration (the best conversion) near 70% of satiation (Brett 1979: the
+        /// optimum ration lies below the maximum). Feeding 70% of appetite then
+        /// grows the fish 72% as fast at a 2% lower biological FCR; starving
+        /// (r = 0) loses weight at 14% of the satiation growth rate.
+        /// </summary>
+        public double RationCurvature { get; init; } = 0.5;
+
+        /// <summary>
+        /// Biological FCR scales with fish size as (W / reference)^exponent:
+        /// small fish convert better than large ones. 0.07 (0.81 at 100 g, 1.07 at
+        /// 5 kg). Game estimate fitted to the 1.14-1.15 biological FCR of a full
+        /// cycle (SalMar sustainability reports, <see cref="FeedCalibration.BaseFCR"/>).
+        /// </summary>
+        public double FcrSizeExponent { get; init; } = 0.07;
+
+        /// <summary>Weight (kg) at which the size factor of the FCR is 1. 2.0.</summary>
+        public double FcrReferenceWeightKg { get; init; } = 2.0;
+
+        /// <summary>
+        /// Weight CV of a smolt cohort at sea transfer. 0.18. Source: Karlsen et
+        /// al. 2018, Table 1: 101 g smolts, one month after transfer weight SD
+        /// 19.6 g (net pen, CV 17%) and 23.8 g (semi-closed, CV 21%).
+        /// </summary>
+        public double SmoltWeightCv { get; init; } = 0.18;
+
+        /// <summary>
+        /// Weight CV a cohort settles at under perfect feed spreading and full
+        /// ration. 0.20. Game estimate: harvest classes of a 5 kg Norwegian
+        /// harvest spread over 3-7 kg; poor spreading adds up to
+        /// <c>FeedSystem.MaxExtraSizeVarianceCv</c>.
+        /// </summary>
+        public double BaseWeightCv { get; init; } = 0.20;
+
+        /// <summary>
+        /// Extra weight CV at zero ration: restricted feeding sharpens competition
+        /// and widens the size spread (scaled by 1 − ration). 0.10. Game estimate.
+        /// </summary>
+        public double RestrictedRationExtraCv { get; init; } = 0.10;
+
+        /// <summary>
+        /// How fast the cohort CV moves to its settled value per unit of relative
+        /// growth in cube-root weight (dCV = (CV* − CV) × k × ΔL/L). 2.0. Game
+        /// estimate: a cohort grown from 100 g to 5 kg covers ~93% of the way.
+        /// </summary>
+        public double WeightCvRelaxation { get; init; } = 2.0;
+    }
+
+    #endregion
+
+    #region S2-04 harvest pipeline
+
+    /// <summary>
+    /// The harvest pipeline (roadmap S2-04): what a live kilo becomes at the
+    /// slaughterhouse and what it earns. Fish fast before slaughter, a wellboat
+    /// carries them to a slaughterhouse with a daily capacity (or a land-based
+    /// farm pipes them to its own hall), they are bled and gutted (HOG), sorted
+    /// into size classes on the gutted weight and into the industry's quality
+    /// grades, and sold at the reference price for superior HOG fish times the
+    /// size-class and grade factors, less the harvest cost.
+    /// </summary>
+    public sealed record HarvestCalibration
+    {
+        // ── Yield ──────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Gutted (head-on gutted, HOG) weight per kg of live fish. 0.84.
+        /// Source: Mowi, Salmon Farming Industry Handbook 2025, appendix "weight
+        /// conversion ratios" (https://mowi.com/wp-content/uploads/2025/06/2025-Salmon-Farming-Industry-Handbook.pdf,
+        /// p. 114): live fish 100%, loss of blood/starving 6%, offal 10%, gutted
+        /// fish (HOG) approx. 84%; the 2018 edition gives 84% too, and the capital
+        /// model on p. 75 uses "conversion rate from live weight to GWT: 0.84".
+        /// </summary>
+        public double HogYieldFraction { get; init; } = 0.84;
+
+        // ── Fasting ────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Degree-days (°C × days) fish fast before slaughter. 30. Regulatory
+        /// basis: kvalitetsforskriften (FOR-2013-06-28-844) § 16, farmed fish must
+        /// have been without feed long enough that no feed residue can be found
+        /// in the stomach or gut; akvakulturdriftsforskriften (FOR-2008-06-17-822)
+        /// § 27, the period without feed shall be as short as possible. The
+        /// duration is a game estimate, in degree-days because the gut empties
+        /// more slowly in cold water: 3 days at 10 °C, 6 at 5 °C, 2 at 15 °C.
+        /// </summary>
+        public double FastingDegreeDays { get; init; } = 30.0;
+
+        /// <summary>Fewest days of fasting before slaughter, whatever the temperature. 2. Game estimate.</summary>
+        public int MinFastingDays { get; init; } = 2;
+
+        // ── Wellboat and slaughterhouse ─────────────────────────────────────
+
+        /// <summary>
+        /// Days from ordering a harvest to the first wellboat slot. 5. Game
+        /// estimate: the lead time the game's harvest wellboat booking already
+        /// used (<c>RequestWellboat("harvest")</c>).
+        /// </summary>
+        public int WellboatLeadDays { get; init; } = 5;
+
+        /// <summary>
+        /// Live fish one harvest wellboat carries to the slaughterhouse a day
+        /// (tonnes). 300. Game estimate: one trip a day with a 3,000 m³ wellboat
+        /// (Sølvtrans' Ronja Queen class, docs/run/evidence/a3_01_vessels.md) at
+        /// about 100 kg/m³; the transport regulation (FOR-2008-06-17-820 § 14)
+        /// sets no number, only that density suit the fish's welfare.
+        /// </summary>
+        public double WellboatCapacityTonnesLivePerDay { get; init; } = 300.0;
+
+        /// <summary>
+        /// Gutted fish the player's slaughterhouse contract takes a day (tonnes
+        /// HOG). 150. Game estimate: Norway slaughtered 1,408,650 t of gutted
+        /// salmon in 2024 (Veterinærinstituttet, Fiskehelserapporten 2024, table
+        /// 5.8.1) at about 60 land-based slaughterhouses and 40 bleeding vessels
+        /// (ibid. §5.8): about 56 t per facility per working day on average,
+        /// large plants several hundred.
+        /// </summary>
+        public double SlaughterCapacityTonnesHogPerDay { get; init; } = 150.0;
+
+        /// <summary>
+        /// Wellboat transport per kg HOG (NOK). 1.55. With
+        /// <see cref="SlaughterCostPerKgHogNok"/> the harvest costs 5.0 NOK/kg HOG:
+        /// Fiskeridirektoratet's profitability survey 2023, "slakting og transport"
+        /// 4.45 NOK per kg round weight (Veterinærinstituttet, Fiskehelserapporten
+        /// 2024, table 3.2.1, https://www.vetinst.no/rapporter-og-publikasjoner/rapporter/2025/fiskehelserapporten-2024)
+        /// with the report's 12.5% gutting loss (4.45 × 1.125 = 5.0); Mowi Handbook
+        /// 2025, p. 75: harvest and processing incl. well boat EUR 0.40 per kg GWT
+        /// (≈ 4.7 NOK). Split 31/69 as Marine Harvest Norway 2017 (Handbook 2018,
+        /// p. 48: well boat EUR 0.15, primary processing 0.33 per kg GWE).
+        /// </summary>
+        public decimal WellboatCostPerKgHogNok { get; init; } = 1.55m;
+
+        /// <summary>Slaughter, gutting and packing per kg HOG (NOK). 3.45. Sources: see <see cref="WellboatCostPerKgHogNok"/>.</summary>
+        public decimal SlaughterCostPerKgHogNok { get; init; } = 3.45m;
+
+        /// <summary>
+        /// Extra cost per kg HOG of a harvest taken today without a plan (NOK):
+        /// a spot wellboat and the slaughterhouse's waiting pen, where the fish
+        /// fast before slaughter. 1.0. Game estimate.
+        /// </summary>
+        public decimal ExpressSurchargePerKgHogNok { get; init; } = 1.0m;
+
+        /// <summary>
+        /// Wellboat cost of an exposed offshore farm relative to a coastal site.
+        /// 1.5. Game estimate (the farm-types spec's offshore wellboat premium).
+        /// </summary>
+        public decimal OffshoreWellboatCostMultiplier { get; init; } = 1.5m;
+
+        // ── Size-class price ladder ─────────────────────────────────────────
+        // Factors on the reference price (superior HOG, the 4-5 kg class), by
+        // the GUTTED weight of the fish (the industry's size classes are HOG).
+        // Source: Kontali relative prices in Norway, weekly 2015-2024, in Mowi's
+        // Salmon Farming Industry Handbook 2025, §6.7 "Different sizes - different
+        // prices" (p. 49): 2-3 kg traded at about 86% of 4-5 kg on average
+        // (70-97%), 6-7 kg at about 108% (95-150%, peaks in summer); the
+        // Handbook 2018 (§5.7, 2008-2016) shows the same pattern. 3-4 and 5-6 kg
+        // are interpolated, under 2 kg and over 7 kg extrapolated (game
+        // estimates). The reference spot (Nasdaq/SISALMON) is the 3-6 kg basket,
+        // within 1% of the 4-5 kg class on these factors.
+
+        /// <summary>Price factor of fish under 1 kg HOG. 0.60. Game estimate (extrapolated).</summary>
+        public double PriceFactorUnder1Kg { get; init; } = 0.60;
+        /// <summary>Price factor of the 1-2 kg HOG class. 0.72. Game estimate (extrapolated with the 2-3 to 4-5 kg step).</summary>
+        public double PriceFactor1To2Kg { get; init; } = 0.72;
+        /// <summary>Price factor of the 2-3 kg HOG class. 0.86 (Kontali, 2015-2024 mean).</summary>
+        public double PriceFactor2To3Kg { get; init; } = 0.86;
+        /// <summary>Price factor of the 3-4 kg HOG class. 0.93 (interpolated).</summary>
+        public double PriceFactor3To4Kg { get; init; } = 0.93;
+        /// <summary>Price factor of the 4-5 kg HOG class: the reference. 1.00.</summary>
+        public double PriceFactor4To5Kg { get; init; } = 1.00;
+        /// <summary>Price factor of the 5-6 kg HOG class. 1.04 (interpolated).</summary>
+        public double PriceFactor5To6Kg { get; init; } = 1.04;
+        /// <summary>Price factor of the 6-7 kg HOG class. 1.08 (Kontali, 2015-2024 mean).</summary>
+        public double PriceFactor6To7Kg { get; init; } = 1.08;
+        /// <summary>Price factor of fish of 7 kg HOG and more. 1.10. Game estimate (extrapolated).</summary>
+        public double PriceFactorOver7Kg { get; init; } = 1.10;
+
+        // ── Quality grades ──────────────────────────────────────────────────
+        // After slaughter fish are sorted into superior, ordinary and production
+        // (Veterinærinstituttet, Fiskehelserapporten 2024 §5.8). Norway 2024 by
+        // weight: superior 80.6%, ordinary 1.5%, production 17.1% (table 5.8.1);
+        // superior about 65% in the first half year and 90% in the second (figure
+        // 5.8.6); the commonest cause of downgrading is wounds/injuries
+        // ("sår/skade"), then maturation, defects and clinical disease.
+
+        /// <summary>Price of ordinary-grade fish relative to superior. 0.90. Game estimate.</summary>
+        public double OrdinaryPriceFactor { get; init; } = 0.90;
+
+        /// <summary>
+        /// Price of production-grade fish relative to superior. 0.70. Source:
+        /// Mowi Handbook 2025, p. 116: "reduced price of downgraded fish (~30%)".
+        /// </summary>
+        public double ProductionPriceFactor { get; init; } = 0.70;
+
+        /// <summary>
+        /// Share (by weight) of a healthy, unwounded batch graded production
+        /// (deformities and other defects). 0.05. Game estimate: with the
+        /// ordinary share a healthy late-summer batch grades ~92% superior
+        /// (Norway, second half of 2024: ~90%).
+        /// </summary>
+        public double BaseProductionShare { get; init; } = 0.05;
+
+        /// <summary>Share (by weight) graded ordinary. 0.015 (Norway 2024: 20,976 of 1,408,650 t, table 5.8.1).</summary>
+        public double OrdinaryShare { get; init; } = 0.015;
+
+        /// <summary>Water colder than this (°C) exposes the fish to winter wounds (winter ulcers). 8. Game estimate.</summary>
+        public double WinterWoundTemperatureC { get; init; } = 8.0;
+
+        /// <summary>E-folding time (days) of a population's cold-water exposure memory. 60. Game estimate.</summary>
+        public double ColdExposureEFoldingDays { get; init; } = 60.0;
+
+        /// <summary>
+        /// Extra production share at full cold-water exposure (a harvest right
+        /// after a winter at sea). 0.30. Game estimate, tuned so a spring harvest
+        /// grades ~65% superior and a late-summer one ~90% (Norway 2024, H1/H2).
+        /// </summary>
+        public double WinterWoundProductionShare { get; init; } = 0.30;
+
+        /// <summary>
+        /// Extra production share per unit of delousing injury load
+        /// (<c>Health.DelousingInjuryState.InjuryLoad</c>; a fresh thermal
+        /// treatment adds 0.35). 0.25. Game estimate (injuries after delousing
+        /// are among the most important health problems at sea, Fiskehelserapporten 2024).
+        /// </summary>
+        public double TreatmentWoundProductionSharePerInjury { get; init; } = 0.25;
+
+        /// <summary>Most production share delousing injuries add. 0.5. Game estimate.</summary>
+        public double MaxTreatmentWoundProductionShare { get; init; } = 0.5;
+
+        /// <summary>Extra production share per adult female louse per fish (lice wounds). 0.05. Game estimate.</summary>
+        public double LiceWoundProductionSharePerLouse { get; init; } = 0.05;
+
+        /// <summary>Most production share lice wounds add. 0.2. Game estimate.</summary>
+        public double MaxLiceWoundProductionShare { get; init; } = 0.2;
+
+        /// <summary>
+        /// Mean live weight (kg) above which sexual maturation starts to
+        /// downgrade a batch. 6.0. Game estimate (maturation is the second
+        /// commonest cause of downgrading; fish grown on mature more).
+        /// </summary>
+        public double MaturationStartWeightKg { get; init; } = 6.0;
+
+        /// <summary>Extra production share per kg of mean live weight above <see cref="MaturationStartWeightKg"/>. 0.08. Game estimate.</summary>
+        public double MaturationProductionSharePerKg { get; init; } = 0.08;
+
+        /// <summary>Most production share maturation adds. 0.4. Game estimate.</summary>
+        public double MaxMaturationProductionShare { get; init; } = 0.4;
+
+        /// <summary>Harvest reports the game keeps (newest last). 40.</summary>
+        public int ReportsKept { get; init; } = 40;
     }
 
     #endregion

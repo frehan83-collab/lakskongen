@@ -38,7 +38,7 @@ public partial class SaveLoadManager : Node
     /// migration step in MigrateSaveData. Old saves without the field read
     /// as version 0.
     /// </summary>
-    public const int CurrentSaveVersion = 4;
+    public const int CurrentSaveVersion = 6;
 
     private JsonSerializerOptions _jsonOptions;
     private GameBridge _gameBridge;
@@ -584,6 +584,21 @@ public partial class SaveLoadManager : Node
                     // else the home area from the first site) and the anomaly
                     // restarts at zero.
                     saveData.SaveVersion = 4;
+                    break;
+                case 4:
+                    // v4 -> v5 (S2-03): cohorts carry their weight CV and
+                    // populations their ration policy. A v4 save loads with
+                    // full-appetite rations and CV 0 ("not yet known"), which
+                    // the first growth day sets from each cohort's weight
+                    // (TgcGrowthLaw.InitialWeightCv).
+                    saveData.SaveVersion = 5;
+                    break;
+                case 5:
+                    // v5 -> v6 (S2-04): harvest orders, harvest reports, the year's harvest
+                    // cost and a population's fasting and cold-water memory. A v5 save
+                    // loads with no open orders, no reports, nobody fasting and no cold
+                    // memory (the first growth days build it).
+                    saveData.SaveVersion = 6;
                     break;
                 default:
                     GD.PrintErr($"No migrator for save version {saveData.SaveVersion}; loading as-is.");

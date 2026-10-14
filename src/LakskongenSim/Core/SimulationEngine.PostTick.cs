@@ -41,6 +41,16 @@ internal sealed class WellboatExecutionTickSystem : ITickSystem
 }
 
 /// <summary>
+/// POST-TICK phase 2b: planned harvests (S2-04). After State.Day++ like the
+/// wellboat jobs, so an order's slot day is exact; slaughtered batches sell
+/// before the balance mirror and the solvency check see the day's cash.
+/// </summary>
+internal sealed class HarvestOrdersTickSystem : ITickSystem
+{
+    public void Tick(SimulationEngine engine) => engine.ProcessHarvestOrders();
+}
+
+/// <summary>
 /// POST-TICK phase 3: licence auctions (Phase 4.1). Runs BEFORE the balance
 /// mirror so settlement charges (player wins) sync into State.Balance the
 /// same day. Drives rival raises, settlement of closed auctions and
