@@ -1571,6 +1571,7 @@ ALERT_GILL_CRITICAL,Gill health critical at %s,Gjellehelsen er kritisk ved %s
 ALERT_GILL_POOR,Gill health declining at %s,Gjellehelsen svekkes ved %s
 GAME_EVENT_ALGAL_BLOOM,Bloom at the farm,Oppblomstring ved anlegget
 GAME_EVENT_APPETITE_LOW,Low appetite,Lav appetitt
+GAME_EVENT_ESCAPE,Fish escape,Rømming
 GAME_EVENT_FEED_CONVERSION_POOR,Feed conversion worsening,Fôrfaktoren forverres
 GAME_EVENT_GILL_HEALTH_CRITICAL,Gill health critical,Kritisk gjellehelse
 GAME_EVENT_GILL_HEALTH_POOR,Gill health declining,Svekket gjellehelse

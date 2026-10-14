@@ -55,6 +55,7 @@ namespace LakskongenSim.Events
         TemperatureHigh,
 
         // ── Incidents (they happen on a day) ────────────────────────────────
+        Escape,
         StormDamage,
         LiceTreatmentDue,
         TrafficLightRed,
@@ -127,7 +128,8 @@ namespace LakskongenSim.Events
             Row(GameEventType.SustainabilityLow, "sustainability_low", "sustainability", GameEventSeverity.Warning, VerbOpenSustainability),
             Row(GameEventType.TemperatureHigh, "temperature_high", "temperature", GameEventSeverity.Warning, VerbCheckWater),
 
-            Row(GameEventType.StormDamage, "storm_damage", "storm", GameEventSeverity.Warning, VerbInspectNets),
+            Row(GameEventType.Escape, "escape", "escape", GameEventSeverity.Critical, VerbInspectNets),
+            Row(GameEventType.StormDamage, "storm_damage", "storm", GameEventSeverity.Info, VerbInspectNets),
             Row(GameEventType.LiceTreatmentDue, "lice_treatment_due", "lice", GameEventSeverity.Warning, VerbDelouse),
             Row(GameEventType.TrafficLightRed, "traffic_light_red", "traffic_light", GameEventSeverity.Warning, VerbDelouse),
             Row(GameEventType.TrafficLightChanged, "traffic_light_changed", "traffic_light", GameEventSeverity.Info, NoCounterVerb),

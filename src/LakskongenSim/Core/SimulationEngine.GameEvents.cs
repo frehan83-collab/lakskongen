@@ -2,26 +2,21 @@ using System.Collections.Generic;
 using System.Linq;
 using LakskongenSim.Data;
 using LakskongenSim.Events;
+using LakskongenSim.Farm;
 
 namespace LakskongenSim.Core;
 
 /// <summary>
 /// The engine's side of the typed event bus (roadmap U2-06). The engine
-/// reports what happens (storm damage, a wellboat's work, a bank warning, a
-/// traffic light turning, an insurance payout, a storyteller event) as typed
+/// reports what happens (an escape, storm damage, a wellboat's work, a bank
+/// warning, a traffic light turning, an insurance payout, a storyteller
+/// event) as typed
 /// events; the snapshot layer reports the conditions that hold. Neither the
 /// bus nor this partial draws from an RNG stream or changes the game state,
 /// and the bus is not saved (<see cref="Reset"/> empties it).
 /// </summary>
 public partial class SimulationEngine
 {
-    /// <summary>
-    /// A storm whose impact severity reaches this is reported as critical
-    /// (pause and a card); a lighter one is a warning. The same line the
-    /// presentation layer drew before the bus (ConsequenceDirector, SimBridge).
-    /// </summary>
-    public const double CriticalStormEventSeverity = 0.8;
-
     /// <summary>The typed event bus the player is told through.</summary>
     public GameEventBus GameEvents { get; } = new();
 
@@ -40,11 +35,11 @@ public partial class SimulationEngine
             switch (note.Kind)
             {
                 case "storm_impact":
+                    // The log: the forecast was the warning (storm_forecast),
+                    // and what needs an answer after a storm is its own event
+                    // (an escape, worn nets, mortality).
                     PublishGameEvent(new GameEventRequest(GameEventType.StormDamage, note.Day)
                     {
-                        Severity = note.Severity >= CriticalStormEventSeverity
-                            ? GameEventSeverity.Critical
-                            : GameEventSeverity.Warning,
                         Message = note.Message,
                         Value = note.Severity
                     });
@@ -60,6 +55,17 @@ public partial class SimulationEngine
                     break;
             }
         }
+    }
+
+    /// <summary>Fish escaped from a site: critical (fines, Mattilsynet, the nets).</summary>
+    private void PublishEscapeEvent(SeaSite site, int escapees, string description)
+    {
+        PublishGameEvent(new GameEventRequest(GameEventType.Escape, State.Day)
+        {
+            SiteId = site.Id,
+            Message = description,
+            Value = escapees
+        });
     }
 
     private void PublishWellboatEvent(DayNote note)

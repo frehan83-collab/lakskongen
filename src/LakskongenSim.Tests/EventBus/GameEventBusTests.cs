@@ -215,36 +215,76 @@ public class GameEventBusTests
         return engine;
     }
 
+    /// <summary>
+    /// Storm damage is reported once per run of storm notes (notes within the
+    /// dedupe window of each other), dated to its day, to the log: a northern
+    /// winter brings a storm episode every week or two, the forecast is the
+    /// warning, and what needs an answer after a storm is its own event.
+    /// Severe storms must be among them, or the rule is only half tested.
+    /// </summary>
     [Fact]
-    public void Engine_ReportsAStormEpisodeOnce_DatedToItsDay_AsWarningOrCritical()
+    public void Engine_ReportsStormDamageOncePerRun_ToTheLog()
     {
-        for (int seed = 1; seed <= 40; seed++)
+        int severeChecked = 0, ordinaryChecked = 0;
+        for (int seed = 1; seed <= 40 && (severeChecked == 0 || ordinaryChecked == 0); seed++)
         {
             var engine = StockedEngine(seed);
-            var stormDays = new List<int>();
+            var notes = new List<DayNote>();
             var events = new List<GameEvent>();
             for (int day = 0; day < 150; day++)
             {
                 engine.Advance(1);
-                stormDays.AddRange(engine.DrainDayNotes().Where(n => n.Kind == "storm_impact").Select(n => n.Day));
+                notes.AddRange(engine.DrainDayNotes().Where(n => n.Kind == "storm_impact"));
                 events.AddRange(engine.GameEvents.DrainDelivered().Where(e => e.Type == GameEventType.StormDamage));
             }
-            if (stormDays.Count < 2) continue;
+            if (notes.Count < 2) continue;
 
-            // Storm days within three days of each other are one episode: one
-            // event per episode (plus an escalation when it worsens).
-            int episodes = 1;
-            for (int i = 1; i < stormDays.Count; i++)
-                if (stormDays[i] - stormDays[i - 1] > GameEventBus.DedupeWindowDays) episodes++;
-            var fresh = events.Where(e => !e.IsEscalation).ToList();
-            Assert.Equal(episodes, fresh.Count);
-            Assert.All(events, e => Assert.Contains(e.Day, stormDays));
-            Assert.All(events, e => Assert.NotEqual(GameEventSeverity.Info, e.Severity));
-            Assert.All(events, e => Assert.False(string.IsNullOrEmpty(e.Message)));
-            Assert.True(stormDays.Count > fresh.Count, "a storm episode of several days must not be several notifications");
+            // One event per run of notes (plus an escalation when a run turns Severe).
+            int runs = 1;
+            for (int i = 1; i < notes.Count; i++)
+                if (notes[i].Day - notes[i - 1].Day > GameEventBus.DedupeWindowDays) runs++;
+            Assert.Equal(runs, events.Count(e => !e.IsEscalation));
+            foreach (var ev in events)
+            {
+                var note = notes.Last(n => n.Day == ev.Day);
+                bool severe = note.EventType == nameof(WeatherState.Severe);
+                Assert.Equal(GameEventSeverity.Info, ev.Severity);
+                Assert.Equal(note.Message, ev.Message);
+                if (severe) severeChecked++; else ordinaryChecked++;
+            }
+        }
+        Assert.True(severeChecked > 0 && ordinaryChecked > 0,
+            $"need both kinds of storm (severe {severeChecked}, ordinary {ordinaryChecked})");
+    }
+
+    /// <summary>
+    /// Fish escaping through storm-torn nets is the classic critical event:
+    /// one per escape, about its site, with the event log's text.
+    /// </summary>
+    [Fact]
+    public void Engine_ReportsAnEscapeAsCritical_ForItsSite()
+    {
+        for (int seed = 1; seed <= 40; seed++)
+        {
+            var engine = StockedEngine(seed);
+            engine.State.SeaSites[0].NetIntegrityPct = 5.0;
+            var escapes = new List<GameEvent>();
+            for (int day = 0; day < 150 && escapes.Count == 0; day++)
+            {
+                engine.Advance(1);
+                engine.State.SeaSites[0].NetIntegrityPct = 5.0;
+                escapes.AddRange(engine.GameEvents.DrainDelivered().Where(e => e.Type == GameEventType.Escape));
+            }
+            if (escapes.Count == 0) continue;
+            var ev = escapes[0];
+            Assert.Equal(GameEventSeverity.Critical, ev.Severity);
+            Assert.Equal("site-1", ev.SiteId);
+            Assert.Equal(GameEventCatalog.VerbInspectNets, ev.CounterVerb);
+            Assert.True(ev.Value > 0, "the event carries the number of fish");
+            Assert.Contains(engine.State.EventLog, r => r.Name == "Rømming" && r.Day == ev.Day && r.Description == ev.Message);
             return;
         }
-        Assert.Fail("no seed with two storm days in 150 days");
+        Assert.Fail("no escape through 5 % nets in 150 days on seeds 1-40");
     }
 
     [Fact]

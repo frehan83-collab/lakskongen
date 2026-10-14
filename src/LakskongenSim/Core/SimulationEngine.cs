@@ -1805,15 +1805,17 @@ private class BalancingConfig
             decimal fine = escapees * EscapeFineNOKPerFish;
             PayCost(fine, CostBooking.Opex, "fines");
 
+            string escapeDescription = SimText.Nb($"{escapees:N0} fisk rømte fra {site.Label} (nøter {site.NetIntegrityPct:F0} %, stormstyrke {severity:F1})");
             State.EventLog.Add(new Events.EventRecord
             {
                 Day = State.Day,
                 Name = "Rømming",
                 Category = Events.EventCategory.Equipment,
-                Description = SimText.Nb($"{escapees:N0} fisk rømte fra {site.Label} (nøter {site.NetIntegrityPct:F0} %, stormstyrke {severity:F1})"),
+                Description = escapeDescription,
                 BalanceChange = -fine
             });
             State.TrimEventLog();
+            PublishEscapeEvent(site, escapees, escapeDescription);   // U2-06
 
             OnEventTriggered?.Invoke(SimText.Nb($"🌊 RØMMING: {escapees:N0} fisk rømte fra {site.Label} (bot {fine:N0} kr)"));
         }
