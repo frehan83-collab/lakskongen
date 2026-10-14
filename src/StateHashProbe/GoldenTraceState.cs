@@ -16,18 +16,26 @@ namespace StateHashProbe;
 /// </summary>
 public sealed class GoldenTraceState
 {
-    /// <summary>The hashed groups in report order (the first differing one names a divergence).</summary>
-    public static readonly string[] GroupOrder = { "pop", "lice", "mtb", "mort", "ledger", "cash" };
+    /// <summary>
+    /// The hashed groups in report order: causes before effects (water and
+    /// market before fish, fish before money), so the first differing group
+    /// on a day names where a divergence starts.
+    /// </summary>
+    public static readonly string[] GroupOrder = { "env", "market", "pop", "lice", "mtb", "mort", "ops", "ledger", "cash", "rivals" };
 
     /// <summary>What each group holds (written to every trace header).</summary>
     public static readonly IReadOnlyDictionary<string, string> GroupDescriptions = new SortedDictionary<string, string>(StringComparer.Ordinal)
     {
+        ["env"] = "the weather (state, air temperature, wind, waves, the sea-temperature offset) and every zone's water (temperature, oxygen, ammonium, nitrate, phosphate, current, nutrients, algae bloom and days left, jellyfish)",
+        ["market"] = "spot price, weekly mean, base price, the price council's last pen price",
         ["pop"] = "every population (GameState.Populations) keyed by its pen (sea), tank or pen index (facility) or holding ordinal: fish count, biomass kg, per cohort count, mean weight kg, weight CV, age days, life stage",
         ["lice"] = "every sea site's lice model: chalimus, pre-adult, adult female and adult male per fish, copepodid density",
         ["mtb"] = "capacity: the regime, per production area the licences, pooled licence MTB t, standing biomass t and an open reduction order's deadline; per sea site the locality MTB t",
         ["mort"] = "the S2-05 mortality ledger, cumulative: fish, kg and NOK per death cause and per removal kind",
+        ["ops"] = "harvest orders (id, status, slot day) and counters (orders, batches, HOG and live kg), research (project, progress, unlocked), sustainability score, achievements, capacity breaches, wellboat jobs; per sea site gill score, net integrity, escapes, Mattilsynet deadline, treatment order, lice breaches, last stocking",
         ["ledger"] = "the cash ledger's statements: period P&L lines, assets, liabilities, biomass inventory, lifetime totals, cost and revenue lines by category",
         ["cash"] = "FinanceManager.Balance, outstanding loan principal, unbooked cash",
+        ["rivals"] = "every AI competitor: cash, revenue, EBITDA, debt, licences, MAB t, sites, weekly harvest t, distress",
         ["rng"] = "every SimRng stream's position (the day hash covers the states; the day line lists each stream's draws that day)",
     };
 
@@ -53,12 +61,16 @@ public sealed class GoldenTraceState
     {
         var groups = new Dictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal)
         {
+            ["env"] = Environment(engine),
+            ["market"] = Market(engine),
             ["pop"] = Populations(engine),
             ["lice"] = Lice(engine),
             ["mtb"] = Capacity(engine),
             ["mort"] = Mortality(engine),
+            ["ops"] = Operations(engine),
             ["ledger"] = Ledger(engine),
             ["cash"] = Cash(engine),
+            ["rivals"] = Rivals(engine),
         };
         var streams = new SortedDictionary<string, ulong>(StringComparer.Ordinal);
         foreach (var kv in engine.Rng.CaptureStates())
@@ -68,7 +80,7 @@ public sealed class GoldenTraceState
 
     /// <summary>
     /// 64-bit hash (16 hex) of every group and stream: it detects a divergence
-    /// on the day it happens; the 16-bit group hashes only name the group.
+    /// on the day it happens; the 8-bit group hashes only name the group.
     /// </summary>
     public string DayHash()
     {
@@ -79,11 +91,11 @@ public sealed class GoldenTraceState
         return Hex(sb.ToString(), 8);
     }
 
-    /// <summary>16-bit hash (4 hex) of a whole group: names the group of a divergence the day hash found.</summary>
-    public string GroupHash(string group) => Hex(GroupText(group), 2);
+    /// <summary>8-bit hash (2 hex) of a whole group: names the group of a divergence the day hash found (1 in 256 collide; the snapshot then names it).</summary>
+    public string GroupHash(string group) => Hex(GroupText(group), 1);
 
-    /// <summary>16-bit hash (4 hex) of every stream position.</summary>
-    public string StreamHash() => Hex(StreamText(), 2);
+    /// <summary>8-bit hash (2 hex) of every stream position.</summary>
+    public string StreamHash() => Hex(StreamText(), 1);
 
     /// <summary>16-bit tag (4 hex) of one keyed value (a new stream's state).</summary>
     public static string Tag(string key, string value) => Hex(key + "\u001f" + value, 2);
@@ -115,6 +127,64 @@ public sealed class GoldenTraceState
         => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)), 0, bytes).ToLowerInvariant();
 
     // ── Groups ─────────────────────────────────────────────────────────────
+
+    private static SortedDictionary<string, string> Environment(SimulationEngine engine)
+    {
+        var w = engine.Weather;
+        var group = new SortedDictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["weather"] = $"state={w.CurrentState};air={D(w.CurrentTemperatureC)};wind={D(w.CurrentWindSpeedMs)};waves={D(w.CurrentWaveHeight)};sea_offset={D(w.SeaTemperatureOffsetC)}",
+        };
+        foreach (var zone in engine.State.Zones)
+        {
+            var water = zone.WaterChemistry;
+            group[Unique(group, "zone/" + zone.Id)] =
+                $"temp={D(water.Temperature)};o2={D(water.OxygenO2)};nh4={D(water.AmmoniaNH4)};no3={D(water.NitrateNO3)};po4={D(water.PhosphorusPO4)};" +
+                $"current={D(zone.CurrentSpeed)};nutrients={D(zone.NutrientLevel)};bloom={(zone.AlgaeBloomActive ? "1" : "0")};bloom_days={I(zone.AlgalBloomDaysRemaining)};" +
+                $"jellyfish={D(zone.JellyfishDensity)}";
+        }
+        return group;
+    }
+
+    private static SortedDictionary<string, string> Market(SimulationEngine engine)
+    {
+        var market = engine.MarketSimulation;
+        return new SortedDictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["spot"] = $"nok_kg={M(market.PricePerKg)};weekly={M(market.WeeklyAvgPrice)};base={M(market.BasePricePerKg)}",
+            ["pen_price"] = "nok_kg=" + M(engine.State.PenPriceCouncilLastValue),
+        };
+    }
+
+    private static SortedDictionary<string, string> Operations(SimulationEngine engine)
+    {
+        var state = engine.State;
+        var research = engine.Research;
+        var group = new SortedDictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["harvest"] = $"orders={I(state.HarvestOrdersPlaced)};batches={I(state.HarvestBatchesSold)};hog_kg={D(state.TotalHarvestedHogKg)};live_kg={D(state.TotalHarvestedLiveKg)}",
+            ["research"] = $"active={research.ActiveResearchId ?? "none"};progress={I(research.ResearchProgress)};unlocked={I(research.Nodes.Values.Count(n => n.Unlocked))}",
+            ["company"] = $"sustainability={I(engine.SustainabilityManager?.CurrentScore ?? state.SustainabilityScore)};achievements={I(state.UnlockedAchievementIds.Count)};" +
+                          $"breaches={I(state.CapacityBreaches.Count)};wellboat_jobs={I(state.WellboatJobsBooked)};licences_granted={I(state.LicencesGranted)}",
+        };
+        foreach (var order in state.HarvestOrders)
+            group[Unique(group, "order/" + order.Id)] = $"status={order.Status};slot={I(order.SlotDay)};pens={I(order.Pens.Count)}";
+        foreach (var site in state.SeaSites)
+            group[Unique(group, "site/" + site.Id)] =
+                $"gill={D(site.GillScore)};net={D(site.NetIntegrityPct)};escapes={I(site.EscapesThisYear)};mattilsynet={I(site.MattilsynetDeadlineDay)};" +
+                $"treatment_due={I(site.TreatmentOrderDueDay)};lice_breaches={I(site.ConsecutiveLiceBreaches)};stocked={I(site.LastStockedDay)}";
+        return group;
+    }
+
+    private static SortedDictionary<string, string> Rivals(SimulationEngine engine)
+    {
+        var group = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        foreach (var rival in engine.CompetitorAI?.Competitors ?? (IReadOnlyList<LakskongenSim.Finance.CompetitorCompany>)Array.Empty<LakskongenSim.Finance.CompetitorCompany>())
+            group[Unique(group, rival.Id)] =
+                $"cash={M(rival.CashReserves)};revenue={M(rival.Revenue)};ebitda={M(rival.EBITDA)};debt={M(rival.DebtLevel)};licences={I(rival.LicenseCount)};" +
+                $"mab_t={D(rival.TotalMABTonnes)};sites={I(rival.SiteCount)};weekly_t={D(rival.WeeklyHarvestTonnes)};distressed={(rival.IsDistressed ? "1" : "0")}";
+        return group;
+    }
 
     private static SortedDictionary<string, string> Populations(SimulationEngine engine)
     {

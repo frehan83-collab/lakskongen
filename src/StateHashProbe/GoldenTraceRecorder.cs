@@ -222,7 +222,7 @@ public static class GoldenTraceRecorder
         foreach (var kv in GoldenTraceState.GroupDescriptions) w.WriteString(kv.Key, kv.Value);
         w.WriteEndObject();
         w.WriteString("dayLine", "the state at day 'd' after the player's commands of that day: 'h' SHA-256 (64 bit) of every group's " +
-            "canonical text and every stream state; 'g' a 16-bit hash per group; 'rng' each stream's draws that day (new streams: 'new:' and a tag " +
+            "canonical text and every stream state; 'g' an 8-bit hash per group (names the group; 'h' detects); 'rng' each stream's draws that day (new streams: 'new:' and a tag " +
             "of their state); 'ev' event-log entries added since the previous line; 'cmd' the golden player's commands and outcomes; 'st' the " +
             "scenario status when it changes; 'v' (detail recordings only) every group's exact values");
         w.WriteString("snapshot", $"day {SnapshotEveryDays}k and the last day: 'v' holds every group's exact values (entity → field=value;…); " +

@@ -97,10 +97,12 @@ record() {
     echo "== recording $rev ($sha) into $dir"
     mkdir -p "$dir"
     # Run from the worktree root so the engine reads that commit's godot/data.
+    # The engine's console chatter (tutorial loading, scenario verdicts) goes to a log.
+    local log="$WORK/record_${sha:0:12}.log"
     ( cd "$wt" && dotnet "$wt/src/StateHashProbe/bin/Debug/net10.0/StateHashProbe.dll" golden record \
-        --out "$dir" --commit "$sha" "${RECORD_ARGS[@]+"${RECORD_ARGS[@]}"}" ) \
-        | grep -v '^recorded .* seed [0-9]*$'
-    [[ ${PIPESTATUS[0]} -eq 0 ]] || die "recording failed for $sha"
+        --out "$dir" --commit "$sha" "${RECORD_ARGS[@]+"${RECORD_ARGS[@]}"}" ) >"$log" 2>&1 \
+        || { tail -40 "$log" >&2; die "recording failed for $sha"; }
+    grep '^recorded [0-9]* traces' "$log"
 }
 
 # diff EXPECTED ACTUAL: the Markdown report, exit 1 when a trace differs.

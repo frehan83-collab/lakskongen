@@ -159,7 +159,14 @@ public static class GoldenTraceSet
                 GoldenTraceRecorder.ReadLines(Path.Combine(actualDirectory, file)));
             if (comparison == null || comparison.Identical)
             {
-                report.WriteLine($"| {e.Scenario} | {e.Seed} | identical | — | 0 | — | — |");
+                if (comparison?.FirstSaveDrift is { } drift)
+                {
+                    report.WriteLine($"| {e.Scenario} | {e.Seed} | identical game, save drift in {comparison.SaveDriftSnapshots} snapshots | " +
+                        $"{drift.Day}: {drift.Field.Replace("|", "/")} | 0 | — | — |");
+                    details.AppendLine($"### {e.Scenario} seed {e.Seed}").AppendLine().AppendLine("```").AppendLine(comparison.Summary()).AppendLine("```").AppendLine();
+                }
+                else
+                    report.WriteLine($"| {e.Scenario} | {e.Seed} | identical | — | 0 | — | — |");
                 continue;
             }
             differing++;

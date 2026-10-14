@@ -23,9 +23,21 @@ public sealed class TraceComparison
     /// <summary>The first difference in the day lines (or the header): the divergence's day and field.</summary>
     public TraceDifference? First { get; set; }
 
-    /// <summary>The first snapshot difference, with the exact field and both values.</summary>
+    /// <summary>The first snapshot difference in the traced values, with the exact field and both values.</summary>
     public TraceDifference? FirstAtSnapshot { get; set; }
 
+    /// <summary>
+    /// The first snapshot whose whole save differs (its digest tree's changed
+    /// leaves; added and removed nodes are listed apart). Reported, never part
+    /// of <see cref="Identical"/>: an item that only adds save fields (F2-03's
+    /// plots and kinds) drifts the save without changing the game.
+    /// </summary>
+    public TraceDifference? FirstSaveDrift { get; set; }
+
+    /// <summary>Snapshots whose save hash differs.</summary>
+    public int SaveDriftSnapshots { get; set; }
+
+    /// <summary>The game is the same: every day line and every snapshot's traced values match.</summary>
     public bool Identical => First == null && FirstAtSnapshot == null;
     public int DaysCompared { get; set; }
     public int DivergentDays { get; set; }
@@ -40,7 +52,9 @@ public sealed class TraceComparison
     /// <summary>A failure message: what, where, how much.</summary>
     public string Summary()
     {
-        if (Identical) return $"{Scenario} seed {Seed}: identical over {DaysCompared} days";
+        string drift = FirstSaveDrift == null ? ""
+            : $"\n  save drift in {SaveDriftSnapshots} snapshots, first {FirstSaveDrift}";
+        if (Identical) return $"{Scenario} seed {Seed}: identical over {DaysCompared} days" + drift;
         var sb = new StringBuilder();
         sb.Append("golden trace mismatch: ");
         if (First != null)
@@ -56,6 +70,7 @@ public sealed class TraceComparison
             sb.Append($"\n  final cash {FinalCash.Expected} → {FinalCash.Actual} NOK");
         if (FinalBiomassKg.Expected != FinalBiomassKg.Actual)
             sb.Append($"\n  final live biomass {FinalBiomassKg.Expected} → {FinalBiomassKg.Actual} kg");
+        sb.Append(drift);
         return sb.ToString();
     }
 }
@@ -144,7 +159,7 @@ public static class GoldenTraceComparer
         }
         if (differences.Count == 0 && Raw(e.RootElement, "h") != Raw(a.RootElement, "h"))
             differences.Add((detailed ? FirstValueDifference(comparison, day, ev, av) : null)
-                ?? new TraceDifference(comparison.Scenario, comparison.Seed, day, "state", "(day hash only: every 16-bit group hash collided)",
+                ?? new TraceDifference(comparison.Scenario, comparison.Seed, day, "state", "(day hash only: the 8-bit group hashes collided; the next snapshot names it)",
                     Raw(e.RootElement, "h"), Raw(a.RootElement, "h")));
         if (differences.Count == 0) return;
         comparison.DivergentDays++;
@@ -167,10 +182,13 @@ public static class GoldenTraceComparer
             Accumulate(actualTree, a.RootElement);
             if (i == Math.Min(expected.Count, actual.Count) - 1)
                 RecordFinals(comparison, e.RootElement, a.RootElement);
-            if (comparison.FirstAtSnapshot != null || expected[i] == actual[i]) continue;
+            if (expected[i] == actual[i]) continue;
             int day = e.RootElement.GetProperty("snap").GetInt32();
-            comparison.FirstAtSnapshot = FirstValueDifference(comparison, day, e.RootElement.GetProperty("v"), a.RootElement.GetProperty("v"))
-                ?? FirstTreeDifference(comparison, day, expectedTree, actualTree, Raw(e.RootElement, "save"), Raw(a.RootElement, "save"));
+            comparison.FirstAtSnapshot ??= FirstValueDifference(comparison, day, e.RootElement.GetProperty("v"), a.RootElement.GetProperty("v"));
+            string expectedSave = Raw(e.RootElement, "save"), actualSave = Raw(a.RootElement, "save");
+            if (expectedSave == actualSave) continue;
+            comparison.SaveDriftSnapshots++;
+            comparison.FirstSaveDrift ??= SaveDrift(comparison, day, expectedTree, actualTree, expectedSave, actualSave);
         }
         if (expected.Count != actual.Count && comparison.FirstAtSnapshot == null)
             comparison.FirstAtSnapshot = new TraceDifference(comparison.Scenario, comparison.Seed, -1, "length", "snapshots",
@@ -215,18 +233,40 @@ public static class GoldenTraceComparer
             .ToList();
     }
 
-    private static TraceDifference? FirstTreeDifference(TraceComparison comparison, int day,
+    /// <summary>The save's changed leaves (the deepest digests that differ), then its added and removed nodes.</summary>
+    private static TraceDifference SaveDrift(TraceComparison comparison, int day,
         Dictionary<string, string> expected, Dictionary<string, string> actual, string expectedSave, string actualSave)
     {
-        if (expectedSave == actualSave) return null;
-        var paths = expected.Keys.Union(actual.Keys)
-            .Where(p => expected.GetValueOrDefault(p) != actual.GetValueOrDefault(p))
-            .OrderByDescending(p => p.Count(c => c == '/' || c == '['))
-            .ThenBy(p => p, StringComparer.Ordinal)
-            .ToList();
-        string where = paths.Count == 0 ? "(save hash only)" : string.Join(", ", paths.Take(5)) + (paths.Count > 5 ? $" (+{paths.Count - 5} more)" : "");
-        return new TraceDifference(comparison.Scenario, comparison.Seed, day, "save", where, expectedSave, actualSave);
+        var parents = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var path in expected.Keys.Concat(actual.Keys))
+            for (int i = 1; i < path.Length; i++)
+                if (path[i] == '/' || path[i] == '[') parents.Add(path[..i]);
+        var changed = expected.Keys
+            .Where(p => actual.TryGetValue(p, out var h) && h != expected[p] && !parents.Contains(p))
+            .OrderBy(p => p, StringComparer.Ordinal).ToList();
+        var added = actual.Keys.Where(p => !expected.ContainsKey(p) && !HasNewAncestor(p, actual, expected))
+            .OrderBy(p => p, StringComparer.Ordinal).ToList();
+        var removed = expected.Keys.Where(p => !actual.ContainsKey(p) && !HasNewAncestor(p, expected, actual))
+            .OrderBy(p => p, StringComparer.Ordinal).ToList();
+        var parts = new List<string>();
+        if (changed.Count > 0) parts.Add("changed " + Paths(changed));
+        if (added.Count > 0) parts.Add("added " + Paths(added));
+        if (removed.Count > 0) parts.Add("removed " + Paths(removed));
+        if (parts.Count == 0) parts.Add("(save hash only)");
+        return new TraceDifference(comparison.Scenario, comparison.Seed, day, "save", string.Join("; ", parts), expectedSave, actualSave);
     }
+
+    /// <summary>True when an ancestor of <paramref name="path"/> is also only in <paramref name="tree"/> (the topmost new node is reported).</summary>
+    private static bool HasNewAncestor(string path, Dictionary<string, string> tree, Dictionary<string, string> other)
+    {
+        for (int i = 1; i < path.Length; i++)
+            if ((path[i] == '/' || path[i] == '[') && tree.ContainsKey(path[..i]) && !other.ContainsKey(path[..i]))
+                return true;
+        return false;
+    }
+
+    private static string Paths(List<string> paths)
+        => string.Join(", ", paths.Take(6)) + (paths.Count > 6 ? $" (+{paths.Count - 6} more)" : "");
 
     private static void Accumulate(Dictionary<string, string> tree, JsonElement snapshot)
     {
