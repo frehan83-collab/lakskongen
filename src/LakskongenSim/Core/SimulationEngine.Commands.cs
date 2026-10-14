@@ -249,6 +249,9 @@ public partial class SimulationEngine
         // Remove exactly the harvested populations
         foreach (var pop in populations)
         {
+            // Every harvested fish leaves the ledger alive (S2-05).
+            foreach (var cohort in pop.Cohorts)
+                pop.RemoveAlive(cohort, cohort.Count, FishRemoval.Harvest);
             pop.Cohorts.Clear();
             State.Populations.Remove(pop);
         }

@@ -124,5 +124,10 @@
     "anomalyEFoldingDays": 90.0,
     "dailyFluctuationStdDevC": 0.3,
     "eventAnomalyEFoldingDays": 21.0
+  },
+  "mortality": {
+    "temperatureStressLowerC": 4.0,
+    "temperatureStressUpperC": 16.0,
+    "temperatureStressDailyFractionPerDegreeC": 0.00005
   }
 }

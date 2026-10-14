@@ -291,6 +291,10 @@ namespace LakskongenSim.Core;
             {
                 var postSmoltResult = postSmoltFacility.TickDay(engine.State.Day);
                 engine._dailyFarmSystemsOpex += postSmoltResult.TotalDailyOPEX;
+                // Post-smolt batches are not cohorts; their deaths (a top-down
+                // survival rate) are booked per facility (S2-05).
+                engine.MortalityLedger.BookHoldingDeaths(postSmoltFacility.Id, postSmoltResult.TotalMortality,
+                    postSmoltResult.TotalMortalityKg, MortalityCause.BaselineAnchor);
             }
 
         }

@@ -192,6 +192,12 @@ The Phase 4 "Exit" in `NEXT_LEVEL_PLAN.md` has two gates an agent cannot close a
 - `RestoreFromLoad` imports RNG stream positions (critical for determinism)
 - `ExactSaveHashTests` + `EngineTwinRunDeterminismTests` + `PlayerScriptProbe` are the determinism gates
 
+### Mortality ledger (S2-05)
+- Every fish leaving a cohort goes through `FishPopulation.RemoveDead(cohort, n, MortalityCause)` or `RemoveAlive(cohort, n, FishRemoval)`; never decrement `Cohort.Count` directly (`MortalityLedgerEngineTests` checks lost == booked for every cohort every day)
+- Causes map to the NVI level-1 classes (`MortalityCauses.CategoryOf`); escapes, harvests and transfers are removals, not deaths; holdings without cohorts book with `MortalityLedger.BookHoldingDeaths`
+- Hazards read a `CohortEnvironment` from `SimulationEngine.ResolveCohortEnvironment` (RAS tank / offshore pen / sea pen), never a global zone value; a new farm type extends the resolver and adds a cause
+- Saved in `MortalityModelSnapshot.Ledger`; bridge: `GameBridge.GetMortalityBreakdown` → `SimBridge.get_mortality_breakdown`
+
 ## Adding New Features Checklist
 1. **Determinism**: Use `SimRng` streams, no `DateTime.Now`/`Guid`/`Random`
 2. **Calibration**: All numbers in `BalancingConfig` / `CalibrationRegistry`

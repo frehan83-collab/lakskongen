@@ -640,6 +640,51 @@ def test_bridge_consumer_check_reads_strings_keys_and_attributes_correctly():
     assert "state_updated" not in text and "current_day —" not in text, text
 
 
+# ── S2-05: mortality ledger for the P&L story ────────────────────────────────
+# The breakdown travels engine -> GameBridge partial -> SimProxies -> SimBridge
+# facade with the same arguments, and every label the engine can emit is a
+# translation key with English and Norwegian text.
+
+def _id_switch(src: str, signature: str) -> list[str]:
+    start = src.index(signature)
+    body = src[start:src.index("};", start)]
+    return re.findall(r'=> "([a-z_]+)"', body)
+
+
+def test_mortality_breakdown_reaches_the_facade():
+    partial = (BRIDGE_DIR / "GameBridge.Mortality.cs").read_text(encoding="utf-8")
+    assert re.search(r"public Godot\.Collections\.Dictionary GetMortalityBreakdown\("
+                     r'string siteId = "", int lastDays = 0\)', partial), "GameBridge.GetMortalityBreakdown missing"
+    for key in ("success", "scope", "site_id", "from_day", "to_day", "total_deaths", "total_kg",
+                "total_value_nok", "categories", "causes", "left_alive"):
+        assert f'result["{key}"]' in partial, f"bridge breakdown lacks key {key}"
+    for key in ("id", "category", "nvi_code", "label_key", "fish", "kg", "value_nok", "share"):
+        assert re.search(r'\["' + key + r'"\] = (\(double\))?row\.', partial), f"bridge breakdown rows lack key {key}"
+
+    scripts = REPO / "godot" / "scripts"
+    proxies = (scripts / "bridge" / "SimProxies.gd").read_text(encoding="utf-8")
+    assert re.search(r'func get_mortality_breakdown\(site_id: String = "", last_days: int = 0\) -> Dictionary: '
+                     r"return game_bridge\.GetMortalityBreakdown\(site_id, last_days\)", proxies), \
+        "SimProxies.get_mortality_breakdown must forward both arguments to GameBridge"
+    facade = (scripts / "SimBridge.gd").read_text(encoding="utf-8")
+    assert re.search(r'func get_mortality_breakdown\(site_id: String = "", last_days: int = 0\) -> Dictionary: '
+                     r"return _proxies\.get_mortality_breakdown\(site_id, last_days\)", facade), \
+        "SimBridge facade must forward get_mortality_breakdown"
+
+
+def test_every_mortality_label_key_has_english_and_norwegian_text():
+    import csv
+    src = (REPO / "src" / "LakskongenSim" / "Biology" / "MortalityCause.cs").read_text(encoding="utf-8")
+    keys = ["MORTALITY_CATEGORY_" + i.upper() for i in _id_switch(src, "public static string Id(MortalityCategory category)")]
+    keys += ["MORTALITY_CAUSE_" + i.upper() for i in _id_switch(src, "public static string Id(MortalityCause cause)")]
+    keys += ["FISH_REMOVAL_" + i.upper() for i in _id_switch(src, "public static string Id(FishRemoval removal)")]
+    assert len(keys) == 7 + 11 + 4, f"contract harness broken: parsed {len(keys)} mortality ids"
+    with (REPO / "godot" / "translations" / "translations.csv").open(encoding="utf-8", newline="") as f:
+        rows = {r[0]: r for r in csv.reader(f) if len(r) == 3}
+    missing = [k for k in keys if k not in rows or not rows[k][1].strip() or not rows[k][2].strip()]
+    assert not missing, f"mortality labels without en/no text: {missing}"
+
+
 if __name__ == "__main__":
     test_bridge_contract()
     test_no_snake_case_signal_access()
@@ -648,4 +693,6 @@ if __name__ == "__main__":
     test_bridge_consumers_call_real_methods_with_valid_arity()
     test_bridge_consumer_check_catches_the_known_failures()
     test_gamebridge_signatures_are_marshalable()
+    test_mortality_breakdown_reaches_the_facade()
+    test_every_mortality_label_key_has_english_and_norwegian_text()
     print("bridge contract OK")

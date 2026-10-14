@@ -218,6 +218,8 @@ public partial class SimulationEngine
     /// Temperature-stress deaths, each population in its own water: a PO13 pen
     /// in a 4 °C March and a PO1 pen in a 17 °C August no longer share one sea
     /// temperature. Land tanks run at controlled temperature and stay exempt.
+    /// Deaths go through the S2-05 hazard and are booked by cause
+    /// (<see cref="ApplyTemperatureStressHazard"/>).
     /// </summary>
     internal void ApplyHoldingWaterTemperatureStress()
     {
@@ -227,7 +229,7 @@ public partial class SimulationEngine
             var population = State.Populations[i];
             var water = HoldingWaterOf(population, facilityWater);
             if (water.Kind == HoldingKind.LandTank) continue;
-            ApplyTemperatureStress(population, water.TemperatureC);
+            ApplyTemperatureStressHazard(population, ResolveCohortEnvironment(population, water.TemperatureC));
         }
     }
 

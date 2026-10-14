@@ -75,6 +75,7 @@ func _run() -> void:
 	await _test_telemetry_oxygen_saturation_follows_the_sim()
 	await _test_zones_report_their_production_area_water()
 	await _test_honest_economy_reaches_the_ui()
+	_test_mortality_ledger_reaches_the_bridge()
 	await _test_pen_models_read_as_equipment()
 	await _test_hero_pen_and_site_kit()
 	await _test_vessel_fleet()
@@ -984,6 +985,46 @@ func _test_zones_report_their_production_area_water() -> void:
 ## ladder reach the game; achievements carry a medal and tutorial steps no cash
 ## through the signal chain (GameBridge -> SimBridge -> UI); the game-over reason
 ## is a translation key.
+## S2-05: the mortality ledger reaches the facade for the P&L story — deaths
+## by cause in the NVI categories that sum to the total, nb labels by key,
+## the fish that left alive, and the last-N-days window.
+func _test_mortality_ledger_reaches_the_bridge() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "mortality: seeded scenario starts")
+	_sim.set_paused(true)
+	_sim.advance_days(60)
+	var b: Dictionary = _sim.get_mortality_breakdown()
+	var categories: Array = b.get("categories", [])
+	var causes: Array = b.get("causes", [])
+	var total := int(b.get("total_deaths", -1))
+	var codes: Array = categories.map(func(r: Dictionary) -> String: return str(r.get("nvi_code", "?")))
+	_check(bool(b.get("success", false)) and str(b.get("scope", "")) == "company"
+			and codes == ["A", "B", "C", "D", "", "E", "F"],
+		"mortality: the company breakdown lists the NVI categories (%s)" % str(codes))
+	var sum_categories := 0
+	for r in categories:
+		sum_categories += int(r.get("fish", 0))
+	var sum_causes := 0
+	for r in causes:
+		sum_causes += int(r.get("fish", 0))
+	_check(total > 0 and sum_categories == total and sum_causes == total,
+		"mortality: categories and causes sum to the deaths (%d / %d / %d)" % [sum_categories, sum_causes, total])
+	var alive_rows: Array = b.get("left_alive", [])
+	var untranslated: Array = []
+	for r in categories + causes + alive_rows:
+		var key := str(r.get("label_key", ""))
+		if key.is_empty() or tr(key) == key:
+			untranslated.append(key)
+	_check(untranslated.is_empty(), "mortality: every label key has Norwegian text (%s)" % str(untranslated))
+	var alive: Array = alive_rows.map(func(r: Dictionary) -> String: return str(r.get("id", "")))
+	_check(alive == ["escape", "harvest", "forced_harvest", "transfer_out"],
+		"mortality: escapes and harvests are listed as leaving alive, not as deaths (%s)" % str(alive))
+	var month: Dictionary = _sim.get_mortality_breakdown("", 30)
+	var day: int = _sim.current_day
+	_check(str(month.get("scope", "")) == "days" and int(month.get("to_day", -1)) == day
+			and int(month.get("from_day", -1)) == day - 29
+			and int(month.get("total_deaths", -1)) <= total,
+		"mortality: the last-30-days window ends today (%s)" % str([month.get("from_day"), month.get("to_day")]))
+
 func _test_honest_economy_reaches_the_ui() -> void:
 	_check(_sim.start_qa_scenario("po3_red_sone", 91), "economy: seeded scenario starts")
 	_sim.set_paused(true)

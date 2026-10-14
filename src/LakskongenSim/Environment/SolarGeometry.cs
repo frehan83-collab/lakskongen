@@ -53,6 +53,13 @@ namespace LakskongenSim.Environment
         internal static double Rad(double deg) => deg * Math.PI / 180.0;
         internal static double Deg(double rad) => rad * 180.0 / Math.PI;
 
+        /// <summary>Degrees in one full turn.</summary>
+        internal const double FullTurnDegrees = 360.0;
+
+        /// <summary>An angle in degrees wrapped into [0, 360) (geometry, not calendar arithmetic).</summary>
+        internal static double WrapDegrees(double degrees)
+            => degrees - FullTurnDegrees * Math.Floor(degrees / FullTurnDegrees);
+
         /// <summary>Day of year (1 = 1 January) for a sim day (0 = 1 January).</summary>
         public static int DayOfYear(int simDay) => ((simDay % DaysPerYear) + DaysPerYear) % DaysPerYear + 1;
 
@@ -96,7 +103,7 @@ namespace LakskongenSim.Environment
             double elevation = Deg(Math.Asin(Math.Clamp(sinE, -1.0, 1.0)));
             // Azimuth from the south, westward positive, then turned to north-based.
             double fromSouth = Math.Atan2(Math.Sin(h), Math.Cos(h) * Math.Sin(phi) - Math.Tan(dec) * Math.Cos(phi));
-            double azimuth = (Deg(fromSouth) + 180.0) % 360.0;
+            double azimuth = WrapDegrees(Deg(fromSouth) + 180.0);
             if (azimuth < 0) azimuth += 360.0;
             return new HorizontalPosition(elevation, azimuth);
         }
@@ -139,7 +146,7 @@ namespace LakskongenSim.Environment
 
             double elongationCos = Math.Cos(Rad(moonLat)) * Math.Cos(Rad(moonLong - sunLong));
             double illuminated = Math.Clamp((1.0 - elongationCos) * 0.5, 0.0, 1.0);
-            double ahead = ((moonLong - sunLong) % 360.0 + 360.0) % 360.0;
+            double ahead = WrapDegrees(moonLong - sunLong);
             return new MoonState(position, illuminated, ahead < 180.0);
         }
 

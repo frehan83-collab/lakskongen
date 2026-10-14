@@ -148,13 +148,15 @@ namespace LakskongenSim.Farm
                 int arrived = count - lost;
                 if (arrived <= 0)
                 {
-                    totalLost += count;
+                    // Every fish of the slice died in handling. They used to be
+                    // reported lost but stay in the source pen (S2-05).
+                    totalLost += srcPop.RemoveDead(srcCohort, count, MortalityCause.Handling);
                     continue;
                 }
 
-                // Remove from source
-                srcCohort.Count -= count;
-                totalLost += lost;
+                // Remove from source: the handling deaths, then the fish that move
+                totalLost += srcPop.RemoveDead(srcCohort, lost, MortalityCause.Handling);
+                srcPop.RemoveAlive(srcCohort, arrived, FishRemoval.TransferOut);
                 totalMoved += arrived;
 
                 // Add to destination (create or merge cohort)

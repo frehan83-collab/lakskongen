@@ -1536,3 +1536,25 @@ UI_SOLVENCY_DESC,Cash %s. Bankruptcy below %s.,Kontanter %s. Konkurs under %s.
 UI_ATTENTION_SOLVENCY_DESC,Cash {0} NOK. Bankruptcy below {1} NOK.,Kontanter {0} NOK. Konkurs under {1} NOK.
 GAME_OVER_BANKRUPTCY,Bankruptcy: cash fell below the bankruptcy floor and the bank called in its credit.,Konkurs: kontantbeholdningen passerte konkursgrensen og banken sa opp kreditten.
 UI_GAME_OVER_FORMAT,Game over: %s,Spillet er over: %s
+MORTALITY_CATEGORY_INFECTIOUS,Infectious diseases,Infeksjonssykdommer
+MORTALITY_CATEGORY_ENVIRONMENT,Environmental conditions,Miljøforhold
+MORTALITY_CATEGORY_INJURY_TREATMENT,Injuries (handling and delousing),Skader (håndtering og avlusing)
+MORTALITY_CATEGORY_PHYSIOLOGICAL,Physiological causes,Fysiologiske årsaker
+MORTALITY_CATEGORY_PREDATORS,Predators,Predatorer
+MORTALITY_CATEGORY_OTHER,Other causes,Andre årsaker
+MORTALITY_CATEGORY_UNEXPLAINED,Unknown cause,Ukjent årsak
+MORTALITY_CAUSE_BASELINE_ANCHOR,Background mortality (not attributed),Bakgrunnsdødelighet (ikke fordelt)
+MORTALITY_CAUSE_DISEASE,Disease,Sykdom
+MORTALITY_CAUSE_DISEASE_CULL,Disease cull order,Pålagt utslakting (sykdom)
+MORTALITY_CAUSE_DELOUSING,Delousing,Avlusing
+MORTALITY_CAUSE_HANDLING,Handling,Håndtering
+MORTALITY_CAUSE_TEMPERATURE,Water temperature,Vanntemperatur
+MORTALITY_CAUSE_LOW_OXYGEN,Low oxygen,Lavt oksygen
+MORTALITY_CAUSE_HARMFUL_ALGAE,Harmful algae,Skadelige alger
+MORTALITY_CAUSE_JELLYFISH,Jellyfish,Maneter
+MORTALITY_CAUSE_STORM,Storm,Uvær
+MORTALITY_CAUSE_PREDATOR,"Seal, otter or bird","Sel, oter eller fugl"
+FISH_REMOVAL_ESCAPE,Escaped,Rømt
+FISH_REMOVAL_HARVEST,Harvested,Slaktet
+FISH_REMOVAL_FORCED_HARVEST,Forced harvest,Tvangsslaktet
+FISH_REMOVAL_TRANSFER_OUT,Moved to another site,Flyttet til en annen lokalitet
