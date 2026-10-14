@@ -414,8 +414,8 @@ namespace LakskongenSim.Events
             if (!zonesWithFish.Any()) return;
             
             var affectedZone = zonesWithFish[_rng.Next(zonesWithFish.Count)];
-            affectedZone.AlgaeBloomActive = true;
-            affectedZone.NutrientLevel = 3.0; // push above bloom threshold
+            affectedZone.TriggerAlgalBloom();
+            affectedZone.NutrientLevel = 3.0; // nutrient pulse that fed the bloom
             
             // NOTE: Do NOT directly modify cohort counts here.
             // The algal bloom state will be picked up by:

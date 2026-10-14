@@ -137,10 +137,13 @@ namespace LakskongenSim.Biology
         #region DO Dynamics (Daily Update)
 
         /// <summary>
-        /// Calculate daily DO dynamics for a pen.
-        /// DO_sat = temp_correction(T) − O₂_consumption(biomass, feed_rate, FCR) + water_exchange(pen_volume, current_speed)
-        /// Updates the WaterChemistry.OxygenO2 in place.
-        /// Note: Consumption rates are in mg/L/day (consistent with WaterChemistry units).
+        /// Calculate daily DO dynamics for a pen and update
+        /// <c>WaterChemistry.OxygenO2</c> in place. Fish and feed oxygen demand are
+        /// normalized by the pen volume (mg/day ÷ liters → mg/L/day); current-driven
+        /// exchange pulls toward saturation. Integrated exactly over the day like
+        /// <see cref="Environment.WaterChemistry.UpdateOneDay"/>: the old explicit
+        /// step applied an exchange rate of 6.5-20/day as a fraction and its clamp
+        /// hid the divergence (F1024).
         /// </summary>
         /// <param name="waterChemistry">Water chemistry state to update.</param>
         /// <param name="temperatureC">Water temperature (°C).</param>
@@ -160,37 +163,23 @@ namespace LakskongenSim.Biology
             double currentSpeedMs,
             double salinityPSU = 35.0)
         {
-            // Temperature correction: oxygen solubility at saturation
             double o2Saturation = CalculateOxygenSaturation(temperatureC, salinityPSU);
+            double volumeL = Math.Max(1.0, penVolumeM3 * 1000.0);
 
-            // O₂ consumption by fish (metabolic) - mg O₂/L/day
-            // Rate is per kg fish per day, consistent with WaterChemistry scaling
+            // Fish (metabolic) and feed (metabolic + waste) oxygen demand, mg/L/day.
             double tempFactor = Math.Pow(2.0, (temperatureC - 10.0) / 10.0);
-            double fishOxygenConsumptionMgPerLPerDay = biomassKg * OxygenConsumptionPerKgFishPerDay * tempFactor;
+            double demand = (biomassKg * OxygenConsumptionPerKgFishPerDay * tempFactor
+                + feedRateKgPerDay * fcr * OxygenConsumptionPerKgFeed) / volumeL;
 
-            // O₂ consumption from feed waste (uneaten feed + feces)
-            double feedOxygenDemandMgPerLPerDay = feedRateKgPerDay * fcr * OxygenConsumptionPerKgFeed;
+            // Same flow index and exchange scaling as the zone chemistry.
+            double waterFlowRate = 500.0 + currentSpeedMs * 3000.0;
+            double exchange = WaterChemistry.ExchangeRatePerDay(waterFlowRate);
 
-            // Total oxygen consumption (mg/L/day)
-            double totalOxygenConsumptionMgPerLPerDay = fishOxygenConsumptionMgPerLPerDay + feedOxygenDemandMgPerLPerDay;
+            waterChemistry.OxygenO2 = WaterChemistry.RelaxOneDay(
+                waterChemistry.OxygenO2, exchange * o2Saturation - demand, exchange);
 
-            // Water exchange: reaeration toward saturation
-            // Match original WaterChemistry scaling: base flow + current-dependent flow
-            // Original: waterFlowRate = 500 + currentSpeed * 3000 m³/day
-            // Exchange fraction = waterFlowRate * 0.01 (applied directly to concentration)
-            double waterFlowRate = 500.0 + currentSpeedMs * 3000.0; // m³/day
-            double exchangeRate = waterFlowRate * 0.01; // Fraction per day (original scaling)
-            
-            double reaerationMgPerLPerDay = (o2Saturation - waterChemistry.OxygenO2) * exchangeRate;
-
-            // Net oxygen change
-            double netOxygenChange = reaerationMgPerLPerDay - totalOxygenConsumptionMgPerLPerDay;
-
-            // Update oxygen concentration
-            waterChemistry.OxygenO2 += netOxygenChange;
-
-            // Clamp to realistic bounds (0 to saturation)
-            waterChemistry.OxygenO2 = Math.Clamp(waterChemistry.OxygenO2, 0.0, o2Saturation * 1.2); // Allow slight supersaturation
+            // Physical bounds: anoxia floor, slight supersaturation ceiling.
+            waterChemistry.OxygenO2 = Math.Clamp(waterChemistry.OxygenO2, 0.0, o2Saturation * 1.2);
         }
 
         /// <summary>
