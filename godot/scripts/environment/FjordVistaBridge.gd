@@ -117,10 +117,8 @@ func _update_world_cover() -> void:
 	var director: Node = env.get("director") if env != null and "director" in env else null
 	if director == null or not director.has_method("set_world_visible"):
 		return
+	# is_visible_in_tree() follows the UI layer's own visibility too.
 	var ui_drawn := game_ui is CanvasItem and (game_ui as CanvasItem).is_visible_in_tree()
-	var layer := game_ui.get_parent() as CanvasLayer if game_ui != null else null
-	if layer != null and not layer.visible:
-		ui_drawn = false
 	director.set_world_visible(world_visible or not ui_drawn)
 
 

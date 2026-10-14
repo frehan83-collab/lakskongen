@@ -29,6 +29,8 @@ const SETTINGS_SECTION := "graphics"
 const SETTINGS_KEY := "quality"
 ## Every live EnvironmentDirector joins this group.
 const DIRECTOR_GROUP := "environment_director"
+## The terrain material's quality uniform (see terrain_detail).
+const TERRAIN_DETAIL_UNIFORM := "quality_detail"
 
 ## Upscalers for a 3D scale below 1 (Viewport.SCALING_3D_MODE_*): MetalFX
 ## spatial on Apple GPUs, AMD FSR 1 elsewhere. Spatial only: a temporal
@@ -69,33 +71,40 @@ const UPSCALER_OTHER := Viewport.SCALING_3D_MODE_FSR
 ##   cloud_steps     low cloud slab march steps
 ##   cloud_octaves   low cloud noise octaves
 ##   radiance_size   Sky.RADIANCE_SIZE_* of the sky's radiance map
+##   terrain_detail  0-1, handed to the terrain material as the uniform
+##                   TERRAIN_DETAIL_UNIFORM for the terrain shader to scale
+##                   its own detail by (textures, octaves); the shader owns
+##                   what it means (the gfx-terrain track)
 const PRESETS := {
 	"low": {
-		"msaa": Viewport.MSAA_DISABLED, "screen_aa": Viewport.SCREEN_SPACE_AA_FXAA, "scale": 0.67, "hidden_scale": 0.5, "hidden_pause": true,
+		"msaa": Viewport.MSAA_DISABLED, "screen_aa": Viewport.SCREEN_SPACE_AA_FXAA, "scale": 0.6, "hidden_scale": 0.5, "hidden_pause": true,
 		"upscaler": "auto", "fsr_sharpness": 0.2,
 		"ssao": false, "ssao_quality": RenderingServer.ENV_SSAO_QUALITY_VERY_LOW, "ssao_half": true, "ssao_blur": 1,
 		"dof": false, "dof_quality": RenderingServer.DOF_BLUR_QUALITY_VERY_LOW, "dof_shape": RenderingServer.DOF_BOKEH_BOX,
 		"dof_reach": 0.0, "dof_near": false,
 		"shadow_atlas": 2048, "shadow_splits": 2, "shadow_distance": 0.6, "soft_shadows": RenderingServer.SHADOW_QUALITY_HARD,
 		"glow": true, "cloud_pass": 2, "cloud_steps": 4, "cloud_octaves": 4, "radiance_size": Sky.RADIANCE_SIZE_64,
+		"terrain_detail": 0.0,
 	},
 	"medium": {
-		"msaa": Viewport.MSAA_2X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 0.75, "hidden_scale": 0.5, "hidden_pause": true,
+		"msaa": Viewport.MSAA_2X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 0.67, "hidden_scale": 0.5, "hidden_pause": true,
 		"upscaler": "auto", "fsr_sharpness": 0.2,
 		"ssao": false, "ssao_quality": RenderingServer.ENV_SSAO_QUALITY_VERY_LOW, "ssao_half": true, "ssao_blur": 1,
 		"dof": true, "dof_quality": RenderingServer.DOF_BLUR_QUALITY_VERY_LOW, "dof_shape": RenderingServer.DOF_BOKEH_BOX,
 		"dof_reach": 700.0, "dof_near": false,
 		"shadow_atlas": 4096, "shadow_splits": 2, "shadow_distance": 0.8, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW,
 		"glow": true, "cloud_pass": 2, "cloud_steps": 5, "cloud_octaves": 5, "radiance_size": Sky.RADIANCE_SIZE_128,
+		"terrain_detail": 0.5,
 	},
 	"high": {
-		"msaa": Viewport.MSAA_4X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 0.8, "hidden_scale": 0.5, "hidden_pause": true,
+		"msaa": Viewport.MSAA_4X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 0.75, "hidden_scale": 0.5, "hidden_pause": true,
 		"upscaler": "auto", "fsr_sharpness": 0.2,
 		"ssao": false, "ssao_quality": RenderingServer.ENV_SSAO_QUALITY_LOW, "ssao_half": true, "ssao_blur": 2,
 		"dof": true, "dof_quality": RenderingServer.DOF_BLUR_QUALITY_VERY_LOW, "dof_shape": RenderingServer.DOF_BOKEH_BOX,
 		"dof_reach": 700.0, "dof_near": false,
 		"shadow_atlas": 4096, "shadow_splits": 4, "shadow_distance": 1.0, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW,
 		"glow": true, "cloud_pass": 2, "cloud_steps": 6, "cloud_octaves": 6, "radiance_size": Sky.RADIANCE_SIZE_256,
+		"terrain_detail": 1.0,
 	},
 	"ultra": {
 		"msaa": Viewport.MSAA_4X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 1.0, "hidden_scale": 0.5, "hidden_pause": true,
@@ -105,6 +114,7 @@ const PRESETS := {
 		"dof_reach": 100000.0, "dof_near": true,
 		"shadow_atlas": 4096, "shadow_splits": 4, "shadow_distance": 1.0, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_LOW,
 		"glow": true, "cloud_pass": 0, "cloud_steps": 6, "cloud_octaves": 6, "radiance_size": Sky.RADIANCE_SIZE_256,
+		"terrain_detail": 1.0,
 	},
 }
 

@@ -150,6 +150,19 @@ radiance pass (`Sky.process_mode` incremental) skips the sun disc, the
 aurora and the fine detail so ambient light and fog never count the sun
 twice or turn green.
 
+The three cloud layers can be marched in the sky's quarter- (or half-)
+resolution pass instead of per pixel (`cloud_pass`, from the quality tier;
+High and below use the quarter pass). The pass writes them premultiplied
+and the full-resolution pass composites them over the sky. The engine
+blends the environment's fog into every sky pass, the reduced ones too
+(Godot `sky.glsl`: rgb' = rgb (1 − k) + k fog colour + s sun light ·
+cos⁸ · π with k = sky affect × (1 − aerial perspective)), so the composite
+takes that first fogging back out with the terms the director wrote
+(`sky_fog_k`, `sky_fog_scatter`, `haze_color` = the fog colour); a clear,
+broken and overcast sky measure within 1.5/255 of the per-pixel march. The
+zenith colour that lights the clouds from above is one value per frame
+(`sky_zenith`, the director's own sky model) instead of a march per pixel.
+
 The screenshot harness stages its shots with sim weather off. `09` is a
 real gameplay state: `lofoten_eventyr` (Nordland, 1 January), the first
 calm, clear night with the oval to the north, hour pinned at 22:00; it fails
@@ -225,10 +238,69 @@ camera's focus distance (far blur from 1.8× the distance, amount FARM 0.06,
 FJORD 0.10, COAST 0.14, off underwater and at night, near blur below 500 m);
 directional shadow distance 350 / 1600 / 4500 m and SSAO radius 1.5 / 4 / 8 m
 by zoom (SSAO fades out 1.5-6 km); no SDFGI (Godot 4.7 gets no indirect light
-from it on Metal, #120496). The pen net (`pen_net_shader.gdshader`) writes its
+from it on Metal, #120496). That is the Ultra tier; the tiers below trim it
+(next section). The pen net (`pen_net_shader.gdshader`) writes its
 thread coverage as alpha with `alpha_to_coverage_and_one`, so MSAA resolves
 the threads, and fades to its mean coverage 1 − (1 − w)² once the mesh passes
 0.35 cells per pixel: no moire on a distant or orbiting pen.
+
+## Quality tiers and frame budget (P0-04, G5-01 groundwork)
+
+`RenderQuality.gd` holds four tiers, Low / Medium / High / Ultra, as one
+knob table each; `EnvironmentDirector` owns one, applies its global part
+(the viewport's MSAA, SMAA and 3D scale with its upscaler; the
+RenderingServer's SSAO, depth-of-field and soft-shadow quality and the
+shadow atlas; the cascade count; the sky's radiance size) and composes with
+the rest every frame (SSAO, glow, depth of field and its reach, shadow
+distance, where and how finely the sky marches its clouds). Nothing else
+writes these (`tests/test_perf_harness.py`). The player picks the tier in
+Innstillinger → Grafikk (Grafikkvalitet: Lav, Middels, Høy, Ultra; saved as
+`graphics.quality`, applied at once through the `environment_director`
+group). High is the default.
+
+| Knob | Low | Medium | High | Ultra |
+|---|---|---|---|---|
+| MSAA + screen AA | off + FXAA | 2× + SMAA | 4× + SMAA | 4× + SMAA |
+| 3D scale (MetalFX spatial on macOS, FSR 1 elsewhere) | 0.67 | 0.75 | 0.8 | 1.0 |
+| SSAO | off | off | off | medium, half size |
+| Depth of field | off | box, very low, to 700 m | box, very low, to 700 m (FARM) | hexagon, low, every zoom, near blur |
+| Shadows | 2048, 2 cascades, 0.6× distance, hard | 4096, 2 cascades, 0.8×, very low | 4096, 4 cascades, 1.0×, very low | 4096, 4 cascades, 1.0×, low |
+| Clouds | quarter pass, 4 steps, 4 octaves | quarter, 5, 5 | quarter, 6, 6 | per pixel, 6, 6 |
+| Sky radiance map | 64 | 128 | 256 | 256 |
+
+Ultra is the Wave-1 image unchanged. High trims what does not show at
+1440p (frames side by side in `docs/run/evidence/p0_04_perf.md`): SSAO
+(its depth and normal prepass is the single most expensive effect on
+Metal and lights nothing the baked cavity colour does not), depth of field
+past 700 m (the haze softens the far fjord as much at FJORD and COAST),
+per-pixel clouds (soft: a quarter of the pixels gives the same sky), and
+renders the 3D at 0.8 with MetalFX spatial upscaling. It keeps MSAA 4× +
+SMAA (D12): the pen net resolves its threads with alpha-to-coverage, and
+the thin rails, ropes and masts stay whole. Temporal upscalers (FSR 2,
+MetalFX temporal, TAA) are not used: the water's waves are vertex-animated
+and carry no motion vectors, so they would smear.
+
+Behind an opaque full-screen panel (any tab but Fjord, with the UI layer
+drawn) the 3D renders at half scale and the sky material holds still, so
+its radiance map is not re-rendered for a world nobody sees (G1-06): the
+panel frame drops from 30 ms to the 2D's own cost. The screenshot harness
+hides the UI layer for its fjord shots, which counts as the world showing.
+
+`ShaderPrewarm` draws a millimetre triangle per late-arriving material
+(the terrain shader, with its chunks' vertex arrays) in front of the camera
+on the scene's first frames, so the terrain's pipelines are compiled before
+its chunks arrive from the worker thread.
+
+The P0-04 smoke test (`tools/perf_smoke.sh`, `godot/scripts/tools/
+PerfHarness.gd`) boots the seeded QA scenario and sweeps the camera 50° at
+FARM, FJORD and COAST, then holds behind the finance panel, 10 s each at
+2560×1440 with vsync off, and reports p50/p95/p99 frame times, script and
+render submission time, draw calls, shadow draws and video memory
+(`tools/perf_report.py`); Metal reports no GPU timestamps, so the frame
+time is the measure (the frame is GPU-bound: script ≈ 0.8 ms). Variants
+(tiers and knob overrides) run interleaved, or `--paired` next to a
+reference block, because other GPU work on a shared machine slows every
+frame; compare inside one run. CI step 18 runs it warn-only.
 
 ## Shaders in use
 

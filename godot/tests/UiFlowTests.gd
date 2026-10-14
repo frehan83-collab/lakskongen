@@ -2899,6 +2899,10 @@ func _test_quality_tiers_and_covered_world() -> void:
 	var chunk_format := _vertex_layout(chunks[0].mesh if not chunks.is_empty() else null)
 	_check(warm_format == chunk_format and warm_format > 0,
 		"quality: the warm-up triangle carries the terrain chunks' vertex arrays (%d vs %d)" % [warm_format, chunk_format])
+	var arrived_mat := chunks[0].material_override as ShaderMaterial if not chunks.is_empty() else null
+	_check(arrived_mat != null and arrived_mat.get_shader_parameter(RenderQuality.TERRAIN_DETAIL_UNIFORM) != null
+		and is_equal_approx(float(arrived_mat.get_shader_parameter(RenderQuality.TERRAIN_DETAIL_UNIFORM)), float(director.get_quality_knobs()["terrain_detail"])),
+		"quality: the terrain's material gets the tier's detail level as its chunks arrive")
 
 	# Every tier reaches the viewport, the environment, the camera and the sky.
 	ui.show_tab("fjord")
@@ -2918,6 +2922,9 @@ func _test_quality_tiers_and_covered_world() -> void:
 				tier_name, vp.msaa_3d, vp.screen_space_aa, vp.scaling_3d_scale, str(world_env.ssao_enabled), int(k["cloud_pass"])])
 		_check(vp.scaling_3d_scale >= 0.999 or vp.scaling_3d_mode == RenderQuality.upscaler(),
 			"quality: %s upscales a reduced 3D scale with MetalFX or FSR, not bilinear" % tier_name)
+		var terrain_mat := chunks[0].material_override as ShaderMaterial if not chunks.is_empty() else null
+		_check(terrain_mat != null and is_equal_approx(float(terrain_mat.get_shader_parameter(RenderQuality.TERRAIN_DETAIL_UNIFORM)), float(k["terrain_detail"])),
+			"quality: %s hands the terrain shader its detail level (%.1f)" % [tier_name, float(k["terrain_detail"])])
 	director.set_quality("high")
 	await get_tree().process_frame
 	var high: Dictionary = director.get_quality_knobs()

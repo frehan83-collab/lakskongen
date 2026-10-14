@@ -239,6 +239,8 @@ func _ready() -> void:
 	_static_setup()
 	quality.set_tier(RenderQuality.load_saved_tier())
 	_apply_quality()
+	if terrain != null:
+		terrain.terrain_ready.connect(_apply_terrain_quality)
 	wave_field.bind_grid(water_grid)
 	_prewarm()
 	compose(0.0, true)
@@ -292,6 +294,20 @@ func is_world_visible() -> bool:
 func _apply_quality() -> void:
 	var env := _env()
 	quality.apply_global(get_viewport() if is_inside_tree() else null, sun_light, moon_light, env.sky if env != null else null)
+	_apply_terrain_quality()
+
+
+## The tier's terrain detail on the terrain material (its chunks share one),
+## for the terrain shader to scale its own detail by.
+func _apply_terrain_quality() -> void:
+	if terrain == null:
+		return
+	var chunks := terrain.get_chunk_meshes()
+	if chunks.is_empty():
+		return
+	var mat := chunks[0].material_override as ShaderMaterial
+	if mat != null:
+		mat.set_shader_parameter(RenderQuality.TERRAIN_DETAIL_UNIFORM, float(quality.knobs["terrain_detail"]))
 
 
 ## Compile the terrain shader's pipelines on the scene's first frames,

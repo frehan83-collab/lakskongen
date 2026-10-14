@@ -197,7 +197,7 @@ def test_a_cheaper_tier_never_costs_more_than_the_one_above_it():
     tiers = _presets()
     order = ["low", "medium", "high", "ultra"]
     for knob in ("msaa", "scale", "shadow_atlas", "shadow_splits", "shadow_distance", "soft_shadows",
-                 "cloud_steps", "cloud_octaves", "radiance_size", "ssao", "dof", "dof_reach", "dof_near"):
+                 "cloud_steps", "cloud_octaves", "radiance_size", "ssao", "dof", "dof_reach", "dof_near", "terrain_detail"):
         values = [_num(tiers[t][knob]) for t in order]
         assert values == sorted(values), f"{knob}: {values} must not fall from Low to Ultra"
     # Clouds move to cheaper passes going down (0 full, 1 half, 2 quarter).

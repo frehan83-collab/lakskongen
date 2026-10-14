@@ -443,6 +443,11 @@ func _raw_target(key: String) -> Array:
 			var grid := _env.get_node_or_null("WaterGrid")
 			if grid and grid.get("material"):
 				return [grid.get("material"), prop, true]
+		"terrain":
+			var terrain := _env.get_node_or_null("Terrain")
+			var chunks: Array = terrain.call("get_chunk_meshes") if terrain else []
+			if not chunks.is_empty() and (chunks[0] as MeshInstance3D).material_override is ShaderMaterial:
+				return [(chunks[0] as MeshInstance3D).material_override, prop, true]
 		"hide":
 			var node := _env.get_node_or_null(prop)
 			return [node, "visible", false] if node else []
