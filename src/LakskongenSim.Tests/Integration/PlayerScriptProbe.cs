@@ -77,7 +77,28 @@ public static class PlayerScriptProbe
         public List<string> NoteKinds = new();
         /// <summary>GUID-normalized save JSON at the end of the career (exact-continuation checks).</summary>
         public string FinalStateJson = "";
+        /// <summary>
+        /// The career on the mortality ledger (S2-05): every death by cause and
+        /// category, and every fish that left alive (escape, harvest, forced
+        /// harvest, transfer), from the scenario start to the end of the career.
+        /// </summary>
+        public LakskongenSim.Biology.MortalityBreakdown Mortality;
+        /// <summary>Fish in the sea sites after the scenario start and the probe's stocking.</summary>
+        public double FishBeforeGrowOut = 0.0;
+        /// <summary>Fish in the sea sites when each was harvested (summed).</summary>
+        public double FishAtHarvest = 0.0;
+        /// <summary>Fish still in the sea sites when the career ended.</summary>
+        public double FishLeftAtEnd = 0.0;
     }
+
+    /// <summary>
+    /// The probe's mortality printout (S2-05): the career's deaths in the NVI
+    /// categories with their causes, then the fish that left alive.
+    /// </summary>
+    public static string FormatMortality(int seed, CareerResult r)
+        => r.Mortality.FormatTable(
+            $"{CareerScenarioId} seed {seed}: {r.FishBeforeGrowOut:N0} fish at the start, {r.DaysRun} days, " +
+            $"sea loss {r.SeaMortalityPct:F2} % (deaths + escapes + forced harvest)");
 
     /// <summary>
     /// Run the red-zone career from scenario start to harvest, optionally with
@@ -215,6 +236,10 @@ public static class PlayerScriptProbe
         result.SeaMortalityPct = fishBeforeGrowOut > 0
             ? (fishBeforeGrowOut - fishBeforeHarvest) / fishBeforeGrowOut * 100.0
             : 0.0;
+        result.Mortality = engine.MortalityLedger.Cumulative();
+        result.FishBeforeGrowOut = fishBeforeGrowOut;
+        result.FishAtHarvest = fishAtHarvest;
+        result.FishLeftAtEnd = TotalFish(engine.State);
 
         return result;
     }

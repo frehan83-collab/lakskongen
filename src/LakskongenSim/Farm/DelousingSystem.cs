@@ -214,10 +214,9 @@ namespace LakskongenSim.Farm
                 {
                     var cohort = pop.Cohorts[i];
                     int take = Math.Min(remaining, (int)(cohort.Count * actualMortalityRate));
-                    remaining -= take;
                     // In place: rebuilding the cohort reset its smolt quality tier
-                    // to Standard (F386).
-                    cohort.Count -= take;
+                    // to Standard (F386). Booked as a treatment death (S2-05).
+                    remaining -= pop.RemoveDead(cohort, take, Biology.MortalityCause.Delousing);
                 }
                 pop.Cohorts.RemoveAll(c => c.Count <= 0);
             }

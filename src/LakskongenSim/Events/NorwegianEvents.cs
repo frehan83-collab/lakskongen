@@ -78,8 +78,15 @@ namespace LakskongenSim.Events
                     rec.BalanceChange = -2_500_000m; // Catastrophic
                     SettleBalanceChange(finance, gs, rec);
 
-                    // Cull the first sea pen
-                    FirstSeaPen(gs)?.Cohorts.Clear();
+                    // Cull the first sea pen: every fish is destroyed on the
+                    // cull order, booked as an infectious-disease death (S2-05).
+                    var culled = FirstSeaPen(gs);
+                    if (culled != null)
+                    {
+                        foreach (var cohort in culled.Cohorts)
+                            culled.RemoveDead(cohort, cohort.Count, Biology.MortalityCause.DiseaseCull);
+                        culled.Cohorts.Clear();
+                    }
                     
                     // Set first zone to fallow (reduce capacity to effectively disable it)
                     if (gs.Zones.Any())

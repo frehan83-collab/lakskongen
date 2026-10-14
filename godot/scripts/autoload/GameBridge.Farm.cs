@@ -752,12 +752,10 @@ public partial class GameBridge : Node
         int lost = 0;
         foreach (var pop in site.Pens)
         {
+            // Handling deaths are booked on the mortality ledger (S2-05).
             foreach (var cohort in pop.Cohorts)
-            {
-                int take = (int)(cohort.Count * lossRate);
-                cohort.Count = System.Math.Max(0, cohort.Count - take);
-                lost += take;
-            }
+                lost += pop.RemoveDead(cohort, (int)(cohort.Count * lossRate),
+                    LakskongenSim.Biology.MortalityCause.Handling);
             pop.VaccinatedDay = state.Day;
         }
         SimulationEngine.PayCost(cost, LakskongenSim.Core.CostBooking.Opex, "vaccination");

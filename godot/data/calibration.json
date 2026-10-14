@@ -118,5 +118,10 @@
     "baseFCR": 1.15,
     "optimalFCRTempC": 12.0,
     "fcrTempSensitivity": 0.008
+  },
+  "mortality": {
+    "temperatureStressLowerC": 4.0,
+    "temperatureStressUpperC": 16.0,
+    "temperatureStressDailyFractionPerDegreeC": 0.00005
   }
 }

@@ -104,6 +104,10 @@ namespace LakskongenSim.Calibration
         /// <summary>Feed: feed price per kg feed, base FCR and temperature relationship.</summary>
         [JsonPropertyName("feed")]
         public FeedCalibration Feed { get; init; } = new();
+
+        /// <summary>Mortality hazards by cause (S2-05): the temperature-stress band and rate.</summary>
+        [JsonPropertyName("mortality")]
+        public MortalityCalibration Mortality { get; init; } = new();
         /// <summary>
         /// Derived feed cost per kg of fish produced = feed price × base FCR.
         /// This is the reconciled "~25.7 NOK/kg produced" figure in
@@ -562,4 +566,51 @@ namespace LakskongenSim.Calibration
         /// </summary>
         public double FCRTempSensitivity { get; init; } = 0.008;
     }
+
+    #region S2-05 mortality by cause
+
+    /// <summary>
+    /// Mortality hazards booked by cause (S2-05, roadmap D4). Each hazard
+    /// reads the cohort's own environment
+    /// (<see cref="Biology.CohortEnvironment"/>), so a land-based tank or an
+    /// offshore structure applies the same rule to the water it holds.
+    /// </summary>
+    public sealed record MortalityCalibration
+    {
+        /// <summary>
+        /// Lower edge of the stress-free water-temperature band: 4 °C (unit °C).
+        /// Source: Calado, Mota, Madeira &amp; Leal (2021), "Summer Is Coming!
+        /// Tackling Ocean Warming in Atlantic Salmon Cage Farming", Animals
+        /// 11(6):1800, doi:10.3390/ani11061800,
+        /// https://pmc.ncbi.nlm.nih.gov/articles/PMC8234874/ (growth range
+        /// from 4-6 °C). Year 2021.
+        /// </summary>
+        public double TemperatureStressLowerC { get; init; } = 4.0;
+
+        /// <summary>
+        /// Upper edge of the stress-free water-temperature band: 16 °C (unit °C).
+        /// Source: Calado et al. (2021), as above: growth optimum 13-16 °C,
+        /// feed intake falls from 18-19 °C, ITmax about 22 °C. Year 2021.
+        /// </summary>
+        public double TemperatureStressUpperC { get; init; } = 16.0;
+
+        /// <summary>
+        /// Fraction of a cohort killed per °C outside the band per day:
+        /// 0.00005 = 0.005 % of the fish per °C per day (unit 1/(°C·day)).
+        /// A game estimate (2026): no published dose-response for sea cages
+        /// exists. It is held against Calado et al. (2021), Animals 11(6):1800,
+        /// https://pmc.ncbi.nlm.nih.gov/articles/PMC8234874/: a few weeks above
+        /// 18 °C have minimal effects and the Tasmanian 2015/16 summer (117 days
+        /// above 18 °C, peak about 23 °C) cost appetite and growth, not stock;
+        /// at this rate such a summer kills about 1-3 % directly, and a northern
+        /// winter at 2 °C for 90 days about 0.9 %. The documentation of
+        /// <c>SimulationEngine.ApplySeaTemperatureStress</c> used to say
+        /// 0.5 % per °C per day, a hundred times the rate the engine applied;
+        /// the engine's rate is the realistic one and the documentation now
+        /// matches it (a test reads both).
+        /// </summary>
+        public double TemperatureStressDailyFractionPerDegreeC { get; init; } = 0.00005;
+    }
+
+    #endregion
 }

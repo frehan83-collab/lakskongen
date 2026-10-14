@@ -1006,19 +1006,21 @@ namespace LakskongenSim.Core
                 var populationsInZone = gs.Populations.Where(p => p.ZoneId == zone.Id).ToList();
                 foreach (var pop in populationsInZone)
                 {
-                    // Mortality rate based on DO severity
-                    double doLevel = zone.WaterChemistry.OxygenO2;
-                    double mortalityRate = doLevel < 1.0 ? 0.5 : (doLevel < 2.0 ? 0.25 : 0.1);
-                    
+                    // Mortality rate from the oxygen the fish actually sit in
+                    // (S2-05): a sea pen has the zone's water; a land-based tank
+                    // keeps its controlled oxygen and an offshore pen its
+                    // current-fed boost, so a fjord crash no longer kills them.
+                    var environment = ResolveCohortEnvironment(pop);
+                    double mortalityRate = MortalityHazards.PlanktonCrashFraction(environment);
+                    if (mortalityRate <= 0.0) continue;
+
                     for (int ci = 0; ci < pop.Cohorts.Count; ci++)
                     {
                         var cohort = pop.Cohorts[ci];
-                        int deaths = (int)(cohort.Count * mortalityRate);
-                        cohort.Count -= deaths;
-                        if (cohort.Count < 0) cohort.Count = 0;
+                        pop.RemoveDead(cohort, MortalityHazards.Deaths(cohort.Count, mortalityRate), MortalityCause.LowOxygen);
                     }
-                    
-                    SimLog.Info($"Plankton crash mortality in zone {zone.Id}: DO={doLevel:F2} mg/L, rate={mortalityRate:P0}");
+
+                    SimLog.Info($"Plankton crash mortality in zone {zone.Id}: DO={environment.OxygenMgL:F2} mg/L, rate={mortalityRate:P0}");
                 }
             }
         }
@@ -1501,6 +1503,7 @@ private class BalancingConfig
 
             for (int day = 0; day < days; day++)
             {
+                BeginMortalityDay(); // S2-05: this step's deaths carry the day it ends on
                 AdvanceOneDay();
                 State.Day++; // Single source of truth for day counter
 
@@ -1774,9 +1777,8 @@ private class BalancingConfig
             {
                 foreach (var cohort in pop.Cohorts)
                 {
-                    int take = Math.Min(cohort.Count, remaining);
-                    cohort.Count -= take;
-                    remaining -= take;
+                    // Escapes leave alive: booked as a removal, not a death (S2-05).
+                    remaining -= pop.RemoveAlive(cohort, remaining, FishRemoval.Escape);
                     if (remaining <= 0) break;
                 }
                 pop.TriggerOnPopulationChanged();
@@ -1873,7 +1875,7 @@ private class BalancingConfig
                             int mortalityCount = (int)(cohort.Count * severity * CalibrationRegistry.Default.Environment.StormFishLossBaseFraction * stormMult);
                             if (mortalityCount > 0)
                             {
-                                cohort.Count = Math.Max(0, cohort.Count - mortalityCount);
+                                mortalityCount = pop.RemoveDead(cohort, mortalityCount, MortalityCause.Storm);
                                 stormFishLoss += (decimal)(mortalityCount * cohort.MeanWeightKg) * stormSpotPrice;
                             }
                         }
@@ -2142,31 +2144,6 @@ private class BalancingConfig
                 SettleProvisionalTax();
         }
 
-
-        /// <summary>
-        /// Sea-temperature extremes (below 4 °C or above 16 °C) kill 0.5% per
-        /// degree of deviation per day. Land-based RAS tanks run at their own
-        /// controlled temperature and are exempt (they joined State.Populations
-        /// with facility production and were losing ~10 fish/day per 100,000 in
-        /// a 2 °C winter sea).
-        /// </summary>
-        internal void ApplySeaTemperatureStress(double seaTempC)
-        {
-            if (seaTempC >= 4.0 && seaTempC <= 16.0) return;
-            double tempStress = seaTempC < 4.0 ? (4.0 - seaTempC) * 0.01 : (seaTempC - 16.0) * 0.01;
-            var landBased = new HashSet<FishPopulation>(
-                RASFacilities.SelectMany(r => r.Tanks), ReferenceEqualityComparer.Instance);
-            foreach (var pop in State.Populations)
-            {
-                if (landBased.Contains(pop)) continue;
-                foreach (var cohort in pop.Cohorts)
-                {
-                    int tempMortality = (int)(cohort.Count * tempStress * 0.005); // 0.5% per degree deviation
-                    if (tempMortality > 0)
-                        cohort.Count = Math.Max(0, cohort.Count - tempMortality);
-                }
-            }
-        }
 
         /// <summary>
         /// Process sludge valorization at sea sites (Phase 5.3).
@@ -3042,9 +3019,7 @@ private class BalancingConfig
 
                 double removeFraction = Math.Min(1.0, kgToRemove / cohortBiomassKg);
                 int fishToRemove = (int)(cohort.Count * removeFraction);
-                fishToRemove = Math.Min(fishToRemove, cohort.Count);
-
-                cohort.Count -= fishToRemove;
+                fishToRemove = pop.RemoveAlive(cohort, fishToRemove, FishRemoval.ForcedHarvest);
                 kgToRemove -= fishToRemove * cohort.MeanWeightKg;
                 if (kgToRemove <= 0) break;
             }
@@ -3192,11 +3167,11 @@ private class BalancingConfig
 
                 int killed = 0;
                 double lostKg = 0.0;
+                var bloomCause = MortalityCauses.ForBloomKind(bloom.Kind);
                 foreach (var pop in site.Pens)
                     foreach (var cohort in pop.Cohorts)
                     {
-                        int take = (int)(cohort.Count * mortRate);
-                        cohort.Count = Math.Max(0, cohort.Count - take);
+                        int take = pop.RemoveDead(cohort, (int)(cohort.Count * mortRate), bloomCause);
                         killed += take;
                         lostKg += take * cohort.MeanWeightKg;
                     }

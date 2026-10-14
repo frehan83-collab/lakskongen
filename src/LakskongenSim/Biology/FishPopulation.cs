@@ -122,6 +122,39 @@ namespace LakskongenSim.Biology
             OnPopulationChanged?.Invoke();
         }
 
+        /// <summary>
+        /// Remove <paramref name="count"/> dead fish from <paramref name="cohort"/>
+        /// (a cohort of this population) and book them to <paramref name="cause"/>
+        /// on the mortality ledger (S2-05). Every death in the simulation goes
+        /// through here, so the deaths of a cohort on a day equal the sum of its
+        /// deaths by cause. Clamped to the fish the cohort holds; returns the
+        /// number removed. A population without injected models (a bare unit-test
+        /// population) removes the fish and books nothing.
+        /// </summary>
+        public int RemoveDead(Cohort cohort, int count, MortalityCause cause)
+        {
+            int dead = Math.Clamp(count, 0, Math.Max(0, cohort.Count));
+            if (dead == 0) return 0;
+            _mortality?.Ledger.BookDeaths(this, cohort, dead, cause);
+            cohort.Count -= dead;
+            return dead;
+        }
+
+        /// <summary>
+        /// Remove <paramref name="count"/> live fish from <paramref name="cohort"/>
+        /// (escape, harvest, forced harvest, transfer out) and book them on the
+        /// mortality ledger as a removal, not a death. Clamped like
+        /// <see cref="RemoveDead"/>; returns the number removed.
+        /// </summary>
+        public int RemoveAlive(Cohort cohort, int count, FishRemoval removal)
+        {
+            int moved = Math.Clamp(count, 0, Math.Max(0, cohort.Count));
+            if (moved == 0) return 0;
+            _mortality?.Ledger.BookRemoval(this, cohort, moved, removal);
+            cohort.Count -= moved;
+            return moved;
+        }
+
         /// <summary>Triggers the OnPopulationChanged event. Used by external systems that modify cohorts directly.</summary>
         public void TriggerOnPopulationChanged()
         {
@@ -133,7 +166,6 @@ namespace LakskongenSim.Biology
         public void AdvanceDays(int days, bool skipGrowth = false, double mortalityReduction = 0.0, double diseaseResistanceBonus = 0.0)
         {
             if (days <= 0) return;
-            var populationId = this.Id; // Cache to avoid repeated property access
 
             for (int i = 0; i < Cohorts.Count; i++)
             {
@@ -144,7 +176,7 @@ namespace LakskongenSim.Biology
                 {
                     cohort.MeanWeightKg = _growth.ApplyGrowth(cohort.MeanWeightKg, days, cohort.Stage);
                 }
-                cohort.Count = _mortality.ApplyMortality(cohort.Count, days, cohort.Stage, populationId, mortalityReduction, diseaseResistanceBonus);
+                _mortality.ApplyMortality(this, cohort, days, mortalityReduction, diseaseResistanceBonus);
                 cohort.Stage = DetermineStage(cohort.AgeDays);
             }
 

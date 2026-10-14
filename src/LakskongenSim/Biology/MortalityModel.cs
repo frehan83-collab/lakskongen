@@ -33,6 +33,14 @@ namespace LakskongenSim.Biology
         // Environmental stress tracking per population
         private readonly Dictionary<string, EnvironmentalStressState> _environmentalStress = new();
 
+        /// <summary>
+        /// Every death and live removal of the populations this model serves,
+        /// by cause (S2-05). Populations book through
+        /// <see cref="FishPopulation.RemoveDead"/> / <see cref="FishPopulation.RemoveAlive"/>;
+        /// the engine opens each simulated day on it.
+        /// </summary>
+        public MortalityLedger Ledger { get; } = new();
+
         // Sea-phase mortality anchor. `CalibrationRegistry.Health.SeaMortalityPerCycle`
         // (real NVI 2024 ~15.4%, band 14-16%) is mapped to a daily hazard over the
         // calibrated sea grow-out duration. The sea stages (Seawater/Harvest) use this
@@ -107,53 +115,90 @@ namespace LakskongenSim.Biology
                 : LakskongenSim.Core.GameConstants.BaselineMortalityPerDay;
 
         /// <summary>
+        /// Stage multiplier on the baseline hazard, from real salmon mortality
+        /// patterns: egg 5, alevin 4 (yolk sac), fry 3 (first feeding), parr 2,
+        /// smolt 2.5 (smoltification stress), seawater 1.2, harvest size 1.
+        /// </summary>
+        private static double StageMultiplier(LifeStage stage) => stage switch
+        {
+            LifeStage.Egg => 5.0,
+            LifeStage.Alevin => 4.0,
+            LifeStage.Fry => 3.0,
+            LifeStage.Parr => 2.0,
+            LifeStage.Smolt => 2.5,
+            LifeStage.Seawater => 1.2,
+            LifeStage.Harvest => 1.0,
+            _ => 1.0,
+        };
+
+        /// <summary>Disease hazard injected for a population today (0 when none).</summary>
+        private double DiseaseRateFor(string populationId)
+            => !string.IsNullOrEmpty(populationId) && _diseaseRates.TryGetValue(populationId, out double rate)
+                ? rate
+                : 0.0;
+
+        /// <summary>Survivors of <paramref name="count"/> fish after <paramref name="days"/> days at a daily hazard: count × (1 − rate)^days, rounded.</summary>
+        private static int Survivors(int count, int days, double dailyRate)
+            => Math.Max(0, (int)Math.Round(count * Math.Pow(1.0 - dailyRate, days)));
+
+        /// <summary>
         /// Apply mortality over days, return surviving count (rounded to int).
         /// Combines baseline, stage, and disease mortality in a single application.
+        /// A count-only function: nothing is booked. Populations die through
+        /// <see cref="ApplyMortality(FishPopulation, FishPopulation.Cohort, int, double, double)"/>,
+        /// which books every death by cause.
         /// </summary>
         public int ApplyMortality(int count, int days, LifeStage stage, string populationId = "", double mortalityReduction = 0.0, double diseaseResistanceBonus = 0.0)
         {
             if (count <= 0 || days <= 0) return count;
-            
+
             double baseRate = BaselineDailyRate(stage);
-            
-            // Stage modifiers based on real salmon mortality patterns
-            double stageMultiplier = 1.0;
-            switch (stage)
-            {
-                case LifeStage.Egg: stageMultiplier = 5.0; break;       // Highest mortality in egg stage
-                case LifeStage.Alevin: stageMultiplier = 4.0; break;    // Vulnerable yolk sac stage
-                case LifeStage.Fry: stageMultiplier = 3.0; break;       // First feeding critical period
-                case LifeStage.Parr: stageMultiplier = 2.0; break;      // Freshwater predation/disease
-                case LifeStage.Smolt: stageMultiplier = 2.5; break;     // Smoltification stress
-                case LifeStage.Seawater: stageMultiplier = 1.2; break;  // Sea lice, disease exposure
-                case LifeStage.Harvest: stageMultiplier = 1.0; break;   // Stable if well-managed
-            }
-            
-            // Get disease mortality rate (if any) for this population
-            double diseaseRate = 0.0;
-            if (!string.IsNullOrEmpty(populationId) && _diseaseRates.TryGetValue(populationId, out double rate))
-            {
-                diseaseRate = rate;
-            }
-            
+            double stageMultiplier = StageMultiplier(stage);
+            double diseaseRate = DiseaseRateFor(populationId);
+
             // Research removes a fraction of each hazard once (review F1027: the
             // reduction was subtracted from the total and then overwritten, so it
             // never acted; as an absolute 0.02-0.10/day it would also have zeroed a
             // ~3e-4/day sea hazard).
             double totalRate = ResearchAdjustedRate(baseRate * stageMultiplier, diseaseRate, 0.0,
                 mortalityReduction, diseaseResistanceBonus);
-            
-            // survivors = count * (1-rate)^days
-            var survivors = count * Math.Pow(1.0 - totalRate, days);
-            
+
+            int survivors = Survivors(count, days, totalRate);
+
             // Log to sim log for debugging (first 10 calls)
             if (_callCount < 10)
             {
-                SimLog.Debug($"[MortalityModel] Call #{_callCount}: BaseRate={baseRate:F7}, Stage={stage}, StageMult={stageMultiplier:F2}, TotalRate={totalRate:F7}, Count={count}, Survivors={survivors:F0}");
+                SimLog.Debug($"[MortalityModel] Call #{_callCount}: BaseRate={baseRate:F7}, Stage={stage}, StageMult={stageMultiplier:F2}, TotalRate={totalRate:F7}, Count={count}, Survivors={survivors}");
                 _callCount++;
             }
-            
-            return Math.Max(0, (int)Math.Round(survivors));
+
+            return survivors;
+        }
+
+        /// <summary>
+        /// Apply the daily hazards to one cohort of <paramref name="population"/>
+        /// and book the deaths (S2-05): the same survivors as
+        /// <see cref="ApplyMortality(int, int, LifeStage, string, double, double)"/>,
+        /// with the deaths split between the baseline anchor
+        /// (<see cref="MortalityCause.BaselineAnchor"/>) and the disease hazard
+        /// (<see cref="MortalityCause.Disease"/>) in proportion to the two
+        /// research-adjusted hazards (<see cref="MortalityLedger.Split"/>).
+        /// </summary>
+        internal void ApplyMortality(FishPopulation population, FishPopulation.Cohort cohort, int days,
+            double mortalityReduction, double diseaseResistanceBonus)
+        {
+            int count = cohort.Count;
+            if (count <= 0 || days <= 0) return;
+
+            var hazards = ResearchAdjustedHazards(
+                BaselineDailyRate(cohort.Stage) * StageMultiplier(cohort.Stage),
+                DiseaseRateFor(population.Id), 0.0, mortalityReduction, diseaseResistanceBonus);
+            int deaths = count - Survivors(count, days, hazards.Total);
+            if (deaths <= 0) return;
+
+            var split = MortalityLedger.Split(deaths, new[] { hazards.Baseline, hazards.Disease });
+            population.RemoveDead(cohort, split[0], MortalityCause.BaselineAnchor);
+            population.RemoveDead(cohort, split[1], MortalityCause.Disease);
         }
 
         /// <summary>
@@ -192,37 +237,16 @@ namespace LakskongenSim.Biology
             if (count <= 0 || days <= 0) return count;
             
             double baseRate = BaselineDailyRate(stage);
-            
-            // Stage modifiers based on real salmon mortality patterns
-            double stageMultiplier = 1.0;
-            switch (stage)
-            {
-                case LifeStage.Egg: stageMultiplier = 5.0; break;
-                case LifeStage.Alevin: stageMultiplier = 4.0; break;
-                case LifeStage.Fry: stageMultiplier = 3.0; break;
-                case LifeStage.Parr: stageMultiplier = 2.0; break;
-                case LifeStage.Smolt: stageMultiplier = 2.5; break;
-                case LifeStage.Seawater: stageMultiplier = 1.2; break;
-                case LifeStage.Harvest: stageMultiplier = 1.0; break;
-            }
-            
-            // Get disease mortality rate
-            double diseaseRate = 0.0;
-            if (!string.IsNullOrEmpty(populationId) && _diseaseRates.TryGetValue(populationId, out double rate))
-            {
-                diseaseRate = rate;
-            }
-            
+            double stageMultiplier = StageMultiplier(stage);
+            double diseaseRate = DiseaseRateFor(populationId);
+
             // Calculate environmental stress mortality
             double environmentalMortality = CalculateEnvironmentalMortality(environmentalData, stage);
             
             double totalRate = ResearchAdjustedRate(baseRate * stageMultiplier, diseaseRate, environmentalMortality,
                 mortalityReduction, diseaseResistanceBonus);
-            
-            // survivors = count * (1-rate)^days
-            var survivors = count * Math.Pow(1.0 - totalRate, days);
-            
-            return Math.Max(0, (int)Math.Round(survivors));
+
+            return Survivors(count, days, totalRate);
         }
         
         /// <summary>
@@ -234,10 +258,23 @@ namespace LakskongenSim.Biology
         /// </summary>
         internal static double ResearchAdjustedRate(double baselineHazard, double diseaseHazard,
             double environmentalHazard, double mortalityReduction, double diseaseResistanceBonus)
+            => ResearchAdjustedHazards(baselineHazard, diseaseHazard, environmentalHazard,
+                mortalityReduction, diseaseResistanceBonus).Total;
+
+        /// <summary>
+        /// The research-adjusted hazard components behind
+        /// <see cref="ResearchAdjustedRate"/>: the baseline and disease hazards
+        /// after research, the environmental hazard as given, and their clamped
+        /// sum (the daily rate applied). The ledger splits deaths by the components.
+        /// </summary>
+        internal static (double Baseline, double Disease, double Environment, double Total) ResearchAdjustedHazards(
+            double baselineHazard, double diseaseHazard, double environmentalHazard,
+            double mortalityReduction, double diseaseResistanceBonus)
         {
             double baseline = baselineHazard * (1.0 - Core.ResearchEffectKeys.ClampReduction(mortalityReduction));
             double disease = Math.Max(0.0, diseaseHazard) * (1.0 - Core.ResearchEffectKeys.ClampReduction(diseaseResistanceBonus));
-            return Math.Clamp(baseline + disease + environmentalHazard, 0.0, MaxTotalDailyMortalityRate);
+            double total = Math.Clamp(baseline + disease + environmentalHazard, 0.0, MaxTotalDailyMortalityRate);
+            return (baseline, disease, environmentalHazard, total);
         }
 
         /// <summary>
@@ -350,7 +387,7 @@ namespace LakskongenSim.Biology
         /// </summary>
         public MortalityModelSnapshot GetSaveSnapshot()
         {
-            var snapshot = new MortalityModelSnapshot();
+            var snapshot = new MortalityModelSnapshot { Ledger = Ledger.GetSaveSnapshot() };
             foreach (var kvp in _diseaseRates)
                 snapshot.DiseaseRates[kvp.Key] = kvp.Value;
             foreach (var kvp in _environmentalStress)
@@ -374,6 +411,7 @@ namespace LakskongenSim.Biology
         {
             _diseaseRates.Clear();
             _environmentalStress.Clear();
+            Ledger.RestoreFromSave(snapshot?.Ledger);
             if (snapshot == null) return;
 
             if (snapshot.DiseaseRates != null)
@@ -426,5 +464,8 @@ namespace LakskongenSim.Biology
     {
         public Dictionary<string, double> DiseaseRates { get; set; } = new();
         public Dictionary<string, EnvironmentalStressSnapshot> StressStates { get; set; } = new();
+
+        /// <summary>The mortality ledger (S2-05); null in saves written before it existed.</summary>
+        public MortalityLedgerSnapshot? Ledger { get; set; }
     }
 }
