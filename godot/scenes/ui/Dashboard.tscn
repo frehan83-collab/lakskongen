@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://scripts/ui/LineChart.gd" id="2_chart"]
 [ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
+[ext_resource type="Script" path="res://scripts/ui/PeriodBarChart.gd" id="3_periodchart"]
 [node name="Dashboard" type="Control"]
 theme = ExtResource("theme_chart")
 layout_mode = 3
@@ -126,7 +127,7 @@ theme_override_constants/separation = 4
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiHealth/VBox"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "FISKEHELSE"
+text = "UI_DASHBOARD_KPI_SUSTAINABILITY"
 
 [node name="KpiHealthValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiHealth/VBox"]
 theme_type_variation = &"Title"
@@ -174,6 +175,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 2.0
+size_flags_vertical = 0
 
 [node name="PensOuter" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard"]
 layout_mode = 2
@@ -188,442 +190,23 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "🏗️ Merdoversikt"
 
-[node name="PensBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter"]
+[node name="PensPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="PensBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensPad"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="PenGrid" type="GridContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody"]
+[node name="PenGrid" type="GridContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensPad/PensBody"]
 unique_name_in_owner = true
 layout_mode = 2
 columns = 3
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 12
-
-[node name="PenCard1" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid"]
-theme_type_variation = &"Tile"
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="HeaderRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox"]
-layout_mode = 2
-
-[node name="Pen1Name" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/HeaderRow"]
-theme_type_variation = &"BodySmall"
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Merd 1"
-
-[node name="Pen1Status" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/HeaderRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(10, 10)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.180392, 0.419608, 0.270588, 1)
-
-[node name="CountRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/CountRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Antall"
-
-[node name="Pen1Count" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/CountRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="WeightRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/WeightRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Snittvekt"
-
-[node name="Pen1Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/WeightRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="TempRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/TempRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Temp"
-
-[node name="Pen1Temp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/TempRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="PenCard2" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid"]
-theme_type_variation = &"Tile"
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="HeaderRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox"]
-layout_mode = 2
-
-[node name="Pen2Name" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/HeaderRow"]
-theme_type_variation = &"BodySmall"
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Merd 2"
-
-[node name="Pen2Status" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/HeaderRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(10, 10)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.180392, 0.419608, 0.270588, 1)
-
-[node name="CountRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/CountRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Antall"
-
-[node name="Pen2Count" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/CountRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="WeightRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/WeightRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Snittvekt"
-
-[node name="Pen2Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/WeightRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="TempRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/TempRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Temp"
-
-[node name="Pen2Temp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/TempRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="PenCard3" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid"]
-theme_type_variation = &"Tile"
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="HeaderRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox"]
-layout_mode = 2
-
-[node name="Pen3Name" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/HeaderRow"]
-theme_type_variation = &"BodySmall"
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Merd 3"
-
-[node name="Pen3Status" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/HeaderRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(10, 10)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.180392, 0.419608, 0.270588, 1)
-
-[node name="CountRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/CountRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Antall"
-
-[node name="Pen3Count" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/CountRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="WeightRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/WeightRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Snittvekt"
-
-[node name="Pen3Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/WeightRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="TempRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/TempRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Temp"
-
-[node name="Pen3Temp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/TempRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="PenCard4" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid"]
-theme_type_variation = &"Tile"
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="HeaderRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox"]
-layout_mode = 2
-
-[node name="Pen4Name" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/HeaderRow"]
-theme_type_variation = &"BodySmall"
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Merd 4"
-
-[node name="Pen4Status" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/HeaderRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(10, 10)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.180392, 0.419608, 0.270588, 1)
-
-[node name="CountRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/CountRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Antall"
-
-[node name="Pen4Count" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/CountRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="WeightRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/WeightRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Snittvekt"
-
-[node name="Pen4Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/WeightRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="TempRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/TempRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Temp"
-
-[node name="Pen4Temp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/TempRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="PenCard5" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid"]
-theme_type_variation = &"Tile"
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="HeaderRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox"]
-layout_mode = 2
-
-[node name="Pen5Name" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/HeaderRow"]
-theme_type_variation = &"BodySmall"
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Merd 5"
-
-[node name="Pen5Status" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/HeaderRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(10, 10)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.180392, 0.419608, 0.270588, 1)
-
-[node name="CountRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/CountRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Antall"
-
-[node name="Pen5Count" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/CountRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="WeightRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/WeightRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Snittvekt"
-
-[node name="Pen5Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/WeightRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="TempRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/TempRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Temp"
-
-[node name="Pen5Temp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/TempRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="PenCard6" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid"]
-theme_type_variation = &"Tile"
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="HeaderRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox"]
-layout_mode = 2
-
-[node name="Pen6Name" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/HeaderRow"]
-theme_type_variation = &"BodySmall"
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Merd 6"
-
-[node name="Pen6Status" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/HeaderRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(10, 10)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.180392, 0.419608, 0.270588, 1)
-
-[node name="CountRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/CountRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Antall"
-
-[node name="Pen6Count" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/CountRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="WeightRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/WeightRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Snittvekt"
-
-[node name="Pen6Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/WeightRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="TempRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/TempRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Temp"
-
-[node name="Pen6Temp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/TempRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
 
 [node name="RightCol" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1"]
 layout_mode = 2
@@ -649,99 +232,106 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "💧 Vannkvalitet"
 
-[node name="WaterBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter"]
+[node name="WaterPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="WaterBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="WaterGrid" type="GridContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody"]
+[node name="WaterGrid" type="GridContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody"]
 unique_name_in_owner = true
 layout_mode = 2
 columns = 2
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 12
 
-[node name="WaterTempPanel" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid"]
+[node name="WaterTempPanel" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid"]
 theme_type_variation = &"Tile"
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterTempPanel"]
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid/WaterTempPanel"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterTempPanel/VBox"]
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid/WaterTempPanel/VBox"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "TEMPERATUR"
 horizontal_alignment = 1
 
-[node name="WaterTemp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterTempPanel/VBox"]
+[node name="WaterTemp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid/WaterTempPanel/VBox"]
 theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
 text = "--°C"
 horizontal_alignment = 1
 
-[node name="WaterOxygenPanel" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid"]
+[node name="WaterOxygenPanel" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid"]
 theme_type_variation = &"Tile"
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterOxygenPanel"]
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid/WaterOxygenPanel"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterOxygenPanel/VBox"]
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid/WaterOxygenPanel/VBox"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "OKSYGEN"
 horizontal_alignment = 1
 
-[node name="WaterOxygen" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterOxygenPanel/VBox"]
+[node name="WaterOxygen" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid/WaterOxygenPanel/VBox"]
 theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
 text = "--%"
 horizontal_alignment = 1
 
-[node name="WaterSalinityPanel" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid"]
+[node name="WaterSalinityPanel" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid"]
 theme_type_variation = &"Tile"
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterSalinityPanel"]
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid/WaterSalinityPanel"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterSalinityPanel/VBox"]
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid/WaterSalinityPanel/VBox"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "BØLGER"
 horizontal_alignment = 1
 
-[node name="WaterSalinity" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterSalinityPanel/VBox"]
+[node name="WaterSalinity" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid/WaterSalinityPanel/VBox"]
 theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
 text = "--‰"
 horizontal_alignment = 1
 
-[node name="WaterPhPanel" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid"]
+[node name="WaterPhPanel" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid"]
 theme_type_variation = &"Tile"
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterPhPanel"]
+[node name="VBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid/WaterPhPanel"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterPhPanel/VBox"]
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid/WaterPhPanel/VBox"]
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 text = "pH"
 horizontal_alignment = 1
 
-[node name="WaterPh" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterPhPanel/VBox"]
+[node name="WaterPh" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterPad/WaterBody/WaterGrid/WaterPhPanel/VBox"]
 theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
@@ -767,81 +357,88 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "🌤️ Vær"
 
-[node name="WeatherBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter"]
+[node name="WeatherPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="WeatherBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherPad"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="WeatherTop" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody"]
+[node name="WeatherTop" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherPad/WeatherBody"]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="WeatherIcon" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherTop"]
+[node name="WeatherIcon" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherPad/WeatherBody/WeatherTop"]
 theme_type_variation = &"Kpi"
 unique_name_in_owner = true
 layout_mode = 2
 text = "⛅"
 
-[node name="WeatherInfo" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherTop"]
+[node name="WeatherInfo" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherPad/WeatherBody/WeatherTop"]
 layout_mode = 2
 
-[node name="WeatherTemp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherTop/WeatherInfo"]
+[node name="WeatherTemp" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherPad/WeatherBody/WeatherTop/WeatherInfo"]
 theme_type_variation = &"Title"
 unique_name_in_owner = true
 layout_mode = 2
 text = "--°C"
 
-[node name="WeatherDesc" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherTop/WeatherInfo"]
+[node name="WeatherDesc" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherPad/WeatherBody/WeatherTop/WeatherInfo"]
 theme_type_variation = &"SmallMuted"
 unique_name_in_owner = true
 layout_mode = 2
 text = "--"
 
-[node name="WeatherGrid" type="GridContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody"]
+[node name="WeatherGrid" type="GridContainer" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherPad/WeatherBody"]
 unique_name_in_owner = true
 layout_mode = 2
 columns = 2
 theme_override_constants/h_separation = 16
 theme_override_constants/v_separation = 4
 
-[node name="WindTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+[node name="WindTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherPad/WeatherBody/WeatherGrid"]
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 text = "Vind:"
 
-[node name="WeatherWind" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+[node name="WeatherWind" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherPad/WeatherBody/WeatherGrid"]
 theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
 text = "--"
 
-[node name="WaveTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+[node name="WaveTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherPad/WeatherBody/WeatherGrid"]
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 text = "Bølge:"
 
-[node name="WeatherWave" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+[node name="WeatherWave" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherPad/WeatherBody/WeatherGrid"]
 theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
 text = "--"
 
-[node name="VisTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+[node name="VisTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherPad/WeatherBody/WeatherGrid"]
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 text = "Nøter:"
 
-[node name="WeatherVisibility" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+[node name="WeatherVisibility" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherPad/WeatherBody/WeatherGrid"]
 theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
 text = "--"
 
-[node name="HumTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+[node name="HumTitle" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherPad/WeatherBody/WeatherGrid"]
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 text = "Lus:"
 
-[node name="WeatherHumidity" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherBody/WeatherGrid"]
+[node name="WeatherHumidity" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WeatherCard/WeatherOuter/WeatherPad/WeatherBody/WeatherGrid"]
 theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
@@ -870,230 +467,23 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "💰 Økonomi (6 mnd)"
 
-[node name="FinBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter"]
+[node name="FinPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="FinBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinPad"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="FinChart" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody"]
+[node name="FinChart" type="Control" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinPad/FinBody"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 2
-
-[node name="Month1" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart"]
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 2
-
-[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month1"]
-layout_mode = 2
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="FinRev1" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month1/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(12, 30)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="FinCost1" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month1/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(12, 20)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month1"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Okt"
-horizontal_alignment = 1
-
-[node name="Month2" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart"]
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 2
-
-[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month2"]
-layout_mode = 2
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="FinRev2" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month2/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(12, 40)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="FinCost2" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month2/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(12, 25)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month2"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Nov"
-horizontal_alignment = 1
-
-[node name="Month3" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart"]
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 2
-
-[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month3"]
-layout_mode = 2
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="FinRev3" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month3/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(12, 50)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="FinCost3" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month3/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(12, 30)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month3"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Des"
-horizontal_alignment = 1
-
-[node name="Month4" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart"]
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 2
-
-[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month4"]
-layout_mode = 2
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="FinRev4" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month4/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(12, 60)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="FinCost4" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month4/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(12, 35)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month4"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Jan"
-horizontal_alignment = 1
-
-[node name="Month5" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart"]
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 2
-
-[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month5"]
-layout_mode = 2
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="FinRev5" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month5/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(12, 70)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="FinCost5" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month5/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(12, 40)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month5"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Feb"
-horizontal_alignment = 1
-
-[node name="Month6" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart"]
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 2
-
-[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month6"]
-layout_mode = 2
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="FinRev6" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month6/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(12, 80)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="FinCost6" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month6/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(12, 45)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month6"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Mar"
-horizontal_alignment = 1
-
-[node name="Legend" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody"]
-layout_mode = 2
-theme_override_constants/separation = 16
-
-[node name="RevLegend" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/Legend"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="Dot" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/Legend/RevLegend"]
-custom_minimum_size = Vector2(10, 10)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/Legend/RevLegend"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Inntekt"
-
-[node name="CostLegend" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/Legend"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="Dot" type="ColorRect" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/Legend/CostLegend"]
-custom_minimum_size = Vector2(10, 10)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/Legend/CostLegend"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Kostnad"
+size_flags_vertical = 3
+script = ExtResource("3_periodchart")
 
 [node name="AlertsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row2"]
 theme_type_variation = &"Card"
@@ -1114,17 +504,24 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "⚠️ Varsler"
 
-[node name="AlertsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/AlertsCard/AlertsOuter"]
+[node name="AlertsPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/Row2/AlertsCard/AlertsOuter"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="AlertsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/AlertsCard/AlertsOuter/AlertsPad"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="AlertsContainer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/AlertsCard/AlertsOuter/AlertsBody"]
+[node name="AlertsContainer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/AlertsCard/AlertsOuter/AlertsPad/AlertsBody"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="ActionsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row2"]
+[node name="ActionsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/Row2" groups=["toast_keep_clear"]]
 theme_type_variation = &"Card"
 unique_name_in_owner = true
 layout_mode = 2
@@ -1143,67 +540,74 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "⚡ Hurtigvalg"
 
-[node name="ActionsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter"]
+[node name="ActionsPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="ActionsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsPad"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="ActionsGrid" type="GridContainer" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody"]
+[node name="ActionsGrid" type="GridContainer" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsPad/ActionsBody"]
 unique_name_in_owner = true
 layout_mode = 2
 columns = 2
 theme_override_constants/h_separation = 10
 theme_override_constants/v_separation = 10
 
-[node name="BtnFeeding" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+[node name="BtnFeeding" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsPad/ActionsBody/ActionsGrid"]
 theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "🤖 AI-fôring"
 
-[node name="BtnHarvest" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+[node name="BtnHarvest" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsPad/ActionsBody/ActionsGrid"]
 theme_type_variation = &"SmallSuccessButton"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "📦 Høst"
 
-[node name="BtnDelouse" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+[node name="BtnDelouse" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsPad/ActionsBody/ActionsGrid"]
 theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "🧪 Avlus"
 
-[node name="BtnReports" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+[node name="BtnReports" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsPad/ActionsBody/ActionsGrid"]
 theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "📊 Rapporter"
 
-[node name="BtnResearch" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+[node name="BtnResearch" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsPad/ActionsBody/ActionsGrid"]
 theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "🔬 Forskning"
 
-[node name="BtnMap" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+[node name="BtnMap" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsPad/ActionsBody/ActionsGrid"]
 theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "🗺️ Kart"
 
-[node name="BtnHire" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+[node name="BtnHire" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsPad/ActionsBody/ActionsGrid"]
 theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "👷 Ansett"
 
-[node name="BtnContracts" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+[node name="BtnContracts" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsPad/ActionsBody/ActionsGrid"]
 theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 layout_mode = 2
@@ -1233,29 +637,36 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "📈 Trender (30 dager)"
 
-[node name="TrendsBody" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter"]
+[node name="TrendsPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="TrendsBody" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter/TrendsPad"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="ChartBiomass" type="Control" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter/TrendsBody"]
+[node name="ChartBiomass" type="Control" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter/TrendsPad/TrendsBody"]
 script = ExtResource("2_chart")
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ChartPrice" type="Control" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter/TrendsBody"]
+[node name="ChartPrice" type="Control" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter/TrendsPad/TrendsBody"]
 script = ExtResource("2_chart")
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ChartLice" type="Control" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter/TrendsBody"]
+[node name="ChartLice" type="Control" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter/TrendsPad/TrendsBody"]
 script = ExtResource("2_chart")
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ChartFcr" type="Control" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter/TrendsBody"]
+[node name="ChartFcr" type="Control" parent="Margin/MainScroll/RootVBox/Row3/TrendsCard/TrendsOuter/TrendsPad/TrendsBody"]
 script = ExtResource("2_chart")
 unique_name_in_owner = true
 layout_mode = 2
@@ -1284,33 +695,40 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "🎛️ Driftssentral (100 pkt)"
 
-[node name="OpsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter"]
+[node name="OpsPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="OpsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsPad"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="OpsBudget" type="Label" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsBody"]
+[node name="OpsBudget" type="Label" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsPad/OpsBody"]
 theme_type_variation = &"SmallMuted"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Brukt 0/100"
 
-[node name="OpsList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsBody"]
+[node name="OpsList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsPad/OpsBody"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="PolicyRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsBody"]
+[node name="PolicyRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsPad/OpsBody"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="PolicyLbl" type="Label" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsBody/PolicyRow"]
+[node name="PolicyLbl" type="Label" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsPad/OpsBody/PolicyRow"]
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 custom_minimum_size = Vector2(150, 0)
 text = "Natt-modus:"
 
-[node name="PolicyOption" type="OptionButton" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsBody/PolicyRow"]
+[node name="PolicyOption" type="OptionButton" parent="Margin/MainScroll/RootVBox/Row4/OpsCard/OpsOuter/OpsPad/OpsBody/PolicyRow"]
 theme_type_variation = &"SmallOptionButton"
 unique_name_in_owner = true
 layout_mode = 2

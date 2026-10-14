@@ -29,6 +29,18 @@ signal achievement_unlocked(id: String, achievement_name: String, description: S
 ## Emitted when a pen action completes (feed, harvest, delouse)
 signal pen_action_completed(action: String, pen_id: String, success: bool)
 
+## Emitted for every event the typed event bus delivers (roadmap U2-06):
+## {id, type, severity "info" | "warning" | "critical", category, key, day,
+## site_id, zone_id, unit_id, variant, headline, message, deadline_day,
+## counter_verb, value, escalation}. The bus has already dropped repeats
+## (same category and subject within three days) and marked escalations;
+## listeners route by severity, never by the message text.
+signal game_event_raised(event: Dictionary)
+
+## Emitted whenever the game clock changes (roadmap U2-07): speed, pause,
+## holds, "Til neste hendelse" or a pacing decision. See get_clock_state().
+signal clock_changed(clock: Dictionary)
+
 # ── Internal ──────────────────────────────────────────────────────────────────
 
 var _game_bridge: Node = null
@@ -298,6 +310,8 @@ func _ready() -> void:
 		_game_bridge.AchievementUnlocked.connect(_on_achievement_unlocked)
 		_game_bridge.WeatherEvent.connect(_on_weather_event)
 		_game_bridge.DiseaseOutbreak.connect(_on_disease_outbreak)
+		_game_bridge.GameEventRaised.connect(func(ev: Dictionary) -> void: game_event_raised.emit(ev))
+		_game_bridge.ClockChanged.connect(func(clock: Dictionary) -> void: clock_changed.emit(clock))
 	else:
 		push_warning("SimBridge: /root/GameBridge not found — stub mode active")
 	_state.game_bridge = _game_bridge
@@ -352,6 +366,24 @@ func advance_days(days: int) -> void: _actions.advance_days(days)
 func set_paused(paused: bool) -> void: _actions.set_paused(paused)
 func is_paused() -> bool: return _actions.is_paused()
 func set_time_speed(speed: float) -> void: _actions.set_time_speed(speed)
+## The game clock (roadmap U2-07): speeds, holds, "Til neste hendelse", the
+## briefing, and the deadline registration API (see GameBridge.Clock.cs).
+func get_time_speed() -> float: return _actions.get_time_speed()
+func is_player_paused() -> bool: return _actions.is_player_paused()
+func hold_clock(reason: String) -> void: _actions.hold_clock(reason)
+func release_clock(reason: String) -> void: _actions.release_clock(reason)
+func is_clock_held(reason: String = "") -> bool: return _actions.is_clock_held(reason)
+func run_to_next_event() -> bool: return _actions.run_to_next_event()
+func stop_run_to_next_event() -> void: _actions.stop_run_to_next_event()
+func is_running_to_next_event() -> bool: return _actions.is_running_to_next_event()
+func get_clock_state() -> Dictionary: return _actions.get_clock_state()
+func is_briefing_pending() -> bool: return _actions.is_briefing_pending()
+func begin_play(speed: float) -> void: _actions.begin_play(speed)
+func dismiss_briefing() -> void: _actions.dismiss_briefing()
+func set_auto_slow_deadlines(enabled: bool) -> void: _actions.set_auto_slow_deadlines(enabled)
+func register_pacing_deadline(key: String, deadline_day: int, headline: String = "", site_id: String = "", counter_verb: String = "none", slow_at_days_left: int = 7, pause_at_days_left: int = 1) -> bool: return _actions.register_pacing_deadline(key, deadline_day, headline, site_id, counter_verb, slow_at_days_left, pause_at_days_left)
+func resolve_pacing_deadline(key: String) -> bool: return _actions.resolve_pacing_deadline(key)
+func get_pacing_deadlines() -> Array[Dictionary]: return _actions.get_pacing_deadlines()
 func skip_tutorial() -> void: _actions.skip_tutorial()
 func get_game_state_json() -> String: return _actions.get_game_state_json()
 func place_pen(zone_id: String, pen_name: String = "New Pen") -> bool: return _actions.place_pen(zone_id, pen_name)
@@ -377,6 +409,12 @@ func get_night_shift_status() -> Dictionary: return _proxies.get_night_shift_sta
 func set_night_shift_policy(policy: String) -> bool: return _actions.set_night_shift_policy(policy)
 func get_intervention_ranking() -> Array[Dictionary]: return _proxies.get_intervention_ranking()
 func get_attention_items() -> Array[Dictionary]: return _proxies.get_attention_items()
+## The typed event bus (U2-06): the delivered log (newest first), the type
+## catalog, a condition report (SimState uses it) and the repeats absorbed.
+func get_game_event_log(max_count: int = 50) -> Array[Dictionary]: return _proxies.get_game_event_log(max_count)
+func get_game_event_catalog() -> Array[Dictionary]: return _proxies.get_game_event_catalog()
+func publish_condition_event(type_id: String, severity: String, site_id: String, message: String, variant: String = "", deadline_day: int = -1) -> Dictionary: return _proxies.publish_condition_event(type_id, severity, site_id, message, variant, deadline_day)
+func game_events_suppressed() -> int: return _proxies.game_events_suppressed()
 func open_attention_inbox() -> void: _proxies.open_attention_inbox()
 func set_feed_recipe(protein: float, replace: float, astax: float) -> void: return _actions.set_feed_recipe(protein, replace, astax)
 func deploy_countermeasure(site_id: String, kind: String) -> bool: return _actions.deploy_countermeasure(site_id, kind)
@@ -468,6 +506,7 @@ func get_genomic_selection_preview() -> Array[Dictionary]: return _proxies.get_g
 func get_inbreeding_status() -> Dictionary: return _proxies.get_inbreeding_status()
 func get_ge_traits() -> Array[Dictionary]: return _proxies.get_ge_traits()
 func get_crew_list() -> Array[Dictionary]: return _proxies.get_crew_list()
+func get_crew_role_effects() -> Array[Dictionary]: return _proxies.get_crew_role_effects()
 func hire_worker(role: String) -> bool: return _proxies.hire_worker(role)
 func fire_worker(worker_id: String) -> bool: return _proxies.fire_worker(worker_id)
 func get_achievement_list() -> Array[Dictionary]: return _proxies.get_achievement_list()

@@ -113,6 +113,7 @@ func get_ge_traits() -> Array[Dictionary]:
 
 
 func get_crew_list() -> Array[Dictionary]: return _arr(game_bridge.GetCrewList()) if game_bridge else []
+func get_crew_role_effects() -> Array[Dictionary]: return _arr(game_bridge.GetCrewRoleEffects()) if game_bridge else []
 func hire_worker(role: String) -> bool: return game_bridge.HireWorker(role) if game_bridge else false
 func fire_worker(worker_id: String) -> bool: return game_bridge.FireWorker(worker_id) if game_bridge else false
 func get_achievement_list() -> Array[Dictionary]: return _arr(game_bridge.GetAchievementList()) if game_bridge else []
@@ -228,6 +229,13 @@ func get_resource_rent() -> Dictionary:
 	if game_bridge:
 		return {"enabled": bool(game_bridge.ResourceRentEnabled), "paid": float(game_bridge.ResourceRentPaid)}
 	return {"enabled": false, "paid": 0.0}
+
+## U2-06: the typed event bus (GameBridge.Events.cs).
+func get_game_event_log(max_count: int) -> Array[Dictionary]: return _arr(game_bridge.GetGameEventLog(max_count)) if game_bridge else []
+func get_game_event_catalog() -> Array[Dictionary]: return _arr(game_bridge.GetGameEventCatalog()) if game_bridge else []
+func publish_condition_event(type_id: String, severity: String, site_id: String, message: String, variant: String, deadline_day: int) -> Dictionary:
+	return game_bridge.PublishConditionEvent(type_id, severity, site_id, message, variant, deadline_day) if game_bridge else {"outcome": "rejected", "id": "", "reason": "not_initialized"}
+func game_events_suppressed() -> int: return int(game_bridge.GameEventsSuppressed) if game_bridge else 0
 
 ## P10: gill-health early-warning risk for a site.
 func get_gill_risk(site_id: String) -> Dictionary:

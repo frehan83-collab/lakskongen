@@ -59,13 +59,8 @@ func _update_suggestion():
 	var text = _decision_manager.GetNextActionSuggestion()
 	
 	suggestion_label.text = text
-	
-	# Color-code by urgency
-	if text.contains("⚠️"):
-		LakskongenTheme.set_text_color(suggestion_label, LakskongenTheme.WARNING)
-	elif text.contains("💰"):
-		LakskongenTheme.set_text_color(suggestion_label, LakskongenTheme.DANGER)
-	elif text.contains("🐟"):
-		LakskongenTheme.set_text_color(suggestion_label, LakskongenTheme.KELP_LIGHT)
-	else:
-		LakskongenTheme.set_text_color(suggestion_label, LakskongenTheme.TEXT)
+
+	# No colour read off the suggestion's text (U2-06: nothing classifies
+	# alert text by substring). Urgency comes back as a typed field when the
+	# widget is revived with the choice events (S4-08, roadmap D6).
+	LakskongenTheme.set_text_color(suggestion_label, LakskongenTheme.TEXT)

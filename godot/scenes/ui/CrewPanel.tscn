@@ -131,7 +131,7 @@ theme_override_constants/separation = 4
 [node name="Cap" type="Label" parent="./Scroll/Root/KPIRow/KPIEfficiency/VBox"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "EFFEKTIVITET"
+text = "UI_CREW_KPI_ROLES"
 
 [node name="KpiEfficiencyValue" type="Label" parent="./Scroll/Root/KPIRow/KPIEfficiency/VBox"]
 theme_type_variation = &"Heading"
@@ -151,7 +151,7 @@ size_flags_stretch_ratio = 2.0
 
 [node name="Outer" type="VBoxContainer" parent="./Scroll/Root/MidRow/ListCard"]
 layout_mode = 2
-theme_override_constants/separation = 0
+theme_override_constants/separation = 12
 
 [node name="CardHeader" type="Label" parent="./Scroll/Root/MidRow/ListCard/Outer"]
 layout_mode = 2
@@ -169,15 +169,15 @@ size_flags_horizontal = 3
 
 [node name="Outer" type="VBoxContainer" parent="./Scroll/Root/MidRow/SkillsCard"]
 layout_mode = 2
-theme_override_constants/separation = 0
+theme_override_constants/separation = 12
 
 [node name="CardHeader" type="Label" parent="./Scroll/Root/MidRow/SkillsCard/Outer"]
 layout_mode = 2
-text = "🎯 Ferdigheter"
+text = "UI_CREW_ROLES_TITLE"
 
 [node name="SkillsGrid" type="GridContainer" parent="./Scroll/Root/MidRow/SkillsCard/Outer"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 12
-columns = 2
+columns = 1

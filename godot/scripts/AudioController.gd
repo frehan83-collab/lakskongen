@@ -376,6 +376,23 @@ func _on_state_updated() -> void:
 func _on_alert_triggered(alert_key: String) -> void:
 	_play_alert_sfx(alert_key)
 
+## The main menu's music (roadmap U1-09): the main theme, started from the
+## menu's _ready so the music bus is live within a second of launch. A game
+## hands over to its seasonal track on its first state update.
+const MENU_MUSIC_KEY := "main_theme"
+
+func play_menu_music() -> void:
+	var path := MusicLibrary.music(MENU_MUSIC_KEY)
+	if not path.is_empty():
+		_update_bgm_direct(path)
+
+## The music track playing (or fading in) now, as a res:// path.
+func get_current_music() -> String:
+	return _current_bgm_track
+
+func is_music_playing() -> bool:
+	return _bgm_active != null and _bgm_active.playing
+
 func _update_bgm_direct(path: String) -> void:
 	if path == _current_bgm_track:
 		return

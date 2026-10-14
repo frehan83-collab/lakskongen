@@ -117,10 +117,106 @@ func is_paused() -> bool:
 	return game_bridge.IsPaused() if game_bridge else true
 
 
-## Set time speed multiplier (1x, 2x, 5x, etc.)
+## Set the clock's speed: 1, 3, 10 or 30 × normal (other values snap to the
+## nearest, roadmap U2-07). The player taking the speed ends "Til neste hendelse".
 func set_time_speed(speed: float) -> void:
 	if game_bridge:
 		game_bridge.SetTimeSpeed(speed)
+
+
+## The clock's speed (1, 3, 10 or 30).
+func get_time_speed() -> float:
+	return float(game_bridge.TimeSpeed) if game_bridge else 1.0
+
+
+## True while the player's own pause is on (holds such as an open card aside).
+func is_player_paused() -> bool:
+	return game_bridge.IsPlayerPaused() if game_bridge else true
+
+
+## Stop the clock while `reason` waits for the player ("briefing",
+## "critical_event", "pause_menu"); release_clock lets go of it.
+func hold_clock(reason: String) -> void:
+	if game_bridge:
+		game_bridge.HoldClock(reason)
+
+
+func release_clock(reason: String) -> void:
+	if game_bridge:
+		game_bridge.ReleaseClock(reason)
+
+
+## True while `reason` ("" = anything) holds the clock.
+func is_clock_held(reason: String = "") -> bool:
+	return game_bridge.IsClockHeld(reason) if game_bridge else false
+
+
+## "Til neste hendelse" (N): 30× until the next warning or critical event, a
+## deadline's slow-down or 60 quiet days, then paused. False when it cannot run.
+func run_to_next_event() -> bool:
+	return game_bridge.RunToNextEvent() if game_bridge else false
+
+
+func stop_run_to_next_event() -> void:
+	if game_bridge:
+		game_bridge.StopRunToNextEvent()
+
+
+func is_running_to_next_event() -> bool:
+	return game_bridge.IsRunningToNextEvent if game_bridge else false
+
+
+## The clock as the HUD draws it (GameBridge.GetClockState: speed, paused,
+## holds, next_event, pacing, next_deadline, …).
+func get_clock_state() -> Dictionary:
+	return game_bridge.GetClockState() if game_bridge else {}
+
+
+## True from a player's new game until its briefing card is answered.
+func is_briefing_pending() -> bool:
+	return game_bridge.BriefingPending if game_bridge else false
+
+
+## The briefing's "Start": the clock runs at `speed`.
+func begin_play(speed: float) -> void:
+	if game_bridge:
+		game_bridge.BeginPlay(speed)
+
+
+## The briefing's "Se deg rundt først": the card goes, the game stays paused.
+func dismiss_briefing() -> void:
+	if game_bridge:
+		game_bridge.DismissBriefing()
+
+
+## "Bremse ned før frister": may the deadline rule slow and stop the clock.
+func set_auto_slow_deadlines(enabled: bool) -> void:
+	if game_bridge:
+		game_bridge.AutoSlowDeadlines = enabled
+
+
+## Watch a deadline (the registration API, roadmap U2-07 / F2-34): slow to 1×
+## at `slow_at_days_left`, stop at `pause_at_days_left` unless resolved first.
+func register_pacing_deadline(key: String, deadline_day: int, headline: String = "", site_id: String = "",
+		counter_verb: String = "none", slow_at_days_left: int = 7, pause_at_days_left: int = 1) -> bool:
+	if not game_bridge:
+		return false
+	return game_bridge.RegisterPacingDeadline(key, deadline_day, headline, site_id, counter_verb,
+		slow_at_days_left, pause_at_days_left)
+
+
+## The deadline was answered or its cause is gone.
+func resolve_pacing_deadline(key: String) -> bool:
+	return game_bridge.ResolvePacingDeadline(key) if game_bridge else false
+
+
+## The watched deadlines, soonest first.
+func get_pacing_deadlines() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if game_bridge:
+		for d in game_bridge.GetPacingDeadlines():
+			out.append(d)
+	return out
 
 
 ## Skip the tutorial silently (no rewards). From TutorialUI skip button.

@@ -214,6 +214,13 @@ layout_mode = 2
 button_pressed = true
 text = "Stopp ved kritiske varsler"
 
+[node name="AutoSlowCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "UI_SETTINGS_AUTO_SLOW_TIP"
+button_pressed = true
+text = "UI_SETTINGS_AUTO_SLOW"
+
 [node name="SpeedRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill"]
 layout_mode = 2
 theme_override_constants/separation = 8
@@ -227,10 +234,10 @@ text = "Standard hastighet"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 0.5
-max_value = 5.0
-step = 0.5
-value = 1.0
+max_value = 3.0
+value = 0.0
+tick_count = 4
+ticks_on_borders = true
 
 [node name="SpeedValue" type="Label" parent="./Center/DialogPanel/DialogVBox/Tabs/Spill/SpeedRow"]
 unique_name_in_owner = true
@@ -246,6 +253,12 @@ theme_override_constants/separation = 12
 unique_name_in_owner = true
 layout_mode = 2
 text = "Høykontrast"
+
+[node name="ReducedMotionCheck" type="CheckBox" parent="./Center/DialogPanel/DialogVBox/Tabs/Tilgjengelighet"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "UI_SETTINGS_REDUCED_MOTION_TIP"
+text = "UI_SETTINGS_REDUCED_MOTION"
 
 [node name="UiScaleRow" type="HBoxContainer" parent="./Center/DialogPanel/DialogVBox/Tabs/Tilgjengelighet"]
 layout_mode = 2

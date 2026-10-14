@@ -109,7 +109,8 @@ public partial class GameBridge : Node
             GD.Print($"GameBridge.StartScenario: '{scenarioId}' unavailable (unknown or locked)");
             return false;
         }
-        StartNewGameInternal("Player", (int)candidate.StartingCapitalNOK, seed);
+        // A player's start (no QA seed) opens paused on its briefing (U2-07).
+        StartNewGameInternal("Player", (int)candidate.StartingCapitalNOK, seed, briefing: seed == null);
 
         var scenario = SimulationEngine.Scenario!.GetScenario(scenarioId);
         if (scenario == null) return false;

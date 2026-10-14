@@ -1,7 +1,16 @@
 ## ContractsPanel v2.1 — Nordic Minimalist (scene-based).
 ## Layout lives in scenes/ui/ContractsPanel.tscn; this script is wiring only:
 ## @onready % refs, localization, theme fonts, data refresh.
-## Buyer / contract / region rows are data-driven and still populated in code.
+## Buyer and contract rows are data-driven and populated in code.
+##
+## U1-05: every number is the sim's. The price chart is the market price
+## series (LineChart) over the days the game has (up to PRICE_WINDOW_DAYS),
+## its low/average/high and trend come from the same series, the contract
+## price is the signed contracts' volume-weighted price and the volume card
+## is the volume under contract. The regional prices (invented from the spot
+## price with fixed rates and demand) are gone until the market model has
+## regions (S3-01); "Ny kontrakt" (a placeholder dialog) and "Selg spot"
+## (U2-05) are gone until they do something: offers are signed in Kjøpere.
 
 extends Control
 
@@ -11,8 +20,6 @@ var _theme: Node = null
 
 # ── Scene refs ────────────────────────────────────────────────────────────────
 @onready var _title_label: Label = %TitleLabel
-@onready var _btn_new_contract: Button = %BtnNewContract
-@onready var _btn_sell_spot: Button = %BtnSellSpot
 
 @onready var _kpi_spot: Label = %KpiSpotValue
 @onready var _kpi_contract: Label = %KpiContractValue
@@ -22,7 +29,6 @@ var _theme: Node = null
 @onready var _chart_title: Label = %ChartTitle
 @onready var _buyers_title: Label = %BuyersTitle
 @onready var _contracts_title: Label = %ContractsTitle
-@onready var _regions_title: Label = %RegionsTitle
 
 @onready var _price_summary_lo: Label = %SumLo
 @onready var _price_summary_avg: Label = %SumAvg
@@ -31,9 +37,10 @@ var _theme: Node = null
 
 @onready var _buyers_container: VBoxContainer = %BuyersContainer
 @onready var _contracts_container: VBoxContainer = %ContractsContainer
-@onready var _regions_grid: GridContainer = %RegionsGrid
+@onready var _price_chart: LineChart = %PriceChart
 
-var _price_chart_bars: Array[ColorRect] = []
+## The price chart reads at most this many days back (12 weeks).
+const PRICE_WINDOW_DAYS := 84
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 const C_BG := Color("#F4F1EA")
@@ -73,18 +80,13 @@ func _input(event: InputEvent) -> void:
 # ── Scene wiring ──────────────────────────────────────────────────────────────
 
 func _collect_scene_refs() -> void:
-	_price_chart_bars.clear()
-	for i in range(1, 13):
-		_price_chart_bars.append(get_node_or_null("%PriceBar" + str(i)) as ColorRect)
+	pass
 
 func _apply_localization() -> void:
 	_title_label.text = "📈 " + tr("UI_CONTRACTS_TITLE")
-	_btn_new_contract.text = "📝 " + tr("UI_CONTRACTS_NEW")
-	_btn_sell_spot.text = "📦 " + tr("UI_CONTRACTS_SELL_SPOT")
 	_chart_title.text = "💹 " + tr("UI_CONTRACTS_CHART_TITLE")
 	_buyers_title.text = "🏢 " + tr("UI_CONTRACTS_BUYERS")
 	_contracts_title.text = "📋 " + tr("UI_CONTRACTS_ACTIVE")
-	_regions_title.text = "🌍 " + tr("UI_CONTRACTS_REGIONS")
 
 func _apply_theme_fonts() -> void:
 	if not _theme:
@@ -97,7 +99,6 @@ func _apply_theme_fonts() -> void:
 	LakskongenTheme.set_strong(_chart_title)
 	LakskongenTheme.set_strong(_buyers_title)
 	LakskongenTheme.set_strong(_contracts_title)
-	LakskongenTheme.set_strong(_regions_title)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DATA REFRESH
@@ -107,26 +108,73 @@ func _refresh() -> void:
 	if not _sim:
 		return
 
-	var spot: float = float(_sim.market_price_nok) if _sim else 75.0
-	var weekly: float = float(_sim.weekly_avg_price_nok) if _sim else 75.0
-
+	var spot: float = float(_sim.market_price_nok)
 	_kpi_spot.text = SimFormatters.format_price_kg(spot)
-	_kpi_contract.text = SimFormatters.format_price_kg(weekly * 0.93)  # Contract ~7% below spot
-	_kpi_volume.text = tr("UI_CONTRACTS_TONNES") % SimFormatters.num(_sim.fish_biomass_kg / 1000.0 * 0.2, 0)  # 20% harvestable
-	_kpi_open.text = str(_sim.get_active_contracts().size()) if _sim.has_method("get_active_contracts") else "0"
-
-	# Price summary
-	_price_summary_lo.text = SimFormatters.num(spot * 0.83, 2)
-	LakskongenTheme.set_text_color(_price_summary_lo, C_DANGER)
-	_price_summary_avg.text = SimFormatters.num(spot * 0.91, 2)
-	_price_summary_hi.text = SimFormatters.num(spot, 2)
-	LakskongenTheme.set_text_color(_price_summary_hi, C_SUCCESS_D)
-	_price_summary_trend.text = ("▲ " + tr("UI_TREND_UP")) if spot > weekly else ("▼ " + tr("UI_TREND_DOWN"))
-	LakskongenTheme.set_text_color(_price_summary_trend, C_SUCCESS_D if spot > weekly else C_DANGER)
-
+	var contracts: Array = _sim.get_active_contracts() if _sim.has_method("get_active_contracts") else []
+	var terms := contract_terms(contracts)
+	_kpi_contract.text = SimFormatters.format_price_kg(terms["price"]) if terms["kg"] > 0.0 else "–"
+	_kpi_volume.text = tr("UI_CONTRACTS_TONNES") % SimFormatters.num(terms["kg"] / 1000.0, 0)
+	_kpi_open.text = SimFormatters.integer(contracts.size())
+	_refresh_price_history()
 	_refresh_buyers()
 	_refresh_contracts()
-	_refresh_regions()
+
+
+## The signed contracts' volume under contract (kg) and its
+## volume-weighted price (NOK/kg).
+static func contract_terms(contracts: Array) -> Dictionary:
+	var kg := 0.0
+	var value := 0.0
+	for c in contracts:
+		var q := float(c.get("quantity_kg", 0.0))
+		kg += q
+		value += q * float(c.get("price_per_kg", 0.0))
+	return {"kg": kg, "price": value / kg if kg > 0.0 else 0.0}
+
+
+## The spot price over the days the game has, with its low, average and high
+## and the sim's own 14-day trend.
+func _refresh_price_history() -> void:
+	var series: Array[float] = _sim.get_analytics_data("market_price_nok", PRICE_WINDOW_DAYS) \
+		if _sim.has_method("get_analytics_data") else []
+	_chart_title.text = "💹 " + tr("UI_CONTRACTS_CHART_TITLE_DAYS") % series.size()
+	if _price_chart != null:
+		_price_chart.title = ""
+		_price_chart.unit_fmt = "%.2f"
+		_price_chart.line_color = C_PRIMARY
+		_price_chart.set_series(series)
+	var stats := price_stats(series)
+	var has := not series.is_empty()
+	_price_summary_lo.text = SimFormatters.num(stats["low"], 2) if has else "–"
+	LakskongenTheme.set_text_color(_price_summary_lo, C_DANGER)
+	_price_summary_avg.text = SimFormatters.num(stats["avg"], 2) if has else "–"
+	_price_summary_hi.text = SimFormatters.num(stats["high"], 2) if has else "–"
+	LakskongenTheme.set_text_color(_price_summary_hi, C_SUCCESS_D)
+	var trend: String = _sim.get_analytics_trend("market_price_nok", 14) if _sim.has_method("get_analytics_trend") else "stable"
+	match trend:
+		"up":
+			_price_summary_trend.text = "▲ " + tr("UI_TREND_UP")
+			LakskongenTheme.set_text_color(_price_summary_trend, C_SUCCESS_D)
+		"down":
+			_price_summary_trend.text = "▼ " + tr("UI_TREND_DOWN")
+			LakskongenTheme.set_text_color(_price_summary_trend, C_DANGER)
+		_:
+			_price_summary_trend.text = "─ " + tr("UI_TREND_STABLE")
+			LakskongenTheme.set_text_color(_price_summary_trend, C_MUTED)
+
+
+## Low, average and high of a price series ({low, avg, high}; zeros when empty).
+static func price_stats(series: Array) -> Dictionary:
+	if series.is_empty():
+		return {"low": 0.0, "avg": 0.0, "high": 0.0}
+	var lo := INF
+	var hi := -INF
+	var total := 0.0
+	for v in series:
+		lo = minf(lo, float(v))
+		hi = maxf(hi, float(v))
+		total += float(v)
+	return {"low": lo, "avg": total / series.size(), "high": hi}
 
 func _refresh_buyers() -> void:
 	if not _buyers_container:
@@ -262,60 +310,3 @@ func _add_table_cell(row: HBoxContainer, text: String, color: Color, bold: bool 
 	if bold:
 		LakskongenTheme.set_strong(l)
 	row.add_child(l)
-
-func _refresh_regions() -> void:
-	if not _regions_grid:
-		return
-	for child in _regions_grid.get_children():
-		child.queue_free()
-
-	var spot: float = float(_sim.market_price_nok) if _sim else 75.0
-	var regions := [
-		{"flag": "🇪🇺", "name": tr("UI_REGION_EU"), "price": "€%s/kg" % SimFormatters.num(spot * 0.09, 2), "level": "high"},
-		{"flag": "🇬🇧", "name": tr("UI_REGION_UK"), "price": "£%s/kg" % SimFormatters.num(spot * 0.085, 2), "level": "medium"},
-		{"flag": "🇯🇵", "name": tr("UI_REGION_JAPAN"), "price": "¥%s/kg" % SimFormatters.num(spot * 15.8, 0), "level": "high"},
-		{"flag": "🇺🇸", "name": tr("UI_REGION_USA"), "price": "$%s/kg" % SimFormatters.num(spot * 0.099, 2), "level": "medium"},
-	]
-
-	for r in regions:
-		var panel := PanelContainer.new()
-		panel.size_flags_horizontal = SIZE_EXPAND_FILL
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = C_ELEVATED
-		sb.border_color = C_BORDER
-		sb.set_border_width_all(1)
-		sb.set_corner_radius_all(4)
-		sb.set_content_margin_all(12)
-		panel.add_theme_stylebox_override("panel", sb)
-		_regions_grid.add_child(panel)
-
-		var vbox := VBoxContainer.new()
-		vbox.add_theme_constant_override("separation", 4)
-		panel.add_child(vbox)
-
-		var flag := Label.new()
-		flag.text = r.flag
-		LakskongenTheme.set_size(flag, 20)
-		vbox.add_child(flag)
-
-		var name_lbl := Label.new()
-		name_lbl.text = r.name
-		LakskongenTheme.set_size(name_lbl, 13)
-		LakskongenTheme.set_text_color(name_lbl, C_TEXT)
-		LakskongenTheme.set_strong(name_lbl)
-		vbox.add_child(name_lbl)
-
-		var price_lbl := Label.new()
-		price_lbl.text = r.price
-		LakskongenTheme.set_size(price_lbl, 15)
-		LakskongenTheme.set_text_color(price_lbl, C_TEXT)
-		vbox.add_child(price_lbl)
-
-		var demand := Label.new()
-		demand.text = "● " + tr("UI_DEMAND_" + str(r.level).to_upper())
-		LakskongenTheme.set_size(demand, 11)
-		match r.level:
-			"high": LakskongenTheme.set_text_color(demand, C_SUCCESS_D)
-			"medium": LakskongenTheme.set_text_color(demand, C_WARNING_D)
-			_: LakskongenTheme.set_text_color(demand, C_DANGER)
-		vbox.add_child(demand)

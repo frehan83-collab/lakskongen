@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/ui/ContractsPanel.gd" id="1_contracts"]
 [ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
+[ext_resource type="Script" path="res://scripts/ui/LineChart.gd" id="3_linechart"]
 [node name="ContractsPanel" type="Control"]
 theme = ExtResource("theme_chart")
 layout_mode = 3
@@ -54,18 +55,6 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "📈 Marked & Handel"
-
-[node name="BtnNewContract" type="Button" parent="Margin/MainScroll/RootVBox/HeaderBar"]
-theme_type_variation = &"SmallPrimaryButton"
-unique_name_in_owner = true
-layout_mode = 2
-text = "📝 Ny kontrakt"
-
-[node name="BtnSellSpot" type="Button" parent="Margin/MainScroll/RootVBox/HeaderBar"]
-theme_type_variation = &"SmallButton"
-unique_name_in_owner = true
-layout_mode = 2
-text = "📦 Selg spot"
 
 [node name="KpiStrip" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
 layout_mode = 2
@@ -123,7 +112,7 @@ theme_override_constants/separation = 4
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiVolume/VBox"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "TILGJENGELIG VOLUM"
+text = "UI_CONTRACTS_KPI_CONTRACTED"
 
 [node name="KpiVolumeValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiVolume/VBox"]
 theme_type_variation = &"Heading"
@@ -174,263 +163,87 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "💹 Prisutvikling (12 uker)"
 
-[node name="ChartBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer"]
+[node name="ChartPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="ChartBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="PriceChart" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody"]
-custom_minimum_size = Vector2(0, 140)
-layout_mode = 2
-theme_override_constants/separation = 4
-alignment = 2
-
-[node name="PriceBar1" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
+[node name="PriceChart" type="Control" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 82)
+custom_minimum_size = Vector2(0, 170)
 layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
+size_flags_vertical = 3
+script = ExtResource("3_linechart")
 
-[node name="PriceBar2" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 78)
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="PriceBar3" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 87)
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="PriceBar4" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 90)
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="PriceBar5" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 81)
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="PriceBar6" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 72)
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="PriceBar7" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 67)
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-color = Color(0.701961, 0.090196, 0.184314, 1)
-
-[node name="PriceBar8" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 75)
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="PriceBar9" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 93)
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="PriceBar10" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 102)
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-color = Color(0.180392, 0.419608, 0.270588, 1)
-
-[node name="PriceBar11" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 108)
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-color = Color(0.180392, 0.419608, 0.270588, 1)
-
-[node name="PriceBar12" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceChart"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 123)
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-color = Color(0.180392, 0.419608, 0.270588, 1)
-
-[node name="PriceLabels" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="L1" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "U1"
-horizontal_alignment = 1
-
-[node name="L2" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "U2"
-horizontal_alignment = 1
-
-[node name="L3" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "U3"
-horizontal_alignment = 1
-
-[node name="L4" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "U4"
-horizontal_alignment = 1
-
-[node name="L5" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "U5"
-horizontal_alignment = 1
-
-[node name="L6" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "U6"
-horizontal_alignment = 1
-
-[node name="L7" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "U7"
-horizontal_alignment = 1
-
-[node name="L8" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "U8"
-horizontal_alignment = 1
-
-[node name="L9" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "U9"
-horizontal_alignment = 1
-
-[node name="L10" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "U10"
-horizontal_alignment = 1
-
-[node name="L11" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "U11"
-horizontal_alignment = 1
-
-[node name="L12" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/PriceLabels"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "U12"
-horizontal_alignment = 1
-
-[node name="SummaryRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody"]
+[node name="SummaryRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody"]
 layout_mode = 2
 theme_override_constants/separation = 24
 
-[node name="SumLoBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow"]
+[node name="SumLoBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow"]
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumLoBox"]
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumLoBox"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "LAV (12U)"
+text = "UI_CONTRACTS_PRICE_LOW"
 horizontal_alignment = 1
 
-[node name="SumLo" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumLoBox"]
+[node name="SumLo" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumLoBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "--"
 horizontal_alignment = 1
 
-[node name="SumAvgBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow"]
+[node name="SumAvgBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow"]
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumAvgBox"]
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumAvgBox"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "SNITT (12U)"
+text = "UI_CONTRACTS_PRICE_AVG"
 horizontal_alignment = 1
 
-[node name="SumAvg" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumAvgBox"]
+[node name="SumAvg" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumAvgBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "--"
 horizontal_alignment = 1
 
-[node name="SumHiBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow"]
+[node name="SumHiBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow"]
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumHiBox"]
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumHiBox"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "HØY (12U)"
+text = "UI_CONTRACTS_PRICE_HIGH"
 horizontal_alignment = 1
 
-[node name="SumHi" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumHiBox"]
+[node name="SumHi" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumHiBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "--"
 horizontal_alignment = 1
 
-[node name="SumTrendBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow"]
+[node name="SumTrendBox" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow"]
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumTrendBox"]
+[node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumTrendBox"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "TREND"
 horizontal_alignment = 1
 
-[node name="SumTrend" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumTrendBox"]
+[node name="SumTrend" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody/SummaryRow/SumTrendBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "--"
@@ -454,11 +267,18 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "🏢 Kjøpere"
 
-[node name="BuyersBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer"]
+[node name="BuyersPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="BuyersBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer/BuyersPad"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="BuyersContainer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer/BuyersBody"]
+[node name="BuyersContainer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/BuyersCard/Outer/BuyersPad/BuyersBody"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -486,41 +306,20 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "📋 Kontrakter"
 
-[node name="ContractsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer"]
+[node name="ContractsPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="ContractsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer/ContractsPad"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="ContractsContainer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer/ContractsBody"]
+[node name="ContractsContainer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/ContractsCard/Outer/ContractsPad/ContractsBody"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="RegionsCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow"]
-theme_type_variation = &"Card"
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Outer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/RegionsCard"]
-layout_mode = 2
-theme_override_constants/separation = 0
-
-[node name="Header" type="PanelContainer" parent="Margin/MainScroll/RootVBox/BotRow/RegionsCard/Outer"]
-theme_type_variation = &"CardHeader"
-layout_mode = 2
-
-[node name="RegionsTitle" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/RegionsCard/Outer/Header"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "🌍 Markedsregioner"
-
-[node name="RegionsBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/RegionsCard/Outer"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="RegionsGrid" type="GridContainer" parent="Margin/MainScroll/RootVBox/BotRow/RegionsCard/Outer/RegionsBody"]
-unique_name_in_owner = true
-layout_mode = 2
-columns = 2
-theme_override_constants/h_separation = 10
-theme_override_constants/v_separation = 10

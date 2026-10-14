@@ -424,7 +424,9 @@ func _build_node_panel(nd: Dictionary) -> void:
 	# Tier badge
 	var tier_lbl := Label.new()
 	tier_lbl.text = _fmt("UI_TECH_TIER_LABEL", "Nivå %s", [tier])
-	tier_lbl.theme_type_variation = StringName("Small" + String(_tone(branch_color)))
+	# Body text, not the branch tone: tone text on its own tinted callout fell
+	# to 4.3:1 (the card's edge already carries the branch colour).
+	tier_lbl.theme_type_variation = &"Small"
 	vbox.add_child(tier_lbl)
 
 	# Cost / progress row

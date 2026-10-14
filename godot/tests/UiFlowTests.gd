@@ -106,6 +106,32 @@ func _run() -> void:
 	await _test_credits_list_every_third_party_work()
 	await _test_pause_save_list_buttons_answer()
 	await _test_scenario_picker()
+	await _test_main_menu_shows_the_live_fjord()
+	await _test_main_menu_column_reads_over_every_mood()
+	await _test_main_menu_reduced_motion_holds_the_camera()
+	await _test_charts_draw_the_sims_series_over_sixty_days()
+	await _test_share_bars_are_the_ledger_shares()
+	await _test_dashboard_site_cards_match_the_sites()
+	await _test_skipped_days_date_their_alerts()
+	await _test_map_labels_never_collide()
+	await _test_pen_detail_fits_and_pads_its_cards()
+	await _test_market_and_crew_show_the_sims_own_numbers()
+	await _test_event_bus_one_channel_per_severity()
+	await _test_repeated_condition_makes_no_duplicates()
+	await _test_critical_shake_moves_the_camera_offset()
+	await _test_critical_card_actions()
+	await _test_inbox_lists_what_happened()
+	await _test_toasts_keep_clear_of_actions_and_inbox_header()
+	# U2-07: pacing (briefing, calendar HUD, speeds).
+	await _test_hud_shows_the_sim_calendar()
+	await _test_speed_keys_and_buttons_drive_the_clock()
+	await _test_next_event_runs_to_the_next_warning()
+	await _test_deadline_slows_then_stops_the_clock()
+	await _test_a_met_order_stops_slowing_the_clock()
+	await _test_critical_card_holds_the_clock()
+	await _test_new_game_opens_paused_on_its_briefing()
+	await _test_thirty_times_refreshes_once_a_day_within_a_frame()
+	await _test_hud_fits_its_bar()
 	_test_farm_type_graybox()
 	_test_land_kit_imports()
 	_test_offshore_unit_and_fleet()
@@ -537,7 +563,8 @@ func _test_mod_toggle_takes_clicks() -> void:
 
 ## F641: ESC with the notification panel closed passes on (GameUI returns to
 ## the dashboard) and never hides the center; with the panel open ESC closes
-## only the panel, and N opens it again.
+## only the panel, and V opens it again. (U2-07/D15: the drawer's key moved
+## from N to V, N is "Til neste hendelse"; RUN_LOG §7.)
 func _test_notification_center_escape() -> void:
 	var scene := await _spawn_game_scene()
 	var ui: Control = scene.get_node("UILayer/GameUI")
@@ -546,15 +573,20 @@ func _test_notification_center_escape() -> void:
 	await _press_key(KEY_ESCAPE)
 	_check(ui.get_active_tab() == "dashboard", "notifications: ESC reaches GameUI while the panel is closed")
 	_check(center.visible, "notifications: ESC leaves the notification center in place")
-	await _press_key(KEY_N)
-	_check(center.panel.visible, "notifications: N opens the panel")
+	await _press_key(KEY_V)
+	_check(center.panel.visible, "notifications: V opens the panel")
 	ui.show_tab("finance")
 	await _press_key(KEY_ESCAPE)
 	await get_tree().create_timer(0.5).timeout  # slide-out
 	_check(not center.panel.visible, "notifications: ESC closes the open panel")
 	_check(ui.get_active_tab() == "finance", "notifications: that ESC closed only the panel")
+	await _press_key(KEY_V)
+	_check(center.visible and center.panel.visible, "notifications: V opens the panel again after ESC")
 	await _press_key(KEY_N)
-	_check(center.visible and center.panel.visible, "notifications: N opens the panel again after ESC")
+	_check(_sim.is_running_to_next_event() and center.panel.visible,
+		"notifications: N runs to the next event and leaves the drawer open")
+	_sim.stop_run_to_next_event()
+	_sim.set_paused(true)
 	scene.queue_free()
 	await get_tree().process_frame
 
@@ -599,9 +631,19 @@ func _test_space_and_enter_reach_the_gui() -> void:
 	var pauses: Array = []
 	hud.speed_changed.connect(func(_speed: float, paused: bool) -> void: pauses.append(paused))
 	get_viewport().gui_release_focus()
+	# U2-07 (stronger, RUN_LOG §7): the HUD follows the game clock, so Space
+	# toggles what the clock does; it used to toggle the HUD's own flag, which
+	# had not seen the setup's set_paused(true). From a running clock: pause,
+	# then resume, and the clock itself follows each press.
+	_sim.set_paused(false)
+	var clock_states: Array = []
 	await _press_key(KEY_SPACE, 32)
+	clock_states.append(_sim.is_paused())
 	await _press_key(KEY_SPACE, 32)
-	_check(pauses == [true, false], "keys: Space pauses and resumes with nothing focused (%s)" % str(pauses))
+	clock_states.append(_sim.is_paused())
+	_check(pauses == [true, false] and clock_states == [true, false],
+		"keys: Space pauses and resumes with nothing focused (%s, clock %s)" % [str(pauses), str(clock_states)])
+	_sim.set_paused(true)
 
 	ui.show_tab("encyclopedia")
 	await get_tree().process_frame
@@ -857,6 +899,9 @@ func _test_escape_spares_toasts_and_closes_the_save_list() -> void:
 
 ## Re-review: N opened the notification panel while typing (and ate the "n");
 ## the Export tab's ✕ only emitted a signal GameUI never connected.
+## U2-07/D15 (RUN_LOG §7): the drawer's key is V and N is "Til neste
+## hendelse"; neither key acts while typing, and digits type instead of
+## setting the speed.
 func _test_typing_hotkeys_and_close_buttons() -> void:
 	var scene := await _spawn_game_scene()
 	var ui: Control = scene.get_node("UILayer/GameUI")
@@ -866,12 +911,16 @@ func _test_typing_hotkeys_and_close_buttons() -> void:
 	var search: LineEdit = ui.find_child("Panel_encyclopedia", true, false).get_node("%SearchField")
 	search.grab_focus()
 	search.text = ""
+	_sim.set_paused(true)
+	await _press_key(KEY_V, 118)
 	await _press_key(KEY_N, 110)
-	_check(search.text == "n", "keys: N types into a focused text field ('%s')" % search.text)
-	_check(not center._is_open, "keys: N while typing leaves the notification panel shut")
+	await _press_key(KEY_4, 52)
+	_check(search.text == "vn4", "keys: V, N and 4 type into a focused text field ('%s')" % search.text)
+	_check(not center._is_open, "keys: V while typing leaves the notification panel shut")
+	_check(_sim.is_paused() and not _sim.is_running_to_next_event(), "keys: N and 4 while typing leave the clock alone")
 	get_viewport().gui_release_focus()
-	await _press_key(KEY_N, 110)
-	_check(center._is_open, "keys: N outside a text field opens the notifications")
+	await _press_key(KEY_V, 118)
+	_check(center._is_open, "keys: V outside a text field opens the notifications")
 	await _press_key(KEY_ESCAPE)
 	await get_tree().create_timer(0.5).timeout
 
@@ -1471,8 +1520,20 @@ func _test_screen_regions_never_overlap() -> void:
 			var rects: Array = toasts.get_toast_rects()
 			var corner := screen.end - Vector2(toasts.STACK_MARGIN_RIGHT, toasts.STACK_MARGIN_BOTTOM)
 			var newest: Rect2 = rects[0] if not rects.is_empty() else Rect2()
-			_check(rects.size() == 3 and newest.end.distance_to(corner) < 2.0,
-				"regions: five toasts show as three, newest in the bottom-right corner at %s (%d, %s)" % [where, rects.size(), str(newest)])
+			# U2-06 (stronger than "in the corner", RUN_LOG §7): the newest toast
+			# is right-aligned in the corner's column and as low as it can be
+			# without covering a keep-clear control (Hurtigvalg): in the corner
+			# itself, or resting just above such a control. None covers one.
+			var keep_clear: Array = toasts.keep_clear_rects()
+			var resting := absf(newest.end.y - corner.y) < 2.0
+			for k: Rect2 in keep_clear:
+				if k.position.x < newest.end.x and k.end.x > newest.position.x \
+						and absf(newest.end.y + toasts.KEEP_CLEAR_GAP - k.position.y) < 2.0:
+					resting = true
+			var covering := rects.filter(func(r: Rect2) -> bool:
+				return keep_clear.any(func(k: Rect2) -> bool: return r.intersects(k, true)))
+			_check(rects.size() == 3 and absf(newest.end.x - corner.x) < 2.0 and resting and covering.is_empty(),
+				"regions: five toasts show as three, newest bottom-right in the corner or just above Hurtigvalg, covering nothing, at %s (%d, %s)" % [where, rects.size(), str(newest)])
 			var controls: Rect2 = found.get("hud_controls", Rect2())
 			var clear := controls.has_area()
 			for r: Rect2 in rects:
@@ -1944,6 +2005,9 @@ func _test_mod_scenario_starts_on_a_fresh_launch() -> void:
 	_check(_sim.get_active_scenario_id() == MOD_SCENARIO_ID,
 		"mods: the mod's scenario is the running game ('%s')" % _sim.get_active_scenario_id())
 	_check(is_equal_approx(float(_sim.balance), 5_000_000.0), "mods: with the mod's starting capital (%s)" % str(_sim.balance))
+	# U2-07 #1: the picker's Start is a player's new game: paused on its briefing.
+	_check(_sim.is_briefing_pending() and _sim.is_paused() and _sim.is_clock_held("briefing"),
+		"mods: the new game waits paused on its briefing")
 	_sim.set_paused(true)
 	menu.queue_free()
 	await get_tree().process_frame
@@ -3791,6 +3855,8 @@ func _line_clears_terrain(terrain: FjordTerrain, from: Vector3, to: Vector3) -> 
 			return false
 	return true
 
+# ── U1-09: the live main menu ─────────────────────────────────────────────────
+
 ## G2-01: a far field surrounds the 4 km world out to 16 km. Its ring of
 ## chunks goes up after the terrain with the terrain's material (the band
 ## next to the world casts shadows, the outer bands do not); height queries
@@ -4063,3 +4129,1303 @@ func _march_rendered_surface(origin: Vector3, dir: Vector3, terrain: FjordTerrai
 		p += dir * step
 		travelled += step
 	return Vector3.INF
+
+## Wait (bounded) until the menu's world is in and its veil has lifted.
+func _await_menu_reveal(menu: Control, timeout_s: float = 15.0) -> float:
+	var started := Time.get_ticks_msec()
+	while not bool(menu.revealed) and Time.get_ticks_msec() - started < int(timeout_s * 1000.0):
+		await get_tree().process_frame
+	return (Time.get_ticks_msec() - started) / 1000.0
+
+## U1-09: the main menu shows the live fjord: the game's own FjordEnvironment
+## (no video, no painting), staged as a calm late-winter afternoon in Troms,
+## under a low oblique camera that drifts slowly and keeps the horizon in
+## frame. The world fades in from an Ink veil; leaving hands the viewport's
+## render scale back to the game.
+func _test_main_menu_shows_the_live_fjord() -> void:
+	MotionPrefs.force(false)
+	var scale_before := get_viewport().scaling_3d_scale
+	var menu := await _spawn_main_menu()
+	var backdrop: MenuBackdrop = menu.backdrop
+	var env: FjordEnvironment = backdrop.environment
+	_check(env != null and env.get_parent() == backdrop
+		and env.scene_file_path == "res://scenes/environment/FjordEnvironment.tscn",
+		"menu: the backdrop is the game's own FjordEnvironment")
+	_check(menu.veil.visible and menu.veil.color.a > 0.99, "menu: an Ink veil covers the world while it loads")
+	var waited := await _await_menu_reveal(menu)
+	_check(backdrop.is_world_ready() and menu.revealed, "menu: the world comes in and the veil lifts (%.1f s)" % waited)
+	await get_tree().create_timer(menu.VEIL_FADE_S + 0.3).timeout
+	_check(not menu.veil.visible, "menu: the veil has faded out")
+	_check(get_viewport().get_camera_3d() == backdrop.camera, "menu: the fjord's camera draws the menu's world")
+	var managers := 0
+	for manager in MenuBackdrop.SIM_MANAGERS:
+		managers += 1 if env.get_node_or_null(manager) != null else 0
+	_check(managers == 0, "menu: no sim-driven vessels or rival farms in the menu's world (%d left)" % managers)
+	var site := backdrop.get_node_or_null("Site")
+	_check(site != null and site.find_children("*", "PenCage", true, false).size() == MenuBackdrop.SITE_PENS,
+		"menu: a site of %d pens lies in the fjord" % MenuBackdrop.SITE_PENS)
+	# The mood: calm water, late winter in Northern Norway, a low sun.
+	var ws := env.weather_system
+	_check(ws.get_wind_speed_ms() <= 2.0 and ws.get_wave_height_m() <= 0.1 and ws.get_rain() == 0.0 and ws.get_snow() == 0.0,
+		"menu: calm weather (wind %.1f m/s, waves %.2f m)" % [ws.get_wind_speed_ms(), ws.get_wave_height_m()])
+	var ts := env.time_system
+	_check(ts.paused and absf(ts.get_hour() - MenuBackdrop.HOUR) < 0.01, "menu: the hour is pinned (%.2f)" % ts.get_hour())
+	_check(ts.season < 0.25 and ts.latitude_deg > 66.0, "menu: late winter north of the Arctic Circle (season %.2f, %.1f N)" % [ts.season, ts.latitude_deg])
+	var sun := ts.get_sun_elevation_deg()
+	_check(sun > 3.0 and sun < 20.0, "menu: a low sun (%.1f deg)" % sun)
+	# The camera: a low oblique view with the horizon in frame.
+	var cam: FjordCamera = backdrop.camera
+	var forward := -cam.global_transform.basis.z
+	var pitch := rad_to_deg(asin(clampf(forward.y, -1.0, 1.0)))
+	_check(pitch <= -3.0 and pitch >= -10.0, "menu: a low oblique view (pitch %.1f deg)" % pitch)
+	_check(cam.global_position.y > 40.0 and cam.global_position.y < 200.0, "menu: the camera flies low (%.0f m)" % cam.global_position.y)
+	var horizon := _horizon_row(cam)
+	_check(horizon > 0.2 and horizon < 0.6, "menu: the horizon sits in the upper half of the frame (%.2f)" % horizon)
+	var sky := _sky_fraction(cam)
+	_check(sky > 0.15 and sky < 0.6, "menu: sky and fjord share the frame (sky %.0f %%)" % (sky * 100.0))
+	# The drift: the camera moves, slowly, and its whole track is over water.
+	var p0 := cam.global_position
+	await get_tree().create_timer(1.5).timeout
+	var moved := cam.global_position.distance_to(p0)
+	_check(moved > 0.3 and moved < 15.0, "menu: the camera drifts slowly (%.1f m in 1.5 s)" % moved)
+	var over_water := true
+	var terrain := backdrop.terrain
+	for i in 36:
+		var v: Dictionary = backdrop.view_at(MenuBackdrop.DRIFT_PERIOD_S * float(i) / 36.0)
+		var at: Vector3 = v["position"]
+		over_water = over_water and terrain.get_height_at(at.x, at.z) < terrain.water_level
+	_check(over_water, "menu: the drift stays over the water")
+	_check(get_viewport().scaling_3d_scale < 1.0, "menu: the world draws at the menu's render scale (%.2f)" % get_viewport().scaling_3d_scale)
+	var audio := get_node_or_null("/root/AudioController")
+	_check(audio != null and audio.get_current_music() == MusicLibrary.music(audio.MENU_MUSIC_KEY),
+		"menu: the main theme plays from the start (%s)" % (audio.get_current_music() if audio else "no audio"))
+	menu.queue_free()
+	await get_tree().process_frame
+	_check(is_equal_approx(get_viewport().scaling_3d_scale, scale_before), "menu: leaving restores the game's render scale")
+	MotionPrefs.force(null)
+
+## U1-09: the column is Ink glass (D13 Ink at 90 %) whose text reads over
+## every mood: ThemeLint judges each line over a white and a black world.
+## The logo is the brand wordmark in the display face, never an emoji, and
+## the version reads from the project's version.
+func _test_main_menu_column_reads_over_every_mood() -> void:
+	var menu := await _spawn_main_menu()
+	await get_tree().create_timer(THEME_SETTLE_S).timeout
+	var glass: ColorRect = menu.glass
+	var shader := (glass.material as ShaderMaterial).shader if glass.material is ShaderMaterial else null
+	_check(glass.color.is_equal_approx(Color(LakskongenTheme.INK, 0.9)) and shader != null
+		and shader.resource_path == "res://shaders/menu_glass.gdshader", "menu: the column is Ink glass at 90 %")
+	var lint := preload("res://tests/ThemeLint.gd")
+	var judged := 0
+	for c in menu.center.find_children("*", "Control", true, false):
+		var control := c as Control
+		if control.is_visible_in_tree() and (control is Label or control is Button) and str(control.get("text")) != "":
+			judged += 1
+	_check(judged >= 8, "menu: the column shows its lockup, items and version (%d texts)" % judged)
+	var low: PackedStringArray = lint.low_contrast(menu.center)
+	_check(low.is_empty(), "menu: every line of the column reads over a white or a black world %s" % str(low.slice(0, 4)))
+	var emoji := PackedStringArray()
+	for entry in TextLint.dump(menu):
+		var text := str(entry["text"])
+		for i in text.length():
+			var u := text.unicode_at(i)
+			if (u >= 0x1F000 and u <= 0x1FAFF) or (u >= 0x2600 and u <= 0x27BF) or u == 0xFE0F:
+				emoji.append("%s '%s'" % [entry["path"], text])
+				break
+	_check(emoji.is_empty(), "menu: no emoji on the main menu %s" % str(emoji))
+	_check(menu.wordmark.texture != null and menu.wordmark.texture.resource_path == "res://assets/brand/lakskongen_wordmark.svg"
+		and menu.brand_mark.texture != null, "menu: the logo is the brand lockup (mark and wordmark)")
+	var version := str(ProjectSettings.get_setting("application/config/version", ""))
+	_check(version != "" and menu.version_label.text.contains(version.get_slice("-", 0))
+		and not menu.version_label.text.contains("Nordic") and not tr("UI_VERSION_TEXT").contains("Nordic"),
+		"menu: the version reads the project's version ('%s')" % menu.version_label.text)
+	menu.queue_free()
+	await get_tree().process_frame
+
+## U1-09: Redusert bevegelse holds the camera, keeps the column in place and
+## shortens the veil's fade; the settings offer it with the accessibility
+## options (without writing the player's settings file here).
+func _test_main_menu_reduced_motion_holds_the_camera() -> void:
+	MotionPrefs.force(true)
+	var menu := await _spawn_main_menu()
+	var backdrop: MenuBackdrop = menu.backdrop
+	_check(menu.reduced_motion and backdrop.reduced_motion, "reduced motion: the menu and its world take the preference")
+	var margin := menu.menu_vbox.get_parent() as Control
+	_check(is_zero_approx(margin.position.x), "reduced motion: the column does not slide in")
+	await _await_menu_reveal(menu)
+	await get_tree().create_timer(menu.VEIL_FADE_REDUCED_S + 0.3).timeout
+	_check(not menu.veil.visible, "reduced motion: the veil is gone within %.2f s of the world" % (menu.VEIL_FADE_REDUCED_S + 0.3))
+	var cam: FjordCamera = backdrop.camera
+	var p0 := cam.global_position
+	var t0: float = backdrop.drift_time
+	await get_tree().create_timer(1.5).timeout
+	_check(cam.global_position.distance_to(p0) < 0.05 and backdrop.drift_time == t0,
+		"reduced motion: the camera holds still (%.3f m)" % cam.global_position.distance_to(p0))
+	# The settings: a Redusert bevegelse box that lands in the accessibility settings.
+	var settings: Control = menu.settings_menu
+	var box := settings.get_node_or_null("%ReducedMotionCheck") as CheckBox
+	_check(box != null and box.get_parent().name == "Tilgjengelighet" and tr(box.text) == "Redusert bevegelse",
+		"settings: Tilgjengelighet offers Redusert bevegelse")
+	if box != null:
+		box.button_pressed = true
+		var acc: Dictionary = settings._collect_from_widgets()["accessibility"]
+		_check(bool(acc.get("reduced_motion", false)), "settings: Redusert bevegelse is kept with the accessibility settings")
+		box.button_pressed = false
+	menu.queue_free()
+	await get_tree().process_frame
+	MotionPrefs.force(false)
+	var moving := await _spawn_main_menu()
+	_check(not moving.reduced_motion and moving.menu_vbox.get_parent().position.x < 0.0,
+		"motion: without the preference the column slides in from the left")
+	moving.queue_free()
+	await get_tree().process_frame
+	MotionPrefs.force(null)
+
+# ── U1-05: truthful numbers ───────────────────────────────────────────────────
+
+const DASHBOARD_FIN_DAYS := 30
+
+## A seeded po3_red_sone game (two sites) in a GameScene, paused.
+func _spawn_po3_scene(seed: int) -> Node:
+	_check(_sim.start_qa_scenario("po3_red_sone", seed), "setup: po3_red_sone starts (seed %d)" % seed)
+	_sim.skip_tutorial()
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	return scene
+
+## The tab's panel, opened (tab panels are built anew on every switch).
+func _open_panel(ui: Control, tab: String) -> Control:
+	ui.show_tab(tab)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	return ui.find_child("Panel_" + tab, true, false)
+
+## What each chart shows now next to the bridge series it claims to show.
+func _chart_snapshot(ui: Control) -> Dictionary:
+	var out := {}
+	var day := int(_sim.current_day)
+	var dash := await _open_panel(ui, "dashboard")
+	dash._refresh_all()
+	var spark = dash._kpi_sparks["revenue"]["node"]
+	out["dashboard revenue line"] = {"shown": Array(spark.values), "bridge": Array(_sim.get_analytics_data("revenue_nok", 30))}
+	var rev: Array[float] = _sim.get_analytics_data("revenue_nok", DASHBOARD_FIN_DAYS + 1)
+	var cost: Array[float] = _sim.get_analytics_data("expenses_nok", DASHBOARD_FIN_DAYS + 1)
+	var expect := PeriodBarChart.periods(rev, cost, day, 5, 6, rev.size() < DASHBOARD_FIN_DAYS + 1)
+	var chart: PeriodBarChart = dash.get_node("%FinChart")
+	out["dashboard income/cost bars"] = {"shown": [Array(chart.labels), Array(chart.income), Array(chart.costs)],
+		"bridge": [Array(expect["labels"]), Array(expect["income"]), Array(expect["costs"])]}
+	var fin := await _open_panel(ui, "finance")
+	var month_rev: Array[float] = _sim.get_analytics_data("revenue_nok", 186)
+	var month_cost: Array[float] = _sim.get_analytics_data("expenses_nok", 186)
+	var months := PeriodBarChart.periods(month_rev, month_cost, day, 0, 6, month_rev.size() < 186)
+	var fchart: PeriodBarChart = fin.get_node("%FinChart")
+	out["finance monthly bars"] = {"shown": [Array(fchart.labels), Array(fchart.income), Array(fchart.costs)],
+		"bridge": [Array(months["labels"]), Array(months["income"]), Array(months["costs"])]}
+	var story: Dictionary = _sim.get_profit_loss_story(99)
+	var shown_lines := {}
+	for line in fin.get_statement_lines():
+		shown_lines[str(line["label"])] = snappedf(float(line["amount"]), 0.01)
+	var ledger_lines := {}
+	var costs: Array = story.get("top_costs", [])
+	for i in mini(costs.size(), 7):
+		ledger_lines[SimLabels.ledger_category(str(costs[i].get("category", "")))] = snappedf(float(costs[i].get("amount", 0.0)), 0.01)
+	var listed := {}
+	for k in ledger_lines:
+		listed[k] = shown_lines.get(k, -1.0)
+	out["income statement"] = {"shown": listed, "bridge": ledger_lines}
+	var con := await _open_panel(ui, "contracts")
+	var price: LineChart = con.get_node("%PriceChart")
+	out["market price line"] = {"shown": Array(price.series), "bridge": Array(_sim.get_analytics_data("market_price_nok", 84))}
+	return out
+
+## U1-05 #1: in a scripted 60-day run, every chart shows the bridge series it
+## claims to show, and what it shows on day 60 differs from day 1.
+func _test_charts_draw_the_sims_series_over_sixty_days() -> void:
+	var scene := await _spawn_po3_scene(91)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	_sim.advance_days(1)
+	var day1 := await _chart_snapshot(ui)
+	_sim.advance_days(59)
+	var day60 := await _chart_snapshot(ui)
+	for key in day60:
+		_check(day60[key]["shown"] == day60[key]["bridge"], "charts: the %s shows the sim's series on day 60" % key)
+		_check(day60[key]["shown"] != day1[key]["shown"], "charts: the %s moved between day 1 and day 60" % key)
+	# The bars add up to the books: the costs over the dashboard's window are
+	# the year-to-date rise over the same days.
+	var dash := await _open_panel(ui, "dashboard")
+	await get_tree().process_frame
+	var chart: PeriodBarChart = dash.get_node("%FinChart")
+	var cost: Array[float] = _sim.get_analytics_data("expenses_nok", DASHBOARD_FIN_DAYS + 1)
+	var shown_costs := 0.0
+	for v in chart.costs:
+		shown_costs += v
+	var booked := cost[cost.size() - 1] - cost[0]
+	_check(absf(shown_costs - booked) < 1.0,
+		"charts: the 30-day cost bars sum to the costs booked in those days (%.0f vs %.0f)" % [shown_costs, booked])
+	var hi := chart.scale_max()
+	var rects := chart.bar_rects()
+	var plot_h := chart.size.y - PeriodBarChart.PAD_TOP - PeriodBarChart.LABEL_ROW
+	var heights_follow := hi > 0.0 and not rects.is_empty()
+	for i in rects.size():
+		heights_follow = heights_follow and absf((rects[i]["cost"] as Rect2).size.y - plot_h * chart.costs[i] / hi) < 0.5
+	_check(heights_follow, "charts: every cost bar's height is its amount on the chart's scale")
+	# The monthly bars hold every krone of the year so far, the first day's too.
+	var fin := await _open_panel(ui, "finance")
+	var fchart: PeriodBarChart = fin.get_node("%FinChart")
+	var month_costs := 0.0
+	for v in fchart.costs:
+		month_costs += v
+	var ytd: Array[float] = _sim.get_analytics_data("expenses_nok", 1)
+	_check(not ytd.is_empty() and absf(month_costs - ytd[0]) < 1.0,
+		"charts: the monthly cost bars sum to the year's costs (%.0f vs %.0f)" % [month_costs, ytd[0] if not ytd.is_empty() else -1.0])
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-05 #2: the "Hvorfor gikk det slik?" bars are each item's share of the
+## whole: fill width / track width = share within 2 px, and a larger cost
+## draws a longer bar.
+func _test_share_bars_are_the_ledger_shares() -> void:
+	var scene := await _spawn_po3_scene(20261012)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	_sim.advance_days(12)
+	var fin := await _open_panel(ui, "finance")
+	await get_tree().process_frame
+	var bars: Array = fin.find_children("ShareBar", "Control", true, false)
+	var story: Dictionary = _sim.get_profit_loss_story(3)
+	var costs: Array = story.get("top_costs", [])
+	_check(bars.size() >= costs.size() and costs.size() >= 2,
+		"share bars: one bar per cost driver (%d bars, %d costs)" % [bars.size(), costs.size()])
+	var within := true
+	var widths: Array[float] = []
+	for i in mini(bars.size(), costs.size()):
+		var bar: ShareBar = bars[i]
+		var expected := float(costs[i].get("share", 0.0)) * bar.size.x
+		within = within and absf(bar.fill_width() - expected) <= 2.0 and bar.size.x > 40.0
+		widths.append(bar.fill_width())
+	_check(within and not widths.is_empty(), "share bars: each fill is its share of the track within 2 px %s" % str(widths))
+	var ordered := widths.size() >= 2
+	for i in range(1, widths.size()):
+		ordered = ordered and widths[i] <= widths[i - 1] + 0.01
+	_check(ordered and widths[0] > widths[widths.size() - 1] + 2.0, "share bars: a larger cost draws a longer bar %s" % str(widths))
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-05 #4: one site card per site the player owns — for 1, 3 and 9 sites
+## and for the sim's own two-site game — each card showing its own site.
+func _test_dashboard_site_cards_match_the_sites() -> void:
+	var scene := await _spawn_po3_scene(20261012)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var dash := await _open_panel(ui, "dashboard")
+	dash._refresh_all()
+	await get_tree().process_frame
+	var sites: Array = _sim.get_all_pens()
+	var cards: Array = dash.get_site_cards()
+	_check(cards.size() == sites.size() and sites.size() == 2, "site cards: the two-site game shows two cards (%d)" % cards.size())
+	for n in [1, 3, 9]:
+		var fake: Array = []
+		for i in n:
+			fake.append({"id": "ci_site_%d" % i, "name": "CI anlegg %d" % (i + 1), "fish_count": 1000 * (i + 1),
+				"biomass_kg": 500.0 * (i + 1), "lice_per_fish": 0.05 * i, "max_biomass": 780000.0})
+		dash.show_sites(fake)
+		await get_tree().process_frame
+		cards = dash.get_site_cards()
+		var in_order := true
+		for i in cards.size():
+			in_order = in_order and str(cards[i].get_meta(&"site_id")) == "ci_site_%d" % i
+		_check(cards.size() == n and in_order, "site cards: %d sites show %d cards, in order (%d shown)" % [n, n, cards.size()])
+	dash.show_sites([{"id": "ci_red", "name": "CI rød", "fish_count": 5000, "biomass_kg": 9000.0,
+		"lice_per_fish": 0.62, "max_biomass": 780000.0}])
+	await get_tree().process_frame
+	cards = dash.get_site_cards()
+	var texts := ""
+	for l in cards[0].find_children("*", "Label", true, false):
+		texts += (l as Label).text + "|"
+	_check(cards.size() == 1 and texts.contains(SimFormatters.num(0.62, 2)), "site cards: a card shows its own site's lice (%s)" % texts)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-05: a twelve-day skip with storms is dated events, not a pile of "Nå"
+## alerts: event alerts carry the day they happened and expire on time, and
+## a storm and its "Stormskade" record count once.
+func _test_skipped_days_date_their_alerts() -> void:
+	var scene := await _spawn_po3_scene(20261012)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var toasts := get_node("/root/ToastNotification")
+	toasts.clear_all()
+	_sim.advance_days(12)
+	var storm_toasts := []
+	for n in toasts._active_nodes:
+		for l in (n as Node).find_children("*", "Label", true, false):
+			if (l as Label).text.contains("Stormen gir") or (l as Label).text.contains("Ekstremvær"):
+				storm_toasts.append((l as Label).text)
+	for q in toasts._queue:
+		if str(q.message).contains("Stormen gir") or str(q.message).contains("Ekstremvær"):
+			storm_toasts.append(str(q.message))
+	_check(storm_toasts.is_empty(), "alerts: storms from skipped days do not toast as news %s" % str(storm_toasts))
+	var today := int(_sim.current_day)
+	var stale := 0
+	for a in _sim.active_alerts:
+		if a.has("day") and today - int(a["day"]) >= 3:
+			stale += 1
+	_check(stale == 0, "alerts: no event alert outlives its three days after a skip (%d stale)" % stale)
+	var storm_days := {}
+	for e in _sim.recent_events:
+		if str(e.get("category", "")).to_lower() == "weather":
+			storm_days[int(e.get("day", 0))] = true
+	for a in _sim.active_alerts:
+		if str(a.get("category", "")) == "weather":
+			storm_days[int(a.get("day", today))] = true
+	var dash := await _open_panel(ui, "dashboard")
+	dash._refresh_all()
+	var weather: Dictionary = {}
+	for r in dash.get_alert_rows():
+		if r["category"] == "weather":
+			weather = r
+	_check(storm_days.size() >= 2 and int(weather.get("count", 0)) == storm_days.size(),
+		"alerts: the weather row counts each storm day once (%d shown, %d storm days)" % [int(weather.get("count", 0)), storm_days.size()])
+	_check(str(weather.get("time", "")) != tr("UI_TIME_NOW") or storm_days.has(today),
+		"alerts: an old storm is dated, not 'Nå' ('%s')" % str(weather.get("time", "")))
+	# Day by day to the next storm: its alert ("Nå") and its "Stormskade"
+	# record are the same storm, counted once.
+	var fresh := false
+	for i in 40:
+		_sim.advance_days(1)
+		for a in _sim.active_alerts:
+			if str(a.get("category", "")) == "weather" and int(a.get("day", -1)) == int(_sim.current_day):
+				fresh = true
+		if fresh:
+			break
+	storm_days.clear()
+	for e in _sim.recent_events:
+		if str(e.get("category", "")).to_lower() == "weather":
+			storm_days[int(e.get("day", 0))] = true
+	for a in _sim.active_alerts:
+		if str(a.get("category", "")) == "weather":
+			storm_days[int(a.get("day", 0))] = true
+	dash._refresh_all()
+	for r in dash.get_alert_rows():
+		if r["category"] == "weather":
+			weather = r
+	_check(fresh and int(weather.get("count", 0)) == storm_days.size() and str(weather.get("time", "")) == tr("UI_TIME_NOW"),
+		"alerts: today's storm reads 'Nå' and its log record is not a second storm (%d shown, %d storm days)" % [
+			int(weather.get("count", 0)), storm_days.size()])
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-05: the map's names never sit on each other: city names keep clear of
+## the region markers, of each other and of the grid labels.
+func _test_map_labels_never_collide() -> void:
+	var scene := await _spawn_po3_scene(20261012)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var map := await _open_panel(ui, "map")
+	if map != null and map.has_method("show_panel"):
+		map.show_panel()
+	for i in 4:
+		await get_tree().process_frame
+	var regions: Array[Rect2] = map.region_label_rects()
+	var cities: Array[Rect2] = map.city_label_rects()
+	var hits := []
+	for c in cities:
+		for r in regions:
+			if c.intersects(r):
+				hits.append([c, r])
+	for i in cities.size():
+		for j in range(i + 1, cities.size()):
+			if cities[i].intersects(cities[j]):
+				hits.append([cities[i], cities[j]])
+	_check(regions.size() >= 26 and cities.size() >= 3,
+		"map: markers and names are laid out (%d marker rects, %d names and grid labels)" % [regions.size(), cities.size()])
+	_check(hits.is_empty(), "map: no name sits on a marker or another name %s" % str(hits.slice(0, 3)))
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-05: the pen detail fits the screen (the fourth KPI card was cut off at
+## 1920 px) and its card bodies keep their padding.
+func _test_pen_detail_fits_and_pads_its_cards() -> void:
+	var scene := await _spawn_po3_scene(20261012)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var pens := await _open_panel(ui, "pens")
+	for i in 3:
+		await get_tree().process_frame
+	var view := get_viewport().get_visible_rect()
+	var scroll: ScrollContainer = pens.get_node("%DetailScroll")
+	var fcr: Control = pens.find_child("FcrCard", true, false)
+	_check(fcr != null and scroll.visible and scroll.get_global_rect().encloses(fcr.get_global_rect())
+		and view.encloses(fcr.get_global_rect()),
+		"pens: the fourth KPI card lies inside the screen (%s)" % (str(fcr.get_global_rect()) if fcr else "missing"))
+	_check(scroll.horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED, "pens: the detail never scrolls sideways")
+	var padded := true
+	for body_name in ["WaterBody", "HealthBody", "GeneBody"]:
+		var body: Control = pens.find_child(body_name, true, false)
+		var card: Control = body.get_parent().get_parent().get_parent() if body else null
+		padded = padded and body != null and body.get_global_rect().position.x - card.get_global_rect().position.x >= 12.0
+	_check(padded, "pens: card bodies sit 12 px or more inside their cards")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-05: the market and crew panels show only what the sim knows.
+func _test_market_and_crew_show_the_sims_own_numbers() -> void:
+	var scene := await _spawn_po3_scene(20261012)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	_sim.advance_days(12)
+	var con := await _open_panel(ui, "contracts")
+	_check(con.find_child("RegionsCard", true, false) == null and con.find_child("BtnSellSpot", true, false) == null
+		and con.find_child("BtnNewContract", true, false) == null, "market: no invented regional prices and no dead buttons")
+	var series: Array[float] = _sim.get_analytics_data("market_price_nok", 84)
+	var stats: Dictionary = con.price_stats(series)
+	_check(series.size() > 0 and con.get_node("%SumLo").text == SimFormatters.num(stats["low"], 2)
+		and con.get_node("%SumAvg").text == SimFormatters.num(stats["avg"], 2)
+		and con.get_node("%SumHi").text == SimFormatters.num(stats["high"], 2),
+		"market: low, average and high are the price series' own (%s / %s / %s)" % [
+			con.get_node("%SumLo").text, con.get_node("%SumAvg").text, con.get_node("%SumHi").text])
+	var terms: Dictionary = con.contract_terms(_sim.get_active_contracts())
+	_check(con.get_node("%KpiVolumeValue").text == tr("UI_CONTRACTS_TONNES") % SimFormatters.num(terms["kg"] / 1000.0, 0),
+		"market: the volume card is the volume under contract")
+	var crew := await _open_panel(ui, "crew")
+	var effects: Array = _sim.get_crew_role_effects()
+	var tiles: Array = []
+	for c in crew.get_node("%SkillsGrid").get_children():
+		if c.has_meta(&"role") and not c.is_queued_for_deletion():
+			tiles.append(c)
+	_check(effects.size() == 3 and tiles.size() == 3, "crew: one tile per role the sim knows (%d)" % tiles.size())
+	var covered := 0
+	for e in effects:
+		covered += 1 if bool(e["hired"]) else 0
+	_check(crew.get_node("%KpiEfficiencyValue").text == tr("UI_CREW_ROLES_COVERED") % [covered, 3],
+		"crew: the fourth card counts the roles covered ('%s')" % crew.get_node("%KpiEfficiencyValue").text)
+	var storm_line := ""
+	for e in effects:
+		if e["role"] == "roekter":
+			storm_line = Array(crew.role_effect_lines(e))[0]
+			_check(storm_line == tr("UI_CREW_EFFECT_STORM") % SimFormatters.percent(1.0 - float(e["storm_loss"])),
+				"crew: the røkter tile states the sim's storm-loss effect ('%s')" % storm_line)
+	scene.queue_free()
+	await get_tree().process_frame
+
+# ── U2-06: typed event bus, one channel per severity ──────────────────────────
+
+## Routed events by channel, plus the toasts shown, while a test listens.
+class _EventTap:
+	var routed: Array = []   # [event, channel]
+	var toasts: Array = []   # [level, message]
+	func on_routed(event: Dictionary, channel: String) -> void:
+		routed.append([event, channel])
+	func on_toast(message: String, level: String) -> void:
+		toasts.append([level, message])
+	func channel_count(channel: String, type_id: String = "") -> int:
+		return routed.filter(func(r: Array) -> bool:
+			return r[1] == channel and (type_id == "" or str(r[0].get("type", "")) == type_id)).size()
+	func toasts_containing(text: String, level: String = "") -> int:
+		return toasts.filter(func(t: Array) -> bool:
+			return str(t[1]).contains(text) and (level == "" or t[0] == level)).size()
+
+func _tap_events() -> _EventTap:
+	var tap := _EventTap.new()
+	get_node("/root/ConsequenceDirector").event_routed.connect(tap.on_routed)
+	get_node("/root/ToastNotification").toast_shown.connect(tap.on_toast)
+	return tap
+
+func _untap_events(tap: _EventTap) -> void:
+	get_node("/root/ConsequenceDirector").event_routed.disconnect(tap.on_routed)
+	get_node("/root/ToastNotification").toast_shown.disconnect(tap.on_toast)
+
+## Close every open critical card (Fortsett), so a test leaves no modal behind.
+func _drain_cards(card: Control) -> void:
+	var guard := 0
+	while card.is_open() and guard < 50:
+		card.continue_button.pressed.emit()
+		guard += 1
+	await get_tree().process_frame
+
+## Acceptance 2: critical = one modal card each (and the pause), warning =
+## exactly one toast plus an inbox entry and the badge, info = the log only.
+## The routing reads the typed severity: the same scary words as info make
+## no noise.
+func _test_event_bus_one_channel_per_severity() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	MotionPrefs.force(false)
+	var scene := await _spawn_po3_scene(91)
+	var card: Control = scene.get_node("%CriticalEventCard")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	var hud: Control = scene.get_node("UILayer/HUD")
+	await _drain_cards(card)
+	get_node("/root/ToastNotification").clear_all()
+	center.clear_all()
+	var tap := _tap_events()
+	var shown_before: int = card.shown_count
+
+	# Critical: the card opens at once and stops a running clock.
+	_sim.set_paused(false)
+	_sim.publish_condition_event("oxygen_critical", "critical", "", "CI: oksygen kritisk lavt 3,1 mg/L")
+	_check(card.is_open() and card.shown_count == shown_before + 1, "events: a critical event opens one card")
+	_check(_sim.is_paused(), "events: the card pauses the running game")
+	_check(tap.toasts_containing("CI: oksygen") == 0, "events: a critical event is a card, not a toast")
+	# A second critical while the card is open waits its turn: one card each.
+	_sim.publish_condition_event("nets_critical", "critical", "", "CI: nøter kritisk slitt 31 %")
+	_check(card.shown_count == shown_before + 1 and card.queued_count() == 1, "events: a second critical waits behind the open card")
+	card.continue_button.pressed.emit()
+	_check(card.is_open() and card.shown_count == shown_before + 2
+		and str(card.current_event().get("type", "")) == "nets_critical", "events: Fortsett shows the waiting card")
+	card.continue_button.pressed.emit()
+	await get_tree().process_frame
+	_check(not card.is_open() and not _sim.is_paused(), "events: after the last card the clock runs again")
+	_sim.set_paused(true)
+	_check(tap.channel_count("modal") == 2 and card.shown_count == shown_before + 2,
+		"events: exactly one card per critical event (%d routed, %d shown)" % [tap.channel_count("modal"), card.shown_count - shown_before])
+
+	# Warning: exactly one toast, an unread inbox entry and the badge.
+	var badge_before: int = hud.unread_badge_count()
+	_sim.publish_condition_event("storm_forecast", "warning", "", "CI: stormfare 64 %")
+	_sim.publish_condition_event("storm_forecast", "warning", "", "CI: stormfare 64 %")
+	await get_tree().create_timer(0.4).timeout
+	_check(tap.toasts_containing("CI: stormfare", "WARNING") == 1, "events: a warning is exactly one toast (%d)" % tap.toasts_containing("CI: stormfare"))
+	var storm_entries: Array = center._entries.filter(func(e: Dictionary) -> bool: return e["type"] == "storm_forecast")
+	_check(storm_entries.size() == 1 and bool(storm_entries[0]["unread"]), "events: a warning is one unread inbox entry")
+	_check(hud.unread_badge_count() == badge_before + 1, "events: the bell's badge counts it (%d -> %d)" % [badge_before, hud.unread_badge_count()])
+
+	# Info: the log only, even with words that once meant alarm.
+	_sim.publish_condition_event("wellboat_scheduled", "info", "po3_sor", "CI: storm rømming sykdom KRITISK", "delouse")
+	await get_tree().create_timer(0.4).timeout
+	_check(tap.toasts_containing("CI: storm rømming") == 0 and card.shown_count == shown_before + 2,
+		"events: an info event makes no toast and no card, whatever its text says")
+	_check(center._entries.any(func(e: Dictionary) -> bool: return e["type"] == "wellboat_scheduled" and not bool(e["unread"])),
+		"events: an info event is logged in the inbox, read")
+	_check(hud.unread_badge_count() == badge_before + 1, "events: info does not touch the badge")
+
+	# Opening the inbox reads it: the badge goes.
+	center.show_panel()
+	await get_tree().process_frame
+	_check(hud.unread_badge_count() == 0, "events: opening the inbox clears the badge")
+	center.hide_panel()
+	await get_tree().create_timer(0.3).timeout
+
+	# Escalation: a warning turning critical is one entry and one card.
+	_sim.publish_condition_event("lice_rising", "warning", "", "CI: lus forhøyet 0,31")
+	_sim.publish_condition_event("lice_above_limit", "critical", "", "CI: lus KRITISK 0,61")
+	_check(card.is_open() and bool(card.current_event().get("escalation", false)), "events: a warning turning critical opens the card as an escalation")
+	await _drain_cards(card)
+	var lice_entries: Array = center._entries.filter(func(e: Dictionary) -> bool: return e["key"] == "lice||")
+	_check(lice_entries.size() == 1 and lice_entries[0]["severity"] == "critical",
+		"events: the escalation raises the one inbox entry (%d entries)" % lice_entries.size())
+
+	# History from days skipped at once is logged, not announced.
+	var today := int(get_node("/root/GameBridge").CurrentDay)
+	_check(ConsequenceDirector.route_for({"severity": "critical", "day": today - 3}, today) == "log"
+		and ConsequenceDirector.route_for({"severity": "critical", "day": today - 2}, today) == "modal"
+		and ConsequenceDirector.route_for({"severity": "warning", "day": today}, today) == "toast"
+		and ConsequenceDirector.route_for({"severity": "info", "day": today}, today) == "log",
+		"events: the routing rule is severity and age only")
+	_untap_events(tap)
+	GameplayPrefs.force_auto_pause(null)
+	MotionPrefs.force(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Acceptance 3: a real condition (lice over the limit) that holds for days,
+## clears for a day and returns is one card; gone for longer than three days
+## and back, it is news again.
+func _test_repeated_condition_makes_no_duplicates() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	var scene := await _spawn_po3_scene(91)
+	var card: Control = scene.get_node("%CriticalEventCard")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	await _drain_cards(card)
+	var tap := _tap_events()
+	var lice_cards := func() -> int: return tap.channel_count("modal", "lice_above_limit")
+	_sim.set_qa_pen_lice("po3_sor", 2.0)
+	for day in 4:
+		_sim.advance_days(1)
+		await _drain_cards(card)
+	_check(_sim.sea_lice_per_fish > 0.5, "repeats: lice stay over the limit (%.2f)" % _sim.sea_lice_per_fish)
+	_check(lice_cards.call() == 1, "repeats: four days over the limit are one card (%d)" % lice_cards.call())
+	_sim.set_qa_pen_lice("po3_sor", 0.0)
+	_sim.advance_days(1)
+	_sim.set_qa_pen_lice("po3_sor", 2.0)
+	_sim.advance_days(1)
+	await _drain_cards(card)
+	_check(lice_cards.call() == 1, "repeats: cleared for a day and back is no new card (%d)" % lice_cards.call())
+	var entries: Array = center._entries.filter(func(e: Dictionary) -> bool: return e["key"] == "lice||")
+	_check(entries.size() == 1, "repeats: one lice entry in the inbox (%d)" % entries.size())
+	_sim.set_qa_pen_lice("po3_sor", 0.0)
+	for day in 5:
+		_sim.advance_days(1)
+	_sim.set_qa_pen_lice("po3_sor", 2.0)
+	_sim.advance_days(1)
+	await _drain_cards(card)
+	_check(lice_cards.call() == 2, "repeats: gone for five days and back is news again (%d)" % lice_cards.call())
+	_check(int(_sim.game_events_suppressed()) > 0, "repeats: the bus absorbed the repeats (%d)" % int(_sim.game_events_suppressed()))
+	_untap_events(tap)
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Acceptance 4: a critical event shakes the 3D camera through its view
+## offset (h_offset / v_offset) and the shake settles back exactly; with
+## reduced motion nothing moves.
+func _test_critical_shake_moves_the_camera_offset() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	MotionPrefs.force(false)
+	var scene := await _spawn_po3_scene(91)
+	var card: Control = scene.get_node("%CriticalEventCard")
+	await _drain_cards(card)
+	var cam := get_viewport().get_camera_3d()
+	_check(cam is FjordCamera, "shake: the game's camera is the fjord camera")
+	var base := Vector2(cam.h_offset, cam.v_offset)
+	_sim.publish_condition_event("gill_health_critical", "critical", "po3_nord", "CI: gjellene kritisk")
+	var moved := 0.0
+	for i in 20:
+		await get_tree().process_frame
+		moved = maxf(moved, Vector2(cam.h_offset, cam.v_offset).distance_to(base))
+	var shaker := cam.get_node_or_null("CameraShake") as CameraShake
+	_check(moved > 0.01 and shaker != null and shaker.peak_offset > 0.01,
+		"shake: a critical event moves the camera's view offset (%.3f m)" % moved)
+	await get_tree().create_timer(1.2).timeout
+	_check(Vector2(cam.h_offset, cam.v_offset).distance_to(base) < 0.0001, "shake: the offset settles back exactly")
+	await _drain_cards(card)
+
+	# Reduced motion: no shake through the router or directly; a running shake stops.
+	MotionPrefs.force(true)
+	_sim.publish_condition_event("oxygen_critical", "critical", "", "CI: oksygen kritisk")
+	var still := 0.0
+	for i in 20:
+		await get_tree().process_frame
+		still = maxf(still, Vector2(cam.h_offset, cam.v_offset).distance_to(base))
+	_check(card.is_open() and still == 0.0, "shake: with reduced motion a critical event moves nothing (%.4f m)" % still)
+	_check(not CameraShake.shake(get_viewport(), 1.0), "shake: reduced motion refuses a shake")
+	MotionPrefs.force(false)
+	CameraShake.shake(get_viewport(), 1.0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	MotionPrefs.force(true)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(Vector2(cam.h_offset, cam.v_offset).distance_to(base) < 0.0001, "shake: turning reduced motion on stops a running shake")
+	await _drain_cards(card)
+	MotionPrefs.force(null)
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## The critical card: its verb opens the place it lives (the game stays paused
+## for the decision), "Vis lokaliteten" flies to the site, Esc continues
+## (not the pause menu) and the game's keys wait while it is open.
+func _test_critical_card_actions() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	var scene := await _spawn_po3_scene(91)
+	var card: Control = scene.get_node("%CriticalEventCard")
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	await _drain_cards(card)
+	_sim.set_paused(false)
+	var lice_text := "Lus KRITISK: 0,90 / fisk (grense 0,5 — pålegg om tiltak)"
+	_sim.publish_condition_event("lice_above_limit", "critical", "", lice_text)
+	await get_tree().process_frame
+	_check(card.verb_button.visible and card.verb_button.text == tr("UI_EVENT_VERB_DELOUSE"),
+		"card: the lice card offers 'Planlegg avlusing' ('%s')" % card.verb_button.text)
+	_check(card._title.text == tr("GAME_EVENT_LICE_ABOVE_LIMIT") and card._message.text == lice_text
+		and card._meta.text.contains(tr("UI_EVENT_SUBJECT_COMPANY")), "card: title, subject and message are shown")
+	# The card is Ink glass over the frosted game: themed, readable, Norwegian.
+	await _lint_screen("critical event card")
+	await _press_key(KEY_SPACE)
+	_check(_sim.is_paused() and card.is_open(), "card: Space waits while the card is open")
+	card.verb_button.pressed.emit()
+	await get_tree().process_frame
+	var pens: Control = ui.find_child("Panel_pens", true, false)
+	_check(not card.is_open() and ui.get_active_tab() == "pens" and pens != null,
+		"card: the verb opens the pen view (%s)" % ui.get_active_tab())
+	_check(_sim.is_paused(), "card: after acting the game stays paused for the decision")
+	# A site event: "Vis lokaliteten" goes to the fjord view.
+	_sim.publish_condition_event("gill_health_critical", "critical", "po3_nord", "CI: gjeller")
+	await get_tree().process_frame
+	_check(card.site_button.visible, "card: a site's card offers 'Vis lokaliteten'")
+	card.site_button.pressed.emit()
+	await get_tree().process_frame
+	_check(ui.get_active_tab() == "fjord" and not card.is_open(), "card: 'Vis lokaliteten' shows the fjord (%s)" % ui.get_active_tab())
+	ui.show_tab("dashboard")
+	# Esc continues: it never opens the pause menu behind the card.
+	_sim.publish_condition_event("oxygen_critical", "critical", "", "CI: oksygen")
+	await get_tree().process_frame
+	await _press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	_check(not card.is_open() and not pause.is_open(), "card: Esc continues and leaves the pause menu shut")
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## The inbox shows what happened: every entry has its title, subject, day and
+## message on screen (the old drawer listed rows that only said "Advarsel"),
+## grouped with counts, and a warning's verb button acts.
+func _test_inbox_lists_what_happened() -> void:
+	var scene := await _spawn_po3_scene(91)
+	var card: Control = scene.get_node("%CriticalEventCard")
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	await _drain_cards(card)
+	center.clear_all()
+	_sim.publish_condition_event("mortality_high", "warning", "", "Dødelighet 1,4 % siste døgn")
+	_sim.publish_condition_event("wellboat_scheduled", "info", "po3_sor", "Brønnbåt (avlusing) til PO3 Sør om 3 d", "delouse")
+	center.show_panel()
+	await get_tree().create_timer(0.4).timeout
+	# The drawer is Ink glass: its entries are themed, readable and Norwegian.
+	await _lint_screen("event inbox")
+	var bad: Array = []
+	var rows := 0
+	for node in center.entry_list.get_children():
+		if not String(node.name).begins_with("Entry_"):
+			continue
+		rows += 1
+		var title: Label = node.find_child("Title", true, false)
+		var desc: Label = node.find_child("Desc", true, false)
+		var day: Label = node.find_child("Day", true, false)
+		if title == null or title.text in ["", tr("UI_NOTIFY_GROUP_WARNING"), tr("UI_NOTIFY_GROUP_INFO"), tr("UI_NOTIFY_GROUP_CRITICAL")] \
+				or desc == null or not desc.is_visible_in_tree() or desc.text == "" or day == null:
+			bad.append(String(node.name))
+	_check(rows == 2 and bad.is_empty(), "inbox: every entry shows its title, message and day (%d rows, bad %s)" % [rows, str(bad)])
+	var header: Label = center.entry_list.find_child("Group_warning", true, false)
+	_check(header != null and header.text == "%s · 1" % tr("UI_NOTIFY_GROUP_WARNING"), "inbox: group headers count their entries")
+	var verb: Button = center.entry_list.find_child("VerbButton", true, false)
+	_check(verb != null and verb.text == tr("UI_EVENT_VERB_CHECK_WATER"), "inbox: the warning offers its verb")
+	if verb != null:
+		verb.pressed.emit()
+		await get_tree().create_timer(0.4).timeout
+	_check(ui.get_active_tab() == "telemetry" and not center.is_open(), "inbox: the verb opens telemetry (%s)" % ui.get_active_tab())
+	# A new game starts with an empty inbox, and keeps its own first events
+	# even when they arrive before GameStarted reaches the inbox.
+	_sim.start_qa_scenario("po3_red_sone", 91)
+	await get_tree().process_frame
+	_check(center._entries.all(func(e: Dictionary) -> bool: return int(e["day"]) <= 1 and not str(e["description"]).begins_with("CI:")),
+		"inbox: a new game starts without the old game's events")
+	_sim.publish_condition_event("temperature_high", "warning", "", "CI: ny sjøtemperatur 18,6 °C")
+	get_node("/root/GameBridge").emit_signal("GameStarted")
+	await get_tree().process_frame
+	_check(center._entries.any(func(e: Dictionary) -> bool: return str(e["description"]) == "CI: ny sjøtemperatur 18,6 °C"),
+		"inbox: the new game's own events stay through its GameStarted")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Art review (wave 1): toasts covered the dashboard's Hurtigvalg actions and
+## the notification header. Three toasts over the dashboard, at three window
+## sizes, stay clear of both; with nothing to avoid they sit in the corner.
+func _test_toasts_keep_clear_of_actions_and_inbox_header() -> void:
+	var scene := await _spawn_po3_scene(91)
+	var card: Control = scene.get_node("%CriticalEventCard")
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	await _drain_cards(card)
+	var toasts := get_node("/root/ToastNotification")
+	var win := get_window()
+	var old_size := win.size
+	var dash := await _open_panel(ui, "dashboard")
+	var actions: Control = dash.get_node("%ActionsCard")
+	var header: Control = center.get_node("%TitleLabel").get_parent()
+	for size: Vector2i in REGION_WINDOW_SIZES:
+		win.size = size
+		center.hide_panel()
+		toasts.clear_all()
+		await get_tree().create_timer(0.3).timeout
+		for n in 3:
+			toasts.show_toast("CI keep-clear toast %d" % n, "WARNING", 30.0)
+		await get_tree().create_timer(1.2).timeout
+		# The case that matters: Hurtigvalg sits where the corner stack would be.
+		var screen := get_viewport().get_visible_rect()
+		var corner_stack := Rect2(screen.end.x - toasts.STACK_MARGIN_RIGHT - toasts.TOAST_WIDTH,
+			screen.end.y - toasts.STACK_MARGIN_BOTTOM - 3.0 * 83.0, toasts.TOAST_WIDTH, 3.0 * 83.0)
+		_check(actions.is_visible_in_tree() and actions.get_global_rect().intersects(corner_stack),
+			"toasts: Hurtigvalg sits in the toasts' corner at %dx%d (%s)" % [size.x, size.y, str(actions.get_global_rect())])
+		var rects: Array = toasts.get_toast_rects()
+		var over_actions := rects.filter(func(r: Rect2) -> bool: return r.intersects(actions.get_global_rect(), true))
+		_check(rects.size() == 3 and over_actions.is_empty(),
+			"toasts: none covers Hurtigvalg at %dx%d (%d over)" % [size.x, size.y, over_actions.size()])
+		center.show_panel()
+		await get_tree().create_timer(0.5).timeout
+		rects = toasts.get_toast_rects()
+		var over_header := rects.filter(func(r: Rect2) -> bool: return r.intersects(header.get_global_rect(), true) or r.intersects(center.panel.get_global_rect(), true))
+		_check(not rects.is_empty() and over_header.is_empty(), "toasts: none covers the inbox or its header at %dx%d" % [size.x, size.y])
+	# Nothing to keep clear (the fjord view): the corner.
+	center.hide_panel()
+	ui.show_tab("fjord")
+	toasts.clear_all()
+	await get_tree().create_timer(0.3).timeout
+	toasts.show_toast("CI corner toast", "INFO", 30.0)
+	await get_tree().create_timer(0.8).timeout
+	var corner := get_viewport().get_visible_rect().end - Vector2(toasts.STACK_MARGIN_RIGHT, toasts.STACK_MARGIN_BOTTOM)
+	var shown: Array = toasts.get_toast_rects()
+	_check(not shown.is_empty() and (shown[0] as Rect2).end.distance_to(corner) < 2.0 and is_zero_approx(toasts.keep_clear_lift()),
+		"toasts: with nothing to keep clear they sit in the corner")
+	toasts.clear_all()
+	win.size = old_size
+	scene.queue_free()
+	await get_tree().process_frame
+
+# ── U2-07: pacing (briefing, calendar HUD, speeds) ─────────────────────────────
+
+## Wait (real time, at most `timeout_s`) until `condition` holds; true if it did.
+func _wait_until(condition: Callable, timeout_s: float) -> bool:
+	var end := Time.get_ticks_msec() + int(timeout_s * 1000.0)
+	while Time.get_ticks_msec() < end:
+		if condition.call():
+			return true
+		await get_tree().process_frame
+	return bool(condition.call())
+
+## A real Shift+key press and release.
+func _press_shift_key(keycode: Key) -> void:
+	for pressed in [true, false]:
+		var ev := InputEventKey.new()
+		ev.keycode = keycode
+		ev.physical_keycode = keycode
+		ev.shift_pressed = true
+		ev.pressed = pressed
+		get_viewport().push_input(ev)
+	await get_tree().process_frame
+
+## Acceptance 2: the HUD shows the sim's calendar in ISO weeks: "Uke 14 ·
+## april · År 1" on Monday 5 April 2027 (day 94), the day number above it and
+## the long date in its tooltip; English says "Week 14 · April · Year 1"; the
+## second year counts on. The bar is themed, readable and Norwegian.
+func _test_hud_shows_the_sim_calendar() -> void:
+	var scene := await _spawn_po3_scene(91)
+	await _drain_cards(scene.get_node("%CriticalEventCard"))
+	var hud: Control = scene.get_node("UILayer/HUD")
+	var anchors := {0: 53, 2: 53, 3: 1, 94: 14, 364: 52, 365: 52, 367: 1, 400: 5}
+	var wrong := []
+	for d: int in anchors:
+		if GameCalendar.iso_week(d) != int(anchors[d]):
+			wrong.append("%d: %d" % [d, GameCalendar.iso_week(d)])
+	_check(wrong.is_empty(), "calendar: ISO weeks of the anchor days (wrong %s)" % str(wrong))
+	_check(GameCalendar.long_date(0) == "fredag 1. januar 2027" and GameCalendar.short_date(94) == "5. april",
+		"calendar: day 0 is Friday 1 January 2027 ('%s')" % GameCalendar.long_date(0))
+	_sim.advance_days(94 - int(_sim.current_day))
+	await get_tree().process_frame
+	_check(hud.calendar_value.text == "Uke 14 · april · År 1",
+		"calendar: the HUD reads 'Uke 14 · april · År 1' on day 94 ('%s')" % hud.calendar_value.text)
+	_check(hud.day_caption.text == "Dag 94", "calendar: the day number sits above it ('%s')" % hud.day_caption.text)
+	_check(hud.calendar_item.tooltip_text.begins_with("mandag 5. april 2027"),
+		"calendar: the tooltip has the long date ('%s')" % hud.calendar_item.tooltip_text)
+	await _lint_screen("HUD with the calendar and time controls")
+	TranslationServer.set_locale("en")
+	_check(GameCalendar.hud_label(94) == "Week 14 · April · Year 1", "calendar: in English '%s'" % GameCalendar.hud_label(94))
+	TranslationServer.set_locale("no")
+	_sim.advance_days(400 - int(_sim.current_day))
+	await get_tree().process_frame
+	_check(hud.calendar_value.text == "Uke 5 · februar · År 2",
+		"calendar: the second year counts on ('%s')" % hud.calendar_value.text)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Acceptance 3 (speeds): the keys 1–4 run the clock at 1×, 3×, 10× and 30×
+## and the HUD's segments follow it; a click on a segment does the same; Space
+## pauses (the play glyph shows) and resumes at the same speed; a digit with
+## Shift (a lens, D15) or Cmd/Ctrl (a tab) leaves the speed alone. The speeds
+## are real: at 30× a second runs weeks, at 1× it runs at most a day.
+func _test_speed_keys_and_buttons_drive_the_clock() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	var scene := await _spawn_game_scene()
+	var hud: Control = scene.get_node("UILayer/HUD")
+	var card: Control = scene.get_node("%CriticalEventCard")
+	await _drain_cards(card)
+	get_viewport().gui_release_focus()
+	var keys := [KEY_1, KEY_2, KEY_3, KEY_4]
+	var speeds := [1, 3, 10, 30]
+	var segments: Array = [hud.speed_1x, hud.speed_3x, hud.speed_10x, hud.speed_30x]
+	for i in 4:
+		_sim.set_paused(true)
+		await _press_key(keys[i], 49 + i)
+		var lit := segments.map(func(b: Button) -> bool: return b.button_pressed)
+		var want := [i == 0, i == 1, i == 2, i == 3]
+		_check(int(_sim.get_time_speed()) == speeds[i] and not _sim.is_paused() and lit == want,
+			"speeds: key %d runs the clock at %d× and lights its segment (%s×, paused %s, %s)" % [
+				i + 1, speeds[i], str(_sim.get_time_speed()), str(_sim.is_paused()), str(lit)])
+	_check(hud.speed_30x.tooltip_text == "30×: en måned i sekundet (4)", "speeds: the 30× tooltip says what it means")
+	await _press_key(KEY_SPACE, 32)
+	_check(_sim.is_paused() and hud.pause_glyph.kind == TimeGlyph.Kind.PLAY and hud.pause_btn.button_pressed,
+		"speeds: Space pauses and the pause button shows play")
+	await _press_shift_key(KEY_1)
+	await _press_command_key(KEY_2)
+	_check(_sim.is_paused() and int(_sim.get_time_speed()) == 30,
+		"speeds: Shift+1 and Cmd/Ctrl+2 leave the clock alone (%s×, paused %s)" % [str(_sim.get_time_speed()), str(_sim.is_paused())])
+	await _press_key(KEY_SPACE, 32)
+	_check(not _sim.is_paused() and int(_sim.get_time_speed()) == 30, "speeds: Space resumes at the same speed")
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	ui.show_tab("dashboard")
+	await _click_control(hud.speed_10x)
+	_check(int(_sim.get_time_speed()) == 10 and not _sim.is_paused() and hud.speed_10x.button_pressed,
+		"speeds: a click on 10× runs the clock at 10×")
+	# Real time: 30× runs about a month a second; 1× at most a day.
+	_sim.set_time_speed(30.0)
+	_sim.set_paused(false)
+	var day0: int = _sim.current_day
+	await get_tree().create_timer(0.8).timeout
+	var fast := int(_sim.current_day) - day0
+	_sim.set_time_speed(1.0)
+	var day1: int = _sim.current_day
+	await get_tree().create_timer(0.8).timeout
+	var slow := int(_sim.current_day) - day1
+	_sim.set_paused(true)
+	_check(fast >= 8 and slow <= 1, "speeds: 0.8 s runs %d days at 30× and %d at 1×" % [fast, slow])
+	await _drain_cards(card)
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Acceptance 3 ("next event"): N runs the clock at 30× and the chip says so;
+## information does not stop it; the next warning stops it, paused, at the
+## speed the player had before, and the chip names the event; N during a run
+## ends it and keeps the clock going at the speed before.
+func _test_next_event_runs_to_the_next_warning() -> void:
+	var scene := await _spawn_game_scene()
+	var hud: Control = scene.get_node("UILayer/HUD")
+	await _drain_cards(scene.get_node("%CriticalEventCard"))
+	get_viewport().gui_release_focus()
+	_sim.set_time_speed(3.0)
+	_sim.set_paused(true)
+	await _press_key(KEY_N, 110)
+	_check(_sim.is_running_to_next_event() and int(_sim.get_time_speed()) == 30 and not _sim.is_paused(),
+		"next event: N runs the clock at 30× (%s×)" % str(_sim.get_time_speed()))
+	_check(hud.next_event_btn.button_pressed and hud.pacing_chip.visible and hud.pacing_label.text == "Spoler til neste hendelse",
+		"next event: the button is lit and the chip says the clock runs ahead ('%s')" % hud.pacing_label.text)
+	_sim.publish_condition_event("storm_damage", "", "", "CI: storm i loggen", "ci-next-info")
+	_check(_sim.is_running_to_next_event(), "next event: information does not stop the run")
+	_sim.publish_condition_event("oxygen_low", "warning", "", "CI: oksygen 6,1 mg/L", "ci-next")
+	await get_tree().process_frame
+	_check(not _sim.is_running_to_next_event() and _sim.is_paused() and int(_sim.get_time_speed()) == 3,
+		"next event: a warning stops it, paused, at the player's 3× (%s×)" % str(_sim.get_time_speed()))
+	_check(hud.pacing_label.text == "Stoppet · " + tr("GAME_EVENT_OXYGEN_LOW") and not hud.next_event_btn.button_pressed,
+		"next event: the chip names what stopped it ('%s')" % hud.pacing_label.text)
+	await _press_key(KEY_N, 110)
+	await _press_key(KEY_N, 110)
+	_check(not _sim.is_running_to_next_event() and not _sim.is_paused() and int(_sim.get_time_speed()) == 3,
+		"next event: N during a run ends it and the clock keeps its 3× (%s×)" % str(_sim.get_time_speed()))
+	_sim.set_paused(true)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Acceptance 3 (auto-slow, auto-pause): the farm-types deadline rule on the
+## real clock. A counterable warning with a deadline nine days out slows a 30×
+## clock to 1× at seven days left (the chip names the deadline); picked up to
+## 30× again it stops on the day before the deadline. With "Bremse ned før
+## frister" off a deadline never touches the clock. The deadline comes
+## through the typed event bus, as an order from the engine does.
+func _test_deadline_slows_then_stops_the_clock() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	var scene := await _spawn_game_scene()
+	var hud: Control = scene.get_node("UILayer/HUD")
+	var card: Control = scene.get_node("%CriticalEventCard")
+	await _drain_cards(card)
+	_sim.set_auto_slow_deadlines(true)
+	var due: int = int(_sim.current_day) + 9
+	_sim.set_time_speed(30.0)
+	_sim.set_paused(false)
+	_sim.publish_condition_event("lice_treatment_order", "warning", "ci_site", "CI: pålegg om avlusing", "", due)
+	var slowed: bool = await _wait_until(func() -> bool: return int(_sim.get_time_speed()) == 1 or _sim.is_paused(), 6.0)
+	_check(slowed and int(_sim.get_time_speed()) == 1 and not _sim.is_paused() and due - int(_sim.current_day) == 7,
+		"deadline: 30× drops to 1× at seven days left (day %d, due %d, %s×)" % [_sim.current_day, due, str(_sim.get_time_speed())])
+	_check(hud.pacing_chip.visible and hud.pacing_label.text == "Bremset · frist " + GameCalendar.short_date(due),
+		"deadline: the chip says the clock slowed for the deadline ('%s')" % hud.pacing_label.text)
+	_check(hud.pacing_chip.tooltip_text.contains(tr("GAME_EVENT_LICE_TREATMENT_ORDER")),
+		"deadline: its tooltip names the order")
+	_sim.set_time_speed(30.0)
+	var stopped: bool = await _wait_until(func() -> bool: return _sim.is_paused(), 6.0)
+	_check(stopped and int(_sim.current_day) == due - 1,
+		"deadline: back at 30× it stops on the day before the deadline (day %d, due %d)" % [_sim.current_day, due])
+	_check(hud.pacing_label.text == "Stoppet · frist " + GameCalendar.short_date(due) and hud.pause_btn.button_pressed,
+		"deadline: the chip says why it stopped ('%s')" % hud.pacing_label.text)
+	var deadlines: Array = _sim.get_pacing_deadlines()
+	_check(deadlines.any(func(d: Dictionary) -> bool: return str(d.get("type", "")) == "lice_treatment_order" and int(d.get("deadline_day", -1)) == due),
+		"deadline: the clock lists the deadline it watches")
+	_sim.set_auto_slow_deadlines(false)
+	var due2: int = int(_sim.current_day) + 4
+	_sim.publish_condition_event("lice_treatment_order", "warning", "ci_site_2", "CI: pålegg 2", "", due2)
+	_sim.set_time_speed(30.0)
+	_sim.set_paused(false)
+	var ran: bool = await _wait_until(func() -> bool: return int(_sim.current_day) > due2 or _sim.is_paused(), 6.0)
+	_check(ran and int(_sim.current_day) > due2 and not _sim.is_paused() and int(_sim.get_time_speed()) == 30,
+		"deadline: with 'Bremse ned før frister' off the clock runs past it (day %d, due %d)" % [_sim.current_day, due2])
+	_sim.set_paused(true)
+	_sim.set_auto_slow_deadlines(true)
+	await _drain_cards(card)
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## An order the engine does not have (met, lifted or enforced) stops being
+## watched on the next day's report, the chip that named it goes and the
+## clock is not stopped for it. (A real site, so the engine's standing-order
+## sweep sees there is no order.)
+func _test_a_met_order_stops_slowing_the_clock() -> void:
+	GameplayPrefs.force_auto_pause(false)
+	var scene := await _spawn_po3_scene(91)
+	var hud: Control = scene.get_node("UILayer/HUD")
+	var card: Control = scene.get_node("%CriticalEventCard")
+	await _drain_cards(card)
+	_sim.set_auto_slow_deadlines(true)
+	_sim.set_time_speed(30.0)
+	_sim.set_paused(false)
+	var due: int = int(_sim.current_day) + 5
+	_sim.publish_condition_event("lice_treatment_order", "warning", "po3_nord", "CI: et pålegg som ikke står", "", due)
+	_check(int(_sim.get_time_speed()) == 1 and hud.pacing_chip.visible and hud.pacing_label.text.begins_with("Bremset"),
+		"orders: an order five days out slows the clock at once ('%s')" % hud.pacing_label.text)
+	var day: int = _sim.current_day
+	var gone: bool = await _wait_until(func() -> bool: return int(_sim.current_day) > day and not hud.pacing_chip.visible, 4.0)
+	var watched: bool = _sim.get_pacing_deadlines().any(func(d: Dictionary) -> bool: return str(d.get("site_id", "")) == "po3_nord")
+	_check(gone and not watched and not _sim.is_paused(),
+		"orders: an order the engine does not have stops being watched, its chip goes and the clock runs (day %d)" % _sim.current_day)
+	_sim.set_paused(true)
+	await _drain_cards(card)
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U2-06's critical channel through the clock (one owner): a critical's card
+## holds the clock and Fortsett lets go of it at the speed it had; with "Pause
+## ved kritiske hendelser" off a critical drops a fast clock to 1×; a critical
+## during "Til neste hendelse" ends the run, and after the card the game waits
+## paused at the player's speed.
+func _test_critical_card_holds_the_clock() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	var scene := await _spawn_po3_scene(91)
+	var hud: Control = scene.get_node("UILayer/HUD")
+	var card: Control = scene.get_node("%CriticalEventCard")
+	await _drain_cards(card)
+	_sim.set_time_speed(10.0)
+	_sim.set_paused(false)
+	_sim.publish_condition_event("nets_critical", "critical", "", "CI: nøtene er kritisk slitt 31 %", "ci-hold")
+	await get_tree().process_frame
+	_check(card.is_open() and _sim.is_clock_held("critical_event") and _sim.is_paused() and not _sim.is_player_paused(),
+		"clock: the card holds the clock")
+	_check(hud._is_paused and not hud.pacing_chip.visible, "clock: the HUD shows it stopped, with no chip over the card")
+	card.continue_button.pressed.emit()
+	await get_tree().process_frame
+	_check(not _sim.is_paused() and int(_sim.get_time_speed()) == 10 and not _sim.is_clock_held(""),
+		"clock: Fortsett gives it back at 10×")
+	GameplayPrefs.force_auto_pause(false)
+	_sim.set_time_speed(30.0)
+	_sim.publish_condition_event("oxygen_critical", "critical", "", "CI: oksygen 3,9 mg/L", "ci-slow")
+	await get_tree().process_frame
+	_check(card.is_open() and not _sim.is_paused() and int(_sim.get_time_speed()) == 1,
+		"clock: without auto-pause a critical drops 30× to 1× (%s×)" % str(_sim.get_time_speed()))
+	_sim.set_paused(true)
+	await _drain_cards(card)
+	GameplayPrefs.force_auto_pause(true)
+	_sim.set_time_speed(3.0)
+	_check(_sim.run_to_next_event(), "clock: a run to the next event starts")
+	_sim.publish_condition_event("gill_health_critical", "critical", "po3_nord", "CI: gjellene", "ci-run")
+	await get_tree().process_frame
+	_check(card.is_open() and not _sim.is_running_to_next_event(), "clock: a critical ends the run behind its card")
+	card.continue_button.pressed.emit()
+	await get_tree().process_frame
+	_check(_sim.is_paused() and _sim.is_player_paused() and int(_sim.get_time_speed()) == 3,
+		"clock: after the card the game waits, paused at the player's 3× (%s×)" % str(_sim.get_time_speed()))
+	await _drain_cards(card)
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Acceptance 1: a player's new game opens paused on its briefing card, over
+## the fjord (the game UI steps aside): the scenario, its date in the sim
+## calendar, the goal, the time limit with its last day, the capital, the
+## farm and the clock's keys. The game's keys wait while it is open, and a
+## critical that comes meanwhile waits behind it. Enter starts the season at
+## the default speed and brings the game UI back; Esc closes it with the game
+## still paused, and Space then starts the clock. QA starts and loaded games
+## open without one, and a loaded game opens paused.
+func _test_new_game_opens_paused_on_its_briefing() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	MotionPrefs.force(true)
+	_check(_sim.start_new_game("Player", 10_000_000, "po3_red_sone"), "briefing: a player's scenario starts")
+	_check(_sim.is_briefing_pending() and _sim.is_paused() and _sim.is_clock_held("briefing"),
+		"briefing: the new game starts paused, held by its briefing")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 4:
+		await get_tree().process_frame
+	var briefing: Control = scene.get_node("%BriefingCard")
+	_check(briefing.is_open() and briefing.visible and not scene.get_node("UILayer").visible,
+		"briefing: the card opens over the fjord, the game UI steps aside")
+	var entry := {}
+	for e in _sim.get_available_scenarios():
+		if str(e.get("id", "")) == "po3_red_sone":
+			entry = e
+	_check(briefing._title.text == str(entry.get("name", "?")) and briefing._story.text == str(entry.get("story", "?")),
+		"briefing: the scenario's name and story ('%s')" % briefing._title.text)
+	_check(briefing._date.text == "Fredag 1. januar 2027 · Uke 53 · År 1", "briefing: the start date ('%s')" % briefing._date.text)
+	var facts := {}
+	for lbl: Label in briefing._facts.get_children():
+		facts[String(lbl.name)] = lbl.text
+	_check(str(facts.get("Fact_goal", "")) == str(entry.get("win", "?")), "briefing: the goal ('%s')" % str(facts.get("Fact_goal", "")))
+	_check(str(facts.get("Fact_time", "")) == "3 år (til søndag 31. desember 2029)", "briefing: the time limit and its last day ('%s')" % str(facts.get("Fact_time", "")))
+	_check(str(facts.get("Fact_capital", "")) == SimFormatters.format_nok(float(_sim.balance)), "briefing: the capital ('%s')" % str(facts.get("Fact_capital", "")))
+	var fish := 0
+	for site in _sim.get_all_pens():
+		fish += int(site.get("fish_count", 0))
+	_check(str(facts.get("Fact_farm", "")) == "2 lokaliteter · %s fisk" % SimFormatters.integer(fish), "briefing: the farm ('%s')" % str(facts.get("Fact_farm", "")))
+	_check(briefing._keys.get_child_count() == 3, "briefing: the clock's three keys are shown")
+	await _lint_screen("briefing card")
+	var day: int = _sim.current_day
+	await _press_key(KEY_SPACE, 32)
+	await _press_key(KEY_4, 52)
+	await _press_key(KEY_N, 110)
+	await get_tree().create_timer(0.3).timeout
+	_check(_sim.is_paused() and int(_sim.current_day) == day and briefing.is_open() and not _sim.is_running_to_next_event(),
+		"briefing: Space, 4 and N wait while it is open")
+	var card: Control = scene.get_node("%CriticalEventCard")
+	_sim.publish_condition_event("nets_critical", "critical", "", "CI: nøtene er kritisk slitt 30 %", "ci-briefing")
+	_check(not card.is_open() and card.queued_count() >= 1, "briefing: a critical waits behind the briefing")
+	_check(briefing.start_button.has_focus(), "briefing: 'Start sesongen' has the focus")
+	await _press_key(KEY_ENTER)
+	await get_tree().process_frame
+	_check(not briefing.is_open() and not _sim.is_briefing_pending() and scene.get_node("UILayer").visible,
+		"briefing: Enter starts the season and the game UI comes back")
+	_check(int(_sim.get_time_speed()) == GameplayPrefs.default_speed() and not _sim.is_clock_held("briefing"),
+		"briefing: the clock runs at the default speed (%s×)" % str(_sim.get_time_speed()))
+	_check(card.is_open() and _sim.is_clock_held("critical_event"), "briefing: the waiting critical opens after it and holds the clock")
+	await _drain_cards(card)
+	_check(not _sim.is_paused(), "briefing: then the clock runs")
+	_sim.set_paused(true)
+	scene.queue_free()
+	await get_tree().process_frame
+
+	_check(_sim.start_new_game("Player", 10_000_000, "po3_red_sone"), "briefing: a second new game")
+	var scene2: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene2)
+	for i in 4:
+		await get_tree().process_frame
+	var briefing2: Control = scene2.get_node("%BriefingCard")
+	var card2: Control = scene2.get_node("%CriticalEventCard")
+	await _press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	var pause: Control = scene2.get_node("MenuLayer/PauseMenu")
+	_check(not briefing2.is_open() and _sim.is_paused() and not _sim.is_clock_held("") and not pause.is_open()
+		and scene2.get_node("UILayer").visible, "briefing: Esc looks around first: closed, the game paused, no pause menu")
+	# Criticals the start raised waited behind the card; answer them first.
+	await _drain_cards(card2)
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_SPACE, 32)
+	_check(not _sim.is_paused(), "briefing: then Space starts the clock")
+	_sim.set_paused(true)
+	_check(_sim.save_game("ci_briefing_load"), "briefing: setup save")
+	_sim.set_paused(false)
+	var file := str(_find_save("ci_briefing_load").get("file", ""))
+	_check(_sim.load_game(file) and _sim.is_paused() and not _sim.is_briefing_pending(),
+		"briefing: a loaded game opens paused, without a briefing")
+	await get_tree().process_frame
+	_check(not briefing2.is_open(), "briefing: no card for a loaded game")
+	_sim.delete_save(file)
+	scene2.queue_free()
+	await get_tree().process_frame
+	_check(_sim.start_qa_scenario("po3_red_sone", 91) and not _sim.is_briefing_pending(), "briefing: a QA start has none")
+	_sim.set_paused(true)
+	MotionPrefs.force(null)
+	GameplayPrefs.force_auto_pause(null)
+
+## Acceptance 4: at 30× the dashboard refreshes at most once per sim day (a
+## day used to refresh it four times: two snapshot refreshes, each announcing
+## a state update and a day), its alert rows are rebuilt only when they
+## change, and the UI side of every day (the bridge's tick minus the engine's
+## own day: the events, the snapshot and every listener, the dashboard's
+## refresh in the frame after it included) stays within 16.7 ms at p95.
+func _test_thirty_times_refreshes_once_a_day_within_a_frame() -> void:
+	GameplayPrefs.force_auto_pause(false)
+	var scene := await _spawn_po3_scene(91)
+	var card: Control = scene.get_node("%CriticalEventCard")
+	await _drain_cards(card)
+	_sim.set_auto_slow_deadlines(false)
+	var bridge := get_node("/root/GameBridge")
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	ui.show_tab("dashboard")
+	await get_tree().process_frame
+	var dash: Control = ui.find_child("Panel_dashboard", true, false)
+	_sim.set_time_speed(30.0)
+	_sim.set_paused(false)
+	# Steady state: the first month carries the one-off costs (the first
+	# tick's warm-up, the day-30 autosave, which then waits a real minute).
+	var warm_end := Time.get_ticks_msec() + 4000
+	while Time.get_ticks_msec() < warm_end and int(_sim.current_day) < 32:
+		await get_tree().process_frame
+		if card.is_open():
+			card.continue_button.pressed.emit()
+		if int(_sim.get_time_speed()) != 30:
+			_sim.set_time_speed(30.0)
+	var refreshes0: int = dash.refresh_count
+	var rebuilds0: int = dash.alert_rebuilds
+	var day0: int = _sim.current_day
+	var ui_ms: Array[float] = []
+	var engine_ms: Array[float] = []
+	var ticks0: int = bridge.TickCount
+	var last_tick: int = ticks0
+	var deferred_ms := 0.0
+	var end := Time.get_ticks_msec() + 2500
+	while Time.get_ticks_msec() < end:
+		var refresh_before: int = dash.refresh_count
+		var t0 := Time.get_ticks_usec()
+		await get_tree().process_frame
+		# The dashboard refreshes deferred, in the frame after its day.
+		if dash.refresh_count != refresh_before:
+			deferred_ms = dash.last_refresh_ms
+		if int(bridge.TickCount) != last_tick:
+			last_tick = int(bridge.TickCount)
+			ui_ms.append(float(bridge.LastTickMs) - float(bridge.LastTickEngineMs) + deferred_ms)
+			engine_ms.append(float(bridge.LastTickEngineMs))
+			deferred_ms = 0.0
+		if card.is_open():
+			card.continue_button.pressed.emit()
+		if int(_sim.get_time_speed()) != 30:
+			_sim.set_time_speed(30.0)
+	_sim.set_paused(true)
+	await get_tree().process_frame
+	var days: int = int(_sim.current_day) - day0
+	var refreshes: int = dash.refresh_count - refreshes0
+	var rebuilds: int = dash.alert_rebuilds - rebuilds0
+	_check(days >= 20, "30×: the clock ran %d days in 2.5 s" % days)
+	_check(refreshes <= days + 1, "30×: the dashboard refreshed %d times for %d days (at most once a day)" % [refreshes, days])
+	_check(rebuilds < refreshes, "30×: alert rows were rebuilt %d times in %d refreshes (only on change)" % [rebuilds, refreshes])
+	ui_ms.sort()
+	engine_ms.sort()
+	var p95: float = ui_ms[mini(int(ui_ms.size() * 0.95), ui_ms.size() - 1)] if not ui_ms.is_empty() else 999.0
+	_check(p95 <= 16.7, "30×: p95 of the UI side of a day %.1f ms <= 16.7 ms (%d days)" % [p95, ui_ms.size()])
+	if not ui_ms.is_empty():
+		print("  info 30× UI side ms per day: p50 %.2f p95 %.2f max %.2f; engine p50 %.2f p95 %.2f max %.2f (%d days)" % [
+			ui_ms[ui_ms.size() / 2], p95, ui_ms.back(), engine_ms[engine_ms.size() / 2],
+			engine_ms[mini(int(engine_ms.size() * 0.95), engine_ms.size() - 1)], engine_ms.back(), ui_ms.size()])
+	_sim.set_auto_slow_deadlines(true)
+	await _drain_cards(card)
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## The HUD fits its bar at 1280 px and UI scale 125 %: readouts give way in
+## order (weather, spot price, sea temperature) rather than leave the screen,
+## and all of them come back at 1920 px. (The overlap lint checks the regions.)
+func _test_hud_fits_its_bar() -> void:
+	var scene := await _spawn_po3_scene(91)
+	var hud: Control = scene.get_node("UILayer/HUD")
+	var win := get_window()
+	var old_size := win.size
+	var old_scale := win.content_scale_factor
+	win.size = Vector2i(1280, 720)
+	win.content_scale_factor = 1.25
+	_sim.set_time_speed(3.0)
+	await get_tree().create_timer(0.3).timeout
+	var bar: Control = hud.get_node("MainHBox")
+	var right: Control = hud.get_node("MainHBox/Right")
+	var screen := get_viewport().get_visible_rect()
+	_check(screen.encloses(right.get_global_rect()) and bar.get_combined_minimum_size().x <= hud.bar_width() + 0.5,
+		"HUD: fits 1280 px at 125 %% (needs %d of %d px, hidden %s)" % [
+			int(bar.get_combined_minimum_size().x), int(hud.bar_width()), str(hud.hidden_readouts())])
+	win.size = Vector2i(1920, 1080)
+	win.content_scale_factor = 1.0
+	await get_tree().create_timer(0.3).timeout
+	_check(hud.hidden_readouts().is_empty(), "HUD: every readout shows at 1920 px (hidden %s)" % str(hud.hidden_readouts()))
+	var small: Array = []
+	for btn: Button in [hud.pause_btn, hud.speed_1x, hud.speed_3x, hud.speed_10x, hud.speed_30x, hud.next_event_btn, hud.inbox_btn]:
+		if btn.size.x < 44.0 or btn.size.y < 40.0:
+			small.append("%s %s" % [btn.name, str(btn.size)])
+	_check(small.is_empty(), "HUD: the clock's buttons and the bell are at least 44 x 40 px (%s)" % str(small))
+	win.size = old_size
+	win.content_scale_factor = old_scale
+	_sim.set_paused(true)
+	scene.queue_free()
+	await get_tree().process_frame

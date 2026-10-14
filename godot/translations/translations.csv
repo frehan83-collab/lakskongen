@@ -5,7 +5,7 @@ UI_BUTTON_NEW_GAME,New Game,Nytt spill
 UI_BUTTON_LOAD_GAME,Load Game,Last inn spill
 UI_BUTTON_SETTINGS,Settings,Innstillinger
 UI_BUTTON_QUIT,Quit,Avslutt
-UI_VERSION_TEXT,v0.2.0 Alpha,v0.2.0 alfa
+UI_VERSION_TEXT,v%s (alpha),v%s (alfa)
 UI_DASHBOARD_TITLE,%s — Overview,%s — Oversikt
 UI_DASHBOARD_PEN_NAME,Pen %d,Merd %d
 UI_KPI_BIOMASS_LABEL,TOTAL BIOMASS,TOTAL BIOMASSE
@@ -395,7 +395,7 @@ UI_TOAST_SAVE_FAILED,⚠️ Save failed: %s,⚠️ Lagring feilet: %s
 UI_TOAST_LOAD_FAILED,⚠️ Load failed: %s,⚠️ Lasting feilet: %s
 UI_TOAST_DELETED,🗑 Save deleted: %s,🗑 Lagring slettet: %s
 UI_TOAST_QUICKSAVED,💾 Quicksaved,💾 Hurtiglagret
-UI_NOTIFY_EMPTY,🔔 No notifications yet — we will let you know when something happens.,🔔 Ingen varsler ennå — vi gir beskjed når noe skjer.
+UI_NOTIFY_EMPTY,No notifications yet — we will let you know when something happens.,Ingen varsler ennå — vi gir beskjed når noe skjer.
 UI_BRIEFING_WEATHER,🌤️ Weather forecast,🌤️ Værmelding
 UI_BRIEFING_MARKET,💰 Market,💰 Marked
 UI_BRIEFING_EVENTS,📰 Overnight events,📰 Nattens hendelser
@@ -625,7 +625,7 @@ UI_COMPANY_FALLBACK,Your company,Ditt selskap
 UI_DASHBOARD_PENS_TITLE,Pen overview,Merdoversikt
 UI_DASHBOARD_WATER_TITLE,Water quality,Vannkvalitet
 UI_DASHBOARD_WEATHER_TITLE,Weather,Vær
-UI_DASHBOARD_FINANCE_TITLE,Finances (6 months),Økonomi (6 mnd.)
+UI_DASHBOARD_FINANCE_TITLE,Income and costs (30 days),Inntekter og kostnader (30 d)
 UI_DASHBOARD_ALERTS_TITLE,Alerts,Varsler
 UI_DASHBOARD_ACTIONS_TITLE,Shortcuts,Hurtigvalg
 UI_DASHBOARD_ACTION_FEEDING,AI feeding,AI-fôring
@@ -641,7 +641,7 @@ UI_DASHBOARD_PEN_EMPTY,Empty,Tom
 UI_DASHBOARD_FCR_SETTLING,Smolts settling — FCR not judged yet,Smolten er i tilvenning — FCR vurderes ikke ennå
 UI_DASHBOARD_FCR_TARGET,target %s,mål %s
 UI_DASHBOARD_BIOMASS_TIP,"Standing biomass = number of fish × mean weight.\nNow: %s fish × %s kg ≈ %s tonnes.\nCounted per pen; moved by growth, mortality and escapes.","Stående biomasse = antall fisk × gjennomsnittsvekt.\nNå: %s fisk × %s kg ≈ %s tonn.\nTelles per merd; påvirkes av tilvekst, dødelighet og rømming."
-UI_DASHBOARD_REVENUE_TIP,"Accumulated balance (operating result) = sales revenue − costs.\nNow: %s MNOK.\nMoved by price (NOK/kg), harvested volume, feed and treatment costs.","Akkumulert saldo (driftsresultat) = salgsinntekter − kostnader.\nNå: %s MNOK.\nPåvirkes av pris (NOK/kg), høstet volum, fôr- og behandlingskostnader."
+UI_DASHBOARD_REVENUE_TIP,"Revenue booked this financial year: harvest sales, insurance payouts and sludge sales.\nNow: %s MNOK.\nThe line shows the year so far, day by day.","Inntekter bokført i regnskapsåret: slaktesalg, forsikringsoppgjør og slamsalg.\nNå: %s MNOK.\nLinjen viser året så langt, dag for dag."
 UI_DASHBOARD_HEALTH_TIP,"Sustainability score (0–100 %%) = weighted sum of lice control, emissions,\nescapes and animal welfare.\nNow: %s. ≥ 90 green · 70–89 yellow · < 70 red.","Bærekraftsscore (0–100 %%) = vektet sum av lusekontroll, utslipp,\nrømming og dyrevelferd.\nNå: %s. ≥ 90 grønn · 70–89 gul · < 70 rød."
 UI_DASHBOARD_FCR_TIP,"Feed conversion ratio (FCR) = feed used (kg) / biomass gain (kg).\nLower is better; target %s. Now: %s.\nDrivers: water temperature, feed quality (protein/astaxanthin), density and oxygen.","Fôrfaktor (FCR) = fôr brukt (kg) / biomassevekst (kg).\nLavere er bedre; mål %s. Nå: %s.\nFaktorer: vanntemperatur, fôrkvalitet (protein/astaxanthin), tetthet og oksygen."
 UI_DASHBOARD_STORM_RISK,%s storm risk (3 d),%s stormfare (3 d)
@@ -668,7 +668,7 @@ UI_HUD_TIP_BALANCE,"Cash on hand — all income minus costs, loans and investmen
 UI_HUD_TIP_FISH,Fish in all stocked pens.\nNow: %s,Fisk i alle utsatte merder.\nNå: %s
 UI_HUD_TIP_TEMP,Sea temperature — drives growth and lice reproduction.\nNow: %s °C,Sjøtemperatur — styrer vekst og lusas formering.\nNå: %s °C
 UI_HUD_TIP_PRICE,"Spot price per kg — moves with market events, season and demand.\nNow: %s NOK/kg","Spotpris per kg — følger markedshendelser, sesong og etterspørsel.\nNå: %s kr/kg"
-UI_HUD_TIP_ALERTS,Active alerts — press I or click the bell to open the alert inbox.\n%d active,Aktive varsler — trykk I eller klikk på bjella for å åpne varslingsinnboksen.\n%d aktive
+UI_HUD_TIP_ALERTS,"Active alerts — press I for the attention list, V or the bell for notifications.\n%d active","Aktive varsler — trykk I for oppgavelisten, V eller bjella for varslene.\n%d aktive"
 UI_HUD_TIP_WEATHER,Current weather — storms can damage pens and halt operations.,Været nå — storm kan skade merder og stanse driften.
 UI_HUD_TIP_INBOX,Alert inbox (I),Varslingsinnboks (I)
 UI_FIN_PEN_PRICE,Pen price (binding),Merdpris (bindende)
@@ -689,7 +689,7 @@ UI_FIN_STORY_NEGATIVE,The result is negative (%s MNOK). Largest cost drivers bel
 UI_FIN_STORY_COSTS,Largest costs,Største kostnader
 UI_FIN_STORY_INCOME,Largest income,Største inntekter
 UI_FIN_TITLE,Finances,Økonomi
-UI_FIN_CHART_TITLE,Income vs costs (6 months),Inntekter mot kostnader (6 mnd.)
+UI_FIN_CHART_TITLE,Income and costs per month,Inntekter og kostnader per måned
 UI_FIN_PL_TITLE,Income statement,Resultatregnskap
 UI_FIN_LOAN_TITLE,Loans and financing,Lån og finansiering
 UI_FIN_TRENDS_TITLE,Trends (90 d),Trender (90 d)
@@ -1432,7 +1432,7 @@ ENUM_ACHIEVEMENT_TIER_INTERMEDIATE,Intermediate,Viderekommen
 ENUM_ACHIEVEMENT_TIER_ADVANCED,Advanced,Erfaren
 ENUM_ACHIEVEMENT_TIER_MASTER,Master,Mester
 ENUM_ACHIEVEMENT_TIER_HIDDEN,Hidden,Skjult
-UI_DASHBOARD_ALERT_REPEATS,%d times,%d ganger
+UI_DASHBOARD_ALERT_REPEATS,%d events,%d hendelser
 UI_GOAL_CHIP,Goal %s,Mål %s
 UI_GOAL_CHIP_WON,Goal reached,Mål nådd
 UI_GOAL_CHIP_LOST,Goal not reached,Mål ikke nådd
@@ -1558,3 +1558,136 @@ FISH_REMOVAL_ESCAPE,Escaped,Rømt
 FISH_REMOVAL_HARVEST,Harvested,Slaktet
 FISH_REMOVAL_FORCED_HARVEST,Forced harvest,Tvangsslaktet
 FISH_REMOVAL_TRANSFER_OUT,Moved to another site,Flyttet til en annen lokalitet
+UI_DASHBOARD_KPI_SUSTAINABILITY,SUSTAINABILITY,BÆREKRAFT
+UI_HUD_CALENDAR,Week %d · %s · Year %d,Uke %d · %s · År %d
+UI_HUD_CAPTION_SEA_TEMP,Sea temp,Sjøtemp
+UI_HUD_CAPTION_SPOT,Spot price,Spotpris
+UI_HUD_NEXT_EVENT_TIP,"To the next event (N): runs at 30× and stops when something needs you, when a deadline comes near, or after 60 quiet days.","Til neste hendelse (N): spoler fram i 30× og stopper når noe trenger deg, når en frist nærmer seg eller etter 60 rolige dager."
+UI_HUD_SPEED_TIP_1,1×: one day a second (1),1×: én dag i sekundet (1)
+UI_HUD_SPEED_TIP_10,10×: ten days a second (3),10×: ti dager i sekundet (3)
+UI_HUD_SPEED_TIP_3,3×: three days a second (2),3×: tre dager i sekundet (2)
+UI_HUD_SPEED_TIP_30,30×: a month a second (4),30×: en måned i sekundet (4)
+UI_SETTINGS_REDUCED_MOTION,Reduce motion,Redusert bevegelse
+UI_SETTINGS_REDUCED_MOTION_TIP,"Keeps the camera still in the main menu, turns off camera shake and lets cards and notices fade in place instead of sliding. Also follows the system setting.","Holder kameraet i ro i hovedmenyen, slår av kamerarysting og lar kort og varsler tones inn på plass i stedet for å gli. Følger også systeminnstillingen."
+UI_SETTINGS_AUTO_SLOW,Slow down before deadlines,Bremse ned før frister
+UI_SETTINGS_AUTO_SLOW_TIP,"A week before a deadline you can act on (a Mattilsynet order), the game drops to 1×, and it stops the day before if nothing was done.","En uke før en frist du kan gjøre noe med (et pålegg fra Mattilsynet) går spillet ned til 1×, og det stopper dagen før hvis ingenting er gjort."
+UI_CREW_EFFECT_NETS,Nets wear %s slower,Nøtene slites %s saktere
+UI_CREW_EFFECT_STORM,Storms kill %s fewer fish,Stormer dreper %s færre fisk
+UI_CREW_EFFECT_TREATMENT,Treatments kill %s fewer fish,Behandlinger dreper %s færre fisk
+UI_CREW_EFFECT_WELLBOAT_COST,Wellboat hire %s cheaper,Brønnbåtleie %s billigere
+UI_CREW_EFFECT_WELLBOAT_DAYS,Wellboat arrives %d day sooner,Brønnbåten kommer %d dag tidligere
+UI_CREW_KPI_ROLES,ROLES COVERED,ROLLER DEKKET
+UI_CREW_ROLES_COVERED,%d of %d,%d av %d
+UI_CREW_ROLES_TITLE,Roles and what they do,Roller og hva de gjør
+UI_CREW_ROLE_HIRED,On staff,Ansatt
+UI_CREW_ROLE_VACANT,Vacant,Ledig
+UI_BRIEFING_CARD_DATE,%s · Week %d · Year %d,%s · Uke %d · År %d
+UI_BRIEFING_CARD_DEADLINE_VALUE,%s (until %s),%s (til %s)
+UI_BRIEFING_CARD_FACT_FARM,Farm,Anlegg
+UI_BRIEFING_CARD_FACT_GOAL,Goal,Mål
+UI_BRIEFING_CARD_FARM_MANY,%d sites · %s fish,%d lokaliteter · %s fisk
+UI_BRIEFING_CARD_FARM_NONE,No sites yet,Ingen lokaliteter ennå
+UI_BRIEFING_CARD_FARM_ONE,1 site · %s fish,1 lokalitet · %s fisk
+UI_BRIEFING_CARD_FREE_STORY,"You have capital, a licence and a fjord. Stock smolt, keep the lice under the limit and sell when the price is right.","Du har kapital, en konsesjon og en fjord. Sett ut smolt, hold lusa under grensen og selg når prisen er god."
+UI_BRIEFING_CARD_FREE_TITLE,Your own farm,Ditt eget oppdrett
+UI_BRIEFING_CARD_HINT,"The clock stands until you start. Before a deadline you can act on, the game slows to 1× a week ahead and stops the day before.","Klokken står til du starter. Før en frist du kan gjøre noe med, bremser spillet til 1× en uke før og stopper dagen før."
+UI_BRIEFING_CARD_KEY_DIGITS,1–4,1–4
+UI_BRIEFING_CARD_KEY_N,N,N
+UI_BRIEFING_CARD_KEY_NEXT,to the next event,til neste hendelse
+UI_BRIEFING_CARD_KEY_PAUSE,pause,pause
+UI_BRIEFING_CARD_KEY_SPACE,Space,Mellomrom
+UI_BRIEFING_CARD_KEY_SPEEDS,speed 1× 3× 10× 30×,fart 1× 3× 10× 30×
+UI_BRIEFING_CARD_LOOK,Look around first,Se deg rundt først
+UI_BRIEFING_CARD_LOOK_TIP,Close the card with the clock stopped (Esc). Space starts it.,Lukk kortet med klokken stoppet (Esc). Mellomrom starter den.
+UI_BRIEFING_CARD_OVERLINE_FREE,Free play,Fritt spill
+UI_BRIEFING_CARD_OVERLINE_SCENARIO,Scenario · %s,Scenario · %s
+UI_BRIEFING_CARD_START,Start the season,Start sesongen
+UI_BRIEFING_CARD_START_TIP,The clock starts at %s (Enter). Change the default speed under Settings > Gameplay.,Klokken starter på %s (Enter). Standardfarten endrer du under Innstillinger > Spill.
+UI_BRIEFING_CARD_TIME_TITLE,Time,Tid
+UI_DASHBOARD_PEN_LICE,Lice per fish,Lus per fisk
+UI_DASHBOARD_PEN_WEIGHT,Mean weight,Snittvekt
+UI_DASHBOARD_SITE_TIP,Standing biomass %s · %s adult female lice per fish (limit %s),Stående biomasse %s · %s voksne hunnlus per fisk (grense %s)
+UI_DASHBOARD_SITES_EMPTY,No sites yet,Ingen anlegg ennå
+UI_HUD_TIP_CALENDAR,%s\nSeason: %s,%s\nSesong: %s
+UI_FIN_KPI_OPERATING_RESULT,OPERATING RESULT,DRIFTSRESULTAT
+UI_FIN_PL_COSTS_TOTAL,TOTAL COSTS,SUM KOSTNADER
+UI_FIN_PL_NET_RESULT,RESULT AFTER INTEREST AND TAX,RESULTAT ETTER RENTER OG SKATT
+UI_FIN_PL_NO_COSTS,No costs booked yet,Ingen kostnader bokført ennå
+UI_FIN_PL_OTHER_COSTS,Other costs,Andre kostnader
+UI_FIN_PL_REVENUE_TOTAL,TOTAL INCOME,SUM INNTEKTER
+UI_CONTRACTS_CHART_TITLE_DAYS,"Spot price, last %d days","Spotpris, siste %d dager"
+UI_CONTRACTS_KPI_CONTRACTED,VOLUME UNDER CONTRACT,KONTRAHERT VOLUM
+UI_CONTRACTS_PRICE_AVG,AVERAGE,SNITT
+UI_CONTRACTS_PRICE_HIGH,HIGH,HØY
+UI_CONTRACTS_PRICE_LOW,LOW,LAV
+UI_CHART_COSTS,Costs,Kostnader
+UI_CHART_DAY_RANGE,Days %d–%d,Dag %d–%d
+UI_CHART_INCOME,Income,Inntekter
+ALERT_GILL_CRITICAL,Gill health critical at %s,Gjellehelsen er kritisk ved %s
+ALERT_GILL_POOR,Gill health declining at %s,Gjellehelsen svekkes ved %s
+GAME_EVENT_ALGAL_BLOOM,Bloom at the farm,Oppblomstring ved anlegget
+GAME_EVENT_APPETITE_LOW,Low appetite,Lav appetitt
+GAME_EVENT_BIOMASS_ORDER,Order: get under the biomass limit,Pålegg: ned under MTB
+GAME_EVENT_ESCAPE,Fish escape,Rømming
+GAME_EVENT_FEED_CONVERSION_POOR,Feed conversion worsening,Fôrfaktoren forverres
+GAME_EVENT_GILL_HEALTH_CRITICAL,Gill health critical,Kritisk gjellehelse
+GAME_EVENT_GILL_HEALTH_POOR,Gill health declining,Svekket gjellehelse
+GAME_EVENT_INSURANCE_PAYOUT,Insurance settlement,Forsikringsoppgjør
+GAME_EVENT_LICE_ABOVE_LIMIT,Lice above the legal limit,Lusenivået er over grensen
+GAME_EVENT_LICE_RISING,Lice levels rising,Lusenivået stiger
+GAME_EVENT_LICE_TREATMENT_DUE,Lice treatment due,Lusebehandling påkrevd
+GAME_EVENT_LICE_TREATMENT_ORDER,Order: delouse by the deadline,Pålegg: avlus innen fristen
+GAME_EVENT_MORTALITY_HIGH,High mortality,Høy dødelighet
+GAME_EVENT_NETS_CRITICAL,Nets critically worn,Nøtene er kritisk slitt
+GAME_EVENT_NETS_WORN,Nets worn,Nøtene er slitt
+GAME_EVENT_OXYGEN_CRITICAL,Oxygen critically low,Kritisk lavt oksygen
+GAME_EVENT_OXYGEN_LOW,Low oxygen,Lavt oksygen
+GAME_EVENT_SOLVENCY_BANK_WARNING,Bank warning,Bankvarsel
+GAME_EVENT_SOLVENCY_FINAL_WARNING,Final warning from the bank,Siste varsel fra banken
+GAME_EVENT_SOLVENCY_OVERDRAFT,Account overdrawn,Overtrukket konto
+GAME_EVENT_STORM_DAMAGE,Storm damage,Stormskade
+GAME_EVENT_STORM_FORECAST,Storm on the way,Storm i vente
+GAME_EVENT_STORY_EVENT,Event,Hendelse
+GAME_EVENT_SUSTAINABILITY_LOW,Sustainability below the requirement,Bærekraft under kravet
+GAME_EVENT_TEMPERATURE_HIGH,High sea temperature,Høy sjøtemperatur
+GAME_EVENT_TRAFFIC_LIGHT_CHANGED,Traffic light changed,Trafikklyset har skiftet
+GAME_EVENT_TRAFFIC_LIGHT_RED,Traffic light red,Trafikklyset er rødt
+GAME_EVENT_VACCINE_COVERAGE_LOW,Low vaccine coverage,Lav vaksinedekning
+GAME_EVENT_VACCINE_WINDOW_OPEN,Vaccination window open,Vaksinasjonsvinduet er åpent
+GAME_EVENT_WELLBOAT_COMPLETED,Wellboat job done,Brønnbåten er ferdig
+GAME_EVENT_WELLBOAT_RETURNED,Wellboat returned without finishing,Brønnbåten kom tilbake uten å fullføre
+GAME_EVENT_WELLBOAT_SCHEDULED,Wellboat booked,Brønnbåt bestilt
+UI_EVENT_CARD_CONTINUE,Continue,Fortsett
+UI_EVENT_CARD_HINT_PAUSED,The game is paused while this card is open. Esc continues.,Spillet står på pause mens kortet er åpent. Esc fortsetter.
+UI_EVENT_CARD_HINT_RUNNING,The game keeps running. Esc closes the card.,Spillet går videre. Esc lukker kortet.
+UI_EVENT_CARD_NEXT,Next,Neste
+UI_EVENT_CARD_OVERLINE,Critical event,Kritisk hendelse
+UI_EVENT_CARD_QUEUE,%d of %d,%d av %d
+UI_EVENT_CARD_SHOW_SITE,Show the site,Vis lokaliteten
+UI_EVENT_DAY,Day %d,Dag %d
+UI_EVENT_DEADLINE,Deadline: %s (in %d days),Frist: %s (om %d dager)
+UI_EVENT_DEADLINE_TODAY,Deadline: %s (today),Frist: %s (i dag)
+UI_EVENT_SUBJECT_COMPANY,The whole company,Hele selskapet
+UI_EVENT_VERB_CHECK_WATER,Check the water,Se vannkvaliteten
+UI_EVENT_VERB_DELOUSE,Plan delousing,Planlegg avlusing
+UI_EVENT_VERB_FRESHWATER_BATH,Plan a freshwater bath,Planlegg ferskvannsbehandling
+UI_EVENT_VERB_INSPECT_NETS,Check the nets,Sjekk nøtene
+UI_EVENT_VERB_INSPECT_SITE,Show the site,Vis lokaliteten
+UI_EVENT_VERB_OPEN_SUSTAINABILITY,See the requirements,Se kravene
+UI_EVENT_VERB_RAISE_CAPITAL,Raise capital,Skaff kapital
+UI_EVENT_VERB_REVIEW_FEEDING,Review feeding,Se på fôringen
+UI_HUD_TIP_NOTIFICATIONS,Notifications (V) — %d unread,Varsler (V) — %d uleste
+UI_NOTIFY_CLEAR_ALL_TIP,Clear all notifications,Tøm alle varsler
+UI_NOTIFY_EXPAND_TIP,Click for the whole text,Klikk for hele teksten
+UI_NOTIFY_UNREAD,New,Ny
+UI_PACING_DEADLINE_FALLBACK,Deadline,Frist
+UI_PACING_PAUSED,Paused,Pause
+UI_PACING_RUNNING,Running to the next event,Spoler til neste hendelse
+UI_PACING_SLOWED,Slowed · due %s,Bremset · frist %s
+UI_PACING_STOPPED_DEADLINE,Stopped · due %s,Stoppet · frist %s
+UI_PACING_STOPPED_EVENT,Stopped · %s,Stoppet · %s
+UI_PACING_STOPPED_QUIET,Stopped · %d quiet days,Stoppet · %d rolige dager
+UI_PACING_TIP_DEADLINE,"%s\nDue %s, in %d days. The game slows to 1× a week before a deadline you can act on and stops the day before. Click for the notifications.","%s\nFrist %s, om %d dager. Spillet bremser til 1× en uke før en frist du kan gjøre noe med, og stopper dagen før. Klikk for varslene."
+UI_PACING_TIP_EVENT,To the next event stopped here: %s. Click for the notifications.,Til neste hendelse stoppet her: %s. Klikk for varslene.
+UI_PACING_TIP_PAUSED,The game is paused. Space or 1–4 starts the clock.,Spillet står stille. Mellomrom eller 1–4 starter klokken.
+UI_PACING_TIP_QUIET,Nothing needed you for 60 days. Press N to run on.,Ingenting trengte deg på 60 dager. Trykk N for å spole videre.

@@ -67,16 +67,23 @@ const WEATHER_ICONS := {"Calm": "☀️", "Moderate": "⛅", "Storm": "⛈️", 
 @onready var _btn_hire: Button = %BtnHire
 @onready var _btn_contracts: Button = %BtnContracts
 
-# Pen mini-cards are static scene nodes; collected into an array in _ready.
-var _pen_cards: Array[Dictionary] = []
+## One card per sea site the player owns (U1-05: no placeholder "Merd 3-6"
+## cards), built in code and kept by site id between refreshes.
+@onready var _pen_grid: GridContainer = %PenGrid
+var _site_cards: Dictionary = {}
+var _sites_empty: Label = null
 
 ## Rows of the alert card (one per category and site), newest first.
 const ALERT_ROWS_MAX := 6
+## A site's lice at or over the spring limit (adult females per fish) warns;
+## the standing limit (SimState.LICE_LEGAL_LIMIT) is critical.
+const SITE_LICE_WARN := 0.2
 var _alert_rows: Array[Dictionary] = []
 
-var _fin_bars_revenue: Array[ColorRect] = []
-var _fin_bars_cost: Array[ColorRect] = []
-var _fin_month_labels: Array[Label] = []
+## Income and costs booked over the last FIN_DAYS days, in FIN_BLOCK_DAYS blocks.
+@onready var _fin_chart: PeriodBarChart = %FinChart
+const FIN_DAYS := 30
+const FIN_BLOCK_DAYS := 5
 
 # ── Previous values for animations ────────────────────────────────────────────
 var _prev_balance: float = 0.0
@@ -126,11 +133,55 @@ func _ready() -> void:
 
 # ── Signal handlers ───────────────────────────────────────────────────────────
 
+# Throttle (roadmap U2-07): a sim day sends four signals (the tick and the
+# state update each refresh the snapshot, and each refresh announces both a
+# state update and a day), and at 30× a day passes every other frame. The
+# dashboard refreshes at most once per frame (coalesced, deferred), at most
+# once per sim day while the clock runs, never while it is hidden (it catches
+# up when shown), and every update while paused (the player's own actions).
+var _refresh_pending: bool = false
+var _refreshed_day: int = -1
+## Refreshes done (tests count them against the days that passed) and the
+## time the last one took (ms).
+var refresh_count: int = 0
+var last_refresh_ms: float = 0.0
+
 func _on_day_advanced(_day: int, _season: String) -> void:
-	_refresh_all()
+	_queue_refresh()
 
 func _on_state_updated() -> void:
+	_queue_refresh()
+
+func _queue_refresh() -> void:
+	if _refresh_pending:
+		return
+	_refresh_pending = true
+	_flush_refresh.call_deferred()
+
+func _flush_refresh() -> void:
+	if not is_inside_tree() or not is_visible_in_tree():
+		return   # still pending: _notification refreshes when shown
+	var day: int = int(_sim.current_day) if _sim else -1
+	if day == _refreshed_day and _sim != null and not _sim.is_paused():
+		_refresh_pending = false
+		return
+	_refresh_pending = false
+	_refreshed_day = day
+	refresh_count += 1
+	var t0 := Time.get_ticks_usec()
 	_refresh_all()
+	last_refresh_ms = (Time.get_ticks_usec() - t0) / 1000.0
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_VISIBILITY_CHANGED and _refresh_pending and is_visible_in_tree():
+		_flush_refresh.call_deferred()
+
+## True while the clock runs fast (10× or 30×): numbers snap instead of
+## counting up, and KPI flashes rest (a flash every day at 30× strobes).
+func _fast_clock() -> bool:
+	return _sim != null and not _sim.is_paused() and float(_sim.get_time_speed()) >= FAST_SPEED
+
+const FAST_SPEED := 10.0
 
 func _on_quick_action(action: String) -> void:
 	# Juice-only feedback: toast + button pop + route to the relevant tab.
@@ -195,26 +246,7 @@ func _toast(message: String, level: String = "INFO") -> void:
 # ── Scene wiring ──────────────────────────────────────────────────────────────
 
 func _collect_scene_refs() -> void:
-	_pen_cards.clear()
-	for i in range(1, 7):
-		var suffix := str(i)
-		_pen_cards.append({
-			"panel": get_node_or_null("%PenCard" + suffix),
-			"status_dot": get_node_or_null("%Pen" + suffix + "Status"),
-			"name_label": get_node_or_null("%Pen" + suffix + "Name"),
-			"count_value": get_node_or_null("%Pen" + suffix + "Count"),
-			"weight_value": get_node_or_null("%Pen" + suffix + "Weight"),
-			"temp_value": get_node_or_null("%Pen" + suffix + "Temp"),
-		})
-	_fin_bars_revenue.clear()
-	_fin_bars_cost.clear()
-	_fin_month_labels.clear()
-	for i in range(1, 7):
-		var suffix := str(i)
-		_fin_bars_revenue.append(get_node_or_null("%FinRev" + suffix) as ColorRect)
-		_fin_bars_cost.append(get_node_or_null("%FinCost" + suffix) as ColorRect)
-		# MonthLbl nodes share one % name; resolve via parent path instead.
-		_fin_month_labels.append(get_node_or_null("Margin/MainScroll/RootVBox/Row2/FinCard/FinOuter/FinBody/FinChart/Month" + suffix + "/MonthLbl") as Label)
+	_site_cards.clear()
 
 ## Create the state-of-the-farm banner in code and slot it under the title bar.
 ## Keeps Dashboard.tscn untouched; silently no-ops if the scene shape changes.
@@ -284,9 +316,6 @@ func _apply_theme_fonts() -> void:
 	LakskongenTheme.set_strong(_fin_title)
 	LakskongenTheme.set_strong(_alerts_title)
 	LakskongenTheme.set_strong(_actions_title)
-	for pen in _pen_cards:
-		if pen.name_label:
-			LakskongenTheme.set_strong((pen.name_label as Label))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # KPI SPARKLINES (created in code; additive juice, no sim mutation)
@@ -301,7 +330,8 @@ func _build_kpi_sparklines() -> void:
 		return
 	var specs: Array = [
 		["biomass", _kpi_biomass_value, "total_biomass_kg", Color("#5B8FA3"), "%.0f"],
-		["revenue", _kpi_revenue_value, "balance_nok", Color("#2E6B45"), "%.1f"],
+		# U1-05: the revenue card draws the year's revenue, not the cash balance.
+		["revenue", _kpi_revenue_value, "revenue_nok", Color("#2E6B45"), "%.1f"],
 		["health", _kpi_health_value, "sustainability_score", Color("#1F5E73"), "%.0f"],
 		["fcr", _kpi_fcr_value, "fcr", Color("#8A5A00"), "%.2f"],
 	]
@@ -317,7 +347,7 @@ func _build_kpi_sparklines() -> void:
 		spark.name = "KpiSpark" + key.capitalize()
 		spark.line_color = spec[3]
 		spark.unit_fmt = spec[4]
-		# Biomass is kept in kg and the balance in kr: label them as the cards do.
+		# Biomass is kept in kg and revenue in kr: label them as the cards do.
 		if key == "biomass":
 			spark.value_format = func(v: float) -> String: return SimFormatters.format_biomass(v)
 		elif key == "revenue":
@@ -343,7 +373,7 @@ func _refresh_kpi_sparklines() -> void:
 ## Flash a KPI value label green when the change is good, red when bad.
 ## Skips the first refresh (prev == 0) and changes below the material threshold.
 func _flash_kpi(lbl: Label, new_val: float, prev_val: float, good_when_up: bool, material: float = 0.005) -> void:
-	if lbl == null or is_zero_approx(prev_val):
+	if lbl == null or is_zero_approx(prev_val) or _fast_clock():
 		return
 	var delta := new_val - prev_val
 	if absf(delta) / maxf(absf(prev_val), 1e-6) < material:
@@ -455,9 +485,9 @@ func _refresh_kpis() -> void:
 	_count_up(_kpi_revenue_value, _prev_revenue, revenue_m,
 		func(v: float) -> String: return tr("UI_DASHBOARD_REVENUE_FORMAT") % SimFormatters.num(v, 1))
 	_prev_revenue = revenue_m
-	var balance_trend: String = _sim.get_analytics_trend("balance_nok") if _sim.has_method("get_analytics_trend") else "stable"
-	_kpi_revenue_change.text = _trend_text(balance_trend)
-	LakskongenTheme.set_text_color(_kpi_revenue_change, _trend_color(balance_trend, true))
+	var revenue_trend: String = _sim.get_analytics_trend("revenue_nok") if _sim.has_method("get_analytics_trend") else "stable"
+	_kpi_revenue_change.text = _trend_text(revenue_trend)
+	LakskongenTheme.set_text_color(_kpi_revenue_change, _trend_color(revenue_trend, true))
 
 	# Health (use sustainability score as proxy)
 	var health: int = int(_sim.sustainability_score)
@@ -532,37 +562,113 @@ func _refresh_pens() -> void:
 	if not _sim:
 		return
 
-	var pens: Array = _sim.get_all_pens() if _sim.has_method("get_all_pens") else []
-	var temp: float = float(_sim.temperature_c)
-	var lice: float = float(_sim.sea_lice_per_fish)
+	show_sites(_sim.get_all_pens() if _sim.has_method("get_all_pens") else [])
 
-	for i in range(min(_pen_cards.size(), 6)):
-		var pen: Dictionary = _pen_cards[i]
-		if i < pens.size():
-			var site: Dictionary = pens[i]
-			var count: int = int(site.get("fish_count", 0))
-			var biomass: float = float(site.get("biomass_kg", 0.0))
-			var max_bio: float = float(site.get("max_biomass", 0.0))
-			var escapes: int = int(site.get("escapes_this_year", 0))
-			if pen.name_label:
-				(pen.name_label as Label).text = str(site.get("name", tr("UI_DASHBOARD_PEN_NAME") % (i + 1)))
-			var avg_w: float = biomass / max(count, 1)
-			(pen.count_value as Label).text = SimFormatters.integer(count)
-			(pen.weight_value as Label).text = SimFormatters.num(avg_w, 1) + " kg" if count > 0 else "–"
-			(pen.temp_value as Label).text = SimFormatters.num(temp, 1) + " °C"
-			var dot_color := Color("#2E6B45")
-			if escapes > 0 or (max_bio > 0.0 and biomass > max_bio):
-				dot_color = Color("#B3172F")
-			elif lice > 0.2 or (max_bio > 0.0 and biomass > max_bio * 0.8):
-				dot_color = Color("#8A5A00")
-			(pen.status_dot as ColorRect).color = dot_color
-		else:
-			if pen.name_label:
-				(pen.name_label as Label).text = tr("UI_DASHBOARD_PEN_NAME") % (i + 1)
-			(pen.count_value as Label).text = tr("UI_DASHBOARD_PEN_EMPTY")
-			(pen.weight_value as Label).text = "–"
-			(pen.temp_value as Label).text = "–"
-			(pen.status_dot as ColorRect).color = Color("#D6CFBF")
+
+## One card per site in `sites` (GameBridge site dictionaries), in order;
+## cards of sites no longer listed go. _refresh_pens feeds it the sim's sites.
+func show_sites(sites: Array) -> void:
+	if _pen_grid == null:
+		return
+	var wanted: Dictionary = {}
+	for i in sites.size():
+		var site: Dictionary = sites[i]
+		var id := str(site.get("id", "site_%d" % i))
+		wanted[id] = true
+		if not _site_cards.has(id):
+			_site_cards[id] = _make_site_card(id)
+		var card: Dictionary = _site_cards[id]
+		_pen_grid.move_child(card["panel"], i)
+		_fill_site_card(card, site)
+	for id in _site_cards.keys():
+		if not wanted.has(id):
+			(_site_cards[id]["panel"] as Node).queue_free()
+			_site_cards.erase(id)
+	if _sites_empty == null:
+		_sites_empty = Label.new()
+		_sites_empty.name = "SitesEmpty"
+		_sites_empty.theme_type_variation = &"SmallMuted"
+		_sites_empty.text = tr("UI_DASHBOARD_SITES_EMPTY")
+		_pen_grid.get_parent().add_child(_sites_empty)
+	_sites_empty.visible = sites.is_empty()
+
+
+## The site cards shown now, in order (tests read them).
+func get_site_cards() -> Array[Control]:
+	var out: Array[Control] = []
+	if _pen_grid == null:
+		return out
+	for child in _pen_grid.get_children():
+		if child is Control and child.has_meta(&"site_id") and not child.is_queued_for_deletion():
+			out.append(child as Control)
+	return out
+
+
+## A site card: name and status dot, then fish, mean weight and the site's
+## own lice count (each site's, not the company average).
+func _make_site_card(site_id: String) -> Dictionary:
+	var panel := PanelContainer.new()
+	panel.name = "SiteCard_" + site_id.validate_node_name()
+	panel.theme_type_variation = &"Tile"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.set_meta(&"site_id", site_id)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	panel.add_child(box)
+	var header := HBoxContainer.new()
+	box.add_child(header)
+	var name_label := Label.new()
+	name_label.theme_type_variation = &"BodySmallStrong"
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.clip_text = true
+	header.add_child(name_label)
+	var dot := ColorRect.new()
+	dot.custom_minimum_size = Vector2(10, 10)
+	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(dot)
+	var card := {"panel": panel, "name": name_label, "dot": dot}
+	for key in ["count", "weight", "lice"]:
+		var row := HBoxContainer.new()
+		box.add_child(row)
+		var cap := Label.new()
+		cap.theme_type_variation = &"SmallMuted"
+		cap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cap.text = tr({"count": "UI_PEN_COUNT_LABEL", "weight": "UI_DASHBOARD_PEN_WEIGHT", "lice": "UI_DASHBOARD_PEN_LICE"}[key])
+		row.add_child(cap)
+		var value := Label.new()
+		value.theme_type_variation = &"Small"
+		row.add_child(value)
+		card[key] = value
+	_pen_grid.add_child(panel)
+	return card
+
+
+func _fill_site_card(card: Dictionary, site: Dictionary) -> void:
+	var count: int = int(site.get("fish_count", 0))
+	var biomass: float = float(site.get("biomass_kg", 0.0))
+	var max_bio: float = float(site.get("max_biomass", 0.0))
+	var escapes: int = int(site.get("escapes_this_year", 0))
+	var lice: float = float(site.get("lice_per_fish", 0.0))
+	(card["name"] as Label).text = str(site.get("name", site.get("id", "")))
+	(card["count"] as Label).text = SimFormatters.integer(count) if count > 0 else tr("UI_DASHBOARD_PEN_EMPTY")
+	(card["weight"] as Label).text = SimFormatters.format_fish_weight(biomass / count) if count > 0 else "–"
+	(card["lice"] as Label).text = SimFormatters.num(lice, 2) if count > 0 else "–"
+	var tone := &""
+	var dot_color := Color("#2E6B45")
+	if count <= 0:
+		dot_color = Color("#D6CFBF")
+	elif escapes > 0 or lice >= SimState.LICE_LEGAL_LIMIT or (max_bio > 0.0 and biomass > max_bio):
+		dot_color = Color("#B3172F")
+		tone = &"Crit"
+	elif lice >= SITE_LICE_WARN or (max_bio > 0.0 and biomass > max_bio * 0.8):
+		dot_color = Color("#8A5A00")
+		tone = &"Warn"
+	(card["dot"] as ColorRect).color = dot_color
+	LakskongenTheme.set_tone(card["lice"] as Label, tone)
+	(card["panel"] as Control).tooltip_text = tr("UI_DASHBOARD_SITE_TIP") % [
+		SimFormatters.format_biomass(biomass), SimFormatters.num(lice, 2), SimFormatters.num(SimState.LICE_LEGAL_LIMIT, 1)]
+
 
 func _refresh_water() -> void:
 	if not _sim:
@@ -606,16 +712,24 @@ func _refresh_weather() -> void:
 	_weather_visibility.text = tr("UI_DASHBOARD_NETS_VALUE") % SimFormatters.percent(float(_sim.min_net_integrity) / 100.0)
 	_weather_humidity.text = tr("UI_DASHBOARD_LICE_VALUE") % SimFormatters.num(float(_sim.sea_lice_per_fish), 2)
 
+## Alert rows built (tests: an unchanged list is not rebuilt, U2-07).
+var alert_rebuilds: int = 0
+
 func _refresh_alerts() -> void:
 	if not _alerts_container:
 		return
 
+	var alerts: Array[Dictionary] = _collect_alert_rows()
+	# Diff, not rebuild: the same rows (text, level, time, count) keep their
+	# nodes; at 30× the list used to be freed and rebuilt every other frame.
+	if alert_rebuilds > 0 and alerts == _alert_rows:
+		return
+	alert_rebuilds += 1
+	_alert_rows = alerts
+
 	# Clear existing alerts
 	for child in _alerts_container.get_children():
 		child.queue_free()
-
-	var alerts: Array[Dictionary] = _collect_alert_rows()
-	_alert_rows = alerts
 
 	if alerts.is_empty():
 		UIPolish.show_empty_state_localized(_alerts_container, tr("UI_DASHBOARD_ALERTS_EMPTY"), 13, "", _theme)
@@ -662,29 +776,43 @@ func _refresh_alerts() -> void:
 
 ## The alert rows: live alerts first (newest event alerts, then conditions),
 ## then recent sim events, newest first. One row per (category, site)
-## (roadmap U1-04): a storm reported on three days, or the storm alert and the
-## storm event behind it, is one row that counts its repeats. At most
-## ALERT_ROWS_MAX rows.
+## (roadmap U1-04) that counts its occurrences. U1-05 keeps the count and the
+## time honest: an event alert is dated by the day it happened ("Nå" only
+## today), and the event-log record of the same occurrence (the storm alert
+## and the "Stormskade" entry of that day) is not counted a second time.
+## At most ALERT_ROWS_MAX rows.
 func _collect_alert_rows() -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
 	if not _sim:
 		return rows
+	var today: int = int(_sim.current_day)
 	var by_identity: Dictionary = {}
+	var alerted: Dictionary = {}
 	for a in _sim.active_alerts:
 		var identity := alert_identity(a)
+		var day: int = int(a.get("day", today))
+		alerted["%s|%s|%d" % [identity[0], identity[1], day]] = true
 		_add_alert_row(rows, by_identity, identity, {"text": str(a.get("message", "")),
-			"level": str(a.get("level", "info")), "time": tr("UI_TIME_NOW")})
+			"level": str(a.get("level", "info")), "time": _alert_time(day, today)})
 	var events: Array = _sim.recent_events
 	for i in range(events.size() - 1, -1, -1):
 		var e: Dictionary = events[i]
 		var desc: String = str(e.get("description", ""))
 		if desc.is_empty():
 			continue
-		var identity := [str(e.get("category", "event")).to_lower(), str(e.get("site_id", ""))]
+		var site: Variant = e.get("site_id", "")
+		var identity := [str(e.get("category", "event")).to_lower(), "" if site == null else str(site)]
+		var day: int = int(e.get("day", 0))
+		if alerted.has("%s|%s|%d" % [identity[0], identity[1], day]):
+			continue
 		_add_alert_row(rows, by_identity, identity, {
 			"text": "%s — %s" % [str(e.get("name", tr("UI_EVENT_FALLBACK"))), desc], "level": "info",
-			"time": tr("UI_DAY_N") % int(e.get("day", 0))})
+			"time": _alert_time(day, today)})
 	return rows.slice(0, ALERT_ROWS_MAX)
+
+## "Nå" for today's alerts, "Dag N" for older ones.
+func _alert_time(day: int, today: int) -> String:
+	return tr("UI_TIME_NOW") if day >= today else tr("UI_DAY_N") % day
 
 func _add_alert_row(rows: Array[Dictionary], by_identity: Dictionary, identity: Array, row: Dictionary) -> void:
 	var key := "%s|%s" % identity
@@ -753,37 +881,16 @@ func _set_chart(chart: Control, title: String, values: Array[float], metric: Str
 
 
 func _refresh_finance() -> void:
-	if not _sim or not _sim.has_method("get_analytics_data"):
+	if not _sim or not _sim.has_method("get_analytics_data") or _fin_chart == null:
 		return
-	if _fin_bars_revenue.is_empty():
-		return
-	# Six buckets over the last 30 days of balance history: green = net gain,
-	# red = net loss per bucket. Honest label: saldoendring, not revenue/cost.
-	var series: Array[float] = _sim.get_analytics_data("balance_nok", 30)
-	if series.size() < 2:
-		return
-	var bucket := maxi(1, series.size() / 6)
-	var max_abs := 1.0
-	var deltas: Array[float] = []
-	for b in range(6):
-		var start_i: int = mini(b * bucket, series.size() - 1)
-		var end_i: int = mini((b + 1) * bucket - 1, series.size() - 1)
-		var d: float = series[end_i] - series[start_i]
-		deltas.append(d)
-		max_abs = max(max_abs, absf(d))
-	for b in range(6):
-		var frac: float = deltas[b] / max_abs
-		var h: float = clampf(absf(frac) * 64.0, 2.0 if not is_zero_approx(deltas[b]) else 0.0, 64.0)
-		var rev: ColorRect = _fin_bars_revenue[b] if b < _fin_bars_revenue.size() else null
-		var cost: ColorRect = _fin_bars_cost[b] if b < _fin_bars_cost.size() else null
-		if rev:
-			rev.custom_minimum_size = Vector2(rev.custom_minimum_size.x, h if deltas[b] >= 0.0 else 0.0)
-			rev.visible = deltas[b] >= 0.0
-		if cost:
-			cost.custom_minimum_size = Vector2(cost.custom_minimum_size.x, h if deltas[b] < 0.0 else 0.0)
-			cost.visible = deltas[b] < 0.0
-		if b < _fin_month_labels.size() and _fin_month_labels[b]:
-			_fin_month_labels[b].text = tr("UI_DAYS_AGO_SHORT") % (series.size() - mini((b + 1) * bucket, series.size()))
+	# U1-05: the revenue and costs the sim booked, block by block over the
+	# last FIN_DAYS days (the card used to bucket the cash balance under a
+	# "6 months" title with income/cost colours).
+	var revenue: Array[float] = _sim.get_analytics_data("revenue_nok", FIN_DAYS + 1)
+	var costs: Array[float] = _sim.get_analytics_data("expenses_nok", FIN_DAYS + 1)
+	var data := PeriodBarChart.periods(revenue, costs, int(_sim.current_day), FIN_BLOCK_DAYS, FIN_DAYS / FIN_BLOCK_DAYS,
+		revenue.size() < FIN_DAYS + 1)
+	_fin_chart.set_periods(data["labels"], data["income"], data["costs"])
 
 
 ## ROC ops card (Phase 4.2): budget + per-site watch/scan/auto cycle buttons.
@@ -797,20 +904,33 @@ const NIGHT_WATCH_ORDER := ["Standard", "ScanOnly", "AutomatedROC"]
 const NIGHT_WATCH_ICON := {"Standard": "👁️", "ScanOnly": "🔍", "AutomatedROC": "🤖"}
 const NIGHT_WATCH_COST := {"Standard": 0, "ScanOnly": 0, "AutomatedROC": 85_000}
 
+var _ops_signature: Array = []
+
 func _refresh_ops() -> void:
 	if _ops_list == null or not _sim:
 		return
-	for child in _ops_list.get_children():
-		child.queue_free()
 	var budget: Dictionary = _sim.get_attention_budget() if _sim.has_method("get_attention_budget") else {}
 	var b: int = int(budget.get("budget", 100))
 	var used: int = int(budget.get("used", 0))
+	var pens: Array = _sim.get_all_pens() if _sim.has_method("get_all_pens") else []
+	# Diff, not rebuild (U2-07): the rows change when a site or its watch does.
+	var signature: Array = [b, used]
+	for site in pens:
+		signature.append([str(site.get("id", "")), str(site.get("name", "")), str(site.get("watch_mode", "watch"))])
+	if signature != _ops_signature:
+		_ops_signature = signature
+		_rebuild_ops(pens, b, used)
+	_sync_policy_option()
+
+
+func _rebuild_ops(pens: Array, b: int, used: int) -> void:
+	for child in _ops_list.get_children():
+		child.queue_free()
 	_ops_title.text = tr("UI_DASHBOARD_OPS_TITLE")
 	_ops_budget.text = tr("UI_DASHBOARD_OPS_BUDGET") % [used, b, int(WATCH_COST["watch"]), int(WATCH_COST["scan"]),
 		int(WATCH_COST["auto"]), SimFormatters.percent(AUTO_FEED_SPILL)]
 	_ops_budget.add_theme_color_override("font_color",
 		Color("#B3172F") if used > b else Color("#5A6168"))
-	var pens: Array = _sim.get_all_pens() if _sim.has_method("get_all_pens") else []
 	for site in pens:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
@@ -829,8 +949,10 @@ func _refresh_ops() -> void:
 		btn.pressed.connect(_on_watch_cycle.bind(sid, nxt))
 		row.add_child(btn)
 
-# Night-shift policy selector (Phase 5.2). Items + signal are set up once in
-	# _setup_policy_option(); a refresh only mirrors the engine's policy.
+
+## Night-shift policy selector (Phase 5.2). Items + signal are set up once in
+## _setup_policy_option(); a refresh only mirrors the engine's policy.
+func _sync_policy_option() -> void:
 	if _policy_option:
 		var status: Dictionary = _sim.get_night_shift_status() if _sim.has_method("get_night_shift_status") else {}
 		var idx := NIGHT_SHIFT_POLICIES.find(str(status.get("policy", "Standard")))
@@ -863,12 +985,20 @@ func _on_policy_changed(idx: int) -> void:
 
 ## Tween a KPI label from one value to another, formatting every frame with
 ## `fmt` (a Callable float -> String, locale-aware through SimFormatters).
+## One tween per label (a day's new count-up replaces the last one); at 10×
+## and 30× the number snaps to its value.
+var _count_tweens: Dictionary = {}
+
 func _count_up(lbl: Label, from_val: float, to_val: float, fmt: Callable) -> void:
 	if lbl == null:
 		return
-	if is_equal_approx(from_val, to_val):
+	var running: Tween = _count_tweens.get(lbl)
+	if running != null and running.is_valid():
+		running.kill()
+	if is_equal_approx(from_val, to_val) or _fast_clock():
 		lbl.text = fmt.call(to_val)
 		return
 	var tween := lbl.create_tween()
 	tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	tween.tween_method(func(v: float): lbl.text = fmt.call(v), from_val, to_val, 0.6)
+	_count_tweens[lbl] = tween

@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://bks2yj3v1fkl8"]
+[gd_scene load_steps=4 format=3 uid="uid://bks2yj3v1fkl8"]
 
 [ext_resource type="Script" path="res://scripts/ui/HUD.gd" id="1_hud"]
 [ext_resource type="PackedScene" uid="uid://scenario_goal_hud_001" path="res://ui/ScenarioGoalHUD.tscn" id="2_goal"]
+[ext_resource type="Script" path="res://scripts/ui/TimeGlyph.gd" id="3_glyph"]
 
 [node name="HUD" type="Control"]
 layout_mode = 3
@@ -27,146 +28,159 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 16.0
-offset_right = -16.0
+offset_right = -12.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 8
 
 [node name="Left" type="HBoxContainer" parent="MainHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 18
 
-[node name="DayItem" type="HBoxContainer" parent="MainHBox/Left"]
+[node name="CalendarItem" type="VBoxContainer" parent="MainHBox/Left"]
+unique_name_in_owner = true
 layout_mode = 2
-tooltip_text = "Dag"
-theme_override_constants/separation = 4
+size_flags_vertical = 4
+mouse_filter = 0
+theme_override_constants/separation = -2
 
-[node name="DayIcon" type="Label" parent="MainHBox/Left/DayItem"]
+[node name="DayCaption" type="Label" parent="MainHBox/Left/CalendarItem"]
+unique_name_in_owner = true
 layout_mode = 2
-text = "📅"
+theme_type_variation = &"OverlineMuted"
+text = "–"
+uppercase = true
 
-[node name="DayValue" type="Label" parent="MainHBox/Left/DayItem"]
+[node name="CalendarValue" type="Label" parent="MainHBox/Left/CalendarItem"]
+unique_name_in_owner = true
+layout_mode = 2
 theme_type_variation = &"Figure"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-
-[node name="SeasonItem" type="HBoxContainer" parent="MainHBox/Left"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="SeasonIcon" type="Label" parent="MainHBox/Left/SeasonItem"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "?"
-
-[node name="SeasonValue" type="Label" parent="MainHBox/Left/SeasonItem"]
-theme_type_variation = &"FigureInfo"
-unique_name_in_owner = true
-layout_mode = 2
-text = "---"
+text = "–"
 
 [node name="Sep1" type="VSeparator" parent="MainHBox/Left"]
 layout_mode = 2
 
-[node name="BalanceItem" type="HBoxContainer" parent="MainHBox/Left"]
+[node name="BalanceItem" type="VBoxContainer" parent="MainHBox/Left"]
 layout_mode = 2
-tooltip_text = "Saldo"
-theme_override_constants/separation = 4
+size_flags_vertical = 4
+mouse_filter = 0
+theme_override_constants/separation = -2
 
-[node name="BalanceIcon" type="Label" parent="MainHBox/Left/BalanceItem"]
-layout_mode = 2
-text = "💰"
-
-[node name="BalanceValue" type="Label" parent="MainHBox/Left/BalanceItem"]
-theme_type_variation = &"Figure"
+[node name="BalanceCaption" type="Label" parent="MainHBox/Left/BalanceItem"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_type_variation = &"OverlineMuted"
+text = "UI_HUD_BALANCE_LABEL"
+uppercase = true
+
+[node name="BalanceValue" type="Label" parent="MainHBox/Left/BalanceItem"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Figure"
+text = "--"
+
+[node name="FishItem" type="VBoxContainer" parent="MainHBox/Left"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 0
+theme_override_constants/separation = -2
+
+[node name="FishCaption" type="Label" parent="MainHBox/Left/FishItem"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineMuted"
+text = "UI_HUD_FISH_LABEL"
+uppercase = true
+
+[node name="FishValue" type="Label" parent="MainHBox/Left/FishItem"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Figure"
+text = "--"
+
+[node name="TempItem" type="VBoxContainer" parent="MainHBox/Left"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 0
+theme_override_constants/separation = -2
+
+[node name="TempCaption" type="Label" parent="MainHBox/Left/TempItem"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineMuted"
+text = "UI_HUD_CAPTION_SEA_TEMP"
+uppercase = true
+
+[node name="TempValue" type="Label" parent="MainHBox/Left/TempItem"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Figure"
+text = "--"
+
+[node name="PriceItem" type="VBoxContainer" parent="MainHBox/Left"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 0
+theme_override_constants/separation = -2
+
+[node name="PriceCaption" type="Label" parent="MainHBox/Left/PriceItem"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineMuted"
+text = "UI_HUD_CAPTION_SPOT"
+uppercase = true
+
+[node name="PriceValue" type="Label" parent="MainHBox/Left/PriceItem"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Figure"
 text = "--"
 
 [node name="Sep2" type="VSeparator" parent="MainHBox/Left"]
-layout_mode = 2
-
-[node name="FishItem" type="HBoxContainer" parent="MainHBox/Left"]
-layout_mode = 2
-tooltip_text = "Fisk"
-theme_override_constants/separation = 4
-
-[node name="FishIcon" type="Label" parent="MainHBox/Left/FishItem"]
-layout_mode = 2
-text = "🐟"
-
-[node name="FishValue" type="Label" parent="MainHBox/Left/FishItem"]
-theme_type_variation = &"Figure"
 unique_name_in_owner = true
 layout_mode = 2
-text = "--"
 
-[node name="Sep3" type="VSeparator" parent="MainHBox/Left"]
-layout_mode = 2
-
-[node name="TempItem" type="HBoxContainer" parent="MainHBox/Left"]
-layout_mode = 2
-tooltip_text = "Temp"
-theme_override_constants/separation = 4
-
-[node name="TempIcon" type="Label" parent="MainHBox/Left/TempItem"]
-layout_mode = 2
-text = "🌡️"
-
-[node name="TempValue" type="Label" parent="MainHBox/Left/TempItem"]
-theme_type_variation = &"Figure"
+[node name="AlertItem" type="VBoxContainer" parent="MainHBox/Left"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "--"
+size_flags_vertical = 4
+mouse_filter = 0
+theme_override_constants/separation = -2
 
-[node name="PriceItem" type="HBoxContainer" parent="MainHBox/Left"]
-layout_mode = 2
-tooltip_text = "Pris"
-theme_override_constants/separation = 4
-
-[node name="PriceIcon" type="Label" parent="MainHBox/Left/PriceItem"]
-layout_mode = 2
-text = "📈"
-
-[node name="PriceValue" type="Label" parent="MainHBox/Left/PriceItem"]
-theme_type_variation = &"Figure"
+[node name="AlertsCaption" type="Label" parent="MainHBox/Left/AlertItem"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "--"
-
-[node name="Sep4" type="VSeparator" parent="MainHBox/Left"]
-layout_mode = 2
-
-[node name="AlertItem" type="HBoxContainer" parent="MainHBox/Left"]
-layout_mode = 2
-tooltip_text = "Varsler"
-theme_override_constants/separation = 4
-
-[node name="AlertIcon" type="Label" parent="MainHBox/Left/AlertItem"]
-layout_mode = 2
-text = "⚠️"
+theme_type_variation = &"OverlineMuted"
+text = "UI_HUD_ALERTS_LABEL"
+uppercase = true
 
 [node name="AlertsValue" type="Label" parent="MainHBox/Left/AlertItem"]
-theme_type_variation = &"Figure"
 unique_name_in_owner = true
 layout_mode = 2
+theme_type_variation = &"Figure"
 text = "--"
 
-[node name="WeatherItem" type="HBoxContainer" parent="MainHBox/Left"]
-layout_mode = 2
-tooltip_text = "Vær"
-theme_override_constants/separation = 4
-
-[node name="WeatherIcon" type="Label" parent="MainHBox/Left/WeatherItem"]
-layout_mode = 2
-text = "🌤️"
-
-[node name="WeatherValue" type="Label" parent="MainHBox/Left/WeatherItem"]
-theme_type_variation = &"Figure"
+[node name="WeatherItem" type="VBoxContainer" parent="MainHBox/Left"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 0
+theme_override_constants/separation = -2
+
+[node name="WeatherCaption" type="Label" parent="MainHBox/Left/WeatherItem"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineMuted"
+text = "UI_HUD_WEATHER_LABEL"
+uppercase = true
+
+[node name="WeatherValue" type="Label" parent="MainHBox/Left/WeatherItem"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Figure"
 text = "--"
 
 [node name="GoalChip" parent="MainHBox" instance=ExtResource("2_goal")]
@@ -176,49 +190,125 @@ size_flags_horizontal = 8
 
 [node name="Right" type="HBoxContainer" parent="MainHBox"]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 6
 alignment = 2
 
+[node name="PacingChip" type="PanelContainer" parent="MainHBox/Right"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 0
+mouse_default_cursor_shape = 2
+theme_type_variation = &"SwatchWarn"
+
+[node name="PacingPad" type="MarginContainer" parent="MainHBox/Right/PacingChip"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_right = 8
+
+[node name="PacingLabel" type="Label" parent="MainHBox/Right/PacingChip/PacingPad"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodySmallStrong"
+text = "–"
+
 [node name="InboxBtn" type="Button" parent="MainHBox/Right"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 40)
+layout_mode = 2
+size_flags_vertical = 4
 theme_type_variation = &"GhostButton"
-unique_name_in_owner = true
-custom_minimum_size = Vector2(36, 0)
-layout_mode = 2
-tooltip_text = "Varslingsinnboks (I)"
-text = "🔔"
 
-[node name="PauseBtn" type="Button" parent="MainHBox/Right"]
-theme_type_variation = &"RailTab"
-unique_name_in_owner = true
-custom_minimum_size = Vector2(36, 0)
-layout_mode = 2
-tooltip_text = "Pause/fortsett (mellomrom)"
-toggle_mode = true
-text = "⏸"
+[node name="BellGlyph" type="Control" parent="MainHBox/Right/InboxBtn"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("3_glyph")
+kind = 3
+glyph_size = 15.0
 
-[node name="Speed1x" type="Button" parent="MainHBox/Right"]
-theme_type_variation = &"RailTab"
+[node name="TimeControls" type="PanelContainer" parent="MainHBox/Right"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
-tooltip_text = "Normal hastighet"
-toggle_mode = true
-text = "1x"
+size_flags_vertical = 4
+mouse_filter = 0
 
-[node name="Speed2x" type="Button" parent="MainHBox/Right"]
-theme_type_variation = &"RailTab"
-unique_name_in_owner = true
-custom_minimum_size = Vector2(36, 0)
+[node name="TimeBox" type="HBoxContainer" parent="MainHBox/Right/TimeControls"]
 layout_mode = 2
-tooltip_text = "Dobbel hastighet"
-toggle_mode = true
-text = "2x"
+theme_override_constants/separation = 0
 
-[node name="Speed5x" type="Button" parent="MainHBox/Right"]
-theme_type_variation = &"RailTab"
+[node name="PauseBtn" type="Button" parent="MainHBox/Right/TimeControls/TimeBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(36, 0)
+custom_minimum_size = Vector2(44, 40)
 layout_mode = 2
-tooltip_text = "5× hastighet"
+theme_type_variation = &"RailTab"
+tooltip_text = "UI_HUD_PAUSE_PAUSE_TOOLTIP"
 toggle_mode = true
-text = "5x"
+
+[node name="PauseGlyph" type="Control" parent="MainHBox/Right/TimeControls/TimeBox/PauseBtn"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("3_glyph")
+
+[node name="Speed1x" type="Button" parent="MainHBox/Right/TimeControls/TimeBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 40)
+layout_mode = 2
+theme_type_variation = &"RailTab"
+toggle_mode = true
+text = "1×"
+
+[node name="Speed3x" type="Button" parent="MainHBox/Right/TimeControls/TimeBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 40)
+layout_mode = 2
+theme_type_variation = &"RailTab"
+toggle_mode = true
+text = "3×"
+
+[node name="Speed10x" type="Button" parent="MainHBox/Right/TimeControls/TimeBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 40)
+layout_mode = 2
+theme_type_variation = &"RailTab"
+toggle_mode = true
+text = "10×"
+
+[node name="Speed30x" type="Button" parent="MainHBox/Right/TimeControls/TimeBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 40)
+layout_mode = 2
+theme_type_variation = &"RailTab"
+toggle_mode = true
+text = "30×"
+
+[node name="NextEventBtn" type="Button" parent="MainHBox/Right/TimeControls/TimeBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 40)
+layout_mode = 2
+theme_type_variation = &"RailTab"
+tooltip_text = "UI_HUD_NEXT_EVENT_TIP"
+toggle_mode = true
+
+[node name="NextGlyph" type="Control" parent="MainHBox/Right/TimeControls/TimeBox/NextEventBtn"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("3_glyph")
+kind = 2

@@ -1,0 +1,197 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/BriefingCard.gd" id="1_card"]
+[ext_resource type="Shader" path="res://shaders/menu_glass.gdshader" id="2_glass"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_glass"]
+shader = ExtResource("2_glass")
+
+[sub_resource type="Gradient" id="Gradient_shade"]
+offsets = PackedFloat32Array(0, 1)
+colors = PackedColorArray(0.027451, 0.121569, 0.168627, 0.5, 0.027451, 0.121569, 0.168627, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_shade"]
+gradient = SubResource("Gradient_shade")
+width = 64
+height = 4
+
+[node name="BriefingCard" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_card")
+
+[node name="Column" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_right = 560.0
+grow_vertical = 2
+
+[node name="Shade" type="TextureRect" parent="Column"]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 72.0
+grow_horizontal = 0
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("GradientTexture2D_shade")
+expand_mode = 1
+stretch_mode = 0
+
+[node name="Glass" type="ColorRect" parent="Column"]
+material = SubResource("ShaderMaterial_glass")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.043137, 0.164706, 0.227451, 0.94)
+
+[node name="Margin" type="MarginContainer" parent="Column"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 44
+theme_override_constants/margin_bottom = 40
+
+[node name="Scroll" type="ScrollContainer" parent="Column/Margin"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Center" type="VBoxContainer" parent="Column/Margin/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+alignment = 1
+
+[node name="Content" type="VBoxContainer" parent="Column/Margin/Scroll/Center"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="AccentRule" type="ColorRect" parent="Column/Margin/Scroll/Center/Content"]
+custom_minimum_size = Vector2(40, 3)
+layout_mode = 2
+size_flags_horizontal = 0
+mouse_filter = 2
+color = Color(0.94902, 0.529412, 0.415686, 1)
+
+[node name="Overline" type="Label" parent="Column/Margin/Scroll/Center/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineAccent"
+text = "–"
+uppercase = true
+
+[node name="TitleLabel" type="Label" parent="Column/Margin/Scroll/Center/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Display"
+text = "–"
+autowrap_mode = 3
+
+[node name="DateLabel" type="Label" parent="Column/Margin/Scroll/Center/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodyStrong"
+text = "–"
+
+[node name="LevelRow" type="HBoxContainer" parent="Column/Margin/Scroll/Center/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PipsLabel" type="Label" parent="Column/Margin/Scroll/Center/Content/LevelRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodyStrong"
+text = "–"
+
+[node name="LevelLabel" type="Label" parent="Column/Margin/Scroll/Center/Content/LevelRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodySmallMuted"
+text = "–"
+
+[node name="Rule1" type="HSeparator" parent="Column/Margin/Scroll/Center/Content"]
+layout_mode = 2
+
+[node name="StoryLabel" type="Label" parent="Column/Margin/Scroll/Center/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(440, 0)
+layout_mode = 2
+theme_type_variation = &"Body"
+text = "–"
+autowrap_mode = 3
+
+[node name="Rules" type="HFlowContainer" parent="Column/Margin/Scroll/Center/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+
+[node name="Facts" type="GridContainer" parent="Column/Margin/Scroll/Center/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="Rule2" type="HSeparator" parent="Column/Margin/Scroll/Center/Content"]
+layout_mode = 2
+
+[node name="KeysTitle" type="Label" parent="Column/Margin/Scroll/Center/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineMuted"
+text = "UI_BRIEFING_CARD_TIME_TITLE"
+uppercase = true
+
+[node name="Keys" type="HFlowContainer" parent="Column/Margin/Scroll/Center/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 8
+
+[node name="HintLabel" type="Label" parent="Column/Margin/Scroll/Center/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(440, 0)
+layout_mode = 2
+theme_type_variation = &"BodySmallMuted"
+text = "UI_BRIEFING_CARD_HINT"
+autowrap_mode = 3
+
+[node name="Actions" type="HBoxContainer" parent="Column/Margin/Scroll/Center/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="StartButton" type="Button" parent="Column/Margin/Scroll/Center/Content/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"LargePrimaryButton"
+text = "UI_BRIEFING_CARD_START"
+
+[node name="LookButton" type="Button" parent="Column/Margin/Scroll/Center/Content/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"LargeGhostButton"
+text = "UI_BRIEFING_CARD_LOOK"

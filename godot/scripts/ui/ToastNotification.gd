@@ -14,6 +14,13 @@ extends CanvasLayer
 ## "×N" counter grows. A message dismissed moments ago is not shown again
 ## inside DEDUP_WINDOW_SEC.
 ##
+## Keep-clear (U2-06): a toast never covers a control in the group
+## "toast_keep_clear" (the dashboard's Hurtigvalg actions, the notification
+## drawer's header, an open critical card). The stack stays bottom-aligned
+## in its column and rises just above whatever it would cover, back down to
+## the corner when that is gone.
+## Reduced motion (MotionPrefs): toasts fade in and out in place.
+##
 ## Usage:
 ##   ToastNotification.show_toast("Høsting fullført", "SUCCESS", 4.0)
 ##   ToastNotification.show_toast("Sykdomsutbrudd i Sone 3", "CRITICAL")
@@ -31,6 +38,13 @@ const STACK_SEPARATION      := 10
 const MESSAGE_MIN_WIDTH     := 200.0
 const MAX_VISIBLE_TOASTS    := 3    # Maximum toasts visible at once
 const DEDUP_WINDOW_SEC      := 2.5  # Suppress a just-dismissed message within this window
+## Controls a toast must never cover (U2-06).
+const KEEP_CLEAR_GROUP      := &"toast_keep_clear"
+## Space kept between the stack and a control it rises above.
+const KEEP_CLEAR_GAP        := 12.0
+## Height the stack keeps clear for while it is empty (one toast), so the
+## first toast never appears over a keep-clear control.
+const MIN_STACK_HEIGHT      := 64.0
 
 # Toast level -> Kyst & Stål tone. Toasts are Ink cards ("Toast<Tone>" theme
 # variations: raised Ink glass with a tone accent edge, roadmap D13).
@@ -83,6 +97,8 @@ var _recent_messages: Dictionary          = {} # message -> ticks_msec of its di
 ## open, so the stack sits beside it instead of over it.
 var _right_inset: float = 0.0
 var _lift: float = 0.0
+## Extra rise above the keep-clear controls in the stack's column.
+var _avoid_lift: float = 0.0
 
 # ── Lifecycle ──────────────────────────────────────────────────────────────────
 
@@ -91,6 +107,15 @@ func _ready() -> void:
 	# Toasts keep sliding and timing out while a pause menu holds the tree.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_layout()
+
+
+## Keep-clear: checked every frame (a panel scrolls, a tab changes, the
+## window or UI scale changes) — a handful of rects.
+func _process(_delta: float) -> void:
+	var lift := keep_clear_lift()
+	if not is_equal_approx(lift, _avoid_lift):
+		_avoid_lift = lift
+		_apply_offsets()
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
@@ -128,11 +153,63 @@ func clear_all() -> void:
 func set_right_inset(pixels: float, lift: float = 0.0) -> void:
 	_right_inset = maxf(pixels, 0.0)
 	_lift = maxf(lift, 0.0)
+	_avoid_lift = keep_clear_lift()
+	_apply_offsets()
+
+
+func _apply_offsets() -> void:
 	if _toast_list != null:
 		_toast_list.offset_right = -STACK_MARGIN_RIGHT - _right_inset
 		_toast_list.offset_left = _toast_list.offset_right - TOAST_WIDTH
-		_toast_list.offset_bottom = -STACK_MARGIN_BOTTOM - _lift
+		_toast_list.offset_bottom = -STACK_MARGIN_BOTTOM - _lift - _avoid_lift
 		_toast_list.offset_top = _toast_list.offset_bottom
+
+
+## The screen rects toasts keep clear of (visible members of the group).
+func keep_clear_rects() -> Array[Rect2]:
+	var rects: Array[Rect2] = []
+	if not is_inside_tree():
+		return rects
+	for node in get_tree().get_nodes_in_group(KEEP_CLEAR_GROUP):
+		var c := node as Control
+		if c != null and c.is_visible_in_tree() and c.get_global_rect().has_area():
+			rects.append(c.get_global_rect())
+	return rects
+
+
+## How far the stack must rise from its corner (beside the drawer, above the
+## camera hint) so that it covers no keep-clear control: the lowest place in
+## its column where the stack (at least one toast tall) fits.
+func keep_clear_lift() -> float:
+	if _toast_list == null or not is_inside_tree():
+		return 0.0
+	var screen := get_viewport().get_visible_rect().size
+	var right := screen.x - STACK_MARGIN_RIGHT - _right_inset
+	var left := right - TOAST_WIDTH
+	var base_bottom := screen.y - STACK_MARGIN_BOTTOM - _lift
+	var height := maxf(_stack_height(), MIN_STACK_HEIGHT)
+	var bottom := base_bottom
+	var rects := keep_clear_rects()
+	var moved := true
+	while moved:
+		moved = false
+		for r: Rect2 in rects:
+			var across := r.position.x < right + KEEP_CLEAR_GAP and r.end.x > left - KEEP_CLEAR_GAP
+			var along := r.position.y < bottom + KEEP_CLEAR_GAP and r.end.y > bottom - height - KEEP_CLEAR_GAP
+			if across and along and r.position.y - KEEP_CLEAR_GAP < bottom:
+				bottom = r.position.y - KEEP_CLEAR_GAP
+				moved = true
+	return maxf(base_bottom - bottom, 0.0)
+
+
+## The stack's height as laid out (its slots and their gaps).
+func _stack_height() -> float:
+	var h := 0.0
+	var n := 0
+	for slot in _toast_list.get_children():
+		h += (slot as Control).custom_minimum_size.y
+		n += 1
+	return h + float(maxi(n - 1, 0) * STACK_SEPARATION)
 
 ## Screen rects of the toasts on screen (newest first), for the overlap lint.
 func get_toast_rects() -> Array[Rect2]:
@@ -213,11 +290,13 @@ func _display_toast(data: QueuedToastData) -> void:
 	toast_node.minimum_size_changed.connect(_fit_slot.bind(toast_node), CONNECT_DEFERRED)
 	_active_nodes.push_front(toast_node)
 
-	toast_node.position = Vector2(TOAST_WIDTH + STACK_MARGIN_RIGHT * 2.0, 0.0)
+	var still := MotionPrefs.reduced_motion()
+	toast_node.position = Vector2(0.0 if still else TOAST_WIDTH + STACK_MARGIN_RIGHT * 2.0, 0.0)
 	var tween := toast_node.create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(toast_node, "position:x", 0.0, SLIDE_IN_OUT_DURATION) \
-		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if not still:
+		tween.tween_property(toast_node, "position:x", 0.0, SLIDE_IN_OUT_DURATION) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tween.tween_property(toast_node, "modulate:a", 1.0, SLIDE_IN_OUT_DURATION)
 	tween.set_parallel(false)
 	tween.tween_callback(func():
@@ -287,8 +366,9 @@ func _dismiss_toast(node: Control, immediate: bool) -> void:
 
 	var tween := node.create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(node, "position:x", TOAST_WIDTH + STACK_MARGIN_RIGHT * 2.0, SLIDE_IN_OUT_DURATION) \
-		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	if not MotionPrefs.reduced_motion():
+		tween.tween_property(node, "position:x", TOAST_WIDTH + STACK_MARGIN_RIGHT * 2.0, SLIDE_IN_OUT_DURATION) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	tween.tween_property(node, "modulate:a", 0.0, SLIDE_IN_OUT_DURATION)
 	tween.set_parallel(false)
 	tween.tween_callback(_free_slot.bind(slot))
@@ -322,7 +402,7 @@ func _settle_after_sort(before: Dictionary) -> void:
 		if toast == null or not toast in _active_nodes:
 			continue
 		var shift: float = float(before[slot]) - (slot as Control).global_position.y
-		if absf(shift) < 0.5:
+		if absf(shift) < 0.5 or MotionPrefs.reduced_motion():
 			continue
 		toast.position.y = shift
 		toast.create_tween().tween_property(toast, "position:y", 0.0, SHIFT_DURATION) \

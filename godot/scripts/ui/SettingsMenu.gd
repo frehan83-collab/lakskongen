@@ -12,8 +12,8 @@ const SETTINGS_PATH := "user://settings.json"
 const DEFAULT_SETTINGS := {
 	"audio": {"master": 1.0, "music": 0.7, "ambient": 0.5, "sfx": 0.8},
 	"graphics": {"resolution": "1920x1080", "fullscreen": false, "vsync": true},
-	"gameplay": {"autosave_minutes": 5, "tutorial_enabled": true, "notifications_enabled": true, "default_speed": 1.0, "auto_pause_critical": true},
-	"accessibility": {"high_contrast": false, "ui_scale": 1.0},
+	"gameplay": {"autosave_minutes": 5, "tutorial_enabled": true, "notifications_enabled": true, "default_speed": 1, "auto_pause_critical": true, "auto_slow_deadlines": true},
+	"accessibility": {"high_contrast": false, "ui_scale": 1.0, "reduced_motion": false},
 }
 const UI_SCALE_STEPS: Array[float] = [0.8, 0.9, 1.0, 1.1, 1.25]
 
@@ -41,9 +41,14 @@ var _dirty: bool = false
 @onready var _tutorial_check: CheckBox = %TutorialCheck
 @onready var _notifs_check: CheckBox = %NotifsCheck
 @onready var _autopause_check: CheckBox = %AutoPauseCheck
+## "Bremse ned før frister" (U2-07): read back through GameplayPrefs.
+@onready var _autoslow_check: CheckBox = %AutoSlowCheck
+## The default speed: a slider over the clock's four steps (1×, 3×, 10×, 30×).
 @onready var _speed_slider: HSlider = %SpeedSlider
 @onready var _speed_val: Label = %SpeedValue
 @onready var _hc_check: CheckBox = %HighContrastCheck
+## Redusert bevegelse (U1-09): read back through MotionPrefs.
+@onready var _motion_check: CheckBox = %ReducedMotionCheck
 @onready var _ui_scale_option: OptionButton = %UiScaleOption
 @onready var _reset_button: Button = %ResetButton
 @onready var _apply_button: Button = %ApplyButton
@@ -75,6 +80,14 @@ func _connect_signals() -> void:
 	_music_slider.value_changed.connect(func(v): _music_pct.text = "%d%%" % int(v * 100); _apply_audio_live())
 	_ambient_slider.value_changed.connect(func(v): _ambient_pct.text = "%d%%" % int(v * 100); _apply_audio_live())
 	_sfx_slider.value_changed.connect(func(v): _sfx_pct.text = "%d%%" % int(v * 100); _apply_audio_live())
+	# The default speed shows its step ("10×") as it moves; closing keeps it.
+	if _speed_slider:
+		_speed_slider.value_changed.connect(func(_v: float) -> void: _update_speed_label(); _dirty = true)
+	if _autoslow_check:
+		_autoslow_check.toggled.connect(func(_on: bool) -> void: _dirty = true)
+	# Closing keeps a changed motion preference (the menu reads it at once).
+	if _motion_check:
+		_motion_check.toggled.connect(func(_on: bool) -> void: _dirty = true)
 
 func _populate_options() -> void:
 	_res_option.clear()
@@ -118,12 +131,14 @@ func _collect_from_widgets() -> Dictionary:
 			"autosave_minutes": [0, 2, 5, 10, 30][_autosave_option.selected] if _autosave_option else 5,
 			"tutorial_enabled": _tutorial_check.button_pressed if _tutorial_check else true,
 			"notifications_enabled": _notifs_check.button_pressed if _notifs_check else true,
-			"default_speed": _speed_slider.value if _speed_slider else 1.0,
+			"default_speed": _speed_from_slider(),
 			"auto_pause_critical": _autopause_check.button_pressed if _autopause_check else true,
+			"auto_slow_deadlines": _autoslow_check.button_pressed if _autoslow_check else true,
 		},
 		"accessibility": {
 			"high_contrast": _hc_check.button_pressed if _hc_check else false,
 			"ui_scale": _ui_scale(),
+			"reduced_motion": _motion_check.button_pressed if _motion_check else false,
 		},
 	}
 
@@ -158,11 +173,15 @@ func _apply_to_widgets(data: Dictionary) -> void:
 	if _tutorial_check: _tutorial_check.button_pressed = gp.get("tutorial_enabled", true)
 	if _notifs_check: _notifs_check.button_pressed = gp.get("notifications_enabled", true)
 	if _autopause_check: _autopause_check.button_pressed = gp.get("auto_pause_critical", true)
-	if _speed_slider: _speed_slider.value = gp.get("default_speed", 1.0)
+	if _autoslow_check: _autoslow_check.button_pressed = bool(gp.get("auto_slow_deadlines", true))
+	# An older setting (0.5–5×) snaps to the nearest of the four speeds.
+	if _speed_slider:
+		_speed_slider.value = GameplayPrefs.SPEEDS.find(GameplayPrefs.snap_speed(float(gp.get("default_speed", 1.0))))
 	_update_speed_label()
 
 	var acc = data.get("accessibility", {})
 	if _hc_check: _hc_check.button_pressed = acc.get("high_contrast", false)
+	if _motion_check: _motion_check.set_pressed_no_signal(bool(acc.get("reduced_motion", false)))
 	if _ui_scale_option:
 		var scale_idx := UI_SCALE_STEPS.find(float(acc.get("ui_scale", 1.0)))
 		_ui_scale_option.selected = scale_idx if scale_idx >= 0 else 2
@@ -174,7 +193,13 @@ func _update_pct_labels() -> void:
 	if _sfx_pct and _sfx_slider: _sfx_pct.text = "%d%%" % int(_sfx_slider.value * 100)
 
 func _update_speed_label() -> void:
-	if _speed_val and _speed_slider: _speed_val.text = "%.1f" % _speed_slider.value
+	if _speed_val and _speed_slider: _speed_val.text = "%d×" % _speed_from_slider()
+
+## The speed the slider stands on (1, 3, 10 or 30).
+func _speed_from_slider() -> int:
+	if _speed_slider == null:
+		return GameplayPrefs.SPEEDS[0]
+	return GameplayPrefs.SPEEDS[clampi(int(_speed_slider.value), 0, GameplayPrefs.SPEEDS.size() - 1)]
 
 func _apply_audio(audio: Dictionary) -> void:
 	var bus_map = {"Master": "master", "Music": "music", "Ambient": "ambient", "SFX": "sfx"}

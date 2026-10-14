@@ -32,6 +32,10 @@ namespace LakskongenSim.Core
         public const string FeedCost = "feed_cost_nok";
         /// <summary>Mean zone dissolved oxygen.</summary>
         public const string DissolvedOxygen = "dissolved_oxygen";
+        /// <summary>Revenue booked this financial year to date (U1-05: the income charts read it).</summary>
+        public const string Revenue = "revenue_nok";
+        /// <summary>Costs (COGS + operating expenses) booked this financial year to date.</summary>
+        public const string Expenses = "expenses_nok";
     }
 
     /// <summary>
@@ -100,6 +104,12 @@ namespace LakskongenSim.Core
         /// <summary>Mean dissolved oxygen across zones holding fish (mg/L; 0 without zones).</summary>
         public double DissolvedOxygen { get; set; }
 
+        /// <summary>Revenue this financial year to date (NOK); resets at the annual close.</summary>
+        public double RevenueNok { get; set; }
+
+        /// <summary>COGS + operating expenses this financial year to date (NOK); resets at the annual close.</summary>
+        public double ExpensesNok { get; set; }
+
         /// <summary>
         /// Return the value of a named metric. Returns NaN if unknown.
         /// </summary>
@@ -124,6 +134,8 @@ namespace LakskongenSim.Core
             AnalyticsMetric.ProfitLoss          => ProfitLossNok,
             AnalyticsMetric.FeedCost            => FeedCostNok,
             AnalyticsMetric.DissolvedOxygen     => DissolvedOxygen,
+            AnalyticsMetric.Revenue             => RevenueNok,
+            AnalyticsMetric.Expenses            => ExpensesNok,
             _                                   => double.NaN
         };
     }
@@ -227,7 +239,11 @@ namespace LakskongenSim.Core
                 FeedCostNok = engine.FinancialStatements != null
                     && engine.FinancialStatements.CostBreakdown.TryGetValue("feed", out var feedCost)
                         ? (double)feedCost : 0.0,
-                DissolvedOxygen = MeanZoneOxygen(state)
+                DissolvedOxygen = MeanZoneOxygen(state),
+                RevenueNok = (double)(engine.FinancialStatements?.Revenue ?? 0m),
+                ExpensesNok = engine.FinancialStatements != null
+                    ? (double)(engine.FinancialStatements.COGS + engine.FinancialStatements.OperatingExpenses)
+                    : 0.0
             };
 
             _snapshots.Add(snap);

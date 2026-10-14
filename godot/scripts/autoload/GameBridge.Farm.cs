@@ -1473,6 +1473,35 @@ public partial class GameBridge : Node
     }
 
     /// <summary>
+    /// What each crew role does (U1-05: the crew panel showed six invented
+    /// skill percentages). One entry per role the sim knows, in hiring order:
+    /// "role", "hired" (bool), and the sim's own multipliers with that role on
+    /// staff (CrewEffects): "storm_loss", "net_decay", "treatment_mortality",
+    /// "wellboat_cost" (fractions, 1 = no effect) and "wellboat_days_saved".
+    /// </summary>
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetCrewRoleEffects()
+    {
+        var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
+        var state = SimulationEngine?.State;
+        foreach (var role in new[] { "roekter", "veterinaer", "skipper" })
+        {
+            var staffed = new LakskongenSim.Core.GameState();
+            staffed.Crew.Add(new LakskongenSim.Core.CrewMember { Role = role });
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["role"] = role,
+                ["hired"] = state != null && LakskongenSim.Core.CrewEffects.HasRole(state, role),
+                ["storm_loss"] = LakskongenSim.Core.CrewEffects.StormLossMultiplier(staffed),
+                ["net_decay"] = LakskongenSim.Core.CrewEffects.NetDecayMultiplier(staffed),
+                ["treatment_mortality"] = LakskongenSim.Core.CrewEffects.TreatmentMortalityMultiplier(staffed),
+                ["wellboat_cost"] = (double)LakskongenSim.Core.CrewEffects.WellboatHireMultiplier(staffed),
+                ["wellboat_days_saved"] = LakskongenSim.Core.CrewEffects.WellboatDelayReduction(staffed),
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
     /// Hireable candidates (Phase 3.1): role/name/salary triples.
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetHireCandidates()

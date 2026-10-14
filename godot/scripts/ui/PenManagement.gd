@@ -253,7 +253,7 @@ func _refresh_detail() -> void:
 	]
 
 	_det_count.text = SimFormatters.integer(fish)
-	_det_weight.text = SimFormatters.num(avg_w, 1) + " kg"
+	_det_weight.text = SimFormatters.format_fish_weight(avg_w) if fish > 0 else "–"
 	_det_biomass.text = SimFormatters.num(biomass / 1000.0, 0) + " t"
 	_det_fcr.text = SimFormatters.num(float(_sim.fcr), 2)
 

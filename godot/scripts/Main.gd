@@ -10,6 +10,8 @@ extends Control
 @onready var _dashboard: Control = null  # Dashboard is now loaded dynamically by GameUI
 ## The pause menu (Esc, roadmap U1-06): on its own layer above the game UI.
 @onready var _pause_menu: Control = get_node_or_null("%PauseMenu")
+## The critical event card (U2-06): it pauses the game while it is open.
+@onready var _critical_card: Control = get_node_or_null("%CriticalEventCard")
 
 # Configuration
 const STARTING_CAPITAL: int = 10_000_000
@@ -17,8 +19,6 @@ const DEFAULT_PLAYER_NAME: String = "Player"
 
 # State
 var _game_started: bool = false
-# Last critical message that triggered auto-pause (dedupe: conditions repeat daily).
-var _last_auto_pause_msg: String = ""
 
 func _ready() -> void:
 	print("Main: Initializing...")
@@ -31,11 +31,11 @@ func _ready() -> void:
 	# Connect to SimBridge signals
 	_sim.state_updated.connect(_on_state_updated)
 	_sim.day_advanced.connect(_on_day_advanced)
-	_sim.alert_raised.connect(_on_alert_raised)
 
-	# Connect HUD speed change signal
-	if _hud:
-		_hud.speed_changed.connect(_on_speed_changed)
+	# The HUD drives the game clock itself and draws it from clock_changed
+	# (U2-07); "Bremse ned før frister" comes from the settings, and again
+	# when the pause menu (with its settings) closes.
+	_apply_gameplay_prefs()
 
 	# The window's close button asks "Lagre før du avslutter?" (U1-06): the
 	# game screen takes the close request instead of quitting outright.
@@ -43,6 +43,11 @@ func _ready() -> void:
 	if _pause_menu:
 		_pause_menu.opened.connect(_sync_hud_pause)
 		_pause_menu.closed.connect(_sync_hud_pause)
+		_pause_menu.closed.connect(_apply_gameplay_prefs)
+	# A critical event pauses through its card (one channel, U2-06); the
+	# alert text no longer decides anything here.
+	if _critical_card:
+		_critical_card.pause_changed.connect(_sync_hud_pause)
 
 	# Start the game after a short delay to ensure everything is ready
 	call_deferred("_start_game")
@@ -63,16 +68,13 @@ func _start_game() -> void:
 
 	print("Main: Starting new game...")
 
-	# Start the simulation via SimBridge
+	# Start the simulation via SimBridge. A new game opens paused on its
+	# briefing card (U2-07); the card's "Start" sets the clock going.
 	var success = _sim.start_new_game(DEFAULT_PLAYER_NAME)
 
 	if success:
 		_game_started = true
 		print("Main: Game started successfully with %d NOK capital" % STARTING_CAPITAL)
-
-		# Ensure simulation is running (not paused)
-		_sim.set_paused(false)
-		_sim.set_time_speed(1.0)
 	else:
 		push_error("Main: Failed to start game!")
 
@@ -132,35 +134,10 @@ func _on_state_updated() -> void:
 func _on_day_advanced(day: int, season: String) -> void:
 	print("Main: Day %d (%s)" % [day, season])
 
-func _on_alert_raised(level: String, message: String) -> void:
-	print("Main: Alert [%s] %s" % [level, message])
-	# Auto-pause on NEW critical alerts (settings: gameplay.auto_pause_critical).
-	if level != "critical" or message == _last_auto_pause_msg:
-		return
-	if not _should_auto_pause():
-		return
-	_last_auto_pause_msg = message
-	set_paused(true)
-	if _hud and _hud.has_method("set_paused_state"):
-		_hud.set_paused_state(true)
-
-## Auto-pause toggle from user://settings.json (default: on).
-func _should_auto_pause() -> bool:
-	if not FileAccess.file_exists("user://settings.json"):
-		return true
-	var file := FileAccess.open("user://settings.json", FileAccess.READ)
-	if file == null:
-		return true
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) != OK or not (json.data is Dictionary):
-		return true
-	var gameplay: Dictionary = json.data.get("gameplay", {})
-	return bool(gameplay.get("auto_pause_critical", true))
-
-func _on_speed_changed(speed: float, paused: bool) -> void:
+## "Bremse ned før frister" (GameplayPrefs) reaches the game clock.
+func _apply_gameplay_prefs() -> void:
 	if _sim:
-		_sim.set_time_speed(speed)
-		_sim.set_paused(paused)
+		_sim.set_auto_slow_deadlines(GameplayPrefs.auto_slow_deadlines())
 
 func advance_one_day() -> void:
 	if _sim:
