@@ -40,7 +40,7 @@ namespace LakskongenSim.Finance
 
         public decimal DepreciateEquipment(decimal annualRate, int days)
         {
-            var fraction = (decimal)days / 365m;
+            var fraction = (decimal)days / LakskongenSim.Core.SimCalendar.DaysPerYear;
             var depreciation = EquipmentValue * annualRate * fraction;
             EquipmentValue = Math.Max(0m, EquipmentValue - depreciation);
             return depreciation;

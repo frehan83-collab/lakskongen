@@ -36,6 +36,8 @@ public partial class SimulationEngine
         scenario.ApplyStartingState(State, this);
         ApplyScenarioRules(scenario);
         SyncScenarioToState();
+        // The HUD temperature reports the scenario's home production area (S2-02).
+        SyncSeaTemperatureReference();
         return CommandResult.Success($"Scenario '{scenario.Name}' started", id: scenario.Id);
     }
 
@@ -63,6 +65,7 @@ public partial class SimulationEngine
         Scenario?.RestoreActiveState(loadedState.ActiveScenarioId, loadedState.ScenarioStartDay,
             loadedState.ScenarioIsWon, loadedState.ScenarioIsLost, loadedState.ScenarioLossReason);
         ApplyScenarioRules(Scenario?.ActiveScenario);
+        SyncSeaTemperatureReference();
     }
 
     /// <summary>Storm and severe weather transitions under a "harsh_storms" scenario.</summary>

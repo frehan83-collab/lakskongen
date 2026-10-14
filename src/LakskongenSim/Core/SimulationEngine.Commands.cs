@@ -374,7 +374,8 @@ public partial class SimulationEngine
             Principal = (decimal)amount,
             OriginalPrincipal = (decimal)amount,
             InterestRate = (decimal)rate,
-            TermDays = Math.Max(30, termMonths * 30),
+            // The term runs whole calendar months from today (S2-02; was 30-day months).
+            TermDays = SimCalendar.DaysInMonthsFrom(State.Day, Math.Max(1, termMonths)),
             DaysTaken = 0
         });
 
@@ -418,8 +419,9 @@ public partial class SimulationEngine
     }
 
     /// <summary>
-    /// What the active loans cost per 30-day month at today's balances: each
-    /// loan's principal slice plus interest, as the daily amortization pays them.
+    /// What the active loans cost per average calendar month (365/12 days) at
+    /// today's balances: each loan's principal slice plus interest, as the daily
+    /// amortization pays them.
     /// </summary>
     public decimal MonthlyLoanPaymentNok()
     {
@@ -428,7 +430,8 @@ public partial class SimulationEngine
         foreach (var loan in State.ActiveLoans)
         {
             int remainingDays = Math.Max(1, loan.TermDays - loan.DaysTaken);
-            monthly += (loan.Principal / remainingDays + loan.Principal * loan.InterestRate / 365m) * 30m;
+            monthly += (loan.Principal / remainingDays + loan.Principal * loan.InterestRate / SimCalendar.DaysPerYear)
+                * (decimal)SimCalendar.AverageDaysPerMonth;
         }
         return monthly;
     }
@@ -534,7 +537,7 @@ public partial class SimulationEngine
             return CommandResult.Fail("insufficient_funds",
                 $"Insufficient funds: need {totalCost:N0} NOK to treat {totalFish:N0} fish");
 
-        double tempC = Weather?.CurrentTemperatureC ?? 10.0;
+        double tempC = SeaTemperatureAtSite(site); // the site's own water (S2-02)
         double mortMult = ComputeSiteTreatmentMortalityMultiplier(site);
 
         // Phase 1 wave 3: the regulation-shared kernel treats every live pen;
@@ -671,6 +674,8 @@ public partial class SimulationEngine
         State.ScenarioIsLost = snapshot.ScenarioIsLost;
         State.ScenarioLossReason = snapshot.ScenarioLossReason ?? "";
         State.ScenarioStartDay = snapshot.ScenarioStartDay;
+        // S2-02: the home production area (0 in legacy saves: resolved from the sites).
+        State.HomeProductionArea = snapshot.HomeProductionArea;
         State.TutorialCurrentStepIndex = snapshot.TutorialCurrentStepIndex;
         // Economy / sustainability / external-data continuity.
         State.ContractActive = snapshot.ContractActive;

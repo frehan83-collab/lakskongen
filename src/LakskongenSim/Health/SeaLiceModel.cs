@@ -329,7 +329,7 @@ namespace LakskongenSim.Health
         /// </summary>
         public void AdvanceResistanceDecay(int daysWithoutTreatment)
         {
-            double decay = RESISTANCE_FITNESS_COST * daysWithoutTreatment / 365.0;
+            double decay = RESISTANCE_FITNESS_COST * daysWithoutTreatment / (double)LakskongenSim.Core.SimCalendar.DaysPerYear;
             PyrethroidResistance = Math.Max(0.0, PyrethroidResistance - decay);
             OrganophosphateResistance = Math.Max(0.0, OrganophosphateResistance - decay);
             HydrogenPeroxideResistance = Math.Max(0.0, HydrogenPeroxideResistance - decay);

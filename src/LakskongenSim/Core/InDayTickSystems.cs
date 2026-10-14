@@ -34,7 +34,6 @@ namespace LakskongenSim.Core;
         public void Tick(SimulationEngine engine)
         {
             engine.Weather.AdvanceDays(1);
-            double temperature = engine.Weather.CurrentTemperatureC;
             engine.Audio?.Update(engine.State.Day);
 
             // Update environment model and all zones. S3: EnvironmentModel
@@ -43,12 +42,9 @@ namespace LakskongenSim.Core;
             engine.Environment.SyncZones(engine.State.Zones);
             // The zone water takes today's sea temperature before its chemistry
             // runs: oxygen solubility, the Q10 rates and the plankton bloom's
-            // temperature factor read it. Nothing ever set it, so every zone sat
-            // at its constructor's 10 °C all year while growth and feeding used
-            // the sea temperature (S1-01). One sea temperature for all zones
-            // until S2-02 gives each production area its own climatology.
-            for (int zi = 0; zi < engine.State.Zones.Count; zi++)
-                engine.State.Zones[zi].TakeSeaTemperature(temperature);
+            // temperature factor read it (S1-01). Each zone takes its own
+            // production area's climatology plus the shared anomaly (S2-02).
+            engine.ApplyProductionAreaSeaTemperatures();
             engine.Environment.AdvanceDays(1);
             // zone.AdvanceDays(1) is already called by engine.Environment.AdvanceDays(1)
 
@@ -68,6 +64,8 @@ namespace LakskongenSim.Core;
     {
         public void Tick(SimulationEngine engine)
         {
+            // The company-wide lice rollup follows the home area's water; the
+            // per-site models below each take their own site's (S2-02).
             double temperature = engine.Weather.CurrentTemperatureC;
             engine.Mortality.ClearDiseaseMortalityRates(); // Clear previous day's disease rates
 
@@ -81,17 +79,20 @@ namespace LakskongenSim.Core;
             engine.SeaLice.AdvanceDay();
             // Phase 2.1: per-site lice models are the authority for farm
             // truth (company model retained as a fallback/compat rollup).
-            engine.AdvanceSiteLiceModels(temperature);
+            engine.AdvanceSiteLiceModels();
 
             // Only calculate disease if events are enabled (skip in deterministic tests)
             if (engine.EventsEnabled)
             {
                 // Calculate disease mortality rates and inject into MortalityModel
-                // This MUST happen before FishPopulation.AdvanceDays() to avoid double application
+                // This MUST happen before FishPopulation.AdvanceDays() to avoid double application.
+                // Each population's disease tick gets its own water temperature (S2-02).
+                var facilityWater = engine.BuildFacilityWater();
                 engine.IntegratedDisease.Update(
                     engine.State.Zones.ToList(),
                     engine.State.Populations.ToList(),
-                    1);
+                    1,
+                    population => engine.HoldingWaterOf(population, facilityWater).TemperatureC);
             }
 
         }
@@ -102,7 +103,6 @@ namespace LakskongenSim.Core;
     {
         public void Tick(SimulationEngine engine)
         {
-            double temperature = engine.Weather.CurrentTemperatureC;
             var biologyStopwatch = Stopwatch.StartNew();
 
             // Zone load is rebuilt from the pens every day: summed over all of a
@@ -111,23 +111,18 @@ namespace LakskongenSim.Core;
             for (int zi = 0; zi < engine.State.Zones.Count; zi++)
                 engine.State.Zones[zi].CurrentFishBiomassKg = 0.0;
 
-            // RAS tanks grow in the facility's controlled water, not the sea's
-            // (built only when a facility holds fish: no per-tick allocation otherwise).
-            Dictionary<FishPopulation, double>? rasWater = null;
-            foreach (var ras in engine.RASFacilities)
-                foreach (var tank in ras.Tanks)
-                {
-                    rasWater ??= new Dictionary<FishPopulation, double>(ReferenceEqualityComparer.Instance);
-                    rasWater[tank] = ras.CurrentWaterTemp;
-                }
+            // S2-02 seam: every population grows, eats and breathes in the water
+            // of whatever holds it (sea pen: its zone's production-area water;
+            // RAS tank: the facility's controlled water; offshore: its area's sea).
+            // The facility map is built only when a facility holds fish.
+            var facilityWater = engine.BuildFacilityWater();
 
             for (int popIdx = 0; popIdx < engine.State.Populations.Count; popIdx++)
             {
                 var population = engine.State.Populations[popIdx];
                 var zone = engine.State.Zones.FirstOrDefault(z => z.Id == population.ZoneId);
-                double waterTemperature = rasWater != null && rasWater.TryGetValue(population, out var tankTemp)
-                    ? tankTemp
-                    : temperature;
+                var water = engine.HoldingWaterOf(population, facilityWater);
+                double waterTemperature = water.TemperatureC;
 
                 // Manual biomass sum — avoids LINQ delegate allocation (T56)
                 double biomassKg = 0.0;
@@ -155,9 +150,9 @@ namespace LakskongenSim.Core;
                 {
                     environmentalMultiplier = engine.Growth.CalculateCombinedEnvironmentalMultiplier(
                         zone.WaterChemistry,
-                        zone.WaterChemistry.Temperature,
+                        water.TemperatureC,
                         densityForO2,
-                        35.0);
+                        water.SalinityPsu);
                 }
 
                 // Advance population: age and mortality only — growth handled by SDE below
@@ -215,7 +210,7 @@ namespace LakskongenSim.Core;
                 if (zone != null)
                 {
                     double doSat = Biology.WaterQuality.CalculateDOSaturation(
-                        zone.WaterChemistry.OxygenO2, temperature);
+                        water.OxygenMgPerL, water.TemperatureC, water.SalinityPsu);
                     waterPenalty = Biology.WaterQuality.CalculateDOSaturationModifier(doSat);
                 }
                 if (homeSite != null)
@@ -511,10 +506,10 @@ namespace LakskongenSim.Core;
     internal sealed class CompetitorAITickSystem : ITickSystem, ITickClock
     {
         private int _lastCompetitorAIUpdate = 0;
-        private const int CompetitorAIUpdateInterval = 90;
         public void Tick(SimulationEngine engine)
         {
-            if (engine.State.Day - _lastCompetitorAIUpdate >= CompetitorAIUpdateInterval)
+            // Each calendar quarter (S2-02; it was every 90 days).
+            if (SimCalendar.IsNewQuarterSince(_lastCompetitorAIUpdate, engine.State.Day))
             {
                 // Calculate player metrics for competitor context
                 float playerMarketShare = engine.CalculatePlayerMarketShare();
@@ -576,10 +571,10 @@ namespace LakskongenSim.Core;
     internal sealed class VerticalIntegrationTickSystem : ITickSystem, ITickClock
     {
         private int _lastVerticalIntegrationUpdate = 0;
-        private const int VerticalIntegrationUpdateInterval = 30; // Monthly
         public void Tick(SimulationEngine engine)
         {
-            if (engine.State.Day - _lastVerticalIntegrationUpdate >= VerticalIntegrationUpdateInterval)
+            // Each calendar month (S2-02; every 30 days charged 12.17 monthly OPEX slices a year).
+            if (SimCalendar.IsNewMonthSince(_lastVerticalIntegrationUpdate, engine.State.Day))
             {
                 if (engine.VerticalIntegration != null)
                 {
@@ -616,10 +611,11 @@ namespace LakskongenSim.Core;
     internal sealed class CorporateFinanceTickSystem : ITickSystem, ITickClock
     {
         private int _lastCorporateFinanceUpdate = 0;
-        private const int CorporateFinanceUpdateInterval = 90; // Quarterly
         public void Tick(SimulationEngine engine)
         {
-            if (engine.State.Day - _lastCorporateFinanceUpdate >= CorporateFinanceUpdateInterval)
+            // Each calendar quarter, so the fourth closes the calendar year (S2-02;
+            // every 90 days made a 360-day financial year that drifted off the calendar).
+            if (SimCalendar.IsNewQuarterSince(_lastCorporateFinanceUpdate, engine.State.Day))
             {
                 // Quarterly/annual corporate finance processing
                 if (engine.CorporateFinance != null)
@@ -679,10 +675,9 @@ namespace LakskongenSim.Core;
     internal sealed class InvestorTickSystem : ITickSystem, ITickClock
     {
         private int _lastInvestorUpdate = 0;
-        private const int InvestorUpdateInterval = 30;
         public void Tick(SimulationEngine engine)
         {
-            if (engine.State.Day - _lastInvestorUpdate >= InvestorUpdateInterval)
+            if (SimCalendar.IsNewMonthSince(_lastInvestorUpdate, engine.State.Day))
             {
                 // Monthly investor update - report dilution and bond status
                 if (engine.InvestorSystem != null)
@@ -781,13 +776,12 @@ namespace LakskongenSim.Core;
     internal sealed class ProductMixOptimizerTickSystem : ITickSystem, ITickClock
     {
         private int _lastProductMixOptimizerUpdate = 0;
-        private const int ProductMixOptimizerUpdateInterval = 30;
         public void Tick(SimulationEngine engine)
         {
             // ProductMixOptimizer is called on-demand when player opens processing UI
             // No periodic update needed — it's a decision support tool, not a simulation system
             // This interval marker is for future features (e.g., auto-optimization recommendations)
-            if (engine.State.Day - _lastProductMixOptimizerUpdate >= ProductMixOptimizerUpdateInterval)
+            if (SimCalendar.IsNewMonthSince(_lastProductMixOptimizerUpdate, engine.State.Day))
             {
                 _lastProductMixOptimizerUpdate = engine.State.Day;
             }

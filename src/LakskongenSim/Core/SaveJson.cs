@@ -182,6 +182,12 @@ public sealed class EngineRuntimeSnapshot
     public double WeatherWaveM { get; set; } = 0.5;
     public string WeatherStateName { get; set; } = "Moderate";
 
+    // ── Shared sea-temperature offset (S2-02); legacy saves load as zero ──
+    public double WeatherSeaAnomalyC { get; set; }
+    public double WeatherEventAnomalyC { get; set; }
+    public double WeatherDailyFluctuationC { get; set; }
+    public double WeatherStormCoolingC { get; set; }
+
     // ── FeedSystem adaptive state ─────────────────────────────────────────
     public double FeedFcr { get; set; } = LakskongenSim.Calibration.CalibrationRegistry.Default.Feed.BaseFCR;
     public double FeedUsedKg { get; set; }

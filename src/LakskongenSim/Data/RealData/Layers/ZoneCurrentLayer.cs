@@ -42,7 +42,7 @@ namespace LakskongenSim.Data.RealData.Layers
 
             // Seasonal variation: stronger in winter due to storm-driven circulation
             double dayOfYear = date.DayOfYear;
-            double seasonalFactor = 1.0 + 0.3 * Math.Cos((dayOfYear - 15) * 2 * Math.PI / 365); // Peak in Jan
+            double seasonalFactor = 1.0 + 0.3 * Math.Cos((dayOfYear - 15) * 2 * Math.PI / LakskongenSim.Core.SimCalendar.DaysPerYear); // Peak in Jan
 
             // Depth effect: weaker with depth
             double depthFactor = depthM < 5 ? 1.2 :
@@ -68,7 +68,17 @@ namespace LakskongenSim.Data.RealData.Layers
             double hourFraction = date.TimeOfDay.TotalHours;
             double tidalVariation = 15 * Math.Sin(hourFraction * 2 * Math.PI / 12.4);
 
-            return (baseDir + tidalVariation + 360) % 360;
+            return NormalizeBearingDegrees(baseDir + tidalVariation);
+        }
+
+        /// <summary>Degrees in one full turn of the compass.</summary>
+        private const double FullCircleDegrees = 360.0;
+
+        /// <summary>A compass bearing folded into [0, 360) degrees.</summary>
+        private static double NormalizeBearingDegrees(double degrees)
+        {
+            double folded = Math.IEEERemainder(degrees, FullCircleDegrees);
+            return folded < 0 ? folded + FullCircleDegrees : folded;
         }
 
         /// <summary>

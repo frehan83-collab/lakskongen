@@ -110,7 +110,7 @@ namespace LakskongenSim.Processing
             decimal rawCost = inputKg * rawMaterialCostPerKg;
 
             decimal opex = CalculateDailyOpex(inputKg);
-            decimal depreciationDaily = AnnualDepreciation() / 365m;
+            decimal depreciationDaily = AnnualDepreciation() / LakskongenSim.Core.SimCalendar.DaysPerYear;
 
             decimal profit = revenue - rawCost - opex - depreciationDaily;
 

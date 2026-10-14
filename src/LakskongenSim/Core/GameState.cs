@@ -191,6 +191,15 @@ namespace LakskongenSim.Core
         /// <summary>Active scenario ID, if any.</summary>
         public string? ActiveScenarioId { get; set; }
 
+        /// <summary>
+        /// The player's home production area (1-13, S2-02): the area of the
+        /// scenario's first starting site. The HUD sea temperature, land-based
+        /// facilities' seawater intake and zones that name no area use it. 0 =
+        /// not set (no scenario, legacy save): the engine falls back to the first
+        /// site's area, else <see cref="Environment.ProductionAreas.DefaultArea"/>.
+        /// </summary>
+        public int HomeProductionArea { get; set; }
+
         /// <summary>Whether the active scenario has been won.</summary>
         public bool ScenarioIsWon { get; set; }
 

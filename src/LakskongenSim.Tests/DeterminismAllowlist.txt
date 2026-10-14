@@ -24,7 +24,6 @@ src/LakskongenSim/Biology/IndividualFish.cs :: DateTime.UtcNow :: IndividualFish
 src/LakskongenSim/Biology/IndividualFish.cs :: DateTime.UtcNow :: IndividualFish.Die :: 1
 src/LakskongenSim/Biology/IndividualFish.cs :: Guid.NewGuid() :: IndividualFish..ctor :: 2
 src/LakskongenSim/Core/AquacultureCalibrationEngine.cs :: DateTime.UtcNow :: ExternalAquacultureSnapshot.RetrievedAtUtc :: 1
-src/LakskongenSim/Core/BarentsWatchFishHealthIntegration.cs :: DateTime.UtcNow :: BarentsWatchFishHealthClient.FetchLatest :: 2
 src/LakskongenSim/Core/BarentsWatchFishHealthIntegration.cs :: DateTime.UtcNow :: BarentsWatchFishHealthNormalizer.Normalize :: 1
 src/LakskongenSim/Core/BarentsWatchFishHealthIntegration.cs :: DateTime.UtcNow :: BarentsWatchFishHealthRawSnapshot.RetrievedAtUtc :: 1
 src/LakskongenSim/Core/BarentsWatchFishHealthIntegration.cs :: DateTime.UtcNow :: BarentsWatchStoredSnapshot.RetrievedAtUtc :: 1
@@ -58,7 +57,6 @@ src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: Vert
 src/LakskongenSim/Expansion/VerticalIntegrationSystem.cs :: DateTime.Now :: VerticalIntegrationSystem.HasAdjacentTierSynergy :: 1
 src/LakskongenSim/Finance/EconomicEngine.cs :: new Random() :: EconomicEngine._random :: 1
 src/LakskongenSim/Finance/EmpireProgression.cs :: DateTime.Now :: EmpireProgressionSystem.UnlockMilestone :: 1
-src/LakskongenSim/Finance/MarketCycleSimulator.cs :: DateTime.Now :: MarketCycleSimulator.ForecastPrice :: 1
 src/LakskongenSim/Finance/MarketCycleSimulator.cs :: new Random() :: MarketCycleSimulator._random :: 1
 src/LakskongenSim/Finance/StockMarket.cs :: DateTime.Now :: StockMarketSystem.ApplyEarningsReaction :: 1
 src/LakskongenSim/Finance/StockMarket.cs :: DateTime.Now :: StockMarketSystem.ExecuteBuyback :: 1

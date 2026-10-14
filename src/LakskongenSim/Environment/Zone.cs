@@ -74,7 +74,7 @@ namespace LakskongenSim.Environment
                 // Update ocean currents (seasonal/weather variation).
                 // Uses cumulative ElapsedDays so the seasonal cycle advances
                 // across ticks instead of restarting every call.
-                UpdateCurrents((int)(ElapsedDays % 365));
+                UpdateCurrents(Core.SimCalendar.DayOfYear((int)ElapsedDays));
                 
                 // Calculate nutrient load from fish waste and feed
                 double dailyNutrientLoad = CalculateDailyNutrientLoad();
@@ -141,8 +141,8 @@ namespace LakskongenSim.Environment
         public void UpdateCurrents(int day)
         {
             // Seasonal variation: stronger currents in winter (Norwegian coast pattern)
-            int dayOfYear = day % 365;
-            double seasonalFactor = 1.0 + SeasonalCurrentAmplitude * Math.Cos(2 * Math.PI * (dayOfYear - WinterCurrentPeakDay) / 365.0); // peak in January
+            int dayOfYear = Core.SimCalendar.DayOfYear(day);
+            double seasonalFactor = 1.0 + SeasonalCurrentAmplitude * Math.Cos(2 * Math.PI * (dayOfYear - WinterCurrentPeakDay) / Core.SimCalendar.DaysPerYear); // peak in January
 
             // Weather-driven variation from a process-stable hash of (zone, day):
             // HashCode.Combine is randomized per process, which made the same
@@ -274,13 +274,21 @@ namespace LakskongenSim.Environment
         }
         
         /// <summary>
-        /// True while the zone's water takes the shared sea temperature every day
-        /// (<see cref="TakeSeaTemperature"/>, S1-01). A zone given its own
-        /// temperature through <see cref="SetTemperature"/> (a scenario, a data
-        /// layer or a test) keeps it. Saved. S2-02 replaces the shared sea
-        /// temperature with per-production-area climatologies.
+        /// True while the zone's water takes its production area's sea
+        /// temperature every day (<see cref="TakeSeaTemperature"/>, S1-01/S2-02).
+        /// A zone given its own temperature through <see cref="SetTemperature"/>
+        /// (a scenario, a data layer or a test) keeps it. Saved.
         /// </summary>
         public bool FollowsSeaTemperature { get; set; } = true;
+
+        /// <summary>
+        /// Production area (1-13, PO1-PO13) the zone lies in (S2-02). 0 until
+        /// assigned: a scenario sets it for its sites; otherwise the engine
+        /// resolves it on the first day from an id such as "PO04" or else the
+        /// game's home area, and keeps it. Saved; legacy saves load as 0 and are
+        /// resolved the same way.
+        /// </summary>
+        public int ProductionArea { get; set; }
 
         /// <summary>
         /// Give the zone its own water temperature (affects water chemistry rates

@@ -229,7 +229,7 @@ namespace Lakskongen.Data.RealData.Layers
             }
             
             // Daily variation (small in ocean)
-            float dailyVar = (float)Math.Sin(dayOfYear * 2 * Math.PI / 365) * 0.5f;
+            float dailyVar = (float)Math.Sin(dayOfYear * 2 * Math.PI / LakskongenSim.Core.SimCalendar.DaysPerYear) * 0.5f;
             
             return baseTemp + latCorrection + coastalFactor + depthFactor + dailyVar;
         }

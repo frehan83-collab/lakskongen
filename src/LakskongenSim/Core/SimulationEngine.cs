@@ -130,8 +130,6 @@ namespace LakskongenSim.Core
         private const int TRAFFIC_LIGHT_UPDATE_INTERVAL = 7; // Weekly (Phase 1.3)
         private const int BRAND_REPUTATION_UPDATE_INTERVAL = 7; // Weekly
         private const int CRISIS_CAPITALISM_UPDATE_INTERVAL = 7; // Weekly - crises don't happen daily
-        private const int VERTICAL_INTEGRATION_UPDATE_INTERVAL = 30; // Monthly - construction/integration is slow
-        private const int COMPETITOR_AI_UPDATE_INTERVAL = 90; // Quarterly
         private const int EMPIRE_PROGRESSION_UPDATE_INTERVAL = 7; // Weekly
         // Reserved for future systems (T68: not yet wired)
         // private int _lastAcquisitionSystemUpdate = 0;
@@ -140,13 +138,10 @@ namespace LakskongenSim.Core
         // private const int LICENSE_SYSTEM_UPDATE_INTERVAL = 30; // Monthly - license applications/renewals
         // private int _lastStakeholderFactionUpdate = 0;
         // private const int STAKEHOLDER_FACTION_UPDATE_INTERVAL = 7; // Weekly - faction relationship updates
-        private const int TAX_UPDATE_INTERVAL = 90; // Quarterly
-        private const int INVESTOR_UPDATE_INTERVAL = 30; // Monthly
         private const int MARKET_INTELLIGENCE_UPDATE_INTERVAL = 7; // Weekly - market analysis updates
         private const int BLOOM_UPDATE_INTERVAL = 7; // Weekly (Phase 4.3)
         private const int BARRIER_CLEANING_TICK_DAYS = 7; // P8: barrier cleaning decay cadence (weekly)
         private const int NIGHT_POLICY_INTERVAL = 1; // Daily (Phase 5.2)
-        private const int PRODUCT_MIX_OPTIMIZER_UPDATE_INTERVAL = 30; // Monthly - production planning is periodic
 
         private BalancingConfig _balancing = new();
         // Phase A: single source of truth for balancing values.
@@ -224,7 +219,8 @@ namespace LakskongenSim.Core
         private AquacultureDataConfig _aquacultureDataConfig = new();
         internal AquacultureGameplayModifiers _aquacultureModifiers = AquacultureGameplayModifiers.Default();
         private BarentsWatchClientOptions _barentsWatchClientOptions = new();
-        private BarentsWatchFishHealthPipeline? _barentsWatchPipeline;
+        /// <summary>The bundled offline Fishhealth snapshot read at Initialize (D18); null without one.</summary>
+        private BarentsWatchStoredSnapshot? _offlineFishHealthSnapshot;
         private SimRngStream _rng = null!; // Engine-level event draws ("storyteller/engine" stream, seeded in Initialize)
         /// <summary>Event gating for tick systems (Phase 1 wave 4).</summary>
         internal bool EventsEnabled => _enableEvents;
@@ -716,9 +712,9 @@ namespace LakskongenSim.Core
         {
             try
             {
-                if (_barentsWatchPipeline != null)
+                // The bundled offline Fishhealth snapshot wins (D18: offline only).
                 {
-                    var stored = _barentsWatchPipeline.LoadLatest();
+                    var stored = _offlineFishHealthSnapshot;
                     if (stored != null)
                     {
                         State.ExternalAquacultureSnapshot = stored.Normalized;
@@ -819,37 +815,37 @@ namespace LakskongenSim.Core
                     Path.Combine("Data", "barentswatch_fishhealth_raw.json")
                 };
 
+                // Roadmap D18: offline snapshots only. No token, no network and
+                // no cache written next to the binary (the latest file in that
+                // cache used to win, so two machines started different games).
                 _barentsWatchClientOptions = new BarentsWatchClientOptions
                 {
-                    BearerToken = System.Environment.GetEnvironmentVariable("BARENTSWATCH_TOKEN"),
                     LocalSnapshotPath = localSnapshotCandidates.FirstOrDefault(File.Exists)
                 };
+                _offlineFishHealthSnapshot = null;
 
-                var snapshotDirectory = Path.Combine(AppContext.BaseDirectory, "Data", "barentswatch-snapshots");
-                var client = new BarentsWatchFishHealthClient(_barentsWatchClientOptions);
-                var repository = new BarentsWatchSnapshotRepository(snapshotDirectory);
-                _barentsWatchPipeline = new BarentsWatchFishHealthPipeline(client, repository);
-
-                if (_barentsWatchClientOptions.HasToken || !string.IsNullOrWhiteSpace(_barentsWatchClientOptions.LocalSnapshotPath))
+                if (!string.IsNullOrWhiteSpace(_barentsWatchClientOptions.LocalSnapshotPath))
                 {
                     try
                     {
-                        var stored = _barentsWatchPipeline.IngestLatest();
+                        var stored = BarentsWatchFishHealthPipeline.ReadOffline(
+                            new BarentsWatchFishHealthClient(_barentsWatchClientOptions));
+                        _offlineFishHealthSnapshot = stored;
                         State.ExternalAquacultureSnapshot = stored.Normalized;
                         State.ExternalDataAnalytics = stored.Analytics;
                         State.ExternalHealthWarnings = stored.Warnings;
                         State.ExternalHealthCrisis = BarentsWatchHealthCrisisEngine.BuildScenario(stored.Normalized);
                         State.ExternalHealthAnalytics = BarentsWatchHealthCrisisEngine.BuildReport(stored.Normalized);
-                        SimLog.Info($"✓ BarentsWatch Fishhealth pipeline ingested snapshot {stored.Normalized.SnapshotYear}-W{stored.Normalized.SnapshotWeek:D2}");
+                        SimLog.Info($"✓ BarentsWatch Fishhealth offline snapshot {stored.Normalized.SnapshotYear}-W{stored.Normalized.SnapshotWeek:D2}");
                     }
                     catch (Exception ex)
                     {
-                        SimLog.Warn($"⚠️  BarentsWatch ingest failed, continuing with persisted/default snapshot: {ex.Message}");
+                        SimLog.Warn($"⚠️  BarentsWatch offline snapshot unreadable, continuing with the default data: {ex.Message}");
                     }
                 }
                 else
                 {
-                    SimLog.Warn("⚠️  BarentsWatch token/local raw snapshot missing; pipeline initialized in passive mode.");
+                    SimLog.Info("BarentsWatch: no bundled offline snapshot; external fish-health data stays at its defaults.");
                 }
             }
             catch (Exception ex)
@@ -867,6 +863,7 @@ namespace LakskongenSim.Core
             // away from docs/REALISM_CHECKLIST.md. BalancingConfig is retained
             // (private, same property names) purely as the engine's local view.
             _calibration = CalibrationRegistry.Load(dataPath);
+            Weather?.ApplySeaTemperatureCalibration(_calibration.SeaTemperature);
             var config = BalancingConfig.FromRegistry(_calibration);
             _balancing = config;
             ApplyBalancingConfig(config);
@@ -1586,7 +1583,7 @@ private class BalancingConfig
                 // DelouseSite semantics (the old bridge multiplied the kill
                 // per pen via the company model).
                 var delousing = new Farm.DelousingSystem();
-                double tempC = Weather?.CurrentTemperatureC ?? 10.0;
+                double tempC = SeaTemperatureAtSite(site!);
                 double mortMult = CrewEffects.TreatmentMortalityMultiplier(State);
                 bool killDone = false;
                 foreach (var pop in site!.Pens)
@@ -1685,9 +1682,9 @@ private class BalancingConfig
         /// </summary>
         internal static double SeasonalLicePressure(int day)
         {
-            double dayOfYear = ((day % 365) + 365) % 365;
+            double dayOfYear = SimCalendar.DayOfYear(day);
             return SeasonalLicePressureBase
-                + SeasonalLicePressureAmplitude * Math.Sin(2.0 * Math.PI * (dayOfYear - 180.0) / 365.0);
+                + SeasonalLicePressureAmplitude * Math.Sin(2.0 * Math.PI * (dayOfYear - 180.0) / SimCalendar.DaysPerYear);
         }
 
         /// <summary>
@@ -1911,8 +1908,8 @@ private class BalancingConfig
                     : "Stormen gir moderate skader og økt dødelighet";
             }
 
-            // Temperature extremes stress fish (daily, bridge parity).
-            ApplySeaTemperatureStress(Weather.CurrentTemperatureC);
+            // Temperature extremes stress fish (daily), each in its own water (S2-02).
+            ApplyHoldingWaterTemperatureStress();
 
             if (severity > 0.0)
             {
@@ -2029,7 +2026,7 @@ private class BalancingConfig
             }
 
             // Premium cost
-            decimal premium = Logistics.NightShiftResolver.MonthlyCost(State.NightShiftPolicy) / 30m;
+            decimal premium = SimCalendar.MonthlyToDaily(Logistics.NightShiftResolver.MonthlyCost(State.NightShiftPolicy));
             PayCost(premium, CostBooking.Opex, "night_shift");
         }
 
@@ -2063,17 +2060,17 @@ private class BalancingConfig
             // its first harvest).
             decimal dailyWages = 0m;
             foreach (var site in State.SeaSites)
-                dailyWages += SiteWorkers(site) * (_balancing.WorkerMonthlySalaryNOK / 30m);
+                dailyWages += SiteWorkers(site) * SimCalendar.MonthlyToDaily(_balancing.WorkerMonthlySalaryNOK);
             
             if (State.OwnsHatchery)
-                dailyWages += _balancing.WorkersPerHatchery * (_balancing.WorkerMonthlySalaryNOK / 30m);
+                dailyWages += _balancing.WorkersPerHatchery * SimCalendar.MonthlyToDaily(_balancing.WorkerMonthlySalaryNOK);
             
             if (State.OwnsProcessingPlant)
-                dailyWages += _balancing.WorkersPerProcessingPlant * (_balancing.WorkerMonthlySalaryNOK / 30m);
+                dailyWages += _balancing.WorkersPerProcessingPlant * SimCalendar.MonthlyToDaily(_balancing.WorkerMonthlySalaryNOK);
 
             // Phase 3.1: named crew payroll.
             foreach (var member in State.Crew)
-                dailyWages += member.MonthlySalaryNok / 30m;
+                dailyWages += SimCalendar.MonthlyToDaily(member.MonthlySalaryNok);
 
             // Phase 3.5: VAP plant opex 5k/day when owned.
             decimal vapOpex = State.OwnsProcessingPlant ? 5_000m : 0m;
@@ -2114,7 +2111,7 @@ private class BalancingConfig
                 if (loan.Principal <= 0) { State.ActiveLoans.Remove(loan); continue; }
                 loan.DaysTaken++;
                 int remainingDays = Math.Max(1, loan.TermDays - loan.DaysTaken + 1);
-                decimal dailyInterest = loan.Principal * loan.InterestRate / 365m;
+                decimal dailyInterest = loan.Principal * loan.InterestRate / SimCalendar.DaysPerYear;
                 decimal principalSlice = loan.Principal / remainingDays;
                 // Final day: clear exactly (avoid dust from rounding).
                 if (loan.DaysTaken >= loan.TermDays) principalSlice = loan.Principal;
@@ -2133,12 +2130,13 @@ private class BalancingConfig
             {
                 decimal dailyPremium = 0m;
                 foreach (var policy in Insurance.Policies)
-                    dailyPremium += policy.PremiumNokPerYear / 365m;
+                    dailyPremium += policy.PremiumNokPerYear / SimCalendar.DaysPerYear;
                 PayCost(dailyPremium, CostBooking.Opex, "insurance");
             }
 
-            // 5. Monthly provisional corporate tax (true-up; see SettleProvisionalTax).
-            if (State.Day % 30 == 0)
+            // 5. Monthly provisional corporate tax (true-up; see SettleProvisionalTax),
+            // on the first of every calendar month (S2-02; it was every 30 days).
+            if (SimCalendar.IsFirstDayOfMonth(State.Day))
                 SettleProvisionalTax();
         }
 
@@ -2152,19 +2150,29 @@ private class BalancingConfig
         /// </summary>
         internal void ApplySeaTemperatureStress(double seaTempC)
         {
-            if (seaTempC >= 4.0 && seaTempC <= 16.0) return;
-            double tempStress = seaTempC < 4.0 ? (4.0 - seaTempC) * 0.01 : (seaTempC - 16.0) * 0.01;
             var landBased = new HashSet<FishPopulation>(
                 RASFacilities.SelectMany(r => r.Tanks), ReferenceEqualityComparer.Instance);
             foreach (var pop in State.Populations)
             {
                 if (landBased.Contains(pop)) continue;
-                foreach (var cohort in pop.Cohorts)
-                {
-                    int tempMortality = (int)(cohort.Count * tempStress * 0.005); // 0.5% per degree deviation
-                    if (tempMortality > 0)
-                        cohort.Count = Math.Max(0, cohort.Count - tempMortality);
-                }
+                ApplyTemperatureStress(pop, seaTempC);
+            }
+        }
+
+        /// <summary>
+        /// One population's temperature-stress deaths for a day in water at
+        /// <paramref name="waterTempC"/> (S2-02: each population's own water,
+        /// see <see cref="ApplyHoldingWaterTemperatureStress"/>).
+        /// </summary>
+        internal static void ApplyTemperatureStress(FishPopulation pop, double waterTempC)
+        {
+            if (waterTempC >= 4.0 && waterTempC <= 16.0) return;
+            double tempStress = waterTempC < 4.0 ? (4.0 - waterTempC) * 0.01 : (waterTempC - 16.0) * 0.01;
+            foreach (var cohort in pop.Cohorts)
+            {
+                int tempMortality = (int)(cohort.Count * tempStress * 0.005); // 0.5% per degree deviation
+                if (tempMortality > 0)
+                    cohort.Count = Math.Max(0, cohort.Count - tempMortality);
             }
         }
 
@@ -2540,7 +2548,7 @@ private class BalancingConfig
         /// between sites (same zone couples strongly, across zones weakly).
         /// Also decays each population's delousing-injury load.
         /// </summary>
-        internal void AdvanceSiteLiceModels(double temperature)
+        internal void AdvanceSiteLiceModels()
         {
             if (State.SeaSites.Count == 0)
                 return;
@@ -2565,8 +2573,9 @@ private class BalancingConfig
 
                 var zone = State.Zones.FirstOrDefault(z => z.Id == site.ZoneId);
                 double volumeM3 = Math.Max(1.0, (double)site.PenVolume * Math.Max(1, site.NumberOfPens));
+                // S2-02: the lice develop at the site's own water temperature.
                 site.Lice.SetEnvironment(
-                    temperature,
+                    SeaTemperatureAtSite(site),
                     35.0,
                     zone?.CurrentSpeed ?? 0.15,
                     biomassKg / volumeM3);
@@ -2600,22 +2609,21 @@ private class BalancingConfig
         /// <summary>
         /// Phase 2.1 weekly lice census: mirror each site model onto its pens
         /// (traffic lights, limits and UI read pen loads), count adult
-        /// females where the water is warm enough to count (≥4 °C), enforce
-        /// the legal limit (0.5, 0.2 in spring weeks 16–21), and escalate
-        /// repeat breaches into Mattilsynet treatment orders with forced
-        /// treatment past the deadline.
+        /// females where the site's water is warm enough to count (≥4 °C),
+        /// enforce the site's legal limit (0.5; 0.2 in its production area's
+        /// spring ISO weeks, 16–21 up to Nord-Trøndelag and 21–26 further north,
+        /// S2-02), and escalate repeat breaches into Mattilsynet treatment orders
+        /// with forced treatment past the deadline.
         /// </summary>
         internal void UpdateSiteLiceCounts()
         {
-            double temperature = Weather?.CurrentTemperatureC ?? 10.0;
-            int weekOfYear = (State.Day % 365) / 7;
-            double limit = (weekOfYear >= 16 && weekOfYear <= 21) ? 0.2 : 0.5;
-
             foreach (var site in State.SeaSites)
             {
                 int fish = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
                 if (fish <= 0)
                     continue;
+                double temperature = SeaTemperatureAtSite(site);
+                double limit = LiceLimitAtSite(site);
 
                 // Self-starting: scenario/hatchery stockings set population
                 // loads without seeding the site model — re-seed from the
@@ -3119,13 +3127,12 @@ private class BalancingConfig
         /// </summary>
         internal void RollBloomWeek()
         {
-            int dayOfYear = State.Day % 365;
-            double temp = Weather?.CurrentTemperatureC ?? 8.0;
+            int dayOfYear = SimCalendar.DayOfYear(State.Day);
             bool calm = Weather == null || Weather.CurrentState.ToString() == "Calm"
                 || Weather.CurrentState.ToString() == "Moderate";
             bool vet = Core.CrewEffects.HasRole(State, "veterinaer");
 
-            // Spawn per zone.
+            // Spawn per zone, each on its own water temperature (S2-02).
             foreach (var zone in State.Zones)
             {
                 var sites = State.SeaSites
@@ -3133,6 +3140,7 @@ private class BalancingConfig
                     .ToList();
                 if (sites.Count == 0) continue;
                 var site = sites[_rng.Next(sites.Count)];
+                double temp = SeaTemperatureOfZone(zone.Id);
 
                 TrySpawnBloom(site, "jellyfish", dayOfYear,
                     LakskongenSim.Environment.BloomEventDeck.InJellySeason(dayOfYear) ? 0.10 : 0.0);
@@ -3422,6 +3430,10 @@ private class BalancingConfig
                 runtime.WeatherWindMs = wth.CurrentWindSpeedMs;
                 runtime.WeatherWaveM = wth.CurrentWaveHeight;
                 runtime.WeatherStateName = wth.CurrentState.ToString();
+                runtime.WeatherSeaAnomalyC = wth.SeaAnomalyC;
+                runtime.WeatherEventAnomalyC = wth.EventAnomalyC;
+                runtime.WeatherDailyFluctuationC = wth.DailyFluctuationC;
+                runtime.WeatherStormCoolingC = wth.StormCoolingC;
             }
 
             // Phase 1 wave 6: live statements + market trajectory. These were
@@ -3846,6 +3858,8 @@ private class BalancingConfig
                 {
                     Weather.ImportState(runtime.WeatherDay, runtime.WeatherTempC,
                         runtime.WeatherWindMs, runtime.WeatherWaveM, wstate);
+                    Weather.ImportSeaTemperatureState(runtime.WeatherSeaAnomalyC, runtime.WeatherEventAnomalyC,
+                        runtime.WeatherDailyFluctuationC, runtime.WeatherStormCoolingC);
                 }
 
                 for (int i = 0; i < _inDayPhases.Length; i++)

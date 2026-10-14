@@ -12,8 +12,9 @@ extends RefCounted
 
 ## Digit-group separator for nb: a no-break space, so "71 472" never wraps.
 const NB_GROUP := "\u00a0"
-## Sim day 0 is 1 January of this year until the sim calendar (roadmap G1-04)
-## owns the date; then date_for_day() reads it from there.
+## Sim day 0 is 1 January of this year. Mirrors the engine's one calendar,
+## src/LakskongenSim/Core/SimCalendar.cs (StartYear, month lengths, 365-day
+## years); tests/test_sim_calendar_parity.py keeps the two equal (S2-02).
 const CALENDAR_START_YEAR := 2027
 
 const _MONTHS_NB := ["jan.", "feb.", "mars", "apr.", "mai", "juni", "juli", "aug.", "sep.", "okt.", "nov.", "des."]

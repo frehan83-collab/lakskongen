@@ -17,11 +17,11 @@ namespace LakskongenSim.Health
         public const double HandlingLoss = 0.006; // 0.6% vaccination loss
 
         public static bool IsWindowOpen(int day) =>
-            day % 365 is int doy && doy >= WindowStartDoy && doy <= WindowEndDoy;
+            SimCalendar.DayOfYear(day) is int doy && doy >= WindowStartDoy && doy <= WindowEndDoy;
 
         public static int WindowDaysLeft(int day)
         {
-            int doy = day % 365;
+            int doy = SimCalendar.DayOfYear(day);
             return doy > WindowEndDoy ? -1 : WindowEndDoy - Math.Max(doy, WindowStartDoy);
         }
 

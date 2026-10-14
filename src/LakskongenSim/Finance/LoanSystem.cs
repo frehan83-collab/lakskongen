@@ -13,7 +13,7 @@ namespace LakskongenSim.Finance
 
         public decimal ChargeInterest(decimal principal, int days)
         {
-            var fraction = (decimal)days / 365m;
+            var fraction = (decimal)days / LakskongenSim.Core.SimCalendar.DaysPerYear;
             var interest = principal * InterestRateAnnual * fraction;
             OnInterestCharged?.Invoke(interest);
             return interest;

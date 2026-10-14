@@ -64,7 +64,7 @@ namespace LakskongenSim.Health
         /// </summary>
         public static double EffectiveTemperature(double baselineTempC, double warmingPerYearC, int day)
         {
-            double years = Math.Max(0, day) / 365.0;
+            double years = LakskongenSim.Core.SimCalendar.YearFraction(Math.Max(0, day));
             return baselineTempC + warmingPerYearC * years;
         }
 

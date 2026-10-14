@@ -178,7 +178,7 @@ namespace LakskongenSim.Farm
 
             // ─── Operating Costs ───
             // Staff costs (~650K NOK/year per employee)
-            result.DailyStaffCost = (decimal)EmployeeCount * 650_000m / 365m;
+            result.DailyStaffCost = (decimal)EmployeeCount * 650_000m / LakskongenSim.Core.SimCalendar.DaysPerYear;
             
             // Consumables (chemicals, oxygen, filters)
             result.DailyConsumablesCost = (decimal)(biomassKg * 0.02); // ~20 øre/kg biomass/day
@@ -252,7 +252,7 @@ namespace LakskongenSim.Farm
 
         /// <summary>Get annual OPEX estimate based on current configuration.</summary>
         public decimal EstimatedAnnualOPEX =>
-            (decimal)DailyEnergyKWh * EnergyPricePerKWh * 365m  // Energy
+            (decimal)DailyEnergyKWh * EnergyPricePerKWh * LakskongenSim.Core.SimCalendar.DaysPerYear  // Energy
             + (decimal)EmployeeCount * 650_000m                   // Staff
             + 15_000_000m;                                        // Consumables & maintenance
     }

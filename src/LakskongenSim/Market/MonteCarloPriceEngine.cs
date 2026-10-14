@@ -73,7 +73,7 @@ namespace LakskongenSim.Market
             double[] path = new double[days + 1];
             path[0] = startPrice;
 
-            double dt = 1.0 / 365.0;
+            double dt = 1.0 / LakskongenSim.Core.SimCalendar.DaysPerYear;
             double dailyDrift = AnnualDrift * dt;
             double dailyVol = AnnualVolatility * Math.Sqrt(dt);
             double jumpProb = JumpIntensity * dt;
@@ -92,10 +92,10 @@ namespace LakskongenSim.Market
                 }
 
                 // Seasonal overlay
-                int dayOfYear = ((d + 1) % 365) + 1;
+                int dayOfYear = LakskongenSim.Core.SimCalendar.DayOfYear(d + 1) + 1;
                 double seasonal = GetSeasonalMultiplier(dayOfYear);
 
-                double newPrice = path[d] * Math.Exp(diffusion + jump) * seasonal / GetSeasonalMultiplier(dayOfYear > 1 ? dayOfYear - 1 : 365);
+                double newPrice = path[d] * Math.Exp(diffusion + jump) * seasonal / GetSeasonalMultiplier(dayOfYear > 1 ? dayOfYear - 1 : LakskongenSim.Core.SimCalendar.DaysPerYear);
                 path[d + 1] = Math.Max(newPrice, 1.0); // Floor at 1 NOK/kg
             }
 

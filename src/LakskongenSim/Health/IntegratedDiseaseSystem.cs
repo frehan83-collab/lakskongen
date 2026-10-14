@@ -107,7 +107,15 @@ namespace LakskongenSim.Health
         /// injection path; the LOD/stochastic tiers are telemetry/scenario only and
         /// must not inject independently).
         /// </summary>
-        public void Update(List<Zone> zones, List<FishPopulation> populations, int days = 1)
+        /// <param name="zones">Live zones.</param>
+        /// <param name="populations">Live populations.</param>
+        /// <param name="days">Days to advance.</param>
+        /// <param name="waterTemperatureOf">
+        /// Each population's water temperature (°C), from whatever holds it
+        /// (S2-02). Null uses the SIR's 10 °C reference, as before.
+        /// </param>
+        public void Update(List<Zone> zones, List<FishPopulation> populations, int days = 1,
+            Func<FishPopulation, double>? waterTemperatureOf = null)
         {
             if (days <= 0) return;
 
@@ -116,7 +124,7 @@ namespace LakskongenSim.Health
 
             // Deterministic population-level SIR: evolve prevalence and inject the
             // disease mortality rate for the next biology step. No RNG on this path.
-            TickBaseSystem(populations, days);
+            TickBaseSystem(populations, days, waterTemperatureOf);
 
             // Auto-adjust LOD mode based on performance
             if (_currentMode == LODMode.Auto)
@@ -143,11 +151,16 @@ namespace LakskongenSim.Health
         /// <see cref="DiseaseSystem"/> evolves prevalence and injects the disease
         /// mortality rate into the shared <see cref="Biology.MortalityModel"/>.
         /// </summary>
-        private void TickBaseSystem(List<FishPopulation> populations, int days)
+        private void TickBaseSystem(List<FishPopulation> populations, int days,
+            Func<FishPopulation, double>? waterTemperatureOf = null)
         {
             for (int i = 0; i < populations.Count; i++)
-                _baseSystem.Tick(populations[i], days, 10.0);
+                _baseSystem.Tick(populations[i], days,
+                    waterTemperatureOf?.Invoke(populations[i]) ?? DiseaseReferenceTemperatureC);
         }
+
+        /// <summary>Water temperature the SIR is ticked at when no population temperature is supplied (°C).</summary>
+        private const double DiseaseReferenceTemperatureC = 10.0;
 
         /// <summary>
         /// Update with full high-fidelity simulation (for small populations or debugging).

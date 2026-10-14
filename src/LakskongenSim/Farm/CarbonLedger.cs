@@ -159,13 +159,13 @@ namespace LakskongenSim.Farm
 
         public double EmissionsThisYear(int currentDay)
         {
-            int yearStart = (currentDay / 365) * 365;
+            int yearStart = LakskongenSim.Core.SimCalendar.YearStartDay(currentDay);
             return TotalEmissions(yearStart, currentDay);
         }
 
         public double CreditsThisYear(int currentDay)
         {
-            int yearStart = (currentDay / 365) * 365;
+            int yearStart = LakskongenSim.Core.SimCalendar.YearStartDay(currentDay);
             return TotalCredits(yearStart, currentDay);
         }
 
