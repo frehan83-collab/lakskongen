@@ -133,7 +133,7 @@ axes: north +X, up +Y, east +Z; the fjord opens west (−Z).
 | Moon | #C7D7E8, energy 0.04 × phase × elevation × (1 − 0.85 c), shadows only when the sun's are off |
 | Exposure | 1 with the sun above 12°; below that the eye adapts as (key_ref / key)^0.72 up to 16×, where the key is the zenith and horizon luminance of the same sky model plus the direct light; under a deck it adapts only part of the way, so storms stay dark |
 | Tonemap, glow | AgX, white 6, contrast 1.3, adjustments off; Screen glow, intensity 0.25, threshold 1, levels 3-5 |
-| Ambient | sky radiance × 0.6 by day (a fjord wall sees about half the sky), × 3.5 once the sky is dark |
+| Ambient | sky radiance × 0.6 by day (a fjord wall sees about half the sky), × 6 once the sky is dark |
 | Aurora | `AuroraModel` brightness × darkness (sun below −6° to −14°) × clear sky (gone at 0.85 cover) |
 
 `sky_shader.gdshader` (written for the project; formula references in its

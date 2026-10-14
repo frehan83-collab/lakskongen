@@ -83,7 +83,7 @@ const OVERCAST_KEEP := 0.65
 ## wall hides the rest, at a scale SSAO cannot see), so daylight ambient runs
 ## below 1. At night it is raised to stand in for dark-adapted eyes.
 const AMBIENT_DAY := 0.6
-const AMBIENT_NIGHT := 3.5
+const AMBIENT_NIGHT := 6.0
 ## Night sky floor (airglow, starlight), mirrored from sky_shader night_sky().
 const NIGHT_SKY_ZENITH := Vector3(0.0013, 0.0019, 0.0040)
 const NIGHT_SKY_HORIZON := Vector3(0.0022, 0.0027, 0.0045)
