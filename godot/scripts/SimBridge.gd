@@ -468,6 +468,7 @@ func get_genomic_selection_preview() -> Array[Dictionary]: return _proxies.get_g
 func get_inbreeding_status() -> Dictionary: return _proxies.get_inbreeding_status()
 func get_ge_traits() -> Array[Dictionary]: return _proxies.get_ge_traits()
 func get_crew_list() -> Array[Dictionary]: return _proxies.get_crew_list()
+func get_crew_role_effects() -> Array[Dictionary]: return _proxies.get_crew_role_effects()
 func hire_worker(role: String) -> bool: return _proxies.hire_worker(role)
 func fire_worker(worker_id: String) -> bool: return _proxies.fire_worker(worker_id)
 func get_achievement_list() -> Array[Dictionary]: return _proxies.get_achievement_list()

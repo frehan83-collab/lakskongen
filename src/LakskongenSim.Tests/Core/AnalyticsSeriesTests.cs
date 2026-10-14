@@ -57,6 +57,45 @@ public class AnalyticsSeriesTests
         Assert.True(trend is TrendDirection.Up or TrendDirection.Down or TrendDirection.Stable);
     }
 
+    /// <summary>
+    /// U1-05: the income and cost charts read these two series. They must be
+    /// the statements' own year-to-date figures, day by day, not the cash
+    /// balance (the dashboard's revenue card used to draw the balance).
+    /// </summary>
+    [Fact]
+    public void RevenueAndExpenseSeries_AreTheStatementsYearToDate()
+    {
+        var engine = BuildEngine(seed: 11);
+        var fs = engine.FinancialStatements;
+        Assert.NotNull(fs);
+        var revenue = new System.Collections.Generic.List<double>();
+        var expenses = new System.Collections.Generic.List<double>();
+        for (int day = 0; day < 40; day++)
+        {
+            engine.Advance(1);
+            revenue.Add((double)fs!.Revenue);
+            expenses.Add((double)(fs.COGS + fs.OperatingExpenses));
+        }
+
+        var revenueSeries = engine.Analytics.GetTimeSeries(AnalyticsMetric.Revenue, 40);
+        var expenseSeries = engine.Analytics.GetTimeSeries(AnalyticsMetric.Expenses, 40);
+        Assert.Equal(40, revenueSeries.Count);
+        Assert.Equal(40, expenseSeries.Count);
+        for (int i = 0; i < 40; i++)
+        {
+            Assert.Equal(revenue[i], revenueSeries[i], 2);
+            Assert.Equal(expenses[i], expenseSeries[i], 2);
+        }
+        // A farm feeding fish books costs every day: the year-to-date series
+        // climbs and never falls inside the year.
+        Assert.True(expenseSeries[^1] > expenseSeries[0], "costs must accumulate over 40 days");
+        for (int i = 1; i < expenseSeries.Count; i++)
+            Assert.True(expenseSeries[i] >= expenseSeries[i - 1] - 1e-6, $"day {i}: year-to-date costs fell");
+        // Not the balance: the cash series moves differently.
+        var balance = engine.Analytics.GetTimeSeries(AnalyticsMetric.Balance, 40);
+        Assert.NotEqual(balance[^1], revenueSeries[^1]);
+    }
+
     [Fact]
     public void Series_AfterMoreDays_ExtendsAndStaysAligned()
     {

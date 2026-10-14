@@ -371,6 +371,9 @@ public partial class GameBridge : Node
         if (engine == null) return;
         foreach (var note in engine.DrainDayNotes())
         {
+            // Listeners date what they hear by the note's own day: a
+            // multi-day advance drains every day's notes at once (U1-05).
+            ProjectedNoteDay = note.Day;
             switch (note.Kind)
             {
                 case "wellboat_delouse":
@@ -404,6 +407,7 @@ public partial class GameBridge : Node
                     break;
             }
         }
+        ProjectedNoteDay = -1;
     }
 
     // ── Computed properties for GDScript ─────────────────────────────────────
@@ -411,6 +415,12 @@ public partial class GameBridge : Node
 
     /// <summary>Current simulation day.</summary>
     public int CurrentDay => SimulationEngine?.State?.Day ?? 0;
+
+    /// <summary>
+    /// While a day note's signal is being emitted, the sim day the note
+    /// happened on (-1 otherwise). SimState dates event alerts by it (U1-05).
+    /// </summary>
+    public int ProjectedNoteDay { get; private set; } = -1;
 
     /// <summary>
     /// True once a game was started or loaded (and not ended). GameScene uses it

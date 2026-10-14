@@ -137,6 +137,20 @@ static func format_date(year: int, month: int, day: int, locale: String = "") ->
 	return "%s %d, %d" % [_MONTHS_EN[m], day, year]
 
 
+## A fish's weight as a farmer says it: grams for smolts ("135 g"), kilos
+## with two decimals after ("4,52 kg").
+static func format_fish_weight(kg: float, locale: String = "") -> String:
+	if kg < 1.0:
+		return integer(int(round(kg * 1000.0)), locale) + " g"
+	return num(kg, 2, locale) + " kg"
+
+
+## A month's short name (1-12): "jan.", "mars" / "Jan", "Mar".
+static func month_name(month: int, locale: String = "") -> String:
+	var m := clampi(month, 1, 12) - 1
+	return _MONTHS_NB[m] if is_norwegian(locale) else _MONTHS_EN[m]
+
+
 ## The calendar date of a sim day ({year, month, day}); day 0 = 1 January of
 ## CALENDAR_START_YEAR, 365-day years (the sim has no leap days).
 static func date_for_day(sim_day: int) -> Dictionary:

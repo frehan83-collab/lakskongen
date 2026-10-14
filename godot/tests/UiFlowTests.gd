@@ -105,6 +105,13 @@ func _run() -> void:
 	await _test_main_menu_shows_the_live_fjord()
 	await _test_main_menu_column_reads_over_every_mood()
 	await _test_main_menu_reduced_motion_holds_the_camera()
+	await _test_charts_draw_the_sims_series_over_sixty_days()
+	await _test_share_bars_are_the_ledger_shares()
+	await _test_dashboard_site_cards_match_the_sites()
+	await _test_skipped_days_date_their_alerts()
+	await _test_map_labels_never_collide()
+	await _test_pen_detail_fits_and_pads_its_cards()
+	await _test_market_and_crew_show_the_sims_own_numbers()
 
 	_clear_test_saves()
 	_finish()
@@ -3389,3 +3396,316 @@ func _test_main_menu_reduced_motion_holds_the_camera() -> void:
 	moving.queue_free()
 	await get_tree().process_frame
 	MotionPrefs.force(null)
+
+# ── U1-05: truthful numbers ───────────────────────────────────────────────────
+
+const DASHBOARD_FIN_DAYS := 30
+
+## A seeded po3_red_sone game (two sites) in a GameScene, paused.
+func _spawn_po3_scene(seed: int) -> Node:
+	_check(_sim.start_qa_scenario("po3_red_sone", seed), "setup: po3_red_sone starts (seed %d)" % seed)
+	_sim.skip_tutorial()
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	return scene
+
+## The tab's panel, opened (tab panels are built anew on every switch).
+func _open_panel(ui: Control, tab: String) -> Control:
+	ui.show_tab(tab)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	return ui.find_child("Panel_" + tab, true, false)
+
+## What each chart shows now next to the bridge series it claims to show.
+func _chart_snapshot(ui: Control) -> Dictionary:
+	var out := {}
+	var day := int(_sim.current_day)
+	var dash := await _open_panel(ui, "dashboard")
+	dash._refresh_all()
+	var spark = dash._kpi_sparks["revenue"]["node"]
+	out["dashboard revenue line"] = {"shown": Array(spark.values), "bridge": Array(_sim.get_analytics_data("revenue_nok", 30))}
+	var rev: Array[float] = _sim.get_analytics_data("revenue_nok", DASHBOARD_FIN_DAYS + 1)
+	var cost: Array[float] = _sim.get_analytics_data("expenses_nok", DASHBOARD_FIN_DAYS + 1)
+	var expect := PeriodBarChart.periods(rev, cost, day, 5, 6, rev.size() < DASHBOARD_FIN_DAYS + 1)
+	var chart: PeriodBarChart = dash.get_node("%FinChart")
+	out["dashboard income/cost bars"] = {"shown": [Array(chart.labels), Array(chart.income), Array(chart.costs)],
+		"bridge": [Array(expect["labels"]), Array(expect["income"]), Array(expect["costs"])]}
+	var fin := await _open_panel(ui, "finance")
+	var month_rev: Array[float] = _sim.get_analytics_data("revenue_nok", 186)
+	var month_cost: Array[float] = _sim.get_analytics_data("expenses_nok", 186)
+	var months := PeriodBarChart.periods(month_rev, month_cost, day, 0, 6, month_rev.size() < 186)
+	var fchart: PeriodBarChart = fin.get_node("%FinChart")
+	out["finance monthly bars"] = {"shown": [Array(fchart.labels), Array(fchart.income), Array(fchart.costs)],
+		"bridge": [Array(months["labels"]), Array(months["income"]), Array(months["costs"])]}
+	var story: Dictionary = _sim.get_profit_loss_story(99)
+	var shown_lines := {}
+	for line in fin.get_statement_lines():
+		shown_lines[str(line["label"])] = snappedf(float(line["amount"]), 0.01)
+	var ledger_lines := {}
+	var costs: Array = story.get("top_costs", [])
+	for i in mini(costs.size(), 7):
+		ledger_lines[SimLabels.ledger_category(str(costs[i].get("category", "")))] = snappedf(float(costs[i].get("amount", 0.0)), 0.01)
+	var listed := {}
+	for k in ledger_lines:
+		listed[k] = shown_lines.get(k, -1.0)
+	out["income statement"] = {"shown": listed, "bridge": ledger_lines}
+	var con := await _open_panel(ui, "contracts")
+	var price: LineChart = con.get_node("%PriceChart")
+	out["market price line"] = {"shown": Array(price.series), "bridge": Array(_sim.get_analytics_data("market_price_nok", 84))}
+	return out
+
+## U1-05 #1: in a scripted 60-day run, every chart shows the bridge series it
+## claims to show, and what it shows on day 60 differs from day 1.
+func _test_charts_draw_the_sims_series_over_sixty_days() -> void:
+	var scene := await _spawn_po3_scene(91)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	_sim.advance_days(1)
+	var day1 := await _chart_snapshot(ui)
+	_sim.advance_days(59)
+	var day60 := await _chart_snapshot(ui)
+	for key in day60:
+		_check(day60[key]["shown"] == day60[key]["bridge"], "charts: the %s shows the sim's series on day 60" % key)
+		_check(day60[key]["shown"] != day1[key]["shown"], "charts: the %s moved between day 1 and day 60" % key)
+	# The bars add up to the books: the costs over the dashboard's window are
+	# the year-to-date rise over the same days.
+	var dash := await _open_panel(ui, "dashboard")
+	await get_tree().process_frame
+	var chart: PeriodBarChart = dash.get_node("%FinChart")
+	var cost: Array[float] = _sim.get_analytics_data("expenses_nok", DASHBOARD_FIN_DAYS + 1)
+	var shown_costs := 0.0
+	for v in chart.costs:
+		shown_costs += v
+	var booked := cost[cost.size() - 1] - cost[0]
+	_check(absf(shown_costs - booked) < 1.0,
+		"charts: the 30-day cost bars sum to the costs booked in those days (%.0f vs %.0f)" % [shown_costs, booked])
+	var hi := chart.scale_max()
+	var rects := chart.bar_rects()
+	var plot_h := chart.size.y - PeriodBarChart.PAD_TOP - PeriodBarChart.LABEL_ROW
+	var heights_follow := hi > 0.0 and not rects.is_empty()
+	for i in rects.size():
+		heights_follow = heights_follow and absf((rects[i]["cost"] as Rect2).size.y - plot_h * chart.costs[i] / hi) < 0.5
+	_check(heights_follow, "charts: every cost bar's height is its amount on the chart's scale")
+	# The monthly bars hold every krone of the year so far, the first day's too.
+	var fin := await _open_panel(ui, "finance")
+	var fchart: PeriodBarChart = fin.get_node("%FinChart")
+	var month_costs := 0.0
+	for v in fchart.costs:
+		month_costs += v
+	var ytd: Array[float] = _sim.get_analytics_data("expenses_nok", 1)
+	_check(not ytd.is_empty() and absf(month_costs - ytd[0]) < 1.0,
+		"charts: the monthly cost bars sum to the year's costs (%.0f vs %.0f)" % [month_costs, ytd[0] if not ytd.is_empty() else -1.0])
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-05 #2: the "Hvorfor gikk det slik?" bars are each item's share of the
+## whole: fill width / track width = share within 2 px, and a larger cost
+## draws a longer bar.
+func _test_share_bars_are_the_ledger_shares() -> void:
+	var scene := await _spawn_po3_scene(20261012)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	_sim.advance_days(12)
+	var fin := await _open_panel(ui, "finance")
+	await get_tree().process_frame
+	var bars: Array = fin.find_children("ShareBar", "Control", true, false)
+	var story: Dictionary = _sim.get_profit_loss_story(3)
+	var costs: Array = story.get("top_costs", [])
+	_check(bars.size() >= costs.size() and costs.size() >= 2,
+		"share bars: one bar per cost driver (%d bars, %d costs)" % [bars.size(), costs.size()])
+	var within := true
+	var widths: Array[float] = []
+	for i in mini(bars.size(), costs.size()):
+		var bar: ShareBar = bars[i]
+		var expected := float(costs[i].get("share", 0.0)) * bar.size.x
+		within = within and absf(bar.fill_width() - expected) <= 2.0 and bar.size.x > 40.0
+		widths.append(bar.fill_width())
+	_check(within and not widths.is_empty(), "share bars: each fill is its share of the track within 2 px %s" % str(widths))
+	var ordered := widths.size() >= 2
+	for i in range(1, widths.size()):
+		ordered = ordered and widths[i] <= widths[i - 1] + 0.01
+	_check(ordered and widths[0] > widths[widths.size() - 1] + 2.0, "share bars: a larger cost draws a longer bar %s" % str(widths))
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-05 #4: one site card per site the player owns — for 1, 3 and 9 sites
+## and for the sim's own two-site game — each card showing its own site.
+func _test_dashboard_site_cards_match_the_sites() -> void:
+	var scene := await _spawn_po3_scene(20261012)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var dash := await _open_panel(ui, "dashboard")
+	dash._refresh_all()
+	await get_tree().process_frame
+	var sites: Array = _sim.get_all_pens()
+	var cards: Array = dash.get_site_cards()
+	_check(cards.size() == sites.size() and sites.size() == 2, "site cards: the two-site game shows two cards (%d)" % cards.size())
+	for n in [1, 3, 9]:
+		var fake: Array = []
+		for i in n:
+			fake.append({"id": "ci_site_%d" % i, "name": "CI anlegg %d" % (i + 1), "fish_count": 1000 * (i + 1),
+				"biomass_kg": 500.0 * (i + 1), "lice_per_fish": 0.05 * i, "max_biomass": 780000.0})
+		dash.show_sites(fake)
+		await get_tree().process_frame
+		cards = dash.get_site_cards()
+		var in_order := true
+		for i in cards.size():
+			in_order = in_order and str(cards[i].get_meta(&"site_id")) == "ci_site_%d" % i
+		_check(cards.size() == n and in_order, "site cards: %d sites show %d cards, in order (%d shown)" % [n, n, cards.size()])
+	dash.show_sites([{"id": "ci_red", "name": "CI rød", "fish_count": 5000, "biomass_kg": 9000.0,
+		"lice_per_fish": 0.62, "max_biomass": 780000.0}])
+	await get_tree().process_frame
+	cards = dash.get_site_cards()
+	var texts := ""
+	for l in cards[0].find_children("*", "Label", true, false):
+		texts += (l as Label).text + "|"
+	_check(cards.size() == 1 and texts.contains(SimFormatters.num(0.62, 2)), "site cards: a card shows its own site's lice (%s)" % texts)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-05: a twelve-day skip with storms is dated events, not a pile of "Nå"
+## alerts: event alerts carry the day they happened and expire on time, and
+## a storm and its "Stormskade" record count once.
+func _test_skipped_days_date_their_alerts() -> void:
+	var scene := await _spawn_po3_scene(20261012)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	_sim.advance_days(12)
+	var today := int(_sim.current_day)
+	var stale := 0
+	for a in _sim.active_alerts:
+		if a.has("day") and today - int(a["day"]) >= 3:
+			stale += 1
+	_check(stale == 0, "alerts: no event alert outlives its three days after a skip (%d stale)" % stale)
+	var storm_days := {}
+	for e in _sim.recent_events:
+		if str(e.get("category", "")).to_lower() == "weather":
+			storm_days[int(e.get("day", 0))] = true
+	for a in _sim.active_alerts:
+		if str(a.get("category", "")) == "weather":
+			storm_days[int(a.get("day", today))] = true
+	var dash := await _open_panel(ui, "dashboard")
+	dash._refresh_all()
+	var weather: Dictionary = {}
+	for r in dash.get_alert_rows():
+		if r["category"] == "weather":
+			weather = r
+	_check(storm_days.size() >= 2 and int(weather.get("count", 0)) == storm_days.size(),
+		"alerts: the weather row counts each storm day once (%d shown, %d storm days)" % [int(weather.get("count", 0)), storm_days.size()])
+	_check(str(weather.get("time", "")) != tr("UI_TIME_NOW") or storm_days.has(today),
+		"alerts: an old storm is dated, not 'Nå' ('%s')" % str(weather.get("time", "")))
+	# Day by day to the next storm: its alert ("Nå") and its "Stormskade"
+	# record are the same storm, counted once.
+	var fresh := false
+	for i in 40:
+		_sim.advance_days(1)
+		for a in _sim.active_alerts:
+			if str(a.get("category", "")) == "weather" and int(a.get("day", -1)) == int(_sim.current_day):
+				fresh = true
+		if fresh:
+			break
+	storm_days.clear()
+	for e in _sim.recent_events:
+		if str(e.get("category", "")).to_lower() == "weather":
+			storm_days[int(e.get("day", 0))] = true
+	for a in _sim.active_alerts:
+		if str(a.get("category", "")) == "weather":
+			storm_days[int(a.get("day", 0))] = true
+	dash._refresh_all()
+	for r in dash.get_alert_rows():
+		if r["category"] == "weather":
+			weather = r
+	_check(fresh and int(weather.get("count", 0)) == storm_days.size() and str(weather.get("time", "")) == tr("UI_TIME_NOW"),
+		"alerts: today's storm reads 'Nå' and its log record is not a second storm (%d shown, %d storm days)" % [
+			int(weather.get("count", 0)), storm_days.size()])
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-05: the map's names never sit on each other: city names keep clear of
+## the region markers, of each other and of the grid labels.
+func _test_map_labels_never_collide() -> void:
+	var scene := await _spawn_po3_scene(20261012)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var map := await _open_panel(ui, "map")
+	if map != null and map.has_method("show_panel"):
+		map.show_panel()
+	for i in 4:
+		await get_tree().process_frame
+	var regions: Array[Rect2] = map.region_label_rects()
+	var cities: Array[Rect2] = map.city_label_rects()
+	var hits := []
+	for c in cities:
+		for r in regions:
+			if c.intersects(r):
+				hits.append([c, r])
+	for i in cities.size():
+		for j in range(i + 1, cities.size()):
+			if cities[i].intersects(cities[j]):
+				hits.append([cities[i], cities[j]])
+	_check(regions.size() >= 26 and cities.size() >= 3,
+		"map: markers and names are laid out (%d marker rects, %d names and grid labels)" % [regions.size(), cities.size()])
+	_check(hits.is_empty(), "map: no name sits on a marker or another name %s" % str(hits.slice(0, 3)))
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-05: the pen detail fits the screen (the fourth KPI card was cut off at
+## 1920 px) and its card bodies keep their padding.
+func _test_pen_detail_fits_and_pads_its_cards() -> void:
+	var scene := await _spawn_po3_scene(20261012)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var pens := await _open_panel(ui, "pens")
+	for i in 3:
+		await get_tree().process_frame
+	var view := get_viewport().get_visible_rect()
+	var scroll: ScrollContainer = pens.get_node("%DetailScroll")
+	var fcr: Control = pens.find_child("FcrCard", true, false)
+	_check(fcr != null and scroll.visible and scroll.get_global_rect().encloses(fcr.get_global_rect())
+		and view.encloses(fcr.get_global_rect()),
+		"pens: the fourth KPI card lies inside the screen (%s)" % (str(fcr.get_global_rect()) if fcr else "missing"))
+	_check(scroll.horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED, "pens: the detail never scrolls sideways")
+	var padded := true
+	for body_name in ["WaterBody", "HealthBody", "GeneBody"]:
+		var body: Control = pens.find_child(body_name, true, false)
+		var card: Control = body.get_parent().get_parent().get_parent() if body else null
+		padded = padded and body != null and body.get_global_rect().position.x - card.get_global_rect().position.x >= 12.0
+	_check(padded, "pens: card bodies sit 12 px or more inside their cards")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-05: the market and crew panels show only what the sim knows.
+func _test_market_and_crew_show_the_sims_own_numbers() -> void:
+	var scene := await _spawn_po3_scene(20261012)
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	_sim.advance_days(12)
+	var con := await _open_panel(ui, "contracts")
+	_check(con.find_child("RegionsCard", true, false) == null and con.find_child("BtnSellSpot", true, false) == null
+		and con.find_child("BtnNewContract", true, false) == null, "market: no invented regional prices and no dead buttons")
+	var series: Array[float] = _sim.get_analytics_data("market_price_nok", 84)
+	var stats: Dictionary = con.price_stats(series)
+	_check(series.size() > 0 and con.get_node("%SumLo").text == SimFormatters.num(stats["low"], 2)
+		and con.get_node("%SumAvg").text == SimFormatters.num(stats["avg"], 2)
+		and con.get_node("%SumHi").text == SimFormatters.num(stats["high"], 2),
+		"market: low, average and high are the price series' own (%s / %s / %s)" % [
+			con.get_node("%SumLo").text, con.get_node("%SumAvg").text, con.get_node("%SumHi").text])
+	var terms: Dictionary = con.contract_terms(_sim.get_active_contracts())
+	_check(con.get_node("%KpiVolumeValue").text == tr("UI_CONTRACTS_TONNES") % SimFormatters.num(terms["kg"] / 1000.0, 0),
+		"market: the volume card is the volume under contract")
+	var crew := await _open_panel(ui, "crew")
+	var effects: Array = _sim.get_crew_role_effects()
+	var tiles: Array = []
+	for c in crew.get_node("%SkillsGrid").get_children():
+		if c.has_meta(&"role") and not c.is_queued_for_deletion():
+			tiles.append(c)
+	_check(effects.size() == 3 and tiles.size() == 3, "crew: one tile per role the sim knows (%d)" % tiles.size())
+	var covered := 0
+	for e in effects:
+		covered += 1 if bool(e["hired"]) else 0
+	_check(crew.get_node("%KpiEfficiencyValue").text == tr("UI_CREW_ROLES_COVERED") % [covered, 3],
+		"crew: the fourth card counts the roles covered ('%s')" % crew.get_node("%KpiEfficiencyValue").text)
+	var storm_line := ""
+	for e in effects:
+		if e["role"] == "roekter":
+			storm_line = Array(crew.role_effect_lines(e))[0]
+			_check(storm_line == tr("UI_CREW_EFFECT_STORM") % SimFormatters.percent(1.0 - float(e["storm_loss"])),
+				"crew: the røkter tile states the sim's storm-loss effect ('%s')" % storm_line)
+	scene.queue_free()
+	await get_tree().process_frame

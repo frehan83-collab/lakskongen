@@ -1,7 +1,13 @@
 ## CrewPanel v2.1 — Nordic Minimalist (scene-based).
 ## Layout lives in scenes/ui/CrewPanel.tscn; script is wiring only:
 ## @onready % refs, signal hookups, refresh, localization, theme fonts.
-## Dynamic content (crew rows, skill tiles) is still built in code.
+## Dynamic content (crew rows, role tiles) is still built in code.
+##
+## U1-05: the right card used to show six invented skill percentages and the
+## fourth KPI an "efficiency" formula no system reads. The sim's crew is three
+## roles with concrete effects (CrewEffects): the card shows each role, whether
+## it is on staff and what it does, from GameBridge.GetCrewRoleEffects, and the
+## KPI counts the roles covered.
 
 extends Control
 
@@ -120,11 +126,12 @@ func _refresh_kpis() -> void:
 
 	_kpi_payroll.text = SimFormatters.format_nok(total_salary) if total_salary > 0 else "–"
 	_kpi_morale.text = SimFormatters.percent(total_morale / max(crew.size(), 1) / 100.0) if not crew.is_empty() else "–"
-	# Efficiency = specialist coverage (Phase 3.1): base 60 + 12 per role.
-	var roles := {}
-	for w in crew:
-		roles[str(w.get("role", ""))] = true
-	_kpi_efficiency.text = SimFormatters.percent(mini(96, 60 + 12 * roles.size()) / 100.0)
+	# Roles on staff out of the roles the sim knows (each has its own effect).
+	var effects: Array = _sim.get_crew_role_effects() if _sim.has_method("get_crew_role_effects") else []
+	var covered := 0
+	for e in effects:
+		covered += 1 if bool(e.get("hired", false)) else 0
+	_kpi_efficiency.text = tr("UI_CREW_ROLES_COVERED") % [covered, effects.size()]
 
 func _refresh_crew_list() -> void:
 	if not _crew_list:
@@ -253,48 +260,56 @@ func _build_crew_row(w: Dictionary) -> PanelContainer:
 	return row
 
 func _refresh_skills() -> void:
-	if not _skills_grid:
+	if not _skills_grid or not _sim:
 		return
 	for child in _skills_grid.get_children():
 		child.queue_free()
+	var effects: Array = _sim.get_crew_role_effects() if _sim.has_method("get_crew_role_effects") else []
+	for e in effects:
+		_skills_grid.add_child(_role_tile(e))
 
-	var skills := [
-		{"name": "Fôring", "level": 85, "color": C_SUCCESS},
-		{"name": "Avlusing", "level": 72, "color": C_SECONDARY},
-		{"name": "Vedlikehold", "level": 68, "color": C_ACCENT},
-		{"name": "Navigasjon", "level": 78, "color": C_PRIMARY},
-		{"name": "Veterinær", "level": 90, "color": C_SUCCESS},
-		{"name": "Ledelse", "level": 65, "color": C_WARNING},
-	]
 
-	for s in skills:
-		var panel := PanelContainer.new()
-		panel.size_flags_horizontal = SIZE_EXPAND_FILL
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = C_ELEVATED
-		sb.set_corner_radius_all(6)
-		sb.set_content_margin_all(12)
-		panel.add_theme_stylebox_override("panel", sb)
-		_skills_grid.add_child(panel)
+## The lines a role's tile states, from the sim's multipliers.
+static func role_effect_lines(e: Dictionary) -> PackedStringArray:
+	var lines := PackedStringArray()
+	var cut := func(m: float) -> String: return SimFormatters.percent(1.0 - m)
+	if float(e.get("storm_loss", 1.0)) < 1.0:
+		lines.append(TranslationServer.translate("UI_CREW_EFFECT_STORM") % cut.call(float(e["storm_loss"])))
+	if float(e.get("net_decay", 1.0)) < 1.0:
+		lines.append(TranslationServer.translate("UI_CREW_EFFECT_NETS") % cut.call(float(e["net_decay"])))
+	if float(e.get("treatment_mortality", 1.0)) < 1.0:
+		lines.append(TranslationServer.translate("UI_CREW_EFFECT_TREATMENT") % cut.call(float(e["treatment_mortality"])))
+	if float(e.get("wellboat_cost", 1.0)) < 1.0:
+		lines.append(TranslationServer.translate("UI_CREW_EFFECT_WELLBOAT_COST") % cut.call(float(e["wellboat_cost"])))
+	if int(e.get("wellboat_days_saved", 0)) > 0:
+		lines.append(TranslationServer.translate("UI_CREW_EFFECT_WELLBOAT_DAYS") % int(e["wellboat_days_saved"]))
+	return lines
 
-		var vbox := VBoxContainer.new()
-		vbox.add_theme_constant_override("separation", 6)
-		panel.add_child(vbox)
 
-		var name_lbl := Label.new()
-		name_lbl.text = s.name
-		LakskongenTheme.set_size(name_lbl, 12)
-		LakskongenTheme.set_text_color(name_lbl, C_TEXT2)
-		vbox.add_child(name_lbl)
-
-		var val := Label.new()
-		val.text = SimFormatters.percent(s.level / 100.0)
-		LakskongenTheme.set_size(val, 18)
-		LakskongenTheme.set_text_color(val, C_TEXT)
-		vbox.add_child(val)
-
-		# Progress bar
-		var bar_bg := ColorRect.new()
-		bar_bg.color = C_BORDER
-		bar_bg.custom_minimum_size = Vector2(0, 4)
-		vbox.add_child(bar_bg)
+func _role_tile(e: Dictionary) -> Control:
+	var hired := bool(e.get("hired", false))
+	var panel := PanelContainer.new()
+	panel.theme_type_variation = &"Tile"
+	panel.size_flags_horizontal = SIZE_EXPAND_FILL
+	panel.set_meta(&"role", str(e.get("role", "")))
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	panel.add_child(vbox)
+	var head := HBoxContainer.new()
+	vbox.add_child(head)
+	var name_lbl := Label.new()
+	name_lbl.text = _role_name(str(e.get("role", "")))
+	name_lbl.theme_type_variation = &"BodySmallStrong"
+	name_lbl.size_flags_horizontal = SIZE_EXPAND_FILL
+	head.add_child(name_lbl)
+	var state := Label.new()
+	state.text = tr("UI_CREW_ROLE_HIRED") if hired else tr("UI_CREW_ROLE_VACANT")
+	state.theme_type_variation = &"SmallOk" if hired else &"SmallMuted"
+	head.add_child(state)
+	for line in role_effect_lines(e):
+		var l := Label.new()
+		l.text = line
+		l.theme_type_variation = &"Small" if hired else &"SmallMuted"
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		vbox.add_child(l)
+	return panel

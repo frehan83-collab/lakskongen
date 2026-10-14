@@ -303,6 +303,8 @@ var _overlay = null  # SiteOverlayLegend instance (additive; optional)
 @onready var _temp_bar_slot: Control = %TempBarSlot
 @onready var _confirm_btn: Button = %ConfirmBtn
 var _temp_bar: Control
+## The chart under the markers; its city names keep clear of the markers.
+var _coastline: _CoastlineDrawer = null
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -310,10 +312,10 @@ func _ready() -> void:
 	_close_btn.pressed.connect(_on_close_pressed)
 	_confirm_btn.pressed.connect(_on_confirm_pressed)
 	# Decorative coastline backdrop (custom drawing, added behind labels).
-	var coastline := _CoastlineDrawer.new()
-	coastline.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_map_container.add_child(coastline)
-	_map_container.move_child(coastline, 0)
+	_coastline = _CoastlineDrawer.new()
+	_coastline.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_map_container.add_child(_coastline)
+	_map_container.move_child(_coastline, 0)
 	# Temperature bar visualisation (custom drawing, added to its slot).
 	_temp_bar = _TempBar.new()
 	_temp_bar.custom_minimum_size = Vector2(0, 28)
@@ -439,6 +441,34 @@ func _build_region_markers() -> void:
 		_region_nodes[region["id"]] = marker
 	# Apply the current overlay (if any) once markers exist.
 	_apply_overlay_to_markers()
+	# U1-05: city names give way to the region markers (Bodø sat on top of
+	# "Helgeland til Bodø", Trondheim on "Nordmøre og Sør-Trøndelag").
+	if _coastline != null:
+		_coastline.avoid = region_label_rects()
+		_coastline.queue_redraw()
+
+
+## Where each region marker draws its dot and its name (map-container space).
+func region_label_rects() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	for id in _region_nodes:
+		var marker: Control = _region_nodes[id]
+		if not is_instance_valid(marker):
+			continue
+		out.append(Rect2(marker.position + Vector2(0.0, 11.0), Vector2(22.0, 22.0)))
+		var lbl := marker.get_node_or_null("NameLabel") as Label
+		if lbl != null:
+			var text_size := lbl.get_minimum_size()
+			out.append(Rect2(marker.position + lbl.position + Vector2(0.0, (lbl.size.y - text_size.y) * 0.5), text_size))
+	return out
+
+
+## The city labels the chart placed (map-container space; tests read them).
+func city_label_rects() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	if _coastline != null:
+		out.assign(_coastline.placed)
+	return out
 
 # ── Detail panel ──────────────────────────────────────────────────────────────
 # (Detail panel layout now lives in scenes/ui/MapPanel.tscn.)
@@ -570,6 +600,12 @@ class _CoastlineDrawer extends Control:
 
 	var _rings: Array = []
 	var _font: Font
+	## Rects the city names must keep clear of (the region markers).
+	var avoid: Array[Rect2] = []
+	## The city name rects drawn last time.
+	var placed: Array[Rect2] = []
+	const CITY_FONT := 13
+	const LABEL_GAP := 8.0
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -583,6 +619,7 @@ class _CoastlineDrawer extends Control:
 		var h := size.y
 		if w <= 1.0 or h <= 1.0:
 			return
+		placed.clear()
 		_draw_sea(w, h)
 		_draw_graticule(w, h)
 		_draw_land(w, h)
@@ -603,8 +640,7 @@ class _CoastlineDrawer extends Control:
 			if y >= 0.0 and y <= h:
 				draw_line(Vector2(0, y), Vector2(w, y), GRID_LINE, 1.0)
 				if _font:
-					draw_string(_font, Vector2(6, y - 4), "%d°N" % int(lat),
-						HORIZONTAL_ALIGNMENT_LEFT, -1, 13, GRID_TEXT)
+					_grid_label("%d°N" % int(lat), Vector2(6, y - 4))
 			lat += 2.0
 		# Longitude lines every 5 degrees with bottom labels.
 		var lon := 5.0
@@ -613,9 +649,17 @@ class _CoastlineDrawer extends Control:
 			if x >= 0.0 and x <= w:
 				draw_line(Vector2(x, 0), Vector2(x, h), GRID_LINE, 1.0)
 				if _font:
-					draw_string(_font, Vector2(x + 4, h - 6), "%d°E" % int(lon),
-						HORIZONTAL_ALIGNMENT_LEFT, -1, 13, GRID_TEXT)
+					_grid_label("%d°E" % int(lon), Vector2(x + 4, h - 6))
 			lon += 5.0
+
+	## A graticule label at its baseline, unless a region marker is there.
+	func _grid_label(text: String, baseline: Vector2) -> void:
+		var sz := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, CITY_FONT)
+		var rect := Rect2(Vector2(baseline.x, baseline.y - sz.y + 4.0), sz)
+		if _hits(rect):
+			return
+		placed.append(rect)
+		draw_string(_font, baseline, text, HORIZONTAL_ALIGNMENT_LEFT, -1, CITY_FONT, GRID_TEXT)
 
 	func _scaled_ring(ring: Array, w: float, h: float, close_east: bool) -> PackedVector2Array:
 		var out := PackedVector2Array()
@@ -652,25 +696,54 @@ class _CoastlineDrawer extends Control:
 				var closed := poly + PackedVector2Array([poly[0]])
 				draw_polyline(closed, COAST_LINE, 2.0)
 
+	## Cities with their names where the names fit: west over the sea first
+	## (land lies east), then east, above and below. A city whose dot sits on
+	## a region marker, or whose name fits nowhere clear of the markers and
+	## of the names already placed, is left out: the region names it anyway.
 	func _draw_cities(w: float, h: float) -> void:
 		if _font == null:
 			return
+		var bounds := Rect2(Vector2.ZERO, Vector2(w, h))
 		for c in NorwayCoastline.cities():
-			var lon := float(c[0])
-			var pos := NorwayCoastline.project(lon, float(c[1])) * Vector2(w, h)
-			if pos.x < -20.0 or pos.x > w + 60.0 or pos.y < -10.0 or pos.y > h + 10.0:
+			var name := str(c[2])
+			var pos := NorwayCoastline.project(float(c[0]), float(c[1])) * Vector2(w, h)
+			var dot := Rect2(pos - Vector2(5.0, 5.0), Vector2(10.0, 10.0))
+			if not bounds.encloses(dot) or _hits(dot):
 				continue
+			var label := _place_city_label(name, pos, bounds)
+			if label.size == Vector2.ZERO:
+				continue
+			placed.append(label)
 			draw_circle(pos, 4.5, COAST_LINE)
 			draw_circle(pos, 2.5, Color.WHITE)
-			# Crowded south-west coast: label over open sea (west) instead
-			# of colliding with region names stacked on land (east).
-			if lon < 9.0:
-				var tw := _font.get_string_size(str(c[2]), HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-				draw_string(_font, pos + Vector2(-8.0 - tw, 4), str(c[2]),
-					HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#1C1E20"))
-			else:
-				draw_string(_font, pos + Vector2(8, 4), str(c[2]),
-					HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#1C1E20"))
+			# A halo in the land colour keeps the name readable over the coastline.
+			var at := Vector2(label.position.x, label.end.y - 4.0)
+			draw_string_outline(_font, at, name, HORIZONTAL_ALIGNMENT_LEFT, -1, CITY_FONT, 4, Color(LAND_FILL, 0.9))
+			draw_string(_font, at, name, HORIZONTAL_ALIGNMENT_LEFT, -1, CITY_FONT, Color("#1C1E20"))
+
+	func _place_city_label(name: String, pos: Vector2, bounds: Rect2) -> Rect2:
+		var sz := _font.get_string_size(name, HORIZONTAL_ALIGNMENT_LEFT, -1, CITY_FONT)
+		sz.y = float(CITY_FONT) + 4.0
+		var candidates := [
+			Vector2(pos.x - LABEL_GAP - sz.x, pos.y - sz.y * 0.5),
+			Vector2(pos.x + LABEL_GAP, pos.y - sz.y * 0.5),
+			Vector2(pos.x - sz.x * 0.5, pos.y - LABEL_GAP - sz.y),
+			Vector2(pos.x - sz.x * 0.5, pos.y + LABEL_GAP),
+		]
+		for at in candidates:
+			var rect := Rect2(at, sz)
+			if bounds.encloses(rect) and not _hits(rect):
+				return rect
+		return Rect2()
+
+	func _hits(rect: Rect2) -> bool:
+		for r in avoid:
+			if r.intersects(rect):
+				return true
+		for r in placed:
+			if r.intersects(rect):
+				return true
+		return false
 
 
 ## Interactive region marker button drawn directly on the map.
@@ -692,6 +765,9 @@ class _RegionMarker extends Control:
 		lbl.position = Vector2(22, 0)
 		lbl.size = Vector2(max(size.x - 22, 80), size.y)
 		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		# A halo in the surface colour (the theme's outline colour) keeps the
+		# name readable where it crosses the coastline (U1-05).
+		lbl.add_theme_constant_override("outline_size", 4)
 		add_child(lbl)
 
 	func _draw() -> void:

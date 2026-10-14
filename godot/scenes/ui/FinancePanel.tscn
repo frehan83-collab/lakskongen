@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/ui/FinancePanel.gd" id="1"]
 [ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="theme_chart"]
 
+[ext_resource type="Script" path="res://scripts/ui/PeriodBarChart.gd" id="3_periodchart"]
 [node name="FinancePanel" type="Control"]
 theme = ExtResource("theme_chart")
 layout_mode = 3
@@ -108,7 +109,7 @@ theme_override_constants/separation = 4
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiProfit/VBox"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "RESULTAT"
+text = "UI_FIN_KPI_OPERATING_RESULT"
 
 [node name="KpiProfitValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiProfit/VBox"]
 theme_type_variation = &"KpiSmall"
@@ -159,229 +160,23 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "📊 Inntekter vs Kostnader (6 mnd)"
 
-[node name="ChartBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer"]
+[node name="ChartPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="ChartBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="FinChart" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody"]
-custom_minimum_size = Vector2(0, 120)
-layout_mode = 2
-theme_override_constants/separation = 8
-alignment = 2
-
-[node name="Month1" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart"]
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 2
-
-[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month1"]
-layout_mode = 2
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="ChartRev1" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month1/Bars"]
+[node name="FinChart" type="Control" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartPad/ChartBody"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(14, 30)
+custom_minimum_size = Vector2(0, 170)
 layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="ChartCost1" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month1/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(14, 20)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month1"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Okt"
-horizontal_alignment = 1
-
-[node name="Month2" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart"]
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 2
-
-[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month2"]
-layout_mode = 2
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="ChartRev2" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month2/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(14, 40)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="ChartCost2" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month2/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(14, 25)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month2"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Nov"
-horizontal_alignment = 1
-
-[node name="Month3" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart"]
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 2
-
-[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month3"]
-layout_mode = 2
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="ChartRev3" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month3/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(14, 50)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="ChartCost3" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month3/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(14, 30)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month3"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Des"
-horizontal_alignment = 1
-
-[node name="Month4" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart"]
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 2
-
-[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month4"]
-layout_mode = 2
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="ChartRev4" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month4/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(14, 60)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="ChartCost4" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month4/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(14, 35)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month4"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Jan"
-horizontal_alignment = 1
-
-[node name="Month5" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart"]
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 2
-
-[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month5"]
-layout_mode = 2
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="ChartRev5" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month5/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(14, 70)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="ChartCost5" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month5/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(14, 40)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month5"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Feb"
-horizontal_alignment = 1
-
-[node name="Month6" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart"]
-layout_mode = 2
-size_flags_horizontal = 3
-alignment = 2
-
-[node name="Bars" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month6"]
-layout_mode = 2
-theme_override_constants/separation = 2
-alignment = 1
-
-[node name="ChartRev6" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month6/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(14, 80)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="ChartCost6" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month6/Bars"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(14, 45)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="MonthLbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/FinChart/Month6"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Mar"
-horizontal_alignment = 1
-
-[node name="Legend" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody"]
-layout_mode = 2
-theme_override_constants/separation = 16
-
-[node name="RevLegend" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/Legend"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="Dot" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/Legend/RevLegend"]
-custom_minimum_size = Vector2(10, 10)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/Legend/RevLegend"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Inntekt"
-
-[node name="CostLegend" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/Legend"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="Dot" type="ColorRect" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/Legend/CostLegend"]
-custom_minimum_size = Vector2(10, 10)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.121569, 0.368627, 0.45098, 1)
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/Legend/CostLegend"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-text = "Kostnad"
+size_flags_vertical = 3
+script = ExtResource("3_periodchart")
 
 [node name="PlCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox/MidRow"]
 theme_type_variation = &"Card"
@@ -401,140 +196,17 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "📋 Resultatregnskap"
 
-[node name="PlBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer"]
+[node name="PlPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="PlBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlPad"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 10
-
-[node name="FeedRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/FeedRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Fôrkostnader"
-
-[node name="PlFeed" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/FeedRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-horizontal_alignment = 2
-
-[node name="SalaryRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/SalaryRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Lønnskostnader"
-
-[node name="PlSalary" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/SalaryRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-horizontal_alignment = 2
-
-[node name="MaintRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/MaintRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Vedlikehold"
-
-[node name="PlMaintenance" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/MaintRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-horizontal_alignment = 2
-
-[node name="InsuranceRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/InsuranceRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Forsikring"
-
-[node name="PlInsurance" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/InsuranceRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-horizontal_alignment = 2
-
-[node name="DelousingRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/DelousingRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Avlusing"
-
-[node name="PlDelousing" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/DelousingRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-horizontal_alignment = 2
-
-[node name="TransportRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/TransportRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Transport"
-
-[node name="PlTransport" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/TransportRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-horizontal_alignment = 2
-
-[node name="OtherRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/OtherRow"]
-theme_type_variation = &"SmallMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Andre kostnader"
-
-[node name="PlOther" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/OtherRow"]
-theme_type_variation = &"Small"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-horizontal_alignment = 2
-
-[node name="Sep" type="HSeparator" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody"]
-layout_mode = 2
-
-[node name="TotalRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody"]
-layout_mode = 2
-
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/TotalRow"]
-theme_type_variation = &"OverlineMuted"
-layout_mode = 2
-size_flags_horizontal = 3
-text = "TOTALE KOSTNADER"
-
-[node name="PlTotal" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/TotalRow"]
-theme_type_variation = &"SmallCrit"
-unique_name_in_owner = true
-layout_mode = 2
-text = "--"
-horizontal_alignment = 2
 
 [node name="BotRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
 layout_mode = 2
@@ -558,70 +230,77 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "🏦 Lån & Finansiering"
 
-[node name="LoanBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer"]
+[node name="LoanPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="LoanBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="StatusRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody"]
+[node name="StatusRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody"]
 layout_mode = 2
 
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/StatusRow"]
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/StatusRow"]
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Status:"
 
-[node name="LoanStatus" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/StatusRow"]
+[node name="LoanStatus" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/StatusRow"]
 theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Ingen lån"
 horizontal_alignment = 2
 
-[node name="AmountRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody"]
+[node name="AmountRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody"]
 layout_mode = 2
 
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/AmountRow"]
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/AmountRow"]
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Lånebeløp:"
 
-[node name="LoanAmount" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/AmountRow"]
+[node name="LoanAmount" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/AmountRow"]
 theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
 text = "--"
 horizontal_alignment = 2
 
-[node name="RemainingRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody"]
+[node name="RemainingRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody"]
 layout_mode = 2
 
-[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/RemainingRow"]
+[node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/RemainingRow"]
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Gjenstående:"
 
-[node name="LoanRemaining" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/RemainingRow"]
+[node name="LoanRemaining" type="Label" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/RemainingRow"]
 theme_type_variation = &"Small"
 unique_name_in_owner = true
 layout_mode = 2
 text = "--"
 horizontal_alignment = 2
 
-[node name="BtnRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody"]
+[node name="BtnRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="BtnTakeLoan" type="Button" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/BtnRow"]
+[node name="BtnTakeLoan" type="Button" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/BtnRow"]
 theme_type_variation = &"SmallPrimaryButton"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Ta lån (5M NOK)"
 
-[node name="BtnRepayLoan" type="Button" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanBody/BtnRow"]
+[node name="BtnRepayLoan" type="Button" parent="Margin/MainScroll/RootVBox/BotRow/LoanCard/Outer/LoanPad/LoanBody/BtnRow"]
 theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 disabled = true
@@ -648,11 +327,18 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "📈 Historikk (siste 10 dager)"
 
-[node name="HistBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/HistCard/Outer"]
+[node name="HistPad" type="MarginContainer" parent="Margin/MainScroll/RootVBox/BotRow/HistCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="HistBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/HistCard/Outer/HistPad"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="HistoryContainer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/HistCard/Outer/HistBody"]
+[node name="HistoryContainer" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/BotRow/HistCard/Outer/HistPad/HistBody"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3

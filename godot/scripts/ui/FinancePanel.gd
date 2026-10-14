@@ -53,11 +53,16 @@ const _INSURANCE_KINDS := [
 	{"key": "isa", "label": "UI_FIN_INS_ISA", "icon": "🦠"},
 ]
 
-# P&L rows are static scene labels; collected for future data binding.
-var _pl_rows: Dictionary = {}
-
-var _chart_bars_rev: Array[ColorRect] = []
-var _chart_bars_cost: Array[ColorRect] = []
+## U1-05: the income statement lists the ledger the sim keeps (every cost
+## category and revenue source booked this financial year), and the chart is
+## income and costs per calendar month from the year-to-date series.
+@onready var _pl_body: VBoxContainer = %PlBody
+@onready var _fin_chart: PeriodBarChart = %FinChart
+## Months the income/cost chart shows, and how far back it reads.
+const CHART_MONTHS := 6
+const CHART_DAYS := 186
+## Cost lines the statement lists before it sums the rest as "Annet".
+const PL_MAX_COST_ROWS := 8
 
 signal loan_taken(amount: float)
 signal loan_repaid(amount: float)
@@ -139,15 +144,7 @@ func _input(event: InputEvent) -> void:
 # ── Scene wiring ──────────────────────────────────────────────────────────────
 
 func _collect_scene_refs() -> void:
-	_pl_rows.clear()
-	for key in ["Feed", "Salary", "Maintenance", "Insurance", "Delousing", "Transport", "Other", "Total"]:
-		_pl_rows[key.to_lower()] = get_node_or_null("%Pl" + key)
-	_chart_bars_rev.clear()
-	_chart_bars_cost.clear()
-	for i in range(1, 7):
-		var suffix := str(i)
-		_chart_bars_rev.append(get_node_or_null("%ChartRev" + suffix) as ColorRect)
-		_chart_bars_cost.append(get_node_or_null("%ChartCost" + suffix) as ColorRect)
+	pass
 
 ## Balance-trend Sparkline near the KPI strip. Parented into the balance KPI's
 ## VBox (via its value label's parent) so a missing node never crashes.
@@ -488,23 +485,16 @@ func _story_row(item: Dictionary, is_cost: bool) -> Control:
 	LakskongenTheme.set_text_color(name_lbl, C_TEXT)
 	row.add_child(name_lbl)
 
-	var bar_bg := PanelContainer.new()
-	bar_bg.custom_minimum_size = Vector2(120, 8)
-	bar_bg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var bg_style := StyleBoxFlat.new()
-	bg_style.bg_color = C_ELEVATED
-	bg_style.set_corner_radius_all(4)
-	bar_bg.add_theme_stylebox_override("panel", bg_style)
-	bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(bar_bg)
-
-	var fill := ColorRect.new()
+	# U1-05: the bar's fill is the item's share of all costs (or income);
+	# the old fill sat in a PanelContainer that stretched it to full width.
 	var fill_color: Color = C_DANGER if is_cost else C_SUCCESS_D
-	fill.color = fill_color
-	fill.custom_minimum_size = Vector2(120.0 * share, 8)
-	fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bar_bg.add_child(fill)
+	var bar := ShareBar.new()
+	bar.name = "ShareBar"
+	bar.share = share
+	bar.fill_color = fill_color
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(bar)
 
 	var amount_lbl := Label.new()
 	amount_lbl.text = _fmt_short(amount if is_cost else amount)
@@ -535,8 +525,6 @@ func _apply_theme_fonts() -> void:
 	LakskongenTheme.set_strong(_pl_title)
 	LakskongenTheme.set_strong(_loan_title)
 	LakskongenTheme.set_strong(_hist_title)
-	if _pl_rows.get("total"):
-		LakskongenTheme.set_strong((_pl_rows["total"] as Label))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DATA REFRESH
@@ -609,6 +597,80 @@ func _refresh() -> void:
 	_refresh_deep_finance()
 	_refresh_insurance()
 	_refresh_story()
+	_refresh_chart()
+	_refresh_statement()
+
+
+## Income and costs per calendar month, from the year-to-date series.
+func _refresh_chart() -> void:
+	if _fin_chart == null or not _sim.has_method("get_analytics_data"):
+		return
+	var revenue: Array[float] = _sim.get_analytics_data("revenue_nok", CHART_DAYS)
+	var costs: Array[float] = _sim.get_analytics_data("expenses_nok", CHART_DAYS)
+	var data := PeriodBarChart.periods(revenue, costs, int(_sim.current_day), 0, CHART_MONTHS, revenue.size() < CHART_DAYS)
+	_fin_chart.set_periods(data["labels"], data["income"], data["costs"])
+
+
+## The income statement this financial year: each revenue source and cost
+## category the ledger holds (the largest costs one by one, the rest summed),
+## the totals, and the result after interest and tax.
+func _refresh_statement() -> void:
+	if _pl_body == null or not _sim.has_method("get_profit_loss_story"):
+		return
+	for child in _pl_body.get_children():
+		child.queue_free()
+	var story: Dictionary = _sim.get_profit_loss_story(99)
+	var revenue_total := 0.0
+	for item in story.get("top_revenue", []):
+		revenue_total += float(item.get("amount", 0.0))
+		_pl_body.add_child(_statement_row(_story_label(str(item.get("category", "other"))), float(item.get("amount", 0.0)), &"SmallOk"))
+	_pl_body.add_child(_statement_row(tr("UI_FIN_PL_REVENUE_TOTAL"), revenue_total, &"BodySmallStrong", true))
+	var cost_total := 0.0
+	var costs: Array = story.get("top_costs", [])
+	var rest := 0.0
+	for i in costs.size():
+		var amount := float(costs[i].get("amount", 0.0))
+		cost_total += amount
+		if i < PL_MAX_COST_ROWS - 1 or costs.size() == PL_MAX_COST_ROWS:
+			_pl_body.add_child(_statement_row(_story_label(str(costs[i].get("category", "other"))), amount, &"Small"))
+		else:
+			rest += amount
+	if rest > 0.0:
+		_pl_body.add_child(_statement_row(tr("UI_FIN_PL_OTHER_COSTS"), rest, &"Small"))
+	if costs.is_empty():
+		_pl_body.add_child(_statement_row(tr("UI_FIN_PL_NO_COSTS"), 0.0, &"SmallMuted"))
+	_pl_body.add_child(_statement_row(tr("UI_FIN_PL_COSTS_TOTAL"), cost_total, &"SmallCrit", true))
+	_pl_body.add_child(HSeparator.new())
+	var net := float(story.get("net_income", revenue_total - cost_total))
+	_pl_body.add_child(_statement_row(tr("UI_FIN_PL_NET_RESULT"), net, &"BodySmallStrong" if net >= 0.0 else &"SmallCrit", true))
+
+
+## The statement's lines (label, amount) as shown now (tests read them).
+func get_statement_lines() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if _pl_body == null:
+		return out
+	for row in _pl_body.get_children():
+		if row.has_meta(&"amount") and not row.is_queued_for_deletion():
+			out.append({"label": str(row.get_meta(&"label")), "amount": float(row.get_meta(&"amount"))})
+	return out
+
+
+func _statement_row(label: String, amount: float, tone: StringName, total: bool = false) -> Control:
+	var row := HBoxContainer.new()
+	row.set_meta(&"label", label)
+	row.set_meta(&"amount", amount)
+	var name_lbl := Label.new()
+	name_lbl.text = label
+	name_lbl.theme_type_variation = &"OverlineMuted" if total else &"SmallMuted"
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(name_lbl)
+	var value := Label.new()
+	value.text = SimFormatters.format_nok(amount)
+	value.theme_type_variation = tone
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(value)
+	return row
 
 ## P9: pen price always shown; resource-rent row only when the scenario enables it.
 func _refresh_deep_finance() -> void:
@@ -628,7 +690,10 @@ func _refresh_deep_finance() -> void:
 		_resource_rent_title.visible = enabled
 		_resource_rent_label.visible = enabled
 		if enabled:
-			_resource_rent_label.text = _fmt(float(rr.get("paid", 0.0)))
+			var paid := float(rr.get("paid", 0.0))
+			_resource_rent_label.text = _fmt(paid)
+			# Red only when the tax took money: nothing paid is not a warning.
+			LakskongenTheme.set_text_color(_resource_rent_label, C_DANGER if paid > 0.0 else C_MUTED)
 
 # S2: colour-coded time series (Kontanter / Lus per fisk / FCR, 90 d).
 # Replaces the former last-10-days text wall. Data: State.DailySnapshots via

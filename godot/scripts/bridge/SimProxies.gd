@@ -113,6 +113,7 @@ func get_ge_traits() -> Array[Dictionary]:
 
 
 func get_crew_list() -> Array[Dictionary]: return _arr(game_bridge.GetCrewList()) if game_bridge else []
+func get_crew_role_effects() -> Array[Dictionary]: return _arr(game_bridge.GetCrewRoleEffects()) if game_bridge else []
 func hire_worker(role: String) -> bool: return game_bridge.HireWorker(role) if game_bridge else false
 func fire_worker(worker_id: String) -> bool: return game_bridge.FireWorker(worker_id) if game_bridge else false
 func get_achievement_list() -> Array[Dictionary]: return _arr(game_bridge.GetAchievementList()) if game_bridge else []

@@ -1499,6 +1499,8 @@ private class BalancingConfig
         {
             if (days <= 0) return;
 
+            // Notes a player command left between ticks happened today.
+            StampDayNotes();
             for (int day = 0; day < days; day++)
             {
                 AdvanceOneDay();
@@ -1515,6 +1517,10 @@ private class BalancingConfig
                 // Any cash that moved without a booking today is booked as
                 // unclassified, so the statements always reconcile with cash.
                 ReconcileUnbookedCash();
+
+                // Date today's notes: the bridge drains a whole multi-day
+                // Advance at once and must not date them all to its last day.
+                StampDayNotes();
             }
 
             OnDayAdvanced?.Invoke(State.Day);
@@ -1544,9 +1550,18 @@ private class BalancingConfig
 
         private readonly List<DayNote> _dayNotes = new();
 
+        /// <summary>Give every undated note today's sim day.</summary>
+        private void StampDayNotes()
+        {
+            foreach (var note in _dayNotes)
+                if (note.Day < 0)
+                    note.Day = State.Day;
+        }
+
         /// <summary>Drain and clear the per-advance note ledger.</summary>
         public List<DayNote> DrainDayNotes()
         {
+            StampDayNotes();
             var notes = new List<DayNote>(_dayNotes);
             _dayNotes.Clear();
             return notes;

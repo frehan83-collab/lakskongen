@@ -469,13 +469,22 @@ func _raise(key: String, level: String, message: String) -> bool:
 ## site say what it is about, so lists can show one row per (category, site).
 func _push_alert(level: String, message: String, category: String = "event", site: String = "") -> void:
 	# The engine's day: weather events arrive before the tick's refresh, when
-	# current_day still holds yesterday, which cut the TTL to two days.
+	# current_day still holds yesterday, which cut the TTL to two days. An
+	# event the engine dated (a day note) keeps its own day: a multi-day
+	# advance reports all its storms at once (U1-05: four storms from days
+	# 1-9 were listed as "Nå" on day 12).
 	var day: int = int(game_bridge.CurrentDay) if game_bridge else current_day
+	if game_bridge and int(game_bridge.ProjectedNoteDay) >= 0:
+		day = int(game_bridge.ProjectedNoteDay)
 	var alert := {"key": "event:%d:%s" % [day, message], "level": level,
 		"message": message, "day": day, "category": category, "site": site}
 	_event_alerts.append(alert)
 	active_alerts.push_front(alert)
-	alert_raised.emit(level, message)
+	# An event already past its listing time (days skipped at once) is
+	# history: the event log keeps it, but it is not news to announce.
+	var today: int = int(game_bridge.CurrentDay) if game_bridge else current_day
+	if today - day < EVENT_ALERT_TTL_DAYS:
+		alert_raised.emit(level, message)
 
 
 func _tr_or(key: String, fallback: String) -> String:

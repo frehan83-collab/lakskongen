@@ -84,7 +84,8 @@ func _build() -> void:
 	_title = _make_label("", &"BodyStrong")
 	col.add_child(_title)
 
-	_detail = _make_label("", &"SmallMuted")
+	# Body colour: muted text on the tinted callout was 4.47:1.
+	_detail = _make_label("", &"Small")
 	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(_detail)
 

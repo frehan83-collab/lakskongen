@@ -17,6 +17,7 @@ UI_DASHBOARD_REVENUE_FORMAT,%s MNOK,%s MNOK
 UI_DASHBOARD_HEALTH_GOOD,Good,God
 UI_DASHBOARD_HEALTH_STABLE,Stable,Stabil
 UI_DASHBOARD_HEALTH_LOW,Low,Lav
+UI_DASHBOARD_KPI_SUSTAINABILITY,SUSTAINABILITY,BÆREKRAFT
 UI_DASHBOARD_FCR_BETTER,Better than target (%s),Bedre enn målet (%s)
 UI_PEN_COUNT_LABEL,Count,Antall
 UI_PEN_WEIGHT_LABEL,Avg weight,Snitt vekt
@@ -365,6 +366,16 @@ UI_TECH_TITLE_TOOLTIP,Technology tree,Teknologitre
 UI_DECISION_TITLE,CRITICAL DECISION,KRITISK BESLUTNING
 UI_DECISION_DAYS_FORMAT,⏱️ %d days left to decide,⏱️ %d dager igjen å bestemme
 UI_CREW_TITLE,Crew,Mannskap
+UI_CREW_EFFECT_NETS,Nets wear %s slower,Nøtene slites %s saktere
+UI_CREW_EFFECT_STORM,Storms kill %s fewer fish,Stormer dreper %s færre fisk
+UI_CREW_EFFECT_TREATMENT,Treatments kill %s fewer fish,Behandlinger dreper %s færre fisk
+UI_CREW_EFFECT_WELLBOAT_COST,Wellboat hire %s cheaper,Brønnbåtleie %s billigere
+UI_CREW_EFFECT_WELLBOAT_DAYS,Wellboat arrives %d day sooner,Brønnbåten kommer %d dag tidligere
+UI_CREW_KPI_ROLES,ROLES COVERED,ROLLER DEKKET
+UI_CREW_ROLES_COVERED,%d of %d,%d av %d
+UI_CREW_ROLES_TITLE,Roles and what they do,Roller og hva de gjør
+UI_CREW_ROLE_HIRED,On staff,Ansatt
+UI_CREW_ROLE_VACANT,Vacant,Ledig
 UI_CREW_HIRE,Hire,Ansett ny
 UI_BRIEFING_TITLE,☀️ MORNING BRIEFING,☀️ MORGENBRIEFING
 UI_BRIEFING_START_DAY,Start the Day →,Start dagen →
@@ -627,7 +638,7 @@ UI_COMPANY_FALLBACK,Your company,Ditt selskap
 UI_DASHBOARD_PENS_TITLE,Pen overview,Merdoversikt
 UI_DASHBOARD_WATER_TITLE,Water quality,Vannkvalitet
 UI_DASHBOARD_WEATHER_TITLE,Weather,Vær
-UI_DASHBOARD_FINANCE_TITLE,Finances (6 months),Økonomi (6 mnd.)
+UI_DASHBOARD_FINANCE_TITLE,Income and costs (30 days),Inntekter og kostnader (30 d)
 UI_DASHBOARD_ALERTS_TITLE,Alerts,Varsler
 UI_DASHBOARD_ACTIONS_TITLE,Shortcuts,Hurtigvalg
 UI_DASHBOARD_ACTION_FEEDING,AI feeding,AI-fôring
@@ -640,10 +651,14 @@ UI_DASHBOARD_ACTION_MAP,Map,Kart
 UI_DASHBOARD_ACTION_HIRE,Hire,Ansett
 UI_DASHBOARD_ACTION_CONTRACTS,Contracts,Kontrakter
 UI_DASHBOARD_PEN_EMPTY,Empty,Tom
+UI_DASHBOARD_PEN_LICE,Lice per fish,Lus per fisk
+UI_DASHBOARD_PEN_WEIGHT,Mean weight,Snittvekt
+UI_DASHBOARD_SITE_TIP,Standing biomass %s · %s adult female lice per fish (limit %s),Stående biomasse %s · %s voksne hunnlus per fisk (grense %s)
+UI_DASHBOARD_SITES_EMPTY,No sites yet,Ingen anlegg ennå
 UI_DASHBOARD_FCR_SETTLING,Smolts settling — FCR not judged yet,Smolten er i tilvenning — FCR vurderes ikke ennå
 UI_DASHBOARD_FCR_TARGET,target %s,mål %s
 UI_DASHBOARD_BIOMASS_TIP,"Standing biomass = number of fish × mean weight.\nNow: %s fish × %s kg ≈ %s tonnes.\nCounted per pen; moved by growth, mortality and escapes.","Stående biomasse = antall fisk × gjennomsnittsvekt.\nNå: %s fisk × %s kg ≈ %s tonn.\nTelles per merd; påvirkes av tilvekst, dødelighet og rømming."
-UI_DASHBOARD_REVENUE_TIP,"Accumulated balance (operating result) = sales revenue − costs.\nNow: %s MNOK.\nMoved by price (NOK/kg), harvested volume, feed and treatment costs.","Akkumulert saldo (driftsresultat) = salgsinntekter − kostnader.\nNå: %s MNOK.\nPåvirkes av pris (NOK/kg), høstet volum, fôr- og behandlingskostnader."
+UI_DASHBOARD_REVENUE_TIP,"Revenue booked this financial year: harvest sales, insurance payouts and sludge sales.\nNow: %s MNOK.\nThe line shows the year so far, day by day.","Inntekter bokført i regnskapsåret: slaktesalg, forsikringsoppgjør og slamsalg.\nNå: %s MNOK.\nLinjen viser året så langt, dag for dag."
 UI_DASHBOARD_HEALTH_TIP,"Sustainability score (0–100 %%) = weighted sum of lice control, emissions,\nescapes and animal welfare.\nNow: %s. ≥ 90 green · 70–89 yellow · < 70 red.","Bærekraftsscore (0–100 %%) = vektet sum av lusekontroll, utslipp,\nrømming og dyrevelferd.\nNå: %s. ≥ 90 grønn · 70–89 gul · < 70 rød."
 UI_DASHBOARD_FCR_TIP,"Feed conversion ratio (FCR) = feed used (kg) / biomass gain (kg).\nLower is better; target %s. Now: %s.\nDrivers: water temperature, feed quality (protein/astaxanthin), density and oxygen.","Fôrfaktor (FCR) = fôr brukt (kg) / biomassevekst (kg).\nLavere er bedre; mål %s. Nå: %s.\nFaktorer: vanntemperatur, fôrkvalitet (protein/astaxanthin), tetthet og oksygen."
 UI_DASHBOARD_STORM_RISK,%s storm risk (3 d),%s stormfare (3 d)
@@ -691,8 +706,14 @@ UI_FIN_STORY_NEGATIVE,The result is negative (%s MNOK). Largest cost drivers bel
 UI_FIN_STORY_COSTS,Largest costs,Største kostnader
 UI_FIN_STORY_INCOME,Largest income,Største inntekter
 UI_FIN_TITLE,Finances,Økonomi
-UI_FIN_CHART_TITLE,Income vs costs (6 months),Inntekter mot kostnader (6 mnd.)
+UI_FIN_CHART_TITLE,Income and costs per month,Inntekter og kostnader per måned
 UI_FIN_PL_TITLE,Income statement,Resultatregnskap
+UI_FIN_KPI_OPERATING_RESULT,OPERATING RESULT,DRIFTSRESULTAT
+UI_FIN_PL_COSTS_TOTAL,TOTAL COSTS,SUM KOSTNADER
+UI_FIN_PL_NET_RESULT,RESULT AFTER INTEREST AND TAX,RESULTAT ETTER RENTER OG SKATT
+UI_FIN_PL_NO_COSTS,No costs booked yet,Ingen kostnader bokført ennå
+UI_FIN_PL_OTHER_COSTS,Other costs,Andre kostnader
+UI_FIN_PL_REVENUE_TOTAL,TOTAL INCOME,SUM INNTEKTER
 UI_FIN_LOAN_TITLE,Loans and financing,Lån og finansiering
 UI_FIN_TRENDS_TITLE,Trends (90 d),Trender (90 d)
 UI_FIN_TAKE_LOAN,Take a loan (5 MNOK),Ta opp lån (5 MNOK)
@@ -788,6 +809,11 @@ UI_CONTRACTS_TITLE,Market and trade,Marked og handel
 UI_CONTRACTS_NEW,New contract,Ny kontrakt
 UI_CONTRACTS_SELL_SPOT,Sell spot,Selg spot
 UI_CONTRACTS_CHART_TITLE,Price history (12 weeks),Prisutvikling (12 uker)
+UI_CONTRACTS_CHART_TITLE_DAYS,"Spot price, last %d days","Spotpris, siste %d dager"
+UI_CONTRACTS_KPI_CONTRACTED,VOLUME UNDER CONTRACT,KONTRAHERT VOLUM
+UI_CONTRACTS_PRICE_AVG,AVERAGE,SNITT
+UI_CONTRACTS_PRICE_HIGH,HIGH,HØY
+UI_CONTRACTS_PRICE_LOW,LOW,LAV
 UI_CONTRACTS_BUYERS,Buyers,Kjøpere
 UI_CONTRACTS_ACTIVE,Contracts,Kontrakter
 UI_CONTRACTS_REGIONS,Market regions,Markedsregioner
@@ -1358,6 +1384,9 @@ UI_TOAST_ESCAPE,ESCAPE at %s — repair the nets now,RØMMING på %s — reparer
 UI_TOAST_DISEASE,Disease: %s at %s,Sykdom: %s på %s
 UI_TOAST_GAME_OVER,Game over: %s,Spillet er over: %s
 UI_CHART_NO_DATA,No data yet,Ingen data ennå
+UI_CHART_COSTS,Costs,Kostnader
+UI_CHART_DAY_RANGE,Days %d–%d,Dag %d–%d
+UI_CHART_INCOME,Income,Inntekter
 UI_PRICE_BREAK_EVEN,Break-even: %s,Nullpunkt: %s
 UI_PRICE_GRAPH_TITLE,SALMON SPOT PRICE (NOK/kg),SPOTPRIS LAKS (NOK/kg)
 ACHIEVEMENT_FIRST_SMOLT_NAME,First Smolt Release,Første utsett
@@ -1434,7 +1463,7 @@ ENUM_ACHIEVEMENT_TIER_INTERMEDIATE,Intermediate,Viderekommen
 ENUM_ACHIEVEMENT_TIER_ADVANCED,Advanced,Erfaren
 ENUM_ACHIEVEMENT_TIER_MASTER,Master,Mester
 ENUM_ACHIEVEMENT_TIER_HIDDEN,Hidden,Skjult
-UI_DASHBOARD_ALERT_REPEATS,%d times,%d ganger
+UI_DASHBOARD_ALERT_REPEATS,%d events,%d hendelser
 UI_GOAL_CHIP,Goal %s,Mål %s
 UI_GOAL_CHIP_WON,Goal reached,Mål nådd
 UI_GOAL_CHIP_LOST,Goal not reached,Mål ikke nådd

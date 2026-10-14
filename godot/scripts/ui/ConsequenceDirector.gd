@@ -256,7 +256,15 @@ func _prune_seen_events() -> void:
 
 # ── GameBridge handlers ────────────────────────────────────────────────────────
 
+## A storm reported from days skipped at once (the day-skip buttons) that is
+## this many days old is history: the event log and the alert card list it,
+## but it gets no shake and no toast (U1-05).
+const STALE_EVENT_DAYS := 3
+
 func _on_weather_event(event_type: String, severity: float, description: String) -> void:
+	if _game_bridge != null and int(_game_bridge.ProjectedNoteDay) >= 0 \
+			and int(_game_bridge.CurrentDay) - int(_game_bridge.ProjectedNoteDay) >= STALE_EVENT_DAYS:
+		return
 	if severity >= 0.8 or event_type.to_lower().contains("storm"):
 		_fire_critical("storm", "⛈ %s" % description)
 	# Mild weather is logged by NotificationCenter — no theater needed.

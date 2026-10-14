@@ -70,6 +70,11 @@ public sealed class DayNote
     public string EventType { get; set; } = "";
     public double Severity { get; set; } = 0.0;
     public double Value { get; set; } = 0.0;
+
+    /// <summary>The sim day the outcome happened on (stamped by Advance; -1
+    /// until then). A multi-day Advance drains every day's notes at once, so
+    /// the bridge dates its alerts by this, not by the day it drains (U1-05).</summary>
+    public int Day { get; set; } = -1;
 }
 
 /// <summary>
