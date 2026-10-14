@@ -16,7 +16,11 @@ namespace LakskongenSim.Environment
     /// Tangents follow +X (the U direction) with w = −1 so Godot's binormal
     /// points along +Z (V). The colour's red channel carries a cavity term
     /// from the height Laplacian (0.5 flat, higher in gullies, lower on
-    /// ridges) for the terrain shader's soil and occlusion.
+    /// ridges) for the terrain shader's soil and occlusion; green, blue and
+    /// alpha carry the vegetation masks (G2-02, <see cref="VegetationMasks"/>):
+    /// wood density, birch share and meadow, so the shader paints the woods
+    /// exactly where the tree scatter stands them. Without masks the ground is
+    /// bare (g 0, b 1, a 0).
     /// </summary>
     public sealed class TerrainMesh
     {
@@ -31,7 +35,7 @@ namespace LakskongenSim.Environment
             public float[] Tangents { get; init; } = Array.Empty<float>();
             /// <summary>u, v in [0, 1] over the whole terrain, per vertex.</summary>
             public float[] Uvs { get; init; } = Array.Empty<float>();
-            /// <summary>r, g, b, a per vertex: r = cavity, g = b = a = 1.</summary>
+            /// <summary>r, g, b, a per vertex: r = cavity, g = wood density, b = birch share, a = meadow.</summary>
             public float[] Colors { get; init; } = Array.Empty<float>();
             /// <summary>Three vertex indices per triangle (chunk-local).</summary>
             public int[] Indices { get; init; } = Array.Empty<int>();
@@ -61,8 +65,10 @@ namespace LakskongenSim.Environment
         /// centred on the origin, with chunks of up to
         /// <paramref name="chunkQuads"/>² quads.
         /// </summary>
-        public static TerrainMesh Build(float[] heights, int n, float worldSize, int chunkQuads = 64)
+        public static TerrainMesh Build(float[] heights, int n, float worldSize, int chunkQuads = 64, VegetationMasks? masks = null)
         {
+            if (masks != null && masks.Size != n)
+                throw new ArgumentException($"masks are {masks.Size}² for a {n}² grid", nameof(masks));
             if (heights.Length != n * n)
                 throw new ArgumentException($"expected {n * n} heights, got {heights.Length}", nameof(heights));
             if (chunkQuads < 1)
@@ -75,12 +81,12 @@ namespace LakskongenSim.Environment
                 int col0 = cx * chunkQuads, row0 = cz * chunkQuads;
                 int cols = Math.Min(chunkQuads, n - 1 - col0) + 1;
                 int rows = Math.Min(chunkQuads, n - 1 - row0) + 1;
-                chunks[c] = BuildChunk(heights, n, worldSize, col0, row0, cols, rows);
+                chunks[c] = BuildChunk(heights, n, worldSize, col0, row0, cols, rows, masks);
             });
             return new TerrainMesh(chunks, n);
         }
 
-        private static Chunk BuildChunk(float[] heights, int n, float worldSize, int col0, int row0, int cols, int rows)
+        private static Chunk BuildChunk(float[] heights, int n, float worldSize, int col0, int row0, int cols, int rows, VegetationMasks? masks)
         {
             float spacing = worldSize / (n - 1);
             float half = worldSize * 0.5f;
@@ -122,9 +128,9 @@ namespace LakskongenSim.Environment
                     uvs[v * 2] = col / (float)(n - 1);
                     uvs[v * 2 + 1] = row / (float)(n - 1);
                     colors[v * 4] = Cavity(heights, n, spacing, col, row);
-                    colors[v * 4 + 1] = 1f;
-                    colors[v * 4 + 2] = 1f;
-                    colors[v * 4 + 3] = 1f;
+                    colors[v * 4 + 1] = masks != null ? masks.Forest[g] : 0f;
+                    colors[v * 4 + 2] = masks != null ? masks.Birch[g] : 1f;
+                    colors[v * 4 + 3] = masks != null ? masks.Meadow[g] : 0f;
                 }
             }
 
@@ -158,7 +164,11 @@ namespace LakskongenSim.Environment
             };
         }
 
-        private static float Cavity(float[] heights, int n, float spacing, int col, int row)
+        /// <summary>
+        /// Cavity at grid vertex (col, row): 0.5 on a plane, toward 1 in a
+        /// gully or on a ledge (concave), toward 0 on a ridge (convex).
+        /// </summary>
+        public static float Cavity(float[] heights, int n, float spacing, int col, int row)
         {
             int s = CavityStride;
             int cl = Math.Max(col - s, 0), cr = Math.Min(col + s, n - 1);

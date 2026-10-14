@@ -17,7 +17,9 @@ extends Node
 ## - the camera's depth of field;
 ## - the water material: the sea state's wave bands (SeaStateModel: JONSWAP
 ##   from the wind and the fetch, Monahan whitecaps), their phases, the
-##   optics and the terrain's water bake (G1-05).
+##   optics and the terrain's water bake (G1-05);
+## - the ground's season, as global shader parameters for the terrain and
+##   the trees: snow line, wet ground, birch leaves (G2-02).
 ##
 ## Nothing else writes these: tests/test_environment_director.py fails on a
 ## second writer. Because the result is recomposed from the inputs every
@@ -162,6 +164,22 @@ const PROBE_MIN_INTERVAL := 2.0
 ## Wait this long after a change so the sky's radiance has settled first.
 const PROBE_SETTLE := 0.4
 
+# ── Ground (G2-02): snow, leaves, wet ground for the terrain and the trees ────
+## Globals in project.godot [shader_globals], read by ground_season.gdshaderinc.
+const GROUND_GLOBALS := ["lk_snow_line", "lk_ground_wetness", "lk_foliage", "lk_autumn", "lk_fresh_snow"]
+## A snowfall pulls the snow line toward this altitude (m; below the shore),
+## at full intensity.
+const FRESH_SNOW_LINE_M := -60.0
+## Fresh snow builds up quickly while it snows and settles back toward the
+## season's line over a few game days; rain wets fast and dries slowly (1/s).
+const FRESH_SNOW_RISE := 0.6
+const FRESH_SNOW_DECAY := 0.05
+const WETNESS_RISE := 0.8
+const WETNESS_DECAY := 0.08
+## Rain intensity that soaks the ground; wet snow soaks bare rock half as much.
+const RAIN_SOAK := 0.6
+const SNOW_SOAK := 0.5
+
 var _water_temperature_c := 8.0
 var _algae := 0.0
 var _sky_time := 0.0
@@ -191,6 +209,8 @@ var _bake_applied: Texture2D = null
 ## The sea composed last: hs/tp/amplitudes for the sheltered basin and the
 ## open coast, whitecaps (tests read it).
 var sea_state: Dictionary = {}
+var _fresh_snow := 0.0
+var _wetness := 0.0
 
 
 func _ready() -> void:
@@ -261,6 +281,7 @@ func compose(delta: float, snap: bool = false) -> void:
 	_apply_fog(sun_elev, cloud, visibility, sea_fog, underwater, c)
 	_apply_image(sun_elev, distance, underwater, c)
 	_apply_water(delta, c)
+	_apply_ground(delta, snap, c)
 	_refresh_probe(delta, snap, sun_elev, cloud, sea_fog)
 	_composed = c
 
@@ -694,6 +715,44 @@ func max_crest_at(exposure: float) -> float:
 	for i in _comp_k.size():
 		total += lerpf(a_sh[_comp_band[i]], a_ex[_comp_band[i]], exposure) * _comp_weight[i]
 	return total
+
+
+# ── Ground (G2-02) ────────────────────────────────────────────────────────────
+
+## The land's season for the terrain and tree shaders: the calendar's snow
+## line and birch leaves (TimeOfDay.get_ground_season, GroundSeasonModel),
+## lowered by a snowfall in progress, and how wet the ground is after rain.
+## Written as global shader parameters (ground_season.gdshaderinc).
+func _apply_ground(delta: float, snap: bool, c: Dictionary) -> void:
+	var season: Dictionary = time_system.get_ground_season() if time_system.has_method("get_ground_season") else {}
+	var line := float(season.get("snow_line_m", 2000.0))
+	var snowing := weather_system.get_snow() if weather_system else 0.0
+	var raining := weather_system.get_rain() if weather_system else 0.0
+	var soak := clampf(maxf(raining / RAIN_SOAK, snowing * SNOW_SOAK), 0.0, 1.0)
+	if snap:
+		_fresh_snow = snowing
+		_wetness = soak
+	else:
+		_fresh_snow = _approach_rate(_fresh_snow, snowing, FRESH_SNOW_RISE, FRESH_SNOW_DECAY, delta)
+		_wetness = _approach_rate(_wetness, soak, WETNESS_RISE, WETNESS_DECAY, delta)
+	var effective := minf(line, lerpf(line, FRESH_SNOW_LINE_M, clampf(_fresh_snow, 0.0, 1.0)))
+	var foliage := float(season.get("foliage", 1.0))
+	var autumn := float(season.get("autumn", 0.0))
+	var values := [effective, _wetness, foliage, autumn, clampf(_fresh_snow, 0.0, 1.0)]
+	for i in GROUND_GLOBALS.size():
+		RenderingServer.global_shader_parameter_set(GROUND_GLOBALS[i], values[i])
+	c["snow_line_m"] = effective
+	c["season_snow_line_m"] = line
+	c["ground_wetness"] = _wetness
+	c["foliage"] = foliage
+	c["autumn"] = autumn
+	c["fresh_snow"] = clampf(_fresh_snow, 0.0, 1.0)
+
+
+## Move toward a target at one rate going up and another coming down (1/s).
+static func _approach_rate(current: float, target: float, rise: float, decay: float, delta: float) -> float:
+	var rate := rise if target > current else decay
+	return current + (target - current) * (1.0 - exp(-rate * delta))
 
 
 # ── Static setup (once) ───────────────────────────────────────────────────────

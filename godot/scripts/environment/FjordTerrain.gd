@@ -34,14 +34,15 @@ const TERRAIN_SHADER := "res://shaders/terrain_shader.gdshader"
 ## Main-thread time per frame for chunk uploads (a chunk costs 0.2-1 ms on an
 ## idle M1 Pro, more under load).
 const CHUNK_FRAME_BUDGET_MS := 4.0
-## Detail textures for the terrain shader (luminance and normal detail only).
+## G2-02: the terrain material's two Texture2DArrays (tools/gen_terrain_textures.py):
+## seven layers of albedo + height and of normal + roughness + AO.
 const DETAIL_TEXTURES := {
-	"rock_tex": "res://assets/textures/terrain_rock.png",
-	"rock_normal_tex": "res://assets/textures/terrain_rock_normal.png",
-	"moss_tex": "res://assets/textures/terrain_moss.png",
-	"moss_normal_tex": "res://assets/textures/terrain_moss_normal.png",
-	"snow_normal_tex": "res://assets/textures/terrain_snow_normal.png",
+	"albedo_height": "res://assets/textures/terrain/terrain_albedo_height.png",
+	"normal_rough_ao": "res://assets/textures/terrain/terrain_normal_rough_ao.png",
 }
+## Birch and spruce on the slopes (G2-02): MultiMesh cells built from the
+## same masks the shader paints the woods with.
+const VEGETATION_SCENE := "res://scenes/environment/Vegetation.tscn"
 
 ## Heightfield fingerprint (FNV-1a 64 over the height bits), set when built.
 var heightfield_hash: String = ""
@@ -62,6 +63,13 @@ var water_bake_texture: ImageTexture = null
 ## the direction (x, z) that sea travels.
 var sheltered_fetch_m: float = 3000.0
 var sea_direction: Vector2 = Vector2(0.3, 1.0).normalized()
+## G2-02: the trees as MultiMesh-ready cells (TerrainGeneratorBridge.VegetationChunks),
+## how many there are, and the mean treeline the masks used.
+var vegetation_chunks: Array = []
+var tree_count: int = 0
+var treeline_m: float = 500.0
+## The Vegetation node (scenes/environment/Vegetation.tscn), once the terrain is up.
+var vegetation: Node = null
 
 var _generator: RefCounted = null
 var _heights := PackedFloat32Array()
@@ -71,7 +79,6 @@ var _pending_chunks: Array = []
 var _build_result: Dictionary = {}
 var _collision_shape: CollisionShape3D
 var _material: ShaderMaterial
-var _season: float = 0.5
 var _gen_thread: Thread = null
 var _water_bake_image: Image = null
 var _requested: Array[String] = []
@@ -148,6 +155,10 @@ func _apply_build(result: Dictionary) -> void:
 	max_upload_frame_ms = 0.0
 	upload_steps_ms = PackedFloat32Array()
 	_apply_water_bake(result)
+	vegetation_chunks = result.get("vegetation", [])
+	tree_count = int(result.get("tree_count", 0))
+	treeline_m = float(result.get("treeline_m", treeline_m))
+	vegetation = null
 
 	for child in get_children():
 		child.queue_free()
@@ -187,10 +198,24 @@ func _process(_delta: float) -> void:
 		_note_upload_frame(collider_started)
 		_build_result = {}
 		set_process(false)
-		print("[FjordTerrain] %dx%d fjord, %.1f m grid, hash %s (worker %.0f ms, main-thread steps %s ms)" % [
-			terrain_resolution, terrain_resolution, _spacing, heightfield_hash, last_generation_ms,
+		print("[FjordTerrain] %dx%d fjord, %.1f m grid, hash %s, %d trees (worker %.0f ms, main-thread steps %s ms)" % [
+			terrain_resolution, terrain_resolution, _spacing, heightfield_hash, tree_count, last_generation_ms,
 			", ".join(Array(upload_steps_ms).map(func(ms: float) -> String: return "%.1f" % ms))])
+		_add_vegetation()
 		terrain_ready.emit()
+
+
+## The trees go up after the terrain, a few cells per frame (Vegetation.gd).
+func _add_vegetation() -> void:
+	if vegetation_chunks.is_empty() or not ResourceLoader.exists(VEGETATION_SCENE):
+		return
+	var scene := load(VEGETATION_SCENE) as PackedScene
+	if scene == null:
+		return
+	vegetation = scene.instantiate()
+	vegetation.name = "Vegetation"
+	add_child(vegetation)
+	vegetation.call("build", vegetation_chunks)
 
 
 func _apply_water_bake(result: Dictionary) -> void:
@@ -281,10 +306,10 @@ func _create_terrain_material() -> Material:
 	_material = ShaderMaterial.new()
 	_material.shader = shader
 	_material.set_shader_parameter("water_level", water_level)
-	_material.set_shader_parameter("season", _season)
+	_material.set_shader_parameter("treeline_m", treeline_m)
 	var missing: Array[String] = []
 	for uniform_name in DETAIL_TEXTURES:
-		var texture := _take_resource(DETAIL_TEXTURES[uniform_name]) as Texture2D
+		var texture := _take_resource(DETAIL_TEXTURES[uniform_name]) as Texture
 		if texture == null:
 			missing.append(DETAIL_TEXTURES[uniform_name])
 			continue
@@ -325,12 +350,9 @@ func _take_resource(path: String) -> Resource:
 	return load(path)
 
 
-## Season for the terrain material (0 = winter, 0.5 = summer); kept until
-## the material exists.
-func set_season(s: float) -> void:
-	_season = s
-	if _material != null:
-		_material.set_shader_parameter("season", s)
+## The terrain's ShaderMaterial (null until the textures have loaded).
+func get_material() -> ShaderMaterial:
+	return _material
 
 
 ## Terrain height in metres at a world position: bilinear over the built

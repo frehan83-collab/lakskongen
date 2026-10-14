@@ -134,6 +134,17 @@ func is_daytime() -> bool:
 	return get_sun_elevation_deg() > 0.0
 
 
+## The ground's season for the calendar and latitude (G2-02,
+## GroundSeasonModel): snow_line_m (m), foliage (birch leaves 0-1), autumn
+## (yellowing 0-1). The EnvironmentDirector composes it into the ground.
+func get_ground_season() -> Dictionary:
+	return {
+		"snow_line_m": float(_sky.get("snow_line_m", 2000.0)),
+		"foliage": float(_sky.get("foliage", 1.0)),
+		"autumn": float(_sky.get("autumn", 0.0)),
+	}
+
+
 ## Normalized sun height (0 = horizon or below, 1 = zenith).
 func get_sun_height() -> float:
 	return maxf(get_sun_direction().y, 0.0)

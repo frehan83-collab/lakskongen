@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Godot;
 using LakskongenSim.Environment;
 
@@ -34,7 +37,11 @@ public partial class TerrainGeneratorBridge : RefCounted
     /// Dictionaries with vertices, normals, tangents, uvs, colors, indices),
     /// hash, spacing, resolution, build_ms; and for the water (G1-05)
     /// water_bake (RGBA half floats, <see cref="WaterBake"/>: depth, shore
-    /// distance, exposure, seabed slope), sheltered_fetch_m and sea_direction.
+    /// distance, exposure, seabed slope), sheltered_fetch_m and sea_direction;
+    /// and for the vegetation (G2-02) the masks baked into the chunk colours
+    /// (<see cref="VegetationMasks"/>), vegetation (an Array of chunk
+    /// Dictionaries, <see cref="VegetationChunks"/>), tree_count and
+    /// treeline_m.
     /// </summary>
     public Godot.Collections.Dictionary Build()
     {
@@ -42,7 +49,15 @@ public partial class TerrainGeneratorBridge : RefCounted
         var settings = _generator.Settings;
         int n = settings.Resolution;
         float[] heights = _generator.GenerateHeightmap();
-        var mesh = TerrainMesh.Build(heights, n, settings.WorldSizeM, ChunkQuads);
+        var water = WaterBake.Build(heights, n, settings.WorldSizeM, 0f,
+            settings.PrevailingSeaDirX, settings.PrevailingSeaDirZ);
+        var exposure = new float[n * n];
+        for (int i = 0; i < exposure.Length; i++)
+            exposure[i] = water.Rgba[i * 4 + 2];
+        var vegetation = new VegetationSettings { Seed = settings.Seed };
+        var masks = VegetationScatter.BuildMasks(heights, n, settings.WorldSizeM, vegetation, exposure);
+        var trees = VegetationScatter.Scatter(heights, masks, vegetation);
+        var mesh = TerrainMesh.Build(heights, n, settings.WorldSizeM, ChunkQuads, masks);
 
         var chunks = new Godot.Collections.Array();
         foreach (var chunk in mesh.Chunks)
@@ -51,9 +66,6 @@ public partial class TerrainGeneratorBridge : RefCounted
         var colliderHeights = new float[n * n];
         for (int i = 0; i < colliderHeights.Length; i++)
             colliderHeights[i] = heights[i] / spacing;
-
-        var water = WaterBake.Build(heights, n, settings.WorldSizeM, 0f,
-            settings.PrevailingSeaDirX, settings.PrevailingSeaDirZ);
 
         var result = new Godot.Collections.Dictionary
         {
@@ -66,8 +78,72 @@ public partial class TerrainGeneratorBridge : RefCounted
             ["hash"] = TerrainGenerator.HeightfieldHash(heights),
             ["spacing"] = spacing,
             ["resolution"] = n,
+            ["vegetation"] = VegetationChunks(trees, heights, n, settings.WorldSizeM),
+            ["tree_count"] = trees.Count,
+            ["treeline_m"] = vegetation.TreelineMeanM,
         };
         result["build_ms"] = watch.Elapsed.TotalMilliseconds;
+        return result;
+    }
+
+    /// <summary>Side of the square cells the trees are grouped in (one MultiMesh per cell and species).</summary>
+    public const float VegetationChunkM = 250f;
+    /// <summary>Floats per instance in a MultiMesh buffer: a 3×4 transform plus custom data.</summary>
+    public const int FloatsPerTree = 16;
+
+    /// <summary>
+    /// The trees grouped by <see cref="VegetationChunkM"/> cell and species,
+    /// as ready MultiMesh buffers (Godot's layout: the transform's rows
+    /// basis.x.x, basis.y.x, basis.z.x, origin.x, … then custom data). Each
+    /// tree turns about Y by its yaw and scales uniformly; its base sinks into
+    /// the slope (0.25 m plus 0.35 m per unit of rise over run) so the trunk
+    /// never floats over the downhill side. Custom data: tint 0-1, a second
+    /// variation 0-1, the scale, and the base altitude in metres.
+    /// Keys per chunk: species (int), center (Vector3), count, buffer.
+    /// </summary>
+    public static Godot.Collections.Array VegetationChunks(List<TreeInstance> trees, float[] heights, int n, float worldSize)
+    {
+        float half = worldSize * 0.5f;
+        float spacing = worldSize / (n - 1);
+        int cells = (int)MathF.Ceiling(worldSize / VegetationChunkM);
+        var groups = new Dictionary<(int, int, TreeSpecies), List<TreeInstance>>();
+        foreach (var t in trees)
+        {
+            int cx = Math.Clamp((int)((t.X + half) / VegetationChunkM), 0, cells - 1);
+            int cz = Math.Clamp((int)((t.Z + half) / VegetationChunkM), 0, cells - 1);
+            var key = (cx, cz, t.Species);
+            if (!groups.TryGetValue(key, out var list))
+                groups[key] = list = new List<TreeInstance>();
+            list.Add(t);
+        }
+        var result = new Godot.Collections.Array();
+        foreach (var ((cx, cz, species), list) in groups.OrderBy(g => g.Key.Item2).ThenBy(g => g.Key.Item1).ThenBy(g => g.Key.Item3))
+        {
+            var buffer = new float[list.Count * FloatsPerTree];
+            for (int i = 0; i < list.Count; i++)
+            {
+                var t = list[i];
+                float slope = VegetationScatter.SlopeTanAt(heights, n, spacing, half, t.X, t.Z);
+                float sink = 0.25f + 0.35f * slope;
+                float c = MathF.Cos(t.Yaw) * t.Scale, s = MathF.Sin(t.Yaw) * t.Scale;
+                int o = i * FloatsPerTree;
+                // Rotation about +Y: basis.x = (c, 0, -s), basis.y = (0, k, 0), basis.z = (s, 0, c).
+                buffer[o] = c; buffer[o + 1] = 0f; buffer[o + 2] = s; buffer[o + 3] = t.X;
+                buffer[o + 4] = 0f; buffer[o + 5] = t.Scale; buffer[o + 6] = 0f; buffer[o + 7] = t.Y - sink;
+                buffer[o + 8] = -s; buffer[o + 9] = 0f; buffer[o + 10] = c; buffer[o + 11] = t.Z;
+                buffer[o + 12] = t.Tint;
+                buffer[o + 13] = (t.Yaw * 2.3f) % 1f;
+                buffer[o + 14] = t.Scale;
+                buffer[o + 15] = t.Y;
+            }
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["species"] = (int)species,
+                ["center"] = new Godot.Vector3(-half + (cx + 0.5f) * VegetationChunkM, 0f, -half + (cz + 0.5f) * VegetationChunkM),
+                ["count"] = list.Count,
+                ["buffer"] = buffer,
+            });
+        }
         return result;
     }
 

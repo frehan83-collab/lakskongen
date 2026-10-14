@@ -143,8 +143,6 @@ func apply_sky_context(ctx: Dictionary) -> void:
 		return
 	if time_system:
 		time_system.set_calendar(float(ctx.get("latitude", time_system.latitude_deg)), int(ctx.get("sim_day", time_system.sim_day)))
-	if terrain and "sim_day" in ctx:
-		terrain.set_season(fmod(float(ctx["sim_day"]) / 365.0, 1.0))
 	if weather_system:
 		weather_system.apply_sky_context(ctx)
 
@@ -163,12 +161,11 @@ func set_time(hour: float) -> void:
 
 
 ## Set season as a fraction of the year from 1 January (0 = winter,
-## 0.5 = summer): moves the sky's calendar day and the terrain's snow.
+## 0.5 = summer): moves the calendar day, so the sky, the snow line and the
+## birch leaves follow (the director composes the ground from the calendar).
 func set_season(s: float) -> void:
 	if time_system:
 		time_system.season = s
-	if terrain:
-		terrain.set_season(s)
 	_snap_director()
 
 
