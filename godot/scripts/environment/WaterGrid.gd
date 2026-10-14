@@ -6,12 +6,15 @@ extends Node3D
 ## Level 0 is a 2 m grid 512 m across (256 quads), centred on the camera;
 ## every further level is a square ring twice as wide with twice the
 ## spacing (the same 256 quads across, minus the hole the finer level
-## fills), out to 8 levels = ±32.8 km. Each level is four meshes (quadrants
-## at level 0, a pinwheel of strips in the rings) so the half behind the
-## camera is frustum-culled. The grid follows the camera in whole 2 m steps,
-## so the finest lattice never swims. The vertex shader stitches each
-## level's outer edge to the coarser ring (odd vertices take the average of
-## their neighbours' displacement), so no cracks open between levels.
+## fills): 5 levels reach ±4.1 km at 32 m. Beyond that a flat skirt runs to
+## the horizon (±32.8 km): out there a wave is far below a pixel, and a
+## displaced grid would only shade sub-pixel triangles near the horizon.
+## Each level is four meshes (quadrants at level 0, a pinwheel of strips in
+## the rings and the skirt) so the half behind the camera is frustum-culled.
+## The grid follows the camera in whole 2 m steps, so the finest lattice
+## never swims. The vertex shader stitches each level's outer edge to the
+## coarser ring (odd vertices take the average of their neighbours'
+## displacement) and lays the last level's rim flat, so no cracks open.
 ##
 ## The material is EnvironmentDirector's to drive (waves, optics, bake);
 ## this node only owns the geometry and its placement.
@@ -22,8 +25,10 @@ extends Node3D
 @export var base_spacing: float = 2.0
 ## Quads across each level (level 0 spans base_spacing * grid_quads).
 @export var grid_quads: int = 256
-## Number of levels, level 0 included (8 levels reach 256 m * 2^7 = 32.8 km).
-@export var levels: int = 8
+## Displaced levels, level 0 included (5 levels reach 256 m * 2^4 = 4.1 km).
+@export var levels: int = 5
+## Half-extent of the flat skirt beyond the levels (m): the horizon.
+@export var ocean_extent: float = 32768.0
 ## The camera the grid follows; the viewport's current camera when unset.
 @export var follow_camera: Camera3D
 
@@ -60,13 +65,18 @@ func level_spacing(level: int) -> float:
 
 
 ## Vertex spacing (m) of the grid at a world position: the level whose
-## square (centred on the grid origin) contains it.
+## square (centred on the grid origin) contains it (INF on the flat skirt).
 func spacing_at(world_pos: Vector3) -> float:
 	var d := maxf(absf(world_pos.x - global_position.x), absf(world_pos.z - global_position.z))
 	for level in levels:
 		if d <= level_half_extent(level) + 1e-3:
 			return level_spacing(level)
 	return INF
+
+
+## Half-extent (m) of the displaced levels; the skirt beyond is flat.
+func displaced_extent() -> float:
+	return level_half_extent(levels - 1)
 
 
 ## Every grid piece (tests read their meshes and transforms).
@@ -107,12 +117,28 @@ func _build() -> void:
 	for level in levels:
 		var spacing := level_spacing(level)
 		for turn in 4:
-			var piece := MeshInstance3D.new()
-			piece.name = "L%d_%d" % [level, turn]
-			piece.mesh = quadrant if level == 0 else strip
-			piece.material_override = material
-			piece.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			piece.layers = RENDER_LAYER
-			piece.transform = Transform3D(Basis(Vector3.UP, turn * PI * 0.5).scaled(Vector3(spacing, spacing, spacing)), Vector3.ZERO)
-			add_child(piece)
-			_pieces.append(piece)
+			_add_piece("L%d_%d" % [level, turn], quadrant if level == 0 else strip, turn, spacing)
+	# The skirt: the same pinwheel in metres, from the last level to the horizon.
+	var inner := displaced_extent()
+	var skirt := PlaneMesh.new()
+	skirt.size = Vector2(ocean_extent + inner, ocean_extent - inner)
+	skirt.center_offset = Vector3(-ocean_extent + (ocean_extent + inner) * 0.5, 0.0, -ocean_extent + (ocean_extent - inner) * 0.5)
+	skirt.custom_aabb = AABB(Vector3(-ocean_extent, -CULL_HEIGHT_M, -ocean_extent), Vector3(ocean_extent + inner, 2.0 * CULL_HEIGHT_M, ocean_extent - inner))
+	for turn in 4:
+		_add_piece("Skirt_%d" % turn, skirt, turn, 1.0)
+	if material != null:
+		material.set_shader_parameter("grid_half_units", float(grid_quads / 2))
+		material.set_shader_parameter("grid_base_spacing", base_spacing)
+		material.set_shader_parameter("displaced_extent", displaced_extent())
+
+
+func _add_piece(piece_name: String, mesh: Mesh, turn: int, spacing: float) -> void:
+	var piece := MeshInstance3D.new()
+	piece.name = piece_name
+	piece.mesh = mesh
+	piece.material_override = material
+	piece.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	piece.layers = RENDER_LAYER
+	piece.transform = Transform3D(Basis(Vector3.UP, turn * PI * 0.5).scaled(Vector3(spacing, spacing, spacing)), Vector3.ZERO)
+	add_child(piece)
+	_pieces.append(piece)

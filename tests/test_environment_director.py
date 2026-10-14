@@ -26,8 +26,8 @@ WATER_WAVE_UNIFORMS = (
     "wave_amplitude", "wave_speed", "wave_frequency", "wave_steepness", "wind_strength",
     "wind_direction", "temperature_factor", "algae_density",
     # G1-05: the sea state (SeaStateModel), its phases and the water bake.
-    "wave_shape", "wave_amp", "whitecaps", "whitecap_threshold", "ripple_strength",
-    "sea_height", "sea_direction", "sea_time", "underside_light", "water_bake", "has_bake",
+    "wave_k", "wave_amp", "whitecaps", "whitecap_threshold", "ripple_strength",
+    "sea_height", "sea_peak", "sea_direction", "sea_time", "underside_light", "water_bake", "has_bake",
 )
 
 # Each category: patterns that write it. "= " but not "==".

@@ -8,14 +8,15 @@ render_mode world_vertex_coords, cull_disabled, depth_draw_opaque, diffuse_burle
 // (FjordTerrain's water bake: depth, shore distance, exposure, seabed slope),
 // so deep water reads dark teal-black and the terrain never shows through it,
 // while shallow water lets the seabed through. The surface reflects the sky
-// and the reflection probe through the engine's Schlick Fresnel (F0 = 0.02,
-// SPECULAR 0.25) and GGX highlight.
+// radiance through the engine's Schlick Fresnel (F0 = 0.02, SPECULAR 0.25)
+// and GGX highlight; it draws on its own render layer, which the fjord's
+// ReflectionProbe leaves out of its reflection mask (WaterGrid.gd).
 //
 // Waves: the eight fixed bands of SeaStateModel (JONSWAP from the wind and
-// the fetch, Carter 1982), each drawn as three Gerstner components spread
-// round the band's heading and slightly detuned, so the sea never looks
-// like corrugated sheet. EnvironmentDirector writes one amplitude set for
-// the sheltered basin and one for the open coast; the baked exposure blends
+// the fetch, Carter 1982), each drawn as two Gerstner components either side
+// of the band's heading and slightly detuned, so the sea never looks like
+// corrugated sheet. EnvironmentDirector writes one amplitude set for the
+// sheltered basin and one for the open coast; the baked exposure blends
 // them. Phases are integrated on the CPU, so the waves never jump. Normals
 // are analytic per pixel; a component too fine for the pixel footprint fades
 // out of the normal and its slope variance moves into the roughness instead
@@ -23,18 +24,20 @@ render_mode world_vertex_coords, cull_disabled, depth_draw_opaque, diffuse_burle
 //
 // Foam: lacy surf where the shore distance field is small, running in;
 // whitecaps over Monahan's share of the surface, on the crests of the local
-// sea, with foam patches lingering downwind.
+// sea, stretched along them.
 //
 // Seen from below (cull_disabled, !FRONT_FACING): Snell's window (48.6 deg)
 // shows the daylight, outside it total internal reflection mirrors the deep
 // water.
 
-#define WAVES 24
+#define WAVES 16
 
 // ── Waves (written by EnvironmentDirector) ───────────────────────────────────
-// wave_shape[i] = (direction x, direction z, wavenumber k = 2 pi / lambda, choppiness Q)
-uniform vec4 wave_shape[WAVES];
-// wave_amp[i] = (amplitude in the sheltered basin m, amplitude on the open coast m, phase rad, 0)
+// wave_k[i] = (wavevector x, wavevector z, wavenumber k = 2 pi / lambda, choppiness Q),
+// ordered longest wave first
+uniform vec4 wave_k[WAVES];
+// wave_amp[i] = (amplitude in the sheltered basin m, amplitude on the open coast m,
+// phase rad, wavelength m)
 uniform vec4 wave_amp[WAVES];
 // Whitecap coverage (Monahan fraction) and the local wind's ripple strength.
 uniform float whitecaps : hint_range(0.0, 1.0) = 0.0;
@@ -44,6 +47,8 @@ uniform float whitecap_threshold = 4.0;
 uniform float ripple_strength : hint_range(0.0, 2.0) = 0.3;
 // Significant wave height of each sea (m): surf width, crest height, roughness.
 uniform vec2 sea_height = vec2(0.1, 0.5);
+// Spectral peak wavelength of each sea (m).
+uniform vec2 sea_peak = vec2(3.0, 20.0);
 uniform vec2 sea_direction = vec2(0.287, 0.958);
 // Seconds, accumulated by the director.
 uniform float sea_time = 0.0;
@@ -81,8 +86,11 @@ uniform sampler2D caustics_texture : hint_default_white, filter_linear_mipmap, r
 // ── Grid (WaterGrid.gd) ──────────────────────────────────────────────────────
 uniform float grid_half_units = 128.0;
 uniform float grid_base_spacing = 2.0;
+// Half-extent of the displaced levels (m); the skirt beyond lies flat.
+uniform float displaced_extent = 4096.0;
 
 const float TAU_ = 6.28318530718;
+const float INV_TAU = 0.159154943092;
 const float IOR_WATER = 1.333;
 const float SNELL_COS = 0.6615; // cos(48.6 deg)
 const float MIN_REFLECTION_UP = 0.03;
@@ -105,24 +113,42 @@ vec4 bake_at(vec2 xz) {
 	return mix(vec4(200.0, 8000.0, 1.0, 0.0), b, inside);
 }
 
-// Amplitude of component i at a point: the basin's or the coast's sea by
-// exposure, fading out where the water shoals to nothing.
-float component_amplitude(int i, float exposure, float depth) {
-	float a = mix(wave_amp[i].x, wave_amp[i].y, exposure);
-	float lambda = TAU_ / max(wave_shape[i].z, 1e-4);
-	return a * (1.0 - exp(-max(depth, 0.0) / (0.08 * lambda + 0.5)));
+// Amplitude of a component at a point: the basin's or the coast's sea by
+// exposure; in shallow water it fades out as the depth runs out (a cheap
+// stand-in for 1 - exp(-depth / (0.08 lambda + 0.5))).
+float component_amplitude(vec4 wa, float exposure, float depth) {
+	float a = mix(wa.x, wa.y, exposure);
+	if (depth < 40.0) {
+		float d = max(depth, 0.0);
+		a *= d / (d + 0.08 * wa.w + 0.5);
+	}
+	return a;
 }
 
+// Phase in [0, 2 pi): the wavevector times a position kilometres out is
+// large, and the GPU's fast sine wants a reduced argument.
+float wave_phase(vec4 wk, vec4 wa, vec2 p) {
+	return fract((dot(wk.xy, p) - wa.z) * INV_TAU) * TAU_;
+}
+
+// The components are ordered longest first (EnvironmentDirector), so a loop
+// can stop at the first one too short to draw.
 vec3 displacement(vec2 p, float exposure, float depth, float grid_spacing) {
 	vec3 d = vec3(0.0);
 	for (int i = 0; i < WAVES; i++) {
-		vec4 sh = wave_shape[i];
-		float lambda = TAU_ / max(sh.z, 1e-4);
+		vec4 wk = wave_k[i];
+		vec4 wa = wave_amp[i];
 		// The grid draws a component only where it has >= 4 vertices per wavelength.
-		float a = component_amplitude(i, exposure, depth) * smoothstep(3.0 * grid_spacing, 6.0 * grid_spacing, lambda);
-		float ph = mod(sh.z * dot(sh.xy, p) - wave_amp[i].z, TAU_);
+		if (wa.w < 3.0 * grid_spacing) {
+			break;
+		}
+		float a = component_amplitude(wa, exposure, depth) * smoothstep(3.0 * grid_spacing, 6.0 * grid_spacing, wa.w);
+		if (a < 1e-4) {
+			continue;
+		}
+		float ph = wave_phase(wk, wa, p);
 		d.y += a * sin(ph);
-		d.xz += sh.w * a * sh.xy * cos(ph);
+		d.xz += wk.w * a * (wk.xy / wk.z) * cos(ph);
 	}
 	return d;
 }
@@ -155,6 +181,9 @@ void vertex() {
 		vec4 b = bake_at(p0);
 		disp = displacement(p0, b.b, b.r, grid_spacing);
 	}
+	// Flat beyond the displaced levels: the far skirt and the last level's
+	// edge meet without a crack.
+	disp *= 1.0 - smoothstep(0.75 * displaced_extent, displaced_extent, d_grid);
 	VERTEX = vec3(p0.x, origin.y, p0.y) + disp;
 	v_world = VERTEX;
 	v_p0 = p0;
@@ -172,7 +201,8 @@ void fragment() {
 	// from one triangle to the next and printed the grid into the shading).
 	vec3 to_camera = CAMERA_POSITION_WORLD - v_world;
 	vec3 view_w = normalize(to_camera);
-	float pixel_angle = 2.0 / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y);
+	// abs(): the projection flips Y on this backend, so [1][1] is negative.
+	float pixel_angle = 2.0 / (abs(PROJECTION_MATRIX[1][1]) * VIEWPORT_SIZE.y);
 	float footprint = length(to_camera) * pixel_angle / max(abs(view_w.y), 0.12) + 1e-4;
 	float hs = mix(sea_height.x, sea_height.y, exposure);
 
@@ -183,29 +213,37 @@ void fragment() {
 	// crests of the energy-carrying waves.
 	float height = 0.0;
 	float height_var = 0.0;
-	// Energy-weighted wavelength of the local sea (sets when its crests
-	// become too small to draw one by one).
 	float energy = 0.0;
-	float energy_lambda = 0.0;
+	// The whitecaps follow the crests of the local sea until they shrink to
+	// a few pixels; only then is the surface height needed for components
+	// too fine to draw.
+	float dominant_lambda = mix(sea_peak.x, sea_peak.y, exposure);
+	bool breaking = whitecaps > 0.0008 && depth > 0.0;
+	bool need_height = breaking && footprint < 0.22 * dominant_lambda;
+	float keep_from = 2.0 * footprint;
+	float keep_scale = 1.0 / (4.0 * footprint);
 	for (int i = 0; i < WAVES; i++) {
-		vec4 sh = wave_shape[i];
-		float lambda = TAU_ / max(sh.z, 1e-4);
-		float a = component_amplitude(i, exposure, depth);
-		float ka = sh.z * a;
-		float keep = smoothstep(2.0 * footprint, 6.0 * footprint, lambda);
+		vec4 wk = wave_k[i];
+		vec4 wa = wave_amp[i];
+		float a = component_amplitude(wa, exposure, depth);
+		float a2 = a * a;
+		float ka = wk.z * a;
+		energy += a2;
+		float t = clamp((wa.w - keep_from) * keep_scale, 0.0, 1.0);
+		float keep = t * t * (3.0 - 2.0 * t);
 		lost_variance += 0.5 * ka * ka * (1.0 - keep * keep);
-		float ph = mod(sh.z * dot(sh.xy, p0) - wave_amp[i].z, TAU_);
-		float c = cos(ph);
-		float sn = sin(ph);
-		n.x -= keep * sh.x * ka * c;
-		n.z -= keep * sh.y * ka * c;
-		n.y -= keep * sh.w * ka * sn;
-		height += a * sn;
-		height_var += 0.5 * a * a;
-		energy += a * a;
-		energy_lambda += a * a * lambda;
+		if (a > 1e-5 && (keep > 0.0 || need_height)) {
+			float ph = wave_phase(wk, wa, p0);
+			float c = cos(ph);
+			float sn = sin(ph);
+			// The wavevector carries the direction times k: d(height)/dx = kx a cos.
+			n.x -= keep * wk.x * a * c;
+			n.z -= keep * wk.y * a * c;
+			n.y -= keep * wk.w * ka * sn;
+			height += a * sn;
+		}
 	}
-	float dominant_lambda = energy_lambda / max(energy, 1e-8);
+	height_var = 0.5 * energy;
 	n = normalize(n);
 
 	// ── Ripples: the wind's short waves, scrolling with the sea ──
@@ -224,43 +262,60 @@ void fragment() {
 	lost_variance += 0.02 * ripple_amount * ripple_amount * smoothstep(0.05, 1.0, footprint);
 
 
-	// ── Foam ──
-	vec2 fuv = q - vec2(sea_time * 0.25, 0.0);
-	float lace = texture(foam_texture, fuv / 7.0).r;
-	float bubbles = texture(foam_texture, fuv / 2.3 + 0.37).b;
-	float patches = texture(foam_texture, fuv / (60.0 + 90.0 * hs)).g;
-	// Shore: a lapping line in a calm, a surf band a few metres wide once
-	// the sea builds, its lines running in.
+	// ── Foam (only near the shore or where the sea breaks) ──
 	float surge = smoothstep(0.05, 0.7, hs);
 	float surf_width = 1.5 + 6.0 * surge + 3.0 * hs;
-	float shore_band = 1.0 - smoothstep(0.0, surf_width, shore);
-	float lines = 0.5 + 0.5 * sin(TAU_ * (shore / (2.5 + 3.0 * hs) + sea_time * 0.11) + patches * 3.0);
-	float shore_foam = shore_band * smoothstep(0.35, 0.95, shore_band * 0.6 + lines * 0.45) * (0.45 + 0.55 * lace);
-	shore_foam *= step(-0.5, shore) * mix(0.35, 1.0, surge);
-	// Whitecaps: the crest height in standard deviations plus a breaker noise
-	// (which stretch of a crest breaks, at the scale of the local sea; it
-	// slowly cross-fades so caps form and die) exceeds whitecap_threshold,
-	// the normal quantile of Monahan's share (from the director), widened
-	// for the noise's own spread. A bright core, a thinner lace of spent
-	// foam just below it. Once the dominant crests shrink to a few pixels
-	// the caps are drawn as their mean cover, clumped into foam fields.
-	float groups = texture(foam_texture, q / 420.0 + vec2(0.31, 0.17)).a;
-	vec2 bq = q - vec2(sea_time * 0.6, 0.0);
-	float fade = 0.5 + 0.5 * sin(sea_time * 0.21);
-	float breaker_small = mix(texture(foam_texture, bq / 11.0).a, texture(foam_texture, bq / 13.0 + 0.5).a, fade);
-	float breaker_large = mix(texture(foam_texture, bq / 150.0).a, texture(foam_texture, bq / 170.0 + 0.5).a, fade);
-	float breaker = mix(breaker_small, breaker_large, exposure);
-	float crest_gate = smoothstep(0.0, 1.5, height / sqrt(max(height_var, 1e-8)));
-	float crest_z = CREST_WEIGHT * crest_gate + BREAKER_SPREAD * (breaker - 0.5) + (lace - 0.5) * 0.3;
-	float threshold = whitecap_threshold;
-	float core = smoothstep(threshold, threshold + 0.3, crest_z);
-	float spent = smoothstep(threshold - 0.35, threshold, crest_z) * lace * lace;
-	float caps = max(core * (0.65 + 0.35 * lace) * (0.85 + 0.15 * bubbles), spent * 0.35);
-	float far_caps = clamp(whitecaps * 2.6 * smoothstep(0.3, 0.85, groups), 0.0, 0.5) * (0.75 + 0.5 * patches);
-	caps = mix(caps, far_caps, smoothstep(0.05, 0.22, footprint / max(dominant_lambda, 0.1)));
-	// Below about 5 m/s Monahan's share is a few isolated caps: none drawn.
-	caps *= smoothstep(0.0, 3.0, depth) * smoothstep(0.0008, 0.004, whitecaps);
-	float foam = clamp(max(shore_foam, caps), 0.0, 1.0);
+	float foam = 0.0;
+	bool near_shore = shore < surf_width && shore > -0.5;
+	if (near_shore || breaking) {
+		vec2 fuv = q - vec2(sea_time * 0.25, 0.0);
+		float lace = texture(foam_texture, fuv / 7.0).r;
+		float bubbles = texture(foam_texture, fuv / 2.3 + 0.37).b;
+		// Fixed scales only: dividing a position kilometres out by a scale
+		// that varies across the water (with the exposure) shears the texture
+		// into stripes.
+		float patches = texture(foam_texture, fuv / 70.0).g;
+		// Shore: a lapping line in a calm, a surf band a few metres wide once
+		// the sea builds, its lines running in.
+		float shore_band = 1.0 - smoothstep(0.0, surf_width, shore);
+		float lines = 0.5 + 0.5 * sin(TAU_ * (shore / (2.5 + 3.0 * hs) + sea_time * 0.11) + patches * 3.0);
+		float shore_foam = shore_band * smoothstep(0.35, 0.95, shore_band * 0.6 + lines * 0.45) * (0.45 + 0.55 * lace);
+		shore_foam *= step(-0.5, shore) * mix(0.35, 1.0, surge);
+		// Whitecaps: a crest gate plus a breaker noise (which stretch of a
+		// crest breaks, at the scale of the local sea; it slowly cross-fades
+		// so caps form and die) exceeds whitecap_threshold, mapped from
+		// Monahan's share by the director. A bright core, a thinner lace of
+		// spent foam just below it. Once the dominant crests shrink to a few
+		// pixels the caps are drawn as their mean cover, clumped into foam
+		// fields.
+		float caps = 0.0;
+		if (breaking) {
+			float groups = texture(foam_texture, q / 420.0 + vec2(0.31, 0.17)).a;
+			vec2 bq = q - vec2(sea_time * 0.6, 0.0);
+			float fade = 0.5 + 0.5 * sin(sea_time * 0.21);
+			// Stretched along the crests (q.y), short across them; the basin's
+			// short chop and the coast's long sea each at their own scale.
+			vec2 bs = bq / vec2(11.0, 28.0);
+			vec2 bl = bq / vec2(150.0, 390.0);
+			float breaker_small = mix(texture(foam_texture, bs).a, texture(foam_texture, bs / 1.17 + 0.5).a, fade);
+			float breaker_large = mix(texture(foam_texture, bl).a, texture(foam_texture, bl / 1.17 + 0.5).a, fade);
+			float breaker = mix(breaker_small, breaker_large, exposure);
+			float crest_gate = smoothstep(0.0, 1.5, height / sqrt(max(height_var, 1e-8)));
+			float crest_z = CREST_WEIGHT * crest_gate + BREAKER_SPREAD * (breaker - 0.5) + (lace - 0.5) * 0.3;
+			float core = smoothstep(whitecap_threshold, whitecap_threshold + 0.3, crest_z);
+			float spent = smoothstep(whitecap_threshold - 0.35, whitecap_threshold, crest_z) * lace * lace;
+			caps = max(core * (0.65 + 0.35 * lace) * (0.85 + 0.15 * bubbles), spent * 0.35);
+			// Towards the horizon the foam fields' texture would tile into a
+			// visible lattice: past a few metres per pixel they fade to their mean.
+			float tile_fade = smoothstep(1.5, 6.0, footprint);
+			float clumps = mix(smoothstep(0.3, 0.85, groups) * (0.75 + 0.5 * patches), 0.45, tile_fade);
+			float far_caps = clamp(whitecaps * 2.6 * clumps, 0.0, 0.5);
+			caps = mix(caps, far_caps, smoothstep(0.05, 0.22, footprint / max(dominant_lambda, 0.1)));
+			// Below about 5 m/s Monahan's share is a few isolated caps: none drawn.
+			caps *= smoothstep(0.0, 3.0, depth) * smoothstep(0.0008, 0.004, whitecaps);
+		}
+		foam = clamp(max(shore_foam, caps), 0.0, 1.0);
+	}
 
 	// ── Water column: Beer-Lambert over the bake ──
 	vec3 sigma = absorption;
@@ -278,8 +333,12 @@ void fragment() {
 	vec3 transmittance = exp(-sigma * water_depth * (1.0 + 1.0 / mu_t));
 	vec3 seabed = mix(seabed_sediment, seabed_rock, smoothstep(0.35, 1.2, slope));
 	// Sunlit ripples focus into caustics on a shallow seabed.
-	float caustic = texture(caustics_texture, p0 / 5.0 + drift * 0.03).r;
-	seabed *= 0.85 + 0.6 * caustic * smoothstep(6.0, 0.5, water_depth);
+	if (water_depth < 6.0) {
+		float caustic = texture(caustics_texture, p0 / 5.0 + drift * 0.03).r;
+		seabed *= 0.85 + 0.6 * caustic * smoothstep(6.0, 0.5, water_depth);
+	} else {
+		seabed *= 0.85;
+	}
 	vec3 body = scatter * (1.0 - transmittance) + seabed * transmittance;
 
 	float roughness = sqrt(base_roughness * base_roughness + 0.0004 * hs + 2.0 * lost_variance);

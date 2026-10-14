@@ -120,16 +120,18 @@ const ZOOM_TABLE := [
 # ── Water (G1-05) ─────────────────────────────────────────────────────────────
 const SEA_BRIDGE_PATH := "res://scripts/environment/SeaStateBridge.cs"
 const GRAVITY := 9.81
-## Each band is drawn as three Gerstner components: headings spread round
-## the band's heading (directional spreading, wider for shorter waves),
-## wavenumbers detuned so no two repeat together, the band's energy shared
-## 1/4, 1/2, 1/4 (amplitude weights 0.5, 0.707, 0.5).
-const COMPONENTS_PER_BAND := 3
-const BAND_HEADING_DEG := [0.0, 7.0, -9.0, 12.0, -14.0, 17.0, -20.0, 23.0]
-const BAND_SPREAD_BASE_DEG := 10.0
-const BAND_SPREAD_PER_BAND_DEG := 5.0
-const COMPONENT_DETUNE := [0.93, 1.0, 1.075]
-const COMPONENT_WEIGHT := [0.5, 0.70710678, 0.5]
+## Each band is drawn as two Gerstner components (16 in all, the shader's
+## WAVES): headings either side of the band's heading (directional
+## spreading, wider for shorter waves, within +-30 deg so no crest runs
+## along the wind), wavenumbers detuned so the two never repeat together,
+## the band's energy shared equally. A third component per band cost 2 ms
+## at 1440p (M1 Pro, FJORD) for no visible gain.
+const COMPONENTS_PER_BAND := 2
+const BAND_HEADING_DEG := [0.0, 4.0, -6.0, 8.0, -9.0, 11.0, -12.0, 13.0]
+const BAND_SPREAD_BASE_DEG := 9.0
+const BAND_SPREAD_PER_BAND_DEG := 2.5
+const COMPONENT_DETUNE := [0.95, 1.055]
+const COMPONENT_WEIGHT := [0.70710678, 0.70710678]
 ## Gerstner choppiness, scaled down so the bands' summed steepness stays
 ## below WAVE_FOLD_LIMIT (no surface loops).
 const CHOPPINESS := 1.1
@@ -141,11 +143,11 @@ const RIPPLE_MAX := 0.75
 ## The shader's whitecap field (a crest gate plus breaker noise and foam
 ## lace) is not a standard normal: its threshold is mapped from the normal
 ## quantile of Monahan's share so that the drawn cover matches it.
-## Calibrated top-down over the basin and the open sea at 9, 14 and 20 m/s
-## (W 0.7 %, 3.1 %, 10.5 %): measured cover 0.7 %, 3.1 %, 10 % at
-## thresholds 2.7, 2.1 and 1.35.
-const WHITECAP_Z_SCALE := 1.12
-const WHITECAP_Z_OFFSET := -0.05
+## Calibrated top-down over the basin at 9, 14 and 20 m/s (W 0.7 %, 3.1 %,
+## 10.5 %): the cover hits W at thresholds 2.49, 2.24 and 1.66; a least-
+## squares line through them.
+const WHITECAP_Z_SCALE := 0.68
+const WHITECAP_Z_OFFSET := 0.88
 ## Re-derive the sea when the wind moves this much (m/s).
 const SEA_WIND_STEP := 0.02
 
@@ -567,13 +569,14 @@ func _apply_water(delta: float, c: Dictionary) -> void:
 		var omega := sqrt(GRAVITY * _comp_k[i])
 		_comp_phase[i] = fmod(_comp_phase[i] + omega * delta, TAU)
 		var band := _comp_band[i]
-		amp.append(Vector4(a_sh[band] * _comp_weight[i], a_ex[band] * _comp_weight[i], _comp_phase[i], 0.0))
-	mat.set_shader_parameter("wave_shape", sea_state["wave_shape"])
+		amp.append(Vector4(a_sh[band] * _comp_weight[i], a_ex[band] * _comp_weight[i], _comp_phase[i], TAU / _comp_k[i]))
+	mat.set_shader_parameter("wave_k", sea_state["wave_k"])
 	mat.set_shader_parameter("wave_amp", amp)
 	mat.set_shader_parameter("whitecaps", sea_state["whitecaps"])
 	mat.set_shader_parameter("whitecap_threshold", whitecap_threshold(float(sea_state["whitecaps"])))
 	mat.set_shader_parameter("ripple_strength", clampf(RIPPLE_MIN + RIPPLE_PER_MS * wind, RIPPLE_MIN, RIPPLE_MAX))
 	mat.set_shader_parameter("sea_height", Vector2(sea_state["sheltered_hs"], sea_state["exposed_hs"]))
+	mat.set_shader_parameter("sea_peak", Vector2(sea_state["sheltered_peak_m"], sea_state["exposed_peak_m"]))
 	mat.set_shader_parameter("sea_direction", sea_state["direction"])
 	mat.set_shader_parameter("sea_time", _sea_time)
 	mat.set_shader_parameter("temperature_factor", clampf((_water_temperature_c - 2.0) / 18.0, 0.0, 1.0))
@@ -622,7 +625,7 @@ func _ensure_sea_bridge() -> bool:
 		for j in COMPONENTS_PER_BAND:
 			_comp_band.append(band)
 			_comp_k.append(TAU / bands[band] * COMPONENT_DETUNE[j])
-			_comp_heading.append(BAND_HEADING_DEG[band % BAND_HEADING_DEG.size()] + (j - 1) * spread)
+			_comp_heading.append(BAND_HEADING_DEG[band % BAND_HEADING_DEG.size()] + (j - 0.5 * (COMPONENTS_PER_BAND - 1)) * spread)
 			_comp_weight.append(COMPONENT_WEIGHT[j])
 			# Fixed, well-mixed starting phases (golden-angle steps).
 			_comp_phase.append(fmod((band * COMPONENTS_PER_BAND + j) * 2.39996323, TAU))
@@ -645,7 +648,7 @@ func _derive_sea(wind: float) -> void:
 	var shape := PackedVector4Array()
 	for i in _comp_k.size():
 		var heading := direction.rotated(deg_to_rad(_comp_heading[i]))
-		shape.append(Vector4(heading.x, heading.y, _comp_k[i], chop))
+		shape.append(Vector4(heading.x * _comp_k[i], heading.y * _comp_k[i], _comp_k[i], chop))
 	sea_state = {
 		"wind_ms": wind,
 		"fetch_m": fetch,
@@ -656,8 +659,10 @@ func _derive_sea(wind: float) -> void:
 		"exposed_hs": float(exposed["hs"]),
 		"exposed_tp": float(exposed["tp"]),
 		"exposed_amplitudes": a_ex,
+		"sheltered_peak_m": maxf(float(sheltered["peak_wavelength"]), 0.5),
+		"exposed_peak_m": maxf(float(exposed["peak_wavelength"]), 0.5),
 		"whitecaps": float(sheltered["whitecaps"]),
-		"wave_shape": shape,
+		"wave_k": shape,
 		"choppiness": chop,
 	}
 
