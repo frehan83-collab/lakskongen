@@ -14,6 +14,7 @@ namespace LakskongenSim.Environment
     /// <param name="LiceSpringLastIsoWeek">Last ISO week of that spring period.</param>
     /// <param name="InPdZone">True inside the national PD zone (FOR-2017-08-29-1318); false in a surveillance zone.</param>
     /// <param name="LicenceMtbTonnes">Normal maximum allowed biomass of one standard licence held in the area (t).</param>
+    /// <param name="LatitudeDeg">Representative latitude of the area's farms (°N): the day length its sea pens get (S2-03).</param>
     public sealed record ProductionAreaInfo(
         int Number,
         string Name,
@@ -21,7 +22,8 @@ namespace LakskongenSim.Environment
         int LiceSpringFirstIsoWeek,
         int LiceSpringLastIsoWeek,
         bool InPdZone,
-        int LicenceMtbTonnes)
+        int LicenceMtbTonnes,
+        double LatitudeDeg)
     {
         /// <summary>Short id, "PO1" to "PO13".</summary>
         public string Code => "PO" + Number;
@@ -116,6 +118,19 @@ namespace LakskongenSim.Environment
         };
         // END derive_po_sea_temperature.py
 
+        /// <summary>
+        /// Representative latitude of each area (°N, PO1..PO13): the midpoint of
+        /// the latitudes of its southern and northern boundary lines in
+        /// produksjonsområdeforskriften (FOR-2017-01-16-61) vedlegg 1, e.g. PO4
+        /// from Søndagsholmen 60°26.8' to Nobba (Stad) 62°11.6'. PO1 runs along the
+        /// Skagerrak coast (58.0-59.1°N); its value is that coast's middle.
+        /// </summary>
+        private static readonly double[] Latitudes =
+            { 58.5, 59.1, 59.8, 61.3, 62.6, 63.7, 64.8, 66.2, 68.3, 69.1, 69.9, 70.6, 70.4 };
+
+        /// <summary>Latitude of the national reference curve (°N): mid-Norway (Trondheimsfjorden).</summary>
+        public const double NationalReferenceLatitudeDeg = 63.4;
+
         private static readonly string[] Names =
         {
             "Svenskegrensen til Jæren",
@@ -149,7 +164,8 @@ namespace LakskongenSim.Environment
                     north ? NorthLiceSpringFirstWeek : SouthLiceSpringFirstWeek,
                     north ? NorthLiceSpringLastWeek : SouthLiceSpringLastWeek,
                     InPdZone: po >= 2 && po <= 6,
-                    tromsFinnmark ? NorthernLicenceMtbTonnes : StandardLicenceMtbTonnes);
+                    tromsFinnmark ? NorthernLicenceMtbTonnes : StandardLicenceMtbTonnes,
+                    Latitudes[po - 1]);
             }
             return areas;
         }
@@ -196,6 +212,10 @@ namespace LakskongenSim.Environment
             double b = monthly[(other + SimCalendar.MonthsPerYear) % SimCalendar.MonthsPerYear];
             return a + (b - a) * t;
         }
+
+        /// <summary>Representative latitude (°N) of an area, or of the national reference (0).</summary>
+        public static double LatitudeDeg(int productionArea)
+            => productionArea == NationalReference ? NationalReferenceLatitudeDeg : Get(productionArea).LatitudeDeg;
 
         /// <summary>
         /// The area a scenario's starting region stands for when its sites name no

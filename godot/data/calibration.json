@@ -1,5 +1,5 @@
 {
-  "version": "1.0.6",
+  "version": "1.0.7",
   "economy": {
     "startingCapitalNOK": 10000000,
     "smoltCostPerFishNOK": 12,
@@ -124,5 +124,21 @@
     "anomalyEFoldingDays": 90.0,
     "dailyFluctuationStdDevC": 0.3,
     "eventAnomalyEFoldingDays": 21.0
+  },
+  "growth": {
+    "thermalGrowthCoefficient": 3.0,
+    "optimalTemperatureC": 13.0,
+    "upperGrowthLimitC": 22.0,
+    "photoperiodGrowthSlope": 0.2,
+    "tgcValidToKg": 3.0,
+    "asymptoticWeightKg": 20.0,
+    "maintenanceRationFraction": 0.10,
+    "rationCurvature": 0.5,
+    "fcrSizeExponent": 0.07,
+    "fcrReferenceWeightKg": 2.0,
+    "smoltWeightCv": 0.18,
+    "baseWeightCv": 0.20,
+    "restrictedRationExtraCv": 0.10,
+    "weightCvRelaxation": 2.0
   }
 }

@@ -39,7 +39,7 @@ namespace LakskongenSim.Calibration
         public const string EmbeddedResourceName = "LakskongenSim.Calibration.calibration.json";
 
         /// <summary>Current schema/balancing version. Bump when reconciled values change.</summary>
-        public const string DefaultVersion = "1.0.6";
+        public const string DefaultVersion = "1.0.7";
 
         /// <summary>Calibration schema/balancing version.</summary>
         [JsonPropertyName("version")]
@@ -112,6 +112,13 @@ namespace LakskongenSim.Calibration
         /// </summary>
         [JsonPropertyName("seaTemperature")]
         public SeaTemperatureCalibration SeaTemperature { get; init; } = new();
+
+        /// <summary>
+        /// Sea-phase growth (S2-03): thermal growth coefficient, thermal response,
+        /// size tail, growth-ration curve, FCR size factor and cohort weight CV.
+        /// </summary>
+        [JsonPropertyName("growth")]
+        public GrowthCalibration Growth { get; init; } = new();
         /// <summary>
         /// Derived feed cost per kg of fish produced = feed price × base FCR.
         /// This is the reconciled "~25.7 NOK/kg produced" figure in
@@ -615,6 +622,145 @@ namespace LakskongenSim.Calibration
         /// heatwave (3-6 °C above normal) covered most of July, about three weeks.
         /// </summary>
         public double EventAnomalyEFoldingDays { get; init; } = 21.0;
+    }
+
+    #endregion
+
+    #region S2-03 growth (TGC), appetite and ration
+
+    /// <summary>
+    /// The sea-phase growth law (roadmap S2-03): growth by the thermal growth
+    /// coefficient, a thermal response with an optimum and an upper limit, a
+    /// size factor for large fish, appetite (satiation intake) by temperature and
+    /// size, the growth response to the ration fed, and the cohort weight CV.
+    /// The law takes the water a cohort lives in as an input
+    /// (<c>Environment.HoldingWater</c>), so sea pens, offshore hulls and land
+    /// tanks at a controlled temperature share it.
+    /// </summary>
+    public sealed record GrowthCalibration
+    {
+        /// <summary>
+        /// Thermal growth coefficient at full appetite, sea phase:
+        /// TGC = (W1^(1/3) − W0^(1/3)) / Σ(°C·day) × 1000, W in grams. 3.0.
+        /// Sources: Reid et al. 2013a, commercial Atlantic salmon, average 3.0
+        /// (remedial 2.5, elite 3.5), as used by Dempsey et al. 2023, Front. Mar.
+        /// Sci. 10:1094247 (doi:10.3389/fmars.2023.1094247); Karlsen et al. 2018,
+        /// Sci. Rep. 8:9510 (doi:10.1038/s41598-018-27818-y): 2.80 in an open net
+        /// pen and 3.04 in a semi-closed pen over the first 4 months at sea;
+        /// Benchmark Genetics 2024 (Arctic Fish, 6.5 kg after 16 months): 3.38.
+        /// Roadmap band 2.8-3.2.
+        /// </summary>
+        public double ThermalGrowthCoefficient { get; init; } = 3.0;
+
+        /// <summary>
+        /// Temperature with the highest growth (°C). 13. Source: Kleiven,
+        /// Abdel-Fattah &amp; Bøhn 2026, Front. Aquac. 5 (doi:10.3389/faquc.2026.1835152):
+        /// "optimal growth is commonly reported around 13 to 14 °C" for post-smolts
+        /// and adults in seawater; Calado et al. 2021, Animals 11(6):1800
+        /// (doi:10.3390/ani11061800): optimum 13-16 °C. Thyholdt 2014 (Aquac.
+        /// Econ. Manag. 18:189-204): warm periods speed growth in the north and
+        /// slow it in the south. Below the optimum the law counts degrees (TGC).
+        /// </summary>
+        public double OptimalTemperatureC { get; init; } = 13.0;
+
+        /// <summary>
+        /// Temperature at which growth stops (°C). 22. Source: Calado et al. 2021:
+        /// incremental thermal maximum ~22 °C (CTmax ~26 °C); 2 kg salmon held at
+        /// 19 °C ate and grew at least 50% less than at 14 °C over 56 days. With
+        /// a linear fall of the degree weight from 13 to 22 °C, growth at 19 °C is
+        /// 51% of growth at 14 °C.
+        /// </summary>
+        public double UpperGrowthLimitC { get; init; } = 22.0;
+
+        /// <summary>
+        /// Growth per 12 hours of day length above 12 h (photoperiod slope): the
+        /// satiation gain is multiplied by 1 + slope × (D − 12) / 12, D the hours of
+        /// daylight the holding gets. 0.2 (+20% under continuous light, −20% in
+        /// polar night). Game estimate in the range of sea-cage light trials
+        /// (Endal et al. 2000, Aquaculture 191:337-349: continuous additional light
+        /// raised growth). Source of the effect: Aunsmo et al. 2014, Aquaculture
+        /// 428-429:249-257 (doi:10.1016/j.aquaculture.2014.03.007): on 827
+        /// Norwegian fish groups the TGC was strongly associated with mean day
+        /// length, so a temperature-only TGC is biased along the coast; the Ewos
+        /// growth index that fitted best accounts for light. Below the optimum the
+        /// law counts degree-days (TGC; valid at 4-14 °C, Alanärä et al. 2001):
+        /// growth at 4 °C is 4/13 = 0.31 of the optimum, at 5 °C 0.38.
+        /// </summary>
+        public double PhotoperiodGrowthSlope { get; init; } = 0.2;
+
+        /// <summary>
+        /// Weight (kg) above which the TGC law no longer holds and growth slows
+        /// toward <see cref="AsymptoticWeightKg"/>. 3.0. Source: Alanärä et al.
+        /// 2001: TGC valid for 100-3000 g; Dumas et al. 2007 (cited by Kleiven et
+        /// al. 2026): the cube-root TGC fits intermediate-sized fish better than
+        /// very small or large fish.
+        /// </summary>
+        public double TgcValidToKg { get; init; } = 3.0;
+
+        /// <summary>
+        /// Weight (kg) at which growth stops: above <see cref="TgcValidToKg"/> the
+        /// cube-root increment falls linearly in cube-root weight to zero here
+        /// (a von Bertalanffy tail). 20. Game estimate: large farmed broodstock;
+        /// gives ~0.79 of the TGC rate at 5 kg and lets fish grown on pass 6 kg.
+        /// </summary>
+        public double AsymptoticWeightKg { get; init; } = 20.0;
+
+        /// <summary>
+        /// Maintenance ration as a fraction of satiation: the ration at which a
+        /// fish neither gains nor loses weight. 0.10. Game estimate on the shape
+        /// of Brett 1979 (Fish Physiology VIII, growth-ration curves of salmonids):
+        /// maintenance is a small fraction of the maximum ration.
+        /// </summary>
+        public double MaintenanceRationFraction { get; init; } = 0.10;
+
+        /// <summary>
+        /// Curvature of the growth-ration curve
+        /// g(r) = (1 − e^(−a(r − m))) / (1 − e^(−a(1 − m))). 0.5 puts the optimum
+        /// ration (the best conversion) near 70% of satiation (Brett 1979: the
+        /// optimum ration lies below the maximum). Feeding 70% of appetite then
+        /// grows the fish 72% as fast at a 2% lower biological FCR; starving
+        /// (r = 0) loses weight at 14% of the satiation growth rate.
+        /// </summary>
+        public double RationCurvature { get; init; } = 0.5;
+
+        /// <summary>
+        /// Biological FCR scales with fish size as (W / reference)^exponent:
+        /// small fish convert better than large ones. 0.07 (0.81 at 100 g, 1.07 at
+        /// 5 kg). Game estimate fitted to the 1.14-1.15 biological FCR of a full
+        /// cycle (SalMar sustainability reports, <see cref="FeedCalibration.BaseFCR"/>).
+        /// </summary>
+        public double FcrSizeExponent { get; init; } = 0.07;
+
+        /// <summary>Weight (kg) at which the size factor of the FCR is 1. 2.0.</summary>
+        public double FcrReferenceWeightKg { get; init; } = 2.0;
+
+        /// <summary>
+        /// Weight CV of a smolt cohort at sea transfer. 0.18. Source: Karlsen et
+        /// al. 2018, Table 1: 101 g smolts, one month after transfer weight SD
+        /// 19.6 g (net pen, CV 17%) and 23.8 g (semi-closed, CV 21%).
+        /// </summary>
+        public double SmoltWeightCv { get; init; } = 0.18;
+
+        /// <summary>
+        /// Weight CV a cohort settles at under perfect feed spreading and full
+        /// ration. 0.20. Game estimate: harvest classes of a 5 kg Norwegian
+        /// harvest spread over 3-7 kg; poor spreading adds up to
+        /// <c>FeedSystem.MaxExtraSizeVarianceCv</c>.
+        /// </summary>
+        public double BaseWeightCv { get; init; } = 0.20;
+
+        /// <summary>
+        /// Extra weight CV at zero ration: restricted feeding sharpens competition
+        /// and widens the size spread (scaled by 1 − ration). 0.10. Game estimate.
+        /// </summary>
+        public double RestrictedRationExtraCv { get; init; } = 0.10;
+
+        /// <summary>
+        /// How fast the cohort CV moves to its settled value per unit of relative
+        /// growth in cube-root weight (dCV = (CV* − CV) × k × ΔL/L). 2.0. Game
+        /// estimate: a cohort grown from 100 g to 5 kg covers ~93% of the way.
+        /// </summary>
+        public double WeightCvRelaxation { get; init; } = 2.0;
     }
 
     #endregion

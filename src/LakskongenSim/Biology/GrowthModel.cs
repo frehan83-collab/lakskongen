@@ -6,10 +6,14 @@ using LakskongenSim.Core;
 namespace LakskongenSim.Biology
 {
     /// <summary>
-    /// Simplified growth model that adjusts mean weight.
-    /// Uses biologically-accurate 7-stage salmon lifecycle.
+    /// Fish growth. The engine grows every cohort on the thermal-growth-coefficient
+    /// law in <c>GrowthModel.Tgc.cs</c> (roadmap S2-03): growth from the water the
+    /// cohort lives in, its appetite and the ration fed. The von Bertalanffy SDE
+    /// below (<see cref="ApplySDEGrowthOneDay(double, double, double, double, double, LifeStage)"/>)
+    /// and the compound <see cref="ApplyGrowth"/> are the pre-S2-03 laws: no engine
+    /// path reads them; they stay for their unit tests and the research tools.
     /// </summary>
-    public class GrowthModel
+    public partial class GrowthModel
     {
         /// <summary>Apply growth over a number of days for a cohort.</summary>
         public double ApplyGrowth(double currentWeightKg, int days, LifeStage stage)

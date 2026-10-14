@@ -30,6 +30,16 @@ namespace LakskongenSim.Biology
             /// </summary>
             public Farm.SmoltQualityTier Quality { get; set; } = Farm.SmoltQualityTier.Standard;
 
+            /// <summary>
+            /// Coefficient of variation of the fish weights in this cohort (S2-03):
+            /// the size spread harvest grading and the weight histogram read. The
+            /// growth law moves it toward the spread the feeding sets as the fish
+            /// grow. 0 = not yet known (a cohort just stocked, or one loaded from a
+            /// pre-S2-03 save): the first growth day sets it from the weight
+            /// (<see cref="TgcGrowthLaw.InitialWeightCv"/>).
+            /// </summary>
+            public double WeightCv { get; set; }
+
             // Constructor for easy initialization, matching the original record's constructor
             public Cohort(int ageDays, int count, double meanWeightKg, LifeStage stage, Genome? genetics = null)
             {
@@ -84,6 +94,13 @@ namespace LakskongenSim.Biology
 
         /// <summary>Site ID this population belongs to (for O(1) lookup instead of O(n) search).</summary>
         public string SiteId { get; set; } = "";
+
+        /// <summary>
+        /// How much of their appetite these fish are fed (S2-03): the input the
+        /// feeding plan (U2-04) sets per pen, tank or offshore pen. Saves from
+        /// before S2-03 load with full appetite.
+        /// </summary>
+        public Farm.RationPolicy Ration { get; set; } = Farm.RationPolicy.FullAppetite;
 
         /// <summary>Growth penalty multiplier from disease resistance fitness cost. Serialized for save/load.</summary>
         public double GrowthPenalty { get => _growthPenalty; set => _growthPenalty = value; }

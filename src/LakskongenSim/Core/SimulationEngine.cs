@@ -157,10 +157,7 @@ namespace LakskongenSim.Core
         internal decimal _dailyFarmSystemsOpex = 0m;
         internal decimal _dailyAiFeedingLicenseCost = 0m;
 
-        // ─── Per-day biology call tuning (values unchanged; see GrowthModel docs) ───
-        internal const double SdeTargetWeightKg = 5.5; // genetic asymptote K used by the daily SDE step
-        internal const double SdeGeneticGrowthRateAlphaMax = 20.0; // α_max scale for SDE-only growth
-        internal const double SdeIndividualVarianceSigma = 0.002; // σ kept small vs deterministic drift
+        // ─── Per-day biology inputs (growth itself: the S2-03 TGC law, calibration "growth") ───
         internal const double PenVolumeProxyM3 = 10_000.0; // pen-volume proxy for density estimate
         internal const double DefaultStockingDensityKgM3 = 20.0; // fallback when no zone is known
         internal const double WarmingPerYearC = 0.02; // P10: documented warming trend applied to lice development
@@ -864,6 +861,7 @@ namespace LakskongenSim.Core
             // (private, same property names) purely as the engine's local view.
             _calibration = CalibrationRegistry.Load(dataPath);
             Weather?.ApplySeaTemperatureCalibration(_calibration.SeaTemperature);
+            Growth?.ApplyCalibration(_calibration.Growth);
             var config = BalancingConfig.FromRegistry(_calibration);
             _balancing = config;
             ApplyBalancingConfig(config);

@@ -122,7 +122,6 @@ namespace LakskongenSim.Core;
                 var population = engine.State.Populations[popIdx];
                 var zone = engine.State.Zones.FirstOrDefault(z => z.Id == population.ZoneId);
                 var water = engine.HoldingWaterOf(population, facilityWater);
-                double waterTemperature = water.TemperatureC;
 
                 // Manual biomass sum — avoids LINQ delegate allocation (T56)
                 double biomassKg = 0.0;
@@ -145,73 +144,23 @@ namespace LakskongenSim.Core;
                 var containmentMods = Farm.ContainmentTech.ModifiersFor(
                     homeSite?.Containment ?? Farm.ContainmentLevel.OpenNet);
                 double densityForO2 = stockingDensity * containmentMods.OxygenDemandMult;
-                double environmentalMultiplier = 1.0;
-                if (zone != null)
-                {
-                    environmentalMultiplier = engine.Growth.CalculateCombinedEnvironmentalMultiplier(
-                        zone.WaterChemistry,
-                        water.TemperatureC,
-                        densityForO2,
-                        water.SalinityPsu);
-                }
 
-                // Advance population: age and mortality only — growth handled by SDE below
+                // Advance population: age and mortality only — growth is the S2-03 law below
                 population.AdvanceDays(1, skipGrowth: true, engine.MortalityReduction, engine.DiseaseResistanceBonus);
 
-                // Manual growth adjustment — indexed loop, in-place (T56).
-                // grownKg = the biomass this population gained today; the feed
-                // ration below is derived from it.
-                double grownKg = 0.0;
-                for (int ci = 0; ci < population.Cohorts.Count; ci++)
-                {
-                    var cohort = population.Cohorts[ci];
-
-                    // Apply genetics multiplier
-                    double geneticMultiplier = cohort.Genetics?.GetGrowthMultiplier() ?? 1.0;
-
-                    // Wave 6: inbreeding depression — additive and opt-in. A genome
-                    // carrying a cumulative inbreeding proxy > 0 loses a small fraction
-                    // of its growth; a null genome or zero inbreeding leaves the factor
-                    // at 1.0, so existing behaviour is unchanged.
-                    double inbreedingGrowthFactor = 1.0;
-                    if (cohort.Genetics != null && cohort.Genetics.InbreedingCoefficient > 0.0)
-                    {
-                        inbreedingGrowthFactor = 1.0 - GenomicSelection.InbreedingDepressionPenalty(
-                            GeneticTrait.GrowthRate, cohort.Genetics.InbreedingCoefficient);
-                    }
-
-                    // Use SDE model for more realistic growth with environmental modifiers
-                    double newCalculatedWeight = engine.Growth.ApplySDEGrowthOneDay(
-                        cohort.MeanWeightKg,
-                        waterTemperature,
-                        SimulationEngine.SdeTargetWeightKg,
-                        SimulationEngine.SdeGeneticGrowthRateAlphaMax * (1.0 + engine.GrowthRateBonus), // calibrating: SDE-only growth with research bonus
-                        SimulationEngine.SdeIndividualVarianceSigma, // kept small vs deterministic growth
-                        cohort.Stage,
-                        environmentalMultiplier);
-
-                    // Apply genetic modifier only (environmental already applied in SDE)
-                    // Phase 4.1: containment density-stress growth effect.
-                    // P5: post-smolt quality carryover (SuperSmolt grows faster).
-                    double qualityGrowth = Farm.SmoltQualityRegistry.Get(cohort.Quality).GrowthMultiplier;
-                    double delta = newCalculatedWeight - cohort.MeanWeightKg;
-                    double weightBefore = cohort.MeanWeightKg;
-                    cohort.MeanWeightKg += (delta * geneticMultiplier * inbreedingGrowthFactor * containmentMods.GrowthMult * qualityGrowth);
-                    if (cohort.MeanWeightKg < 0) cohort.MeanWeightKg = 0;
-                    grownKg += cohort.Count * Math.Max(0.0, cohort.MeanWeightKg - weightBefore);
-                }
-
-                // Feed the population — FCR-aware.
-                // Phase 2.1: real DO-saturation penalty (was hardcoded 1.0, which
-                // kept FCR rosy while growth stalled in low oxygen).
-                // Phase 4.1: contained sites feed at effective (denser) density.
-                // Phase 4.3: damaged gills throttle appetite (0.6-1.0).
+                // S2-03: the fish's appetite follows the water and their gills
+                // (Phase 2.1 DO saturation, Phase 4.3 damaged gills 0.6-1.0),
+                // stocking density stresses the growth potential (Oppedal et al.
+                // 2011), and every cohort grows on the TGC law in its holding's
+                // water, eating the holding's ration of its appetite.
                 double waterPenalty = 1.0;
+                double densityGrowth = 1.0;
                 if (zone != null)
                 {
                     double doSat = Biology.WaterQuality.CalculateDOSaturation(
                         water.OxygenMgPerL, water.TemperatureC, water.SalinityPsu);
                     waterPenalty = Biology.WaterQuality.CalculateDOSaturationModifier(doSat);
+                    densityGrowth = Biology.WaterQuality.CalculateStockingDensityModifier(densityForO2);
                 }
                 if (homeSite != null)
                     waterPenalty *= 0.6 + 0.4 * (homeSite.GillScore / 100.0);
@@ -222,12 +171,13 @@ namespace LakskongenSim.Core;
                     "watch" => 0.95,
                     "scan" => 0.85,
                     "auto" => 0.65,
-                    _ => 0.80
+                    _ => FeedSystem.DefaultSpreadQuality
                 };
                 if (engine.AIFeeding != null && engine.AIFeeding.IsInstalled)
                     spreadQuality = Math.Min(1.0, spreadQuality + 0.1);
-                var feedResult = engine.Feed.Feed(population, 1, waterTemperature, densityForO2, waterPenalty, spreadQuality,
-                    engine.FCRReduction, engine.FeedWasteReduction, actualGrowthKg: grownKg);
+                var husbandry = new SimulationEngine.HoldingHusbandry(
+                    water, waterPenalty, densityGrowth, containmentMods.GrowthMult, densityForO2, spreadQuality);
+                var feedResult = engine.GrowAndFeedOneDay(population, husbandry);
 
                 if (zone != null && feedResult.FeedUsedKg > 0)
                 {
