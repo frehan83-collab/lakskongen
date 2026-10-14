@@ -117,6 +117,8 @@ func hire_worker(role: String) -> bool: return game_bridge.HireWorker(role) if g
 func fire_worker(worker_id: String) -> bool: return game_bridge.FireWorker(worker_id) if game_bridge else false
 func get_achievement_list() -> Array[Dictionary]: return _arr(game_bridge.GetAchievementList()) if game_bridge else []
 func get_current_weather_state() -> String: return game_bridge.GetCurrentWeatherState() if game_bridge else "Calm"
+## FCR goal and failing ceiling from CalibrationRegistry: {"target", "poor"}.
+func get_fcr_targets() -> Dictionary: return game_bridge.GetFcrTargets() if game_bridge else {}
 func get_current_temperature() -> float: return float(game_bridge.GetCurrentTemperature()) if game_bridge else 0.0
 func get_current_day() -> int: return int(game_bridge.GetCurrentDay()) if game_bridge else 0
 

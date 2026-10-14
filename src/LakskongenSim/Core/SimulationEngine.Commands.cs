@@ -96,6 +96,7 @@ public partial class SimulationEngine
     /// </summary>
     public CommandResult StockSmolts(string siteId, int count, string strainId, SmoltQualityTier qualityTier)
     {
+        // (event text: Norwegian, see SimText)
         if (State?.SeaSites == null || Hatchery == null || FinanceManager == null)
             return CommandResult.Fail("engine_not_ready", "Engine not initialized");
 
@@ -144,6 +145,7 @@ public partial class SimulationEngine
         population.Cohorts.Add(smoltCohort);
 
         site.Stock(population);
+        site.LastStockedDay = State.Day;
         State.Populations.Add(population);
 
         // Phase 2.1: seed the SITE's lice model from the incoming smolts
@@ -156,20 +158,43 @@ public partial class SimulationEngine
         // Smolts are cost of goods (review F1132: they never reached the P&L).
         PayCost(stockingCost, CostBooking.Cogs, "smolts");
 
-        var message = $"Stocked {count:N0} {quality.Name} {strain.Name} smolts " +
-                      $"({strain.ReleaseWeightKg * 1000:F0}g) at {siteId}";
+        var message = SimText.Nb($"Satte ut {count:N0} smolt ({strain.Name}, {strain.ReleaseWeightKg * 1000:F0} g) på {site.Label}");
 
         State.EventLog.Add(new EventRecord
         {
             Day = State.Day,
-            Name = "Smolt Stocking",
+            Name = "Utsett av smolt",
             Category = EventCategory.Equipment,
-            Description = $"{message} for {stockingCost:N0} NOK",
+            Description = SimText.Nb($"{message} for {stockingCost:N0} kr"),
             BalanceChange = -stockingCost
         });
 
         return CommandResult.Success(message, count, id: siteId);
     }
+
+    /// <summary>Norwegian name of a delousing method for the event log.</summary>
+    private static string DelousingName(DelousingMethod method) => method switch
+    {
+        DelousingMethod.HydrogenPeroxide => "hydrogenperoksid",
+        DelousingMethod.Thermolicer => "termisk avlusing",
+        DelousingMethod.Hydrolicer => "spyling",
+        DelousingMethod.CleanerFish => "rensefisk",
+        DelousingMethod.LaserDelousing => "laser",
+        DelousingMethod.FreshwaterBath => "ferskvannsbad",
+        DelousingMethod.MedicatedFeed => "medisinfôr",
+        DelousingMethod.LiceSkirts => "luseskjørt",
+        _ => method.ToString()
+    };
+
+    /// <summary>Norwegian name of a wellboat job kind for the event log.</summary>
+    private static string WellboatJobName(string kind) => kind switch
+    {
+        "harvest" => "slakting",
+        "delouse" => "avlusing",
+        "rov" => "ROV-inspeksjon",
+        "freshwater" => "ferskvannsbehandling",
+        _ => kind
+    };
 
     // ── Harvest ────────────────────────────────────────────────────────────
 
@@ -191,7 +216,7 @@ public partial class SimulationEngine
         // Harvest ONLY this site's pens (site.Pens identity). Populations
         // carry ZoneId (shared by every site in a zone), so filtering
         // State.Populations by zone would wipe neighbouring sites too.
-        return HarvestPopulations(site.Pens, siteId, siteId, "site_empty", $"Site '{siteId}' is empty", seaFarmed: true);
+        return HarvestPopulations(site.Pens, siteId, site.Label, "site_empty", $"Site '{siteId}' is empty", seaFarmed: true);
     }
 
     /// <summary>
@@ -229,14 +254,14 @@ public partial class SimulationEngine
         }
         pens.Clear();
 
-        var message = $"Harvested {totalBiomassKg:N0} kg ({totalFishCount:N0} fish) at {label}";
+        var message = SimText.Nb($"Høstet {totalBiomassKg:N0} kg ({totalFishCount:N0} fisk) på {label}");
 
         State.EventLog.Add(new EventRecord
         {
             Day = State.Day,
             Name = "Harvest",
             Category = EventCategory.Market,
-            Description = $"{message} for {revenue:N0} NOK",
+            Description = SimText.Nb($"{message} for {revenue:N0} kr"),
             BalanceChange = revenue
         });
 
@@ -525,8 +550,7 @@ public partial class SimulationEngine
         PayCost(outcome.Cost, CostBooking.Opex, "delousing");
         site.GillScore = Math.Max(0.0, site.GillScore - outcome.GillDamage * 50.0);
 
-        string description = $"Applied {delousingMethod} delousing to {siteId} " +
-                             $"({outcome.TotalFish:N0} fish treated, {profile.Efficacy:P0} profile efficacy, {outcome.TotalDeaths:N0} handling deaths)";
+        string description = SimText.Nb($"Avlusing ({DelousingName(delousingMethod)}) på {site.Label}: {outcome.TotalFish:N0} fisk behandlet, {profile.Efficacy:P0} virkning, {outcome.TotalDeaths:N0} døde under håndteringen");
         State.EventLog.Add(new EventRecord
         {
             Day = State.Day,
@@ -587,7 +611,7 @@ public partial class SimulationEngine
             Day = State.Day,
             Name = "Brønnbåt bestilt",
             Category = EventCategory.Equipment,
-            Description = $"Brønnbåt bestilt til {siteId} ({kind}, ankomst om {delay}d)",
+            Description = $"Brønnbåt bestilt til {State.SeaSites.FirstOrDefault(s => s.Id == siteId)?.Label ?? siteId} ({WellboatJobName(kind)}, ankommer om {delay} d)",
             BalanceChange = -hire
         });
 

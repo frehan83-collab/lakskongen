@@ -123,7 +123,7 @@ func _create_product_item(product: Dictionary) -> Control:
 		profit_label.text = "Est. Profit: NOK %.0f/day" % expected_profit
 		LakskongenTheme.set_tone(profit_label, &"Info")
 	else:
-		profit_label.text = tr("Not recommended")
+		profit_label.text = tr("UI_PMIX_NOT_RECOMMENDED")
 		LakskongenTheme.set_tone(profit_label, &"Muted")
 	LakskongenTheme.set_size(profit_label, 11)
 	info_vbox.add_child(profit_label)

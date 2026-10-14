@@ -50,7 +50,7 @@ func _ready() -> void:
 
     # Title
     _title_label = Label.new()
-    _title_label.text = tr("KONTRAKTSFORHANDLING")
+    _title_label.text = tr("UI_CDIALOG_TITLE")
     LakskongenTheme.set_size(_title_label, FONT_XL_SIZE)
     LakskongenTheme.set_text_color(_title_label, COLOR_ACCENT)
     _title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -75,7 +75,7 @@ func _ready() -> void:
     main_vbox.add_child(_negotiation_vbox)
     
     var counter_price_label = Label.new()
-    counter_price_label.text = tr("Din motpris:")
+    counter_price_label.text = tr("UI_CDIALOG_COUNTER_PRICE")
     LakskongenTheme.set_text_color(counter_price_label, COLOR_TEXT)
     _negotiation_vbox.add_child(counter_price_label)
 
@@ -86,7 +86,7 @@ func _ready() -> void:
     _negotiation_vbox.add_child(_slider_price)
 
     _slider_price_value_label = Label.new()
-    _slider_price_value_label.text = tr("0.0 NOK/kg")
+    _slider_price_value_label.text = tr("UI_CDIALOG_PRICE_PLACEHOLDER")
     _slider_price_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     LakskongenTheme.set_text_color(_slider_price_value_label, COLOR_TEXT)
     _negotiation_vbox.add_child(_slider_price_value_label)
@@ -107,18 +107,18 @@ func _ready() -> void:
     main_vbox.add_child(_buttons_hbox)
 
     var accept_button = Button.new()
-    accept_button.text = tr("AKSEPTER TILBUD")
+    accept_button.text = tr("UI_CDIALOG_ACCEPT")
     accept_button.theme_type_variation = &"PrimaryButton"
     accept_button.pressed.connect(_on_accept_button_pressed)
     _buttons_hbox.add_child(accept_button)
 
     var negotiate_button = Button.new()
-    negotiate_button.text = tr("FORHANDL")
+    negotiate_button.text = tr("UI_CDIALOG_NEGOTIATE")
     negotiate_button.pressed.connect(_on_negotiate_button_pressed)
     _buttons_hbox.add_child(negotiate_button)
 
     var decline_button = Button.new()
-    decline_button.text = tr("AVSLÅ")
+    decline_button.text = tr("UI_CDIALOG_DECLINE")
     decline_button.theme_type_variation = &"GhostButton"
     decline_button.pressed.connect(_on_decline_button_pressed)
     _buttons_hbox.add_child(decline_button)

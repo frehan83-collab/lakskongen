@@ -202,9 +202,9 @@
     "id": "po3_red_sone",
     "name": "PO3 Rød Sone",
     "difficulty": 4,
-    "description": "PO3 rød sone: −6 % MTB, lukket containement er eneste vei til miljøfleksibilitet. Overlev i 3 år.",
-    "story": "Produksjonsområde PO3 har gått over til RØDT lys etter lakselustrykk og rømningsrisiko. Mattilsynet og Nærings- og fiskeridepartementet strammer inn: maksimal tillatt biomasse (MTB) kuttes med 6 %. Din eneste vei til 'miljøfleksibilitet' er lukket containement-teknologi (semi-lukket og høyere), som gir biomassekreditt selv i rød sone. Behold lønnsomheten og overlev reguleringsbølgen.",
-    "objective": "Gjenopprett MAB ved å drifte minst ett anlegg på semi-lukket containement og overlev 1095 dager i rød sone.",
+    "description": "PO3 i rød sone: −6 % MTB, og lukkede anlegg er eneste vei til miljøfleksibilitet. Overlev i 3 år.",
+    "story": "Produksjonsområde PO3 har gått over til RØDT lys etter lakselustrykk og rømningsrisiko. Mattilsynet og Nærings- og fiskeridepartementet strammer inn: maksimal tillatt biomasse (MTB) kuttes med 6 %. Din eneste vei til 'miljøfleksibilitet' er lukket teknologi (semi-lukket og høyere), som gir biomassekreditt selv i rød sone. Behold lønnsomheten og overlev reguleringsbølgen.",
+    "objective": "Gjenvinn MTB ved å drifte minst ett anlegg som semilukket og overlev 1095 dager i rød sone.",
     "starting_balance": 12000000,
     "starting_cash": 12000000,
     "starting_region": "Trøndelag",
@@ -235,19 +235,19 @@
     },
     "restrictions": [
       "Rød sone: −6 % MTB på alle åpne anlegg",
-      "Bare lukket containement (semi-lukket eller høyere) kvalifiserer for miljøfleksibilitet",
-      "Minst ett anlegg må holdes på semi-lukket nivå for å gjenvinne MAB"
+      "Bare lukkede anlegg (semilukket eller bedre) kvalifiserer for miljøfleksibilitet",
+      "Minst ett anlegg må holdes semilukket for å gjenvinne MTB"
     ],
     "tutorial_recommended": false,
-    "tags": ["regulering", "rød_sone", "containement", "survival", "mtb"]
+    "tags": ["regulering", "rød_sone", "containment", "survival", "mtb"]
   },
   {
     "id": "isa_utbrudd",
     "name": "ISA-utbruddet",
     "difficulty": 5,
-    "description": "Aktiv ISA med tvungen nedslaktningssone. Bygg firewalls, krev inn forsikring, redd de friske anleggene.",
-    "story": "SalMar varslet om ILA/ISA ved et anlegg, og Mattilsynet har opprettet bekjempelsessone. Hele det infiserte anlegget må slaktes ut (tvungen nedslaktning). Du må bygge biosikkerhetsbranner (firewalls) mellom sonene, aktivere forsikringsdekning og hindre smitte til nabofelt. Hvert minutt teller — klarer du å slukke brannen?",
-    "objective": "Hold ISA-utbruddet isolert i kjerneanlegget, bygg Smoltscreen-biosikkerhet mellom sonene og overlev 540 dager med forsikringsdekning.",
+    "description": "Aktivt ILA-utbrudd med tvungen nedslakting. Bygg smittevern, krev inn forsikring og redd de friske anleggene.",
+    "story": "En nabooppdretter har varslet om ILA ved et anlegg, og Mattilsynet har opprettet en bekjempelsessone. Hele det smittede anlegget må slaktes ned. Du må bygge smittevern mellom sonene, aktivere forsikringen og hindre smitte til nabolokalitetene. Hver dag teller — klarer du å stanse utbruddet?",
+    "objective": "Hold ILA-utbruddet isolert i kjerneanlegget, bygg lusebarrierer mellom sonene og overlev 540 dager med forsikringsdekning.",
     "starting_balance": 18000000,
     "starting_cash": 18000000,
     "starting_region": "Trøndelag",
@@ -286,8 +286,8 @@
       "description": "Kontroller utbruddet og overlev 540 dager"
     },
     "restrictions": [
-      "Tvungen nedslaktning i bekjempelsessonen",
-      "Biosikkerhetsbranner (firewalls) mellom produksjonsområder",
+      "Tvungen nedslakting i bekjempelsessonen",
+      "Smittevern mellom produksjonsområdene",
       "Forsikringsdekning kreves for utbruddsansvar",
       "Utbruddet må ikke spre seg til nabofeltene"
     ],
@@ -299,7 +299,7 @@
     "name": "Algekatastrofen",
     "difficulty": 5,
     "description": "1 000 t dødelighet ved én algehend. Tidlig varsling, mitigerende tiltak og forsikring avgjør.",
-    "story": "Høsten rammet Grieg Seafood hardt: et massivt skadelig algeoppblomstring drepte rundt 1 000 tonn laks i ett enkelt hendelsesforløp. Alger tapper oksygenet og skader gjellene. Tidlig varsling fra sensorer, umiddelbar mitigering (boblegardin og O2-tilførsel) og forsikring er forskjellen mellom overlevelse og total tap.",
+    "story": "Høsten rammet en stor vestlandsoppdretter hardt: en massiv, skadelig algeoppblomstring drepte rundt 1 000 tonn laks i ett enkelt hendelsesforløp. Alger tapper oksygenet og skader gjellene. Tidlig varsling fra sensorer, umiddelbar mitigering (boblegardin og O2-tilførsel) og forsikring er forskjellen mellom overlevelse og total tap.",
     "objective": "Installer mitigerende tiltak (O2-diffuser/boblegardin) på alle utsatte anlegg og overlev alge-vinduet med katastrofeforsikring.",
     "starting_balance": 25000000,
     "starting_cash": 25000000,

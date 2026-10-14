@@ -36,8 +36,8 @@ public partial class SimulationEngine
 
         facility.StartConstruction(State.Day);
         RASFacilities.Add(facility);
-        LogFacilityBuilt("RAS Facility Built",
-            $"Built RAS facility '{facility.Name}' ({scale} scale, {facility.CapacityTonnesPerYear:N0}t/yr capacity)",
+        LogFacilityBuilt("RAS-anlegg under bygging",
+            SimText.Nb($"{facility.Name} er under bygging ({facility.CapacityTonnesPerYear:N0} t per år)"),
             facility.CAPEX);
         return CommandResult.Success(
             $"Construction of RAS facility '{facility.Name}' started ({facility.ConstructionDays} days)",
@@ -63,8 +63,8 @@ public partial class SimulationEngine
 
         farm.StartConstruction(State.Day);
         OffshoreFarms.Add(farm);
-        LogFacilityBuilt("Offshore Farm Built",
-            $"Built offshore farm '{farm.Name}' ({type}, {farm.CapacityTonnes:N0}t capacity)",
+        LogFacilityBuilt("Havmerd under bygging",
+            SimText.Nb($"{farm.Name} er under bygging ({farm.CapacityTonnes:N0} t kapasitet)"),
             farm.CAPEX);
         return CommandResult.Success(
             $"Construction of offshore farm '{farm.Name}' started ({farm.ConstructionDays} days)",
@@ -87,8 +87,8 @@ public partial class SimulationEngine
 
         facility.StartConstruction(State.Day);
         PostSmoltFacilities.Add(facility);
-        LogFacilityBuilt("Post-Smolt Facility Built",
-            $"Built post-smolt facility '{facility.Name}' ({facility.AnnualSmoltCapacity:N0} smolt/yr)",
+        LogFacilityBuilt("Postsmoltanlegg under bygging",
+            SimText.Nb($"{facility.Name} er under bygging ({facility.AnnualSmoltCapacity:N0} smolt per år)"),
             facility.CAPEX);
         return CommandResult.Success(
             $"Construction of post-smolt facility '{facility.Name}' started ({facility.ConstructionDays} days)",

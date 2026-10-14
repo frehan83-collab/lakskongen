@@ -49,15 +49,13 @@ func _setup_signal_hooks() -> void:
 		_game_bridge.AttentionInboxRequested.connect(open_inbox)
 
 func _apply_localization() -> void:
-	_header_label.text = _tr_or("UI_ATTENTION_INBOX_TITLE", "🔔 Attention Inbox")
-	_empty_label.text = _tr_or("UI_ATTENTION_INBOX_EMPTY", "No items needing attention right now. ✨")
-	_refresh_button.text = _tr_or("UI_ATTENTION_INBOX_REFRESH", "🔄 Refresh")
-	_auto_refresh_toggle.text = _tr_or("UI_ATTENTION_INBOX_AUTO_REFRESH", "🔄 Auto-refresh")
-	_close_button.text = _tr_or("UI_ATTENTION_INBOX_CLOSE", "✕")
-
-func _tr_or(key: String, fallback: String) -> String:
-	var t := tr(key)
-	return t if t != key else fallback
+	_header_label.text = "🔔 " + tr("UI_ATTENTION_INBOX_TITLE")
+	_empty_label.text = tr("UI_ATTENTION_INBOX_EMPTY")
+	_refresh_button.text = "🔄 " + tr("UI_ATTENTION_INBOX_REFRESH")
+	_auto_refresh_toggle.text = "🔄 " + tr("UI_ATTENTION_INBOX_AUTO_REFRESH")
+	_auto_refresh_toggle.tooltip_text = tr("UI_ATTENTION_INBOX_AUTO_REFRESH_TIP")
+	_close_button.text = "✕"
+	_close_button.tooltip_text = tr("UI_CLOSE")
 
 # ── Signal handlers (event-driven refresh while visible) ──
 
@@ -99,8 +97,13 @@ func _collect_attention_items() -> Array[Dictionary]:
 	# 1. C# aggregator: interventions, gill health, finance, lice, weather, contracts.
 	if _sim_bridge and _sim_bridge.has_method("get_attention_items"):
 		var source: Array = _sim_bridge.get_attention_items()
+		var settled: bool = not _sim_bridge.has_method("fcr_is_settled") or bool(_sim_bridge.fcr_is_settled())
 		for entry in source:
 			if entry is Dictionary:
+				# The feed-recipe advice reads the FCR, which says nothing about
+				# feeding while fresh smolts settle (roadmap U1-08).
+				if str(entry.get("action_id", "")) == "recipe-tune" and not settled:
+					continue
 				items.append(entry)
 
 	# 2. Market drop (computed here — the C# aggregator has no market items).
@@ -111,13 +114,12 @@ func _collect_attention_items() -> Array[Dictionary]:
 		if current > 0.0 and weekly > 0.0:
 			var change_pct := (current - weekly) / weekly * 100.0
 			if change_pct <= -5.0:
-				var desc_template := _tr_or("UI_ATTENTION_MARKET_DROP_DESC", "Spot price {pct}% below the weekly average — review hedging and harvest timing")
 				items.append({
 					"type": "market_drop",
 					"priority": "high",
 					"category": "market",
-					"title": _tr_or("UI_ATTENTION_MARKET_DROP", "Market Price Drop"),
-					"description": desc_template.format({"pct": "%.1f" % change_pct}),
+					"title": tr("UI_ATTENTION_MARKET_DROP"),
+					"description": tr("UI_ATTENTION_MARKET_DROP_DESC") % SimFormatters.percent(absf(change_pct) / 100.0, 1),
 					"callback": "open_market_panel"
 				})
 
@@ -184,18 +186,18 @@ func _create_category_header(category: String, count: int) -> HBoxContainer:
 		"weather": "🌤️", "market": "📈", "contract": "📋", "other": "📌"
 	}
 	var labels: Dictionary = {
-		"health": _tr_or("UI_ATTENTION_CAT_HEALTH", "Fish Health"),
-		"finance": _tr_or("UI_ATTENTION_CAT_FINANCE", "Finance"),
-		"intervention": _tr_or("UI_ATTENTION_CAT_INTERVENTION", "Optimization"),
-		"decision": _tr_or("UI_ATTENTION_CAT_DECISION", "Decisions"),
-		"weather": _tr_or("UI_ATTENTION_CAT_WEATHER", "Weather"),
-		"market": _tr_or("UI_ATTENTION_CAT_MARKET", "Market"),
-		"contract": _tr_or("UI_ATTENTION_CAT_CONTRACT", "Contracts"),
-		"other": _tr_or("UI_ATTENTION_CAT_OTHER", "Other")
+		"health": tr("UI_ATTENTION_CAT_HEALTH"),
+		"finance": tr("UI_ATTENTION_CAT_FINANCE"),
+		"intervention": tr("UI_ATTENTION_CAT_INTERVENTION"),
+		"decision": tr("UI_ATTENTION_CAT_DECISION"),
+		"weather": tr("UI_ATTENTION_CAT_WEATHER"),
+		"market": tr("UI_ATTENTION_CAT_MARKET"),
+		"contract": tr("UI_ATTENTION_CAT_CONTRACT"),
+		"other": tr("UI_ATTENTION_CAT_OTHER")
 	}
 
 	var icon: String = icons.get(category, "📌")
-	var label_text: String = labels.get(category, str(category).to_upper())
+	var label_text: String = labels.get(category, tr("UI_ATTENTION_CAT_OTHER"))
 
 	var icon_label := Label.new()
 	icon_label.text = "%s %s (%d)" % [icon, label_text, count]
@@ -228,9 +230,10 @@ func _priority_tone(priority: String) -> StringName:
 		_: return &"Muted"
 
 func _create_priority_badge(priority: String) -> Label:
-	var texts: Dictionary = {"critical": "🔴 CRITICAL", "high": "🟠 HIGH", "medium": "🟡 MEDIUM", "low": "🔵 LOW"}
+	var icons: Dictionary = {"critical": "🔴", "high": "🟠", "medium": "🟡", "low": "🔵"}
 	var badge := Label.new()
-	badge.text = texts.get(priority, str(priority).to_upper())
+	var level := priority if icons.has(priority) else "low"
+	badge.text = "%s %s" % [icons[level], tr("UI_PRIORITY_" + level.to_upper())]
 	# "Tag<Tone>": tone text on a tinted pill (CVD-safe with the emoji + text).
 	badge.theme_type_variation = StringName("Tag" + String(_priority_tone(priority)))
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -267,7 +270,7 @@ func _create_attention_item(item: Dictionary) -> PanelContainer:
 
 	if site_id != "":
 		var site_badge := Label.new()
-		site_badge.text = "📍 %s" % site_id
+		site_badge.text = "📍 %s" % (str(_sim_bridge.site_name(site_id)) if _sim_bridge and _sim_bridge.has_method("site_name") else site_id)
 		site_badge.theme_type_variation = &"SmallMuted"
 		site_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		title_row.add_child(site_badge)
@@ -293,12 +296,12 @@ func _create_attention_item(item: Dictionary) -> PanelContainer:
 
 	if days_out > 0:
 		var days_label := Label.new()
-		days_label.text = "📅 %d %s" % [days_out, _tr_or("UI_ATTENTION_DAYS", "days")]
+		days_label.text = "📅 " + tr("UI_ATTENTION_IN_DAYS") % days_out
 		days_label.theme_type_variation = &"SmallMuted"
 		meta_row.add_child(days_label)
 
 	var cat_label := Label.new()
-	cat_label.text = str(item.get("category", "")).to_upper()
+	cat_label.text = _category_name(str(item.get("category", "other"))).to_upper()
 	cat_label.theme_type_variation = StringName("Caption" + String(_category_tone(str(item.get("category", "other")))))
 	meta_row.add_child(cat_label)
 
@@ -307,7 +310,7 @@ func _create_attention_item(item: Dictionary) -> PanelContainer:
 	# Action button.
 	if callback != "":
 		var action_btn := Button.new()
-		action_btn.text = _tr_or("UI_ATTENTION_ACTION_VIEW", "View Details →")
+		action_btn.text = tr("UI_ATTENTION_ACTION_VIEW") + " →"
 		action_btn.custom_minimum_size = Vector2(140, 28)
 		action_btn.theme_type_variation = &"SmallPrimaryButton"
 		action_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
@@ -319,10 +322,12 @@ func _create_attention_item(item: Dictionary) -> PanelContainer:
 
 # ── Item actions ──
 
-func _on_item_action(callback: String, _action_id: String, _site_id: String) -> void:
+func _on_item_action(callback: String, action_id: String, _site_id: String) -> void:
 	match callback:
 		"open_intervention_detail":
-			_show_tab("pens")
+			# Feed-recipe advice is acted on in AI feeding; delousing and
+			# harvest timing in the pen view.
+			_show_tab("ai_feeding" if action_id == "recipe-tune" else "pens")
 		"open_decision_panel":
 			_show_tab("dashboard")
 		"open_site_health", "open_health_panel":
@@ -357,14 +362,13 @@ func _find_game_ui() -> Node:
 	return null
 
 func _format_nok(val: float) -> String:
-	if val >= 1_000_000_000:
-		return "%.1fB NOK" % (val / 1_000_000_000.0)
-	elif val >= 1_000_000:
-		return "%.1fM NOK" % (val / 1_000_000.0)
-	elif val >= 1_000:
-		return "%.1fK NOK" % (val / 1_000.0)
-	else:
-		return "%.0f NOK" % val
+	return SimFormatters.format_nok(val)
+
+## The display name of an attention category ("health" → "Fiskehelse").
+func _category_name(category: String) -> String:
+	var key := "UI_ATTENTION_CAT_" + category.to_upper()
+	var t := tr(key)
+	return t if t != key else tr("UI_ATTENTION_CAT_OTHER")
 
 # ── Open / close / input ──
 

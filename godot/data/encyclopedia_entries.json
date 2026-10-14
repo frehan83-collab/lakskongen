@@ -59,7 +59,7 @@
         "id":  "spawning",
         "title":  "Broodstock \u0026 Spawning",
         "category":  "Biology",
-        "content":  "Broodstock are mature salmon selected for breeding based on desirable traits: fast growth, disease resistance, late maturation, and fillet quality. Norwegian breeding companies like AquaGen and SalmoBreed maintain multi-generation breeding programs. Eggs are stripped from females and fertilized with milt from selected males.",
+        "content":  "Broodstock are mature salmon selected for breeding based on desirable traits: fast growth, disease resistance, late maturation, and fillet quality. Norwegian breeding companies maintain multi-generation breeding programs. Eggs are stripped from females and fertilized with milt from selected males.",
         "relatedIds":  [
                            "genetics",
                            "selective-breeding",
@@ -290,7 +290,7 @@
         "id":  "salmon-price",
         "title":  "Salmon Spot Price",
         "category":  "Market",
-        "content":  "Norwegian salmon prices are primarily set at the NASDAQ Salmon Index (formerly FHL), reflecting weekly average export prices. Prices typically range 50-120 NOK/kg, with strong seasonality: highest in Q1/Q4, lowest in Q3. Price volatility is significant â€” swings of 30-40% within a year are common. Global supply, Chilean competition, and demand shifts drive prices.",
+        "content":  "Norwegian salmon prices are primarily set by the weekly salmon export price index, reflecting weekly average export prices. Prices typically range 50-120 NOK/kg, with strong seasonality: highest in Q1/Q4, lowest in Q3. Price volatility is significant â€” swings of 30-40% within a year are common. Global supply, Chilean competition, and demand shifts drive prices.",
         "relatedIds":  [
                            "spot-market",
                            "contract-sales",
@@ -301,7 +301,7 @@
         "id":  "spot-market",
         "title":  "Spot Market Trading",
         "category":  "Market",
-        "content":  "The spot market handles ~60% of Norwegian salmon sales. Fish are sold at current market prices through intermediaries like Marine Harvest, LerÃ¸y, and Cermaq trading desks. Spot sales offer higher average returns but with significant price risk. Small producers are more exposed to spot volatility than vertically integrated companies.",
+        "content":  "The spot market handles ~60% of Norwegian salmon sales. Fish are sold at current market prices through exporters and trading desks. Spot sales offer higher average returns but with significant price risk. Small producers are more exposed to spot volatility than vertically integrated companies.",
         "relatedIds":  [
                            "salmon-price",
                            "contract-sales",
@@ -345,7 +345,7 @@
         "id":  "value-chain",
         "title":  "Salmon Value Chain",
         "category":  "Market",
-        "content":  "The salmon value chain spans: broodstock â†’ hatchery â†’ sea farming â†’ harvest â†’ primary processing â†’ secondary processing â†’ logistics â†’ retail/food service. Vertically integrated companies (Mowi, LerÃ¸y, SalMar) control multiple stages. Producer share of retail price is typically 40-50%. Feed costs represent ~50% of production costs.",
+        "content":  "The salmon value chain spans: broodstock â†’ hatchery â†’ sea farming â†’ harvest â†’ primary processing â†’ secondary processing â†’ logistics â†’ retail/food service. Vertically integrated companies control multiple stages. Producer share of retail price is typically 40-50%. Feed costs represent ~50% of production costs.",
         "relatedIds":  [
                            "processing-plants",
                            "export-markets",
@@ -477,7 +477,7 @@
         "id":  "ai-monitoring-tech",
         "title":  "AI \u0026 Machine Learning",
         "category":  "Technology",
-        "content":  "AI applications in Norwegian aquaculture include: automatic lice counting from images, biomass estimation from stereo cameras, appetite prediction from feeding behavior, disease detection from swimming patterns, and production planning optimization. Companies like Stingray, CageEye, and AquaCloud lead development. AI can detect health issues 3-5 days before clinical signs appear.",
+        "content":  "AI applications in Norwegian aquaculture include: automatic lice counting from images, biomass estimation from stereo cameras, appetite prediction from feeding behavior, disease detection from swimming patterns, and production planning optimization. Technology suppliers and shared industry data platforms lead development. AI can detect health issues 3-5 days before clinical signs appear.",
         "relatedIds":  [
                            "underwater-cameras-tech",
                            "ai-monitoring",
@@ -606,50 +606,6 @@
                        ]
     },
     {
-        "content":  "Mowi (formerly Marine Harvest) is the world\u0027s largest salmon farmer, producing ~500,000 tonnes annually. Headquartered in Bergen, Norway, Mowi is vertically integrated from feed (Mowi Feed) through farming in Norway, Scotland, Chile, Canada, and Ireland to processing and branded consumer products. Listed on the Oslo Stock Exchange (MOWI).",
-        "title":  "Mowi ASA",
-        "category":  "Industry",
-        "id":  "mowi",
-        "relatedIds":  [
-                           "value-chain",
-                           "export-markets",
-                           "license-system"
-                       ]
-    },
-    {
-        "content":  "SalMar is Norway\u0027s second-largest salmon farmer, known for innovation including the Ocean Farm 1 offshore installation and the InnovaMar processing plant. Founded in 1991, SalMar focuses on Central Norway (Frøya) and Northern Norway (SalMar Arctic). Their offshore farming concept represents the industry\u0027s push into more exposed, deeper water locations.",
-        "title":  "SalMar ASA",
-        "category":  "Industry",
-        "id":  "salmar",
-        "relatedIds":  [
-                           "closed-containment-env",
-                           "processing-plants",
-                           "license-system"
-                       ]
-    },
-    {
-        "content":  "Lerøy is Norway\u0027s third-largest salmon producer and a major seafood distributor. Headquartered in Bergen, Lerøy operates across the Norwegian coast and in Scotland (Lerøy Aurora in Northern Norway, Lerøy Midt in Central Norway). The company is also a leading whitefish and shellfish distributor, providing diversification beyond salmon.",
-        "title":  "Lerøy Seafood Group",
-        "category":  "Industry",
-        "id":  "leroy",
-        "relatedIds":  [
-                           "value-chain",
-                           "export-markets",
-                           "processing-plants"
-                       ]
-    },
-    {
-        "content":  "Fish Pool ASA operates a regulated marketplace for salmon futures and options on the Oslo Stock Exchange. Contracts are cash-settled against the NASDAQ Salmon Index. Farmers use Fish Pool to hedge price risk by locking in future prices, while speculators provide liquidity. Understanding derivatives is key to advanced financial management in salmon farming.",
-        "title":  "Fish Pool (Salmon Futures)",
-        "category":  "Market",
-        "id":  "fish-pool",
-        "relatedIds":  [
-                           "salmon-price",
-                           "contract-sales",
-                           "spot-market"
-                       ]
-    },
-    {
         "content":  "Sashimi-grade salmon commands the highest prices, primarily for the Japanese market. Requirements include: perfect flesh color (SalmoFan 27+), no parasites, -20°C deep-freeze treatment, minimal gaping, and pristine handling. Norwegian Air Shuttle salmon — fresh from fjord to Tokyo in 48 hours — transformed Japan\u0027s sushi market in the 2000s.",
         "title":  "Sashimi Grade Salmon",
         "category":  "Market",
@@ -672,13 +628,12 @@
                        ]
     },
     {
-        "content":  "Ocean Farm 1, developed by SalMar and SINTEF, is a 110m diameter offshore fish farm designed for exposed open-ocean locations. It holds up to 1 million fish and can withstand extreme weather. Nordlaks\u0027 Havfarm is a 385m ship-shaped structure. These concepts aim to access new farming areas while reducing environmental impact on coastal ecosystems.",
+        "content":  "Ocean Farm 1, developed by a Norwegian farmer with research partners, is a 110m diameter offshore fish farm designed for exposed open-ocean locations. It holds up to 1 million fish and can withstand extreme weather. Nordlaks\u0027 Havfarm is a 385m ship-shaped structure. These concepts aim to access new farming areas while reducing environmental impact on coastal ecosystems.",
         "title":  "Ocean Farm (Havfarm)",
         "category":  "Technology",
         "id":  "ocean-farm",
         "relatedIds":  [
                            "closed-containment-env",
-                           "salmar",
                            "net-pen"
                        ]
     },

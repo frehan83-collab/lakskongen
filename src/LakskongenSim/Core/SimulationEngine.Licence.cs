@@ -77,9 +77,8 @@ public partial class SimulationEngine
             Day = State.Day,
             Name = "Growth Licence Auction",
             Category = EventCategory.Regulation,
-            Description =
-                $"Auction opened for zone '{zoneId}' — closes day {auction.ClosesDay}, " +
-                $"reserve {auction.ReservePriceNOK:N0} NOK"
+            Description = SimText.Nb(
+                $"Auksjon åpnet for {ZoneLabel(zoneId)} — stenger dag {auction.ClosesDay}, minstepris {auction.ReservePriceNOK:N0} kr")
         });
         State.TrimEventLog();
 
@@ -169,6 +168,7 @@ public partial class SimulationEngine
             : name;
         var site = new SeaSite(siteId, zoneId)
         {
+            DisplayName = SiteNames.NextFor(State.SeaSites),
             MABTonnes = 780.0,
             NumberOfPens = 8,
             PenVolume = 50000f,
@@ -181,9 +181,9 @@ public partial class SimulationEngine
         State.EventLog.Add(new EventRecord
         {
             Day = State.Day,
-            Name = "License Acquisition",
+            Name = "Nytt sjøanlegg",
             Category = EventCategory.Regulation,
-            Description = $"Built new sea site '{siteId}' in zone '{zoneId}' (780T MAB)",
+            Description = $"Bygde sjøanlegget {site.Label} i {ZoneLabel(zoneId)} (780 t MTB)",
             BalanceChange = -cost
         });
         State.TrimEventLog();
@@ -240,9 +240,8 @@ public partial class SimulationEngine
                     Day = State.Day,
                     Name = "Growth Licence Won",
                     Category = EventCategory.Regulation,
-                    Description =
-                        $"Won growth licence auction for zone '{auction.ZoneId}' " +
-                        $"at {settlement.AmountNOK:N0} NOK",
+                    Description = SimText.Nb(
+                        $"Vant auksjonen om vekstlisens for {ZoneLabel(auction.ZoneId)} for {settlement.AmountNOK:N0} kr"),
                     BalanceChange = -settlement.AmountNOK
                 });
                 _dayNotes.Add(new DayNote
@@ -272,11 +271,10 @@ public partial class SimulationEngine
                 State.EventLog.Add(new EventRecord
                 {
                     Day = State.Day,
-                    Name = "Competitor Wins Licence Auction",
+                    Name = "Konkurrent vant lisensauksjon",
                     Category = EventCategory.Competitor,
-                    Description =
-                        $"{rival?.Name ?? settlement.WinnerId} won the growth licence for zone " +
-                        $"'{auction.ZoneId}' at {settlement.AmountNOK:N0} NOK"
+                    Description = SimText.Nb(
+                        $"{rival?.Name ?? settlement.WinnerId} vant vekstlisensen for {ZoneLabel(auction.ZoneId)} for {settlement.AmountNOK:N0} kr")
                 });
                 _dayNotes.Add(new DayNote
                 {
@@ -297,10 +295,10 @@ public partial class SimulationEngine
                 State.EventLog.Add(new EventRecord
                 {
                     Day = State.Day,
-                    Name = "Licence Auction Forfeited",
+                    Name = "Lisensauksjon uten vinner",
                     Category = EventCategory.Regulation,
                     Description =
-                        $"Auction for zone '{auction.ZoneId}' closed — no bidder could cover the price"
+                        $"Auksjonen for {ZoneLabel(auction.ZoneId)} er stengt — ingen budgiver kunne betale"
                 });
                 _dayNotes.Add(new DayNote
                 {
@@ -354,9 +352,8 @@ public partial class SimulationEngine
             Day = State.Day,
             Name = "Growth Licence Auction",
             Category = EventCategory.Regulation,
-            Description =
-                $"Rivals opened a growth licence auction for zone '{auction.ZoneId}' — " +
-                $"closes day {auction.ClosesDay}, reserve {auction.ReservePriceNOK:N0} NOK"
+            Description = SimText.Nb(
+                $"Konkurrenter har åpnet en auksjon om vekstlisens for {ZoneLabel(auction.ZoneId)} — stenger dag {auction.ClosesDay}, minstepris {auction.ReservePriceNOK:N0} kr")
         });
         _dayNotes.Add(new DayNote
         {
@@ -471,9 +468,9 @@ public partial class SimulationEngine
         State.EventLog.Add(new EventRecord
         {
             Day = State.Day,
-            Name = "Distressed Asset Acquisition",
+            Name = "Oppkjøp fra konkursbo",
             Category = EventCategory.Competitor,
-            Description = $"Acquired {asset.AssetType} '{asset.Name}' from {asset.OwningCompetitor} for {asset.DiscountedPriceNOK:N0} NOK",
+            Description = SimText.Nb($"Kjøpte «{asset.Name}» fra {asset.OwningCompetitor} for {asset.DiscountedPriceNOK:N0} kr"),
             BalanceChange = -asset.DiscountedPriceNOK
         });
         _dayNotes.Add(new DayNote

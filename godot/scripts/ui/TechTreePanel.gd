@@ -224,6 +224,15 @@ func _refresh() -> void:
 	# Rebuild lookup maps
 	_node_data.clear()
 	for nd in nodes_raw:
+		# The sim names nodes in English; the player reads the translation
+		# (RESEARCH_<ID>_NAME / _DESC; mod nodes without one keep their own).
+		var key := "RESEARCH_" + SimLabels.upper_snake(str(nd["id"]))
+		var nm := tr(key + "_NAME")
+		var desc := tr(key + "_DESC")
+		if nm != key + "_NAME":
+			nd["name"] = nm
+		if desc != key + "_DESC":
+			nd["description"] = desc
 		_node_data[nd["id"]] = nd
 
 	# Rebuild panels only when a node's state changed (F672: the tree used to
@@ -239,9 +248,9 @@ func _refresh() -> void:
 	if active_id != "":
 		var remaining: int = gb.get_research_days_remaining()
 		var nd: Dictionary = _node_data.get(active_id, {})
-		_update_status_label("Forsker: %s - %d dager gjenstår" % [nd.get("name", active_id), remaining])
+		_update_status_label(tr("UI_TECH_ACTIVE") % [nd.get("name", active_id), remaining])
 	else:
-		_update_status_label("Ingen aktiv forskning  |  Velg en node for å starte")
+		_update_status_label(tr("UI_TECH_IDLE"))
 
 	# Redraw connection lines
 	_line_canvas.queue_redraw()
@@ -395,13 +404,13 @@ func _build_node_panel(nd: Dictionary) -> void:
 	var status_icon := Label.new()
 	status_icon.theme_type_variation = &"Small"
 	if is_unlocked:
-		status_icon.text = tr("✅")
+		status_icon.text = "✅"
 	elif is_active:
-		status_icon.text = tr("⏳")
+		status_icon.text = "⏳"
 	elif can_research:
-		status_icon.text = tr("🔬")
+		status_icon.text = "🔬"
 	else:
-		status_icon.text = tr("🔒")
+		status_icon.text = "🔒"
 	title_row.add_child(status_icon)
 
 	var name_lbl := Label.new()
@@ -437,7 +446,7 @@ func _build_node_panel(nd: Dictionary) -> void:
 	else:
 		var cost_str: String = _format_nok(nd["cost_nok"])
 		var cost_lbl := Label.new()
-		cost_lbl.text = "%s  •  %dd" % [cost_str, research_days]
+		cost_lbl.text = tr("UI_TECH_COST_DAYS") % [cost_str, research_days]
 		cost_lbl.theme_type_variation = &"SmallMuted"
 		vbox.add_child(cost_lbl)
 
@@ -473,7 +482,7 @@ func _on_node_clicked(node_id: String) -> void:
 
 	_pending_node_id = node_id
 	var cost_str: String = _format_nok(nd["cost_nok"])
-	_confirm_dialog.dialog_text = "%s\n\nKostnad: %s\nForskningsvarighet: %d dager\n\n%s" % [
+	_confirm_dialog.dialog_text = tr("UI_TECH_CONFIRM_TEXT") % [
 		nd["name"],
 		cost_str,
 		nd["research_days"],
@@ -498,8 +507,8 @@ func _on_research_confirmed() -> void:
 	else:
 		# Show brief error - insufficient funds or state changed
 		var err := AcceptDialog.new()
-		err.title = "Kan ikke starte forskning"
-		err.dialog_text = "Ikke nok midler eller et krav er ikke oppfylt."
+		err.title = tr("UI_TECH_START_FAILED_TITLE")
+		err.dialog_text = tr("UI_TECH_START_FAILED")
 		add_child(err)
 		err.popup_centered()
 		err.confirmed.connect(func(): err.queue_free())
@@ -517,14 +526,14 @@ func _on_node_hover(node_id: String) -> void:
 
 	var lines: PackedStringArray = [nd["description"]]
 	if prereq_names.size() > 0:
-		lines.append("Krever: " + ", ".join(prereq_names))
+		lines.append(tr("UI_TECH_REQUIRES") % ", ".join(prereq_names))
 
 	var effects: Dictionary = nd["effects"]
 	if not effects.is_empty():
 		var fx_parts: PackedStringArray = []
 		for k in effects:
 			fx_parts.append(format_effect(k, float(effects[k])))
-		lines.append("Effekter: " + ", ".join(fx_parts))
+		lines.append(tr("UI_TECH_EFFECTS") % ", ".join(fx_parts))
 
 	_tooltip_label.text = "\n".join(lines)
 	_tooltip_label.custom_minimum_size = Vector2(260, 0)
@@ -541,9 +550,7 @@ func _toast_research(node_id: String) -> void:
 	if mgr and mgr.has_method("show_toast"):
 		var nd: Dictionary = _node_data.get(node_id, {})
 		var label := str(nd.get("name", node_id))
-		var t := tr("UI_TOAST_RESEARCH")
-		var msg := (t % label) if t != "UI_TOAST_RESEARCH" else ("🔬 Forskning startet: %s" % label)
-		mgr.show_toast(msg, "SUCCESS", 4.0)
+		mgr.show_toast("🔬 " + tr("UI_TOAST_RESEARCH") % label, "SUCCESS", 4.0)
 
 func _update_status_label(text: String) -> void:
 	var lbl: Label = get_node_or_null("StatusLabel")
@@ -551,11 +558,7 @@ func _update_status_label(text: String) -> void:
 		lbl.text = text
 
 func _format_nok(value: float) -> String:
-	if value >= 1_000_000.0:
-		return "%.1f M NOK" % (value / 1_000_000.0)
-	if value >= 1_000.0:
-		return "%.0f k NOK" % (value / 1_000.0)
-	return "%.0f NOK" % value
+	return SimFormatters.format_nok(value)
 
 # ── Inner class: connection line canvas ────────────────────────────────────────
 

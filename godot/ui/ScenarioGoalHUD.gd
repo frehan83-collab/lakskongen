@@ -83,13 +83,13 @@ func _refresh() -> void:
 
 func _apply(progress: float, description: String, achieved: bool, failed: bool) -> void:
 	var percent := int(round(clampf(progress, 0.0, 1.0) * 100.0))
-	var text := description if not description.is_empty() else "Goal"
+	var text := description if not description.is_empty() else tr("UI_GOAL_FREE_PLAY")
 	if achieved:
-		text = "✓ %s — %d%%" % [text, percent]
+		text = "✓ %s — %s" % [text, SimFormatters.percent(percent / 100.0)]
 	elif failed:
-		text = "✗ %s — mislyktes" % text
+		text = "✗ " + tr("UI_GOAL_FAILED") % text
 	else:
-		text = "Goal: %s" % text
+		text = tr("UI_GOAL_PREFIX") % text
 
 	if _goal_label != null:
 		_goal_label.text = text
@@ -102,9 +102,10 @@ func _set_days_left(days_left: int, progress: float) -> void:
 		return
 	var percent := int(round(clampf(progress, 0.0, 1.0) * 100.0))
 	if days_left < 0:
-		_time_label.text = "%d%%" % percent
+		_time_label.text = SimFormatters.percent(percent / 100.0)
 	else:
-		_time_label.text = "%d%% — ⏰ %.1f år igjen" % [percent, float(days_left) / 365.0]
+		_time_label.text = "%s — ⏰ %s" % [SimFormatters.percent(percent / 100.0),
+			tr("UI_GOAL_YEARS_LEFT") % SimFormatters.num(float(days_left) / 365.0, 1)]
 
 func _set_time(scenario: Dictionary, progress: float) -> void:
 	if _time_label == null:
@@ -119,7 +120,7 @@ func _set_time(scenario: Dictionary, progress: float) -> void:
 		limit_years = float(scenario.get("time_limit_days", 0)) / 365.0
 
 	if limit_years <= 0.0:
-		_time_label.text = "%d%%" % percent
+		_time_label.text = SimFormatters.percent(percent / 100.0)
 		return
 
 	var day := 0
@@ -127,7 +128,8 @@ func _set_time(scenario: Dictionary, progress: float) -> void:
 	if sim != null and "current_day" in sim:
 		day = int(sim.current_day)
 	var years_left := maxf(limit_years - float(day) / 365.0, 0.0)
-	_time_label.text = "%d%% — ⏰ %.1f år igjen" % [percent, years_left]
+	_time_label.text = "%s — ⏰ %s" % [SimFormatters.percent(percent / 100.0),
+		tr("UI_GOAL_YEARS_LEFT") % SimFormatters.num(years_left, 1)]
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 

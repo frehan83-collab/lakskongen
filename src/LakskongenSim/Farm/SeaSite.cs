@@ -13,6 +13,16 @@ namespace LakskongenSim.Farm
     {
         public string Id { get; init; }
         public string ZoneId { get; set; } = ""; // Links to Environment.Zone
+
+        /// <summary>The name the player reads (the scenario's site name, or a
+        /// generated place name for a site the player builds). Empty on saves
+        /// from before it existed; <see cref="Label"/> falls back then.</summary>
+        public string DisplayName { get; set; } = "";
+
+        /// <summary><see cref="DisplayName"/>, or a readable form of the id: the
+        /// UI never shows a raw id such as "po3_nord".</summary>
+        [JsonIgnore] public string Label =>
+            string.IsNullOrWhiteSpace(DisplayName) ? SiteNames.Humanize(Id) : DisplayName;
         public List<Biology.FishPopulation> Pens { get; set; } = new();
 
         // License & MAB (Maximum Allowed Biomass)
@@ -57,6 +67,11 @@ namespace LakskongenSim.Farm
         /// <summary>P8 permeable barrier installed at this site (None = none).
         /// Retrofit liner (e.g. Smoltscreen) that blocks lice/jellyfish by flow.</summary>
         public BarrierKind Barrier { get; set; } = BarrierKind.None;
+
+        /// <summary>Sim day of the latest stocking at this site, -1 when unknown
+        /// (saves from before it existed). The UI holds back the FCR alarm for
+        /// freshly stocked fish (roadmap U1-08).</summary>
+        public int LastStockedDay { get; set; } = -1;
 
         /// <summary>P8 days since the installed barrier was last cleaned. Drives
         /// biofouling efficiency decay once past the cleaning interval.</summary>

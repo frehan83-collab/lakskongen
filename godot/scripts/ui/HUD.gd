@@ -13,6 +13,9 @@ const TONE_TEXT := &""
 const TONE_MUTED := &"Muted"
 
 const SEASON_ICONS := {"Vinter": "❄️", "Vår": "🌱", "Sommer": "☀️", "Høst": "🍂"}
+## SimFormatters.season_name() ids → translation keys.
+const SEASON_KEYS := {"Vinter": "UI_HUD_SEASON_WINTER", "Vår": "UI_HUD_SEASON_SPRING",
+	"Sommer": "UI_HUD_SEASON_SUMMER", "Høst": "UI_HUD_SEASON_AUTUMN"}
 
 # ── State ──────────────────────────────────────────────────────────────────────
 var _sim: Node = null
@@ -117,57 +120,36 @@ func _update_all() -> void:
 	fish_value.text = _sim.format_fish(_sim.fish_count)
 	LakskongenTheme.set_tone(fish_value, TONE_TEXT if _sim.fish_count > 0 else TONE_WARN)
 
-	temp_value.text = _tr_or_format("UI_HUD_TEMP_FORMAT", "%.1f°C", _sim.temperature_c)
+	temp_value.text = tr("UI_HUD_TEMP_FORMAT") % SimFormatters.num(_sim.temperature_c, 1)
 	LakskongenTheme.set_tone(temp_value, _temp_tone(_sim.temperature_c))
 
-	price_value.text = _tr_or_format("UI_HUD_PRICE_FORMAT", "%.0f kr/kg", _sim.market_price_nok)
+	price_value.text = tr("UI_HUD_PRICE_FORMAT") % SimFormatters.num(_sim.market_price_nok, 0)
 	LakskongenTheme.set_tone(price_value, _price_tone(_sim.market_price_nok))
 
 	var alert_count = _sim.active_alerts.size() if _sim.get("active_alerts") else 0
 	alerts_value.text = str(alert_count)
 	LakskongenTheme.set_tone(alerts_value, TONE_CRIT if alert_count > 0 else TONE_MUTED)
 
-	weather_value.text = _sim.get_current_weather_state()
+	weather_value.text = SimLabels.weather(str(_sim.get_current_weather_state()))
 
 	_update_tooltips(alert_count)
 
 ## "Why is this number what it is?" explanations for every HUD KPI.
 func _update_tooltips(alert_count: int) -> void:
-	balance_value.tooltip_text = (_tr_or("UI_HUD_TIP_BALANCE",
-		"Cash on hand — all income minus costs, loans and investments.\nCurrent: %s")
-		% _sim.format_nok(_sim.balance))
-	fish_value.tooltip_text = (_tr_or("UI_HUD_TIP_FISH",
-		"Total fish across all active pens.\nCurrent: %s")
-		% _sim.format_fish(_sim.fish_count))
-	temp_value.tooltip_text = (_tr_or("UI_HUD_TIP_TEMP",
-		"Sea temperature — drives growth rate and lice reproduction.\nCurrent: %.1f°C")
-		% _sim.temperature_c)
-	price_value.tooltip_text = (_tr_or("UI_HUD_TIP_PRICE",
-		"Spot price per kg — moves with market events, season and demand.\nCurrent: %.0f kr/kg")
-		% _sim.market_price_nok)
-	alerts_value.tooltip_text = (_tr_or("UI_HUD_TIP_ALERTS",
-		"Active alerts — press I or click 🔔 to open the Attention Inbox.\n%d active")
-		% alert_count)
-	weather_value.tooltip_text = _tr_or("UI_HUD_TIP_WEATHER",
-		"Current weather state — storms can damage pens and halt operations.")
-
-func _tr_or(key: String, fallback: String) -> String:
-	var t := tr(key)
-	return t if t != key else fallback
+	balance_value.tooltip_text = tr("UI_HUD_TIP_BALANCE") % _sim.format_nok(_sim.balance)
+	fish_value.tooltip_text = tr("UI_HUD_TIP_FISH") % SimFormatters.integer(_sim.fish_count)
+	temp_value.tooltip_text = tr("UI_HUD_TIP_TEMP") % SimFormatters.num(_sim.temperature_c, 1)
+	price_value.tooltip_text = tr("UI_HUD_TIP_PRICE") % SimFormatters.num(_sim.market_price_nok, 0)
+	alerts_value.tooltip_text = tr("UI_HUD_TIP_ALERTS") % alert_count
+	weather_value.tooltip_text = tr("UI_HUD_TIP_WEATHER")
+	if inbox_btn:
+		inbox_btn.tooltip_text = tr("UI_HUD_TIP_INBOX")
 
 func _update_season(season: String) -> void:
 	if season_icon:
 		season_icon.text = SEASON_ICONS.get(season, "?")
 	if season_value:
-		season_value.text = season
-
-## Translated single-value format with fallback: tr() returns the key when
-## untranslated, and formatting the raw key aborts on missing placeholders.
-func _tr_or_format(key: String, fallback_fmt: String, value: float) -> String:
-	var fmt := tr(key)
-	if fmt == key or not ("%" in fmt):
-		return fallback_fmt % value
-	return fmt % value
+		season_value.text = tr(str(SEASON_KEYS.get(season, ""))) if SEASON_KEYS.has(season) else season
 
 # ── Count-up juice (display only) ────────────────────────────────────────────
 
@@ -229,7 +211,7 @@ func _refresh_speed_buttons() -> void:
 	speed_2x.button_pressed = (not _is_paused and _current_speed == 2.0)
 	speed_5x.button_pressed = (not _is_paused and _current_speed == 5.0)
 	pause_btn.text = "▶️" if _is_paused else "⏸️"
-	pause_btn.tooltip_text = "Resume" if _is_paused else "Pause"
+	pause_btn.tooltip_text = tr("UI_HUD_PAUSE_RESUME_TOOLTIP") if _is_paused else tr("UI_HUD_PAUSE_PAUSE_TOOLTIP")
 
 ## Sync HUD with an external pause change (e.g. auto-pause on critical alerts).
 func set_paused_state(paused: bool) -> void:

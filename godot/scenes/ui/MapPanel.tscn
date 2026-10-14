@@ -69,7 +69,7 @@ theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "SELECT REGION — NORWEGIAN COASTLINE"
+text = "Produksjonsområder — norskekysten"
 
 [node name="SubtitleLabel" type="Label" parent="Outer/PanelBg/RootVBox/Header/HeaderMargin/HeaderInner"]
 theme_type_variation = &"SmallMuted"
@@ -212,7 +212,7 @@ columns = 2
 [node name="KeyLicences" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "AVAILABLE LICENCES"
+text = "LEDIGE LISENSER"
 
 [node name="DetailLicenses" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
 theme_type_variation = &"BodySmallMuted"
@@ -223,7 +223,7 @@ text = "—"
 [node name="KeyDistance" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "DISTANCE TO PROCESSING"
+text = "AVSTAND TIL SLAKTERI"
 
 [node name="DetailDistance" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
 theme_type_variation = &"BodySmallMuted"
@@ -234,7 +234,7 @@ text = "—"
 [node name="KeyHub" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "PROCESSING HUB"
+text = "SLAKTERI OG FOREDLING"
 
 [node name="DetailProcessing" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
 theme_type_variation = &"BodySmallMuted"
@@ -245,7 +245,7 @@ text = "—"
 [node name="KeyHarvest" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "ANNUAL HARVEST"
+text = "ÅRLIG SLAKTEVOLUM"
 
 [node name="DetailHarvest" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
 theme_type_variation = &"BodySmallMuted"
@@ -256,7 +256,7 @@ text = "—"
 [node name="KeyOperators" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "KEY OPERATORS"
+text = "STØRSTE AKTØRER"
 
 [node name="DetailOperators" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
 theme_type_variation = &"BodySmallMuted"
@@ -275,7 +275,7 @@ theme_override_constants/separation = 8
 [node name="TempHeader" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/TempSection"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "WATER TEMPERATURE RANGE"
+text = "SJØTEMPERATUR"
 
 [node name="DetailTemp" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/TempSection"]
 theme_type_variation = &"BodyInfo"
@@ -292,7 +292,7 @@ size_flags_horizontal = 3
 [node name="OptimalLabel" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/TempSection"]
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
-text = "Optimal: 12–16 °C  |  Max tolerance: 20 °C"
+text = "Optimalt for laks: 12–16 °C  ·  øvre grense: 20 °C"
 
 [node name="Sep4" type="HSeparator" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner"]
 layout_mode = 2
@@ -304,7 +304,7 @@ theme_override_constants/separation = 8
 [node name="RiskHeader" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/RiskSection"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "DISEASE RISK"
+text = "SYKDOMSRISIKO"
 
 [node name="RiskRow" type="HBoxContainer" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/RiskSection"]
 layout_mode = 2
@@ -333,10 +333,11 @@ autowrap_mode = 3
 layout_mode = 2
 
 [node name="ConfirmBtn" type="Button" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner"]
+visible = false
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Velg denne regionen for å plassere et nytt sjøanlegg (Enter)"
 disabled = true
-text = "  SELECT THIS REGION  "
+text = "Velg område"

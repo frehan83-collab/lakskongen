@@ -33,40 +33,40 @@ const COLOR_EXPORT_ALL := Color("#1F5E73")
 const EXPORT_TYPES: Array[Dictionary] = [
 	{
 		"id": "daily_snapshots",
-		"title": "Daglige øyeblikksbilder",
-		"subtitle": "En rad per simuleringsdag",
+		"title": "UI_EXPORT_DAILY_TITLE",
+		"subtitle": "UI_EXPORT_DAILY_SUBTITLE",
 		"icon": "📊",
-		"description": "Biomasse, fiskeantall, markedspris, bærekraftsscore og mer.\nBra for trendanalyse og visualisering.",
+		"description": "UI_EXPORT_DAILY_DESC",
 		"filename": "daglig_oversikt",
 		"color": Color("#1F5E73"),
 		"method": "export_daily_snapshots"
 	},
 	{
 		"id": "financial_report",
-		"title": "Finansrapport",
-		"subtitle": "Aggregert per 30-dagers periode",
+		"title": "UI_EXPORT_FINANCE_TITLE",
+		"subtitle": "UI_EXPORT_FINANCE_SUBTITLE",
 		"icon": "💰",
-		"description": "Saldoendringer, gjennomsnittlig markedspris og FCR per periode.\nBra for lønnsomhetsanalyse.",
+		"description": "UI_EXPORT_FINANCE_DESC",
 		"filename": "finansrapport",
 		"color": Color("#8A5A00"),
 		"method": "export_financial_report"
 	},
 	{
 		"id": "population_data",
-		"title": "Populasjonsdata",
-		"subtitle": "Biologiske nøkkeltall per dag",
+		"title": "UI_EXPORT_POPULATION_TITLE",
+		"subtitle": "UI_EXPORT_POPULATION_SUBTITLE",
 		"icon": "🐟",
-		"description": "Fiskeantall, gjennomsnittsvekt, lus per fisk, dødsrate.\nBra for biologisk analyse og velferdssporing.",
+		"description": "UI_EXPORT_POPULATION_DESC",
 		"filename": "populasjon",
 		"color": Color("#2E6B45"),
 		"method": "export_population_data"
 	},
 	{
 		"id": "event_history",
-		"title": "Hendelseslogg",
-		"subtitle": "Alle hendelser med finansiell påvirkning",
+		"title": "UI_EXPORT_EVENTS_TITLE",
+		"subtitle": "UI_EXPORT_EVENTS_SUBTITLE",
 		"icon": "📋",
-		"description": "Dato, kategori, beskrivelse og saldoendring for hver hendelse.\nBra for revisjon og risikoevaluering.",
+		"description": "UI_EXPORT_EVENTS_DESC",
 		"filename": "hendelseslogg",
 		"color": Color("#1F5E73"),
 		"method": "export_event_history"
@@ -141,7 +141,7 @@ func _ready() -> void:
 	for export_type in EXPORT_TYPES:
 		_cards_grid.add_child(_build_export_card(export_type))
 	_add_telemetry_section()
-	_log_info("Klar til å eksportere.")
+	_log_info(tr("UI_EXPORT_LOG_READY"))
 
 func _input(event: InputEvent) -> void:
 	"""Handle keyboard navigation"""
@@ -203,20 +203,20 @@ func _build_export_card(export_type: Dictionary) -> Control:
 	header_hbox.add_child(title_vbox)
 
 	var title_lbl := Label.new()
-	title_lbl.text = export_type.get("title", "")
+	title_lbl.text = tr(export_type.get("title", ""))
 	LakskongenTheme.set_text_color(title_lbl, COLOR_TEXT_BRIGHT)
 	LakskongenTheme.set_size(title_lbl, 14)
 	title_vbox.add_child(title_lbl)
 
 	var sub_lbl := Label.new()
-	sub_lbl.text = export_type.get("subtitle", "")
+	sub_lbl.text = tr(export_type.get("subtitle", ""))
 	LakskongenTheme.set_text_color(sub_lbl, COLOR_TEXT_DIM)
 	LakskongenTheme.set_size(sub_lbl, 11)
 	title_vbox.add_child(sub_lbl)
 
 	# Description
 	var desc_lbl := Label.new()
-	desc_lbl.text = export_type.get("description", "")
+	desc_lbl.text = tr(export_type.get("description", ""))
 	LakskongenTheme.set_text_color(desc_lbl, COLOR_TEXT_DIM)
 	LakskongenTheme.set_size(desc_lbl, 11)
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -246,11 +246,11 @@ func _on_export_single_pressed(type_id: String) -> void:
 
 	var dir := _path_display.text.strip_edges()
 	if dir.is_empty():
-		_log_error("Velg en eksportmappe først.")
+		_log_error(tr("UI_EXPORT_PICK_FOLDER"))
 		return
 
 	_set_button_state(type_id, false)
-	_set_status("Eksporterer...")
+	_set_status(tr("UI_EXPORT_STATUS_RUNNING"))
 	_progress_bar.visible = true
 	_progress_bar.value = 30
 
@@ -266,25 +266,25 @@ func _on_export_single_pressed(type_id: String) -> void:
 	_progress_bar.visible = false
 
 	if rows >= 0:
-		_set_status("Ferdig")
-		_log_ok("✓ %s — %d rader → %s" % [export_type.get("title", ""), rows, path])
+		_set_status(tr("UI_EXPORT_STATUS_DONE"))
+		_log_ok(tr("UI_EXPORT_LOG_OK_PATH") % [tr(export_type.get("title", "")), rows, path])
 		emit_signal("export_completed", path, rows)
 	else:
-		_set_status("Feil")
-		_log_error("✗ Eksport mislyktes: " + export_type.get("title", ""))
+		_set_status(tr("UI_EXPORT_STATUS_ERROR"))
+		_log_error(tr("UI_EXPORT_LOG_FAILED") % tr(export_type.get("title", "")))
 
 	_set_button_state(type_id, true)
 
 func _on_export_all_pressed() -> void:
 	var dir := _path_display.text.strip_edges()
 	if dir.is_empty():
-		_log_error("Velg en eksportmappe først.")
+		_log_error(tr("UI_EXPORT_PICK_FOLDER"))
 		return
 
 	for t in EXPORT_TYPES:
 		_set_button_state(t.get("id", ""), false)
 
-	_set_status("Eksporterer alle...")
+	_set_status(tr("UI_EXPORT_STATUS_ALL"))
 	_progress_bar.visible = true
 
 	var total := float(EXPORT_TYPES.size())
@@ -301,9 +301,9 @@ func _on_export_all_pressed() -> void:
 
 		if rows >= 0:
 			total_rows += rows
-			_log_ok("✓ %s — %d rader" % [export_type.get("title", ""), rows])
+			_log_ok(tr("UI_EXPORT_LOG_OK") % [tr(export_type.get("title", "")), rows])
 		else:
-			_log_error("✗ %s mislyktes" % export_type.get("title", ""))
+			_log_error(tr("UI_EXPORT_LOG_ONE_FAILED") % tr(export_type.get("title", "")))
 
 		await get_tree().create_timer(0.1).timeout
 
@@ -311,8 +311,8 @@ func _on_export_all_pressed() -> void:
 	await get_tree().create_timer(0.4).timeout
 	_progress_bar.visible = false
 
-	_set_status("Alle eksportert — %d rader totalt" % total_rows)
-	_log_ok("Alle eksporter fullført. %d rader totalt → %s" % [total_rows, dir])
+	_set_status(tr("UI_EXPORT_STATUS_ALL_DONE") % total_rows)
+	_log_ok(tr("UI_EXPORT_LOG_ALL_DONE") % [total_rows, dir])
 
 	for t in EXPORT_TYPES:
 		_set_button_state(t.get("id", ""), true)
@@ -332,7 +332,7 @@ func _call_export_method(method_name: String, path: String) -> int:
 		_log_error("SimBridge ikke tilgjengelig.")
 		return -1
 	if not sim.has_method(method_name):
-		_log_error("Metode ikke funnet: " + method_name)
+		_log_error(tr("UI_EXPORT_LOG_NO_METHOD") % method_name)
 		return -1
 
 	var result = sim.call(method_name, path)
@@ -354,15 +354,15 @@ func _build_telemetry_section() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 
-	var telemetry_btn := _make_small_button("Export balance telemetry (CSV)", COLOR_ACCENT)
+	var telemetry_btn := _make_small_button(tr("UI_EXPORT_TELEMETRY_BUTTON"), COLOR_ACCENT)
 	telemetry_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	telemetry_btn.tooltip_text = "Én rad per simuleringsdag for de siste %d dagene." % TELEMETRY_DEFAULT_DAYS
+	telemetry_btn.tooltip_text = tr("UI_EXPORT_TELEMETRY_TOOLTIP") % TELEMETRY_DEFAULT_DAYS
 	telemetry_btn.pressed.connect(_on_export_telemetry_pressed)
 	row.add_child(telemetry_btn)
 
-	var depth_btn := _make_small_button("Export depth snapshot (CSV)", COLOR_ACCENT)
+	var depth_btn := _make_small_button(tr("UI_EXPORT_DEPTH_BUTTON"), COLOR_ACCENT)
 	depth_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	depth_btn.tooltip_text = "Pen-pris, tilbudstrykk, forsikringspremie, ressursrente og verste gjellerisiko."
+	depth_btn.tooltip_text = tr("UI_EXPORT_DEPTH_TOOLTIP")
 	depth_btn.pressed.connect(_on_export_depth_pressed)
 	row.add_child(depth_btn)
 
@@ -371,17 +371,17 @@ func _build_telemetry_section() -> Control:
 func _on_export_telemetry_pressed() -> void:
 	var sim := get_node_or_null("/root/SimBridge")
 	if sim == null:
-		_set_status("Feil")
-		_log_error("✗ SimBridge ikke tilgjengelig.")
-		_toast("Telemetrieksport mislyktes: SimBridge mangler", "CRITICAL", 5.0)
+		_set_status(tr("UI_EXPORT_STATUS_ERROR"))
+		_log_error(tr("UI_EXPORT_NO_SIM"))
+		_toast(tr("UI_EXPORT_TELEMETRY_NO_SIM"), "CRITICAL", 5.0)
 		return
 
 	var dir := _resolve_export_dir()
 	if dir.is_empty():
-		_log_error("Velg en eksportmappe først.")
+		_log_error(tr("UI_EXPORT_PICK_FOLDER"))
 		return
 
-	_set_status("Eksporterer telemetri...")
+	_set_status(tr("UI_EXPORT_STATUS_TELEMETRY"))
 	_progress_bar.visible = true
 	_progress_bar.value = 25
 
@@ -394,29 +394,29 @@ func _on_export_telemetry_pressed() -> void:
 	_progress_bar.visible = false
 
 	if rows >= 0:
-		_set_status("Ferdig")
-		_log_ok("✓ Balansetelemetri — %d rader → %s" % [rows, path])
-		_toast("✓ Telemetri eksportert (%d rader)" % rows, "SUCCESS", 4.0)
+		_set_status(tr("UI_EXPORT_STATUS_DONE"))
+		_log_ok(tr("UI_EXPORT_LOG_TELEMETRY_OK") % [rows, path])
+		_toast(tr("UI_EXPORT_TELEMETRY_OK") % rows, "SUCCESS", 4.0)
 		emit_signal("export_completed", path, rows)
 	else:
-		_set_status("Feil")
-		_log_error("✗ Telemetrieksport mislyktes: " + path)
-		_toast("Telemetrieksport mislyktes", "CRITICAL", 5.0)
+		_set_status(tr("UI_EXPORT_STATUS_ERROR"))
+		_log_error(tr("UI_EXPORT_LOG_TELEMETRY_FAILED") % path)
+		_toast(tr("UI_EXPORT_TELEMETRY_FAILED"), "CRITICAL", 5.0)
 
 func _on_export_depth_pressed() -> void:
 	var sim := get_node_or_null("/root/SimBridge")
 	if sim == null:
-		_set_status("Feil")
-		_log_error("✗ SimBridge ikke tilgjengelig.")
-		_toast("Dybdeeksport mislyktes: SimBridge mangler", "CRITICAL", 5.0)
+		_set_status(tr("UI_EXPORT_STATUS_ERROR"))
+		_log_error(tr("UI_EXPORT_NO_SIM"))
+		_toast(tr("UI_EXPORT_DEPTH_NO_SIM"), "CRITICAL", 5.0)
 		return
 
 	var dir := _resolve_export_dir()
 	if dir.is_empty():
-		_log_error("Velg en eksportmappe først.")
+		_log_error(tr("UI_EXPORT_PICK_FOLDER"))
 		return
 
-	_set_status("Eksporterer dybde...")
+	_set_status(tr("UI_EXPORT_STATUS_DEPTH"))
 	_progress_bar.visible = true
 	_progress_bar.value = 25
 
@@ -429,14 +429,14 @@ func _on_export_depth_pressed() -> void:
 	_progress_bar.visible = false
 
 	if rows >= 0:
-		_set_status("Ferdig")
-		_log_ok("✓ Dybde-øyeblikksbilde — %d rader → %s" % [rows, path])
-		_toast("✓ Dybde-øyeblikksbilde eksportert", "SUCCESS", 4.0)
+		_set_status(tr("UI_EXPORT_STATUS_DONE"))
+		_log_ok(tr("UI_EXPORT_LOG_DEPTH_OK") % [rows, path])
+		_toast(tr("UI_EXPORT_DEPTH_OK"), "SUCCESS", 4.0)
 		emit_signal("export_completed", path, rows)
 	else:
-		_set_status("Feil")
-		_log_error("✗ Dybdeeksport mislyktes: " + path)
-		_toast("Dybdeeksport mislyktes", "CRITICAL", 5.0)
+		_set_status(tr("UI_EXPORT_STATUS_ERROR"))
+		_log_error(tr("UI_EXPORT_LOG_DEPTH_FAILED") % path)
+		_toast(tr("UI_EXPORT_DEPTH_FAILED"), "CRITICAL", 5.0)
 
 func _resolve_export_dir() -> String:
 	var dir := _path_display.text.strip_edges()
@@ -547,7 +547,7 @@ func _write_csv(path: String, contents: String) -> int:
 		DirAccess.make_dir_recursive_absolute(dir_path)
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
-		_log_error("Kunne ikke åpne fil for skriving: %s" % path)
+		_log_error(tr("UI_EXPORT_LOG_CANNOT_WRITE") % path)
 		return -1
 	file.store_string(contents)
 	file.close()
@@ -566,7 +566,7 @@ func _on_browse_pressed() -> void:
 	dialog.file_mode = FileDialog.FILE_MODE_OPEN_DIR
 	dialog.access = FileDialog.ACCESS_FILESYSTEM
 	dialog.current_dir = _path_display.text if not _path_display.text.is_empty() else OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS)
-	dialog.title = "Velg eksportmappe"
+	dialog.title = tr("UI_EXPORT_PICK_FOLDER_TITLE")
 	add_child(dialog)
 	dialog.popup_centered(Vector2i(700, 500))
 	dialog.dir_selected.connect(func(dir: String):

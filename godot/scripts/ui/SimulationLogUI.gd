@@ -8,7 +8,7 @@ func _ready():
     # Opprett dag-teller
     day_label = Label.new()
     day_label.name = "DayLabel"
-    day_label.text = tr("DAY: 0")
+    day_label.text = tr("UI_SIMLOG_DAY_ZERO")
     add_child(day_label)
 
     # Opprett logg-konsoll

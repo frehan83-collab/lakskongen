@@ -31,6 +31,9 @@ const RISK_HIGH      := Color("#B3172F")
 const FJORD_COLOR    := Color("#1F5E73")
 
 # ── Region data ───────────────────────────────────────────────────────────────
+# Texts (description, disease details) live in translations.csv as
+# REGION_<ID>_DESC / REGION_<ID>_DISEASE. Operators are the game's parody
+# rivals (roadmap D17: no real company names).
 # Positions are normalised [0..1] in a vertical layout (0 = top = north, 1 = south).
 # x is the approximate coastline position left/right.
 const REGIONS := [
@@ -42,16 +45,13 @@ const REGIONS := [
 		"pos": Vector2(0.22, 0.96),
 		"lonlat": Vector2(8.00, 58.15),
 		"available_licenses": 28,
-		"temp_range": "7.5 – 13.5 °C",
 		"temp_min": 7.5,
 		"temp_max": 13.5,
 		"disease_risk": "Low",
-		"disease_details": "Low disease pressure. Warmer summer temperatures may occasionally stress fish.",
 		"distance_to_processing": "180 km (Kristiansand)",
 		"processing_hub": "Kristiansand, Stavanger",
 		"annual_harvest_kt": 15,
-		"key_operators": ["Skagerak Salmon", "Mowi"],
-		"description": "Norway's southernmost production zone, stretching from the Swedish border to Jæren. Summer peaks can approach 20°C in shallow areas, making thermal stress a consideration. Relatively few sheltered deep-water fjord locations compared to the west coast, making it a smaller but strategic production area.",
+		"key_operators": ["Herøy Seafood AS", "Mowier ASA"],
 		"icon": "🌊",
 		"color": Color("#1F5E73"),
 	},
@@ -63,16 +63,13 @@ const REGIONS := [
 		"pos": Vector2(0.24, 0.88),
 		"lonlat": Vector2(5.70, 59.00),
 		"available_licenses": 32,
-		"temp_range": "7.0 – 13.0 °C",
 		"temp_min": 7.0,
 		"temp_max": 13.0,
 		"disease_risk": "Medium",
-		"disease_details": "Moderate disease risk. Stable conditions in the deep Ryfylke fjords.",
 		"distance_to_processing": "60 km (Stavanger)",
 		"processing_hub": "Stavanger, Hjelmeland",
 		"annual_harvest_kt": 50,
-		"key_operators": ["Grieg Seafood", "Bremnes Seashore", "Mowi"],
-		"description": "Rogaland's main salmon farming region, characterized by deep, sheltered fjords like the Boknafjord system. Strong logistics infrastructure tied to the Stavanger region. Summer temperatures are generally favorable, with excellent deep-water exchange providing good oxygenation.",
+		"key_operators": ["Greed Gregarious ASA", "Mowier ASA"],
 		"icon": "⚓",
 		"color": Color("#1F5E73"),
 	},
@@ -84,16 +81,13 @@ const REGIONS := [
 		"pos": Vector2(0.26, 0.81),
 		"lonlat": Vector2(5.27, 59.41),
 		"available_licenses": 24,
-		"temp_range": "7.0 – 12.5 °C",
 		"temp_min": 7.0,
 		"temp_max": 12.5,
 		"disease_risk": "Medium-High",
-		"disease_details": "Elevated disease and sea lice risk, requiring strict biosecurity and active treatment.",
 		"distance_to_processing": "80 km (Bergen/Bømlo)",
 		"processing_hub": "Bømlo, Bergen",
 		"annual_harvest_kt": 80,
-		"key_operators": ["Lerøy", "Mowi", "Bremnes Seashore"],
-		"description": "Spanning the outer coastal archipelago and inner fjords between Rogaland and Vestland. High density of farming activity historically led to elevated biological pressures, making this a complex but highly productive zone. Key hub for maritime technology and aquaculture innovation.",
+		"key_operators": ["Herøy Seafood AS", "Mowier ASA"],
 		"icon": "🐟",
 		"color": Color("#1F5E73"),
 	},
@@ -105,16 +99,13 @@ const REGIONS := [
 		"pos": Vector2(0.28, 0.73),
 		"lonlat": Vector2(5.32, 60.39),
 		"available_licenses": 18,
-		"temp_range": "6.5 – 12.0 °C",
 		"temp_min": 6.5,
 		"temp_max": 12.0,
 		"disease_risk": "High",
-		"disease_details": "High disease and lice pressure. Strict area management needed to navigate challenges.",
 		"distance_to_processing": "120 km (Florø)",
 		"processing_hub": "Florø, Måløy",
 		"annual_harvest_kt": 110,
-		"key_operators": ["Mowi", "SalMar", "Cermaq"],
-		"description": "Covering the rugged coastline north of Bergen up to the exposed Stadt peninsula. This region sees significant biological pressure, but benefits from strong tidal currents and deep fjord basins like the Sognefjord. Production requires careful risk management and robust equipment.",
+		"key_operators": ["Mowier ASA", "SalMax Group ASA"],
 		"icon": "🏭",
 		"color": Color("#7B9BC0"),
 	},
@@ -126,16 +117,13 @@ const REGIONS := [
 		"pos": Vector2(0.31, 0.65),
 		"lonlat": Vector2(6.15, 62.47),
 		"available_licenses": 22,
-		"temp_range": "6.5 – 11.5 °C",
 		"temp_min": 6.5,
 		"temp_max": 11.5,
 		"disease_risk": "Medium-High",
-		"disease_details": "Moderate to high disease risk. Exposed areas face tough weather conditions.",
 		"distance_to_processing": "90 km (Ålesund)",
 		"processing_hub": "Ålesund, Molde",
 		"annual_harvest_kt": 95,
-		"key_operators": ["Hofseth", "SalMar", "Mowi"],
-		"description": "Møre og Romsdal's primary zone, offering deep fjords like the Storfjord and exposed island sites. The region is a major export hub through Ålesund. Sites here must contend with winter storms but benefit from excellent water exchange from the Norwegian Sea.",
+		"key_operators": ["SalMax Group ASA", "Mowier ASA"],
 		"icon": "🚢",
 		"color": Color("#7B9BC0"),
 	},
@@ -147,16 +135,13 @@ const REGIONS := [
 		"pos": Vector2(0.34, 0.58),
 		"lonlat": Vector2(7.73, 63.11),
 		"available_licenses": 20,
-		"temp_range": "6.0 – 11.0 °C",
 		"temp_min": 6.0,
 		"temp_max": 11.0,
 		"disease_risk": "Low",
-		"disease_details": "Low disease pressure with excellent biological performance in recent years.",
 		"distance_to_processing": "150 km (Hitra/Frøya)",
 		"processing_hub": "Kristiansund, Hitra",
 		"annual_harvest_kt": 120,
-		"key_operators": ["Lerøy Midt", "SalMar", "Måsøval"],
-		"description": "A highly productive region bridging Møre og Romsdal and Trøndelag. The islands of Hitra and Frøya to the north provide world-class farming conditions. The zone currently enjoys a green traffic light status, indicating sustainable lice levels and good capacity for growth.",
+		"key_operators": ["SalMax Group ASA", "Herøy Seafood AS"],
 		"icon": "🐟",
 		"color": Color("#7B9BC0"),
 	},
@@ -168,16 +153,13 @@ const REGIONS := [
 		"pos": Vector2(0.38, 0.50),
 		"lonlat": Vector2(11.24, 64.86),
 		"available_licenses": 16,
-		"temp_range": "5.5 – 10.5 °C",
 		"temp_min": 5.5,
 		"temp_max": 10.5,
 		"disease_risk": "Low",
-		"disease_details": "Low biological risk. Excellent water quality and low lice levels.",
 		"distance_to_processing": "120 km (Rørvik)",
 		"processing_hub": "Rørvik, Nærøysund",
 		"annual_harvest_kt": 100,
-		"key_operators": ["SinkabergHansen", "SalMar", "Mowi"],
-		"description": "Covering the northern part of Trøndelag up to the southern border of Nordland. Characterized by excellent biological conditions and strong local ownership in the aquaculture sector. Rørvik/Nærøysund is one of Norway's most vital maritime and aquaculture clusters.",
+		"key_operators": ["SalMax Group ASA", "Mowier ASA"],
 		"icon": "⚓",
 		"color": Color("#7B9BC0"),
 	},
@@ -189,16 +171,13 @@ const REGIONS := [
 		"pos": Vector2(0.42, 0.42),
 		"lonlat": Vector2(14.41, 67.28),
 		"available_licenses": 19,
-		"temp_range": "5.0 – 10.0 °C",
 		"temp_min": 5.0,
 		"temp_max": 10.0,
 		"disease_risk": "Medium",
-		"disease_details": "Moderate disease risk. PD is occasionally present, requiring careful surveillance.",
 		"distance_to_processing": "180 km (Bodø/Sandnessjøen)",
 		"processing_hub": "Bodø, Sandnessjøen",
 		"annual_harvest_kt": 130,
-		"key_operators": ["Nova Sea", "Cermaq", "Kvarøy"],
-		"description": "The stunning Helgeland coast features thousands of islands providing sheltered farming locations with strong ocean currents. A major engine for Northern Norway's aquaculture economy, with strong community integration and innovative local producers.",
+		"key_operators": ["NordLaks Nord AS", "Offshore Optimists AS"],
 		"icon": "⛰️",
 		"color": Color("#1F5E73"),
 	},
@@ -210,16 +189,13 @@ const REGIONS := [
 		"pos": Vector2(0.46, 0.35),
 		"lonlat": Vector2(14.57, 68.23),
 		"available_licenses": 21,
-		"temp_range": "4.5 – 9.5 °C",
 		"temp_min": 4.5,
 		"temp_max": 9.5,
 		"disease_risk": "Low",
-		"disease_details": "Low disease pressure. Cold water reduces lice growth significantly.",
 		"distance_to_processing": "160 km (Sortland/Bodø)",
 		"processing_hub": "Sortland, Svolvær",
 		"annual_harvest_kt": 110,
-		"key_operators": ["Nordlaks", "Cermaq", "Eidsfjord Sjøfarm"],
-		"description": "Encompassing the massive Vestfjorden basin and the Vesterålen archipelago. Known for pioneering offshore and semi-closed containment systems to utilize exposed areas. The cold, oxygen-rich waters produce excellent fish welfare and quality, though winter darkness slows growth.",
+		"key_operators": ["NordLaks Nord AS", "Offshore Optimists AS"],
 		"icon": "❄️",
 		"color": Color("#1F5E73"),
 	},
@@ -231,16 +207,13 @@ const REGIONS := [
 		"pos": Vector2(0.50, 0.27),
 		"lonlat": Vector2(16.12, 69.31),
 		"available_licenses": 14,
-		"temp_range": "4.0 – 9.0 °C",
 		"temp_min": 4.0,
 		"temp_max": 9.0,
 		"disease_risk": "Low",
-		"disease_details": "Very low biological pressure. Strong tidal currents keep sites clean.",
 		"distance_to_processing": "140 km (Finnsnes)",
 		"processing_hub": "Finnsnes, Senja",
 		"annual_harvest_kt": 90,
-		"key_operators": ["SalMar", "Wilsgård", "Lerøy"],
-		"description": "Bridging northern Nordland and southern Troms. The region is dominated by the large islands of Andøya and Senja. The harsh, exposed environment requires heavy-duty equipment but rewards operators with minimal lice issues and premium quality output.",
+		"key_operators": ["SalMax Group ASA", "Herøy Seafood AS"],
 		"icon": "🌊",
 		"color": Color("#8CC7DA"),
 	},
@@ -252,16 +225,13 @@ const REGIONS := [
 		"pos": Vector2(0.54, 0.19),
 		"lonlat": Vector2(18.96, 69.65),
 		"available_licenses": 12,
-		"temp_range": "3.5 – 8.5 °C",
 		"temp_min": 3.5,
 		"temp_max": 8.5,
 		"disease_risk": "Low",
-		"disease_details": "Excellent biosecurity. Low risk of systemic diseases like PD or ISA.",
 		"distance_to_processing": "100 km (Tromsø)",
 		"processing_hub": "Tromsø, Skjervøy",
 		"annual_harvest_kt": 75,
-		"key_operators": ["Lerøy Aurora", "Cermaq", "Arnøy Laks"],
-		"description": "Centered around the Tromsø region, offering pristine arctic fjord conditions. The cold water requires specialized feed and light regimes to optimize growth and prevent winter maturation. Excellent biological performance makes it a highly profitable zone for established players.",
+		"key_operators": ["Herøy Seafood AS", "Greed Gregarious ASA"],
 		"icon": "🚢",
 		"color": Color("#8CC7DA"),
 	},
@@ -273,16 +243,13 @@ const REGIONS := [
 		"pos": Vector2(0.58, 0.12),
 		"lonlat": Vector2(23.68, 70.66),
 		"available_licenses": 10,
-		"temp_range": "3.0 – 8.0 °C",
 		"temp_min": 3.0,
 		"temp_max": 8.0,
 		"disease_risk": "Low",
-		"disease_details": "Minimal disease risk. Strict transport regulations protect the zone's status.",
 		"distance_to_processing": "150 km (Alta)",
 		"processing_hub": "Alta, Hammerfest",
 		"annual_harvest_kt": 60,
-		"key_operators": ["Grieg Seafood", "Cermaq", "SalMar"],
-		"description": "Norway's western Arctic frontier. The Altafjord is a historically important area for salmon farming development in the north. The extreme photoperiod (midnight sun and polar night) profoundly affects fish biology. Exceptional water quality and low lice counts.",
+		"key_operators": ["Greed Gregarious ASA", "SalMax Group ASA"],
 		"icon": "❄️",
 		"color": Color("#8CC7DA"),
 	},
@@ -294,16 +261,13 @@ const REGIONS := [
 		"pos": Vector2(0.64, 0.04),
 		"lonlat": Vector2(31.11, 70.37),
 		"available_licenses": 8,
-		"temp_range": "2.5 – 7.5 °C",
 		"temp_min": 2.5,
 		"temp_max": 7.5,
 		"disease_risk": "Low",
-		"disease_details": "Extremely low lice and disease risk. Risk of winter sores due to very cold temperatures.",
 		"distance_to_processing": "250 km (Alta / Kirkenes)",
 		"processing_hub": "Kirkenes, Vadsø",
 		"annual_harvest_kt": 40,
-		"key_operators": ["SalMar", "Grieg Seafood"],
-		"description": "The northeasternmost point of Norway's salmon production, bordering the Barents Sea. Extremely low water temperatures can slow growth and cause winter sores, requiring careful handling and specific diet formulations. However, the region represents the ultimate pristine environment for arctic salmon.",
+		"key_operators": ["SalMax Group ASA", "Greed Gregarious ASA"],
 		"icon": "🧊",
 		"color": Color("#8CC7DA"),
 	}
@@ -405,11 +369,21 @@ func _apply_overlay_to_markers() -> void:
 		m.queue_redraw()
 
 func _apply_localization() -> void:
-	_map_icon.text = tr("🗺️  ")
-	_title_label.text = tr("SELECT REGION — NORWEGIAN COASTLINE")
+	_map_icon.text = "🗺️"
+	_title_label.text = tr("UI_MAP_TITLE")
 	_subtitle_label.text = tr("UI_MAP_SUBTITLE")
 	_map_title.text = tr("UI_MAP_NORWAY")
 	_compass_label.text = tr("UI_MAP_COMPASS_N")
+	for pair in [["KeyLicences", "UI_MAP_KEY_LICENCES"], ["KeyDistance", "UI_MAP_KEY_DISTANCE"],
+			["KeyHub", "UI_MAP_KEY_HUB"], ["KeyHarvest", "UI_MAP_KEY_HARVEST"],
+			["KeyOperators", "UI_MAP_KEY_OPERATORS"], ["TempHeader", "UI_MAP_KEY_TEMPERATURE"],
+			["OptimalLabel", "UI_MAP_TEMP_OPTIMAL"], ["RiskHeader", "UI_MAP_KEY_DISEASE"]]:
+		var lbl := find_child(pair[0], true, false) as Label
+		if lbl:
+			lbl.text = tr(pair[1])
+	# Picking a region changes nothing yet (expansion arrives with roadmap
+	# U2-01): no "select region" verb until it does something.
+	_confirm_btn.visible = false
 
 func _input(event: InputEvent) -> void:
 	"""Handle keyboard navigation"""
@@ -475,50 +449,45 @@ func _show_region(region_id: String) -> void:
 	if r.is_empty():
 		return
 
+	var key := str(r["id"]).to_upper()
 	_detail_name.text = r["name"]
-	_detail_zone.text = "Production Zone " + r["production_zone"] + "  •  " + r["norwegian_name"]
+	_detail_zone.text = tr("UI_MAP_ZONE") % [int(str(r["production_zone"]).trim_prefix("PO")), r["name"]]
 	_detail_icon.text = r.get("icon", "📍")
-	_detail_desc.text = r["description"]
-	_detail_licenses.text = str(r["available_licenses"]) + " licences"
-	_detail_temp.text = r["temp_range"]
+	_detail_desc.text = tr("REGION_%s_DESC" % key)
+	_detail_licenses.text = tr("UI_MAP_LICENCES") % int(r["available_licenses"])
+	_detail_temp.text = "%s – %s °C" % [SimFormatters.num(float(r["temp_min"]), 1), SimFormatters.num(float(r["temp_max"]), 1)]
 	_detail_distance.text = r["distance_to_processing"]
 	_detail_processing.text = r["processing_hub"]
-	_detail_harvest.text = str(r["annual_harvest_kt"]) + " 000 tonnes/year"
-	_detail_operators.text = tr("\n")
+	_detail_harvest.text = tr("UI_MAP_HARVEST") % SimFormatters.integer(int(r["annual_harvest_kt"]) * 1000)
+	_detail_operators.text = "\n".join(PackedStringArray(r["key_operators"]))
 
 	var risk: String = r["disease_risk"]
-	_detail_risk_label.text = risk
+	_detail_risk_label.text = SimLabels.risk(risk)
 	var risk_color := _risk_color(risk)
 	LakskongenTheme.set_text_color(_detail_risk_label, risk_color)
 	_detail_risk_indicator.color = risk_color
 
 	# Update disease details label
-	_disease_details.text = r.get("disease_details", "")
+	_disease_details.text = tr("REGION_%s_DISEASE" % key)
 
 	# Temperature bar
 	if _temp_bar is _TempBar:
 		_temp_bar.set_range(r["temp_min"], r["temp_max"])
 
 	_confirm_btn.disabled = false
-	_confirm_btn.text = "  SELECT " + r["name"].to_upper() + "  "
 
 func _clear_selection() -> void:
 	_selected_region_id = ""
 	_detail_name.text = tr("UI_MAP_SELECT_REGION")
 	_detail_zone.text = tr("UI_MAP_CLICK_PROMPT")
-	_detail_icon.text = tr("🗺️")
+	_detail_icon.text = "🗺️"
 	_detail_desc.text = tr("UI_MAP_REGION_DESC")
-	_detail_licenses.text = tr("—")
-	_detail_temp.text = tr("—")
-	_detail_distance.text = tr("—")
-	_detail_processing.text = tr("—")
-	_detail_harvest.text = tr("—")
-	_detail_operators.text = tr("—")
-	_detail_risk_label.text = tr("—")
+	for lbl in [_detail_licenses, _detail_temp, _detail_distance, _detail_processing, _detail_harvest,
+			_detail_operators, _detail_risk_label]:
+		lbl.text = "—"
 	LakskongenTheme.set_text_color(_detail_risk_label, TEXT_BODY)
 	_detail_risk_indicator.color = TEXT_MUTED
 	_confirm_btn.disabled = true
-	_confirm_btn.text = tr("  SELECT THIS REGION  ")
 	_disease_details.text = ""
 	_refresh_markers()
 

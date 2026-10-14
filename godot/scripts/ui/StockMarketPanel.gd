@@ -70,14 +70,14 @@ func _input(event: InputEvent) -> void:
 # ── Scene wiring ──────────────────────────────────────────────────────────────
 
 func _apply_localization() -> void:
-	_title_label.text = tr("📈 Stock Market & IPO")
+	_title_label.text = "📈 " + tr("UI_STOCK_TITLE")
 	_title_label.tooltip_text = "Company valuation, IPO eligibility, and stock market performance"
-	_ipo_section_title.text = tr("IPO Eligibility")
-	_stock_section_title.text = tr("Stock Performance")
-	_earnings_section_title.text = tr("Quarterly Earnings")
-	_dividend_section_title.text = tr("Dividend Policy")
-	ipo_button.text = tr("Launch IPO")
-	ipo_button.tooltip_text = "Go public on Oslo Stock Exchange (OSE)"
+	_ipo_section_title.text = tr("UI_STOCK_IPO_ELIGIBILITY")
+	_stock_section_title.text = tr("UI_STOCK_PERFORMANCE")
+	_earnings_section_title.text = tr("UI_STOCK_QUARTERLY")
+	_dividend_section_title.text = tr("UI_STOCK_DIVIDEND")
+	ipo_button.text = tr("UI_STOCK_LAUNCH_IPO")
+	ipo_button.tooltip_text = tr("UI_STOCK_LAUNCH_IPO_TOOLTIP")
 
 func _apply_theme_fonts() -> void:
 	_theme = get_node_or_null("/root/LakskongenTheme")
@@ -135,14 +135,14 @@ func _check_ipo_eligibility(revenue: float, profit: float, site_count: int, days
 
 func _update_ipo_status(eligible: bool, revenue: float, profit: float, site_count: int, days: int):
 	if is_public:
-		ipo_status_label.text = tr("✅ Company is publicly traded on Oslo Stock Exchange")
+		ipo_status_label.text = "✅ " + tr("UI_STOCK_IS_PUBLIC")
 		LakskongenTheme.set_text_color(ipo_status_label, COLOR_GREEN)
 		ipo_button.disabled = true
-		ipo_button.text = tr("Already Public")
+		ipo_button.text = tr("UI_STOCK_ALREADY_PUBLIC")
 		return
 
 	if eligible:
-		ipo_status_label.text = tr("✅ Eligible for IPO — All requirements met!")
+		ipo_status_label.text = "✅ " + tr("UI_STOCK_ELIGIBLE")
 		LakskongenTheme.set_text_color(ipo_status_label, COLOR_GREEN)
 		ipo_button.disabled = false
 	else:
@@ -222,7 +222,7 @@ func _display_quarterly_earnings():
 
 	if quarterly_earnings.is_empty():
 		var label = Label.new()
-		label.text = tr("No quarterly data yet")
+		label.text = tr("UI_STOCK_NO_QUARTERS")
 		LakskongenTheme.set_text_color(label, Color(COLOR_MUTED))
 		quarterly_earnings_container.add_child(label)
 		return

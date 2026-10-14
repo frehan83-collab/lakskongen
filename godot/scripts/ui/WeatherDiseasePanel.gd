@@ -81,11 +81,11 @@ func _input(event: InputEvent) -> void:
 # ── Scene wiring ──────────────────────────────────────────────────────────────
 
 func _apply_localization() -> void:
-	_title_label.text = tr("🌊 Weather & Disease Monitoring")
-	_weather_section_title.text = tr("Current Weather Conditions")
-	_alert_section_title.text = tr("⚠️ Weather Alerts")
-	_disease_section_title.text = tr("🦠 Disease Outbreaks")
-	_treatment_section_title.text = tr("💊 Treatment Options")
+	_title_label.text = "🌊 " + tr("UI_WD_TITLE")
+	_weather_section_title.text = tr("UI_WD_CURRENT_WEATHER")
+	_alert_section_title.text = "⚠️ " + tr("UI_WD_WEATHER_ALERTS")
+	_disease_section_title.text = "🦠 " + tr("UI_WD_DISEASE_OUTBREAKS")
+	_treatment_section_title.text = "💊 " + tr("UI_WD_TREATMENTS")
 
 func _apply_theme_fonts() -> void:
 	_theme = get_node_or_null("/root/LakskongenTheme")
@@ -119,7 +119,7 @@ func _build_gill_card() -> void:
 	card.add_child(outer)
 
 	var header := Label.new()
-	header.text = tr("🫁 Gjellehelse (tidligvarsling)")
+	header.text = "🫁 " + tr("UI_WD_GILL_EARLY_WARNING")
 	LakskongenTheme.set_size(header, 16)
 	LakskongenTheme.set_text_color(header, Color(COLOR_TEXT))
 	header.custom_minimum_size.y = 30
@@ -142,7 +142,7 @@ func _refresh_gill_health() -> void:
 	var pens: Array = sim.get_all_pens() if sim.has_method("get_all_pens") else []
 	if pens.is_empty():
 		var none := Label.new()
-		none.text = tr("Ingen lokaliteter — gjelleovervåking inaktiv")
+		none.text = tr("UI_WD_NO_SITES")
 		LakskongenTheme.set_text_color(none, Color(COLOR_MUTED))
 		_gill_container.add_child(none)
 		return
@@ -172,7 +172,7 @@ func _refresh_gill_health() -> void:
 		row.add_child(name_lbl)
 		var chip := Label.new()
 		var reason := str(risk.get("reason", ""))
-		chip.text = "%d%% · %s" % [int(r * 100.0), tr(reason)]
+		chip.text = "%s · %s" % [SimFormatters.percent(r), SimLabels.gill_reason(reason)]
 		LakskongenTheme.set_text_color(chip, color)
 		row.add_child(chip)
 
@@ -209,7 +209,7 @@ func _refresh_bloom_mitigations() -> void:
 		sel_id = _bloom_site_ids[bloom_site_option.selected]
 
 	var title := Label.new()
-	title.text = tr("Mottiltak: kostnad · effekt")
+	title.text = tr("UI_WD_MITIGATIONS")
 	LakskongenTheme.set_size(title, 13)
 	LakskongenTheme.set_text_color(title, Color(COLOR_TEXT))
 	_mitigation_list.add_child(title)
@@ -240,10 +240,13 @@ func _refresh_bloom_mitigations() -> void:
 		row.add_child(info)
 
 		var btn := Button.new()
-		btn.text = tr("Fjern") if installed else tr("Installer")
+		btn.text = tr("UI_WD_REMOVE") if installed else tr("UI_WD_INSTALL")
 		btn.disabled = sel_id.is_empty()
-		btn.tooltip_text = tr("Fjerner inntil %.0f%% av dødeligheten ved oppblomstring.\nInstallasjon: %s NOK. Drift ved full alvor: %s NOK.\nBest mot: %s.") % [
-			max_red * 100.0, _format_currency(cost), _format_currency(opex), tr(best)]
+		var best_labels: PackedStringArray = []
+		for kind_id in best.split("/", false):
+			best_labels.append(SimLabels.bloom(kind_id.strip_edges()))
+		btn.tooltip_text = tr("UI_WD_MITIGATION_TOOLTIP") % [
+			SimFormatters.percent(max_red, 0), _format_currency(cost), _format_currency(opex), " / ".join(best_labels)]
 		btn.pressed.connect(_on_install_mitigation.bind(kind))
 		row.add_child(btn)
 
@@ -406,7 +409,7 @@ func _display_weather_alerts():
 
 	if active_weather_alerts.is_empty():
 		var label = Label.new()
-		label.text = tr("No active weather alerts")
+		label.text = tr("UI_WD_NO_WEATHER_ALERTS")
 		LakskongenTheme.set_text_color(label, Color(COLOR_MUTED))
 		weather_alert_container.add_child(label)
 		return
@@ -444,7 +447,7 @@ func _display_disease_alerts():
 
 	if active_disease_alerts.is_empty():
 		var label = Label.new()
-		label.text = tr("No active disease outbreaks")
+		label.text = tr("UI_WD_NO_OUTBREAKS")
 		LakskongenTheme.set_text_color(label, Color(COLOR_MUTED))
 		disease_alert_container.add_child(label)
 		return
@@ -472,7 +475,7 @@ func _display_disease_alerts():
 
 		var site_label = Label.new()
 		var site_id = alert.get("site_id", "")
-		site_label.text = tr("Location: %s") % ("All sites" if site_id == "all_sites" else site_id)
+		site_label.text = tr("UI_WD_LOCATION") % ("All sites" if site_id == "all_sites" else site_id)
 		LakskongenTheme.set_text_color(site_label, Color(COLOR_MUTED))
 		vbox.add_child(site_label)
 
@@ -517,7 +520,7 @@ func _display_treatment_options(disease_type: String, site_id: String, estimated
 		row.add_child(cost_label)
 
 		var apply_button = Button.new()
-		apply_button.text = tr("Apply")
+		apply_button.text = tr("UI_WD_APPLY")
 		apply_button.tooltip_text = "Apply %s treatment to %s" % [treatment.get("name", ""), site_id]
 		apply_button.pressed.connect(_on_treatment_applied.bind(treatment.get("method", ""), site_id))
 		row.add_child(apply_button)
@@ -599,11 +602,4 @@ func _clear_container(container: VBoxContainer):
 		child.queue_free()
 
 func _format_currency(value: float) -> String:
-	if value >= 1_000_000_000:
-		return "%.2fB" % (value / 1_000_000_000.0)
-	elif value >= 1_000_000:
-		return "%.1fM" % (value / 1_000_000.0)
-	elif value >= 1_000:
-		return "%.0fK" % (value / 1_000.0)
-	else:
-		return "%.0f" % value
+	return SimFormatters.format_nok(value)

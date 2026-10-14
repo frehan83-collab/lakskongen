@@ -106,7 +106,7 @@ namespace LakskongenSim.Market
             _channels[SalesChannelType.SpotMarket] = new SalesChannel
             {
                 Type = SalesChannelType.SpotMarket,
-                Name = "Spot Market (Fish Pool)",
+                Name = "Spotmarked",
                 Description = "Immediate sale at current market price. Large volumes move the price.",
                 BasePriceMultiplier = 1.0m,
                 BidAskSpread = 0.025m,      // 2.5% spread (player gets bid price)

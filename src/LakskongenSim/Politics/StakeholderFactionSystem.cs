@@ -158,7 +158,7 @@ namespace LakskongenSim.Politics
             {
                 Type = FactionType.ENVIRONMENTAL_NGOS,
                 Name = "Environmental NGOs",
-                Description = "Bellona, WWF Norway - advocates for sustainability",
+                Description = "Miljøorganisasjoner som kjemper for bærekraftig havbruk",
                 RelationshipScore = -0.2f, // Initially skeptical
                 Influence = 0.6f
             };

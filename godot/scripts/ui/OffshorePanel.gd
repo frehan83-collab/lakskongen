@@ -98,8 +98,8 @@ func _get_farms() -> Array:
 	if _sim != null and _sim.has_method("get_offshore_farms"):
 		return _sim.get_offshore_farms()
 	return [
-		{"id": "offshore_001", "name": "Offshore Anlegg 1", "operational": true, "wave_height": 1.2, "crew_days_since_rotation": 12, "storm_lockdown": false},
-		{"id": "offshore_002", "name": "Offshore Anlegg 2", "operational": true, "wave_height": 1.8, "crew_days_since_rotation": 8, "storm_lockdown": false},
+		{"id": "offshore_001", "name": "Offshoreanlegg 1", "operational": true, "wave_height": 1.2, "crew_days_since_rotation": 12, "storm_lockdown": false},
+		{"id": "offshore_002", "name": "Offshoreanlegg 2", "operational": true, "wave_height": 1.8, "crew_days_since_rotation": 8, "storm_lockdown": false},
 	]
 
 func _update_farm_list():
@@ -127,11 +127,11 @@ func _update_farm_list():
 		row.name = "Farm_%s" % str(farm.get("id", ""))
 		var farm_label = Label.new()
 		var operational := bool(farm.get("operational", false))
-		var status := "Aktiv" if operational else "Under bygging %d%%" % int(round(float(farm.get("construction_progress", 0.0)) * 100.0))
-		var lockdown := " (stormsikret)" if farm.get("storm_lockdown", false) else ""
+		var status := tr("UI_OFFSHORE_ACTIVE") if operational else tr("UI_OFFSHORE_BUILDING") % SimFormatters.percent(float(farm.get("construction_progress", 0.0)))
+		var lockdown := " (" + tr("UI_OFFSHORE_STORM_LOCKDOWN") + ")" if farm.get("storm_lockdown", false) else ""
 		var fish := int(farm.get("fish_count", 0))
-		var stock := " — %d fisk, %.2f kg" % [fish, float(farm.get("mean_weight_kg", 0.0))] if fish > 0 else ""
-		farm_label.text = "%s (%s)%s%s" % [farm.get("name", "Offshore-anlegg"), status, lockdown, stock]
+		var stock := " — " + tr("UI_OFFSHORE_STOCK_SUMMARY") % [SimFormatters.integer(fish), SimFormatters.num(float(farm.get("mean_weight_kg", 0.0)), 2)] if fish > 0 else ""
+		farm_label.text = "%s (%s)%s%s" % [farm.get("name", tr("UI_OFFSHORE_FARM_FALLBACK")), status, lockdown, stock]
 		farm_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if _theme:
 			LakskongenTheme.set_size(farm_label, _theme.FONT_SMALL)
@@ -140,13 +140,13 @@ func _update_farm_list():
 		# F383: an offshore farm now holds fish — stock smolts, harvest when grown.
 		var stock_btn := Button.new()
 		stock_btn.name = "StockButton"
-		stock_btn.text = "Sett ut %d smolt" % OFFSHORE_STOCK_BATCH
+		stock_btn.text = tr("UI_OFFSHORE_STOCK") % SimFormatters.integer(OFFSHORE_STOCK_BATCH)
 		stock_btn.disabled = not operational
 		stock_btn.pressed.connect(_on_stock_farm_pressed.bind(str(farm.get("id", ""))))
 		row.add_child(stock_btn)
 		var harvest_btn := Button.new()
 		harvest_btn.name = "HarvestButton"
-		harvest_btn.text = "Høst"
+		harvest_btn.text = tr("UI_PEN_HARVEST")
 		harvest_btn.disabled = fish <= 0
 		harvest_btn.pressed.connect(_on_harvest_farm_pressed.bind(str(farm.get("id", ""))))
 		row.add_child(harvest_btn)
@@ -154,6 +154,8 @@ func _update_farm_list():
 
 ## Smolts per "Sett ut" press.
 const OFFSHORE_STOCK_BATCH := 200000
+## Permeable barrier capex shown on the install button (engine: BarrierTech).
+const BARRIER_CAPEX_NOK := 6_000_000.0
 
 func _on_stock_farm_pressed(farm_id: String) -> void:
 	if _sim != null and _sim.has_method("stock_offshore_farm"):
@@ -168,14 +170,15 @@ func _on_harvest_farm_pressed(farm_id: String) -> void:
 func _report_farm(result: Dictionary) -> void:
 	var mgr := get_node_or_null("/root/ToastNotification")
 	if mgr and mgr.has_method("show_toast"):
-		mgr.show_toast(str(result.get("message", "")), "SUCCESS" if result.get("success", false) else "WARNING", 4.0)
+		var ok := bool(result.get("success", false))
+		mgr.show_toast(tr("UI_OFFSHORE_DONE") if ok else SimLabels.command_error(result), "SUCCESS" if ok else "WARNING", 4.0)
 
 func _update_weather_waves():
 	if weather_waves_label == null:
 		return
 	var farms: Array = _get_farms()
 	if farms.is_empty():
-		weather_waves_label.text = "Vær & Bølger: Ingen anlegg"
+		weather_waves_label.text = tr("UI_OFFSHORE_WAVES") % tr("UI_OFFSHORE_NO_FARMS")
 		return
 	# Live wave height from SimState (per-farm sensors arrive with ROC).
 	var live_wave := -1.0
@@ -186,23 +189,23 @@ func _update_weather_waves():
 		max_wave = max(max_wave, float(farm.get("wave_height", 0.0)))
 	if live_wave >= 0.0:
 		max_wave = max(max_wave, live_wave)
-	weather_waves_label.text = "Vær & Bølger: %.1f m bølger" % max_wave
+	weather_waves_label.text = tr("UI_OFFSHORE_WAVES") % (SimFormatters.num(max_wave, 1) + " m")
 
 func _update_crew_rotation():
 	if crew_rotation_label == null:
 		return
 	var farms: Array = _get_farms()
 	if farms.is_empty():
-		crew_rotation_label.text = "Mannskapsrotasjon: Ingen anlegg"
+		crew_rotation_label.text = tr("UI_OFFSHORE_ROTATION") % tr("UI_OFFSHORE_NO_FARMS")
 		return
 	var max_days := 0
 	for farm in farms:
 		max_days = maxi(max_days, int(farm.get("crew_days_since_rotation", 0)))
-	crew_rotation_label.text = "Mannskapsrotasjon: Lengste turnus %d dager" % max_days
+	crew_rotation_label.text = tr("UI_OFFSHORE_ROTATION") % (tr("UI_OFFSHORE_LONGEST_SHIFT") % max_days)
 
 func _on_build_new_offshore_pressed():
 	if _sim != null and _sim.has_method("build_offshore_farm"):
-		_sim.build_offshore_farm("Nytt offshore-anlegg", "semi_submersible")
+		_sim.build_offshore_farm(tr("UI_OFFSHORE_NEW_FARM_NAME"), "semi_submersible")
 	refresh()
 
 ## Containment ladder per sea site (Phase 4.1): current rung + next-rung button.
@@ -221,7 +224,7 @@ func _update_containment_ladder() -> void:
 	for lv in levels:
 		by_id[str(lv.get("id", ""))] = lv
 	if pens.is_empty():
-		UIPolish.show_empty_state(contain_list, "Ingen kystlokaliteter", 13, "", _theme)
+		UIPolish.show_empty_state(contain_list, tr("UI_CARBON_NO_SITES"), 13, "", _theme)
 		return
 	for site in pens:
 		var row := HBoxContainer.new()
@@ -229,7 +232,7 @@ func _update_containment_ladder() -> void:
 		contain_list.add_child(row)
 		var cur := str(site.get("containment", "OpenNet"))
 		var name_lbl := Label.new()
-		name_lbl.text = "%s · %s" % [str(site.get("name", "?")), cur]
+		name_lbl.text = "%s · %s" % [str(site.get("name", "?")), SimLabels.containment(cur)]
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		LakskongenTheme.set_size(name_lbl, 13)
 		# Explicit colour: the default light label text vanished on the white
@@ -239,20 +242,20 @@ func _update_containment_ladder() -> void:
 		var idx := CONTAIN_ORDER.find(cur)
 		if idx < 0 or idx >= CONTAIN_ORDER.size() - 1:
 			var max_lbl := Label.new()
-			max_lbl.text = "MAX"
+			max_lbl.text = tr("UI_OFFSHORE_TOP_LEVEL")
 			row.add_child(max_lbl)
 		else:
 			var next_id: String = CONTAIN_ORDER[idx + 1]
 			var info: Dictionary = by_id.get(next_id, {})
 			var btn := Button.new()
 			var capex: float = float(info.get("capex_nok", 0.0))
-			btn.text = "→ %s (%.1fM)" % [next_id, capex / 1_000_000.0]
-			btn.tooltip_text = "Lus-blokkering %.0f%% · Storm ×%.1f · Rømning ×%.1f · Vekst ×%.2f · OPEX %.0fk/uke" % [
-				float(info.get("lice_exclusion", 0.0)) * 100.0,
-				float(info.get("storm_mult", 1.0)),
-				float(info.get("escape_mult", 1.0)),
-				float(info.get("growth_mult", 1.0)),
-				float(info.get("weekly_opex_nok", 0.0)) / 1000.0]
+			btn.text = "→ %s (%s)" % [SimLabels.containment(next_id), SimFormatters.format_nok(capex)]
+			btn.tooltip_text = tr("UI_OFFSHORE_CONTAIN_TIP") % [
+				SimFormatters.percent(float(info.get("lice_exclusion", 0.0))),
+				SimFormatters.num(float(info.get("storm_mult", 1.0)), 1),
+				SimFormatters.num(float(info.get("escape_mult", 1.0)), 1),
+				SimFormatters.num(float(info.get("growth_mult", 1.0)), 2),
+				SimFormatters.format_nok(float(info.get("weekly_opex_nok", 0.0)))]
 			var sid := str(site.get("id", ""))
 			btn.pressed.connect(_on_upgrade_containment.bind(sid, next_id))
 			row.add_child(btn)
@@ -278,16 +281,16 @@ func _add_barrier_controls(row: HBoxContainer, site: Dictionary) -> void:
 	var jelly := float(site.get("barrier_jellyfish_blocking", 0.0))
 	var days := int(site.get("barrier_days_since_cleaning", 0))
 	var btn := Button.new()
-	btn.text = "🔛 Smoltscreen (fjern)" if installed else "→ Smoltscreen (6.0M)"
-	btn.tooltip_text = ("Permeabel returliner (150+200 µm) — lus −%.0f%%, manet −%.0f%% ved dagens strøm. "
-		+ "Ikke kvalifisert for miljøfleksibilitet: regulatorer leser «tett» som impermeabelt.") % [
-		lice * 100.0, jelly * 100.0]
+	var barrier_name := SimLabels.barrier("Smoltscreen")
+	btn.text = ("🔛 " + tr("UI_OFFSHORE_BARRIER_REMOVE") % barrier_name) if installed \
+		else "→ %s (%s)" % [barrier_name, SimFormatters.format_nok(BARRIER_CAPEX_NOK)]
+	btn.tooltip_text = tr("UI_OFFSHORE_BARRIER_TIP") % [SimFormatters.percent(lice), SimFormatters.percent(jelly)]
 	btn.pressed.connect(_on_install_barrier.bind(sid))
 	row.add_child(btn)
 	if installed:
 		var clean := Button.new()
 		clean.text = "🧽"
-		clean.tooltip_text = "Rengjør barriere (nullstiller begroing). Sist rengjort for %d dager siden." % days
+		clean.tooltip_text = tr("UI_OFFSHORE_BARRIER_CLEAN_TIP") % days
 		clean.pressed.connect(_on_clean_barrier.bind(sid))
 		row.add_child(clean)
 
@@ -334,7 +337,8 @@ func _update_sludge_status() -> void:
 		var val := float(site_data.get("valorized_kg_ds", 0.0))
 		var hub := bool(site_data.get("has_hub_connection", false))
 		var proj := float(site_data.get("projected_daily_kg_ds", 0.0))
-		name_lbl.text = "%s: %.0f kg DS akkumulert (%.0f kg/dag proj.)" % [str(site_data.get("id", "?")), acc, proj]
+		name_lbl.text = tr("UI_OFFSHORE_SLUDGE_ROW") % [_site_label(str(site_data.get("id", "?"))),
+			SimFormatters.num(acc, 0), SimFormatters.num(proj, 0)]
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		LakskongenTheme.set_size(name_lbl, 13)
 		# Explicit colour: the default light label text vanished on the white
@@ -344,21 +348,21 @@ func _update_sludge_status() -> void:
 
 		if hub:
 			var hub_lbl := Label.new()
-			hub_lbl.text = "🔗 Hub"
+			hub_lbl.text = "🔗 " + tr("UI_OFFSHORE_HUB_CONNECTED")
 			LakskongenTheme.set_text_color(hub_lbl, LakskongenTheme.CHART_OK)
 			LakskongenTheme.set_size(hub_lbl, 12)
 			row.add_child(hub_lbl)
 		else:
 			var hub_btn := Button.new()
-			hub_btn.text = "Koble til Hub"
-			hub_btn.tooltip_text = "Bygg/koble til sentral slam-hub (40M NOK ny, 5M tilkobling)"
+			hub_btn.text = tr("UI_OFFSHORE_HUB_CONNECT")
+			hub_btn.tooltip_text = tr("UI_OFFSHORE_HUB_TIP")
 			hub_btn.pressed.connect(_on_toggle_sludge_hub.bind(str(site_data.get("id", ""))))
 			row.add_child(hub_btn)
 
 		if acc >= 100.0:
 			var val_btn := Button.new()
-			val_btn.text = "Valorisér nå (%.0f kg DS)" % acc
-			val_btn.tooltip_text = "Manuell slam-valorisering: biogas + gjødsel - OPEX"
+			val_btn.text = tr("UI_OFFSHORE_VALORIZE") % SimFormatters.num(acc, 0)
+			val_btn.tooltip_text = tr("UI_OFFSHORE_VALORIZE_TIP")
 			val_btn.pressed.connect(_on_valorize_sludge.bind(str(site_data.get("id", ""))))
 			row.add_child(val_btn)
 
@@ -422,14 +426,15 @@ func _on_transfer_source_changed(selected_idx: int) -> void:
 	for dest in dests:
 		var avail := float(dest.get("available_mab_kg", 0.0))
 		var dest_idx := transfer_dest_select.item_count
-		transfer_dest_select.add_item("%s (MAB ledig: %.0f t)" % [str(dest.get("name", "?")), avail / 1000.0])
+		transfer_dest_select.add_item(tr("UI_TRANSFER_DEST_ITEM") % [str(dest.get("name", "?")), SimFormatters.num(avail / 1000.0, 0)])
 		transfer_dest_select.set_item_metadata(dest_idx, str(dest.get("id", "")))
 
 	# Populate reasons
 	transfer_reason_select.clear()
 	var reasons := ["Grading", "Fallowing", "MabManagement", "DiseaseIsolation", "OffshoreStocking", "ContainmentUpgrade"]
 	for r in reasons:
-		transfer_reason_select.add_item(r)
+		transfer_reason_select.add_item(SimLabels.transfer_reason(r))
+		transfer_reason_select.set_item_metadata(transfer_reason_select.item_count - 1, r)
 
 	# Reset plan
 	_pending_transfer = {}
@@ -444,7 +449,7 @@ func _on_transfer_plan() -> void:
 	var dest_id := _item_site_id(transfer_dest_select, transfer_dest_select.get_selected())
 	var fish_count := int(transfer_fish_count.value)
 	var mean_weight := transfer_mean_weight.value
-	var reason := transfer_reason_select.get_item_text(transfer_reason_select.get_selected())
+	var reason := _selected_reason()
 
 	if source_id == "" or dest_id == "" or fish_count <= 0 or mean_weight <= 0:
 		transfer_info_label.text = tr("UI_TRANSFER_INVALID_INPUT")
@@ -453,7 +458,7 @@ func _on_transfer_plan() -> void:
 
 	var plan: Dictionary = _sim.plan_cohort_transfer(source_id, dest_id, fish_count, mean_weight, reason)
 	if plan.has("error"):
-		transfer_info_label.text = "Feil: %s" % plan.get("error", "Ukjent")
+		transfer_info_label.text = tr("UI_TRANSFER_ERROR") % SimLabels.command_error({"error": str(plan.get("error", ""))})
 		LakskongenTheme.set_text_color(transfer_info_label, LakskongenTheme.CHART_CRIT)
 		transfer_execute_btn.disabled = true
 		return
@@ -462,8 +467,9 @@ func _on_transfer_plan() -> void:
 	var cost := float(plan.get("estimated_cost_nok", 0.0))
 	var mort := float(plan.get("estimated_mortality_pct", 0.0))
 	var eta := int(plan.get("eta_days", 3))
-	transfer_info_label.text = "Plan: %d fisk · %.1f kg · %s · %.1f%% tap · %d dager · %.1fM NOK" % [
-		fish_count, mean_weight, reason, mort, eta, cost / 1_000_000.0]
+	transfer_info_label.text = tr("UI_TRANSFER_PLAN_SUMMARY") % [SimFormatters.integer(fish_count),
+		SimFormatters.num(mean_weight, 1), SimLabels.transfer_reason(reason), SimFormatters.percent(mort / 100.0, 1),
+		eta, SimFormatters.format_nok(cost)]
 	LakskongenTheme.set_text_color(transfer_info_label, _theme.TEXT_PRIMARY if _theme else Color(1,1,1))
 	transfer_execute_btn.disabled = false
 
@@ -475,24 +481,31 @@ func _on_transfer_execute() -> void:
 	var dest_id := _item_site_id(transfer_dest_select, transfer_dest_select.get_selected())
 	var fish_count := int(transfer_fish_count.value)
 	var mean_weight := transfer_mean_weight.value
-	var reason := transfer_reason_select.get_item_text(transfer_reason_select.get_selected())
+	var reason := _selected_reason()
 
 	var result: Dictionary = _sim.execute_cohort_transfer(source_id, dest_id, fish_count, mean_weight, reason)
 	var success := bool(result.get("success", false))
 	var moved := int(result.get("fish_transferred", 0))
 	var lost := int(result.get("fish_lost", 0))
-	var msg := str(result.get("message", ""))
 
 	if success:
-		transfer_info_label.text = "✅ %s (%d overført, %d tap)" % [msg, moved, lost]
+		transfer_info_label.text = "✅ " + tr("UI_TRANSFER_DONE") % [SimFormatters.integer(moved), SimFormatters.integer(lost)]
 		LakskongenTheme.set_text_color(transfer_info_label, LakskongenTheme.CHART_OK)
 	else:
-		transfer_info_label.text = "❌ %s" % msg
+		transfer_info_label.text = "❌ " + SimLabels.command_error(result, "UI_TRANSFER_FAILED")
 		LakskongenTheme.set_text_color(transfer_info_label, LakskongenTheme.CHART_CRIT)
 
 	transfer_execute_btn.disabled = true
 	_pending_transfer = {}
 	refresh()
+
+## The reason id (CohortTransferSystem.TransferReason) behind the selected item.
+func _selected_reason() -> String:
+	var idx := transfer_reason_select.get_selected()
+	return str(transfer_reason_select.get_item_metadata(idx)) if idx >= 0 else "Grading"
+
+func _site_label(site_id: String) -> String:
+	return str(_sim.site_name(site_id)) if _sim and _sim.has_method("site_name") else site_id
 
 func _on_toggle_sludge_hub(site_id: String) -> void:
 	if _sim and _sim.has_method("toggle_sludge_hub"):
@@ -502,7 +515,7 @@ func _on_toggle_sludge_hub(site_id: String) -> void:
 func _on_valorize_sludge(site_id: String) -> void:
 	if _sim and _sim.has_method("valorize_sludge_now"):
 		var rev: float = float(_sim.valorize_sludge_now(site_id))
-		var msg := ("Valorisert: %.0f NOK" % rev) if rev != 0.0 else "Ingen slam å valorisere"
+		var msg := (tr("UI_OFFSHORE_VALORIZED") % SimFormatters.format_nok(rev)) if rev != 0.0 else tr("UI_OFFSHORE_NO_SLUDGE")
 		transfer_info_label.text = msg
 		LakskongenTheme.set_text_color(transfer_info_label, LakskongenTheme.CHART_OK if rev > 0 else LakskongenTheme.CHART_WARN)
 	refresh()

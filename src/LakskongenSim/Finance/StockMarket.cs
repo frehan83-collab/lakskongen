@@ -249,7 +249,7 @@ namespace LakskongenSim.Finance
             }
 
             // Determine exchange
-            string exchange = valuation >= OSE_UPGRADE_VALUATION ? "Oslo Børs (OSE)" : "Euronext Growth Oslo";
+            string exchange = valuation >= OSE_UPGRADE_VALUATION ? "hovedlisten" : "vekstlisten";
             Status = valuation >= OSE_UPGRADE_VALUATION ? OwnershipStatus.OsloBoers : OwnershipStatus.EuronextGrowth;
 
             // Calculate IPO pricing
@@ -451,7 +451,7 @@ namespace LakskongenSim.Finance
         public (bool Eligible, string Reason) CheckOSEUpgradeEligibility()
         {
             if (Status != OwnershipStatus.EuronextGrowth)
-                return (false, "Must be listed on Euronext Growth first");
+                return (false, "Selskapet må først være notert på vekstlisten");
             if (MarketCap < OSE_UPGRADE_VALUATION)
                 return (false, $"Market cap too low: {MarketCap / 1_000_000_000:F2}B NOK (need {OSE_UPGRADE_VALUATION / 1_000_000_000:F0}B NOK)");
             if (_quartersSinceListing < 8)
@@ -479,7 +479,7 @@ namespace LakskongenSim.Finance
             {
                 OldPrice = oldPrice,
                 NewPrice = SharePrice,
-                Reason = "Upgraded to Oslo Børs main list — increased institutional interest",
+                Reason = "Flyttet til hovedlisten — større interesse fra institusjonelle investorer",
                 Timestamp = DateTime.Now
             });
 

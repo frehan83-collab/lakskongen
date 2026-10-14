@@ -119,6 +119,18 @@ func _refresh_slots() -> void:
 	for save_info in saves:
 		_slots_container.add_child(_create_slot(save_info))
 
+## Saves the game writes itself are named by file ("autosave_latest",
+## "autosave_3", "quicksave"); the player reads them as Norwegian labels.
+func _slot_display_name(slot_name: String) -> String:
+	if slot_name == "autosave_latest":
+		return tr("UI_SAVELOAD_AUTOSAVE_LATEST")
+	if slot_name.begins_with("autosave"):
+		var suffix := slot_name.trim_prefix("autosave").lstrip("_")
+		return tr("UI_SAVELOAD_AUTOSAVE_N") % suffix if suffix.is_valid_int() else tr("UI_SAVELOAD_AUTOSAVE")
+	if slot_name.begins_with("quicksave"):
+		return tr("UI_SAVELOAD_QUICKSAVE")
+	return slot_name
+
 func _create_slot(save_info: Dictionary) -> PanelContainer:
 	var file_name := String(save_info.get("file", ""))
 	var slot_name := String(save_info.get("name", file_name.get_basename()))
@@ -142,7 +154,7 @@ func _create_slot(save_info: Dictionary) -> PanelContainer:
 	hbox.add_child(info_vbox)
 
 	var name_lbl := Label.new()
-	name_lbl.text = slot_name
+	name_lbl.text = _slot_display_name(slot_name)
 	LakskongenTheme.set_size(name_lbl, 16)
 	LakskongenTheme.set_tone(name_lbl, &"")
 	info_vbox.add_child(name_lbl)

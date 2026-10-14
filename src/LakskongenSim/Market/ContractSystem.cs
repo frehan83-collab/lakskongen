@@ -127,8 +127,9 @@ namespace LakskongenSim.Market
             var offers = new List<ContractOffer>();
             int numOffers = 1 + rng.Next(3);  // 1-3 offers per week
 
-            string[] buyers = { "SjømatKompaniet", "FiskExport AS", "Nordic Seafood", "EuroFish GmbH",
-                                "Tokyo Fish Market", "Whole Foods", "Coop Mega", "Lerøy Markets", "REMA 1000" };
+            // Fictional buyers; real retailers appear only as parodies (roadmap D17).
+            string[] buyers = { "Sjømatkompaniet AS", "Fiskeeksport Vest AS", "Nordisk Sjømat AS", "Eurofisk GmbH",
+                                "Tokio Fiskemarked", "Wholesome Foodies", "Kooperativet Mega", "Herøy Marked", "REMI 999" };
 
             for (int i = 0; i < numOffers; i++)
             {

@@ -58,19 +58,15 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _apply_localization() -> void:
-	_title_label.text = _tr_or("UI_CREW_TITLE", "👷 Mannskap")
-	_hire_button.text = _tr_or("UI_CREW_HIRE", "+ Ansett ny")
-
-func _tr_or(key: String, fallback: String) -> String:
-	var t := tr(key)
-	return t if t != key else fallback
+	_title_label.text = "👷 " + tr("UI_CREW_TITLE")
+	_hire_button.text = "+ " + tr("UI_CREW_HIRE")
 
 func _role_name(role: String) -> String:
 	match role:
-		"roekter": return "Røkter (storm/not vern)"
-		"veterinaer": return "Veterinær (behandling)"
-		"skipper": return "Skipper (brønnbåt)"
-		_: return role.capitalize()
+		"roekter": return tr("UI_CREW_ROLE_ROEKTER")
+		"veterinaer": return tr("UI_CREW_ROLE_VETERINAER")
+		"skipper": return tr("UI_CREW_ROLE_SKIPPER")
+		_: return SimLabels.humanize(role)
 
 func _on_hire_pressed() -> void:
 	if not _sim or not _sim.has_method("hire_worker"):
@@ -87,7 +83,7 @@ func _on_hire_pressed() -> void:
 				worker_hired.emit(role)
 			_refresh()
 			return
-	_toast("Alle spesialistroller er besatt")
+	_toast(tr("UI_CREW_ALL_FILLED"))
 
 func _toast(message: String) -> void:
 	var mgr := get_node_or_null("/root/ToastNotification")
@@ -122,13 +118,13 @@ func _refresh_kpis() -> void:
 		total_salary += float(w.get("salary_nok", w.get("salary", 35000.0)))
 		total_morale += float(w.get("morale", 75.0))
 
-	_kpi_payroll.text = tr("%.0f kNOK") % (total_salary / 1000.0) if total_salary > 0 else "--"
-	_kpi_morale.text = tr("%d%%") % int(total_morale / max(crew.size(), 1)) if not crew.is_empty() else "--"
+	_kpi_payroll.text = SimFormatters.format_nok(total_salary) if total_salary > 0 else "–"
+	_kpi_morale.text = SimFormatters.percent(total_morale / max(crew.size(), 1) / 100.0) if not crew.is_empty() else "–"
 	# Efficiency = specialist coverage (Phase 3.1): base 60 + 12 per role.
 	var roles := {}
 	for w in crew:
 		roles[str(w.get("role", ""))] = true
-	_kpi_efficiency.text = "%d%%" % mini(96, 60 + 12 * roles.size())
+	_kpi_efficiency.text = SimFormatters.percent(mini(96, 60 + 12 * roles.size()) / 100.0)
 
 func _refresh_crew_list() -> void:
 	if not _crew_list:
@@ -149,7 +145,7 @@ func _refresh_crew_list() -> void:
 		]
 
 	if crew.is_empty():
-		UIPolish.show_empty_state_localized(_crew_list, _tr_or("UI_CREW_EMPTY", "Ingen ansatte — bruk + Ansett ny (50k signering)"), 13, "", _theme)
+		UIPolish.show_empty_state_localized(_crew_list, tr("UI_CREW_EMPTY"), 13, "", _theme)
 		return
 
 	for w in crew:
@@ -213,9 +209,9 @@ func _build_crew_row(w: Dictionary) -> PanelContainer:
 	# Tenure (real: hired day; mock rows carry xp instead)
 	var xp_lbl := Label.new()
 	if w.has("hired_day"):
-		xp_lbl.text = "Dag %d" % int(w.get("hired_day", 0))
+		xp_lbl.text = tr("UI_DAY_N") % int(w.get("hired_day", 0))
 	else:
-		xp_lbl.text = tr("%d XP") % int(w.get("xp", 0))
+		xp_lbl.text = tr("UI_CREW_XP") % int(w.get("xp", 0))
 	LakskongenTheme.set_size(xp_lbl, 12)
 	LakskongenTheme.set_text_color(xp_lbl, C_ACCENT)
 	hbox.add_child(xp_lbl)
@@ -223,7 +219,7 @@ func _build_crew_row(w: Dictionary) -> PanelContainer:
 	# Morale
 	var morale: int = w.get("morale", 75)
 	var morale_lbl := Label.new()
-	morale_lbl.text = tr("%d%%") % morale
+	morale_lbl.text = SimFormatters.percent(morale / 100.0)
 	LakskongenTheme.set_size(morale_lbl, 12)
 	LakskongenTheme.set_text_color(morale_lbl, C_SUCCESS_D if morale >= 80 else (C_WARNING_D if morale >= 60 else C_DANGER))
 	hbox.add_child(morale_lbl)
@@ -239,7 +235,7 @@ func _build_crew_row(w: Dictionary) -> PanelContainer:
 	if w.has("id") and _sim and _sim.has_method("fire_worker"):
 		var fire := Button.new()
 		fire.text = "✕"
-		fire.tooltip_text = "Si opp"
+		fire.tooltip_text = tr("UI_CREW_FIRE_TIP")
 		var wid := str(w.get("id", ""))
 		fire.pressed.connect(func(): _sim.fire_worker(wid))
 		hbox.add_child(fire)
@@ -292,7 +288,7 @@ func _refresh_skills() -> void:
 		vbox.add_child(name_lbl)
 
 		var val := Label.new()
-		val.text = "%d%%" % s.level
+		val.text = SimFormatters.percent(s.level / 100.0)
 		LakskongenTheme.set_size(val, 18)
 		LakskongenTheme.set_text_color(val, C_TEXT)
 		vbox.add_child(val)

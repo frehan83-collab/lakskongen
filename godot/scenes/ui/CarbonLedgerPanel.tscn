@@ -44,7 +44,7 @@ text = ""
 [node name="CarbonIntensity" type="Label" parent="Margin/MainScroll/RootVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Kulstoffintensitet: --"
+text = "Karbonintensitet: –"
 
 [node name="KPIRow" type="HBoxContainer" parent="Margin/MainScroll/RootVBox"]
 layout_mode = 2
@@ -127,7 +127,7 @@ theme_override_constants/separation = 8
 
 [node name="OffshoreHeader" type="Label" parent="Margin/MainScroll/RootVBox"]
 layout_mode = 2
-text = "🌊 Offshore Anlegg"
+text = "🌊 Offshoreanlegg"
 
 [node name="OffshoreList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox"]
 unique_name_in_owner = true
@@ -136,7 +136,7 @@ theme_override_constants/separation = 8
 
 [node name="RasHeader" type="Label" parent="Margin/MainScroll/RootVBox"]
 layout_mode = 2
-text = "🏭 RAS Anlegg"
+text = "🏭 RAS-anlegg"
 
 [node name="RasList" type="VBoxContainer" parent="Margin/MainScroll/RootVBox"]
 unique_name_in_owner = true

@@ -173,8 +173,8 @@ func _create_state_section() -> VBoxContainer:
 	var sim := get_node_or_null("/root/SimBridge")
 	var ev: Dictionary = FarmStateBanner.evaluate(sim)
 	var state := str(ev.get("state", FarmStateBanner.STATE_HEALTHY))
-	var summary := _tr_or("UI_FARM_STATE_%s" % state.to_upper(), str(ev.get("summary_no", "")))
-	var detail := str(ev.get("detail_no", ""))
+	var summary := str(ev.get("summary", ""))
+	var detail := str(ev.get("detail", ""))
 	var line := "%s %s" % [FarmStateBanner.icon_for(state), summary]
 	if state == FarmStateBanner.STATE_CRITICAL and detail != "":
 		line += " — %s" % detail

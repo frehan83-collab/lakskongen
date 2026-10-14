@@ -134,13 +134,13 @@ func _register_tabs() -> void:
 	
 	# Additional tabs (no F-key shortcuts)
 	_tabs.append(TabDefinition.new("telemetry", "📡 Telemetri", "📡", "res://scripts/ui/TelemetryPanel.gd"))
-	_tabs.append(TabDefinition.new("ai_feeding", "🤖 AI-Fôring", "🤖", "res://scripts/ui/AIFeedingPanel.gd"))
+	_tabs.append(TabDefinition.new("ai_feeding", "🤖 AI-fôring", "🤖", "res://scripts/ui/AIFeedingPanel.gd"))
 	_tabs.append(TabDefinition.new("crew", "👥 Mannskap", "👥", "res://scripts/ui/CrewPanel.gd"))
 	_tabs.append(TabDefinition.new("contracts", "📈 Kontrakter", "📈", "res://scripts/ui/ContractsPanel.gd"))
 	_tabs.append(TabDefinition.new("carbon", "🌍 Karbon", "🌍", "res://scripts/ui/CarbonLedgerPanel.gd"))
 	_tabs.append(TabDefinition.new("encyclopedia", "📚 Leksikon", "📚", "res://scripts/ui/EncyclopediaPanel.gd"))
 	_tabs.append(TabDefinition.new("export", "📤 Eksport", "📤", "res://scripts/ui/DataExportPanel.gd"))
-	_tabs.append(TabDefinition.new("saveload", "💾 Lagre/Laste", "💾", "res://scripts/ui/SaveLoadMenu.gd"))
+	_tabs.append(TabDefinition.new("saveload", "💾 Lagre/last inn", "💾", "res://scripts/ui/SaveLoadMenu.gd"))
 
 # ── Tab Bar UI ────────────────────────────────────────────────────────────────
 
@@ -209,7 +209,7 @@ func _apply_progressive_disclosure() -> void:
 		if unlocked:
 			btn.tooltip_text = ""
 		else:
-			btn.tooltip_text = "Låses opp senere i tutorialen"
+			btn.tooltip_text = tr("UI_TAB_LOCKED_TIP")
 
 func _on_tutorial_phase_changed(_phase: int) -> void:
 	_apply_progressive_disclosure()

@@ -90,14 +90,14 @@ func _input(event: InputEvent) -> void:
 # ── Scene wiring ──────────────────────────────────────────────────────────────
 
 func _apply_localization() -> void:
-	_title_label.text = tr("👑 Empire Oversikt")
+	_title_label.text = "👑 " + tr("UI_EMPIRE_OVERVIEW")
 	_title_label.tooltip_text = "Oversikt over ditt lakseimperium — markedsposisjon, konkurrenter, merkevare, vertikal integrasjon, og strategiske muligheter."
-	_phase_section_title.text = tr("📊 Empire Fase")
-	_competitor_section_title.text = tr("🏆 Konkurrent Leaderboard")
-	_brand_section_title.text = tr("⭐ Merkevare & Omdømme")
-	_stock_section_title.text = tr("📈 Aksjemarked")
-	_integration_section_title.text = tr("🔗 Vertikal Integrasjon")
-	_crisis_section_title.text = tr("⚠️ Kriser & Muligheter")
+	_phase_section_title.text = "📊 " + tr("UI_EMPIRE_PHASE")
+	_competitor_section_title.text = "🏆 " + tr("UI_EMPIRE_LEADERBOARD")
+	_brand_section_title.text = "⭐ " + tr("UI_EMPIRE_BRAND")
+	_stock_section_title.text = "📈 " + tr("UI_EMPIRE_STOCK")
+	_integration_section_title.text = "🔗 " + tr("UI_EMPIRE_VERTICAL")
+	_crisis_section_title.text = "⚠️ " + tr("UI_EMPIRE_CRISES")
 	phase_name_label.tooltip_text = "Din nåværende empire-fase basert på inntekt, markedsandel, og eide eiendeler."
 	phase_progress_bar.tooltip_text = "Fremgang til neste fase."
 	growth_strategy_label.tooltip_text = "Din aktive vekststrategi."
@@ -196,7 +196,7 @@ func _update_competitor_leaderboard(competitors: Array[Dictionary], player_reven
 
 	if competitors.is_empty():
 		var label = Label.new()
-		label.text = tr("Ingen konkurrentdata tilgjengelig")
+		label.text = tr("UI_EMPIRE_NO_COMPETITORS")
 		LakskongenTheme.set_text_color(label, Color(COLOR_MUTED))
 		competitor_leaderboard_container.add_child(label)
 		return
@@ -247,7 +247,7 @@ func _update_competitor_leaderboard(competitors: Array[Dictionary], player_reven
 		# Leader badge
 		if is_leader:
 			var badge = Label.new()
-			badge.text = tr("👑")
+			badge.text = "👑"
 			badge.tooltip_text = "Markedsleder"
 			row.add_child(badge)
 
@@ -303,7 +303,7 @@ func _update_brand_reputation(brand_data: Dictionary):
 	score_row.add_theme_constant_override("separation", 8)
 
 	var score_label = Label.new()
-	score_label.text = tr("Merkevare Score:")
+	score_label.text = tr("UI_EMPIRE_BRAND_SCORE")
 	score_label.custom_minimum_size = Vector2(150, 0)
 	LakskongenTheme.set_text_color(score_label, Color(COLOR_MUTED))
 	score_row.add_child(score_label)
@@ -325,7 +325,7 @@ func _update_brand_reputation(brand_data: Dictionary):
 	# Certifications
 	if certifications.size() > 0:
 		var cert_label = Label.new()
-		cert_label.text = tr("Aktive sertifiseringer:")
+		cert_label.text = tr("UI_EMPIRE_ACTIVE_CERTS")
 		LakskongenTheme.set_size(cert_label, 14)
 		LakskongenTheme.set_text_color(cert_label, Color(COLOR_TEXT))
 		brand_reputation_container.add_child(cert_label)
@@ -338,7 +338,7 @@ func _update_brand_reputation(brand_data: Dictionary):
 			brand_reputation_container.add_child(cert_row)
 	else:
 		var no_cert = Label.new()
-		no_cert.text = tr("Ingen sertifiseringer ennå")
+		no_cert.text = tr("UI_EMPIRE_NO_CERTS")
 		LakskongenTheme.set_size(no_cert, 12)
 		LakskongenTheme.set_text_color(no_cert, Color(COLOR_MUTED))
 		brand_reputation_container.add_child(no_cert)
@@ -348,7 +348,7 @@ func _update_brand_reputation(brand_data: Dictionary):
 	pricing_row.add_theme_constant_override("separation", 8)
 
 	var pricing_label = Label.new()
-	pricing_label.text = tr("Prismakt:")
+	pricing_label.text = tr("UI_EMPIRE_PRICING_POWER")
 	pricing_label.custom_minimum_size = Vector2(150, 0)
 	LakskongenTheme.set_text_color(pricing_label, Color(COLOR_MUTED))
 	pricing_row.add_child(pricing_label)
@@ -409,7 +409,7 @@ func _update_stock_market(stock_data: Dictionary):
 
 	if not is_public:
 		var status_label = Label.new()
-		status_label.text = tr("🏢 Privat selskap")
+		status_label.text = "🏢 " + tr("UI_EMPIRE_PRIVATE")
 		LakskongenTheme.set_size(status_label, 14)
 		LakskongenTheme.set_text_color(status_label, Color(COLOR_MUTED))
 		stock_market_container.add_child(status_label)
@@ -418,18 +418,18 @@ func _update_stock_market(stock_data: Dictionary):
 
 		if eligible:
 			var eligible_label = Label.new()
-			eligible_label.text = tr("✅ Klar for børsnotering!")
+			eligible_label.text = "✅ " + tr("UI_EMPIRE_IPO_READY")
 			LakskongenTheme.set_text_color(eligible_label, COLOR_GREEN)
 			stock_market_container.add_child(eligible_label)
 
 			var ipo_button = Button.new()
-			ipo_button.text = tr("🚀 Start børsintroduksjon (IPO)")
+			ipo_button.text = "🚀 " + tr("UI_EMPIRE_START_IPO")
 			ipo_button.tooltip_text = "Gå på børs og selg aksjer til offentligheten for å skaffe kapital."
 			ipo_button.pressed.connect(_on_ipo_button_pressed)
 			stock_market_container.add_child(ipo_button)
 		else:
 			var not_eligible_label = Label.new()
-			not_eligible_label.text = tr("❌ Ikke kvalifisert for IPO ennå")
+			not_eligible_label.text = "❌ " + tr("UI_EMPIRE_IPO_NOT_READY")
 			LakskongenTheme.set_text_color(not_eligible_label, COLOR_RED)
 			not_eligible_label.tooltip_text = "Trenger høyere inntekt, fortjeneste, og flere anlegg for å gå på børs."
 			stock_market_container.add_child(not_eligible_label)
@@ -443,7 +443,7 @@ func _update_stock_market(stock_data: Dictionary):
 	var ownership_pct = stock_data.get("ownership_pct", 100.0)
 
 	var public_label = Label.new()
-	public_label.text = tr("📈 Børsnotert selskap (OSE)")
+	public_label.text = "📈 " + tr("UI_EMPIRE_LISTED")
 	LakskongenTheme.set_size(public_label, 14)
 	LakskongenTheme.set_text_color(public_label, COLOR_GREEN)
 	stock_market_container.add_child(public_label)
@@ -453,7 +453,7 @@ func _update_stock_market(stock_data: Dictionary):
 	price_row.add_theme_constant_override("separation", 8)
 
 	var price_label = Label.new()
-	price_label.text = tr("Aksjekurs:")
+	price_label.text = tr("UI_EMPIRE_SHARE_PRICE")
 	price_label.custom_minimum_size = Vector2(120, 0)
 	LakskongenTheme.set_text_color(price_label, Color(COLOR_MUTED))
 	price_row.add_child(price_label)
@@ -473,7 +473,7 @@ func _update_stock_market(stock_data: Dictionary):
 	cap_row.add_theme_constant_override("separation", 8)
 
 	var cap_label = Label.new()
-	cap_label.text = tr("Markedsverdi:")
+	cap_label.text = tr("UI_EMPIRE_MARKET_CAP")
 	cap_label.custom_minimum_size = Vector2(120, 0)
 	LakskongenTheme.set_text_color(cap_label, Color(COLOR_MUTED))
 	cap_row.add_child(cap_label)
@@ -491,7 +491,7 @@ func _update_stock_market(stock_data: Dictionary):
 	ownership_row.add_theme_constant_override("separation", 8)
 
 	var ownership_label = Label.new()
-	ownership_label.text = tr("Din eierandel:")
+	ownership_label.text = tr("UI_EMPIRE_OWNERSHIP")
 	ownership_label.custom_minimum_size = Vector2(120, 0)
 	LakskongenTheme.set_text_color(ownership_label, Color(COLOR_MUTED))
 	ownership_row.add_child(ownership_label)
@@ -525,7 +525,7 @@ func _update_vertical_integration(integration_data: Dictionary):
 	score_row.add_theme_constant_override("separation", 8)
 
 	var score_label = Label.new()
-	score_label.text = tr("Integrasjonsscore:")
+	score_label.text = tr("UI_EMPIRE_INTEGRATION_SCORE")
 	score_label.custom_minimum_size = Vector2(150, 0)
 	LakskongenTheme.set_text_color(score_label, Color(COLOR_MUTED))
 	score_row.add_child(score_label)
@@ -562,7 +562,7 @@ func _update_vertical_integration(integration_data: Dictionary):
 		tier_box.add_child(icon_label)
 
 		var status_label = Label.new()
-		status_label.text = tr("✓")
+		status_label.text = "✓"
 		LakskongenTheme.set_size(status_label, 14)
 		LakskongenTheme.set_text_color(status_label, COLOR_GREEN if is_owned else COLOR_RED)
 		status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -573,14 +573,14 @@ func _update_vertical_integration(integration_data: Dictionary):
 		# Add arrow between tiers (except last)
 		if tier != INTEGRATION_TIERS[-1]:
 			var arrow = Label.new()
-			arrow.text = tr("→")
+			arrow.text = "→"
 			LakskongenTheme.set_size(arrow, 16)
 			LakskongenTheme.set_text_color(arrow, Color(COLOR_MUTED))
 			chain_container.add_child(arrow)
 
 	# Tier details list
 	var details_label = Label.new()
-	details_label.text = tr("Eide enheter:")
+	details_label.text = tr("UI_EMPIRE_OWNED_UNITS")
 	LakskongenTheme.set_size(details_label, 14)
 	LakskongenTheme.set_text_color(details_label, Color(COLOR_TEXT))
 	vertical_integration_container.add_child(details_label)
@@ -596,7 +596,7 @@ func _update_vertical_integration(integration_data: Dictionary):
 				vertical_integration_container.add_child(tier_label)
 	else:
 		var no_integration = Label.new()
-		no_integration.text = tr("  Ingen vertikal integrasjon ennå")
+		no_integration.text = tr("UI_EMPIRE_NO_INTEGRATION")
 		LakskongenTheme.set_size(no_integration, 12)
 		LakskongenTheme.set_text_color(no_integration, Color(COLOR_MUTED))
 		vertical_integration_container.add_child(no_integration)
@@ -611,7 +611,7 @@ func _update_crisis_opportunities(crises: Array[Dictionary], opportunities: Arra
 	# Active crises
 	if crises.size() > 0:
 		var crisis_header = Label.new()
-		crisis_header.text = tr("🚨 Aktive kriser:")
+		crisis_header.text = "🚨 " + tr("UI_EMPIRE_ACTIVE_CRISES")
 		LakskongenTheme.set_size(crisis_header, 14)
 		LakskongenTheme.set_text_color(crisis_header, COLOR_RED)
 		crisis_opportunities_container.add_child(crisis_header)
@@ -625,7 +625,7 @@ func _update_crisis_opportunities(crises: Array[Dictionary], opportunities: Arra
 			crisis_opportunities_container.add_child(crisis_row)
 	else:
 		var no_crisis = Label.new()
-		no_crisis.text = tr("✅ Ingen aktive kriser")
+		no_crisis.text = "✅ " + tr("UI_EMPIRE_NO_CRISES")
 		LakskongenTheme.set_size(no_crisis, 12)
 		LakskongenTheme.set_text_color(no_crisis, COLOR_GREEN)
 		crisis_opportunities_container.add_child(no_crisis)
@@ -638,7 +638,7 @@ func _update_crisis_opportunities(crises: Array[Dictionary], opportunities: Arra
 	# Acquisition opportunities
 	if opportunities.size() > 0:
 		var opp_header = Label.new()
-		opp_header.text = tr("💼 Oppkjøpsmuligheter:")
+		opp_header.text = "💼 " + tr("UI_EMPIRE_ACQUISITIONS")
 		LakskongenTheme.set_size(opp_header, 14)
 		LakskongenTheme.set_text_color(opp_header, COLOR_BLUE)
 		crisis_opportunities_container.add_child(opp_header)
@@ -662,7 +662,7 @@ func _update_crisis_opportunities(crises: Array[Dictionary], opportunities: Arra
 			opp_row.add_child(price_label)
 
 			var buy_button = Button.new()
-			buy_button.text = tr("Kjøp")
+			buy_button.text = tr("UI_EMPIRE_BUY")
 			buy_button.tooltip_text = "Kjøp denne eiendelen og utvid imperiet ditt."
 			buy_button.custom_minimum_size = Vector2(60, 0)
 			buy_button.pressed.connect(_on_buy_opportunity.bind(opp.get("id", "")))
@@ -671,7 +671,7 @@ func _update_crisis_opportunities(crises: Array[Dictionary], opportunities: Arra
 			crisis_opportunities_container.add_child(opp_row)
 	else:
 		var no_opp = Label.new()
-		no_opp.text = tr("Ingen oppkjøpsmuligheter akkurat nå")
+		no_opp.text = tr("UI_EMPIRE_NO_ACQUISITIONS")
 		LakskongenTheme.set_size(no_opp, 12)
 		LakskongenTheme.set_text_color(no_opp, Color(COLOR_MUTED))
 		crisis_opportunities_container.add_child(no_opp)

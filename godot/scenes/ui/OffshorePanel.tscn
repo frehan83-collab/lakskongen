@@ -76,7 +76,7 @@ text = "Mannskapsrotasjon: --"
 [node name="BtnBuildOffshore" type="Button" parent="Margin/MainScroll/RootVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Bygg Nytt Offshore Anlegg"
+text = "Bygg nytt offshoreanlegg"
 
 [node name="ContainCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
 theme_type_variation = &"Card"

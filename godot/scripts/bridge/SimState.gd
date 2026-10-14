@@ -5,6 +5,16 @@ extends Node
 ## Holds every snapshot var plus _refresh_state() and _check_alerts().
 
 const Formatters = preload("res://scripts/bridge/SimFormatters.gd")
+const Labels = preload("res://scripts/bridge/SimLabels.gd")
+
+## The FCR alarm waits until the fish have settled (roadmap U1-08): smolts
+## below this mean weight, or stocked fewer days ago than FCR_SETTLE_DAYS,
+## convert feed poorly by nature and are not a feeding problem.
+const FCR_SETTLE_WEIGHT_KG := 0.5
+const FCR_SETTLE_DAYS := 30
+## Lice limits mirror the engine: treatment considered at 0.2, legal limit 0.5.
+const LICE_TREATMENT_LIMIT := 0.2
+const LICE_LEGAL_LIMIT := 0.5
 
 # ── Signals ───────────────────────────────────────────────────────────────────
 
@@ -40,7 +50,16 @@ var temperature_c: float = 0.0
 var market_price_nok: float = 70.0
 var weekly_avg_price_nok: float = 70.0
 var sea_lice_per_fish: float = 0.0
-var fcr: float = 1.15
+var fcr: float = 0.0
+## FCR goal and failing ceiling from CalibrationRegistry (one target, U1-03).
+var fcr_target: float = 0.0
+var fcr_poor: float = 0.0
+## Days since the latest stocking (-1 unknown); see fcr_is_settled().
+var days_since_stocking: int = -1
+## Site id -> the name the player reads.
+var site_names: Dictionary = {}
+## The player's company (dashboard title).
+var company_name: String = ""
 var appetite: float = 1.0
 var avg_weight_kg: float = 0.0
 var mortality_rate: float = 0.0
@@ -208,6 +227,12 @@ func _refresh_state() -> void:
 	weekly_avg_price_nok = game_bridge.WeeklyAvgPricePerKg
 	sea_lice_per_fish    = game_bridge.SeaLicePerFish
 	fcr                  = game_bridge.CurrentFCR
+	var fcr_targets: Dictionary = game_bridge.GetFcrTargets()
+	fcr_target           = float(fcr_targets.get("target", 0.0))
+	fcr_poor             = float(fcr_targets.get("poor", 0.0))
+	days_since_stocking  = game_bridge.DaysSinceStocking
+	site_names           = game_bridge.GetSiteNames()
+	company_name         = game_bridge.CompanyName
 	appetite             = game_bridge.Appetite01
 	avg_weight_kg        = game_bridge.AvgWeightKg
 	mortality_rate       = game_bridge.MortalityRateToday
@@ -302,62 +327,83 @@ func _refresh_state() -> void:
 # ── Alert logic ───────────────────────────────────────────────────────────────
 
 func _check_alerts() -> void:
-	# Lice limits mirror SimulationEngine config: treatment @0.2, legal limit 0.5.
-	if sea_lice_per_fish > 0.5:
-		if _raise("lice", "critical", "Lus KRITISK: %.2f / fisk (grense 0,5 — pålegg om tiltak)" % sea_lice_per_fish):
+	var lice_txt := Formatters.num(sea_lice_per_fish, 2)
+	if sea_lice_per_fish > LICE_LEGAL_LIMIT:
+		if _raise("lice", "critical", tr("ALERT_LICE_CRITICAL") % [lice_txt, Formatters.num(LICE_LEGAL_LIMIT, 1)]):
 			audio_alert_triggered.emit("lice_warning")
-	elif sea_lice_per_fish > 0.2:
-		_raise("lice", "warning", "Lus forhøyet: %.2f / fisk (behandling vurderes ved 0,5)" % sea_lice_per_fish)
+	elif sea_lice_per_fish > LICE_TREATMENT_LIMIT:
+		_raise("lice", "warning", tr("ALERT_LICE_HIGH") % [lice_txt, Formatters.num(LICE_LEGAL_LIMIT, 1)])
 
-	if fcr > 1.35:
-		_raise("fcr", "warning", "FCR forverret: %.2f (mål <1,30)" % fcr)
+	if fcr_poor > 0.0 and fcr > fcr_poor and fcr_is_settled():
+		_raise("fcr", "warning", tr("ALERT_FCR_POOR") % [Formatters.num(fcr, 2), Formatters.num(fcr_target, 2)])
 
 	if appetite < 0.6:
-		_raise("appetite", "warning", "Lav appetitt: %d%% rasjon — sjekk O2/temperatur" % int(appetite * 100.0))
+		_raise("appetite", "warning", tr("ALERT_APPETITE_LOW") % Formatters.percent(appetite))
 
 	if mortality_rate > 0.01:
-		_raise("mortality", "warning", "Dødelighet %.1f%% siste døgn" % (mortality_rate * 100.0))
+		_raise("mortality", "warning", tr("ALERT_MORTALITY") % Formatters.percent(mortality_rate, 1))
 
 	if oxygen_mgl > 0.0 and oxygen_mgl < 5.0:
-		_raise("oxygen", "critical", "Oksygen kritisk lavt: %.1f mg/L" % oxygen_mgl)
+		_raise("oxygen", "critical", tr("ALERT_OXYGEN_CRITICAL") % Formatters.num(oxygen_mgl, 1))
 	elif oxygen_mgl >= 5.0 and oxygen_mgl < 6.5:
-		_raise("oxygen", "warning", "Oksygen lavt: %.1f mg/L (appetitt faller)" % oxygen_mgl)
+		_raise("oxygen", "warning", tr("ALERT_OXYGEN_LOW") % Formatters.num(oxygen_mgl, 1))
 
 	if min_net_integrity < 40.0:
-		_raise("nets", "critical", "Nøter kritisk slitt: %.0f%% — rømmingsfare, reparer nå" % min_net_integrity)
+		_raise("nets", "critical", tr("ALERT_NETS_CRITICAL") % Formatters.percent(min_net_integrity / 100.0))
 	elif min_net_integrity < 70.0:
-		_raise("nets", "warning", "Nøter slitt: %.0f%% — vurder reparasjon" % min_net_integrity)
+		_raise("nets", "warning", tr("ALERT_NETS_WORN") % Formatters.percent(min_net_integrity / 100.0))
 
 	if storm_risk_3d > 0.5:
-		_raise("storm_risk", "warning", "Stormfare 3 dager: %d%% — sjekk nøter" % int(storm_risk_3d * 100.0))
+		_raise("storm_risk", "warning", tr("ALERT_STORM_RISK") % Formatters.percent(storm_risk_3d))
 
 	if red_zone_count > 0:
-		_raise("red_zones", "warning", "Trafikklys RØDT i %d sone(r) — MAB strammet inn" % red_zone_count)
+		_raise("red_zones", "warning", tr("ALERT_RED_ZONES") % red_zone_count)
 
 	if vaccine_window_left >= 0:
 		if vaccine_coverage < 0.9:
-			_raise("vaccine_window", "warning", "Vaksinasjonsvindu åpent (%dd igjen) — dekning %d%%" % [vaccine_window_left, int(vaccine_coverage * 100.0)])
+			_raise("vaccine_window", "warning", tr("ALERT_VACCINE_WINDOW") % [vaccine_window_left, Formatters.percent(vaccine_coverage)])
 	elif vaccine_coverage < 0.5 and current_day > 300:
-		_raise("vaccine_winter", "info", "Uvaksinert bestand går mot vinter (dekning %d%%)" % int(vaccine_coverage * 100.0))
+		_raise("vaccine_winter", "info", tr("ALERT_VACCINE_WINTER") % Formatters.percent(vaccine_coverage))
 
 	for j in wellboat_jobs:
 		_raise("wellboat:%s:%s" % [str(j.get("site_id", "?")), str(j.get("kind", "?"))], "info",
-			"🚢 Brønnbåt (%s) → %s om %dd" % [str(j.get("kind", "?")), str(j.get("site_id", "?")), int(j.get("eta_days", 0))])
+			"🚢 " + tr("ALERT_WELLBOAT") % [Labels.wellboat_job(str(j.get("kind", ""))),
+				site_name(str(j.get("site_id", ""))), int(j.get("eta_days", 0))])
 
 	for b in active_blooms:
 		var kind_icon: String = {"jellyfish": "🪼", "algae": "🟤", "hypoxia": "💨"}.get(str(b.get("kind", "")), "⚠️")
 		_raise("bloom:%s:%s" % [str(b.get("site_id", "?")), str(b.get("kind", "?"))],
 			"critical" if float(b.get("severity", 0.0)) > 0.7 else "warning",
-			"%s %s ved %s (%dd igjen)" % [str(kind_icon), str(b.get("kind", "?")).capitalize(), str(b.get("site_id", "?")), int(b.get("days_left", 0))])
+			"%s %s" % [kind_icon, tr("ALERT_BLOOM") % [Labels.bloom(str(b.get("kind", ""))),
+				site_name(str(b.get("site_id", ""))), int(b.get("days_left", 0))]])
 
 	if balance < 0.0:
-		_raise("balance", "warning", "Negative balance: %s" % Formatters.format_nok(balance))
+		_raise("balance", "warning", tr("ALERT_BALANCE_NEGATIVE") % Formatters.format_nok(balance))
 
 	if sustainability_score < 50:
-		_raise("sustainability", "warning", "Non-compliant sustainability: %d/100" % sustainability_score)
+		_raise("sustainability", "warning", tr("ALERT_SUSTAINABILITY_LOW") % sustainability_score)
 
 	if temperature_c > 18.0:
-		_raise("temperature", "warning", "High temperature: %.1f°C (stress risk)" % temperature_c)
+		_raise("temperature", "warning", tr("ALERT_TEMPERATURE_HIGH") % (Formatters.num(temperature_c, 1) + " °C"))
+
+
+## False while the FCR says nothing about feeding (roadmap U1-08): no fish,
+## smolts under FCR_SETTLE_WEIGHT_KG, or a stocking within FCR_SETTLE_DAYS.
+## The day-12 dashboard showed "Kritisk tilstand" for an FCR of 2.4 on
+## 0.1 kg smolts.
+func fcr_is_settled() -> bool:
+	if fish_count <= 0 or avg_weight_kg < FCR_SETTLE_WEIGHT_KG:
+		return false
+	return days_since_stocking < 0 or days_since_stocking >= FCR_SETTLE_DAYS
+
+
+## The name the player reads for a site id ("all_sites" → "alle lokaliteter").
+func site_name(site_id: String) -> String:
+	if site_id == "all_sites":
+		return tr("SITE_ALL")
+	if site_names.has(site_id):
+		return str(site_names[site_id])
+	return Labels.humanize(site_id)
 
 
 ## Rebuild the alert list: event alerts still within their TTL, then the

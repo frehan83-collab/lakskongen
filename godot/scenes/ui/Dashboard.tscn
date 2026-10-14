@@ -101,7 +101,7 @@ theme_override_constants/separation = 4
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue/VBox"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "INNTEKTER (YTD)"
+text = "INNTEKTER HITTIL I ÅR"
 
 [node name="KpiRevenueValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue/VBox"]
 theme_type_variation = &"Title"
@@ -247,7 +247,7 @@ layout_mode = 2
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Snitt vekt"
+text = "Snittvekt"
 
 [node name="Pen1Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard1/VBox/WeightRow"]
 theme_type_variation = &"Small"
@@ -318,7 +318,7 @@ layout_mode = 2
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Snitt vekt"
+text = "Snittvekt"
 
 [node name="Pen2Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard2/VBox/WeightRow"]
 theme_type_variation = &"Small"
@@ -389,7 +389,7 @@ layout_mode = 2
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Snitt vekt"
+text = "Snittvekt"
 
 [node name="Pen3Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard3/VBox/WeightRow"]
 theme_type_variation = &"Small"
@@ -460,7 +460,7 @@ layout_mode = 2
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Snitt vekt"
+text = "Snittvekt"
 
 [node name="Pen4Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard4/VBox/WeightRow"]
 theme_type_variation = &"Small"
@@ -531,7 +531,7 @@ layout_mode = 2
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Snitt vekt"
+text = "Snittvekt"
 
 [node name="Pen5Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard5/VBox/WeightRow"]
 theme_type_variation = &"Small"
@@ -602,7 +602,7 @@ layout_mode = 2
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Snitt vekt"
+text = "Snittvekt"
 
 [node name="Pen6Weight" type="Label" parent="Margin/MainScroll/RootVBox/Row1/PensCard/PensOuter/PensBody/PenGrid/PenCard6/VBox/WeightRow"]
 theme_type_variation = &"Small"
@@ -738,7 +738,7 @@ theme_override_constants/separation = 4
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterPhPanel/VBox"]
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
-text = "PH"
+text = "pH"
 horizontal_alignment = 1
 
 [node name="WaterPh" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterPhPanel/VBox"]
@@ -1154,12 +1154,12 @@ columns = 2
 theme_override_constants/h_separation = 10
 theme_override_constants/v_separation = 10
 
-[node name="BtnFeedAll" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
-theme_type_variation = &"SmallPrimaryButton"
+[node name="BtnFeeding" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
+theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "🐟 Fôr alle"
+text = "🤖 AI-fôring"
 
 [node name="BtnHarvest" type="Button" parent="Margin/MainScroll/RootVBox/Row2/ActionsCard/ActionsOuter/ActionsBody/ActionsGrid"]
 theme_type_variation = &"SmallSuccessButton"

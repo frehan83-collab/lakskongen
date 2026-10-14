@@ -649,9 +649,9 @@ public partial class GameBridge : Node
             SimulationEngine?.State?.EventLog.Add(new LakskongenSim.Events.EventRecord
             {
                 Day = SimulationEngine.State.Day,
-                Name = "Company Acquisition",
+                Name = "Oppkjøp",
                 Category = LakskongenSim.Events.EventCategory.Equipment,
-                Description = $"Acquired {target.Name} for {acquisitionResult.ActualPrice:F1}M NOK",
+                Description = LakskongenSim.Core.SimText.Nb($"Kjøpte {target.Name} for {acquisitionResult.ActualPrice:F1} MNOK"),
                 BalanceChange = -(decimal)acquisitionResult.ActualPrice * 1_000_000m
             });
         }

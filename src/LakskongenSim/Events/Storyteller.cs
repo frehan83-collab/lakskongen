@@ -210,14 +210,14 @@ namespace LakskongenSim.Events
             RegisterEvent(new EventDefinition
             {
                 Id = "weather-algal-bloom",
-                Name = "Algal bloom",
+                Name = "Algeoppblomstring",
                 Category = EventCategory.Weather,
                 Weight = 1.0,
                 CooldownDays = 90,
                 Condition = gs => gs.Zones != null && gs.Zones.Count > 0,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Harmful algal bloom reduces feed conversion and increases mortality for several days.";
+                    rec.Description = "Skadelige alger svekker fôrutnyttelsen og øker dødeligheten i flere dager.";
                     decimal cost = 100000m;
                     rec.BalanceChange = -cost;
                     
@@ -229,7 +229,7 @@ namespace LakskongenSim.Events
                         if (!_financeManager.Spend(cost))
                         {
                             _financeManager.ForceSpend(cost);
-                            rec.Description += " (Insufficient funds: cleanup paid on credit)";
+                            rec.Description += " (Ikke nok penger: oppryddingen er betalt på kreditt)";
                         }
                     }
                     else
@@ -246,14 +246,14 @@ namespace LakskongenSim.Events
             RegisterEvent(new EventDefinition
             {
                 Id = "disease-outbreak",
-                Name = "Disease outbreak",
+                Name = "Sykdomsutbrudd",
                 Category = EventCategory.Disease,
                 Weight = 1.2,
                 CooldownDays = 60,
                 Condition = gs => gs.Populations != null && gs.Populations.Count > 0,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "A contagious disease spreads among pens — you must decide how to respond.";
+                    rec.Description = "En smittsom sykdom sprer seg mellom merdene — du må bestemme hvordan du svarer.";
                     decimal cost = 50000m;
                     rec.BalanceChange = -cost;
                     
@@ -264,7 +264,7 @@ namespace LakskongenSim.Events
                         if (!_financeManager.Spend(cost))
                         {
                             _financeManager.ForceSpend(cost);
-                            rec.Description += " (Insufficient funds: treatment paid on credit)";
+                            rec.Description += " (Ikke nok penger: behandlingen er betalt på kreditt)";
                         }
                     }
                     else
@@ -281,14 +281,14 @@ namespace LakskongenSim.Events
             RegisterEvent(new EventDefinition
             {
                 Id = "market-crash",
-                Name = "Market price crash",
+                Name = "Prisfall i markedet",
                 Category = EventCategory.Market,
                 Weight = 0.8,
                 CooldownDays = 120,
                 Condition = gs => true,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Global market glut causes price to drop. Export prices fall temporarily.";
+                    rec.Description = "Overskudd i verdensmarkedet presser prisen ned. Eksportprisene faller en periode.";
                     decimal cost = 20000m;
                     rec.BalanceChange = -cost;
                     
@@ -299,7 +299,7 @@ namespace LakskongenSim.Events
                         if (!_financeManager.Spend(cost))
                         {
                             _financeManager.ForceSpend(cost);
-                            rec.Description += " (Insufficient funds: market shock penalty paid on credit)";
+                            rec.Description += " (Ikke nok penger: tapet er betalt på kreditt)";
                         }
                     }
                     else
@@ -313,14 +313,14 @@ namespace LakskongenSim.Events
             RegisterEvent(new EventDefinition
             {
                 Id = "equipment-failure",
-                Name = "Equipment failure",
+                Name = "Utstyrssvikt",
                 Category = EventCategory.Equipment,
                 Weight = 0.6,
                 CooldownDays = 45,
                 Condition = gs => gs.SeaSites != null && gs.SeaSites.Count > 0,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "Essential equipment failed requiring repair or replacement.";
+                    rec.Description = "Viktig utstyr har sviktet og må repareres eller byttes.";
                     decimal cost = 75000m;
                     rec.BalanceChange = -cost;
                     
@@ -331,7 +331,7 @@ namespace LakskongenSim.Events
                         if (!_financeManager.Spend(cost))
                         {
                             _financeManager.ForceSpend(cost);
-                            rec.Description += " (Insufficient funds: repairs paid on credit)";
+                            rec.Description += " (Ikke nok penger: reparasjonen er betalt på kreditt)";
                         }
                     }
                     else
@@ -345,14 +345,14 @@ namespace LakskongenSim.Events
             RegisterEvent(new EventDefinition
             {
                 Id = "investor-offer",
-                Name = "Investor offer",
+                Name = "Tilbud fra investor",
                 Category = EventCategory.Investor,
                 Weight = 0.4,
                 CooldownDays = 180,
                 Condition = gs => _financeManager != null ? _financeManager.Balance < 1_000_000m : gs.Balance < 1_000_000m,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "An investor offers a capital injection with strings attached.";
+                    rec.Description = "En investor tilbyr ny kapital — med betingelser.";
                     decimal revenue = 250000m;
                     rec.BalanceChange = revenue;
                     
@@ -371,14 +371,14 @@ namespace LakskongenSim.Events
             RegisterEvent(new EventDefinition
             {
                 Id = "regulatory-change",
-                Name = "Regulatory change",
+                Name = "Nye regler",
                 Category = EventCategory.Regulation,
                 Weight = 0.3,
                 CooldownDays = 365,
                 Condition = gs => true,
                 Apply = (gs, rec) =>
                 {
-                    rec.Description = "New regulations increase compliance costs and change licensing rules.";
+                    rec.Description = "Nye regler gir høyere kostnader og endrer konsesjonsreglene.";
                     decimal cost = 120000m;
                     rec.BalanceChange = -cost;
                     
@@ -389,7 +389,7 @@ namespace LakskongenSim.Events
                         if (!_financeManager.Spend(cost))
                         {
                             _financeManager.ForceSpend(cost);
-                            rec.Description += " (Insufficient funds: compliance paid on credit)";
+                            rec.Description += " (Ikke nok penger: kostnaden er betalt på kreditt)";
                         }
                     }
                     else
@@ -454,9 +454,9 @@ namespace LakskongenSim.Events
             {
                 Day = state.Day,
                 Id = "disease-impact",
-                Name = "Disease Impact",
+                Name = "Sykdom i bestanden",
                 Category = EventCategory.Disease,
-                Description = $"Disease outbreak in population {targetPop.Id}. Estimated {estimatedInfected} fish at risk. Mortality will be applied by disease system."
+                Description = Core.SimText.Nb($"Sykdomsutbrudd i en fiskegruppe. Anslagsvis {estimatedInfected:N0} fisk er utsatt.")
             });
             state.TrimEventLog();
 

@@ -134,7 +134,7 @@ func _create_competitor_item(competitor: Dictionary) -> Control:
 		actions_label.text = "Recent: " + latest
 		LakskongenTheme.set_tone(actions_label, &"")
 	else:
-		actions_label.text = tr("No recent activity")
+		actions_label.text = tr("UI_COMPDASH_NO_RECENT_ACTIVITY")
 		LakskongenTheme.set_tone(actions_label, &"Muted")
 	LakskongenTheme.set_size(actions_label, 11)
 	vbox.add_child(actions_label)
@@ -170,7 +170,7 @@ func _create_competitor_item(competitor: Dictionary) -> Control:
 		acquire_button.text = "Acquire (NOK %.2fB)" % acq_price
 		acquire_button.disabled = false
 	else:
-		acquire_button.text = tr("Not for Sale")
+		acquire_button.text = tr("UI_COMPDASH_NOT_FOR_SALE")
 		acquire_button.disabled = true
 	
 	acquire_button.custom_minimum_size = Vector2(140, 32)

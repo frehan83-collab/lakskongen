@@ -201,7 +201,7 @@ namespace LakskongenSim.Biology
         /// <summary>AquAdvantage-style growth-hormone salmon (the only approved GE food animal).</summary>
         public static readonly GeTrait AquAdvantageGrowth = new(
             Id: "ge_growth_aquadvantage",
-            Name: "AquAdvantage Growth",
+            Name: "Growth-Hormone Transgene",
             Modification: GeModification.Growth,
             TargetTrait: GeneticTrait.GrowthRate,
             EffectMagnitude: 2.0,
@@ -217,7 +217,7 @@ namespace LakskongenSim.Biology
                 (GeRegion.EuropeanUnion, RegulatoryStatus.Banned),
                 (GeRegion.Scotland, RegulatoryStatus.Banned),
                 (GeRegion.Chile, RegulatoryStatus.UnderReview)),
-            Evidence: "FDA approved AquAdvantage salmon 2015; Health Canada 2016. "
+            Evidence: "The FDA approved a growth-hormone transgenic salmon in 2015; Health Canada in 2016. "
                 + "Banned/not approved in Norway (Gene Technology Act) and the EU.");
 
         /// <summary>Engineered ISA/IPN disease resistance (gene edit; still pre-commercial).</summary>

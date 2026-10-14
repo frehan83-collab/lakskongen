@@ -47,10 +47,10 @@ var _story_list: VBoxContainer = null
 var _story_verdict: Label = null
 
 const _INSURANCE_KINDS := [
-	{"key": "mortality", "label": "Dødelighet", "icon": "🐟"},
-	{"key": "bloom", "label": "Oppblomstring", "icon": "🪼"},
-	{"key": "storm", "label": "Storm/rømming", "icon": "⛈️"},
-	{"key": "isa", "label": "ILA (ISA)", "icon": "🦠"},
+	{"key": "mortality", "label": "UI_FIN_INS_MORTALITY", "icon": "🐟"},
+	{"key": "bloom", "label": "UI_FIN_INS_BLOOM", "icon": "🪼"},
+	{"key": "storm", "label": "UI_FIN_INS_STORM", "icon": "⛈️"},
+	{"key": "isa", "label": "UI_FIN_INS_ISA", "icon": "🦠"},
 ]
 
 # P&L rows are static scene labels; collected for future data binding.
@@ -77,9 +77,9 @@ var _price_spark = null
 var _trend_rows: Array = []
 var _trend_built: bool = false
 const TREND_DEFS := [
-	{"key": "balance_nok",   "title": "Kontanter",    "days": 90, "fmt": "short", "up_good": true},
-	{"key": "lice_per_fish", "title": "Lus per fisk", "days": 90, "fmt": "ff",    "up_good": false},
-	{"key": "fcr",           "title": "FCR",          "days": 90, "fmt": "ff",    "up_good": false},
+	{"key": "balance_nok",   "title": "UI_FIN_TREND_CASH", "days": 90, "fmt": "short", "up_good": true},
+	{"key": "lice_per_fish", "title": "UI_FIN_TREND_LICE", "days": 90, "fmt": "ff",    "up_good": false},
+	{"key": "fcr",           "title": "UI_FIN_TREND_FCR",  "days": 90, "fmt": "ff",    "up_good": false},
 ]
 
 # ── Colors (from design tokens) ──────────────────────────────────────────────
@@ -188,7 +188,7 @@ func _build_deep_finance_row() -> void:
 	card.add_child(row)
 
 	var pp_title := Label.new()
-	pp_title.text = tr("Pen price (binding)")
+	pp_title.text = tr("UI_FIN_PEN_PRICE")
 	LakskongenTheme.set_text_color(pp_title, C_TEXT2)
 	LakskongenTheme.set_size(pp_title, 12)
 	row.add_child(pp_title)
@@ -210,7 +210,7 @@ func _build_deep_finance_row() -> void:
 		row.add_child(_price_spark)
 
 	_resource_rent_title = Label.new()
-	_resource_rent_title.text = tr("Ressursrente")
+	_resource_rent_title.text = tr("UI_FIN_RESOURCE_RENT")
 	LakskongenTheme.set_text_color(_resource_rent_title, C_TEXT2)
 	LakskongenTheme.set_size(_resource_rent_title, 12)
 	_resource_rent_title.visible = false
@@ -252,13 +252,13 @@ func _build_insurance_card() -> void:
 	_insurance_card.add_child(outer)
 
 	var header := Label.new()
-	header.text = tr("🛡️ Forsikring per katastrofe")
+	header.text = "🛡️ " + tr("UI_FIN_INSURANCE_TITLE")
 	LakskongenTheme.set_size(header, 15)
 	LakskongenTheme.set_text_color(header, C_TEXT)
 	outer.add_child(header)
 
 	var hint := Label.new()
-	hint.text = tr("Premie betales årlig; dekning og egenandel avgjør utbetaling ved tap.")
+	hint.text = tr("UI_FIN_INSURANCE_HINT")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	LakskongenTheme.set_size(hint, 11)
 	LakskongenTheme.set_text_color(hint, C_MUTED)
@@ -270,7 +270,7 @@ func _build_insurance_card() -> void:
 
 	outer.add_child(HSeparator.new())
 	_insurance_total_label = Label.new()
-	_insurance_total_label.text = tr("Total årspremie: --")
+	_insurance_total_label.text = tr("UI_FIN_INSURANCE_TOTAL_NONE")
 	LakskongenTheme.set_size(_insurance_total_label, 13)
 	LakskongenTheme.set_text_color(_insurance_total_label, C_TEXT2)
 	outer.add_child(_insurance_total_label)
@@ -290,7 +290,7 @@ func _build_insurance_row(entry: Dictionary) -> Control:
 
 	var toggle := CheckButton.new()
 	toggle.text = "%s %s" % [str(entry.get("icon", "")), tr(str(entry.get("label", kind)))]
-	toggle.tooltip_text = tr("Slå forsikringen av/på. Premien belastes årlig uansett om det oppstår tap.")
+	toggle.tooltip_text = tr("UI_FIN_INSURANCE_TOGGLE_TIP")
 	toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	toggle.toggled.connect(func(_pressed: bool) -> void: _on_insurance_changed(kind))
 	top.add_child(toggle)
@@ -308,7 +308,7 @@ func _build_insurance_row(entry: Dictionary) -> Control:
 	row.add_child(controls)
 
 	var cov_lbl := Label.new()
-	cov_lbl.text = tr("Dekning")
+	cov_lbl.text = tr("UI_FIN_COVERAGE")
 	LakskongenTheme.set_size(cov_lbl, 12)
 	LakskongenTheme.set_text_color(cov_lbl, C_MUTED)
 	controls.add_child(cov_lbl)
@@ -319,12 +319,12 @@ func _build_insurance_row(entry: Dictionary) -> Control:
 	coverage.step = 5.0
 	coverage.suffix = "%"
 	coverage.custom_minimum_size.x = 90
-	coverage.tooltip_text = tr("Andel av tap over egenandelen som dekkes. Høyere dekning gir høyere premie.")
+	coverage.tooltip_text = tr("UI_FIN_COVERAGE_TIP")
 	coverage.value_changed.connect(func(_v: float) -> void: _on_insurance_changed(kind))
 	controls.add_child(coverage)
 
 	var ded_lbl := Label.new()
-	ded_lbl.text = tr("Egenandel")
+	ded_lbl.text = tr("UI_FIN_DEDUCTIBLE")
 	LakskongenTheme.set_size(ded_lbl, 12)
 	LakskongenTheme.set_text_color(ded_lbl, C_MUTED)
 	controls.add_child(ded_lbl)
@@ -335,7 +335,7 @@ func _build_insurance_row(entry: Dictionary) -> Control:
 	deductible.step = 100_000.0
 	deductible.suffix = " NOK"
 	deductible.custom_minimum_size.x = 160
-	deductible.tooltip_text = tr("Tap du dekker selv før forsikringen trer inn. Høyere egenandel gir lavere premie.")
+	deductible.tooltip_text = tr("UI_FIN_DEDUCTIBLE_TIP")
 	deductible.value_changed.connect(func(_v: float) -> void: _on_insurance_changed(kind))
 	controls.add_child(deductible)
 
@@ -379,11 +379,11 @@ func _refresh_insurance() -> void:
 		(r["coverage"] as SpinBox).value = clampf(float(s.get("coverage", 0.0)) * 100.0, 0.0, 100.0)
 		(r["deductible"] as SpinBox).value = maxf(0.0, float(s.get("deductible", 0.0)))
 		var premium_lbl := r["premium"] as Label
-		premium_lbl.text = ("%s/år" % _fmt(float(s.get("premium", 0.0)))) if enabled else tr("Ingen")
+		premium_lbl.text = (tr("UI_FIN_PER_YEAR") % _fmt(float(s.get("premium", 0.0)))) if enabled else tr("UI_FIN_INSURANCE_OFF")
 		LakskongenTheme.set_text_color(premium_lbl, C_TEXT if enabled else C_MUTED)
 	_insurance_updating = false
 	if _insurance_total_label != null:
-		_insurance_total_label.text = tr("Total årspremie: %s") % _fmt(float(status.get("total_premium", 0.0)))
+		_insurance_total_label.text = tr("UI_FIN_INSURANCE_TOTAL") % _fmt(float(status.get("total_premium", 0.0)))
 
 ## Causal P&L story (Phase 5.5): a "why did I lose money" card that lists the
 ## top cost drivers and revenue sources, each with a share bar. Built in code
@@ -412,7 +412,7 @@ func _build_story_card() -> void:
 	_story_card.add_child(outer)
 
 	var header := Label.new()
-	header.text = tr("🧭 Hvorfor gikk det slik?")
+	header.text = "🧭 " + tr("UI_FIN_STORY_TITLE")
 	LakskongenTheme.set_size(header, 15)
 	LakskongenTheme.set_text_color(header, C_TEXT)
 	outer.add_child(header)
@@ -431,20 +431,9 @@ func _build_story_card() -> void:
 	root.add_child(_story_card)
 	root.move_child(_story_card, mini(3, root.get_child_count() - 1))
 
-## Map an internal cost/revenue category key to a short Norwegian label.
+## The display name of a ledger category (SimLabels: LEDGER_<CATEGORY>).
 func _story_label(category: String) -> String:
-	var labels := {
-		"feed": "Fôr", "delousing": "Avlusing", "insurance": "Forsikring",
-		"interest": "Renter", "loan_servicing": "Nedbetaling lån",
-		"wages_maintenance": "Lønn & vedlikehold", "mitigation": "Skjørt/skremmer",
-		"night_shift": "Nattskift", "operations": "Drift", "tax": "Skatt",
-		"harvest": "Slakt", "sludge": "Slam", "other": "Annet",
-	}
-	var label: String = labels.get(category, "")
-	if label != "":
-		return label
-	# Fall back to a readable version of the raw key.
-	return category.replace("_", " ").capitalize()
+	return SimLabels.ledger_category(category)
 
 func _refresh_story() -> void:
 	if _story_card == null or _story_list == null or _sim == null:
@@ -460,19 +449,19 @@ func _refresh_story() -> void:
 	var net: float = float(story.get("net_income", 0.0))
 	if _story_verdict != null:
 		if net >= 0:
-			_story_verdict.text = tr("Resultatet er positivt (%.1f MNOK). Største inntekt og kostnad under.") % (net / 1_000_000.0)
+			_story_verdict.text = tr("UI_FIN_STORY_POSITIVE") % SimFormatters.num(net / 1_000_000.0, 1)
 		else:
-			_story_verdict.text = tr("Resultatet er negativt (%.1f MNOK). Største kostnadsdrivere under.") % (net / 1_000_000.0)
+			_story_verdict.text = tr("UI_FIN_STORY_NEGATIVE") % SimFormatters.num(net / 1_000_000.0, 1)
 
 	var costs: Array = story.get("top_costs", [])
 	if not costs.is_empty():
-		_story_list.add_child(_story_heading(tr("💸 Største kostnader")))
+		_story_list.add_child(_story_heading("💸 " + tr("UI_FIN_STORY_COSTS")))
 		for item in costs:
 			_story_list.add_child(_story_row(item, true))
 
 	var revenues: Array = story.get("top_revenue", [])
 	if not revenues.is_empty():
-		_story_list.add_child(_story_heading(tr("💰 Største inntekter")))
+		_story_list.add_child(_story_heading("💰 " + tr("UI_FIN_STORY_INCOME")))
 		for item in revenues:
 			_story_list.add_child(_story_row(item, false))
 
@@ -526,13 +515,13 @@ func _story_row(item: Dictionary, is_cost: bool) -> Control:
 	return row
 
 func _apply_localization() -> void:
-	_title_label.text = tr("💰 Økonomi")
-	_chart_title.text = tr("📊 Inntekter vs Kostnader (6 mnd)")
-	_pl_title.text = tr("📋 Resultatregnskap")
-	_loan_title.text = tr("🏦 Lån & Finansiering")
-	_hist_title.text = tr("📈 Trender (90 d)")
-	_loan_take_btn.text = tr("Ta lån (5M NOK)")
-	_loan_repay_btn.text = tr("Betal tilbake")
+	_title_label.text = "💰 " + tr("UI_FIN_TITLE")
+	_chart_title.text = "📊 " + tr("UI_FIN_CHART_TITLE")
+	_pl_title.text = "📋 " + tr("UI_FIN_PL_TITLE")
+	_loan_title.text = "🏦 " + tr("UI_FIN_LOAN_TITLE")
+	_hist_title.text = "📈 " + tr("UI_FIN_TRENDS_TITLE")
+	_loan_take_btn.text = tr("UI_FIN_TAKE_LOAN")
+	_loan_repay_btn.text = tr("UI_FIN_REPAY")
 
 func _apply_theme_fonts() -> void:
 	if not _theme:
@@ -597,10 +586,10 @@ func _refresh() -> void:
 	if _sim.has_method("get_loan_info"):
 		var loan: Dictionary = _sim.get_loan_info()
 		var has_loan: bool = loan.get("has_loan", false)
-		_loan_status.text = (tr("Aktiv") + " (%d)" % int(loan.get("count", 1))) if has_loan else tr("Ingen lån")
+		_loan_status.text = (tr("UI_FIN_LOAN_ACTIVE") + " (%d)" % int(loan.get("count", 1))) if has_loan else tr("UI_FIN_NO_LOAN")
 		LakskongenTheme.set_text_color(_loan_status, C_WARNING if has_loan else C_SUCCESS_D)
-		_loan_amount.text = _fmt(loan.get("amount", 0.0)) if has_loan else "--"
-		_loan_remaining.text = _fmt(loan.get("remaining", 0.0)) if has_loan else "--"
+		_loan_amount.text = _fmt(loan.get("amount", 0.0)) if has_loan else "–"
+		_loan_remaining.text = _fmt(loan.get("remaining", 0.0)) if has_loan else "–"
 		_loan_take_btn.disabled = float(loan.get("credit_available", LOAN_AMOUNT)) < LOAN_AMOUNT
 		_loan_repay_btn.disabled = not has_loan
 
@@ -624,7 +613,7 @@ func _refresh_deep_finance() -> void:
 	if _pen_price_label == null or not _sim:
 		return
 	if _sim.has_method("get_pen_price"):
-		_pen_price_label.text = "%.2f NOK/kg" % float(_sim.get_pen_price())
+		_pen_price_label.text = SimFormatters.format_price_kg(float(_sim.get_pen_price()))
 	# S2: price trend (colour = up-good trend; series = DailySnapshots).
 	if _price_spark != null and is_instance_valid(_price_spark) and _sim.has_method("get_analytics_data"):
 		var ps: Array[float] = _sim.get_analytics_data("market_price_nok", 30)
@@ -707,7 +696,7 @@ func _refresh_trends() -> void:
 			spark.fill_color = Color(spark.line_color, 0.12)
 		var last: float = series[series.size() - 1]
 		var v_lbl: Label = entry["value"]
-		v_lbl.text = _fmt_short(last) if str(def["fmt"]) == "short" else ("%.2f" % last)
+		v_lbl.text = _fmt_short(last) if str(def["fmt"]) == "short" else SimFormatters.num(last, 2)
 
 # ── Loan Actions ──────────────────────────────────────────────────────────────
 
@@ -724,9 +713,9 @@ func _on_take_loan() -> void:
 	var result: Dictionary = _sim.take_loan(LOAN_AMOUNT, LOAN_TERM_MONTHS, 0.0)
 	if result.get("success", false):
 		loan_taken.emit(LOAN_AMOUNT)
-		_toast(_tr_or("UI_TOAST_LOAN_TAKEN", "🏦 Lån tatt opp: 5,0 MNOK"), "SUCCESS")
+		_toast("🏦 " + tr("UI_TOAST_LOAN_TAKEN") % SimFormatters.format_nok(LOAN_AMOUNT), "SUCCESS")
 	else:
-		_toast("🏦 " + str(result.get("message", "Lånet ble avslått")), "WARNING")
+		_toast("🏦 " + SimLabels.command_error(result, "UI_FIN_LOAN_REFUSED"), "WARNING")
 	_refresh()
 
 func _on_repay_loan() -> void:
@@ -735,14 +724,10 @@ func _on_repay_loan() -> void:
 	var result: Dictionary = _sim.repay_loan(REPAY_AMOUNT)
 	if result.get("success", false):
 		loan_repaid.emit(float(result.get("repaid", REPAY_AMOUNT)))
-		_toast(_tr_or("UI_TOAST_LOAN_REPAID", "🏦 Nedbetaling fullført: 1,0 MNOK"), "SUCCESS")
+		_toast("🏦 " + tr("UI_TOAST_LOAN_REPAID") % SimFormatters.format_nok(float(result.get("repaid", REPAY_AMOUNT))), "SUCCESS")
 	else:
-		_toast("🏦 " + str(result.get("message", "Nedbetaling avslått")), "WARNING")
+		_toast("🏦 " + SimLabels.command_error(result, "UI_FIN_REPAY_REFUSED"), "WARNING")
 	_refresh()
-
-func _tr_or(key: String, fallback: String) -> String:
-	var t := tr(key)
-	return t if t != key else fallback
 
 func _toast(message: String, level: String = "INFO") -> void:
 	var mgr := get_node_or_null("/root/ToastNotification")
@@ -765,19 +750,14 @@ func _count_up(lbl: Label, from_val: float, to_val: float, fmt: Callable) -> voi
 # ── Formatting ────────────────────────────────────────────────────────────────
 
 func _fmt(amount: float) -> String:
-	var a := absf(amount)
-	var s := "-" if amount < 0 else ""
-	if a >= 1_000_000.0:
-		return "%s%.2f MNOK" % [s, a / 1_000_000.0]
-	if a >= 1_000.0:
-		return "%s%.0f kNOK" % [s, a / 1_000.0]
-	return "%s%.0f NOK" % [s, a]
+	return SimFormatters.format_nok(amount)
 
+## Compact amount for share bars and trend rows: "1,2 M" / "182 k" (nb).
 func _fmt_short(amount: float) -> String:
 	var a := absf(amount)
-	var s := "-" if amount < 0 else ""
+	var sign := "-" if amount < 0 else ""
 	if a >= 1_000_000.0:
-		return "%s%.1fM" % [s, a / 1_000_000.0]
+		return sign + SimFormatters.num(a / 1_000_000.0, 1) + " M"
 	if a >= 1_000.0:
-		return "%s%.0fk" % [s, a / 1_000.0]
-	return "%s%.0f" % [s, a]
+		return sign + SimFormatters.num(a / 1_000.0, 0) + " k"
+	return sign + SimFormatters.num(a, 0)

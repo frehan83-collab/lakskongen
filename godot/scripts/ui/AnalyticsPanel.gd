@@ -9,11 +9,11 @@ extends Control
 # ── Configuration ──────────────────────────────────────────────────────────────
 
 const METRICS: Array[Dictionary] = [
-	{ "key": "total_biomass_kg",  "label": "Biomass (t)",       "unit": "t",      "color": LakskongenTheme.INK_OK, "decimals": 1, "divisor": 1000.0 },
-	{ "key": "profit_loss_nok",   "label": "Profit/Loss (MNOK)", "unit": "MNOK",   "color": LakskongenTheme.INK_ACCENT, "decimals": 2, "divisor": 1_000_000.0 },
-	{ "key": "dissolved_oxygen",  "label": "Dissolved O₂ (mg/L)", "unit": "mg/L",   "color": LakskongenTheme.INK_INFO, "decimals": 1, "divisor": 1.0 },
-	{ "key": "lice_per_fish",     "label": "Lice Count",         "unit": "/fish",  "color": LakskongenTheme.INK_WARN, "decimals": 2, "divisor": 1.0 },
-	{ "key": "feed_cost_nok",     "label": "Feed Cost (MNOK)",   "unit": "MNOK",   "color": LakskongenTheme.INK_CRIT, "decimals": 2, "divisor": 1_000_000.0 },
+	{ "key": "total_biomass_kg",  "label": "UI_ANALYTICS_BIOMASS",     "unit": "UI_UNIT_TONNES",       "color": LakskongenTheme.INK_OK, "decimals": 1, "divisor": 1000.0 },
+	{ "key": "profit_loss_nok",   "label": "UI_ANALYTICS_PROFIT",      "unit": "UI_UNIT_MNOK",         "color": LakskongenTheme.INK_ACCENT, "decimals": 2, "divisor": 1_000_000.0 },
+	{ "key": "dissolved_oxygen",  "label": "UI_ANALYTICS_DO",          "unit": "UI_UNIT_MG_PER_L",     "color": LakskongenTheme.INK_INFO, "decimals": 1, "divisor": 1.0 },
+	{ "key": "lice_per_fish",     "label": "UI_ANALYTICS_LICE",        "unit": "UI_UNIT_PER_FISH",     "color": LakskongenTheme.INK_WARN, "decimals": 2, "divisor": 1.0 },
+	{ "key": "feed_cost_nok",     "label": "UI_ANALYTICS_FEED",        "unit": "UI_UNIT_MNOK",         "color": LakskongenTheme.INK_CRIT, "decimals": 2, "divisor": 1_000_000.0 },
 ]
 
 const CHART_MIN_W := 280
@@ -152,7 +152,7 @@ func _build_charts() -> void:
 		container.move_child(header, 0)
 		
 		var name_lbl = Label.new()
-		name_lbl.text = meta["label"]
+		name_lbl.text = tr(meta["label"])
 		LakskongenTheme.set_size(name_lbl, 14)
 		name_lbl.theme_type_variation = &"BodySmallStrong"
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -241,9 +241,7 @@ func _get_chart_container(key: String) -> PanelContainer:
 		_: return null
 
 func _format_value(meta: Dictionary, value: float) -> String:
-	var fmt = "%." + str(meta["decimals"]) + "f"
-	var formatted = fmt % value
-	return formatted + " " + meta["unit"]
+	return SimFormatters.num(value, int(meta["decimals"])) + " " + tr(meta["unit"])
 
 # ── Input Handling (Pan/Zoom) ──────────────────────────────────────────────────
 
@@ -509,24 +507,23 @@ class _ChartArea extends Control:
 		var font_size = 13
 		var y_off = tooltip_y + 14
 		
-		draw_string(get_theme_default_font(), Vector2(tooltip_x + 10, y_off), metric_meta["label"], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size + 1, text_color)
+		draw_string(get_theme_default_font(), Vector2(tooltip_x + 10, y_off), tr(metric_meta["label"]), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size + 1, text_color)
 		y_off += 18
-		draw_string(get_theme_default_font(), Vector2(tooltip_x + 10, y_off), "Current: %s" % _format_value_full(value), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, text_color)
+		draw_string(get_theme_default_font(), Vector2(tooltip_x + 10, y_off), tr("UI_ANALYTICS_TIP_CURRENT") % _format_value_full(value), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, text_color)
 		y_off += 16
 		if _ma_series.size() > idx:
-			draw_string(get_theme_default_font(), Vector2(tooltip_x + 10, y_off), "7d Avg: %s" % _format_value_full(ma_value), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, LakskongenTheme.INK_INFO)
+			draw_string(get_theme_default_font(), Vector2(tooltip_x + 10, y_off), tr("UI_ANALYTICS_TIP_AVG_7D") % _format_value_full(ma_value), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, LakskongenTheme.INK_INFO)
 
 	func _format_value_full(value: float) -> String:
 		var meta = metric_meta
-		var fmt = "%." + str(meta["decimals"]) + "f"
-		return (fmt % value) + " " + meta["unit"]
+		return SimFormatters.num(value, int(meta["decimals"])) + " " + tr(meta["unit"])
 
 	func _short_num(v: float) -> String:
 		if absf(v) >= 1_000_000.0:
-			return "%.1fM" % (v / 1_000_000.0)
+			return SimFormatters.num(v / 1_000_000.0, 1) + "M"
 		if absf(v) >= 1_000.0:
-			return "%.0fk" % (v / 1_000.0)
-		return "%.1f" % v
+			return SimFormatters.num(v / 1_000.0, 0) + "k"
+		return SimFormatters.num(v, 1)
 
 	func _get_closest_point_index(pos: Vector2) -> int:
 		if _series.size() < 2:

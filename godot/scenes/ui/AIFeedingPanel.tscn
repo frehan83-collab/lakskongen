@@ -34,7 +34,7 @@ theme_override_constants/separation = 12
 theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-text = "AI Fôrings Dashboard"
+text = "AI-fôring"
 
 [node name="StatusCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
 theme_type_variation = &"Card"
@@ -76,12 +76,12 @@ text = "Appetittnivå: --"
 theme_type_variation = &"BodyInfo"
 unique_name_in_owner = true
 layout_mode = 2
-text = "FCR Besparelser: --"
+text = "FCR-besparelse: –"
 
 [node name="BtnInstallAi" type="Button" parent="Margin/MainScroll/RootVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Installer AI Fôringssystem"
+text = "Installer AI-fôringssystem"
 
 [node name="RecipeCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
 theme_type_variation = &"Card"
@@ -131,7 +131,7 @@ theme_override_constants/separation = 8
 [node name="ReplaceLbl" type="Label" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipeBody/ReplaceRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(150, 0)
-text = "Nytt råstoff %"
+text = "Nye råvarer %"
 
 [node name="ReplaceSlider" type="HSlider" parent="Margin/MainScroll/RootVBox/RecipeCard/Outer/RecipeBody/ReplaceRow"]
 unique_name_in_owner = true

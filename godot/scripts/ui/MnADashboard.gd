@@ -15,7 +15,7 @@ func _ready():
 
     # Title Label
     var title_label = Label.new()
-    title_label.text = tr("M&A Dashboard - Competitors")
+    title_label.text = tr("UI_MNA_TITLE")
     LakskongenTheme.set_size(title_label, 24)
     title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     main_vbox.add_child(title_label)
@@ -94,13 +94,13 @@ func _refresh_competitors_list():
                 # Connect signal with arguments
                 acquire_button.pressed.connect(_on_acquire_pressed.bind(competitor.CompanyName, competitor.AssetValueNoK))
             else:
-                acquire_button.text = tr("NOT FOR SALE")
+                acquire_button.text = tr("UI_MNA_NOT_FOR_SALE")
                 acquire_button.disabled = true
             
             competitor_row.add_child(acquire_button)
     else:
         var no_competitors_label = Label.new()
-        no_competitors_label.text = tr("No competitors found.")
+        no_competitors_label.text = tr("UI_MNA_NO_COMPETITORS")
         no_competitors_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
         competitors_vbox.add_child(no_competitors_label)
 

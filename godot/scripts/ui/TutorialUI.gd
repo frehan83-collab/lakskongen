@@ -246,7 +246,7 @@ func _play_completion_animation(step_number: int, title: String, reward_nok: flo
 func _show_completion_screen() -> void:
 	visible = true
 	if title_label:
-		title_label.text = tr("🏆 Tutorial fullført!")
+		title_label.text = "🏆 " + tr("UI_TUTUI_DONE")
 	if description_label:
 		description_label.text = (
 			"Gratulerer — du er nå en ekte oppdrettskonge!\n\n" +

@@ -65,8 +65,8 @@ func _get_facilities() -> Array:
 	if _sim != null and _sim.has_method("get_ras_facilities"):
 		return _sim.get_ras_facilities()
 	return [
-		{"id": "ras_001", "name": "RAS Anlegg 1", "operational": true, "water_temp": 12.0, "oxygen": 8.0, "ph": 7.2, "needs_maintenance": false},
-		{"id": "ras_002", "name": "RAS Anlegg 2", "operational": true, "water_temp": 12.0, "oxygen": 8.0, "ph": 7.2, "needs_maintenance": false},
+		{"id": "ras_001", "name": "RAS-anlegg 1", "operational": true, "water_temp": 12.0, "oxygen": 8.0, "ph": 7.2, "needs_maintenance": false},
+		{"id": "ras_002", "name": "RAS-anlegg 2", "operational": true, "water_temp": 12.0, "oxygen": 8.0, "ph": 7.2, "needs_maintenance": false},
 	]
 
 func _update_facility_list():

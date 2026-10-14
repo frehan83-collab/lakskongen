@@ -51,78 +51,78 @@ static func _tone_for(accent: Color) -> StringName:
 const SCENARIO_DATA: Array = [
 	{
 		"id":          "forste_sesong",
-		"name":        "Familiegården",
-		"subtitle":    "Tutorial",
+		"name":        "SCENARIO_FORSTE_SESONG_NAME",
+		"subtitle":    "SCENARIO_FORSTE_SESONG_SUBTITLE",
 		"difficulty":  1,
-		"win":         "Fullfør opplæringen",
-		"description": "Du har arvet bestefars lille oppdrett i Hardanger. Med én lisens og små midler må du lære grunnleggende oppdrett. Bygg opp gården fra bunnen av og vis at du kan drive lønnsomt.",
-		"capital":     "300 000 NOK",
+		"win":         "SCENARIO_FORSTE_SESONG_WIN",
+		"description": "SCENARIO_FORSTE_SESONG_DESCRIPTION",
+		"capital":     300_000,
 		"capital_neg": false,
 		"region":      "Vestland",
 		"icon":        "🐟",
 		"color":       LakskongenTheme.CHART_INFO,   # ocean blue
 		"unlocked":    true,
-		"special":     ["☀️ Rolig vær", "📈 Stabile priser", "1 anlegg"],
+		"special":     ["SCENARIO_FORSTE_SESONG_SPECIAL_1", "SCENARIO_FORSTE_SESONG_SPECIAL_2", "SCENARIO_FORSTE_SESONG_SPECIAL_3"],
 	},
 	{
 		"id":          "lofoten_eventyr",
-		"name":        "Nordlands Utfordring",
-		"subtitle":    "Storm & Premium",
+		"name":        "SCENARIO_LOFOTEN_EVENTYR_NAME",
+		"subtitle":    "SCENARIO_LOFOTEN_EVENTYR_SUBTITLE",
 		"difficulty":  3,
-		"win":         "Nå 5 000 000 NOK i overskudd",
-		"description": "De harde kystene i Nordland byr på de verste stormene og kaldeste havstrømmene, men laksen her når premiumpriser som sashimi til Japan. Takle uværet og nå et overskudd på 5 000 000 NOK.",
-		"capital":     "2 000 000 NOK",
+		"win":         "SCENARIO_LOFOTEN_EVENTYR_WIN",
+		"description": "SCENARIO_LOFOTEN_EVENTYR_DESCRIPTION",
+		"capital":     2_000_000,
 		"capital_neg": false,
 		"region":      "Nordland",
 		"icon":        "❄️",
 		"color":       LakskongenTheme.INK_INFO,   # arctic blue
 		"unlocked":    true,
-		"special":     ["⛈️ Harde stormer", "💴 Premiumpriser", "Høy risiko"],
+		"special":     ["SCENARIO_LOFOTEN_EVENTYR_SPECIAL_1", "SCENARIO_LOFOTEN_EVENTYR_SPECIAL_2", "SCENARIO_LOFOTEN_EVENTYR_SPECIAL_3"],
 	},
 	{
 		"id":          "laksebaronene",
-		"name":        "Trønder-krigen",
-		"subtitle":    "Konkurranse",
+		"name":        "SCENARIO_LAKSEBARONENE_NAME",
+		"subtitle":    "SCENARIO_LAKSEBARONENE_SUBTITLE",
 		"difficulty":  4,
-		"win":         "Nå 10 000 000 NOK før konkurrentene",
-		"description": "Tre AI-konkurrenter kjemper om å bli Trøndelags største lakseaktør. Markedskampen er brutal – hvem som helst kan ta markedsandeler, kjøpe lisenser og dumpe priser. Vær den første til å nå 10 000 000 NOK i fortjeneste.",
-		"capital":     "5 000 000 NOK",
+		"win":         "SCENARIO_LAKSEBARONENE_WIN",
+		"description": "SCENARIO_LAKSEBARONENE_DESCRIPTION",
+		"capital":     5_000_000,
 		"capital_neg": false,
 		"region":      "Trøndelag",
 		"icon":        "👑",
 		"color":       Color(1.00, 0.82, 0.20),   # gold
 		"unlocked":    false,
-		"special":     ["🤖 3 AI-rivaler", "📊 Profittledertavle", "Dynamisk marked"],
+		"special":     ["SCENARIO_LAKSEBARONENE_SPECIAL_1", "SCENARIO_LAKSEBARONENE_SPECIAL_2", "SCENARIO_LAKSEBARONENE_SPECIAL_3"],
 	},
 	{
 		"id":          "krise_manager",
-		"name":        "Finnmarks Gjenfødsel",
-		"subtitle":    "Overlevelsesprøve",
+		"name":        "SCENARIO_KRISE_MANAGER_NAME",
+		"subtitle":    "SCENARIO_KRISE_MANAGER_SUBTITLE",
 		"difficulty":  5,
-		"win":         "Overlev 730 dager med positiv saldo",
-		"description": "Du tar over et konkursrammet anlegg i Finnmark med et aktivt ILA-utbrudd. 500 000 NOK i gjeld og Mattilsynet har varslet sanksjoner. Overlev i 730 dager og snu selskapet til lønnsomhet.",
-		"capital":     "−500 000 NOK",
+		"win":         "SCENARIO_KRISE_MANAGER_WIN",
+		"description": "SCENARIO_KRISE_MANAGER_DESCRIPTION",
+		"capital":     -500_000,
 		"capital_neg": true,
 		"region":      "Finnmark",
 		"icon":        "🚨",
 		"color":       LakskongenTheme.CHART_CRIT,   # crisis red
 		"unlocked":    false,
-		"special":     ["🦠 ILA-utbrudd", "💸 Startgjeld", "🏛️ Reguleringstrykk"],
+		"special":     ["SCENARIO_KRISE_MANAGER_SPECIAL_1", "SCENARIO_KRISE_MANAGER_SPECIAL_2", "SCENARIO_KRISE_MANAGER_SPECIAL_3"],
 	},
 	{
 		"id":          "barekraft_mester",
-		"name":        "Lakskongen",
-		"subtitle":    "Fri lek",
+		"name":        "SCENARIO_BAREKRAFT_MESTER_NAME",
+		"subtitle":    "SCENARIO_BAREKRAFT_MESTER_SUBTITLE",
 		"difficulty":  1,
-		"win":         "Nå 100 000 000 NOK i overskudd",
-		"description": "Fri lek – start hvor som helst i Norge uten begrensninger. Bygg ditt lakseimperium fra bunnen av, uten tidspress eller konkurrenter. Målet er å skape den største og mest lønnsomme oppdrettsvirksomheten.",
-		"capital":     "50 000 000 NOK",
+		"win":         "SCENARIO_BAREKRAFT_MESTER_WIN",
+		"description": "SCENARIO_BAREKRAFT_MESTER_DESCRIPTION",
+		"capital":     50_000_000,
 		"capital_neg": false,
 		"region":      "Vestland",
 		"icon":        "👑",
 		"color":       LakskongenTheme.CHART_OK,   # emerald
 		"unlocked":    false,
-		"special":     ["☀️ Rolig vær", "📈 Stabile priser", "Ingen tidspress"],
+		"special":     ["SCENARIO_BAREKRAFT_MESTER_SPECIAL_1", "SCENARIO_BAREKRAFT_MESTER_SPECIAL_2", "SCENARIO_BAREKRAFT_MESTER_SPECIAL_3"],
 	},
 ]
 
@@ -231,8 +231,9 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	vbox.add_child(header)
 
 	var icon_lbl := Label.new()
-	icon_lbl.text = tr("🔒")
+	icon_lbl.text = "🔒"
 	icon_lbl.theme_type_variation = &"Title"
+	icon_lbl.visible = locked  # the padlock only marks a locked scenario
 	header.add_child(icon_lbl)
 
 	var title_vbox := VBoxContainer.new()
@@ -240,13 +241,13 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	header.add_child(title_vbox)
 
 	var name_lbl := Label.new()
-	name_lbl.text = s["name"]
+	name_lbl.text = tr(s["name"])
 	name_lbl.theme_type_variation = &"SubheadingMuted" if locked else &"Subheading"
 	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title_vbox.add_child(name_lbl)
 
 	var subtitle_lbl := Label.new()
-	subtitle_lbl.text = s["subtitle"]
+	subtitle_lbl.text = tr(s["subtitle"])
 	subtitle_lbl.theme_type_variation = &"CaptionMuted" if locked else StringName("Caption" + String(tone))
 	title_vbox.add_child(subtitle_lbl)
 
@@ -256,13 +257,13 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	vbox.add_child(stars_row)
 
 	var diff_prefix := Label.new()
-	diff_prefix.text = tr("Vanskelighet  ")
+	diff_prefix.text = tr("UI_SCENARIO_DIFFICULTY")
 	diff_prefix.theme_type_variation = &"SmallMuted"
 	stars_row.add_child(diff_prefix)
 
 	for si in 5:
 		var star := Label.new()
-		star.text = tr("★")
+		star.text = "★"
 		var lit: bool = not locked and si < s["difficulty"]
 		star.theme_type_variation = &"BodyStrongWarn" if lit else &"BodyMuted"
 		if not lit:
@@ -275,7 +276,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 
 	# ── Description ──
 	var desc_lbl := Label.new()
-	desc_lbl.text = s["description"]
+	desc_lbl.text = tr(s["description"])
 	desc_lbl.theme_type_variation = &"BodySmallMuted" if locked else &"BodySmall"
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc_lbl.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -284,7 +285,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	# ── Special rules ──
 	for rule: String in s["special"]:
 		var r := Label.new()
-		r.text = rule
+		r.text = "· " + tr(rule)
 		r.theme_type_variation = &"SmallMuted" if locked else &"Small"
 		vbox.add_child(r)
 
@@ -299,7 +300,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	meta.add_child(region_lbl)
 
 	var cap_lbl := Label.new()
-	cap_lbl.text = tr("UI_SCENARIO_CAPITAL_ICON") + " " + s["capital"]
+	cap_lbl.text = tr("UI_SCENARIO_CAPITAL_ICON") + " " + SimFormatters.integer(int(s["capital"])) + " NOK"
 	if not locked:
 		cap_lbl.theme_type_variation = &"FigureSmallCrit" if s["capital_neg"] else &"FigureSmallOk"
 	else:
@@ -307,7 +308,7 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	meta.add_child(cap_lbl)
 
 	var win_lbl := Label.new()
-	win_lbl.text = tr("UI_SCENARIO_WIN_ICON") + " " + s["win"]
+	win_lbl.text = tr("UI_SCENARIO_WIN_ICON") + " " + tr(s["win"])
 	win_lbl.theme_type_variation = &"SmallMuted" if locked else StringName("Small" + String(tone))
 	win_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	meta.add_child(win_lbl)
@@ -317,12 +318,12 @@ func _build_card(s: Dictionary, pos: Vector2) -> void:
 	btn.custom_minimum_size = Vector2(0, 42)
 
 	if locked:
-		btn.text = tr("🔒  LÅST")
-		btn.tooltip_text = "Dette scenariet er låst. Fullfør andre scenarier for å låse opp."
+		btn.text = "🔒  " + tr("UI_SCENARIO_LOCKED")
+		btn.tooltip_text = tr("UI_SCENARIO_LOCKED_TOOLTIP")
 		btn.disabled = true
 	else:
-		btn.text = tr("▶  START SCENARIO")
-		btn.tooltip_text = "Start dette scenariet (Enter)"
+		btn.text = "▶  " + tr("UI_SCENARIO_START")
+		btn.tooltip_text = tr("UI_SCENARIO_START_TOOLTIP")
 		btn.theme_type_variation = &"PrimaryButton"
 		btn.pressed.connect(_on_start_pressed.bind(s["id"]))
 

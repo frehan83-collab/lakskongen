@@ -34,38 +34,14 @@ const COL_MUTED := Color("#5A6168")
 
 const METRIC_ORDER := ["lice", "oxygen", "biomass", "gill", "containment"]
 
-# "lo"/"hi" are the legend end-captions; "note" explains the derivation.
+# Translation keys: "label" names the overlay, "lo"/"hi" are the legend
+# end-captions, "note" explains the derivation.
 const METRICS := {
-	"lice": {
-		"label": "Lice risk",
-		"lo": "0.0 lus/fisk",
-		"hi": "≥0.5 (grense)",
-		"note": "Globalt lusetrykk, hevet av per-anlegg gillevarsel.",
-	},
-	"oxygen": {
-		"label": "Oxygen",
-		"lo": "7.0 mg/L (god)",
-		"hi": "≤4.0 mg/L (kritisk)",
-		"note": "Oksygennivå; boblekortin/diffusor demper risiko.",
-	},
-	"biomass": {
-		"label": "Biomass",
-		"lo": "0 %",
-		"hi": "100 % av MTB",
-		"note": "Biomasse / maks tillatt biomasse (MTB).",
-	},
-	"gill": {
-		"label": "Gill risk",
-		"lo": "0.0",
-		"hi": "≥0.75 kritisk",
-		"note": "Gjellehelse — tidlig varsel per anlegg.",
-	},
-	"containment": {
-		"label": "Containment",
-		"lo": "Lukket (lav)",
-		"hi": "Åpen not (høy)",
-		"note": "Eksponering etter containement-nivå.",
-	},
+	"lice": {"label": "UI_OVERLAY_LICE", "lo": "UI_OVERLAY_LICE_LO", "hi": "UI_OVERLAY_LICE_HI", "note": "UI_OVERLAY_LICE_NOTE"},
+	"oxygen": {"label": "UI_OVERLAY_OXYGEN", "lo": "UI_OVERLAY_OXYGEN_LO", "hi": "UI_OVERLAY_OXYGEN_HI", "note": "UI_OVERLAY_OXYGEN_NOTE"},
+	"biomass": {"label": "UI_OVERLAY_BIOMASS", "lo": "UI_OVERLAY_BIOMASS_LO", "hi": "UI_OVERLAY_BIOMASS_HI", "note": "UI_OVERLAY_BIOMASS_NOTE"},
+	"gill": {"label": "UI_OVERLAY_GILL", "lo": "UI_OVERLAY_GILL_LO", "hi": "UI_OVERLAY_GILL_HI", "note": "UI_OVERLAY_GILL_NOTE"},
+	"containment": {"label": "UI_OVERLAY_CONTAINMENT", "lo": "UI_OVERLAY_CONTAINMENT_LO", "hi": "UI_OVERLAY_CONTAINMENT_HI", "note": "UI_OVERLAY_CONTAINMENT_NOTE"},
 }
 
 # Exposure per ContainmentLevel.ToString() from the C# sim.
@@ -117,7 +93,7 @@ func _build_ui() -> void:
 	v.add_child(header)
 
 	var title := Label.new()
-	title.text = tr("DATA OVERLAY")
+	title.text = tr("UI_OVERLAY_TITLE")
 	LakskongenTheme.set_size(title, 11)
 	LakskongenTheme.set_text_color(title, COL_MUTED)
 	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -127,7 +103,7 @@ func _build_ui() -> void:
 	_cycle_btn.focus_mode = Control.FOCUS_NONE
 	_cycle_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_cycle_btn.alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_cycle_btn.tooltip_text = tr("Bytt kartoverlegg: lus → oksygen → biomasse → gjeller → containement")
+	_cycle_btn.tooltip_text = tr("UI_OVERLAY_CYCLE_TIP")
 	_cycle_btn.pressed.connect(cycle_metric)
 	header.add_child(_cycle_btn)
 
@@ -157,7 +133,7 @@ func _build_ui() -> void:
 	v.add_child(sep)
 
 	_empty_label = Label.new()
-	_empty_label.text = tr("Ingen sjøanlegg å vise ennå.")
+	_empty_label.text = tr("UI_OVERLAY_EMPTY")
 	LakskongenTheme.set_size(_empty_label, 11)
 	LakskongenTheme.set_text_color(_empty_label, COL_MUTED)
 	_empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -303,22 +279,22 @@ func _gill_risk(site_id: String) -> Dictionary:
 func _format_value(site: Dictionary) -> String:
 	match _metric:
 		"lice":
-			return "%.2f" % _sim_float("sea_lice_per_fish", 0.0)
+			return SimFormatters.num(_sim_float("sea_lice_per_fish", 0.0), 2)
 		"oxygen":
-			return "%.1f mg/L" % _sim_float("oxygen_mgl", 0.0)
+			return SimFormatters.num(_sim_float("oxygen_mgl", 0.0), 1) + " mg/L"
 		"biomass":
 			var bio := float(site.get("biomass_kg", 0.0)) / 1000.0
 			var mx := float(site.get("max_biomass", 0.0)) / 1000.0
 			if mx > 0.0:
-				return "%.0f / %.0f t" % [bio, mx]
-			return "%.0f t" % bio
+				return "%s / %s t" % [SimFormatters.num(bio, 0), SimFormatters.num(mx, 0)]
+			return SimFormatters.num(bio, 0) + " t"
 		"gill":
 			var r := _gill_risk(str(site.get("id", "")))
 			if not r.is_empty():
-				return "%.2f" % float(r.get("risk", 0.0))
-			return "%.0f" % float(site.get("gill_score", 0.0))
+				return SimFormatters.num(float(r.get("risk", 0.0)), 2)
+			return SimFormatters.num(float(site.get("gill_score", 0.0)), 0)
 		"containment":
-			return str(site.get("containment", "—"))
+			return SimLabels.containment(str(site.get("containment", "")))
 	return ""
 
 # ── UI refresh ────────────────────────────────────────────────────────────────

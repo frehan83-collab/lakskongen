@@ -50,7 +50,7 @@ namespace LakskongenSim.Finance
     {
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
-        public string ParodyOf { get; set; } = string.Empty;  // Real company this parodies
+        public string ParodyOf { get; set; } = string.Empty;  // Industry archetype this parodies (no real names, D17)
         public string Tagline { get; set; } = string.Empty;
         public string Headquarters { get; set; } = string.Empty;
         public CompetitorStrategy Strategy { get; set; }
@@ -263,7 +263,7 @@ namespace LakskongenSim.Finance
                 {
                     Id = "mowier",
                     Name = "Mowier ASA",
-                    ParodyOf = "Mowi ASA (ex-Marine Harvest)",
+                    ParodyOf = "the global market leader",
                     Tagline = "Leading the Blue Revolution™ (to the bank)",
                     Headquarters = "Bergen, Vestland",
                     Strategy = CompetitorStrategy.CostLeader,
@@ -294,7 +294,7 @@ namespace LakskongenSim.Finance
                 {
                     Id = "salmax",
                     Name = "SalMax Group ASA",
-                    ParodyOf = "SalMar ASA",
+                    ParodyOf = "the innovative number two",
                     Tagline = "Passion for Profit",
                     Headquarters = "Frøya, Trøndelag",
                     Strategy = CompetitorStrategy.Consolidator,
@@ -325,7 +325,7 @@ namespace LakskongenSim.Finance
                 {
                     Id = "heroy",
                     Name = "Herøy Seafood AS",
-                    ParodyOf = "Lerøy Seafood Group",
+                    ParodyOf = "the integrated seafood group",
                     Tagline = "Lords of the Fjords",
                     Headquarters = "Bergen, Vestland",
                     Strategy = CompetitorStrategy.PremiumSpecialist,
@@ -356,7 +356,7 @@ namespace LakskongenSim.Finance
                 {
                     Id = "greed_gregarious",
                     Name = "Greed Gregarious ASA",
-                    ParodyOf = "Grieg Seafood ASA",
+                    ParodyOf = "the listed west-coast farmer",
                     Tagline = "Growth at Any Cost",
                     Headquarters = "Bergen, Vestland",
                     Strategy = CompetitorStrategy.Consolidator,
@@ -388,7 +388,7 @@ namespace LakskongenSim.Finance
                 {
                     Id = "offshore_optimists",
                     Name = "Offshore Optimists AS",
-                    ParodyOf = "SalMar Ocean / offshore farming startups",
+                    ParodyOf = "offshore farming start-ups",
                     Tagline = "The Future is Offshore (we promise, this time it's different)",
                     Headquarters = "Trondheim, Trøndelag",
                     Strategy = CompetitorStrategy.TechDisruptor,
@@ -420,7 +420,7 @@ namespace LakskongenSim.Finance
                 {
                     Id = "nordlaks_nord",
                     Name = "NordLaks Nord AS",
-                    ParodyOf = "NRS / Norway Royal Salmon",
+                    ParodyOf = "the northern regional farmer",
                     Tagline = "Arctic Excellence, Royal Ambitions",
                     Headquarters = "Stokmarknes, Nordland",
                     Strategy = CompetitorStrategy.Conservative,

@@ -93,20 +93,20 @@ func _input(event: InputEvent) -> void:
 # ── Scene wiring ──────────────────────────────────────────────────────────────
 
 func _apply_localization() -> void:
-	_title_label.text = tr("🤝 Interessenter & Politikk")
+	_title_label.text = "🤝 " + tr("UI_STAKE_TITLE")
 	_title_label.tooltip_text = "Oversikt over dine relasjoner med interessenter, aktive krav, og politisk innflytelse."
-	_faction_section_title.text = tr("👥 Interessenter Oversikt")
-	_demands_section_title.text = tr("📋 Aktive Krav")
-	_reputation_section_title.text = tr("📊 Omdømmeeffekter")
-	_actions_section_title.text = tr("🎯 Politiske Handlinger")
-	_actions_info.text = tr("Bruk politiske handlinger for å påvirke interessenter og forbedre relasjoner.")
-	_lobby_header.text = tr("🎤 Lobbying")
-	_lobby_desc.text = tr("Påvirk politikere og reguleringsmyndigheter til fordel for din bedrift.")
-	_donate_header.text = tr("💰 Donasjoner & Sponsing")
-	_donate_desc.text = tr("Doner til lokalsamfunn eller miljøorganisasjoner for å bygge goodwill.")
-	_media_header.text = tr("📣 Media Kampanjer")
-	_media_desc.text = tr("Kjør PR-kampanjer for å forbedre din offentlige image.")
-	_btn_media_campaign.text = tr("📰 Start Media Kampanje")
+	_faction_section_title.text = "👥 " + tr("UI_STAKE_OVERVIEW")
+	_demands_section_title.text = "📋 " + tr("UI_STAKE_DEMANDS")
+	_reputation_section_title.text = "📊 " + tr("UI_STAKE_REPUTATION")
+	_actions_section_title.text = "🎯 " + tr("UI_STAKE_ACTIONS")
+	_actions_info.text = tr("UI_STAKE_ACTIONS_HINT")
+	_lobby_header.text = "🎤 " + tr("UI_STAKE_LOBBYING")
+	_lobby_desc.text = tr("UI_STAKE_LOBBYING_HINT")
+	_donate_header.text = "💰 " + tr("UI_STAKE_DONATIONS")
+	_donate_desc.text = tr("UI_STAKE_DONATIONS_HINT")
+	_media_header.text = "📣 " + tr("UI_STAKE_MEDIA")
+	_media_desc.text = tr("UI_STAKE_MEDIA_HINT")
+	_btn_media_campaign.text = "📰 " + tr("UI_STAKE_START_MEDIA")
 	_btn_media_campaign.tooltip_text = "Forbedre din relasjon med media og offentligheten"
 	for faction in STAKEHOLDER_FACTIONS:
 		match faction["id"]:
@@ -246,7 +246,7 @@ func _update_active_demands(demands: Array[Dictionary]):
 
 	if demands.is_empty():
 		var no_demands = Label.new()
-		no_demands.text = tr("✅ Ingen aktive krav for øyeblikket")
+		no_demands.text = "✅ " + tr("UI_STAKE_NO_DEMANDS")
 		LakskongenTheme.set_size(no_demands, 13)
 		LakskongenTheme.set_text_color(no_demands, COLOR_GREEN)
 		active_demands_container.add_child(no_demands)
@@ -319,13 +319,13 @@ func _update_active_demands(demands: Array[Dictionary]):
 		action_row.add_theme_constant_override("separation", 8)
 
 		var negotiate_btn = Button.new()
-		negotiate_btn.text = tr("🤝 Forhandle")
+		negotiate_btn.text = "🤝 " + tr("UI_STAKE_NEGOTIATE")
 		negotiate_btn.tooltip_text = "Prøv å forhandle ned kravet"
 		negotiate_btn.pressed.connect(_on_negotiate_pressed.bind(demand_id))
 		action_row.add_child(negotiate_btn)
 
 		var ignore_btn = Button.new()
-		ignore_btn.text = tr("🚫 Ignorer")
+		ignore_btn.text = "🚫 " + tr("UI_STAKE_IGNORE")
 		ignore_btn.tooltip_text = "Ignorer kravet og aksepter konsekvensene"
 		ignore_btn.pressed.connect(_on_ignore_demand_pressed.bind(demand_id))
 		action_row.add_child(ignore_btn)

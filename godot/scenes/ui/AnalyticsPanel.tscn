@@ -42,7 +42,7 @@ theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
 text = "📊 Analyse"
-tooltip_text = "Farm performance analytics"
+tooltip_text = "UI_ANALYTICS_TITLE_TOOLTIP"
 
 [node name="Spacer" type="Control" parent="TabletOverlay/OuterVBox/Toolbar"]
 layout_mode = 2

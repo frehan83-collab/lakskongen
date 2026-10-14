@@ -7,6 +7,7 @@ using LakskongenSim.Health;
 using LakskongenSim.Farm;
 using LakskongenSim.Market;
 using LakskongenSim.Optimization;
+using LakskongenSim.Calibration;
 
 namespace LakskongenSim.Advisor
 {
@@ -16,6 +17,10 @@ namespace LakskongenSim.Advisor
     /// </summary>
     public static class InterventionAdvisor
     {
+        /// <summary>Suggestions are written in Norwegian Bokmål with its number format.</summary>
+        private static readonly System.Globalization.CultureInfo Nb =
+            System.Globalization.CultureInfo.GetCultureInfo("nb-NO");
+
         public sealed record Suggestion(
             string Id,
             string Action,
@@ -59,9 +64,12 @@ namespace LakskongenSim.Advisor
             // 1. Feed recipe optimisation — evaluated FIRST and independently of
             //    site/population state (it depends only on FCR). Previously this
             //    branch was unreachable whenever Population.Count == 0.
-            if (feedFcr > 1.25)
+            // The FCR target is the calibrated one (roadmap U1-03: one target
+            // for the whole game; this branch used its own 1.25).
+            double fcrTarget = CalibrationRegistry.Default.Biology.OptimalFCR;
+            if (feedFcr > fcrTarget)
             {
-                var delta = (decimal)(feedFcr - 1.25) * 500_000m; // rough estimate
+                var delta = (decimal)(feedFcr - fcrTarget) * 500_000m; // rough estimate
                 suggestions.Add(new Suggestion(
                     "recipe-tune",
                     "Justere fôrresept",
@@ -69,7 +77,8 @@ namespace LakskongenSim.Advisor
                     1,
                     delta,
                     0.6,
-                    $"FCR {feedFcr:F2} > 1.25 — senk erstatningsandel / øk astaxanthin for -0.02 FCR"));
+                    string.Format(Nb, "FCR {0:F2} over målet {1:F2} — senk erstatningsandelen eller øk astaxanthin for −0,02 i FCR",
+                        feedFcr, fcrTarget)));
             }
 
             if (state.Populations.Count > 0 || state.SeaSites.Count > 0)
@@ -96,7 +105,8 @@ namespace LakskongenSim.Advisor
                             breachDay,
                             delta,
                             0.8,
-                            $"Luseprosjektet {currentLice:F2}→>0,5 om {breachDay}d — behandla nå sparer ~{delta:N0} NOK"));
+                            string.Format(Nb, "Lusetallet {0:F2} passerer 0,50 om {1} d — behandling nå sparer om lag {2:N0} kr",
+                                currentLice, breachDay, delta)));
                 }
 
                 // 3. Harvest timing vs biomass readiness.
@@ -118,7 +128,8 @@ namespace LakskongenSim.Advisor
                             harvestDay,
                             revenue,
                             0.7,
-                            $"Biomasse {biomass[harvestDay]/1000:N0}t klar dag {harvestDay} — høsting sikrer inntekt"));
+                            string.Format(Nb, "{0:N0} t biomasse er klar om {1} d — høsting sikrer inntekten",
+                                biomass[harvestDay] / 1000, harvestDay)));
                     }
                 }
             }

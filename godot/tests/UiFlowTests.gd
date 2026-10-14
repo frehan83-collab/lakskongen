@@ -284,7 +284,7 @@ func _test_goal_hud_shows_engine_progress() -> void:
 	var bar: ProgressBar = hud.get_node_or_null("PanelContainer/VBoxContainer/ProgressBar")
 	var time_label: Label = hud.get_node_or_null("PanelContainer/VBoxContainer/TimeLabel")
 	_check(bar != null and int(bar.value) == 7, "goal HUD: progress bar at 7%% (%s)" % str(bar.value if bar else "missing"))
-	_check(time_label != null and "2.8 år igjen" in time_label.text,
+	_check(time_label != null and "2,8 år igjen" in time_label.text,
 		"goal HUD: time left counts from the scenario start (%s)" % (time_label.text if time_label else "missing"))
 	hud.queue_free()
 	await get_tree().process_frame
@@ -675,7 +675,7 @@ func _test_carbon_tab_shows_the_ledger() -> void:
 	if panel != null:
 		var ledger: Dictionary = _sim.get_carbon_ledger()
 		_check(float(ledger.get("scope1_kg", 0.0)) > 0.0, "carbon: the farm has emitted (scope 1 %.0f kg)" % float(ledger.get("scope1_kg", 0.0)))
-		_check(panel.scope1_label.text == "Scope 1: %.1f t" % (float(ledger.get("scope1_kg", 0.0)) / 1000.0),
+		_check(panel.scope1_label.text == "Scope 1: %s t" % SimFormatters.num(float(ledger.get("scope1_kg", 0.0)) / 1000.0, 1),
 			"carbon: scope 1 shows the ledger (%s)" % panel.scope1_label.text)
 		var dark := func(lbl: Label) -> bool:
 			return lbl.has_theme_color_override("font_color") and lbl.get_theme_color("font_color").get_luminance() < 0.5
@@ -756,9 +756,9 @@ func _test_offshore_sludge_button_sells_sludge() -> void:
 	await get_tree().process_frame
 	var button: Button = null
 	for b: Button in panel.get_node("%SludgeList").find_children("*", "Button", true, false):
-		if b.text.begins_with("Valorisér nå") and not b.is_queued_for_deletion():
+		if b.text.begins_with("Gjenvinn nå") and not b.is_queued_for_deletion():
 			button = b
-	_check(button != null, "sludge: the card offers 'Valorisér nå'")
+	_check(button != null, "sludge: the card offers 'Gjenvinn nå'")
 	if button != null:
 		var cash: float = float(_sim.balance)
 		button.pressed.emit()

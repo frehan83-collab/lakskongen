@@ -83,7 +83,7 @@ theme_override_constants/separation = 4
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiSpot/VBox"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "SPOTPRIS (NASDAQ)"
+text = "SPOTPRIS"
 
 [node name="KpiSpotValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiSpot/VBox"]
 theme_type_variation = &"Heading"
@@ -103,7 +103,7 @@ theme_override_constants/separation = 4
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiContract/VBox"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "KONTRAKTPRIS (SNITT)"
+text = "KONTRAKTSPRIS (SNITT)"
 
 [node name="KpiContractValue" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiContract/VBox"]
 theme_type_variation = &"Heading"

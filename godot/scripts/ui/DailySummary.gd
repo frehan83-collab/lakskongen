@@ -7,8 +7,8 @@ class_name DailySummary
 var headlines = [
 	"Kinesisk appetitt på norsk laks øker",
 	"Miljøvernere krever strengere regler",
-	"SalMar tester ny undervannsdrone",
-	"Grieg Seafood investerer i lukket merd",
+	"SalMax tester ny undervannsdrone",
+	"Greed Gregarious investerer i lukket merd",
 	"EU vurderer nye importkrav",
 	"Havforskningsinstituttet med nye funn om lakselus",
 	"Regjeringen varsler nye kvoteregler",
@@ -165,7 +165,7 @@ func show_weekly_summary(week: int, data: Dictionary):
 	var main_vbox = _panel_container.get_child(0)
 	var header_vbox = main_vbox.get_child(0).get_child(0) # CenterContainer -> VBoxContainer
 	var title_label = header_vbox.get_child(0)
-	title_label.text = tr("UKENS OPPSUMMERING")
+	title_label.text = tr("UI_DAILY_WEEK_SUMMARY")
 	title_label.set_modulate(LakskongenTheme.ACCENT2) # Use ACCENT2 for weekly
 	
 	var date_label = header_vbox.get_child(1)

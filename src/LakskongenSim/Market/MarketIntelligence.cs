@@ -284,15 +284,16 @@ namespace LakskongenSim.Market
 
         private void InitializeCompetitors()
         {
+            // Parody producers only (roadmap D17: no real company names).
             _competitors.AddRange(new[]
             {
                 new CompetitorProducer { Name = "Mowier ASA", Country = "Norway", BaseWeeklyHarvestTonnes = 8500, WeeklyHarvestTonnes = 8500 },
                 new CompetitorProducer { Name = "SalMax", Country = "Norway", BaseWeeklyHarvestTonnes = 6200, WeeklyHarvestTonnes = 6200 },
                 new CompetitorProducer { Name = "NordLaks", Country = "Norway", BaseWeeklyHarvestTonnes = 3800, WeeklyHarvestTonnes = 3800 },
-                new CompetitorProducer { Name = "Cermaq", Country = "Norway/Chile", BaseWeeklyHarvestTonnes = 4500, WeeklyHarvestTonnes = 4500 },
-                new CompetitorProducer { Name = "Multiexport Foods", Country = "Chile", BaseWeeklyHarvestTonnes = 3200, WeeklyHarvestTonnes = 3200 },
-                new CompetitorProducer { Name = "Bakkafrost", Country = "Faroe Islands", BaseWeeklyHarvestTonnes = 2800, WeeklyHarvestTonnes = 2800 },
-                new CompetitorProducer { Name = "Mowi Scotland", Country = "Scotland", BaseWeeklyHarvestTonnes = 2400, WeeklyHarvestTonnes = 2400 },
+                new CompetitorProducer { Name = "Kermak", Country = "Norway/Chile", BaseWeeklyHarvestTonnes = 4500, WeeklyHarvestTonnes = 4500 },
+                new CompetitorProducer { Name = "Multiport Foods", Country = "Chile", BaseWeeklyHarvestTonnes = 3200, WeeklyHarvestTonnes = 3200 },
+                new CompetitorProducer { Name = "Bakkafrysk", Country = "Faroe Islands", BaseWeeklyHarvestTonnes = 2800, WeeklyHarvestTonnes = 2800 },
+                new CompetitorProducer { Name = "Mowier Scotland", Country = "Scotland", BaseWeeklyHarvestTonnes = 2400, WeeklyHarvestTonnes = 2400 },
             });
         }
 

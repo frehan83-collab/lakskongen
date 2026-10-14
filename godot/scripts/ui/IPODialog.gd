@@ -56,11 +56,11 @@ func _update_eligibility_display():
 	
 	# Eligibility status
 	if is_eligible:
-		eligibility_label.text = tr("✓ ELIGIBLE for IPO")
+		eligibility_label.text = "✓ " + tr("UI_IPO_ELIGIBLE")
 		LakskongenTheme.set_tone(eligibility_label, &"Info")
 		go_public_button.disabled = false
 	else:
-		eligibility_label.text = tr("✗ NOT ELIGIBLE for IPO")
+		eligibility_label.text = "✗ " + tr("UI_IPO_NOT_ELIGIBLE")
 		LakskongenTheme.set_tone(eligibility_label, &"Crit")
 		go_public_button.disabled = true
 		

@@ -79,7 +79,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(280, 38)
 layout_mode = 2
 tooltip_text = "Søk i leksikon etter fisk, sykdommer, utstyr, regelverk og markeder."
-placeholder_text = "🔍  Search entries…"
+placeholder_text = "🔍  Søk i leksikonet…"
 
 [node name="HeaderSpacer" type="Control" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Header/HeaderMargin/HeaderInner"]
 custom_minimum_size = Vector2(20, 0)
@@ -141,7 +141,7 @@ theme_type_variation = &"SmallMuted"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Oppføringer"
+text = "Oppslag"
 
 [node name="EntryCountLabel" type="Label" parent="PanelAnchor/OuterMargin/PanelBg/Layout/Body/Sidebar/SidebarVBox/EntryHeaderRow"]
 theme_type_variation = &"SmallMuted"

@@ -159,7 +159,7 @@
   {
     "id": "organic-certification",
     "name": "Organic Certification",
-    "description": "Achieve Debio organic aquaculture certification. Requires lower stocking density, no synthetic additives, and higher welfare standards. Commands a significant retail price premium.",
+    "description": "Achieve organic aquaculture certification. Requires lower stocking density, no synthetic additives, and higher welfare standards. Commands a significant retail price premium.",
     "branch": "Sustainability",
     "tier": 1,
     "costNOK": 600000,
@@ -314,7 +314,7 @@
   {
     "id": "deep-sea-farming",
     "name": "Deep-Sea Exposed Farming",
-    "description": "Develop offshore semi-submersible pen systems (Salmar Ocean Farm concept) for exposed, high-current sites. Access to pristine water and large volume capacity, reducing fjord crowding pressure.",
+    "description": "Develop offshore semi-submersible pen systems for exposed, high-current sites. Access to pristine water and large volume capacity, reducing fjord crowding pressure.",
     "branch": "Expansion",
     "tier": 1,
     "costNOK": 900000,

@@ -354,7 +354,7 @@ public partial class GameBridge : Node
                 Day = SimulationEngine.State.Day,
                 Name = $"{MitigationKindLabel(parsed)} installert",
                 Category = LakskongenSim.Events.EventCategory.Equipment,
-                Description = $"{MitigationKindLabel(parsed)} ved {siteId}",
+                Description = $"{MitigationKindLabel(parsed)} på {SiteLabel(siteId)}",
                 BalanceChange = -cost
             });
         }
@@ -458,7 +458,7 @@ public partial class GameBridge : Node
                     ["type"] = "intervention",
                     ["priority"] = _priority_from_confidence(s.Confidence),
                     ["category"] = "intervention",
-                    ["title"] = s.Action,
+                    ["title"] = _tr_or("ADVISOR_" + s.Id.ToUpperInvariant().Replace('-', '_'), s.Action),
                     ["description"] = s.Reasoning,
                     ["delta_nok"] = (double)s.DeltaNok,
                     ["days_out"] = s.DaysOut,
@@ -481,8 +481,8 @@ public partial class GameBridge : Node
                         ["type"] = "health_critical",
                         ["priority"] = "critical",
                         ["category"] = "health",
-                        ["title"] = _tr_or("UI_ATTENTION_GILL_CRITICAL", "Critical Gill Health"),
-                        ["description"] = string.Format(_tr_or("UI_ATTENTION_GILL_CRITICAL_DESC", "Site {0} has critical gill health — immediate action required"), site.Id),
+                        ["title"] = _tr_or("UI_ATTENTION_GILL_CRITICAL", "Critical gill health"),
+                        ["description"] = string.Format(UiCulture, _tr_or("UI_ATTENTION_GILL_CRITICAL_DESC", "{0} has critical gill health — act now"), site.Label),
                         ["site_id"] = site.Id,
                         ["callback"] = "open_site_health"
                     });
@@ -494,8 +494,8 @@ public partial class GameBridge : Node
                         ["type"] = "health_warning",
                         ["priority"] = "high",
                         ["category"] = "health",
-                        ["title"] = _tr_or("UI_ATTENTION_GILL_WARNING", "Gill Health Warning"),
-                        ["description"] = string.Format(_tr_or("UI_ATTENTION_GILL_WARNING_DESC", "Site {0} has elevated gill risk"), site.Id),
+                        ["title"] = _tr_or("UI_ATTENTION_GILL_WARNING", "Gill health warning"),
+                        ["description"] = string.Format(UiCulture, _tr_or("UI_ATTENTION_GILL_WARNING_DESC", "{0} has elevated gill risk"), site.Label),
                         ["site_id"] = site.Id,
                         ["callback"] = "open_site_health"
                     });
@@ -514,8 +514,8 @@ public partial class GameBridge : Node
                     ["type"] = "finance_critical",
                     ["priority"] = "critical",
                     ["category"] = "finance",
-                    ["title"] = _tr_or("UI_ATTENTION_NEGATIVE_BALANCE", "Negative Balance"),
-                    ["description"] = string.Format(_tr_or("UI_ATTENTION_NEGATIVE_BALANCE_DESC", "Company balance is negative: {0} NOK"), balance.ToString("N0")),
+                    ["title"] = _tr_or("UI_ATTENTION_NEGATIVE_BALANCE", "Negative balance"),
+                    ["description"] = string.Format(UiCulture, _tr_or("UI_ATTENTION_NEGATIVE_BALANCE_DESC", "The company's balance is negative: {0:N0} NOK"), balance),
                     ["callback"] = "open_finance_panel"
                 });
             }
@@ -526,8 +526,8 @@ public partial class GameBridge : Node
                     ["type"] = "finance_warning",
                     ["priority"] = "high",
                     ["category"] = "finance",
-                    ["title"] = _tr_or("UI_ATTENTION_LOW_LIQUIDITY", "Low Liquidity"),
-                    ["description"] = string.Format(_tr_or("UI_ATTENTION_LOW_LIQUIDITY_DESC", "Cash reserves below 1M NOK: {0} NOK"), balance.ToString("N0")),
+                    ["title"] = _tr_or("UI_ATTENTION_LOW_LIQUIDITY", "Low liquidity"),
+                    ["description"] = string.Format(UiCulture, _tr_or("UI_ATTENTION_LOW_LIQUIDITY_DESC", "Cash below 1 MNOK: {0:N0} NOK"), balance),
                     ["callback"] = "open_finance_panel"
                 });
             }
@@ -544,8 +544,8 @@ public partial class GameBridge : Node
                     ["type"] = "lice_critical",
                     ["priority"] = "critical",
                     ["category"] = "health",
-                    ["title"] = _tr_or("UI_ATTENTION_LICE_CRITICAL", "Lice Above Treatment Threshold"),
-                    ["description"] = string.Format(_tr_or("UI_ATTENTION_LICE_CRITICAL_DESC", "Sea lice at {0:F2}/fish — mandatory treatment required"), lice),
+                    ["title"] = _tr_or("UI_ATTENTION_LICE_CRITICAL", "Lice above the treatment limit"),
+                    ["description"] = string.Format(UiCulture, _tr_or("UI_ATTENTION_LICE_CRITICAL_DESC", "Sea lice at {0:F2} per fish — treatment is mandatory"), lice),
                     ["callback"] = "open_health_panel"
                 });
             }
@@ -556,8 +556,8 @@ public partial class GameBridge : Node
                     ["type"] = "lice_warning",
                     ["priority"] = "high",
                     ["category"] = "health",
-                    ["title"] = _tr_or("UI_ATTENTION_LICE_WARNING", "Elevated Lice Levels"),
-                    ["description"] = string.Format(_tr_or("UI_ATTENTION_LICE_WARNING_DESC", "Sea lice at {0:F2}/fish — approaching treatment threshold"), lice),
+                    ["title"] = _tr_or("UI_ATTENTION_LICE_WARNING", "Elevated lice levels"),
+                    ["description"] = string.Format(UiCulture, _tr_or("UI_ATTENTION_LICE_WARNING_DESC", "Sea lice at {0:F2} per fish — nearing the treatment limit"), lice),
                     ["callback"] = "open_health_panel"
                 });
             }
@@ -574,8 +574,9 @@ public partial class GameBridge : Node
                     ["type"] = "weather_alert",
                     ["priority"] = "critical",
                     ["category"] = "weather",
-                    ["title"] = _tr_or("UI_ATTENTION_STORM", "Severe Weather"),
-                    ["description"] = string.Format(_tr_or("UI_ATTENTION_STORM_DESC", "{0} warning — secure sites and review operations"), weather),
+                    ["title"] = _tr_or("UI_ATTENTION_STORM", "Severe weather"),
+                    ["description"] = string.Format(UiCulture, _tr_or("UI_ATTENTION_STORM_DESC", "{0} warning — secure the sites and review operations"),
+                        _tr_or("ENUM_WEATHER_" + weather.ToString().ToUpperInvariant(), weather.ToString())),
                     ["callback"] = "open_weather_panel"
                 });
             }
@@ -594,8 +595,8 @@ public partial class GameBridge : Node
                         ["type"] = "contract_expiring",
                         ["priority"] = "high",
                         ["category"] = "contract",
-                        ["title"] = _tr_or("UI_ATTENTION_CONTRACT_EXPIRING", "Contract Expiring Soon"),
-                        ["description"] = string.Format(_tr_or("UI_ATTENTION_CONTRACT_EXPIRING_DESC", "Contract {0} expires in {1} weeks"), c.Id.ToString()[..8], c.DurationWeeks - (currentWeek - c.SignedAtWeek)),
+                        ["title"] = _tr_or("UI_ATTENTION_CONTRACT_EXPIRING", "Contract expiring soon"),
+                        ["description"] = string.Format(UiCulture, _tr_or("UI_ATTENTION_CONTRACT_EXPIRING_DESC", "The contract with {0} expires in {1} weeks"), c.Buyer, c.DurationWeeks - (currentWeek - c.SignedAtWeek)),
                         ["callback"] = "open_contracts_panel"
                     });
                 }
@@ -603,6 +604,53 @@ public partial class GameBridge : Node
         }
 
         return result;
+    }
+
+    /// <summary>Number format of the UI language (nb-NO unless English is
+    /// active): "0,30" and "1 234" in Norwegian text.</summary>
+    private static System.Globalization.CultureInfo UiCulture =>
+        Godot.TranslationServer.GetLocale().StartsWith("en", StringComparison.Ordinal)
+            ? System.Globalization.CultureInfo.GetCultureInfo("en-GB")
+            : System.Globalization.CultureInfo.GetCultureInfo("nb-NO");
+
+    /// <summary>A site as the player reads it ("Hammarvika"), for event-log text.</summary>
+    private string SiteLabel(string siteId) =>
+        SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId)?.Label
+        ?? LakskongenSim.Farm.SiteNames.Humanize(siteId);
+
+    /// <summary>Display name of an enum value from its translation key,
+    /// e.g. ("ENUM_CONTAINMENT", SemiClosed) → ENUM_CONTAINMENT_SEMI_CLOSED.</summary>
+    private static string EnumText(string group, System.Enum value) =>
+        _tr_or($"{group}_{UpperSnake(value.ToString())}", value.ToString());
+
+    /// <summary>"SemiClosed" / "Storm Damage" / "MAB-oppgjør" → "SEMI_CLOSED" /
+    /// "STORM_DAMAGE" / "MAB_OPPGJOR" (Norwegian letters folded to ASCII).</summary>
+    internal static string UpperSnake(string text)
+    {
+        var sb = new System.Text.StringBuilder(text.Length + 8);
+        char prev = ' ';
+        foreach (char c in text)
+        {
+            string folded = char.ToLowerInvariant(c) switch
+            {
+                'æ' => "AE",
+                'ø' => "O",
+                'å' => "A",
+                _ => c < 128 && char.IsLetterOrDigit(c) ? char.ToUpperInvariant(c).ToString() : ""
+            };
+            if (folded.Length > 0)
+            {
+                if (char.IsUpper(c) && sb.Length > 0 && (char.IsLower(prev) || char.IsDigit(prev)))
+                    sb.Append('_');
+                sb.Append(folded);
+            }
+            else if (sb.Length > 0 && sb[^1] != '_')
+            {
+                sb.Append('_');
+            }
+            prev = c;
+        }
+        return sb.ToString().Trim('_');
     }
 
     private static string _tr_or(string key, string fallback)
@@ -713,7 +761,7 @@ public partial class GameBridge : Node
             Day = state.Day,
             Name = "Vaksinering",
             Category = LakskongenSim.Events.EventCategory.Disease,
-            Description = $"{siteId} vaksinert mot sår/CMS ({fish:N0} fisk, {lost:N0} håndteringstap)",
+            Description = LakskongenSim.Core.SimText.Nb($"{SiteLabel(siteId)} er vaksinert mot sår og CMS ({fish:N0} fisk, {lost:N0} tapt under håndteringen)"),
             BalanceChange = -cost
         });
         EmitSignal(SignalName.FarmActionCompleted, "vaccinate", siteId, true);
@@ -750,9 +798,9 @@ public partial class GameBridge : Node
             SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
             {
                 Day = SimulationEngine.State.Day,
-                Name = isSkirt ? "Lice Skirt Installed" : "Seal Deterrent Installed",
+                Name = isSkirt ? "Luseskjørt installert" : "Selskremme installert",
                 Category = LakskongenSim.Events.EventCategory.Equipment,
-                Description = $"{(isSkirt ? "Luseskjørt" : "Seldeterrent")} installert ved {siteId}",
+                Description = $"{(isSkirt ? "Luseskjørt" : "Selskremme")} installert på {SiteLabel(siteId)}",
                 BalanceChange = -cost
             });
         }
@@ -765,6 +813,18 @@ public partial class GameBridge : Node
     }
     ///       "biomass_kg" (double), "max_biomass" (double), "escapes_this_year" (int).
     /// </summary>
+    /// <summary>
+    /// Site id → the name the player reads (roadmap U1-03: panels showed raw
+    /// ids such as "po3_nord"). Cheap: one entry per site, no per-pen work.
+    /// </summary>
+    public Godot.Collections.Dictionary GetSiteNames()
+    {
+        var result = new Godot.Collections.Dictionary();
+        foreach (var site in SimulationEngine?.State?.SeaSites ?? new List<Farm.SeaSite>())
+            result[site.Id] = site.Label;
+        return result;
+    }
+
     /// <summary>
     /// Return detailed information about all sea sites as an Array of Dictionaries.
     /// Keys: "id", "name", "zone", "fish_count", "biomass_kg", "max_biomass",
@@ -798,7 +858,7 @@ public partial class GameBridge : Node
             result.Add(new Godot.Collections.Dictionary
             {
                 ["id"]                = site.Id,
-                ["name"]              = site.Id,
+                ["name"]              = site.Label,
                 ["zone"]              = site.ZoneId,
                 ["fish_count"]        = fishCount,
                 ["biomass_kg"]        = biomassKg,
@@ -1143,9 +1203,9 @@ public partial class GameBridge : Node
         state!.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
             Day = state.Day,
-            Name = "Containment oppgradert",
+            Name = "Rømmingssikring oppgradert",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"{siteId} → {target} ({mods.CapexNok:N0} NOK)",
+            Description = LakskongenSim.Core.SimText.Nb($"{SiteLabel(siteId)} → {EnumText("ENUM_CONTAINMENT", target)} ({mods.CapexNok:N0} kr)"),
             BalanceChange = -mods.CapexNok
         });
         EmitSignal(SignalName.FarmActionCompleted, "upgrade_containment", siteId, true);
@@ -1185,9 +1245,9 @@ public partial class GameBridge : Node
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
             Day = SimulationEngine.State.Day,
-            Name = "Net Repair",
+            Name = "Notreparasjon",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"Repaired nets at {siteId} (100%)",
+            Description = $"Nøtene på {SiteLabel(siteId)} er reparert (100 %)",
             BalanceChange = -cost
         });
         EmitSignal(SignalName.FarmActionCompleted, "repair_nets", siteId, true);
@@ -1631,9 +1691,9 @@ public partial class GameBridge : Node
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
             Day = SimulationEngine.State.Day,
-            Name = "RAS Maintenance",
+            Name = "Vedlikehold av RAS",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"Performed maintenance on RAS '{facility.Name}' (water system restored)",
+            Description = $"Vedlikehold på {facility.Name}: vannsystemet er gjenopprettet",
             BalanceChange = -maintenanceCost
         });
 
@@ -1744,9 +1804,9 @@ public partial class GameBridge : Node
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
             Day = SimulationEngine.State.Day,
-            Name = "Offshore Repair",
+            Name = "Reparasjon av havmerd",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"Repaired offshore farm '{farm.Name}' (hull integrity and equipment restored)",
+            Description = $"{farm.Name} er reparert: skrog og utstyr er gjenopprettet",
             BalanceChange = -repairCost
         });
 
@@ -1820,9 +1880,9 @@ public partial class GameBridge : Node
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
             Day = SimulationEngine.State.Day,
-            Name = "AI Feeding Installed",
+            Name = "KI-fôring installert",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = "Installed AI-driven precision feeding system (cameras and automation)",
+            Description = "KI-styrt presisjonsfôring er installert (kameraer og automatikk)",
             BalanceChange = -installCost
         });
 
@@ -1858,9 +1918,9 @@ public partial class GameBridge : Node
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
             Day = SimulationEngine.State.Day,
-            Name = "Camera Cleaning",
+            Name = "Kamerarengjøring",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = "Cleaned AI feeding cameras (vision restored to 100%)",
+            Description = "Fôringskameraene er rengjort (sikt tilbake på 100 %)",
             BalanceChange = -cleaningCost
         });
 
@@ -1938,9 +1998,9 @@ public partial class GameBridge : Node
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
             Day = SimulationEngine.State.Day,
-            Name = "Smolt Batch Started",
+            Name = "Ny smoltgruppe",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"Started batch of {count:N0} smolts in post-smolt facility '{facility.Name}'",
+            Description = LakskongenSim.Core.SimText.Nb($"{count:N0} smolt satt inn i postsmoltanlegget {facility.Name}"),
             BalanceChange = -totalCost
         });
 
@@ -1977,9 +2037,9 @@ public partial class GameBridge : Node
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
             Day = SimulationEngine.State.Day,
-            Name = "Batch Vaccination",
+            Name = "Vaksinering av smoltgruppe",
             Category = LakskongenSim.Events.EventCategory.Disease,
-            Description = $"Vaccinated smolt batch '{batchId}' ({fishCount:N0} fish)",
+            Description = LakskongenSim.Core.SimText.Nb($"Smoltgruppen er vaksinert ({fishCount:N0} fisk)"),
             BalanceChange = -vaccineCost
         });
 
@@ -2026,9 +2086,9 @@ public partial class GameBridge : Node
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
             Day = SimulationEngine.State.Day,
-            Name = "Batch Transferred to Sea",
+            Name = "Postsmolt flyttet til sjø",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"Transferred post-smolt batch '{batchId}' to sea site '{targetSite.Id}'",
+            Description = $"Postsmoltgruppen er flyttet til {targetSite.Label}",
             BalanceChange = -transferCost
         });
 

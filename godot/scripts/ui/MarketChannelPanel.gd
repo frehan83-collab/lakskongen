@@ -103,7 +103,7 @@ func _create_channel_item(channel: Dictionary) -> Control:
 	
 	# Right side - Sell button
 	var sell_button = Button.new()
-	sell_button.text = tr("Sell Here")
+	sell_button.text = tr("UI_MCHAN_SELL_HERE")
 	sell_button.disabled = is_locked
 	sell_button.custom_minimum_size = Vector2(100, 40)
 	sell_button.pressed.connect(_on_sell_button_pressed.bind(channel))

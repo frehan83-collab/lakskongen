@@ -185,7 +185,7 @@ func _build_mod_row(index: int) -> Control:
 
 	# Drag handle
 	var drag_lbl := Label.new()
-	drag_lbl.text = tr("⠿")
+	drag_lbl.text = "⠿"
 	LakskongenTheme.set_text_color(drag_lbl, COLOR_TEXT_DIM)
 	LakskongenTheme.set_size(drag_lbl, 16)
 	drag_lbl.custom_minimum_size.x = 20
@@ -234,13 +234,13 @@ func _build_mod_row(index: int) -> Control:
 	# Status badge
 	var status_lbl := Label.new()
 	if has_errors:
-		status_lbl.text = tr("⚠ Feil")
+		status_lbl.text = "⚠ " + tr("UI_MODS_ERROR")
 		LakskongenTheme.set_text_color(status_lbl, Color(1.0, 0.55, 0.25))
 	elif is_enabled:
-		status_lbl.text = tr("● Aktiv")
+		status_lbl.text = "● " + tr("UI_MODS_ACTIVE")
 		LakskongenTheme.set_text_color(status_lbl, COLOR_ENABLED)
 	else:
-		status_lbl.text = tr("○ Deaktivert")
+		status_lbl.text = "○ " + tr("UI_MODS_DISABLED")
 		LakskongenTheme.set_text_color(status_lbl, COLOR_DISABLED)
 	LakskongenTheme.set_size(status_lbl, 12)
 	status_lbl.custom_minimum_size.x = 90
@@ -258,7 +258,7 @@ func _build_mod_row(index: int) -> Control:
 
 func _show_detail(index: int) -> void:
 	if index < 0 or index >= _mods.size():
-		_detail_name.text = tr("Ingen mod valgt")
+		_detail_name.text = tr("UI_MODS_NONE_SELECTED")
 		_detail_author.text = ""
 		_detail_version.text = ""
 		_detail_desc.text = ""

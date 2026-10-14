@@ -178,7 +178,7 @@ theme_type_variation = &"GhostButton"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
-tooltip_text = "Attention inbox (I)"
+tooltip_text = "Varslingsinnboks (I)"
 text = "🔔"
 
 [node name="PauseBtn" type="Button" parent="MainHBox/Right"]
@@ -186,7 +186,7 @@ theme_type_variation = &"RailTab"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
-tooltip_text = "Pause/Resume (Space)"
+tooltip_text = "Pause/fortsett (mellomrom)"
 toggle_mode = true
 text = "⏸"
 
@@ -213,6 +213,6 @@ theme_type_variation = &"RailTab"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
-tooltip_text = "5x hastighet"
+tooltip_text = "5× hastighet"
 toggle_mode = true
 text = "5x"

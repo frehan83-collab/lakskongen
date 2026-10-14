@@ -139,12 +139,6 @@ unique_name_in_owner = true
 layout_mode = 2
 tooltip_text = "Behandlingsmetode: effekt vs dødelighet vs resistens"
 
-[node name="BtnFeed" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderRight"]
-theme_type_variation = &"SmallPrimaryButton"
-unique_name_in_owner = true
-layout_mode = 2
-text = "🐟 Fôr"
-
 [node name="BtnHarvest" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderRight"]
 theme_type_variation = &"SmallSuccessButton"
 unique_name_in_owner = true
@@ -180,7 +174,7 @@ tooltip_text = "Luseskjørt: 500k installasjon + 2k/dag. Reduserer luspåslag ~7
 theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
 layout_mode = 2
-text = "⚪ Seldeterrent"
+text = "⚪ Selskremme"
 tooltip_text = "Seldeterrent: 200k installasjon + 1k/dag. Beskytter mot selpredasjon."
 
 [node name="BtnROV" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailHeader/HeaderRight"]
@@ -226,7 +220,7 @@ theme_override_constants/separation = 4
 [node name="Title" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/WeightCard/VBox"]
 theme_type_variation = &"OverlineMuted"
 layout_mode = 2
-text = "SNITT VEKT"
+text = "SNITTVEKT"
 
 [node name="DetWeight" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/KpiRow/WeightCard/VBox"]
 theme_type_variation = &"Heading"
@@ -546,7 +540,7 @@ layout_mode = 2
 theme_type_variation = &"SmallMuted"
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Filétkvalitet"
+text = "Filetkvalitet"
 
 [node name="DetGeneFillet" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/BottomRow/GeneCard/Outer/GeneBody/FilletRow"]
 theme_type_variation = &"Small"

@@ -641,9 +641,9 @@ public partial class GameBridge : Node
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
             Day = SimulationEngine.State.Day,
-            Name = $"{Farm.BarrierTech.SpecFor(parsed).DisplayName} installert",
+            Name = $"{EnumText("ENUM_BARRIER", parsed)} installert",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"{Farm.BarrierTech.SpecFor(parsed).DisplayName} ved {siteId} ({cost:N0} NOK)",
+            Description = LakskongenSim.Core.SimText.Nb($"{EnumText("ENUM_BARRIER", parsed)} på {SiteLabel(siteId)} ({cost:N0} kr)"),
             BalanceChange = -cost
         });
 
@@ -673,7 +673,7 @@ public partial class GameBridge : Node
             Day = SimulationEngine.State.Day,
             Name = "Barriere rengjort",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"{Farm.BarrierTech.SpecFor(site.Barrier).DisplayName} rengjort ved {siteId}",
+            Description = $"{EnumText("ENUM_BARRIER", site.Barrier)} rengjort på {site.Label}",
             BalanceChange = -cost
         });
 
@@ -962,9 +962,9 @@ public partial class GameBridge : Node
             SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
             {
                 Day = SimulationEngine.State.Day,
-                Name = isBubble ? "Boblegardin installert" : "O2-diffuser installert",
+                Name = isBubble ? "Boblegardin installert" : "Oksygendiffusor installert",
                 Category = LakskongenSim.Events.EventCategory.Equipment,
-                Description = $"{(isBubble ? "Boblegardin" : "O2-diffuser")} ved {siteId}",
+                Description = $"{(isBubble ? "Boblegardin" : "Oksygendiffusor")} på {site.Label}",
                 BalanceChange = -cost
             });
         }
@@ -1063,9 +1063,9 @@ public partial class GameBridge : Node
             SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
             {
                 Day = SimulationEngine.State.Day,
-                Name = hubExists ? "Slam-hub tilkobling" : "Slam-hub byggd",
+                Name = hubExists ? "Koblet til slamanlegget" : "Slamanlegg bygget",
                 Category = LakskongenSim.Events.EventCategory.Equipment,
-                Description = $"{site.Id} koblet til sentral slam-hub ({cost:N0} NOK)",
+                Description = LakskongenSim.Core.SimText.Nb($"{site.Label} er koblet til det felles slamanlegget ({cost:N0} kr)"),
                 BalanceChange = -cost
             });
         }
@@ -1075,9 +1075,9 @@ public partial class GameBridge : Node
             SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
             {
                 Day = SimulationEngine.State.Day,
-                Name = "Slam-hub frakoblet",
+                Name = "Koblet fra slamanlegget",
                 Category = LakskongenSim.Events.EventCategory.Equipment,
-                Description = $"{site.Id} frakoblet fra sentral slam-hub",
+                Description = $"{site.Label} er koblet fra det felles slamanlegget",
                 BalanceChange = 0m
             });
         }
@@ -1116,9 +1116,9 @@ public partial class GameBridge : Node
         SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
             Day = SimulationEngine.State.Day,
-            Name = "Manuell slam-valorisering",
+            Name = "Slamgjenvinning",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"{site.Id}: {site.SludgeAccumulatedKgDs:F0} kg DS → biogas {biogasRev:N0} + gjødsel {fertRev:N0} - OPEX {opex:N0} = {netRev:+#,0;-#,0;0} NOK",
+            Description = LakskongenSim.Core.SimText.Nb($"{site.Label}: {site.SludgeAccumulatedKgDs:F0} kg tørrstoff → biogass {biogasRev:N0} + gjødsel {fertRev:N0} − drift {opex:N0} = {netRev:+#,0;-#,0;0} kr"),
             BalanceChange = netRev
         });
         SimulationEngine.State.TrimEventLog();
@@ -1236,7 +1236,7 @@ public partial class GameBridge : Node
             result.Add(new Godot.Collections.Dictionary
             {
                 ["id"] = site.Id,
-                ["name"] = site.Id,
+                ["name"] = site.Label,
                 ["zone"] = site.ZoneId,
                 ["current_biomass_kg"] = currentBio,
                 ["mab_tonnes"] = site.MABTonnes,

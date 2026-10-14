@@ -395,7 +395,7 @@ namespace LakskongenSim.Core
             {
                 Id = "organic-certification",
                 Name = "Organic Certification",
-                Description = "Achieve Debio organic aquaculture certification. Requires lower stocking density, no synthetic additives, and higher welfare standards. Commands a significant retail price premium.",
+                Description = "Achieve organic aquaculture certification. Requires lower stocking density, no synthetic additives, and higher welfare standards. Commands a significant retail price premium.",
                 Branch = ResearchBranch.Sustainability,
                 Tier = 1,
                 CostNOK = 600_000m,
@@ -535,7 +535,7 @@ namespace LakskongenSim.Core
             {
                 Id = "deep-sea-farming",
                 Name = "Deep-Sea Exposed Farming",
-                Description = "Develop offshore semi-submersible pen systems (Salmar Ocean Farm concept) for exposed, high-current sites. Access to pristine water and large volume capacity, reducing fjord crowding pressure.",
+                Description = "Develop offshore semi-submersible pen systems for exposed, high-current sites. Access to pristine water and large volume capacity, reducing fjord crowding pressure.",
                 Branch = ResearchBranch.Expansion,
                 Tier = 1,
                 CostNOK = 900_000m,

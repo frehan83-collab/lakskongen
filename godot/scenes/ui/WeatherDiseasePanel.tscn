@@ -34,7 +34,7 @@ theme_override_constants/separation = 16
 theme_type_variation = &"Heading"
 unique_name_in_owner = true
 layout_mode = 2
-text = "🌊 Weather & Disease Monitoring"
+text = "UI_WD_TITLE"
 
 [node name="WeatherCard" type="PanelContainer" parent="Margin/MainScroll/RootVBox"]
 theme_type_variation = &"Card"
@@ -51,7 +51,7 @@ layout_mode = 2
 [node name="WeatherHeader" type="Label" parent="Margin/MainScroll/RootVBox/WeatherCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Current Weather Conditions"
+text = "UI_WD_CURRENT_WEATHER"
 
 [node name="WeatherBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/WeatherCard/Outer"]
 layout_mode = 2
@@ -85,7 +85,7 @@ layout_mode = 2
 theme_type_variation = &"BodyWarn"
 unique_name_in_owner = true
 layout_mode = 2
-text = "⚠️ Weather Alerts"
+text = "UI_WD_WEATHER_ALERTS"
 
 [node name="AlertBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/AlertCard/Outer"]
 layout_mode = 2
@@ -112,7 +112,7 @@ layout_mode = 2
 theme_type_variation = &"BodyCrit"
 unique_name_in_owner = true
 layout_mode = 2
-text = "🦠 Disease Outbreaks"
+text = "UI_WD_DISEASE_OUTBREAKS"
 
 [node name="DiseaseBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/DiseaseCard/Outer"]
 layout_mode = 2
@@ -138,7 +138,7 @@ layout_mode = 2
 [node name="TreatmentHeader" type="Label" parent="Margin/MainScroll/RootVBox/TreatmentCard/Outer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "💊 Treatment Options"
+text = "UI_WD_TREATMENTS"
 
 [node name="TreatmentBody" type="VBoxContainer" parent="Margin/MainScroll/RootVBox/TreatmentCard/Outer"]
 layout_mode = 2

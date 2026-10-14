@@ -129,11 +129,11 @@ func update_display(score: int, certification: String, categories: Dictionary):
 		var multiplier = _get_price_multiplier(certification)
 		var bonus_text = ""
 		if multiplier > 1.0:
-			bonus_text = "Price Bonus: +%.0f%%" % ((multiplier - 1.0) * 100)
+			bonus_text = tr("UI_SUSTAINABILITY_PRICE_BONUS") % SimFormatters.percent(multiplier - 1.0)
 		elif multiplier < 1.0:
-			bonus_text = "Price Penalty: %.0f%%" % ((multiplier - 1.0) * 100)
+			bonus_text = tr("UI_SUSTAINABILITY_PRICE_PENALTY") % SimFormatters.percent(1.0 - multiplier)
 		else:
-			bonus_text = "Standard Pricing"
+			bonus_text = tr("UI_SUSTAINABILITY_PRICE_STANDARD")
 		price_multiplier_label.text = bonus_text
 
 	# Update category breakdown (clears container first)
@@ -167,8 +167,8 @@ func _update_traffic_strip() -> void:
 	category_container.add_child(row)
 	category_container.move_child(row, 0)
 	var lbl := Label.new()
-	lbl.text = "🚦 Soner: 🟢 %d  🟡 %d  🔴 %d%s" % [greens, yellows, reds,
-		" — RØDT strammer MAB" if reds > 0 else ""]
+	lbl.text = "🚦 " + tr("UI_SUSTAINABILITY_ZONES") % [greens, yellows, reds] + (
+		" — " + tr("UI_SUSTAINABILITY_RED_TIGHTENS") if reds > 0 else "")
 	LakskongenTheme.set_size(lbl, 13)
 	LakskongenTheme.set_text_color(lbl, Color(COLOR_TEXT))
 	row.add_child(lbl)
@@ -184,18 +184,18 @@ func _update_categories(categories: Dictionary) -> void:
 
 	# Category display order and max points
 	var category_order = [
-		{"name": "SeaLiceManagement", "display": "Sea Lice Management", "max": 25},
-		{"name": "EscapePrevention", "display": "Escape Prevention", "max": 20},
-		{"name": "FeedSustainability", "display": "Feed Sustainability", "max": 20},
-		{"name": "CarbonFootprint", "display": "Carbon Footprint", "max": 15},
-		{"name": "WelfareStandards", "display": "Welfare Standards", "max": 10},
-		{"name": "EcosystemImpact", "display": "Ecosystem Impact", "max": 10}
+		{"name": "SeaLiceManagement", "display": "UI_SUSTAINABILITY_CAT_LICE", "max": 25},
+		{"name": "EscapePrevention", "display": "UI_SUSTAINABILITY_CAT_ESCAPE", "max": 20},
+		{"name": "FeedSustainability", "display": "UI_SUSTAINABILITY_CAT_FEED", "max": 20},
+		{"name": "CarbonFootprint", "display": "UI_SUSTAINABILITY_CAT_CARBON", "max": 15},
+		{"name": "WelfareStandards", "display": "UI_SUSTAINABILITY_CAT_WELFARE", "max": 10},
+		{"name": "EcosystemImpact", "display": "UI_SUSTAINABILITY_CAT_ECOSYSTEM", "max": 10}
 	]
 
 	for cat in category_order:
 		var score = categories.get(cat.name, 0)
 		var max_score = cat.max
-		_create_category_bar(cat.display, score, max_score)
+		_create_category_bar(tr(str(cat.display)), score, max_score)
 
 func _create_category_bar(label_text: String, score: int, max_score: int):
 	"""Create a single category progress bar"""
@@ -242,23 +242,23 @@ func _format_certification_badge(cert: String) -> String:
 	"""Certification badge text (own row, no warning prefix)."""
 	match cert:
 		"NonCompliant":
-			return "Non-Compliant"
+			return tr("UI_CERT_NON_COMPLIANT")
 		"BasicCompliance":
-			return "✓ Basic Compliance"
+			return "✓ " + tr("UI_CERT_BASIC_COMPLIANCE")
 		"ASCCertified":
-			return "⭐ ASC Certified"
+			return "⭐ " + tr("UI_CERT_ASC")
 		"OrganicCertified":
-			return "🌿 Organic Certified"
+			return "🌿 " + tr("UI_CERT_ORGANIC")
 		"SustainabilityLeader":
-			return "🏆 Sustainability Leader"
+			return "🏆 " + tr("UI_CERT_LEADER")
 		_:
-			return cert
+			return SimLabels.humanize(cert)
 
 func _format_warning(cert: String) -> String:
 	"""Warning row text (own row, only shown when relevant)."""
 	match cert:
 		"NonCompliant":
-			return "⚠️ Non-Compliant"
+			return "⚠️ " + tr("UI_CERT_NON_COMPLIANT")
 		_:
 			return ""
 
@@ -272,7 +272,7 @@ func _tr_format(key: String, fallback: String) -> String:
 func _format_certification(cert: String) -> String:
 	"""Format certification level for display (legacy: badge + warning combined)."""
 	if cert == "NonCompliant":
-		return "⚠️ Non-Compliant"
+		return "⚠️ " + tr("UI_CERT_NON_COMPLIANT")
 	return _format_certification_badge(cert)
 
 func _get_price_multiplier(cert: String) -> float:
