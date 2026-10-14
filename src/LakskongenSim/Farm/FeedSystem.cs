@@ -108,6 +108,12 @@ namespace LakskongenSim.Farm
         // variable size distribution, and increases pellet waste on the seabed.
         // Feed is 50-65% of production cost, so spreading quality is high-leverage.
 
+        /// <summary>
+        /// Feed-spreading quality of a site with no watch mode set (0-1): the
+        /// default the daily feeding uses and the cohort CV refers to.
+        /// </summary>
+        public const double DefaultSpreadQuality = 0.80;
+
         /// <summary>FCR penalty at zero spreading quality (poor = +20%).</summary>
         public const double MaxPrecisionFcrPenalty = 0.20;
 
@@ -188,23 +194,61 @@ namespace LakskongenSim.Farm
         public double CalculateFCR(double temperatureC, LifeStage stage, double stockingDensityKgM3,
             double waterQualityPenalty = 1.0)
         {
+            double fcr = FcrBeforeClamp(temperatureC, StageFcrModifier(stage), stockingDensityKgM3, waterQualityPenalty);
+
+            // Clamp to realistic range
+            CurrentFCR = Math.Clamp(fcr, 0.9, 2.5);
+            OnFCRChanged?.Invoke(CurrentFCR);
+
+            return CurrentFCR;
+        }
+
+        /// <summary>Pre-S2-03 stage effect on FCR (age-based stages): smaller fish convert worse.</summary>
+        private static double StageFcrModifier(LifeStage stage) => stage switch
+        {
+            LifeStage.Fry => 1.4,      // Poor conversion in fry
+            LifeStage.Parr => 1.2,     // Improving
+            LifeStage.Smolt => 1.1,    // Smoltification stress
+            LifeStage.Seawater => 1.0, // Optimal
+            LifeStage.Harvest => 1.05, // Slightly higher near harvest
+            _ => 1.0
+        };
+
+        /// <summary>
+        /// Biological FCR of fish eating to satiation today (kg feed eaten per kg
+        /// gained; S2-03): temperature, fish size, feed quality, meals, density,
+        /// water quality, recipe and research, but not the pellets poor spreading
+        /// wastes (<see cref="FeedRation"/> adds those). At sea the size factor
+        /// (<c>TgcGrowthLaw.FcrSizeFactor</c>) replaces the age-based stage
+        /// modifier; freshwater stages keep it. Pure: changes no state. The clamp
+        /// is a sanity guard far outside the realistic 0.8-1.6.
+        /// </summary>
+        public double SatiationFcr(double temperatureC, LifeStage stage, double sizeFactor,
+            double stockingDensityKgM3, double waterQualityPenalty = 1.0, double fcrReduction = 0.0)
+        {
+            bool atSea = stage is LifeStage.Smolt or LifeStage.Seawater or LifeStage.Harvest;
+            double modifier = atSea ? Math.Max(0.0, sizeFactor) : StageFcrModifier(stage);
+            double fcr = FcrBeforeClamp(temperatureC, modifier, stockingDensityKgM3, waterQualityPenalty);
+            fcr *= 1.0 - Core.ResearchEffectKeys.ClampReduction(fcrReduction);
+            return Math.Clamp(fcr, MinSaneFcr, MaxSaneFcr);
+        }
+
+        /// <summary>Sanity bounds of <see cref="SatiationFcr"/> (never binding in realistic water).</summary>
+        private const double MinSaneFcr = 0.5;
+        private const double MaxSaneFcr = 3.0;
+
+        /// <summary>The FCR model before its clamp: temperature, stage or size, feed and husbandry.</summary>
+        private double FcrBeforeClamp(double temperatureC, double stageOrSizeModifier, double stockingDensityKgM3,
+            double waterQualityPenalty)
+        {
             double fcr = BaseFCR;
 
             // Temperature effect: FCR worsens away from optimal (11-13°C)
             double tempDelta = Math.Abs(temperatureC - OptimalFCRTemp);
             fcr += tempDelta * FCRTempSensitivity;
 
-            // Stage effect: smaller fish have higher FCR
-            double stageModifier = stage switch
-            {
-                LifeStage.Fry => 1.4,      // Poor conversion in fry
-                LifeStage.Parr => 1.2,     // Improving
-                LifeStage.Smolt => 1.1,    // Smoltification stress
-                LifeStage.Seawater => 1.0, // Optimal
-                LifeStage.Harvest => 1.05, // Slightly higher near harvest
-                _ => 1.0
-            };
-            fcr *= stageModifier;
+            // Stage or size effect: smaller fish convert differently
+            fcr *= stageOrSizeModifier;
 
             // Feed quality effect: better ingredients = lower FCR
             double qualityBonus = CalculateFeedQualityBonus();
@@ -234,11 +278,7 @@ namespace LakskongenSim.Farm
             // Recipe: better ingredients convert better (Phase 4.4).
             fcr *= RecipeFCRMult;
 
-            // Clamp to realistic range
-            CurrentFCR = Math.Clamp(fcr, 0.9, 2.5);
-            OnFCRChanged?.Invoke(CurrentFCR);
-
-            return CurrentFCR;
+            return fcr;
         }
 
         /// <summary>
@@ -349,6 +389,70 @@ namespace LakskongenSim.Farm
                 FeedWasteFraction = wasteFraction,
                 FeedWasteKg = feedWasteKg,
                 SizeVarianceCv = sizeVarianceCv
+            };
+        }
+
+        /// <summary>
+        /// Book one day's feeding of a population on the S2-03 growth law: the
+        /// fish ate <paramref name="eatenFeedKg"/> (their ration of appetite, from
+        /// <c>TgcGrowthLaw.GrowOneDay</c>) and gained <paramref name="grownKg"/>.
+        /// Poor spreading wastes extra pellets on top of what was eaten (the
+        /// research feed-waste reduction removes that share), and the delivered
+        /// feed is what the farm pays for. <see cref="CurrentFCR"/> becomes the
+        /// day's delivered feed per kg gained when the fish grew.
+        /// </summary>
+        /// <param name="pop">The population fed.</param>
+        /// <param name="eatenFeedKg">Feed the fish ate today (kg).</param>
+        /// <param name="grownKg">Biomass the fish gained today (kg; losses count as 0).</param>
+        /// <param name="spreadQuality01">Feed-spreading precision 0 (poor) to 1 (perfect).</param>
+        /// <param name="feedWasteReduction">Research feed-waste reduction (e.g. 0.12 = 12% less waste).</param>
+        /// <param name="appetite01">The fish's appetite today (0-1), reported as <see cref="LastAppetite01"/>.</param>
+        public FeedResult FeedRation(Biology.FishPopulation pop, double eatenFeedKg, double grownKg,
+            double spreadQuality01 = 1.0, double feedWasteReduction = 0.0, double appetite01 = 1.0)
+        {
+            LastAppetite01 = double.IsFinite(appetite01) ? Math.Clamp(appetite01, 0.0, 1.0) : 1.0;
+            double biomassKg = pop.GetTotalBiomassKg();
+            if (biomassKg <= 0) return FeedResult.Empty;
+
+            double precisionPenalty = PrecisionFCRMultiplier(spreadQuality01) - 1.0;
+            double deliveredPerEaten = 1.0 + precisionPenalty
+                * (1.0 - Core.ResearchEffectKeys.ClampReduction(feedWasteReduction));
+            double totalFeedKg = Math.Max(0.0, eatenFeedKg) * deliveredPerEaten;
+            double growthKg = Math.Max(0.0, grownKg);
+
+            double fcr = CurrentFCR;
+            if (growthKg > 0.0 && totalFeedKg > 0.0)
+            {
+                fcr = totalFeedKg / growthKg;
+                if (Math.Abs(fcr - CurrentFCR) > 1e-9)
+                {
+                    CurrentFCR = fcr;
+                    OnFCRChanged?.Invoke(CurrentFCR);
+                }
+            }
+
+            double wasteFraction = CalculateFeedWasteFraction(spreadQuality01)
+                * (1.0 - Core.ResearchEffectKeys.ClampReduction(feedWasteReduction));
+            double nitrogenWasteKg = totalFeedKg * 0.07 * 0.70; // 7% N in feed, 70% excreted
+            double phosphorusWasteKg = totalFeedKg * 0.01 * 0.70; // 1% P in feed, 70% excreted
+            decimal totalCost = (decimal)totalFeedKg * FeedCostPerKg;
+
+            TotalFeedUsedKg += totalFeedKg;
+            TotalGrowthKg += growthKg;
+            OnFeedCostIncurred?.Invoke(totalCost);
+
+            return new FeedResult
+            {
+                FeedUsedKg = totalFeedKg,
+                ExpectedGrowthKg = growthKg,
+                ActualFCR = fcr,
+                NitrogenWasteKg = nitrogenWasteKg,
+                PhosphorusWasteKg = phosphorusWasteKg,
+                CostNOK = totalCost,
+                BiomassKg = biomassKg,
+                FeedWasteFraction = wasteFraction,
+                FeedWasteKg = totalFeedKg * wasteFraction,
+                SizeVarianceCv = CalculateSizeVarianceCv(spreadQuality01)
             };
         }
 

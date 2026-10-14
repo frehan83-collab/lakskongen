@@ -304,6 +304,20 @@ func stock_offshore_farm(farm_id: String, count: int, strain_id: String = "stand
 func harvest_offshore_farm(farm_id: String) -> Dictionary:
 	return game_bridge.HarvestOffshoreFarm(farm_id) if game_bridge else {"success": false, "message": "Not initialized"}
 
+## Harvest pipeline (S2-04): quote, order and cancel a planned harvest of a sea
+## site, land facility or offshore farm (empty pen_ids = every pen with fish;
+## fraction of each pen's fish), and read the open orders and harvest reports.
+func quote_harvest(holding_id: String, pen_ids: Array[String] = [], fraction: float = 1.0, express: bool = false) -> Dictionary:
+	return game_bridge.QuoteHarvest(holding_id, pen_ids, fraction, express) if game_bridge else {"success": false, "message": "Not initialized"}
+func order_harvest(holding_id: String, pen_ids: Array[String] = [], fraction: float = 1.0) -> Dictionary:
+	return game_bridge.OrderHarvest(holding_id, pen_ids, fraction) if game_bridge else {"success": false, "message": "Not initialized"}
+func cancel_harvest_order(order_id: String) -> Dictionary:
+	return game_bridge.CancelHarvestOrder(order_id) if game_bridge else {"success": false, "message": "Not initialized"}
+func get_harvest_orders() -> Array[Dictionary]:
+	return _arr(game_bridge.GetHarvestOrders()) if game_bridge else ([] as Array[Dictionary])
+func get_harvest_reports() -> Array[Dictionary]:
+	return _arr(game_bridge.GetHarvestReports()) if game_bridge else ([] as Array[Dictionary])
+
 ## Perform maintenance on RAS facility, returns cost
 func ras_maintenance(facility_id: String) -> float:
 	if game_bridge and game_bridge.has_method("PerformRASMaintenance"):
@@ -468,6 +482,16 @@ func get_market_report() -> Dictionary: return game_bridge.GetMarketReport() if 
 func get_profit_loss_story(top_n: int = 3) -> Dictionary: return game_bridge.GetProfitLossStory(top_n) if game_bridge else {}
 ## S2-05: deaths by cause in the NVI categories plus the fish that left alive (site, last N days, or company).
 func get_mortality_breakdown(site_id: String = "", last_days: int = 0) -> Dictionary: return game_bridge.GetMortalityBreakdown(site_id, last_days) if game_bridge else {"success": false, "message": "Not initialized", "categories": [], "causes": [], "left_alive": []}
+## S2-01a: licences and MTB per production area and site, headroom, the plan's peak and the biomass orders (U2-01's expansion flow).
+func get_capacity_overview() -> Dictionary: return game_bridge.GetCapacityOverview() if game_bridge else {"success": false, "message": "Not initialized", "areas": [], "sites": [], "licences": [], "breaches": []}
+## S2-01a: what stocking would do to the caps (the check stock_smolts runs) and the most smolts that fit.
+func preview_stocking(site_id: String, count: int, strain_id: String = "standard") -> Dictionary: return game_bridge.PreviewStocking(site_id, count, strain_id) if game_bridge else {"success": false, "allowed": false, "message": "Not initialized"}
+## S2-01b: a site's real pens in mooring order (number, occupancy, fish, density, net).
+func get_site_pens(site_id: String) -> Array[Dictionary]: return _arr(game_bridge.GetSitePens(site_id)) if game_bridge else ([] as Array[Dictionary])
+## S2-01b: what stocking a count of smolts in one pen would do (§ 47a fish, § 25 projected density, MTB) and the most it takes.
+func preview_pen_stocking(site_id: String, pen_id: String, count: int, strain_id: String = "standard", quality_tier: int = 0) -> Dictionary: return game_bridge.PreviewPenStocking(site_id, pen_id, count, strain_id, quality_tier) if game_bridge else {"success": false, "allowed": false, "message": "Not initialized"}
+## S2-01a: what building a site in a zone costs and adds (a locality, 0 t of licence MTB).
+func preview_build_sea_site(zone_id: String) -> Dictionary: return game_bridge.PreviewBuildSeaSite(zone_id) if game_bridge else {"success": false, "allowed": false, "reason": "Not initialized"}
 func get_competitor_analysis() -> Array[Dictionary]: return _arr(game_bridge.GetCompetitorAnalysis()) if game_bridge else []
 func get_price_forecast() -> Array[Dictionary]: return _arr(game_bridge.GetPriceForecast()) if game_bridge else []
 func get_welfare_score() -> float: return game_bridge.GetWelfareScore() if game_bridge else 50.0

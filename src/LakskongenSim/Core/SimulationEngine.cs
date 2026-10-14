@@ -43,7 +43,7 @@ namespace LakskongenSim.Core
         {
             Storyteller?.Detach();
             Storyteller = null!;
-            State = new GameState();
+            State = new GameState { CapacityRules = Finance.CapacityRegime.Unregulated }; // S2-01a: a scenario start opens the licence register
             Rng = new SimRng(0);
             _dayNotes.Clear();
             GameEvents.Clear();   // U2-06: presentation state, never saved
@@ -158,10 +158,7 @@ namespace LakskongenSim.Core
         internal decimal _dailyFarmSystemsOpex = 0m;
         internal decimal _dailyAiFeedingLicenseCost = 0m;
 
-        // ─── Per-day biology call tuning (values unchanged; see GrowthModel docs) ───
-        internal const double SdeTargetWeightKg = 5.5; // genetic asymptote K used by the daily SDE step
-        internal const double SdeGeneticGrowthRateAlphaMax = 20.0; // α_max scale for SDE-only growth
-        internal const double SdeIndividualVarianceSigma = 0.002; // σ kept small vs deterministic drift
+        // ─── Per-day biology inputs (growth itself: the S2-03 TGC law, calibration "growth") ───
         internal const double PenVolumeProxyM3 = 10_000.0; // pen-volume proxy for density estimate
         internal const double DefaultStockingDensityKgM3 = 20.0; // fallback when no zone is known
         internal const double WarmingPerYearC = 0.02; // P10: documented warming trend applied to lice development
@@ -400,14 +397,19 @@ namespace LakskongenSim.Core
             // Initialize PlanktonBloom system
             PlanktonBloom = new PlanktonBloom(Rng.Stream(SimRngStreams.PlanktonBloom));
             LoadPlanktonBloomConfig();
+            ApplyWaterOxygenCalibration(); // wave 2 sim-a-1: the crash's oxygen demand from the registry
 
             // Hatchery → population
             Hatchery.OnNewCohort += cohort =>
             {
-                // Assign genetics if missing (hatchery produces cohorts with specific genomes)
+                // Assign genetics if missing. A released batch is a commercial
+                // batch of standard S1 smolts, so it carries the standard
+                // strain's genome, as StockSmolts does (S2-03): one random
+                // individual's breeding values (growth SD 15%) on a whole
+                // cohort made one batch grow 37% slower than the next.
                 if (cohort.Genetics == null)
                 {
-                    cohort.Genetics = Genetics.GenerateRandomGenome();
+                    cohort.Genetics = SmoltStrainRegistry.Get("standard").BuildGenome();
                 }
 
                 // Create a new population for this cohort (tests expect separate populations per release)
@@ -865,6 +867,7 @@ namespace LakskongenSim.Core
             // (private, same property names) purely as the engine's local view.
             _calibration = CalibrationRegistry.Load(dataPath);
             Weather?.ApplySeaTemperatureCalibration(_calibration.SeaTemperature);
+            Growth?.ApplyCalibration(_calibration.Growth);
             var config = BalancingConfig.FromRegistry(_calibration);
             _balancing = config;
             ApplyBalancingConfig(config);
@@ -979,7 +982,7 @@ namespace LakskongenSim.Core
                 MinDay = 1,
                 MaxDay = 365,
                 Condition = gs => gs.Zones != null && gs.Zones.Any(z => 
-                    z.WaterChemistry != null && z.WaterChemistry.OxygenO2 < 3.0), // DO below critical
+                    z.WaterChemistry != null && z.WaterChemistry.OxygenO2 < _calibration.Mortality.AcuteLowOxygenMgL), // DO below the acute limit
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "Planteplankton dør i stor skala og bakteriene bruker opp oksygenet. Oksygenmetningen faller under 30 % og fisk dør.";
@@ -996,7 +999,7 @@ namespace LakskongenSim.Core
         {
             if (gs.Populations == null || gs.Zones == null) return;
             
-            var affectedZones = gs.Zones.Where(z => z.WaterChemistry != null && z.WaterChemistry.OxygenO2 < 3.0).ToList();
+            var affectedZones = gs.Zones.Where(z => z.WaterChemistry != null && z.WaterChemistry.OxygenO2 < _calibration.Mortality.AcuteLowOxygenMgL).ToList();
             if (!affectedZones.Any()) return;
 
             foreach (var zone in affectedZones)
@@ -1009,7 +1012,7 @@ namespace LakskongenSim.Core
                     // keeps its controlled oxygen and an offshore pen its
                     // current-fed boost, so a fjord crash no longer kills them.
                     var environment = ResolveCohortEnvironment(pop);
-                    double mortalityRate = MortalityHazards.PlanktonCrashFraction(environment);
+                    double mortalityRate = MortalityHazards.LowOxygenFraction(environment, _calibration.Mortality);
                     if (mortalityRate <= 0.0) continue;
 
                     for (int ci = 0; ci < pop.Cohorts.Count; ci++)
@@ -1504,24 +1507,32 @@ private class BalancingConfig
             for (int day = 0; day < days; day++)
             {
                 BeginMortalityDay(); // S2-05: this step's deaths carry the day it ends on
-                AdvanceOneDay();
-                State.Day++; // Single source of truth for day counter
+                BeginHoldingDay();   // sim-a-1: every population's holding, resolved once for the step
+                try
+                {
+                    AdvanceOneDay();
+                    State.Day++; // Single source of truth for day counter
 
-                // Post-tick phases (ordered): storm impacts -> wellboat
-                // execution -> balance mirror. Registration order IS the
-                // execution order (see ITickSystem). Wellboat runs AFTER
-                // State.Day++ so the booking contract
-                // (DueDay = bookedDay + delay) stays exact.
-                foreach (var phase in _postTickPhases)
-                    phase.Tick(this);
+                    // Post-tick phases (ordered): storm impacts -> wellboat
+                    // execution -> balance mirror. Registration order IS the
+                    // execution order (see ITickSystem). Wellboat runs AFTER
+                    // State.Day++ so the booking contract
+                    // (DueDay = bookedDay + delay) stays exact.
+                    foreach (var phase in _postTickPhases)
+                        phase.Tick(this);
 
-                // Any cash that moved without a booking today is booked as
-                // unclassified, so the statements always reconcile with cash.
-                ReconcileUnbookedCash();
+                    // Any cash that moved without a booking today is booked as
+                    // unclassified, so the statements always reconcile with cash.
+                    ReconcileUnbookedCash();
 
-                // Date today's notes: the bridge drains a whole multi-day
-                // Advance at once and must not date them all to its last day.
-                StampDayNotes();
+                    // Date today's notes: the bridge drains a whole multi-day
+                    // Advance at once and must not date them all to its last day.
+                    StampDayNotes();
+                }
+                finally
+                {
+                    EndHoldingDay();
+                }
             }
 
             OnDayAdvanced?.Invoke(State.Day);
@@ -1538,6 +1549,8 @@ private class BalancingConfig
         {
             new StormImpactsTickSystem(),
             new WellboatExecutionTickSystem(),
+            new HarvestOrdersTickSystem(),
+            new CapacityEnforcementTickSystem(),
             new LicenseAuctionTickSystem(),
             new BalanceMirrorTickSystem(),
             new SolvencyTickSystem()
@@ -1673,7 +1686,8 @@ private class BalancingConfig
         {
             var cmd = job.Kind == "delouse"
                 ? DelouseSite(job.SiteId, string.IsNullOrEmpty(job.Method) ? "hydrolicer" : job.Method)
-                : HarvestSite(job.SiteId);
+                : HarvestNowAs(job.SiteId, null, 1.0, LakskongenSim.Harvest.HarvestMode.HiredWellboat,
+                    "site_empty", $"Site '{job.SiteId}' is empty"); // S2-04: the hire paid the transport
 
             State.EventLog.Add(new Events.EventRecord
             {
@@ -2714,17 +2728,20 @@ private class BalancingConfig
         /// spend) and regulation (force-paid) share one model.
         /// </summary>
         private SiteDelousingOutcome ApplySiteDelousing(Farm.SeaSite site,
-            Data.DelousingMethod method, double tempC, double mortMult)
+            Data.DelousingMethod method, double tempC, double mortMult,
+            IReadOnlyList<FishPopulation>? pens = null, double liceKillShare = 1.0)
         {
             var outcome = new SiteDelousingOutcome();
             var delousing = new Farm.DelousingSystem();
             bool siteLiceKillDone = false;
             bool gillCaptured = false;
-            foreach (var pop in site.Pens)
+            // S2-01b: a treatment of chosen pens handles only their fish and
+            // kills the site model's lice on the treated share of the fish.
+            foreach (var pop in pens ?? site.Pens)
             {
                 if (pop.TotalCount <= 0) continue;
                 var result = delousing.Treat(pop, method, site.Lice, IntegratedDisease,
-                    tempC, mortMult, applyCompanyLiceKill: !siteLiceKillDone);
+                    tempC, mortMult, applyCompanyLiceKill: !siteLiceKillDone, liceKillShare: liceKillShare);
                 if (!result.Success)
                 {
                     outcome.CancelReason = result.Message;
@@ -2918,6 +2935,10 @@ private class BalancingConfig
     /// </summary>
     private void IssueMattilsynetOverMabOrders(string zoneId)
     {
+        // Capacity v1 (S2-01a) reads every site against its MTB every day and
+        // orders the reduction itself; this red-zone order is the rule of an
+        // engine without a licence register.
+        if (CapacityRulesActive) return;
         foreach (var site in State.SeaSites.Where(s => s.ZoneId == zoneId))
         {
             if (site.IsOverMAB && !site.HasActiveMattilsynetOrder)
@@ -2982,11 +3003,11 @@ private class BalancingConfig
                 double harvestT = Math.Min(biomassT, site.CurrentBiomassTonnes - site.MABTonnes);
                 if (harvestT < 0.1) harvestT = biomassT; // harvest all if barely over
 
-                decimal revenue = (decimal)(harvestT * 1000 * (double)penaltyPrice); // NOK
-                ReceiveIncome(revenue, "forced_harvest");
-                State.TotalSalesRevenueNok += revenue;
-                State.TotalHarvestRevenueNok += revenue;
-                RecordHarvestForResourceRent(harvestT * 1000.0);
+                // S2-04: sold through the harvest pipeline (HOG kilos, size
+                // classes, grades) at 70% of the price, less the harvest cost.
+                // The pipeline takes the fish themselves (S2-05 ledger:
+                // FishRemoval.ForcedHarvest), so the sale and the removal match.
+                decimal revenue = SellForcedHarvest(site, harvestT, 0.7m);
 
                 // Record event
                 State.EventLog.Add(new EventRecord
@@ -2998,9 +3019,6 @@ private class BalancingConfig
                     BalanceChange = revenue
                 });
                 SimLog.Info($"⚠️ Tvangsavslakt: {site.Id} {harvestT:F1}t til {penaltyPrice:F2} NOK/kg");
-
-                // Remove the over-MAB biomass from populations (simplified: reduce cohort weights proportionally)
-                ReduceSiteBiomass(site, harvestT);
 
                 site.MattilsynetOrderFulfilled = true;
                 site.MattilsynetDeadlineDay = -1;
@@ -3021,29 +3039,6 @@ private class BalancingConfig
                 });
                 SimLog.Info($"✅ Mattilsynet MAB-oppgjør: {site.Id} under MAB før deadline");
             }
-        }
-    }
-
-    /// <summary>
-    /// Reduce site biomass proportionally across cohorts to simulate forced harvest.
-    /// </summary>
-    private void ReduceSiteBiomass(Farm.SeaSite site, double tonnesToRemove)
-    {
-        double kgToRemove = tonnesToRemove * 1000.0;
-        foreach (var pop in site.Pens)
-        {
-            foreach (var cohort in pop.Cohorts)
-            {
-                double cohortBiomassKg = cohort.Count * cohort.MeanWeightKg;
-                if (cohortBiomassKg <= 0) continue;
-
-                double removeFraction = Math.Min(1.0, kgToRemove / cohortBiomassKg);
-                int fishToRemove = (int)(cohort.Count * removeFraction);
-                fishToRemove = pop.RemoveAlive(cohort, fishToRemove, FishRemoval.ForcedHarvest);
-                kgToRemove -= fishToRemove * cohort.MeanWeightKg;
-                if (kgToRemove <= 0) break;
-            }
-            pop.TriggerOnPopulationChanged();
         }
     }
 
@@ -3168,10 +3163,17 @@ private class BalancingConfig
                 } * bloom.Severity01 * cm;
                 site.GillScore = Math.Max(0.0, site.GillScore - gillDmg);
 
-                double mortRate = bloom.Kind switch
-                {
-                    "jellyfish" => 0.05, "algae" => 0.07, _ => 0.03
-                } * bloom.Severity01 * cm;
+                // Wave 2 sim-a-1: the hypoxia card is an in-cage oxygen sag that
+                // lowers the pens' water (HoldingWaterOf); it kills only the fish
+                // whose own oxygen is below the acute limit (per pen, below), not
+                // a flat share of the site whatever the water held.
+                bool oxygenSag = bloom.Kind == "hypoxia";
+                double mortRate = oxygenSag
+                    ? (vet ? 0.8 : 1.0)
+                    : bloom.Kind switch
+                    {
+                        "jellyfish" => 0.05, "algae" => 0.07, _ => 0.03
+                    } * bloom.Severity01 * cm;
 
                 // P11: an installed bloom mitigation blunts mortality and incurs
                 // an incident deployment/operating cost. No installed kit keeps
@@ -3189,12 +3191,15 @@ private class BalancingConfig
                 double lostKg = 0.0;
                 var bloomCause = MortalityCauses.ForBloomKind(bloom.Kind);
                 foreach (var pop in site.Pens)
+                {
+                    double popRate = oxygenSag ? mortRate * LowOxygenDeathFraction(pop) : mortRate;
                     foreach (var cohort in pop.Cohorts)
                     {
-                        int take = pop.RemoveDead(cohort, (int)(cohort.Count * mortRate), bloomCause);
+                        int take = pop.RemoveDead(cohort, (int)(cohort.Count * popRate), bloomCause);
                         killed += take;
                         lostKg += take * cohort.MeanWeightKg;
                     }
+                }
                 if (killed > 0)
                 {
                     SimLog.Info($"🪼 Bloom {bloom.Kind} killed {killed:N0} at {site.Id} (gill {site.GillScore:F0})");
@@ -3398,6 +3403,8 @@ private class BalancingConfig
             runtime.StorytellerCooldowns = Storyteller?.CooldownsForSnapshot;
             runtime.CurrencyStatePresent = true;
             runtime.TrafficLightColors = TrafficLightSystem?.ExportColors();
+            runtime.SustainabilityLiveScore = SustainabilityManager?.CurrentScore;
+            runtime.SustainabilityLiveLevel = SustainabilityManager?.CurrentCertification;
             var feedState = Feed.ExportState();
             runtime.FeedFcr = feedState.Fcr;
             runtime.FeedUsedKg = feedState.FeedUsedKg;
@@ -3907,7 +3914,8 @@ private class BalancingConfig
                     runtime.FeedLastAppetite, runtime.FeedSustainabilityRating));
                 if (runtime.TrafficLightColors != null)
                     TrafficLightSystem?.ImportColors(runtime.TrafficLightColors);
-                SustainabilityManager?.ImportState(State.SustainabilityScore, State.SustainabilityCertification);
+                SustainabilityManager?.ImportState(runtime.SustainabilityLiveScore ?? State.SustainabilityScore,
+                    runtime.SustainabilityLiveLevel ?? State.SustainabilityCertification);
                 if (runtime.CurrencyStatePresent)
                     CurrencySystem?.ImportCurrencyState((
                         runtime.CurrencyDay, runtime.CurrencyEur, runtime.CurrencyUsd,

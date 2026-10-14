@@ -30,6 +30,16 @@ namespace LakskongenSim.Biology
             /// </summary>
             public Farm.SmoltQualityTier Quality { get; set; } = Farm.SmoltQualityTier.Standard;
 
+            /// <summary>
+            /// Coefficient of variation of the fish weights in this cohort (S2-03):
+            /// the size spread harvest grading and the weight histogram read. The
+            /// growth law moves it toward the spread the feeding sets as the fish
+            /// grow. 0 = not yet known (a cohort just stocked, or one loaded from a
+            /// pre-S2-03 save): the first growth day sets it from the weight
+            /// (<see cref="TgcGrowthLaw.InitialWeightCv"/>).
+            /// </summary>
+            public double WeightCv { get; set; }
+
             // Constructor for easy initialization, matching the original record's constructor
             public Cohort(int ageDays, int count, double meanWeightKg, LifeStage stage, Genome? genetics = null)
             {
@@ -84,6 +94,40 @@ namespace LakskongenSim.Biology
 
         /// <summary>Site ID this population belongs to (for O(1) lookup instead of O(n) search).</summary>
         public string SiteId { get; set; } = "";
+
+        /// <summary>
+        /// How much of their appetite these fish are fed (S2-03): the input the
+        /// feeding plan (U2-04) sets per pen, tank or offshore pen. Saves from
+        /// before S2-03 load with full appetite.
+        /// </summary>
+        public Farm.RationPolicy Ration { get; set; } = Farm.RationPolicy.FullAppetite;
+
+        /// <summary>
+        /// Day these fish stopped being fed before slaughter (S2-04 harvest
+        /// pipeline), -1 when they are not fasting. While fasting the growth law
+        /// feeds them nothing whatever <see cref="Ration"/> says. Saves from
+        /// before S2-04 load with -1.
+        /// </summary>
+        public int FastingSinceDay { get; set; } = -1;
+
+        /// <summary>
+        /// Degree-days (°C × days of their own water) these fish have fasted
+        /// (S2-04): slaughter waits until the gut is empty
+        /// (<c>HarvestCalibration.FastingDegreeDays</c>).
+        /// </summary>
+        public double FastingDegreeDays { get; set; }
+
+        /// <summary>
+        /// Memory of cold water (0-1, S2-04): an exponential average of the days
+        /// the fish spent below the winter-wound temperature. Winter wounds
+        /// downgrade a harvest; a land tank at a controlled temperature never
+        /// builds any. Saves from before S2-04 load with 0.
+        /// </summary>
+        public double ColdExposure { get; set; }
+
+        /// <summary>True while these fish fast before slaughter (S2-04).</summary>
+        [JsonIgnore]
+        public bool IsFasting => FastingSinceDay >= 0;
 
         /// <summary>Growth penalty multiplier from disease resistance fitness cost. Serialized for save/load.</summary>
         public double GrowthPenalty { get => _growthPenalty; set => _growthPenalty = value; }

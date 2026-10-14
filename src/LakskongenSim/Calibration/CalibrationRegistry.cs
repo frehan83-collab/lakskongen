@@ -39,7 +39,7 @@ namespace LakskongenSim.Calibration
         public const string EmbeddedResourceName = "LakskongenSim.Calibration.calibration.json";
 
         /// <summary>Current schema/balancing version. Bump when reconciled values change.</summary>
-        public const string DefaultVersion = "1.0.6";
+        public const string DefaultVersion = "1.0.10";
 
         /// <summary>Calibration schema/balancing version.</summary>
         [JsonPropertyName("version")]
@@ -112,9 +112,46 @@ namespace LakskongenSim.Calibration
         /// </summary>
         [JsonPropertyName("seaTemperature")]
         public SeaTemperatureCalibration SeaTemperature { get; init; } = new();
+
         /// <summary>Mortality hazards by cause (S2-05): the temperature-stress band and rate.</summary>
         [JsonPropertyName("mortality")]
         public MortalityCalibration Mortality { get; init; } = new();
+
+        /// <summary>
+        /// Sea-phase growth (S2-03): thermal growth coefficient, thermal response,
+        /// size tail, growth-ration curve, FCR size factor and cohort weight CV.
+        /// </summary>
+        [JsonPropertyName("growth")]
+        public GrowthCalibration Growth { get; init; } = new();
+
+        /// <summary>
+        /// Harvest pipeline (S2-04): live-to-gutted yield, fasting, wellboat and
+        /// slaughter capacity and cost, the size-class price ladder and the
+        /// quality grades.
+        /// </summary>
+        [JsonPropertyName("harvest")]
+        public HarvestCalibration Harvest { get; init; } = new();
+
+        /// <summary>Oxygen in the water at the fish (wave 2 sim-a-1): the in-cage sag and a plankton bloom's crash.</summary>
+        [JsonPropertyName("waterOxygen")]
+        public WaterOxygenCalibration WaterOxygen { get; init; } = new();
+
+        /// <summary>
+        /// Capacity v1 (S2-01a): locality MTB of a built site, the farmer's
+        /// production plan for the projected-peak stocking check, and the
+        /// regulator's response to biomass over MTB (fee, confiscation, order).
+        /// </summary>
+        [JsonPropertyName("capacity")]
+        public CapacityCalibration Capacity { get; init; } = new();
+
+        /// <summary>
+        /// Real pens (S2-01b): the fish and density limits of one production
+        /// unit and the standard sea pen's net (the locality layouts of the
+        /// scenario sites are scenario data).
+        /// </summary>
+        [JsonPropertyName("pens")]
+        public PenCalibration Pens { get; init; } = new();
+
         /// <summary>
         /// Derived feed cost per kg of fish produced = feed price × base FCR.
         /// This is the reconciled "~25.7 NOK/kg produced" figure in
@@ -252,7 +289,7 @@ namespace LakskongenSim.Calibration
     /// <summary>Operations OPEX constants.</summary>
     public sealed record OperationsCalibration
     {
-        /// <summary>Harvest cost per kg (wellboat rates). Real ~3-5 NOK/kg.</summary>
+        /// <summary>Harvest cost per kg live (wellboat rates). Real ~3-5 NOK/kg. Since S2-04 the engine prices the harvest from <see cref="HarvestCalibration"/>; only SimProbe's synthetic P&amp;L reads this.</summary>
         public decimal HarvestCostPerKgNOK { get; init; } = 4.0m;
         /// <summary>Processing cost per kg.</summary>
         public decimal ProcessingCostPerKgNOK { get; init; } = 9m;
@@ -665,6 +702,692 @@ namespace LakskongenSim.Calibration
         /// matches it (a test reads both).
         /// </summary>
         public double TemperatureStressDailyFractionPerDegreeC { get; init; } = 0.00005;
+
+        // ── Low oxygen (wave 2 sim-a-1): one hazard at the fish's own oxygen ──
+
+        /// <summary>
+        /// Dissolved oxygen (unit mg/L) at and above which low oxygen kills no
+        /// fish: 3.0. Source: US EPA (1986), Ambient Water Quality Criteria for
+        /// Dissolved Oxygen, EPA 440/5-86-003, risk-level summary (p. 30),
+        /// salmonid waters, other life stages: "Limit to Avoid Acute Mortality
+        /// = 3" mg/L (severe production impairment 4, moderate 5, slight 6,
+        /// none 8), https://www.ezview.wa.gov/Portals/_1962/Documents/SSRSAG/EPA%201986%20Freshwater%20DO%20Recommendations.pdf.
+        /// Consistent with the critical oxygen level of Atlantic salmon in sea
+        /// water, below which they cannot hold their oxygen uptake: 3.46 and
+        /// 3.39 mg/L at 14 and 18 °C (Barnes, King &amp; Carter 2011,
+        /// Aquaculture 318:397-401, doi:10.1016/j.aquaculture.2011.06.003).
+        /// The plankton-crash event used the same 3 mg/L. Year 1986/2011.
+        /// </summary>
+        public double AcuteLowOxygenMgL { get; init; } = 3.0;
+
+        /// <summary>
+        /// Oxygen (unit mg/L) below which a day kills <see cref="LowOxygenDeathFractionSevere"/>: 2.0.
+        /// The plankton-crash event's step, kept (game estimate, 2026; no
+        /// published dose-response for whole sea cages).
+        /// </summary>
+        public double LowOxygenSevereMgL { get; init; } = 2.0;
+
+        /// <summary>
+        /// Oxygen (unit mg/L) below which a day kills <see cref="LowOxygenDeathFractionAnoxic"/>: 1.0.
+        /// The plankton-crash event's step, kept (game estimate, 2026).
+        /// </summary>
+        public double LowOxygenAnoxicMgL { get; init; } = 1.0;
+
+        /// <summary>
+        /// Fraction of a cohort killed by one exposure (a plankton-crash day, a
+        /// sag's weekly tick) below <see cref="AcuteLowOxygenMgL"/>: 0.10
+        /// (unit 1). The plankton-crash event's value, kept (game estimate,
+        /// 2026): EPA (1986) gives the limit, not the kill above it.
+        /// </summary>
+        public double LowOxygenDeathFraction { get; init; } = 0.10;
+
+        /// <summary>Fraction killed below <see cref="LowOxygenSevereMgL"/>: 0.25 (unit 1; plankton-crash value, game estimate 2026).</summary>
+        public double LowOxygenDeathFractionSevere { get; init; } = 0.25;
+
+        /// <summary>Fraction killed below <see cref="LowOxygenAnoxicMgL"/>: 0.50 (unit 1; plankton-crash value, game estimate 2026).</summary>
+        public double LowOxygenDeathFractionAnoxic { get; init; } = 0.50;
+    }
+
+    #endregion
+
+    #region Wave 2 sim-a-1 water oxygen
+
+    /// <summary>
+    /// Oxygen in the water at the fish (wave 2 sim-a-1): how far a cage's own
+    /// respiration draws its water below the zone's in an oxygen sag, and how
+    /// much oxygen a plankton bloom's collapse can take from the zone. The
+    /// low-oxygen hazard that reads the result is in
+    /// <see cref="MortalityCalibration"/> (<c>AcuteLowOxygenMgL</c>).
+    /// </summary>
+    public sealed record WaterOxygenCalibration
+    {
+        /// <summary>
+        /// Deepest in-cage oxygen sag of the bloom deck's <c>hypoxia</c> card,
+        /// as a fraction of the ambient (zone) oxygen the cage's water loses to
+        /// the fish's own respiration in warm, calm, stratified weeks: 0.42
+        /// (unit 1). A sag of severity s (0.4-1.0) holds the open-net cage at
+        /// (1 - s x 0.42) of the ambient oxygen; an O2 diffuser and the
+        /// containment's oxygen demand scale the depth. Source: Solstorm et al.
+        /// (2018), "Dissolved oxygen variability in a commercial sea-cage
+        /// exposes farmed Atlantic salmon to growth limiting conditions",
+        /// Aquaculture 486:122-129, doi:10.1016/j.aquaculture.2017.12.008:
+        /// in-cage readings 26-90 % saturation while the reference site stayed
+        /// at levels for maximum growth, about one reading in four
+        /// growth-limiting; the worst sag holds the cage's day at the middle of
+        /// that range, 58 % (1 - 0.58 = 0.42). The midpoint as a daily mean is a
+        /// game estimate: the paper reports readings, not daily means. In
+        /// saturated 15-16 °C water the worst open-net sag leaves a daily mean
+        /// of about 4.6 mg/L (58 %), above the 47 % limiting saturation Remen
+        /// et al. (2013, Aquaculture 416:41-47) measured at 16 °C, while its
+        /// night troughs fall below it: it costs appetite and gills, and kills
+        /// only when a closed pen's oxygen demand deepens it below the acute
+        /// limit or the zone's own water is already low. Year 2018.
+        /// </summary>
+        public double HypoxiaSagMaxDepth { get; init; } = 0.42;
+
+        /// <summary>
+        /// Chlorophyll a (unit µg/L) of a bloom at the plankton model's carrying
+        /// capacity (intensity 1.0): 10. The model blooms and crashes in every
+        /// zone each summer, so its capacity is a normal seasonal bloom, not a
+        /// harmful dense one. Source: NIVA, Årsovervåking med FerryBox - Indre
+        /// Oslofjord 2017 (L.nr. 7266, 2018): chlorophyll a 1-6.5 µg/L in the
+        /// production period, maximum in March; the 2018 report: below 0.3 to
+        /// 10.0 µg/L (2017: https://app.cristin.no/results/show.jsf?id=1580718;
+        /// 2018: https://agris.fao.org/search/en/records/6748e67a7625988a3721d891). The
+        /// inner Oslofjord is among Norway's most nutrient-rich coastal waters,
+        /// so 10 is a high seasonal peak. Year 2018.
+        /// </summary>
+        public double BloomChlorophyllAtCapacityUgL { get; init; } = 10.0;
+
+        /// <summary>
+        /// Phytoplankton carbon per chlorophyll a (unit g C per g Chl a): 50.
+        /// Game estimate (2026) inside the range of the 219 culture
+        /// measurements Cloern, Grenz &amp; Vidergar-Lucas (1995, Limnol.
+        /// Oceanogr. 40:1313-1321, doi:10.4319/lo.1995.40.7.1313) modelled
+        /// (about 10-330 g/g, by light, temperature and nutrients).
+        /// </summary>
+        public double PhytoplanktonCarbonPerChlorophyll { get; init; } = 50.0;
+
+        /// <summary>
+        /// Oxygen used to respire organic carbon (unit g O2 per g C): 3.47 =
+        /// 138 mol O2 per 106 mol C x 32/12. Source: Redfield, Ketchum &amp;
+        /// Richards (1963), "The influence of organisms on the composition of
+        /// sea-water", in The Sea vol. 2, pp. 26-77 (the Redfield ratio
+        /// C:N:P:-O2 = 106:16:1:138). Year 1963.
+        /// </summary>
+        public double OxygenPerOrganicCarbon { get; init; } = 3.47;
+
+        /// <summary>
+        /// Oxygen (unit mg/L) the whole of a bloom at carrying capacity takes
+        /// when it dies and is respired: chlorophyll x C:Chl x O2:C = 10 µg/L x
+        /// 50 x 3.47 / 1000 = 1.735 mg/L. A crash at the model's 0.85 threshold
+        /// (90 % of it dying) takes about 1.3 mg/L, so a typical seasonal
+        /// collapse holds the 3 m water near 85 % saturation, not the 37 % the
+        /// old 75 %-of-the-oxygen cut gave (2.4-3.3 mg/L, 4 times a career).
+        /// </summary>
+        [JsonIgnore]
+        public double BloomCrashOxygenDemandAtCapacityMgL
+            => BloomChlorophyllAtCapacityUgL * PhytoplanktonCarbonPerChlorophyll * OxygenPerOrganicCarbon / 1000.0;
+    }
+
+    #endregion
+
+    #region S2-03 growth (TGC), appetite and ration
+
+    /// <summary>
+    /// The sea-phase growth law (roadmap S2-03): growth by the thermal growth
+    /// coefficient, a thermal response with an optimum and an upper limit, a
+    /// size factor for large fish, appetite (satiation intake) by temperature and
+    /// size, the growth response to the ration fed, and the cohort weight CV.
+    /// The law takes the water a cohort lives in as an input
+    /// (<c>Environment.HoldingWater</c>), so sea pens, offshore hulls and land
+    /// tanks at a controlled temperature share it.
+    /// </summary>
+    public sealed record GrowthCalibration
+    {
+        /// <summary>
+        /// Thermal growth coefficient at full appetite, sea phase:
+        /// TGC = (W1^(1/3) − W0^(1/3)) / Σ(°C·day) × 1000, W in grams. 3.0.
+        /// Sources: Reid et al. 2013a, commercial Atlantic salmon, average 3.0
+        /// (remedial 2.5, elite 3.5), as used by Dempsey et al. 2023, Front. Mar.
+        /// Sci. 10:1094247 (doi:10.3389/fmars.2023.1094247); Karlsen et al. 2018,
+        /// Sci. Rep. 8:9510 (doi:10.1038/s41598-018-27818-y): 2.80 in an open net
+        /// pen and 3.04 in a semi-closed pen over the first 4 months at sea;
+        /// Benchmark Genetics 2024 (Arctic Fish, 6.5 kg after 16 months): 3.38.
+        /// Roadmap band 2.8-3.2.
+        /// </summary>
+        public double ThermalGrowthCoefficient { get; init; } = 3.0;
+
+        /// <summary>
+        /// Temperature with the highest growth (°C). 13. Source: Kleiven,
+        /// Abdel-Fattah &amp; Bøhn 2026, Front. Aquac. 5 (doi:10.3389/faquc.2026.1835152):
+        /// "optimal growth is commonly reported around 13 to 14 °C" for post-smolts
+        /// and adults in seawater; Calado et al. 2021, Animals 11(6):1800
+        /// (doi:10.3390/ani11061800): optimum 13-16 °C. Thyholdt 2014 (Aquac.
+        /// Econ. Manag. 18:189-204): warm periods speed growth in the north and
+        /// slow it in the south. Below the optimum the law counts degrees (TGC).
+        /// </summary>
+        public double OptimalTemperatureC { get; init; } = 13.0;
+
+        /// <summary>
+        /// Temperature at which growth stops (°C). 22. Source: Calado et al. 2021:
+        /// incremental thermal maximum ~22 °C (CTmax ~26 °C); 2 kg salmon held at
+        /// 19 °C ate and grew at least 50% less than at 14 °C over 56 days. With
+        /// a linear fall of the degree weight from 13 to 22 °C, growth at 19 °C is
+        /// 51% of growth at 14 °C.
+        /// </summary>
+        public double UpperGrowthLimitC { get; init; } = 22.0;
+
+        /// <summary>
+        /// Growth per 12 hours of day length above 12 h (photoperiod slope): the
+        /// satiation gain is multiplied by 1 + slope × (D − 12) / 12, D the hours of
+        /// daylight the holding gets. 0.2 (+20% under continuous light, −20% in
+        /// polar night). Game estimate in the range of sea-cage light trials
+        /// (Endal et al. 2000, Aquaculture 191:337-349: continuous additional light
+        /// raised growth). Source of the effect: Aunsmo et al. 2014, Aquaculture
+        /// 428-429:249-257 (doi:10.1016/j.aquaculture.2014.03.007): on 827
+        /// Norwegian fish groups the TGC was strongly associated with mean day
+        /// length, so a temperature-only TGC is biased along the coast; the Ewos
+        /// growth index that fitted best accounts for light. Below the optimum the
+        /// law counts degree-days (TGC; valid at 4-14 °C, Alanärä et al. 2001):
+        /// growth at 4 °C is 4/13 = 0.31 of the optimum, at 5 °C 0.38.
+        /// </summary>
+        public double PhotoperiodGrowthSlope { get; init; } = 0.2;
+
+        /// <summary>
+        /// Weight (kg) above which the TGC law no longer holds and growth slows
+        /// toward <see cref="AsymptoticWeightKg"/>. 3.0. Source: Alanärä et al.
+        /// 2001: TGC valid for 100-3000 g; Dumas et al. 2007 (cited by Kleiven et
+        /// al. 2026): the cube-root TGC fits intermediate-sized fish better than
+        /// very small or large fish.
+        /// </summary>
+        public double TgcValidToKg { get; init; } = 3.0;
+
+        /// <summary>
+        /// Weight (kg) at which growth stops: above <see cref="TgcValidToKg"/> the
+        /// cube-root increment falls linearly in cube-root weight to zero here
+        /// (a von Bertalanffy tail). 20. Game estimate: large farmed broodstock;
+        /// gives ~0.79 of the TGC rate at 5 kg and lets fish grown on pass 6 kg.
+        /// </summary>
+        public double AsymptoticWeightKg { get; init; } = 20.0;
+
+        /// <summary>
+        /// Maintenance ration as a fraction of satiation: the ration at which a
+        /// fish neither gains nor loses weight. 0.10. Game estimate on the shape
+        /// of Brett 1979 (Fish Physiology VIII, growth-ration curves of salmonids):
+        /// maintenance is a small fraction of the maximum ration.
+        /// </summary>
+        public double MaintenanceRationFraction { get; init; } = 0.10;
+
+        /// <summary>
+        /// Curvature of the growth-ration curve
+        /// g(r) = (1 − e^(−a(r − m))) / (1 − e^(−a(1 − m))). 0.5 puts the optimum
+        /// ration (the best conversion) near 70% of satiation (Brett 1979: the
+        /// optimum ration lies below the maximum). Feeding 70% of appetite then
+        /// grows the fish 72% as fast at a 2% lower biological FCR; starving
+        /// (r = 0) loses weight at 14% of the satiation growth rate.
+        /// </summary>
+        public double RationCurvature { get; init; } = 0.5;
+
+        /// <summary>
+        /// Biological FCR scales with fish size as (W / reference)^exponent:
+        /// small fish convert better than large ones. 0.07 (0.81 at 100 g, 1.07 at
+        /// 5 kg). Game estimate fitted to the 1.14-1.15 biological FCR of a full
+        /// cycle (SalMar sustainability reports, <see cref="FeedCalibration.BaseFCR"/>).
+        /// </summary>
+        public double FcrSizeExponent { get; init; } = 0.07;
+
+        /// <summary>Weight (kg) at which the size factor of the FCR is 1. 2.0.</summary>
+        public double FcrReferenceWeightKg { get; init; } = 2.0;
+
+        /// <summary>
+        /// Weight CV of a smolt cohort at sea transfer. 0.18. Source: Karlsen et
+        /// al. 2018, Table 1: 101 g smolts, one month after transfer weight SD
+        /// 19.6 g (net pen, CV 17%) and 23.8 g (semi-closed, CV 21%).
+        /// </summary>
+        public double SmoltWeightCv { get; init; } = 0.18;
+
+        /// <summary>
+        /// Weight CV a cohort settles at under perfect feed spreading and full
+        /// ration. 0.20. Game estimate: harvest classes of a 5 kg Norwegian
+        /// harvest spread over 3-7 kg; poor spreading adds up to
+        /// <c>FeedSystem.MaxExtraSizeVarianceCv</c>.
+        /// </summary>
+        public double BaseWeightCv { get; init; } = 0.20;
+
+        /// <summary>
+        /// Extra weight CV at zero ration: restricted feeding sharpens competition
+        /// and widens the size spread (scaled by 1 − ration). 0.10. Game estimate.
+        /// </summary>
+        public double RestrictedRationExtraCv { get; init; } = 0.10;
+
+        /// <summary>
+        /// How fast the cohort CV moves to its settled value per unit of relative
+        /// growth in cube-root weight (dCV = (CV* − CV) × k × ΔL/L). 2.0. Game
+        /// estimate: a cohort grown from 100 g to 5 kg covers ~93% of the way.
+        /// </summary>
+        public double WeightCvRelaxation { get; init; } = 2.0;
+    }
+
+    #endregion
+
+    #region S2-04 harvest pipeline
+
+    /// <summary>
+    /// The harvest pipeline (roadmap S2-04): what a live kilo becomes at the
+    /// slaughterhouse and what it earns. Fish fast before slaughter, a wellboat
+    /// carries them to a slaughterhouse with a daily capacity (or a land-based
+    /// farm pipes them to its own hall), they are bled and gutted (HOG), sorted
+    /// into size classes on the gutted weight and into the industry's quality
+    /// grades, and sold at the reference price for superior HOG fish times the
+    /// size-class and grade factors, less the harvest cost.
+    /// </summary>
+    public sealed record HarvestCalibration
+    {
+        // ── Yield ──────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Gutted (head-on gutted, HOG) weight per kg of live fish. 0.84.
+        /// Source: Mowi, Salmon Farming Industry Handbook 2025, appendix "weight
+        /// conversion ratios" (https://mowi.com/wp-content/uploads/2025/06/2025-Salmon-Farming-Industry-Handbook.pdf,
+        /// p. 114): live fish 100%, loss of blood/starving 6%, offal 10%, gutted
+        /// fish (HOG) approx. 84%; the 2018 edition gives 84% too, and the capital
+        /// model on p. 75 uses "conversion rate from live weight to GWT: 0.84".
+        /// </summary>
+        public double HogYieldFraction { get; init; } = 0.84;
+
+        // ── Fasting ────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Degree-days (°C × days) fish fast before slaughter. 30. Regulatory
+        /// basis: kvalitetsforskriften (FOR-2013-06-28-844) § 16, farmed fish must
+        /// have been without feed long enough that no feed residue can be found
+        /// in the stomach or gut; akvakulturdriftsforskriften (FOR-2008-06-17-822)
+        /// § 27, the period without feed shall be as short as possible. The
+        /// duration is a game estimate, in degree-days because the gut empties
+        /// more slowly in cold water: 3 days at 10 °C, 6 at 5 °C, 2 at 15 °C.
+        /// </summary>
+        public double FastingDegreeDays { get; init; } = 30.0;
+
+        /// <summary>Fewest days of fasting before slaughter, whatever the temperature. 2. Game estimate.</summary>
+        public int MinFastingDays { get; init; } = 2;
+
+        // ── Wellboat and slaughterhouse ─────────────────────────────────────
+
+        /// <summary>
+        /// Days from ordering a harvest to the first wellboat slot. 5. Game
+        /// estimate: the lead time the game's harvest wellboat booking already
+        /// used (<c>RequestWellboat("harvest")</c>).
+        /// </summary>
+        public int WellboatLeadDays { get; init; } = 5;
+
+        /// <summary>
+        /// Live fish one harvest wellboat carries to the slaughterhouse a day
+        /// (tonnes). 300. Game estimate: one trip a day with a 3,000 m³ wellboat
+        /// (Sølvtrans' Ronja Queen class, docs/run/evidence/a3_01_vessels.md) at
+        /// about 100 kg/m³; the transport regulation (FOR-2008-06-17-820 § 14)
+        /// sets no number, only that density suit the fish's welfare.
+        /// </summary>
+        public double WellboatCapacityTonnesLivePerDay { get; init; } = 300.0;
+
+        /// <summary>
+        /// Gutted fish the player's slaughterhouse contract takes a day (tonnes
+        /// HOG). 150. Game estimate: Norway slaughtered 1,408,650 t of gutted
+        /// salmon in 2024 (Veterinærinstituttet, Fiskehelserapporten 2024, table
+        /// 5.8.1) at about 60 land-based slaughterhouses and 40 bleeding vessels
+        /// (ibid. §5.8): about 56 t per facility per working day on average,
+        /// large plants several hundred.
+        /// </summary>
+        public double SlaughterCapacityTonnesHogPerDay { get; init; } = 150.0;
+
+        /// <summary>
+        /// Wellboat transport per kg HOG (NOK). 1.55. With
+        /// <see cref="SlaughterCostPerKgHogNok"/> the harvest costs 5.0 NOK/kg HOG:
+        /// Fiskeridirektoratet's profitability survey 2023, "slakting og transport"
+        /// 4.45 NOK per kg round weight (Veterinærinstituttet, Fiskehelserapporten
+        /// 2024, table 3.2.1, https://www.vetinst.no/rapporter-og-publikasjoner/rapporter/2025/fiskehelserapporten-2024)
+        /// with the report's 12.5% gutting loss (4.45 × 1.125 = 5.0); Mowi Handbook
+        /// 2025, p. 75: harvest and processing incl. well boat EUR 0.40 per kg GWT
+        /// (≈ 4.7 NOK). Split 31/69 as Marine Harvest Norway 2017 (Handbook 2018,
+        /// p. 48: well boat EUR 0.15, primary processing 0.33 per kg GWE).
+        /// </summary>
+        public decimal WellboatCostPerKgHogNok { get; init; } = 1.55m;
+
+        /// <summary>Slaughter, gutting and packing per kg HOG (NOK). 3.45. Sources: see <see cref="WellboatCostPerKgHogNok"/>.</summary>
+        public decimal SlaughterCostPerKgHogNok { get; init; } = 3.45m;
+
+        /// <summary>
+        /// Extra cost per kg HOG of a harvest taken today without a plan (NOK):
+        /// a spot wellboat and the slaughterhouse's waiting pen, where the fish
+        /// fast before slaughter. 1.0. Game estimate.
+        /// </summary>
+        public decimal ExpressSurchargePerKgHogNok { get; init; } = 1.0m;
+
+        /// <summary>
+        /// Wellboat cost of an exposed offshore farm relative to a coastal site.
+        /// 1.5. Game estimate (the farm-types spec's offshore wellboat premium).
+        /// </summary>
+        public decimal OffshoreWellboatCostMultiplier { get; init; } = 1.5m;
+
+        // ── Size-class price ladder ─────────────────────────────────────────
+        // Factors on the reference price (superior HOG, the 4-5 kg class), by
+        // the GUTTED weight of the fish (the industry's size classes are HOG).
+        // Source: Kontali relative prices in Norway, weekly 2015-2024, in Mowi's
+        // Salmon Farming Industry Handbook 2025, §6.7 "Different sizes - different
+        // prices" (p. 49): 2-3 kg traded at about 86% of 4-5 kg on average
+        // (70-97%), 6-7 kg at about 108% (95-150%, peaks in summer); the
+        // Handbook 2018 (§5.7, 2008-2016) shows the same pattern. 3-4 and 5-6 kg
+        // are interpolated, under 2 kg and over 7 kg extrapolated (game
+        // estimates). The reference spot (Nasdaq/SISALMON) is the 3-6 kg basket,
+        // within 1% of the 4-5 kg class on these factors.
+
+        /// <summary>Price factor of fish under 1 kg HOG. 0.60. Game estimate (extrapolated).</summary>
+        public double PriceFactorUnder1Kg { get; init; } = 0.60;
+        /// <summary>Price factor of the 1-2 kg HOG class. 0.72. Game estimate (extrapolated with the 2-3 to 4-5 kg step).</summary>
+        public double PriceFactor1To2Kg { get; init; } = 0.72;
+        /// <summary>Price factor of the 2-3 kg HOG class. 0.86 (Kontali, 2015-2024 mean).</summary>
+        public double PriceFactor2To3Kg { get; init; } = 0.86;
+        /// <summary>Price factor of the 3-4 kg HOG class. 0.93 (interpolated).</summary>
+        public double PriceFactor3To4Kg { get; init; } = 0.93;
+        /// <summary>Price factor of the 4-5 kg HOG class: the reference. 1.00.</summary>
+        public double PriceFactor4To5Kg { get; init; } = 1.00;
+        /// <summary>Price factor of the 5-6 kg HOG class. 1.04 (interpolated).</summary>
+        public double PriceFactor5To6Kg { get; init; } = 1.04;
+        /// <summary>Price factor of the 6-7 kg HOG class. 1.08 (Kontali, 2015-2024 mean).</summary>
+        public double PriceFactor6To7Kg { get; init; } = 1.08;
+        /// <summary>Price factor of fish of 7 kg HOG and more. 1.10. Game estimate (extrapolated).</summary>
+        public double PriceFactorOver7Kg { get; init; } = 1.10;
+
+        // ── Quality grades ──────────────────────────────────────────────────
+        // After slaughter fish are sorted into superior, ordinary and production
+        // (Veterinærinstituttet, Fiskehelserapporten 2024 §5.8). Norway 2024 by
+        // weight: superior 80.6%, ordinary 1.5%, production 17.1% (table 5.8.1);
+        // superior about 65% in the first half year and 90% in the second (figure
+        // 5.8.6); the commonest cause of downgrading is wounds/injuries
+        // ("sår/skade"), then maturation, defects and clinical disease.
+
+        /// <summary>Price of ordinary-grade fish relative to superior. 0.90. Game estimate.</summary>
+        public double OrdinaryPriceFactor { get; init; } = 0.90;
+
+        /// <summary>
+        /// Price of production-grade fish relative to superior. 0.70. Source:
+        /// Mowi Handbook 2025, p. 116: "reduced price of downgraded fish (~30%)".
+        /// </summary>
+        public double ProductionPriceFactor { get; init; } = 0.70;
+
+        /// <summary>
+        /// Share (by weight) of a healthy, unwounded batch graded production
+        /// (deformities and other defects). 0.05. Game estimate: with the
+        /// ordinary share a healthy late-summer batch grades ~92% superior
+        /// (Norway, second half of 2024: ~90%).
+        /// </summary>
+        public double BaseProductionShare { get; init; } = 0.05;
+
+        /// <summary>Share (by weight) graded ordinary. 0.015 (Norway 2024: 20,976 of 1,408,650 t, table 5.8.1).</summary>
+        public double OrdinaryShare { get; init; } = 0.015;
+
+        /// <summary>Water colder than this (°C) exposes the fish to winter wounds (winter ulcers). 8. Game estimate.</summary>
+        public double WinterWoundTemperatureC { get; init; } = 8.0;
+
+        /// <summary>E-folding time (days) of a population's cold-water exposure memory. 60. Game estimate.</summary>
+        public double ColdExposureEFoldingDays { get; init; } = 60.0;
+
+        /// <summary>
+        /// Extra production share at full cold-water exposure (a harvest right
+        /// after a winter at sea). 0.30. Game estimate, tuned so a spring harvest
+        /// grades ~65% superior and a late-summer one ~90% (Norway 2024, H1/H2).
+        /// </summary>
+        public double WinterWoundProductionShare { get; init; } = 0.30;
+
+        /// <summary>
+        /// Extra production share per unit of delousing injury load
+        /// (<c>Health.DelousingInjuryState.InjuryLoad</c>; a fresh thermal
+        /// treatment adds 0.35). 0.25. Game estimate (injuries after delousing
+        /// are among the most important health problems at sea, Fiskehelserapporten 2024).
+        /// </summary>
+        public double TreatmentWoundProductionSharePerInjury { get; init; } = 0.25;
+
+        /// <summary>Most production share delousing injuries add. 0.5. Game estimate.</summary>
+        public double MaxTreatmentWoundProductionShare { get; init; } = 0.5;
+
+        /// <summary>Extra production share per adult female louse per fish (lice wounds). 0.05. Game estimate.</summary>
+        public double LiceWoundProductionSharePerLouse { get; init; } = 0.05;
+
+        /// <summary>Most production share lice wounds add. 0.2. Game estimate.</summary>
+        public double MaxLiceWoundProductionShare { get; init; } = 0.2;
+
+        /// <summary>
+        /// Mean live weight (kg) above which sexual maturation starts to
+        /// downgrade a batch. 6.0. Game estimate (maturation is the second
+        /// commonest cause of downgrading; fish grown on mature more).
+        /// </summary>
+        public double MaturationStartWeightKg { get; init; } = 6.0;
+
+        /// <summary>Extra production share per kg of mean live weight above <see cref="MaturationStartWeightKg"/>. 0.08. Game estimate.</summary>
+        public double MaturationProductionSharePerKg { get; init; } = 0.08;
+
+        /// <summary>Most production share maturation adds. 0.4. Game estimate.</summary>
+        public double MaxMaturationProductionShare { get; init; } = 0.4;
+
+        /// <summary>Harvest reports the game keeps (newest last). 40.</summary>
+        public int ReportsKept { get; init; } = 40;
+    }
+
+    #endregion
+
+    #region S2-01a capacity: licences and MTB
+
+    /// <summary>
+    /// Capacity v1 (roadmap S2-01a). Licence MTB itself (780 t, 945 t in Troms
+    /// and Finnmark) is S2-02's area data (<c>ProductionAreas.LicenceMtbTonnes</c>);
+    /// this section holds the locality MTB of a built site, the production plan
+    /// the stocking check projects, and the regulator's response to standing
+    /// biomass over MTB. The plan's harvest weight and expected cycle loss are
+    /// <see cref="BiologyCalibration.TargetHarvestWeightKg"/> and
+    /// <see cref="HealthCalibration.SeaMortalityPerCycle"/> over
+    /// <see cref="BiologyCalibration.GrowthToHarvestDays"/>; the feed price of
+    /// the confiscation is <see cref="FeedCalibration.FeedPricePerKgFeedNOK"/>.
+    /// </summary>
+    public sealed record CapacityCalibration
+    {
+        /// <summary>
+        /// Locality MTB (unit t) a site the player builds is cleared for: 3,120.
+        /// Source: Nærings- og fiskeridepartementet, letter "Vedrørende
+        /// implementering av nytt system for kapasitetsjusteringer i norsk
+        /// lakse- og ørretoppdrett", 20.09.2017, ref 15/4396-64, point 5: a
+        /// locality "godkjent for 3120 tonn MTB (tilsvarende 4 tillatelser)"
+        /// needs no licences to fill it, and licences cannot clear localities
+        /// (point 4)
+        /// (https://www.fiskeridir.no/Akvakultur/Tildeling-og-tillatelser/Kapasitetsjustering-trafikklyssystemet/Implementering-av-produksjonsomraader-2017).
+        /// Building a site therefore adds this locality cap and 0 t of licence
+        /// MTB. Year 2017.
+        /// </summary>
+        public double BuiltSiteLocalityMtbTonnes { get; init; } = 3_120.0;
+
+        /// <summary>
+        /// Thermal growth coefficient (unit g^(1/3) per 1000 °C-days) the
+        /// farmer's production plan grows fish with: 2.8. Source: Nofima and
+        /// SalMar's 2012 tanks-versus-cages trial, sea cages TGC 2.8 ± 0.3
+        /// (Espmark, reported by Hatchery International, "Tanks vs cages",
+        /// https://www.hatcheryinternational.com/tanks-vs-cages-1268/); the
+        /// CtrlAQUA sea-phase groups grew at 2.9-3.3, "good growth compared to
+        /// the performance in commercial farming" (Fish Farming Expert,
+        /// 8 March 2018). 2.8 is a commercial planning value: 100 g to 5.2 kg
+        /// takes about 4,500 °C-days, 15-16 months at 9.5 °C. Years 2012/2018.
+        /// </summary>
+        public double PlanningThermalGrowthCoefficient { get; init; } = 2.8;
+
+        /// <summary>
+        /// Days the production plan looks ahead at most (unit d): 1,095. Game
+        /// estimate (2026): three years holds a 100 g smolt to harvest weight
+        /// in the coldest area (PO13) on the planning TGC.
+        /// </summary>
+        public int PlanningHorizonDays { get; init; } = 1_095;
+
+        /// <summary>
+        /// Days the regulator gives to bring biomass back under MTB (unit d):
+        /// 14. Game estimate (2026), the same deadline as the red-zone over-MAB
+        /// order (Phase 5.5). The real order follows the monthly biomass report
+        /// (akvakulturdriftsforskriften § 44, due the 7th of the next month);
+        /// the game's regulator reads the biomass every day.
+        /// </summary>
+        public int OrderDeadlineDays { get; init; } = 14;
+
+        /// <summary>
+        /// Ceiling of one infringement fee (unit G, folketrygdens grunnbeløp):
+        /// 15. Source: FOR-2013-12-20-1675 (forskrift om reaksjoner, sanksjoner
+        /// med mer ved overtredelse av akvakulturloven) § 8: "Overtredelsesgebyret
+        /// skal ikke overstige 15 ganger folketrygdens grunnbeløp"
+        /// (https://lovdata.no/dokument/SF/forskrift/2013-12-20-1675). Year 2013
+        /// (in force, last amended 2025).
+        /// </summary>
+        public double InfringementFeeCeilingG { get; init; } = 15.0;
+
+        /// <summary>
+        /// Folketrygdens grunnbeløp (unit NOK): 136,549 from 1 May 2026.
+        /// Source: NAV, "Regulering 2026" (https://www.nav.no/regulering-2026)
+        /// and Arbeids- og inkluderingsdepartementet (trygdeoppgjøret 2026).
+        /// Year 2026.
+        /// </summary>
+        public decimal GrunnbelopNok { get; init; } = 136_549m;
+
+        /// <summary>
+        /// Live-to-gutted factor of the confiscation's sales price (unit 1):
+        /// 0.83. Source: FOR-2013-12-20-1675 § 6: the sales price is
+        /// "omregnet fra levende vekt til sløyd fisk med 0,83 for laks". Year 2013.
+        /// </summary>
+        public double LiveToGuttedFactor { get; init; } = 0.83;
+
+        /// <summary>
+        /// Economic feed factor of the confiscation's feed cost (unit kg feed
+        /// per kg fish): 1.30. Source: Fiskeridirektoratet,
+        /// "Lønnsomhetsundersøkelse for produksjon av laks og regnbueørret 2024"
+        /// (published 13.11.2025), table C.5.1: national average 1.30
+        /// (https://kudos.dfo.no/documents/422880/files/49077.pdf). FOR-2013-12-20-1675
+        /// § 6 takes the average economic feed factor from this survey. Year 2024.
+        /// </summary>
+        public double EconomicFeedFactor { get; init; } = 1.30;
+
+        /// <summary>
+        /// Other variable costs per kg of the confiscation (unit NOK/kg): 4.93 =
+        /// insurance 0.26 + slaughter incl. freight 4.67. Source: Fiskeridirektoratet,
+        /// Lønnsomhetsundersøkelse 2024, table A.3.1 (same URL as
+        /// <see cref="EconomicFeedFactor"/>); FOR-2013-12-20-1675 § 6 names
+        /// exactly these two. Year 2024.
+        /// </summary>
+        public decimal OtherVariableCostPerKgNok { get; init; } = 4.93m;
+
+        /// <summary>
+        /// Price the regulator's forced harvest sells at, as a fraction of spot
+        /// (unit 1): 0.70. Game estimate (2026), the red-zone over-MAB forced
+        /// harvest's rule (Phase 5.5): fish taken out of plan, at the company's
+        /// cost (akvakulturloven § 29, tiltak for den ansvarliges regning).
+        /// </summary>
+        public double ForcedHarvestPriceFactor { get; init; } = 0.70;
+
+        /// <summary>
+        /// Headroom the forced harvest leaves under each cap (unit 1): 0.05.
+        /// Game estimate (2026): about two to three weeks of growth at harvest
+        /// size (0.2-0.3 % a day), so the order is not re-opened the next morning.
+        /// </summary>
+        public double ForcedHarvestHeadroomFraction { get; init; } = 0.05;
+
+        /// <summary>
+        /// Highest stocking density in a sea production unit (unit kg/m³): 25.
+        /// Source: akvakulturdriftsforskriften (FOR-2008-06-17-822) § 25
+        /// "Tetthet": the fish density per production unit of food-fish salmon
+        /// and rainbow trout shall not exceed 25 kg/m³
+        /// (https://lovdata.no/dokument/SF/forskrift/2008-06-17-822). Year 2008.
+        /// The biology tick spreads a stocking over as many density proxy pens
+        /// as this density needs at <see cref="DensityReferenceWeightKg"/>
+        /// (wave-2 sim integration: S2-01a lets a site stock 170,000-560,000
+        /// smolts at once, which one 10,000 m³ proxy pen packed at 90-280 kg/m³).
+        /// </summary>
+        public double MaxStockingDensityKgPerM3 { get; init; } = 25.0;
+
+        /// <summary>
+        /// Live weight (unit kg) at which a stocking's proxy pens stand at
+        /// <see cref="MaxStockingDensityKgPerM3"/>: 5.0, the harvest size S2-03's
+        /// acceptance grows to and the 4-5 kg reference class of the spot (S2-04).
+        /// With the 10,000 m³ proxy pen it puts 50,000 fish in a pen, S2-03's
+        /// commercial pen. Game estimate (2026) of the farmer's stocking plan.
+        /// </summary>
+        public double DensityReferenceWeightKg { get; init; } = 5.0;
+
+        /// <summary>Ceiling of one infringement fee in NOK (<see cref="InfringementFeeCeilingG"/> × G).</summary>
+        [JsonIgnore]
+        public decimal InfringementFeeCeilingNok => Math.Round((decimal)InfringementFeeCeilingG * GrunnbelopNok, 0);
+    }
+
+    #endregion
+
+    #region S2-01b real pens
+
+    /// <summary>
+    /// Real pens (roadmap S2-01b). A sea site is a frame mooring of pens
+    /// (production units, <see cref="Farm.Pen"/>); the regulator caps the fish
+    /// and the density of each unit, and the volume the fish can move in follows
+    /// from the net: the wall's cylinder plus the cone,
+    /// C² / (4π) × (wall + cone / 3). The density limit itself is
+    /// <see cref="CapacityCalibration.MaxStockingDensityKgPerM3"/> (§ 25); the
+    /// projected density of a stocking grows the smolts on the S2-03 growth law
+    /// to the plan's harvest weight (<see cref="BiologyCalibration.TargetHarvestWeightKg"/>)
+    /// with the plan's survival (<see cref="HealthCalibration.SeaMortalityPerCycle"/>
+    /// over <see cref="BiologyCalibration.GrowthToHarvestDays"/>), the plan of
+    /// S2-01a.
+    /// </summary>
+    public sealed record PenCalibration
+    {
+        /// <summary>
+        /// Most fish one production unit in the sea may hold (unit fish):
+        /// 200,000. Source: akvakulturdriftsforskriften (FOR-2008-06-17-822)
+        /// § 47a "Maksimalt antall fisk": "Antall fisk per produksjonsenhet i
+        /// sjø skal ikke overstige 200 000"
+        /// (https://lovdata.no/dokument/SF/forskrift/2008-06-17-822), added by
+        /// FOR-2011-12-20-1413 and in force from 1 January 2013; § 70 exempts
+        /// units holding fish stocked before that day. Year 2013 (read 2026).
+        /// </summary>
+        public int MaxFishPerPen { get; init; } = 200_000;
+
+        /// <summary>
+        /// Collar circumference of the standard sea pen (unit m): 160. Source:
+        /// iLaks, "Her ferdigstilles nettene til en 160 meters merd", 9 March
+        /// 2020: the largest pens in Norway are 200 m around, "men 160 meter er
+        /// etter hvert blitt standard"; slightly smaller circumferences are used
+        /// in the north and on rough sites
+        /// (https://ilaks.no/her-ferdigstilles-nettene-til-en-160-meters-merd/).
+        /// Bergheim (2012, Lat. Am. J. Aquat. Res. 40(3): 800-807) gives a
+        /// maximum of 157 m and 20-50 m net depths
+        /// (https://www.redalyc.org/pdf/1750/175024151027.pdf). Year 2020.
+        /// </summary>
+        public double StandardCircumferenceM { get; init; } = 160.0;
+
+        /// <summary>
+        /// Depth of the standard net's vertical wall (unit m): 25. Source: the
+        /// net of the 160 m pen in the iLaks article above is "40 meter dypt";
+        /// the split into a 25 m wall and a 15 m cone bottom is a game estimate
+        /// (2026) inside Bergheim's 20-50 m net depths, and gives the standard
+        /// pen 61,116 m³, inside the 20,000-60,000+ m³ of the industry's large
+        /// cages (Bergheim 2012). Year 2020.
+        /// </summary>
+        public double StandardNetWallDepthM { get; init; } = 25.0;
+
+        /// <summary>
+        /// Height of the standard net's cone bottom (unit m): 15. See
+        /// <see cref="StandardNetWallDepthM"/>: 25 m wall + 15 m cone = the 40 m
+        /// net of a 160 m pen (iLaks 2020); the split is a game estimate (2026).
+        /// </summary>
+        public double StandardConeDepthM { get; init; } = 15.0;
+
+        /// <summary>
+        /// Pens in the mooring frame of a site the player builds (unit pens):
+        /// 8. Game estimate (2026) inside the 6-12 pens of a Norwegian salmon
+        /// locality (roadmap S2-01b), equal to the standard site the crew and
+        /// upkeep are calibrated for (<c>SimulationEngine.StandardPensPerSite</c>).
+        /// Eight 160 m pens hold 1.6 M smolts, enough to fill the 3,120 t
+        /// locality a build clears (<see cref="CapacityCalibration.BuiltSiteLocalityMtbTonnes"/>).
+        /// </summary>
+        public int BuiltSitePenCount { get; init; } = 8;
     }
 
     #endregion

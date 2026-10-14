@@ -364,6 +364,16 @@ public partial class GameBridge : Node
                     EmitSignal(SignalName.FarmActionCompleted, "harvest", note.SiteId, note.Success);
                     engine.Audio?.TriggerAlert("harvest");
                     break;
+                case "harvest_batch":
+                    // S2-04: a planned harvest slaughtered a batch (cash moved).
+                    EmitSignal(SignalName.GameStateUpdated);
+                    break;
+                case "harvest_completed":
+                    // S2-04: the order's last batch: one harvest toast per harvest.
+                    EmitSignal(SignalName.FarmActionCompleted, "harvest", note.SiteId, note.Success);
+                    if (note.Success) engine.Audio?.TriggerAlert("harvest");
+                    EmitSignal(SignalName.GameStateUpdated);
+                    break;
                 case "wellboat_rov":
                 case "wellboat_freshwater":
                     EmitSignal(SignalName.FarmActionCompleted, "wellboat", note.SiteId, note.Success);
@@ -382,6 +392,13 @@ public partial class GameBridge : Node
                 case "license_auction":
                     // Phase 4.1: growth-licence auction opened/settled — push a
                     // generic refresh so map/UI toasts re-read auction state.
+                    EmitSignal(SignalName.GameStateUpdated);
+                    break;
+                case "capacity_breach":
+                case "capacity_complied":
+                    // S2-01a: a biomass-over-MTB order opened, closed or ended in
+                    // a forced harvest; the capacity overview re-reads it.
+                    if (note.Kind == "capacity_breach") engine.Audio?.TriggerAlert("market_crash");
                     EmitSignal(SignalName.GameStateUpdated);
                     break;
             }

@@ -302,7 +302,7 @@ namespace LakskongenSim.Advisor
                 DaysInSea = daysInSea,
                 MortalityRate = mortalityRate,
                 SeaLiceCount = pen.SeaLiceLoad,
-                StockingDensity = site.CurrentStockingDensity
+                StockingDensity = site.DensestPenKgPerM3
             };
 
             // Harvest timing recommendation
@@ -398,19 +398,19 @@ namespace LakskongenSim.Advisor
             var recs = new List<Recommendation>();
 
             // Stocking density check
-            if (site.CurrentStockingDensity > MAX_STOCKING_DENSITY)
+            if (site.DensestPenKgPerM3 > MAX_STOCKING_DENSITY)
             {
                 _alertSystem.OperationalAlert(
                     AlertSeverity.Critical,
                     "Overbefolking i merd",
-                    $"Tettheten i {site.Id} er {site.CurrentStockingDensity:F1} kg/m³, over maksimum {MAX_STOCKING_DENSITY} kg/m³.",
+                    $"Tettheten i den tetteste merden på {site.Label} er {site.DensestPenKgPerM3:F1} kg/m³, over maksimum {MAX_STOCKING_DENSITY} kg/m³.",
                     site.Id);
 
                 recs.Add(CreateRecommendation(
                     RecommendationType.PenManagement,
                     RecommendationCategory.Compliance,
                     "🚨 Reduser tetthet umiddelbart",
-                    $"Tetthet på {site.CurrentStockingDensity:F1} kg/m³ overstiger tillatt grense.",
+                    $"Tetthet på {site.DensestPenKgPerM3:F1} kg/m³ overstiger tillatt grense.",
                     "Slakte eller flytt fisk umiddelbart for å redusere tetthet. Risiko for velferdsbrudd og bot.",
                     site.ZoneId,
                     site.Id,
@@ -419,16 +419,16 @@ namespace LakskongenSim.Advisor
                     expectedImpact: -200_000m,
                     bioContext: new BiologicalFactors
                     {
-                        StockingDensity = site.CurrentStockingDensity
+                        StockingDensity = site.DensestPenKgPerM3
                     }));
             }
-            else if (site.CurrentStockingDensity > WARNING_STOCKING_DENSITY)
+            else if (site.DensestPenKgPerM3 > WARNING_STOCKING_DENSITY)
             {
                 recs.Add(CreateRecommendation(
                     RecommendationType.PenManagement,
                     RecommendationCategory.Operations,
                     "⚠️ Høy tetthet - planlegg uttak",
-                    $"Tetthet på {site.CurrentStockingDensity:F1} kg/m³ nærmer seg maksimum.",
+                    $"Tetthet på {site.DensestPenKgPerM3:F1} kg/m³ nærmer seg maksimum.",
                     "Planlegg delslakting innen 2-4 uker for å opprettholde god fiskevelferd og vekst.",
                     site.ZoneId,
                     site.Id,
@@ -437,7 +437,7 @@ namespace LakskongenSim.Advisor
                     expectedImpact: 50_000m,
                     bioContext: new BiologicalFactors
                     {
-                        StockingDensity = site.CurrentStockingDensity
+                        StockingDensity = site.DensestPenKgPerM3
                     }));
             }
 

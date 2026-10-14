@@ -192,6 +192,10 @@ namespace LakskongenSim.Tests.Balance
     /// is genuinely per cycle rather than a 3-year accumulation, and feed cost
     /// per kg produced is measured per harvested cycle.
     ///
+    /// Setup note: every preset puts its sites in <see cref="HomeProductionArea"/>
+    /// water and releases the first smolts on <see cref="FirstReleaseDay"/>; the
+    /// horizon counts from that release (S2-03).
+    ///
     /// Setup note: scenarios stock a single <c>SeaSite</c> but no <c>Zone</c>.
     /// The zone-level eutrophication model (Environment.Zone) collapses
     /// dissolved oxygen to 0 once biomass is realistic, which multiplies the
@@ -224,6 +228,30 @@ namespace LakskongenSim.Tests.Balance
         // probe no longer applies a test-side model. It simply reads the engine's
         // NetIntegrityPct and escape counters. See docs/BALANCE.md §1c.
 
+        /// <summary>
+        /// Production area the probe's sites lie in (S2-03): PO4, Nordhordland to
+        /// Stadt, the Vestland area the D2 engine tests use. Until S2-03 the probe
+        /// ran on the national reference curve (no source, colder than every area
+        /// but PO1 in winter), on which the TGC law grows a 1 January release for
+        /// 19-20 months: an atypically long cycle that inflated the per-cycle
+        /// mortality, lice and fixed cost per kg (docs/BALANCE.md §1g).
+        /// </summary>
+        public const int HomeProductionArea = 4;
+
+        /// <summary>
+        /// Day of the first release (S2-03): mid-April (ISO week 16), when
+        /// Norwegian S1 smolts go to sea; a 1 January release is not farming
+        /// practice. Later cycles restock on their harvest day, as before.
+        /// </summary>
+        public const int FirstReleaseDay = GrowthCycleProbe.SpringReleaseDay;
+
+        /// <summary>Put the probe's sites in <see cref="HomeProductionArea"/> water and advance to the first release.</summary>
+        private static void PlaceHarness(SimulationEngine engine)
+        {
+            engine.State.HomeProductionArea = HomeProductionArea;
+            engine.Advance(FirstReleaseDay);
+        }
+
         /// <summary>Smolt count used by a scenario preset.</summary>
         public static int SmoltCountFor(SimScenario scenario) => scenario switch
         {
@@ -247,6 +275,7 @@ namespace LakskongenSim.Tests.Balance
             var engine = new SimulationEngine();
             engine.Initialize(enableEvents: false, seed: seed);
 
+            PlaceHarness(engine);
             // One commercial sea site. No zone on purpose (see class remarks).
             var site = new SeaSite($"{scenario}-site");
             engine.State.SeaSites.Clear();
@@ -411,6 +440,7 @@ namespace LakskongenSim.Tests.Balance
             engine.Storyteller.MaxDailyChance = 0.0;
             engine.IntegratedDisease.SetLODMode(LODMode.High);
 
+            PlaceHarness(engine);
             var site = new SeaSite("DiseaseStress-site");
             engine.State.SeaSites.Clear();
             engine.State.SeaSites.Add(site);
@@ -497,6 +527,7 @@ namespace LakskongenSim.Tests.Balance
             engine.Storyteller.BaseDailyChance = 0.0;
             engine.Storyteller.MaxDailyChance = 0.0;
 
+            PlaceHarness(engine);
             var site = new SeaSite("Storm-site");
             engine.State.SeaSites.Clear();
             engine.State.SeaSites.Add(site);
@@ -590,6 +621,7 @@ namespace LakskongenSim.Tests.Balance
             engine.Initialize(enableEvents: false, seed: seed);
             engine.State.SeaSites.Clear();
 
+            PlaceHarness(engine);
             var sites = new List<SeaSite>();
             var pops = new FishPopulation?[siteCount];
             int totalReleased = 0;
@@ -717,6 +749,7 @@ namespace LakskongenSim.Tests.Balance
             var engine = new SimulationEngine();
             engine.Initialize(enableEvents: false, seed: seed);
 
+            PlaceHarness(engine);
             var site = new SeaSite("LiceControl-site");
             engine.State.SeaSites.Clear();
             engine.State.SeaSites.Add(site);

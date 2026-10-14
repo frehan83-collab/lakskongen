@@ -9,8 +9,11 @@ This document is the human-readable companion to the registry: it records the
 current game value, the real Norwegian reference, the source, and the
 recommended playtest band for each high-leverage knob. Last reconciled:
 **Oct 2026, calibration v1.0.3**; bands re-measured **2026-10-14** after the
-S1-01 water-chemistry and S1-02 storm-season fixes (§1d), and again after S2-02
-(production-area sea temperatures and one calendar, calibration v1.0.6, §1f).
+S1-01 water-chemistry and S1-02 storm-season fixes (§1d), again after S2-02
+(production-area sea temperatures and one calendar, calibration v1.0.6, §1f),
+after S2-03 (TGC growth, §1g) and S2-04 (harvest pipeline, §1h), after wave 2
+sim-a-1 (low oxygen at the fish, §1i) and on the integrated wave-2 sim tree
+(`wave2/sim-int-1`, calibration v1.0.9, §1j).
 
 ## 1. Feed-cost path audit (end-to-end)
 
@@ -783,6 +786,661 @@ oxygen crashes to 1.5 mg/L loses nothing (it lost 25 % before); a RAS tank whose
 chiller fails (0 °C water) loses 0.02 % a day to temperature while the sea pen
 at 10 °C loses none.
 
+## 1g. S2-03: TGC growth, appetite, ration policy (2026-10-14, branch `wave2/sim-b-2`)
+
+Roadmap S2-03. Calibration v1.0.7 (new section `growth`), save format v5.
+Measured with `GrowthCycleProbe` (engine path: a zone in its production area by
+data, blooms and the shared anomaly on, storyteller events off), the S2-03
+acceptance tests (`TgcGrowthAcceptanceTests`, `TgcGrowthEngineTests`,
+`TgcGrowthLawTests`) and a temporary probe calling the same harnesses.
+
+### The growth law (`Biology/TgcGrowthLaw.cs`)
+
+Each day a cohort's satiation gain adds `TGC/1000 × E(T) × size × light × multipliers`
+to the cube root of its weight in grams:
+
+| Term | Value | Source |
+|---|---|---|
+| TGC | 3.0 | Reid et al. 2013a average 3.0 (remedial 2.5, elite 3.5) via Dempsey et al. 2023, Front. Mar. Sci. 10:1094247; Karlsen et al. 2018, Sci. Rep. 8:9510: 2.80 open net pen, 3.04 semi-closed (first 4 months); Arctic Fish 3.38 (Benchmark Genetics) |
+| E(T) up to the optimum | T (degree-days) | the TGC definition; valid 4-14 °C (Alanärä et al. 2001); growth at 4/4.5/5 °C = 0.31/0.35/0.38 of the optimum |
+| Optimum | 13 °C | Kleiven et al. 2026, Front. Aquac.: "around 13 to 14 °C"; Calado et al. 2021, Animals 11:1800: 13-16 °C |
+| Above the optimum | T × (22 − T)/9, 0 at 22 °C | Calado et al. 2021: ITmax ~22 °C; 2 kg fish at 19 °C ate and grew ≥ 50% less than at 14 °C (law: 51%); Thyholdt 2014: warm periods slow growth in the south |
+| Size | 1 to 3 kg, then linear in cube-root weight to 0 at 20 kg | TGC valid to 3 kg (Alanärä et al. 2001); 20 kg game estimate (0.79 at 5 kg) |
+| Light | 1 + 0.2 × (day length − 12)/12; land tanks 24 h | Aunsmo et al. 2014 (TGC tied to day length on 827 Norwegian groups); slope a game estimate (sea-cage light trials, Endal et al. 2000); CtrlAQUA 2023 (24 h light in RAS) |
+| Multipliers | genome, smolt quality, containment, research, density stress (Oppedal et al. 2011) | unchanged inputs |
+
+Appetite (satiation intake) = satiation gain × the biological FCR at satiation
+(temperature, size factor (W/2 kg)^0.07 at sea, feed, density, water, research):
+a Cho (1992) feeding standard, so appetite follows temperature and size. The
+holding's ration policy (`FishPopulation.Ration`, fraction of appetite) times the
+appetite left by water and gills is the ration eaten r; growth = satiation gain ×
+g(r) with maintenance at 10% and the best conversion near 70% (Brett 1979). The
+law draws no random numbers; the daily tick, the forecast twin and the scenario
+starting stock all run it.
+
+### Acceptance over 10 seeds
+
+| Criterion | Band | Measured |
+|---|---|---|
+| PO4 mid-April S1 100 g: harvest window | 4.5-5.5 kg within months 14-18 | 4.5 kg on days 400-480, 5.5 kg on days 435-516 on every seed; 5 kg median day 448 (14.7 months), 418-497 |
+| Economic FCR (feed / net harvested gain), commercial pen, PO4 | 1.20-1.35 | 1.230-1.246 (mortality 13.3-15.1%); FCR on growth 1.162-1.170 |
+| Relative growth at 4-5 °C | ≥ 0.3 of the optimum | 0.31 / 0.35 / 0.38 at 4 / 4.5 / 5 °C |
+| Fish grown on | pass 6 kg | 6.5 kg on days 474-536 (PO4 April release) |
+| Per-cohort weight CV | reported | 0.211-0.216 at 5 kg (watch mode); bridge `weight_cv` |
+| Pre-registered D2: PO4 2-4 months before PO13 | 60-120 days, seeds 1-5 | normal years: 92-115 on every seed; weather years: 157 / 117 / 68 / 168 / 120 (fails seeds 1 and 4, RUN_LOG §8 dispute) |
+
+Realized cycle TGC on the zone path (PO4, gills and blooms included): 2.61-2.97.
+
+### Days for 100 g S1 smolts to reach 5 kg, per area (10 seeds, engine path)
+
+| PO | 1 Jan release: median [min-max] | Mid-April release: median [min-max] | S2-02 law, mid-April (§1f) |
+|---|---|---|---|
+| 1 | 547 [499-581] | 477 [445-517] | 444 [348-545] |
+| 2 | 526 [462-551] | 462 [418-498] | 307 [242-437] |
+| 3 | 498 [432-545] | 448 [417-483] | 263 [241-416] |
+| 4 | 500 [453-527] | 448 [418-497] | 278 [241-424] |
+| 5 | 501 [432-529] | 451 [404-483] | 256 [227-396] |
+| 6 | 488 [427-517] | 446 [405-485] | 245 [218-304] |
+| 7 | 520 [464-551] | 466 [419-491] | 243 [211-313] |
+| 8 | 537 [486-561] | 480 [430-508] | 267 [216-410] |
+| 9 | 551 [490-580] | 494 [441-526] | 258 [213-388] |
+| 10 | 554 [501-578] | 493 [439-526] | 298 [217-407] |
+| 11 | 602 [535-634] | 540 [474-626] | 445 [236-482] |
+| 12 | 605 [544-640] | 548 [478-605] | 451 [239-489] |
+| 13 | 616 [549-659] | 568 [486-665] | 477 [280-519] |
+
+A spring release reaches 5 kg in 14.7-15.7 months in PO1-PO7, 15.8-16.2 in
+PO8-PO10 and 17.8-18.7 in PO11-PO13: real Norwegian grow-out is 14-18 months,
+longer in Finnmark. PO1's 16-17 °C summers are now merely slower than PO3-PO6
+(the Gaussian stalled them).
+
+### PO4 against PO13: why the pre-registered test fails on two seeds
+
+The same mid-April release in weather years 1-10: gaps 157, 117, 68, 168, 120,
+156, 106, 95, 122, 63 days (median 118.5). Seeds 1 and 4 have springs 2-3 °C below
+normal for 3-6 months (the shared anomaly, SD 1.0 °C, e-folding 90 days, S2-02):
+PO13's fish then miss the second autumn and spend a second winter at sea. With
+the anomaly off the gap is 92-115 on every seed. A 300-year Monte Carlo of the
+climatologies gives P(gap in 60-120) of 0.40-0.78 per weather year for every
+plausible TGC (2.8-3.2), optimum (12.5-13 °C) and light slope (0-0.3), so no growth
+law makes all five seeds pass; the criterion is the owner's (RUN_LOG §8).
+
+### Ration policy (PO4, from day 165, 120 days, 5 seeds)
+
+| Fraction of appetite | Gain per fish | FCR on growth | Feed cost per day (10,000 fish) | Weight CV |
+|---|---|---|---|---|
+| 100% | 1.113 kg | 1.103 | 2 141 NOK | 0.207 |
+| 85% | 0.891 kg | 1.077 | 1 673 NOK | 0.215 |
+| 70% | 0.678 kg | 1.061 | 1 255 NOK | 0.222 |
+| 50% | 0.417 kg | 1.068 | 777 NOK | 0.226 |
+
+U2-04's acceptance 1 holds on the engine path (70% vs full: less growth, lower
+biological FCR, lower cost per day; `TgcGrowthEngineTests`).
+
+### The re-measure (roadmap R2: scenario data, not mechanics)
+
+| Change | Why | Measured |
+|---|---|---|
+| Scenario sites `days_at_sea`: S0 mid-September (110 d) in PO1-PO7, S1 mid-June (200 d) in PO8-PO13 | a farm on 1 January holds its last release window's fish; 1 January smolts could not be sold before day ~460 | day-0 weights 0.48-1.33 kg (CV 0.226-0.296); passive first 4.5 kg day: algekatastrofe 210, barekraft 294, forste 300, isa 287, krise 252, laksebaronene 288, lofoten 217, po3 286, ressursrente 234 |
+| `forste_sesong` 22,000 fish (was 20,000) | step 16's 6M second site from the first harvest | minimal player: 5 of 6 seeds win (days 281-737), seed 13 solvent at step 16 (20,000: 4 of 6) |
+| Hatchery batches: standard strain genome | one random individual's genome (growth SD 15%) on a whole cohort | SimProbe cycle spread 464-921 days → one climate's |
+| SimProbe in PO4 water, first release mid-April | the national reference with a 1 January release is a 19-20 month cycle | see below |
+
+| Measure | S2-02 (`wave2/sim-b-1`) | S2-03 | Band |
+|---|---|---|---|
+| SimProbe Baseline FCR (median) | 1.23 | 1.17 | 1.10-1.30 |
+| Baseline sea mortality %/cycle (min / median / p90) | 12.05 / 15.48 / 19.00 | 14.05 / 14.54 / 14.74 | 14-16 median |
+| Baseline peak adult-female lice (min / median / p90) | 0.52 (median) | 0.52 / 0.61 / 0.75 | 0.30-0.65 (+0.05), p90 ≤ 1.0 |
+| Baseline feed cost NOK/kg produced | 27.40 | 26.04 | 22-30 |
+| DiseaseStress disease / total mortality % | 4.38 / 15.84 | 4.39 / 14.76 | 0.5-10 / 14-16 (±0.5) |
+| ThreeSite EBIT NOK/kg / cost NOK/kg | 19.63 / 63.25 | 21.74 / 62.67 | 8-25 (±2) |
+| Storm escapes % / events / storm days / min integrity | 0.36 / 0.41 / 145.0 / 83.2 | 0.31 / 0.42 / 146.3 / 83.4 | ≤ 0.5 / ≤ 1 / exposure / ≥ 40 |
+| LiceControl treatments, resistance, peak | 1.50, 0.07%, 0.15 | unchanged | |
+| Career po3 seed 7: days, kg, FCR, mortality, balance | 315, 460,912, 1.179, 23.9%, +21.24M | 348, 507,436, 1.182, 20.1%, +23.74M | FCR 1.0-1.6, mort ≤ 65%, > -1M |
+| Career po3 seed 13 | 331, 493,072, 1.176, 20.6%, +22.94M | 345, 495,497, 1.183, 20.6%, +27.84M | > -15M (D4), 70-96 NOK/kg (88.00) |
+| FullCycle PO4 by data (was the national reference): days, bio FCR, eFCR, survival | 503 / 368 / 453 / 483 d | 490-522 d, 1.177-1.187, 1.326-1.509, 56-69% | 360-600 d, 1.0-1.6 |
+
+The zone path's economic FCR (1.33-1.51) is the bloom deck's 31-44% cycle
+mortality, not the feeding (RUN_LOG §8, S2-05/S4-03).
+
+### The seam for farm types
+
+`GrowthConditions` (water temperature, ration, appetite modifier, growth and
+density multipliers, spreading, day length) is everything the law reads;
+`SimulationEngine.GrowAndFeedOneDay(population, HoldingHusbandry)` fills it from
+`HoldingWaterOf(population)` (S2-02) and `DayLengthHoursOf(water)`. A land tank
+(RAS, flow-through) supplies its controlled temperature and 24 h light, an
+offshore hull its area's sea and latitude; `FishPopulation.Ration` is the
+holding's feeding plan. `TgcGrowthEngineTests.ALandTankAtTwelveDegrees_GrowsOnTheSameLaw_InItsOwnWaterAndLight`
+proves a 12 °C tank grows exactly as the law predicts from its own water.
+
+## 1h. S2-04: harvest pipeline (2026-10-14, branch `wave2/sim-b-3`)
+
+Roadmap S2-04, review F270. Calibration v1.0.8 (new section `harvest`), save
+format v6. Before S2-04 a harvest sold the LIVE kilos at the spot price, which
+is quoted for superior gutted (HOG) fish of 4-5 kg, and cost nothing: revenue
+per live kilo was about 27% too high. Measured with the S2-04 tests
+(`HarvestPricingTests`, `HarvestPipelineTests`, `HarvestAcceptanceTests`), the
+po3 career (`PlayerScriptProbe`), the new player-path farm cycle
+(`PlayerScriptFarmCycle`) and a temporary probe calling the same harnesses.
+
+### What a harvest is now
+
+- **Order** (`OrderHarvest(holding, pens, fraction)`): every pen with fish, or the
+  chosen pens; a share of each pen's fish (partial harvest). The wellboat slot is
+  5 days away (or the end of the fast if longer); the player's slaughterhouse
+  takes 150 t HOG a day (a land farm's own hall: its own pool), shared by every
+  order of the pool, oldest slot first. Pens go in turn, each fasting just ahead
+  of its turn behind the orders queued ahead (30 degree-days of its own water, at least 2 days), so a site that
+  takes two weeks to slaughter is not starved for two weeks. Each batch sells at
+  that day's price. `CancelHarvestOrder` feeds the fish again.
+- **Express** (`HarvestSite`, `HarvestNow`, the bridge's `harvest_pen`): today, on
+  a spot wellboat to the slaughterhouse's waiting pen, where the fish fast; the
+  same pricing plus a 1.0 NOK/kg HOG surcharge (none in a land farm's own hall). A **hired harvest wellboat**
+  (`RequestWellboat("harvest")`) starts the fast when booked and its flat hire is
+  the transport. A **forced harvest** (Mattilsynet) sells through the pipeline at
+  70% of the price with the express cost.
+- **Sale**: live kg × 0.84 = HOG kg; each cohort's HOG kilos split into size
+  classes (lognormal individual weights from the cohort CV, S2-03); grade shares
+  by cause; gross = Σ HOG kg × size-class factor × grade factor × price (spot,
+  or a contract's locked price for the kilos it takes, oldest first) × the
+  processing plant's VAP premium; the harvest cost is cost of goods sold
+  (category `harvest`). Every batch files a `HarvestReport` (fish, live and HOG
+  kg, size classes, grades, price, gross, cost, net) that equals its ledger entries.
+
+### Sources
+
+| Number | Value | Source |
+|---|---|---|
+| Live → HOG yield | 0.84 | Mowi Salmon Farming Industry Handbook 2025, p. 114 (live 100%, blood/starving 6%, offal 10%, HOG ~84%); 2018 edition 84%; capital model p. 75 "0.84" |
+| Harvest + transport | 5.0 NOK/kg HOG (wellboat 1.55, slaughter/packing 3.45) | Fiskeridir profitability survey 2023: "slakting og transport" 4.45 NOK/kg round weight (Veterinærinstituttet, Fiskehelserapporten 2024, table 3.2.1) × 1.125 gutting loss; Mowi Handbook 2025 p. 75: EUR 0.40/kg GWT; split by Marine Harvest Norway 2017 (Handbook 2018 p. 48: well boat 0.15, primary processing 0.33 EUR/kg) |
+| Size ladder (HOG classes) | <1: 0.60, 1-2: 0.72, 2-3: 0.86, 3-4: 0.93, 4-5: 1.00, 5-6: 1.04, 6-7: 1.08, 7+: 1.10 | Kontali relative prices, Norway weekly 2015-2024, Mowi Handbook 2025 §6.7 p. 49 (2-3 kg ~86% of 4-5 kg, range 70-97%; 6-7 kg ~108%, 95-150% with summer peaks); 3-4/5-6 interpolated, <2 and 7+ extrapolated (game estimates) |
+| Grades | superior / ordinary 0.90 / production 0.70 | Mowi Handbook 2025 p. 116: "reduced price of downgraded fish (~30%)"; ordinary 0.90 game estimate |
+| Grade shares | base production 5%, ordinary 1.5%, winter wounds up to +30% | Fiskehelserapporten 2024 §5.8: Norway 2024 80.6% superior, 1.5% ordinary, 17.1% production by weight; ~65% superior in H1, ~90% in H2; wounds the main cause, then maturation, defects, disease |
+| Fasting | 30 degree-days, ≥ 2 days | kvalitetsforskriften § 16 (no feed residue in gut at harvest), akvakulturdriftsforskriften § 27 (period without feed as short as possible); duration a game estimate |
+| Slaughter capacity | 150 t HOG/day | game estimate; Norway 2024: 1,408,650 t HOG at ~60 slaughterhouses + ~40 bleeding vessels (Fiskehelserapporten 2024 §5.8) |
+| Wellboat | 300 t live/day, 5-day lead | game estimates (3,000 m³ Ronja Queen class, ~100 kg/m³; the game's existing booking delay) |
+| Rent base | HOG kg × norm price; harvest cost not deducted | skatteloven § 19-5 (market value at the pen edge × harvest volume), § 19-6 (deductions list no slaughter or transport) |
+
+### Acceptance
+
+| Criterion | Measured | Test |
+|---|---|---|
+| 1. Revenue = HOG kg × size-class price × grade factor − harvest cost | exact to 0.01 NOK, express and planned; every report = its ledger entries; cash Δ = gross − cost | `TheLedger_BooksHogKilosTimesClassPriceTimesGrade_LessTheHarvestCost`, `APlannedHarvest_…`, `EconomyLedgerTests.Harvest_WithoutContracts…`, `FullProductionCycle_OnTheEnginePath…` |
+| 2. A 2 kg fish earns ≥ 25% less per kg than a 5 kg fish | one fish: 0.72 (1.68 kg HOG in 1-2 kg vs 4.2 kg in 4-5 kg); engine pens at CV 1%: 72.0% gross, 69.7% net; at a real farm's CV 20%: 76.4% | `ATwoKiloFish…`, `TwoKiloFish…OnTheEnginePath` |
+| 3. F270 closed | harvest cost booked as COGS `harvest`; the cash moves by revenue − cost (it moved by the whole revenue) | `PnLBookkeepingTests.HarvestSite_BooksRevenueExactlyMatchingTheCashFlow` |
+| 4. EBIT/kg band on the PlayerScriptProbe path | median 18.19 NOK/kg HOG (11.07-23.23), 10 seeds | `AFarmCycle_EarnsAnEbitPerKiloInTheCyclicalBand_OnThePlayerPath` (band 8-25) |
+| 5. Partial harvest | 40% of one pen: 4,000 of 10,000 fish, the rest feeds and grows again; half of a site through the bridge: 16,844 went, 16,747 stayed | `APartialHarvest_…`, `AnExpressPartialHarvest_…`, `APerPenHarvest_…`, UiFlowTests `harvest:` |
+
+### EBIT/kg on the player path (`PlayerScriptFarmCycle`, 10 seeds)
+
+Two sites of 8 pens × 75,000 standard S1 smolts in PO4 water, stocked mid-April,
+events on, deloused at 0.4 adult females, each site's harvest ordered by the D2
+rule, EBIT from the ledger (revenue − COGS − OPEX) per kg HOG sold.
+
+| Seed | Days | t HOG | Revenue/kg | Cost/kg | EBIT/kg | Price achievement | Superior | Mortality |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 470 | 2,986 | 68.59 | 57.52 | 11.07 | 0.927 | 82.3% | 37.8% |
+| 2 | 471 | 2,660 | 68.47 | 53.47 | 15.00 | 0.925 | 83.5% | 43.2% |
+| 3 | 444 | 3,487 | 69.23 | 48.61 | 20.63 | 0.962 | 88.8% | 32.7% |
+| 4 | 479 | 2,680 | 68.48 | 55.90 | 12.57 | 0.925 | 82.3% | 43.5% |
+| 5 | 467 | 3,436 | 68.83 | 49.24 | 19.59 | 0.930 | 84.2% | 28.7% |
+| 6 | 458 | 3,448 | 69.05 | 47.22 | 21.83 | 0.933 | 84.4% | 29.4% |
+| 7 | 457 | 3,340 | 70.40 | 49.00 | 21.40 | 0.951 | 85.2% | 35.6% |
+| 8 | 444 | 3,197 | 63.62 | 49.18 | 14.44 | 0.919 | 81.7% | 32.4% |
+| 9 | 455 | 4,054 | 68.80 | 45.57 | 23.23 | 0.930 | 82.5% | 17.3% |
+| 10 | 447 | 3,292 | 68.43 | 51.65 | 16.79 | 0.925 | 82.5% | 31.4% |
+
+Median 18.19 NOK/kg HOG inside SalMar's cyclical 8-25 (23.4 FY24, 13.6 FY25).
+Real mapping: the game's cost per kg HOG (45.6-57.5) sits below Norway's ~66
+(Fiskeridir 2023: 58.86 NOK/kg round weight before capital cost, ÷ 0.889): the
+game books no insurance, health, administration or capital costs beyond its
+wages, maintenance, storms and events, and the zone path's bloom deck kills
+17-44% (S2-05/S4-03), which raises feed per kg sold (RUN_LOG §8). Harvests fall
+in July-August, after the winter at sea: 82-89% superior.
+
+`SimProbe.ThreeSite` (§1c) is unchanged (EBIT 21.74, cost 62.67 NOK/kg): it
+prices live kilos at spot in its own synthetic P&L and never calls the harvest
+verbs; the band test that counts is the player-path one above (RUN_LOG §8).
+
+### Grades by season (engine, PO4 sea pen vs a 12 °C land tank, 5 kg at slaughter)
+
+| Harvest | Sea pen superior | Land tank superior |
+|---|---|---|
+| April (after January-April below 8 °C) | 76.1% | 93.6% |
+| September (after a summer) | 90.8% | 93.6% |
+
+### Careers (`PlayerScriptProbe`, po3_red_sone, events on): S2-03 → S2-04
+
+The career now orders its harvests (D2 rule) through the pipeline; the realized
+price is per reference-equivalent kilo (HOG kg × size × grade), the unit the
+spot is quoted in.
+
+| Seed | Days | Live kg | HOG kg | Realized / spot of the slaughter days | Price achievement | Superior | Harvest cost | Ending balance (S2-03 → S2-04) |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 333 → 341 | 507,123 → 508,912 | 427,486 | 88.00 / 88.00 | 0.951 | 92.5% | 2.14M | +29.43M → +17.98M |
+| 2 | 330 → 341 | 422,632 → 411,628 | 345,767 | 93.49 / 93.49 | 0.941 | 90.2% | 1.73M | +23.49M → +15.47M |
+| 3 | 306 → 313 | 515,228 → 517,887 | 435,025 | 87.14 / 87.14 | 0.960 | 92.8% | 2.18M | +31.76M → +19.90M |
+| 7 | 348 → 340 | 507,436 → 502,032 | 421,707 | 77.75 / 77.75 | 0.954 | 92.7% | 2.11M | +23.74M → +14.75M |
+| 13 | 345 → 339 | 495,497 → 489,836 | 411,462 | 87.61 / 87.61 | 0.950 | 92.8% | 2.06M | +27.84M → +17.17M |
+
+Every band holds unchanged (seed 7 > -1M, seed 13 > -15M and realized 70-96,
+FCR, mortality, the exact save/load continuation).
+
+### The re-measure (roadmap R2: scenario data, not mechanics)
+
+| Change | Why | Measured |
+|---|---|---|
+| `forste_sesong` 36,000 fish and 4,000,000 NOK (was 22,000 and 3,000,000) | step 16's 6M second site from the first harvest: a live kilo now earns ~27% less (HOG, size, grade, harvest cost) | minimal player, seeds 4/7/9/21/13/42: 22,000 + 3M won 3/6 (4 and 21 stalled at step 16 with 4.9-5.0M); 28,000: 2/6; 32,000 + 3M: 2/6 (6.7M after the first sale, the research leaves < 6.5M); 40,000 + 4.5M: 6/6 on the first harvest; **36,000 + 4M: 6/6, days 281-957** (21 and 13 on the second cycle), lowest cash +0.19M to +0.83M |
+| Resource-rent base: the harvest cost is not deducted | skatteloven § 19-5 values the fish at the pen edge; § 19-6 lists no slaughter or transport | six-site career (`MultiSiteCareer_PaysResourceRentTax`), year-2 rent base, seeds 7/13/21: harvest value 184.1/172.7/195.2M on 2.06/2.14/2.22 kt HOG, costs 116.1/110.8/118.4M; rent paid with the harvest cost deducted 0/0/1.63M, without it 2.53/2.65/4.96M (S2-03: 11-30M over three years) |
+
+### The seam for farm types
+
+- `HarvestRoute.For(HoldingKind, calibration, holdingId, hallCapacity)`: a sea
+  pen goes by wellboat to the player's slaughterhouse; an offshore pen by an
+  offshore wellboat (×1.5 transport); a land tank by pipe or truck to its own
+  hall (no wellboat, no lead time, its own capacity pool and capacity). A land
+  farm supplies `hallCapacityTonnesHog`; its fish never count for resource rent.
+- `HarvestCondition` (mean weight, cold-water memory, delousing injury load,
+  lice, `ExtraProductionShare`) is all the grading reads: the holding fills it.
+  A land tank at a controlled temperature never builds winter wounds; the
+  farm-types maturation index and off-flavour plug into `ExtraProductionShare`.
+- `FishPopulation.ColdExposure` and the fast's degree-days are tracked from
+  `HoldingWaterOf(population)` in the growth step, so they follow whatever holds
+  the fish.
+## 1i. Wave 2 sim-a-1: low oxygen at the fish (2026-10-14, branch `wave2/sim-a-1`)
+
+S2-05's `D4_Po3Career_LosesAtMost35Percent_AndEndsAboveTheDefaultBankruptcyFloor`
+was red on the wave-2 base `68cce8b`. Once S2-02 put the po3 careers in real
+PO3 water, low-oxygen deaths were 19.5 % (seed 7) and 18.7 % (seed 13) of all
+deaths, and the test allows under 10 %. Calibration v1.0.7 (new keys in
+`mortality`, new section `waterOxygen`).
+
+### Where the low-oxygen deaths came from
+
+There are two places in the engine that book `MortalityCause.LowOxygen`. One is
+the bloom deck's `hypoxia` card (`RollBloomWeek`). The other is the storyteller's
+`plankton-crash` event, which fires when a zone's oxygen is below 3 mg/L. The
+diagnosis ran the po3 career probe (save/load at day 210) over seeds 1-20 with a
+log sink that books each death to its source. A day-by-day replica of the same
+script supplied the timing and the water.
+
+| Source | Low-oxygen deaths, 20 careers | Careers hit | Notes |
+|---|---|---|---|
+| Bloom-deck `hypoxia` card | **65,225 (100 %)** | 14 | 18 sags, July (8), August (4), September (5), October (1); zone water 14.1-16.4 °C and **7.6-8.2 mg/L (saturated) at every sag** |
+| Storyteller `plankton-crash` event | 0 | 0 | never fired: its trigger day exists only on a crash day |
+| Plankton-bloom crashes (the zone water itself) | (no direct deaths) | — | 83 crashes in 20 careers, about 4 per career, in every zone each summer (May-October); 45 of them took the zone below 3 mg/L, the lowest to 2.41 mg/L |
+
+Pooled over the 20 careers, low oxygen was 65,225 of 525,255 deaths (12.4 %).
+The card killed `0.03 x severity x countermeasures` of the site's fish at each
+weekly tick, whatever oxygen the water held. A sag of severity 0.4-1.0 lasting
+7-21 days (one to three ticks) therefore took 1-9 % of the site. In PO3, the
+14 °C gate is crossed from mid-July to late September, so about one sag fell
+in each career summer. The national reference curve that the careers used
+before S2-02 peaks at 13.5 °C and almost never crossed it.
+
+### The real numbers the model is held to
+
+- **Frequency.** NVI's environment class (B) was 1 % of all dead-fish
+  registrations in PO1-PO4 in 2024. Nationally it was 0.2-2.7 % in 2021-2023 and
+  8.8 % in 2024, three quarters of it jellyfish. Sources: Fiskehelserapporten
+  2024, table 2.4.2 and pp. 36-38,
+  https://www.vetinst.no/rapporter-og-publikasjoner/rapporter/2025/fiskehelserapporten-2024.
+  Low oxygen is a small part of that 1 %.
+- **Severity: in-cage hypoxia is common and mostly sub-lethal.** In a
+  commercial Norwegian cage, oxygen readings ranged over 26-90 % saturation and
+  about one reading in four was growth-limiting. The reference site stayed at
+  levels for maximum growth throughout (Solstorm et al. 2018, Aquaculture
+  486:122-129). Oldham's PhD thesis (University of Tasmania, 2018) concluded
+  that DO conditions in cages rarely threaten the survival of farmed salmon,
+  while hypoxia that hurts production and welfare is common.
+- **Lethal limit.** US EPA (1986), EPA 440/5-86-003, gives 3 mg/L as the
+  "Limit to Avoid Acute Mortality" for salmonid waters, other life stages.
+  Severe, moderate and slight production impairment sit at 4, 5 and 6 mg/L.
+  Atlantic salmon's critical oxygen level is 3.46 mg/L at 14 °C and 3.39 mg/L at
+  18 °C (Barnes, King & Carter 2011, Aquaculture 318:397-401). The limiting
+  saturation rises from 30 % at 6 °C to 55 % at 18 °C (Remen et al. 2013,
+  Aquaculture 416:41-47).
+- **Solubility.** Saturated seawater (35 PSU) holds 9.0 mg/L at 10 °C, 8.0 at
+  16 °C and 7.7 at 18 °C (Benson & Krause 1984, in the engine since S1-01). The
+  same fractional sag therefore leaves less oxygen in warm water.
+- **A bloom's oxygen budget.** A seasonal coastal bloom reaches 1-6.5 µg/L
+  chlorophyll a (NIVA FerryBox, Indre Oslofjord 2017), and below 0.3 to 10 µg/L
+  in 2018. At about 50 g C per g chlorophyll (inside the range Cloern et al.
+  1995 compiled) and Redfield's 138 O2 per 106 C (3.47 g O2 per g C), the whole
+  of a 10 µg/L bloom holds 1.7 mg/L of oxygen demand.
+
+### What changed (the model, not the band)
+
+1. **One low-oxygen hazard at the fish's own water.**
+   `MortalityHazards.LowOxygenFraction(environment, calibration)` kills nothing
+   at or above 3 mg/L, a tenth below it, a quarter below 2 mg/L and half below
+   1 mg/L (the plankton-crash event's steps, now registry keys). Both the
+   plankton-crash event and the hypoxia card use it, and it reads
+   `ResolveCohortEnvironment`. A land tank or an offshore structure therefore
+   answers with its own water.
+2. **The `hypoxia` card is an in-cage oxygen sag.** While it runs, the site's
+   pens' water carries `O2 x (1 - severity x 0.42 x diffuser x containment)`,
+   where `waterOxygen.hypoxiaSagMaxDepth` is 0.42. The worst open-net sag holds
+   the cage's daily mean at 58 % of ambient, the middle of Solstorm's 26-90 %
+   range. An O2 diffuser scales the depth by 0.3; semi-closed and closed pens
+   scale it by their oxygen demand (1.4 and 1.6). The water reaches the fish
+   through the seam (`HoldingWaterOf`), so appetite reads it every day and the
+   card's weekly tick kills only the fish whose water is below 3 mg/L. Gill
+   damage is unchanged.
+3. **A plankton crash takes the oxygen its carbon needs.** That is the dying
+   biomass's share of capacity times
+   `waterOxygen.bloomChlorophyllAtCapacityUgL x phytoplanktonCarbonPerChlorophyll x oxygenPerOrganicCarbon`
+   (10 x 50 x 3.47 / 1000 = 1.735 mg/L). The old crash cut 75 % x the peak from
+   the zone's oxygen, which took every zone from about 8 mg/L to about 3 mg/L
+   twice a summer. Bloom growth, frequency and respiration are unchanged.
+
+In saturated 16 °C water, the worst open-net sag leaves 4.6 mg/L, which costs
+appetite but kills no fish. A sag kills only when the cage's water is already
+low or a closed pen's demand deepens it. The worst sag in a closed floating pen
+leaves 33 % of ambient: 3.2 mg/L in saturated 7 °C water (no deaths) and 2.5
+mg/L at 18 °C (a tenth die). `LowOxygenModelTests` pins each of these cases.
+
+### Measured after the fix
+
+The po3 career probe was run on seeds 1-20, with the base and the fix on the
+same script and seeds.
+
+| Measure | Base `68cce8b` | sim-a-1 |
+|---|---|---|
+| Low-oxygen deaths, pooled | 65,225 of 525,255 (12.4 %) | **0 of 462,613** |
+| Careers with any low-oxygen death | 14 of 20 | **0 of 20** |
+| Low-oxygen share of deaths, median / max | 9.0 % / 31.4 % | 0 / 0 |
+| Sea loss, median (min-max) | 18.20 % (13.21-29.98) | **16.72 % (11.74-24.05)** |
+| Environment share of deaths, median (min-max) | 37.9 % (4.3-61.1) | 30.7 % (3.2-48.5) |
+| Environment, % of stock, median | 6.93 | 5.28 |
+| Ending balance, median / min | +26.10M / +21.24M | +26.95M / +22.90M |
+| Economic FCR, median | 1.179 | 1.177 |
+| Pooled causes | anchor 39.7, jellyfish 14.8, **low oxygen 12.4**, disease 12.3, algae 9.4, delousing 8.7, storm 2.6 % | anchor 45.5, jellyfish 17.0, disease 14.1, algae 10.7, delousing 9.9, storm 2.9 % |
+
+The 200-seed sweep (probe without save/load, seeds 1-200) gives the tail:
+
+| Measure | Base | Sag model only (crash unchanged) | sim-a-1 (sag + crash) |
+|---|---|---|---|
+| Careers with low-oxygen deaths | 123 | 13 | **1** |
+| Low-oxygen share of pooled deaths | 11.9 % | 3.06 % | **0.157 %** |
+| Sea loss median / p95 / max | 20.59 / 28.93 / 31.69 % | 18.05 / 25.17 / 38.52 % | **17.88 / 24.05 / 26.99 %** |
+| Ending balance, min | +4.64M | +5.00M | +5.04M |
+
+The middle column explains why step 3 is part of the fix. With the sag reading
+the water but the crash still taking 75 % of the oxygen, a sag tick that fell on
+a crash day killed 10-25 % of a site in 13 careers. The worst career, seed 37,
+lost 38.5 %. The one career left in the sim-a-1 column is a compound event:
+seed 121's semi-closed `po3_nord` had a severity-0.98 sag on the day of a
+plankton crash in late June. The zone held 6.95 mg/L, the cage 2.95 mg/L, and
+7,761 fish died.
+
+The 600-day po3 water probe (`WaterChemistryStabilityTests`' script) was run on
+seeds 7 and 13:
+
+| Measure | Base | sim-a-1 |
+|---|---|---|
+| Zone oxygen minimum | 2.88-2.96 mg/L | **6.51-6.95 mg/L** |
+| Days below 70 % saturation, per zone | 4 | **0** |
+| Days below 5 mg/L, per zone | 4 | 0 |
+
+### Careers (`PlayerScriptProbe`, po3_red_sone, events on, save/load at day 210)
+
+| Seed | Stage | Days | Harvested kg | Realized NOK/kg | Econ FCR | Sea loss | Low-oxygen deaths | Ending balance |
+|---|---|---|---|---|---|---|---|---|
+| 7 | base `68cce8b` | 315 | 460,912 | 75.52 | 1.179 | 23.86 % | 6,210 of 31,927 (19.5 %) | +21.24M |
+| 7 | sim-a-1 | 315 | 487,858 | 75.52 | 1.178 | **19.45 %** | **0 of 26,019** | **+22.90M** |
+| 13 | base `68cce8b` | 331 | 493,072 | 78.40 | 1.176 | 20.59 % | 5,144 of 27,546 (18.7 %) | +22.94M |
+| 13 | sim-a-1 | 331 | 516,432 | 78.40 | 1.175 | **16.87 %** | **0 of 22,551** | **+24.56M** |
+
+D4 holds as written for both seeds: at most 35 % lost, above the -1M floor,
+and low oxygen under 10 % of deaths. The other probe bands also hold:
+`PlayerScriptCareerTests` and `FullCycleEconomicTests` pass unchanged, as do
+the tutorial (`ScenarioCampaignTests`) and the water bands
+(`WaterChemistryStabilityTests`).
+
+Seed 13's breakdown (input to S4-03): infectious 16.6 %, environment 23.3 %
+(jellyfish 9.8, algae 9.5, storm 4.0), injury and treatment 10.2 %,
+unexplained 50.0 %. The environment class is still far above NVI's 1 % in
+PO1-PO4, now from jellyfish and algae alone (RUN_LOG §8).
+
+## 1j. Wave-2 sim integration: S2-01a capacity, the harvest ledger, the D2 ruling (2026-10-15, branch `wave2/sim-int-1`)
+
+The integrated tree is `integration/wave2` (`68cce8b`: wave 1, S2-02, S2-05) plus
+`wave2/sim-b-3` (S2-03, S2-04), `wave2/sim-a-1` (the holding seam and the
+low-oxygen model) and `wave2/sim-a-2` (S2-01a capacity). It runs calibration
+v1.0.9 and save format v7. What the merges changed in the model:
+
+| Change | Why | Effect |
+|---|---|---|
+| Every harvest path takes its fish through `RemoveAlive` (express, planned, hired wellboat, RAS hall, offshore, Mattilsynet's and S2-01a's forced harvests) | S2-04 decremented `Cohort.Count` directly; S2-05's ledger must reconcile per cohort per day | none in numbers; a report's fish = the ledger's removals (`HarvestLedgerReconciliationTests`) |
+| Forced harvests sell the fish they remove (Mattilsynet: proportional per pen; S2-01a: heaviest first) through the S2-04 pipeline | the Mattilsynet path sold one set and removed another; S2-01a sold live kilos at 70 % of the gutted price, with no harvest cost | an S2-01a deadline harvest of ~190 t live sells ~160 t HOG for 8.8-9.2M gross with 0.94-0.98M harvest cost (seeds 31-33) |
+| The biology tick reads the holding the step resolved (`HoldingOf` → `WaterOf`) | one resolution per step for S2-03's growth and feeding | byte-identical saves (careers 1/2/7/13, two mixed farms) |
+| A stocking fills as many 10,000 m³ density proxy pens as it needs at 25 kg/m³ and 5 kg (`capacity.maxStockingDensityKgPerM3`, akvakulturdriftsforskriften § 25; `capacity.densityReferenceWeightKg`) | S2-01a stocks a site's plan room at once (173,555 smolts per po3 site, 561,600 at a barekraft_mester site), and one proxy pen put those fish at 90-280 kg/m³ | populations of ≤ 50,000 fish unchanged; the six-site rent career no longer goes bankrupt |
+
+### S2-01a acceptance on the integrated tree
+
+| Acceptance | Test | Result |
+|---|---|---|
+| 1. Overstock refused or fined, below the compliant player | `CapacityStrategyTests.Overstock_IsRefused_AndEndsBelowTheCompliantPlayer` (seeds 1-6) | refused at both sites (`mtb_area_projected_peak`), no cash moved; below compliant on seeds 1-6 |
+| 2. Daily enforcement | `CapacityEnforcementTests` (9) | order, fee and confiscation on the same day; fee stops at 15 G; deadline harvest to 95 % of each cap |
+| 3. A build adds 0 t | `LicenceCapacityTests` | a 3,120 t locality and 0 t of licence MTB in po3, forste_sesong and krise_manager |
+| 5. Save/load and twins | `CapacityEnforcementTests.AnOpenOrder_SurvivesASave...`, the determinism suites, `ASaveFromBeforeTheRegister_GetsOneLicencePerSite_InItsArea` | green |
+| 6. `forste_sesong` wins ≥ 4/6 seeds | `ScenarioCampaignTests` (minimal player) | **6 of 6** (table below) |
+
+Capacity careers, po3_red_sone, events on (`CapacityStrategyProbe`), ending
+equity in M NOK, 20 seeds:
+
+| Seed | Compliant | Overstock (v1, refused) | Overstock (old rules) | Grow-on fined | Grow-on unpoliced |
+|---|---|---|---|---|---|
+| 1 | 24.66 | 15.33 | 69.24 | 4.31 | 16.00 |
+| 2 | 16.69 | 13.98 | 52.99 | -8.57 | -20.66 |
+| 3 | 33.12 | 16.77 | 116.96 | 26.66 | 40.89 |
+| 4 | 19.18 | 13.19 | 35.29 | 7.90 | 14.42 |
+| 5 | 41.09 | 14.84 | 106.31 | 16.18 | 34.65 |
+| 6 | 18.09 | 13.85 | 105.58 | 17.41 | 50.17 |
+| 7 | 44.47 | 9.60 | 127.12 | 31.52 | 44.38 |
+| 8 | 28.25 | 10.61 | 113.16 | 99.51 | 91.99 |
+| 9 | 43.62 | 22.06 | 174.69 | 13.30 | 62.69 |
+| 10 | 9.71 | 13.00 | -29.68 | 8.11 | 30.23 |
+| 11 | 23.32 | 10.70 | 49.30 | -3.46 | -8.60 |
+| 12 | 26.26 | 12.49 | 115.29 | 26.97 | 38.25 |
+| 13 | 21.77 | 10.89 | 102.53 | 34.96 | 47.26 |
+| 14 | 14.72 | 15.22 | 96.41 | 20.13 | 45.22 |
+| 15 | 31.08 | 14.78 | 105.82 | 19.92 | 43.84 |
+| 16 | 39.18 | 16.07 | 129.81 | 14.40 | 5.40 |
+| 17 | 29.20 | 12.18 | 54.59 | -1.72 | 21.92 |
+| 18 | 37.90 | 11.97 | 125.15 | 36.20 | 83.77 |
+| 19 | 30.01 | 14.64 | 70.39 | -6.32 | 1.50 |
+| 20 | 24.73 | 15.50 | 130.23 | 21.31 | 59.00 |
+| **Median** | **27.25** | **13.92** | **105.70** | **16.80** | **39.57** |
+
+The compliant player harvests 1,181-1,485 t at a 1,107-1,358 t peak against
+1,560 t, in 356-469 days, with no breach. The refused overstocker keeps only
+the starting fish (~430 t) and ends below the compliant player on 18 of 20
+seeds (10 and 14 are poor compliant years); under the old rules the same
+script (3x the plan's fish, 1,041,330 smolts, borrowed when only money refuses
+it) harvests 3,612-4,312 t and dominates on 19 of 20 seeds (median 105.7M vs
+27.3M). The grow-on player breaks a cap 5-6 times on every seed and pays
+11.8-17.8M of fees and confiscations; its median ends below both the unpoliced
+script and the compliant player (roadmap D10 (a)). Per seed the fined career
+ends above the unpoliced one on 4 of 20 seeds (2, 8, 11, 16): the storyteller's
+price shocks pin the spot at 43 NOK/kg for 2-4 weeks, and the unpoliced
+career's fixed sale day (60 days after 4.5 kg) falls in one while the fined
+career, its heaviest fish taken at a deadline, sells later (seed 2: po3_nord
+1,096 t at 42.7 NOK/kg on day 510 unpoliced, 800 t at 75.2 on day 537 fined).
+Before the density fix both careers crawled at the Oppedal floor and the
+fined one lost on 20 of 20.
+
+Six-site rent career (`HonestEconomyTests.MultiSiteCareer_PaysResourceRentTax`,
+barekraft_mester, 8 licences): resource rent paid 81.56M / 29.45M / 90.28M on
+seeds 7/13/21 over three years, no breach (the plan refuses what the pool
+cannot hold). Before the density fix: bankrupt on days 871/535/609.
+
+`forste_sesong`, the minimal player (`ScenarioCampaignTests`, events on):
+
+| Seed | Won | Day | First harvest | Lowest cash |
+|---|---|---|---|---|
+| 4 | yes | 289 | 287 | 0.55M |
+| 7 | yes | 315 | 313 | 0.19M |
+| 9 | yes | 280 | 278 | 0.38M |
+| 21 | yes | 718 | 312 | 0.89M |
+| 13 | yes | 1,196 | 313 | 0.88M |
+| 42 | yes | 302 | 300 | 0.76M |
+
+po3 careers (`PlayerScriptProbe`, events on, save/load at day 210):
+
+| Seed | Days | Harvested kg | Realized NOK/kg | Econ FCR | Sea loss | Low-oxygen deaths | Superior | Ending balance |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 341 | 517,806 | 88.00 | 1.182 | 17.24 % | 0 of 23,086 | 92.5 % | +18.49M |
+| 2 | 341 | 463,331 | 92.69 | 1.204 | 24.66 % | 0 of 33,016 | 90.3 % | +18.09M |
+| 7 | 339 | 503,137 | 77.78 | 1.178 | 20.18 % | 0 of 26,998 | 92.7 % | +14.85M |
+| 13 | 338 | 510,963 | 87.62 | 1.184 | 17.13 % | 0 of 22,906 | 92.8 % | +18.35M |
+| 21 | 313 | 533,077 | 75.46 | 1.176 | 17.26 % | 0 of 23,104 | 92.9 % | +16.64M |
+
+D4 holds for seeds 7 and 13 (≤ 35 % lost, above -1M, low oxygen < 10 % of deaths).
+
+### The D2 ruling: PO4 against PO13 on the climatology
+
+Owner ruling (merge captain, autonomy mandate): the pre-registered 60-120 day
+gap is judged on the climatology, not on one weather year. The pre-registered
+harness (`FullCycleEconomicTests`: one site per area by data, 10,000 standard
+S1 smolts released mid-April, events off, days to a 5 kg mean):
+
+Normal year (shared anomaly off, daily fluctuation kept):
+
+| Seed | PO4 | PO13 | Gap |
+|---|---|---|---|
+| 1 | 436 | 545 | 109 |
+| 2 | 455 | 546 | 91 |
+| 3 | 441 | 545 | 104 |
+| 4 | 450 | 544 | 94 |
+| 5 | 437 | 551 | 114 |
+
+Ten weather years per seed (a release every mid-April of years 1-10 of the
+seed's weather, each year-class in its own zone), gap in days per release year:
+
+| Seed | Y1 | Y2 | Y3 | Y4 | Y5 | Y6 | Y7 | Y8 | Y9 | Y10 | Median |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 155 | 114 | 92 | 84 | 91 | 70 | 85 | 223 | 174 | 108 | 100 |
+| 2 | 109 | 104 | 121 | 174 | 187 | 107 | 95 | 65 | 124 | 98 | 108 |
+| 3 | 70 | 85 | 67 | 78 | 75 | 72 | 114 | 95 | 54 | 118 | 76.5 |
+| 4 | 168 | 237 | 120 | 124 | 90 | 48 | 144 | 146 | 145 | 80 | **134** |
+| 5 | 121 | 120 | 117 | 97 | 47 | 73 | 114 | 115 | 130 | 104 | 114.5 |
+
+Days to 5 kg, seeds 1-4 (seed 5 from the 20-seed run): PO4 418-498, PO13
+488-711. Seed 4's first two PO13 cycles ran 1.01 and 1.10 °C below normal
+(mean shared anomaly over the cycle), which keeps PO13 at sea through a
+second winter. Over seeds 1-20 x 10 years (200 year-classes) the gap's median
+is 96 days (p10 66, p90 145), 143 of 200 years lie in 60-120, and the
+10-year median lies in the band on 19 of 20 seeds (seed 4 the exception).
+Year 1 reproduces S2-03's single-year measurement (seed 1: 469/624 vs
+470/627; seed 4: 498/666 vs 497/665). The normal-year test passes on every
+seed; the ten-year test fails on seed 4 and is skipped with the band
+unchanged (RUN_LOG §8).
+
+## 1k. S2-01b: real pens (2026-10-15, branch `wave2/sim-int-2`)
+
+`wave2/sim-int-1` plus real pens: calibration v1.0.10 (section `pens`), save
+format v8. A sea site is a frame mooring of pens (`SeaSite.PhysicalPens`); each
+pen holds one population, at most 200,000 fish (akvakulturdriftsforskriften
+§ 47a) and at most 25 kg/m³ (§ 25) in the volume its net encloses. Stocking
+picks a pen and a count; the density is checked at the plan's projected peak,
+grown on the S2-03 growth law. Decisions in RUN_LOG §7 (2026-10-15 S2-01b rows).
+
+### The pen
+
+| Net | Collar | Wall + cone | Volume | Used at |
+|---|---|---|---|---|
+| Standard (calibration) | 160 m (2,037 m²) | 25 m + 15 m | 61,116 m³ | built sites; laksebaronene, barekraft_mester, po3_red_sone, isa_utbrudd, ressursrente |
+| Family farm / northern | 120 m (1,146 m²) | 20 m + 10 m | 26,738 m³ | forste_sesong, lofoten_eventyr (PO9), krise_manager (PO12), algekatastrofe (PO9) |
+
+Volume = C²/(4π) × (wall + cone/3). Sources: § 25 ("the volume the fish can
+move in"); iLaks 9 March 2020 (160 m standard, 200 m the largest, smaller in
+the north and on rough sites, a 40 m net); Bergheim 2012 (Lat. Am. J. Aquat.
+Res. 40(3): 800-807: nets 20-50 m deep, a third of Norway's ~4,000 cages over
+20,000 m³). The wall/cone split and the scenario layouts are game estimates.
+
+Scenario localities (`pen_layout`; the stocked pens are the first ones):
+
+| Scenario | Site | Pens | Net | Stocked at start |
+|---|---|---|---|---|
+| forste_sesong | bestefars_anlegg | 6 | 120 m | 1 × 36,000 |
+| lofoten_eventyr | nordland_premium | 6 | 120 m | 2 × 8,000 |
+| laksebaronene | trondelag_base | 8 | 160 m | 3 × 10,000 |
+| krise_manager | finnmark_turnaround | 6 | 120 m | 2 × 6,000 |
+| barekraft_mester | lakskongen_hovedanlegg | 10 | 160 m | 4 × 12,000 |
+| po3_red_sone | po3_nord / po3_sor | 8 / 6 | 160 m | 6 × 12,000 / 4 × 10,000 |
+| isa_utbrudd | isa_kjerne / isa_nord / isa_sor | 6 / 8 / 8 | 160 m | 4 × 8,000 / 6 × 12,000 / 6 × 12,000 |
+| algekatastrofe | alge_sor / alge_midt / alge_indre | 10 / 10 / 6 | 120 m | 8 × 14,000 / 8 × 14,000 / 5 × 9,000 |
+| ressursrente | vest_1 / vest_2 / vest_3 | 10 / 10 / 8 | 160 m | 8 × 15,000 / 8 × 15,000 / 6 × 12,000 |
+
+### A pen's room (the plan on the growth law)
+
+One 100 g standard smolt grown on the S2-03 law in its area's climatology and
+day length, fed to appetite, to the plan's 5.2 kg with the plan's survival
+(15 % over 540 days); the pen takes 25 kg/m³ × volume / the peak kilos per
+smolt, and § 47a caps it at 200,000 (`PenDensityPlanner`, scratch measurement
+on this branch):
+
+| Area | Release | Peak after | Survival | Peak kg/smolt | 120 m pen | 160 m pen (density only) | 200,000 in a 160 m pen peak at |
+|---|---|---|---|---|---|---|---|
+| PO3 | 1 Jan | 500 d | 86.0 % | 4.480 | 149,198 | 200,000 (341,024) | 14.7 kg/m³ |
+| PO3 | mid-Apr | 445 d | 87.5 % | 4.563 | 146,486 | 200,000 (334,825) | 14.9 kg/m³ |
+| PO3 | mid-Sep | 446 d | 87.4 % | 4.556 | 146,731 | 200,000 (335,385) | 14.9 kg/m³ |
+| PO4 | 1 Jan | 503 d | 86.0 % | 4.474 | 149,403 | 200,000 (341,494) | 14.6 kg/m³ |
+| PO4 | mid-Apr | 445 d | 87.5 % | 4.551 | 146,866 | 200,000 (335,694) | 14.9 kg/m³ |
+| PO6 | mid-Apr | 442 d | 87.5 % | 4.578 | 146,011 | 200,000 (333,741) | 15.0 kg/m³ |
+| PO9 | 1 Jan | 547 d | 84.8 % | 4.421 | 151,199 | 200,000 (345,598) | 14.5 kg/m³ |
+| PO9 | mid-Sep | 550 d | 84.7 % | 4.408 | 151,646 | 200,000 (346,621) | 14.4 kg/m³ |
+| PO12 | 1 Jan | 598 d | 83.5 % | 4.356 | 153,457 | 200,000 (350,758) | 14.3 kg/m³ |
+| PO12 | mid-Sep | 640 d | 82.5 % | 4.299 | 155,480 | 200,000 (355,382) | 14.1 kg/m³ |
+
+§ 47a binds in a standard pen and § 25 in a 120 m pen. The colder the water,
+the longer the fish stand and the more of them die on the way, so a northern
+pen takes ~4 % more smolts. Engine checks (`PenStockingTests`, barekraft_mester,
+PO4, 1 January): 200,000 smolts in a standard pen peak at 14.69 kg/m³ on day
+497 and are accepted, 200,001 are refused (`pen_fish_limit`); a 90 m pen
+(11,817 m³) takes 65,825 smolts (peak 25.000 kg/m³ at 5.21 kg), one more peaks
+at 25.0003 and is refused (`pen_density`) although the smolts stand at
+0.56 kg/m³ that day. In the forste_sesong UI test a 120 m pen offers 149,026
+smolts; 190,000 would peak at 31.9 kg/m³.
+
+### What changed in the careers (sim-int-1 → this branch, same harness)
+
+Fish now stand in their pen's volume instead of the wave-2 proxy (10,000 m³
+per 50,000 fish at 5 kg). Below 25 kg/m³ density does nothing to growth or
+FCR, so a career changes only where a population stood above 25 kg/m³ in the
+proxy (fish grown past 5 kg) or a stocking now spans pens:
+
+| Harness | sim-int-1 | S2-01b |
+|---|---|---|
+| `forste_sesong`, minimal player, seeds 4/7/9/21/13/42 | 6 of 6 won, days 289/315/280/718/1,196/302 | **6 of 6 won, identical days**, lowest cash 0.19-0.89M |
+| po3 careers (`PlayerScriptProbe`), seeds 1/2/7/13/21 | +18.49/+18.09/+14.85/+18.35/+16.64M | identical (the saves of seeds 1/7/13 are byte-identical once the pen keys are dropped) |
+| S2-03 acceptance (10 seeds): days to 5 kg, eFCR on the commercial pen | median 448 d; eFCR 1.230-1.246 | identical |
+| Farm cycle EBIT/kg HOG (`PlayerScriptFarmCycle`, 10 seeds) | median 16.46, min 4.42, max 23.52 | identical but seeds 7 (+1 t HOG, 21.97 → 21.99) and 9 (+1 t, 23.52) |
+| Capacity strategies, 20 seeds, median equity: compliant / v1 overstock / old-rules overstock / grow-on fined / grow-on unpoliced | 27.26 / 13.91 / 105.70 / 16.80 / 39.57M | 27.26 / 13.91 / **103.72** / **18.29** / **39.95**M |
+| Six-site rent career (barekraft_mester, `HonestEconomyTests`), seeds 7/13/21: resource rent paid | 81.56 / 29.45 / 90.28M | **101.49 / 48.64 / 105.88M** |
+
+The compliant and refused-overstock careers are identical on all 20 seeds.
+The old-rules overstock (1,041,330 smolts: two free pens a site at up to
+260,333 smolts each) and the grow-on careers (173,555 smolts in one standard
+pen, grown past 5 kg) no longer meet the proxy's density stress: their fish
+stand at 13-22 kg/m³ in 61,116 m³ pens where the proxy held them at 23-28
+kg/m³ once they grew past 5 kg.
+D10 (a) still holds for the grow-on family (fined median 18.29M below the
+compliant 27.26M and the unpoliced 39.95M; per seed the fined career ends
+above the unpoliced on the same 4 of 20 seeds, 2/8/11/16), and the old-rules
+overstock still dominates on 19 of 20.
+
+The rent career stocks 561,600 smolts a site in one call, now three pens of
+187,200. Its gain is the storyteller's ILA event, which culls "the first sea
+pen": it took a whole site's stocking before and takes one pen now
+(disease-cull deaths 428,364 / 433,224 / 397,230 → 142,789 / 278,769 /
+132,428 fish on seeds 7/13/21; harvested 13,964 / 10,463 / 14,226 →
+15,409 / 11,749 / 15,398 t). Real ILA control empties the whole locality; the
+event is left as it is for S4-02 (D5) and RUN_LOG §8 carries the finding.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
@@ -796,13 +1454,31 @@ at 10 °C loses none.
 | `Feed.FeedPricePerKgFeedNOK` | 22.3 | ~20-24 delivered | Fiskeridir / Mowi | 18-27 |
 | `Feed.BaseFCR` | 1.15 | 1.14-1.15 biological; 1.2-1.5 economic | SalMar | 1.10-1.25 |
 | `FeedCostPerKgProducedNOK` (derived) | 25.645 | ~25.7 | Fiskeridir Tab.38 | 22-30 |
-| `Operations.HarvestCostPerKgNOK` | 4.0 | 3-5 (wellboat) | industry | 3-5 |
+| `Operations.HarvestCostPerKgNOK` | 4.0 | 3-5 (wellboat) | industry | 3-5 (read only by SimProbe's synthetic P&L; the engine uses `Harvest.*` since S2-04) |
+| `Harvest.HogYieldFraction` | 0.84 | live → HOG 84% | Mowi Handbook 2025 p. 114 | 0.82-0.86 |
+| `Harvest.WellboatCostPerKgHogNok` + `SlaughterCostPerKgHogNok` | 1.55 + 3.45 | 5.0 NOK/kg HOG | Fiskeridir 2023 (4.45/kg round × 1.125); Mowi EUR 0.40/kg GWT | 4.5-5.5 |
+| `Harvest.ExpressSurchargePerKgHogNok` | 1.0 | spot wellboat + waiting pen | game estimate | 0.5-2.0 |
+| `Harvest.PriceFactor*` (size ladder, HOG classes) | 0.60 / 0.72 / 0.86 / 0.93 / 1.00 / 1.04 / 1.08 / 1.10 | 2-3 kg ~86%, 6-7 kg ~108% of 4-5 kg | Kontali via Mowi Handbook 2025 §6.7 | ±0.03 |
+| `Harvest.OrdinaryPriceFactor` / `ProductionPriceFactor` | 0.90 / 0.70 | downgraded ~30% off | Mowi Handbook 2025 p. 116 (production); game estimate (ordinary) | 0.85-0.95 / 0.65-0.75 |
+| `Harvest.SlaughterCapacityTonnesHogPerDay` | 150 | ~56 t/facility/day average | Fiskehelserapporten 2024 §5.8 (game estimate) | 80-300 |
+| `Harvest.FastingDegreeDays` | 30 | gut empty (kvalitetsforskriften § 16) | game estimate | 20-50 |
 | `Operations.ProcessingCostPerKgNOK` | 9 | 8-10 | industry | 7-11 |
 | `Finance.CorporateTaxRate` | 0.22 | 22% statutory | Skatteetaten | 0.22 (fixed) |
 | `Finance.ResourceRentTaxRate` | 0.25 | 25% since 1 Jan 2023 | Skatteetaten / Prop.1 LS | 0.24-0.26 |
 | `Finance.ResourceRentBasicDeductionNOK` | 70,000,000 | 70M NOK | Prop.1 LS | 60M-80M |
 | `Licensing.MABLimitKgPerLicense` | 780,000 | 780 t standard (945 t far north) | Fiskeridir | 780,000 (fixed) |
 | `Licensing.LicenseCostNOK` | 150,000,000 | ~150-200M market | Fiskeridir | 100M-250M |
+| `Capacity.BuiltSiteLocalityMtbTonnes` | 3,120 | locality MTB cleared for a new site | NFD letter 20.09.2017, point 5 | data |
+| `Capacity.PlanningThermalGrowthCoefficient` | 2.8 | sea cages 2.8 ± 0.3; realized cycle TGC 2.61-2.97 in the game (S2-03) | Nofima/SalMar 2012 (Hatchery International) | 2.6-3.0 |
+| `Capacity.OrderDeadlineDays` | 14 | (game estimate) | the Phase 5.5 red-zone order | 7-30 |
+| `Capacity.InfringementFeeCeilingG` × `GrunnbelopNok` | 15 G = 2,048,235 NOK | overtredelsesgebyr ceiling | FOR-2013-12-20-1675 § 8; NAV G 2026 | 15 G (law) |
+| `Capacity.LiveToGuttedFactor` / `EconomicFeedFactor` / `OtherVariableCostPerKgNok` | 0.83 / 1.30 / 4.93 | the § 6 confiscation formula | FOR-2013-12-20-1675 § 6; Fiskeridir lønnsomhet 2024 | law / survey |
+| `Capacity.ForcedHarvestPriceFactor` / `ForcedHarvestHeadroomFraction` | 0.70 / 0.05 | (game estimates) | akvakulturloven § 29 (at the company's cost) | 0.5-0.9 / 0-0.15 |
+| `Capacity.MaxStockingDensityKgPerM3` | 25 | 25 kg/m³ per production unit | akvakulturdriftsforskriften § 25 | 25 (law) |
+| `Capacity.DensityReferenceWeightKg` | 5.0 | proxy pen holds 50,000 fish at 25 kg/m³ (S2-03's commercial pen) | game estimate | 4.5-5.5 |
+| `Pens.MaxFishPerPen` | 200,000 | at most 200,000 fish per production unit in the sea | akvakulturdriftsforskriften § 47a (2013) | 200,000 (law) |
+| `Pens.StandardCircumferenceM` / `StandardNetWallDepthM` / `StandardConeDepthM` | 160 / 25 / 15 m (61,116 m³) | 160 m standard, 40 m net; nets 20-50 m | iLaks 2020; Bergheim 2012 | 120-200 m / 20-50 m |
+| `Pens.BuiltSitePenCount` | 8 | 6-12 pens a locality | game estimate (roadmap S2-01b) | 6-12 |
 | `Labor.WorkerMonthlySalaryNOK` | 48,000 | ~48k (2024) | industry wage stats | 36k-60k |
 
 ## 3. Key biological / environmental knobs
@@ -828,6 +1504,19 @@ at 10 °C loses none.
 | `SeaTemperature.DailyFluctuationStdDevC` | 0.3 | (game estimate) | none | 0-0.6 |
 | `SeaTemperature.EventAnomalyEFoldingDays` | 21 | July 2025 heatwave ~3 weeks | HI Rapport fra havforskningen 2025-69 | 7-45 |
 | Production-area climatology (13 x 12, `ProductionAreas`) | §1f | HI normals 2012-2024 (NorKyst v3) | HI 2025-69 + station shapes | data, not a knob |
+| `Growth.ThermalGrowthCoefficient` | 3.0 | 2.5-3.5 commercial sea TGC | Reid et al. 2013a / Dempsey et al. 2023; Karlsen et al. 2018 | 2.8-3.2 |
+| `Growth.OptimalTemperatureC` | 13 | 13-14 °C (post-smolt to adult) | Kleiven et al. 2026; Calado et al. 2021 | 12.5-14 |
+| `Growth.UpperGrowthLimitC` | 22 | ITmax ~22 °C | Calado et al. 2021 | 20-23 |
+| `Growth.TgcValidToKg` / `AsymptoticWeightKg` | 3 / 20 | TGC valid 100-3000 g | Alanärä et al. 2001 / game estimate | 2.5-3.5 / 15-25 |
+| `Growth.PhotoperiodGrowthSlope` | 0.2 | growth tied to day length | Aunsmo et al. 2014 (effect); game estimate (size) | 0-0.3 |
+| `Growth.MaintenanceRationFraction` / `RationCurvature` | 0.10 / 0.5 | optimum ration below satiation | Brett 1979 (shape); game estimate | 0.05-0.2 / 0.3-1.0 |
+| `Growth.SmoltWeightCv` / `BaseWeightCv` | 0.18 / 0.20 | CV 17-21% a month after transfer | Karlsen et al. 2018 / game estimate | 0.15-0.22 / 0.15-0.30 |
+| `Mortality.AcuteLowOxygenMgL` | 3.0 | salmonid acute-mortality limit 3 mg/L; Pcrit 3.4-3.5 mg/L at 14-18 °C | US EPA 1986 (EPA 440/5-86-003); Barnes et al. 2011 | 2.5-3.5 |
+| `Mortality.LowOxygenDeathFraction` (/Severe/Anoxic) | 0.10 / 0.25 / 0.50 below 3 / 2 / 1 mg/L | (game estimate: the limit is sourced, the kill above it is not) | plankton-crash steps, kept | monotone, 0-1 |
+| `WaterOxygen.HypoxiaSagMaxDepth` | 0.42 | in-cage 26-90 % saturation, 1 reading in 4 growth-limiting | Solstorm et al. 2018 (Aquaculture 486:122-129) | 0.25-0.6 |
+| `WaterOxygen.BloomChlorophyllAtCapacityUgL` | 10 | seasonal bloom 1-6.5 µg/L (2017), <0.3-10 (2018) | NIVA FerryBox Indre Oslofjord 2017/2018 | 5-20 |
+| `WaterOxygen.PhytoplanktonCarbonPerChlorophyll` | 50 g/g | ~10-330 g/g by light, temperature, nutrients | Cloern et al. 1995 (game estimate inside the range) | 30-100 |
+| `WaterOxygen.OxygenPerOrganicCarbon` | 3.47 g/g | 138 O2 : 106 C (mol) | Redfield et al. 1963 | 3.4-3.8 |
 
 ## 4. Playtest tuning priorities
 
@@ -976,3 +1665,4 @@ S1-01 / S1-02 guards (§1d):
 | 2026-10-08 | Calibration v1.0.3 | Wired the two dormant depth systems into the live engine in-band. Disease: `IntegratedDiseaseSystem` injects via `MortalityModel.SetDiseaseMortalityRate`, anchor split by new `Health.SeaMortalityDiseaseShare` (0.30), measured disease 4.39%/cycle of a 14.88% total (was 0.00 / 15.76). Storms: `SimulationEngine.ApplyStormHazards` owns `SeaSite.NetIntegrityPct` wear/repair + `RecordEscape` (fine + event log); removed the duplicate block from `GameBridge.CheckWeatherImpacts`. Measured storm escapes 0.22%/site/yr, 0.16 events, min integrity 80.7% (was test-side 0.15% / 0.16 / 83.4). Re-ran `SimProbe` seeds 1-20; full solution suite green; `enableEvents:false` path unchanged and deterministic; bumped `calibration.json` to 1.0.3. |
 | 2026-10-14 | wave1/sim-1 (S1-01, S1-02) | F1024 water chemistry merged; seawater O2 solubility (Benson & Krause, 9.02 mg/L at 10 °C/35 PSU, was 10.9); pH baseline 8.05; zones take the sea temperature; F456 storm season renormalized through one helper shared with the forecast; storm damage once per episode; net repair 0.2 -> 0.5; storm cooling Apr-Sep only. Re-measured every band (§1b, §1c updated, before/after in §1d); no band loosened. |
 | 2026-10-14 | wave1/sim-2 (S1-03, D16) | Achievement and tutorial reward cash removed (medals); per-scenario bankruptcy floors in calibration v1.0.5 from measured harvest-only troughs (po3 -15M, isa -24M, algae -26.5M, krise -4.5M, lofoten -2M, default -1M) with a three-rung warning ladder; resource-rent tax on by default (family farm pays 0, a six-site career 11-30M over three years). SimProbe medians unchanged; tutorial still 6 of 6, four seeds finish later (§1e). |
+| 2026-10-14 | wave2/sim-b-3 (S2-04, F270) | Harvest pipeline (calibration v1.0.8 `harvest`, save v6): fish sold as gutted kilos (yield 0.84) at the reference price × size class (HOG ladder, Kontali) × grade (superior/ordinary/production by cause, Fiskehelserapporten 2024) − the harvest cost (5.0 NOK/kg HOG, COGS, F270 closed); fasting in degree-days, wellboat slot, slaughterhouse capacity 150 t HOG/day, partial and per-pen orders, land hall / offshore routes. Player-path EBIT/kg HOG median 18.19 (11.07-23.23, 10 seeds); po3 careers +14.75M to +19.90M (were +23.49M to +31.76M); forste_sesong 36,000 fish and 4M (6/6 seeds win); rent base excludes the harvest cost (§1h). |

@@ -34,24 +34,27 @@ namespace LakskongenSim.Biology
         }
 
         /// <summary>
-        /// Oxygen (mg/L) below which a plankton crash kills fish: the
-        /// <c>plankton-crash</c> event's trigger.
-        /// </summary>
-        public const double PlanktonCrashOxygenMgL = 3.0;
-
-        /// <summary>
-        /// Fraction of a cohort killed by a plankton-crash oxygen collapse at
-        /// the cohort's own oxygen: half below 1 mg/L, a quarter below 2 mg/L,
-        /// a tenth below <see cref="PlanktonCrashOxygenMgL"/>, none above (a
-        /// land-based tank's controlled oxygen or an offshore structure's
-        /// current-fed water can stay above it while the fjord collapses).
+        /// Fraction of a cohort killed by one exposure to the oxygen at the
+        /// fish (<see cref="CohortEnvironment.OxygenMgL"/>): none at or above
+        /// the acute limit (<see cref="MortalityCalibration.AcuteLowOxygenMgL"/>,
+        /// 3 mg/L, US EPA 1986 for salmonids), then
+        /// <see cref="MortalityCalibration.LowOxygenDeathFraction"/> (a tenth),
+        /// below <see cref="MortalityCalibration.LowOxygenSevereMgL"/> a
+        /// quarter and below <see cref="MortalityCalibration.LowOxygenAnoxicMgL"/>
+        /// half. Zero when the oxygen is unknown. One rule for every source of
+        /// low oxygen: a plankton crash's fjord-wide collapse, a cage's oxygen
+        /// sag (the bloom deck's <c>hypoxia</c> card, through the pen's
+        /// water), and whatever a farm type's water does (a land tank's
+        /// controlled oxygen, an offshore structure's current-fed water).
         /// Cause: <see cref="MortalityCause.LowOxygen"/>.
         /// </summary>
-        public static double PlanktonCrashFraction(in CohortEnvironment environment)
+        public static double LowOxygenFraction(in CohortEnvironment environment, MortalityCalibration calibration)
         {
             double o2 = environment.OxygenMgL;
-            if (double.IsNaN(o2) || o2 >= PlanktonCrashOxygenMgL) return 0.0;
-            return o2 < 1.0 ? 0.5 : o2 < 2.0 ? 0.25 : 0.1;
+            if (double.IsNaN(o2) || o2 >= calibration.AcuteLowOxygenMgL) return 0.0;
+            if (o2 < calibration.LowOxygenAnoxicMgL) return calibration.LowOxygenDeathFractionAnoxic;
+            if (o2 < calibration.LowOxygenSevereMgL) return calibration.LowOxygenDeathFractionSevere;
+            return calibration.LowOxygenDeathFraction;
         }
 
         /// <summary>Whole fish killed in a cohort of <paramref name="count"/> at a daily fraction (truncated, as the engine always counted).</summary>

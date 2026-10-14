@@ -6,6 +6,7 @@ using LakskongenSim.Data;
 using LakskongenSim.Events;
 using LakskongenSim.Farm;
 using LakskongenSim.Finance;
+using LakskongenSim.Harvest;
 using LakskongenSim.Processing;
 
 namespace LakskongenSim.Core;
@@ -122,59 +123,17 @@ public partial class SimulationEngine
             return CommandResult.Fail("mab_exceeded",
                 $"Stocking {count:N0} smolts ({incomingTonnes:F1} t) would put {siteId} over its MAB " +
                 $"({site.CurrentBiomassTonnes:F1} + {incomingTonnes:F1} > {site.MABTonnes:F0} t)");
-        // Calibrated smolt price × strain premium (review F269: the old path
-        // charged the hatchery rearing cost, ~54.75 NOK/fish vs 12 calibrated).
-        decimal stockingCost = count * _balancing.SmoltCostPerFish * (decimal)strain.CostMultiplier;
+        // S2-01a: under the licence register the production plan's projected
+        // peak must fit the area's licence MTB and the site's locality MTB, and
+        // no reduction order may run in the area.
+        var capacity = CheckStockingCapacity(site, count, strain.ReleaseWeightKg);
+        if (capacity != null) return capacity;
+        // S2-01b: the smolts go into the fewest empty pens that hold them
+        // within § 47a's 200,000 fish and § 25's 25 kg/m³ at the plan's peak.
+        var penRoom = CheckSitePenRoom(site, count, ForecastPenStocking(site, strain, qualityTier), out var allocation);
+        if (penRoom != null) return penRoom;
 
-        if (FinanceManager.Balance < stockingCost)
-            return CommandResult.Fail("insufficient_funds",
-                $"Insufficient funds: need {stockingCost:N0} NOK for {count:N0} smolts");
-
-        var population = new FishPopulation
-        {
-            ZoneId = site.ZoneId,
-            SeaLiceLoad = strain.InitialLiceLoad
-        };
-        population.InjectDependencies(Growth, Mortality);
-
-        var smoltCohort = new FishPopulation.Cohort(
-            Hatchery.MaturationDays,
-            count,
-            strain.ReleaseWeightKg,
-            LifeStage.Smolt,
-            strain.BuildGenome()
-        )
-        {
-            Quality = quality.Tier
-        };
-        population.Cohorts.Add(smoltCohort);
-
-        site.Stock(population);
-        site.LastStockedDay = State.Day;
-        State.Populations.Add(population);
-
-        // Phase 2.1: seed the SITE's lice model from the incoming smolts
-        // (no Reset — that would wipe resistance built up by earlier
-        // cohorts). Without this the model sits at 0 lice forever and
-        // AdvanceDay early-outs.
-        if (strain.InitialLiceLoad > 0)
-            site.Lice.SeedExternalInfection(Math.Max(0.05, strain.InitialLiceLoad));
-
-        // Smolts are cost of goods (review F1132: they never reached the P&L).
-        PayCost(stockingCost, CostBooking.Cogs, "smolts");
-
-        var message = SimText.Nb($"Satte ut {count:N0} smolt ({strain.Name}, {strain.ReleaseWeightKg * 1000:F0} g) på {site.Label}");
-
-        State.EventLog.Add(new EventRecord
-        {
-            Day = State.Day,
-            Name = "Utsett av smolt",
-            Category = EventCategory.Equipment,
-            Description = SimText.Nb($"{message} for {stockingCost:N0} kr"),
-            BalanceChange = -stockingCost
-        });
-
-        return CommandResult.Success(message, count, id: siteId);
+        return PlaceSmolts(site, allocation!, strain, quality);
     }
 
     /// <summary>Norwegian name of a delousing method for the event log.</summary>
@@ -204,135 +163,27 @@ public partial class SimulationEngine
     // ── Harvest ────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Harvest every fish at one sea site. Value = biomass kg, Value2 = NOK
-    /// revenue after contracts (oldest first), spot remainder, certification
-    /// and VAP multipliers. Fails with "site_empty" when the site holds no
-    /// meaningful biomass.
+    /// Harvest every fish at one sea site now, through the S2-04 pipeline
+    /// (<see cref="HarvestNow"/>, express): a spot wellboat and the
+    /// slaughterhouse's waiting pen, the HOG yield, the size-class and grade
+    /// prices, contracts first, the harvest cost booked as cost of goods sold.
+    /// Value = live kg, Value2 = gross sales (NOK). Fails with "site_empty"
+    /// when the site holds no meaningful biomass. A planned harvest
+    /// (fasting at the farm, a wellboat slot, no surcharge) is
+    /// <see cref="OrderHarvest"/>.
     /// </summary>
     public CommandResult HarvestSite(string siteId)
     {
         if (State?.SeaSites == null)
             return CommandResult.Fail("engine_not_ready", "Engine not initialized");
 
-        var site = State.SeaSites.FirstOrDefault(s => s.Id == siteId);
-        if (site == null)
+        if (State.SeaSites.All(s => s.Id != siteId))
             return CommandResult.Fail("site_not_found", $"Site '{siteId}' not found");
 
         // Harvest ONLY this site's pens (site.Pens identity). Populations
         // carry ZoneId (shared by every site in a zone), so filtering
         // State.Populations by zone would wipe neighbouring sites too.
-        return HarvestPopulations(site.Pens, siteId, site.Label, "site_empty", $"Site '{siteId}' is empty", seaFarmed: true);
-    }
-
-    /// <summary>
-    /// Harvest and sell every population in <paramref name="pens"/> (a sea
-    /// site's pens or a facility's tanks/pens), remove them from the game and
-    /// log the harvest. Value = kg, Value2 = NOK revenue, Id = <paramref name="id"/>.
-    /// </summary>
-    private CommandResult HarvestPopulations(List<FishPopulation> pens, string id, string label,
-        string emptyKey, string emptyMessage, bool seaFarmed)
-    {
-        double totalBiomassKg = 0.0;
-        int totalFishCount = 0;
-        var populations = pens.ToList();
-
-        foreach (var pop in populations)
-        {
-            foreach (var cohort in pop.Cohorts.ToList()) // ToList() to avoid modification during iteration
-            {
-                double cohortBiomass = cohort.Count * cohort.MeanWeightKg;
-                totalBiomassKg += cohortBiomass;
-                totalFishCount += cohort.Count;
-            }
-        }
-
-        if (totalBiomassKg < 0.1)
-            return CommandResult.Fail(emptyKey, emptyMessage);
-
-        decimal revenue = SellHarvest(totalBiomassKg, seaFarmed);
-
-        // Remove exactly the harvested populations
-        foreach (var pop in populations)
-        {
-            // Every harvested fish leaves the ledger alive (S2-05).
-            foreach (var cohort in pop.Cohorts)
-                pop.RemoveAlive(cohort, cohort.Count, FishRemoval.Harvest);
-            pop.Cohorts.Clear();
-            State.Populations.Remove(pop);
-        }
-        pens.Clear();
-
-        var message = SimText.Nb($"Høstet {totalBiomassKg:N0} kg ({totalFishCount:N0} fisk) på {label}");
-
-        State.EventLog.Add(new EventRecord
-        {
-            Day = State.Day,
-            Name = "Harvest",
-            Category = EventCategory.Market,
-            Description = SimText.Nb($"{message} for {revenue:N0} kr"),
-            BalanceChange = revenue
-        });
-
-        return CommandResult.Success(message, totalBiomassKg, (double)revenue, id);
-    }
-
-    /// <summary>
-    /// Sell a harvest: oldest contracts first at their locked prices, the rest
-    /// at spot, the VAP premium when a processing plant is owned. Books the
-    /// income and the sale, adds sea-farmed volume to the resource-rent base
-    /// (land-based RAS is outside the sea-farming rent tax) and moves the market.
-    /// </summary>
-    private decimal SellHarvest(double totalBiomassKg, bool seaFarmed)
-    {
-        // Calculate revenue: oldest contracts first at locked prices, remainder
-        // at spot. The spot price already carries the certification multiplier
-        // (MarketSimulation) and contract prices were offered from it, so no
-        // second multiplier is applied (review F268: it was applied twice).
-        // Partial deliveries accrue no penalty (expiry settles shortfalls).
-        decimal revenue = 0m;
-        double remainingKg = totalBiomassKg;
-        if (ContractSystem != null)
-        {
-            foreach (var c in ContractSystem.ActiveContracts.OrderBy(c => c.SignedAtWeek).ToList())
-            {
-                if (remainingKg <= 0.1) break;
-                int deliver = (int)Math.Min(remainingKg, c.RemainingKg);
-                if (deliver <= 0) continue;
-                var (payment, _) = ContractSystem.FulfillContract(c.Id, deliver);
-                revenue += payment;
-                remainingKg -= deliver;
-            }
-        }
-        decimal spotPrice = MarketSimulation.PricePerKg;
-        revenue += (decimal)remainingKg * spotPrice;
-        // VAP fillet line (Phase 3.5): +12% when a plant is owned.
-        // Phase 4.4: grade-C recipe (pale) halves the premium to +6%.
-        bool vap = State.OwnsProcessingPlant;
-        if (vap)
-        {
-            string grade = FeedRecipe.Grade(State.RecipeProteinPct, State.RecipeAstaxPpm);
-            revenue *= FeedRecipe.VapMult(grade);
-            if (grade == "C")
-                State.EventLog.Add(new EventRecord
-                {
-                    Day = State.Day,
-                    Name = "Blek filet (C)",
-                    Category = EventCategory.Market,
-                    Description = "Lav astaxanthin i fôret — VAP-premie halvert til +6%",
-                    BalanceChange = 0m
-                });
-        }
-
-        ReceiveIncome(revenue, "harvest");
-        State.TotalSalesRevenueNok += revenue;
-        State.TotalHarvestRevenueNok += revenue;
-        if (seaFarmed)
-            RecordHarvestForResourceRent(totalBiomassKg);
-
-        // P15: player-supply market impact — the harvested tonnage moves the
-        // market (accumulates downward price pressure, decays over days).
-        MarketSimulation?.ApplyPlayerHarvest(totalBiomassKg / 1000.0);
-        return revenue;
+        return HarvestNowAs(siteId, null, 1.0, HarvestMode.Express, "site_empty", $"Site '{siteId}' is empty");
     }
 
     // ── Finance ────────────────────────────────────────────────────────────
@@ -608,6 +459,11 @@ public partial class SimulationEngine
                 $"Insufficient funds: need {hire:N0} NOK for the wellboat hire");
 
         PayCost(hire, CostBooking.Opex, "wellboat");
+        // S2-04: a booked harvest wellboat means the fish stop eating now, so
+        // their gut is empty when the boat comes (kvalitetsforskriften § 16).
+        if (kind == "harvest")
+            foreach (var pen in State.SeaSites.First(s => s.Id == siteId).Pens)
+                StartFasting(pen);
         State.WellboatJobsBooked++;
         var job = new Logistics.WellboatJob
         {
@@ -702,6 +558,7 @@ public partial class SimulationEngine
         State.TotalHarvestRevenueNok = snapshot.TotalHarvestRevenueNok;
         State.OpeningBalanceNok = snapshot.OpeningBalanceNok;
         State.ResourceRentHarvestValueThisTaxYear = snapshot.ResourceRentHarvestValueThisTaxYear;
+        State.HarvestCostThisTaxYear = snapshot.HarvestCostThisTaxYear;
         State.PenPriceCouncilLastValue = snapshot.PenPriceCouncilLastValue;
         State.ExternalAquacultureSnapshot = snapshot.ExternalAquacultureSnapshot;
         State.ExternalDataAnalytics = snapshot.ExternalDataAnalytics;
@@ -754,6 +611,17 @@ public partial class SimulationEngine
             foreach (var job in snapshot.WellboatJobs)
                 State.WellboatJobs.Add(job);
         State.WellboatJobsBooked = snapshot.WellboatJobsBooked;
+        // S2-04 harvest pipeline (empty / zero in saves from before it).
+        State.HarvestOrders.Clear();
+        if (snapshot.HarvestOrders != null)
+            State.HarvestOrders.AddRange(snapshot.HarvestOrders);
+        State.HarvestReports.Clear();
+        if (snapshot.HarvestReports != null)
+            State.HarvestReports.AddRange(snapshot.HarvestReports);
+        State.HarvestOrdersPlaced = snapshot.HarvestOrdersPlaced;
+        State.HarvestBatchesSold = snapshot.HarvestBatchesSold;
+        State.TotalHarvestedHogKg = snapshot.TotalHarvestedHogKg;
+        State.TotalHarvestedLiveKg = snapshot.TotalHarvestedLiveKg;
         State.SolvencyWarningPeak = snapshot.SolvencyWarningPeak;
         State.BankruptDay = snapshot.BankruptDay;
         if (snapshot.Crew != null)
@@ -823,6 +691,16 @@ public partial class SimulationEngine
         if (snapshot.LicenseAuctions != null)
             foreach (var auction in snapshot.LicenseAuctions)
                 State.LicenseAuctions.Add(auction);
+        // S2-01a: the licence register and the biomass orders. A save from
+        // before S2-01 has no rules (null): migrated after the load below.
+        State.CapacityRules = snapshot.CapacityRules;
+        State.LicencesGranted = snapshot.LicencesGranted;
+        State.LicenceHoldings.Clear();
+        if (snapshot.LicenceHoldings != null)
+            State.LicenceHoldings.AddRange(snapshot.LicenceHoldings);
+        State.CapacityBreaches.Clear();
+        if (snapshot.CapacityBreaches != null)
+            State.CapacityBreaches.AddRange(snapshot.CapacityBreaches);
         foreach (var kvp in snapshot.FactionRelations)
             State.FactionRelations[kvp.Key] = kvp.Value;
         foreach (var rep in snapshot.RecentMarketReports)
@@ -843,6 +721,12 @@ public partial class SimulationEngine
         // Re-inject dependencies into deserialized populations and restore
         // depth/empire systems + model snapshots (same call the game makes).
         RestoreFromLoad(snapshot);
+
+        // S2-01a: a pre-S2-01 save gets one licence per site (its old MAB) in
+        // the site's production area, resolved after the load assigned areas.
+        MigrateCapacityRegisterAfterLoad();
+        // S2-01b: a save from before real pens gets one pen per population.
+        MigratePensAfterLoad();
     }
 
     // ─── Phase 4.5: Attention Inbox hook ─────────────────────────────────

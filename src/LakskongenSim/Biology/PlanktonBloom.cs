@@ -8,7 +8,11 @@ namespace LakskongenSim.Biology
     /// <summary>
     /// Models phytoplankton bloom dynamics with logistic growth and crash events.
     /// Driven by light (daylength), temperature, nutrient load, and stratification.
-    /// When biomass exceeds threshold, crash occurs -> respiration spike -> DO crash -> mortality.
+    /// When biomass exceeds threshold, the bloom crashes and the dying biomass is
+    /// respired: the zone loses the oxygen its organic carbon takes
+    /// (<see cref="PlanktonBloomConfig.CrashOxygenDemandAtCapacityMgL"/>, wave 2
+    /// sim-a-1). Fish die of low oxygen only where the water at the fish falls
+    /// below the acute limit (<c>MortalityHazards.LowOxygenFraction</c>).
     /// </summary>
     public class PlanktonBloom
     {
@@ -40,6 +44,9 @@ namespace LakskongenSim.Biology
         {
             _config = config ?? new PlanktonBloomConfig();
         }
+
+        /// <summary>The configuration in use (the engine sets the registry's oxygen demand on it).</summary>
+        internal PlanktonBloomConfig Config => _config;
 
         /// <summary>
         /// Advance bloom simulation by one day for all zones.
@@ -175,19 +182,24 @@ namespace LakskongenSim.Biology
         }
 
         /// <summary>
-        /// Trigger bloom crash event - respiration spike depletes DO.
+        /// Trigger bloom crash event: the dying biomass is respired and takes
+        /// its oxygen from the zone's water.
         /// </summary>
         private void TriggerCrash(Zone zone, BloomState bloom, int day)
         {
             bloom.IsCrashing = true;
             bloom.CrashDay = day;
 
-            // Crash intensity determines DO depletion severity
-            double crashSeverity = bloom.PeakIntensity / _config.CarryingCapacity;
-            
-            // DO drops to <30% of saturation (typically 8 mg/L -> <2.4 mg/L)
-            double targetOxygen = zone.WaterChemistry.OxygenO2 * (1.0 - _config.MaxOxygenDepletion * crashSeverity);
-            zone.WaterChemistry.OxygenO2 = Math.Max(0.0, targetOxygen);
+            // The biomass that dies (all but the retained fraction), as a share of
+            // the carrying capacity, takes the oxygen its carbon needs to be
+            // respired (chlorophyll x C:Chl x Redfield O2:C, wave 2 sim-a-1). The
+            // old cut took 75 % of the oxygen x the peak (8 -> about 3 mg/L, in
+            // every zone twice a summer); a seasonal bloom's carbon holds about
+            // 1.3 mg/L of oxygen demand.
+            double dyingShare = Math.Max(0.0, bloom.Intensity * (1.0 - _config.PostCrashRetention))
+                / Math.Max(1e-9, _config.CarryingCapacity);
+            double oxygenTaken = dyingShare * _config.CrashOxygenDemandAtCapacityMgL;
+            zone.WaterChemistry.OxygenO2 = Math.Max(0.0, zone.WaterChemistry.OxygenO2 - oxygenTaken);
 
             // Log crash event
             SimLog.Info($"Plankton bloom crash in zone {zone.Id}: intensity={bloom.PeakIntensity:F2}, DO={zone.WaterChemistry.OxygenO2:F2} mg/L");
@@ -303,7 +315,23 @@ namespace LakskongenSim.Biology
 
             // Oxygen impact
             public double RespirationOxygenDrawdown { get; set; } = 0.5; // mg/L per day per intensity unit
-            public double MaxOxygenDepletion { get; set; } = 0.75; // max 75% DO depletion during crash
+
+            /// <summary>
+            /// Retired (wave 2 sim-a-1): the crash used to cut this fraction x the
+            /// peak from the zone's oxygen. Kept so older configs and tests still
+            /// deserialize; the crash now takes
+            /// <see cref="CrashOxygenDemandAtCapacityMgL"/>.
+            /// </summary>
+            public double MaxOxygenDepletion { get; set; } = 0.75;
+
+            /// <summary>
+            /// Oxygen (mg/L) a bloom at carrying capacity takes when it dies and
+            /// is respired. The engine sets it from the calibration registry
+            /// (<c>WaterOxygenCalibration.BloomCrashOxygenDemandAtCapacityMgL</c>,
+            /// 1.735 mg/L: 10 µg/L chlorophyll a x 50 g C/g Chl x 3.47 g O2/g C).
+            /// </summary>
+            public double CrashOxygenDemandAtCapacityMgL { get; set; } =
+                Calibration.CalibrationRegistry.Default.WaterOxygen.BloomCrashOxygenDemandAtCapacityMgL;
         }
     }
 }

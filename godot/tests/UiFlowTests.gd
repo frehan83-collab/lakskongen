@@ -74,8 +74,12 @@ func _run() -> void:
 	await _test_fjord_shows_rival_farms_and_wellboats()
 	await _test_telemetry_oxygen_saturation_follows_the_sim()
 	await _test_zones_report_their_production_area_water()
+	await _test_pens_report_their_size_spread_and_ration()
+	await _test_harvest_pipeline_reaches_the_ui()
 	await _test_honest_economy_reaches_the_ui()
 	_test_mortality_ledger_reaches_the_bridge()
+	_test_capacity_reaches_the_bridge()
+	await _test_pens_reach_the_stocking_card()
 	await _test_pen_models_read_as_equipment()
 	await _test_hero_pen_and_site_kit()
 	await _test_vessel_fleet()
@@ -85,6 +89,7 @@ func _run() -> void:
 	await _test_far_field_surrounds_the_world()
 	await _test_camera_keys_leave_focused_controls_alone()
 	await _test_environment_director_owns_the_look()
+	await _test_sky_latitude_follows_a_northern_scenario()
 	await _test_terrain_material_and_vegetation()
 	await _test_water_grid_bake_and_sea_state()
 	await _test_theme_and_contrast_on_every_screen()
@@ -2052,8 +2057,9 @@ func _test_scenario_picker() -> void:
 	_check(wrong_capital.is_empty(), "picker: every card shows its starting balance formatted %s" % str(wrong_capital))
 	var first: Button = picker.get_card("forste_sesong")
 	var first_capital: Label = first.find_child("Capital", true, false) if first != null else null
-	_check(first_capital != null and first_capital.text == SimFormatters.format_nok(3_000_000.0),
-		"picker: Familiegården starts with 3 000 000 (it read 300 000)")
+	# S2-04 raised Familiegården's capital from 3 000 000 to 4 000 000 (scenario data, RUN_LOG §7).
+	_check(first_capital != null and first_capital.text == SimFormatters.format_nok(4_000_000.0),
+		"picker: Familiegården starts with 4 000 000 (it read a tenth of its capital)")
 	_check(wrong_lock.is_empty(), "picker: a padlock only on a locked card %s" % str(wrong_lock))
 	_check(locked == 0, "picker: no scenario is locked until progression lands (%d locked)" % locked)
 	_check(wrong_mod.is_empty(), "picker: exactly the mods' scenarios carry the Mod tag %s" % str(wrong_mod))
@@ -3302,7 +3308,14 @@ func _test_environment_director_owns_the_look() -> void:
 	weather.transition_duration = 0.0
 	vista._on_state_updated()
 	await get_tree().process_frame
-	_check(absf(ts.latitude_deg - 63.43) < 0.01, "environment: the sky's latitude is the scenario region's (Trøndelag 63.43, got %.2f)" % ts.latitude_deg)
+	# S2-02 moved po3_red_sone from Trøndelag to Vestland (PO3, Karmøy til
+	# Sotra, lies in Vestland/Rogaland): its sky is Bergen's 60.39, the sim's
+	# own latitude for the scenario. Vestland is also the no-scenario
+	# fallback, so _test_sky_latitude_follows_a_northern_scenario checks a
+	# Trøndelag scenario's 63.43 on the same path.
+	_check(absf(ts.latitude_deg - 60.39) < 0.01 and absf(ts.latitude_deg - float(ctx.get("latitude", 0.0))) < 1e-6
+		and str(ctx.get("region", "")) == "Vestland",
+		"environment: the sky's latitude is the scenario region's (po3_red_sone: Vestland 60.39, got %.2f)" % ts.latitude_deg)
 	_check(ts.sim_day == int(ctx.get("sim_day", -1)), "environment: the sky's date is the sim day (%d)" % ts.sim_day)
 	_check(absf(weather.get_visibility_m() - float(ctx.get("visibility_km", 0.0)) * 1000.0) < 1.0
 		and is_equal_approx(weather.get_cloud_cover(), float(ctx.get("cloud_cover", -1.0))),
@@ -5438,5 +5451,195 @@ func _test_hud_fits_its_bar() -> void:
 	win.size = old_size
 	win.content_scale_factor = old_scale
 	_sim.set_paused(true)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## S2-03: the scenario farm's fish went to sea in the last release window (an
+## autumn S0 generation in Vestland), grow on the TGC law, and their size spread
+## and the pen's ration reach the game through the bridge.
+func _test_pens_report_their_size_spread_and_ration() -> void:
+	_check(_sim.start_qa_scenario("forste_sesong", 17), "growth: tutorial scenario starts")
+	_sim.set_paused(true)
+	var start: Array = _sim.get_all_pens()
+	var w0 := float(start[0].get("mean_weight_kg", 0.0)) if start.size() > 0 else 0.0
+	_check(start.size() == 1 and w0 > 0.3 and w0 < 0.7,
+		"growth: the inherited fish are post-smolts on day 0 (%.2f kg)" % w0)
+	_sim.advance_days(120)
+	var pens: Array = _sim.get_all_pens()
+	var cv := float(pens[0].get("weight_cv", 0.0)) if pens.size() > 0 else 0.0
+	var ration := float(pens[0].get("ration", 0.0)) if pens.size() > 0 else 0.0
+	_check(cv > 0.15 and cv < 0.35 and is_equal_approx(ration, 1.0),
+		"growth: the site reports its size spread (CV %.3f) and full-appetite ration (%.2f)" % [cv, ration])
+
+## S2-04: the harvest pipeline reaches the game through the bridge: a quote in
+## gutted kilos, size classes and grades; an order that fasts the fish, waits for
+## its wellboat slot and is slaughtered at the price of the day; one report per
+## batch that reconciles with the cash; a partial harvest; the express verb.
+func _test_harvest_pipeline_reaches_the_ui() -> void:
+	_check(_sim.start_qa_scenario("forste_sesong", 29), "harvest: tutorial scenario starts")
+	_sim.set_paused(true)
+	_sim.advance_days(200)
+	var site_id := str(_sim.get_all_pens()[0].get("id", ""))
+	var q: Dictionary = _sim.quote_harvest(site_id)
+	var live := float(q.get("live_kg", 0.0))
+	var classes: Array = q.get("size_classes", [])
+	_check(bool(q.get("success", false)) and live > 0.0 and is_equal_approx(float(q.get("hog_kg", 0.0)), live * 0.84),
+		"harvest: the quote sells gutted kilos, 84%% of %.0f kg live (%s)" % [live, str(q.get("hog_kg"))])
+	var shares := float(q.get("superior", 0.0)) + float(q.get("ordinary", 0.0)) + float(q.get("production", 0.0))
+	_check(classes.size() == 8 and is_equal_approx(shares, 1.0) and float(q.get("superior", 0.0)) > 0.5,
+		"harvest: the quote splits the fish into 8 size classes and three grades (%.3f)" % shares)
+	_check(int(q.get("first_day", 0)) >= _sim.current_day + 5 and float(q.get("surcharge_nok", -1.0)) == 0.0,
+		"harvest: a planned harvest waits for the wellboat slot and pays no surcharge (day %d)" % int(q.get("first_day", 0)))
+	var all_pens: Array[String] = []
+	var express: Dictionary = _sim.quote_harvest(site_id, all_pens, 1.0, true)
+	_check(float(express.get("surcharge_nok", 0.0)) > 0.0 and int(express.get("first_day", -1)) == _sim.current_day,
+		"harvest: an express harvest is today, with the surcharge")
+
+	var order: Dictionary = _sim.order_harvest(site_id)
+	var order_id := str(order.get("id", ""))
+	_check(bool(order.get("success", false)) and order_id != "" and _sim.get_harvest_orders().size() == 1,
+		"harvest: the order is placed (%s)" % order_id)
+	_check(str(_sim.order_harvest(site_id).get("error", "")) == "pen_in_order",
+		"harvest: the same pens cannot be ordered twice")
+	_check(bool(_sim.cancel_harvest_order(order_id).get("success", false)) and _sim.get_harvest_orders().is_empty(),
+		"harvest: the order can be called off")
+
+	var cash0 := float(_sim.balance)
+	order = _sim.order_harvest(site_id, all_pens, 0.5)
+	order_id = str(order.get("id", ""))
+	_sim.advance_days(12)
+	var reports: Array = _sim.get_harvest_reports().filter(func(r: Dictionary) -> bool: return str(r.get("order_id", "")) == order_id)
+	var fish := 0
+	var net := 0.0
+	var reconciled := true
+	for r in reports:
+		fish += int(r.get("fish", 0))
+		net += float(r.get("net_nok", 0.0))
+		reconciled = reconciled and is_equal_approx(float(r.get("net_nok", 0.0)), float(r.get("gross_nok", 0.0)) - float(r.get("cost_nok", 0.0)))
+	_check(_sim.get_harvest_orders().is_empty() and not reports.is_empty() and reconciled,
+		"harvest: the half harvest was slaughtered and every report reconciles (%d reports)" % reports.size())
+	var left := int(_sim.get_all_pens()[0].get("fish_count", 0))
+	_check(fish > 0 and left > 0 and absi(fish - left) <= maxi(1, (fish + left) / 50),
+		"harvest: half the fish went (%d), half stayed (%d)" % [fish, left])
+	_check(net > 0.0 and float(_sim.balance) > cash0,
+		"harvest: the sale reached the cash (+%.0f net)" % net)
+
+	var kg: float = _sim.harvest_pen(site_id)
+	_check(kg > 0.0 and int(_sim.get_all_pens()[0].get("fish_count", 0)) == 0,
+		"harvest: the express harvest verb still empties the site (%.0f kg)" % kg)
+
+## S2-01a: capacity v1 reaches the facade for U2-01's expansion flow — the
+## licence MTB pooled in PO3, each site's locality MTB, the plan's peak; a build
+## adds a 3,120 t locality and 0 t of MTB; stocking past the plan's room is
+## refused with a reason that has Norwegian text, and the room itself is offered.
+func _test_capacity_reaches_the_bridge() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "capacity: seeded scenario starts")
+	_sim.set_paused(true)
+	var o: Dictionary = _sim.get_capacity_overview()
+	var areas: Array = o.get("areas", [])
+	var sites: Array = o.get("sites", [])
+	_check(bool(o.get("success", false)) and str(o.get("regime", "")) == "licences_v1",
+		"capacity: a scenario runs under the licence register (%s)" % str(o.get("regime")))
+	_check(areas.size() == 1 and str(areas[0].get("code", "")) == "PO3" and int(areas[0].get("licences", 0)) == 2
+			and is_equal_approx(float(areas[0].get("licence_mtb_t", 0.0)), 1560.0),
+		"capacity: two 780 t licences pool in PO3 (%s)" % str(areas))
+	var peak := float(areas[0].get("projected_peak_t", 0.0)) if areas.size() == 1 else 0.0
+	var standing := float(areas[0].get("standing_t", 0.0)) if areas.size() == 1 else 0.0
+	_check(peak > standing and peak < 1560.0, "capacity: the plan's peak lies above today's biomass and under the cap (%.1f t)" % peak)
+	var localities: Array = sites.map(func(r: Dictionary) -> float: return float(r.get("locality_mtb_t", 0.0)))
+	_check(localities == [780.0, 780.0], "capacity: each site keeps a 780 t locality (%s)" % str(localities))
+	var build: Dictionary = _sim.preview_build_sea_site("po3_nord")
+	_check(bool(build.get("allowed", false)) and is_zero_approx(float(build.get("licence_mtb_added_t", -1.0)))
+			and is_equal_approx(float(build.get("locality_mtb_t", 0.0)), 3120.0),
+		"capacity: a build adds a 3 120 t locality and 0 t of MTB (%s)" % str(build))
+	var room: Dictionary = _sim.preview_stocking("po3_nord", 0)
+	var max_count := int(room.get("max_count", 0))
+	var over: Dictionary = _sim.preview_stocking("po3_nord", max_count + 1)
+	var label := str(over.get("label_key", ""))
+	_check(max_count > 0 and bool(room.get("allowed", false)) and not bool(over.get("allowed", true))
+			and label.begins_with("CAPACITY_REASON_") and tr(label) != label,
+		"capacity: the plan's room (%d smolts) is offered and one more is refused with Norwegian text (%s)" % [max_count, label])
+	_check(not _sim.stock_smolts("po3_nord", max_count + 1), "capacity: stocking past the room is refused through the action")
+	_check(_sim.stock_smolts("po3_nord", max_count), "capacity: stocking the room is accepted through the action")
+
+## S2-01b: a site's real pens reach the game. The site payload carries its pen
+## count and each pen (the fjord lays out pen_count pens); the bridge refuses
+## 200 001 fish in one pen with Norwegian text; the Pens tab shows the pens,
+## offers the empty ones, names why a count does not fit (and disables the
+## button), and stocks the chosen count in the chosen pen.
+func _test_pens_reach_the_stocking_card() -> void:
+	_check(_sim.start_qa_scenario("forste_sesong", 37), "pens: tutorial scenario starts")
+	_sim.set_paused(true)
+	var sites: Array = _sim.get_all_pens()
+	var site: Dictionary = sites[0] if sites.size() > 0 else {}
+	var site_id := str(site.get("id", ""))
+	var pens: Array = site.get("pens", [])
+	_check(int(site.get("pen_count", 0)) == 6 and pens.size() == 6,
+		"pens: the family farm reports its six pens (%s, %d)" % [str(site.get("pen_count")), pens.size()])
+	var fish: Array = pens.map(func(p: Dictionary) -> int: return int(p.get("fish_count", -1)))
+	var numbers: Array = pens.map(func(p: Dictionary) -> int: return int(p.get("number", 0)))
+	_check(numbers == [1, 2, 3, 4, 5, 6] and fish == [36000, 0, 0, 0, 0, 0],
+		"pens: pen 1 holds the inherited 36 000 fish and pens 2-6 lie empty (%s)" % str(fish))
+	var volume := float(pens[1].get("volume_m3", 0.0)) if pens.size() > 1 else 0.0
+	_check(absf(volume - 26738.0) < 1.0 and str(pens[1].get("id", "")) == site_id + "/p02",
+		"pens: pen 2 is a 120 m family-farm pen of %.0f m3 (%s)" % [volume, str(pens[1].get("id"))])
+	var refused: Dictionary = _sim.stock_smolts_in_pen(site_id, "2", 200001)
+	var label := str(refused.get("label_key", ""))
+	_check(not bool(refused.get("success", true)) and str(refused.get("reason_key", "")) == "pen_fish_limit"
+			and tr(label) != label,
+		"pens: 200 001 fish in one pen are refused with Norwegian text (%s)" % str(refused.get("reason_key")))
+
+	var panel: Control = (load("res://scenes/ui/PenManagement.tscn") as PackedScene).instantiate()
+	add_child(panel)
+	await get_tree().process_frame
+	panel.select_pen(site_id)
+	await get_tree().process_frame
+	var chips: Node = panel.get_node("%PenChips")
+	var picker: OptionButton = panel.get_node("%PenOption")
+	var spin: SpinBox = panel.get_node("%CountSpin")
+	var stock: Button = panel.get_node("%BtnStock")
+	var preview: Label = panel.get_node("%StockPreview")
+	_check(chips.get_child_count() == 6 and picker.item_count == 5 and str(picker.get_item_metadata(picker.selected)) == site_id + "/p02",
+		"pens: the card shows six pens and offers the five empty ones, pen 2 first (%d, %d)" % [chips.get_child_count(), picker.item_count])
+	var room := int(_sim.preview_pen_stocking(site_id, "2", 0).get("max_count", 0))
+	var why := str(_sim.preview_pen_stocking(site_id, "2", 190000).get("label_key", ""))
+	spin.value = 190000
+	await get_tree().process_frame
+	_check(room > 50000 and room < 190000 and stock.disabled and not why.is_empty() and tr(why) != why
+			and preview.text.ends_with(" · " + tr(why)),
+		"pens: %d smolts do not fit (room %d): the card says why and the button waits (%s)" % [int(spin.value), room, preview.text])
+	spin.value = 10000
+	await get_tree().process_frame
+	_check(not stock.disabled, "pens: 10 000 smolts fit in pen 2 (%s)" % preview.text)
+	await _click_control(stock)
+	await get_tree().process_frame
+	var after: Array = _sim.get_site_pens(site_id)
+	var pen2 := int(after[1].get("fish_count", 0)) if after.size() > 1 else 0
+	_check(pen2 == 10000 and bool(after[1].get("occupied", false)),
+		"pens: the stock button put 10 000 smolts in pen 2 (%d)" % pen2)
+	_check(picker.item_count == 4, "pens: pen 2 left the empty-pen picker (%d)" % picker.item_count)
+	panel.queue_free()
+	await get_tree().process_frame
+
+## D20 / G1-04: the 3D sky's latitude is the active scenario's region, read
+## from the sim through the vista bridge: a Trøndelag scenario (laksebaronene)
+## puts Trondheim's 63.43 on the TimeOfDay, not the Vestland fallback.
+func _test_sky_latitude_follows_a_northern_scenario() -> void:
+	_check(_sim.start_qa_scenario("laksebaronene", 91), "sky latitude: the Trøndelag scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var ts: TimeOfDay = env.get_node("TimeOfDay")
+	var vista: FjordVistaBridge = scene.get_node("FjordVistaBridge")
+	var ctx: Dictionary = _sim.get_sky_context()
+	vista._on_state_updated()
+	await get_tree().process_frame
+	_check(str(ctx.get("region", "")) == "Trøndelag" and absf(float(ctx.get("latitude", 0.0)) - 63.43) < 0.01,
+		"sky latitude: the sim's sky context is the scenario's region (%s %.2f)" % [str(ctx.get("region", "")), float(ctx.get("latitude", 0.0))])
+	_check(absf(ts.latitude_deg - 63.43) < 0.01, "environment: the sky's latitude is the scenario region's (Trøndelag 63.43, got %.2f)" % ts.latitude_deg)
 	scene.queue_free()
 	await get_tree().process_frame

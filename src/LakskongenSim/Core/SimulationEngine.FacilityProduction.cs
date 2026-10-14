@@ -5,6 +5,7 @@ using LakskongenSim.Biology;
 using LakskongenSim.Data;
 using LakskongenSim.Events;
 using LakskongenSim.Farm;
+using LakskongenSim.Harvest;
 
 namespace LakskongenSim.Core;
 
@@ -64,8 +65,8 @@ public partial class SimulationEngine
         var facility = RASFacilities.FirstOrDefault(f => f.Id == facilityId);
         if (facility == null)
             return CommandResult.Fail("facility_not_found", $"RAS facility '{facilityId}' not found");
-        return HarvestPopulations(facility.Tanks, facility.Id, facility.Name, "facility_empty",
-            $"'{facility.Name}' has no fish to harvest", seaFarmed: false);
+        return HarvestNowAs(facility.Id, null, 1.0, HarvestMode.Express, "facility_empty",
+            $"'{facility.Name}' has no fish to harvest");
     }
 
     // ── Offshore ───────────────────────────────────────────────────────────
@@ -105,8 +106,8 @@ public partial class SimulationEngine
         var farm = OffshoreFarms.FirstOrDefault(f => f.Id == farmId);
         if (farm == null)
             return CommandResult.Fail("facility_not_found", $"Offshore farm '{farmId}' not found");
-        return HarvestPopulations(farm.Pens, farm.Id, farm.Name, "facility_empty",
-            $"'{farm.Name}' has no fish to harvest", seaFarmed: true);
+        return HarvestNowAs(farm.Id, null, 1.0, HarvestMode.Express, "facility_empty",
+            $"'{farm.Name}' has no fish to harvest");
     }
 
     // ── Post-smolt ─────────────────────────────────────────────────────────
@@ -191,22 +192,25 @@ public partial class SimulationEngine
         if (site.CurrentBiomassTonnes + incomingTonnes > site.MABTonnes)
             return CommandResult.Fail("mab_exceeded",
                 $"Transferring {incomingTonnes:F1} t would put {siteId} over its MAB ({site.MABTonnes:F0} t)");
+        // S2-01a: a transfer to sea is a stocking; the plan's peak must fit.
+        var capacity = CheckStockingCapacity(site, batch.Count, weightKg);
+        if (capacity != null) return capacity;
+        // S2-01b: the post-smolts go into empty pens like any stocking.
+        var penRoom = CheckSitePenRoom(site, batch.Count, ForecastPenStocking(site, weightKg), out var allocation);
+        if (penRoom != null) return penRoom;
 
         facility.TransferToSea(batchId);
         var tier = batch.AverageWeightG >= SuperSmoltTransferWeightG ? SmoltQualityTier.SuperSmolt
             : batch.AverageWeightG >= LargeSmoltTransferWeightG ? SmoltQualityTier.Large
             : SmoltQualityTier.Standard;
         var strain = SmoltStrainRegistry.Get("standard");
-        var population = new FishPopulation { ZoneId = site.ZoneId, SeaLiceLoad = strain.InitialLiceLoad };
-        population.InjectDependencies(Growth, Mortality);
-        population.Cohorts.Add(new FishPopulation.Cohort(Hatchery.MaturationDays + batch.DaysInFacility,
-            batch.Count, weightKg, LifeStage.Smolt, strain.BuildGenome())
-        {
-            Quality = tier
-        });
-        site.Stock(population);
+        foreach (var (pen, n) in allocation!)
+            PlacePopulation(site, pen, new FishPopulation.Cohort(Hatchery.MaturationDays + batch.DaysInFacility,
+                n, weightKg, LifeStage.Smolt, strain.BuildGenome())
+            {
+                Quality = tier
+            }, strain.InitialLiceLoad);
         site.LastStockedDay = State.Day;
-        State.Populations.Add(population);
         if (strain.InitialLiceLoad > 0)
             site.Lice.SeedExternalInfection(Math.Max(0.05, strain.InitialLiceLoad));
 

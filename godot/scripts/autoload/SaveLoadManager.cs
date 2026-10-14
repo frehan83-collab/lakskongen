@@ -38,7 +38,7 @@ public partial class SaveLoadManager : Node
     /// migration step in MigrateSaveData. Old saves without the field read
     /// as version 0.
     /// </summary>
-    public const int CurrentSaveVersion = 4;
+    public const int CurrentSaveVersion = 8;
 
     private JsonSerializerOptions _jsonOptions;
     private GameBridge _gameBridge;
@@ -584,6 +584,41 @@ public partial class SaveLoadManager : Node
                     // else the home area from the first site) and the anomaly
                     // restarts at zero.
                     saveData.SaveVersion = 4;
+                    break;
+                case 4:
+                    // v4 -> v5 (S2-03): cohorts carry their weight CV and
+                    // populations their ration policy. A v4 save loads with
+                    // full-appetite rations and CV 0 ("not yet known"), which
+                    // the first growth day sets from each cohort's weight
+                    // (TgcGrowthLaw.InitialWeightCv).
+                    saveData.SaveVersion = 5;
+                    break;
+                case 5:
+                    // v5 -> v6 (S2-04): harvest orders, harvest reports, the year's harvest
+                    // cost and a population's fasting and cold-water memory. A v5 save
+                    // loads with no open orders, no reports, nobody fasting and no cold
+                    // memory (the first growth days build it).
+                    saveData.SaveVersion = 6;
+                    break;
+                case 6:
+                    // v6 -> v7 (S2-01a; numbered v5 on wave2/sim-a-2, renumbered
+                    // by the wave-2 sim integration after S2-03's v5 and S2-04's
+                    // v6): the licence register (CapacityRules, LicenceHoldings,
+                    // LicencesGranted, CapacityBreaches). A v6 save loads with no
+                    // rules (null): the engine gives each sea site one licence of
+                    // its old MAB in its production area and opens capacity v1
+                    // (SimulationEngine.MigrateCapacityRegisterAfterLoad).
+                    saveData.SaveVersion = 7;
+                    break;
+                case 7:
+                    // v7 -> v8 (S2-01b): sea sites carry their pens (PhysicalPens:
+                    // number, net, volume, the population each holds) and harvest
+                    // orders the pen of each population (PenId). A v7 save loads
+                    // with no pens: the engine gives each site its locality's layout
+                    // with one pen per population, a population too large for a pen
+                    // keeping the volume it was simulated in
+                    // (SimulationEngine.MigratePensAfterLoad); order pens keep "".
+                    saveData.SaveVersion = 8;
                     break;
                 default:
                     GD.PrintErr($"No migrator for save version {saveData.SaveVersion}; loading as-is.");

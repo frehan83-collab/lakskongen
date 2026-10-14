@@ -114,9 +114,16 @@ namespace LakskongenSim.Tests.Integration
         public void FishGrowth_FollowsRealisticNorwegianParameters()
         {
             // Arrange
+            // S2-03: Norwegian sea water. The fixture pins its zone at 11 °C, the
+            // optimum of the retired Gaussian law; held at a constant 11 °C for
+            // 540 days (a land tank's regime) the TGC law grows fish past 7 kg.
+            // This test's claim is about the sea, so its zone follows PO4's.
+            var seaZone = _state.Zones.First();
+            seaZone.ProductionArea = 4;
+            seaZone.FollowsSeaTemperature = true;
             int smoltCount = 10_000;
             _hatchery.ReleaseSmolt(smoltCount);
-            
+
             var population = _state.Populations.First();
             population.ZoneId = _state.Zones.First().Id;
 

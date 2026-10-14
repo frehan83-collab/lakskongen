@@ -831,7 +831,16 @@ public partial class GameBridge : Node
     /// <summary>
     /// Return detailed information about all sea sites as an Array of Dictionaries.
     /// Keys: "id", "name", "zone", "fish_count", "biomass_kg", "max_biomass",
-    ///       "escapes_this_year", "net_integrity", "has_skirt", "has_deterrent".
+    ///       "escapes_this_year", "net_integrity", "has_skirt", "has_deterrent",
+    ///       "weight_cv" (size spread of the site's fish, S2-03), "ration"
+    ///       (mean fraction of appetite its pens are fed, S2-03), "pen_count"
+    ///       (the site's pens, S2-01b: the fjord lays out this many pens in the
+    ///       site's mooring grid, roadmap G2-04) and "pens" (one Dictionary per
+    ///       pen in mooring order, pen k at index k - 1; keys as GetSitePens:
+    ///       "id", "number", "population_id", "occupied", "fish_count",
+    ///       "biomass_kg", "mean_weight_kg", "weight_cv", "lice_per_fish",
+    ///       "density_kg_m3", "volume_m3", "circumference_m", "net_depth_m",
+    ///       "ration", "fasting").
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetSeaSiteDetails()
     {
@@ -857,6 +866,9 @@ public partial class GameBridge : Node
             bool isFeeding = appetite > 0.4
                 && (double.IsNaN(oxygenMgL) || oxygenMgL > 3.0)
                 && fishCount > 0;
+            double weightCv = SimulationEngine != null ? SimulationEngine.SizeSpreadOf(site.Pens).WeightCv : 0.0;
+            double ration = site.Pens.Count > 0
+                ? site.Pens.Average(p => p.Ration?.EffectiveFraction ?? 1.0) : 1.0;
 
             result.Add(new Godot.Collections.Dictionary
             {
@@ -867,6 +879,8 @@ public partial class GameBridge : Node
                 ["biomass_kg"]        = biomassKg,
                 ["lice_per_fish"]     = licePerFish,
                 ["mean_weight_kg"]    = meanWeightKg,
+                ["weight_cv"]         = weightCv,
+                ["ration"]            = ration,
                 ["oxygen_mgl"]        = oxygenMgL,
                 ["is_feeding"]        = isFeeding,
                 ["max_biomass"]       = site.MABTonnes * 1000,
@@ -886,7 +900,10 @@ public partial class GameBridge : Node
                 ["barrier_lice_blocking"] = Farm.BarrierTech.EffectiveLiceBlocking(
                     site.Barrier, SiteFlowMs(SimulationEngine, site), site.BarrierDaysSinceCleaning),
                 ["barrier_jellyfish_blocking"] = Farm.BarrierTech.EffectiveJellyfishBlocking(
-                    site.Barrier, SiteFlowMs(SimulationEngine, site), site.BarrierDaysSinceCleaning)
+                    site.Barrier, SiteFlowMs(SimulationEngine, site), site.BarrierDaysSinceCleaning),
+                // S2-01b: the site's real pens (the art track lays out pen_count).
+                ["pen_count"]         = site.PhysicalPens.Count,
+                ["pens"]              = PenArrayOf(site.Id)
             });
         }
         return result;

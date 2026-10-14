@@ -1,7 +1,11 @@
 namespace LakskongenSim.Environment
 {
     /// <summary>
-    /// Where a population's water comes from (roadmap S2-02, the farm-type seam).
+    /// What holds a population and where its water comes from (roadmap S2-02,
+    /// the farm-type seam). The one holding enum: the mortality hazards'
+    /// <c>CohortEnvironment.Holding</c> is this type too, and
+    /// <c>Biology.FishHolding</c> keeps S2-05's names for its values. The engine
+    /// resolves it once per simulated step (<c>SimulationEngine.HoldingOf</c>).
     /// </summary>
     public enum HoldingKind
     {
@@ -19,7 +23,9 @@ namespace LakskongenSim.Environment
     /// (roadmap S2-02). The models never read a zone or the weather themselves;
     /// whatever holds the fish (sea pen, offshore hull, land tank) supplies this
     /// value through <c>SimulationEngine.HoldingWaterOf</c>, so the land-based and
-    /// offshore farm types plug in by supplying their own water.
+    /// offshore farm types plug in by supplying their own water. It is the one
+    /// source of truth for the water at the fish: the mortality hazards'
+    /// <c>CohortEnvironment</c> is built from it (wave 2, sim-a-1).
     /// </summary>
     /// <param name="TemperatureC">Water temperature at cage or tank depth (°C).</param>
     /// <param name="OxygenMgPerL">Dissolved oxygen (mg/L).</param>

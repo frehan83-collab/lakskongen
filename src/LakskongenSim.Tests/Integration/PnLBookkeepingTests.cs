@@ -31,12 +31,20 @@ public class PnLBookkeepingTests
         Assert.True(engine.StockSmolts("site-1", 500, "standard").Ok);
 
         decimal before = engine.FinanceManager.Balance;
+        decimal cogsBefore = engine.FinancialStatements.LifetimeCOGS;
         var result = engine.HarvestSite("site-1");
         Assert.True(result.Ok);
         decimal cashDelta = engine.FinanceManager.Balance - before;
 
         Assert.True(engine.FinancialStatements.Revenue > 0m, "revenue not booked");
-        Assert.Equal(cashDelta, engine.FinancialStatements.Revenue);
+        // S2-04, review F270: the harvest is not free. The harvest cost is booked
+        // as cost of goods sold and paid from the sale, so the cash moves by the
+        // revenue less that cost (it used to move by the whole revenue).
+        var report = engine.HarvestReports[^1];
+        Assert.True(report.HarvestCostNok > 0m, "the harvest cost nothing");
+        Assert.Equal(report.GrossRevenueNok, engine.FinancialStatements.Revenue);
+        Assert.Equal(report.HarvestCostNok, engine.FinancialStatements.LifetimeCOGS - cogsBefore);
+        Assert.Equal(engine.FinancialStatements.Revenue - report.HarvestCostNok, cashDelta);
     }
 
     [Fact]

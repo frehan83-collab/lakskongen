@@ -55,6 +55,19 @@ namespace LakskongenSim.Core
         [System.Text.Json.Serialization.JsonPropertyName("smolt_count")]
         public int SmoltCount { get; set; }
 
+        /// <summary>
+        /// Days the starting fish have been at sea on the scenario's first day
+        /// (S2-03). 0 = smolts released that day. A farm taken over on 1 January
+        /// holds the generation its last release window put to sea: autumn S0
+        /// smolts (released mid-September, 110 days) in PO1-PO7, spring S1 smolts
+        /// in PO8-PO13, where the sea warms later (released mid-June, 200 days).
+        /// The starting weight and size
+        /// spread are grown by the engine's growth law over the area's normal sea
+        /// temperature (<see cref="SimulationEngine.GrowOnClimatology"/>).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("days_at_sea")]
+        public int DaysAtSea { get; set; }
+
         /// <summary>Smolt strain id (see <see cref="Farm.SmoltStrainRegistry"/>), e.g. "standard", "robust", "postsmolt".</summary>
         [System.Text.Json.Serialization.JsonPropertyName("smolt_quality")]
         public string SmoltQuality { get; set; } = "standard";
@@ -69,6 +82,71 @@ namespace LakskongenSim.Core
         /// Unknown values leave the site without a barrier.</summary>
         [System.Text.Json.Serialization.JsonPropertyName("barrier")]
         public string Barrier { get; set; } = "";
+
+        /// <summary>
+        /// Sea licences the company holds from the start, registered to this
+        /// site (S2-01a). Each holds its area's licence MTB (780 t, 945 t in
+        /// Troms and Finnmark) and pools in the area's biomass cap. Default 1:
+        /// the capacity every starting site carried before S2-01.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("licences")]
+        public int Licences { get; set; } = 1;
+
+        /// <summary>
+        /// The site's locality MTB (t, S2-01a). 0 = the MTB of the licences
+        /// registered to it (<see cref="Licences"/> x the area's licence size),
+        /// the site cap every starting site had before S2-01.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("locality_mtb_tonnes")]
+        public double LocalityMtbTonnes { get; set; }
+
+        /// <summary>
+        /// The locality's pens (S2-01b): how many pens its mooring frame holds
+        /// and the net of each. The <see cref="Pens"/> stocked pens are its
+        /// first pens. Null takes the calibration's standard layout, with at
+        /// least as many pens as are stocked.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pen_layout")]
+        public StartingPenLayoutDefinition? PenLayout { get; set; }
+
+        /// <summary>
+        /// The layout this site starts with: <see cref="PenLayout"/>'s count and
+        /// net (the standard pen of <paramref name="calibration"/> when the data
+        /// gives no net), and never fewer pens than <see cref="Pens"/> stocked.
+        /// </summary>
+        public Farm.PenLayout ResolvePenLayout(Calibration.PenCalibration calibration)
+        {
+            if (calibration == null) throw new ArgumentNullException(nameof(calibration));
+            var layout = PenLayout;
+            var geometry = layout is { CircumferenceM: > 0.0, NetWallDepthM: > 0.0 }
+                ? new Farm.PenGeometry(layout.CircumferenceM, layout.NetWallDepthM, Math.Max(0.0, layout.ConeDepthM))
+                : Farm.PenGeometry.Standard(calibration);
+            int count = layout is { Count: > 0 } ? layout.Count : calibration.BuiltSitePenCount;
+            return new Farm.PenLayout(Math.Max(count, Math.Max(1, Pens)), geometry);
+        }
+    }
+
+    /// <summary>
+    /// A scenario site's pen layout (S2-01b, <c>pen_layout</c> in
+    /// <c>godot/data/scenarios.json</c>): the locality's mooring frame.
+    /// </summary>
+    public class StartingPenLayoutDefinition
+    {
+        /// <summary>Pens in the mooring frame (6-12 at a Norwegian salmon locality).</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("count")]
+        public int Count { get; set; }
+
+        /// <summary>Collar circumference of each pen (m).</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("circumference_m")]
+        public double CircumferenceM { get; set; }
+
+        /// <summary>Depth of each net's vertical wall (m).</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("net_wall_depth_m")]
+        public double NetWallDepthM { get; set; }
+
+        /// <summary>Height of each net's cone bottom (m).</summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cone_depth_m")]
+        public double ConeDepthM { get; set; }
     }
 
     /// <summary>
@@ -316,6 +394,11 @@ namespace LakskongenSim.Core
         {
             if (state == null) throw new ArgumentNullException(nameof(state));
 
+            // S2-01a: a scenario founds the company's licence register; capacity
+            // v1 (pooled licence MTB, locality MTB, projected-peak stocking,
+            // daily enforcement) applies from day 0.
+            state.CapacityRules = Finance.CapacityRegime.LicencesV1;
+
             int siteIdx = 0;
             foreach (var siteDef in StartingSites ?? new List<StartingSiteDefinition>())
             {
@@ -348,6 +431,9 @@ namespace LakskongenSim.Core
                 var site = new SeaSite(siteId, zoneId) { NumberOfPens = penCount, DisplayName = siteDef.Name ?? "" };
                 site.Containment = ParseContainment(siteDef.Containment);
                 site.Barrier = ParseBarrier(siteDef.Barrier);
+                // S2-01b: the locality's mooring frame; the stocked pens are its first pens.
+                site.PhysicalPens = siteDef.ResolvePenLayout(
+                    engine?.Calibration.Pens ?? Calibration.CalibrationRegistry.Default.Pens).Build(siteId);
                 for (int pen = 0; pen < penCount; pen++)
                 {
                     // With an engine, starting pens share its seeded, calibrated
@@ -360,17 +446,37 @@ namespace LakskongenSim.Core
                     pop.SeaLiceLoad = strain.InitialLiceLoad;
                     if (smoltPerPen > 0)
                     {
+                        var genome = strain.BuildGenome();
+                        var stock = SimulationEngine.GrowOnClimatology(engine?.Growth.Law ?? TgcGrowthLaw.Default,
+                            area, state.Day, siteDef.DaysAtSea, strain.ReleaseWeightKg, genome.GetGrowthMultiplier());
                         pop.AddCohort(new FishPopulation.Cohort(
-                            ageDays: 300,
+                            ageDays: 300 + Math.Max(0, siteDef.DaysAtSea),
                             count: smoltPerPen,
-                            meanWeightKg: strain.ReleaseWeightKg,
-                            stage: LifeStage.Smolt,
-                            genetics: strain.BuildGenome()));
+                            meanWeightKg: stock.WeightKg,
+                            stage: siteDef.DaysAtSea > 0 ? LifeStage.Seawater : LifeStage.Smolt,
+                            genetics: genome)
+                        {
+                            WeightCv = stock.WeightCv
+                        });
                     }
-                    site.Stock(pop);
+                    site.Stock(pop, site.PhysicalPens[pen]);
                     state.Populations.Add(pop);
                 }
                 if (smoltPerPen > 0) site.LastStockedDay = state.Day;
+
+                // S2-01a: the scenario's licences, registered to this site, pool
+                // in its production area; the site's own cap is its locality MTB.
+                int licenceArea = siteZone.ProductionArea;
+                int licenceMtb = LakskongenSim.Environment.ProductionAreas.IsValid(licenceArea)
+                    ? LakskongenSim.Environment.ProductionAreas.Get(licenceArea).LicenceMtbTonnes
+                    : LakskongenSim.Environment.ProductionAreas.StandardLicenceMtbTonnes;
+                int licences = Math.Max(0, siteDef.Licences);
+                site.MABTonnes = siteDef.LocalityMtbTonnes > 0.0
+                    ? siteDef.LocalityMtbTonnes
+                    : Math.Max(1, licences) * (double)licenceMtb;
+                for (int l = 0; l < licences; l++)
+                    SimulationEngine.GrantLicence(state, licenceArea, licenceMtb, siteId, Finance.LicenceOrigin.Scenario);
+
                 // Keep site and global biomass/zone accounting coherent from day 0.
                 state.SeaSites.Add(site);
                 var zone = state.Zones.First(z => z.Id == zoneId);
@@ -977,7 +1083,7 @@ namespace LakskongenSim.Core
                 Description =
                     "Du har arvet bestefars lille oppdrett i Hardanger. Med én lisens og små midler må du lære grunnleggende oppdrett. " +
                     "Bygg opp gården fra bunnen av og vis at du kan drive lønnsomt.",
-                StartingCapitalNOK = 3_000_000m,
+                StartingCapitalNOK = 4_000_000m,
                 StartingRegion = ProductionRegion.Vestland,
                 Difficulty = 1,
                 WinCondition = WinCondition.Tutorial,
@@ -989,10 +1095,14 @@ namespace LakskongenSim.Core
                 // The inherited farm. Without it the start could not afford a 6M
                 // site, so the tutorial could not be played (F1013). One pen of
                 // 20,000 smolts and 3M NOK: 5,000 smolts on 300k could not carry
-                // a crew to the first harvest (decision log, RUN_LOG §7).
+                // a crew to the first harvest (decision log, RUN_LOG §7). S2-03
+                // raised it to 22,000; S2-04 (fish sold as gutted kilos at the
+                // size-class and grade prices, less the harvest cost: ~27% less
+                // per live kilo) to 36,000 fish and 4M NOK, so the first harvest
+                // still funds the second site (RUN_LOG §7, docs/BALANCE.md §1h).
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "bestefars_anlegg", Name = "Bestefars Anlegg", Zone = "fjord_west", ProductionArea = 3, Pens = 1, SmoltCount = 20_000, SmoltQuality = "standard" },
+                    new() { Id = "bestefars_anlegg", Name = "Bestefars Anlegg", Zone = "fjord_west", ProductionArea = 3, Pens = 1, SmoltCount = 36_000, DaysAtSea = 110, SmoltQuality = "standard", PenLayout = Nets(6, 120, 20, 10) },
                 },
                 TimeLimitDays = null,
                 IsUnlocked = true,
@@ -1020,7 +1130,7 @@ namespace LakskongenSim.Core
                 },
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "nordland_premium", Name = "Nordland Premium", Zone = "fjord_north", ProductionArea = 9, Pens = 2, SmoltCount = 8_000, SmoltQuality = "standard" },
+                    new() { Id = "nordland_premium", Name = "Nordland Premium", Zone = "fjord_north", ProductionArea = 9, Pens = 2, SmoltCount = 8_000, DaysAtSea = 200, SmoltQuality = "standard", PenLayout = Nets(6, 120, 20, 10) },
                 },
                 TimeLimitDays = null,
                 IsUnlocked = true,
@@ -1047,7 +1157,7 @@ namespace LakskongenSim.Core
                 },
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "trondelag_base", Name = "Trøndelag Base", Zone = "fjord_west", ProductionArea = 6, Pens = 3, SmoltCount = 10_000, SmoltQuality = "standard" },
+                    new() { Id = "trondelag_base", Name = "Trøndelag Base", Zone = "fjord_west", ProductionArea = 6, Pens = 3, SmoltCount = 10_000, DaysAtSea = 110, SmoltQuality = "standard", PenLayout = Nets(8, 160, 25, 15) },
                 },
                 TimeLimitDays = null,
                 IsUnlocked = true, // No progression yet: every scenario is open until U2-03 (roadmap U1-07).
@@ -1075,7 +1185,7 @@ namespace LakskongenSim.Core
                 },
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "finnmark_turnaround", Name = "Finnmark Turnaround", Zone = "fjord_north", ProductionArea = 12, Pens = 2, SmoltCount = 6_000, SmoltQuality = "standard" },
+                    new() { Id = "finnmark_turnaround", Name = "Finnmark Turnaround", Zone = "fjord_north", ProductionArea = 12, Pens = 2, SmoltCount = 6_000, DaysAtSea = 200, SmoltQuality = "standard", PenLayout = Nets(6, 120, 20, 10) },
                 },
                 TimeLimitDays = 730,
                 IsUnlocked = true, // No progression yet: every scenario is open until U2-03 (roadmap U1-07).
@@ -1101,9 +1211,13 @@ namespace LakskongenSim.Core
                     ["easy_market"]  = "true",
                     ["profit_target"] = "100000000",
                 },
+                // S2-01a: the established company holds 8 licences in PO4 (6,240 t
+                // MTB) on a locality cleared for 3,120 t, so building sites is an
+                // empire game: a build adds a locality, never MTB (before S2-01
+                // every 6M build came with 780 t). Measured in docs/BALANCE.md §1j.
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "lakskongen_hovedanlegg", Name = "Lakskongen Hovedanlegg", Zone = "fjord_west", ProductionArea = 4, Pens = 4, SmoltCount = 12_000, SmoltQuality = "standard" },
+                    new() { Id = "lakskongen_hovedanlegg", Name = "Lakskongen Hovedanlegg", Zone = "fjord_west", ProductionArea = 4, Pens = 4, SmoltCount = 12_000, DaysAtSea = 110, SmoltQuality = "standard", Licences = 8, LocalityMtbTonnes = 3_120, PenLayout = Nets(10, 160, 25, 15) },
                 },
                 TimeLimitDays = null,
                 IsUnlocked = true, // No progression yet: every scenario is open until U2-03 (roadmap U1-07).
@@ -1141,8 +1255,8 @@ namespace LakskongenSim.Core
                 WinCondition = WinCondition.Survival,
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "po3_nord", Name = "PO3 Nord", Zone = "po3_nord", ProductionArea = 3, Pens = 6, SmoltCount = 12_000, SmoltQuality = "robust", Containment = "semi_closed" },
-                    new() { Id = "po3_sor",  Name = "PO3 Sør",  Zone = "po3_sor", ProductionArea = 3,  Pens = 4, SmoltCount = 10_000, SmoltQuality = "standard" },
+                    new() { Id = "po3_nord", Name = "PO3 Nord", Zone = "po3_nord", ProductionArea = 3, Pens = 6, SmoltCount = 12_000, DaysAtSea = 110, SmoltQuality = "robust", Containment = "semi_closed", PenLayout = Nets(8, 160, 25, 15) },
+                    new() { Id = "po3_sor",  Name = "PO3 Sør",  Zone = "po3_sor", ProductionArea = 3,  Pens = 4, SmoltCount = 10_000, DaysAtSea = 110, SmoltQuality = "standard", PenLayout = Nets(6, 160, 25, 15) },
                 },
                 StartingResearch = new[] { "sensor-networks", "deep-sea-farming" },
                 StartingBuildings = new[] { "ai_feeding" },
@@ -1189,9 +1303,9 @@ namespace LakskongenSim.Core
                 WinCondition = WinCondition.Survival,
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "isa_kjerne", Name = "Infisert kjerneanlegg", Zone = "isa_kjerne", ProductionArea = 6, Pens = 4, SmoltCount = 8_000,  SmoltQuality = "standard" },
-                    new() { Id = "isa_nord",   Name = "Nabofelt nord",          Zone = "isa_nord", ProductionArea = 6,   Pens = 6, SmoltCount = 12_000, SmoltQuality = "robust",   Barrier = "smoltscreen" },
-                    new() { Id = "isa_sor",    Name = "Nabofelt sør",           Zone = "isa_sor", ProductionArea = 6,    Pens = 6, SmoltCount = 12_000, SmoltQuality = "robust",   Barrier = "smoltscreen" },
+                    new() { Id = "isa_kjerne", Name = "Infisert kjerneanlegg", Zone = "isa_kjerne", ProductionArea = 6, Pens = 4, SmoltCount = 8_000, DaysAtSea = 110, SmoltQuality = "standard", PenLayout = Nets(6, 160, 25, 15) },
+                    new() { Id = "isa_nord",   Name = "Nabofelt nord",          Zone = "isa_nord", ProductionArea = 6,   Pens = 6, SmoltCount = 12_000, DaysAtSea = 110, SmoltQuality = "robust",   Barrier = "smoltscreen", PenLayout = Nets(8, 160, 25, 15) },
+                    new() { Id = "isa_sor",    Name = "Nabofelt sør",           Zone = "isa_sor", ProductionArea = 6,    Pens = 6, SmoltCount = 12_000, DaysAtSea = 110, SmoltQuality = "robust",   Barrier = "smoltscreen", PenLayout = Nets(8, 160, 25, 15) },
                 },
                 StartingResearch = new[] { "disease-resistance", "sensor-networks" },
                 StartingBuildings = new[] { "hatchery" }, // biosecure smolt production
@@ -1256,9 +1370,9 @@ namespace LakskongenSim.Core
                 WinCondition = WinCondition.Survival,
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "alge_sor",   Name = "Algeutsatt sør", Zone = "alge_sor", ProductionArea = 9,  Pens = 8, SmoltCount = 14_000, SmoltQuality = "standard" },
-                    new() { Id = "alge_midt",  Name = "Algeutsatt midt", Zone = "alge_midt", ProductionArea = 9, Pens = 8, SmoltCount = 14_000, SmoltQuality = "standard" },
-                    new() { Id = "alge_indre", Name = "Innlandsbeskyttet", Zone = "alge_indre", ProductionArea = 9, Pens = 5, SmoltCount = 9_000, SmoltQuality = "robust" },
+                    new() { Id = "alge_sor",   Name = "Algeutsatt sør", Zone = "alge_sor", ProductionArea = 9,  Pens = 8, SmoltCount = 14_000, DaysAtSea = 200, SmoltQuality = "standard", PenLayout = Nets(10, 120, 20, 10) },
+                    new() { Id = "alge_midt",  Name = "Algeutsatt midt", Zone = "alge_midt", ProductionArea = 9, Pens = 8, SmoltCount = 14_000, DaysAtSea = 200, SmoltQuality = "standard", PenLayout = Nets(10, 120, 20, 10) },
+                    new() { Id = "alge_indre", Name = "Innlandsbeskyttet", Zone = "alge_indre", ProductionArea = 9, Pens = 5, SmoltCount = 9_000, DaysAtSea = 200, SmoltQuality = "robust", PenLayout = Nets(6, 120, 20, 10) },
                 },
                 StartingResearch = new[] { "sensor-networks", "predictive-analytics" },
                 StartingBuildings = new[] { "ai_feeding" },
@@ -1323,9 +1437,9 @@ namespace LakskongenSim.Core
                 EnableResourceRentTax = true,
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "vest_1", Name = "Hovedanlegg vest", Zone = "vest_1", ProductionArea = 4, Pens = 8,  SmoltCount = 15_000, SmoltQuality = "postsmolt" },
-                    new() { Id = "vest_2", Name = "Vekstanlegg nord", Zone = "vest_2", ProductionArea = 4, Pens = 8,  SmoltCount = 15_000, SmoltQuality = "postsmolt" },
-                    new() { Id = "vest_3", Name = "Utvidelse sør",    Zone = "vest_3", ProductionArea = 4, Pens = 6,  SmoltCount = 12_000, SmoltQuality = "robust" },
+                    new() { Id = "vest_1", Name = "Hovedanlegg vest", Zone = "vest_1", ProductionArea = 4, Pens = 8,  SmoltCount = 15_000, DaysAtSea = 110, SmoltQuality = "postsmolt", PenLayout = Nets(10, 160, 25, 15) },
+                    new() { Id = "vest_2", Name = "Vekstanlegg nord", Zone = "vest_2", ProductionArea = 4, Pens = 8,  SmoltCount = 15_000, DaysAtSea = 110, SmoltQuality = "postsmolt", PenLayout = Nets(10, 160, 25, 15) },
+                    new() { Id = "vest_3", Name = "Utvidelse sør",    Zone = "vest_3", ProductionArea = 4, Pens = 6,  SmoltCount = 12_000, DaysAtSea = 110, SmoltQuality = "robust", PenLayout = Nets(8, 160, 25, 15) },
                 },
                 StartingResearch = new[] { "international-export", "value-added-processing" },
                 StartingBuildings = new[] { "processing_plant", "feed_mill" },
@@ -1394,6 +1508,10 @@ namespace LakskongenSim.Core
 
         private static WinCondition ParseWinCondition(string raw) =>
             Enum.TryParse<WinCondition>(raw, ignoreCase: true, out var w) ? w : WinCondition.Profit;
+
+        /// <summary>A scenario locality's mooring frame (S2-01b): <paramref name="count"/> pens of one net.</summary>
+        private static StartingPenLayoutDefinition Nets(int count, double circumferenceM, double wallDepthM, double coneDepthM)
+            => new() { Count = count, CircumferenceM = circumferenceM, NetWallDepthM = wallDepthM, ConeDepthM = coneDepthM };
 
         private void Register(ScenarioDefinition scenario) => _scenarios[scenario.Id] = scenario;
     }

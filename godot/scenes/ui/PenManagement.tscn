@@ -162,18 +162,6 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "🔧 Reparer nøter"
 
-[node name="StrainOption" type="OptionButton" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailActions"]
-theme_type_variation = &"SmallOptionButton"
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="BtnStock" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailActions"]
-theme_type_variation = &"SmallButton"
-unique_name_in_owner = true
-layout_mode = 2
-text = "🐣 Sett ut 10k"
-tooltip_text = "Sett ut 10 000 smolt av valgt stamme i valgt lokalitet"
-
 [node name="BtnSkirt" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailActions"]
 theme_type_variation = &"SmallButton"
 unique_name_in_owner = true
@@ -194,6 +182,79 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "🤖 ROV"
 tooltip_text = "ROV-inspeksjon: 75k, 2 dager. Renser nøter (+15%) + funnrapport."
+
+[node name="StockCard" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot"]
+theme_type_variation = &"Card"
+layout_mode = 2
+
+[node name="Outer" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer"]
+theme_type_variation = &"CardHeaderCompact"
+layout_mode = 2
+
+[node name="StockTitle" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/Header"]
+theme_type_variation = &"BodySmall"
+unique_name_in_owner = true
+layout_mode = 2
+text = "🐟 Merder og utsett"
+
+[node name="StockPad" type="MarginContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="StockBody" type="VBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PenChips" type="HFlowContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad/StockBody"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 4
+
+[node name="StockRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad/StockBody"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PenOption" type="OptionButton" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad/StockBody/StockRow"]
+theme_type_variation = &"SmallOptionButton"
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="CountSpin" type="SpinBox" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad/StockBody/StockRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+min_value = 1000
+max_value = 200000
+step = 1000
+value = 10000
+suffix = " smolt"
+
+[node name="StrainOption" type="OptionButton" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad/StockBody/StockRow"]
+theme_type_variation = &"SmallOptionButton"
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="BtnStock" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad/StockBody/StockRow"]
+theme_type_variation = &"SmallButton"
+unique_name_in_owner = true
+layout_mode = 2
+text = "🐣 Sett ut"
+tooltip_text = "Sett ut smolt av valgt stamme og kvalitet i valgt merd"
+
+[node name="StockPreview" type="Label" parent="Margin/MainSplit/DetailScroll/DetailRoot/StockCard/Outer/StockPad/StockBody"]
+theme_type_variation = &"SmallMuted"
+unique_name_in_owner = true
+layout_mode = 2
+autowrap_mode = 3
+text = "--"
 
 [node name="KpiRow" type="HBoxContainer" parent="Margin/MainSplit/DetailScroll/DetailRoot"]
 layout_mode = 2

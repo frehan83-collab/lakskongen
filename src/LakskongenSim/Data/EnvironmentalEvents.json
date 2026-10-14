@@ -19,7 +19,6 @@
     "StratificationMixingFactor": 5.0,
     "MinStratification": 0.2,
     "RespirationOxygenDrawdown": 0.5,
-    "MaxOxygenDepletion": 0.75,
     
     "EventProbabilities": {
       "SpringBloom": 0.15,

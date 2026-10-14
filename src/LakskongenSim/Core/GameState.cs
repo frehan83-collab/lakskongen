@@ -273,6 +273,26 @@ namespace LakskongenSim.Core
         /// <summary>Phase 4.1: green-zone licence auctions (open + settled).</summary>
         public List<Finance.LicenseAuctionState> LicenseAuctions { get; set; } = new();
 
+        // ─── Capacity v1 (S2-01a): licences and MTB ────────────────────────────
+
+        /// <summary>
+        /// The capacity rules this game runs under. A new engine starts
+        /// <see cref="Finance.CapacityRegime.Unregulated"/>; a scenario start opens
+        /// the licence register (<see cref="Finance.CapacityRegime.LicencesV1"/>).
+        /// Null only in a save written before S2-01: the load migrates it (each
+        /// site's old MAB becomes one licence in its production area).
+        /// </summary>
+        public Finance.CapacityRegime? CapacityRules { get; set; }
+
+        /// <summary>The company's sea licences (S2-01a); their MTB pools per production area.</summary>
+        public List<Finance.LicenceHolding> LicenceHoldings { get; set; } = new();
+
+        /// <summary>Licences granted this game: the sequence in each licence's deterministic id.</summary>
+        public int LicencesGranted { get; set; }
+
+        /// <summary>Biomass-over-MTB episodes (S2-01a): every open one and the latest closed ones.</summary>
+        public List<Finance.CapacityBreach> CapacityBreaches { get; set; } = new();
+
         /// <summary>StakeholderFactionSystem: Faction relations.</summary>
         public Dictionary<string, decimal> FactionRelations { get; set; } = new();
 
@@ -287,6 +307,33 @@ namespace LakskongenSim.Core
 
         /// <summary>Wellboat bookings made this game: the sequence number in each job's deterministic id (P0-07).</summary>
         public int WellboatJobsBooked { get; set; }
+
+        /// <summary>
+        /// Harvest orders (S2-04): fish fasting toward a wellboat slot or being
+        /// slaughtered batch by batch within the slaughterhouse's daily
+        /// capacity. Finished and cancelled orders are dropped. Empty in saves
+        /// from before S2-04.
+        /// </summary>
+        public List<Harvest.HarvestOrder> HarvestOrders { get; set; } = new();
+
+        /// <summary>Harvest orders placed this game: the sequence number in each order's deterministic id (S2-04).</summary>
+        public int HarvestOrdersPlaced { get; set; }
+
+        /// <summary>
+        /// The latest harvest reports (S2-04), newest last, one per slaughtered
+        /// batch: fish, live and gutted kilos, size classes, grades, prices and
+        /// the harvest cost exactly as booked in the ledger.
+        /// </summary>
+        public List<Harvest.HarvestReport> HarvestReports { get; set; } = new();
+
+        /// <summary>Slaughtered batches sold this game: the sequence number in each harvest report's id (S2-04).</summary>
+        public int HarvestBatchesSold { get; set; }
+
+        /// <summary>Gutted (HOG) kilos sold since the game started (S2-04).</summary>
+        public double TotalHarvestedHogKg { get; set; }
+
+        /// <summary>Live kilos slaughtered since the game started (S2-04).</summary>
+        public double TotalHarvestedLiveKg { get; set; }
 
         /// <summary>Staff roster (Phase 3.1).</summary>
         public List<CrewMember> Crew { get; set; } = new();
@@ -336,6 +383,13 @@ namespace LakskongenSim.Core
 
         /// <summary>This fiscal year's harvest valued at the norm price (resource-rent base).</summary>
         public decimal ResourceRentHarvestValueThisTaxYear { get; set; }
+
+        /// <summary>
+        /// This fiscal year's harvest cost (wellboat, slaughter, packing; S2-04):
+        /// booked as cost of goods sold but not a sea-phase cost, so it is left
+        /// out of the resource-rent deductions (skatteloven § 19-5/19-6).
+        /// </summary>
+        public decimal HarvestCostThisTaxYear { get; set; }
 
         /// <summary>P9: last binding monthly pen price set by the Price Council (NOK/kg).</summary>
         public decimal PenPriceCouncilLastValue { get; set; }
