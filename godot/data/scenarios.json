@@ -5,8 +5,8 @@
     "difficulty": 1,
     "description": "Du har arvet bestefars lille oppdrett i Hardanger. Med én lisens og små midler må du lære grunnleggende oppdrett. Bygg opp gården fra bunnen av og vis at du kan drive lønnsomt.",
     "story": "Du har arvet bestefars lille oppdrett i Hardanger. Med én lisens og små midler må du lære grunnleggende oppdrett. Bygg opp gården fra bunnen av og vis at du kan drive lønnsomt.",
-    "starting_balance": 3000000,
-    "starting_cash": 3000000,
+    "starting_balance": 4000000,
+    "starting_cash": 4000000,
     "starting_region": "Vestland",
     "starting_day": 0,
     "starting_sites": [
@@ -16,7 +16,7 @@
         "zone": "fjord_west",
         "production_area": 3,
         "pens": 1,
-        "smolt_count": 22000,
+        "smolt_count": 36000,
         "days_at_sea": 110,
         "smolt_quality": "standard"
       }

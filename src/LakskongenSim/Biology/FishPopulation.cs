@@ -102,6 +102,33 @@ namespace LakskongenSim.Biology
         /// </summary>
         public Farm.RationPolicy Ration { get; set; } = Farm.RationPolicy.FullAppetite;
 
+        /// <summary>
+        /// Day these fish stopped being fed before slaughter (S2-04 harvest
+        /// pipeline), -1 when they are not fasting. While fasting the growth law
+        /// feeds them nothing whatever <see cref="Ration"/> says. Saves from
+        /// before S2-04 load with -1.
+        /// </summary>
+        public int FastingSinceDay { get; set; } = -1;
+
+        /// <summary>
+        /// Degree-days (°C × days of their own water) these fish have fasted
+        /// (S2-04): slaughter waits until the gut is empty
+        /// (<c>HarvestCalibration.FastingDegreeDays</c>).
+        /// </summary>
+        public double FastingDegreeDays { get; set; }
+
+        /// <summary>
+        /// Memory of cold water (0-1, S2-04): an exponential average of the days
+        /// the fish spent below the winter-wound temperature. Winter wounds
+        /// downgrade a harvest; a land tank at a controlled temperature never
+        /// builds any. Saves from before S2-04 load with 0.
+        /// </summary>
+        public double ColdExposure { get; set; }
+
+        /// <summary>True while these fish fast before slaughter (S2-04).</summary>
+        [JsonIgnore]
+        public bool IsFasting => FastingSinceDay >= 0;
+
         /// <summary>Growth penalty multiplier from disease resistance fitness cost. Serialized for save/load.</summary>
         public double GrowthPenalty { get => _growthPenalty; set => _growthPenalty = value; }
         private double _growthPenalty = 0.0;

@@ -1955,8 +1955,9 @@ func _test_scenario_picker() -> void:
 	_check(wrong_capital.is_empty(), "picker: every card shows its starting balance formatted %s" % str(wrong_capital))
 	var first: Button = picker.get_card("forste_sesong")
 	var first_capital: Label = first.find_child("Capital", true, false) if first != null else null
-	_check(first_capital != null and first_capital.text == SimFormatters.format_nok(3_000_000.0),
-		"picker: Familiegården starts with 3 000 000 (it read 300 000)")
+	# S2-04 raised Familiegården's capital from 3 000 000 to 4 000 000 (scenario data, RUN_LOG §7).
+	_check(first_capital != null and first_capital.text == SimFormatters.format_nok(4_000_000.0),
+		"picker: Familiegården starts with 4 000 000 (it read a tenth of its capital)")
 	_check(wrong_lock.is_empty(), "picker: a padlock only on a locked card %s" % str(wrong_lock))
 	_check(locked == 0, "picker: no scenario is locked until progression lands (%d locked)" % locked)
 	_check(wrong_mod.is_empty(), "picker: exactly the mods' scenarios carry the Mod tag %s" % str(wrong_mod))

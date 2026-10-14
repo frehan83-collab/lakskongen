@@ -5,6 +5,7 @@ using LakskongenSim.Biology;
 using LakskongenSim.Data;
 using LakskongenSim.Events;
 using LakskongenSim.Farm;
+using LakskongenSim.Harvest;
 
 namespace LakskongenSim.Core;
 
@@ -64,8 +65,8 @@ public partial class SimulationEngine
         var facility = RASFacilities.FirstOrDefault(f => f.Id == facilityId);
         if (facility == null)
             return CommandResult.Fail("facility_not_found", $"RAS facility '{facilityId}' not found");
-        return HarvestPopulations(facility.Tanks, facility.Id, facility.Name, "facility_empty",
-            $"'{facility.Name}' has no fish to harvest", seaFarmed: false);
+        return HarvestNowAs(facility.Id, null, 1.0, HarvestMode.Express, "facility_empty",
+            $"'{facility.Name}' has no fish to harvest");
     }
 
     // ── Offshore ───────────────────────────────────────────────────────────
@@ -105,8 +106,8 @@ public partial class SimulationEngine
         var farm = OffshoreFarms.FirstOrDefault(f => f.Id == farmId);
         if (farm == null)
             return CommandResult.Fail("facility_not_found", $"Offshore farm '{farmId}' not found");
-        return HarvestPopulations(farm.Pens, farm.Id, farm.Name, "facility_empty",
-            $"'{farm.Name}' has no fish to harvest", seaFarmed: true);
+        return HarvestNowAs(farm.Id, null, 1.0, HarvestMode.Express, "facility_empty",
+            $"'{farm.Name}' has no fish to harvest");
     }
 
     // ── Post-smolt ─────────────────────────────────────────────────────────

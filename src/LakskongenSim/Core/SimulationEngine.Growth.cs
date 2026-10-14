@@ -58,7 +58,11 @@ public partial class SimulationEngine
     {
         var law = Growth.Law;
         double temperature = husbandry.Water.TemperatureC;
-        double ration = population.Ration?.EffectiveFraction ?? 1.0;
+        // S2-04: fish fasting before slaughter get nothing, whatever the
+        // feeding plan says; they lose a little weight on the law's
+        // below-maintenance branch and their gut empties (degree-days).
+        double ration = population.IsFasting ? 0.0 : population.Ration?.EffectiveFraction ?? 1.0;
+        TrackHarvestCondition(population, husbandry.Water);
         double researchGrowth = 1.0 + GrowthRateBonus;
         double dayLength = DayLengthHoursOf(husbandry.Water);
 

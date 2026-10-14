@@ -1530,6 +1530,7 @@ private class BalancingConfig
         {
             new StormImpactsTickSystem(),
             new WellboatExecutionTickSystem(),
+            new HarvestOrdersTickSystem(),
             new LicenseAuctionTickSystem(),
             new BalanceMirrorTickSystem(),
             new SolvencyTickSystem()
@@ -1655,7 +1656,8 @@ private class BalancingConfig
         {
             var cmd = job.Kind == "delouse"
                 ? DelouseSite(job.SiteId, string.IsNullOrEmpty(job.Method) ? "hydrolicer" : job.Method)
-                : HarvestSite(job.SiteId);
+                : HarvestNowAs(job.SiteId, null, 1.0, LakskongenSim.Harvest.HarvestMode.HiredWellboat,
+                    "site_empty", $"Site '{job.SiteId}' is empty"); // S2-04: the hire paid the transport
 
             State.EventLog.Add(new Events.EventRecord
             {
@@ -2995,11 +2997,9 @@ private class BalancingConfig
                 double harvestT = Math.Min(biomassT, site.CurrentBiomassTonnes - site.MABTonnes);
                 if (harvestT < 0.1) harvestT = biomassT; // harvest all if barely over
 
-                decimal revenue = (decimal)(harvestT * 1000 * (double)penaltyPrice); // NOK
-                ReceiveIncome(revenue, "forced_harvest");
-                State.TotalSalesRevenueNok += revenue;
-                State.TotalHarvestRevenueNok += revenue;
-                RecordHarvestForResourceRent(harvestT * 1000.0);
+                // S2-04: sold through the harvest pipeline (HOG kilos, size
+                // classes, grades) at 70% of the price, less the harvest cost.
+                decimal revenue = SellForcedHarvest(site, harvestT, 0.7m);
 
                 // Record event
                 State.EventLog.Add(new EventRecord

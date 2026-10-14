@@ -39,7 +39,7 @@ namespace LakskongenSim.Calibration
         public const string EmbeddedResourceName = "LakskongenSim.Calibration.calibration.json";
 
         /// <summary>Current schema/balancing version. Bump when reconciled values change.</summary>
-        public const string DefaultVersion = "1.0.7";
+        public const string DefaultVersion = "1.0.8";
 
         /// <summary>Calibration schema/balancing version.</summary>
         [JsonPropertyName("version")]
@@ -119,6 +119,14 @@ namespace LakskongenSim.Calibration
         /// </summary>
         [JsonPropertyName("growth")]
         public GrowthCalibration Growth { get; init; } = new();
+
+        /// <summary>
+        /// Harvest pipeline (S2-04): live-to-gutted yield, fasting, wellboat and
+        /// slaughter capacity and cost, the size-class price ladder and the
+        /// quality grades.
+        /// </summary>
+        [JsonPropertyName("harvest")]
+        public HarvestCalibration Harvest { get; init; } = new();
         /// <summary>
         /// Derived feed cost per kg of fish produced = feed price × base FCR.
         /// This is the reconciled "~25.7 NOK/kg produced" figure in
@@ -761,6 +769,210 @@ namespace LakskongenSim.Calibration
         /// estimate: a cohort grown from 100 g to 5 kg covers ~93% of the way.
         /// </summary>
         public double WeightCvRelaxation { get; init; } = 2.0;
+    }
+
+    #endregion
+
+    #region S2-04 harvest pipeline
+
+    /// <summary>
+    /// The harvest pipeline (roadmap S2-04): what a live kilo becomes at the
+    /// slaughterhouse and what it earns. Fish fast before slaughter, a wellboat
+    /// carries them to a slaughterhouse with a daily capacity (or a land-based
+    /// farm pipes them to its own hall), they are bled and gutted (HOG), sorted
+    /// into size classes on the gutted weight and into the industry's quality
+    /// grades, and sold at the reference price for superior HOG fish times the
+    /// size-class and grade factors, less the harvest cost.
+    /// </summary>
+    public sealed record HarvestCalibration
+    {
+        // ── Yield ──────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Gutted (head-on gutted, HOG) weight per kg of live fish. 0.84.
+        /// Source: Mowi, Salmon Farming Industry Handbook 2025, appendix "weight
+        /// conversion ratios" (https://mowi.com/wp-content/uploads/2025/06/2025-Salmon-Farming-Industry-Handbook.pdf,
+        /// p. 114): live fish 100%, loss of blood/starving 6%, offal 10%, gutted
+        /// fish (HOG) approx. 84%; the 2018 edition gives 84% too, and the capital
+        /// model on p. 75 uses "conversion rate from live weight to GWT: 0.84".
+        /// </summary>
+        public double HogYieldFraction { get; init; } = 0.84;
+
+        // ── Fasting ────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Degree-days (°C × days) fish fast before slaughter. 30. Regulatory
+        /// basis: kvalitetsforskriften (FOR-2013-06-28-844) § 16, farmed fish must
+        /// have been without feed long enough that no feed residue can be found
+        /// in the stomach or gut; akvakulturdriftsforskriften (FOR-2008-06-17-822)
+        /// § 27, the period without feed shall be as short as possible. The
+        /// duration is a game estimate, in degree-days because the gut empties
+        /// more slowly in cold water: 3 days at 10 °C, 6 at 5 °C, 2 at 15 °C.
+        /// </summary>
+        public double FastingDegreeDays { get; init; } = 30.0;
+
+        /// <summary>Fewest days of fasting before slaughter, whatever the temperature. 2. Game estimate.</summary>
+        public int MinFastingDays { get; init; } = 2;
+
+        // ── Wellboat and slaughterhouse ─────────────────────────────────────
+
+        /// <summary>
+        /// Days from ordering a harvest to the first wellboat slot. 5. Game
+        /// estimate: the lead time the game's harvest wellboat booking already
+        /// used (<c>RequestWellboat("harvest")</c>).
+        /// </summary>
+        public int WellboatLeadDays { get; init; } = 5;
+
+        /// <summary>
+        /// Live fish one harvest wellboat carries to the slaughterhouse a day
+        /// (tonnes). 300. Game estimate: one trip a day with a 3,000 m³ wellboat
+        /// (Sølvtrans' Ronja Queen class, docs/run/evidence/a3_01_vessels.md) at
+        /// about 100 kg/m³; the transport regulation (FOR-2008-06-17-820 § 14)
+        /// sets no number, only that density suit the fish's welfare.
+        /// </summary>
+        public double WellboatCapacityTonnesLivePerDay { get; init; } = 300.0;
+
+        /// <summary>
+        /// Gutted fish the player's slaughterhouse contract takes a day (tonnes
+        /// HOG). 150. Game estimate: Norway slaughtered 1,408,650 t of gutted
+        /// salmon in 2024 (Veterinærinstituttet, Fiskehelserapporten 2024, table
+        /// 5.8.1) at about 60 land-based slaughterhouses and 40 bleeding vessels
+        /// (ibid. §5.8): about 56 t per facility per working day on average,
+        /// large plants several hundred.
+        /// </summary>
+        public double SlaughterCapacityTonnesHogPerDay { get; init; } = 150.0;
+
+        /// <summary>
+        /// Wellboat transport per kg HOG (NOK). 1.55. With
+        /// <see cref="SlaughterCostPerKgHogNok"/> the harvest costs 5.0 NOK/kg HOG:
+        /// Fiskeridirektoratet's profitability survey 2023, "slakting og transport"
+        /// 4.45 NOK per kg round weight (Veterinærinstituttet, Fiskehelserapporten
+        /// 2024, table 3.2.1, https://www.vetinst.no/rapporter-og-publikasjoner/rapporter/2025/fiskehelserapporten-2024)
+        /// with the report's 12.5% gutting loss (4.45 × 1.125 = 5.0); Mowi Handbook
+        /// 2025, p. 75: harvest and processing incl. well boat EUR 0.40 per kg GWT
+        /// (≈ 4.7 NOK). Split 31/69 as Marine Harvest Norway 2017 (Handbook 2018,
+        /// p. 48: well boat EUR 0.15, primary processing 0.33 per kg GWE).
+        /// </summary>
+        public decimal WellboatCostPerKgHogNok { get; init; } = 1.55m;
+
+        /// <summary>Slaughter, gutting and packing per kg HOG (NOK). 3.45. Sources: see <see cref="WellboatCostPerKgHogNok"/>.</summary>
+        public decimal SlaughterCostPerKgHogNok { get; init; } = 3.45m;
+
+        /// <summary>
+        /// Extra cost per kg HOG of a harvest taken today without a plan (NOK):
+        /// a spot wellboat and the slaughterhouse's waiting pen, where the fish
+        /// fast before slaughter. 1.0. Game estimate.
+        /// </summary>
+        public decimal ExpressSurchargePerKgHogNok { get; init; } = 1.0m;
+
+        /// <summary>
+        /// Wellboat cost of an exposed offshore farm relative to a coastal site.
+        /// 1.5. Game estimate (the farm-types spec's offshore wellboat premium).
+        /// </summary>
+        public decimal OffshoreWellboatCostMultiplier { get; init; } = 1.5m;
+
+        // ── Size-class price ladder ─────────────────────────────────────────
+        // Factors on the reference price (superior HOG, the 4-5 kg class), by
+        // the GUTTED weight of the fish (the industry's size classes are HOG).
+        // Source: Kontali relative prices in Norway, weekly 2015-2024, in Mowi's
+        // Salmon Farming Industry Handbook 2025, §6.7 "Different sizes - different
+        // prices" (p. 49): 2-3 kg traded at about 86% of 4-5 kg on average
+        // (70-97%), 6-7 kg at about 108% (95-150%, peaks in summer); the
+        // Handbook 2018 (§5.7, 2008-2016) shows the same pattern. 3-4 and 5-6 kg
+        // are interpolated, under 2 kg and over 7 kg extrapolated (game
+        // estimates). The reference spot (Nasdaq/SISALMON) is the 3-6 kg basket,
+        // within 1% of the 4-5 kg class on these factors.
+
+        /// <summary>Price factor of fish under 1 kg HOG. 0.60. Game estimate (extrapolated).</summary>
+        public double PriceFactorUnder1Kg { get; init; } = 0.60;
+        /// <summary>Price factor of the 1-2 kg HOG class. 0.72. Game estimate (extrapolated with the 2-3 to 4-5 kg step).</summary>
+        public double PriceFactor1To2Kg { get; init; } = 0.72;
+        /// <summary>Price factor of the 2-3 kg HOG class. 0.86 (Kontali, 2015-2024 mean).</summary>
+        public double PriceFactor2To3Kg { get; init; } = 0.86;
+        /// <summary>Price factor of the 3-4 kg HOG class. 0.93 (interpolated).</summary>
+        public double PriceFactor3To4Kg { get; init; } = 0.93;
+        /// <summary>Price factor of the 4-5 kg HOG class: the reference. 1.00.</summary>
+        public double PriceFactor4To5Kg { get; init; } = 1.00;
+        /// <summary>Price factor of the 5-6 kg HOG class. 1.04 (interpolated).</summary>
+        public double PriceFactor5To6Kg { get; init; } = 1.04;
+        /// <summary>Price factor of the 6-7 kg HOG class. 1.08 (Kontali, 2015-2024 mean).</summary>
+        public double PriceFactor6To7Kg { get; init; } = 1.08;
+        /// <summary>Price factor of fish of 7 kg HOG and more. 1.10. Game estimate (extrapolated).</summary>
+        public double PriceFactorOver7Kg { get; init; } = 1.10;
+
+        // ── Quality grades ──────────────────────────────────────────────────
+        // After slaughter fish are sorted into superior, ordinary and production
+        // (Veterinærinstituttet, Fiskehelserapporten 2024 §5.8). Norway 2024 by
+        // weight: superior 80.6%, ordinary 1.5%, production 17.1% (table 5.8.1);
+        // superior about 65% in the first half year and 90% in the second (figure
+        // 5.8.6); the commonest cause of downgrading is wounds/injuries
+        // ("sår/skade"), then maturation, defects and clinical disease.
+
+        /// <summary>Price of ordinary-grade fish relative to superior. 0.90. Game estimate.</summary>
+        public double OrdinaryPriceFactor { get; init; } = 0.90;
+
+        /// <summary>
+        /// Price of production-grade fish relative to superior. 0.70. Source:
+        /// Mowi Handbook 2025, p. 116: "reduced price of downgraded fish (~30%)".
+        /// </summary>
+        public double ProductionPriceFactor { get; init; } = 0.70;
+
+        /// <summary>
+        /// Share (by weight) of a healthy, unwounded batch graded production
+        /// (deformities and other defects). 0.05. Game estimate: with the
+        /// ordinary share a healthy late-summer batch grades ~92% superior
+        /// (Norway, second half of 2024: ~90%).
+        /// </summary>
+        public double BaseProductionShare { get; init; } = 0.05;
+
+        /// <summary>Share (by weight) graded ordinary. 0.015 (Norway 2024: 20,976 of 1,408,650 t, table 5.8.1).</summary>
+        public double OrdinaryShare { get; init; } = 0.015;
+
+        /// <summary>Water colder than this (°C) exposes the fish to winter wounds (winter ulcers). 8. Game estimate.</summary>
+        public double WinterWoundTemperatureC { get; init; } = 8.0;
+
+        /// <summary>E-folding time (days) of a population's cold-water exposure memory. 60. Game estimate.</summary>
+        public double ColdExposureEFoldingDays { get; init; } = 60.0;
+
+        /// <summary>
+        /// Extra production share at full cold-water exposure (a harvest right
+        /// after a winter at sea). 0.30. Game estimate, tuned so a spring harvest
+        /// grades ~65% superior and a late-summer one ~90% (Norway 2024, H1/H2).
+        /// </summary>
+        public double WinterWoundProductionShare { get; init; } = 0.30;
+
+        /// <summary>
+        /// Extra production share per unit of delousing injury load
+        /// (<c>Health.DelousingInjuryState.InjuryLoad</c>; a fresh thermal
+        /// treatment adds 0.35). 0.25. Game estimate (injuries after delousing
+        /// are among the most important health problems at sea, Fiskehelserapporten 2024).
+        /// </summary>
+        public double TreatmentWoundProductionSharePerInjury { get; init; } = 0.25;
+
+        /// <summary>Most production share delousing injuries add. 0.5. Game estimate.</summary>
+        public double MaxTreatmentWoundProductionShare { get; init; } = 0.5;
+
+        /// <summary>Extra production share per adult female louse per fish (lice wounds). 0.05. Game estimate.</summary>
+        public double LiceWoundProductionSharePerLouse { get; init; } = 0.05;
+
+        /// <summary>Most production share lice wounds add. 0.2. Game estimate.</summary>
+        public double MaxLiceWoundProductionShare { get; init; } = 0.2;
+
+        /// <summary>
+        /// Mean live weight (kg) above which sexual maturation starts to
+        /// downgrade a batch. 6.0. Game estimate (maturation is the second
+        /// commonest cause of downgrading; fish grown on mature more).
+        /// </summary>
+        public double MaturationStartWeightKg { get; init; } = 6.0;
+
+        /// <summary>Extra production share per kg of mean live weight above <see cref="MaturationStartWeightKg"/>. 0.08. Game estimate.</summary>
+        public double MaturationProductionSharePerKg { get; init; } = 0.08;
+
+        /// <summary>Most production share maturation adds. 0.4. Game estimate.</summary>
+        public double MaxMaturationProductionShare { get; init; } = 0.4;
+
+        /// <summary>Harvest reports the game keeps (newest last). 40.</summary>
+        public int ReportsKept { get; init; } = 40;
     }
 
     #endregion

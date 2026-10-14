@@ -996,7 +996,7 @@ namespace LakskongenSim.Core
                 Description =
                     "Du har arvet bestefars lille oppdrett i Hardanger. Med én lisens og små midler må du lære grunnleggende oppdrett. " +
                     "Bygg opp gården fra bunnen av og vis at du kan drive lønnsomt.",
-                StartingCapitalNOK = 3_000_000m,
+                StartingCapitalNOK = 4_000_000m,
                 StartingRegion = ProductionRegion.Vestland,
                 Difficulty = 1,
                 WinCondition = WinCondition.Tutorial,
@@ -1008,10 +1008,14 @@ namespace LakskongenSim.Core
                 // The inherited farm. Without it the start could not afford a 6M
                 // site, so the tutorial could not be played (F1013). One pen of
                 // 20,000 smolts and 3M NOK: 5,000 smolts on 300k could not carry
-                // a crew to the first harvest (decision log, RUN_LOG §7).
+                // a crew to the first harvest (decision log, RUN_LOG §7). S2-03
+                // raised it to 22,000; S2-04 (fish sold as gutted kilos at the
+                // size-class and grade prices, less the harvest cost: ~27% less
+                // per live kilo) to 36,000 fish and 4M NOK, so the first harvest
+                // still funds the second site (RUN_LOG §7, docs/BALANCE.md §1h).
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "bestefars_anlegg", Name = "Bestefars Anlegg", Zone = "fjord_west", ProductionArea = 3, Pens = 1, SmoltCount = 22_000, DaysAtSea = 110, SmoltQuality = "standard" },
+                    new() { Id = "bestefars_anlegg", Name = "Bestefars Anlegg", Zone = "fjord_west", ProductionArea = 3, Pens = 1, SmoltCount = 36_000, DaysAtSea = 110, SmoltQuality = "standard" },
                 },
                 TimeLimitDays = null,
                 IsUnlocked = true,

@@ -42,7 +42,7 @@ namespace LakskongenSim.Tests.Integration
         private sealed record EngineCycle(
             int DaysToHarvestWeight, int Stocked, int Survivors, double StockedKg, double HarvestKg,
             double DeadKg, double FeedKg, decimal CogsDelta, decimal RevenueNok, decimal SpotAtHarvest,
-            decimal FeedPricePerKg, decimal NetCashNok)
+            decimal FeedPricePerKg, decimal NetCashNok, LakskongenSim.Harvest.HarvestReport Report)
         {
             /// <summary>Feed per kg of biomass the fish built, including fish that died after growing.</summary>
             public double BiologicalFcr => FeedKg / (HarvestKg + DeadKg - StockedKg);
@@ -104,7 +104,7 @@ namespace LakskongenSim.Tests.Integration
             Assert.True(harvest.Ok, harvest.ErrorKey);
             return new EngineCycle(days, smolts, survivors, stockedKg, harvest.Value, deadKg,
                 engine.Feed.TotalFeedUsedKg - feed0, statements.LifetimeCOGS - cogs0, (decimal)harvest.Value2,
-                spot, engine.Feed.FeedCostPerKg, engine.FinanceManager.Balance - cash0);
+                spot, engine.Feed.FeedCostPerKg, engine.FinanceManager.Balance - cash0, engine.HarvestReports[^1]);
         }
 
         /// <summary>
@@ -136,11 +136,21 @@ namespace LakskongenSim.Tests.Integration
             Assert.InRange(c.HarvestKg / c.Survivors, CycleHarvestWeightKg, CycleHarvestWeightKg + 0.1);
             // The ledger charges every kilo the engine fed at the calibrated feed
             // price, plus the smolts: the FCR above is the FCR the player pays for.
+            // S2-04 (review F270): plus the harvest cost (wellboat, slaughter,
+            // the express surcharge), booked as cost of goods sold; it was free.
+            var harvest = CalibrationRegistry.Default.Harvest;
+            Assert.Equal(c.HarvestKg * harvest.HogYieldFraction, c.Report.HogKg, 6);
+            decimal expectedHarvestCost = (decimal)c.Report.HogKg * (harvest.WellboatCostPerKgHogNok
+                + harvest.SlaughterCostPerKgHogNok + harvest.ExpressSurchargePerKgHogNok);
+            Assert.Equal((double)expectedHarvestCost, (double)c.Report.HarvestCostNok, 4);
             decimal expectedCogs = smolts * CalibrationRegistry.Default.Economy.SmoltCostPerFishNOK
-                + (decimal)c.FeedKg * c.FeedPricePerKg;
+                + (decimal)c.FeedKg * c.FeedPricePerKg + expectedHarvestCost;
             Assert.InRange((double)c.CogsDelta, (double)expectedCogs * 0.9999, (double)expectedCogs * 1.0001);
-            // Sold at the day's spot (no contracts, no processing plant).
-            Assert.Equal((double)c.SpotAtHarvest, (double)c.RevenueNok / c.HarvestKg, 6);
+            // Sold at the day's spot (no contracts, no processing plant). S2-04:
+            // spot is the price of a reference kilo (superior HOG, 4-5 kg), so the
+            // sale is the day's spot per reference-equivalent kilo (it was spot
+            // per live kilo: the game sold live kilos at the gutted price).
+            Assert.Equal((double)c.SpotAtHarvest, (double)c.RevenueNok / c.Report.ReferenceEquivalentKg, 6);
         }
 
         /// <summary>

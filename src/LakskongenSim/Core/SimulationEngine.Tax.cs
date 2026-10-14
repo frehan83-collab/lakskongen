@@ -55,8 +55,13 @@ public partial class SimulationEngine
         decimal corporate = TaxSystem.ComputeCorporateTax(preTax);
 
         // Resource rent: harvest valued at the norm price minus the year's
-        // sea-phase costs, taxed above the calibrated basic deduction.
-        decimal rentBase = State.ResourceRentHarvestValueThisTaxYear - (fs.COGS + fs.OperatingExpenses);
+        // sea-phase costs, taxed above the calibrated basic deduction. S2-04:
+        // the harvest cost (wellboat, slaughter, packing) is not a sea-phase
+        // cost: skatteloven § 19-5 values the fish at the pen edge
+        // ("markedsverdien ved merdkanten ... multiplisert med slaktevolum")
+        // and § 19-6 lists no slaughter or transport among the deductions.
+        decimal seaPhaseCosts = fs.COGS + fs.OperatingExpenses - State.HarvestCostThisTaxYear;
+        decimal rentBase = State.ResourceRentHarvestValueThisTaxYear - seaPhaseCosts;
         decimal rentTax = EnableResourceRentTax
             ? ResourceRentTax.Compute(rentBase, _calibration.Finance.ResourceRentBasicDeductionNOK,
                 TaxSystem.ResourceRentTaxRate)
@@ -77,6 +82,7 @@ public partial class SimulationEngine
         }
         State.HarvestedKgThisTaxYear = 0.0;
         State.ResourceRentHarvestValueThisTaxYear = 0m;
+        State.HarvestCostThisTaxYear = 0m;
 
         return new AnnualTaxSettlement(preTax, corporate, Math.Max(0m, rentBase), rentTax,
             provisional, settlement, TaxSystem.LossCarryForward);
