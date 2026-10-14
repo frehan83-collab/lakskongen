@@ -73,7 +73,7 @@ const SUN_ANGLE_OVERCAST := 2.0
 ## horizon. Daylight is exposed at 1 down to a sun ADAPT_FROM_ELEVATION high;
 ## darker scenes open up by (key_ref / key)^ADAPTATION, so a night stays
 ## darker than a day but reads, up to MAX_EXPOSURE.
-const ADAPT_FROM_ELEVATION := 3.0
+const ADAPT_FROM_ELEVATION := 12.0
 const ADAPTATION := 0.72
 const MAX_EXPOSURE := 16.0
 ## Share of a deck's darkness (in log terms) the eye does not adapt away:

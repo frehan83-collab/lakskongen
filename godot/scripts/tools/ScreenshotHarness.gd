@@ -274,12 +274,26 @@ func _boot_game() -> void:
 	# shots show cages + fish instead of empty water (zoom presets apply
 	# per shot on top of this focus point).
 	_focus_camera_on_first_pen()
+	# The hour of day is a presentation clock (D20) that runs 2 game minutes
+	# per real second: pin it to noon so every run shoots the same light
+	# (the date, latitude and weather stay the sim's).
+	_pin_presentation_hour(12.0)
 	# Pinned-state QA (S3 control): freeze the sim clock after the boot state so
 	# UI numbers / market / alerts are reproducible run-to-run. Sections that
 	# need days move it explicitly (advance_days / QA forcing).
 	if sim != null and sim.has_method("set_paused"):
 		sim.set_paused(true)
 	await _wait(2.0)
+
+
+func _pin_presentation_hour(hour: float) -> void:
+	if _env == null:
+		_env = _find(_game, "FjordEnvironment")
+	var ts = _env.get("time_system") if _env != null else null
+	if ts != null:
+		ts.set("paused", true)
+	if _env != null and _env.has_method("set_time"):
+		_env.call("set_time", hour)
 
 
 func _focus_camera_on_first_pen() -> void:

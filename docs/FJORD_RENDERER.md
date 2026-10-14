@@ -131,7 +131,7 @@ axes: north +X, up +Y, east +Z; the fjord opens west (−Z).
 | Fog | `fog_density = 3.912 / visibility` (Koschmieder); aerial perspective 0.6, sky affect 0.15, sun scatter 0.25; height fog only for a sea-fog layer; underwater 30 m visibility |
 | Sun | direction from `SolarGeometry`; colour and energy from the same Chapman-function transmittance the sky draws, white-balanced at 60°; clouds dim it (× lerp(1, 0.15, c)), soften its shadow and take its specular glint off the water |
 | Moon | #C7D7E8, energy 0.04 × phase × elevation × (1 − 0.85 c), shadows only when the sun's are off |
-| Exposure | 1 in daylight; past a 3° sun the eye adapts as (key_ref / key)^0.72 up to 16×, where the key is the zenith and horizon luminance of the same sky model plus the direct light; under a deck it adapts only part of the way, so storms stay dark |
+| Exposure | 1 with the sun above 12°; below that the eye adapts as (key_ref / key)^0.72 up to 16×, where the key is the zenith and horizon luminance of the same sky model plus the direct light; under a deck it adapts only part of the way, so storms stay dark |
 | Tonemap, glow | AgX, white 6, contrast 1.3, adjustments off; Screen glow, intensity 0.25, threshold 1, levels 3-5 |
 | Ambient | sky radiance × 0.6 by day (a fjord wall sees about half the sky), × 3.5 once the sky is dark |
 | Aurora | `AuroraModel` brightness × darkness (sun below −6° to −14°) × clear sky (gone at 0.85 cover) |
