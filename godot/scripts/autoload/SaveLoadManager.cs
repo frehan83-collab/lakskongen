@@ -38,7 +38,7 @@ public partial class SaveLoadManager : Node
     /// migration step in MigrateSaveData. Old saves without the field read
     /// as version 0.
     /// </summary>
-    public const int CurrentSaveVersion = 4;
+    public const int CurrentSaveVersion = 5;
 
     private JsonSerializerOptions _jsonOptions;
     private GameBridge _gameBridge;
@@ -584,6 +584,14 @@ public partial class SaveLoadManager : Node
                     // else the home area from the first site) and the anomaly
                     // restarts at zero.
                     saveData.SaveVersion = 4;
+                    break;
+                case 4:
+                    // v4 -> v5 (S2-01a): the licence register (CapacityRules,
+                    // LicenceHoldings, LicencesGranted, CapacityBreaches). A v4
+                    // save loads with no rules (null): the engine gives each sea
+                    // site one licence of its old MAB in its production area and
+                    // opens capacity v1 (SimulationEngine.MigrateCapacityRegisterAfterLoad).
+                    saveData.SaveVersion = 5;
                     break;
                 default:
                     GD.PrintErr($"No migrator for save version {saveData.SaveVersion}; loading as-is.");

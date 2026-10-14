@@ -3393,6 +3393,8 @@ private class BalancingConfig
             runtime.StorytellerCooldowns = Storyteller?.CooldownsForSnapshot;
             runtime.CurrencyStatePresent = true;
             runtime.TrafficLightColors = TrafficLightSystem?.ExportColors();
+            runtime.SustainabilityLiveScore = SustainabilityManager?.CurrentScore;
+            runtime.SustainabilityLiveLevel = SustainabilityManager?.CurrentCertification;
             var feedState = Feed.ExportState();
             runtime.FeedFcr = feedState.Fcr;
             runtime.FeedUsedKg = feedState.FeedUsedKg;
@@ -3902,7 +3904,8 @@ private class BalancingConfig
                     runtime.FeedLastAppetite, runtime.FeedSustainabilityRating));
                 if (runtime.TrafficLightColors != null)
                     TrafficLightSystem?.ImportColors(runtime.TrafficLightColors);
-                SustainabilityManager?.ImportState(State.SustainabilityScore, State.SustainabilityCertification);
+                SustainabilityManager?.ImportState(runtime.SustainabilityLiveScore ?? State.SustainabilityScore,
+                    runtime.SustainabilityLiveLevel ?? State.SustainabilityCertification);
                 if (runtime.CurrencyStatePresent)
                     CurrencySystem?.ImportCurrencyState((
                         runtime.CurrencyDay, runtime.CurrencyEur, runtime.CurrencyUsd,

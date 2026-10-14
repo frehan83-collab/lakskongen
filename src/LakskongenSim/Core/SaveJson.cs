@@ -144,6 +144,19 @@ public sealed class EngineRuntimeSnapshot
     public int MktShockDays { get; set; }
     public double MktSupplyOffset { get; set; }
 
+    /// <summary>
+    /// The sustainability manager's live score and level. A storyteller
+    /// regulatory penalty moves them between the weekly updates without
+    /// touching the state's mirror (GameState.SustainabilityScore), so a load
+    /// that rebuilt the manager from the mirror skipped the next level change
+    /// and its price multiplier (po3 seeds 75 and 156 of 1-400 diverged after
+    /// a day-40 save). Null in older saves: the mirror is used.
+    /// </summary>
+    public int? SustainabilityLiveScore { get; set; }
+
+    /// <summary>The live certification level beside <see cref="SustainabilityLiveScore"/>; null in older saves.</summary>
+    public LakskongenSim.Sustainability.CertificationLevel? SustainabilityLiveLevel { get; set; }
+
     // ── Market intelligence (weekly news/competitor state) ────────────────
     public int IntelWeek { get; set; }
     public System.Collections.Generic.List<LakskongenSim.Market.MarketNewsEvent>? IntelActive { get; set; }
