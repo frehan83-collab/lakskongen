@@ -98,9 +98,9 @@ public class CommandErrorPathTests
     }
 
     /// <summary>
-    /// Review F884: the day-300 save/load round trip used to be checked only by
-    /// counts. The resumed career must end in exactly the state of the same
-    /// career played without a save.
+    /// Review F884: the mid-run save/load round trip (day 210 since S1-01, while
+    /// both sites hold fish) used to be checked only by counts. The resumed
+    /// career must end in exactly the state of the same career played without a save.
     /// </summary>
     [Theory]
     [InlineData(7)]
