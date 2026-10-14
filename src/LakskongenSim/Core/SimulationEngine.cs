@@ -52,6 +52,7 @@ namespace LakskongenSim.Core
             EnableResourceRentTax = false;
             StormEscapeEvents = 0.0;
             _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
+            _stormEpisodePeakSeverity = 0.0;
             Time.Reset();
         }
 
@@ -179,7 +180,7 @@ namespace LakskongenSim.Core
         // stock per site per year; see docs/BALANCE.md §1c and the 0.5% guard.
         private const double StormIntegrityLossPctPerDay = 0.3;
         private const double SevereIntegrityLossPctPerDay = 1.0;
-        private const double NetIntegrityRepairPctPerDay = 0.2;
+        private const double NetIntegrityRepairPctPerDay = 0.5;
         /// <summary>Expected containment-failure probability on a severe-storm day.</summary>
         private const double StormFailureProbabilityPerSevereDay = 0.01;
         /// <summary>Fraction of the pen released by one containment failure at full wear.</summary>
@@ -219,6 +220,18 @@ namespace LakskongenSim.Core
 
         // Storm-impact edge tracking (moved from the bridge, Phase 1 wave 2).
         private LakskongenSim.Environment.WeatherState _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
+        /// <summary>Highest storm severity reached in the running episode (0 between episodes; saved).</summary>
+        private double _stormEpisodePeakSeverity;
+        private const double StormEpisodeSeverity = 0.5;
+        private const double SevereEpisodeSeverity = 1.0;
+
+        /// <summary>Damage severity of a weather state: Severe 1, Storm 0.5, otherwise 0.</summary>
+        internal static double StormSeverity(LakskongenSim.Environment.WeatherState state) => state switch
+        {
+            LakskongenSim.Environment.WeatherState.Severe => SevereEpisodeSeverity,
+            LakskongenSim.Environment.WeatherState.Storm => StormEpisodeSeverity,
+            _ => 0.0
+        };
 
         // ─── Events ───
         public event Action<int>? OnDayAdvanced;
@@ -1785,28 +1798,36 @@ private class BalancingConfig
         /// Storm episode impacts + temperature stress, moved from the GameBridge
         /// (Phase 1 wave 2) and now a first-class POST-TICK phase via
         /// StormImpactsTickSystem (wave 3). Storm mortality, repair bill and
-        /// insurance settlement fire on the TRANSITION into Storm/Severe
-        /// (edge-triggered, as the bridge did); temperature stress applies
-        /// daily. Gated by _enableEvents like the other event hazards, so
-        /// event-off probes keep their band models.
+        /// insurance settlement fire once per storm EPISODE (S1-02): when an
+        /// episode starts, at the severity it starts with, and again only when
+        /// it escalates past its peak (Storm then Severe: the extra half). The
+        /// old edge rule fired on every Storm/Severe flip inside one episode;
+        /// with Severe reachable in winter (F456) that counted 81 "onsets" a
+        /// year for 46 episodes. Temperature stress applies daily. Gated by
+        /// _enableEvents like the other event hazards, so event-off probes keep
+        /// their band models.
         /// </summary>
         internal void ApplyStormAndTemperatureImpacts()
         {
             if (!_enableEvents || Weather == null)
             {
                 _lastWeatherState = Weather?.CurrentState ?? LakskongenSim.Environment.WeatherState.Calm;
+                _stormEpisodePeakSeverity = StormSeverity(_lastWeatherState);
                 return;
             }
 
             var currentWeather = Weather.CurrentState;
-            double severity = 0.0;
+            double currentSeverity = StormSeverity(currentWeather);
+            double severity = 0.0; // damage charged today
             string weatherDesc = "";
+            if (currentSeverity > _stormEpisodePeakSeverity)
+                severity = currentSeverity - _stormEpisodePeakSeverity;
+            _stormEpisodePeakSeverity = currentSeverity > 0.0
+                ? Math.Max(_stormEpisodePeakSeverity, currentSeverity)
+                : 0.0;
 
-            if (currentWeather != _lastWeatherState &&
-                (currentWeather == LakskongenSim.Environment.WeatherState.Storm ||
-                 currentWeather == LakskongenSim.Environment.WeatherState.Severe))
+            if (severity > 0.0)
             {
-                severity = currentWeather == LakskongenSim.Environment.WeatherState.Severe ? 1.0 : 0.5;
 
                 // Storm stress mortality (roekter halves losses). Iterate each
                 // site's own pens: populations are ZoneId-tagged, State-wide
@@ -3282,6 +3303,7 @@ private class BalancingConfig
             var runtime = new EngineRuntimeSnapshot
             {
                 WeatherEdgeState = _lastWeatherState.ToString(),
+                StormEpisodePeakSeverity = _stormEpisodePeakSeverity,
                 EventsEnabled = _enableEvents
             };
             var clocks = new List<int>(_inDayPhases.Length);
@@ -3796,6 +3818,9 @@ private class BalancingConfig
                 _lastWeatherState = edgeOk
                     ? edge
                     : Weather?.CurrentState ?? LakskongenSim.Environment.WeatherState.Calm;
+                // Saves from before S1-02 carry no episode peak: a running
+                // episode is taken to have peaked at its last state.
+                _stormEpisodePeakSeverity = runtime.StormEpisodePeakSeverity ?? StormSeverity(_lastWeatherState);
 
                 // Independent of the clock restore: length mismatches must
                 // never silently drop the events gating either.
@@ -3854,6 +3879,7 @@ private class BalancingConfig
             {
                 _lastWeatherState = Weather?.CurrentState
                     ?? LakskongenSim.Environment.WeatherState.Calm;
+                _stormEpisodePeakSeverity = StormSeverity(_lastWeatherState);
             }
 
             SimLog.Info($"✅ Restored from save: Balance={FinanceManager.Balance:N0} NOK, {loadedState.Populations.Count} populations, Day {loadedState.Day}");
