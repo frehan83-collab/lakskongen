@@ -627,11 +627,12 @@ func _berth_depth(position: Vector3, grid_yaw: float, side: float, half_w: float
 	return shallowest
 
 
-## Where a vessel of `beam_m` lies at a site: role "barge" (beside the grid,
-## its hoses to every pen) or "wellboat" (alongside, the other side).
-## {position: a world point level with the site centre in z, so it can end
-## a channel route; axis: the grid's +Z, the way the vessel lies; side: +1
-## or -1 in world x}. Empty for an unknown site.
+## Where a vessel of `beam_m` lies at a site: role "barge" (beside the
+## grid's middle, square off it, its hoses to every pen) or "wellboat"
+## (alongside, the other side, level with the site centre in world z).
+## {position: the world point a channel route ends at; axis: the grid's +Z,
+## the way the vessel lies; side: +1 or -1 in world x}. Empty for an
+## unknown site.
 func get_berth(pen_id: String, role: String, beam_m: float) -> Dictionary:
 	if not (pen_id in _pens):
 		return {}
@@ -641,12 +642,18 @@ func get_berth(pen_id: String, role: String, beam_m: float) -> Dictionary:
 	var half_w := SiteLayout.half_extent(int(data.get("pen_count", 1))).x
 	var side := barge_side if role == "barge" else -barge_side
 	var hull_side := half_w + (BARGE_GRID_GAP_M if role == "barge" else WELLBOAT_GRID_GAP_M)
+	var at: Vector3 = data["position"]
+	var axis := Vector3(sin(yaw), 0.0, cos(yaw))
+	if role == "barge":
+		# Square off the grid's middle, so its hoses run straight in to the
+		# lane between the rows.
+		var across := Vector3(cos(yaw), 0.0, -sin(yaw))
+		return {"position": at + across * side * (hull_side + beam_m * 0.5), "axis": axis, "side": side}
 	# The perpendicular distance to the hull's centreline, laid off along x.
 	var reach := (hull_side + beam_m * 0.5) / cos(yaw)
-	var at: Vector3 = data["position"]
 	return {
 		"position": Vector3(at.x + side * reach, 0.0, at.z),
-		"axis": Vector3(sin(yaw), 0.0, cos(yaw)),
+		"axis": axis,
 		"side": side,
 	}
 

@@ -27,8 +27,8 @@ const OUTLET_DROP_M := 7.0
 ## Gentle slack: the floating hoses meander this much (m) over this length.
 const MEANDER_AMPLITUDE_M := 0.7
 const MEANDER_WAVELENGTH_M := 85.0
-## Barge outlets spread over this fraction of the barge's length.
-const OUTLET_SPREAD := 0.64
+## Barge outlets: a manifold amidships, over this fraction of the length.
+const OUTLET_SPREAD := 0.3
 ## Gap the channel keeps between neighbouring sites' grids (m) when it
 ## counts how many channel slots a site takes.
 const SITE_GAP_M := 40.0
