@@ -21,6 +21,9 @@ uniform float spin_speed = 0.0;
 // these through GeometryInstance3D.set_instance_shader_parameter().
 instance uniform vec4 ring_color : source_color = vec4(0.498, 0.839, 0.608, 0.55);
 instance uniform float pulse_hz = 0.0;
+// How much of the soft halo shows: a healthy ring stays a quiet line, a
+// warning glows (PenCage.HEALTH_GLOW).
+instance uniform float glow = 1.0;
 
 varying vec2 local_xz;
 
@@ -36,7 +39,7 @@ void fragment() {
 	float d = abs(r - ring_radius);
 	float aa = max(fwidth(r), 1e-4);
 	float line = 1.0 - smoothstep(hw - aa, hw + aa, d);
-	float halo = halo_strength * exp(-max(d - hw, 0.0) / max(halo_width, 3.0 * m_per_px));
+	float halo = glow * halo_strength * exp(-max(d - hw, 0.0) / max(halo_width, 3.0 * m_per_px));
 	if (dash_count > 0.0) {
 		// Dashes cut the line only; the glow under it stays continuous.
 		float turns = (atan(local_xz.y, local_xz.x) + TIME * spin_speed) / TAU;

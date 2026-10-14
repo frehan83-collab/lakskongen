@@ -54,6 +54,9 @@ var _on_station_at_start: Dictionary = {}  # site ids stocked when the fjord fir
 func _ready() -> void:
 	_fjord_env = get_parent()
 	_terrain = _fjord_env.get_node_or_null("Terrain")
+	var pen_mgr: FishPenManager = _fjord_env.get_node_or_null("FishPenManager")
+	if pen_mgr:
+		pen_mgr.site_relaid.connect(_on_site_relaid)
 	var sim = get_node_or_null("/root/SimBridge")
 	if sim:
 		bind_simulation(sim)
@@ -103,6 +106,15 @@ func _sync_barges() -> void:
 	for site_id in _active_barges.keys():
 		if site_id not in stocked:
 			_start_return(site_id)
+
+## A site laid out again has new berths: its barge leaves the old one at
+## once and comes back on station at the new one with the next sync.
+func _on_site_relaid(site_id: String) -> void:
+	if not _active_barges.has(site_id):
+		return
+	_on_station_at_start[site_id] = true
+	_remove_barge(site_id)
+	_sync_barges()
 
 ## The barge model a site gets.
 func barge_scene_for(site: Dictionary) -> PackedScene:

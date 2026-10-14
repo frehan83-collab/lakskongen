@@ -59,6 +59,8 @@ signal pen_clicked(pen_id: String, position: Vector3)
 signal pen_selection_changed(pen_id: String)
 ## A pen of a site was selected (index 0-based; -1 for the whole site).
 signal cage_selected(site_id: String, pen_index: int)
+## A site was laid out again (the engine changed its pens): its berths moved.
+signal site_relaid(site_id: String)
 
 var selected_pen_id: String = ""
 var selected_pen_index: int = -1
@@ -348,10 +350,14 @@ func sync_pens_from_sim(sites: Array) -> void:
 		var slots := Vector2i(next_slot, SiteLayout.slot_count(count, spacing))
 		next_slot += slots.y
 		wanted[sid] = true
+		var relaid := false
 		if sid in _pens and (int(_pens[sid]["pen_count"]) != count or _pens[sid]["slots"] != slots):
 			remove_pen(sid)  # re-laid: the engine changed the site's pens
+			relaid = true
 		if not (sid in _pens):
 			_add_site(sid, count, slots, true, site)
+			if relaid:
+				site_relaid.emit(sid)
 		_apply_site_data(sid, site)
 	# Remove sites the sim no longer has
 	for pen_id in _pens.keys():

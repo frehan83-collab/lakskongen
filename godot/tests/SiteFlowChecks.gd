@@ -227,6 +227,25 @@ func _site_grid_barge_and_hoses() -> void:
 	await t.get_tree().create_timer(0.4).timeout
 	_check(gone and barges.barge_state(sid0) == "moored" and pens.get_site(sid0).has_hoses(),
 		"feed hoses: the hoses leave with the barge and come back with the next one")
+
+	# The engine gives a site more pens (S2-01b): it is laid out again and
+	# its barge moors at the new, wider grid's berth with a hose per pen.
+	var grown: Array = []
+	for site in t._sim.get_all_pens():
+		var copy: Dictionary = site.duplicate()
+		if str(copy.get("id", "")) == sid0:
+			copy["pen_count"] = 12
+		grown.append(copy)
+	pens.sync_pens_from_sim(grown)
+	await _frames(2)
+	var big := pens.get_site(sid0)
+	var moored := barges.barge_of(sid0) as VesselModel
+	var regap := -1.0
+	if moored != null and big != null:
+		regap = absf(big.to_local(moored.global_position).x) - moored.beam_m * 0.5 - big.half_extent().x
+	_check(big != null and big.pen_count == 12 and barges.barge_state(sid0) == "moored" and absf(regap - FishPenManager.BARGE_GRID_GAP_M) < 1.0
+		and big.hoses.hoses.size() == 12,
+		"feed barge: a site laid out again (12 pens) has its barge moored at the new grid's berth (%.1f m off the frame) with 12 hoses" % regap)
 	scene.queue_free()
 	await _frames(2)
 

@@ -19,8 +19,8 @@ uniform float hose_radius = 0.055;
 uniform float float_y = 0.035;
 uniform float min_pixels = 1.6;
 // Far away the minimum width eases down, so distant sites stay quiet.
-uniform vec2 far_ease_m = vec2(1400.0, 3200.0);
-uniform float far_min_pixels = 0.8;
+uniform vec2 far_ease_m = vec2(1000.0, 2600.0);
+uniform float far_min_pixels = 0.7;
 
 void vertex() {
 	vec3 t = normalize(NORMAL);

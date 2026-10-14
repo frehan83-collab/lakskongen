@@ -64,6 +64,14 @@ const HEALTH_COLORS := {
 	Health.WARN: Color(0.949, 0.718, 0.020, 0.85),     # #F2B705
 	Health.CRIT: Color(1.0, 0.541, 0.502, 0.95),       # #FF8A80
 }
+## Halo strength per state: calm while healthy or unknown, full glow when
+## something needs the player (owner brief: alarms rare and meaningful).
+const HEALTH_GLOW := {
+	Health.UNKNOWN: 0.3,
+	Health.OK: 0.3,
+	Health.WARN: 1.0,
+	Health.CRIT: 1.0,
+}
 const HEALTH_PULSE_HZ := {
 	Health.UNKNOWN: 0.0,
 	Health.OK: 0.0,
@@ -256,6 +264,7 @@ func _apply_health() -> void:
 		return
 	_health_ring.set_instance_shader_parameter("ring_color", health_color)
 	_health_ring.set_instance_shader_parameter("pulse_hz", float(HEALTH_PULSE_HZ.get(health_state, 0.0)))
+	_health_ring.set_instance_shader_parameter("glow", float(HEALTH_GLOW.get(health_state, 1.0)))
 
 ## Paint the owner's colour band (rival farms). Alpha 0 hides it.
 func set_owner_band(color: Color) -> void:
