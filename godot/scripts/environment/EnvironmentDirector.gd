@@ -624,9 +624,13 @@ func _apply_depth_of_field(distance: float, amount: float, underwater: bool, c: 
 	# Off at night: the stars and the aurora must stay points and rays.
 	var night := smoothstep(-2.0, -8.0, float(c.get("sun_elevation", 0.0)))
 	amount *= 1.0 - night
+	# The tier's reach: past it the blur fades out and the pass is skipped
+	# (at FJORD and COAST the haze already softens the far fjord as much).
+	var reach := float(quality.knobs["dof_reach"])
+	amount *= 1.0 - smoothstep(reach * 0.6, reach, distance)
 	var on := not underwater and amount > 0.001
 	attrs.dof_blur_far_enabled = on
-	attrs.dof_blur_near_enabled = on and distance < 500.0
+	attrs.dof_blur_near_enabled = on and distance < 500.0 and bool(quality.knobs["dof_near"])
 	# Sharp around the focus; the far fjord softens gently.
 	attrs.dof_blur_far_distance = distance * 1.8
 	attrs.dof_blur_far_transition = distance * 3.0

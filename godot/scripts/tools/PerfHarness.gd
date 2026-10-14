@@ -59,6 +59,9 @@ const SPIKE_MS := 50.0
 ## Boot frames recorded (from the scene entering the tree).
 const BOOT_FRAMES := 900
 const SEGMENT_NAMES := ["farm", "fjord", "coast", "panel"]
+## Quality tier names (RenderQuality.NAMES, kept local so the harness runs on
+## builds that predate the tiers).
+const TIERS := ["low", "medium", "high", "ultra"]
 ## FjordCamera.ZoomLevel ordinals (kept local, like ScreenshotHarness).
 const ZOOM_COAST := 0
 const ZOOM_FJORD := 1
@@ -259,7 +262,11 @@ func _boot_game() -> bool:
 	if packed == null:
 		push_error("PerfHarness: GameScene unavailable")
 		return false
-	EnvironmentDirector.prewarm_enabled = not _args.has("no-prewarm")
+	# Dynamic: the harness also measures builds from before the quality tiers
+	# (the P0-04 baseline), where this switch does not exist.
+	var director_script: Script = load("res://scripts/environment/EnvironmentDirector.gd")
+	if director_script != null and "prewarm_enabled" in director_script:
+		director_script.set("prewarm_enabled", not _args.has("no-prewarm"))
 	_game = packed.instantiate()
 	var started := Time.get_ticks_usec()
 	add_child(_game)
@@ -356,7 +363,7 @@ func _apply_variant(v: Dictionary) -> void:
 	if _director == null or not _director.has_method("set_quality"):
 		return
 	var preset := String(v.get("preset", ""))
-	if RenderQuality.tier_of(preset) < 0:
+	if not preset in TIERS:
 		# A label ("base"): the tier in force.
 		preset = String(_director.call("get_quality_name"))
 	_director.call("set_quality", preset, knobs)

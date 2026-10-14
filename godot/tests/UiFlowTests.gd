@@ -3187,8 +3187,9 @@ func _test_environment_director_owns_the_look() -> void:
 	director.compose(0.0, true)
 	_check(director.get_composed()["aurora_intensity"] == 0.0, "environment: no aurora in daylight")
 
-	# Depth of field and shadows by zoom.
+	# Depth of field and shadows by zoom: G1-06's table, in full on Ultra.
 	var attrs := cam.attributes as CameraAttributesPractical
+	director.set_quality("ultra")
 	cam.look_at_position(first, FjordCamera.ZoomLevel.FARM)
 	await _settle_camera(cam)
 	director.compose(0.0, true)
@@ -3199,6 +3200,21 @@ func _test_environment_director_owns_the_look() -> void:
 	director.compose(0.0, true)
 	_check(absf(attrs.dof_blur_amount - 0.14) < 0.005 and absf(sun.directional_shadow_max_distance - 4500.0) < 5.0 and absf(world_env.ssao_radius - 8.0) < 0.05,
 		"environment: COAST softens the far fjord (DOF %.3f, shadows %.0f m, SSAO %.1f m)" % [attrs.dof_blur_amount, sun.directional_shadow_max_distance, world_env.ssao_radius])
+	# High (P0-04): the same shadows; depth of field where it shows, at FARM,
+	# and skipped by COAST, where the haze softens the far fjord as much.
+	director.set_quality("high")
+	director.compose(0.0, true)
+	_check(not attrs.dof_blur_far_enabled and attrs.dof_blur_amount == 0.0 and absf(sun.directional_shadow_max_distance - 4500.0) < 5.0,
+		"environment: on High COAST skips the depth-of-field pass and keeps its shadows (%.0f m)" % sun.directional_shadow_max_distance)
+	cam.look_at_position(first, FjordCamera.ZoomLevel.FARM)
+	await _settle_camera(cam)
+	director.compose(0.0, true)
+	_check(attrs.dof_blur_far_enabled and absf(attrs.dof_blur_amount - 0.06) < 0.005 and not attrs.dof_blur_near_enabled and absf(sun.directional_shadow_max_distance - 350.0) < 5.0,
+		"environment: on High FARM keeps its far blur (DOF %.3f), without the near blur no FARM view reaches" % attrs.dof_blur_amount)
+	director.set_quality(RenderQuality.load_saved_tier())
+	cam.look_at_position(first, FjordCamera.ZoomLevel.COAST)
+	await _settle_camera(cam)
+	director.compose(0.0, true)
 	_check(world_env.tonemap_mode == Environment.TONE_MAPPER_AGX and is_equal_approx(world_env.tonemap_agx_white, 6.0) and not world_env.sdfgi_enabled,
 		"environment: AgX tonemapping, white 6, no SDFGI")
 

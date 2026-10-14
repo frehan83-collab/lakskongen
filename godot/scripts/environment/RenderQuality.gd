@@ -51,6 +51,12 @@ const UPSCALER_OTHER := Viewport.SCALING_3D_MODE_FSR
 ##   dof             depth of field on or off (per zoom, G1-06)
 ##   dof_quality     RenderingServer.DOF_BLUR_QUALITY_*
 ##   dof_shape       RenderingServer.DOF_BOKEH_* (box is two separable passes)
+##   dof_reach       camera distance (m) by which the blur has faded out (it
+##                   fades from 0.6x of it): at FJORD and COAST the haze
+##                   already softens the far fjord as much, so the pass is
+##                   skipped there
+##   dof_near        near blur at FARM distances (the water under a FARM
+##                   camera lies beyond it: nothing to blur)
 ##   shadow_atlas    directional shadow map size
 ##   shadow_splits   2 or 4 cascades
 ##   shadow_distance shadow distance as a share of the per-zoom distance
@@ -66,6 +72,7 @@ const PRESETS := {
 		"msaa": Viewport.MSAA_DISABLED, "screen_aa": Viewport.SCREEN_SPACE_AA_FXAA, "scale": 0.67, "hidden_scale": 0.5, "hidden_pause": true,
 		"ssao": false, "ssao_quality": RenderingServer.ENV_SSAO_QUALITY_VERY_LOW, "ssao_half": true, "ssao_blur": 1,
 		"dof": false, "dof_quality": RenderingServer.DOF_BLUR_QUALITY_VERY_LOW, "dof_shape": RenderingServer.DOF_BOKEH_BOX,
+		"dof_reach": 0.0, "dof_near": false,
 		"shadow_atlas": 2048, "shadow_splits": 2, "shadow_distance": 0.6, "soft_shadows": RenderingServer.SHADOW_QUALITY_HARD,
 		"glow": true, "cloud_pass": 2, "cloud_steps": 4, "cloud_octaves": 4, "radiance_size": Sky.RADIANCE_SIZE_64,
 	},
@@ -73,13 +80,15 @@ const PRESETS := {
 		"msaa": Viewport.MSAA_2X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 0.75, "hidden_scale": 0.5, "hidden_pause": true,
 		"ssao": false, "ssao_quality": RenderingServer.ENV_SSAO_QUALITY_VERY_LOW, "ssao_half": true, "ssao_blur": 1,
 		"dof": true, "dof_quality": RenderingServer.DOF_BLUR_QUALITY_VERY_LOW, "dof_shape": RenderingServer.DOF_BOKEH_BOX,
+		"dof_reach": 700.0, "dof_near": false,
 		"shadow_atlas": 4096, "shadow_splits": 2, "shadow_distance": 0.8, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW,
 		"glow": true, "cloud_pass": 2, "cloud_steps": 5, "cloud_octaves": 5, "radiance_size": Sky.RADIANCE_SIZE_128,
 	},
 	"high": {
 		"msaa": Viewport.MSAA_4X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 0.8, "hidden_scale": 0.5, "hidden_pause": true,
 		"ssao": false, "ssao_quality": RenderingServer.ENV_SSAO_QUALITY_LOW, "ssao_half": true, "ssao_blur": 2,
-		"dof": true, "dof_quality": RenderingServer.DOF_BLUR_QUALITY_LOW, "dof_shape": RenderingServer.DOF_BOKEH_BOX,
+		"dof": true, "dof_quality": RenderingServer.DOF_BLUR_QUALITY_VERY_LOW, "dof_shape": RenderingServer.DOF_BOKEH_BOX,
+		"dof_reach": 700.0, "dof_near": false,
 		"shadow_atlas": 4096, "shadow_splits": 4, "shadow_distance": 1.0, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW,
 		"glow": true, "cloud_pass": 2, "cloud_steps": 6, "cloud_octaves": 6, "radiance_size": Sky.RADIANCE_SIZE_256,
 	},
@@ -87,6 +96,7 @@ const PRESETS := {
 		"msaa": Viewport.MSAA_4X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 1.0, "hidden_scale": 0.5, "hidden_pause": true,
 		"ssao": true, "ssao_quality": RenderingServer.ENV_SSAO_QUALITY_MEDIUM, "ssao_half": true, "ssao_blur": 2,
 		"dof": true, "dof_quality": RenderingServer.DOF_BLUR_QUALITY_LOW, "dof_shape": RenderingServer.DOF_BOKEH_HEXAGON,
+		"dof_reach": 100000.0, "dof_near": true,
 		"shadow_atlas": 4096, "shadow_splits": 4, "shadow_distance": 1.0, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_LOW,
 		"glow": true, "cloud_pass": 0, "cloud_steps": 6, "cloud_octaves": 6, "radiance_size": Sky.RADIANCE_SIZE_256,
 	},
