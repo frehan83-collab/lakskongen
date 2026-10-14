@@ -216,7 +216,7 @@ text = "–"
 
 [node name="InboxBtn" type="Button" parent="MainHBox/Right"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(40, 40)
+custom_minimum_size = Vector2(44, 40)
 layout_mode = 2
 size_flags_vertical = 4
 theme_type_variation = &"GhostButton"
@@ -245,7 +245,7 @@ theme_override_constants/separation = 0
 
 [node name="PauseBtn" type="Button" parent="MainHBox/Right/TimeControls/TimeBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(40, 34)
+custom_minimum_size = Vector2(44, 40)
 layout_mode = 2
 theme_type_variation = &"RailTab"
 tooltip_text = "UI_HUD_PAUSE_PAUSE_TOOLTIP"
@@ -264,7 +264,7 @@ script = ExtResource("3_glyph")
 
 [node name="Speed1x" type="Button" parent="MainHBox/Right/TimeControls/TimeBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(40, 34)
+custom_minimum_size = Vector2(44, 40)
 layout_mode = 2
 theme_type_variation = &"RailTab"
 toggle_mode = true
@@ -272,7 +272,7 @@ text = "1×"
 
 [node name="Speed3x" type="Button" parent="MainHBox/Right/TimeControls/TimeBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(40, 34)
+custom_minimum_size = Vector2(44, 40)
 layout_mode = 2
 theme_type_variation = &"RailTab"
 toggle_mode = true
@@ -280,7 +280,7 @@ text = "3×"
 
 [node name="Speed10x" type="Button" parent="MainHBox/Right/TimeControls/TimeBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(44, 34)
+custom_minimum_size = Vector2(48, 40)
 layout_mode = 2
 theme_type_variation = &"RailTab"
 toggle_mode = true
@@ -288,7 +288,7 @@ text = "10×"
 
 [node name="Speed30x" type="Button" parent="MainHBox/Right/TimeControls/TimeBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(44, 34)
+custom_minimum_size = Vector2(48, 40)
 layout_mode = 2
 theme_type_variation = &"RailTab"
 toggle_mode = true
@@ -296,7 +296,7 @@ text = "30×"
 
 [node name="NextEventBtn" type="Button" parent="MainHBox/Right/TimeControls/TimeBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(40, 34)
+custom_minimum_size = Vector2(44, 40)
 layout_mode = 2
 theme_type_variation = &"RailTab"
 tooltip_text = "UI_HUD_NEXT_EVENT_TIP"

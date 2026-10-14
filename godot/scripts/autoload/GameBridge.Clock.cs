@@ -322,6 +322,13 @@ public partial class GameBridge
     {
         var engine = SimulationEngine;
         if (engine?.State == null || !_gameRunning) return;
+        // The deadline the chip names was met or lifted (its publisher
+        // resolved it): the notice goes with it.
+        if (_lastPacing.Deadline is { } shown && !engine.Pacing.IsWatching(shown.Key))
+        {
+            _lastPacing = PacingDecision.None;
+            EmitClock();
+        }
         bool wasRunning = engine.Pacing.IsRunningToNextEvent;
         var decision = engine.Pacing.Evaluate(engine.State.Day, _timeSpeed, !IsPaused());
         if (decision.Action == PacingAction.None) return;

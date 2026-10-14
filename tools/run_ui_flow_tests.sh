@@ -23,7 +23,7 @@ TIMEOUT_SECS=300
 # running (an early return, a call dropped from _run()). Raise it with every
 # check you add; lowering it weakens the gate and needs a dispute entry in
 # docs/RUN_LOG.md §8.
-MIN_CHECKS=893  # wave2/ui-exp-3 (U1-09 + U1-05 + U2-06 + U2-07); the merge captain raises it on integration
+MIN_CHECKS=897  # wave2/ui-exp-3 (U1-09 + U1-05 + U2-06 + U2-07); the merge captain raises it on integration
 
 find_godot() {
     if [[ -n "${GODOT_BIN:-}" && -x "$GODOT_BIN" ]]; then

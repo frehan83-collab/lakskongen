@@ -123,6 +123,7 @@ func _run() -> void:
 	await _test_speed_keys_and_buttons_drive_the_clock()
 	await _test_next_event_runs_to_the_next_warning()
 	await _test_deadline_slows_then_stops_the_clock()
+	await _test_a_met_order_stops_slowing_the_clock()
 	await _test_critical_card_holds_the_clock()
 	await _test_new_game_opens_paused_on_its_briefing()
 	await _test_thirty_times_refreshes_once_a_day_within_a_frame()
@@ -4320,6 +4321,34 @@ func _test_deadline_slows_then_stops_the_clock() -> void:
 	scene.queue_free()
 	await get_tree().process_frame
 
+## An order the engine does not have (met, lifted or enforced) stops being
+## watched on the next day's report, the chip that named it goes and the
+## clock is not stopped for it. (A real site, so the engine's standing-order
+## sweep sees there is no order.)
+func _test_a_met_order_stops_slowing_the_clock() -> void:
+	GameplayPrefs.force_auto_pause(false)
+	var scene := await _spawn_po3_scene(91)
+	var hud: Control = scene.get_node("UILayer/HUD")
+	var card: Control = scene.get_node("%CriticalEventCard")
+	await _drain_cards(card)
+	_sim.set_auto_slow_deadlines(true)
+	_sim.set_time_speed(30.0)
+	_sim.set_paused(false)
+	var due: int = int(_sim.current_day) + 5
+	_sim.publish_condition_event("lice_treatment_order", "warning", "po3_nord", "CI: et pålegg som ikke står", "", due)
+	_check(int(_sim.get_time_speed()) == 1 and hud.pacing_chip.visible and hud.pacing_label.text.begins_with("Bremset"),
+		"orders: an order five days out slows the clock at once ('%s')" % hud.pacing_label.text)
+	var day: int = _sim.current_day
+	var gone: bool = await _wait_until(func() -> bool: return int(_sim.current_day) > day and not hud.pacing_chip.visible, 4.0)
+	var watched: bool = _sim.get_pacing_deadlines().any(func(d: Dictionary) -> bool: return str(d.get("site_id", "")) == "po3_nord")
+	_check(gone and not watched and not _sim.is_paused(),
+		"orders: an order the engine does not have stops being watched, its chip goes and the clock runs (day %d)" % _sim.current_day)
+	_sim.set_paused(true)
+	await _drain_cards(card)
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
 ## U2-06's critical channel through the clock (one owner): a critical's card
 ## holds the clock and Fortsett lets go of it at the speed it had; with "Pause
 ## ved kritiske hendelser" off a critical drops a fast clock to 1×; a critical
@@ -4560,6 +4589,11 @@ func _test_hud_fits_its_bar() -> void:
 	win.content_scale_factor = 1.0
 	await get_tree().create_timer(0.3).timeout
 	_check(hud.hidden_readouts().is_empty(), "HUD: every readout shows at 1920 px (hidden %s)" % str(hud.hidden_readouts()))
+	var small: Array = []
+	for btn: Button in [hud.pause_btn, hud.speed_1x, hud.speed_3x, hud.speed_10x, hud.speed_30x, hud.next_event_btn, hud.inbox_btn]:
+		if btn.size.x < 44.0 or btn.size.y < 40.0:
+			small.append("%s %s" % [btn.name, str(btn.size)])
+	_check(small.is_empty(), "HUD: the clock's buttons and the bell are at least 44 x 40 px (%s)" % str(small))
 	win.size = old_size
 	win.content_scale_factor = old_scale
 	_sim.set_paused(true)
