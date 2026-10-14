@@ -117,10 +117,10 @@ void vertex() {
 			vec3 splash = fish_jump_splash(INSTANCE_CUSTOM, id, pos);
 			float size = 1.4;
 			if (splash.z < 0.0 && school_state.w > 0.25 && pos.y > -0.9) {
-				float period = 5.0 + 7.0 * fish_rand(INSTANCE_CUSTOM.w, 2.0);
+				float period = 9.0 + 11.0 * fish_rand(INSTANCE_CUSTOM.w, 2.0);
 				float t = mod(school_clock.z + fish_rand(INSTANCE_CUSTOM.w, 3.0) * period, period);
 				splash = t < 0.9 ? vec3(pos.x, pos.z, t) : vec3(0.0, 0.0, -1.0);
-				size = 0.6 * school_state.w;
+				size = (0.35 + 0.4 * fish_rand(INSTANCE_CUSTOM.w, 4.0)) * school_state.w;
 			}
 			hide = splash.z < 0.0;
 			vec2 corner = UV * 2.0 - 1.0;
@@ -255,12 +255,12 @@ float splash_cover() {
 	float seed = v_ring.w * 61.0;
 	// A broken, widening ring of foam round a burst of spray that settles.
 	float angle = atan(v_ring.y, v_ring.x);
-	float broken = 0.45 + 0.35 * sin(angle * 5.0 + seed) + 0.2 * sin(angle * 11.0 - seed * 1.7);
+	float broken = 0.6 + 0.25 * sin(angle * 5.0 + seed) + 0.15 * sin(angle * 11.0 - seed * 1.7);
 	float radius = mix(0.18, 0.92, sqrt(age));
 	float width = mix(0.06, 0.16, age);
 	float ring = exp(-pow((d - radius) / width, 2.0)) * clamp(broken, 0.0, 1.0);
 	float burst = exp(-d * d * 14.0) * (1.0 - smoothstep(0.0, 0.45, age)) * (0.7 + 0.3 * sin(angle * 7.0 + seed));
-	return clamp(ring * 0.4 + burst * 0.85, 0.0, 1.0) * pow(1.0 - age, 1.6) * v_fade;
+	return clamp(ring * 0.3 + burst * 0.8, 0.0, 1.0) * pow(1.0 - age, 1.6) * v_fade;
 }
 
 // A fish seen through the water: rgb its albedo, a its cover.

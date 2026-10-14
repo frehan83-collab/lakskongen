@@ -288,14 +288,21 @@ func _barge_feeds_in_turn_by_day(env: Node, pens: FishPenManager) -> void:
 	var env3d: FjordEnvironment = env as FjordEnvironment
 	env3d.set_time(12.0)
 	await _frames(4)
-	var day_fed: bool = FishSchool._state(pens._pens[sid]["fish_schools"][0]).get("feeding", false)
+	# By day exactly the pen whose turn it is is fed.
+	var fed_now := pens.feeding_pen(sid)
+	var fed_count := 0
+	for k in n:
+		if bool(FishSchool._state(pens._pens[sid]["fish_schools"][k]).get("feeding", false)):
+			fed_count += 1
+	var day_fed: bool = fed_count == 1 and fed_now >= 0 \
+		and bool(FishSchool._state(pens._pens[sid]["fish_schools"][fed_now]).get("feeding", false))
 	env3d.set_time(23.5)
 	env3d.set_season(0.04)
 	await _frames(4)
 	var night_fed := false
 	for school in pens._pens[sid]["fish_schools"]:
 		night_fed = night_fed or bool(FishSchool._state(school).get("feeding", false))
-	_check(day_fed and not night_fed, "fish: the barge feeds by day and not in the dark")
+	_check(day_fed and not night_fed, "fish: by day the barge feeds the one pen whose turn it is, and none in the dark")
 	env3d.set_season(0.5)
 	env3d.set_time(12.0)
 	await _frames(2)
@@ -334,12 +341,12 @@ func _shoal_sees_the_water(env: Node) -> void:
 	var director: EnvironmentDirector = env.get_node("EnvironmentDirector")
 	director.set_water_state(8.0, 0.0)
 	await _frames(3)
-	var clear: Vector3 = FishSchool.SHOAL_MATERIAL.get_shader_parameter("deep_scatter")
+	var clear := _vec3_param("deep_scatter")
 	var expect := FishSchool.water_optics(director.water_material())
-	var sigma: Vector3 = FishSchool.SHOAL_MATERIAL.get_shader_parameter("absorption")
+	var sigma := _vec3_param("absorption")
 	director.set_water_state(8.0, 0.8)
 	await _frames(3)
-	var bloom: Vector3 = FishSchool.SHOAL_MATERIAL.get_shader_parameter("deep_scatter")
+	var bloom := _vec3_param("deep_scatter")
 	_check(clear.is_equal_approx(expect[1]) and sigma.is_equal_approx(expect[0]) and bloom.y > clear.y * 1.5,
 		"fish: the shoal sees through the water's own optics, and a bloom greens it (scatter g %.4f -> %.4f)" % [clear.y, bloom.y])
 	director.set_water_state(8.0, 0.0)
@@ -442,3 +449,9 @@ static func _vessels(root: Node) -> Array:
 			out.append(n)
 		stack.append_array(n.get_children())
 	return out
+
+
+## A vec3 uniform of the shoal material (-1s when it was never set).
+static func _vec3_param(name: String) -> Vector3:
+	var v = FishSchool.SHOAL_MATERIAL.get_shader_parameter(name)
+	return v if v is Vector3 else Vector3(-1.0, -1.0, -1.0)

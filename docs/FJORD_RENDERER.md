@@ -282,10 +282,14 @@ collar): `FishSchool.gd`, two MultiMeshes of the same fish.
 | The pen's water column | instance 0 of the shoal draws a disc inside the net: the stocked pen's water scatters more (its teal in owner reference 1), the school's mass (10 steps along the refracted ray through a patchy ring band that turns with the fish) darkens it where it swims near the surface, the net or the lice skirt (#C9CCC6) shows through shallow water at the far wall. It adds light and darkens at most 55 %, never a see-through water. Drawn within 2.2 km, so stocked pens read at FJORD zoom |
 | Readability | a fish never draws shorter than 9 px from above the water (up to 3x its length), the shoal LOD2 salmon (42 triangles, `build_salmon.py`) blurred 1.8x wide with soft sides |
 
-Cost (po3_red_sone, M1 Pro): the fish loop of 12 schools 0.11 ms of script a
-frame (UI flow test, budget 0.3 ms); GPU and draw calls in the table at the
-end of this section. The screenshot harness measures the share of 08b the
-fish change (shown vs hidden with time stopped; >= 2 %) and shoots 08c, a
+Cost (po3_red_sone, M1 Pro, 1920x1080, fish shown vs hidden in one run,
+medians of quiet runs): frame time FARM +1.0-1.3 ms (10 pens, 15k fish, a
+fed pen in view; the pen columns and the fish about half each), FJORD
++0.1 ms, COAST 0; draw calls +14 / +10 / +4. The shoal receives no shadows
+(0.5 ms at FARM for a difference nobody sees under a collar's shadow).
+Script: the fish loop of 12 schools 0.11 ms a frame (UI flow test, budget
+0.3 ms). The screenshot harness measures the share of 08b the fish change
+(shown vs hidden with time stopped; >= 2 %, 10.0 % now) and shoots 08c, a
 fed pen close up.
 
 ### The farm after dark
@@ -303,6 +307,11 @@ halo) and nothing blooms into a blot; labels are re-tinted in linear light.
 | Vessels | `VesselLights.gd` reads each vessel's LOD0 meshes once per asset: a white masthead light over the wheelhouse (a second one forward on a vessel over 50 m), green to starboard and red to port on the wheelhouse sides, a white stern light, each only inside its COLREGS arc (`vessel_light_glow.gdshader`); the feed barge an all-round white mast light, a yellow marker flashing with the corner lights, white deck lamps on the control house roof. One MultiMesh per vessel, drawn only at night |
 | Windows | `vessel_paint.gdshader` lights the glass after dark: warm panes, a quarter of them dark |
 | Glitter | `light_glow.gdshaderinc`: every glow's mesh carries a second quad, a strip on the water under the light running towards the camera (distance squared over the camera's height times a slope spread of 0.045), shimmering; it lies on the water, so hulls hide it |
+
+The lights cost no measurable frame time at FJORD or COAST (shown vs
+hidden at night, draw calls +8 / +14). The screenshot harness shoots
+09b_fjord_night_lights and fails if the lights and their glitter change
+less than 0.03 % of the frame (0.125 % now) or the night level is not 1.
 
 ### Site layout and berths
 
