@@ -1339,6 +1339,108 @@ Year 1 reproduces S2-03's single-year measurement (seed 1: 469/624 vs
 seed; the ten-year test fails on seed 4 and is skipped with the band
 unchanged (RUN_LOG §8).
 
+## 1k. S2-01b: real pens (2026-10-15, branch `wave2/sim-int-2`)
+
+`wave2/sim-int-1` plus real pens: calibration v1.0.10 (section `pens`), save
+format v8. A sea site is a frame mooring of pens (`SeaSite.PhysicalPens`); each
+pen holds one population, at most 200,000 fish (akvakulturdriftsforskriften
+§ 47a) and at most 25 kg/m³ (§ 25) in the volume its net encloses. Stocking
+picks a pen and a count; the density is checked at the plan's projected peak,
+grown on the S2-03 growth law. Decisions in RUN_LOG §7 (2026-10-15 S2-01b rows).
+
+### The pen
+
+| Net | Collar | Wall + cone | Volume | Used at |
+|---|---|---|---|---|
+| Standard (calibration) | 160 m (2,037 m²) | 25 m + 15 m | 61,116 m³ | built sites; laksebaronene, barekraft_mester, po3_red_sone, isa_utbrudd, ressursrente |
+| Family farm / northern | 120 m (1,146 m²) | 20 m + 10 m | 26,738 m³ | forste_sesong, lofoten_eventyr (PO9), krise_manager (PO12), algekatastrofe (PO9) |
+
+Volume = C²/(4π) × (wall + cone/3). Sources: § 25 ("the volume the fish can
+move in"); iLaks 9 March 2020 (160 m standard, 200 m the largest, smaller in
+the north and on rough sites, a 40 m net); Bergheim 2012 (Lat. Am. J. Aquat.
+Res. 40(3): 800-807: nets 20-50 m deep, a third of Norway's ~4,000 cages over
+20,000 m³). The wall/cone split and the scenario layouts are game estimates.
+
+Scenario localities (`pen_layout`; the stocked pens are the first ones):
+
+| Scenario | Site | Pens | Net | Stocked at start |
+|---|---|---|---|---|
+| forste_sesong | bestefars_anlegg | 6 | 120 m | 1 × 36,000 |
+| lofoten_eventyr | nordland_premium | 6 | 120 m | 2 × 8,000 |
+| laksebaronene | trondelag_base | 8 | 160 m | 3 × 10,000 |
+| krise_manager | finnmark_turnaround | 6 | 120 m | 2 × 6,000 |
+| barekraft_mester | lakskongen_hovedanlegg | 10 | 160 m | 4 × 12,000 |
+| po3_red_sone | po3_nord / po3_sor | 8 / 6 | 160 m | 6 × 12,000 / 4 × 10,000 |
+| isa_utbrudd | isa_kjerne / isa_nord / isa_sor | 6 / 8 / 8 | 160 m | 4 × 8,000 / 6 × 12,000 / 6 × 12,000 |
+| algekatastrofe | alge_sor / alge_midt / alge_indre | 10 / 10 / 6 | 120 m | 8 × 14,000 / 8 × 14,000 / 5 × 9,000 |
+| ressursrente | vest_1 / vest_2 / vest_3 | 10 / 10 / 8 | 160 m | 8 × 15,000 / 8 × 15,000 / 6 × 12,000 |
+
+### A pen's room (the plan on the growth law)
+
+One 100 g standard smolt grown on the S2-03 law in its area's climatology and
+day length, fed to appetite, to the plan's 5.2 kg with the plan's survival
+(15 % over 540 days); the pen takes 25 kg/m³ × volume / the peak kilos per
+smolt, and § 47a caps it at 200,000 (`PenDensityPlanner`, scratch measurement
+on this branch):
+
+| Area | Release | Peak after | Survival | Peak kg/smolt | 120 m pen | 160 m pen (density only) | 200,000 in a 160 m pen peak at |
+|---|---|---|---|---|---|---|---|
+| PO3 | 1 Jan | 500 d | 86.0 % | 4.480 | 149,198 | 200,000 (341,024) | 14.7 kg/m³ |
+| PO3 | mid-Apr | 445 d | 87.5 % | 4.563 | 146,486 | 200,000 (334,825) | 14.9 kg/m³ |
+| PO3 | mid-Sep | 446 d | 87.4 % | 4.556 | 146,731 | 200,000 (335,385) | 14.9 kg/m³ |
+| PO4 | 1 Jan | 503 d | 86.0 % | 4.474 | 149,403 | 200,000 (341,494) | 14.6 kg/m³ |
+| PO4 | mid-Apr | 445 d | 87.5 % | 4.551 | 146,866 | 200,000 (335,694) | 14.9 kg/m³ |
+| PO6 | mid-Apr | 442 d | 87.5 % | 4.578 | 146,011 | 200,000 (333,741) | 15.0 kg/m³ |
+| PO9 | 1 Jan | 547 d | 84.8 % | 4.421 | 151,199 | 200,000 (345,598) | 14.5 kg/m³ |
+| PO9 | mid-Sep | 550 d | 84.7 % | 4.408 | 151,646 | 200,000 (346,621) | 14.4 kg/m³ |
+| PO12 | 1 Jan | 598 d | 83.5 % | 4.356 | 153,457 | 200,000 (350,758) | 14.3 kg/m³ |
+| PO12 | mid-Sep | 640 d | 82.5 % | 4.299 | 155,480 | 200,000 (355,382) | 14.1 kg/m³ |
+
+§ 47a binds in a standard pen and § 25 in a 120 m pen. The colder the water,
+the longer the fish stand and the more of them die on the way, so a northern
+pen takes ~4 % more smolts. Engine checks (`PenStockingTests`, barekraft_mester,
+PO4, 1 January): 200,000 smolts in a standard pen peak at 14.69 kg/m³ on day
+497 and are accepted, 200,001 are refused (`pen_fish_limit`); a 90 m pen
+(11,817 m³) takes 65,825 smolts (peak 25.000 kg/m³ at 5.21 kg), one more peaks
+at 25.0003 and is refused (`pen_density`) although the smolts stand at
+0.56 kg/m³ that day. In the forste_sesong UI test a 120 m pen offers 149,026
+smolts; 190,000 would peak at 31.9 kg/m³.
+
+### What changed in the careers (sim-int-1 → this branch, same harness)
+
+Fish now stand in their pen's volume instead of the wave-2 proxy (10,000 m³
+per 50,000 fish at 5 kg). Below 25 kg/m³ density does nothing to growth or
+FCR, so a career changes only where a population stood above 25 kg/m³ in the
+proxy (fish grown past 5 kg) or a stocking now spans pens:
+
+| Harness | sim-int-1 | S2-01b |
+|---|---|---|
+| `forste_sesong`, minimal player, seeds 4/7/9/21/13/42 | 6 of 6 won, days 289/315/280/718/1,196/302 | **6 of 6 won, identical days**, lowest cash 0.19-0.89M |
+| po3 careers (`PlayerScriptProbe`), seeds 1/2/7/13/21 | +18.49/+18.09/+14.85/+18.35/+16.64M | identical (the saves of seeds 1/7/13 are byte-identical once the pen keys are dropped) |
+| S2-03 acceptance (10 seeds): days to 5 kg, eFCR on the commercial pen | median 448 d; eFCR 1.230-1.246 | identical |
+| Farm cycle EBIT/kg HOG (`PlayerScriptFarmCycle`, 10 seeds) | median 16.46, min 4.42, max 23.52 | identical but seeds 7 (+1 t HOG, 21.97 → 21.99) and 9 (+1 t, 23.52) |
+| Capacity strategies, 20 seeds, median equity: compliant / v1 overstock / old-rules overstock / grow-on fined / grow-on unpoliced | 27.26 / 13.91 / 105.70 / 16.80 / 39.57M | 27.26 / 13.91 / **103.72** / **18.29** / **39.95**M |
+| Six-site rent career (barekraft_mester, `HonestEconomyTests`), seeds 7/13/21: resource rent paid | 81.56 / 29.45 / 90.28M | **101.49 / 48.64 / 105.88M** |
+
+The compliant and refused-overstock careers are identical on all 20 seeds.
+The old-rules overstock (1,041,330 smolts: two free pens a site at up to
+260,333 smolts each) and the grow-on careers (173,555 smolts in one standard
+pen, grown past 5 kg) no longer meet the proxy's density stress: their fish
+stand at 13-22 kg/m³ in 61,116 m³ pens where the proxy held them at 23-28
+kg/m³ once they grew past 5 kg.
+D10 (a) still holds for the grow-on family (fined median 18.29M below the
+compliant 27.26M and the unpoliced 39.95M; per seed the fined career ends
+above the unpoliced on the same 4 of 20 seeds, 2/8/11/16), and the old-rules
+overstock still dominates on 19 of 20.
+
+The rent career stocks 561,600 smolts a site in one call, now three pens of
+187,200. Its gain is the storyteller's ILA event, which culls "the first sea
+pen": it took a whole site's stocking before and takes one pen now
+(disease-cull deaths 428,364 / 433,224 / 397,230 → 142,789 / 278,769 /
+132,428 fish on seeds 7/13/21; harvested 13,964 / 10,463 / 14,226 →
+15,409 / 11,749 / 15,398 t). Real ILA control empties the whole locality; the
+event is left as it is for S4-02 (D5) and RUN_LOG §8 carries the finding.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
@@ -1374,6 +1476,9 @@ unchanged (RUN_LOG §8).
 | `Capacity.ForcedHarvestPriceFactor` / `ForcedHarvestHeadroomFraction` | 0.70 / 0.05 | (game estimates) | akvakulturloven § 29 (at the company's cost) | 0.5-0.9 / 0-0.15 |
 | `Capacity.MaxStockingDensityKgPerM3` | 25 | 25 kg/m³ per production unit | akvakulturdriftsforskriften § 25 | 25 (law) |
 | `Capacity.DensityReferenceWeightKg` | 5.0 | proxy pen holds 50,000 fish at 25 kg/m³ (S2-03's commercial pen) | game estimate | 4.5-5.5 |
+| `Pens.MaxFishPerPen` | 200,000 | at most 200,000 fish per production unit in the sea | akvakulturdriftsforskriften § 47a (2013) | 200,000 (law) |
+| `Pens.StandardCircumferenceM` / `StandardNetWallDepthM` / `StandardConeDepthM` | 160 / 25 / 15 m (61,116 m³) | 160 m standard, 40 m net; nets 20-50 m | iLaks 2020; Bergheim 2012 | 120-200 m / 20-50 m |
+| `Pens.BuiltSitePenCount` | 8 | 6-12 pens a locality | game estimate (roadmap S2-01b) | 6-12 |
 | `Labor.WorkerMonthlySalaryNOK` | 48,000 | ~48k (2024) | industry wage stats | 36k-60k |
 
 ## 3. Key biological / environmental knobs

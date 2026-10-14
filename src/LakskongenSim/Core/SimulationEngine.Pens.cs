@@ -33,9 +33,6 @@ namespace LakskongenSim.Core;
 /// </summary>
 public partial class SimulationEngine
 {
-    /// <summary>The pen calibration in use (S2-01b).</summary>
-    internal PenCalibration PenCalibration => _calibration.Pens;
-
     /// <summary>The density limit of a production unit (kg/m³, § 25).</summary>
     public double PenDensityLimitKgPerM3 => _calibration.Capacity.MaxStockingDensityKgPerM3;
 

@@ -236,6 +236,7 @@ Before F2-01, the roadmap's S2-02 and S2-05 each built a seam for "the water and
   - `UnitMortalityTerms(pop)` hazards (F2-08 offshore causes, F2-15/F2-16 land causes) read this record and book a new `MortalityCause`.
   - Low oxygen has one hazard, `MortalityHazards.LowOxygenFraction` (none at or above 3 mg/L, US EPA 1986). It reads this record's O₂, so a land tank's O₂ failure (F2-15) or an offshore structure's exchange (F2-08) needs no new oxygen rule, only the water.
   - A pinned sea temperature (`ApplySeaTemperatureStress(t)`, tests and scenarios) reaches sea and offshore pens, never a land tank.
+- **One pen (S2-01b, `wave2/sim-int-2`).** A sea pen's holding carries its production unit (`PopulationHolding.Pen`, a `Farm/Pen.cs` with `Id`, `Number`, `VolumeM3`, `PopulationId`), resolved with the holding once per step. The density stress on growth and FCR reads that pen's volume (`SimulationEngine.DensityVolumeM3`); a population in no pen (today's offshore pens and land tanks) keeps the wave-2 density proxy. F2-03's offshore zones and F2-12's land tanks become `Pen`s and are read the same way, with no new lookup; F2-10 adds `HasSkirt` to `Pen`.
 - **Rules for the lanes.** A hazard or model never reads a zone, the weather or a facility list itself. A lane adds a holding kind by extending `HoldingOf`/`WaterOf` (and, from F2-02, its `*Hooks.cs`). It never adds a parallel lookup.
 
 ### 3.2 Data structures
