@@ -164,7 +164,7 @@ namespace LakskongenSim.Finance
         /// <summary>Pro-rate the legacy premium for <paramref name="days"/> days.</summary>
         public decimal ComputePremium(int days)
         {
-            var fraction = (decimal)days / 365m;
+            var fraction = (decimal)days / LakskongenSim.Core.SimCalendar.DaysPerYear;
             return InsuredValue * AnnualPremiumRate * fraction;
         }
 

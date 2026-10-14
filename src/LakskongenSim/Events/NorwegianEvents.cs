@@ -170,7 +170,7 @@ namespace LakskongenSim.Events
                 Category = EventCategory.Disease,
                 Weight = 1.0,
                 CooldownDays = 90,
-                Condition = gs => (gs.Day % 365) >= 300 || (gs.Day % 365) <= 90, // Winter months
+                Condition = gs => LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) >= 300 || LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) <= 90, // Winter months
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "Bakterieinfeksjon etter kuldestress. Sår i huden gir dårligere filetkvalitet.";
@@ -272,7 +272,7 @@ namespace LakskongenSim.Events
                 Category = EventCategory.Weather,
                 Weight = 1.0,
                 CooldownDays = 120,
-                Condition = gs => (gs.Day % 365) >= 270 || (gs.Day % 365) <= 60, // Oct-Mar storm season
+                Condition = gs => LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) >= 270 || LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) <= 60, // Oct-Mar storm season
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "Stormen Berit skader merdene, og 5 000 fisk rømmer. Reparasjonskostnader og bøter.";
@@ -288,7 +288,7 @@ namespace LakskongenSim.Events
                 Category = EventCategory.Weather,
                 Weight = 0.8,
                 CooldownDays = 180,
-                Condition = gs => (gs.Day % 365) >= 120 && (gs.Day % 365) <= 240, // May-Sep
+                Condition = gs => LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) >= 120 && LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) <= 240, // May-Sep
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "Oppblomstring av Chrysochromulina-alger. Oksygensvikt gir 15 % dødelighet, og fôringen stanses.";
@@ -304,7 +304,7 @@ namespace LakskongenSim.Events
                 Category = EventCategory.Weather,
                 Weight = 1.2,
                 CooldownDays = 90,
-                Condition = gs => (gs.Day % 365) >= 180 && (gs.Day % 365) <= 270, // Summer-autumn
+                Condition = gs => LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) >= 180 && LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) <= 270, // Summer-autumn
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "En stor maneteinvasjon tetter nøtene og stresser fisken. Nødslakting vurderes.";
@@ -320,7 +320,7 @@ namespace LakskongenSim.Events
                 Category = EventCategory.Weather,
                 Weight = 0.6,
                 CooldownDays = 365,
-                Condition = gs => (gs.Day % 365) >= 150 && (gs.Day % 365) <= 210, // June-Aug
+                Condition = gs => LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) >= 150 && LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) <= 210, // June-Aug
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "Uvanlig høye temperaturer (16–18 °C). Veksten bremser, lusa formerer seg, og faren for AGD øker.";
@@ -336,7 +336,7 @@ namespace LakskongenSim.Events
                 Category = EventCategory.Weather,
                 Weight = 0.5,
                 CooldownDays = 365,
-                Condition = gs => (gs.Day % 365) >= 330 || (gs.Day % 365) <= 30, // Dec-Feb
+                Condition = gs => LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) >= 330 || LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) <= 30, // Dec-Feb
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "Arktisk kulde gir sjøtemperatur under 2 °C. Veksten stopper, og faren for vintersår er høy.";
@@ -368,7 +368,7 @@ namespace LakskongenSim.Events
                 Category = EventCategory.Weather,
                 Weight = 0.8,
                 CooldownDays = 120,
-                Condition = gs => (gs.Day % 365) >= 180 && (gs.Day % 365) <= 270,
+                Condition = gs => LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) >= 180 && LakskongenSim.Core.SimCalendar.DayOfYear(gs.Day) <= 270,
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "Svak strøm og høy biomasse gir oksygen under 5 mg/L. Nødlufting er satt i gang.";

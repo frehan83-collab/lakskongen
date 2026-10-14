@@ -38,7 +38,7 @@ public partial class SaveLoadManager : Node
     /// migration step in MigrateSaveData. Old saves without the field read
     /// as version 0.
     /// </summary>
-    public const int CurrentSaveVersion = 3;
+    public const int CurrentSaveVersion = 4;
 
     private JsonSerializerOptions _jsonOptions;
     private GameBridge _gameBridge;
@@ -575,6 +575,15 @@ public partial class SaveLoadManager : Node
                     // Payload shape is unchanged — defaults apply for the
                     // new members and the unified options read both formats.
                     saveData.SaveVersion = 3;
+                    break;
+                case 3:
+                    // v3 -> v4 (S2-02): zones carry their production area and
+                    // the game its home area; the weather carries the shared
+                    // sea-temperature anomaly. A v3 save loads with 0s: the
+                    // engine resolves each zone's area (from an id like "po3_nord",
+                    // else the home area from the first site) and the anomaly
+                    // restarts at zero.
+                    saveData.SaveVersion = 4;
                     break;
                 default:
                     GD.PrintErr($"No migrator for save version {saveData.SaveVersion}; loading as-is.");

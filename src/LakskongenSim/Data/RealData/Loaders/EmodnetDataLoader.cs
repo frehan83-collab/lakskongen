@@ -242,7 +242,7 @@ namespace Lakskongen.Data.RealData.Loaders
             
             // Seasonal variation
             float dayOfYear = date.DayOfYear;
-            float seasonal = (float)Math.Sin((dayOfYear - 15) * 2 * Math.PI / 365 - Math.PI / 2) * 5f;
+            float seasonal = (float)Math.Sin((dayOfYear - 15) * 2 * Math.PI / LakskongenSim.Core.SimCalendar.DaysPerYear - Math.PI / 2) * 5f;
             
             // Depth effect
             float depthEffect = 0f;
@@ -293,7 +293,7 @@ namespace Lakskongen.Data.RealData.Loaders
             
             // Seasonal variation (lower in late summer)
             float dayOfYear = date.DayOfYear;
-            float seasonal = (float)Math.Sin((dayOfYear - 200) * 2 * Math.PI / 365) * 0.5f;
+            float seasonal = (float)Math.Sin((dayOfYear - 200) * 2 * Math.PI / LakskongenSim.Core.SimCalendar.DaysPerYear) * 0.5f;
             
             float noise = (float)(random.NextDouble() - 0.5) * 0.3f;
             

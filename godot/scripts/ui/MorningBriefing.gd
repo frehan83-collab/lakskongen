@@ -490,7 +490,7 @@ func _get_night_digest() -> String:
 		icon, policy, 100 - (85 if policy == "AutomatedROC" else 0), 100, int(detect * 100.0), int(fatigue * 100.0)]
 
 	if policy == "AutomatedROC":
-		var auto_cost: int = int(premium / 30.0)
+		var auto_cost: int = int(SimFormatters.monthly_to_daily(premium))
 		text += "\n🤖 FULL-AUTO: natt-O2, blomstring, lys — %d NOK/natt (%d NOK/mnd)" % [auto_cost, int(premium)]
 		if misfire > 0.0:
 			text += "\n⚠️ Misfire-risiko: %.0f%% (feil tiltak / feil merd)" % (misfire * 100.0)

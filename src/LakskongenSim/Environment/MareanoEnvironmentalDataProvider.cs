@@ -287,7 +287,7 @@ namespace LakskongenSim.Environment
             
             for (int i = 1; i <= days; i++)
             {
-                int forecastDay = ((forecastStartDay + i - 1) % 365) + 1;
+                int forecastDay = LakskongenSim.Core.SimCalendar.DayOfYear(forecastStartDay + i - 1) + 1;
                 var profile = NorwegianZoneEnvironmentalProfile.GetProfileForDay(zoneId, forecastDay);
                 profile.Timestamp = _currentDate.AddDays(i);
                 _forecastCache[zoneId].Enqueue(profile);

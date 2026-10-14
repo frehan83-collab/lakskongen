@@ -176,7 +176,7 @@ namespace LakskongenSim.Farm
 
             // ─── Operating Costs ───
             // Staff costs (offshore premium: ~900K NOK/year per employee)
-            result.DailyStaffCost = (decimal)EmployeeCount * 900_000m / 365m;
+            result.DailyStaffCost = (decimal)EmployeeCount * 900_000m / LakskongenSim.Core.SimCalendar.DaysPerYear;
             
             // Energy (diesel generators + grid where available)
             result.DailyEnergyCost = 80_000m; // ~29M NOK/year for offshore ops

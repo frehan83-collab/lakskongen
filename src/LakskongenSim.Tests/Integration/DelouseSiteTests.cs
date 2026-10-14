@@ -19,6 +19,12 @@ public class DelouseSiteTests
         var engine = new SimulationEngine();
         engine.Initialize(enableEvents: false, seed: 1);
         var zone = new Zone("zone-1");
+        // S2-02: a treatment runs in the site's own water. On 1 January that is
+        // about 5 °C, below the Thermolicer profile's 6 °C minimum (the verb used
+        // to read a placeholder 8 °C on day 0). These tests check the verb's
+        // accounting, so the site's water is pinned at the 10 °C treatment
+        // reference; SeaTemperatureCouplingTests checks the cold-water refusal.
+        zone.SetTemperature(10.0);
         engine.State.Zones.Add(zone);
         engine.State.SeaSites.Add(new SeaSite(siteId, zone.Id));
         return engine;

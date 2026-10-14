@@ -110,7 +110,7 @@ namespace LakskongenSim.Events
             if (currentDay - _lastEventDay < MinSpacingDays) return;
 
             // scale chance with progress (simple linear scaling by day)
-            double progressScale = Math.Min(1.0, currentDay / 3650.0); // 10 years -> full
+            double progressScale = Math.Min(1.0, currentDay / (10.0 * LakskongenSim.Core.SimCalendar.DaysPerYear)); // 10 years -> full
             double dailyChance = BaseDailyChance + (MaxDailyChance - BaseDailyChance) * progressScale;
 
             if (_rng.NextDouble() > dailyChance) return;

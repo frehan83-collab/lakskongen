@@ -39,7 +39,7 @@ namespace LakskongenSim.Calibration
         public const string EmbeddedResourceName = "LakskongenSim.Calibration.calibration.json";
 
         /// <summary>Current schema/balancing version. Bump when reconciled values change.</summary>
-        public const string DefaultVersion = "1.0.5";
+        public const string DefaultVersion = "1.0.6";
 
         /// <summary>Calibration schema/balancing version.</summary>
         [JsonPropertyName("version")]
@@ -104,6 +104,14 @@ namespace LakskongenSim.Calibration
         /// <summary>Feed: feed price per kg feed, base FCR and temperature relationship.</summary>
         [JsonPropertyName("feed")]
         public FeedCalibration Feed { get; init; } = new();
+
+        /// <summary>
+        /// Sea temperature (S2-02): the shared anomaly every production area's
+        /// climatology moves with (the climatologies themselves are offline data
+        /// in <c>Environment/ProductionAreas.cs</c>).
+        /// </summary>
+        [JsonPropertyName("seaTemperature")]
+        public SeaTemperatureCalibration SeaTemperature { get; init; } = new();
         /// <summary>
         /// Derived feed cost per kg of fish produced = feed price × base FCR.
         /// This is the reconciled "~25.7 NOK/kg produced" figure in
@@ -562,4 +570,52 @@ namespace LakskongenSim.Calibration
         /// </summary>
         public double FCRTempSensitivity { get; init; } = 0.008;
     }
+
+    #region S2-02 sea temperature by production area
+
+    /// <summary>
+    /// Shared sea-temperature anomaly (roadmap S2-02). Each production area's
+    /// temperature on a day is its climatology (<c>ProductionAreas</c>) plus one
+    /// anomaly every area shares: a slow seeded AR(1) process (warm and cold
+    /// years and seasons), a short-lived storyteller anomaly (heatwave, cold
+    /// snap), the day's short-term fluctuation and the summer storm cooling.
+    /// </summary>
+    public sealed record SeaTemperatureCalibration
+    {
+        /// <summary>
+        /// Standard deviation of the slow anomaly (°C). 1.0. Source: Sandvik et
+        /// al. 2021, ICES J. Mar. Sci. 78(5):1849-1859 (doi:10.1093/icesjms/fsab069):
+        /// at 3 m in PO3 the winter minimum and the summer maximum both vary with
+        /// SD 1.2 °C between 2012 and 2020 (farm reports); HI 2025-69 states the
+        /// normal as the 2012-2024 mean ± 1 SD. 1.0 for the slow part leaves room
+        /// for the daily fluctuation below in that 1.2.
+        /// </summary>
+        public double AnomalyStdDevC { get; init; } = 1.0;
+
+        /// <summary>
+        /// E-folding time of the slow anomaly (days). 90. Source: Albretsen &amp;
+        /// Asplin 2017 (HI note to the lice expert group, "Fysisk oseanografiske
+        /// forhold i produksjonsområdene for akvakultur - oppdatering august 2017"),
+        /// monthly 0-5 m anomalies per area 2000-2017: same-signed runs of several
+        /// months, i.e. a month-to-month autocorrelation near 0.7 (exp(-30/90) = 0.72).
+        /// </summary>
+        public double AnomalyEFoldingDays { get; init; } = 90.0;
+
+        /// <summary>
+        /// Standard deviation of the day's short-term fluctuation around the slow
+        /// anomaly (°C), on calm and moderate days; storm days scale it (2x Storm,
+        /// 3x Severe, as before S2-02). 0.3. Game estimate (wind mixing and
+        /// upwelling at 3 m), not sourced; the old daily white noise was 1.0.
+        /// </summary>
+        public double DailyFluctuationStdDevC { get; init; } = 0.3;
+
+        /// <summary>
+        /// E-folding time of a storyteller temperature anomaly (heatwave, cold
+        /// snap), days. 21. Source: HI 2025-69 section 4: the July 2025 marine
+        /// heatwave (3-6 °C above normal) covered most of July, about three weeks.
+        /// </summary>
+        public double EventAnomalyEFoldingDays { get; init; } = 21.0;
+    }
+
+    #endregion
 }

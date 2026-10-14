@@ -560,7 +560,7 @@ namespace LakskongenSim.Core
 
         private void AddSeasonalUpcoming(DaySummaryReport report)
         {
-            var currentMonth = (_engine.Time.CurrentDay / 30) % 12 + 1;
+            var currentMonth = SimCalendar.Month(_engine.Time.CurrentDay);
 
             if (currentMonth >= 6 && currentMonth <= 8)
             {

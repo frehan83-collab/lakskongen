@@ -144,8 +144,8 @@ namespace LakskongenSim.Environment
         {
             // Convert day of year to radians (365 days in year)
             // Peak temperature at day ~213 (August 1)
-            double phaseShift = (213.0 / 365.0) * 2.0 * Math.PI;
-            double radians = (2.0 * Math.PI * dayOfYear / 365.0) - phaseShift;
+            double phaseShift = (213.0 / LakskongenSim.Core.SimCalendar.DaysPerYear) * 2.0 * Math.PI;
+            double radians = (2.0 * Math.PI * dayOfYear / LakskongenSim.Core.SimCalendar.DaysPerYear) - phaseShift;
             
             // Sine wave for seasonal variation
             double seasonalVariation = SurfaceTempAmplitude * Math.Sin(radians);
@@ -161,8 +161,8 @@ namespace LakskongenSim.Environment
         private double CalculateDeepWaterTemperature(int dayOfYear)
         {
             // Deep water has much smaller seasonal variation
-            double phaseShift = (213.0 / 365.0) * 2.0 * Math.PI;
-            double radians = (2.0 * Math.PI * dayOfYear / 365.0) - phaseShift;
+            double phaseShift = (213.0 / LakskongenSim.Core.SimCalendar.DaysPerYear) * 2.0 * Math.PI;
+            double radians = (2.0 * Math.PI * dayOfYear / LakskongenSim.Core.SimCalendar.DaysPerYear) - phaseShift;
             
             // Small seasonal variation (±1°C)
             double seasonalVariation = Math.Sin(radians);

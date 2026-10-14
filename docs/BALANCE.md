@@ -9,7 +9,8 @@ This document is the human-readable companion to the registry: it records the
 current game value, the real Norwegian reference, the source, and the
 recommended playtest band for each high-leverage knob. Last reconciled:
 **Oct 2026, calibration v1.0.3**; bands re-measured **2026-10-14** after the
-S1-01 water-chemistry and S1-02 storm-season fixes (§1d).
+S1-01 water-chemistry and S1-02 storm-season fixes (§1d), and again after S2-02
+(production-area sea temperatures and one calendar, calibration v1.0.6, §1f).
 
 ## 1. Feed-cost path audit (end-to-end)
 
@@ -488,6 +489,171 @@ mortality 15.67%, price 88.0; DiseaseStress 16.11%; Storm 0.36% / 0.42 events /
 82.9% integrity; ThreeSite EBIT 20.11 NOK/kg, cost 63.21): the probe books no
 reward lines and its sites stay below the deduction.
 
+## 1f. S2-02: production areas, sea temperature, one calendar (2026-10-14, branch `wave2/sim-b-1`)
+
+Roadmap S2-02 (with D18). Calibration v1.0.6 (new section `seaTemperature`).
+Base column = `4e761a3` (wave 1 integration); S2-02 = the branch head. Measured
+with a temporary probe that calls the harnesses the tests use (`SimProbe`,
+`PlayerScriptProbe`, the tutorial player of `ScenarioCampaignTests`, the
+`FullCycleEconomicTests` cycle) on both commits.
+
+### Sea temperature per production area (3 m, °C)
+
+Derived by `tools/derive_po_sea_temperature.py` and embedded in
+`Environment/ProductionAreas.cs` (a pytest keeps the two equal). Level:
+Havforskningsinstituttet's normal winter and summer temperature per area
+(NorKyst v3, 2012-2024, area mean inside the outermost islands; Albretsen et al.,
+*Fysisk oseanografiske forhold i produksjonsområdene for akvakultur*, Rapport fra
+havforskningen 2025-69, published 2025-12-02, section 4; range midpoints). Shape:
+the monthly cycle of one or two coastal stations per area (10-year means,
+satellite plus in situ, seatemperature.info, read 2026-10-14: Kristiansand,
+Stavanger, Haugesund+Bergen, Florø, Ålesund, Kristiansund, Rørvik,
+Sandnessjøen+Bodø, Svolvær, Harstad, Tromsø, Hammerfest, Vadsø+Kirkenes),
+rescaled so its coldest month is HI's winter normal and its warmest HI's summer
+normal. Depth: 3 m, where farms measure (luseforskriften § 6). Monthly means sit
+at mid-month; days are interpolated.
+
+| PO | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec | Mean |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 Svenskegrensen–Jæren | 4.93 | 3.60 | 3.50 | 5.65 | 9.64 | 13.93 | 16.49 | 17.00 | 15.26 | 12.09 | 9.33 | 6.67 | 9.84 |
+| 2 Ryfylke | 5.83 | 4.69 | 4.50 | 6.02 | 8.67 | 11.80 | 14.27 | 15.50 | 14.36 | 11.90 | 9.72 | 7.34 | 9.55 |
+| 3 Karmøy–Sotra | 6.78 | 5.73 | 5.50 | 6.73 | 9.15 | 11.98 | 14.50 | 15.50 | 14.45 | 12.26 | 10.16 | 8.19 | 10.08 |
+| 4 Nordhordland–Stadt | 6.76 | 5.60 | 5.50 | 6.76 | 9.38 | 12.49 | 15.31 | 15.50 | 13.95 | 11.62 | 9.58 | 7.93 | 10.03 |
+| 5 Stadt–Hustadvika | 6.75 | 5.79 | 5.50 | 6.56 | 8.86 | 11.64 | 14.04 | 15.00 | 13.85 | 11.64 | 9.63 | 7.99 | 9.77 |
+| 6 Nordmøre–Sør-Trøndelag | 7.05 | 6.18 | 6.00 | 6.79 | 9.07 | 11.70 | 13.71 | 14.50 | 13.27 | 11.35 | 9.51 | 7.93 | 9.76 |
+| 7 Nord-Trøndelag m/Bindal | 6.40 | 5.66 | 5.50 | 6.32 | 8.44 | 11.13 | 13.09 | 13.50 | 12.11 | 10.23 | 8.52 | 7.21 | 9.01 |
+| 8 Helgeland–Bodø | 5.85 | 5.05 | 5.00 | 5.52 | 7.47 | 10.41 | 12.98 | 13.50 | 12.08 | 10.32 | 8.56 | 7.04 | 8.65 |
+| 9 Vestfjorden–Vesterålen | 6.17 | 5.29 | 5.00 | 5.36 | 7.04 | 9.73 | 11.99 | 12.50 | 11.19 | 9.73 | 8.42 | 7.26 | 8.31 |
+| 10 Andøya–Senja | 6.15 | 4.76 | 4.50 | 5.28 | 6.93 | 9.88 | 12.22 | 13.00 | 11.18 | 9.62 | 8.40 | 7.19 | 8.26 |
+| 11 Kvaløya–Loppa | 5.36 | 4.36 | 4.00 | 4.36 | 5.90 | 8.43 | 10.69 | 11.50 | 10.33 | 8.79 | 7.61 | 6.53 | 7.32 |
+| 12 Vest-Finnmark | 5.50 | 4.46 | 4.00 | 4.00 | 5.04 | 8.04 | 10.58 | 11.50 | 10.58 | 9.19 | 8.04 | 6.54 | 7.29 |
+| 13 Øst-Finnmark | 5.09 | 4.26 | 4.00 | 4.11 | 5.65 | 8.12 | 10.63 | 11.00 | 9.50 | 8.08 | 6.99 | 5.87 | 6.94 |
+| National reference (no area) | 4.5 | 3.8 | 4.2 | 5.5 | 8.0 | 10.5 | 12.5 | 13.5 | 12.0 | 9.5 | 7.0 | 5.5 | 8.04 |
+
+The national reference is the single curve every zone used before S2-02 (no
+source); only a game with no scenario (tests, tools) reads it now. Every
+scenario site names its area (`production_area` in `scenarios.json`):
+forste_sesong PO3 (Hardanger), lofoten_eventyr PO9, laksebaronene PO6,
+krise_manager PO12, barekraft_mester PO4, po3_red_sone PO3, isa_utbrudd PO6,
+algekatastrofe PO9, ressursrente PO4.
+
+### The shared anomaly
+
+All areas move with one anomaly (`WeatherSystem`): a slow AR(1) process (SD
+1.0 °C, e-folding 90 days; Sandvik et al. 2021 give SD 1.2 °C for PO3's yearly
+3 m extremes, HI's 2017 note shows months-long same-signed monthly anomalies), a
+storyteller anomaly that fades with an e-folding of 21 days (the July 2025 marine
+heatwave lasted about three weeks), the day's fluctuation (SD 0.3 °C, x2 on Storm
+and x3 on Severe days; a game estimate) and the April-September storm cooling
+(S1-02). It reuses the two uniforms the old daily noise drew, so the weather chain
+sees the same draws (`TheWeatherChain_DrawsFourNumbersADay`: storm days/year
+145.0 before and after).
+
+| Anomaly, 40 seeds x 3 years (first 180 days skipped) | Measured | Target |
+|---|---|---|
+| Mean | -0.011 °C | 0 |
+| SD | 1.060 °C | 1.0 |
+| Autocorrelation at 30 / 90 days | 0.741 / 0.448 | 0.717 / 0.368 |
+| Largest excursion | 4.60 °C | |
+
+Realized zone water, 10 seeds x 3 years:
+
+| PO | Climatology mean | Realized mean | p5 | p95 | Min / max | SD of annual means |
+|---|---|---|---|---|---|---|
+| 1 | 9.88 | 9.73 | 3.16 | 16.80 | -0.15 / 18.96 | 0.65 |
+| 3 | 10.10 | 9.96 | 4.98 | 15.31 | 1.74 / 17.38 | 0.65 |
+| 4 | 10.06 | 9.91 | 4.94 | 15.46 | 1.75 / 17.51 | 0.65 |
+| 6 | 9.78 | 9.63 | 5.30 | 14.32 | 2.02 / 16.42 | 0.65 |
+| 8 | 8.67 | 8.52 | 4.16 | 13.35 | 0.89 / 15.46 | 0.65 |
+| 9 | 8.33 | 8.18 | 4.16 | 12.39 | 0.81 / 14.46 | 0.65 |
+| 12 | 7.31 | 7.16 | 2.94 | 11.39 | -0.38 / 13.40 | 0.65 |
+| 13 | 6.96 | 6.81 | 3.02 | 10.90 | -0.31 / 12.98 | 0.65 |
+
+The realized means sit 0.15 °C under the climatology: the summer storm cooling
+plus these seeds' slightly negative anomaly. The only floor is the freezing point
+of seawater (-1.9 °C); the old 1.5-19 °C clamp is gone.
+
+### What the area's water drives
+
+Growth, appetite and feeding take the population's water (`HoldingWaterOf`:
+sea pen = its zone, offshore pen = its area's sea, RAS tank = the facility's
+controlled water); so do the site lice models, the zone oxygen solubility, the
+treatment temperature window and the temperature-stress deaths. The disease tick
+receives the water temperature, but the generic SIR has no temperature term yet
+(S4-02 brings pathogen-specific responses: PD warm, winter ulcer cold). The lice
+limit is 0.2 adult females in ISO weeks 16-21 for PO1-PO7 and 21-26 for PO8-PO13
+(luseforskriften § 8), 0.5 otherwise.
+
+### Growth in real water: the S2-03 input (current growth law, untouched)
+
+Days for 100 g standard S1 smolts to reach 5 kg, 10 seeds, events off, each site
+explicitly in its area:
+
+| PO | 1 Jan release: median [min-max] | Mid-April release: median [min-max] |
+|---|---|---|
+| 1 | 518 [413-645] | 444 [348-545] |
+| 2 | 338 [307-428] | 307 [242-437] |
+| 3 | 316 [291-350] | 263 [241-416] |
+| 4 | 319 [292-352] | 278 [241-424] |
+| 5 | 310 [283-337] | 256 [227-396] |
+| 6 | 293 [267-320] | 245 [218-304] |
+| 7 | 296 [272-314] | 243 [211-313] |
+| 8 | 315 [287-341] | 267 [216-410] |
+| 9 | 306 [282-365] | 258 [213-388] |
+| 10 | 318 [289-385] | 298 [217-407] |
+| 11 | 452 [314-573] | 445 [236-482] |
+| 12 | 483 [317-577] | 451 [239-489] |
+| 13 | 565 [341-610] | 477 [280-519] |
+
+Real Norwegian grow-out takes 14-18 months (roadmap S2-03). The Gaussian growth
+law (optimum 11 °C, width 3 °C, asymptote 5.5 kg) makes real southern water far
+too fast (PO4 from 1 January: 292-352 days, below the 360-600 band of
+`FullProductionCycle_OnTheEnginePath_FeedPerKgGainInBand`), PO1's 15-17 °C
+summers slow, the far north 200 days slower than PO4 (the pre-registered
+`Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13` wants 60-120), and lets PO13 keep
+pace with PO4 through a summer. Re-fitting the growth rate alone cannot fix it:
+the outcome is bimodal (harvest before or after the second winter); at alpha_max
+16-18 PO4 ranged 311-541 days over 13 seeds. That is S2-03's TGC work (RUN_LOG
+§8). Until then the D2 tests whose zones are only *named* PO04/PO12/PO13 keep
+running on the national reference: S2-02 places sites in areas by data, never by
+parsing an id.
+
+### Before and after, measured on both commits
+
+| Measure | Base `4e761a3` | S2-02 | Band |
+|---|---|---|---|
+| SimProbe Baseline FCR (median) | 1.22 | 1.23 | 1.10-1.30 |
+| Baseline sea mortality %/cycle (min / median / p90) | 14.25 / 15.67 / 20.18 | 12.05 / 15.48 / 19.00 | 14-16 median |
+| Baseline feed cost NOK/kg produced | 27.23 | 27.40 | 22-30 |
+| Baseline peak adult-female lice (median) | 0.54 | 0.52 | ~0.5 |
+| DiseaseStress disease / total mortality % | 4.37 / 16.11 | 4.38 / 15.84 | 0.5-10 / 14-16 (+-0.5) |
+| Storm escapes % / events / storm days / min integrity | 0.36 / 0.42 / 145.0 / 82.9 | 0.36 / 0.41 / 145.0 / 83.2 | <=0.5 / <=1 / exposure / >=40 |
+| ThreeSite EBIT NOK/kg / cost NOK/kg | 20.11 / 63.21 | 19.63 / 63.25 | 8-25 |
+| LiceControl treatments, resistance, peak lice | 1.50, 0.07%, 0.15 | unchanged | |
+| Career po3 seed 7 (now PO3 water): days, kg, FCR, mortality, balance | 311, 520,293, 1.178, 18.2%, +24.37M | 315, 460,912, 1.179, 23.9%, +21.24M | FCR 1.0-1.6, mort <=65%, > -1M |
+| Career po3 seed 13 | 285, 531,843, 1.163, 12.5%, +29.66M | 331, 493,072, 1.176, 20.6%, +22.94M | > -15M (D4) |
+| Tutorial forste_sesong (PO3): won, finish day, first harvest | 6/6, 276-1233, 271-277 | 6/6, 285-1058, 258-325 | won |
+| FullCycle zone named PO04 (national reference), days to 5 kg, seeds 1/7/11/13 | 461 / 414 / 422 / 440 | 503 / 368 / 453 / 483 | 360-600 |
+
+The po3 careers now run in PO3 water: warmer summers (15.5 °C normal, up to 17 °C
+with the anomaly) bring temperature-stress deaths, lower oxygen saturation and the
+algae/hypoxia bloom rolls (> 10 °C / > 14 °C) more often, so sea mortality rises
+from 12.5-18.2% to 20.6-23.9% (Vestland reports 15-20%; S2-05/S4-03 own the cause
+ledger). The FullCycle spread widens because the anomaly persists for months; the
+old daily white noise averaged out within weeks.
+
+### One calendar
+
+`Core/SimCalendar.cs`: day 0 is Friday 1 January 2027, years have 365 days,
+months their real lengths, weeks are ISO-8601 (sim year 1 is the real 2027 day
+for day). The weather (storm season October-March), the market's seasonal months,
+the lice weeks, the provisional tax, monthly OPEX and the corporate-finance
+quarters read it. Books close on the period's last day: quarters on 31 March,
+30 June, 30 September and 31 December (they closed every 90 days, a 360-day
+financial year), months on their last day. Wages and night-shift premiums are
+monthly x 12 / 365 per day (/30 paid 12.17 months a year, 1.4% too much); loan
+terms run whole calendar months; a crisis lasts calendar months.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
@@ -528,6 +694,11 @@ reward lines and its sites stay below the deduction.
 | `Environment.OptimalTemperatureMaxC` | 14 | 8-14°C optimal growth | Norwegian fjord data | 12-16 |
 | `Environment.LethalTemperatureMaxC` | 22 | ~22°C lethal ceiling | Norwegian fjord data | 20-24 |
 | `WaterQuality.StockingDensityThresholdKgM3` | 25.0 | ~25 kg/m³ regulatory | Mattilsynet | 20-30 |
+| `SeaTemperature.AnomalyStdDevC` | 1.0 | SD 1.2 °C of PO3's yearly 3 m extremes | Sandvik et al. 2021 (ICES JMS 78:1849) | 0.6-1.2 |
+| `SeaTemperature.AnomalyEFoldingDays` | 90 | months-long same-signed anomalies | HI note to the lice expert group, 2017 | 45-180 |
+| `SeaTemperature.DailyFluctuationStdDevC` | 0.3 | (game estimate) | none | 0-0.6 |
+| `SeaTemperature.EventAnomalyEFoldingDays` | 21 | July 2025 heatwave ~3 weeks | HI Rapport fra havforskningen 2025-69 | 7-45 |
+| Production-area climatology (13 x 12, `ProductionAreas`) | §1f | HI normals 2012-2024 (NorKyst v3) | HI 2025-69 + station shapes | data, not a knob |
 
 ## 4. Playtest tuning priorities
 

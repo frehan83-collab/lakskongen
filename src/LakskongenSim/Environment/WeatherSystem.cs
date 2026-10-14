@@ -1,13 +1,16 @@
 using System;
 
+using LakskongenSim.Calibration;
 using LakskongenSim.Core;
 namespace LakskongenSim.Environment
 {
     /// <summary>
-    /// Norwegian coastal weather system with Markov chain state transitions,
-    /// seasonal temperature cycles, and stochastic daily variation.
-    /// Temperature range: 2-18°C (Norwegian fjord sea surface temps).
-    /// Simulation-day driven — never uses real-world clock.
+    /// Norwegian coastal weather system with Markov chain state transitions and
+    /// the shared sea-temperature anomaly (S2-02). Each production area's sea
+    /// temperature is its own climatology (<see cref="ProductionAreas"/>) plus
+    /// one anomaly all areas share; <see cref="CurrentTemperatureC"/> reports the
+    /// reference (home) area. Simulation-day driven on <see cref="SimCalendar"/>,
+    /// never the real-world clock.
     /// </summary>
     public class WeatherSystem
     {
@@ -18,24 +21,34 @@ namespace LakskongenSim.Environment
         public WeatherState CurrentState { get; private set; } = WeatherState.Moderate;
         public int SimulationDay { get; private set; } = 0;
 
-        // ─── Seasonal parameters (Norwegian coast) ───
-        // Mean sea surface temperature by month (°C) — Norwegian fjords
-        // Based on Havforskningsinstituttet (Institute of Marine Research) data
-        private static readonly double[] MonthlyMeanTemp =
-        {
-            4.5,  // Jan
-            3.8,  // Feb — coldest
-            4.2,  // Mar
-            5.5,  // Apr
-            8.0,  // May
-            10.5, // Jun
-            12.5, // Jul
-            13.5, // Aug — warmest
-            12.0, // Sep
-            9.5,  // Oct
-            7.0,  // Nov
-            5.5   // Dec
-        };
+        // ─── Sea temperature (S2-02) ───
+        // Before S2-02 one national monthly curve on 30-day months, plus daily
+        // white noise of 1 °C, served every zone. The climatologies now live per
+        // production area; this system owns only what all areas share.
+
+        /// <summary>
+        /// Production area whose sea temperature <see cref="CurrentTemperatureC"/>
+        /// reports: the player's home area, set by the engine every day from the
+        /// game state (so not saved here); the national reference curve until then.
+        /// </summary>
+        public int ReferenceProductionArea { get; private set; } = ProductionAreas.NationalReference;
+
+        /// <summary>Slow shared anomaly (°C): a seeded AR(1) process, warm and cold seasons and years.</summary>
+        public double SeaAnomalyC { get; private set; }
+
+        /// <summary>Storyteller anomaly (°C, heatwave or cold snap), decaying over weeks.</summary>
+        public double EventAnomalyC { get; private set; }
+
+        /// <summary>Today's short-term fluctuation (°C) around the slow anomaly.</summary>
+        public double DailyFluctuationC { get; private set; }
+
+        /// <summary>Today's storm cooling of the cage layer (°C, April-September only).</summary>
+        public double StormCoolingC { get; private set; }
+
+        /// <summary>What every area's climatology moves by today (°C).</summary>
+        public double SeaTemperatureOffsetC => SeaAnomalyC + EventAnomalyC + DailyFluctuationC + StormCoolingC;
+
+        private SeaTemperatureCalibration _seaCalibration = CalibrationRegistry.Default.SeaTemperature;
 
         // ─── Markov chain transition probabilities ───
         // State: Calm, Moderate, Storm, Severe
@@ -52,11 +65,16 @@ namespace LakskongenSim.Environment
         // ─── Storm season modifier (Oct-Mar = higher storm probability) ───
         private const double StormSeasonMultiplier = 1.5;
         private const int WeatherStateCount = 4;
-        // Storm season on the 30-day-month calendar: day 270 (1 Oct) through
-        // day 90 inclusive (unchanged; S2-02 owns the calendar).
-        private const int StormSeasonStartDayOfYear = 270;
-        private const int StormSeasonEndDayOfYear = 90;
-        private const int DaysPerYear = 365;
+        // Storm season: October through March on the sim calendar (S2-02; it was
+        // day 270 through day 90 of the 30-day-month calendar).
+        private const int StormSeasonFirstMonthIndex = 9;  // October
+        private const int StormSeasonLastMonthIndex = 2;   // March
+        // Storm cooling of the cage layer in the stratified half of the year (S1-02).
+        private const double StormDayCoolingC = -0.5;
+        private const double SevereDayCoolingC = -1.5;
+        // The daily fluctuation scales up on storm days (as the old noise did).
+        private const double StormFluctuationScale = 2.0;
+        private const double SevereFluctuationScale = 3.0;
         /// <summary>Days ahead <see cref="StormRiskNext3Days"/> looks.</summary>
         public const int StormForecastDays = 3;
 
@@ -72,6 +90,8 @@ namespace LakskongenSim.Environment
         public WeatherSystem(SimRngStream rng)
         {
             _rng = rng ?? throw new ArgumentNullException(nameof(rng));
+            // Day 0 reads the reference area's 1 January climatology (it read a flat 8 °C).
+            CurrentTemperatureC = SeaTemperatureAt(ReferenceProductionArea);
         }
 
         /// <summary>
@@ -90,14 +110,46 @@ namespace LakskongenSim.Environment
         }
 
         /// <summary>
-        /// Apply a temperature anomaly (°C offset) from a storyteller event.
-        /// Clamped to the realistic Norwegian sea surface range.
+        /// Apply a temperature anomaly (°C offset) from a storyteller event. It
+        /// reaches every production area and fades with
+        /// <see cref="SeaTemperatureCalibration.EventAnomalyEFoldingDays"/>; it
+        /// used to last until the next day's temperature overwrote it.
         /// </summary>
         public void ApplyTemperatureAnomaly(double deltaC)
         {
-            CurrentTemperatureC = Math.Clamp(CurrentTemperatureC + deltaC, 1.5, 19.0);
+            EventAnomalyC += deltaC;
+            CurrentTemperatureC = SeaTemperatureAt(ReferenceProductionArea);
             OnTemperatureChanged?.Invoke(CurrentTemperatureC);
         }
+
+        /// <summary>Use the calibration the engine loaded (the registry default otherwise).</summary>
+        public void ApplySeaTemperatureCalibration(SeaTemperatureCalibration calibration)
+        {
+            _seaCalibration = calibration ?? throw new ArgumentNullException(nameof(calibration));
+        }
+
+        /// <summary>
+        /// Report the sea temperature of <paramref name="productionArea"/> as
+        /// <see cref="CurrentTemperatureC"/> (the player's home area; 0 = the national
+        /// reference). Numbers outside 0-13 are ignored.
+        /// </summary>
+        public void SetReferenceProductionArea(int productionArea)
+        {
+            if (!ProductionAreas.HasClimatology(productionArea) || productionArea == ReferenceProductionArea)
+                return;
+            ReferenceProductionArea = productionArea;
+            CurrentTemperatureC = SeaTemperatureAt(productionArea);
+        }
+
+        /// <summary>
+        /// Today's sea temperature (°C, cage depth) in a production area: its
+        /// climatology on <see cref="SimulationDay"/> plus the shared offset. The
+        /// only floor is the freezing point of seawater (the old 1.5-19 °C clamp
+        /// is gone; no climatology comes near either bound).
+        /// </summary>
+        public double SeaTemperatureAt(int productionArea)
+            => Math.Max(ProductionAreas.SeawaterFreezingPointC,
+                ProductionAreas.ClimatologyC(productionArea, SimulationDay) + SeaTemperatureOffsetC);
 
         /// <summary>
         /// Advance weather simulation by given days.
@@ -115,53 +167,50 @@ namespace LakskongenSim.Environment
         }
 
         /// <summary>
-        /// Calculate sea surface temperature for current simulation day.
-        /// Uses sinusoidal seasonal cycle + stochastic daily variation.
+        /// Advance the shared sea-temperature offset one day and report the
+        /// reference area's temperature. Draws the same two uniforms a day as the
+        /// old noise did (Box-Muller turns them into two independent normals), so
+        /// the weather-state chain that shares this stream is unchanged.
         /// </summary>
         private void UpdateTemperature()
         {
-            // Determine month from simulation day (day 0 = January 1st)
-            int dayOfYear = SimulationDay % 365;
-            int month = dayOfYear / 30; // Approximate month (0-11)
-            month = Math.Clamp(month, 0, 11);
-
-            // Interpolate between monthly means for smooth transition
-            int nextMonth = (month + 1) % 12;
-            double dayInMonth = (dayOfYear % 30) / 30.0;
-            double baseMeanTemp = MonthlyMeanTemp[month] * (1.0 - dayInMonth)
-                                + MonthlyMeanTemp[nextMonth] * dayInMonth;
-
-            // Daily stochastic variation (±1.5°C normally, ±3°C during storms)
-            double varianceMultiplier = CurrentState switch
-            {
-                WeatherState.Storm => 2.0,
-                WeatherState.Severe => 3.0,
-                _ => 1.0
-            };
-
             double u1 = Math.Max(1e-10, _rng.NextDouble());
             double u2 = _rng.NextDouble();
-            double noise = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
-            double dailyVariation = noise * 1.0 * varianceMultiplier;
+            double radius = Math.Sqrt(-2.0 * Math.Log(u1));
+            double slowShock = radius * Math.Cos(2.0 * Math.PI * u2);
+            double dailyShock = radius * Math.Sin(2.0 * Math.PI * u2);
+
+            // Slow anomaly: AR(1) with the calibrated stationary SD and e-folding time.
+            double phi = Math.Exp(-1.0 / Math.Max(1.0, _seaCalibration.AnomalyEFoldingDays));
+            double innovationSd = _seaCalibration.AnomalyStdDevC * Math.Sqrt(1.0 - phi * phi);
+            SeaAnomalyC = phi * SeaAnomalyC + innovationSd * slowShock;
+
+            // A storyteller anomaly fades over a few weeks.
+            EventAnomalyC *= Math.Exp(-1.0 / Math.Max(1.0, _seaCalibration.EventAnomalyEFoldingDays));
+
+            // Short-term fluctuation (wind mixing, upwelling), larger on storm days.
+            double fluctuationScale = CurrentState switch
+            {
+                WeatherState.Storm => StormFluctuationScale,
+                WeatherState.Severe => SevereFluctuationScale,
+                _ => 1.0
+            };
+            DailyFluctuationC = dailyShock * _seaCalibration.DailyFluctuationStdDevC * fluctuationScale;
 
             // Storm cooling: wind mixing brings colder water up to the cages
             // while the column is stratified with a warm surface (Apr-Sep). In
             // the storm season the coastal column is mixed or colder at the
             // surface than below (Helland-Hansen & Nansen, "The Norwegian Sea",
             // 1909: in March the surface is colder than at 100 fathoms), so a
-            // winter storm does not cool the cage layer. Moot until S1-02: the
-            // unnormalized chain never reached Severe in Oct-Mar.
-            double stormCooling = IsStormSeason(dayOfYear) ? 0.0 : CurrentState switch
+            // winter storm does not cool the cage layer.
+            StormCoolingC = IsStormSeason(SimulationDay) ? 0.0 : CurrentState switch
             {
-                WeatherState.Storm => -0.5,
-                WeatherState.Severe => -1.5,
+                WeatherState.Storm => StormDayCoolingC,
+                WeatherState.Severe => SevereDayCoolingC,
                 _ => 0.0
             };
 
-            double newTemp = baseMeanTemp + dailyVariation + stormCooling;
-
-            // Clamp to realistic Norwegian sea surface temperature range
-            CurrentTemperatureC = Math.Clamp(newTemp, 1.5, 19.0);
+            CurrentTemperatureC = SeaTemperatureAt(ReferenceProductionArea);
             OnTemperatureChanged?.Invoke(CurrentTemperatureC);
         }
 
@@ -198,8 +247,8 @@ namespace LakskongenSim.Environment
         /// <summary>True on the days of the year the storm season covers (Oct-Mar).</summary>
         public static bool IsStormSeason(int dayOfYear)
         {
-            int d = ((dayOfYear % DaysPerYear) + DaysPerYear) % DaysPerYear;
-            return d >= StormSeasonStartDayOfYear || d <= StormSeasonEndDayOfYear;
+            int month = SimCalendar.MonthIndex(dayOfYear);
+            return month >= StormSeasonFirstMonthIndex || month <= StormSeasonLastMonthIndex;
         }
 
         /// <summary>
@@ -311,6 +360,19 @@ namespace LakskongenSim.Environment
         }
 
         /// <summary>
+        /// Restore the shared sea-temperature offset (S2-02 saves). A legacy save
+        /// has none and resumes at a zero anomaly.
+        /// </summary>
+        internal void ImportSeaTemperatureState(double seaAnomalyC, double eventAnomalyC,
+            double dailyFluctuationC, double stormCoolingC)
+        {
+            SeaAnomalyC = seaAnomalyC;
+            EventAnomalyC = eventAnomalyC;
+            DailyFluctuationC = dailyFluctuationC;
+            StormCoolingC = stormCoolingC;
+        }
+
+        /// <summary>
         /// Honest 3-day storm forecast: the probability that the weather three
         /// days from now is Storm or Severe, from the current state through the
         /// same transition rows the sampler draws from (one per day ahead, each
@@ -386,8 +448,8 @@ namespace LakskongenSim.Environment
         /// </summary>
         public WeatherStatus GetStatus()
         {
-            int dayOfYear = SimulationDay % 365;
-            int month = Math.Clamp(dayOfYear / 30, 0, 11);
+            int dayOfYear = SimCalendar.DayOfYear(SimulationDay);
+            int month = SimCalendar.MonthIndex(SimulationDay);
             string[] monthNames = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 

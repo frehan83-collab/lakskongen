@@ -1,5 +1,5 @@
 {
-  "version": "1.0.5",
+  "version": "1.0.6",
   "economy": {
     "startingCapitalNOK": 10000000,
     "smoltCostPerFishNOK": 12,
@@ -118,5 +118,11 @@
     "baseFCR": 1.15,
     "optimalFCRTempC": 12.0,
     "fcrTempSensitivity": 0.008
+  },
+  "seaTemperature": {
+    "anomalyStdDevC": 1.0,
+    "anomalyEFoldingDays": 90.0,
+    "dailyFluctuationStdDevC": 0.3,
+    "eventAnomalyEFoldingDays": 21.0
   }
 }

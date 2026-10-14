@@ -1471,7 +1471,7 @@ public partial class GameBridge : Node
         var site = engine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
         if (site == null) return res;
 
-        double temp = engine!.Weather?.CurrentTemperatureC ?? 10.0;
+        double temp = engine!.SeaTemperatureAtSite(site);   // the site's own water (S2-02)
         double gill = site.GillScore;
         // Derive inputs we can trust; gill score is a direct reverse proxy for risk.
         double risk = System.Math.Clamp(1.0 - gill / 100.0, 0.0, 1.0);

@@ -118,9 +118,9 @@ namespace LakskongenSim.Biology
         /// </summary>
         private double CalculateLightFactor(int day)
         {
-            int dayOfYear = day % 365;
+            int dayOfYear = LakskongenSim.Core.SimCalendar.DayOfYear(day);
             // Cosine curve: max at day 172 (June 21), min at day 355 (Dec 21)
-            double angle = 2 * Math.PI * (dayOfYear - 172) / 365.0;
+            double angle = 2 * Math.PI * (dayOfYear - 172) / (double)LakskongenSim.Core.SimCalendar.DaysPerYear;
             double light = 0.5 + 0.5 * Math.Cos(angle); // 0 to 1
             return Math.Clamp(light, _config.MinLightFactor, 1.0);
         }

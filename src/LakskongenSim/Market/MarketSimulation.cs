@@ -430,7 +430,7 @@ namespace LakskongenSim.Market
 
         private decimal GetSeasonalOffsetForSimulationDay(int simulationDay)
         {
-            int month = ((simulationDay / 30) % 12 + 12) % 12;
+            int month = LakskongenSim.Core.SimCalendar.MonthIndex(simulationDay);
             return _monthlySeasonalOffsets[month];
         }
 
@@ -638,7 +638,7 @@ namespace LakskongenSim.Market
                 for (int d = 0; d < _daysPerWeek; d++)
                 {
                     int simDay = w * _daysPerWeek + d + 1;
-                    double seasonalTarget = (double)(LongTermMean + _monthlySeasonalOffsets[((simDay / 30) % 12 + 12) % 12]);
+                    double seasonalTarget = (double)(LongTermMean + _monthlySeasonalOffsets[LakskongenSim.Core.SimCalendar.MonthIndex(simDay)]);
                     double u1 = Math.Max(1e-10, rng.NextDouble());
                     double u2 = rng.NextDouble();
                     double shock = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);

@@ -642,7 +642,9 @@ public partial class GameBridge : Node
     /// <summary>
     /// Live traffic-light status per zone as an Array of Dictionaries.
     /// Keys: "zone" (string), "color" (string: Green/Yellow/Red),
-    ///       "mab_factor" (double), "capacity_tonnes" (double).
+    ///       "mab_factor" (double), "capacity_tonnes" (double),
+    ///       "production_area" (int 1-13; 0 = national reference, no scenario),
+    ///       "water_temp_c" (double, the zone's water today; S2-02).
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetZoneTrafficLights()
     {
@@ -658,7 +660,9 @@ public partial class GameBridge : Node
                 ["zone"]            = zone.Id,
                 ["color"]           = color.ToString(),
                 ["mab_factor"]      = LakskongenSim.Finance.TrafficLightSystem.MabFactorFor(color),
-                ["capacity_tonnes"] = zone.CarryingCapacityTonnes
+                ["capacity_tonnes"] = zone.CarryingCapacityTonnes,
+                ["production_area"] = engine.ProductionAreaOf(zone),
+                ["water_temp_c"]    = engine.SeaTemperatureOfZone(zone.Id)
             });
         }
         return result;

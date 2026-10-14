@@ -12,9 +12,14 @@ extends RefCounted
 
 ## Digit-group separator for nb: a no-break space, so "71 472" never wraps.
 const NB_GROUP := "\u00a0"
-## Sim day 0 is 1 January of this year until the sim calendar (roadmap G1-04)
-## owns the date; then date_for_day() reads it from there.
+## Sim day 0 is 1 January of this year. Mirrors the engine's one calendar,
+## src/LakskongenSim/Core/SimCalendar.cs (StartYear, month lengths, 365-day
+## years); tests/test_sim_calendar_parity.py keeps the two equal (S2-02).
 const CALENDAR_START_YEAR := 2027
+## Days in every sim year (no leap days), as SimCalendar.DaysPerYear.
+const DAYS_PER_YEAR := 365
+## Months in a year.
+const MONTHS_PER_YEAR := 12
 
 const _MONTHS_NB := ["jan.", "feb.", "mars", "apr.", "mai", "juni", "juli", "aug.", "sep.", "okt.", "nov.", "des."]
 const _MONTHS_EN := ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -141,13 +146,19 @@ static func format_date(year: int, month: int, day: int, locale: String = "") ->
 ## CALENDAR_START_YEAR, 365-day years (the sim has no leap days).
 static func date_for_day(sim_day: int) -> Dictionary:
 	var d := maxi(sim_day, 0)
-	var year := CALENDAR_START_YEAR + d / 365
-	var doy := d % 365
+	var year := CALENDAR_START_YEAR + d / DAYS_PER_YEAR
+	var doy := d % DAYS_PER_YEAR
 	var month := 0
 	while doy >= _MONTH_DAYS[month]:
 		doy -= _MONTH_DAYS[month]
 		month += 1
 	return {"year": year, "month": month + 1, "day": doy + 1}
+
+
+## A monthly amount per day, as the engine charges it (SimCalendar.MonthlyToDaily):
+## twelve months over the 365-day year.
+static func monthly_to_daily(monthly_amount: float) -> float:
+	return monthly_amount * MONTHS_PER_YEAR / float(DAYS_PER_YEAR)
 
 
 ## The formatted calendar date of a sim day: format_day(11) → "12. jan. 2027".
@@ -158,7 +169,7 @@ static func format_day(sim_day: int, locale: String = "") -> String:
 
 ## Return the season name for a given simulation day.
 static func season_name(day: int) -> String:
-	var day_of_year: int = day % 365
+	var day_of_year: int = posmod(day, DAYS_PER_YEAR)
 	if day_of_year < 60 or day_of_year >= 335:
 		return "Vinter"
 	elif day_of_year < 152:

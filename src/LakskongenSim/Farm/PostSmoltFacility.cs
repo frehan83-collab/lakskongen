@@ -143,7 +143,7 @@ namespace LakskongenSim.Farm
             }
 
             // ─── Operating Costs ───
-            result.DailyStaffCost = (decimal)EmployeeCount * 600_000m / 365m;
+            result.DailyStaffCost = (decimal)EmployeeCount * 600_000m / LakskongenSim.Core.SimCalendar.DaysPerYear;
             result.DailyEnergyCost = 30_000m; // RAS-based, significant energy
             result.DailyFeedCost = (decimal)result.TotalFeedKg * 12m; // ~12 NOK/kg smolt feed
             result.TotalDailyOPEX = result.DailyStaffCost + result.DailyEnergyCost + result.DailyFeedCost;

@@ -191,7 +191,7 @@ namespace LakskongenSim.Farm
             // System gets better over 180 days of data collection
             if (CalibrationLevel < 0.95)
             {
-                CalibrationLevel = Math.Min(0.95, 0.5 + (DaysSinceInstallation / 360.0) * 0.45);
+                CalibrationLevel = Math.Min(0.95, 0.5 + ((double)DaysSinceInstallation / LakskongenSim.Core.SimCalendar.DaysPerYear) * 0.45);
             }
 
             // ─── Camera Degradation (biofouling) ───
@@ -222,7 +222,7 @@ namespace LakskongenSim.Farm
             result.DailyFeedSavings = DailyFeedSavings;
 
             // ─── License/Maintenance cost ───
-            result.DailyLicenseCost = ANNUAL_LICENSE_COST / 365m;
+            result.DailyLicenseCost = ANNUAL_LICENSE_COST / LakskongenSim.Core.SimCalendar.DaysPerYear;
 
             // ─── Appetite tracking ───
             // Simulated camera reading; noise from the named stream when

@@ -57,7 +57,7 @@ namespace LakskongenSim.Events
         /// <summary>Start day of the crisis (simulation day)</summary>
         public int StartDay { get; set; }
         /// <summary>Whether the crisis is currently active</summary>
-        public bool IsActive(int currentDay) => currentDay < StartDay + DurationMonths * 30;
+        public bool IsActive(int currentDay) => currentDay < LakskongenSim.Core.SimCalendar.AddMonths(StartDay, DurationMonths);
 
         /// <inheritdoc/>
         public override string ToString()

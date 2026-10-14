@@ -208,8 +208,10 @@ func _on_simulation_ticked(day: int):
 # === EventBus Signal Handlers ===
 
 func _on_day_advanced(day: int, season: String):
-	if day % 30 == 1:  # Log month transitions
-		add_log_entry("Month %d begins (%s season)" % [(day - 1) / 30 + 1, season], "info")
+	# Log month transitions on the sim calendar (real month lengths, S2-02).
+	var date := SimFormatters.date_for_day(day)
+	if int(date["day"]) == 1:
+		add_log_entry("Month %d begins (%s season)" % [int(date["month"]), season], "info")
 
 func _on_time_speed_changed(speed: float):
 	var speed_text = "%.0fx" % speed
