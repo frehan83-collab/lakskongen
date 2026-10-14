@@ -259,7 +259,10 @@ pins the include to the shader. Loop bounds are uniforms, so the loops are
 not unrolled (an unrolled draft took minutes to compile on Metal). The hoses
 are camera-facing ribbons at least 1.6 px wide and the buoys at least 3 px
 (up to 3× their size), so the gear reads from FARM to COAST like the white
-lines and yellow dots of the aerial photos. Every minimum-pixel formula takes
+lines and yellow dots of the aerial photos. A floating hose's slack sways
+slowly across its line (0.35 m, a 38 s period travelling along it with a
+55 m wavelength), held still within 14 m of the barge and the pen (UV2.y
+carries the hose's length). Every minimum-pixel formula takes
 `abs(PROJECTION_MATRIX[1][1])`: the renderer's projection flips y, and
 without the abs the minimum silently never applied (the corner-light halos
 and the health rings had that bug).

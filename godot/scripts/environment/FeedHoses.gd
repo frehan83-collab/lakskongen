@@ -81,8 +81,8 @@ func total_length() -> float:
 
 ## One ribbon per hose: two vertices per centreline point (the shader opens
 ## them to the sides), NORMAL the hose direction (the shader lights the
-## ribbon as a tube itself), UV (side, metres along), UV2.x the lift towards
-## the barge deck.
+## ribbon as a tube itself), UV (side, metres along), UV2 (the lift towards
+## the barge deck, the hose's length).
 static func _ribbon_mesh(lines: Array[PackedVector2Array]) -> ArrayMesh:
 	var verts := PackedVector3Array()
 	var normals := PackedVector3Array()
@@ -93,6 +93,9 @@ static func _ribbon_mesh(lines: Array[PackedVector2Array]) -> ArrayMesh:
 		if line.size() < 2:
 			continue
 		var base := verts.size()
+		var total := 0.0
+		for i in range(1, line.size()):
+			total += line[i].distance_to(line[i - 1])
 		var run := 0.0
 		for i in line.size():
 			if i > 0:
@@ -105,7 +108,7 @@ static func _ribbon_mesh(lines: Array[PackedVector2Array]) -> ArrayMesh:
 				verts.append(Vector3(line[i].x, 0.0, line[i].y))
 				normals.append(Vector3(dir.x, 0.0, dir.y))
 				uvs.append(Vector2(side, run))
-				uv2s.append(Vector2(lift, 0.0))
+				uv2s.append(Vector2(lift, total))
 			if i > 0:
 				var p := base + (i - 1) * 2
 				indices.append_array([p, p + 2, p + 1, p + 1, p + 2, p + 3])

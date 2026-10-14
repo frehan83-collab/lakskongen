@@ -7,7 +7,9 @@ render_mode world_vertex_coords, cull_disabled, diffuse_burley, specular_schlick
 // builds every hose of a site as one ribbon mesh along its centreline
 // (VERTEX the centre, NORMAL the hose direction, UV.x the side -1/+1, UV.y
 // metres along the hose, UV2.x the lift above the water where the hose
-// climbs to the barge's deck). Here each centre point rides the drawn water
+// climbs to the barge's deck, UV2.y the hose's length). A slow sway runs
+// along each floating hose, held still at the barge and at the pen (the
+// current works the slack between them). Each centre point rides the drawn water
 // (site_float.gdshaderinc) and the ribbon opens across the view to the
 // hose's real 110 mm, or to `min_pixels` on screen when that is wider, so a
 // site's hoses read as the thin white lines of the aerial photos from FARM
@@ -21,10 +23,19 @@ uniform float min_pixels = 1.6;
 // Far away the minimum width eases down, so distant sites stay quiet.
 uniform vec2 far_ease_m = vec2(1000.0, 2600.0);
 uniform float far_min_pixels = 0.7;
+// The slack's sway: metres across the hose, its period (s) and its
+// wavelength along the hose (m); still within `sway_hold_m` of either end.
+uniform float sway_m = 0.35;
+uniform float sway_period_s = 38.0;
+uniform float sway_wavelength_m = 55.0;
+uniform float sway_hold_m = 14.0;
 
 void vertex() {
 	vec3 t = normalize(NORMAL);
 	vec3 c = VERTEX;
+	float hold = smoothstep(0.0, sway_hold_m, UV.y) * smoothstep(0.0, sway_hold_m, UV2.y - UV.y);
+	float sway = sway_m * hold * sin(TAU * (TIME / sway_period_s + UV.y / sway_wavelength_m));
+	c.xz += vec2(-t.z, t.x) * sway;
 	float water = float_height(c.xz);
 	vec3 to_cam = CAMERA_POSITION_WORLD - vec3(c.x, water, c.z);
 	float dist = max(length(to_cam), 0.01);

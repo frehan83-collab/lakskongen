@@ -172,3 +172,30 @@ def test_reference_colours_reach_the_pen_materials():
     assert green[1] > green[0] and green[1] > green[2]
     hose = (GODOT / "assets" / "models" / "site_kit" / "feed_hose_material.tres").read_text()
     assert "hose_color = Color(0.929412, 0.937255, 0.937255" in hose
+
+
+def test_hose_sway_is_held_at_the_barge_and_the_pen():
+    # The floating hoses sway slowly across their line, but never where they
+    # are fixed: the sway fades to zero within `sway_hold_m` of the barge
+    # outlet (its riser to the deck included) and of the pen's hose port.
+    shader = (SHADERS / "feed_hose.gdshader").read_text()
+    hoses = (GODOT / "scripts" / "environment" / "FeedHoses.gd").read_text()
+
+    def uniform(name: str) -> float:
+        m = re.search(r"uniform float %s = ([0-9.]+);" % name, shader)
+        assert m, name
+        return float(m.group(1))
+
+    vertex = _function(shader, "vertex")
+    hold = "smoothstep(0.0, sway_hold_m, UV.y) * smoothstep(0.0, sway_hold_m, UV2.y - UV.y)"
+    assert hold in vertex
+    assert "float sway = sway_m * hold *" in vertex
+    # The sway moves the centre point before it samples the water.
+    assert vertex.index("c.xz += vec2(-t.z, t.x) * sway;") < vertex.index("float_height(c.xz)")
+    # UV2.y is each hose's own length, so the far end is held too.
+    assert "uv2s.append(Vector2(lift, total))" in hoses
+    assert "total += line[i].distance_to(line[i - 1])" in hoses
+    riser = float(re.search(r"const RISER_RUN_M := ([0-9.]+)", hoses).group(1))
+    assert uniform("sway_hold_m") >= riser
+    # A gentle slack: well under a metre, slower than the swell.
+    assert 0.0 < uniform("sway_m") < 1.0 and uniform("sway_period_s") >= 20.0
