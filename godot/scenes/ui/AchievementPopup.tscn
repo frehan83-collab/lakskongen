@@ -41,7 +41,7 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 2
 
 [node name="HeaderLabel" type="Label" parent="./AchievementBanner/Margin/HBox/InfoVBox"]
-theme_type_variation = &"Small"
+theme_type_variation = &"OverlineWarn"
 unique_name_in_owner = true
 layout_mode = 2
 text = "PRESTASJON LÅST OPP"

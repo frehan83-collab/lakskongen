@@ -79,7 +79,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiSpot/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "SPOTPRIS (NASDAQ)"
 
@@ -99,7 +99,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiContract/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "KONTRAKTPRIS (SNITT)"
 
@@ -119,7 +119,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiVolume/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "TILGJENGELIG VOLUM"
 
@@ -139,7 +139,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiOpen/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "ÅPNE KONTRAKTER"
 
@@ -375,7 +375,7 @@ layout_mode = 2
 theme_override_constants/separation = 2
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumLoBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "LAV (12U)"
 horizontal_alignment = 1
@@ -391,7 +391,7 @@ layout_mode = 2
 theme_override_constants/separation = 2
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumAvgBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "SNITT (12U)"
 horizontal_alignment = 1
@@ -407,7 +407,7 @@ layout_mode = 2
 theme_override_constants/separation = 2
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumHiBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "HØY (12U)"
 horizontal_alignment = 1
@@ -423,7 +423,7 @@ layout_mode = 2
 theme_override_constants/separation = 2
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/ChartCard/Outer/ChartBody/SummaryRow/SumTrendBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "TREND"
 horizontal_alignment = 1

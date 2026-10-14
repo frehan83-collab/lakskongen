@@ -4,6 +4,7 @@
 [ext_resource type="FontVariation" path="res://theme/fonts/ui_semibold.tres" id="2_e1sr2"]
 [ext_resource type="FontVariation" path="res://theme/fonts/ui_medium.tres" id="3_pdc7g"]
 [ext_resource type="FontVariation" path="res://theme/fonts/display.tres" id="4_o3trq"]
+[ext_resource type="FontVariation" path="res://theme/fonts/ui_caps.tres" id="5_e1sr2"]
 [ext_resource type="FontVariation" path="res://theme/fonts/ui_italic.tres" id="5_pef7o"]
 
 [sub_resource type="StyleBoxFlat" id="ink_sb_0"]
@@ -4801,6 +4802,34 @@ OptionButton/styles/normal = SubResource("ink_sb_162")
 OptionButton/styles/normal_mirrored = SubResource("ink_sb_162")
 OptionButton/styles/pressed = SubResource("ink_sb_163")
 OptionButton/styles/pressed_mirrored = SubResource("ink_sb_163")
+Overline/base_type = &"Label"
+Overline/colors/font_color = Color(0.9098039, 0.93333334, 0.9411765, 1)
+Overline/font_sizes/font_size = 13
+Overline/fonts/font = ExtResource("5_e1sr2")
+OverlineAccent/base_type = &"Label"
+OverlineAccent/colors/font_color = Color(0.9490196, 0.5294118, 0.41568628, 1)
+OverlineAccent/font_sizes/font_size = 13
+OverlineAccent/fonts/font = ExtResource("5_e1sr2")
+OverlineCrit/base_type = &"Label"
+OverlineCrit/colors/font_color = Color(1, 0.5411765, 0.5019608, 1)
+OverlineCrit/font_sizes/font_size = 13
+OverlineCrit/fonts/font = ExtResource("5_e1sr2")
+OverlineInfo/base_type = &"Label"
+OverlineInfo/colors/font_color = Color(0.54901963, 0.78039217, 0.85490197, 1)
+OverlineInfo/font_sizes/font_size = 13
+OverlineInfo/fonts/font = ExtResource("5_e1sr2")
+OverlineMuted/base_type = &"Label"
+OverlineMuted/colors/font_color = Color(0.62352943, 0.7058824, 0.73333335, 1)
+OverlineMuted/font_sizes/font_size = 13
+OverlineMuted/fonts/font = ExtResource("5_e1sr2")
+OverlineOk/base_type = &"Label"
+OverlineOk/colors/font_color = Color(0.49803922, 0.8392157, 0.60784316, 1)
+OverlineOk/font_sizes/font_size = 13
+OverlineOk/fonts/font = ExtResource("5_e1sr2")
+OverlineWarn/base_type = &"Label"
+OverlineWarn/colors/font_color = Color(0.9490196, 0.7176471, 0.019607844, 1)
+OverlineWarn/font_sizes/font_size = 13
+OverlineWarn/fonts/font = ExtResource("5_e1sr2")
 Palette/colors/accent = Color(0.9490196, 0.5294118, 0.41568628, 1)
 Palette/colors/base = Color(0.043137256, 0.16470589, 0.22745098, 1)
 Palette/colors/crit = Color(1, 0.5411765, 0.5019608, 1)
@@ -5580,4 +5609,4 @@ Window/styles/embedded_border = SubResource("ink_sb_360")
 Window/styles/embedded_unfocused_border = SubResource("ink_sb_360")
 metadata/surface = "ink"
 metadata/tokens_sha256 = "1d5fb5fb819ba75d17766d32fd1270cb72d8539199cedbe87871fa29224f20b1"
-metadata/builder_sha256 = "f05b56061a46bc3a7e544109c4cc07312211ed54687db6dc3856b5156e10b900"
+metadata/builder_sha256 = "1e727ed0a51197a0b545d7251667e88401cdaf648799d003aaf2f994aeca5a5b"

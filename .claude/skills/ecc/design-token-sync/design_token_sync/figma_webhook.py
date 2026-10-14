@@ -61,7 +61,7 @@ def write_tokens(tokens: dict) -> int:
                 tokens["version"] = "1.0.0"
     
     if "theme" not in tokens:
-        tokens["theme"] = "nordic-minimalist"
+        tokens["theme"] = "kyst-og-stal"
     
     # Write with consistent formatting
     DESIGN_TOKENS.write_text(json.dumps(tokens, indent=2) + "\n")
@@ -94,13 +94,23 @@ def main(argv: list[str] | None = None) -> int:
                 return 1
         payload = json.loads(raw)
     
+    # Manual dispatch: tokens arrive as the optional `tokens_json` input; without
+    # it the run re-syncs and verifies the committed design/tokens.json.
+    inputs = payload.get("inputs") if isinstance(payload, dict) else None
+    if isinstance(inputs, dict) and "client_payload" not in payload:
+        raw_tokens = str(inputs.get("tokens_json") or "").strip()
+        if not raw_tokens:
+            print("[design-token-sync] No token payload: keeping design/tokens.json as committed")
+            return 0
+        payload = {"client_payload": {"tokens": json.loads(raw_tokens)}}
+
     tokens = parse_figma_payload(payload)
     if not tokens:
         print("[design-token-sync] ERROR: Could not extract tokens from payload", file=sys.stderr)
         return 1
-    
-    print(f"[design-token-sync] Extracted tokens: {len(tokens.get('colors', {}))} colors, "
-          f"{len(tokens.get('spacing', {}))} spacing, {len(tokens.get('radii', {}))} radii")
+
+    print(f"[design-token-sync] Extracted tokens: {len(tokens.get('surfaces', {}))} surfaces, "
+          f"{len(tokens.get('contrast', {}).get('pairs', []))} contrast pairs, {len(tokens.get('spacing', {}))} spacing")
     
     if args.write:
         return write_tokens(tokens)

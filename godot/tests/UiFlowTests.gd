@@ -939,6 +939,13 @@ func _test_theme_and_contrast_on_every_screen() -> void:
 	inbox.open_inbox()
 	await _lint_screen("attention inbox")
 	inbox.visible = false
+	# The genetics panel is shot standalone over the game (harness shot 07).
+	var layer := CanvasLayer.new()
+	layer.layer = 10
+	add_child(layer)
+	layer.add_child((load("res://scenes/ui/GeneticsPanel.tscn") as PackedScene).instantiate())
+	await _lint_screen("genetics panel")
+	layer.queue_free()
 	scene.queue_free()
 	await get_tree().process_frame
 

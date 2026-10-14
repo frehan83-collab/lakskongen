@@ -64,7 +64,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "INNTEKTER"
 
@@ -84,7 +84,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiExpenses/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "KOSTNADER"
 
@@ -104,7 +104,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiProfit/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "RESULTAT"
 
@@ -124,7 +124,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiBalance/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "KONTANTER"
 
@@ -522,7 +522,7 @@ layout_mode = 2
 layout_mode = 2
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/MidRow/PlCard/Outer/PlBody/TotalRow"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 size_flags_horizontal = 3
 text = "TOTALE KOSTNADER"

@@ -286,7 +286,7 @@ func _build_toast_node(data: QueuedToastData) -> Control:
 	message_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	message_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	message_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	message_lbl.theme_type_variation = &"Body"
+	message_lbl.theme_type_variation = &"BodySmall"
 	hbox_content.add_child(message_lbl)
 
 	# Close Button

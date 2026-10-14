@@ -208,7 +208,7 @@ theme_override_constants/v_separation = 10
 columns = 2
 
 [node name="KeyLicences" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "AVAILABLE LICENCES"
 
@@ -219,7 +219,7 @@ layout_mode = 2
 text = "—"
 
 [node name="KeyDistance" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "DISTANCE TO PROCESSING"
 
@@ -230,7 +230,7 @@ layout_mode = 2
 text = "—"
 
 [node name="KeyHub" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "PROCESSING HUB"
 
@@ -241,7 +241,7 @@ layout_mode = 2
 text = "—"
 
 [node name="KeyHarvest" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "ANNUAL HARVEST"
 
@@ -252,7 +252,7 @@ layout_mode = 2
 text = "—"
 
 [node name="KeyOperators" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/StatsGrid"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "KEY OPERATORS"
 
@@ -271,7 +271,7 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="TempHeader" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/TempSection"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "WATER TEMPERATURE RANGE"
 
@@ -300,7 +300,7 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="RiskHeader" type="Label" parent="Outer/PanelBg/RootVBox/Body/DetailPanel/DetailScroll/DetailVBox/DetailMargin/DetailInner/RiskSection"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "DISEASE RISK"
 

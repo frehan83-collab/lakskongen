@@ -230,7 +230,7 @@ func _breeding_value_color(bv: float) -> Color:
 	elif bv < 0.0:
 		return LakskongenTheme.CHART_CRIT  # Light red
 	else:
-		return Color.WHITE
+		return LakskongenTheme.CHART_TEXT  # neutral: the surface text tone
 
 func _heritability_color(h2: float) -> Color:
 	if h2 > 0.3:

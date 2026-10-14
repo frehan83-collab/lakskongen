@@ -72,7 +72,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiBiomass/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "TOTAL BIOMASSE"
 
@@ -97,7 +97,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiRevenue/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "INNTEKTER (YTD)"
 
@@ -122,7 +122,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiHealth/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "FISKEHELSE"
 
@@ -147,7 +147,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="Margin/MainScroll/RootVBox/KpiStrip/KpiFcr/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "FÔRFAKTOR (FCR)"
 
@@ -668,7 +668,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterTempPanel/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "TEMPERATUR"
 horizontal_alignment = 1
@@ -690,7 +690,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterOxygenPanel/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "OKSYGEN"
 horizontal_alignment = 1
@@ -712,7 +712,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Lbl" type="Label" parent="Margin/MainScroll/RootVBox/Row1/RightCol/WaterCard/WaterOuter/WaterBody/WaterGrid/WaterSalinityPanel/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "BØLGER"
 horizontal_alignment = 1

@@ -24,7 +24,7 @@ const BUILDER_SOURCES: Array[String] = [
 	"res://scripts/tools/build_theme.gd",
 ]
 
-const FONT_ORDER: Array[String] = ["ui_regular", "ui_medium", "ui_semibold", "ui_bold", "display", "display_medium", "ui_italic"]
+const FONT_ORDER: Array[String] = ["ui_regular", "ui_medium", "ui_semibold", "ui_bold", "display", "display_medium", "ui_italic", "ui_caps"]
 
 
 func _init() -> void:

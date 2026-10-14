@@ -43,6 +43,7 @@ const LABEL_ROLES := {
 	"Kpi": ["kpi", "display"],
 	"Display": ["display", "display"],
 	"Figure": ["body", "ui_medium"],
+	"Overline": ["caption", "ui_caps"],
 	"FigureSmall": ["caption", "ui_medium"],
 	"FigureLarge": ["lg", "ui_semibold"],
 }
@@ -76,6 +77,8 @@ const FONT_FILES := {
 const EMOJI_FONT_NAMES := ["Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji", "Android Emoji", "EmojiOne Color"]
 ## Faux-italic slant for RichTextLabel [i] (Inter ships no italic file here).
 const ITALIC_SKEW := 0.2
+## Letter spacing (px) of the "Overline" small-caps headers.
+const CAPS_TRACKING := 1
 
 
 static func read_tokens(path: String = TOKENS_PATH) -> Dictionary:
@@ -157,6 +160,14 @@ static func make_fonts(tokens: Dictionary) -> Dictionary:
 	italic.fallbacks = [emoji]
 	italic.variation_transform = Transform2D(Vector2(1.0, 0.0), Vector2(ITALIC_SKEW, 1.0), Vector2.ZERO)
 	out["ui_italic"] = italic
+	# Small capitals headers (KPI titles, column heads): semibold, tracked out.
+	var caps := FontVariation.new()
+	caps.resource_name = "ui_caps"
+	caps.base_font = (out["ui_semibold"] as FontVariation).base_font
+	caps.opentype_features = features
+	caps.fallbacks = [emoji]
+	caps.spacing_glyph = CAPS_TRACKING
+	out["ui_caps"] = caps
 	return out
 
 

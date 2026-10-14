@@ -67,7 +67,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Cap" type="Label" parent="./Scroll/Root/KPIRow/KPICount/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "ANSATTE"
 
@@ -87,7 +87,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Cap" type="Label" parent="./Scroll/Root/KPIRow/KPIPayroll/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "LØNNSKOSTNAD/MND"
 
@@ -107,7 +107,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Cap" type="Label" parent="./Scroll/Root/KPIRow/KPIMorale/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "SNITT MORAL"
 
@@ -127,7 +127,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="Cap" type="Label" parent="./Scroll/Root/KPIRow/KPIEfficiency/VBox"]
-theme_type_variation = &"SmallMuted"
+theme_type_variation = &"OverlineMuted"
 layout_mode = 2
 text = "EFFEKTIVITET"
 
