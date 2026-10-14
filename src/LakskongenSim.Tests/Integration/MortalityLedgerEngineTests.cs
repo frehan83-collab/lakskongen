@@ -250,6 +250,41 @@ public class MortalityLedgerEngineTests
     }
 
     /// <summary>
+    /// The slice the bridge projects (GameBridge.GetMortalityBreakdown): a
+    /// site since the start, the company over the last N days (clamped to the
+    /// history), or the company since the start; its rows list every category
+    /// and cause with translation keys and shares that sum to one.
+    /// </summary>
+    [Fact]
+    public void BridgeBreakdown_SelectsSiteWindowOrCompany_AndItsRowsCoverEveryCategory()
+    {
+        var engine = MixedFarm(3);
+        engine.Advance(150);
+        var ledger = engine.MortalityLedger;
+        int day = engine.State.Day;
+
+        var company = engine.GetMortalityBreakdown();
+        Assert.Equal(ledger.Cumulative().Total.Fish, company.Total.Fish);
+        Assert.True(company.Total.Fish > 0);
+        Assert.Equal(ledger.ForSite("po3_nord").Total.Fish, engine.GetMortalityBreakdown("po3_nord").Total.Fish);
+        Assert.Equal(ledger.ForDays(day - 29, day).Total.Fish, engine.GetMortalityBreakdown(null, 30).Total.Fish);
+        Assert.Equal(engine.GetMortalityBreakdown(null, MortalityLedger.HistoryDays).Total.Fish,
+            engine.GetMortalityBreakdown(null, 10_000).Total.Fish);
+
+        var categories = company.CategoryRows();
+        var causes = company.CauseRows();
+        Assert.Equal(MortalityCauses.AllCategories.Length, categories.Count);
+        Assert.Equal(MortalityCauses.All.Length, causes.Count);
+        Assert.Equal(1.0, categories.Sum(r => r.Share), 9);
+        Assert.Equal(1.0, causes.Sum(r => r.Share), 9);
+        Assert.Equal(company.Total.Fish, categories.Sum(r => r.Fish));
+        Assert.All(causes, r => Assert.StartsWith("MORTALITY_CAUSE_", r.LabelKey));
+        Assert.All(categories, r => Assert.StartsWith("MORTALITY_CATEGORY_", r.LabelKey));
+        Assert.Equal(new[] { "escape", "harvest", "forced_harvest", "transfer_out" },
+            company.RemovalRows().Select(r => r.Id).ToArray());
+    }
+
+    /// <summary>
     /// A transfer books its handling deaths (injury and treatment) and the
     /// fish that move (alive); a slice whose fish all die leaves the source
     /// pen instead of being reported lost while it stayed there.

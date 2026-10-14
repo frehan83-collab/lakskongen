@@ -456,6 +456,8 @@ func get_active_demands() -> Array[Dictionary]: return _arr(game_bridge.GetActiv
 
 func get_market_report() -> Dictionary: return game_bridge.GetMarketReport() if game_bridge else {}
 func get_profit_loss_story(top_n: int = 3) -> Dictionary: return game_bridge.GetProfitLossStory(top_n) if game_bridge else {}
+## S2-05: deaths by cause in the NVI categories plus the fish that left alive (site, last N days, or company).
+func get_mortality_breakdown(site_id: String = "", last_days: int = 0) -> Dictionary: return game_bridge.GetMortalityBreakdown(site_id, last_days) if game_bridge else {"success": false, "message": "Not initialized", "categories": [], "causes": [], "left_alive": []}
 func get_competitor_analysis() -> Array[Dictionary]: return _arr(game_bridge.GetCompetitorAnalysis()) if game_bridge else []
 func get_price_forecast() -> Array[Dictionary]: return _arr(game_bridge.GetPriceForecast()) if game_bridge else []
 func get_welfare_score() -> float: return game_bridge.GetWelfareScore() if game_bridge else 50.0

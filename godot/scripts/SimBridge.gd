@@ -554,6 +554,7 @@ func get_faction_relation(faction_id: String) -> float: return _proxies.get_fact
 func get_active_demands() -> Array[Dictionary]: return _proxies.get_active_demands()
 func get_market_report() -> Dictionary: return _proxies.get_market_report()
 func get_profit_loss_story(top_n: int = 3) -> Dictionary: return _proxies.get_profit_loss_story(top_n)
+func get_mortality_breakdown(site_id: String = "", last_days: int = 0) -> Dictionary: return _proxies.get_mortality_breakdown(site_id, last_days)
 func get_competitor_analysis() -> Array[Dictionary]: return _proxies.get_competitor_analysis()
 func get_price_forecast() -> Array[Dictionary]: return _proxies.get_price_forecast()
 func get_welfare_score() -> float: return _proxies.get_welfare_score()
