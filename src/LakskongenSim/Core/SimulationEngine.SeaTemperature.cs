@@ -104,6 +104,29 @@ public partial class SimulationEngine
     }
 
     /// <summary>
+    /// A save from before S2-02 has no areas: give the active scenario's zones
+    /// the areas its starting sites name, and the game its home area, so a
+    /// resumed po3 game sits in PO3 water rather than on the national curve.
+    /// Zones that already have an area are left alone.
+    /// </summary>
+    internal void AssignScenarioProductionAreas(ScenarioDefinition? scenario)
+    {
+        if (scenario?.StartingSites == null || State == null) return;
+        bool first = true;
+        foreach (var site in scenario.StartingSites)
+        {
+            if (string.IsNullOrWhiteSpace(site.Zone)) continue;
+            int area = scenario.ProductionAreaOf(site);
+            if (first && !ProductionAreas.IsValid(State.HomeProductionArea))
+                State.HomeProductionArea = area;
+            first = false;
+            var zone = FindZone(site.Zone);
+            if (zone != null && !ProductionAreas.IsValid(zone.ProductionArea))
+                zone.ProductionArea = area;
+        }
+    }
+
+    /// <summary>
     /// Daily, before the water chemistry runs: every zone that follows the sea
     /// takes its production area's temperature for today (a zone with no area
     /// takes the home area's).

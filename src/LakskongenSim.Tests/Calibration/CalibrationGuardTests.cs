@@ -245,5 +245,22 @@ namespace LakskongenSim.Tests.Calibration
             Assert.True(feed.FeedCostPerKgProducedNOK > 20m,
                 $"standalone FeedSystem cost/kg produced {feed.FeedCostPerKgProducedNOK} regressed to the flat model");
         }
+
+        [Fact]
+        public void SeaTemperature_MatchesItsSources()
+        {
+            // S2-02. Slow anomaly SD ~1 °C: PO3's winter minimum and summer maximum
+            // at 3 m vary with SD 1.2 °C (Sandvik et al. 2021, 2012-2020 farm reports).
+            Assert.InRange(C.SeaTemperature.AnomalyStdDevC, 0.6, 1.2);
+            // Monthly anomalies persist for months (HI note 2017: lag-1 month ~0.7).
+            Assert.InRange(C.SeaTemperature.AnomalyEFoldingDays, 45.0, 180.0);
+            // Day-to-day fluctuation well below the slow anomaly.
+            Assert.InRange(C.SeaTemperature.DailyFluctuationStdDevC, 0.0, 0.6);
+            // A marine heatwave lasts weeks (HI 2025-69: most of July 2025).
+            Assert.InRange(C.SeaTemperature.EventAnomalyEFoldingDays, 7.0, 45.0);
+            // The file and the code defaults agree (the embedded copy is the file).
+            var defaults = new SeaTemperatureCalibration();
+            Assert.Equal(defaults, C.SeaTemperature);
+        }
     }
 }

@@ -65,6 +65,7 @@ public partial class SimulationEngine
         Scenario?.RestoreActiveState(loadedState.ActiveScenarioId, loadedState.ScenarioStartDay,
             loadedState.ScenarioIsWon, loadedState.ScenarioIsLost, loadedState.ScenarioLossReason);
         ApplyScenarioRules(Scenario?.ActiveScenario);
+        AssignScenarioProductionAreas(Scenario?.ActiveScenario);   // pre-S2-02 saves
         SyncSeaTemperatureReference();
     }
 
