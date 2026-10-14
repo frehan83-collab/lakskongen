@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using LakskongenSim.Core;
 
 namespace LakskongenSim.Environment
@@ -66,12 +65,22 @@ namespace LakskongenSim.Environment
         public const int Count = 13;
 
         /// <summary>
-        /// Area for a zone that names none (tests, legacy saves) when the game has
-        /// no home area either: PO8 Helgeland til Bodø, whose climatology is the
-        /// closest (RMS 0.91 °C) to the single national curve the engine used before
-        /// S2-02, so bands measured on that curve stay comparable.
+        /// "No production area": the national reference curve. A zone that names
+        /// no area lies in the game's home area; a game with no home area (no
+        /// scenario: tests, tools, legacy saves without sites) uses this curve.
         /// </summary>
-        public const int DefaultArea = 8;
+        public const int NationalReference = 0;
+
+        /// <summary>
+        /// The national reference curve, January..December (°C): the single curve
+        /// every zone used before S2-02 (WeatherSystem.MonthlyMeanTemp, "Norwegian
+        /// fjords", no area or source given), kept so scenario-less games keep the
+        /// calibration measured on it. It is colder in winter than any area but
+        /// PO1. Every scenario zone lies in a real area (scenarios.json
+        /// "production_area"), so the shipped game never reads it.
+        /// </summary>
+        private static readonly double[] NationalReferenceMonthlyC =
+            { 4.5, 3.8, 4.2, 5.5, 8.0, 10.5, 12.5, 13.5, 12.0, 9.5, 7.0, 5.5 };
 
         /// <summary>Freezing point of 35 PSU seawater (°C): the only floor the sea temperature has.</summary>
         public const double SeawaterFreezingPointC = -1.9;
@@ -151,6 +160,9 @@ namespace LakskongenSim.Environment
         /// <summary>True for 1-13.</summary>
         public static bool IsValid(int productionArea) => productionArea >= 1 && productionArea <= Count;
 
+        /// <summary>True for 1-13 and for <see cref="NationalReference"/> (0).</summary>
+        public static bool HasClimatology(int productionArea) => productionArea == NationalReference || IsValid(productionArea);
+
         /// <summary>The area's data. Throws for a number outside 1-13.</summary>
         public static ProductionAreaInfo Get(int productionArea)
         {
@@ -160,13 +172,17 @@ namespace LakskongenSim.Environment
         }
 
         /// <summary>
-        /// Climatological sea temperature (°C, 3 m) of an area on a sim day: the
-        /// monthly means sit at mid-month and the day is interpolated linearly
-        /// between the two nearest, across the turn of the year.
+        /// Climatological sea temperature (°C, 3 m) of an area (or the national
+        /// reference, 0) on a sim day: the monthly means sit at mid-month and the
+        /// day is interpolated linearly between the two nearest, across the turn
+        /// of the year. (The old national curve sat its means on the first of
+        /// 30-day months, half a month early.)
         /// </summary>
         public static double ClimatologyC(int productionArea, int day)
         {
-            var monthly = Get(productionArea).SeaTemperatureMonthlyC;
+            IReadOnlyList<double> monthly = productionArea == NationalReference
+                ? NationalReferenceMonthlyC
+                : Get(productionArea).SeaTemperatureMonthlyC;
             double doy = SimCalendar.DayOfYear(day);
             int month = SimCalendar.MonthIndex(day);
             double mid = SimCalendar.MonthMidDayOfYear(month);
@@ -181,28 +197,10 @@ namespace LakskongenSim.Environment
             return a + (b - a) * t;
         }
 
-        private static readonly Regex ZoneIdPattern =
-            new(@"^po[\s_\-]?0?(\d{1,2})(?!\d)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
-        /// <summary>
-        /// The area a zone id names, for ids that start with it: "PO04", "po4",
-        /// "PO-12", "po3_nord". False for every other id.
-        /// </summary>
-        public static bool TryParseZoneId(string? zoneId, out int productionArea)
-        {
-            productionArea = 0;
-            if (string.IsNullOrWhiteSpace(zoneId)) return false;
-            var match = ZoneIdPattern.Match(zoneId.Trim());
-            if (!match.Success || !int.TryParse(match.Groups[1].Value, out int po) || !IsValid(po))
-                return false;
-            productionArea = po;
-            return true;
-        }
-
         /// <summary>
         /// The area a scenario's starting region stands for when its sites name no
         /// area (mods, legacy entries): the region's largest or best-known farming
-        /// area.
+        /// area. Zone ids are labels and are never parsed for an area.
         /// </summary>
         public static int DefaultForRegion(Data.ProductionRegion region) => region switch
         {
@@ -214,7 +212,7 @@ namespace LakskongenSim.Environment
             Data.ProductionRegion.Nordland => 8,
             Data.ProductionRegion.Troms => 11,
             Data.ProductionRegion.Finnmark => 12,
-            _ => DefaultArea,
+            _ => 3,
         };
 
         /// <summary>
@@ -224,9 +222,15 @@ namespace LakskongenSim.Environment
         public static double LiceLimitAdultFemales(int productionArea, int day)
             => IsLiceSpringPeriod(productionArea, day) ? SpringLiceLimit : StandardLiceLimit;
 
-        /// <summary>True in the area's spring weeks (luseforskriften § 8).</summary>
+        /// <summary>
+        /// True in the area's spring weeks (luseforskriften § 8). The national
+        /// reference (no area) keeps weeks 16-21, the rule the engine applied
+        /// everywhere before S2-02.
+        /// </summary>
         public static bool IsLiceSpringPeriod(int productionArea, int day)
         {
+            if (productionArea == NationalReference)
+                return SimCalendar.InIsoWeeks(day, SouthLiceSpringFirstWeek, SouthLiceSpringLastWeek);
             var area = Get(productionArea);
             return SimCalendar.InIsoWeeks(day, area.LiceSpringFirstIsoWeek, area.LiceSpringLastIsoWeek);
         }

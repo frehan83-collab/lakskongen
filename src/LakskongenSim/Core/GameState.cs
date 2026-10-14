@@ -196,7 +196,7 @@ namespace LakskongenSim.Core
         /// scenario's first starting site. The HUD sea temperature, land-based
         /// facilities' seawater intake and zones that name no area use it. 0 =
         /// not set (no scenario, legacy save): the engine falls back to the first
-        /// site's area, else <see cref="Environment.ProductionAreas.DefaultArea"/>.
+        /// site's area, else <see cref="Environment.ProductionAreas.NationalReference"/>.
         /// </summary>
         public int HomeProductionArea { get; set; }
 

@@ -20,44 +20,41 @@ public partial class SimulationEngine
     /// <summary>
     /// The player's home production area: the scenario's
     /// (<see cref="GameState.HomeProductionArea"/>), else the area of the first
-    /// site whose zone names one, else <see cref="ProductionAreas.DefaultArea"/>.
-    /// The HUD temperature (<see cref="WeatherSystem.CurrentTemperatureC"/>)
-    /// reports this area.
+    /// site whose zone lies in one, else <see cref="ProductionAreas.NationalReference"/>
+    /// (a game with no scenario). The HUD temperature
+    /// (<see cref="WeatherSystem.CurrentTemperatureC"/>) reports this area.
     /// </summary>
     public int HomeProductionArea
     {
         get
         {
-            if (State == null) return ProductionAreas.DefaultArea;
+            if (State == null) return ProductionAreas.NationalReference;
             if (ProductionAreas.IsValid(State.HomeProductionArea)) return State.HomeProductionArea;
             for (int i = 0; i < State.SeaSites.Count; i++)
             {
-                string zoneId = State.SeaSites[i].ZoneId;
-                var zone = FindZone(zoneId);
+                var zone = FindZone(State.SeaSites[i].ZoneId);
                 if (zone != null && ProductionAreas.IsValid(zone.ProductionArea)) return zone.ProductionArea;
-                if (ProductionAreas.TryParseZoneId(zoneId, out int parsed)) return parsed;
             }
-            return ProductionAreas.DefaultArea;
+            return ProductionAreas.NationalReference;
         }
     }
 
     /// <summary>
-    /// The production area a zone lies in: the one it was given, else the one
-    /// its id names ("PO04", "po3_nord"), else the home area.
+    /// The production area a zone lies in: the one it was given (scenario data,
+    /// <see cref="Zone.ProductionArea"/>), else the home area. Zone ids are labels
+    /// and are never parsed for an area.
     /// </summary>
     public int ProductionAreaOf(Zone zone)
     {
         if (zone == null) throw new ArgumentNullException(nameof(zone));
-        if (ProductionAreas.IsValid(zone.ProductionArea)) return zone.ProductionArea;
-        return ProductionAreas.TryParseZoneId(zone.Id, out int parsed) ? parsed : HomeProductionArea;
+        return ProductionAreas.IsValid(zone.ProductionArea) ? zone.ProductionArea : HomeProductionArea;
     }
 
-    /// <summary>The production area of a zone id, also for an id with no zone (facilities).</summary>
+    /// <summary>The production area of a zone id, also for an id with no zone (facilities): the home area.</summary>
     public int ProductionAreaOfZone(string? zoneId)
     {
         var zone = FindZone(zoneId);
-        if (zone != null) return ProductionAreaOf(zone);
-        return ProductionAreas.TryParseZoneId(zoneId, out int parsed) ? parsed : HomeProductionArea;
+        return zone != null ? ProductionAreaOf(zone) : HomeProductionArea;
     }
 
     /// <summary>The production area a sea site lies in.</summary>
@@ -107,19 +104,19 @@ public partial class SimulationEngine
     }
 
     /// <summary>
-    /// Daily, before the water chemistry runs: every zone is given its
-    /// production area once (kept and saved), and every zone that follows the
-    /// sea takes its area's temperature for today.
+    /// Daily, before the water chemistry runs: every zone that follows the sea
+    /// takes its production area's temperature for today (a zone with no area
+    /// takes the home area's).
     /// </summary>
     internal void ApplyProductionAreaSeaTemperatures()
     {
-        Weather.SetReferenceProductionArea(HomeProductionArea);
+        int home = HomeProductionArea;
+        Weather.SetReferenceProductionArea(home);
         for (int i = 0; i < State.Zones.Count; i++)
         {
             var zone = State.Zones[i];
-            if (!ProductionAreas.IsValid(zone.ProductionArea))
-                zone.ProductionArea = ProductionAreaOf(zone);
-            zone.TakeSeaTemperature(Weather.SeaTemperatureAt(zone.ProductionArea));
+            int area = ProductionAreas.IsValid(zone.ProductionArea) ? zone.ProductionArea : home;
+            zone.TakeSeaTemperature(Weather.SeaTemperatureAt(area));
         }
     }
 

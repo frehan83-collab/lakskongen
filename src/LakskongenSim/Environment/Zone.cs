@@ -282,11 +282,12 @@ namespace LakskongenSim.Environment
         public bool FollowsSeaTemperature { get; set; } = true;
 
         /// <summary>
-        /// Production area (1-13, PO1-PO13) the zone lies in (S2-02). 0 until
-        /// assigned: a scenario sets it for its sites; otherwise the engine
-        /// resolves it on the first day from an id such as "PO04" or else the
-        /// game's home area, and keeps it. Saved; legacy saves load as 0 and are
-        /// resolved the same way.
+        /// Production area (1-13, PO1-PO13) the zone lies in (S2-02): its sea
+        /// temperature, lice spring weeks, PD zone and licence size. A scenario
+        /// sets it for its sites (<c>production_area</c>). 0 = none given: the
+        /// zone lies in the game's home area (the national reference curve in a
+        /// game with no scenario). The id is a label and is never parsed for an
+        /// area. Saved; legacy saves load as 0.
         /// </summary>
         public int ProductionArea { get; set; }
 

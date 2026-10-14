@@ -40,9 +40,9 @@ namespace LakskongenSim.Core
 
         /// <summary>
         /// Production area (1-13, PO1-PO13) the site's zone lies in (S2-02): its
-        /// sea temperature, lice spring weeks, PD zone and licence size. 0 derives
-        /// it from a zone id that names one ("po3_nord"), else from the scenario's
-        /// starting region (<see cref="Environment.ProductionAreas.DefaultForRegion"/>).
+        /// sea temperature, lice spring weeks, PD zone and licence size. 0 takes
+        /// the scenario's starting region's area
+        /// (<see cref="Environment.ProductionAreas.DefaultForRegion"/>).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("production_area")]
         public int ProductionArea { get; set; }
@@ -554,16 +554,15 @@ namespace LakskongenSim.Core
         }
 
         /// <summary>
-        /// The production area a starting site lies in (S2-02): the one it names,
-        /// else the one its zone id names ("po3_nord"), else the starting region's.
+        /// The production area a starting site lies in (S2-02): the one it names
+        /// (<c>production_area</c>), else the starting region's
+        /// (<see cref="LakskongenSim.Environment.ProductionAreas.DefaultForRegion"/>).
         /// </summary>
         public int ProductionAreaOf(StartingSiteDefinition site)
         {
             if (site == null) throw new ArgumentNullException(nameof(site));
             if (LakskongenSim.Environment.ProductionAreas.IsValid(site.ProductionArea))
                 return site.ProductionArea;
-            if (LakskongenSim.Environment.ProductionAreas.TryParseZoneId(site.Zone, out int parsed))
-                return parsed;
             return LakskongenSim.Environment.ProductionAreas.DefaultForRegion(StartingRegion);
         }
 

@@ -29,9 +29,9 @@ namespace LakskongenSim.Environment
         /// <summary>
         /// Production area whose sea temperature <see cref="CurrentTemperatureC"/>
         /// reports: the player's home area, set by the engine every day from the
-        /// game state (so not saved here).
+        /// game state (so not saved here); the national reference curve until then.
         /// </summary>
-        public int ReferenceProductionArea { get; private set; } = ProductionAreas.DefaultArea;
+        public int ReferenceProductionArea { get; private set; } = ProductionAreas.NationalReference;
 
         /// <summary>Slow shared anomaly (°C): a seeded AR(1) process, warm and cold seasons and years.</summary>
         public double SeaAnomalyC { get; private set; }
@@ -130,12 +130,12 @@ namespace LakskongenSim.Environment
 
         /// <summary>
         /// Report the sea temperature of <paramref name="productionArea"/> as
-        /// <see cref="CurrentTemperatureC"/> (the player's home area). Numbers
-        /// outside 1-13 are ignored.
+        /// <see cref="CurrentTemperatureC"/> (the player's home area; 0 = the national
+        /// reference). Numbers outside 0-13 are ignored.
         /// </summary>
         public void SetReferenceProductionArea(int productionArea)
         {
-            if (!ProductionAreas.IsValid(productionArea) || productionArea == ReferenceProductionArea)
+            if (!ProductionAreas.HasClimatology(productionArea) || productionArea == ReferenceProductionArea)
                 return;
             ReferenceProductionArea = productionArea;
             CurrentTemperatureC = SeaTemperatureAt(productionArea);

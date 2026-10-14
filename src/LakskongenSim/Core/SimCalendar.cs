@@ -171,11 +171,14 @@ namespace LakskongenSim.Core
         /// <summary>Calendar quarters since sim day 0 (January-March of year 0 is 0).</summary>
         public static int QuartersSinceEpoch(int day) => YearIndex(day) * 4 + MonthIndex(day) / 3;
 
-        /// <summary>True when <paramref name="day"/> lies in a later calendar month than <paramref name="lastDay"/>.</summary>
-        public static bool IsNewMonthSince(int lastDay, int day) => MonthsSinceEpoch(day) > MonthsSinceEpoch(lastDay);
+        /// <summary>True on the last day of a month (monthly books close on it).</summary>
+        public static bool IsLastDayOfMonth(int day) => IsFirstDayOfMonth(day + 1);
 
-        /// <summary>True when <paramref name="day"/> lies in a later calendar quarter than <paramref name="lastDay"/>.</summary>
-        public static bool IsNewQuarterSince(int lastDay, int day) => QuartersSinceEpoch(day) > QuartersSinceEpoch(lastDay);
+        /// <summary>True on 31 March, 30 June, 30 September and 31 December (quarterly books close on it).</summary>
+        public static bool IsLastDayOfQuarter(int day) => QuartersSinceEpoch(day + 1) != QuartersSinceEpoch(day);
+
+        /// <summary>True on 31 December.</summary>
+        public static bool IsLastDayOfYear(int day) => DayOfYear(day) == DaysPerYear - 1;
 
         /// <summary>The weekday of a sim day.</summary>
         public static DayOfWeek Weekday(int day)

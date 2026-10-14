@@ -2135,8 +2135,8 @@ private class BalancingConfig
             }
 
             // 5. Monthly provisional corporate tax (true-up; see SettleProvisionalTax),
-            // on the first of every calendar month (S2-02; it was every 30 days).
-            if (SimCalendar.IsFirstDayOfMonth(State.Day))
+            // on the last day of every calendar month (S2-02; it was every 30 days).
+            if (SimCalendar.IsLastDayOfMonth(State.Day))
                 SettleProvisionalTax();
         }
 

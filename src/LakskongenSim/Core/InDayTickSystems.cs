@@ -508,8 +508,8 @@ namespace LakskongenSim.Core;
         private int _lastCompetitorAIUpdate = 0;
         public void Tick(SimulationEngine engine)
         {
-            // Each calendar quarter (S2-02; it was every 90 days).
-            if (SimCalendar.IsNewQuarterSince(_lastCompetitorAIUpdate, engine.State.Day))
+            // On the last day of each calendar quarter (S2-02; it was every 90 days).
+            if (SimCalendar.IsLastDayOfQuarter(engine.State.Day) && engine.State.Day != _lastCompetitorAIUpdate)
             {
                 // Calculate player metrics for competitor context
                 float playerMarketShare = engine.CalculatePlayerMarketShare();
@@ -573,8 +573,9 @@ namespace LakskongenSim.Core;
         private int _lastVerticalIntegrationUpdate = 0;
         public void Tick(SimulationEngine engine)
         {
-            // Each calendar month (S2-02; every 30 days charged 12.17 monthly OPEX slices a year).
-            if (SimCalendar.IsNewMonthSince(_lastVerticalIntegrationUpdate, engine.State.Day))
+            // On the last day of each calendar month (S2-02; every 30 days charged
+            // 12.17 monthly OPEX slices a year).
+            if (SimCalendar.IsLastDayOfMonth(engine.State.Day) && engine.State.Day != _lastVerticalIntegrationUpdate)
             {
                 if (engine.VerticalIntegration != null)
                 {
@@ -613,9 +614,10 @@ namespace LakskongenSim.Core;
         private int _lastCorporateFinanceUpdate = 0;
         public void Tick(SimulationEngine engine)
         {
-            // Each calendar quarter, so the fourth closes the calendar year (S2-02;
-            // every 90 days made a 360-day financial year that drifted off the calendar).
-            if (SimCalendar.IsNewQuarterSince(_lastCorporateFinanceUpdate, engine.State.Day))
+            // On 31 March, 30 June, 30 September and 31 December, so the fourth
+            // quarter closes the calendar year (S2-02; every 90 days made a
+            // 360-day financial year that drifted off the calendar).
+            if (SimCalendar.IsLastDayOfQuarter(engine.State.Day) && engine.State.Day != _lastCorporateFinanceUpdate)
             {
                 // Quarterly/annual corporate finance processing
                 if (engine.CorporateFinance != null)
@@ -677,7 +679,7 @@ namespace LakskongenSim.Core;
         private int _lastInvestorUpdate = 0;
         public void Tick(SimulationEngine engine)
         {
-            if (SimCalendar.IsNewMonthSince(_lastInvestorUpdate, engine.State.Day))
+            if (SimCalendar.IsLastDayOfMonth(engine.State.Day) && engine.State.Day != _lastInvestorUpdate)
             {
                 // Monthly investor update - report dilution and bond status
                 if (engine.InvestorSystem != null)
@@ -781,7 +783,7 @@ namespace LakskongenSim.Core;
             // ProductMixOptimizer is called on-demand when player opens processing UI
             // No periodic update needed — it's a decision support tool, not a simulation system
             // This interval marker is for future features (e.g., auto-optimization recommendations)
-            if (SimCalendar.IsNewMonthSince(_lastProductMixOptimizerUpdate, engine.State.Day))
+            if (SimCalendar.IsLastDayOfMonth(engine.State.Day) && engine.State.Day != _lastProductMixOptimizerUpdate)
             {
                 _lastProductMixOptimizerUpdate = engine.State.Day;
             }

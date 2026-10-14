@@ -200,12 +200,19 @@ public class StormSeasonTests
             return sum / samples;
         }
 
-        // Seasonal means on those days: 6.0 °C (20 Nov) and 13.2 °C (20 Jul);
-        // severe-day noise sd 3 °C, 2,000 samples (standard error 0.07 °C).
+        // S2-02 (one calendar): the monthly means now sit at mid-month on real
+        // month lengths, not on the first of 30-day months, so the climatology on
+        // these days moved (national reference: 6.78 °C on 20 Nov, 12.61 °C on
+        // 20 Jul; it was 6.0 and 13.2). The rule is unchanged and asserted more
+        // tightly against the climatology itself: severe-day fluctuation sd
+        // 0.9 °C plus one day of the slow anomaly, 2,000 samples (standard error
+        // 0.02 °C); the old bands were ±0.4 and ±0.35 °C.
         double november = MeanTemperatureOnSevereDays(320);
         double july = MeanTemperatureOnSevereDays(200);
-        Assert.InRange(november, 5.7, 6.5);  // no cooling (6.1 with the 1.5 °C floor)
-        Assert.InRange(july, 11.3, 12.0);    // 1.5 °C cooler (11.7)
+        double novemberClimatology = ProductionAreas.ClimatologyC(ProductionAreas.NationalReference, 320);
+        double julyClimatology = ProductionAreas.ClimatologyC(ProductionAreas.NationalReference, 200);
+        Assert.InRange(november, novemberClimatology - 0.15, novemberClimatology + 0.15);  // no cooling
+        Assert.InRange(july, julyClimatology - 1.5 - 0.15, julyClimatology - 1.5 + 0.15);  // 1.5 °C cooler
     }
 
     // ── Storm episodes (engine) ─────────────────────────────────────────────
