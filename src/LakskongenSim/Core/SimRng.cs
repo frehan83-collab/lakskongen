@@ -32,14 +32,19 @@ public sealed class SimRng
 
     public SimRng(int seed) => _gameSeed = (ulong)seed;
 
+    /// <summary>The game seed every stream derives from (saved as GameState.RandomSeed).</summary>
+    public int Seed => unchecked((int)_gameSeed);
+
     /// <summary>
     /// Unseeded fallback. The live game always passes a seed (StartNewGame
     /// stores GameState.RandomSeed); this exists only for headless/legacy
     /// entry points and uses a crypto RNG so no gameplay stream is derived
-    /// from wall-clock correlations.
+    /// from wall-clock correlations. Never 0: a saved seed of 0 means "no
+    /// seed" to the load path, so an unseeded game rolls a non-zero one and
+    /// Initialize records it (P0-07) for an exact resume.
     /// </summary>
     public static SimRng CreateUnseeded()
-        => new(RandomNumberGenerator.GetInt32(int.MinValue, int.MaxValue));
+        => new(RandomNumberGenerator.GetInt32(1, int.MaxValue));
 
     /// <summary>Get (or lazily create) the single stream for a scope.</summary>
     public SimRngStream Stream(string scope) => Stream(scope, Array.Empty<string>());

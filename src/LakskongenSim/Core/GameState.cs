@@ -267,6 +267,9 @@ namespace LakskongenSim.Core
         /// <summary>Spot-hire wellboat jobs awaiting execution (Phase 2.4).</summary>
         public List<Logistics.WellboatJob> WellboatJobs { get; set; } = new();
 
+        /// <summary>Wellboat bookings made this game: the sequence number in each job's deterministic id (P0-07).</summary>
+        public int WellboatJobsBooked { get; set; }
+
         /// <summary>Staff roster (Phase 3.1).</summary>
         public List<CrewMember> Crew { get; set; } = new();
 

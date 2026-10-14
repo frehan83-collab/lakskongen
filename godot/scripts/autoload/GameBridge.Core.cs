@@ -151,11 +151,11 @@ public partial class GameBridge : Node
     {
         SimulationEngine.FinanceManager = new FinanceManager(startingCapital);
         // S10: the live game was never seeded — every subsystem fell back to
-        // unseeded System.Random. Pick one seed, persist it on the state;
-        // the QA path passes a fixed seed so screenshot/headless runs replay.
-        int resolvedSeed = seed ?? new System.Random().Next();
-        SimulationEngine.Initialize(seed: resolvedSeed);
-        SimulationEngine.State.RandomSeed = resolvedSeed;
+        // unseeded System.Random. A player game rolls one non-zero seed in
+        // Initialize, which records it on the state (P0-07); the QA path passes
+        // a fixed seed so screenshot/headless runs replay.
+        SimulationEngine.Initialize(seed: seed);
+        int resolvedSeed = SimulationEngine.State.RandomSeed;
 
         // P11: a new game starts with no in-memory mitigation installs and a
         // clean serializable mirror (the registry outlives Initialize).

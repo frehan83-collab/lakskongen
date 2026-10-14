@@ -47,9 +47,19 @@ public static class StateHash
             throw new InvalidOperationException($"{result.ErrorKey}: {result.Message}");
     }
 
-    /// <summary>usage: StateHashProbe &lt;seed&gt; &lt;days&gt; &lt;events:true|false&gt;</summary>
+    /// <summary>
+    /// usage: StateHashProbe &lt;seed&gt; &lt;days&gt; &lt;events:true|false&gt;.
+    /// <c>--sleep-ms &lt;ms&gt;</c> only sleeps: CrossProcessDeterminismTests uses
+    /// it as a hung probe to prove the runner enforces its timeout (P0-07).
+    /// </summary>
     public static int Main(string[] args)
     {
+        if (args.Length == 2 && args[0] == "--sleep-ms"
+            && int.TryParse(args[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int sleepMs))
+        {
+            Thread.Sleep(sleepMs);
+            return 0;
+        }
         if (args.Length != 3
             || !int.TryParse(args[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int seed)
             || !int.TryParse(args[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int days)

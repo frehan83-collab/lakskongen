@@ -4,7 +4,7 @@
 LakskongenSim is a realistic Norwegian salmon-farming simulation with Godot 4.7.2 (Mono) frontend and C# .NET 10 backend. The engine is deterministic, save/load round-trips exactly, and all subsystems implement `ITickSystem` + `ISnapshotable`.
 
 **Key Architectural Principles:**
-- **Determinism first**: `SimRng` SplitMix64 with frozen streams; `DeterminismBanTests` enforces no `Random`, `DateTime.Now`, `Guid.NewGuid()` in src/
+- **Determinism first**: `SimRng` SplitMix64 with frozen streams; `DeterminismBanTests` enforces no unseeded `Random`, `DateTime.Now/Today`, `DateTimeOffset.Now`, `Environment.TickCount`, `RandomNumberGenerator`, `Guid.NewGuid()` or process-random hashing in src/LakskongenSim (Roslyn scan; the allowlist is keyed by `path :: pattern :: Type.Member :: count`)
 - **Calibration SSOT**: All numeric constants in `CalibrationRegistry` / `BalancingConfig`; grep test fails on literals in tick code
 - **No clamps to hit realism**: If a band is missed, fix the model
 - **Visual claims need screenshot diffs**: Headless "green" ≠ evidence

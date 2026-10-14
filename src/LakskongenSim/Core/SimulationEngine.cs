@@ -267,6 +267,10 @@ namespace LakskongenSim.Core
             Reset();
             _enableEvents = enableEvents;
             Rng = seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded();
+            // P0-07: the state carries the seed its streams derive from, so a
+            // save of ANY game (also one started without a seed) resumes on
+            // the same streams. Callers no longer have to remember to set it.
+            State.RandomSeed = Rng.Seed;
             _rng = Rng.Stream(SimRngStreams.Storyteller, "engine");
             
             // Create subsystems
