@@ -66,7 +66,11 @@ namespace LakskongenSim.Events
         InsurancePayout,
         WellboatCompleted,
         WellboatReturned,
-        StoryEvent
+        StoryEvent,
+
+        // ── Standing orders (they hold until answered or enforced; U2-07) ──
+        LiceTreatmentOrder,
+        BiomassOrder
     }
 
     /// <summary>
@@ -140,6 +144,9 @@ namespace LakskongenSim.Events
             Row(GameEventType.WellboatCompleted, "wellboat_completed", "wellboat", GameEventSeverity.Info, NoCounterVerb),
             Row(GameEventType.WellboatReturned, "wellboat_returned", "wellboat", GameEventSeverity.Warning, VerbInspectSite),
             Row(GameEventType.StoryEvent, "story_event", "story", GameEventSeverity.Info, NoCounterVerb),
+
+            Row(GameEventType.LiceTreatmentOrder, "lice_treatment_order", "lice_order", GameEventSeverity.Warning, VerbDelouse, GameEventDeadlineRule.SetByPublisher),
+            Row(GameEventType.BiomassOrder, "biomass_order", "biomass_order", GameEventSeverity.Warning, VerbInspectSite, GameEventDeadlineRule.SetByPublisher),
         };
 
         private static readonly Dictionary<GameEventType, GameEventTypeInfo> ByType =

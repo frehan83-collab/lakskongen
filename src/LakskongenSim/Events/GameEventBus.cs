@@ -124,6 +124,10 @@ namespace LakskongenSim.Events
         /// <summary>Raised for every delivered or escalated event, as it happens.</summary>
         public event Action<GameEvent>? Delivered;
 
+        /// <summary>Raised when the bus is emptied (a new or loaded game), so
+        /// state kept beside it (the pacing deadlines, U2-07) goes with it.</summary>
+        public event Action? Cleared;
+
         /// <summary>Reports absorbed as repeats since the bus was last cleared.</summary>
         public int SuppressedCount { get; private set; }
 
@@ -213,6 +217,7 @@ namespace LakskongenSim.Events
             _sequence = 0;
             SuppressedCount = 0;
             Generation++;
+            Cleared?.Invoke();
         }
 
         private GameEvent Deliver(GameEvent candidate)
