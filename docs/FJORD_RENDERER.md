@@ -14,11 +14,11 @@ and adds two nodes of its own: `FishPenManager` (under the environment) and
 ```
 FjordEnvironment (FjordEnvironment.gd)    environment controller + gameplay API
 ├── Terrain (FjordTerrain.gd)             chunked heightfield mesh, collider, height queries
-├── WaterPlane (MeshInstance3D)           water_shader.gdshader (+ OceanSkirt, built at runtime)
+├── WaterGrid (WaterGrid.gd)              camera-snapped LOD water grid, water_shader.gdshader
 ├── FjordCamera (FjordCamera.gd)          camera rig
 ├── Sun, Moon (DirectionalLight3D)        the Moon is Light Only (not drawn by the sky)
 ├── WorldEnvironment                      sky_shader.gdshader, fog, AgX, glow, SSAO
-├── ReflectionProbe                       re-captured per sky state, no ambient
+├── ReflectionProbe                       re-captured per sky state, no ambient, not on the water
 ├── TimeOfDay (TimeOfDay.gd)              presentation hour + sim calendar -> sun, moon, aurora
 ├── WeatherSystem (WeatherController.gd)  presentation weather (blended), rain/snow particles
 ├── EnvironmentDirector                   the only writer of fog, sky, light, image, waves
@@ -96,15 +96,16 @@ shows the world (`GameUI.world_view_changed` → `FjordVistaBridge` →
 `input_enabled`), letters are ignored while a text field has focus and arrows
 while any Control has focus. Idle auto-orbit starts after 30 s.
 
-`FjordEnvironment.gd` adds an ocean skirt (30 km, the water material) around
-the 4 km water plane so the view out of the mouth ends at a horizon.
+The water grid (`WaterGrid.gd`, below) runs out to ±32.8 km, so the view out
+of the mouth ends at a horizon.
 
 ## Environment: light, sky, fog and weather (G1-02, G1-04)
 
 `EnvironmentDirector.gd` is the only writer of the WorldEnvironment (fog,
 tonemap, glow, ambient, SSAO), the sky material's uniforms, the Sun and Moon
-lights, the camera's depth of field and the water's wave uniforms
-(`tests/test_environment_director.py` fails on a second writer). Every frame
+lights, the camera's depth of field and the water material's sea state,
+phases and bake (`tests/test_environment_director.py` fails on a second
+writer). Every frame
 it recomposes them from its inputs, so leaving the water or a staged weather
 needs no restore step:
 
@@ -112,8 +113,8 @@ needs no restore step:
 |---|---|---|
 | hour of day | `TimeOfDay` presentation clock (2 game min/s, opens at 10:48; photo mode pins it) | sun and moon position |
 | date, latitude | the sim (`GameBridge.GetSkyContext` via `FjordVistaBridge`): day 0 = 1 January, the scenario region's latitude (`RegionGeography`) | season, polar night, midnight sun, aurora |
-| visibility, cloud, rain/snow, sea fog, wind, waves | the sim (`AtmosphereModel`) blended by `WeatherController`; named presets for staging | fog, sky, sun dimming, particles, waves |
-| sea temperature, bloom | the sim, always synced | water tint |
+| visibility, cloud, rain/snow, sea fog, wind | the sim (`AtmosphereModel`) blended by `WeatherController`; named presets for staging | fog, sky, sun dimming, particles, the sea state (from the wind and the fetch) |
+| sea temperature, bloom | the sim, always synced | water scatter and absorption |
 | distance, height | `FjordCamera` | DOF, shadows, SSAO, underwater |
 
 The models live in the sim and are unit-tested (`SkyModelTests.cs`):
@@ -155,6 +156,31 @@ calm, clear night with the oval to the north, hour pinned at 22:00; it fails
 unless the aurora holds ≥ 3 % of the frame, and 0 % on the same night under
 overcast.
 
+## Water (G1-05)
+
+Opaque: `water_shader.gdshader` writes no `ALPHA` and reads no screen or
+depth texture (`tests/test_water_optics.py`), so it stays in the opaque pass
+with SSR-ready depth, depth of field and correct sorting against nets and
+boats, and the terrain never shows through deep water.
+
+| Part | What it does |
+|---|---|
+| Bake | `WaterBake.cs`, on the terrain worker thread (`TerrainGeneratorBridge`), one RGBA16F texel per heightfield vertex (`FjordTerrain.water_bake_texture`, `water_bake_at()`): R depth below sea level, G signed shore distance (exact Euclidean distance transform, Felzenszwalb & Huttenlocher, on a 2× grid: ±2 m), B open-sea exposure (16 rays per sample; a ray that leaves the world over water counts e^(−distance/1.5 km)), A seabed slope; plus the basin's effective fetch for the prevailing sea (CEM radials ±15°, median over sheltered water: 1.1-1.3 km for the default fjord) |
+| Colour | Beer-Lambert over the baked depth along the refracted path: σ = (0.40, 0.09, 0.14) m⁻¹, deep scatter (0.0022, 0.0085, 0.0105); the seabed (sediment or rock by slope, sunlit caustics under 6 m) shows only through shallow water. A bloom adds green absorption and scatter, warm water a touch of green |
+| Reflection | the engine's Schlick Fresnel, F0 0.02 (`SPECULAR` 0.25), GGX; roughness 0.04 plus the slope variance of the waves too fine for the pixel. Facets never mirror below the horizon. The water sits on render layer 20, which the ReflectionProbe's `reflection_mask` leaves out: the water mirrors the sky radiance (updated with the sky) instead of a one-point capture whose box edge printed a seam across the open sea |
+| Sea state | `SeaStateModel.cs`: Carter (1982) JONSWAP fetch-limited growth, gHs/U² = 1.6·10⁻³·χ^½ and gTp/U = 0.286·χ^⅓ (χ = gF/U²), capped at the Pierson-Moskowitz sea (0.243, 8.134); the JONSWAP spectrum (γ 3.3) sampled into 8 fixed bands (128 m down to 1.6 m) with Σa² = Hs²/8; Monahan & O'Muircheartaigh (1980) whitecap cover 3.84·10⁻⁶·U^3.41. Two seas per wind: the sheltered basin (the baked fetch) and the open coast (100 km), blended per pixel by the baked exposure. 3 m/s over the basin: Hs 0.05 m; 20 m/s on the open coast: Hs 3.2 m, Tp 7.9 s |
+| Waves | 16 Gerstner components (2 per band, ±9-27° round the band heading, detuned 0.95/1.055), choppiness capped so the summed steepness stays under 0.75; phases integrated by the director (no `TIME`), so a wind change never makes them jump or slide; analytic normals per pixel, each component faded out of the normal once its wavelength is under 2-6 pixel footprints (footprint from the distance and the grazing angle) and its slope variance moved into the roughness; ripple normal maps (`tools/gen_water_textures.py`: a k^−3.5 spectrum) scaled by the wind |
+| Foam | shore: a lapping line in a calm, a surf band 1.5-10 m wide with lines running in once the sea builds (shore distance field); whitecaps: crest gate + breaker noise stretched along the crests over a threshold mapped from Monahan's share (calibrated top-down: cover 0.7 / 3.1 / 10.5 % at 9 / 14 / 20 m/s), lacy core and spent foam; past 0.1-0.35 of the dominant wavelength per pixel a faint mean whitening |
+| Underside | `cull_disabled`; `!FRONT_FACING` draws Snell's window (48.6°) lit by the day's sky and total internal reflection of the deep water outside it |
+| Grid | `WaterGrid.gd`: level 0 is 2 m quads ±256 m round the camera, 4 more levels double the spacing to ±4.1 km (32 culled pieces), then a flat skirt to ±32.8 km; snapped to the camera in 2 m steps; the vertex shader stitches each level's rim to the coarser ring and lays the last rim flat, and draws a component only where it has ≥ 4 vertices per wavelength |
+
+Cost (2560×1440, M1 Pro, A/B in one run, water shown vs hidden, p50):
+calm FARM +1.9 ms, FJORD +3.4 ms, COAST −0.6 ms (the opaque water hides
+terrain the GPU no longer shades); storm +3.5 / +4.5 / −0.2 ms. The old
+transparent water cost about +5.8 ms at FJORD. The frame without water
+already takes 25-30 ms there (sky, terrain, SSAO, DOF, MSAA + SMAA), so the
+16.7 ms target is a whole-frame budget item, not the water's.
+
 ## Image pipeline (G1-06, post and anti-aliasing)
 
 MSAA 4× plus SMAA (`screen_space_aa = 2`); no tilt-shift pass (removed with
@@ -163,14 +189,17 @@ camera's focus distance (far blur from 1.8× the distance, amount FARM 0.06,
 FJORD 0.10, COAST 0.14, off underwater and at night, near blur below 500 m);
 directional shadow distance 350 / 1600 / 4500 m and SSAO radius 1.5 / 4 / 8 m
 by zoom (SSAO fades out 1.5-6 km); no SDFGI (Godot 4.7 gets no indirect light
-from it on Metal, #120496).
+from it on Metal, #120496). The pen net (`pen_net_shader.gdshader`) writes its
+thread coverage as alpha with `alpha_to_coverage_and_one`, so MSAA resolves
+the threads, and fades to its mean coverage 1 − (1 − w)² once the mesh passes
+0.35 cells per pixel: no moire on a distant or orbiting pen.
 
 ## Shaders in use
 
 | Shader | Used by |
 |---|---|
 | `shaders/terrain_shader.gdshader` | terrain material (built by `FjordTerrain.gd`) |
-| `shaders/water_shader.gdshader` | `WaterPlane` |
+| `shaders/water_shader.gdshader` | `WaterGrid` |
 | `shaders/sky_shader.gdshader` | `WorldEnvironment` sky |
 | `shaders/underwater_post.gdshader` | `UnderwaterCanvas` |
 | `shaders/pen_*.gdshader`, `fish_shader.gdshader` | pen and fish assets |
