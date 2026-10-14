@@ -20,6 +20,10 @@ extends Node3D
 ##   set_owner_band()                         rival colour band
 ##   set_net_opacity()                        quieter rival nets
 ##   set_lice_skirt()                         the skirt variant
+##
+## The pen floats (roadmap G2-03): every frame ride_waves() sets the node's
+## height and tilt from the drawn water (WaveField), so pens, nets and the
+## health ring rise and fall with the sea. Its x, z and yaw stay its owner's.
 
 @export_group("Pen Dimensions")
 @export var collar_radius: float = 25.5  # 160 m inner pipe circumference / (2*PI)
@@ -35,6 +39,10 @@ extends Node3D
 @export var walkway_material: Material
 @export var handrail_material: Material
 @export var feedpipe_material: Material
+
+@export_group("Waves")
+## Ride the drawn water (G2-03). Off: the pen keeps its rest height.
+@export var rides_waves: bool = true
 
 @export_group("Health Indicator")
 @export var health_color: Color = Color("#9FB4BB", 0.35)
@@ -73,6 +81,15 @@ const NET_PARTS := ["Net", "BirdNet"]
 ## water (a shadow there is never seen, but every cascade would draw it).
 const NO_SHADOW_PARTS := ["Net", "BirdNet", "SinkerTube", "LiceSkirt"]
 
+## The circle the collar floats on: the walkway centreline between the twin
+## pipes (blender/build_pen.py WALK_MID = R_IN + PIPE_SPACING / 2).
+const RING_RADIUS := 26.015
+## Past this camera distance (m) the pen is LOD2, its motion is under a
+## pixel and the grid there draws only long waves: it rides every
+## FAR_RIDE_FRAMES-th frame instead of every frame.
+const NEAR_RIDE_M := 850.0
+const FAR_RIDE_FRAMES := 8
+
 var health_state: int = Health.UNKNOWN
 
 var _collar_node: MeshInstance3D
@@ -85,6 +102,10 @@ var _click_area: Area3D
 var _band_color: Color = Color(0, 0, 0, 0)
 var _net_opacity: float = 1.0
 var _lice_skirt: bool = false
+## Bake sample under the pen, keyed by (x, z, WaveField.bake_version).
+var _bake_key := Vector3(INF, INF, -1.0)
+var _bake_sample := Color()
+var _ride_slot := 0
 
 func _ready() -> void:
 	_collar_node = get_node_or_null("Collar") as MeshInstance3D
@@ -100,6 +121,40 @@ func _ready() -> void:
 	_apply_band()
 	_apply_net_opacity()
 	_apply_lice_skirt()
+	_ride_slot = int(get_instance_id() % FAR_RIDE_FRAMES)
+
+
+func _process(_delta: float) -> void:
+	if WaveField.active == null or not rides_waves:
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam != null and cam.global_position.distance_squared_to(global_position) > NEAR_RIDE_M * NEAR_RIDE_M \
+			and (Engine.get_process_frames() + _ride_slot) % FAR_RIDE_FRAMES != 0:
+		return
+	ride_waves()
+
+
+## Float on the drawn water: the collar settles on the plane that best fits
+## the surface under its ring (WaveField.ring: heave and a gentle tilt), so
+## the pen rides the swell and lets chop shorter than itself run under it,
+## as a 160 m HDPE ring does. Moves only this node's height and tilt.
+func ride_waves() -> void:
+	var field := WaveField.active
+	if field == null or not rides_waves:
+		return
+	var parent := get_parent() as Node3D
+	var frame: Transform3D = parent.global_transform if parent != null else Transform3D.IDENTITY
+	var rest := frame * Vector3(position.x, 0.0, position.z)
+	if rest.x != _bake_key.x or rest.z != _bake_key.y or float(field.bake_version) != _bake_key.z:
+		_bake_key = Vector3(rest.x, rest.z, float(field.bake_version))
+		_bake_sample = field.bake_at(rest.x, rest.z)
+	var plane := field.ring(rest.x, rest.z, RING_RADIUS, _bake_sample)
+	# The world slope in the pen's own axes (its yaw inside its owner's frame).
+	var axes := frame.basis * Basis(Vector3.UP, rotation.y)
+	var slope_x := plane.y * axes.x.x + plane.z * axes.x.z
+	var slope_z := plane.y * axes.z.x + plane.z * axes.z.z
+	position.y = plane.x - frame.origin.y
+	rotation = Vector3(-atan(slope_z), rotation.y, atan(slope_x))
 
 ## The meshes of one LOD level (0 = the direct children).
 func get_lod_meshes(level: int) -> Array[MeshInstance3D]:

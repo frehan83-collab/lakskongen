@@ -69,6 +69,35 @@ const SELECTION_COLOR := Color(0.910, 0.933, 0.941, 0.9)
 ## and a 1.4 m gap).
 const BOAT_MOORING_OFFSET := 33.6
 
+# === Site layout ===
+# A site's frame mooring is laid along the channel (its local +Z follows the
+# fjord's centreline at the pen). The feed barge lies on one side of the
+# grid, beside the pen with its feed lines towards it, and a wellboat comes
+# alongside on the other side; both lie outside the grid buoys. The
+# wellboat takes the side facing the fairway (the open water a 116 m hull
+# needs; on the centreline, the deeper side), the barge the other, and the
+# pen turns its feed hose (local +X) towards the barge.
+## Perpendicular metres from the pen centre to the barge's inner hull side:
+## 6 m past the feed hose's end float (40 m out, build_pen.py HOSE_END).
+const BARGE_HULL_SIDE_M := 46.0
+## ... and to a wellboat's inner hull side: 3.5 m outside the grid buoys
+## (MooringGrid cell half-width 35 m).
+const WELLBOAT_HULL_SIDE_M := 38.5
+## What a site keeps clear for passing boats, beyond the grid: the widest
+## wellboat (23 m beam) on its side, the large barge (13 m) with its tender
+## RIB (3 m and a 0.5 m gap) on the other, over this half-length along the
+## grid axis (a 116 m hull alongside, plus room to turn in).
+const GRID_CLEAR_HALF_M := 36.0
+const WELLBOAT_RESERVE_BEAM_M := 23.0
+const BARGE_RESERVE_BEAM_M := 16.5
+const SITE_RESERVE_HALF_LENGTH_M := 80.0
+## Water a berth side needs under its footprint (m), and the footprint's
+## along-axis reach either side of the pen (m).
+const BERTH_MIN_DEPTH_M := 10.0
+const BERTH_SAMPLE_REACH_M := 60.0
+## The channel's heading at a pen is the centreline's slope over +-this (m).
+const CHANNEL_HEADING_SPAN_M := 20.0
+
 
 func _ready() -> void:
 	_ensure_expected_nodes()
@@ -131,6 +160,16 @@ func _process(delta: float) -> void:
 	for pen_id in _pens:
 		var pen_data = _pens[pen_id]
 		_animate_fish_school(pen_data, pen_id)
+	_follow_selected_pen()
+
+
+## The selection ring lies on the water round the selected pen, so it rises
+## and falls with the pen as the pen rides the waves.
+func _follow_selected_pen() -> void:
+	if active_indicator == null or not active_indicator.visible or not (selected_pen_id in _pens):
+		return
+	var cage: Node3D = _pens[selected_pen_id]["node"]
+	active_indicator.global_position.y = cage.global_position.y + SELECTION_RING_Y
 
 
 func setup_pens(terrain: FjordTerrain) -> void:
@@ -298,6 +337,12 @@ func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 	cage.name = pen_id
 	markers_parent.add_child(cage)
 	cage.global_position = position
+	# The site lies along the channel; the pen's feed hose (+X) points at the
+	# side its barge moors on (world +X or -X, where the barge berth lies).
+	var grid_yaw := channel_yaw_at(position.z)
+	var barge_side := _choose_barge_side(position, grid_yaw)
+	cage.rotation.y = 0.0 if barge_side > 0.0 else PI
+	var grid_basis := Basis(Vector3.UP, grid_yaw)
 	# Clicks on the cage report here. PenCage cannot reach this manager through
 	# its parent (PenMarkers has no pen_clicked signal), so the click used to drop.
 	var click_area := cage.get_node_or_null("ClickArea") as Area3D
@@ -305,20 +350,23 @@ func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 		click_area.input_event.connect(_on_pen_input_event.bind(pen_id))
 
 	# Service boat moored alongside the collar, broadside to it, between the
-	# frame corners (the bridles run to the corners) and away from the feed
-	# hose (+X); the workboat's origin is its waterline.
+	# frame corners (the bridles run to the corners), at the grid's up-fjord
+	# end, away from the feed hose and from the berths on the grid's sides;
+	# the workboat's origin is its waterline.
 	var boat = service_boat_scene.instantiate()
 	boat.name = "%s_boat" % pen_id
 	markers_parent.add_child(boat)
-	boat.global_position = position + Vector3(0.0, 0.0, BOAT_MOORING_OFFSET)
-	boat.rotation.y = PI * 0.5
+	boat.global_position = position + grid_basis * Vector3(0.0, 0.0, BOAT_MOORING_OFFSET)
+	boat.rotation.y = grid_yaw + PI * 0.5
 
-	# The site's frame mooring: one 70 m cell round the pen, grid buoys,
-	# bridles, anchor lines and the synchronised corner lights.
+	# The site's frame mooring: one 70 m cell round the pen, laid along the
+	# channel, grid buoys, bridles, anchor lines and the synchronised corner
+	# lights.
 	var mooring := MooringGrid.new()
 	mooring.name = "%s_mooring" % pen_id
 	markers_parent.add_child(mooring)
 	mooring.global_position = position
+	mooring.rotation.y = grid_yaw
 	mooring.build(1, 1, [Vector2i(0, 0)], MooringGrid.BUOY_GREY, _seabed_lookup())
 
 	# Fish school using MultiMesh
@@ -344,6 +392,8 @@ func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 		"fish_school": school,
 		"mooring": mooring,
 		"stock_mats": stock_mats,
+		"grid_yaw": grid_yaw,
+		"barge_side": barge_side,
 	}
 	if not active:
 		_apply_ghost_style(pen_id)
@@ -365,6 +415,103 @@ func get_pen_mooring(pen_id: String) -> MooringGrid:
 	if pen_id in _pens:
 		return _pens[pen_id].get("mooring") as MooringGrid
 	return null
+
+
+# === Site layout: grid heading, berths, room for passing boats ===
+
+## Heading (yaw about +Y) of the fjord channel at world z: the direction a
+## site's mooring grid is laid in and its boats lie (0 without terrain).
+func channel_yaw_at(z: float) -> float:
+	if _terrain_ref == null:
+		_terrain_ref = get_node_or_null("../Terrain") as FjordTerrain
+	if _terrain_ref == null:
+		return 0.0
+	var dx := _terrain_ref.channel_center_x(z + CHANNEL_HEADING_SPAN_M) - _terrain_ref.channel_center_x(z - CHANNEL_HEADING_SPAN_M)
+	return atan2(dx, 2.0 * CHANNEL_HEADING_SPAN_M)
+
+
+## The world-x side (+1 or -1) a site's feed barge moors on; its wellboat
+## berth is the other side.
+func _choose_barge_side(position: Vector3, grid_yaw: float) -> float:
+	if _terrain_ref == null:
+		_terrain_ref = get_node_or_null("../Terrain") as FjordTerrain
+	if _terrain_ref == null:
+		return 1.0
+	var to_fairway := _terrain_ref.channel_center_x(position.z) - position.x
+	var wellboat_side := signf(to_fairway)
+	if absf(to_fairway) < 1.0:
+		wellboat_side = 1.0 if _berth_depth(position, grid_yaw, 1.0) >= _berth_depth(position, grid_yaw, -1.0) else -1.0
+	var barge_side := -wellboat_side
+	if _berth_depth(position, grid_yaw, barge_side) < BERTH_MIN_DEPTH_M \
+			and _berth_depth(position, grid_yaw, wellboat_side) >= BERTH_MIN_DEPTH_M:
+		barge_side = wellboat_side
+	return barge_side
+
+
+## The shallowest water (m) under a berth side's footprint.
+func _berth_depth(position: Vector3, grid_yaw: float, side: float) -> float:
+	var across := Vector3(cos(grid_yaw), 0.0, -sin(grid_yaw)) * side
+	var along := Vector3(sin(grid_yaw), 0.0, cos(grid_yaw))
+	var shallowest := INF
+	for reach in [WELLBOAT_HULL_SIDE_M, BARGE_HULL_SIDE_M + BARGE_RESERVE_BEAM_M * 0.5,
+			WELLBOAT_HULL_SIDE_M + WELLBOAT_RESERVE_BEAM_M]:
+		for t in [-1.0, 0.0, 1.0]:
+			var q: Vector3 = position + across * float(reach) + along * (BERTH_SAMPLE_REACH_M * float(t))
+			shallowest = minf(shallowest, -_terrain_ref.get_height_at(q.x, q.z))
+	return shallowest
+
+
+## Where a vessel of `beam_m` lies at a site: role "barge" (beside the pen,
+## starboard feed lines towards it) or "wellboat" (alongside, the other
+## side). {position: a world point level with the pen in z, so it can end a
+## channel route; axis: the grid's +Z, the way the vessel lies; side: +1 or
+## -1 in world x}. Empty for an unknown pen.
+func get_berth(pen_id: String, role: String, beam_m: float) -> Dictionary:
+	if not (pen_id in _pens):
+		return {}
+	var data: Dictionary = _pens[pen_id]
+	var yaw := float(data.get("grid_yaw", 0.0))
+	var barge_side := float(data.get("barge_side", 1.0))
+	var side := barge_side if role == "barge" else -barge_side
+	var hull_side := BARGE_HULL_SIDE_M if role == "barge" else WELLBOAT_HULL_SIDE_M
+	# The perpendicular distance to the hull's centreline, laid off along x.
+	var reach := (hull_side + beam_m * 0.5) / cos(yaw)
+	var at: Vector3 = data["position"]
+	return {
+		"position": Vector3(at.x + side * reach, 0.0, at.z),
+		"axis": Vector3(sin(yaw), 0.0, cos(yaw)),
+		"side": side,
+	}
+
+
+## The water every site keeps clear for passing boats: its mooring grid and
+## both berths (the wellboat's for the widest hull), as a band of world x at
+## the site's z that shifts with the grid's heading along z. Pass a pen and
+## a role to leave that berth open (a boat heading for it).
+## [{z, x_per_z, lo, hi, half_z}]
+func site_zones(open_pen_id: String = "", open_role: String = "") -> Array:
+	var zones: Array = []
+	for pen_id in _pens:
+		var data: Dictionary = _pens[pen_id]
+		var at: Vector3 = data["position"]
+		var yaw := float(data.get("grid_yaw", 0.0))
+		var barge_side := float(data.get("barge_side", 1.0))
+		var barge_reach := BARGE_HULL_SIDE_M + BARGE_RESERVE_BEAM_M
+		var wellboat_reach := WELLBOAT_HULL_SIDE_M + WELLBOAT_RESERVE_BEAM_M
+		if pen_id == open_pen_id and open_role == "barge":
+			barge_reach = GRID_CLEAR_HALF_M
+		if pen_id == open_pen_id and open_role == "wellboat":
+			wellboat_reach = GRID_CLEAR_HALF_M
+		var plus := (barge_reach if barge_side > 0.0 else wellboat_reach) / cos(yaw)
+		var minus := (wellboat_reach if barge_side > 0.0 else barge_reach) / cos(yaw)
+		zones.append({
+			"z": at.z,
+			"x_per_z": tan(yaw),
+			"lo": at.x - minus,
+			"hi": at.x + plus,
+			"half_z": SITE_RESERVE_HALF_LENGTH_M,
+		})
+	return zones
 
 ## Shared ghost material for unstocked (available-site) pens: faded ring,
 ## no boat, no net — a placeholder, not a farm.

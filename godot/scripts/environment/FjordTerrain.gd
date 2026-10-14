@@ -215,6 +215,12 @@ func water_bake_at(world_x: float, world_z: float) -> Color:
 	return _water_bake_image.get_pixel(c, r)
 
 
+## The water bake image the texture was made from (null before the build):
+## WaveField samples it on the CPU exactly as the water shader does.
+func get_water_bake_image() -> Image:
+	return _water_bake_image
+
+
 ## World-space rectangle the water bake covers (x, z, width, depth).
 func get_water_bake_rect() -> Rect2:
 	return Rect2(-terrain_size * 0.5, terrain_size)

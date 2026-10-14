@@ -181,6 +181,38 @@ transparent water cost about +5.8 ms at FJORD. The frame without water
 already takes 25-30 ms there (sky, terrain, SSAO, DOF, MSAA + SMAA), so the
 16.7 ms target is a whole-frame budget item, not the water's.
 
+### Floating pens and boats (G2-03, heave part)
+
+`WaveField.gd` is the drawn water on the CPU: the shader's `bake_at`,
+`component_amplitude`, `displacement` and the grid terms of `vertex()`,
+mirrored term for term and fed the very arrays the director writes to the
+`wave_k` / `wave_amp` uniforms, the grid's origin and the water bake
+(`EnvironmentDirector.wave_field`, `WaveField.active`). `height_at(x, z)`
+inverts the Gerstner map by fixed-point iteration. Only drawn geometry
+counts: a component lifts a body only where its wavelength spans 3 grid
+spacings, as in the shader. Bodies ride the least-squares plane of the water
+under them, in closed form per component: a pen collar its 26 m ring
+(`ring()`: J0 for the mean, 2·J1/R for the slope), a hull its waterplane
+rectangle (`hull()`: sinc for the mean, 3(sin u − u cos u)/u³ for the
+slopes). `PenCage.ride_waves()` and `VesselModel.ride_waves()` set height and
+tilt every frame (every 8th past the LOD2 distance) and leave x, z and yaw to
+their owners; the barge's tender floats on its own water while staying tied
+to the barge. 26 bodies cost 0.19 ms a frame (M1 Pro), with no allocations.
+The UI flow test pins the mirror to the shader numerically and the bodies to
+the water (RUN_LOG §7, 2026-10-14). Grid buoys, lamps and ropes stay at rest
+height for now.
+
+### Site layout and berths
+
+A site's frame mooring lies along the channel (`FishPenManager.channel_yaw_at`).
+The wellboat berth is on the fairway side, its inner hull 38.5 m from the
+pen (3.5 m outside the grid buoys); the feed barge lies on the other side, its
+inner hull 46 m out, with the pen's feed hose turned towards it; the workboat
+lies at the grid's up-fjord end (`get_berth`, `site_zones`).
+`ChannelBoat.berth_route` sails a boat from the harbour or depot along the
+channel with keel depth under its whole length, clear of every other site's
+grid and berths, and runs it straight in along the grid to its berth.
+
 ## Image pipeline (G1-06, post and anti-aliasing)
 
 MSAA 4× plus SMAA (`screen_space_aa = 2`); no tilt-shift pass (removed with

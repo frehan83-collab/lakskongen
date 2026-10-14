@@ -35,10 +35,10 @@ const JOB_LABELS := {
 ## slots from the -0.5 end and the rival farms from the other, so boats from
 ## here pass only the player's own pens.
 @export_range(-0.5, 0.5) var harbour_along: float = -0.47
-## Metres beside the channel centreline the boats sail (the pens sit on
-## it): the pen's port side, clear of the mooring frame's corner buoys (35 m
-## out) for the widest wellboat. The feed barges lie on the other side.
-@export var lane_offset: float = -50.0
+## A boat lies at its site's wellboat berth (FishPenManager.get_berth):
+## alongside the pen on the fairway side, clear of the mooring frame's grid
+## buoys (35 m out) for the widest wellboat. The feed barge lies on the
+## other side.
 @export var return_delay: float = 2.0  # seconds a boat lingers after its job is done
 @export var sail_seconds: float = 4.0  # one way, harbour to site
 
@@ -117,11 +117,17 @@ func _spawn_wellboat(job_id: String, site_id: String, kind: String, due_day: int
 	if target_pos == Vector3.ZERO:
 		return
 	
-	# Along the channel at sea level to alongside the pen. The old route left
-	# from inside the fjord wall and arced 80 m over the terrain.
-	var route := terrain.channel_route(harbour_along * terrain.terrain_size.y, target_pos.z, lane_offset)
+	# Along the channel at sea level, past the other sites, to alongside the
+	# pen. The old route left from inside the fjord wall and arced 80 m over
+	# the terrain.
 	var scene := harvest_wellboat_scene if kind == "harvest" and harvest_wellboat_scene else wellboat_scene
-	var parts := ChannelBoat.launch(_fjord_env, scene, route, "Wellboat_%s" % job_id)
+	var wellboat := scene.instantiate() as VesselModel
+	if wellboat == null:
+		return
+	var berth := pen_mgr.get_berth(site_id, "wellboat", wellboat.beam_m)
+	var route := ChannelBoat.berth_route(terrain, harbour_along * terrain.terrain_size.y, berth,
+		pen_mgr.site_zones(site_id, "wellboat"), wellboat)
+	var parts := ChannelBoat.launch_boat(_fjord_env, wellboat, route, "Wellboat_%s" % job_id)
 	# The job shows on a chip above the boat; the hull keeps its paint.
 	var chip := VesselChip.new()
 	parts.boat.add_child(chip)

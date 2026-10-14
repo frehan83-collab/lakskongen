@@ -33,10 +33,9 @@ const CHIP_DISTANCE := 700.0
 ## length (-0.5 and 0.5 are its ends), at the player's end like the wellboat
 ## harbour.
 @export_range(-0.5, 0.5) var depot_along: float = -0.45
-## Metres beside the channel centreline: the side where the pen's feed hose
-## runs out to its hose-end float (40 m from the pen centre), clear of the
-## mooring frame's corner buoys. Wellboats use the other side.
-@export var lane_offset: float = 52.0
+## The barge moors at its site's barge berth (FishPenManager.get_berth): on
+## the side the pen's feed hose runs to, beside the pen and clear of the
+## mooring frame's grid buoys. Wellboats take the other side.
 @export var tow_seconds: float = 6.0  # one way, depot to station
 @export var max_concurrent_barges: int = 12
 
@@ -119,9 +118,15 @@ func _spawn_barge(site_id: String, site_data: Dictionary, on_station: bool = fal
 	var target_pos: Vector3 = pen_mgr.get_pen_position(site_id)
 	if target_pos == Vector3.ZERO:
 		return
-	# Towed along the channel at sea level, never over the terrain.
-	var route := terrain.channel_route(depot_along * terrain.terrain_size.y, target_pos.z, lane_offset)
-	var parts := ChannelBoat.launch(_fjord_env, barge_scene_for(site_data), route, "FeedBarge_%s" % site_id)
+	# Towed along the channel at sea level, never over the terrain or through
+	# another site, to the barge berth beside its pen.
+	var barge := barge_scene_for(site_data).instantiate() as VesselModel
+	if barge == null:
+		return
+	var berth := pen_mgr.get_berth(site_id, "barge", barge.beam_m)
+	var route := ChannelBoat.berth_route(terrain, depot_along * terrain.terrain_size.y, berth,
+		pen_mgr.site_zones(site_id, "barge"), barge)
+	var parts := ChannelBoat.launch_boat(_fjord_env, barge, route, "FeedBarge_%s" % site_id)
 	var chip := VesselChip.new(CHIP_DISTANCE)
 	parts.boat.add_child(chip)
 	chip.position = parts.boat.get_chip_anchor() if parts.boat.has_method("get_chip_anchor") else Vector3(0, 16, 0)
