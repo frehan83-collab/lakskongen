@@ -118,6 +118,15 @@ func _run() -> void:
 	await _test_critical_card_actions()
 	await _test_inbox_lists_what_happened()
 	await _test_toasts_keep_clear_of_actions_and_inbox_header()
+	# U2-07: pacing (briefing, calendar HUD, speeds).
+	await _test_hud_shows_the_sim_calendar()
+	await _test_speed_keys_and_buttons_drive_the_clock()
+	await _test_next_event_runs_to_the_next_warning()
+	await _test_deadline_slows_then_stops_the_clock()
+	await _test_critical_card_holds_the_clock()
+	await _test_new_game_opens_paused_on_its_briefing()
+	await _test_thirty_times_refreshes_once_a_day_within_a_frame()
+	await _test_hud_fits_its_bar()
 
 	_clear_test_saves()
 	_finish()
@@ -546,7 +555,8 @@ func _test_mod_toggle_takes_clicks() -> void:
 
 ## F641: ESC with the notification panel closed passes on (GameUI returns to
 ## the dashboard) and never hides the center; with the panel open ESC closes
-## only the panel, and N opens it again.
+## only the panel, and V opens it again. (U2-07/D15: the drawer's key moved
+## from N to V, N is "Til neste hendelse"; RUN_LOG §7.)
 func _test_notification_center_escape() -> void:
 	var scene := await _spawn_game_scene()
 	var ui: Control = scene.get_node("UILayer/GameUI")
@@ -555,15 +565,20 @@ func _test_notification_center_escape() -> void:
 	await _press_key(KEY_ESCAPE)
 	_check(ui.get_active_tab() == "dashboard", "notifications: ESC reaches GameUI while the panel is closed")
 	_check(center.visible, "notifications: ESC leaves the notification center in place")
-	await _press_key(KEY_N)
-	_check(center.panel.visible, "notifications: N opens the panel")
+	await _press_key(KEY_V)
+	_check(center.panel.visible, "notifications: V opens the panel")
 	ui.show_tab("finance")
 	await _press_key(KEY_ESCAPE)
 	await get_tree().create_timer(0.5).timeout  # slide-out
 	_check(not center.panel.visible, "notifications: ESC closes the open panel")
 	_check(ui.get_active_tab() == "finance", "notifications: that ESC closed only the panel")
+	await _press_key(KEY_V)
+	_check(center.visible and center.panel.visible, "notifications: V opens the panel again after ESC")
 	await _press_key(KEY_N)
-	_check(center.visible and center.panel.visible, "notifications: N opens the panel again after ESC")
+	_check(_sim.is_running_to_next_event() and center.panel.visible,
+		"notifications: N runs to the next event and leaves the drawer open")
+	_sim.stop_run_to_next_event()
+	_sim.set_paused(true)
 	scene.queue_free()
 	await get_tree().process_frame
 
@@ -608,9 +623,19 @@ func _test_space_and_enter_reach_the_gui() -> void:
 	var pauses: Array = []
 	hud.speed_changed.connect(func(_speed: float, paused: bool) -> void: pauses.append(paused))
 	get_viewport().gui_release_focus()
+	# U2-07 (stronger, RUN_LOG §7): the HUD follows the game clock, so Space
+	# toggles what the clock does; it used to toggle the HUD's own flag, which
+	# had not seen the setup's set_paused(true). From a running clock: pause,
+	# then resume, and the clock itself follows each press.
+	_sim.set_paused(false)
+	var clock_states: Array = []
 	await _press_key(KEY_SPACE, 32)
+	clock_states.append(_sim.is_paused())
 	await _press_key(KEY_SPACE, 32)
-	_check(pauses == [true, false], "keys: Space pauses and resumes with nothing focused (%s)" % str(pauses))
+	clock_states.append(_sim.is_paused())
+	_check(pauses == [true, false] and clock_states == [true, false],
+		"keys: Space pauses and resumes with nothing focused (%s, clock %s)" % [str(pauses), str(clock_states)])
+	_sim.set_paused(true)
 
 	ui.show_tab("encyclopedia")
 	await get_tree().process_frame
@@ -866,6 +891,9 @@ func _test_escape_spares_toasts_and_closes_the_save_list() -> void:
 
 ## Re-review: N opened the notification panel while typing (and ate the "n");
 ## the Export tab's ✕ only emitted a signal GameUI never connected.
+## U2-07/D15 (RUN_LOG §7): the drawer's key is V and N is "Til neste
+## hendelse"; neither key acts while typing, and digits type instead of
+## setting the speed.
 func _test_typing_hotkeys_and_close_buttons() -> void:
 	var scene := await _spawn_game_scene()
 	var ui: Control = scene.get_node("UILayer/GameUI")
@@ -875,12 +903,16 @@ func _test_typing_hotkeys_and_close_buttons() -> void:
 	var search: LineEdit = ui.find_child("Panel_encyclopedia", true, false).get_node("%SearchField")
 	search.grab_focus()
 	search.text = ""
+	_sim.set_paused(true)
+	await _press_key(KEY_V, 118)
 	await _press_key(KEY_N, 110)
-	_check(search.text == "n", "keys: N types into a focused text field ('%s')" % search.text)
-	_check(not center._is_open, "keys: N while typing leaves the notification panel shut")
+	await _press_key(KEY_4, 52)
+	_check(search.text == "vn4", "keys: V, N and 4 type into a focused text field ('%s')" % search.text)
+	_check(not center._is_open, "keys: V while typing leaves the notification panel shut")
+	_check(_sim.is_paused() and not _sim.is_running_to_next_event(), "keys: N and 4 while typing leave the clock alone")
 	get_viewport().gui_release_focus()
-	await _press_key(KEY_N, 110)
-	_check(center._is_open, "keys: N outside a text field opens the notifications")
+	await _press_key(KEY_V, 118)
+	_check(center._is_open, "keys: V outside a text field opens the notifications")
 	await _press_key(KEY_ESCAPE)
 	await get_tree().create_timer(0.5).timeout
 
@@ -1902,6 +1934,9 @@ func _test_mod_scenario_starts_on_a_fresh_launch() -> void:
 	_check(_sim.get_active_scenario_id() == MOD_SCENARIO_ID,
 		"mods: the mod's scenario is the running game ('%s')" % _sim.get_active_scenario_id())
 	_check(is_equal_approx(float(_sim.balance), 5_000_000.0), "mods: with the mod's starting capital (%s)" % str(_sim.balance))
+	# U2-07 #1: the picker's Start is a player's new game: paused on its briefing.
+	_check(_sim.is_briefing_pending() and _sim.is_paused() and _sim.is_clock_held("briefing"),
+		"mods: the new game waits paused on its briefing")
 	_sim.set_paused(true)
 	menu.queue_free()
 	await get_tree().process_frame
@@ -4091,5 +4126,442 @@ func _test_toasts_keep_clear_of_actions_and_inbox_header() -> void:
 		"toasts: with nothing to keep clear they sit in the corner")
 	toasts.clear_all()
 	win.size = old_size
+	scene.queue_free()
+	await get_tree().process_frame
+
+# ── U2-07: pacing (briefing, calendar HUD, speeds) ─────────────────────────────
+
+## Wait (real time, at most `timeout_s`) until `condition` holds; true if it did.
+func _wait_until(condition: Callable, timeout_s: float) -> bool:
+	var end := Time.get_ticks_msec() + int(timeout_s * 1000.0)
+	while Time.get_ticks_msec() < end:
+		if condition.call():
+			return true
+		await get_tree().process_frame
+	return bool(condition.call())
+
+## A real Shift+key press and release.
+func _press_shift_key(keycode: Key) -> void:
+	for pressed in [true, false]:
+		var ev := InputEventKey.new()
+		ev.keycode = keycode
+		ev.physical_keycode = keycode
+		ev.shift_pressed = true
+		ev.pressed = pressed
+		get_viewport().push_input(ev)
+	await get_tree().process_frame
+
+## Acceptance 2: the HUD shows the sim's calendar in ISO weeks: "Uke 14 ·
+## april · År 1" on Monday 5 April 2027 (day 94), the day number above it and
+## the long date in its tooltip; English says "Week 14 · April · Year 1"; the
+## second year counts on. The bar is themed, readable and Norwegian.
+func _test_hud_shows_the_sim_calendar() -> void:
+	var scene := await _spawn_po3_scene(91)
+	await _drain_cards(scene.get_node("%CriticalEventCard"))
+	var hud: Control = scene.get_node("UILayer/HUD")
+	var anchors := {0: 53, 2: 53, 3: 1, 94: 14, 364: 52, 365: 52, 367: 1, 400: 5}
+	var wrong := []
+	for d: int in anchors:
+		if GameCalendar.iso_week(d) != int(anchors[d]):
+			wrong.append("%d: %d" % [d, GameCalendar.iso_week(d)])
+	_check(wrong.is_empty(), "calendar: ISO weeks of the anchor days (wrong %s)" % str(wrong))
+	_check(GameCalendar.long_date(0) == "fredag 1. januar 2027" and GameCalendar.short_date(94) == "5. april",
+		"calendar: day 0 is Friday 1 January 2027 ('%s')" % GameCalendar.long_date(0))
+	_sim.advance_days(94 - int(_sim.current_day))
+	await get_tree().process_frame
+	_check(hud.calendar_value.text == "Uke 14 · april · År 1",
+		"calendar: the HUD reads 'Uke 14 · april · År 1' on day 94 ('%s')" % hud.calendar_value.text)
+	_check(hud.day_caption.text == "Dag 94", "calendar: the day number sits above it ('%s')" % hud.day_caption.text)
+	_check(hud.calendar_item.tooltip_text.begins_with("mandag 5. april 2027"),
+		"calendar: the tooltip has the long date ('%s')" % hud.calendar_item.tooltip_text)
+	await _lint_screen("HUD with the calendar and time controls")
+	TranslationServer.set_locale("en")
+	_check(GameCalendar.hud_label(94) == "Week 14 · April · Year 1", "calendar: in English '%s'" % GameCalendar.hud_label(94))
+	TranslationServer.set_locale("no")
+	_sim.advance_days(400 - int(_sim.current_day))
+	await get_tree().process_frame
+	_check(hud.calendar_value.text == "Uke 5 · februar · År 2",
+		"calendar: the second year counts on ('%s')" % hud.calendar_value.text)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Acceptance 3 (speeds): the keys 1–4 run the clock at 1×, 3×, 10× and 30×
+## and the HUD's segments follow it; a click on a segment does the same; Space
+## pauses (the play glyph shows) and resumes at the same speed; a digit with
+## Shift (a lens, D15) or Cmd/Ctrl (a tab) leaves the speed alone. The speeds
+## are real: at 30× a second runs weeks, at 1× it runs at most a day.
+func _test_speed_keys_and_buttons_drive_the_clock() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	var scene := await _spawn_game_scene()
+	var hud: Control = scene.get_node("UILayer/HUD")
+	var card: Control = scene.get_node("%CriticalEventCard")
+	await _drain_cards(card)
+	get_viewport().gui_release_focus()
+	var keys := [KEY_1, KEY_2, KEY_3, KEY_4]
+	var speeds := [1, 3, 10, 30]
+	var segments: Array = [hud.speed_1x, hud.speed_3x, hud.speed_10x, hud.speed_30x]
+	for i in 4:
+		_sim.set_paused(true)
+		await _press_key(keys[i], 49 + i)
+		var lit := segments.map(func(b: Button) -> bool: return b.button_pressed)
+		var want := [i == 0, i == 1, i == 2, i == 3]
+		_check(int(_sim.get_time_speed()) == speeds[i] and not _sim.is_paused() and lit == want,
+			"speeds: key %d runs the clock at %d× and lights its segment (%s×, paused %s, %s)" % [
+				i + 1, speeds[i], str(_sim.get_time_speed()), str(_sim.is_paused()), str(lit)])
+	_check(hud.speed_30x.tooltip_text == "30×: en måned i sekundet (4)", "speeds: the 30× tooltip says what it means")
+	await _press_key(KEY_SPACE, 32)
+	_check(_sim.is_paused() and hud.pause_glyph.kind == TimeGlyph.Kind.PLAY and hud.pause_btn.button_pressed,
+		"speeds: Space pauses and the pause button shows play")
+	await _press_shift_key(KEY_1)
+	await _press_command_key(KEY_2)
+	_check(_sim.is_paused() and int(_sim.get_time_speed()) == 30,
+		"speeds: Shift+1 and Cmd/Ctrl+2 leave the clock alone (%s×, paused %s)" % [str(_sim.get_time_speed()), str(_sim.is_paused())])
+	await _press_key(KEY_SPACE, 32)
+	_check(not _sim.is_paused() and int(_sim.get_time_speed()) == 30, "speeds: Space resumes at the same speed")
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	ui.show_tab("dashboard")
+	await _click_control(hud.speed_10x)
+	_check(int(_sim.get_time_speed()) == 10 and not _sim.is_paused() and hud.speed_10x.button_pressed,
+		"speeds: a click on 10× runs the clock at 10×")
+	# Real time: 30× runs about a month a second; 1× at most a day.
+	_sim.set_time_speed(30.0)
+	_sim.set_paused(false)
+	var day0: int = _sim.current_day
+	await get_tree().create_timer(0.8).timeout
+	var fast := int(_sim.current_day) - day0
+	_sim.set_time_speed(1.0)
+	var day1: int = _sim.current_day
+	await get_tree().create_timer(0.8).timeout
+	var slow := int(_sim.current_day) - day1
+	_sim.set_paused(true)
+	_check(fast >= 8 and slow <= 1, "speeds: 0.8 s runs %d days at 30× and %d at 1×" % [fast, slow])
+	await _drain_cards(card)
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Acceptance 3 ("next event"): N runs the clock at 30× and the chip says so;
+## information does not stop it; the next warning stops it, paused, at the
+## speed the player had before, and the chip names the event; N during a run
+## ends it and keeps the clock going at the speed before.
+func _test_next_event_runs_to_the_next_warning() -> void:
+	var scene := await _spawn_game_scene()
+	var hud: Control = scene.get_node("UILayer/HUD")
+	await _drain_cards(scene.get_node("%CriticalEventCard"))
+	get_viewport().gui_release_focus()
+	_sim.set_time_speed(3.0)
+	_sim.set_paused(true)
+	await _press_key(KEY_N, 110)
+	_check(_sim.is_running_to_next_event() and int(_sim.get_time_speed()) == 30 and not _sim.is_paused(),
+		"next event: N runs the clock at 30× (%s×)" % str(_sim.get_time_speed()))
+	_check(hud.next_event_btn.button_pressed and hud.pacing_chip.visible and hud.pacing_label.text == "Spoler til neste hendelse",
+		"next event: the button is lit and the chip says the clock runs ahead ('%s')" % hud.pacing_label.text)
+	_sim.publish_condition_event("storm_damage", "", "", "CI: storm i loggen", "ci-next-info")
+	_check(_sim.is_running_to_next_event(), "next event: information does not stop the run")
+	_sim.publish_condition_event("oxygen_low", "warning", "", "CI: oksygen 6,1 mg/L", "ci-next")
+	await get_tree().process_frame
+	_check(not _sim.is_running_to_next_event() and _sim.is_paused() and int(_sim.get_time_speed()) == 3,
+		"next event: a warning stops it, paused, at the player's 3× (%s×)" % str(_sim.get_time_speed()))
+	_check(hud.pacing_label.text == "Stoppet · " + tr("GAME_EVENT_OXYGEN_LOW") and not hud.next_event_btn.button_pressed,
+		"next event: the chip names what stopped it ('%s')" % hud.pacing_label.text)
+	await _press_key(KEY_N, 110)
+	await _press_key(KEY_N, 110)
+	_check(not _sim.is_running_to_next_event() and not _sim.is_paused() and int(_sim.get_time_speed()) == 3,
+		"next event: N during a run ends it and the clock keeps its 3× (%s×)" % str(_sim.get_time_speed()))
+	_sim.set_paused(true)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Acceptance 3 (auto-slow, auto-pause): the farm-types deadline rule on the
+## real clock. A counterable warning with a deadline nine days out slows a 30×
+## clock to 1× at seven days left (the chip names the deadline); picked up to
+## 30× again it stops on the day before the deadline. With "Bremse ned før
+## frister" off a deadline never touches the clock. The deadline comes
+## through the typed event bus, as an order from the engine does.
+func _test_deadline_slows_then_stops_the_clock() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	var scene := await _spawn_game_scene()
+	var hud: Control = scene.get_node("UILayer/HUD")
+	var card: Control = scene.get_node("%CriticalEventCard")
+	await _drain_cards(card)
+	_sim.set_auto_slow_deadlines(true)
+	var due: int = int(_sim.current_day) + 9
+	_sim.set_time_speed(30.0)
+	_sim.set_paused(false)
+	_sim.publish_condition_event("lice_treatment_order", "warning", "ci_site", "CI: pålegg om avlusing", "", due)
+	var slowed: bool = await _wait_until(func() -> bool: return int(_sim.get_time_speed()) == 1 or _sim.is_paused(), 6.0)
+	_check(slowed and int(_sim.get_time_speed()) == 1 and not _sim.is_paused() and due - int(_sim.current_day) == 7,
+		"deadline: 30× drops to 1× at seven days left (day %d, due %d, %s×)" % [_sim.current_day, due, str(_sim.get_time_speed())])
+	_check(hud.pacing_chip.visible and hud.pacing_label.text == "Bremset · frist " + GameCalendar.short_date(due),
+		"deadline: the chip says the clock slowed for the deadline ('%s')" % hud.pacing_label.text)
+	_check(hud.pacing_chip.tooltip_text.contains(tr("GAME_EVENT_LICE_TREATMENT_ORDER")),
+		"deadline: its tooltip names the order")
+	_sim.set_time_speed(30.0)
+	var stopped: bool = await _wait_until(func() -> bool: return _sim.is_paused(), 6.0)
+	_check(stopped and int(_sim.current_day) == due - 1,
+		"deadline: back at 30× it stops on the day before the deadline (day %d, due %d)" % [_sim.current_day, due])
+	_check(hud.pacing_label.text == "Stoppet · frist " + GameCalendar.short_date(due) and hud.pause_btn.button_pressed,
+		"deadline: the chip says why it stopped ('%s')" % hud.pacing_label.text)
+	var deadlines: Array = _sim.get_pacing_deadlines()
+	_check(deadlines.any(func(d: Dictionary) -> bool: return str(d.get("type", "")) == "lice_treatment_order" and int(d.get("deadline_day", -1)) == due),
+		"deadline: the clock lists the deadline it watches")
+	_sim.set_auto_slow_deadlines(false)
+	var due2: int = int(_sim.current_day) + 4
+	_sim.publish_condition_event("lice_treatment_order", "warning", "ci_site_2", "CI: pålegg 2", "", due2)
+	_sim.set_time_speed(30.0)
+	_sim.set_paused(false)
+	var ran: bool = await _wait_until(func() -> bool: return int(_sim.current_day) > due2 or _sim.is_paused(), 6.0)
+	_check(ran and int(_sim.current_day) > due2 and not _sim.is_paused() and int(_sim.get_time_speed()) == 30,
+		"deadline: with 'Bremse ned før frister' off the clock runs past it (day %d, due %d)" % [_sim.current_day, due2])
+	_sim.set_paused(true)
+	_sim.set_auto_slow_deadlines(true)
+	await _drain_cards(card)
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U2-06's critical channel through the clock (one owner): a critical's card
+## holds the clock and Fortsett lets go of it at the speed it had; with "Pause
+## ved kritiske hendelser" off a critical drops a fast clock to 1×; a critical
+## during "Til neste hendelse" ends the run, and after the card the game waits
+## paused at the player's speed.
+func _test_critical_card_holds_the_clock() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	var scene := await _spawn_po3_scene(91)
+	var hud: Control = scene.get_node("UILayer/HUD")
+	var card: Control = scene.get_node("%CriticalEventCard")
+	await _drain_cards(card)
+	_sim.set_time_speed(10.0)
+	_sim.set_paused(false)
+	_sim.publish_condition_event("nets_critical", "critical", "", "CI: nøtene er kritisk slitt 31 %", "ci-hold")
+	await get_tree().process_frame
+	_check(card.is_open() and _sim.is_clock_held("critical_event") and _sim.is_paused() and not _sim.is_player_paused(),
+		"clock: the card holds the clock")
+	_check(hud._is_paused and not hud.pacing_chip.visible, "clock: the HUD shows it stopped, with no chip over the card")
+	card.continue_button.pressed.emit()
+	await get_tree().process_frame
+	_check(not _sim.is_paused() and int(_sim.get_time_speed()) == 10 and not _sim.is_clock_held(""),
+		"clock: Fortsett gives it back at 10×")
+	GameplayPrefs.force_auto_pause(false)
+	_sim.set_time_speed(30.0)
+	_sim.publish_condition_event("oxygen_critical", "critical", "", "CI: oksygen 3,9 mg/L", "ci-slow")
+	await get_tree().process_frame
+	_check(card.is_open() and not _sim.is_paused() and int(_sim.get_time_speed()) == 1,
+		"clock: without auto-pause a critical drops 30× to 1× (%s×)" % str(_sim.get_time_speed()))
+	_sim.set_paused(true)
+	await _drain_cards(card)
+	GameplayPrefs.force_auto_pause(true)
+	_sim.set_time_speed(3.0)
+	_check(_sim.run_to_next_event(), "clock: a run to the next event starts")
+	_sim.publish_condition_event("gill_health_critical", "critical", "po3_nord", "CI: gjellene", "ci-run")
+	await get_tree().process_frame
+	_check(card.is_open() and not _sim.is_running_to_next_event(), "clock: a critical ends the run behind its card")
+	card.continue_button.pressed.emit()
+	await get_tree().process_frame
+	_check(_sim.is_paused() and _sim.is_player_paused() and int(_sim.get_time_speed()) == 3,
+		"clock: after the card the game waits, paused at the player's 3× (%s×)" % str(_sim.get_time_speed()))
+	await _drain_cards(card)
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Acceptance 1: a player's new game opens paused on its briefing card, over
+## the fjord (the game UI steps aside): the scenario, its date in the sim
+## calendar, the goal, the time limit with its last day, the capital, the
+## farm and the clock's keys. The game's keys wait while it is open, and a
+## critical that comes meanwhile waits behind it. Enter starts the season at
+## the default speed and brings the game UI back; Esc closes it with the game
+## still paused, and Space then starts the clock. QA starts and loaded games
+## open without one, and a loaded game opens paused.
+func _test_new_game_opens_paused_on_its_briefing() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	MotionPrefs.force(true)
+	_check(_sim.start_new_game("Player", 10_000_000, "po3_red_sone"), "briefing: a player's scenario starts")
+	_check(_sim.is_briefing_pending() and _sim.is_paused() and _sim.is_clock_held("briefing"),
+		"briefing: the new game starts paused, held by its briefing")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 4:
+		await get_tree().process_frame
+	var briefing: Control = scene.get_node("%BriefingCard")
+	_check(briefing.is_open() and briefing.visible and not scene.get_node("UILayer").visible,
+		"briefing: the card opens over the fjord, the game UI steps aside")
+	var entry := {}
+	for e in _sim.get_available_scenarios():
+		if str(e.get("id", "")) == "po3_red_sone":
+			entry = e
+	_check(briefing._title.text == str(entry.get("name", "?")) and briefing._story.text == str(entry.get("story", "?")),
+		"briefing: the scenario's name and story ('%s')" % briefing._title.text)
+	_check(briefing._date.text == "Fredag 1. januar 2027 · Uke 53 · År 1", "briefing: the start date ('%s')" % briefing._date.text)
+	var facts := {}
+	for lbl: Label in briefing._facts.get_children():
+		facts[String(lbl.name)] = lbl.text
+	_check(str(facts.get("Fact_goal", "")) == str(entry.get("win", "?")), "briefing: the goal ('%s')" % str(facts.get("Fact_goal", "")))
+	_check(str(facts.get("Fact_time", "")) == "3 år (til søndag 31. desember 2029)", "briefing: the time limit and its last day ('%s')" % str(facts.get("Fact_time", "")))
+	_check(str(facts.get("Fact_capital", "")) == SimFormatters.format_nok(float(_sim.balance)), "briefing: the capital ('%s')" % str(facts.get("Fact_capital", "")))
+	var fish := 0
+	for site in _sim.get_all_pens():
+		fish += int(site.get("fish_count", 0))
+	_check(str(facts.get("Fact_farm", "")) == "2 lokaliteter · %s fisk" % SimFormatters.integer(fish), "briefing: the farm ('%s')" % str(facts.get("Fact_farm", "")))
+	_check(briefing._keys.get_child_count() == 3, "briefing: the clock's three keys are shown")
+	await _lint_screen("briefing card")
+	var day: int = _sim.current_day
+	await _press_key(KEY_SPACE, 32)
+	await _press_key(KEY_4, 52)
+	await _press_key(KEY_N, 110)
+	await get_tree().create_timer(0.3).timeout
+	_check(_sim.is_paused() and int(_sim.current_day) == day and briefing.is_open() and not _sim.is_running_to_next_event(),
+		"briefing: Space, 4 and N wait while it is open")
+	var card: Control = scene.get_node("%CriticalEventCard")
+	_sim.publish_condition_event("nets_critical", "critical", "", "CI: nøtene er kritisk slitt 30 %", "ci-briefing")
+	_check(not card.is_open() and card.queued_count() >= 1, "briefing: a critical waits behind the briefing")
+	_check(briefing.start_button.has_focus(), "briefing: 'Start sesongen' has the focus")
+	await _press_key(KEY_ENTER)
+	await get_tree().process_frame
+	_check(not briefing.is_open() and not _sim.is_briefing_pending() and scene.get_node("UILayer").visible,
+		"briefing: Enter starts the season and the game UI comes back")
+	_check(int(_sim.get_time_speed()) == GameplayPrefs.default_speed() and not _sim.is_clock_held("briefing"),
+		"briefing: the clock runs at the default speed (%s×)" % str(_sim.get_time_speed()))
+	_check(card.is_open() and _sim.is_clock_held("critical_event"), "briefing: the waiting critical opens after it and holds the clock")
+	await _drain_cards(card)
+	_check(not _sim.is_paused(), "briefing: then the clock runs")
+	_sim.set_paused(true)
+	scene.queue_free()
+	await get_tree().process_frame
+
+	_check(_sim.start_new_game("Player", 10_000_000, "po3_red_sone"), "briefing: a second new game")
+	var scene2: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene2)
+	for i in 4:
+		await get_tree().process_frame
+	var briefing2: Control = scene2.get_node("%BriefingCard")
+	var card2: Control = scene2.get_node("%CriticalEventCard")
+	await _press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	var pause: Control = scene2.get_node("MenuLayer/PauseMenu")
+	_check(not briefing2.is_open() and _sim.is_paused() and not _sim.is_clock_held("") and not pause.is_open()
+		and scene2.get_node("UILayer").visible, "briefing: Esc looks around first: closed, the game paused, no pause menu")
+	# Criticals the start raised waited behind the card; answer them first.
+	await _drain_cards(card2)
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_SPACE, 32)
+	_check(not _sim.is_paused(), "briefing: then Space starts the clock")
+	_sim.set_paused(true)
+	_check(_sim.save_game("ci_briefing_load"), "briefing: setup save")
+	_sim.set_paused(false)
+	var file := str(_find_save("ci_briefing_load").get("file", ""))
+	_check(_sim.load_game(file) and _sim.is_paused() and not _sim.is_briefing_pending(),
+		"briefing: a loaded game opens paused, without a briefing")
+	await get_tree().process_frame
+	_check(not briefing2.is_open(), "briefing: no card for a loaded game")
+	_sim.delete_save(file)
+	scene2.queue_free()
+	await get_tree().process_frame
+	_check(_sim.start_qa_scenario("po3_red_sone", 91) and not _sim.is_briefing_pending(), "briefing: a QA start has none")
+	_sim.set_paused(true)
+	MotionPrefs.force(null)
+	GameplayPrefs.force_auto_pause(null)
+
+## Acceptance 4: at 30× the dashboard refreshes at most once per sim day (a
+## day used to refresh it four times: two snapshot refreshes, each announcing
+## a state update and a day), its alert rows are rebuilt only when they
+## change, and the UI side of every day (the bridge's tick minus the engine's
+## own day: the events, the snapshot and every listener, the dashboard's
+## refresh in the frame after it included) stays within 16.7 ms at p95.
+func _test_thirty_times_refreshes_once_a_day_within_a_frame() -> void:
+	GameplayPrefs.force_auto_pause(false)
+	var scene := await _spawn_po3_scene(91)
+	var card: Control = scene.get_node("%CriticalEventCard")
+	await _drain_cards(card)
+	_sim.set_auto_slow_deadlines(false)
+	var bridge := get_node("/root/GameBridge")
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	ui.show_tab("dashboard")
+	await get_tree().process_frame
+	var dash: Control = ui.find_child("Panel_dashboard", true, false)
+	_sim.set_time_speed(30.0)
+	_sim.set_paused(false)
+	# Steady state: the first month carries the one-off costs (the first
+	# tick's warm-up, the day-30 autosave, which then waits a real minute).
+	var warm_end := Time.get_ticks_msec() + 4000
+	while Time.get_ticks_msec() < warm_end and int(_sim.current_day) < 32:
+		await get_tree().process_frame
+		if card.is_open():
+			card.continue_button.pressed.emit()
+		if int(_sim.get_time_speed()) != 30:
+			_sim.set_time_speed(30.0)
+	var refreshes0: int = dash.refresh_count
+	var rebuilds0: int = dash.alert_rebuilds
+	var day0: int = _sim.current_day
+	var ui_ms: Array[float] = []
+	var engine_ms: Array[float] = []
+	var ticks0: int = bridge.TickCount
+	var last_tick: int = ticks0
+	var deferred_ms := 0.0
+	var end := Time.get_ticks_msec() + 2500
+	while Time.get_ticks_msec() < end:
+		var refresh_before: int = dash.refresh_count
+		var t0 := Time.get_ticks_usec()
+		await get_tree().process_frame
+		# The dashboard refreshes deferred, in the frame after its day.
+		if dash.refresh_count != refresh_before:
+			deferred_ms = dash.last_refresh_ms
+		if int(bridge.TickCount) != last_tick:
+			last_tick = int(bridge.TickCount)
+			ui_ms.append(float(bridge.LastTickMs) - float(bridge.LastTickEngineMs) + deferred_ms)
+			engine_ms.append(float(bridge.LastTickEngineMs))
+			deferred_ms = 0.0
+		if card.is_open():
+			card.continue_button.pressed.emit()
+		if int(_sim.get_time_speed()) != 30:
+			_sim.set_time_speed(30.0)
+	_sim.set_paused(true)
+	await get_tree().process_frame
+	var days: int = int(_sim.current_day) - day0
+	var refreshes: int = dash.refresh_count - refreshes0
+	var rebuilds: int = dash.alert_rebuilds - rebuilds0
+	_check(days >= 20, "30×: the clock ran %d days in 2.5 s" % days)
+	_check(refreshes <= days + 1, "30×: the dashboard refreshed %d times for %d days (at most once a day)" % [refreshes, days])
+	_check(rebuilds < refreshes, "30×: alert rows were rebuilt %d times in %d refreshes (only on change)" % [rebuilds, refreshes])
+	ui_ms.sort()
+	engine_ms.sort()
+	var p95: float = ui_ms[mini(int(ui_ms.size() * 0.95), ui_ms.size() - 1)] if not ui_ms.is_empty() else 999.0
+	_check(p95 <= 16.7, "30×: p95 of the UI side of a day %.1f ms <= 16.7 ms (%d days)" % [p95, ui_ms.size()])
+	if not ui_ms.is_empty():
+		print("  info 30× UI side ms per day: p50 %.2f p95 %.2f max %.2f; engine p50 %.2f p95 %.2f max %.2f (%d days)" % [
+			ui_ms[ui_ms.size() / 2], p95, ui_ms.back(), engine_ms[engine_ms.size() / 2],
+			engine_ms[mini(int(engine_ms.size() * 0.95), engine_ms.size() - 1)], engine_ms.back(), ui_ms.size()])
+	_sim.set_auto_slow_deadlines(true)
+	await _drain_cards(card)
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## The HUD fits its bar at 1280 px and UI scale 125 %: readouts give way in
+## order (weather, spot price, sea temperature) rather than leave the screen,
+## and all of them come back at 1920 px. (The overlap lint checks the regions.)
+func _test_hud_fits_its_bar() -> void:
+	var scene := await _spawn_po3_scene(91)
+	var hud: Control = scene.get_node("UILayer/HUD")
+	var win := get_window()
+	var old_size := win.size
+	var old_scale := win.content_scale_factor
+	win.size = Vector2i(1280, 720)
+	win.content_scale_factor = 1.25
+	_sim.set_time_speed(3.0)
+	await get_tree().create_timer(0.3).timeout
+	var bar: Control = hud.get_node("MainHBox")
+	var right: Control = hud.get_node("MainHBox/Right")
+	var screen := get_viewport().get_visible_rect()
+	_check(screen.encloses(right.get_global_rect()) and bar.get_combined_minimum_size().x <= hud.bar_width() + 0.5,
+		"HUD: fits 1280 px at 125 %% (needs %d of %d px, hidden %s)" % [
+			int(bar.get_combined_minimum_size().x), int(hud.bar_width()), str(hud.hidden_readouts())])
+	win.size = Vector2i(1920, 1080)
+	win.content_scale_factor = 1.0
+	await get_tree().create_timer(0.3).timeout
+	_check(hud.hidden_readouts().is_empty(), "HUD: every readout shows at 1920 px (hidden %s)" % str(hud.hidden_readouts()))
+	win.size = old_size
+	win.content_scale_factor = old_scale
+	_sim.set_paused(true)
 	scene.queue_free()
 	await get_tree().process_frame

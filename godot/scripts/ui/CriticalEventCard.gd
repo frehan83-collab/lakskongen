@@ -29,8 +29,11 @@ const PRESENTER_GROUP := &"critical_event_presenter"
 const FADE_IN_S := 0.2
 const FADE_OUT_S := 0.14
 const RISE_PX := 14.0
-## Game keys that wait while a card is open.
-const BLOCKED_ACTIONS := [&"toggle_pause", &"toggle_notifications", &"toggle_attention_inbox"]
+## Game keys that wait while a card is open (the clock's keys among them).
+const BLOCKED_ACTIONS := [&"toggle_pause", &"toggle_notifications", &"toggle_attention_inbox",
+	&"next_event", &"speed_1", &"speed_2", &"speed_3", &"speed_4"]
+## The game clock's hold while a card is open (GameBridge.HoldCriticalEvent, U2-07).
+const CLOCK_HOLD := "critical_event"
 
 @onready var _backdrop: ColorRect = %Backdrop
 @onready var _card: PanelContainer = %Card
@@ -82,14 +85,30 @@ func _ready() -> void:
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
-## Show a critical event (queued behind an open card).
+## Show a critical event (queued behind an open card, and behind a new
+## game's briefing until the player has read it, U2-07).
 func present(event: Dictionary) -> void:
 	_follow_generation(int(event.get("generation", _generation)))
 	_queue.append(event)
+	var briefing := _open_briefing()
+	if briefing != null:
+		if not briefing.briefing_closed.is_connected(_on_briefing_closed):
+			briefing.briefing_closed.connect(_on_briefing_closed, CONNECT_ONE_SHOT)
+		return
 	if _current.is_empty():
 		_show_next()
 	else:
 		_update_queue_label()
+
+
+func _open_briefing() -> Node:
+	var briefing := get_tree().get_first_node_in_group(&"briefing_card")
+	return briefing if briefing != null and briefing.is_open() else null
+
+
+func _on_briefing_closed(_choice: String) -> void:
+	if _current.is_empty() and not _queue.is_empty():
+		_show_next()
 
 
 func is_open() -> bool:
@@ -109,9 +128,12 @@ func queued_count() -> int:
 # ── Flow ───────────────────────────────────────────────────────────────────────
 
 func _show_next() -> void:
+	var opening := _current.is_empty() and mouse_filter == Control.MOUSE_FILTER_IGNORE
 	_current = _queue.pop_front()
 	_fill(_current)
-	if not visible:
+	# A card that closed a moment ago may still be fading out (visible): a new
+	# critical then opens it again, with its pause (it used to arrive unpaused).
+	if opening:
 		_open()
 	shown_count += 1
 	card_shown.emit(_current)
@@ -119,11 +141,19 @@ func _show_next() -> void:
 	first.grab_focus.call_deferred()
 
 
+## The card holds the game clock (one owner of the clock, U2-07): it stands
+## while the card is open and runs again when the hold goes, unless the player
+## paused it. With "Pause ved kritiske hendelser" off the card slows a fast
+## clock to 1× instead (the critical still gets its seconds).
 func _open() -> void:
-	if _sim != null and GameplayPrefs.auto_pause_critical() and not _sim.is_paused():
-		_sim.set_paused(true)
-		_paused_by_card = true
-		pause_changed.emit()
+	if _sim != null and not _sim.is_paused():
+		if GameplayPrefs.auto_pause_critical():
+			_sim.hold_clock(CLOCK_HOLD)
+			_paused_by_card = true
+			pause_changed.emit()
+		elif float(_sim.get_time_speed()) > 1.0:
+			_sim.set_time_speed(1.0)
+			pause_changed.emit()
 	_hint.text = tr("UI_EVENT_CARD_HINT_PAUSED") if _paused_by_card else tr("UI_EVENT_CARD_HINT_RUNNING")
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	show()
@@ -140,18 +170,26 @@ func _finish(action: String, keep_paused: bool) -> void:
 	var inbox := get_tree().get_first_node_in_group(&"event_inbox")
 	if inbox != null and inbox.has_method("mark_read"):
 		inbox.mark_read(str(event.get("id", "")))
-	if keep_paused:
-		_paused_by_card = false
+	# Acting on the event: the game waits for the decision (the player's own
+	# pause stays when the card's hold goes).
+	if keep_paused and _paused_by_card and _sim != null:
+		_sim.set_paused(true)
 	if not _queue.is_empty():
 		_show_next()
 		return
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_animate(false)
-	if _paused_by_card:
-		_paused_by_card = false
-		if _sim != null and _sim.is_paused():
-			_sim.set_paused(false)
-			pause_changed.emit()
+	_release_clock()
+
+
+## Let go of the card's hold on the clock.
+func _release_clock() -> void:
+	if not _paused_by_card:
+		return
+	_paused_by_card = false
+	if _sim != null:
+		_sim.release_clock(CLOCK_HOLD)
+	pause_changed.emit()
 
 
 ## A new or loaded game: the old game's cards go, without touching the clock
@@ -166,6 +204,8 @@ func _follow_generation(generation: int) -> void:
 		return
 	_generation = generation
 	_queue.clear()
+	# The new game set its own clock (GameBridge clears the holds); the card
+	# only forgets it held the old one.
 	_paused_by_card = false
 	if not _current.is_empty():
 		_current = {}

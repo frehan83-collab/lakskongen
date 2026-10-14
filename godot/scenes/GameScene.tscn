@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://cx3r7m9t1q5n4"]
+[gd_scene load_steps=15 format=3 uid="uid://cx3r7m9t1q5n4"]
 
 [ext_resource type="Script" path="res://scripts/GameController.gd" id="1_gamecontroller"]
 [ext_resource type="PackedScene" uid="uid://bks2yj3v1fkl8" path="res://scenes/ui/HUD.tscn" id="3_hud"]
@@ -13,6 +13,7 @@
 [ext_resource type="PackedScene" uid="uid://d2kx4jnw5l83y" path="res://scenes/ui/AttentionInbox.tscn" id="14_inbox"]
 [ext_resource type="PackedScene" uid="uid://dm4k8n2p7r0v6" path="res://scenes/PauseMenu.tscn" id="15_pause"]
 [ext_resource type="PackedScene" path="res://scenes/ui/CriticalEventCard.tscn" id="16_critical"]
+[ext_resource type="PackedScene" path="res://scenes/ui/BriefingCard.tscn" id="17_briefing"]
 
 [node name="GameScene" type="Control"]
 layout_mode = 3
@@ -118,6 +119,9 @@ visible = false
 
 [node name="EventLayer" type="CanvasLayer" parent="."]
 layer = 4
+
+[node name="BriefingCard" parent="EventLayer" instance=ExtResource("17_briefing")]
+unique_name_in_owner = true
 
 [node name="CriticalEventCard" parent="EventLayer" instance=ExtResource("16_critical")]
 unique_name_in_owner = true

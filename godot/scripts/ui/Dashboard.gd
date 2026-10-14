@@ -133,11 +133,55 @@ func _ready() -> void:
 
 # ── Signal handlers ───────────────────────────────────────────────────────────
 
+# Throttle (roadmap U2-07): a sim day sends four signals (the tick and the
+# state update each refresh the snapshot, and each refresh announces both a
+# state update and a day), and at 30× a day passes every other frame. The
+# dashboard refreshes at most once per frame (coalesced, deferred), at most
+# once per sim day while the clock runs, never while it is hidden (it catches
+# up when shown), and every update while paused (the player's own actions).
+var _refresh_pending: bool = false
+var _refreshed_day: int = -1
+## Refreshes done (tests count them against the days that passed) and the
+## time the last one took (ms).
+var refresh_count: int = 0
+var last_refresh_ms: float = 0.0
+
 func _on_day_advanced(_day: int, _season: String) -> void:
-	_refresh_all()
+	_queue_refresh()
 
 func _on_state_updated() -> void:
+	_queue_refresh()
+
+func _queue_refresh() -> void:
+	if _refresh_pending:
+		return
+	_refresh_pending = true
+	_flush_refresh.call_deferred()
+
+func _flush_refresh() -> void:
+	if not is_inside_tree() or not is_visible_in_tree():
+		return   # still pending: _notification refreshes when shown
+	var day: int = int(_sim.current_day) if _sim else -1
+	if day == _refreshed_day and _sim != null and not _sim.is_paused():
+		_refresh_pending = false
+		return
+	_refresh_pending = false
+	_refreshed_day = day
+	refresh_count += 1
+	var t0 := Time.get_ticks_usec()
 	_refresh_all()
+	last_refresh_ms = (Time.get_ticks_usec() - t0) / 1000.0
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_VISIBILITY_CHANGED and _refresh_pending and is_visible_in_tree():
+		_flush_refresh.call_deferred()
+
+## True while the clock runs fast (10× or 30×): numbers snap instead of
+## counting up, and KPI flashes rest (a flash every day at 30× strobes).
+func _fast_clock() -> bool:
+	return _sim != null and not _sim.is_paused() and float(_sim.get_time_speed()) >= FAST_SPEED
+
+const FAST_SPEED := 10.0
 
 func _on_quick_action(action: String) -> void:
 	# Juice-only feedback: toast + button pop + route to the relevant tab.
@@ -329,7 +373,7 @@ func _refresh_kpi_sparklines() -> void:
 ## Flash a KPI value label green when the change is good, red when bad.
 ## Skips the first refresh (prev == 0) and changes below the material threshold.
 func _flash_kpi(lbl: Label, new_val: float, prev_val: float, good_when_up: bool, material: float = 0.005) -> void:
-	if lbl == null or is_zero_approx(prev_val):
+	if lbl == null or is_zero_approx(prev_val) or _fast_clock():
 		return
 	var delta := new_val - prev_val
 	if absf(delta) / maxf(absf(prev_val), 1e-6) < material:
@@ -668,16 +712,24 @@ func _refresh_weather() -> void:
 	_weather_visibility.text = tr("UI_DASHBOARD_NETS_VALUE") % SimFormatters.percent(float(_sim.min_net_integrity) / 100.0)
 	_weather_humidity.text = tr("UI_DASHBOARD_LICE_VALUE") % SimFormatters.num(float(_sim.sea_lice_per_fish), 2)
 
+## Alert rows built (tests: an unchanged list is not rebuilt, U2-07).
+var alert_rebuilds: int = 0
+
 func _refresh_alerts() -> void:
 	if not _alerts_container:
 		return
 
+	var alerts: Array[Dictionary] = _collect_alert_rows()
+	# Diff, not rebuild: the same rows (text, level, time, count) keep their
+	# nodes; at 30× the list used to be freed and rebuilt every other frame.
+	if alert_rebuilds > 0 and alerts == _alert_rows:
+		return
+	alert_rebuilds += 1
+	_alert_rows = alerts
+
 	# Clear existing alerts
 	for child in _alerts_container.get_children():
 		child.queue_free()
-
-	var alerts: Array[Dictionary] = _collect_alert_rows()
-	_alert_rows = alerts
 
 	if alerts.is_empty():
 		UIPolish.show_empty_state_localized(_alerts_container, tr("UI_DASHBOARD_ALERTS_EMPTY"), 13, "", _theme)
@@ -852,20 +904,33 @@ const NIGHT_WATCH_ORDER := ["Standard", "ScanOnly", "AutomatedROC"]
 const NIGHT_WATCH_ICON := {"Standard": "👁️", "ScanOnly": "🔍", "AutomatedROC": "🤖"}
 const NIGHT_WATCH_COST := {"Standard": 0, "ScanOnly": 0, "AutomatedROC": 85_000}
 
+var _ops_signature: Array = []
+
 func _refresh_ops() -> void:
 	if _ops_list == null or not _sim:
 		return
-	for child in _ops_list.get_children():
-		child.queue_free()
 	var budget: Dictionary = _sim.get_attention_budget() if _sim.has_method("get_attention_budget") else {}
 	var b: int = int(budget.get("budget", 100))
 	var used: int = int(budget.get("used", 0))
+	var pens: Array = _sim.get_all_pens() if _sim.has_method("get_all_pens") else []
+	# Diff, not rebuild (U2-07): the rows change when a site or its watch does.
+	var signature: Array = [b, used]
+	for site in pens:
+		signature.append([str(site.get("id", "")), str(site.get("name", "")), str(site.get("watch_mode", "watch"))])
+	if signature != _ops_signature:
+		_ops_signature = signature
+		_rebuild_ops(pens, b, used)
+	_sync_policy_option()
+
+
+func _rebuild_ops(pens: Array, b: int, used: int) -> void:
+	for child in _ops_list.get_children():
+		child.queue_free()
 	_ops_title.text = tr("UI_DASHBOARD_OPS_TITLE")
 	_ops_budget.text = tr("UI_DASHBOARD_OPS_BUDGET") % [used, b, int(WATCH_COST["watch"]), int(WATCH_COST["scan"]),
 		int(WATCH_COST["auto"]), SimFormatters.percent(AUTO_FEED_SPILL)]
 	_ops_budget.add_theme_color_override("font_color",
 		Color("#B3172F") if used > b else Color("#5A6168"))
-	var pens: Array = _sim.get_all_pens() if _sim.has_method("get_all_pens") else []
 	for site in pens:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
@@ -884,8 +949,10 @@ func _refresh_ops() -> void:
 		btn.pressed.connect(_on_watch_cycle.bind(sid, nxt))
 		row.add_child(btn)
 
-# Night-shift policy selector (Phase 5.2). Items + signal are set up once in
-	# _setup_policy_option(); a refresh only mirrors the engine's policy.
+
+## Night-shift policy selector (Phase 5.2). Items + signal are set up once in
+## _setup_policy_option(); a refresh only mirrors the engine's policy.
+func _sync_policy_option() -> void:
 	if _policy_option:
 		var status: Dictionary = _sim.get_night_shift_status() if _sim.has_method("get_night_shift_status") else {}
 		var idx := NIGHT_SHIFT_POLICIES.find(str(status.get("policy", "Standard")))
@@ -918,12 +985,20 @@ func _on_policy_changed(idx: int) -> void:
 
 ## Tween a KPI label from one value to another, formatting every frame with
 ## `fmt` (a Callable float -> String, locale-aware through SimFormatters).
+## One tween per label (a day's new count-up replaces the last one); at 10×
+## and 30× the number snaps to its value.
+var _count_tweens: Dictionary = {}
+
 func _count_up(lbl: Label, from_val: float, to_val: float, fmt: Callable) -> void:
 	if lbl == null:
 		return
-	if is_equal_approx(from_val, to_val):
+	var running: Tween = _count_tweens.get(lbl)
+	if running != null and running.is_valid():
+		running.kill()
+	if is_equal_approx(from_val, to_val) or _fast_clock():
 		lbl.text = fmt.call(to_val)
 		return
 	var tween := lbl.create_tween()
 	tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	tween.tween_method(func(v: float): lbl.text = fmt.call(v), from_val, to_val, 0.6)
+	_count_tweens[lbl] = tween

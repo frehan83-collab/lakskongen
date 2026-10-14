@@ -61,6 +61,7 @@ public partial class GameBridge : Node
 
     private Timer _simulationTimer;
     private float _timeSpeed = 1.0f;
+    /// <summary>The player's own pause (holds aside; GameBridge.Clock.cs).</summary>
     private bool _isPaused = false;
     private bool _gameRunning = false;
 
@@ -154,9 +155,9 @@ public partial class GameBridge : Node
 
     // ── Game management ───────────────────────────────────────────────────────
 
-    /// <summary>Initialize and start a new game.</summary>
+    /// <summary>Initialize and start a new game. It starts paused on its briefing card (U2-07).</summary>
     public void StartNewGame(string playerName, int startingCapital = 10_000_000)
-        => StartNewGameInternal(playerName, startingCapital, seed: null);
+        => StartNewGameInternal(playerName, startingCapital, seed: null, briefing: true);
 
     /// <summary>
     /// Initialize and start a new game with an explicit RNG seed. QA/screenshot
@@ -164,9 +165,13 @@ public partial class GameBridge : Node
     /// through <see cref="StartNewGame"/>. Not reachable from player UI.
     /// </summary>
     public void StartQaNewGame(string playerName, int startingCapital, int seed)
-        => StartNewGameInternal(playerName, startingCapital, seed);
+        => StartNewGameInternal(playerName, startingCapital, seed, briefing: false);
 
-    private void StartNewGameInternal(string playerName, int startingCapital, int? seed)
+    /// <summary>
+    /// <paramref name="briefing"/>: a player's game, which starts paused on its
+    /// briefing card; a QA game keeps the clock as it was (GameBridge.Clock.cs).
+    /// </summary>
+    private void StartNewGameInternal(string playerName, int startingCapital, int? seed, bool briefing)
     {
         SimulationEngine.FinanceManager = new FinanceManager(startingCapital);
         // S10: the live game was never seeded — every subsystem fell back to
@@ -195,12 +200,10 @@ public partial class GameBridge : Node
         SimulationEngine.OnScenarioLost += HandleScenarioLost;
         RegisterModScenariosIntoEngine();
         _gameRunning = true;
+        BeginClockForNewGame(briefing);
 
         EmitSignal(SignalName.GameStarted);
         EmitSignal(SignalName.GameStateUpdated);
-
-        if (!_isPaused)
-            _simulationTimer.Start();
 
         GD.Print($"GameBridge: new game for '{playerName}', capital {startingCapital:N0} NOK, seed {resolvedSeed}");
     }
@@ -247,40 +250,16 @@ public partial class GameBridge : Node
         ResetSessionState();
 
         _gameRunning = true;
+        BeginClockForLoadedGame();
         EmitSignal(SignalName.GameStarted);
         EmitSignal(SignalName.GameStateUpdated);
-
-        if (!_isPaused)
-            _simulationTimer.Start();
 
         GD.Print($"GameBridge: game loaded at day {snapshot.Day}");
     }
 
     // ── Time control ──────────────────────────────────────────────────────────
-
-    /// <summary>Set auto-tick speed (1x = 1 sec/day, 7x = ~143 ms/day, etc.).</summary>
-    public void SetTimeSpeed(float speed)
-    {
-        _timeSpeed = Mathf.Max(0.1f, speed);
-        _simulationTimer.WaitTime = 1.0f / _timeSpeed;
-        GD.Print($"GameBridge: time speed → {_timeSpeed}x");
-    }
-
-    /// <summary>True while the auto-tick timer is paused (the pause menu
-    /// restores this state when it closes).</summary>
-    public bool IsPaused() => _isPaused;
-
-    /// <summary>Pause or resume the auto-tick timer.</summary>
-    public void SetPaused(bool paused)
-    {
-        _isPaused = paused;
-        if (_isPaused)
-            _simulationTimer.Stop();
-        else if (_gameRunning)
-            _simulationTimer.Start();
-
-        GD.Print($"GameBridge: {(_isPaused ? "paused" : "resumed")}");
-    }
+    // Speeds, pause, holds, "Til neste hendelse" and the pacing rules live in
+    // GameBridge.Clock.cs (U2-07).
 
     /// <summary>Manually advance simulation by exactly one day.</summary>
     public void AdvanceDay() => AdvanceDays(1);
@@ -907,9 +886,12 @@ public partial class GameBridge : Node
     {
         if (!_gameRunning || SimulationEngine == null) return;
 
+        _inTick = true;
+        long tickStart = System.Diagnostics.Stopwatch.GetTimestamp();
         try
         {
             SimulationEngine.Advance(1);
+            LastTickEngineMs = System.Diagnostics.Stopwatch.GetElapsedTime(tickStart).TotalMilliseconds;
             ProjectDayNotes();
             EmitSignal(SignalName.SimulationTicked, SimulationEngine.State.Day);
             EmitSignal(SignalName.GameStateUpdated);
@@ -936,6 +918,15 @@ public partial class GameBridge : Node
             GD.PrintErr($"GameBridge tick error: {ex.Message}");
             EndGame(string.Format(UiCulture, _tr_or("GAME_OVER_SIM_ERROR", "Simulation error: {0}"), ex.Message));
         }
+        finally
+        {
+            _inTick = false;
+        }
+        // U2-07: the day and its events are in; the pacing rules may slow or
+        // stop the clock before the next day.
+        ApplyPacing();
+        LastTickMs = System.Diagnostics.Stopwatch.GetElapsedTime(tickStart).TotalMilliseconds;
+        TickCount++;
     }
 
     private void HandleAchievementUnlocked(LakskongenSim.Core.Achievement achievement)
@@ -1096,6 +1087,7 @@ public partial class GameBridge : Node
     {
         _gameRunning = false;
         _simulationTimer.Stop();
+        EmitClock();
         EmitSignal(SignalName.GameEnded, reason);
         GD.Print($"GameBridge: game ended — {reason}");
     }

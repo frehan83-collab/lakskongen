@@ -32,9 +32,10 @@ func _ready() -> void:
 	_sim.state_updated.connect(_on_state_updated)
 	_sim.day_advanced.connect(_on_day_advanced)
 
-	# Connect HUD speed change signal
-	if _hud:
-		_hud.speed_changed.connect(_on_speed_changed)
+	# The HUD drives the game clock itself and draws it from clock_changed
+	# (U2-07); "Bremse ned før frister" comes from the settings, and again
+	# when the pause menu (with its settings) closes.
+	_apply_gameplay_prefs()
 
 	# The window's close button asks "Lagre før du avslutter?" (U1-06): the
 	# game screen takes the close request instead of quitting outright.
@@ -42,6 +43,7 @@ func _ready() -> void:
 	if _pause_menu:
 		_pause_menu.opened.connect(_sync_hud_pause)
 		_pause_menu.closed.connect(_sync_hud_pause)
+		_pause_menu.closed.connect(_apply_gameplay_prefs)
 	# A critical event pauses through its card (one channel, U2-06); the
 	# alert text no longer decides anything here.
 	if _critical_card:
@@ -66,16 +68,13 @@ func _start_game() -> void:
 
 	print("Main: Starting new game...")
 
-	# Start the simulation via SimBridge
+	# Start the simulation via SimBridge. A new game opens paused on its
+	# briefing card (U2-07); the card's "Start" sets the clock going.
 	var success = _sim.start_new_game(DEFAULT_PLAYER_NAME)
 
 	if success:
 		_game_started = true
 		print("Main: Game started successfully with %d NOK capital" % STARTING_CAPITAL)
-
-		# Ensure simulation is running (not paused)
-		_sim.set_paused(false)
-		_sim.set_time_speed(1.0)
 	else:
 		push_error("Main: Failed to start game!")
 
@@ -135,10 +134,10 @@ func _on_state_updated() -> void:
 func _on_day_advanced(day: int, season: String) -> void:
 	print("Main: Day %d (%s)" % [day, season])
 
-func _on_speed_changed(speed: float, paused: bool) -> void:
+## "Bremse ned før frister" (GameplayPrefs) reaches the game clock.
+func _apply_gameplay_prefs() -> void:
 	if _sim:
-		_sim.set_time_speed(speed)
-		_sim.set_paused(paused)
+		_sim.set_auto_slow_deadlines(GameplayPrefs.auto_slow_deadlines())
 
 func advance_one_day() -> void:
 	if _sim:

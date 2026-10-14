@@ -31,7 +31,10 @@ const CREDITS_SCENE := "res://scenes/ui/CreditsScreen.tscn"
 const FADE_IN_S := 0.18
 const FADE_OUT_S := 0.14
 ## Actions of the game screen that wait while the menu is open.
-const BLOCKED_ACTIONS := [&"toggle_pause", &"toggle_notifications", &"toggle_attention_inbox"]
+const BLOCKED_ACTIONS := [&"toggle_pause", &"toggle_notifications", &"toggle_attention_inbox",
+	&"next_event", &"speed_1", &"speed_2", &"speed_3", &"speed_4"]
+## The game clock's hold while the menu is open (GameBridge.HoldPauseMenu, U2-07).
+const CLOCK_HOLD := "pause_menu"
 
 enum Leave { NONE, QUIT, MAIN_MENU }
 
@@ -66,7 +69,6 @@ var quit_override: Callable = Callable()
 
 var _sim: Node = null
 var _open: bool = false
-var _was_paused: bool = false
 var _leave: Leave = Leave.NONE
 var _return_focus: Button = null
 var _fade: Tween = null
@@ -114,14 +116,14 @@ func _apply_texts() -> void:
 func is_open() -> bool:
 	return _open
 
-## Open the menu: the clock stops (its state is restored on close).
+## Open the menu: the menu holds the game clock (U2-07), which runs again on
+## close unless the player had paused it.
 func show_menu() -> void:
 	if _open:
 		return
 	_open = true
-	_was_paused = _sim.is_paused() if _sim != null else true
 	if _sim != null:
-		_sim.set_paused(true)
+		_sim.hold_clock(CLOCK_HOLD)
 	_refresh_context()
 	guard.hide()
 	_center.show()
@@ -131,7 +133,7 @@ func show_menu() -> void:
 	btn_resume.grab_focus.call_deferred()
 	opened.emit()
 
-## Close the menu and give the clock back its state from before.
+## Close the menu and let go of the clock.
 func hide_menu() -> void:
 	if not _open:
 		return
@@ -139,7 +141,7 @@ func hide_menu() -> void:
 	_close_submenus()
 	guard.hide()
 	if _sim != null:
-		_sim.set_paused(_was_paused)
+		_sim.release_clock(CLOCK_HOLD)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_animate(false)
 	closed.emit()
@@ -219,7 +221,6 @@ func _on_credits_closed() -> void:
 ## A save loaded from the menu replaces the game: close the menu and leave the
 ## loaded game paused, so the player sees it before the clock runs.
 func _on_game_loaded(_file_name: String) -> void:
-	_was_paused = true
 	hide_menu()
 
 func _close_submenus() -> void:
@@ -278,6 +279,7 @@ func _leave_now() -> void:
 			# The abandoned game must not tick (or autosave) behind the menu.
 			if _sim != null:
 				_sim.set_paused(true)
+				_sim.release_clock(CLOCK_HOLD)
 			_open = false
 			main_menu_requested.emit()
 			if scene_change_override.is_valid():

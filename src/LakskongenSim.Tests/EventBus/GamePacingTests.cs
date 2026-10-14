@@ -176,6 +176,22 @@ public class GamePacingTests
     }
 
     [Fact]
+    public void WithAutoSlowOff_DeadlinesAreListedButNeverTouchTheClock_AndActAgainOnceItIsOn()
+    {
+        var pacing = new PacingGovernor { DeadlinesSlowTheClock = false };
+        pacing.Observe(Order(0, 12));
+        pacing.StartRunToNextEvent(0);
+        for (int day = 0; day < 9; day++)
+            Assert.Equal(PacingAction.None, pacing.Evaluate(day, 30, true).Action);
+        Assert.True(pacing.IsRunningToNextEvent);   // a deadline does not end the run either
+        Assert.Single(pacing.Active);
+        pacing.CancelRunToNextEvent();
+        pacing.DeadlinesSlowTheClock = true;
+        Assert.Equal(PacingAction.SlowToNormal, pacing.Evaluate(9, 30, true).Action);
+        Assert.Equal(PacingAction.Pause, pacing.Evaluate(11, 30, true).Action);
+    }
+
+    [Fact]
     public void DirectRegistrations_AreValidated_AndUseTheirOwnWindows()
     {
         var pacing = new PacingGovernor();

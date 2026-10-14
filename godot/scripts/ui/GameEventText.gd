@@ -52,15 +52,16 @@ static func meta_line(event: Dictionary, sim: Node) -> String:
 	return "%s · %s" % [subject(event, sim), str(TranslationServer.translate("UI_EVENT_DAY")) % int(event.get("day", 0))]
 
 
-## "Frist: dag 290 (om 8 dager)", "" without a deadline.
+## "Frist: 18. oktober (om 8 dager)", "" without a deadline. The date is the
+## sim calendar's (GameCalendar, U2-07), as the HUD shows it.
 static func deadline_line(event: Dictionary, today: int) -> String:
 	var due := int(event.get("deadline_day", -1))
 	if due < 0:
 		return ""
 	var left := due - today
 	if left <= 0:
-		return str(TranslationServer.translate("UI_EVENT_DEADLINE_TODAY")) % due
-	return str(TranslationServer.translate("UI_EVENT_DEADLINE")) % [due, left]
+		return str(TranslationServer.translate("UI_EVENT_DEADLINE_TODAY")) % GameCalendar.short_date(due)
+	return str(TranslationServer.translate("UI_EVENT_DEADLINE")) % [GameCalendar.short_date(due), left]
 
 
 ## True when the event names a verb the UI can perform.

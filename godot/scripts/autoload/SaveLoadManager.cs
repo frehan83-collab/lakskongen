@@ -708,11 +708,23 @@ public partial class SaveLoadManager : Node
         return sanitized.Trim();
     }
 
+    /// <summary>Real time between two day-cadence autosaves (U2-07).</summary>
+    private const ulong MinAutoSaveIntervalMs = 60_000;
+    private ulong _lastAutoSaveMs;
+    private bool _autoSavedOnce;
+
     private void OnSimulationTicked(int day)
     {
-        // Auto save every 30 days
+        // Auto save every 30 days, but not more than once a real minute: at
+        // 30× a 30-day cadence wrote the save (a 40-50 ms frame) every second
+        // (U2-07). The settings' real-time interval is U2-08's.
         if (day % 30 == 0)
         {
+            ulong now = Time.GetTicksMsec();
+            if (_autoSavedOnce && now - _lastAutoSaveMs < MinAutoSaveIntervalMs)
+                return;
+            _autoSavedOnce = true;
+            _lastAutoSaveMs = now;
             AutoSave();
         }
     }

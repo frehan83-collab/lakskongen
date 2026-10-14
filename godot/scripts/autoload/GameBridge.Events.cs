@@ -27,6 +27,11 @@ public partial class GameBridge
         if (bus == null) return;
         foreach (var ev in bus.DrainDelivered())
             EmitSignal(SignalName.GameEventRaised, ToDictionary(ev, bus.Generation));
+        // U2-07: an event between ticks (a player's action, a condition seen
+        // on a refresh) may slow or stop the clock now; inside a tick the
+        // tick asks once its day is complete.
+        if (!_inTick)
+            ApplyPacing();
     }
 
     /// <summary>The bus's generation: it changes when a new or loaded game empties it.</summary>

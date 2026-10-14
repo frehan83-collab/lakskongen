@@ -1,6 +1,7 @@
 ## NotificationCenter — the event inbox (roadmap U2-06; layout U1-04).
 ## Slide-in drawer on the right edge, under the tab rail; the HUD bell and
-## the N key open it. Layout lives in scenes/ui/NotificationCenter.tscn; this
+## the V key open it (N is "Til neste hendelse", D15/U2-07). Layout lives in
+## scenes/ui/NotificationCenter.tscn; this
 ## script is wiring and the entry list.
 ##
 ## Every event the typed bus delivers lands here (SimBridge.game_event_raised):
@@ -92,14 +93,14 @@ func _ready() -> void:
 	_rebuild_list()
 
 func _input(event: InputEvent) -> void:
-	# N types into a focused text field (it opened this panel and ate the "n").
+	# V types into a focused text field (the panel's key used to eat the letter).
 	if event.is_action_pressed("toggle_notifications") and not UIPolish.is_typing(self):
 		toggle()
 		get_viewport().set_input_as_handled()
 		return
 
 	# ESC closes an open panel the way the X button does. The root stays
-	# visible (and mouse-transparent): hiding it disabled the N key and the
+	# visible (and mouse-transparent): hiding it disabled the V key and the
 	# bell for the rest of the session.
 	if _is_open and event.is_action_pressed("ui_cancel"):
 		hide_panel()
@@ -258,7 +259,7 @@ func show_panel() -> void:
 		if bool(e.get("unread", false)):
 			e["seen_open"] = true
 	mark_all_read()
-	_rebuild_list()
+	_rebuild_now()
 
 func hide_panel() -> void:
 	if not _is_open:
@@ -363,9 +364,27 @@ func _follow_generation(generation: int) -> void:
 
 # ── List rendering ─────────────────────────────────────────────────────────────
 
+## The list is drawn while the drawer is open, at most once a frame; while it
+## is shut an event only marks it stale, and opening draws it (U2-07: every
+## event rebuilt every entry, 1 ms per entry listed, so with a season's log a
+## warning cost 20-40 ms of a 30× frame).
+var _rebuild_queued: bool = false
+## Times the list was drawn (tests).
+var list_builds: int = 0
+
 func _rebuild_list() -> void:
+	if not _is_open:
+		return
+	if _rebuild_queued:
+		return
+	_rebuild_queued = true
+	_rebuild_now.call_deferred()
+
+func _rebuild_now() -> void:
+	_rebuild_queued = false
 	if not entry_list:
 		return
+	list_builds += 1
 	for child in entry_list.get_children():
 		entry_list.remove_child(child)
 		child.queue_free()

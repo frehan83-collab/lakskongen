@@ -115,6 +115,10 @@ UI_HUD_FISH_LABEL,Fish,Fisk
 UI_HUD_TEMP_LABEL,Temp,Temp
 UI_HUD_PRICE_LABEL,Price,Pris
 UI_HUD_ALERTS_LABEL,Alerts,Varsler
+UI_HUD_CALENDAR,Week %d · %s · Year %d,Uke %d · %s · År %d
+UI_HUD_CAPTION_SEA_TEMP,Sea temp,Sjøtemp
+UI_HUD_CAPTION_SPOT,Spot price,Spotpris
+UI_HUD_NEXT_EVENT_TIP,"To the next event (N): runs at 30× and stops when something needs you, when a deadline comes near, or after 60 quiet days.","Til neste hendelse (N): spoler fram i 30× og stopper når noe trenger deg, når en frist nærmer seg eller etter 60 rolige dager."
 UI_HUD_WEATHER_LABEL,Weather,Vær
 UI_HUD_TEMP_FORMAT,%s °C,%s °C
 UI_HUD_PRICE_FORMAT,%s NOK/kg,%s kr/kg
@@ -124,6 +128,10 @@ UI_HUD_SPEED_BUTTON_2X,Double speed,Dobbel hastighet
 UI_HUD_SPEED_BUTTON_5X,5× speed,5× hastighet
 UI_HUD_PAUSE_RESUME_TOOLTIP,Resume (Space),Fortsett (mellomrom)
 UI_HUD_PAUSE_PAUSE_TOOLTIP,Pause (Space),Pause (mellomrom)
+UI_HUD_SPEED_TIP_1,1×: one day a second (1),1×: én dag i sekundet (1)
+UI_HUD_SPEED_TIP_10,10×: ten days a second (3),10×: ti dager i sekundet (3)
+UI_HUD_SPEED_TIP_3,3×: three days a second (2),3×: tre dager i sekundet (2)
+UI_HUD_SPEED_TIP_30,30×: a month a second (4),30×: en måned i sekundet (4)
 UI_SETTINGS_TITLE,Settings,Innstillinger
 UI_SETTINGS_CLOSE_BUTTON,✕,✕
 UI_SETTINGS_RESET_BUTTON,Reset,Tilbakestill
@@ -348,6 +356,8 @@ UI_SCENARIO_SUBTITLE,Choose your starting scenario,Velg startscenario
 UI_SCENARIO_TITLE,Scenarios,Scenarioer
 UI_SCENARIO_WIN_ICON,Victory condition,Seiersvilkår
 UI_SETTINGS_APPLY,Apply,Bruk
+UI_SETTINGS_AUTO_SLOW,Slow down before deadlines,Bremse ned før frister
+UI_SETTINGS_AUTO_SLOW_TIP,"A week before a deadline you can act on (a Mattilsynet order), the game drops to 1×, and it stops the day before if nothing was done.","En uke før en frist du kan gjøre noe med (et pålegg fra Mattilsynet) går spillet ned til 1×, og det stopper dagen før hvis ingenting er gjort."
 UI_SETTINGS_RESET,Reset,Tilbakestill
 UI_SUSTAINABILITY_BREAKDOWN,Breakdown,Delscorer
 UI_SUSTAINABILITY_CATEGORY_SCORE,%d of %d points,%d av %d poeng
@@ -377,6 +387,29 @@ UI_CREW_ROLES_TITLE,Roles and what they do,Roller og hva de gjør
 UI_CREW_ROLE_HIRED,On staff,Ansatt
 UI_CREW_ROLE_VACANT,Vacant,Ledig
 UI_CREW_HIRE,Hire,Ansett ny
+UI_BRIEFING_CARD_DATE,%s · Week %d · Year %d,%s · Uke %d · År %d
+UI_BRIEFING_CARD_DEADLINE_VALUE,%s (until %s),%s (til %s)
+UI_BRIEFING_CARD_FACT_FARM,Farm,Anlegg
+UI_BRIEFING_CARD_FACT_GOAL,Goal,Mål
+UI_BRIEFING_CARD_FARM_MANY,%d sites · %s fish,%d lokaliteter · %s fisk
+UI_BRIEFING_CARD_FARM_NONE,No sites yet,Ingen lokaliteter ennå
+UI_BRIEFING_CARD_FARM_ONE,1 site · %s fish,1 lokalitet · %s fisk
+UI_BRIEFING_CARD_FREE_STORY,"You have capital, a licence and a fjord. Stock smolt, keep the lice under the limit and sell when the price is right.","Du har kapital, en konsesjon og en fjord. Sett ut smolt, hold lusa under grensen og selg når prisen er god."
+UI_BRIEFING_CARD_FREE_TITLE,Your own farm,Ditt eget oppdrett
+UI_BRIEFING_CARD_HINT,"The clock stands until you start. Before a deadline you can act on, the game slows to 1× a week ahead and stops the day before.","Klokken står til du starter. Før en frist du kan gjøre noe med, bremser spillet til 1× en uke før og stopper dagen før."
+UI_BRIEFING_CARD_KEY_DIGITS,1–4,1–4
+UI_BRIEFING_CARD_KEY_N,N,N
+UI_BRIEFING_CARD_KEY_NEXT,to the next event,til neste hendelse
+UI_BRIEFING_CARD_KEY_PAUSE,pause,pause
+UI_BRIEFING_CARD_KEY_SPACE,Space,Mellomrom
+UI_BRIEFING_CARD_KEY_SPEEDS,speed 1× 3× 10× 30×,fart 1× 3× 10× 30×
+UI_BRIEFING_CARD_LOOK,Look around first,Se deg rundt først
+UI_BRIEFING_CARD_LOOK_TIP,Close the card with the clock stopped (Esc). Space starts it.,Lukk kortet med klokken stoppet (Esc). Mellomrom starter den.
+UI_BRIEFING_CARD_OVERLINE_FREE,Free play,Fritt spill
+UI_BRIEFING_CARD_OVERLINE_SCENARIO,Scenario · %s,Scenario · %s
+UI_BRIEFING_CARD_START,Start the season,Start sesongen
+UI_BRIEFING_CARD_START_TIP,The clock starts at %s (Enter). Change the default speed under Settings > Gameplay.,Klokken starter på %s (Enter). Standardfarten endrer du under Innstillinger > Spill.
+UI_BRIEFING_CARD_TIME_TITLE,Time,Tid
 UI_BRIEFING_TITLE,☀️ MORNING BRIEFING,☀️ MORGENBRIEFING
 UI_BRIEFING_START_DAY,Start the Day →,Start dagen →
 UI_PEN_SELECT_HINT,"Select a pen\nSelect a site in the list on the left to see its details, delouse, harvest or stock it.","Velg en merd\nVelg en lokalitet i listen til venstre for å se detaljer, avluse, høste eller sette ut fisk."
@@ -685,7 +718,8 @@ UI_HUD_TIP_BALANCE,"Cash on hand — all income minus costs, loans and investmen
 UI_HUD_TIP_FISH,Fish in all stocked pens.\nNow: %s,Fisk i alle utsatte merder.\nNå: %s
 UI_HUD_TIP_TEMP,Sea temperature — drives growth and lice reproduction.\nNow: %s °C,Sjøtemperatur — styrer vekst og lusas formering.\nNå: %s °C
 UI_HUD_TIP_PRICE,"Spot price per kg — moves with market events, season and demand.\nNow: %s NOK/kg","Spotpris per kg — følger markedshendelser, sesong og etterspørsel.\nNå: %s kr/kg"
-UI_HUD_TIP_ALERTS,"Active alerts — press I for the attention list, N or the bell for notifications.\n%d active","Aktive varsler — trykk I for oppgavelisten, N eller bjella for varslene.\n%d aktive"
+UI_HUD_TIP_ALERTS,"Active alerts — press I for the attention list, V or the bell for notifications.\n%d active","Aktive varsler — trykk I for oppgavelisten, V eller bjella for varslene.\n%d aktive"
+UI_HUD_TIP_CALENDAR,%s\nSeason: %s,%s\nSesong: %s
 UI_HUD_TIP_WEATHER,Current weather — storms can damage pens and halt operations.,Været nå — storm kan skade merder og stanse driften.
 UI_HUD_TIP_INBOX,Alert inbox (I),Varslingsinnboks (I)
 UI_FIN_PEN_PRICE,Pen price (binding),Merdpris (bindende)
@@ -1609,8 +1643,8 @@ UI_EVENT_CARD_OVERLINE,Critical event,Kritisk hendelse
 UI_EVENT_CARD_QUEUE,%d of %d,%d av %d
 UI_EVENT_CARD_SHOW_SITE,Show the site,Vis lokaliteten
 UI_EVENT_DAY,Day %d,Dag %d
-UI_EVENT_DEADLINE,Deadline: day %d (in %d days),Frist: dag %d (om %d dager)
-UI_EVENT_DEADLINE_TODAY,Deadline: day %d (today),Frist: dag %d (i dag)
+UI_EVENT_DEADLINE,Deadline: %s (in %d days),Frist: %s (om %d dager)
+UI_EVENT_DEADLINE_TODAY,Deadline: %s (today),Frist: %s (i dag)
 UI_EVENT_SUBJECT_COMPANY,The whole company,Hele selskapet
 UI_EVENT_VERB_CHECK_WATER,Check the water,Se vannkvaliteten
 UI_EVENT_VERB_DELOUSE,Plan delousing,Planlegg avlusing
@@ -1620,7 +1654,18 @@ UI_EVENT_VERB_INSPECT_SITE,Show the site,Vis lokaliteten
 UI_EVENT_VERB_OPEN_SUSTAINABILITY,See the requirements,Se kravene
 UI_EVENT_VERB_RAISE_CAPITAL,Raise capital,Skaff kapital
 UI_EVENT_VERB_REVIEW_FEEDING,Review feeding,Se på fôringen
-UI_HUD_TIP_NOTIFICATIONS,Notifications (N) — %d unread,Varsler (N) — %d uleste
+UI_HUD_TIP_NOTIFICATIONS,Notifications (V) — %d unread,Varsler (V) — %d uleste
 UI_NOTIFY_CLEAR_ALL_TIP,Clear all notifications,Tøm alle varsler
 UI_NOTIFY_EXPAND_TIP,Click for the whole text,Klikk for hele teksten
 UI_NOTIFY_UNREAD,New,Ny
+UI_PACING_DEADLINE_FALLBACK,Deadline,Frist
+UI_PACING_PAUSED,Paused,Pause
+UI_PACING_RUNNING,Running to the next event,Spoler til neste hendelse
+UI_PACING_SLOWED,Slowed · due %s,Bremset · frist %s
+UI_PACING_STOPPED_DEADLINE,Stopped · due %s,Stoppet · frist %s
+UI_PACING_STOPPED_EVENT,Stopped · %s,Stoppet · %s
+UI_PACING_STOPPED_QUIET,Stopped · %d quiet days,Stoppet · %d rolige dager
+UI_PACING_TIP_DEADLINE,"%s\nDue %s, in %d days. The game slows to 1× a week before a deadline you can act on and stops the day before. Click for the notifications.","%s\nFrist %s, om %d dager. Spillet bremser til 1× en uke før en frist du kan gjøre noe med, og stopper dagen før. Klikk for varslene."
+UI_PACING_TIP_EVENT,To the next event stopped here: %s. Click for the notifications.,Til neste hendelse stoppet her: %s. Klikk for varslene.
+UI_PACING_TIP_PAUSED,The game is paused. Space or 1–4 starts the clock.,Spillet står stille. Mellomrom eller 1–4 starter klokken.
+UI_PACING_TIP_QUIET,Nothing needed you for 60 days. Press N to run on.,Ingenting trengte deg på 60 dager. Trykk N for å spole videre.

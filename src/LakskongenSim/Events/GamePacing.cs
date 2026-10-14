@@ -195,6 +195,13 @@ namespace LakskongenSim.Events
         /// <summary>True while "Til neste hendelse" runs.</summary>
         public bool IsRunningToNextEvent { get; private set; }
 
+        /// <summary>
+        /// The player's "Bremse ned før frister" (on by default). Off, the
+        /// deadlines are still watched and listed but never slow or stop the
+        /// clock (and do not end a run); turned on again, they act from then.
+        /// </summary>
+        public bool DeadlinesSlowTheClock { get; set; } = true;
+
         /// <summary>The sim day the current run started on (-1 when none runs).</summary>
         public int RunStartDay { get; private set; } = -1;
 
@@ -287,7 +294,7 @@ namespace LakskongenSim.Events
             if (!clockRunning)
                 return decision;
 
-            foreach (var entry in Ordered())
+            foreach (var entry in DeadlinesSlowTheClock ? Ordered() : Enumerable.Empty<Entry>())
             {
                 int left = entry.Deadline.DeadlineDay - today;
                 var candidate = PacingDecision.None;

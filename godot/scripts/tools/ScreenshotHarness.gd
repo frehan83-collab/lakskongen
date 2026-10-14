@@ -324,6 +324,8 @@ func _boot_game() -> void:
 	if sim != null and sim.has_method("skip_tutorial"):
 		sim.skip_tutorial()
 
+	await _capture_briefing()
+
 	# Advance a few simulated days so the dashboard/telemetry have history.
 	if sim != null:
 		sim.advance_days(QA_DAYS_TO_SIMULATE)
@@ -343,6 +345,23 @@ func _boot_game() -> void:
 	if sim != null and sim.has_method("set_paused"):
 		sim.set_paused(true)
 	await _wait(2.0)
+
+
+## U2-07: a new game's briefing card over the fjord on day 0 (the QA start
+## has no briefing of its own, so the card is shown for the seeded game and
+## then closed with the game left paused, as "Se deg rundt først" does).
+func _capture_briefing() -> void:
+	var card := _find(_game, "BriefingCard")
+	if card == null or not card.has_method("present"):
+		push_warning("[ScreenshotHarness] BriefingCard unavailable — skipped")
+		return
+	_pin_presentation_hour(12.0)
+	await _wait(1.5)  # the pens arrive a few frames after the start
+	card.call("present")
+	await _wait(0.8)
+	await _shoot("02b_briefing")
+	card.call("_on_look")
+	await _wait(0.4)
 
 
 func _pin_presentation_hour(hour: float) -> void:
