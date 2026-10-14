@@ -197,6 +197,21 @@ def test_every_requested_key_exists_in_both_languages():
     assert not missing, f"{len(missing)} keys missing from translations.csv:\n" + "\n".join(missing[:60])
 
 
+SCENE_KEY_LINE = re.compile(r'^(?:text|tooltip_text|placeholder_text|title) = "([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)"$')
+
+
+def test_scene_texts_that_are_keys_exist_in_both_languages():
+    """A scene control whose text is a key (Godot translates it on screen)
+    must find that key, or the player reads "UI_FJORD_HINT"."""
+    missing = []
+    for path in _files(GODOT, "*.tscn"):
+        for no, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1):
+            m = SCENE_KEY_LINE.match(line.strip())
+            if m and m.group(1) not in KEYS:
+                missing.append(f"{path.relative_to(REPO)}:{no}: {m.group(1)}")
+    assert not missing, "scene texts name keys that translations.csv lacks:\n" + "\n".join(missing)
+
+
 # ── Enum display tables ───────────────────────────────────────────────────────
 
 ENUM_SOURCES = [
