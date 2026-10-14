@@ -42,6 +42,7 @@ extends Node
 ##   --pitch=DEG        tilt the view from the zoom's pitch (positive looks up)
 ##   --shots            save a frame per segment and variant next to the JSON
 ##   --burst=N          with --shots, also N consecutive frames of a slow orbit
+##   --series           keep every frame's time, phases and draw counts
 ##   --boot-only        record the boot (first frames, terrain upload) and quit
 ##   --no-prewarm       boot without the terrain pipeline warm-up (its A/B)
 ##
@@ -535,6 +536,14 @@ func _run_segment(seg: String, seconds: float, warmup: float, variant: Dictionar
 		"screen_space_aa": vp.screen_space_aa,
 		"over_budget": float(frame_ms.size() - _count_under(frame_ms, BUDGET_MS)) / maxf(frame_ms.size(), 1.0),
 	}
+	if _args.has("series"):
+		# Every frame's time and phases, for finding what a tail is made of.
+		res["series"] = {
+			"frame_ms": Array(frame_ms).map(func(v: float) -> float: return snappedf(v, 0.01)),
+			"script_ms": Array(_phase_script).map(func(v: float) -> float: return snappedf(v, 0.01)),
+			"render_ms": Array(_phase_render).map(func(v: float) -> float: return snappedf(v, 0.01)),
+			"draws": Array(draws), "shadow_draws": Array(shadow_draws), "primitives": Array(prims),
+		}
 	print("PERF_SEGMENT %s variant=%s repeat=%d frames=%d frame_p50=%.2f p95=%.2f p99=%.2f gpu_p50=%.2f script_p50=%.2f render_p50=%.2f draws=%d shadow_draws=%d" % [
 		seg, res["variant"], repeat, res["frames"], res["frame_ms"]["p50"], res["frame_ms"]["p95"], res["frame_ms"]["p99"],
 		res["gpu_ms"]["p50"], res["script_phase_ms"]["p50"], res["render_phase_ms"]["p50"], int(res["draw_calls"]), int(res["shadow_draw_calls"])])

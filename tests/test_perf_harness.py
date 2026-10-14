@@ -105,7 +105,10 @@ def test_paired_ratios_compare_each_variant_with_the_block_before_it():
             _run("fjord", "ultra", r, 30.0 * load, 31.0 * load, block=2, p10=29.0 * load),
             _run("fjord", "ultra,ssao=false", r, 24.0 * load, 25.0 * load, block=3, p10=23.2 * load),
         ]
-    pairs = perf_report.paired(_report(runs))["fjord"]
+    report = _report(runs)
+    assert perf_report.paired(report) == {}, "only a --paired run has pairs"
+    report["args"] = {"paired": True}
+    pairs = perf_report.paired(report)["fjord"]
     assert pairs["high"]["ratio_p50"] == 0.5 and pairs["high"]["pairs"] == 3
     assert pairs["ultra,ssao=false"]["ratio_p50"] == 0.8
     assert "ultra" not in pairs

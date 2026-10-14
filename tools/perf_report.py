@@ -75,6 +75,8 @@ def paired(report: dict) -> dict:
     over tens of seconds hits both blocks of a pair alike, so the ratio holds
     where the absolute times do not.
     """
+    if not (report.get("args") or {}).get("paired"):
+        return {}
     runs = report.get("runs", [])
     by_key = {(r["segment"], r["repeat"], r.get("block", -1)): r for r in runs}
     ratios: dict = {}

@@ -261,12 +261,13 @@ group). High is the default.
 | Knob | Low | Medium | High | Ultra |
 |---|---|---|---|---|
 | MSAA + screen AA | off + FXAA | 2× + SMAA | 4× + SMAA | 4× + SMAA |
-| 3D scale (MetalFX spatial on macOS, FSR 1 elsewhere) | 0.67 | 0.75 | 0.8 | 1.0 |
+| 3D scale (MetalFX spatial on macOS, FSR 1 elsewhere) | 0.6 | 0.67 | 0.75 | 1.0 |
 | SSAO | off | off | off | medium, half size |
 | Depth of field | off | box, very low, to 700 m | box, very low, to 700 m (FARM) | hexagon, low, every zoom, near blur |
 | Shadows | 2048, 2 cascades, 0.6× distance, hard | 4096, 2 cascades, 0.8×, very low | 4096, 4 cascades, 1.0×, very low | 4096, 4 cascades, 1.0×, low |
 | Clouds | quarter pass, 4 steps, 4 octaves | quarter, 5, 5 | quarter, 6, 6 | per pixel, 6, 6 |
 | Sky radiance map | 64 | 128 | 256 | 256 |
+| Terrain detail (`quality_detail` for the terrain shader) | 0 | 0.5 | 1 | 1 |
 
 Ultra is the Wave-1 image unchanged. High trims what does not show at
 1440p (frames side by side in `docs/run/evidence/p0_04_perf.md`): SSAO
@@ -274,7 +275,7 @@ Ultra is the Wave-1 image unchanged. High trims what does not show at
 Metal and lights nothing the baked cavity colour does not), depth of field
 past 700 m (the haze softens the far fjord as much at FJORD and COAST),
 per-pixel clouds (soft: a quarter of the pixels gives the same sky), and
-renders the 3D at 0.8 with MetalFX spatial upscaling. It keeps MSAA 4× +
+renders the 3D at 0.75 with MetalFX spatial upscaling. It keeps MSAA 4× +
 SMAA (D12): the pen net resolves its threads with alpha-to-coverage, and
 the thin rails, ropes and masts stay whole. Temporal upscalers (FSR 2,
 MetalFX temporal, TAA) are not used: the water's waves are vertex-animated
@@ -283,7 +284,7 @@ and carry no motion vectors, so they would smear.
 Behind an opaque full-screen panel (any tab but Fjord, with the UI layer
 drawn) the 3D renders at half scale and the sky material holds still, so
 its radiance map is not re-rendered for a world nobody sees (G1-06): the
-panel frame drops from 30 ms to the 2D's own cost. The screenshot harness
+panel frame drops from 31 ms to 7.7 ms on High. The screenshot harness
 hides the UI layer for its fjord shots, which counts as the world showing.
 
 `ShaderPrewarm` draws a millimetre triangle per late-arriving material
@@ -300,7 +301,10 @@ render submission time, draw calls, shadow draws and video memory
 time is the measure (the frame is GPU-bound: script ≈ 0.8 ms). Variants
 (tiers and knob overrides) run interleaved, or `--paired` next to a
 reference block, because other GPU work on a shared machine slows every
-frame; compare inside one run. CI step 18 runs it warn-only.
+frame; compare inside one run. CI step 18 runs it warn-only. On High the
+gate run measures p95 FARM 16.2, FJORD 15.0 and COAST 14.3 ms (the Wave-1
+build: 29.3, 32.6 and 30.9 ms); `docs/run/evidence/p0_04_perf.md` has the
+runs, the cost breakdown and the frames.
 
 ## Shaders in use
 
