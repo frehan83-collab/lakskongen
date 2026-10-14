@@ -1,8 +1,9 @@
 extends Node
 class_name CompetitorFarmVisualManager
 
-## Grey competitor farm visual manager: places greyed-out farm silhouettes
-## for the AI competitors on the fjord channel's deep-water slots, filled
+## Competitor farm visual manager: places the AI competitors' farms (the
+## player's pen asset with the rival's colour band) on the fjord channel's
+## deep-water slots, filled
 ## from the far end (the player's pens fill them from the near end). Shows
 ## up to max_competitors farms; a rival whose slot the player's sites reach
 ## is not drawn.
@@ -15,7 +16,6 @@ signal competitor_farm_added(competitor_id: String)
 var _sim_bridge = null
 var _fjord_env = null
 var _competitor_farms: Dictionary = {}  # competitor_id -> {root, cages, label}
-var _grey: StandardMaterial3D = null
 
 func _ready() -> void:
 	_fjord_env = get_parent()
@@ -94,25 +94,23 @@ func _spawn_competitor_farm(comp_id: String, name: String, position: Vector3, ma
 	var cage_spacing := 70.0
 	var cages: Array = []
 	
+	var band := band_color_for(comp_id)
 	for i in range(pen_count):
 		var cage = pen_cage_scene.instantiate()
 		cage.name = "Pen_%s_%d" % [comp_id, i]
 		cage.position = Vector3(0.0, 0.0, (float(i) - float(pen_count - 1) / 2.0) * cage_spacing)
-		
+
 		farm_root.add_child(cage)
 		cages.append(cage)
-		
-		# Apply grey competitor material
-		_apply_competitor_material(cage)
-	
-	# Add name label
+
+		_style_rival_pen(cage, band)
+
+	# Name label in the rival's colour, above the middle pen.
 	var label := Label3D.new()
 	label.name = "Label"
 	label.text = name
-	label.font_size = 72
-	label.modulate = Color(0.5, 0.5, 0.5, 0.8)
-	label.position = Vector3(0, 30, 0)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.position = Vector3(0, PenCage.LABEL_HEIGHT, 0)
+	PenCage.style_label(label, band.lerp(Color.WHITE, 0.35))
 	farm_root.add_child(label)
 	
 	_competitor_farms[comp_id] = {
@@ -123,21 +121,37 @@ func _spawn_competitor_farm(comp_id: String, name: String, position: Vector3, ma
 	
 	competitor_farm_added.emit(comp_id)
 
-func _apply_competitor_material(cage: Node3D) -> void:
-	# Every mesh of the cage, nested ones included, gets the shared grey
-	# material. (The cage uses ShaderMaterials, so duplicating them "as
-	# StandardMaterial3D" gave null and failed on the first property.)
-	for mesh_inst in cage.find_children("*", "MeshInstance3D", true, false):
-		mesh_inst.material_override = _grey_material()
-		mesh_inst.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+## Rival pens are the player's pen asset with the owner's colour band, a
+## quieter net and no health ring (the player cannot see a rival's fish
+## health). No material is overridden: the band and the net opacity are
+## instance parameters on the shared materials (roadmap G1-07, G2-04).
+func _style_rival_pen(cage: Node3D, band: Color) -> void:
+	if not (cage is PenCage):
+		return
+	var pen := cage as PenCage
+	pen.set_owner_band(band)
+	pen.set_net_opacity(RIVAL_NET_OPACITY)
+	pen.show_health_ring(false)
 
-func _grey_material() -> StandardMaterial3D:
-	if _grey == null:
-		_grey = StandardMaterial3D.new()
-		_grey.albedo_color = Color(0.4, 0.4, 0.4, 0.6)  # grey, semi-transparent
-		_grey.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		_grey.cull_mode = BaseMaterial3D.CULL_DISABLED
-	return _grey
+## Net opacity of rival pens (the player's own nets draw at 1.0).
+const RIVAL_NET_OPACITY := 0.5
+
+## Rival band colours: saturated equipment hues that read against dark water
+## and black HDPE, none of them the health-ring green/amber/red.
+const BAND_PALETTE := [
+	Color(0.910, 0.725, 0.165),  # buoy yellow #E8B92A
+	Color(0.180, 0.561, 0.639),  # teal
+	Color(0.851, 0.345, 0.231),  # signal orange-red #D9583B
+	Color(0.478, 0.373, 0.659),  # violet
+	Color(0.180, 0.365, 0.659),  # blue
+	Color(0.788, 0.800, 0.776),  # light grey #C9CCC6
+	Color(0.878, 0.482, 0.125),  # orange
+	Color(0.553, 0.663, 0.282),  # moss
+]
+
+## A rival's band colour, fixed per competitor id across runs.
+static func band_color_for(comp_id: String) -> Color:
+	return BAND_PALETTE[absi(hash(comp_id)) % BAND_PALETTE.size()]
 
 func _remove_competitor_farm(comp_id: String) -> void:
 	if not _competitor_farms.has(comp_id):

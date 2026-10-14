@@ -1,7 +1,8 @@
 [gd_resource type="CylinderMesh" load_steps=1 format=3 uid="uid://pen_feedpipe_mesh_001"]
 
 [resource]
-top_radius = 0.3
-bottom_radius = 0.3
+top_radius = 0.09
+bottom_radius = 0.09
 height = 15.0
 radial_segments = 8
+rings = 1

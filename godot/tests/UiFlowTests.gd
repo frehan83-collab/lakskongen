@@ -67,6 +67,7 @@ func _run() -> void:
 	await _test_tutorial_card_leaves_escape_to_tabs()
 	await _test_event_alerts_and_vaccine_window()
 	await _test_fjord_shows_rival_farms_and_wellboats()
+	await _test_pen_models_read_as_equipment()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -980,13 +981,30 @@ func _test_fjord_shows_rival_farms_and_wellboats() -> void:
 	_check(expected > 0, "rival farms: the game has AI rivals (%d)" % expected)
 	_check(rivals.farm_ids().size() == expected,
 		"rival farms: one farm per rival (%d of %d)" % [rivals.farm_ids().size(), expected])
-	var greyed := not rivals.farm_ids().is_empty()
+	# G1-07 replaced the grey 60% override: a rival cage is the player's pen
+	# asset with its owner's colour band, a quieter net and no health ring,
+	# and every material is the shared stock one (the old check only asked
+	# for "grey"; this one pins the asset, the band and the net alpha).
+	var banded := not rivals.farm_ids().is_empty()
+	var quiet_nets := not rivals.farm_ids().is_empty()
+	var stock_materials := not rivals.farm_ids().is_empty()
 	for id in rivals.farm_ids():
-		var meshes: Array = (rivals._competitor_farms[id].root as Node).find_children("*", "MeshInstance3D", true, false)
-		greyed = greyed and not meshes.is_empty()
-		for mesh in meshes:
-			greyed = greyed and (mesh as MeshInstance3D).material_override == rivals._grey_material()
-	_check(greyed, "rival farms: every rival cage is drawn grey")
+		var band: Color = CompetitorFarmVisualManager.band_color_for(id)
+		for cage in rivals._competitor_farms[id].cages:
+			var pen := cage as PenCage
+			banded = banded and pen != null and pen.get_owner_band() == band \
+				and pen.get_node("Band").visible \
+				and pen.get_node("Band").get_instance_shader_parameter("band_color") == band \
+				and not pen.get_health_ring().visible
+			quiet_nets = quiet_nets and pen != null and not pen.get_net_nodes().is_empty()
+			for net in (pen.get_net_nodes() if pen != null else []):
+				quiet_nets = quiet_nets and float(net.get_instance_shader_parameter("net_opacity")) <= 0.55
+			for mesh in (cage as Node).find_children("*", "MeshInstance3D", true, false):
+				var mat := (mesh as MeshInstance3D).material_override
+				stock_materials = stock_materials and (mat == null or not mat.resource_path.is_empty())
+	_check(banded, "rival farms: every rival cage carries its owner's colour band and no health ring")
+	_check(quiet_nets, "rival farms: every rival net is drawn at alpha <= 0.55")
+	_check(stock_materials, "rival farms: no rival mesh gets a one-off material override")
 	# The bridge's fixed farm positions (x up to ±1000 m) lie inside the
 	# fjord walls; the farms take the pen manager's channel slots instead.
 	var terrain: FjordTerrain = env.get_node("Terrain")
@@ -1060,6 +1078,122 @@ func _test_fjord_shows_rival_farms_and_wellboats() -> void:
 	_check(boats.active_job_ids().is_empty(), "wellboat: the boat leaves the fjord after the trip home")
 	scene.queue_free()
 	await get_tree().process_frame
+
+## G1-07: the placeholder pen and boat models read as equipment. The net has
+## no lid, no unshaded debug sphere floats over the selection, the collar is
+## black HDPE whatever the fish health, health shows on the ring on the
+## water (healthy vs red-zone lice differ by CIE76 dE >= 20), the site label
+## is a constant-size billboard and the boat hulls lie flat.
+func _test_pen_models_read_as_equipment() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "pen models: seeded two-site scenario starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var site_id := str(_sim.get_all_pens()[0].get("id", "")) if not _sim.get_all_pens().is_empty() else ""
+	var cage := pens.get_node_or_null("PenMarkers/" + site_id) as PenCage
+	_check(cage != null, "pen models: site %s has a pen cage" % site_id)
+	if cage == null:
+		scene.queue_free()
+		return
+
+	_check(_net_lid_faces(cage) == 0, "pen models: the net has no lid (%d top faces)" % _net_lid_faces(cage))
+
+	pens.select_pen(site_id)
+	var spheres := 0
+	for mesh in env.find_children("*", "MeshInstance3D", true, false):
+		if (mesh as MeshInstance3D).mesh is SphereMesh:
+			spheres += 1
+	_check(spheres == 0, "pen models: no sphere mesh anywhere in the fjord (%d)" % spheres)
+	var marker := pens.active_indicator
+	_check(marker != null and marker.visible and not (marker.mesh is SphereMesh)
+		and absf(marker.global_position.y - cage.global_position.y) < 1.0,
+		"pen models: the selection marker is a ring on the water around the pen")
+
+	var gb := get_node("/root/GameBridge")
+	gb.SetQaPenLice(site_id, 0.05)
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	var healthy := pens.get_pen_health_color(site_id)
+	var collar_before := _albedo_of(cage.get_node("Collar") as MeshInstance3D)
+	gb.SetQaPenLice(site_id, 0.6)
+	_sim.state_updated.emit()
+	await get_tree().process_frame
+	var red := pens.get_pen_health_color(site_id)
+	var ring := cage.get_health_ring()
+	_check(healthy == FishPenManager.COLOR_HEALTHY and red == FishPenManager.COLOR_CRITICAL,
+		"pen models: lice 0.05 -> healthy ring, 0.6 -> critical ring (%s, %s)" % [healthy, red])
+	_check(ring != null and ring.visible and ring.get_instance_shader_parameter("ring_color") == red,
+		"pen models: the health ring on the water shows the site state")
+	_check(_delta_e76(healthy, red) >= 20.0, "pen models: healthy vs red ring dE %.1f >= 20" % _delta_e76(healthy, red))
+	var collar_after := _albedo_of(cage.get_node("Collar") as MeshInstance3D)
+	_check(collar_after == collar_before and _linear_luminance(collar_after) < 0.1,
+		"pen models: the collar stays black HDPE (luminance %.3f) whatever the lice" % _linear_luminance(collar_after))
+
+	var label := cage.get_node_or_null("Label") as Label3D
+	_check(label != null and label.billboard == BaseMaterial3D.BILLBOARD_ENABLED and label.fixed_size
+		and label.position.y > 3.0,
+		"pen models: the site label is a constant-size billboard above the pen")
+
+	var boat: Node3D = (load("res://assets/models/boat/service_boat.tscn") as PackedScene).instantiate()
+	var flat := true
+	for hull_name in ["HullLeft", "HullRight"]:
+		var hull := boat.get_node(hull_name) as MeshInstance3D
+		var box: AABB = hull.transform * hull.get_aabb()
+		flat = flat and maxf(box.size.x, box.size.z) > box.size.y and box.size.z > box.size.x
+	_check(flat, "pen models: the service boat's hulls lie flat along the boat")
+	boat.free()
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Triangles of a pen's net meshes lying flat at the net's top edge (a lid).
+func _net_lid_faces(cage: PenCage) -> int:
+	var lid := 0
+	for net in cage.get_net_nodes():
+		var faces: PackedVector3Array = net.mesh.get_faces() if net.mesh else PackedVector3Array()
+		var xf: Transform3D = cage.global_transform.affine_inverse() * net.global_transform
+		var top := -INF
+		for v in faces:
+			top = maxf(top, (xf * v).y)
+		for t in range(0, faces.size(), 3):
+			if (xf * faces[t]).y > top - 0.01 and (xf * faces[t + 1]).y > top - 0.01 and (xf * faces[t + 2]).y > top - 0.01:
+				lid += 1
+	return lid
+
+## The albedo a pen mesh renders with (shader parameter or StandardMaterial).
+func _albedo_of(mesh: MeshInstance3D) -> Color:
+	var mat: Material = mesh.material_override if mesh.material_override else mesh.get_active_material(0)
+	if mat is ShaderMaterial:
+		var c = (mat as ShaderMaterial).get_shader_parameter("albedo_color")
+		return c if c is Color else Color(c.x, c.y, c.z) if c is Vector3 else Color.WHITE
+	if mat is BaseMaterial3D:
+		return (mat as BaseMaterial3D).albedo_color
+	return Color.WHITE
+
+## WCAG relative luminance of an sRGB colour (0 black .. 1 white).
+func _linear_luminance(c: Color) -> float:
+	var l := c.srgb_to_linear()
+	return 0.2126 * l.r + 0.7152 * l.g + 0.0722 * l.b
+
+## CIE76 colour difference between two sRGB colours (D65 white).
+func _delta_e76(a: Color, b: Color) -> float:
+	var la := _lab(a)
+	var lb := _lab(b)
+	return la.distance_to(lb)
+
+func _lab(c: Color) -> Vector3:
+	var l := c.srgb_to_linear()
+	var x := (0.4124 * l.r + 0.3576 * l.g + 0.1805 * l.b) / 0.95047
+	var y := 0.2126 * l.r + 0.7152 * l.g + 0.0722 * l.b
+	var z := (0.0193 * l.r + 0.1192 * l.g + 0.9505 * l.b) / 1.08883
+	var f := func(t: float) -> float: return pow(t, 1.0 / 3.0) if t > 0.008856 else 7.787 * t + 16.0 / 116.0
+	var fx: float = f.call(x)
+	var fy: float = f.call(y)
+	var fz: float = f.call(z)
+	return Vector3(116.0 * fy - 16.0, 500.0 * (fx - fy), 200.0 * (fy - fz))
 
 ## True when every baked point of a boat's path is at sea level over water.
 func _route_on_water(path: Path3D, terrain: FjordTerrain) -> bool:

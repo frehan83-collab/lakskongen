@@ -3,8 +3,6 @@
 [ext_resource type="Shader" path="res://shaders/pen_net_shader.gdshader" id="1_shader"]
 
 [resource]
+render_priority = -1
 shader = ExtResource("1_shader")
-shader_parameter/albedo_color = Color(0.15, 0.2, 0.25, 0.28)
-shader_parameter/alpha_cutoff = 0.5
-shader_parameter/transparency = 1
-shader_parameter/cull_mode = 2
+shader_parameter/albedo_color = Color(0.1, 0.13, 0.15, 1)

@@ -1,9 +1,8 @@
 [gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://pen_handrail_mat_001"]
 
-[ext_resource type="Shader" path="res://shaders/pen_standard_shader.gdshader" id="1_shader"]
+[ext_resource type="Shader" path="res://shaders/pen_collar_shader.gdshader" id="1_shader"]
 
 [resource]
 shader = ExtResource("1_shader")
-shader_parameter/albedo_color = Color(0.5, 0.45, 0.4, 1.0)
-shader_parameter/metallic = 0.2
-shader_parameter/roughness = 0.5
+shader_parameter/albedo_color = Color(0.109804, 0.117647, 0.12549, 1)
+shader_parameter/roughness = 0.55

@@ -1,23 +1,35 @@
 shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
-uniform vec3 albedo_color : source_color = vec3(0.9, 0.6, 0.2);
-uniform vec3 emission_color : source_color = vec3(0.0, 0.0, 0.0);
-uniform float metallic : hint_range(0.0, 1.0) = 0.3;
-uniform float roughness : hint_range(0.0, 1.0) = 0.4;
-// Per-pen lice/health tint. FishPenManager duplicates this material per pen
-// and drives this uniform (S1: instance uniforms did not render on the QA
-// setup — per-pen material instances are the boring, verified path).
-uniform vec4 lice_tint : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+// Black HDPE (D13 "Vestland Light": #1C1E20, roughness 0.6) for the pen's
+// floating collar, brackets, stanchions and handrail. The collar is
+// equipment, not a gameplay readout: site health lives on the pen's signal
+// ring (pen_signal_ring.gdshader), never in this albedo (roadmap G1-07).
+uniform vec3 albedo_color : source_color = vec3(0.110, 0.118, 0.125);
+uniform float metallic : hint_range(0.0, 1.0) = 0.0;
+uniform float roughness : hint_range(0.0, 1.0) = 0.6;
+// Waterline band: wet, slightly greener plastic where waves wash the pipes.
+// Heights are in the model's own space (the pen's y = 0 is the waterline),
+// so the band stays put when the pen later heaves with the waves.
+uniform vec3 waterline_color : source_color = vec3(0.075, 0.090, 0.078);
+uniform float waterline_height = 0.08;
+uniform float waterline_blend = 0.10;
+uniform float wet_roughness : hint_range(0.0, 1.0) = 0.32;
+// Baked ambient occlusion in the vertex colour (Blender bake, A2-01). Meshes
+// without vertex colours read white, which means "no occlusion".
+uniform float ao_light_affect : hint_range(0.0, 1.0) = 0.35;
+
+varying float model_y;
+
+void vertex() {
+	model_y = VERTEX.y;
+}
 
 void fragment() {
-	// The collar is the site-health readout: the sim tint (green/amber/red)
-	// colors the ring directly — a multiply against the warm base albedo was
-	// too low-contrast to read in QA frames (S1 forced-state evidence, session 1).
-	ALBEDO = mix(albedo_color, lice_tint.rgb, 0.85);
+	float wet = 1.0 - smoothstep(waterline_height - waterline_blend, waterline_height + waterline_blend, model_y);
+	ALBEDO = mix(albedo_color, waterline_color, wet * 0.8);
 	METALLIC = metallic;
-	ROUGHNESS = roughness;
-	// Warning/critical pens glow faintly so trouble reads from COAST zoom.
-	// (lice_tint.g drops as severity rises: 0.75 healthy, 0.3 critical.)
-	EMISSION = emission_color + lice_tint.rgb * max(0.0, 0.5 - lice_tint.g) * 0.5;
+	ROUGHNESS = mix(roughness, wet_roughness, wet);
+	AO = COLOR.r;
+	AO_LIGHT_AFFECT = ao_light_affect;
 }

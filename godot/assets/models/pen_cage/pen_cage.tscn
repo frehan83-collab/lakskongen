@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://pen_cage_001"]
+[gd_scene load_steps=17 format=3 uid="uid://pen_cage_001"]
 
 [ext_resource type="Script" path="res://scripts/environment/PenCage.gd" id="1_pen_cage_script"]
 [ext_resource type="Material" path="res://assets/models/pen_cage/pen_collar_material.tres" id="2_collar_mat"]
@@ -11,37 +11,61 @@
 [ext_resource type="Mesh" path="res://assets/models/pen_cage/pen_walkway_mesh.tres" id="9_walkway_mesh"]
 [ext_resource type="Mesh" path="res://assets/models/pen_cage/pen_handrail_mesh.tres" id="10_handrail_mesh"]
 [ext_resource type="Mesh" path="res://assets/models/pen_cage/pen_feedpipe_mesh.tres" id="11_feedpipe_mesh"]
+[ext_resource type="Material" path="res://assets/models/pen_cage/pen_health_ring_material.tres" id="13_health_ring_mat"]
+[ext_resource type="Material" path="res://assets/models/pen_cage/pen_band_material.tres" id="14_band_mat"]
 
 [sub_resource type="SphereShape3D" id="12_click_shape"]
 radius = 18.0
+
+[sub_resource type="PlaneMesh" id="15_ring_plane"]
+size = Vector2(78, 78)
+
+[sub_resource type="TorusMesh" id="16_band_mesh"]
+inner_radius = 26.55
+outer_radius = 26.8
+rings = 96
+ring_segments = 4
 
 [node name="PenCage" type="Node3D"]
 script = ExtResource("1_pen_cage_script")
 
 [node name="Collar" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.45, 0, 0, 0, 1, 0, 0.12, 0)
 mesh = ExtResource("7_collar_mesh")
 material_override = ExtResource("2_collar_mat")
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 
 [node name="Net" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -18.8, 0)
+cast_shadow = 0
 mesh = ExtResource("8_net_mesh")
 material_override = ExtResource("3_net_mat")
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -19.5, 0)
 
 [node name="Walkway" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.08, 0, 0, 0, 1, 0, 0.45, 0)
 mesh = ExtResource("9_walkway_mesh")
 material_override = ExtResource("4_walkway_mat")
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
 
 [node name="Handrail" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.45, 0)
 mesh = ExtResource("10_handrail_mesh")
 material_override = ExtResource("5_handrail_mat")
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
 
 [node name="FeedPipe" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 34.25, 0.15, 0)
 mesh = ExtResource("11_feedpipe_mesh")
 material_override = ExtResource("6_feedpipe_mat")
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.5, 0.5, 0)
+
+[node name="Band" type="MeshInstance3D" parent="."]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+mesh = SubResource("16_band_mesh")
+material_override = ExtResource("14_band_mat")
+
+[node name="HealthRing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
+cast_shadow = 0
+mesh = SubResource("15_ring_plane")
+material_override = ExtResource("13_health_ring_mat")
 
 [node name="ClickArea" type="Area3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -10, 0)
