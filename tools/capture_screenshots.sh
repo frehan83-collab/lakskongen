@@ -75,8 +75,12 @@ echo
 # Do not let a non-zero Godot exit abort the report step. Tee the full console
 # log next to the images so runtime errors (shader/resource) are reviewable.
 LOG_FILE="$OUT_DIR/harness.log"
+# The game's MCP runtime publishes a session token at the same per-project
+# path a running editor uses; sandbox it like tools/ci.sh does, or every
+# capture breaks the live editor's MCP bridge until it is restarted.
+MCP_TOKEN_SANDBOX="$(mktemp -d -t lakskongen-mcp-token.XXXXXX)/mcp_token"
 set +e
-"$GODOT_BIN" --path "$GODOT_DIR" "$HARNESS_SCENE" 2>&1 | tee "$LOG_FILE"
+GODOT_MCP_TOKEN_PATH="$MCP_TOKEN_SANDBOX" "$GODOT_BIN" --path "$GODOT_DIR" "$HARNESS_SCENE" 2>&1 | tee "$LOG_FILE"
 status=${PIPESTATUS[0]}
 set -e
 

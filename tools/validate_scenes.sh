@@ -67,7 +67,11 @@ echo "Project: $PROJECT"
 echo ""
 
 # perl alarm = portable timeout (macOS ships without coreutils `timeout`).
+# The MCP token is sandboxed like the other Godot steps: the project's MCP
+# runtime autoload would otherwise overwrite a live editor's session token.
+mcp_token_sandbox="$(mktemp -d -t lakskongen-mcp-token.XXXXXX)/mcp_token"
 perl -e 'alarm shift; exec @ARGV' "$TIMEOUT_SECS" \
+    env GODOT_MCP_TOKEN_PATH="$mcp_token_sandbox" \
     "$GODOT_BIN" --headless --path "$PROJECT" \
     --script res://scripts/tools/SceneValidator.gd -- "$@" 2>&1 | tee "$LOG"
 godot_rc="${PIPESTATUS[0]}"
