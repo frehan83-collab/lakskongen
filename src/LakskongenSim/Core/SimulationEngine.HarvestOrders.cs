@@ -91,7 +91,7 @@ public partial class SimulationEngine
             GrossRevenueNok = (decimal)lot.ValueKg * spot,
             TransportCostNok = hog * route.TransportCostPerKgHogNok,
             SlaughterCostNok = hog * route.SlaughterCostPerKgHogNok,
-            SurchargeNok = express ? hog * cal.ExpressSurchargePerKgHogNok : 0m,
+            SurchargeNok = express && route.NeedsWellboat ? hog * cal.ExpressSurchargePerKgHogNok : 0m,
             FastingDays = fastingDays,
             FirstSlaughterDay = first,
             LastSlaughterDay = last,
@@ -240,7 +240,10 @@ public partial class SimulationEngine
     private void StartFastingAhead(HarvestOrder order, HarvestHolding holding)
     {
         double capacityKg = Math.Max(1e-6, holding.Route.DailyCapacityTonnesHog * 1000.0);
-        double daysToSlot = Math.Max(0, order.SlotDay - State.Day);
+        // The order's first slaughter day behind the orders queued ahead of it in its pool.
+        var queue = SimulatePoolQueue(holding.Route, extra: null);
+        int first = queue.TryGetValue(order.Id, out var days) ? days.First : order.SlotDay;
+        double daysToSlot = Math.Max(0, first - State.Day);
         double hogAheadKg = 0.0;
         foreach (var o in ResolveOwingPens(order, holding))
         {
@@ -370,6 +373,7 @@ public partial class SimulationEngine
         return days;
     }
 
+
     /// <summary>
     /// First and last slaughter day of <paramref name="tonnesHog"/> gutted
     /// tonnes on <paramref name="route"/> from <paramref name="slotDay"/>, behind
@@ -377,7 +381,22 @@ public partial class SimulationEngine
     /// </summary>
     private (int First, int Last) EstimateSlaughterDays(HarvestRoute route, int slotDay, double tonnesHog)
     {
-        var queue = new List<(int Slot, double Tonnes)>();
+        const string quoted = "\u0000quote";
+        var days = SimulatePoolQueue(route, (quoted, slotDay, tonnesHog));
+        return days.TryGetValue(quoted, out var d) ? d : (slotDay, slotDay);
+    }
+
+    /// <summary>
+    /// The first and last slaughter day of every open order in
+    /// <paramref name="route"/>'s capacity pool (plus <paramref name="extra"/>, a
+    /// quoted harvest queued last), served oldest slot first within the daily
+    /// capacity at today's weights, from the next slaughter day (tomorrow's
+    /// post-tick) on. Pure: moves nothing.
+    /// </summary>
+    private Dictionary<string, (int First, int Last)> SimulatePoolQueue(HarvestRoute route,
+        (string Id, int Slot, double Tonnes)? extra)
+    {
+        var queue = new List<(string Id, int Slot, double Tonnes)>();
         foreach (var order in State.HarvestOrders.Where(o => o.IsOpen).OrderBy(o => o.SlotDay).ThenBy(o => o.Sequence))
         {
             var holding = FindHarvestHolding(order.HoldingId);
@@ -389,15 +408,19 @@ public partial class SimulationEngine
                 if (pen == null || pen.TotalCount <= 0 || orderPen.FishRemaining <= 0) continue;
                 owedKg += Math.Min(orderPen.FishRemaining, pen.TotalCount) * pen.GetTotalBiomassKg() / pen.TotalCount;
             }
-            queue.Add((Math.Max(order.SlotDay, State.Day + 1), owedKg * HarvestCalibration.HogYieldFraction / 1000.0));
+            queue.Add((order.Id, Math.Max(order.SlotDay, State.Day + 1), owedKg * HarvestCalibration.HogYieldFraction / 1000.0));
         }
-        queue.Add((slotDay, tonnesHog));
+        if (extra is { } e)
+            queue.Add((e.Id, Math.Max(e.Slot, State.Day + 1), e.Tonnes));
 
+        var result = new Dictionary<string, (int First, int Last)>(StringComparer.Ordinal);
+        if (queue.Count == 0) return result;
         double capacity = Math.Max(1e-6, route.DailyCapacityTonnesHog);
-        int ours = queue.Count - 1, first = -1, last = slotDay;
         var left = queue.Select(q => q.Tonnes).ToArray();
+        var first = Enumerable.Repeat(-1, queue.Count).ToArray();
+        var last = queue.Select(q => q.Slot).ToArray();
         int start = queue.Min(q => q.Slot);
-        for (int day = start; day < start + 3650 && left[ours] > 1e-9; day++)
+        for (int day = start; day < start + 3650 && left.Any(t => t > 1e-9); day++)
         {
             double room = capacity;
             for (int i = 0; i < queue.Count && room > 1e-9; i++)
@@ -406,13 +429,12 @@ public partial class SimulationEngine
                 double take = Math.Min(room, left[i]);
                 left[i] -= take;
                 room -= take;
-                if (i == ours)
-                {
-                    if (first < 0) first = day;
-                    last = day;
-                }
+                if (first[i] < 0) first[i] = day;
+                last[i] = day;
             }
         }
-        return (first < 0 ? slotDay : first, last);
+        for (int i = 0; i < queue.Count; i++)
+            result[queue[i].Id] = (first[i] < 0 ? queue[i].Slot : first[i], last[i]);
+        return result;
     }
 }

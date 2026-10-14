@@ -282,7 +282,10 @@ public partial class SimulationEngine
         decimal hog = (decimal)lot.HogKg;
         decimal transport = mode == HarvestMode.HiredWellboat ? 0m : hog * route.TransportCostPerKgHogNok;
         decimal slaughter = hog * route.SlaughterCostPerKgHogNok;
-        decimal surcharge = mode is HarvestMode.Express or HarvestMode.Forced ? hog * cal.ExpressSurchargePerKgHogNok : 0m;
+        // The express surcharge buys a spot wellboat and the slaughterhouse's waiting pen;
+        // a land farm's own hall needs neither.
+        decimal surcharge = (mode is HarvestMode.Express or HarvestMode.Forced) && route.NeedsWellboat
+            ? hog * cal.ExpressSurchargePerKgHogNok : 0m;
 
         ReceiveIncome(gross, revenueCategory);
         PayCost(transport + slaughter + surcharge, CostBooking.Cogs, "harvest");

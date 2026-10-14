@@ -799,12 +799,12 @@ po3 career (`PlayerScriptProbe`), the new player-path farm cycle
   5 days away (or the end of the fast if longer); the player's slaughterhouse
   takes 150 t HOG a day (a land farm's own hall: its own pool), shared by every
   order of the pool, oldest slot first. Pens go in turn, each fasting just ahead
-  of its turn (30 degree-days of its own water, at least 2 days), so a site that
+  of its turn behind the orders queued ahead (30 degree-days of its own water, at least 2 days), so a site that
   takes two weeks to slaughter is not starved for two weeks. Each batch sells at
   that day's price. `CancelHarvestOrder` feeds the fish again.
 - **Express** (`HarvestSite`, `HarvestNow`, the bridge's `harvest_pen`): today, on
   a spot wellboat to the slaughterhouse's waiting pen, where the fish fast; the
-  same pricing plus a 1.0 NOK/kg HOG surcharge. A **hired harvest wellboat**
+  same pricing plus a 1.0 NOK/kg HOG surcharge (none in a land farm's own hall). A **hired harvest wellboat**
   (`RequestWellboat("harvest")`) starts the fast when booked and its flat hire is
   the transport. A **forced harvest** (Mattilsynet) sells through the pipeline at
   70% of the price with the express cost.
@@ -837,7 +837,7 @@ po3 career (`PlayerScriptProbe`), the new player-path farm cycle
 | 1. Revenue = HOG kg × size-class price × grade factor − harvest cost | exact to 0.01 NOK, express and planned; every report = its ledger entries; cash Δ = gross − cost | `TheLedger_BooksHogKilosTimesClassPriceTimesGrade_LessTheHarvestCost`, `APlannedHarvest_…`, `EconomyLedgerTests.Harvest_WithoutContracts…`, `FullProductionCycle_OnTheEnginePath…` |
 | 2. A 2 kg fish earns ≥ 25% less per kg than a 5 kg fish | one fish: 0.72 (1.68 kg HOG in 1-2 kg vs 4.2 kg in 4-5 kg); engine pens at CV 1%: 72.0% gross, 69.7% net; at a real farm's CV 20%: 76.4% | `ATwoKiloFish…`, `TwoKiloFish…OnTheEnginePath` |
 | 3. F270 closed | harvest cost booked as COGS `harvest`; the cash moves by revenue − cost (it moved by the whole revenue) | `PnLBookkeepingTests.HarvestSite_BooksRevenueExactlyMatchingTheCashFlow` |
-| 4. EBIT/kg band on the PlayerScriptProbe path | median 17.63 NOK/kg HOG (10.43-22.72), 10 seeds | `AFarmCycle_EarnsAnEbitPerKiloInTheCyclicalBand_OnThePlayerPath` (band 8-25) |
+| 4. EBIT/kg band on the PlayerScriptProbe path | median 18.19 NOK/kg HOG (11.07-23.23), 10 seeds | `AFarmCycle_EarnsAnEbitPerKiloInTheCyclicalBand_OnThePlayerPath` (band 8-25) |
 | 5. Partial harvest | 40% of one pen: 4,000 of 10,000 fish, the rest feeds and grows again; half of a site through the bridge: 16,844 went, 16,747 stayed | `APartialHarvest_…`, `AnExpressPartialHarvest_…`, `APerPenHarvest_…`, UiFlowTests `harvest:` |
 
 ### EBIT/kg on the player path (`PlayerScriptFarmCycle`, 10 seeds)
@@ -848,19 +848,19 @@ rule, EBIT from the ledger (revenue − COGS − OPEX) per kg HOG sold.
 
 | Seed | Days | t HOG | Revenue/kg | Cost/kg | EBIT/kg | Price achievement | Superior | Mortality |
 |---|---|---|---|---|---|---|---|---|
-| 1 | 470 | 2,935 | 68.30 | 57.87 | 10.43 | 0.923 | 82.3% | 37.8% |
-| 2 | 471 | 2,652 | 68.41 | 53.53 | 14.89 | 0.924 | 83.5% | 43.2% |
-| 3 | 444 | 3,473 | 69.20 | 48.67 | 20.53 | 0.961 | 88.8% | 32.7% |
-| 4 | 479 | 2,652 | 68.30 | 56.14 | 12.16 | 0.923 | 82.3% | 43.5% |
-| 5 | 466 | 3,372 | 68.50 | 49.51 | 18.99 | 0.926 | 84.1% | 28.7% |
-| 6 | 458 | 3,366 | 68.63 | 47.53 | 21.10 | 0.927 | 84.3% | 29.4% |
-| 7 | 456 | 3,285 | 70.12 | 49.24 | 20.89 | 0.948 | 85.1% | 35.6% |
-| 8 | 444 | 3,165 | 63.55 | 49.34 | 14.21 | 0.917 | 81.7% | 32.4% |
-| 9 | 454 | 3,978 | 68.48 | 45.76 | 22.72 | 0.925 | 82.4% | 17.3% |
-| 10 | 446 | 3,241 | 68.16 | 51.89 | 16.27 | 0.921 | 82.4% | 31.4% |
+| 1 | 470 | 2,986 | 68.59 | 57.52 | 11.07 | 0.927 | 82.3% | 37.8% |
+| 2 | 471 | 2,660 | 68.47 | 53.47 | 15.00 | 0.925 | 83.5% | 43.2% |
+| 3 | 444 | 3,487 | 69.23 | 48.61 | 20.63 | 0.962 | 88.8% | 32.7% |
+| 4 | 479 | 2,680 | 68.48 | 55.90 | 12.57 | 0.925 | 82.3% | 43.5% |
+| 5 | 467 | 3,436 | 68.83 | 49.24 | 19.59 | 0.930 | 84.2% | 28.7% |
+| 6 | 458 | 3,448 | 69.05 | 47.22 | 21.83 | 0.933 | 84.4% | 29.4% |
+| 7 | 457 | 3,340 | 70.40 | 49.00 | 21.40 | 0.951 | 85.2% | 35.6% |
+| 8 | 444 | 3,197 | 63.62 | 49.18 | 14.44 | 0.919 | 81.7% | 32.4% |
+| 9 | 455 | 4,054 | 68.80 | 45.57 | 23.23 | 0.930 | 82.5% | 17.3% |
+| 10 | 447 | 3,292 | 68.43 | 51.65 | 16.79 | 0.925 | 82.5% | 31.4% |
 
-Median 17.63 NOK/kg HOG inside SalMar's cyclical 8-25 (23.4 FY24, 13.6 FY25).
-Real mapping: the game's cost per kg HOG (45.8-57.9) sits below Norway's ~66
+Median 18.19 NOK/kg HOG inside SalMar's cyclical 8-25 (23.4 FY24, 13.6 FY25).
+Real mapping: the game's cost per kg HOG (45.6-57.5) sits below Norway's ~66
 (Fiskeridir 2023: 58.86 NOK/kg round weight before capital cost, ÷ 0.889): the
 game books no insurance, health, administration or capital costs beyond its
 wages, maintenance, storms and events, and the zone path's bloom deck kills
@@ -1124,4 +1124,4 @@ S1-01 / S1-02 guards (§1d):
 | 2026-10-08 | Calibration v1.0.3 | Wired the two dormant depth systems into the live engine in-band. Disease: `IntegratedDiseaseSystem` injects via `MortalityModel.SetDiseaseMortalityRate`, anchor split by new `Health.SeaMortalityDiseaseShare` (0.30), measured disease 4.39%/cycle of a 14.88% total (was 0.00 / 15.76). Storms: `SimulationEngine.ApplyStormHazards` owns `SeaSite.NetIntegrityPct` wear/repair + `RecordEscape` (fine + event log); removed the duplicate block from `GameBridge.CheckWeatherImpacts`. Measured storm escapes 0.22%/site/yr, 0.16 events, min integrity 80.7% (was test-side 0.15% / 0.16 / 83.4). Re-ran `SimProbe` seeds 1-20; full solution suite green; `enableEvents:false` path unchanged and deterministic; bumped `calibration.json` to 1.0.3. |
 | 2026-10-14 | wave1/sim-1 (S1-01, S1-02) | F1024 water chemistry merged; seawater O2 solubility (Benson & Krause, 9.02 mg/L at 10 °C/35 PSU, was 10.9); pH baseline 8.05; zones take the sea temperature; F456 storm season renormalized through one helper shared with the forecast; storm damage once per episode; net repair 0.2 -> 0.5; storm cooling Apr-Sep only. Re-measured every band (§1b, §1c updated, before/after in §1d); no band loosened. |
 | 2026-10-14 | wave1/sim-2 (S1-03, D16) | Achievement and tutorial reward cash removed (medals); per-scenario bankruptcy floors in calibration v1.0.5 from measured harvest-only troughs (po3 -15M, isa -24M, algae -26.5M, krise -4.5M, lofoten -2M, default -1M) with a three-rung warning ladder; resource-rent tax on by default (family farm pays 0, a six-site career 11-30M over three years). SimProbe medians unchanged; tutorial still 6 of 6, four seeds finish later (§1e). |
-| 2026-10-14 | wave2/sim-b-3 (S2-04, F270) | Harvest pipeline (calibration v1.0.8 `harvest`, save v6): fish sold as gutted kilos (yield 0.84) at the reference price × size class (HOG ladder, Kontali) × grade (superior/ordinary/production by cause, Fiskehelserapporten 2024) − the harvest cost (5.0 NOK/kg HOG, COGS, F270 closed); fasting in degree-days, wellboat slot, slaughterhouse capacity 150 t HOG/day, partial and per-pen orders, land hall / offshore routes. Player-path EBIT/kg HOG median 17.63 (10.43-22.72, 10 seeds); po3 careers +14.75M to +19.90M (were +23.49M to +31.76M); forste_sesong 36,000 fish and 4M (6/6 seeds win); rent base excludes the harvest cost (§1h). |
+| 2026-10-14 | wave2/sim-b-3 (S2-04, F270) | Harvest pipeline (calibration v1.0.8 `harvest`, save v6): fish sold as gutted kilos (yield 0.84) at the reference price × size class (HOG ladder, Kontali) × grade (superior/ordinary/production by cause, Fiskehelserapporten 2024) − the harvest cost (5.0 NOK/kg HOG, COGS, F270 closed); fasting in degree-days, wellboat slot, slaughterhouse capacity 150 t HOG/day, partial and per-pen orders, land hall / offshore routes. Player-path EBIT/kg HOG median 18.19 (11.07-23.23, 10 seeds); po3 careers +14.75M to +19.90M (were +23.49M to +31.76M); forste_sesong 36,000 fish and 4M (6/6 seeds win); rent base excludes the harvest cost (§1h). |

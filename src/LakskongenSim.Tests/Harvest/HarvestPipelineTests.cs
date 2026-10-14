@@ -255,6 +255,32 @@ namespace LakskongenSim.Tests.Harvest
             Assert.Empty(big.Pens);
         }
 
+        [Fact]
+        public void AnOrderQueuedBehindABigOne_FastsOnlyAheadOfItsOwnTurn()
+        {
+            var engine = NewEngine(63);
+            engine.Advance(200); // July: a three-day fast
+            var big = AddSite(engine, "big");
+            for (int i = 0; i < 8; i++) AddPen(engine, big, 100_000, 5.0); // ~22 slaughter days
+            var small = AddSite(engine, "small");
+            var pen = AddPen(engine, small, 20_000, 5.0);
+            int day0 = engine.State.Day;
+            Assert.True(engine.OrderHarvest(big.Id).Ok);
+            var order = engine.OrderHarvest(small.Id);
+            Assert.True(order.Ok);
+
+            int fastStart = -1, slaughtered = -1;
+            for (int d = 0; d < 60 && slaughtered < 0; d++)
+            {
+                engine.Advance(1);
+                if (fastStart < 0 && pen.IsFasting) fastStart = engine.State.Day;
+                if (engine.HarvestReports.Any(r => r.OrderId == order.Id)) slaughtered = engine.State.Day;
+            }
+            Assert.True(slaughtered >= day0 + 20, $"the small site was slaughtered on day {slaughtered}");
+            Assert.True(fastStart > 0 && slaughtered - fastStart <= 5,
+                $"the small site fasted {slaughtered - fastStart} days waiting behind the big one");
+        }
+
         // ── Acceptance 5: partial and per-pen harvests ──────────────────────────
 
         [Fact]
@@ -391,6 +417,8 @@ namespace LakskongenSim.Tests.Harvest
             var quote = engine.QuoteHarvest(ras.Id);
             Assert.Equal(HarvestRouteKind.OnSiteHall, quote.Route);
             Assert.Equal(0m, quote.TransportCostNok);
+            // No spot wellboat or waiting pen to pay for: an express harvest in the own hall has no surcharge.
+            Assert.Equal(0m, engine.QuoteHarvest(ras.Id, express: true).SurchargeNok);
             var order = engine.OrderHarvest(ras.Id);
             Assert.True(order.Ok, order.Message);
             // No wellboat lead time: the slot is the end of the fast.
