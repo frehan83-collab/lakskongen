@@ -214,15 +214,69 @@ func _collect_clickables(node: Node, out: Array[Control]) -> void:
 		_collect_clickables(child, out)
 
 
+## U1-09: the main menu over its live fjord. The shot waits for the world
+## and the veil's fade (bounded), then checks that the backdrop is a 3D scene,
+## not a flat panel (luminance spread over the world area), and that it lives
+## (two frames 2 s apart differ there).
+const MENU_MIN_LUMA_STD := 0.08
+const MENU_MIN_FRAME_DIFF := 0.002
+const MENU_REVEAL_TIMEOUT_S := 8.0
+
+
 func _capture_main_menu() -> void:
 	var menu := _instance_scene(MAIN_MENU_SCENE)
 	if menu == null:
 		push_warning("[ScreenshotHarness] main menu unavailable — skipped")
 		return
 	add_child(menu)
+	var waited := 0.0
+	while not bool(menu.get("revealed")) and waited < MENU_REVEAL_TIMEOUT_S:
+		await _wait(0.1)
+		waited += 0.1
 	await _wait(1.6)
-	await _shoot("01_main_menu")
+	var first := await _shoot("01_main_menu")
+	await _wait(2.0)
+	var second := await _grab_frame()
+	_check_live_menu(menu, first, second)
 	_menu_instance = menu
+
+
+func _check_live_menu(menu: Node, first: Image, second: Image) -> void:
+	if first == null or second == null:
+		_content_failures.append("01_main_menu: frames were not captured")
+		return
+	# The world shows right of the menu column.
+	var from_x := first.get_width() / 3
+	var column := menu.get_node_or_null("%Center") as Control
+	if column != null:
+		var share := column.get_global_rect().end.x / get_viewport().get_visible_rect().size.x
+		from_x = int(share * first.get_width()) + 8
+	var stats := menu_frame_stats(first, second, from_x)
+	print("[ScreenshotHarness] 01 world: luminance std %.3f, 2 s frame diff %.4f" % [stats["luma_std"], stats["diff"]])
+	if stats["luma_std"] < MENU_MIN_LUMA_STD:
+		_content_failures.append("01_main_menu: backdrop luminance std %.3f < %.2f (a flat panel?)" % [stats["luma_std"], MENU_MIN_LUMA_STD])
+	if stats["diff"] < MENU_MIN_FRAME_DIFF:
+		_content_failures.append("01_main_menu: frames 2 s apart differ by %.4f < %.3f (a still image?)" % [stats["diff"], MENU_MIN_FRAME_DIFF])
+
+
+## Luminance standard deviation of `a` and the mean absolute luminance change
+## from `a` to `b`, over the columns from `from_x` (sampled every 4 px).
+static func menu_frame_stats(a: Image, b: Image, from_x: int) -> Dictionary:
+	var n := 0
+	var total := 0.0
+	var total_sq := 0.0
+	var diff := 0.0
+	for y in range(0, a.get_height(), 4):
+		for x in range(clampi(from_x, 0, a.get_width() - 1), a.get_width(), 4):
+			var la := a.get_pixel(x, y).get_luminance()
+			total += la
+			total_sq += la * la
+			diff += absf(la - b.get_pixel(x, y).get_luminance())
+			n += 1
+	if n == 0:
+		return {"luma_std": 0.0, "diff": 0.0}
+	var mean := total / n
+	return {"luma_std": sqrt(maxf(total_sq / n - mean * mean, 0.0)), "diff": diff / n}
 
 
 func _capture_scenario_selection() -> void:

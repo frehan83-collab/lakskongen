@@ -172,6 +172,23 @@ func recentre() -> void:
 	fly_to_position(home_focus, current_zoom, 0.8)
 
 
+## Cinematic hold (the main menu's backdrop, photo mode): the rig heads for
+## this focus, yaw (radians), distance (metres, unclamped by the zoom range)
+## and pitch offset (degrees) and keeps them until another call or player
+## input moves it. Damping and terrain avoidance still apply, so a moving
+## target glides and never cuts through a mountainside; `snap` jumps there.
+func hold_view(focus: Vector3, yaw: float, distance: float, pitch_offset_deg: float = 0.0, snap: bool = false) -> void:
+	_cancel_fly()
+	_set_focus_target(focus)
+	_user_rotated = true
+	_yaw_target = _nearest_angle(_yaw, yaw)
+	_distance_target = maxf(distance, 1.0)
+	_pitch_offset_target = clampf(pitch_offset_deg, -40.0, 15.0)
+	_update_zoom_band(_band_for(_distance_target))
+	if snap:
+		_snap()
+
+
 ## Tilt the view relative to the distance table (degrees, positive looks
 ## up), as a right-drag does. Photo mode and the aurora shot use it.
 func set_pitch_offset(degrees: float) -> void:

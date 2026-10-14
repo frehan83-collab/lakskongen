@@ -102,6 +102,9 @@ func _run() -> void:
 	await _test_credits_list_every_third_party_work()
 	await _test_pause_save_list_buttons_answer()
 	await _test_scenario_picker()
+	await _test_main_menu_shows_the_live_fjord()
+	await _test_main_menu_column_reads_over_every_mood()
+	await _test_main_menu_reduced_motion_holds_the_camera()
 
 	_clear_test_saves()
 	_finish()
@@ -3233,3 +3236,156 @@ func _line_clears_terrain(terrain: FjordTerrain, from: Vector3, to: Vector3) -> 
 		if ground > terrain.water_level and p.y < ground:
 			return false
 	return true
+
+# ── U1-09: the live main menu ─────────────────────────────────────────────────
+
+## Wait (bounded) until the menu's world is in and its veil has lifted.
+func _await_menu_reveal(menu: Control, timeout_s: float = 15.0) -> float:
+	var started := Time.get_ticks_msec()
+	while not bool(menu.revealed) and Time.get_ticks_msec() - started < int(timeout_s * 1000.0):
+		await get_tree().process_frame
+	return (Time.get_ticks_msec() - started) / 1000.0
+
+## U1-09: the main menu shows the live fjord: the game's own FjordEnvironment
+## (no video, no painting), staged as a calm late-winter afternoon in Troms,
+## under a low oblique camera that drifts slowly and keeps the horizon in
+## frame. The world fades in from an Ink veil; leaving hands the viewport's
+## render scale back to the game.
+func _test_main_menu_shows_the_live_fjord() -> void:
+	MotionPrefs.force(false)
+	var scale_before := get_viewport().scaling_3d_scale
+	var menu := await _spawn_main_menu()
+	var backdrop: MenuBackdrop = menu.backdrop
+	var env: FjordEnvironment = backdrop.environment
+	_check(env != null and env.get_parent() == backdrop
+		and env.scene_file_path == "res://scenes/environment/FjordEnvironment.tscn",
+		"menu: the backdrop is the game's own FjordEnvironment")
+	_check(menu.veil.visible and menu.veil.color.a > 0.99, "menu: an Ink veil covers the world while it loads")
+	var waited := await _await_menu_reveal(menu)
+	_check(backdrop.is_world_ready() and menu.revealed, "menu: the world comes in and the veil lifts (%.1f s)" % waited)
+	await get_tree().create_timer(menu.VEIL_FADE_S + 0.3).timeout
+	_check(not menu.veil.visible, "menu: the veil has faded out")
+	_check(get_viewport().get_camera_3d() == backdrop.camera, "menu: the fjord's camera draws the menu's world")
+	var managers := 0
+	for manager in MenuBackdrop.SIM_MANAGERS:
+		managers += 1 if env.get_node_or_null(manager) != null else 0
+	_check(managers == 0, "menu: no sim-driven vessels or rival farms in the menu's world (%d left)" % managers)
+	var site := backdrop.get_node_or_null("Site")
+	_check(site != null and site.find_children("*", "PenCage", true, false).size() == MenuBackdrop.SITE_PENS,
+		"menu: a site of %d pens lies in the fjord" % MenuBackdrop.SITE_PENS)
+	# The mood: calm water, late winter in Northern Norway, a low sun.
+	var ws := env.weather_system
+	_check(ws.get_wind_speed_ms() <= 2.0 and ws.get_wave_height_m() <= 0.1 and ws.get_rain() == 0.0 and ws.get_snow() == 0.0,
+		"menu: calm weather (wind %.1f m/s, waves %.2f m)" % [ws.get_wind_speed_ms(), ws.get_wave_height_m()])
+	var ts := env.time_system
+	_check(ts.paused and absf(ts.get_hour() - MenuBackdrop.HOUR) < 0.01, "menu: the hour is pinned (%.2f)" % ts.get_hour())
+	_check(ts.season < 0.25 and ts.latitude_deg > 66.0, "menu: late winter north of the Arctic Circle (season %.2f, %.1f N)" % [ts.season, ts.latitude_deg])
+	var sun := ts.get_sun_elevation_deg()
+	_check(sun > 3.0 and sun < 20.0, "menu: a low sun (%.1f deg)" % sun)
+	# The camera: a low oblique view with the horizon in frame.
+	var cam: FjordCamera = backdrop.camera
+	var forward := -cam.global_transform.basis.z
+	var pitch := rad_to_deg(asin(clampf(forward.y, -1.0, 1.0)))
+	_check(pitch <= -3.0 and pitch >= -10.0, "menu: a low oblique view (pitch %.1f deg)" % pitch)
+	_check(cam.global_position.y > 40.0 and cam.global_position.y < 200.0, "menu: the camera flies low (%.0f m)" % cam.global_position.y)
+	var horizon := _horizon_row(cam)
+	_check(horizon > 0.2 and horizon < 0.6, "menu: the horizon sits in the upper half of the frame (%.2f)" % horizon)
+	var sky := _sky_fraction(cam)
+	_check(sky > 0.15 and sky < 0.6, "menu: sky and fjord share the frame (sky %.0f %%)" % (sky * 100.0))
+	# The drift: the camera moves, slowly, and its whole track is over water.
+	var p0 := cam.global_position
+	await get_tree().create_timer(1.5).timeout
+	var moved := cam.global_position.distance_to(p0)
+	_check(moved > 0.3 and moved < 15.0, "menu: the camera drifts slowly (%.1f m in 1.5 s)" % moved)
+	var over_water := true
+	var terrain := backdrop.terrain
+	for i in 36:
+		var v: Dictionary = backdrop.view_at(MenuBackdrop.DRIFT_PERIOD_S * float(i) / 36.0)
+		var at: Vector3 = v["position"]
+		over_water = over_water and terrain.get_height_at(at.x, at.z) < terrain.water_level
+	_check(over_water, "menu: the drift stays over the water")
+	_check(get_viewport().scaling_3d_scale < 1.0, "menu: the world draws at the menu's render scale (%.2f)" % get_viewport().scaling_3d_scale)
+	var audio := get_node_or_null("/root/AudioController")
+	_check(audio != null and audio.get_current_music() == MusicLibrary.music(audio.MENU_MUSIC_KEY),
+		"menu: the main theme plays from the start (%s)" % (audio.get_current_music() if audio else "no audio"))
+	menu.queue_free()
+	await get_tree().process_frame
+	_check(is_equal_approx(get_viewport().scaling_3d_scale, scale_before), "menu: leaving restores the game's render scale")
+	MotionPrefs.force(null)
+
+## U1-09: the column is Ink glass (D13 Ink at 90 %) whose text reads over
+## every mood: ThemeLint judges each line over a white and a black world.
+## The logo is the brand wordmark in the display face, never an emoji, and
+## the version reads from the project's version.
+func _test_main_menu_column_reads_over_every_mood() -> void:
+	var menu := await _spawn_main_menu()
+	await get_tree().create_timer(THEME_SETTLE_S).timeout
+	var glass: ColorRect = menu.glass
+	var shader := (glass.material as ShaderMaterial).shader if glass.material is ShaderMaterial else null
+	_check(glass.color.is_equal_approx(Color(LakskongenTheme.INK, 0.9)) and shader != null
+		and shader.resource_path == "res://shaders/menu_glass.gdshader", "menu: the column is Ink glass at 90 %")
+	var lint := preload("res://tests/ThemeLint.gd")
+	var judged := 0
+	for c in menu.center.find_children("*", "Control", true, false):
+		var control := c as Control
+		if control.is_visible_in_tree() and (control is Label or control is Button) and str(control.get("text")) != "":
+			judged += 1
+	_check(judged >= 8, "menu: the column shows its lockup, items and version (%d texts)" % judged)
+	var low: PackedStringArray = lint.low_contrast(menu.center)
+	_check(low.is_empty(), "menu: every line of the column reads over a white or a black world %s" % str(low.slice(0, 4)))
+	var emoji := PackedStringArray()
+	for entry in TextLint.dump(menu):
+		var text := str(entry["text"])
+		for i in text.length():
+			var u := text.unicode_at(i)
+			if (u >= 0x1F000 and u <= 0x1FAFF) or (u >= 0x2600 and u <= 0x27BF) or u == 0xFE0F:
+				emoji.append("%s '%s'" % [entry["path"], text])
+				break
+	_check(emoji.is_empty(), "menu: no emoji on the main menu %s" % str(emoji))
+	_check(menu.wordmark.texture != null and menu.wordmark.texture.resource_path == "res://assets/brand/lakskongen_wordmark.svg"
+		and menu.brand_mark.texture != null, "menu: the logo is the brand lockup (mark and wordmark)")
+	var version := str(ProjectSettings.get_setting("application/config/version", ""))
+	_check(version != "" and menu.version_label.text.contains(version.get_slice("-", 0))
+		and not menu.version_label.text.contains("Nordic") and not tr("UI_VERSION_TEXT").contains("Nordic"),
+		"menu: the version reads the project's version ('%s')" % menu.version_label.text)
+	menu.queue_free()
+	await get_tree().process_frame
+
+## U1-09: Redusert bevegelse holds the camera, keeps the column in place and
+## shortens the veil's fade; the settings offer it with the accessibility
+## options (without writing the player's settings file here).
+func _test_main_menu_reduced_motion_holds_the_camera() -> void:
+	MotionPrefs.force(true)
+	var menu := await _spawn_main_menu()
+	var backdrop: MenuBackdrop = menu.backdrop
+	_check(menu.reduced_motion and backdrop.reduced_motion, "reduced motion: the menu and its world take the preference")
+	var margin := menu.menu_vbox.get_parent() as Control
+	_check(is_zero_approx(margin.position.x), "reduced motion: the column does not slide in")
+	await _await_menu_reveal(menu)
+	await get_tree().create_timer(menu.VEIL_FADE_REDUCED_S + 0.3).timeout
+	_check(not menu.veil.visible, "reduced motion: the veil is gone within %.2f s of the world" % (menu.VEIL_FADE_REDUCED_S + 0.3))
+	var cam: FjordCamera = backdrop.camera
+	var p0 := cam.global_position
+	var t0: float = backdrop.drift_time
+	await get_tree().create_timer(1.5).timeout
+	_check(cam.global_position.distance_to(p0) < 0.05 and backdrop.drift_time == t0,
+		"reduced motion: the camera holds still (%.3f m)" % cam.global_position.distance_to(p0))
+	# The settings: a Redusert bevegelse box that lands in the accessibility settings.
+	var settings: Control = menu.settings_menu
+	var box := settings.get_node_or_null("%ReducedMotionCheck") as CheckBox
+	_check(box != null and box.get_parent().name == "Tilgjengelighet" and tr(box.text) == "Redusert bevegelse",
+		"settings: Tilgjengelighet offers Redusert bevegelse")
+	if box != null:
+		box.button_pressed = true
+		var acc: Dictionary = settings._collect_from_widgets()["accessibility"]
+		_check(bool(acc.get("reduced_motion", false)), "settings: Redusert bevegelse is kept with the accessibility settings")
+		box.button_pressed = false
+	menu.queue_free()
+	await get_tree().process_frame
+	MotionPrefs.force(false)
+	var moving := await _spawn_main_menu()
+	_check(not moving.reduced_motion and moving.menu_vbox.get_parent().position.x < 0.0,
+		"motion: without the preference the column slides in from the left")
+	moving.queue_free()
+	await get_tree().process_frame
+	MotionPrefs.force(null)

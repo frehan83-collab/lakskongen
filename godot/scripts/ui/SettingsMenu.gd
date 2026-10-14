@@ -13,7 +13,7 @@ const DEFAULT_SETTINGS := {
 	"audio": {"master": 1.0, "music": 0.7, "ambient": 0.5, "sfx": 0.8},
 	"graphics": {"resolution": "1920x1080", "fullscreen": false, "vsync": true},
 	"gameplay": {"autosave_minutes": 5, "tutorial_enabled": true, "notifications_enabled": true, "default_speed": 1.0, "auto_pause_critical": true},
-	"accessibility": {"high_contrast": false, "ui_scale": 1.0},
+	"accessibility": {"high_contrast": false, "ui_scale": 1.0, "reduced_motion": false},
 }
 const UI_SCALE_STEPS: Array[float] = [0.8, 0.9, 1.0, 1.1, 1.25]
 
@@ -44,6 +44,8 @@ var _dirty: bool = false
 @onready var _speed_slider: HSlider = %SpeedSlider
 @onready var _speed_val: Label = %SpeedValue
 @onready var _hc_check: CheckBox = %HighContrastCheck
+## Redusert bevegelse (U1-09): read back through MotionPrefs.
+@onready var _motion_check: CheckBox = %ReducedMotionCheck
 @onready var _ui_scale_option: OptionButton = %UiScaleOption
 @onready var _reset_button: Button = %ResetButton
 @onready var _apply_button: Button = %ApplyButton
@@ -75,6 +77,9 @@ func _connect_signals() -> void:
 	_music_slider.value_changed.connect(func(v): _music_pct.text = "%d%%" % int(v * 100); _apply_audio_live())
 	_ambient_slider.value_changed.connect(func(v): _ambient_pct.text = "%d%%" % int(v * 100); _apply_audio_live())
 	_sfx_slider.value_changed.connect(func(v): _sfx_pct.text = "%d%%" % int(v * 100); _apply_audio_live())
+	# Closing keeps a changed motion preference (the menu reads it at once).
+	if _motion_check:
+		_motion_check.toggled.connect(func(_on: bool) -> void: _dirty = true)
 
 func _populate_options() -> void:
 	_res_option.clear()
@@ -124,6 +129,7 @@ func _collect_from_widgets() -> Dictionary:
 		"accessibility": {
 			"high_contrast": _hc_check.button_pressed if _hc_check else false,
 			"ui_scale": _ui_scale(),
+			"reduced_motion": _motion_check.button_pressed if _motion_check else false,
 		},
 	}
 
@@ -163,6 +169,7 @@ func _apply_to_widgets(data: Dictionary) -> void:
 
 	var acc = data.get("accessibility", {})
 	if _hc_check: _hc_check.button_pressed = acc.get("high_contrast", false)
+	if _motion_check: _motion_check.set_pressed_no_signal(bool(acc.get("reduced_motion", false)))
 	if _ui_scale_option:
 		var scale_idx := UI_SCALE_STEPS.find(float(acc.get("ui_scale", 1.0)))
 		_ui_scale_option.selected = scale_idx if scale_idx >= 0 else 2

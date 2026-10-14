@@ -5,7 +5,7 @@ UI_BUTTON_NEW_GAME,New Game,Nytt spill
 UI_BUTTON_LOAD_GAME,Load Game,Last inn spill
 UI_BUTTON_SETTINGS,Settings,Innstillinger
 UI_BUTTON_QUIT,Quit,Avslutt
-UI_VERSION_TEXT,v0.2.0 Alpha,v0.2.0 alfa
+UI_VERSION_TEXT,v%s (alpha),v%s (alfa)
 UI_DASHBOARD_TITLE,%s — Overview,%s — Oversikt
 UI_DASHBOARD_PEN_NAME,Pen %d,Merd %d
 UI_KPI_BIOMASS_LABEL,TOTAL BIOMASS,TOTAL BIOMASSE
@@ -131,6 +131,8 @@ UI_SETTINGS_TAB_AUDIO,Audio,Lyd
 UI_SETTINGS_TAB_GRAPHICS,Graphics,Grafikk
 UI_SETTINGS_TAB_GAMEPLAY,Gameplay,Spill
 UI_SETTINGS_TAB_ACCESSIBILITY,Accessibility,Tilgjengelighet
+UI_SETTINGS_REDUCED_MOTION,Reduce motion,Redusert bevegelse
+UI_SETTINGS_REDUCED_MOTION_TIP,"Keeps the camera still in the main menu and shortens fades and slides. Also follows the system setting.","Holder kameraet i ro i hovedmenyen og korter ned overganger og glidninger. Følger også systeminnstillingen."
 UI_SETTINGS_MASTER_LABEL,Master,Master
 UI_SETTINGS_MUSIC_LABEL,Music,Musikk
 UI_SETTINGS_AMBIENT_LABEL,Ambient,Ambient
