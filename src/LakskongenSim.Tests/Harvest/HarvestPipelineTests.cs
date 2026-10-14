@@ -202,6 +202,27 @@ namespace LakskongenSim.Tests.Harvest
         }
 
         [Fact]
+        public void TheFast_IsDoneWhenTheGutIsEmpty_DegreeDaysOfTheFishsOwnWater_NotACalendarCount()
+        {
+            var engine = NewEngine(59); // January, ~7 °C in PO4
+            var site = AddSite(engine, "a");
+            var pen = AddPen(engine, site, 1_000, 5.0);
+            engine.StartFasting(pen);
+            int days = 0;
+            while (!engine.FastingComplete(pen) && days < 30)
+            {
+                engine.Advance(1);
+                days++;
+                if (!engine.FastingComplete(pen))
+                    Assert.True(pen.FastingDegreeDays < Cal.FastingDegreeDays || days < Cal.MinFastingDays);
+            }
+            // At ~7 °C 30 degree-days take five days, not the two days of a minimum fast.
+            Assert.InRange(days, 4, 6);
+            Assert.True(pen.FastingDegreeDays >= Cal.FastingDegreeDays);
+            Assert.True(days > Cal.MinFastingDays);
+        }
+
+        [Fact]
         public void ABigHarvest_IsSlaughteredOverSeveralDays_WithinTheDailyCapacity_AndASecondOrderWaitsItsTurn()
         {
             var engine = NewEngine(44);
@@ -441,6 +462,33 @@ namespace LakskongenSim.Tests.Harvest
             Assert.Equal(report.LiveKg * Cal.HogYieldFraction, report.HogKg, 6);
             Assert.Equal(0.7 * report.ReferenceEquivalentKg * (double)spot, (double)report.GrossRevenueNok, 2);
             Assert.Equal(report.NetRevenueNok, net);
+        }
+
+        [Fact]
+        public void TheResourceRentBase_IsTheGuttedHarvestAtTheNormPrice_AndTheHarvestCostIsNoSeaPhaseCost()
+        {
+            // Skatteloven § 19-5: gross income = the market value at the pen edge
+            // times the harvest volume; § 19-6 lists no slaughter or transport.
+            var engine = NewEngine(60);
+            var site = AddSite(engine, "a");
+            AddPen(engine, site, 20_000, 5.0);
+            engine.Advance(1);
+            decimal norm = engine.PenPriceCouncil.MonthlyPenPrice > 0m
+                ? engine.PenPriceCouncil.MonthlyPenPrice
+                : engine.MarketSimulation.PricePerKg;
+
+            Assert.True(engine.HarvestSite(site.Id).Ok);
+
+            var report = engine.HarvestReports[^1];
+            Assert.Equal(report.HogKg, engine.State.HarvestedKgThisTaxYear, 6);
+            Assert.Equal((double)((decimal)report.HogKg * norm), (double)engine.State.ResourceRentHarvestValueThisTaxYear, 2);
+            Assert.Equal(report.HarvestCostNok, engine.State.HarvestCostThisTaxYear);
+            var fs = engine.FinancialStatements;
+            decimal expected = engine.State.ResourceRentHarvestValueThisTaxYear
+                - (fs.COGS + fs.OperatingExpenses - report.HarvestCostNok);
+            var settlement = engine.SettleAnnualTax();
+            Assert.Equal(Math.Max(0m, expected), settlement.ResourceRentBase);
+            Assert.Equal(0m, engine.State.HarvestCostThisTaxYear);
         }
 
         // ── The quote ──────────────────────────────────────────────────────────
