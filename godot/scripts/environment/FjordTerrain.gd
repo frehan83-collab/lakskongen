@@ -52,6 +52,16 @@ var max_upload_frame_ms: float = 0.0
 var upload_steps_ms := PackedFloat32Array()
 ## Worker-thread time for the heightfield and the render arrays.
 var last_generation_ms: float = 0.0
+## G1-05: what the opaque water knows about the ground under it, one texel
+## per vertex (RGBA half floats): R depth below sea level (m, negative over
+## land), G signed distance to the shoreline (m, positive over water),
+## B exposure to the open sea (0 basin, 1 open coast), A seabed slope.
+## Null until the build lands.
+var water_bake_texture: ImageTexture = null
+## Effective fetch (m) of the sheltered basin for the prevailing sea, and
+## the direction (x, z) that sea travels.
+var sheltered_fetch_m: float = 3000.0
+var sea_direction: Vector2 = Vector2(0.3, 1.0).normalized()
 
 var _generator: RefCounted = null
 var _heights := PackedFloat32Array()
@@ -136,6 +146,7 @@ func _apply_build(result: Dictionary) -> void:
 	_build_result = result
 	max_upload_frame_ms = 0.0
 	upload_steps_ms = PackedFloat32Array()
+	_apply_water_bake(result)
 
 	for child in get_children():
 		child.queue_free()
@@ -179,6 +190,21 @@ func _process(_delta: float) -> void:
 			terrain_resolution, terrain_resolution, _spacing, heightfield_hash, last_generation_ms,
 			", ".join(Array(upload_steps_ms).map(func(ms: float) -> String: return "%.1f" % ms))])
 		terrain_ready.emit()
+
+
+func _apply_water_bake(result: Dictionary) -> void:
+	if not result.has("water_bake"):
+		return
+	var n := int(result["resolution"])
+	var image := Image.create_from_data(n, n, false, Image.FORMAT_RGBAH, result["water_bake"])
+	water_bake_texture = ImageTexture.create_from_image(image)
+	sheltered_fetch_m = float(result["sheltered_fetch_m"])
+	sea_direction = result["sea_direction"]
+
+
+## World-space rectangle the water bake covers (x, z, width, depth).
+func get_water_bake_rect() -> Rect2:
+	return Rect2(-terrain_size * 0.5, terrain_size)
 
 
 func _note_upload_frame(started_usec: int) -> void:

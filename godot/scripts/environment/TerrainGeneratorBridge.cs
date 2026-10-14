@@ -32,7 +32,9 @@ public partial class TerrainGeneratorBridge : RefCounted
     /// (metres, row-major by Z), collider_heights (heights / spacing, for a
     /// HeightMapShape3D scaled by the spacing), chunks (an Array of
     /// Dictionaries with vertices, normals, tangents, uvs, colors, indices),
-    /// hash, spacing, resolution, build_ms.
+    /// hash, spacing, resolution, build_ms; and for the water (G1-05)
+    /// water_bake (RGBA half floats, <see cref="WaterBake"/>: depth, shore
+    /// distance, exposure, seabed slope), sheltered_fetch_m and sea_direction.
     /// </summary>
     public Godot.Collections.Dictionary Build()
     {
@@ -50,8 +52,14 @@ public partial class TerrainGeneratorBridge : RefCounted
         for (int i = 0; i < colliderHeights.Length; i++)
             colliderHeights[i] = heights[i] / spacing;
 
+        var water = WaterBake.Build(heights, n, settings.WorldSizeM, 0f,
+            settings.PrevailingSeaDirX, settings.PrevailingSeaDirZ);
+
         var result = new Godot.Collections.Dictionary
         {
+            ["water_bake"] = WaterBake.ToHalfBytes(water.Rgba),
+            ["sheltered_fetch_m"] = water.ShelteredFetchM,
+            ["sea_direction"] = new Godot.Vector2(settings.PrevailingSeaDirX, settings.PrevailingSeaDirZ).Normalized(),
             ["heights"] = heights,
             ["collider_heights"] = colliderHeights,
             ["chunks"] = chunks,

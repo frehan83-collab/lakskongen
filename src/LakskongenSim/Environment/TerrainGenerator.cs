@@ -32,6 +32,12 @@ namespace LakskongenSim.Environment
         public float HeadZ { get; init; } = 1450f;
         /// <summary>Half-width of the dredge-free fairway kept open through the skerries.</summary>
         public float FairwayHalfWidthM { get; init; } = 140f;
+        /// <summary>
+        /// Direction (x, z) the prevailing wind sea travels: in from the open sea
+        /// at the mouth (−Z) and up the fjord, a west-south-westerly (north is +X).
+        /// </summary>
+        public float PrevailingSeaDirX { get; init; } = 0.3f;
+        public float PrevailingSeaDirZ { get; init; } = 1f;
 
         /// <summary>Grid spacing in metres.</summary>
         public float SpacingM => WorldSizeM / (Resolution - 1);

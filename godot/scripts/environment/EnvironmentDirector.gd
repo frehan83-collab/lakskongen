@@ -15,7 +15,9 @@ extends Node
 ##   moon, haze, animation time);
 ## - the Sun and Moon lights: direction, colour, energy, shadows;
 ## - the camera's depth of field;
-## - the water's wave uniforms.
+## - the water material: the sea state's wave bands (SeaStateModel: JONSWAP
+##   from the wind and the fetch, Monahan whitecaps), their phases, the
+##   optics and the terrain's water bake (G1-05).
 ##
 ## Nothing else writes these: tests/test_environment_director.py fails on a
 ## second writer. Because the result is recomposed from the inputs every
@@ -27,7 +29,7 @@ extends Node
 @export var time_system: TimeOfDay
 @export var weather_system: WeatherController
 @export var camera: FjordCamera
-@export var water_plane: MeshInstance3D
+@export var water_grid: WaterGrid
 @export var terrain: FjordTerrain
 ## Captured once per sky state: the water and terrain reflect it, so a probe
 ## left at its boot-time capture tints every later frame (olive dawns). Its
@@ -115,8 +117,37 @@ const ZOOM_TABLE := [
 	[2400.0, 4500.0, 8.0, 0.14],
 ]
 
-# ── Water (until G1-05 derives waves from the sea state) ──────────────────────
-const WAVE_AMPLITUDE_PER_HS := 0.12
+# ── Water (G1-05) ─────────────────────────────────────────────────────────────
+const SEA_BRIDGE_PATH := "res://scripts/environment/SeaStateBridge.cs"
+const GRAVITY := 9.81
+## Each band is drawn as three Gerstner components: headings spread round
+## the band's heading (directional spreading, wider for shorter waves),
+## wavenumbers detuned so no two repeat together, the band's energy shared
+## 1/4, 1/2, 1/4 (amplitude weights 0.5, 0.707, 0.5).
+const COMPONENTS_PER_BAND := 3
+const BAND_HEADING_DEG := [0.0, 7.0, -9.0, 12.0, -14.0, 17.0, -20.0, 23.0]
+const BAND_SPREAD_BASE_DEG := 10.0
+const BAND_SPREAD_PER_BAND_DEG := 5.0
+const COMPONENT_DETUNE := [0.93, 1.0, 1.075]
+const COMPONENT_WEIGHT := [0.5, 0.70710678, 0.5]
+## Gerstner choppiness, scaled down so the bands' summed steepness stays
+## below WAVE_FOLD_LIMIT (no surface loops).
+const CHOPPINESS := 1.1
+const WAVE_FOLD_LIMIT := 0.75
+## Ripple (normal-map) strength per m/s of wind, and its range.
+const RIPPLE_PER_MS := 0.06
+const RIPPLE_MIN := 0.12
+const RIPPLE_MAX := 0.75
+## The shader's whitecap field (a crest gate plus breaker noise and foam
+## lace) is not a standard normal: its threshold is mapped from the normal
+## quantile of Monahan's share so that the drawn cover matches it.
+## Calibrated top-down over the basin and the open sea at 9, 14 and 20 m/s
+## (W 0.7 %, 3.1 %, 10.5 %): measured cover 0.7 %, 3.1 %, 10 % at
+## thresholds 2.7, 2.1 and 1.35.
+const WHITECAP_Z_SCALE := 1.12
+const WHITECAP_Z_OFFSET := -0.05
+## Re-derive the sea when the wind moves this much (m/s).
+const SEA_WIND_STEP := 0.02
 
 ## Cloud drift: presentation clouds move this many times faster than the wind.
 const CLOUD_DRIFT := 12.0
@@ -144,6 +175,20 @@ var _terrain_was_ready := false
 var _probe_due := -1.0
 ## Reflection-probe captures requested so far (tests read it).
 var probe_captures := 0
+var _sea_bridge: RefCounted = null
+## Per wave component: band index, wavenumber, heading off the sea (deg),
+## amplitude weight and phase (rad, integrated every frame).
+var _comp_band := PackedInt32Array()
+var _comp_k := PackedFloat32Array()
+var _comp_heading := PackedFloat32Array()
+var _comp_weight := PackedFloat32Array()
+var _comp_phase := PackedFloat64Array()
+var _sea_time := 0.0
+var _sea_wind := -1.0
+var _bake_applied: Texture2D = null
+## The sea composed last: hs/tp/amplitudes for the sheltered basin and the
+## open coast, whitecaps (tests read it).
+var sea_state: Dictionary = {}
 
 
 func _ready() -> void:
@@ -213,7 +258,7 @@ func compose(delta: float, snap: bool = false) -> void:
 	_apply_sky(delta, sun_elev, cloud, density, visibility, sea_fog, k_slow, c)
 	_apply_fog(sun_elev, cloud, visibility, sea_fog, underwater, c)
 	_apply_image(sun_elev, distance, underwater, c)
-	_apply_water()
+	_apply_water(delta, c)
 	_refresh_probe(delta, snap, sun_elev, cloud, sea_fog)
 	_composed = c
 
@@ -501,17 +546,147 @@ func _refresh_probe(delta: float, snap: bool, sun_elev: float, cloud: float, sea
 
 # ── Water ─────────────────────────────────────────────────────────────────────
 
-func _apply_water() -> void:
-	if water_plane == null or not (water_plane.material_override is ShaderMaterial):
+func _apply_water(delta: float, c: Dictionary) -> void:
+	var mat := water_material()
+	if mat == null:
 		return
-	var mat := water_plane.material_override as ShaderMaterial
-	var hs := weather_system.get_wave_height_m() if weather_system else 0.3
-	var wind_dir := weather_system.get_wind_direction() if weather_system else Vector2(1.0, 0.3)
-	mat.set_shader_parameter("wave_amplitude", clampf(hs * WAVE_AMPLITUDE_PER_HS, 0.04, 1.2))
-	mat.set_shader_parameter("wind_strength", 1.0)
-	mat.set_shader_parameter("wind_direction", wind_dir)
+	_apply_water_bake(mat)
+	if not _ensure_sea_bridge():
+		return
+	var wind := weather_system.get_wind_speed_ms() if weather_system else 4.0
+	if absf(wind - _sea_wind) > SEA_WIND_STEP or sea_state.is_empty():
+		_sea_wind = wind
+		_derive_sea(wind)
+	# Phases advance at each component's deep-water frequency, integrated
+	# here so a change of sea never makes the waves jump.
+	_sea_time += delta
+	var amp := PackedVector4Array()
+	var a_sh: PackedFloat32Array = sea_state["sheltered_amplitudes"]
+	var a_ex: PackedFloat32Array = sea_state["exposed_amplitudes"]
+	for i in _comp_k.size():
+		var omega := sqrt(GRAVITY * _comp_k[i])
+		_comp_phase[i] = fmod(_comp_phase[i] + omega * delta, TAU)
+		var band := _comp_band[i]
+		amp.append(Vector4(a_sh[band] * _comp_weight[i], a_ex[band] * _comp_weight[i], _comp_phase[i], 0.0))
+	mat.set_shader_parameter("wave_shape", sea_state["wave_shape"])
+	mat.set_shader_parameter("wave_amp", amp)
+	mat.set_shader_parameter("whitecaps", sea_state["whitecaps"])
+	mat.set_shader_parameter("whitecap_threshold", whitecap_threshold(float(sea_state["whitecaps"])))
+	mat.set_shader_parameter("ripple_strength", clampf(RIPPLE_MIN + RIPPLE_PER_MS * wind, RIPPLE_MIN, RIPPLE_MAX))
+	mat.set_shader_parameter("sea_height", Vector2(sea_state["sheltered_hs"], sea_state["exposed_hs"]))
+	mat.set_shader_parameter("sea_direction", sea_state["direction"])
+	mat.set_shader_parameter("sea_time", _sea_time)
 	mat.set_shader_parameter("temperature_factor", clampf((_water_temperature_c - 2.0) / 18.0, 0.0, 1.0))
 	mat.set_shader_parameter("algae_density", _algae)
+	# Seen from below, Snell's window shows the day's sky light.
+	var horizon: Color = c.get("horizon_color", Color(0.5, 0.6, 0.7))
+	var day := smoothstep(-8.0, 20.0, float(c.get("sun_elevation", 30.0)))
+	mat.set_shader_parameter("underside_light", Vector3(horizon.r, horizon.g, horizon.b) * lerpf(0.05, 0.9, day))
+	c["sea_hs_sheltered"] = sea_state["sheltered_hs"]
+	c["sea_hs_exposed"] = sea_state["exposed_hs"]
+
+
+## The water material (null without a water surface).
+func water_material() -> ShaderMaterial:
+	if water_grid == null:
+		return null
+	return water_grid.material
+
+
+## Hand the terrain's water bake (depth, shore distance, exposure, seabed
+## slope) to the water once the terrain build lands.
+func _apply_water_bake(mat: ShaderMaterial) -> void:
+	if terrain == null or terrain.water_bake_texture == null or terrain.water_bake_texture == _bake_applied:
+		return
+	_bake_applied = terrain.water_bake_texture
+	var size := terrain.terrain_size
+	var texels := float(terrain.terrain_resolution)
+	mat.set_shader_parameter("water_bake", _bake_applied)
+	mat.set_shader_parameter("bake_origin", -size * 0.5)
+	mat.set_shader_parameter("bake_spacing", size.x / (texels - 1.0))
+	mat.set_shader_parameter("bake_texels", texels)
+	mat.set_shader_parameter("has_bake", 1.0)
+	_sea_wind = -1.0
+
+
+func _ensure_sea_bridge() -> bool:
+	if _sea_bridge != null:
+		return true
+	var script: Script = load(SEA_BRIDGE_PATH) if ResourceLoader.exists(SEA_BRIDGE_PATH) else null
+	if script == null or not script.can_instantiate():
+		return false
+	_sea_bridge = script.new()
+	var bands: PackedFloat32Array = _sea_bridge.call("BandWavelengths")
+	for band in bands.size():
+		var spread := BAND_SPREAD_BASE_DEG + BAND_SPREAD_PER_BAND_DEG * band
+		for j in COMPONENTS_PER_BAND:
+			_comp_band.append(band)
+			_comp_k.append(TAU / bands[band] * COMPONENT_DETUNE[j])
+			_comp_heading.append(BAND_HEADING_DEG[band % BAND_HEADING_DEG.size()] + (j - 1) * spread)
+			_comp_weight.append(COMPONENT_WEIGHT[j])
+			# Fixed, well-mixed starting phases (golden-angle steps).
+			_comp_phase.append(fmod((band * COMPONENTS_PER_BAND + j) * 2.39996323, TAU))
+	return true
+
+
+## The wind sea of the sheltered basin (the terrain's fetch) and of the open
+## coast for a wind, as the shader's wave bands.
+func _derive_sea(wind: float) -> void:
+	var fetch := terrain.sheltered_fetch_m if terrain != null else 3000.0
+	var sheltered: Dictionary = _sea_bridge.call("Sea", wind, fetch)
+	var exposed: Dictionary = _sea_bridge.call("Sea", wind, _sea_bridge.call("ExposedFetchM"))
+	var direction := terrain.sea_direction if terrain != null else Vector2(0.3, 1.0).normalized()
+	var a_sh: PackedFloat32Array = sheltered["amplitudes"]
+	var a_ex: PackedFloat32Array = exposed["amplitudes"]
+	var steepness := 0.0
+	for i in _comp_k.size():
+		steepness += _comp_k[i] * _comp_weight[i] * maxf(a_sh[_comp_band[i]], a_ex[_comp_band[i]])
+	var chop := minf(CHOPPINESS, WAVE_FOLD_LIMIT / maxf(steepness, 1e-4))
+	var shape := PackedVector4Array()
+	for i in _comp_k.size():
+		var heading := direction.rotated(deg_to_rad(_comp_heading[i]))
+		shape.append(Vector4(heading.x, heading.y, _comp_k[i], chop))
+	sea_state = {
+		"wind_ms": wind,
+		"fetch_m": fetch,
+		"direction": direction,
+		"sheltered_hs": float(sheltered["hs"]),
+		"sheltered_tp": float(sheltered["tp"]),
+		"sheltered_amplitudes": a_sh,
+		"exposed_hs": float(exposed["hs"]),
+		"exposed_tp": float(exposed["tp"]),
+		"exposed_amplitudes": a_ex,
+		"whitecaps": float(sheltered["whitecaps"]),
+		"wave_shape": shape,
+		"choppiness": chop,
+	}
+
+
+## Shader threshold for a whitecap cover (fraction of the surface).
+static func whitecap_threshold(cover: float) -> float:
+	return WHITECAP_Z_SCALE * normal_quantile(1.0 - cover) + WHITECAP_Z_OFFSET
+
+
+## Standard-normal quantile: the z with P(Z < z) = p (Abramowitz & Stegun
+## 26.2.23, |error| < 4.5e-4).
+static func normal_quantile(p: float) -> float:
+	var q := clampf(p, 1e-9, 1.0 - 1e-9)
+	var tail := minf(q, 1.0 - q)
+	var t := sqrt(-2.0 * log(tail))
+	var z := t - (2.515517 + 0.802853 * t + 0.010328 * t * t) / (1.0 + 1.432788 * t + 0.189269 * t * t + 0.001308 * t * t * t)
+	return z if q > 0.5 else -z
+
+
+## Highest crest (m) the sheltered basin's waves can stack to: the sum of
+## every component's amplitude (all crests at one point).
+func max_sheltered_crest() -> float:
+	if sea_state.is_empty():
+		return 0.0
+	var a_sh: PackedFloat32Array = sea_state["sheltered_amplitudes"]
+	var total := 0.0
+	for i in _comp_k.size():
+		total += a_sh[_comp_band[i]] * _comp_weight[i]
+	return total
 
 
 # ── Static setup (once) ───────────────────────────────────────────────────────
