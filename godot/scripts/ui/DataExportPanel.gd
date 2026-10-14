@@ -610,27 +610,16 @@ func _default_export_dir() -> String:
 	var docs := OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS)
 	return docs.rstrip("/") + "/LakskongenSim/Eksport"
 
-func _make_panel(bg_color: Color) -> PanelContainer:
+## Export cards are theme tiles on the Chart surface (the colour argument is
+## kept for the v2 call shape).
+func _make_panel(_bg_color: Color) -> PanelContainer:
 	var pc := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = bg_color
-	pc.add_theme_stylebox_override("panel", style)
+	pc.theme_type_variation = &"Tile"
 	return pc
 
-func _make_small_button(label_text: String, color: Color) -> Button:
+## Export actions: compact salmon primary buttons (Ink text on salmon, D13).
+func _make_small_button(label_text: String, _color: Color) -> Button:
 	var btn := Button.new()
 	btn.text = label_text
-	LakskongenTheme.set_text_color(btn, COLOR_TEXT_BRIGHT)
-	LakskongenTheme.set_size(btn, 12)
-	var style := StyleBoxFlat.new()
-	style.bg_color = color
-	style.set_corner_radius_all(3)
-	style.set_content_margin_all(5)
-	btn.add_theme_stylebox_override("normal", style)
-	var hover_style := style.duplicate() as StyleBoxFlat
-	hover_style.bg_color = color.lightened(0.15)
-	btn.add_theme_stylebox_override("hover", hover_style)
-	var disabled_style := style.duplicate() as StyleBoxFlat
-	disabled_style.bg_color = color.darkened(0.45)
-	btn.add_theme_stylebox_override("disabled", disabled_style)
+	btn.theme_type_variation = &"SmallPrimaryButton"
 	return btn

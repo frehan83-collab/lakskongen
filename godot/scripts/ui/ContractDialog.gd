@@ -108,19 +108,18 @@ func _ready() -> void:
 
     var accept_button = Button.new()
     accept_button.text = tr("AKSEPTER TILBUD")
-    LakskongenTheme.set_text_color(accept_button, COLOR_ACCENT)
+    accept_button.theme_type_variation = &"PrimaryButton"
     accept_button.pressed.connect(_on_accept_button_pressed)
     _buttons_hbox.add_child(accept_button)
 
     var negotiate_button = Button.new()
     negotiate_button.text = tr("FORHANDL")
-    LakskongenTheme.set_text_color(negotiate_button, COLOR_ACCENT)
     negotiate_button.pressed.connect(_on_negotiate_button_pressed)
     _buttons_hbox.add_child(negotiate_button)
 
     var decline_button = Button.new()
     decline_button.text = tr("AVSLÅ")
-    LakskongenTheme.set_text_color(decline_button, COLOR_DANGER)
+    decline_button.theme_type_variation = &"GhostButton"
     decline_button.pressed.connect(_on_decline_button_pressed)
     _buttons_hbox.add_child(decline_button)
 

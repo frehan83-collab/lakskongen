@@ -332,9 +332,16 @@ static func set_tone(node: Control, tone: StringName) -> void:
 		node.remove_theme_color_override("font_color")
 	if node is Label:
 		node.theme_type_variation = _label_name(_role_of(node.theme_type_variation), tone)
+		return
+	# Other controls take the tone as a colour, read on the node's surface. A
+	# node outside the tree has no surface yet (it would resolve to the project
+	# theme, Ink), so the colour is applied once it enters the tree.
+	var key := StringName(String(tone).to_lower() if tone != &"" else "text")
+	if node.is_inside_tree():
+		node.add_theme_color_override("font_color", palette(node, key))
 	else:
-		var key := String(tone).to_lower() if tone != &"" else "text"
-		node.add_theme_color_override("font_color", palette(node, StringName(key)))
+		node.tree_entered.connect(func() -> void:
+			node.add_theme_color_override("font_color", palette(node, key)), CONNECT_ONE_SHOT)
 
 
 static func _label_name(role: StringName, tone: StringName) -> StringName:

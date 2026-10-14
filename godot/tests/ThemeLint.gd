@@ -19,6 +19,8 @@ const TEXT_MIN := 4.5
 const LARGE_MIN := 3.0
 const LARGE_PX := 24
 const LARGE_BOLD_PX := 18
+## Below this modulate alpha a control is fading (or dimmed as inactive).
+const FADE_REST_ALPHA := 0.98
 
 ## Classes checked for default-theme leaks: item kinds that define the look.
 const LEAK_TYPES := ["Label", "Button", "CheckBox", "CheckButton", "OptionButton", "MenuButton", "LinkButton",
@@ -63,6 +65,11 @@ static func low_contrast(root: Node) -> PackedStringArray:
 		var rect := c.get_global_rect()
 		var centre := rect.get_center()
 		if not view.has_point(centre) or not _unclipped(c, centre):
+			continue
+		# A node faded through `modulate` (toast slide-in, panel enter, a
+		# dimmed locked control) is in transition or deliberately inactive:
+		# judge text at rest only. Its own colour alpha still counts below.
+		if _modulate_chain(c).a < FADE_REST_ALPHA:
 			continue
 		var fg: Color = spec["color"] * _modulate_chain(c)
 		if fg.a < 0.05:
