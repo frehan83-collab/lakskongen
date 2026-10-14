@@ -85,6 +85,8 @@ var vegetation: Node = null
 ## the far field's half-extent round the origin (m).
 var far_field: Node3D = null
 var far_field_extent: float = 0.0
+## Worker-thread time of the far field (part of last_generation_ms).
+var far_field_generation_ms: float = 0.0
 ## Shore buildings from the build ({kind, position, yaw, variant}) and their node.
 var shore_props: Array = []
 var shore_props_node: Node = null
@@ -182,6 +184,7 @@ func _apply_build(result: Dictionary) -> void:
 	shore_props_node = null
 	far_field = null
 	far_field_extent = float(result.get("far_field_extent", 0.0))
+	far_field_generation_ms = float(result.get("far_field_ms", 0.0))
 	_pending_far = (result.get("far_field", []) as Array).duplicate()
 
 	for child in get_children():
@@ -254,7 +257,7 @@ func _upload_far_field() -> void:
 	_note_upload_frame(started)
 	if _pending_far.is_empty():
 		set_process(false)
-		print("[FjordTerrain] far field: %d chunks to %.0f km" % [far_field.get_child_count(), far_field_extent / 1000.0])
+		print("[FjordTerrain] far field: %d chunks to %.0f km (worker %.0f ms)" % [far_field.get_child_count(), far_field_extent / 1000.0, far_field_generation_ms])
 		far_field_ready.emit()
 
 

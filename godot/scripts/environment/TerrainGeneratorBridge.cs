@@ -44,7 +44,7 @@ public partial class TerrainGeneratorBridge : RefCounted
     /// treeline_m and shore_props (<see cref="ShorePropsToGodot"/>); and for
     /// the far field (G2-01) far_field (chunk Dictionaries in the same format,
     /// each with its radial band, <see cref="FarFieldMesh"/>) and
-    /// far_field_extent (m).
+    /// far_field_extent (m) and far_field_ms (its share of build_ms).
     /// </summary>
     public Godot.Collections.Dictionary Build()
     {
@@ -65,6 +65,7 @@ public partial class TerrainGeneratorBridge : RefCounted
         var props = ShorePropPlacer.Place(heights, n, settings.WorldSizeM, shoreDistance, masks.LandExposure);
         var trees = VegetationScatter.Scatter(heights, masks, vegetation, ShorePropPlacer.Clearings(props));
         var mesh = TerrainMesh.Build(heights, n, settings.WorldSizeM, ChunkQuads, masks, _generator.FarFieldHeightAt);
+        var farWatch = Stopwatch.StartNew();
         var far = FarFieldMesh.Build(_generator, heights, masks);
 
         var chunks = new Godot.Collections.Array();
@@ -77,6 +78,7 @@ public partial class TerrainGeneratorBridge : RefCounted
             chunk["band"] = far.ChunkBands[i];
             farChunks.Add(chunk);
         }
+        double farMs = farWatch.Elapsed.TotalMilliseconds;
         float spacing = settings.SpacingM;
         var colliderHeights = new float[n * n];
         for (int i = 0; i < colliderHeights.Length; i++)
@@ -99,6 +101,7 @@ public partial class TerrainGeneratorBridge : RefCounted
             ["treeline_m"] = vegetation.TreelineMeanM,
             ["far_field"] = farChunks,
             ["far_field_extent"] = TerrainGenerator.FarFieldExtentM,
+            ["far_field_ms"] = farMs,
         };
         result["build_ms"] = watch.Elapsed.TotalMilliseconds;
         return result;

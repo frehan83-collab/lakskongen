@@ -241,13 +241,16 @@ namespace LakskongenSim.Environment
             float cx = CenterX(Math.Min(z, st.HeadZ));
             float bay = BayAmplitudeM * OpenSimplex2.Noise2(st.Seed + SeedBay, x * BayFrequency, z * BayFrequency);
             float dx = x - cx + bay;
-            // Each wall has its own width and shoulder; blend them across the
-            // centreline, where beyond the head d is large and a hard switch
-            // would cut a step into the closing wall.
-            float right = SmoothStep(-SideBlendM, SideBlendM, dx);
             // Beyond the head the distance runs to the head point, so the walls
             // close round the end of the fjord.
             float dz = z > st.HeadZ ? z - st.HeadZ : 0f;
+            // Each wall has its own width and shoulder; blend them across the
+            // centreline, where beyond the head d is large and a hard switch
+            // would cut a step into the closing wall. Read far beyond the head
+            // (the far field), the blend widens with the distance, or the two
+            // shoulders' difference would run inland as a straight scarp.
+            float sideBlend = detail.CellM > 0f ? SideBlendM + 0.5f * dz : SideBlendM;
+            float right = SmoothStep(-sideBlend, sideBlend, dx);
             float d = dz > 0f ? MathF.Sqrt(dx * dx + dz * dz) : MathF.Abs(dx);
             float zc = Math.Min(z, st.HeadZ);
 

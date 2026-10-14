@@ -106,6 +106,7 @@ namespace LakskongenSim.Environment
             var ring = new RingSampler(generator, heights, masks, radii, segments);
             ring.SampleAll();
             ring.MeshNormals(bands);
+            ring.Masks();
 
             int sectors = 4 * SectorsPerSide;
             var chunks = new TerrainMesh.Chunk[bands.Count * sectors];
@@ -217,38 +218,79 @@ namespace LakskongenSim.Environment
                 _col[0] = col;
             }
 
+            /// <summary>Loop k ≥ 1: positions from the far field (normals and masks follow once every loop is in place).</summary>
             private void SampleLoop(int k)
             {
                 int s = _segments[k];
                 int count = 4 * s;
                 var pos = new float[count * 3];
-                var nrm = new float[count * 3];
-                var col = new float[count * 4];
                 float rk = _radii[k];
-                // Slope and cavity for the masks: differences over the loop spacing.
-                float step = 2f * rk / s;
                 for (int j = 0; j < count; j++)
                 {
                     var (x, z) = LoopPoint(rk, j, s);
-                    float h = _gen.FarFieldHeightAt(x, z);
-                    float hx0 = _gen.FarFieldHeightAt(x - step, z), hx1 = _gen.FarFieldHeightAt(x + step, z);
-                    float hz0 = _gen.FarFieldHeightAt(x, z - step), hz1 = _gen.FarFieldHeightAt(x, z + step);
-                    float dhdx = (hx1 - hx0) / (2f * step), dhdz = (hz1 - hz0) / (2f * step);
-                    pos[j * 3] = x; pos[j * 3 + 1] = h; pos[j * 3 + 2] = z;
-                    // Cavity as TerrainMesh (gain 3 per m⁻¹ of Laplacian), over the slope step.
-                    float lap = (hx0 + hx1 + hz0 + hz1 - 4f * h) / (step * step);
-                    float cavity = Math.Clamp(0.5f + 3f * lap, 0f, 1f);
-                    float slope = MathF.Sqrt(dhdx * dhdx + dhdz * dhdz);
-                    float exposure = _gen.FarFieldLandExposure(x, z);
-                    float meadow = VegetationScatter.MeadowAt(_vegetation, h, slope, exposure, x, z);
-                    col[j * 4] = cavity;
-                    col[j * 4 + 1] = VegetationScatter.ForestAt(_vegetation, h, slope, cavity - 0.5f, exposure, x, z) * (1f - 0.85f * meadow);
-                    col[j * 4 + 2] = VegetationScatter.BirchShareAt(_vegetation, h, slope, x, z);
-                    col[j * 4 + 3] = meadow;
+                    pos[j * 3] = x;
+                    pos[j * 3 + 1] = _gen.FarFieldHeightAt(x, z);
+                    pos[j * 3 + 2] = z;
                 }
                 _pos[k] = pos;
-                _nrm[k] = nrm;
-                _col[k] = col;
+                _nrm[k] = new float[count * 3];
+                _col[k] = new float[count * 4];
+            }
+
+            /// <summary>
+            /// Loop k ≥ 1's masks, as TerrainMesh and VegetationScatter make
+            /// the heightfield's: cavity from the Laplacian over the ring's own
+            /// cells (along the loop and across to the loops either side, at
+            /// the same fraction of the perimeter; 16 m at the seam, the
+            /// heightfield's 2-cell stride), the woods, birch share and meadow
+            /// from the mesh normal's slope and the far field's exposure.
+            /// </summary>
+            public void Masks()
+            {
+                Parallel.For(1, _radii.Count, k =>
+                {
+                    int s = _segments[k];
+                    int count = 4 * s;
+                    var pos = _pos[k];
+                    var nrm = _nrm[k];
+                    var col = _col[k];
+                    float spacing = 2f * _radii[k] / s;
+                    for (int j = 0; j < count; j++)
+                    {
+                        float x = pos[j * 3], h = pos[j * 3 + 1], z = pos[j * 3 + 2];
+                        float along = pos[((j + 1) % count) * 3 + 1] + pos[((j + count - 1) % count) * 3 + 1] - 2f * h;
+                        float lap = along / (spacing * spacing);
+                        if (k + 1 < _radii.Count)
+                        {
+                            float inner = HeightAtFraction(k - 1, j, s), outer = HeightAtFraction(k + 1, j, s);
+                            float din = _radii[k] - _radii[k - 1], dout = _radii[k + 1] - _radii[k];
+                            // Second difference on an uneven step.
+                            lap += 2f * (outer * din + inner * dout - h * (din + dout)) / (din * dout * (din + dout));
+                        }
+                        else
+                        {
+                            lap *= 2f;
+                        }
+                        float cavity = Math.Clamp(0.5f + 3f * lap, 0f, 1f);
+                        float nx = nrm[j * 3], ny = nrm[j * 3 + 1], nz = nrm[j * 3 + 2];
+                        float slope = MathF.Sqrt(nx * nx + nz * nz) / Math.Max(ny, 1e-4f);
+                        float exposure = _gen.FarFieldLandExposure(x, z);
+                        float meadow = VegetationScatter.MeadowAt(_vegetation, h, slope, exposure, x, z);
+                        col[j * 4] = cavity;
+                        col[j * 4 + 1] = VegetationScatter.ForestAt(_vegetation, h, slope, cavity - 0.5f, exposure, x, z) * (1f - 0.85f * meadow);
+                        col[j * 4 + 2] = VegetationScatter.BirchShareAt(_vegetation, h, slope, x, z);
+                        col[j * 4 + 3] = meadow;
+                    }
+                });
+            }
+
+            /// <summary>Height of loop k's vertex nearest the same fraction of the perimeter as vertex j of a loop with s segments per side.</summary>
+            private float HeightAtFraction(int k, int j, int s)
+            {
+                int sk = _segments[k];
+                int count = 4 * sk;
+                int i = (int)MathF.Round((float)j * sk / s) % count;
+                return _pos[k][i * 3 + 1];
             }
 
             /// <summary>

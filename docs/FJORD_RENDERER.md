@@ -131,6 +131,73 @@ around each. On the seed-42 fjord: two rows on the head delta and a row with
 the quay on the spruce spit by the mouth (in the default FJORD view). Meshes:
 `blender/build_shore_props.py` (manifest entries `naust`, `quay`).
 
+## Far field (G2-01)
+
+The 4 km world sits in a coast that runs to the horizon: land and sea out to
+16 km (`TerrainGenerator.FarFieldExtentM`), drawn as a ring of chunks round
+the heightfield with the terrain's own material. Before it the world ended in
+flat ocean at the 4 km edge and read as an island.
+
+`TerrainGenerator.FarFieldHeightAt(x, z)` (sim,
+`TerrainGenerator.FarField.cs`) is `HeightAt` inside the world, bit for bit,
+and beyond its edge:
+
+| Part | What it does |
+|---|---|
+| Seam | The heightfield's gullies, ledges and finest noise fade out over the first 200 m; the play-area fjord blends into the region over 1.8 km with zero slope at the edge (1 m out it differs by under 5 cm) |
+| Region | The same generator read through a regional coast (headlands and bays: the mainland shore shifts along Z by up to ~2 km), the strandflat without the world-edge shelf (the skerry belt runs on along the coast), a low outer coast (30 % of the height at the shore, all of it 3.8 km inland), two neighbouring fjords cut into the plateau (x ≈ +6.9 and −7.6 km), the inland massifs lifted to 1,500-1,900 m (summer snowfields under inner Vestland's July snow line) |
+| Sea | Within 500 m of the edge the floor falls to the open shelf: 85 m at the edge, 225 m 1.4 km out, 320 m at most (the offshore slots sit at 160, 225 and 300 m; spec §4: 150, 220, 300) |
+| Islands | A coastal belt north and south (up to 300 m, with a fringe of skerries off every shore), and in the sector that opens west from the mouth (±32°) only a low outer chain from 12 km (at most 140 m; spec §4: ≤ 150 m at ≥ 12 km, as in the owner's photo O3); 1.1 km of clear water round every offshore slot |
+| Band-limiting | The far field is defined at the ring's resolution (`FarCellM`: the loop spacing): every octave shorter than ~6 cells fades out (`FbmLod`, `RidgedLod`), ridge crests round to about three cells, coast transitions widen by 1.5 cells, the neighbouring fjords' rims soften over two. A static ring cannot pop; band-limiting keeps it from aliasing |
+
+`FarFieldMesh` builds the ring on the terrain worker thread in the
+heightfield's chunk format: square loops round the origin, each (1 + 2/S)
+times farther out than the last, so every cell is square and the spacing grows
+with the distance (16 m at the edge with S = 256 to 4 km, then S = 128: 31 m
+at 4 km, 250 m at 16 km); 180 loops, 144,220 vertices, 276,988 triangles, 48
+chunks (16 sectors × 3 bands). Loop 0 is the heightfield's border (its
+heights, normals and masks copied); neighbouring loops are joined by a zipper
+(quads where the counts agree, fans where they do not: 511 → 256 at the
+edge, 256 → 128 at 4 km), so no crack or T-junction opens
+(`FarFieldMeshTests`: every edge has two triangles but the border's and the
+outer loop's). The heightfield mesh's border normals take their outer
+neighbour from the far field (`TerrainMesh.GridNormal`), and the ring carries
+the same normals on its border loop, so the light does not break at 4 km.
+Beyond it the normals are the area-weighted mean of the drawn faces (a crest
+sharper than two cells never turns a face against its corners); the vertex
+colour carries cavity (the Laplacian over the ring's cells) and the woods,
+birch share and meadow from `VegetationScatter`'s own rules, with the far
+field's exposure to the open sea (`FarFieldLandExposure`), so the far slopes
+are painted like the near ones (no tree instances out there).
+
+`FjordTerrain.gd` uploads the ring after the world (`far_field_ready`) under
+the same 4 ms frame budget; the 16 chunks next to the world cast shadows, the
+rest lie past every shadow distance. `get_height_at` answers outside the world
+from the far field (`far_field_height_at`), so the camera's terrain avoidance,
+pick and sight line see it. The terrain shader fades its wall structure (cliff
+bands, ledges, tone, seepage, buttresses) from 2.5 to 5 km from the camera:
+out there a band is a few pixels tall and the same bands ran across whole
+mountainsides like a venetian blind.
+
+| Measure | Value (seed 42) |
+|---|---|
+| Worker build | far field ~270-320 ms of the terrain's ~550-700 ms (Debug assembly, machine under load) |
+| Frame cost (2560×1440, M1 Pro, A/B in one run, ring shown vs hidden, three rounds) | COAST +0.5 ms (32.9 vs 32.4), COAST looking up-fjord from the sea +2.4 ms (42.1 vs 39.7), FJORD +0.3 ms |
+| Edge-of-world mask (UI flow, COAST at 8 headings round the first pen and the head) | 0.000 (the same views with the land cut at the 4 km edge: 0.266) |
+| LOD error from the pen-site cameras (1,440 lines, triangles ≥ 300 m away) | median 1.0 px, p90 3.7 px, p99 10 px (the 2 px target holds for the median; see the roadmap followup) |
+
+The farm-type plots (farm-types spec §4) are reserved through
+`ISitePlotGeometry` (`SitePlotGeometry.cs`), which `TerrainGenerator`
+implements: `LandPadSlots()` (pad_a Storholmen, pad_b Skjærvika, pad_delta
+Elveøyra: centre, size, lots, level +3.6 m, the quay at the middle of the edge
+facing the nearest water) with `IntakeReachM(pad)` (computed: the nearest
+heightfield vertex at −95 m or the world edge), and `OffshoreSlots()` (off_1
+Ytre kyst, off_2 Havkanten, hav_1 Havområde beyond the world, exposure 1,
+depth from the far field). `FjordTerrain.land_pad_slots()` /
+`offshore_slots()` hand them to GDScript. The pads are not carved yet (F2-19
+carves them with their `pad_state` heath/granite and the vegetation and shore
+exclusions); the heightfield, and its golden hash, are unchanged.
+
 ## Camera (G1-03)
 
 `FjordCamera.gd` orbits a focus point on the water.
@@ -148,15 +215,18 @@ Pitch and field of view follow the distance (`VIEW_TABLE`): FARM 140 m −32°
 50°, FJORD 900 m −17° 45°, COAST 2400 m −20° 52°, which puts the horizon
 13 % from the top of the frame at the FJORD and COAST defaults. Every axis is
 damped exponentially. Terrain avoidance lifts the camera 32 m over the
-ground and 15 m over a 32-sample sight line to the focus, and comes in along
-the bearing when the lift alone would look straight down. The camera stays
-300 m inside the world edge. Camera input acts only while the Fjord tab
+ground and 15 m over a 48-sample sight line to the focus, and comes in along
+the bearing when the lift alone would look straight down. The focus stays
+300 m inside the world edge; with the far field round the world (G2-01) the
+camera itself may leave the world by up to `MAX_DISTANCE` (3 km), at least
+`FAR_FIELD_MARGIN` (2 km) inside the far field's edge, so a COAST orbit at the
+mouth looks up the fjord from out at sea. Camera input acts only while the Fjord tab
 shows the world (`GameUI.world_view_changed` → `FjordVistaBridge` →
 `input_enabled`), letters are ignored while a text field has focus and arrows
 while any Control has focus. Idle auto-orbit starts after 30 s.
 
-The water grid (`WaterGrid.gd`, below) runs out to ±32.8 km, so the view out
-of the mouth ends at a horizon.
+The water grid (`WaterGrid.gd`, below) runs out to ±32.8 km under the far
+field, so the view out of the mouth ends at a horizon.
 
 ## Environment: light, sky, fog and weather (G1-02, G1-04)
 

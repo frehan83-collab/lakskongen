@@ -78,7 +78,7 @@ namespace LakskongenSim.Environment
         /// <summary>How fast an island rises from its shore (shape units per unit of noise): ~40° flanks.</summary>
         private const float IslandShoreGain = 1.8f;
         /// <summary>No island in the open-sea sector west of the mouth nearer than this (m).</summary>
-        public const float OuterChainStartM = 11500f;
+        public const float OuterChainStartM = 12500f;
         /// <summary>Half-angle cosine of that open-sea sector (about 32°).</summary>
         private const float OpenSeaSectorCos = 0.85f;
         /// <summary>Clear water (m) kept round every offshore slot.</summary>
@@ -122,14 +122,21 @@ namespace LakskongenSim.Environment
             // The heightfield's ledges, gullies and finest noise fade out
             // just beyond the edge: the ring's cells (16 m and up) cannot
             // carry them, and a smooth fade beats their aliasing.
-            float fr = SmoothStep(0f, ReliefFadeM, beyond);
             float cell = FarCellM(x, z);
-            float near = Sample(x, z, EdgeDetail with { CellM = cell }).Height;
-            if (fr < 1f)
-                near = HeightAt(x, z) + (near - HeightAt(x, z)) * fr;
             float w = SmoothStep(0f, FarBlendM, beyond);
             float zr = z - w * RegionalCoastShift(x);
-            float h = near + (RegionLand(x, zr, cell) - near) * w;
+            float h = RegionLand(x, zr, cell);
+            if (w < 1f)
+            {
+                float fr = SmoothStep(0f, ReliefFadeM, beyond);
+                float near = Sample(x, z, EdgeDetail with { CellM = cell }).Height;
+                if (fr < 1f)
+                {
+                    float full = HeightAt(x, z);
+                    near = full + (near - full) * fr;
+                }
+                h = near + (h - near) * w;
+            }
             // The open sea: below the shore the bottom falls to the shelf's
             // depth within 40 m of water; the islands rise from it.
             float ws = SmoothStep(0f, SeaBlendM, beyond);

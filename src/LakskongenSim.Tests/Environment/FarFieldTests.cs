@@ -79,7 +79,7 @@ namespace LakskongenSim.Tests.Environment
             // Bearings from the mouth, 0 = west (−Z, out to sea). Outside the
             // open-sea sector (±40°) every 20° sector shows land standing
             // ≥ 150 m somewhere 6-15 km out: mountains, islands, the coast
-            // running on. Inside ±30° nothing rises before 11.5 km, and the
+            // running on. Inside ±30° nothing rises before 12 km, and the
             // outer chain beyond it stays low (≤ 150 m, spec §4) but exists.
             foreach (int seed in new[] { 42, 7, 3 })
             {
@@ -99,8 +99,8 @@ namespace LakskongenSim.Tests.Environment
                 for (double deg = -30.0; deg <= 30.0; deg += 2.0)
                 {
                     double a = deg * Math.PI / 180.0;
-                    nearest = Math.Max(nearest, Skyline(gen, a, 2700f, TerrainGenerator.OuterChainStartM - 600f));
-                    float outer = Skyline(gen, a, TerrainGenerator.OuterChainStartM, 15500f);
+                    nearest = Math.Max(nearest, Skyline(gen, a, 2700f, 12000f));
+                    float outer = Skyline(gen, a, 12000f, 15500f);
                     outerTop = Math.Max(outerTop, outer);
                     if (outer > 0f)
                         outerLand++;
@@ -182,7 +182,7 @@ namespace LakskongenSim.Tests.Environment
                 // The seabed is tuned to the spec's depths; within 15 %.
                 Assert.InRange(slot.WaterDepthM, expected[slot.Id] * 0.85f, expected[slot.Id] * 1.15f);
                 float highest = float.MinValue;
-                for (float r = 0f; r <= TerrainGenerator.SlotClearanceM * 0.6f; r += 30f)
+                for (float r = 0f; r <= 600f; r += 30f)
                     for (int k = 0; k < 24; k++)
                     {
                         double a = k * Math.PI / 12.0;
@@ -430,6 +430,23 @@ namespace LakskongenSim.Tests.Environment
             int triangles = far.Chunks.Sum(c => c.Indices.Length / 3);
             Assert.InRange(triangles, 100_000, 300_000);
             Assert.Equal(48, far.Chunks.Count);
+        }
+
+        [Fact]
+        public void FarField_IsNeverFinerThanTheRingsCells()
+        {
+            // The band-limiting reads the ring's cell size (FarCellM): it
+            // must never be finer than the loop that samples it (the far
+            // field would alias), nor more than twice as coarse (the near
+            // band blends to the outer cells just below its edge).
+            var (gen, _, far) = Fjord42.Value;
+            for (int k = 1; k < far.LoopHalfExtents.Count; k++)
+            {
+                float r = far.LoopHalfExtents[k];
+                float cell = 2f * r / far.LoopSegments[k];
+                foreach (var (x, z) in new[] { (r, 0f), (-r, r * 0.5f), (r * 0.3f, -r), (-r, -r) })
+                    Assert.InRange(gen.FarCellM(x, z), cell * 0.999f, cell * 2.01f);
+            }
         }
 
         [Fact]
