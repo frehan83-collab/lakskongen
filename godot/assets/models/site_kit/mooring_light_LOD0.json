@@ -5,6 +5,7 @@
     1.26,
     0.22
   ],
+  "blender_version": "5.2.2 LTS",
   "file": "mooring_light_LOD0.glb",
   "lod": "LOD0",
   "material_count": 3,

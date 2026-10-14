@@ -128,6 +128,7 @@ def export(asset: str, lod: str, mats: dict, out_dir: str) -> dict:
     data = {
         "asset": asset, "lod": lod, "tri_count": kit.mesh_tris(obj), "material_count": len(used),
         "materials": used, "bbox_size": bbox, "file": os.path.basename(path),
+        "blender_version": bpy.app.version_string,
     }
     with open(os.path.join(out_dir, f"{asset}_{lod}.json"), "w") as f:
         json.dump(data, f, indent=2, sort_keys=True)

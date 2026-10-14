@@ -5,6 +5,7 @@
     45.5,
     53.6296
   ],
+  "blender_version": "5.2.2 LTS",
   "dimensions": {
     "bird_net_mast_m": 7.5,
     "bracket_spacing_m": 2.6667,

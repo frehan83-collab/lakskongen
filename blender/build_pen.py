@@ -637,6 +637,7 @@ def export_lod(lod: str, objs, out_dir: str) -> dict:
             "lice_skirt_depth_m": SKIRT_DEPTH,
         },
         "file": os.path.basename(path),
+        "blender_version": bpy.app.version_string,
     }
     with open(os.path.join(out_dir, f"pen_cage_{lod}.json"), "w") as f:
         json.dump(data, f, indent=2, sort_keys=True)
