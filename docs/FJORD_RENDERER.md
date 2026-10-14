@@ -218,7 +218,7 @@ plans it as pure functions:
 | Grid | up to 3 pens in one row along the channel, more in two rows (`grid_dims`); one pen per 90 m frame cell (`MooringGrid.CELL_M`: Scottish site plans hold 160 m pens in 90-110 m grids; A2-01 asks 70-100 m); an odd count leaves the last cell empty |
 | Channel | the 12 slots along the basin; a site takes as many as its grid needs plus a 40 m gap (`slot_count`), the player's from the mouth, the rivals' from the head (`farm_slot`, rivals take one slot each) |
 | Placement | the site's centre level with its slots, in the deepest water where the whole grid floats over 30 m (`FishPenManager._site_position`), laid along the channel (`channel_yaw_at`) |
-| Berths | from the grid's half-width: the feed barge's inner hull 16 m outside the outer frame line, a wellboat's 3.5 m outside the buoys on the fairway side (`get_berth`, `site_zones`); the workboat inside the up-fjord cell of the first column |
+| Berths | from the grid's half-width (`SiteBerths.gd`): the feed barge square off the grid's middle, its inner hull 16 m outside the outer frame line, a wellboat's 3.5 m outside the buoys on the fairway side; the workboat inside the up-fjord cell of the first column |
 | Hoses | when the barge moors (`FeedBargeVisualManager` → `attach_feed_barge`): one white hose per pen from an outlet on the barge's grid side (lifting to its deck), through the near row between two pens, along the lane between the rows and into each pen's hose port 30 m from its centre (a one-row site: straight from the barge); Catmull-Rom with a gentle meander; yellow floats every 70 m, merged where hoses run together (`hose_key_points`, `smooth_hose`, `hose_floats`) |
 | Variants | per site: bird-net tent (centre mast) or green net on blue rim poles (`bird_net_for`), lice skirt (`has_skirt`); rivals add their colour band, orange buoys, quiet nets, no health rings or pen numbers, and a moored barge with hoses |
 
@@ -243,7 +243,8 @@ Pro, sites shown vs hidden in one run): draws FARM 175 vs 35, FJORD 168 vs
 64, COAST 254 vs 138 (two player sites of 6 and 4 pens, six rival farms,
 barges, boats, hoses); render-thread CPU +0.1-0.15 ms; frame time within the
 shared machine's noise. Script cost per frame (algekatastrofe, 9 sites, 41
-pens): fish 0.3-0.5 ms, LODs 0.2 ms, riding 0.2 ms.
+pens): fish 0.3-0.5 ms, LODs 0.2 ms, riding 0.2 ms. The salmon schools are
+`FishSchool.gd` (one MultiMesh per pen, drawn and swum within 450 m).
 
 **Floating gear on the GPU.** The hoses, grid buoys, hose floats, corner
 lights and the buoy ends of the chains and pen ends of the bridles ride the
@@ -267,10 +268,10 @@ and the health rings had that bug).
 
 A site's frame mooring lies along the channel (`FishPenManager.channel_yaw_at`).
 The wellboat berth is on the fairway side, its inner hull 3.5 m outside the
-grid buoys; the feed barge lies on the other side, its inner hull 16 m
-outside the grid's outer frame line, its hoses running to every pen; the
-workboat lies in the up-fjord cell of the grid's first column (`get_berth`,
-`site_zones`).
+grid buoys; the feed barge lies on the other side, square off the grid's
+middle, its inner hull 16 m outside the outer frame line, its hoses running
+to every pen; the workboat lies in the up-fjord cell of the grid's first
+column (`SiteBerths.gd` through `get_berth` and `site_zones`).
 `ChannelBoat.berth_route` sails a boat from the harbour or depot along the
 channel with keel depth under its whole length, clear of every other site's
 grid and berths, and runs it straight in along the grid to its berth.

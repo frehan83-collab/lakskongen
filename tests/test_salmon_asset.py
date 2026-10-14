@@ -189,10 +189,14 @@ def test_godot_import_maps_the_skin_material():
 
 
 def test_the_game_loads_the_new_salmon():
-    code = (GODOT / "scripts" / "environment" / "FishPenManager.gd").read_text()
+    # The schools moved out of FishPenManager into FishSchool.gd (G2-04): the
+    # manager builds every pen's school through it.
+    code = (GODOT / "scripts" / "environment" / "FishSchool.gd").read_text()
+    manager = (GODOT / "scripts" / "environment" / "FishPenManager.gd").read_text()
     assert "salmon_LOD0.glb" in code and "salmon_LOD1.glb" in code
     assert 'find_child("Salmon"' in code
-    assert "salmon_v2" not in code
+    assert "FishSchool.create(" in manager and "FishSchool.animate(" in manager
+    assert "salmon_v2" not in code and "salmon_v2" not in manager
     assert not (FISH / "salmon_v2.glb").exists()
 
 

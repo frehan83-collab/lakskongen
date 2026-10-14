@@ -88,37 +88,9 @@ const SITE_SELECTION_COLOR := Color(0.910, 0.933, 0.941, 0.3)
 ## the boat's 10 m beam, the tyre fenders and a 1.4 m gap), inside its cell.
 const BOAT_MOORING_OFFSET := 33.6
 
-# === Site layout ===
-# A site's frame mooring is laid along the channel (its local +Z follows the
-# fjord's centreline at the site). The feed barge lies on one side of the
-# grid with its hoses to every pen, and a wellboat comes alongside on the
-# other side; both lie outside the grid buoys. The wellboat takes the side
-# facing the fairway (the open water a 116 m hull needs; on the centreline,
-# the deeper side), the barge the other.
-## Metres from the grid's outer frame line to the barge's inner hull side:
-## the hoses leave the hull, drop to the water and float in at the grid.
-const BARGE_GRID_GAP_M := 16.0
-## ... and to a wellboat's inner hull side: 3.5 m outside the grid buoys.
-const WELLBOAT_GRID_GAP_M := 3.5
-## What a site keeps clear for passing boats, beyond the grid: the widest
-## wellboat (23 m beam) on its side, the large barge (13 m) with its tender
-## RIB (3 m and a 0.5 m gap) on the other, over at least this half-length
-## along the grid axis (a 116 m hull alongside, plus room to turn in).
-const WELLBOAT_RESERVE_BEAM_M := 23.0
-const BARGE_RESERVE_BEAM_M := 16.5
-const SITE_RESERVE_HALF_LENGTH_M := 80.0
-const SITE_RESERVE_END_M := 12.0
-## A boat heading for a berth sees that side of its site clear from this far
-## inside its own inner hull side, more than ChannelBoat's 4 m lane
-## clearance, so the berth's own lane stays open all the way in.
-const OPEN_BERTH_SLACK_M := 5.0
-## Water a berth side needs under its footprint (m: the 116 m carrier's
-## 8.5 m draught plus ChannelBoat's 2 m keel clearance, and a margin), and
-## the footprint's along-axis reach either side of the site centre (m).
-const BERTH_MIN_DEPTH_M := 12.0
-const BERTH_SAMPLE_REACH_M := 60.0
-## The channel's heading at a site is the centreline's slope over +-this (m).
-const CHANNEL_HEADING_SPAN_M := 20.0
+# === Site layout === (berths and boat lanes: SiteBerths.gd)
+const BARGE_GRID_GAP_M := SiteBerths.BARGE_GRID_GAP_M
+const WELLBOAT_GRID_GAP_M := SiteBerths.WELLBOAT_GRID_GAP_M
 ## Lateral offsets (m) tried for a site's grid centre, and the water every
 ## grid corner needs under it (a net hangs 38 m: the seabed comes first).
 const SITE_X_OFFSETS := [-250.0, -150.0, -75.0, 0.0, 75.0, 150.0, 250.0]
@@ -212,7 +184,7 @@ func _process(delta: float) -> void:
 	for pen_id in _pens:
 		var pen_data: Dictionary = _pens[pen_id]
 		for k in pen_data["fish_schools"].size():
-			_animate_fish_school(pen_data["fish_schools"][k], pen_data, "%s#%d" % [pen_id, k], cam)
+			FishSchool.animate(pen_data["fish_schools"][k], _fish_time, "%s#%d" % [pen_id, k], fish_swim_radius, cam)
 	_follow_selected_pen()
 
 
@@ -396,7 +368,8 @@ func _apply_site_data(pen_id: String, site: Dictionary) -> void:
 		var state := health_state_for(pen)
 		farm.get_cage(k).set_health_state(state)
 		states.append(state)
-		_apply_fish_density(pen_data["fish_schools"][k], pen_data, pen)
+		FishSchool.apply_density(pen_data["fish_schools"][k], int(_site_float(pen, ["fish_count"], 0.0)),
+			_site_float(pen, ["mean_weight_kg"], 0.0))
 	pen_data["health_state"] = health_state_for(site)
 	pen_data["pen_states"] = states
 	_maybe_emit_feeding(pen_id, site)
@@ -458,7 +431,7 @@ func _add_site(pen_id: String, pen_count: int, slots: Vector2i, active: bool, si
 	var position := _site_position(slots, pen_count)
 	var grid_yaw := channel_yaw_at(position.z)
 	var half := SiteLayout.half_extent(pen_count)
-	var barge_side := _choose_barge_side(position, grid_yaw, half.x)
+	var barge_side := SiteBerths.choose_barge_side(_terrain(), position, grid_yaw, half.x)
 	# NOTE: add_child() BEFORE touching global_position: a node outside the
 	# tree cannot be placed (and the anchor lines look the seabed up).
 	var farm := FarmSite.new()
@@ -489,10 +462,7 @@ func _add_site(pen_id: String, pen_count: int, slots: Vector2i, active: bool, si
 	# One fish school per pen.
 	var schools: Array[MultiMeshInstance3D] = []
 	for k in pen_count:
-		var school := MultiMeshInstance3D.new()
-		school.name = "FishSchool%d" % (k + 1)
-		school.multimesh = _create_fish_multimesh()
-		school.visibility_range_end = FISH_VISIBLE_M
+		var school := FishSchool.create("FishSchool%d" % (k + 1))
 		farm.add_child(school)
 		school.position = farm.pen_local_positions()[k]
 		schools.append(school)
@@ -585,107 +555,33 @@ func detach_feed_barge(pen_id: String) -> void:
 
 # === Site layout: grid heading, berths, room for passing boats ===
 
+func _terrain() -> FjordTerrain:
+	if _terrain_ref == null:
+		_terrain_ref = get_node_or_null("../Terrain") as FjordTerrain
+	return _terrain_ref
+
+
 ## Heading (yaw about +Y) of the fjord channel at world z: the direction a
 ## site's mooring grid is laid in and its boats lie (0 without terrain).
 func channel_yaw_at(z: float) -> float:
-	if _terrain_ref == null:
-		_terrain_ref = get_node_or_null("../Terrain") as FjordTerrain
-	if _terrain_ref == null:
-		return 0.0
-	var dx := _terrain_ref.channel_center_x(z + CHANNEL_HEADING_SPAN_M) - _terrain_ref.channel_center_x(z - CHANNEL_HEADING_SPAN_M)
-	return atan2(dx, 2.0 * CHANNEL_HEADING_SPAN_M)
+	return SiteBerths.channel_yaw(_terrain(), z)
 
 
-## The world-x side (+1 or -1) a site's feed barge moors on; its wellboat
-## berth is the other side.
-func _choose_barge_side(position: Vector3, grid_yaw: float, half_w: float) -> float:
-	if _terrain_ref == null:
-		_terrain_ref = get_node_or_null("../Terrain") as FjordTerrain
-	if _terrain_ref == null:
-		return 1.0
-	var to_fairway := _terrain_ref.channel_center_x(position.z) - position.x
-	var wellboat_side := signf(to_fairway)
-	if absf(to_fairway) < 1.0:
-		wellboat_side = 1.0 if _berth_depth(position, grid_yaw, 1.0, half_w) >= _berth_depth(position, grid_yaw, -1.0, half_w) else -1.0
-	var barge_side := -wellboat_side
-	if _berth_depth(position, grid_yaw, barge_side, half_w) < BERTH_MIN_DEPTH_M \
-			and _berth_depth(position, grid_yaw, wellboat_side, half_w) >= BERTH_MIN_DEPTH_M:
-		barge_side = wellboat_side
-	return barge_side
-
-
-## The shallowest water (m) under a berth side's footprint.
-func _berth_depth(position: Vector3, grid_yaw: float, side: float, half_w: float) -> float:
-	var across := Vector3(cos(grid_yaw), 0.0, -sin(grid_yaw)) * side
-	var along := Vector3(sin(grid_yaw), 0.0, cos(grid_yaw))
-	var shallowest := INF
-	for reach in [half_w + WELLBOAT_GRID_GAP_M, half_w + BARGE_GRID_GAP_M + BARGE_RESERVE_BEAM_M * 0.5,
-			half_w + WELLBOAT_GRID_GAP_M + WELLBOAT_RESERVE_BEAM_M]:
-		for t in [-1.0, 0.0, 1.0]:
-			var q: Vector3 = position + across * float(reach) + along * (BERTH_SAMPLE_REACH_M * float(t))
-			shallowest = minf(shallowest, -_terrain_ref.get_height_at(q.x, q.z))
-	return shallowest
-
-
-## Where a vessel of `beam_m` lies at a site: role "barge" (beside the
-## grid's middle, square off it, its hoses to every pen) or "wellboat"
-## (alongside, the other side, level with the site centre in world z).
-## {position: the world point a channel route ends at; axis: the grid's +Z,
-## the way the vessel lies; side: +1 or -1 in world x}. Empty for an
-## unknown site.
+## Where a vessel of `beam_m` lies at a site (SiteBerths.berth): role
+## "barge" or "wellboat". Empty for an unknown site.
 func get_berth(pen_id: String, role: String, beam_m: float) -> Dictionary:
 	if not (pen_id in _pens):
 		return {}
-	var data: Dictionary = _pens[pen_id]
-	var yaw := float(data.get("grid_yaw", 0.0))
-	var barge_side := float(data.get("barge_side", 1.0))
-	var half_w := SiteLayout.half_extent(int(data.get("pen_count", 1))).x
-	var side := barge_side if role == "barge" else -barge_side
-	var hull_side := half_w + (BARGE_GRID_GAP_M if role == "barge" else WELLBOAT_GRID_GAP_M)
-	var at: Vector3 = data["position"]
-	var axis := Vector3(sin(yaw), 0.0, cos(yaw))
-	if role == "barge":
-		# Square off the grid's middle, so its hoses run straight in to the
-		# lane between the rows.
-		var across := Vector3(cos(yaw), 0.0, -sin(yaw))
-		return {"position": at + across * side * (hull_side + beam_m * 0.5), "axis": axis, "side": side}
-	# The perpendicular distance to the hull's centreline, laid off along x.
-	var reach := (hull_side + beam_m * 0.5) / cos(yaw)
-	return {
-		"position": Vector3(at.x + side * reach, 0.0, at.z),
-		"axis": axis,
-		"side": side,
-	}
+	return SiteBerths.berth(_pens[pen_id], role, beam_m)
 
 
-## The water every site keeps clear for passing boats: its mooring grid and
-## both berths (the wellboat's for the widest hull), as a band of world x at
-## the site's z that shifts with the grid's heading along z. Pass a site and
-## a role to leave that berth open (a boat heading for it).
+## The water every site keeps clear for passing boats (SiteBerths.zone);
+## pass a site and a role to leave that berth open (a boat heading for it).
 ## [{z, x_per_z, lo, hi, half_z}]
 func site_zones(open_pen_id: String = "", open_role: String = "") -> Array:
 	var zones: Array = []
 	for pen_id in _pens:
-		var data: Dictionary = _pens[pen_id]
-		var at: Vector3 = data["position"]
-		var yaw := float(data.get("grid_yaw", 0.0))
-		var barge_side := float(data.get("barge_side", 1.0))
-		var half := SiteLayout.half_extent(int(data.get("pen_count", 1)))
-		var barge_reach := half.x + BARGE_GRID_GAP_M + BARGE_RESERVE_BEAM_M
-		var wellboat_reach := half.x + WELLBOAT_GRID_GAP_M + WELLBOAT_RESERVE_BEAM_M
-		if pen_id == open_pen_id and open_role == "barge":
-			barge_reach = half.x + BARGE_GRID_GAP_M - OPEN_BERTH_SLACK_M
-		if pen_id == open_pen_id and open_role == "wellboat":
-			wellboat_reach = half.x + WELLBOAT_GRID_GAP_M - OPEN_BERTH_SLACK_M
-		var plus := (barge_reach if barge_side > 0.0 else wellboat_reach) / cos(yaw)
-		var minus := (wellboat_reach if barge_side > 0.0 else barge_reach) / cos(yaw)
-		zones.append({
-			"z": at.z,
-			"x_per_z": tan(yaw),
-			"lo": at.x - minus,
-			"hi": at.x + plus,
-			"half_z": maxf(SITE_RESERVE_HALF_LENGTH_M, half.y + SITE_RESERVE_END_M),
-		})
+		zones.append(SiteBerths.zone(_pens[pen_id], open_role if pen_id == open_pen_id else ""))
 	return zones
 
 
@@ -704,103 +600,11 @@ func _create_ring_mesh(color: Color) -> Mesh:
 	return torus
 
 
-## Blender-built Atlantic salmon (blender/build_salmon.py, 0.9 m fork length,
-## nose along -Z): LOD0 (~1.5k triangles) close to the camera, LOD1 (~300)
-## for a school seen from the farm camera. Falls back to a plain box if the
-## import is missing.
-const SALMON_LOD_SCENES := ["res://assets/models/fish/salmon_LOD0.glb", "res://assets/models/fish/salmon_LOD1.glb"]
-## Camera distance (m) from a pen where its school swaps to the far mesh.
-const FISH_LOD_SWITCH := 70.0
-## Past this camera distance (m) a school is not drawn (it swims under a
-## net metres down) and not animated.
-const FISH_VISIBLE_M := 450.0
-var _salmon_meshes: Dictionary = {}  # lod -> Mesh
-
-func _get_salmon_mesh(lod: int = 1) -> Mesh:
-	if _salmon_meshes.has(lod):
-		return _salmon_meshes[lod]
-	var mesh: Mesh = null
-	var packed: PackedScene = load(SALMON_LOD_SCENES[clampi(lod, 0, 1)]) as PackedScene
-	if packed != null:
-		var inst: Node = packed.instantiate()
-		var mi := inst.find_child("Salmon", true, false) as MeshInstance3D
-		if mi and mi.mesh:
-			mesh = mi.mesh
-		inst.free()
-	if mesh == null:
-		var body := BoxMesh.new()
-		body.size = Vector3(0.25, 0.3, 0.9)
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.5, 0.58, 0.65, 1.0)
-		mat.roughness = 0.6
-		body.material = mat
-		mesh = body
-	_salmon_meshes[lod] = mesh
-	return mesh
-
-
-## Close schools get the detailed salmon, far ones the light mesh (one
-## MultiMesh per pen: only its mesh changes, the transforms stay).
+## A school's mesh LOD for the camera (the UI-flow tests drive it directly).
 func _update_fish_lod(school: MultiMeshInstance3D, cam: Camera3D = null) -> void:
 	if cam == null and is_inside_tree():
 		cam = get_viewport().get_camera_3d()
-	if cam == null or school.multimesh == null:
-		return
-	var lod := 0 if cam.global_position.distance_to(school.global_position) < FISH_LOD_SWITCH else 1
-	var mesh := _get_salmon_mesh(lod)
-	if school.multimesh.mesh != mesh:
-		school.multimesh.mesh = mesh
-
-
-func _create_fish_multimesh() -> MultiMesh:
-	"""One shared low-poly fish school mesh per pen (modest count)."""
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = _get_salmon_mesh(1)
-	# Allocated once at max; _apply_fish_density drives visible count.
-	mm.instance_count = FISH_MAX_INSTANCES
-	mm.visible_instance_count = 0
-	return mm
-
-
-## Visible fish scale with the sim: count follows stocking, body length
-## follows mean weight (L(cm) = (100*W_g/1.1)^(1/3), body mesh is 0.9 m).
-## The MultiMesh is allocated once at FISH_MAX_INSTANCES; only
-## visible_instance_count moves (changing instance_count resets transforms).
-const FISH_MAX_INSTANCES := 240
-
-func _apply_fish_density(school: MultiMeshInstance3D, pen_data: Dictionary, pen: Dictionary) -> void:
-	if not school or not school.multimesh:
-		return
-	var fish_count := int(_site_float(pen, ["fish_count"], 0.0))
-	var mean_w := _site_float(pen, ["mean_weight_kg"], 0.0)
-	school.multimesh.visible_instance_count = clampi(fish_count / 250, 0, FISH_MAX_INSTANCES)
-	# Body length from weight; clamp to sane bounds (smolt .. harvest).
-	var length_m := 0.2
-	if mean_w > 0.0:
-		length_m = clampf(pow(100.0 * mean_w * 1000.0 / 1.1, 1.0 / 3.0) / 100.0, 0.15, 1.0)
-	pen_data["fish_scale"] = length_m / 0.9
-
-
-func _animate_fish_school(school: MultiMeshInstance3D, pen_data: Dictionary, key: String, cam: Camera3D) -> void:
-	if not school or not school.multimesh or not school.visible:
-		return
-	if cam != null and cam.global_position.distance_squared_to(school.global_position) > FISH_VISIBLE_M * FISH_VISIBLE_M:
-		return
-	_update_fish_lod(school, cam)
-	var count: int = school.multimesh.visible_instance_count
-	var fish_scale: float = pen_data.get("fish_scale", 0.5)
-	var phase := float(abs(hash(key)) % 1000) / 1000.0 * TAU
-	for i in range(count):
-		var t := _fish_time + phase + float(i) * 0.35
-		var r := fish_swim_radius * (0.55 + 0.45 * float(i % 3) / 2.0)
-		var depth := -3.0 - float(i % 4) * 2.0
-		var pos := Vector3(cos(t) * r, depth + sin(t * 1.7) * 0.6, sin(t) * r)
-		# Tangential heading: velocity of the circle path; the salmon model's
-		# nose points along local -Z (Blender +Y -> Godot -Z on import).
-		var vel := Vector3(-sin(t), 0.0, cos(t))
-		var basis := Basis.looking_at(vel, Vector3.UP).scaled(Vector3.ONE * fish_scale)
-		school.multimesh.set_instance_transform(i, Transform3D(basis, pos))
+	FishSchool.update_lod(school, cam)
 
 
 ## The colour a site's health ring shows: pen 1's ("" or unknown site:

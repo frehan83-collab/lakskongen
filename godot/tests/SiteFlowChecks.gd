@@ -32,6 +32,7 @@ func run(runner: Node) -> void:
 	await _clicks_reach_each_pen()
 	await _floating_gear_rides_the_water()
 	_pen_payload_drives_each_ring()
+	await _ghost_site_and_variants()
 
 
 func _check(ok: bool, label: String) -> void:
@@ -489,3 +490,46 @@ func _pen_payload_drives_each_ring() -> void:
 		states.append(FishPenManager.health_state_for(FishPenManager.pen_payload(per_pen, k, 4)))
 	_check(states == [PenCage.Health.OK, PenCage.Health.WARN, PenCage.Health.CRIT, PenCage.Health.OK],
 		"pen payload: per-pen data gives each pen its own ring (%s)" % str(states))
+
+
+## A placeholder (ghost) site fades its pens, hides nets, gear and hoses and
+## comes back whole; the variants (bird net, skirt, band) reach the pens and
+## the site's LOD MultiMeshes alike.
+func _ghost_site_and_variants() -> void:
+	var holder := Node3D.new()
+	t.add_child(holder)
+	var farm := FarmSite.new()
+	holder.add_child(farm)
+	farm.build("ghost_probe", 4, {"bird_net": PenCage.BirdNet.RIM})
+	farm.attach_hoses(farm.to_global(Vector3(-130.0, 0.0, 0.0)), 37.0, 11.0)
+	farm.set_ghost(true)
+	var faded := farm.is_ghost() and not farm.grid.visible and not farm.hoses.visible
+	for cage in farm.cages:
+		for mesh in cage.get_lod_meshes(0):
+			faded = faded and mesh.material_override != null and mesh.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		for net in cage.get_net_nodes():
+			faded = faded and not net.visible
+	for level in [FarmSite.Lod.MID, FarmSite.Lod.FAR]:
+		for part in farm.get_lod_multimeshes(level):
+			faded = faded and (farm.get_lod_multimeshes(level)[part] as MultiMeshInstance3D).material_override != null
+	farm.set_ghost(false)
+	var whole := not farm.is_ghost() and farm.grid.visible and farm.hoses.visible
+	for cage in farm.cages:
+		for mesh in cage.get_lod_meshes(0):
+			whole = whole and mesh.material_override == null and mesh.cast_shadow == PenCage.shadow_for(String(mesh.name), 0)
+			whole = whole and mesh.visible == cage.part_shown(String(mesh.name))
+	_check(faded and whole, "sites: a placeholder site fades and hides its gear, and comes back whole")
+	farm.set_lice_skirt(true)
+	farm.set_owner_band(Color(0.2, 0.4, 0.8))
+	var variants := farm.get_bird_net() == PenCage.BirdNet.RIM
+	for cage in farm.cages:
+		variants = variants and cage.has_lice_skirt() and cage.get_bird_net() == PenCage.BirdNet.RIM
+		variants = variants and cage.part_shown("BirdNetRim") and not cage.part_shown("BirdNet") and cage.part_shown("Band")
+	for level in [FarmSite.Lod.MID, FarmSite.Lod.FAR]:
+		var parts: Dictionary = farm.get_lod_multimeshes(level)
+		var band := parts["Band"] as MultiMeshInstance3D
+		variants = variants and farm._part_shown("LiceSkirt") and not farm._part_shown("BirdNetPoles")
+		variants = variants and band.get_instance_shader_parameter("band_color") == Color(0.2, 0.4, 0.8)
+	_check(variants, "sites: the bird-net style, skirt and band reach every pen and the site's LOD MultiMeshes")
+	holder.queue_free()
+	await _frames(1)
