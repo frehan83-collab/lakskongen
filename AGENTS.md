@@ -233,9 +233,14 @@ func my_bridge_method(arg: String) -> Dictionary:
 func my_bridge_method(arg: String) -> Dictionary: return _proxies.my_bridge_method(arg)
 ```
 
+### Telling the player (typed event bus, roadmap U2-06)
+- Add a `GameEventType` with its catalog row (`Events/GameEventCatalog.cs`: id, dedupe category, severity, counter verb or `none`, deadline rule), a `GAME_EVENT_<ID>` title in `translations.csv`, and publish it: `engine.PublishGameEvent(new GameEventRequest(type, day) { SiteId = …, Message = … })` for something that happens, or a `_raise(..., _ev("type_id"))` condition in `SimState.gd` for something that holds.
+- Severity picks the channel (`ConsequenceDirector.route_for`): critical = a pausing card with actions, warning = one toast + an unread inbox entry + the bell's badge, info = the inbox log. The bus drops repeats of (category, subject, variant) within 3 days and delivers escalations.
+- Never decide anything by reading message text (`tests/test_event_bus.py` greps for it). New counter verbs go in `GameEventCatalog`, `GameEventText.VERBS` and `GameEventActions`.
+
 ## Godot / C# Interop Notes
 - Godot resolves autoload by filename: `GameBridge.cs` must exist as anchor
-- Partials: `GameBridge.Core.cs`, `GameBridge.Farm.cs`, `GameBridge.Market.cs`, `GameBridge.Depth.cs`, `GameBridge.Economy.cs`, `GameBridge.Licence.cs`, `GameBridge.Content.cs`
+- Partials: `GameBridge.Core.cs`, `GameBridge.Farm.cs`, `GameBridge.Market.cs`, `GameBridge.Depth.cs`, `GameBridge.Economy.cs`, `GameBridge.Licence.cs`, `GameBridge.Content.cs`, `GameBridge.Events.cs` (the `GameEventRaised` signal of the typed event bus)
 - `InternalsVisibleTo("LakskongenSim.Tests")` in `SaveJson.cs` allows tests to call `internal` methods (`TickLicenseAuctions`, `DrainDayNotes`, etc.)
 - `Nullable enable`, `ImplicitUsings`, `TreatWarningsAsErrors` in csproj
 
