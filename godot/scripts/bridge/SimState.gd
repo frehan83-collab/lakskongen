@@ -203,6 +203,11 @@ func _on_audio_alert_triggered(alert_key: String) -> void:
 
 
 func _on_achievement_unlocked(id: String, achievement_name: String, description: String, reward_nok: float, tier: String) -> void:
+	# The sim names achievements in English (achievements_config.json): show
+	# them in the UI language (ACHIEVEMENT_<ID>_NAME / _DESC).
+	var key := "ACHIEVEMENT_" + SimLabels.upper_snake(id)
+	achievement_name = _tr_or(key + "_NAME", achievement_name)
+	description = _tr_or(key + "_DESC", description)
 	latest_achievement_name = achievement_name
 	latest_achievement_description = description
 	achievement_unlocked_count = game_bridge.AchievementUnlockedCount
@@ -444,3 +449,8 @@ func _push_alert(level: String, message: String) -> void:
 	_event_alerts.append(alert)
 	active_alerts.push_front(alert)
 	alert_raised.emit(level, message)
+
+
+func _tr_or(key: String, fallback: String) -> String:
+	var t := tr(key)
+	return t if t != key else fallback

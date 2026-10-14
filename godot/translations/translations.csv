@@ -1,11 +1,11 @@
 key,en,no
 UI_MAINMENU_TITLE,LAKSKONGEN,LAKSKONGEN
-UI_MAINMENU_SUBTITLE,Norwegian Salmon Farming Simulator,Norsk Lakseoppdrett Simulator
-UI_BUTTON_NEW_GAME,New Game,Nytt Spill
-UI_BUTTON_LOAD_GAME,Load Game,Last Spill
+UI_MAINMENU_SUBTITLE,Norwegian Salmon Farming Simulator,Norsk lakseoppdrettssimulator
+UI_BUTTON_NEW_GAME,New Game,Nytt spill
+UI_BUTTON_LOAD_GAME,Load Game,Last inn spill
 UI_BUTTON_SETTINGS,Settings,Innstillinger
 UI_BUTTON_QUIT,Quit,Avslutt
-UI_VERSION_TEXT,v0.2.0 Alpha — Nordic Minimalist,v0.2.0 Alpha — Nordic Minimalist
+UI_VERSION_TEXT,v0.2.0 Alpha,v0.2.0 alfa
 UI_DASHBOARD_TITLE,%s — Overview,%s — Oversikt
 UI_DASHBOARD_PEN_NAME,Pen %d,Merd %d
 UI_KPI_BIOMASS_LABEL,TOTAL BIOMASS,TOTAL BIOMASSE
@@ -46,7 +46,7 @@ UI_FINANCE_PL_DELOUSING,Delousing,Avlusing
 UI_FINANCE_PL_TRANSPORT,Transport,Transport
 UI_FINANCE_PL_OTHER,Other costs,Andre kostnader
 UI_FINANCE_PL_TOTAL,TOTAL COSTS,TOTALE KOSTNADER
-UI_FINANCE_LOAN_TITLE,Loans & Financing,Lån & Finansiering
+UI_FINANCE_LOAN_TITLE,Loans & Financing,Lån og finansiering
 UI_FINANCE_LOAN_STATUS_LABEL,Status:,Status:
 UI_FINANCE_LOAN_AMOUNT_LABEL,Loan amount:,Lånebeløp:
 UI_FINANCE_LOAN_REMAINING_LABEL,Remaining:,Gjenstående:
@@ -144,13 +144,13 @@ UI_SETTINGS_AUTOSAVE_2MIN,2 min,2 min
 UI_SETTINGS_AUTOSAVE_5MIN,5 min,5 min
 UI_SETTINGS_AUTOSAVE_10MIN,10 min,10 min
 UI_SETTINGS_AUTOSAVE_30MIN,30 min,30 min
-UI_SETTINGS_TUTORIAL_LABEL,Show tutorial,Vis tutorial
+UI_SETTINGS_TUTORIAL_LABEL,Show tutorial,Vis opplæring
 UI_SETTINGS_NOTIFICATIONS_LABEL,Notifications,Varsler
 UI_SETTINGS_SPEED_LABEL,Default speed,Standard hastighet
 UI_SETTINGS_HIGH_CONTRAST_LABEL,High contrast,Høykontrast
-UI_SAVELOAD_TITLE_LOAD,Load Game,Last Spill
-UI_SAVELOAD_TITLE_SAVE,Save Game,Lagre Spill
-UI_SAVELOAD_NEW_SAVE,New Save,💾 Nytt Lagringspunkt
+UI_SAVELOAD_TITLE_LOAD,Load Game,Last inn spill
+UI_SAVELOAD_TITLE_SAVE,Save Game,Lagre spill
+UI_SAVELOAD_NEW_SAVE,💾 New Save,💾 Nytt lagringspunkt
 UI_SAVELOAD_MANAGER_UNAVAILABLE,SaveLoadManager not available,SaveLoadManager ikke tilgjengelig
 UI_SAVELOAD_EMPTY_LOAD,No saved games found,Ingen lagrede spill funnet
 UI_SAVELOAD_EMPTY_SAVE,No existing saves,Ingen eksisterende lagringer
@@ -159,14 +159,14 @@ UI_SAVELOAD_LOAD_BUTTON,Load,Last
 UI_SAVELOAD_SAVE_BUTTON,Save,Lagre
 UI_TUTORIAL_STEP_FORMAT,Step %d / %d,Steg %d / %d
 UI_TUTORIAL_STEP_COMPLETE,Step %d complete! Reward: %s,Steg %d fullført! Belønning: %s
-UI_TUTORIAL_COMPLETED,Tutorial completed,Tutorial fullført
+UI_TUTORIAL_COMPLETED,Tutorial completed,Opplæringen er fullført
 UI_TUTORIAL_HINT_NEXT,Explore all features and grow your empire!,Utforsk alle funksjoner og voks imperiet ditt!
-UI_TUTORIAL_SKIP_CONFIRM,Are you sure you want to skip the tutorial?,Er du sikker på at du vil hoppe over tutorial?
-UI_TUTORIAL_SKIP_DETAILS,You can always restart the tutorial from 'Help → Show Tutorial'.,Du kan alltid starte en ny tutorial fra menyvalget 'Hjelp → Vis tutorial'.
+UI_TUTORIAL_SKIP_CONFIRM,Are you sure you want to skip the tutorial?,Er du sikker på at du vil hoppe over opplæringen?
+UI_TUTORIAL_SKIP_DETAILS,You can always restart the tutorial from 'Help → Show Tutorial'.,Du kan alltid starte opplæringen på nytt fra «Hjelp → Vis opplæring».
 UI_TUTORIAL_SKIP_BUTTON,Skip,Hopp over
 UI_TUTORIAL_CANCEL_BUTTON,Cancel,Avbryt
-UI_TUTORIAL_MINIMIZE_EXPAND,Minimize/expand tutorial panel,Minimer/utvid tutorial-panelet
-UI_TUTORIAL_SKIP_TOOLTIP,Skip tutorial and enable free play,Hopp over tutorial og aktiver fri spilling
+UI_TUTORIAL_MINIMIZE_EXPAND,Minimize/expand tutorial panel,Minimer/utvid opplæringspanelet
+UI_TUTORIAL_SKIP_TOOLTIP,Skip tutorial and enable free play,Hopp over opplæringen og spill fritt
 UI_CONTRACT_DIALOG_TITLE,CONTRACT NEGOTIATION,KONTRAKTSFORHANDLING
 UI_CONTRACT_BUYER_LABEL,Buyer:,Kjøper:
 UI_CONTRACT_VOLUME_LABEL,Volume:,Volum:
@@ -275,7 +275,7 @@ UI_ANALYTICS_PERIOD_ALL,All,Alt
 UI_ANALYTICS_TODAY,Today,I dag
 UI_ANALYTICS_NO_DATA,No data,Ingen data
 UI_ANALYTICS_CURRENT,Current,Nåværende
-UI_ANALYTICS_7D_AVG,7d Avg,7d Gj.snitt
+UI_ANALYTICS_7D_AVG,7-day avg,Snitt 7 d
 UI_ANALYTICS_TREND_UP,▲ Rising,▲ Stigende
 UI_ANALYTICS_TREND_DOWN,▼ Falling,▼ Synkende
 UI_ANALYTICS_TREND_FLAT,◆ Stable,◆ Stabil
@@ -386,9 +386,9 @@ UI_TOAST_SAVED,💾 Game saved: %s,💾 Spill lagret: %s
 UI_TOAST_LOADED,💾 Save loaded: %s,💾 Lagring lastet: %s
 UI_DASHBOARD_ALERTS_EMPTY,No active alerts — everything looks good,Ingen aktive varsler — alt ser bra ut
 UI_FINANCE_HISTORY_EMPTY,📈 No history yet — figures will appear as the days pass.,📈 Ingen historikk ennå — tallene kommer etter hvert som dagene går.
-UI_SAVELOAD_EMPTY_SAVE_HINT,Press «New Save» to secure your progress.,Trykk «Nytt Lagringspunkt» for å sikre framgangen din.
+UI_SAVELOAD_EMPTY_SAVE_HINT,Press «New Save» to secure your progress.,Trykk «Nytt lagringspunkt» for å sikre framgangen din.
 UI_SAVELOAD_EMPTY_LOAD_HINT,Start a new game from the main menu to get going.,Start et nytt spill fra hovedmenyen for å komme i gang.
-UI_SAVELOAD_TITLE_BOTH,Save / Load,Lagre / Laste
+UI_SAVELOAD_TITLE_BOTH,Save / Load,Lagre / last inn
 UI_SAVELOAD_OVERWRITE,Overwrite,Overskriv
 UI_SAVELOAD_DELETE,Delete,Slett
 UI_SAVELOAD_DELETE_CONFIRM,Confirm delete,Bekreft sletting
@@ -426,7 +426,7 @@ UI_OFFSHORE_BUILD,Build a new offshore facility,Bygg nytt offshoreanlegg
 UI_OFFSHORE_EMPTY,No offshore facilities yet — build one below,Ingen offshoreanlegg ennå — bygg et nytt anlegg nedenfor
 UI_AIFEED_TITLE,AI feeding,AI-fôring
 UI_AIFEED_INSTALL,Install the AI feeding system,Installer AI-fôringssystem
-UI_FJORD_HINT,Right/middle-click + drag: rotate • Scroll: zoom • Click a pen for details,Høyre-/midthyreklikk + dra: roter • Scroll: zoom • Klikk en merd for detaljer
+UI_FJORD_HINT,Right/middle-click + drag: rotate • Scroll: zoom • Click a pen for details,Høyre-/midtklikk + dra: roter • Rull: zoom • Klikk en merd for detaljer
 UI_FJORD_FLY,🐟 Fly to pen,🐟 Fly til merd
 UI_FJORD_FLY_HINT,Focus the camera on the selected pen,Fokuser kameraet på valgt merd
 UI_FJORD_FLY_NONE,Select a pen in the 3D view or Pens tab first,Velg en merd i 3D-visningen eller Merder-fanen først
@@ -1356,3 +1356,74 @@ UI_ALL_SITES,all sites,alle anlegg
 UI_TOAST_ESCAPE,ESCAPE at %s — repair the nets now,RØMMING på %s — reparer nøtene nå
 UI_TOAST_DISEASE,Disease: %s at %s,Sykdom: %s på %s
 UI_TOAST_GAME_OVER,Game over: %s,Spillet er over: %s
+UI_CHART_NO_DATA,No data yet,Ingen data ennå
+UI_PRICE_BREAK_EVEN,Break-even: %s,Nullpunkt: %s
+UI_PRICE_GRAPH_TITLE,SALMON SPOT PRICE (NOK/kg),SPOTPRIS LAKS (NOK/kg)
+ACHIEVEMENT_FIRST_SMOLT_NAME,First Smolt Release,Første utsett
+ACHIEVEMENT_FIRST_SMOLT_DESC,Stock your first pen with smolts,Sett ut smolt i din første merd
+ACHIEVEMENT_SURVIVE_YEAR_ONE_NAME,Year One Survivor,Overlevde første år
+ACHIEVEMENT_SURVIVE_YEAR_ONE_DESC,Survive your first year without bankruptcy,Kom gjennom det første året uten konkurs
+ACHIEVEMENT_FIRST_HARVEST_NAME,First Harvest,Første slakting
+ACHIEVEMENT_FIRST_HARVEST_DESC,Harvest your first salmon cohort,Slakt din første fiskegruppe
+ACHIEVEMENT_PROFITABLE_QUARTER_NAME,Profitable Quarter,Lønnsomt kvartal
+ACHIEVEMENT_PROFITABLE_QUARTER_DESC,End a quarter with positive cash flow,Avslutt et kvartal med positiv kontantstrøm
+ACHIEVEMENT_MILLION_REVENUE_NAME,Million NOK Revenue,Én million i inntekter
+ACHIEVEMENT_MILLION_REVENUE_DESC,Achieve cumulative revenue of 1M NOK,Nå 1 MNOK i samlede inntekter
+ACHIEVEMENT_100K_HARVEST_NAME,"100,000 Fish Harvested",100 000 fisk slaktet
+ACHIEVEMENT_100K_HARVEST_DESC,"Harvest 100,000 fish total",Slakt 100 000 fisk til sammen
+ACHIEVEMENT_FCR_EXCELLENCE_NAME,FCR Excellence,Fremragende fôrfaktor
+ACHIEVEMENT_FCR_EXCELLENCE_DESC,Achieve FCR below 1.15 for a full year,"Hold fôrfaktoren under 1,15 et helt år"
+ACHIEVEMENT_DISEASE_FREE_YEAR_NAME,Disease-Free Year,Et år uten sykdom
+ACHIEVEMENT_DISEASE_FREE_YEAR_DESC,Go 365 days without a disease outbreak,Gå 365 dager uten sykdomsutbrudd
+ACHIEVEMENT_ASC_CERTIFIED_NAME,ASC Certification,ASC-sertifisert
+ACHIEVEMENT_ASC_CERTIFIED_DESC,Achieve ASC certification status,Oppnå ASC-sertifisering
+ACHIEVEMENT_FIVE_MILLION_REVENUE_NAME,5 Million NOK Revenue,Fem millioner i inntekter
+ACHIEVEMENT_FIVE_MILLION_REVENUE_DESC,Reach 5M NOK cumulative revenue,Nå 5 MNOK i samlede inntekter
+ACHIEVEMENT_GENETIC_SUPERIORITY_NAME,Genetic Superiority,Genetisk overlegen
+ACHIEVEMENT_GENETIC_SUPERIORITY_DESC,Breed a strain with +2.0 breeding value in growth,"Avl fram en stamme med avlsverdi +2,0 for vekst"
+ACHIEVEMENT_CRISIS_SURVIVOR_NAME,Crisis Survivor,Kriseoverlever
+ACHIEVEMENT_CRISIS_SURVIVOR_DESC,"Survive a major crisis (ISA, storm, market crash) without bankruptcy","Kom gjennom en stor krise (ILA, storm, priskrakk) uten konkurs"
+ACHIEVEMENT_MULTI_SITE_OPERATOR_NAME,Multi-Site Operator,Flere lokaliteter
+ACHIEVEMENT_MULTI_SITE_OPERATOR_DESC,Operate 3+ sea sites simultaneously,Drift tre eller flere sjølokaliteter samtidig
+ACHIEVEMENT_SUSTAINABILITY_LEADER_NAME,Sustainability Leader,Bærekraftsleder
+ACHIEVEMENT_SUSTAINABILITY_LEADER_DESC,Achieve 95+ sustainability score,Nå minst 95 poeng i bærekraft
+ACHIEVEMENT_TEN_MILLION_REVENUE_NAME,10 Million NOK Empire,Lakseimperium på 10 millioner
+ACHIEVEMENT_TEN_MILLION_REVENUE_DESC,Build a 10M NOK salmon empire,Bygg et lakseimperium på 10 MNOK
+ACHIEVEMENT_VERTICAL_INTEGRATION_NAME,Vertical Integration Master,Mester i vertikal integrasjon
+ACHIEVEMENT_VERTICAL_INTEGRATION_DESC,"Own feed mill, hatchery, farms, and processing plant","Eie fôrfabrikk, settefiskanlegg, oppdrettsanlegg og slakteri"
+ACHIEVEMENT_ACQUISITION_SPREE_NAME,Acquisition Spree,Oppkjøpsbølge
+ACHIEVEMENT_ACQUISITION_SPREE_DESC,Acquire 3 competitor farms during crises,Kjøp opp tre konkurrenter under kriser
+ACHIEVEMENT_GLOBAL_EXPORTER_NAME,Global Exporter,Global eksportør
+ACHIEVEMENT_GLOBAL_EXPORTER_DESC,"Export to all 6 major markets (EU, USA, China, Japan, UK, Middle East)","Eksporter til alle seks hovedmarkeder (EU, USA, Kina, Japan, Storbritannia, Midtøsten)"
+ACHIEVEMENT_HUNDRED_MILLION_NAME,Salmon Billionaire,Laksemilliardær
+ACHIEVEMENT_HUNDRED_MILLION_DESC,Reach 100M NOK net worth,Nå 100 MNOK i nettoformue
+ACHIEVEMENT_PERFECT_FCR_NAME,Perfect FCR,Perfekt fôrfaktor
+ACHIEVEMENT_PERFECT_FCR_DESC,Achieve FCR of 1.05 or better,"Oppnå en fôrfaktor på 1,05 eller bedre"
+ACHIEVEMENT_ZERO_ESCAPES_NAME,Zero Escapes,Null rømming
+ACHIEVEMENT_ZERO_ESCAPES_DESC,Go 5 years without a single fish escape,Gå fem år uten en eneste rømt fisk
+ACHIEVEMENT_DISEASE_RESISTANCE_NAME,Disease Resistance Breakthrough,Gjennombrudd for sykdomsresistens
+ACHIEVEMENT_DISEASE_RESISTANCE_DESC,Breed ISA-resistant strain (0.5+ BV in disease resistance),"Avl fram en ILA-resistent stamme (avlsverdi 0,5+ for sykdomsresistens)"
+ACHIEVEMENT_INDUSTRY_LEADER_NAME,Industry Leader,Bransjeleder
+ACHIEVEMENT_INDUSTRY_LEADER_DESC,Become Norway's #1 salmon producer,Bli Norges største lakseprodusent
+ACHIEVEMENT_PERFECT_STORM_NAME,The Perfect Storm,Den perfekte stormen
+ACHIEVEMENT_PERFECT_STORM_DESC,Survive ISA outbreak + market crash + storm damage in same year,"Overlev ILA-utbrudd, priskrakk og stormskader i samme år"
+ACHIEVEMENT_SPEEDRUN_MILLIONAIRE_NAME,Speedrun Millionaire,Lynrask millionær
+ACHIEVEMENT_SPEEDRUN_MILLIONAIRE_DESC,Reach 1M NOK profit in under 500 days,Nå 1 MNOK i overskudd på under 500 dager
+ACHIEVEMENT_BANKRUPTCY_RECOVERY_NAME,Phoenix Rising,Fugl Føniks
+ACHIEVEMENT_BANKRUPTCY_RECOVERY_DESC,Recover from bankruptcy (balance below 0) to profitability,Kom tilbake fra negativ saldo til lønnsom drift
+ACHIEVEMENT_SELF_INSURED_NAME,Self-insured,Godt forsikret
+ACHIEVEMENT_SELF_INSURED_DESC,"Hold cover for all four catastrophes (mortality, bloom, storm, ISA)","Ha dekning for alle fire katastrofer (dødelighet, oppblomstring, storm, ILA)"
+ACHIEVEMENT_CLOSED_LOOP_NAME,Closed loop,Lukket anlegg
+ACHIEVEMENT_CLOSED_LOOP_DESC,Upgrade a red-zone site to closed containment and claim the biomass credit,Oppgrader en lokalitet i rød sone til lukket anlegg og få biomassekreditten
+ACHIEVEMENT_GENOMICIST_NAME,Genomicist,Genomiker
+ACHIEVEMENT_GENOMICIST_DESC,Complete two generations of genomic selection in your broodstock,Fullfør to generasjoner genomisk seleksjon i stamfisken
+ACHIEVEMENT_WEATHERPROOF_NAME,Weatherproof,Værbestandig
+ACHIEVEMENT_WEATHERPROOF_DESC,Survive an algal bloom with mitigation installed and stay solvent,Kom gjennom en algeoppblomstring med tiltak installert og hold deg solvent
+ACHIEVEMENT_TAX_PLANNER_NAME,Tax planner,Skatteplanlegger
+ACHIEVEMENT_TAX_PLANNER_DESC,Stay profitable through the resource-rent tax transition,Hold deg lønnsom gjennom innføringen av grunnrenteskatten
+ACHIEVEMENT_PRECISION_NAME,Precision,Presisjon
+ACHIEVEMENT_PRECISION_DESC,Reach a feed conversion ratio of 1.12 or better,"Nå en fôrfaktor på 1,12 eller bedre"
+ACHIEVEMENT_SUPER_SMOLT_NAME,SuperSmolt,Supersmolt
+ACHIEVEMENT_SUPER_SMOLT_DESC,"Stock a post-smolt facility and raise large, sea-ready smolts","Sett ut i et postsmoltanlegg og fôr fram stor, sjøklar smolt"
+ACHIEVEMENT_BLOOM_READY_NAME,Bloom Ready,Klar for oppblomstring
+ACHIEVEMENT_BLOOM_READY_DESC,Install bloom countermeasures (bubble curtain or O2 diffuser) at a site,Installer tiltak mot oppblomstring (boblegardin eller oksygendiffusor) på en lokalitet

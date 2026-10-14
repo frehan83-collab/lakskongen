@@ -94,6 +94,16 @@ static func format_nok(amount: float, locale: String = "") -> String:
 	return sign + num(roundf(abs_amt), 0, locale) + " NOK"
 
 
+## A chart value under a printf-style `unit_fmt`: a plain "%.Nf" becomes a
+## grouped, localized number ("13 689", "2,41"); anything else goes through
+## fmt() so its decimals still follow the locale.
+static func chart_value(value: float, unit_fmt: String, locale: String = "") -> String:
+	var plain := RegEx.create_from_string("^%\\.([0-9])f$").search(unit_fmt)
+	if plain != null:
+		return num(value, int(plain.get_string(1)), locale)
+	return fmt(unit_fmt, [value], locale)
+
+
 ## A price per kilo: 88.0 → "88,00 NOK/kg".
 static func format_price_kg(nok_per_kg: float, locale: String = "") -> String:
 	return num(nok_per_kg, 2, locale) + " NOK/kg"

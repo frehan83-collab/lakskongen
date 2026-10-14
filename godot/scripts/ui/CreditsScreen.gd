@@ -20,7 +20,7 @@ signal close_requested
 
 const CREDITS_DATA: Array[Dictionary] = [
 	{"type": "game_title",  "text": "🐟 LAKSKONGEN"},
-	{"type": "subtitle",    "text": "Norsk Lakseoppdrett Simulator"},
+	{"type": "subtitle",    "text": "Norsk lakseoppdrettssimulator"},
 	{"type": "spacer"},
 	{"type": "section",     "text": "Produksjon"},
 	{"type": "role",        "text": "Produsent"},

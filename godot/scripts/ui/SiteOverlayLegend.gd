@@ -60,6 +60,7 @@ var _metric: String = "lice"
 var _sites: Array = []            # raw site dicts from get_all_pens()
 var _intensity: Dictionary = {}   # site_id -> float 0..1
 var _values: Dictionary = {}      # site_id -> display string
+var _no_data: Dictionary = {}     # site_id -> true when the metric is not measured
 
 var _cycle_btn: Button = null
 var _gradient: Control = null
@@ -173,6 +174,8 @@ func get_site_intensity(site_id: String) -> float:
 	return float(_intensity.get(site_id, 0.0))
 
 func get_site_color(site_id: String) -> Color:
+	if _no_data.has(site_id):
+		return COL_MUTED
 	return intensity_to_color(float(_intensity.get(site_id, 0.0)))
 
 ## Average overlay intensity for every site in a zone, or -1.0 if none.
@@ -200,9 +203,16 @@ func refresh() -> void:
 	_sites = _read_sites()
 	_intensity.clear()
 	_values.clear()
+	_no_data.clear()
 	for site in _sites:
 		var sid := str((site as Dictionary).get("id", ""))
 		if sid.is_empty():
+			continue
+		if _metric == "oxygen" and not _oxygen_measured():
+			# No oxygen reading: say so instead of "0,0 mg/L" in alarm red.
+			_no_data[sid] = true
+			_intensity[sid] = 0.0
+			_values[sid] = "–"
 			continue
 		_intensity[sid] = _compute_intensity(site)
 		_values[sid] = _format_value(site)
@@ -242,6 +252,10 @@ func _lice_intensity(site: Dictionary) -> float:
 	if not r.is_empty() and bool(r.get("warning", false)):
 		t = maxf(t, clampf(float(r.get("risk", t)), 0.0, 1.0))
 	return t
+
+func _oxygen_measured() -> bool:
+	var o2 := _sim_float("oxygen_mgl", NAN)
+	return is_finite(o2) and o2 > 0.0
 
 func _oxygen_intensity(site: Dictionary) -> float:
 	var o2 := _sim_float("oxygen_mgl", 7.0)
@@ -333,7 +347,7 @@ func _rebuild_list() -> void:
 
 		var swatch := ColorRect.new()
 		swatch.custom_minimum_size = Vector2(12, 12)
-		swatch.color = intensity_to_color(t)
+		swatch.color = COL_MUTED if _no_data.has(sid) else intensity_to_color(t)
 		swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(swatch)
 

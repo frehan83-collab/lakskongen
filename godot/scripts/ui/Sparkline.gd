@@ -28,6 +28,9 @@ var show_last_dot: bool = true:
 ## printf-style format for the last value; empty string hides the label.
 var unit_fmt: String = "":
 	set(v): unit_fmt = v; queue_redraw()
+## Optional formatter for the last value (float -> String); wins over unit_fmt.
+var value_format: Callable = Callable():
+	set(v): value_format = v; queue_redraw()
 
 const LINE_WIDTH := 2.0
 const DOT_RADIUS := 2.5
@@ -121,8 +124,10 @@ func _draw() -> void:
 	var lp: Vector2 = to_p.call(last_i, last_v)
 	if show_last_dot:
 		draw_circle(lp, DOT_RADIUS, line_color)
-	if not unit_fmt.is_empty():
-		_draw_label(unit_fmt % last_v, lp, w, h)
+	if value_format.is_valid():
+		_draw_label(str(value_format.call(last_v)), lp, w, h)
+	elif not unit_fmt.is_empty():
+		_draw_label(SimFormatters.chart_value(last_v, unit_fmt), lp, w, h)
 
 func _draw_label(text: String, lp: Vector2, w: float, h: float) -> void:
 	var font := get_theme_default_font()

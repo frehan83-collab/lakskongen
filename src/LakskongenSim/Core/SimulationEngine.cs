@@ -1396,8 +1396,9 @@ private class BalancingConfig
             public double TargetHarvestWeightKg { get; set; } = 5.2; // ↑ from 5.0
             public double MinHarvestWeightKg { get; set; } = 3.8; // ↑ from 3.5
             public double MaxHarvestWeightKg { get; set; } = 7.5; // ↑ from 7.0
-            public double OptimalFCR { get; set; } = 1.15; // ↓ from 1.15 (industry best)
-            public double PoorFCR { get; set; } = 1.35; // ↓ from 1.4
+            // One FCR target in the code base: the calibration registry (U1-03).
+            public double OptimalFCR { get; set; } = CalibrationRegistry.Default.Biology.OptimalFCR;
+            public double PoorFCR { get; set; } = CalibrationRegistry.Default.Biology.PoorFCR;
             /// <summary>Base FCR used by FeedSystem. Reconciled to 1.15 (checklist).</summary>
             public double BaseFCR { get; set; } = 1.15;
 

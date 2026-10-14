@@ -94,7 +94,7 @@ func _update_traits() -> void:
 		# Heritability indicator
 		var h2_label = Label.new()
 		var h2 = trait_data.get("heritability", 0.0)
-		h2_label.text = tr("UI_GENETICS_H2_FORMAT") % SimFormatters.num(float(h2), 2)
+		h2_label.text = SimFormatters.num(float(h2), 2)  # the column header says "Arvbarhet"
 		h2_label.custom_minimum_size = Vector2(80, 0)
 		LakskongenTheme.set_text_color(h2_label, _heritability_color(h2))
 		h2_label.tooltip_text = tr("UI_GENETICS_H2_TIP")

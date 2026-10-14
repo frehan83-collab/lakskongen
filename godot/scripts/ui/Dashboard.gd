@@ -314,6 +314,11 @@ func _build_kpi_sparklines() -> void:
 		spark.name = "KpiSpark" + key.capitalize()
 		spark.line_color = spec[3]
 		spark.unit_fmt = spec[4]
+		# Biomass is kept in kg and the balance in kr: label them as the cards do.
+		if key == "biomass":
+			spark.value_format = func(v: float) -> String: return SimFormatters.format_biomass(v)
+		elif key == "revenue":
+			spark.value_format = func(v: float) -> String: return SimFormatters.format_nok(v)
 		spark.custom_minimum_size = Vector2(80, 28)
 		parent.add_child(spark)
 		_kpi_sparks[key] = {"node": spark, "metric": spec[2]}

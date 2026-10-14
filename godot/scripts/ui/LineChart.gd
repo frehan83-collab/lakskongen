@@ -21,7 +21,7 @@ var unit_fmt: String = "%.1f":
 var line_color: Color = LakskongenTheme.ACCENT:
 	set(v): line_color = v; queue_redraw()
 ## Shown when the series has no drawable data.
-var empty_text: String = "Ingen data ennå":
+var empty_text: String = "UI_CHART_NO_DATA":
 	set(v): empty_text = v; queue_redraw()
 
 const PAD_LEFT := 8.0
@@ -118,7 +118,7 @@ func _draw() -> void:
 	if is_finite(last):
 		var lp: Vector2 = map.call(last, series.size() - 1)
 		draw_circle(lp, 3.0, line_color)
-		_draw_value_pill(unit_fmt % last, lp, w)
+		_draw_value_pill(SimFormatters.chart_value(last, unit_fmt), lp, w)
 	# PROJECTION: dashed continuation into the future (same scale).
 	if future.size() >= 2 and is_finite(last):
 		var prev2: Vector2 = map.call(last, series.size() - 1)
@@ -156,7 +156,7 @@ func _draw_value_pill(text: String, lp: Vector2, w: float) -> void:
 		HORIZONTAL_ALIGNMENT_LEFT, -1, VALUE_FONT_SIZE, _pal(&"text"))
 
 func _draw_empty(w: float) -> void:
-	draw_string(get_theme_default_font(), Vector2(PAD_LEFT, PAD_TOP + 20), empty_text,
+	draw_string(get_theme_default_font(), Vector2(PAD_LEFT, PAD_TOP + 20), tr(empty_text),
 		HORIZONTAL_ALIGNMENT_LEFT, -1, TITLE_FONT_SIZE, _pal(&"muted"))
 
 

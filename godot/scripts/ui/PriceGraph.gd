@@ -58,13 +58,13 @@ func _draw():
 			var y: float = graph_rect.position.y + graph_rect.size.y * (1.0 - (grid_price - min_price) / price_range)
 			var grid_color := Color(LakskongenTheme.MUTED, 0.3)
 			draw_line(Vector2(graph_rect.position.x, y), Vector2(graph_rect.end.x, y), grid_color, 1.0)
-			draw_string(font, Vector2(graph_rect.position.x - 55, y + 4), "%d NOK" % int(grid_price), HORIZONTAL_ALIGNMENT_LEFT, -1, LakskongenTheme.FONT_SM, LakskongenTheme.MUTED)
+			draw_string(font, Vector2(graph_rect.position.x - 55, y + 4), SimFormatters.integer(int(grid_price)) + " NOK", HORIZONTAL_ALIGNMENT_LEFT, -1, LakskongenTheme.FONT_SM, LakskongenTheme.MUTED)
 	
 	# Break-even line (red)
 	var be_y := graph_rect.position.y + graph_rect.size.y * (1.0 - (BREAK_EVEN_PRICE - min_price) / price_range)
 	if be_y >= graph_rect.position.y and be_y <= graph_rect.end.y:
 		draw_line(Vector2(graph_rect.position.x, be_y), Vector2(graph_rect.end.x, be_y), LakskongenTheme.DANGER, 1.5)
-		draw_string(font, Vector2(graph_rect.end.x - 120, be_y - 4), "Break-even: 63", HORIZONTAL_ALIGNMENT_LEFT, -1, LakskongenTheme.FONT_SM, LakskongenTheme.DANGER)
+		draw_string(font, Vector2(graph_rect.end.x - 120, be_y - 4), tr("UI_PRICE_BREAK_EVEN") % SimFormatters.integer(63), HORIZONTAL_ALIGNMENT_LEFT, -1, LakskongenTheme.FONT_SM, LakskongenTheme.DANGER)
 	
 	# Price curve
 	var point_count := price_history.size()
@@ -86,7 +86,7 @@ func _draw():
 		draw_circle(Vector2(last_x, last_y), 5.0, LakskongenTheme.ACCENT)
 	
 	# Title
-	draw_string(font, Vector2(graph_rect.position.x, graph_rect.position.y - 10), "SALMON SPOT PRICE (NOK/kg)", HORIZONTAL_ALIGNMENT_LEFT, -1, LakskongenTheme.FONT_MD, LakskongenTheme.TEXT)
+	draw_string(font, Vector2(graph_rect.position.x, graph_rect.position.y - 10), tr("UI_PRICE_GRAPH_TITLE"), HORIZONTAL_ALIGNMENT_LEFT, -1, LakskongenTheme.FONT_MD, LakskongenTheme.TEXT)
 	
 	# Axes
 	draw_line(Vector2(graph_rect.position.x, graph_rect.end.y), Vector2(graph_rect.end.x, graph_rect.end.y), LakskongenTheme.MUTED, 1.0)

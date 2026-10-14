@@ -298,6 +298,28 @@ def test_no_gdscript_file_carries_its_own_fcr_target():
     assert not offenders, "FCR targets outside CalibrationRegistry:\n" + "\n".join(offenders)
 
 
+# A member whose name says target / optimal / poor FCR (not a temperature),
+# given a number: "OptimalFCR { get; init; } = 1.15", "FCR_TARGET = 1.25".
+_FCR_NAME = r"\b(?:\w*(?:Optimal|Target|Poor)_?FCR|\w*FCR_?\w*(?:Optimal|Target|Poor))(?!\w*Temp)\w*\b"
+CS_FCR_TARGET_DECL = re.compile(_FCR_NAME + r"\s*(?:\{[^}]*\})?\s*=\s*[0-9]+(?:\.[0-9]+)?\b", re.I)
+
+
+def test_the_sim_declares_the_fcr_target_once():
+    """grep finds one FCR target constant: CalibrationRegistry.Biology. Every
+    other target or ceiling (the legacy GameConfig defaults, the advisor's
+    1.25) reads the registry."""
+    places = []
+    for path in SIM_CS:
+        _strings, code = cs_scan(path)
+        for no, line in enumerate(code.split("\n"), 1):
+            if CS_FCR_TARGET_DECL.search(line):
+                places.append(f"{path.relative_to(REPO)}:{no}: {line.strip()[:110]}")
+    registry = [p for p in places if "Calibration/CalibrationRegistry.cs" in p]
+    others = [p for p in places if p not in registry]
+    assert len(registry) == 2, "CalibrationRegistry declares OptimalFCR and PoorFCR:\n" + "\n".join(places)
+    assert not others, "FCR targets declared outside CalibrationRegistry:\n" + "\n".join(others)
+
+
 # ── D17: parody names only ────────────────────────────────────────────────────
 
 # Real companies, retailers, exchanges and organisations, matched as whole
