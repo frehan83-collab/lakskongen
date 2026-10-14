@@ -203,17 +203,29 @@ float shell_distance(vec3 dir, float h_km) {
 	return ray_sphere_exit(R_EARTH + OBSERVER_H, dir.y, R_EARTH + h_km);
 }
 
-// Coverage-thresholded density of the low layer at a horizontal point (km).
-float low_density(vec2 p, int octaves) {
+// The low layer's noise at a horizontal point (km): domain-warped FBM.
+float low_noise(vec2 p, int octaves) {
 	vec2 q = p * 0.22 + cloud_offset * 0.22;
 	vec2 warp = vec2(fbm(q * 0.5 + vec2(3.1, 1.7), 2), fbm(q * 0.5 + vec2(8.3, 2.8), 2)) - 0.5;
-	float n = fbm(q + warp * 1.4, octaves);
+	return fbm(q + warp * 1.4, octaves);
+}
+
+// Density (0-1) of the low layer from its noise at a normalised height in
+// the slab (0 base, 1 top): flat bases, tops that narrow like cumulus,
+// and one closed deck (thicker and thinner in places) under overcast.
+float low_density_at(float n, float hn) {
 	float cover = cloud_coverage;
+	float closed = smoothstep(0.82, 0.97, cover);
 	float threshold = mix(0.78, 0.18, cover);
 	float soft = mix(0.10, 0.28, cover);
-	float d = smoothstep(threshold - soft * 0.2, threshold + soft, n);
-	// Overcast: one closed deck, thicker and thinner in places.
-	return max(d, smoothstep(0.82, 0.97, cover) * (0.55 + 0.45 * n));
+	float rise = mix(0.30, 0.05, closed) * hn * hn;
+	float d = smoothstep(threshold + rise - soft * 0.2, threshold + rise + soft, n);
+	d *= smoothstep(0.0, 0.08, hn) * (1.0 - smoothstep(0.92, 1.0, hn));
+	return max(d, closed * (0.55 + 0.45 * n));
+}
+
+float low_density(vec2 p, int octaves) {
+	return low_density_at(low_noise(p, octaves), 0.4);
 }
 
 float high_density(vec2 p, int octaves) {
@@ -225,49 +237,82 @@ float high_density(vec2 p, int octaves) {
 	return smoothstep(1.0 - cover * 0.75, 1.15 - cover * 0.6, n * 0.75 + streak * 0.35) * (1.0 - smoothstep(0.85, 1.0, cloud_coverage));
 }
 
-vec4 cloud_layer_low(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int octaves) {
+// The low layer is a slab from 1.2 to 2.4 km marched in a few steps, so
+// cumulus get flat bases, rounded tops and solid banks at the horizon (a
+// flat layer turns into streaks there). Lighting per sample: sunlight at
+// cloud height through the column above (two-stream diffuse transmission),
+// relief toward the sun, side light from a low sun, a silver lining, and
+// skylight; the column's optical thickness runs from fair-weather cumulus
+// (6) to storm nimbostratus (60).
+vec4 cloud_layer_low(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int octaves, int steps, float jitter) {
 	if (dir.y <= 0.0 || cloud_coverage <= 0.01) {
 		return vec4(0.0);
 	}
-	float h = 1.6;
-	float t = shell_distance(dir, h);
-	vec2 p = dir.xz * t;
-	float d = low_density(p, octaves);
-	if (d <= 0.001) {
-		return vec4(0.0);
-	}
-	// Optical thickness: fair-weather cumulus (6) to storm nimbostratus (60).
+	const float H0 = 1.2;
+	const float H1 = 2.4;
+	float t0 = shell_distance(dir, H0);
+	float t1 = shell_distance(dir, H1);
 	float tau_max = mix(6.0, 60.0, cloud_density);
-	float tau = d * tau_max;
-	float alpha = 1.0 - exp(-tau * 0.9);
-	// Relief: one step toward the sun along its horizontal direction.
-	vec2 toward = normalize(sun_dir.xz + vec2(1e-4)) * 0.8;
-	float d_sun = low_density(p + toward, max(octaves - 2, 2));
-	float shade = exp(-d_sun * tau_max * 0.08);
-	// Sunlight at the cloud's height: still on after the observer's sunset.
-	// Under a closed deck the eye sees the diffused light as near-neutral.
-	vec3 sun_in = sun_transmittance(h, sun_dir.y) * CLOUD_LIGHT;
+	float sigma = tau_max / (H1 - H0); // per km, a vertical column of density 1 gives tau_max
 	float closed = smoothstep(0.8, 0.97, cloud_coverage);
+	vec3 sun_in = sun_transmittance(0.5 * (H0 + H1), sun_dir.y) * CLOUD_LIGHT;
+	// Under a closed deck the eye sees the diffused light as near-neutral.
 	sun_in = mix(sun_in, vec3(dot(sun_in, vec3(0.2126, 0.7152, 0.0722))), 0.7 * closed);
 	float mu = dot(dir, sun_dir);
-	// Diffuse transmission through the deck (two-stream, g = 0.85).
-	float t_d = 1.0 / (1.0 + 0.75 * tau * 0.15);
-	// Thick parts of a storm deck hang darker than its thin parts.
-	vec3 base = sun_in * max(sun_dir.y, 0.0) * t_d * (0.45 + 0.55 * shade);
-	// A low sun lights the undersides from the side: warm toward the sun.
+	float sun_up = max(sun_dir.y, 0.0);
 	float low_sun = pow(1.0 - clamp(sun_dir.y * 5.0, 0.0, 1.0), 2.0) * smoothstep(-0.06, 0.0, sun_dir.y)
-		* (1.0 - 0.85 * smoothstep(0.8, 0.97, cloud_coverage)); // no side light under a closed deck
-	base += sun_in * low_sun * (0.2 + 0.8 * pow(max(mu, 0.0), 3.0)) * 0.55 * shade;
-	// Silver lining: forward scattering through thin edges near the sun.
-	base += sun_in * phase_hg(mu, 0.75) * exp(-tau * 0.5) * 2.5 * shade;
-	// Skylight on the base: blue from the open sky between fair-weather
-	// clouds, grey under a closed deck.
+		* (1.0 - 0.85 * closed); // no side light under a closed deck
+	float silver = phase_hg(mu, 0.75) * 2.5;
 	vec3 open_sky = mix(sky_top, vec3(dot(sky_top, vec3(0.2126, 0.7152, 0.0722))), cloud_coverage * cloud_coverage);
-	vec3 ambient = open_sky * mix(0.9, 0.35, cloud_density) * (1.0 - 0.3 * d);
-	vec3 color = base + ambient + moon_light * (0.25 + 0.6 * shade);
+	vec3 ambient = open_sky * mix(0.9, 0.35, cloud_density);
+	vec2 toward = normalize(sun_dir.xz + vec2(1e-4)) * 0.8;
+
+	// Near the horizon the slab runs for tens of km: march only its first
+	// 10 km (the clouds behind are hidden or lost in haze), so the steps stay
+	// close enough not to band.
+	t1 = min(t1, t0 + 10.0);
+	float ds = (t1 - t0) / float(steps);
+	// Fewer octaves with distance: detail finer than a pixel only aliases
+	// into stripes near the horizon. One octave less per doubling past 6 km.
+	octaves = max(octaves - int(clamp(log2(max(t0, 1.0) / 6.0), 0.0, float(octaves - 2))), 2);
+	float transmittance = 1.0;
+	vec3 light = vec3(0.0);
+	for (int i = 0; i < steps; i++) {
+		float t = t0 + (float(i) + jitter) * ds;
+		vec3 p = dir * t;
+		// Height along the ray over the curved Earth.
+		float h = OBSERVER_H + t * dir.y + t * t * (1.0 - dir.y * dir.y) / (2.0 * R_EARTH);
+		float hn = clamp((h - H0) / (H1 - H0), 0.0, 1.0);
+		float n = low_noise(p.xz, octaves);
+		float d = low_density_at(n, hn);
+		if (d <= 0.001) {
+			continue;
+		}
+		float tau_step = d * sigma * ds;
+		// The column above this sample, and relief toward the sun.
+		float tau_column = d * tau_max;
+		float t_d = 1.0 / (1.0 + 0.75 * tau_column * 0.15);
+		float d_sun = low_density_at(low_noise(p.xz + toward, max(octaves - 3, 2)), min(hn + 0.15, 1.0));
+		float shade = exp(-d_sun * tau_max * 0.08) * mix(0.75, 1.0, hn);
+		vec3 c = sun_in * sun_up * t_d * (0.45 + 0.55 * shade) * mix(0.8, 1.2, hn);
+		c += sun_in * low_sun * (0.2 + 0.8 * pow(max(mu, 0.0), 3.0)) * 0.55 * shade;
+		c += sun_in * silver * exp(-tau_column * 0.5) * shade;
+		c += ambient * (1.0 - 0.3 * d) * (0.8 + 0.4 * hn);
+		c += moon_light * (0.25 + 0.6 * shade);
+		float absorbed = 1.0 - exp(-tau_step);
+		light += transmittance * absorbed * c;
+		transmittance *= 1.0 - absorbed;
+		if (transmittance < 0.02) {
+			break;
+		}
+	}
+	float alpha = 1.0 - transmittance;
+	if (alpha <= 0.001) {
+		return vec4(0.0);
+	}
 	// Aerial perspective: far clouds fade into the horizon sky.
-	float fade = exp(-t / 70.0);
-	return vec4(color, alpha * mix(0.35, 1.0, fade));
+	float fade = exp(-t0 / 70.0);
+	return vec4(light / alpha, alpha * mix(0.35, 1.0, fade));
 }
 
 // Scud: ragged, dark, fast fragments under a storm deck (0.6 km).
@@ -485,7 +530,8 @@ void sky() {
 
 	vec4 high = cloud_layer_high(dir, sun_dir, sky_top, moon_light, cloud_octaves - 2);
 	color = mix(color, high.rgb, high.a);
-	vec4 low = cloud_layer_low(dir, sun_dir, sky_top, moon_light, cloud_octaves);
+	float jitter = 0.5;
+	vec4 low = cloud_layer_low(dir, sun_dir, sky_top, moon_light, cloud_octaves, cubemap ? 3 : 6, jitter);
 	color = mix(color, low.rgb, low.a);
 	vec4 scud = cloud_layer_scud(dir, sky_top, cubemap ? 2 : 4);
 	color = mix(color, scud.rgb, scud.a);
