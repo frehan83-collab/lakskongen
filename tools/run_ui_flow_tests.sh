@@ -23,7 +23,7 @@ TIMEOUT_SECS=300
 # running (an early return, a call dropped from _run()). Raise it with every
 # check you add; lowering it weakens the gate and needs a dispute entry in
 # docs/RUN_LOG.md §8.
-MIN_CHECKS=0  # set after the integration run
+MIN_CHECKS=670
 
 find_godot() {
     if [[ -n "${GODOT_BIN:-}" && -x "$GODOT_BIN" ]]; then
