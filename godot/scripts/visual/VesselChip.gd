@@ -65,6 +65,8 @@ func _init(max_distance: float = 1400.0) -> void:
 	_label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_label)
 	for node: GeometryInstance3D in [_quad, _label]:
+		# A chip is not part of the world: no reflection in the water (G2-03).
+		node.layers = PlanarReflection.NO_MIRROR_LAYER
 		node.visibility_range_end = max_distance
 		node.visibility_range_end_margin = max_distance * 0.1
 		node.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF

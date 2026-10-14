@@ -377,6 +377,8 @@ func _add_pen_internal(pen_id: String, position: Vector3, active: bool) -> void:
 	var school := MultiMeshInstance3D.new()
 	school.name = "FishSchool"
 	school.multimesh = _create_fish_multimesh()
+	# Under the water: never in the planar mirror (G2-03).
+	school.layers = PlanarReflection.NO_MIRROR_LAYER
 	markers_parent.add_child(school)
 	school.global_position = position
 

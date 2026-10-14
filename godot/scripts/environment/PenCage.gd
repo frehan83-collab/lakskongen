@@ -80,6 +80,9 @@ const NET_PARTS := ["Net", "BirdNet"]
 ## Parts that cast no shadow: the see-through nets and what hangs under the
 ## water (a shadow there is never seen, but every cascade would draw it).
 const NO_SHADOW_PARTS := ["Net", "BirdNet", "SinkerTube", "LiceSkirt"]
+## Parts that hang under the water: the planar mirror's camera sits below
+## the surface and would draw them over the reflection (G2-03).
+const NO_MIRROR_PARTS := ["Net", "SinkerTube", "LiceSkirt"]
 
 ## The circle the collar floats on: the walkway centreline between the twin
 ## pipes (blender/build_pen.py WALK_MID = R_IN + PIPE_SPACING / 2).
@@ -188,6 +191,8 @@ func _configure_lods() -> void:
 			mesh.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
 			if String(mesh.name) in NO_SHADOW_PARTS or level == 2:
 				mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			if String(mesh.name) in NO_MIRROR_PARTS:
+				mesh.layers = PlanarReflection.NO_MIRROR_LAYER
 
 ## The ring colour for a health state.
 static func health_color_of(state: int) -> Color:
@@ -301,3 +306,5 @@ static func style_label(label: Label3D, text_color: Color, max_distance: float =
 	label.render_priority = 2
 	label.outline_render_priority = 1
 	label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# A label is not part of the world: no reflection in the water (G2-03).
+	label.layers = PlanarReflection.NO_MIRROR_LAYER

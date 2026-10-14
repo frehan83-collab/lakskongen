@@ -75,6 +75,12 @@ const UPSCALER_OTHER := Viewport.SCALING_3D_MODE_FSR
 ##                   TERRAIN_DETAIL_UNIFORM for the terrain shader to scale
 ##                   its own detail by (textures, octaves); the shader owns
 ##                   what it means (the gfx-terrain track)
+##   mirror          the planar mirror on the water (G2-03, PlanarReflection);
+##                   off, the water reflects the sky's radiance and the
+##                   probe lights the scene, as before (Low)
+##   mirror_scale    the mirror's resolution as a share of the window
+##   mirror_near_hz  its update rate inside the COAST band (0: every frame)
+##   mirror_far_hz   its update rate at COAST distances (the roadmap's 30 Hz)
 const PRESETS := {
 	"low": {
 		"msaa": Viewport.MSAA_DISABLED, "screen_aa": Viewport.SCREEN_SPACE_AA_FXAA, "scale": 0.6, "hidden_scale": 0.5, "hidden_pause": true,
@@ -85,6 +91,7 @@ const PRESETS := {
 		"shadow_atlas": 2048, "shadow_splits": 2, "shadow_distance": 0.6, "soft_shadows": RenderingServer.SHADOW_QUALITY_HARD,
 		"glow": true, "cloud_pass": 2, "cloud_steps": 4, "cloud_octaves": 4, "radiance_size": Sky.RADIANCE_SIZE_64,
 		"terrain_detail": 0.0,
+		"mirror": false, "mirror_scale": 0.0, "mirror_near_hz": 0.0, "mirror_far_hz": 0.0,
 	},
 	"medium": {
 		"msaa": Viewport.MSAA_2X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 0.67, "hidden_scale": 0.5, "hidden_pause": true,
@@ -95,6 +102,7 @@ const PRESETS := {
 		"shadow_atlas": 4096, "shadow_splits": 2, "shadow_distance": 0.8, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW,
 		"glow": true, "cloud_pass": 2, "cloud_steps": 5, "cloud_octaves": 5, "radiance_size": Sky.RADIANCE_SIZE_128,
 		"terrain_detail": 0.5,
+		"mirror": true, "mirror_scale": 0.33, "mirror_near_hz": 30.0, "mirror_far_hz": 20.0,
 	},
 	"high": {
 		"msaa": Viewport.MSAA_4X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 0.75, "hidden_scale": 0.5, "hidden_pause": true,
@@ -105,6 +113,7 @@ const PRESETS := {
 		"shadow_atlas": 4096, "shadow_splits": 4, "shadow_distance": 1.0, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW,
 		"glow": true, "cloud_pass": 1, "cloud_steps": 6, "cloud_octaves": 6, "radiance_size": Sky.RADIANCE_SIZE_256,
 		"terrain_detail": 1.0,
+		"mirror": true, "mirror_scale": 0.5, "mirror_near_hz": 0.0, "mirror_far_hz": 30.0,
 	},
 	"ultra": {
 		"msaa": Viewport.MSAA_4X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 1.0, "hidden_scale": 0.5, "hidden_pause": true,
@@ -115,6 +124,7 @@ const PRESETS := {
 		"shadow_atlas": 4096, "shadow_splits": 4, "shadow_distance": 1.0, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_LOW,
 		"glow": true, "cloud_pass": 0, "cloud_steps": 6, "cloud_octaves": 6, "radiance_size": Sky.RADIANCE_SIZE_256,
 		"terrain_detail": 1.0,
+		"mirror": true, "mirror_scale": 0.5, "mirror_near_hz": 0.0, "mirror_far_hz": 0.0,
 	},
 }
 
@@ -218,6 +228,16 @@ func apply_scale(viewport: Viewport) -> void:
 		var mode := str(knobs.get("upscaler", "auto"))
 		viewport.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if mode == "fsr" else upscaler()
 		viewport.fsr_sharpness = float(knobs.get("fsr_sharpness", 0.2))
+
+
+## The planar mirror's own viewport (G2-03, PlanarReflection): no
+## anti-aliasing at all. The water shows it through ripples, at a share of
+## the window's resolution (mirror_scale), so MSAA or SMAA there would only
+## cost.
+static func apply_mirror_viewport(viewport: Viewport) -> void:
+	viewport.msaa_3d = Viewport.MSAA_DISABLED
+	viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+	viewport.use_taa = false
 
 
 static func upscaler() -> Viewport.Scaling3DMode:

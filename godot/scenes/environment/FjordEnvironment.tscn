@@ -1,4 +1,4 @@
-[gd_scene load_steps=33 format=3 uid="uid://fjord_environment_001"]
+[gd_scene load_steps=34 format=3 uid="uid://fjord_environment_001"]
 
 [ext_resource type="Script" path="res://scripts/environment/FjordEnvironment.gd" id="1_env"]
 [ext_resource type="Script" path="res://scripts/environment/FjordTerrain.gd" id="2_terrain"]
@@ -18,6 +18,7 @@
 [ext_resource type="Script" path="res://scripts/visual/CompetitorFarmVisualManager.gd" id="17_competitorfarm_vm_script"]
 [ext_resource type="Script" path="res://scripts/environment/EnvironmentDirector.gd" id="18_director"]
 [ext_resource type="Script" path="res://scripts/environment/WaterGrid.gd" id="19_water_grid"]
+[ext_resource type="Script" path="res://scripts/environment/PlanarReflection.gd" id="20_planar"]
 
 [sub_resource type="ShaderMaterial" id="water_mat"]
 shader = ExtResource("6_water_shader")
@@ -259,7 +260,7 @@ script = ExtResource("5_weather")
 rain_particles = NodePath("RainParticles")
 snow_particles = NodePath("SnowParticles")
 
-[node name="EnvironmentDirector" type="Node" parent="." node_paths=PackedStringArray("world_environment", "sun_light", "moon_light", "time_system", "weather_system", "camera", "water_grid", "terrain", "reflection_probe")]
+[node name="EnvironmentDirector" type="Node" parent="." node_paths=PackedStringArray("world_environment", "sun_light", "moon_light", "time_system", "weather_system", "camera", "water_grid", "terrain", "reflection_probe", "planar_reflection")]
 script = ExtResource("18_director")
 world_environment = NodePath("../WorldEnvironment")
 sun_light = NodePath("../Sun")
@@ -270,9 +271,16 @@ camera = NodePath("../FjordCamera")
 water_grid = NodePath("../WaterGrid")
 terrain = NodePath("../Terrain")
 reflection_probe = NodePath("../ReflectionProbe")
+planar_reflection = NodePath("../PlanarReflection")
+
+[node name="PlanarReflection" type="Node" parent="." node_paths=PackedStringArray("camera", "water_grid")]
+script = ExtResource("20_planar")
+camera = NodePath("../FjordCamera")
+water_grid = NodePath("../WaterGrid")
 
 [node name="RainParticles" type="GPUParticles3D" parent="WeatherSystem"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 50, 0)
+layers = 262144
 emitting = false
 amount = 2000
 lifetime = 2.2
@@ -283,6 +291,7 @@ draw_pass_1 = SubResource("rain_mesh")
 
 [node name="SnowParticles" type="GPUParticles3D" parent="WeatherSystem"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 60, 0)
+layers = 262144
 emitting = false
 amount = 1500
 lifetime = 14.0

@@ -1,5 +1,6 @@
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
+#include "res://shaders/include/mirror_pass.gdshaderinc"
 
 // === Norwegian Fjord Terrain Shader ("Vestland Light", roadmap D13) ===
 // Colour comes from a matte landscape palette chosen by slope, height and
@@ -58,6 +59,7 @@ varying vec3 world_normal;
 varying float cavity;
 
 void vertex() {
+	VERTEX = lk_mirror_vertex(VERTEX, MODEL_MATRIX, CAMERA_VISIBLE_LAYERS, CAMERA_POSITION_WORLD);
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	world_normal = (MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz;
 	cavity = COLOR.r;

@@ -37,6 +37,9 @@ extends Node
 ## left at its boot-time capture tints every later frame (olive dawns). Its
 ## ambient is off: the sky's radiance, updated every frame, lights the land.
 @export var reflection_probe: ReflectionProbe
+## The water's planar mirror (G2-03): its look (fog, ambient, background)
+## is composed here like the main view's; the tier switches it.
+@export var planar_reflection: PlanarReflection
 
 # ── Atmosphere (mirrors sky_shader.gdshader) ──────────────────────────────────
 const R_EARTH := 6360.0
@@ -142,14 +145,15 @@ const WAVE_FOLD_LIMIT := 0.75
 const RIPPLE_PER_MS := 0.06
 const RIPPLE_MIN := 0.12
 const RIPPLE_MAX := 0.75
-## The shader's whitecap field (a crest gate plus breaker noise and foam
-## lace) is not a standard normal: its threshold is mapped from the normal
-## quantile of Monahan's share so that the drawn cover matches it.
-## Calibrated top-down over the basin at 9, 14 and 20 m/s (W 0.7 %, 3.1 %,
-## 10.5 %): the cover hits W at thresholds 2.49, 2.24 and 1.66; a least-
-## squares line through them.
-const WHITECAP_Z_SCALE := 0.68
-const WHITECAP_Z_OFFSET := 0.88
+## The shader's whitecap field (a peak-band crest gate plus breaker noise,
+## a wave-group field and foam lace) is not a standard normal: its threshold
+## is mapped from the normal quantile of Monahan's share so that the drawn
+## cover matches it. Calibrated top-down over the basin at 9, 14 and 20 m/s
+## (W 0.7 %, 3.1 %, 10.5 %; G2-03, the cores brighter than luminance 0.45
+## under an overcast sky): the cover hits W at thresholds 3.46, 2.72 and
+## 1.96; a least-squares line through them.
+const WHITECAP_Z_SCALE := 1.25
+const WHITECAP_Z_OFFSET := 0.39
 ## Re-derive the sea when the wind moves this much (m/s).
 const SEA_WIND_STEP := 0.02
 
@@ -163,6 +167,16 @@ const PROBE_CLOUD_STEP := 0.125
 const PROBE_MIN_INTERVAL := 2.0
 ## Wait this long after a change so the sky's radiance has settled first.
 const PROBE_SETTLE := 0.4
+
+# ── Planar mirror (G2-03) ─────────────────────────────────────────────────────
+## The mirrored camera's fog: its view ray runs camera -> water -> object
+## and the main pass fogs the camera -> water leg again, so the mirror
+## carries this share of the main fog (for a shore reflection, where the
+## first leg is nearly all of it, the two passes add up to the main fog).
+const MIRROR_FOG_SHARE := 0.5
+## Above this wind (m/s) no water anywhere is calm enough to mirror: the
+## mirror is not rendered at all (a storm costs nothing extra).
+const MIRROR_MAX_WIND_MS := 11.0
 
 var _water_temperature_c := 8.0
 var _algae := 0.0
@@ -283,6 +297,8 @@ func set_world_visible(world_visible: bool) -> void:
 		return
 	quality.world_hidden = not world_visible
 	quality.apply_scale(get_viewport())
+	if planar_reflection != null:
+		planar_reflection.set_world_visible(world_visible)
 	if world_visible:
 		compose(0.0, true)
 
@@ -295,6 +311,10 @@ func _apply_quality() -> void:
 	var env := _env()
 	quality.apply_global(get_viewport() if is_inside_tree() else null, sun_light, moon_light, env.sky if env != null else null)
 	_apply_terrain_quality()
+	if planar_reflection != null:
+		var k := quality.knobs
+		planar_reflection.configure(bool(k.get("mirror", false)), float(k.get("mirror_scale", 0.5)),
+			float(k.get("mirror_near_hz", 0.0)), float(k.get("mirror_far_hz", 0.0)))
 
 
 ## The tier's terrain detail on the terrain material (its chunks share one),
@@ -380,6 +400,7 @@ func compose(delta: float, snap: bool = false) -> void:
 	_apply_fog(sun_elev, cloud, visibility, sea_fog, underwater, c)
 	_apply_image(sun_elev, distance, underwater, c)
 	_apply_water(delta, c)
+	_apply_mirror(underwater, c)
 	_refresh_probe(delta, snap, sun_elev, cloud, sea_fog)
 	c["world_visible"] = not quality.world_hidden
 	c["sky_live"] = sky_live
@@ -668,6 +689,53 @@ static func zoom_settings(distance: float) -> Vector3:
 			return Vector3(lerpf(a[1], b[1], t), lerpf(a[2], b[2], t), lerpf(a[3], b[3], t))
 	var last: Array = ZOOM_TABLE[ZOOM_TABLE.size() - 1]
 	return Vector3(last[1], last[2], last[3])
+
+
+# ── Planar mirror (G2-03) ─────────────────────────────────────────────────────
+
+## The mirror's environment follows the main one (composed above this
+## frame): the same sky, fog colour and ambient, a share of the fog (see
+## MIRROR_FOG_SHARE), no tone mapping, glow or SSAO (the mirror holds scene
+## radiance; the main pass exposes and tone-maps the water once). No mirror
+## underwater or once the wind roughens every bit of the water.
+func _apply_mirror(underwater: bool, c: Dictionary) -> void:
+	if planar_reflection == null:
+		return
+	var wind := weather_system.get_wind_speed_ms() if weather_system else 4.0
+	var wanted := not underwater and wind < MIRROR_MAX_WIND_MS
+	planar_reflection.set_wanted(wanted)
+	c["mirror_wanted"] = wanted
+	var env := _env()
+	var m := planar_reflection.environment
+	if env == null or m == null or not wanted:
+		return
+	m.background_mode = Environment.BG_SKY
+	m.sky = env.sky
+	m.background_energy_multiplier = env.background_energy_multiplier
+	m.ambient_light_source = env.ambient_light_source
+	m.ambient_light_sky_contribution = env.ambient_light_sky_contribution
+	m.ambient_light_color = env.ambient_light_color
+	m.ambient_light_energy = env.ambient_light_energy
+	m.reflected_light_source = env.reflected_light_source
+	m.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	m.tonemap_exposure = 1.0
+	m.glow_enabled = false
+	m.ssao_enabled = false
+	m.ssil_enabled = false
+	m.ssr_enabled = false
+	m.sdfgi_enabled = false
+	m.volumetric_fog_enabled = false
+	m.adjustment_enabled = false
+	m.fog_enabled = env.fog_enabled
+	m.fog_mode = env.fog_mode
+	m.fog_density = env.fog_density * MIRROR_FOG_SHARE
+	m.fog_light_color = env.fog_light_color
+	m.fog_light_energy = env.fog_light_energy
+	m.fog_aerial_perspective = env.fog_aerial_perspective
+	m.fog_sky_affect = env.fog_sky_affect
+	m.fog_sun_scatter = env.fog_sun_scatter
+	m.fog_height = env.fog_height
+	m.fog_height_density = env.fog_height_density * MIRROR_FOG_SHARE
 
 
 # ── Reflection probe ──────────────────────────────────────────────────────────

@@ -270,6 +270,8 @@ func _spawn_ropes() -> MultiMeshInstance3D:
 	mmi.name = "Ropes"
 	mmi.multimesh = mm
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Under the water: never in the planar mirror (G2-03).
+	mmi.layers = PlanarReflection.NO_MIRROR_LAYER
 	mmi.visibility_range_end = ROPE_VISIBLE_M
 	add_child(mmi)
 	return mmi
