@@ -61,6 +61,13 @@ const vec2 FAR_OFFSET = vec2(0.371, 0.613);
 const float FAR_ALBEDO_BLUR = 3.0;
 const float NEAR_WARP_M = 4.0;
 const float FAR_WARP_M = 22.0;
+// G2-01: the wall structure (cliff bands and ledges, their tone, seepage
+// streaks, the buttress bump) fades out between these camera distances (m).
+// Beyond them a band is a few pixels tall and the same bands run across whole
+// mountainsides of the far field: they read as a venetian-blind pattern, not
+// rock. Their fetches are skipped there.
+const float WALL_FADE_START_M = 2500.0;
+const float WALL_FADE_END_M = 5000.0;
 
 uniform sampler2DArray albedo_height : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray normal_rough_ao : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -310,6 +317,7 @@ void fragment() {
 	float meadow = masks.a;
 	float dist = length(p - CAMERA_POSITION_WORLD);
 	float near_w = 1.0 - smoothstep(near_fade_start, near_fade_end, dist);
+	float wall_near = 1.0 - smoothstep(WALL_FADE_START_M, WALL_FADE_END_M, dist);
 
 	// Macro noise over a skewed projection of the world, so it varies up a
 	// wall as well as across the ground: features ~330 m (n_big, A ~165 m)
@@ -333,7 +341,7 @@ void fragment() {
 	vec4 n_streak_z = vec4(0.0);
 	vec3 bump_x = vec3(0.5);
 	vec3 bump_z = vec3(0.5);
-	if (slope_tan > 0.8 && wall_detail > 0.5) {
+	if (slope_tan > 0.8 && wall_detail > 0.5 && wall_near > 0.0) {
 		n_wall_x = noise_at(vec2(p.z, p.y), 800.0, footprint);
 		n_wall_z = noise_at(vec2(p.x + 77.0, p.y), 800.0, footprint);
 		// The narrow streak and bump slices repeat every 54 and 228 m along
@@ -361,16 +369,21 @@ void fragment() {
 	// just under a ledge lies in shadow. A ledge runs for a stretch and
 	// breaks off; its width varies.
 	float cliff = smoothstep(0.9, 1.7, slope_tan);
+	float cliff_near = cliff * wall_near;
 	float band_t = (p.y + dot(p.xz, vec2(0.09, -0.05))) / 24.0 + n_band.g * 2.2 + n_band.a * 0.6;
 	float band_f = fract(band_t);
 	float band_id = floor(band_t);
 	float band_tone = hash12(vec2(band_id, 7.3));
 	float is_ledge = step(0.6, hash12(vec2(band_id, 2.9)));
 	float ledge_w = mix(0.07, 0.24, hash12(vec2(band_id, 5.1)));
-	vec4 band_x = noise_at(vec2(p.z, band_id * 37.1), 420.0, footprint);
-	vec4 band_z = noise_at(vec2(p.x + 211.0, band_id * 37.1), 420.0, footprint);
+	vec4 band_x = vec4(0.5);
+	vec4 band_z = vec4(0.5);
+	if (cliff_near > 0.0) {
+		band_x = noise_at(vec2(p.z, band_id * 37.1), 420.0, footprint);
+		band_z = noise_at(vec2(p.x + 211.0, band_id * 37.1), 420.0, footprint);
+	}
 	float run = mix(band_x.r, band_z.r, wz);
-	run = smoothstep(0.5, 0.68, run) * is_ledge * cliff;
+	run = smoothstep(0.5, 0.68, run) * is_ledge * cliff_near;
 	// The ledge's lip wanders: its width breaks up every few metres.
 	float lip = mix(band_x.a, band_z.a, wz);
 	float w_here = ledge_w * mix(0.35, 1.25, lip);
@@ -523,13 +536,13 @@ void fragment() {
 	float steep = smoothstep(0.8, 1.8, slope_tan);
 	rock *= mix(0.84, 1.14, macro) * mix(vec3(0.97, 1.0, 1.03), vec3(1.04, 1.0, 0.95), mottle);
 	// Strata: each cliff band its own tone; shadow under the ledge above.
-	rock *= mix(1.0, mix(0.86, 1.1, band_tone), cliff * 0.85);
+	rock *= mix(1.0, mix(0.86, 1.1, band_tone), cliff_near * 0.85);
 	rock *= 1.0 - 0.3 * under;
 	// Lichen-dark and freshly broken pale faces, tens of metres across, read
 	// on the wall itself (vertical planes) rather than from above.
 	float wall_tone = mix(n_wall_x.r, n_wall_z.r, wz);
 	float flat_tone = n_big.b;
-	float tone_field = mix(flat_tone, wall_tone, cliff);
+	float tone_field = mix(flat_tone, wall_tone, cliff_near);
 	rock *= mix(0.62, 1.12, smoothstep(0.22, 0.78, tone_field));
 	// Gullies on the walls stay damp and dark.
 	rock *= 1.0 - 0.28 * smoothstep(0.04, 0.22, hollow) * cliff;
@@ -542,7 +555,7 @@ void fragment() {
 	float streak_x = n_streak_x.r * 0.6 + n_streak_x.a * 0.4;
 	float streak_z = n_streak_z.r * 0.6 + n_streak_z.a * 0.4;
 	float streak = mix(streak_x, streak_z, wz);
-	float seep = smoothstep(0.5, 0.78, streak) * steep;
+	float seep = smoothstep(0.5, 0.78, streak) * steep * wall_near;
 	rock *= 1.0 - 0.45 * seep;
 	vec3 soil_col_a = soil_colour(soil_a, alb_a.rgb, tone);
 	vec3 soil_col_b = soil_colour(soil_b, alb_b.rgb, tone);
@@ -582,10 +595,10 @@ void fragment() {
 		n_world += whiteout(normalize(tn_b), g, pb.axis) * pb.weight;
 	}
 	n_world = normalize(n_world + vec3(0.0, 1.3 * ledge - 0.35 * under, 0.0) * (1.0 - snow * 0.5));
-	if (cliff > 0.01 && wall_detail > 0.5) {
+	if (cliff_near > 0.01 && wall_detail > 0.5) {
 		// Buttresses and shallow grooves, 20-60 m across: a bump from the
 		// bump field's gradient (finite differences) in the two vertical planes.
-		float k = 9.0 * cliff;
+		float k = 9.0 * cliff_near;
 		vec2 gx = vec2(bump_x.y - bump_x.x, bump_x.z - bump_x.x) / BUMP_STEP_M;
 		vec2 gz = vec2(bump_z.y - bump_z.x, bump_z.z - bump_z.x) / BUMP_STEP_M;
 		vec3 grad_x = vec3(0.0, gx.y, gx.x);

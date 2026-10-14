@@ -60,7 +60,7 @@ namespace LakskongenSim.Environment
     /// Arithmetic only (no sin/cos/pow), so heightfields are bit-identical
     /// across processes and platforms; <see cref="HeightfieldHash"/> pins that.
     /// </summary>
-    public sealed class TerrainGenerator
+    public sealed partial class TerrainGenerator
     {
         // Seed offsets for the independent noise fields.
         private const int SeedWidth = 101, SeedDepth = 211, SeedShoulder = 307, SeedBay = 401;
@@ -216,7 +216,14 @@ namespace LakskongenSim.Environment
             public Point(float height, float wallU) { Height = height; WallU = wallU; }
         }
 
-        private Point Sample(float x, float z)
+        /// <summary>
+        /// The fjord system at (x, z). <paramref name="shelfAtWorldEdge"/>
+        /// shelves the strandflat into open sea over the world's last
+        /// <see cref="OffshoreShelfM"/> (the play area's heightfield); the
+        /// far field (G2-01) reads it without the shelf, so the skerry belt
+        /// runs on along the coast beyond the world.
+        /// </summary>
+        private Point Sample(float x, float z, bool shelfAtWorldEdge = true)
         {
             var st = Settings;
             float cx = CenterX(Math.Min(z, st.HeadZ));
@@ -257,7 +264,7 @@ namespace LakskongenSim.Environment
             }
 
             h = DeltaAtHead(h, d, w, z);
-            h = BlendStrandflat(h, x, z, cx, out float coast);
+            h = BlendStrandflat(h, x, z, cx, shelfAtWorldEdge, out float coast);
             h = WallRelief(h, x, z, d, u, coast);
             h += Detail(x, z, h, u, Coastal(z));
             return new Point(h, u);
@@ -341,7 +348,7 @@ namespace LakskongenSim.Environment
         /// platform with skerries, a fairway kept clear along the centreline,
         /// shelving into open sea toward the world edge.
         /// </summary>
-        private float BlendStrandflat(float h, float x, float z, float cx, out float coast)
+        private float BlendStrandflat(float h, float x, float z, float cx, bool shelfAtWorldEdge, out float coast)
         {
             var st = Settings;
             // An irregular coastline: headlands and coves, not a straight cut.
@@ -353,9 +360,12 @@ namespace LakskongenSim.Environment
             strand -= 26f * SmoothStep(st.MouthZ - 450f, st.MouthZ - 900f, z);
             // Shelve into open sea at the world's edge, so the shallow
             // skerry water meets the deep ocean skirt without a seam.
-            float half = st.WorldSizeM * 0.5f;
-            float edge = Math.Max(SmoothStep(half - OffshoreShelfM, half, -z), SmoothStep(half - OffshoreShelfM, half, MathF.Abs(x)));
-            strand -= OffshoreDepthM * edge;
+            if (shelfAtWorldEdge)
+            {
+                float half = st.WorldSizeM * 0.5f;
+                float edge = Math.Max(SmoothStep(half - OffshoreShelfM, half, -z), SmoothStep(half - OffshoreShelfM, half, MathF.Abs(x)));
+                strand -= OffshoreDepthM * edge;
+            }
             float lane = MathF.Abs(x - cx);
             float fairway = -FairwayDepthM;
             strand += (Math.Min(strand, fairway) - strand) * SmoothStep(st.FairwayHalfWidthM + 80f, st.FairwayHalfWidthM, lane);

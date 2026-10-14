@@ -65,7 +65,8 @@ namespace LakskongenSim.Environment
         /// centred on the origin, with chunks of up to
         /// <paramref name="chunkQuads"/>² quads.
         /// </summary>
-        public static TerrainMesh Build(float[] heights, int n, float worldSize, int chunkQuads = 64, VegetationMasks? masks = null)
+        public static TerrainMesh Build(float[] heights, int n, float worldSize, int chunkQuads = 64, VegetationMasks? masks = null,
+            Func<float, float, float>? outsideHeight = null)
         {
             if (masks != null && masks.Size != n)
                 throw new ArgumentException($"masks are {masks.Size}² for a {n}² grid", nameof(masks));
@@ -81,12 +82,13 @@ namespace LakskongenSim.Environment
                 int col0 = cx * chunkQuads, row0 = cz * chunkQuads;
                 int cols = Math.Min(chunkQuads, n - 1 - col0) + 1;
                 int rows = Math.Min(chunkQuads, n - 1 - row0) + 1;
-                chunks[c] = BuildChunk(heights, n, worldSize, col0, row0, cols, rows, masks);
+                chunks[c] = BuildChunk(heights, n, worldSize, col0, row0, cols, rows, masks, outsideHeight);
             });
             return new TerrainMesh(chunks, n);
         }
 
-        private static Chunk BuildChunk(float[] heights, int n, float worldSize, int col0, int row0, int cols, int rows, VegetationMasks? masks)
+        private static Chunk BuildChunk(float[] heights, int n, float worldSize, int col0, int row0, int cols, int rows, VegetationMasks? masks,
+            Func<float, float, float>? outsideHeight)
         {
             float spacing = worldSize / (n - 1);
             float half = worldSize * 0.5f;
@@ -99,20 +101,16 @@ namespace LakskongenSim.Environment
             for (int r = 0; r < rows; r++)
             {
                 int row = row0 + r;
-                int rowUp = Math.Min(row + 1, n - 1), rowDown = Math.Max(row - 1, 0);
                 for (int c = 0; c < cols; c++)
                 {
                     int col = col0 + c;
                     int g = row * n + col;
                     int v = r * cols + c;
-                    int colUp = Math.Min(col + 1, n - 1), colDown = Math.Max(col - 1, 0);
-                    float dhdx = (heights[row * n + colUp] - heights[row * n + colDown]) / ((colUp - colDown) * spacing);
-                    float dhdz = (heights[rowUp * n + col] - heights[rowDown * n + col]) / ((rowUp - rowDown) * spacing);
                     positions[v * 3] = -half + col * spacing;
                     positions[v * 3 + 1] = heights[g];
                     positions[v * 3 + 2] = -half + row * spacing;
-                    float inv = 1f / MathF.Sqrt(dhdx * dhdx + 1f + dhdz * dhdz);
-                    float nx = -dhdx * inv, ny = inv, nz = -dhdz * inv;
+                    var (nx, ny, nz) = GridNormal(heights, n, worldSize, col, row, outsideHeight);
+                    float dhdx = -nx / ny;
                     normals[v * 3] = nx;
                     normals[v * 3 + 1] = ny;
                     normals[v * 3 + 2] = nz;
@@ -162,6 +160,37 @@ namespace LakskongenSim.Environment
                 Columns = cols,
                 Rows = rows,
             };
+        }
+
+        /// <summary>
+        /// Unit normal at grid vertex (col, row) from central differences of
+        /// the heights. On the border a missing neighbour comes from
+        /// <paramref name="outsideHeight"/> (world x, z → height) when given,
+        /// so the border shades like the far field beyond it (G2-01); without
+        /// it the difference is one-sided.
+        /// </summary>
+        public static (float x, float y, float z) GridNormal(float[] heights, int n, float worldSize, int col, int row,
+            Func<float, float, float>? outsideHeight = null)
+        {
+            float spacing = worldSize / (n - 1);
+            float half = worldSize * 0.5f;
+            int colUp = Math.Min(col + 1, n - 1), colDown = Math.Max(col - 1, 0);
+            int rowUp = Math.Min(row + 1, n - 1), rowDown = Math.Max(row - 1, 0);
+            float hRight = heights[row * n + colUp], hLeft = heights[row * n + colDown];
+            float hUp = heights[rowUp * n + col], hDown = heights[rowDown * n + col];
+            float runX = (colUp - colDown) * spacing, runZ = (rowUp - rowDown) * spacing;
+            if (outsideHeight != null)
+            {
+                float x = -half + col * spacing, z = -half + row * spacing;
+                if (colUp == col) { hRight = outsideHeight(x + spacing, z); runX += spacing; }
+                if (colDown == col) { hLeft = outsideHeight(x - spacing, z); runX += spacing; }
+                if (rowUp == row) { hUp = outsideHeight(x, z + spacing); runZ += spacing; }
+                if (rowDown == row) { hDown = outsideHeight(x, z - spacing); runZ += spacing; }
+            }
+            float dhdx = (hRight - hLeft) / runX;
+            float dhdz = (hUp - hDown) / runZ;
+            float inv = 1f / MathF.Sqrt(dhdx * dhdx + 1f + dhdz * dhdz);
+            return (-dhdx * inv, inv, -dhdz * inv);
         }
 
         /// <summary>

@@ -41,7 +41,10 @@ public partial class TerrainGeneratorBridge : RefCounted
     /// and for the vegetation (G2-02) the masks baked into the chunk colours
     /// (<see cref="VegetationMasks"/>), vegetation (an Array of chunk
     /// Dictionaries, <see cref="VegetationChunks"/>), tree_count,
-    /// treeline_m and shore_props (<see cref="ShorePropsToGodot"/>).
+    /// treeline_m and shore_props (<see cref="ShorePropsToGodot"/>); and for
+    /// the far field (G2-01) far_field (chunk Dictionaries in the same format,
+    /// each with its radial band, <see cref="FarFieldMesh"/>) and
+    /// far_field_extent (m).
     /// </summary>
     public Godot.Collections.Dictionary Build()
     {
@@ -61,11 +64,19 @@ public partial class TerrainGeneratorBridge : RefCounted
             shoreDistance[i] = water.Rgba[i * 4 + 1];
         var props = ShorePropPlacer.Place(heights, n, settings.WorldSizeM, shoreDistance, masks.LandExposure);
         var trees = VegetationScatter.Scatter(heights, masks, vegetation, ShorePropPlacer.Clearings(props));
-        var mesh = TerrainMesh.Build(heights, n, settings.WorldSizeM, ChunkQuads, masks);
+        var mesh = TerrainMesh.Build(heights, n, settings.WorldSizeM, ChunkQuads, masks, _generator.FarFieldHeightAt);
+        var far = FarFieldMesh.Build(_generator, heights, masks);
 
         var chunks = new Godot.Collections.Array();
         foreach (var chunk in mesh.Chunks)
             chunks.Add(ToGodot(chunk));
+        var farChunks = new Godot.Collections.Array();
+        for (int i = 0; i < far.Chunks.Count; i++)
+        {
+            var chunk = ToGodot(far.Chunks[i]);
+            chunk["band"] = far.ChunkBands[i];
+            farChunks.Add(chunk);
+        }
         float spacing = settings.SpacingM;
         var colliderHeights = new float[n * n];
         for (int i = 0; i < colliderHeights.Length; i++)
@@ -86,6 +97,8 @@ public partial class TerrainGeneratorBridge : RefCounted
             ["tree_count"] = trees.Count,
             ["shore_props"] = ShorePropsToGodot(props),
             ["treeline_m"] = vegetation.TreelineMeanM,
+            ["far_field"] = farChunks,
+            ["far_field_extent"] = TerrainGenerator.FarFieldExtentM,
         };
         result["build_ms"] = watch.Elapsed.TotalMilliseconds;
         return result;
@@ -204,6 +217,57 @@ public partial class TerrainGeneratorBridge : RefCounted
 
     /// <summary>Analytic height in metres at world (x, z), before the grid exists.</summary>
     public float HeightAt(float x, float z) => _generator.HeightAt(x, z);
+
+    /// <summary>Height in metres at any world (x, z) out to the far field (G2-01).</summary>
+    public float FarFieldHeightAt(float x, float z) => _generator.FarFieldHeightAt(x, z);
+
+    /// <summary>Half-extent (m) of the far field round the origin.</summary>
+    public float FarFieldExtent() => TerrainGenerator.FarFieldExtentM;
+
+    /// <summary>
+    /// The land pads reserved for land-based farms (farm-types spec §4): id,
+    /// name, centre (Vector3, y = pad level), size (Vector2: x width, y depth
+    /// along Z), lots, quay (Vector3) and intake_reach_m (computed).
+    /// </summary>
+    public Godot.Collections.Array LandPadSlots()
+    {
+        var result = new Godot.Collections.Array();
+        foreach (var p in _generator.LandPadSlots())
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = p.Id,
+                ["name"] = p.Name,
+                ["centre"] = new Godot.Vector3(p.CentreX, p.PadHeightM, p.CentreZ),
+                ["size"] = new Godot.Vector2(p.WidthM, p.DepthM),
+                ["lots"] = p.Lots,
+                ["quay"] = new Godot.Vector3(p.QuayX, p.PadHeightM, p.QuayZ),
+                ["intake_reach_m"] = _generator.IntakeReachM(p),
+            });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// The open-sea slots reserved for offshore units (spec §4): id, name,
+    /// position (Vector3, y = 0), exposure and water_depth_m.
+    /// </summary>
+    public Godot.Collections.Array OffshoreSlots()
+    {
+        var result = new Godot.Collections.Array();
+        foreach (var s in _generator.OffshoreSlots())
+        {
+            result.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = s.Id,
+                ["name"] = s.Name,
+                ["position"] = new Godot.Vector3(s.X, 0f, s.Z),
+                ["exposure"] = s.Exposure,
+                ["water_depth_m"] = s.WaterDepthM,
+            });
+        }
+        return result;
+    }
 
     /// <summary>World X of the channel centreline at world Z.</summary>
     public float CenterX(float z) => _generator.CenterX(z);
