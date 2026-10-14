@@ -86,6 +86,7 @@ func _run() -> void:
 	await _test_camera_frames_sky_and_avoids_terrain()
 	await _test_camera_keys_leave_focused_controls_alone()
 	await _test_environment_director_owns_the_look()
+	await _test_sky_latitude_follows_a_northern_scenario()
 	await _test_water_grid_bake_and_sea_state()
 	await _test_theme_and_contrast_on_every_screen()
 	_test_formatters_speak_the_locale()
@@ -3071,7 +3072,14 @@ func _test_environment_director_owns_the_look() -> void:
 	weather.transition_duration = 0.0
 	vista._on_state_updated()
 	await get_tree().process_frame
-	_check(absf(ts.latitude_deg - 63.43) < 0.01, "environment: the sky's latitude is the scenario region's (Trøndelag 63.43, got %.2f)" % ts.latitude_deg)
+	# S2-02 moved po3_red_sone from Trøndelag to Vestland (PO3, Karmøy til
+	# Sotra, lies in Vestland/Rogaland): its sky is Bergen's 60.39, the sim's
+	# own latitude for the scenario. Vestland is also the no-scenario
+	# fallback, so _test_sky_latitude_follows_a_northern_scenario checks a
+	# Trøndelag scenario's 63.43 on the same path.
+	_check(absf(ts.latitude_deg - 60.39) < 0.01 and absf(ts.latitude_deg - float(ctx.get("latitude", 0.0))) < 1e-6
+		and str(ctx.get("region", "")) == "Vestland",
+		"environment: the sky's latitude is the scenario region's (po3_red_sone: Vestland 60.39, got %.2f)" % ts.latitude_deg)
 	_check(ts.sim_day == int(ctx.get("sim_day", -1)), "environment: the sky's date is the sim day (%d)" % ts.sim_day)
 	_check(absf(weather.get_visibility_m() - float(ctx.get("visibility_km", 0.0)) * 1000.0) < 1.0
 		and is_equal_approx(weather.get_cloud_cover(), float(ctx.get("cloud_cover", -1.0))),
@@ -3197,6 +3205,29 @@ func _test_environment_director_owns_the_look() -> void:
 		await get_tree().process_frame
 	_check(terrain.is_ready() and director.probe_captures >= 1,
 		"environment: the reflection probe is captured after the terrain build (%d captures)" % director.probe_captures)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## D20 / G1-04: the 3D sky's latitude is the active scenario's region, read
+## from the sim through the vista bridge: a Trøndelag scenario (laksebaronene)
+## puts Trondheim's 63.43 on the TimeOfDay, not the Vestland fallback.
+func _test_sky_latitude_follows_a_northern_scenario() -> void:
+	_check(_sim.start_qa_scenario("laksebaronene", 91), "sky latitude: the Trøndelag scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var ts: TimeOfDay = env.get_node("TimeOfDay")
+	var vista: FjordVistaBridge = scene.get_node("FjordVistaBridge")
+	var ctx: Dictionary = _sim.get_sky_context()
+	vista._on_state_updated()
+	await get_tree().process_frame
+	_check(str(ctx.get("region", "")) == "Trøndelag" and absf(float(ctx.get("latitude", 0.0)) - 63.43) < 0.01,
+		"sky latitude: the sim's sky context is the scenario's region (%s %.2f)" % [str(ctx.get("region", "")), float(ctx.get("latitude", 0.0))])
+	_check(absf(ts.latitude_deg - 63.43) < 0.01, "environment: the sky's latitude is the scenario region's (Trøndelag 63.43, got %.2f)" % ts.latitude_deg)
 	scene.queue_free()
 	await get_tree().process_frame
 

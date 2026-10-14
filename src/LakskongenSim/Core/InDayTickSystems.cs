@@ -86,13 +86,13 @@ namespace LakskongenSim.Core;
             {
                 // Calculate disease mortality rates and inject into MortalityModel
                 // This MUST happen before FishPopulation.AdvanceDays() to avoid double application.
-                // Each population's disease tick gets its own water temperature (S2-02).
-                var facilityWater = engine.BuildFacilityWater();
+                // Each population's disease tick gets its own water temperature (S2-02),
+                // from the holding the step resolved once (sim-a-1 seam).
                 engine.IntegratedDisease.Update(
                     engine.State.Zones.ToList(),
                     engine.State.Populations.ToList(),
                     1,
-                    population => engine.HoldingWaterOf(population, facilityWater).TemperatureC);
+                    population => engine.HoldingWaterOf(population).TemperatureC);
             }
 
         }
@@ -111,17 +111,20 @@ namespace LakskongenSim.Core;
             for (int zi = 0; zi < engine.State.Zones.Count; zi++)
                 engine.State.Zones[zi].CurrentFishBiomassKg = 0.0;
 
-            // S2-02 seam: every population grows, eats and breathes in the water
-            // of whatever holds it (sea pen: its zone's production-area water;
-            // RAS tank: the facility's controlled water; offshore: its area's sea).
-            // The facility map is built only when a facility holds fish.
-            var facilityWater = engine.BuildFacilityWater();
-
+            // The farm-type seam: every population grows, eats and breathes in
+            // the water of whatever holds it (sea pen: its zone's production-area
+            // water, less a running in-cage oxygen sag; land tank: the facility's
+            // controlled water; offshore: its area's sea with the farm's oxygen).
+            // The holding is resolved once per step (HoldingOf, sim-a-1) and the
+            // S2-03 growth law takes its water (GrowthConditions from HoldingWater).
             for (int popIdx = 0; popIdx < engine.State.Populations.Count; popIdx++)
             {
                 var population = engine.State.Populations[popIdx];
-                var zone = engine.State.Zones.FirstOrDefault(z => z.Id == population.ZoneId);
-                var water = engine.HoldingWaterOf(population, facilityWater);
+                var holding = engine.HoldingOf(population);
+                var water = engine.WaterOf(holding, population);
+                // The zone whose fish load the population adds to (its ZoneId; a
+                // land tank's is its intake zone), as before the seam.
+                var zone = holding.Zone ?? engine.State.Zones.FirstOrDefault(z => z.Id == population.ZoneId);
 
                 // Manual biomass sum — avoids LINQ delegate allocation (T56)
                 double biomassKg = 0.0;
@@ -140,7 +143,7 @@ namespace LakskongenSim.Core;
                 double stockingDensity = zone != null ? (biomassKg / SimulationEngine.PenVolumeProxyM3) : SimulationEngine.DefaultStockingDensityKgM3;
                 // Phase 4.1: containment — closed rungs behave denser for O2
                 // purposes (recirculation load) via o2DemandMult.
-                var homeSite = engine.State.SeaSites.FirstOrDefault(s => s.Id == population.SiteId);
+                var homeSite = holding.Site;
                 var containmentMods = Farm.ContainmentTech.ModifiersFor(
                     homeSite?.Containment ?? Farm.ContainmentLevel.OpenNet);
                 double densityForO2 = stockingDensity * containmentMods.OxygenDemandMult;

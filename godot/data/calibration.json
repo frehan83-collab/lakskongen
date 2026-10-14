@@ -1,5 +1,5 @@
 {
-  "version": "1.0.8",
+  "version": "1.0.9",
   "economy": {
     "startingCapitalNOK": 10000000,
     "smoltCostPerFishNOK": 12,
@@ -128,7 +128,13 @@
   "mortality": {
     "temperatureStressLowerC": 4.0,
     "temperatureStressUpperC": 16.0,
-    "temperatureStressDailyFractionPerDegreeC": 0.00005
+    "temperatureStressDailyFractionPerDegreeC": 0.00005,
+    "acuteLowOxygenMgL": 3.0,
+    "lowOxygenSevereMgL": 2.0,
+    "lowOxygenAnoxicMgL": 1.0,
+    "lowOxygenDeathFraction": 0.10,
+    "lowOxygenDeathFractionSevere": 0.25,
+    "lowOxygenDeathFractionAnoxic": 0.50
   },
   "growth": {
     "thermalGrowthCoefficient": 3.0,
@@ -180,5 +186,11 @@
     "maturationProductionSharePerKg": 0.08,
     "maxMaturationProductionShare": 0.4,
     "reportsKept": 40
+  },
+  "waterOxygen": {
+    "hypoxiaSagMaxDepth": 0.42,
+    "bloomChlorophyllAtCapacityUgL": 10.0,
+    "phytoplanktonCarbonPerChlorophyll": 50.0,
+    "oxygenPerOrganicCarbon": 3.47
   }
 }

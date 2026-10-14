@@ -1,6 +1,7 @@
 using System.Linq;
 using Xunit;
 using LakskongenSim.Calibration;
+using LakskongenSim.Biology;
 using LakskongenSim.Farm;
 
 namespace LakskongenSim.Tests.Calibration
@@ -318,6 +319,37 @@ namespace LakskongenSim.Tests.Calibration
             Assert.InRange(h.SlaughterCapacityTonnesHogPerDay, 50.0, 500.0);
             // The file and the code defaults agree (the embedded copy is the file).
             Assert.Equal(new HarvestCalibration(), h);
+        }
+
+        [Fact]
+        public void LowOxygen_MatchesItsSources()
+        {
+            // Wave 2 sim-a-1. Acute limit: US EPA 1986 (salmonid other life stages,
+            // 3 mg/L); Atlantic salmon Pcrit 3.39-3.46 mg/L at 14-18 °C (Barnes et al. 2011).
+            var m = C.Mortality;
+            Assert.InRange(m.AcuteLowOxygenMgL, 2.5, 3.5);
+            // The ladder steps fall with the oxygen and the kill rises: no step kills
+            // more in better water.
+            Assert.True(m.AcuteLowOxygenMgL > m.LowOxygenSevereMgL && m.LowOxygenSevereMgL > m.LowOxygenAnoxicMgL && m.LowOxygenAnoxicMgL > 0.0);
+            Assert.True(0.0 < m.LowOxygenDeathFraction && m.LowOxygenDeathFraction < m.LowOxygenDeathFractionSevere
+                && m.LowOxygenDeathFractionSevere < m.LowOxygenDeathFractionAnoxic && m.LowOxygenDeathFractionAnoxic <= 1.0);
+
+            var w = C.WaterOxygen;
+            // The worst daily-mean sag lies inside the in-cage range Solstorm et al.
+            // (2018) measured (26-90 % saturation): a depth above 0 and at most 1 - 26/100.
+            Assert.InRange(w.HypoxiaSagMaxDepth, 0.1, 0.74);
+            // A seasonal coastal bloom: 1-10 µg/L chlorophyll a (NIVA FerryBox 2017/2018).
+            Assert.InRange(w.BloomChlorophyllAtCapacityUgL, 1.0, 20.0);
+            // C:Chl inside the range Cloern et al. (1995) modelled.
+            Assert.InRange(w.PhytoplanktonCarbonPerChlorophyll, 10.0, 330.0);
+            // Redfield: 138 mol O2 per 106 mol C = 3.47 g O2 per g C.
+            Assert.Equal(138.0 / 106.0 * 32.0 / 12.0, w.OxygenPerOrganicCarbon, 2);
+            // A whole bloom's carbon holds less oxygen demand than a saturated
+            // summer sea holds oxygen: a crash cannot empty the 3 m water.
+            Assert.True(w.BloomCrashOxygenDemandAtCapacityMgL < WaterQuality.CalculateOxygenSaturation(18.0) - m.AcuteLowOxygenMgL);
+            // The file and the code defaults agree.
+            Assert.Equal(new MortalityCalibration(), C.Mortality);
+            Assert.Equal(new WaterOxygenCalibration(), C.WaterOxygen);
         }
     }
 }

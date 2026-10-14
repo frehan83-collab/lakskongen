@@ -39,7 +39,7 @@ namespace LakskongenSim.Calibration
         public const string EmbeddedResourceName = "LakskongenSim.Calibration.calibration.json";
 
         /// <summary>Current schema/balancing version. Bump when reconciled values change.</summary>
-        public const string DefaultVersion = "1.0.8";
+        public const string DefaultVersion = "1.0.9";
 
         /// <summary>Calibration schema/balancing version.</summary>
         [JsonPropertyName("version")]
@@ -132,6 +132,9 @@ namespace LakskongenSim.Calibration
         [JsonPropertyName("harvest")]
         public HarvestCalibration Harvest { get; init; } = new();
 
+        /// <summary>Oxygen in the water at the fish (wave 2 sim-a-1): the in-cage sag and a plankton bloom's crash.</summary>
+        [JsonPropertyName("waterOxygen")]
+        public WaterOxygenCalibration WaterOxygen { get; init; } = new();
         /// <summary>
         /// Derived feed cost per kg of fish produced = feed price × base FCR.
         /// This is the reconciled "~25.7 NOK/kg produced" figure in
@@ -682,6 +685,132 @@ namespace LakskongenSim.Calibration
         /// matches it (a test reads both).
         /// </summary>
         public double TemperatureStressDailyFractionPerDegreeC { get; init; } = 0.00005;
+
+        // ── Low oxygen (wave 2 sim-a-1): one hazard at the fish's own oxygen ──
+
+        /// <summary>
+        /// Dissolved oxygen (unit mg/L) at and above which low oxygen kills no
+        /// fish: 3.0. Source: US EPA (1986), Ambient Water Quality Criteria for
+        /// Dissolved Oxygen, EPA 440/5-86-003, risk-level summary (p. 30),
+        /// salmonid waters, other life stages: "Limit to Avoid Acute Mortality
+        /// = 3" mg/L (severe production impairment 4, moderate 5, slight 6,
+        /// none 8), https://www.ezview.wa.gov/Portals/_1962/Documents/SSRSAG/EPA%201986%20Freshwater%20DO%20Recommendations.pdf.
+        /// Consistent with the critical oxygen level of Atlantic salmon in sea
+        /// water, below which they cannot hold their oxygen uptake: 3.46 and
+        /// 3.39 mg/L at 14 and 18 °C (Barnes, King &amp; Carter 2011,
+        /// Aquaculture 318:397-401, doi:10.1016/j.aquaculture.2011.06.003).
+        /// The plankton-crash event used the same 3 mg/L. Year 1986/2011.
+        /// </summary>
+        public double AcuteLowOxygenMgL { get; init; } = 3.0;
+
+        /// <summary>
+        /// Oxygen (unit mg/L) below which a day kills <see cref="LowOxygenDeathFractionSevere"/>: 2.0.
+        /// The plankton-crash event's step, kept (game estimate, 2026; no
+        /// published dose-response for whole sea cages).
+        /// </summary>
+        public double LowOxygenSevereMgL { get; init; } = 2.0;
+
+        /// <summary>
+        /// Oxygen (unit mg/L) below which a day kills <see cref="LowOxygenDeathFractionAnoxic"/>: 1.0.
+        /// The plankton-crash event's step, kept (game estimate, 2026).
+        /// </summary>
+        public double LowOxygenAnoxicMgL { get; init; } = 1.0;
+
+        /// <summary>
+        /// Fraction of a cohort killed by one exposure (a plankton-crash day, a
+        /// sag's weekly tick) below <see cref="AcuteLowOxygenMgL"/>: 0.10
+        /// (unit 1). The plankton-crash event's value, kept (game estimate,
+        /// 2026): EPA (1986) gives the limit, not the kill above it.
+        /// </summary>
+        public double LowOxygenDeathFraction { get; init; } = 0.10;
+
+        /// <summary>Fraction killed below <see cref="LowOxygenSevereMgL"/>: 0.25 (unit 1; plankton-crash value, game estimate 2026).</summary>
+        public double LowOxygenDeathFractionSevere { get; init; } = 0.25;
+
+        /// <summary>Fraction killed below <see cref="LowOxygenAnoxicMgL"/>: 0.50 (unit 1; plankton-crash value, game estimate 2026).</summary>
+        public double LowOxygenDeathFractionAnoxic { get; init; } = 0.50;
+    }
+
+    #endregion
+
+    #region Wave 2 sim-a-1 water oxygen
+
+    /// <summary>
+    /// Oxygen in the water at the fish (wave 2 sim-a-1): how far a cage's own
+    /// respiration draws its water below the zone's in an oxygen sag, and how
+    /// much oxygen a plankton bloom's collapse can take from the zone. The
+    /// low-oxygen hazard that reads the result is in
+    /// <see cref="MortalityCalibration"/> (<c>AcuteLowOxygenMgL</c>).
+    /// </summary>
+    public sealed record WaterOxygenCalibration
+    {
+        /// <summary>
+        /// Deepest in-cage oxygen sag of the bloom deck's <c>hypoxia</c> card,
+        /// as a fraction of the ambient (zone) oxygen the cage's water loses to
+        /// the fish's own respiration in warm, calm, stratified weeks: 0.42
+        /// (unit 1). A sag of severity s (0.4-1.0) holds the open-net cage at
+        /// (1 - s x 0.42) of the ambient oxygen; an O2 diffuser and the
+        /// containment's oxygen demand scale the depth. Source: Solstorm et al.
+        /// (2018), "Dissolved oxygen variability in a commercial sea-cage
+        /// exposes farmed Atlantic salmon to growth limiting conditions",
+        /// Aquaculture 486:122-129, doi:10.1016/j.aquaculture.2017.12.008:
+        /// in-cage readings 26-90 % saturation while the reference site stayed
+        /// at levels for maximum growth, about one reading in four
+        /// growth-limiting; the worst sag holds the cage's day at the middle of
+        /// that range, 58 % (1 - 0.58 = 0.42). The midpoint as a daily mean is a
+        /// game estimate: the paper reports readings, not daily means. In
+        /// saturated 15-16 °C water the worst open-net sag leaves a daily mean
+        /// of about 4.6 mg/L (58 %), above the 47 % limiting saturation Remen
+        /// et al. (2013, Aquaculture 416:41-47) measured at 16 °C, while its
+        /// night troughs fall below it: it costs appetite and gills, and kills
+        /// only when a closed pen's oxygen demand deepens it below the acute
+        /// limit or the zone's own water is already low. Year 2018.
+        /// </summary>
+        public double HypoxiaSagMaxDepth { get; init; } = 0.42;
+
+        /// <summary>
+        /// Chlorophyll a (unit µg/L) of a bloom at the plankton model's carrying
+        /// capacity (intensity 1.0): 10. The model blooms and crashes in every
+        /// zone each summer, so its capacity is a normal seasonal bloom, not a
+        /// harmful dense one. Source: NIVA, Årsovervåking med FerryBox - Indre
+        /// Oslofjord 2017 (L.nr. 7266, 2018): chlorophyll a 1-6.5 µg/L in the
+        /// production period, maximum in March; the 2018 report: below 0.3 to
+        /// 10.0 µg/L (2017: https://app.cristin.no/results/show.jsf?id=1580718;
+        /// 2018: https://agris.fao.org/search/en/records/6748e67a7625988a3721d891). The
+        /// inner Oslofjord is among Norway's most nutrient-rich coastal waters,
+        /// so 10 is a high seasonal peak. Year 2018.
+        /// </summary>
+        public double BloomChlorophyllAtCapacityUgL { get; init; } = 10.0;
+
+        /// <summary>
+        /// Phytoplankton carbon per chlorophyll a (unit g C per g Chl a): 50.
+        /// Game estimate (2026) inside the range of the 219 culture
+        /// measurements Cloern, Grenz &amp; Vidergar-Lucas (1995, Limnol.
+        /// Oceanogr. 40:1313-1321, doi:10.4319/lo.1995.40.7.1313) modelled
+        /// (about 10-330 g/g, by light, temperature and nutrients).
+        /// </summary>
+        public double PhytoplanktonCarbonPerChlorophyll { get; init; } = 50.0;
+
+        /// <summary>
+        /// Oxygen used to respire organic carbon (unit g O2 per g C): 3.47 =
+        /// 138 mol O2 per 106 mol C x 32/12. Source: Redfield, Ketchum &amp;
+        /// Richards (1963), "The influence of organisms on the composition of
+        /// sea-water", in The Sea vol. 2, pp. 26-77 (the Redfield ratio
+        /// C:N:P:-O2 = 106:16:1:138). Year 1963.
+        /// </summary>
+        public double OxygenPerOrganicCarbon { get; init; } = 3.47;
+
+        /// <summary>
+        /// Oxygen (unit mg/L) the whole of a bloom at carrying capacity takes
+        /// when it dies and is respired: chlorophyll x C:Chl x O2:C = 10 µg/L x
+        /// 50 x 3.47 / 1000 = 1.735 mg/L. A crash at the model's 0.85 threshold
+        /// (90 % of it dying) takes about 1.3 mg/L, so a typical seasonal
+        /// collapse holds the 3 m water near 85 % saturation, not the 37 % the
+        /// old 75 %-of-the-oxygen cut gave (2.4-3.3 mg/L, 4 times a career).
+        /// </summary>
+        [JsonIgnore]
+        public double BloomCrashOxygenDemandAtCapacityMgL
+            => BloomChlorophyllAtCapacityUgL * PhytoplanktonCarbonPerChlorophyll * OxygenPerOrganicCarbon / 1000.0;
     }
 
     #endregion
