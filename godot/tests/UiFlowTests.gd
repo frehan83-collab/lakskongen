@@ -2892,6 +2892,8 @@ func _test_far_field_surrounds_the_world() -> void:
 		"far field: 48 chunks to %.0f km, the 16 next to the world cast shadows (%d chunks, %d shadowed)" % [
 			terrain.far_field_half_extent() / 1000.0, chunks.size(), shadowed])
 	_check(shared_material, "far field: the ring wears the terrain's own material")
+	_check(terrain.max_upload_frame_ms < 50.0,
+		"far field: no main-thread upload step over 50 ms, ring included (%.1f ms)" % terrain.max_upload_frame_ms)
 	var half := terrain.terrain_size * 0.5
 	var outside := Vector2(half.x + 2600.0, 300.0)
 	_check(terrain.far_field_half_extent() >= 16000.0

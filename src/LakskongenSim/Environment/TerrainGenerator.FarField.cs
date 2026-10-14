@@ -10,7 +10,7 @@ namespace LakskongenSim.Environment
     /// beyond its edge, into the region: the same generator read through a
     /// regional coast (headlands and bays shift the mainland shore along Z),
     /// with two neighbouring fjords cut into the plateau and the inland
-    /// massifs lifted to 1,400-1,800 m (summer snowfields). Within
+    /// massifs lifted to about 1,500-1,850 m (summer snowfields). Within
     /// <see cref="SeaBlendM"/> of the edge the sea floor falls to the open
     /// shelf (85 m at the edge to 320 m) and islands rise from it: large
     /// islands with a fringe of skerries along the mainland coast to the north
@@ -20,7 +20,10 @@ namespace LakskongenSim.Environment
     /// the owner's photo O3). That sector keeps the offshore slots
     /// (<see cref="OffshoreSlots"/>) in open water.
     ///
-    /// Arithmetic only, like the rest of the generator (no sin/cos/pow).
+    /// Everything finer than the far-field ring's cells is faded out
+    /// (<see cref="FarCellM"/>, <see cref="FbmLod"/>, <see cref="RidgedLod"/>),
+    /// so the ring samples a surface it can carry. Arithmetic only, like the
+    /// rest of the generator (no sin/cos/pow).
     /// </summary>
     public sealed partial class TerrainGenerator
     {
@@ -75,7 +78,7 @@ namespace LakskongenSim.Environment
         private const float IslandWavelengthM = 5200f;
         private const float IslandDetailWavelengthM = 1300f;
         private const float IslandThreshold = 0.16f;
-        /// <summary>How fast an island rises from its shore (shape units per unit of noise): ~40° flanks.</summary>
+        /// <summary>How fast an island rises from its shore (shape units per unit of island noise).</summary>
         private const float IslandShoreGain = 1.8f;
         /// <summary>No island in the open-sea sector west of the mouth nearer than this (m).</summary>
         public const float OuterChainStartM = 12500f;
@@ -119,15 +122,16 @@ namespace LakskongenSim.Environment
                 return HeightAt(x, z);
             float dx = ox > 0f ? ox : 0f, dz = oz > 0f ? oz : 0f;
             float beyond = MathF.Sqrt(dx * dx + dz * dz);
-            // The heightfield's ledges, gullies and finest noise fade out
-            // just beyond the edge: the ring's cells (16 m and up) cannot
-            // carry them, and a smooth fade beats their aliasing.
             float cell = FarCellM(x, z);
             float w = SmoothStep(0f, FarBlendM, beyond);
             float zr = z - w * RegionalCoastShift(x);
             float h = RegionLand(x, zr, cell);
             if (w < 1f)
             {
+                // Near the edge the play area's own fjord, whose ledges,
+                // gullies and finest noise fade out first: the ring's cells
+                // (16 m and up) cannot carry them, and a smooth fade beats
+                // their aliasing.
                 float fr = SmoothStep(0f, ReliefFadeM, beyond);
                 float near = Sample(x, z, EdgeDetail with { CellM = cell }).Height;
                 if (fr < 1f)
@@ -305,7 +309,7 @@ namespace LakskongenSim.Environment
 
         // ── Band-limiting for the ring's cells ───────────────────────────────
 
-        /// <summary>A feature of this wavelength (m) keeps all its relief on cells this many times smaller, and none on cells a third larger.</summary>
+        /// <summary>A feature keeps all its relief while its wavelength spans this many of the ring's cells, and none below OctaveDropCells.</summary>
         private const float OctaveKeepCells = 7f;
         private const float OctaveDropCells = 4f;
         /// <summary>Ridge crest rounding per cell and octave wavelength: a crest about three cells wide (its width is ~k λ / 8).</summary>

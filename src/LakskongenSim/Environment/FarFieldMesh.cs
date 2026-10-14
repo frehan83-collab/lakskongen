@@ -25,12 +25,13 @@ namespace LakskongenSim.Environment
     ///
     /// Chunks: <see cref="SectorsPerSide"/> sectors per side × radial bands,
     /// each a separate mesh the renderer can cull. Heights come from
-    /// <see cref="TerrainGenerator.FarFieldHeightAt"/>; normals are the
-    /// area-weighted mean of the drawn faces round each vertex (a crest
-    /// sharper than the loop spacing never turns a face against its corners),
-    /// the border loop keeping the heightfield mesh's own; the colour carries
-    /// the heightfield's masks (cavity, woods, birch share, meadow) from the
-    /// same vegetation rules, so the terrain shader paints the far slopes like
+    /// <see cref="TerrainGenerator.FarFieldHeightAt"/> (band-limited to these
+    /// cells); normals are the area-weighted mean of the drawn faces round
+    /// each vertex (a face turns against its corners only on the rare crest
+    /// still sharper than two cells), the border loop keeping the heightfield
+    /// mesh's own; the colour carries the heightfield's masks (cavity from the
+    /// ring's own Laplacian; woods, birch share and meadow from the same
+    /// vegetation rules), so the terrain shader paints the far slopes like
     /// the near ones.
     /// </summary>
     public sealed class FarFieldMesh
