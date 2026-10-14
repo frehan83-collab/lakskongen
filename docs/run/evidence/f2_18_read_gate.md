@@ -87,10 +87,10 @@ offshore plots lie at 2.4–3.3 km).
 | State (visibility) | pad_a T / kept | pad_b T / kept | OF1 T / kept | Havfarm T / kept | Chip by T < 0.4 |
 |---|---|---|---|---|---|
 | clear (60 km) | 0.91 / 1.00 | 0.89 / 1.00 | 0.85 / 1.00 | 0.81 / 1.00 | none |
-| overcast (20 km) | 0.76 / 0.72 | 0.71 / 0.70 | 0.62 / 0.76 | 0.52 / 0.60 | none |
+| overcast (20 km) | 0.76 / 0.72 | 0.71 / 0.70 | 0.62 / 0.75 | 0.52 / 0.60 | none |
 | rain (4.5 km) | 0.29 / 0.22 | 0.22 / 0.21 | 0.12 / 0.14 | 0.06 / 0.09 | all |
 | snow (2.5 km) | 0.11 / 0.06 | 0.06 / 0.04 | 0.02 / 0.02 | 0.01 / 0.05 | all |
-| storm (2 km) | 0.06 / 0.08 | 0.03 / 0.05 | 0.01 / 0.02 | 0.00 / 0.05 | all |
+| storm (2 km) | 0.06 / 0.08 | 0.03 / 0.06 | 0.01 / 0.02 | 0.00 / 0.09 | all |
 | sea fog (0.4 km in the layer) | 0.69 / 0.27 | 0.63 / 0.19 | 0.53 / 0.23 | 0.42 / 0.25 | **none** |
 
 Where the fog is the distance fog the contrast kept tracks T (rain: OF1

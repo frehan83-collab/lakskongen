@@ -1,0 +1,52 @@
+{
+  "asset": "river_intake",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    30.7,
+    8.0,
+    8.96
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "height_m": 5.0,
+    "length_m": 30.4,
+    "width_m": 8.0
+  },
+  "file": "river_intake_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Bars": "steel",
+    "Doors": "door",
+    "Plinth": "concrete",
+    "Rack": "grating",
+    "Rail": "steel",
+    "Roof": "hall_roof",
+    "Trim": "steel",
+    "Walls": "hall_clad",
+    "Weir": "concrete"
+  },
+  "parts": {
+    "Bars": 160,
+    "Doors": 24,
+    "Plinth": 28,
+    "Rack": 12,
+    "Rail": 40,
+    "Roof": 40,
+    "Trim": 20,
+    "Walls": 78,
+    "Weir": 88
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Weir": {
+      "hex": "#9EA3A6",
+      "spec": "#9EA3A6",
+      "strip": "concrete"
+    }
+  },
+  "tri_count": 490
+}

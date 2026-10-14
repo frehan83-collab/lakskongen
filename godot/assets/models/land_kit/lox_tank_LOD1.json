@@ -1,0 +1,39 @@
+{
+  "asset": "lox_tank",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    3.58,
+    11.4,
+    3.2
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "diameter_m": 3.2,
+    "height_m": 10.5
+  },
+  "file": "lox_tank_LOD1.glb",
+  "lod": "LOD1",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Ladder": "steel",
+    "Legs": "steel",
+    "Vessel": "lox"
+  },
+  "parts": {
+    "Ladder": 8,
+    "Legs": 16,
+    "Vessel": 64
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Vessel": {
+      "hex": "#EAEDEB",
+      "spec": "#E9ECEA",
+      "strip": "lox"
+    }
+  },
+  "tri_count": 88
+}

@@ -40,6 +40,8 @@
         "camera": {"$ref": "#/$defs/camera"},
         "perf": {"type": "boolean"},
         "tank_shadows": {"type": "boolean"},
+        "night_light": {"type": "number", "minimum": 0, "maximum": 1},
+        "lid_variant": {"type": "number", "minimum": 0, "maximum": 1},
         "plot_overrides": {
           "type": "object",
           "additionalProperties": {
@@ -63,7 +65,8 @@
         "distance_m": {"type": "number", "exclusiveMinimum": 0},
         "pitch_deg": {"type": "number", "minimum": -90, "maximum": 0},
         "yaw_deg": {"type": "number"},
-        "focus_y": {"type": "number"}
+        "focus_y": {"type": "number"},
+        "offset": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}
       }
     }
   }

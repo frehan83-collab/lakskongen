@@ -1,0 +1,36 @@
+{
+  "asset": "substation",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    18.0,
+    3.6,
+    10.0
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "height_m": 3.6,
+    "length_m": 18.0,
+    "width_m": 10.0
+  },
+  "file": "substation_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Transformers": "orange"
+  },
+  "parts": {
+    "Transformers": 10
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Transformers": {
+      "hex": "#DA622B",
+      "spec": "#D9622B",
+      "strip": "orange"
+    }
+  },
+  "tri_count": 10
+}

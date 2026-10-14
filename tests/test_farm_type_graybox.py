@@ -135,7 +135,9 @@ def test_the_scene_runs_the_gray_box_script():
     assert 'path="res://scripts/qa/FarmTypeGrayBox.gd"' in scene
     script = (GODOT / "scripts" / "qa" / "FarmTypeGrayBox.gd").read_text()
     assert f'const SCENE_PATH := "{SCENE}"' in script
-    assert 'const SHOTS_PATH := "res://qa/shots.json"' in script
+    assert script.startswith('extends "res://scripts/qa/QaWorldCapture.gd"')
+    base = (GODOT / "scripts" / "qa" / "QaWorldCapture.gd").read_text()
+    assert 'const SHOTS_PATH := "res://qa/shots.json"' in base
 
 
 def test_capture_script_runs_a_qa_scene_and_keeps_the_harness_default():
@@ -192,7 +194,8 @@ def test_every_gate_shot_was_measured_at_1080p(metrics):
     for sid in REQUIRED:
         assert sid in metrics["shots"], sid
     for s in SHOTS["shots"]:
-        assert s["id"] in metrics["shots"], f"{s['id']} is in shots.json but was not captured"
+        if s["scene"] == SCENE:
+            assert s["id"] in metrics["shots"], f"{s['id']} is in shots.json but was not captured"
 
 
 def test_home_view_records_size_depression_and_transmittance_per_plot(metrics):

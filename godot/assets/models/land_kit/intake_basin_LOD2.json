@@ -1,0 +1,49 @@
+{
+  "asset": "intake_basin",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    86.4517,
+    20.58,
+    66.0
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "arc_degrees": 140.0,
+    "arc_radius_m": 45.0,
+    "pump_house_height_m": 8.98,
+    "pump_house_length_m": 22.0,
+    "pump_house_width_m": 12.0,
+    "wall_thickness_m": 2.0,
+    "wall_top_m": 3.0
+  },
+  "file": "intake_basin_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Roof": "hall_roof",
+    "Wall": "concrete",
+    "Walls": "hall_clad"
+  },
+  "parts": {
+    "Roof": 4,
+    "Wall": 24,
+    "Walls": 8
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Wall": {
+      "hex": "#9EA3A6",
+      "spec": "#9EA3A6",
+      "strip": "concrete"
+    },
+    "Walls": {
+      "hex": "#D6DADC",
+      "spec": "#D5D9DB",
+      "strip": "hall_clad"
+    }
+  },
+  "tri_count": 36
+}

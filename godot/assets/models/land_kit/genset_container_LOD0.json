@@ -1,0 +1,44 @@
+{
+  "asset": "genset_container",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    12.19,
+    5.0,
+    2.44
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "height_m": 2.9,
+    "length_m": 12.19,
+    "width_m": 2.44
+  },
+  "file": "genset_container_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Box": "genset",
+    "Doors": "door",
+    "Exhaust": "steel",
+    "Louvre": "grating",
+    "Roofbox": "genset"
+  },
+  "parts": {
+    "Box": 40,
+    "Doors": 2,
+    "Exhaust": 56,
+    "Louvre": 2,
+    "Roofbox": 10
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Box": {
+      "hex": "#4A5650",
+      "spec": "#4A5650",
+      "strip": "genset"
+    }
+  },
+  "tri_count": 110
+}

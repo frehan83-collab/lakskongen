@@ -178,10 +178,12 @@ static func _lot(plot_id: String, lot: int, centre: Vector3) -> Array:
 	var x0 := centre.x - LOT_SIZE.x * 0.5 + GROWOUT_D * 0.5
 	for row: float in [-1.0, 1.0]:
 		var z := centre.z + row * LOT_ROW_OFFSET
+		# A tank's pipes leave it on its model -Z side: turn them to the hall.
+		var yaw := PI if row < 0.0 else 0.0
 		for k in LOT_TANKS_PER_ROW:
-			out.append(_p("tank_growout", plot_id, Vector3(x0 + pitch * k, centre.y, z), 0.0, lot, Vector3(GROWOUT_D, GROWOUT_H, GROWOUT_D)))
+			out.append(_p("tank_growout", plot_id, Vector3(x0 + pitch * k, centre.y, z), yaw, lot, Vector3(GROWOUT_D, GROWOUT_H, GROWOUT_D)))
 		var xp := centre.x - LOT_SIZE.x * 0.5 + row_len + LOT_TANK_GAP + PREGROW_D * 0.5
-		out.append(_p("tank_pregrow", plot_id, Vector3(xp, centre.y, z), 0.0, lot, Vector3(PREGROW_D, PREGROW_H, PREGROW_D)))
+		out.append(_p("tank_pregrow", plot_id, Vector3(xp, centre.y, z), yaw, lot, Vector3(PREGROW_D, PREGROW_H, PREGROW_D)))
 	var hx0 := centre.x - LOT_SIZE.x * 0.5 + (row_len - HALL_BAYS_PER_LOT * HALL_BAY.x) * 0.5 + HALL_BAY.x * 0.5
 	for k in HALL_BAYS_PER_LOT:
 		out.append(_p("process_hall_bay", plot_id, Vector3(hx0 + HALL_BAY.x * k, centre.y, centre.z), 0.0, lot, HALL_BAY))
@@ -192,7 +194,7 @@ static func _lot(plot_id: String, lot: int, centre: Vector3) -> Array:
 static func _post_smolt_module(plot_id: String, origin: Vector3) -> Array:
 	var out: Array = []
 	for k in 2:
-		out.append(_p("tank_pregrow", plot_id, origin + Vector3(MODULE_TANK_PITCH * k, 0.0, 0.0), 0.0, -1, Vector3(PREGROW_D, PREGROW_H, PREGROW_D)))
+		out.append(_p("tank_pregrow", plot_id, origin + Vector3(MODULE_TANK_PITCH * k, 0.0, 0.0), PI, -1, Vector3(PREGROW_D, PREGROW_H, PREGROW_D)))
 	out.append(_p("process_hall_bay", plot_id, origin + Vector3(MODULE_TANK_PITCH * 0.5, 0.0, 22.0), 0.0, -1, HALL_BAY))
 	return out
 
@@ -201,9 +203,12 @@ static func _post_smolt_module(plot_id: String, origin: Vector3) -> Array:
 ## `start` (the quay end) at a deck 10 m over the pad.
 static func _bridge(plot_id: String, start: Vector3, dir: float, spans: int) -> Array:
 	var out: Array = []
+	# A span carries its leg frame at its model -X end: face that end away
+	# from the quay, so the quay end rests on the quay and every leg on the pad.
+	var yaw := 0.0 if dir < 0.0 else PI
 	for k in spans:
 		var x := start.x + dir * (BRIDGE_SPAN * (k + 0.5))
-		out.append(_p("pipe_bridge_span", plot_id, Vector3(x, PAD_TOP_Y, start.z), 0.0, -1, Vector3(BRIDGE_SPAN, BRIDGE_DECK_ABOVE_PAD, 3.5)))
+		out.append(_p("pipe_bridge_span", plot_id, Vector3(x, PAD_TOP_Y, start.z), yaw, -1, Vector3(BRIDGE_SPAN, BRIDGE_DECK_ABOVE_PAD, 3.5)))
 	return out
 
 

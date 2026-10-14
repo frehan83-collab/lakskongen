@@ -1,0 +1,51 @@
+{
+  "asset": "substation",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    18.05,
+    5.945,
+    10.05
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "height_m": 5.945,
+    "length_m": 18.05,
+    "width_m": 10.05
+  },
+  "file": "substation_LOD1.glb",
+  "lod": "LOD1",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Fence": "steel",
+    "Gantry": "steel",
+    "Kiosk": "orange",
+    "KioskDoor": "door",
+    "Pad": "concrete",
+    "Transformers": "orange"
+  },
+  "parts": {
+    "Fence": 16,
+    "Gantry": 12,
+    "Kiosk": 10,
+    "KioskDoor": 12,
+    "Pad": 10,
+    "Transformers": 40
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Fence": {
+      "hex": "#8B9197",
+      "spec": "#8A9096",
+      "strip": "steel"
+    },
+    "Transformers": {
+      "hex": "#DA622B",
+      "spec": "#D9622B",
+      "strip": "orange"
+    }
+  },
+  "tri_count": 100
+}

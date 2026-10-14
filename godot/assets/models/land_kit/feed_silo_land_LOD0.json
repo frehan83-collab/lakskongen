@@ -1,0 +1,46 @@
+{
+  "asset": "feed_silo_land",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    10.03,
+    15.23,
+    10.0866
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "silo_diameter_m": 4.0,
+    "silo_height_m": 14.0,
+    "silos": 4
+  },
+  "file": "feed_silo_land_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Catwalk": "grating",
+    "Ladder": "steel",
+    "Legs": "steel",
+    "Pipes": "pipe",
+    "Rail": "steel",
+    "Silos": "silo"
+  },
+  "parts": {
+    "Catwalk": 12,
+    "Ladder": 16,
+    "Legs": 128,
+    "Pipes": 48,
+    "Rail": 40,
+    "Silos": 640
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Silos": {
+      "hex": "#8B9097",
+      "spec": "#8A8F96",
+      "strip": "silo"
+    }
+  },
+  "tri_count": 884
+}

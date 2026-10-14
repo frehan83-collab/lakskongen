@@ -1,0 +1,39 @@
+{
+  "asset": "pipe_bridge_span",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    25.3,
+    13.5,
+    3.5
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "leg_height_m": 10.0,
+    "section_height_m": 3.5,
+    "section_width_m": 3.5,
+    "span_m": 25.0
+  },
+  "file": "pipe_bridge_span_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Legs": "bridge_leg",
+    "Truss": "orange"
+  },
+  "parts": {
+    "Legs": 10,
+    "Truss": 12
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Truss": {
+      "hex": "#DA622B",
+      "spec": "#D9622B",
+      "strip": "orange"
+    }
+  },
+  "tri_count": 22
+}

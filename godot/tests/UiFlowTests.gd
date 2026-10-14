@@ -103,6 +103,7 @@ func _run() -> void:
 	await _test_pause_save_list_buttons_answer()
 	await _test_scenario_picker()
 	_test_farm_type_graybox()
+	_test_land_kit_imports()
 
 	_clear_test_saves()
 	_finish()
@@ -2785,6 +2786,48 @@ func _test_farm_type_graybox() -> void:
 	var shots: Array = runner.load_shots()
 	_check(shots.size() >= 8 and shots.all(func(s: Dictionary) -> bool: return str(s.get("item", "")) == "F2-18"),
 		"farm types: shots.json gives the gray-box scene its %d shots" % shots.size())
+
+
+## F2-25: every land-kit LOD imports as one mesh with one surface that uses
+## the kit's single material (the shader reads the trim atlas), within the
+## spec §5.1 triangle budgets, so F2-20 can instance a campus per tank type.
+func _test_land_kit_imports() -> void:
+	const KIT := "res://assets/models/land_kit/"
+	const BUDGETS := {
+		"tank_growout": [2400, 600, 96], "tank_pregrow": [1600, 400, 64], "tank_feeder": [220, 60],
+		"process_hall_bay": [900, 160, 12], "harvest_hall": [3000, 450, 24], "pipe_bridge_span": [1800, 320, 24],
+		"quay": [2500, 400, 30], "intake_basin": [2200, 380, 40], "river_intake": [600, 120, 12],
+		"lox_tank": [640, 120, 12], "genset_container": [320, 60, 12], "substation": [1500, 220, 12],
+		"feed_silo_land": [900, 160, 12], "sludge_station": [800, 150, 12],
+	}
+	var kit_mat := load("res://assets/models/facility_kit/LK_FacilityKit.tres") as ShaderMaterial
+	_check(kit_mat != null and kit_mat.shader != null and kit_mat.shader.resource_path == "res://shaders/facility_kit.gdshader"
+		and kit_mat.get_shader_parameter("atlas") is Texture2D,
+		"land kit: LK_FacilityKit is the facility-kit shader reading the trim atlas")
+	var lods := 0
+	var bad: Array[String] = []
+	for asset in BUDGETS:
+		var budgets: Array = BUDGETS[asset]
+		for i in budgets.size():
+			var path := "%s%s_LOD%d.glb" % [KIT, asset, i]
+			var packed := load(path) as PackedScene
+			if packed == null:
+				bad.append("%s missing" % path)
+				continue
+			var root := packed.instantiate()
+			var meshes := root.find_children("*", "MeshInstance3D", true, false)
+			var mesh: Mesh = (meshes[0] as MeshInstance3D).mesh if meshes.size() == 1 else null
+			if mesh == null or mesh.get_surface_count() != 1:
+				bad.append("%s: %d meshes" % [path, meshes.size()])
+			elif mesh.surface_get_material(0) == null or mesh.surface_get_material(0).resource_path != kit_mat.resource_path:
+				bad.append("%s: not LK_FacilityKit" % path)
+			elif _mesh_triangles(mesh) > int(budgets[i]):
+				bad.append("%s: %d tris > %d" % [path, _mesh_triangles(mesh), int(budgets[i])])
+			else:
+				lods += 1
+			root.free()
+	_check(bad.is_empty() and lods == 41,
+		"land kit: %d LODs are one LK_FacilityKit surface inside the spec budgets %s" % [lods, str(bad.slice(0, 3))])
 
 
 ## Ground footprint (x, z) of a layout piece, its model axes turned by yaw.

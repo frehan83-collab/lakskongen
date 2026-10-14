@@ -1,0 +1,36 @@
+{
+  "asset": "genset_container",
+  "atlas": "godot/assets/models/facility_kit/textures/facility_atlas.png",
+  "bbox_size": [
+    12.19,
+    2.9,
+    2.44
+  ],
+  "blender_version": "5.2.2 LTS",
+  "dimensions": {
+    "height_m": 2.9,
+    "length_m": 12.19,
+    "width_m": 2.44
+  },
+  "file": "genset_container_LOD2.glb",
+  "lod": "LOD2",
+  "material_count": 1,
+  "materials": [
+    "LK_FacilityKit"
+  ],
+  "part_strips": {
+    "Box": "genset"
+  },
+  "parts": {
+    "Box": 10
+  },
+  "surfaces": 1,
+  "swatches": {
+    "Box": {
+      "hex": "#4A5650",
+      "spec": "#4A5650",
+      "strip": "genset"
+    }
+  },
+  "tri_count": 10
+}

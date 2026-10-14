@@ -994,6 +994,8 @@ Assets are built headless by Python scripts, following the `build_vessels.py` ex
 | `feed_silo_land` | Cluster of 4 silos | 4 × Ø4 × 14 | #8A8F96 | 900 / 160 / 12 |
 | `sludge_station` | Dewatering house + container bay | 20 × 12 × 8 | #D5D9DB, #6E7B73 | 800 / 150 / 12 |
 
+**As built (F2-25).** Each LOD is one node named by the asset id with one `LK_FacilityKit` surface, so a whole campus instances per tank type. The part names above (`Wall`, `Band`, `Lid`, `Walkway`, `Feeder`...) are trim-atlas strips: the shader swaps the lid swatch and drops the band per instance, stretches the pipe-bridge legs (a 10 m reference, `INSTANCE_CUSTOM.b`) and spins the feeder's rotor; the sidecar lists each part's triangles and swatch. `tank_feeder` is its own mesh at LOD0/LOD1 and rides in the tank at LOD2. The dark lid keeps the full shell diameter with the walkway cantilevered outside it (F2-18: the 40 px lid ellipse has no margin). Evidence: `docs/run/evidence/f2_25_land_kit.md`.
+
 **Layouts**
 - **Full HFS lot:** 12 grow-out tanks in two rows of 6, 4 m apart (each row 188 m long); a hall between the rows; 2 pre-grow-out tanks at the end of the rows. Footprint about 200 × 90 m.
 - **Pilot lot:** 4 grow-out tanks plus 1 pre-grow-out tank in the first row positions, with the hall stub. Expanding fills the rest.

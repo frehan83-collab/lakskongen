@@ -403,3 +403,35 @@ def world_bbox(objs):
 
 def mesh_tris(obj) -> int:
     return sum(len(p.vertices) - 2 for p in obj.data.polygons)
+
+
+# --------------------------------------------------------------------------
+# Land kit helpers (farm-types F2-25): trim-atlas strip UVs and planar
+# grids. Appended; nothing above changes, so the other kits rebuild the same.
+# --------------------------------------------------------------------------
+
+def strip_uv(mb, v: float, tile_m: float, start: int = 0) -> None:
+    """Point every face from `start` on at one horizontal atlas strip: U is
+    metres along the surface / tile_m (box-projected where a face has no
+    UVs of its own), V is the strip's centre. A strip spans the atlas width
+    and repeats in U, so a 120 m wall keeps its texel scale."""
+    for i in range(start, len(mb.faces)):
+        uv = mb.face_uv[i]
+        if uv is None:
+            uv = box_uv(mb.verts, mb.faces[i], 1.0)
+        mb.face_uv[i] = tuple((u / tile_m, v) for (u, _v) in uv)
+
+
+def grid_rect(origin, u_dir, v_dir, u_breaks, v_breaks):
+    """Corner points of a planar grid: rows of (origin + u*u_dir + v*v_dir)
+    for every u in u_breaks (metres) and v in v_breaks. The face normal of
+    the cells (u0,v0)-(u1,v0)-(u1,v1)-(u0,v1) is u_dir x v_dir."""
+    return [[v_add(origin, v_add(v_mul(u_dir, u), v_mul(v_dir, v))) for u in u_breaks] for v in v_breaks]
+
+
+def breaks(length: float, step: float, extra=()) -> list:
+    """0..length split every `step` metres plus the `extra` cuts, sorted."""
+    n = max(1, int(math.ceil(length / step - 1e-9)))
+    cuts = {round(length * i / n, 6) for i in range(n + 1)}
+    cuts |= {round(e, 6) for e in extra if 0.0 < e < length}
+    return sorted(cuts)
