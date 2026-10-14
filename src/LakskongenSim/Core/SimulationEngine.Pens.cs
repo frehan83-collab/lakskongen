@@ -346,21 +346,16 @@ public partial class SimulationEngine
 
     /// <summary>
     /// Put a new population of <paramref name="cohort"/> in <paramref name="pen"/>
-    /// (clearing a fishless population still mapped to it: its fish were all
-    /// harvested or died) and add it to the game. Returns the population.
+    /// and add it to the game. Returns the population. A fishless population
+    /// still mapped to the pen (every fish died) loses the pen and stays in
+    /// the site's list until a harvest clears empty populations, as before
+    /// S2-01b (clearing it here moved the RNG streams of every later day).
     /// </summary>
     internal FishPopulation PlacePopulation(SeaSite site, Pen pen, FishPopulation.Cohort cohort, double liceLoad)
     {
         var population = new FishPopulation { ZoneId = site.ZoneId, SeaLiceLoad = liceLoad };
         population.InjectDependencies(Growth, Mortality);
         population.Cohorts.Add(cohort);
-        var occupant = site.PopulationIn(pen);
-        if (occupant != null && occupant.TotalCount <= 0)
-        {
-            site.Pens.Remove(occupant);
-            State.Populations.Remove(occupant);
-            Mortality.ClearEnvironmentalStress(occupant.Id);
-        }
         site.Stock(population, pen);
         State.Populations.Add(population);
         return population;

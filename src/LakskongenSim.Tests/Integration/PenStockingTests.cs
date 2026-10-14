@@ -339,6 +339,34 @@ public class PenStockingTests
         Assert.Equal(share * wholeDrop, partialDrop, 6);
     }
 
+    /// <summary>
+    /// The storyteller's ILA event culls "the first sea pen": with real pens
+    /// that is pen 1 of the first site, the rest of the locality keeps its
+    /// fish, and the emptied pen takes the next stocking. (Mattilsynet culls
+    /// the whole locality; roadmap D5/S4-02 replaces the event with the
+    /// notifiable-disease state machine, RUN_LOG §8.)
+    /// </summary>
+    [Fact]
+    public void TheIlaEvent_CullsOnePen_WhichTakesTheNextStocking()
+    {
+        var engine = new SimulationEngine { FinanceManager = new FinanceManager(1_000_000m) };
+        engine.Initialize(enableEvents: true, seed: 18);
+        Assert.True(engine.StartScenario("po3_red_sone").Ok);
+        var nord = Site(engine, "po3_nord");
+        int pen1 = FishIn(nord, "1");
+        int others = nord.Pens.Sum(p => p.TotalCount) - pen1;
+
+        var ila = engine.Storyteller.GetEventDefinitions().Single(e => e.Id == "isa-outbreak");
+        engine.Storyteller.Fire(ila, engine.State.Day);
+
+        Assert.Equal(0, FishIn(nord, "1"));
+        Assert.Equal(pen1, engine.MortalityLedger.ForSite(nord.Id).Deaths(MortalityCause.DiseaseCull).Fish);
+        Assert.Equal(others, nord.Pens.Sum(p => p.TotalCount));
+        Assert.True(nord.IsPenFree(nord.FindPen("1")!));
+        Assert.True(engine.StockSmoltsInPen(nord.Id, "1", 5_000).Ok);
+        Assert.Equal(5_000, FishIn(nord, "1"));
+    }
+
     // ─── Saves ─────────────────────────────────────────────────────────────
 
     [Fact]

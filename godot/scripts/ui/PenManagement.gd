@@ -369,7 +369,8 @@ func _update_stock_preview() -> void:
 		return
 	var count := int(_count_spin.value)
 	_btn_stock.text = "🐣 " + tr("UI_PEN_STOCK") % SimFormatters.integer(count)
-	_btn_stock.tooltip_text = tr("UI_PEN_STOCK_TIP") % SimFormatters.integer(count)
+	# UIPolish.set_available shows this tooltip whenever the button is enabled.
+	_btn_stock.set_meta(&"enabled_tooltip", tr("UI_PEN_STOCK_TIP") % SimFormatters.integer(count))
 	var pen_id := _selected_stock_pen_id()
 	if pen_id.is_empty():
 		_stock_preview.text = tr("PENS_NONE_FREE")

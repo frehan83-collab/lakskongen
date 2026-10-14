@@ -79,6 +79,7 @@ func _run() -> void:
 	await _test_honest_economy_reaches_the_ui()
 	_test_mortality_ledger_reaches_the_bridge()
 	_test_capacity_reaches_the_bridge()
+	await _test_pens_reach_the_stocking_card()
 	await _test_pen_models_read_as_equipment()
 	await _test_hero_pen_and_site_kit()
 	await _test_vessel_fleet()
@@ -1136,6 +1137,65 @@ func _test_capacity_reaches_the_bridge() -> void:
 		"capacity: the plan's room (%d smolts) is offered and one more is refused with Norwegian text (%s)" % [max_count, label])
 	_check(not _sim.stock_smolts("po3_nord", max_count + 1), "capacity: stocking past the room is refused through the action")
 	_check(_sim.stock_smolts("po3_nord", max_count), "capacity: stocking the room is accepted through the action")
+
+## S2-01b: a site's real pens reach the game. The site payload carries its pen
+## count and each pen (the fjord lays out pen_count pens); the bridge refuses
+## 200 001 fish in one pen with Norwegian text; the Pens tab shows the pens,
+## offers the empty ones, names why a count does not fit (and disables the
+## button), and stocks the chosen count in the chosen pen.
+func _test_pens_reach_the_stocking_card() -> void:
+	_check(_sim.start_qa_scenario("forste_sesong", 37), "pens: tutorial scenario starts")
+	_sim.set_paused(true)
+	var sites: Array = _sim.get_all_pens()
+	var site: Dictionary = sites[0] if sites.size() > 0 else {}
+	var site_id := str(site.get("id", ""))
+	var pens: Array = site.get("pens", [])
+	_check(int(site.get("pen_count", 0)) == 6 and pens.size() == 6,
+		"pens: the family farm reports its six pens (%s, %d)" % [str(site.get("pen_count")), pens.size()])
+	var fish: Array = pens.map(func(p: Dictionary) -> int: return int(p.get("fish_count", -1)))
+	var numbers: Array = pens.map(func(p: Dictionary) -> int: return int(p.get("number", 0)))
+	_check(numbers == [1, 2, 3, 4, 5, 6] and fish == [36000, 0, 0, 0, 0, 0],
+		"pens: pen 1 holds the inherited 36 000 fish and pens 2-6 lie empty (%s)" % str(fish))
+	var volume := float(pens[1].get("volume_m3", 0.0)) if pens.size() > 1 else 0.0
+	_check(absf(volume - 26738.0) < 1.0 and str(pens[1].get("id", "")) == site_id + "/p02",
+		"pens: pen 2 is a 120 m family-farm pen of %.0f m3 (%s)" % [volume, str(pens[1].get("id"))])
+	var refused: Dictionary = _sim.stock_smolts_in_pen(site_id, "2", 200001)
+	var label := str(refused.get("label_key", ""))
+	_check(not bool(refused.get("success", true)) and str(refused.get("reason_key", "")) == "pen_fish_limit"
+			and tr(label) != label,
+		"pens: 200 001 fish in one pen are refused with Norwegian text (%s)" % str(refused.get("reason_key")))
+
+	var panel: Control = (load("res://scenes/ui/PenManagement.tscn") as PackedScene).instantiate()
+	add_child(panel)
+	await get_tree().process_frame
+	panel.select_pen(site_id)
+	await get_tree().process_frame
+	var chips: Node = panel.get_node("%PenChips")
+	var picker: OptionButton = panel.get_node("%PenOption")
+	var spin: SpinBox = panel.get_node("%CountSpin")
+	var stock: Button = panel.get_node("%BtnStock")
+	var preview: Label = panel.get_node("%StockPreview")
+	_check(chips.get_child_count() == 6 and picker.item_count == 5 and str(picker.get_item_metadata(picker.selected)) == site_id + "/p02",
+		"pens: the card shows six pens and offers the five empty ones, pen 2 first (%d, %d)" % [chips.get_child_count(), picker.item_count])
+	var room := int(_sim.preview_pen_stocking(site_id, "2", 0).get("max_count", 0))
+	var why := str(_sim.preview_pen_stocking(site_id, "2", 190000).get("label_key", ""))
+	spin.value = 190000
+	await get_tree().process_frame
+	_check(room > 50000 and room < 190000 and stock.disabled and not why.is_empty() and tr(why) != why
+			and preview.text.ends_with(" · " + tr(why)),
+		"pens: %d smolts do not fit (room %d): the card says why and the button waits (%s)" % [int(spin.value), room, preview.text])
+	spin.value = 10000
+	await get_tree().process_frame
+	_check(not stock.disabled, "pens: 10 000 smolts fit in pen 2 (%s)" % preview.text)
+	await _click_control(stock)
+	await get_tree().process_frame
+	var after: Array = _sim.get_site_pens(site_id)
+	var pen2 := int(after[1].get("fish_count", 0)) if after.size() > 1 else 0
+	_check(pen2 == 10000 and bool(after[1].get("occupied", false)),
+		"pens: the stock button put 10 000 smolts in pen 2 (%d)" % pen2)
+	_check(picker.item_count == 4, "pens: pen 2 left the empty-pen picker (%d)" % picker.item_count)
+	panel.queue_free()
+	await get_tree().process_frame
 
 func _test_honest_economy_reaches_the_ui() -> void:
 	_check(_sim.start_qa_scenario("po3_red_sone", 91), "economy: seeded scenario starts")
