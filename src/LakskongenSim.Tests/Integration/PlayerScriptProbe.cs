@@ -45,8 +45,13 @@ public static class PlayerScriptProbe
     /// <summary>Latest day the career may run before the test fails (guard against silent non-growth).</summary>
     public const int CareerHorizonDays = 1200;
 
-    /// <summary>Mid-run save/load happens at this day.</summary>
-    public const int SaveLoadDay = 300;
+    /// <summary>
+    /// Mid-run save/load happens at this day, while both sites still hold fish.
+    /// It was day 300; with F1024's exact oxygen (no daily hypoxia penalty) the
+    /// careers reach harvest weight from about day 280, so a day-300 save could
+    /// land on an empty farm and round-trip nothing alive (S1-01/S1-02).
+    /// </summary>
+    public const int SaveLoadDay = 210;
 
     public sealed class CareerResult
     {

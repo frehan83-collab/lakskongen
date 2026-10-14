@@ -144,8 +144,14 @@ namespace LakskongenSim.Environment
             double noise = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
             double dailyVariation = noise * 1.0 * varianceMultiplier;
 
-            // Storm cooling effect
-            double stormCooling = CurrentState switch
+            // Storm cooling: wind mixing brings colder water up to the cages
+            // while the column is stratified with a warm surface (Apr-Sep). In
+            // the storm season the coastal column is mixed or colder at the
+            // surface than below (Helland-Hansen & Nansen, "The Norwegian Sea",
+            // 1909: in March the surface is colder than at 100 fathoms), so a
+            // winter storm does not cool the cage layer. Moot until S1-02: the
+            // unnormalized chain never reached Severe in Oct-Mar.
+            double stormCooling = IsStormSeason(dayOfYear) ? 0.0 : CurrentState switch
             {
                 WeatherState.Storm => -0.5,
                 WeatherState.Severe => -1.5,
