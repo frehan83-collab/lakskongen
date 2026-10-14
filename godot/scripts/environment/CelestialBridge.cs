@@ -29,7 +29,9 @@ public partial class CelestialBridge : RefCounted
     /// The sky at a latitude, a sim day (0 = 1 January) and a local solar
     /// hour (0-24, which advances the date inside the day). Keys: sun_direction, sun_elevation, sun_azimuth,
     /// moon_direction, moon_elevation, moon_illumination, moon_waxing,
-    /// aurora_kp, aurora_brightness, aurora_offset_km, day_of_year.
+    /// aurora_kp, aurora_brightness, aurora_offset_km, day_of_year; and the
+    /// ground's season (<see cref="GroundSeasonModel"/>, G2-02): snow_line_m,
+    /// foliage, autumn.
     /// </summary>
     public Godot.Collections.Dictionary Sky(double latitudeDeg, int simDay, double solarHour)
     {
@@ -40,6 +42,7 @@ public partial class CelestialBridge : RefCounted
         // The night belongs to the evening's date: the activity knots are
         // smooth, so the hour just slides along them.
         var aurora = AuroraModel.At(latitudeDeg, day + solarHour / 24.0);
+        var ground = GroundSeasonModel.At(latitudeDeg, dayOfYear + solarHour / 24.0);
         return new Godot.Collections.Dictionary
         {
             ["sun_direction"] = ToWorld(sun),
@@ -53,6 +56,9 @@ public partial class CelestialBridge : RefCounted
             ["aurora_brightness"] = aurora.Brightness01,
             ["aurora_offset_km"] = aurora.OvalOffsetKm,
             ["day_of_year"] = dayOfYear,
+            ["snow_line_m"] = ground.SnowLineM,
+            ["foliage"] = ground.Foliage01,
+            ["autumn"] = ground.Autumn01,
         };
     }
 

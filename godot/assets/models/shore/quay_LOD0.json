@@ -1,0 +1,19 @@
+{
+  "asset": "quay",
+  "bbox_size": [
+    6.48,
+    6.15,
+    22.24
+  ],
+  "blender_version": "5.2.2 LTS",
+  "file": "quay_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 4,
+  "materials": [
+    "LK_Bollard",
+    "LK_Concrete",
+    "LK_DryStone",
+    "LK_Fender"
+  ],
+  "tri_count": 302
+}

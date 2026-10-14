@@ -96,3 +96,26 @@ anti_aliasing/quality/msaa_3d=2
 anti_aliasing/quality/screen_space_aa=2
 environment/ssao/fadeout_from=1500.0
 environment/ssao/fadeout_to=6000.0
+
+[shader_globals]
+
+lk_snow_line={
+"type": "float",
+"value": 2000.0
+}
+lk_ground_wetness={
+"type": "float",
+"value": 0.0
+}
+lk_foliage={
+"type": "float",
+"value": 1.0
+}
+lk_autumn={
+"type": "float",
+"value": 0.0
+}
+lk_fresh_snow={
+"type": "float",
+"value": 0.0
+}

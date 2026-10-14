@@ -55,18 +55,24 @@ const SNAP_EPSILON := 0.0005
 ## Terrain avoidance: clearance over the ground under the camera, and over
 ## the terrain along the sight line, sampled SIGHT_SAMPLES times. Six samples
 ## (the roadmap's first sketch) let ridges between them hide the focus in 9 %
-## of COAST orbits; 32 samples with 15 m clearance hide it in 0.5 %.
+## of COAST orbits; 32 samples with 15 m clearance hid it in 0.5 % while the
+## camera stayed in the world. With the far field (G2-01) a COAST camera
+## stands out over the plateau beyond it and its longer, flatter sight line
+## needs 48 (32 hid the focus in 1.5 %).
 const GROUND_CLEARANCE := 32.0
 const SIGHT_CLEARANCE := 15.0
-const SIGHT_SAMPLES := 32
+const SIGHT_SAMPLES := 48
 ## Steepest view the avoidance may force before it pulls the camera closer.
 const MAX_ELEVATION_DEG := 78.0
 const MIN_PITCH_DEG := -85.0
 const MAX_PITCH_DEG := -5.0
 const TOP_DOWN_PITCH_DEG := -89.0
-## Soft limit for the focus and the camera: the world is 4 km and has no far
-## field yet (G2-01), so stay this far inside its edge.
+## Soft limit for the focus: stay this far inside the 4 km world's edge.
 const EDGE_MARGIN := 300.0
+## G2-01: with a far field round the world the camera itself may leave the
+## world square as far as its orbit takes it (focus limit + MAX_DISTANCE),
+## and never closer than this to the far field's outer edge.
+const FAR_FIELD_MARGIN := 2000.0
 const IDLE_ORBIT_DELAY := 30.0
 const UNDERWATER_DEPTH := 8.0
 const UNDERWATER_LOOK_DEPTH := 6.0
@@ -244,7 +250,7 @@ func solve_rig(focus: Vector3, yaw: float, distance: float, pitch_deg: float) ->
 	var rise := distance * sin(-pitch)
 	var dir := Vector3(sin(yaw), 0.0, cos(yaw))
 	var max_tan := tan(deg_to_rad(MAX_ELEVATION_DEG))
-	var pos := _clamp_to_world(focus + dir * horiz + Vector3(0.0, rise, 0.0))
+	var pos := _clamp_camera(focus + dir * horiz + Vector3(0.0, rise, 0.0))
 	horiz = Vector2(pos.x - focus.x, pos.z - focus.z).length()
 	var need := _required_height(focus, pos, water_y)
 	if need <= pos.y:
@@ -259,13 +265,13 @@ func solve_rig(focus: Vector3, yaw: float, distance: float, pitch_deg: float) ->
 	var hi := horiz
 	for i in range(14):
 		var mid := (lo + hi) * 0.5
-		var probe := _clamp_to_world(focus + dir * mid + Vector3(0.0, rise * mid / horiz, 0.0))
+		var probe := _clamp_camera(focus + dir * mid + Vector3(0.0, rise * mid / horiz, 0.0))
 		var probe_need := maxf(_required_height(focus, probe, water_y), probe.y)
 		if (probe_need - focus.y) / maxf(mid, 1.0) <= max_tan:
 			lo = mid
 		else:
 			hi = mid
-	pos = _clamp_to_world(focus + dir * lo + Vector3(0.0, rise * lo / horiz, 0.0))
+	pos = _clamp_camera(focus + dir * lo + Vector3(0.0, rise * lo / horiz, 0.0))
 	pos.y = maxf(_required_height(focus, pos, water_y), pos.y)
 	return pos
 
@@ -384,6 +390,23 @@ func _world_half() -> Vector2:
 ## edge no faster than the orbit itself.
 func _clamp_to_world(p: Vector3) -> Vector3:
 	var half := _world_half()
+	return Vector3(clampf(p.x, -half.x, half.x), p.y, clampf(p.z, -half.y, half.y))
+
+
+## Where the camera itself may go (G2-01): the focus limit plus the longest
+## orbit once a far field surrounds the world (inside the far field's edge
+## by FAR_FIELD_MARGIN), else the focus limit.
+func _camera_half() -> Vector2:
+	var half := _world_half()
+	var far := terrain.far_field_half_extent() if terrain != null else 0.0
+	if far <= 0.0:
+		return half
+	var reach := minf(MAX_DISTANCE, far - FAR_FIELD_MARGIN - maxf(half.x, half.y))
+	return half + Vector2.ONE * maxf(reach, 0.0)
+
+
+func _clamp_camera(p: Vector3) -> Vector3:
+	var half := _camera_half()
 	return Vector3(clampf(p.x, -half.x, half.x), p.y, clampf(p.z, -half.y, half.y))
 
 

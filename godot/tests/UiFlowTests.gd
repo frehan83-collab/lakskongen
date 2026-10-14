@@ -82,8 +82,10 @@ func _run() -> void:
 	_test_facade_forwards_phase5_systems()
 	await _test_terrain_faces_up_and_shares_one_heightfield()
 	await _test_camera_frames_sky_and_avoids_terrain()
+	await _test_far_field_surrounds_the_world()
 	await _test_camera_keys_leave_focused_controls_alone()
 	await _test_environment_director_owns_the_look()
+	await _test_terrain_material_and_vegetation()
 	await _test_water_grid_bake_and_sea_state()
 	await _test_theme_and_contrast_on_every_screen()
 	_test_formatters_speak_the_locale()
@@ -3546,3 +3548,276 @@ func _line_clears_terrain(terrain: FjordTerrain, from: Vector3, to: Vector3) -> 
 		if ground > terrain.water_level and p.y < ground:
 			return false
 	return true
+
+## G2-01: a far field surrounds the 4 km world out to 16 km. Its ring of
+## chunks goes up after the terrain with the terrain's material (the band
+## next to the world casts shadows, the outer bands do not); height queries
+## outside the world answer from it; at COAST the camera may leave the world
+## while the focus stays inside it; no COAST view, looking any way, shows
+## the world's end (edge-of-world mask 0; the same views measured with the
+## land cut at the 4 km edge show the old island); and the farm-type plots
+## (farm-types spec §4) are reserved: three shore pads in the world, three
+## offshore slots in open sea beyond it.
+func _test_far_field_surrounds_the_world() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "far field: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var cam: FjordCamera = env.get_node("FjordCamera")
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	cam.auto_orbit_enabled = false
+	for i in 3000:
+		if terrain.is_far_field_ready():
+			break
+		await get_tree().process_frame
+	_check(terrain.is_ready() and terrain.is_far_field_ready(), "far field: the ring goes up after the terrain")
+	var chunks: Array = terrain.far_field.get_children() if terrain.far_field != null else []
+	var shadowed := 0
+	var shared_material := chunks.size() > 0
+	for chunk in chunks:
+		var mi := chunk as MeshInstance3D
+		shared_material = shared_material and mi != null and mi.material_override == terrain.get_material()
+		if mi != null and mi.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+			shadowed += 1
+	_check(chunks.size() == 48 and shadowed == 16,
+		"far field: 48 chunks to %.0f km, the 16 next to the world cast shadows (%d chunks, %d shadowed)" % [
+			terrain.far_field_half_extent() / 1000.0, chunks.size(), shadowed])
+	_check(shared_material, "far field: the ring wears the terrain's own material")
+	_check(terrain.max_upload_frame_ms < 50.0,
+		"far field: no main-thread upload step over 50 ms, ring included (%.1f ms)" % terrain.max_upload_frame_ms)
+	var half := terrain.terrain_size * 0.5
+	var outside := Vector2(half.x + 2600.0, 300.0)
+	_check(terrain.far_field_half_extent() >= 16000.0
+		and absf(terrain.get_height_at(outside.x, outside.y) - terrain.far_field_height_at(outside.x, outside.y)) < 0.01
+		and terrain.get_height_at(outside.x, outside.y) > 200.0,
+		"far field: outside the world the height is the far field's (%.0f m on the plateau 2.6 km beyond the edge)" % terrain.get_height_at(outside.x, outside.y))
+
+	# At COAST, looking up the fjord from the sea, the camera leaves the world;
+	# the focus stays EDGE_MARGIN inside it.
+	var first := pens.get_pen_position(pens.get_pen_ids()[0])
+	cam.home_focus = first
+	cam.look_at_position(first, FjordCamera.ZoomLevel.COAST)
+	cam.rotate_view(PI)
+	await _settle_camera(cam)
+	var focus := cam.get_focus_point()
+	_check(absf(cam.global_position.x) > half.x or absf(cam.global_position.z) > half.y,
+		"far field: at COAST the camera leaves the 4 km world (%s)" % str(cam.global_position.round()))
+	_check(absf(focus.x) <= half.x - FjordCamera.EDGE_MARGIN + 0.01 and absf(focus.z) <= half.y - FjordCamera.EDGE_MARGIN + 0.01,
+		"far field: the focus stays inside the world (%s)" % str(focus.round()))
+
+	# Edge-of-world mask at COAST, eight headings round the first pen and round
+	# the fjord head.
+	var worst := 0.0
+	var island := 0.0
+	var head := Vector3(terrain.channel_center_x(1000.0), 0.0, 1000.0)
+	for target in [first, head]:
+		for k in 8:
+			cam.look_at_position(target, FjordCamera.ZoomLevel.COAST)
+			cam._user_rotated = true
+			cam._yaw_target = cam.home_yaw(target) + k * PI / 4.0
+			await _settle_camera(cam)
+			worst = maxf(worst, _edge_of_world_fraction(cam, terrain, terrain.far_field_half_extent()))
+			island = maxf(island, _edge_of_world_fraction(cam, terrain, half.x))
+	_check(worst == 0.0, "far field: no COAST view shows the world's end (edge-of-world mask %.3f)" % worst)
+	_check(island > 0.02, "far field: with the land cut at the 4 km edge the same views would (mask %.3f)" % island)
+
+	# The farm-type plots (spec §4).
+	var pads: Array = terrain.land_pad_slots()
+	var pad_ids: Array = pads.map(func(p: Dictionary) -> String: return str(p["id"]))
+	var pads_ok := pad_ids == ["pad_a", "pad_b", "pad_delta"]
+	for pad in pads:
+		var c: Vector3 = pad["centre"]
+		var size: Vector2 = pad["size"]
+		pads_ok = pads_ok and absf(c.x) + size.x * 0.5 < half.x and absf(c.z) + size.y * 0.5 < half.y \
+			and is_equal_approx(c.y, 3.6) and float(pad["intake_reach_m"]) > 0.0
+	_check(pads_ok, "far field: the land pads %s lie in the world with a computed intake" % str(pad_ids))
+	var slots: Array = terrain.offshore_slots()
+	var slot_ids: Array = slots.map(func(o: Dictionary) -> String: return str(o["id"]))
+	var slots_ok := slot_ids == ["off_1", "off_2", "hav_1"]
+	for slot in slots:
+		var at: Vector3 = slot["position"]
+		slots_ok = slots_ok and (absf(at.x) > half.x or absf(at.z) > half.y) and float(slot["exposure"]) == 1.0 \
+			and float(slot["water_depth_m"]) > 100.0 and terrain.get_height_at(at.x, at.z) < -100.0
+	_check(slots_ok, "far field: the offshore slots %s lie in open sea beyond the world" % str(slot_ids))
+	cam.set_zoom_level(FjordCamera.ZoomLevel.FJORD)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## G2-02: the terrain wears its layer arrays, the season reaches the ground
+## through the director (snow line, birch leaves, fresh snow, wet ground),
+## and every tree the vegetation stands up lies inside the masks: above the
+## splash zone, below the 450-550 m treeline, gentler than 55 degrees,
+## spruce low and gentle, on the ground it was planted on.
+func _test_terrain_material_and_vegetation() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "terrain material: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	var env: FjordEnvironment = scene.get_node("FjordEnvironment")
+	var director: EnvironmentDirector = env.get_node("EnvironmentDirector")
+	var weather: WeatherController = env.get_node("WeatherSystem")
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	var vista: FjordVistaBridge = scene.get_node("FjordVistaBridge")
+	for i in 900:
+		if terrain.is_ready() and terrain.vegetation != null and terrain.vegetation.call("is_ready"):
+			break
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	vista.sim_weather_enabled = false
+	(env.get_node("TimeOfDay") as TimeOfDay).paused = true
+	weather.transition_duration = 0.0
+
+	# The material: two Texture2DArrays, 7 layers and 7 + 2 noise slices.
+	var mat := terrain.get_material()
+	var albedo = mat.get_shader_parameter("albedo_height") if mat != null else null
+	var nra = mat.get_shader_parameter("normal_rough_ao") if mat != null else null
+	# Imported arrays are CompressedTexture2DArray: a TextureLayered, not a Texture2DArray.
+	_check(albedo is TextureLayered and (albedo as TextureLayered).get_layers() == 7
+		and (albedo as TextureLayered).get_layered_type() == TextureLayered.LAYERED_TYPE_2D_ARRAY,
+		"terrain material: albedo + height array with 7 layers")
+	_check(nra is TextureLayered and (nra as TextureLayered).get_layers() == 9
+		and (nra as TextureLayered).get_layered_type() == TextureLayered.LAYERED_TYPE_2D_ARRAY,
+		"terrain material: normal + roughness + AO array with 7 layers and 2 noise slices")
+	_check(mat != null and float(mat.get_shader_parameter("use_textures")) == 1.0,
+		"terrain material: textured (not the palette fallback)")
+
+	# The season from the calendar at 63.43 N (GroundSeasonModel).
+	env.set_weather(WeatherController.WeatherState.CLEAR)
+	env.set_season(50.0 / 365.0)
+	director.compose(0.0, true)
+	var winter: Dictionary = director.get_composed().duplicate()
+	_check(float(winter.get("snow_line_m", 9999.0)) <= 150.0 and float(winter.get("foliage", 1.0)) == 0.0,
+		"ground: mid-February brings snow to the shore (line %.0f m) and bare birch" % float(winter.get("snow_line_m", -1.0)))
+	# (The globals themselves are the renderer's: the headless dummy keeps no
+	# values, so tests/test_terrain_material.py pins the single writer and the
+	# names, and the probe renders show them.)
+	env.set_season(182.0 / 365.0)
+	director.compose(0.0, true)
+	var summer: Dictionary = director.get_composed().duplicate()
+	_check(float(summer["snow_line_m"]) >= 1000.0 and float(summer["foliage"]) >= 0.99,
+		"ground: midsummer lifts the snow line above the summits (%.0f m) and leafs out the birch" % float(summer["snow_line_m"]))
+	env.set_season(270.0 / 365.0)
+	director.compose(0.0, true)
+	_check(float(director.get_composed()["autumn"]) > 0.4,
+		"ground: late September turns the birch yellow (%.2f)" % float(director.get_composed()["autumn"]))
+
+	# Weather: a snowfall lowers the line now, rain wets the ground.
+	env.set_season(320.0 / 365.0)
+	env.set_weather(WeatherController.WeatherState.SNOW)
+	director.compose(0.0, true)
+	var snowing: Dictionary = director.get_composed().duplicate()
+	_check(float(snowing["fresh_snow"]) > 0.0 and float(snowing["snow_line_m"]) < float(snowing["season_snow_line_m"]),
+		"ground: falling snow pulls the line down (%.0f m, season %.0f m)" % [float(snowing["snow_line_m"]), float(snowing["season_snow_line_m"])])
+	env.set_weather(WeatherController.WeatherState.RAIN)
+	director.compose(0.0, true)
+	_check(float(director.get_composed()["ground_wetness"]) > 0.3,
+		"ground: rain wets the ground (%.2f)" % float(director.get_composed()["ground_wetness"]))
+	env.set_weather(WeatherController.WeatherState.CLEAR)
+	director.compose(0.0, true)
+	_check(float(director.get_composed()["ground_wetness"]) < 0.05 and float(director.get_composed()["fresh_snow"]) < 0.05,
+		"ground: a clear sky leaves the ground dry and the line on the season's")
+
+	# The trees: every one inside the masks, on its ground.
+	var veg = terrain.vegetation
+	_check(veg != null and veg.call("is_ready") and int(veg.get("instance_count")) == terrain.tree_count and terrain.tree_count > 10000,
+		"vegetation: %d trees stand in %d cells" % [terrain.tree_count, (veg.get("cells_lod0") as Array).size() if veg != null else 0])
+	var outside := 0
+	var floating := 0
+	var steep := 0
+	var spruce_bad := 0
+	var checked := 0
+	# The scatter's own slope stencil: half a grid cell either side.
+	var e := terrain.terrain_size.x / float(terrain.terrain_resolution - 1) * 0.5
+	for cell: Dictionary in terrain.vegetation_chunks:
+		var buf: PackedFloat32Array = cell["buffer"]
+		var spruce := int(cell["species"]) == 0
+		for i in range(0, int(cell["count"]), 7):
+			var o := i * 16
+			var x := buf[o + 3]
+			var z := buf[o + 11]
+			var base := buf[o + 15]
+			var ground := terrain.get_height_at(x, z)
+			var slope := Vector2((terrain.get_height_at(x + e, z) - terrain.get_height_at(x - e, z)) / (2.0 * e),
+				(terrain.get_height_at(x, z + e) - terrain.get_height_at(x, z - e)) / (2.0 * e)).length()
+			checked += 1
+			if absf(base - ground) > 0.25 or buf[o + 7] > ground:
+				floating += 1
+			if base < 3.0 or base >= 550.0:
+				outside += 1
+			if slope >= 1.4291:
+				steep += 1
+			if spruce and (base >= 340.0 or slope >= 0.7823):
+				spruce_bad += 1
+	_check(checked > 1000 and outside == 0, "vegetation: no tree below the splash zone or above the treeline (%d checked)" % checked)
+	_check(steep == 0, "vegetation: no tree on a slope steeper than 55 degrees (%d)" % steep)
+	_check(spruce_bad == 0, "vegetation: spruce only low and on gentle ground (%d out)" % spruce_bad)
+	_check(floating == 0, "vegetation: every tree's base sits on, and its trunk sinks into, the ground (%d off)" % floating)
+
+	# The shore buildings: naust rows and a quay, on dry ground, doors to the water.
+	var props: Array = terrain.shore_props
+	var node: Node = terrain.shore_props_node
+	var naust := 0
+	var quays := 0
+	var facing_water := 0
+	for prop: Dictionary in props:
+		var pos: Vector3 = prop["position"]
+		var yaw := float(prop["yaw"])
+		var ahead := pos + Vector3(-sin(yaw), 0.0, -cos(yaw)) * 40.0
+		if terrain.get_height_at(ahead.x, ahead.z) < 0.0:
+			facing_water += 1
+		if int(prop["kind"]) == 0:
+			naust += 1
+		else:
+			quays += 1
+	_check(naust >= 2 and quays == 1 and facing_water == props.size(),
+		"shore: %d naust and %d quay stand facing the water (%d of %d)" % [naust, quays, facing_water, props.size()])
+	_check(node != null and node.get_child_count() == props.size(),
+		"shore: every building is in the scene (%d)" % (node.get_child_count() if node != null else -1))
+	scene.queue_free()
+	await get_tree().process_frame
+
+## G2-01 edge-of-world mask: the share of a 32x18 grid of screen rays below
+## the horizon whose first hit of the rendered surface (land within `extent`
+## of the origin, sea everywhere) is open water where the land goes on (the
+## far field is above the sea there): land cut off by the world's end. With
+## the far field's extent this is what the player sees; with the world's own
+## half-size it is the old 4 km island. Rays that meet nothing before the
+## camera's far plane are the haze band just under the horizon (the sea
+## there lies beyond 20 km, with or without a far field) and count for
+## neither side.
+func _edge_of_world_fraction(cam: Camera3D, terrain: FjordTerrain, extent: float) -> float:
+	var size := get_viewport().get_visible_rect().size
+	var below := 0
+	var edge := 0
+	for gy in 18:
+		for gx in 32:
+			var p := Vector2((gx + 0.5) / 32.0 * size.x, (gy + 0.5) / 18.0 * size.y)
+			var dir := cam.project_ray_normal(p)
+			if dir.y >= 0.0:
+				continue
+			var hit := _march_rendered_surface(cam.project_ray_origin(p), dir, terrain, extent, cam.far)
+			if not hit.is_finite():
+				continue
+			below += 1
+			if hit.y <= terrain.water_level + 0.01 and terrain.far_field_height_at(hit.x, hit.z) > terrain.water_level + 1.0:
+				edge += 1
+	return float(edge) / float(maxi(below, 1))
+
+## First point where a ray meets the rendered surface (land within `extent`
+## of the origin, the sea everywhere), or INF before `far` metres.
+func _march_rendered_surface(origin: Vector3, dir: Vector3, terrain: FjordTerrain, extent: float, far: float) -> Vector3:
+	var travelled := 0.0
+	var p := origin
+	while travelled < far:
+		var ground := terrain.water_level
+		if absf(p.x) <= extent and absf(p.z) <= extent:
+			ground = maxf(terrain.get_height_at(p.x, p.z), ground)
+		var gap := p.y - ground
+		if gap <= 0.5:
+			return Vector3(p.x, ground, p.z)
+		var step := clampf(gap * 0.5, 2.0, 400.0)
+		p += dir * step
+		travelled += step
+	return Vector3.INF

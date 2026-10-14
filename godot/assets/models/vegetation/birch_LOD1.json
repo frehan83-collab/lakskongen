@@ -1,0 +1,16 @@
+{
+  "asset": "birch",
+  "bbox_size": [
+    5.2946,
+    10.9457,
+    5.4704
+  ],
+  "blender_version": "5.2.2 LTS",
+  "file": "birch_LOD1.glb",
+  "lod": "LOD1",
+  "material_count": 1,
+  "materials": [
+    "LK_Tree"
+  ],
+  "tri_count": 26
+}

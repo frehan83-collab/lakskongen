@@ -11,8 +11,17 @@ extends Node3D
 ## server. Height queries made before the grid lands are answered by the
 ## generator's analytic height function, so pens and boat routes placed
 ## during the first frames sit on the same fjord.
+##
+## G2-01: a far field surrounds the 4 km world out to 16 km (the generator's
+## FarFieldHeightAt: the same fjord system continuing into a coast with
+## neighbouring fjords, inland massifs and islands): a ring of chunks drawn
+## with the terrain material, zipped to the heightfield's border so no seam
+## opens, uploaded after the world under the same frame budget. Height
+## queries outside the world answer from the far field.
 
 signal terrain_ready
+## The far-field ring is uploaded (it follows terrain_ready by a few frames).
+signal far_field_ready
 
 @export_group("Terrain Size")
 @export var terrain_size: Vector2 = Vector2(4000.0, 4000.0)
@@ -34,14 +43,17 @@ const TERRAIN_SHADER := "res://shaders/terrain_shader.gdshader"
 ## Main-thread time per frame for chunk uploads (a chunk costs 0.2-1 ms on an
 ## idle M1 Pro, more under load).
 const CHUNK_FRAME_BUDGET_MS := 4.0
-## Detail textures for the terrain shader (luminance and normal detail only).
+## G2-02: the terrain material's two Texture2DArrays (tools/gen_terrain_textures.py):
+## seven layers of albedo + height and of normal + roughness + AO.
 const DETAIL_TEXTURES := {
-	"rock_tex": "res://assets/textures/terrain_rock.png",
-	"rock_normal_tex": "res://assets/textures/terrain_rock_normal.png",
-	"moss_tex": "res://assets/textures/terrain_moss.png",
-	"moss_normal_tex": "res://assets/textures/terrain_moss_normal.png",
-	"snow_normal_tex": "res://assets/textures/terrain_snow_normal.png",
+	"albedo_height": "res://assets/textures/terrain/terrain_albedo_height.png",
+	"normal_rough_ao": "res://assets/textures/terrain/terrain_normal_rough_ao.png",
 }
+## Birch and spruce on the slopes (G2-02): MultiMesh cells built from the
+## same masks the shader paints the woods with.
+const VEGETATION_SCENE := "res://scenes/environment/Vegetation.tscn"
+## Naust boathouses and a quay on sheltered shore (G2-02, ShorePropPlacer).
+const SHORE_PROPS_SCENE := "res://scenes/environment/ShoreProps.tscn"
 
 ## Heightfield fingerprint (FNV-1a 64 over the height bits), set when built.
 var heightfield_hash: String = ""
@@ -62,16 +74,32 @@ var water_bake_texture: ImageTexture = null
 ## the direction (x, z) that sea travels.
 var sheltered_fetch_m: float = 3000.0
 var sea_direction: Vector2 = Vector2(0.3, 1.0).normalized()
+## G2-02: the trees as MultiMesh-ready cells (TerrainGeneratorBridge.VegetationChunks),
+## how many there are, and the mean treeline the masks used.
+var vegetation_chunks: Array = []
+var tree_count: int = 0
+var treeline_m: float = 500.0
+## The Vegetation node (scenes/environment/Vegetation.tscn), once the terrain is up.
+var vegetation: Node = null
+## G2-01: the far-field ring's chunks (a Node3D, once the upload starts) and
+## the far field's half-extent round the origin (m).
+var far_field: Node3D = null
+var far_field_extent: float = 0.0
+## Worker-thread time of the far field (part of last_generation_ms).
+var far_field_generation_ms: float = 0.0
+## Shore buildings from the build ({kind, position, yaw, variant}) and their node.
+var shore_props: Array = []
+var shore_props_node: Node = null
 
 var _generator: RefCounted = null
 var _heights := PackedFloat32Array()
 var _spacing: float = 0.0
 var _chunk_root: Node3D
 var _pending_chunks: Array = []
+var _pending_far: Array = []
 var _build_result: Dictionary = {}
 var _collision_shape: CollisionShape3D
 var _material: ShaderMaterial
-var _season: float = 0.5
 var _gen_thread: Thread = null
 var _water_bake_image: Image = null
 var _requested: Array[String] = []
@@ -148,6 +176,16 @@ func _apply_build(result: Dictionary) -> void:
 	max_upload_frame_ms = 0.0
 	upload_steps_ms = PackedFloat32Array()
 	_apply_water_bake(result)
+	vegetation_chunks = result.get("vegetation", [])
+	tree_count = int(result.get("tree_count", 0))
+	treeline_m = float(result.get("treeline_m", treeline_m))
+	shore_props = result.get("shore_props", [])
+	vegetation = null
+	shore_props_node = null
+	far_field = null
+	far_field_extent = float(result.get("far_field_extent", 0.0))
+	far_field_generation_ms = float(result.get("far_field_ms", 0.0))
+	_pending_far = (result.get("far_field", []) as Array).duplicate()
 
 	for child in get_children():
 		child.queue_free()
@@ -164,8 +202,11 @@ func _apply_build(result: Dictionary) -> void:
 ## no frame spends more than CHUNK_FRAME_BUDGET_MS on the terrain. The
 ## collider goes in once every chunk is up, then terrain_ready fires.
 func _process(_delta: float) -> void:
-	if _pending_chunks.is_empty():
+	if _pending_chunks.is_empty() and _pending_far.is_empty():
 		set_process(false)
+		return
+	if _pending_chunks.is_empty():
+		_upload_far_field()
 		return
 	# The material waits for the loader threads instead of blocking on them.
 	if _material == null:
@@ -186,11 +227,69 @@ func _process(_delta: float) -> void:
 		_add_collider()
 		_note_upload_frame(collider_started)
 		_build_result = {}
-		set_process(false)
-		print("[FjordTerrain] %dx%d fjord, %.1f m grid, hash %s (worker %.0f ms, main-thread steps %s ms)" % [
-			terrain_resolution, terrain_resolution, _spacing, heightfield_hash, last_generation_ms,
+		set_process(not _pending_far.is_empty())
+		print("[FjordTerrain] %dx%d fjord, %.1f m grid, hash %s, %d trees (worker %.0f ms, main-thread steps %s ms)" % [
+			terrain_resolution, terrain_resolution, _spacing, heightfield_hash, tree_count, last_generation_ms,
 			", ".join(Array(upload_steps_ms).map(func(ms: float) -> String: return "%.1f" % ms))])
+		_add_vegetation()
+		_add_shore_props()
 		terrain_ready.emit()
+
+
+## G2-01: the far-field chunks go up after the world, a few per frame under
+## the same budget. The band next to the world casts shadows (its mountains
+## can shade the fjord in a low sun); the outer bands lie past every shadow
+## distance.
+func _upload_far_field() -> void:
+	if far_field == null:
+		far_field = Node3D.new()
+		far_field.name = "FarField"
+		add_child(far_field)
+	var started := Time.get_ticks_usec()
+	while not _pending_far.is_empty():
+		var chunk: Dictionary = _pending_far.pop_front()
+		var instance := _chunk_instance(chunk, "Far_%d_%d" % [int(chunk["first_column"]), int(chunk["first_row"])])
+		if int(chunk.get("band", 0)) > 0:
+			instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		far_field.add_child(instance)
+		if Time.get_ticks_usec() - started > CHUNK_FRAME_BUDGET_MS * 1000.0:
+			break
+	_note_upload_frame(started)
+	if _pending_far.is_empty():
+		set_process(false)
+		print("[FjordTerrain] far field: %d chunks to %.0f km (worker %.0f ms)" % [far_field.get_child_count(), far_field_extent / 1000.0, far_field_generation_ms])
+		far_field_ready.emit()
+
+
+## True once the far-field ring is in place.
+func is_far_field_ready() -> bool:
+	return far_field != null and _pending_far.is_empty()
+
+
+## The shore buildings go up with the trees (a handful of instances).
+func _add_shore_props() -> void:
+	if shore_props.is_empty() or not ResourceLoader.exists(SHORE_PROPS_SCENE):
+		return
+	var scene := load(SHORE_PROPS_SCENE) as PackedScene
+	if scene == null:
+		return
+	shore_props_node = scene.instantiate()
+	shore_props_node.name = "ShoreProps"
+	add_child(shore_props_node)
+	shore_props_node.call("build", shore_props)
+
+
+## The trees go up after the terrain, a few cells per frame (Vegetation.gd).
+func _add_vegetation() -> void:
+	if vegetation_chunks.is_empty() or not ResourceLoader.exists(VEGETATION_SCENE):
+		return
+	var scene := load(VEGETATION_SCENE) as PackedScene
+	if scene == null:
+		return
+	vegetation = scene.instantiate()
+	vegetation.name = "Vegetation"
+	add_child(vegetation)
+	vegetation.call("build", vegetation_chunks)
 
 
 func _apply_water_bake(result: Dictionary) -> void:
@@ -233,6 +332,10 @@ func _note_upload_frame(started_usec: int) -> void:
 
 
 func _add_chunk(chunk: Dictionary) -> void:
+	_chunk_root.add_child(_chunk_instance(chunk, "Chunk_%d_%d" % [int(chunk["first_column"]), int(chunk["first_row"])]))
+
+
+func _chunk_instance(chunk: Dictionary, instance_name: String) -> MeshInstance3D:
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = chunk["vertices"]
@@ -244,11 +347,11 @@ func _add_chunk(chunk: Dictionary) -> void:
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	var instance := MeshInstance3D.new()
-	instance.name = "Chunk_%d_%d" % [int(chunk["first_column"]), int(chunk["first_row"])]
+	instance.name = instance_name
 	instance.mesh = mesh
 	instance.material_override = _material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-	_chunk_root.add_child(instance)
+	return instance
 
 
 ## HeightMapShape3D spaces its samples 1 unit apart, centred on the origin:
@@ -287,10 +390,10 @@ func _create_terrain_material() -> Material:
 	_material = ShaderMaterial.new()
 	_material.shader = shader
 	_material.set_shader_parameter("water_level", water_level)
-	_material.set_shader_parameter("season", _season)
+	_material.set_shader_parameter("treeline_m", treeline_m)
 	var missing: Array[String] = []
 	for uniform_name in DETAIL_TEXTURES:
-		var texture := _take_resource(DETAIL_TEXTURES[uniform_name]) as Texture2D
+		var texture := _take_resource(DETAIL_TEXTURES[uniform_name]) as Texture
 		if texture == null:
 			missing.append(DETAIL_TEXTURES[uniform_name])
 			continue
@@ -331,17 +434,17 @@ func _take_resource(path: String) -> Resource:
 	return load(path)
 
 
-## Season for the terrain material (0 = winter, 0.5 = summer); kept until
-## the material exists.
-func set_season(s: float) -> void:
-	_season = s
-	if _material != null:
-		_material.set_shader_parameter("season", s)
+## The terrain's ShaderMaterial (null until the textures have loaded).
+func get_material() -> ShaderMaterial:
+	return _material
 
 
 ## Terrain height in metres at a world position: bilinear over the built
-## grid, or the generator's analytic height before the grid exists.
+## grid, or the generator's analytic height before the grid exists; outside
+## the world, the far field's (G2-01).
 func get_height_at(world_x: float, world_z: float) -> float:
+	if absf(world_x) > terrain_size.x * 0.5 or absf(world_z) > terrain_size.y * 0.5:
+		return far_field_height_at(world_x, world_z)
 	if _heights.is_empty():
 		if _generator == null and not _ensure_generator():
 			return 0.0
@@ -358,6 +461,37 @@ func get_height_at(world_x: float, world_z: float) -> float:
 	var h01 := _heights[(iz + 1) * size + ix]
 	var h11 := _heights[(iz + 1) * size + ix + 1]
 	return lerpf(lerpf(h00, h10, tx), lerpf(h01, h11, tx), tz)
+
+
+## Height (m) at any world position out to the far field: the world's own
+## inside it (analytic), the region beyond it.
+func far_field_height_at(world_x: float, world_z: float) -> float:
+	if _generator == null and not _ensure_generator():
+		return 0.0
+	return float(_generator.call("FarFieldHeightAt", world_x, world_z))
+
+
+## Half-extent (m) of the far field round the origin (known before the build).
+func far_field_half_extent() -> float:
+	if far_field_extent <= 0.0 and (_generator != null or _ensure_generator()):
+		far_field_extent = float(_generator.call("FarFieldExtent"))
+	return far_field_extent
+
+
+## The land pads reserved for land-based farms (farm-types spec §4): an Array
+## of {id, name, centre, size, lots, quay, intake_reach_m}.
+func land_pad_slots() -> Array:
+	if _generator == null and not _ensure_generator():
+		return []
+	return _generator.call("LandPadSlots")
+
+
+## The open-sea slots reserved for offshore units (spec §4): an Array of
+## {id, name, position, exposure, water_depth_m}.
+func offshore_slots() -> Array:
+	if _generator == null and not _ensure_generator():
+		return []
+	return _generator.call("OffshoreSlots")
 
 
 ## World X of the fjord channel's centreline at world Z.

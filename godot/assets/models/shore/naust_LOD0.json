@@ -1,0 +1,19 @@
+{
+  "asset": "naust",
+  "bbox_size": [
+    5.8,
+    7.22,
+    9.6
+  ],
+  "blender_version": "5.2.2 LTS",
+  "file": "naust_LOD0.glb",
+  "lod": "LOD0",
+  "material_count": 4,
+  "materials": [
+    "LK_DoorDark",
+    "LK_DryStone",
+    "LK_NaustWall",
+    "LK_Slate"
+  ],
+  "tri_count": 38
+}
