@@ -158,7 +158,7 @@ UI_SAVELOAD_DAY_FORMAT,Day %s,Dag %s
 UI_SAVELOAD_LOAD_BUTTON,Load,Last
 UI_SAVELOAD_SAVE_BUTTON,Save,Lagre
 UI_TUTORIAL_STEP_FORMAT,Step %d / %d,Steg %d / %d
-UI_TUTORIAL_STEP_COMPLETE,Step %d complete! Reward: %s,Steg %d fullført! Belønning: %s
+UI_TUTORIAL_STEP_COMPLETE,Step %d complete: %s,Steg %d fullført: %s
 UI_TUTORIAL_COMPLETED,Tutorial completed,Tutorial fullført
 UI_TUTORIAL_HINT_NEXT,Explore all features and grow your empire!,Utforsk alle funksjoner og voks imperiet ditt!
 UI_TUTORIAL_SKIP_CONFIRM,Are you sure you want to skip the tutorial?,Er du sikker på at du vil hoppe over tutorial?
@@ -259,7 +259,10 @@ TIP_CONTRACT_DECLINE,Reject offer,Avslå tilbud
 TIP_TRAFFIC_GREEN,6% growth allowed,6% vekst tillatt
 TIP_TRAFFIC_YELLOW,No growth change,Ingen vekstendring
 TIP_TRAFFIC_RED,6% reduction required,6% reduksjon påkrevd
-UI_ACHIEVEMENT_REWARD_FORMAT,Reward: %s,Belønning: %s
+UI_MEDAL_BRONZE,Bronze medal,Bronsemedalje
+UI_MEDAL_SILVER,Silver medal,Sølvmedalje
+UI_MEDAL_GOLD,Gold medal,Gullmedalje
+UI_MEDAL_PLATINUM,Platinum medal,Platinamedalje
 UI_ACHIEVEMENT_UNLOCKED,Achievement unlocked,Prestasjon låst opp
 UI_ANALYTICS_TITLE,Analytics,Analyse
 UI_ANALYTICS_TITLE_TOOLTIP,Farm performance analytics,Analyse av oppdrettsytelse
@@ -560,3 +563,10 @@ UI_NOTIFY_CLEAR_ALL,Clear,Tøm
 UI_NOTIFY_GROUP_CRITICAL,Critical,Kritisk
 UI_NOTIFY_GROUP_WARNING,Warning,Advarsel
 UI_NOTIFY_GROUP_INFO,Info,Info
+UI_SOLVENCY_OVERDRAFT,Overdrawn account,Overtrukket konto
+UI_SOLVENCY_BANK_WARNING,Bank warning,Bankvarsel
+UI_SOLVENCY_FINAL_WARNING,Final warning from the bank,Siste varsel fra banken
+UI_SOLVENCY_DESC,Cash %s. Bankruptcy below %s.,Kontanter %s. Konkurs under %s.
+UI_ATTENTION_SOLVENCY_DESC,Cash {0} NOK. Bankruptcy below {1} NOK.,Kontanter {0} NOK. Konkurs under {1} NOK.
+GAME_OVER_BANKRUPTCY,Bankruptcy: cash fell below the bankruptcy floor and the bank called in its credit.,Konkurs: kontantbeholdningen passerte konkursgrensen og banken sa opp kreditten.
+UI_GAME_OVER_FORMAT,Game over: %s,Spillet er over: %s

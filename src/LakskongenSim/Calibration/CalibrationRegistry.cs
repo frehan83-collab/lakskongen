@@ -39,7 +39,7 @@ namespace LakskongenSim.Calibration
         public const string EmbeddedResourceName = "LakskongenSim.Calibration.calibration.json";
 
         /// <summary>Current schema/balancing version. Bump when reconciled values change.</summary>
-        public const string DefaultVersion = "1.0.4";
+        public const string DefaultVersion = "1.0.5";
 
         /// <summary>Calibration schema/balancing version.</summary>
         [JsonPropertyName("version")]
@@ -303,6 +303,41 @@ namespace LakskongenSim.Calibration
         public double ResourceRentTaxRate { get; init; } = 0.25;
         /// <summary>Basic deduction before resource rent applies (NOK).</summary>
         public decimal ResourceRentBasicDeductionNOK { get; init; } = 70_000_000m;
+
+        /// <summary>
+        /// Bankruptcy floor (NOK, negative): the game ends when cash falls below
+        /// it (owner decision D16, S1-03). The default is the floor the game
+        /// has always enforced (-1M); a scenario can carry its own below.
+        /// </summary>
+        public decimal BankruptcyFloorNOK { get; init; } = -1_000_000m;
+
+        /// <summary>
+        /// Per-scenario bankruptcy floors (scenario id → NOK): the scenario's
+        /// working-capital facility with its bank, like a real farmer's
+        /// biomass-backed revolving credit. Each is 1.25 × the deepest cash
+        /// trough of a harvest-only player on the scenario's starting stock
+        /// (ten seeds, events on), rounded out to the next 0.5M NOK
+        /// (docs/BALANCE.md §1e). A player who keeps the starting fish alive
+        /// reaches the first harvest; one who loses them, or stocks more than
+        /// the facility carries without borrowing, does not. Scenarios whose
+        /// trough stays above the default floor are not listed.
+        /// </summary>
+        public IReadOnlyDictionary<string, decimal> BankruptcyFloorByScenarioNOK { get; init; }
+            = new Dictionary<string, decimal>
+            {
+                ["algekatastrofe"] = -26_500_000m,
+                ["isa_utbrudd"] = -24_000_000m,
+                ["krise_manager"] = -4_500_000m,
+                ["lofoten_eventyr"] = -2_000_000m,
+                ["po3_red_sone"] = -15_000_000m,
+            };
+
+        /// <summary>
+        /// Warning ladder before bankruptcy, as fractions of the floor: cash
+        /// below floor × f[i] raises warning level i + 1 (overdraft at 0,
+        /// bank warning at 0.5, final warning at 0.8). Ascending, in [0, 1).
+        /// </summary>
+        public IReadOnlyList<double> SolvencyWarningFractions { get; init; } = new[] { 0.0, 0.5, 0.8 };
     }
 
     /// <summary>Licensing constants.</summary>

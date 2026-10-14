@@ -412,13 +412,58 @@ namespace LakskongenSim.Tests
 
         #region Water Quality (DO & Stocking Density) Tests
 
+        /// <summary>
+        /// Roadmap D2 (S1-01) fixed the seawater solubility: the old band
+        /// (10.5-12.0 mg/L at 10 °C, 35 PSU) held the freshwater value 11.3 that
+        /// the table carried. Seawater at 10 °C and 35 PSU holds 9.02 mg/L
+        /// (Weiss 1970; Garcia &amp; Gordon 1992); the band is now ±0.05.
+        /// </summary>
         [Fact]
         public void CalculateOxygenSaturation_At10C_ReturnsExpectedValue()
         {
-            var model = new SDEGrowthModel(TestSeed);
             double sat = WaterQuality.CalculateOxygenSaturation(10.0);
-            // At 10°C, 35 PSU, saturation should be ~11.3 mg/L
-            Assert.InRange(sat, 10.5, 12.0);
+            Assert.InRange(sat, 8.97, 9.07);
+        }
+
+        /// <summary>
+        /// The solubility against an independent fit: Garcia &amp; Gordon (1992),
+        /// "combined fit" coefficients for mL/L (Benson-Krause data), times
+        /// 1.42903 mg/mL. A different functional form from the engine's APHA
+        /// equation, so a coefficient typo in either shows up here.
+        /// </summary>
+        [Theory]
+        [InlineData(0.0, 0.0)]
+        [InlineData(10.0, 0.0)]
+        [InlineData(20.0, 0.0)]
+        [InlineData(2.0, 33.0)]
+        [InlineData(6.0, 34.0)]
+        [InlineData(10.0, 35.0)]
+        [InlineData(14.0, 35.0)]
+        [InlineData(18.0, 35.0)]
+        [InlineData(24.0, 35.0)]
+        public void CalculateOxygenSaturation_MatchesGarciaGordonSeawaterSolubility(double temperatureC, double salinityPsu)
+        {
+            double ts = Math.Log((298.15 - temperatureC) / (273.15 + temperatureC));
+            double[] a = { 2.00907, 3.22014, 4.05010, 4.94457, -0.256847, 3.88767 };
+            double[] b = { -6.24523e-3, -7.37614e-3, -1.03410e-2, -8.17083e-3 };
+            double ln = 0.0, salt = 0.0;
+            for (int i = 0; i < a.Length; i++) ln += a[i] * Math.Pow(ts, i);
+            for (int i = 0; i < b.Length; i++) salt += b[i] * Math.Pow(ts, i);
+            double expectedMgL = Math.Exp(ln + salinityPsu * salt - 4.88682e-7 * salinityPsu * salinityPsu) * 1.42903;
+
+            Assert.Equal(expectedMgL, WaterQuality.CalculateOxygenSaturation(temperatureC, salinityPsu), 2);
+        }
+
+        [Fact]
+        public void CalculateOxygenSaturation_ReferenceValues_FreshAndSeawater()
+        {
+            // Freshwater, 1 atm (USGS DOTABLES / APHA 4500-O): 14.62, 11.29, 9.09 mg/L.
+            Assert.Equal(14.62, WaterQuality.CalculateOxygenSaturation(0.0, 0.0), 2);
+            Assert.Equal(11.29, WaterQuality.CalculateOxygenSaturation(10.0, 0.0), 2);
+            Assert.Equal(9.09, WaterQuality.CalculateOxygenSaturation(20.0, 0.0), 2);
+            // Seawater at 35 PSU holds about a fifth less than freshwater.
+            double ratio = WaterQuality.CalculateOxygenSaturation(10.0, 35.0) / WaterQuality.CalculateOxygenSaturation(10.0, 0.0);
+            Assert.InRange(ratio, 0.79, 0.81);
         }
 
         [Fact]

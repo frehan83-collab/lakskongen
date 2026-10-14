@@ -49,9 +49,10 @@ namespace LakskongenSim.Core
             // Run state that lives on the engine rather than in GameState (F292).
             PenPriceCouncil = new Market.PriceCouncil(DefaultPenPriceNokPerKg);
             ResourceRentPaid = 0m;
-            EnableResourceRentTax = false;
+            EnableResourceRentTax = true;   // D16: on by default
             StormEscapeEvents = 0.0;
             _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
+            _stormEpisodePeakSeverity = 0.0;
             Time.Reset();
         }
 
@@ -73,8 +74,13 @@ namespace LakskongenSim.Core
         /// <summary>P9: binding monthly pen price set by the Price Council.</summary>
         public Market.PriceCouncil PenPriceCouncil { get; private set; } = new(DefaultPenPriceNokPerKg);
         private const decimal DefaultPenPriceNokPerKg = 82m;
-        /// <summary>P9: when true, the 25% resource-rent tax is charged (opt-in per scenario).</summary>
-        public bool EnableResourceRentTax { get; set; } = false;
+        /// <summary>
+        /// P9: when true, the 25% resource-rent tax is charged at the year-end
+        /// settlement. On by default (owner decision D16, S1-03): the 70M NOK
+        /// basic deduction shields family farms, so only large operations pay.
+        /// A scenario can opt out (enable_resource_rent_tax=false).
+        /// </summary>
+        public bool EnableResourceRentTax { get; set; } = true;
         /// <summary>P9: cumulative resource-rent tax paid. Settable so save/load
         /// restore can rehydrate the running total exactly (additive).</summary>
         public decimal ResourceRentPaid { get; set; } = 0m;
@@ -179,7 +185,15 @@ namespace LakskongenSim.Core
         // stock per site per year; see docs/BALANCE.md §1c and the 0.5% guard.
         private const double StormIntegrityLossPctPerDay = 0.3;
         private const double SevereIntegrityLossPctPerDay = 1.0;
-        private const double NetIntegrityRepairPctPerDay = 0.2;
+        /// <summary>
+        /// Routine net maintenance on a non-storm day. Re-fit with S1-02 (0.2 -> 0.5):
+        /// the 0.2 was fitted to a weather chain that never reached Severe in
+        /// Oct-Mar (F456). The honest chain wears nets ~57% more per year
+        /// (~74 vs ~47 integrity points), and at 0.2 maintained nets fell below
+        /// the 40% risk line within two years (escapes 173% of stock/site/year).
+        /// 0.5 restores the measured maintained-net outcome of BALANCE.md §1c.
+        /// </summary>
+        private const double NetIntegrityRepairPctPerDay = 0.5;
         /// <summary>Expected containment-failure probability on a severe-storm day.</summary>
         private const double StormFailureProbabilityPerSevereDay = 0.01;
         /// <summary>Fraction of the pen released by one containment failure at full wear.</summary>
@@ -219,6 +233,18 @@ namespace LakskongenSim.Core
 
         // Storm-impact edge tracking (moved from the bridge, Phase 1 wave 2).
         private LakskongenSim.Environment.WeatherState _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
+        /// <summary>Highest storm severity reached in the running episode (0 between episodes; saved).</summary>
+        private double _stormEpisodePeakSeverity;
+        private const double StormEpisodeSeverity = 0.5;
+        private const double SevereEpisodeSeverity = 1.0;
+
+        /// <summary>Damage severity of a weather state: Severe 1, Storm 0.5, otherwise 0.</summary>
+        internal static double StormSeverity(LakskongenSim.Environment.WeatherState state) => state switch
+        {
+            LakskongenSim.Environment.WeatherState.Severe => SevereEpisodeSeverity,
+            LakskongenSim.Environment.WeatherState.Storm => StormEpisodeSeverity,
+            _ => 0.0
+        };
 
         // ─── Events ───
         public event Action<int>? OnDayAdvanced;
@@ -246,6 +272,10 @@ namespace LakskongenSim.Core
             Reset();
             _enableEvents = enableEvents;
             Rng = seed.HasValue ? new SimRng(seed.Value) : SimRng.CreateUnseeded();
+            // P0-07: the state carries the seed its streams derive from, so a
+            // save of ANY game (also one started without a seed) resumes on
+            // the same streams. Callers no longer have to remember to set it.
+            State.RandomSeed = Rng.Seed;
             _rng = Rng.Stream(SimRngStreams.Storyteller, "engine");
             
             // Create subsystems
@@ -415,9 +445,9 @@ namespace LakskongenSim.Core
             Audio = new AudioManager(Weather);
 
             // Achievement system — initialized after State so conditions have full context
-            Achievements = new AchievementSystem(State, FinanceManager);
+            Achievements = new AchievementSystem(State);
+            // D16 (S1-03): achievements award medals, never cash.
             Achievements.OnAchievementUnlocked += a => OnAchievementUnlocked?.Invoke(a);
-            Achievements.OnRewardPaid += reward => BookSettledCash(reward, "achievements");
 
             // Research / Tech Tree — restore persisted state from GameState
             Research = new ResearchSystem();
@@ -1287,6 +1317,9 @@ private class BalancingConfig
                 MaxLoanMultiplier = c.Finance.MaxLoanMultiplier,
                 CorporateTaxRate = c.Finance.CorporateTaxRate,
                 ResourceRentTaxRate = c.Finance.ResourceRentTaxRate,
+                BankruptcyFloorNOK = c.Finance.BankruptcyFloorNOK,
+                BankruptcyFloorByScenarioNOK = new Dictionary<string, decimal>(c.Finance.BankruptcyFloorByScenarioNOK),
+                SolvencyWarningFractions = c.Finance.SolvencyWarningFractions.ToArray(),
 
                 // Licensing
                 LicenseCostNOK = c.Licensing.LicenseCostNOK,
@@ -1382,6 +1415,12 @@ private class BalancingConfig
             public double MaxLoanMultiplier { get; set; } = 3.5; // ↑ from 3.0
             public double CorporateTaxRate { get; set; } = 0.22;
             public double ResourceRentTaxRate { get; set; } = 0.25;
+            /// <summary>Default bankruptcy floor (NOK); see FinanceCalibration.BankruptcyFloorNOK.</summary>
+            public decimal BankruptcyFloorNOK { get; set; } = -1_000_000m;
+            /// <summary>Per-scenario bankruptcy floors (D16); see FinanceCalibration.</summary>
+            public Dictionary<string, decimal> BankruptcyFloorByScenarioNOK { get; set; } = new();
+            /// <summary>Warning ladder as fractions of the floor (ascending).</summary>
+            public double[] SolvencyWarningFractions { get; set; } = { 0.0, 0.5, 0.8 };
 
             // ─── Licensing ───
             public decimal LicenseCostNOK { get; set; } = 150_000_000;
@@ -1488,7 +1527,8 @@ private class BalancingConfig
             new StormImpactsTickSystem(),
             new WellboatExecutionTickSystem(),
             new LicenseAuctionTickSystem(),
-            new BalanceMirrorTickSystem()
+            new BalanceMirrorTickSystem(),
+            new SolvencyTickSystem()
         };
 
         // ─── Per-advance note ledger ─────────────────────────────────────────
@@ -1785,28 +1825,36 @@ private class BalancingConfig
         /// Storm episode impacts + temperature stress, moved from the GameBridge
         /// (Phase 1 wave 2) and now a first-class POST-TICK phase via
         /// StormImpactsTickSystem (wave 3). Storm mortality, repair bill and
-        /// insurance settlement fire on the TRANSITION into Storm/Severe
-        /// (edge-triggered, as the bridge did); temperature stress applies
-        /// daily. Gated by _enableEvents like the other event hazards, so
-        /// event-off probes keep their band models.
+        /// insurance settlement fire once per storm EPISODE (S1-02): when an
+        /// episode starts, at the severity it starts with, and again only when
+        /// it escalates past its peak (Storm then Severe: the extra half). The
+        /// old edge rule fired on every Storm/Severe flip inside one episode;
+        /// with Severe reachable in winter (F456) that counted 81 "onsets" a
+        /// year for 46 episodes. Temperature stress applies daily. Gated by
+        /// _enableEvents like the other event hazards, so event-off probes keep
+        /// their band models.
         /// </summary>
         internal void ApplyStormAndTemperatureImpacts()
         {
             if (!_enableEvents || Weather == null)
             {
                 _lastWeatherState = Weather?.CurrentState ?? LakskongenSim.Environment.WeatherState.Calm;
+                _stormEpisodePeakSeverity = StormSeverity(_lastWeatherState);
                 return;
             }
 
             var currentWeather = Weather.CurrentState;
-            double severity = 0.0;
+            double currentSeverity = StormSeverity(currentWeather);
+            double severity = 0.0; // damage charged today
             string weatherDesc = "";
+            if (currentSeverity > _stormEpisodePeakSeverity)
+                severity = currentSeverity - _stormEpisodePeakSeverity;
+            _stormEpisodePeakSeverity = currentSeverity > 0.0
+                ? Math.Max(_stormEpisodePeakSeverity, currentSeverity)
+                : 0.0;
 
-            if (currentWeather != _lastWeatherState &&
-                (currentWeather == LakskongenSim.Environment.WeatherState.Storm ||
-                 currentWeather == LakskongenSim.Environment.WeatherState.Severe))
+            if (severity > 0.0)
             {
-                severity = currentWeather == LakskongenSim.Environment.WeatherState.Severe ? 1.0 : 0.5;
 
                 // Storm stress mortality (roekter halves losses). Iterate each
                 // site's own pens: populations are ZoneId-tagged, State-wide
@@ -3282,6 +3330,7 @@ private class BalancingConfig
             var runtime = new EngineRuntimeSnapshot
             {
                 WeatherEdgeState = _lastWeatherState.ToString(),
+                StormEpisodePeakSeverity = _stormEpisodePeakSeverity,
                 EventsEnabled = _enableEvents
             };
             var clocks = new List<int>(_inDayPhases.Length);
@@ -3562,7 +3611,11 @@ private class BalancingConfig
 
             // 5. CrisisCapitalism — active crises and the listings they put on the
             // market (expired ones drop naturally). Listings were never saved, so
-            // a load emptied the market.
+            // a load emptied the market. The listings are filtered by the
+            // calendar, exactly like RestoreAsset and the bridge: the weekly
+            // countdown lags, so a listing that closed today (ExpiresOnDay ==
+            // Day) used to be saved, dropped on load, and the resumed career
+            // diverged from the uninterrupted one (S1-01).
             if (CrisisCapitalism != null)
             {
                 State.ActiveCrises = CrisisCapitalism.GetActiveCrises(State.Day)
@@ -3577,7 +3630,7 @@ private class BalancingConfig
                         DurationMonths = c.DurationMonths,
                         StartDay = c.StartDay
                     }).ToList();
-                State.DistressedAssets = CrisisCapitalism.GetAllAvailableDistressedAssets()
+                State.DistressedAssets = CrisisCapitalism.GetAllAvailableDistressedAssets(State.Day)
                     .Select(a => new DistressedAssetState
                     {
                         Id = a.Id,
@@ -3792,6 +3845,9 @@ private class BalancingConfig
                 _lastWeatherState = edgeOk
                     ? edge
                     : Weather?.CurrentState ?? LakskongenSim.Environment.WeatherState.Calm;
+                // Saves from before S1-02 carry no episode peak: a running
+                // episode is taken to have peaked at its last state.
+                _stormEpisodePeakSeverity = runtime.StormEpisodePeakSeverity ?? StormSeverity(_lastWeatherState);
 
                 // Independent of the clock restore: length mismatches must
                 // never silently drop the events gating either.
@@ -3850,6 +3906,7 @@ private class BalancingConfig
             {
                 _lastWeatherState = Weather?.CurrentState
                     ?? LakskongenSim.Environment.WeatherState.Calm;
+                _stormEpisodePeakSeverity = StormSeverity(_lastWeatherState);
             }
 
             SimLog.Info($"✅ Restored from save: Balance={FinanceManager.Balance:N0} NOK, {loadedState.Populations.Count} populations, Day {loadedState.Day}");

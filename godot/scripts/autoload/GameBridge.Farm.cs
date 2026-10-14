@@ -503,19 +503,24 @@ public partial class GameBridge : Node
             }
         }
 
-        // 3. Financial alerts
+        // 3. Financial alerts: the bankruptcy warning ladder (S1-03) names the
+        // rung, today's cash and the scenario's floor.
         if (engine.FinanceManager != null)
         {
             decimal balance = engine.FinanceManager.Balance;
-            if (balance < 0)
+            int rung = engine.SolvencyWarningLevel;
+            if (balance < 0 && rung > 0)
             {
+                string key = LakskongenSim.Core.SimulationEngine.SolvencyWarningKeys[rung - 1].ToUpperInvariant();
                 result.Add(new Godot.Collections.Dictionary
                 {
                     ["type"] = "finance_critical",
-                    ["priority"] = "critical",
+                    ["priority"] = rung >= 2 ? "critical" : "high",
                     ["category"] = "finance",
-                    ["title"] = _tr_or("UI_ATTENTION_NEGATIVE_BALANCE", "Negative Balance"),
-                    ["description"] = string.Format(_tr_or("UI_ATTENTION_NEGATIVE_BALANCE_DESC", "Company balance is negative: {0} NOK"), balance.ToString("N0")),
+                    ["title"] = _tr_or("UI_" + key, "Negative Balance"),
+                    ["description"] = string.Format(_tr_or("UI_ATTENTION_SOLVENCY_DESC", "Cash {0} NOK. Bankruptcy below {1} NOK."),
+                        balance.ToString("N0"), engine.BankruptcyFloorNok.ToString("N0")),
+                    ["delta_nok"] = (double)(balance - engine.BankruptcyFloorNok),
                     ["callback"] = "open_finance_panel"
                 });
             }

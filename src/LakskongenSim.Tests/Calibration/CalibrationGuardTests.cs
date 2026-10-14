@@ -97,6 +97,31 @@ namespace LakskongenSim.Tests.Calibration
             Assert.InRange(C.Finance.LoanInterestRate, 0.03, 0.08);
         }
 
+        /// <summary>
+        /// S1-03 (D16): the bankruptcy floors and the warning ladder. Floors are
+        /// negative; a scenario floor lies below the default (it is the
+        /// scenario's working-capital facility); the ladder has three rungs,
+        /// ascending in [0, 1), the first at zero cash (overdraft).
+        /// </summary>
+        [Fact]
+        public void Finance_BankruptcyFloorsAndWarningLadder_AreWellFormed()
+        {
+            Assert.InRange(C.Finance.BankruptcyFloorNOK, -5_000_000m, -100_000m);
+            Assert.NotEmpty(C.Finance.BankruptcyFloorByScenarioNOK);
+            var roster = new LakskongenSim.Core.ScenarioSystem(new LakskongenSim.Core.GameState());
+            foreach (var entry in C.Finance.BankruptcyFloorByScenarioNOK)
+            {
+                Assert.NotNull(roster.GetScenario(entry.Key));
+                Assert.True(entry.Value < C.Finance.BankruptcyFloorNOK, $"{entry.Key}: {entry.Value:N0}");
+                Assert.Equal(0m, entry.Value % 500_000m);
+            }
+            var ladder = C.Finance.SolvencyWarningFractions;
+            Assert.Equal(3, ladder.Count);
+            Assert.Equal(0.0, ladder[0]);
+            for (int i = 1; i < ladder.Count; i++)
+                Assert.True(ladder[i] > ladder[i - 1] && ladder[i] < 1.0, $"rung {i + 1}: {ladder[i]}");
+        }
+
         [Fact]
         public void Licensing_MatchesRealReferences()
         {

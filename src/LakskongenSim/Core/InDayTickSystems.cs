@@ -41,8 +41,15 @@ namespace LakskongenSim.Core;
             // keeps its own zone list, so mirror the live zones first —
             // otherwise water chemistry never advances.
             engine.Environment.SyncZones(engine.State.Zones);
+            // The zone water takes today's sea temperature before its chemistry
+            // runs: oxygen solubility, the Q10 rates and the plankton bloom's
+            // temperature factor read it. Nothing ever set it, so every zone sat
+            // at its constructor's 10 °C all year while growth and feeding used
+            // the sea temperature (S1-01). One sea temperature for all zones
+            // until S2-02 gives each production area its own climatology.
+            for (int zi = 0; zi < engine.State.Zones.Count; zi++)
+                engine.State.Zones[zi].TakeSeaTemperature(temperature);
             engine.Environment.AdvanceDays(1);
-            // NOTE: Do NOT override zone temperatures here — zones maintain their own temperatures
             // zone.AdvanceDays(1) is already called by engine.Environment.AdvanceDays(1)
 
             // Plankton bloom dynamics (depends on updated zone conditions)

@@ -573,14 +573,18 @@ public partial class SimulationEngine
                 $"Insufficient funds: need {hire:N0} NOK for the wellboat hire");
 
         PayCost(hire, CostBooking.Opex, "wellboat");
-        State.WellboatJobs.Add(new Logistics.WellboatJob
+        State.WellboatJobsBooked++;
+        var job = new Logistics.WellboatJob
         {
             SiteId = siteId,
             Kind = kind,
             Method = method,
+            BookedDay = State.Day,
+            Sequence = State.WellboatJobsBooked,
             DueDay = State.Day + delay,
             HireCost = hire
-        });
+        };
+        State.WellboatJobs.Add(job);
 
         State.EventLog.Add(new EventRecord
         {
@@ -614,7 +618,9 @@ public partial class SimulationEngine
     {
         // Restore day counter and persistent collections.
         State.Day = snapshot.Day;
-        State.RandomSeed = snapshot.RandomSeed;
+        // A legacy save without a seed (0) keeps the seed this engine was
+        // initialized with, so the next save of the game records it (P0-07).
+        State.RandomSeed = snapshot.RandomSeed != 0 ? snapshot.RandomSeed : Rng.Seed;
         // Ownership flags (were dropped on load; restored here incl. VAP tier).
         State.OwnsHatchery = snapshot.OwnsHatchery;
         State.OwnsFeedMill = snapshot.OwnsFeedMill;
@@ -710,6 +716,9 @@ public partial class SimulationEngine
         if (snapshot.WellboatJobs != null)
             foreach (var job in snapshot.WellboatJobs)
                 State.WellboatJobs.Add(job);
+        State.WellboatJobsBooked = snapshot.WellboatJobsBooked;
+        State.SolvencyWarningPeak = snapshot.SolvencyWarningPeak;
+        State.BankruptDay = snapshot.BankruptDay;
         if (snapshot.Crew != null)
             foreach (var member in snapshot.Crew)
                 State.Crew.Add(member);

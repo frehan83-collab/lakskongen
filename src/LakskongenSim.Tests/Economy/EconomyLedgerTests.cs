@@ -152,12 +152,35 @@ public class EconomyLedgerTests
         Assert.Equal(0m, engine.State.ResourceRentHarvestValueThisTaxYear); // reset for the new year
     }
 
+    /// <summary>
+    /// Owner decision D16 (S1-03) replaces ResourceRent_IsNotChargedUnlessTheScenarioEnablesIt:
+    /// the tax is ON by default (the 70M NOK deduction shields small farms)
+    /// and a scenario can opt out explicitly. Asserts both directions where the
+    /// old test asserted only the opt-in default.
+    /// </summary>
     [Fact]
-    public void ResourceRent_IsNotChargedUnlessTheScenarioEnablesIt()
+    public void ResourceRent_IsChargedByDefault_AndAScenarioCanOptOut()
     {
         var engine = NewGame(3, scenario: null);
+        Assert.True(engine.EnableResourceRentTax);
+        decimal normPrice = engine.PenPriceCouncil.MonthlyPenPrice;
         engine.RecordHarvestForResourceRent(2_000_000.0);
-        Assert.Equal(0m, engine.SettleAnnualTax().ResourceRentTax);
+        Assert.Equal((2_000_000m * normPrice - 70_000_000m) * 0.25m, engine.SettleAnnualTax().ResourceRentTax);
+
+        var optedOut = NewGame(3, scenario: null);
+        new ScenarioDefinition { Id = "no_rent_tax", EnableResourceRentTax = false }
+            .ApplyStartingState(optedOut.State, optedOut);
+        Assert.False(optedOut.EnableResourceRentTax);
+        optedOut.RecordHarvestForResourceRent(2_000_000.0);
+        Assert.Equal(0m, optedOut.SettleAnnualTax().ResourceRentTax);
+
+        // Every shipped scenario runs with the tax (none opts out).
+        foreach (var def in engine.Scenario.All.Values)
+        {
+            var started = NewGame(3, scenario: null);
+            def.ApplyStartingState(started.State, started);
+            Assert.True(started.EnableResourceRentTax, $"{def.Id}: resource-rent tax off");
+        }
     }
 
     // ── Costs (F1130 / F1138 / F269) ───────────────────────────────────────────

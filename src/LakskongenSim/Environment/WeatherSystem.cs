@@ -51,6 +51,14 @@ namespace LakskongenSim.Environment
 
         // ─── Storm season modifier (Oct-Mar = higher storm probability) ───
         private const double StormSeasonMultiplier = 1.5;
+        private const int WeatherStateCount = 4;
+        // Storm season on the 30-day-month calendar: day 270 (1 Oct) through
+        // day 90 inclusive (unchanged; S2-02 owns the calendar).
+        private const int StormSeasonStartDayOfYear = 270;
+        private const int StormSeasonEndDayOfYear = 90;
+        private const int DaysPerYear = 365;
+        /// <summary>Days ahead <see cref="StormRiskNext3Days"/> looks.</summary>
+        public const int StormForecastDays = 3;
 
         private readonly SimRngStream _rng;
 
@@ -136,8 +144,14 @@ namespace LakskongenSim.Environment
             double noise = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
             double dailyVariation = noise * 1.0 * varianceMultiplier;
 
-            // Storm cooling effect
-            double stormCooling = CurrentState switch
+            // Storm cooling: wind mixing brings colder water up to the cages
+            // while the column is stratified with a warm surface (Apr-Sep). In
+            // the storm season the coastal column is mixed or colder at the
+            // surface than below (Helland-Hansen & Nansen, "The Norwegian Sea",
+            // 1909: in March the surface is colder than at 100 fathoms), so a
+            // winter storm does not cool the cage layer. Moot until S1-02: the
+            // unnormalized chain never reached Severe in Oct-Mar.
+            double stormCooling = IsStormSeason(dayOfYear) ? 0.0 : CurrentState switch
             {
                 WeatherState.Storm => -0.5,
                 WeatherState.Severe => -1.5,
@@ -181,42 +195,80 @@ namespace LakskongenSim.Environment
             }
         }
 
+        /// <summary>True on the days of the year the storm season covers (Oct-Mar).</summary>
+        public static bool IsStormSeason(int dayOfYear)
+        {
+            int d = ((dayOfYear % DaysPerYear) + DaysPerYear) % DaysPerYear;
+            return d >= StormSeasonStartDayOfYear || d <= StormSeasonEndDayOfYear;
+        }
+
+        /// <summary>
+        /// The one transition row of the weather chain (review F456): the base row
+        /// for <paramref name="fromState"/>, Storm and Severe scaled by the storm
+        /// season and by the scenario's storm multiplier, renormalized so the row
+        /// sums to 1, then any state above <paramref name="maxState"/> folded into
+        /// it (scenario "calm_weather"). Both the sampler and the forecast use it.
+        /// The season multiplier used to be applied without renormalizing: in
+        /// Oct-Mar the Storm column filled the roll before Severe, so Severe could
+        /// only persist, never start, and the forecast (which did renormalize)
+        /// disagreed with the weather that happened.
+        /// </summary>
+        internal static void FillTransitionRow(WeatherState fromState, bool stormSeason,
+            double stormFrequencyMultiplier, WeatherState maxState, double[] row)
+        {
+            int from = (int)fromState;
+            double stormScale = (stormSeason ? StormSeasonMultiplier : 1.0) * Math.Max(0.0, stormFrequencyMultiplier);
+            double sum = 0.0;
+            for (int to = 0; to < WeatherStateCount; to++)
+            {
+                double p = TransitionMatrix[from, to];
+                if (to >= (int)WeatherState.Storm)
+                    p *= stormScale;
+                row[to] = p;
+                sum += p;
+            }
+            for (int to = 0; to < WeatherStateCount; to++)
+                row[to] /= sum;
+            for (int to = (int)maxState + 1; to < WeatherStateCount; to++)
+            {
+                row[(int)maxState] += row[to];
+                row[to] = 0.0;
+            }
+        }
+
+        /// <summary>
+        /// The transition matrix into <paramref name="dayOfYear"/> under the given
+        /// scenario rules (rows from <see cref="FillTransitionRow"/>).
+        /// </summary>
+        internal static double[,] TransitionMatrixFor(int dayOfYear, double stormFrequencyMultiplier, WeatherState maxState)
+        {
+            var m = new double[WeatherStateCount, WeatherStateCount];
+            var row = new double[WeatherStateCount];
+            bool stormSeason = IsStormSeason(dayOfYear);
+            for (int from = 0; from < WeatherStateCount; from++)
+            {
+                FillTransitionRow((WeatherState)from, stormSeason, stormFrequencyMultiplier, maxState, row);
+                for (int to = 0; to < WeatherStateCount; to++)
+                    m[from, to] = row[to];
+            }
+            return m;
+        }
+
         /// <summary>
         /// Update weather state using Markov chain transitions.
         /// Storm probability increases in Oct-Mar.
         /// </summary>
         private void UpdateWeatherState()
         {
-            int currentStateIdx = (int)CurrentState;
             double roll = _rng.NextDouble();
+            var row = new double[WeatherStateCount];
+            FillTransitionRow(CurrentState, IsStormSeason(SimulationDay), StormFrequencyMultiplier, MaxState, row);
 
-            // Check for storm season (Oct-Mar: days 270-365 + 0-90)
-            int dayOfYear = SimulationDay % 365;
-            bool isStormSeason = dayOfYear >= 270 || dayOfYear <= 90;
-
-            // Transition row: storm/severe probability rises in storm season.
-            var row = new double[4];
-            for (int nextState = 0; nextState < 4; nextState++)
-            {
-                row[nextState] = TransitionMatrix[currentStateIdx, nextState];
-                if (isStormSeason && (nextState == 2 || nextState == 3))
-                    row[nextState] *= StormSeasonMultiplier;
-            }
-            // Scenario rule "harsh_storms": scale storm and severe and renormalize
-            // (scaling without renormalizing would starve Severe, review F456).
-            if (StormFrequencyMultiplier != 1.0)
-            {
-                row[2] *= StormFrequencyMultiplier;
-                row[3] *= StormFrequencyMultiplier;
-                double sum = row[0] + row[1] + row[2] + row[3];
-                if (sum > 0.0)
-                    for (int i = 0; i < row.Length; i++) row[i] /= sum;
-            }
-
-            // Cumulative probability check
+            // Cumulative probability check; rounding can leave the last cumulative
+            // a hair under 1, so a roll past it takes the last reachable state.
             double cumulative = 0.0;
-            WeatherState newState = CurrentState;
-            for (int nextState = 0; nextState < 4; nextState++)
+            WeatherState newState = MaxState;
+            for (int nextState = 0; nextState < WeatherStateCount; nextState++)
             {
                 cumulative += row[nextState];
                 if (roll < cumulative)
@@ -225,11 +277,7 @@ namespace LakskongenSim.Environment
                     break;
                 }
             }
-            // Scenario rule "calm_weather": never above the cap.
-            if (newState > MaxState)
-                newState = MaxState;
 
-            // Normalize (since we may have modified probabilities)
             if (newState != CurrentState)
             {
                 var previousState = CurrentState;
@@ -263,47 +311,26 @@ namespace LakskongenSim.Environment
         }
 
         /// <summary>
-        /// Honest 3-day storm forecast: P(state ∈ {Storm, Severe} within 3 days)
-        /// by cubing the season-adjusted Markov transition matrix from the
-        /// current state. Pure function — safe for UI polling.
+        /// Honest 3-day storm forecast: the probability that the weather three
+        /// days from now is Storm or Severe, from the current state through the
+        /// same transition rows the sampler draws from (one per day ahead, each
+        /// with that day's season and the scenario's rules). Pure function, safe
+        /// for UI polling.
         /// </summary>
         public double StormRiskNext3Days()
         {
-            int dayOfYear = SimulationDay % 365;
-            bool isStormSeason = dayOfYear >= 270 || dayOfYear <= 90;
-            double[,] m = new double[4, 4];
-            for (int r = 0; r < 4; r++)
+            var p = new double[WeatherStateCount];
+            p[(int)CurrentState] = 1.0;
+            for (int step = 1; step <= StormForecastDays; step++)
             {
-                double rowSum = 0.0;
-                for (int c = 0; c < 4; c++)
-                {
-                    double p = TransitionMatrix[r, c];
-                    if (isStormSeason && (c == 2 || c == 3))
-                        p *= StormSeasonMultiplier;
-                    m[r, c] = p;
-                    rowSum += p;
-                }
-                for (int c = 0; c < 4; c++)
-                    m[r, c] /= rowSum;
+                var m = TransitionMatrixFor(SimulationDay + step, StormFrequencyMultiplier, MaxState);
+                var next = new double[WeatherStateCount];
+                for (int from = 0; from < WeatherStateCount; from++)
+                    for (int to = 0; to < WeatherStateCount; to++)
+                        next[to] += p[from] * m[from, to];
+                p = next;
             }
-            double[,] m2 = Multiply4(m, m);
-            double[,] m3 = Multiply4(m2, m);
-            int s = (int)CurrentState;
-            return Math.Clamp(m3[s, 2] + m3[s, 3], 0.0, 1.0);
-        }
-
-        private static double[,] Multiply4(double[,] a, double[,] b)
-        {
-            var r = new double[4, 4];
-            for (int i = 0; i < 4; i++)
-                for (int j = 0; j < 4; j++)
-                {
-                    double sum = 0.0;
-                    for (int k = 0; k < 4; k++)
-                        sum += a[i, k] * b[k, j];
-                    r[i, j] = sum;
-                }
-            return r;
+            return Math.Clamp(p[(int)WeatherState.Storm] + p[(int)WeatherState.Severe], 0.0, 1.0);
         }
         /// <summary>
         /// Update wind speed based on weather state.
@@ -371,7 +398,7 @@ namespace LakskongenSim.Environment
                 State = CurrentState,
                 SimulationDay = SimulationDay,
                 MonthName = monthNames[month],
-                IsStormSeason = dayOfYear >= 270 || dayOfYear <= 90,
+                IsStormSeason = IsStormSeason(dayOfYear),
                 CanOperate = CurrentState != WeatherState.Severe
             };
         }

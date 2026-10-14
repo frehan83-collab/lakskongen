@@ -29,6 +29,9 @@ namespace LakskongenSim.Environment
         public double CurrentSpeed { get; set; } // m/s (ocean current velocity)
         public double NutrientLevel { get; set; } // mg/L (nitrogen + phosphorus compounds)
         public bool AlgaeBloomActive { get; set; } // true when harmful algal bloom is occurring
+        /// <summary>Days an algal bloom persists even if nutrients fall (algae hold
+        /// them in biomass). Saved so a reload does not end a running bloom.</summary>
+        public int AlgalBloomDaysRemaining { get; set; }
         public double JellyfishDensity { get; set; } // count per cubic meter
         public double ExternalRiskMultiplier { get; set; } = 1.0; // production-area / locality pressure from public data
         public double ExternalNutrientMultiplier { get; set; } = 1.0; // regional environmental pressure multiplier
@@ -80,13 +83,15 @@ namespace LakskongenSim.Environment
         }
         
         /// <summary>
-        /// Calculate daily nutrient load from fish biomass and feeding.
+        /// Daily dissolved N+P input from the zone's fish, as a concentration
+        /// increment (mg/L/day) over the mixed volume. The old load was 0.05 kg
+        /// per kg fish per day divided by the flow index — not a concentration,
+        /// about 300x the real release — and drove NutrientLevel to ~1,500 mg/L.
         /// </summary>
         private double CalculateDailyNutrientLoad()
         {
-            // Estimate: 1 kg fish produces ~0.05 kg N+P per day (depends on FCR and feed composition)
-            double baseNutrientPerKg = 0.05 * ExternalNutrientMultiplier;
-            return CurrentFishBiomassKg * baseNutrientPerKg / WaterFlowRate; // diluted by water flow
+            double volumeL = Math.Max(1.0, WaterVolumeM3 * 1000.0);
+            return CurrentFishBiomassKg * FishNutrientReleaseGPerKgDay * 1000.0 / volumeL * ExternalNutrientMultiplier;
         }
         
         // Ocean-current tuning (Norwegian coastal waters; values unchanged).
@@ -100,7 +105,15 @@ namespace LakskongenSim.Environment
         private const double FlowRateBaseM3PerDay = 500.0;
         private const double FlowRatePerCurrentMs = 3000.0; // flow scales with current
 
-        // Eutrophication tuning (values unchanged).
+        // Eutrophication tuning. Thresholds and bloom O2 drawdown unchanged; the
+        // load and flushing are now a concentration balance.
+        /// <summary>Dissolved N+P released by farmed salmon, g per kg standing
+        /// biomass per day (~50 kg N + ~8 kg P per tonne produced a year).</summary>
+        private const double FishNutrientReleaseGPerKgDay = 0.15;
+        private const double BackgroundNutrientMgPerL = 0.5; // regional background (constructor baseline)
+        private const double NutrientUptakeRatePerDay = 0.1; // biological uptake
+        /// <summary>How long a bloom persists once triggered (days).</summary>
+        public const int DefaultAlgalBloomDays = 14;
         private const double AlgalBloomThresholdMgPerL = 2.0; // bloom trigger (total N+P)
         private const double AlgalBloomClearMgPerL = 1.2; // hysteresis: clears below this
         private const double BloomOxygenDepletionMgPerL = 1.5; // daily O2 drawdown during bloom
@@ -150,20 +163,25 @@ namespace LakskongenSim.Environment
         /// <param name="nutrientLoad">Daily nutrient input (mg/L equivalent)</param>
         public void UpdateEutrophication(double nutrientLoad)
         {
-            // Nutrient accumulation
-            NutrientLevel += nutrientLoad;
-            
-            // Natural dissipation via currents and biological uptake
-            double dissipationRate = 0.1 * CurrentSpeed; // stronger currents flush nutrients
-            NutrientLevel -= NutrientLevel * dissipationRate;
+            // Tidal exchange flushes the zone toward the regional background and
+            // algae take nutrients up; integrated exactly like the water chemistry.
+            // (The old 0.1 × current decay, 1.5%/day, against an un-normalized load
+            // kept a bloom active on ~600 of 600 days.)
+            double exchange = WaterChemistry.ExchangeRatePerDay(WaterFlowRate);
+            double background = BackgroundNutrientMgPerL * ExternalNutrientMultiplier;
+            NutrientLevel = WaterChemistry.RelaxOneDay(NutrientLevel,
+                nutrientLoad + exchange * background, exchange + NutrientUptakeRatePerDay);
             NutrientLevel = Math.Max(0.0, NutrientLevel);
-            
-            // Algal bloom threshold (typical: >2.0 mg/L total N+P for coastal blooms)
+
+            // Algal bloom threshold (typical: >2.0 mg/L total N+P for coastal blooms);
+            // a bloom runs its course before the hysteresis can clear it.
+            if (AlgalBloomDaysRemaining > 0)
+                AlgalBloomDaysRemaining--;
             if (!AlgaeBloomActive && NutrientLevel > AlgalBloomThresholdMgPerL)
             {
-                AlgaeBloomActive = true;
+                TriggerAlgalBloom();
             }
-            else if (AlgaeBloomActive && NutrientLevel < AlgalBloomClearMgPerL)
+            else if (AlgaeBloomActive && AlgalBloomDaysRemaining <= 0 && NutrientLevel < AlgalBloomClearMgPerL)
             {
                 AlgaeBloomActive = false;
             }
@@ -176,6 +194,16 @@ namespace LakskongenSim.Environment
             }
         }
         
+        /// <summary>
+        /// Start (or extend) a harmful algal bloom in this zone for at least
+        /// <paramref name="days"/> days.
+        /// </summary>
+        public void TriggerAlgalBloom(int days = DefaultAlgalBloomDays)
+        {
+            AlgaeBloomActive = true;
+            AlgalBloomDaysRemaining = Math.Max(AlgalBloomDaysRemaining, days);
+        }
+
         /// <summary>
         /// Calculate growth penalty multiplier (0.0-1.0) based on environmental stressors.
         /// 1.0 = optimal conditions, &lt;1.0 = reduced growth.
@@ -246,11 +274,32 @@ namespace LakskongenSim.Environment
         }
         
         /// <summary>
-        /// Set zone temperature (affects water chemistry rates).
+        /// True while the zone's water takes the shared sea temperature every day
+        /// (<see cref="TakeSeaTemperature"/>, S1-01). A zone given its own
+        /// temperature through <see cref="SetTemperature"/> (a scenario, a data
+        /// layer or a test) keeps it. Saved. S2-02 replaces the shared sea
+        /// temperature with per-production-area climatologies.
+        /// </summary>
+        public bool FollowsSeaTemperature { get; set; } = true;
+
+        /// <summary>
+        /// Give the zone its own water temperature (affects water chemistry rates
+        /// and oxygen solubility). The zone stops following the sea temperature.
         /// </summary>
         public void SetTemperature(double temperature)
         {
+            FollowsSeaTemperature = false;
             WaterChemistry.SetTemperature(temperature);
+        }
+
+        /// <summary>
+        /// Today's sea temperature reaches the zone's water unless the zone has a
+        /// temperature of its own. Called by the engine before the chemistry runs.
+        /// </summary>
+        public void TakeSeaTemperature(double seaTemperatureC)
+        {
+            if (FollowsSeaTemperature)
+                WaterChemistry.SetTemperature(seaTemperatureC);
         }
     }
     

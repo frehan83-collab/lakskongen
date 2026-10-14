@@ -21,11 +21,41 @@ namespace LakskongenSim.Environment
         public double Temperature { get => _temperature; set => _temperature = value; }
         
         // Parameters (Norwegian fjord typical values)
-        private const double OxygenReaerationRate = 0.05;   // mg/L/day reoxygenation
+        private const double OxygenReaerationRate = 0.05;   // surface re-aeration toward saturation (1/day)
         private const double NitrificationRateNH4 = 0.02;   // NH4→NO2 rate at 10°C
         private const double NitrificationRateNO2 = 0.015;  // NO2→NO3 rate at 10°C
         private const double PhosphorusAdsorptionRate = 0.03; // PO4 adsorption to sediments
         private const double Q10TemperatureFactor = 2.0;    // Biological rate doubles per 10°C
+
+        /// <summary>
+        /// Converts the zone flow index (500 + 3000 × current m/s, ≈650-2000) into
+        /// volume exchanges per day (≈6.5-20/day, an exposed coastal site). The
+        /// scaling is the model's original one; the update used to apply it as an
+        /// explicit-Euler fraction, which diverges for any rate above 2/day (F1024).
+        /// </summary>
+        public const double ExchangesPerFlowUnit = 0.01;
+
+        // Inflow (background) concentrations that tidal exchange brings in, mg/L —
+        // the constructor's fjord baseline. Flushing used to drain every species
+        // toward 0 instead.
+        private const double BackgroundAmmoniaNH4 = 0.05;
+        private const double BackgroundNitriteNO2 = 0.01;
+        private const double BackgroundNitrateNO3 = 0.5;
+        private const double BackgroundPhosphorusPO4 = 0.1;
+
+        private const double FishOxygenUptakeMgPerKgDay = 0.1;  // value unchanged
+        private const double NitrificationOxygenPerNH4 = 4.3;   // mg O2 per mg NH4 nitrified
+
+        // pH: carbonate buffering holds it at a seawater equilibrium that
+        // respiration (O2 deficit ⇒ CO2) and ammonia nitrification pull down.
+        // It used to drift +0.04/day into the 8.5 clamp. Norwegian coastal
+        // surface water sits at pH ≈ 8.0-8.1 (national ocean-acidification
+        // monitoring, Miljødirektoratet/IMR/NIVA); the old 7.8 baseline put
+        // every stocked zone below 7.8, at the low edge of seawater (S1-01).
+        internal const double BaselinePH = 8.05;
+        private const double PhBufferRatePerDay = 0.1;
+        private const double PhPerMgOxygenDeficit = 0.05;
+        private const double PhPerMgExcessAmmonia = 0.1;
         
         // Toxic thresholds (Norwegian aquaculture standards)
         private const double AmmoniaToxicThreshold = 0.5;   // mg/L NH4 toxic to salmon
@@ -50,28 +80,49 @@ namespace LakskongenSim.Environment
             NitriteNO2 = 0.01;    // mg/L
             NitrateNO3 = 0.5;     // mg/L
             PhosphorusPO4 = 0.1;  // mg/L
-            OxygenO2 = 8.0;       // mg/L (saturated at 10°C)
-            pH = 7.8;             // Typical fjord pH
+            OxygenO2 = Biology.WaterQuality.CalculateOxygenSaturation(temperature); // saturated at the start
+            pH = BaselinePH;      // Coastal seawater equilibrium
         }
         
         /// <summary>
+        /// Volume exchanges per day for a zone flow index (see <see cref="ExchangesPerFlowUnit"/>).
+        /// </summary>
+        public static double ExchangeRatePerDay(double waterFlowRate)
+            => Math.Max(0.0, waterFlowRate) * ExchangesPerFlowUnit;
+
+        /// <summary>
+        /// Exact one-day solution of dX/dt = source − lossRate·X. Unconditionally
+        /// stable: X relaxes toward source/lossRate and can never overshoot it,
+        /// whatever the rate (explicit Euler oscillated and diverged above 2/day).
+        /// </summary>
+        public static double RelaxOneDay(double value, double source, double lossRate)
+        {
+            if (lossRate <= 1e-12) return value + source;
+            double equilibrium = source / lossRate;
+            return equilibrium + (value - equilibrium) * Math.Exp(-lossRate);
+        }
+
+        /// <summary>
         /// Update chemistry for one day with fish waste inputs.
-        /// Fish waste: NH4 and PO4 from feed conversion (FCR 1.1-1.3).
-        /// Phase 1 wave 6: fish-driven MASS inputs are normalized by the
-        /// zone's mixed volume (mg/day ÷ liters → mg/L/day); previously they
-        /// were added straight to concentrations, which pinned dissolved
-        /// oxygen at 0 under any real biomass. Oxygen flushing is an
-        /// exchange toward inflow concentration, not a drain toward zero.
+        /// Fish waste: NH4 and PO4 from feed conversion (FCR 1.1-1.3), normalized
+        /// by the zone's mixed volume (mg/day ÷ liters → mg/L/day). Tidal exchange
+        /// relaxes every species toward its inflow concentration and dissolved
+        /// oxygen toward temperature-dependent saturation; each species is
+        /// integrated exactly over the day (<see cref="RelaxOneDay"/>), so the
+        /// state stays bounded without the clamps doing the work (F1024: the old
+        /// explicit step had a gain of about −9 and the [0,14] clamp turned
+        /// oxygen into a daily 0/14 mg/L square wave).
         /// </summary>
         /// <param name="fishBiomassKg">Total fish biomass in zone (kg)</param>
         /// <param name="feedConversionRatio">FCR (kg feed/kg fish growth)</param>
-        /// <param name="waterFlowRate">Water exchange rate (m³/day)</param>
+        /// <param name="waterFlowRate">Zone flow index (m³/day scale)</param>
         /// <param name="waterVolumeM3">Effective mixed zone volume (m³)</param>
         public void UpdateOneDay(double fishBiomassKg, double feedConversionRatio, double waterFlowRate, double waterVolumeM3 = 500_000.0)
         {
             // Temperature-dependent rate modifiers (Q10=2.0)
             double tempFactor = Math.Pow(Q10TemperatureFactor, (_temperature - 10.0) / 10.0);
             double volumeL = Math.Max(1.0, waterVolumeM3 * 1000.0);
+            double exchange = ExchangeRatePerDay(waterFlowRate);
 
             // Fish waste inputs (based on Norwegian aquaculture data)
             // NH4 excretion: 0.05 g NH4/kg fish/day
@@ -80,37 +131,35 @@ namespace LakskongenSim.Environment
             double ammoniaInput = fishBiomassKg * 0.05 * tempFactor * 1000.0 / volumeL;
             double phosphorusInput = fishBiomassKg * 0.02 * tempFactor * 1000.0 / volumeL;
 
-            // Oxygen consumption: 0.1 mg O2/kg fish/day + nitrification oxygen demand
-            double oxygenConsumptionFish = fishBiomassKg * 0.1 * tempFactor / volumeL;
-            double oxygenConsumptionNitrification = (NitrificationRateNH4 * AmmoniaNH4 + NitrificationRateNO2 * NitriteNO2) * 4.3; // O2 per NH4
-            
-            // ODE updates (Euler integration, dt=1 day)
-            
-            // Ammonium: input + nitrification loss + flow dilution
-            AmmoniaNH4 += ammoniaInput - (NitrificationRateNH4 * tempFactor * AmmoniaNH4) - (AmmoniaNH4 * waterFlowRate * 0.01);
-            
-            // Nitrite: nitrification gain/loss + flow dilution
-            NitriteNO2 += (NitrificationRateNH4 * tempFactor * AmmoniaNH4) - (NitrificationRateNO2 * tempFactor * NitriteNO2) - (NitriteNO2 * waterFlowRate * 0.01);
-            
-            // Nitrate: nitrification gain + flow dilution
-            NitrateNO3 += (NitrificationRateNO2 * tempFactor * NitriteNO2) - (NitrateNO3 * waterFlowRate * 0.01);
-            
-            // Phosphorus: input + adsorption + flow dilution
-            PhosphorusPO4 += phosphorusInput - (PhosphorusAdsorptionRate * tempFactor * PhosphorusPO4) - (PhosphorusPO4 * waterFlowRate * 0.01);
-            
-            // Oxygen: reaeration - consumption + tidal exchange toward
-            // inflow concentration (flushing brings saturated water, it does
-            // not drain oxygen toward zero).
-            const double OxygenInflowMgPerL = 8.0;
-            OxygenO2 += OxygenReaerationRate - oxygenConsumptionFish - oxygenConsumptionNitrification
-                + (OxygenInflowMgPerL - OxygenO2) * waterFlowRate * 0.01;
-            
-            // pH calculation simplified from carbonate equilibrium
-            // pH decreases with ammonia accumulation, increases with photosynthesis
-            double pHChange = -0.01 * AmmoniaNH4 + 0.005 * OxygenO2; // Simplified relationship
-            pH += pHChange;
-            
-            // Clamp values to realistic ranges
+            // Start-of-day nitrification fluxes and oxygen demand (operator
+            // splitting; each species is then integrated exactly below).
+            double nh4Rate = NitrificationRateNH4 * tempFactor;
+            double no2Rate = NitrificationRateNO2 * tempFactor;
+            double nh4ToNo2 = nh4Rate * AmmoniaNH4;
+            double no2ToNo3 = no2Rate * NitriteNO2;
+            double oxygenDemand = fishBiomassKg * FishOxygenUptakeMgPerKgDay * tempFactor / volumeL
+                + (NitrificationRateNH4 * AmmoniaNH4 + NitrificationRateNO2 * NitriteNO2) * NitrificationOxygenPerNH4;
+
+            AmmoniaNH4 = RelaxOneDay(AmmoniaNH4, ammoniaInput + exchange * BackgroundAmmoniaNH4, nh4Rate + exchange);
+            NitriteNO2 = RelaxOneDay(NitriteNO2, nh4ToNo2 + exchange * BackgroundNitriteNO2, no2Rate + exchange);
+            NitrateNO3 = RelaxOneDay(NitrateNO3, no2ToNo3 + exchange * BackgroundNitrateNO3, exchange);
+            PhosphorusPO4 = RelaxOneDay(PhosphorusPO4, phosphorusInput + exchange * BackgroundPhosphorusPO4,
+                PhosphorusAdsorptionRate * tempFactor + exchange);
+
+            // Oxygen: exchange and re-aeration pull toward saturation, fish and
+            // nitrification consume. Equilibrium = saturation − demand / recovery.
+            double saturation = Biology.WaterQuality.CalculateOxygenSaturation(_temperature);
+            double oxygenRecovery = exchange + OxygenReaerationRate;
+            OxygenO2 = RelaxOneDay(OxygenO2, oxygenRecovery * saturation - oxygenDemand, oxygenRecovery);
+
+            double pHEquilibrium = BaselinePH
+                - PhPerMgOxygenDeficit * Math.Max(0.0, saturation - OxygenO2)
+                - PhPerMgExcessAmmonia * Math.Max(0.0, AmmoniaNH4 - BackgroundAmmoniaNH4);
+            double pHRecovery = exchange + PhBufferRatePerDay;
+            pH = RelaxOneDay(pH, pHRecovery * pHEquilibrium, pHRecovery);
+
+            // Physical bounds only (anoxia floor, solubility ceiling); in normal
+            // conditions none of them binds any more.
             AmmoniaNH4 = Math.Max(0, Math.Min(AmmoniaNH4, 10.0));
             NitriteNO2 = Math.Max(0, Math.Min(NitriteNO2, 2.0));
             NitrateNO3 = Math.Max(0, Math.Min(NitrateNO3, 20.0));

@@ -38,9 +38,11 @@ public partial class GameBridge : Node
     [Signal] public delegate void SimulationTickedEventHandler(int day);
     [Signal] public delegate void GameStartedEventHandler();
     [Signal] public delegate void GameEndedEventHandler(string reason);
-    [Signal] public delegate void TutorialStepCompletedEventHandler(int stepNumber, string title, double rewardNok);
+    /// <summary>A tutorial step was completed (D16: steps pay no cash, so no reward argument).</summary>
+    [Signal] public delegate void TutorialStepCompletedEventHandler(int stepNumber, string title);
     [Signal] public delegate void AudioAlertTriggeredEventHandler(string alertKey);
-    [Signal] public delegate void AchievementUnlockedEventHandler(string id, string name, string description, double rewardNok, string tier);
+    /// <summary>An achievement unlocked; <c>medal</c> is "bronze" | "silver" | "gold" | "platinum" (D16: medals, never cash).</summary>
+    [Signal] public delegate void AchievementUnlockedEventHandler(string id, string name, string description, string medal, string tier);
 
     // ── Engine reference ──────────────────────────────────────────────────────
 
@@ -151,11 +153,11 @@ public partial class GameBridge : Node
     {
         SimulationEngine.FinanceManager = new FinanceManager(startingCapital);
         // S10: the live game was never seeded — every subsystem fell back to
-        // unseeded System.Random. Pick one seed, persist it on the state;
-        // the QA path passes a fixed seed so screenshot/headless runs replay.
-        int resolvedSeed = seed ?? new System.Random().Next();
-        SimulationEngine.Initialize(seed: resolvedSeed);
-        SimulationEngine.State.RandomSeed = resolvedSeed;
+        // unseeded System.Random. A player game rolls one non-zero seed in
+        // Initialize, which records it on the state (P0-07); the QA path passes
+        // a fixed seed so screenshot/headless runs replay.
+        SimulationEngine.Initialize(seed: seed);
+        int resolvedSeed = SimulationEngine.State.RandomSeed;
 
         // P11: a new game starts with no in-memory mitigation installs and a
         // clean serializable mirror (the registry outlives Initialize).
@@ -163,8 +165,7 @@ public partial class GameBridge : Node
         SyncMitigationsToState();
         ResetSessionState();
         SimulationEngine.Tutorial.OnStepCompleted += step =>
-            EmitSignal(SignalName.TutorialStepCompleted,
-                step.StepNumber, step.Title, (double)step.RewardNok);
+            EmitSignal(SignalName.TutorialStepCompleted, step.StepNumber, step.Title);
         // Single-wire: StartNewGame/LoadGame may run repeatedly on one
         // engine instance — unhook first so handlers never stack.
         SimulationEngine.OnAchievementUnlocked -= HandleAchievementUnlocked;
@@ -200,8 +201,7 @@ public partial class GameBridge : Node
 
         // Wire tutorial signal (same as StartNewGame — must be done after Initialize())
         SimulationEngine.Tutorial.OnStepCompleted += step =>
-            EmitSignal(SignalName.TutorialStepCompleted,
-                step.StepNumber, step.Title, (double)step.RewardNok);
+            EmitSignal(SignalName.TutorialStepCompleted, step.StepNumber, step.Title);
         // Single-wire: LoadGame may run repeatedly on one engine
         // instance — unhook first so handlers never stack.
         SimulationEngine.OnAchievementUnlocked -= HandleAchievementUnlocked;
@@ -368,6 +368,14 @@ public partial class GameBridge : Node
                 case "storm_impact":
                     EmitSignal(SignalName.WeatherEvent, note.EventType, note.Severity, note.Message);
                     break;
+                case "solvency_warning":
+                case "bankruptcy":
+                    // S1-03: a warning rung or the bankruptcy verdict; the
+                    // condition alerts (SimState) and the inbox re-read the
+                    // ladder, the game-over check ends the game.
+                    engine.Audio?.TriggerAlert("market_crash"); // financial_crisis.wav
+                    EmitSignal(SignalName.GameStateUpdated);
+                    break;
                 case "license_auction":
                     // Phase 4.1: growth-licence auction opened/settled — push a
                     // generic refresh so map/UI toasts re-read auction state.
@@ -391,6 +399,15 @@ public partial class GameBridge : Node
 
     /// <summary>Current balance in NOK.</summary>
     public double Balance => (double)(SimulationEngine?.FinanceManager?.Balance ?? 0m);
+
+    /// <summary>Bankruptcy floor (NOK, negative) of the active scenario (S1-03).</summary>
+    public double BankruptcyFloorNok => (double)(SimulationEngine?.BankruptcyFloorNok ?? -1_000_000m);
+
+    /// <summary>Bankruptcy warning rung of today's cash: 0 solvent, 1 overdraft, 2 bank warning, 3 final warning (S1-03).</summary>
+    public int SolvencyWarningLevel => SimulationEngine?.SolvencyWarningLevel ?? 0;
+
+    /// <summary>True once the engine declared bankruptcy (S1-03).</summary>
+    public bool IsBankrupt => SimulationEngine?.IsBankrupt ?? false;
 
     /// <summary>Total live fish count across all populations.</summary>
     public int TotalFishCount =>
@@ -522,6 +539,23 @@ public partial class GameBridge : Node
 
     /// <summary>Dissolved oxygen (mg/L) in the first zone's water chemistry.</summary>
     public double ZoneOxygenMgL => SimulationEngine?.State?.Zones?.FirstOrDefault()?.WaterChemistry?.OxygenO2 ?? double.NaN;
+
+    /// <summary>
+    /// Oxygen the first zone's water holds at 100% saturation (mg/L) at its own
+    /// temperature, from the sim's seawater solubility. The telemetry panel kept
+    /// its own copy of the old freshwater table and read 82% for saturated water
+    /// once the sim's solubility was corrected (S1-01).
+    /// </summary>
+    public double ZoneOxygenSaturationMgL
+    {
+        get
+        {
+            var chemistry = SimulationEngine?.State?.Zones?.FirstOrDefault()?.WaterChemistry;
+            return chemistry == null
+                ? double.NaN
+                : LakskongenSim.Biology.WaterQuality.CalculateOxygenSaturation(chemistry.Temperature);
+        }
+    }
 
     /// <summary>pH in the first zone's water chemistry.</summary>
     public double ZonePh => SimulationEngine?.State?.Zones?.FirstOrDefault()?.WaterChemistry?.pH ?? double.NaN;
@@ -721,7 +755,7 @@ public partial class GameBridge : Node
     /// <summary>
     /// Return all achievements as an Array of Dictionaries.
     /// Keys: "id" (string), "name" (string), "description" (string),
-    ///       "tier" (string), "reward_nok" (double), "unlocked" (bool).
+    ///       "tier" (string), "medal" (string: bronze|silver|gold|platinum), "unlocked" (bool).
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetAchievementList()
     {
@@ -738,7 +772,7 @@ public partial class GameBridge : Node
                 ["name"]        = a.Name,
                 ["description"] = a.Description,
                 ["tier"]        = a.Tier.ToString(),
-                ["reward_nok"]  = (double)a.RewardNOK,
+                ["medal"]       = MedalKey(a.Medal),
                 ["unlocked"]    = sys.IsUnlocked(a.Id)
             });
         }
@@ -843,10 +877,14 @@ public partial class GameBridge : Node
             achievement.Id,
             achievement.Name,
             achievement.Description,
-            (double)achievement.RewardNOK,
+            MedalKey(achievement.Medal),
             achievement.Tier.ToString());
         GD.Print($"GameBridge: achievement unlocked — {achievement.Name}");
     }
+
+    /// <summary>Stable lower-case medal key for GDScript ("bronze" .. "platinum").</summary>
+    private static string MedalKey(LakskongenSim.Core.AchievementMedal medal)
+        => medal.ToString().ToLowerInvariant();
 
     private void HandleResearchCompleted(LakskongenSim.Core.ResearchNode node)
     {
@@ -963,10 +1001,17 @@ public partial class GameBridge : Node
         }
     }
 
+    /// <summary>
+    /// The engine owns the bankruptcy verdict (S1-03, owner decision D16): a
+    /// per-scenario floor from BalancingConfig with a warning ladder before it.
+    /// This used to end every game at a hard-coded -1M NOK, 85 days before the
+    /// first harvest of po3_red_sone, isa_utbrudd and algekatastrofe. The
+    /// reason is a translation key (GAME_OVER_BANKRUPTCY).
+    /// </summary>
     private void CheckGameOverConditions()
     {
-        if (Balance < -1_000_000.0)
-            EndGame("Bankruptcy — debt exceeded 1 000 000 NOK!");
+        if (SimulationEngine?.IsBankrupt == true)
+            EndGame(LakskongenSim.Core.SimulationEngine.BankruptcyReasonKey);
     }
 
     private void EndGame(string reason)

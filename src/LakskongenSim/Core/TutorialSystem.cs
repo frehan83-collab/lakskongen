@@ -28,8 +28,6 @@ namespace LakskongenSim.Core
         [JsonPropertyName("highlightTarget")]
         public string HighlightTarget { get; init; } = "";
         
-        public decimal RewardNok { get; init; }
-        
         [JsonIgnore]
         public Func<TutorialSystem, bool>? TriggerCondition { get; set; }
         
@@ -44,7 +42,9 @@ namespace LakskongenSim.Core
     /// <summary>
     /// Step-based tutorial engine for Lakskongen — 12-step onboarding.
     /// Tracks player progress, checks completion conditions each day,
-    /// and fires OnStepCompleted with optional NOK rewards.
+    /// and fires OnStepCompleted. Steps pay no cash (owner decision D16,
+    /// S1-03): the 18 steps used to pay 1.45M NOK, in every scenario, and
+    /// completing the tutorial is its own reward (the forste_sesong win).
     ///
     /// Registered in SimulationEngine and updated via CheckProgress() each day.
     /// NOTE: Uses GameState.Balance for step conditions (to be migrated to FinanceManager)
@@ -388,18 +388,7 @@ namespace LakskongenSim.Core
             _engine.State.TutorialCurrentStepIndex = _currentStepIndex;
             _engine.State.CompletedTutorialStepIds.Add(step.Id);
 
-            if (step.RewardNok > 0)
-            {
-                _engine.ReceiveIncome(step.RewardNok, "tutorial_rewards");
-                SimLog.Info(
-                    $"🎓 Tutorial Step {step.StepNumber}/{TotalSteps} complete: {step.Title} " +
-                    $"(+{step.RewardNok:N0} NOK)");
-            }
-            else
-            {
-                Console.WriteLine(
-                    $"🎓 Tutorial Step {step.StepNumber}/{TotalSteps} complete: {step.Title}");
-            }
+            SimLog.Info($"🎓 Tutorial Step {step.StepNumber}/{TotalSteps} complete: {step.Title}");
 
             OnStepCompleted?.Invoke(step);
         }
@@ -422,7 +411,6 @@ namespace LakskongenSim.Core
                                   "fish health, and sustainability score.",
                 Hint            = "Look around the dashboard to get familiar with the key indicators: " +
                                   "Balance (NOK), Fish Count, Sea Lice/fish, and Sustainability.",
-                RewardNok       = 0m,
                 // Completes on day 1 — the player simply sees the welcome screen
                 CompletionCondition = t => t.State.Day >= 1
             },
@@ -440,7 +428,6 @@ namespace LakskongenSim.Core
                                   "for hundreds of millions of NOK.",
                 Hint            = "Navigate to Expansion → Purchase License to acquire your first license. " +
                                   "Starting capital covers the cost.",
-                RewardNok       = 50_000m,
                 // Complete once a sea site exists, or after day 2 (guided onboarding)
                 CompletionCondition = t => t.State.SeaSites.Count >= 1 || t.State.Day >= 2
             },
@@ -457,7 +444,6 @@ namespace LakskongenSim.Core
                                   "Add a zone to activate water chemistry monitoring.",
                 Hint            = "Go to Farm → New Sea Site and select a fjord location. " +
                                   "Add at least one zone to enable production.",
-                RewardNok       = 100_000m,
                 CompletionCondition = t => t.State.Zones.Count >= 1 || t.State.SeaSites.Count >= 1
             },
 
@@ -473,7 +459,6 @@ namespace LakskongenSim.Core
                                   "from your hatchery to begin your first sea-phase production cycle.",
                 Hint            = "Open Hatchery → Transfer Smolts and select your sea site pen. " +
                                   "Stocking density should be < 25 kg/m³ at harvest weight.",
-                RewardNok       = 50_000m,
                 CompletionCondition = t => t.TotalFishCount >= 10_000
             },
 
@@ -489,7 +474,6 @@ namespace LakskongenSim.Core
                                   "optimal feeding is at 12–14°C. Watch your fish feed for one week.",
                 Hint            = "Check the FCR indicator on the Production panel. " +
                                   "Reduce feeding if temperature rises above 16°C to avoid waste.",
-                RewardNok       = 25_000m,
                 CompletionCondition = t =>
                 {
                     int? day4 = t.GetStepCompletedDay(4);
@@ -510,7 +494,6 @@ namespace LakskongenSim.Core
                                   "Monitor the health panel for one week.",
                 Hint            = "Check the Health panel daily. Red indicators mean immediate action needed. " +
                                   "Sea lice levels typically rise slowly — catch them early.",
-                RewardNok       = 25_000m,
                 CompletionCondition = t =>
                 {
                     int? day5 = t.GetStepCompletedDay(5);
@@ -532,7 +515,6 @@ namespace LakskongenSim.Core
                                   "Get lice below 0.5 per fish.",
                 Hint            = "Go to Health → Treatments. Bath treatments are fast but stressful. " +
                                   "Cleaner fish provide continuous biological control.",
-                RewardNok       = 50_000m,
                 CompletionCondition = t =>
                 {
                     int? day6 = t.GetStepCompletedDay(6);
@@ -555,7 +537,6 @@ namespace LakskongenSim.Core
                                   "Wait until average fish weight reaches 4.0 kg.",
                 Hint            = "The Production panel shows average fish weight. " +
                                   "Keep health optimal and FCR low for fastest growth.",
-                RewardNok       = 100_000m,
                 CompletionCondition = t => t.AverageFishWeightKg >= 4.0 && t.TotalFishCount > 0
             },
 
@@ -572,7 +553,6 @@ namespace LakskongenSim.Core
                                   "depending on market conditions.",
                 Hint            = "Go to Harvest → Initiate Harvest for your ready population. " +
                                   "Sell on the spot market or negotiate a contract price.",
-                RewardNok       = 0m,
                 CompletionCondition = HasSold
             },
 
@@ -590,7 +570,6 @@ namespace LakskongenSim.Core
                                   "Norwegian leaders like Mowi and SalMar achieve EBIT > 30 NOK/kg.",
                 Hint            = "Open Finance → P&L Summary to see your full cost-per-kg breakdown. " +
                                   "Compare your FCR and mortality % against industry benchmarks.",
-                RewardNok       = 25_000m,
                 CompletionCondition = t =>
                 {
                     int? day9 = t.GetStepCompletedDay(9);
@@ -612,7 +591,6 @@ namespace LakskongenSim.Core
                                   "Spend a week exploring the genetics panel.",
                 Hint            = "Open Genetics → Breeding Programme. Select high-growth, " +
                                   "disease-resistant parents for your next smolt cohort.",
-                RewardNok       = 75_000m,
                 CompletionCondition = t =>
                 {
                     int? day10 = t.GetStepCompletedDay(10);
@@ -635,7 +613,6 @@ namespace LakskongenSim.Core
                                   "salmon producer. Lykke til — good luck!",
                 Hint            = "Your goal: reach 10,000 tonnes annual production with " +
                                   "Sustainability Leader certification. Explore all panels freely.",
-                RewardNok       = 500_000m,
                 // Auto-completes when reached — reward is the graduation bonus
                 CompletionCondition = _ => true
             },

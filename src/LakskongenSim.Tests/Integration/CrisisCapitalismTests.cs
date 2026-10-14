@@ -160,4 +160,34 @@ public class CrisisCapitalismTests
         engine.Advance(1);
         Assert.Equal(0m, engine.UnbookedCashTotal);
     }
+
+    /// <summary>
+    /// S1-01: a save on the day a listing closes wrote the closed listing (the
+    /// countdown runs a day behind the calendar), the load dropped it as
+    /// expired, and the resumed game's save differed from the uninterrupted
+    /// one (the po3 career pair diverged at $/DistressedAssets).
+    /// </summary>
+    [Fact]
+    public void ASaveOnTheDayAListingCloses_ResumesExactly()
+    {
+        var engine = EngineWithInsolventRival(39, out _);
+        engine.Advance(AfterFirstQuarter);
+        var asset = engine.CrisisCapitalism.GetAllAvailableDistressedAssets()
+            .OrderBy(a => a.ExpiresOnDay).First();
+        engine.Advance(asset.ExpiresOnDay - engine.State.Day);
+        Assert.Equal(asset.ExpiresOnDay, engine.State.Day);
+
+        string saved = SaveStateComparer.Serialize(engine);
+        var resumed = SaveStateComparer.Resume(saved, events: false);
+        string a = SaveStateComparer.Normalize(saved);
+        string b = SaveStateComparer.Normalize(SaveStateComparer.Serialize(resumed));
+        Assert.True(a == b, "resumed save differs at " + SaveStateComparer.FirstDifference(a, b));
+        Assert.DoesNotContain(engine.State.DistressedAssets, s => s.Id == asset.Id);
+
+        engine.Advance(10);
+        resumed.Advance(10);
+        a = SaveStateComparer.Normalize(SaveStateComparer.Serialize(engine));
+        b = SaveStateComparer.Normalize(SaveStateComparer.Serialize(resumed));
+        Assert.True(a == b, "resumed game diverged at " + SaveStateComparer.FirstDifference(a, b));
+    }
 }

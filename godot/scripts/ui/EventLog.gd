@@ -199,7 +199,7 @@ func _on_game_started():
 	add_log_entry("New game started! Welcome to Lakskongen.", "system")
 
 func _on_game_ended(reason: String):
-	add_log_entry("Game ended: " + reason, "system")
+	add_log_entry("Spillet er over: " + tr(reason), "system")
 
 func _on_simulation_ticked(day: int):
 	# Don't log every tick to avoid spam

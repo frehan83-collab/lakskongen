@@ -136,7 +136,7 @@ Four reviewers read `main...44a0d89` (engine; bridge; UI, scenes and shaders; te
 | low | UI flow runner had no check floor and a narrow error grep | Partial `ed688c4`: exact check count plus an every-test-runs guard; C# exceptions and `push_error` are still not grepped |
 | low | Space never activates a focused button | By design (F618 trade-off, RUN_LOG §7) |
 | low | Seed-13 career bound loosened from -10M to -15M | Dispute (RUN_LOG §8) |
-| low | `Initialize(seed)` never records `State.RandomSeed` | Open |
+| low | `Initialize(seed)` never records `State.RandomSeed` | Fixed on `wave1/sim-2` (P0-07, `InitializeSeedTests`) |
 | low | `AcceptContractOffer` signs whatever sits at the clicked index | Open |
 | low | The SuperSmolt tier is unreachable (batches stop at 300 g) | Open |
 | low | Vertical integration completes on wall-clock time; its CAPEX hook books an asset that never acts | Open, dormant (allowlisted F040) |
@@ -150,8 +150,8 @@ Four reviewers read `main...44a0d89` (engine; bridge; UI, scenes and shaders; te
 | low | The pen detail card still shows constants as live data (F952) | Open |
 | low | "Export all" always reports success (F600) | Open |
 | low | `ScenarioCampaignTests` ledger assertion cannot fail | Open |
-| low | `CrossProcessDeterminismTests` does not enforce its probe timeout | Open |
-| low | Determinism allowlist keyed by exact line text; the ban misses `DateTimeOffset.Now` and friends | Open |
+| low | `CrossProcessDeterminismTests` does not enforce its probe timeout | Fixed on `wave1/sim-2` (P0-07, `ProbeRunner_KillsAHungProbe_AtItsTimeout`) |
+| low | Determinism allowlist keyed by exact line text; the ban misses `DateTimeOffset.Now` and friends | Fixed on `wave1/sim-2` (P0-07: Roslyn scan keyed by symbol and count, wider ban) |
 | low | "profitable-quarter" cannot unlock on day 1, so its day-1 test proves nothing | Open |
 | low | The fake exporter in `test_ci_tools.py` models only success | Open |
 
@@ -207,7 +207,7 @@ The 369 original mediums were not re-audited one by one. These are fixed and tes
 | ISA outbreak scenario | Decide what an outbreak is in the SIR model; today it is inert (RUN_LOG §8). |
 | Orphaned panels | Wire or delete Empire, Stakeholder, Genetics, CompetitorDashboard, Crisis, IPODialog, MarketChannelPanel and ProcessingMixPanel. Distressed-asset purchases (F271) wait on the Empire decision. |
 | F177 MCP addon | Confirm the exemption (RUN_LOG §7), or vendor or remove the addon to clear the editor and export warnings. |
-| WellboatJob ids | They are `Guid.NewGuid()` (on the determinism allowlist), and `WellboatJobTests.Job_Defaults` requires a default id. Deterministic ids need that test changed. |
+| ~~WellboatJob ids~~ | Decided (roadmap D8) and done on `wave1/sim-2` (P0-07): the id is day, site, kind and booking sequence; `Job_Defaults` asserts it. |
 
 ## 6. Open code work (no decision needed)
 

@@ -33,14 +33,27 @@ namespace LakskongenSim.Biology
         /// <summary>Minimum growth multiplier for stocking density modifier.</summary>
         public static double StockingDensityMinMultiplier = 0.5;
 
-        /// <summary>Temperature correction for oxygen saturation (mg/L at 100% saturation).</summary>
-        /// <remarks>Based on standard oxygen solubility tables for seawater at 35 PSU.</remarks>
-        private static readonly (double Temp, double O2Sat)[] OxygenSaturationTable =
-        {
-            (0.0, 14.6), (2.0, 13.8), (4.0, 13.1), (6.0, 12.4),
-            (8.0, 11.8), (10.0, 11.3), (12.0, 10.8), (14.0, 10.3),
-            (16.0, 9.8), (18.0, 9.4), (20.0, 9.0), (22.0, 8.6), (24.0, 8.3)
-        };
+        // Oxygen solubility in water at 1 atm, mg/L: Benson & Krause (1984),
+        // Limnol. Oceanogr. 29(3):620-632, in the form of APHA Standard Methods
+        // 4500-O (the USGS DOTABLES equation):
+        //   ln C* = A0 + A1/T + A2/T² + A3/T³ + A4/T⁴ − S·(B0 − B1/T + B2/T²),
+        // T in kelvin, S in PSU. Within 0.01 mg/L of Garcia & Gordon (1992) over
+        // 0-30 °C, 0-40 PSU. Seawater (35 PSU) at 10 °C holds 9.02 mg/L. The old
+        // table was the freshwater curve (11.3 mg/L at 10 °C) times a linear
+        // 0.1%/PSU factor (10.9 mg/L), about 21% too high at sea (S1-01).
+        private const double KelvinOffset = 273.15;
+        private const double SolubilityA0 = -139.34411;
+        private const double SolubilityA1 = 1.575701e5;
+        private const double SolubilityA2 = -6.642308e7;
+        private const double SolubilityA3 = 1.243800e10;
+        private const double SolubilityA4 = -8.621949e11;
+        private const double SalinityB0 = 1.7674e-2;
+        private const double SalinityB1 = 1.0754e1;
+        private const double SalinityB2 = 2.1407e3;
+        /// <summary>Validity range of the solubility fit; inputs are clamped to it.</summary>
+        private const double SolubilityMinTempC = 0.0;
+        private const double SolubilityMaxTempC = 40.0;
+        private const double SolubilityMaxSalinityPSU = 42.0;
 
         /// <summary>Oxygen consumption per kg fish per day (mg O₂/kg/day) at reference temperature.</summary>
         public static double OxygenConsumptionPerKgFishPerDay = 0.1 * 1000.0; // mg O₂/kg fish/day
@@ -56,31 +69,25 @@ namespace LakskongenSim.Biology
         #region DO Saturation Calculations
 
         /// <summary>
-        /// Calculate dissolved oxygen saturation concentration (mg/L) at given temperature and salinity.
-        /// Uses standard seawater oxygen solubility (Garcia and Gordon, 1992 approximation).
+        /// Dissolved oxygen concentration (mg/L) at 100% saturation, 1 atm, for the
+        /// given temperature and salinity: Benson &amp; Krause (1984) as given in
+        /// APHA Standard Methods 4500-O (equal to Garcia &amp; Gordon 1992 within
+        /// 0.01 mg/L). Temperature is clamped to 0-40 °C and salinity to 0-42 PSU.
         /// </summary>
         /// <param name="temperatureC">Water temperature in °C.</param>
         /// <param name="salinityPSU">Salinity in PSU (default 35 for seawater).</param>
         /// <returns>Oxygen saturation concentration in mg/L.</returns>
         public static double CalculateOxygenSaturation(double temperatureC, double salinityPSU = 35.0)
         {
-            // Linear interpolation from table
-            for (int i = 0; i < OxygenSaturationTable.Length - 1; i++)
-            {
-                var (t1, o1) = OxygenSaturationTable[i];
-                var (t2, o2) = OxygenSaturationTable[i + 1];
-                if (temperatureC >= t1 && temperatureC <= t2)
-                {
-                    double t = (temperatureC - t1) / (t2 - t1);
-                    double sat = o1 + t * (o2 - o1);
-                    // Salinity correction (approximate: ~0.1 mg/L reduction per PSU above 0)
-                    return sat * (1.0 - 0.001 * salinityPSU);
-                }
-            }
-            // Extrapolate for out-of-range temperatures
-            if (temperatureC < OxygenSaturationTable[0].Temp)
-                return OxygenSaturationTable[0].O2Sat * (1.0 - 0.001 * salinityPSU);
-            return OxygenSaturationTable[^1].O2Sat * (1.0 - 0.001 * salinityPSU);
+            double t = double.IsFinite(temperatureC)
+                ? Math.Clamp(temperatureC, SolubilityMinTempC, SolubilityMaxTempC)
+                : SolubilityMinTempC;
+            double s = double.IsFinite(salinityPSU) ? Math.Clamp(salinityPSU, 0.0, SolubilityMaxSalinityPSU) : 0.0;
+            double k = t + KelvinOffset;
+            double lnFresh = SolubilityA0 + SolubilityA1 / k + SolubilityA2 / (k * k)
+                + SolubilityA3 / (k * k * k) + SolubilityA4 / (k * k * k * k);
+            double salting = s * (SalinityB0 - SalinityB1 / k + SalinityB2 / (k * k));
+            return Math.Exp(lnFresh - salting);
         }
 
         /// <summary>
@@ -137,10 +144,13 @@ namespace LakskongenSim.Biology
         #region DO Dynamics (Daily Update)
 
         /// <summary>
-        /// Calculate daily DO dynamics for a pen.
-        /// DO_sat = temp_correction(T) − O₂_consumption(biomass, feed_rate, FCR) + water_exchange(pen_volume, current_speed)
-        /// Updates the WaterChemistry.OxygenO2 in place.
-        /// Note: Consumption rates are in mg/L/day (consistent with WaterChemistry units).
+        /// Calculate daily DO dynamics for a pen and update
+        /// <c>WaterChemistry.OxygenO2</c> in place. Fish and feed oxygen demand are
+        /// normalized by the pen volume (mg/day ÷ liters → mg/L/day); current-driven
+        /// exchange pulls toward saturation. Integrated exactly over the day like
+        /// <see cref="Environment.WaterChemistry.UpdateOneDay"/>: the old explicit
+        /// step applied an exchange rate of 6.5-20/day as a fraction and its clamp
+        /// hid the divergence (F1024).
         /// </summary>
         /// <param name="waterChemistry">Water chemistry state to update.</param>
         /// <param name="temperatureC">Water temperature (°C).</param>
@@ -160,37 +170,23 @@ namespace LakskongenSim.Biology
             double currentSpeedMs,
             double salinityPSU = 35.0)
         {
-            // Temperature correction: oxygen solubility at saturation
             double o2Saturation = CalculateOxygenSaturation(temperatureC, salinityPSU);
+            double volumeL = Math.Max(1.0, penVolumeM3 * 1000.0);
 
-            // O₂ consumption by fish (metabolic) - mg O₂/L/day
-            // Rate is per kg fish per day, consistent with WaterChemistry scaling
+            // Fish (metabolic) and feed (metabolic + waste) oxygen demand, mg/L/day.
             double tempFactor = Math.Pow(2.0, (temperatureC - 10.0) / 10.0);
-            double fishOxygenConsumptionMgPerLPerDay = biomassKg * OxygenConsumptionPerKgFishPerDay * tempFactor;
+            double demand = (biomassKg * OxygenConsumptionPerKgFishPerDay * tempFactor
+                + feedRateKgPerDay * fcr * OxygenConsumptionPerKgFeed) / volumeL;
 
-            // O₂ consumption from feed waste (uneaten feed + feces)
-            double feedOxygenDemandMgPerLPerDay = feedRateKgPerDay * fcr * OxygenConsumptionPerKgFeed;
+            // Same flow index and exchange scaling as the zone chemistry.
+            double waterFlowRate = 500.0 + currentSpeedMs * 3000.0;
+            double exchange = WaterChemistry.ExchangeRatePerDay(waterFlowRate);
 
-            // Total oxygen consumption (mg/L/day)
-            double totalOxygenConsumptionMgPerLPerDay = fishOxygenConsumptionMgPerLPerDay + feedOxygenDemandMgPerLPerDay;
+            waterChemistry.OxygenO2 = WaterChemistry.RelaxOneDay(
+                waterChemistry.OxygenO2, exchange * o2Saturation - demand, exchange);
 
-            // Water exchange: reaeration toward saturation
-            // Match original WaterChemistry scaling: base flow + current-dependent flow
-            // Original: waterFlowRate = 500 + currentSpeed * 3000 m³/day
-            // Exchange fraction = waterFlowRate * 0.01 (applied directly to concentration)
-            double waterFlowRate = 500.0 + currentSpeedMs * 3000.0; // m³/day
-            double exchangeRate = waterFlowRate * 0.01; // Fraction per day (original scaling)
-            
-            double reaerationMgPerLPerDay = (o2Saturation - waterChemistry.OxygenO2) * exchangeRate;
-
-            // Net oxygen change
-            double netOxygenChange = reaerationMgPerLPerDay - totalOxygenConsumptionMgPerLPerDay;
-
-            // Update oxygen concentration
-            waterChemistry.OxygenO2 += netOxygenChange;
-
-            // Clamp to realistic bounds (0 to saturation)
-            waterChemistry.OxygenO2 = Math.Clamp(waterChemistry.OxygenO2, 0.0, o2Saturation * 1.2); // Allow slight supersaturation
+            // Physical bounds: anoxia floor, slight supersaturation ceiling.
+            waterChemistry.OxygenO2 = Math.Clamp(waterChemistry.OxygenO2, 0.0, o2Saturation * 1.2);
         }
 
         /// <summary>

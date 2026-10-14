@@ -327,6 +327,14 @@ systems are exercised from day 0. Fields are additive: `objective`,
 `starting_disease`, `enable_resource_rent_tax`, and per-site `containment` /
 `barrier`.
 
+Every scenario also has a bankruptcy floor (S1-03, owner decision D16): the
+default is -1 MNOK cash, and scenarios that start with a large stock carry a
+working-capital facility in `godot/data/calibration.json`
+(`finance.bankruptcyFloorByScenarioNOK`: po3_red_sone -15M, isa_utbrudd -24M,
+algekatastrofe -26.5M, krise_manager -4.5M, lofoten_eventyr -2M). A three-rung
+warning ladder (overdraft, bank warning at half the floor, final warning at
+80%) comes first; measurements in docs/BALANCE.md §1e.
+
 1) PO3 Rød Sone (`po3_red_sone`) — Difficulty 4, 3 years (1095 days)
 - Hook: Production area PO3 flips to a red traffic light and the −6 % MTB cut
   bites; the only route to "miljøfleksibilitet" is closed-containment biomass
@@ -369,9 +377,12 @@ systems are exercised from day 0. Fields are additive: `objective`,
   worth less.
 - Objective: Stay profitable under the 25 % tax and reach 25 MNOK profit via
   value-chain investment.
-- Depth system: resource-rent tax. `enable_resource_rent_tax = true` (also
-  derived from the `resource_rent_tax` special rule) and a starting Mortality
-  policy.
+- Depth system: resource-rent tax. `enable_resource_rent_tax = true` and a
+  starting Mortality policy. Since S1-03 (owner decision D16) the tax is on in
+  every scenario unless one sets `enable_resource_rent_tax = false`; the 70 MNOK
+  deduction keeps small farms out of it. Measured: this scenario's starting farm
+  (3 sites, 22 pens) never clears the deduction (rent base -25 to +27 MNOK a
+  year), so the tax only bites once the player expands (docs/BALANCE.md §1e).
 - Restrictions: 25 % cash-flow tax; the 70 MNOK standard deduction is shared
   across the business; profit above the deduction is taxed quarterly.
 

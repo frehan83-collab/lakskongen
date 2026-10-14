@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using LakskongenSim.Core;
 using LakskongenSim.Environment;
 using Xunit;
@@ -48,23 +49,67 @@ public class CrossProcessDeterminismTests
     private const double PinnedZone1Day100CurrentSpeed = 0.1694483165605167;
     private const ulong PinnedStableHashZone1 = 3552879084099539837UL; // FNV-1a 64 of "zone-1"
 
+    /// <summary>Wall-clock bound for one probe process (a 400-day career takes ~2 s).</summary>
+    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(120);
+
     private static string RunProbe(int seed, int days, bool events)
     {
-        string dll = ProbePath();
-        var psi = new ProcessStartInfo(DotnetHost(), $"\"{dll}\" {seed} {days} {(events ? "true" : "false")}")
+        var (exitCode, stdout, stderr) = RunProcess(DotnetHost(),
+            $"\"{ProbePath()}\" {seed} {days} {(events ? "true" : "false")}", ProbeTimeout);
+        Assert.True(exitCode == 0, $"probe failed ({exitCode}): {stderr}");
+        string hash = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.Trim()).LastOrDefault() ?? "";
+        Assert.Matches("^[0-9A-F]{64}$", hash);
+        return hash;
+    }
+
+    /// <summary>
+    /// Run a process and collect its output, killing it (and its children) once
+    /// <paramref name="timeout"/> has passed. P0-07: the old runner read stdout
+    /// to the end BEFORE waiting with its timeout, so a hung probe blocked the
+    /// read forever and the timeout never applied; reading stdout then stderr in
+    /// sequence could also deadlock on a full stderr pipe.
+    /// </summary>
+    internal static (int ExitCode, string Stdout, string Stderr) RunProcess(string fileName, string arguments, TimeSpan timeout)
+    {
+        var psi = new ProcessStartInfo(fileName, arguments)
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false
         };
-        using var process = Process.Start(psi) ?? throw new InvalidOperationException("could not start probe");
-        string stdout = process.StandardOutput.ReadToEnd();
-        string stderr = process.StandardError.ReadToEnd();
-        Assert.True(process.WaitForExit(120_000), "probe timed out");
-        Assert.True(process.ExitCode == 0, $"probe failed ({process.ExitCode}): {stderr}");
-        string hash = stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.Trim()).LastOrDefault() ?? "";
-        Assert.Matches("^[0-9A-F]{64}$", hash);
-        return hash;
+        var clock = Stopwatch.StartNew();
+        using var process = Process.Start(psi) ?? throw new InvalidOperationException($"could not start {fileName}");
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        var stderr = process.StandardError.ReadToEndAsync();
+        bool exited = process.WaitForExit(timeout);
+        TimeSpan left = timeout - clock.Elapsed;
+        if (!exited || !Task.WaitAll(new Task[] { stdout, stderr }, left > TimeSpan.Zero ? left : TimeSpan.Zero))
+        {
+            try { process.Kill(entireProcessTree: true); }
+            catch (InvalidOperationException) { /* exited between the check and the kill */ }
+            process.WaitForExit();
+            throw new TimeoutException(
+                $"'{Path.GetFileName(fileName)} {arguments}' did not finish within {timeout.TotalSeconds:F0} s; killed");
+        }
+        process.WaitForExit();
+        return (process.ExitCode, stdout.Result, stderr.Result);
+    }
+
+    /// <summary>
+    /// P0-07: the timeout is enforced. A probe that hangs for a minute is
+    /// killed at a 3-second timeout and reported, not waited out.
+    /// </summary>
+    [Fact]
+    public void ProbeRunner_KillsAHungProbe_AtItsTimeout()
+    {
+        var clock = Stopwatch.StartNew();
+        var error = Assert.Throws<TimeoutException>(() =>
+            RunProcess(DotnetHost(), $"\"{ProbePath()}\" --sleep-ms 60000", TimeSpan.FromSeconds(3)));
+        clock.Stop();
+
+        Assert.Contains("did not finish within 3 s", error.Message);
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(30),
+            $"the runner waited {clock.Elapsed.TotalSeconds:F1} s for a probe it should have killed at 3 s");
     }
 
     private static string DotnetHost()

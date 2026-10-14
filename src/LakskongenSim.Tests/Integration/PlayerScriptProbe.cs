@@ -26,17 +26,32 @@ public static class PlayerScriptProbe
     /// <summary>Scenario for the scripted career (red-zone regulatory scenario with pre-stocked zones).</summary>
     public const string CareerScenarioId = "po3_red_sone";
 
-    /// <summary>Site mean weight that triggers harvest (operational margin vs calibrated 5.2 kg).</summary>
+    /// <summary>
+    /// Harvest rule (roadmap D2): a site at or above this mean weight is sold
+    /// on a day when spot is at or above its <see cref="SpotMeanWindowDays"/>-day
+    /// mean, like a farmer who waits out a price trough.
+    /// </summary>
     public const double HarvestTriggerWeightKg = 4.5;
 
-    /// <summary>Skip-ahead chunk for the engine day loop (bulk Advance keeps the probe fast).</summary>
+    /// <summary>Harvest rule (roadmap D2): a site at this mean weight is sold whatever the price.</summary>
+    public const double ForcedHarvestWeightKg = 6.0;
+
+    /// <summary>Window of the spot mean the harvest rule compares against (days).</summary>
+    public const int SpotMeanWindowDays = 30;
+
+    /// <summary>Days the probe skips while no site is ready to sell (it advances one day at a time once one is).</summary>
     public const int AdvanceChunkDays = 15;
 
     /// <summary>Latest day the career may run before the test fails (guard against silent non-growth).</summary>
     public const int CareerHorizonDays = 1200;
 
-    /// <summary>Mid-run save/load happens at this day.</summary>
-    public const int SaveLoadDay = 300;
+    /// <summary>
+    /// Mid-run save/load happens at this day, while both sites still hold fish.
+    /// It was day 300; with F1024's exact oxygen (no daily hypoxia penalty) the
+    /// careers reach harvest weight from about day 280, so a day-300 save could
+    /// land on an empty farm and round-trip nothing alive (S1-01/S1-02).
+    /// </summary>
+    public const int SaveLoadDay = 210;
 
     public sealed class CareerResult
     {
@@ -46,6 +61,14 @@ public static class PlayerScriptProbe
         public double EconomicFcr = 0.0;
         public double SeaMortalityPct = 0.0;
         public double PeakAdultFemaleLice = 0.0;
+        /// <summary>Spot price on each harvest, weighted by the kilos sold that day (NOK/kg).</summary>
+        public double MeanSpotOnHarvestDaysNok = 0.0;
+        /// <summary>Mean of every daily spot price the career saw (NOK/kg).</summary>
+        public double MeanSpotOverCareerNok = 0.0;
+        /// <summary>Sites sold because they reached <see cref="ForcedHarvestWeightKg"/>.</summary>
+        public int ForcedHarvests = 0;
+        /// <summary>Mean weight of each site when it was sold (kg).</summary>
+        public List<double> HarvestWeightsKg = new();
         public int DaysRun = 0;
         public int EventLogEntries = 0;
         public bool SaveLoadRoundTripped = false;
@@ -99,10 +122,19 @@ public static class PlayerScriptProbe
         bool saveLoadDone = false;
         var harvestedSites = new HashSet<string>();
         double fishAtHarvest = 0.0;
+        double spotTimesKg = 0.0;
+        // Daily spot as the career saw it (kept across the save/load round trip,
+        // like the player's memory of the market).
+        var spotHistory = new List<double>();
         int sitesStocked = engine.State.SeaSites.Count(s => SiteFishCount(s) > 0);
         while (engine.State.Day < CareerHorizonDays)
         {
-            engine.Advance(AdvanceChunkDays);
+            int step = AnySiteReadyToSell(engine.State, harvestedSites) ? 1 : AdvanceChunkDays;
+            for (int d = 0; d < step; d++)
+            {
+                engine.Advance(1);
+                spotHistory.Add((double)engine.MarketSimulation.PricePerKg);
+            }
             foreach (var note in engine.DrainDayNotes())
                 result.NoteKinds.Add(note.Kind);
             feedAccumulator += engine.Feed.TotalFeedUsedKg - lastFeedUsed;
@@ -132,20 +164,28 @@ public static class PlayerScriptProbe
             }
 
             // ===== Harvest through the command surface, per site =====
-            // Like a farmer, harvest each site the day it reaches harvest
-            // weight: holding a ready site for the slowest one feeds fish at
-            // their growth ceiling for months (only "affordable" while unpaid
-            // feed was waived, review F1130).
+            // Each site is sold on its own (holding a ready site for the slowest
+            // one feeds fish at their growth ceiling for months, review F1130).
+            // Rule (roadmap D2): from 4.5 kg, sell on a day when spot is at or
+            // above its 30-day mean; at 6 kg, sell whatever the price.
+            double spotToday = (double)engine.MarketSimulation.PricePerKg;
+            double spotMean = spotHistory.Skip(Math.Max(0, spotHistory.Count - SpotMeanWindowDays)).Average();
             foreach (var site in engine.State.SeaSites.OrderBy(s => s.Id).ToList())
             {
                 if (harvestedSites.Contains(site.Id) || SiteFishCount(site) == 0) continue;
-                if (SiteMeanWeightKg(site) < HarvestTriggerWeightKg) continue;
+                double weightKg = SiteMeanWeightKg(site);
+                if (weightKg < HarvestTriggerWeightKg) continue;
+                bool forced = weightKg >= ForcedHarvestWeightKg;
+                if (!forced && spotToday < spotMean) continue;
                 fishAtHarvest += SiteFishCount(site);
                 var cmd = engine.HarvestSite(site.Id);
                 Assert.True(cmd.Ok, $"harvest of {site.Id} failed: {cmd.ErrorKey}");
                 harvestedSites.Add(site.Id);
                 result.HarvestedKg += cmd.Value;
                 result.RevenueNok += cmd.Value2;
+                result.HarvestWeightsKg.Add(weightKg);
+                if (forced) result.ForcedHarvests++;
+                spotTimesKg += spotToday * cmd.Value;
             }
 
             // Both careers (with and without the round trip) run at least to
@@ -166,6 +206,8 @@ public static class PlayerScriptProbe
         result.RealizedPricePerKg = result.HarvestedKg > 0.001
             ? result.RevenueNok / result.HarvestedKg
             : 0.0;
+        result.MeanSpotOnHarvestDaysNok = result.HarvestedKg > 0.001 ? spotTimesKg / result.HarvestedKg : 0.0;
+        result.MeanSpotOverCareerNok = spotHistory.Count > 0 ? spotHistory.Average() : 0.0;
         result.EconomicFcr = growthAccumulator > 0.001
             ? feedAccumulator / growthAccumulator
             : double.MaxValue;
@@ -240,4 +282,9 @@ public static class PlayerScriptProbe
 
     private static bool AllSitesAtHarvestWeight(GameState state, double kg)
         => state.SeaSites.Count > 0 && state.SeaSites.All(s => SiteMeanWeightKg(s) >= kg);
+
+    /// <summary>True when an unsold, stocked site has reached the harvest-rule weight.</summary>
+    private static bool AnySiteReadyToSell(GameState state, HashSet<string> harvestedSites)
+        => state.SeaSites.Any(s => !harvestedSites.Contains(s.Id) && SiteFishCount(s) > 0
+            && SiteMeanWeightKg(s) >= HarvestTriggerWeightKg);
 }

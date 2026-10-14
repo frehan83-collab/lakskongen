@@ -6,7 +6,8 @@ extends CanvasLayer
 ##
 ## Usage:
 ##   1. Instance scenes/ui/AchievementPopup.tscn as a child of your HUD.
-##   2. Connect SimBridge.achievement_unlocked → show_achievement().
+##   2. Connect SimBridge.achievement_unlocked → show_achievement()
+##      (id, name, description, medal, tier: achievements award medals, D16).
 ##   3. The popup appears at top-centre, holds for 5 s, then fades out.
 
 # ── Layout constants ──────────────────────────────────────────────────────────
@@ -82,7 +83,7 @@ func _process(delta: float) -> void:
 
 ## Show a popup for the given achievement data.
 ## Called automatically via SimBridge.achievement_unlocked signal.
-func show_achievement(achievement_name: String, description: String, reward_nok: float, tier: String) -> void:
+func show_achievement(_id: String, achievement_name: String, description: String, medal: String, tier: String) -> void:
 	# Cancel any running dismiss tween so back-to-back unlocks work cleanly
 	if _tween and _tween.is_valid():
 		_tween.kill()
@@ -92,11 +93,9 @@ func show_achievement(achievement_name: String, description: String, reward_nok:
 	_tier_label.text = tier.to_upper()
 	_tier_label.modulate = TIER_COLORS.get(tier, COL_GOLD_LIGHT)
 
-	if reward_nok > 0.0:
-		_reward_label.text = tr("UI_ACHIEVEMENT_REWARD_FORMAT") % _format_nok(reward_nok)
-		_reward_label.visible = true
-	else:
-		_reward_label.visible = false
+	# The medal the achievement awards (D16: medals, never cash).
+	_reward_label.text = _tr_or("UI_MEDAL_" + medal.to_upper(), medal.capitalize())
+	_reward_label.visible = medal != ""
 
 	_panel.visible = true
 	_timer = DISPLAY_DURATION
@@ -132,12 +131,3 @@ func _apply_theme_fonts() -> void:
 	var theme_node = get_node_or_null("/root/LakskongenTheme")
 	if theme_node and theme_node.font_heading_bold:
 		_name_label.add_theme_font_override("font", theme_node.font_heading_bold)
-
-# ── Format helper ─────────────────────────────────────────────────────────────
-
-func _format_nok(amount: float) -> String:
-	if amount >= 1_000_000.0:
-		return "%.2f M" % (amount / 1_000_000.0)
-	elif amount >= 1_000.0:
-		return "%.0f k" % (amount / 1_000.0)
-	return "%.0f" % amount

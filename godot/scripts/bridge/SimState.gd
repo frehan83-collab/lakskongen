@@ -18,13 +18,13 @@ signal day_advanced(day: int, season: String)
 signal alert_raised(level: String, message: String)
 
 ## Emitted when the player completes a tutorial step.
-signal tutorial_step_completed(step_number: int, title: String, reward_nok: float)
+signal tutorial_step_completed(step_number: int, title: String)
 
 ## Emitted when an audio alert is triggered (one-shot SFX).
 signal audio_alert_triggered(alert_key: String)
 
 ## Emitted when the player unlocks a new achievement.
-signal achievement_unlocked(id: String, achievement_name: String, description: String, reward_nok: float, tier: String)
+signal achievement_unlocked(id: String, achievement_name: String, description: String, medal: String, tier: String)
 
 # ── Simulation snapshot (refreshed on each tick) ──────────────────────────────
 
@@ -34,6 +34,10 @@ var weather_state: String = "Calm"
 ## Season 0=winter, 0.25=spring, 0.5=summer, 0.75=autumn (drives 3D snow line).
 var season01: float = 0.0
 var balance: float = 0.0
+## Bankruptcy floor of the active scenario (NOK, negative) and the warning rung
+## today's cash sits on: 0 solvent, 1 overdraft, 2 bank warning, 3 final (S1-03).
+var bankruptcy_floor: float = -1_000_000.0
+var solvency_level: int = 0
 var fish_count: int = 0
 var fish_biomass_kg: float = 0.0
 var temperature_c: float = 0.0
@@ -45,6 +49,8 @@ var appetite: float = 1.0
 var avg_weight_kg: float = 0.0
 var mortality_rate: float = 0.0
 var oxygen_mgl: float = 0.0
+## mg/L the first zone's water holds at 100% saturation (sim's seawater solubility).
+var oxygen_saturation_mgl: float = 0.0
 var water_ph: float = 7.8
 var wind_ms: float = 0.0
 var wave_m: float = 0.0
@@ -171,11 +177,15 @@ func _on_simulation_ticked(day: int) -> void:
 
 
 func _on_game_ended(reason: String) -> void:
-	alert_raised.emit("critical", "Game over: " + reason)
+	# reason is a translation key when the engine ended the game (S1-03).
+	var fmt: String = tr("UI_GAME_OVER_FORMAT")
+	if fmt == "UI_GAME_OVER_FORMAT" or not ("%s" in fmt):
+		fmt = "Spillet er over: %s"
+	alert_raised.emit("critical", fmt % tr(reason))
 
 
-func _on_tutorial_step_completed(step_number: int, title: String, reward_nok: float) -> void:
-	tutorial_step_completed.emit(step_number, title, reward_nok)
+func _on_tutorial_step_completed(step_number: int, title: String) -> void:
+	tutorial_step_completed.emit(step_number, title)
 
 
 func _on_audio_alert_triggered(alert_key: String) -> void:
@@ -183,11 +193,11 @@ func _on_audio_alert_triggered(alert_key: String) -> void:
 	audio_alert_triggered.emit(alert_key)
 
 
-func _on_achievement_unlocked(id: String, achievement_name: String, description: String, reward_nok: float, tier: String) -> void:
+func _on_achievement_unlocked(id: String, achievement_name: String, description: String, medal: String, tier: String) -> void:
 	latest_achievement_name = achievement_name
 	latest_achievement_description = description
 	achievement_unlocked_count = game_bridge.AchievementUnlockedCount
-	achievement_unlocked.emit(id, achievement_name, description, reward_nok, tier)
+	achievement_unlocked.emit(id, achievement_name, description, medal, tier)
 
 # ── State refresh ─────────────────────────────────────────────────────────────
 
@@ -201,6 +211,8 @@ func _refresh_state() -> void:
 	# Day 0 = Jan 1: winter 0, spring 0.25, summer 0.5, autumn 0.75.
 	season01 = fmod(float(current_day) / 365.0, 1.0)
 	balance              = game_bridge.Balance
+	bankruptcy_floor     = game_bridge.BankruptcyFloorNok
+	solvency_level       = game_bridge.SolvencyWarningLevel
 	fish_count           = game_bridge.TotalFishCount
 	fish_biomass_kg      = game_bridge.TotalBiomassKg
 	temperature_c        = game_bridge.CurrentTemperatureC
@@ -212,6 +224,7 @@ func _refresh_state() -> void:
 	avg_weight_kg        = game_bridge.AvgWeightKg
 	mortality_rate       = game_bridge.MortalityRateToday
 	oxygen_mgl           = game_bridge.ZoneOxygenMgL
+	oxygen_saturation_mgl = game_bridge.ZoneOxygenSaturationMgL
 	water_ph             = game_bridge.ZonePh
 	wind_ms              = game_bridge.WindSpeedMs
 	wave_m               = game_bridge.WaveHeightM
@@ -350,14 +363,29 @@ func _check_alerts() -> void:
 			"critical" if float(b.get("severity", 0.0)) > 0.7 else "warning",
 			"%s %s ved %s (%dd igjen)" % [str(kind_icon), str(b.get("kind", "?")).capitalize(), str(b.get("site_id", "?")), int(b.get("days_left", 0))])
 
-	if balance < 0.0:
-		_raise("balance", "warning", "Negative balance: %s" % Formatters.format_nok(balance))
+	# Bankruptcy warning ladder (S1-03): one alert per rung, announced when the
+	# rung is reached; the engine owns the floor and the verdict.
+	if solvency_level > 0:
+		_raise("solvency:%d" % solvency_level, "critical" if solvency_level >= 2 else "warning",
+			_solvency_message(solvency_level))
 
 	if sustainability_score < 50:
 		_raise("sustainability", "warning", "Non-compliant sustainability: %d/100" % sustainability_score)
 
 	if temperature_c > 18.0:
 		_raise("temperature", "warning", "High temperature: %.1f°C (stress risk)" % temperature_c)
+
+
+## Norwegian ladder message: rung, today's cash and the scenario's floor.
+func _solvency_message(level: int) -> String:
+	var key: String = ["UI_SOLVENCY_OVERDRAFT", "UI_SOLVENCY_BANK_WARNING", "UI_SOLVENCY_FINAL_WARNING"][clampi(level, 1, 3) - 1]
+	var title: String = tr(key)
+	if title == key:
+		title = ["Overtrukket konto", "Bankvarsel", "Siste varsel fra banken"][clampi(level, 1, 3) - 1]
+	var fmt: String = tr("UI_SOLVENCY_DESC")
+	if fmt == "UI_SOLVENCY_DESC" or fmt.count("%s") < 2:
+		fmt = "Kontanter %s. Konkurs under %s."
+	return "%s: %s" % [title, fmt % [Formatters.format_nok(balance), Formatters.format_nok(bankruptcy_floor)]]
 
 
 ## Rebuild the alert list: event alerts still within their TTL, then the

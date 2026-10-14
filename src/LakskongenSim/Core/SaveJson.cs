@@ -56,6 +56,10 @@ public sealed class EngineRuntimeSnapshot
     /// <summary>Serialized represenentation of the storm-impact edge state.</summary>
     public string WeatherEdgeState { get; set; } = "Calm";
 
+    /// <summary>Highest storm severity reached in the running storm episode
+    /// (S1-02); null in saves written before episodes were tracked.</summary>
+    public double? StormEpisodePeakSeverity { get; set; }
+
     /// <summary>The randomized-events gating flag of the engine.</summary>
     public bool EventsEnabled { get; set; }
 

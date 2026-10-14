@@ -24,8 +24,21 @@ public class PlayerScriptCareerTests
         Assert.True(r.SaveLoadRoundTripped, "save/load mid-run did not execute");
         Assert.True(r.HarvestedAllSites, $"not all sites harvested (kg={r.HarvestedKg:N0})");
         Assert.True(r.HarvestedKg > 50_000, $"harvest too small: {r.HarvestedKg:N0} kg");
-        Assert.InRange(r.RealizedPricePerKg, 70.0, 96.0);
-        Assert.InRange(r.EconomicFcr, 0.9, 2.6);
+        // Roadmap D2 (replaces the absolute 70-96 NOK/kg band, which F1024's
+        // faster growth broke by moving the sale into a market trough the
+        // player did not cause): the player sells by the probe's harvest rule
+        // (from 4.5 kg on a day spot >= its 30-day mean, forced at 6 kg), and
+        // the sale must realize the spot of the day it was made.
+        Assert.All(r.HarvestWeightsKg, w => Assert.InRange(w, PlayerScriptProbe.HarvestTriggerWeightKg,
+            PlayerScriptProbe.ForcedHarvestWeightKg + 0.1));
+        Assert.True(r.RealizedPricePerKg >= 0.95 * r.MeanSpotOnHarvestDaysNok,
+            $"realized {r.RealizedPricePerKg:F2} NOK/kg < 0.95 x spot on the harvest days {r.MeanSpotOnHarvestDaysNok:F2}");
+        // The rule keeps the sale out of the trough a fixed 4.5 kg trigger sold
+        // into (48.6 NOK/kg against a career mean of ~80; measured 0.94 x mean).
+        Assert.True(r.MeanSpotOnHarvestDaysNok >= 0.9 * r.MeanSpotOverCareerNok,
+            $"sold at {r.MeanSpotOnHarvestDaysNok:F2} NOK/kg, career mean spot {r.MeanSpotOverCareerNok:F2}");
+        // FCR in kg feed per kg gain (D2 band 1.0-1.6; was 0.9-2.6).
+        Assert.InRange(r.EconomicFcr, 1.0, 1.6);
         // Wide ceiling on purpose: the career deliberately books early
         // treatments (wellboat delouse day ~3) and runs events + red zone,
         // so grow-out mortality runs above the clean SimProbe band; the
@@ -85,9 +98,9 @@ public class CommandErrorPathTests
     }
 
     /// <summary>
-    /// Review F884: the day-300 save/load round trip used to be checked only by
-    /// counts. The resumed career must end in exactly the state of the same
-    /// career played without a save.
+    /// Review F884: the mid-run save/load round trip (day 210 since S1-01, while
+    /// both sites hold fish) used to be checked only by counts. The resumed
+    /// career must end in exactly the state of the same career played without a save.
     /// </summary>
     [Theory]
     [InlineData(7)]
