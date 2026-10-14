@@ -66,7 +66,7 @@ const MOON_COLOR := Color("#C7D7E8")
 const MOON_ENERGY := 0.04
 ## Sun disc and penumbra: 0.53 degrees clear, wide under cloud.
 const SUN_ANGLE_CLEAR := 0.53
-const SUN_ANGLE_OVERCAST := 6.0
+const SUN_ANGLE_OVERCAST := 2.0
 
 # ── Exposure (an eye that adapts) ─────────────────────────────────────────────
 ## Scene key: zenith sky luminance plus shares of the direct light and the
@@ -78,7 +78,7 @@ const ADAPTATION := 0.72
 const MAX_EXPOSURE := 16.0
 ## Share of a deck's darkness (in log terms) the eye does not adapt away:
 ## the key falls by deck_ratio^(1 - OVERCAST_KEEP), so a storm stays darker.
-const OVERCAST_KEEP := 0.5
+const OVERCAST_KEEP := 0.65
 ## Skylight on the land: a fjord wall sees about half the sky (the opposite
 ## wall hides the rest, at a scale SSAO cannot see), so daylight ambient runs
 ## below 1. At night it is raised to stand in for dark-adapted eyes.
@@ -238,6 +238,10 @@ func _apply_sun(sun_dir: Vector3, cloud: float, c: Dictionary) -> void:
 	sun_light.shadow_enabled = energy > 0.002
 	sun_light.shadow_opacity = lerpf(1.0, 0.25, smoothstep(0.35, 1.0, cloud))
 	sun_light.light_angular_distance = lerpf(SUN_ANGLE_CLEAR, SUN_ANGLE_OVERCAST, smoothstep(0.3, 1.0, cloud))
+	# Behind a deck there is no sun to mirror: the light left is diffuse, so
+	# the water shows no glint (a 6-degree source would paint a blown-out
+	# ellipse on it).
+	sun_light.light_specular = lerpf(1.0, 0.0, smoothstep(0.45, 0.85, cloud))
 	c["sun_energy"] = energy
 	c["sun_clear_energy"] = clear_energy
 	c["sun_color"] = sun_light.light_color
@@ -312,7 +316,7 @@ func _measure_sky(sun_dir: Vector3, cloud: float, density: float, sea_fog: float
 		horizon += sky_radiance(d, sun_dir, 6) + twilight_radiance(d, sun_dir) + NIGHT_SKY_HORIZON
 	horizon *= 0.25
 	# Under cloud the sky is the deck's base: sunlight diffused through it.
-	var overcast := smoothstep(0.35, 1.0, cloud)
+	var overcast := smoothstep(0.35, 0.85, cloud)
 	var deck := cloud_base_luminance(sun_dir, density) + _luminance(zenith) * lerpf(0.9, 0.35, density)
 	var grey := Vector3(0.92, 0.96, 1.0) * deck
 	var fog_rgb := horizon.lerp(grey, overcast)

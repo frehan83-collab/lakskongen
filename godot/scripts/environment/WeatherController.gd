@@ -28,7 +28,7 @@ enum WeatherState { CLEAR, OVERCAST, RAIN, SNOW, STORM, FOG }
 const WEATHER_PRESETS := {
 	WeatherState.CLEAR:    { "cloud": 0.18, "density": 0.15, "visibility_km": 60.0, "rain": 0.0, "snow": 0.0, "sea_fog": 0.0, "wind_ms": 4.0,  "wave_m": 0.3 },
 	WeatherState.OVERCAST: { "cloud": 0.88, "density": 0.45, "visibility_km": 20.0, "rain": 0.0, "snow": 0.0, "sea_fog": 0.0, "wind_ms": 7.0,  "wave_m": 0.9 },
-	WeatherState.RAIN:     { "cloud": 0.96, "density": 0.65, "visibility_km": 6.0,  "rain": 1.5, "snow": 0.0, "sea_fog": 0.0, "wind_ms": 9.0,  "wave_m": 1.2 },
+	WeatherState.RAIN:     { "cloud": 0.96, "density": 0.7,  "visibility_km": 4.5,  "rain": 2.5, "snow": 0.0, "sea_fog": 0.0, "wind_ms": 9.0,  "wave_m": 1.2 },
 	WeatherState.SNOW:     { "cloud": 0.94, "density": 0.55, "visibility_km": 2.5,  "rain": 0.0, "snow": 0.8, "sea_fog": 0.0, "wind_ms": 6.0,  "wave_m": 0.8 },
 	WeatherState.STORM:    { "cloud": 1.0,  "density": 1.0,  "visibility_km": 2.0,  "rain": 7.0, "snow": 0.0, "sea_fog": 0.0, "wind_ms": 16.0, "wave_m": 3.0 },
 	WeatherState.FOG:      { "cloud": 0.35, "density": 0.3,  "visibility_km": 0.4,  "rain": 0.0, "snow": 0.0, "sea_fog": 1.0, "wind_ms": 2.0,  "wave_m": 0.2 },

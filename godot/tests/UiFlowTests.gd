@@ -1307,7 +1307,7 @@ func _test_environment_director_owns_the_look() -> void:
 	_check(t_storm <= 0.35, "environment: a storm leaves %.0f %% of the FJORD focus visible" % (t_storm * 100.0))
 	var storm_energy: float = director.get_composed()["sun_energy"]
 	_check(storm_energy <= clear_energy * 0.2, "environment: storm clouds dim the sun (%.2f -> %.2f)" % [clear_energy, storm_energy])
-	_check(sun.shadow_opacity < 0.5 and sun.light_angular_distance > 3.0, "environment: storm clouds soften the sun's shadows")
+	_check(sun.shadow_opacity < 0.5 and sun.light_angular_distance > 1.5 and sun.light_specular < 0.01, "environment: storm clouds soften the sun's shadows and take its glint off the water")
 
 	# Underwater on entry, the day's fog back on exit.
 	env.set_weather(WeatherController.WeatherState.CLEAR)
