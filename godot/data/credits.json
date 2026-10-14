@@ -33,6 +33,14 @@
       "notice_key": ""
     },
     {
+      "name": "Barlow Condensed",
+      "use_key": "UI_CREDITS_USE_FONT",
+      "author": "The Barlow Project Authors (Jeremy Tribby)",
+      "source": "github.com/jpt/barlow",
+      "licence": "SIL OFL 1.1",
+      "notice_key": ""
+    },
+    {
       "name": "Kenney UI Audio",
       "use_key": "UI_CREDITS_USE_UI_SOUNDS",
       "author": "Kenney",

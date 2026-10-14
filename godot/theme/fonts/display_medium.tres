@@ -1,6 +1,6 @@
 [gd_resource type="FontVariation" format=3]
 
-[ext_resource type="FontFile" path="res://assets/fonts/Inter-SemiBold.otf" id="1_l6cpw"]
+[ext_resource type="FontFile" path="res://assets/fonts/BarlowCondensed-Medium.ttf" id="1_l6cpw"]
 
 [sub_resource type="SystemFont" id="display_medium_fallback_0"]
 font_names = PackedStringArray("Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji", "Android Emoji", "EmojiOne Color")

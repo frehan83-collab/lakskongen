@@ -14,6 +14,7 @@ and the example mod pack are MIT.
 | Godot Engine | Game engine | Juan Linietsky, Ariel Manzur and Godot Engine contributors (godotengine.org) | MIT | the engine runtime in every export |
 | .NET runtime | C# runtime | .NET Foundation and contributors (dotnet.microsoft.com) | MIT | the runtime bundled with C# exports |
 | Inter | UI typeface | The Inter Project Authors, Rasmus Andersson (rsms.me/inter) | SIL OFL 1.1 | `godot/assets/fonts/Inter-*.otf`, licence in `godot/assets/fonts/OFL-Inter.txt` |
+| Barlow Condensed | Display typeface (headings, KPI figures) | The Barlow Project Authors, Jeremy Tribby (github.com/jpt/barlow), via Google Fonts | SIL OFL 1.1 | `godot/assets/fonts/BarlowCondensed-Medium.ttf`, `BarlowCondensed-SemiBold.ttf`, licence in `godot/assets/fonts/OFL-BarlowCondensed.txt` |
 | Kenney UI Audio | Interface and alert sounds | Kenney (kenney.nl) | CC0 1.0 | `godot/assets/audio/ui/*.wav`, `godot/assets/audio/sfx/disease_alert.wav`, `godot/assets/audio/sfx/harvest_ready.wav` |
 | Freesound sounds | Alert sounds | Freesound.org contributors | CC0 1.0 | `godot/assets/audio/sfx/lice_alert.wav`, `financial_crisis.wav`, `achievement_unlock.wav` |
 | Mixkit sound effects | Ambient sound | Mixkit (mixkit.co) | Mixkit Sound Effects Free License | `godot/assets/audio/ambient/*.ogg` |
@@ -27,6 +28,9 @@ and the example mod pack are MIT.
   Converted to Ogg Vorbis; otherwise unchanged.
 - **Inter:** Copyright the Inter Project Authors, under the SIL Open Font
   License 1.1 (full text in `godot/assets/fonts/OFL-Inter.txt`).
+- **Barlow Condensed:** Copyright 2017 The Barlow Project Authors
+  (https://github.com/jpt/barlow), under the SIL Open Font License 1.1 (full
+  text in `godot/assets/fonts/OFL-BarlowCondensed.txt`). Unmodified.
 - **Godot Engine:** Copyright (c) 2014-present Godot Engine contributors;
   Copyright (c) 2007-2014 Juan Linietsky, Ariel Manzur. MIT licence.
 
