@@ -10,6 +10,8 @@ extends Node3D
 @export var time_system: TimeOfDay
 @export var weather_system: WeatherController
 @export var particle_effects: ParticleEffects
+## The only writer of fog, sky, light, tonemap and the water's wave uniforms.
+@export var director: EnvironmentDirector
 
 @export_group("Water")
 @export var water_plane: MeshInstance3D
@@ -36,6 +38,8 @@ func _ready() -> void:
 
 	if underwater_rect == null:
 		underwater_rect = get_node_or_null("UnderwaterCanvas/UnderwaterRect") as ColorRect
+	if director == null:
+		director = get_node_or_null("EnvironmentDirector") as EnvironmentDirector
 	_build_ocean_skirt()
 	
 	if particle_effects:
@@ -141,15 +145,15 @@ func _connect_signals() -> void:
 
 
 func _on_sunrise() -> void:
-	print("[FjordEnvironment] ☀️ Sunrise at %s" % time_system.get_time_string())
+	print("[FjordEnvironment] Sunrise at %s" % time_system.get_time_string())
 
 
 func _on_sunset() -> void:
-	print("[FjordEnvironment] 🌙 Sunset at %s" % time_system.get_time_string())
+	print("[FjordEnvironment] Sunset at %s" % time_system.get_time_string())
 
 
 func _on_storm_started() -> void:
-	print("[FjordEnvironment] ⛈️ Storm started!")
+	print("[FjordEnvironment] Storm started")
 	# Gameplay hook: notify GameManager about storm damage risk
 
 
@@ -162,21 +166,14 @@ func _on_fog_visibility_changed(factor: float) -> void:
 	pass
 
 
+## The underwater fog is the director's: it recomposes the environment every
+## frame, so leaving the water restores the weather's fog by itself.
 func _on_entered_underwater() -> void:
-	print("[FjordEnvironment] 🐟 Entered underwater view")
-	# Adjust fog for underwater look
-	if weather_system and weather_system.world_environment:
-		var env := weather_system.world_environment.environment
-		env.fog_enabled = true
-		env.fog_density = 0.015
-		env.fog_light_color = Color("#0F3A4A")
+	print("[FjordEnvironment] Entered underwater view")
 
 
 func _on_exited_underwater() -> void:
 	print("[FjordEnvironment] Exited underwater view")
-	# Restore normal fog
-	if weather_system:
-		weather_system.set_weather(weather_system.current_weather)
 
 
 func _on_zoom_changed(level: FjordCamera.ZoomLevel) -> void:
@@ -186,24 +183,58 @@ func _on_zoom_changed(level: FjordCamera.ZoomLevel) -> void:
 
 ## === Public API for Gameplay ===
 
-## Set weather state
+## Set weather state (staging; the sim drives it through apply_sky_context).
 func set_weather(state: WeatherController.WeatherState) -> void:
 	if weather_system:
 		weather_system.set_weather(state)
 
 
-## Set time of day (0-24 hours)
+## The sim's sky context (GameBridge.GetSkyContext): calendar, latitude and
+## the atmosphere the sim day implies.
+func apply_sky_context(ctx: Dictionary) -> void:
+	if ctx.is_empty():
+		return
+	if time_system:
+		time_system.set_calendar(float(ctx.get("latitude", time_system.latitude_deg)), int(ctx.get("sim_day", time_system.sim_day)))
+	if terrain and "sim_day" in ctx:
+		terrain.set_season(fmod(float(ctx["sim_day"]) / 365.0, 1.0))
+	if weather_system:
+		weather_system.apply_sky_context(ctx)
+
+
+## Sim water conditions for the water shader (through the director).
+func set_water_state(temperature_c: float, algae01: float) -> void:
+	if director:
+		director.set_water_state(temperature_c, algae01)
+
+
+## Set time of day (0-24 hours). Photo mode and the harness pin the hour.
 func set_time(hour: float) -> void:
 	if time_system:
 		time_system.set_hour(hour)
+	_snap_director()
 
 
-## Set season (0.0=winter, 0.25=spring, 0.5=summer, 0.75=autumn)
+## Set season as a fraction of the year from 1 January (0 = winter,
+## 0.5 = summer): moves the sky's calendar day and the terrain's snow.
 func set_season(s: float) -> void:
 	if time_system:
 		time_system.season = s
 	if terrain:
 		terrain.set_season(s)
+	_snap_director()
+
+
+## Latitude (deg N) for the sky: polar night, midnight sun, aurora.
+func set_latitude(latitude: float) -> void:
+	if time_system:
+		time_system.set_calendar(latitude, time_system.sim_day)
+	_snap_director()
+
+
+func _snap_director() -> void:
+	if director and director.is_inside_tree():
+		director.compose(0.0, true)
 
 
 ## Move camera to look at world position

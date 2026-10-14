@@ -183,4 +183,9 @@ void fragment() {
 	rough = mix(rough, 0.7, snow);
 	ROUGHNESS = rough;
 	METALLIC = 0.0;
+	// Matte landscape (D13): vegetation and dry rock reflect little of the
+	// bright sky (F0 about 1-2 %); the splash zone and snow keep more.
+	float spec = mix(0.32, 0.12, clamp(forest + heath + meadow, 0.0, 1.0));
+	spec = mix(spec, 0.5, max(wet, snow * 0.6));
+	SPECULAR = spec;
 }

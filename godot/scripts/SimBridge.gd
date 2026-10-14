@@ -441,6 +441,9 @@ func hire_worker(role: String) -> bool: return _proxies.hire_worker(role)
 func fire_worker(worker_id: String) -> bool: return _proxies.fire_worker(worker_id)
 func get_achievement_list() -> Array[Dictionary]: return _proxies.get_achievement_list()
 func get_current_weather_state() -> String: return _proxies.get_current_weather_state()
+## G1-02/G1-04: latitude, calendar day and the atmosphere the sim day implies.
+func get_sky_context() -> Dictionary: return _proxies.get_sky_context()
+func get_scene_latitude() -> float: return _proxies.get_scene_latitude()
 func get_current_temperature() -> float: return _proxies.get_current_temperature()
 func get_current_day() -> int: return _proxies.get_current_day()
 

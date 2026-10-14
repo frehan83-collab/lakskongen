@@ -30,12 +30,6 @@ auto_orbit_enabled = true
 auto_orbit_speed = 0.03
 far = 20000.0
 
-[node name="TiltShiftCanvas" parent="FjordEnvironment"]
-layer = 1
-
-[node name="TiltShiftRect" parent="FjordEnvironment/TiltShiftCanvas"]
-mouse_filter = 2
-
 [node name="FishPenManager" type="Node3D" parent="FjordEnvironment"]
 script = ExtResource("10_penmanager")
 

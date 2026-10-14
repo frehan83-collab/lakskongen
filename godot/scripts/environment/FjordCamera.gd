@@ -84,9 +84,6 @@ const UNDERWATER_SEABED_CLEARANCE := 4.0
 @export var auto_orbit_enabled: bool = false
 @export var auto_orbit_speed: float = 0.03
 
-@export_group("Tilt-Shift")
-@export var tilt_shift_enabled: bool = true
-@export var tilt_shift_material: ShaderMaterial
 ## Terrain for avoidance, the fjord axis and cursor picking.
 @export var terrain: FjordTerrain
 
@@ -121,12 +118,6 @@ signal exited_underwater()
 
 
 func _ready() -> void:
-	if not tilt_shift_material:
-		var canvas := get_parent().get_node_or_null("TiltShiftCanvas")
-		if canvas:
-			var rect := canvas.get_node_or_null("TiltShiftRect") as ColorRect
-			if rect and rect.material is ShaderMaterial:
-				tilt_shift_material = rect.material as ShaderMaterial
 	_distance_target = ZOOM_DISTANCE[current_zoom] if current_zoom != ZoomLevel.UNDERWATER else ZOOM_DISTANCE[ZoomLevel.FARM]
 	_underwater = current_zoom == ZoomLevel.UNDERWATER
 	_yaw_target = home_yaw(_focus_target)
@@ -275,7 +266,6 @@ func _process(delta: float) -> void:
 		_process_idle_orbit(delta)
 	_damp(delta)
 	_apply_transform()
-	_update_tilt_shift()
 
 
 func _damp(delta: float) -> void:
@@ -558,12 +548,3 @@ func _update_zoom_band(level: ZoomLevel) -> void:
 static func _nearest_angle(from: float, to: float) -> float:
 	return from + wrapf(to - from, -PI, PI)
 
-
-func _update_tilt_shift() -> void:
-	if not tilt_shift_material or not tilt_shift_enabled:
-		return
-	# More blur when high up (miniature look), none underwater.
-	var blur := clampf(remap(global_position.y, 50.0, 1000.0, 1.0, 4.0), 0.5, 5.0)
-	if _underwater:
-		blur = 0.0
-	tilt_shift_material.set_shader_parameter("blur_amount", blur)
