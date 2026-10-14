@@ -590,8 +590,10 @@ func _refresh() -> void:
 		LakskongenTheme.set_text_color(_loan_status, C_WARNING if has_loan else C_SUCCESS_D)
 		_loan_amount.text = _fmt(loan.get("amount", 0.0)) if has_loan else "–"
 		_loan_remaining.text = _fmt(loan.get("remaining", 0.0)) if has_loan else "–"
-		_loan_take_btn.disabled = float(loan.get("credit_available", LOAN_AMOUNT)) < LOAN_AMOUNT
-		_loan_repay_btn.disabled = not has_loan
+		var credit := float(loan.get("credit_available", LOAN_AMOUNT))
+		UIPolish.set_available(_loan_take_btn,
+			tr("UI_WHY_NO_CREDIT") % SimFormatters.format_nok(credit) if credit < LOAN_AMOUNT else "")
+		UIPolish.set_available(_loan_repay_btn, "" if has_loan else tr("UI_WHY_NO_LOAN"))
 
 	# S2: trend block replaces the text history wall (color-coded time series).
 	_refresh_trends()

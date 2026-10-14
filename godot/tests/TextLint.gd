@@ -71,6 +71,10 @@ const WORD := "[A-Za-zÀ-ÖØ-öø-ÿ]+"
 
 static var _re_cache: Dictionary = {}
 
+## Controls that show text the player typed carry this meta (true) and are
+## left out of the dump.
+const PLAYER_TEXT_META := &"player_text"
+
 
 ## Every player-facing string on screen: [{"path", "kind", "text"}, …].
 static func dump(root: Node) -> Array[Dictionary]:
@@ -182,7 +186,8 @@ static func _collect_visible(n: Node, out: Array[Control]) -> void:
 		return
 	if n is Control:
 		var c := n as Control
-		if c.size.x >= 1.0 and c.size.y >= 1.0:
+		# Text the player typed (a save name) is data, not UI copy.
+		if c.size.x >= 1.0 and c.size.y >= 1.0 and not c.has_meta(PLAYER_TEXT_META):
 			out.append(c)
 	for child in n.get_children():
 		_collect_visible(child, out)

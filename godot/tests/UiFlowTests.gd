@@ -36,6 +36,9 @@ func _run() -> void:
 		return
 	mgr.UseSaveDirectory(TEST_SAVE_DIR)
 	_clear_test_saves()
+	# The checks read Norwegian text (the game's default language); a
+	# language.cfg left on English in the shared user dir must not flip them.
+	TranslationServer.set_locale("no")
 
 	await _test_bridge_save_load_roundtrip()
 	await _test_save_load_menu_tab()
@@ -69,6 +72,12 @@ func _run() -> void:
 	await _test_fjord_shows_rival_farms_and_wellboats()
 	_test_facade_forwards_phase5_systems()
 	await _test_theme_and_contrast_on_every_screen()
+	_test_formatters_speak_the_locale()
+	await _test_dashboard_title_names_the_company()
+	await _test_young_smolts_raise_no_fcr_alarm()
+	await _test_banner_and_inbox_open_the_right_tab()
+	await _test_text_reads_norwegian_in_young_and_red_zone_farms()
+	await _test_every_button_answers()
 
 	_clear_test_saves()
 	_finish()
@@ -958,6 +967,10 @@ func _lint_screen(screen: String) -> void:
 	_check(unthemed.is_empty(), "theme: %s has no Godot-default controls %s" % [screen, str(unthemed.slice(0, 4))])
 	var low: PackedStringArray = lint.low_contrast(root)
 	_check(low.is_empty(), "contrast: %s text meets 4.5:1 (3:1 large) %s" % [screen, str(low.slice(0, 4))])
+	# U1-03: the same screen reads as Norwegian — no format tokens, ids,
+	# CamelCase enums, raw values, decimal points or English words.
+	var wrong: PackedStringArray = TextLint.offenders(root, "nb")
+	_check(wrong.is_empty(), "text: %s reads as Norwegian %s" % [screen, str(wrong.slice(0, 4))])
 
 ## Roadmap U1-01 #3: the panel title and the four section headers are drawn
 ## (they rendered white on white before the theme reached the CanvasLayer).
@@ -970,6 +983,247 @@ func _check_telemetry_headers(panel: Node) -> void:
 	var wanted := ["Driftstelemetri", "Vann & Oksygen", "Lus & resistens", "Gjellehelse", "Fôr & FCR"]
 	var missing := wanted.filter(func(w: String) -> bool: return not shown.any(func(t: String) -> bool: return t.contains(w)))
 	_check(missing.is_empty(), "telemetry: title and section headers are shown (missing %s)" % str(missing))
+
+# ── U1-03 text correctness / U1-08 no dead verbs ───────────────────────────────
+
+## Buttons the press-everything walk leaves alone: they open the OS folder
+## picker (no window in a headless run).
+const BUTTONS_NOT_PRESSED := ["BrowseButton"]
+const BUTTON_SETTLE_S := 0.5
+const TextLint := preload("res://tests/TextLint.gd")
+
+## Captures push_warning / push_error / printerr lines while a test runs
+## (Godot's Logger; called from any thread, hence the mutex).
+class _WarningLog extends Logger:
+	var _lines: PackedStringArray = []
+	var _mutex := Mutex.new()
+
+	func _log_error(function: String, file: String, line: int, code: String, rationale: String,
+			_editor_notify: bool, error_type: int, _script_backtraces: Array[ScriptBacktrace]) -> void:
+		var kind := "warning" if error_type == ERROR_TYPE_WARNING else "error"
+		_add("%s: %s (%s:%d %s)" % [kind, rationale if rationale != "" else code, file.get_file(), line, function])
+
+	func _log_message(message: String, error: bool) -> void:
+		if error:
+			_add("printerr: " + message.strip_edges())
+
+	func _add(line: String) -> void:
+		_mutex.lock()
+		_lines.append(line)
+		_mutex.unlock()
+
+	func take() -> PackedStringArray:
+		_mutex.lock()
+		var out := _lines.duplicate()
+		_lines.clear()
+		_mutex.unlock()
+		return out
+
+## U1-03: money, counts, percentages and dates read the Norwegian way in nb
+## and the English way in en — the formatter every panel goes through.
+func _test_formatters_speak_the_locale() -> void:
+	var nbsp := " "
+	var nok := SimFormatters.format_nok(11_490_000.0, "nb")
+	_check(nok == "11,49 MNOK", "format: 11 490 000 kr reads '11,49 MNOK' in nb (%s)" % nok)
+	var count := SimFormatters.integer(71_472, "nb")
+	_check(count == "71" + nbsp + "472", "format: 71472 is grouped with a no-break space in nb (%s)" % count.replace(nbsp, "⍽"))
+	var date := SimFormatters.format_date(2027, 1, 12, "nb")
+	_check(date == "12. jan. 2027", "format: a date reads '12. jan. 2027' in nb (%s)" % date)
+	var share := SimFormatters.percent(0.44, 0, "nb")
+	_check(share == "44" + nbsp + "%", "format: a share reads '44 %%' in nb (%s)" % share.replace(nbsp, "⍽"))
+	var tonnes := SimFormatters.fmt("%.1f t", [2.5], "nb")
+	_check(tonnes == "2,5 t", "format: decimals take a comma in nb (%s)" % tonnes)
+	_check(SimFormatters.format_nok(11_490_000.0, "en") == "11.49 MNOK", "format: en keeps '11.49 MNOK'")
+	_check(SimFormatters.integer(71_472, "en") == "71,472", "format: en groups thousands with a comma")
+	_check(SimFormatters.format_date(2027, 1, 12, "en") == "Jan 12, 2027", "format: en reads 'Jan 12, 2027'")
+
+## U1-03: the dashboard title names the company (it printed "%s — Oversikt").
+func _test_dashboard_title_names_the_company() -> void:
+	var scene := await _spawn_game_scene()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	ui.show_tab("dashboard")
+	await get_tree().process_frame
+	var dashboard := _node_with(ui.find_child("Panel_dashboard", true, false), "_title_label")
+	var title: String = dashboard._title_label.text if dashboard != null else ""
+	var company := str(_sim.company_name)
+	_check(company != "" and title.contains(company) and not title.contains("%"),
+		"dashboard: the title names the company '%s' (%s)" % [company, title])
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-08: day 12 of Første sesong — 100 g smolts eat for growth, so the feed
+## factor is not judged yet and the farm is not called critical for it.
+## Once the fish settle the same check runs on the calibrated target.
+func _test_young_smolts_raise_no_fcr_alarm() -> void:
+	_check(_sim.start_qa_scenario(SCENARIO_ID, 91), "fcr: Første sesong starts")
+	_sim.set_paused(true)
+	_sim.advance_days(12)
+	var targets: Dictionary = _sim.get_fcr_targets()
+	_check(float(targets.get("target", 0.0)) > 0.0 and float(targets.get("poor", 0.0)) > float(targets.get("target", 0.0)),
+		"fcr: the bridge serves the calibrated target and poor FCR (%s)" % str(targets))
+	_check(not _sim.fcr_is_settled(), "fcr: 12 days after stocking 100 g smolts the FCR is not judged yet")
+	var verdict := FarmStateBanner.evaluate(_sim)
+	_check(int((verdict["factors"] as Dictionary).get("fcr", -1)) == 0,
+		"fcr: the farm banner raises no FCR factor on day 12 (%s, FCR %s)" % [str(verdict["factors"]), str(_sim.fcr)])
+	_check(verdict["summary"] != tr("UI_FARM_STATE_CRITICAL") or str(verdict["worst_key"]) != "fcr",
+		"fcr: no 'Kritisk tilstand' from the feed factor on day 12 (%s)" % str(verdict["summary"]))
+
+## U1-08: the banner's call to action and the inbox's feed advice open the tab
+## where the player can act on them.
+func _test_banner_and_inbox_open_the_right_tab() -> void:
+	var scene := await _spawn_game_scene()
+	_sim.skip_tutorial()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	ui.show_tab("dashboard")
+	await get_tree().process_frame
+	var dashboard := _node_with(ui.find_child("Panel_dashboard", true, false), "_state_banner")
+	var banner: FarmStateBanner = dashboard._state_banner if dashboard != null else null
+	_check(banner != null, "banner: the dashboard shows the farm-state banner")
+	if banner != null:
+		for factor in FarmStateBanner.ACTION_TABS:
+			ui.show_tab("dashboard")
+			await get_tree().process_frame
+			banner.set_action(factor)
+			banner._action.pressed.emit()
+			await get_tree().process_frame
+			var want: String = FarmStateBanner.ACTION_TABS[factor]
+			_check(ui.get_active_tab() == want, "banner: the %s call to action opens '%s' (%s)" % [factor, want, ui.get_active_tab()])
+	var inbox := scene.get_node("AttentionInbox")
+	inbox._on_item_action("open_intervention_detail", "recipe-tune", "")
+	await get_tree().process_frame
+	_check(ui.get_active_tab() == "ai_feeding", "inbox: feed-recipe advice opens AI feeding (%s)" % ui.get_active_tab())
+	inbox._on_item_action("open_intervention_detail", "preemptive-delouse", "")
+	await get_tree().process_frame
+	_check(ui.get_active_tab() == "pens", "inbox: delousing advice opens the pens (%s)" % ui.get_active_tab())
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U1-03: every tab of a brand-new Første sesong and of PO3 on day 12 (red
+## zone, young fish, live alerts) reads as Norwegian in nb.
+func _test_text_reads_norwegian_in_young_and_red_zone_farms() -> void:
+	var locale := TranslationServer.get_locale()
+	TranslationServer.set_locale("no")
+	for run in [[SCENARIO_ID, 91, 0], ["po3_red_sone", 20261012, 12]]:
+		_check(_sim.start_qa_scenario(run[0], run[1]), "text: %s starts" % run[0])
+		var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+		add_child(scene)
+		for i in 5:
+			await get_tree().process_frame
+		_sim.set_paused(true)
+		_sim.skip_tutorial()
+		if int(run[2]) > 0:
+			_sim.advance_days(int(run[2]))
+		var ui: Control = scene.get_node("UILayer/GameUI")
+		var center: Control = scene.get_node("UILayer/NotificationCenter")
+		var found: PackedStringArray = []
+		for tab in THEME_SCREENS_TABS:
+			ui.show_tab(tab)
+			center.hide_panel()
+			await get_tree().create_timer(THEME_SETTLE_S).timeout
+			for o in TextLint.offenders(get_tree().root, "nb"):
+				found.append("%s: %s" % [tab, o])
+		_check(found.is_empty(), "text: every tab of %s day %d reads as Norwegian %s" % [run[0], run[2], str(found.slice(0, 4))])
+		scene.queue_free()
+		await get_tree().process_frame
+	TranslationServer.set_locale(locale)
+
+## U1-08 (no dead verbs): in a fresh Første sesong every enabled button on
+## every tab is pressed once. None may answer with a failure toast or a
+## push_warning / push_error, and every disabled button says why.
+func _test_every_button_answers() -> void:
+	_clear_test_saves()
+	_check(_sim.start_qa_scenario(SCENARIO_ID, 91), "buttons: fresh Første sesong starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	_sim.skip_tutorial()
+	await get_tree().create_timer(THEME_SETTLE_S).timeout
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	var toasts: Array = []
+	var toast_node := get_node("/root/ToastNotification")
+	var on_toast := func(message: String, level: String) -> void: toasts.append([level, message])
+	toast_node.toast_shown.connect(on_toast)
+	var log := _WarningLog.new()
+	OS.add_logger(log)
+	for tab in THEME_SCREENS_TABS:
+		ui.show_tab(tab)
+		center.hide_panel()
+		await get_tree().create_timer(BUTTON_SETTLE_S).timeout
+		var panel: Node = ui.find_child("Panel_" + tab, true, false)
+		if panel == null:
+			_check(false, "buttons: tab %s has a panel" % tab)
+			continue
+		if tab == "export":
+			_point_export_at_test_dir(panel)
+		var silent: Array = []
+		for node in panel.find_children("*", "BaseButton", true, false):
+			var b := node as BaseButton
+			if b.is_visible_in_tree() and b.disabled and b.tooltip_text.strip_edges() == "":
+				silent.append(_button_label(b))
+		_check(silent.is_empty(), "buttons: every disabled button on %s says why %s" % [tab, str(silent)])
+		var failures: Array = []
+		var presses := 0
+		for node in panel.find_children("*", "BaseButton", true, false):
+			if not is_instance_valid(node) or node.is_queued_for_deletion():
+				continue
+			var b := node as BaseButton
+			if not b.is_visible_in_tree() or b.disabled or BUTTONS_NOT_PRESSED.has(String(b.name)):
+				continue
+			var label := _button_label(b)
+			log.take()
+			toasts.clear()
+			if b.toggle_mode:
+				b.button_pressed = not b.button_pressed
+			b.pressed.emit()
+			presses += 1
+			for i in 3:
+				await get_tree().process_frame
+			var bad := toasts.filter(func(t: Array) -> bool: return t[0] in ["WARNING", "CRITICAL"])
+			var warned := log.take()
+			if not bad.is_empty() or not warned.is_empty():
+				failures.append("%s → %s %s" % [label, str(bad.map(func(t: Array) -> String: return str(t[1]))), str(warned)])
+			_close_popups()
+			if ui.get_active_tab() != tab:
+				ui.show_tab(tab)
+				center.hide_panel()
+				await get_tree().process_frame
+		_check(failures.is_empty(), "buttons: %d presses on %s, no failure toast or warning %s" % [presses, tab, str(failures.slice(0, 3))])
+	OS.remove_logger(log)
+	toast_node.toast_shown.disconnect(on_toast)
+	scene.queue_free()
+	await get_tree().process_frame
+	_clear_test_saves()
+
+func _point_export_at_test_dir(panel: Node) -> void:
+	var dir := ProjectSettings.globalize_path(TEST_ROOT + "exports")
+	DirAccess.make_dir_recursive_absolute(dir)
+	var export_panel := _node_with(panel, "_export_directory")
+	if export_panel != null:
+		export_panel._path_display.text = dir
+		export_panel._export_directory = dir
+
+func _button_label(b: BaseButton) -> String:
+	var text := str(b.call("get_text")) if b.has_method("get_text") else ""
+	return "%s '%s'" % [b.name, text.replace("\n", " ").left(40)]
+
+func _close_popups() -> void:
+	for w in get_tree().root.find_children("*", "Window", true, false):
+		if (w is AcceptDialog or w is PopupMenu) and (w as Window).visible:
+			(w as Window).hide()
+
+## The node at or under `root` whose script declares `property`.
+func _node_with(root: Node, property: String) -> Node:
+	if root == null:
+		return null
+	if property in root:
+		return root
+	for n in root.find_children("*", "", true, false):
+		if property in n:
+			return n
+	return null
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 

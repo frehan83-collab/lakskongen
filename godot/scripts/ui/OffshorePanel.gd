@@ -86,6 +86,9 @@ func refresh():
 	var audio := get_node_or_null("/root/AudioController")
 	if audio and audio.has_method("attach_ui_sounds"):
 		audio.attach_ui_sounds(self)
+	if build_new_offshore_button != null and _sim != null:
+		UIPolish.set_available(build_new_offshore_button,
+			UIPolish.funds_blocker(UIPolish.build_cost(_sim, "offshore"), float(_sim.balance)))
 
 func on_panel_shown() -> void:
 	refresh()
@@ -141,13 +144,13 @@ func _update_farm_list():
 		var stock_btn := Button.new()
 		stock_btn.name = "StockButton"
 		stock_btn.text = tr("UI_OFFSHORE_STOCK") % SimFormatters.integer(OFFSHORE_STOCK_BATCH)
-		stock_btn.disabled = not operational
+		UIPolish.set_available(stock_btn, "" if operational else tr("UI_WHY_UNDER_CONSTRUCTION"))
 		stock_btn.pressed.connect(_on_stock_farm_pressed.bind(str(farm.get("id", ""))))
 		row.add_child(stock_btn)
 		var harvest_btn := Button.new()
 		harvest_btn.name = "HarvestButton"
 		harvest_btn.text = tr("UI_PEN_HARVEST")
-		harvest_btn.disabled = fish <= 0
+		UIPolish.set_available(harvest_btn, "" if fish > 0 else tr("UI_WHY_NOTHING_TO_HARVEST"))
 		harvest_btn.pressed.connect(_on_harvest_farm_pressed.bind(str(farm.get("id", ""))))
 		row.add_child(harvest_btn)
 		farm_list_container.add_child(row)
@@ -388,7 +391,7 @@ func _update_transfer_ui() -> void:
 		var biomass := float(site.get("biomass_kg", 0.0))
 		if biomass > 0:
 			var idx := transfer_source_select.item_count
-			transfer_source_select.add_item("%s (%.0f t)" % [str(site.get("name", "?")), biomass / 1000.0])
+			transfer_source_select.add_item("%s (%s t)" % [str(site.get("name", "?")), SimFormatters.num(biomass / 1000.0, 0)])
 			transfer_source_select.set_item_metadata(idx, str(site.get("id", "")))
 
 	if current_source != "":
@@ -398,6 +401,20 @@ func _update_transfer_ui() -> void:
 				break
 
 	_on_transfer_source_changed(transfer_source_select.get_selected())
+	_update_transfer_availability()
+
+## U1-08: the transfer controls say why they cannot be used — no site with
+## fish to move, no site with room to receive them, or no plan yet.
+func _update_transfer_availability() -> void:
+	var no_source := tr("UI_WHY_NO_TRANSFER_SOURCE") if transfer_source_select.item_count == 0 else ""
+	var no_dest := tr("UI_WHY_NO_TRANSFER_DEST") if no_source == "" and transfer_dest_select.item_count == 0 else ""
+	var blocker := no_source if no_source != "" else no_dest
+	UIPolish.set_available(transfer_source_select, no_source)
+	UIPolish.set_available(transfer_dest_select, blocker)
+	UIPolish.set_available(transfer_reason_select, blocker)
+	UIPolish.set_available(transfer_plan_btn, blocker)
+	if _pending_transfer.is_empty():
+		UIPolish.set_available(transfer_execute_btn, blocker if blocker != "" else tr("UI_WHY_PLAN_FIRST"))
 
 ## OptionButton item metadata holds the site id (Godot item ids are ints only).
 func _item_site_id(opt: OptionButton, idx: int) -> String:
@@ -439,7 +456,7 @@ func _on_transfer_source_changed(selected_idx: int) -> void:
 	# Reset plan
 	_pending_transfer = {}
 	transfer_info_label.text = ""
-	transfer_execute_btn.disabled = true
+	UIPolish.set_available(transfer_execute_btn, tr("UI_WHY_PLAN_FIRST"))
 
 func _on_transfer_plan() -> void:
 	if _sim == null or not _sim.has_method("plan_cohort_transfer"):
@@ -460,7 +477,7 @@ func _on_transfer_plan() -> void:
 	if plan.has("error"):
 		transfer_info_label.text = tr("UI_TRANSFER_ERROR") % SimLabels.command_error({"error": str(plan.get("error", ""))})
 		LakskongenTheme.set_text_color(transfer_info_label, LakskongenTheme.CHART_CRIT)
-		transfer_execute_btn.disabled = true
+		UIPolish.set_available(transfer_execute_btn, tr("UI_WHY_PLAN_FIRST"))
 		return
 
 	_pending_transfer = plan
@@ -471,7 +488,7 @@ func _on_transfer_plan() -> void:
 		SimFormatters.num(mean_weight, 1), SimLabels.transfer_reason(reason), SimFormatters.percent(mort / 100.0, 1),
 		eta, SimFormatters.format_nok(cost)]
 	LakskongenTheme.set_text_color(transfer_info_label, _theme.TEXT_PRIMARY if _theme else Color(1,1,1))
-	transfer_execute_btn.disabled = false
+	UIPolish.set_available(transfer_execute_btn, "")
 
 func _on_transfer_execute() -> void:
 	if _sim == null or not _sim.has_method("execute_cohort_transfer") or _pending_transfer.is_empty():
@@ -495,7 +512,7 @@ func _on_transfer_execute() -> void:
 		transfer_info_label.text = "❌ " + SimLabels.command_error(result, "UI_TRANSFER_FAILED")
 		LakskongenTheme.set_text_color(transfer_info_label, LakskongenTheme.CHART_CRIT)
 
-	transfer_execute_btn.disabled = true
+	UIPolish.set_available(transfer_execute_btn, tr("UI_WHY_PLAN_FIRST"))
 	_pending_transfer = {}
 	refresh()
 

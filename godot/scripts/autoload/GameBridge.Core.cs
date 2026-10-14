@@ -866,7 +866,7 @@ public partial class GameBridge : Node
         catch (Exception ex)
         {
             GD.PrintErr($"GameBridge tick error: {ex.Message}");
-            EndGame($"Simulation error: {ex.Message}");
+            EndGame(string.Format(UiCulture, _tr_or("GAME_OVER_SIM_ERROR", "Simulation error: {0}"), ex.Message));
         }
     }
 
@@ -898,7 +898,7 @@ public partial class GameBridge : Node
     private void HandleScenarioLost(ScenarioDefinition scenario, string reason)
     {
         EmitSignal(SignalName.ScenarioLost, scenario.Id, reason);
-        EndGame($"Scenario '{scenario.Name}' failed: {reason}");
+        EndGame(string.Format(UiCulture, _tr_or("GAME_OVER_SCENARIO_FAILED", "Scenario '{0}' is lost: {1}"), scenario.Name, reason));
     }
 
     /// <summary>
@@ -1001,7 +1001,7 @@ public partial class GameBridge : Node
     private void CheckGameOverConditions()
     {
         if (Balance < -1_000_000.0)
-            EndGame("Bankruptcy — debt exceeded 1 000 000 NOK!");
+            EndGame(_tr_or("GAME_OVER_BANKRUPT", "Bankruptcy — debt passed 1,000,000 NOK!"));
     }
 
     private void EndGame(string reason)

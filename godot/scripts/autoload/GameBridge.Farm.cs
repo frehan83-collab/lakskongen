@@ -1620,6 +1620,22 @@ public partial class GameBridge : Node
     /// Valid scales: "Small", "Medium", "Large", "Mega".
     /// Returns true on success, false if insufficient funds.
     /// </summary>
+    /// <summary>Installation cost of farm-wide AI feeding infrastructure.</summary>
+    private const decimal AiFeedingInstallCostNok = 100_000_000m;
+
+    /// <summary>
+    /// What the build / install buttons cost (U1-08: a button the player cannot
+    /// afford is disabled and says the price). Keys: "ras" (medium facility, the
+    /// RAS panel's build), "offshore" (semi-submersible, the offshore panel's
+    /// build), "ai_feeding".
+    /// </summary>
+    public Godot.Collections.Dictionary GetBuildCosts() => new()
+    {
+        ["ras"] = (double)new LakskongenSim.Farm.RASFacility { Scale = LakskongenSim.Farm.RASScale.Medium }.GetCAPEX(),
+        ["offshore"] = (double)new LakskongenSim.Farm.OffshoreFarm { FarmType = LakskongenSim.Farm.OffshoreType.SemiSubmersible }.GetCAPEX(),
+        ["ai_feeding"] = (double)AiFeedingInstallCostNok,
+    };
+
     public bool BuildRASFacility(string name, string scale)
     {
         if (SimulationEngine?.State == null)
@@ -1863,8 +1879,7 @@ public partial class GameBridge : Node
             return 0f;
         }
 
-        // Installation cost: ~100M NOK for farm-wide AI feeding infrastructure
-        decimal installCost = 100_000_000m;
+        decimal installCost = AiFeedingInstallCostNok;
 
         if (SimulationEngine.FinanceManager.Balance < installCost)
         {

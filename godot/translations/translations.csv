@@ -1329,3 +1329,30 @@ SCENARIO_BAREKRAFT_MESTER_SPECIAL_2,Stable prices,Stabile priser
 SCENARIO_BAREKRAFT_MESTER_SPECIAL_3,No time pressure,Ingen tidspress
 UI_SCENARIO_LOCKED_TOOLTIP,This scenario is locked. Finish other scenarios to unlock it.,Dette scenarioet er låst. Fullfør andre scenarioer for å låse det opp.
 UI_SCENARIO_START_TOOLTIP,Start this scenario (Enter),Start dette scenarioet (Enter)
+UI_WHY_NO_FISH,There are no fish in the pen — stock smolts first.,Det er ingen fisk i merden — sett ut smolt først.
+UI_WHY_LICE_BELOW,"Lice are at %s per fish, below the treatment threshold of %s. Treating now only costs fish.","Lusenivået er %s per fisk, under tiltaksgrensen på %s. Behandling nå koster bare fisk."
+UI_WHY_HARVEST_WEIGHT,Mean weight is %s kg; the fish are ready for slaughter at %s kg.,Snittvekten er %s kg; fisken er slakteklar fra %s kg.
+UI_WHY_NETS_WHOLE,The nets are intact (%s) — nothing to repair.,Nøtene er hele (%s) — ingenting å reparere.
+UI_WHY_NO_CREDIT,The credit line is used up (%s available).,Kredittrammen er brukt opp (%s ledig).
+UI_WHY_NO_LOAN,You have no loan to repay.,Du har ikke noe lån å betale tilbake.
+UI_WHY_PLAN_FIRST,Plan the transfer first.,Planlegg overføringen først.
+UI_WHY_UNDER_CONSTRUCTION,The facility is still under construction.,Anlegget er fortsatt under bygging.
+UI_WHY_NOTHING_TO_HARVEST,There are no fish to harvest.,Det er ingen fisk å høste.
+UI_RAS_STOCK,Stock %s smolts,Sett ut %s smolt
+UI_RAS_WATER_NONE,Water chemistry: no facility,Vannkjemi: ingen anlegg
+UI_RAS_WATER,"Water chemistry: pH %s, %s °C, O₂ %s mg/L","Vannkjemi: pH %s, %s °C, O₂ %s mg/l"
+UI_RAS_NEW_FACILITY_NAME,New RAS facility,Nytt RAS-anlegg
+UI_WHY_NO_TRANSFER_SOURCE,No site has fish to move.,Ingen lokalitet har fisk å flytte.
+UI_WHY_NO_TRANSFER_DEST,No other site has room for these fish.,Ingen annen lokalitet har plass til fisken.
+UI_WHY_NO_RAS,You have no RAS facility yet.,Du har ikke noe RAS-anlegg ennå.
+UI_WHY_RAS_NO_MAINTENANCE,No facility needs maintenance right now.,Ingen anlegg trenger vedlikehold nå.
+UI_WHY_FUNDS,Not enough money: this costs %s and you have %s.,"Ikke nok penger: dette koster %s, og du har %s."
+UI_WHY_AI_INSTALLED,AI feeding is already installed.,KI-fôring er allerede installert.
+GAME_OVER_SIM_ERROR,Simulation error: {0},Feil i simuleringen: {0}
+GAME_OVER_SCENARIO_FAILED,Scenario '{0}' is lost: {1},Scenarioet «{0}» er tapt: {1}
+GAME_OVER_BANKRUPT,"Bankruptcy — debt passed 1,000,000 NOK!",Konkurs — gjelden passerte 1 000 000 kr!
+ALERT_GAME_OVER,Game over: %s,Spillet er over: %s
+UI_ALL_SITES,all sites,alle anlegg
+UI_TOAST_ESCAPE,ESCAPE at %s — repair the nets now,RØMMING på %s — reparer nøtene nå
+UI_TOAST_DISEASE,Disease: %s at %s,Sykdom: %s på %s
+UI_TOAST_GAME_OVER,Game over: %s,Spillet er over: %s

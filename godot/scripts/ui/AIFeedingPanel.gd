@@ -61,6 +61,7 @@ func refresh():
 	_update_fcr_savings()
 	_sync_recipe_sliders()
 	_update_recipe_preview()
+	_update_install_button()
 
 
 ## Feed recipe (Phase 4.4): sliders → preview → apply. Preview is computed
@@ -151,6 +152,14 @@ func _update_fcr_savings():
 	else:
 		var saving := 1.0 - float(st.get("fcr_multiplier", 1.0))
 		fcr_savings_label.text = tr("UI_AIFEED_FCR_SAVINGS") % SimFormatters.percent(saving, 1)
+
+## U1-08: installing twice or without the money failed with a log line only.
+func _update_install_button() -> void:
+	if install_ai_button == null or _sim == null:
+		return
+	var reason := tr("UI_WHY_AI_INSTALLED") if _is_installed(_get_status()) \
+		else UIPolish.funds_blocker(UIPolish.build_cost(_sim, "ai_feeding"), float(_sim.balance))
+	UIPolish.set_available(install_ai_button, reason)
 
 func _on_install_ai_pressed():
 	if _sim != null and _sim.has_method("install_ai_feeding"):

@@ -469,6 +469,7 @@ func build_ras_facility(rname: String, scale: String) -> bool: return _proxies.b
 func ras_maintenance(facility_id: String) -> float: return _proxies.ras_maintenance(facility_id)
 func stock_ras_facility(facility_id: String, count: int, strain_id: String = "standard") -> Dictionary: return _proxies.stock_ras_facility(facility_id, count, strain_id)
 func harvest_ras_facility(facility_id: String) -> Dictionary: return _proxies.harvest_ras_facility(facility_id)
+func get_build_costs() -> Dictionary: return _proxies.get_build_costs()
 func stock_offshore_farm(farm_id: String, count: int, strain_id: String = "standard") -> Dictionary: return _proxies.stock_offshore_farm(farm_id, count, strain_id)
 func harvest_offshore_farm(farm_id: String) -> Dictionary: return _proxies.harvest_offshore_farm(farm_id)
 func get_offshore_farms() -> Array[Dictionary]: return _proxies.get_offshore_farms()

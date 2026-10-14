@@ -334,6 +334,10 @@ func get_ai_feeding_status() -> Dictionary:
 	return {"is_installed": false}
 
 ## Install AI feeding system (one-time cost)
+## Build / install prices for the facility buttons (GameBridge.GetBuildCosts).
+func get_build_costs() -> Dictionary:
+	return game_bridge.GetBuildCosts() if game_bridge else {}
+
 func install_ai_feeding() -> float:
 	if game_bridge and game_bridge.has_method("InstallAIFeeding"):
 		return game_bridge.InstallAIFeeding()

@@ -257,18 +257,19 @@ func _on_weather_event(event_type: String, severity: float, description: String)
 	# Mild weather is logged by NotificationCenter — no theater needed.
 
 func _on_disease_outbreak(disease_type: String, site_id: String, severity: float, _treatment_cost: float) -> void:
+	var where := tr("UI_ALL_SITES") if site_id == "all_sites" else _site(site_id)
 	if disease_type == "Escape":
-		_fire_critical("escape", "🚨 RØMMING @ %s — reparer nøtene nå" % site_id)
+		_fire_critical("escape", "🚨 " + tr("UI_TOAST_ESCAPE") % where)
 	elif severity >= 0.5:
-		_fire_critical("disease", "🦠 Sykdom (%s @ %s)" % [disease_type, site_id])
+		_fire_critical("disease", "🦠 " + tr("UI_TOAST_DISEASE") % [SimLabels.disease(disease_type), where])
 	else:
-		_fire_warning("disease", "⚠ Sykdom (%s @ %s)" % [disease_type, site_id])
+		_fire_warning("disease", "⚠ " + tr("UI_TOAST_DISEASE") % [SimLabels.disease(disease_type), where])
 
 func _on_game_ended(reason: String) -> void:
 	if _is_duplicate("game_ended"):
 		return
 	_shake(20.0, 0.6)
-	_toast("💥 Spillet er over: %s" % reason, "CRITICAL", 9.0)
+	_toast("💥 " + tr("UI_TOAST_GAME_OVER") % reason, "CRITICAL", 9.0)
 	_audio_call("play_ui", ["notification"])
 
 # ── Consequence primitives ─────────────────────────────────────────────────────

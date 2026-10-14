@@ -190,7 +190,7 @@ func _on_simulation_ticked(day: int) -> void:
 
 
 func _on_game_ended(reason: String) -> void:
-	alert_raised.emit("critical", "Game over: " + reason)
+	alert_raised.emit("critical", tr("ALERT_GAME_OVER") % reason)
 
 
 func _on_tutorial_step_completed(step_number: int, title: String, reward_nok: float) -> void:

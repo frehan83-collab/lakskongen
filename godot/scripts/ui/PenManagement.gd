@@ -20,6 +20,11 @@ var _selected_pen_id: String = ""
 var _pen_list_items: Dictionary = {}  # pen_id -> Button
 
 # ── Scene refs ────────────────────────────────────────────────────────────────
+## Fish below this mean weight are not ready for slaughter (harvest button).
+const HARVEST_MIN_WEIGHT_KG := 3.5
+## Nets at or above this integrity have nothing to repair.
+const NETS_WHOLE_PCT := 99.5
+
 @onready var _left_title: Label = %LeftTitle
 @onready var _pen_list_vbox: VBoxContainer = %PenList
 @onready var _detail_scroll: ScrollContainer = %DetailScroll
@@ -300,14 +305,31 @@ func _refresh_detail() -> void:
 		LakskongenTheme.set_text_color(_detail_status_badge, C_SUCCESS_D)
 
 	# Button states
-	_btn_delouse.disabled = (fish == 0 or lice < 0.2)
-	_btn_harvest.disabled = (fish == 0 or avg_w < 3.5)
-	_btn_repair.disabled = integrity >= 99.5
+	UIPolish.set_available(_btn_delouse, _delouse_blocker(fish, lice))
+	UIPolish.set_available(_btn_harvest, _harvest_blocker(fish, avg_w))
+	UIPolish.set_available(_btn_repair,
+		tr("UI_WHY_NETS_WHOLE") % SimFormatters.percent(integrity / 100.0) if integrity >= NETS_WHOLE_PCT else "")
 	# Mitigation toggles (Phase 1.5) reflect live site state.
 	var has_skirt: bool = bool(pen.get("has_skirt", false))
 	var has_det: bool = bool(pen.get("has_deterrent", false))
 	_btn_skirt.text = ("🔛 " if has_skirt else "⚪ ") + tr("UI_PEN_SKIRT")
 	_btn_deterrent.text = ("🔛 " if has_det else "⚪ ") + tr("UI_PEN_DETERRENT")
+
+## Why the pen cannot be deloused now ("" when it can).
+func _delouse_blocker(fish: int, lice: float) -> String:
+	if fish == 0:
+		return tr("UI_WHY_NO_FISH")
+	if lice < SimState.LICE_TREATMENT_LIMIT:
+		return tr("UI_WHY_LICE_BELOW") % [SimFormatters.num(lice, 2), SimFormatters.num(SimState.LICE_TREATMENT_LIMIT, 2)]
+	return ""
+
+## Why the pen cannot be harvested now ("" when it can).
+func _harvest_blocker(fish: int, avg_w: float) -> String:
+	if fish == 0:
+		return tr("UI_WHY_NO_FISH")
+	if avg_w < HARVEST_MIN_WEIGHT_KG:
+		return tr("UI_WHY_HARVEST_WEIGHT") % [SimFormatters.num(avg_w, 1), SimFormatters.num(HARVEST_MIN_WEIGHT_KG, 1)]
+	return ""
 
 func _show_no_pen() -> void:
 	_no_pen_label.visible = true

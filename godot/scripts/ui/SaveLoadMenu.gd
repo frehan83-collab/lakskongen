@@ -155,6 +155,8 @@ func _create_slot(save_info: Dictionary) -> PanelContainer:
 
 	var name_lbl := Label.new()
 	name_lbl.text = _slot_display_name(slot_name)
+	if name_lbl.text == slot_name:
+		name_lbl.set_meta(&"player_text", true)  # a name the player chose (text lint: data)
 	LakskongenTheme.set_size(name_lbl, 16)
 	LakskongenTheme.set_tone(name_lbl, &"")
 	info_vbox.add_child(name_lbl)
