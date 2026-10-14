@@ -18,7 +18,7 @@ render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabl
 // soft halo. The distance fog dims it like the water round it.
 uniform vec3 glow_color : source_color = vec3(1.0, 0.761, 0.227);
 uniform float size_m = 1.4;
-uniform float min_pixels = 7.0;
+uniform float min_pixels = 8.0;
 uniform float period_s = 4.0;
 uniform float flash_s = 0.5;
 // Screen brightness of the core during a flash, and between flashes.

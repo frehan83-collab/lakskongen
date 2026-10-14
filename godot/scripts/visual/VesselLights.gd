@@ -22,7 +22,7 @@ const WHITE := Color(1.0, 0.96, 0.88)
 const RED := Color(1.0, 0.16, 0.12)
 const GREEN := Color(0.15, 1.0, 0.45)
 ## Synchronised yellow (#FFC23A) of the site's corner lights.
-const YELLOW := Color(1.0, 0.761, 0.227)
+const YELLOW := Color("#FFC23A")
 ## COLREGS arcs (rad): masthead 225 degrees forward, side lights 112.5 each
 ## from dead ahead, stern light 135 aft; all round.
 const MASTHEAD_HALF := 1.9635

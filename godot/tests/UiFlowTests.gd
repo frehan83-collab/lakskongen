@@ -78,6 +78,7 @@ func _run() -> void:
 	await _test_hero_pen_and_site_kit()
 	await _test_vessel_fleet()
 	await _test_multi_pen_sites()
+	await _test_fish_schools_and_night_lights()
 	_test_facade_forwards_phase5_systems()
 	await _test_terrain_faces_up_and_shares_one_heightfield()
 	await _test_camera_frames_sky_and_avoids_terrain()
@@ -2449,6 +2450,13 @@ func _test_hero_pen_and_site_kit() -> void:
 ## LODs and floating gear (tests/SiteFlowChecks.gd).
 func _test_multi_pen_sites() -> void:
 	var checks: RefCounted = (load("res://tests/SiteFlowChecks.gd") as GDScript).new()
+	await checks.run(self)
+
+## G3-01: salmon schools on the GPU (per-fish data written once, counts by
+## biomass, feeding and oxygen in the uniforms, cost) and the farm's lights
+## after dark (tests/FishFlowChecks.gd).
+func _test_fish_schools_and_night_lights() -> void:
+	var checks: RefCounted = (load("res://tests/FishFlowChecks.gd") as GDScript).new()
 	await checks.run(self)
 
 ## A3-01: the fleet is the Blender vessel set at real dimensions (barges 37 x

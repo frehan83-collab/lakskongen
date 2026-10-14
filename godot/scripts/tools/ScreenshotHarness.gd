@@ -52,6 +52,21 @@ const AURORA_YAW_DEG := -15.0
 const AURORA_PITCH_UP_DEG := 12.0
 const MIN_AURORA_FRACTION := 0.03
 
+# G3-01: the salmon schools change at least this share of the farm frame
+# (fish shown vs hidden, time frozen); a pixel counts when a channel moves
+# by FISH_MASK_STEP or more. The feeding shot looks at the fed pen.
+const MIN_FISH_FRACTION := 0.02
+const FISH_MASK_STEP := 4.0 / 255.0
+const FEEDING_SHOT_DISTANCE := 95.0
+const FEEDING_RISE_S := 6.0
+# The night shot: the site's and the boats' lights are on and read (they
+# and their glitter change at least this share of the frame), at the night
+# exposure without blooming the site away.
+const NIGHT_HOUR := 21.0
+const NIGHT_SEASON := 0.04
+const MIN_LIGHT_FRACTION := 0.0003
+const LIGHT_LUMA := 0.75
+
 # S1 living-fjord forced-state shots: set the QA lice load to the red-collar
 # threshold (FishPenManager: >=0.2 amber, >=0.5 critical/red).
 const LICE_FORCE_TARGET := 0.6
@@ -111,6 +126,8 @@ func _run_sequence() -> void:
 
 	await _capture_fjord_day()
 	await _capture_fjord_farm()
+	await _capture_fjord_farm_feeding()
+	await _capture_fjord_night_lights()
 	await _capture_fjord_storm()
 	await _capture_fjord_lice_red_zone()
 	await _capture_fjord_bloom()
@@ -464,6 +481,142 @@ func _capture_fjord_farm() -> void:
 	_configure_env(0.5, 12.0, WEATHER_CLEAR, ZOOM_FARM)
 	await _wait(2.5)
 	await _shoot("08b_fjord_farm", true)
+	var fish := await _fish_fraction()
+	print("[ScreenshotHarness] 08b_fjord_farm: the salmon schools change %.2f%% of the frame" % (fish * 100.0))
+	if fish < MIN_FISH_FRACTION:
+		_content_failures.append("08b_fjord_farm: the fish change %.2f%% of the frame (min %.0f%%)" % [fish * 100.0, MIN_FISH_FRACTION * 100.0])
+
+
+## G3-01: a pen the feed barge is feeding, close: the school risen and
+## crowded round the spreader, splashes and silver flashes.
+func _capture_fjord_farm_feeding() -> void:
+	var pens := _find(_game, "FishPenManager") as FishPenManager
+	var cam = _env.get("camera") if _env != null else null
+	if pens == null or cam == null:
+		_content_failures.append("08c_fjord_farm_feeding: no pens or camera")
+		return
+	_hide_ui()
+	_configure_env(0.5, 12.0, WEATHER_CLEAR, ZOOM_FARM)
+	var fed := ""
+	for sid in pens.get_pen_ids():
+		if pens._pens[sid].get("from_sim", false) and bool(pens._pens[sid].get("is_feeding", false)):
+			fed = sid
+			break
+	if fed == "":
+		_content_failures.append("08c_fjord_farm_feeding: the sim feeds no site at noon")
+		return
+	# The barge's turn starts at the site's first pen.
+	pens._feed_clock = 0.0
+	cam.call("look_at_position", pens.get_site(fed).pen_rest_position(0), ZOOM_FARM)
+	cam.set("_distance_target", FEEDING_SHOT_DISTANCE)
+	await _wait(FEEDING_RISE_S)
+	var school: MultiMeshInstance3D = pens._pens[fed]["fish_schools"][0]
+	var state: Vector4 = school.get_instance_shader_parameter("school_state")
+	print("[ScreenshotHarness] 08c_fjord_farm_feeding: %s pen 1 fed, school at %.1f m (feeding %.2f)" % [fed, state.x, state.w])
+	if state.w < 0.9:
+		_content_failures.append("08c_fjord_farm_feeding: the fed pen's school has not risen (feeding %.2f)" % state.w)
+	await _shoot("08c_fjord_farm_feeding", true)
+
+
+## The farm after dark: corner lights, the boats' navigation lights, the
+## barges' mast lights and lit windows, their glitter on the water.
+func _capture_fjord_night_lights() -> void:
+	_hide_ui()
+	_configure_env(NIGHT_SEASON, NIGHT_HOUR, WEATHER_CLEAR, ZOOM_FJORD)
+	var pens := _find(_game, "FishPenManager") as FishPenManager
+	var cam = _env.get("camera") if _env != null else null
+	if pens != null and cam != null and not pens.get_pen_ids().is_empty():
+		cam.call("look_at_position", pens.get_pen_position(pens.get_pen_ids()[0]), ZOOM_FJORD)
+	await _wait(3.0)
+	var img := await _shoot("09b_fjord_night_lights", true)
+	var lit := await _lights_fraction()
+	print("[ScreenshotHarness] 09b_fjord_night_lights: the lights and their glitter hold %.3f%% of the frame, %.3f%% bright (night level %.2f, exposure %.1fx)"
+		% [lit * 100.0, _bright_fraction(img) * 100.0, SiteLights.night, SiteLights.exposure])
+	if lit < MIN_LIGHT_FRACTION or SiteLights.night < 0.99:
+		_content_failures.append("09b_fjord_night_lights: the lights hold %.3f%% of the frame (min %.2f%%), night %.2f"
+			% [lit * 100.0, MIN_LIGHT_FRACTION * 100.0, SiteLights.night])
+	_configure_env(0.5, 12.0, WEATHER_CLEAR, ZOOM_FJORD)
+	await _wait(1.0)
+
+
+## Share of the frame the night lights change: the corner lights' and the
+## boats' glows and glitter shown vs hidden, time stopped.
+func _lights_fraction() -> float:
+	var glows: Array = get_tree().get_nodes_in_group(SiteLights.NIGHT_ONLY_GROUP)
+	for grid in _game.find_children("*", "Node3D", true, false):
+		if grid is MooringGrid and (grid as MooringGrid).get_glow_instance() != null:
+			glows.append((grid as MooringGrid).get_glow_instance())
+	var scale := Engine.time_scale
+	Engine.time_scale = 0.0
+	for i in 3:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var with_lights := get_viewport().get_texture().get_image()
+	var shown: Array = []
+	for g in glows:
+		shown.append((g as Node3D).visible)
+		(g as Node3D).visible = false
+	for i in 3:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var without := get_viewport().get_texture().get_image()
+	for k in glows.size():
+		(glows[k] as Node3D).visible = shown[k]
+	Engine.time_scale = scale
+	return _changed_fraction(with_lights, without, FISH_MASK_STEP)
+
+
+## Share of the frame the salmon schools change: the frame with the fish and
+## without, with time stopped so nothing else moves between them.
+func _fish_fraction() -> float:
+	var pens := _find(_game, "FishPenManager") as FishPenManager
+	if pens == null:
+		return 0.0
+	var scale := Engine.time_scale
+	Engine.time_scale = 0.0
+	for i in 3:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var with_fish := get_viewport().get_texture().get_image()
+	pens.set_fish_shown(false)
+	for i in 3:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var without := get_viewport().get_texture().get_image()
+	pens.set_fish_shown(true)
+	Engine.time_scale = scale
+	return _changed_fraction(with_fish, without, FISH_MASK_STEP)
+
+
+## Share of pixels (every other row and column) where a channel differs by
+## `step` or more.
+static func _changed_fraction(a: Image, b: Image, step: float) -> float:
+	if a == null or b == null or a.get_size() != b.get_size():
+		return 0.0
+	var hits := 0
+	var total := 0
+	for y in range(0, a.get_height(), 2):
+		for x in range(0, a.get_width(), 2):
+			var ca := a.get_pixel(x, y)
+			var cb := b.get_pixel(x, y)
+			total += 1
+			if maxf(absf(ca.r - cb.r), maxf(absf(ca.g - cb.g), absf(ca.b - cb.b))) >= step:
+				hits += 1
+	return float(hits) / maxf(float(total), 1.0)
+
+
+## Share of pixels (every other row and column) brighter than LIGHT_LUMA.
+static func _bright_fraction(img: Image) -> float:
+	if img == null:
+		return 0.0
+	var hits := 0
+	var total := 0
+	for y in range(0, img.get_height(), 2):
+		for x in range(0, img.get_width(), 2):
+			total += 1
+			if img.get_pixel(x, y).get_luminance() > LIGHT_LUMA:
+				hits += 1
+	return float(hits) / maxf(float(total), 1.0)
 
 
 ## G1-04: the aurora shot is a real gameplay state, nothing forced: a

@@ -25,7 +25,6 @@ extends Node3D
 @export_group("Models")
 ## The site's service boat: the 15 x 10 m workboat catamaran (A3-01).
 @export var service_boat_scene: PackedScene = preload("res://assets/models/workboat/workboat.tscn")
-@export var salmon_scene: PackedScene = preload("res://assets/models/fish/salmon.tscn")
 
 # === Internal State ===
 ## site_id -> {position, active, node, cage, cages, site, from_sim, depth,
@@ -196,9 +195,8 @@ func _process(delta: float) -> void:
 	_follow_selected_pen()
 
 
-## The pen of a site the feed barge is feeding now (0-based), or -1: the
-## sim feeds the site ("is_feeding") and the barge serves its pens in turn,
-## FEED_SLOT_S seconds each.
+## The pen (0-based) the barge feeds now while the sim feeds the site, in
+## turn FEED_SLOT_S seconds each; -1 for none.
 func feeding_pen(pen_id: String) -> int:
 	if not (pen_id in _pens) or not bool(_pens[pen_id].get("is_feeding", false)):
 		return -1
@@ -376,20 +374,6 @@ static func pen_payload(site: Dictionary, k: int, pen_count: int) -> Dictionary:
 	return out
 
 
-## What a pen's school needs from the sim: the pen's fish, weight and so its
-## biomass, the site's oxygen and lice skirt.
-static func school_payload(site: Dictionary, pen: Dictionary) -> Dictionary:
-	var count := _site_float(pen, ["fish_count"], 0.0)
-	var weight := _site_float(pen, ["mean_weight_kg"], _site_float(site, ["mean_weight_kg"], 0.0))
-	return {
-		"fish_count": count,
-		"mean_weight_kg": weight,
-		"biomass_kg": count * weight,
-		"oxygen_mgl": _site_float(pen, ["oxygen_mgl"], _site_float(site, ["oxygen_mgl"], NAN)),
-		"has_skirt": bool(site.get("has_skirt", false)),
-	}
-
-
 func _apply_site_data(pen_id: String, site: Dictionary) -> void:
 	if not (pen_id in _pens):
 		return
@@ -408,7 +392,7 @@ func _apply_site_data(pen_id: String, site: Dictionary) -> void:
 		var state := health_state_for(pen)
 		farm.get_cage(k).set_health_state(state)
 		states.append(state)
-		FishSchool.apply_pen(pen_data["fish_schools"][k], school_payload(site, pen))
+		FishSchool.apply_pen(pen_data["fish_schools"][k], FishSchool.payload(site, pen))
 	pen_data["health_state"] = health_state_for(site)
 	pen_data["pen_states"] = states
 	pen_data["is_feeding"] = bool(site.get("is_feeding", false))

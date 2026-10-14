@@ -7,6 +7,6 @@ render_priority = 2
 shader = ExtResource("1_shader")
 shader_parameter/glow_color = Color(1, 0.760784, 0.227451, 1)
 shader_parameter/size_m = 1.4
-shader_parameter/min_pixels = 7.0
+shader_parameter/min_pixels = 8.0
 shader_parameter/period_s = 4.0
 shader_parameter/flash_s = 0.5

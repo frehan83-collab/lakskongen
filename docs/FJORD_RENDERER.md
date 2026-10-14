@@ -243,8 +243,8 @@ Pro, sites shown vs hidden in one run): draws FARM 175 vs 35, FJORD 168 vs
 64, COAST 254 vs 138 (two player sites of 6 and 4 pens, six rival farms,
 barges, boats, hoses); render-thread CPU +0.1-0.15 ms; frame time within the
 shared machine's noise. Script cost per frame (algekatastrofe, 9 sites, 41
-pens): fish 0.3-0.5 ms, LODs 0.2 ms, riding 0.2 ms. The salmon schools are
-`FishSchool.gd` (one MultiMesh per pen, drawn and swum within 450 m).
+pens): fish 0.3-0.5 ms (before G3-01; now 0.1 ms for 12 pens, below), LODs
+0.2 ms, riding 0.2 ms. The salmon schools are `FishSchool.gd` (below).
 
 **Floating gear on the GPU.** The hoses, grid buoys, hose floats, corner
 lights and the buoy ends of the chains and pen ends of the bridles ride the
@@ -266,6 +266,43 @@ carries the hose's length). Every minimum-pixel formula takes
 `abs(PROJECTION_MATRIX[1][1])`: the renderer's projection flips y, and
 without the abs the minimum silently never applied (the corner-light halos
 and the health rings had that bug).
+
+### Salmon schools (G3-01)
+
+Every pen carries a school as a child of its `PenCage` (it rides with the
+collar): `FishSchool.gd`, two MultiMeshes of the same fish.
+
+| | |
+|---|---|
+| Per-fish data | written into the MultiMesh custom data once, when the school is made: the fish's angle round the pen, where it swims across the school's ring, its depth rank (low-discrepancy sequences, so any first N fish fill the pen evenly) and a seed; the jumpers swim at the top. Instance transforms are the identity and are never written again (no `set_instance_transform`; the UI flow tests compare the buffers after 50 frames) |
+| Motion | `fish_school.gdshaderinc`: the tail beat in the vertex shader, the whole school turning round the pen, each fish at its own pace and ring with a slow wander, rolls that turn a silver flank up, jumps (0.6 m, 0.7 s in the air, forward 1.5 m). Three instance uniforms per pen carry the clocks (angle swum, tail phase, event clock), the state (mean depth, half-band, speed, feeding) and the body (length, swim direction, ring, fish shown); the clocks are integrated on the CPU, so a change of speed or feeding never makes a fish jump |
+| Sim | 1,500-4,000 fish a pen by biomass (`fish_for`, 900 t shows them all; none in an empty pen), fork length from the mean weight, drawn within 400 m. The feed barge feeds a site's pens in turn, 24 s each, in daylight, while the sim feeds the site (`is_feeding`): the fed school rises (mean depth 5 -> 2.2 m in 4 s, back in 9 s), crowds round the spreader, quickens (x1.6), and jumps, rolls and splashes four times as often. Oxygen below 7 mg/L slows the school, to 0.35 of its speed at 4 mg/L |
+| Solid pass | `salmon_school.gdshader`, the countershaded skin: from above only the jumpers are drawn (the opaque water hides the rest), under the water the whole school at its true size (LOD0 within 20 m, LOD1 beyond) |
+| Through the surface | `fish_shoal.gdshader`, drawn after the opaque water as a decal on the water the pen rides: each vertex goes where the camera sees it through the surface (two fixed-point steps of Snell's law from the straight line, the image on the camera ray 0.12 m over the water), so the collar, handrail, nets and boats still hide it by the depth test and nothing reads the screen or the depth buffer. The water's own optics (its absorption and scatter, bloom and warmth composed as the water shader does, synced by `FishSchool.sync`) fade each fish with the path down and back; dark backs, silver flanks that mirror the water round them unless a roll flashes them. Fish never show past the net. Splash rings for jumpers and for a feeding pen's boil |
+| The pen's water column | instance 0 of the shoal draws a disc inside the net: the stocked pen's water scatters more (its teal in owner reference 1), the school's mass (10 steps along the refracted ray through a patchy ring band that turns with the fish) darkens it where it swims near the surface, the net or the lice skirt (#C9CCC6) shows through shallow water at the far wall. It adds light and darkens at most 55 %, never a see-through water. Drawn within 2.2 km, so stocked pens read at FJORD zoom |
+| Readability | a fish never draws shorter than 9 px from above the water (up to 3x its length), the shoal LOD2 salmon (42 triangles, `build_salmon.py`) blurred 1.8x wide with soft sides |
+
+Cost (po3_red_sone, M1 Pro): the fish loop of 12 schools 0.11 ms of script a
+frame (UI flow test, budget 0.3 ms); GPU and draw calls in the table at the
+end of this section. The screenshot harness measures the share of 08b the
+fish change (shown vs hidden with time stopped; >= 2 %) and shoots 08c, a
+fed pen close up.
+
+### The farm after dark
+
+`SiteLights.gd` runs once a frame (from `FishPenManager`): a photocell night
+level (on below 3 degrees of sun, 6 degrees earlier under a full overcast)
+and 1 / the eye's exposure (the director adapts up to 16x at night) go into
+every light material, the signal rings and the world labels, so a lamp keeps
+the screen brightness it is tuned to (a tight core just over white, a small
+halo) and nothing blooms into a blot; labels are re-tinted in linear light.
+
+| Light | |
+|---|---|
+| Corner lights | the grid's synchronised yellow (#FFC23A) Fl Y 4 s lamps: dark by day, a 7 px minimum halo at night, a faint glow between flashes |
+| Vessels | `VesselLights.gd` reads each vessel's LOD0 meshes once per asset: a white masthead light over the wheelhouse (a second one forward on a vessel over 50 m), green to starboard and red to port on the wheelhouse sides, a white stern light, each only inside its COLREGS arc (`vessel_light_glow.gdshader`); the feed barge an all-round white mast light, a yellow marker flashing with the corner lights, white deck lamps on the control house roof. One MultiMesh per vessel, drawn only at night |
+| Windows | `vessel_paint.gdshader` lights the glass after dark: warm panes, a quarter of them dark |
+| Glitter | `light_glow.gdshaderinc`: every glow's mesh carries a second quad, a strip on the water under the light running towards the camera (distance squared over the camera's height times a slope spread of 0.045), shimmering; it lies on the water, so hulls hide it |
 
 ### Site layout and berths
 
@@ -301,4 +338,6 @@ the threads, and fades to its mean coverage 1 − (1 − w)² once the mesh pass
 | `shaders/sky_shader.gdshader` | `WorldEnvironment` sky |
 | `shaders/underwater_post.gdshader` | `UnderwaterCanvas` |
 | `shaders/pen_*.gdshader`, `fish_shader.gdshader` | pen and fish assets |
+| `shaders/fish_school.gdshaderinc` (in `salmon_school`, `fish_shoal`) | the salmon schools (G3-01) |
+| `shaders/light_glow.gdshaderinc` (in `mooring_light_glow`, `vessel_light_glow`) | night lights and their glitter |
 | `shaders/site_float.gdshaderinc` (in `feed_hose`, `mooring_buoy`, `mooring_lamp`, `mooring_light_glow`, `mooring_rope`, `site_kit_float`) | the site's floating gear |

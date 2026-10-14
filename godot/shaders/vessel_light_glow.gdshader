@@ -20,7 +20,7 @@ render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabl
 // their screen brightness whatever the eye's exposure (`exposure_comp`,
 // SiteLights.sync); the distance fog dims them like the water round them.
 uniform float size_m = 0.45;
-uniform float min_pixels = 6.0;
+uniform float min_pixels = 7.0;
 uniform float flash_s = 0.5;
 uniform float night : hint_range(0.0, 1.0) = 1.0;
 uniform float exposure_comp = 1.0;

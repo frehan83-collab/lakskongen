@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode blend_premul_alpha, depth_draw_never, cull_back, diffuse_burley, specular_disabled, fog_disabled;
+render_mode blend_premul_alpha, depth_draw_never, cull_back, diffuse_burley, specular_disabled, fog_disabled, shadows_disabled;
 
 // The salmon school seen through the water surface (roadmap G3-01). The
 // water is opaque (it writes depth, reads no screen), so nothing under it is
@@ -61,7 +61,7 @@ instance uniform vec4 school_pen = vec4(0.0);
 
 const float NET_WALL_DEPTH = 30.0;
 const float SKIRT_DEPTH = 10.0;
-const int COLUMN_STEPS = 10;
+const int COLUMN_STEPS = 7;
 // Half the salmon mesh's width (m, blender/build_salmon.py: 0.12 m).
 const float FISH_HALF_WIDTH = 0.06;
 
@@ -93,6 +93,9 @@ void vertex() {
 	int id = INSTANCE_ID;
 	bool above = CAMERA_POSITION_WORLD.y > 0.0 && camera.y > decal_lift + 0.2;
 	if (!above) {
+		hide = true;
+	} else if (UV2.x > 0.5 && UV2.x < 1.5 && id >= jumper_count && school_state.w <= 0.25) {
+		// Only a jumper or a feeding fish splashes.
 		hide = true;
 	} else if (UV2.x > 1.5) {
 		// The pen's water column: a disc on the water inside the net.
@@ -173,15 +176,17 @@ float school_density(vec3 p) {
 	float outer = school_body.z;
 	float feed = school_state.w;
 	float r = length(p.xz);
-	float lo = fish_ring_radius(0.0, feed, outer);
-	float hi = fish_ring_radius(1.0, feed, outer);
-	float band = smoothstep(lo - 2.5, lo + 1.5, r) * (1.0 - smoothstep(hi - 1.5, hi + 2.0, r));
 	float depth = -p.y;
+	float turn = school_body.y * school_clock.x * outer / max(r, 4.0);
+	float a = atan(p.z, p.x) - turn;
+	// The ring's edges wander, so the school has no drawn outline.
+	float edge = 1.0 + 0.1 * sin(a * 3.0 + school_clock.z * 0.05) + 0.06 * sin(a * 5.0 - depth * 0.3 + 2.1);
+	float lo = fish_ring_radius(0.0, feed, outer) * edge;
+	float hi = fish_ring_radius(1.0, feed, outer) * edge;
+	float band = smoothstep(lo - 3.0, lo + 2.0, r) * (1.0 - smoothstep(hi - 3.5, hi + 3.0, r));
 	float top = school_state.x - school_state.y;
 	float bottom = school_state.x + school_state.y;
 	float layer = smoothstep(top - 1.0, top + 1.0, depth) * (1.0 - smoothstep(bottom - 1.0, bottom + 1.5, depth));
-	float turn = school_body.y * school_clock.x * outer / max(r, 4.0);
-	float a = atan(p.z, p.x) - turn;
 	// Denser and thinner stretches along the ring, drifting; a feeding crowd
 	// is denser and more even.
 	float n = 0.4 * sin(a * 3.0 + r * 0.21 + depth * 0.37 + 1.3)

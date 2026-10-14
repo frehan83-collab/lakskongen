@@ -40,7 +40,7 @@ const SCHOOL_MATERIAL := preload("res://assets/models/fish/salmon_school_materia
 const SHOAL_MATERIAL := preload("res://assets/models/fish/fish_shoal_material.tres")
 ## Camera distance (m) where the solid school swaps LOD0 for LOD1, and where
 ## the shoal swaps LOD1 fish for LOD2.
-const LOD_SWITCH := 70.0
+const LOD_SWITCH := 20.0
 const SHOAL_LOD_SWITCH := 90.0
 ## Fish are drawn within this camera distance (m); the pen's water column
 ## (a stocked pen's colour) within COLUMN_RANGE_M.
@@ -276,6 +276,21 @@ static func speed_for_oxygen(oxygen_mgl: float) -> float:
 	if is_nan(oxygen_mgl):
 		return 1.0
 	return lerpf(LOW_DO_SPEED, 1.0, clampf((oxygen_mgl - LOW_DO_MGL) / (GOOD_DO_MGL - LOW_DO_MGL), 0.0, 1.0))
+
+
+## What a pen's school needs from the sim (FishPenManager.pen_payload and
+## its site): the pen's fish, weight and so its biomass, the site's oxygen
+## and lice skirt.
+static func payload(site: Dictionary, pen: Dictionary) -> Dictionary:
+	var count := _num(pen, "fish_count", 0.0)
+	var weight := _num(pen, "mean_weight_kg", _num(site, "mean_weight_kg", 0.0))
+	return {
+		"fish_count": count,
+		"mean_weight_kg": weight,
+		"biomass_kg": count * weight,
+		"oxygen_mgl": _num(pen, "oxygen_mgl", _num(site, "oxygen_mgl", NAN)),
+		"has_skirt": bool(site.get("has_skirt", false)),
+	}
 
 
 ## The pen as the sim reports it: fish_count, mean_weight_kg, oxygen_mgl and

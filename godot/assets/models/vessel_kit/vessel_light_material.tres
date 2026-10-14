@@ -7,5 +7,5 @@ resource_name = "LK_VLight"
 render_priority = 2
 shader = ExtResource("1_shader")
 shader_parameter/size_m = 0.45
-shader_parameter/min_pixels = 6.0
+shader_parameter/min_pixels = 7.0
 shader_parameter/flash_s = 0.5

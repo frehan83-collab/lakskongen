@@ -226,3 +226,22 @@ def test_build_script_reproduces_the_committed_salmon(tmp_path):
     if new_side.get("blender_version") == old_side.get("blender_version"):
         assert (hashlib.sha256((tmp_path / "salmon_LOD1.glb").read_bytes()).hexdigest()
                 == hashlib.sha256((FISH / "salmon_LOD1.glb").read_bytes()).hexdigest())
+
+
+@pytest.mark.skipif(_blender() is None, reason="Blender is not installed")
+def test_build_script_reproduces_the_committed_shoal_salmon(tmp_path):
+    # G3-01: the school seen through the surface draws LOD2 (about 40
+    # triangles: a four-sided body and the tail).
+    out = subprocess.run(
+        [_blender(), "-b", "--factory-startup", "--python", str(REPO / "blender" / "build_salmon.py"), "--",
+         "--lod", "LOD2", "--out", str(tmp_path)],
+        capture_output=True, text=True, timeout=300)
+    assert out.returncode == 0, out.stderr[-2000:]
+    new_side = json.loads((tmp_path / "salmon_LOD2.json").read_text())
+    old_side = _side("LOD2")
+    keys = ("tri_count", "materials", "bbox_size", "dimensions", "uv_bounds")
+    assert {k: new_side[k] for k in keys} == {k: old_side[k] for k in keys}
+    assert new_side["tri_count"] <= SALMON["tri_max"]["LOD2"]
+    if new_side.get("blender_version") == old_side.get("blender_version"):
+        assert (hashlib.sha256((tmp_path / "salmon_LOD2.glb").read_bytes()).hexdigest()
+                == hashlib.sha256((FISH / "salmon_LOD2.glb").read_bytes()).hexdigest())
