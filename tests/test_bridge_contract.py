@@ -685,6 +685,54 @@ def test_every_mortality_label_key_has_english_and_norwegian_text():
     assert not missing, f"mortality labels without en/no text: {missing}"
 
 
+
+# ── S2-01a: capacity v1 for U2-01's expansion flow ───────────────────────────
+# Licences and MTB per area and site travel engine -> GameBridge partial ->
+# SimProxies -> SimBridge facade with the same arguments; every reason and
+# breach status the engine can emit is a translation key with en and no text.
+
+def test_capacity_overview_reaches_the_facade():
+    partial = (BRIDGE_DIR / "GameBridge.Capacity.cs").read_text(encoding="utf-8")
+    assert "public Godot.Collections.Dictionary GetCapacityOverview()" in partial
+    assert re.search(r"public Godot\.Collections\.Dictionary PreviewStocking\("
+                     r'string siteId, int count, string strainId = "standard"\)', partial)
+    assert "public Godot.Collections.Dictionary PreviewBuildSeaSite(string zoneId)" in partial
+    for key in ("success", "regime", "fee_ceiling_nok", "areas", "sites", "licences", "breaches",
+                "allowed", "reason_key", "label_key", "max_count", "area_mtb_t", "site_mtb_t",
+                "licence_mtb_added_t", "locality_mtb_t", "area_licence_mtb_t", "cost_nok", "pens"):
+        assert f'result["{key}"]' in partial, f"capacity bridge lacks key {key}"
+    for key in ("production_area", "licence_mtb_t", "standing_t", "headroom_t", "projected_peak_t",
+                "projected_peak_day", "breach_open", "order_deadline_day", "locality_mtb_t",
+                "licences_registered", "mtb_t", "origin", "status_key", "fine_nok", "confiscated_nok",
+                "forced_harvest_t", "sites_over_locality"):
+        assert f'["{key}"] =' in partial, f"capacity rows lack key {key}"
+
+    scripts = REPO / "godot" / "scripts"
+    proxies = (scripts / "bridge" / "SimProxies.gd").read_text(encoding="utf-8")
+    facade = (scripts / "SimBridge.gd").read_text(encoding="utf-8")
+    assert re.search(r"func get_capacity_overview\(\) -> Dictionary: return game_bridge\.GetCapacityOverview\(\)", proxies)
+    assert re.search(r'func preview_stocking\(site_id: String, count: int, strain_id: String = "standard"\) -> Dictionary: '
+                     r"return game_bridge\.PreviewStocking\(site_id, count, strain_id\)", proxies)
+    assert re.search(r"func preview_build_sea_site\(zone_id: String\) -> Dictionary: return game_bridge\.PreviewBuildSeaSite\(zone_id\)", proxies)
+    assert re.search(r"func get_capacity_overview\(\) -> Dictionary: return _proxies\.get_capacity_overview\(\)", facade)
+    assert re.search(r'func preview_stocking\(site_id: String, count: int, strain_id: String = "standard"\) -> Dictionary: '
+                     r"return _proxies\.preview_stocking\(site_id, count, strain_id\)", facade)
+    assert re.search(r"func preview_build_sea_site\(zone_id: String\) -> Dictionary: return _proxies\.preview_build_sea_site\(zone_id\)", facade)
+
+
+def test_every_capacity_reason_and_breach_status_has_english_and_norwegian_text():
+    import csv
+    views = (REPO / "src" / "LakskongenSim" / "Core" / "CapacityViews.cs").read_text(encoding="utf-8")
+    reasons = [v for v in re.findall(r'public const string \w+ = "([a-z_]*)";', views) if v]
+    breach = (REPO / "src" / "LakskongenSim" / "Finance" / "CapacityBreach.cs").read_text(encoding="utf-8")
+    statuses = re.findall(r'public const string \w+ = "([a-z_]+)";', breach)
+    assert len(reasons) == 4 and len(statuses) == 3, f"contract harness broken: {reasons} {statuses}"
+    keys = ["CAPACITY_REASON_" + r.upper() for r in reasons] + ["CAPACITY_BREACH_" + s.upper() for s in statuses]
+    with (REPO / "godot" / "translations" / "translations.csv").open(encoding="utf-8", newline="") as f:
+        rows = {r[0]: r for r in csv.reader(f) if len(r) == 3}
+    missing = [k for k in keys if k not in rows or not rows[k][1].strip() or not rows[k][2].strip()]
+    assert not missing, f"capacity labels without en/no text: {missing}"
+
 if __name__ == "__main__":
     test_bridge_contract()
     test_no_snake_case_signal_access()
@@ -695,4 +743,6 @@ if __name__ == "__main__":
     test_gamebridge_signatures_are_marshalable()
     test_mortality_breakdown_reaches_the_facade()
     test_every_mortality_label_key_has_english_and_norwegian_text()
+    test_capacity_overview_reaches_the_facade()
+    test_every_capacity_reason_and_breach_status_has_english_and_norwegian_text()
     print("bridge contract OK")

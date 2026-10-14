@@ -78,6 +78,7 @@ func _run() -> void:
 	await _test_harvest_pipeline_reaches_the_ui()
 	await _test_honest_economy_reaches_the_ui()
 	_test_mortality_ledger_reaches_the_bridge()
+	_test_capacity_reaches_the_bridge()
 	await _test_pen_models_read_as_equipment()
 	await _test_hero_pen_and_site_kit()
 	await _test_vessel_fleet()
@@ -1101,6 +1102,40 @@ func _test_mortality_ledger_reaches_the_bridge() -> void:
 			and int(month.get("from_day", -1)) == day - 29
 			and int(month.get("total_deaths", -1)) <= total,
 		"mortality: the last-30-days window ends today (%s)" % str([month.get("from_day"), month.get("to_day")]))
+
+## S2-01a: capacity v1 reaches the facade for U2-01's expansion flow — the
+## licence MTB pooled in PO3, each site's locality MTB, the plan's peak; a build
+## adds a 3,120 t locality and 0 t of MTB; stocking past the plan's room is
+## refused with a reason that has Norwegian text, and the room itself is offered.
+func _test_capacity_reaches_the_bridge() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "capacity: seeded scenario starts")
+	_sim.set_paused(true)
+	var o: Dictionary = _sim.get_capacity_overview()
+	var areas: Array = o.get("areas", [])
+	var sites: Array = o.get("sites", [])
+	_check(bool(o.get("success", false)) and str(o.get("regime", "")) == "licences_v1",
+		"capacity: a scenario runs under the licence register (%s)" % str(o.get("regime")))
+	_check(areas.size() == 1 and str(areas[0].get("code", "")) == "PO3" and int(areas[0].get("licences", 0)) == 2
+			and is_equal_approx(float(areas[0].get("licence_mtb_t", 0.0)), 1560.0),
+		"capacity: two 780 t licences pool in PO3 (%s)" % str(areas))
+	var peak := float(areas[0].get("projected_peak_t", 0.0)) if areas.size() == 1 else 0.0
+	var standing := float(areas[0].get("standing_t", 0.0)) if areas.size() == 1 else 0.0
+	_check(peak > standing and peak < 1560.0, "capacity: the plan's peak lies above today's biomass and under the cap (%.1f t)" % peak)
+	var localities: Array = sites.map(func(r: Dictionary) -> float: return float(r.get("locality_mtb_t", 0.0)))
+	_check(localities == [780.0, 780.0], "capacity: each site keeps a 780 t locality (%s)" % str(localities))
+	var build: Dictionary = _sim.preview_build_sea_site("po3_nord")
+	_check(bool(build.get("allowed", false)) and is_zero_approx(float(build.get("licence_mtb_added_t", -1.0)))
+			and is_equal_approx(float(build.get("locality_mtb_t", 0.0)), 3120.0),
+		"capacity: a build adds a 3 120 t locality and 0 t of MTB (%s)" % str(build))
+	var room: Dictionary = _sim.preview_stocking("po3_nord", 0)
+	var max_count := int(room.get("max_count", 0))
+	var over: Dictionary = _sim.preview_stocking("po3_nord", max_count + 1)
+	var label := str(over.get("label_key", ""))
+	_check(max_count > 0 and bool(room.get("allowed", false)) and not bool(over.get("allowed", true))
+			and label.begins_with("CAPACITY_REASON_") and tr(label) != label,
+		"capacity: the plan's room (%d smolts) is offered and one more is refused with Norwegian text (%s)" % [max_count, label])
+	_check(not _sim.stock_smolts("po3_nord", max_count + 1), "capacity: stocking past the room is refused through the action")
+	_check(_sim.stock_smolts("po3_nord", max_count), "capacity: stocking the room is accepted through the action")
 
 func _test_honest_economy_reaches_the_ui() -> void:
 	_check(_sim.start_qa_scenario("po3_red_sone", 91), "economy: seeded scenario starts")

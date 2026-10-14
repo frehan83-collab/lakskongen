@@ -37,6 +37,31 @@ public partial class SimulationEngine
         double SpreadQuality);
 
     /// <summary>
+    /// Fish one density proxy pen (<see cref="PenVolumeProxyM3"/>) holds: the
+    /// pen at the legal density (<c>capacity.maxStockingDensityKgPerM3</c>,
+    /// akvakulturdriftsforskriften § 25) when its fish weigh
+    /// <c>capacity.densityReferenceWeightKg</c>. 10,000 m³ × 25 kg/m³ / 5 kg =
+    /// 50,000 fish, S2-03's commercial pen.
+    /// </summary>
+    internal double FishPerDensityProxyPen
+        => PenVolumeProxyM3 * _calibration.Capacity.MaxStockingDensityKgPerM3
+            / Math.Max(1e-9, _calibration.Capacity.DensityReferenceWeightKg);
+
+    /// <summary>
+    /// Water (m³) the fish of <paramref name="population"/> stand in for the
+    /// density stress on growth and FCR: one proxy pen, or as many proxy pens
+    /// as its fish fill at <see cref="FishPerDensityProxyPen"/> (fractional,
+    /// so the density never jumps). A population of up to 50,000 fish keeps
+    /// the one 10,000 m³ pen it always had; the 170,000-560,000 smolts a site
+    /// stocks to its S2-01a plan room in one go are spread like a farmer
+    /// spreads them over pens, instead of standing at 90-280 kg/m³ in one.
+    /// S2-01b replaces the proxy with real pens (≤ 200,000 fish each,
+    /// akvakulturdriftsforskriften § 47a).
+    /// </summary>
+    internal double StockingVolumeM3(FishPopulation population)
+        => PenVolumeProxyM3 * Math.Max(1.0, population.TotalCount / FishPerDensityProxyPen);
+
+    /// <summary>
     /// Hours of light a holding in <paramref name="water"/> gets today: a land
     /// tank runs continuous light (Nofima CtrlAQUA 2023: 24 h light for post-smolt
     /// growth in RAS); a sea or offshore pen the natural day length at its

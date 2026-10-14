@@ -98,4 +98,49 @@ public class WaveTwoSeamIntegrationTests
             Assert.Equal(without.Neighbour, with.Neighbour, 9);
         }
     }
+
+    /// <summary>A site in its own PO4 zone stocked with <paramref name="smolts"/> standard S1 smolts mid-April, events off.</summary>
+    private static (SimulationEngine Engine, SeaSite Site) Stocked(int seed, int smolts)
+    {
+        var engine = new SimulationEngine { FinanceManager = new FinanceManager(500_000_000m) };
+        engine.Initialize(enableEvents: false, seed: seed);
+        var zone = new Zone("density-zone") { ProductionArea = 4 };
+        engine.State.Zones.Add(zone);
+        var site = new SeaSite("density-site", zone.Id) { MABTonnes = 50_000 };
+        engine.State.SeaSites.Add(site);
+        engine.Advance(105);
+        Assert.True(engine.StockSmolts(site.Id, smolts, "standard").Ok);
+        return (engine, site);
+    }
+
+    /// <summary>
+    /// S2-01a lets a site stock its plan room in one go (173,555 smolts per po3
+    /// site, 561,600 at a barekraft_mester site), and a stocking is one
+    /// population. The density stress on growth and FCR (S2-03) read that
+    /// population against one 10,000 m³ proxy pen, so 200,000 smolts stood at
+    /// 4x the density of S2-03's 50,000-fish commercial pen (90-280 kg/m³ at
+    /// harvest size) and grew at the Oppedal floor. A stocking now fills as
+    /// many proxy pens as its fish need at the § 25 density at 5 kg: per fish
+    /// it grows like the commercial pen (within 1 % after 400 days), while a
+    /// commercial pen keeps its one proxy pen exactly.
+    /// </summary>
+    [Fact]
+    public void AStockingOfThePlansRoom_GrowsLikeACommercialPen_NotAtFourTimesItsDensity()
+    {
+        for (int seed = 1; seed <= 3; seed++)
+        {
+            var (commercialEngine, commercial) = Stocked(seed, 50_000);
+            var (roomEngine, room) = Stocked(seed, 200_000);
+            var pen = commercial.Pens.Single();
+            Assert.Equal(SimulationEngine.PenVolumeProxyM3, commercialEngine.StockingVolumeM3(pen), 9);
+            Assert.Equal(4.0 * SimulationEngine.PenVolumeProxyM3, roomEngine.StockingVolumeM3(room.Pens.Single()), 9);
+
+            commercialEngine.Advance(400);
+            roomEngine.Advance(400);
+            double commercialKg = MeanKg(commercial), roomKg = MeanKg(room);
+            _output.WriteLine($"seed {seed}: 50,000 smolts {commercialKg:F3} kg, 200,000 smolts {roomKg:F3} kg after 400 days");
+            Assert.True(commercialKg > 3.0, $"seed {seed}: the commercial pen only reached {commercialKg:F2} kg");
+            Assert.InRange(roomKg / commercialKg, 0.99, 1.01);
+        }
+    }
 }

@@ -140,7 +140,9 @@ namespace LakskongenSim.Core;
                 }
 
                 // Calculate combined environmental multiplier (DO saturation × stocking density)
-                double stockingDensity = zone != null ? (biomassKg / SimulationEngine.PenVolumeProxyM3) : SimulationEngine.DefaultStockingDensityKgM3;
+                // Wave-2 integration: a stocking bigger than one proxy pen's
+                // 50,000 fish is spread over as many proxy pens as it fills.
+                double stockingDensity = zone != null ? (biomassKg / engine.StockingVolumeM3(population)) : SimulationEngine.DefaultStockingDensityKgM3;
                 // Phase 4.1: containment — closed rungs behave denser for O2
                 // purposes (recirculation load) via o2DemandMult.
                 var homeSite = holding.Site;

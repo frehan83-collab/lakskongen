@@ -135,6 +135,15 @@ namespace LakskongenSim.Calibration
         /// <summary>Oxygen in the water at the fish (wave 2 sim-a-1): the in-cage sag and a plankton bloom's crash.</summary>
         [JsonPropertyName("waterOxygen")]
         public WaterOxygenCalibration WaterOxygen { get; init; } = new();
+
+        /// <summary>
+        /// Capacity v1 (S2-01a): locality MTB of a built site, the farmer's
+        /// production plan for the projected-peak stocking check, and the
+        /// regulator's response to biomass over MTB (fee, confiscation, order).
+        /// </summary>
+        [JsonPropertyName("capacity")]
+        public CapacityCalibration Capacity { get; init; } = new();
+
         /// <summary>
         /// Derived feed cost per kg of fish produced = feed price × base FCR.
         /// This is the reconciled "~25.7 NOK/kg produced" figure in
@@ -1154,6 +1163,152 @@ namespace LakskongenSim.Calibration
 
         /// <summary>Harvest reports the game keeps (newest last). 40.</summary>
         public int ReportsKept { get; init; } = 40;
+    }
+
+    #endregion
+
+    #region S2-01a capacity: licences and MTB
+
+    /// <summary>
+    /// Capacity v1 (roadmap S2-01a). Licence MTB itself (780 t, 945 t in Troms
+    /// and Finnmark) is S2-02's area data (<c>ProductionAreas.LicenceMtbTonnes</c>);
+    /// this section holds the locality MTB of a built site, the production plan
+    /// the stocking check projects, and the regulator's response to standing
+    /// biomass over MTB. The plan's harvest weight and expected cycle loss are
+    /// <see cref="BiologyCalibration.TargetHarvestWeightKg"/> and
+    /// <see cref="HealthCalibration.SeaMortalityPerCycle"/> over
+    /// <see cref="BiologyCalibration.GrowthToHarvestDays"/>; the feed price of
+    /// the confiscation is <see cref="FeedCalibration.FeedPricePerKgFeedNOK"/>.
+    /// </summary>
+    public sealed record CapacityCalibration
+    {
+        /// <summary>
+        /// Locality MTB (unit t) a site the player builds is cleared for: 3,120.
+        /// Source: Nærings- og fiskeridepartementet, letter "Vedrørende
+        /// implementering av nytt system for kapasitetsjusteringer i norsk
+        /// lakse- og ørretoppdrett", 20.09.2017, ref 15/4396-64, point 5: a
+        /// locality "godkjent for 3120 tonn MTB (tilsvarende 4 tillatelser)"
+        /// needs no licences to fill it, and licences cannot clear localities
+        /// (point 4)
+        /// (https://www.fiskeridir.no/Akvakultur/Tildeling-og-tillatelser/Kapasitetsjustering-trafikklyssystemet/Implementering-av-produksjonsomraader-2017).
+        /// Building a site therefore adds this locality cap and 0 t of licence
+        /// MTB. Year 2017.
+        /// </summary>
+        public double BuiltSiteLocalityMtbTonnes { get; init; } = 3_120.0;
+
+        /// <summary>
+        /// Thermal growth coefficient (unit g^(1/3) per 1000 °C-days) the
+        /// farmer's production plan grows fish with: 2.8. Source: Nofima and
+        /// SalMar's 2012 tanks-versus-cages trial, sea cages TGC 2.8 ± 0.3
+        /// (Espmark, reported by Hatchery International, "Tanks vs cages",
+        /// https://www.hatcheryinternational.com/tanks-vs-cages-1268/); the
+        /// CtrlAQUA sea-phase groups grew at 2.9-3.3, "good growth compared to
+        /// the performance in commercial farming" (Fish Farming Expert,
+        /// 8 March 2018). 2.8 is a commercial planning value: 100 g to 5.2 kg
+        /// takes about 4,500 °C-days, 15-16 months at 9.5 °C. Years 2012/2018.
+        /// </summary>
+        public double PlanningThermalGrowthCoefficient { get; init; } = 2.8;
+
+        /// <summary>
+        /// Days the production plan looks ahead at most (unit d): 1,095. Game
+        /// estimate (2026): three years holds a 100 g smolt to harvest weight
+        /// in the coldest area (PO13) on the planning TGC.
+        /// </summary>
+        public int PlanningHorizonDays { get; init; } = 1_095;
+
+        /// <summary>
+        /// Days the regulator gives to bring biomass back under MTB (unit d):
+        /// 14. Game estimate (2026), the same deadline as the red-zone over-MAB
+        /// order (Phase 5.5). The real order follows the monthly biomass report
+        /// (akvakulturdriftsforskriften § 44, due the 7th of the next month);
+        /// the game's regulator reads the biomass every day.
+        /// </summary>
+        public int OrderDeadlineDays { get; init; } = 14;
+
+        /// <summary>
+        /// Ceiling of one infringement fee (unit G, folketrygdens grunnbeløp):
+        /// 15. Source: FOR-2013-12-20-1675 (forskrift om reaksjoner, sanksjoner
+        /// med mer ved overtredelse av akvakulturloven) § 8: "Overtredelsesgebyret
+        /// skal ikke overstige 15 ganger folketrygdens grunnbeløp"
+        /// (https://lovdata.no/dokument/SF/forskrift/2013-12-20-1675). Year 2013
+        /// (in force, last amended 2025).
+        /// </summary>
+        public double InfringementFeeCeilingG { get; init; } = 15.0;
+
+        /// <summary>
+        /// Folketrygdens grunnbeløp (unit NOK): 136,549 from 1 May 2026.
+        /// Source: NAV, "Regulering 2026" (https://www.nav.no/regulering-2026)
+        /// and Arbeids- og inkluderingsdepartementet (trygdeoppgjøret 2026).
+        /// Year 2026.
+        /// </summary>
+        public decimal GrunnbelopNok { get; init; } = 136_549m;
+
+        /// <summary>
+        /// Live-to-gutted factor of the confiscation's sales price (unit 1):
+        /// 0.83. Source: FOR-2013-12-20-1675 § 6: the sales price is
+        /// "omregnet fra levende vekt til sløyd fisk med 0,83 for laks". Year 2013.
+        /// </summary>
+        public double LiveToGuttedFactor { get; init; } = 0.83;
+
+        /// <summary>
+        /// Economic feed factor of the confiscation's feed cost (unit kg feed
+        /// per kg fish): 1.30. Source: Fiskeridirektoratet,
+        /// "Lønnsomhetsundersøkelse for produksjon av laks og regnbueørret 2024"
+        /// (published 13.11.2025), table C.5.1: national average 1.30
+        /// (https://kudos.dfo.no/documents/422880/files/49077.pdf). FOR-2013-12-20-1675
+        /// § 6 takes the average economic feed factor from this survey. Year 2024.
+        /// </summary>
+        public double EconomicFeedFactor { get; init; } = 1.30;
+
+        /// <summary>
+        /// Other variable costs per kg of the confiscation (unit NOK/kg): 4.93 =
+        /// insurance 0.26 + slaughter incl. freight 4.67. Source: Fiskeridirektoratet,
+        /// Lønnsomhetsundersøkelse 2024, table A.3.1 (same URL as
+        /// <see cref="EconomicFeedFactor"/>); FOR-2013-12-20-1675 § 6 names
+        /// exactly these two. Year 2024.
+        /// </summary>
+        public decimal OtherVariableCostPerKgNok { get; init; } = 4.93m;
+
+        /// <summary>
+        /// Price the regulator's forced harvest sells at, as a fraction of spot
+        /// (unit 1): 0.70. Game estimate (2026), the red-zone over-MAB forced
+        /// harvest's rule (Phase 5.5): fish taken out of plan, at the company's
+        /// cost (akvakulturloven § 29, tiltak for den ansvarliges regning).
+        /// </summary>
+        public double ForcedHarvestPriceFactor { get; init; } = 0.70;
+
+        /// <summary>
+        /// Headroom the forced harvest leaves under each cap (unit 1): 0.05.
+        /// Game estimate (2026): about two to three weeks of growth at harvest
+        /// size (0.2-0.3 % a day), so the order is not re-opened the next morning.
+        /// </summary>
+        public double ForcedHarvestHeadroomFraction { get; init; } = 0.05;
+
+        /// <summary>
+        /// Highest stocking density in a sea production unit (unit kg/m³): 25.
+        /// Source: akvakulturdriftsforskriften (FOR-2008-06-17-822) § 25
+        /// "Tetthet": the fish density per production unit of food-fish salmon
+        /// and rainbow trout shall not exceed 25 kg/m³
+        /// (https://lovdata.no/dokument/SF/forskrift/2008-06-17-822). Year 2008.
+        /// The biology tick spreads a stocking over as many density proxy pens
+        /// as this density needs at <see cref="DensityReferenceWeightKg"/>
+        /// (wave-2 sim integration: S2-01a lets a site stock 170,000-560,000
+        /// smolts at once, which one 10,000 m³ proxy pen packed at 90-280 kg/m³).
+        /// </summary>
+        public double MaxStockingDensityKgPerM3 { get; init; } = 25.0;
+
+        /// <summary>
+        /// Live weight (unit kg) at which a stocking's proxy pens stand at
+        /// <see cref="MaxStockingDensityKgPerM3"/>: 5.0, the harvest size S2-03's
+        /// acceptance grows to and the 4-5 kg reference class of the spot (S2-04).
+        /// With the 10,000 m³ proxy pen it puts 50,000 fish in a pen, S2-03's
+        /// commercial pen. Game estimate (2026) of the farmer's stocking plan.
+        /// </summary>
+        public double DensityReferenceWeightKg { get; init; } = 5.0;
+
+        /// <summary>Ceiling of one infringement fee in NOK (<see cref="InfringementFeeCeilingG"/> × G).</summary>
+        [JsonIgnore]
+        public decimal InfringementFeeCeilingNok => Math.Round((decimal)InfringementFeeCeilingG * GrunnbelopNok, 0);
     }
 
     #endregion

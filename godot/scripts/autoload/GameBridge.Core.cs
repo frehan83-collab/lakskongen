@@ -412,6 +412,13 @@ public partial class GameBridge : Node
                     // generic refresh so map/UI toasts re-read auction state.
                     EmitSignal(SignalName.GameStateUpdated);
                     break;
+                case "capacity_breach":
+                case "capacity_complied":
+                    // S2-01a: a biomass-over-MTB order opened, closed or ended in
+                    // a forced harvest; the capacity overview re-reads it.
+                    if (note.Kind == "capacity_breach") engine.Audio?.TriggerAlert("market_crash");
+                    EmitSignal(SignalName.GameStateUpdated);
+                    break;
             }
         }
     }

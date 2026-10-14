@@ -474,6 +474,12 @@ func get_market_report() -> Dictionary: return game_bridge.GetMarketReport() if 
 func get_profit_loss_story(top_n: int = 3) -> Dictionary: return game_bridge.GetProfitLossStory(top_n) if game_bridge else {}
 ## S2-05: deaths by cause in the NVI categories plus the fish that left alive (site, last N days, or company).
 func get_mortality_breakdown(site_id: String = "", last_days: int = 0) -> Dictionary: return game_bridge.GetMortalityBreakdown(site_id, last_days) if game_bridge else {"success": false, "message": "Not initialized", "categories": [], "causes": [], "left_alive": []}
+## S2-01a: licences and MTB per production area and site, headroom, the plan's peak and the biomass orders (U2-01's expansion flow).
+func get_capacity_overview() -> Dictionary: return game_bridge.GetCapacityOverview() if game_bridge else {"success": false, "message": "Not initialized", "areas": [], "sites": [], "licences": [], "breaches": []}
+## S2-01a: what stocking would do to the caps (the check stock_smolts runs) and the most smolts that fit.
+func preview_stocking(site_id: String, count: int, strain_id: String = "standard") -> Dictionary: return game_bridge.PreviewStocking(site_id, count, strain_id) if game_bridge else {"success": false, "allowed": false, "message": "Not initialized"}
+## S2-01a: what building a site in a zone costs and adds (a locality, 0 t of licence MTB).
+func preview_build_sea_site(zone_id: String) -> Dictionary: return game_bridge.PreviewBuildSeaSite(zone_id) if game_bridge else {"success": false, "allowed": false, "reason": "Not initialized"}
 func get_competitor_analysis() -> Array[Dictionary]: return _arr(game_bridge.GetCompetitorAnalysis()) if game_bridge else []
 func get_price_forecast() -> Array[Dictionary]: return _arr(game_bridge.GetPriceForecast()) if game_bridge else []
 func get_welfare_score() -> float: return game_bridge.GetWelfareScore() if game_bridge else 50.0

@@ -38,7 +38,7 @@ public partial class SaveLoadManager : Node
     /// migration step in MigrateSaveData. Old saves without the field read
     /// as version 0.
     /// </summary>
-    public const int CurrentSaveVersion = 6;
+    public const int CurrentSaveVersion = 7;
 
     private JsonSerializerOptions _jsonOptions;
     private GameBridge _gameBridge;
@@ -599,6 +599,16 @@ public partial class SaveLoadManager : Node
                     // loads with no open orders, no reports, nobody fasting and no cold
                     // memory (the first growth days build it).
                     saveData.SaveVersion = 6;
+                    break;
+                case 6:
+                    // v6 -> v7 (S2-01a; numbered v5 on wave2/sim-a-2, renumbered
+                    // by the wave-2 sim integration after S2-03's v5 and S2-04's
+                    // v6): the licence register (CapacityRules, LicenceHoldings,
+                    // LicencesGranted, CapacityBreaches). A v6 save loads with no
+                    // rules (null): the engine gives each sea site one licence of
+                    // its old MAB in its production area and opens capacity v1
+                    // (SimulationEngine.MigrateCapacityRegisterAfterLoad).
+                    saveData.SaveVersion = 7;
                     break;
                 default:
                     GD.PrintErr($"No migrator for save version {saveData.SaveVersion}; loading as-is.");

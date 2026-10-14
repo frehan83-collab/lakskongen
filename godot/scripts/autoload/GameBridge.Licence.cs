@@ -31,7 +31,8 @@ public partial class GameBridge : Node
         result["success"] = outcome.Ok;
         result["message"] = outcome.Message;
         result["cost"] = GetLicenseCost();
-        result["mab_tonnes"] = 780.0;
+        // S2-01a: the licence an auction grants holds its area's size (945 t in Troms and Finnmark).
+        result["mab_tonnes"] = (double)SimulationEngine.StandardLicenceMtbTonnes(zoneId);
         result["site_id"] = "";
 
         if (outcome.Ok)

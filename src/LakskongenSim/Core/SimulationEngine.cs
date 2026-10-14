@@ -43,7 +43,7 @@ namespace LakskongenSim.Core
         {
             Storyteller?.Detach();
             Storyteller = null!;
-            State = new GameState();
+            State = new GameState { CapacityRules = Finance.CapacityRegime.Unregulated }; // S2-01a: a scenario start opens the licence register
             Rng = new SimRng(0);
             _dayNotes.Clear();
             // Run state that lives on the engine rather than in GameState (F292).
@@ -1543,6 +1543,7 @@ private class BalancingConfig
             new StormImpactsTickSystem(),
             new WellboatExecutionTickSystem(),
             new HarvestOrdersTickSystem(),
+            new CapacityEnforcementTickSystem(),
             new LicenseAuctionTickSystem(),
             new BalanceMirrorTickSystem(),
             new SolvencyTickSystem()
@@ -2909,6 +2910,10 @@ private class BalancingConfig
     /// </summary>
     private void IssueMattilsynetOverMabOrders(string zoneId)
     {
+        // Capacity v1 (S2-01a) reads every site against its MTB every day and
+        // orders the reduction itself; this red-zone order is the rule of an
+        // engine without a licence register.
+        if (CapacityRulesActive) return;
         foreach (var site in State.SeaSites.Where(s => s.ZoneId == zoneId))
         {
             if (site.IsOverMAB && !site.HasActiveMattilsynetOrder)
@@ -3366,6 +3371,8 @@ private class BalancingConfig
             runtime.StorytellerCooldowns = Storyteller?.CooldownsForSnapshot;
             runtime.CurrencyStatePresent = true;
             runtime.TrafficLightColors = TrafficLightSystem?.ExportColors();
+            runtime.SustainabilityLiveScore = SustainabilityManager?.CurrentScore;
+            runtime.SustainabilityLiveLevel = SustainabilityManager?.CurrentCertification;
             var feedState = Feed.ExportState();
             runtime.FeedFcr = feedState.Fcr;
             runtime.FeedUsedKg = feedState.FeedUsedKg;
@@ -3875,7 +3882,8 @@ private class BalancingConfig
                     runtime.FeedLastAppetite, runtime.FeedSustainabilityRating));
                 if (runtime.TrafficLightColors != null)
                     TrafficLightSystem?.ImportColors(runtime.TrafficLightColors);
-                SustainabilityManager?.ImportState(State.SustainabilityScore, State.SustainabilityCertification);
+                SustainabilityManager?.ImportState(runtime.SustainabilityLiveScore ?? State.SustainabilityScore,
+                    runtime.SustainabilityLiveLevel ?? State.SustainabilityCertification);
                 if (runtime.CurrencyStatePresent)
                     CurrencySystem?.ImportCurrencyState((
                         runtime.CurrencyDay, runtime.CurrencyEur, runtime.CurrencyUsd,

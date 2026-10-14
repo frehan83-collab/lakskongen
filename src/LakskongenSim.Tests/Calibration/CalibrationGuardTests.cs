@@ -351,5 +351,55 @@ namespace LakskongenSim.Tests.Calibration
             Assert.Equal(new MortalityCalibration(), C.Mortality);
             Assert.Equal(new WaterOxygenCalibration(), C.WaterOxygen);
         }
+
+        [Fact]
+        public void Capacity_MatchesItsSources()
+        {
+            // S2-01a. NFD letter 20.09.2017 (ref 15/4396-64): a locality cleared
+            // for 3,120 t is four standard licences' worth.
+            var c = C.Capacity;
+            Assert.Equal(4 * 780.0, c.BuiltSiteLocalityMtbTonnes);
+            // Commercial sea cages TGC 2.8 ± 0.3 (Nofima/SalMar 2012); CtrlAQUA's
+            // 2.9-3.3 was "good growth compared to commercial farming".
+            Assert.InRange(c.PlanningThermalGrowthCoefficient, 2.5, 3.1);
+            // FOR-2013-12-20-1675: § 8 the fee's ceiling is 15 G; § 6 converts the
+            // sales price from live to gutted weight with 0.83 for salmon.
+            Assert.Equal(15.0, c.InfringementFeeCeilingG);
+            Assert.Equal(0.83, c.LiveToGuttedFactor);
+            // NAV: G = 136,549 NOK from 1 May 2026, so 15 G = 2,048,235 NOK.
+            Assert.Equal(136_549m, c.GrunnbelopNok);
+            Assert.Equal(2_048_235m, c.InfringementFeeCeilingNok);
+            // Fiskeridirektoratet, lønnsomhetsundersøkelse 2024: economic feed
+            // factor 1.30 (table C.5.1); insurance 0.26 + slaughter incl. freight
+            // 4.67 NOK/kg (table A.3.1).
+            Assert.Equal(1.30, c.EconomicFeedFactor);
+            Assert.Equal(0.26m + 4.67m, c.OtherVariableCostPerKgNok);
+            // At the base salmon price an illegal kilo carries a gain to confiscate.
+            Assert.True(C.Economy.BaseSalmonPricePerKgNOK * (decimal)c.LiveToGuttedFactor
+                - C.Feed.FeedPricePerKgFeedNOK * (decimal)c.EconomicFeedFactor - c.OtherVariableCostPerKgNok > 0m);
+            // The game's own rules stay inside sane bounds.
+            Assert.InRange(c.OrderDeadlineDays, 7, 60);
+            Assert.InRange(c.ForcedHarvestPriceFactor, 0.5, 1.0);
+            Assert.InRange(c.ForcedHarvestHeadroomFraction, 0.0, 0.15);
+            Assert.InRange(c.PlanningHorizonDays, 730, 1460);
+            // The file and the code defaults agree.
+            Assert.Equal(new CapacityCalibration(), c);
+        }
+
+        [Fact]
+        public void StockingDensity_MatchesItsSources()
+        {
+            var c = C.Capacity;
+            // Akvakulturdriftsforskriften § 25: at most 25 kg/m³ per production unit.
+            Assert.Equal(25.0, c.MaxStockingDensityKgPerM3);
+            // The reference weight sits in the 4-5 kg reference class of the spot (S2-04).
+            Assert.InRange(c.DensityReferenceWeightKg, 4.0, 5.5);
+            // The 10,000 m³ density proxy pen then holds S2-03's commercial pen of
+            // 50,000 fish, under the 200,000 fish of a real unit (§ 47a).
+            var engine = new LakskongenSim.Core.SimulationEngine();
+            engine.Initialize(enableEvents: false, seed: 1);
+            Assert.Equal(50_000.0, engine.FishPerDensityProxyPen, 6);
+            Assert.True(engine.FishPerDensityProxyPen < 200_000.0);
+        }
     }
 }

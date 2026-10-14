@@ -192,5 +192,20 @@
     "bloomChlorophyllAtCapacityUgL": 10.0,
     "phytoplanktonCarbonPerChlorophyll": 50.0,
     "oxygenPerOrganicCarbon": 3.47
+  },
+  "capacity": {
+    "builtSiteLocalityMtbTonnes": 3120.0,
+    "planningThermalGrowthCoefficient": 2.8,
+    "planningHorizonDays": 1095,
+    "orderDeadlineDays": 14,
+    "infringementFeeCeilingG": 15.0,
+    "grunnbelopNok": 136549,
+    "liveToGuttedFactor": 0.83,
+    "economicFeedFactor": 1.30,
+    "otherVariableCostPerKgNok": 4.93,
+    "forcedHarvestPriceFactor": 0.70,
+    "forcedHarvestHeadroomFraction": 0.05,
+    "maxStockingDensityKgPerM3": 25.0,
+    "densityReferenceWeightKg": 5.0
   }
 }

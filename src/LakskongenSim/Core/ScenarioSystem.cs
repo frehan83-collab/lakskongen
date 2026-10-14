@@ -82,6 +82,23 @@ namespace LakskongenSim.Core
         /// Unknown values leave the site without a barrier.</summary>
         [System.Text.Json.Serialization.JsonPropertyName("barrier")]
         public string Barrier { get; set; } = "";
+
+        /// <summary>
+        /// Sea licences the company holds from the start, registered to this
+        /// site (S2-01a). Each holds its area's licence MTB (780 t, 945 t in
+        /// Troms and Finnmark) and pools in the area's biomass cap. Default 1:
+        /// the capacity every starting site carried before S2-01.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("licences")]
+        public int Licences { get; set; } = 1;
+
+        /// <summary>
+        /// The site's locality MTB (t, S2-01a). 0 = the MTB of the licences
+        /// registered to it (<see cref="Licences"/> x the area's licence size),
+        /// the site cap every starting site had before S2-01.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("locality_mtb_tonnes")]
+        public double LocalityMtbTonnes { get; set; }
     }
 
     /// <summary>
@@ -329,6 +346,11 @@ namespace LakskongenSim.Core
         {
             if (state == null) throw new ArgumentNullException(nameof(state));
 
+            // S2-01a: a scenario founds the company's licence register; capacity
+            // v1 (pooled licence MTB, locality MTB, projected-peak stocking,
+            // daily enforcement) applies from day 0.
+            state.CapacityRules = Finance.CapacityRegime.LicencesV1;
+
             int siteIdx = 0;
             foreach (var siteDef in StartingSites ?? new List<StartingSiteDefinition>())
             {
@@ -390,6 +412,20 @@ namespace LakskongenSim.Core
                     state.Populations.Add(pop);
                 }
                 if (smoltPerPen > 0) site.LastStockedDay = state.Day;
+
+                // S2-01a: the scenario's licences, registered to this site, pool
+                // in its production area; the site's own cap is its locality MTB.
+                int licenceArea = siteZone.ProductionArea;
+                int licenceMtb = LakskongenSim.Environment.ProductionAreas.IsValid(licenceArea)
+                    ? LakskongenSim.Environment.ProductionAreas.Get(licenceArea).LicenceMtbTonnes
+                    : LakskongenSim.Environment.ProductionAreas.StandardLicenceMtbTonnes;
+                int licences = Math.Max(0, siteDef.Licences);
+                site.MABTonnes = siteDef.LocalityMtbTonnes > 0.0
+                    ? siteDef.LocalityMtbTonnes
+                    : Math.Max(1, licences) * (double)licenceMtb;
+                for (int l = 0; l < licences; l++)
+                    SimulationEngine.GrantLicence(state, licenceArea, licenceMtb, siteId, Finance.LicenceOrigin.Scenario);
+
                 // Keep site and global biomass/zone accounting coherent from day 0.
                 state.SeaSites.Add(site);
                 var zone = state.Zones.First(z => z.Id == zoneId);
@@ -1124,9 +1160,13 @@ namespace LakskongenSim.Core
                     ["easy_market"]  = "true",
                     ["profit_target"] = "100000000",
                 },
+                // S2-01a: the established company holds 8 licences in PO4 (6,240 t
+                // MTB) on a locality cleared for 3,120 t, so building sites is an
+                // empire game: a build adds a locality, never MTB (before S2-01
+                // every 6M build came with 780 t). Measured in docs/BALANCE.md §1j.
                 StartingSites = new List<StartingSiteDefinition>
                 {
-                    new() { Id = "lakskongen_hovedanlegg", Name = "Lakskongen Hovedanlegg", Zone = "fjord_west", ProductionArea = 4, Pens = 4, SmoltCount = 12_000, DaysAtSea = 110, SmoltQuality = "standard" },
+                    new() { Id = "lakskongen_hovedanlegg", Name = "Lakskongen Hovedanlegg", Zone = "fjord_west", ProductionArea = 4, Pens = 4, SmoltCount = 12_000, DaysAtSea = 110, SmoltQuality = "standard", Licences = 8, LocalityMtbTonnes = 3_120 },
                 },
                 TimeLimitDays = null,
                 IsUnlocked = true, // No progression yet: every scenario is open until U2-03 (roadmap U1-07).

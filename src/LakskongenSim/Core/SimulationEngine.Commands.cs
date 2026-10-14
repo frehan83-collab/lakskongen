@@ -118,6 +118,11 @@ public partial class SimulationEngine
             return CommandResult.Fail("mab_exceeded",
                 $"Stocking {count:N0} smolts ({incomingTonnes:F1} t) would put {siteId} over its MAB " +
                 $"({site.CurrentBiomassTonnes:F1} + {incomingTonnes:F1} > {site.MABTonnes:F0} t)");
+        // S2-01a: under the licence register the production plan's projected
+        // peak must fit the area's licence MTB and the site's locality MTB, and
+        // no reduction order may run in the area.
+        var capacity = CheckStockingCapacity(site, count, strain.ReleaseWeightKg);
+        if (capacity != null) return capacity;
         // Calibrated smolt price × strain premium (review F269: the old path
         // charged the hatchery rearing cost, ~54.75 NOK/fish vs 12 calibrated).
         decimal stockingCost = count * _balancing.SmoltCostPerFish * (decimal)strain.CostMultiplier;
@@ -728,6 +733,16 @@ public partial class SimulationEngine
         if (snapshot.LicenseAuctions != null)
             foreach (var auction in snapshot.LicenseAuctions)
                 State.LicenseAuctions.Add(auction);
+        // S2-01a: the licence register and the biomass orders. A save from
+        // before S2-01 has no rules (null): migrated after the load below.
+        State.CapacityRules = snapshot.CapacityRules;
+        State.LicencesGranted = snapshot.LicencesGranted;
+        State.LicenceHoldings.Clear();
+        if (snapshot.LicenceHoldings != null)
+            State.LicenceHoldings.AddRange(snapshot.LicenceHoldings);
+        State.CapacityBreaches.Clear();
+        if (snapshot.CapacityBreaches != null)
+            State.CapacityBreaches.AddRange(snapshot.CapacityBreaches);
         foreach (var kvp in snapshot.FactionRelations)
             State.FactionRelations[kvp.Key] = kvp.Value;
         foreach (var rep in snapshot.RecentMarketReports)
@@ -748,6 +763,10 @@ public partial class SimulationEngine
         // Re-inject dependencies into deserialized populations and restore
         // depth/empire systems + model snapshots (same call the game makes).
         RestoreFromLoad(snapshot);
+
+        // S2-01a: a pre-S2-01 save gets one licence per site (its old MAB) in
+        // the site's production area, resolved after the load assigned areas.
+        MigrateCapacityRegisterAfterLoad();
     }
 
     // ─── Phase 4.5: Attention Inbox hook ─────────────────────────────────

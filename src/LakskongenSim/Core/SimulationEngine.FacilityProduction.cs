@@ -192,6 +192,9 @@ public partial class SimulationEngine
         if (site.CurrentBiomassTonnes + incomingTonnes > site.MABTonnes)
             return CommandResult.Fail("mab_exceeded",
                 $"Transferring {incomingTonnes:F1} t would put {siteId} over its MAB ({site.MABTonnes:F0} t)");
+        // S2-01a: a transfer to sea is a stocking; the plan's peak must fit.
+        var capacity = CheckStockingCapacity(site, batch.Count, weightKg);
+        if (capacity != null) return capacity;
 
         facility.TransferToSea(batchId);
         var tier = batch.AverageWeightG >= SuperSmoltTransferWeightG ? SmoltQualityTier.SuperSmolt

@@ -4,6 +4,7 @@ using System.Linq;
 using LakskongenSim.Biology;
 using LakskongenSim.Core;
 using LakskongenSim.Farm;
+using LakskongenSim.Data;
 using LakskongenSim.Finance;
 using LakskongenSim.Harvest;
 using Xunit;
@@ -218,5 +219,61 @@ public class HarvestLedgerReconciliationTests
         _output.WriteLine($"cohort-days checked: {cohortDaysChecked:N0}; modes: {string.Join(", ", modesSeen.OrderBy(m => m))}");
         foreach (var mode in Enum.GetValues<HarvestMode>())
             Assert.Contains(mode, modesSeen);
+    }
+
+    /// <summary>
+    /// S2-01a's deadline harvest (biomass over the licence MTB, order missed)
+    /// goes through the S2-04 pipeline and the S2-05 ledger: one forced report
+    /// per site, sold as gutted kilos at 70 % of the price with the express
+    /// harvest cost booked as cost of goods sold; the reports' fish are
+    /// exactly the fish the ledger shows leaving as forced harvest, the
+    /// breach's revenue is their gross sale and its kilos their live weight.
+    /// </summary>
+    [Fact]
+    public void TheCapacityDeadlineHarvest_SellsThroughThePipeline_AndBooksItsFishOnTheLedger()
+    {
+        for (int seed = 31; seed <= 33; seed++)
+        {
+            var engine = new SimulationEngine { FinanceManager = new FinanceManager(12_000_000m) };
+            engine.Initialize(enableEvents: false, seed: seed);
+            Assert.True(engine.StartScenario(PlayerScriptProbe.CareerScenarioId).Ok);
+            Assert.True(engine.BuildSeaSite("po3_nord", "utvidelse").Ok);
+            var built = engine.State.SeaSites.Single(s => s.Id == "utvidelse");
+            const int area = 3;
+            int fish = (int)Math.Ceiling((engine.AreaLicenceMtbTonnes(area) - engine.AreaStandingBiomassTonnes(area)) * 1000.0 / 4.0) + 10_000;
+            var pop = new FishPopulation(engine.Growth, engine.Mortality);
+            pop.AddCohort(new FishPopulation.Cohort(500, fish, 4.0, LifeStage.Seawater) { WeightCv = 0.2 });
+            built.Stock(pop);
+            engine.State.Populations.Add(pop);
+
+            var before = engine.MortalityLedger.Cumulative();
+            int reportsBefore = engine.State.HarvestBatchesSold;
+            decimal harvestCostBefore = engine.FinancialStatements.CostBreakdown.TryGetValue("harvest", out var hc) ? hc : 0m;
+            engine.Advance(1);
+            var breach = Assert.Single(engine.State.CapacityBreaches);
+            while (breach.IsOpen) engine.Advance(1);
+            Assert.Equal(CapacityBreachStatus.ForcedHarvest, breach.Status);
+
+            var forced = engine.HarvestReports.Skip(engine.HarvestReports.Count - (engine.State.HarvestBatchesSold - reportsBefore))
+                .Where(r => r.Mode == HarvestMode.Forced).ToList();
+            Assert.NotEmpty(forced);
+            var after = engine.MortalityLedger.Cumulative();
+            long ledgerForced = after.Removed(FishRemoval.ForcedHarvest).Fish - before.Removed(FishRemoval.ForcedHarvest).Fish;
+            Assert.Equal(forced.Sum(r => (long)r.Fish), ledgerForced);
+            Assert.Equal(breach.ForcedHarvestKg, forced.Sum(r => r.LiveKg), 6);
+            Assert.Equal(breach.ForcedHarvestRevenueNok, forced.Sum(r => r.GrossRevenueNok));
+            Assert.Equal(engine.FinancialStatements.RevenueBreakdown["forced_harvest"], forced.Sum(r => r.GrossRevenueNok));
+            var cal = engine.HarvestCalibration;
+            foreach (var r in forced)
+            {
+                Assert.Equal(r.LiveKg * cal.HogYieldFraction, r.HogKg, 6);
+                Assert.Equal((double)engine.Calibration.Capacity.ForcedHarvestPriceFactor, (double)r.PriceMultiplier, 9);
+                Assert.True(r.SurchargeNok > 0m, "a forced harvest pays the express wellboat and waiting pen");
+            }
+            decimal harvestCost = engine.FinancialStatements.CostBreakdown["harvest"] - harvestCostBefore;
+            Assert.Equal(forced.Sum(r => r.HarvestCostNok), harvestCost);
+            _output.WriteLine($"seed {seed}: forced {forced.Sum(r => r.Fish):N0} fish, {breach.ForcedHarvestKg / 1000:F1} t live, " +
+                $"{forced.Sum(r => r.HogKg) / 1000:F1} t HOG, gross {breach.ForcedHarvestRevenueNok:N0}, cost {harvestCost:N0} NOK");
+        }
     }
 }
