@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
+render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx, alpha_to_coverage;
 
 // === Fjord trees (G2-02): spruce and birch through MultiMesh ===
 //
@@ -24,8 +24,11 @@ uniform vec3 birch_lit : source_color = vec3(0.333, 0.447, 0.212);      // #5572
 uniform vec3 spruce_bark : source_color = vec3(0.290, 0.247, 0.208);    // #4A3F35
 uniform vec3 birch_bark : source_color = vec3(0.890, 0.878, 0.839);     // #E3E0D6
 uniform vec3 snow_color : source_color = vec3(0.949, 0.961, 0.973);
-// Birch crowns shrink toward their twigs when bare (fraction of full size).
-uniform float bare_crown_scale : hint_range(0.4, 1.0) = 0.78;
+// Birch crowns draw in a little toward their twigs when bare (fraction of full size).
+uniform float bare_crown_scale : hint_range(0.4, 1.0) = 0.88;
+// Share of a bare birch crown's surface the twigs still cover (the rest is
+// cut away: a lacy, see-through crown in winter).
+uniform float bare_twig_cover : hint_range(0.1, 1.0) = 0.38;
 
 varying float part;
 varying float occlusion;
@@ -34,6 +37,7 @@ varying float variation;
 varying float base_altitude;
 varying vec3 normal_world;
 varying float height_local;
+varying vec3 local_pos;
 
 void vertex() {
 	part = UV.x;
@@ -42,17 +46,41 @@ void vertex() {
 	variation = INSTANCE_CUSTOM.y;
 	base_altitude = INSTANCE_CUSTOM.w;
 	height_local = VERTEX.y;
+	local_pos = VERTEX;
 	if (species == 1 && part > 0.5) {
 		// Bare birch: the crown's mass draws in toward the stem.
 		float s = mix(bare_crown_scale, 1.0, lk_foliage);
-		vec3 centre = vec3(0.3, 7.3, 0.0);
+		vec3 centre = vec3(0.3, 7.2, 0.0);
 		VERTEX = centre + (VERTEX - centre) * s;
 	}
 	normal_world = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
+float hash13(vec3 p3) {
+	p3 = fract(p3 * 0.1031);
+	p3 += dot(p3, p3.zyx + 31.32);
+	return fract((p3.x + p3.y) * p3.z);
+}
+
+// Smooth 3D value noise in the tree's own space (stable as the camera moves).
+float twig_noise(vec3 p) {
+	vec3 i = floor(p);
+	vec3 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(mix(hash13(i), hash13(i + vec3(1, 0, 0)), f.x), mix(hash13(i + vec3(0, 1, 0)), hash13(i + vec3(1, 1, 0)), f.x), f.y),
+		mix(mix(hash13(i + vec3(0, 0, 1)), hash13(i + vec3(1, 0, 1)), f.x), mix(hash13(i + vec3(0, 1, 1)), hash13(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+}
+
 void fragment() {
 	vec3 col;
+	if (species == 1 && part > 0.5) {
+		// Bare and thinning birch crowns turn lacy: the twig mass keeps only
+		// part of its surface (alpha scissor with alpha to coverage).
+		float cover = mix(bare_twig_cover, 1.0, lk_foliage);
+		float lace = twig_noise(local_pos * 2.6 + variation * 13.0) * 0.7 + twig_noise(local_pos * 7.0) * 0.3;
+		ALPHA = smoothstep(1.0 - cover - 0.06, 1.0 - cover + 0.06, lace);
+		ALPHA_SCISSOR_THRESHOLD = 0.5;
+	}
 	float shade = mix(0.5, 1.0, occlusion);
 	if (part < 0.5) {
 		if (species == 1) {
@@ -72,8 +100,8 @@ void fragment() {
 	// Snow on the up-facing foliage and branches of trees above the line.
 	float snowy = ground_snow(base_altitude + 2.0, 0.0, 0.0, 0.08, variation);
 	// Snow lies on the tops of the branch tiers and the crown, patchily.
-	float facing = smoothstep(0.4, 0.85, normal_world.y) * mix(0.55, 1.0, fract(height_local * 1.7 + variation * 5.0));
-	float hold = species == 0 ? 0.75 : mix(0.55, 0.25, lk_foliage);
+	float facing = smoothstep(0.5, 0.95, normal_world.y) * mix(0.45, 1.0, fract(height_local * 1.7 + variation * 5.0));
+	float hold = species == 0 ? 0.6 : mix(0.55, 0.25, lk_foliage);
 	float snow = snowy * facing * hold * (part > 0.5 ? 1.0 : 0.35);
 	col = mix(col, snow_color * mix(0.85, 1.0, occlusion), snow);
 	ALBEDO = col;

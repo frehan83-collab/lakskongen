@@ -66,6 +66,12 @@ var _content_failures: PackedStringArray = []
 ## frame, and the baseline enshrined it. A fjord shot may not be more than this
 ## fraction pure black.
 const MAX_BLACK_FRACTION := 0.30
+## Roadmap G1-02 acceptance 3: the live fjord frame (08a) is no whiteout.
+const LAND_MEAN_MAX := 0.75
+const LAND_RMS_MIN := 0.12
+## Weather that hides the land by itself (the check then only reports).
+const LAND_CHECK_MIN_VISIBILITY_M := 8000.0
+const LAND_CHECK_MAX_SNOWFALL := 0.2
 var _game: Node = null
 var _ui_layer: Node = null
 var _env: Node = null
@@ -447,7 +453,8 @@ func _capture_fjord_day() -> void:
 	# proves the live weather/wave path in a real frame (whatever regime the
 	# sim is in). Afterwards QA takes over staging.
 	await _wait(1.5)
-	await _shoot("08a_fjord_live_sync", true)
+	var live := await _shoot("08a_fjord_live_sync", true)
+	_check_land_contrast("08a_fjord_live_sync", live)
 	var vista := _find(_game, "FjordVistaBridge")
 	if vista != null:
 		vista.set("sim_weather_enabled", false)
@@ -884,6 +891,55 @@ func _shoot(shot_name: String, force_hide_ui: bool = false) -> Image:
 	_captured.append(project_path)
 	print("[ScreenshotHarness] captured %s -> %s" % [filename, project_path])
 	return img
+
+
+## G1-02 acceptance 3 (and G2-02, whose terrain carries it): the live fjord
+## frame is no whiteout. Land pixels (the camera's ground pick lands on
+## terrain above 0.5 m) on a 160 x 90 grid: mean displayed luminance at most
+## LAND_MEAN_MAX and RMS contrast (their standard deviation) at least
+## LAND_RMS_MIN. The live frame shows whatever weather the sim is in; when
+## that weather itself hides the land (visibility under
+## LAND_CHECK_MIN_VISIBILITY_M, or a snowfall), a whiteout is the right
+## picture and the check only reports.
+func _check_land_contrast(shot_name: String, img: Image) -> void:
+	var cam = _env.get("camera") if _env != null else null
+	var terrain = _env.get("terrain") if _env != null else null
+	var weather = _env.get("weather_system") if _env != null else null
+	if img == null or cam == null or terrain == null:
+		_content_failures.append("%s: no frame, camera or terrain for the land contrast check" % shot_name)
+		return
+	var visibility: float = weather.call("get_visibility_m") if weather != null else 40000.0
+	var snowfall: float = weather.call("get_snow") if weather != null else 0.0
+	var applies := visibility >= LAND_CHECK_MIN_VISIBILITY_M and snowfall < LAND_CHECK_MAX_SNOWFALL
+	var vp_size := get_viewport().get_visible_rect().size
+	var lums := PackedFloat32Array()
+	for gy in 90:
+		for gx in 160:
+			var p := Vector2((gx + 0.5) / 160.0 * vp_size.x, (gy + 0.5) / 90.0 * vp_size.y)
+			var hit: Vector3 = cam.pick_ground(p)
+			if not hit.is_finite() or terrain.get_height_at(hit.x, hit.z) <= 0.5:
+				continue
+			var px := Vector2i(int(p.x / vp_size.x * img.get_width()), int(p.y / vp_size.y * img.get_height()))
+			lums.append(img.get_pixelv(px).get_luminance())
+	if lums.size() < 200:
+		_content_failures.append("%s: only %d land samples in frame" % [shot_name, lums.size()])
+		return
+	var mean := 0.0
+	for l in lums:
+		mean += l
+	mean /= lums.size()
+	var variance := 0.0
+	for l in lums:
+		variance += (l - mean) * (l - mean)
+	var rms := sqrt(variance / lums.size())
+	print("[ScreenshotHarness] %s: land mean %.3f, RMS contrast %.3f (%d samples; visibility %.1f km, snowfall %.2f%s)" % [
+		shot_name, mean, rms, lums.size(), visibility / 1000.0, snowfall, "" if applies else " — weather hides the land, not checked"])
+	if not applies:
+		return
+	if mean > LAND_MEAN_MAX:
+		_content_failures.append("%s: land mean luminance %.3f > %.2f (whiteout)" % [shot_name, mean, LAND_MEAN_MAX])
+	if rms < LAND_RMS_MIN:
+		_content_failures.append("%s: land RMS contrast %.3f < %.2f" % [shot_name, rms, LAND_RMS_MIN])
 
 
 ## Fail the run when a captured frame is mostly pure black (sampled every 8 px).

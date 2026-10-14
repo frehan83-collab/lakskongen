@@ -82,6 +82,7 @@ func _run() -> void:
 	await _test_camera_frames_sky_and_avoids_terrain()
 	await _test_camera_keys_leave_focused_controls_alone()
 	await _test_environment_director_owns_the_look()
+	await _test_terrain_material_and_vegetation()
 	await _test_water_grid_bake_and_sea_state()
 	await _test_theme_and_contrast_on_every_screen()
 	_test_formatters_speak_the_locale()
@@ -3176,6 +3177,118 @@ func _test_water_grid_bake_and_sea_state() -> void:
 
 	_check(probe.reflection_mask & WaterGrid.RENDER_LAYER == 0 and grid.get_pieces()[0].layers == WaterGrid.RENDER_LAYER,
 		"water: the reflection probe leaves the water's layer out")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## G2-02: the terrain wears its layer arrays, the season reaches the ground
+## through the director (snow line, birch leaves, fresh snow, wet ground),
+## and every tree the vegetation stands up lies inside the masks: above the
+## splash zone, below the 450-550 m treeline, gentler than 55 degrees,
+## spruce low and gentle, on the ground it was planted on.
+func _test_terrain_material_and_vegetation() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "terrain material: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	var env: FjordEnvironment = scene.get_node("FjordEnvironment")
+	var director: EnvironmentDirector = env.get_node("EnvironmentDirector")
+	var weather: WeatherController = env.get_node("WeatherSystem")
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	var vista: FjordVistaBridge = scene.get_node("FjordVistaBridge")
+	for i in 900:
+		if terrain.is_ready() and terrain.vegetation != null and terrain.vegetation.call("is_ready"):
+			break
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	vista.sim_weather_enabled = false
+	(env.get_node("TimeOfDay") as TimeOfDay).paused = true
+	weather.transition_duration = 0.0
+
+	# The material: two Texture2DArrays, 7 layers and 7 + 2 noise slices.
+	var mat := terrain.get_material()
+	var albedo = mat.get_shader_parameter("albedo_height") if mat != null else null
+	var nra = mat.get_shader_parameter("normal_rough_ao") if mat != null else null
+	# Imported arrays are CompressedTexture2DArray: a TextureLayered, not a Texture2DArray.
+	_check(albedo is TextureLayered and (albedo as TextureLayered).get_layers() == 7
+		and (albedo as TextureLayered).get_layered_type() == TextureLayered.LAYERED_TYPE_2D_ARRAY,
+		"terrain material: albedo + height array with 7 layers")
+	_check(nra is TextureLayered and (nra as TextureLayered).get_layers() == 9
+		and (nra as TextureLayered).get_layered_type() == TextureLayered.LAYERED_TYPE_2D_ARRAY,
+		"terrain material: normal + roughness + AO array with 7 layers and 2 noise slices")
+	_check(mat != null and float(mat.get_shader_parameter("use_textures")) == 1.0,
+		"terrain material: textured (not the palette fallback)")
+
+	# The season from the calendar at 63.43 N (GroundSeasonModel).
+	env.set_weather(WeatherController.WeatherState.CLEAR)
+	env.set_season(50.0 / 365.0)
+	director.compose(0.0, true)
+	var winter: Dictionary = director.get_composed().duplicate()
+	_check(float(winter.get("snow_line_m", 9999.0)) <= 150.0 and float(winter.get("foliage", 1.0)) == 0.0,
+		"ground: mid-February brings snow to the shore (line %.0f m) and bare birch" % float(winter.get("snow_line_m", -1.0)))
+	# (The globals themselves are the renderer's: the headless dummy keeps no
+	# values, so tests/test_terrain_material.py pins the single writer and the
+	# names, and the probe renders show them.)
+	env.set_season(182.0 / 365.0)
+	director.compose(0.0, true)
+	var summer: Dictionary = director.get_composed().duplicate()
+	_check(float(summer["snow_line_m"]) >= 1000.0 and float(summer["foliage"]) >= 0.99,
+		"ground: midsummer lifts the snow line above the summits (%.0f m) and leafs out the birch" % float(summer["snow_line_m"]))
+	env.set_season(270.0 / 365.0)
+	director.compose(0.0, true)
+	_check(float(director.get_composed()["autumn"]) > 0.4,
+		"ground: late September turns the birch yellow (%.2f)" % float(director.get_composed()["autumn"]))
+
+	# Weather: a snowfall lowers the line now, rain wets the ground.
+	env.set_season(320.0 / 365.0)
+	env.set_weather(WeatherController.WeatherState.SNOW)
+	director.compose(0.0, true)
+	var snowing: Dictionary = director.get_composed().duplicate()
+	_check(float(snowing["fresh_snow"]) > 0.0 and float(snowing["snow_line_m"]) < float(snowing["season_snow_line_m"]),
+		"ground: falling snow pulls the line down (%.0f m, season %.0f m)" % [float(snowing["snow_line_m"]), float(snowing["season_snow_line_m"])])
+	env.set_weather(WeatherController.WeatherState.RAIN)
+	director.compose(0.0, true)
+	_check(float(director.get_composed()["ground_wetness"]) > 0.3,
+		"ground: rain wets the ground (%.2f)" % float(director.get_composed()["ground_wetness"]))
+	env.set_weather(WeatherController.WeatherState.CLEAR)
+	director.compose(0.0, true)
+	_check(float(director.get_composed()["ground_wetness"]) < 0.05 and float(director.get_composed()["fresh_snow"]) < 0.05,
+		"ground: a clear sky leaves the ground dry and the line on the season's")
+
+	# The trees: every one inside the masks, on its ground.
+	var veg = terrain.vegetation
+	_check(veg != null and veg.call("is_ready") and int(veg.get("instance_count")) == terrain.tree_count and terrain.tree_count > 10000,
+		"vegetation: %d trees stand in %d cells" % [terrain.tree_count, (veg.get("cells_lod0") as Array).size() if veg != null else 0])
+	var outside := 0
+	var floating := 0
+	var steep := 0
+	var spruce_bad := 0
+	var checked := 0
+	# The scatter's own slope stencil: half a grid cell either side.
+	var e := terrain.terrain_size.x / float(terrain.terrain_resolution - 1) * 0.5
+	for cell: Dictionary in terrain.vegetation_chunks:
+		var buf: PackedFloat32Array = cell["buffer"]
+		var spruce := int(cell["species"]) == 0
+		for i in range(0, int(cell["count"]), 7):
+			var o := i * 16
+			var x := buf[o + 3]
+			var z := buf[o + 11]
+			var base := buf[o + 15]
+			var ground := terrain.get_height_at(x, z)
+			var slope := Vector2((terrain.get_height_at(x + e, z) - terrain.get_height_at(x - e, z)) / (2.0 * e),
+				(terrain.get_height_at(x, z + e) - terrain.get_height_at(x, z - e)) / (2.0 * e)).length()
+			checked += 1
+			if absf(base - ground) > 0.25 or buf[o + 7] > ground:
+				floating += 1
+			if base < 3.0 or base >= 550.0:
+				outside += 1
+			if slope >= 1.4291:
+				steep += 1
+			if spruce and (base >= 340.0 or slope >= 0.7823):
+				spruce_bad += 1
+	_check(checked > 1000 and outside == 0, "vegetation: no tree below the splash zone or above the treeline (%d checked)" % checked)
+	_check(steep == 0, "vegetation: no tree on a slope steeper than 55 degrees (%d)" % steep)
+	_check(spruce_bad == 0, "vegetation: spruce only low and on gentle ground (%d out)" % spruce_bad)
+	_check(floating == 0, "vegetation: every tree's base sits on, and its trunk sinks into, the ground (%d off)" % floating)
 	scene.queue_free()
 	await get_tree().process_frame
 

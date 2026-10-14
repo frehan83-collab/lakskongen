@@ -9,7 +9,10 @@ Writes two layered images that Godot imports as Texture2DArrays:
   godot/assets/textures/terrain/terrain_normal_rough_ao.png
       the same layers; RG tangent-space normal in the texture's own u/v
       directions (u along +column, v along +row: n = normalize(-dh/du,
-      -dh/dv, 1) * 0.5 + 0.5), B roughness, A ambient occlusion.
+      -dh/dv, 1) * 0.5 + 0.5), B roughness, A ambient occlusion; then two
+      noise slices the shader samples instead of computing value noise per
+      pixel (NOISE_SLICES): four independent smooth fields, and one field
+      with its u and v derivatives (for bump mapping).
 
 Layers (LAYERS below, in order) are drawn for the game's camera, which sits
 25-3,000 m from the ground: one slice spans NEAR_TILE_M metres of ground at
@@ -50,6 +53,10 @@ PX_PER_M = SIZE / NEAR_TILE_M
 
 # Layer order = array index in the shader (terrain_shader.gdshader LAYER_*).
 LAYERS = ("rock", "grass", "heath", "snow", "shingle", "spruce_canopy", "birch_canopy")
+# Extra slices at the end of the normal array (terrain_shader.gdshader L_NOISE, L_BUMP).
+NOISE_SLICES = ("noise4", "bump")
+# The bump slice stores dB/du and dB/dv (per slice length) as 0.5 + d / (2 BUMP_GRADIENT_RANGE).
+BUMP_GRADIENT_RANGE = 48.0
 
 
 # --------------------------------------------------------------------------- #
@@ -253,8 +260,8 @@ def layer_grass(seed: int):
     patches = spectral(rng, 2.2, 2, 20)
     h_m = 0.08 * clumps + 0.03 * tufts + 0.12 * patches
     height = norm01(h_m)
-    green = srgb("#5D7442")
-    yellow = srgb("#7F8B4A")
+    green = srgb("#58703F")
+    yellow = srgb("#7A834A")
     deep = srgb("#3D5530")
     soil = srgb("#5E5141")
     col = mix(np.broadcast_to(green, (SIZE, SIZE, 3)), yellow, smoothstep(0.1, 0.9, patches) * 0.6)
@@ -271,10 +278,10 @@ def layer_heath(seed: int):
     a = spectral(rng, 2.0, 4, 80)
     b = spectral(rng, 2.0, 4, 80)
     fine = spectral(rng, 1.3, 80, 300)
-    crowberry = srgb("#46502F")
-    heather = srgb("#67554A")
+    crowberry = srgb("#4A4C30")
+    heather = srgb("#6B5849")
     lichen = srgb("#B3B39A")
-    dwarf_birch = srgb("#77703F")
+    dwarf_birch = srgb("#7A6F42")
     peat = srgb("#463C31")
     stone = srgb("#787D7F")
     col = np.broadcast_to(crowberry, (SIZE, SIZE, 3)).copy()
@@ -408,6 +415,24 @@ def build_layer(index: int, name: str):
     return albedo, nra
 
 
+def noise_slice(name: str) -> np.ndarray:
+    """RGBA 0-1. noise4: four independent smooth fields, features about a
+    sixth of the slice (A twice as fine). bump: a smooth field and its u, v
+    derivatives (per slice length, encoded around 0.5)."""
+    rng = np.random.default_rng(4242 if name == "noise4" else 4343)
+    if name == "noise4":
+        chans = [norm01(spectral(rng, 2.0, 2, 40)) for _ in range(3)]
+        chans.append(norm01(spectral(rng, 2.0, 6, 80)))
+        return np.dstack(chans)
+    b = norm01(spectral(rng, 2.4, 2, 32))
+    du = (np.roll(b, -1, axis=1) - np.roll(b, 1, axis=1)) * 0.5 * SIZE
+    dv = (np.roll(b, -1, axis=0) - np.roll(b, 1, axis=0)) * 0.5 * SIZE
+    peak = max(np.abs(du).max(), np.abs(dv).max())
+    assert peak <= BUMP_GRADIENT_RANGE, f"bump gradient {peak:.1f} exceeds the encoded range"
+    enc = lambda d: 0.5 + d / (2.0 * BUMP_GRADIENT_RANGE)  # noqa: E731
+    return np.dstack([b, enc(du), enc(dv), np.ones_like(b)])
+
+
 def to_u8(img: np.ndarray) -> np.ndarray:
     return (np.clip(img, 0.0, 1.0) * 255.0 + 0.5).astype(np.uint8)
 
@@ -430,9 +455,11 @@ def main(argv: list[str] | None = None) -> int:
             Image.fromarray(to_u8(albedo[..., :3])).save(os.path.join(args.preview, f"{i}_{name}_albedo.png"))
             Image.fromarray(to_u8(nra[..., :3])).save(os.path.join(args.preview, f"{i}_{name}_nr.png"))
         print(f"layer {i} {name}: albedo mean {albedo[..., :3].mean(axis=(0, 1)).round(3)}")
+    for name in NOISE_SLICES:
+        nra_stack.append(to_u8(noise_slice(name)))
     Image.fromarray(np.vstack(albedo_stack), "RGBA").save(os.path.join(args.out, ALBEDO_FILE), optimize=True)
     Image.fromarray(np.vstack(nra_stack), "RGBA").save(os.path.join(args.out, NORMAL_FILE), optimize=True)
-    print(f"wrote {len(LAYERS)} layers of {SIZE}x{SIZE} to {args.out}")
+    print(f"wrote {len(LAYERS)} layers (+{len(NOISE_SLICES)} noise slices) of {SIZE}x{SIZE} to {args.out}")
     return 0
 
 

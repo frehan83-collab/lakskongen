@@ -184,25 +184,27 @@ def leaf_mass(t: Tree, centre, radius, squash: float, crown_centre, crown_lo: fl
         t.tri(verts[f[0]], verts[f[1]], verts[f[2]])
 
 
-BIRCH_MASSES = [  # (x, y, z, radius) in metres, Blender Z up
-    (0.35, 0.10, 8.7, 2.2),
-    (-1.05, 0.55, 7.2, 1.85),
-    (1.45, -0.45, 7.0, 1.9),
-    (0.15, 1.45, 6.5, 1.6),
-    (0.65, -1.35, 6.0, 1.55),
+BIRCH_MASSES = [  # (x, y, z, radius) in metres, Blender Z up: an oval crown from ~3.5 m to the top
+    (0.40, 0.10, 9.2, 1.9),
+    (-0.95, 0.55, 7.9, 2.0),
+    (1.45, -0.40, 7.7, 2.0),
+    (0.20, 1.50, 7.0, 1.9),
+    (0.60, -1.40, 6.6, 1.9),
+    (-0.80, -0.70, 5.6, 1.8),
+    (1.05, 0.85, 5.2, 1.7),
 ]
 
 
 def birch(lod: str) -> Tree:
     t = Tree()
-    crown_centre = (0.3, 0.0, 7.3)
+    crown_centre = (0.3, 0.0, 7.2)
     if lod == "LOD1":
-        trunk(t, [(0.0, 0.0, -0.3), (0.3, 0.1, 6.0)], [0.17, 0.1], 3)
-        leaf_mass(t, crown_centre, 2.9, 0.95, (0.3, 0.0, 6.5), 4.6, 10.4, 91)
+        trunk(t, [(0.0, 0.0, -0.3), (0.3, 0.1, 5.0)], [0.17, 0.1], 3)
+        leaf_mass(t, crown_centre, 3.0, 1.4, (0.3, 0.0, 6.2), 3.6, 11.0, 91)
         return t
-    trunk(t, [(0.0, 0.0, -0.4), (0.18, 0.06, 3.6), (0.32, 0.12, 6.4), (0.4, 0.15, 8.6)], [0.19, 0.14, 0.09, 0.04], 5)
+    trunk(t, [(0.0, 0.0, -0.4), (0.18, 0.06, 3.6), (0.32, 0.12, 6.4), (0.4, 0.15, 9.4)], [0.18, 0.13, 0.08, 0.035], 5)
     for i, (x, y, z, r) in enumerate(BIRCH_MASSES):
-        leaf_mass(t, (x, y, z), r, 0.82, crown_centre, 4.4, 10.8, 17 + 13 * i)
+        leaf_mass(t, (x, y, z), r, 0.9, crown_centre, 3.6, 11.0, 17 + 13 * i)
     return t
 
 

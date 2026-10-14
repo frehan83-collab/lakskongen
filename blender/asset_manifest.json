@@ -206,6 +206,42 @@
       "reference": "Roadmap A3-01 (RIB): an 8-9 m aquaculture work RIB with a centre console and twin outboards; 8.5 x 3.0 m over the tube.",
       "spec_tolerance": 0.05,
       "spec": {"length_m": 8.5, "beam_m": 3.0}
+    },
+    {
+      "id": "spruce",
+      "type": "vegetation",
+      "scale_m": 16.0,
+      "orientation": "y_up_base_at_origin",
+      "lod_levels": ["LOD0", "LOD1"],
+      "materials": ["LK_Tree"],
+      "tri_budget": {"LOD0": 116, "LOD1": 12},
+      "tri_max": {"LOD0": 160, "LOD1": 24},
+      "export_path": "godot/assets/models/vegetation/spruce_{lod}.glb",
+      "build_script": "blender/build_vegetation.py",
+      "build_args": ["--asset", "spruce"],
+      "godot_material": "godot/shaders/vegetation_shader.gdshader",
+      "licence": "Proprietary (Lakskongen). In-house geometry; no third-party assets.",
+      "reference": "Roadmap G2-02: MultiMesh spruce with a LOD beyond ~600 m. Norway spruce (Picea abies) of a planted coastal stand: about 16 m tall with a narrow crown about 5.4 m across.",
+      "spec_tolerance": 0.1,
+      "spec": {"height_m": 16.0, "crown_width_m": 5.4}
+    },
+    {
+      "id": "birch",
+      "type": "vegetation",
+      "scale_m": 11.0,
+      "orientation": "y_up_base_at_origin",
+      "lod_levels": ["LOD0", "LOD1"],
+      "materials": ["LK_Tree"],
+      "tri_budget": {"LOD0": 170, "LOD1": 26},
+      "tri_max": {"LOD0": 220, "LOD1": 40},
+      "export_path": "godot/assets/models/vegetation/birch_{lod}.glb",
+      "build_script": "blender/build_vegetation.py",
+      "build_args": ["--asset", "birch"],
+      "godot_material": "godot/shaders/vegetation_shader.gdshader",
+      "licence": "Proprietary (Lakskongen). In-house geometry; no third-party assets.",
+      "reference": "Roadmap G2-02: MultiMesh birch with a LOD beyond ~600 m. Downy birch (Betula pubescens) of western Norwegian fjord sides: about 11 m tall with an oval crown about 6 m across.",
+      "spec_tolerance": 0.1,
+      "spec": {"height_m": 11.0, "crown_width_m": 6.0}
     }
   ]
 }

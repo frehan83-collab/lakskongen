@@ -44,6 +44,14 @@ const float L_SNOW = 3.0;
 const float L_SHINGLE = 4.0;
 const float L_SPRUCE = 5.0;
 const float L_BIRCH = 6.0;
+// Noise slices at the end of the normal array (tools/gen_terrain_textures.py NOISE_SLICES).
+const float L_NOISE = 7.0;
+const float L_BUMP = 8.0;
+// The bump slice's derivatives are encoded as 0.5 + d / (2 * this) (per slice length).
+const float BUMP_GRADIENT_RANGE = 48.0;
+const float BUMP_SLICE_M = 228.0;
+// Texels across a slice (tools/gen_terrain_textures.py SIZE).
+const float NOISE_TEXELS = 1024.0;
 const float NEAR_TILE_M = 20.0;
 const float FAR_TILE_M = 107.4;
 // cos and sin of the far scale's 37 degree turn.
@@ -51,9 +59,7 @@ const vec2 FAR_ROTATION = vec2(0.7986355, 0.6018150);
 const vec2 FAR_OFFSET = vec2(0.371, 0.613);
 const float FAR_ALBEDO_BLUR = 3.0;
 const float NEAR_WARP_M = 9.0;
-const float NEAR_WARP_SCALE_M = 47.0;
 const float FAR_WARP_M = 40.0;
-const float FAR_WARP_SCALE_M = 260.0;
 
 uniform sampler2DArray albedo_height : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray normal_rough_ao : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -95,7 +101,9 @@ void vertex() {
 	masks = COLOR;
 }
 
-// ── Procedural macro variation (value noise; no texture) ─────────────────────
+// ── Macro variation: noise read from the noise slices, not computed ─────────
+// (per-pixel value noise cost ~200 hash evaluations a pixel; these are a
+// dozen fetches from a small, cached slice)
 
 float hash12(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -103,16 +111,19 @@ float hash12(vec2 p) {
 	return fract((p3.x + p3.y) * p3.z);
 }
 
-float value_noise(vec2 p) {
-	vec2 i = floor(p);
-	vec2 f = fract(p);
-	f = f * f * (3.0 - 2.0 * f);
-	return mix(mix(hash12(i), hash12(i + vec2(1.0, 0.0)), f.x),
-		mix(hash12(i + vec2(0.0, 1.0)), hash12(i + vec2(1.0, 1.0)), f.x), f.y);
+// The noise slices hold four independent smooth fields (0-1) with features
+// about a sixth of the slice (A twice as fine), band-limited, so one
+// isotropic mip chosen from the pixel's footprint reads them without
+// aliasing (and without the anisotropic taps the layer textures need).
+// `footprint_m`: ground metres one pixel covers; `slice_m` the metres one
+// slice spans (along its finer axis).
+vec4 noise_lod(float layer, vec2 uv, float slice_m, float footprint_m) {
+	float lod = max(log2(footprint_m * NOISE_TEXELS / slice_m), 0.0);
+	return textureLod(normal_rough_ao, vec3(uv, layer), lod);
 }
 
-float fbm3(vec2 p) {
-	return value_noise(p) * 0.55 + value_noise(p * 2.13 + 7.1) * 0.3 + value_noise(p * 4.37 - 3.3) * 0.15;
+vec4 noise_at(vec2 world, float slice_m, float footprint_m) {
+	return noise_lod(L_NOISE, world / slice_m, slice_m, footprint_m);
 }
 
 // ── Biplanar projection ──────────────────────────────────────────────────────
@@ -143,7 +154,7 @@ struct Proj {
 	vec2 far_warp;
 };
 
-Proj make_proj(int axis, float weight, vec3 p, vec3 dpdx, vec3 dpdy) {
+Proj make_proj(int axis, float weight, vec3 p, vec3 dpdx, vec3 dpdy, vec2 near_warp, vec2 far_warp) {
 	vec3 t = axis_tangent(axis);
 	vec3 b = axis_bitangent(axis);
 	Proj pr;
@@ -155,8 +166,8 @@ Proj make_proj(int axis, float weight, vec3 p, vec3 dpdx, vec3 dpdy) {
 	// A slow domain warp shifts each tile by up to a few metres, differently
 	// everywhere, so the slices never line up into a grid (the periodic
 	// pattern decorrelates; the content keeps its scale).
-	pr.near_warp = (vec2(value_noise(pr.uv / NEAR_WARP_SCALE_M + 3.1), value_noise(pr.uv / NEAR_WARP_SCALE_M + 9.7)) - 0.5) * 2.0 * NEAR_WARP_M;
-	pr.far_warp = (vec2(value_noise(pr.uv / FAR_WARP_SCALE_M + 5.3), value_noise(pr.uv / FAR_WARP_SCALE_M + 1.9)) - 0.5) * 2.0 * FAR_WARP_M;
+	pr.near_warp = near_warp;
+	pr.far_warp = far_warp;
 	return pr;
 }
 
@@ -195,7 +206,9 @@ void sample_layer(float layer, Proj pr, float near_w, out vec4 alb, out vec3 tn,
 	// The far albedo is read a few mips softer: it carries the large tonal
 	// patches; the joints' fine lines would read as scratches at distance.
 	vec4 far_a = textureGrad(albedo_height, vec3(fuv, layer), fdx * FAR_ALBEDO_BLUR, fdy * FAR_ALBEDO_BLUR);
-	vec4 far_n = textureGrad(normal_rough_ao, vec3(fuv, layer), fdx, fdy);
+	// Layers that take little of the far scale skip its normal fetch: their
+	// far relief would be a few percent of a nearly flat normal.
+	vec4 far_n = fs >= 0.3 ? textureGrad(normal_rough_ao, vec3(fuv, layer), fdx, fdy) : vec4(0.5, 0.5, 0.9, 1.0);
 	vec2 far_xy = (far_n.xy * 2.0 - 1.0) * far_normal_strength;
 	if (near_w > 0.001) {
 		vec2 nuv = (pr.uv + pr.near_warp) / NEAR_TILE_M;
@@ -253,8 +266,9 @@ void pick_soils(float shingle, float grass, float heath, float spruce, float bir
 
 // Season and art tint of a soil layer's albedo.
 vec3 soil_colour(float layer, vec3 albedo, float tone) {
+	// Under the standing trees the canopy layer reads as shaded wood.
 	if (layer == L_BIRCH) {
-		return birch_season_colour(albedo, tone) * vegetation_tint;
+		return birch_season_colour(albedo, tone) * vegetation_tint * 0.78;
 	}
 	if (layer == L_GRASS) {
 		// Straw before the spring growth and after the first frosts.
@@ -267,7 +281,7 @@ vec3 soil_colour(float layer, vec3 albedo, float tone) {
 		return mix(albedo, red, lk_autumn * 0.45) * vegetation_tint;
 	}
 	if (layer == L_SPRUCE) {
-		return albedo * vegetation_tint;
+		return albedo * vegetation_tint * 0.85;
 	}
 	return albedo;
 }
@@ -287,8 +301,32 @@ void fragment() {
 	float dist = length(p - CAMERA_POSITION_WORLD);
 	float near_w = 1.0 - smoothstep(near_fade_start, near_fade_end, dist);
 
-	float macro = fbm3(p.xz / 340.0);
-	float mottle = fbm3(p.xz / 85.0 + 11.0);
+	// Macro noise over a skewed projection of the world, so it varies up a
+	// wall as well as across the ground: features ~330 m (n_big, A ~165 m)
+	// and ~85 m (n_mid, A ~43 m).
+	vec2 skew = vec2(p.x + 0.61 * p.y, p.z - 0.79 * p.y);
+	float footprint = max(length(dpdx), length(dpdy));
+	vec4 n_big = noise_at(skew, 2000.0, footprint);
+	vec4 n_mid = noise_at(skew + 517.0, 520.0, footprint);
+	float macro = n_big.r;
+	float mottle = n_mid.g;
+	// Wall-plane noise, only on steep ground: tone (features ~130 m),
+	// seepage streaks (9 m wide, 140 m long; A twice as fine) and the bump
+	// field with its derivatives. Explicit LODs, so the branch is safe.
+	vec4 n_wall_x = vec4(0.5);
+	vec4 n_wall_z = vec4(0.5);
+	vec4 n_streak_x = vec4(0.0);
+	vec4 n_streak_z = vec4(0.0);
+	vec4 bump_x = vec4(0.5);
+	vec4 bump_z = vec4(0.5);
+	if (slope_tan > 0.8) {
+		n_wall_x = noise_at(vec2(p.z, p.y), 800.0, footprint);
+		n_wall_z = noise_at(vec2(p.x + 77.0, p.y), 800.0, footprint);
+		n_streak_x = noise_lod(L_NOISE, vec2(p.z / 54.0, p.y / 840.0), 54.0, footprint);
+		n_streak_z = noise_lod(L_NOISE, vec2(p.x / 54.0 + 0.31, p.y / 840.0), 54.0, footprint);
+		bump_x = noise_lod(L_BUMP, vec2(p.z, p.y * 0.6) / BUMP_SLICE_M, BUMP_SLICE_M, footprint);
+		bump_z = noise_lod(L_BUMP, vec2(p.x + 107.0, p.y * 0.6) / BUMP_SLICE_M, BUMP_SLICE_M, footprint);
+	}
 	vec3 aw = abs(g);
 	// Share of the Z-facing plane among the vertical ones: horizontal noise on
 	// walls is read along X there and along Z on X-facing walls.
@@ -300,23 +338,25 @@ void fragment() {
 	// just under a ledge lies in shadow. A ledge runs for a stretch and
 	// breaks off; its width varies.
 	float cliff = smoothstep(0.9, 1.7, slope_tan);
-	float band_t = (p.y + dot(p.xz, vec2(0.09, -0.05))) / 24.0 + fbm3(p.xz / 300.0) * 2.2 + fbm3(p.xz / 90.0 + 2.0) * 1.1;
+	float band_t = (p.y + dot(p.xz, vec2(0.09, -0.05))) / 24.0 + n_big.g * 2.2 + n_mid.b * 1.1;
 	float band_f = fract(band_t);
 	float band_id = floor(band_t);
 	float band_tone = hash12(vec2(band_id, 7.3));
 	float is_ledge = step(0.6, hash12(vec2(band_id, 2.9)));
 	float ledge_w = mix(0.07, 0.24, hash12(vec2(band_id, 5.1)));
-	float run = mix(value_noise(vec2(band_id * 3.1, p.z / 70.0)), value_noise(vec2(band_id * 3.1 + 11.0, p.x / 70.0)), wz);
+	vec4 band_x = noise_at(vec2(p.z, band_id * 37.1), 420.0, footprint);
+	vec4 band_z = noise_at(vec2(p.x + 211.0, band_id * 37.1), 420.0, footprint);
+	float run = mix(band_x.r, band_z.r, wz);
 	run = smoothstep(0.5, 0.68, run) * is_ledge * cliff;
 	// The ledge's lip wanders: its width breaks up every few metres.
-	float lip = mix(value_noise(vec2(p.z / 6.0, band_id)), value_noise(vec2(p.x / 6.0, band_id + 3.0)), wz);
+	float lip = mix(band_x.a, band_z.a, wz);
 	float w_here = ledge_w * mix(0.35, 1.25, lip);
 	float ledge = smoothstep(1.0 - w_here, 1.0 - w_here * 0.55, band_f) * (1.0 - smoothstep(0.97, 1.0, band_f)) * run;
 	float under = (1.0 - smoothstep(0.0, 0.1, band_f)) * run * 0.7;
 	// Gullies cut down the walls: snow and soil gather in them too.
 	float gully = smoothstep(0.06, 0.25, hollow) * cliff;
 	// Ledges and gullies are flat or sheltered enough to hold snow and soil.
-	float slope_eff = mix(mix(slope_tan, 0.35, ledge), 0.7, gully * 0.8);
+	float slope_eff = mix(mix(slope_tan, 0.6, smoothstep(0.5, 0.9, ledge)), 0.7, gully * 0.8);
 
 	// ── Masks ──
 	// Bare rock where it is steep (gullies and ledges hold soil a little
@@ -339,7 +379,7 @@ void fragment() {
 	float wood = clamp(forest * 1.6, 0.0, 1.0) * (1.0 - shore);
 	float open_ground = (1.0 - wood) * (1.0 - shore);
 	float alpine = smoothstep(treeline_m - 120.0, treeline_m + 40.0, h + (macro - 0.5) * 80.0);
-	float grassy = clamp(meadow * 1.5 + (1.0 - alpine) * smoothstep(0.55, 0.85, mottle) * 0.6, 0.0, 1.0);
+	float grassy = clamp(meadow * 1.5 + (1.0 - alpine) * smoothstep(0.62, 0.88, mottle) * 0.35, 0.0, 1.0);
 	float w_shingle = shore;
 	float w_grass = open_ground * grassy;
 	float w_heath = open_ground * (1.0 - grassy);
@@ -359,12 +399,28 @@ void fragment() {
 	int minor = aw.x < aw.y && aw.x < aw.z ? 0 : (aw.y < aw.z ? 1 : 2);
 	int median = 3 - major - minor;
 	vec3 sharp = clamp((aw - 0.5773) / (1.0 - 0.5773), 0.0, 1.0);
-	float w_major = pow(sharp[major], 0.5);
-	float w_median = pow(sharp[median], 0.5);
+	// Far away the blend band narrows: a seam between projections is
+	// sub-pixel there, and most pixels then need only one of them.
+	float far_view = smoothstep(900.0, 2200.0, dist);
+	float blend_power = mix(0.8, 2.4, far_view);
+	float w_major = pow(sharp[major], blend_power);
+	float w_median = pow(sharp[median], blend_power);
 	float w_sum = max(w_major + w_median, 1e-4);
-	Proj pa = make_proj(major, w_major / w_sum, p, dpdx, dpdy);
-	Proj pb = make_proj(median, w_median / w_sum, p, dpdx, dpdy);
-	bool use_b = pb.weight > 0.02;
+	vec2 near_warp = (vec2(n_mid.r, n_mid.a) - 0.5) * 2.0 * NEAR_WARP_M;
+	vec2 far_warp = (vec2(n_big.b, n_big.a) - 0.5) * 2.0 * FAR_WARP_M;
+	Proj pa = make_proj(major, w_major / w_sum, p, dpdx, dpdy, near_warp, far_warp);
+	Proj pb = make_proj(median, w_median / w_sum, p, dpdx, dpdy, near_warp, far_warp);
+	bool use_b = pb.weight > mix(0.05, 0.2, far_view);
+	if (!use_b) {
+		pa.weight = 1.0;
+	}
+
+	// A weak second soil is left out far away (its share goes to the first).
+	bool use_soil_b = soil_wb > mix(0.01, 0.2, far_view);
+	if (!use_soil_b) {
+		soil_wa = 1.0;
+		soil_wb = 0.0;
+	}
 
 	// ── Fetch the active layers through each projection ──
 	vec4 alb_r = vec4(0.0); vec3 tn_r_a = vec3(0.0, 0.0, 1.0); vec3 tn_r_b = vec3(0.0, 0.0, 1.0); vec2 ra_r = vec2(0.85, 1.0);
@@ -387,7 +443,7 @@ void fragment() {
 			sample_layer(soil_a, pb, near_w, a2, n2, r2);
 			alb_a = mix(a1, a2, pb.weight); tn_a_b = n2; ra_a = mix(r1, r2, pb.weight);
 		}
-		if (soil_wb > 0.01) {
+		if (use_soil_b) {
 			sample_layer(soil_b, pa, near_w, a1, n1, r1);
 			alb_b = a1; tn_b_a = n1; ra_b = r1;
 			if (use_b) {
@@ -397,10 +453,11 @@ void fragment() {
 		}
 	}
 	if (snow_amount > 0.005) {
-		sample_layer(L_SNOW, pa, near_w, a1, n1, r1);
+		float snow_near = near_w * (1.0 - smoothstep(250.0, 450.0, dist));
+		sample_layer(L_SNOW, pa, snow_near, a1, n1, r1);
 		alb_s = a1; tn_s_a = n1; ra_s = r1;
 		if (use_b) {
-			sample_layer(L_SNOW, pb, near_w, a2, n2, r2);
+			sample_layer(L_SNOW, pb, snow_near, a2, n2, r2);
 			alb_s = mix(a1, a2, pb.weight); tn_s_b = n2; ra_s = mix(r1, r2, pb.weight);
 		}
 	}
@@ -444,8 +501,8 @@ void fragment() {
 	rock *= 1.0 - 0.3 * under;
 	// Lichen-dark and freshly broken pale faces, tens of metres across, read
 	// on the wall itself (vertical planes) rather than from above.
-	float wall_tone = mix(fbm3(vec2(p.z, p.y) / 130.0 + 3.0), fbm3(vec2(p.x, p.y) / 130.0 + 9.0), wz);
-	float flat_tone = fbm3(p.xz / 130.0 + 5.0);
+	float wall_tone = mix(n_wall_x.r, n_wall_z.r, wz);
+	float flat_tone = n_big.b;
 	float tone_field = mix(flat_tone, wall_tone, cliff);
 	rock *= mix(0.62, 1.12, smoothstep(0.22, 0.78, tone_field));
 	// Gullies on the walls stay damp and dark.
@@ -456,8 +513,8 @@ void fragment() {
 	// vertical planes and blended like the textures (a coordinate taken
 	// along the face's own tangent would swing with the normal and draw
 	// contour lines).
-	float streak_x = value_noise(vec2(p.z / 9.0, p.y / 140.0)) * 0.6 + value_noise(vec2(p.z / 3.5, p.y / 45.0)) * 0.4;
-	float streak_z = value_noise(vec2(p.x / 9.0 + 17.0, p.y / 140.0)) * 0.6 + value_noise(vec2(p.x / 3.5 + 5.0, p.y / 45.0)) * 0.4;
+	float streak_x = n_streak_x.r * 0.6 + n_streak_x.a * 0.4;
+	float streak_z = n_streak_z.r * 0.6 + n_streak_z.a * 0.4;
 	float streak = mix(streak_x, streak_z, wz);
 	float seep = smoothstep(0.5, 0.78, streak) * steep;
 	rock *= 1.0 - 0.45 * seep;
@@ -496,19 +553,14 @@ void fragment() {
 	}
 	n_world = normalize(n_world + vec3(0.0, 1.3 * ledge - 0.35 * under, 0.0) * (1.0 - snow * 0.5));
 	if (cliff > 0.01) {
-		// Buttresses and shallow grooves, 20-60 m across: a bump from wall
-		// noise in the two vertical planes (finite differences, 1.5 m).
-		float e = 1.5;
-		float bx = fbm3(vec2(p.z, p.y * 0.6) / 38.0);
-		float bx_t = fbm3(vec2(p.z + e, p.y * 0.6) / 38.0);
-		float bx_b = fbm3(vec2(p.z, (p.y + e) * 0.6) / 38.0);
-		float bz = fbm3(vec2(p.x, p.y * 0.6) / 38.0 + 4.0);
-		float bz_t = fbm3(vec2(p.x + e, p.y * 0.6) / 38.0 + 4.0);
-		float bz_b = fbm3(vec2(p.x, (p.y + e) * 0.6) / 38.0 + 4.0);
+		// Buttresses and shallow grooves, 20-60 m across: a bump from the
+		// bump slice's field gradient in the two vertical planes.
 		float k = 9.0 * cliff;
-		vec3 bump_x = -k * ((bx_t - bx) / e * vec3(0.0, 0.0, 1.0) + (bx_b - bx) / e * vec3(0.0, 1.0, 0.0));
-		vec3 bump_z = -k * ((bz_t - bz) / e * vec3(1.0, 0.0, 0.0) + (bz_b - bz) / e * vec3(0.0, 1.0, 0.0));
-		vec3 bump = mix(bump_x, bump_z, wz);
+		vec2 gx = (bump_x.gb * 2.0 - 1.0) * BUMP_GRADIENT_RANGE / BUMP_SLICE_M * vec2(1.0, 0.6);
+		vec2 gz = (bump_z.gb * 2.0 - 1.0) * BUMP_GRADIENT_RANGE / BUMP_SLICE_M * vec2(1.0, 0.6);
+		vec3 grad_x = vec3(0.0, gx.y, gx.x);
+		vec3 grad_z = vec3(gz.x, gz.y, 0.0);
+		vec3 bump = -k * mix(grad_x, grad_z, wz);
 		n_world = normalize(n_world + bump - g * dot(bump, g));
 	}
 	NORMAL = normalize((VIEW_MATRIX * vec4(n_world, 0.0)).xyz);
