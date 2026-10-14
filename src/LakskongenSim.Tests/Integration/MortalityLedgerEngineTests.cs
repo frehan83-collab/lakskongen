@@ -250,6 +250,57 @@ public class MortalityLedgerEngineTests
     }
 
     /// <summary>
+    /// Roadmap D4: S2-05 attributes the disaster careers. On the pre-wave-1
+    /// base (4a5290d) the po3 probe lost 19-63 % (median 28.5 %, 20 seeds) and
+    /// the worst seeds were plankton-crash hypoxia (seed 16: 63,814 of 83,949
+    /// deaths; seed 13: 21,374 of 46,545), the O2 square wave S1-01 removed.
+    /// On the wave-1 water chemistry seeds 7 and 13 lose 18.2 % and 12.5 % and
+    /// end solvent by the game's own floor, so D4's cycle-mortality band
+    /// (at most 35 %) and the -1M bound hold for both; the -15M guard in
+    /// PlayerScriptCareerTests stays untouched until the owner retires it.
+    /// </summary>
+    [Theory]
+    [InlineData(7)]
+    [InlineData(13)]
+    public void D4_Po3Career_LosesAtMost35Percent_AndEndsAboveTheDefaultBankruptcyFloor(int seed)
+    {
+        var r = PlayerScriptProbe.RunCareer(seed);
+        Assert.InRange(r.SeaMortalityPct, 0.0, 35.0);
+        Assert.True(r.EndingBalance > -1_000_000m, $"seed {seed} ends at {r.EndingBalance:N0} NOK");
+        // No plankton-crash hypoxia in a career on the corrected water chemistry.
+        Assert.True(r.Mortality.Deaths(MortalityCause.LowOxygen).Fish < r.Mortality.Total.Fish / 10,
+            $"seed {seed}: {r.Mortality.Deaths(MortalityCause.LowOxygen).Fish} of {r.Mortality.Total.Fish} deaths from low oxygen");
+    }
+
+    /// <summary>
+    /// Post-smolt batches hold no cohorts; their daily deaths are booked per
+    /// facility (unexplained: a top-down survival rate), so the company total
+    /// still holds every death.
+    /// </summary>
+    [Fact]
+    public void PostSmoltFacilityDeaths_AreBookedUnderTheFacility()
+    {
+        var engine = new SimulationEngine();
+        engine.FinanceManager = new FinanceManager(5_000_000_000m);
+        engine.Initialize(enableEvents: false, seed: 75);
+        Assert.True(engine.BuildPostSmoltFacility("Post-smolt").Ok);
+        var facility = engine.PostSmoltFacilities.Single();
+        facility.ConstructionDays = 1;
+        engine.Advance(2);
+        Assert.True(engine.StartPostSmoltBatch(facility.Id, 200_000).Ok);
+        int before = facility.Batches.Single().Count;
+
+        engine.Advance(30);
+
+        int died = before - facility.Batches.Single().Count;
+        Assert.True(died > 0, "no post-smolt deaths in 30 days");
+        var booked = engine.MortalityLedger.ForSite(facility.Id);
+        Assert.Equal(died, booked.Deaths(MortalityCause.BaselineAnchor).Fish);
+        Assert.Equal(died, booked.Total.Fish);
+        Assert.InRange(booked.Total.Kg, died * 0.08, died * 0.4);
+    }
+
+    /// <summary>
     /// The slice the bridge projects (GameBridge.GetMortalityBreakdown): a
     /// site since the start, the company over the last N days (clamped to the
     /// history), or the company since the start; its rows list every category

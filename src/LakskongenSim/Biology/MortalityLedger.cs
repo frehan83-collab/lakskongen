@@ -252,6 +252,21 @@ namespace LakskongenSim.Biology
             CohortRecord(population, cohort).DeathsByCause[(int)cause] += fish;
         }
 
+        /// <summary>
+        /// Book deaths in a holding that keeps no cohorts (a post-smolt
+        /// facility's batches): cumulative, site and day totals, no per-cohort
+        /// record. <paramref name="kg"/> is their live weight.
+        /// </summary>
+        public void BookHoldingDeaths(string holdingId, int fish, double kg, MortalityCause cause)
+        {
+            if (fish <= 0) return;
+            if (!double.IsFinite(kg) || kg < 0.0) kg = 0.0;
+            decimal value = (decimal)kg * PriceNokPerKg;
+            _deaths[(int)cause].Add(fish, kg, value);
+            Site(holdingId).Deaths[(int)cause].Add(fish, kg, value);
+            OpenDay().Deaths[(int)cause].Add(fish, kg, value);
+        }
+
         /// <summary>Book <paramref name="fish"/> of <paramref name="cohort"/> leaving alive as <paramref name="removal"/>.</summary>
         internal void BookRemoval(FishPopulation population, FishPopulation.Cohort cohort, int fish, FishRemoval removal)
         {

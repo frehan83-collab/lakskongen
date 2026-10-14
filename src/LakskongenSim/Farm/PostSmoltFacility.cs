@@ -119,8 +119,10 @@ namespace LakskongenSim.Farm
                 // Mortality (very low in controlled environment)
                 double dailyMortality = (1.0 - Math.Pow(SurvivalRate, 1.0 / 180)); // Spread over ~180 days
                 int deaths = (int)(batch.Count * dailyMortality);
-                batch.Count = Math.Max(0, batch.Count - deaths);
+                deaths = Math.Min(deaths, batch.Count);
+                batch.Count -= deaths;
                 result.TotalMortality += deaths;
+                result.TotalMortalityKg += deaths * batch.AverageWeightG / 1000.0;
 
                 // Feed consumption
                 double biomassKg = batch.Count * batch.AverageWeightG / 1000.0;
@@ -221,6 +223,8 @@ namespace LakskongenSim.Farm
     public class PostSmoltTickResult
     {
         public int TotalMortality { get; set; }
+        /// <summary>Live weight of the fish that died today (kg), for the mortality ledger.</summary>
+        public double TotalMortalityKg { get; set; }
         public double TotalFeedKg { get; set; }
         public int BatchesReady { get; set; }
         public decimal DailyStaffCost { get; set; }
