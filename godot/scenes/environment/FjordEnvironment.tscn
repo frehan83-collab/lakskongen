@@ -260,7 +260,7 @@ update_mode = 0
 
 [node name="TimeOfDay" type="Node" parent="."]
 script = ExtResource("4_time")
-time_of_day = 0.35
+time_of_day = 0.45
 time_scale = 2.0
 
 [node name="WeatherSystem" type="Node3D" parent="." node_paths=PackedStringArray("rain_particles", "snow_particles")]

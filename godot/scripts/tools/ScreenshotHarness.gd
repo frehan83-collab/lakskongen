@@ -25,6 +25,7 @@ const PROJECT_SCREENSHOT_DIR := "res://screenshots/game"
 # WeatherController.WeatherState enum ordinals (kept local so this tool does not
 # depend on global-class resolution order): CLEAR, OVERCAST, RAIN, SNOW, STORM, FOG.
 const WEATHER_CLEAR := 0
+const WEATHER_OVERCAST := 1
 const WEATHER_STORM := 4
 
 # FjordCamera.ZoomLevel enum ordinals: COAST, FJORD, FARM, UNDERWATER.
@@ -40,6 +41,16 @@ const QA_DAYS_TO_SIMULATE := 12
 # Fixed RNG seed for the QA pass: makes every harness run replay identically
 # (lice trajectory, weather, market) so screenshot diffs are meaningful.
 const QA_SEED := 20261012
+
+# G1-04 aurora shot: a Nordland scenario (day 0 = 1 January), searched for a
+# calm, clear night; the hour is pinned, the camera turned toward the
+# north-west and tilted up. The aurora must hold at least this share of it.
+const AURORA_SCENARIO_ID := "lofoten_eventyr"
+const AURORA_SEARCH_DAYS := 45
+const AURORA_HOUR := 22.0
+const AURORA_YAW_DEG := -15.0
+const AURORA_PITCH_UP_DEG := 12.0
+const MIN_AURORA_FRACTION := 0.03
 
 # S1 living-fjord forced-state shots: set the QA lice load to the red-collar
 # threshold (FishPenManager: >=0.2 amber, >=0.5 critical/red).
@@ -100,12 +111,13 @@ func _run_sequence() -> void:
 
 	await _capture_fjord_day()
 	await _capture_fjord_farm()
-	await _capture_fjord_night_aurora()
 	await _capture_fjord_storm()
 	await _capture_fjord_lice_red_zone()
 	await _capture_fjord_bloom()
 	await _capture_fjord_underwater()
 	await _capture_fjord_diagnostics()
+	# Last of the fjord shots: it starts a Nordland game of its own.
+	await _capture_fjord_night_aurora()
 	await _audit_a11y_targets()
 
 	_print_summary()
@@ -425,7 +437,7 @@ func _capture_fjord_day() -> void:
 	var vista := _find(_game, "FjordVistaBridge")
 	if vista != null:
 		vista.set("sim_weather_enabled", false)
-	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FJORD)
+	_configure_env(0.5, 12.0, WEATHER_CLEAR, ZOOM_FJORD)
 	await _wait(1.5)
 	await _shoot("08_fjord_day", true)
 
@@ -435,25 +447,146 @@ func _capture_fjord_day() -> void:
 func _capture_fjord_farm() -> void:
 	_hide_ui()
 	await _wait(0.4)
-	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FARM)
+	_configure_env(0.5, 12.0, WEATHER_CLEAR, ZOOM_FARM)
 	await _wait(2.5)
 	await _shoot("08b_fjord_farm", true)
 
 
+## G1-04: the aurora shot is a real gameplay state, nothing forced: a
+## Nordland scenario in winter, on the first night the sim makes calm and
+## clear while the oval lies to the north. Only the hour is pinned (D20:
+## the hour is a presentation clock, photo mode pins it) and the camera
+## tilts up the way a player would. The same frame under an overcast sky
+## must show no aurora at all.
 func _capture_fjord_night_aurora() -> void:
-	_configure_env(0.0, 23.0, WEATHER_CLEAR, 1.0, ZOOM_FJORD)
-	await _wait(2.0)
-	await _shoot("09_fjord_night_aurora", true)
+	var sim := get_node_or_null("/root/SimBridge")
+	if sim == null or not sim.has_method("start_qa_scenario") or not sim.has_method("get_sky_context"):
+		push_warning("[ScreenshotHarness] aurora shot: SimBridge unavailable — skipped")
+		return
+	if not sim.start_qa_scenario(AURORA_SCENARIO_ID, QA_SEED):
+		_content_failures.append("09_fjord_night_aurora: scenario %s did not start" % AURORA_SCENARIO_ID)
+		return
+	sim.set_paused(true)
+	_ensure_qa_site()
+	var vista := _find(_game, "FjordVistaBridge")
+	if vista != null:
+		vista.set("sim_weather_enabled", true)
+	var ts = _env.get("time_system") if _env != null else null
+	var night := -1
+	for day in AURORA_SEARCH_DAYS:
+		var ctx: Dictionary = sim.get_sky_context()
+		if _env != null and _env.has_method("apply_sky_context"):
+			_env.call("apply_sky_context", ctx)
+		if ts != null:
+			ts.call("set_hour", AURORA_HOUR)
+		var aurora: Dictionary = ts.call("get_aurora") if ts != null else {}
+		var clear: bool = str(ctx.get("weather_state", "")) == "Calm" and float(ctx.get("cloud_cover", 1.0)) < 0.3 \
+			and float(ctx.get("sea_fog", 0.0)) == 0.0
+		var north := float(aurora.get("offset_km", 0.0))
+		print("[ScreenshotHarness] aurora search: day %d %s cloud %.2f fog %.0f | Kp %.1f brightness %.2f arc %.0f km" % [
+			int(ctx.get("sim_day", -1)), str(ctx.get("weather_state", "")), float(ctx.get("cloud_cover", 1.0)),
+			float(ctx.get("sea_fog", 0.0)), float(aurora.get("kp", 0.0)), float(aurora.get("brightness", 0.0)), north])
+		if clear and float(aurora.get("brightness", 0.0)) >= 0.4 and north >= 150.0 and north <= 850.0:
+			night = int(ctx.get("sim_day", -1))
+			print("[ScreenshotHarness] aurora night: sim day %d, %s, Kp %.1f, arc %.0f km north" % [
+				night, str(ctx.get("region", "")), float(aurora.get("kp", 0.0)), north])
+			break
+		sim.advance_days(1)
+		await get_tree().process_frame
+	if night < 0:
+		_content_failures.append("09_fjord_night_aurora: no calm, clear aurora night in %d days" % AURORA_SEARCH_DAYS)
+		return
+	_hide_ui()
+	_focus_camera_on_first_pen()
+	if _env != null and _env.has_method("set_time"):
+		_env.call("set_time", AURORA_HOUR)
+	var cam = _env.get("camera") if _env != null else null
+	if cam != null:
+		cam.set("auto_orbit_enabled", false)
+		cam.call("set_zoom_level", ZOOM_FJORD)
+		cam.call("rotate_view", deg_to_rad(AURORA_YAW_DEG))
+		cam.call("set_pitch_offset", AURORA_PITCH_UP_DEG)
+	await _wait(3.0)
+	# The days searched raised toasts (storms, the traffic light): a photo
+	# of the night sky carries none.
+	var toasts := get_node_or_null("/root/ToastNotification")
+	if toasts != null and toasts.has_method("clear_all"):
+		toasts.call("clear_all")
+	await _wait(0.6)
+	var horizon_y := _horizon_pixel_row(cam)
+	var img := await _shoot("09_fjord_night_aurora", true)
+	var fraction := _aurora_fraction(img, horizon_y)
+	print("[ScreenshotHarness] 09_fjord_night_aurora: aurora covers %.1f%% of the frame" % (fraction * 100.0))
+	if fraction < MIN_AURORA_FRACTION:
+		_content_failures.append("09_fjord_night_aurora: aurora covers %.1f%% (min %.0f%%)" % [fraction * 100.0, MIN_AURORA_FRACTION * 100.0])
+	# Overcast on the same night: the clouds hide it completely.
+	if vista != null:
+		vista.set("sim_weather_enabled", false)
+	_set_weather(WEATHER_OVERCAST)
+	await _wait(3.0)
+	var covered := _aurora_fraction(await _grab_frame(), horizon_y)
+	print("[ScreenshotHarness] 09 under overcast: aurora covers %.2f%% of the frame" % (covered * 100.0))
+	if covered > 0.0:
+		_content_failures.append("09_fjord_night_aurora: %.2f%% aurora under an overcast sky" % (covered * 100.0))
+	if cam != null:
+		cam.call("set_pitch_offset", 0.0)
+
+
+## Fraction of the whole frame the aurora's green holds in the sky (rows
+## above the horizon): green well above red and blue. The night sky is blue;
+## below the horizon green pixels are pen lights and meadows, not aurora.
+static func _aurora_fraction(img: Image, horizon_y: int) -> float:
+	if img == null:
+		return 0.0
+	var hits := 0
+	var total := 0
+	for y in range(0, img.get_height(), 4):
+		for x in range(0, img.get_width(), 4):
+			total += 1
+			if y >= horizon_y:
+				continue
+			var c := img.get_pixel(x, y)
+			if c.g > 0.12 and c.g - maxf(c.r, c.b) > 0.05:
+				hits += 1
+	return float(hits) / float(maxi(total, 1))
+
+
+## Image row of the horizon (the horizontal through the camera), clamped to the frame.
+func _horizon_pixel_row(cam) -> int:
+	var size := get_viewport().get_visible_rect().size
+	if not (cam is Camera3D):
+		return int(size.y)
+	var c := cam as Camera3D
+	var forward := -c.global_transform.basis.z
+	forward.y = 0.0
+	if forward.length() < 1e-4:
+		return int(size.y)
+	var far_point := c.global_position + forward.normalized() * 100000.0
+	var row := c.unproject_position(far_point).y
+	var tex_h := float(get_viewport().get_texture().get_height())
+	return clampi(int(row / size.y * tex_h), 0, int(tex_h))
+
+
+## The current frame without saving it.
+func _grab_frame() -> Image:
+	var frame_done := [false]
+	RenderingServer.frame_post_draw.connect(func(): frame_done[0] = true, CONNECT_ONE_SHOT)
+	var waited := 0.0
+	while not frame_done[0] and waited < 3.0:
+		await get_tree().create_timer(0.1).timeout
+		waited += 0.1
+	var tex := get_viewport().get_texture()
+	return tex.get_image() if tex != null else null
 
 
 func _capture_fjord_storm() -> void:
-	_configure_env(0.5, 12.0, WEATHER_STORM, 0.0, ZOOM_FJORD)
+	_configure_env(0.5, 12.0, WEATHER_STORM, ZOOM_FJORD)
 	await _wait(2.5)
 	await _shoot("10_fjord_storm", true)
 
 
 func _capture_fjord_underwater() -> void:
-	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_UNDERWATER)
+	_configure_env(0.5, 12.0, WEATHER_CLEAR, ZOOM_UNDERWATER)
 	var cam = _env.get("camera") if _env != null else null
 	if cam != null:
 		cam.set("auto_orbit_enabled", false)
@@ -498,10 +631,9 @@ func _capture_fjord_lice_red_zone() -> void:
 	if site_id == "":
 		push_warning("[ScreenshotHarness] lice shot: no site — skipped")
 		return
-	# Live-sync ON: SetQaPenLice emits state_updated → FjordVistaBridge repaints pens.
-	var vista := _find(_game, "FjordVistaBridge")
-	if vista != null:
-		vista.set("sim_weather_enabled", true)
+	# SetQaPenLice emits state_updated → FjordVistaBridge repaints the pens.
+	# The sky stays staged (sim weather off): the sim's calendar would move
+	# the sun to January between this shot and the next.
 	if sim.has_method("set_paused"):
 		sim.set_paused(true)
 	var lice := _max_lice_per_fish()
@@ -519,7 +651,7 @@ func _capture_fjord_lice_red_zone() -> void:
 		print("[ScreenshotHarness] lice force: max %.3f after +%d days (target %.2f)" % [lice, days, LICE_FORCE_TARGET])
 	# Stage weather/time/zoom via the proven path — it also re-frames the camera
 	# after the underwater shot (zoom-only calls left it parked).
-	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FARM)
+	_configure_env(0.5, 12.0, WEATHER_CLEAR, ZOOM_FARM)
 	await _wait(1.0)
 	_hide_ui()
 	await _shoot("12_fjord_lice_red_zone", true)
@@ -534,9 +666,8 @@ func _capture_fjord_bloom() -> void:
 	if gb == null or site_id == "" or not gb.has_method("SpawnQaBloom"):
 		push_warning("[ScreenshotHarness] bloom shot: QA injection unavailable (site=%s) — skipped" % site_id)
 		return
-	var vista := _find(_game, "FjordVistaBridge")
-	if vista != null:
-		vista.set("sim_weather_enabled", true)
+	# The bloom tint reaches the water on every state update; the sky stays
+	# staged, so 13 and 13b differ by the bloom alone.
 	if sim != null and sim.has_method("set_paused"):
 		sim.set_paused(true)
 	var sev := float(gb.GetMaxBloomSeverity()) if gb.has_method("GetMaxBloomSeverity") else 0.0
@@ -545,7 +676,7 @@ func _capture_fjord_bloom() -> void:
 		await _wait(1.5)
 		sev = float(gb.GetMaxBloomSeverity()) if gb.has_method("GetMaxBloomSeverity") else 0.0
 		print("[ScreenshotHarness] bloom clear: removed %s -> severity %.2f" % [str(cleared.get("removed", "?")), sev])
-	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FJORD)
+	_configure_env(0.5, 12.0, WEATHER_CLEAR, ZOOM_FJORD)
 	await _wait(0.8)
 	_hide_ui()
 	await _shoot("13_fjord_no_bloom", true)
@@ -558,7 +689,9 @@ func _capture_fjord_bloom() -> void:
 	await _shoot("13b_fjord_bloom", true)
 
 
-func _configure_env(season: float, hour: float, weather: int, aurora: float, zoom: int) -> void:
+## Stage season, hour, weather and zoom. The aurora is never forced: the sky
+## draws it from the latitude, the night and the clouds (G1-04).
+func _configure_env(season: float, hour: float, weather: int, zoom: int) -> void:
 	if _env == null or not is_instance_valid(_env):
 		return
 	if _env.has_method("set_season"):
@@ -566,7 +699,6 @@ func _configure_env(season: float, hour: float, weather: int, aurora: float, zoo
 	if _env.has_method("set_time"):
 		_env.call("set_time", hour)
 	_set_weather(weather)
-	_set_aurora(aurora)
 	_set_camera_zoom(zoom)
 
 
@@ -583,17 +715,6 @@ func _set_weather(state: int) -> void:
 	var ws2 = _env.get("weather_system")
 	if ws2 != null and "current_weather" in ws2:
 		print("[diag] weather set to %d -> now %s" % [state, str(ws2.get("current_weather"))])
-
-
-func _set_aurora(intensity: float) -> void:
-	if _env == null:
-		return
-	var ts = _env.get("time_system")
-	if ts == null:
-		return
-	var sky = ts.get("sky_material")
-	if sky is ShaderMaterial:
-		(sky as ShaderMaterial).set_shader_parameter("aurora_intensity", intensity)
 
 
 func _set_camera_zoom(level: int) -> void:
@@ -613,7 +734,12 @@ func _set_camera_zoom(level: int) -> void:
 func _capture_fjord_diagnostics() -> void:
 	if _env == null or not is_instance_valid(_env):
 		return
-	_configure_env(0.5, 12.0, WEATHER_CLEAR, 0.0, ZOOM_FJORD)
+	# 14 is compared with 08 (G1-06: the tilt-shift's colour shift): clear
+	# the QA bloom the bloom pair left so the water matches 08's.
+	var gb := get_node_or_null("/root/GameBridge")
+	if gb != null and gb.has_method("ClearQaBlooms"):
+		gb.ClearQaBlooms()
+	_configure_env(0.5, 12.0, WEATHER_CLEAR, ZOOM_FJORD)
 	await _wait(1.2)
 	_log_3d_state()
 	# Hide each full-screen overlay / the farm, one at a time, so we can see
@@ -627,6 +753,11 @@ func _capture_fjord_diagnostics() -> void:
 		var node := _find(_env, t[0])
 		if node == null:
 			node = _find(self, t[0])
+		if node == null and t[0] == "TiltShiftCanvas":
+			# G1-06 removed the tilt-shift pass: the frame without it is the
+			# frame itself, kept so 14 vs 08 still checks the colour shift.
+			await _shoot(t[1], true)
+			continue
 		if node is CanvasLayer or node is CanvasItem or node is Node3D:
 			var was_visible: bool = node.visible
 			node.visible = false
@@ -694,6 +825,12 @@ func _shoot(shot_name: String, force_hide_ui: bool = false) -> Image:
 	if force_hide_ui and ui != null:
 		ui.visible = false
 		print("[ScreenshotHarness] _shoot(%s) UILayer.visible=%s after force-hide" % [shot_name, str(ui.visible)])
+	# Toasts live on their own CanvasLayer (an autoload): a fjord frame
+	# carries none.
+	var toasts := get_node_or_null("/root/ToastNotification") as CanvasLayer
+	var toasts_were_visible := toasts != null and toasts.visible
+	if force_hide_ui and toasts != null:
+		toasts.visible = false
 	var frame_done := [false]
 	RenderingServer.frame_post_draw.connect(func(): frame_done[0] = true, CONNECT_ONE_SHOT)
 	var waited := 0.0
@@ -712,6 +849,8 @@ func _shoot(shot_name: String, force_hide_ui: bool = false) -> Image:
 		push_error("[ScreenshotHarness] no viewport texture for '%s'" % shot_name)
 		return null
 	var img := tex.get_image()
+	if toasts != null:
+		toasts.visible = toasts_were_visible
 	if img == null:
 		push_error("[ScreenshotHarness] empty image for '%s'" % shot_name)
 		return null

@@ -172,6 +172,18 @@ func recentre() -> void:
 	fly_to_position(home_focus, current_zoom, 0.8)
 
 
+## Tilt the view relative to the distance table (degrees, positive looks
+## up), as a right-drag does. Photo mode and the aurora shot use it.
+func set_pitch_offset(degrees: float) -> void:
+	_pitch_offset_target = clampf(degrees, -40.0, 15.0)
+
+
+## Turn the view by `radians` from where it is heading, as Q/E do.
+func rotate_view(radians: float) -> void:
+	_user_rotated = true
+	_yaw_target += radians
+
+
 func set_top_down(enabled: bool) -> void:
 	_top_down = enabled
 

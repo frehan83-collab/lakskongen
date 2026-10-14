@@ -71,6 +71,7 @@ func _run() -> void:
 	await _test_terrain_faces_up_and_shares_one_heightfield()
 	await _test_camera_frames_sky_and_avoids_terrain()
 	await _test_camera_keys_leave_focused_controls_alone()
+	await _test_environment_director_owns_the_look()
 
 	_clear_test_saves()
 	_finish()
@@ -1240,6 +1241,169 @@ func _test_camera_keys_leave_focused_controls_alone() -> void:
 	before = cam.get_focus_point()
 	await _hold_key(KEY_W, 20)
 	_check(cam.get_focus_point() == before, "camera keys: W behind an opaque panel leaves the camera still")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## G1-02 / G1-04 / G1-06: the EnvironmentDirector composes fog, light, sky
+## and the image settings from its inputs. The calendar and latitude come
+## from the sim; fog is Koschmieder's (3.912 / visibility): a clear day
+## leaves the FJORD focus >= 85 % visible, a storm <= 35 %; leaving the water
+## restores the day fog; the sky's LIGHT0 is the sun light; the sun's energy
+## never jumps > 10 % in a frame through a day and a storm; the aurora needs
+## a dark, clear northern night; depth of field and shadow distance follow
+## the zoom; the reflection probe is captured once the terrain is built.
+func _test_environment_director_owns_the_look() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "environment: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: FjordEnvironment = scene.get_node("FjordEnvironment")
+	var director: EnvironmentDirector = env.get_node("EnvironmentDirector")
+	var ts: TimeOfDay = env.get_node("TimeOfDay")
+	var weather: WeatherController = env.get_node("WeatherSystem")
+	var cam: FjordCamera = env.get_node("FjordCamera")
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var vista: FjordVistaBridge = scene.get_node("FjordVistaBridge")
+	var world_env: Environment = (env.get_node("WorldEnvironment") as WorldEnvironment).environment
+	var sun: DirectionalLight3D = env.get_node("Sun")
+	var moon: DirectionalLight3D = env.get_node("Moon")
+	cam.auto_orbit_enabled = false
+
+	# The calendar and the latitude are the sim's (D20).
+	var ctx: Dictionary = _sim.get_sky_context()
+	weather.transition_duration = 0.0
+	vista._on_state_updated()
+	await get_tree().process_frame
+	_check(absf(ts.latitude_deg - 63.43) < 0.01, "environment: the sky's latitude is the scenario region's (Trøndelag 63.43, got %.2f)" % ts.latitude_deg)
+	_check(ts.sim_day == int(ctx.get("sim_day", -1)), "environment: the sky's date is the sim day (%d)" % ts.sim_day)
+	_check(absf(weather.get_visibility_m() - float(ctx.get("visibility_km", 0.0)) * 1000.0) < 1.0
+		and is_equal_approx(weather.get_cloud_cover(), float(ctx.get("cloud_cover", -1.0))),
+		"environment: the weather shows the sim's visibility (%.1f km) and cloud cover" % (weather.get_visibility_m() / 1000.0))
+
+	# Stage the rest: the sim stops driving the sky.
+	vista.sim_weather_enabled = false
+	ts.paused = true
+	weather.transition_duration = 0.0
+	env.set_season(0.5)
+	env.set_time(12.0)
+	var focus_m: float = FjordCamera.ZOOM_DISTANCE[FjordCamera.ZoomLevel.FJORD]
+	env.set_weather(WeatherController.WeatherState.CLEAR)
+	director.compose(0.0, true)
+	_check(absf(world_env.fog_density - 3.912 / weather.get_visibility_m()) < 1e-9,
+		"environment: fog density is Koschmieder's 3.912 / visibility (%.6f)" % world_env.fog_density)
+	var t_clear := director.transmittance(focus_m)
+	_check(t_clear >= 0.85, "environment: a clear day leaves %.0f %% of the FJORD focus visible" % (t_clear * 100.0))
+	var sky_mat := world_env.sky.sky_material as ShaderMaterial
+	_check(is_equal_approx(float(sky_mat.get_shader_parameter("cloud_coverage")), weather.get_cloud_cover()),
+		"environment: the sky's cloud cover is the weather's")
+	var clear_energy: float = director.get_composed()["sun_energy"]
+	env.set_weather(WeatherController.WeatherState.STORM)
+	director.compose(0.0, true)
+	var t_storm := director.transmittance(focus_m)
+	_check(t_storm <= 0.35, "environment: a storm leaves %.0f %% of the FJORD focus visible" % (t_storm * 100.0))
+	var storm_energy: float = director.get_composed()["sun_energy"]
+	_check(storm_energy <= clear_energy * 0.2, "environment: storm clouds dim the sun (%.2f -> %.2f)" % [clear_energy, storm_energy])
+	_check(sun.shadow_opacity < 0.5 and sun.light_angular_distance > 3.0, "environment: storm clouds soften the sun's shadows")
+
+	# Underwater on entry, the day's fog back on exit.
+	env.set_weather(WeatherController.WeatherState.CLEAR)
+	director.compose(0.0, true)
+	var day_color := world_env.fog_light_color
+	var day_density := world_env.fog_density
+	var first: Vector3 = pens.get_pen_position(pens.get_pen_ids()[0])
+	cam.look_at_position(first, FjordCamera.ZoomLevel.UNDERWATER)
+	await _settle_camera(cam)
+	director.compose(0.0, true)
+	_check(cam.global_position.y < 0.0 and world_env.fog_density > day_density * 20.0,
+		"environment: under the surface the water's fog applies (%.4f)" % world_env.fog_density)
+	cam.set_zoom_level(FjordCamera.ZoomLevel.FJORD)
+	await _settle_camera(cam)
+	director.compose(0.0, true)
+	_check(cam.global_position.y > 0.0 and world_env.fog_light_color.is_equal_approx(day_color) and is_equal_approx(world_env.fog_density, day_density),
+		"environment: leaving the water restores the day fog colour")
+
+	# The sky's LIGHT0 is the sun light, pointed from the sky's sun.
+	var angle := rad_to_deg((-sun.global_transform.basis.z).angle_to(-ts.get_sun_direction()))
+	_check(angle < 0.5, "environment: the sun light shines from the sky's sun (%.3f deg apart)" % angle)
+	_check(sun.sky_mode == DirectionalLight3D.SKY_MODE_LIGHT_AND_SKY and moon.sky_mode == DirectionalLight3D.SKY_MODE_LIGHT_ONLY,
+		"environment: the sun is the sky's LIGHT0 (the moon light stays out of the sky)")
+
+	# A day at 10 game minutes per second, 60 fps, a storm rolling in at noon.
+	weather.transition_duration = 10.0
+	ts.time_scale = 10.0
+	ts.paused = false
+	ts.set_hour(0.0)
+	director.set_process(false)
+	ts.set_process(false)
+	weather.set_process(false)
+	director.compose(0.0, true)
+	var prev := sun.light_energy
+	var floor_energy := EnvironmentDirector.SUN_ENERGY * 0.1
+	var worst := 0.0
+	var max_energy := 0.0
+	for frame in 8640:
+		if frame == 4320:
+			env.set_weather(WeatherController.WeatherState.STORM)
+		ts._process(1.0 / 60.0)
+		weather._process(1.0 / 60.0)
+		director.compose(1.0 / 60.0)
+		var e := sun.light_energy
+		worst = maxf(worst, absf(e - prev) / maxf(prev, floor_energy))
+		max_energy = maxf(max_energy, e)
+		prev = e
+	director.set_process(true)
+	ts.set_process(true)
+	weather.set_process(true)
+	ts.paused = true
+	weather.transition_duration = 0.0
+	_check(max_energy > 1.0 and worst <= 0.10,
+		"environment: through a day and a storm the sun's energy never steps more than 10 %% in a frame (worst %.1f %%)" % (worst * 100.0))
+
+	# The aurora: a clear winter night in Nordland, gone under cloud and by day.
+	env.set_latitude(68.2)
+	env.set_season(15.0 / 365.0)
+	env.set_time(22.0)
+	env.set_weather(WeatherController.WeatherState.CLEAR)
+	director.compose(0.0, true)
+	var night_aurora: float = director.get_composed()["aurora_intensity"]
+	_check(night_aurora > 0.2, "environment: a clear Nordland winter night has its aurora (%.2f)" % night_aurora)
+	env.set_weather(WeatherController.WeatherState.OVERCAST)
+	director.compose(0.0, true)
+	_check(director.get_composed()["aurora_intensity"] == 0.0, "environment: an overcast sky hides the aurora")
+	env.set_weather(WeatherController.WeatherState.CLEAR)
+	env.set_time(12.0)
+	env.set_season(0.5)
+	director.compose(0.0, true)
+	_check(director.get_composed()["aurora_intensity"] == 0.0, "environment: no aurora in daylight")
+
+	# Depth of field and shadows by zoom.
+	var attrs := cam.attributes as CameraAttributesPractical
+	cam.look_at_position(first, FjordCamera.ZoomLevel.FARM)
+	await _settle_camera(cam)
+	director.compose(0.0, true)
+	_check(attrs != null and attrs.dof_blur_far_enabled and absf(attrs.dof_blur_amount - 0.06) < 0.005 and absf(sun.directional_shadow_max_distance - 350.0) < 5.0,
+		"environment: FARM focuses near (DOF %.3f, shadows %.0f m)" % [attrs.dof_blur_amount if attrs else -1.0, sun.directional_shadow_max_distance])
+	cam.look_at_position(first, FjordCamera.ZoomLevel.COAST)
+	await _settle_camera(cam)
+	director.compose(0.0, true)
+	_check(absf(attrs.dof_blur_amount - 0.14) < 0.005 and absf(sun.directional_shadow_max_distance - 4500.0) < 5.0 and absf(world_env.ssao_radius - 8.0) < 0.05,
+		"environment: COAST softens the far fjord (DOF %.3f, shadows %.0f m, SSAO %.1f m)" % [attrs.dof_blur_amount, sun.directional_shadow_max_distance, world_env.ssao_radius])
+	_check(world_env.tonemap_mode == Environment.TONE_MAPPER_AGX and is_equal_approx(world_env.tonemap_agx_white, 6.0) and not world_env.sdfgi_enabled,
+		"environment: AgX tonemapping, white 6, no SDFGI")
+
+	# The reflection probe is captured once the terrain is built.
+	for i in 600:
+		if terrain.is_ready():
+			break
+		await get_tree().process_frame
+	for i in 60:
+		await get_tree().process_frame
+	_check(terrain.is_ready() and director.probe_captures >= 1,
+		"environment: the reflection probe is captured after the terrain build (%d captures)" % director.probe_captures)
 	scene.queue_free()
 	await get_tree().process_frame
 

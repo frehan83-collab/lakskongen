@@ -17,8 +17,10 @@ const CELESTIAL_BRIDGE_PATH := "res://scripts/environment/CelestialBridge.cs"
 
 # === Time Settings ===
 @export_group("Time")
-## Current time of day (0.0 = midnight, 0.5 = noon, 1.0 = midnight)
-@export_range(0.0, 1.0) var time_of_day: float = 0.35
+## Current time of day (0.0 = midnight, 0.5 = noon, 1.0 = midnight). A game
+## opens at late morning: most scenarios start on 1 January, when the
+## northern sun is up for a few hours around noon at most.
+@export_range(0.0, 1.0) var time_of_day: float = 0.45
 ## Minutes per real second (game time speed)
 @export var time_scale: float = 2.0
 ## Pause the cycle

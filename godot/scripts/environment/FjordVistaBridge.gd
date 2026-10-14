@@ -14,9 +14,10 @@ var pen_manager: FishPenManager = null
 var vista_camera: FjordCamera = null
 var game_ui: Control = null
 var selected_pen_id: String = ""
-## When false, sim weather/waves/season do NOT touch the 3D environment.
-## Used by the screenshot harness, which stages each weather regime itself —
-## otherwise every sim tick overrides the staged shot weather.
+## When false, the sim's calendar, latitude and weather do NOT touch the 3D
+## sky. Used by the screenshot harness, which stages each regime itself —
+## otherwise every sim tick overrides the staged shot. The water state
+## (temperature, bloom) always follows the sim.
 var sim_weather_enabled: bool = true
 
 signal farm_focused(pen_id: String)
@@ -118,13 +119,12 @@ func _on_state_updated() -> void:
 ## and wave uniforms; this presenter only hands it the inputs.
 ## Everything is guarded — a missing node skips quietly, never errors.
 func _sync_environment(sim: Node) -> void:
-	if not sim_weather_enabled:
-		return
 	var env := pen_manager.get_parent() as Node
 	if env == null or not env.has_method("apply_sky_context"):
 		return
-	if sim.has_method("get_sky_context"):
+	if sim_weather_enabled and sim.has_method("get_sky_context"):
 		env.call("apply_sky_context", sim.get_sky_context())
+	# The water state is the farm's, not the weather's: always synced.
 	var temp_c := float(sim.get("temperature_c")) if "temperature_c" in sim else 8.0
 	var algae := 0.0
 	var gb := get_node_or_null("/root/GameBridge")

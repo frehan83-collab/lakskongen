@@ -65,8 +65,8 @@ namespace LakskongenSim.Environment
             double offsetKm = (arcLat - GeomagneticLatitudeDeg(latitudeDeg)) * KmPerDegree;
             // The oval reaches this far poleward of its bright arc, wider in storms.
             double widthKm = (OvalWidthDeg + OvalWidthPerKp * kp) * KmPerDegree;
-            // Brighter with activity; faint but present on quiet nights.
-            double strength = 0.25 + 0.75 * Smooth(0.5, 5.0, kp);
+            // Brighter with activity; a quiet night's arc is dimmer but plain to see.
+            double strength = 0.45 + 0.55 * Smooth(0.5, 4.5, kp);
             double reach;
             double seenOffsetKm;
             if (offsetKm >= 0.0)
