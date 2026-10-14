@@ -57,11 +57,11 @@ blocked, and stop — editing the scoreboard is a human gate.
 
 ## 4. Status header — EDIT IN PLACE
 
-- **Run phase:** `W3 — paused for the review remediation (session 5, done); W3/S4 data layer resumes after the push gate`
-- **Active claim:** `session 5 — docs/CODE_REVIEW.md "Suggested Next Steps" 1–15 plus the re-review fixes; report docs/CODE_REVIEW_RECHECK.md`
-- **Gate state:** `push gate reached (§9): review-remediation is ready, nothing pushed`
-- **Last verified artifact:** `CI_REQUIRE_ALL=1 /bin/bash tools/ci.sh → CI PASSED 17/17 on the session-5 tree (08ca977); screenshot diff 28/28 within threshold`
-- **Baseline freeze:** `solution 914 passed / 1 skipped (session 5); pytest 54; UI flow 224 checks; CI 17/17 with every step required; visual baseline 28 shots (threshold 25); save-hash: comparative gate plus the save/load matrix and cross-process twins; golden SHA artifact deferred to W4 save-fuzz`
+- **Run phase:** `Roadmap wave 1 (Phase 0/1 "First Light") integrated and landed on review-remediation; wave 2 (Phase 2 + farm types F2) in progress`
+- **Active claim:** `session 6 — merge captain for docs/ROADMAP_TOP_TIER.md wave 1 (12 stage branches + integration fix) and wave 2 dispatch`
+- **Gate state:** `push gate: owner said "do what is necessary" (2026-10-14); first push of review-remediation attempted by the merge captain`
+- **Last verified artifact:** `CI_REQUIRE_ALL=1 /bin/bash tools/ci.sh → CI PASSED 17/17 on integration/wave1 (cf007e3); UI flow 671 checks, 0 failures; visual baseline re-promoted from the reviewed cf007e3 frames`
+- **Baseline freeze:** `UI flow 671 checks (MIN_CHECKS 671); CI 17/17 with every step required; visual baseline 28 shots re-promoted 2026-10-14 after the wave-1 art review (docs: WAVE1 art review notes in the session-6 report)`
 
 ### Session-0 note
 After CI is green, create a **local baseline commit** (do NOT push — pushing is a human
@@ -74,6 +74,7 @@ deliverable, message format: `run: <wave> <item> — <one-line outcome>`.
 
 | # | Date | Wave | Claim | Evidence (path + cmd + result) | Audit of prior | CI |
 |---|------|------|-------|-------------------------------|----------------|----|
+| 6 | 2026-10-14 | Roadmap W1 | Phase 0/1 "First Light": P0-05, P0-07, G1-01..G1-07 (G1-02/G1-05/G1-06 partial: perf), U1-01..U1-04, U1-06..U1-08, S1-01..S1-03, A2-01, A3-01, G3-01 asset, plus the integration fix (G2-03 heave) | stage branches `wave1/{gfx,ui,sim,art}-n` + `wave1/integration-fix` merged into `integration/wave1` (`cf007e3`); per-commit evidence in each `run: wave1 …` message | session-5 gates re-run inside CI (dotnet test, save/load matrix, cross-process twins) → green | PASSED 17/17 (`CI_REQUIRE_ALL=1`) |
 | 5 | 2026-10-14 | Review | CODE_REVIEW.md next steps 1–15 + re-review fixes: of the 58 critical/high findings 53 fixed, 3 partial, 2 open (owner); re-review's 1 critical + 3 high fixed | `docs/CODE_REVIEW_RECHECK.md`; per-commit evidence in the `run: review …` commit messages on `review-remediation` (`27da699` … `08ca977`) | session-4 CareerDivergenceProbe re-run → Passed (`dotnet test --filter CareerDivergenceProbe`) | PASSED 17/17 (`CI_REQUIRE_ALL=1`, bash 3.2) |
 | 4 | 2026-10-13 | S10 | career-divergence probe: red-light vs compliant on identical seed | `docs/run/evidence/session_04_s10_probe.md` (Passed:1; +299,500 kg harvested, +18,449,200 NOK penalty, 2/3 thresholds); `session_04_ci_final_summary.txt`; commit `6554655` | session-3 a11y audit re-run → RESULT: PASS | PASSED 15/15 |
 | 3 | 2026-10-12 | W2/S3 | accessibility floor: contrast/CVD/targets/uiscale audits + 5 defect fixes + W2 close (baseline promoted) | `docs/run/evidence/session_03_a11y_audit.md` (+ `a11y_audit.json`, `a11y_targets.json`); audit RESULT: PASS (17/17 + 10/10); targets 221/0; `session_03_ci_final_summary.txt`; commits `17c79f1`, `998ab75` | session-2 AnalyticsSeriesTests re-run → 2 passed PASS | PASSED 15/15 |
