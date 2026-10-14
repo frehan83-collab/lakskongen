@@ -236,7 +236,7 @@ func _start_plankton_bloom(params: Dictionary) -> void:
 	_plankton_particles.restart()
 	_plankton_particles.emitting = true
 	
-	# Add green tint to water in this zone (handled by VisualAdapter3D)
+	# The water tint follows the sim bloom severity (FjordVistaBridge drives algae_density).
 	print("[ParticleEffects] Plankton bloom started in %s" % zone)
 
 func _stop_plankton_bloom(params: Dictionary) -> void:

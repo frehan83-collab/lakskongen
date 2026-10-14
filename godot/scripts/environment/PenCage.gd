@@ -36,7 +36,7 @@ func _ready() -> void:
 	_walkway_node = get_node_or_null("Walkway") as MeshInstance3D
 	_handrail_node = get_node_or_null("Handrail") as MeshInstance3D
 	_feedpipe_node = get_node_or_null("FeedPipe") as MeshInstance3D
-	# Owners wire clicks: they connect ClickArea.input_event (FishPenManager, VisualAdapter3D).
+	# Owners wire clicks: they connect ClickArea.input_event (FishPenManager).
 	_click_area = get_node_or_null("ClickArea") as Area3D
 
 	_update_materials()

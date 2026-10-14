@@ -135,8 +135,7 @@ func _generate_recommended_locations() -> void:
 	_recommended_locations.clear()
 
 	if _terrain_ref == null:
-		# Auto-resolve: in GameScene this manager is a sibling of Terrain,
-		# and setup_pens() is only called by NordlandFjordController.
+		# Auto-resolve: in GameScene this manager is a sibling of Terrain.
 		_terrain_ref = get_node_or_null("../Terrain") as FjordTerrain
 
 	if not _terrain_ref:

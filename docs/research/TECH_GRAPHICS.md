@@ -52,7 +52,7 @@ Research date: 2026-10-12. Scope: Godot engine state (Oct 2026), technique short
 
 ## 2. Technique shortlist for Lakskongen [medium]
 
-Baseline to beat (per `godot/scenes/environment/FJORD_RENDERER.md`): 256×256 terrain with height/slope blend, 128×128 water plane with 4 Gerstner waves + texture foam, procedural sky with aurora, tilt-shift + underwater post, rain/snow particles. In-repo perf target: 60 FPS @ 1080p GTX 1060; AGENTS.md target: 60 FPS @ 1440p M1 Pro.
+Baseline to beat (per the old `godot/scenes/environment/FJORD_RENDERER.md`, replaced by `docs/FJORD_RENDERER.md` in P0-05): 256×256 terrain with height/slope blend, 128×128 water plane with 4 Gerstner waves + texture foam, procedural sky with aurora, tilt-shift + underwater post, rain/snow particles. In-repo perf target: 60 FPS @ 1080p GTX 1060; AGENTS.md target: 60 FPS @ 1440p M1 Pro.
 
 **Screenshot-gate vocabulary** (repo screenshot-evidence skill + visual-qa): shots come from the non-headless harness (`tools/capture_screenshots.sh`, `ScreenshotHarness.tscn`); existing shots: `08a_fjord_live_sync`, `08_fjord_day`, `08b_fjord_farm`, `09_fjord_night_aurora`, `10_fjord_storm`, `11_fjord_underwater`, `12_diag_no_water`, `14/15/16_diag_*`. A gate passes only with **raw numbers**: repeat-capture md5 control + perceptual-hash distance (threshold 8; ≥9 "noticeable", ≥16 "major"); new shots register in `visual_qa/config.py SHOT_NAMES` and promote via `python -m visual_qa.baseline_update -m "<why>"`, with a RUN_LOG evidence line. Effort in working days.
 
@@ -175,4 +175,4 @@ Baseline to beat (per `godot/scenes/environment/FJORD_RENDERER.md`): 256×256 te
 - Anno 117 (Empire Engine, 13 Nov 2025; 50,484 CCU; 1.17M players; GCA Innovation and Technology): https://en.wikipedia.org/wiki/Anno_117
 
 **Internal**
-- `godot/scenes/environment/FJORD_RENDERER.md` (current fjord renderer), `godot/project.godot` (4.7, Forward+, MSAA 4×), `.claude/skills/ecc/lakskongen-screenshot-evidence` (gate workflow), `tools/capture_screenshots.sh` and `visual_qa` (diff thresholds).
+- `docs/FJORD_RENDERER.md` (current fjord renderer), `godot/project.godot` (4.7, Forward+, MSAA 4×), `.claude/skills/ecc/lakskongen-screenshot-evidence` (gate workflow), `tools/capture_screenshots.sh` and `visual_qa` (diff thresholds).

@@ -9,7 +9,6 @@ extends Node3D
 @export var camera: FjordCamera
 @export var time_system: TimeOfDay
 @export var weather_system: WeatherController
-@export var visual_adapter: VisualAdapter3D
 @export var particle_effects: ParticleEffects
 
 @export_group("Water")
@@ -34,9 +33,6 @@ func _ready() -> void:
 
 	if underwater_rect == null:
 		underwater_rect = get_node_or_null("UnderwaterCanvas/UnderwaterRect") as ColorRect
-	
-	if visual_adapter:
-		visual_adapter.bind_simulation(get_node_or_null("/root/SimBridge"))
 	
 	if particle_effects:
 		var pen_mgr = get_node_or_null("/root/FishPenManager")

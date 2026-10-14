@@ -1,11 +1,10 @@
-[gd_scene load_steps=33 format=3 uid="uid://fjord_environment_001"]
+[gd_scene load_steps=31 format=3 uid="uid://fjord_environment_001"]
 
 [ext_resource type="Script" path="res://scripts/environment/FjordEnvironment.gd" id="1_env"]
 [ext_resource type="Script" path="res://scripts/environment/FjordTerrain.gd" id="2_terrain"]
 [ext_resource type="Script" path="res://scripts/environment/FjordCamera.gd" id="3_camera"]
 [ext_resource type="Script" path="res://scripts/environment/TimeOfDay.gd" id="4_time"]
 [ext_resource type="Script" path="res://scripts/environment/WeatherController.gd" id="5_weather"]
-[ext_resource type="Script" path="res://scripts/visual/VisualAdapter3D.gd" id="9_visual_adapter"]
 [ext_resource type="Script" path="res://scripts/visual/particles/ParticleEffects.gd" id="10_particles"]
 [ext_resource type="Shader" path="res://shaders/water_shader.gdshader" id="6_water_shader"]
 [ext_resource type="Shader" path="res://shaders/tilt_shift.gdshader" id="7_tilt_shader"]
@@ -18,7 +17,6 @@
 [ext_resource type="Script" path="res://scripts/visual/WellboatVisualManager.gd" id="15_wellboat_vm_script"]
 [ext_resource type="Script" path="res://scripts/visual/FeedBargeVisualManager.gd" id="16_feedbarge_vm_script"]
 [ext_resource type="Script" path="res://scripts/visual/CompetitorFarmVisualManager.gd" id="17_competitorfarm_vm_script"]
-[ext_resource type="Script" path="res://scripts/environment/Sim3DSync.gd" id="18_sim3d_sync"]
 
 [sub_resource type="ShaderMaterial" id="water_mat"]
 shader = ExtResource("6_water_shader")
@@ -202,14 +200,13 @@ material = SubResource("snow_draw_mat")
 size = Vector2(0.12, 0.12)
 
 
-[node name="FjordEnvironment" type="Node3D" node_paths=PackedStringArray("terrain", "camera", "time_system", "weather_system", "water_plane", "visual_adapter", "particle_effects", "underwater_rect", "wellboat_visual_manager", "feed_barge_visual_manager", "competitor_farm_visual_manager", "sim_3d_sync")]
+[node name="FjordEnvironment" type="Node3D" node_paths=PackedStringArray("terrain", "camera", "time_system", "weather_system", "water_plane", "particle_effects", "underwater_rect")]
 script = ExtResource("1_env")
 terrain = NodePath("Terrain")
 camera = NodePath("FjordCamera")
 time_system = NodePath("TimeOfDay")
 weather_system = NodePath("WeatherSystem")
 water_plane = NodePath("WaterPlane")
-visual_adapter = NodePath("VisualAdapter3D")
 particle_effects = NodePath("ParticleEffects")
 underwater_rect = NodePath("UnderwaterCanvas/UnderwaterRect")
 
@@ -312,9 +309,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="VisualAdapter3D" type="Node" parent="."]
-script = ExtResource("9_visual_adapter")
-
 [node name="ParticleEffects" type="Node3D" parent="."]
 script = ExtResource("10_particles")
 [node name="WellboatVisualManager" type="Node" parent="."]
@@ -326,6 +320,4 @@ script = ExtResource("16_feedbarge_vm_script")
 [node name="CompetitorFarmVisualManager" type="Node" parent="."]
 script = ExtResource("17_competitorfarm_vm_script")
 
-[node name="Sim3DSync" type="Node" parent="."]
-script = ExtResource("18_sim3d_sync")
 
