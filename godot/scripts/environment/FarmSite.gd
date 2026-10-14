@@ -57,6 +57,7 @@ var _pens_root: Node3D = null
 var _rest: Array[Vector3] = []
 var _lod_parts := {}   # level (1, 2) -> {part name: MultiMeshInstance3D}
 var _lod_buffers := {}  # level -> last uploaded PackedFloat32Array
+var _rides_uploaded := -1  # the pens' ride counts the uploaded poses saw
 var _ghost := false
 var _band := Color(0, 0, 0, 0)
 var _net_opacity := 1.0
@@ -74,8 +75,8 @@ func _init() -> void:
 ## Lay out `count` pens. The node must be in the tree and placed (the anchor
 ## lines look the seabed up in world space). Options: barge_side (+1/-1),
 ## buoy_color, anchor_floor (Callable(x, z) -> seabed y), band_color,
-## net_opacity, health_rings (bool), bird_net (PenCage.BirdNet), label
-## (text), label_color, label_range (m).
+## net_opacity, health_rings (bool), pen_numbers (bool), bird_net
+## (PenCage.BirdNet), label (text), label_color, label_range (m).
 func build(id: String, count: int, options: Dictionary = {}) -> void:
 	site_id = id
 	pen_count = maxi(count, 1)
@@ -110,7 +111,9 @@ func build(id: String, count: int, options: Dictionary = {}) -> void:
 		var area := cage.get_click_area()
 		if area != null:
 			area.input_event.connect(_on_input_event)
-		_add_pen_number(cage, k)
+		# A one-pen site's name says it all: numbers from two pens up.
+		if bool(options.get("pen_numbers", true)) and pen_count > 1:
+			_add_pen_number(cage, k)
 		cages.append(cage)
 	lod_state.resize(pen_count)
 	lod_state.fill(Lod.NEAR)
@@ -269,28 +272,38 @@ func _process(_delta: float) -> void:
 ## site's MultiMesh transforms (the tests call it with a probe position).
 func update_lods(camera_position: Vector3) -> void:
 	var used := [false, false, false]
+	var moved := 0
+	var changed := false
 	for k in cages.size():
 		var cage := cages[k]
+		moved += cage.ride_count
 		var state := next_lod(lod_state[k], camera_position.distance_to(cage.global_position))
 		if state != lod_state[k]:
 			lod_state[k] = state
 			cage.set_lod0_visible(state == Lod.NEAR)
+			changed = true
 		used[state] = true
+	# The MultiMesh poses only change when a pen rode or changed LOD (far
+	# pens ride every few frames).
+	var stale := changed or moved != _rides_uploaded
+	_rides_uploaded = moved
 	for level in [Lod.MID, Lod.FAR]:
 		var parts: Dictionary = _lod_parts.get(level, {})
 		if not used[level]:
 			for part in parts:
 				(parts[part] as MultiMeshInstance3D).visible = false
 			continue
-		var buf := _lod_buffer(level)
-		var fresh: bool = not _lod_buffers.has(level) or _lod_buffers[level] != buf
-		if fresh:
-			_lod_buffers[level] = buf
+		var fresh := false
+		if stale or not _lod_buffers.has(level):
+			var buf := _lod_buffer(level)
+			fresh = not _lod_buffers.has(level) or _lod_buffers[level] != buf
+			if fresh:
+				_lod_buffers[level] = buf
 		for part in parts:
 			var mmi := parts[part] as MultiMeshInstance3D
 			mmi.visible = _part_shown(part)
 			if fresh:
-				mmi.multimesh.buffer = buf
+				mmi.multimesh.buffer = _lod_buffers[level]
 
 
 ## The LOD a pen at `distance` takes, coming from `state` (hysteresis).

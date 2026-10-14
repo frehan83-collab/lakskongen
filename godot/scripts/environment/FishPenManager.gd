@@ -80,7 +80,7 @@ const SELECTION_RING_MATERIAL := preload("res://assets/models/pen_cage/pen_selec
 ## Selected-pen ring colour: Ink text (#E8EEF0); the site's other pens get
 ## the same ring, quieter.
 const SELECTION_COLOR := Color(0.910, 0.933, 0.941, 0.9)
-const SITE_SELECTION_COLOR := Color(0.910, 0.933, 0.941, 0.42)
+const SITE_SELECTION_COLOR := Color(0.910, 0.933, 0.941, 0.3)
 ## The workboat lies broadside to the collar of the up-fjord pen of the
 ## first column this far from its centre (outer pipe edge at 26.8 m, half
 ## the boat's 10 m beam, the tyre fenders and a 1.4 m gap), inside its cell.

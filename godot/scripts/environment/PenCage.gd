@@ -129,6 +129,9 @@ const LOD0_LAYERS := 1
 var _bake_key := Vector3(INF, INF, -1.0)
 var _bake_sample := Color()
 var _ride_slot := 0
+## Counts ride_waves() calls: a FarmSite re-uploads its MultiMesh poses
+## only when one of its pens has moved.
+var ride_count := 0
 
 func _ready() -> void:
 	_collar_node = get_node_or_null("Collar") as MeshInstance3D
@@ -179,6 +182,7 @@ func ride_waves() -> void:
 	var slope_z := plane.y * axes.z.x + plane.z * axes.z.z
 	position.y = plane.x - frame.origin.y
 	rotation = Vector3(-atan(slope_z), rotation.y, atan(slope_x))
+	ride_count += 1
 
 ## The meshes of one LOD level (0 = the direct children).
 func get_lod_meshes(level: int) -> Array[MeshInstance3D]:

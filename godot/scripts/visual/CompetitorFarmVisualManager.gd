@@ -108,6 +108,7 @@ func _spawn_competitor_farm(comp_id: String, name: String, position: Vector3, ma
 		"band_color": band,
 		"net_opacity": RIVAL_NET_OPACITY,
 		"health_rings": false,
+		"pen_numbers": false,
 		"bird_net": FishPenManager.bird_net_for(comp_id),
 		"label": name,
 		"label_color": band.lerp(Color.WHITE, 0.35),

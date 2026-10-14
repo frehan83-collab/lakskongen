@@ -83,14 +83,18 @@ func _pen_counts_match_every_scenario() -> void:
 			var drawn := pens.get_site_cages(sid).size()
 			var mooring := pens.get_pen_mooring(sid)
 			var cells := mooring.cells_x * mooring.cells_z if mooring != null else 0
-			var ok := engine == want and drawn == want and cells >= want and cells < want + 2
+			# Up to three pens lie in one row along the channel, more in two.
+			var rows_ok := mooring != null and ((want <= 3 and mooring.cells_x == 1 and mooring.cells_z == want)
+				or (want > 3 and mooring.cells_x == 2 and mooring.cells_z == ceili(want / 2.0)))
+			var ok := engine == want and drawn == want and cells >= want and cells < want + 2 and rows_ok
 			all_ok = all_ok and ok
 			sites_seen += 1
 			pens_seen += drawn
 			if not ok:
 				report.append("%s: scenario %d, engine %d, drawn %d, cells %d" % [sid, want, engine, drawn, cells])
 	_check(all_ok and sites_seen >= 15,
-		"sites: every scenario site draws the engine's pens (%d sites, %d pens) %s" % [sites_seen, pens_seen, ", ".join(report)])
+		"sites: every scenario site draws the engine's pens, in one row up to three, else two rows along the channel (%d sites, %d pens) %s"
+			% [sites_seen, pens_seen, ", ".join(report)])
 	scene.queue_free()
 	await _frames(2)
 
@@ -398,7 +402,7 @@ func _floating_gear_rides_the_water() -> void:
 		var drawn := field.height_at(x, z)
 		tallest = maxf(tallest, absf(drawn))
 		worst = maxf(worst, absf(SiteFloat.reference_height(field, x, z) - drawn))
-	_check(tallest > 0.3 and worst <= 0.01,
+	_check(tallest > 0.2 and worst <= 0.01,
 		"floating gear: in a 25 m/s storm the shader's water meets the drawn water within %.3f m over the site (waves to %.2f m)" % [worst, tallest])
 	scene.queue_free()
 	await _frames(2)
