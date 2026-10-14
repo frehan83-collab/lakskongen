@@ -135,11 +135,17 @@ public static class GoldenTraceComparer
         bool detailed = e.RootElement.TryGetProperty("v", out var ev) & a.RootElement.TryGetProperty("v", out var av);
         foreach (var group in GoldenTraceState.GroupOrder)
         {
-            if (Raw(eg, group) == Raw(ag, group)) continue;
-            differences.Add(detailed && FirstValueDifference(comparison, day, ev, av, group) is { } exact
-                ? exact
-                : new TraceDifference(comparison.Scenario, comparison.Seed, day, group, "(group hash; the next snapshot names the entity)",
-                    Raw(eg, group), Raw(ag, group)));
+            // Detailed lines compare the exact values; compact ones the 8-bit
+            // group hash (a group that differs is missed on 1 day in 256, so
+            // compact per-group day counts are lower bounds; 'h' never misses).
+            if (detailed)
+            {
+                if (FirstValueDifference(comparison, day, ev, av, group) is { } exact) differences.Add(exact);
+                continue;
+            }
+            if (Raw(eg, group) != Raw(ag, group))
+                differences.Add(new TraceDifference(comparison.Scenario, comparison.Seed, day, group,
+                    "(group hash; the next snapshot names the entity)", Raw(eg, group), Raw(ag, group)));
         }
         string eDraws = Raw(e.RootElement, "rng"), aDraws = Raw(a.RootElement, "rng");
         if (eDraws != aDraws || Raw(eg, "rng") != Raw(ag, "rng"))
@@ -282,9 +288,14 @@ public static class GoldenTraceComparer
         comparison.FinalBiomassKg = (BiomassOf(expected), BiomassOf(actual));
     }
 
-    /// <summary>The balance in a snapshot ("" when absent).</summary>
+    /// <summary>The balance in a snapshot, in whole NOK ("" when absent).</summary>
     public static string CashOf(JsonElement snapshot)
-        => Fields(Map(snapshot.GetProperty("v"), "cash").GetValueOrDefault("balance", "")).GetValueOrDefault("nok", "");
+    {
+        string text = Fields(Map(snapshot.GetProperty("v"), "cash").GetValueOrDefault("balance", "")).GetValueOrDefault("nok", "");
+        return decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var nok)
+            ? Math.Round(nok, MidpointRounding.AwayFromZero).ToString("F0", CultureInfo.InvariantCulture)
+            : text;
+    }
 
     /// <summary>Live biomass summed over a snapshot's populations (kg, 0 decimals).</summary>
     public static string BiomassOf(JsonElement snapshot)
