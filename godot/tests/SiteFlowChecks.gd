@@ -179,6 +179,9 @@ func _site_grid_barge_and_hoses() -> void:
 				var cage := farm.get_cage(k)
 				var port := farm.to_local(cage.to_global(Vector3(SiteLayout.PORT_R, 0.0, 0.0)))
 				ok = ok and absf(start.x - inner_x) < 0.5 and absf(start.y - b_local.z) <= barge.length_m * 0.5
+				# Square off the gate: the bundle leaves the hull and runs
+				# straight in, never along the hull to its end.
+				ok = ok and absf(b_local.z - SiteBerths.barge_gate_z(farm.pen_count)) < 1.0
 				ok = ok and end.distance_to(Vector2(port.x, port.z)) < 0.6
 				for p in line:
 					for r in rest:

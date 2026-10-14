@@ -18,8 +18,9 @@ const FLOAT_SCENES := [
 ## the last the floats are under a pixel.
 const FLOAT_LOD_SWITCH := [260.0, 900.0, 2600.0]
 ## The hoses climb to the barge's deck at the outlet: this high over the
-## water (m), down to the water over SiteLayout.OUTLET_DROP_M.
-const DECK_LIFT_M := 1.7
+## water (m), easing down to the water over RISER_RUN_M of hose.
+const DECK_LIFT_M := 1.4
+const RISER_RUN_M := 10.0
 ## Floats are drawn in the buoy yellow (D13 #E8B92A).
 const FLOAT_COLOR := Color(0.910, 0.725, 0.165)
 ## The ribbon opens up to a couple of metres on screen-size grounds and
@@ -99,7 +100,7 @@ static func _ribbon_mesh(lines: Array[PackedVector2Array]) -> ArrayMesh:
 			var a := line[maxi(i - 1, 0)]
 			var b := line[mini(i + 1, line.size() - 1)]
 			var dir := (b - a).normalized()
-			var lift := DECK_LIFT_M * (1.0 - smoothstep(0.0, SiteLayout.OUTLET_DROP_M, run))
+			var lift := DECK_LIFT_M * (1.0 - smoothstep(0.0, RISER_RUN_M, run))
 			for side in [-1.0, 1.0]:
 				verts.append(Vector3(line[i].x, 0.0, line[i].y))
 				normals.append(Vector3(dir.x, 0.0, dir.y))

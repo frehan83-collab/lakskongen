@@ -75,9 +75,10 @@ static func berth_depth(terrain: FjordTerrain, position: Vector3, grid_yaw: floa
 	return shallowest
 
 
-## Where a vessel of `beam_m` lies at a site: role "barge" (square off the
-## grid's middle, so its hoses run straight in to the lane between the rows)
-## or "wellboat" (alongside, the other side, level with the site centre in
+## Where a vessel of `beam_m` lies at a site: role "barge" (square off its
+## hose gate, the frame line where the bundle enters the lane between the
+## rows, so its hoses run straight in; a one-row site's middle) or
+## "wellboat" (alongside, the other side, level with the site centre in
 ## world z). {position: the world point a channel route ends at; axis: the
 ## grid's +Z, the way the vessel lies; side: +1 or -1 in world x}.
 static func berth(site: Dictionary, role: String, beam_m: float) -> Dictionary:
@@ -90,7 +91,8 @@ static func berth(site: Dictionary, role: String, beam_m: float) -> Dictionary:
 	var axis := Vector3(sin(yaw), 0.0, cos(yaw))
 	if role == "barge":
 		var across := Vector3(cos(yaw), 0.0, -sin(yaw))
-		return {"position": at + across * side * (hull_side + beam_m * 0.5), "axis": axis, "side": side}
+		var gate := barge_gate_z(int(site.get("pen_count", 1)))
+		return {"position": at + across * side * (hull_side + beam_m * 0.5) + axis * gate, "axis": axis, "side": side}
 	# The perpendicular distance to the hull's centreline, laid off along x.
 	var reach := (hull_side + beam_m * 0.5) / cos(yaw)
 	return {"position": Vector3(at.x + side * reach, 0.0, at.z), "axis": axis, "side": side}
@@ -120,3 +122,10 @@ static func zone(site: Dictionary, open_role: String = "") -> Dictionary:
 		"hi": at.x + plus,
 		"half_z": maxf(SITE_RESERVE_HALF_LENGTH_M, half.y + SITE_RESERVE_END_M),
 	}
+
+
+## Where along the grid (site frame z) the feed barge lies: level with the
+## frame line its hoses enter the lane by (the one nearest the middle) on a
+## two-row site, the middle of a one-row site.
+static func barge_gate_z(pen_count: int) -> float:
+	return SiteLayout.entry_z(pen_count, 0.0) if SiteLayout.grid_dims(pen_count).x == 2 else 0.0

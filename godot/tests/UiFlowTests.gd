@@ -2565,7 +2565,7 @@ func _test_vessel_fleet() -> void:
 	var barge := barges.barge_of(site_id) as VesselModel
 	# G2-04 replaced "beside its pen (< 80 m)": the barge lies beside its
 	# site's grid, its inner hull side BARGE_GRID_GAP_M outside the outer
-	# frame line, square off the grid's middle, feed side to the pens.
+	# frame line, square off the hose gate, feed side to the pens.
 	var feed_side_ok := barge != null
 	var farm := pens.get_site(site_id)
 	var gap := -1.0
@@ -2574,8 +2574,9 @@ func _test_vessel_fleet() -> void:
 		var local := farm.to_local(barge.global_position)
 		gap = absf(local.x) - barge.beam_m * 0.5 - farm.half_extent().x
 		feed_side_ok = barge.global_transform.basis.x.dot(to_site) > 0.0 \
-			and absf(gap - FishPenManager.BARGE_GRID_GAP_M) < 1.0 and absf(local.z) < 1.0
-	_check(feed_side_ok, "vessels: the moored barge lies square off its site's grid (%.1f m off the frame), feed side to the pens" % gap)
+			and absf(gap - FishPenManager.BARGE_GRID_GAP_M) < 1.0 \
+			and absf(local.z - SiteBerths.barge_gate_z(farm.pen_count)) < 1.0
+	_check(feed_side_ok, "vessels: the moored barge lies square off its site's hose gate (%.1f m off the frame), feed side to the pens" % gap)
 	var tender := barge.get_node_or_null("Tender") as VesselModel if barge else null
 	var tender_ok := tender != null and tender.asset_id == "rib"
 	if tender_ok:
