@@ -614,6 +614,7 @@ func _write_report() -> void:
 	if f == null:
 		push_error("PerfHarness: cannot write %s" % path)
 		return
-	f.store_string(JSON.stringify(report, "  "))
+	# Compact: the markdown table from tools/perf_report.py is the readable form.
+	f.store_string(JSON.stringify(report) + "\n")
 	f.close()
 	print("PERF_REPORT %s" % path)
