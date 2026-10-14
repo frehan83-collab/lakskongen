@@ -3562,7 +3562,11 @@ private class BalancingConfig
 
             // 5. CrisisCapitalism — active crises and the listings they put on the
             // market (expired ones drop naturally). Listings were never saved, so
-            // a load emptied the market.
+            // a load emptied the market. The listings are filtered by the
+            // calendar, exactly like RestoreAsset and the bridge: the weekly
+            // countdown lags, so a listing that closed today (ExpiresOnDay ==
+            // Day) used to be saved, dropped on load, and the resumed career
+            // diverged from the uninterrupted one (S1-01).
             if (CrisisCapitalism != null)
             {
                 State.ActiveCrises = CrisisCapitalism.GetActiveCrises(State.Day)
@@ -3577,7 +3581,7 @@ private class BalancingConfig
                         DurationMonths = c.DurationMonths,
                         StartDay = c.StartDay
                     }).ToList();
-                State.DistressedAssets = CrisisCapitalism.GetAllAvailableDistressedAssets()
+                State.DistressedAssets = CrisisCapitalism.GetAllAvailableDistressedAssets(State.Day)
                     .Select(a => new DistressedAssetState
                     {
                         Id = a.Id,
