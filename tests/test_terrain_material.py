@@ -109,6 +109,16 @@ def test_layer_constants_follow_the_generator():
     assert float(re.search(r"NOISE_TEXELS\s*=\s*([\d.]+)", code).group(1)) == gen.SIZE
 
 
+def test_wet_band_is_at_least_a_fifth_darker_up_to_1_5_m():
+    # Roadmap G2-02 acceptance 3 (measured on a lit wall by the probe:
+    # 0.2-1.3 m luminance 0.69 of the dry rock above the lichen zone).
+    code = _code(SHADER)
+    albedo = float(re.search(r"uniform\s+float\s+wet_band_albedo[^=]*=\s*([\d.]+)", code).group(1))
+    height = float(re.search(r"uniform\s+float\s+wet_band_m[^=]*=\s*([\d.]+)", code).group(1))
+    assert albedo <= 0.8 and height >= 1.5
+    assert re.search(r"col\s*\*\s*wet_band_albedo", code), "the wet band multiplier is not applied to the colour"
+
+
 # ── The arrays ───────────────────────────────────────────────────────────────
 
 @pytest.mark.parametrize("name,layers", [("terrain_albedo_height", 7), ("terrain_normal_rough_ao", 9)])
