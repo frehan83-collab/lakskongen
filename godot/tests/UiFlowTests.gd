@@ -944,7 +944,8 @@ func _test_telemetry_oxygen_saturation_follows_the_sim() -> void:
 		var label := node as Label
 		if label.text == "Oksygenmetning" and label.get_parent().get_child_count() > 1:
 			shown = (label.get_parent().get_child(1) as Label).text
-	var expected := "%.0f %%" % (clampf(o2 / sat, 0.0, 1.5) * 100.0)
+	# The panel writes Norwegian percentages ("100 %" with a no-break space, U1-03).
+	var expected := SimFormatters.percent(clampf(o2 / sat, 0.0, 1.5))
 	_check(shown == expected and o2 / sat > 0.9,
 		"telemetry: saturation reads %s for %.2f of %.2f mg/L (shown '%s')" % [expected, o2, sat, shown])
 	panel.queue_free()
@@ -994,7 +995,14 @@ func _test_honest_economy_reaches_the_ui() -> void:
 	_check(medals == ["silver"], "economy: an unlock relays its medal (%s)" % str(medals))
 	var toasts: Node = get_node("/root/ToastNotification")
 	var toast := ""
-	for message in toasts._recent_messages.keys():
+	# Shown, queued behind a full stack, or already dismissed (U1-04 records
+	# a message in _recent_messages only when it leaves the screen).
+	var messages: Array = toasts._recent_messages.keys()
+	for node in toasts._active_nodes:
+		messages.append(String(node.get_meta("toast_message", "")))
+	for queued in toasts._queue:
+		messages.append(queued.message)
+	for message in messages:
 		if str(message).contains("CI-medalje"):
 			toast = str(message)
 	_check(toast.ends_with(" — " + tr("UI_MEDAL_SILVER")) and tr("UI_MEDAL_SILVER") != "UI_MEDAL_SILVER",
