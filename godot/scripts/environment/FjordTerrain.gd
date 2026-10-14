@@ -215,6 +215,12 @@ func water_bake_at(world_x: float, world_z: float) -> Color:
 	return _water_bake_image.get_pixel(c, r)
 
 
+## The water bake image the texture was made from (null before the build):
+## WaveField samples it on the CPU exactly as the water shader does.
+func get_water_bake_image() -> Image:
+	return _water_bake_image
+
+
 ## World-space rectangle the water bake covers (x, z, width, depth).
 func get_water_bake_rect() -> Rect2:
 	return Rect2(-terrain_size * 0.5, terrain_size)
@@ -380,21 +386,6 @@ func mouth_and_head() -> Vector2:
 	if _generator == null and not _ensure_generator():
 		return Vector2(-terrain_size.y * 0.5, terrain_size.y * 0.5)
 	return _generator.call("MouthAndHead")
-
-
-## Sea-level waypoints along the channel from from_z to to_z, `lane` metres
-## beside the centreline (clamped to the fairway) and every `step` metres. A
-## boat that follows them stays on open water and passes beside the pens
-## anchored on the centreline.
-func channel_route(from_z: float, to_z: float, lane: float, step: float = 100.0) -> PackedVector3Array:
-	var half := fairway_half_width()
-	var offset := clampf(lane, -half, half)
-	var count := maxi(1, ceili(absf(to_z - from_z) / step))
-	var points := PackedVector3Array()
-	for i in range(count + 1):
-		var z := lerpf(from_z, to_z, float(i) / float(count))
-		points.append(Vector3(channel_center_x(z) + offset, 0.0, z))
-	return points
 
 
 ## Pen anchor positions along the fjord channel, in world metres (Y = 0).

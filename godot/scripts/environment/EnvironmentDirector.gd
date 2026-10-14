@@ -17,7 +17,9 @@ extends Node
 ## - the camera's depth of field;
 ## - the water material: the sea state's wave bands (SeaStateModel: JONSWAP
 ##   from the wind and the fetch, Monahan whitecaps), their phases, the
-##   optics and the terrain's water bake (G1-05).
+##   optics and the terrain's water bake (G1-05);
+## - wave_field, the CPU mirror of the drawn water (G2-03): the same wave
+##   arrays, grid and bake, so pens and boats ride the waves they sit in.
 ##
 ## Nothing else writes these: tests/test_environment_director.py fails on a
 ## second writer. Because the result is recomposed from the inputs every
@@ -191,6 +193,19 @@ var _bake_applied: Texture2D = null
 ## The sea composed last: hs/tp/amplitudes for the sheltered basin and the
 ## open coast, whitecaps (tests read it).
 var sea_state: Dictionary = {}
+## The drawn water on the CPU (G2-03): handed the very arrays the shader's
+## wave uniforms get, every frame. WaveField.active points at it while this
+## director is in the tree; PenCage and VesselModel float on it.
+var wave_field := WaveField.new()
+
+
+func _enter_tree() -> void:
+	WaveField.active = wave_field
+
+
+func _exit_tree() -> void:
+	if WaveField.active == wave_field:
+		WaveField.active = null
 
 
 func _ready() -> void:
@@ -203,6 +218,7 @@ func _ready() -> void:
 		# shader draws it from moon_direction.
 		moon_light.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
 	_static_setup()
+	wave_field.bind_grid(water_grid)
 	compose(0.0, true)
 
 
@@ -572,6 +588,7 @@ func _apply_water(delta: float, c: Dictionary) -> void:
 		amp.append(Vector4(a_sh[band] * _comp_weight[i], a_ex[band] * _comp_weight[i], _comp_phase[i], TAU / _comp_k[i]))
 	mat.set_shader_parameter("wave_k", sea_state["wave_k"])
 	mat.set_shader_parameter("wave_amp", amp)
+	wave_field.set_waves(sea_state["wave_k"], amp)
 	mat.set_shader_parameter("whitecaps", sea_state["whitecaps"])
 	mat.set_shader_parameter("whitecap_threshold", whitecap_threshold(float(sea_state["whitecaps"])))
 	mat.set_shader_parameter("ripple_strength", clampf(RIPPLE_MIN + RIPPLE_PER_MS * wind, RIPPLE_MIN, RIPPLE_MAX))
@@ -609,6 +626,7 @@ func _apply_water_bake(mat: ShaderMaterial) -> void:
 	mat.set_shader_parameter("bake_spacing", size.x / (texels - 1.0))
 	mat.set_shader_parameter("bake_texels", texels)
 	mat.set_shader_parameter("has_bake", 1.0)
+	wave_field.set_bake(terrain.get_water_bake_image(), -size * 0.5, size.x / (texels - 1.0), texels)
 	_sea_wind = -1.0
 
 

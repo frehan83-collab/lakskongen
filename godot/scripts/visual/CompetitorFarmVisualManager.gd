@@ -85,6 +85,11 @@ func _spawn_competitor_farm(comp_id: String, name: String, position: Vector3, ma
 	var farm_root := Node3D.new()
 	farm_root.name = "CompetitorFarm_%s" % comp_id
 	farm_root.position = position
+	# The row of pens and its frame mooring lie along the channel, like the
+	# player's sites (FishPenManager.channel_yaw_at).
+	var pens := _fjord_env.get_node_or_null("FishPenManager") as FishPenManager
+	if pens != null:
+		farm_root.rotation.y = pens.channel_yaw_at(position.z)
 	_fjord_env.add_child(farm_root)
 	
 	# 2-4 pens, fixed per competitor (randi_range made every run look different),

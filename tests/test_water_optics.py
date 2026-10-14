@@ -20,6 +20,8 @@ SCENE = GODOT / "scenes/environment/FjordEnvironment.tscn"
 DIRECTOR = GODOT / "scripts/environment/EnvironmentDirector.gd"
 GRID = GODOT / "scripts/environment/WaterGrid.gd"
 SEA_MODEL = REPO / "src/LakskongenSim/Environment/SeaStateModel.cs"
+WAVE_FIELD = GODOT / "scripts/environment/WaveField.gd"
+FLOATERS = (GODOT / "scripts/environment/PenCage.gd", GODOT / "scripts/visual/VesselModel.gd")
 
 
 def _code(path: Path) -> str:
@@ -118,3 +120,46 @@ def test_water_reflects_with_f0_two_percent():
     spec = float(re.search(r"const float WATER_SPECULAR = ([\d.]+);", code).group(1))
     assert 0.0195 <= 0.16 * spec * spec <= 0.022
     assert re.search(r"SPECULAR = mix\(WATER_SPECULAR,", code)
+
+
+def _gd_const(text: str, name: str) -> float:
+    return float(re.search(rf"const {name} := ([-\d.e]+)", text).group(1))
+
+
+def test_the_cpu_wave_mirrors_the_shader_displacement():
+    """G2-03: pens and boats ride WaveField, the CPU copy of the water's
+    vertex displacement. Its band limit, shallow-water fade, open-ocean bake,
+    far fade and amplitude floor are the shader's own numbers, so a change
+    to the shader that the CPU copy misses fails here (the UI flow test
+    compares the two numerically)."""
+    shader = _code(WATER)
+    field = WAVE_FIELD.read_text(encoding="utf-8")
+    assert float(re.search(r"if \(wa\.w < ([\d.]+) \* grid_spacing\)", shader).group(1)) == _gd_const(field, "WAVE_MIN_SPACINGS")
+    band = re.search(r"smoothstep\(([\d.]+) \* grid_spacing, ([\d.]+) \* grid_spacing, wa\.w\)", shader)
+    assert (float(band.group(1)), float(band.group(2))) == (
+        _gd_const(field, "WAVE_MIN_SPACINGS"), _gd_const(field, "WAVE_FULL_SPACINGS"))
+    assert float(re.search(r"if \(depth < ([\d.]+)\)", shader).group(1)) == _gd_const(field, "SHALLOW_DEPTH_M")
+    shallow = re.search(r"a \*= d / \(d \+ ([\d.]+) \* wa\.w \+ ([\d.]+)\);", shader)
+    assert (float(shallow.group(1)), float(shallow.group(2))) == (
+        _gd_const(field, "SHALLOW_PER_WAVELENGTH"), _gd_const(field, "SHALLOW_OFFSET_M"))
+    assert float(re.search(r"if \(a < ([\d.e-]+)\)", shader).group(1)) == _gd_const(field, "MIN_AMPLITUDE_M")
+    ocean = re.search(r"mix\(vec4\(([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+)\), b, inside\)", shader).groups()
+    mirrored = re.search(r"const OPEN_OCEAN := Color\(([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+)\)", field).groups()
+    assert [float(v) for v in ocean] == [float(v) for v in mirrored]
+    assert float(re.search(r"smoothstep\(0\.0, ([\d.]+), min\(edge\.x, edge\.y\)\)", shader).group(1)) == _gd_const(field, "BAKE_EDGE_UV")
+    assert float(re.search(r"smoothstep\(([\d.]+) \* displaced_extent, displaced_extent, d_grid\)", shader).group(1)) == _gd_const(field, "FAR_FADE_FROM")
+    # The grid's spacing law and the Gerstner terms, as the shader writes them.
+    assert "grid_base_spacing * max(1.0, 2.0 * d_grid / (grid_half_units * grid_base_spacing))" in shader
+    assert "grid_base_spacing * maxf(1.0, 2.0 * d / (grid_half_units * grid_base_spacing))" in field
+    assert "d.xz += wk.w * a * (wk.xy / wk.z) * cos(ph);" in shader
+
+
+def test_the_director_hands_the_cpu_wave_the_shaders_arrays_and_bodies_ride_it():
+    director = DIRECTOR.read_text(encoding="utf-8")
+    assert re.search(r'set_shader_parameter\("wave_amp", amp\)\n\s+wave_field\.set_waves\(sea_state\["wave_k"\], amp\)', director), (
+        "the CPU wave must get the very arrays the shader's wave uniforms get, in the same frame"
+    )
+    assert "wave_field.set_bake(" in director and "WaveField.active = wave_field" in director
+    for path in FLOATERS:
+        code = path.read_text(encoding="utf-8")
+        assert "func ride_waves()" in code and "WaveField.active" in code, f"{path.name} must ride the drawn water"

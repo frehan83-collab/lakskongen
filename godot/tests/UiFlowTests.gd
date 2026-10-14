@@ -3063,8 +3063,9 @@ func _test_environment_director_owns_the_look() -> void:
 ## sheltered water; the sea comes from the wind and the fetch (a 3 m/s
 ## breeze leaves the basin near flat, a 20 m/s gale rolls 2-4 m seas on the
 ## open coast, wind never scales a fixed wave), its phases run on, and in a
-## 25 m/s storm the basin's highest stacked crest stays under the collar
-## top. The reflection probe never mirrors the water.
+## 25 m/s storm the pens and boats ride the water they float in (G2-03,
+## _check_waves_carry_pens_and_boats). The reflection probe never mirrors
+## the water.
 func _test_water_grid_bake_and_sea_state() -> void:
 	_check(_sim.start_qa_scenario("po3_red_sone", 91), "water: seeded scenario starts")
 	_sim.set_paused(true)
@@ -3164,20 +3165,267 @@ func _test_water_grid_bake_and_sea_state() -> void:
 	var phase_after: float = (mat.get_shader_parameter("wave_amp") as PackedVector4Array)[0].z
 	_check(not is_equal_approx(phase_before, phase_after), "water: the wave phases run on")
 
-	# Freeboard: until G2-03 makes the pens bob, the basin's waves stay under the collar.
+	# G2-03 replaced the G1-05 freeboard check ("a 25 m/s storm's highest
+	# crest at the pen stays under the collar top", which held only for a
+	# fixed collar "until G2-03 makes the pens bob"): the pens and boats now
+	# ride the water, so the checks follow the water they float in.
 	env.apply_sky_context({"weather_state": "Severe", "wind_ms": 25.0, "cloud_cover": 1.0, "visibility_km": 2.0})
 	director.compose(1.0 / 60.0)
-	var pen_node := pens._pens[pens.get_pen_ids()[0]]["node"] as Node3D
-	var collar := pen_node.get_node_or_null("Collar") as MeshInstance3D if pen_node != null else null
-	var collar_top := (collar.global_transform * collar.mesh.get_aabb()).end.y if collar != null else 0.0
-	var crest := director.max_crest_at(terrain.water_bake_at(first.x, first.z).b)
-	_check(collar != null and crest > 0.0 and crest < collar_top,
-		"water: a 25 m/s storm's highest crest at the pen (%.2f m) stays under the collar top (%.2f m)" % [crest, collar_top])
+	await _check_waves_carry_pens_and_boats(director, pens, grid, terrain, pens.get_pen_ids()[0])
 
 	_check(probe.reflection_mask & WaterGrid.RENDER_LAYER == 0 and grid.get_pieces()[0].layers == WaterGrid.RENDER_LAYER,
 		"water: the reflection probe leaves the water's layer out")
 	scene.queue_free()
 	await get_tree().process_frame
+
+## Sea time between samples of the riding checks (s): incommensurate with
+## every component's period, so the samples sweep their relative phases.
+const RIDE_SAMPLE_STEP_S := 0.137
+const RIDE_SAMPLES := 160
+const RIDE_RING_POINTS := 16
+const OPEN_COAST_SAMPLES := 40
+
+## G2-03: what the water draws carries the pens and boats.
+## 1. WaveField is the shader's wave: it holds the very wave, grid and bake
+##    uniforms the director writes to the water material, and the vertex
+##    displacement transcribed from water_shader.gdshader and fed those
+##    uniforms lands within 1 cm of WaveField.height_at at 96 points.
+## 2. In a 25 m/s storm, over RIDE_SAMPLES moments of the sea, the pen sits
+##    on its ring's mean surface (|y - mean| <= 0.1 m) and lies on its slope
+##    (within 0.005 of the least-squares plane), both sampled point by point
+##    round the ring, and the water at the collar ring stays under the
+##    riding collar's top (the old check asked this of a fixed collar and a
+##    worst-case crest).
+## 3. The barge, its tender RIB, the site's workboat and a waiting wellboat
+##    sit on the mean surface under their waterplanes (|y - mean| <= 0.1 m)
+##    and lie on its slope (pitch and roll within 0.01 of the sampled
+##    least-squares plane).
+## 4. On the open coast (exposure 1, Hs 4 m) the closed-form plane of a
+##    116 m hull stays within 0.1 m and 0.01 of the sampled one.
+func _check_waves_carry_pens_and_boats(director: EnvironmentDirector, pens: FishPenManager, grid: WaterGrid,
+		terrain: FjordTerrain, site_id: String) -> void:
+	var field := director.wave_field
+	var mat := director.water_material()
+	var image := terrain.get_water_bake_image()
+	var uniforms_ok: bool = WaveField.active == field and mat != null and image != null \
+		and field.wave_k.size() == 16 and field.wave_k == mat.get_shader_parameter("wave_k") \
+		and field.wave_amp == mat.get_shader_parameter("wave_amp") \
+		and is_equal_approx(field.grid_half_units, float(mat.get_shader_parameter("grid_half_units"))) \
+		and is_equal_approx(field.grid_base_spacing, float(mat.get_shader_parameter("grid_base_spacing"))) \
+		and is_equal_approx(field.displaced_extent, float(mat.get_shader_parameter("displaced_extent"))) \
+		and field.bake_origin == mat.get_shader_parameter("bake_origin") \
+		and is_equal_approx(field.bake_spacing, float(mat.get_shader_parameter("bake_spacing"))) \
+		and is_equal_approx(field.bake_texels, float(mat.get_shader_parameter("bake_texels"))) \
+		and is_equal_approx(field.has_bake, float(mat.get_shader_parameter("has_bake"))) \
+		and field.grid_origin() == grid.global_position
+	var pen_at := pens.get_pen_position(site_id)
+	var worst_vertex := 0.0
+	var drawn_height := 0.0
+	if uniforms_ok:
+		for i in 96:
+			# Out to 600 m: the 2, 4 and 8 m grid levels and their band limits.
+			var a := float(i) * 2.399963
+			var r := 600.0 * sqrt((float(i) + 0.5) / 96.0)
+			var p0 := Vector2(pen_at.x + cos(a) * r, pen_at.z + sin(a) * r)
+			var d := _shader_vertex(mat, image, grid.global_position, p0)
+			drawn_height = maxf(drawn_height, absf(d.y))
+			worst_vertex = maxf(worst_vertex, absf(field.height_at(p0.x + d.x, p0.y + d.z) - (grid.global_position.y + d.y)))
+	_check(uniforms_ok and drawn_height > 0.1 and worst_vertex <= 0.01,
+		"water: the CPU wave carries the shader's own wave, grid and bake uniforms and lands within %.6f m of its vertex displacement at 96 points (drawn heights to %.2f m)"
+			% [worst_vertex, drawn_height])
+
+	var cage := pens._pens[site_id]["node"] as PenCage
+	var collar := cage.get_node_or_null("Collar") as MeshInstance3D if cage != null else null
+	var collar_top := (collar.transform * collar.mesh.get_aabb()).end.y if collar != null else 0.0
+	var worst_heave := 0.0
+	var worst_tilt := 0.0
+	var worst_rise := -INF
+	var least_margin := INF
+	var heaves := PackedFloat32Array()
+	for step in RIDE_SAMPLES:
+		director.compose(RIDE_SAMPLE_STEP_S)
+		if cage == null:
+			break
+		cage.ride_waves()
+		# The ring's least-squares plane, sampled point by point.
+		var mean := 0.0
+		var xh := 0.0
+		var zh := 0.0
+		var xx := 0.0
+		var zz := 0.0
+		for k in RIDE_RING_POINTS:
+			var a := TAU * float(k) / RIDE_RING_POINTS
+			var dx := cos(a) * PenCage.RING_RADIUS
+			var dz := sin(a) * PenCage.RING_RADIUS
+			var h := field.height_at(pen_at.x + dx, pen_at.z + dz)
+			mean += h
+			xh += dx * h
+			zh += dz * h
+			xx += dx * dx
+			zz += dz * dz
+		mean /= RIDE_RING_POINTS
+		worst_heave = maxf(worst_heave, absf(cage.global_position.y - mean))
+		var up := cage.global_transform.basis.y
+		worst_tilt = maxf(worst_tilt, maxf(absf(-up.x / up.y - xh / xx), absf(-up.z / up.y - zh / zz)))
+		heaves.append(cage.global_position.y)
+		# The collar's inner and outer pipe (build_pen.py R_IN, R_OUT) round the ring.
+		for k in RIDE_RING_POINTS * 2:
+			var a := TAU * (floorf(float(k) * 0.5) + 0.5 * float(k % 2)) / RIDE_RING_POINTS
+			var radius := 25.465 if k % 2 == 0 else 26.565
+			var waterline := cage.global_transform * Vector3(cos(a) * radius, 0.0, sin(a) * radius)
+			var top := cage.global_transform * Vector3(cos(a) * radius, collar_top, sin(a) * radius)
+			var water := field.height_at(top.x, top.z)
+			worst_rise = maxf(worst_rise, water - waterline.y)
+			least_margin = minf(least_margin, top.y - water)
+	var heave_range := 0.0
+	if not heaves.is_empty():
+		heave_range = Array(heaves).max() - Array(heaves).min()
+	_check(cage != null and worst_heave <= 0.1 and heave_range > 0.05 and worst_tilt <= 0.005,
+		"water: in a 25 m/s storm the pen rides its ring's mean surface and slope (|y - mean| <= %.3f m, slope within %.4f, over %d moments, heave range %.2f m)"
+			% [worst_heave, worst_tilt, RIDE_SAMPLES, heave_range])
+	_check(collar != null and worst_rise > 0.0 and least_margin > 0.0,
+		"water: ... and the water round the riding collar rises at most %.2f m above its waterline, under its %.2f m top (least margin %.2f m)"
+			% [worst_rise, collar_top, least_margin])
+
+	var boats: WellboatVisualManager = pens.get_parent().get_node("WellboatVisualManager")
+	var barges: FeedBargeVisualManager = pens.get_parent().get_node("FeedBargeVisualManager")
+	boats.sail_seconds = 0.2
+	_sim.request_wellboat(site_id, "harvest")
+	_sim.state_updated.emit()
+	await get_tree().create_timer(0.5).timeout
+	var barge := barges.barge_of(site_id) as VesselModel
+	var riders: Array[VesselModel] = []
+	if barge != null:
+		riders.append(barge)
+		riders.append(barge.get_node_or_null("Tender") as VesselModel)
+	riders.append(pens.get_node_or_null("PenMarkers/%s_boat" % site_id) as VesselModel)
+	for id in boats.active_job_ids():
+		if boats._active_wellboats[id].site_id == site_id and boats.job_state(id) == "at_destination":
+			riders.append(boats._active_wellboats[id].boat as VesselModel)
+	var riders_ok := riders.size() == 4 and not riders.has(null)
+	var report := []
+	for boat in (riders if riders_ok else []):
+		var worst_y := 0.0
+		var worst_slope := 0.0
+		var tilt := 0.0
+		for step in 24:
+			director.compose(RIDE_SAMPLE_STEP_S * 3.0)
+			if boat.get_parent() is VesselModel:
+				(boat.get_parent() as VesselModel).ride_waves()
+			boat.ride_waves()
+			var fit := _waterplane_fit(field, boat.rest_transform(), boat.length_m * 0.5, boat.beam_m * 0.5)
+			var b := boat.global_transform.basis
+			var along := b.z.y / Vector2(b.z.x, b.z.z).length()
+			var across := b.x.y / Vector2(b.x.x, b.x.z).length()
+			worst_y = maxf(worst_y, absf(boat.global_position.y - fit.x))
+			worst_slope = maxf(worst_slope, maxf(absf(along - fit.y), absf(across - fit.z)))
+			tilt = maxf(tilt, rad_to_deg(maxf(absf(atan(along)), absf(atan(across)))))
+		riders_ok = riders_ok and worst_y <= 0.1 and worst_slope <= 0.01
+		report.append("%s dy %.3f m, slope %.4f, tilt to %.1f deg" % [boat.asset_id, worst_y, worst_slope, tilt])
+	_check(riders_ok,
+		"water: barge, tender, workboat and wellboat sit on the mean surface under their waterplanes and lie on its slope (%s)"
+			% ", ".join(report))
+
+	# The open coast, where boats sail out from the harbour: past the bake
+	# the sea is the exposed one (100 km fetch, Hs 4 m at 25 m/s), its long
+	# steep waves the hardest case for the closed forms (second order).
+	var coast := Vector3(0.0, 0.0, -2150.0)
+	var hull_rest := Transform3D(Basis(Vector3.UP, 0.3), coast)
+	# Framed at FARM zoom, so the grid draws the coast's waves down to 26 m.
+	var cam: FjordCamera = pens.get_parent().get_node("FjordCamera")
+	cam.look_at_position(coast, FjordCamera.ZoomLevel.FARM)
+	await _settle_camera(cam)
+	var coast_y := 0.0
+	var coast_slope := 0.0
+	var coast_heave := 0.0
+	var coast_sea := 0.0
+	for step in OPEN_COAST_SAMPLES:
+		director.compose(RIDE_SAMPLE_STEP_S * 5.0)
+		var plane := field.hull(coast.x, coast.z, Vector2(hull_rest.basis.z.x, hull_rest.basis.z.z),
+			Vector2(hull_rest.basis.x.x, hull_rest.basis.x.z), 58.0, 11.5)
+		var fit := _waterplane_fit(field, hull_rest, 58.0, 11.5)
+		coast_y = maxf(coast_y, absf(plane.x - fit.x))
+		coast_slope = maxf(coast_slope, maxf(absf(plane.y - fit.y), absf(plane.z - fit.z)))
+		coast_heave = maxf(coast_heave, absf(fit.x))
+		coast_sea = maxf(coast_sea, absf(field.height_at(coast.x, coast.z)))
+	_check(field.bake_at(coast.x, coast.z).b > 0.99 and coast_sea > 0.5 and coast_y <= 0.1 and coast_slope <= 0.01,
+		"water: on the open coast in the 25 m/s gale a 116 m hull's plane stays within %.3f m and %.4f of the sampled water (sea to %.2f m, hull heave to %.2f m, %d moments)"
+			% [coast_y, coast_slope, coast_sea, coast_heave, OPEN_COAST_SAMPLES])
+
+
+## Point spacing (m) of the sampled waterplane: under half the shortest wave
+## the 2 m grid draws (6 m), so the reference does not alias.
+const WATERPLANE_SAMPLE_M := 2.9
+
+## The least-squares plane of the drawn water under a waterplane, sampled
+## every WATERPLANE_SAMPLE_M over its length and beam: Vector3(mean, slope
+## along +Z, slope along +X).
+func _waterplane_fit(field: WaveField, rest: Transform3D, half_length: float, half_beam: float) -> Vector3:
+	var n_along := maxi(3, ceili(2.0 * half_length / WATERPLANE_SAMPLE_M) + 1)
+	var n_across := maxi(3, ceili(2.0 * half_beam / WATERPLANE_SAMPLE_M) + 1)
+	var sum := 0.0
+	var along := 0.0
+	var across := 0.0
+	var along_sq := 0.0
+	var across_sq := 0.0
+	for i in n_along:
+		for j in n_across:
+			var u := (float(i) / float(n_along - 1) * 2.0 - 1.0) * half_length
+			var v := (float(j) / float(n_across - 1) * 2.0 - 1.0) * half_beam
+			var p := rest * Vector3(v, 0.0, u)
+			var h := field.height_at(p.x, p.z)
+			sum += h
+			along += u * h
+			across += v * h
+			along_sq += u * u
+			across_sq += v * v
+	return Vector3(sum / float(n_along * n_across), along / along_sq, across / across_sq)
+
+
+## water_shader.gdshader vertex(): the displacement of the grid vertex at
+## p0, transcribed from the shader source and fed the material's uniforms
+## (an independent path to compare WaveField with).
+func _shader_vertex(mat: ShaderMaterial, image: Image, origin: Vector3, p0: Vector2) -> Vector3:
+	var wave_k: PackedVector4Array = mat.get_shader_parameter("wave_k")
+	var wave_amp: PackedVector4Array = mat.get_shader_parameter("wave_amp")
+	var half_units := float(mat.get_shader_parameter("grid_half_units"))
+	var base := float(mat.get_shader_parameter("grid_base_spacing"))
+	var extent := float(mat.get_shader_parameter("displaced_extent"))
+	var bake_origin: Vector2 = mat.get_shader_parameter("bake_origin")
+	var bake_spacing := float(mat.get_shader_parameter("bake_spacing"))
+	var texels := float(mat.get_shader_parameter("bake_texels"))
+	# bake_at(): linear filter between texel centres, clamped to the edge,
+	# faded to the open ocean over the last 1.5 % of the bake.
+	var uv := ((p0 - bake_origin) / bake_spacing + Vector2(0.5, 0.5)) / texels
+	var n := image.get_width()
+	var t := (uv * texels - Vector2(0.5, 0.5)).clamp(Vector2.ZERO, Vector2(n - 1, n - 1))
+	var c0 := Vector2i(mini(int(t.x), n - 2), mini(int(t.y), n - 2))
+	var f := t - Vector2(c0)
+	var bake := image.get_pixel(c0.x, c0.y).lerp(image.get_pixel(c0.x + 1, c0.y), f.x).lerp(
+		image.get_pixel(c0.x, c0.y + 1).lerp(image.get_pixel(c0.x + 1, c0.y + 1), f.x), f.y)
+	var edge := minf(minf(uv.x, 1.0 - uv.x), minf(uv.y, 1.0 - uv.y))
+	bake = Color(200.0, 8000.0, 1.0, 0.0).lerp(bake, smoothstep(0.0, 0.015, edge) * float(mat.get_shader_parameter("has_bake")))
+	var d_grid := maxf(absf(p0.x - origin.x), absf(p0.y - origin.z))
+	var spacing := base * maxf(1.0, 2.0 * d_grid / (half_units * base))
+	var d := Vector3.ZERO
+	for i in wave_k.size():
+		var wk := wave_k[i]
+		var wa := wave_amp[i]
+		if wa.w < 3.0 * spacing:
+			break
+		var a := lerpf(wa.x, wa.y, bake.b)
+		if bake.r < 40.0:
+			var depth := maxf(bake.r, 0.0)
+			a *= depth / (depth + 0.08 * wa.w + 0.5)
+		a *= smoothstep(3.0 * spacing, 6.0 * spacing, wa.w)
+		if a < 1e-4:
+			continue
+		var ph := fposmod(wk.x * p0.x + wk.y * p0.y - wa.z, TAU)
+		d.y += a * sin(ph)
+		d.x += wk.w * a * (wk.x / wk.z) * cos(ph)
+		d.z += wk.w * a * (wk.y / wk.z) * cos(ph)
+	return d * (1.0 - smoothstep(0.75 * extent, extent, d_grid))
+
 
 ## Hold a key down through the Input singleton for `frames` frames.
 func _hold_key(keycode: Key, frames: int) -> void:

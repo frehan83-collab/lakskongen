@@ -14,6 +14,13 @@ extends Node3D
 ##
 ## Every vessel shares the vessel_kit materials: job state is never painted
 ## on a hull (A3-01 accept 2), it shows on a VesselChip above the boat.
+##
+## Vessels float (roadmap G2-03): every frame ride_waves() heaves, pitches
+## and rolls the hull onto the plane that best fits the drawn water under
+## its waterplane (WaveField.hull). Owners keep x, z and yaw: a boat on a
+## PathFollow3D is moved along its route and turned as before. A vessel
+## carried by another (the barge's tender RIB) floats on its own water but
+## stays tied to its carrier's calm-water pose.
 
 ## Which build_vessels.py asset this scene shows.
 @export var asset_id: String = "wellboat"
@@ -26,6 +33,8 @@ extends Node3D
 @export var lod_switch: Vector2 = Vector2(260.0, 900.0)
 ## Past this camera distance (m) the vessel is not drawn at all (0: always).
 @export var max_distance: float = 0.0
+## Ride the drawn water (G2-03). Off: the vessel keeps the pose it is given.
+@export var rides_waves: bool = true
 
 const LOD_NAMES := ["", "LOD1", "LOD2"]
 const LOD_HYSTERESIS := 6.0
@@ -35,9 +44,89 @@ const NO_SHADOW_PARTS := ["Windows", "Safety"]
 const NO_SHADOW_PARTS_LOD1 := ["Machinery", "Rubber"]
 ## The part names build_vessels.py writes.
 const PART_NAMES := ["Hull", "Deck", "Superstructure", "Windows", "Machinery", "Rubber", "Crane", "Safety"]
+## Loaded draught (m) of each asset: the depth a route must keep under the
+## keel (route planning, ChannelBoat). Others: 6 % of the length.
+const DRAUGHT_M := {
+	"rib": 0.6, "workboat": 2.2, "feed_barge": 3.0, "feed_barge_large": 4.0,
+	"wellboat": 7.0, "wellboat_large": 8.5,
+}
+## Past lod_switch.y the vessel is LOD2 and its motion is under a pixel: it
+## rides every FAR_RIDE_FRAMES-th frame instead of every frame.
+const FAR_RIDE_FRAMES := 8
+
+## A carried vessel's pose on its carrier, captured the first time it is
+## needed (after the owner has placed it).
+var _rest_local := Transform3D.IDENTITY
+var _has_rest_local := false
+var _ride_slot := 0
 
 func _ready() -> void:
 	_configure_lods()
+	_ride_slot = int(get_instance_id() % FAR_RIDE_FRAMES)
+
+func _process(_delta: float) -> void:
+	if WaveField.active == null or not rides_waves:
+		return
+	# A carried vessel rides on its carrier's schedule, so it never keeps a
+	# stale pose on a carrier that has moved.
+	var carrier := _carrier()
+	var gauge: VesselModel = self if carrier == null else carrier
+	var near := gauge.lod_switch.y
+	var cam := get_viewport().get_camera_3d()
+	if cam != null and cam.global_position.distance_squared_to(gauge.global_position) > near * near \
+			and (Engine.get_process_frames() + gauge._ride_slot) % FAR_RIDE_FRAMES != 0:
+		return
+	ride_waves()
+
+## Water depth (m) this vessel needs under it.
+func get_draught() -> float:
+	return float(DRAUGHT_M.get(asset_id, 0.06 * length_m))
+
+## The calm-water pose now: where the owner put the vessel (its x, z and
+## yaw, or for a carried vessel its place on its carrier's calm-water pose),
+## at the waterline, level. Computed on demand, so it never depends on which
+## of a carrier and its passenger rode first.
+func rest_transform() -> Transform3D:
+	var parent := get_parent() as Node3D
+	var carrier := _carrier()
+	if carrier != null:
+		if not _has_rest_local:
+			_rest_local = Transform3D(Basis(Vector3.UP, rotation.y), Vector3(position.x, 0.0, position.z))
+			_has_rest_local = true
+		return carrier.rest_transform() * _rest_local
+	var frame: Transform3D = parent.global_transform if parent != null else Transform3D.IDENTITY
+	return frame * Transform3D(Basis(Vector3.UP, rotation.y), Vector3(position.x, 0.0, position.z))
+
+## Float on the drawn water: heave to the mean surface under the waterplane
+## (length_m x beam_m), pitch and roll to its mean slopes. A hull shorter
+## than a wave rides it; a wave shorter than the hull runs under it.
+func ride_waves() -> void:
+	var field := WaveField.active
+	if field == null or not rides_waves:
+		return
+	var parent := get_parent() as Node3D
+	var frame: Transform3D = parent.global_transform if parent != null else Transform3D.IDENTITY
+	var rest := rest_transform()
+	var along := Vector2(rest.basis.z.x, rest.basis.z.z).normalized()
+	var across := Vector2(rest.basis.x.x, rest.basis.x.z).normalized()
+	var plane := field.hull(rest.origin.x, rest.origin.z, along, across, length_m * 0.5, beam_m * 0.5)
+	# Rx(pitch) lifts local +Z by -tan(pitch); Rz(roll) lifts local +X by tan(roll).
+	var pitch := -atan(plane.y)
+	var roll := atan(plane.z)
+	if _carrier() != null:
+		var pose := Transform3D(rest.basis * Basis.from_euler(Vector3(pitch, 0.0, roll)),
+			Vector3(rest.origin.x, plane.x, rest.origin.z))
+		transform = frame.affine_inverse() * pose
+	else:
+		position.y = plane.x - frame.origin.y
+		rotation = Vector3(pitch, rotation.y, roll)
+
+## The floating vessel carrying this one (null for a vessel on its own).
+func _carrier() -> VesselModel:
+	var parent := get_parent()
+	if parent is VesselModel and (parent as VesselModel).rides_waves:
+		return parent as VesselModel
+	return null
 
 ## The meshes of one LOD level (0 = the direct children).
 func get_lod_meshes(level: int) -> Array[MeshInstance3D]:
