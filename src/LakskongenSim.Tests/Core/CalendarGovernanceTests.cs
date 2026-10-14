@@ -108,8 +108,8 @@ namespace LakskongenSim.Tests.Core
             };
             foreach (var line in old)
                 Assert.True(CSharpBans.Any(b => b.Pattern.IsMatch(line)), $"not caught: {line}");
-            Assert.True(GdScriptBans.Any(b => b.Pattern.IsMatch("if day % 30 == 1:")));
-            Assert.True(GdScriptBans.Any(b => b.Pattern.IsMatch("var auto_cost: int = int(premium / 30.0)")));
+            Assert.Contains(GdScriptBans, b => b.Pattern.IsMatch("if day % 30 == 1:"));
+            Assert.Contains(GdScriptBans, b => b.Pattern.IsMatch("var auto_cost: int = int(premium / 30.0)"));
         }
 
         [Fact]

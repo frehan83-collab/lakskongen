@@ -88,6 +88,26 @@ public partial class SimulationEngine
     }
 
     /// <summary>
+    /// Normal size (t) of a standard licence held in a zone's production area:
+    /// 945 t in Troms and Finnmark (PO10-PO13), 780 t elsewhere and on the
+    /// national reference. Data for the licence mechanics (S2-01).
+    /// </summary>
+    public int StandardLicenceMtbTonnes(string? zoneId)
+    {
+        int area = ProductionAreaOfZone(zoneId);
+        return ProductionAreas.IsValid(area)
+            ? ProductionAreas.Get(area).LicenceMtbTonnes
+            : ProductionAreas.StandardLicenceMtbTonnes;
+    }
+
+    /// <summary>True when a zone lies in the national PD zone (PO2-PO6; FOR-2017-08-29-1318).</summary>
+    public bool IsInPdZone(string? zoneId)
+    {
+        int area = ProductionAreaOfZone(zoneId);
+        return ProductionAreas.IsValid(area) && ProductionAreas.Get(area).InPdZone;
+    }
+
+    /// <summary>
     /// The lice limit (adult females per fish) a site must stay under today:
     /// 0.2 in its area's spring weeks (ISO 16-21 up to Nord-Trøndelag, 21-26 in
     /// Nordland, Troms and Finnmark), 0.5 otherwise (luseforskriften § 8).

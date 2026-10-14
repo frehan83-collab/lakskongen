@@ -251,6 +251,26 @@ namespace LakskongenSim.Tests.Environment
         }
 
         [Fact]
+        public void TheAreaRules_ReachTheEngine_ByZone()
+        {
+            var engine = NewEngine(seed: 1);
+            var (finnmark, _) = AddSite(engine, "fin", 12);
+            var (vestland, _) = AddSite(engine, "vest", 4);
+            var (helgeland, _) = AddSite(engine, "helg", 8);
+            Assert.Equal(945, engine.StandardLicenceMtbTonnes(finnmark.Id));
+            Assert.Equal(780, engine.StandardLicenceMtbTonnes(vestland.Id));
+            Assert.True(engine.IsInPdZone(vestland.Id));
+            Assert.False(engine.IsInPdZone(finnmark.Id));
+            Assert.False(engine.IsInPdZone(helgeland.Id));
+
+            // A game with no scenario and an unplaced zone: the national reference.
+            var bare = NewEngine(seed: 1);
+            bare.State.Zones.Add(new Zone("ingen"));
+            Assert.Equal(780, bare.StandardLicenceMtbTonnes("ingen"));
+            Assert.False(bare.IsInPdZone("ingen"));
+        }
+
+        [Fact]
         public void TheSharedAnomaly_HasItsCalibratedSpreadAndMemory()
         {
             const int seeds = 40, days = 3 * SimCalendar.DaysPerYear;

@@ -73,6 +73,7 @@ func _run() -> void:
 	await _test_event_alerts_and_vaccine_window()
 	await _test_fjord_shows_rival_farms_and_wellboats()
 	await _test_telemetry_oxygen_saturation_follows_the_sim()
+	await _test_zones_report_their_production_area_water()
 	await _test_honest_economy_reaches_the_ui()
 	await _test_pen_models_read_as_equipment()
 	await _test_hero_pen_and_site_kit()
@@ -950,6 +951,29 @@ func _test_telemetry_oxygen_saturation_follows_the_sim() -> void:
 		"telemetry: saturation reads %s for %.2f of %.2f mg/L (shown '%s')" % [expected, o2, sat, shown])
 	panel.queue_free()
 	await get_tree().process_frame
+
+## S2-02: each scenario's zones lie in their production area and reach the game
+## with the area's water; the HUD temperature is the home area's, and in August
+## Vestland's PO3 is far warmer than Finnmark's PO12 (same seed, same anomaly).
+func _test_zones_report_their_production_area_water() -> void:
+	_check(_sim.start_qa_scenario("krise_manager", 31), "areas: Finnmark scenario starts")
+	_sim.set_paused(true)
+	_sim.advance_days(225)
+	var north: Array = _sim.get_zone_traffic_lights()
+	_check(north.size() == 1 and int(north[0].get("production_area", 0)) == 12,
+		"areas: krise_manager's zone lies in PO12 (%s)" % [north])
+	var north_temp := float(north[0].get("water_temp_c", 0.0)) if north.size() > 0 else 0.0
+	_check(is_equal_approx(north_temp, float(_sim.get_current_temperature())),
+		"areas: the HUD temperature is the home area's water (%.2f vs %.2f)" % [north_temp, float(_sim.get_current_temperature())])
+	_check(_sim.start_qa_scenario("po3_red_sone", 31), "areas: PO3 scenario starts")
+	_sim.set_paused(true)
+	_sim.advance_days(225)
+	var south: Array = _sim.get_zone_traffic_lights()
+	var areas: Array = south.map(func(z): return int(z.get("production_area", 0)))
+	_check(areas == [3, 3], "areas: po3_red_sone's zones lie in PO3 (%s)" % [areas])
+	var south_temp := float(south[0].get("water_temp_c", 0.0)) if south.size() > 0 else 0.0
+	_check(south_temp > north_temp + 2.5,
+		"areas: mid-August PO3 water (%.1f C) is warmer than PO12 (%.1f C)" % [south_temp, north_temp])
 
 ## S1-03 (owner decision D16): each scenario's bankruptcy floor and the warning
 ## ladder reach the game; achievements carry a medal and tutorial steps no cash

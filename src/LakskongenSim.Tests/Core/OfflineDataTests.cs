@@ -46,14 +46,14 @@ namespace LakskongenSim.Tests.Core
         }
 
         [Fact]
-        public void TheListener_SeesAnHttpRequest()
+        public async System.Threading.Tasks.Task TheListener_SeesAnHttpRequest()
         {
             // Control: the listener below would see the engine reach for the
             // network. A request to a closed port on this machine fails at once.
             using var listener = new NetworkListener();
             using (var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) })
             {
-                try { http.GetAsync("http://127.0.0.1:9/").GetAwaiter().GetResult(); }
+                try { await http.GetAsync("http://127.0.0.1:9/"); }
                 catch (HttpRequestException) { }
                 catch (System.Threading.Tasks.TaskCanceledException) { }
             }
@@ -63,7 +63,7 @@ namespace LakskongenSim.Tests.Core
         [Fact]
         public void Initialize_MakesNoNetworkCall_EvenWithABarentsWatchTokenSet()
         {
-            string? saved = System.Environment.GetEnvironmentVariable("BARENTSWATCH_TOKEN");
+            string saved = System.Environment.GetEnvironmentVariable("BARENTSWATCH_TOKEN") ?? "";
             string cache = Path.Combine(AppContext.BaseDirectory, "Data", "barentswatch-snapshots");
             int cachedBefore = Directory.Exists(cache) ? Directory.GetFiles(cache).Length : -1;
             System.Environment.SetEnvironmentVariable("BARENTSWATCH_TOKEN", "test-token-s2-02");

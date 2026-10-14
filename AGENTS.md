@@ -155,6 +155,13 @@ The Phase 4 "Exit" in `NEXT_LEVEL_PLAN.md` has two gates an agent cannot close a
 - `DeterminismBanTests` scans for banned patterns
 - Twin-engine test: `EngineTwinRunDeterminismTests` advances 2 engines same seed → identical state
 
+### Calendar, production areas, sea temperature (S2-02)
+- `Core/SimCalendar.cs` is the one calendar: day 0 = Friday 1 January 2027, 365-day years, real months, ISO weeks. No `% 360`, `% 365` or 30-day months anywhere else (`CalendarGovernanceTests` greps for them); books close on the last day of the month/quarter
+- `Environment/ProductionAreas.cs`: 13 production areas (3 m monthly climatology from `tools/derive_po_sea_temperature.py`, lice spring weeks, PD zone, licence size); the national reference (area 0) only serves games with no scenario
+- A zone lies in an area only by data (`Zone.ProductionArea`, `production_area` on scenario sites; ids are never parsed); no area = the home area (`GameState.HomeProductionArea`)
+- `WeatherSystem` owns the shared anomaly; `SimulationEngine.HoldingWaterOf(population)` (`Environment/HoldingWater.cs`) is the water growth, feeding, stress deaths and the disease tick take — land-based and offshore farm types plug in there
+- D18: no network I/O in the sim; BarentsWatch reads offline files only (`OfflineDataTests`)
+
 ### CompetitorAI
 - 7 parody competitors (Mowier, SalMax, Herøy, Greed Gregarious, Offshore Optimists, NordLaks Nord)
 - Quarterly `AdvanceQuarter` (every 90 days) with financial updates, distress check, strategic actions
