@@ -68,6 +68,9 @@ func _run() -> void:
 	await _test_event_alerts_and_vaccine_window()
 	await _test_fjord_shows_rival_farms_and_wellboats()
 	_test_facade_forwards_phase5_systems()
+	await _test_terrain_faces_up_and_shares_one_heightfield()
+	await _test_camera_frames_sky_and_avoids_terrain()
+	await _test_camera_keys_leave_focused_controls_alone()
 
 	_clear_test_saves()
 	_finish()
@@ -1060,6 +1063,240 @@ func _test_fjord_shows_rival_farms_and_wellboats() -> void:
 	_check(boats.active_job_ids().is_empty(), "wellboat: the boat leaves the fjord after the trip home")
 	scene.queue_free()
 	await get_tree().process_frame
+
+## Golden heightfield hash of the game's fjord (seed 42, 512², 4 km): the
+## same value TerrainGeneratorTests.GoldenHashSeed42 pins in xUnit, so the
+## headless path, the windowed path (FjordTerrain logs it) and the .NET test
+## process all build one heightfield.
+const TERRAIN_GOLDEN_HASH := "75de3c1de415c49e"
+
+## G1-01: the fjord is one heightfield, wound so every triangle faces up,
+## with a HeightMapShape3D collider, uploaded without a long main-thread frame.
+func _test_terrain_faces_up_and_shares_one_heightfield() -> void:
+	var terrain := FjordTerrain.new()
+	add_child(terrain)
+	var analytic := terrain.get_height_at(150.0, 600.0)
+	for i in 600:
+		if terrain.is_ready():
+			break
+		await get_tree().process_frame
+	_check(terrain.is_ready(), "terrain: the worker thread builds the fjord")
+	if not terrain.is_ready():
+		terrain.queue_free()
+		return
+	_check(terrain.heightfield_hash == TERRAIN_GOLDEN_HASH,
+		"terrain: the heightfield hash matches the xUnit golden (%s)" % terrain.heightfield_hash)
+	_check(terrain.max_upload_frame_ms < 50.0,
+		"terrain: no main-thread upload step over 50 ms (%.1f ms)" % terrain.max_upload_frame_ms)
+	_check(absf(terrain.get_height_at(150.0, 600.0) - analytic) < 3.0,
+		"terrain: grid heights match the generator queried before the grid existed")
+
+	var faces := 0
+	var up := true
+	var agree := true
+	for mesh_instance in terrain.get_chunk_meshes():
+		var arrays := mesh_instance.mesh.surface_get_arrays(0)
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+		var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+		for t in range(0, indices.size(), 3):
+			var a := indices[t]
+			var b := indices[t + 1]
+			var c := indices[t + 2]
+			var n := Plane(verts[a], verts[b], verts[c]).normal
+			up = up and n.y > 0.0
+			agree = agree and n.dot(normals[a]) > 0.0 and n.dot(normals[b]) > 0.0 and n.dot(normals[c]) > 0.0
+			faces += 1
+	var n_side := terrain.terrain_resolution - 1
+	_check(faces == n_side * n_side * 2, "terrain: the chunks cover the grid (%d triangles)" % faces)
+	_check(up, "terrain: every triangle's Plane normal points up (clockwise winding)")
+	_check(agree, "terrain: every triangle agrees with its vertex normals")
+
+	# The collider is a HeightMapShape3D scaled to the grid: a ray finds the
+	# same ground the height query reports.
+	var shape_node := terrain.get_node("TerrainBody").get_child(0) as CollisionShape3D
+	_check(shape_node != null and shape_node.shape is HeightMapShape3D, "terrain: the collider is a HeightMapShape3D")
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var space := terrain.get_world_3d().direct_space_state
+	var hits_match := true
+	for probe in [Vector2(900.0, 300.0), Vector2(-1100.0, -200.0), Vector2(0.0, 1700.0), Vector2(-60.0, 0.0)]:
+		var query := PhysicsRayQueryParameters3D.create(Vector3(probe.x, 3000.0, probe.y), Vector3(probe.x, -800.0, probe.y))
+		var hit := space.intersect_ray(query)
+		hits_match = hits_match and not hit.is_empty() \
+			and absf((hit["position"] as Vector3).y - terrain.get_height_at(probe.x, probe.y)) < 1.5
+	_check(hits_match, "terrain: physics rays hit the collider at the queried heights")
+	terrain.queue_free()
+	await get_tree().process_frame
+
+## G1-03: at the FJORD and COAST defaults the horizon sits 10-25 % from the
+## top with >= 10 % sky; 200 seeded orbits per zoom keep the camera >= 20 m
+## over the ground with the focus in view; a 10 s orbit and zoom sweep never
+## moves the camera more than 2 % of its distance in a frame; UNDERWATER
+## goes below the surface.
+func _test_camera_frames_sky_and_avoids_terrain() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "camera: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var cam: FjordCamera = env.get_node("FjordCamera")
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	cam.auto_orbit_enabled = false
+	var first: Vector3 = pens.get_pen_position(pens.get_pen_ids()[0])
+	for zoom in [FjordCamera.ZoomLevel.FJORD, FjordCamera.ZoomLevel.COAST]:
+		cam.home_focus = first
+		cam.recentre()
+		cam.look_at_position(first, zoom)
+		await _settle_camera(cam)
+		var label: String = "FJORD" if zoom == FjordCamera.ZoomLevel.FJORD else "COAST"
+		var row := _horizon_row(cam)
+		_check(row >= 0.10 and row <= 0.25, "camera: %s horizon row %.3f of the frame height" % [label, row])
+		var sky := _sky_fraction(cam)
+		_check(sky >= 0.10, "camera: %s shows %.0f %% sky" % [label, sky * 100.0])
+
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1301
+	var slots := pens.get_recommended_locations()
+	for zoom in [FjordCamera.ZoomLevel.FARM, FjordCamera.ZoomLevel.FJORD, FjordCamera.ZoomLevel.COAST]:
+		var distance: float = FjordCamera.ZOOM_DISTANCE[zoom]
+		var pitch: float = FjordCamera.view_for_distance(distance).x
+		var clear := 0
+		var seen := 0
+		for i in 200:
+			var focus: Vector3 = slots[rng.randi_range(0, slots.size() - 1)] + Vector3(rng.randf_range(-60.0, 60.0), 0.0, rng.randf_range(-60.0, 60.0))
+			var pos := cam.solve_rig(focus, rng.randf_range(-PI, PI), distance, pitch)
+			if pos.y - maxf(terrain.get_height_at(pos.x, pos.z), terrain.water_level) >= 20.0:
+				clear += 1
+			if _line_clears_terrain(terrain, pos, focus):
+				seen += 1
+		_check(clear >= 198, "camera: zoom %d sits >= 20 m above the ground in %d/200 orbits" % [zoom, clear])
+		_check(seen >= 198, "camera: zoom %d sees the focus in %d/200 orbits" % [zoom, seen])
+
+	# 10 s orbit and zoom sweep at 60 fps, stepped by hand.
+	cam.set_process(false)
+	cam.look_at_position(first, FjordCamera.ZoomLevel.FJORD)
+	for i in 240:
+		cam._process(1.0 / 60.0)
+	var last := cam.global_position
+	var worst := 0.0
+	var centre := get_viewport().get_visible_rect().size * 0.5
+	for frame in 600:
+		cam._yaw_target += cam.rotate_speed / 60.0
+		if frame % 30 == 0:
+			cam._zoom_by(FjordCamera.ZOOM_STEP if (frame / 180) % 2 == 0 else 1.0 / FjordCamera.ZOOM_STEP, centre)
+		cam._process(1.0 / 60.0)
+		worst = maxf(worst, cam.global_position.distance_to(last) / cam.get_current_distance())
+		last = cam.global_position
+	_check(worst <= 0.02, "camera: the largest per-frame move in a 10 s orbit and zoom sweep is %.2f %% of the distance" % (worst * 100.0))
+	cam.set_process(true)
+
+	cam.look_at_position(first, FjordCamera.ZoomLevel.UNDERWATER)
+	await _settle_camera(cam)
+	_check(cam.global_position.y < 0.0, "camera: UNDERWATER goes below the surface (y = %.1f)" % cam.global_position.y)
+	cam.set_zoom_level(FjordCamera.ZoomLevel.FJORD)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## G1-03: camera keys never steal input from a focused Control: arrows on the
+## tab bar and WASD in a text field leave the camera still; with nothing
+## focused the same keys pan it.
+func _test_camera_keys_leave_focused_controls_alone() -> void:
+	var scene := await _spawn_game_scene()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var cam: FjordCamera = scene.get_node("FjordEnvironment/FjordCamera")
+	cam.auto_orbit_enabled = false
+	ui.show_tab("fjord")
+	await get_tree().process_frame
+	_check(cam.input_enabled, "camera keys: the Fjord tab turns camera input on")
+	var tab: Button = ui.find_child("Tab_fjord", true, false)
+	tab.grab_focus()
+	var before := cam.get_focus_point()
+	await _hold_key(KEY_RIGHT, 20)
+	_check(cam.get_focus_point() == before, "camera keys: the right arrow on the tab bar leaves the camera still")
+	_check(get_viewport().gui_get_focus_owner() != null, "camera keys: the arrow walked the tab bar instead")
+
+	var field := LineEdit.new()
+	scene.get_node("UILayer").add_child(field)
+	field.grab_focus()
+	before = cam.get_focus_point()
+	await _hold_key(KEY_W, 20)
+	_check(cam.get_focus_point() == before, "camera keys: W typed into a text field leaves the camera still")
+	_check(field.text.to_lower().contains("w"), "camera keys: the text field got the W ('%s')" % field.text)
+
+	get_viewport().gui_release_focus()
+	before = cam.get_focus_point()
+	await _hold_key(KEY_W, 20)
+	_check(cam.get_focus_point().distance_to(before) > 1.0, "camera keys: with nothing focused W pans the camera")
+	ui.show_tab("dashboard")
+	await get_tree().process_frame
+	_check(not cam.input_enabled, "camera keys: an opaque panel turns camera input off")
+	var hint: Control = scene.get_node("UILayer/CameraHint")
+	_check(not hint.visible, "camera keys: the camera hint hides behind an opaque panel")
+	before = cam.get_focus_point()
+	await _hold_key(KEY_W, 20)
+	_check(cam.get_focus_point() == before, "camera keys: W behind an opaque panel leaves the camera still")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Hold a key down through the Input singleton for `frames` frames.
+func _hold_key(keycode: Key, frames: int) -> void:
+	var down := InputEventKey.new()
+	down.keycode = keycode
+	down.physical_keycode = keycode
+	down.unicode = keycode + 32 if keycode >= KEY_A and keycode <= KEY_Z else 0
+	down.pressed = true
+	Input.parse_input_event(down)
+	for i in frames:
+		await get_tree().process_frame
+	var up := InputEventKey.new()
+	up.keycode = keycode
+	up.physical_keycode = keycode
+	up.pressed = false
+	Input.parse_input_event(up)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+func _settle_camera(cam: FjordCamera) -> void:
+	var last := Vector3.INF
+	for i in 3000:
+		await get_tree().process_frame
+		if cam.global_position.distance_to(last) < 0.001:
+			return
+		last = cam.global_position
+
+## Where the horizon (the horizontal through the camera) crosses the screen,
+## as a fraction of the frame height from the top.
+func _horizon_row(cam: Camera3D) -> float:
+	var forward := -cam.global_transform.basis.z
+	forward.y = 0.0
+	var far_point := cam.global_position + forward.normalized() * 100000.0
+	return cam.unproject_position(far_point).y / get_viewport().get_visible_rect().size.y
+
+## Fraction of a 48x27 grid of screen rays that rise into open sky.
+func _sky_fraction(cam: FjordCamera) -> float:
+	var size := get_viewport().get_visible_rect().size
+	var sky := 0
+	for gy in 27:
+		for gx in 48:
+			var p := Vector2((gx + 0.5) / 48.0 * size.x, (gy + 0.5) / 27.0 * size.y)
+			if cam.project_ray_normal(p).y > 0.0 and not cam.pick_ground(p).is_finite():
+				sky += 1
+	return float(sky) / float(48 * 27)
+
+## True when the straight line from the camera to the focus passes over the
+## terrain all the way (water never hides the focus).
+func _line_clears_terrain(terrain: FjordTerrain, from: Vector3, to: Vector3) -> bool:
+	for i in range(1, 100):
+		var p := from.lerp(to, float(i) / 100.0)
+		var ground := terrain.get_height_at(p.x, p.z)
+		if ground > terrain.water_level and p.y < ground:
+			return false
+	return true
 
 ## True when every baked point of a boat's path is at sea level over water.
 func _route_on_water(path: Path3D, terrain: FjordTerrain) -> bool:

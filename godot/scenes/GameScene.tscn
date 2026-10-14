@@ -28,7 +28,7 @@ script = ExtResource("8_main")
 [node name="FjordCamera" parent="FjordEnvironment"]
 auto_orbit_enabled = true
 auto_orbit_speed = 0.03
-far = 8000.0
+far = 20000.0
 
 [node name="TiltShiftCanvas" parent="FjordEnvironment"]
 layer = 1

@@ -23,6 +23,9 @@ extends Node3D
 @export_group("Debug")
 @export var debug_overlay: bool = false
 
+## Half-extent of the open-sea skirt around the water plane (metres).
+const OCEAN_SKIRT_EXTENT := 30000.0
+
 var _initialized: bool = false
 var _underwater_target: float = 0.0
 var _underwater_current: float = 0.0
@@ -33,6 +36,7 @@ func _ready() -> void:
 
 	if underwater_rect == null:
 		underwater_rect = get_node_or_null("UnderwaterCanvas/UnderwaterRect") as ColorRect
+	_build_ocean_skirt()
 	
 	if particle_effects:
 		var pen_mgr = get_node_or_null("/root/FishPenManager")
@@ -46,6 +50,51 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_update_underwater_post(delta)
+
+
+## Open sea beyond the 4 km water plane: a flat square ring out to
+## OCEAN_SKIRT_EXTENT that shares the water material, so the view out of the
+## fjord mouth ends at a horizon instead of the plane's edge. The far-field
+## terrain ring (G2-01) will frame it with distant coast.
+func _build_ocean_skirt() -> void:
+	if water_plane == null or get_node_or_null("OceanSkirt") != null:
+		return
+	var plane := water_plane.mesh as PlaneMesh
+	if plane == null:
+		return
+	var inner := plane.size * 0.5
+	var outer := OCEAN_SKIRT_EXTENT
+	var corners_in := [Vector3(-inner.x, 0, -inner.y), Vector3(inner.x, 0, -inner.y), Vector3(inner.x, 0, inner.y), Vector3(-inner.x, 0, inner.y)]
+	var corners_out := [Vector3(-outer, 0, -outer), Vector3(outer, 0, -outer), Vector3(outer, 0, outer), Vector3(-outer, 0, outer)]
+	var verts := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var tangents := PackedFloat32Array()
+	var uvs := PackedVector2Array()
+	for i in 4:
+		var j := (i + 1) % 4
+		# Two clockwise (seen from above) triangles per side of the ring.
+		for v: Vector3 in [corners_out[i], corners_out[j], corners_in[i], corners_in[i], corners_out[j], corners_in[j]]:
+			verts.append(v)
+			normals.append(Vector3.UP)
+			# Same tangent frame as the PlaneMesh, so the water's normal
+			# maps light the skirt like the plane.
+			tangents.append_array([1.0, 0.0, 0.0, 1.0])
+			uvs.append(Vector2(v.x / plane.size.x + 0.5, v.z / plane.size.y + 0.5))
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TANGENT] = tangents
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var skirt := MeshInstance3D.new()
+	skirt.name = "OceanSkirt"
+	skirt.mesh = mesh
+	skirt.material_override = water_plane.material_override
+	skirt.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	skirt.position = water_plane.position
+	add_child(skirt)
 
 
 ## Fade the underwater post-process overlay based on camera depth.
@@ -149,9 +198,7 @@ func set_season(s: float) -> void:
 	if time_system:
 		time_system.season = s
 	if terrain:
-		var mesh_inst := terrain.find_child("TerrainMesh")
-		if mesh_inst and mesh_inst.material_override is ShaderMaterial:
-			(mesh_inst.material_override as ShaderMaterial).set_shader_parameter("season", s)
+		terrain.set_season(s)
 
 
 ## Move camera to look at world position

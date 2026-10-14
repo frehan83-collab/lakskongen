@@ -145,20 +145,17 @@ func _generate_recommended_locations() -> void:
 			_recommended_locations.append(Vector3(0, 0, z))
 		return
 
-	# Generate locations based on fjord shape
-	var fjord_length = _terrain_ref.terrain_size.y
-	var start_z = -fjord_length * 0.4
+	# Slots run along the basin, inside the sill and short of the head delta.
+	var span: Vector2 = _terrain_ref.pen_slot_range()
 
 	for i in range(max_pens):
 		# Create pens along the winding fjord centerline.
 		var progress = float(i) / float(max_pens - 1)
-		var z = start_z + progress * fjord_length * 0.8
+		var z = lerpf(span.x, span.y, progress)
 
-		# The TRUE channel center, mirroring FjordTerrain's generator
-		# (fjord_center = sin(nz*2)*0.1 in normalized coords, x = nx*2000).
-		# The old sin(progress*4)*50 guess missed the channel entirely and
-		# parked pens on the cliff walls.
-		var fjord_center_x = sin(z / 1000.0) * 200.0
+		# The channel centreline comes from the terrain generator itself, so
+		# the slots follow the fjord wherever it winds.
+		var fjord_center_x = _terrain_ref.channel_center_x(z)
 
 		# Try different x positions to find deep water
 		var best_pos = Vector3(fjord_center_x, 0, z)

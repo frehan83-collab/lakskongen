@@ -20,6 +20,11 @@ var selected_pen_id: String = ""
 var sim_weather_enabled: bool = true
 
 signal farm_focused(pen_id: String)
+## The world is on screen (the see-through Fjord tab) or covered by a panel.
+signal world_view_changed(world_visible: bool)
+
+## True while the world is on screen; camera input and the camera hint follow it.
+var world_visible: bool = true
 
 ## UI lists (the Pens tab) select through this group, so a pen chosen in a
 ## list is selected in 3D too ("Fly to pen" needs a selection).
@@ -31,6 +36,8 @@ func _ready() -> void:
 	pen_manager = get_node_or_null(pen_manager_path) as FishPenManager
 	vista_camera = get_node_or_null(camera_path) as FjordCamera
 	game_ui = get_node_or_null(game_ui_path)
+	if game_ui and game_ui.has_signal("world_view_changed"):
+		game_ui.world_view_changed.connect(_on_world_view_changed)
 	if pen_manager:
 		pen_manager.pen_clicked.connect(_on_pen_clicked)
 		call_deferred("_initial_sync")
@@ -80,8 +87,17 @@ func _focus_first_pen() -> void:
 	var pen_ids := pen_manager.get_pen_ids()
 	if pen_ids.is_empty() or vista_camera == null:
 		return
-	vista_camera.fly_to_position(pen_manager.get_pen_position(pen_ids[0]),
-		FjordCamera.ZoomLevel.FJORD)
+	vista_camera.home_focus = pen_manager.get_pen_position(pen_ids[0])
+	vista_camera.fly_to_position(vista_camera.home_focus, FjordCamera.ZoomLevel.FJORD)
+
+
+## Camera keys, wheel and drags act only while the world is on screen; the
+## camera hint and "Fly to pen" hide behind opaque panels.
+func _on_world_view_changed(visible_now: bool) -> void:
+	world_visible = visible_now
+	if vista_camera:
+		vista_camera.input_enabled = visible_now
+	world_view_changed.emit(visible_now)
 
 
 func _on_state_updated() -> void:

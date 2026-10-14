@@ -213,12 +213,7 @@ underwater_rect = NodePath("UnderwaterCanvas/UnderwaterRect")
 [node name="Terrain" type="Node3D" parent="."]
 script = ExtResource("2_terrain")
 terrain_size = Vector2(4000, 4000)
-terrain_resolution = 256
-max_height = 400.0
-fjord_depth = 0.8
-fjord_width = 0.15
-cliff_steepness = 2.0
-island_count = 4
+terrain_resolution = 512
 terrain_seed = 42
 
 [node name="WaterPlane" type="MeshInstance3D" parent="."]

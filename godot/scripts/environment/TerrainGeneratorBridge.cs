@@ -1,65 +1,133 @@
+using System.Diagnostics;
 using Godot;
 using LakskongenSim.Environment;
 
 /// <summary>
-/// Thin Godot wrapper over <see cref="TerrainGenerator"/> (LakskongenSim).
+/// Godot face of <see cref="TerrainGenerator"/> (LakskongenSim): the one
+/// fjord heightfield, shared by headless and windowed runs.
 ///
-/// Lets GDScript terrain code consume the seeded C# ridged-fractal +
-/// domain-warp heightfield (which generates on background threads via
-/// Parallel.For inside <c>GenerateHeightmapAsync</c>) with a GDScript
-/// FastNoiseLite fallback when .NET is unavailable.
-///
-/// All methods are pure compute (no scene-tree access) so they are safe to
-/// call from a GDScript worker <c>Thread</c>; mesh building must still
-/// happen on the main thread via <c>call_deferred</c>.
+/// <see cref="Build"/> is pure compute (no scene-tree access), so
+/// <c>FjordTerrain.gd</c> calls it on a worker <c>Thread</c> and only hands
+/// the finished arrays to the GPU on the main thread. The point queries
+/// (<see cref="HeightAt"/>, <see cref="CenterX"/>) read the immutable
+/// generator and are safe from any thread.
 /// </summary>
-public partial class TerrainGeneratorBridge : Node
+public partial class TerrainGeneratorBridge : RefCounted
 {
-    /// <summary>
-    /// Generate a heightfield synchronously. Returns height values in the
-    /// same units as <c>FjordTerrain._generate_heightmap</c>
-    /// (fraction of <paramref name="maxHeight"/>, water level = 0).
-    /// </summary>
-    public float[] GenerateHeightmap(
-        int resolution,
-        int seed,
-        float fjordWidth = 0.15f,
-        float fjordDepth = 0.8f,
-        float cliffSteepness = 2.0f,
-        int islandCount = 4,
-        float channelFloor = 0.10f)
+    private TerrainGenerator _generator = new();
+
+    /// <summary>Set the seed, world size (metres) and grid resolution.</summary>
+    public void Configure(int seed, float worldSize, int resolution)
     {
-        var gen = new TerrainGenerator(seed)
+        _generator = new TerrainGenerator(new FjordTerrainSettings
         {
-            TerrainResolution = resolution,
-            FjordWidth = fjordWidth,
-            FjordDepth = fjordDepth,
-            CliffSteepness = cliffSteepness,
-            IslandCount = islandCount,
-            ChannelFloor = channelFloor,
-        };
-        return gen.GenerateHeightmap(resolution);
+            Seed = seed,
+            WorldSizeM = worldSize,
+            Resolution = resolution,
+        });
     }
 
     /// <summary>
-    /// Recommended pen anchor positions along the fjord channel, in world
-    /// metres (Y = 0, water level). Mirrors the C# channel-center math so
-    /// GDScript pen placement agrees with the sim side.
+    /// Generate the heightfield and the chunked render arrays. Keys: heights
+    /// (metres, row-major by Z), collider_heights (heights / spacing, for a
+    /// HeightMapShape3D scaled by the spacing), chunks (an Array of
+    /// Dictionaries with vertices, normals, tangents, uvs, colors, indices),
+    /// hash, spacing, resolution, build_ms.
     /// </summary>
-    public Godot.Vector3[] GetRecommendedPenPositions(
-        int maxPens,
-        int seed,
-        float terrainSizeX = 4000f,
-        float terrainSizeY = 4000f)
+    public Godot.Collections.Dictionary Build()
     {
-        var gen = new TerrainGenerator(seed)
+        var watch = Stopwatch.StartNew();
+        var settings = _generator.Settings;
+        int n = settings.Resolution;
+        float[] heights = _generator.GenerateHeightmap();
+        var mesh = TerrainMesh.Build(heights, n, settings.WorldSizeM, ChunkQuads);
+
+        var chunks = new Godot.Collections.Array();
+        foreach (var chunk in mesh.Chunks)
+            chunks.Add(ToGodot(chunk));
+        float spacing = settings.SpacingM;
+        var colliderHeights = new float[n * n];
+        for (int i = 0; i < colliderHeights.Length; i++)
+            colliderHeights[i] = heights[i] / spacing;
+
+        var result = new Godot.Collections.Dictionary
         {
-            TerrainSize = new LakskongenSim.Environment.Vector2(terrainSizeX, terrainSizeY),
+            ["heights"] = heights,
+            ["collider_heights"] = colliderHeights,
+            ["chunks"] = chunks,
+            ["hash"] = TerrainGenerator.HeightfieldHash(heights),
+            ["spacing"] = spacing,
+            ["resolution"] = n,
         };
-        var locs = gen.GetRecommendedLocations(maxPens);
-        var out_ = new Godot.Vector3[locs.Count];
+        result["build_ms"] = watch.Elapsed.TotalMilliseconds;
+        return result;
+    }
+
+    /// <summary>Quads per chunk side: 64 gives 8×8 chunks of 4,225 vertices for a 512 grid.</summary>
+    private const int ChunkQuads = 64;
+
+    private static Godot.Collections.Dictionary ToGodot(TerrainMesh.Chunk chunk)
+    {
+        int count = chunk.Columns * chunk.Rows;
+        var vertices = new Godot.Vector3[count];
+        var normals = new Godot.Vector3[count];
+        var uvs = new Godot.Vector2[count];
+        var colors = new Godot.Color[count];
+        for (int i = 0; i < count; i++)
+        {
+            vertices[i] = new Godot.Vector3(chunk.Positions[i * 3], chunk.Positions[i * 3 + 1], chunk.Positions[i * 3 + 2]);
+            normals[i] = new Godot.Vector3(chunk.Normals[i * 3], chunk.Normals[i * 3 + 1], chunk.Normals[i * 3 + 2]);
+            uvs[i] = new Godot.Vector2(chunk.Uvs[i * 2], chunk.Uvs[i * 2 + 1]);
+            colors[i] = new Godot.Color(chunk.Colors[i * 4], chunk.Colors[i * 4 + 1], chunk.Colors[i * 4 + 2], chunk.Colors[i * 4 + 3]);
+        }
+        return new Godot.Collections.Dictionary
+        {
+            ["vertices"] = vertices,
+            ["normals"] = normals,
+            ["tangents"] = chunk.Tangents,
+            ["uvs"] = uvs,
+            ["colors"] = colors,
+            ["indices"] = chunk.Indices,
+            ["first_column"] = chunk.FirstColumn,
+            ["first_row"] = chunk.FirstRow,
+        };
+    }
+
+    /// <summary>Heightfield hash for the configured settings (FNV-1a 64, hex).</summary>
+    public string HeightfieldHash() => TerrainGenerator.HeightfieldHash(_generator.GenerateHeightmap());
+
+    /// <summary>Analytic height in metres at world (x, z), before the grid exists.</summary>
+    public float HeightAt(float x, float z) => _generator.HeightAt(x, z);
+
+    /// <summary>World X of the channel centreline at world Z.</summary>
+    public float CenterX(float z) => _generator.CenterX(z);
+
+    /// <summary>True inside the steep fjord-wall band.</summary>
+    public bool IsWallBand(float x, float z) => _generator.IsWallBand(x, z);
+
+    /// <summary>Half-width of the fairway kept open through the skerries, in metres.</summary>
+    public float FairwayHalfWidth() => _generator.Settings.FairwayHalfWidthM;
+
+    /// <summary>World Z range (start, end) for pen slots along the basin.</summary>
+    public Godot.Vector2 PenSlotRange()
+    {
+        var (start, end) = _generator.PenSlotRange();
+        return new Godot.Vector2(start, end);
+    }
+
+    /// <summary>World Z of the sill (x) and of the fjord head (y).</summary>
+    public Godot.Vector2 MouthAndHead() => new(_generator.Settings.MouthZ, _generator.Settings.HeadZ);
+
+    /// <summary>
+    /// Recommended pen anchor positions along the fjord channel, in world
+    /// metres (Y = 0, water level).
+    /// </summary>
+    public Godot.Vector3[] GetRecommendedPenPositions(int maxPens)
+    {
+        var locs = _generator.GetRecommendedLocations(maxPens);
+        var result = new Godot.Vector3[locs.Count];
         for (int i = 0; i < locs.Count; i++)
-            out_[i] = new Godot.Vector3(locs[i].X, 0f, locs[i].Z);
-        return out_;
+            result[i] = new Godot.Vector3(locs[i].X, 0f, locs[i].Z);
+        return result;
     }
 }

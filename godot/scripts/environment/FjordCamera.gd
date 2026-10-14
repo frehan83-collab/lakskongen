@@ -1,73 +1,119 @@
 @tool
 class_name FjordCamera
 extends Camera3D
-## 3D Fjord Camera with zoom levels, tilt-shift, and smooth transitions.
-## Controls: WASD/Arrows to pan, scroll to zoom, middle-click to orbit.
+## Fjord camera rig: the camera orbits a focus point on the water.
+##
+## - Continuous zoom from 25 to 3000 m (x1.15 per wheel notch, toward the
+##   cursor). Pitch and field of view follow the distance (VIEW_TABLE), so
+##   the horizon sits 10-25 % from the top of the frame at the FJORD and
+##   COAST defaults and the farm is seen from above at FARM.
+## - Frame-rate-independent damping on every axis:
+##   x += (target - x) * (1 - exp(-k * dt)).
+## - Terrain avoidance lifts the camera until it clears the ground below it
+##   and the sight line to the focus; it never jumps over the focus.
+## - Input acts only while the world is on screen (input_enabled, set by the
+##   presenter) and never steals keys from a focused Control: arrows belong
+##   to any focused Control, letters to text fields.
+## - Controls: WASD/arrows pan, middle-drag pans, right-drag orbits, wheel
+##   zooms, Q/E rotate, Home recentres, T toggles top-down, double-click
+##   focuses. Idle auto-orbit starts after 30 s without input.
 
-# === Zoom Levels ===
 enum ZoomLevel { COAST, FJORD, FARM, UNDERWATER }
 
 @export var current_zoom: ZoomLevel = ZoomLevel.FJORD
 
-# Zoom presets: [altitude, fov, pitch_deg, tilt_shift_focus]
-# Altitudes are heights ABOVE the focus point; the camera orbits the focus
-# (position = focus + yaw-rotated offset) and looks at it, so the horizon
-# stays in frame instead of staring straight down.
-const ZOOM_PRESETS := {
-	ZoomLevel.COAST:      { "altitude": 1400.0, "fov": 45.0, "pitch": -35.0, "tilt_focus": 0.45 },
-	ZoomLevel.FJORD:      { "altitude": 380.0,  "fov": 45.0, "pitch": -26.0, "tilt_focus": 0.5 },
-	ZoomLevel.FARM:       { "altitude": 70.0,   "fov": 50.0, "pitch": -28.0, "tilt_focus": 0.55 },
-	ZoomLevel.UNDERWATER: { "altitude": -10.0,  "fov": 70.0, "pitch": -10.0, "tilt_focus": 0.5 },
+## Distance from the focus for each named zoom level (metres).
+const ZOOM_DISTANCE := {
+	ZoomLevel.COAST: 2400.0,
+	ZoomLevel.FJORD: 900.0,
+	ZoomLevel.FARM: 140.0,
+	ZoomLevel.UNDERWATER: 40.0,
 }
+## [distance m, pitch deg, vertical fov deg], interpolated in log distance.
+## FJORD: -17 deg at 45 deg fov puts the horizon 13 % from the top; COAST:
+## -20 deg at 52 deg fov, 13 %. FARM looks down on the pen.
+const VIEW_TABLE := [
+	[25.0, -36.0, 55.0],
+	[140.0, -32.0, 50.0],
+	[400.0, -24.0, 47.0],
+	[900.0, -17.0, 45.0],
+	[2400.0, -20.0, 52.0],
+	[3000.0, -21.0, 54.0],
+]
+const MIN_DISTANCE := 25.0
+const MAX_DISTANCE := 3000.0
+## Zoom bands for current_zoom: COAST at or beyond, FARM below.
+const COAST_BAND := 1600.0
+const FARM_BAND := 400.0
+const ZOOM_STEP := 1.15
+## Damping rates (1/s): yaw, pitch and the rig position; focus and distance
+## (slower, so one wheel notch moves the camera < 2 % of the distance per
+## frame at 60 fps).
+const DAMPING := 12.0
+const ZOOM_DAMPING := 5.0
+const SNAP_EPSILON := 0.0005
+## Terrain avoidance: clearance over the ground under the camera, and over
+## the terrain along the sight line, sampled SIGHT_SAMPLES times. Six samples
+## (the roadmap's first sketch) let ridges between them hide the focus in 9 %
+## of COAST orbits; 32 samples with 15 m clearance hide it in 0.5 %.
+const GROUND_CLEARANCE := 32.0
+const SIGHT_CLEARANCE := 15.0
+const SIGHT_SAMPLES := 32
+## Steepest view the avoidance may force before it pulls the camera closer.
+const MAX_ELEVATION_DEG := 78.0
+const MIN_PITCH_DEG := -85.0
+const MAX_PITCH_DEG := -5.0
+const TOP_DOWN_PITCH_DEG := -89.0
+## Soft limit for the focus and the camera: the world is 4 km and has no far
+## field yet (G2-01), so stay this far inside its edge.
+const EDGE_MARGIN := 300.0
+const IDLE_ORBIT_DELAY := 30.0
+const UNDERWATER_DEPTH := 8.0
+const UNDERWATER_LOOK_DEPTH := 6.0
+const UNDERWATER_SEABED_CLEARANCE := 4.0
 
-# === Movement Settings ===
 @export_group("Movement")
-@export var pan_speed: float = 200.0
-@export var pan_acceleration: float = 8.0
-@export var zoom_speed: float = 5.0
-@export var orbit_speed: float = 0.003
-@export var transition_speed: float = 2.0
+## Pan speed as a fraction of the zoom distance per second.
+@export var pan_speed: float = 0.8
+## Q/E rotation speed (rad/s) and right-drag orbit sensitivity (rad/px).
+@export var rotate_speed: float = 0.6
+@export var orbit_speed: float = 0.005
 
-# === Auto Orbit (vista background drift) ===
 @export_group("AutoOrbit")
+## Slow orbit once the player has left the camera alone for IDLE_ORBIT_DELAY.
 @export var auto_orbit_enabled: bool = false
 @export var auto_orbit_speed: float = 0.03
 
-# === Boundaries ===
-@export_group("Boundaries")
-@export var min_x: float = -2000.0
-@export var max_x: float = 2000.0
-@export var min_z: float = -2000.0
-@export var max_z: float = 2000.0
-
-# === Tilt-Shift ===
 @export_group("Tilt-Shift")
-## The tilt-shift focus band rendered solid black on Metal because
-## blur_sample() divided by zero inside the focus band (0/0 = NaN). The
-## shader now skips the blur when blur_factor < 0.001, so this is safe.
 @export var tilt_shift_enabled: bool = true
 @export var tilt_shift_material: ShaderMaterial
-## Optional terrain reference used to keep the camera out of the mountainside.
+## Terrain for avoidance, the fjord axis and cursor picking.
 @export var terrain: FjordTerrain
 
-# Internal state
-var _target_position: Vector3 = Vector3.ZERO
-var _target_altitude: float = 550.0
-var _smooth_altitude: float = 550.0
-var _target_fov: float = 45.0
-var _target_pitch: float = -30.0
-## Start looking ACROSS the fjord (water + pens + far shore) instead of
-## straight down the channel at the near cliff wall.
-## Look down the channel (the water runs for kilometres along Z) rather
-## than across it: across-channel framing puts the near cliff wall between
-## the camera and the pens. The over-water search below keeps it honest.
-var _yaw: float = 0.0  # Rotation around Y axis
-var _velocity: Vector3 = Vector3.ZERO
-var _is_orbiting: bool = false
-var _orbit_start: Vector2 = Vector2.ZERO
-var _zoom_interpolation: float = 0.0
-var _is_underwater: bool = false
+## Camera input acts only while this is true (the presenter clears it while
+## an opaque panel covers the world).
+var input_enabled: bool = true
+## Where Home recentres (the presenter sets it to the first pen).
+var home_focus: Vector3 = Vector3.ZERO
+
+var _focus_target := Vector3.ZERO
+var _focus := Vector3.ZERO
+var _distance_target: float = ZOOM_DISTANCE[ZoomLevel.FJORD]
+var _distance: float = ZOOM_DISTANCE[ZoomLevel.FJORD]
+var _yaw_target: float = 0.0
+var _yaw: float = 0.0
+var _pitch_offset_target: float = 0.0
+var _pitch_offset: float = 0.0
+var _top_down := false
+var _top_down_blend: float = 0.0
+var _underwater := false
+var _rig_position := Vector3.ZERO
+var _user_rotated := false
+var _idle_time: float = 0.0
+var _orbiting := false
+var _panning := false
 var _fly_tween: Tween = null
+var _settled := false
 
 signal zoom_level_changed(level: ZoomLevel)
 signal entered_underwater()
@@ -75,210 +121,447 @@ signal exited_underwater()
 
 
 func _ready() -> void:
-	# Auto-find tilt-shift material from TiltShiftCanvas sibling
 	if not tilt_shift_material:
 		var canvas := get_parent().get_node_or_null("TiltShiftCanvas")
 		if canvas:
 			var rect := canvas.get_node_or_null("TiltShiftRect") as ColorRect
 			if rect and rect.material is ShaderMaterial:
 				tilt_shift_material = rect.material as ShaderMaterial
+	_distance_target = ZOOM_DISTANCE[current_zoom] if current_zoom != ZoomLevel.UNDERWATER else ZOOM_DISTANCE[ZoomLevel.FARM]
+	_underwater = current_zoom == ZoomLevel.UNDERWATER
+	_yaw_target = home_yaw(_focus_target)
+	_snap()
 
-	_apply_zoom_preset(current_zoom)
-	_update_camera_transform()
+
+# ── Public API ────────────────────────────────────────────────────────────────
+
+func set_zoom_level(level: ZoomLevel) -> void:
+	var was_underwater := _underwater
+	_underwater = level == ZoomLevel.UNDERWATER
+	_distance_target = ZOOM_DISTANCE[level]
+	_update_zoom_band(level)
+	if _underwater and not was_underwater:
+		entered_underwater.emit()
+	elif was_underwater and not _underwater:
+		exited_underwater.emit()
+
+
+## Focus a world position at a zoom level (eased by the rig's damping).
+func look_at_position(world_pos: Vector3, zoom: ZoomLevel = current_zoom) -> void:
+	_cancel_fly()
+	_set_focus_target(world_pos)
+	set_zoom_level(zoom)
+
+
+## Eased fly-to: tweens the focus over `duration` seconds; the damping keeps
+## every other axis smooth.
+func fly_to_position(world_pos: Vector3, zoom: ZoomLevel = current_zoom, duration: float = 1.2) -> void:
+	set_zoom_level(zoom)
+	_cancel_fly()
+	var dest := _clamp_to_world(Vector3(world_pos.x, 0.0, world_pos.z))
+	if not _user_rotated:
+		_yaw_target = _nearest_angle(_yaw, home_yaw(dest))
+	if not is_inside_tree() or duration <= 0.0:
+		_focus_target = dest
+		return
+	_fly_tween = create_tween()
+	_fly_tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	_fly_tween.tween_property(self, "_focus_target", dest, duration)
+
+
+## Back to the home view: home focus, fjord-axis yaw, table pitch, no top-down.
+func recentre() -> void:
+	_user_rotated = false
+	_top_down = false
+	_pitch_offset_target = 0.0
+	if _underwater:
+		set_zoom_level(ZoomLevel.FJORD)
+	fly_to_position(home_focus, current_zoom, 0.8)
+
+
+func set_top_down(enabled: bool) -> void:
+	_top_down = enabled
+
+
+func is_top_down() -> bool:
+	return _top_down
+
+
+## The focus point on the water.
+func get_focus_point() -> Vector3:
+	return _focus_target
+
+
+## Distance from the focus the rig is heading for (metres).
+func get_zoom_distance() -> float:
+	return _distance_target
+
+
+## Current (damped) distance from the focus.
+func get_current_distance() -> float:
+	return _distance
+
+
+## Yaw that looks along the fjord toward its mouth (-Z) from behind `focus`.
+func home_yaw(focus: Vector3) -> float:
+	var ahead := Vector3(0.0, 0.0, -1.0)
+	if terrain != null and terrain.has_method("channel_center_x"):
+		var x_ahead := terrain.channel_center_x(focus.z - 150.0)
+		var x_behind := terrain.channel_center_x(focus.z + 150.0)
+		ahead = Vector3(x_ahead - x_behind, 0.0, -300.0).normalized()
+	# The camera sits behind the focus, opposite the view direction.
+	return atan2(-ahead.x, -ahead.z)
+
+
+## Pitch (deg) and fov (deg) the table gives at a distance.
+static func view_for_distance(distance: float) -> Vector2:
+	var d := clampf(distance, VIEW_TABLE[0][0], VIEW_TABLE[VIEW_TABLE.size() - 1][0])
+	for i in range(VIEW_TABLE.size() - 1):
+		var a: Array = VIEW_TABLE[i]
+		var b: Array = VIEW_TABLE[i + 1]
+		if d <= b[0]:
+			var t := (log(d) - log(a[0])) / (log(b[0]) - log(a[0]))
+			return Vector2(lerpf(a[1], b[1], t), lerpf(a[2], b[2], t))
+	var last: Array = VIEW_TABLE[VIEW_TABLE.size() - 1]
+	return Vector2(last[1], last[2])
+
+
+## Steady-state camera position for a focus, yaw, distance and pitch (deg):
+## the orbit position, lifted clear of the terrain and of the sight line,
+## and pulled in if the lift alone would look straight down. Pure: the
+## avoidance tests drive it directly.
+func solve_rig(focus: Vector3, yaw: float, distance: float, pitch_deg: float) -> Vector3:
+	var water_y := _water_level()
+	if _underwater:
+		return _solve_underwater(focus, yaw, distance)
+	var pitch := deg_to_rad(pitch_deg)
+	var horiz := distance * cos(pitch)
+	var rise := distance * sin(-pitch)
+	var dir := Vector3(sin(yaw), 0.0, cos(yaw))
+	var max_tan := tan(deg_to_rad(MAX_ELEVATION_DEG))
+	var pos := _clamp_to_world(focus + dir * horiz + Vector3(0.0, rise, 0.0))
+	horiz = Vector2(pos.x - focus.x, pos.z - focus.z).length()
+	var need := _required_height(focus, pos, water_y)
+	if need <= pos.y:
+		return pos
+	if horiz < 1.0 or (need - focus.y) / horiz <= max_tan:
+		pos.y = need
+		return pos
+	# Lifting alone would look straight down: come in along the same bearing
+	# to the farthest distance whose lift stays under MAX_ELEVATION_DEG
+	# (bisection, so the answer moves smoothly with yaw and zoom).
+	var lo := 0.0
+	var hi := horiz
+	for i in range(14):
+		var mid := (lo + hi) * 0.5
+		var probe := _clamp_to_world(focus + dir * mid + Vector3(0.0, rise * mid / horiz, 0.0))
+		var probe_need := maxf(_required_height(focus, probe, water_y), probe.y)
+		if (probe_need - focus.y) / maxf(mid, 1.0) <= max_tan:
+			lo = mid
+		else:
+			hi = mid
+	pos = _clamp_to_world(focus + dir * lo + Vector3(0.0, rise * lo / horiz, 0.0))
+	pos.y = maxf(_required_height(focus, pos, water_y), pos.y)
+	return pos
+
+
+# ── Frame update ──────────────────────────────────────────────────────────────
+
+func _process(delta: float) -> void:
+	if not Engine.is_editor_hint():
+		_process_keys(delta)
+		_process_idle_orbit(delta)
+	_damp(delta)
+	_apply_transform()
+	_update_tilt_shift()
+
+
+func _damp(delta: float) -> void:
+	var k := 1.0 - exp(-DAMPING * delta)
+	var kz := 1.0 - exp(-ZOOM_DAMPING * delta)
+	_focus = _approach_v(_focus, _focus_target, kz)
+	_distance = _approach(_distance, _distance_target, kz)
+	_yaw = _approach(_yaw, _yaw_target, k)
+	_pitch_offset = _approach(_pitch_offset, _pitch_offset_target, k)
+	_top_down_blend = _approach(_top_down_blend, 1.0 if _top_down else 0.0, k)
+	var view := view_for_distance(_distance)
+	var pitch := clampf(view.x + _pitch_offset, MIN_PITCH_DEG, MAX_PITCH_DEG)
+	pitch = lerpf(pitch, TOP_DOWN_PITCH_DEG, _top_down_blend)
+	var target := solve_rig(_focus, _yaw, _distance, pitch)
+	_rig_position = _approach_v(_rig_position, target, k)
+	var fov_target := 70.0 if _underwater else view.y
+	fov = _approach(fov, fov_target, k)
+
+
+func _apply_transform() -> void:
+	var look := _focus
+	if _underwater:
+		look.y = _water_level() - UNDERWATER_LOOK_DEPTH
+	if (_rig_position - global_position).length_squared() > 0.0000001 or not _settled:
+		global_position = _rig_position
+		if Vector2(look.x - _rig_position.x, look.z - _rig_position.z).length() > 0.01:
+			look_at(look, Vector3.UP)
+		_settled = true
+
+
+func _snap() -> void:
+	_focus = _focus_target
+	_distance = _distance_target
+	_yaw = _yaw_target
+	_pitch_offset = _pitch_offset_target
+	_top_down_blend = 1.0 if _top_down else 0.0
+	var view := view_for_distance(_distance)
+	fov = 70.0 if _underwater else view.y
+	_rig_position = solve_rig(_focus, _yaw, _distance, clampf(view.x, MIN_PITCH_DEG, MAX_PITCH_DEG))
+	_settled = false
+	_apply_transform()
+
+
+func _approach(current: float, target: float, k: float) -> float:
+	if absf(target - current) < SNAP_EPSILON:
+		return target
+	return current + (target - current) * k
+
+
+func _approach_v(current: Vector3, target: Vector3, k: float) -> Vector3:
+	if current.distance_to(target) < SNAP_EPSILON:
+		return target
+	return current + (target - current) * k
+
+
+# ── Terrain avoidance ─────────────────────────────────────────────────────────
+
+## Lowest camera height that clears the ground under it and the terrain along
+## the sight line to the focus.
+func _required_height(focus: Vector3, pos: Vector3, water_y: float) -> float:
+	var need := maxf(_ground(pos.x, pos.z), water_y) + GROUND_CLEARANCE
+	for i in range(1, SIGHT_SAMPLES + 1):
+		var t := float(i) / float(SIGHT_SAMPLES + 1)
+		var p := pos.lerp(focus, t)
+		var ground := _ground(p.x, p.z)
+		if ground <= water_y:
+			continue  # water never hides the focus
+		# The sight line at t is pos.y*(1-t) + focus.y*t: solve for pos.y.
+		need = maxf(need, (ground + SIGHT_CLEARANCE - focus.y * t) / (1.0 - t))
+	return need
+
+
+func _solve_underwater(focus: Vector3, yaw: float, distance: float) -> Vector3:
+	var water_y := _water_level()
+	var dir := Vector3(sin(yaw), 0.0, cos(yaw))
+	var pos := focus + dir * distance
+	pos.y = water_y - UNDERWATER_DEPTH
+	var seabed := _ground(pos.x, pos.z)
+	pos.y = maxf(pos.y, minf(seabed + UNDERWATER_SEABED_CLEARANCE, water_y - 1.0))
+	return pos
+
+
+func _ground(x: float, z: float) -> float:
+	if terrain != null and terrain.has_method("get_height_at"):
+		return terrain.get_height_at(x, z)
+	return -1000.0
+
+
+func _water_level() -> float:
+	if terrain != null:
+		return terrain.water_level
+	return 0.0
+
+
+# ── World bounds ──────────────────────────────────────────────────────────────
+
+func _world_half() -> Vector2:
+	if terrain != null:
+		return terrain.terrain_size * 0.5 - Vector2.ONE * EDGE_MARGIN
+	return Vector2(2000.0, 2000.0) - Vector2.ONE * EDGE_MARGIN
+
+
+## Clamp per axis: as the camera orbits, the clamped point slides along the
+## edge no faster than the orbit itself.
+func _clamp_to_world(p: Vector3) -> Vector3:
+	var half := _world_half()
+	return Vector3(clampf(p.x, -half.x, half.x), p.y, clampf(p.z, -half.y, half.y))
+
+
+# ── Input ─────────────────────────────────────────────────────────────────────
+
+func _input(_event: InputEvent) -> void:
+	_idle_time = 0.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if Engine.is_editor_hint() or not input_enabled:
+		return
 	if event is InputEventMouseButton:
 		_handle_mouse_button(event)
-	elif event is InputEventMouseMotion and _is_orbiting:
-		_handle_orbit(event)
+	elif event is InputEventMouseMotion:
+		if _orbiting:
+			_handle_orbit(event)
+		elif _panning:
+			_handle_drag_pan(event)
+	elif event is InputEventKey and event.pressed and not event.echo:
+		_handle_key(event)
 
 
 func _handle_mouse_button(event: InputEventMouseButton) -> void:
 	match event.button_index:
 		MOUSE_BUTTON_WHEEL_UP:
 			if event.pressed:
-				_zoom_in()
+				_zoom_by(1.0 / ZOOM_STEP, event.position)
 		MOUSE_BUTTON_WHEEL_DOWN:
 			if event.pressed:
-				_zoom_out()
-		MOUSE_BUTTON_MIDDLE:
-			_set_orbiting(event.pressed, event.position)
+				_zoom_by(ZOOM_STEP, event.position)
 		MOUSE_BUTTON_RIGHT:
-			_set_orbiting(event.pressed, event.position)
-
-
-func _set_orbiting(pressed: bool, mouse_pos: Vector2) -> void:
-	_is_orbiting = pressed
-	if pressed:
-		_orbit_start = mouse_pos
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	else:
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+			_orbiting = event.pressed
+		MOUSE_BUTTON_MIDDLE:
+			_panning = event.pressed
+		MOUSE_BUTTON_LEFT:
+			if event.pressed and event.double_click:
+				var hit := pick_ground(event.position)
+				if hit.is_finite():
+					fly_to_position(hit, current_zoom, 0.6)
 
 
 func _handle_orbit(event: InputEventMouseMotion) -> void:
-	_yaw -= event.relative.x * orbit_speed
-	var pitch_delta := event.relative.y * orbit_speed * 40.0
-	_target_pitch = clampf(_target_pitch + pitch_delta, -80.0, -5.0)
+	_user_rotated = true
+	_yaw_target -= event.relative.x * orbit_speed
+	_pitch_offset_target = clampf(_pitch_offset_target - event.relative.y * orbit_speed * 30.0, -40.0, 15.0)
 
 
-func _zoom_in() -> void:
-	var idx := int(current_zoom)
-	if idx < ZoomLevel.UNDERWATER:
-		set_zoom_level(idx + 1 as ZoomLevel)
+func _handle_drag_pan(event: InputEventMouseMotion) -> void:
+	var viewport_h := maxf(get_viewport().get_visible_rect().size.y, 1.0)
+	var metres_per_px := 2.0 * _distance * tan(deg_to_rad(fov) * 0.5) / viewport_h
+	var move := Vector2(-event.relative.x, -event.relative.y).rotated(-_yaw) * metres_per_px
+	_set_focus_target(_focus_target + Vector3(move.x, 0.0, move.y))
 
 
-func _zoom_out() -> void:
-	var idx := int(current_zoom)
-	if idx > ZoomLevel.COAST:
-		set_zoom_level(idx - 1 as ZoomLevel)
-
-
-func set_zoom_level(level: ZoomLevel) -> void:
-	if level == current_zoom:
+func _handle_key(event: InputEventKey) -> void:
+	if not _letter_keys_allowed():
 		return
-	current_zoom = level
-	_apply_zoom_preset(level)
-	zoom_level_changed.emit(level)
-
-	# Underwater transition
-	var was_underwater := _is_underwater
-	_is_underwater = (level == ZoomLevel.UNDERWATER)
-	if _is_underwater and not was_underwater:
-		entered_underwater.emit()
-	elif not _is_underwater and was_underwater:
-		exited_underwater.emit()
+	match event.keycode:
+		KEY_HOME:
+			recentre()
+			get_viewport().set_input_as_handled()
+		KEY_T:
+			set_top_down(not _top_down)
+			get_viewport().set_input_as_handled()
 
 
-func _apply_zoom_preset(level: ZoomLevel) -> void:
-	var preset: Dictionary = ZOOM_PRESETS[level]
-	_target_altitude = preset["altitude"]
-	_target_fov = preset["fov"]
-	_target_pitch = preset["pitch"]
-
-	if tilt_shift_material and tilt_shift_enabled:
-		tilt_shift_material.set_shader_parameter("focus_center", preset["tilt_focus"])
-
-
-func _process(delta: float) -> void:
-	_process_pan_input(delta)
-	_process_auto_orbit(delta)
-	_interpolate_camera(delta)
-	_update_camera_transform()
-	_update_tilt_shift()
-
-
-func _process_auto_orbit(delta: float) -> void:
-	if auto_orbit_enabled and not _is_orbiting:
-		_yaw += auto_orbit_speed * delta
+func _process_keys(delta: float) -> void:
+	if not input_enabled:
+		return
+	var pan := Vector2.ZERO
+	var rotate := 0.0
+	if _letter_keys_allowed():
+		pan.x += float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A))
+		pan.y += float(Input.is_physical_key_pressed(KEY_S)) - float(Input.is_physical_key_pressed(KEY_W))
+		rotate += float(Input.is_physical_key_pressed(KEY_E)) - float(Input.is_physical_key_pressed(KEY_Q))
+	if _arrow_keys_allowed():
+		pan.x += float(Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_LEFT))
+		pan.y += float(Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_UP))
+	if pan != Vector2.ZERO:
+		var move := pan.normalized().rotated(-_yaw) * pan_speed * _distance_target * delta
+		_set_focus_target(_focus_target + Vector3(move.x, 0.0, move.y))
+		_cancel_fly()
+	if rotate != 0.0:
+		_user_rotated = true
+		_yaw_target += rotate * rotate_speed * delta
 
 
-func _process_pan_input(delta: float) -> void:
-	var input_dir := Vector2.ZERO
-
-	if Input.is_action_pressed("ui_left") or Input.is_key_pressed(KEY_A):
-		input_dir.x -= 1.0
-	if Input.is_action_pressed("ui_right") or Input.is_key_pressed(KEY_D):
-		input_dir.x += 1.0
-	if Input.is_action_pressed("ui_up") or Input.is_key_pressed(KEY_W):
-		input_dir.y -= 1.0
-	if Input.is_action_pressed("ui_down") or Input.is_key_pressed(KEY_S):
-		input_dir.y += 1.0
-
-	if input_dir.length_squared() > 0.0:
-		input_dir = input_dir.normalized()
-
-	# Scale pan speed by altitude (pan faster when zoomed out)
-	var altitude_factor := clampf(_target_altitude / 200.0, 0.25, 5.0)
-
-	# Rotate input by camera yaw
-	var rotated := input_dir.rotated(-_yaw)
-	var target_vel := Vector3(rotated.x, 0.0, rotated.y) * pan_speed * altitude_factor
-
-	_velocity = _velocity.lerp(target_vel, pan_acceleration * delta)
-	_target_position += _velocity * delta
-
-	# Clamp to boundaries
-	_target_position.x = clampf(_target_position.x, min_x, max_x)
-	_target_position.z = clampf(_target_position.z, min_z, max_z)
+## Letters (WASD, Q/E, T, Home) pass unless a text field has focus or a
+## modifier is held (Cmd/Ctrl shortcuts belong to the UI).
+func _letter_keys_allowed() -> bool:
+	if not input_enabled or not is_inside_tree():
+		return false
+	if Input.is_key_pressed(KEY_CTRL) or Input.is_key_pressed(KEY_META) or Input.is_key_pressed(KEY_ALT):
+		return false
+	var owner_control := get_viewport().gui_get_focus_owner()
+	return not (owner_control is LineEdit or owner_control is TextEdit)
 
 
-func _interpolate_camera(delta: float) -> void:
-	var speed := transition_speed * delta
-
-	# Interpolate altitude and FOV; the transform step below converts the
-	# smoothed values into an orbit position around the focus point.
-	_smooth_altitude = lerpf(_smooth_altitude, _target_altitude, speed)
-	fov = lerpf(fov, _target_fov, speed)
+## Arrows pass only when no Control has focus (they walk tab bars and lists).
+func _arrow_keys_allowed() -> bool:
+	return _letter_keys_allowed() and get_viewport().gui_get_focus_owner() == null
 
 
-func _update_camera_transform() -> void:
-	# Orbit the focus point: the camera sits behind/above it at the zoom
-	# pitch, then looks at it — the horizon stays visible.
-	var pitch_rad := deg_to_rad(_target_pitch)
-	var horiz := _smooth_altitude / maxf(tan(-pitch_rad), 0.2)
-	var offset := Basis(Vector3.UP, _yaw) * Vector3(0.0, _smooth_altitude, horiz)
-	var focus := Vector3(_target_position.x, 0.0, _target_position.z)
-	var pos := focus + offset
-	if terrain and terrain.has_method("get_height_at"):
-		var water_y := 0.0
-		if "water_level" in terrain:
-			water_y = float(terrain.get("water_level"))
-		# Keep the camera over water WITHOUT collapsing onto the focus:
-		# take the farthest offset along the orbit direction that still
-		# sits over water, so the framing stays wide. Falls back to
-		# directly above the focus (always water: pens float there).
-		var flat := Vector2(pos.x - focus.x, pos.z - focus.z)
-		var placed := false
-		for i in range(21):
-			var t := 1.0 - float(i) / 20.0
-			var cand := Vector3(focus.x + flat.x * t, pos.y, focus.z + flat.y * t)
-			if terrain.get_height_at(cand.x, cand.z) <= water_y + 5.0:
-				pos = cand
-				placed = true
-				break
-		if not placed:
-			pos = Vector3(focus.x, pos.y, focus.z)
-		pos.y = maxf(pos.y, water_y + 10.0)
-	if (pos - global_position).length_squared() > 0.000001:
-		global_position = pos
-		look_at(focus, Vector3.UP)
+func _process_idle_orbit(delta: float) -> void:
+	_idle_time += delta
+	if auto_orbit_enabled and _idle_time >= IDLE_ORBIT_DELAY and not _orbiting:
+		_yaw_target += auto_orbit_speed * delta
+
+
+## Zoom by a factor toward the ground point under the cursor.
+func _zoom_by(factor: float, screen_pos: Vector2) -> void:
+	if _underwater:
+		if factor > 1.0:
+			set_zoom_level(ZoomLevel.FARM)
+		return
+	var old := _distance_target
+	var new_distance := clampf(old * factor, MIN_DISTANCE, MAX_DISTANCE)
+	if factor < 1.0 and old <= MIN_DISTANCE + 0.01:
+		set_zoom_level(ZoomLevel.UNDERWATER)
+		return
+	var hit := pick_ground(screen_pos)
+	if hit.is_finite():
+		_set_focus_target(_focus_target + (Vector3(hit.x, 0.0, hit.z) - _focus_target) * (1.0 - new_distance / old))
+	_distance_target = new_distance
+	_update_zoom_band(_band_for(new_distance))
+
+
+## World point under a screen position: the first terrain or water hit along
+## the camera ray (ray-marched over the heightfield), or INF on a miss.
+func pick_ground(screen_pos: Vector2) -> Vector3:
+	var origin := project_ray_origin(screen_pos)
+	var dir := project_ray_normal(screen_pos)
+	var water_y := _water_level()
+	var travelled := 0.0
+	var p := origin
+	while travelled < 8000.0:
+		var ground := maxf(_ground(p.x, p.z), water_y)
+		var gap := p.y - ground
+		if gap <= 0.5:
+			return Vector3(p.x, ground, p.z)
+		var step := clampf(gap * 0.5, 2.0, 200.0)
+		p += dir * step
+		travelled += step
+	return Vector3.INF
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+func _set_focus_target(p: Vector3) -> void:
+	_focus_target = _clamp_to_world(Vector3(p.x, 0.0, p.z))
+
+
+func _cancel_fly() -> void:
+	if _fly_tween and _fly_tween.is_valid():
+		_fly_tween.kill()
+	_fly_tween = null
+
+
+func _band_for(distance: float) -> ZoomLevel:
+	if distance >= COAST_BAND:
+		return ZoomLevel.COAST
+	if distance < FARM_BAND:
+		return ZoomLevel.FARM
+	return ZoomLevel.FJORD
+
+
+func _update_zoom_band(level: ZoomLevel) -> void:
+	if level != current_zoom:
+		current_zoom = level
+		zoom_level_changed.emit(level)
+
+
+static func _nearest_angle(from: float, to: float) -> float:
+	return from + wrapf(to - from, -PI, PI)
 
 
 func _update_tilt_shift() -> void:
 	if not tilt_shift_material or not tilt_shift_enabled:
 		return
-
-	# Adjust blur based on zoom level (more blur at high altitude = more miniature)
-	var blur := remap(global_position.y, 50.0, 1000.0, 1.0, 4.0)
-	blur = clampf(blur, 0.5, 5.0)
+	# More blur when high up (miniature look), none underwater.
+	var blur := clampf(remap(global_position.y, 50.0, 1000.0, 1.0, 4.0), 0.5, 5.0)
+	if _underwater:
+		blur = 0.0
 	tilt_shift_material.set_shader_parameter("blur_amount", blur)
-
-	# Disable tilt-shift underwater
-	if _is_underwater:
-		tilt_shift_material.set_shader_parameter("blur_amount", 0.0)
-
-
-## Smoothly move camera to look at a world position
-func look_at_position(world_pos: Vector3, zoom: ZoomLevel = current_zoom) -> void:
-	_target_position = Vector3(world_pos.x, 0.0, world_pos.z)
-	set_zoom_level(zoom)
-
-
-## Eased fly-to variant (no instant snaps): tweens the focus target with an
-## ease-out curve. The per-frame interpolation then carries the camera along
-## smoothly. Zoom-level signals behave exactly like look_at_position.
-func fly_to_position(world_pos: Vector3, zoom: ZoomLevel = current_zoom, duration: float = 1.2) -> void:
-	set_zoom_level(zoom)
-	var dest := Vector3(world_pos.x, 0.0, world_pos.z)
-	if _fly_tween and _fly_tween.is_valid():
-		_fly_tween.kill()
-	_fly_tween = create_tween()
-	_fly_tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	_fly_tween.tween_property(self, "_target_position", dest, duration)
-
-
-## Get the current focus point on the ground
-func get_focus_point() -> Vector3:
-	return _target_position

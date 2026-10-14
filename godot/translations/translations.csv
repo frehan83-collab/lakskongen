@@ -426,7 +426,7 @@ UI_OFFSHORE_BUILD,Build New Offshore Facility,Bygg Nytt Offshore Anlegg
 UI_OFFSHORE_EMPTY,No offshore facilities yet — build a new facility below,Ingen offshore-anlegg ennå — bygg et nytt anlegg nedenfor
 UI_AIFEED_TITLE,AI Feeding Dashboard,AI Fôrings Dashboard
 UI_AIFEED_INSTALL,Install AI Feeding System,Installer AI Fôringssystem
-UI_FJORD_HINT,Right/middle-click + drag: rotate • Scroll: zoom • Click a pen for details,Høyre-/midthyreklikk + dra: roter • Scroll: zoom • Klikk en merd for detaljer
+UI_FJORD_HINT,WASD or middle-drag: pan • Q/E or right-drag: rotate • Scroll: zoom • T: top-down • Home: recentre • Click a pen for details,WASD eller midtklikk + dra: panorer • Q/E eller høyreklikk + dra: roter • Scroll: zoom • T: ovenfra • Home: tilbake • Klikk en merd for detaljer
 UI_FJORD_FLY,🐟 Fly to pen,🐟 Fly til merd
 UI_FJORD_FLY_HINT,Focus the camera on the selected pen,Fokuser kameraet på valgt merd
 UI_FJORD_FLY_NONE,Select a pen in the 3D view or Pens tab first,Velg en merd i 3D-visningen eller Merder-fanen først
