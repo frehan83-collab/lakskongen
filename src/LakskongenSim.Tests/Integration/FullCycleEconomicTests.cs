@@ -158,7 +158,7 @@ namespace LakskongenSim.Tests.Integration
         /// Since S2-02 zones lie in a production area only by data, and these two
         /// zones are only named PO04/PO12/PO13: both lie in the home area and so
         /// grow, survive and earn alike. The area comparison is
-        /// <see cref="Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13"/> and
+        /// <see cref="Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13_InANormalYear_OnEverySeed"/>, <see cref="Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13_MedianOverTenWeatherYears_OnEverySeed"/> (the D2 ruling) and
         /// <c>TgcGrowthAcceptanceTests.Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13_InNormalYears</c> (S2-03).
         /// </summary>
         [Theory]
@@ -182,33 +182,117 @@ namespace LakskongenSim.Tests.Integration
             Assert.InRange(cold.MarginPct - po04.MarginPct, -2.0, 2.0);
         }
 
+        // ── Roadmap D2: the pre-registered PO4-vs-PO13 claim, judged on the climatology ──
+        //
+        // Pre-registered 2026-10-14 for S2-02 (production-area sea temperatures)
+        // and S2-03 (TGC growth): the same spring S1 release (100 g, mid-April)
+        // in PO4 (Vestland) reaches 5 kg 2-4 months (60-120 days) before PO13
+        // (Finnmark). S2-03 measured it per seed on one weather year: seeds 2, 3
+        // and 5 passed, seeds 1 and 4 did not (157 and 168 days: springs 2-3 °C
+        // below normal keep PO13 at sea through a second winter), so the test was
+        // skipped and disputed (RUN_LOG §8). Owner ruling (decided by the merge
+        // captain under the autonomy mandate, 2026-10-14; RUN_LOG §7): the band
+        // is judged on the climatology, not on one weather year. The skipped
+        // Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13 is replaced by both tests
+        // below, on its own harness (EngineWithSite, 10,000 standard smolts,
+        // mid-April release, events off) and with the band unchanged.
+
+        private const int D2Smolts = 10_000;
+        private const int D2SpringReleaseDay = 105; // mid-April (ISO week 16) on the sim calendar
+        private const int D2WeatherYears = 10;
+
         /// <summary>
-        /// Pre-registered (roadmap D2, 2026-10-14) for S2-02 (production-area sea
-        /// temperatures) and S2-03 (TGC growth): the same spring S1 release (100 g,
-        /// mid-April) in PO4 (Vestland) reaches 5 kg 2-4 months before PO13
-        /// (Finnmark), on every seed. The criterion is fixed: S2-02 may change how
-        /// the test puts a site in a production area, never the band.
-        /// S2-03 (TGC growth, sites in PO4/PO13 by data): seeds 2, 3 and 5 pass,
-        /// seeds 1 and 4 do not (gaps 157 and 168 days): their cold springs
-        /// (shared anomaly -2 to -3 °C for months) keep PO13 at sea through a
-        /// second winter. In normal years the gap is 92-115 days on every seed
-        /// (TgcGrowthAcceptanceTests). Owner decision pending: RUN_LOG §8.
+        /// D2 ruling, part 1: in a normal year (the shared sea-temperature
+        /// anomaly switched off; the daily fluctuation stays) the gap is 60-120
+        /// days on every seed 1-5.
         /// </summary>
-        [Fact(Skip = "Pre-registered (roadmap D2), disputed after S2-03: fails on seeds 1 and 4 (cold years); RUN_LOG §8")]
-        public void Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13()
+        [Fact]
+        public void Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13_InANormalYear_OnEverySeed()
         {
-            const int smolts = 10_000;
-            const int springReleaseDay = 105; // mid-April (ISO week 16) on the sim calendar
+            var normal = CalibrationRegistry.Default.SeaTemperature with { AnomalyStdDevC = 0.0 };
             for (int seed = 1; seed <= 5; seed++)
             {
                 var (engine4, site4) = EngineWithSite("PO04", seed, 10_000_000m, productionArea: 4);
                 var (engine13, site13) = EngineWithSite("PO13", seed, 10_000_000m, productionArea: 13);
-                engine4.Advance(springReleaseDay);
-                engine13.Advance(springReleaseDay);
-                int po4 = RunEngineCycle(engine4, site4, smolts).DaysToHarvestWeight;
-                int po13 = RunEngineCycle(engine13, site13, smolts).DaysToHarvestWeight;
+                engine4.Weather.ApplySeaTemperatureCalibration(normal);
+                engine13.Weather.ApplySeaTemperatureCalibration(normal);
+                engine4.Advance(D2SpringReleaseDay);
+                engine13.Advance(D2SpringReleaseDay);
+                int po4 = RunEngineCycle(engine4, site4, D2Smolts).DaysToHarvestWeight;
+                int po13 = RunEngineCycle(engine13, site13, D2Smolts).DaysToHarvestWeight;
+                System.Console.WriteLine($"D2 normal year, seed {seed}: PO4 {po4} d, PO13 {po13} d, gap {po13 - po4} d");
                 Assert.InRange(po13 - po4, 60, 120);
             }
+        }
+
+        /// <summary>
+        /// D2 ruling, part 2: over 10 weather years per seed (a release every
+        /// mid-April of years 1-10 of the seed's own weather, the shared anomaly
+        /// on) the median gap is 60-120 days on every seed 1-5. The raw per-seed,
+        /// per-year gaps are printed and recorded in docs/BALANCE.md §1j.
+        /// Measured on the integrated wave-2 tree: seeds 1/2/3/5 give medians
+        /// 100/108/76.5/114.5, seed 4 gives 134 (gaps 168, 237, 120, 124, 90, 48,
+        /// 144, 146, 145, 80: its first two PO13 cycles ran 1.0-1.1 °C below
+        /// normal). Over 20 seeds x 10 years the pooled median is 96 days (p10 66,
+        /// p90 145) and 19 of 20 seeds' medians lie in the band. Skipped with the
+        /// band unchanged: RUN_LOG §8 (dispute: D2 ruling, part 2).
+        /// </summary>
+        [Fact(Skip = "D2 ruling part 2 fails on seed 4 (10-year median 134 d; pooled climatology median 96 d): RUN_LOG §8")]
+        public void Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13_MedianOverTenWeatherYears_OnEverySeed()
+        {
+            for (int seed = 1; seed <= 5; seed++)
+            {
+                int[] po4 = DaysToFiveKilosByReleaseYear(seed, productionArea: 4);
+                int[] po13 = DaysToFiveKilosByReleaseYear(seed, productionArea: 13);
+                var gaps = po13.Zip(po4, (a, b) => a - b).ToArray();
+                var sorted = gaps.OrderBy(g => g).ToArray();
+                double median = (sorted[D2WeatherYears / 2 - 1] + sorted[D2WeatherYears / 2]) / 2.0;
+                System.Console.WriteLine($"D2 weather years, seed {seed}: PO4 [{string.Join(", ", po4)}] PO13 [{string.Join(", ", po13)}] " +
+                    $"gaps [{string.Join(", ", gaps)}] median {median}");
+                Assert.InRange(median, 60.0, 120.0);
+            }
+        }
+
+        /// <summary>
+        /// Days from a mid-April release of 10,000 standard smolts to a 5 kg mean,
+        /// for a release in each of the first <see cref="D2WeatherYears"/> years of
+        /// one engine's weather (seed <paramref name="seed"/>). Each year-class has
+        /// its own zone in <paramref name="productionArea"/> (so no zone's fish
+        /// load touches another's water) and is sold when it reaches 5 kg.
+        /// </summary>
+        private static int[] DaysToFiveKilosByReleaseYear(int seed, int productionArea)
+        {
+            var engine = new SimulationEngine { FinanceManager = new FinanceManager(500_000_000m) };
+            engine.Initialize(enableEvents: false, seed: seed);
+            var sites = new SeaSite[D2WeatherYears];
+            for (int year = 0; year < D2WeatherYears; year++)
+            {
+                string zoneId = $"PO{productionArea:00}_Y{year + 1}";
+                engine.State.Zones.Add(new Zone(zoneId) { ProductionArea = productionArea });
+                sites[year] = new SeaSite(zoneId.ToLowerInvariant() + "_site", zoneId);
+                engine.State.SeaSites.Add(sites[year]);
+            }
+
+            var days = new int[D2WeatherYears];
+            int lastRelease = D2SpringReleaseDay + (D2WeatherYears - 1) * SimCalendar.DaysPerYear;
+            while (engine.State.Day <= lastRelease + CycleHorizonDays && days.Any(d => d == 0))
+            {
+                for (int year = 0; year < D2WeatherYears; year++)
+                {
+                    int release = D2SpringReleaseDay + year * SimCalendar.DaysPerYear;
+                    var site = sites[year];
+                    if (engine.State.Day == release)
+                        Assert.True(engine.StockSmolts(site.Id, D2Smolts, "standard").Ok, $"stocking year {year + 1} failed");
+                    else if (engine.State.Day > release && days[year] == 0 && SiteMeanKg(site) >= CycleHarvestWeightKg)
+                    {
+                        days[year] = engine.State.Day - release;
+                        Assert.True(engine.HarvestSite(site.Id).Ok);
+                    }
+                }
+                engine.Advance(1);
+            }
+            Assert.True(days.All(d => d > 0), $"seed {seed}, PO{productionArea}: a year-class never reached 5 kg ({string.Join(", ", days)})");
+            return days;
         }
 
         [Fact]

@@ -174,6 +174,12 @@ The Phase 4 "Exit" in `NEXT_LEVEL_PLAN.md` has two gates an agent cannot close a
 - Seam for farm types: `HarvestRoute.For(HoldingKind, …, hallCapacityTonnesHog)` (sea wellboat / offshore wellboat / a land farm's own hall) and `HarvestCondition` (cold-water memory and fast from `HoldingWaterOf`; `ExtraProductionShare` for a holding's own downgrade). Resource rent: HOG kg × norm price, the harvest cost is no sea-phase deduction. Save format v6
 - Every fish a harvest takes leaves its cohort through the S2-05 ledger (`AddPenToLot`/`TakeCohortIntoLot` → `RemoveAlive`, `FishRemoval.Harvest`; forced harvests `FishRemoval.ForcedHarvest`), so a report's fish equal the ledger's removals (`HarvestLedgerReconciliationTests`)
 
+### Capacity v1 (S2-01a)
+- `Finance/LicenceHolding.cs`: a sea licence holds its area's size (780 t, 945 t in Troms and Finnmark) and licences pool per production area; `SeaSite.MABTonnes` is the locality MTB; a build clears a 3,120 t locality and adds 0 t of licence MTB. Land units hold no licence
+- Stocking and post-smolt transfer are checked against the farmer's plan (`Finance/CapacityPlanner.cs`, pure: TGC 2.8 on the area's climatology) for the area's licence MTB and the site's locality MTB (`PreviewStocking`, `MaxStockableSmolts`, keys `mtb_*`)
+- Daily post-tick `CapacityEnforcementTickSystem` (after `HarvestOrdersTickSystem`): an order, the fee (≤ 15 G) and the confiscation on each new peak of illegal kilos, a 14-day deadline, then a heaviest-first forced harvest sold through the S2-04 pipeline; regime `GameState.CapacityRules` (scenarios open it; a pre-S2-01 save migrates on load; bare engines stay unregulated). Calibration section `capacity`; bridge `GameBridge.Capacity.cs`; save format v7
+- Density: a stocking fills as many 10,000 m³ proxy pens as it needs at 25 kg/m³ and 5 kg (`StockingVolumeM3`); S2-01b replaces the proxy with real pens
+
 ### CompetitorAI
 - 7 parody competitors (Mowier, SalMax, Herøy, Greed Gregarious, Offshore Optimists, NordLaks Nord)
 - Quarterly `AdvanceQuarter` (every 90 days) with financial updates, distress check, strategic actions

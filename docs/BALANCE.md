@@ -1204,6 +1204,141 @@ Seed 13's breakdown (input to S4-03): infectious 16.6 %, environment 23.3 %
 unexplained 50.0 %. The environment class is still far above NVI's 1 % in
 PO1-PO4, now from jellyfish and algae alone (RUN_LOG §8).
 
+## 1j. Wave-2 sim integration: S2-01a capacity, the harvest ledger, the D2 ruling (2026-10-15, branch `wave2/sim-int-1`)
+
+The integrated tree is `integration/wave2` (`68cce8b`: wave 1, S2-02, S2-05) plus
+`wave2/sim-b-3` (S2-03, S2-04), `wave2/sim-a-1` (the holding seam and the
+low-oxygen model) and `wave2/sim-a-2` (S2-01a capacity). It runs calibration
+v1.0.9 and save format v7. What the merges changed in the model:
+
+| Change | Why | Effect |
+|---|---|---|
+| Every harvest path takes its fish through `RemoveAlive` (express, planned, hired wellboat, RAS hall, offshore, Mattilsynet's and S2-01a's forced harvests) | S2-04 decremented `Cohort.Count` directly; S2-05's ledger must reconcile per cohort per day | none in numbers; a report's fish = the ledger's removals (`HarvestLedgerReconciliationTests`) |
+| Forced harvests sell the fish they remove (Mattilsynet: proportional per pen; S2-01a: heaviest first) through the S2-04 pipeline | the Mattilsynet path sold one set and removed another; S2-01a sold live kilos at 70 % of the gutted price, with no harvest cost | an S2-01a deadline harvest of ~190 t live sells ~160 t HOG for 8.8-9.2M gross with 0.94-0.98M harvest cost (seeds 31-33) |
+| The biology tick reads the holding the step resolved (`HoldingOf` → `WaterOf`) | one resolution per step for S2-03's growth and feeding | byte-identical saves (careers 1/2/7/13, two mixed farms) |
+| A stocking fills as many 10,000 m³ density proxy pens as it needs at 25 kg/m³ and 5 kg (`capacity.maxStockingDensityKgPerM3`, akvakulturdriftsforskriften § 25; `capacity.densityReferenceWeightKg`) | S2-01a stocks a site's plan room at once (173,555 smolts per po3 site, 561,600 at a barekraft_mester site), and one proxy pen put those fish at 90-280 kg/m³ | populations of ≤ 50,000 fish unchanged; the six-site rent career no longer goes bankrupt |
+
+### S2-01a acceptance on the integrated tree
+
+| Acceptance | Test | Result |
+|---|---|---|
+| 1. Overstock refused or fined, below the compliant player | `CapacityStrategyTests.Overstock_IsRefused_AndEndsBelowTheCompliantPlayer` (seeds 1-6) | refused at both sites (`mtb_area_projected_peak`), no cash moved; below compliant on seeds 1-6 |
+| 2. Daily enforcement | `CapacityEnforcementTests` (9) | order, fee and confiscation on the same day; fee stops at 15 G; deadline harvest to 95 % of each cap |
+| 3. A build adds 0 t | `LicenceCapacityTests` | a 3,120 t locality and 0 t of licence MTB in po3, forste_sesong and krise_manager |
+| 5. Save/load and twins | `CapacityEnforcementTests.AnOpenOrder_SurvivesASave...`, the determinism suites, `ASaveFromBeforeTheRegister_GetsOneLicencePerSite_InItsArea` | green |
+| 6. `forste_sesong` wins ≥ 4/6 seeds | `ScenarioCampaignTests` (minimal player) | **6 of 6** (table below) |
+
+Capacity careers, po3_red_sone, events on (`CapacityStrategyProbe`), ending
+equity in M NOK, 20 seeds:
+
+| Seed | Compliant | Overstock (v1, refused) | Overstock (old rules) | Grow-on fined | Grow-on unpoliced |
+|---|---|---|---|---|---|
+| 1 | 24.66 | 15.33 | 69.24 | 4.31 | 16.00 |
+| 2 | 16.69 | 13.98 | 52.99 | -8.57 | -20.66 |
+| 3 | 33.12 | 16.77 | 116.96 | 26.66 | 40.89 |
+| 4 | 19.18 | 13.19 | 35.29 | 7.90 | 14.42 |
+| 5 | 41.09 | 14.84 | 106.31 | 16.18 | 34.65 |
+| 6 | 18.09 | 13.85 | 105.58 | 17.41 | 50.17 |
+| 7 | 44.47 | 9.60 | 127.12 | 31.52 | 44.38 |
+| 8 | 28.25 | 10.61 | 113.16 | 99.51 | 91.99 |
+| 9 | 43.62 | 22.06 | 174.69 | 13.30 | 62.69 |
+| 10 | 9.71 | 13.00 | -29.68 | 8.11 | 30.23 |
+| 11 | 23.32 | 10.70 | 49.30 | -3.46 | -8.60 |
+| 12 | 26.26 | 12.49 | 115.29 | 26.97 | 38.25 |
+| 13 | 21.77 | 10.89 | 102.53 | 34.96 | 47.26 |
+| 14 | 14.72 | 15.22 | 96.41 | 20.13 | 45.22 |
+| 15 | 31.08 | 14.78 | 105.82 | 19.92 | 43.84 |
+| 16 | 39.18 | 16.07 | 129.81 | 14.40 | 5.40 |
+| 17 | 29.20 | 12.18 | 54.59 | -1.72 | 21.92 |
+| 18 | 37.90 | 11.97 | 125.15 | 36.20 | 83.77 |
+| 19 | 30.01 | 14.64 | 70.39 | -6.32 | 1.50 |
+| 20 | 24.73 | 15.50 | 130.23 | 21.31 | 59.00 |
+| **Median** | **27.25** | **13.92** | **105.70** | **16.80** | **39.57** |
+
+The compliant player harvests 1,181-1,485 t at a 1,107-1,358 t peak against
+1,560 t, in 356-469 days, with no breach. The refused overstocker keeps only
+the starting fish (~430 t) and ends below the compliant player on 18 of 20
+seeds (10 and 14 are poor compliant years); under the old rules the same
+script (3x the plan's fish, 1,041,330 smolts, borrowed when only money refuses
+it) harvests 3,612-4,312 t and dominates on 19 of 20 seeds (median 105.7M vs
+27.3M). The grow-on player breaks a cap 5-6 times on every seed and pays
+11.8-17.8M of fees and confiscations; its median ends below both the unpoliced
+script and the compliant player (roadmap D10 (a)). Per seed the fined career
+ends above the unpoliced one on 4 of 20 seeds (2, 8, 11, 16): the storyteller's
+price shocks pin the spot at 43 NOK/kg for 2-4 weeks, and the unpoliced
+career's fixed sale day (60 days after 4.5 kg) falls in one while the fined
+career, its heaviest fish taken at a deadline, sells later (seed 2: po3_nord
+1,096 t at 42.7 NOK/kg on day 510 unpoliced, 800 t at 75.2 on day 537 fined).
+Before the density fix both careers crawled at the Oppedal floor and the
+fined one lost on 20 of 20.
+
+Six-site rent career (`HonestEconomyTests.MultiSiteCareer_PaysResourceRentTax`,
+barekraft_mester, 8 licences): resource rent paid 81.56M / 29.45M / 90.28M on
+seeds 7/13/21 over three years, no breach (the plan refuses what the pool
+cannot hold). Before the density fix: bankrupt on days 871/535/609.
+
+`forste_sesong`, the minimal player (`ScenarioCampaignTests`, events on):
+
+| Seed | Won | Day | First harvest | Lowest cash |
+|---|---|---|---|---|
+| 4 | yes | 289 | 287 | 0.55M |
+| 7 | yes | 315 | 313 | 0.19M |
+| 9 | yes | 280 | 278 | 0.38M |
+| 21 | yes | 718 | 312 | 0.89M |
+| 13 | yes | 1,196 | 313 | 0.88M |
+| 42 | yes | 302 | 300 | 0.76M |
+
+po3 careers (`PlayerScriptProbe`, events on, save/load at day 210):
+
+| Seed | Days | Harvested kg | Realized NOK/kg | Econ FCR | Sea loss | Low-oxygen deaths | Superior | Ending balance |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 341 | 517,806 | 88.00 | 1.182 | 17.24 % | 0 of 23,086 | 92.5 % | +18.49M |
+| 2 | 341 | 463,331 | 92.69 | 1.204 | 24.66 % | 0 of 33,016 | 90.3 % | +18.09M |
+| 7 | 339 | 503,137 | 77.78 | 1.178 | 20.18 % | 0 of 26,998 | 92.7 % | +14.85M |
+| 13 | 338 | 510,963 | 87.62 | 1.184 | 17.13 % | 0 of 22,906 | 92.8 % | +18.35M |
+| 21 | 313 | 533,077 | 75.46 | 1.176 | 17.26 % | 0 of 23,104 | 92.9 % | +16.64M |
+
+D4 holds for seeds 7 and 13 (≤ 35 % lost, above -1M, low oxygen < 10 % of deaths).
+
+### The D2 ruling: PO4 against PO13 on the climatology
+
+Owner ruling (merge captain, autonomy mandate): the pre-registered 60-120 day
+gap is judged on the climatology, not on one weather year. The pre-registered
+harness (`FullCycleEconomicTests`: one site per area by data, 10,000 standard
+S1 smolts released mid-April, events off, days to a 5 kg mean):
+
+Normal year (shared anomaly off, daily fluctuation kept):
+
+| Seed | PO4 | PO13 | Gap |
+|---|---|---|---|
+| 1 | 436 | 545 | 109 |
+| 2 | 455 | 546 | 91 |
+| 3 | 441 | 545 | 104 |
+| 4 | 450 | 544 | 94 |
+| 5 | 437 | 551 | 114 |
+
+Ten weather years per seed (a release every mid-April of years 1-10 of the
+seed's weather, each year-class in its own zone), gap in days per release year:
+
+| Seed | Y1 | Y2 | Y3 | Y4 | Y5 | Y6 | Y7 | Y8 | Y9 | Y10 | Median |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 155 | 114 | 92 | 84 | 91 | 70 | 85 | 223 | 174 | 108 | 100 |
+| 2 | 109 | 104 | 121 | 174 | 187 | 107 | 95 | 65 | 124 | 98 | 108 |
+| 3 | 70 | 85 | 67 | 78 | 75 | 72 | 114 | 95 | 54 | 118 | 76.5 |
+| 4 | 168 | 237 | 120 | 124 | 90 | 48 | 144 | 146 | 145 | 80 | **134** |
+| 5 | 121 | 120 | 117 | 97 | 47 | 73 | 114 | 115 | 130 | 104 | 114.5 |
+
+Days to 5 kg, seeds 1-4 (seed 5 from the 20-seed run): PO4 418-498, PO13
+488-711. Seed 4's first two PO13 cycles ran 1.01 and 1.10 °C below normal
+(mean shared anomaly over the cycle), which keeps PO13 at sea through a
+second winter. Over seeds 1-20 x 10 years (200 year-classes) the gap's median
+is 96 days (p10 66, p90 145), 143 of 200 years lie in 60-120, and the
+10-year median lies in the band on 19 of 20 seeds (seed 4 the exception).
+Year 1 reproduces S2-03's single-year measurement (seed 1: 469/624 vs
+470/627; seed 4: 498/666 vs 497/665). The normal-year test passes on every
+seed; the ten-year test fails on seed 4 and is skipped with the band
+unchanged (RUN_LOG §8).
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
@@ -1231,6 +1366,14 @@ PO1-PO4, now from jellyfish and algae alone (RUN_LOG §8).
 | `Finance.ResourceRentBasicDeductionNOK` | 70,000,000 | 70M NOK | Prop.1 LS | 60M-80M |
 | `Licensing.MABLimitKgPerLicense` | 780,000 | 780 t standard (945 t far north) | Fiskeridir | 780,000 (fixed) |
 | `Licensing.LicenseCostNOK` | 150,000,000 | ~150-200M market | Fiskeridir | 100M-250M |
+| `Capacity.BuiltSiteLocalityMtbTonnes` | 3,120 | locality MTB cleared for a new site | NFD letter 20.09.2017, point 5 | data |
+| `Capacity.PlanningThermalGrowthCoefficient` | 2.8 | sea cages 2.8 ± 0.3; realized cycle TGC 2.61-2.97 in the game (S2-03) | Nofima/SalMar 2012 (Hatchery International) | 2.6-3.0 |
+| `Capacity.OrderDeadlineDays` | 14 | (game estimate) | the Phase 5.5 red-zone order | 7-30 |
+| `Capacity.InfringementFeeCeilingG` × `GrunnbelopNok` | 15 G = 2,048,235 NOK | overtredelsesgebyr ceiling | FOR-2013-12-20-1675 § 8; NAV G 2026 | 15 G (law) |
+| `Capacity.LiveToGuttedFactor` / `EconomicFeedFactor` / `OtherVariableCostPerKgNok` | 0.83 / 1.30 / 4.93 | the § 6 confiscation formula | FOR-2013-12-20-1675 § 6; Fiskeridir lønnsomhet 2024 | law / survey |
+| `Capacity.ForcedHarvestPriceFactor` / `ForcedHarvestHeadroomFraction` | 0.70 / 0.05 | (game estimates) | akvakulturloven § 29 (at the company's cost) | 0.5-0.9 / 0-0.15 |
+| `Capacity.MaxStockingDensityKgPerM3` | 25 | 25 kg/m³ per production unit | akvakulturdriftsforskriften § 25 | 25 (law) |
+| `Capacity.DensityReferenceWeightKg` | 5.0 | proxy pen holds 50,000 fish at 25 kg/m³ (S2-03's commercial pen) | game estimate | 4.5-5.5 |
 | `Labor.WorkerMonthlySalaryNOK` | 48,000 | ~48k (2024) | industry wage stats | 36k-60k |
 
 ## 3. Key biological / environmental knobs
