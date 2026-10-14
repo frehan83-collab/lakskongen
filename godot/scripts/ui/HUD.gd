@@ -24,6 +24,9 @@ var _current_speed: float = 1.0
 var _is_paused: bool = false
 var _prev_balance: float = 0.0
 var _balance_init: bool = false
+## The bell's unread badge (U2-06): warnings and criticals not yet seen.
+var _badge: Label = null
+var _unread: int = 0
 
 signal speed_changed(speed: float, paused: bool)
 
@@ -57,6 +60,9 @@ func _ready() -> void:
 
 	_apply_mono_font()
 	_connect_buttons()
+	_build_badge()
+	# The inbox (NotificationCenter) is a later sibling: wire it once it is ready.
+	_connect_inbox.call_deferred()
 	_update_all()
 	_refresh_speed_buttons()
 
@@ -87,9 +93,53 @@ func _connect_buttons() -> void:
 	if inbox_btn:
 		inbox_btn.pressed.connect(_on_inbox_pressed)
 
+## The bell opens the event inbox (the notification drawer, also N); the
+## attention list stays on I.
 func _on_inbox_pressed() -> void:
-	if _sim and _sim.has_method("open_attention_inbox"):
+	var inbox := get_tree().get_first_node_in_group(&"event_inbox")
+	if inbox != null and inbox.has_method("toggle"):
+		inbox.toggle()
+	elif _sim and _sim.has_method("open_attention_inbox"):
 		_sim.open_attention_inbox()
+
+func _connect_inbox() -> void:
+	var inbox := get_tree().get_first_node_in_group(&"event_inbox")
+	if inbox == null or not inbox.has_signal("unread_changed"):
+		return
+	if not inbox.unread_changed.is_connected(_on_unread_changed):
+		inbox.unread_changed.connect(_on_unread_changed)
+	_on_unread_changed(inbox.unread_count(), inbox.has_unread_critical())
+
+## A small tone pill on the bell's corner: the unread count, red when one of
+## them is critical. Hidden at zero.
+func _build_badge() -> void:
+	if inbox_btn == null:
+		return
+	_badge = Label.new()
+	_badge.name = "UnreadBadge"
+	_badge.theme_type_variation = &"TagWarn"
+	_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_badge.offset_right = 8.0
+	_badge.offset_top = 1.0
+	_badge.visible = false
+	inbox_btn.add_child(_badge)
+
+## Badge = unread warnings and criticals in the inbox.
+func _on_unread_changed(count: int, has_critical: bool) -> void:
+	_unread = count
+	if _badge != null:
+		_badge.visible = count > 0
+		_badge.text = str(count) if count < 100 else "99+"
+		_badge.theme_type_variation = &"TagCrit" if has_critical else &"TagWarn"
+	if inbox_btn:
+		inbox_btn.tooltip_text = tr("UI_HUD_TIP_NOTIFICATIONS") % count
+
+## Unread warnings and criticals the badge shows (QA and tests).
+func unread_badge_count() -> int:
+	return _unread if _badge != null and _badge.visible else 0
 
 # ── Update helpers ─────────────────────────────────────────────────────────────
 
@@ -143,7 +193,7 @@ func _update_tooltips(alert_count: int) -> void:
 	alerts_value.tooltip_text = tr("UI_HUD_TIP_ALERTS") % alert_count
 	weather_value.tooltip_text = tr("UI_HUD_TIP_WEATHER")
 	if inbox_btn:
-		inbox_btn.tooltip_text = tr("UI_HUD_TIP_INBOX")
+		inbox_btn.tooltip_text = tr("UI_HUD_TIP_NOTIFICATIONS") % _unread
 
 func _update_season(season: String) -> void:
 	if season_icon:

@@ -11,11 +11,22 @@ static var _shake_intensity: float = 0.0
 static var _shake_duration: float = 0.0
 static var _shake_timer: float = 0.0
 static var _original_camera_offset: Vector2 = Vector2.ZERO
+## A screen_shake of this many pixels is full trauma for the 3D camera.
+const SHAKE_FULL_TRAUMA_PX := 20.0
 
 ## Shake the screen. Use for critical events (storms, escapes, bankruptcy).
 ## intensity: pixels of displacement (5-20 typical)
 ## duration: seconds (0.2-0.5 typical)
+## The game's world is 3D: the shake goes to the 3D camera's view offset
+## (CameraShake, U2-06; 20 px = full trauma). It used to move a Camera2D
+## only, which the game does not have, so nothing shook. Reduced motion
+## (MotionPrefs) turns it off.
 static func screen_shake(viewport: Viewport, intensity: float = 10.0, duration: float = 0.3) -> void:
+	if viewport == null or MotionPrefs.reduced_motion():
+		return
+	if viewport.get_camera_3d() != null:
+		CameraShake.shake(viewport, clampf(intensity / SHAKE_FULL_TRAUMA_PX, 0.0, 1.0))
+		return
 	var canvas = viewport.get_camera_2d()
 	if canvas:
 		_original_camera_offset = canvas.offset

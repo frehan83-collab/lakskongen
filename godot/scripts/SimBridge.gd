@@ -29,6 +29,14 @@ signal achievement_unlocked(id: String, achievement_name: String, description: S
 ## Emitted when a pen action completes (feed, harvest, delouse)
 signal pen_action_completed(action: String, pen_id: String, success: bool)
 
+## Emitted for every event the typed event bus delivers (roadmap U2-06):
+## {id, type, severity "info" | "warning" | "critical", category, key, day,
+## site_id, zone_id, unit_id, variant, headline, message, deadline_day,
+## counter_verb, value, escalation}. The bus has already dropped repeats
+## (same category and subject within three days) and marked escalations;
+## listeners route by severity, never by the message text.
+signal game_event_raised(event: Dictionary)
+
 # ── Internal ──────────────────────────────────────────────────────────────────
 
 var _game_bridge: Node = null
@@ -298,6 +306,7 @@ func _ready() -> void:
 		_game_bridge.AchievementUnlocked.connect(_on_achievement_unlocked)
 		_game_bridge.WeatherEvent.connect(_on_weather_event)
 		_game_bridge.DiseaseOutbreak.connect(_on_disease_outbreak)
+		_game_bridge.GameEventRaised.connect(func(ev: Dictionary) -> void: game_event_raised.emit(ev))
 	else:
 		push_warning("SimBridge: /root/GameBridge not found — stub mode active")
 	_state.game_bridge = _game_bridge
@@ -377,6 +386,12 @@ func get_night_shift_status() -> Dictionary: return _proxies.get_night_shift_sta
 func set_night_shift_policy(policy: String) -> bool: return _actions.set_night_shift_policy(policy)
 func get_intervention_ranking() -> Array[Dictionary]: return _proxies.get_intervention_ranking()
 func get_attention_items() -> Array[Dictionary]: return _proxies.get_attention_items()
+## The typed event bus (U2-06): the delivered log (newest first), the type
+## catalog, a condition report (SimState uses it) and the repeats absorbed.
+func get_game_event_log(max_count: int = 50) -> Array[Dictionary]: return _proxies.get_game_event_log(max_count)
+func get_game_event_catalog() -> Array[Dictionary]: return _proxies.get_game_event_catalog()
+func publish_condition_event(type_id: String, severity: String, site_id: String, message: String, variant: String = "", deadline_day: int = -1) -> Dictionary: return _proxies.publish_condition_event(type_id, severity, site_id, message, variant, deadline_day)
+func game_events_suppressed() -> int: return _proxies.game_events_suppressed()
 func open_attention_inbox() -> void: _proxies.open_attention_inbox()
 func set_feed_recipe(protein: float, replace: float, astax: float) -> void: return _actions.set_feed_recipe(protein, replace, astax)
 func deploy_countermeasure(site_id: String, kind: String) -> bool: return _actions.deploy_countermeasure(site_id, kind)

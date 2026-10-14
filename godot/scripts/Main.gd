@@ -10,6 +10,8 @@ extends Control
 @onready var _dashboard: Control = null  # Dashboard is now loaded dynamically by GameUI
 ## The pause menu (Esc, roadmap U1-06): on its own layer above the game UI.
 @onready var _pause_menu: Control = get_node_or_null("%PauseMenu")
+## The critical event card (U2-06): it pauses the game while it is open.
+@onready var _critical_card: Control = get_node_or_null("%CriticalEventCard")
 
 # Configuration
 const STARTING_CAPITAL: int = 10_000_000
@@ -17,8 +19,6 @@ const DEFAULT_PLAYER_NAME: String = "Player"
 
 # State
 var _game_started: bool = false
-# Last critical message that triggered auto-pause (dedupe: conditions repeat daily).
-var _last_auto_pause_msg: String = ""
 
 func _ready() -> void:
 	print("Main: Initializing...")
@@ -31,7 +31,6 @@ func _ready() -> void:
 	# Connect to SimBridge signals
 	_sim.state_updated.connect(_on_state_updated)
 	_sim.day_advanced.connect(_on_day_advanced)
-	_sim.alert_raised.connect(_on_alert_raised)
 
 	# Connect HUD speed change signal
 	if _hud:
@@ -43,6 +42,10 @@ func _ready() -> void:
 	if _pause_menu:
 		_pause_menu.opened.connect(_sync_hud_pause)
 		_pause_menu.closed.connect(_sync_hud_pause)
+	# A critical event pauses through its card (one channel, U2-06); the
+	# alert text no longer decides anything here.
+	if _critical_card:
+		_critical_card.pause_changed.connect(_sync_hud_pause)
 
 	# Start the game after a short delay to ensure everything is ready
 	call_deferred("_start_game")
@@ -131,31 +134,6 @@ func _on_state_updated() -> void:
 
 func _on_day_advanced(day: int, season: String) -> void:
 	print("Main: Day %d (%s)" % [day, season])
-
-func _on_alert_raised(level: String, message: String) -> void:
-	print("Main: Alert [%s] %s" % [level, message])
-	# Auto-pause on NEW critical alerts (settings: gameplay.auto_pause_critical).
-	if level != "critical" or message == _last_auto_pause_msg:
-		return
-	if not _should_auto_pause():
-		return
-	_last_auto_pause_msg = message
-	set_paused(true)
-	if _hud and _hud.has_method("set_paused_state"):
-		_hud.set_paused_state(true)
-
-## Auto-pause toggle from user://settings.json (default: on).
-func _should_auto_pause() -> bool:
-	if not FileAccess.file_exists("user://settings.json"):
-		return true
-	var file := FileAccess.open("user://settings.json", FileAccess.READ)
-	if file == null:
-		return true
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) != OK or not (json.data is Dictionary):
-		return true
-	var gameplay: Dictionary = json.data.get("gameplay", {})
-	return bool(gameplay.get("auto_pause_critical", true))
 
 func _on_speed_changed(speed: float, paused: bool) -> void:
 	if _sim:

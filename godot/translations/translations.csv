@@ -133,7 +133,7 @@ UI_SETTINGS_TAB_GRAPHICS,Graphics,Grafikk
 UI_SETTINGS_TAB_GAMEPLAY,Gameplay,Spill
 UI_SETTINGS_TAB_ACCESSIBILITY,Accessibility,Tilgjengelighet
 UI_SETTINGS_REDUCED_MOTION,Reduce motion,Redusert bevegelse
-UI_SETTINGS_REDUCED_MOTION_TIP,"Keeps the camera still in the main menu and shortens fades and slides. Also follows the system setting.","Holder kameraet i ro i hovedmenyen og korter ned overganger og glidninger. Følger også systeminnstillingen."
+UI_SETTINGS_REDUCED_MOTION_TIP,"Keeps the camera still in the main menu, turns off camera shake and lets cards and notices fade in place instead of sliding. Also follows the system setting.","Holder kameraet i ro i hovedmenyen, slår av kamerarysting og lar kort og varsler tones inn på plass i stedet for å gli. Følger også systeminnstillingen."
 UI_SETTINGS_MASTER_LABEL,Master,Master
 UI_SETTINGS_MUSIC_LABEL,Music,Musikk
 UI_SETTINGS_AMBIENT_LABEL,Ambient,Ambient
@@ -408,7 +408,7 @@ UI_TOAST_SAVE_FAILED,⚠️ Save failed: %s,⚠️ Lagring feilet: %s
 UI_TOAST_LOAD_FAILED,⚠️ Load failed: %s,⚠️ Lasting feilet: %s
 UI_TOAST_DELETED,🗑 Save deleted: %s,🗑 Lagring slettet: %s
 UI_TOAST_QUICKSAVED,💾 Quicksaved,💾 Hurtiglagret
-UI_NOTIFY_EMPTY,🔔 No notifications yet — we will let you know when something happens.,🔔 Ingen varsler ennå — vi gir beskjed når noe skjer.
+UI_NOTIFY_EMPTY,No notifications yet — we will let you know when something happens.,Ingen varsler ennå — vi gir beskjed når noe skjer.
 UI_BRIEFING_WEATHER,🌤️ Weather forecast,🌤️ Værmelding
 UI_BRIEFING_MARKET,💰 Market,💰 Marked
 UI_BRIEFING_EVENTS,📰 Overnight events,📰 Nattens hendelser
@@ -685,7 +685,7 @@ UI_HUD_TIP_BALANCE,"Cash on hand — all income minus costs, loans and investmen
 UI_HUD_TIP_FISH,Fish in all stocked pens.\nNow: %s,Fisk i alle utsatte merder.\nNå: %s
 UI_HUD_TIP_TEMP,Sea temperature — drives growth and lice reproduction.\nNow: %s °C,Sjøtemperatur — styrer vekst og lusas formering.\nNå: %s °C
 UI_HUD_TIP_PRICE,"Spot price per kg — moves with market events, season and demand.\nNow: %s NOK/kg","Spotpris per kg — følger markedshendelser, sesong og etterspørsel.\nNå: %s kr/kg"
-UI_HUD_TIP_ALERTS,Active alerts — press I or click the bell to open the alert inbox.\n%d active,Aktive varsler — trykk I eller klikk på bjella for å åpne varslingsinnboksen.\n%d aktive
+UI_HUD_TIP_ALERTS,"Active alerts — press I for the attention list, N or the bell for notifications.\n%d active","Aktive varsler — trykk I for oppgavelisten, N eller bjella for varslene.\n%d aktive"
 UI_HUD_TIP_WEATHER,Current weather — storms can damage pens and halt operations.,Været nå — storm kan skade merder og stanse driften.
 UI_HUD_TIP_INBOX,Alert inbox (I),Varslingsinnboks (I)
 UI_FIN_PEN_PRICE,Pen price (binding),Merdpris (bindende)
@@ -1567,3 +1567,57 @@ UI_SOLVENCY_DESC,Cash %s. Bankruptcy below %s.,Kontanter %s. Konkurs under %s.
 UI_ATTENTION_SOLVENCY_DESC,Cash {0} NOK. Bankruptcy below {1} NOK.,Kontanter {0} NOK. Konkurs under {1} NOK.
 GAME_OVER_BANKRUPTCY,Bankruptcy: cash fell below the bankruptcy floor and the bank called in its credit.,Konkurs: kontantbeholdningen passerte konkursgrensen og banken sa opp kreditten.
 UI_GAME_OVER_FORMAT,Game over: %s,Spillet er over: %s
+ALERT_GILL_CRITICAL,Gill health critical at %s,Gjellehelsen er kritisk ved %s
+ALERT_GILL_POOR,Gill health declining at %s,Gjellehelsen svekkes ved %s
+GAME_EVENT_ALGAL_BLOOM,Bloom at the farm,Oppblomstring ved anlegget
+GAME_EVENT_APPETITE_LOW,Low appetite,Lav appetitt
+GAME_EVENT_FEED_CONVERSION_POOR,Feed conversion worsening,Fôrfaktoren forverres
+GAME_EVENT_GILL_HEALTH_CRITICAL,Gill health critical,Kritisk gjellehelse
+GAME_EVENT_GILL_HEALTH_POOR,Gill health declining,Svekket gjellehelse
+GAME_EVENT_INSURANCE_PAYOUT,Insurance settlement,Forsikringsoppgjør
+GAME_EVENT_LICE_ABOVE_LIMIT,Lice above the legal limit,Lusenivået er over grensen
+GAME_EVENT_LICE_RISING,Lice levels rising,Lusenivået stiger
+GAME_EVENT_LICE_TREATMENT_DUE,Lice treatment due,Lusebehandling påkrevd
+GAME_EVENT_MORTALITY_HIGH,High mortality,Høy dødelighet
+GAME_EVENT_NETS_CRITICAL,Nets critically worn,Nøtene er kritisk slitt
+GAME_EVENT_NETS_WORN,Nets worn,Nøtene er slitt
+GAME_EVENT_OXYGEN_CRITICAL,Oxygen critically low,Kritisk lavt oksygen
+GAME_EVENT_OXYGEN_LOW,Low oxygen,Lavt oksygen
+GAME_EVENT_SOLVENCY_BANK_WARNING,Bank warning,Bankvarsel
+GAME_EVENT_SOLVENCY_FINAL_WARNING,Final warning from the bank,Siste varsel fra banken
+GAME_EVENT_SOLVENCY_OVERDRAFT,Account overdrawn,Overtrukket konto
+GAME_EVENT_STORM_DAMAGE,Storm damage,Stormskade
+GAME_EVENT_STORM_FORECAST,Storm on the way,Storm i vente
+GAME_EVENT_STORY_EVENT,Event,Hendelse
+GAME_EVENT_SUSTAINABILITY_LOW,Sustainability below the requirement,Bærekraft under kravet
+GAME_EVENT_TEMPERATURE_HIGH,High sea temperature,Høy sjøtemperatur
+GAME_EVENT_TRAFFIC_LIGHT_CHANGED,Traffic light changed,Trafikklyset har skiftet
+GAME_EVENT_TRAFFIC_LIGHT_RED,Traffic light red,Trafikklyset er rødt
+GAME_EVENT_VACCINE_COVERAGE_LOW,Low vaccine coverage,Lav vaksinedekning
+GAME_EVENT_VACCINE_WINDOW_OPEN,Vaccination window open,Vaksinasjonsvinduet er åpent
+GAME_EVENT_WELLBOAT_COMPLETED,Wellboat job done,Brønnbåten er ferdig
+GAME_EVENT_WELLBOAT_RETURNED,Wellboat returned without finishing,Brønnbåten kom tilbake uten å fullføre
+GAME_EVENT_WELLBOAT_SCHEDULED,Wellboat booked,Brønnbåt bestilt
+UI_EVENT_CARD_CONTINUE,Continue,Fortsett
+UI_EVENT_CARD_HINT_PAUSED,The game is paused while this card is open. Esc continues.,Spillet står på pause mens kortet er åpent. Esc fortsetter.
+UI_EVENT_CARD_HINT_RUNNING,The game keeps running. Esc closes the card.,Spillet går videre. Esc lukker kortet.
+UI_EVENT_CARD_NEXT,Next,Neste
+UI_EVENT_CARD_OVERLINE,Critical event,Kritisk hendelse
+UI_EVENT_CARD_QUEUE,%d of %d,%d av %d
+UI_EVENT_CARD_SHOW_SITE,Show the site,Vis lokaliteten
+UI_EVENT_DAY,Day %d,Dag %d
+UI_EVENT_DEADLINE,Deadline: day %d (in %d days),Frist: dag %d (om %d dager)
+UI_EVENT_DEADLINE_TODAY,Deadline: day %d (today),Frist: dag %d (i dag)
+UI_EVENT_SUBJECT_COMPANY,The whole company,Hele selskapet
+UI_EVENT_VERB_CHECK_WATER,Check the water,Se vannkvaliteten
+UI_EVENT_VERB_DELOUSE,Plan delousing,Planlegg avlusing
+UI_EVENT_VERB_FRESHWATER_BATH,Plan a freshwater bath,Planlegg ferskvannsbehandling
+UI_EVENT_VERB_INSPECT_NETS,Check the nets,Sjekk nøtene
+UI_EVENT_VERB_INSPECT_SITE,Show the site,Vis lokaliteten
+UI_EVENT_VERB_OPEN_SUSTAINABILITY,See the requirements,Se kravene
+UI_EVENT_VERB_RAISE_CAPITAL,Raise capital,Skaff kapital
+UI_EVENT_VERB_REVIEW_FEEDING,Review feeding,Se på fôringen
+UI_HUD_TIP_NOTIFICATIONS,Notifications (N) — %d unread,Varsler (N) — %d uleste
+UI_NOTIFY_CLEAR_ALL_TIP,Clear all notifications,Tøm alle varsler
+UI_NOTIFY_EXPAND_TIP,Click for the whole text,Klikk for hele teksten
+UI_NOTIFY_UNREAD,New,Ny

@@ -46,6 +46,7 @@ namespace LakskongenSim.Core
             State = new GameState();
             Rng = new SimRng(0);
             _dayNotes.Clear();
+            GameEvents.Clear();   // U2-06: presentation state, never saved
             // Run state that lives on the engine rather than in GameState (F292).
             PenPriceCouncil = new Market.PriceCouncil(DefaultPenPriceNokPerKg);
             ResourceRentPaid = 0m;
@@ -1564,6 +1565,7 @@ private class BalancingConfig
             StampDayNotes();
             var notes = new List<DayNote>(_dayNotes);
             _dayNotes.Clear();
+            PublishNoteEvents(notes);   // U2-06: the typed event bus
             return notes;
         }
 
@@ -2396,6 +2398,7 @@ private class BalancingConfig
         {
             // Notify UI
             OnEventFired?.Invoke(record);
+            PublishStoryEvent(record);   // U2-06: the typed event bus
             OnEventTriggered?.Invoke($"📣 [{record.Category}] {record.Name}: {record.Description}");
 
             SimLog.Info($"[Day {record.Day}] EVENT: {record.Name} — {record.Description} ({record.BalanceChange:+#,0;-#,0;0} NOK)");
@@ -2890,15 +2893,17 @@ private class BalancingConfig
                 if (after == before) continue;
 
                 double factor = TrafficLightSystem.ApplyMABConsequence(zone);
+                string lightDescription = SimText.Nb($"{ZoneLabel(zone.Id)} → {TrafficLightName(after)} (lus {lice:F2} per fisk, MTB ×{factor:F2})");
                 State.EventLog.Add(new EventRecord
                 {
                     Day = State.Day,
                     Name = $"Trafikklys: {TrafficLightName(after)}",
                     Category = EventCategory.Regulation,
-                    Description = SimText.Nb($"{ZoneLabel(zone.Id)} → {TrafficLightName(after)} (lus {lice:F2} per fisk, MTB ×{factor:F2})"),
+                    Description = lightDescription,
                     BalanceChange = 0m
                 });
                 State.TrimEventLog();
+                PublishTrafficLightEvent(zone.Id, after, lightDescription);   // U2-06
                 SimLog.Info($"🚦 Zone {zone.Id} → {after} (lice {lice:F2}, MAB ×{factor:F2})");
 
                 // Phase 4.1: red-zone MAB credit for contained sites (exact
@@ -3299,16 +3304,23 @@ private class BalancingConfig
             // Booked as insurance income, not harvest revenue (review F1132).
             ReceiveIncome(payout, "insurance");
 
+            string payoutDescription = SimText.Nb($"Forsikringen dekket {payout:N0} av {lossNok:N0} kr i tap — {cause}");
             State.EventLog.Add(new Events.EventRecord
             {
                 Day = State.Day,
                 Id = $"insurance-{kind.ToString().ToLowerInvariant()}",
                 Name = "Forsikringsoppgjør",
                 Category = category,
-                Description = SimText.Nb($"Forsikringen dekket {payout:N0} av {lossNok:N0} kr i tap — {cause}"),
+                Description = payoutDescription,
                 BalanceChange = payout
             });
             State.TrimEventLog();
+            PublishGameEvent(new GameEventRequest(GameEventType.InsurancePayout, State.Day)   // U2-06
+            {
+                Variant = kind.ToString().ToLowerInvariant(),
+                Message = payoutDescription,
+                Value = (double)payout
+            });
             OnEventTriggered?.Invoke($"🛡️ Forsikringsutbetaling ({kind}): {payout:N0} NOK");
         }
 

@@ -408,6 +408,9 @@ public partial class GameBridge : Node
             }
         }
         ProjectedNoteDay = -1;
+        // U2-06: what the engine's event bus delivered during the advance
+        // (the notes above, storyteller events, traffic lights, insurance).
+        ProjectGameEvents();
     }
 
     // ── Computed properties for GDScript ─────────────────────────────────────
@@ -1052,6 +1055,15 @@ public partial class GameBridge : Node
                 : LakskongenSim.Core.SimText.Nb($"Høyt lusenivå ({licePerFish:F2} per fisk)! Behandle snarest.");
             
             EmitSignal(SignalName.DiseaseOutbreak, "SeaLice", "all_sites", severity, (double)treatmentCost);
+            // U2-06: the weekly reminder is a lice warning on the typed bus; it
+            // joins the lice condition's key, so it is quiet while that holds.
+            SimulationEngine.PublishGameEvent(new LakskongenSim.Events.GameEventRequest(
+                LakskongenSim.Events.GameEventType.LiceTreatmentDue, SimulationEngine.State.Day)
+            {
+                Message = description,
+                Value = licePerFish
+            });
+            ProjectGameEvents();
             
             // Add warning to event log
             SimulationEngine.State.EventLog.Add(new LakskongenSim.Events.EventRecord

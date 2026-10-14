@@ -1,0 +1,153 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/CriticalEventCard.gd" id="1_card"]
+[ext_resource type="Shader" path="res://shaders/ui_frost.gdshader" id="2_frost"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_frost"]
+shader = ExtResource("2_frost")
+shader_parameter/tint_amount = 0.5
+shader_parameter/blur_lod = 3.0
+shader_parameter/vignette = 0.55
+
+[node name="CriticalEventCard" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_card")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_frost")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.043137, 0.164706, 0.227451, 0.92)
+
+[node name="Center" type="CenterContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Card" type="PanelContainer" parent="Center"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(620, 0)
+layout_mode = 2
+theme_type_variation = &"ToastCrit"
+
+[node name="Pad" type="MarginContainer" parent="Center/Card"]
+layout_mode = 2
+theme_override_constants/margin_left = 26
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 26
+theme_override_constants/margin_bottom = 22
+
+[node name="Box" type="VBoxContainer" parent="Center/Card/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TopRow" type="HBoxContainer" parent="Center/Card/Pad/Box"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SeverityBadge" type="PanelContainer" parent="Center/Card/Pad/Box/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"BadgeCrit"
+
+[node name="SeverityLabel" type="Label" parent="Center/Card/Pad/Box/TopRow/SeverityBadge"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineCrit"
+text = "UI_EVENT_CARD_OVERLINE"
+uppercase = true
+
+[node name="TopSpacer" type="Control" parent="Center/Card/Pad/Box/TopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="QueueLabel" type="Label" parent="Center/Card/Pad/Box/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"CaptionMuted"
+text = "–"
+
+[node name="TitleLabel" type="Label" parent="Center/Card/Pad/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Title"
+text = "–"
+autowrap_mode = 3
+
+[node name="MetaLabel" type="Label" parent="Center/Card/Pad/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodySmallMuted"
+text = "–"
+
+[node name="MessageLabel" type="Label" parent="Center/Card/Pad/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+text = "–"
+autowrap_mode = 3
+
+[node name="DeadlineLabel" type="Label" parent="Center/Card/Pad/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodyStrongWarn"
+text = "–"
+
+[node name="Separator" type="HSeparator" parent="Center/Card/Pad/Box"]
+layout_mode = 2
+
+[node name="Actions" type="HBoxContainer" parent="Center/Card/Pad/Box"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="VerbButton" type="Button" parent="Center/Card/Pad/Box/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"LargePrimaryButton"
+text = "–"
+
+[node name="SiteButton" type="Button" parent="Center/Card/Pad/Box/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"LargeSecondaryButton"
+text = "UI_EVENT_CARD_SHOW_SITE"
+
+[node name="ActionsSpacer" type="Control" parent="Center/Card/Pad/Box/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="ContinueButton" type="Button" parent="Center/Card/Pad/Box/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"LargeGhostButton"
+text = "UI_EVENT_CARD_CONTINUE"
+
+[node name="HintLabel" type="Label" parent="Center/Card/Pad/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"CaptionMuted"
+text = "UI_EVENT_CARD_HINT_PAUSED"
+autowrap_mode = 3

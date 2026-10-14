@@ -881,7 +881,21 @@ func _show_tab(tab_id: String) -> void:
 	var center := _find(_game, "NotificationCenter")
 	if center != null and center.has_method("hide_panel"):
 		center.call("hide_panel")
+	_close_event_cards()
 	await _wait(1.0)
+
+
+## A critical event's card (U2-06) waits for an answer over every later shot:
+## answer it (Fortsett) as a player would before looking at a tab.
+func _close_event_cards() -> void:
+	var card := _find(_game, "CriticalEventCard")
+	var guard := 0
+	while card != null and card.has_method("is_open") and card.call("is_open") and guard < 50:
+		card.get("continue_button").pressed.emit()
+		guard += 1
+	# Gone now, not after its fade-out (a shot taken at once caught it fading).
+	if card != null and guard > 0:
+		(card as CanvasItem).hide()
 
 
 func _shoot(shot_name: String, force_hide_ui: bool = false) -> Image:
@@ -895,6 +909,8 @@ func _shoot(shot_name: String, force_hide_ui: bool = false) -> Image:
 	# (auto-pause alerts). UI shots (panels/tabs) pass false — hiding there
 	# silently produced fjord frames instead of panels (session 1 regression).
 	var ui := _find(_game, "UILayer")
+	if force_hide_ui:
+		_close_event_cards()
 	if force_hide_ui and ui != null:
 		ui.visible = false
 		print("[ScreenshotHarness] _shoot(%s) UILayer.visible=%s after force-hide" % [shot_name, str(ui.visible)])

@@ -112,6 +112,12 @@ func _run() -> void:
 	await _test_map_labels_never_collide()
 	await _test_pen_detail_fits_and_pads_its_cards()
 	await _test_market_and_crew_show_the_sims_own_numbers()
+	await _test_event_bus_one_channel_per_severity()
+	await _test_repeated_condition_makes_no_duplicates()
+	await _test_critical_shake_moves_the_camera_offset()
+	await _test_critical_card_actions()
+	await _test_inbox_lists_what_happened()
+	await _test_toasts_keep_clear_of_actions_and_inbox_header()
 
 	_clear_test_saves()
 	_finish()
@@ -1411,8 +1417,20 @@ func _test_screen_regions_never_overlap() -> void:
 			var rects: Array = toasts.get_toast_rects()
 			var corner := screen.end - Vector2(toasts.STACK_MARGIN_RIGHT, toasts.STACK_MARGIN_BOTTOM)
 			var newest: Rect2 = rects[0] if not rects.is_empty() else Rect2()
-			_check(rects.size() == 3 and newest.end.distance_to(corner) < 2.0,
-				"regions: five toasts show as three, newest in the bottom-right corner at %s (%d, %s)" % [where, rects.size(), str(newest)])
+			# U2-06 (stronger than "in the corner", RUN_LOG §7): the newest toast
+			# is right-aligned in the corner's column and as low as it can be
+			# without covering a keep-clear control (Hurtigvalg): in the corner
+			# itself, or resting just above such a control. None covers one.
+			var keep_clear: Array = toasts.keep_clear_rects()
+			var resting := absf(newest.end.y - corner.y) < 2.0
+			for k: Rect2 in keep_clear:
+				if k.position.x < newest.end.x and k.end.x > newest.position.x \
+						and absf(newest.end.y + toasts.KEEP_CLEAR_GAP - k.position.y) < 2.0:
+					resting = true
+			var covering := rects.filter(func(r: Rect2) -> bool:
+				return keep_clear.any(func(k: Rect2) -> bool: return r.intersects(k, true)))
+			_check(rects.size() == 3 and absf(newest.end.x - corner.x) < 2.0 and resting and covering.is_empty(),
+				"regions: five toasts show as three, newest bottom-right in the corner or just above Hurtigvalg, covering nothing, at %s (%d, %s)" % [where, rects.size(), str(newest)])
 			var controls: Rect2 = found.get("hud_controls", Rect2())
 			var clear := controls.has_area()
 			for r: Rect2 in rects:
@@ -3718,5 +3736,355 @@ func _test_market_and_crew_show_the_sims_own_numbers() -> void:
 			storm_line = Array(crew.role_effect_lines(e))[0]
 			_check(storm_line == tr("UI_CREW_EFFECT_STORM") % SimFormatters.percent(1.0 - float(e["storm_loss"])),
 				"crew: the røkter tile states the sim's storm-loss effect ('%s')" % storm_line)
+	scene.queue_free()
+	await get_tree().process_frame
+
+# ── U2-06: typed event bus, one channel per severity ──────────────────────────
+
+## Routed events by channel, plus the toasts shown, while a test listens.
+class _EventTap:
+	var routed: Array = []   # [event, channel]
+	var toasts: Array = []   # [level, message]
+	func on_routed(event: Dictionary, channel: String) -> void:
+		routed.append([event, channel])
+	func on_toast(message: String, level: String) -> void:
+		toasts.append([level, message])
+	func channel_count(channel: String, type_id: String = "") -> int:
+		return routed.filter(func(r: Array) -> bool:
+			return r[1] == channel and (type_id == "" or str(r[0].get("type", "")) == type_id)).size()
+	func toasts_containing(text: String, level: String = "") -> int:
+		return toasts.filter(func(t: Array) -> bool:
+			return str(t[1]).contains(text) and (level == "" or t[0] == level)).size()
+
+func _tap_events() -> _EventTap:
+	var tap := _EventTap.new()
+	get_node("/root/ConsequenceDirector").event_routed.connect(tap.on_routed)
+	get_node("/root/ToastNotification").toast_shown.connect(tap.on_toast)
+	return tap
+
+func _untap_events(tap: _EventTap) -> void:
+	get_node("/root/ConsequenceDirector").event_routed.disconnect(tap.on_routed)
+	get_node("/root/ToastNotification").toast_shown.disconnect(tap.on_toast)
+
+## Close every open critical card (Fortsett), so a test leaves no modal behind.
+func _drain_cards(card: Control) -> void:
+	var guard := 0
+	while card.is_open() and guard < 50:
+		card.continue_button.pressed.emit()
+		guard += 1
+	await get_tree().process_frame
+
+## Acceptance 2: critical = one modal card each (and the pause), warning =
+## exactly one toast plus an inbox entry and the badge, info = the log only.
+## The routing reads the typed severity: the same scary words as info make
+## no noise.
+func _test_event_bus_one_channel_per_severity() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	MotionPrefs.force(false)
+	var scene := await _spawn_po3_scene(91)
+	var card: Control = scene.get_node("%CriticalEventCard")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	var hud: Control = scene.get_node("UILayer/HUD")
+	await _drain_cards(card)
+	get_node("/root/ToastNotification").clear_all()
+	center.clear_all()
+	var tap := _tap_events()
+	var shown_before: int = card.shown_count
+
+	# Critical: the card opens at once and stops a running clock.
+	_sim.set_paused(false)
+	_sim.publish_condition_event("oxygen_critical", "critical", "", "CI: oksygen kritisk lavt 3,1 mg/L")
+	_check(card.is_open() and card.shown_count == shown_before + 1, "events: a critical event opens one card")
+	_check(_sim.is_paused(), "events: the card pauses the running game")
+	_check(tap.toasts_containing("CI: oksygen") == 0, "events: a critical event is a card, not a toast")
+	# A second critical while the card is open waits its turn: one card each.
+	_sim.publish_condition_event("nets_critical", "critical", "", "CI: nøter kritisk slitt 31 %")
+	_check(card.shown_count == shown_before + 1 and card.queued_count() == 1, "events: a second critical waits behind the open card")
+	card.continue_button.pressed.emit()
+	_check(card.is_open() and card.shown_count == shown_before + 2
+		and str(card.current_event().get("type", "")) == "nets_critical", "events: Fortsett shows the waiting card")
+	card.continue_button.pressed.emit()
+	await get_tree().process_frame
+	_check(not card.is_open() and not _sim.is_paused(), "events: after the last card the clock runs again")
+	_sim.set_paused(true)
+	_check(tap.channel_count("modal") == 2 and card.shown_count == shown_before + 2,
+		"events: exactly one card per critical event (%d routed, %d shown)" % [tap.channel_count("modal"), card.shown_count - shown_before])
+
+	# Warning: exactly one toast, an unread inbox entry and the badge.
+	var badge_before: int = hud.unread_badge_count()
+	_sim.publish_condition_event("storm_forecast", "warning", "", "CI: stormfare 64 %")
+	_sim.publish_condition_event("storm_forecast", "warning", "", "CI: stormfare 64 %")
+	await get_tree().create_timer(0.4).timeout
+	_check(tap.toasts_containing("CI: stormfare", "WARNING") == 1, "events: a warning is exactly one toast (%d)" % tap.toasts_containing("CI: stormfare"))
+	var storm_entries: Array = center._entries.filter(func(e: Dictionary) -> bool: return e["type"] == "storm_forecast")
+	_check(storm_entries.size() == 1 and bool(storm_entries[0]["unread"]), "events: a warning is one unread inbox entry")
+	_check(hud.unread_badge_count() == badge_before + 1, "events: the bell's badge counts it (%d -> %d)" % [badge_before, hud.unread_badge_count()])
+
+	# Info: the log only, even with words that once meant alarm.
+	_sim.publish_condition_event("wellboat_scheduled", "info", "po3_sor", "CI: storm rømming sykdom KRITISK", "delouse")
+	await get_tree().create_timer(0.4).timeout
+	_check(tap.toasts_containing("CI: storm rømming") == 0 and card.shown_count == shown_before + 2,
+		"events: an info event makes no toast and no card, whatever its text says")
+	_check(center._entries.any(func(e: Dictionary) -> bool: return e["type"] == "wellboat_scheduled" and not bool(e["unread"])),
+		"events: an info event is logged in the inbox, read")
+	_check(hud.unread_badge_count() == badge_before + 1, "events: info does not touch the badge")
+
+	# Opening the inbox reads it: the badge goes.
+	center.show_panel()
+	await get_tree().process_frame
+	_check(hud.unread_badge_count() == 0, "events: opening the inbox clears the badge")
+	center.hide_panel()
+	await get_tree().create_timer(0.3).timeout
+
+	# Escalation: a warning turning critical is one entry and one card.
+	_sim.publish_condition_event("lice_rising", "warning", "", "CI: lus forhøyet 0,31")
+	_sim.publish_condition_event("lice_above_limit", "critical", "", "CI: lus KRITISK 0,61")
+	_check(card.is_open() and bool(card.current_event().get("escalation", false)), "events: a warning turning critical opens the card as an escalation")
+	await _drain_cards(card)
+	var lice_entries: Array = center._entries.filter(func(e: Dictionary) -> bool: return e["key"] == "lice||")
+	_check(lice_entries.size() == 1 and lice_entries[0]["severity"] == "critical",
+		"events: the escalation raises the one inbox entry (%d entries)" % lice_entries.size())
+
+	# History from days skipped at once is logged, not announced.
+	var today := int(get_node("/root/GameBridge").CurrentDay)
+	_check(ConsequenceDirector.route_for({"severity": "critical", "day": today - 3}, today) == "log"
+		and ConsequenceDirector.route_for({"severity": "critical", "day": today - 2}, today) == "modal"
+		and ConsequenceDirector.route_for({"severity": "warning", "day": today}, today) == "toast"
+		and ConsequenceDirector.route_for({"severity": "info", "day": today}, today) == "log",
+		"events: the routing rule is severity and age only")
+	_untap_events(tap)
+	GameplayPrefs.force_auto_pause(null)
+	MotionPrefs.force(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Acceptance 3: a real condition (lice over the limit) that holds for days,
+## clears for a day and returns is one card; gone for longer than three days
+## and back, it is news again.
+func _test_repeated_condition_makes_no_duplicates() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	var scene := await _spawn_po3_scene(91)
+	var card: Control = scene.get_node("%CriticalEventCard")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	await _drain_cards(card)
+	var tap := _tap_events()
+	var lice_cards := func() -> int: return tap.channel_count("modal", "lice_above_limit")
+	_sim.set_qa_pen_lice("po3_sor", 2.0)
+	for day in 4:
+		_sim.advance_days(1)
+		await _drain_cards(card)
+	_check(_sim.sea_lice_per_fish > 0.5, "repeats: lice stay over the limit (%.2f)" % _sim.sea_lice_per_fish)
+	_check(lice_cards.call() == 1, "repeats: four days over the limit are one card (%d)" % lice_cards.call())
+	_sim.set_qa_pen_lice("po3_sor", 0.0)
+	_sim.advance_days(1)
+	_sim.set_qa_pen_lice("po3_sor", 2.0)
+	_sim.advance_days(1)
+	await _drain_cards(card)
+	_check(lice_cards.call() == 1, "repeats: cleared for a day and back is no new card (%d)" % lice_cards.call())
+	var entries: Array = center._entries.filter(func(e: Dictionary) -> bool: return e["key"] == "lice||")
+	_check(entries.size() == 1, "repeats: one lice entry in the inbox (%d)" % entries.size())
+	_sim.set_qa_pen_lice("po3_sor", 0.0)
+	for day in 5:
+		_sim.advance_days(1)
+	_sim.set_qa_pen_lice("po3_sor", 2.0)
+	_sim.advance_days(1)
+	await _drain_cards(card)
+	_check(lice_cards.call() == 2, "repeats: gone for five days and back is news again (%d)" % lice_cards.call())
+	_check(int(_sim.game_events_suppressed()) > 0, "repeats: the bus absorbed the repeats (%d)" % int(_sim.game_events_suppressed()))
+	_untap_events(tap)
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Acceptance 4: a critical event shakes the 3D camera through its view
+## offset (h_offset / v_offset) and the shake settles back exactly; with
+## reduced motion nothing moves.
+func _test_critical_shake_moves_the_camera_offset() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	MotionPrefs.force(false)
+	var scene := await _spawn_po3_scene(91)
+	var card: Control = scene.get_node("%CriticalEventCard")
+	await _drain_cards(card)
+	var cam := get_viewport().get_camera_3d()
+	_check(cam is FjordCamera, "shake: the game's camera is the fjord camera")
+	var base := Vector2(cam.h_offset, cam.v_offset)
+	_sim.publish_condition_event("gill_health_critical", "critical", "po3_nord", "CI: gjellene kritisk")
+	var moved := 0.0
+	for i in 20:
+		await get_tree().process_frame
+		moved = maxf(moved, Vector2(cam.h_offset, cam.v_offset).distance_to(base))
+	var shaker := cam.get_node_or_null("CameraShake") as CameraShake
+	_check(moved > 0.01 and shaker != null and shaker.peak_offset > 0.01,
+		"shake: a critical event moves the camera's view offset (%.3f m)" % moved)
+	await get_tree().create_timer(1.2).timeout
+	_check(Vector2(cam.h_offset, cam.v_offset).distance_to(base) < 0.0001, "shake: the offset settles back exactly")
+	await _drain_cards(card)
+
+	# Reduced motion: no shake through the router or directly; a running shake stops.
+	MotionPrefs.force(true)
+	_sim.publish_condition_event("oxygen_critical", "critical", "", "CI: oksygen kritisk")
+	var still := 0.0
+	for i in 20:
+		await get_tree().process_frame
+		still = maxf(still, Vector2(cam.h_offset, cam.v_offset).distance_to(base))
+	_check(card.is_open() and still == 0.0, "shake: with reduced motion a critical event moves nothing (%.4f m)" % still)
+	_check(not CameraShake.shake(get_viewport(), 1.0), "shake: reduced motion refuses a shake")
+	MotionPrefs.force(false)
+	CameraShake.shake(get_viewport(), 1.0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	MotionPrefs.force(true)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(Vector2(cam.h_offset, cam.v_offset).distance_to(base) < 0.0001, "shake: turning reduced motion on stops a running shake")
+	await _drain_cards(card)
+	MotionPrefs.force(null)
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## The critical card: its verb opens the place it lives (the game stays paused
+## for the decision), "Vis lokaliteten" flies to the site, Esc continues
+## (not the pause menu) and the game's keys wait while it is open.
+func _test_critical_card_actions() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	var scene := await _spawn_po3_scene(91)
+	var card: Control = scene.get_node("%CriticalEventCard")
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var pause: Control = scene.get_node("MenuLayer/PauseMenu")
+	await _drain_cards(card)
+	_sim.set_paused(false)
+	_sim.publish_condition_event("lice_above_limit", "critical", "", "CI: lus KRITISK 0,9")
+	await get_tree().process_frame
+	_check(card.verb_button.visible and card.verb_button.text == tr("UI_EVENT_VERB_DELOUSE"),
+		"card: the lice card offers 'Planlegg avlusing' ('%s')" % card.verb_button.text)
+	_check(card._title.text == tr("GAME_EVENT_LICE_ABOVE_LIMIT") and card._message.text == "CI: lus KRITISK 0,9"
+		and card._meta.text.contains(tr("UI_EVENT_SUBJECT_COMPANY")), "card: title, subject and message are shown")
+	await _press_key(KEY_SPACE)
+	_check(_sim.is_paused() and card.is_open(), "card: Space waits while the card is open")
+	card.verb_button.pressed.emit()
+	await get_tree().process_frame
+	var pens: Control = ui.find_child("Panel_pens", true, false)
+	_check(not card.is_open() and ui.get_active_tab() == "pens" and pens != null,
+		"card: the verb opens the pen view (%s)" % ui.get_active_tab())
+	_check(_sim.is_paused(), "card: after acting the game stays paused for the decision")
+	# A site event: "Vis lokaliteten" goes to the fjord view.
+	_sim.publish_condition_event("gill_health_critical", "critical", "po3_nord", "CI: gjeller")
+	await get_tree().process_frame
+	_check(card.site_button.visible, "card: a site's card offers 'Vis lokaliteten'")
+	card.site_button.pressed.emit()
+	await get_tree().process_frame
+	_check(ui.get_active_tab() == "fjord" and not card.is_open(), "card: 'Vis lokaliteten' shows the fjord (%s)" % ui.get_active_tab())
+	ui.show_tab("dashboard")
+	# Esc continues: it never opens the pause menu behind the card.
+	_sim.publish_condition_event("oxygen_critical", "critical", "", "CI: oksygen")
+	await get_tree().process_frame
+	await _press_key(KEY_ESCAPE)
+	await get_tree().process_frame
+	_check(not card.is_open() and not pause.is_open(), "card: Esc continues and leaves the pause menu shut")
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## The inbox shows what happened: every entry has its title, subject, day and
+## message on screen (the old drawer listed rows that only said "Advarsel"),
+## grouped with counts, and a warning's verb button acts.
+func _test_inbox_lists_what_happened() -> void:
+	var scene := await _spawn_po3_scene(91)
+	var card: Control = scene.get_node("%CriticalEventCard")
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	await _drain_cards(card)
+	center.clear_all()
+	_sim.publish_condition_event("mortality_high", "warning", "", "CI: dødelighet 1,4 % siste døgn")
+	_sim.publish_condition_event("wellboat_scheduled", "info", "po3_sor", "CI: brønnbåt om 3 d", "delouse")
+	center.show_panel()
+	await get_tree().create_timer(0.4).timeout
+	var bad: Array = []
+	var rows := 0
+	for node in center.entry_list.get_children():
+		if not String(node.name).begins_with("Entry_"):
+			continue
+		rows += 1
+		var title: Label = node.find_child("Title", true, false)
+		var desc: Label = node.find_child("Desc", true, false)
+		var day: Label = node.find_child("Day", true, false)
+		if title == null or title.text in ["", tr("UI_NOTIFY_GROUP_WARNING"), tr("UI_NOTIFY_GROUP_INFO"), tr("UI_NOTIFY_GROUP_CRITICAL")] \
+				or desc == null or not desc.is_visible_in_tree() or desc.text == "" or day == null:
+			bad.append(String(node.name))
+	_check(rows == 2 and bad.is_empty(), "inbox: every entry shows its title, message and day (%d rows, bad %s)" % [rows, str(bad)])
+	var header: Label = center.entry_list.find_child("Group_warning", true, false)
+	_check(header != null and header.text == "%s · 1" % tr("UI_NOTIFY_GROUP_WARNING"), "inbox: group headers count their entries")
+	var verb: Button = center.entry_list.find_child("VerbButton", true, false)
+	_check(verb != null and verb.text == tr("UI_EVENT_VERB_CHECK_WATER"), "inbox: the warning offers its verb")
+	if verb != null:
+		verb.pressed.emit()
+		await get_tree().create_timer(0.4).timeout
+	_check(ui.get_active_tab() == "telemetry" and not center.is_open(), "inbox: the verb opens telemetry (%s)" % ui.get_active_tab())
+	# A new game starts with an empty inbox, and keeps its own first events
+	# even when they arrive before GameStarted reaches the inbox.
+	_sim.start_qa_scenario("po3_red_sone", 91)
+	await get_tree().process_frame
+	_check(center._entries.all(func(e: Dictionary) -> bool: return int(e["day"]) <= 1 and not str(e["description"]).begins_with("CI:")),
+		"inbox: a new game starts without the old game's events")
+	_sim.publish_condition_event("temperature_high", "warning", "", "CI: ny sjøtemperatur 18,6 °C")
+	get_node("/root/GameBridge").emit_signal("GameStarted")
+	await get_tree().process_frame
+	_check(center._entries.any(func(e: Dictionary) -> bool: return str(e["description"]) == "CI: ny sjøtemperatur 18,6 °C"),
+		"inbox: the new game's own events stay through its GameStarted")
+	scene.queue_free()
+	await get_tree().process_frame
+
+## Art review (wave 1): toasts covered the dashboard's Hurtigvalg actions and
+## the notification header. Three toasts over the dashboard, at three window
+## sizes, stay clear of both; with nothing to avoid they sit in the corner.
+func _test_toasts_keep_clear_of_actions_and_inbox_header() -> void:
+	var scene := await _spawn_po3_scene(91)
+	var card: Control = scene.get_node("%CriticalEventCard")
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var center: Control = scene.get_node("UILayer/NotificationCenter")
+	await _drain_cards(card)
+	var toasts := get_node("/root/ToastNotification")
+	var win := get_window()
+	var old_size := win.size
+	var dash := await _open_panel(ui, "dashboard")
+	var actions: Control = dash.get_node("%ActionsCard")
+	var header: Control = center.get_node("%TitleLabel").get_parent()
+	for size: Vector2i in REGION_WINDOW_SIZES:
+		win.size = size
+		center.hide_panel()
+		toasts.clear_all()
+		await get_tree().create_timer(0.3).timeout
+		for n in 3:
+			toasts.show_toast("CI keep-clear toast %d" % n, "WARNING", 30.0)
+		await get_tree().create_timer(1.2).timeout
+		# The case that matters: Hurtigvalg sits where the corner stack would be.
+		var screen := get_viewport().get_visible_rect()
+		var corner_stack := Rect2(screen.end.x - toasts.STACK_MARGIN_RIGHT - toasts.TOAST_WIDTH,
+			screen.end.y - toasts.STACK_MARGIN_BOTTOM - 3.0 * 83.0, toasts.TOAST_WIDTH, 3.0 * 83.0)
+		_check(actions.is_visible_in_tree() and actions.get_global_rect().intersects(corner_stack),
+			"toasts: Hurtigvalg sits in the toasts' corner at %dx%d (%s)" % [size.x, size.y, str(actions.get_global_rect())])
+		var rects: Array = toasts.get_toast_rects()
+		var over_actions := rects.filter(func(r: Rect2) -> bool: return r.intersects(actions.get_global_rect(), true))
+		_check(rects.size() == 3 and over_actions.is_empty(),
+			"toasts: none covers Hurtigvalg at %dx%d (%d over)" % [size.x, size.y, over_actions.size()])
+		center.show_panel()
+		await get_tree().create_timer(0.5).timeout
+		rects = toasts.get_toast_rects()
+		var over_header := rects.filter(func(r: Rect2) -> bool: return r.intersects(header.get_global_rect(), true) or r.intersects(center.panel.get_global_rect(), true))
+		_check(not rects.is_empty() and over_header.is_empty(), "toasts: none covers the inbox or its header at %dx%d" % [size.x, size.y])
+	# Nothing to keep clear (the fjord view): the corner.
+	center.hide_panel()
+	ui.show_tab("fjord")
+	toasts.clear_all()
+	await get_tree().create_timer(0.3).timeout
+	toasts.show_toast("CI corner toast", "INFO", 30.0)
+	await get_tree().create_timer(0.8).timeout
+	var corner := get_viewport().get_visible_rect().end - Vector2(toasts.STACK_MARGIN_RIGHT, toasts.STACK_MARGIN_BOTTOM)
+	var shown: Array = toasts.get_toast_rects()
+	_check(not shown.is_empty() and (shown[0] as Rect2).end.distance_to(corner) < 2.0 and is_zero_approx(toasts.keep_clear_lift()),
+		"toasts: with nothing to keep clear they sit in the corner")
+	toasts.clear_all()
+	win.size = old_size
 	scene.queue_free()
 	await get_tree().process_frame

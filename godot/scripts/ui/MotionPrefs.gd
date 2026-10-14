@@ -9,7 +9,10 @@ extends RefCounted
 ##
 ## What honours it: the main menu's drifting camera and its slide-ins hold
 ## still, and its fades shorten to a quick cross-fade; button hover pops stay
-## at their size. Opacity changes stay (they do not move anything on screen).
+## at their size. In the game (U2-06): no camera shake (CameraShake, also
+## JuiceEffects.screen_shake), and toasts, the critical event card and the
+## notification drawer fade in place instead of sliding. Opacity changes stay
+## (they do not move anything on screen).
 
 const SETTINGS_PATH := "user://settings.json"
 

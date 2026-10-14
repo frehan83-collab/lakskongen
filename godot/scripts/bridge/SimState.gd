@@ -342,56 +342,76 @@ func _refresh_state() -> void:
 
 # ── Alert logic ───────────────────────────────────────────────────────────────
 
+## Each condition names the typed event it is reported as (U2-06); the event
+## bus hears every live condition on every refresh and decides what is news.
+## Company-wide conditions (lice, oxygen, nets…) are about the company (site
+## ""), so a different worst site tomorrow is not a new notification. The
+## ladder rungs and the red zones are reported by the engine itself (a rung
+## when it is reached, a zone when its light turns): listed here, no event.
 func _check_alerts() -> void:
 	var lice_txt := Formatters.num(sea_lice_per_fish, 2)
 	if sea_lice_per_fish > LICE_LEGAL_LIMIT:
-		if _raise("lice", "critical", tr("ALERT_LICE_CRITICAL") % [lice_txt, Formatters.num(LICE_LEGAL_LIMIT, 1)]):
+		if _raise("lice", "critical", tr("ALERT_LICE_CRITICAL") % [lice_txt, Formatters.num(LICE_LEGAL_LIMIT, 1)],
+				_ev("lice_above_limit")):
 			audio_alert_triggered.emit("lice_warning")
 	elif sea_lice_per_fish > LICE_TREATMENT_LIMIT:
-		_raise("lice", "warning", tr("ALERT_LICE_HIGH") % [lice_txt, Formatters.num(LICE_LEGAL_LIMIT, 1)])
+		_raise("lice", "warning", tr("ALERT_LICE_HIGH") % [lice_txt, Formatters.num(LICE_LEGAL_LIMIT, 1)],
+			_ev("lice_rising"))
 
 	if fcr_poor > 0.0 and fcr > fcr_poor and fcr_is_settled():
-		_raise("fcr", "warning", tr("ALERT_FCR_POOR") % [Formatters.num(fcr, 2), Formatters.num(fcr_target, 2)])
+		_raise("fcr", "warning", tr("ALERT_FCR_POOR") % [Formatters.num(fcr, 2), Formatters.num(fcr_target, 2)],
+			_ev("feed_conversion_poor"))
 
 	if appetite < 0.6:
-		_raise("appetite", "warning", tr("ALERT_APPETITE_LOW") % Formatters.percent(appetite))
+		_raise("appetite", "warning", tr("ALERT_APPETITE_LOW") % Formatters.percent(appetite), _ev("appetite_low"))
 
 	if mortality_rate > 0.01:
-		_raise("mortality", "warning", tr("ALERT_MORTALITY") % Formatters.percent(mortality_rate, 1))
+		_raise("mortality", "warning", tr("ALERT_MORTALITY") % Formatters.percent(mortality_rate, 1), _ev("mortality_high"))
 
 	if oxygen_mgl > 0.0 and oxygen_mgl < 5.0:
-		_raise("oxygen", "critical", tr("ALERT_OXYGEN_CRITICAL") % Formatters.num(oxygen_mgl, 1))
+		_raise("oxygen", "critical", tr("ALERT_OXYGEN_CRITICAL") % Formatters.num(oxygen_mgl, 1), _ev("oxygen_critical"))
 	elif oxygen_mgl >= 5.0 and oxygen_mgl < 6.5:
-		_raise("oxygen", "warning", tr("ALERT_OXYGEN_LOW") % Formatters.num(oxygen_mgl, 1))
+		_raise("oxygen", "warning", tr("ALERT_OXYGEN_LOW") % Formatters.num(oxygen_mgl, 1), _ev("oxygen_low"))
 
 	if min_net_integrity < 40.0:
-		_raise("nets", "critical", tr("ALERT_NETS_CRITICAL") % Formatters.percent(min_net_integrity / 100.0))
+		_raise("nets", "critical", tr("ALERT_NETS_CRITICAL") % Formatters.percent(min_net_integrity / 100.0),
+			_ev("nets_critical"))
 	elif min_net_integrity < 70.0:
-		_raise("nets", "warning", tr("ALERT_NETS_WORN") % Formatters.percent(min_net_integrity / 100.0))
+		_raise("nets", "warning", tr("ALERT_NETS_WORN") % Formatters.percent(min_net_integrity / 100.0),
+			_ev("nets_worn"))
 
 	if storm_risk_3d > 0.5:
-		_raise("storm_risk", "warning", tr("ALERT_STORM_RISK") % Formatters.percent(storm_risk_3d))
+		_raise("storm_risk", "warning", tr("ALERT_STORM_RISK") % Formatters.percent(storm_risk_3d), _ev("storm_forecast"))
 
 	if red_zone_count > 0:
 		_raise("red_zones", "warning", tr("ALERT_RED_ZONES") % red_zone_count)
 
 	if vaccine_window_left >= 0:
 		if vaccine_coverage < 0.9:
-			_raise("vaccine_window", "warning", tr("ALERT_VACCINE_WINDOW") % [vaccine_window_left, Formatters.percent(vaccine_coverage)])
+			_raise("vaccine_window", "warning", tr("ALERT_VACCINE_WINDOW") % [vaccine_window_left, Formatters.percent(vaccine_coverage)],
+				_ev("vaccine_window_open", "", "", current_day + vaccine_window_left))
 	elif vaccine_coverage < 0.5 and current_day > 300:
-		_raise("vaccine_winter", "info", tr("ALERT_VACCINE_WINTER") % Formatters.percent(vaccine_coverage))
+		_raise("vaccine_winter", "info", tr("ALERT_VACCINE_WINTER") % Formatters.percent(vaccine_coverage),
+			_ev("vaccine_coverage_low"))
 
 	for j in wellboat_jobs:
-		_raise("wellboat:%s:%s" % [str(j.get("site_id", "?")), str(j.get("kind", "?"))], "info",
-			"🚢 " + tr("ALERT_WELLBOAT") % [Labels.wellboat_job(str(j.get("kind", ""))),
-				site_name(str(j.get("site_id", ""))), int(j.get("eta_days", 0))])
+		var job_site := str(j.get("site_id", "?"))
+		var job_kind := str(j.get("kind", "?"))
+		_raise("wellboat:%s:%s" % [job_site, job_kind], "info",
+			tr("ALERT_WELLBOAT") % [Labels.wellboat_job(str(j.get("kind", ""))),
+				site_name(str(j.get("site_id", ""))), int(j.get("eta_days", 0))],
+			_ev("wellboat_scheduled", job_site, job_kind))
 
 	for b in active_blooms:
-		var kind_icon: String = {"jellyfish": "🪼", "algae": "🟤", "hypoxia": "💨"}.get(str(b.get("kind", "")), "⚠️")
-		_raise("bloom:%s:%s" % [str(b.get("site_id", "?")), str(b.get("kind", "?"))],
+		var bloom_site := str(b.get("site_id", "?"))
+		var bloom_kind := str(b.get("kind", "?"))
+		_raise("bloom:%s:%s" % [bloom_site, bloom_kind],
 			"critical" if float(b.get("severity", 0.0)) > 0.7 else "warning",
-			"%s %s" % [kind_icon, tr("ALERT_BLOOM") % [Labels.bloom(str(b.get("kind", ""))),
-				site_name(str(b.get("site_id", ""))), int(b.get("days_left", 0))]])
+			tr("ALERT_BLOOM") % [Labels.bloom(str(b.get("kind", ""))),
+				site_name(str(b.get("site_id", ""))), int(b.get("days_left", 0))],
+			_ev("algal_bloom", bloom_site, bloom_kind))
+
+	_check_gill_health()
 
 	# Bankruptcy warning ladder (S1-03): one alert per rung, announced when the
 	# rung is reached; the engine owns the floor and the verdict.
@@ -399,11 +419,31 @@ func _check_alerts() -> void:
 		_raise("solvency:%d" % solvency_level, "critical" if solvency_level >= 2 else "warning",
 			_solvency_message(solvency_level))
 
-	if sustainability_score < 50:
-		_raise("sustainability", "warning", tr("ALERT_SUSTAINABILITY_LOW") % sustainability_score)
+	# The score is first computed on the first day's tick: 0 before it is
+	# not a verdict (the start of every game listed "0/100 under kravet").
+	if sustainability_score < 50 and current_day > 0:
+		_raise("sustainability", "warning", tr("ALERT_SUSTAINABILITY_LOW") % sustainability_score,
+			_ev("sustainability_low"))
 
 	if temperature_c > 18.0:
-		_raise("temperature", "warning", tr("ALERT_TEMPERATURE_HIGH") % (Formatters.num(temperature_c, 1) + " °C"))
+		_raise("temperature", "warning", tr("ALERT_TEMPERATURE_HIGH") % (Formatters.num(temperature_c, 1) + " °C"),
+			_ev("temperature_high"))
+
+
+## Gill health per site (P10's early warning). The consequence director used
+## to poll it once a day and toast; it is a condition like the others now.
+func _check_gill_health() -> void:
+	if game_bridge == null:
+		return
+	for site_id in site_names.keys():
+		var gill: Dictionary = game_bridge.GetGillRisk(str(site_id))
+		var name := site_name(str(site_id))
+		if bool(gill.get("critical", false)):
+			_raise("gill:%s" % site_id, "critical", tr("ALERT_GILL_CRITICAL") % name,
+				_ev("gill_health_critical", str(site_id)))
+		elif bool(gill.get("warning", false)):
+			_raise("gill:%s" % site_id, "warning", tr("ALERT_GILL_POOR") % name,
+				_ev("gill_health_poor", str(site_id)))
 
 
 ## False while the FCR says nothing about feeding (roadmap U1-08): no fish,
@@ -455,13 +495,31 @@ func _rebuild_alerts() -> void:
 ## announce every live condition, and the messages carry daily values, so
 ## the notification center flooded, the lice SFX replayed and auto-pause
 ## re-fired. Returns true when announced.
-func _raise(key: String, level: String, message: String) -> bool:
+func _raise(key: String, level: String, message: String, event: Dictionary = {}) -> bool:
 	active_alerts.append({"key": key, "level": level, "message": message})
 	var announce: bool = _alert_levels.get(key, "") != level
 	_alert_levels_now[key] = level
 	if announce:
 		alert_raised.emit(level, message)
+	if not event.is_empty():
+		_publish_condition(level, message, event)
 	return announce
+
+
+## The typed event a condition is reported as: a catalog type id plus the site
+## and variant it is about and the last day to act by (-1 none).
+static func _ev(type_id: String, site := "", variant := "", deadline_day := -1) -> Dictionary:
+	return {"type": type_id, "site": site, "variant": variant, "deadline_day": deadline_day}
+
+
+## Report a live condition to the typed event bus (U2-06). Every refresh
+## reports it: the bus keeps a condition that holds as one notification and
+## tells the player only what is new or has become more severe.
+func _publish_condition(level: String, message: String, event: Dictionary) -> void:
+	if game_bridge == null:
+		return
+	game_bridge.PublishConditionEvent(str(event["type"]), level, str(event["site"]), message,
+		str(event["variant"]), int(event["deadline_day"]))
 
 
 ## An event alert (weather, disease, escape): announced once, listed for
