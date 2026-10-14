@@ -37,13 +37,13 @@
     "BirdNet": 2496,
     "BirdNetPoles": 828,
     "Collar": 24144,
-    "FeedPipe": 1008,
+    "FeedPipe": 2160,
     "Handrail": 9360,
     "LiceSkirt": 1800,
     "Net": 3648,
-    "SinkerTube": 2724,
+    "SinkerTube": 3252,
     "Walkway": 2160
   },
-  "tri_count": 50088,
-  "tri_count_without_skirt": 48288
+  "tri_count": 51768,
+  "tri_count_without_skirt": 49968
 }

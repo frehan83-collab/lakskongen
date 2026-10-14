@@ -6,8 +6,8 @@
 render_priority = 1
 shader = ExtResource("1_shader")
 shader_parameter/ring_radius = 28.4
-shader_parameter/ring_half_width = 0.2
-shader_parameter/min_pixel_width = 2.0
+shader_parameter/ring_half_width = 0.3
+shader_parameter/min_pixel_width = 3.0
 shader_parameter/halo_width = 1.4
 shader_parameter/halo_strength = 0.3
 shader_parameter/dash_count = 0.0

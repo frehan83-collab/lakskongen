@@ -47,7 +47,7 @@ void fragment() {
 		line *= dash;
 	}
 	float mask = max(line, halo);
-	float pulse = pulse_hz > 0.0 ? 0.62 + 0.38 * sin(TIME * TAU * pulse_hz) : 1.0;
+	float pulse = pulse_hz > 0.0 ? 0.78 + 0.22 * sin(TIME * TAU * pulse_hz) : 1.0;
 	ALBEDO = ring_color.rgb;
 	ALPHA = clamp(mask * ring_color.a * pulse, 0.0, 1.0);
 }

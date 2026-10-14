@@ -16,9 +16,9 @@
     },
     "pen_cage_LOD0": {
       "path": "godot/assets/models/pen_cage/pen_cage_LOD0.glb",
-      "sha256": "9febd48ce13616f336ea5c2f092c3e0501f9b505f3d85d2a344bb1b7105898e2",
-      "size": 1634236,
-      "tri_count": 50088,
+      "sha256": "72d040cfd1d689d948df5d17bbbe84eeb9e7ce49d34ff324fb6f1bd4fe5756ea",
+      "size": 1675808,
+      "tri_count": 51768,
       "material_count": 8,
       "bbox_size": [
         67.0048,
@@ -28,9 +28,9 @@
     },
     "pen_cage_LOD1": {
       "path": "godot/assets/models/pen_cage/pen_cage_LOD1.glb",
-      "sha256": "9befb81a4971442a4570ef6d9c2cee0e64ba4f246135b38e0632bb452304e9fc",
-      "size": 483712,
-      "tri_count": 12786,
+      "sha256": "e76e8ee565ba3733a3f7549e0b2877b04ca5d7ef38d186a79e5a587cfab26a92",
+      "size": 490012,
+      "tri_count": 13036,
       "material_count": 8,
       "bbox_size": [
         66.8237,

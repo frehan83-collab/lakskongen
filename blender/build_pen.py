@@ -120,14 +120,14 @@ LODS = {
                  net_around=96, net_wall_rows=10, net_cone_rows=7,
                  bird_around=96, bird_rows=12, pole_sides=8, sinker_sides=10,
                  sinker_segs=120, ropes=16, rope_sides=6, hose_sides=8,
-                 hose_pts=48, skirt_around=180, skirt_rows=5, mooring_collars=True,
+                 hose_pts=120, skirt_around=180, skirt_rows=5, mooring_collars=True,
                  bollards=True, deadfish=True),
     "LOD1": dict(pipe_sides=8, ring_segs=120, rail_sides=6, rail_segs=120,
                  brackets="boxes", stanch_sides=4, walk="ring", band_rows=2,
                  net_around=48, net_wall_rows=5, net_cone_rows=3,
                  bird_around=48, bird_rows=6, pole_sides=4, sinker_sides=6,
                  sinker_segs=60, ropes=0, rope_sides=4, hose_sides=5,
-                 hose_pts=20, skirt_around=96, skirt_rows=3, mooring_collars=False,
+                 hose_pts=40, skirt_around=96, skirt_rows=3, mooring_collars=False,
                  bollards=False, deadfish=True),
     "LOD2": dict(pipe_sides=4, ring_segs=48, rail_sides=3, rail_segs=48,
                  brackets="none", stanch_sides=0, walk="flat", band_rows=1,
@@ -336,7 +336,12 @@ def hose_path(n_pts: int):
         (R_OUT, 0.0, RAIL_Z - 0.15), (R_OUT + 0.9, 0.0, 0.25), (30.0, -0.4, 0.02),
         (36.0, -1.2, 0.02), (HOSE_END - 0.9, -1.0, 0.04),
     ]
-    # Resample the key points by arc length (Catmull-Rom).
+    return smooth_path(key, n_pts)
+
+
+def smooth_path(key, n_pts: int):
+    """A Catmull-Rom spline through the key points, resampled evenly by arc
+    length (hoses bend smoothly instead of kinking at the key points)."""
     def cr(p0, p1, p2, p3, t):
         return tuple(0.5 * ((2 * p1[k]) + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t * t
                             + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t ** 3) for k in range(3))
@@ -391,10 +396,13 @@ def build_sinker(p) -> kit.MeshBuilder:
         tip = -NET_WALL_DEPTH - NET_CONE_DEPTH
         th = math.radians(200.0)
         kit.cylinder(mb, (0, 0, tip - 0.5), (0, 0, tip + 0.4), 0.35, 10 if p["hose_sides"] >= 8 else 5, "LK_HDPE")
-        path = [(0.0, 0.0, tip + 0.4), polar(8.0, th, tip + 1.5), polar(18.0, th, -20.0),
-                polar(23.5, th, -6.0), polar(NET_R - 0.3, th, -0.6), polar(NET_R - 0.15, th, 0.02),
-                polar(R_STANCH - 0.2, th, RAIL_Z - 0.1)]
-        kit.path_tube(mb, path, 0.06, p["hose_sides"], "LK_HDPE", caps=False)
+        # Dead-fish lift hose: from the collector at the cone tip, up along
+        # the net and over the collar.
+        key = [(0.0, 0.0, tip + 0.4), polar(8.0, th, tip + 1.5), polar(18.0, th, -20.0),
+               polar(23.5, th, -6.0), polar(NET_R - 0.3, th, -0.6), polar(NET_R - 0.15, th, 0.3),
+               polar(R_STANCH - 0.2, th, RAIL_Z - 0.1)]
+        kit.path_tube(mb, smooth_path(key, 40 if p["hose_sides"] >= 8 else 12), 0.06, p["hose_sides"],
+                      "LK_HDPE", caps=False)
     return mb
 
 

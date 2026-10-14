@@ -19,7 +19,7 @@
       "orientation": "y_up_centre_on_waterline",
       "lod_levels": ["LOD0", "LOD1", "LOD2"],
       "materials": ["LK_Band", "LK_BirdNet", "LK_HDPE", "LK_Marker", "LK_Net", "LK_NetAbove", "LK_Skirt", "LK_Walkway"],
-      "tri_budget": { "LOD0": 50088, "LOD1": 12786, "LOD2": 1962 },
+      "tri_budget": { "LOD0": 51768, "LOD1": 13036, "LOD2": 1962 },
       "tri_max": { "LOD0": 60000, "LOD2": 2000 },
       "export_path": "godot/assets/models/pen_cage/pen_cage_{lod}.glb",
       "build_script": "blender/build_pen.py",
