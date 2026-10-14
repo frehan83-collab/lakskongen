@@ -16,14 +16,15 @@ signal day_advanced(day: int, season: String)
 ## Emitted when a KPI crosses an alert threshold.
 signal alert_raised(level: String, message: String)
 
-## Emitted when the player completes a tutorial step.
-signal tutorial_step_completed(step_number: int, title: String, reward_nok: float)
+## Emitted when the player completes a tutorial step (steps pay no cash, D16).
+signal tutorial_step_completed(step_number: int, title: String)
 
 ## Emitted when an audio alert is triggered (one-shot SFX).
 signal audio_alert_triggered(alert_key: String)
 
-## Emitted when the player unlocks a new achievement.
-signal achievement_unlocked(id: String, achievement_name: String, description: String, reward_nok: float, tier: String)
+## Emitted when the player unlocks a new achievement. medal: "bronze" | "silver"
+## | "gold" | "platinum" (achievements award medals, never cash, D16).
+signal achievement_unlocked(id: String, achievement_name: String, description: String, medal: String, tier: String)
 
 ## Emitted when a pen action completes (feed, harvest, delouse)
 signal pen_action_completed(action: String, pen_id: String, success: bool)
@@ -49,6 +50,12 @@ var current_day: int:
 var balance: float:
 	get(): return _state.balance
 	set(v): _state.balance = v
+var bankruptcy_floor: float:
+	get(): return _state.bankruptcy_floor
+	set(v): _state.bankruptcy_floor = v
+var solvency_level: int:
+	get(): return _state.solvency_level
+	set(v): _state.solvency_level = v
 var fish_count: int:
 	get(): return _state.fish_count
 	set(v): _state.fish_count = v
@@ -267,9 +274,9 @@ func _ready() -> void:
 	_state.state_updated.connect(func() -> void: state_updated.emit())
 	_state.day_advanced.connect(func(day: int, season: String) -> void: day_advanced.emit(day, season))
 	_state.alert_raised.connect(func(level: String, message: String) -> void: alert_raised.emit(level, message))
-	_state.tutorial_step_completed.connect(func(n: int, t: String, r: float) -> void: tutorial_step_completed.emit(n, t, r))
+	_state.tutorial_step_completed.connect(func(n: int, t: String) -> void: tutorial_step_completed.emit(n, t))
 	_state.audio_alert_triggered.connect(func(k: String) -> void: audio_alert_triggered.emit(k))
-	_state.achievement_unlocked.connect(func(id: String, an: String, d: String, r: float, tier: String) -> void: achievement_unlocked.emit(id, an, d, r, tier))
+	_state.achievement_unlocked.connect(func(id: String, an: String, d: String, m: String, tier: String) -> void: achievement_unlocked.emit(id, an, d, m, tier))
 	_actions.pen_action_completed.connect(func(a: String, p: String, s: bool) -> void: pen_action_completed.emit(a, p, s))
 	if has_node("/root/GameBridge"):
 		_game_bridge = get_node("/root/GameBridge")
@@ -294,9 +301,9 @@ func _on_game_started() -> void: _state._on_game_started()
 func _on_game_state_updated() -> void: _state._on_game_state_updated()
 func _on_simulation_ticked(day: int) -> void: _state._on_simulation_ticked(day)
 func _on_game_ended(reason: String) -> void: _state._on_game_ended(reason)
-func _on_tutorial_step_completed(step_number: int, title: String, reward_nok: float) -> void: _state._on_tutorial_step_completed(step_number, title, reward_nok)
+func _on_tutorial_step_completed(step_number: int, title: String) -> void: _state._on_tutorial_step_completed(step_number, title)
 func _on_audio_alert_triggered(alert_key: String) -> void: _state._on_audio_alert_triggered(alert_key)
-func _on_achievement_unlocked(id: String, achievement_name: String, description: String, reward_nok: float, tier: String) -> void: _state._on_achievement_unlocked(id, achievement_name, description, reward_nok, tier)
+func _on_achievement_unlocked(id: String, achievement_name: String, description: String, medal: String, tier: String) -> void: _state._on_achievement_unlocked(id, achievement_name, description, medal, tier)
 func _on_weather_event(event_type: String, severity: float, description: String) -> void:
 	_state._push_alert("critical" if severity >= 0.8 else "warning", "Vær: %s" % description)
 func _on_disease_outbreak(disease_type: String, site_id: String, severity: float, treatment_cost: float) -> void:

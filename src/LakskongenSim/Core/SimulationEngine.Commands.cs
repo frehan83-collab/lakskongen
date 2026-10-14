@@ -717,6 +717,8 @@ public partial class SimulationEngine
             foreach (var job in snapshot.WellboatJobs)
                 State.WellboatJobs.Add(job);
         State.WellboatJobsBooked = snapshot.WellboatJobsBooked;
+        State.SolvencyWarningPeak = snapshot.SolvencyWarningPeak;
+        State.BankruptDay = snapshot.BankruptDay;
         if (snapshot.Crew != null)
             foreach (var member in snapshot.Crew)
                 State.Crew.Add(member);

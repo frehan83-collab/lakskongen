@@ -37,7 +37,7 @@ func _process(delta: float) -> void:
 	if _timer <= 0.0:
 		_dismiss()
 
-func show_notification(id: String, name: String, description: String, reward_nok: float, tier: String) -> void:
+func show_notification(_id: String, name: String, description: String, _medal: String, _tier: String) -> void:
 	# Cancel any running dismiss tween so back-to-back unlocks work cleanly
 	if _tween and _tween.is_valid():
 		_tween.kill()

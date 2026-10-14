@@ -126,10 +126,15 @@ func _on_gill_alert(message: String, is_critical: bool, audio_key: String = "") 
 	else:
 		_fire_warning(key, "🫁 %s" % message, audio_key if audio_key != "" else "notification")
 
-func _on_achievement_unlocked(id: String, achievement_name: String, _description: String, _reward_nok: float, _tier: String) -> void:
+func _on_achievement_unlocked(id: String, achievement_name: String, _description: String, medal: String, _tier: String) -> void:
 	if _is_duplicate("achievement:%s" % id):
 		return
-	_toast("🏆 %s" % achievement_name, "SUCCESS", 6.0)
+	# Achievements award a medal, never cash (D16): the toast names it.
+	var medal_key := "UI_MEDAL_" + medal.to_upper()
+	var medal_name := tr(medal_key)
+	if medal_name == medal_key:
+		medal_name = medal.capitalize()
+	_toast("🏆 %s — %s" % [achievement_name, medal_name], "SUCCESS", 6.0)
 	_audio_call("play_achievement")
 	_pulse_feedback()
 
@@ -268,7 +273,9 @@ func _on_game_ended(reason: String) -> void:
 	if _is_duplicate("game_ended"):
 		return
 	_shake(20.0, 0.6)
-	_toast("💥 Spillet er over: %s" % reason, "CRITICAL", 9.0)
+	# The reason is a translation key when the engine ended the game
+	# (GAME_OVER_BANKRUPTCY, S1-03); tr() leaves other text as it is.
+	_toast("💥 Spillet er over: %s" % tr(reason), "CRITICAL", 9.0)
 	_audio_call("play_ui", ["notification"])
 
 # ── Consequence primitives ─────────────────────────────────────────────────────

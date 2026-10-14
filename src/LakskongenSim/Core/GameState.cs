@@ -203,6 +203,15 @@ namespace LakskongenSim.Core
         /// <summary>Day the scenario started (day index).</summary>
         public int ScenarioStartDay { get; set; }
 
+        /// <summary>
+        /// Highest bankruptcy-warning rung announced since cash was last at
+        /// zero or above (0-3, S1-03): each rung warns once on the way down.
+        /// </summary>
+        public int SolvencyWarningPeak { get; set; }
+
+        /// <summary>Day cash fell below the bankruptcy floor (null while solvent, S1-03).</summary>
+        public int? BankruptDay { get; set; }
+
         /// <summary>Current tutorial step index (0-based).</summary>
         public int TutorialCurrentStepIndex { get; set; }
 
@@ -289,8 +298,13 @@ namespace LakskongenSim.Core
         /// mitigations as (siteId, kind key). Additive; empty for old saves.</summary>
         public List<BloomMitigationState> BloomMitigations { get; set; } = new();
 
-        /// <summary>P9: whether the 25% resource-rent tax is charged (opt-in per scenario).</summary>
-        public bool EnableResourceRentTax { get; set; }
+        /// <summary>
+        /// P9: whether the 25% resource-rent tax is charged. On by default
+        /// (owner decision D16, S1-03); a scenario may opt out with
+        /// enable_resource_rent_tax=false. A save keeps the value it was
+        /// written with.
+        /// </summary>
+        public bool EnableResourceRentTax { get; set; } = true;
 
         /// <summary>P9: cumulative resource-rent tax paid (NOK).</summary>
         public decimal ResourceRentPaid { get; set; }

@@ -19,7 +19,7 @@ extends PanelContainer
 ##       ├── HBoxContainer (hint row)
 ##       │   ├── Label          (hint_icon)      "💡"
 ##       │   └── Label          (hint_label)
-##       └── Label              (reward_label)   shows reward if > 0
+##       └── Label              (reward_label)   step-complete toast (steps pay no cash, D16)
 
 # ── Node references (assign in scene or via @export) ──────────────────────────
 
@@ -75,11 +75,11 @@ func _ready() -> void:
 func _on_state_updated() -> void:
 	_refresh_display()
 
-func _on_step_completed(step_number: int, title: String, reward_nok: float) -> void:
+func _on_step_completed(step_number: int, title: String) -> void:
 	if _has_no_wired_content():
 		return
 	visible = true
-	_play_completion_animation(step_number, title, reward_nok)
+	_play_completion_animation(step_number, title)
 	# Re-expand if the player had minimised the panel
 	if _minimised:
 		_set_minimised(false)
@@ -203,16 +203,16 @@ func _refresh_display() -> void:
 		hint_label.text          = sb.tutorial_hint
 		hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
-	# Reward label — hide if no reward for this step
+	# Completion toast label: shown only by the completion animation
 	if reward_label:
-		reward_label.visible = false  # rewards shown in completion animation
+		reward_label.visible = false
 
 	# Wired content exists and tutorial is active: show the panel.
 	visible = true
 
 # ── Completion animation ──────────────────────────────────────────────────────
 
-func _play_completion_animation(step_number: int, title: String, reward_nok: float) -> void:
+func _play_completion_animation(step_number: int, title: String) -> void:
 	if _tween:
 		_tween.kill()
 	_tween = create_tween()
@@ -225,23 +225,15 @@ func _play_completion_animation(step_number: int, title: String, reward_nok: flo
 		_tween.tween_interval(0.5)
 		_tween.tween_property(style, "border_color", original_color, 0.3)
 
-	# Show reward toast if applicable
-	if reward_label and reward_nok > 0.0:
-		reward_label.text    = _tr_step_complete(step_number, _format_nok(reward_nok))
+	# Step-complete toast. Steps pay no cash (D16): completing the tutorial
+	# is its own reward, so the toast names the step instead of an amount.
+	if reward_label:
+		reward_label.text    = _tr_step_complete(step_number, title)
 		reward_label.visible = true
-		reward_label.modulate = Color("#A3BE8C")
 		_tween.tween_interval(0.1)
-		_tween.tween_property(reward_label, "modulate:a", 0.0, 2.5).set_delay(2.0)
+		_tween.tween_property(reward_label, "modulate:a", 0.0, 2.5).set_delay(1.5)
 		await _tween.finished
 		reward_label.visible = false
-	else:
-		if reward_label:
-			reward_label.text    = "✅ %s" % title
-			reward_label.visible = true
-			_tween.tween_interval(0.1)
-			_tween.tween_property(reward_label, "modulate:a", 0.0, 2.5).set_delay(1.5)
-			await _tween.finished
-			reward_label.visible = false
 
 func _show_completion_screen() -> void:
 	visible = true
@@ -309,15 +301,6 @@ func _tutorial_setting_enabled() -> bool:
 		return true
 	return bool(gameplay.get("tutorial_enabled", true))
 
-func _format_nok(amount: float) -> String:
-	if has_node("/root/SimBridge"):
-		return get_node("/root/SimBridge").format_nok(amount)
-	if amount >= 1_000_000.0:
-		return "%.2f MNOK" % (amount / 1_000_000.0)
-	elif amount >= 1_000.0:
-		return "%.0f kNOK" % (amount / 1_000.0)
-	return "%.0f NOK" % amount
-
 ## Translated step counter / completion formats with fallbacks: tr() returns
 ## the key itself when the catalog is missing, and formatting the raw key
 ## (no placeholders) aborts the caller.
@@ -327,8 +310,8 @@ func _tr_step_format(step_num: int, total: int) -> String:
 		return "Steg %d / %d" % [step_num, total]
 	return fmt % [step_num, total]
 
-func _tr_step_complete(step_number: int, reward_text: String) -> String:
+func _tr_step_complete(step_number: int, title: String) -> String:
 	var fmt := tr("UI_TUTORIAL_STEP_COMPLETE")
 	if fmt == "UI_TUTORIAL_STEP_COMPLETE" or fmt.count("%") < 2:
-		return "Steg %d fullført! Belønning: %s" % [step_number, reward_text]
-	return fmt % [step_number, reward_text]
+		return "Steg %d fullført: %s" % [step_number, title]
+	return fmt % [step_number, title]

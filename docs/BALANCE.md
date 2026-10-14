@@ -393,6 +393,101 @@ total 55.4%); with repair re-fit but the old per-flip storm charging, the
 DiseaseStress total is 16.89%; with storm episodes but winter storm cooling it is
 16.60%.
 
+## 1e. S1-03: honest economy (2026-10-14, branch `wave1/sim-2`)
+
+Owner decision D16: achievements and tutorial steps pay no cash, each scenario
+has its own bankruptcy floor with a warning ladder before it, and the
+resource-rent tax is on by default. Calibration v1.0.5.
+
+### Reward cash that left the income statement
+
+Measured on `wave1/sim-1` (before), cumulative over the run:
+
+| Run | Tutorial rewards | Achievement rewards | Largest other income line |
+|---|---|---|---|
+| Tutorial (`forste_sesong`, minimal player, 6 seeds, to completion) | 1.45M | 0.38-1.65M | events 0.2-0.68M |
+| po3 career (`EconomyLedgerTests` script, 730 d, seeds 7/13/21) | 1.45M | 1.66-1.78M | events 1.78-2.67M |
+| ressursrente harvest-and-restock (1095 d, seeds 7/13/21) | 1.45M | 7.28-10.28M | events 1.46-3.29M |
+
+The tutorial ran (and paid) in every scenario, not only `forste_sesong`
+(U2-02 restricts it). Achievements now award a medal (bronze, silver, gold,
+platinum; mapped from the old amounts: up to 100k bronze, up to 500k silver,
+up to 2M gold, above platinum); tutorial steps award nothing but the step.
+
+| Measure (after S1-03) | Before | After |
+|---|---|---|
+| PlayerScriptProbe ending balance, seed 7 / 13 | +24.68M / +29.97M | +24.37M / +29.66M |
+| Tutorial won (6 seeds, horizon 1500 d) | 6 of 6 | 6 of 6 |
+| Tutorial finish day | 273-279 | 276-278 (seeds 9, 42); 608, 861, 1103, 1233 (seeds 7, 4, 13, 21) |
+| Tutorial minimum cash | 0.93-1.35M | 0.55-0.93M |
+
+The slower tutorials wait for the 6.5M NOK the minimal player wants before
+building the second site (step 16): the family farm earns about 1.5-2.4M NOK a
+year, and the 1.45M of step rewards used to cover most of the gap. The
+minimal player never borrows; teaching the loan verb at that step is U2-02's.
+
+### Bankruptcy floor per scenario
+
+The bridge ended every game below -1M NOK and the scenario check used -2M,
+with no warning. A harvest-only player (starting stock only, sell at 4.5 kg,
+events on) measured on ten seeds per scenario, without reward cash:
+
+| Scenario | Starting cash | Deepest trough (median) | Crosses -1M on day | First harvest day | Floor |
+|---|---|---|---|---|---|
+| algekatastrofe | 25M | -21.14M (-17.65M) | 184-199 | 266-284 | **-26.5M** |
+| isa_utbrudd | 18M | -18.86M (-17.21M) | 175-184 | 272-292 | **-24.0M** |
+| po3_red_sone | 12M | -11.66M (-10.76M) | 183-197 | 273-295 | **-15.0M** |
+| krise_manager | -0.5M | -3.38M (-2.92M) | 77-130 | 273-298 | **-4.5M** |
+| lofoten_eventyr | 2M | -1.36M (-0.97M) | 259-287 (5 of 10 seeds) | 271-302 | **-2.0M** |
+| laksebaronene | 5M | -0.47M (0.00M) | never | 273-296 | default -1M |
+| forste_sesong | 3M | +0.33M (+0.67M) | never | 271-284 | default -1M |
+| barekraft_mester | 50M | +42.52M | never | 270-282 | default -1M |
+| ressursrente | 60M | +7.38M | never | 249-262 | default -1M |
+
+Rule: floor = 1.25 x the deepest trough, rounded out to the next 0.5M NOK;
+scenarios whose trough stays above -1M keep the default. The floor is the
+scenario's working-capital facility with its bank: real farmers finance
+biomass through revolving credit whose borrowing base is the insured biomass
+(e.g. [Ice Fish Farm's 2022 bank package](https://www.fishfarmermagazine.com/?p=145908)).
+At po3's trough the farm holds about 500 t of fish (~41M NOK at the norm
+price), so the 15M facility is about 37% of the collateral. Under the old -1M
+rule the harvest-only player went bankrupt 70-110 days before its first sale
+in po3, isa_utbrudd and algekatastrofe, and 150-200 days before it in
+krise_manager.
+
+Warning ladder (fractions of the floor, `SolvencyWarningFractions`): overdraft
+below 0, bank warning below 50%, final warning below 80%, bankruptcy below the
+floor. Each rung warns once on the way down and re-arms when cash is back at
+zero. `krise_manager` passive play, days 1-30, 20 seeds: lowest cash -0.61M to
+-0.77M (floor -4.5M); it crosses -1M on days 77-130 and, played passively,
+goes bankrupt on days 446-675 (12 seeds). A player who delouses above 0.4 lice,
+harvests at 4.5 kg and restocks stays solvent through day 730 on all 12 seeds
+(trough -1.9M to -3.1M).
+
+The PlayerScriptProbe applies the po3 starting state without activating the
+scenario, so it runs on the default floor: the engine records a bankruptcy on
+days 181-187 of every probe career (no effect on the headless run). With the
+scenario active its trough (-13.35M to -14.92M over seeds 7/13/21/29/42; it
+stocks 22,000 extra smolts and takes a 4M loan) stays above po3's -15M floor,
+seed 7 by 78k NOK.
+
+### Resource-rent tax on by default
+
+| Career (1095 d, events on) | Rent base per closed year | Rent tax paid |
+|---|---|---|
+| Family farm (`forste_sesong`, 1 pen, harvest and restock 20,000) | 0.2-2.4M | 0 |
+| ressursrente starting farm (3 sites, 22 pens), harvest and restock | -25.2M to +26.7M | 0 |
+| barekraft_mester + 5 sites (6 x 780 t MAB, stocked to 90%, borrows 20M when cash < 5M), seeds 7/13/21/4/9 | 41.8-126.0M | 11.3-29.9M |
+
+The 70M NOK deduction shields any farm below roughly 4,000 t a year, as it does
+in Norway. Note: the ressursrente scenario's own farm never clears the
+deduction, so the tax it is about only bites once the player expands.
+
+SimProbe medians (seeds 1-20) are unchanged by S1-03 (Baseline FCR 1.22,
+mortality 15.67%, price 88.0; DiseaseStress 16.11%; Storm 0.36% / 0.42 events /
+82.9% integrity; ThreeSite EBIT 20.11 NOK/kg, cost 63.21): the probe books no
+reward lines and its sites stay below the deduction.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
@@ -580,3 +675,4 @@ S1-01 / S1-02 guards (§1d):
 | 2026-10-08 | Extended probe | Added disease-cycle, storm-escape, multi-site economics and lice-control scenarios to `SimProbe` + `BalanceReportTests` (§1c). Measured disease term 0.00%/cycle (dormant; engine deferral recorded in §5), storm escapes 0.15%/site/yr vs 0.5 guard, multi-site EBIT/kg 16.43 (in the 8-25 cyclical band), cost 69.6 NOK/kg produced, 1.5 treatments/cycle with 0.07% per-cycle resistance. Documented the test-side containment-risk model and the farm-gate cost stack. |
 | 2026-10-08 | Calibration v1.0.3 | Wired the two dormant depth systems into the live engine in-band. Disease: `IntegratedDiseaseSystem` injects via `MortalityModel.SetDiseaseMortalityRate`, anchor split by new `Health.SeaMortalityDiseaseShare` (0.30), measured disease 4.39%/cycle of a 14.88% total (was 0.00 / 15.76). Storms: `SimulationEngine.ApplyStormHazards` owns `SeaSite.NetIntegrityPct` wear/repair + `RecordEscape` (fine + event log); removed the duplicate block from `GameBridge.CheckWeatherImpacts`. Measured storm escapes 0.22%/site/yr, 0.16 events, min integrity 80.7% (was test-side 0.15% / 0.16 / 83.4). Re-ran `SimProbe` seeds 1-20; full solution suite green; `enableEvents:false` path unchanged and deterministic; bumped `calibration.json` to 1.0.3. |
 | 2026-10-14 | wave1/sim-1 (S1-01, S1-02) | F1024 water chemistry merged; seawater O2 solubility (Benson & Krause, 9.02 mg/L at 10 °C/35 PSU, was 10.9); pH baseline 8.05; zones take the sea temperature; F456 storm season renormalized through one helper shared with the forecast; storm damage once per episode; net repair 0.2 -> 0.5; storm cooling Apr-Sep only. Re-measured every band (§1b, §1c updated, before/after in §1d); no band loosened. |
+| 2026-10-14 | wave1/sim-2 (S1-03, D16) | Achievement and tutorial reward cash removed (medals); per-scenario bankruptcy floors in calibration v1.0.5 from measured harvest-only troughs (po3 -15M, isa -24M, algae -26.5M, krise -4.5M, lofoten -2M, default -1M) with a three-rung warning ladder; resource-rent tax on by default (family farm pays 0, a six-site career 11-30M over three years). SimProbe medians unchanged; tutorial still 6 of 6, four seeds finish later (§1e). |

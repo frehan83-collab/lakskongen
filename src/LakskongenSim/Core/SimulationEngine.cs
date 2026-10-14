@@ -49,7 +49,7 @@ namespace LakskongenSim.Core
             // Run state that lives on the engine rather than in GameState (F292).
             PenPriceCouncil = new Market.PriceCouncil(DefaultPenPriceNokPerKg);
             ResourceRentPaid = 0m;
-            EnableResourceRentTax = false;
+            EnableResourceRentTax = true;   // D16: on by default
             StormEscapeEvents = 0.0;
             _lastWeatherState = LakskongenSim.Environment.WeatherState.Calm;
             _stormEpisodePeakSeverity = 0.0;
@@ -74,8 +74,13 @@ namespace LakskongenSim.Core
         /// <summary>P9: binding monthly pen price set by the Price Council.</summary>
         public Market.PriceCouncil PenPriceCouncil { get; private set; } = new(DefaultPenPriceNokPerKg);
         private const decimal DefaultPenPriceNokPerKg = 82m;
-        /// <summary>P9: when true, the 25% resource-rent tax is charged (opt-in per scenario).</summary>
-        public bool EnableResourceRentTax { get; set; } = false;
+        /// <summary>
+        /// P9: when true, the 25% resource-rent tax is charged at the year-end
+        /// settlement. On by default (owner decision D16, S1-03): the 70M NOK
+        /// basic deduction shields family farms, so only large operations pay.
+        /// A scenario can opt out (enable_resource_rent_tax=false).
+        /// </summary>
+        public bool EnableResourceRentTax { get; set; } = true;
         /// <summary>P9: cumulative resource-rent tax paid. Settable so save/load
         /// restore can rehydrate the running total exactly (additive).</summary>
         public decimal ResourceRentPaid { get; set; } = 0m;
@@ -440,9 +445,9 @@ namespace LakskongenSim.Core
             Audio = new AudioManager(Weather);
 
             // Achievement system — initialized after State so conditions have full context
-            Achievements = new AchievementSystem(State, FinanceManager);
+            Achievements = new AchievementSystem(State);
+            // D16 (S1-03): achievements award medals, never cash.
             Achievements.OnAchievementUnlocked += a => OnAchievementUnlocked?.Invoke(a);
-            Achievements.OnRewardPaid += reward => BookSettledCash(reward, "achievements");
 
             // Research / Tech Tree — restore persisted state from GameState
             Research = new ResearchSystem();
@@ -1312,6 +1317,9 @@ private class BalancingConfig
                 MaxLoanMultiplier = c.Finance.MaxLoanMultiplier,
                 CorporateTaxRate = c.Finance.CorporateTaxRate,
                 ResourceRentTaxRate = c.Finance.ResourceRentTaxRate,
+                BankruptcyFloorNOK = c.Finance.BankruptcyFloorNOK,
+                BankruptcyFloorByScenarioNOK = new Dictionary<string, decimal>(c.Finance.BankruptcyFloorByScenarioNOK),
+                SolvencyWarningFractions = c.Finance.SolvencyWarningFractions.ToArray(),
 
                 // Licensing
                 LicenseCostNOK = c.Licensing.LicenseCostNOK,
@@ -1407,6 +1415,12 @@ private class BalancingConfig
             public double MaxLoanMultiplier { get; set; } = 3.5; // ↑ from 3.0
             public double CorporateTaxRate { get; set; } = 0.22;
             public double ResourceRentTaxRate { get; set; } = 0.25;
+            /// <summary>Default bankruptcy floor (NOK); see FinanceCalibration.BankruptcyFloorNOK.</summary>
+            public decimal BankruptcyFloorNOK { get; set; } = -1_000_000m;
+            /// <summary>Per-scenario bankruptcy floors (D16); see FinanceCalibration.</summary>
+            public Dictionary<string, decimal> BankruptcyFloorByScenarioNOK { get; set; } = new();
+            /// <summary>Warning ladder as fractions of the floor (ascending).</summary>
+            public double[] SolvencyWarningFractions { get; set; } = { 0.0, 0.5, 0.8 };
 
             // ─── Licensing ───
             public decimal LicenseCostNOK { get; set; } = 150_000_000;
@@ -1513,7 +1527,8 @@ private class BalancingConfig
             new StormImpactsTickSystem(),
             new WellboatExecutionTickSystem(),
             new LicenseAuctionTickSystem(),
-            new BalanceMirrorTickSystem()
+            new BalanceMirrorTickSystem(),
+            new SolvencyTickSystem()
         };
 
         // ─── Per-advance note ledger ─────────────────────────────────────────

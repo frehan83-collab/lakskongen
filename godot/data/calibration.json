@@ -1,5 +1,5 @@
 {
-  "version": "1.0.4",
+  "version": "1.0.5",
   "economy": {
     "startingCapitalNOK": 10000000,
     "smoltCostPerFishNOK": 12,
@@ -45,7 +45,16 @@
     "maxLoanMultiplier": 3.5,
     "corporateTaxRate": 0.22,
     "resourceRentTaxRate": 0.25,
-    "resourceRentBasicDeductionNOK": 70000000
+    "resourceRentBasicDeductionNOK": 70000000,
+    "bankruptcyFloorNOK": -1000000,
+    "bankruptcyFloorByScenarioNOK": {
+      "algekatastrofe": -26500000,
+      "isa_utbrudd": -24000000,
+      "krise_manager": -4500000,
+      "lofoten_eventyr": -2000000,
+      "po3_red_sone": -15000000
+    },
+    "solvencyWarningFractions": [0.0, 0.5, 0.8]
   },
   "licensing": {
     "licenseCostNOK": 150000000,

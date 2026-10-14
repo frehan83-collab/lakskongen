@@ -83,10 +83,33 @@ namespace LakskongenSim.Tests.Integration
             loaded.RestoreFromLoad(engine.State);
 
             Assert.Empty(loaded.Insurance.Policies);
-            Assert.False(loaded.EnableResourceRentTax);
+            // Owner decision D16 (S1-03): the resource-rent tax is on by default,
+            // so a new game's save carries it on (this asserted the old opt-in
+            // default, false). SaveWithTheRentTaxOff_LoadsWithItOff covers the
+            // other direction.
+            Assert.True(loaded.EnableResourceRentTax);
             Assert.Equal(0m, loaded.ResourceRentPaid);
             Assert.NotNull(loaded.State.BloomMitigations);
             Assert.NotNull(loaded.State.InsurancePolicies);
+        }
+
+        /// <summary>
+        /// A save written with the resource-rent tax off (a scenario that opts
+        /// out, or a save from before D16 made it the default) loads with it
+        /// off: the load honours the save, not the new-game default.
+        /// </summary>
+        [Fact]
+        public void SaveWithTheRentTaxOff_LoadsWithItOff()
+        {
+            var engine = NewEngine();
+            engine.EnableResourceRentTax = false;
+            engine.PrepareForSave();
+            Assert.False(engine.State.EnableResourceRentTax);
+
+            var loaded = NewEngine();
+            Assert.True(loaded.EnableResourceRentTax);
+            loaded.RestoreFromLoad(engine.State);
+            Assert.False(loaded.EnableResourceRentTax);
         }
     }
 }

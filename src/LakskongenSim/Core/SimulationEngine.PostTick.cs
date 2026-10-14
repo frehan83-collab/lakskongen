@@ -65,3 +65,13 @@ internal sealed class BalanceMirrorTickSystem : ITickSystem
         #pragma warning restore CS0618
     }
 }
+
+/// <summary>
+/// POST-TICK phase 5: solvency (S1-03). Runs last, after every cash flow of
+/// the day (storms, wellboats, auctions): the warning ladder and the
+/// per-scenario bankruptcy floor judge the day's closing cash.
+/// </summary>
+internal sealed class SolvencyTickSystem : ITickSystem
+{
+    public void Tick(SimulationEngine engine) => engine.CheckSolvency();
+}

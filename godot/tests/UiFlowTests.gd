@@ -68,6 +68,7 @@ func _run() -> void:
 	await _test_event_alerts_and_vaccine_window()
 	await _test_fjord_shows_rival_farms_and_wellboats()
 	await _test_telemetry_oxygen_saturation_follows_the_sim()
+	await _test_honest_economy_reaches_the_ui()
 	_test_facade_forwards_phase5_systems()
 
 	_clear_test_saves()
@@ -913,6 +914,81 @@ func _test_telemetry_oxygen_saturation_follows_the_sim() -> void:
 	_check(shown == expected and o2 / sat > 0.9,
 		"telemetry: saturation reads %s for %.2f of %.2f mg/L (shown '%s')" % [expected, o2, sat, shown])
 	panel.queue_free()
+	await get_tree().process_frame
+
+## S1-03 (owner decision D16): each scenario's bankruptcy floor and the warning
+## ladder reach the game; achievements carry a medal and tutorial steps no cash
+## through the signal chain (GameBridge -> SimBridge -> UI); the game-over reason
+## is a translation key.
+func _test_honest_economy_reaches_the_ui() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "economy: seeded scenario starts")
+	_sim.set_paused(true)
+	_sim.advance_days(1)
+	_check(is_equal_approx(float(_sim.bankruptcy_floor), -15000000.0),
+		"economy: po3_red_sone runs with its own bankruptcy floor (%.0f)" % float(_sim.bankruptcy_floor))
+	_check(_sim.start_qa_scenario("forste_sesong", 23), "economy: tutorial scenario starts")
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	_sim.advance_days(1)
+	_check(is_equal_approx(float(_sim.bankruptcy_floor), -1000000.0),
+		"economy: forste_sesong keeps the default floor (%.0f)" % float(_sim.bankruptcy_floor))
+
+	# Warning ladder: a rung becomes one condition alert naming cash and floor.
+	var state: Node = _sim._state
+	state.balance = -600000.0
+	state.solvency_level = 2
+	state._rebuild_alerts()
+	var rung := ""
+	for a in _sim.active_alerts:
+		if str(a.get("key", "")) == "solvency:2" and str(a.get("level", "")) == "critical":
+			rung = str(a.get("message", ""))
+	var title := tr("UI_SOLVENCY_BANK_WARNING")
+	_check(title != "UI_SOLVENCY_BANK_WARNING" and rung.begins_with(title + ": "),
+		"economy: the bank-warning rung is a critical alert ('%s')" % rung)
+
+	# Achievements carry a medal (not NOK) to the listeners and the toast.
+	var bridge: Node = get_node("/root/GameBridge")
+	var medals: Array = []
+	var on_achievement := func(_id: String, _name: String, _desc: String, medal: String, _tier: String) -> void:
+		medals.append(medal)
+	_sim.achievement_unlocked.connect(on_achievement)
+	bridge.emit_signal("AchievementUnlocked", "ci-medal", "CI-medalje", "CI", "silver", "Beginner")
+	_sim.achievement_unlocked.disconnect(on_achievement)
+	_check(medals == ["silver"], "economy: an unlock relays its medal (%s)" % str(medals))
+	var toasts: Node = get_node("/root/ToastNotification")
+	var toast := ""
+	for message in toasts._recent_messages.keys():
+		if str(message).contains("CI-medalje"):
+			toast = str(message)
+	_check(toast.ends_with(" — " + tr("UI_MEDAL_SILVER")) and tr("UI_MEDAL_SILVER") != "UI_MEDAL_SILVER",
+		"economy: the unlock toast names the medal ('%s')" % toast)
+	var listed: Array = _sim.get_achievement_list()
+	_check(not listed.is_empty() and listed.all(func(a: Dictionary) -> bool:
+			return a.has("medal") and not a.has("reward_nok")),
+		"economy: the achievement list gives medals, no reward cash (%d)" % listed.size())
+
+	# Tutorial steps: no reward argument; the step toast names the step.
+	var steps: Array = []
+	var on_step := func(n: int, _title: String) -> void: steps.append(n)
+	_sim.tutorial_step_completed.connect(on_step)
+	bridge.emit_signal("TutorialStepCompleted", 3, "CI-steg")
+	_sim.tutorial_step_completed.disconnect(on_step)
+	_check(steps == [3], "economy: a completed step relays without a reward (%s)" % str(steps))
+	# The card's completion toast text (the card itself is not wired in
+	# GameScene yet: its @export nodes resolve to null, see the S1-03 notes).
+	var tutorial: Node = scene.get_node("UILayer/TutorialUI")
+	var step_toast := str(tutorial._tr_step_complete(3, "CI-steg"))
+	_check(step_toast.contains("3") and step_toast.contains("CI-steg") and not step_toast.contains("NOK")
+			and not step_toast.contains("Belønning") and not step_toast.contains("Reward"),
+		"economy: the step toast names the step, not an amount ('%s')" % step_toast)
+
+	# The engine ends a bankrupt game with a translation key.
+	var reason := tr("GAME_OVER_BANKRUPTCY")
+	_check(reason != "GAME_OVER_BANKRUPTCY", "economy: the bankruptcy reason key is translated ('%s')" % reason)
+	scene.queue_free()
 	await get_tree().process_frame
 
 ## F945: Phase 5.3–5.4 proxies are reachable through the SimBridge facade.

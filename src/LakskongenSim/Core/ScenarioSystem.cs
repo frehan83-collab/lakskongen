@@ -257,8 +257,9 @@ namespace LakskongenSim.Core
         public string Objective { get; set; } = "";
 
         /// <summary>
-        /// P9: explicit opt-in for the 25% resource-rent tax. When null it is
-        /// derived from the presence of a "resource_rent_tax" special rule.
+        /// P9: explicit switch for the 25% resource-rent tax. When null the tax
+        /// is on (owner decision D16, S1-03; the 70M NOK deduction shields
+        /// small farms); false opts the scenario out.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("enable_resource_rent_tax")]
         public bool? EnableResourceRentTax { get; set; }
@@ -383,11 +384,10 @@ namespace LakskongenSim.Core
             ApplyBlooms(state);
             ApplyDiseaseMarker(state);
 
-            // P9: opt-in to the 25% resource-rent tax, either explicitly or
-            // derived from the legacy "resource_rent_tax" special rule.
-            bool wantsTax = EnableResourceRentTax
-                ?? SpecialRules.ContainsKey("resource_rent_tax");
-            if (wantsTax) state.EnableResourceRentTax = true;
+            // P9 / D16: the 25% resource-rent tax is on unless the scenario
+            // opts out explicitly (it used to be opt-in, so no family farm or
+            // multi-site career ever met it outside the ressursrente campaign).
+            state.EnableResourceRentTax = EnableResourceRentTax ?? true;
 
             // Runtime-coupled depth wiring (additive, guarded).
             if (engine != null)
@@ -694,16 +694,12 @@ namespace LakskongenSim.Core
             if (ActiveScenario == null || IsWon || IsLost) return;
 
             int daysElapsed = _state.Day - _scenarioStartDay;
-
-            // ── Universal loss: bankruptcy ────────────────────────────────────
-            decimal currentBalance = CurrentCash();
             decimal equity = CurrentEquity();
 
-            if (currentBalance < -2_000_000m)
-            {
-                TriggerLoss("Konkurs — gjelden oversteg 2 000 000 NOK.");
-                return;
-            }
+            // Bankruptcy is the engine's end-of-day solvency rule (S1-03): one
+            // floor per scenario from BalancingConfig, which calls
+            // DeclareBankruptcy. This check used its own -2M floor while the
+            // bridge ended the game at -1M.
 
             // ── Universal loss: time limit exceeded (except Survival — handled below) ──
             if (ActiveScenario.WinCondition != WinCondition.Survival &&
@@ -896,6 +892,17 @@ namespace LakskongenSim.Core
                     System.Globalization.CultureInfo.InvariantCulture, out var val))
                 return val;
             return defaultValue;
+        }
+
+        /// <summary>
+        /// The engine declared the company bankrupt (cash below the scenario's
+        /// floor): a running scenario is lost with <paramref name="reason"/>.
+        /// A scenario already won or lost keeps its verdict.
+        /// </summary>
+        public void DeclareBankruptcy(string reason)
+        {
+            if (ActiveScenario == null || IsWon || IsLost) return;
+            TriggerLoss(reason);
         }
 
         private void TriggerWin()

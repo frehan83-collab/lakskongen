@@ -9,28 +9,24 @@ namespace LakskongenSim.Core
 {
     /// <summary>
     /// Achievement/milestone tracking system for player progression.
-    /// 50+ achievements spanning beginner to mastery tiers.
-    /// Achievements unlock notifications, badges, and bonuses.
+    /// Achievements unlock notifications and award a medal (bronze to
+    /// platinum), never cash: owner decision D16 (S1-03). The old NOK rewards
+    /// topped the income statement of every career (7-10M NOK in a three-year
+    /// ressursrente career) and paid out before the first harvest.
     /// NOTE: Uses GameState.Balance for checks (to be migrated to FinanceManager in future)
     /// </summary>
     #pragma warning disable CS0618 // Type or member is obsolete
     public class AchievementSystem
     {
         private readonly GameState _state;
-        private readonly Finance.FinanceManager? _financeManager;
         private readonly Dictionary<string, Achievement> _achievements = new();
         private readonly List<Achievement> _lockedAchievements = new();
 
         public event Action<Achievement>? OnAchievementUnlocked;
 
-        /// <summary>Raised when a reward was paid to the FinanceManager (the engine books it).</summary>
-
-        public event Action<decimal>? OnRewardPaid;
-
-        public AchievementSystem(GameState state, Finance.FinanceManager? financeManager = null)
+        public AchievementSystem(GameState state)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
-            _financeManager = financeManager;
             RegisterAllAchievements();
             
             _lockedAchievements.AddRange(_achievements.Values.Where(a => !_state.UnlockedAchievementIds.Contains(a.Id)));
@@ -67,22 +63,13 @@ namespace LakskongenSim.Core
         private void UnlockAchievement(Achievement achievement)
         {
             _state.UnlockedAchievementIds.Add(achievement.Id);
-            SimLog.Info($"🏆 Achievement Unlocked: {achievement.Name} — {achievement.Description}");
-            if (achievement.RewardNOK > 0)
-            {
-                if (_financeManager != null)
-                {
-                    _financeManager.AddRevenue(achievement.RewardNOK);
-                    OnRewardPaid?.Invoke(achievement.RewardNOK);
-                }
-                else
-                {
-                    _state.Balance += achievement.RewardNOK; // Legacy fallback
-                }
-                SimLog.Info($"    Reward: {achievement.RewardNOK:N0} NOK");
-            }
+            SimLog.Info($"🏆 Achievement Unlocked: {achievement.Name} — {achievement.Description} ({achievement.Medal} medal)");
             OnAchievementUnlocked?.Invoke(achievement);
         }
+
+        /// <summary>The medal an achievement awards (null for an unknown id).</summary>
+        public AchievementMedal? MedalOf(string achievementId)
+            => _achievements.TryGetValue(achievementId, out var a) ? a.Medal : null;
 
         public bool IsUnlocked(string achievementId) => _state.UnlockedAchievementIds.Contains(achievementId);
         public int UnlockedCount => _state.UnlockedAchievementIds.Count;
@@ -145,7 +132,7 @@ namespace LakskongenSim.Core
                     Name = def.Name,
                     Description = def.Description,
                     Tier = tierEnum,
-                    RewardNOK = def.RewardNOK,
+                    Medal = ParseMedal(def),
                     Icon = def.Icon,
                     Category = def.Category,
                     Hidden = def.Hidden,
@@ -155,6 +142,27 @@ namespace LakskongenSim.Core
         }
 
         private void Register(Achievement achievement) => _achievements[achievement.Id] = achievement;
+
+        private static AchievementMedal ParseMedal(AchievementDefinition def)
+        {
+            if (Enum.TryParse<AchievementMedal>(def.Medal, true, out var medal))
+                return medal;
+            Console.Error.WriteLine($"WARNING: Invalid medal '{def.Medal}' for achievement '{def.Id}'. Defaulting to Bronze.");
+            return AchievementMedal.Bronze;
+        }
+    }
+
+    /// <summary>
+    /// What an achievement awards (D16): a medal, not cash. Bronze for early
+    /// milestones, silver for an established farm, gold for mastery, platinum
+    /// for the rare top feats.
+    /// </summary>
+    public enum AchievementMedal
+    {
+        Bronze,
+        Silver,
+        Gold,
+        Platinum
     }
 
     public enum AchievementTier
@@ -177,8 +185,9 @@ namespace LakskongenSim.Core
         public string Category { get; set; } = ""; // New
         public bool Hidden { get; set; } = false; // New
         public string Tier { get; set; } = ""; // As string for deserialization
-        [JsonPropertyName("reward_nok")]
-        public decimal RewardNOK { get; set; }
+        /// <summary>"bronze" | "silver" | "gold" | "platinum" (D16: medals, never cash).</summary>
+        [JsonPropertyName("medal")]
+        public string Medal { get; set; } = "";
         // Config file uses snake_case "condition_key" — map explicitly
         // (case-insensitive matching alone does not bridge underscores,
         // which left every ConditionKey empty and all lookups failing).
@@ -195,7 +204,8 @@ namespace LakskongenSim.Core
         public string Category { get; set; } = ""; // New
         public bool Hidden { get; set; } = false; // New
         public AchievementTier Tier { get; set; }
-        public decimal RewardNOK { get; set; }
+        /// <summary>The medal this achievement awards (D16: no cash reward).</summary>
+        public AchievementMedal Medal { get; set; }
         public Func<GameState, bool>? Condition { get; set; }
     }
 
