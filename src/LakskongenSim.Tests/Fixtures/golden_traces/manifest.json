@@ -1,0 +1,246 @@
+{
+  "format": "lakskongen-golden-trace/1",
+  "player": "golden-player/1",
+  "days": 730,
+  "snapshotEveryDays": 30,
+  "seeds": [
+    1,
+    7,
+    13
+  ],
+  "scenarios": [
+    "algekatastrofe",
+    "barekraft_mester",
+    "forste_sesong",
+    "isa_utbrudd",
+    "krise_manager",
+    "laksebaronene",
+    "lofoten_eventyr",
+    "po3_red_sone",
+    "ressursrente"
+  ],
+  "recordedOn": {
+    "commit": "dc0b56a5639907c061d5415492eafd4f9b74984f",
+    "rid": "osx-arm64",
+    "runtime": ".NET 10.0.12",
+    "math": "8481617aed3cdd1d"
+  },
+  "files": [
+    {
+      "file": "algekatastrofe.seed01.jsonl.gz",
+      "scenario": "algekatastrofe",
+      "seed": 1,
+      "lines": 758,
+      "sha256": "a7820d766033b1aef5a2928e77e51fcc8af89d3efff301e33b370f1d51b7d9a2",
+      "finalSave": "2402d85659900787"
+    },
+    {
+      "file": "algekatastrofe.seed07.jsonl.gz",
+      "scenario": "algekatastrofe",
+      "seed": 7,
+      "lines": 758,
+      "sha256": "ea8d52c0e74141cccaa40ff5f708b153220b738305cf0d0d55a3e7a16ab9d374",
+      "finalSave": "d4f6a5331613bf8a"
+    },
+    {
+      "file": "algekatastrofe.seed13.jsonl.gz",
+      "scenario": "algekatastrofe",
+      "seed": 13,
+      "lines": 758,
+      "sha256": "e2649ab059d226c6d1e4d23ad95499e536186a02f3ba7afd196541791d2f033a",
+      "finalSave": "2a9c25fd0ab0a896"
+    },
+    {
+      "file": "barekraft_mester.seed01.jsonl.gz",
+      "scenario": "barekraft_mester",
+      "seed": 1,
+      "lines": 758,
+      "sha256": "5f4d19996445c01c6907a9fdb8092e02748f59fb39e71be8336ce57cc89c2154",
+      "finalSave": "7dfad31a11de8194"
+    },
+    {
+      "file": "barekraft_mester.seed07.jsonl.gz",
+      "scenario": "barekraft_mester",
+      "seed": 7,
+      "lines": 758,
+      "sha256": "aded5afb01ba8135c04fe7bfcc053c77c545b03d4fe5c93d34c09d4c52647642",
+      "finalSave": "9f25c771995e0d77"
+    },
+    {
+      "file": "barekraft_mester.seed13.jsonl.gz",
+      "scenario": "barekraft_mester",
+      "seed": 13,
+      "lines": 758,
+      "sha256": "feebf69de09ddd8d49a35d9fafce4b8444e107befe0b860d7c35dd3966bf6e9b",
+      "finalSave": "597a97cdd1220883"
+    },
+    {
+      "file": "forste_sesong.seed01.jsonl.gz",
+      "scenario": "forste_sesong",
+      "seed": 1,
+      "lines": 758,
+      "sha256": "43960b9005d3dd7d2734172826930ad2cc8a8bcea1eebf4ed5b45696bd8ada57",
+      "finalSave": "345d46ae6153a2a3"
+    },
+    {
+      "file": "forste_sesong.seed07.jsonl.gz",
+      "scenario": "forste_sesong",
+      "seed": 7,
+      "lines": 758,
+      "sha256": "9c9155893c10bef49dc6bebcdfbe99d8e270475ee125e889f438ce8972d8202a",
+      "finalSave": "6b6e0b55934a4ff7"
+    },
+    {
+      "file": "forste_sesong.seed13.jsonl.gz",
+      "scenario": "forste_sesong",
+      "seed": 13,
+      "lines": 758,
+      "sha256": "f353c0cb5648703413202c9bb21b1642931fccf3959659fc532f8c56ac1d0cb0",
+      "finalSave": "57d9d62b83b74162"
+    },
+    {
+      "file": "isa_utbrudd.seed01.jsonl.gz",
+      "scenario": "isa_utbrudd",
+      "seed": 1,
+      "lines": 758,
+      "sha256": "e6e8d182978cc5db2792d7e761fdd0f326b6a020b6f87fcd6fac9a104f1a4390",
+      "finalSave": "e0b25b4cc84bd74a"
+    },
+    {
+      "file": "isa_utbrudd.seed07.jsonl.gz",
+      "scenario": "isa_utbrudd",
+      "seed": 7,
+      "lines": 758,
+      "sha256": "e0e711d282c12933d81920804c131e6ca01109dc56784c6ce22c3116573edc03",
+      "finalSave": "32aeb11929160a60"
+    },
+    {
+      "file": "isa_utbrudd.seed13.jsonl.gz",
+      "scenario": "isa_utbrudd",
+      "seed": 13,
+      "lines": 758,
+      "sha256": "26c53af573dc82b0a109876a2ca4c058dd20d134dad5a6482a983f839c7fc441",
+      "finalSave": "d90fdb6ba36ba62e"
+    },
+    {
+      "file": "krise_manager.seed01.jsonl.gz",
+      "scenario": "krise_manager",
+      "seed": 1,
+      "lines": 758,
+      "sha256": "392346190801edf9350532ba561a751c869cd6a7be12f7c9fef2a8539323595a",
+      "finalSave": "d222a4de6bbd704a"
+    },
+    {
+      "file": "krise_manager.seed07.jsonl.gz",
+      "scenario": "krise_manager",
+      "seed": 7,
+      "lines": 758,
+      "sha256": "8da2f25000ffefeb28b98eaa3fc98b4aec1885e57ce7173fff8ad0881f6d3dbb",
+      "finalSave": "c0f9a7a644202299"
+    },
+    {
+      "file": "krise_manager.seed13.jsonl.gz",
+      "scenario": "krise_manager",
+      "seed": 13,
+      "lines": 758,
+      "sha256": "4fde0bc272d98875ce8dc2a4dc1ac07382c002f962b02ac477c371480cd715f8",
+      "finalSave": "8cf4c569901b015c"
+    },
+    {
+      "file": "laksebaronene.seed01.jsonl.gz",
+      "scenario": "laksebaronene",
+      "seed": 1,
+      "lines": 758,
+      "sha256": "c9a976b0d3c4ddbfe03a2f2dda09a0ec6cc022e58a11d9e84d1a17488ae19c37",
+      "finalSave": "2d935a9a9f59a009"
+    },
+    {
+      "file": "laksebaronene.seed07.jsonl.gz",
+      "scenario": "laksebaronene",
+      "seed": 7,
+      "lines": 758,
+      "sha256": "aaa1f9d998e46da21953561818c42e7b5d62647abe2033d951dfe1ef02192e83",
+      "finalSave": "949f9708434c5fea"
+    },
+    {
+      "file": "laksebaronene.seed13.jsonl.gz",
+      "scenario": "laksebaronene",
+      "seed": 13,
+      "lines": 758,
+      "sha256": "11d1ed5fdc8bf6538ec887daef2b50b4e539efec455b6756e5ff89656d0b500d",
+      "finalSave": "8676ff9783026e32"
+    },
+    {
+      "file": "lofoten_eventyr.seed01.jsonl.gz",
+      "scenario": "lofoten_eventyr",
+      "seed": 1,
+      "lines": 758,
+      "sha256": "c860215bf5c612a58ee23e901d407a295fad1506860fbbc8a71a74ee164879a3",
+      "finalSave": "63a9e4ca10727824"
+    },
+    {
+      "file": "lofoten_eventyr.seed07.jsonl.gz",
+      "scenario": "lofoten_eventyr",
+      "seed": 7,
+      "lines": 758,
+      "sha256": "8d5355759c445399c7eae928b0cfb39e01e92297312db422ea130968c637e668",
+      "finalSave": "14e2fc4a1666a636"
+    },
+    {
+      "file": "lofoten_eventyr.seed13.jsonl.gz",
+      "scenario": "lofoten_eventyr",
+      "seed": 13,
+      "lines": 758,
+      "sha256": "3208fec6b6f31db9495a642a741d551ac1a15bbffd355d30866fa3198746e742",
+      "finalSave": "9eae54fa8f961581"
+    },
+    {
+      "file": "po3_red_sone.seed01.jsonl.gz",
+      "scenario": "po3_red_sone",
+      "seed": 1,
+      "lines": 758,
+      "sha256": "0a26fc560486cd366e82548ab1e47df797d7c792edcdbca4d6df023c3e4b1267",
+      "finalSave": "d2f41de145874e76"
+    },
+    {
+      "file": "po3_red_sone.seed07.jsonl.gz",
+      "scenario": "po3_red_sone",
+      "seed": 7,
+      "lines": 758,
+      "sha256": "6b1c535b1f906d42fa00328d5dc5ebb3208e1984006422e257afa6c9515736d7",
+      "finalSave": "f54da79cb094d1e9"
+    },
+    {
+      "file": "po3_red_sone.seed13.jsonl.gz",
+      "scenario": "po3_red_sone",
+      "seed": 13,
+      "lines": 758,
+      "sha256": "5d9c05e8a28332ad6a6a87321a1af6c7caad7de78a51170bd96e5010dcbe02e6",
+      "finalSave": "52f3e12613058ea1"
+    },
+    {
+      "file": "ressursrente.seed01.jsonl.gz",
+      "scenario": "ressursrente",
+      "seed": 1,
+      "lines": 758,
+      "sha256": "30b02f5c8d20c0971452990837f02c071df549303ba6e21d64e2edc3e9e51ca5",
+      "finalSave": "a0bcd48b40c02b3a"
+    },
+    {
+      "file": "ressursrente.seed07.jsonl.gz",
+      "scenario": "ressursrente",
+      "seed": 7,
+      "lines": 758,
+      "sha256": "25cff1626377460dfd1b414a28fdf9198ca59a252363cf46e56762b05649ed63",
+      "finalSave": "cb7d2a82f3939cc9"
+    },
+    {
+      "file": "ressursrente.seed13.jsonl.gz",
+      "scenario": "ressursrente",
+      "seed": 13,
+      "lines": 758,
+      "sha256": "dde0193788b22354cec632d0015e36c6fd00d48de4a4df7ff124d8929c26278b",
+      "finalSave": "f156825d0230d266"
+    }
+  ]
+}
