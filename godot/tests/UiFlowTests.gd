@@ -7,13 +7,17 @@ extends Node
 ##
 ## Drives the real autoloads (GameBridge C#, SaveLoadManager C#, SimBridge) and
 ## the real scenes, presses buttons through their `pressed` signals and asserts
-## the visible outcome. Saves go to user://ci_ui_tests/saves/ (never the
-## player's slots). Prints `UI_FLOW_RESULT checks=N failures=M` and exits
-## non-zero on any failure, so the CI wrapper can gate on it.
+## the visible outcome. Saves go to user://ci_ui_tests/<checkout>/saves/
+## (never the player's slots). Prints `UI_FLOW_RESULT checks=N failures=M`
+## and exits non-zero on any failure, so the CI wrapper can gate on it.
 
-const TEST_SAVE_DIR := "user://ci_ui_tests/saves/"
 const SCENARIO_ID := "forste_sesong"
-const ESCAPE_SAVE := "user://ci_ui_tests/escape.json"
+
+## One test directory per checkout: runs in parallel worktrees share user://
+## (it follows the project name) and would wipe each other's saves.
+var TEST_ROOT := "user://ci_ui_tests/%d/" % absi(ProjectSettings.globalize_path("res://").hash())
+var TEST_SAVE_DIR := TEST_ROOT + "saves/"
+var ESCAPE_SAVE := TEST_ROOT + "escape.json"
 
 var _checks: int = 0
 var _failures: PackedStringArray = []
@@ -375,7 +379,7 @@ func _test_analytics_panel_charts_every_metric() -> void:
 ## F944 pattern: the export panel looked GameBridge up as an Engine singleton
 ## and called four methods that did not exist; every export failed.
 func _test_data_export_writes_csv() -> void:
-	var dir := ProjectSettings.globalize_path("user://ci_ui_tests/exports")
+	var dir := ProjectSettings.globalize_path(TEST_ROOT + "exports")
 	DirAccess.make_dir_recursive_absolute(dir)
 	for file in DirAccess.get_files_at(dir):
 		DirAccess.remove_absolute(dir.path_join(file))
