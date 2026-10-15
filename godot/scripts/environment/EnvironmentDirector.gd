@@ -20,6 +20,14 @@ extends Node
 ##   optics and the terrain's water bake (G1-05);
 ## - wave_field, the CPU mirror of the drawn water (G2-03): the same wave
 ##   arrays, grid and bake, so pens and boats ride the waves they sit in.
+## - the mood (G3-05, EnvironmentMood): eight art-directed moods weighed
+##   from the sim's weather and calendar every frame and blended; they
+##   grade the sky, the deck, the fog and the sunlight, set the water's body
+##   colour and an exposure bias, lay mist on the mountains under a low
+##   deck and keep the land a shade under the sky so a storm leaves the
+##   mountains' outline; the frost smoke on the water, the clouds' shadows
+##   (CloudShadows), the pens' lamps after dark (PenLamps) and the camera's
+##   sway in a storm (StormSway).
 ##
 ## Nothing else writes these: tests/test_environment_director.py fails on a
 ## second writer. Because the result is recomposed from the inputs every
@@ -40,6 +48,9 @@ extends Node
 ## The water's planar mirror (G2-03): its look (fog, ambient, background)
 ## is composed here like the main view's; the tier switches it.
 @export var planar_reflection: PlanarReflection
+## Cloud shadows on the land (G3-05) and the pens' submerged lamps.
+@export var cloud_shadows: CloudShadows
+@export var pen_lamps: PenLamps
 
 # ── Atmosphere (mirrors sky_shader.gdshader) ──────────────────────────────────
 const R_EARTH := 6360.0
@@ -188,8 +199,42 @@ const MIRROR_RADIANCE_SIZE := Sky.RADIANCE_SIZE_32
 const MIRROR_DISTORT_CALM := 0.3
 const MIRROR_DISTORT_BREEZE := 0.8
 
+# ── Moods and weather drama (G3-05) ────────────────────────────────────────
+## The mood weights follow their targets at this rate (1/s): a front or a
+## sunset turns the mood over a few seconds, never in a frame.
+const MOOD_RATE := 0.8
+## Cloud shadows: drawn while the cloud is broken (from CLOUD_SHADOW_FROM to
+## CLOUD_SHADOW_TO cover, gone again under a closed deck) and the sun is
+## high enough to cast them (under SHADOW_SUN_FROM degrees they run long and
+## blur away).
+const CLOUD_SHADOW_FROM := 0.06
+const CLOUD_SHADOW_PEAK := 0.25
+const CLOUD_SHADOW_CLOSE := 0.7
+const CLOUD_SHADOW_TO := 0.92
+const SHADOW_SUN_FROM := 6.0
+const SHADOW_SUN_FULL := 15.0
+## Frost smoke: its colour, how much of the sun and sky it scatters back,
+## and how fast its wisps drift with the wind (share of the wind speed).
+const SMOKE_SUN := 0.7
+const SMOKE_SKY := 1.6
+const SMOKE_DRIFT := 0.6
+## Pen lamps: the lamp's light (white LED, linear) filtered by the water
+## above it (water_shader absorption over PenLamps.LAMP_DEPTH_M), the glow's
+## screen brightness (linear, after exposure: under the glow threshold, so
+## a lit pen glows without blooming) and the underwater light's energy.
+const LAMP_WHITE := Vector3(0.95, 1.0, 1.0)
+const WATER_ABSORPTION := Vector3(0.40, 0.09, 0.14)
+const LAMP_GLOW_ON_SCREEN := 0.75
+const LAMP_LIGHT_ENERGY := 2.5
+
 var _water_temperature_c := 8.0
 var _algae := 0.0
+## Mood weights (EnvironmentMood.Id order) and the blended profile composed
+## last frame (tests and the harness read them).
+var mood_weights := PackedFloat32Array()
+var mood: Dictionary = {}
+var _smoke_drift := Vector2.ZERO
+var _storm_sway: StormSway = null
 var _sky_time := 0.0
 var _cloud_offset := Vector2.ZERO
 var _aurora := 0.0
@@ -269,6 +314,8 @@ func _ready() -> void:
 		terrain.terrain_ready.connect(_apply_terrain_quality)
 	wave_field.bind_grid(water_grid)
 	_prewarm()
+	if camera != null:
+		_storm_sway = StormSway.ensure(camera)
 	compose(0.0, true)
 
 
@@ -396,6 +443,7 @@ func compose(delta: float, snap: bool = false) -> void:
 		"visibility_m": visibility,
 		"underwater": underwater,
 	}
+	_compose_mood(delta, snap, sun_dir, sun_elev, cloud, c)
 	_apply_sun(sun_dir, cloud, c)
 	_apply_moon(sun_elev, cloud, c)
 	var snowfall := weather_system.get_snow() if weather_system else 0.0
@@ -412,6 +460,7 @@ func compose(delta: float, snap: bool = false) -> void:
 	_apply_fog(sun_elev, cloud, visibility, sea_fog, underwater, c)
 	_apply_image(sun_elev, distance, underwater, c)
 	_apply_water(delta, c)
+	_apply_weather_drama(delta, sun_dir, sun_elev, cloud, underwater, c)
 	_apply_mirror(underwater, c)
 	_refresh_probe(delta, snap, sun_elev, cloud, sea_fog)
 	c["world_visible"] = not quality.world_hidden
@@ -433,6 +482,8 @@ func _apply_sun(sun_dir: Vector3, cloud: float, c: Dictionary) -> void:
 	var clear_energy := _clear_sun_energy(sun_dir)
 	var energy := clear_energy * clouds
 	var tint := Color(balanced.x / peak, balanced.y / peak, balanced.z / peak) if peak > 0.0 else Color.BLACK
+	# The mood's sunlight (G3-05): Midnattssol's gold, Høst's low amber.
+	tint = tint.lerp(_mood_sun_tint(), clampf(float(mood.get("sun_grade", 0.0)), 0.0, 1.0))
 	# Through a closed deck the light arrives diffused and near-neutral.
 	var neutral := tint.get_luminance()
 	sun_light.light_color = tint.lerp(Color(neutral, neutral, neutral), 0.9 * smoothstep(0.8, 0.97, cloud))
@@ -499,7 +550,10 @@ func _apply_sky(delta: float, sun_elev: float, cloud: float, density: float, vis
 		mat.set_shader_parameter("aurora_kp", float(aurora["kp"]))
 		mat.set_shader_parameter("moon_direction", _moon_dir)
 		mat.set_shader_parameter("moon_illumination", time_system.get_moon_illumination())
-		mat.set_shader_parameter("haze_color", c["horizon_color"])
+		# haze_color is the fog's light colour (the land's aerial perspective);
+		# the sky's own horizon haze may stand a shade brighter (G3-05).
+		mat.set_shader_parameter("haze_color", c.get("fog_light_color", c["horizon_color"]))
+		mat.set_shader_parameter("sky_haze_color", c["horizon_color"])
 		mat.set_shader_parameter("haze_amount", haze)
 		# The zenith sky lights the clouds; one value for every pixel.
 		mat.set_shader_parameter("sky_zenith", c["sky_zenith"])
@@ -509,6 +563,13 @@ func _apply_sky(delta: float, sun_elev: float, cloud: float, density: float, vis
 		# replaces the sky outright: the clouds are marched per pixel there.
 		mat.set_shader_parameter("sky_fog_k", terms.x)
 		mat.set_shader_parameter("sky_fog_scatter", terms.y)
+		# The mood's grade (G3-05).
+		mat.set_shader_parameter("grade_zenith", EnvironmentMood.vec(mood.get("zenith", Color.WHITE)))
+		mat.set_shader_parameter("grade_horizon", EnvironmentMood.vec(mood.get("horizon", Color.WHITE)))
+		mat.set_shader_parameter("grade_horizon_sun", EnvironmentMood.vec(mood.get("horizon_sun", Color.WHITE)))
+		mat.set_shader_parameter("grade_amount", float(mood.get("sky_grade", 0.0)))
+		mat.set_shader_parameter("grade_deck", EnvironmentMood.vec(mood.get("deck", Color.WHITE)))
+		mat.set_shader_parameter("grade_deck_amount", float(mood.get("deck_grade", 0.0)))
 		mat.set_shader_parameter("cloud_pass", 0 if underwater else int(quality.knobs["cloud_pass"]))
 		mat.set_shader_parameter("cloud_steps", int(quality.knobs["cloud_steps"]))
 		mat.set_shader_parameter("cloud_octaves", int(quality.knobs["cloud_octaves"]))
@@ -552,6 +613,12 @@ func _measure_sky(sun_dir: Vector3, cloud: float, density: float, sea_fog: float
 	var overcast := smoothstep(0.35, 0.85, cloud)
 	var deck := cloud_base_luminance(sun_dir, density) + _luminance(zenith) * lerpf(0.9, 0.35, density)
 	var grey := Vector3(0.92, 0.96, 1.0) * deck
+	# The mood's hues (G3-05), as the sky shader grades its own pixels.
+	var sky_grade := float(mood.get("sky_grade", 0.0))
+	zenith = EnvironmentMood.grade_rgb(zenith, mood.get("zenith", Color.WHITE), sky_grade)
+	var mood_horizon: Color = (mood.get("horizon", Color.WHITE) as Color).lerp(mood.get("horizon_sun", Color.WHITE), 0.3)
+	horizon = EnvironmentMood.grade_rgb(horizon, mood_horizon, sky_grade)
+	grey = EnvironmentMood.grade_rgb(grey, mood.get("deck", Color.WHITE), float(mood.get("deck_grade", 0.0)))
 	var fog_rgb := horizon.lerp(grey, overcast)
 	# A sea-fog layer: bright, nearly white, lit from above.
 	fog_rgb = fog_rgb.lerp(Vector3(0.95, 0.97, 1.0) * _luminance(horizon) * 0.8, sea_fog * 0.85)
@@ -568,8 +635,13 @@ func _measure_sky(sun_dir: Vector3, cloud: float, density: float, sea_fog: float
 	# Snowfall is bright: snow on the ground and the deck reflect the light
 	# back and forth, so a snowy day reads light grey, not gloomy.
 	key /= 1.0 + 2.0 * snow_veil
+	# The mood's aerial perspective; the land's fog a shade under the sky
+	# behind it (fog_value), so far mountains keep their outline.
+	fog_rgb = EnvironmentMood.grade_rgb(fog_rgb, mood.get("fog", Color.WHITE), float(mood.get("fog_grade", 0.0)))
+	var fog_light := fog_rgb * clampf(float(mood.get("fog_value", 1.0)), 0.3, 1.0)
 	c["sky_zenith"] = zenith
 	c["horizon_color"] = Color(fog_rgb.x, fog_rgb.y, fog_rgb.z)
+	c["fog_light_color"] = Color(fog_light.x, fog_light.y, fog_light.z)
 	c["scene_key"] = key
 
 
@@ -626,14 +698,23 @@ func _apply_fog(sun_elev: float, cloud: float, visibility: float, sea_fog: float
 		return
 	var distance_vis := lerpf(visibility, ABOVE_SEA_FOG_VISIBILITY_M, sea_fog)
 	env.fog_density = KOSCHMIEDER / maxf(distance_vis, 1.0)
-	env.fog_light_color = c["horizon_color"]
+	env.fog_light_color = c.get("fog_light_color", c["horizon_color"])
 	env.fog_light_energy = 1.0
 	env.fog_aerial_perspective = AERIAL_PERSPECTIVE
 	env.fog_sky_affect = lerpf(SKY_AFFECT, 0.5, sea_fog)
 	env.fog_sun_scatter = SUN_SCATTER * (1.0 - cloud * 0.7)
-	# Height fog only for a sea-fog layer.
-	env.fog_height = SEA_FOG_TOP_M
-	env.fog_height_density = SEA_FOG_HEIGHT_DENSITY * sea_fog
+	# Height fog for a sea-fog layer; under a low deck (G3-05, the mood's
+	# cloud base) a negative density thickens the fog above the base instead,
+	# so the mountains' tops go into the cloud and their slopes stay.
+	var base := float(mood.get("cloud_base_m", 0.0))
+	var base_fog := float(mood.get("cloud_base_fog", 0.0))
+	if sea_fog > 0.01 or base <= 0.0 or base_fog <= 0.0:
+		env.fog_height = SEA_FOG_TOP_M
+		env.fog_height_density = SEA_FOG_HEIGHT_DENSITY * sea_fog
+	else:
+		env.fog_height = base
+		env.fog_height_density = -base_fog
+	c["cloud_base_m"] = env.fog_height if env.fog_height_density < 0.0 else 0.0
 	c["fog_density"] = env.fog_density
 	c["fog_color"] = env.fog_light_color
 
@@ -644,7 +725,8 @@ func _apply_image(sun_elev: float, distance: float, underwater: bool, c: Diction
 	var env := _env()
 	if env != null:
 		var key: float = c["scene_key"]
-		var exposure := clampf(pow(_key_ref / maxf(key, 1e-5), ADAPTATION), 1.0, MAX_EXPOSURE)
+		var exposure := clampf(pow(_key_ref / maxf(key, 1e-5), ADAPTATION), 1.0, MAX_EXPOSURE) \
+			* pow(2.0, float(mood.get("exposure_ev", 0.0)))
 		env.tonemap_mode = Environment.TONE_MAPPER_AGX
 		env.tonemap_agx_white = AGX_WHITE
 		env.tonemap_agx_contrast = AGX_CONTRAST
@@ -981,6 +1063,130 @@ func max_crest_at(exposure: float) -> float:
 	for i in _comp_k.size():
 		total += lerpf(a_sh[_comp_band[i]], a_ex[_comp_band[i]], exposure) * _comp_weight[i]
 	return total
+
+
+# ── Moods and weather drama (G3-05) ───────────────────────────────────────────
+
+## Weigh the moods from this frame's inputs (the sim's weather and calendar
+## through the weather and the clock) and blend their profiles. The weights
+## follow their targets at MOOD_RATE; a snap (staging) takes them at once.
+func _compose_mood(delta: float, snap: bool, sun_dir: Vector3, sun_elev: float, cloud: float, c: Dictionary) -> void:
+	var inputs := {
+		"sun_elevation": sun_elev,
+		"sun_direction": sun_dir,
+		"day_of_year": time_system.get_day_of_year(),
+		"cloud": cloud,
+		"rain": (weather_system.get_rain() + weather_system.get_snow()) if weather_system else 0.0,
+		"wind": weather_system.get_wind_speed_ms() if weather_system else 4.0,
+	}
+	var target := EnvironmentMood.weights(inputs)
+	if snap or mood_weights.size() != target.size():
+		mood_weights = target
+	else:
+		var k := 1.0 - exp(-MOOD_RATE * delta)
+		for i in target.size():
+			mood_weights[i] = lerpf(mood_weights[i], target[i], k)
+	mood = EnvironmentMood.blend(mood_weights)
+	var by_name := {}
+	for i in mood_weights.size():
+		by_name[EnvironmentMood.NAMES[i]] = mood_weights[i]
+	c["mood"] = EnvironmentMood.NAMES[EnvironmentMood.dominant(mood_weights)]
+	c["mood_weights"] = by_name
+
+
+## The mood's sunlight as a light colour (brightest channel 1).
+func _mood_sun_tint() -> Color:
+	var sun: Color = mood.get("sun", Color.WHITE)
+	var srgb := sun.linear_to_srgb()
+	var peak := maxf(srgb.r, maxf(srgb.g, srgb.b))
+	return Color(srgb.r / peak, srgb.g / peak, srgb.b / peak) if peak > 0.0 else Color.WHITE
+
+
+## The mood's water body, the frost smoke, the clouds' shadows, the pens'
+## lamps and the storm's sway.
+func _apply_weather_drama(delta: float, sun_dir: Vector3, sun_elev: float, cloud: float, underwater: bool, c: Dictionary) -> void:
+	var mat := water_material()
+	var wind := weather_system.get_wind() if weather_system else Vector2(4.0, 0.0)
+	if mat != null:
+		var scatter: Color = mood.get("water", Color(0.0022, 0.0085, 0.0105))
+		mat.set_shader_parameter("deep_scatter", Vector3(scatter.r, scatter.g, scatter.b))
+		_apply_frost_smoke(mat, delta, sun_dir, sun_elev, wind, c)
+	_apply_cloud_shadows(mat, sun_dir, sun_elev, cloud, c)
+	_apply_lamps(mat, sun_elev, cloud, c)
+	if _storm_sway != null:
+		_storm_sway.set_wind(0.0 if underwater else wind.length())
+		c["sway_level"] = _storm_sway.level
+
+
+func _apply_frost_smoke(mat: ShaderMaterial, delta: float, sun_dir: Vector3, sun_elev: float, wind: Vector2, c: Dictionary) -> void:
+	var sim_smoke := weather_system.get_frost_smoke() if weather_system else 0.0
+	var smoke := EnvironmentMood.frost_smoke_shown(sim_smoke, sun_elev)
+	_smoke_drift += wind * SMOKE_DRIFT * delta
+	# The smoke scatters the sun (low and warm on a frost morning) and the sky.
+	var sun_color: Color = c.get("sun_color", Color.WHITE)
+	var sun_in := Vector3(sun_color.r, sun_color.g, sun_color.b) * float(c.get("sun_energy", 0.0)) * SMOKE_SUN
+	var sky: Color = c.get("horizon_color", Color(0.5, 0.55, 0.6))
+	var sky_in := Vector3(sky.r, sky.g, sky.b) * SMOKE_SKY
+	var tint := EnvironmentMood.vec(EnvironmentMood.SEA_SMOKE.srgb_to_linear())
+	var light := (sun_in * maxf(sun_dir.y, 0.0) * 0.5 + sun_in * 0.5 + sky_in) * tint
+	mat.set_shader_parameter("frost_smoke", smoke)
+	mat.set_shader_parameter("frost_smoke_light", light)
+	mat.set_shader_parameter("frost_smoke_drift", _smoke_drift)
+	mat.set_shader_parameter("frost_smoke_wind", wind.normalized() if wind.length() > 0.05 else Vector2(1.0, 0.0))
+	c["frost_smoke"] = smoke
+
+
+## Cloud shadows: strongest under broken cloud with the sun well up, none
+## under a clear sky or a closed deck. The shadows drift with the sky's low
+## clouds (the sky shader's cloud_offset, km).
+func _apply_cloud_shadows(mat: ShaderMaterial, sun_dir: Vector3, sun_elev: float, cloud: float, c: Dictionary) -> void:
+	var broken := smoothstep(CLOUD_SHADOW_FROM, CLOUD_SHADOW_PEAK, cloud) * (1.0 - smoothstep(CLOUD_SHADOW_CLOSE, CLOUD_SHADOW_TO, cloud))
+	var strength := broken * smoothstep(SHADOW_SUN_FROM, SHADOW_SUN_FULL, sun_elev)
+	if bool(c.get("underwater", false)):
+		strength = 0.0
+	var focus := camera.get_focus_point() if camera != null else Vector3.ZERO
+	var drift := -_cloud_offset * 1000.0
+	if cloud_shadows != null:
+		cloud_shadows.update(sun_dir, cloud, strength, drift, focus)
+	if mat != null:
+		var on := cloud_shadows != null and cloud_shadows.get_map() != null and strength > 0.001
+		mat.set_shader_parameter("cloud_shadow_strength", strength if on else 0.0)
+		if on:
+			mat.set_shader_parameter("cloud_shadow_map", cloud_shadows.get_map())
+			mat.set_shader_parameter("cloud_shadow_origin", cloud_shadows.map_origin)
+			mat.set_shader_parameter("cloud_shadow_axis_u", cloud_shadows.map_axis_u)
+			mat.set_shader_parameter("cloud_shadow_axis_v", cloud_shadows.map_axis_v)
+	c["cloud_shadow_strength"] = strength
+	c["cloud_shadow_drift"] = drift
+
+
+## The pens' lamps burn after dark in the lighting season (PenLamps); the
+## water draws their glow at a fixed brightness on screen (divided by the
+## night's exposure, which would otherwise blow it out), the underwater
+## lights light the nets.
+func _apply_lamps(mat: ShaderMaterial, sun_elev: float, cloud: float, c: Dictionary) -> void:
+	var on := 0.0
+	var entries := PackedVector4Array()
+	if pen_lamps != null:
+		on = PenLamps.night_for(sun_elev, cloud) * PenLamps.season_for(time_system.get_day_of_year())
+		if on > 0.001:
+			entries = pen_lamps.lamp_entries()
+		for i in pen_lamps.lights.size():
+			var light := pen_lamps.lights[i]
+			light.visible = on > 0.001 and i < entries.size()
+			light.light_energy = LAMP_LIGHT_ENERGY * on
+	var exposure := maxf(float(c.get("exposure", 1.0)), 1e-3)
+	var filtered := LAMP_WHITE * Vector3(exp(-WATER_ABSORPTION.x * PenLamps.LAMP_DEPTH_M),
+		exp(-WATER_ABSORPTION.y * PenLamps.LAMP_DEPTH_M), exp(-WATER_ABSORPTION.z * PenLamps.LAMP_DEPTH_M))
+	filtered /= maxf(filtered.x, maxf(filtered.y, filtered.z))
+	if mat != null:
+		var padded := PackedVector4Array(entries)
+		padded.resize(PenLamps.MAX_LAMPS)
+		mat.set_shader_parameter("lamp_glow", padded)
+		mat.set_shader_parameter("lamp_count", entries.size())
+		mat.set_shader_parameter("lamp_light", filtered * (LAMP_GLOW_ON_SCREEN * on / exposure))
+	c["lamps_on"] = on
+	c["lamp_count"] = entries.size()
 
 
 # ── Static setup (once) ───────────────────────────────────────────────────────

@@ -31,10 +31,16 @@ render_mode world_vertex_coords, cull_disabled, depth_draw_opaque, diffuse_burle
 // Seen from below (cull_disabled, !FRONT_FACING): Snell's window (48.6 deg)
 // shows the daylight, outside it total internal reflection mirrors the deep
 // water.
+//
+// Weather and night (G3-05, water/water_mood.gdshaderinc): frost smoke on
+// the water, the clouds' shadows, the pens' lamps after dark. The body's
+// deep scatter follows the mood (EnvironmentDirector): sunny deep blue,
+// calm-winter slate, overcast grey.
 
 #define WAVES 16
 
 #include "res://shaders/water/water_mirror.gdshaderinc"
+#include "res://shaders/water/water_mood.gdshaderinc"
 
 // ── Waves (written by EnvironmentDirector) ───────────────────────────────────
 // wave_k[i] = (wavevector x, wavevector z, wavenumber k = 2 pi / lambda, choppiness Q),
@@ -419,10 +425,17 @@ void fragment() {
 		mirror.a *= 1.0 - foam;
 		float cos_r = clamp(dot(n, view_w), 0.0, 1.0);
 		float fresnel = WATER_F0 + (1.0 - WATER_F0) * pow(1.0 - cos_r, 5.0);
+		// A cloud's shadow takes the direct sun out of the water column; the
+		// pens' lamps glow through it at night; frost smoke veils it all.
+		vec3 shaded_body = body * (1.0 - 0.6 * cloud_shadow_at(v_world));
+		float smoke = frost_smoke_cover(p0, view_w);
+		vec3 lamps = lamp_glow_at(p0) * (1.0 - foam);
 		EMISSION = mirror.rgb * fresnel * mirror.a;
-		ALBEDO = mix(body, foam_color, foam);
+		EMISSION = (EMISSION + lamps) * (1.0 - smoke) + frost_smoke_light * smoke;
+		ALBEDO = mix(shaded_body, foam_color, foam) * (1.0 - smoke);
 		ROUGHNESS = mix(clamp(roughness, 0.02, 0.4), 0.85, foam);
 		SPECULAR = mix(WATER_SPECULAR, 0.1, foam) * sqrt(1.0 - mirror.a);
+		SPECULAR *= 1.0 - smoke;
 		METALLIC = 0.0;
 		vec3 nf = normalize(mix(n, vec3(0.0, 1.0, 0.0), foam * 0.6));
 		NORMAL = normalize((VIEW_MATRIX * vec4(nf, 0.0)).xyz);

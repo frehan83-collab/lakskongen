@@ -38,8 +38,13 @@ uniform float aurora_offset_km = 200.0;
 uniform float aurora_kp : hint_range(0.0, 9.0) = 2.0;
 uniform vec3 moon_direction = vec3(0.0, -1.0, 0.0);
 uniform float moon_illumination : hint_range(0.0, 1.0) = 0.0;
-// Horizon haze toward the fog colour when visibility drops.
+// The environment's fog light colour (the director's fog_light_color).
 uniform vec3 haze_color : source_color = vec3(0.6, 0.66, 0.72);
+// The sky's own horizon haze when visibility drops, and the colour under the
+// horizon. Under a mood whose land fog is a shade darker than the horizon
+// (EnvironmentMood fog_value, G3-05) it is brighter than haze_color, so far
+// mountains stand darker against the sky behind them.
+uniform vec3 sky_haze_color : source_color = vec3(0.6, 0.66, 0.72);
 uniform float haze_amount : hint_range(0.0, 1.0) = 0.0;
 // Scene-linear scale of the scattered skylight.
 uniform float sky_energy = 1.0;
@@ -69,6 +74,16 @@ uniform bool sky_pass_aurora = false;
 // takes the first fogging back out (haze_color is the fog light colour).
 uniform float sky_fog_k = 0.0;
 uniform float sky_fog_scatter = 0.0;
+// Mood grade (G3-05, EnvironmentMood): the clear sky takes the mood's hue
+// (a gradient from the horizon, warmer or pinker on the sun's side, to the
+// zenith) and the cloud deck the mood's deck colour, each keeping the
+// luminance the atmosphere gives it. Linear colours.
+uniform vec3 grade_zenith = vec3(0.11, 0.26, 0.48);
+uniform vec3 grade_horizon = vec3(0.67, 0.75, 0.79);
+uniform vec3 grade_horizon_sun = vec3(0.67, 0.75, 0.79);
+uniform float grade_amount : hint_range(0.0, 1.0) = 0.0;
+uniform vec3 grade_deck = vec3(0.82, 0.85, 0.87);
+uniform float grade_deck_amount : hint_range(0.0, 1.0) = 0.0;
 
 const float PI_ = 3.14159265;
 const float R_EARTH = 6360.0;      // km
@@ -91,6 +106,7 @@ const float CLOUD_LIGHT = 2.6;
 const vec3 AURORA_GREEN = vec3(0.19, 0.89, 0.36);  // #78F2A0 in linear
 const vec3 AURORA_RED = vec3(0.95, 0.09, 0.12);
 const vec3 AURORA_VIOLET = vec3(0.45, 0.12, 0.85);
+const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
 
 // ── Noise (PCG integer hash, value noise) ─────────────────────────────────
 uint pcg(uint v) {
@@ -529,6 +545,36 @@ vec3 moon_sky_light() {
 	float moon_up = smoothstep(-0.02, 0.06, moon_direction.y);
 	return vec3(0.012, 0.016, 0.024) * moon_illumination * moon_up;
 }
+// ── Mood grade (G3-05) ────────────────────────────────────────────────────
+// The mood's sky colour for a direction: the horizon (the sun's side of it
+// apart), rising to the zenith colour. Mirrored in EnvironmentMood.
+vec3 grade_target(vec3 dir, vec3 sun_dir) {
+	float up = clamp(dir.y, 0.0, 1.0);
+	vec2 flat_dir = normalize(dir.xz + vec2(1e-5));
+	vec2 flat_sun = normalize(sun_dir.xz + vec2(1e-5));
+	// The sun's side of the horizon: a band a few degrees deep (Blåtime's
+	// pink south, Midnattssol's gold).
+	float toward = pow(dot(flat_dir, flat_sun) * 0.5 + 0.5, 2.0) * exp(-up * 12.0);
+	vec3 horizon = mix(grade_horizon, grade_horizon_sun, toward);
+	return mix(horizon, grade_zenith, smoothstep(0.0, 0.55, pow(up, 0.75)));
+}
+
+// Re-colour `rgb` toward `target` by `amount`, keeping its luminance.
+vec3 grade_to(vec3 rgb, vec3 target, float amount) {
+	float lt = dot(target, LUMA);
+	if (amount <= 0.0 || lt <= 1e-6) {
+		return rgb;
+	}
+	return mix(rgb, target * (dot(rgb, LUMA) / lt), amount);
+}
+
+// The clear sky's grade, held back in the sun's aureole (its glare stays
+// the sun's colour).
+vec3 grade_sky(vec3 rgb, vec3 dir, vec3 sun_dir) {
+	float aureole = smoothstep(0.97, 0.9995, dot(dir, sun_dir)) * smoothstep(-0.05, 0.02, sun_dir.y);
+	return grade_to(rgb, grade_target(dir, sun_dir), grade_amount * (1.0 - aureole));
+}
+
 // ── Compose ───────────────────────────────────────────────────────────────
 
 // Haze toward the horizon in poor visibility. Below the horizon the map
@@ -538,17 +584,18 @@ vec3 moon_sky_light() {
 vec3 haze_and_ground(vec3 color, vec3 dir, vec3 sun_dir, bool cubemap) {
 	float above = smoothstep(-0.02, 0.01, dir.y);
 	float horizon = pow(1.0 - clamp(dir.y, 0.0, 1.0), mix(14.0, 2.5, haze_amount));
-	color = mix(color, haze_color, clamp(horizon * haze_amount, 0.0, 1.0));
+	color = mix(color, sky_haze_color, clamp(horizon * haze_amount, 0.0, 1.0));
 	// Below the horizon: the clear horizon of that azimuth (warm toward the
 	// sun, cool away from it), or the fog colour under cloud and haze.
-	vec3 below = haze_color;
+	vec3 below = sky_haze_color;
 	if (above < 1.0) {
 		vec3 flat_dir = normalize(vec3(dir.x, 0.035, dir.z));
 		vec3 t_dummy;
 		vec3 clear_h = atmosphere(flat_dir, sun_dir, cubemap ? 4 : 6, cubemap ? 0.55 : MIE_G, t_dummy) * SKY_SCALE * sky_energy
 			+ (twilight(flat_dir, sun_dir) + night_sky(flat_dir)) * sky_energy;
+		clear_h = grade_sky(clear_h, flat_dir, sun_dir);
 		float veil = max(haze_amount, smoothstep(0.5, 0.95, cloud_coverage));
-		below = mix(clear_h, haze_color, veil);
+		below = mix(clear_h, sky_haze_color, veil);
 		// Looking down, the map stands for the sea and the land: darker than
 		// the horizon, so the ambient light from below stays a dim bounce.
 		below *= mix(1.0, 0.3, smoothstep(0.0, 0.3, -dir.y));
@@ -571,6 +618,8 @@ vec4 sky_body(vec3 dir, vec3 sun_dir, bool cubemap, bool with_aurora, vec4 cl) {
 	float moon_up = smoothstep(-0.02, 0.06, moon_direction.y);
 	float mu_moon = dot(dir, moon_direction);
 	sky_rgb += vec3(0.006, 0.009, 0.016) * moon_illumination * moon_up * (0.35 + phase_hg(mu_moon, 0.75) * 0.6);
+	sky_rgb = grade_sky(sky_rgb, dir, sun_dir);
+	cl.rgb = grade_to(cl.rgb, grade_deck, grade_deck_amount);
 	vec3 color = sky_rgb;
 	// Background only: in the radiance map the aurora would tint the
 	// aerial-perspective fog over the whole fjord green.

@@ -1,4 +1,4 @@
-[gd_scene load_steps=36 format=3 uid="uid://fjord_environment_001"]
+[gd_scene load_steps=39 format=3 uid="uid://fjord_environment_001"]
 
 [ext_resource type="Script" path="res://scripts/environment/FjordEnvironment.gd" id="1_env"]
 [ext_resource type="Script" path="res://scripts/environment/FjordTerrain.gd" id="2_terrain"]
@@ -21,6 +21,9 @@
 [ext_resource type="Script" path="res://scripts/environment/PlanarReflection.gd" id="20_planar"]
 [ext_resource type="Script" path="res://scripts/environment/VesselWakes.gd" id="21_wakes"]
 [ext_resource type="Script" path="res://scripts/environment/PenSpray.gd" id="22_spray"]
+[ext_resource type="Shader" path="res://shaders/rain_streak.gdshader" id="23_rain_streak"]
+[ext_resource type="Script" path="res://scripts/environment/CloudShadows.gd" id="24_cloud_shadows"]
+[ext_resource type="Script" path="res://scripts/environment/PenLamps.gd" id="25_pen_lamps"]
 
 [sub_resource type="ShaderMaterial" id="water_mat"]
 shader = ExtResource("6_water_shader")
@@ -125,6 +128,7 @@ shader_parameter/edge_vignette = 0.35
 shader_parameter/caustics_texture = ExtResource("14_caustics_tex")
 
 [sub_resource type="ParticleProcessMaterial" id="rain_process"]
+particle_flag_align_y = true
 particle_flag_disable_z = false
 emission_shape = 3
 emission_box_extents = Vector3(60, 4, 60)
@@ -136,18 +140,17 @@ gravity = Vector3(0, -12, 0)
 scale_min = 0.6
 scale_max = 1.0
 
-[sub_resource type="StandardMaterial3D" id="rain_draw_mat"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0.72, 0.78, 0.86, 0.22)
-billboard_mode = 2
-distance_fade_mode = 1
-distance_fade_min_distance = 2.5
-distance_fade_max_distance = 16.0
+[sub_resource type="ShaderMaterial" id="rain_draw_mat"]
+render_priority = 0
+shader = ExtResource("23_rain_streak")
+shader_parameter/streak_color = Color(0.72, 0.78, 0.86, 0.22)
+shader_parameter/streak_size = Vector2(0.012, 0.55)
+shader_parameter/fade_near_m = 2.5
+shader_parameter/fade_far_m = 16.0
 
 [sub_resource type="QuadMesh" id="rain_mesh"]
 material = SubResource("rain_draw_mat")
-size = Vector2(0.012, 0.55)
+size = Vector2(1, 1)
 
 [sub_resource type="ParticleProcessMaterial" id="snow_process"]
 emission_shape = 3
@@ -266,7 +269,7 @@ script = ExtResource("5_weather")
 rain_particles = NodePath("RainParticles")
 snow_particles = NodePath("SnowParticles")
 
-[node name="EnvironmentDirector" type="Node" parent="." node_paths=PackedStringArray("world_environment", "sun_light", "moon_light", "time_system", "weather_system", "camera", "water_grid", "terrain", "reflection_probe", "planar_reflection")]
+[node name="EnvironmentDirector" type="Node" parent="." node_paths=PackedStringArray("world_environment", "sun_light", "moon_light", "time_system", "weather_system", "camera", "water_grid", "terrain", "reflection_probe", "planar_reflection", "cloud_shadows", "pen_lamps")]
 script = ExtResource("18_director")
 world_environment = NodePath("../WorldEnvironment")
 sun_light = NodePath("../Sun")
@@ -278,6 +281,8 @@ water_grid = NodePath("../WaterGrid")
 terrain = NodePath("../Terrain")
 reflection_probe = NodePath("../ReflectionProbe")
 planar_reflection = NodePath("../PlanarReflection")
+cloud_shadows = NodePath("../CloudShadows")
+pen_lamps = NodePath("../PenLamps")
 
 [node name="PlanarReflection" type="Node" parent="." node_paths=PackedStringArray("camera", "water_grid")]
 script = ExtResource("20_planar")
@@ -291,6 +296,15 @@ director = NodePath("../EnvironmentDirector")
 [node name="PenSpray" type="Node3D" parent="." node_paths=PackedStringArray("director")]
 script = ExtResource("22_spray")
 director = NodePath("../EnvironmentDirector")
+
+[node name="CloudShadows" type="Decal" parent="."]
+visible = false
+size = Vector3(12000, 16000, 12000)
+cull_mask = 1
+script = ExtResource("24_cloud_shadows")
+
+[node name="PenLamps" type="Node3D" parent="."]
+script = ExtResource("25_pen_lamps")
 
 [node name="RainParticles" type="GPUParticles3D" parent="WeatherSystem"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 50, 0)

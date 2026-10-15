@@ -265,6 +265,75 @@ namespace LakskongenSim.Tests.Environment
             Assert.Equal(1.0e-4, AtmosphereModel.ExtinctionPerKm(40.0) / 1000.0, 5);
             Assert.Equal(1.3e-2, AtmosphereModel.ExtinctionPerKm(0.3) / 1000.0, 3);
         }
+
+        // ── G3-05: frost smoke (sea smoke) over the open water ─────────────────
+        private const double Bodo = 67.28;
+        private const double Bergen = 60.39;
+        private const double NordlandWinterSeaC = 5.0;
+        private const double VestlandWinterSeaC = 6.5;
+
+        [Fact]
+        public void FrostSmoke_RisesFromTheWaterOnTheColdestCalmClearWinterDays()
+        {
+            int smokyDays = 0, denseDays = 0, calmClearDays = 0;
+            for (int day = 0; day < 365 * 4; day++)
+            {
+                int doy = SolarGeometry.DayOfYear(day);
+                if (doy > 45 && doy < 340)
+                    continue;
+                var a = AtmosphereModel.Derive(WeatherState.Calm, 1.0, NordlandWinterSeaC, day, Bodo);
+                if (a.SeaFog01 > 0.0 || a.CloudCover01 > 0.35)
+                    continue;
+                calmClearDays++;
+                Assert.InRange(a.FrostSmoke01, 0.0, 1.0);
+                if (a.FrostSmoke01 > 0.1) smokyDays++;
+                if (a.FrostSmoke01 > 0.6) denseDays++;
+            }
+            // A cold-air outbreak deep enough to steam the water comes on a
+            // share of the calm, clear midwinter days, a dense layer on fewer.
+            Assert.True(calmClearDays > 100, $"{calmClearDays} calm clear midwinter days");
+            double share = smokyDays / (double)calmClearDays;
+            Assert.InRange(share, 0.25, 0.75);
+            Assert.True(denseDays > 0 && denseDays < smokyDays, $"dense {denseDays} of {smokyDays}");
+        }
+
+        [Fact]
+        public void FrostSmoke_NeedsTheColdSeasonCalmAndDryWeather()
+        {
+            for (int day = 0; day < 365 * 2; day++)
+            {
+                int doy = SolarGeometry.DayOfYear(day);
+                // Summer air is warmer than the sea: nothing steams.
+                if (doy > 120 && doy < 260)
+                    Assert.Equal(0.0, AtmosphereModel.Derive(WeatherState.Calm, 1.0, 11.0, day, Bodo).FrostSmoke01);
+                // A breeze sweeps it away; rain, snow, storms and sea fog are other weather.
+                Assert.Equal(0.0, AtmosphereModel.Derive(WeatherState.Moderate, 8.0, NordlandWinterSeaC, day, Bodo).FrostSmoke01);
+                Assert.Equal(0.0, AtmosphereModel.Derive(WeatherState.Storm, 15.0, NordlandWinterSeaC, day, Bodo).FrostSmoke01);
+                Assert.Equal(0.0, AtmosphereModel.Derive(WeatherState.Severe, 25.0, NordlandWinterSeaC, day, Bodo).FrostSmoke01);
+            }
+            // The outbreak needs radiative cooling: an overcast night stays mild.
+            Assert.Equal(0.0, AtmosphereModel.FrostSmoke(WeatherState.Calm, 1.0, NordlandWinterSeaC, 0.6, 0.9, 0.0, 0.0, 17, 18, Bodo));
+            // The contrast decides: a deep outbreak steams, a shallow one does not.
+            double deep = AtmosphereModel.FrostSmoke(WeatherState.Calm, 1.0, NordlandWinterSeaC, -12.0, 0.1, 0.0, 0.0, 17, 18, Bodo);
+            double shallow = AtmosphereModel.FrostSmoke(WeatherState.Calm, 1.0, NordlandWinterSeaC, 4.0, 1.0, 0.0, 0.0, 17, 18, Bodo);
+            Assert.True(deep > 0.5 && shallow == 0.0, $"deep {deep:F2} shallow {shallow:F2}");
+            Assert.True(AtmosphereModel.FrostSmoke(WeatherState.Calm, 4.0, NordlandWinterSeaC, -12.0, 0.1, 0.0, 0.0, 17, 18, Bodo) < deep);
+        }
+
+        [Fact]
+        public void FrostSmoke_IsCommonerInTheNorthThanOnTheWestCoast()
+        {
+            double north = 0.0, west = 0.0;
+            for (int day = 0; day < 365 * 6; day++)
+            {
+                int doy = SolarGeometry.DayOfYear(day);
+                if (doy > 60 && doy < 330)
+                    continue;
+                north += AtmosphereModel.Derive(WeatherState.Calm, 1.0, NordlandWinterSeaC, day, Bodo).FrostSmoke01;
+                west += AtmosphereModel.Derive(WeatherState.Calm, 1.0, VestlandWinterSeaC, day, Bergen).FrostSmoke01;
+            }
+            Assert.True(north > west * 1.5 && west >= 0.0, $"north {north:F1} west {west:F1}");
+        }
     }
 
     /// <summary>
