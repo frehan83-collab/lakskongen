@@ -189,161 +189,207 @@ namespace LakskongenSim.Farm.Land
             if (settings == null) throw new ArgumentNullException(nameof(settings));
             if (calibration == null) throw new ArgumentNullException(nameof(calibration));
             if (law == null) throw new ArgumentNullException(nameof(law));
-
-            var template = calibration.For(settings.Template);
-            var lot = LandSiteTemplates.BuildLot("projection", 1, settings.Template, calibration);
-            lot.HeatRecovery = settings.HeatRecovery;
-            lot.BiofilterMaturity = 1.0;
-            foreach (var tank in lot.Tanks)
-                tank.TemperatureC = settings.Strategy.SetpointC;
-
-            var plan = settings.Plan ?? LandStockingPlan.For(template, calibration.Production) with
-            {
-                TemperatureC = settings.Strategy.SetpointC,
-            };
-            var forecast = LandStockingPlanner.Project(law, plan);
-            double peak = settings.PlanPeakDensityKgM3 ?? template.PlanPeakDensityKgM3;
-            int n = lot.Tanks.Count;
-            var counts = new double[n];
-            var weights = new double[n];
-            var cvs = new double[n];
-            var fallow = new int[n];
-            var firstStock = new int[n];
-            var planned = new int[n];
-            int firstDay = settings.StartDay - Math.Max(0, settings.WarmupDays);
-            int rotation = forecast.CycleDays + calibration.Production.FallowDays;
-            for (int k = 0; k < n; k++)
-            {
-                planned[k] = forecast.MaxSmolts(lot.Tanks[k].VolumeM3, peak);
-                firstStock[k] = firstDay + (int)Math.Round((double)k * rotation / n);
-                fallow[k] = -1; // never stocked yet
-            }
-
-            var area = ProductionAreas.HasClimatology(settings.ProductionArea)
-                ? settings.ProductionArea
-                : ProductionAreas.NationalReference;
-            Func<int, double> shallow = settings.ShallowWaterC ?? (day => ProductionAreas.ClimatologyC(area, day));
-            var production = calibration.Production;
-            var loads = new TankLoad[n];
-            var daily = settings.RecordDays ? new List<LandProjectionDay>(Math.Max(0, settings.Days)) : null;
-
-            LandEnergyDay energy = default;
-            double lox = 0.0, feedSum = 0.0, harvested = 0.0, stocked = 0.0, biomassDays = 0.0;
-            double standingStart = 0.0, co2Weighted = 0.0, maxCo2 = 0.0, appetiteWeighted = 0.0, appetiteBiomass = 0.0;
-            double tankCSum = 0.0;
-            int pumpLimited = 0, heatBound = 0;
-            double maxTankDensity = 0.0;
+            var run = new LotRun(settings, calibration, law);
             int endDay = settings.StartDay + Math.Max(0, settings.Days);
+            for (int day = run.FirstDay; day < endDay; day++)
+                run.Step(day);
+            return run.Result();
+        }
 
-            for (int day = firstDay; day < endDay; day++)
+        /// <summary>One projection's lot, its tanks' fish and the window's running totals.</summary>
+        private sealed class LotRun
+        {
+            private readonly LandProjectionSettings _settings;
+            private readonly LandCalibration _calibration;
+            private readonly TgcGrowthLaw _law;
+            private readonly LandLot _lot;
+            private readonly LandStockingPlan _plan;
+            private readonly LandStockingForecast _forecast;
+            private readonly Func<int, double> _shallow;
+            private readonly double[] _counts, _weights, _cvs;
+            private readonly int[] _fallow, _firstStock, _planned;
+            private readonly TankLoad[] _loads;
+            private readonly List<LandProjectionDay>? _daily;
+
+            /// <summary>A tank that holds fish: no fallow countdown runs.</summary>
+            private const int Stocked = int.MaxValue;
+            /// <summary>A tank not yet stocked for the first time.</summary>
+            private const int NeverStocked = -1;
+
+            private LandEnergyDay _energy;
+            private double _lox, _feed, _harvested, _stocked, _biomassDays, _standingStart;
+            private double _co2Weighted, _maxCo2, _appetiteWeighted, _appetiteBiomass, _tankCSum, _maxTankDensity;
+            private int _pumpLimited, _heatBound;
+
+            public int FirstDay { get; }
+
+            public LotRun(LandProjectionSettings settings, LandCalibration calibration, TgcGrowthLaw law)
             {
-                bool measuring = day >= settings.StartDay;
-                if (day == settings.StartDay)
-                    standingStart = Standing(counts, weights);
+                _settings = settings;
+                _calibration = calibration;
+                _law = law;
+                var template = calibration.For(settings.Template);
+                _lot = LandSiteTemplates.BuildLot("projection", 1, settings.Template, calibration);
+                _lot.HeatRecovery = settings.HeatRecovery;
+                _lot.BiofilterMaturity = 1.0;
+                foreach (var tank in _lot.Tanks)
+                    tank.TemperatureC = settings.Strategy.SetpointC;
 
-                // Stock the tanks whose turn it is.
+                _plan = settings.Plan ?? LandStockingPlan.For(template, calibration.Production) with
+                {
+                    TemperatureC = settings.Strategy.SetpointC,
+                };
+                _forecast = LandStockingPlanner.Project(law, _plan);
+                double peak = settings.PlanPeakDensityKgM3 ?? template.PlanPeakDensityKgM3;
+                int n = _lot.Tanks.Count;
+                _counts = new double[n];
+                _weights = new double[n];
+                _cvs = new double[n];
+                _fallow = new int[n];
+                _firstStock = new int[n];
+                _planned = new int[n];
+                _loads = new TankLoad[n];
+                FirstDay = settings.StartDay - Math.Max(0, settings.WarmupDays);
+                int rotation = _forecast.CycleDays + calibration.Production.FallowDays;
                 for (int k = 0; k < n; k++)
                 {
-                    bool due = fallow[k] == 0 || (fallow[k] < 0 && day >= firstStock[k]);
-                    if (!due || counts[k] > 0.0) continue;
-                    counts[k] = planned[k];
-                    weights[k] = plan.ReleaseWeightKg;
-                    cvs[k] = law.Calibration.SmoltWeightCv;
-                    fallow[k] = int.MaxValue;
-                    if (measuring) stocked += counts[k] * weights[k];
+                    _planned[k] = _forecast.MaxSmolts(_lot.Tanks[k].VolumeM3, peak);
+                    _firstStock[k] = FirstDay + (int)Math.Round((double)k * rotation / n);
+                    _fallow[k] = NeverStocked;
                 }
 
-                // Biology: grow and feed on yesterday's tank water.
-                double biomassToday = 0.0, appetiteToday = 0.0;
-                for (int k = 0; k < n; k++)
+                int area = ProductionAreas.HasClimatology(settings.ProductionArea)
+                    ? settings.ProductionArea
+                    : ProductionAreas.NationalReference;
+                _shallow = settings.ShallowWaterC ?? (day => ProductionAreas.ClimatologyC(area, day));
+                _daily = settings.RecordDays ? new List<LandProjectionDay>(Math.Max(0, settings.Days)) : null;
+            }
+
+            /// <summary>One day: stock the tanks whose turn it is, grow and feed, then the land tick.</summary>
+            public void Step(int day)
+            {
+                bool measuring = day >= _settings.StartDay;
+                if (day == _settings.StartDay)
+                    _standingStart = Standing();
+                StockDueTanks(day, measuring);
+                var (biomass, appetite) = GrowAndFeed(measuring);
+                var strategy = measuring ? _settings.Strategy : _settings.WarmupStrategy ?? _settings.Strategy;
+                var result = LandLotDaySolver.Solve(new LandLotDayInput(_lot, strategy, _settings.Site, _shallow(day),
+                    _loads, OnSiteO2Generator: _settings.OnSiteO2Generator), _calibration);
+                LandLotDaySolver.Apply(_lot, result);
+                if (measuring)
+                    Record(day, result, biomass, appetite);
+            }
+
+            private void StockDueTanks(int day, bool measuring)
+            {
+                for (int k = 0; k < _counts.Length; k++)
                 {
-                    if (!(counts[k] > 0.0))
+                    bool due = _fallow[k] == 0 || (_fallow[k] == NeverStocked && day >= _firstStock[k]);
+                    if (!due || _counts[k] > 0.0) continue;
+                    _counts[k] = _planned[k];
+                    _weights[k] = _plan.ReleaseWeightKg;
+                    _cvs[k] = _law.Calibration.SmoltWeightCv;
+                    _fallow[k] = Stocked;
+                    if (measuring) _stocked += _counts[k] * _weights[k];
+                }
+            }
+
+            /// <summary>
+            /// The biology on yesterday's tank water: every stocked tank grows and
+            /// eats on the growth law, loses the plan's daily share, and is
+            /// harvested (after the day's feeding) once its fish reach the
+            /// harvest weight. Returns the day's biomass and appetite-weighted biomass.
+            /// </summary>
+            private (double Biomass, double AppetiteBiomass) GrowAndFeed(bool measuring)
+            {
+                double biomassToday = 0.0, appetiteToday = 0.0;
+                for (int k = 0; k < _counts.Length; k++)
+                {
+                    if (!(_counts[k] > 0.0))
                     {
-                        loads[k] = default;
-                        if (fallow[k] > 0 && fallow[k] != int.MaxValue) fallow[k]--;
+                        _loads[k] = default;
+                        if (_fallow[k] > 0 && _fallow[k] != Stocked) _fallow[k]--;
                         continue;
                     }
-                    var tank = lot.Tanks[k];
-                    double density = counts[k] * weights[k] / tank.VolumeM3;
+                    var tank = _lot.Tanks[k];
+                    double density = _counts[k] * _weights[k] / tank.VolumeM3;
                     double doSaturation = WaterQuality.CalculateDOSaturation(tank.DoMgL, tank.TemperatureC);
                     var conditions = new GrowthConditions(tank.TemperatureC,
                         AppetiteModifier: tank.AppetiteFactor * WaterQuality.CalculateDOSaturationModifier(doSaturation),
-                        GrowthMultiplier: plan.GrowthMultiplier,
-                        EnvironmentMultiplier: LandWaterModel.DensityGrowthMultiplier(density, calibration.Density),
+                        GrowthMultiplier: _plan.GrowthMultiplier,
+                        EnvironmentMultiplier: LandWaterModel.DensityGrowthMultiplier(density, _calibration.Density),
                         DayLengthHours: TgcGrowthLaw.ContinuousLightHours);
-                    double fcr = production.BiologicalFcrAt2Kg * law.FcrSizeFactor(weights[k]);
-                    var grown = law.GrowOneDay(weights[k], cvs[k], LifeStage.Seawater, conditions, fcr);
-                    double feed = counts[k] * grown.EatenFeedKg;
-                    weights[k] = grown.WeightKg;
-                    cvs[k] = grown.WeightCv;
-                    counts[k] *= forecast.DailySurvival;
-                    double biomass = counts[k] * weights[k];
-                    loads[k] = new TankLoad(biomass, feed);
-                    if (measuring) maxTankDensity = Math.Max(maxTankDensity, biomass / tank.VolumeM3);
+                    double fcr = _calibration.Production.BiologicalFcrAt2Kg * _law.FcrSizeFactor(_weights[k]);
+                    var grown = _law.GrowOneDay(_weights[k], _cvs[k], LifeStage.Seawater, conditions, fcr);
+                    double feed = _counts[k] * grown.EatenFeedKg;
+                    _weights[k] = grown.WeightKg;
+                    _cvs[k] = grown.WeightCv;
+                    _counts[k] *= _forecast.DailySurvival;
+                    double biomass = _counts[k] * _weights[k];
+                    _loads[k] = new TankLoad(biomass, feed);
+                    if (measuring) _maxTankDensity = Math.Max(_maxTankDensity, biomass / tank.VolumeM3);
                     biomassToday += biomass;
                     appetiteToday += biomass * tank.AppetiteFactor;
-                    if (weights[k] >= plan.HarvestWeightKg)
-                    {
-                        if (measuring) harvested += biomass;
-                        counts[k] = 0.0;
-                        fallow[k] = production.FallowDays; // the tank held and fed the fish today
-                    }
+                    if (_weights[k] < _plan.HarvestWeightKg) continue;
+                    if (measuring) _harvested += biomass;
+                    _counts[k] = 0.0;
+                    _fallow[k] = _calibration.Production.FallowDays; // the tank held and fed the fish today
                 }
+                return (biomassToday, appetiteToday);
+            }
 
-                // The land tick on the day's feed.
-                var strategy = measuring ? settings.Strategy : settings.WarmupStrategy ?? settings.Strategy;
-                var result = LandLotDaySolver.Solve(new LandLotDayInput(lot, strategy, settings.Site,
-                    shallow(day), loads, OnSiteO2Generator: settings.OnSiteO2Generator), calibration);
-                LandLotDaySolver.Apply(lot, result);
-
-                if (!measuring) continue;
-                energy += result.Energy;
-                lox += result.LoxPurchasedKg;
-                feedSum += result.FeedKg;
-                biomassDays += Standing(counts, weights);
-                co2Weighted += result.MeanCo2MgL * result.FeedKg;
-                maxCo2 = Math.Max(maxCo2, result.MaxCo2MgL);
-                appetiteWeighted += appetiteToday;
-                appetiteBiomass += biomassToday;
-                tankCSum += result.Heat.TankC;
-                if (result.Flows.PumpLimited) pumpLimited++;
-                if (result.Heat.CapacityBound) heatBound++;
-                daily?.Add(new LandProjectionDay(day, shallow(day), result.IntakeC, result.Heat.TankC, result.DeepShare,
+            private void Record(int day, LandLotDayResult result, double biomassToday, double appetiteToday)
+            {
+                _energy += result.Energy;
+                _lox += result.LoxPurchasedKg;
+                _feed += result.FeedKg;
+                _biomassDays += Standing();
+                _co2Weighted += result.MeanCo2MgL * result.FeedKg;
+                _maxCo2 = Math.Max(_maxCo2, result.MaxCo2MgL);
+                _appetiteWeighted += appetiteToday;
+                _appetiteBiomass += biomassToday;
+                _tankCSum += result.Heat.TankC;
+                if (result.Flows.PumpLimited) _pumpLimited++;
+                if (result.Heat.CapacityBound) _heatBound++;
+                _daily?.Add(new LandProjectionDay(day, _shallow(day), result.IntakeC, result.Heat.TankC, result.DeepShare,
                     result.Flows.PumpLimited, result.Heat.CapacityBound, result.Energy, result.LoxPurchasedKg, result.FeedKg,
                     biomassToday, result.MeanCo2MgL, result.MaxCo2MgL,
                     biomassToday > 0.0 ? appetiteToday / biomassToday : 1.0));
             }
 
-            int days = Math.Max(0, settings.Days);
-            double biomassTotal = biomassDays;
-            return new LandProjectionResult
+            public LandProjectionResult Result()
             {
-                Days = days,
-                Energy = energy,
-                LoxKg = lox,
-                FeedKg = feedSum,
-                HarvestedKg = harvested,
-                StockedKg = stocked,
-                StandingStartKg = standingStart,
-                StandingEndKg = Standing(counts, weights),
-                BiomassDaysKg = biomassTotal,
-                LotVolumeM3 = lot.VolumeM3,
-                MeanCo2MgL = feedSum > 0.0 ? co2Weighted / feedSum : 0.0,
-                MaxCo2MgL = maxCo2,
-                MaxTankDensityKgM3 = maxTankDensity,
-                MeanAppetite = appetiteBiomass > 0.0 ? appetiteWeighted / appetiteBiomass : 1.0,
-                PumpLimitedDays = pumpLimited,
-                HeatBoundDays = heatBound,
-                MeanTankC = days > 0 ? tankCSum / days : settings.Strategy.SetpointC,
-                Daily = daily ?? (IReadOnlyList<LandProjectionDay>)Array.Empty<LandProjectionDay>(),
-            };
-        }
+                int days = Math.Max(0, _settings.Days);
+                return new LandProjectionResult
+                {
+                    Days = days,
+                    Energy = _energy,
+                    LoxKg = _lox,
+                    FeedKg = _feed,
+                    HarvestedKg = _harvested,
+                    StockedKg = _stocked,
+                    StandingStartKg = _standingStart,
+                    StandingEndKg = Standing(),
+                    BiomassDaysKg = _biomassDays,
+                    LotVolumeM3 = _lot.VolumeM3,
+                    MeanCo2MgL = _feed > 0.0 ? _co2Weighted / _feed : 0.0,
+                    MaxCo2MgL = _maxCo2,
+                    MaxTankDensityKgM3 = _maxTankDensity,
+                    MeanAppetite = _appetiteBiomass > 0.0 ? _appetiteWeighted / _appetiteBiomass : 1.0,
+                    PumpLimitedDays = _pumpLimited,
+                    HeatBoundDays = _heatBound,
+                    MeanTankC = days > 0 ? _tankCSum / days : _settings.Strategy.SetpointC,
+                    Daily = _daily ?? (IReadOnlyList<LandProjectionDay>)Array.Empty<LandProjectionDay>(),
+                };
+            }
 
-        private static double Standing(double[] counts, double[] weights)
-        {
-            double kg = 0.0;
-            for (int k = 0; k < counts.Length; k++) kg += counts[k] * weights[k];
-            return kg;
+            private double Standing()
+            {
+                double kg = 0.0;
+                for (int k = 0; k < _counts.Length; k++) kg += _counts[k] * _weights[k];
+                return kg;
+            }
         }
     }
 }

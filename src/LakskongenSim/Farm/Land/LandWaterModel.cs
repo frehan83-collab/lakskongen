@@ -209,84 +209,83 @@ namespace LakskongenSim.Farm.Land
         {
             if (template == null) throw new ArgumentNullException(nameof(template));
             if (calibration == null) throw new ArgumentNullException(nameof(calibration));
-            var ox = calibration.Oxygen;
             double feed = Math.Max(0.0, load.FeedKg);
-            double qNew = Math.Max(0.0, flows.NewM3);
-            double qRec = Math.Max(0.0, flows.ReusedM3);
-            double qStrip = Math.Clamp(flows.StrippedM3, 0.0, qRec);
+            var q = new TankFlows(Math.Max(0.0, flows.NewM3), Math.Max(0.0, flows.ReusedM3),
+                Math.Clamp(flows.StrippedM3, 0.0, Math.Max(0.0, flows.ReusedM3)));
             double eta = Math.Clamp(template.StripEfficiency, 0.0, 1.0);
 
-            // Ammonia: E = C·Q_new + removal; removal = min(capacity, ε·C·Q_rec).
-            double excretedG = calibration.Tan.KgTanPerKgFeed * feed * GramsPerKg;
-            double capacityG = Math.Max(0.0, biofilterKgTanPerDay) * GramsPerKg;
-            double passEff = Math.Clamp(calibration.Tan.PassRemovalEfficiency, 0.0, 1.0);
-            double tan, removedG;
-            double sink = qNew + (capacityG > 0.0 ? passEff * qRec : 0.0);
-            if (excretedG <= 0.0)
-            {
-                tan = 0.0;
-                removedG = 0.0;
-            }
-            else if (sink <= 0.0)
-            {
-                tan = double.PositiveInfinity;
-                removedG = 0.0;
-            }
-            else
-            {
-                tan = excretedG / sink;
-                removedG = capacityG > 0.0 ? passEff * tan * qRec : 0.0;
-                if (removedG > capacityG)
-                {
-                    removedG = capacityG;
-                    tan = qNew > 0.0 ? (excretedG - capacityG) / qNew : double.PositiveInfinity;
-                }
-            }
-
-            // Oxygen.
-            double fishO2G = ox.KgO2PerKgFeed * feed * GramsPerKg;
+            var (tan, removedG) = Ammonia(calibration.Tan.KgTanPerKgFeed * feed * GramsPerKg,
+                Math.Max(0.0, biofilterKgTanPerDay) * GramsPerKg, calibration.Tan, q);
+            double fishO2G = calibration.Oxygen.KgO2PerKgFeed * feed * GramsPerKg;
             double nitrO2G = calibration.Oxygen.NitrificationGO2PerGTan * removedG;
-            double strippedShare = flows.StrippedShare;
-            double doSatTank = WaterQuality.CalculateOxygenSaturation(tankC, salinityPsu);
-            double doIn = WaterQuality.CalculateOxygenSaturation(intakeC, salinityPsu);
-            double doOut = ox.TankOutletDoMgL;
-            double unrestored = nitrO2G * (1.0 - eta * strippedShare);
-            double needG = fishO2G + unrestored - qNew * (doIn - doOut) - eta * qStrip * (doSatTank - doOut);
-            needG = Math.Max(0.0, needG);
-            double share = Math.Clamp(double.IsFinite(oxygenSupplyShare) ? oxygenSupplyShare : 1.0, 0.0, 1.0);
-            double injectedG = needG * share;
-            double doTank = doOut;
-            if (share < 1.0 && needG > 0.0)
-            {
-                double denominator = qNew + eta * qStrip;
-                doTank = denominator > 0.0
-                    ? (qNew * doIn + eta * qStrip * doSatTank + injectedG - fishO2G - unrestored) / denominator
-                    : 0.0;
-                doTank = Math.Clamp(doTank, 0.0, doOut);
-            }
-
-            // CO2.
-            double co2G = calibration.Co2.Co2PerO2 * fishO2G;
-            double co2Sink = qNew + eta * qStrip;
-            double co2 = co2Sink > 0.0
-                ? (calibration.Intake.Co2MgL * qNew + co2G) / co2Sink
-                : (co2G > 0.0 ? double.PositiveInfinity : calibration.Intake.Co2MgL);
-
-            // Nitrate: relaxes toward the dilution steady state.
-            double no3 = previousNo3NMgL;
-            if (qNew > 0.0 && volumeM3 > 0.0)
-            {
-                double steady = calibration.Intake.No3NMgL + removedG / qNew;
-                no3 = steady + (previousNo3NMgL - steady) * Math.Exp(-qNew / volumeM3);
-            }
-            else
-            {
-                no3 = volumeM3 > 0.0 ? previousNo3NMgL + removedG / volumeM3 : previousNo3NMgL;
-            }
-
+            var (doTank, needG, injectedG) = Oxygen(fishO2G, nitrO2G, q, eta, tankC, intakeC, salinityPsu,
+                calibration.Oxygen, oxygenSupplyShare);
+            double co2 = Co2(calibration.Co2.Co2PerO2 * fishO2G, q, eta, calibration.Intake.Co2MgL);
+            double no3 = Nitrate(previousNo3NMgL, removedG, q.NewM3, volumeM3, calibration.Intake.No3NMgL);
             double appetite = Co2AppetiteFactor(co2, calibration.Co2) * TanAppetiteFactor(tan, calibration.Tan);
             return new TankWater(doTank, co2, tan, no3, appetite, fishO2G / GramsPerKg, nitrO2G / GramsPerKg,
                 removedG / GramsPerKg, needG / GramsPerKg, injectedG / GramsPerKg);
+        }
+
+        /// <summary>
+        /// Ammonia (g/day, mg/L): excretion E leaves with the new water and
+        /// through the biofilter, E = C·Q_new + min(capacity, ε·C·Q_rec).
+        /// </summary>
+        private static (double TanMgL, double RemovedG) Ammonia(double excretedG, double capacityG, LandTanCalibration tan,
+            in TankFlows q)
+        {
+            if (excretedG <= 0.0) return (0.0, 0.0);
+            double passEff = Math.Clamp(tan.PassRemovalEfficiency, 0.0, 1.0);
+            double sink = q.NewM3 + (capacityG > 0.0 ? passEff * q.ReusedM3 : 0.0);
+            if (sink <= 0.0) return (double.PositiveInfinity, 0.0);
+            double c = excretedG / sink;
+            double removed = capacityG > 0.0 ? passEff * c * q.ReusedM3 : 0.0;
+            if (removed <= capacityG) return (c, removed);
+            return (q.NewM3 > 0.0 ? (excretedG - capacityG) / q.NewM3 : double.PositiveInfinity, capacityG);
+        }
+
+        /// <summary>
+        /// Oxygen (g/day, mg/L): the fish and the unrestored nitrification draw
+        /// on what the new water brings down to the outlet DO, what the strippers
+        /// give the reused water back toward air saturation, and the injection.
+        /// The injection dissolves the need at a full supply; short of it, the
+        /// outlet falls to the DO at which the balance closes.
+        /// </summary>
+        private static (double DoMgL, double NeedG, double InjectedG) Oxygen(double fishO2G, double nitrificationO2G,
+            in TankFlows q, double eta, double tankC, double intakeC, double salinityPsu, LandOxygenCalibration oxygen,
+            double supplyShare)
+        {
+            double doSatTank = WaterQuality.CalculateOxygenSaturation(tankC, salinityPsu);
+            double doIn = WaterQuality.CalculateOxygenSaturation(intakeC, salinityPsu);
+            double doOut = oxygen.TankOutletDoMgL;
+            double unrestored = nitrificationO2G * (1.0 - eta * q.StrippedShare);
+            double need = Math.Max(0.0,
+                fishO2G + unrestored - q.NewM3 * (doIn - doOut) - eta * q.StrippedM3 * (doSatTank - doOut));
+            double share = Math.Clamp(double.IsFinite(supplyShare) ? supplyShare : 1.0, 0.0, 1.0);
+            double injected = need * share;
+            if (share >= 1.0 || need <= 0.0) return (doOut, need, injected);
+            double denominator = q.NewM3 + eta * q.StrippedM3;
+            double doTank = denominator > 0.0
+                ? (q.NewM3 * doIn + eta * q.StrippedM3 * doSatTank + injected - fishO2G - unrestored) / denominator
+                : 0.0;
+            return (Math.Clamp(doTank, 0.0, doOut), need, injected);
+        }
+
+        /// <summary>CO2 (mg/L): C = (C_new·Q_new + P)/(Q_new + η·Q_stripped).</summary>
+        private static double Co2(double producedG, in TankFlows q, double eta, double intakeMgL)
+        {
+            double sink = q.NewM3 + eta * q.StrippedM3;
+            if (sink > 0.0) return (intakeMgL * q.NewM3 + producedG) / sink;
+            return producedG > 0.0 ? double.PositiveInfinity : intakeMgL;
+        }
+
+        /// <summary>Nitrate (mg N/L): relaxes toward the dilution steady state at the tank's new-water exchange.</summary>
+        private static double Nitrate(double previousMgL, double removedG, double newM3, double volumeM3, double intakeMgL)
+        {
+            if (!(volumeM3 > 0.0)) return previousMgL;
+            if (!(newM3 > 0.0)) return previousMgL + removedG / volumeM3;
+            double steady = intakeMgL + removedG / newM3;
+            return steady + (previousMgL - steady) * Math.Exp(-newM3 / volumeM3);
         }
 
         // ── Effects on the fish ─────────────────────────────────────────────

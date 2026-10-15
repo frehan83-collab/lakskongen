@@ -67,31 +67,20 @@ namespace LakskongenSim.Farm.Land
             if (input == null) throw new ArgumentNullException(nameof(input));
             if (calibration == null) throw new ArgumentNullException(nameof(calibration));
             var lot = input.Lot ?? throw new ArgumentException("The input names no lot", nameof(input));
-            var template = calibration.For(lot.Template);
-            var tanks = lot.Tanks;
-            if (input.Loads == null || input.Loads.Count != tanks.Count)
+            if (input.Loads == null || input.Loads.Count != lot.Tanks.Count)
                 throw new ArgumentException("One load per tank, in tank order", nameof(input));
-
-            double stockedVolume = 0.0, feed = 0.0, biomass = 0.0, fishO2 = 0.0;
-            for (int i = 0; i < tanks.Count; i++)
-            {
-                var load = input.Loads[i];
-                if (!load.Stocked) continue;
-                stockedVolume += tanks[i].VolumeM3;
-                feed += Math.Max(0.0, load.FeedKg);
-                biomass += load.BiomassKg;
-                fishO2 += calibration.Oxygen.KgO2PerKgFeed * Math.Max(0.0, load.FeedKg);
-            }
-
+            var template = calibration.For(lot.Template);
             var energyCal = calibration.Energy;
             var strategy = input.Strategy;
-            var flows = LandWaterModel.Flows(stockedVolume, template, strategy.Reuse, input.Site.PumpCapacityM3sPerLot,
-                calibration.Intake);
+            var totals = Totals(input, calibration.Oxygen);
+
+            var flows = LandWaterModel.Flows(totals.StockedVolumeM3, template, strategy.Reuse,
+                input.Site.PumpCapacityM3sPerLot, calibration.Intake);
             double loopPumping = LandEnergyModel.LoopPumpingKWh(flows.ReusedM3, energyCal);
             double treatment = LandEnergyModel.TreatmentKWh(flows.ReusedM3, template);
             double uv = LandEnergyModel.UvKWh(flows.NewM3, input.Site, energyCal);
             double internalGain = energyCal.PumpHeatToWaterShare * (loopPumping + uv)
-                + LandEnergyModel.MetabolicHeatKWh(fishO2, calibration.Oxygen);
+                + LandEnergyModel.MetabolicHeatKWh(totals.FishO2Kg, calibration.Oxygen);
 
             // Blending toward the setpoint aims the intake below it by the rise
             // the pumps and the fish give the water, so no chiller removes it.
@@ -104,55 +93,83 @@ namespace LakskongenSim.Farm.Land
             var heat = LandEnergyModel.HeatBalance(flows.NewM3, intakeC, strategy.SetpointC, internalGain,
                 lot.HeatPumpMWe, lot.HeatRecovery, energyCal);
 
-            // The biofilter: installed per lot (capacity on the lot's whole
-            // volume), shared by the stocked tanks by their reused water.
+            var tanks = SolveTanks(input, flows, totals.StockedVolumeM3, heat.TankC, intakeC, template, calibration);
+            double eff = Math.Clamp(calibration.Oxygen.InjectionEfficiency, 1e-3, 1.0);
+            double lox = tanks.InjectedKg / eff;
+            var (onSite, upstream) = LandEnergyModel.OxygenProductionKWh(lox, input.OnSiteO2Generator, calibration.Oxygen);
+            var energy = new LandEnergyDay(intakePumping, loopPumping, treatment, uv, heat.HeatingKWh, heat.CoolingKWh,
+                template.BaseKWhPerDay, onSite, upstream);
+            return new LandLotDayResult(flows, w, intakeC, heat, energy, tanks.Water, totals.FishO2Kg, tanks.NeedKg,
+                tanks.InjectedKg, lox, totals.FeedKg, totals.BiomassKg, totals.StockedVolumeM3)
+            {
+                MaxCo2MgL = tanks.MaxCo2MgL,
+                MeanCo2MgL = totals.FeedKg > 0.0 ? tanks.FeedWeightedCo2 / totals.FeedKg : 0.0,
+            };
+        }
+
+        private readonly record struct LotTotals(double StockedVolumeM3, double FeedKg, double BiomassKg, double FishO2Kg);
+
+        private readonly record struct TanksDay(IReadOnlyList<TankWater> Water, double NeedKg, double InjectedKg,
+            double MaxCo2MgL, double FeedWeightedCo2);
+
+        /// <summary>The stocked tanks' volume, feed, biomass and the fish's oxygen use.</summary>
+        private static LotTotals Totals(LandLotDayInput input, LandOxygenCalibration oxygen)
+        {
+            double volume = 0.0, feed = 0.0, biomass = 0.0;
+            for (int i = 0; i < input.Lot.Tanks.Count; i++)
+            {
+                var load = input.Loads[i];
+                if (!load.Stocked) continue;
+                volume += input.Lot.Tanks[i].VolumeM3;
+                feed += Math.Max(0.0, load.FeedKg);
+                biomass += load.BiomassKg;
+            }
+            return new LotTotals(volume, feed, biomass, oxygen.KgO2PerKgFeed * feed);
+        }
+
+        /// <summary>
+        /// Every stocked tank's water: first at a full oxygen supply to learn the
+        /// lot's need, then, when the liquid oxygen on hand dissolves less, again
+        /// with every tank at the same share of its need.
+        /// </summary>
+        private static TanksDay SolveTanks(LandLotDayInput input, in LandFlows flows, double stockedVolume, double tankC,
+            double intakeC, LandTemplateCalibration template, LandCalibration calibration)
+        {
+            var lot = input.Lot;
+            // The biofilter is installed per lot (capacity on the lot's whole
+            // volume) and shared by the stocked tanks by their reused water.
             double biofilterKg = template.BiofilterKgTanPerM3Day * lot.VolumeM3
                 * Math.Clamp(lot.BiofilterMaturity, 0.0, 1.0) * Math.Clamp(input.BiofilterHealth, 0.0, 1.0);
-
-            // First pass: each tank's oxygen need at a full supply.
-            var water = new TankWater[tanks.Count];
+            var water = new TankWater[lot.Tanks.Count];
             double need = 0.0;
-            for (int i = 0; i < tanks.Count; i++)
+            for (int i = 0; i < water.Length; i++)
             {
                 if (!input.Loads[i].Stocked) continue;
-                water[i] = SolveOne(i, input, flows, stockedVolume, heat.TankC, intakeC, template, biofilterKg,
-                    calibration, 1.0);
+                water[i] = SolveOne(i, input, flows, stockedVolume, tankC, intakeC, template, biofilterKg, calibration, 1.0);
                 need += water[i].OxygenNeedKg;
             }
 
-            // Liquid oxygen short: every tank gets the same share of its need.
             double eff = Math.Clamp(calibration.Oxygen.InjectionEfficiency, 1e-3, 1.0);
             double dissolvable = double.IsPositiveInfinity(input.OxygenAvailableKg)
                 ? double.PositiveInfinity
                 : Math.Max(0.0, input.OxygenAvailableKg) * eff;
             double share = need > 0.0 && dissolvable < need ? dissolvable / need : 1.0;
             double injected = 0.0, maxCo2 = 0.0, co2Weighted = 0.0;
-            var result = new List<TankWater>(tanks.Count);
-            for (int i = 0; i < tanks.Count; i++)
+            for (int i = 0; i < water.Length; i++)
             {
                 if (!input.Loads[i].Stocked)
                 {
-                    result.Add(Idle(tanks[i]));
+                    water[i] = Idle(lot.Tanks[i]);
                     continue;
                 }
                 if (share < 1.0)
-                    water[i] = SolveOne(i, input, flows, stockedVolume, heat.TankC, intakeC, template, biofilterKg,
-                        calibration, share);
+                    water[i] = SolveOne(i, input, flows, stockedVolume, tankC, intakeC, template, biofilterKg, calibration,
+                        share);
                 injected += water[i].OxygenInjectedKg;
                 maxCo2 = Math.Max(maxCo2, water[i].Co2MgL);
                 co2Weighted += water[i].Co2MgL * Math.Max(0.0, input.Loads[i].FeedKg);
-                result.Add(water[i]);
             }
-            double lox = injected / eff;
-            var (onSite, upstream) = LandEnergyModel.OxygenProductionKWh(lox, input.OnSiteO2Generator, calibration.Oxygen);
-            var energy = new LandEnergyDay(intakePumping, loopPumping, treatment, uv, heat.HeatingKWh, heat.CoolingKWh,
-                template.BaseKWhPerDay, onSite, upstream);
-            return new LandLotDayResult(flows, w, intakeC, heat, energy, result, fishO2, need, injected, lox, feed, biomass,
-                stockedVolume)
-            {
-                MaxCo2MgL = maxCo2,
-                MeanCo2MgL = feed > 0.0 ? co2Weighted / feed : 0.0,
-            };
+            return new TanksDay(Array.AsReadOnly(water), need, injected, maxCo2, co2Weighted);
         }
 
         /// <summary>Write the day's water into the lot's tanks (what the next day's biology reads).</summary>
