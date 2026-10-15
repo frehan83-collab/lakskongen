@@ -1339,6 +1339,38 @@ Year 1 reproduces S2-03's single-year measurement (seed 1: 469/624 vs
 seed; the ten-year test fails on seed 4 and is skipped with the band
 unchanged (RUN_LOG §8).
 
+**Closed (2026-10-15, `wave3/sim-core-1`).** The captain's ruling under the
+owner's autonomy mandate judges part 2 on the pooled climatology: over seeds
+1-20 x 10 weather years the median gap must lie in 60-120 days and at least
+90 % of the seeds' own ten-year medians in 60-120.
+`Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13_PooledOverTwentySeedsAndTenWeatherYears`
+replaces the skipped per-seed test (same harness, band unchanged) and passes,
+re-measured on the wave-2 base `8c81754` (3 s, the 40 engines in parallel):
+
+| Seed | Gaps, years 1-10 | Median |
+|---|---|---|
+| 6 | 137, 85, 66, 72, 85, 118, 66, 68, 51, 106 | 78.5 |
+| 7 | 107, 92, 81, 77, 70, 69, 67, 105, 115, 98 | 86.5 |
+| 8 | 95, 102, 93, 138, 123, 89, 93, 117, 246, 129 | 109.5 |
+| 9 | 122, 134, 167, 88, 74, 127, 105, 66, 42, 110 | 107.5 |
+| 10 | 64, 86, 144, 98, 62, 62, 79, 74, 85, 71 | 76.5 |
+| 11 | 74, 88, 153, 110, 115, 100, 105, 102, 113, 157 | 107.5 |
+| 12 | 97, 98, 93, 84, 59, 118, 95, 97, 147, 147 | 97 |
+| 13 | 109, 172, 114, 81, 63, 72, 93, 109, 117, 108 | 108.5 |
+| 14 | 153, 117, 79, 106, 75, 87, 97, 95, 123, 138 | 101.5 |
+| 15 | 111, 113, 96, 78, 87, 159, 90, 68, 60, 51 | 88.5 |
+| 16 | 74, 78, 70, 84, 124, 127, 95, 71, 59, 45 | 76 |
+| 17 | 91, 94, 135, 139, 186, 171, 131, 89, 39, 47 | 112.5 |
+| 18 | 101, 109, 74, 121, 77, 41, 103, 97, 102, 96 | 99 |
+| 19 | 92, 29, 64, 98, 79, 72, 79, 85, 80, 90 | 79.5 |
+| 20 | 88, 93, 109, 96, 126, 127, 102, 106, 85, 88 | 99 |
+
+Seeds 1-5 as in the table above. Pooled over 200 year-classes: median 96
+days (p10 66, p90 145), 143 of 200 in 60-120; 19 of 20 seed medians in 60-120
+(seed 4, 134, the one outside; the ruling allows two). Mutations: requiring
+every seed's median in the band fails (19 of 20); a PO1 release against PO13
+(summer stall) fails (pooled median 65, 12 of 20 seeds).
+
 ## 1k. S2-01b: real pens (2026-10-15, branch `wave2/sim-int-2`)
 
 `wave2/sim-int-1` plus real pens: calibration v1.0.10 (section `pens`), save
