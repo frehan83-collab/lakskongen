@@ -68,7 +68,6 @@ cleanup() {
     for wt in "${WORKTREES[@]:-}"; do
         [[ -n "$wt" ]] && git -C "$REPO_ROOT" worktree remove --force "$wt" >/dev/null 2>&1
     done
-    git -C "$REPO_ROOT" worktree prune >/dev/null 2>&1
     rm -rf "$WORK/worktrees"
 }
 trap cleanup EXIT
