@@ -15,6 +15,7 @@ const TAB_VERBS := {
 	"review_feeding": "ai_feeding",
 	"raise_capital": "finance",
 	"open_sustainability": "sustainability",
+	"bid_licence": "map",
 }
 const SITE_VERBS := ["delouse", "freshwater_bath", "inspect_nets"]
 
@@ -31,6 +32,12 @@ static func perform(event: Dictionary, scene: Node) -> bool:
 		if ui == null or not ui.has_method("show_tab"):
 			return false
 		ui.show_tab(TAB_VERBS[verb])
+		# U2-01: an "overbudt" event opens the zone's auction card on the map.
+		if verb == "bid_licence":
+			var map: Node = ui.find_child("Panel_map", true, false)
+			var zone := str(event.get("zone_id", ""))
+			if map != null and zone != "" and map.has_method("open_auction"):
+				map.open_auction(zone)
 		return true
 	var sim := scene.get_node_or_null("/root/SimBridge")
 	var site := target_site(event, sim)

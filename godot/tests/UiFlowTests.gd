@@ -142,6 +142,10 @@ func _run() -> void:
 	_test_farm_type_graybox()
 	_test_land_kit_imports()
 	_test_offshore_unit_and_fleet()
+	# U2-01: the expansion flow (map, build dialog, licence auction, inbox).
+	await _test_expansion_builds_the_tutorials_second_site()
+	await _test_auction_card_wins_a_green_zone_licence()
+	await _test_every_build_refusal_reads_as_text()
 
 	_clear_test_saves()
 	_finish()
@@ -5737,5 +5741,345 @@ func _test_sky_latitude_follows_a_northern_scenario() -> void:
 	_check(str(ctx.get("region", "")) == "Trøndelag" and absf(float(ctx.get("latitude", 0.0)) - 63.43) < 0.01,
 		"sky latitude: the sim's sky context is the scenario's region (%s %.2f)" % [str(ctx.get("region", "")), float(ctx.get("latitude", 0.0))])
 	_check(absf(ts.latitude_deg - 63.43) < 0.01, "environment: the sky's latitude is the scenario region's (Trøndelag 63.43, got %.2f)" % ts.latitude_deg)
+	scene.queue_free()
+	await get_tree().process_frame
+
+# ── U2-01: the expansion flow ──────────────────────────────────────────────────
+
+## A running GameScene over the current game, paused, with no card up.
+func _spawn_scene_over_current_game() -> Node:
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	await _drain_cards(scene.get_node("%CriticalEventCard"))
+	return scene
+
+## Cmd/Ctrl+2 (the map tab's shortcut), then the map panel once it is laid out.
+func _open_map_by_key(ui: Control) -> Control:
+	get_viewport().gui_release_focus()
+	await _press_command_key(KEY_2)
+	for i in 4:
+		await get_tree().process_frame
+	return ui.find_child("Panel_map", true, false)
+
+## The clock runs one sim day by real input: Space resumes, Space pauses.
+func _run_one_day_by_key() -> void:
+	get_viewport().gui_release_focus()
+	var day: int = _sim.current_day
+	await _press_key(KEY_SPACE, 32)
+	await _wait_until(func() -> bool: return int(_sim.current_day) > day, 8.0)
+	if not _sim.is_paused():
+		await _press_key(KEY_SPACE, 32)
+
+## The minimal player of ScenarioCampaignTests (delouse above 0.4 adult females,
+## harvest at 4.5 kg, start the cheapest research once a harvest paid) plays the
+## first season through the bridge's verbs until the tutorial waits at step 16
+## with 6.5 MNOK in the bank. Returns the day it got there (-1 when it did not).
+func _play_first_season_to_step_16(gb: Node) -> int:
+	var harvested := false
+	var research := false
+	var last_delouse := -100
+	for i in 1500:
+		if int(gb.TutorialStepNumber) == 16 and float(_sim.balance) > 6_500_000.0:
+			return int(_sim.current_day)
+		_sim.advance_days(1)
+		var site: Dictionary = _sim.get_all_pens()[0]
+		var site_id := str(site.get("id", ""))
+		if int(site.get("fish_count", 0)) > 0:
+			if float(site.get("lice_per_fish", 0.0)) > 0.4 and int(_sim.current_day) - last_delouse >= 10:
+				last_delouse = int(_sim.current_day)
+				_sim.delouse_pen(site_id, "hydrolicer")
+			if float(site.get("mean_weight_kg", 0.0)) >= 4.5:
+				harvested = _sim.harvest_pen(site_id) > 0.0 or harvested
+		if harvested and not research:
+			var cheapest: Dictionary = {}
+			for node in _sim.get_research_nodes():
+				if bool(node.get("can_research", false)) and (cheapest.is_empty() or float(node.get("cost_nok", 0.0)) < float(cheapest.get("cost_nok", 0.0))):
+					cheapest = node
+			if not cheapest.is_empty() and float(_sim.balance) > float(cheapest.get("cost_nok", 0.0)) + 200_000.0:
+				research = _sim.start_research(str(cheapest.get("id", "")))
+	return -1
+
+## U2-01 acceptance 1: a new Første sesong reaches tutorial step 16 ("Utvid med
+## ny lokalitet"); the expansion is then done by real input only: Cmd+2 opens
+## the map, a click on the PO 3 marker shows the area, the home zone's card says
+## the build is allowed, its "Bygg lokalitet" opens the BuildSiteDialog whose
+## preview equals the engine's plan (cost, cash after, running cost, the
+## locality's 3 120 t, +0 t licence MTB, 8 pens drawn), the confirm builds the
+## second site, and one sim day by the Space key completes step 16.
+## The season before step 16 is played by the bridge's verbs (setup; U2-02 owns
+## the season played by UI input alone).
+func _test_expansion_builds_the_tutorials_second_site() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	var gb := get_node("/root/GameBridge")
+	_check(_sim.start_qa_scenario("forste_sesong", 4), "expansion: Første sesong starts (seed 4)")
+	_sim.set_paused(true)
+	var day := _play_first_season_to_step_16(gb)
+	_check(day > 0 and int(gb.TutorialStepNumber) == 16 and int(gb.TutorialCompletedCount) == 15,
+		"expansion: the first season waits at tutorial step 16 with the build's cash (day %d, step %d, %s)" % [
+			day, int(gb.TutorialStepNumber), SimFormatters.format_nok(float(_sim.balance))])
+	var scene := await _spawn_scene_over_current_game()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var map := await _open_map_by_key(ui)
+	_check(map != null and map.is_visible_in_tree() and ui.get_active_tab() == "map", "expansion: Cmd+2 opens the map")
+	if map == null:
+		scene.queue_free()
+		return
+	await _click_control(map._region_nodes["po03"])
+	var section: RegionExpansionSection = map.expansion_section()
+	_check(int(section.area().get("production_area", 0)) == 3, "expansion: a click on the PO 3 marker shows production area 3")
+	var home := section.zone_card("fjord_west")
+	_check(home != null and home.is_visible_in_tree(), "expansion: the home zone has a card")
+	if home == null:
+		scene.queue_free()
+		return
+	var verdict: Label = home.get_node("Body/Build/Reason")
+	var cost := float(_sim.plan_site_build("fjord_west").get("cost_nok", 0.0))
+	_check(verdict.text == tr("EXPANSION_BUILD_OK") % SimFormatters.format_nok(cost),
+		"expansion: the home zone says the build is allowed ('%s')" % verdict.text)
+	await _click_control(home.get_node("Body/Build/BuildBtn"))
+	var dialog: BuildSiteDialog = map.build_dialog()
+	_check(dialog.visible and dialog.zone_id() == "fjord_west", "expansion: 'Bygg lokalitet' opens the build dialog for the zone")
+	var plan: Dictionary = _sim.plan_site_build("fjord_west")
+	var ledger: Node = dialog.get_node("%Ledger")
+	_check((ledger.get_node("ValueCost") as Label).text == SimFormatters.format_nok(float(plan["cost_nok"]))
+			and (ledger.get_node("ValueCash") as Label).text.ends_with(SimFormatters.format_nok(float(plan["balance_nok"]) - float(plan["cost_nok"]))),
+		"expansion: the dialog shows the cost and the cash after it (%s)" % (ledger.get_node("ValueCash") as Label).text)
+	_check(int(plan["pens"]) == 8 and float(plan["licence_mtb_added_t"]) == 0.0 and float(plan["locality_mtb_t"]) == 3120.0
+			and (ledger.get_node("ValueLicence") as Label).text.ends_with("(+0 t)")
+			and (ledger.get_node("ValuePens") as Label).text.begins_with("8 × "),
+		"expansion: 8 pens, a 3 120 t locality and +0 t licence MTB (%s)" % (ledger.get_node("ValueLicence") as Label).text)
+	_check(float(plan["running_cost_per_month_nok"]) > 0.0
+			and (ledger.get_node("ValueRunning") as Label).text.contains(SimFormatters.format_nok(float(plan["running_cost_per_month_nok"]))),
+		"expansion: the running cost per month is previewed (%s)" % (ledger.get_node("ValueRunning") as Label).text)
+	var families: Node = dialog.get_node("%FamilyRow")
+	var land: Node = families.get_node_or_null("Family_land")
+	var offshore: Node = families.get_node_or_null("Family_offshore")
+	_check(families.get_child_count() == 3 and families.get_child(0).name == "Family_sea"
+			and land != null and land.find_child("OpenTab", true, false) != null
+			and offshore != null and offshore.find_child("OpenTab", true, false) != null,
+		"expansion: the farm type comes first: Sjø chosen, Land and Hav point to their tabs")
+	# Land and Hav say where those builds live today and invent no figures.
+	var digits := RegEx.create_from_string("[0-9]")
+	var figures := []
+	for card in [land, offshore]:
+		if card == null:
+			continue
+		for l in card.find_children("*", "Label", true, false):
+			if digits.search((l as Label).text) != null:
+				figures.append((l as Label).text)
+	_check(figures.is_empty(), "expansion: the Land and Hav cards show no numbers %s" % str(figures))
+	await _lint_screen("build dialog")
+	var confirm: Button = dialog.get_node("%ConfirmBtn")
+	_check(not confirm.disabled, "expansion: the confirm is enabled")
+	await _click_control(confirm)
+	_check(_sim.get_all_pens().size() == 2, "expansion: the confirm built the second site (%d sites)" % _sim.get_all_pens().size())
+	_check(dialog.get_node("%ResultBox").visible and confirm.text == tr("EXPANSION_BUILD_VIEW_BUTTON"),
+		"expansion: the dialog says the site is built and offers to show it")
+	await _click_control(dialog.get_node("%CancelBtn"))
+	_check(not dialog.visible and section.zone_card("fjord_west") != null,
+		"expansion: closing the dialog returns to the map")
+	await _run_one_day_by_key()
+	await _drain_cards(scene.get_node("%CriticalEventCard"))
+	_check(int(gb.TutorialCompletedCount) >= 16 and int(gb.TutorialStepNumber) >= 17,
+		"expansion: tutorial step 16 completes (step %d, %d done)" % [int(gb.TutorialStepNumber), int(gb.TutorialCompletedCount)])
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U2-01 acceptance 2: in a green zone the player opens a licence auction from
+## the map, sees a rival's live bid, outbids it by real input and wins at the
+## close; the inbox lists the running auction and its action opens the card;
+## the licence's 780 t pool in PO 4 and the won zone can then be built.
+func _test_auction_card_wins_a_green_zone_licence() -> void:
+	GameplayPrefs.force_auto_pause(true)
+	_check(_sim.start_qa_new_game("Player", 600_000_000, 41), "auction: a seeded game with 600 MNOK starts")
+	var scene := await _spawn_scene_over_current_game()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var map := await _open_map_by_key(ui)
+	if map == null:
+		_check(false, "auction: the map opens")
+		scene.queue_free()
+		return
+	await _click_control(map._region_nodes["po04"])
+	var section: RegionExpansionSection = map.expansion_section()
+	var zone := section.zone_card("po04_solund")
+	_check(zone != null and str(section.area().get("traffic_light", "")) == "green"
+			and (section.get_node("AreaChips/TrafficLight") as Label).text == tr("EXPANSION_LIGHT_GREEN"),
+		"auction: PO 4 is green on the map and its growth zone Solund has a card")
+	if zone == null:
+		scene.queue_free()
+		return
+	await _click_control(zone.get_node("Body/Licence/LicenceBtn"))
+	var card: LicenceAuctionCard = map.auction_card()
+	_check(card.visible and card.mode() == "preview" and card.zone_id() == "po04_solund", "auction: 'Søk vekstlisens' opens the card's preview")
+	var preview: Dictionary = _sim.preview_licence_application("po04_solund")
+	_check((card.get_node("%ReserveAmount") as Label).text == SimFormatters.format_nok(float(preview["reserve_nok"]))
+			and (card.get_node("%ReservePerTonne") as Label).text == tr("EXPANSION_PER_TONNE") % SimFormatters.num(float(preview["reserve_per_tonne_nok"])),
+		"auction: the preview shows the reserve and its price per tonne (%s)" % (card.get_node("%ReservePerTonne") as Label).text)
+	await _lint_screen("auction preview")
+	await _click_control(card.get_node("%PrimaryBtn"))
+	var a: Dictionary = _sim.get_licence_auction("po04_solund")
+	_check(card.mode() == "live" and str(a.get("status", "")) == "open", "auction: 'Åpne auksjonen' opens the auction")
+	# The opening bid at the reserve (the bid field starts at the minimum bid).
+	await _click_control(card.get_node("%PrimaryBtn"))
+	a = _sim.get_licence_auction("po04_solund")
+	_check(str(a.get("leader_kind", "")) == "player", "auction: the reserve bid leads (%s)" % str(a.get("leader_kind", "")))
+	# The clock runs at 30× (key 4) until a rival outbids the company.
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_4, 52)
+	var outbid: bool = await _wait_until(func() -> bool:
+		return str(_sim.get_licence_auction("po04_solund").get("leader_kind", "")) == "rival", 20.0)
+	if not _sim.is_paused():
+		await _press_key(KEY_SPACE, 32)
+	await get_tree().process_frame
+	a = _sim.get_licence_auction("po04_solund")
+	_check(outbid and int(a.get("rival_bids", 0)) >= 1, "auction: a rival bid live (%d rival bids)" % int(a.get("rival_bids", 0)))
+	_check((card.get_node("%LeaderLabel") as Label).text == tr("EXPANSION_AUCTION_RIVAL_LEADS") % str(a.get("leader_name", "")),
+		"auction: the card names the leading rival ('%s')" % (card.get_node("%LeaderLabel") as Label).text)
+	var rows: Node = card.get_node("%HistoryList")
+	_check(rows.get_child_count() == (a.get("bids", []) as Array).size()
+			and (rows.get_child(0).get_node("Bidder") as Label).text == str(a.get("leader_name", "")),
+		"auction: the bid list shows every bid, the rival's newest first")
+	await _lint_screen("auction live")
+	# The inbox lists the auction; its action opens this card.
+	card.close()
+	var inbox: CanvasLayer = scene.find_child("AttentionInbox", true, false) as CanvasLayer
+	if inbox != null:
+		inbox.open_inbox()
+		await get_tree().process_frame
+		var list: Node = inbox.get_node("%ListContainer")
+		var titles := list.find_children("*", "Label", true, false).map(func(l: Node) -> String: return (l as Label).text)
+		_check(titles.has(tr("UI_ATTENTION_AUCTION_OUTBID").format(["Solund"])),
+			"auction: the inbox lists the outbid auction")
+		var action: Button = null
+		for b in list.find_children("*", "Button", true, false):
+			action = b as Button
+		if action != null:
+			action.pressed.emit()
+			await get_tree().process_frame
+		_check(action != null and card.visible and card.zone_id() == "po04_solund" and ui.get_active_tab() == "map",
+			"auction: the inbox's action opens the auction card on the map")
+	else:
+		_check(false, "auction: the game scene has the attention inbox")
+	# Outbid the rival field by typing 300 MNOK, above every rival's ceiling.
+	var spin: SpinBox = card.get_node("%BidSpin")
+	var line := spin.get_line_edit()
+	await _click_control(line)
+	line.select_all()
+	for ch in "300":
+		await _press_key(KEY_0 + int(ch), ch.unicode_at(0))
+	await _press_key(KEY_ENTER, 0)
+	_check(int(spin.value) == 300, "auction: the bid field takes 300 MNOK by typing (%d)" % int(spin.value))
+	await _click_control(card.get_node("%PrimaryBtn"))
+	a = _sim.get_licence_auction("po04_solund")
+	_check(str(a.get("leader_kind", "")) == "player" and is_equal_approx(float(a.get("current_bid_nok", 0.0)), 300_000_000.0),
+		"auction: the 300 MNOK bid leads")
+	get_viewport().gui_release_focus()
+	await _press_key(KEY_4, 52)
+	var settled: bool = await _wait_until(func() -> bool:
+		return str(_sim.get_licence_auction("po04_solund").get("status", "")) != "open" or _sim.is_paused(), 30.0)
+	if str(_sim.get_licence_auction("po04_solund").get("status", "")) == "open":
+		# The clock stopped the day before the close (the company leads, so no
+		# stop is due: this only catches a card that held it); run on by key.
+		await _press_key(KEY_SPACE, 32)
+		settled = await _wait_until(func() -> bool:
+			return str(_sim.get_licence_auction("po04_solund").get("status", "")) != "open", 30.0)
+	_sim.set_paused(true)
+	await get_tree().process_frame
+	a = _sim.get_licence_auction("po04_solund")
+	_check(settled and str(a.get("status", "")) == "won_player" and int(a.get("rival_bids", 0)) >= 1,
+		"auction: the company wins the licence against %d rival bids (%s)" % [int(a.get("rival_bids", 0)), str(a.get("status", ""))])
+	var area4: Dictionary = {}
+	for row in _sim.get_expansion_overview().get("areas", []):
+		if int(row.get("production_area", 0)) == 4:
+			area4 = row
+	_check(int(area4.get("licences", 0)) == 1 and float(area4.get("licence_mtb_t", 0.0)) == 780.0,
+		"auction: the licence's 780 t pool in production area 4")
+	map.open_auction("po04_solund")
+	await get_tree().process_frame
+	_check(card.mode() == "result" and (card.get_node("%ResultTitle") as Label).text == tr("EXPANSION_AUCTION_WON_TITLE"),
+		"auction: the card shows the win")
+	await _click_control(card.get_node("%PrimaryBtn"))
+	var dialog: BuildSiteDialog = map.build_dialog()
+	_check(dialog.visible and dialog.zone_id() == "po04_solund" and bool(dialog.plan().get("allowed", false)),
+		"auction: the won licence leads on to a buildable locality in Solund")
+	await _click_control(dialog.get_node("%ConfirmBtn"))
+	var built: Array = _sim.get_all_pens().filter(func(p: Dictionary) -> bool: return str(p.get("zone", "")) == "po04_solund")
+	_check(built.size() == 1, "auction: the locality is built in the won zone")
+	dialog.close()
+	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U2-01 acceptance 3: every reason the build gate refuses for is rendered as
+## text, never as a key: a new zone without a licence, too little cash, a zone
+## that does not exist; and every reason key has text in both languages. The
+## licence refusals the map shows read as text too (a zone already farmed, a
+## red area), and a disabled button says why in its tooltip.
+func _test_every_build_refusal_reads_as_text() -> void:
+	_check(_sim.start_qa_scenario("forste_sesong", 91), "refusals: Første sesong starts")
+	var scene := await _spawn_scene_over_current_game()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var map := await _open_map_by_key(ui)
+	if map == null:
+		_check(false, "refusals: the map opens")
+		scene.queue_free()
+		return
+	map.select_area(3)
+	await get_tree().process_frame
+	var section: RegionExpansionSection = map.expansion_section()
+	var shown := {}
+	for zone_id in ["fjord_west", "po03_bomlo"]:
+		var card := section.zone_card(zone_id)
+		for which in ["Build", "Licence"]:
+			var reason: Label = card.get_node("Body/" + which + "/Reason")
+			var key := str(reason.get_meta(&"label_key", ""))
+			if key != "":
+				shown[key] = reason.text
+	# The 4 MNOK family farm cannot pay a 6 MNOK build in its own zone yet.
+	_check(str(shown.get("EXPANSION_REASON_INSUFFICIENT_FUNDS", "")).begins_with(tr("EXPANSION_REASON_INSUFFICIENT_FUNDS")),
+		"refusals: too little cash reads as text ('%s')" % str(shown.get("EXPANSION_REASON_INSUFFICIENT_FUNDS", "")))
+	_check(str(shown.get("EXPANSION_REASON_GROWTH_LICENCE_REQUIRED", "")) == tr("EXPANSION_REASON_GROWTH_LICENCE_REQUIRED"),
+		"refusals: a new zone without a licence reads as text ('%s')" % str(shown.get("EXPANSION_REASON_GROWTH_LICENCE_REQUIRED", "")))
+	_check(str(shown.get("EXPANSION_REASON_ALREADY_OPERATING", "")) == tr("EXPANSION_REASON_ALREADY_OPERATING"),
+		"refusals: a farmed zone's licence refusal reads as text")
+	var new_zone_licence: Button = section.zone_card("po03_bomlo").get_node("Body/Licence/LicenceBtn")
+	_check(not new_zone_licence.disabled, "refusals: the new zone's licence can be applied for")
+	var farmed_licence: Button = section.zone_card("fjord_west").get_node("Body/Licence/LicenceBtn")
+	_check(farmed_licence.disabled and farmed_licence.tooltip_text == tr("EXPANSION_REASON_ALREADY_OPERATING"),
+		"refusals: a disabled button says why in its tooltip")
+	# A zone that does not exist, through the dialog.
+	map.open_build("nowhere")
+	await get_tree().process_frame
+	var dialog: BuildSiteDialog = map.build_dialog()
+	var verdict: Label = dialog.get_node("%VerdictLabel")
+	_check(verdict.visible and verdict.text == tr("EXPANSION_REASON_ZONE_NOT_FOUND") and (dialog.get_node("%ConfirmBtn") as Button).disabled,
+		"refusals: a zone that does not exist reads as text and the confirm waits ('%s')" % verdict.text)
+	dialog.close()
+	# Every reason key the engine can give has text in both languages.
+	var missing := []
+	for key in ["engine_not_ready", "zone_not_found", "growth_licence_required", "insufficient_funds", "zone_red",
+			"already_operating", "licence_held", "auction_open", "bid_too_low", "auction_closed", "auction_not_found"]:
+		var tkey: StringName = StringName("EXPANSION_REASON_" + key.to_upper())
+		for locale in ["nb", "en"]:
+			var t := TranslationServer.get_translation_object(locale)
+			var text := String(t.get_message(tkey)) if t != null else ""
+			if text.strip_edges() == "" or text == String(tkey):
+				missing.append("%s/%s" % [tkey, locale])
+	_check(missing.is_empty(), "refusals: every reason has Norwegian and English text %s" % str(missing))
+	# A red area (lice over the red limit at the weekly assessment): the growth
+	# zone's licence refusal reads as text.
+	_sim.set_qa_pen_lice(str(_sim.get_all_pens()[0].get("id", "")), 3.0)
+	_sim.advance_days(8)
+	map.select_area(3)
+	await get_tree().process_frame
+	var red: Label = map.expansion_section().zone_card("po03_bomlo").get_node("Body/Licence/Reason")
+	_check(str(_sim.get_expansion_overview()["areas"][2].get("traffic_light", "")) == "red"
+			and red.text == tr("EXPANSION_REASON_ZONE_RED"),
+		"refusals: a red area's growth zone reads 'Rødt trafikklys' ('%s')" % red.text)
+	await _lint_screen("map expansion")
 	scene.queue_free()
 	await get_tree().process_frame

@@ -1509,6 +1509,72 @@ weight raised by one ulp on day 200 in po3_red_sone seed 7: named on day 200
 ledger 526, mort 527, pop 102, mtb 35, env 3) and the final cash moves by
 0.00000000016 NOK.
 
+## 1m. U2-01: the expansion flow's numbers (2026-10-15, branch `wave3/ui-b-1`)
+
+The expansion flow (map, BuildSiteDialog, LicenceAuctionCard) shows the
+engine's numbers; nothing in it is a new price. What it quotes, and where the
+numbers come from:
+
+### Growth-licence auctions against the state's auctions
+
+The state sells capacity in simultaneous clock auctions (2018, 2020, 2022,
+2024). Averages per tonne of MTB:
+
+| auction | sold | revenue | NOK per t | source |
+|---|---|---|---|---|
+| 2020 | 27,189 t | ≈ 6.0 bn | ≈ 220,000 | regjeringen.no / iLaks (2020) |
+| 2022 | 24,644 t of 32,887 t | ≈ 3.8 bn | ≈ 154,000 | regjeringen.no / iLaks (Oct 2022) |
+| 2024 | 17,330 t (all) | 5,288,602,600 | ≈ 305,170 (170,000 PO1 to 348,400 PO9 by area); minimum price 170,000 | regjeringen.no, "Resultater fra auksjon av nye oppdrettstillatelser 2024" (25 June 2024), https://www.regjeringen.no/no/aktuelt/resultater-fra-auksjon-av-nye-oppdrettstillatelser-2024/id3046941/ |
+
+The game's reserve is `Licensing.LicenseCostNOK` = 150 M a licence (unchanged):
+192,308 NOK/t for a 780 t licence, 158,730 NOK/t for 945 t in Troms and
+Finnmark. A rival's ceiling is reserve × (1.08 + 0.55 appetite + 0.15 lobbying)
+(`LicenseAuctionSystem.MaxRivalPrice`, unchanged): 201-254 M, 258-326 k/t at
+780 t. Measured clearing prices of rival-won auctions (the company opens the
+auction and does not bid; `ExpansionFlowTests.RivalWonLicences_ClearInsideTheStatesAuctionBand`,
+30 seeds × PO4 and PO12, n = 60):
+
+| min | median | max | band asserted |
+|---|---|---|---|
+| 251,852 NOK/t | 305,128 NOK/t | 325,962 NOK/t | 154,000 (2022 average) to 348,400 (2024 highest area average) |
+
+The median matches the 2024 auction's average (305,170 NOK/t). The card quotes
+the 2022 and 2024 averages (`LicenseAuctionSystem.StateAuction2022AveragePerTonneNok`,
+`StateAuction2024AveragePerTonneNok`).
+
+**Activity rule** (`LicenseAuctionSystem.ClosingRoundExtensionDays` = 1): a bid
+on the closing day keeps the auction open one more day, so the rivals answer
+it. The state's clock auctions close only after a round with no new demand
+(regjeringen.no, "Auksjon av oppdrettstillatelser holdes 24. juni", 2024).
+Before, a bid on the last day won at 5 % over the leading bid with no answer.
+No golden trace holds an auction (no scenario has a zone the company does not
+farm), so the traces are unchanged.
+
+### What a build costs and adds (`SimulationEngine.PlanSiteBuild`)
+
+| line | value | source |
+|---|---|---|
+| investment | 6,000,000 NOK | `Infrastructure.SeaSiteBuildCostNOK` |
+| locality MTB | 3,120 t | `Capacity.BuiltSiteLocalityMtbTonnes` (NFD 20.09.2017) |
+| licence MTB added | 0 t | S2-01a |
+| pens | 8 × 160 m, 40 m net (25 m wall + 15 m cone), 61,116 m³ | `pens` section (S2-01b) |
+| running cost | +354 kNOK a month: 7 crew × 48,000 NOK + 0.01 % of the build cost a day | `Labor.WorkersPerSite`, `Labor.WorkerMonthlySalaryNOK`, `ProcessDailyFinance` |
+
+`TheBuildPlan_IsWhatTheBuildDoes_CostPensMtbAndRunningCost` holds the preview
+to the books: the day's operations cost rises by the plan's running cost per
+day after the build (± 1 NOK a month). In Første sesong the second site adds
+4.25 M a year of crew and upkeep before it holds a fish: the dialog says so
+before the player commits.
+
+### Catalogue zones
+
+One growth zone per production area (`Environment/ExpansionZones.cs`, named
+after a coastal municipality with sea farming in the area, none in a national
+salmon fjord). A catalogue zone joins the game only with its first site, so a
+game that never expands runs as before (golden traces identical). Its traffic
+light is its area's as the game knows it (the worst colour of the area's zones;
+water nobody farms assesses green, `TrafficLightSystem.GreenLiceThreshold`).
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |

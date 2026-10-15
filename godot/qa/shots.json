@@ -476,6 +476,93 @@
       "camera": {"mode": "focus", "target": "off_1", "distance_m": 260.0, "pitch_deg": -14.0, "focus_y": 6.0, "offset": [100.0, 0.0]},
       "lineup": true,
       "purpose": "The offshore fleet in a row beside the unit: the 75 m service vessel visibly shorter than the 110 m ring, the anchor tug (red swatch variant of the same mesh), the 20 m crew boat."
+    },
+    {
+      "id": "41_expansion_map",
+      "item": "U2-01",
+      "scene": "res://qa/scenes/ExpansionFlowCapture.tscn",
+      "kind": "ui",
+      "resolution": [1920, 1080],
+      "scenario": "forste_sesong",
+      "seed": 4,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "map",
+      "purpose": "The region view on day 0 of Første sesong: PO 3 picked, the traffic-light dots and the ring on the home area, the capacity card (1 licence, 780 t), the home zone's build refused for cash as text, and Bømlo's licence open for application."
+    },
+    {
+      "id": "41_expansion_build_refused",
+      "item": "U2-01",
+      "scene": "res://qa/scenes/ExpansionFlowCapture.tscn",
+      "kind": "ui",
+      "resolution": [1920, 1080],
+      "scenario": "forste_sesong",
+      "seed": 4,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "build_refused",
+      "purpose": "The build dialog before the first harvest: farm type first (Sjø chosen, Land and Hav pointing to their tabs), the preview (cost, cash going negative, running cost, 3 120 t locality, +0 t licence MTB, 8 pens drawn) and the refusal as text with the confirm waiting."
+    },
+    {
+      "id": "41_expansion_auction_preview",
+      "item": "U2-01",
+      "scene": "res://qa/scenes/ExpansionFlowCapture.tscn",
+      "kind": "ui",
+      "resolution": [1920, 1080],
+      "seed": 41,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "auction_preview",
+      "purpose": "The auction card before the auction: the reserve and its price per tonne, the 7-day length, the free opening, and the state's 2022 and 2024 auction averages."
+    },
+    {
+      "id": "41_expansion_auction_live",
+      "item": "U2-01",
+      "scene": "res://qa/scenes/ExpansionFlowCapture.tscn",
+      "kind": "ui",
+      "resolution": [1920, 1080],
+      "seed": 41,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "auction_live",
+      "purpose": "A running auction four days in: the leading rival by name, the countdown in sim days, every bid newest first with its price per tonne, and the bid field at the minimum bid."
+    },
+    {
+      "id": "41_expansion_auction_won",
+      "item": "U2-01",
+      "scene": "res://qa/scenes/ExpansionFlowCapture.tscn",
+      "kind": "ui",
+      "resolution": [1920, 1080],
+      "seed": 41,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "auction_won",
+      "purpose": "The payoff: the auction won against the rival field, the licence's MTB in PO 4, and the way on to a locality in the won zone."
+    },
+    {
+      "id": "41_expansion_build_new_zone",
+      "item": "U2-01",
+      "scene": "res://qa/scenes/ExpansionFlowCapture.tscn",
+      "kind": "ui",
+      "resolution": [1920, 1080],
+      "seed": 41,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "build_new_zone",
+      "purpose": "The build dialog for the won zone (Solund): allowed, the first locality's preview and the confirm ready."
+    },
+    {
+      "id": "41_expansion_map_small",
+      "item": "U2-01",
+      "scene": "res://qa/scenes/ExpansionFlowCapture.tscn",
+      "kind": "ui",
+      "resolution": [1280, 720],
+      "scenario": "forste_sesong",
+      "seed": 4,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "map",
+      "purpose": "The region view at 1280x720: the detail column's zone cards, verdict texts and buttons stay whole and readable."
     }
   ]
 }

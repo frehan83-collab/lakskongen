@@ -15,7 +15,7 @@ const GLYPHS := {"critical": "!!", "warning": "!", "info": "i"}
 ## Counter verbs the UI knows how to perform (GameEventCatalog.CounterVerbs
 ## minus "none"); a pytest keeps the two lists equal.
 const VERBS := ["delouse", "freshwater_bath", "inspect_nets", "check_water", "review_feeding",
-	"raise_capital", "open_sustainability", "inspect_site"]
+	"raise_capital", "open_sustainability", "inspect_site", "bid_licence"]
 
 
 static func tone(event: Dictionary) -> StringName:

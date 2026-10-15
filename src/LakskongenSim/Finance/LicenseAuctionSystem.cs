@@ -116,6 +116,35 @@ namespace LakskongenSim.Finance
         /// <summary>Share of cash reserves a rival may bid above (liquidity guard).</summary>
         public const decimal RivalCashReserveFraction = 0.60m;
 
+        /// <summary>
+        /// Days a bid on the closing day keeps the auction open (U2-01 activity
+        /// rule): one more round for the rivals to answer. Fiskeridirektoratet
+        /// runs the capacity auctions as simultaneous clock auctions (2018,
+        /// 2020, 2022, 2024) that close only once a round brings no new demand
+        /// (regjeringen.no, "Auksjon av oppdrettstillatelser holdes 24. juni", 2024).
+        /// </summary>
+        public const int ClosingRoundExtensionDays = 1;
+
+        /// <summary>
+        /// Average price per tonne of MTB in the state's 2022 capacity auction
+        /// (NOK/t): 24,644 t for about NOK 3.8 bn (regjeringen.no / iLaks,
+        /// October 2022). The low end of the band the auction card quotes.
+        /// </summary>
+        public const decimal StateAuction2022AveragePerTonneNok = 154_000m;
+
+        /// <summary>
+        /// Average price per tonne of MTB in the state's 2024 capacity auction
+        /// (NOK/t): 17,330 t for NOK 5,288,602,600 (regjeringen.no, "Resultater
+        /// fra auksjon av nye oppdrettstillatelser 2024", 25 June 2024).
+        /// </summary>
+        public const decimal StateAuction2024AveragePerTonneNok = 305_000m;
+
+        /// <summary>
+        /// The highest production-area average of the 2024 auction (NOK/t; PO9,
+        /// Vestfjorden og Vesterålen, from the same results page).
+        /// </summary>
+        public const decimal StateAuction2024HighestAreaPerTonneNok = 348_400m;
+
         private readonly SimRngStream _rng;
 
         public LicenseAuctionSystem(SimRngStream rng)
@@ -200,6 +229,12 @@ namespace LakskongenSim.Finance
             auction.LeaderKind = "player";
             auction.LeaderId = "player";
             auction.PlayerEntered = true;
+            // Activity rule (U2-01): the state's capacity auctions are clock
+            // auctions that run while anyone still bids, so a bid on the last
+            // day keeps the auction open one more round and the rivals answer
+            // it; a last-second bid cannot end the auction unanswered.
+            if (day >= auction.ClosesDay)
+                auction.ClosesDay = day + ClosingRoundExtensionDays;
             auction.Bids.Add(new LicenseBid
             {
                 Day = day,

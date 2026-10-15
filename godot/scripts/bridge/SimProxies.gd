@@ -492,6 +492,14 @@ func get_site_pens(site_id: String) -> Array[Dictionary]: return _arr(game_bridg
 func preview_pen_stocking(site_id: String, pen_id: String, count: int, strain_id: String = "standard", quality_tier: int = 0) -> Dictionary: return game_bridge.PreviewPenStocking(site_id, pen_id, count, strain_id, quality_tier) if game_bridge else {"success": false, "allowed": false, "message": "Not initialized"}
 ## S2-01a: what building a site in a zone costs and adds (a locality, 0 t of licence MTB).
 func preview_build_sea_site(zone_id: String) -> Dictionary: return game_bridge.PreviewBuildSeaSite(zone_id) if game_bridge else {"success": false, "allowed": false, "reason": "Not initialized"}
+## U2-01: the expansion map (13 production areas, their zones and the build and licence verdicts as reason keys).
+func get_expansion_overview() -> Dictionary: return game_bridge.GetExpansionOverview() if game_bridge else {"success": false, "reason_key": "engine_not_ready", "areas": []}
+## U2-01: what a site build in a zone costs, holds and adds (the BuildSiteDialog's preview).
+func plan_site_build(zone_id: String) -> Dictionary: return game_bridge.PlanSiteBuild(zone_id) if game_bridge else {"success": false, "allowed": false, "reason_key": "engine_not_ready"}
+## U2-01: what applying for a growth licence in a zone opens (reserve, MTB, the auction's length).
+func preview_licence_application(zone_id: String) -> Dictionary: return game_bridge.PreviewLicenceApplication(zone_id) if game_bridge else {"success": false, "allowed": false, "reason_key": "engine_not_ready"}
+## U2-01: a zone's licence auction for the auction card (bids newest first, the minimum bid, days left).
+func get_licence_auction(zone_id: String) -> Dictionary: return game_bridge.GetLicenceAuction(zone_id) if game_bridge else {"success": false, "zone_id": zone_id}
 func get_competitor_analysis() -> Array[Dictionary]: return _arr(game_bridge.GetCompetitorAnalysis()) if game_bridge else []
 func get_price_forecast() -> Array[Dictionary]: return _arr(game_bridge.GetPriceForecast()) if game_bridge else []
 func get_welfare_score() -> float: return game_bridge.GetWelfareScore() if game_bridge else 50.0

@@ -1722,3 +1722,144 @@ CAPACITY_REASON_INSUFFICIENT_FUNDS,Not enough money for the smolts,Ikke nok peng
 CAPACITY_REASON_MAB_EXCEEDED,The smolts would put the site over its MTB,Smolten ville satt lokaliteten over MTB-en
 CAPACITY_REASON_INVALID_COUNT,Choose a number of smolts above zero,Velg et antall smolt over null
 CAPACITY_REASON_SITE_NOT_FOUND,The site was not found,Fant ikke lokaliteten
+EXPANSION_AREA_PICKER_PROMPT,Choose a production area,Velg produksjonsområde
+EXPANSION_AREA_PICKER_TIP,Pick an area here or on the map,Velg et område her eller på kartet
+EXPANSION_AUCTION_AGAIN_BUTTON,Apply again,Søk på nytt
+EXPANSION_AUCTION_BIDS,Bids,Bud
+EXPANSION_AUCTION_BID_BUTTON,Place bid,Legg inn bud
+EXPANSION_AUCTION_BID_INFO,%s NOK per tonne · minimum bid %s · your cash %s,%s kr per tonn · minstebud %s · kontanter %s
+EXPANSION_AUCTION_BUTTON,Follow the auction,Følg auksjonen
+EXPANSION_AUCTION_CASH_SHORT,"Your cash (%s) does not cover %s. You can follow the auction, but you need more capital to win it.","Kontantene dine (%s) dekker ikke %s. Du kan følge auksjonen, men trenger mer kapital for å vinne den."
+EXPANSION_AUCTION_CLOCK_HINT,The auction runs as time passes: the clock slows to 1× while it runs and stops the day before it closes unless you lead. A bid on the last day keeps it open one more day.,"Auksjonen går mens tiden går: klokken senkes til 1× mens den pågår, og stopper dagen før den stenger hvis du ikke leder. Et bud på siste dag holder den åpen én dag til."
+EXPANSION_AUCTION_CLOSES_IN,Closes in %d days · %s,Stenger om %d dager · %s
+EXPANSION_AUCTION_CLOSES_TOMORROW,Closes tomorrow · %s,Stenger i morgen · %s
+EXPANSION_AUCTION_DAYS,%d days,%d dager
+EXPANSION_AUCTION_ENDED_BODY,The auction ended without a winner.,Auksjonen endte uten vinner.
+EXPANSION_AUCTION_ENDED_TITLE,No winner,Ingen vinner
+EXPANSION_AUCTION_FREE_HINT,Opening the auction costs nothing; you pay only if you win.,Det koster ingenting å åpne auksjonen; du betaler bare hvis du vinner.
+EXPANSION_AUCTION_LAST_ROUND,Last bidding day: a bid today keeps the auction open one more day,Siste budrunde: et bud i dag holder auksjonen åpen én dag til
+EXPANSION_AUCTION_LEADING_BID,Leading bid,Høyeste bud
+EXPANSION_AUCTION_LENGTH,Runs for,Varighet
+EXPANSION_AUCTION_LENGTH_NOTE,Rivals bid every day,Konkurrentene byr hver dag
+EXPANSION_AUCTION_LOST_BODY,%s won the licence for %s.,%s vant tillatelsen for %s.
+EXPANSION_AUCTION_LOST_TITLE,A rival won the licence,En konkurrent vant tillatelsen
+EXPANSION_AUCTION_MIN_BID_BUTTON,Minimum bid,Minstebud
+EXPANSION_AUCTION_NOBODY_LEADS,No bids yet,Ingen bud ennå
+EXPANSION_AUCTION_NO_BIDS,No bids,Ingen bud
+EXPANSION_AUCTION_NO_BIDS_YET,No bids yet. The reserve is the first minimum bid.,Ingen bud ennå. Minsteprisen er det første minstebudet.
+EXPANSION_AUCTION_OPEN_BUTTON,Open the auction,Åpne auksjonen
+EXPANSION_AUCTION_OVERLINE,Growth licence · auction,Vekstlisens · auksjon
+EXPANSION_AUCTION_PLUS_10,+10 %,+10 %
+EXPANSION_AUCTION_PLUS_5,+5 %,+5 %
+EXPANSION_AUCTION_PREVIEW_NOTE,"The licence's MTB counts for every site you have in the production area, wherever you build. Bids are taken in whole millions: the reserve first, then at least 5 % over the leading bid.","Tillatelsens MTB gjelder alle lokalitetene dine i produksjonsområdet, uansett hvor du bygger. Bud tas i hele millioner: først minsteprisen, deretter minst 5 % over høyeste bud."
+EXPANSION_AUCTION_REFERENCE,The state's capacity auctions: on average %s NOK per tonne in 2022 and %s NOK per tonne in 2024.,Statens kapasitetsauksjoner: i snitt %s kr per tonn i 2022 og %s kr per tonn i 2024.
+EXPANSION_AUCTION_RESERVE,Reserve,Minstepris
+EXPANSION_AUCTION_RESERVE_IS,Reserve %s,Minstepris %s
+EXPANSION_AUCTION_RIVAL_LEADS,%s leads: you are outbid,%s leder: du er overbudt
+EXPANSION_AUCTION_SPIN_TIP,Your bid in millions of NOK,Budet ditt i millioner kroner
+EXPANSION_AUCTION_SUBTITLE,%s t MTB in production area %d · the licence counts for the whole area,%s t MTB i produksjonsområde %d · tillatelsen gjelder hele området
+EXPANSION_AUCTION_TITLE,%s · PO %d,%s · PO %d
+EXPANSION_AUCTION_WON_BODY,%s t MTB in production area %d for %s. Build a locality in %s to farm in the zone.,%s t MTB i produksjonsområde %d for %s. Bygg en lokalitet i %s for å drive i sonen.
+EXPANSION_AUCTION_WON_TITLE,You won the growth licence,Du vant vekstlisensen
+EXPANSION_AUCTION_YOU,You,Du
+EXPANSION_AUCTION_YOUR_BID,Your bid,Ditt bud
+EXPANSION_AUCTION_YOU_LEAD,You lead,Du leder
+EXPANSION_BUILD_BUTTON,Build locality,Bygg lokalitet
+EXPANSION_BUILD_BUTTON_TIP,See what a new locality costs and holds before you build,Se hva en ny lokalitet koster og rommer før du bygger
+EXPANSION_BUILD_CONFIRM,Build for %s,Bygg for %s
+EXPANSION_BUILD_DONE_BODY,Its %d pens are empty and ready for smolts: stock them from the Pens tab.,De %d merdene står tomme og klare for smolt: sett ut fisk fra Merder-fanen.
+EXPANSION_BUILD_DONE_TITLE,%s is built,%s er bygd
+EXPANSION_BUILD_EXPLAIN,"A locality gives room, not permission: the fish you may hold come from your licences in the production area (%s t MTB in PO %d). A build adds none.","En lokalitet gir plass, ikke tillatelse: fisken du kan ha, kommer fra tillatelsene dine i produksjonsområdet (%s t MTB i PO %d). En bygging legger ikke til noe."
+EXPANSION_BUILD_FIRST_SITE,your first locality,din første lokalitet
+EXPANSION_BUILD_HEADER,Build,Bygging
+EXPANSION_BUILD_HINT,Construction is paid now; the crew and upkeep start with the site.,Byggingen betales nå; mannskap og vedlikehold starter med lokaliteten.
+EXPANSION_BUILD_NEW_ZONE,a new zone (uses your growth licence),ny sone (bruker vekstlisensen din)
+EXPANSION_BUILD_OK,Can be built for %s,Kan bygges for %s
+EXPANSION_BUILD_OVERLINE,New locality,Ny lokalitet
+EXPANSION_BUILD_SUBTITLE,Production area %d · %s,Produksjonsområde %d · %s
+EXPANSION_BUILD_TITLE,Build a locality in %s,Bygg lokalitet i %s
+EXPANSION_BUILD_VIEW_BUTTON,Show it on the fjord,Vis den på fjorden
+EXPANSION_BUILD_YOUR_ZONE,your zone,din sone
+EXPANSION_CANCEL,Cancel,Avbryt
+EXPANSION_CAPACITY_BAR_TIP,Standing biomass against your licence MTB in the area,Stående biomasse mot tillatelsenes MTB i området
+EXPANSION_CAPACITY_HEADER,Your capacity here,Kapasiteten din her
+EXPANSION_CAPACITY_LICENCES,Licences: %d · %s t MTB,Tillatelser: %d · %s t MTB
+EXPANSION_CAPACITY_NONE,No licences here yet. A licence in this area holds %s t of MTB.,Ingen tillatelser her ennå. En tillatelse i området holder %s t MTB.
+EXPANSION_CAPACITY_STANDING,Standing biomass %s t · headroom %s t,Stående biomasse %s t · ledig %s t
+EXPANSION_FAMILY_HEADER,Farm type,Anleggstype
+EXPANSION_FAMILY_LAND,Land,Land
+EXPANSION_FAMILY_LAND_BODY,Land-based farms are built from the RAS tab for now.,Landanlegg bygges foreløpig fra RAS-fanen.
+EXPANSION_FAMILY_LAND_BUTTON,Open the RAS tab,Åpne RAS-fanen
+EXPANSION_FAMILY_OFFSHORE,Offshore,Hav
+EXPANSION_FAMILY_OFFSHORE_BODY,Offshore farms are built from the Offshore tab for now.,Havbruk til havs bygges foreløpig fra Offshore-fanen.
+EXPANSION_FAMILY_OFFSHORE_BUTTON,Open the Offshore tab,Åpne Offshore-fanen
+EXPANSION_FAMILY_SEA,Sea,Sjø
+EXPANSION_FAMILY_SEA_BODY,Open net pens in a mooring frame on a new locality in the fjord. The preview below is for this choice.,Åpne merder i et fortøyningsrammeverk på en ny lokalitet i fjorden. Forhåndsvisningen under gjelder dette valget.
+EXPANSION_FAMILY_SELECTED,Chosen,Valgt
+EXPANSION_FAMILY_TAB_LOCKED,Unlocks later in the tutorial,Låses opp senere i opplæringen
+EXPANSION_LEDGER_CASH,Cash,Kontanter
+EXPANSION_LEDGER_COST,Investment,Investering
+EXPANSION_LEDGER_LICENCE_MTB,Licence MTB in PO %d,Tillatelses-MTB i PO %d
+EXPANSION_LEDGER_LICENCE_VALUE,%s t → %s t (+%s t),%s t → %s t (+%s t)
+EXPANSION_LEDGER_LOCALITY_MTB,Locality MTB,Lokalitets-MTB
+EXPANSION_LEDGER_PENS,Pens,Merder
+EXPANSION_LEDGER_PENS_VALUE,%d × %s m round · %s m deep · %s m³ each,%d × %s m omkrets · %s m dype · %s m³ hver
+EXPANSION_LEDGER_RUNNING,Running cost,Drift
+EXPANSION_LEDGER_RUNNING_VALUE,+%s per month (%d crew and upkeep),+%s per måned (%d ansatte og vedlikehold)
+EXPANSION_LEGEND_YOUR_SITES,Ring: your sites,Ring: dine lokaliteter
+EXPANSION_LICENCE_BUTTON,Apply for a growth licence,Søk vekstlisens
+EXPANSION_LICENCE_HEADER,Growth licence,Vekstlisens
+EXPANSION_LICENCE_OK,"Open: a %d-day auction, reserve %s","Kan søkes: auksjon over %d dager, minstepris %s"
+EXPANSION_LICENCE_RUNNING,An auction for the zone is running,En auksjon for sonen pågår
+EXPANSION_LIGHT_GREEN,Green,Grønt
+EXPANSION_LIGHT_RED,Red,Rødt
+EXPANSION_LIGHT_TIP,Traffic light: the area's colour as the game knows it. Red areas auction no growth.,Trafikklys: områdets farge slik spillet kjenner den. I røde områder auksjoneres ingen vekst.
+EXPANSION_LIGHT_YELLOW,Yellow,Gult
+EXPANSION_MARKER_TIP,%s · traffic light %s · %d of your sites,%s · trafikklys %s · %d av lokalitetene dine
+EXPANSION_PD_ZONE,PD zone,PD-sone
+EXPANSION_PER_TONNE,%s NOK per tonne,%s kr per tonn
+EXPANSION_PREVIEW_HEADER,Before you build,Før du bygger
+EXPANSION_REASON_ALREADY_OPERATING,"You already farm here: build directly, no new licence needed","Du driver allerede her: bygg direkte, uten ny lisens"
+EXPANSION_REASON_AUCTION_CLOSED,The auction has closed,Auksjonen er stengt
+EXPANSION_REASON_AUCTION_NOT_FOUND,No auction runs for this zone,Ingen auksjon går for denne sonen
+EXPANSION_REASON_AUCTION_OPEN,An auction for this zone is already running,En auksjon for sonen pågår allerede
+EXPANSION_REASON_BID_TOO_LOW,The bid is below the minimum bid,Budet er under minstebudet
+EXPANSION_REASON_ENGINE_NOT_READY,The game has not started,Spillet er ikke startet
+EXPANSION_REASON_GROWTH_LICENCE_REQUIRED,A new zone needs a growth licence: win the auction first,En ny sone krever vekstlisens: vinn auksjonen først
+EXPANSION_REASON_INSUFFICIENT_FUNDS,Not enough money,Ikke nok penger
+EXPANSION_REASON_LICENCE_HELD,You already hold an unused growth licence for this zone,Du har allerede en ubrukt vekstlisens for sonen
+EXPANSION_REASON_ZONE_NOT_FOUND,The zone does not exist,Sonen finnes ikke
+EXPANSION_REASON_ZONE_RED,Red traffic light: no growth licences are auctioned here,Rødt trafikklys: ingen vekstlisenser auksjoneres her
+EXPANSION_SURVEILLANCE_ZONE,Surveillance zone,Overvåkingssone
+EXPANSION_TONNES,%s t,%s t
+EXPANSION_ZONES_HEADER,Zones,Soner
+EXPANSION_ZONE_AUCTION_RUNNING,Auction running,Auksjon pågår
+EXPANSION_ZONE_LICENCE_WON,Growth licence won,Vekstlisens vunnet
+EXPANSION_ZONE_NEW,New zone,Ny sone
+EXPANSION_ZONE_YOURS_MANY,Your zone · %d sites,Din sone · %d lokaliteter
+EXPANSION_ZONE_YOURS_ONE,Your zone · %d site,Din sone · %d lokalitet
+GAME_EVENT_LICENCE_AUCTION_LOST,Licence auction lost,Lisensauksjonen er tapt
+GAME_EVENT_LICENCE_AUCTION_WON,Growth licence won,Vekstlisens vunnet
+GAME_EVENT_LICENCE_OUTBID,Outbid in the licence auction,Overbudt i lisensauksjonen
+UI_ATTENTION_AUCTION_NO_BIDS_DESC,No bids yet. Reserve {0:N0} NOK.,Ingen bud ennå. Minstepris {0:N0} kr.
+UI_ATTENTION_AUCTION_OUTBID,Outbid in the licence auction for {0},Overbudt i lisensauksjonen for {0}
+UI_ATTENTION_AUCTION_OUTBID_DESC,{0} leads with {1:N0} NOK. Minimum bid {2:N0} NOK.,{0} leder med {1:N0} kr. Minstebud {2:N0} kr.
+UI_ATTENTION_AUCTION_RUNNING,Licence auction for {0},Lisensauksjon for {0}
+UI_ATTENTION_AUCTION_RUNNING_DESC,Leading bid {0:N0} NOK. Minimum bid {1:N0} NOK.,Høyeste bud {0:N0} kr. Minstebud {1:N0} kr.
+UI_ATTENTION_CAT_EXPANSION,Growth,Vekst
+UI_ATTENTION_LICENCE_READY,Growth licence ready in {0},Vekstlisens klar i {0}
+UI_ATTENTION_LICENCE_READY_DESC,Its {0:N0} t of MTB already counts in the production area. Build a locality in {1} to farm there.,De {0:N0} t MTB gjelder allerede i produksjonsområdet. Bygg en lokalitet i {1} for å drive der.
+UI_EVENT_VERB_BID_LICENCE,See the auction,Se auksjonen
+ZONE_PO01_FLEKKEFJORD,Flekkefjord,Flekkefjord
+ZONE_PO02_FINNOY,Finnøy,Finnøy
+ZONE_PO03_BOMLO,Bømlo,Bømlo
+ZONE_PO04_SOLUND,Solund,Solund
+ZONE_PO05_SANDE,Sande,Sande
+ZONE_PO06_HITRA,Hitra,Hitra
+ZONE_PO07_VIKNA,Vikna,Vikna
+ZONE_PO08_LUROY,Lurøy,Lurøy
+ZONE_PO09_STEIGEN,Steigen,Steigen
+ZONE_PO10_SENJA,Senja,Senja
+ZONE_PO11_SKJERVOY,Skjervøy,Skjervøy
+ZONE_PO12_HASVIK,Hasvik,Hasvik
+ZONE_PO13_LEBESBY,Lebesby,Lebesby

@@ -70,7 +70,12 @@ namespace LakskongenSim.Events
 
         // ── Standing orders (they hold until answered or enforced; U2-07) ──
         LiceTreatmentOrder,
-        BiomassOrder
+        BiomassOrder,
+
+        // ── Growth-licence auctions (U2-01) ─────────────────────────────────
+        LicenceOutbid,
+        LicenceAuctionWon,
+        LicenceAuctionLost
     }
 
     /// <summary>
@@ -103,12 +108,13 @@ namespace LakskongenSim.Events
         public const string VerbRaiseCapital = "raise_capital";
         public const string VerbOpenSustainability = "open_sustainability";
         public const string VerbInspectSite = "inspect_site";
+        public const string VerbBidLicence = "bid_licence";
 
         /// <summary>Every verb a type may declare.</summary>
         public static readonly IReadOnlyList<string> CounterVerbs = new[]
         {
             NoCounterVerb, VerbDelouse, VerbFreshwaterBath, VerbInspectNets, VerbCheckWater,
-            VerbReviewFeeding, VerbRaiseCapital, VerbOpenSustainability, VerbInspectSite
+            VerbReviewFeeding, VerbRaiseCapital, VerbOpenSustainability, VerbInspectSite, VerbBidLicence
         };
 
         private static readonly GameEventTypeInfo[] Rows =
@@ -147,6 +153,10 @@ namespace LakskongenSim.Events
 
             Row(GameEventType.LiceTreatmentOrder, "lice_treatment_order", "lice_order", GameEventSeverity.Warning, VerbDelouse, GameEventDeadlineRule.SetByPublisher),
             Row(GameEventType.BiomassOrder, "biomass_order", "biomass_order", GameEventSeverity.Warning, VerbInspectSite, GameEventDeadlineRule.SetByPublisher),
+
+            Row(GameEventType.LicenceOutbid, "licence_outbid", "licence_auction", GameEventSeverity.Warning, VerbBidLicence, GameEventDeadlineRule.SetByPublisher),
+            Row(GameEventType.LicenceAuctionWon, "licence_auction_won", "licence_auction", GameEventSeverity.Info, NoCounterVerb),
+            Row(GameEventType.LicenceAuctionLost, "licence_auction_lost", "licence_auction", GameEventSeverity.Info, NoCounterVerb),
         };
 
         private static readonly Dictionary<GameEventType, GameEventTypeInfo> ByType =
