@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using LakskongenSim.Biology;
@@ -534,55 +536,151 @@ public class SaveLoadManagerTests : IDisposable
         }
     }
 
+    // Concurrent saves to one slot. The test this replaces EXPECTED an
+    // IOException from 20 concurrent saves ("file locking prevents data
+    // corruption"): that held on macOS/Windows by timing and failed on Linux,
+    // which has no mandatory file locks (CI run 38616565220). Saves to a slot
+    // are now serialized and land by atomic replace on every OS, so the
+    // replacement asserts what a player needs instead: no save fails, and the
+    // slot and every backup always hold one complete save.
+
+    private const string SharedSlot = "shared_slot";
+
     [Fact]
     public async Task StressTest_ConcurrentSavesToSameSlot()
     {
-        // Multiple threads saving to the same slot (more aggressive race condition)
-        // FINDING: SaveLoadManager does NOT support concurrent writes to the same slot
-        // This is expected behavior - game saves are typically single-threaded operations
-        var tasks = new List<Task>();
-        var exceptions = new List<Exception>();
+        const int writers = 20;
+        var references = WriterSaves(writers);
+        using var go = new ManualResetEventSlim(false);
+        var exceptions = new ConcurrentQueue<Exception>();
 
-        for (int i = 0; i < 20; i++)
+        var tasks = Enumerable.Range(0, writers).Select(writer => Task.Factory.StartNew(() =>
         {
-            int threadId = i;
-            tasks.Add(Task.Run(() =>
-            {
-                try
-                {
-                    var state = CreateBasicState();
-                    state.Day = threadId;
-                    state.Balance = threadId * 1000m;
-
-                    _manager.SaveGame(state, "shared_slot");
-                    Thread.Sleep(10); // Small delay to increase contention
-                }
-                catch (Exception ex)
-                {
-                    lock (exceptions)
-                    {
-                        exceptions.Add(ex);
-                    }
-                }
-            }));
-        }
-
+            go.Wait();
+            try { _manager.SaveGame(WriterState(writer), SharedSlot); }
+            catch (Exception ex) { exceptions.Enqueue(ex); }
+        }, TaskCreationOptions.LongRunning)).ToArray();
+        go.Set();
         await Task.WhenAll(tasks);
 
-        // DOCUMENTED LIMITATION: Concurrent saves to the same slot will fail
-        // This is acceptable for single-player games where saves are player-initiated
-        // and sequential. File locking prevents data corruption.
-        Assert.NotEmpty(exceptions); // We EXPECT exceptions due to file locking
-        // FileNotFoundException is a subclass of IOException
-        Assert.All(exceptions, ex => Assert.True(ex is IOException, $"Expected IOException or subclass, got {ex.GetType().Name}"));
+        Assert.True(exceptions.IsEmpty, "every concurrent save must succeed: " + string.Join("; ", exceptions));
 
-        // However, at least SOME saves should succeed
-        if (File.Exists(Path.Combine(_testDir, "shared_slot.json")))
+        // The slot is byte for byte one writer's complete save, and loads as that writer's state.
+        string slotPath = Path.Combine(_testDir, SharedSlot + ".json");
+        int slotWriter = WriterOf(File.ReadAllBytes(slotPath), references, slotPath);
+        var loaded = _manager.LoadGame(SharedSlot);
+        Assert.Equal((slotWriter, slotWriter * 1000m), (loaded.Day, loaded.Balance));
+
+        // The saves ran one after another: the slot and its three backups are
+        // four complete saves by four different writers.
+        var generations = new List<int> { slotWriter };
+        for (int i = 1; i <= SaveLoadManager.MaxBackups; i++)
         {
-            var loaded = _manager.LoadGame("shared_slot");
-            Assert.NotNull(loaded);
-            Assert.InRange(loaded.Day, 0, 19);
+            string backup = slotPath + $".bak{i}";
+            Assert.True(File.Exists(backup), $"{Path.GetFileName(backup)} is missing");
+            generations.Add(WriterOf(File.ReadAllBytes(backup), references, backup));
         }
+        Assert.Equal(generations.Count, generations.Distinct().Count());
+
+        // Nothing else is left behind: no temp file of any save.
+        AssertOnlySlotFilesRemain();
+    }
+
+    [Fact]
+    public async Task StressTest_LoadsDuringConcurrentSavesToSameSlot_AlwaysSeeOneCompleteSave()
+    {
+        const int writers = 8;
+        const int savesPerWriter = 12;
+        const int readers = 2;
+        var references = WriterSaves(writers);
+        string slotPath = Path.Combine(_testDir, SharedSlot + ".json");
+        _manager.SaveGame(WriterState(0), SharedSlot); // the slot exists before anyone reads it
+
+        int writersRunning = writers;
+        using var readersStarted = new CountdownEvent(readers);
+        using var go = new ManualResetEventSlim(false);
+
+        // One load through the manager and one raw read of the slot; never throws.
+        void ReadOnce(int load, List<string> failures)
+        {
+            try
+            {
+                var state = _manager.LoadGame(SharedSlot);
+                if (state.Day < 0 || state.Day >= writers || state.Balance != state.Day * 1000m)
+                    failures.Add($"load {load}: Day {state.Day} / Balance {state.Balance} is no writer's save");
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"load {load}: {ex.GetType().Name}: {ex.Message}");
+            }
+
+            try
+            {
+                byte[] bytes = ReadAllBytesShared(slotPath);
+                if (!references.Any(reference => reference.AsSpan().SequenceEqual(bytes)))
+                    failures.Add($"read {load}: {bytes.Length} bytes that are no writer's complete save");
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"read {load}: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        var readerTasks = Enumerable.Range(0, readers).Select(_ => Task.Factory.StartNew(() =>
+        {
+            var failures = new List<string>();
+            int loads = 0;
+            do
+            {
+                ReadOnce(loads, failures);
+                if (++loads == 1) readersStarted.Signal();
+            } while (Volatile.Read(ref writersRunning) > 0);
+            return (Loads: loads, Failures: failures);
+        }, TaskCreationOptions.LongRunning)).ToArray();
+
+        readersStarted.Wait(); // every reader is in its loop before the first write
+        var writerTasks = Enumerable.Range(0, writers).Select(writer => Task.Factory.StartNew(() =>
+        {
+            go.Wait();
+            try
+            {
+                for (int save = 0; save < savesPerWriter; save++)
+                    _manager.SaveGame(WriterState(writer), SharedSlot);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref writersRunning);
+            }
+        }, TaskCreationOptions.LongRunning)).ToArray();
+        go.Set();
+
+        await Task.WhenAll(writerTasks); // a save that throws fails the test here
+        var results = await Task.WhenAll(readerTasks);
+
+        Assert.All(results, result => Assert.True(result.Loads > 0));
+        var failures = results.SelectMany(result => result.Failures).ToList();
+        Assert.True(failures.Count == 0,
+            $"{failures.Count} of {results.Sum(r => r.Loads)} reads during the saves saw no complete save: "
+            + string.Join("; ", failures.Take(5)));
+        WriterOf(File.ReadAllBytes(slotPath), references, slotPath);
+        AssertOnlySlotFilesRemain();
+    }
+
+    [Fact]
+    public void SaveGame_ThatCannotCommit_LeavesTheSlotAsItWasAndNoTempFile()
+    {
+        var references = WriterSaves(3);
+        _manager.SaveGame(WriterState(1), SharedSlot);
+        string slotPath = Path.Combine(_testDir, SharedSlot + ".json");
+        // A directory holds the .bak1 name, so the replace that would move the
+        // current save there fails (IOException or UnauthorizedAccessException by OS).
+        Directory.CreateDirectory(slotPath + ".bak1");
+
+        Assert.ThrowsAny<Exception>(() => _manager.SaveGame(WriterState(2), SharedSlot));
+
+        Assert.Equal(1, WriterOf(File.ReadAllBytes(slotPath), references, slotPath));
+        Assert.Equal(1, _manager.LoadGame(SharedSlot).Day);
+        Assert.Equal(new[] { SharedSlot + ".json" }, Directory.GetFiles(_testDir).Select(path => Path.GetFileName(path)));
     }
 
     [Fact]
@@ -654,5 +752,61 @@ public class SaveLoadManagerTests : IDisposable
             Day = 0,
             Balance = 1_000_000m
         };
+    }
+
+    /// <summary>
+    /// Writer <paramref name="writer"/>'s state: Day = writer, Balance = writer × 1000,
+    /// and a year of analytics, so a save is ~100 KB and takes many writes.
+    /// </summary>
+    private static GameState WriterState(int writer)
+    {
+        var state = new GameState { Day = writer, Balance = writer * 1000m };
+        for (int day = 1; day <= 365; day++)
+        {
+            state.DailySnapshots.Add(new DailySnapshot
+            {
+                Day = day,
+                BalanceNok = writer * 1_000_000.0 + day,
+                FishCount = writer * 1000 + day,
+                AvgWeightKg = 0.1 + day * 0.01
+            });
+        }
+        return state;
+    }
+
+    /// <summary>
+    /// The exact bytes of each writer's save, from the save format itself
+    /// (UTF-8 JSON through <see cref="SaveJson.Options"/>), not from SaveGame.
+    /// </summary>
+    private static byte[][] WriterSaves(int writers) =>
+        Enumerable.Range(0, writers)
+            .Select(writer => Encoding.UTF8.GetBytes(JsonSerializer.Serialize(WriterState(writer), SaveJson.Options)))
+            .ToArray();
+
+    /// <summary>The writer whose complete save <paramref name="bytes"/> is; fails otherwise.</summary>
+    private static int WriterOf(byte[] bytes, byte[][] references, string path)
+    {
+        int writer = Array.FindIndex(references, reference => reference.AsSpan().SequenceEqual(bytes));
+        Assert.True(writer >= 0, $"{Path.GetFileName(path)} ({bytes.Length} bytes) is no writer's complete save");
+        return writer;
+    }
+
+    /// <summary>
+    /// Reads a file the way the game's loader does: without blocking a writer
+    /// that replaces it (on Windows a plain read would hold the file open).
+    /// </summary>
+    private static byte[] ReadAllBytesShared(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+        return buffer.ToArray();
+    }
+
+    private void AssertOnlySlotFilesRemain()
+    {
+        var expected = new[] { "", ".bak1", ".bak2", ".bak3" }.Select(suffix => SharedSlot + ".json" + suffix);
+        var left = Directory.GetFiles(_testDir).Select(path => Path.GetFileName(path)).OrderBy(name => name, StringComparer.Ordinal);
+        Assert.Equal(expected.OrderBy(name => name, StringComparer.Ordinal), left);
     }
 }
