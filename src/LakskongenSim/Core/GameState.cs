@@ -30,17 +30,40 @@ namespace LakskongenSim.Core
         /// <summary>List of zones in the environment.</summary>
         public List<Environment.Zone> Zones { get; set; } = new();
 
-        /// <summary>List of active farms/sea sites.</summary>
+        /// <summary>
+        /// Everything in the water (F2-03): fjord localities and offshore units
+        /// (<see cref="Farm.SeaSite.Kind"/>).
+        /// </summary>
         public List<Farm.SeaSite> SeaSites { get; set; } = new();
 
-        /// <summary>List of active RAS facilities.</summary>
+        /// <summary>
+        /// Everything on land (F2-03): the land sites, grow-out and post-smolt
+        /// (<see cref="Farm.RASFacility.Kind"/>; the name is kept for save,
+        /// bridge and test compatibility, players read "Landanlegg").
+        /// </summary>
         public List<Farm.RASFacility> RASFacilities { get; set; } = new();
 
-        /// <summary>List of active Offshore farms.</summary>
+        /// <summary>
+        /// Load-only (F2-03): a pre-F2 save's offshore farms. The load migrates
+        /// each to an offshore <see cref="Farm.SeaSite"/> and empties the list
+        /// (<c>SimulationEngine.FacilityMigration.cs</c>).
+        /// </summary>
         public List<Farm.OffshoreFarm> OffshoreFarms { get; set; } = new();
 
-        /// <summary>List of active Post-Smolt facilities.</summary>
+        /// <summary>
+        /// Load-only (F2-03): a pre-F2 save's post-smolt facilities. The load
+        /// migrates each to a post-smolt land site and empties the list.
+        /// </summary>
         public List<Farm.PostSmoltFacility> PostSmoltFacilities { get; set; } = new();
+
+        /// <summary>
+        /// The game's farm-type plots (F2-03): the state of each land pad and
+        /// offshore slot a unit stands on or could stand on (owner, zoning,
+        /// grid feeds); the attributes come from the catalogue
+        /// (<see cref="Farm.SitePlotCatalog"/>) and are not saved. Empty until the
+        /// game first builds or migrates a land site or an offshore unit.
+        /// </summary>
+        public List<Farm.SitePlot> SitePlots { get; set; } = new();
 
         /// <summary>Whether the player has an AI Feeding System installed.</summary>
         public bool OwnsAIFeedingSystem { get; set; } = false;

@@ -35,6 +35,10 @@
     <EmbeddedResource Include="..\..\godot\data\calibration.json"
                       Link="Calibration\calibration.json"
                       LogicalName="LakskongenSim.Calibration.calibration.json" />
+    <!-- F2-03: the farm-type plots' gameplay attributes (SitePlotCatalog). -->
+    <EmbeddedResource Include="..\..\godot\data\site_plots.json"
+                      Link="Farm\site_plots.json"
+                      LogicalName="LakskongenSim.Farm.site_plots.json" />
   </ItemGroup>
 
 </Project>

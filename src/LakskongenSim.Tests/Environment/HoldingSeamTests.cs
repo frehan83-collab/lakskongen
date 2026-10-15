@@ -20,8 +20,13 @@ namespace LakskongenSim.Tests.Environment
     /// </summary>
     public class HoldingSeamTests
     {
-        /// <summary>A sea site in PO9, a land tank and an offshore structure, each stocked, 40 days in (February).</summary>
-        private static (SimulationEngine Engine, Zone Zone, SeaSite Site, RASFacility Ras, OffshoreFarm Farm) ThreeHoldings(bool events = false)
+        /// <summary>
+        /// A sea site in PO9, a land tank and an offshore unit, each stocked, 40
+        /// days in (February). F2-03: the offshore structure is an offshore sea
+        /// site on its plot (off_1), in the plot's own water area of the home
+        /// area (PO9), where the pre-F2 fixture moved its farm into the fjord zone.
+        /// </summary>
+        private static (SimulationEngine Engine, Zone Zone, SeaSite Site, RASFacility Ras, SeaSite Unit) ThreeHoldings(bool events = false)
         {
             var engine = new SimulationEngine { FinanceManager = new FinanceManager(5_000_000_000m) };
             engine.Initialize(enableEvents: events, seed: 61);
@@ -36,15 +41,15 @@ namespace LakskongenSim.Tests.Environment
             Assert.True(engine.BuildRASFacility("Landtank", RASScale.Small).Ok);
             Assert.True(engine.BuildOffshoreFarm("Havfarm", OffshoreType.SemiSubmersible).Ok);
             var ras = engine.RASFacilities.Single();
-            var farm = engine.OffshoreFarms.Single();
-            farm.ZoneId = zone.Id;
+            var unit = engine.OffshoreUnits.Single();
+            Assert.Equal("off_1", unit.PlotId);
             ras.ConstructionDays = 1;
-            farm.ConstructionDays = 1;
+            unit.Offshore!.ConstructionDays = 1;
             engine.Advance(2);
             Assert.True(engine.StockRASFacility(ras.Id, 20_000).Ok);
-            Assert.True(engine.StockOffshoreFarm(farm.Id, 20_000).Ok);
+            Assert.True(engine.StockOffshoreFarm(unit.Id, 20_000).Ok);
             engine.Advance(38);
-            return (engine, zone, site, ras, farm);
+            return (engine, zone, site, ras, unit);
         }
 
         [Fact]
@@ -116,30 +121,45 @@ namespace LakskongenSim.Tests.Environment
             Assert.True(water.TemperatureC > engine.HoldingWaterOf(site.Pens.Single()).TemperatureC + 5.0);
         }
 
+        /// <summary>
+        /// F2-03 replacement of OffshorePen_TakesItsAreasSea_WithTheFarmsCurrentFedOxygen_InBothViews:
+        /// the offshore unit's zone resolves to the unit (its sea site, the
+        /// zone as its pen), and its water is its area's sea (PO9, the home
+        /// area: its plot's water area is no fjord zone) with the unit's
+        /// current-fed oxygen boost, in both views; its wave height is the unit's.
+        /// </summary>
         [Fact]
         public void OffshorePen_TakesItsAreasSea_WithTheFarmsCurrentFedOxygen_InBothViews()
         {
-            var (engine, zone, _, _, farm) = ThreeHoldings();
-            var pen = farm.Pens.Single();
-            farm.CurrentWaveHeight = 3.25;
+            var (engine, zone, _, _, unit) = ThreeHoldings();
+            var pen = unit.Pens.Single();
+            unit.Offshore!.CurrentWaveHeight = 3.25;
 
             var holding = engine.HoldingOf(pen);
             Assert.Equal(HoldingKind.Offshore, holding.Kind);
-            Assert.Equal(farm.Id, holding.Id);
-            Assert.Same(farm, holding.OffshoreFarm);
-            Assert.Same(zone, holding.Zone);
+            Assert.Equal(unit.Id, holding.Id);
+            Assert.Same(unit, holding.Site);
+            Assert.Null(holding.OffshoreFarm);
+            Assert.Null(holding.LandFacility);
+            Assert.Null(holding.Zone);
+            Assert.NotEqual(zone.Id, unit.ZoneId);
+            Assert.Same(unit.PhysicalPens[0], holding.Pen);
+            Assert.Equal($"{unit.Id}/p01", holding.Pen!.Id);
 
             var water = engine.HoldingWaterOf(pen);
             Assert.Equal(HoldingKind.Offshore, water.Kind);
             Assert.True(water.OpenToSea);
+            Assert.Equal(9, water.ProductionArea);
             Assert.Equal(engine.Weather.SeaTemperatureAt(9), water.TemperatureC, 12);
-            // S2-02 gave the offshore pen the zone's oxygen, S2-05 the zone's plus
-            // the farm's boost; the one water now carries the boost everywhere.
-            Assert.Equal(zone.WaterChemistry.OxygenO2 + farm.OxygenBoost, water.OxygenMgPerL, 12);
+            // The open sea's oxygen (saturation: no fjord zone's chemistry) plus
+            // the unit's boost; the one water carries the boost everywhere.
+            Assert.Equal(WaterQuality.CalculateOxygenSaturation(water.TemperatureC, HoldingWater.SeawaterSalinityPsu)
+                + unit.Offshore.OxygenBoost, water.OxygenMgPerL, 12);
+            Assert.Equal(1.5, unit.Offshore.OxygenBoost);
 
             var env = engine.ResolveCohortEnvironment(pen);
             Assert.Equal(HoldingKind.Offshore, env.Holding);
-            Assert.Equal(farm.Id, env.HoldingId);
+            Assert.Equal(unit.Id, env.HoldingId);
             Assert.Equal(water.OxygenMgPerL, env.OxygenMgL, 12);
             Assert.Equal(water.TemperatureC, env.WaterTemperatureC, 12);
             Assert.Equal(3.25, env.WaveHeightM, 12);
@@ -148,10 +168,10 @@ namespace LakskongenSim.Tests.Environment
         [Fact]
         public void APinnedSeaTemperature_ReachesSeaAndOffshorePens_ButNeverALandTank()
         {
-            var (engine, _, site, ras, farm) = ThreeHoldings();
+            var (engine, _, site, ras, unit) = ThreeHoldings();
             ras.CurrentWaterTemp = 12.0;
             var seaPen = site.Pens.Single();
-            var hullPen = farm.Pens.Single();
+            var hullPen = unit.Pens.Single();
             var tank = ras.Tanks.Single();
 
             foreach (var pinned in new[] { -1.0, 3.0, 19.5 })

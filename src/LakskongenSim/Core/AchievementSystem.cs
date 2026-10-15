@@ -371,8 +371,11 @@ namespace LakskongenSim.Core
             },
             // Precision: world-class feed conversion (P6).
             {"PrecisionFCR", gs => gs.BestFCR > 0.0 && gs.BestFCR <= 1.12},
-            // SuperSmolt: a post-smolt facility is operating.
-            {"SuperSmoltStocked", gs => gs.PostSmoltFacilities.Count > 0},
+            // SuperSmolt: the company has a post-smolt site (F2-03: a post-smolt
+            // land site; the pre-F2 list only holds a save's facilities until
+            // the load migrates them).
+            {"SuperSmoltStocked", gs => gs.RASFacilities.Any(f => f.Kind == Farm.LandSiteKind.PostSmolt)
+                || gs.PostSmoltFacilities.Count > 0},
             // Bloom Ready: at least one site has bloom countermeasures installed.
             {"BloomMitigationInstalled", gs =>
                 gs.SeaSites.Any(s => s.HasBubbleCurtain || s.HasO2Diffuser)

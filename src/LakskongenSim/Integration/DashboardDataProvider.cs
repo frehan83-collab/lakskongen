@@ -501,13 +501,13 @@ namespace LakskongenSim.Integration
 
         private decimal CalculateLicenseCapex()
         {
-            int siteCount = _engine.State?.SeaSites?.Count ?? 0;
+            int siteCount = _engine.State?.SeaSites?.Count(s => s.Kind == Farm.SiteKind.Fjord) ?? 0; // F2-03: an offshore unit's capex is its own
             return siteCount * 30_000_000m; // 30M per license
         }
 
         private decimal CalculatePenCapex()
         {
-            int siteCount = _engine.State?.SeaSites?.Count ?? 0;
+            int siteCount = _engine.State?.SeaSites?.Count(s => s.Kind == Farm.SiteKind.Fjord) ?? 0; // F2-03: fjord pens only
             return siteCount * 5_000_000m; // 5M per site for pen infrastructure
         }
 
@@ -519,15 +519,15 @@ namespace LakskongenSim.Integration
 
         private decimal CalculateRasCapex()
         {
-            // RAS facilities (if any)
-            int rasCount = _engine.RASFacilities?.Count ?? 0;
+            // Grow-out land sites (F2-03: post-smolt sites are land sites too, priced apart before F2)
+            int rasCount = _engine.RASFacilities?.Count(f => f.Kind == Farm.LandSiteKind.GrowOut) ?? 0;
             return rasCount * 1_000_000_000m; // 1B per RAS
         }
 
         private decimal CalculateOffshoreCapex()
         {
-            // Offshore farms (if any)
-            int offshoreCount = _engine.OffshoreFarms?.Count ?? 0;
+            // Offshore units (F2-03: offshore sea sites)
+            int offshoreCount = _engine.OffshoreUnits.Count;
             return offshoreCount * 800_000_000m; // 800M per offshore unit
         }
 

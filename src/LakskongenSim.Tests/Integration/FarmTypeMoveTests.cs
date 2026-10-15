@@ -40,8 +40,10 @@ public class FarmTypeMoveTests
     /// Continuation recordings of the pre-F2 facilities save, made on the
     /// pre-move engine (this file's first commit, 2190137, on the wave-2 base 8c81754):
     /// SHA-256 (64 bit) over every day's golden-trace state hash and
-    /// the GUID-normalized save every 30 days. Enforced where the platform's C
-    /// math library matches the golden traces' recording (as they are).
+    /// the GUID-normalized save every 30 days. F2-02's pure move kept them; F2-03
+    /// turns the save's facilities into the F2 unit kinds on load, by design, so
+    /// they are history now (RUN_LOG §7, F2-03): <see cref="F2_03Recording"/>
+    /// pins the migrated continuation.
     /// </summary>
     private static readonly IReadOnlyDictionary<string, string> PreMoveRecording = new Dictionary<string, string>(StringComparer.Ordinal)
     {
@@ -50,7 +52,21 @@ public class FarmTypeMoveTests
         ["contained/events"] = "6e7519ba98447711",
     };
 
-    public static IEnumerable<object[]> Variants() => PreMoveRecording.Keys.Select(k => new object[] { k });
+    /// <summary>
+    /// The same continuations recorded on F2-03's engine (the save's offshore
+    /// farm an offshore unit on off_1, its post-smolt facility a post-smolt land
+    /// site on pad_delta, its RAS facility a land site on pad_a), hashed as
+    /// <see cref="PreMoveRecording"/>. A later item that changes the facility
+    /// behaviour on purpose replaces these with a RUN_LOG §7 row, as F2-03 did.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, string> F2_03Recording = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["as-saved/events"] = "644fb42251dfb53b",
+        ["as-saved/no-events"] = "d7a720d29724ece1",
+        ["contained/events"] = "63109bcb0e168b95",
+    };
+
+    public static IEnumerable<object[]> Variants() => F2_03Recording.Keys.Select(k => new object[] { k });
 
     private static string FixturePath()
     {
@@ -113,26 +129,44 @@ public class FarmTypeMoveTests
     }
 
     /// <summary>
-    /// F2-02 acceptance 1 and 2 for the code the goldens never reach: the pre-F2
-    /// facilities save (a RAS facility with stocked tanks, an offshore farm with
-    /// stocked pens, a post-smolt facility with batches, a hatchery cohort) runs
-    /// 365 days exactly as it did before the move: every day's traced state
-    /// (populations by tank and pen, the ledger, cash, every stream) and the
-    /// whole save every 30 days (carbon trackers, facility water, crew rotation).
+    /// F2-02 acceptance 1 and 2 for the code the goldens never reach, on F2-03's
+    /// unit kinds: the pre-F2 facilities save (a RAS facility with stocked
+    /// tanks, an offshore farm with stocked pens, a post-smolt facility with
+    /// batches, a hatchery cohort) loads into a grow-out land site, an offshore
+    /// unit and a post-smolt land site and runs 365 days as recorded on F2-03's
+    /// engine: every day's traced state (populations by tank and zone, the
+    /// ledger, cash, every stream) and the whole save every 30 days (carbon
+    /// trackers, facility water, crew rotation). Replaces F2-02's pre-move pins
+    /// (<see cref="PreMoveRecording"/>; RUN_LOG §7, F2-03) and asserts more: the
+    /// land sites and the offshore unit are the save's facilities by id, each
+    /// on its plot, the offshore unit's fish in its zones.
     /// </summary>
     [Theory]
     [MemberData(nameof(Variants))]
     public void PreF2FacilitiesSave_Runs365Days_ExactlyAsBeforeTheMove(string variant)
     {
         var (hash, engine, redCreditDays) = RecordContinuation(variant);
+        var ras = engine.RASFacilities.Single(f => f.Kind == LandSiteKind.GrowOut);
+        var postSmolt = engine.RASFacilities.Single(f => f.Kind == LandSiteKind.PostSmolt);
+        var unit = engine.OffshoreUnits.Single();
         _output.WriteLine($"{variant}: continuation {hash}; red-credit days {redCreditDays}; " +
             $"cash {engine.FinanceManager.Balance:N0}; fish {engine.State.Populations.Sum(p => (long)p.TotalCount):N0}; " +
-            $"RAS kg {engine.RASFacilities.Sum(f => f.GetTotalBiomassKg()):N0}; offshore kg {engine.OffshoreFarms.Sum(f => f.Pens.Sum(p => p.GetTotalBiomassKg())):N0}");
+            $"RAS kg {ras.GetTotalBiomassKg():N0}; post-smolt kg {postSmolt.GetTotalBiomassKg():N0}; " +
+            $"offshore kg {unit.Pens.Sum(p => p.GetTotalBiomassKg()):N0}");
 
-        // The facilities did run: tanks and pens hold fish, post-smolt batches live.
-        Assert.True(engine.RASFacilities.Single().GetTotalBiomassKg() > 0);
-        Assert.Contains(engine.OffshoreFarms.Single().Pens, p => p.TotalCount > 0);
-        Assert.Contains(engine.RASFacilities.Single().CarbonTracker.Emissions, e => e.Source == engine.RASFacilities.Single().Id);
+        // The facilities did run: tanks and zones hold fish, the post-smolt
+        // batches live on in their site's tanks, and each books its carbon.
+        Assert.Equal(("ras_1", "pad_a"), (ras.Id, ras.PlotId));
+        Assert.Equal(("postsmolt_1", "pad_delta"), (postSmolt.Id, postSmolt.PlotId));
+        Assert.Equal(("offshore_1", "off_1"), (unit.Id, unit.PlotId));
+        Assert.True(ras.GetTotalBiomassKg() > 0);
+        Assert.Contains(unit.Pens, p => p.TotalCount > 0);
+        Assert.All(unit.Pens, p => Assert.NotNull(unit.PenOf(p)));
+        Assert.Contains(postSmolt.Tanks, p => p.TotalCount > 0);
+        Assert.Contains(ras.CarbonTracker.Emissions, e => e.Source == ras.Id);
+        Assert.Contains(unit.Offshore!.CarbonTracker.Emissions, e => e.Source == unit.Id);
+        Assert.Empty(engine.OffshoreFarms);
+        Assert.Empty(engine.PostSmoltFacilities);
         if (variant.StartsWith("contained/", StringComparison.Ordinal))
             Assert.True(redCreditDays > 0, "the contained variant must reach the red-zone MTB credit");
 
@@ -144,7 +178,8 @@ public class FarmTypeMoveTests
             _output.WriteLine("not enforced here: this platform's math library differs from the recording's");
             return;
         }
-        Assert.Equal(PreMoveRecording[variant], hash);
+        Assert.Equal(F2_03Recording[variant], hash);
+        Assert.NotEqual(PreMoveRecording[variant], hash); // the migration changes the facilities' days, on purpose
     }
 
     // ── Acceptance 3: no facility or containment tick code in the hot files ──
@@ -289,11 +324,11 @@ public class FarmTypeMoveTests
     };
 
     /// <summary>
-    /// Hooks with no engine call site yet, and why: the per-zone site limit is
-    /// not enforced anywhere and the remote operations centre's budget is summed
-    /// in the bridge (GameBridge.Farm.cs), which F2-03 wires.
+    /// Hooks with no engine call site yet, and why. None since F2-03 wired
+    /// <c>CountsTowardSiteLimits</c> into the remote operations centre's budget
+    /// (<see cref="SimulationEngine.RemoteOpsAttentionUsed"/>, which the bridge reads).
     /// </summary>
-    private static readonly string[] HooksAwaitingTheirCaller = { "CountsTowardSiteLimits" };
+    private static readonly string[] HooksAwaitingTheirCaller = Array.Empty<string>();
 
     /// <summary>
     /// Every hook of §3.3 is declared in SimulationEngine.FarmTypeHooks.cs and,

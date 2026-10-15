@@ -47,6 +47,13 @@ public class FarmTypeHooksTests
         => Assert.True(decimal.GetBits(expected).SequenceEqual(decimal.GetBits(actual)),
             $"{what}: expected {expected} ({string.Join(",", decimal.GetBits(expected))}), actual {actual} ({string.Join(",", decimal.GetBits(actual))})");
 
+    /// <summary>
+    /// The fixture after F2-03's load migration: po3_red_sone's two fjord sites,
+    /// the offshore farm as an offshore unit (an offshore sea site), the RAS and
+    /// post-smolt facilities as land sites, and the hatchery cohort in no site.
+    /// (Replaces F2-02's "two sea sites": the fjord sites are still exactly two,
+    /// and the offshore unit is the farm, by id, with its kind.)
+    /// </summary>
     [Fact]
     public void TheFixture_HoldsEveryHoldingKind_AndAPopulationInNoSite()
     {
@@ -55,21 +62,42 @@ public class FarmTypeHooksTests
         Assert.Contains(HoldingKind.LandTank, kinds);
         Assert.Contains(HoldingKind.Offshore, kinds);
         Assert.Contains(Engine.State.Populations, p => Engine.HoldingOf(p).Site == null && Engine.HoldingOf(p).Kind == HoldingKind.SeaPen);
-        Assert.Equal(2, Engine.State.SeaSites.Count);
+        Assert.Equal(new[] { "po3_nord", "po3_sor" },
+            Engine.State.SeaSites.Where(s => s.Kind == SiteKind.Fjord).Select(s => s.Id));
+        var unit = Assert.Single(Engine.OffshoreUnits);
+        Assert.Equal("offshore_1", unit.Id);
+        Assert.NotNull(unit.Offshore);
+        Assert.Equal(3, Engine.State.SeaSites.Count);
+        Assert.Empty(Engine.OffshoreFarms);
+        Assert.Empty(Engine.PostSmoltFacilities);
+        Assert.All(Engine.State.Populations.Where(p => Engine.HoldingOf(p).Kind == HoldingKind.Offshore),
+            p => Assert.Same(unit, Engine.HoldingOf(p).Site));
     }
 
-    /// <summary>Pre-move: <c>site.Lice.SetExternalPressure(SeasonalLicePressure(State.Day))</c>.</summary>
+    /// <summary>
+    /// Pre-move: <c>site.Lice.SetExternalPressure(SeasonalLicePressure(State.Day))</c>
+    /// at every site, which every fjord site keeps bit for bit; F2-03 gives an
+    /// offshore unit its plot's lower external pressure (off_1: 0.12, spec §4).
+    /// </summary>
     [Fact]
     public void ExternalLicePressureFor_IsOne_SoEverySiteTakesTheSeasonalPressure()
     {
         foreach (var site in Engine.State.SeaSites)
         {
             double hook = Engine.ExternalLicePressureFor(site);
+            if (site.Kind == SiteKind.Offshore)
+            {
+                Assert.Equal("off_1", site.PlotId);
+                Assert.Equal(0.12, hook);
+                Assert.Equal(Engine.FindPlot(site.PlotId)!.LiceExternalMultiplier, hook);
+                continue;
+            }
             Assert.Equal(1.0, hook);
             for (int day = 0; day < 2 * SimCalendar.DaysPerYear; day++)
                 SameBits(SimulationEngine.SeasonalLicePressure(day), SimulationEngine.SeasonalLicePressure(day) * hook,
                     $"{site.Id} day {day}");
         }
+        Assert.Contains(Engine.State.SeaSites, s => s.Kind == SiteKind.Offshore);
     }
 
     /// <summary>
@@ -77,22 +105,38 @@ public class FarmTypeHooksTests
     /// <c>fish = pops.SelectMany(p =&gt; p.Cohorts).Sum(c =&gt; c.Count)</c>,
     /// <c>lice = fish &gt; 0 ? pops.Sum(p =&gt; p.Cohorts.Sum(c =&gt; c.Count) * p.SeaLiceLoad) / fish : 0</c>.
     /// </summary>
+    /// <summary>
+    /// The pre-move terms for every population not in an offshore unit, and the
+    /// pre-move zone mean of every fjord zone, bit for bit; an offshore unit's
+    /// fish add nothing to any zone's mean (F2-03: they never dilute a fjord
+    /// zone, spec §3.1 decision 1), and its own water area's mean is empty.
+    /// </summary>
     [Fact]
     public void ZoneLiceContribution_IsEachPopulationsFishTimesItsLice_AndTheZoneMeanIsThePreMoveMean()
     {
+        int offshorePopulations = 0;
         foreach (var population in Engine.State.Populations)
         {
-            var share = Engine.ZoneLiceContribution(Engine.HoldingOf(population).Site, population);
+            var holding = Engine.HoldingOf(population);
+            var share = Engine.ZoneLiceContribution(holding.Site, population);
+            if (holding.Site?.Kind == SiteKind.Offshore)
+            {
+                offshorePopulations++;
+                Assert.Equal(default(ZoneLiceShare), share);
+                continue;
+            }
             int fish = population.Cohorts.Sum(c => c.Count);
             Assert.Equal(fish, share.Fish);
             SameBits(population.Cohorts.Sum(c => c.Count) * population.SeaLiceLoad, share.LiceWeightedFish, population.ZoneId);
         }
+        Assert.Equal(2, offshorePopulations);
 
         var zoneIds = Engine.State.Zones.Select(z => z.Id).Concat(new[] { "", "no_such_zone" }).ToList();
         Assert.Contains(zoneIds, id => Engine.State.Populations.Count(p => p.ZoneId == id) >= 2);
         foreach (var zoneId in zoneIds)
         {
             var pops = Engine.State.Populations.Where(p => p.ZoneId == zoneId).ToList();
+            Assert.DoesNotContain(pops, p => Engine.HoldingOf(p).Site?.Kind == SiteKind.Offshore);
             int fish = pops.SelectMany(p => p.Cohorts).Sum(c => c.Count);
             double lice = fish > 0
                 ? pops.Sum(p => p.Cohorts.Sum(c => c.Count) * p.SeaLiceLoad) / fish
@@ -101,12 +145,21 @@ public class FarmTypeHooksTests
             Assert.Equal(fish, hookFish);
             SameBits(lice, hookLice, $"zone '{zoneId}'");
         }
+        var unit = Assert.Single(Engine.OffshoreUnits);
+        Assert.Equal((0, 0.0), Engine.ZoneLiceForTrafficLight(unit.ZoneId));
     }
 
+    /// <summary>
+    /// Pre-move: every sea site took the fjord storm wear, which every fjord
+    /// site still does; F2-03 leaves an offshore unit out, as the pre-F2
+    /// offshore farm (not a sea site) never took it.
+    /// </summary>
     [Fact]
     public void SkipsFjordStormWear_IsFalse_OnEverySite()
     {
-        Assert.All(Engine.State.SeaSites, site => Assert.False(Engine.SkipsFjordStormWear(site)));
+        Assert.All(Engine.State.SeaSites.Where(s => s.Kind == SiteKind.Fjord), site => Assert.False(Engine.SkipsFjordStormWear(site)));
+        Assert.All(Engine.OffshoreUnits, site => Assert.True(Engine.SkipsFjordStormWear(site)));
+        Assert.NotEmpty(Engine.OffshoreUnits);
     }
 
     /// <summary>Pre-move (ProcessDueWellboatJobs): every due job ran on its day.</summary>
@@ -120,10 +173,20 @@ public class FarmTypeHooksTests
                     Assert.True(Engine.OperationPossible(site, kind, day), $"{site?.Id ?? "(none)"} {kind} day {day}");
     }
 
+    /// <summary>
+    /// Pre-move: every sea site counted (the bridge summed the remote operations
+    /// centre's budget over the site list); every fjord site still does, an
+    /// offshore unit (crewed on board) does not (F2-03), and the engine's
+    /// budget sum is the fjord sites' watch modes.
+    /// </summary>
     [Fact]
     public void CountsTowardSiteLimits_IsTrue_OnEverySite()
     {
-        Assert.All(Engine.State.SeaSites, site => Assert.True(Engine.CountsTowardSiteLimits(site)));
+        var fjord = Engine.State.SeaSites.Where(s => s.Kind == SiteKind.Fjord).ToList();
+        Assert.All(fjord, site => Assert.True(Engine.CountsTowardSiteLimits(site)));
+        Assert.All(Engine.OffshoreUnits, site => Assert.False(Engine.CountsTowardSiteLimits(site)));
+        Assert.Equal(LakskongenSim.Optimization.RemoteOpsCentre.UsedBy(fjord), Engine.RemoteOpsAttentionUsed());
+        Assert.Equal(fjord.Count, Engine.SitesCountingTowardLimits());
     }
 
     /// <summary>Pre-move (Biology feeding): every holding fed its ration (fasting aside).</summary>
@@ -172,13 +235,21 @@ public class FarmTypeHooksTests
                         HoldingWater.SeawaterSalinityPsu, Engine.HomeProductionArea, HoldingKind.LandTank), water);
                     break;
                 case HoldingKind.Offshore:
-                    var farm = holding.OffshoreFarm!;
-                    SameBits(Engine.SeaTemperatureOfZone(farm.ZoneId), hook, "offshore temperature");
+                    // F2-03: the farm is an offshore unit on off_1; its zone is
+                    // the plot's water area, which no fjord zone is, so its sea is
+                    // the home area's, as the pre-F2 farm's zone "" gave it.
+                    var site = holding.Site!;
+                    var unit = site.Offshore!;
+                    Assert.Null(holding.Zone);
+                    SameBits(Engine.SeaTemperatureOfZone(site.ZoneId), hook, "offshore temperature");
+                    SameBits(Engine.SeaTemperatureOfZone(""), hook, "the pre-F2 farm's sea temperature");
                     double seaOxygen = holding.Zone?.WaterChemistry?.OxygenO2
                         ?? WaterQuality.CalculateOxygenSaturation(hook, HoldingWater.SeawaterSalinityPsu);
-                    SameBits(seaOxygen + farm.OxygenBoost, water.OxygenMgPerL, "offshore oxygen");
+                    SameBits(seaOxygen + unit.OxygenBoost, water.OxygenMgPerL, "offshore oxygen");
+                    Assert.Equal(1.5, unit.OxygenBoost);
                     Assert.Equal(HoldingWater.SeawaterSalinityPsu, water.SalinityPsu);
-                    Assert.Equal(Engine.ProductionAreaOfZone(farm.ZoneId), water.ProductionArea);
+                    Assert.Equal(Engine.ProductionAreaOfZone(site.ZoneId), water.ProductionArea);
+                    Assert.Equal(Engine.HomeProductionArea, water.ProductionArea);
                     Assert.Equal(HoldingKind.Offshore, water.Kind);
                     break;
                 default:
@@ -280,6 +351,11 @@ public class FarmTypeHooksTests
             Assert.False(Engine.IsResourceRentLiable(facility.Id, HoldingKind.LandTank));
         foreach (var farm in Engine.OffshoreFarms)
             Assert.True(Engine.IsResourceRentLiable(farm.Id, HoldingKind.Offshore));
+        // F2-03: the offshore farm is an offshore unit now; its harvests still count.
+        Assert.NotEmpty(Engine.OffshoreUnits);
+        foreach (var unit in Engine.OffshoreUnits)
+            Assert.True(Engine.IsResourceRentLiable(unit.Id, HoldingKind.Offshore));
+        Assert.Equal(2, Engine.RASFacilities.Count);
     }
 
     // ── The moved containment code, against its pre-move expressions ──────

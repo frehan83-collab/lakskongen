@@ -64,13 +64,17 @@ namespace LakskongenSim.Core
             }
 
             // Facility tanks and pens hold the same instances as Populations too.
+            // A land site's fish are in its pad's zone (F2-03; "" before the
+            // migration places a pre-F2 facility, which leaves the zone alone).
             foreach (var ras in state.RASFacilities ?? new List<Farm.RASFacility>())
-                RelinkFacility(ras.Tanks, ras.Id, state, byId);
+                RelinkFacility(ras.Tanks, ras.Id, ras.ZoneId, state, byId);
+            // A pre-F2 offshore farm's pens (load-only: the migration moves them
+            // into its offshore sea site, which the sea-site loop above relinks).
             foreach (var farm in state.OffshoreFarms ?? new List<Farm.OffshoreFarm>())
-                RelinkFacility(farm.Pens, farm.Id, state, byId);
+                RelinkFacility(farm.Pens, farm.Id, "", state, byId);
         }
 
-        private static void RelinkFacility(List<Biology.FishPopulation>? pens, string facilityId,
+        private static void RelinkFacility(List<Biology.FishPopulation>? pens, string facilityId, string? zoneId,
             GameState state, Dictionary<string, Biology.FishPopulation> byId)
         {
             if (pens == null) return;
@@ -82,12 +86,16 @@ namespace LakskongenSim.Core
                 {
                     pens[i] = canonical;
                     canonical.SiteId = facilityId;
+                    if (!string.IsNullOrEmpty(zoneId))
+                        canonical.ZoneId = zoneId;
                 }
                 else
                 {
                     if (!string.IsNullOrEmpty(pen.Id))
                         byId[pen.Id] = pen;
                     pen.SiteId = facilityId;
+                    if (!string.IsNullOrEmpty(zoneId))
+                        pen.ZoneId = zoneId;
                     if (!state.Populations.Contains(pen))
                         state.Populations.Add(pen);
                 }

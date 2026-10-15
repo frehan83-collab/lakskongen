@@ -45,6 +45,7 @@ public partial class SimulationEngine
                 double credit = ContainmentTech.MabCreditFor(site.Containment, true);
                 site.MABTonnes *= credit;
                 site.RedZoneCreditApplied = true;
+                site.AppliedContainmentCredit = credit; // F2-03: the factor applied, stored (F2-10 divides by it)
                 SimLog.Info($"🛡️ Site {site.Id} red-zone credit ×{credit:F2} ({site.Containment})");
             }
             else if (after.ToString() != "Red" && site.RedZoneCreditApplied)
@@ -52,6 +53,7 @@ public partial class SimulationEngine
                 double credit = ContainmentTech.MabCreditFor(site.Containment, true);
                 site.MABTonnes /= credit;
                 site.RedZoneCreditApplied = false;
+                site.AppliedContainmentCredit = 1.0;
             }
         }
     }
@@ -140,6 +142,12 @@ public partial class SimulationEngine
             else if (site.HasLiceSkirt)
                 site.Containment = ContainmentLevel.Skirt;
         }
+        // F2-03: a save from before the stored credit factor holds a credit
+        // that was applied with the rung's factor the exit divides by today.
+        if (site.RedZoneCreditApplied && site.AppliedContainmentCredit == 1.0)
+            site.AppliedContainmentCredit = ContainmentTech.MabCreditFor(site.Containment, true);
+        else if (!site.RedZoneCreditApplied)
+            site.AppliedContainmentCredit = 1.0;
     }
 
     /// <summary>

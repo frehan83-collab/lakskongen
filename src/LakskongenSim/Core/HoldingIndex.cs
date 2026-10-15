@@ -55,7 +55,11 @@ internal sealed class HoldingIndex
     public void Add(FishPopulation population, in PopulationHolding holding)
         => _byPopulation.TryAdd(population, holding);
 
-    /// <summary>Resolve every population the state holds, once.</summary>
+    /// <summary>
+    /// Resolve every population the state holds, once: each population's unit
+    /// by the one precedence (<see cref="UnitResolver.ForEach"/>, F2-03), mapped
+    /// to its holding.
+    /// </summary>
     public static HoldingIndex Build(GameState state)
     {
         if (state == null) throw new ArgumentNullException(nameof(state));
@@ -65,21 +69,25 @@ internal sealed class HoldingIndex
             if (!string.IsNullOrEmpty(zone.Id))
                 zones.TryAdd(zone.Id, zone); // the first zone with an id wins, as a linear search found it
 
-        foreach (var facility in state.RASFacilities)
-            foreach (var tank in facility.Tanks)
-                index.Add(tank, LandTank(facility));
-        foreach (var farm in state.OffshoreFarms)
+        UnitResolver.ForEach(state, (population, unit) =>
         {
-            var zone = Lookup(zones, farm.ZoneId);
-            foreach (var pen in farm.Pens)
-                index.Add(pen, OffshorePen(farm, zone));
-        }
-        foreach (var site in state.SeaSites)
-            foreach (var pen in site.Pens)
-                index.Add(pen, SeaPen(pen, site, Lookup(zones, pen.ZoneId)));
-        foreach (var population in state.Populations)
-            index.Add(population, SeaPen(population, null, Lookup(zones, population.ZoneId)));
+            if (!index._byPopulation.ContainsKey(population))
+                index.Add(population, HoldingOfUnit(population, unit, zoneId => Lookup(zones, zoneId)));
+        });
         return index;
+    }
+
+    /// <summary>
+    /// The holding of <paramref name="population"/> in <paramref name="unit"/>:
+    /// a land site's tank, an offshore unit's zone (or a pre-F2 offshore farm's
+    /// pen), a fjord site's pen, or a sea pen in no site.
+    /// </summary>
+    internal static PopulationHolding HoldingOfUnit(FishPopulation population, in FarmUnit unit, Func<string?, Zone?> zoneOf)
+    {
+        if (unit.LandSite != null) return LandTank(unit.LandSite);
+        if (unit.LegacyOffshoreFarm != null) return OffshorePen(unit.LegacyOffshoreFarm, zoneOf(unit.LegacyOffshoreFarm.ZoneId));
+        if (unit.Site is { Kind: SiteKind.Offshore } offshore) return OffshoreSitePen(population, offshore, zoneOf(offshore.ZoneId));
+        return SeaPen(population, unit.Site, zoneOf(population.ZoneId));
     }
 
     internal static PopulationHolding LandTank(RASFacility facility)
@@ -87,6 +95,14 @@ internal sealed class HoldingIndex
 
     internal static PopulationHolding OffshorePen(OffshoreFarm farm, Zone? zone)
         => new(HoldingKind.Offshore, farm.Id ?? "", zone, null, null, farm);
+
+    /// <summary>
+    /// A zone of an offshore unit (F2-03): an offshore holding whose site is the
+    /// unit's sea site and whose pen is the zone; its zone is the plot's water
+    /// area, which no fjord zone is (null), so the water is the area's sea.
+    /// </summary>
+    internal static PopulationHolding OffshoreSitePen(FishPopulation population, SeaSite site, Zone? zone)
+        => new(HoldingKind.Offshore, site.Id ?? "", zone, site, null, null, site.PenOf(population));
 
     internal static PopulationHolding SeaPen(FishPopulation population, SeaSite? site, Zone? zone)
         => new(HoldingKind.SeaPen, population.SiteId ?? "", zone, site, null, null, site?.PenOf(population));

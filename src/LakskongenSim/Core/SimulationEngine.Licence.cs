@@ -138,7 +138,7 @@ public partial class SimulationEngine
             reason = $"Zone '{zoneId}' not found";
             return false;
         }
-        if (State.SeaSites.Count == 0) return true;              // development right
+        if (!FjordSites().Any()) return true;                    // development right (F2-03: fjord localities)
         if (State.SeaSites.Any(s => s.ZoneId == zoneId)) return true; // organic growth
         if (HasGrowthLicence(zoneId)) return true;               // won at auction
         reason = $"Zone '{zoneId}' requires a growth licence — win the auction first";
@@ -169,7 +169,7 @@ public partial class SimulationEngine
                 $"Insufficient funds: need {cost:N0} NOK to build the site");
 
         var siteId = string.IsNullOrWhiteSpace(name)
-            ? $"site_{State.SeaSites.Count + 1}"
+            ? $"site_{FjordSites().Count() + 1}" // F2-03: offshore units are numbered apart
             : name;
         var site = new SeaSite(siteId, zoneId)
         {

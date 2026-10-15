@@ -5,16 +5,18 @@ namespace LakskongenSim.Core;
 /// <summary>
 /// The land sites' daily tick (docs/FARM_TYPES_SPEC.md §3.3, F2-02: moved
 /// verbatim out of <c>FarmOpexTickSystem</c> and <c>ProcessCarbonLedger</c>):
-/// every land-based facility (today's <see cref="Farm.RASFacility"/> and
-/// <see cref="Farm.PostSmoltFacility"/>, which F2-03 turns into one land site
-/// kind) runs its day on its own <c>ras_facility</c> stream, adds its opex to
-/// the day's facility opex and books its deaths and its carbon. The land lane
-/// (F2-12 water and energy, F2-15 biology, F2-16 incidents) grows it here.
+/// every land site (a <see cref="Farm.RASFacility"/>, grow-out or post-smolt
+/// since F2-03) runs its day on its own <c>ras_facility</c> stream, adds its
+/// opex to the day's facility opex and books its carbon; its fish are the
+/// game's populations, so the biology grows them and the ledger books their
+/// deaths. The land lane (F2-12 water and energy, F2-15 biology, F2-16
+/// incidents) grows it here.
 /// <para>
-/// FarmOpex runs the phases in the pre-F2 order (land tanks, offshore farms,
-/// post-smolt modules): the day's facility opex is one running decimal sum,
-/// and a decimal sum rounds at 28-29 significant digits, so its order is part
-/// of the result.
+/// FarmOpex runs the phases in the order land sites, offshore units, then
+/// <see cref="TickPostSmoltModules"/> (the pre-F2 post-smolt list, which F2-03's
+/// normalization at the start of every step leaves empty): the day's facility
+/// opex is one running decimal sum, and a decimal sum rounds at 28-29
+/// significant digits, so its order is part of the result.
 /// </para>
 /// </summary>
 internal static class LandSiteTickSystem
@@ -32,9 +34,11 @@ internal static class LandSiteTickSystem
     }
 
     /// <summary>
-    /// Each post-smolt module: its batches' day, its opex, and the batches'
-    /// deaths. Post-smolt batches are not cohorts; their deaths (a top-down
-    /// survival rate) are booked per facility (S2-05).
+    /// Each pre-F2 post-smolt facility: its batches' day, its opex, and the
+    /// batches' deaths (a top-down survival rate booked per facility, S2-05).
+    /// Since F2-03 a post-smolt site is a land site ticked with the others and
+    /// this list is empty in every step (<see cref="SimulationEngine.MigrateFacilities"/>
+    /// runs before it); the call stays in FarmOpex, which F2-02 froze.
     /// </summary>
     public static void TickPostSmoltModules(SimulationEngine engine)
     {

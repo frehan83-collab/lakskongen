@@ -46,9 +46,14 @@ public partial class SimulationEngine
         // Resource rent: the F2 hook IsResourceRentLiable (F2-04, F2-09).
         var site = State.SeaSites.FirstOrDefault(s => s.Id == holdingId);
         if (site != null)
-            return new HarvestHolding(site.Id, site.Label, HoldingKind.SeaPen, site.Pens,
-                IsResourceRentLiable(site.Id, HoldingKind.SeaPen), site,
-                HarvestRoute.For(HoldingKind.SeaPen, cal, site.Id));
+        {
+            // F2-03: an offshore unit is a sea site whose fish are offshore
+            // fish (the offshore wellboat route, rent by the offshore holding).
+            var kind = site.Kind == SiteKind.Offshore ? HoldingKind.Offshore : HoldingKind.SeaPen;
+            return new HarvestHolding(site.Id, site.Label, kind, site.Pens,
+                IsResourceRentLiable(site.Id, kind), site,
+                HarvestRoute.For(kind, cal, site.Id));
+        }
         var ras = RASFacilities.FirstOrDefault(f => f.Id == holdingId);
         if (ras != null)
             return new HarvestHolding(ras.Id, ras.Name, HoldingKind.LandTank, ras.Tanks,

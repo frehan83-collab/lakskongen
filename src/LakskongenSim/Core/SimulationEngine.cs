@@ -1978,7 +1978,7 @@ private class BalancingConfig
 
             // Night event rolls: bloom, hypoxia, storm, equipment failure
             // Base chance per night per site, modified by policy
-            var sites = State.SeaSites.Where(s => s.Pens.Any(p => p.TotalCount > 0)).ToList();
+            var sites = FjordSites().Where(s => s.Pens.Any(p => p.TotalCount > 0)).ToList(); // F2-03: offshore units are crewed on board
             var rng = _rng;
 
             foreach (var site in sites)
@@ -2082,7 +2082,7 @@ private class BalancingConfig
             => Math.Max(1, site.NumberOfPens) / (double)StandardPensPerSite;
 
         /// <summary>Sum of all sites' sizes in standard sites.</summary>
-        private double TotalSiteScale() => State.SeaSites.Sum(SiteSizeScale);
+        private double TotalSiteScale() => FjordSites().Sum(SiteSizeScale); // F2-03: an offshore unit's upkeep is its own
 
         /// <summary>Crew of a site: the calibrated crew scaled to its size, at least one worker.</summary>
         internal decimal SiteWorkers(Farm.SeaSite site)
@@ -2099,7 +2099,7 @@ private class BalancingConfig
             // crew (11k NOK/day on 5,000 fish; the tutorial went bankrupt before
             // its first harvest).
             decimal dailyWages = 0m;
-            foreach (var site in State.SeaSites)
+            foreach (var site in FjordSites()) // F2-03: an offshore unit pays its own crew (its day)
                 dailyWages += SiteWorkers(site) * SimCalendar.MonthlyToDaily(_balancing.WorkerMonthlySalaryNOK);
             
             if (State.OwnsHatchery)
@@ -2245,7 +2245,7 @@ private class BalancingConfig
             double energyEmissionFactor = 1.0 - ResearchEffectKeys.ClampReduction(CarbonReduction);
 
             // ─── Sea Sites ───
-            foreach (var site in State.SeaSites)
+            foreach (var site in FjordSites()) // F2-03: an offshore unit books its own (OffshoreTickSystem)
             {
                 double biomassTonnes = site.Pens.Sum(p => p.GetTotalBiomassKg()) / 1000.0;
                 if (biomassTonnes <= 0) continue;

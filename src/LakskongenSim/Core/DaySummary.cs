@@ -626,7 +626,9 @@ namespace LakskongenSim.Core
 
         private void AddEmpireEntries(DaySummaryReport report)
         {
-            var siteCount = _engine.State.SeaSites.Count + _engine.State.RASFacilities.Count + _engine.State.OffshoreFarms.Count;
+            // F2-03: the sea sites hold the offshore units and the land sites the
+            // post-smolt sites, so these two lists are every unit the company has.
+            var siteCount = _engine.State.SeaSites.Count + _engine.State.RASFacilities.Count;
 
             if (siteCount < 5 && report.TotalBalance > 20_000_000)
             {
@@ -665,14 +667,6 @@ namespace LakskongenSim.Core
                 }
             }
 
-            foreach (var offshore in _engine.State.OffshoreFarms)
-            {
-                foreach (var pen in offshore.Pens)
-                {
-                    total += pen.TotalCount;
-                }
-            }
-
             return total;
         }
 
@@ -693,15 +687,6 @@ namespace LakskongenSim.Core
             foreach (var ras in _engine.State.RASFacilities)
             {
                 foreach (var pop in ras.Tanks)
-                {
-                    totalWeight += pop.GetTotalBiomassKg();
-                    totalFish += pop.TotalCount;
-                }
-            }
-
-            foreach (var offshore in _engine.State.OffshoreFarms)
-            {
-                foreach (var pop in offshore.Pens)
                 {
                     totalWeight += pop.GetTotalBiomassKg();
                     totalFish += pop.TotalCount;
@@ -729,9 +714,12 @@ namespace LakskongenSim.Core
                 }
             }
 
-            foreach (var offshore in _engine.State.OffshoreFarms)
+            // F2-03: offshore units are sea sites (counted above); a grow-out
+            // land site's fish are harvest-ready at the same weight.
+            foreach (var land in _engine.State.RASFacilities)
             {
-                foreach (var pop in offshore.Pens)
+                if (land.Kind != Farm.LandSiteKind.GrowOut) continue;
+                foreach (var pop in land.Tanks)
                 {
                     foreach (var cohort in pop.Cohorts)
                     {
