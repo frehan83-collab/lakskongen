@@ -209,12 +209,9 @@ public partial class SimulationEngine
         days = Math.Max(1, days);
         double ration = Math.Clamp(double.IsFinite(rationPct) ? rationPct / 100.0 : 1.0, 0.0, 1.0);
         var effect = FeedRecipeEffect.Of(recipe, _calibration.FeedPlan);
-        double spread = SpreadQualityOf(site);
-        var law = Growth.Law;
-
         var total = new ProjectionSums();
         foreach (var population in site.Pens)
-            ProjectPopulation(population, site, ration, effect, spread, law, days, ref total);
+            ProjectPopulation(population, site, ration, effect, days, ref total);
 
         decimal price = Feed.FeedCostPerKg * (decimal)effect.PriceFactor;
         double spill = Optimization.RemoteOpsCentre.FeedSpillFraction(site.WatchMode);
@@ -229,74 +226,26 @@ public partial class SimulationEngine
         public double StartBiomassKg, EndBiomassKg, GrowthKg, EatenKg, DeliveredKg;
     }
 
-    /// <summary>One population's days of the projection, added to <paramref name="sums"/>.</summary>
+    /// <summary>One population's days of the projection (<see cref="PopulationTwin"/>), added to <paramref name="sums"/>.</summary>
     private void ProjectPopulation(FishPopulation population, SeaSite site, double ration, FeedRecipeEffect effect,
-        double spread, TgcGrowthLaw law, int days, ref ProjectionSums sums)
+        int days, ref ProjectionSums sums)
     {
-        var holding = HoldingOf(population);
-        var water = WaterOf(holding, population);
-        var zone = holding.Zone;
-        double volume = DensityVolumeM3(holding, population);
-        var containment = ContainmentTech.ModifiersFor(site.Containment);
-
-        // Appetite as the tick builds it: today's oxygen saturation, and the
-        // gills, which heal week by week while no bloom stands at the site
-        // (BloomEventDeck.GillRecoveryPerWeek; a new bloom is not foreseen).
-        double oxygenAppetite = 1.0;
-        if (zone != null)
-            oxygenAppetite = WaterQuality.CalculateDOSaturationModifier(WaterQuality.CalculateDOSaturation(
-                water.OxygenMgPerL, water.TemperatureC, water.SalinityPsu));
-        double gill = site.GillScore;
-        double gillRecoveryPerDay = State.ActiveBlooms.Any(b => b.SiteId == site.Id)
-            ? 0.0 : BloomEventDeck.GillRecoveryPerWeek / SimCalendar.DaysPerWeek;
+        var twin = new PopulationTwin(this, population, site);
         if (population.IsFasting) ration = 0.0;
-
-        var weights = new double[population.Cohorts.Count];
-        var cvs = new double[population.Cohorts.Count];
-        for (int ci = 0; ci < weights.Length; ci++)
+        for (int ci = 0; ci < twin.Weights.Length; ci++)
         {
             var c = population.Cohorts[ci];
-            weights[ci] = c.MeanWeightKg;
-            cvs[ci] = c.WeightCv;
             sums.Fish += c.Count;
             sums.StartBiomassKg += c.Count * c.MeanWeightKg;
         }
-
-        double research = 1.0 + GrowthRateBonus;
-        double deliveredPerEaten = 1.0 + (FeedSystem.PrecisionFCRMultiplier(spread) - 1.0)
-            * (1.0 - ResearchEffectKeys.ClampReduction(FeedWasteReduction));
         for (int day = 0; day < days; day++)
         {
-            double appetite = oxygenAppetite * (0.6 + 0.4 * (gill / 100.0));
-            gill = Math.Min(100.0, gill + gillRecoveryPerDay);
-            double temperature = ExpectedTemperature(water, zone, day);
-            double biomass = 0.0;
-            for (int ci = 0; ci < weights.Length; ci++)
-                biomass += population.Cohorts[ci].Count * weights[ci];
-            double densityForO2 = (zone != null ? biomass / volume : DefaultStockingDensityKgM3) * containment.OxygenDemandMult;
-            double densityGrowth = zone != null ? WaterQuality.CalculateStockingDensityModifier(densityForO2) : 1.0;
-            double dayLength = water.Kind == HoldingKind.LandTank
-                ? TgcGrowthLaw.ContinuousLightHours
-                : DayLength.Hours(ProductionAreas.LatitudeDeg(AreaWithClimatology(water.ProductionArea)),
-                    SimCalendar.DayOfYear(State.Day + day));
-            for (int ci = 0; ci < weights.Length; ci++)
-            {
-                var cohort = population.Cohorts[ci];
-                var conditions = new GrowthConditions(temperature, ration, appetite,
-                    CohortGrowthMultiplier(cohort) * containment.GrowthMult * research,
-                    densityGrowth, spread, dayLength);
-                double satiationFcr = Feed.SatiationFcr(temperature, cohort.Stage, law.FcrSizeFactor(weights[ci]),
-                    densityForO2, appetite, FCRReduction) * effect.FcrFactor;
-                var grown = law.GrowOneDay(weights[ci], cvs[ci], cohort.Stage, conditions, satiationFcr);
-                sums.GrowthKg += cohort.Count * Math.Max(0.0, grown.GrowthKg);
-                sums.EatenKg += cohort.Count * grown.EatenFeedKg;
-                sums.DeliveredKg += cohort.Count * grown.EatenFeedKg * deliveredPerEaten;
-                weights[ci] = grown.WeightKg;
-                cvs[ci] = grown.WeightCv;
-            }
+            var grown = twin.Step(day, ration, effect);
+            sums.GrowthKg += grown.GrowthKg;
+            sums.EatenKg += grown.EatenKg;
+            sums.DeliveredKg += grown.DeliveredKg;
         }
-        for (int ci = 0; ci < weights.Length; ci++)
-            sums.EndBiomassKg += population.Cohorts[ci].Count * weights[ci];
+        sums.EndBiomassKg += twin.BiomassKg;
     }
 
     /// <summary>

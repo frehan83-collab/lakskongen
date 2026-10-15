@@ -152,17 +152,20 @@ namespace LakskongenSim.Market
             OnReputationChanged?.Invoke(Score);
         }
 
+        /// <summary>Reputation points lost each week without deliveries.</summary>
+        public const double WeeklyDecayPoints = 0.1;
+
         /// <summary>Natural reputation decay over time (call weekly).</summary>
         public void WeeklyDecay()
         {
-            Score = Math.Max(0, Score - 0.1);
+            Score = Math.Max(0, Score - WeeklyDecayPoints);
         }
     }
 
     /// <summary>
     /// Market intelligence system providing forecasting, news, and competitor tracking.
     /// </summary>
-    public class MarketIntelligenceSystem
+    public partial class MarketIntelligenceSystem
     {
         private readonly List<MarketNewsEvent> _activeEvents = new();
         private readonly List<MarketNewsEvent> _eventHistory = new();
@@ -345,7 +348,7 @@ namespace LakskongenSim.Market
             // Update competitor volumes (seasonal + random variation)
             foreach (var comp in _competitors)
             {
-                var seasonalFactor = 1.0 + 0.15 * Math.Sin(2.0 * Math.PI * (_currentWeek - 13) / 52.0);
+                var seasonalFactor = CompetitorSeasonalFactor(_currentWeek);
                 var randomFactor = 0.95 + _rng.NextDouble() * 0.10;
                 comp.WeeklyHarvestTonnes = comp.BaseWeeklyHarvestTonnes * seasonalFactor * randomFactor * comp.DisruptionFactor;
             }
@@ -357,6 +360,10 @@ namespace LakskongenSim.Market
         /// <summary>
         /// Get aggregate supply/demand impact from all active events.
         /// </summary>
+        /// <summary>The rivals' seasonal harvest factor in week <paramref name="week"/> (±15 %, peaking in the autumn).</summary>
+        internal static double CompetitorSeasonalFactor(int week)
+            => 1.0 + 0.15 * Math.Sin(2.0 * Math.PI * (week - 13) / 52.0);
+
         public (double supplyFactor, double demandFactor, decimal priceShock) GetActiveEventImpacts()
         {
             double supply = 1.0;

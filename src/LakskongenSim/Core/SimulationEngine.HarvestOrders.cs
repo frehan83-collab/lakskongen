@@ -68,6 +68,15 @@ public partial class SimulationEngine
             (first, last) = EstimateSlaughterDays(route, slot, lot.HogKg / 1000.0);
         }
 
+        // Priced as SellLot prices a sale today: the contracts first (oldest
+        // first, at their prices), the rest at today's spot, each kilo at the
+        // lot's size-class and grade factors, the processing plant's premium on
+        // top (U2-05: the same-day quote is what an express harvest books).
+        decimal valueFactor = (decimal)lot.ValueFactor;
+        var (contractKg, contractRevenue) = FillContracts(ContractRooms(), lot.HogKg, valueFactor, week: null);
+        decimal spotRevenue = (decimal)(lot.HogKg - contractKg) * valueFactor * spot;
+        decimal vap = State.OwnsProcessingPlant ? Processing.FeedRecipe.VapMult(FilletGradeOf(holding.Site)) : 1m;
+
         return new HarvestQuote
         {
             Ok = busyPen == null,
@@ -88,7 +97,12 @@ public partial class SimulationEngine
             SizeFactor = lot.SizeFactor,
             GradeFactor = lot.GradeFactor,
             ReferencePriceNok = spot,
-            GrossRevenueNok = (decimal)lot.ValueKg * spot,
+            ContractHogKg = contractKg,
+            ContractRevenueNok = contractRevenue,
+            SpotHogKg = lot.HogKg - contractKg,
+            SpotRevenueNok = spotRevenue,
+            VapMultiplier = vap,
+            GrossRevenueNok = (contractRevenue + spotRevenue) * vap,
             TransportCostNok = hog * route.TransportCostPerKgHogNok,
             SlaughterCostNok = hog * route.SlaughterCostPerKgHogNok,
             SurchargeNok = express && route.NeedsWellboat ? hog * cal.ExpressSurchargePerKgHogNok : 0m,
