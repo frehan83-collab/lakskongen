@@ -379,8 +379,10 @@ func _apply_variant(v: Dictionary) -> void:
 ## Environment), "vp.msaa_3d=0" (the root viewport), "sun.shadow_enabled=false",
 ## "camattr.dof_blur_far_enabled=false", "sky.<uniform>" (the sky material),
 ## "water.<uniform>" (the water material), "hide.<path under the
-## FjordEnvironment>=true" (visible = false). They are set right before every
-## draw, after the director composed the frame, so they win.
+## FjordEnvironment>=true" (visible = false), "mirrorenv.<property>",
+## "mirrorcam.<property>" and "mirrorvp.<property>" (the planar mirror's
+## environment, camera and viewport). They are set right before every draw,
+## after the director composed the frame, so they win.
 var _raw := {}
 ## Values the raw overrides replaced: [object, property, value, is_uniform].
 var _raw_saved := {}
@@ -459,6 +461,18 @@ func _raw_target(key: String) -> Array:
 		"probe":
 			var probe := _env.get_node_or_null("ReflectionProbe")
 			return [probe, prop, false] if probe else []
+		"mirrorenv":
+			# The planar mirror's environment (G2-03).
+			var mirror := _env.get_node_or_null("PlanarReflection")
+			return [mirror.get("environment"), prop, false] if mirror else []
+		"mirrorcam":
+			var mirror_node := _env.get_node_or_null("PlanarReflection")
+			var mirror_cam: Object = mirror_node.call("get_mirror_camera") if mirror_node else null
+			return [mirror_cam, prop, false] if mirror_cam else []
+		"mirrorvp":
+			var mirror_owner := _env.get_node_or_null("PlanarReflection")
+			var mirror_vp: Object = mirror_owner.get_node_or_null("MirrorViewport") if mirror_owner else null
+			return [mirror_vp, prop, false] if mirror_vp else []
 	return []
 
 

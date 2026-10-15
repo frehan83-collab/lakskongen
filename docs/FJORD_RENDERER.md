@@ -22,6 +22,9 @@ FjordEnvironment (FjordEnvironment.gd)    environment controller + gameplay API
 ├── TimeOfDay (TimeOfDay.gd)              presentation hour + sim calendar -> sun, moon, aurora
 ├── WeatherSystem (WeatherController.gd)  presentation weather (blended), rain/snow particles
 ├── EnvironmentDirector                   the only writer of fog, sky, light, image, waves
+├── PlanarReflection (PlanarReflection.gd) the water's mirror: SubViewport, mirrored camera
+├── VesselWakes (VesselWakes.gd)          wakes behind moving boats (ribbons, wake_shader)
+├── PenSpray (PenSpray.gd)                spray at the pens in a gale (particles)
 ├── UnderwaterCanvas                      underwater overlay
 ├── ParticleEffects (ParticleEffects.gd)
 ├── WellboatVisualManager / FeedBargeVisualManager / CompetitorFarmVisualManager
@@ -181,10 +184,10 @@ boats, and the terrain never shows through deep water.
 |---|---|
 | Bake | `WaterBake.cs`, on the terrain worker thread (`TerrainGeneratorBridge`), one RGBA16F texel per heightfield vertex (`FjordTerrain.water_bake_texture`, `water_bake_at()`): R depth below sea level, G signed shore distance (exact Euclidean distance transform, Felzenszwalb & Huttenlocher, on a 2× grid: ±2 m), B open-sea exposure (16 rays per sample; a ray that leaves the world over water counts e^(−distance/1.5 km)), A seabed slope; plus the basin's effective fetch for the prevailing sea (CEM radials ±15°, median over sheltered water: 1.1-1.3 km for the default fjord) |
 | Colour | Beer-Lambert over the baked depth along the refracted path: σ = (0.40, 0.09, 0.14) m⁻¹, deep scatter (0.0022, 0.0085, 0.0105); the seabed (sediment or rock by slope, sunlit caustics under 6 m) shows only through shallow water. A bloom adds green absorption and scatter, warm water a touch of green |
-| Reflection | the engine's Schlick Fresnel, F0 0.02 (`SPECULAR` 0.354: the engine's F0 is 0.16·SPECULAR², and below F0 0.02 it fades the grazing reflection as specular occlusion), GGX; roughness 0.04 plus the slope variance of the waves too fine for the pixel. Facets never mirror below the horizon. The water sits on render layer 20, which the ReflectionProbe's `reflection_mask` leaves out: the water mirrors the sky radiance (updated with the sky) instead of a one-point capture whose box edge printed a seam across the open sea |
+| Reflection | the engine's Schlick Fresnel, F0 0.02 (`SPECULAR` 0.354: the engine's F0 is 0.16·SPECULAR², and below F0 0.02 it fades the grazing reflection as specular occlusion), GGX; roughness 0.04 plus the slope variance of the waves too fine for the pixel. Facets never mirror below the horizon. The water sits on render layer 20, which the ReflectionProbe's `reflection_mask` leaves out: the water mirrors the sky radiance (updated with the sky) instead of a one-point capture whose box edge printed a seam across the open sea. Calm water adds the planar mirror on top (below, G2-03); `specular_occlusion_disabled`: the engine's specular occlusion scaled every reflection by the ambient light, which at night turned the water into a black void |
 | Sea state | `SeaStateModel.cs`: Carter (1982) JONSWAP fetch-limited growth, gHs/U² = 1.6·10⁻³·χ^½ and gTp/U = 0.286·χ^⅓ (χ = gF/U²), capped at the Pierson-Moskowitz sea (0.243, 8.134); the JONSWAP spectrum (γ 3.3) sampled into 8 fixed bands (128 m down to 1.6 m) with Σa² = Hs²/8; Monahan & O'Muircheartaigh (1980) whitecap cover 3.84·10⁻⁶·U^3.41. Two seas per wind: the sheltered basin (the baked fetch) and the open coast (100 km), blended per pixel by the baked exposure. 3 m/s over the basin: Hs 0.05 m; 20 m/s on the open coast: Hs 3.2 m, Tp 7.9 s |
 | Waves | 16 Gerstner components (2 per band, ±9-27° round the band heading, detuned 0.95/1.055), choppiness capped so the summed steepness stays under 0.75; phases integrated by the director (no `TIME`), so a wind change never makes them jump or slide; analytic normals per pixel, each component faded out of the normal once its wavelength is under 2-6 pixel footprints (footprint from the distance and the grazing angle) and its slope variance moved into the roughness; ripple normal maps (`tools/gen_water_textures.py`: a k^−3.5 spectrum) scaled by the wind |
-| Foam | shore: a lapping line in a calm, a surf band 1.5-10 m wide with lines running in once the sea builds (shore distance field); whitecaps: crest gate + breaker noise stretched along the crests over a threshold mapped from Monahan's share (calibrated top-down: cover 0.7 / 3.1 / 10.5 % at 9 / 14 / 20 m/s), lacy core and spent foam; past 0.1-0.35 of the dominant wavelength per pixel a faint mean whitening |
+| Foam | shore: a lacy fringe 4 m wide (`SHORE_FRINGE_M`) and a lapping line in any weather, a surf band 4-13 m wide with lines running in once the sea builds (shore distance field); whitecaps (G2-03): a crest gate on the components at the spectral peak (the swell lifts the sea without breaking it), breaker noise along the crests and a wave-group field a few hundred metres across that gathers the caps into patches; a soft halo round each core, spent foam trailing the crest (where it has just passed, streaked down the wind) and, in a gale, long wind streaks; past 0.1-0.35 of the dominant wavelength per pixel their mean cover |
 | Underside | `cull_disabled`; `!FRONT_FACING` draws Snell's window (48.6°) lit by the day's sky and total internal reflection of the deep water outside it |
 | Grid | `WaterGrid.gd`: level 0 is 2 m quads ±256 m round the camera, 4 more levels double the spacing to ±4.1 km (32 culled pieces), then a flat skirt to ±32.8 km; snapped to the camera in 2 m steps; the vertex shader stitches each level's rim to the coarser ring and lays the last rim flat, and draws a component only where it has ≥ 4 vertices per wavelength |
 
@@ -194,6 +197,83 @@ terrain the GPU no longer shades); storm +3.5 / +4.5 / −0.2 ms. The old
 transparent water cost about +5.8 ms at FJORD. The frame without water
 already takes 25-30 ms there (sky, terrain, SSAO, DOF, MSAA + SMAA), so the
 16.7 ms target is a whole-frame budget item, not the water's.
+
+### Water v2: the mirror, foam, wakes and spray (G2-03)
+
+**The planar mirror** (`PlanarReflection.gd`, `shaders/water/water_mirror.gdshaderinc`).
+A SubViewport renders the scene from the player's camera mirrored in the
+water plane (`mirror_transform`: M·B·M with M = diag(1, −1, 1), a proper
+rotation along the mirrored view) into a linear HDR texture (`use_hdr_2d`,
+no anti-aliasing) at a share of the window (`mirror_scale`). The water
+looks a pixel up by projecting the point where the view ray meets the still
+water with the very view-projection that rendered the texture
+(`planar_view_proj`), so a texture rendered a frame earlier still lines up
+with what it shows; the surface normal turns the reflected ray and moves
+the lookup by the projected change of direction (`planar_distort` 0.7),
+which breaks the mirror up under ripples and stretches it under chop. Its
+share of the reflection falls with the roughness (0.07-0.2), with the facet
+slope (0.15-0.35) and at the texture's edges; it is added as emission with
+water's Schlick fresnel and the engine keeps the rest (`SPECULAR ·
+sqrt(1 − share)`: below F0 0.02 the engine's grazing term scales with F0,
+so this hands it exactly 1 − share). Fog: the mirrored camera's ray runs
+camera → water → object and the main pass fogs the first leg again, so the
+mirror carries half the main fog density (`MIRROR_FOG_SHARE`).
+
+What the mirror camera must not see, because it sits under the water and
+Godot cannot clip a camera to a plane: the water (layer 20) and render layer
+19 (`NO_MIRROR_LAYER`): the net, sinker tube and lice skirt (`PenCage.
+NO_MIRROR_PARTS`), the fish schools, the mooring ropes, pen labels and
+vessel chips, rain and snow round the camera, wakes and spray. The terrain
+lifts its under-water vertices onto the plane in the mirror pass
+(`shaders/include/mirror_pass.gdshaderinc`, `lk_mirror_vertex` in the
+terrain's `vertex()`): laid flat, the seabed faces away from a camera below
+it and is culled; without it the strandflat and the sill showed as a dark
+band where the open sea should mirror the sky. The mirror pass is
+recognised per camera (its cull mask lacks layer 19 and it sits below the
+water), not by a global uniform, which would hold one value for every
+viewport drawn in a frame.
+
+The mirror is lit by its own shadowless copy of the Sun and Moon
+(`MIRROR_ONLY_LAYER`, render layer 18, which the player's camera and the
+reflection probe leave out; the scene's Sun and Moon sit on layer 19):
+a directional light is drawn for the cameras whose cull mask holds its
+layer, and its shadow maps are rendered for every viewport it lights. Its
+sky is its own Sky (the main one's shader and uniforms, written together
+by the director) drawn in the sky's quarter-resolution pass, aurora
+included (`sky_pass` 2), with stars and the sun and moon discs per pixel;
+the main sky stays per pixel. Measured at 1440p FJORD (P0-04 harness,
+paired): the mirror cost 4.7 ms sharing the main sky with shadows, 2.8 ms
+with its own quarter-pass sky, 1.9 ms without shadows, 1.4 ms at 0.4 of
+the window.
+
+| Tier | Mirror | Resolution | Updates | Drawn from |
+|---|---|---|---|---|
+| Low | none: the sky's radiance and the probe | | | |
+| Medium | yes | 0.33 of the window | 30 Hz, 20 Hz at COAST | 300 m |
+| High | yes | 0.4 | every frame, 30 Hz at COAST | 300 m (FARM views look steeply down: a few per cent fresnel) |
+| Ultra | yes | 0.5 | every frame | any distance |
+
+No mirror underwater, behind an opaque panel, or above 11 m/s of wind
+(`MIRROR_MAX_WIND_MS`: no water anywhere is calm enough), so a storm costs
+nothing extra; it fades in and out over 0.6 s.
+
+**Whitecaps** are calibrated top-down against Monahan's share (the director's
+`WHITECAP_Z_SCALE`/`OFFSET`, 1.25 and 0.39): drawn cover 0.79 / 3.3 / 10.3 %
+at 9 / 14 / 20 m/s against 0.7 / 3.1 / 10.5 %.
+
+**Wakes** (`VesselWakes.gd`, `shaders/water/wake_shader.gdshader`). Every
+VesselModel in the fjord is followed by its stern; every 0.9 beams (4-14 m)
+of track it lays a point (where, sideways, when, how fast). A boat's points
+make one mesh of three ribbons: the wash down the track (a beam wide,
+widening as sqrt(age), gone in about 24 s) and the two Kelvin arms at
+tan(19.47°) of the distance the boat has gone since, fading over 200 m;
+the shader shapes and fades them from the age, so the mesh is rebuilt only
+when a point is laid or dropped. They float 0.18 m over the still water and
+fade out as the whitecap cover grows (a gale hides wakes in its own foam).
+
+**Spray** (`PenSpray.gd`): one GPUParticles3D per pen, emitting off the
+collar ring; its share follows the wind (from 9 m/s, a near gale) and the
+wave height at the pen, in gusts.
 
 ### Floating pens and boats (G2-03, heave part)
 
@@ -269,6 +349,7 @@ group). High is the default.
 | Clouds | quarter pass, 4 steps, 4 octaves | quarter, 5, 5 | half, 6, 6 | per pixel, 6, 6 |
 | Sky radiance map | 64 | 128 | 256 | 256 |
 | Terrain detail (`quality_detail` for the terrain shader) | 0 | 0.5 | 1 | 1 |
+| Planar mirror (G2-03): share of the window, updates, drawn from | none | 0.33, 30 / 20 Hz, 300 m | 0.4, every frame / 30 Hz at COAST, 300 m | 0.5, every frame, always |
 
 Ultra is the Wave-1 image unchanged. High trims what does not show at
 1440p (frames side by side in `docs/run/evidence/p0_04_perf.md`): SSAO
@@ -313,7 +394,9 @@ runs, the cost breakdown and the frames.
 | Shader | Used by |
 |---|---|
 | `shaders/terrain_shader.gdshader` | terrain material (built by `FjordTerrain.gd`) |
-| `shaders/water_shader.gdshader` | `WaterGrid` |
+| `shaders/water_shader.gdshader` (+ `shaders/water/water_mirror.gdshaderinc`) | `WaterGrid` |
+| `shaders/water/wake_shader.gdshader` | `VesselWakes` ribbons |
+| `shaders/include/mirror_pass.gdshaderinc` | the terrain (keeps the seabed out of the mirror) |
 | `shaders/sky_shader.gdshader` | `WorldEnvironment` sky |
 | `shaders/underwater_post.gdshader` | `UnderwaterCanvas` |
 | `shaders/pen_*.gdshader`, `fish_shader.gdshader` | pen and fish assets |

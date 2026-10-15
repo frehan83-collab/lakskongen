@@ -43,6 +43,9 @@ uniform vec4 wave_k[WAVES];
 // wave_amp[i] = (amplitude in the sheltered basin m, amplitude on the open coast m,
 // phase rad, wavelength m)
 uniform vec4 wave_amp[WAVES];
+// wave_peak[i] = the component's weight round the spectral peak of the
+// sheltered basin's sea and of the open coast's (whitecaps break there).
+uniform vec2 wave_peak[WAVES];
 // Whitecap coverage (Monahan fraction) and the local wind's ripple strength.
 uniform float whitecaps : hint_range(0.0, 1.0) = 0.0;
 // Crest field level above which the sea breaks (from Monahan's share,
@@ -226,12 +229,14 @@ void fragment() {
 	float lost_variance = 0.0;
 	// The whitecaps break on the crests of the waves at the spectral peak
 	// (the swell lifts the sea without breaking it, the short chop is too
-	// small to show): the surface height of the components near the peak,
-	// its variance, and a trailing term that is high just after a crest has
-	// passed (the spent foam left behind it).
+	// small to show): the surface height of the components near the peak
+	// (wave_peak: each component's weight round the peak of the basin's and
+	// the coast's sea, from the director), its variance, and its quarter-
+	// period lag (height_lag), from which a trailing term follows that is
+	// high just after a crest has passed (the spent foam left behind it).
 	float height = 0.0;
+	float height_lag = 0.0;
 	float height_var = 0.0;
-	float trail = 0.0;
 	// The whitecaps follow the crests of the local sea until they shrink to
 	// a few pixels; only then is the surface height needed for components
 	// too fine to draw.
@@ -245,10 +250,9 @@ void fragment() {
 		vec4 wa = wave_amp[i];
 		float a = component_amplitude(wa, exposure, depth);
 		float ka = wk.z * a;
-		// Weight round the peak, in octaves of wavelength.
-		float octaves = log2(wa.w / dominant_lambda);
-		float peak_a = a * exp(-octaves * octaves * 1.5);
-		height_var += 0.5 * peak_a * peak_a;
+		vec2 wp = wave_peak[i];
+		float peak_a = a * mix(wp.x, wp.y, exposure);
+		height_var += peak_a * peak_a;
 		float t = clamp((wa.w - keep_from) * keep_scale, 0.0, 1.0);
 		float keep = t * t * (3.0 - 2.0 * t);
 		lost_variance += 0.5 * ka * ka * (1.0 - keep * keep);
@@ -261,11 +265,13 @@ void fragment() {
 			n.z -= keep * wk.y * a * c;
 			n.y -= keep * wk.w * ka * sn;
 			height += peak_a * sn;
-			// The phase falls through pi/2 as a crest passes a point: just
-			// after it (sin high, cos still positive) the spent foam lingers.
-			trail += peak_a * (sn * 0.6 + c * 0.8);
+			height_lag += peak_a * c;
 		}
 	}
+	height_var *= 0.5;
+	// The phase falls through pi/2 as a crest passes a point: just after it
+	// (sin high, cos still positive) the spent foam lingers.
+	float trail = 0.6 * height + 0.8 * height_lag;
 	n = normalize(n);
 
 	// ── Ripples: the wind's short waves, scrolling with the sea ──
@@ -340,18 +346,17 @@ void fragment() {
 			float core = smoothstep(whitecap_threshold, whitecap_threshold + 0.5, crest_z);
 			float halo = smoothstep(whitecap_threshold - 0.35, whitecap_threshold, crest_z) * 0.25;
 			// Spent foam: where a crest that broke has just passed (the trail
-			// term), on the same stretch of crest (the breaker noise read a
-			// little downwind, where that crest now is), thinning to lace
-			// streaked out down the wind.
-			vec2 bt = (bq + vec2(0.12 * dominant_lambda, 0.0)) / vec2(11.0, 28.0);
-			float breaker_t = mix(mix(texture(foam_texture, bt).a, texture(foam_texture, bt / 1.17 + 0.5).a, fade), breaker_large, exposure);
-			float trail_z = CREST_WEIGHT * smoothstep(0.0, 1.5, trail / sigma_k) + BREAKER_SPREAD * (breaker_t - 0.5) + GROUP_SPREAD * (group - 0.5);
-			float streak = texture(foam_texture, vec2(fuv.x / 26.0, fuv.y / 3.5)).r;
-			float spent = smoothstep(whitecap_threshold - 0.2, whitecap_threshold + 0.3, trail_z) * (0.3 + 0.7 * streak) * lace;
+			// term), on the same stretch of crest, thinning to lace streaked
+			// out down the wind.
+			float trail_z = CREST_WEIGHT * smoothstep(0.0, 1.5, trail / sigma_k) + BREAKER_SPREAD * (breaker - 0.5) + GROUP_SPREAD * (group - 0.5);
+			// One fetch stretched down the wind: R lace streaks for the spent
+			// foam, G patches drawn out into a gale's wind streaks.
+			vec2 streaks = texture(foam_texture, vec2(fuv.x / 60.0, fuv.y / 3.0)).rg;
+			float spent = smoothstep(whitecap_threshold - 0.2, whitecap_threshold + 0.3, trail_z) * (0.3 + 0.7 * streaks.r) * lace;
 			caps = max(core * (0.7 + 0.3 * lace) * (0.85 + 0.15 * bubbles), max(halo, spent * 0.3));
 			// A gale draws long streaks of foam down the wind (Beaufort 8+).
 			float gale = smoothstep(0.03, 0.09, whitecaps);
-			float windrow = smoothstep(0.7, 0.92, texture(foam_texture, vec2(fuv.x / 140.0, fuv.y / 2.6)).r) * (0.4 + 0.6 * patches);
+			float windrow = smoothstep(0.55, 0.9, streaks.g) * (0.4 + 0.6 * patches);
 			caps = max(caps, windrow * gale * 0.25);
 			// Once the crests are too small to follow, the caps are their mean:
 			// a faint whitening by Monahan's share and the spent foam's (any

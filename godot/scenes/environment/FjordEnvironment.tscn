@@ -1,4 +1,4 @@
-[gd_scene load_steps=34 format=3 uid="uid://fjord_environment_001"]
+[gd_scene load_steps=36 format=3 uid="uid://fjord_environment_001"]
 
 [ext_resource type="Script" path="res://scripts/environment/FjordEnvironment.gd" id="1_env"]
 [ext_resource type="Script" path="res://scripts/environment/FjordTerrain.gd" id="2_terrain"]
@@ -19,6 +19,8 @@
 [ext_resource type="Script" path="res://scripts/environment/EnvironmentDirector.gd" id="18_director"]
 [ext_resource type="Script" path="res://scripts/environment/WaterGrid.gd" id="19_water_grid"]
 [ext_resource type="Script" path="res://scripts/environment/PlanarReflection.gd" id="20_planar"]
+[ext_resource type="Script" path="res://scripts/environment/VesselWakes.gd" id="21_wakes"]
+[ext_resource type="Script" path="res://scripts/environment/PenSpray.gd" id="22_spray"]
 
 [sub_resource type="ShaderMaterial" id="water_mat"]
 shader = ExtResource("6_water_shader")
@@ -214,6 +216,7 @@ material = SubResource("water_mat")
 [node name="FjordCamera" type="Camera3D" parent="." node_paths=PackedStringArray("terrain")]
 script = ExtResource("3_camera")
 transform = Transform3D(1, 0, 0, 0, 0.766, -0.643, 0, 0.643, 0.766, 0, 200, 100)
+cull_mask = 917503
 current = true
 attributes = SubResource("camera_attributes")
 fov = 50.0
@@ -221,6 +224,7 @@ terrain = NodePath("../Terrain")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.5, -0.866, 0, 0.866, 0.5, 0, 0, 0)
+layers = 262144
 light_color = Color(1, 0.957, 0.902, 1)
 light_energy = 3.0
 light_angular_distance = 0.53
@@ -230,6 +234,7 @@ directional_shadow_max_distance = 1600.0
 
 [node name="Moon" type="DirectionalLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.5, 0.866, 0, -0.866, 0.5, 0, 0, 0)
+layers = 262144
 light_color = Color(0.78, 0.843, 0.91, 1)
 light_energy = 0.0
 directional_shadow_mode = 2
@@ -241,6 +246,7 @@ environment = SubResource("environment_resource")
 
 [node name="ReflectionProbe" type="ReflectionProbe" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 120, 0)
+cull_mask = 917503
 size = Vector3(4000, 900, 4000)
 origin_offset = Vector3(0, 0, 0)
 intensity = 1.0
@@ -277,6 +283,14 @@ planar_reflection = NodePath("../PlanarReflection")
 script = ExtResource("20_planar")
 camera = NodePath("../FjordCamera")
 water_grid = NodePath("../WaterGrid")
+
+[node name="VesselWakes" type="Node3D" parent="." node_paths=PackedStringArray("director")]
+script = ExtResource("21_wakes")
+director = NodePath("../EnvironmentDirector")
+
+[node name="PenSpray" type="Node3D" parent="." node_paths=PackedStringArray("director")]
+script = ExtResource("22_spray")
+director = NodePath("../EnvironmentDirector")
 
 [node name="RainParticles" type="GPUParticles3D" parent="WeatherSystem"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 50, 0)

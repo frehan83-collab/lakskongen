@@ -84,6 +84,7 @@ func _run() -> void:
 	await _test_environment_director_owns_the_look()
 	await _test_water_grid_bake_and_sea_state()
 	await _test_quality_tiers_and_covered_world()
+	await _test_water_mirror_wakes_and_spray()
 	await _test_theme_and_contrast_on_every_screen()
 	_test_formatters_speak_the_locale()
 	await _test_dashboard_title_names_the_company()
@@ -3006,6 +3007,260 @@ func _test_quality_tiers_and_covered_world() -> void:
 	scene.queue_free()
 	await get_tree().process_frame
 	_check(is_equal_approx(vp.scaling_3d_scale, 1.0), "quality: leaving the game leaves the viewport at native 3D scale")
+
+
+## G2-03 water v2. The planar mirror: the camera mirrored in the water plane
+## is a proper rotation, and anything above the water lands in the mirror
+## exactly where the water point that reflects it does; the water reads the
+## very texture and matrix the mirror rendered; it updates every frame at
+## FJORD and at 30 Hz at COAST on High, skips FARM distances on High (not on
+## Ultra), and falls back to the sky's radiance on Low, underwater, behind a
+## panel and in a storm. It leaves out the water, what hangs under it and
+## world labels, lights the mirror with its own shadowless sun and moon (the
+## player's camera never sees them), and draws its sky in its quarter pass.
+## Wakes: a moving boat lays a trail whose Kelvin arms spread at 19.47 deg
+## and fade; spray flies at the pens only in a gale.
+func _test_water_mirror_wakes_and_spray() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "mirror: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: FjordEnvironment = scene.get_node("FjordEnvironment")
+	var director: EnvironmentDirector = env.get_node("EnvironmentDirector")
+	var mirror: PlanarReflection = env.get_node("PlanarReflection")
+	var cam: FjordCamera = env.get_node("FjordCamera")
+	var grid: WaterGrid = env.get_node("WaterGrid")
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	var weather: WeatherController = env.get_node("WeatherSystem")
+	var vista: FjordVistaBridge = scene.get_node("FjordVistaBridge")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var world_env := (env.get_node("WorldEnvironment") as WorldEnvironment).environment
+	var mat := director.water_material()
+	cam.auto_orbit_enabled = false
+	vista.sim_weather_enabled = false
+	weather.transition_duration = 0.0
+	ui.show_tab("fjord")
+	for i in 600:
+		if terrain.is_ready():
+			break
+		await get_tree().process_frame
+	var calm := {"weather_state": "Calm", "wind_ms": 1.5, "cloud_cover": 0.15, "visibility_km": 50.0}
+	env.apply_sky_context(calm)
+	director.set_quality("high")
+	var focus: Vector3 = pens.get_pen_position(pens.get_pen_ids()[0])
+	cam.look_at_position(focus, FjordCamera.ZoomLevel.FJORD)
+	await _settle_camera(cam)
+	for i in 3:
+		await get_tree().process_frame
+	_check(director.planar_reflection == mirror and mirror.camera == cam and mirror.water_grid == grid,
+		"mirror: the director, the player's camera and the water are wired to the planar mirror")
+
+	# The geometry: a proper rotation that looks along the mirrored view, and an
+	# object above the water lands in the mirror where its reflection is.
+	var proper := true
+	var worst := 0.0
+	var proj := Projection.create_perspective(45.0, 16.0 / 9.0, 0.05, 4000.0)
+	for i in 24:
+		var pos := Vector3(sin(i * 1.3) * 800.0, 30.0 + 70.0 * float(i % 5), cos(i * 0.9) * 800.0)
+		var basis := Basis.from_euler(Vector3(deg_to_rad(-4.0 - float(i % 6) * 6.0), float(i) * 0.7, 0.0))
+		var t := Transform3D(basis, pos)
+		var m := PlanarReflection.mirror_transform(t, 0.0)
+		var f := -t.basis.z
+		proper = proper and m.basis.determinant() > 0.999 and is_equal_approx(m.origin.y, -pos.y) \
+			and (-m.basis.z).is_equal_approx(Vector3(f.x, -f.y, f.z))
+		var vp := proj * Projection(m.affine_inverse())
+		var ahead := Vector3(f.x, 0.0, f.z).normalized()
+		var q := pos + ahead * (500.0 + 90.0 * float(i % 4)) + Vector3(0.0, 120.0 + 40.0 * float(i % 3), 0.0) - Vector3(0.0, pos.y, 0.0)
+		# The water point that mirrors q: where the line from the camera to q's
+		# mirror image crosses the water.
+		var q_image := Vector3(q.x, -q.y, q.z)
+		var p := pos + (q_image - pos) * (pos.y / (pos.y - q_image.y))
+		worst = maxf(worst, PlanarReflection.uv_of(vp, p).distance_to(PlanarReflection.uv_of(vp, q)))
+	_check(proper and worst < 1e-3,
+		"mirror: the mirrored camera is a proper rotation along the mirrored view, and an object above the water lands where the water mirrors it (worst %.6f uv)" % worst)
+	var mirror_cam := mirror.get_mirror_camera()
+	var live_vp := mirror_cam.get_camera_projection() * Projection(mirror_cam.get_camera_transform().affine_inverse())
+	var bound_vp: Projection = mat.get_shader_parameter(PlanarReflection.VIEW_PROJ_UNIFORM)
+	_check(mirror.renders > 0 and mat.get_shader_parameter(PlanarReflection.TEXTURE_UNIFORM) == mirror.get_texture()
+		and _projection_close(bound_vp, mirror.view_proj) and _projection_close(mirror.view_proj, live_vp)
+		and mirror_cam.global_position.is_equal_approx(PlanarReflection.mirror_transform(cam.global_transform, 0.0).origin),
+		"mirror: the water reads the texture and the view-projection the mirror rendered with (%d passes)" % mirror.renders)
+	var win := get_window().size
+	_check(mirror.get_viewport_size().y <= int(ceil(win.y * float(director.get_quality_knobs()["mirror_scale"]))) + 1
+		or mirror.get_viewport_size().y == PlanarReflection.MIN_HEIGHT_PX,
+		"mirror: High renders it at %.2f of the window (%s)" % [float(director.get_quality_knobs()["mirror_scale"]), str(mirror.get_viewport_size())])
+
+	# The cadence: every frame at FJORD, 30 Hz at COAST (High); none at FARM on
+	# High, every frame there on Ultra.
+	mirror.set_process(false)
+	var at_fjord := _mirror_passes(mirror, 60)
+	cam.look_at_position(focus, FjordCamera.ZoomLevel.COAST)
+	await _settle_camera(cam)
+	var at_coast := _mirror_passes(mirror, 60)
+	_check(at_fjord == 60 and at_coast == 30, "mirror: High updates it every frame at FJORD (%d of 60) and at 30 Hz at COAST (%d of 60)" % [at_fjord, at_coast])
+	cam.look_at_position(focus, FjordCamera.ZoomLevel.FARM)
+	await _settle_camera(cam)
+	var high_farm := _mirror_passes(mirror, 30)
+	director.set_quality("ultra")
+	var ultra_farm := _mirror_passes(mirror, 30)
+	_check(high_farm == 0 and ultra_farm == 30 and is_zero_approx(float(RenderQuality.knobs_for(RenderQuality.Tier.ULTRA)["mirror_from_m"])),
+		"mirror: High leaves FARM distances to the sky's radiance (%d passes), Ultra mirrors there too (%d)" % [high_farm, ultra_farm])
+	director.set_quality("low")
+	# 40 frames: the mirror fades out over 0.6 s on its last texture.
+	var low_passes := _mirror_passes(mirror, 40)
+	_check(low_passes == 0 and is_zero_approx(float(mat.get_shader_parameter(PlanarReflection.MIX_UNIFORM))),
+		"mirror: Low has no mirror (the water falls back to the sky's radiance and the probe)")
+	director.set_quality("high")
+	cam.look_at_position(focus, FjordCamera.ZoomLevel.FJORD)
+	await _settle_camera(cam)
+	_check(_mirror_passes(mirror, 10) == 10, "mirror: back on High at FJORD it renders again")
+	director.set_world_visible(false)
+	var covered := _mirror_passes(mirror, 30)
+	director.set_world_visible(true)
+	env.apply_sky_context({"weather_state": "Storm", "wind_ms": 16.0, "cloud_cover": 1.0, "visibility_km": 2.0})
+	director.compose(1.0 / 60.0)
+	var storm_passes := _mirror_passes(mirror, 30)
+	var storm_wanted: bool = director.get_composed().get("mirror_wanted", true)
+	env.apply_sky_context(calm)
+	director.compose(1.0 / 60.0)
+	_check(covered == 0 and storm_passes == 0 and not storm_wanted and bool(director.get_composed().get("mirror_wanted", false)),
+		"mirror: none behind an opaque panel or in a storm (no water calm enough to mirror), back in the calm")
+	cam.look_at_position(focus, FjordCamera.ZoomLevel.UNDERWATER)
+	await _settle_camera(cam)
+	var under_passes := _mirror_passes(mirror, 40)
+	_check(under_passes == 0 and is_zero_approx(float(mat.get_shader_parameter(PlanarReflection.MIX_UNIFORM))),
+		"mirror: none with the camera under the water")
+	cam.look_at_position(focus, FjordCamera.ZoomLevel.FJORD)
+	await _settle_camera(cam)
+	mirror.set_process(true)
+
+	# What it sees and what lights it.
+	var sun: DirectionalLight3D = env.get_node("Sun")
+	var moon: DirectionalLight3D = env.get_node("Moon")
+	_check(mirror_cam.cull_mask == PlanarReflection.mirror_cull_mask() and mirror_cam.cull_mask & WaterGrid.RENDER_LAYER == 0
+		and mirror_cam.cull_mask & PlanarReflection.NO_MIRROR_LAYER == 0 and mirror_cam.cull_mask & PlanarReflection.MIRROR_ONLY_LAYER != 0
+		and cam.cull_mask & PlanarReflection.MIRROR_ONLY_LAYER == 0 and cam.cull_mask & PlanarReflection.NO_MIRROR_LAYER != 0,
+		"mirror: its camera leaves out the water and what hangs under it; the player's camera never sees the mirror's lights")
+	director.compose(0.0, true)
+	_check(sun.layers == PlanarReflection.NO_MIRROR_LAYER and moon.layers == PlanarReflection.NO_MIRROR_LAYER
+		and mirror.sun.layers == PlanarReflection.MIRROR_ONLY_LAYER and not mirror.sun.shadow_enabled and not mirror.moon.shadow_enabled
+		and mirror.sun.global_transform.basis.z.is_equal_approx(sun.global_transform.basis.z)
+		and is_equal_approx(mirror.sun.light_energy, sun.light_energy) and mirror.sun.light_color.is_equal_approx(sun.light_color)
+		and is_equal_approx(mirror.moon.light_energy, moon.light_energy),
+		"mirror: lit by its own shadowless copy of the sun and the moon")
+	var m_env := mirror.environment
+	var main_sky := world_env.sky.sky_material as ShaderMaterial
+	var mirror_sky := m_env.sky.sky_material as ShaderMaterial if m_env.sky != null else null
+	_check(m_env.tonemap_mode == Environment.TONE_MAPPER_LINEAR and is_equal_approx(m_env.tonemap_exposure, 1.0) and not m_env.glow_enabled
+		and is_equal_approx(m_env.fog_density, world_env.fog_density * EnvironmentDirector.MIRROR_FOG_SHARE)
+		and m_env.fog_light_color.is_equal_approx(world_env.fog_light_color),
+		"mirror: scene radiance (linear, exposure 1, no glow) with the main fog's colour and half its density")
+	_check(mirror_sky != null and mirror_sky != main_sky and int(mirror_sky.get_shader_parameter("sky_pass")) == EnvironmentDirector.MIRROR_SKY_PASS
+		and bool(mirror_sky.get_shader_parameter("sky_pass_aurora")) and int(main_sky.get_shader_parameter("sky_pass")) == 0
+		and is_equal_approx(float(mirror_sky.get_shader_parameter("sky_time")), float(main_sky.get_shader_parameter("sky_time"))),
+		"mirror: its own sky, the main one's uniforms, marched in the quarter pass (the main sky stays per pixel)")
+	var underwater_ok := true
+	var pen_id: String = pens.get_pen_ids()[0]
+	var cage := pens.get_pen_node(pen_id) as PenCage if pens.has_method("get_pen_node") else null
+	if cage == null:
+		for child in env.find_children("*", "Node3D", true, false):
+			if child is PenCage:
+				cage = child as PenCage
+				break
+	for part in PenCage.NO_MIRROR_PARTS:
+		for mesh in cage.get_parts(part):
+			underwater_ok = underwater_ok and mesh.layers == PlanarReflection.NO_MIRROR_LAYER
+	var schools := env.find_children("FishSchool", "MultiMeshInstance3D", true, false)
+	var ropes := env.find_children("Ropes", "MultiMeshInstance3D", true, false)
+	var labels := env.find_children("Label", "Label3D", true, false)
+	for node in schools + ropes + labels:
+		underwater_ok = underwater_ok and (node as VisualInstance3D).layers == PlanarReflection.NO_MIRROR_LAYER
+	_check(underwater_ok and not schools.is_empty() and not ropes.is_empty() and not labels.is_empty(),
+		"mirror: nets, sinker tubes, lice skirts, fish, mooring ropes and pen labels stay out of it")
+
+	# Wakes: a boat run down the fjord, driven by hand.
+	var wakes: VesselWakes = env.get_node("VesselWakes")
+	wakes.set_process(false)
+	var boat := (load("res://assets/models/workboat/workboat.tscn") as PackedScene).instantiate() as VesselModel
+	env.add_child(boat)
+	var start := Vector3(terrain.channel_center_x(-400.0), 0.0, -400.0)
+	boat.global_position = start
+	boat.rotation.y = PI  # bow along +Z
+	wakes._process(0.6)
+	for i in 40:
+		boat.global_position += Vector3(0.0, 0.0, 5.0)
+		wakes._process(1.0)
+	var trail: Dictionary = wakes.trails.get(boat.get_instance_id(), {})
+	var points: Array = trail.get("points", [])
+	var spacing_ok := points.size() >= 15
+	for i in range(1, points.size()):
+		var gap := (points[i]["p"] as Vector3).distance_to(points[i - 1]["p"])
+		spacing_ok = spacing_ok and gap >= VesselWakes.SEGMENT_MIN_M - 0.01 and gap <= VesselWakes.SEGMENT_MAX_M + 5.01
+	var oldest: Dictionary = points[0] if not points.is_empty() else {}
+	var expected := 0.5 * boat.beam_m + tan(deg_to_rad(19.47)) * float(oldest.get("speed", 0.0)) * (wakes._time - float(oldest.get("t", 0.0)))
+	var stern := VesselWakes.stern_of(boat)
+	var newest: Dictionary = points[points.size() - 1] if not points.is_empty() else {}
+	_check(spacing_ok and absf(VesselWakes.wedge_half_width(oldest, wakes._time) - expected) < 0.05
+		and absf(float(newest.get("speed", 0.0)) - 5.0) < 0.6 and (newest.get("p", Vector3.INF) as Vector3).distance_to(stern) < VesselWakes.SEGMENT_MAX_M,
+		"wakes: a boat at 5 m/s lays a trail behind its stern (%d points), its Kelvin arms 19.47 deg off the track" % points.size())
+	var mesh_node: MeshInstance3D = trail.get("mesh")
+	var mesh := mesh_node.mesh as ArrayMesh if mesh_node else null
+	_check(mesh != null and mesh.surface_get_array_len(0) == (points.size() - 1) * 3 * 4 and mesh_node.layers == PlanarReflection.NO_MIRROR_LAYER
+		and mesh_node.material_override == wakes.material,
+		"wakes: the trail is one mesh of three ribbons (the wash and both arms), out of the mirror")
+	var alpha_new := VesselWakes.point_alpha(newest, wakes._time)
+	boat.queue_free()
+	await get_tree().process_frame
+	for i in 240:
+		wakes._process(1.0)
+	_check(alpha_new > 0.3 and wakes.trails.is_empty(), "wakes: a fresh wake shows (alpha %.2f) and a gone boat's wake fades away" % alpha_new)
+	wakes.set_sea_state(0.06)
+	var gale_wake := wakes.sea_visibility
+	wakes.set_sea_state(0.0)
+	_check(is_zero_approx(gale_wake) and is_equal_approx(wakes.sea_visibility, 1.0), "wakes: a gale's own foam hides them, a calm shows them")
+	wakes.set_process(true)
+
+	# Spray at the pens: only in a gale.
+	var spray: PenSpray = env.get_node("PenSpray")
+	_check(is_zero_approx(PenSpray.spray_level(0.6, 6.0)) and PenSpray.spray_level(0.3, 16.0) > 0.4 and PenSpray.spray_level(0.9, 16.0) > PenSpray.spray_level(0.3, 16.0),
+		"spray: none in a breeze, plenty in a gale, more where the sea at the pen is higher")
+	env.apply_sky_context({"weather_state": "Storm", "wind_ms": 16.0, "cloud_cover": 1.0, "visibility_km": 2.0})
+	director.compose(1.0 / 60.0)
+	spray._refresh()
+	var emitting := spray.emitters.size() == pens.get_pen_ids().size()
+	for id in spray.emitters:
+		emitting = emitting and (spray.emitters[id] as GPUParticles3D).emitting and (spray.emitters[id] as GPUParticles3D).layers == PlanarReflection.NO_MIRROR_LAYER
+	env.apply_sky_context(calm)
+	director.compose(1.0 / 60.0)
+	spray._refresh()
+	var quiet := true
+	for id in spray.emitters:
+		quiet = quiet and not (spray.emitters[id] as GPUParticles3D).emitting
+	_check(emitting and quiet, "spray: every pen sprays in a 16 m/s gale and none in the calm")
+	_check(absf(EnvironmentDirector.whitecap_threshold(0.031) - 2.72) < 0.03 and absf(EnvironmentDirector.whitecap_threshold(0.105) - 1.96) < 0.03,
+		"whitecaps: the threshold mapping holds the top-down calibration (W 3.1 % -> 2.72, 10.5 % -> 1.96)")
+	scene.queue_free()
+	await get_tree().process_frame
+
+
+## Mirror passes rendered over `frames` hand-driven 60 fps frames.
+func _mirror_passes(mirror: PlanarReflection, frames: int) -> int:
+	var before := mirror.renders
+	for i in frames:
+		mirror._process(1.0 / 60.0)
+	return mirror.renders - before
+
+
+func _projection_close(a: Projection, b: Projection) -> bool:
+	for c in 4:
+		for r in 4:
+			if absf(a[c][r] - b[c][r]) > 1e-3 * maxf(1.0, absf(b[c][r])):
+				return false
+	return true
 
 
 ## The vertex arrays a mesh's first surface carries (Mesh.ARRAY_FORMAT_* bits

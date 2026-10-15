@@ -54,6 +54,13 @@ uniform vec3 sky_zenith = vec3(0.06, 0.12, 0.3);
 uniform int cloud_pass : hint_range(0, 2) = 0;
 uniform int cloud_steps : hint_range(2, 12) = 6;
 uniform int cloud_octaves : hint_range(3, 6) = 6;
+// The whole sky but its sharp detail (stars, moon and sun discs) marched in
+// the half (1) or quarter (2) resolution pass, the detail added per pixel
+// (0: per pixel, cloud_pass decides). The planar mirror's sky (G2-03): the
+// water shows it through ripples, so a quarter of its pixels is plenty;
+// sky_pass_aurora puts the aurora in that pass too.
+uniform int sky_pass : hint_range(0, 2) = 0;
+uniform bool sky_pass_aurora = false;
 // The engine blends the environment's fog into every sky pass, the reduced-
 // resolution ones too (Godot sky.glsl fog_process: rgb' = rgb (1 - k) +
 // k fog_light_color + s sun_scatter_light, with k = sky_affect (1 -
@@ -522,83 +529,14 @@ vec3 moon_sky_light() {
 	float moon_up = smoothstep(-0.02, 0.06, moon_direction.y);
 	return vec3(0.012, 0.016, 0.024) * moon_illumination * moon_up;
 }
-
 // ── Compose ───────────────────────────────────────────────────────────────
-void sky() {
-	vec3 dir = normalize(EYEDIR);
-	vec3 sun_dir = LIGHT0_ENABLED ? normalize(LIGHT0_DIRECTION) : vec3(0.0, -1.0, 0.0);
-	vec3 sky_top = sky_zenith;
-	// Reduced-resolution passes: the clouds only, premultiplied, when the
-	// quality tier puts them there; otherwise nothing.
-	if (AT_HALF_RES_PASS || AT_QUARTER_RES_PASS) {
-		int wanted = AT_HALF_RES_PASS ? 1 : 2;
-		vec4 c = vec4(0.0);
-		if (cloud_pass == wanted && dir.y > 0.0) {
-			c = clouds(dir, sun_dir, sky_top, moon_sky_light(), cloud_octaves, cloud_steps, 4);
-		}
-		COLOR = c.rgb;
-		ALPHA = c.a;
-	} else {
-	bool cubemap = AT_CUBEMAP_PASS;
-	int atm_steps = cubemap ? 6 : 12;
-	int octaves = cubemap ? 3 : cloud_octaves;
 
-	vec3 view_t;
-	// The radiance pass widens the Mie aureole: the sun's glare must not leak
-	// into the ambient light and the aerial-perspective fog.
-	vec3 sky_rgb = atmosphere(dir, sun_dir, atm_steps, cubemap ? 0.55 : MIE_G, view_t) * SKY_SCALE * sky_energy;
-	sky_rgb += (twilight(dir, sun_dir) + night_sky(dir)) * sky_energy;
-	// Moonlit sky: a faint blue wash around the moon.
-	float moon_up = smoothstep(-0.02, 0.06, moon_direction.y);
-	vec3 moon_light = moon_sky_light();
-	float mu_moon = dot(dir, moon_direction);
-	sky_rgb += vec3(0.006, 0.009, 0.016) * moon_illumination * moon_up * (0.35 + phase_hg(mu_moon, 0.75) * 0.6);
-
+// Haze toward the horizon in poor visibility. Below the horizon the map
+// holds the fog colour itself: the engine's aerial perspective samples it
+// whenever the camera looks down at the water, so the clear sky must not
+// shine through there under a storm deck.
+vec3 haze_and_ground(vec3 color, vec3 dir, vec3 sun_dir, bool cubemap) {
 	float above = smoothstep(-0.02, 0.01, dir.y);
-	vec3 color = sky_rgb;
-	if (!cubemap) {
-		float dark = 1.0 - smoothstep(0.006, 0.03, dot(sky_rgb, vec3(0.2126, 0.7152, 0.0722)));
-		color += stars(dir) * dark * sqrt(view_t) * above;
-		color += moon_disc(dir, sun_dir) * view_t * above;
-		// Sun disc (LIGHT0) and its glare: the background only, so the
-		// radiance map (ambient, reflections, aerial perspective) does not
-		// count the sun a second time on top of the DirectionalLight.
-		if (LIGHT0_ENABLED) {
-			float cos_t = dot(dir, sun_dir);
-			float size = max(LIGHT0_SIZE, 0.0093);
-			float disc = smoothstep(cos(size * 0.5), cos(size * 0.42), cos_t);
-			vec3 sun_rgb = LIGHT0_COLOR * LIGHT0_ENERGY;
-			color += sun_rgb * disc * 60.0 * above;
-			color += sun_rgb * pow(max(cos_t, 0.0), 900.0) * 0.6 * above;
-		}
-	}
-	// Background only: in the radiance map the aurora would tint the
-	// aerial-perspective fog over the whole fjord green.
-	if (!cubemap) {
-		color += aurora(dir) * view_t;
-	}
-
-	// The clouds: marched here, or read from the reduced-resolution pass
-	// (premultiplied, so the bilinear upsample keeps soft edges right).
-	vec4 cl;
-	if (cubemap) {
-		cl = clouds(dir, sun_dir, sky_top, moon_light, octaves, 3, 2);
-	} else if (cloud_pass > 0) {
-		cl = cloud_pass == 1 ? HALF_RES_COLOR : QUARTER_RES_COLOR;
-		vec3 scatter = vec3(0.0);
-		if (LIGHT0_ENABLED) {
-			scatter = LIGHT0_COLOR * LIGHT0_ENERGY * pow(max(dot(dir, sun_dir), 0.0), 8.0) * PI_;
-		}
-		cl.rgb = max((cl.rgb - sky_fog_k * haze_color - sky_fog_scatter * scatter) / max(1.0 - sky_fog_k, 0.05), vec3(0.0));
-	} else {
-		cl = clouds(dir, sun_dir, sky_top, moon_light, octaves, cloud_steps, 4);
-	}
-	color = color * (1.0 - cl.a) + cl.rgb;
-
-	// Haze toward the horizon in poor visibility. Below the horizon the map
-	// holds the fog colour itself: the engine's aerial perspective samples
-	// it whenever the camera looks down at the water, so the clear sky must
-	// not shine through there under a storm deck.
 	float horizon = pow(1.0 - clamp(dir.y, 0.0, 1.0), mix(14.0, 2.5, haze_amount));
 	color = mix(color, haze_color, clamp(horizon * haze_amount, 0.0, 1.0));
 	// Below the horizon: the clear horizon of that azimuth (warm toward the
@@ -615,14 +553,122 @@ void sky() {
 		// the horizon, so the ambient light from below stays a dim bounce.
 		below *= mix(1.0, 0.3, smoothstep(0.0, 0.3, -dir.y));
 	}
-	color = mix(below, color, above);
-	if (cubemap) {
-		// Soft-limit the glare near the sun in the radiance map, which feeds
-		// the ambient light and the aerial-perspective fog.
-		float l = dot(color, vec3(0.2126, 0.7152, 0.0722));
-		color *= 1.0 / (1.0 + max(l - 1.6, 0.0) * 0.6);
-	}
+	return mix(below, color, above);
+}
 
-	COLOR = max(color, vec3(0.0));
+// The sky without its per-pixel detail (stars, the moon and sun discs and,
+// unless with_aurora, the aurora): the atmosphere, twilight, night floor and
+// moon wash, the clouds `cl` (premultiplied) over them, the horizon haze and
+// the colour below the horizon. a: the cloud cover in front of the detail.
+vec4 sky_body(vec3 dir, vec3 sun_dir, bool cubemap, bool with_aurora, vec4 cl) {
+	int atm_steps = cubemap ? 6 : 12;
+	vec3 view_t;
+	// The radiance pass widens the Mie aureole: the sun's glare must not leak
+	// into the ambient light and the aerial-perspective fog.
+	vec3 sky_rgb = atmosphere(dir, sun_dir, atm_steps, cubemap ? 0.55 : MIE_G, view_t) * SKY_SCALE * sky_energy;
+	sky_rgb += (twilight(dir, sun_dir) + night_sky(dir)) * sky_energy;
+	// Moonlit sky: a faint blue wash around the moon.
+	float moon_up = smoothstep(-0.02, 0.06, moon_direction.y);
+	float mu_moon = dot(dir, moon_direction);
+	sky_rgb += vec3(0.006, 0.009, 0.016) * moon_illumination * moon_up * (0.35 + phase_hg(mu_moon, 0.75) * 0.6);
+	vec3 color = sky_rgb;
+	// Background only: in the radiance map the aurora would tint the
+	// aerial-perspective fog over the whole fjord green.
+	if (with_aurora && !cubemap) {
+		color += aurora(dir) * view_t;
+	}
+	color = color * (1.0 - cl.a) + cl.rgb;
+	color = haze_and_ground(color, dir, sun_dir, cubemap);
+	return vec4(color, cl.a);
+}
+
+// The per-pixel detail over the sky: stars, the moon and the sun (LIGHT0)
+// discs and the sun's glare, and the aurora unless the body holds it; seen
+// through `clear` (1 - the cloud cover) and the horizon haze. Background
+// only: the radiance map (ambient, reflections, aerial perspective) must not
+// count the sun a second time on top of the DirectionalLight.
+vec3 sky_detail(vec3 dir, vec3 sun_dir, vec3 body, float clear, vec3 view_t, bool with_aurora) {
+	float above = smoothstep(-0.02, 0.01, dir.y);
+	float horizon = pow(1.0 - clamp(dir.y, 0.0, 1.0), mix(14.0, 2.5, haze_amount));
+	float seen = clear * above * (1.0 - clamp(horizon * haze_amount, 0.0, 1.0));
+	float dark = 1.0 - smoothstep(0.006, 0.03, dot(body, vec3(0.2126, 0.7152, 0.0722)));
+	vec3 detail = stars(dir) * dark * sqrt(view_t);
+	detail += moon_disc(dir, sun_dir) * view_t;
+	if (LIGHT0_ENABLED) {
+		float cos_t = dot(dir, sun_dir);
+		float size = max(LIGHT0_SIZE, 0.0093);
+		float disc = smoothstep(cos(size * 0.5), cos(size * 0.42), cos_t);
+		vec3 sun_rgb = LIGHT0_COLOR * LIGHT0_ENERGY;
+		detail += sun_rgb * disc * 60.0;
+		detail += sun_rgb * pow(max(cos_t, 0.0), 900.0) * 0.6;
+	}
+	if (with_aurora) {
+		detail += aurora(dir) * view_t;
+	}
+	return detail * seen;
+}
+
+// A reduced-resolution pass's colour as the full pass reads it: the engine
+// fogs every sky pass, so the first fogging comes back out (EnvironmentDirector
+// writes sky_fog_k and sky_fog_scatter from the fog it sets; haze_color is
+// the fog's light colour).
+vec4 unfogged(vec4 cl, vec3 dir, vec3 sun_dir) {
+	vec3 scatter = vec3(0.0);
+	if (LIGHT0_ENABLED) {
+		scatter = LIGHT0_COLOR * LIGHT0_ENERGY * pow(max(dot(dir, sun_dir), 0.0), 8.0) * PI_;
+	}
+	return vec4(max((cl.rgb - sky_fog_k * haze_color - sky_fog_scatter * scatter) / max(1.0 - sky_fog_k, 0.05), vec3(0.0)), cl.a);
+}
+
+void sky() {
+	vec3 dir = normalize(EYEDIR);
+	vec3 sun_dir = LIGHT0_ENABLED ? normalize(LIGHT0_DIRECTION) : vec3(0.0, -1.0, 0.0);
+	vec3 sky_top = sky_zenith;
+	vec3 moon_light = moon_sky_light();
+	bool cubemap = AT_CUBEMAP_PASS;
+	if (AT_HALF_RES_PASS || AT_QUARTER_RES_PASS) {
+		int wanted = AT_HALF_RES_PASS ? 1 : 2;
+		vec4 c = vec4(0.0);
+		if (sky_pass == wanted) {
+			// The whole sky but its per-pixel detail, with the cloud cover
+			// as alpha (sky_pass: the planar mirror's sky, G2-03).
+			vec4 cl = dir.y > 0.0 ? clouds(dir, sun_dir, sky_top, moon_light, cloud_octaves, cloud_steps, 4) : vec4(0.0);
+			c = sky_body(dir, sun_dir, false, sky_pass_aurora, cl);
+		} else if (sky_pass == 0 && cloud_pass == wanted && dir.y > 0.0) {
+			// The clouds only, premultiplied, when the quality tier puts
+			// them here.
+			c = clouds(dir, sun_dir, sky_top, moon_light, cloud_octaves, cloud_steps, 4);
+		}
+		COLOR = c.rgb;
+		ALPHA = c.a;
+	} else if (sky_pass > 0 && !cubemap) {
+		// The body from the reduced pass; the sharp detail per pixel.
+		vec4 body = unfogged(sky_pass == 1 ? HALF_RES_COLOR : QUARTER_RES_COLOR, dir, sun_dir);
+		vec3 view_t = sun_transmittance(OBSERVER_H, max(dir.y, 0.002));
+		vec3 color = body.rgb + sky_detail(dir, sun_dir, body.rgb, 1.0 - body.a, view_t, !sky_pass_aurora);
+		COLOR = max(color, vec3(0.0));
+	} else {
+		// The clouds: marched here, or read from the reduced-resolution pass
+		// (premultiplied, so the bilinear upsample keeps soft edges right).
+		vec4 cl;
+		if (cubemap) {
+			cl = clouds(dir, sun_dir, sky_top, moon_light, 3, 3, 2);
+		} else if (cloud_pass > 0) {
+			cl = unfogged(cloud_pass == 1 ? HALF_RES_COLOR : QUARTER_RES_COLOR, dir, sun_dir);
+		} else {
+			cl = clouds(dir, sun_dir, sky_top, moon_light, cloud_octaves, cloud_steps, 4);
+		}
+		vec4 body = sky_body(dir, sun_dir, cubemap, !cubemap, cl);
+		vec3 color = body.rgb;
+		if (!cubemap) {
+			vec3 view_t = sun_transmittance(OBSERVER_H, max(dir.y, 0.002));
+			color += sky_detail(dir, sun_dir, body.rgb, 1.0 - body.a, view_t, false);
+		} else {
+			// Soft-limit the glare near the sun in the radiance map, which
+			// feeds the ambient light and the aerial-perspective fog.
+			float l = dot(color, vec3(0.2126, 0.7152, 0.0722));
+			color *= 1.0 / (1.0 + max(l - 1.6, 0.0) * 0.6);
+		}
+		COLOR = max(color, vec3(0.0));
 	}
 }

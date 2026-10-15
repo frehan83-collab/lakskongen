@@ -31,9 +31,19 @@ extends Node
 ## water's mirror uniforms.
 
 ## Render layer of what must not appear in the mirror: everything wholly
-## under the water (it would cover the reflection), world labels, and the
-## weather particles round the camera. Render layer 19.
+## under the water (it would cover the reflection), world labels, the
+## weather particles round the camera, and the scene's Sun and Moon (the
+## mirror has its own, below). Render layer 19.
 const NO_MIRROR_LAYER := 1 << 18
+## Render layer only the mirror sees: its own sun and moon. A directional
+## light is drawn for the cameras whose cull mask holds its layer, and its
+## shadow maps are rendered for each viewport it lights; the mirror's lights
+## cast none (shadows in a rippled half-resolution reflection do not show;
+## they cost 0.9 ms at 1440p FJORD). Every other camera leaves this layer
+## out: the player's camera (stripped here every frame, whichever camera
+## is current) and the reflection probe (its scene cull mask). Render
+## layer 18.
+const MIRROR_ONLY_LAYER := 1 << 17
 ## Camera distance (m) from which the mirror updates at the tier's far rate
 ## (FjordCamera.COAST_BAND: the COAST zoom band).
 const FAR_DISTANCE_M := 1600.0
@@ -45,6 +55,8 @@ const MIX_UNIFORM := "planar_mix"
 const MIN_HEIGHT_PX := 180
 ## Fade time (s) when the mirror switches on or off, so nothing pops.
 const FADE_S := 0.6
+## Hysteresis (m) round from_distance.
+const FROM_HYSTERESIS_M := 20.0
 
 ## The camera the mirror follows.
 @export var camera: Camera3D
@@ -55,11 +67,17 @@ const FADE_S := 0.6
 
 ## The mirror camera's environment (EnvironmentDirector writes it).
 var environment := Environment.new()
+## The mirror's sun and moon, without shadows (EnvironmentDirector copies
+## the scene's Sun and Moon onto them every frame).
+var sun: DirectionalLight3D
+var moon: DirectionalLight3D
 ## Tier settings (configure()): on, resolution scale, far update rate (Hz).
 var tier_enabled := true
 var resolution_scale := 0.5
 var far_hz := 30.0
 var near_hz := 0.0
+## Camera distance (m) from which the mirror is drawn (0: always).
+var from_distance := 0.0
 ## Mirror passes rendered so far (tests read it).
 var renders := 0
 ## The view-projection of the last rendered pass.
@@ -72,6 +90,7 @@ var _world_visible := true
 var _since := INF
 var _mix := 0.0
 var _texture_bound := false
+var _far_enough := false
 
 
 func _init() -> void:
@@ -105,6 +124,25 @@ func _ready() -> void:
 	_camera.attributes = attrs
 	_viewport.add_child(_camera)
 	_camera.current = true
+	sun = _mirror_light("MirrorSun", DirectionalLight3D.SKY_MODE_LIGHT_AND_SKY)
+	moon = _mirror_light("MirrorMoon", DirectionalLight3D.SKY_MODE_LIGHT_ONLY)
+
+
+func _mirror_light(light_name: String, sky_mode: DirectionalLight3D.SkyMode) -> DirectionalLight3D:
+	var light := DirectionalLight3D.new()
+	light.name = light_name
+	light.layers = MIRROR_ONLY_LAYER
+	light.shadow_enabled = false
+	light.sky_mode = sky_mode
+	add_child(light)
+	return light
+
+
+## The player's camera must not see the mirror's lights (they would light
+## the world twice).
+static func strip_mirror_layer(cam: Camera3D) -> void:
+	if cam != null and cam.cull_mask & MIRROR_ONLY_LAYER:
+		cam.cull_mask &= ~MIRROR_ONLY_LAYER
 
 
 ## Layers the mirrored camera draws: all but the water and NO_MIRROR_LAYER.
@@ -113,13 +151,15 @@ static func mirror_cull_mask() -> int:
 
 
 ## The tier's settings (EnvironmentDirector, from RenderQuality): whether the
-## mirror exists, its resolution as a share of the window, and its update
-## rates (Hz) near and far (0: every frame).
-func configure(enabled: bool, scale: float, near_rate_hz: float, far_rate_hz: float) -> void:
+## mirror exists, its resolution as a share of the window, its update rates
+## (Hz) near and far (0: every frame) and the camera distance (m) from which
+## it is drawn (0: always).
+func configure(enabled: bool, scale: float, near_rate_hz: float, far_rate_hz: float, from_m: float = 0.0) -> void:
 	tier_enabled = enabled
 	resolution_scale = clampf(scale, 0.1, 1.0)
 	near_hz = maxf(near_rate_hz, 0.0)
 	far_hz = maxf(far_rate_hz, 0.0)
+	from_distance = maxf(from_m, 0.0)
 	_since = INF
 
 
@@ -134,9 +174,18 @@ func set_world_visible(world_visible: bool) -> void:
 	_world_visible = world_visible
 
 
-## The mirror renders and the water shows it.
+## The mirror renders and the water shows it: the tier has one, the scene
+## wants it, the world is on screen and the camera is far enough out (with
+## FROM_HYSTERESIS_M either way, so a zoom resting at the line does not
+## flicker it on and off).
 func is_active() -> bool:
-	return tier_enabled and _wanted and _world_visible and camera != null and is_inside_tree()
+	if not (tier_enabled and _wanted and _world_visible and camera != null and is_inside_tree()):
+		return false
+	if from_distance <= 0.0:
+		return true
+	var d := _distance()
+	_far_enough = d >= from_distance + FROM_HYSTERESIS_M or (_far_enough and d > from_distance - FROM_HYSTERESIS_M)
+	return _far_enough
 
 
 func get_texture() -> Texture2D:
@@ -173,7 +222,7 @@ static func mirror_transform(t: Transform3D, level: float) -> Transform3D:
 
 
 ## Where a world point lands in the mirror texture (UV, 0-1) for a
-## view-projection; the shader's planar_uv() does the same.
+## view-projection; the shader's planar_uv_of_point() does the same.
 static func uv_of(vp: Projection, p: Vector3) -> Vector2:
 	var c := vp * Vector4(p.x, p.y, p.z, 1.0)
 	var w := maxf(c.w, 1e-4)
@@ -181,12 +230,17 @@ static func uv_of(vp: Projection, p: Vector3) -> Vector2:
 
 
 func _process(delta: float) -> void:
+	strip_mirror_layer(camera)
+	var current := get_viewport().get_camera_3d() if is_inside_tree() else null
+	if current != _camera:
+		strip_mirror_layer(current)
 	var mat := water_grid.material if water_grid != null else null
 	var active := is_active() and camera.global_position.y > water_level + 0.5
 	_mix = move_toward(_mix, 1.0 if active else 0.0, delta / FADE_S if delta > 0.0 else 1.0)
 	if mat != null:
 		mat.set_shader_parameter(MIX_UNIFORM, _mix)
-	if _mix <= 0.0 and not active:
+	if not active:
+		# Fading out on the last texture and the matrix it was rendered with.
 		_since = INF
 		return
 	_resize()

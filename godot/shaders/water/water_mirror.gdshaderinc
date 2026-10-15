@@ -24,7 +24,7 @@ uniform float planar_distort : hint_range(0.0, 2.0) = 0.7;
 const float PLANAR_ROUGH_FROM = 0.07;
 const float PLANAR_ROUGH_TO = 0.2;
 // UV margin over which the mirror fades out at the texture's edges.
-const float PLANAR_EDGE = 0.03;
+const float PLANAR_EDGE = 0.015;
 // Facet slope (tan) over which the mirror gives way to the sky's radiance.
 const float PLANAR_SLOPE_FROM = 0.15;
 const float PLANAR_SLOPE_TO = 0.35;
@@ -55,10 +55,13 @@ vec4 planar_sample(vec3 flat_point, vec3 view_w, vec3 n, float roughness) {
 	if (w <= 0.0) {
 		return vec4(0.0);
 	}
-	vec3 r0 = reflect(-view_w, vec3(0.0, 1.0, 0.0));
+	// The flat point sits on the mirrored view ray, so it lands where the
+	// still water's reflected direction does: the tilted direction's offset
+	// from it is the ripple's shift.
 	vec3 r = reflect(-view_w, n);
 	r.y = max(r.y, 0.02);
-	vec2 uv = planar_uv_of_point(flat_point) + (planar_uv_of_dir(r) - planar_uv_of_dir(r0)) * planar_distort;
+	vec2 uv_flat = planar_uv_of_point(flat_point);
+	vec2 uv = uv_flat + (planar_uv_of_dir(r) - uv_flat) * planar_distort;
 	vec2 edge = min(uv, 1.0 - uv);
 	w *= smoothstep(0.0, PLANAR_EDGE, min(edge.x, edge.y));
 	if (w <= 0.0) {
@@ -66,11 +69,9 @@ vec4 planar_sample(vec3 flat_point, vec3 view_w, vec3 n, float roughness) {
 	}
 	// A slightly rough surface smears the mirror, mostly along the view
 	// (vertical streaks on the screen): a short vertical tap row.
-	float spread = smoothstep(0.035, PLANAR_ROUGH_TO, roughness) * 0.02;
-	vec3 c = texture(planar_reflection, uv).rgb * 0.4;
-	c += texture(planar_reflection, uv + vec2(0.0, spread)).rgb * 0.2;
-	c += texture(planar_reflection, uv - vec2(0.0, spread)).rgb * 0.2;
-	c += texture(planar_reflection, uv + vec2(spread * 0.35, spread * 2.0)).rgb * 0.1;
-	c += texture(planar_reflection, uv - vec2(spread * 0.35, spread * 2.0)).rgb * 0.1;
+	float spread = smoothstep(0.035, PLANAR_ROUGH_TO, roughness) * 0.025;
+	vec3 c = texture(planar_reflection, uv).rgb * 0.5;
+	c += texture(planar_reflection, uv + vec2(0.0, spread)).rgb * 0.25;
+	c += texture(planar_reflection, uv - vec2(0.0, spread)).rgb * 0.25;
 	return vec4(c, w);
 }

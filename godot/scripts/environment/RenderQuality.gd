@@ -81,6 +81,11 @@ const UPSCALER_OTHER := Viewport.SCALING_3D_MODE_FSR
 ##   mirror_scale    the mirror's resolution as a share of the window
 ##   mirror_near_hz  its update rate inside the COAST band (0: every frame)
 ##   mirror_far_hz   its update rate at COAST distances (the roadmap's 30 Hz)
+##   mirror_from_m   camera distance from which the mirror is drawn (0:
+##                   always). Looking steeply down at a FARM view the water
+##                   reflects a few per cent (fresnel) and the sky's
+##                   radiance carries it; the mirror's ~1.5 ms there would
+##                   break the High frame budget (P0-04, RUN_LOG s7)
 const PRESETS := {
 	"low": {
 		"msaa": Viewport.MSAA_DISABLED, "screen_aa": Viewport.SCREEN_SPACE_AA_FXAA, "scale": 0.6, "hidden_scale": 0.5, "hidden_pause": true,
@@ -91,7 +96,7 @@ const PRESETS := {
 		"shadow_atlas": 2048, "shadow_splits": 2, "shadow_distance": 0.6, "soft_shadows": RenderingServer.SHADOW_QUALITY_HARD,
 		"glow": true, "cloud_pass": 2, "cloud_steps": 4, "cloud_octaves": 4, "radiance_size": Sky.RADIANCE_SIZE_64,
 		"terrain_detail": 0.0,
-		"mirror": false, "mirror_scale": 0.0, "mirror_near_hz": 0.0, "mirror_far_hz": 0.0,
+		"mirror": false, "mirror_scale": 0.0, "mirror_near_hz": 0.0, "mirror_far_hz": 0.0, "mirror_from_m": 0.0,
 	},
 	"medium": {
 		"msaa": Viewport.MSAA_2X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 0.67, "hidden_scale": 0.5, "hidden_pause": true,
@@ -102,7 +107,7 @@ const PRESETS := {
 		"shadow_atlas": 4096, "shadow_splits": 2, "shadow_distance": 0.8, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW,
 		"glow": true, "cloud_pass": 2, "cloud_steps": 5, "cloud_octaves": 5, "radiance_size": Sky.RADIANCE_SIZE_128,
 		"terrain_detail": 0.5,
-		"mirror": true, "mirror_scale": 0.33, "mirror_near_hz": 30.0, "mirror_far_hz": 20.0,
+		"mirror": true, "mirror_scale": 0.33, "mirror_near_hz": 30.0, "mirror_far_hz": 20.0, "mirror_from_m": 300.0,
 	},
 	"high": {
 		"msaa": Viewport.MSAA_4X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 0.75, "hidden_scale": 0.5, "hidden_pause": true,
@@ -113,7 +118,7 @@ const PRESETS := {
 		"shadow_atlas": 4096, "shadow_splits": 4, "shadow_distance": 1.0, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW,
 		"glow": true, "cloud_pass": 1, "cloud_steps": 6, "cloud_octaves": 6, "radiance_size": Sky.RADIANCE_SIZE_256,
 		"terrain_detail": 1.0,
-		"mirror": true, "mirror_scale": 0.5, "mirror_near_hz": 0.0, "mirror_far_hz": 30.0,
+		"mirror": true, "mirror_scale": 0.4, "mirror_near_hz": 0.0, "mirror_far_hz": 30.0, "mirror_from_m": 300.0,
 	},
 	"ultra": {
 		"msaa": Viewport.MSAA_4X, "screen_aa": Viewport.SCREEN_SPACE_AA_SMAA, "scale": 1.0, "hidden_scale": 0.5, "hidden_pause": true,
@@ -124,7 +129,7 @@ const PRESETS := {
 		"shadow_atlas": 4096, "shadow_splits": 4, "shadow_distance": 1.0, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_LOW,
 		"glow": true, "cloud_pass": 0, "cloud_steps": 6, "cloud_octaves": 6, "radiance_size": Sky.RADIANCE_SIZE_256,
 		"terrain_detail": 1.0,
-		"mirror": true, "mirror_scale": 0.5, "mirror_near_hz": 0.0, "mirror_far_hz": 0.0,
+		"mirror": true, "mirror_scale": 0.5, "mirror_near_hz": 0.0, "mirror_far_hz": 0.0, "mirror_from_m": 0.0,
 	},
 }
 

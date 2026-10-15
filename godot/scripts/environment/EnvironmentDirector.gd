@@ -154,6 +154,8 @@ const RIPPLE_MAX := 0.75
 ## 1.96; a least-squares line through them.
 const WHITECAP_Z_SCALE := 1.25
 const WHITECAP_Z_OFFSET := 0.39
+## Whitecaps break on the components round the spectral peak (peak_weight).
+const PEAK_BAND_SHARPNESS := 1.5
 ## Re-derive the sea when the wind moves this much (m/s).
 const SEA_WIND_STEP := 0.02
 
@@ -177,6 +179,14 @@ const MIRROR_FOG_SHARE := 0.5
 ## Above this wind (m/s) no water anywhere is calm enough to mirror: the
 ## mirror is not rendered at all (a storm costs nothing extra).
 const MIRROR_MAX_WIND_MS := 11.0
+## The mirror's sky marches in its quarter-resolution pass (sky_shader
+## sky_pass) and lights the mirror from a small radiance map.
+const MIRROR_SKY_PASS := 2
+const MIRROR_RADIANCE_SIZE := Sky.RADIANCE_SIZE_32
+## How far the surface normal moves the mirror lookup (water_mirror
+## planar_distort): little in a dead calm, more once a breeze ripples it.
+const MIRROR_DISTORT_CALM := 0.3
+const MIRROR_DISTORT_BREEZE := 0.8
 
 var _water_temperature_c := 8.0
 var _algae := 0.0
@@ -204,6 +214,8 @@ var _comp_phase := PackedFloat64Array()
 var _sea_time := 0.0
 var _sea_wind := -1.0
 var _bake_applied: Texture2D = null
+## The planar mirror's own sky (G2-03, _ensure_mirror_sky).
+var _mirror_sky: Sky = null
 ## The sea composed last: hs/tp/amplitudes for the sheltered basin and the
 ## open coast, whitecaps (tests read it).
 var sea_state: Dictionary = {}
@@ -314,7 +326,7 @@ func _apply_quality() -> void:
 	if planar_reflection != null:
 		var k := quality.knobs
 		planar_reflection.configure(bool(k.get("mirror", false)), float(k.get("mirror_scale", 0.5)),
-			float(k.get("mirror_near_hz", 0.0)), float(k.get("mirror_far_hz", 0.0)))
+			float(k.get("mirror_near_hz", 0.0)), float(k.get("mirror_far_hz", 0.0)), float(k.get("mirror_from_m", 0.0)))
 
 
 ## The tier's terrain detail on the terrain material (its chunks share one),
@@ -458,8 +470,8 @@ func _apply_moon(sun_elev: float, cloud: float, c: Dictionary) -> void:
 
 func _apply_sky(delta: float, sun_elev: float, cloud: float, density: float, visibility: float,
 		sea_fog: float, k_slow: float, c: Dictionary) -> void:
-	var mat := _sky_material()
-	if mat == null:
+	var mats := _sky_materials()
+	if mats.is_empty():
 		return
 	var wind := weather_system.get_wind() if weather_system else Vector2(4.0, 0.0)
 	# km of drift: the presentation clock runs fast, the clouds a little.
@@ -474,30 +486,37 @@ func _apply_sky(delta: float, sun_elev: float, cloud: float, density: float, vis
 	var above_fog_vis := lerpf(visibility, ABOVE_SEA_FOG_VISIBILITY_M, sea_fog)
 	var sigma_km := KOSCHMIEDER / maxf(above_fog_vis, 1.0) * 1000.0
 	var haze := smoothstep(0.0, 1.0, (sigma_km - 0.12) / 1.6)
-	mat.set_shader_parameter("sky_time", _sky_time)
-	mat.set_shader_parameter("cloud_coverage", cloud)
-	mat.set_shader_parameter("cloud_density", density)
-	mat.set_shader_parameter("cloud_offset", _cloud_offset)
-	mat.set_shader_parameter("aurora_intensity", _aurora)
-	mat.set_shader_parameter("aurora_offset_km", float(aurora["offset_km"]))
-	mat.set_shader_parameter("aurora_kp", float(aurora["kp"]))
-	mat.set_shader_parameter("moon_direction", _moon_dir)
-	mat.set_shader_parameter("moon_illumination", time_system.get_moon_illumination())
-	mat.set_shader_parameter("haze_color", c["horizon_color"])
-	mat.set_shader_parameter("haze_amount", haze)
-	# The zenith sky lights the clouds; one value for every pixel.
-	mat.set_shader_parameter("sky_zenith", c["sky_zenith"])
-	# Clouds from a reduced-resolution pass come back fogged by the engine;
-	# the shader takes that fog out again with these terms (the fog
-	# _apply_fog writes, in the engine's sky formula). Underwater the fog
-	# replaces the sky outright: the clouds are marched per pixel there.
 	var terms := sky_fog_terms(cloud, sea_fog)
 	var underwater: bool = c.get("underwater", false)
-	mat.set_shader_parameter("sky_fog_k", terms.x)
-	mat.set_shader_parameter("sky_fog_scatter", terms.y)
-	mat.set_shader_parameter("cloud_pass", 0 if underwater else int(quality.knobs["cloud_pass"]))
-	mat.set_shader_parameter("cloud_steps", int(quality.knobs["cloud_steps"]))
-	mat.set_shader_parameter("cloud_octaves", int(quality.knobs["cloud_octaves"]))
+	for i in mats.size():
+		var mat: ShaderMaterial = mats[i]
+		mat.set_shader_parameter("sky_time", _sky_time)
+		mat.set_shader_parameter("cloud_coverage", cloud)
+		mat.set_shader_parameter("cloud_density", density)
+		mat.set_shader_parameter("cloud_offset", _cloud_offset)
+		mat.set_shader_parameter("aurora_intensity", _aurora)
+		mat.set_shader_parameter("aurora_offset_km", float(aurora["offset_km"]))
+		mat.set_shader_parameter("aurora_kp", float(aurora["kp"]))
+		mat.set_shader_parameter("moon_direction", _moon_dir)
+		mat.set_shader_parameter("moon_illumination", time_system.get_moon_illumination())
+		mat.set_shader_parameter("haze_color", c["horizon_color"])
+		mat.set_shader_parameter("haze_amount", haze)
+		# The zenith sky lights the clouds; one value for every pixel.
+		mat.set_shader_parameter("sky_zenith", c["sky_zenith"])
+		# Clouds from a reduced-resolution pass come back fogged by the engine;
+		# the shader takes that fog out again with these terms (the fog
+		# _apply_fog writes, in the engine's sky formula). Underwater the fog
+		# replaces the sky outright: the clouds are marched per pixel there.
+		mat.set_shader_parameter("sky_fog_k", terms.x)
+		mat.set_shader_parameter("sky_fog_scatter", terms.y)
+		mat.set_shader_parameter("cloud_pass", 0 if underwater else int(quality.knobs["cloud_pass"]))
+		mat.set_shader_parameter("cloud_steps", int(quality.knobs["cloud_steps"]))
+		mat.set_shader_parameter("cloud_octaves", int(quality.knobs["cloud_octaves"]))
+		# The main sky draws per pixel (cloud_pass decides the clouds); the
+		# mirror's whole sky, aurora included, goes in its quarter pass.
+		var mirror_sky := i > 0
+		mat.set_shader_parameter("sky_pass", MIRROR_SKY_PASS if mirror_sky else 0)
+		mat.set_shader_parameter("sky_pass_aurora", mirror_sky)
 	sky_updates += 1
 	c["aurora_intensity"] = _aurora
 	c["haze_amount"] = haze
@@ -710,7 +729,7 @@ func _apply_mirror(underwater: bool, c: Dictionary) -> void:
 	if env == null or m == null or not wanted:
 		return
 	m.background_mode = Environment.BG_SKY
-	m.sky = env.sky
+	m.sky = _ensure_mirror_sky(env)
 	m.background_energy_multiplier = env.background_energy_multiplier
 	m.ambient_light_source = env.ambient_light_source
 	m.ambient_light_sky_contribution = env.ambient_light_sky_contribution
@@ -736,6 +755,35 @@ func _apply_mirror(underwater: bool, c: Dictionary) -> void:
 	m.fog_sun_scatter = env.fog_sun_scatter
 	m.fog_height = env.fog_height
 	m.fog_height_density = env.fog_height_density * MIRROR_FOG_SHARE
+	# The mirror's own sun and moon: the scene's, without shadows.
+	_copy_light(sun_light, planar_reflection.sun)
+	_copy_light(moon_light, planar_reflection.moon)
+
+
+static func _copy_light(from: DirectionalLight3D, to: DirectionalLight3D) -> void:
+	if from == null or to == null:
+		return
+	to.global_transform = Transform3D(from.global_transform.basis, to.global_transform.origin)
+	to.light_color = from.light_color
+	to.light_energy = from.light_energy
+	to.light_angular_distance = from.light_angular_distance
+	to.light_specular = from.light_specular
+	to.visible = from.visible
+
+
+## The mirror's own sky: the main sky's shader and uniforms (written with
+## the main ones every frame, _apply_sky), drawn in the quarter-resolution
+## pass (sky_pass), with a small radiance map for the mirror's own ambient
+## light. Sharing the main Sky would draw the full per-pixel sky a second
+## time: 1.9 ms of a 4.7 ms mirror at 1440p FJORD (P0-04 harness, A/B).
+func _ensure_mirror_sky(env: Environment) -> Sky:
+	if _mirror_sky != null or env.sky == null or not (env.sky.sky_material is ShaderMaterial):
+		return _mirror_sky if _mirror_sky != null else env.sky
+	_mirror_sky = Sky.new()
+	_mirror_sky.sky_material = (env.sky.sky_material as ShaderMaterial).duplicate()
+	_mirror_sky.radiance_size = MIRROR_RADIANCE_SIZE
+	_mirror_sky.process_mode = Sky.PROCESS_MODE_INCREMENTAL
+	return _mirror_sky
 
 
 # ── Reflection probe ──────────────────────────────────────────────────────────
@@ -793,6 +841,9 @@ func _apply_water(delta: float, c: Dictionary) -> void:
 	mat.set_shader_parameter("wave_k", sea_state["wave_k"])
 	mat.set_shader_parameter("wave_amp", amp)
 	wave_field.set_waves(sea_state["wave_k"], amp)
+	mat.set_shader_parameter("wave_peak", sea_state["wave_peak"])
+	# Dead calm mirrors crisply; a breeze's ripples break the mirror up.
+	mat.set_shader_parameter("planar_distort", lerpf(MIRROR_DISTORT_CALM, MIRROR_DISTORT_BREEZE, smoothstep(1.0, 6.0, wind)))
 	mat.set_shader_parameter("whitecaps", sea_state["whitecaps"])
 	mat.set_shader_parameter("whitecap_threshold", whitecap_threshold(float(sea_state["whitecaps"])))
 	mat.set_shader_parameter("ripple_strength", clampf(RIPPLE_MIN + RIPPLE_PER_MS * wind, RIPPLE_MIN, RIPPLE_MAX))
@@ -868,9 +919,14 @@ func _derive_sea(wind: float) -> void:
 		steepness += _comp_k[i] * _comp_weight[i] * maxf(a_sh[_comp_band[i]], a_ex[_comp_band[i]])
 	var chop := minf(CHOPPINESS, WAVE_FOLD_LIMIT / maxf(steepness, 1e-4))
 	var shape := PackedVector4Array()
+	var peak := PackedVector2Array()
+	var sheltered_peak := maxf(float(sheltered["peak_wavelength"]), 0.5)
+	var exposed_peak := maxf(float(exposed["peak_wavelength"]), 0.5)
 	for i in _comp_k.size():
 		var heading := direction.rotated(deg_to_rad(_comp_heading[i]))
 		shape.append(Vector4(heading.x * _comp_k[i], heading.y * _comp_k[i], _comp_k[i], chop))
+		var wavelength := TAU / _comp_k[i]
+		peak.append(Vector2(peak_weight(wavelength, sheltered_peak), peak_weight(wavelength, exposed_peak)))
 	sea_state = {
 		"wind_ms": wind,
 		"fetch_m": fetch,
@@ -885,8 +941,17 @@ func _derive_sea(wind: float) -> void:
 		"exposed_peak_m": maxf(float(exposed["peak_wavelength"]), 0.5),
 		"whitecaps": float(sheltered["whitecaps"]),
 		"wave_k": shape,
+		"wave_peak": peak,
 		"choppiness": chop,
 	}
+
+
+## A wave component's weight round the spectral peak (G2-03: whitecaps break
+## on the crests of the waves there): a Gaussian in octaves of wavelength,
+## 1 at the peak, e^-1.5 an octave off.
+static func peak_weight(wavelength: float, peak_wavelength: float) -> float:
+	var octaves := log(wavelength / peak_wavelength) / log(2.0)
+	return exp(-octaves * octaves * PEAK_BAND_SHARPNESS)
 
 
 ## Shader threshold for a whitecap cover (fraction of the surface).
@@ -958,6 +1023,18 @@ func _sky_material() -> ShaderMaterial:
 	if env == null or env.sky == null:
 		return null
 	return env.sky.sky_material as ShaderMaterial
+
+
+## The main sky's material, then the planar mirror's (while it is wanted).
+func _sky_materials() -> Array[ShaderMaterial]:
+	var out: Array[ShaderMaterial] = []
+	var main := _sky_material()
+	if main == null:
+		return out
+	out.append(main)
+	if _mirror_sky != null and planar_reflection != null and planar_reflection.environment.sky == _mirror_sky:
+		out.append(_mirror_sky.sky_material as ShaderMaterial)
+	return out
 
 
 func _is_underwater() -> bool:
