@@ -5998,6 +5998,13 @@ func _test_auction_card_wins_a_green_zone_licence() -> void:
 			area4 = row
 	_check(int(area4.get("licences", 0)) == 1 and float(area4.get("licence_mtb_t", 0.0)) == 780.0,
 		"auction: the licence's 780 t pool in production area 4")
+	var ready_title := tr("UI_ATTENTION_LICENCE_READY").format(["Solund"])
+	var inbox_titles := func() -> Array:
+		var found := []
+		for item in _sim.get_attention_items():
+			found.append(str(item.get("title", "")))
+		return found
+	_check(inbox_titles.call().has(ready_title), "auction: the inbox says the won licence is ready ('%s')" % ready_title)
 	map.open_auction("po04_solund")
 	await get_tree().process_frame
 	_check(card.mode() == "result" and (card.get_node("%ResultTitle") as Label).text == tr("EXPANSION_AUCTION_WON_TITLE"),
@@ -6009,6 +6016,7 @@ func _test_auction_card_wins_a_green_zone_licence() -> void:
 	await _click_control(dialog.get_node("%ConfirmBtn"))
 	var built: Array = _sim.get_all_pens().filter(func(p: Dictionary) -> bool: return str(p.get("zone", "")) == "po04_solund")
 	_check(built.size() == 1, "auction: the locality is built in the won zone")
+	_check(not inbox_titles.call().has(ready_title), "auction: the used licence leaves the inbox")
 	dialog.close()
 	GameplayPrefs.force_auto_pause(null)
 	scene.queue_free()

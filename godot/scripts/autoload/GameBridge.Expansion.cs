@@ -293,8 +293,14 @@ public partial class GameBridge : Node
     }
 
     /// <summary>
+    /// Days a won, unused licence stays in the inbox: its MTB already counts in
+    /// the area, so building in its zone is a choice, not a task that waits.
+    /// </summary>
+    private const int LicenceReadyInboxDays = 30;
+
+    /// <summary>
     /// The inbox's auction items (U2-01): every running auction the company is
-    /// in (outbid first) and every won licence not yet used for a site.
+    /// in (outbid first) and, for a month, a won licence not yet used for a site.
     /// </summary>
     private void AppendExpansionAttentionItems(Godot.Collections.Array<Godot.Collections.Dictionary> result)
     {
@@ -327,7 +333,8 @@ public partial class GameBridge : Node
                     ["callback"] = "open_licence_auction",
                 });
             }
-            else if (auction.Status == "won_player" && !auction.ConsumedByBuild)
+            else if (auction.Status == "won_player" && !auction.ConsumedByBuild
+                     && engine.State.Day <= auction.ClosesDay + LicenceReadyInboxDays)
             {
                 result.Add(new Godot.Collections.Dictionary
                 {

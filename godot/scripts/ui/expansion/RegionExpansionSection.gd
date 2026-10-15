@@ -23,11 +23,44 @@ func _ready() -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 
-## Show one area of the overview (a row of `overview.areas`).
+## Show one area of the overview (a row of `overview.areas`). While only the
+## figures move (biomass, headroom, cash) the cards stay and their numbers
+## update in place, so a running clock never takes the player's focus or
+## hover away; a new verdict, zone or licence rebuilds them.
 func show_area(area: Dictionary, overview: Dictionary) -> void:
+	var same := _shape(area) == _shape(_area) and get_child_count() > 0
 	_area = area
 	_overview = overview
-	_rebuild()
+	if same:
+		_update_figures()
+	else:
+		_rebuild()
+
+
+## What the cards are built from: everything but the daily figures.
+static func _shape(area: Dictionary) -> String:
+	if area.is_empty():
+		return ""
+	return "%d|%d|%s|%s|%s" % [int(area.get("production_area", 0)), int(area.get("licences", 0)),
+		str(area.get("traffic_light", "")), str(area.get("in_pd_zone", false)), str(area.get("zones", []))]
+
+
+## The daily figures, in place: the capacity card and a refusal for cash.
+func _update_figures() -> void:
+	var standing := float(_area.get("standing_t", 0.0))
+	var bar := find_child("CapacityBar", true, false) as ProgressBar
+	if bar != null:
+		bar.value = clampf(standing, 0.0, bar.max_value)
+	var used := find_child("CapacityStanding", true, false) as Label
+	if used != null:
+		used.text = tr("EXPANSION_CAPACITY_STANDING") % [SimFormatters.num(standing), SimFormatters.num(float(_area.get("headroom_t", 0.0)))]
+	for zone in _area.get("zones", []):
+		if str(zone.get("build_reason_key", "")) != "insufficient_funds":
+			continue
+		var card := zone_card(str(zone.get("zone_id", "")))
+		var reason := card.get_node_or_null("Body/Build/Reason") as Label if card != null else null
+		if reason != null:
+			reason.text = UIPolish.funds_blocker(float(_overview.get("build_cost_nok", 0.0)), float(_overview.get("balance_nok", 0.0)))
 
 
 ## The area shown (empty before the first show_area).
