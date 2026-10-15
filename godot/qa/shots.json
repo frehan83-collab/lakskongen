@@ -552,6 +552,18 @@
       "purpose": "The build dialog for the won zone (Solund): allowed, the first locality's preview and the confirm ready."
     },
     {
+      "id": "41_expansion_built_fjord",
+      "item": "U2-01",
+      "scene": "res://qa/scenes/ExpansionFlowCapture.tscn",
+      "kind": "ui",
+      "resolution": [1920, 1080],
+      "seed": 41,
+      "weather": "clear",
+      "camera": {"mode": "home"},
+      "state": "built_view",
+      "purpose": "The payoff after the confirm: 'Vis den på fjorden' switches to the fjord with the new locality selected and framed."
+    },
+    {
       "id": "41_expansion_map_small",
       "item": "U2-01",
       "scene": "res://qa/scenes/ExpansionFlowCapture.tscn",

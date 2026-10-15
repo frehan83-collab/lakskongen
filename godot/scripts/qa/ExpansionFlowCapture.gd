@@ -101,6 +101,14 @@ func _stage(state: String, shot: Dictionary) -> void:
 			_map.open_auction("po04_solund")
 		"build_new_zone":
 			_map.open_build("po04_solund")
+		"built_view":
+			# Confirm the build, then "Vis den på fjorden": the fjord tab with
+			# the camera on the new site (the payoff).
+			var dialog: BuildSiteDialog = _map.build_dialog()
+			(dialog.get_node("%ConfirmBtn") as Button).pressed.emit()
+			await _wait(0.4)
+			(dialog.get_node("%ConfirmBtn") as Button).pressed.emit()
+			await _wait(3.0)
 		_:
 			push_warning("[ExpansionCapture] unknown state '%s'" % state)
 			_failures += 1
