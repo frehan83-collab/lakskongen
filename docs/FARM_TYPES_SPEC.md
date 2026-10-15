@@ -639,6 +639,34 @@ public string PlacedZoneId { get; set; } = "";                  // "" = stranded
 | `IsResourceRentLiable(unit, holding)` | `SellHarvest`, `SimulationEngine.Commands.cs:321` | today's (sea true, land false) | F2-04 (base), F2-09 (LicenceKind) |
 | `CountsTowardSiteLimits(site)` | `MaxSitesPerZone`, RemoteOpsCentre budget | true | F2-03 (offshore false) |
 
+**Landed (F2-02, `wave3/sim-core-1`).** The hooks are `internal` methods of `SimulationEngine` in
+`Core/SimulationEngine.FarmTypeHooks.cs` (frozen); each dispatches to `Farm/Offshore/OffshoreHooks.cs`
+(every sea site, offshore holdings) or `Farm/Land/LandHooks.cs` (land-tank holdings, the smolt hooks).
+A population hook dispatches on `HoldingOf(pop).Kind` (a sea pen takes the neutral default in the hooks
+file); a site hook goes to `OffshoreHooks` for every site, which checks F2-03's site kind. Call sites on
+the wave-2 base (the line numbers above are from `a8767ef`):
+
+| Hook | Call site | Notes |
+|---|---|---|
+| `ExternalLicePressureFor(site)` | `AdvanceSiteLiceModels`: `SetExternalPressure(SeasonalLicePressure(day) × hook)` | |
+| `ZoneLiceContribution(site, pop)` | `ZoneLiceForTrafficLight(zoneId)`, read by `UpdateTrafficLightZones` | per population with the site that holds it (`HoldingOf(pop).Site`, null outside a site), returning `ZoneLiceShare(LiceWeightedFish, Fish)`: the pre-F2 mean is summed over populations, so a per-site signature would change its order |
+| `SkipsFjordStormWear(site)` | `ApplyStormHazards` (net wear, escapes), `ApplyStormAndTemperatureImpacts` (storm deaths, the repair bill's site scale) | |
+| `OperationPossible(site, jobKind, day)` | `ProcessDueWellboatJobs` | a job ruled out today stays queued and is tried the next day |
+| `FeedAvailableFor(pop)` | biology feeding: `HoldingHusbandry.FeedAvailable` → ration 0 | |
+| `AppetiteFactorFor(pop)` | biology feeding: multiplies the oxygen × gill appetite | |
+| `UnitWaterTemperatureC(pop)` | disease tick (`IntegratedDisease.Update`); the growth water | `HoldingWaterOf(pop).TemperatureC`; `WaterOf` takes a tank's water from `LandHooks.TankWater` and an offshore pen's from `OffshoreHooks.PenWater`, so growth, disease and the hazards read one water |
+| `UnitMortalityTerms(pop)` | biology mortality | `MortalityTerms(AnchorMultiplier, ExtraHazards)`: the multiplier scales the anchor hazard (`FishPopulation.AdvanceDays(..., anchorHazardMultiplier)`); each `UnitHazard(cause, dailyFraction)` is booked after it (`ApplyUnitMortalityHazards`) |
+| `QualityMortalityMultiplier(pop)` | biology mortality: × the terms' anchor multiplier | |
+| `SmoltTierCostPerFish(tier, strain, source)` | `PlaceSmolts` (`SimulationEngine.Pens.cs`) | `SmoltSource { Purchased, OwnFacility }`; every stocking today is `Purchased` |
+| `IsResourceRentLiable(unitId, holdingKind)` | `FindHarvestHolding` (`SimulationEngine.Harvest.cs`) | |
+| `CountsTowardSiteLimits(site)` | none yet | `MaxSitesPerZone` is enforced nowhere and the ROC budget is summed in `GameBridge.Farm.cs`; F2-03 wires it |
+
+Moved with the hooks: the facility ticks (`Core/LandSiteTickSystem.cs`: tanks, post-smolt modules, land
+carbon; `Core/OffshoreTickSystem.cs`: offshore farms, offshore carbon; FarmOpex keeps the order tanks →
+offshore → post-smolt, the opex being one decimal sum) and the containment code
+(`Core/SimulationEngine.Containment.cs`). `FarmTypeMoveTests` pins the pre-F2 facilities save's 365-day
+continuation and greps the two hot files.
+
 ### 3.4 Commands
 
 Engine partials return `CommandResult`. Every verb a policy can issue is the same verb the player issues.
