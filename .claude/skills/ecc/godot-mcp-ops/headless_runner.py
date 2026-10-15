@@ -10,6 +10,7 @@ import subprocess
 import json
 import os
 import re
+import signal
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -17,6 +18,29 @@ from typing import Any, Dict, List, Optional
 class HeadlessError(Exception):
     """Raised when headless Godot execution fails."""
     pass
+
+
+KILL_GRACE_S = 5
+
+
+def _kill_tree(proc: subprocess.Popen) -> None:
+    """End `proc` and everything it started: SIGTERM to its process group
+    (xvfb-run, its Xvfb and Godot), SIGKILL after a grace period."""
+    if os.name != "posix":
+        proc.kill()
+        return
+    for sig, grace in ((signal.SIGTERM, KILL_GRACE_S), (signal.SIGKILL, None)):
+        try:
+            os.killpg(proc.pid, sig)
+        except ProcessLookupError:
+            return
+        if grace is None:
+            return
+        try:
+            proc.wait(timeout=grace)
+            return
+        except subprocess.TimeoutExpired:
+            continue
 
 
 def _extract_json(output: str) -> Any:
@@ -51,11 +75,47 @@ class HeadlessRunner:
         cmd = [self.godot_bin, "--headless", "--path", str(self.project_path)] + args
         return self._execute(cmd, capture_output, timeout)
 
-    def run_with_display(self, args: List[str], prefix: List[str], timeout: int = 300) -> subprocess.CompletedProcess:
+    def run_with_display(self, args: List[str], prefix: List[str], timeout: float = 300) -> subprocess.CompletedProcess:
         """Run Godot with a real renderer (no --headless). `prefix` supplies a
-        display where there is none, e.g. ["xvfb-run", "-a"]."""
+        display where there is none, e.g. ["xvfb-run", "-a"].
+
+        stdout and stderr come back as ONE stream in `result.stdout` (stderr
+        is None), in the order Godot wrote them. Ubuntu's xvfb-run runs its
+        command as `"$@" 2>&1`, so on a Linux runner everything arrives on
+        stdout anyway; reading only stderr there saw nothing at all.
+
+        On a timeout the whole process tree (xvfb-run, Xvfb, Godot) is killed
+        and the result has returncode None and the output written so far, so
+        the caller can still tell where the run stopped.
+        """
         cmd = prefix + [self.godot_bin, "--path", str(self.project_path)] + args
-        return self._execute(cmd, True, timeout)
+        env = os.environ.copy()
+        env["TERM"] = "dumb"  # Avoid ANSI codes in output
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=env,
+                # Its own process group, so a timeout reaches Godot and Xvfb
+                # too and not only the xvfb-run shell.
+                start_new_session=os.name == "posix",
+            )
+        except FileNotFoundError:
+            raise HeadlessError(f"Godot binary not found: {cmd[0]}")
+        except OSError as e:
+            raise HeadlessError(f"Failed to run Godot: {e}")
+
+        try:
+            output, _ = proc.communicate(timeout=timeout)
+            return subprocess.CompletedProcess(cmd, proc.returncode, output, None)
+        except subprocess.TimeoutExpired:
+            _kill_tree(proc)
+            output, _ = proc.communicate()
+            return subprocess.CompletedProcess(cmd, None, output, None)
 
     def _execute(self, cmd: List[str], capture_output: bool, timeout: int) -> subprocess.CompletedProcess:
         env = os.environ.copy()

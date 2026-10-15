@@ -16,6 +16,20 @@ from typing import Any, Dict, List
 from pathlib import Path
 
 
+def is_git_ignored(project_path: Path, script_path: str) -> bool:
+    """True when git ignores a res:// path of the project (False without
+    git). Local tooling such as the Godot MCP toolkit lives under ignored
+    paths, so a clean checkout lacks it by design (F177)."""
+    rel = script_path[6:] if script_path.startswith("res://") else script_path
+    try:
+        result = subprocess.run(
+            ["git", "check-ignore", "-q", rel],
+            cwd=project_path, capture_output=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return result.returncode == 0
+
+
 class AutoloadAudit:
     def __init__(self, ops):
         self.ops = ops
@@ -118,14 +132,7 @@ class AutoloadAudit:
 
     def _is_git_ignored(self, script_path: str) -> bool:
         """True when git ignores the script's path (False without git)."""
-        rel = script_path[6:] if script_path.startswith("res://") else script_path
-        try:
-            result = subprocess.run(
-                ["git", "check-ignore", "-q", rel],
-                cwd=self.project_path, capture_output=True, timeout=10)
-        except (OSError, subprocess.SubprocessError):
-            return False
-        return result.returncode == 0
+        return is_git_ignored(self.project_path, script_path)
 
     def _script_exists(self, script_path: str) -> bool:
         """Check if script file exists."""

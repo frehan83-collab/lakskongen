@@ -16,7 +16,7 @@ All commands output JSON for CI consumption.
 |---------|-------------|
 | `scene-diff` | Compare two scene files (base vs PR), report node added/removed, property changes, resource refs |
 | `autoload-audit` | Scan project.godot autoloads for: missing node_paths, circular refs, init order issues, duplicate names |
-| `shader-check` | Check every uniform hint against the Godot 4.7 list, then compile every `.gdshader` under a real renderer (needs a display; skipped and exit 3 without one) |
+| `shader-check` | Check every uniform hint against the Godot 4.7 list, then compile every `.gdshader` under a real renderer (needs a display; skipped and exit 3 without one). On CI that is Xvfb with Mesa's lavapipe (Vulkan, Forward+) |
 | `export-verify` | Run headless export for all presets in `export_presets.cfg`, verify output size > 0 |
 
 ## Installation
@@ -63,7 +63,13 @@ When editor is not running, falls back to `godot-mono --headless`:
   shader code, so loading a broken shader there succeeds (review F958). The
   check reads every uniform hint statically (`shader_hints.py`), then runs
   `shader_compile_probe.gd` with a window (or `xvfb-run` on Linux): each shader
-  is drawn for a few frames and every `SHADER ERROR` fails the check
+  stays on screen for 8 drawn frames and every `SHADER ERROR` fails the check.
+  Godot's stdout and stderr are read as one stream (Ubuntu's `xvfb-run` sends
+  the command's stderr to stdout). A run that ends early (crash, signal,
+  timeout) fails the shader that was on screen, with the exit status in
+  `data.compile_runs` and the last output lines in `data.output_tail`, and the
+  remaining shaders go to a fresh run. `data.renderer` names the renderer; a
+  fallback from the project's renderer (e.g. Forward+ to OpenGL) fails the check
 - Export verify: uses `--export` flag for each preset
 
 ## Output Format
