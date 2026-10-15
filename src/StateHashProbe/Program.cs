@@ -51,9 +51,12 @@ public static class StateHash
     /// usage: StateHashProbe &lt;seed&gt; &lt;days&gt; &lt;events:true|false&gt;.
     /// <c>--sleep-ms &lt;ms&gt;</c> only sleeps: CrossProcessDeterminismTests uses
     /// it as a hung probe to prove the runner enforces its timeout (P0-07).
+    /// <c>golden …</c> records and diffs the golden traces (<see cref="GoldenCli"/>, F2-01).
     /// </summary>
     public static int Main(string[] args)
     {
+        if (args.Length > 0 && args[0] == "golden")
+            return GoldenCli.Run(args[1..]);
         if (args.Length == 2 && args[0] == "--sleep-ms"
             && int.TryParse(args[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int sleepMs))
         {

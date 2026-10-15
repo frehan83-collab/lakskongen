@@ -1441,6 +1441,74 @@ pen": it took a whole site's stocking before and takes one pen now
 15,409 / 11,749 / 15,398 t). Real ILA control empties the whole locality; the
 event is left as it is for S4-02 (D5) and RUN_LOG §8 carries the finding.
 
+## 1l. F2-01: the golden traces' baseline (2026-10-15, branch `wave2/sim-int-3`)
+
+The golden traces (docs/GOLDEN_TRACES.md) record every shipped scenario x seeds
+1/7/13 x 730 days with events on and the golden player (`golden-player/1`:
+planned harvest at 4.5 kg, hydrolicer above 0.4 adult females, restock after a
+30-day fallow within the cash for smolts and their feed to 4.5 kg, one
+research). They are the before-state every later sim item is diffed against;
+no tuning was done here. Recorded on `dc0b56a` (calibration and save format
+as `wave2/sim-int-2`: v1.0.10, save v8), osx-arm64, .NET 10.0.12.
+
+| scenario | seed | harvest orders | stockings | research | delousings | batches sold | HOG t sold | cash day 730 (M NOK) | live t day 730 | peak adult female lice | status |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| algekatastrofe | 1 | 3 | 3 | 1 | 0 | 8 | 844.8 | -26.15 | 1073.7 | 0.033 | won d391 |
+| algekatastrofe | 7 | 3 | 3 | 1 | 0 | 9 | 839.7 | -42.30 | 1635.6 | 0.033 | won d391 |
+| algekatastrofe | 13 | 3 | 3 | 1 | 0 | 8 | 897.2 | -46.35 | 1617.9 | 0.034 | won d391 |
+| barekraft_mester | 1 | 1 | 1 | 1 | 0 | 2 | 137.2 | 22.29 | 619.9 | 0.031 | playing |
+| barekraft_mester | 7 | 1 | 1 | 1 | 0 | 1 | 115.1 | 14.25 | 1010.0 | 0.029 | playing |
+| barekraft_mester | 13 | 1 | 1 | 1 | 0 | 2 | 153.2 | 22.97 | 631.1 | 0.029 | playing |
+| forste_sesong | 1 | 1 | 2 | 1 | 0 | 1 | 102.7 | 4.45 | 51.4 | 0.047 | playing |
+| forste_sesong | 7 | 1 | 1 | 1 | 0 | 1 | 100.0 | 2.33 | 108.4 | 0.030 | playing |
+| forste_sesong | 13 | 1 | 2 | 1 | 0 | 1 | 105.9 | 4.27 | 31.0 | 0.046 | playing |
+| isa_utbrudd | 1 | 3 | 3 | 1 | 0 | 5 | 483.4 | -27.98 | 519.5 | 0.031 | lost d571 |
+| isa_utbrudd | 7 | 3 | 3 | 1 | 0 | 6 | 516.6 | -29.85 | 370.9 | 0.031 | lost d571 |
+| isa_utbrudd | 13 | 3 | 3 | 1 | 0 | 5 | 535.0 | -40.59 | 1048.1 | 0.031 | lost d571 |
+| krise_manager | 1 | 1 | 0 | 0 | 0 | 1 | 41.0 | -1.46 | 0.0 | 0.017 | playing |
+| krise_manager | 7 | 1 | 0 | 0 | 0 | 1 | 39.5 | -2.19 | 0.0 | 0.017 | playing |
+| krise_manager | 13 | 1 | 0 | 0 | 0 | 1 | 37.3 | -1.37 | 0.0 | 0.017 | playing |
+| laksebaronene | 1 | 1 | 2 | 1 | 0 | 1 | 78.4 | 1.10 | 19.3 | 0.047 | playing |
+| laksebaronene | 7 | 1 | 1 | 1 | 0 | 1 | 83.3 | -0.68 | 90.6 | 0.030 | playing |
+| laksebaronene | 13 | 1 | 1 | 1 | 0 | 1 | 87.3 | 0.40 | 0.0 | 0.029 | playing |
+| lofoten_eventyr | 1 | 1 | 1 | 1 | 0 | 1 | 55.9 | 1.25 | 0.0 | 0.030 | playing |
+| lofoten_eventyr | 7 | 1 | 1 | 1 | 0 | 2 | 51.6 | 1.21 | 23.4 | 0.033 | playing |
+| lofoten_eventyr | 13 | 1 | 1 | 1 | 0 | 1 | 51.6 | 0.78 | 0.0 | 0.033 | playing |
+| po3_red_sone | 1 | 2 | 2 | 1 | 0 | 3 | 363.7 | -12.11 | 216.3 | 0.030 | playing |
+| po3_red_sone | 7 | 2 | 2 | 1 | 0 | 3 | 355.7 | -15.25 | 118.5 | 0.029 | lost d728 |
+| po3_red_sone | 13 | 2 | 2 | 1 | 0 | 4 | 369.3 | -13.77 | 243.7 | 0.029 | playing |
+| ressursrente | 1 | 3 | 4 | 1 | 0 | 8 | 853.3 | -2.57 | 1207.3 | 0.039 | lost d723 |
+| ressursrente | 7 | 5 | 3 | 1 | 0 | 14 | 1829.7 | 75.95 | 512.8 | 0.026 | playing |
+| ressursrente | 13 | 3 | 4 | 1 | 0 | 9 | 940.0 | 14.66 | 846.5 | 0.039 | won d331 |
+
+Status is the scenario's verdict when it changed (the run continues). Every run
+sells its starting fish through a planned harvest order; 24 of 27 restock and
+start research (krise_manager's single small harvest leaves no cash above the
+reserve). A first version of the player that spent all cash above 1 M on smolts
+lost 16 of 27 runs (feed paid on credit until the bankruptcy floor); budgeting
+each smolt's feed to 4.5 kg loses 5 (isa_utbrudd on every seed, po3_red_sone
+seed 7 on day 728, ressursrente seed 1 on day 723).
+
+**Lice (finding, RUN_LOG §8):** the sites' adult females per fish never pass
+0.047 in any run (po3_red_sone, a red zone: 0.029-0.030), so the 0.4 delousing
+rule never fires. The site model is seeded (po3_red_sone seed 7: 0.10 and 0.17
+lice of all stages per fish on day 30) but the adult stage does not develop;
+`SimProbe`'s synthetic sites reach a median peak of 0.52 (§1d).
+
+**Size and time:** 27 traces, 1.80 MB (52-82 KB each; 758 lines: header, 731
+days, 26 snapshots). Recording all 27 takes 6 s with 4 jobs on the M1 Pro; the
+script 10 s a commit (temporary worktree, build, record) and 20-25 s for base
+and head; the 27 comparisons in `dotnet test` 7 s (the suite 20 -> 26 s).
+Recording one commit twice gives byte-identical files (28 of 28, `diff -r`).
+
+**Sensitivity (mutation checks):** feed price 22.30 -> 22.31 NOK/kg: all 27
+traces differ from day 1 (`ledger`, then `cash`; a `--detail` diff names
+`ledger > cost/feed > nok` 3,494.18 -> 3,495.75 NOK on day 1). One cohort's
+weight raised by one ulp on day 200 in po3_red_sone seed 7: named on day 200
+(`pop > po3_nord/p01 > kg, c0.w`), 531 of 731 days then differ (cash 527,
+ledger 526, mort 527, pop 102, mtb 35, env 3) and the final cash moves by
+0.00000000016 NOK.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |

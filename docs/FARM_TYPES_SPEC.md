@@ -735,6 +735,7 @@ Every critical event writes an **IncidentReport** to the EventLog with ≥ 3 cau
   3. **Each legacy `RASFacility`** gets a pad (or an overflow pad) and lots = min(4, ceil(CapacityTonnesPerYear / 7,900)). `RASScale.Large` (20,000 t) becomes 3 lots. Tanks are generated from `TankCount`/`TankVolumeM3`, and existing tank populations are placed in tank order.
   4. **Overflow:** `site_plots.json` reserves `overflow_land[]` and `overflow_offshore[]` positions with neutral attributes. These are used only by migrated saves and are rendered like normal plots.
   5. **The relinker runs.**
+- **Landed (F2-01, `wave2/sim-int-3`):** the pre-F2 save version is v8, so the fixture is `src/LakskongenSim.Tests/Fixtures/save_v8_facilities.json` (generator `src/StateHashProbe/PreF2SaveFixture.cs`, frozen; `PreF2SaveFixtureTests`); the golden traces, their format and the re-record workflow are in `docs/GOLDEN_TRACES.md`.
 - **Pre-1.0 policy (R3):** saves stay officially unsupported, but this migration is tested against the fixture `src/LakskongenSim.Tests/Fixtures/save_v3_facilities.json`. **F2-01 generates the fixture on the pre-F2 commit**, before any schema change.
 
 ### 3.9 Calibration registry
