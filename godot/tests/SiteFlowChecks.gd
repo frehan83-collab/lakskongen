@@ -79,7 +79,13 @@ func _pen_counts_match_every_scenario() -> void:
 		await _frames(1)
 		for site in scen.get("starting_sites", []):
 			var sid := str(site.get("id", ""))
-			var want := int(site.get("pens", 1))
+			# A site has the pens of its locality layout (S2-01b); "pens" counts
+			# the stocked populations it starts with.
+			var layout = site.get("pen_layout", {})
+			var want := int(layout.get("count", 0)) if layout is Dictionary else 0
+			if want <= 0:
+				want = int(site.get("pens", 1))
+			var stocked_ok := int(site.get("pens", 1)) <= want
 			var engine := int(_payload(sid).get("pen_count", -1))
 			var drawn := pens.get_site_cages(sid).size()
 			var mooring := pens.get_pen_mooring(sid)
@@ -87,7 +93,7 @@ func _pen_counts_match_every_scenario() -> void:
 			# Up to three pens lie in one row along the channel, more in two.
 			var rows_ok := mooring != null and ((want <= 3 and mooring.cells_x == 1 and mooring.cells_z == want)
 				or (want > 3 and mooring.cells_x == 2 and mooring.cells_z == ceili(want / 2.0)))
-			var ok := engine == want and drawn == want and cells >= want and cells < want + 2 and rows_ok
+			var ok := engine == want and drawn == want and cells >= want and cells < want + 2 and rows_ok and stocked_ok
 			all_ok = all_ok and ok
 			sites_seen += 1
 			pens_seen += drawn

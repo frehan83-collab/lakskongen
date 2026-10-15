@@ -2437,12 +2437,28 @@ func _test_pen_models_read_as_equipment() -> void:
 	var ring := cage.get_health_ring()
 	_check(healthy == FishPenManager.COLOR_HEALTHY and red == FishPenManager.COLOR_CRITICAL,
 		"pen models: lice 0.05 -> healthy ring, 0.6 -> critical ring (%s, %s)" % [healthy, red])
+	# Each pen's ring shows its own fish (S2-01b): a stocked pen the site's
+	# lice state, an empty pen the no-fish state, never the site's lice.
+	var site_pens: Array = []
+	for s in _sim.get_all_pens():
+		if str(s.get("id", "")) == site_id:
+			site_pens = s.get("pens", [])
 	var rings_red := true
-	for c in cages:
-		var r := c.get_health_ring()
-		rings_red = rings_red and r != null and r.visible and r.get_instance_shader_parameter("ring_color") == red
-	_check(ring != null and rings_red,
-		"pen models: the health ring on the water of every pen of the site shows the site state")
+	var empty_neutral := true
+	var stocked := 0
+	for k in cages.size():
+		var r := cages[k].get_health_ring()
+		var occupied: bool = k < site_pens.size() and bool((site_pens[k] as Dictionary).get("occupied", false))
+		if occupied:
+			stocked += 1
+			rings_red = rings_red and r != null and r.visible and r.get_instance_shader_parameter("ring_color") == red
+		else:
+			empty_neutral = empty_neutral and r != null \
+				and r.get_instance_shader_parameter("ring_color") == PenCage.health_color_of(PenCage.Health.UNKNOWN)
+	_check(ring != null and stocked > 0 and rings_red,
+		"pen models: the health ring on the water of every stocked pen of the site shows the site state (%d of %d stocked)" % [stocked, cages.size()])
+	_check(site_pens.size() == cages.size() and empty_neutral,
+		"pen models: an empty pen's ring shows the no-fish state, not the site's lice (%d pens)" % site_pens.size())
 	_check(_delta_e76(healthy, red) >= 20.0, "pen models: healthy vs red ring dE %.1f >= 20" % _delta_e76(healthy, red))
 	var collar_after := _albedo_of(cage.get_node("Collar") as MeshInstance3D)
 	_check(collar_after == collar_before and _linear_luminance(collar_after) < 0.1,
