@@ -63,6 +63,30 @@ public partial class GameBridge
     /// <summary>Auto-ticks since launch (QA: which frames carried a day).</summary>
     public int TickCount { get; private set; }
 
+    /// <summary>
+    /// True while a new day is announced as GameStateUpdated right after its
+    /// SimulationTicked (<see cref="AnnounceDay"/>). Nothing changed between
+    /// the two signals, so a listener that refreshed on SimulationTicked
+    /// (SimState) skips this one: one snapshot and one state_updated a day,
+    /// not two (wave 3 ui-a: at 30× the second refresh cost ~2 ms a day).
+    /// </summary>
+    public bool IsAnnouncingDay { get; private set; }
+
+    /// <summary>The day the engine just finished: SimulationTicked, then GameStateUpdated (for listeners of that one only).</summary>
+    private void AnnounceDay()
+    {
+        EmitSignal(SignalName.SimulationTicked, SimulationEngine!.State.Day);
+        IsAnnouncingDay = true;
+        try
+        {
+            EmitSignal(SignalName.GameStateUpdated);
+        }
+        finally
+        {
+            IsAnnouncingDay = false;
+        }
+    }
+
     // ── The player's controls ─────────────────────────────────────────────
 
     /// <summary>

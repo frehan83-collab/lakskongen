@@ -107,6 +107,7 @@ func build(id: String, count: int, options: Dictionary = {}) -> void:
 		cage.set_owner_band(_band)
 		cage.set_net_opacity(_net_opacity)
 		cage.set_bird_net(_bird_net)
+		cage.set_lice_skirt(_skirt)
 		cage.show_health_ring(_health_rings)
 		var area := cage.get_click_area()
 		if area != null:
@@ -165,6 +166,8 @@ func half_extent() -> Vector2:
 # === Variants (per site: every pen of a site is the same kit) ===
 
 func set_lice_skirt(on: bool) -> void:
+	if on == _skirt:
+		return  # the sim repeats it every day; every part already shows it
 	_skirt = on
 	for cage in cages:
 		cage.set_lice_skirt(on)

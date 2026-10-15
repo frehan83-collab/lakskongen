@@ -138,6 +138,7 @@ func _run() -> void:
 	await _test_critical_card_holds_the_clock()
 	await _test_new_game_opens_paused_on_its_briefing()
 	await _test_thirty_times_refreshes_once_a_day_within_a_frame()
+	await _test_audio_reads_tracks_off_the_tick()
 	await _test_hud_fits_its_bar()
 	_test_farm_type_graybox()
 	_test_land_kit_imports()
@@ -5472,6 +5473,15 @@ func _test_thirty_times_refreshes_once_a_day_within_a_frame() -> void:
 	var refreshes0: int = dash.refresh_count
 	var rebuilds0: int = dash.alert_rebuilds
 	var day0: int = _sim.current_day
+	# Wave 3 ui-a: one snapshot a day (the tick's GameStateUpdated no longer
+	# refreshes it a second time), and the 3D sites touch only what changed.
+	var snapshots := [0]
+	var count_snapshot := func() -> void: snapshots[0] += 1
+	_sim.state_updated.connect(count_snapshot)
+	var body_writes0: int = FishSchool.body_writes
+	var pen_count := 0
+	for site in _sim.get_all_pens():
+		pen_count += int(site.get("pen_count", 0))
 	var ui_ms: Array[float] = []
 	var engine_ms: Array[float] = []
 	var ticks0: int = bridge.TickCount
@@ -5496,10 +5506,15 @@ func _test_thirty_times_refreshes_once_a_day_within_a_frame() -> void:
 			_sim.set_time_speed(30.0)
 	_sim.set_paused(true)
 	await get_tree().process_frame
+	_sim.state_updated.disconnect(count_snapshot)
 	var days: int = int(_sim.current_day) - day0
 	var refreshes: int = dash.refresh_count - refreshes0
 	var rebuilds: int = dash.alert_rebuilds - rebuilds0
+	var body_writes: int = FishSchool.body_writes - body_writes0
 	_check(days >= 20, "30×: the clock ran %d days in 2.5 s" % days)
+	_check(snapshots[0] <= days + 2, "30×: the sim snapshot refreshed %d times for %d days (once a day, not twice)" % [snapshots[0], days])
+	_check(pen_count >= 10 and body_writes * 3 <= pen_count * days,
+		"30×: the schools' uniforms were rewritten %d times over %d pen-days (only visible changes)" % [body_writes, pen_count * days])
 	_check(refreshes <= days + 1, "30×: the dashboard refreshed %d times for %d days (at most once a day)" % [refreshes, days])
 	_check(rebuilds < refreshes, "30×: alert rows were rebuilt %d times in %d refreshes (only on change)" % [rebuilds, refreshes])
 	ui_ms.sort()
@@ -5515,6 +5530,50 @@ func _test_thirty_times_refreshes_once_a_day_within_a_frame() -> void:
 	GameplayPrefs.force_auto_pause(null)
 	scene.queue_free()
 	await get_tree().process_frame
+
+## Wave 3 ui-a: no audio file is read from disk inside a sim tick (at 30×
+## a season's music or a weather layer read there cost 9-11 ms, a cue up to
+## 9 ms). A track is read on a worker thread and starts when it arrives; a
+## cue is read once and kept; a missing file is refused, never waited for.
+func _test_audio_reads_tracks_off_the_tick() -> void:
+	var cache := AudioStreamCache.new()
+	var path := MusicLibrary.music("autumn_theme")
+	var got: Array = []
+	var queued := cache.later(path, func(stream: AudioStream) -> void: got.append(stream))
+	_check(queued and got.is_empty() and cache.is_loading(path),
+		"audio: a track is asked for on the caller's frame and read on a worker thread")
+	var frames := 0
+	while cache.is_loading(path) and frames < 600:
+		await get_tree().process_frame
+		cache.poll()
+		frames += 1
+	_check(got.size() == 1 and got[0] is AudioStream and cache.now(path) == got[0],
+		"audio: the worker's stream reaches the caller once and stays cached (%d frames)" % frames)
+	var cue := MusicLibrary.ui_sfx("notification")
+	var first := cache.now(cue)
+	_check(first != null and cache.now(cue) == first, "audio: a cue is read once and kept")
+	_check(not cache.later("res://assets/audio/music/ci_missing.ogg", func(_s: AudioStream) -> void: pass)
+			and not cache.is_loading() and not cache.exists(""),
+		"audio: a missing file is refused, never waited for")
+	# The controller names the new track at once and plays it when it is read.
+	var audio := get_node_or_null("/root/AudioController")
+	var track := MusicLibrary.music("spring_theme")
+	if audio.get_current_music() == track:
+		track = MusicLibrary.music("winter_theme")
+	audio._update_bgm_direct(track)
+	var named: bool = audio.get_current_music() == track
+	frames = 0
+	var playing_path := ""
+	while frames < 600:
+		await get_tree().process_frame
+		frames += 1
+		for player: AudioStreamPlayer in [audio._bgm_active, audio._bgm_pending]:
+			if player.stream != null and player.stream.resource_path == track:
+				playing_path = track
+		if playing_path != "":
+			break
+	_check(named and playing_path == track,
+		"audio: a new season's music is named at once and on a player %d frames later" % frames)
 
 ## The HUD fits its bar at 1280 px and UI scale 125 %: readouts give way in
 ## order (weather, spot price, sea temperature) rather than leave the screen,

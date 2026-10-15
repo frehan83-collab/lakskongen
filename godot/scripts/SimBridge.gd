@@ -146,6 +146,10 @@ var wellboat_jobs: Array[Dictionary]:
 var active_blooms: Array[Dictionary]:
 	get(): return _state.active_blooms
 	set(v): _state.active_blooms = v
+## The player's sea sites and their pens as of the last refresh (read-only;
+## get_all_pens() asks the bridge afresh).
+var sea_sites: Array[Dictionary]:
+	get(): return _state.sea_sites
 var sustainability_score: int:
 	get(): return _state.sustainability_score
 	set(v): _state.sustainability_score = v

@@ -265,6 +265,24 @@ func _sim_drives_the_school() -> void:
 	var small: Vector4 = school.get_instance_shader_parameter("school_body")
 	_check(big.x > 0.7 and small.x < 0.25 and big.w == FishSchool.MAX_FISH,
 		"fish: the fish are as long as the pen's mean weight makes them (%.2f m at 5 kg, %.2f m at 0.1 kg)" % [big.x, small.x])
+	# Wave 3 ui-a: a day's growth too small to see writes nothing to the GPU
+	# (+0.2 % weight: 0.4 mm of fork length); a visible one is written at once.
+	FishSchool.apply_pen(school, {"fish_count": 200000, "mean_weight_kg": 5.0})
+	var w0: int = FishSchool.body_writes
+	FishSchool.apply_pen(school, {"fish_count": 200000, "mean_weight_kg": 5.01})
+	var unseen: Vector4 = school.get_instance_shader_parameter("school_body")
+	var w1: int = FishSchool.body_writes
+	FishSchool.apply_pen(school, {"fish_count": 200000, "mean_weight_kg": 5.25})
+	var seen: Vector4 = school.get_instance_shader_parameter("school_body")
+	_check(w1 == w0 and is_equal_approx(unseen.x, FishSchool.length_for(5.0))
+			and FishSchool.body_writes == w1 + 1 and is_equal_approx(seen.x, FishSchool.length_for(5.25)),
+		"fish: a change too small to see writes no uniform, a visible one is written (%d, %d writes; %.4f -> %.4f m)" % [
+			w1 - w0, FishSchool.body_writes - w1, unseen.x, seen.x])
+	var steps := {}
+	for kg in range(0, 900001, 3000):
+		steps[FishSchool.fish_for(1000, float(kg))] = true
+	_check(steps.size() == (FishSchool.MAX_FISH - FishSchool.MIN_FISH) / FishSchool.FISH_STEP + 1,
+		"fish: the shown count moves in %d-fish steps (%d counts from empty to full)" % [FishSchool.FISH_STEP, steps.size()])
 	holder.queue_free()
 
 

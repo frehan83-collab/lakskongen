@@ -273,8 +273,7 @@ public partial class GameBridge : Node
         {
             SimulationEngine.Advance(days);
             ProjectDayNotes();
-            EmitSignal(SignalName.SimulationTicked, SimulationEngine.State.Day);
-            EmitSignal(SignalName.GameStateUpdated);
+            AnnounceDay();
             CheckGameOverConditions();
         }
         catch (Exception ex)
@@ -914,8 +913,7 @@ public partial class GameBridge : Node
             SimulationEngine.Advance(1);
             LastTickEngineMs = System.Diagnostics.Stopwatch.GetElapsedTime(tickStart).TotalMilliseconds;
             ProjectDayNotes();
-            EmitSignal(SignalName.SimulationTicked, SimulationEngine.State.Day);
-            EmitSignal(SignalName.GameStateUpdated);
+            AnnounceDay();
 
             // Fire audio alert signal if a new alert was queued this tick, then clear it
             var alertKey = SimulationEngine.Audio?.ActiveAlert ?? "";
