@@ -2,13 +2,15 @@ extends Node
 class_name FeedBargeVisualManager
 
 ## Feed barges: every stocked site keeps one moored on station beside its
-## pen, the way Norwegian farms store and blow their feed (roadmap A3-01).
-## A barge is towed out along the fjord channel at sea level from the feed
-## depot when a site is stocked, lies moored with its feed lines towards the
-## pen while the site holds fish, and is towed home once the site is
-## emptied; sites already stocked when the fjord first syncs (a new game or
-## a loaded save) have theirs on station from the start. Sites licensed for
-## a large biomass get the 64.8 m exposed-site barge instead of the 37 m one.
+## grid of pens, the way Norwegian farms store and blow their feed (roadmap
+## A3-01, G2-04). A barge is towed out along the fjord channel at sea level
+## from the feed depot when a site is stocked, lies moored with its feed
+## side towards the grid while the site holds fish, its white floating hoses
+## running to every pen (FishPenManager.attach_feed_barge), and is towed
+## home with its hoses once the site is emptied; sites already stocked when
+## the fjord first syncs (a new game or a loaded save) have theirs on
+## station from the start. Sites licensed for a large biomass get the
+## 64.8 m exposed-site barge instead of the 37 m one.
 ##
 ## Each barge carries a VesselChip (FARM zoom only): "Fôrflåte · fôrer" in
 ## feed yellow while the sim reports feeding, "Fôrflåte · i ro" otherwise.
@@ -52,6 +54,9 @@ var _on_station_at_start: Dictionary = {}  # site ids stocked when the fjord fir
 func _ready() -> void:
 	_fjord_env = get_parent()
 	_terrain = _fjord_env.get_node_or_null("Terrain")
+	var pen_mgr: FishPenManager = _fjord_env.get_node_or_null("FishPenManager")
+	if pen_mgr:
+		pen_mgr.site_relaid.connect(_on_site_relaid)
 	var sim = get_node_or_null("/root/SimBridge")
 	if sim:
 		bind_simulation(sim)
@@ -101,6 +106,15 @@ func _sync_barges() -> void:
 	for site_id in _active_barges.keys():
 		if site_id not in stocked:
 			_start_return(site_id)
+
+## A site laid out again has new berths: its barge leaves the old one at
+## once and comes back on station at the new one with the next sync.
+func _on_site_relaid(site_id: String) -> void:
+	if not _active_barges.has(site_id):
+		return
+	_on_station_at_start[site_id] = true
+	_remove_barge(site_id)
+	_sync_barges()
 
 ## The barge model a site gets.
 func barge_scene_for(site: Dictionary) -> PackedScene:
@@ -182,8 +196,11 @@ func _on_barge_arrived(site_id: String) -> void:
 	var data: Dictionary = _active_barges[site_id]
 	data.state = "moored"
 	_face_feed_side_to_pen(data)
-	feed_barge_arrived.emit(site_id)
 	var pen_mgr: FishPenManager = _fjord_env.get_node_or_null("FishPenManager")
+	# Moored: its white feed hoses float out to every pen of the site (G2-04).
+	if pen_mgr:
+		pen_mgr.attach_feed_barge(site_id, data.boat)
+	feed_barge_arrived.emit(site_id)
 	if pen_mgr and pen_mgr.has_method("_maybe_emit_feeding"):
 		pen_mgr._maybe_emit_feeding(site_id, {"is_feeding": true})
 
@@ -204,6 +221,9 @@ func _start_return(site_id: String) -> void:
 		return
 	data.state = "return"
 	_on_station_at_start.erase(site_id)  # a restocked site sees its barge towed out
+	var pen_mgr: FishPenManager = _fjord_env.get_node_or_null("FishPenManager")
+	if pen_mgr:
+		pen_mgr.detach_feed_barge(site_id)  # the hoses go home with the barge
 	if data.tween:
 		data.tween.kill()
 	ChannelBoat.face_home(data.boat)

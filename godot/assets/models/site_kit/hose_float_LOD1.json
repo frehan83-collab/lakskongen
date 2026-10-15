@@ -1,0 +1,17 @@
+{
+  "asset": "hose_float",
+  "bbox_size": [
+    0.6882,
+    0.52,
+    0.7058
+  ],
+  "blender_version": "5.2.2 LTS",
+  "file": "hose_float_LOD1.glb",
+  "lod": "LOD1",
+  "material_count": 2,
+  "materials": [
+    "LK_Buoy",
+    "LK_HDPE"
+  ],
+  "tri_count": 70
+}

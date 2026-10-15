@@ -25,7 +25,7 @@ FjordEnvironment (FjordEnvironment.gd)    environment controller + gameplay API
 ├── UnderwaterCanvas                      underwater overlay
 ├── ParticleEffects (ParticleEffects.gd)
 ├── WellboatVisualManager / FeedBargeVisualManager / CompetitorFarmVisualManager
-└── FishPenManager (GameScene)            pens, nets, fish schools, selection
+└── FishPenManager (GameScene)            sites (FarmSite: pens, grid, hoses), fish, selection
 FjordVistaBridge (GameScene)              the sim -> 3D presenter
 ```
 
@@ -332,16 +332,124 @@ lower, with a 2k ripple), which keeps a 116 m hull within 0.05 m of the
 sampled water on the open coast in a 25 m/s gale. 26 bodies cost 0.25 ms a
 frame in a storm (M1 Pro), with no allocations.
 The UI flow test pins the mirror to the shader numerically and the bodies to
-the water (RUN_LOG §7, 2026-10-14). Grid buoys, lamps and ropes stay at rest
-height for now.
+the water (RUN_LOG §7, 2026-10-14). The site's lighter floating gear rides
+the same water on the GPU (below).
+
+### Sites: pens in a mooring grid (G2-04)
+
+A site is a grid of round pens, not one ring (owner reference 1). Every sea
+site the sim reports is a `FarmSite` with the engine's pen count
+(`GetSeaSiteDetails` `"pen_count"`, `SeaSite.NumberOfPens`); `SiteLayout.gd`
+plans it as pure functions:
+
+| | |
+|---|---|
+| Grid | up to 3 pens in one row along the channel, more in two rows (`grid_dims`); one pen per 90 m frame cell (`MooringGrid.CELL_M`: Scottish site plans hold 160 m pens in 90-110 m grids; A2-01 asks 70-100 m); an odd count leaves the last cell empty |
+| Channel | the 12 slots along the basin; a site takes as many as its grid needs plus a 40 m gap (`slot_count`), the player's from the mouth, the rivals' from the head (`farm_slot`, rivals take one slot each) |
+| Placement | the site's centre level with its slots, in the deepest water where the whole grid floats over 30 m (`FishPenManager._site_position`), laid along the channel (`channel_yaw_at`) |
+| Berths | from the grid's half-width (`SiteBerths.gd`): the feed barge square off the frame line its hoses enter the lane by (a one-row site's middle), its inner hull 16 m outside the outer frame line, a wellboat's 3.5 m outside the buoys on the fairway side; the workboat inside the up-fjord cell of the first column |
+| Hoses | when the barge moors (`FeedBargeVisualManager` → `attach_feed_barge`): one white hose per pen from an outlet on the barge's grid side (lifting to its deck), through the near row between two pens, along the lane between the rows and into each pen's hose port 30 m from its centre (a one-row site: straight from the barge); Catmull-Rom with a gentle meander; yellow floats every 70 m, merged where hoses run together (`hose_key_points`, `smooth_hose`, `hose_floats`) |
+| Variants | per site: bird-net tent (centre mast) or green net on blue rim poles (`bird_net_for`), lice skirt (`has_skirt`); rivals add their colour band, orange buoys, quiet nets, no health rings or pen numbers, and a moored barge with hoses |
+
+`FishPenManager` keeps the site-id API the UI uses (`get_pen_ids`,
+`get_pen_position` = the grid's centre, `select_pen`, `pen_clicked`) and adds
+`get_site`, `get_site_cages`, `get_site_label`, `slots_used` and
+`cage_selected`. A click on any pen (or on the water inside the grid, the
+nearest pen) selects the site and that pen: a bright ring round the pen,
+quiet rings round the site's others. Per-pen data (`"pens"`, S2-01b) drives
+each pen's ring and fish; without it each pen shows the site's lice and an
+even share of its fish. One name per site over the grid, a number on each
+pen of a multi-pen site, up close.
+
+**Draw calls.** Each pen is a `PenCage` (its LOD0 meshes, health ring and
+click area), but past LOD0 the site draws all its pens through one
+MultiMesh per pen part (LOD1, LOD2), so the far field costs one draw per
+shown part whatever the pen count; each pen hands over by its own camera
+distance (`PenCage.LOD_SWITCH`, `LOD_HYSTERESIS`), and nothing past LOD0
+casts a shadow. The poses are uploaded as one buffer (`MultiMeshPack`) only
+when a pen has ridden or changed LOD. Measured (po3_red_sone, 1920×1080, M1
+Pro, sites shown vs hidden in one run): draws FARM 175 vs 35, FJORD 168 vs
+64, COAST 254 vs 138 (two player sites of 6 and 4 pens, six rival farms,
+barges, boats, hoses); render-thread CPU +0.1-0.15 ms; frame time within the
+shared machine's noise. Script cost per frame (algekatastrofe, 9 sites, 41
+pens): fish 0.3-0.5 ms (before G3-01; now 0.1 ms for 12 pens, below), LODs
+0.2 ms, riding 0.2 ms. The salmon schools are `FishSchool.gd` (below).
+
+**Floating gear on the GPU.** The hoses, grid buoys, hose floats, corner
+lights and the buoy ends of the chains and pen ends of the bridles ride the
+drawn water in their vertex shaders (`site_float.gdshaderinc`): the water
+shader's displacement and bake lookup mirrored term for term, inverted by
+fixed-point iteration (4 steps) like `WaveField.height_at`. `SiteFloat.sync`
+copies the director's wave arrays, the grid's placement and the terrain's
+water bake into the seven floating materials once a frame; the UI flow tests
+hold `SiteFloat.reference_height` (the same algorithm on the CPU) to
+`WaveField.height_at` (1e-4 m in a 25 m/s storm) and `tests/test_site_float.py`
+pins the include to the shader. Loop bounds are uniforms, so the loops are
+not unrolled (an unrolled draft took minutes to compile on Metal). The hoses
+are camera-facing ribbons at least 1.6 px wide and the buoys at least 3 px
+(up to 3× their size), so the gear reads from FARM to COAST like the white
+lines and yellow dots of the aerial photos. A floating hose's slack sways
+slowly across its line (0.35 m, a 38 s period travelling along it with a
+55 m wavelength), held still within 14 m of the barge and the pen (UV2.y
+carries the hose's length). Every minimum-pixel formula takes
+`abs(PROJECTION_MATRIX[1][1])`: the renderer's projection flips y, and
+without the abs the minimum silently never applied (the corner-light halos
+and the health rings had that bug).
+
+### Salmon schools (G3-01)
+
+Every pen carries a school as a child of its `PenCage` (it rides with the
+collar): `FishSchool.gd`, two MultiMeshes of the same fish.
+
+| | |
+|---|---|
+| Per-fish data | written into the MultiMesh custom data once, when the school is made: the fish's angle round the pen, where it swims across the school's ring, its depth rank (low-discrepancy sequences, so any first N fish fill the pen evenly) and a seed; the jumpers swim at the top. Instance transforms are the identity and are never written again (no `set_instance_transform`; the UI flow tests compare the buffers after 50 frames) |
+| Motion | `fish_school.gdshaderinc`: the tail beat in the vertex shader, the whole school turning round the pen, each fish at its own pace and ring with a slow wander, rolls that turn a silver flank up, jumps (0.6 m, 0.7 s in the air, forward 1.5 m). Three instance uniforms per pen carry the clocks (angle swum, tail phase, event clock), the state (mean depth, half-band, speed, feeding) and the body (length, swim direction, ring, fish shown); the clocks are integrated on the CPU, so a change of speed or feeding never makes a fish jump |
+| Sim | 1,500-4,000 fish a pen by biomass (`fish_for`, 900 t shows them all; none in an empty pen), fork length from the mean weight, drawn within 400 m. The feed barge feeds a site's pens in turn, 24 s each, in daylight, while the sim feeds the site (`is_feeding`): the fed school rises (mean depth 5 -> 2.2 m in 4 s, back in 9 s), crowds round the spreader, quickens (x1.6), and jumps, rolls and splashes four times as often. Oxygen below 7 mg/L slows the school, to 0.35 of its speed at 4 mg/L |
+| Solid pass | `salmon_school.gdshader`, the countershaded skin: from above only the jumpers are drawn (the opaque water hides the rest), under the water the whole school at its true size (LOD0 within 20 m, LOD1 beyond) |
+| Through the surface | `fish_shoal.gdshader`, drawn after the opaque water as a decal on the water the pen rides: each vertex goes where the camera sees it through the surface (two fixed-point steps of Snell's law from the straight line, the image on the camera ray 0.12 m over the water), so the collar, handrail, nets and boats still hide it by the depth test and nothing reads the screen or the depth buffer. The water's own optics (its absorption and scatter, bloom and warmth composed as the water shader does, synced by `FishSchool.sync`) fade each fish with the path down and back; dark backs, silver flanks that mirror the water round them unless a roll flashes them. Fish never show past the net. Splash rings for jumpers and for a feeding pen's boil |
+| The pen's water column | instance 0 of the shoal draws a disc inside the net: the stocked pen's water scatters more (its teal in owner reference 1), the school's mass (10 steps along the refracted ray through a patchy ring band that turns with the fish) darkens it where it swims near the surface, the net or the lice skirt (#C9CCC6) shows through shallow water at the far wall. It adds light and darkens at most 55 %, never a see-through water. Drawn within 2.2 km, so stocked pens read at FJORD zoom |
+| Readability | a fish never draws shorter than 9 px from above the water (up to 3x its length), the shoal LOD2 salmon (42 triangles, `build_salmon.py`) blurred 1.8x wide with soft sides |
+
+Cost (po3_red_sone, M1 Pro, 1920x1080, fish shown vs hidden in one run,
+medians of quiet runs): frame time FARM +1.0-1.3 ms (10 pens, 15k fish, a
+fed pen in view; the pen columns and the fish about half each), FJORD
++0.1 ms, COAST 0; draw calls +14 / +10 / +4. The shoal receives no shadows
+(0.5 ms at FARM for a difference nobody sees under a collar's shadow).
+Script: the fish loop of 12 schools 0.11 ms a frame (UI flow test, budget
+0.3 ms). The screenshot harness measures the share of 08b the fish change
+(shown vs hidden with time stopped; >= 2 %, 10.0 % now) and shoots 08c, a
+fed pen close up.
+
+### The farm after dark
+
+`SiteLights.gd` runs once a frame (from `FishPenManager`): a photocell night
+level (on below 3 degrees of sun, 6 degrees earlier under a full overcast)
+and 1 / the eye's exposure (the director adapts up to 16x at night) go into
+every light material, the signal rings and the world labels, so a lamp keeps
+the screen brightness it is tuned to (a tight core just over white, a small
+halo) and nothing blooms into a blot; labels are re-tinted in linear light.
+
+| Light | |
+|---|---|
+| Corner lights | the grid's synchronised yellow (#FFC23A) Fl Y 4 s lamps: dark by day, a 7 px minimum halo at night, a faint glow between flashes |
+| Vessels | `VesselLights.gd` reads each vessel's LOD0 meshes once per asset: a white masthead light over the wheelhouse (a second one forward on a vessel over 50 m), green to starboard and red to port on the wheelhouse sides, a white stern light, each only inside its COLREGS arc (`vessel_light_glow.gdshader`); the feed barge an all-round white mast light, a yellow marker flashing with the corner lights, white deck lamps on the control house roof. One MultiMesh per vessel, drawn only at night |
+| Windows | `vessel_paint.gdshader` lights the glass after dark: warm panes, a quarter of them dark |
+| Glitter | `light_glow.gdshaderinc`: every glow's mesh carries a second quad, a strip on the water under the light running towards the camera (distance squared over the camera's height times a slope spread of 0.045), shimmering; it lies on the water, so hulls hide it |
+
+The lights cost no measurable frame time at FJORD or COAST (shown vs
+hidden at night, draw calls +8 / +14). The screenshot harness shoots
+09b_fjord_night_lights and fails if the lights and their glitter change
+less than 0.03 % of the frame (0.125 % now) or the night level is not 1.
 
 ### Site layout and berths
 
 A site's frame mooring lies along the channel (`FishPenManager.channel_yaw_at`).
-The wellboat berth is on the fairway side, its inner hull 38.5 m from the
-pen (3.5 m outside the grid buoys); the feed barge lies on the other side, its
-inner hull 46 m out, with the pen's feed hose turned towards it; the workboat
-lies at the grid's up-fjord end (`get_berth`, `site_zones`).
+The wellboat berth is on the fairway side, its inner hull 3.5 m outside the
+grid buoys; the feed barge lies on the other side, square off the frame
+line its hoses enter by, its inner hull 16 m outside the outer frame line,
+its hoses running to every pen; the workboat lies in the up-fjord cell of the grid's first
+column (`SiteBerths.gd` through `get_berth` and `site_zones`).
 `ChannelBoat.berth_route` sails a boat from the harbour or depot along the
 channel with keel depth under its whole length, clear of every other site's
 grid and berths, and runs it straight in along the grid to its berth.
@@ -369,4 +477,7 @@ the threads, and fades to its mean coverage 1 − (1 − w)² once the mesh pass
 | `shaders/water_shader.gdshader` | `WaterGrid` |
 | `shaders/sky_shader.gdshader` | `WorldEnvironment` sky |
 | `shaders/underwater_post.gdshader` | `UnderwaterCanvas` |
-| `shaders/pen_*.gdshader`, `fish_shader.gdshader` | pen and fish assets |
+| `shaders/pen_*.gdshader`, `salmon_skin.gdshader` | pen and fish assets |
+| `shaders/fish_school.gdshaderinc` (in `salmon_school`, `fish_shoal`) | the salmon schools (G3-01) |
+| `shaders/light_glow.gdshaderinc` (in `mooring_light_glow`, `vessel_light_glow`) | night lights and their glitter |
+| `shaders/site_float.gdshaderinc` (in `feed_hose`, `mooring_buoy`, `mooring_lamp`, `mooring_light_glow`, `mooring_rope`, `site_kit_float`) | the site's floating gear |

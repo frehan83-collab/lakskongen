@@ -20,6 +20,12 @@ extends Node3D
 ##   set_owner_band()                         rival colour band
 ##   set_net_opacity()                        quieter rival nets
 ##   set_lice_skirt()                         the skirt variant
+##   set_bird_net()                           tent on a centre mast, or green
+##                                            net on blue rim poles (ref. 5)
+##
+## In a multi-pen site (FarmSite, roadmap G2-04) the site draws every pen's
+## LOD1 and LOD2 through one MultiMesh per part (set_site_drawn()): the pen
+## keeps its LOD0 meshes, its health ring and its click area.
 ##
 ## The pen floats (roadmap G2-03): every frame ride_waves() sets the node's
 ## height and tilt from the drawn water (WaveField), so pens, nets and the
@@ -54,9 +60,17 @@ enum Health { UNKNOWN, OK, WARN, CRIT }
 ## crit, secondary), with alpha as the ring's opacity. Trouble is louder.
 const HEALTH_COLORS := {
 	Health.UNKNOWN: Color(0.624, 0.706, 0.733, 0.35),  # #9FB4BB
-	Health.OK: Color(0.498, 0.839, 0.608, 0.55),       # #7FD69B
+	Health.OK: Color(0.498, 0.839, 0.608, 0.32),       # #7FD69B, calm while healthy
 	Health.WARN: Color(0.949, 0.718, 0.020, 0.85),     # #F2B705
 	Health.CRIT: Color(1.0, 0.541, 0.502, 0.95),       # #FF8A80
+}
+## Halo strength per state: calm while healthy or unknown, full glow when
+## something needs the player (owner brief: alarms rare and meaningful).
+const HEALTH_GLOW := {
+	Health.UNKNOWN: 0.3,
+	Health.OK: 0.3,
+	Health.WARN: 1.0,
+	Health.CRIT: 1.0,
 }
 const HEALTH_PULSE_HZ := {
 	Health.UNKNOWN: 0.0,
@@ -76,10 +90,21 @@ const LOD_SWITCH := [260.0, 850.0]
 const LOD_HYSTERESIS := 8.0
 const LOD_NAMES := ["", "LOD1", "LOD2"]
 ## Parts drawn with the net shader (translucent, no shadows).
-const NET_PARTS := ["Net", "BirdNet"]
+const NET_PARTS := ["Net", "BirdNet", "BirdNetRim"]
 ## Parts that cast no shadow: the see-through nets and what hangs under the
 ## water (a shadow there is never seen, but every cascade would draw it).
-const NO_SHADOW_PARTS := ["Net", "BirdNet", "SinkerTube", "LiceSkirt"]
+## Past LOD0 nothing casts a shadow (roadmap P0-04: the pen is a few pixels
+## wide there and every cascade would draw it again).
+const NO_SHADOW_PARTS := ["Net", "BirdNet", "BirdNetRim", "SinkerTube", "LiceSkirt"]
+## Bird-net styles: a tent from a centre mast (owner references 2 and 4) or
+## a green net on blue rim poles (reference 5), or none.
+enum BirdNet { TENT, RIM, NONE }
+## The parts each bird-net style shows.
+const BIRD_NET_PARTS := {
+	BirdNet.TENT: ["BirdNet", "BirdNetPoles"],
+	BirdNet.RIM: ["BirdNetRim", "BirdNetRimPoles"],
+	BirdNet.NONE: [],
+}
 
 ## The circle the collar floats on: the walkway centreline between the twin
 ## pipes (blender/build_pen.py WALK_MID = R_IN + PIPE_SPACING / 2).
@@ -102,10 +127,19 @@ var _click_area: Area3D
 var _band_color: Color = Color(0, 0, 0, 0)
 var _net_opacity: float = 1.0
 var _lice_skirt: bool = false
+var _bird_net: int = BirdNet.TENT
+## True once a FarmSite draws this pen's LOD1 and LOD2 (set_site_drawn).
+var _site_drawn := false
+var _lod0_shown := true
+## Render layers of the LOD0 meshes while shown.
+const LOD0_LAYERS := 1
 ## Bake sample under the pen, keyed by (x, z, WaveField.bake_version).
 var _bake_key := Vector3(INF, INF, -1.0)
 var _bake_sample := Color()
 var _ride_slot := 0
+## Counts ride_waves() calls: a FarmSite re-uploads its MultiMesh poses
+## only when one of its pens has moved.
+var ride_count := 0
 
 func _ready() -> void:
 	_collar_node = get_node_or_null("Collar") as MeshInstance3D
@@ -121,6 +155,7 @@ func _ready() -> void:
 	_apply_band()
 	_apply_net_opacity()
 	_apply_lice_skirt()
+	_apply_bird_net()
 	_ride_slot = int(get_instance_id() % FAR_RIDE_FRAMES)
 
 
@@ -155,6 +190,7 @@ func ride_waves() -> void:
 	var slope_z := plane.y * axes.z.x + plane.z * axes.z.z
 	position.y = plane.x - frame.origin.y
 	rotation = Vector3(-atan(slope_z), rotation.y, atan(slope_x))
+	ride_count += 1
 
 ## The meshes of one LOD level (0 = the direct children).
 func get_lod_meshes(level: int) -> Array[MeshInstance3D]:
@@ -186,8 +222,13 @@ func _configure_lods() -> void:
 			mesh.visibility_range_begin_margin = LOD_HYSTERESIS if begin > 0.0 else 0.0
 			mesh.visibility_range_end_margin = LOD_HYSTERESIS if end > 0.0 else 0.0
 			mesh.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
-			if String(mesh.name) in NO_SHADOW_PARTS or level == 2:
-				mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mesh.cast_shadow = shadow_for(String(mesh.name), level)
+
+## Whether a part of a LOD casts a shadow: LOD0's solid parts only.
+static func shadow_for(part: String, level: int) -> GeometryInstance3D.ShadowCastingSetting:
+	if level >= 1 or part in NO_SHADOW_PARTS:
+		return GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 
 ## The ring colour for a health state.
 static func health_color_of(state: int) -> Color:
@@ -223,6 +264,7 @@ func _apply_health() -> void:
 		return
 	_health_ring.set_instance_shader_parameter("ring_color", health_color)
 	_health_ring.set_instance_shader_parameter("pulse_hz", float(HEALTH_PULSE_HZ.get(health_state, 0.0)))
+	_health_ring.set_instance_shader_parameter("glow", float(HEALTH_GLOW.get(health_state, 1.0)))
 
 ## Paint the owner's colour band (rival farms). Alpha 0 hides it.
 func set_owner_band(color: Color) -> void:
@@ -272,6 +314,59 @@ func _apply_lice_skirt() -> void:
 	for skirt in get_parts("LiceSkirt"):
 		skirt.visible = _lice_skirt
 
+## Which bird net the pen carries (BirdNet.TENT, RIM or NONE).
+func set_bird_net(style: int) -> void:
+	_bird_net = style if BIRD_NET_PARTS.has(style) else BirdNet.TENT
+	_apply_bird_net()
+
+func get_bird_net() -> int:
+	return _bird_net
+
+func _apply_bird_net() -> void:
+	for style in BIRD_NET_PARTS:
+		for part in BIRD_NET_PARTS[style]:
+			for mesh in get_parts(part):
+				mesh.visible = style == _bird_net
+
+## Whether a part shows under the pen's current variants (skirt, bird net,
+## owner band): what a FarmSite's MultiMesh of that part shows.
+func part_shown(part: String) -> bool:
+	if part == "LiceSkirt":
+		return _lice_skirt
+	if part == "Band":
+		return _band_color.a > 0.0
+	for style in BIRD_NET_PARTS:
+		if part in BIRD_NET_PARTS[style]:
+			return style == _bird_net
+	return true
+
+## A FarmSite draws this pen's LOD1 and LOD2 through its MultiMeshes: the
+## pen's own LOD1/LOD2 meshes are hidden for good and its LOD0 meshes are
+## shown and hidden by the site (set_lod0_visible), not by distance.
+func set_site_drawn(on: bool) -> void:
+	_site_drawn = on
+	for level in [1, 2]:
+		var holder := get_node_or_null(LOD_NAMES[level]) as Node3D
+		if holder != null:
+			holder.visible = not on
+	for mesh in get_lod_meshes(0):
+		mesh.visibility_range_end = 0.0 if on else LOD_SWITCH[0]
+		mesh.visibility_range_end_margin = 0.0 if on else LOD_HYSTERESIS
+
+func is_site_drawn() -> bool:
+	return _site_drawn
+
+## Show or hide the LOD0 meshes (a FarmSite's LOD hand-over). It clears
+## their render layers rather than `visible`, which the variants own.
+func set_lod0_visible(on: bool) -> void:
+	_lod0_shown = on
+	for mesh in get_lod_meshes(0):
+		mesh.layers = LOD0_LAYERS if on else 0
+
+func is_lod0_visible() -> bool:
+	return _lod0_shown
+
+
 func get_click_area() -> Area3D:
 	return _click_area
 
@@ -301,3 +396,5 @@ static func style_label(label: Label3D, text_color: Color, max_distance: float =
 	label.render_priority = 2
 	label.outline_render_priority = 1
 	label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Its colour holds at night (the eye's exposure would bloom it).
+	SiteLights.keep_text_colour(label)

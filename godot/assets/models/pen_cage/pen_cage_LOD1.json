@@ -1,17 +1,19 @@
 {
   "asset": "pen_cage",
   "bbox_size": [
-    66.8237,
+    56.8546,
     46.0,
     53.7074
   ],
   "blender_version": "5.2.2 LTS",
   "dimensions": {
     "bird_net_mast_m": 7.5,
+    "bird_net_rim_pole_m": 6.6,
     "bracket_spacing_m": 2.6667,
     "collar_outer_diameter_m": 53.7074,
     "handrail_diameter_m": 0.14,
     "handrail_height_above_deck_m": 0.95,
+    "hose_port_m": 30.0,
     "inner_pipe_circumference_m": 160.0,
     "lice_skirt_depth_m": 10.0,
     "net_depth_m": 38.0,
@@ -22,29 +24,35 @@
   },
   "file": "pen_cage_LOD1.glb",
   "lod": "LOD1",
-  "material_count": 8,
+  "material_count": 12,
   "materials": [
     "LK_Band",
     "LK_BirdNet",
+    "LK_BirdNetGreen",
     "LK_HDPE",
+    "LK_Hose",
     "LK_Marker",
     "LK_Net",
     "LK_NetAbove",
+    "LK_PoleBlue",
     "LK_Skirt",
+    "LK_Spreader",
     "LK_Walkway"
   ],
   "parts": {
     "Band": 480,
     "BirdNet": 672,
     "BirdNetPoles": 492,
+    "BirdNetRim": 576,
+    "BirdNetRimPoles": 264,
     "Collar": 5640,
-    "FeedPipe": 486,
+    "FeedPipe": 550,
     "Handrail": 1920,
     "LiceSkirt": 576,
     "Net": 960,
     "SinkerTube": 846,
     "Walkway": 964
   },
-  "tri_count": 13036,
-  "tri_count_without_skirt": 12460
+  "tri_count": 13940,
+  "tri_count_without_skirt": 13364
 }

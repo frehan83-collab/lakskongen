@@ -1,5 +1,8 @@
-[gd_resource type="StandardMaterial3D" format=3 uid="uid://mooring_rope_mat_001"]
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://mooring_rope_mat_001"]
+
+[ext_resource type="Shader" path="res://shaders/mooring_rope.gdshader" id="1_shader"]
 
 [resource]
-albedo_color = Color(0.168627, 0.188235, 0.2, 1)
-roughness = 0.9
+shader = ExtResource("1_shader")
+shader_parameter/albedo_color = Color(0.168627, 0.188235, 0.2, 1)
+shader_parameter/roughness = 0.9

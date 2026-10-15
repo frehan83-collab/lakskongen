@@ -31,6 +31,17 @@ uniform float boottop_bottom = -0.55;
 // Baked AO: how much of it shows, and how much it also dims direct light.
 uniform float ao_strength : hint_range(0.0, 1.0) = 0.75;
 uniform float ao_light_affect : hint_range(0.0, 1.0) = 0.3;
+// Glass only: the warm light behind the windows after dark (SiteLights:
+// `night` 0 by day .. 1 at night, `exposure_comp` = 1 / the eye's exposure,
+// so a lit pane keeps its screen brightness and never blooms). Panes are
+// cells of `window_pane_m` along the box-projected UVs (metres); some are
+// dark, the rest a little uneven.
+uniform vec3 window_light : source_color = vec3(0.0);
+uniform float window_pane_m = 1.1;
+uniform float window_dark_share : hint_range(0.0, 1.0) = 0.25;
+uniform float window_display = 1.1;
+uniform float night : hint_range(0.0, 1.0) = 0.0;
+uniform float exposure_comp = 1.0;
 
 varying float model_y;
 
@@ -59,4 +70,10 @@ void fragment() {
 	NORMAL_MAP = mix(vec3(0.5, 0.5, 1.0), texture(plates_normal, uv).rgb, normal_strength);
 	AO = mix(1.0, COLOR.r, ao_strength);
 	AO_LIGHT_AFFECT = ao_light_affect;
+	if (night > 0.0 && dot(window_light, window_light) > 0.0) {
+		vec2 pane = floor(UV / window_pane_m);
+		float h = fract(sin(dot(pane, vec2(12.9898, 78.233))) * 43758.5453);
+		float lit = step(window_dark_share, h) * (0.65 + 0.35 * fract(h * 7.31));
+		EMISSION = window_light * lit * window_display * night * exposure_comp;
+	}
 }

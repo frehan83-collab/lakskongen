@@ -6,9 +6,9 @@
 [resource]
 render_priority = 1
 shader = ExtResource("1_shader")
-shader_parameter/albedo_color = Color(0.16, 0.18, 0.19, 1)
+shader_parameter/albedo_color = Color(0.2, 0.225, 0.235, 1)
 shader_parameter/net_texture = ExtResource("2_net")
-shader_parameter/tile_m = 0.3
-shader_parameter/thread_alpha = 0.55
+shader_parameter/tile_m = 0.45
+shader_parameter/thread_alpha = 0.8
 shader_parameter/far_boost = 1.2
 shader_parameter/fouling_amount = 0.0

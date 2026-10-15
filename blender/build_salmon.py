@@ -2,9 +2,9 @@
 
 Run headless (reproducible, no UI):
   /Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup \
-      --python blender/build_salmon.py -- [--lod LOD0|LOD1] [--out DIR] [--textures]
+      --python blender/build_salmon.py -- [--lod LOD0|LOD1|LOD2] [--out DIR] [--textures]
 
-Without --lod it builds both LODs: godot/assets/models/fish/salmon_<LOD>.glb
+Without --lod it builds every LOD: godot/assets/models/fish/salmon_<LOD>.glb
 plus a JSON sidecar (tri_count, materials, bbox, measured proportions, UV
 bounds) for blender_asset_pipeline.py and tests/test_salmon_asset.py.
 --textures also paints the skin atlas godot/assets/models/fish/textures/
@@ -89,8 +89,11 @@ FIN_V = (0.01, 0.24)
 LODS = {
     "LOD0": dict(rings=35, around=20, fin_edges=True, paired=True, small_fins=True),
     "LOD1": dict(rings=13, around=10, fin_edges=False, paired=True, small_fins=False),
+    # The school seen through the water surface (G3-01): thousands per pen,
+    # a few pixels long each, so a four-sided body and the tail only.
+    "LOD2": dict(rings=5, around=4, fin_edges=False, paired=False, small_fins=False, dorsal=False),
 }
-TRI_LIMITS = {"LOD0": (1200, 1800), "LOD1": (200, 400)}
+TRI_LIMITS = {"LOD0": (1200, 1800), "LOD1": (200, 400), "LOD2": (30, 64)}
 
 
 def smooth_interp(t: float, k: int) -> float:
@@ -238,9 +241,10 @@ def build_fins(mb, p) -> None:
 
     # Dorsal: a trapezoid about as tall as its base is long, raked back,
     # with a concave trailing edge (not a shark's spike).
-    median([(0.395, -0.012), (0.405, 0.040), (0.420, 0.064), (0.440, 0.070), (0.458, 0.066),
-            (0.478, 0.044), (0.505, 0.018), (0.528, -0.001), (0.522, -0.012)] if edges else
-           [(0.395, -0.012), (0.425, 0.068), (0.458, 0.064), (0.528, -0.001)], "top", FIN_DARK_U, 0.005)
+    if p.get("dorsal", True):
+        median([(0.395, -0.012), (0.405, 0.040), (0.420, 0.064), (0.440, 0.070), (0.458, 0.066),
+                (0.478, 0.044), (0.505, 0.018), (0.528, -0.001), (0.522, -0.012)] if edges else
+               [(0.395, -0.012), (0.425, 0.068), (0.458, 0.064), (0.528, -0.001)], "top", FIN_DARK_U, 0.005)
     # Caudal: broad from the peduncle, a shallow fork, the fork notch at
     # exactly one fork length, lobe tips softly rounded.
     caudal = [(0.855, 0.030), (0.905, 0.050), (0.960, 0.082), (1.012, 0.110), (1.034, 0.118), (1.044, 0.108),

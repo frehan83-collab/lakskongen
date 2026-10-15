@@ -1,21 +1,23 @@
 extends Node
 class_name CompetitorFarmVisualManager
 
-## Competitor farm visual manager: places the AI competitors' farms (the
-## player's pen asset with the rival's colour band) on the fjord channel's
-## deep-water slots, filled
-## from the far end (the player's pens fill them from the near end). Shows
-## up to max_competitors farms; a rival whose slot the player's sites reach
-## is not drawn.
+## Competitor farm visual manager: places the AI competitors' farms on the
+## fjord channel's deep-water slots, filled from the far end (the player's
+## sites fill them from the near end). A rival farm is the very FarmSite the
+## player's sites are (roadmap G2-04): a grid of the hero pens in a frame
+## mooring, a feed barge moored beside it with white hoses to every pen, in
+## the rival's colour band, with orange buoys, quieter nets and no health
+## rings. Shows up to max_competitors farms; a rival whose slot the
+## player's sites reach is not drawn.
 
-@export var pen_cage_scene: PackedScene = preload("res://assets/models/pen_cage/pen_cage.tscn")
 @export var max_competitors: int = 8
+@export var feed_barge_scene: PackedScene = preload("res://assets/models/feed_barge/feed_barge.tscn")
 
 signal competitor_farm_added(competitor_id: String)
 
 var _sim_bridge = null
 var _fjord_env = null
-var _competitor_farms: Dictionary = {}  # competitor_id -> {root, cages, label}
+var _competitor_farms: Dictionary = {}  # competitor_id -> {root, site, cages, label, mooring, barge}
 
 func _ready() -> void:
 	_fjord_env = get_parent()
@@ -45,24 +47,24 @@ func _sync_competitor_farms() -> void:
 	# The bridge's own farm positions (x up to ±1000 m) lie inside the fjord
 	# walls, so the farms take the pen manager's channel slots instead.
 	var slots := pens.get_recommended_locations()
-	var player_sites := pens.get_pen_ids().size()
+	var player_slots := pens.slots_used()
 	var competitors: Array = _sim_bridge.get_competitor_farms()
 	var active_ids: Array = []
-	
+
 	var shown: Array = competitors.slice(0, max_competitors)
 	for i in shown.size():
 		var comp_dict: Dictionary = shown[i]
 		var comp_id: String = str(comp_dict.get("id", ""))
-		var slot := farm_slot(i, player_sites, slots.size())
+		var slot := farm_slot(i, player_slots, slots.size())
 		if comp_id.is_empty() or slot < 0:
 			continue
-		
+
 		active_ids.append(comp_id)
-		
+
 		if not _competitor_farms.has(comp_id):
 			_spawn_competitor_farm(comp_id, str(comp_dict.get("name", "Unknown")), slots[slot],
 				float(comp_dict.get("market_share", 0.0)))
-	
+
 	# Remove farms for competitors that no longer exist or have lost their slot
 	var to_remove: Array = []
 	for comp_id in _competitor_farms.keys():
@@ -74,68 +76,82 @@ func _sync_competitor_farms() -> void:
 ## The channel slot of the rival at `index`: rivals fill the slots from the
 ## far end and the player's sites from the near end, so a slot the player's
 ## sites reach is not used and a rival never sits on a player's pen. -1 when
-## there is no room.
-static func farm_slot(index: int, player_sites: int, slot_count: int) -> int:
+## there is no room. A rival farm fits in one slot (rival_pen_count).
+static func farm_slot(index: int, player_slots: int, slot_count: int) -> int:
 	var slot := slot_count - 1 - index
-	return slot if slot >= player_sites else -1
+	return slot if slot >= player_slots else -1
+
+## Pens of a rival's farm, fixed per competitor across runs: two rows of
+## two, or one row of two. Either fits in one channel slot.
+static func rival_pen_count(comp_id: String) -> int:
+	return 2 if absi(hash(comp_id)) % 3 == 0 else 4
 
 func _spawn_competitor_farm(comp_id: String, name: String, position: Vector3, market_share: float) -> void:
-	# Local positions: global_position before add_child is ignored (with an
-	# engine error) because the node is not in the tree yet.
+	var pens := _fjord_env.get_node_or_null("FishPenManager") as FishPenManager
+	var band := band_color_for(comp_id)
+	var count := rival_pen_count(comp_id)
+	# A plain root holds the farm and its barge; the farm lies along the
+	# channel like the player's sites (FishPenManager.channel_yaw_at).
 	var farm_root := Node3D.new()
 	farm_root.name = "CompetitorFarm_%s" % comp_id
-	farm_root.position = position
-	# The row of pens and its frame mooring lie along the channel, like the
-	# player's sites (FishPenManager.channel_yaw_at).
-	var pens := _fjord_env.get_node_or_null("FishPenManager") as FishPenManager
-	if pens != null:
-		farm_root.rotation.y = pens.channel_yaw_at(position.z)
 	_fjord_env.add_child(farm_root)
-	
-	# 2-4 pens, fixed per competitor (randi_range made every run look different),
-	# in a row along the channel: a 180 m ring around the centre reached the
-	# fjord walls. Cages are 51 m across.
-	var pen_count := 2 + absi(hash(comp_id)) % 3
-	# One pen per 70 m cell of the farm's frame mooring.
-	var cage_spacing := MooringGrid.CELL_M
-	var cages: Array = []
-	
-	var band := band_color_for(comp_id)
-	for i in range(pen_count):
-		var cage = pen_cage_scene.instantiate()
-		cage.name = "Pen_%s_%d" % [comp_id, i]
-		cage.position = Vector3(0.0, 0.0, (float(i) - float(pen_count - 1) / 2.0) * cage_spacing)
-
-		farm_root.add_child(cage)
-		cages.append(cage)
-
+	farm_root.global_position = position
+	var yaw := pens.channel_yaw_at(position.z) if pens != null else 0.0
+	var site := FarmSite.new()
+	site.name = "Site"
+	farm_root.add_child(site)
+	site.rotation.y = yaw
+	var barge_side := _barge_side(position)
+	site.build(comp_id, count, {
+		"barge_side": barge_side,
+		"buoy_color": MooringGrid.BUOY_ORANGE,
+		"band_color": band,
+		"net_opacity": RIVAL_NET_OPACITY,
+		"health_rings": false,
+		"pen_numbers": false,
+		"bird_net": FishPenManager.bird_net_for(comp_id),
+		"label": name,
+		"label_color": band.lerp(Color.WHITE, 0.35),
+		"label_range": RIVAL_LABEL_RANGE,
+	})
+	for cage in site.cages:
 		_style_rival_pen(cage, band)
+	var barge := _moor_barge(site, barge_side)
 
-	# The farm's frame mooring: a row of cells, orange buoys for rivals.
-	var mooring := MooringGrid.new()
-	mooring.name = "Mooring"
-	farm_root.add_child(mooring)
-	var pen_cells: Array = []
-	for i in range(pen_count):
-		pen_cells.append(Vector2i(0, i))
-	mooring.build(1, pen_count, pen_cells, MooringGrid.BUOY_ORANGE)
-
-	# Name label in the rival's colour, above the middle pen.
-	var label := Label3D.new()
-	label.name = "Label"
-	label.text = name
-	label.position = Vector3(0, PenCage.LABEL_HEIGHT, 0)
-	PenCage.style_label(label, band.lerp(Color.WHITE, 0.35), RIVAL_LABEL_RANGE)
-	farm_root.add_child(label)
-	
 	_competitor_farms[comp_id] = {
 		"root": farm_root,
-		"cages": cages,
-		"label": label,
-		"mooring": mooring,
+		"site": site,
+		"cages": site.cages,
+		"label": site.label,
+		"mooring": site.grid,
+		"barge": barge,
 	}
-	
+
 	competitor_farm_added.emit(comp_id)
+
+## The barge side of a rival farm: away from the fairway (the shore side).
+func _barge_side(position: Vector3) -> float:
+	var terrain := _fjord_env.get_node_or_null("Terrain") as FjordTerrain
+	if terrain == null:
+		return 1.0
+	var to_fairway := terrain.channel_center_x(position.z) - position.x
+	return -signf(to_fairway) if absf(to_fairway) >= 1.0 else 1.0
+
+## The rival's feed barge lies moored beside its grid, its feed side
+## (starboard, +X) towards the pens, with hoses to each of them.
+func _moor_barge(site: FarmSite, side: float) -> VesselModel:
+	if feed_barge_scene == null:
+		return null
+	var barge := feed_barge_scene.instantiate() as VesselModel
+	if barge == null:
+		return null
+	barge.name = "FeedBarge"
+	site.add_child(barge)
+	var half := site.half_extent()
+	barge.position = Vector3(side * (half.x + FishPenManager.BARGE_GRID_GAP_M + barge.beam_m * 0.5), 0.0, 0.0)
+	barge.rotation.y = 0.0 if side < 0.0 else PI
+	site.attach_hoses(barge.global_position, barge.length_m, barge.beam_m)
+	return barge
 
 ## Rival pens are the player's pen asset with the owner's colour band, a
 ## quieter net and no health ring (the player cannot see a rival's fish
