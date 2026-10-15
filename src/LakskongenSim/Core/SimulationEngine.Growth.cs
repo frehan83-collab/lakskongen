@@ -28,13 +28,15 @@ public partial class SimulationEngine
     /// <param name="ContainmentGrowthMultiplier">Containment rung's growth effect (1 = open net).</param>
     /// <param name="StockingDensityKgM3">Effective density the FCR model reads (kg/m³).</param>
     /// <param name="SpreadQuality">Feed-spreading precision (0-1).</param>
+    /// <param name="FeedAvailable">False when the holding has no feed to give today (the F2 hook <see cref="FeedAvailableFor"/>): the fish then eat nothing.</param>
     internal readonly record struct HoldingHusbandry(
         HoldingWater Water,
         double AppetiteModifier,
         double DensityGrowthMultiplier,
         double ContainmentGrowthMultiplier,
         double StockingDensityKgM3,
-        double SpreadQuality);
+        double SpreadQuality,
+        bool FeedAvailable = true);
 
     /// <summary>
     /// Fish one density proxy pen (<see cref="PenVolumeProxyM3"/>) holds: the
@@ -96,8 +98,9 @@ public partial class SimulationEngine
         double temperature = husbandry.Water.TemperatureC;
         // S2-04: fish fasting before slaughter get nothing, whatever the
         // feeding plan says; they lose a little weight on the law's
-        // below-maintenance branch and their gut empties (degree-days).
-        double ration = population.IsFasting ? 0.0 : population.Ration?.EffectiveFraction ?? 1.0;
+        // below-maintenance branch and their gut empties (degree-days). A
+        // holding with no feed today (F2 hook FeedAvailableFor) gives none.
+        double ration = population.IsFasting || !husbandry.FeedAvailable ? 0.0 : population.Ration?.EffectiveFraction ?? 1.0;
         TrackHarvestCondition(population, husbandry.Water);
         double researchGrowth = 1.0 + GrowthRateBonus;
         double dayLength = DayLengthHoursOf(husbandry.Water);

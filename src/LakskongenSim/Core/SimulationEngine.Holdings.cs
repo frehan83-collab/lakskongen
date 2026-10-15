@@ -65,19 +65,19 @@ public partial class SimulationEngine
     /// pen's area sea water, with the oxygen its current-fed exchange adds
     /// (<see cref="Farm.OffshoreFarm.OxygenBoost"/>); a sea pen's zone water,
     /// less the oxygen a running in-cage sag takes (<see cref="HypoxiaSagDepthAt"/>).
+    /// The land tank's and the offshore pen's water are the lanes' (F2-02:
+    /// <see cref="Farm.Land.LandHooks.TankWater"/>, <see cref="Farm.Offshore.OffshoreHooks.PenWater"/>),
+    /// the one water behind <see cref="UnitWaterTemperatureC"/>.
     /// </summary>
     internal HoldingWater WaterOf(in PopulationHolding holding, FishPopulation population)
     {
         switch (holding.Kind)
         {
             case HoldingKind.LandTank when holding.LandFacility != null:
-                return new HoldingWater(holding.LandFacility.CurrentWaterTemp, holding.LandFacility.OxygenLevel,
-                    HoldingWater.SeawaterSalinityPsu, HomeProductionArea, HoldingKind.LandTank);
+                return Farm.Land.LandHooks.TankWater(this, holding, population);
             case HoldingKind.Offshore when holding.OffshoreFarm != null:
-            {
-                var sea = SeaWaterOf(holding.Zone, holding.OffshoreFarm.ZoneId, HoldingKind.Offshore);
-                return sea with { OxygenMgPerL = sea.OxygenMgPerL + holding.OffshoreFarm.OxygenBoost };
-            }
+                return Farm.Offshore.OffshoreHooks.PenWater(this, holding, population,
+                    SeaWaterOf(holding.Zone, holding.OffshoreFarm.ZoneId, HoldingKind.Offshore));
             default:
             {
                 var sea = SeaWaterOf(holding.Zone, population.ZoneId, HoldingKind.SeaPen);

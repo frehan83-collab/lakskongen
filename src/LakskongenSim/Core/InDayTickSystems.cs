@@ -87,12 +87,13 @@ namespace LakskongenSim.Core;
                 // Calculate disease mortality rates and inject into MortalityModel
                 // This MUST happen before FishPopulation.AdvanceDays() to avoid double application.
                 // Each population's disease tick gets its own water temperature (S2-02),
-                // from the holding the step resolved once (sim-a-1 seam).
+                // from the holding the step resolved once (sim-a-1 seam), through
+                // the F2 hook UnitWaterTemperatureC (F2-12).
                 engine.IntegratedDisease.Update(
                     engine.State.Zones.ToList(),
                     engine.State.Populations.ToList(),
                     1,
-                    population => engine.HoldingWaterOf(population).TemperatureC);
+                    engine.UnitWaterTemperatureC);
             }
 
         }
@@ -121,6 +122,9 @@ namespace LakskongenSim.Core;
             {
                 var population = engine.State.Populations[popIdx];
                 var holding = engine.HoldingOf(population);
+                // The one water at the fish: its temperature is the F2 hook
+                // UnitWaterTemperatureC (WaterOf takes a land tank's and an
+                // offshore pen's water from the lanes' hooks, F2-12).
                 var water = engine.WaterOf(holding, population);
                 // The zone whose fish load the population adds to (its ZoneId; a
                 // land tank's is its intake zone), as before the seam.
@@ -146,12 +150,17 @@ namespace LakskongenSim.Core;
                 // Phase 4.1: containment — closed rungs behave denser for O2
                 // purposes (recirculation load) via o2DemandMult.
                 var homeSite = holding.Site;
-                var containmentMods = Farm.ContainmentTech.ModifiersFor(
-                    homeSite?.Containment ?? Farm.ContainmentLevel.OpenNet);
+                var containmentMods = SimulationEngine.ContainmentModifiersOf(homeSite);
                 double densityForO2 = stockingDensity * containmentMods.OxygenDemandMult;
 
-                // Advance population: age and mortality only — growth is the S2-03 law below
-                population.AdvanceDays(1, skipGrowth: true, engine.MortalityReduction, engine.DiseaseResistanceBonus);
+                // Advance population: age and mortality only — growth is the S2-03 law below.
+                // F2 hooks: the holding's own mortality terms (F2-08, F2-15/F2-16)
+                // and the smolt quality's (F2-13) scale the anchor hazard; extra
+                // hazards are booked by their own cause after it.
+                var mortalityTerms = engine.UnitMortalityTerms(population);
+                double anchorMultiplier = mortalityTerms.AnchorMultiplier * engine.QualityMortalityMultiplier(population);
+                population.AdvanceDays(1, skipGrowth: true, engine.MortalityReduction, engine.DiseaseResistanceBonus, anchorMultiplier);
+                engine.ApplyUnitMortalityHazards(population, mortalityTerms);
 
                 // S2-03: the fish's appetite follows the water and their gills
                 // (Phase 2.1 DO saturation, Phase 4.3 damaged gills 0.6-1.0),
@@ -169,6 +178,8 @@ namespace LakskongenSim.Core;
                 }
                 if (homeSite != null)
                     waterPenalty *= 0.6 + 0.4 * (homeSite.GillScore / 100.0);
+                // F2 hook: the holding's own appetite factor (F2-07 sea state, F2-12 CO2 and TAN).
+                waterPenalty *= engine.AppetiteFactorFor(population);
                 // P6: precision feeding — feed-spread quality by site watch mode,
                 // improved by AI feeding. Poor spread raises FCR, waste, size variance.
                 double spreadQuality = homeSite?.WatchMode switch
@@ -181,7 +192,8 @@ namespace LakskongenSim.Core;
                 if (engine.AIFeeding != null && engine.AIFeeding.IsInstalled)
                     spreadQuality = Math.Min(1.0, spreadQuality + 0.1);
                 var husbandry = new SimulationEngine.HoldingHusbandry(
-                    water, waterPenalty, densityGrowth, containmentMods.GrowthMult, densityForO2, spreadQuality);
+                    water, waterPenalty, densityGrowth, containmentMods.GrowthMult, densityForO2, spreadQuality,
+                    FeedAvailable: engine.FeedAvailableFor(population)); // F2 hook (F2-07 silo)
                 var feedResult = engine.GrowAndFeedOneDay(population, husbandry);
 
                 if (zone != null && feedResult.FeedUsedKg > 0)
@@ -226,31 +238,12 @@ namespace LakskongenSim.Core;
                 engine._dailyAiFeedingLicenseCost = aiFeedResult.DailyLicenseCost;
             }
 
-            foreach (var rasFacility in engine.RASFacilities)
-            {
-                rasFacility.SetRng(engine.Rng.Stream(SimRngStreams.RASFacility,
-                    string.IsNullOrEmpty(rasFacility.Id) ? rasFacility.Name : rasFacility.Id));
-                var rasResult = rasFacility.TickDay(engine.State.Day, engine.Weather.CurrentTemperatureC);
-                engine._dailyFarmSystemsOpex += rasResult.TotalDailyOPEX;
-            }
-
-            foreach (var offshoreFarm in engine.OffshoreFarms)
-            {
-                offshoreFarm.SetRng(engine.Rng.Stream(SimRngStreams.OffshoreFarm,
-                    string.IsNullOrEmpty(offshoreFarm.Id) ? offshoreFarm.Name : offshoreFarm.Id));
-                var offshoreResult = offshoreFarm.TickDay(engine.State.Day, engine.Weather.CurrentWindSpeedMs, engine.Weather.CurrentWaveHeight, engine.Weather.CurrentState == WeatherState.Storm);
-                engine._dailyFarmSystemsOpex += offshoreResult.TotalDailyOPEX;
-            }
-
-            foreach (var postSmoltFacility in engine.PostSmoltFacilities)
-            {
-                var postSmoltResult = postSmoltFacility.TickDay(engine.State.Day);
-                engine._dailyFarmSystemsOpex += postSmoltResult.TotalDailyOPEX;
-                // Post-smolt batches are not cohorts; their deaths (a top-down
-                // survival rate) are booked per facility (S2-05).
-                engine.MortalityLedger.BookHoldingDeaths(postSmoltFacility.Id, postSmoltResult.TotalMortality,
-                    postSmoltResult.TotalMortalityKg, MortalityCause.BaselineAnchor);
-            }
+            // The facilities' day (F2-02: LandSiteTickSystem, OffshoreTickSystem),
+            // in the pre-F2 order: the day's facility opex is one running decimal
+            // sum, and its order is part of the result.
+            LandSiteTickSystem.TickTanks(engine);
+            OffshoreTickSystem.Tick(engine);
+            LandSiteTickSystem.TickPostSmoltModules(engine);
 
         }
     }

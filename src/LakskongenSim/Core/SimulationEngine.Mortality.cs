@@ -93,4 +93,23 @@ public partial class SimulationEngine
         foreach (var cohort in population.Cohorts)
             population.RemoveDead(cohort, MortalityHazards.Deaths(cohort.Count, fraction), MortalityCause.Temperature);
     }
+
+    /// <summary>
+    /// The extra hazards of a holding's own mortality terms (the F2 hook
+    /// <see cref="UnitMortalityTerms"/>, applied by the daily biology tick after
+    /// the anchor): each kills its daily fraction of every cohort, booked as its
+    /// own cause. None before F2 (<see cref="MortalityTerms.None"/>).
+    /// </summary>
+    internal void ApplyUnitMortalityHazards(FishPopulation population, in MortalityTerms terms)
+    {
+        var hazards = terms.ExtraHazards;
+        if (hazards == null || hazards.Count == 0) return;
+        for (int h = 0; h < hazards.Count; h++)
+        {
+            var hazard = hazards[h];
+            if (!(hazard.DailyFraction > 0.0)) continue;
+            foreach (var cohort in population.Cohorts)
+                population.RemoveDead(cohort, MortalityHazards.Deaths(cohort.Count, hazard.DailyFraction), hazard.Cause);
+        }
+    }
 }

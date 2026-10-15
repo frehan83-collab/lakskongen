@@ -206,8 +206,11 @@ namespace LakskongenSim.Biology
         }
 
         /// <summary>Advance the population by days: age, apply growth and mortality.
-        /// Optimized: in-place updates with no list allocations (T56).</summary>
-        public void AdvanceDays(int days, bool skipGrowth = false, double mortalityReduction = 0.0, double diseaseResistanceBonus = 0.0)
+        /// Optimized: in-place updates with no list allocations (T56).
+        /// <paramref name="anchorHazardMultiplier"/> scales the baseline anchor hazard
+        /// (the F2 hooks UnitMortalityTerms and QualityMortalityMultiplier; 1 = the calibrated anchor).</summary>
+        public void AdvanceDays(int days, bool skipGrowth = false, double mortalityReduction = 0.0, double diseaseResistanceBonus = 0.0,
+            double anchorHazardMultiplier = 1.0)
         {
             if (days <= 0) return;
 
@@ -220,7 +223,7 @@ namespace LakskongenSim.Biology
                 {
                     cohort.MeanWeightKg = _growth.ApplyGrowth(cohort.MeanWeightKg, days, cohort.Stage);
                 }
-                _mortality.ApplyMortality(this, cohort, days, mortalityReduction, diseaseResistanceBonus);
+                _mortality.ApplyMortality(this, cohort, days, mortalityReduction, diseaseResistanceBonus, anchorHazardMultiplier);
                 cohort.Stage = DetermineStage(cohort.AgeDays);
             }
 

@@ -141,7 +141,6 @@ namespace LakskongenSim.Core
         // private const int STAKEHOLDER_FACTION_UPDATE_INTERVAL = 7; // Weekly - faction relationship updates
         private const int MARKET_INTELLIGENCE_UPDATE_INTERVAL = 7; // Weekly - market analysis updates
         private const int BLOOM_UPDATE_INTERVAL = 7; // Weekly (Phase 4.3)
-        private const int BARRIER_CLEANING_TICK_DAYS = 7; // P8: barrier cleaning decay cadence (weekly)
         private const int NIGHT_POLICY_INTERVAL = 1; // Daily (Phase 5.2)
 
         private BalancingConfig _balancing = new();
@@ -1592,6 +1591,10 @@ private class BalancingConfig
 
             foreach (var job in State.WellboatJobs.Where(j => j.DueDay <= State.Day).ToList())
             {
+                // F2 hook (F2-06): a vessel operation the site's sea state rules
+                // out today waits in the queue and is tried again tomorrow.
+                if (!OperationPossible(State.SeaSites.FirstOrDefault(s => s.Id == job.SiteId), job.Kind, State.Day))
+                    continue;
                 if (job.Kind == "freshwater")
                     ExecuteFreshwaterBath(job);
                 else if (job.Kind == "rov")
@@ -1745,7 +1748,8 @@ private class BalancingConfig
 
             foreach (var site in State.SeaSites)
             {
-                var cmods = Farm.ContainmentTech.ModifiersFor(site.Containment);
+                if (SkipsFjordStormWear(site)) continue; // F2 hook (F2-07)
+                var cmods = ContainmentModifiersOf(site);
 
                 if (stormy)
                 {
@@ -1898,6 +1902,7 @@ private class BalancingConfig
                 double stormMult = CrewEffects.StormLossMultiplier(State);
                 foreach (var site in State.SeaSites)
                 {
+                    if (SkipsFjordStormWear(site)) continue; // F2 hook (F2-07)
                     foreach (var pop in site.Pens)
                     {
                         foreach (var cohort in pop.Cohorts)
@@ -1914,7 +1919,7 @@ private class BalancingConfig
 
                 // Storm repair bill (infrastructure damage; escapes and net wear
                 // remain owned by ApplyStormHazards, the escape single source).
-                decimal repairCost = (decimal)(TotalSiteScale() * 50000 * severity);
+                decimal repairCost = (decimal)(State.SeaSites.Where(s => !SkipsFjordStormWear(s)).Sum(SiteSizeScale) * 50000 * severity);
                 if (repairCost > 0)
                 {
                     // Damage must be repaired: paid on credit when cash is short
@@ -2119,14 +2124,9 @@ private class BalancingConfig
             PayCost(totalOpEx, CostBooking.Opex, "operations",
                 $"💸 BANKRUPTCY WARNING: Cannot pay {totalOpEx:N0} NOK in operating costs. Balance: {FinanceManager.Balance:N0} NOK");
 
-            // 3B. Preventive mitigation OPEX (Phase 1.5): silent daily upkeep.
-            // Skirt 2 000 NOK/site/day, deterrent 1 000 NOK/site/day.
-            decimal mitigationOpex = 0m;
-            foreach (var site in State.SeaSites)
-            {
-                if (site.HasLiceSkirt) mitigationOpex += 2_000m;
-                if (site.HasSealDeterrent) mitigationOpex += 1_000m;
-            }
+            // 3B. Preventive mitigation OPEX (Phase 1.5): silent daily upkeep
+            // (SimulationEngine.Containment.cs).
+            decimal mitigationOpex = PreventiveMitigationDailyOpexNok();
             PayCost(mitigationOpex, CostBooking.Opex, "mitigation");
 
             // 4. Bond interest (LoanSystem daily accrual on the InvestorSystem's
@@ -2277,41 +2277,9 @@ private class BalancingConfig
                     firstSite.CarbonTracker.AddEmission("Scope3_Feed", "feed_total", feedCO2e, day);
             }
 
-            // ─── RAS Facilities ───
-            foreach (var ras in RASFacilities)
-            {
-                if (!ras.IsOperational) continue;
-                double elecCO2e = ras.DailyEnergyKWh * Farm.CarbonLedger.GridElectricityKgCO2ePerKwh * energyEmissionFactor;
-                ras.CarbonTracker.AddEmission("Scope2_Electricity", ras.Id, elecCO2e, day);
-            }
-
-            // ─── Offshore Farms ───
-            foreach (var off in OffshoreFarms)
-            {
-                if (!off.IsOperational) continue;
-                double biomassTonnes = off.Pens.Sum(p => p.GetTotalBiomassKg()) / 1000.0;
-
-                // Scope 1: Generator fuel (higher than fjord sites)
-                double fuelL = 200.0 + biomassTonnes * 1.0; // base + per tonne
-                double fuelCO2e = fuelL * Farm.CarbonLedger.DieselKgCO2ePerLiter * energyEmissionFactor;
-                off.CarbonTracker.AddEmission("Scope1_Fuel", off.Id, fuelCO2e, day);
-
-                // Scope 2: Grid/shore power (assume partial)
-                double elecKwh = 500.0 + biomassTonnes * 2.0;
-                double elecCO2e = elecKwh * Farm.CarbonLedger.GridElectricityKgCO2ePerKwh * energyEmissionFactor;
-                off.CarbonTracker.AddEmission("Scope2_Electricity", off.Id, elecCO2e, day);
-
-                // Scope 3: Crew rotation (helicopter) - only on rotation days
-                if (off.DaysSinceCrewRotation == 0 && off.EmployeeCount > 0)
-                {
-                    double heliCO2e = Farm.CarbonLedger.OffshoreCrewRotationEmissionsKgCO2e(off.EmployeeCount);
-                    off.CarbonTracker.AddEmission("Scope3_Transport", off.Id + "_crew", heliCO2e, day);
-                }
-
-                // Scope 3: Supply vessel (daily average)
-                double vesselCO2e = Farm.CarbonLedger.OffshoreSupplyVesselEmissionsKgCO2e(3); // 3 trips/week
-                off.CarbonTracker.AddEmission("Scope3_Transport", off.Id + "_vessel", vesselCO2e, day);
-            }
+            // ─── Land facilities and offshore farms (F2-02: their tick systems) ───
+            LandSiteTickSystem.AccountCarbon(this, energyEmissionFactor, day);
+            OffshoreTickSystem.AccountCarbon(this, energyEmissionFactor, day);
 
             // ─── Processing Plants ───
             if (State.OwnsProcessingPlant && Enum.TryParse<Processing.ProcessingTier>(State.ProcessingTier, out var tier))
@@ -2580,7 +2548,7 @@ private class BalancingConfig
                     35.0,
                     zone?.CurrentSpeed ?? 0.15,
                     biomassKg / volumeM3);
-                site.Lice.SetExternalPressure(SeasonalLicePressure(State.Day));
+                site.Lice.SetExternalPressure(SeasonalLicePressure(State.Day) * ExternalLicePressureFor(site)); // F2 hook (F2-08)
                 // The site's own skirt, containment and barrier block settlement on
                 // the lice that are counted and regulated. They used to reach only
                 // the company-wide rollup, so paid mitigation never lowered a
@@ -2870,17 +2838,33 @@ private class BalancingConfig
                 : Farm.SiteNames.Humanize(zoneId);
         }
 
+        /// <summary>
+        /// A zone's fish and fish-weighted lice per fish, the traffic light's
+        /// assessment input: every population tagged with the zone, each through
+        /// the F2 hook <see cref="ZoneLiceContribution"/> with the site that holds
+        /// it, summed in the population list's order (0 lice when no fish count).
+        /// </summary>
+        internal (int Fish, double Lice) ZoneLiceForTrafficLight(string zoneId)
+        {
+            int fish = 0;
+            double liceWeighted = 0.0;
+            foreach (var population in State.Populations)
+            {
+                if (population.ZoneId != zoneId) continue;
+                var share = ZoneLiceContribution(HoldingOf(population).Site, population);
+                fish = checked(fish + share.Fish);
+                liceWeighted += share.LiceWeightedFish;
+            }
+            return (fish, fish > 0 ? liceWeighted / fish : 0.0);
+        }
+
         internal void UpdateTrafficLightZones()
         {
             if (TrafficLightSystem == null || State.Zones.Count == 0) return;
 
             foreach (var zone in State.Zones)
             {
-                var pops = State.Populations.Where(p => p.ZoneId == zone.Id).ToList();
-                int fish = pops.SelectMany(p => p.Cohorts).Sum(c => c.Count);
-                double lice = fish > 0
-                    ? pops.Sum(p => p.Cohorts.Sum(c => c.Count) * p.SeaLiceLoad) / fish
-                    : 0.0;
+                var (_, lice) = ZoneLiceForTrafficLight(zone.Id);
 
                 var before = TrafficLightSystem.GetZoneColor(zone.Id);
                 var after = TrafficLightSystem.AssessZone(zone.Id, lice);
@@ -2900,25 +2884,8 @@ private class BalancingConfig
                 PublishTrafficLightEvent(zone.Id, after, lightDescription);   // U2-06
                 SimLog.Info($"🚦 Zone {zone.Id} → {after} (lice {lice:F2}, MAB ×{factor:F2})");
 
-                // Phase 4.1: red-zone MAB credit for contained sites (exact
-                // revert on exit — re-entries never compound).
-                foreach (var site in State.SeaSites.Where(s => s.ZoneId == zone.Id))
-                {
-                    if (after.ToString() == "Red" && !site.RedZoneCreditApplied
-                        && site.Containment >= Farm.ContainmentLevel.SemiClosed)
-                    {
-                        double credit = Farm.ContainmentTech.MabCreditFor(site.Containment, true);
-                        site.MABTonnes *= credit;
-                        site.RedZoneCreditApplied = true;
-                        SimLog.Info($"🛡️ Site {site.Id} red-zone credit ×{credit:F2} ({site.Containment})");
-                    }
-                    else if (after.ToString() != "Red" && site.RedZoneCreditApplied)
-                    {
-                        double credit = Farm.ContainmentTech.MabCreditFor(site.Containment, true);
-                        site.MABTonnes /= credit;
-                        site.RedZoneCreditApplied = false;
-                    }
-                }
+                // Phase 4.1: red-zone MAB credit for contained sites (SimulationEngine.Containment.cs).
+                ApplyRedZoneContainmentCredit(zone.Id, after);
 
                 // Phase 5.5: regulatory chess — orders on RED entry, cleared on exit.
                 if (after.ToString() == "Red")
@@ -3043,64 +3010,8 @@ private class BalancingConfig
     }
 
 
-        /// <summary>
-        /// P8: approximate tidal flow (m/s) at a site from its zone's current
-        /// speed, falling back to a sensible default when no zone is found.
-        /// </summary>
-        private double SiteFlowMs(Farm.SeaSite site) =>
-            State.Zones.FirstOrDefault(z => z.Id == site.ZoneId)?.CurrentSpeed
-                ?? Farm.BarrierTech.DefaultFlowMs;
-
-        /// <summary>
-        /// Weekly preventive coverage (Phase 1.5 + 4.1): fish-weighted effective
-        /// lice exclusion combining skirt toggles and containment levels.
-        /// Per-site: 1-(1-skirt*0.7)*(1-exclusion). Drives settlement reduction.
-        /// P8 adds a flow-dependent permeable-barrier factor (no-op when none).
-        /// </summary>
-        internal void UpdatePreventiveCoverage()
-        {
-            if (SeaLice == null) return;
-            double total = 0, covered = 0;
-            foreach (var site in State.SeaSites)
-            {
-                int fish = site.Pens.SelectMany(p => p.Cohorts).Sum(c => c.Count);
-                total += fish;
-                covered += fish * SiteSettlementBlocking(site);
-
-                if (site.Barrier != Farm.BarrierKind.None)
-                {
-                    // Periodic cleaning requirement: uncleaned barriers lose
-                    // efficiency (SiteSettlementBlocking), and cleaning costs standing opex.
-                    site.BarrierDaysSinceCleaning += BARRIER_CLEANING_TICK_DAYS;
-                    decimal barrierOpex = Farm.BarrierTech.SpecFor(site.Barrier).WeeklyOpexNok;
-                    PayCost(barrierOpex, CostBooking.Opex, "barriers");
-                }
-
-                // Phase 4.1: standing energy opex per containment level.
-                decimal opex = Farm.ContainmentTech.ModifiersFor(site.Containment).WeeklyOpexNok;
-                PayCost(opex, CostBooking.Opex, "containment");
-            }
-            SeaLice.PreventiveCoverage01 = total > 0 ? covered / total : 0.0;
-        }
-
-        /// <summary>Settlement blocked by a lice skirt (Phase 1.5).</summary>
-        private const double LiceSkirtSettlementBlocking = 0.70;
-
-        /// <summary>
-        /// Fraction of new lice settlement blocked at one site: lice skirt,
-        /// containment exclusion (Phase 4.1), a permeable barrier (P8, flow- and
-        /// cleaning-dependent) and research lice reduction combine multiplicatively.
-        /// </summary>
-        private double SiteSettlementBlocking(Farm.SeaSite site)
-        {
-            double skirt = site.HasLiceSkirt ? LiceSkirtSettlementBlocking : 0.0;
-            double exclusion = Farm.ContainmentTech.ModifiersFor(site.Containment).LiceExclusion01;
-            double barrier = site.Barrier != Farm.BarrierKind.None
-                ? Farm.BarrierTech.EffectiveLiceBlocking(site.Barrier, SiteFlowMs(site), site.BarrierDaysSinceCleaning)
-                : 0.0;
-            double research = ResearchEffectKeys.ClampReduction(LiceReduction);
-            return 1.0 - (1.0 - skirt) * (1.0 - exclusion) * (1.0 - barrier) * (1.0 - research);
-        }
+        // Preventive coverage, the sites' settlement blocking and the barrier's
+        // flow: SimulationEngine.Containment.cs (F2-02).
 
         /// <summary>
         /// Weekly bloom roll + damage (Phase 4.3). Spawns seasonal events per
@@ -3145,15 +3056,9 @@ private class BalancingConfig
                     * LakskongenSim.Environment.BloomEventDeck.ContainmentMult(site, bloom.Kind)
                     * (vet ? 0.8 : 1.0);
 
-                // P8: a permeable barrier also excludes jellyfish, reducing the
-                // bloom's counter-measure multiplier by the flow-dependent
-                // jellyfish blocking. Guarded: no barrier leaves cm unchanged.
-                if (bloom.Kind == "jellyfish" && site.Barrier != Farm.BarrierKind.None)
-                {
-                    double jellyBlock = Farm.BarrierTech.EffectiveJellyfishBlocking(
-                        site.Barrier, SiteFlowMs(site), site.BarrierDaysSinceCleaning);
-                    cm *= 1.0 - Math.Clamp(jellyBlock, 0.0, 1.0);
-                }
+                // P8: a permeable barrier also excludes jellyfish
+                // (SimulationEngine.Containment.cs); no barrier leaves cm unchanged.
+                cm *= BarrierBloomPassFraction(site, bloom.Kind);
                 if (cm <= 0.0) continue; // fully dodged (contained)
                 double gillDmg = bloom.Kind switch
                 {
@@ -3817,18 +3722,12 @@ private class BalancingConfig
 
             // Phase 1.2: NetIntegrityPct defaults to 100 for new sites; saves
             // written before the field existed deserialize as 0 — migrate.
-            // Phase 4.1: containment migration (skirt-owners → 1, closed → 3).
+            // Phase 4.1: containment migration (SimulationEngine.Containment.cs).
             foreach (var site in loadedState.SeaSites)
             {
                 if (site.NetIntegrityPct <= 0.0)
                     site.NetIntegrityPct = 100.0;
-                if (site.Containment == Farm.ContainmentLevel.OpenNet)
-                {
-                    if (site.IsClosedContainment)
-                        site.Containment = Farm.ContainmentLevel.ClosedFloat;
-                    else if (site.HasLiceSkirt)
-                        site.Containment = Farm.ContainmentLevel.Skirt;
-                }
+                MigrateLegacyContainmentFlags(site);
             }
 
             // T74: Restore all empire systems from loaded state

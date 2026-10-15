@@ -43,17 +43,21 @@ public partial class SimulationEngine
     {
         if (State == null || string.IsNullOrEmpty(holdingId)) return null;
         var cal = HarvestCalibration;
+        // Resource rent: the F2 hook IsResourceRentLiable (F2-04, F2-09).
         var site = State.SeaSites.FirstOrDefault(s => s.Id == holdingId);
         if (site != null)
-            return new HarvestHolding(site.Id, site.Label, HoldingKind.SeaPen, site.Pens, true, site,
+            return new HarvestHolding(site.Id, site.Label, HoldingKind.SeaPen, site.Pens,
+                IsResourceRentLiable(site.Id, HoldingKind.SeaPen), site,
                 HarvestRoute.For(HoldingKind.SeaPen, cal, site.Id));
         var ras = RASFacilities.FirstOrDefault(f => f.Id == holdingId);
         if (ras != null)
-            return new HarvestHolding(ras.Id, ras.Name, HoldingKind.LandTank, ras.Tanks, false, null,
+            return new HarvestHolding(ras.Id, ras.Name, HoldingKind.LandTank, ras.Tanks,
+                IsResourceRentLiable(ras.Id, HoldingKind.LandTank), null,
                 HarvestRoute.For(HoldingKind.LandTank, cal, ras.Id));
         var offshore = OffshoreFarms.FirstOrDefault(f => f.Id == holdingId);
         if (offshore != null)
-            return new HarvestHolding(offshore.Id, offshore.Name, HoldingKind.Offshore, offshore.Pens, true, null,
+            return new HarvestHolding(offshore.Id, offshore.Name, HoldingKind.Offshore, offshore.Pens,
+                IsResourceRentLiable(offshore.Id, HoldingKind.Offshore), null,
                 HarvestRoute.For(HoldingKind.Offshore, cal, offshore.Id));
         return null;
     }

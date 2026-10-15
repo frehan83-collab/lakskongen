@@ -307,8 +307,9 @@ public partial class SimulationEngine
     {
         int count = allocation.Sum(a => a.Count);
         // Calibrated smolt price × strain premium (review F269: the old path
-        // charged the hatchery rearing cost, ~54.75 NOK/fish vs 12 calibrated).
-        decimal stockingCost = count * _balancing.SmoltCostPerFish * (decimal)strain.CostMultiplier;
+        // charged the hatchery rearing cost, ~54.75 NOK/fish vs 12 calibrated),
+        // through the F2 hook SmoltTierCostPerFish (F2-13: the tier premium).
+        decimal stockingCost = count * SmoltTierCostPerFish(quality.Tier, strain, SmoltSource.Purchased);
         if (FinanceManager.Balance < stockingCost)
             return CommandResult.Fail("insufficient_funds",
                 $"Insufficient funds: need {stockingCost:N0} NOK for {count:N0} smolts");
