@@ -113,7 +113,7 @@ public class FarmTypeHooksTests
     [Fact]
     public void OperationPossible_IsTrue_ForEveryJob_AtEverySite_OnEveryDay()
     {
-        var sites = Engine.State.SeaSites.Cast<SeaSite?>().Append(null).ToList();
+        var sites = Engine.State.SeaSites.Append(null).ToList(); // and a job for no known site
         foreach (var site in sites)
             foreach (var kind in JobKinds)
                 for (int day = 0; day < 2 * SimCalendar.DaysPerYear; day += 7)

@@ -38,7 +38,7 @@ public class FarmTypeMoveTests
 
     /// <summary>
     /// Continuation recordings of the pre-F2 facilities save, made on the
-    /// pre-move engine (this file's first commit, on the wave-2 base 8c81754):
+    /// pre-move engine (this file's first commit, 2190137, on the wave-2 base 8c81754):
     /// SHA-256 (64 bit) over every day's golden-trace state hash and
     /// the GUID-normalized save every 30 days. Enforced where the platform's C
     /// math library matches the golden traces' recording (as they are).
