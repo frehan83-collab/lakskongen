@@ -611,7 +611,7 @@ UI_FARM_STATE_CRITICAL,Critical — action needed now,Kritisk tilstand — handl
 UI_FARM_STATE_DETAIL_HEALTHY,"Lice, oxygen, feed and liquidity on target","Lus, oksygen, fôr og likviditet innenfor mål"
 UI_FARM_STATE_CTA_LICE,Go to the pens,Til merdene
 UI_FARM_STATE_CTA_OXYGEN,Open telemetry,Til telemetri
-UI_FARM_STATE_CTA_FCR,Open AI feeding,Til AI-fôring
+UI_FARM_STATE_CTA_FCR,Open the feeding plan,Til fôringsplanen
 UI_FARM_STATE_CTA_BALANCE,Open finance,Til økonomi
 UI_FARM_STATE_CTA_TIP,Opens the panel where this is handled,Åpner panelet der dette håndteres
 FARM_FACTOR_LICE_CRITICAL,lice %s (limit %s),lus %s (grense %s)
@@ -628,8 +628,8 @@ UI_DASHBOARD_WEATHER_TITLE,Weather,Vær
 UI_DASHBOARD_FINANCE_TITLE,Income and costs (30 days),Inntekter og kostnader (30 d)
 UI_DASHBOARD_ALERTS_TITLE,Alerts,Varsler
 UI_DASHBOARD_ACTIONS_TITLE,Shortcuts,Hurtigvalg
-UI_DASHBOARD_ACTION_FEEDING,AI feeding,AI-fôring
-UI_DASHBOARD_ACTION_FEEDING_TIP,Feeding runs automatically every day. Open AI feeding to set the feed recipe and feeding automation.,Fôringen går automatisk hver dag. Åpne AI-fôring for å stille inn fôrresept og fôringsautomatikk.
+UI_DASHBOARD_ACTION_FEEDING,Feeding plan,Fôringsplan
+UI_DASHBOARD_ACTION_FEEDING_TIP,"Ration and feed type per site, or for every site at once (Pens tab).","Fôrmengde og fôrtype per lokalitet, eller for alle på en gang (Merder-fanen)."
 UI_DASHBOARD_ACTION_HARVEST,Harvest,Høst
 UI_DASHBOARD_ACTION_DELOUSE,Delouse,Avlus
 UI_DASHBOARD_ACTION_REPORTS,Reports,Rapporter
@@ -1722,3 +1722,64 @@ CAPACITY_REASON_INSUFFICIENT_FUNDS,Not enough money for the smolts,Ikke nok peng
 CAPACITY_REASON_MAB_EXCEEDED,The smolts would put the site over its MTB,Smolten ville satt lokaliteten over MTB-en
 CAPACITY_REASON_INVALID_COUNT,Choose a number of smolts above zero,Velg et antall smolt over null
 CAPACITY_REASON_SITE_NOT_FOUND,The site was not found,Fant ikke lokaliteten
+FEEDPLAN_APPLY,Apply to %s,Bruk på %s
+FEEDPLAN_APPLY_ALL,Feed all (%d sites),Fôr alle (%d lokaliteter)
+FEEDPLAN_APPLY_ALL_TIP,"The same ration, feed type and duration for every site.","Samme fôrmengde, fôrtype og varighet for alle lokalitetene."
+FEEDPLAN_APPLY_TIP,Feed this site this way from today.,Fôr denne lokaliteten slik fra i dag.
+FEEDPLAN_COL_CHANGE,vs full appetite,mot full appetitt
+FEEDPLAN_COL_PLAN,This plan,Denne planen
+FEEDPLAN_COST,Feed cost,Fôrkostnad
+FEEDPLAN_COST_PER_KG,Feed cost per kg growth,Fôrkostnad per kg tilvekst
+FEEDPLAN_COST_VALUE,%s/day,%s/dag
+FEEDPLAN_ERROR_ENGINE_NOT_READY,No game is running.,Ingen spill kjører.
+FEEDPLAN_ERROR_RATION_OUT_OF_RANGE,The ration must lie between half and full appetite.,Fôrmengden må ligge mellom halv og full appetitt.
+FEEDPLAN_ERROR_SITE_NOT_FOUND,The site no longer exists.,Lokaliteten finnes ikke lenger.
+FEEDPLAN_ERROR_UNKNOWN_RECIPE,Unknown feed type.,Ukjent fôrtype.
+FEEDPLAN_ERROR_WINDOW_OUT_OF_RANGE,A plan can last at most a year.,En plan kan vare høyst ett år.
+FEEDPLAN_FCR,Feed conversion (FCR),Fôrfaktor (FCR)
+FEEDPLAN_GROWTH,Growth,Tilvekst
+FEEDPLAN_GROWTH_VALUE,%s kg/day,%s kg/dag
+FEEDPLAN_NOTE,"Projection for %d days: the area's normal sea temperature, today's appetite, no deaths.","Prognose for %d dager: områdets normale sjøtemperatur, dagens appetitt, uten dødelighet."
+FEEDPLAN_NO_FISH,No fish at this site yet: the plan applies to the fish you stock.,Ingen fisk på lokaliteten ennå: planen gjelder fisken du setter ut.
+FEEDPLAN_RATION,Ration,Fôrmengde
+FEEDPLAN_RATION_TIP,"The share of the fish's appetite you feed each day. Less feed: slower growth, better feed conversion, lower cost per day.","Andelen av fiskens appetitt du fôrer hver dag. Mindre fôr: saktere vekst, bedre fôrfaktor, lavere kostnad per dag."
+FEEDPLAN_RATION_VALUE,%s %% of appetite,%s %% av appetitt
+FEEDPLAN_RECIPE,Feed type,Fôrtype
+FEEDPLAN_RECIPE_ECONOMY,Economy,Økonomi
+FEEDPLAN_RECIPE_HIGH_ENERGY,High energy,Høyenergi
+FEEDPLAN_RECIPE_OPTION,%s · %s,%s · %s
+FEEDPLAN_RECIPE_STANDARD,Standard,Standard
+FEEDPLAN_RECIPE_TIP_ECONOMY,"Less energy and pigment, cheaper per kg: more feed for the same growth, and pale fillets at the processing plant.","Mindre energi og pigment, billigere per kg: mer fôr for samme tilvekst, og blek filet på fabrikken."
+FEEDPLAN_RECIPE_TIP_HIGH_ENERGY,"More fat, dearer per kg: less feed and less sludge under the pens for the same growth.","Mer fett, dyrere per kg: mindre fôr og mindre slam under merdene for samme tilvekst."
+FEEDPLAN_RECIPE_TIP_STANDARD,The ordinary commercial grower feed.,Vanlig kommersielt vekstfôr.
+FEEDPLAN_RESET,Back to standard,Tilbake til standard
+FEEDPLAN_RESET_TIP,Full appetite on standard feed until you change it.,Full appetitt med standardfôr til du endrer det.
+FEEDPLAN_SAME,same,samme
+FEEDPLAN_STATUS_CUSTOM,Own plan,Egen plan
+FEEDPLAN_STATUS_DAYS_LEFT,Own plan · %d days left,Egen plan · %d dager igjen
+FEEDPLAN_STATUS_STANDARD,Standard,Standard
+FEEDPLAN_STOP_FULL,Full appetite %s %%,Full appetitt %s %%
+FEEDPLAN_STOP_FULL_TIP,Feed until the fish stop eating: the fastest growth.,Fôr til fisken slutter å spise: raskest vekst.
+FEEDPLAN_STOP_MODERATE,Moderate %s %%,Moderat %s %%
+FEEDPLAN_STOP_MODERATE_TIP,"A little below appetite: almost full growth, slightly better feed conversion.","Litt under appetitt: nesten full vekst, litt bedre fôrfaktor."
+FEEDPLAN_STOP_RESTRICTED,Restricted %s %%,Begrenset %s %%
+FEEDPLAN_STOP_RESTRICTED_TIP,The best feed conversion: slows the growth and holds the biomass under the MTB.,Best fôrfaktor: bremser veksten og holder biomassen under MTB.
+FEEDPLAN_TITLE,Feeding plan,Fôringsplan
+FEEDPLAN_WEIGHT,Mean weight in %d days,Snittvekt om %d dager
+FEEDPLAN_WHY_IN_USE,The site is already fed this way.,Lokaliteten fôres allerede slik.
+FEEDPLAN_WHY_NO_SITES,You have no sea sites.,Du har ingen sjølokaliteter.
+FEEDPLAN_WHY_STANDARD,The site is on the standard plan.,Lokaliteten går på standardplanen.
+FEEDPLAN_WINDOW,Duration,Varighet
+FEEDPLAN_WINDOW_DAYS,%d days,%d dager
+FEEDPLAN_WINDOW_TIP,How long the plan holds; then the site goes back to full appetite on standard feed.,Hvor lenge planen gjelder; deretter går lokaliteten tilbake til full appetitt med standardfôr.
+FEEDPLAN_WINDOW_UNTIL_CHANGED,Until changed,Til endret
+UI_AIFEED_PLAN_ALL_STANDARD,"All %d sites: full appetite, standard feed.","Alle %d lokaliteter: full appetitt, standardfôr."
+UI_AIFEED_PLAN_MOVED,"Feed type and ration are chosen per site, in its feeding plan.","Fôrtype og fôrmengde velges per lokalitet, i fôringsplanen."
+UI_AIFEED_PLAN_NO_SITES,No sea sites yet.,Ingen sjølokaliteter ennå.
+UI_AIFEED_PLAN_OPEN,Open the feeding plan,Åpne fôringsplanen
+UI_AIFEED_PLAN_OPEN_TIP,The Pens tab: one feeding plan per site.,Merder-fanen: én fôringsplan per lokalitet.
+UI_AIFEED_PLAN_SOME_CUSTOM,%d of %d sites on their own plan.,%d av %d lokaliteter på egen plan.
+UI_AIFEED_PLAN_TITLE,Feed type and ration,Fôrtype og fôrmengde
+UI_PEN_ACTION_FEED_PLAN,Feeding plan,Fôringsplan
+UI_TOAST_FEED_PLAN_ALL_OK,Feeding plan set for every site,Fôringsplan satt for alle lokaliteter
+UI_TOAST_FEED_PLAN_OK,Feeding plan for %s set,Fôringsplan for %s satt

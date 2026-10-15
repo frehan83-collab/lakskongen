@@ -111,6 +111,10 @@ namespace LakskongenSim.Core;
             for (int zi = 0; zi < engine.State.Zones.Count; zi++)
                 engine.State.Zones[zi].CurrentFishBiomassKg = 0.0;
 
+            // U2-04: every site's feeding plan reaches its pens before they eat
+            // (a pen stocked since yesterday takes its site's ration today).
+            engine.ApplyFeedPlans();
+
             // The farm-type seam: every population grows, eats and breathes in
             // the water of whatever holds it (sea pen: its zone's production-area
             // water, less a running in-cage oxygen sag; land tank: the facility's
@@ -171,17 +175,10 @@ namespace LakskongenSim.Core;
                     waterPenalty *= 0.6 + 0.4 * (homeSite.GillScore / 100.0);
                 // P6: precision feeding — feed-spread quality by site watch mode,
                 // improved by AI feeding. Poor spread raises FCR, waste, size variance.
-                double spreadQuality = homeSite?.WatchMode switch
-                {
-                    "watch" => 0.95,
-                    "scan" => 0.85,
-                    "auto" => 0.65,
-                    _ => FeedSystem.DefaultSpreadQuality
-                };
-                if (engine.AIFeeding != null && engine.AIFeeding.IsInstalled)
-                    spreadQuality = Math.Min(1.0, spreadQuality + 0.1);
+                double spreadQuality = engine.SpreadQualityOf(homeSite);
                 var husbandry = new SimulationEngine.HoldingHusbandry(
-                    water, waterPenalty, densityGrowth, containmentMods.GrowthMult, densityForO2, spreadQuality);
+                    water, waterPenalty, densityGrowth, containmentMods.GrowthMult, densityForO2, spreadQuality,
+                    engine.FeedRecipeOf(homeSite));
                 var feedResult = engine.GrowAndFeedOneDay(population, husbandry);
 
                 if (zone != null && feedResult.FeedUsedKg > 0)

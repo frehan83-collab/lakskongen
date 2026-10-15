@@ -74,6 +74,8 @@ const NETS_WHOLE_PCT := 99.5
 @onready var _pen_option: OptionButton = %PenOption
 @onready var _count_spin: SpinBox = %CountSpin
 @onready var _stock_preview: Label = %StockPreview
+# U2-04: the site's feeding plan (ration, recipe, window, 30-day projection).
+@onready var _feed_plan: FeedPlanCard = %FeedPlanCard
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 const C_BG := Color("#F4F1EA")
@@ -326,6 +328,7 @@ func _refresh_detail() -> void:
 	_btn_skirt.text = ("🔛 " if has_skirt else "⚪ ") + tr("UI_PEN_SKIRT")
 	_btn_deterrent.text = ("🔛 " if has_det else "⚪ ") + tr("UI_PEN_DETERRENT")
 	_refresh_pens()
+	_feed_plan.show_site(_selected_pen_id, str(pen.get("name", _selected_pen_id)))
 
 # ── Pens and stocking (S2-01b) ────────────────────────────────────────────────
 
@@ -610,6 +613,13 @@ func _on_pen_action_completed(action: String, pen_id: String, _success: bool) ->
 				_toast("🏗️ " + tr("UI_TOAST_BUY_PEN"), "SUCCESS")
 			"sell":
 				_toast("💰 " + tr("UI_TOAST_SELL_PEN") % site, "INFO")
+			"feed_plan":
+				if pen_id == "all_sites":
+					_toast(tr("UI_TOAST_FEED_PLAN_ALL_OK"), "SUCCESS")
+				else:
+					_toast(tr("UI_TOAST_FEED_PLAN_OK") % site, "SUCCESS")
+	elif action == "feed_plan":
+		pass  # the card says why (FeedPlanCard._after_apply)
 	elif action == "stock_smolts" and not _last_stock_reason.is_empty() and tr(_last_stock_reason) != _last_stock_reason:
 		# S2-01b: say why the pen refused (200,000 fish, 25 kg/m³, MTB, money).
 		_toast("⚠️ " + tr(_last_stock_reason), "WARNING")

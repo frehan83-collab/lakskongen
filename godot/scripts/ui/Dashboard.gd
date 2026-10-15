@@ -189,9 +189,9 @@ func _on_quick_action(action: String) -> void:
 	_pop_button(action)
 	match action:
 		"feeding":
-			# Feeding is automatic; recipe and AI feeding live in their panel.
-			# (The old "Fôr alle" only toasted "feeding all pens" — a dead verb.)
-			_route_to_tab("ai_feeding")
+			# U2-04: the feeding plan (ration, recipe, "Fôr alle") lives on
+			# the Pens tab, one card per site.
+			_route_to_tab("pens")
 		"harvest":
 			_toast(tr("UI_TOAST_HARVEST_START"), "INFO")
 			_route_to_tab("pens")
@@ -286,7 +286,7 @@ func _apply_localization() -> void:
 	_fin_title.text = "💰 " + tr("UI_DASHBOARD_FINANCE_TITLE")
 	_alerts_title.text = "⚠️ " + tr("UI_DASHBOARD_ALERTS_TITLE")
 	_actions_title.text = "⚡ " + tr("UI_DASHBOARD_ACTIONS_TITLE")
-	_btn_feeding.text = "🤖 " + tr("UI_DASHBOARD_ACTION_FEEDING")
+	_btn_feeding.text = tr("UI_DASHBOARD_ACTION_FEEDING")
 	_btn_feeding.tooltip_text = tr("UI_DASHBOARD_ACTION_FEEDING_TIP")
 	_btn_harvest.text = "📦 " + tr("UI_DASHBOARD_ACTION_HARVEST")
 	_btn_delouse.text = "🧪 " + tr("UI_DASHBOARD_ACTION_DELOUSE")

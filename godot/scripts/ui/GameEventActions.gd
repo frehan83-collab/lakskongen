@@ -12,7 +12,7 @@ extends RefCounted
 ## Verb -> the tab it opens. Site verbs open the pen view of their site.
 const TAB_VERBS := {
 	"check_water": "telemetry",
-	"review_feeding": "ai_feeding",
+	"review_feeding": "pens",
 	"raise_capital": "finance",
 	"open_sustainability": "sustainability",
 }

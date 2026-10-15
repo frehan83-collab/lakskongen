@@ -320,14 +320,15 @@ func _build_feed() -> void:
 		_add_row(body, "Trend (30 d)", "–", LakskongenTheme.TEXT_MUTED)
 
 	_add_subheader(body, "Hva driver FCR nå?")
-	var recipe = _callp("get_feed_recipe", {})
-	if recipe is Dictionary and not (recipe as Dictionary).is_empty():
-		var r := recipe as Dictionary
-		_add_row(body, "Fôrresept",
-			SimFormatters.fmt("Kvalitet %s · FCR-faktor ×%.2f", [str(r.get("grade", "?")), float(r.get("fcr_mult", 1.0))]),
-			LakskongenTheme.TEXT_SECONDARY)
+	# U2-04: the ration and recipe are each site's feeding plan.
+	var plans = _callp("get_feed_plans", [])
+	if plans is Array and not (plans as Array).is_empty():
+		var custom := (plans as Array).filter(func(p: Dictionary) -> bool: return not bool(p.get("standard", true))).size()
+		var plan_text := tr("UI_AIFEED_PLAN_ALL_STANDARD") % (plans as Array).size() if custom == 0 \
+			else tr("UI_AIFEED_PLAN_SOME_CUSTOM") % [custom, (plans as Array).size()]
+		_add_row(body, tr("FEEDPLAN_TITLE"), plan_text, LakskongenTheme.TEXT_SECONDARY)
 	else:
-		_add_row(body, "Fôrresept", "–", LakskongenTheme.TEXT_MUTED)
+		_add_row(body, tr("FEEDPLAN_TITLE"), "–", LakskongenTheme.TEXT_MUTED)
 
 	var temp := _num("temperature_c")
 	if not is_nan(temp):

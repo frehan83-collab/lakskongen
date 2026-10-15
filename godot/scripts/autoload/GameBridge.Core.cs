@@ -245,8 +245,10 @@ public partial class GameBridge : Node
         RestoreMitigationsFromState(snapshot.BloomMitigations);
         SyncMitigationsToState();
 
-        // Phase 4.4: re-apply saved recipe to the fresh FeedSystem.
-        ApplyFeedRecipe();
+        // U2-04: the feed price is the engine's calibrated one after a load as
+        // in a new game (the Phase 4.4 recipe used to replace it here, so a
+        // loaded game paid 14.97 NOK/kg against a new game's 22.3); each site's
+        // recipe is part of its feeding plan, saved with the site.
         ResetSessionState();
 
         _gameRunning = true;

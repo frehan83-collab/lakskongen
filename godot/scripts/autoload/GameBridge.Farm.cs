@@ -386,7 +386,7 @@ public partial class GameBridge : Node
         var state = engine.State;
         double tempC = engine.Weather?.CurrentTemperatureC ?? 10.0;
         var forecast = LakskongenSim.Optimization.ForecastTwin.Project(
-            state, engine.SeaLice, tempC, engine.Analytics, engine.GrowthRateBonus);
+            state, engine.SeaLice, tempC, engine.Analytics, engine.GrowthRateBonus, engine.Growth?.Law);
         double currentLice = engine.SeaLice.AverageLicePerFish;
         double gillScore = 0.0;
         if (state.SeaSites.Count > 0)
@@ -438,7 +438,7 @@ public partial class GameBridge : Node
         {
             double tempC = engine.Weather?.CurrentTemperatureC ?? 10.0;
             var forecast = LakskongenSim.Optimization.ForecastTwin.Project(
-                state, engine.SeaLice, tempC, engine.Analytics, engine.GrowthRateBonus);
+                state, engine.SeaLice, tempC, engine.Analytics, engine.GrowthRateBonus, engine.Growth?.Law);
             double currentLice = engine.SeaLice.AverageLicePerFish;
             double gillScore = 0.0;
             if (state.SeaSites.Count > 0)
@@ -1103,53 +1103,6 @@ public partial class GameBridge : Node
         };
     }
     /// <summary>
-    /// Set feed recipe (Phase 4.4): protein 38-48, replacement 0-60, astax 0-80.
-    /// Updates feed price authority, FCR multiplier and novel-ingredient flag.
-    /// </summary>
-    public void SetFeedRecipe(double proteinPct, double replacePct, double astaxPpm)
-    {
-        var state = SimulationEngine?.State;
-        if (state == null) return;
-        var (p, r, a) = LakskongenSim.Processing.FeedRecipe.Clamp(proteinPct, replacePct, astaxPpm);
-        state.RecipeProteinPct = p;
-        state.RecipeReplacePct = r;
-        state.RecipeAstaxPpm = a;
-        ApplyFeedRecipe();
-        EmitSignal(SignalName.GameStateUpdated);
-    }
-
-    /// <summary>Current recipe + live preview (cost, FCR mult, grade).</summary>
-    public Godot.Collections.Dictionary GetFeedRecipe()
-    {
-        var state = SimulationEngine?.State;
-        double p = state?.RecipeProteinPct ?? 42.0;
-        double r = state?.RecipeReplacePct ?? 20.0;
-        double a = state?.RecipeAstaxPpm ?? 50.0;
-        string grade = LakskongenSim.Processing.FeedRecipe.Grade(p, a);
-        return new Godot.Collections.Dictionary
-        {
-            ["protein"] = p,
-            ["replace"] = r,
-            ["astax"] = a,
-            ["cost_per_kg"] = LakskongenSim.Processing.FeedRecipe.CostPerKg(p, r, a),
-            ["fcr_mult"] = LakskongenSim.Processing.FeedRecipe.FcrMult(p, r, a),
-            ["grade"] = grade,
-            ["vap_mult"] = (double)LakskongenSim.Processing.FeedRecipe.VapMult(grade)
-        };
-    }
-
-    private void ApplyFeedRecipe()
-    {
-        var state = SimulationEngine?.State;
-        var feed = SimulationEngine?.Feed;
-        if (state == null || feed == null) return;
-        feed.FeedCostPerKg = (decimal)LakskongenSim.Processing.FeedRecipe.CostPerKg(
-            state.RecipeProteinPct, state.RecipeReplacePct, state.RecipeAstaxPpm);
-        feed.RecipeFCRMult = LakskongenSim.Processing.FeedRecipe.FcrMult(
-            state.RecipeProteinPct, state.RecipeReplacePct, state.RecipeAstaxPpm);
-        feed.UsesInsectMeal = state.RecipeReplacePct >= 30.0;
-    }
-    /// <summary>
     /// Twin-lite 7-day forecast (Phase 4.5, PROJECTION): biomass/lice/cash
     /// arrays + confidence. Cached per day. Read-only — never touches live sim.
     /// Keys: "biomass_kg", "lice", "cash_nok" (Array double), "confidence".
@@ -1174,7 +1127,7 @@ public partial class GameBridge : Node
         {
             var fc = LakskongenSim.Optimization.ForecastTwin.Project(
                 engine.State, engine.SeaLice,
-                engine.Weather?.CurrentTemperatureC ?? 8.0, engine.Analytics, engine.GrowthRateBonus);
+                engine.Weather?.CurrentTemperatureC ?? 8.0, engine.Analytics, engine.GrowthRateBonus, engine.Growth.Law);
             var bio = new Godot.Collections.Array<double>();
             var lice = new Godot.Collections.Array<double>();
             var cash = new Godot.Collections.Array<double>();

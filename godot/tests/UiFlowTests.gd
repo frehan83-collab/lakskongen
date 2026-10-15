@@ -140,6 +140,8 @@ func _run() -> void:
 	await _test_thirty_times_refreshes_once_a_day_within_a_frame()
 	await _test_audio_reads_tracks_off_the_tick()
 	await _test_hud_fits_its_bar()
+	# U2-04: the feeding plan.
+	await _test_feed_plan_card_sets_a_plan_and_feeds_all()
 	_test_farm_type_graybox()
 	_test_land_kit_imports()
 	_test_offshore_unit_and_fleet()
@@ -5528,6 +5530,95 @@ func _test_thirty_times_refreshes_once_a_day_within_a_frame() -> void:
 	_sim.set_auto_slow_deadlines(true)
 	await _drain_cards(card)
 	GameplayPrefs.force_auto_pause(null)
+	scene.queue_free()
+	await get_tree().process_frame
+
+## U2-04: the Fôringsplan card on the Pens tab, driven by clicks. A site
+## starts on the standard plan; the "Begrenset" stop moves the slider to the
+## best-conversion ration and the projection shows less growth, a better FCR
+## and a lower feed cost a day than full appetite; "Bruk" sets the site's plan
+## (every pen's ration, the recipe, the window) and leaves the other site
+## alone; "Fôr alle" gives every site the plan (acceptance 3); the plan comes
+## back with a saved game (acceptance 4) and "Tilbake til standard" clears it.
+func _test_feed_plan_card_sets_a_plan_and_feeds_all() -> void:
+	var scene := await _spawn_po3_scene(91)
+	await _drain_cards(scene.get_node("%CriticalEventCard"))
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var panel := await _open_panel(ui, "pens")
+	var sites: Array = _sim.get_all_pens()
+	var site_id := str(sites[0].get("id", "")) if sites.size() > 1 else ""
+	var other_id := str(sites[1].get("id", "")) if sites.size() > 1 else ""
+	panel.select_pen(site_id)
+	await get_tree().process_frame
+	var card: FeedPlanCard = panel.get_node("%FeedPlanCard")
+	var scroll: ScrollContainer = panel.get_node("%DetailScroll")
+	scroll.ensure_control_visible(card._btn_apply)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(card.is_visible_in_tree() and card._status.text == tr("FEEDPLAN_STATUS_STANDARD")
+			and is_equal_approx(card._ration_slider.value, 100.0) and card._btn_apply.disabled and card._btn_reset.disabled,
+		"feed plan: a site starts on the standard plan, nothing to apply or reset (%s, %.0f %%)" % [card._status.text, card._ration_slider.value])
+	_check(card._recipe_option.item_count == 3 and card._window_option.item_count == card.WINDOWS.size()
+			and card._recipe_option.get_item_text(0).contains("NOK/kg"),
+		"feed plan: three feed types with their price and %d windows to choose from (%s)" % [card.WINDOWS.size(), card._recipe_option.get_item_text(0)])
+
+	await _click_control(card._stop_buttons[0])
+	var plan: Dictionary = card.last_preview.get("plan", {})
+	var base: Dictionary = card.last_preview.get("baseline", {})
+	_check(is_equal_approx(card._ration_slider.value, 70.0) and card._stop_buttons[0].button_pressed
+			and not card._stop_buttons[2].button_pressed and card._ration_value.text.begins_with("70"),
+		"feed plan: the Begrenset stop sets 70 %% of appetite (%s)" % card._ration_value.text)
+	_check(bool(plan.get("ok", false)) and float(plan.get("growth_kg_per_day", 0.0)) < float(base.get("growth_kg_per_day", 0.0))
+			and float(plan.get("fcr", 9.0)) < float(base.get("fcr", 0.0))
+			and float(plan.get("cost_nok_per_day", 9e9)) < float(base.get("cost_nok_per_day", 0.0)),
+		"feed plan: at 70 %% the projection grows less (%.0f vs %.0f kg/day), converts better (%.3f vs %.3f) and costs less a day (%.0f vs %.0f NOK)" % [
+			float(plan.get("growth_kg_per_day", 0.0)), float(base.get("growth_kg_per_day", 0.0)), float(plan.get("fcr", 0.0)),
+			float(base.get("fcr", 0.0)), float(plan.get("cost_nok_per_day", 0.0)), float(base.get("cost_nok_per_day", 0.0))])
+	var growth_change: String = card._rows["growth"][2].text
+	var cost_change: String = card._rows["cost"][2].text
+	_check(growth_change.begins_with("−") and cost_change.begins_with("−") and not card._btn_apply.disabled,
+		"feed plan: the card shows the change against full appetite (growth %s, cost %s) and offers to apply it" % [growth_change, cost_change])
+
+	card._recipe_option.select(1)
+	card._recipe_option.item_selected.emit(1)
+	card._window_option.select(2)
+	card._window_option.item_selected.emit(2)
+	await get_tree().process_frame
+	await _click_control(card._btn_apply)
+	var set_plan: Dictionary = _sim.get_feed_plan(site_id)
+	var site_pens: Array = _sim.get_site_pens(site_id)
+	var stocked := site_pens.filter(func(p: Dictionary) -> bool: return bool(p.get("occupied", false)))
+	_check(not bool(set_plan.get("standard", true)) and is_equal_approx(float(set_plan.get("ration_pct", 0.0)), 70.0)
+			and str(set_plan.get("recipe", "")) == "high_energy" and int(set_plan.get("days_left", -1)) == 30
+			and not stocked.is_empty() and stocked.all(func(p: Dictionary) -> bool: return is_equal_approx(float(p.get("ration", 0.0)), 0.7)),
+		"feed plan: Bruk sets the site's plan: 70 %%, high energy, 30 days, every stocked pen fed 0.70 (%s)" % str(set_plan))
+	_check(card._status.text == tr("FEEDPLAN_STATUS_DAYS_LEFT") % 30 and bool(_sim.get_feed_plan(other_id).get("standard", false)),
+		"feed plan: the card says %s and the other site keeps the standard plan" % card._status.text)
+	_check(card._btn_apply.disabled and card._btn_apply.tooltip_text == tr("FEEDPLAN_WHY_IN_USE") and not card._btn_reset.disabled,
+		"feed plan: the plan just applied is the one in use (Bruk waits, Tilbake til standard is offered)")
+
+	await _click_control(card._btn_apply_all)
+	var every := true
+	for s in _sim.get_all_pens():
+		var sp: Dictionary = _sim.get_feed_plan(str(s.get("id", "")))
+		every = every and str(sp.get("recipe", "")) == "high_energy" and is_equal_approx(float(sp.get("ration_pct", 0.0)), 70.0)
+		for p in _sim.get_site_pens(str(s.get("id", ""))):
+			if bool(p.get("occupied", false)):
+				every = every and is_equal_approx(float(p.get("ration", 0.0)), 0.7)
+	_check(every and sites.size() >= 2, "feed plan: Fôr alle gives every site (%d) the plan and every stocked pen its ration" % sites.size())
+
+	_check(_sim.save_game("ci_feed_plan"), "feed plan: setup: the game saves")
+	await _click_control(card._btn_reset)
+	_check(bool(_sim.get_feed_plan(site_id).get("standard", false)) and card._status.text == tr("FEEDPLAN_STATUS_STANDARD"),
+		"feed plan: Tilbake til standard clears the site's plan (%s)" % card._status.text)
+	var file := str(_find_save("ci_feed_plan").get("file", ""))
+	_check(_sim.load_game(file), "feed plan: setup: the save loads")
+	_sim.set_paused(true)
+	var loaded: Dictionary = _sim.get_feed_plan(site_id)
+	_check(not bool(loaded.get("standard", true)) and str(loaded.get("recipe", "")) == "high_energy"
+			and is_equal_approx(float(loaded.get("ration_pct", 0.0)), 70.0) and int(loaded.get("days_left", -1)) == 30,
+		"feed plan: the plan comes back with the saved game (%s)" % str(loaded))
+	_sim.delete_save(file)
 	scene.queue_free()
 	await get_tree().process_frame
 

@@ -407,8 +407,10 @@ namespace LakskongenSim.Farm
         /// <param name="spreadQuality01">Feed-spreading precision 0 (poor) to 1 (perfect).</param>
         /// <param name="feedWasteReduction">Research feed-waste reduction (e.g. 0.12 = 12% less waste).</param>
         /// <param name="appetite01">The fish's appetite today (0-1), reported as <see cref="LastAppetite01"/>.</param>
+        /// <param name="priceFactor">The holding's recipe price relative to <see cref="FeedCostPerKg"/> (U2-04; 1 = the standard feed).</param>
         public FeedResult FeedRation(Biology.FishPopulation pop, double eatenFeedKg, double grownKg,
-            double spreadQuality01 = 1.0, double feedWasteReduction = 0.0, double appetite01 = 1.0)
+            double spreadQuality01 = 1.0, double feedWasteReduction = 0.0, double appetite01 = 1.0,
+            double priceFactor = 1.0)
         {
             LastAppetite01 = double.IsFinite(appetite01) ? Math.Clamp(appetite01, 0.0, 1.0) : 1.0;
             double biomassKg = pop.GetTotalBiomassKg();
@@ -436,6 +438,8 @@ namespace LakskongenSim.Farm
             double nitrogenWasteKg = totalFeedKg * 0.07 * 0.70; // 7% N in feed, 70% excreted
             double phosphorusWasteKg = totalFeedKg * 0.01 * 0.70; // 1% P in feed, 70% excreted
             decimal totalCost = (decimal)totalFeedKg * FeedCostPerKg;
+            if (priceFactor != 1.0 && double.IsFinite(priceFactor) && priceFactor > 0.0)
+                totalCost *= (decimal)priceFactor;
 
             TotalFeedUsedKg += totalFeedKg;
             TotalGrowthKg += growthKg;

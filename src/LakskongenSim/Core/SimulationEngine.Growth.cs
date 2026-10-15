@@ -28,13 +28,15 @@ public partial class SimulationEngine
     /// <param name="ContainmentGrowthMultiplier">Containment rung's growth effect (1 = open net).</param>
     /// <param name="StockingDensityKgM3">Effective density the FCR model reads (kg/m³).</param>
     /// <param name="SpreadQuality">Feed-spreading precision (0-1).</param>
+    /// <param name="Recipe">What the holding's feed recipe does to the FCR and the feed price (U2-04; the standard feed changes nothing).</param>
     internal readonly record struct HoldingHusbandry(
         HoldingWater Water,
         double AppetiteModifier,
         double DensityGrowthMultiplier,
         double ContainmentGrowthMultiplier,
         double StockingDensityKgM3,
-        double SpreadQuality);
+        double SpreadQuality,
+        FeedRecipeEffect Recipe);
 
     /// <summary>
     /// Fish one density proxy pen (<see cref="PenVolumeProxyM3"/>) holds: the
@@ -118,6 +120,10 @@ public partial class SimulationEngine
             double satiationFcr = Feed.SatiationFcr(temperature, cohort.Stage,
                 law.FcrSizeFactor(cohort.MeanWeightKg), husbandry.StockingDensityKgM3,
                 husbandry.AppetiteModifier, FCRReduction);
+            // U2-04: a recipe's energy sets how many kilos of feed the same
+            // growth takes (the standard feed multiplies nothing).
+            if (husbandry.Recipe.FcrFactor != 1.0)
+                satiationFcr *= husbandry.Recipe.FcrFactor;
 
             var day = law.GrowOneDay(cohort.MeanWeightKg, cohort.WeightCv, cohort.Stage, conditions, satiationFcr);
             cohort.MeanWeightKg = day.WeightKg;
@@ -127,7 +133,8 @@ public partial class SimulationEngine
         }
 
         double appetite = law.ThermalAppetiteIndex(temperature) * husbandry.AppetiteModifier;
-        return Feed.FeedRation(population, eatenKg, grownKg, husbandry.SpreadQuality, FeedWasteReduction, appetite);
+        return Feed.FeedRation(population, eatenKg, grownKg, husbandry.SpreadQuality, FeedWasteReduction, appetite,
+            husbandry.Recipe.PriceFactor);
     }
 
     /// <summary>
