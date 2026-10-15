@@ -1509,6 +1509,194 @@ weight raised by one ulp on day 200 in po3_red_sone seed 7: named on day 200
 ledger 526, mort 527, pop 102, mtb 35, env 3) and the final cash moves by
 0.00000000016 NOK.
 
+## 1m. F2-12: land water, energy and tanks, standalone (2026-10-15, branch `wave3/sim-lanes-1`)
+
+F2-12 stage 1 builds the land unit's physics as pure models in new files
+(`Farm/Land/*`, `Calibration/LandCalibration.cs`, draft
+`godot/data/calibration/facilities_land.json`); nothing is wired into the
+engine tick, the bridge, `GameState` or the registry yet (F2-02..F2-04 are in
+flight), so the shipped game and the 27 golden traces are unchanged (27 of 27
+identical over 731 days). Every number below comes from `LandLotProjector`, a
+pure day-by-day projection of one lot: the biology grows each tank on the S2-03
+growth law at the tank water the previous day's land tick left (continuous
+light, appetite from CO2 and TAN, the land density brake), then
+`LandLotDaySolver` solves the lot's flows, heat balance, water and energy on the
+day's feed, in the engine's order.
+
+**Harness.** pad_a of the procedural fjord (default terrain, seed 42): 25 m
+water at the quay (1 m), 95 m water 140 m out (`IntakeReachM`, F2-19); 13 m
+static lift, 5.0 m³/s of intake pumps per lot, UV on the intake. The 25 m intake
+draws Salmon Evolution's area's water (PO5 climatology, S2-02), the 95 m intake
+10 °C [V:10]. One HFS lot: 12 × Ø28 m × 8 m (4,926 m³) + 2 × Ø16 m (1,608 m³) =
+62,329 m³. Every tank runs Salmon Evolution's new plan ([L:R1]: 400 g → 5.2 kg LW),
+stocked to a projected peak of 80 kg/m³ (82,736 smolts would fill a grow-out tank
+to 85), 97 % survival a cycle ([L:R2]), 7 days fallow, first stockings staggered
+over the rotation; 420 days of warm-up, then one measured year (2028). The plan's
+cycle at 12 °C and 24 h light is 240 days (8 months; [L:R1] 8-9). Energy and
+oxygen are per kg of live-weight biomass growth (harvest + Δ standing − smolts
+stocked), the basis of [L:R2]'s "kWh/kg biomass (LW)" and "oxygen consumption
+(biomass growth (LW))".
+
+### Acceptance (spec §7.1 F2-12, 1-5)
+
+| # | Criterion | Band | Measured | Test |
+|---|---|---|---|---|
+| 1 | HFS r 0.65, heat recovery, pad_a, annual [L:R2] | 6.0-7.5 kWh/kg LW | **6.40** | `LandEnergyModelTests.F2_12_Acceptance1_HfsR065WithHeatRecovery_Uses6To75KWhPerKgLw` |
+| 1 | r 0, intake at the setpoint, lift ≤ 2 m [L:A1, L:A3] | 0.6-1.5 | **1.08** (2 m lift, no UV, pumps sized for the loop) | `..._FlowThroughAtTheSetpoint_LiftUnder2M_Uses06To15KWhPerKgLw` |
+| 1 | RAS hall r 0.97 [L:R7, L:S3, L:S4] | 4-10 | **6.33** (6.70 without heat recovery) | `..._RasHallAtR097_Uses4To10KWhPerKgLw` |
+| 2 | LOX at the Salmon Evolution-like setup [L:R2] 0.55 | 0.45-0.65 kg O2/kg LW | **0.479** | `..._LoxAtTheSalmonEvolutionSetup_Is045To065KgPerKgLw` |
+| 2 | LOX from r 0 to r 0.9 at equal density | rises < 15 % | **−2.4 %** (14.84 → 14.48 t/day; held to ±15 %) | `LandWaterModelTests.F2_12_Acceptance2_LoxMovesUnder15Percent_FromR0ToR09_AtEqualDensity` |
+| 3 | CO2 at 60 kg/m³, 12 °C, r 0.65, default pumps | 10-15 mg/L | **13.41** | `..._Co2At60KgM3_12C_R065_DefaultPumps_Is10To15` |
+| 3 | CO2 above 70-80 kg/m³ | > 15 | **15.60** at 70, **17.80** at 80 | `..._Co2Exceeds15_At70And80KgM3` |
+| 3 | CO2 above r 0.8 | > 15 | **15.81** at r 0.8, 16.89 at 0.85 | `..._Co2Exceeds15_AboveR08_AndRisesWithReusePastTheStrippers` |
+| 4 | interior profit-optimal r (0.3-0.8) in ≥ 2 of 4 seasons | ≥ 2 | **4 of 4** (r 0.70, 0.70, 0.65, 0.70) | `LandVannstrategiSweepTests.F2_12_Acceptance4_AnInteriorReuseWins_InAtLeastTwoOfFourSeasons` |
+| 4 | the best probe pins neither r nor w at a bound | — | r **0.70**, intakes blended toward the setpoint (w interior on 116 of 365 days, mean 0.69) | `..._TheBestProbe_PinsNeitherReuseNorBlendAtABound` |
+| 5 | stocking with a projected peak above 85 kg/m³ is refused | `density_exceeded` | room + 1 smolt refused, room allowed; a tank stocked to the room peaks at ≤ 85 on every day of a year | `LandStockingPlannerTests` |
+
+Criterion 3 is measured on every tank of a full lot at the density, holding the
+plan's fish of the weight at which the plan stands at 60 kg/m³ (3.92 kg, eating
+0.771 % of their weight a day at 12 °C), i.e. denser stocking of the same fish.
+
+### Where the energy goes (kWh per kg LW growth, pad_a, PO5, one year)
+
+| Setup | total | intake | loop | treatment | UV | heating | cooling | base | LOX kg/kg | growth t | index kg/m³/yr | eFCR | CO2 mean / max | tank °C |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| HFS r 0.65, heat recovery (anchor) | 6.40 | 1.13 | 0.64 | 0.86 | 0.60 | 2.82 | 0.00 | 0.33 | 0.479 | 6,640 | 115 | 1.026 | 10.2 / 12.6 | 12.00 |
+| HFS r 0.65, no heat recovery | 10.52 | 1.16 | 0.66 | 0.88 | 0.62 | 6.86 | 0.00 | 0.34 | 0.475 | 6,478 | 112 | 1.027 | 10.0 / 12.6 | 11.71 |
+| HFS r 0.65, heat recovery, setpoint 13 °C | 7.48 | 1.05 | 0.59 | 0.80 | 0.56 | 4.19 | 0.00 | 0.30 | 0.494 | 7,185 | 124 | 1.026 | 10.9 / 13.3 | 13.00 |
+| HFS pilot lot (4 + 1 tanks) | 6.35 | 1.12 | 0.64 | 0.86 | 0.60 | 2.81 | 0.00 | 0.32 | 0.480 | 2,297 | 116 | 1.028 | 10.2 / 12.5 | 12.00 |
+| flow-through r 0, 12 °C intake, 2 m lift, no UV (anchor) | 1.08 | 0.75 | 0 | 0 | 0 | 0 | 0 | 0.33 | 0.482 | 6,697 | 116 | 1.027 | 9.7 / 12.0 | 12.02 |
+| the same with UV (a new plant must disinfect, [L:L2]) | 2.79 | 0.75 | 0 | 0 | 1.71 | 0 | 0 | 0.33 | 0.482 | 6,712 | 116 | 1.028 | 9.7 / 12.0 | 12.04 |
+| HFS r 0 on pad_a's pumps | 8.05 | 1.85 | 0 | 0 | 0.98 | 4.70 | 0 | 0.52 | 0.551 | 4,172 | 72 | 1.117 | 24.6 / 33.1 | 12.00 |
+| RAS hall r 0.97, heat recovery (anchor) | 6.33 | 0.12 | 1.21 | 4.05 | 0.07 | 0.17 | 0 | 0.71 | 0.481 | 4,106 | 106 | 1.008 | 8.7 / 11.6 | 12.00 |
+| RAS hall r 0.97, no heat recovery | 6.70 | 0.12 | 1.21 | 4.05 | 0.07 | 0.54 | 0 | 0.71 | 0.481 | 4,106 | 106 | 1.008 | 8.7 / 11.6 | 12.00 |
+| post-smolt module r 0.97 (80 g → 450 g) | 3.61 | 0.07 | 0.69 | 2.30 | 0.04 | 0.07 | 0 | 0.44 | 0.440 | 822 | 310 | 0.877 | 11.2 / 14.2 | 12.00 |
+
+Heating is the HFS's largest part (44 %) and the lever heat recovery pulls; the
+RAS hall's is treatment of its reused water (64 %). The post-smolt module lands
+in the 3.4-5.4 kWh/kg of [L:T1, L:S3] without tuning (F2-13 owns it).
+
+**By production area** (HFS anchor setup; the 25 m intake draws each area's water):
+
+| Area | kWh/kg, heat recovery | of which heating | kWh/kg, none |
+|---|---|---|---|
+| PO1 | 6.20 | 2.63 | 9.97 |
+| PO2 | 6.35 | 2.78 | 10.39 |
+| PO3 | 6.24 | 2.67 | 10.14 |
+| PO4 | 6.31 | 2.73 | 10.29 |
+| PO5 | 6.40 | 2.82 | 10.52 |
+| PO6 | 6.43 | 2.86 | 10.61 |
+| PO7 | 6.75 | 3.18 | 11.41 |
+| PO8 | 6.84 | 3.27 | 11.63 |
+| PO9 | 7.16 | 3.58 | 12.44 |
+| PO10 | 7.12 | 3.55 | 12.34 |
+| PO11 | 7.73 | 4.15 | 13.97 |
+| PO12 | 7.70 | 4.13 | 13.92 |
+| PO13 | 7.91 | 4.34 | 14.41 |
+
+The 95 m water is 10 °C everywhere [V:10] (no northern deep-water series); a
+northern pad pays for colder shallow water only through the blend.
+
+**Reuse on the HFS anchor (annual).** Below r 0.66 the intake pumps limit the
+new water (5.0 m³/s), so the circulation falls and CO2 rises; above the
+strippers' design (0.65) reused water returns unstripped, and with no biofilter
+the ammonia leaves only with the new water ([L:R7]).
+
+| r | kWh/kg | LOX kg/kg | growth t | CO2 mean / max mg/L | mean appetite | pump-limited days |
+|---|---|---|---|---|---|---|
+| 0.00 | 8.05 | 0.551 | 4,172 | 24.6 / 33.1 | 0.582 | 365 |
+| 0.30 | 6.50 | 0.498 | 5,509 | 16.1 / 24.4 | 0.775 | 365 |
+| 0.50 | 6.23 | 0.487 | 6,228 | 12.6 / 15.9 | 0.899 | 365 |
+| 0.60 | 6.35 | 0.482 | 6,532 | 11.0 / 14.0 | 0.960 | 365 |
+| 0.65 | 6.40 | 0.479 | 6,640 | 10.2 / 12.6 | 0.987 | 225 |
+| 0.70 | 5.95 | 0.481 | 6,558 | 10.5 / 13.5 | 0.966 | 0 |
+| 0.75 | 5.58 | 0.482 | 6,344 | 10.6 / 14.3 | 0.920 | 0 |
+| 0.80 | 5.34 | 0.483 | 5,941 | 10.6 / 15.2 | 0.850 | 0 |
+| 0.85 | 5.21 | 0.485 | 5,379 | 10.5 / 16.2 | 0.748 | 0 |
+| 0.90 | 5.89 | 0.525 | 4,162 | 12.0 / 17.4 | 0.576 | 0 |
+
+**A full lot at equal density** (60 kg/m³ of the plan's 3.92 kg fish, 12 °C, pad_a's pumps):
+
+| r | CO2 mg/L | TAN mg/L | LOX t/day | pumps limit |
+|---|---|---|---|---|
+| 0.00 | 34.58 | 2.00 | 14.84 | yes |
+| 0.30 | 25.34 | 2.00 | 14.69 | yes |
+| 0.50 | 18.69 | 2.00 | 14.50 | yes |
+| 0.60 | 15.20 | 2.00 | 14.33 | yes |
+| 0.65 | 13.41 | 2.00 | 14.20 | yes |
+| 0.70 | 14.02 | 2.31 | 14.25 | no |
+| 0.75 | 14.86 | 2.78 | 14.31 | no |
+| 0.80 | 15.81 | 3.47 | 14.37 | no |
+| 0.85 | 16.89 | 4.63 | 14.43 | no |
+| 0.90 | 18.14 | 6.94 | 14.48 | no |
+
+CO2 at r 0.65 by density: 11.21 (50), 13.41 (60), 14.51 (65), 15.60 (70), 16.70
+(75), 17.80 (80), 18.90 (85). At pad_a's pumps the HFS runs at exactly the 2 mg/L
+TAN limit with 60 kg/m³ of 3.9 kg fish, the "reuse until TAN" rule of [L:R7].
+
+**Profit sweep (criterion 4).** Profit = LW growth × 70 NOK/kg HOG × 0.83 − feed
+× 22.30 NOK/kg − kWh × 0.80 NOK − LOX × 4.0 NOK, over r 0-0.95 (step 0.05) ×
+w 0-1 (step 0.1), each season (91 days from 1 Jan, 1 Apr, 1 Jul, 1 Oct 2028)
+after a warm-up on the default strategy:
+
+| Season | best r | best fixed w | profit (M NOK) |
+|---|---|---|---|
+| winter | 0.70 | 1.0 | 45.0 |
+| spring | 0.70 | 1.0 | 45.0 |
+| summer | 0.65 | 0.5 | 51.2 |
+| autumn | 0.70 | 1.0 | 45.0 |
+| year, blended toward the setpoint | 0.70 | (daily) | 187.3 |
+| year, best fixed blend | 0.70 | 1.0 | 179.4 |
+
+The tanks sit at the 12 °C setpoint all year (the heat pumps never run out of
+capacity with heat recovery), so the fish grow alike in every season and only
+the heating differs; with the 95 m water warmer than the 25 m water from
+November to May, a fixed blend takes all deep water except in summer. Blending
+toward the setpoint every day beats every fixed blend by 7.9 M NOK a year.
+
+### Calibration chosen here (against the spec's draft, §3.9)
+
+| Key | Spec draft | Now | Why |
+|---|---|---|---|
+| loop flow | 20 vol/day [GB] | 20 | [L:R5] DESMI: 18-22 vol/day at peak biomass (derived) |
+| pump capacity | 5.0 m³/s [GB] | 5.0 | [L:R5] 16,000 L/s over 48 tanks: 5.1 per lot (derived) |
+| heat-pump size | 8 MW [GB] | 8 MW **electrical input** | [V:11] six 5-6 MW units + exchangers, > 100 MW heat for phase 2; 8 MW of heat could lift 5 m³/s by only 0.4 K |
+| HFS biofilter | maturing in 30 d | none | [L:R7], [L:R2]: HFS strips CO2 and oxygenates; reuse stops at the TAN limit |
+| stripper design reuse | — | 0.65 HFS, 0.97 RAS/post-smolt | [L:R2]: higher reuse needs more treatment; the strippers are sized for the sweet spot |
+| outlet DO | 7.0 mg/L | 8.0 (93 % sat.) | at 7.0 the new water and strippers supply 27 % of the fish's O2 and LOX reads 0.37 (fails 0.45); Remen et al. 2016: full feed intake needs 42-76 % sat. |
+| injection efficiency | 0.75 | 0.70 | 0.75 gives 0.447 (fails 0.45) |
+| heat per m³·K | 1.11 kWh | 1.14 | seawater ρc_p = 4.10 MJ/(m³·K) (TEOS-10) |
+| base load | 2,000 kWh/day | 6,000 (HFS), 8,000 (RAS), 1,000 (post-smolt) | an itemised 250 kW for a 12-tank lot (feeding, LED light, sludge, buildings) |
+| UV | — | 0.026 kWh/m³ | US DOE/LBNL Wastewater Tipsheet #6 (2021): low-pressure UV 100-250 kWh/MG |
+| cooling band | — | 0.5 K | no chiller runs to take 0.02 K of fish heat out of a flow-through loop |
+| fish O2 | 0.37 kg/kg feed | 0.37 | Grøttum & Sigholt 1998 respirometry (a 2 kg salmon at 12 °C: ~2.2 g O2/kg/day; a 2026 *Scientific Reports* refit raises the baseline 29 %) over a 0.8-0.9 %/day ration: ~0.3-0.4 kg O2/kg feed (derived) |
+
+### Mutation checks (key tests fail when the model is broken)
+
+| Mutation | Tests that fail |
+|---|---|
+| strippers take all reused water (no design cap) | `Flows_WithRoomInThePumps...`, acceptance 3 above r 0.8 |
+| heat recovery ignored (plain COP) | `HeatBalance_WithinCapacity...`, acceptance 1 HFS (6.40 → 12+), `HeatRecovery_CutsTheHfsEnergy` |
+| stocking allowed up to 1.1 × the limit | acceptance 5, `PostSmoltTanks_AreHeldTo80KgM3` |
+| fish O2 0.37 → 0.30 kg/kg feed | acceptance 2 (LOX), acceptance 3 (70-80 kg/m³, r 0.8), JSON parity |
+| water quality never touches appetite | `TankAppetite...`, acceptance 4 (the sweep then pins r at 0.95 in every season) |
+
+### Findings (RUN_LOG §8)
+
+- **Production index.** The plan stocks each tank once per cycle, so the lot's mean
+  density is 35 kg/m³ and it grows 115 kg/m³/yr against [L:R6]'s 131-140 (revised)
+  and the 150 of the 7,900 t nameplate; 6,640 t LW growth ≈ 5,850 t HOG, close to
+  Salmon Evolution's 2026 guidance (≈ 6,000 t, [V:17]). Energy scales with the
+  stocked tanks' volume (spec §3.3: the loop flow is tank volumes a day), so a
+  cohort plan with pre-grow-out transfers (F2-15) that raises the index lowers
+  kWh/kg: re-measure criterion 1 then.
+- **Fixed blend.** On pad_a a fixed annual w pins at 1.0 (all deep water): the 95 m
+  water is warmer than the 25 m water eight months a year and its line is 140 m.
+  Daily blending toward the setpoint is the best strategy; the Vannstrategi
+  presets (F2-32) should offer it.
+- **LOX and reuse.** LOX falls 2.4 % from r 0 to r 0.9 instead of rising: the
+  strippers bring the reused water back toward air saturation.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
