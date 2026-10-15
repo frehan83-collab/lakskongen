@@ -23,24 +23,30 @@ class HeadlessError(Exception):
 KILL_GRACE_S = 5
 
 
-def _kill_tree(proc: subprocess.Popen) -> None:
-    """End `proc` and everything it started: SIGTERM to its process group
-    (xvfb-run, its Xvfb and Godot), SIGKILL after a grace period."""
+def _signal_tree(proc: subprocess.Popen, sig: int) -> None:
+    """Send `sig` to `proc`'s whole process group (xvfb-run, its Xvfb and
+    Godot); without process groups, kill `proc` itself."""
     if os.name != "posix":
         proc.kill()
         return
-    for sig, grace in ((signal.SIGTERM, KILL_GRACE_S), (signal.SIGKILL, None)):
-        try:
-            os.killpg(proc.pid, sig)
-        except ProcessLookupError:
-            return
-        if grace is None:
-            return
-        try:
-            proc.wait(timeout=grace)
-            return
-        except subprocess.TimeoutExpired:
-            continue
+    try:
+        os.killpg(proc.pid, sig)
+    except ProcessLookupError:
+        pass  # every process of the group has already exited
+
+
+def _end_tree(proc: subprocess.Popen) -> str:
+    """End a timed-out run and return its output: SIGTERM to the group, then
+    SIGKILL if anything still holds the output pipe open after a grace period
+    (waiting for the pipe, not only for the direct child: Godot can outlive
+    the xvfb-run shell)."""
+    _signal_tree(proc, signal.SIGTERM)
+    try:
+        output, _ = proc.communicate(timeout=KILL_GRACE_S)
+    except subprocess.TimeoutExpired:
+        _signal_tree(proc, signal.SIGKILL)
+        output, _ = proc.communicate()
+    return output
 
 
 def _extract_json(output: str) -> Any:
@@ -113,9 +119,7 @@ class HeadlessRunner:
             output, _ = proc.communicate(timeout=timeout)
             return subprocess.CompletedProcess(cmd, proc.returncode, output, None)
         except subprocess.TimeoutExpired:
-            _kill_tree(proc)
-            output, _ = proc.communicate()
-            return subprocess.CompletedProcess(cmd, None, output, None)
+            return subprocess.CompletedProcess(cmd, None, _end_tree(proc), None)
 
     def _execute(self, cmd: List[str], capture_output: bool, timeout: int) -> subprocess.CompletedProcess:
         env = os.environ.copy()

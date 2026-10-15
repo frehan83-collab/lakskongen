@@ -18,6 +18,7 @@ REPO = Path(__file__).parent.parent
 sys.path.insert(0, str(REPO / ".claude" / "skills" / "ecc" / "godot-mcp-ops"))
 
 import godot_mcp_ops  # noqa: E402
+import headless_runner  # noqa: E402
 import shader_check  # noqa: E402
 from headless_runner import KILL_GRACE_S, HeadlessRunner  # noqa: E402
 from shader_check import PROBE, ShaderCheck, parse_compile_log  # noqa: E402
@@ -399,6 +400,21 @@ def test_a_timed_out_run_is_killed_with_its_children_and_keeps_its_output(tmp_pa
     assert time.monotonic() - started < KILL_GRACE_S + 5
     assert result.returncode is None
     assert result.stdout.splitlines() == ["started", "on stderr"]
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX process groups")
+def test_a_timed_out_run_whose_child_ignores_sigterm_is_still_ended(tmp_path, monkeypatch):
+    """The direct child (like the xvfb-run shell) dies on SIGTERM, but a
+    process it started ignores SIGTERM and keeps the output pipe open, as a
+    hung Godot could: the run must still end, by SIGKILL, not wait for it."""
+    monkeypatch.setattr(headless_runner, "KILL_GRACE_S", 1)
+    godot = _script(tmp_path / "godot-stubborn",
+                    "#!/bin/sh\necho started\n( trap '' TERM; sleep 60 ) &\nwait\n")
+    started = time.monotonic()
+    result = HeadlessRunner(godot, tmp_path).run_with_display([], [], timeout=1)
+    assert time.monotonic() - started < 10
+    assert result.returncode is None
+    assert result.stdout.splitlines() == ["started"]
 
 
 def test_the_probe_counts_drawn_frames_and_reports_a_shader_never_drawn():
