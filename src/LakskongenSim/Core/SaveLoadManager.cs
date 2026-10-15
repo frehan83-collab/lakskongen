@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 
 namespace LakskongenSim.Core
 {
@@ -24,6 +27,12 @@ namespace LakskongenSim.Core
         // reads through SaveJson.Options, the exact same format the game uses.
         private static readonly JsonSerializerOptions JsonOptions = SaveJson.Options;
 
+        // Concurrent saves to one slot: a lock per slot file (full path) shared
+        // by every manager in the process, and a counter for temp-file names.
+        private static readonly ConcurrentDictionary<string, object> SlotLocks =
+            new(StringComparer.OrdinalIgnoreCase);
+        private static long _tempFileCounter;
+
         public SaveLoadManager(string saveDirectory)
         {
             _saveDirectory = saveDirectory;
@@ -45,13 +54,34 @@ namespace LakskongenSim.Core
         /// - Sustainability (SustainabilityScore, SustainabilityCertification, FeedSustainabilityRating)
         /// - Scenarios (ActiveScenarioId, ScenarioIsWon, ScenarioIsLost, ScenarioLossReason, ScenarioStartDay)
         /// - Tutorial (TutorialCurrentStepIndex, CompletedTutorialStepIds)
+        ///
+        /// Safe for concurrent calls on every OS. Saves to one slot run one at a
+        /// time in this process (any number of managers on the directory share
+        /// the lock), and the new save is written to a temp file next to the
+        /// slot that then replaces the slot file atomically. A concurrent
+        /// <see cref="LoadGame"/> therefore reads the previous save or the new
+        /// one, never a partial write; a save that fails leaves the slot file
+        /// as it was and deletes its temp file.
         /// </summary>
         public void SaveGame(GameState state, string saveName = "save")
         {
             string filePath = SlotPath(saveName);
-            RotateBackups(filePath);
-            string json = JsonSerializer.Serialize(state, JsonOptions);
-            File.WriteAllText(filePath, json);
+            // Serialize outside the lock: it only reads the caller's state.
+            byte[] json = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(state, JsonOptions));
+
+            lock (SlotLock(filePath))
+            {
+                string tempPath = WriteTempFile(filePath, json);
+                try
+                {
+                    CommitSave(tempPath, filePath);
+                }
+                catch
+                {
+                    TryDeleteTemp(tempPath);
+                    throw;
+                }
+            }
         }
 
         // ─── Load ───────────────────────────────────────────────────────────────
@@ -67,8 +97,7 @@ namespace LakskongenSim.Core
             if (!File.Exists(filePath))
                 throw new FileNotFoundException($"Save file not found: {filePath}");
 
-            string json = File.ReadAllText(filePath);
-            return Deserialize(json);
+            return Deserialize(ReadSaveText(filePath));
         }
 
         /// <summary>
@@ -81,15 +110,15 @@ namespace LakskongenSim.Core
 
             if (File.Exists(filePath))
             {
-                try { return Deserialize(File.ReadAllText(filePath)); }
+                try { return Deserialize(ReadSaveText(filePath)); }
                 catch { /* fall through to backups */ }
             }
 
             for (int i = 1; i <= MaxBackups; i++)
             {
-                string backupPath = filePath + $".bak{i}";
+                string backupPath = BackupPath(filePath, i);
                 if (!File.Exists(backupPath)) continue;
-                try { return Deserialize(File.ReadAllText(backupPath)); }
+                try { return Deserialize(ReadSaveText(backupPath)); }
                 catch { /* try next backup */ }
             }
 
@@ -99,25 +128,111 @@ namespace LakskongenSim.Core
         // ─── Helpers ─────────────────────────────────────────────────────────────
 
         private string SlotPath(string saveName) =>
-            Path.Combine(_saveDirectory, saveName + ".json");
+            Path.GetFullPath(Path.Combine(_saveDirectory, saveName + ".json"));
+
+        private static string BackupPath(string filePath, int generation) =>
+            filePath + $".bak{generation}";
 
         /// <summary>
-        /// Rotate existing backups: .bak2→.bak3, .bak1→.bak2, primary→.bak1.
-        /// The oldest backup (.bak3) is deleted to make room.
+        /// One lock per slot file for the whole process. Keys ignore case
+        /// because macOS and Windows file names do: "Slot" and "slot" are one file.
         /// </summary>
-        private static void RotateBackups(string filePath)
+        private static object SlotLock(string filePath) =>
+            SlotLocks.GetOrAdd(filePath, _ => new object());
+
+        /// <summary>
+        /// Write <paramref name="content"/> to a new temp file beside the slot
+        /// and flush it to disk. Returns the temp path; on failure the temp file
+        /// is deleted and the exception propagates.
+        /// </summary>
+        private static string WriteTempFile(string filePath, byte[] content)
         {
-            if (!File.Exists(filePath)) return;
+            FileStream stream = CreateTempFile(filePath, out string tempPath);
+            try
+            {
+                using (stream)
+                {
+                    stream.Write(content);
+                    stream.Flush(flushToDisk: true);
+                }
+                return tempPath;
+            }
+            catch
+            {
+                TryDeleteTemp(tempPath);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Create "&lt;slot&gt;.json.&lt;pid&gt;.&lt;n&gt;.tmp" exclusively. The name is
+        /// unique to this process and save; a stale file of an earlier process
+        /// with the same id is skipped, never overwritten.
+        /// </summary>
+        private static FileStream CreateTempFile(string filePath, out string tempPath)
+        {
+            while (true)
+            {
+                long n = Interlocked.Increment(ref _tempFileCounter);
+                tempPath = $"{filePath}.{System.Environment.ProcessId}.{n}.tmp";
+                try
+                {
+                    return new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                }
+                catch (IOException) when (File.Exists(tempPath))
+                {
+                    // Taken by a temp file an earlier process left: try the next name.
+                }
+            }
+        }
+
+        /// <summary>
+        /// Make the temp file the slot: rotate .bak2→.bak3 and .bak1→.bak2 (the
+        /// oldest backup drops off), then in one step the current save becomes
+        /// .bak1 and the temp file takes the slot's name. The slot file never
+        /// goes missing and never holds a partial write. Caller holds the slot lock.
+        /// </summary>
+        private static void CommitSave(string tempPath, string filePath)
+        {
+            if (!File.Exists(filePath))
+            {
+                File.Move(tempPath, filePath, overwrite: true);
+                return;
+            }
 
             for (int i = MaxBackups; i > 1; i--)
             {
-                string older = filePath + $".bak{i}";
-                string newer = filePath + $".bak{i - 1}";
-                if (File.Exists(older)) File.Delete(older);
-                if (File.Exists(newer)) File.Move(newer, older);
+                string older = BackupPath(filePath, i);
+                string newer = BackupPath(filePath, i - 1);
+                if (File.Exists(newer)) File.Move(newer, older, overwrite: true);
+                else File.Delete(older);
             }
 
-            File.Copy(filePath, filePath + ".bak1", overwrite: true);
+            File.Replace(tempPath, filePath, BackupPath(filePath, 1), ignoreMetadataErrors: true);
+        }
+
+        /// <summary>
+        /// Remove a temp file after a failed save. A failure to delete it must
+        /// not hide the save's own exception, which the caller rethrows.
+        /// </summary>
+        private static void TryDeleteTemp(string tempPath)
+        {
+            try { File.Delete(tempPath); }
+            catch (IOException) { /* the save's exception is what matters */ }
+            catch (UnauthorizedAccessException) { /* likewise */ }
+        }
+
+        /// <summary>
+        /// Read a save without blocking a writer: FileShare.Delete lets a
+        /// concurrent save replace the file while it is open (Windows refuses
+        /// to replace a file opened without it).
+        /// </summary>
+        private static string ReadSaveText(string path)
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete);
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            return reader.ReadToEnd();
         }
 
         /// <summary>

@@ -61,7 +61,9 @@ jobs:
 
       # The shader gate compiles every shader under a real renderer, which
       # needs a display: Xvfb (xvfb-run needs xauth) and Mesa's software
-      # Vulkan and OpenGL drivers.
+      # Vulkan and OpenGL drivers. Godot draws the project's Forward+ renderer
+      # with Mesa's Vulkan (lavapipe); the gate prints the renderer it got and
+      # fails if Godot fell back to OpenGL (Compatibility) instead.
       - name: Install a virtual display for the shader gate
         run: |
           sudo apt-get update

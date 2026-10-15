@@ -2,33 +2,51 @@ extends SceneTree
 ## Compiles shaders under a real renderer (review F958).
 ##
 ## The --headless dummy renderer parses no shader code, so this runs with a
-## window: each shader goes on a node that is drawn for a few frames, and a
-## broken one makes Godot print "SHADER ERROR" to stderr. The markers around
-## each shader go to stderr as well, so they stay in order with the errors and
-## shader_check.py can attribute every error to its file.
+## window: each shader goes on a node that stays on screen for a number of
+## DRAWN frames, and a broken one makes Godot print "SHADER ERROR". The
+## markers around each shader go to stderr, like Godot's errors, so they stay
+## in order with them and shader_check.py can attribute every error to its
+## file. A shader that cannot be loaded or is never drawn is reported and the
+## probe goes on to the next one.
 ##
 ## Usage: godot --path <project> --script shader_compile_probe.gd -- res://a.gdshader ...
 
-const FRAMES_PER_SHADER := 3
+## Frames drawn with each shader on screen. Counted on frame_post_draw, not
+## per process tick, so a slow software rasterizer (Mesa's llvmpipe/lavapipe
+## under Xvfb on CI) has drawn the shader before the probe moves on.
+const FRAMES_PER_SHADER := 8
+## Process ticks a shader may wait for those frames. A window that never
+## draws must fail the shader, not pass it.
+const MAX_TICKS_PER_SHADER := 2000
 
 var _paths := PackedStringArray()
 var _index := -1
-var _frames_left := 0
 var _holder: Node = null
+var _frames_drawn := 0
+var _drawn_at_start := 0
+var _ticks := 0
 
 
 func _initialize() -> void:
 	_paths = OS.get_cmdline_user_args()
+	RenderingServer.frame_post_draw.connect(_on_frame_post_draw, Object.CONNECT_DEFERRED)
 	var camera := Camera3D.new()
 	camera.position = Vector3(0, 0, 3)
 	camera.current = true
 	root.add_child(camera)
 
 
+func _on_frame_post_draw() -> void:
+	_frames_drawn += 1
+
+
 func _process(_delta: float) -> bool:
-	if _frames_left > 0:
-		_frames_left -= 1
-		return false
+	if _holder != null and _frames_drawn - _drawn_at_start < FRAMES_PER_SHADER:
+		_ticks += 1
+		if _ticks < MAX_TICKS_PER_SHADER:
+			return false
+		printerr("SHADER_CHECK_NOT_DRAWN %s only %d of %d frames were drawn in %d process ticks" % [
+			_paths[_index], _frames_drawn - _drawn_at_start, FRAMES_PER_SHADER, _ticks])
 	_finish_current()
 	_index += 1
 	if _index >= _paths.size():
@@ -40,6 +58,8 @@ func _process(_delta: float) -> bool:
 
 func _start(path: String) -> void:
 	printerr("SHADER_CHECK_BEGIN " + path)
+	_ticks = 0
+	_drawn_at_start = _frames_drawn
 	# Bypass the cache so every shader is parsed here, inside its markers.
 	var shader := ResourceLoader.load(path, "Shader", ResourceLoader.CACHE_MODE_IGNORE) as Shader
 	if shader == null:
@@ -49,7 +69,6 @@ func _start(path: String) -> void:
 	material.shader = shader
 	_holder = _node_for(shader.get_mode(), material)
 	root.add_child(_holder)
-	_frames_left = FRAMES_PER_SHADER
 
 
 func _finish_current() -> void:
