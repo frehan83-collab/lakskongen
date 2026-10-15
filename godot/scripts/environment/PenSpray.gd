@@ -25,7 +25,7 @@ const SPRAY_FULL_HS_M := 0.8
 const WIND_FROM_MS := 9.0
 const WIND_FULL_MS := 18.0
 ## Particles per emitter at full spray.
-const AMOUNT := 220
+const AMOUNT := 300
 const LIFETIME_S := 1.8
 ## Past this camera distance (m) a pen's spray is under a pixel: not drawn.
 const VISIBLE_M := 1100.0
@@ -149,7 +149,7 @@ func _build_materials() -> void:
 	m.scale_curve = grow_tex
 	var fade := Gradient.new()
 	fade.offsets = PackedFloat32Array([0.0, 0.15, 1.0])
-	fade.colors = PackedColorArray([Color(1, 1, 1, 0.0), Color(1, 1, 1, 0.8), Color(1, 1, 1, 0.0)])
+	fade.colors = PackedColorArray([Color(1, 1, 1, 0.0), Color(1, 1, 1, 0.75), Color(1, 1, 1, 0.0)])
 	var fade_tex := GradientTexture1D.new()
 	fade_tex.gradient = fade
 	m.color_ramp = fade_tex
@@ -175,5 +175,5 @@ func _build_materials() -> void:
 	mat.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	mat.disable_receive_shadows = true
 	_draw_mesh = QuadMesh.new()
-	_draw_mesh.size = Vector2(2.6, 2.6)
+	_draw_mesh.size = Vector2(2.3, 2.3)
 	_draw_mesh.material = mat

@@ -244,7 +244,8 @@ included (`sky_pass` 2), with stars and the sun and moon discs per pixel;
 the main sky stays per pixel. Measured at 1440p FJORD (P0-04 harness,
 paired): the mirror cost 4.7 ms sharing the main sky with shadows, 2.8 ms
 with its own quarter-pass sky, 1.9 ms without shadows, 1.4 ms at 0.4 of
-the window.
+the window; the gate run with it measures p95 FARM 16.05, FJORD 16.14 and
+COAST 15.31 ms on High (`docs/run/evidence/g2_03_water.md`).
 
 | Tier | Mirror | Resolution | Updates | Drawn from |
 |---|---|---|---|---|
@@ -258,8 +259,10 @@ No mirror underwater, behind an opaque panel, or above 11 m/s of wind
 nothing extra; it fades in and out over 0.6 s.
 
 **Whitecaps** are calibrated top-down against Monahan's share (the director's
-`WHITECAP_Z_SCALE`/`OFFSET`, 1.25 and 0.39): drawn cover 0.79 / 3.3 / 10.3 %
-at 9 / 14 / 20 m/s against 0.7 / 3.1 / 10.5 %.
+`WHITECAP_Z_SCALE`/`OFFSET`, 1.25 and 0.39): drawn cover 0.75 / 3.88 / 11.9 %
+at 9 / 14 / 20 m/s against 0.7 / 3.1 / 10.5 %. The crest gate's per-component
+weights round the spectral peak come from the director (`wave_peak`, per
+sea), not from a log2/exp per pixel (0.45 ms at 1440p FJORD).
 
 **Wakes** (`VesselWakes.gd`, `shaders/water/wake_shader.gdshader`). Every
 VesselModel in the fjord is followed by its stern; every 0.9 beams (4-14 m)

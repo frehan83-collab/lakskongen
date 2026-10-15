@@ -112,6 +112,8 @@ const float CREST_WEIGHT = 2.0;
 const float BREAKER_SPREAD = 2.0;
 // Wave groups and gusts: a slow field that gathers the caps into patches.
 const float GROUP_SPREAD = 2.5;
+// The foam lace frays a cap's edge (a ragged patch, not a smooth oval).
+const float LACE_RAGGED = 0.9;
 // Width (m) of the shore's foam fringe in a calm (G2-03: foam wherever the
 // shore distance is under 5 m).
 const float SHORE_FRINGE_M = 4.0;
@@ -332,15 +334,17 @@ void fragment() {
 			vec2 bs = bq / vec2(11.0, 28.0);
 			vec2 bl = bq / vec2(150.0, 390.0);
 			float breaker_small = mix(texture(foam_texture, bs).a, texture(foam_texture, bs / 1.17 + 0.5).a, fade);
-			float breaker_large = mix(texture(foam_texture, bl).a, texture(foam_texture, bl / 1.17 + 0.5).a, fade);
+			// The large field changes slowly: one fetch, no cross-fade.
+			float breaker_large = texture(foam_texture, bl).a;
 			float breaker = mix(breaker_small, breaker_large, exposure);
-			// Waves break in groups and under gusts: a slow field a few
-			// hundred metres across (the coast's breaker field) gathers the
-			// caps into patches instead of one on every crest.
-			float group = mix(breaker_large, texture(foam_texture, bq / vec2(420.0, 900.0) + 0.21).a, exposure);
+			// Waves break in groups and under gusts: a slow, round field a
+			// few hundred metres across gathers the caps into patches instead
+			// of one on every crest (a crest-stretched one lines them up in
+			// bands).
+			float group = texture(foam_texture, bq / 260.0 + 0.21).a;
 			float sigma_k = sqrt(max(height_var, 1e-10));
 			float crest_gate = smoothstep(0.0, 1.5, height / sigma_k);
-			float crest_z = CREST_WEIGHT * crest_gate + BREAKER_SPREAD * (breaker - 0.5) + GROUP_SPREAD * (group - 0.5) + (lace - 0.5) * 0.3;
+			float crest_z = CREST_WEIGHT * crest_gate + BREAKER_SPREAD * (breaker - 0.5) + GROUP_SPREAD * (group - 0.5) + (lace - 0.5) * LACE_RAGGED;
 			// The core holds Monahan's share (the director's threshold is
 			// calibrated on it); a faint halo softens its edge.
 			float core = smoothstep(whitecap_threshold, whitecap_threshold + 0.5, crest_z);
@@ -349,15 +353,15 @@ void fragment() {
 			// term), on the same stretch of crest, thinning to lace streaked
 			// out down the wind.
 			float trail_z = CREST_WEIGHT * smoothstep(0.0, 1.5, trail / sigma_k) + BREAKER_SPREAD * (breaker - 0.5) + GROUP_SPREAD * (group - 0.5);
-			// One fetch stretched down the wind: R lace streaks for the spent
-			// foam, G patches drawn out into a gale's wind streaks.
-			vec2 streaks = texture(foam_texture, vec2(fuv.x / 60.0, fuv.y / 3.0)).rg;
-			float spent = smoothstep(whitecap_threshold - 0.2, whitecap_threshold + 0.3, trail_z) * (0.3 + 0.7 * streaks.r) * lace;
-			caps = max(core * (0.7 + 0.3 * lace) * (0.85 + 0.15 * bubbles), max(halo, spent * 0.3));
-			// A gale draws long streaks of foam down the wind (Beaufort 8+).
+			float streak = texture(foam_texture, vec2(fuv.x / 26.0, fuv.y / 3.5)).r;
+			float spent = smoothstep(whitecap_threshold - 0.2, whitecap_threshold + 0.3, trail_z) * (0.3 + 0.7 * streak) * lace;
+			caps = max(core * (0.6 + 0.4 * lace) * (0.8 + 0.2 * bubbles), max(halo, spent * 0.3));
+			// A gale draws long, thin streaks of foam down the wind (Beaufort 8+).
 			float gale = smoothstep(0.03, 0.09, whitecaps);
-			float windrow = smoothstep(0.55, 0.9, streaks.g) * (0.4 + 0.6 * patches);
-			caps = max(caps, windrow * gale * 0.25);
+			if (gale > 0.0) {
+				float windrow = smoothstep(0.7, 0.92, texture(foam_texture, vec2(fuv.x / 140.0, fuv.y / 2.6)).r) * (0.4 + 0.6 * patches);
+				caps = max(caps, windrow * gale * 0.25);
+			}
 			// Once the crests are too small to follow, the caps are their mean:
 			// a faint whitening by Monahan's share and the spent foam's (any
 			// pattern drawn at that scale tiles into a lattice towards the
