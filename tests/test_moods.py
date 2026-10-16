@@ -189,7 +189,9 @@ def test_the_sky_grades_its_clear_sky_and_deck_keeping_the_light():
 def test_the_water_draws_frost_smoke_cloud_shadows_and_lamps():
     water = _code(WATER)
     assert '#include "res://shaders/water/water_mood.gdshaderinc"' in water
-    assert "frost_smoke_cover(p0, view_w)" in water and "cloud_shadow_at(v_world)" in water and "lamp_glow_at(p0)" in water
+    # Lamps and smoke per vertex (smooth over tens of metres; in the fragment they cost ~1 ms).
+    assert "v_mood = vec4(lamp_glow_at(p0), frost_smoke_cover(p0, normalize(CAMERA_POSITION_WORLD - VERTEX)));" in water
+    assert "cloud_shadow_at(v_world)" in water and "float smoke = v_mood.a;" in water
     inc = _code(WATER_MOOD)
     assert "frost_smoke_depth / max(view_w.y" in inc, "the smoke's path through its layer thickens at a graze"
     assert "#define MAX_LAMPS 24" in inc

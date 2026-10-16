@@ -128,6 +128,11 @@ varying vec3 v_world;
 varying vec2 v_p0;
 // The still water level (the grid's height).
 varying float origin_y;
+// G3-05 per vertex (water_mood.gdshaderinc): the pens' lamp glow (rgb) and
+// the frost smoke's cover (a). Both are smooth over tens of metres, and in
+// the fragment stage their code (off on most days) cost ~1 ms at FJORD in
+// register pressure alone.
+varying vec4 v_mood;
 
 vec4 bake_at(vec2 xz) {
 	vec2 uv = ((xz - bake_origin) / bake_spacing + 0.5) / bake_texels;
@@ -213,6 +218,7 @@ void vertex() {
 	v_world = VERTEX;
 	origin_y = origin.y;
 	v_p0 = p0;
+	v_mood = vec4(lamp_glow_at(p0), frost_smoke_cover(p0, normalize(CAMERA_POSITION_WORLD - VERTEX)));
 }
 
 void fragment() {
@@ -428,8 +434,8 @@ void fragment() {
 		// A cloud's shadow takes the direct sun out of the water column; the
 		// pens' lamps glow through it at night; frost smoke veils it all.
 		vec3 shaded_body = body * (1.0 - 0.6 * cloud_shadow_at(v_world));
-		float smoke = frost_smoke_cover(p0, view_w);
-		vec3 lamps = lamp_glow_at(p0) * (1.0 - foam);
+		float smoke = v_mood.a;
+		vec3 lamps = v_mood.rgb * (1.0 - foam);
 		EMISSION = mirror.rgb * fresnel * mirror.a;
 		EMISSION = (EMISSION + lamps) * (1.0 - smoke) + frost_smoke_light * smoke;
 		ALBEDO = mix(shaded_body, foam_color, foam) * (1.0 - smoke);

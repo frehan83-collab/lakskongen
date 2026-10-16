@@ -45,6 +45,9 @@ uniform vec4 lamp_glow[MAX_LAMPS];
 uniform int lamp_count = 0;
 uniform vec3 lamp_light = vec3(0.0);
 
+// The lamp glow's two terms at its edge (r = 2: exp(-6.4), exp(-1.8)).
+const float LAMP_CORE_AT_EDGE = 0.0016616;
+const float LAMP_SPILL_AT_EDGE = 0.1652989;
 // Optical depth per metre of the densest wisps at full smoke.
 const float SMOKE_SIGMA = 0.004;
 // The longest path through the layer counted (m): beyond it the layer is opaque anyway.
@@ -125,8 +128,10 @@ vec3 lamp_glow_at(vec2 p) {
 		vec2 d = p - lamp.xy;
 		float r2 = dot(d, d) / (lamp.z * lamp.z);
 		if (r2 < 4.0) {
-			// Bright over the lamp, a soft spill past the collar (r = 1).
-			glow += lamp.w * (exp(-r2 * 1.6) + 0.18 * exp(-r2 * 0.45));
+			// Bright over the lamp, a soft spill past the collar (r = 1),
+			// both reaching zero at r = 2 (no edge for the per-vertex
+			// interpolation to draw as a polygon).
+			glow += lamp.w * (max(exp(-r2 * 1.6) - LAMP_CORE_AT_EDGE, 0.0) + 0.18 * max(exp(-r2 * 0.45) - LAMP_SPILL_AT_EDGE, 0.0) / (1.0 - LAMP_SPILL_AT_EDGE));
 		}
 	}
 	return lamp_light * glow;
