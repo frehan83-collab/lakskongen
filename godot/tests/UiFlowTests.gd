@@ -5994,9 +5994,21 @@ func _test_driftsplan_card_sets_and_runs_standing_orders() -> void:
 			and card.policy_status("net_cleaning").text == expected_status,
 		"driftsplan: the day ran the order, and the card says when it runs next and what it did (%s)" % card.policy_status("net_cleaning").text)
 
+	# A value prepared while the order is off survives the day's refresh and is what the switch sets.
+	share.value = 70.0
+	_sim.advance_day()
+	await get_tree().process_frame
+	card.refresh()
+	_check(is_equal_approx(share.value, 70.0) and _sim.get_driftsplan(site_id).size() == 1,
+		"driftsplan: a share prepared while the order is off stays (%.0f %%) and sets nothing yet" % share.value)
 	scroll.ensure_control_visible(lice)
 	await get_tree().process_frame
 	await _click_control(lice)
+	var prepared := 0.0
+	for e in _sim.get_driftsplan(site_id):
+		if str(e.get("policy", "")) == "delouse_on_count":
+			prepared = float(e.get("numbers", {}).get("share_of_limit", 0.0))
+	_check(is_equal_approx(prepared, 0.7), "driftsplan: the switch sets the prepared share (%.2f)" % prepared)
 	var method := card.setting_control("delouse_on_count", "method") as OptionButton
 	var thermal := -1
 	for i in method.item_count:

@@ -90,10 +90,13 @@ func _ready() -> void:
 ## "offshore_unit", "land_site", "post_smolt_site").
 func set_unit(unit_id: String, unit_kind: String) -> void:
 	var rebuild := unit_kind != _unit_kind or _rows.is_empty()
+	var other_unit := unit_id != _unit_id
 	_unit_id = unit_id
 	_unit_kind = unit_kind
 	if rebuild:
 		_build_rows()
+	elif other_unit:
+		_show_defaults()
 	refresh()
 
 
@@ -223,24 +226,40 @@ func refresh() -> void:
 		var entry: Dictionary = orders.get(kind, {})
 		var on := not entry.is_empty()
 		(row["check"] as CheckButton).set_pressed_no_signal(on)
-		for setting in row["policy"].get("settings", []):
-			var key := str(setting.get("key", ""))
-			var control: Control = row["controls"][key]
-			if control is SpinBox:
-				var value := float(entry.get("numbers", {}).get(key, setting.get("default", 0.0)))
-				(control as SpinBox).set_value_no_signal(value * float(control.get_meta("scale", 1.0)))
-			elif control is OptionButton:
-				var choice := str(entry.get("choices", {}).get(key, setting.get("default_choice", "")))
-				var option := control as OptionButton
-				for i in option.item_count:
-					if str(option.get_item_metadata(i)) == choice:
-						option.select(i)
+		# An order that is on shows the engine's values; one that is off keeps
+		# what the player is preparing (the defaults until they touch it).
+		if on:
+			_show_values(row, entry)
 		var status := row["status"] as Label
 		status.text = _status_text(entry)
 		# A job the order could not do reads in the warning tone (the words say it too).
 		var failed := not (str(entry.get("last_outcome", "")) in ["", "ok"])
 		status.theme_type_variation = &"SmallWarn" if failed else &"SmallMuted"
 	_next.text = _next_text(_sim.get_next_planned(_unit_id))
+	_syncing = false
+
+
+## Show an order's values (the policy's defaults where the order has none).
+func _show_values(row: Dictionary, entry: Dictionary) -> void:
+	for setting in row["policy"].get("settings", []):
+		var key := str(setting.get("key", ""))
+		var control: Control = row["controls"][key]
+		if control is SpinBox:
+			var value := float(entry.get("numbers", {}).get(key, setting.get("default", 0.0)))
+			(control as SpinBox).set_value_no_signal(value * float(control.get_meta("scale", 1.0)))
+		elif control is OptionButton:
+			var choice := str(entry.get("choices", {}).get(key, setting.get("default_choice", "")))
+			var option := control as OptionButton
+			for i in option.item_count:
+				if str(option.get_item_metadata(i)) == choice:
+					option.select(i)
+
+
+## Another unit: every switched-off row starts from the defaults again.
+func _show_defaults() -> void:
+	_syncing = true
+	for kind in _rows:
+		_show_values(_rows[kind], {})
 	_syncing = false
 
 
