@@ -29,9 +29,11 @@ const TAB_VERBS := {
 	"order_oxygen": "ras",
 	"start_purge": "ras",
 	"build_competence": "ras",
+	# A standing order that failed: the pen view with its site selected, where
+	# the site's Driftsplan card is.
+	"open_driftsplan": "pens",
 }
-## A standing order that failed opens its site, where the Driftsplan is set.
-const SITE_VERBS := ["delouse", "freshwater_bath", "inspect_nets", "open_driftsplan"]
+const SITE_VERBS := ["delouse", "freshwater_bath", "inspect_nets"]
 
 
 ## Runs the event's verb inside a running game scene (its root). Returns true
@@ -42,12 +44,17 @@ static func perform(event: Dictionary, scene: Node) -> bool:
 	var verb := str(event.get("counter_verb", "none"))
 	var ui := scene.get_node_or_null("%GameUI")
 	var vista := scene.get_node_or_null("%FjordVistaBridge")
+	var sim := scene.get_node_or_null("/root/SimBridge")
 	if TAB_VERBS.has(verb):
 		if ui == null or not ui.has_method("show_tab"):
 			return false
 		ui.show_tab(TAB_VERBS[verb])
+		if verb == "open_driftsplan":
+			var pens: Node = ui.find_child("Panel_pens", true, false)
+			var unit := str(event.get("unit_id", ""))
+			if pens != null and unit != "" and pens.has_method("select_pen"):
+				pens.select_pen(unit)
 		return true
-	var sim := scene.get_node_or_null("/root/SimBridge")
 	var site := target_site(event, sim)
 	if SITE_VERBS.has(verb):
 		if vista != null and site != "" and vista.has_method("show_pen_detail"):

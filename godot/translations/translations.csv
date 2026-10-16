@@ -1642,12 +1642,42 @@ UI_CHART_DAY_RANGE,Days %d–%d,Dag %d–%d
 UI_CHART_INCOME,Income,Inntekter
 ALERT_GILL_CRITICAL,Gill health critical at %s,Gjellehelsen er kritisk ved %s
 ALERT_GILL_POOR,Gill health declining at %s,Gjellehelsen svekkes ved %s
+DRIFTSPLAN_CHOICE_FRESHWATER,Freshwater bath,Ferskvannsbad
+DRIFTSPLAN_CHOICE_HYDROLICER,Flushing (mechanical),Spyling (mekanisk)
+DRIFTSPLAN_CHOICE_PEROXIDE,Hydrogen peroxide,Hydrogenperoksid
+DRIFTSPLAN_CHOICE_THERMOLICER,Thermal delousing,Termisk avlusing
+DRIFTSPLAN_FAIL_ALREADY_BOOKED,a boat was already booked,en båt var allerede bestilt
+DRIFTSPLAN_FAIL_CANCELLED,the treatment was called off,behandlingen ble avlyst
+DRIFTSPLAN_FAIL_INSUFFICIENT_FUNDS,not enough money,for lite penger
+DRIFTSPLAN_FAIL_OTHER,refused,avvist
+DRIFTSPLAN_FAIL_SITE_EMPTY,no fish,ingen fisk
+DRIFTSPLAN_INTRO,"Standing orders do the routine work by themselves, with the same orders and at the same price as when you give them yourself.","Faste oppdrag gjør rutinearbeidet av seg selv, med de samme bestillingene og til samme pris som når du gir dem selv."
+DRIFTSPLAN_LAST,last %s: %s,sist %s: %s
+DRIFTSPLAN_NEXT,Next planned: %s · %s,Neste planlagt: %s · %s
+DRIFTSPLAN_NEXT_NONE,Nothing planned,Ingenting planlagt
+DRIFTSPLAN_NONE_FOR_UNIT,No standing orders for this kind of unit yet.,Ingen faste oppdrag for denne typen anlegg ennå.
+DRIFTSPLAN_OUTCOME_OK,done,utført
 DRIFTSPLAN_POLICY_DELOUSE_ON_COUNT,Delouse on the count,Avlus ved telling
 DRIFTSPLAN_POLICY_NET_CLEANING,Net care (ROV and net cleaning),Notpleie (ROV og notvask)
 DRIFTSPLAN_SETTING_INTERVAL_DAYS,Days between jobs,Dager mellom hver jobb
 DRIFTSPLAN_SETTING_METHOD,Method,Metode
 DRIFTSPLAN_SETTING_MIN_INTERVAL_DAYS,Fewest days between treatments,Minst antall dager mellom behandlinger
 DRIFTSPLAN_SETTING_SHARE_OF_LIMIT,Share of the lice limit,Andel av lusegrensen
+DRIFTSPLAN_SETTING_TIP_DELOUSE_ON_COUNT_METHOD,Mechanical flushing works at any sea temperature.,Mekanisk spyling virker ved alle sjøtemperaturer.
+DRIFTSPLAN_SETTING_TIP_DELOUSE_ON_COUNT_MIN_INTERVAL_DAYS,Every handling stresses the fish: the order waits at least this long between two treatments.,Hver håndtering stresser fisken: oppdraget venter minst så lenge mellom to behandlinger.
+DRIFTSPLAN_SETTING_TIP_DELOUSE_ON_COUNT_SHARE_OF_LIMIT,The default treats a week before a second count over the limit would bring an order from Mattilsynet.,Standardverdien gir behandling en uke før en ny telling over grensen ville gitt pålegg fra Mattilsynet.
+DRIFTSPLAN_SETTING_TIP_NET_CLEANING_INTERVAL_DAYS,The default follows farms in Western Norway that cleaned their nets every other week from May to November 2019 (Elsheshtawy et al. 2023).,Standardverdien følger oppdrettere på Vestlandet som vasket nøtene annenhver uke fra mai til november 2019 (Elsheshtawy mfl. 2023).
+DRIFTSPLAN_SOURCE,Source: %s,Kilde: %s
+DRIFTSPLAN_STATUS_OFF,Off,Av
+DRIFTSPLAN_TIP_DELOUSE_ON_COUNT,"Delouses the site when the weekly lice count is above the chosen share of today's lice limit, at most once per count.","Avluser lokaliteten når den ukentlige lusetellingen er over valgt andel av dagens lusegrense, høyst én gang per telling."
+DRIFTSPLAN_TIP_NET_CLEANING,Books the ROV boat (net cleaning and inspection) at a fixed interval while there are fish in the pens. You pay the boat each time.,Bestiller ROV-båten (notvask og inspeksjon) med fast mellomrom så lenge det er fisk i merdene. Du betaler båten hver gang.
+DRIFTSPLAN_TITLE,Operating plan,Driftsplan
+DRIFTSPLAN_UNIT_DAYS,days,dager
+DRIFTSPLAN_WAIT,when needed,ved behov
+DRIFTSPLAN_WAIT_LICE_COUNT_ABOVE,when a lice count is above %s,når en lusetelling viser over %s
+DRIFTSPLAN_WAIT_SITE_STOCKED,waits for fish in the pens,venter på fisk i merdene
+DRIFTSPLAN_WHEN,%s (in %d days),%s (om %d dager)
+DRIFTSPLAN_WHEN_TODAY,today,i dag
 GAME_EVENT_ALGAL_BLOOM,Bloom at the farm,Oppblomstring ved anlegget
 GAME_EVENT_APPETITE_LOW,Low appetite,Lav appetitt
 GAME_EVENT_BIOFILTER_DEGRADED,Biofilter losing capacity,Biofilteret mister kapasitet

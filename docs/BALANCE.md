@@ -1717,6 +1717,46 @@ either way, so no cash moves for it: with the ring-fence alone (before the
 narrowing) cash, fish and kilos were F2-03's to the krone and the kilo, and only
 the saved fields changed the pin.
 
+## 1o. F2-05: the Driftsplan and the notification budget (2026-10-16, branch `wave3/sim-core-4`)
+
+A standing order issues the player's own verb at the player's price: it adds
+no cost, no discount and no new effect, so its balance is the verb's. The
+defaults are the settings a new order starts with; each carries its source on
+the setting (`DriftsplanSetting.Source`, shown in the card's tooltip).
+Neither fjord policy is on by default: a fjord game plays as before until the
+player sets one (the farm-type lanes add their units' defaults, spec §1
+pillar 5).
+
+| policy · setting | default (range) | unit | provenance |
+|---|---|---|---|
+| net care (`net_cleaning`) · interval | 14 (7–60) | days | Elsheshtawy et al. 2023, *Frontiers in Aquaculture* 2:1125595: commercial farms in western Norway cleaned their nets every second week, May–November 2019; Bloecher and Floerl 2021 "every two weeks or more" at high-fouling sites. The job is the ROV wellboat (`RequestWellboat` "rov": 75,000 NOK, nets +15 %) |
+| delouse on the count (`delouse_on_count`) · share of the limit | 0.8 (0.5–1.0) | share | [GB] acts on the first weekly count over 0.8 × the lakselusforskriften § 8 limit (0.5 adult females, 0.2 in the area's spring weeks), a week before a second count over the limit brings Mattilsynet's order; 0.8 × 0.5 = the golden player's 0.4 (F2-01). Counts: § 6, weekly at ≥ 4 °C |
+| · fewest days between treatments | 14 (7–60) | days | [GB] the golden player's interval; each handling stresses the fish |
+| · method | hydrolicer (hydrolicer, thermolicer, freshwater, peroxide) | — | [GB] the golden player's; mechanical delousing works at any sea temperature |
+
+What a plan changes in a year of po3_red_sone (events on, 40 M NOK loan in
+every game, a lice wave of +0.5 adult females on both sites every 60 days;
+`DriftsplanTests.APlan_ChangesThePlayersGame`):
+
+| seed | net integrity mean / worst, no plan | with net care | ROV jobs (hire by day 300) | adult females, no plan | with the standing order | treatments | Mattilsynet treatment orders |
+|---|---|---|---|---|---|---|---|
+| 3 | 99.32 % / 95.6 % | 99.62 % / 95.8 % | 27 (1,650,000 NOK) | 0.441 | 0.123 | 12 | 9 → 0 |
+| 11 | 98.04 % / 91.8 % | 99.43 % / 94.3 % | 27 (1,650,000 NOK) | 0.453 | 0.124 | 12 | 9 → 0 |
+
+The nets' routine upkeep keeps them near 100 % on calm days, so net care pays
+mostly after storms (seed 11's winter); its price is the wellboat's (≈ 2 M NOK
+a year a site at 14 days), a balance for the player to judge against the
+storm escapes it guards against. The standing order keeps the lice at a third
+of the unplanned level and never lets an order come.
+
+**The notification budget** (spec §6.6, measured in F2-17 with
+`NotificationMeter`): a policy-competent player sees at most **2 warnings per
+unit per in-game month** and at most **1 critical per unit per in-game year**
+(`NotificationMeter.WarningBudgetPerUnitMonth`, `CriticalBudgetPerUnitYear`;
+owner brief "alarms are rare and mean something"). The meter counts what the
+bus delivered (new and escalated), never a repeat it absorbed, and never
+information.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |

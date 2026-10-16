@@ -435,6 +435,7 @@ public string PlacedZoneId { get; set; } = "";                  // "" = stranded
 - In-day: Weather → **Metocean** (new, F2-06) → **Driftsplan** (new, F2-05) → HealthPrep → Biology → **FarmOpex** (runs `OffshoreTickSystem` and `LandSiteTickSystem`, then the remaining opex) → CarbonLedger → … → Sludge → TrafficLight.
 - Post-tick: storm impacts (offshore skipped through a hook) → wellboat execution (gated through a hook) → **ConstructionAndPermits** (new: advances projects and resolves permit decisions).
 - The new phases draw only from their own new streams and touch only F2 units, so the shipped-scenario goldens hold.
+- **Landed (F2-05, `wave3/sim-core-4`):** the Driftsplan phase runs at the **start of every step** (`SimulationEngine.RunDriftsplan`, first in `Advance`, before the step resolves its holdings and the mortality ledger's day, and before Weather and Metocean), not between Metocean and HealthPrep: that is where a player's commands between days land, so a policy issues exactly the commands a scripted player would, with the same game every day (`DriftsplanTests`, the golden-trace day hash). Inside the step a treatment's deaths went to the next ledger day (mutation M1 in RUN_LOG §7). A policy reads the state the player reads, the end of the previous day, which already holds the metocean draw and the forecast it books against. Planning never draws: every evaluation is checked against every stream position (`DriftsplanPurityException`). A lane adds its policies through `DriftsplanPolicies.AddOffshorePolicies` / `AddLandPolicies` (partial methods in its own file) and its units' defaults with `ApplyDriftsplanDefaults(unitId)`.
 
 **Metocean** (`OffshoreMetocean.TickDay`; stream `offshore_metocean`; **exactly 8 uniforms per day**, always drawn, sampled by inverse CDF).
 
@@ -673,7 +674,7 @@ Engine partials return `CommandResult`. Every verb a policy can issue is the sam
 
 | Verb | Partial | Fails with |
 |---|---|---|
-| `SetDriftsplan(unitId, policyKind, settings)`; `GetNextPlanned(unitId)` | `.Driftsplan` | unknown_policy, out_of_range |
+| `SetDriftsplan(unitId, policyKind, settings)`; `GetNextPlanned(unitId)` | `.Driftsplan` | unknown_policy, out_of_range (landed F2-05: also not_found for an unknown unit and not_applicable for a policy of another unit kind; `ClearDriftsplan`, `ApplyDriftsplanDefaults`, `GetPlannedJobs`) |
 | `BuildLandSite(plotId, LandTemplate, ContractForm)` (pilot lot, full lot or post-smolt module) | `.LandSites` | not_unlocked, plot_taken, permits_missing, grid_capacity, insufficient_funds |
 | `ExpandLandSite(siteId)` (pilot → full lot, next lot, next module); `PreOrderLot(siteId)`; `AccelerateConstruction(projectId)` | `.LandSites` | lots_exhausted, permits_missing, insufficient_funds |
 | `StockLandTank(siteId, tankId, count, strainId)`; `GradeTank(siteId, from, to, share)` | `.LandSites` | not_operational, biofilter_immature, tank_occupied, density_exceeded, annual_capacity, util_cap |
@@ -716,6 +717,8 @@ New GameEventBus types (U2-06 severities). Each carries `UnitId`, `DeadlineDay` 
 - At ≤ 1 sim-day remaining with no response, the game pauses.
 
 Every critical event writes an **IncidentReport** to the EventLog with ≥ 3 causal steps, the drivers behind each probability, the losses and the procedure unlocked.
+
+**Landed (F2-05, `wave3/sim-core-4`):** every type above is a `GameEventType` marked `[FarmTypeEvent]` with a catalog row declared through `F2Row` (severity as in the table, deadline rule, counter verb or `none`; `FarmTypeEventCatalogTests` reads this table), plus F2-05's own `DriftsplanCommandFailed` (warning, `open_driftsplan`). Deadlines the publisher sets: `SiteApprovalWithdrawn`, `MattilsynetOrder`, `HandlingOverdue`, `LoxShortage`, `H2sChronic`, `OffFlavourDetected`, `DischargeNearCap`, `SiloLow`, `StormSwellForecast`, `ConversionPaymentDue`. `HandlingOverdue` and `MattilsynetOrder` share a dedupe category (as do `H2sChronic` and `H2sAcute`), so the order escalates the warning on the bus and moves its deadline. Counter verbs: `book_operation`, `repair_unit`, `review_alarms`, `fix_defect`, `start_tow`, `pay_conversion` (the offshore tab until F2-33), `resolve_outage`, `adjust_water`, `order_oxygen`, `start_purge`, `build_competence` (the land tab until F2-32), `open_driftsplan`; `CapexOverrun` has none (a managed contract's overrun is owed). The notification meter (`engine.Notifications`) counts the warnings and criticals the bus delivered per unit and sim month against the §6.6 budget; it is not saved.
 
 ### 3.6 Economy and carbon hooks
 

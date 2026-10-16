@@ -146,6 +146,8 @@ func _run() -> void:
 	await _test_offshore_unit_leaves_fjord_pens_in_place()
 	# F2-04: the farm-type catalogue and the research gates reach the UI.
 	await _test_farm_type_catalog_reaches_the_ui()
+	# F2-05: the Driftsplan card sets, changes and ends standing orders.
+	await _test_driftsplan_card_sets_and_runs_standing_orders()
 
 	_clear_test_saves()
 	_finish()
@@ -5930,4 +5932,100 @@ func _test_farm_type_catalog_reaches_the_ui() -> void:
 			and tr("UI_TECH_UNLOCKS") % ", ".join([tr("FARM_VARIANT_POST_SMOLT"), tr("FARM_VARIANT_HFS")]) in text,
 		"farm types: the tooltip names land tanks and the two land types it opens (%s)" % text.replace("\n", " | "))
 	tree.queue_free()
+	await get_tree().process_frame
+
+
+## F2-05: a fjord site's Driftsplan card. Real clicks turn the two fjord
+## orders on and off, a changed setting reaches the engine's order, the
+## defaults and ranges are the engine's, the card leads with the engine's
+## "Neste planlagt" and its status lines are the engine's (what the order
+## waits for, what it last did); the order runs when the day runs. A farm-type
+## event names its unit in the notification text.
+func _test_driftsplan_card_sets_and_runs_standing_orders() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 41), "driftsplan: po3_red_sone starts")
+	_sim.set_paused(true)
+	var site_id := "po3_nord"
+	var panel: Control = (load("res://scenes/ui/PenManagement.tscn") as PackedScene).instantiate()
+	add_child(panel)
+	await get_tree().process_frame
+	panel.select_pen(site_id)
+	await get_tree().process_frame
+	var card: DriftsplanCard = panel.driftsplan_card()
+	_check(card != null and card.is_visible_in_tree(), "driftsplan: the pen view shows the card")
+	if card == null:
+		panel.queue_free()
+		return
+	var scroll: ScrollContainer = panel.get_node("Margin/MainSplit/DetailScroll")
+	var net := card.policy_check("net_cleaning")
+	var lice := card.policy_check("delouse_on_count")
+	_check(net != null and lice != null and not net.button_pressed and not lice.button_pressed
+			and net.text == tr("DRIFTSPLAN_POLICY_NET_CLEANING"),
+		"driftsplan: both fjord orders are listed, off, with Norwegian names (%s)" % (net.text if net else "none"))
+	_check(card.next_planned_label().text == tr("DRIFTSPLAN_NEXT_NONE")
+			and card.policy_status("net_cleaning").text == tr("DRIFTSPLAN_STATUS_OFF"),
+		"driftsplan: nothing planned yet (%s)" % card.next_planned_label().text)
+	var interval := card.setting_control("net_cleaning", "interval_days") as SpinBox
+	var share := card.setting_control("delouse_on_count", "share_of_limit") as SpinBox
+	_check(interval != null and int(interval.value) == 14 and int(interval.min_value) == 7 and int(interval.max_value) == 60
+			and share != null and is_equal_approx(share.value, 80.0) and is_equal_approx(share.min_value, 50.0),
+		"driftsplan: the defaults and ranges are the engine's (%d d in 7-60, %.0f %%)" % [int(interval.value), share.value])
+
+	scroll.ensure_control_visible(net)
+	await get_tree().process_frame
+	await _click_control(net)
+	var orders: Array = _sim.get_driftsplan(site_id)
+	_check(orders.size() == 1 and str(orders[0].get("policy", "")) == "net_cleaning"
+			and int(orders[0].get("numbers", {}).get("interval_days", 0)) == 14,
+		"driftsplan: a click on net care sets the order with the card's values (%s)" % str(orders))
+	_check(card.next_planned_label().text == tr("DRIFTSPLAN_NEXT") % [tr("DRIFTSPLAN_POLICY_NET_CLEANING"), tr("DRIFTSPLAN_WHEN_TODAY")],
+		"driftsplan: the card leads with today's net care (%s)" % card.next_planned_label().text)
+	interval.value = 21
+	await get_tree().process_frame
+	_check(int(_sim.get_driftsplan(site_id)[0].get("numbers", {}).get("interval_days", 0)) == 21,
+		"driftsplan: a changed interval reaches the engine's order")
+
+	_sim.advance_day()
+	await get_tree().process_frame
+	card.refresh()
+	var entry: Dictionary = _sim.get_driftsplan(site_id)[0]
+	var expected_status := "%s · %s" % [tr("DRIFTSPLAN_WHEN") % [GameCalendar.short_date(21), 20],
+		tr("DRIFTSPLAN_LAST") % [GameCalendar.short_date(0), tr("DRIFTSPLAN_OUTCOME_OK")]]
+	_check(int(entry.get("issued_count", 0)) == 1 and int(entry.get("last_issued_day", -1)) == 0
+			and card.policy_status("net_cleaning").text == expected_status,
+		"driftsplan: the day ran the order, and the card says when it runs next and what it did (%s)" % card.policy_status("net_cleaning").text)
+
+	scroll.ensure_control_visible(lice)
+	await get_tree().process_frame
+	await _click_control(lice)
+	var method := card.setting_control("delouse_on_count", "method") as OptionButton
+	var thermal := -1
+	for i in method.item_count:
+		if str(method.get_item_metadata(i)) == "thermolicer":
+			thermal = i
+	method.select(thermal)
+	method.item_selected.emit(thermal)
+	await get_tree().process_frame
+	var lice_order: Dictionary = {}
+	for e in _sim.get_driftsplan(site_id):
+		if str(e.get("policy", "")) == "delouse_on_count":
+			lice_order = e
+	var level := float(lice_order.get("next", {}).get("trigger_value", 0.0))
+	_check(str(lice_order.get("choices", {}).get("method", "")) == "thermolicer" and method.get_item_text(thermal) == tr("DRIFTSPLAN_CHOICE_THERMOLICER"),
+		"driftsplan: the delousing order takes the chosen method (%s)" % str(lice_order.get("choices")))
+	_check(level > 0.1 and card.policy_status("delouse_on_count").text == tr("DRIFTSPLAN_WAIT_LICE_COUNT_ABOVE") % SimFormatters.num(level, 2),
+		"driftsplan: the order says it waits for a count over its level (%s)" % card.policy_status("delouse_on_count").text)
+
+	scroll.ensure_control_visible(net)
+	await get_tree().process_frame
+	await _click_control(net)
+	var left: Array = _sim.get_driftsplan(site_id).map(func(e: Dictionary) -> String: return str(e.get("policy", "")))
+	_check(left == ["delouse_on_count"] and not net.button_pressed
+			and card.policy_status("net_cleaning").text == tr("DRIFTSPLAN_STATUS_OFF"),
+		"driftsplan: a second click ends net care (%s)" % str(left))
+
+	var unit_event := {"type": "silo_low", "severity": "warning", "unit_id": "offshore_1", "unit_name": "Havmerd Vest", "site_id": "offshore_1"}
+	_check(GameEventText.subject(unit_event, _sim) == "Havmerd Vest"
+			and GameEventText.has_verb({"counter_verb": "open_driftsplan"}) and tr("GAME_EVENT_DRIFTSPLAN_COMMAND_FAILED") != "GAME_EVENT_DRIFTSPLAN_COMMAND_FAILED",
+		"driftsplan: a farm-type event names its unit, and a failed order has its verb and title")
+	panel.queue_free()
 	await get_tree().process_frame

@@ -18,6 +18,8 @@ var _theme: Node = null
 # ── State ─────────────────────────────────────────────────────────────────────
 var _selected_pen_id: String = ""
 var _pen_list_items: Dictionary = {}  # pen_id -> Button
+## F2-05: the site's standing orders, under its actions.
+var _driftsplan_card: DriftsplanCard = null
 
 # ── Scene refs ────────────────────────────────────────────────────────────────
 ## Fish below this mean weight are not ready for slaughter (harvest button).
@@ -120,6 +122,7 @@ func _ready() -> void:
 	_build_quality_selector()
 	_populate_quality_tiers()
 	_populate_treatments()
+	_mount_driftsplan_card()
 	_attach_button_juice()
 	_refresh()
 
@@ -421,10 +424,27 @@ func _show_detail() -> void:
 func _select_pen(pen_id: String) -> void:
 	_selected_pen_id = pen_id
 	pen_selected.emit(pen_id)
+	if _driftsplan_card != null:
+		_driftsplan_card.set_unit(pen_id, "fjord_site")
 	# The 3D view follows the list (highlight, indicator, "Fly to pen").
 	if is_inside_tree():
 		get_tree().call_group(FJORD_VISTA_GROUP, "select_pen_from_ui", pen_id)
 	_refresh()
+
+
+## F2-05: the Driftsplan card goes right under the site's actions: the orders
+## that do those actions by themselves.
+func _mount_driftsplan_card() -> void:
+	var actions: Control = _btn_delouse.get_parent()
+	var detail_root := actions.get_parent()
+	_driftsplan_card = DriftsplanCard.new()
+	detail_root.add_child(_driftsplan_card)
+	detail_root.move_child(_driftsplan_card, actions.get_index() + 1)
+
+
+## The Driftsplan card (UI flow tests).
+func driftsplan_card() -> DriftsplanCard:
+	return _driftsplan_card
 
 
 ## Public selection API for 3D pen clicks (FjordVistaBridge).
