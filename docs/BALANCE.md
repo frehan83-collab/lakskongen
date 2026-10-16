@@ -1575,6 +1575,97 @@ game that never expands runs as before (golden traces identical). Its traffic
 light is its area's as the game knows it (the worst colour of the area's zones;
 water nobody farms assesses green, `TrafficLightSystem.GreenLiceThreshold`).
 
+## 1n. U2-03: the liquidity ladder, overdraft interest and the rescue loan (2026-10-16, branch `wave3/ui-b-2`)
+
+S1-03 warns by depth (overdraft, half-way, final warning) and ends the game
+below the scenario's floor; it has no sense of time, and negative cash was free
+(RUN_LOG §8 "overdraft is free"). U2-03 adds the bank's reading of the cash and
+a price on the overdraft. Calibration section `liquidity` (v1.0.11,
+`Calibration/LiquidityCalibration.cs`); engine `Core/SimulationEngine.Liquidity.cs`,
+rules `Finance/LiquidityLadder.cs`.
+
+### What negative cash costs now
+
+| knob | value | source |
+|---|---|---|
+| `OverdraftInterestRate` | 12.25 % a year, daily on the closing cash (act/365) | Norway's late-payment interest (forsinkelsesrente) for H2 2025 and again from 1 July 2026: Norges Bank's policy rate + 8 pp (forsinkelsesrenteloven § 3; Finanstilsynet, https://www.finanstilsynet.no/nyhetsarkiv/nyheter/2025/forsinkelsesrente-og-standardkompensasjon-for-inndrivelseskostnader-fra-1.-juli-2025 and .../2026/...-fra-1.-juli-2026) |
+| term loan (unchanged) | 5.5 % a year | `Finance.LoanInterestRate` |
+
+Negative cash is unpaid bills and an overdrawn account, so it pays what an
+unpaid bill costs in Norway, well above the term loan: borrowing now beats
+riding the overdraft (`BorrowingBeatsRidingTheOverdraft`: two identical
+po3_red_sone companies 3 MNOK under, one borrows 5 MNOK at 5.5 %; 60 days later
+the borrower has more equity). Paid by the golden traces' players over 730
+days (docs/run/evidence/U2-03_golden_diff.md): algekatastrofe 0.49-0.77 MNOK,
+isa_utbrudd 0.52-0.60 MNOK (before the restock cascade), krise_manager
+0.22-0.48 MNOK, po3_red_sone 0.33-0.58 MNOK, lofoten_eventyr 34 NOK-3.4 kNOK;
+the 7 traces whose cash never goes below zero pay nothing. The career band
+tests (`PlayerScriptCareerTests`, `FullCycleEconomicTests`) pass unchanged.
+
+### The bank's reading: burn, runway, warning, call
+
+| knob | value | why |
+|---|---|---|
+| `BurnWindowDays` / `BurnStepDays` | 35 / 7 | the burn is the median of the rolling 7-day changes over 35 days, per day: a week holds the running lumps (a storm repair, a monthly bill) that a single-day median skips, and the median of the weeks ignores a one-off harvest payment or purchase (`Burn_IsTheMedianWeek_SoAOneOffNeitherHidesNorFakesIt`) |
+| `MinBurnHistoryDays` | 14 | no forecast in a game's (or a loaded save's) first two weeks |
+| `WarningRunwayDays` | 60 | liquidity warning (typed warning, verb raise_capital, deadline = the projected floor day): twice the roadmap's 30 days, because the burn grows with the fish (feed) |
+| `BankCallRunwayDays` | 28 | bank call (critical card) with the rescue offer: four weeks, so a 14-day offer is answered with two to spare and a last lump still leaves the roadmap's 10 days |
+| `ReArmRunwayDays` | 120 | the episode ends (both rungs re-arm) when the runway is back above this or the cash stops falling |
+
+Measured on the engine (passive companies: no harvest, the bank never answered;
+9 scenarios × seeds 1-6; barekraft_mester never declines, so 48 declines;
+probe in the run's scratch, the acceptance test is
+`LiquidityLadderTests.ScriptedDecline_IsWarned30DaysAndCalled10DaysBeforeBankruptcy`
+over 13 scenario/seed pairs):
+
+| lead before bankruptcy | min | median | max | roadmap |
+|---|---|---|---|---|
+| liquidity warning | 40 days (lofoten_eventyr s2) | 69 days | 176 days | ≥ 30 |
+| bank call | 14 days (krise_manager s3, laksebaronene s3) | 30 days | 113 days | ≥ 10 |
+
+The shortest call leads come from a last lump before the floor (a storm repair
+on a company already at its limit); the warning never came later than 40 days
+out. A straight decline (a fixed cost every day) is warned 60 and called 28
+days out to the day (`LinearDecline_IsWarnedAtTheRunwayThresholds`).
+
+### The rescue loan
+
+| knob | value | source |
+|---|---|---|
+| `RescueLoanInterestRate` | 14 % a year | three-month NIBOR (~4.5 % in 2025) + the 950 bps margin of a senior secured three-year bond a land-based salmon farmer placed in June 2025 (company release 2025-06-11, https://www.placera.se/pressmeddelanden/andfjord-salmon-group-andfjord-salmon-group-as--successful-bond-issue-20250611) |
+| `RescueLoanArrangementFee` | 2 % up front | that bond's 98 % issue price |
+| `RescueLoanTermMonths` | 36 | that bond's tenor; repaid daily like every loan |
+| `RescueLoanAdvanceRate` | half the standing biomass at the norm price, less the drawn facility and the loans | biomass facilities are sized on the insured fish (a 2023 Icelandic sea farmer's EUR 70 M revolver on insured biomass and receivables, Fish Farmer, https://www.fishfarmermagazine.com/?p=145908); no public advance rate exists, so a conservative half (design value) |
+| `RescueLoanCoverDays` / `RescueLoanMinCoverDays` | 120 / 30 | the offer covers 120 days of burn, rounded up to 0.5 MNOK (`RescueLoanRoundingNok`), and is not made when the collateral carries less than 30 days |
+| `RescueOfferValidDays` / `MaxRescueLoans` | 14 / 1 | the offer's deadline (the clock slows and stops before it, U2-07); one rescue a game |
+
+Offers at the bank call in the 48 declines: 40 offered (0.5-33 MNOK: forste_sesong
+1.0-2.5, po3_red_sone 6.0-8.5, algekatastrofe 18.5-29.5, ressursrente
+28.0-33.0); none for krise_manager (its small stock cannot carry its drawn
+facility) or for isa_utbrudd seeds 4 and 6 (an infected stock). Taking the
+offer and still playing passively buys 50-350 days (po3_red_sone: bankrupt on
+days 323-360 without it, 393-451 with it; forste_sesong 366-604 → 534-954);
+algekatastrofe ends lost instead of bankrupt (the survival goal counts the
+loan against equity). `TakingTheRescueLoan_KeepsTheCompanyAlive_DecliningDoesNot`
+is the player-path test; the loan is liquidity and a liability, never revenue,
+and its fee is interest.
+
+### The P&L story and the end report
+
+`Finance/PnlStory.cs` sees every P&L booking under the statements' own
+category (no RNG, no decision reads it). A turning point is one run of one
+ledger line: its income and costs on days at most 3 apart and at most 14 days
+long (a harvest's sales less its wellboat and slaughter cost); a longer run is
+a running cost (feed, wages, interest) and never a turning point. The end
+screen shows the three largest runs and the five largest ledger lines; both
+reconcile to the raw booking stream exactly (`ScenarioReportTests`). A won
+game earns a medal for the campaign: bronze, silver with two of three
+distinctions, gold with all three: no bank call or rescue loan, mortality at
+or under `Health.SeaMortalityPerCycle` (15 %, the calibrated cycle mortality), and no fine or infringement
+fee (D16: medals, never cash). The win the UI tests play:
+ressursrente seed 5 harvesting at 4.5 kg, won after 308 days with bronze (16.3 %
+mortality and 7 kNOK of fines missed the other two).
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
@@ -1614,6 +1705,10 @@ water nobody farms assesses green, `TrafficLightSystem.GreenLiceThreshold`).
 | `Pens.StandardCircumferenceM` / `StandardNetWallDepthM` / `StandardConeDepthM` | 160 / 25 / 15 m (61,116 m³) | 160 m standard, 40 m net; nets 20-50 m | iLaks 2020; Bergheim 2012 | 120-200 m / 20-50 m |
 | `Pens.BuiltSitePenCount` | 8 | 6-12 pens a locality | game estimate (roadmap S2-01b) | 6-12 |
 | `Labor.WorkerMonthlySalaryNOK` | 48,000 | ~48k (2024) | industry wage stats | 36k-60k |
+| `Liquidity.OverdraftInterestRate` | 0.1225 | 12.25 % forsinkelsesrente (H2 2025, H2 2026) | Finanstilsynet; forsinkelsesrenteloven § 3 | above `Finance.LoanInterestRate` (fixed by law) |
+| `Liquidity.WarningRunwayDays` / `BankCallRunwayDays` | 60 / 28 | warning ≥ 30, call ≥ 10 days before bankruptcy (roadmap U2-03) | measured leads §1n | 45-90 / 21-35 |
+| `Liquidity.RescueLoanInterestRate` / `ArrangementFee` / `TermMonths` | 0.14 / 0.02 / 36 | NIBOR + 950 bps, 98 % issue, 3 years | a June 2025 salmon-farm bond (§1n) | 0.10-0.18 / 0.01-0.03 / 24-60 |
+| `Liquidity.RescueLoanAdvanceRate` | 0.5 | borrowing base on insured biomass | design value (no public advance rate) | 0.3-0.7 |
 
 ## 3. Key biological / environmental knobs
 

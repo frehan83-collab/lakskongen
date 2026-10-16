@@ -298,6 +298,11 @@ func _a_bankrupt_game_is_warned_then_gated() -> void:
 	_replay_to(call_day - LEAD_DAYS, false, false)
 	var scene := await _spawn()
 	var screen := _screen(scene)
+	# The world on screen: the camera's keys act (the end screen must stop them).
+	(scene.get_node("UILayer/GameUI") as Control).show_tab("fjord")
+	await _frames(3)
+	var cam_live: bool = scene.find_child("FjordCamera", true, false).get("input_enabled")
+	_check(cam_live, "bankruptcy: on the fjord tab the camera takes keys before the end")
 	var card: Control = scene.get_node("%CriticalEventCard")
 	var call_card := [false]
 	var watch := func() -> bool:

@@ -10,7 +10,11 @@ extends PanelContainer
 ## warning (60 days or less) or a bank call (28 days or less). At a bank call
 ## it may offer a rescue loan against the fish in the sea; the card shows its
 ## terms and its deadline and takes or declines it. The offer is the engine's
-## (LiquidityRules): nothing here sizes or prices anything.
+## (LiquidityRules): nothing here sizes or prices anything. It reads the bank
+## only while it is on screen (and when it comes on screen): a hidden Finance
+## tab costs no day of a fast clock anything.
+
+const FIGURES := ["UI_BANK_FIG_BURN", "UI_BANK_FIG_RUNWAY", "UI_BANK_FIG_INTEREST", "UI_BANK_FIG_COLLATERAL"]
 
 ## A runway longer than this reads as calm (a year of cash at today's burn).
 const CALM_RUNWAY_DAYS := 365.0
@@ -20,6 +24,7 @@ var _status: Dictionary = {}
 var _tag: Label
 var _text: Label
 var _figures: GridContainer
+var _figure_values: Dictionary = {}  # key -> Label
 var _offer_box: VBoxContainer
 var _offer_text: Label
 var accept_button: Button
@@ -35,6 +40,7 @@ func _ready() -> void:
 	if _sim != null:
 		_sim.state_updated.connect(refresh)
 		_sim.day_advanced.connect(func(_d: int, _s: String) -> void: refresh())
+	visibility_changed.connect(refresh)
 	refresh()
 
 
@@ -70,6 +76,16 @@ func _build() -> void:
 	_figures.add_theme_constant_override("h_separation", 18)
 	_figures.add_theme_constant_override("v_separation", 4)
 	box.add_child(_figures)
+	for key in FIGURES:
+		var cap := Label.new()
+		cap.text = tr(key)
+		cap.theme_type_variation = &"SmallMuted"
+		_figures.add_child(cap)
+		var val := Label.new()
+		val.name = "Figure_" + str(key).trim_prefix("UI_BANK_FIG_").to_lower()
+		val.theme_type_variation = &"FigureSmall"
+		_figures.add_child(val)
+		_figure_values[key] = val
 
 	_offer_box = VBoxContainer.new()
 	_offer_box.name = "Offer"
@@ -116,15 +132,17 @@ func _build() -> void:
 	box.add_child(_result)
 
 
-## Re-read the bank's view (on every state change and day).
+## Re-read the bank's view (on every state change and day while on screen).
 func refresh() -> void:
-	if _sim == null or not is_inside_tree():
+	if _sim == null or not is_inside_tree() or not is_visible_in_tree():
 		return
 	_status = _sim.get_liquidity_status()
 	if not bool(_status.get("success", false)):
-		visible = false
+		_tag.text = ""
+		_text.text = tr("UI_BANK_TEXT_CALM")
+		_offer_box.visible = false
+		_result.visible = false
 		return
-	visible = true
 	var stage := str(_status.get("stage", "none"))
 	var runway := float(_status.get("runway_days", -1.0))
 	var floor_text := SimFormatters.format_nok(float(_status.get("floor", 0.0)))
@@ -151,24 +169,12 @@ func _days(runway: float) -> String:
 
 
 func _fill_figures(runway: float) -> void:
-	for child in _figures.get_children():
-		child.queue_free()
 	var rate := SimFormatters.percent(float(_status.get("overdraft_rate", 0.0)), 2)
-	for pair in [
-		["UI_BANK_FIG_BURN", SimFormatters.format_nok(float(_status.get("burn_per_day", 0.0)))],
-		["UI_BANK_FIG_RUNWAY", _days(runway)],
-		["UI_BANK_FIG_INTEREST", tr("UI_BANK_FIG_INTEREST_VALUE") % [SimFormatters.format_nok(float(_status.get("overdraft_interest_paid", 0.0))), rate]],
-		["UI_BANK_FIG_COLLATERAL", SimFormatters.format_nok(float(_status.get("collateral_value", 0.0)))],
-	]:
-		var cap := Label.new()
-		cap.text = tr(pair[0])
-		cap.theme_type_variation = &"SmallMuted"
-		_figures.add_child(cap)
-		var val := Label.new()
-		val.name = "Figure_" + str(pair[0]).trim_prefix("UI_BANK_FIG_").to_lower()
-		val.text = pair[1]
-		val.theme_type_variation = &"FigureSmall"
-		_figures.add_child(val)
+	(_figure_values["UI_BANK_FIG_BURN"] as Label).text = SimFormatters.format_nok(float(_status.get("burn_per_day", 0.0)))
+	(_figure_values["UI_BANK_FIG_RUNWAY"] as Label).text = _days(runway)
+	(_figure_values["UI_BANK_FIG_INTEREST"] as Label).text = tr("UI_BANK_FIG_INTEREST_VALUE") % [
+		SimFormatters.format_nok(float(_status.get("overdraft_interest_paid", 0.0))), rate]
+	(_figure_values["UI_BANK_FIG_COLLATERAL"] as Label).text = SimFormatters.format_nok(float(_status.get("collateral_value", 0.0)))
 
 
 func _fill_offer() -> void:
