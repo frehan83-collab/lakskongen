@@ -144,7 +144,7 @@ axes: north +X, up +Y, east +Z; the fjord opens west (−Z).
 header): single scattering through a spherical atmosphere (Rayleigh, Mie,
 ozone) with Schüler's Chapman approximation for the sun ray, a twilight
 term and a night floor; the sun disc is `LIGHT0` (`LIGHT0_DIRECTION`,
-`_COLOR`, `_ENERGY`); a cumulus slab (1.2-2.4 km: a search, a bisected edge and 4 steps in, G3-05) and
+`_COLOR`, `_ENERGY`); a cumulus slab (1.2-2.4 km: a search, a bisected edge and 3 steps in, G3-05) and
 cirrus at 8 km lit by the sun at cloud height (pink clouds after sunset),
 scud under storms; stars; a phased moon disc; aurora curtains as vertical
 sheets 100-300 km up crossed analytically per ray (557.7 nm green, a 630 nm
@@ -266,8 +266,13 @@ by the exposure (`VesselChip.set_exposure`, `world_chip.gdshader`
 samples at fixed distances along a ray stack each cloud into horizontal
 slices. The march searches a finer grid on screen (≤ 0.6 km, up to
 `cloud_search` × the tier's steps, two octaves fewer plus a margin), bisects
-to the first cloud's edge (5 steps) and integrates 4 steps into it (0.3 km,
-longer far off): edges and shading are continuous.
+to the first cloud's edge (4 steps) and integrates 3 steps into it (0.4 km,
+longer far off), lit by one look toward the sun at its edge: edges and
+shading are continuous. The radiance map and the planar mirror's sky (blurred
+into ambient light and a wave-distorted reflection) keep the plain march
+(`cloud_layer_low_simple`), and the water draws its lamp glow and frost smoke
+per vertex: in the fragment stage their code (off on most days) cost ~1 ms at
+FJORD in register pressure alone.
 
 **Mood goldens** (`MoodGoldens.gd`, `ScreenshotHarness -- --only=moods`,
 frames `20_mood_*.png`, report `20_moods.json`): eight FJORD frames from one
