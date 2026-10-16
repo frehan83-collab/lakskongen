@@ -39,6 +39,7 @@ public static class DeterminismScanner
         "godot/scripts/autoload/GameBridge.LandSites.cs",
         "godot/scripts/autoload/GameBridge.Offshore.cs",
         "godot/scripts/autoload/GameBridge.FarmTypes.cs",
+        "godot/scripts/autoload/GameBridge.Driftsplan.cs",
     };
 
     /// <summary>

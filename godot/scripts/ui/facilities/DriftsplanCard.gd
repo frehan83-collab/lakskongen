@@ -25,6 +25,8 @@ var _catalog: Array = []
 ## policy kind -> {"check": CheckButton, "status": Label, "controls": {key: Control}}
 var _rows: Dictionary = {}
 var _syncing := false
+## A refresh missed while the card was hidden (a cached tab at 30x).
+var _stale := false
 
 var _title: Label
 var _next: Label
@@ -79,6 +81,9 @@ func _ready() -> void:
 	_title.text = tr("DRIFTSPLAN_TITLE")
 	if _sim != null and _sim.has_signal("state_updated"):
 		_sim.state_updated.connect(refresh)
+	visibility_changed.connect(func() -> void:
+		if _stale and is_visible_in_tree():
+			refresh())
 
 
 ## Show the orders of <unit_id>, a unit of <unit_kind> ("fjord_site",
@@ -205,6 +210,10 @@ func _setting_tip(kind: String, setting: Dictionary) -> String:
 func refresh() -> void:
 	if _sim == null or _unit_id.is_empty() or not is_inside_tree():
 		return
+	if not is_visible_in_tree():
+		_stale = true
+		return
+	_stale = false
 	_syncing = true
 	var orders := {}
 	for entry in _sim.get_driftsplan(_unit_id):
@@ -226,7 +235,11 @@ func refresh() -> void:
 				for i in option.item_count:
 					if str(option.get_item_metadata(i)) == choice:
 						option.select(i)
-		(row["status"] as Label).text = _status_text(entry)
+		var status := row["status"] as Label
+		status.text = _status_text(entry)
+		# A job the order could not do reads in the warning tone (the words say it too).
+		var failed := not (str(entry.get("last_outcome", "")) in ["", "ok"])
+		status.theme_type_variation = &"SmallWarn" if failed else &"SmallMuted"
 	_next.text = _next_text(_sim.get_next_planned(_unit_id))
 	_syncing = false
 
