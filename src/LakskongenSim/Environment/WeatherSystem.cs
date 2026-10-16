@@ -381,36 +381,82 @@ namespace LakskongenSim.Environment
         /// </summary>
         public double StormRiskNext3Days()
         {
+            var p = StateDistribution(StormForecastDays);
+            return Math.Clamp(p[(int)WeatherState.Storm] + p[(int)WeatherState.Severe], 0.0, 1.0);
+        }
+
+        /// <summary>
+        /// The exact distribution of the weather state <paramref name="leadDays"/>
+        /// days from now (F2-06), indexed by <see cref="WeatherState"/>: the
+        /// current state pushed through the same transition rows the sampler
+        /// draws from, one per day ahead with that day's season and the
+        /// scenario's rules (<see cref="StormRiskNext3Days"/> is its 3-day
+        /// Storm + Severe mass). Lead 0 is the current state. Pure: no draw, no
+        /// state change, safe for UI polling and the offshore forecast.
+        /// </summary>
+        public double[] StateDistribution(int leadDays)
+            => StateDistribution(CurrentState, SimulationDay, leadDays, StormFrequencyMultiplier, MaxState);
+
+        /// <summary>
+        /// <see cref="StateDistribution(int)"/> from an explicit state, day and
+        /// scenario rules (the offshore forecast and its tests).
+        /// </summary>
+        public static double[] StateDistribution(WeatherState current, int day, int leadDays,
+            double stormFrequencyMultiplier, WeatherState maxState)
+        {
+            if (leadDays < 0)
+                throw new ArgumentOutOfRangeException(nameof(leadDays), leadDays, "Lead must be zero or more days");
             var p = new double[WeatherStateCount];
-            p[(int)CurrentState] = 1.0;
-            for (int step = 1; step <= StormForecastDays; step++)
+            p[(int)current] = 1.0;
+            for (int step = 1; step <= leadDays; step++)
             {
-                var m = TransitionMatrixFor(SimulationDay + step, StormFrequencyMultiplier, MaxState);
+                var m = TransitionMatrixFor(day + step, stormFrequencyMultiplier, maxState);
                 var next = new double[WeatherStateCount];
                 for (int from = 0; from < WeatherStateCount; from++)
                     for (int to = 0; to < WeatherStateCount; to++)
                         next[to] += p[from] * m[from, to];
                 p = next;
             }
-            return Math.Clamp(p[(int)WeatherState.Storm] + p[(int)WeatherState.Severe], 0.0, 1.0);
+            return p;
         }
+
+        // ─── Wind (one table for the sampler and the forecast) ───
+        private const double WindVariationRangeMs = 4.0;
+        private const double MinWindSpeedMs = 0.5;
+
+        /// <summary>The wind a weather state centres on (m/s); the day draws ± half <see cref="WindVariationRangeMs"/>.</summary>
+        private static double BaseWindMs(WeatherState state) => state switch
+        {
+            WeatherState.Calm => 3.0,
+            WeatherState.Moderate => 7.0,
+            WeatherState.Storm => 15.0,
+            WeatherState.Severe => 25.0,
+            _ => 5.0
+        };
+
+        /// <summary>
+        /// Probability that a day in <paramref name="state"/> has wind below
+        /// <paramref name="limitMs"/> (F2-06: the helicopter's wind limit), from
+        /// the same uniform spread the sampler draws (<see cref="UpdateWind"/>).
+        /// Pure.
+        /// </summary>
+        public static double WindSpeedBelowProbability(WeatherState state, double limitMs)
+        {
+            if (limitMs <= MinWindSpeedMs) return 0.0;
+            double share = (limitMs - BaseWindMs(state)) / WindVariationRangeMs + 0.5;
+            return Math.Clamp(share, 0.0, 1.0);
+        }
+
         /// <summary>
         /// Update wind speed based on weather state.
         /// </summary>
         private void UpdateWind()
         {
-            double baseWind = CurrentState switch
-            {
-                WeatherState.Calm => 3.0,
-                WeatherState.Moderate => 7.0,
-                WeatherState.Storm => 15.0,
-                WeatherState.Severe => 25.0,
-                _ => 5.0
-            };
+            double baseWind = BaseWindMs(CurrentState);
 
             // Add random variation
-            double variation = (_rng.NextDouble() - 0.5) * 4.0;
-            CurrentWindSpeedMs = Math.Max(0.5, baseWind + variation);
+            double variation = (_rng.NextDouble() - 0.5) * WindVariationRangeMs;
+            CurrentWindSpeedMs = Math.Max(MinWindSpeedMs, baseWind + variation);
         }
 
         /// <summary>
