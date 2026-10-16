@@ -25,6 +25,16 @@ the fixtures were re-recorded with `--commit 05a5c26 --update`. Every difference
    13 differ by these events alone (a pre-harvest dip toward the floor without negative cash); the golden player never takes
    a rescue loan, so the ladder changes no cash in any trace.
 
+
+**Re-recorded at eb44b8e (save shape only).** After this report the P&L story's
+runs became one ledger line's income and costs together (a harvest nets its
+harvest cost) and gained revenue/cost parts. `tools/record_golden_traces.sh
+--commit eb44b8e --against src/LakskongenSim.Tests/Fixtures/golden_traces`:
+27 of 27 traces identical, every one an identical game with save drift in
+`/PnlStory/Closed`, `/PnlStory/Open` only; the fixtures were re-recorded at
+eb44b8e (`--update`) so they carry the final save shape. The game differences
+above (base d1e7361 to 05a5c26) are the whole behaviour change of U2-03.
+
 The 7 identical games (barekraft_mester x3, forste_sesong x3, laksebaronene seed 1) never bring cash toward the floor.
 Liquidity events per new trace: algekatastrofe 1-2 warnings + 1 call + offer expired + bankrupt; isa_utbrudd 2 warnings +
 1 call + bankrupt (no offer expires in them); po3_red_sone seed 7 2 warnings + 1 call +
