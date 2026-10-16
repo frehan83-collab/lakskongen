@@ -1697,6 +1697,169 @@ toward the setpoint every day beats every fixed blend by 7.9 M NOK a year.
 - **LOX and reuse.** LOX falls 2.4 % from r 0 to r 0.9 instead of rising: the
   strippers bring the reused water back toward air saturation.
 
+## 1n. F2-06: the offshore sea, its honest forecast and the operability windows, standalone (2026-10-16, branch `wave3/sim-lanes-2`)
+
+F2-06 stage 2 builds the offshore sea as standalone components in new files
+(`Environment/{OffshoreMetocean,MetoceanForecast,MetoceanMath,OperabilityWindows}.cs`,
+`Calibration/OffshoreCalibration.cs`, draft `godot/data/calibration/facilities_offshore.json`)
+plus one pure addition to `WeatherSystem` (`StateDistribution(k)`, which
+`StormRiskNext3Days` now delegates to, and `WindSpeedBelowProbability`). Nothing is
+wired into the tick, the bridge or `GameState` (F2-02/F2-03 own `OffshoreTickSystem`,
+`OffshoreHooks.OperationPossible` and the bridge's `GetSeaStateForecast`), so the
+shipped game and the golden traces are unchanged. Every number below is measured on
+the standalone component the way the engine will run it: one `SimRng` per seed, the
+fjord weather advancing first on its own stream, then the sea ticking the same day on
+`offshore_metocean`. The acceptance sample is seeds 1-20 × 50 years (365,000 days);
+the fit runs on the disjoint seeds 1001-1100 × 50 years.
+
+**The model** (`OffshoreMetocean.TickDay`, 8 uniforms a day, always, inverse CDF):
+- u0: the base sea, an AR(1) in a sea transform T: T(B) = μ_month + Δ_weather + X,
+  X_t = 0.75 X_{t−1} + 0.30 Φ⁻¹(u0). T is ln h up to 1 m and (h^0.4 − 1)/0.4 above
+  (`MetoceanMath.UpperBoxCox`): a lognormal sea below 1 m with no floor, a thinner tail above.
+- u1-u6: a storm-swell event is created at the month's rate (0.02-0.10 a day, 22.1 a
+  year), arrives 4-7 days later, holds its peak 1-4 days between a half-height ramp day
+  on each side; peak from the month's median (2.2 m in January, shaped by NORA10's
+  monthly 1-year extremes: 0.96 m in July) with a 0.20 ln spread; Tp 9-14 s; u6 is the
+  standard normal error of the forecast's estimate of the peak.
+- u7: visibility (low-visibility days 3-6 % a month).
+- A plot's Hs = its scale × √(B² + 0.34² + Σ swell²): the day's wind sea, the background
+  swell and the storm swell add in energy. A day's Hs is the day's highest 3-hour sea
+  state, so the annual maxima give the design 100-year level and an operation booked for
+  the day must clear it.
+
+### Sources
+
+| Key | What it gives | Used for |
+|---|---|---|
+| NORCE 2020 (Ø. Johnsen, *MariCulture Smart Fishfarm, Metocean Design Basis, Haltenbanken II*, report 103211, 12.11.2020; NORA10 1958-2019 at 63.86 °N 6.46 °E, published with Fiskeridirektoratet's hearing on the Norskehavet site: https://fiskeridir.no/hoeringer/horing-om-klarering-av-lokalitet-for-akvakultur-i-norskehavet) | Table 3.2 monthly mean Hs 3.7 3.6 3.2 2.4 1.8 1.7 1.5 1.6 2.3 2.9 3.2 3.7 m (year 2.6), non-exceedance per 0.5 m (0.18 % below 0.5 m, 7.15 % below 1.0 m, 32.6 % above 3 m); Table 3.4 monthly 1-year extremes 10.3 … 4.5 (July) … 10.2 m, annual 1/10/100-year 11.6/13.9/16.2 m, 3-p Weibull locations 0.68-1.05 m; Table 3.7 Tp of 1-2 m seas 8.4-9.5 s | the monthly shape of the base sea, the swell's seasonal medians, the 100-year/annual-maximum ratio, the calm end (background swell), hav_1's check |
+| [O:R17] AOF summary report 1, Fiskeridirektoratet 2024 | site mean Hs 0.9 m, maximum 4.15 m (generation 1); barge inaccessible 92 days in ~25 months, 62 % in January-March | off_1's annual mean, acceptance 2, the winter window check |
+| [O:R6] NTNU thesis on OF1 (2018) | OF1's 100-year design Hs 5 m at Frohavet | off_1 Hs100 |
+| [O:R19] FFE 2026 | AOF approved for Hs 6.7 m | off_2 Hs100 6.5 m [GB] |
+| [O:R37] Menon 131/2023 | crowding only below Hs 2 m; wellboats operate offshore to about 5 m | the handling and alongside limits |
+| ICOADS 1950-2007, "Marine fog over northern Europe", AMS 97th Annual Meeting 2017 (https://ams.confex.com/ams/97Annual/webprogram/Paper307556.html) | north of 62 °N fog in < 3 % of ship observations in June-August, < 2 % the rest of the year | the low-visibility day shares (a day counts any low hour) |
+
+### Acceptance (spec §7 F2-06, 1-9)
+
+| # | Criterion | Band | Measured | Test |
+|---|---|---|---|---|
+| 1 | off_1 annual mean Hs | 0.8-1.1 m | **1.057** (the day's peak; [O:R17]'s 0.9 m is a time mean, ~10 % below) | `OffshoreMetoceanTests.Acceptance1_…` |
+| 1 | off_1 median annual maximum | 3.5-4.8 m | **3.776** | same |
+| 2 | off_1 days above 2.0 m, year / January-March | 8-14 % / 20-35 % | **11.8 % / 22.9 %** | `Acceptance2_…` |
+| 3 | empirical 100-year level (0.99 quantile of 1,000 annual maxima) | Hs100 ± 10 % | off_1 **4.954** (5.0), off_2 **6.443** (6.5), hav_1 **12.886** (13): −0.9 % | `Acceptance3_…` |
+| 4 | every swell event peaking ≥ 3 m at off_1 is in the forecast ≥ 4 days before onset | all | **707 of 707** (timing exact; its p90 on the first plateau day is above the forecast without it) | `Acceptance4_…` |
+| 5 | realized frequency within ± 0.05 of the forecast in every decile at leads 1, 3, 5, 7, 10 (limits 2.0, 2.5, 3.0 m at off_1) | ± 0.05 | worst **0.021** (lead 10, decile 2: 0.146 forecast, 0.125 realized, 1,147 forecasts); PIT of the whole distribution 9.91-10.11 % per tenth at every lead (364,800 days) | `MetoceanForecastReliabilityTests` |
+| 6 | 1,000 forecast polls leave every stream position unchanged | 0 moves | **0** (and the sea's saved state unchanged) | `Acceptance6_…` |
+| 7 | exactly 8 uniforms a day | 8 | **8** on each of 365,000 days, none from the weather stream | `Acceptance7_…` |
+| 8 | the fjord weather series for seeds 1-10 is unchanged | bit-identical | FNV-1a fingerprints of 10 years of state, temperature, wind, the three offsets and the 3-day storm risk, × default/harsh_storms/calm_weather: **30 of 30** equal to the pre-F2-06 recording (re-run with the pre-F2-06 algorithms in place: 3/3 pass) | `WeatherSeriesFingerprintTests` |
+| 9 | a save mid-event is bit-identical | bit-identical | saved on a plateau day with an event pending: 500 more days, the forecast and the stream position bit for bit | `Acceptance9_…` |
+
+### The climate the plots get (seeds 1-20 × 50 years, the day's peak Hs)
+
+| Plot | Scale | Mean | p10 / p50 / p90 / p99 | Annual max p10 / p50 / p90 | > 2 m | > 2.5 m | > 3 m | > 5 m |
+|---|---|---|---|---|---|---|---|---|
+| off_1 "Ytre kyst" | 1.058 | 1.057 | 0.44 / 0.79 / 2.13 / 3.33 | 3.29 / 3.78 / 4.36 | 11.8 % | 5.8 % | 2.2 % | 0.0 % |
+| off_2 "Havkanten" | 1.376 | 1.375 | 0.57 / 1.03 / 2.77 / 4.33 | 4.28 / 4.91 / 5.68 | 20.4 % | 13.0 % | 7.9 % | 0.24 % |
+| hav_1 "Havområde" | 2.752 | 2.750 | 1.13 / 2.05 / 5.54 / 8.66 | 8.56 / 9.82 / 11.35 | 51.4 % | 40.4 % | 32.3 % | 13.0 % |
+
+off_1 by month (mean, days above 2 m, above 3 m): Jan 1.49 / 26.1 % / 6.8 %, Feb 1.44 /
+24.3 % / 5.5 %, Mar 1.29 / 18.5 % / 2.6 %, Apr 0.97 / 7.3 % / 0.4 %, May 0.73 / 1.5 %,
+Jun 0.68 / 0.5 %, Jul 0.60 / 0.1 %, Aug 0.65 / 0.2 %, Sep 0.92 / 5.2 % / 0.2 %, Oct
+1.17 / 13.0 % / 0.9 %, Nov 1.29 / 19.4 % / 3.6 %, Dec 1.49 / 26.0 % / 6.6 %. The monthly
+means follow NORA10's shape within 1 % (`Off1_MonthlyMeans_FollowTheNora10Shape`).
+Lag autocorrelation of ln Hs: 0.80 (1 day), 0.59 (2), 0.45 (3), 0.30 (5).
+
+hav_1 is scaled only to the spec's 100-year sea of 13 m, yet it reproduces the open
+Norwegian Sea at Haltenbanken: mean 2.75 m against 2.6 m, 32.3 % of days above 3 m
+against 32.6 % of 3-hour states (`Hav1_MatchesTheOpenSeaAtHaltenbanken`). Its 100-year
+sea stays the spec's 13 m (NORA10 gives 16.2 m at Haltenbanken; the spec infers 13 m
+from the open-sea design, [O:R12], [O:R29]).
+
+The calm end (`CalmSea_FollowsNora10_WithNoPileUp`): no day below 0.192 × the annual
+mean (NORA10, 3-hour: 0.18 %), 4.9 % below 0.385 × (7.15 %), July 14.3 % below 0.667 ×
+its mean (19.8 %); a day's peak is never below its 3-hour values, so these are upper
+bounds, and the lowest 0.1 % of days spread over 0.341-0.349 m (no pile-up).
+
+Off_1 winters (October-March, 980 winters; `Off1Winters_HandlingWindowClimatology`):
+median 38 days above the 2.0 m handling limit (p10 27, p90 51; AOF's barge: ~37-40 a
+winter), 28 of them in spells of 3+ days; the longest spell without a handling day lasts
+median 7 days, p90 10; 21 days or more in 0.1 % of winters; above the offshore
+wellboat's 2.5 m: median 20 days.
+
+### Calibration chosen here (against the spec's draft, §3.9)
+
+| Key | Spec draft | Now | Why |
+|---|---|---|---|
+| base distribution | lognormal (ln Hs) | ln below 1 m, Box-Cox λ = 0.4 above | the lognormal's 100-year level was 1.85 × the median annual maximum and failed acceptance 1 and 3; NORA10's ratio is ~1.35 (16.2 m against an annual maximum of ~12); measured now 4.954 / 3.776 = 1.31 |
+| floor | — | none; background swell 0.34 m in energy | a Box-Cox power over the whole range reaches 0 m and needed a 0.1 m floor that bound on 3.8 % of days (a clamp); the lognormal lower piece put 2.4 % of days below 0.19 × the mean and 18.8 % below 0.385 × (NORA10: 0.18 % and 7.15 %); the background swell is NORA10's 3-p Weibull location (0.68-1.05 m in every month, 0.26-0.40 × the mean) |
+| μ_month (off_1) | 0.20 … −0.65 … 0.20 (ln, scale 1.0) | −0.524 … −1.281 … −0.492 (transform units, reference sea) | fitted on seeds 1001-1100 so each month's mean is 1.0 m × NORA10's monthly shape; `OffshoreMetoceanFitTests` re-runs the fit and fails if the shipped values are not its output |
+| swell median | 2.2 m all year | 2.2 m in January × NORA10's monthly 1-year extremes (0.96 m in July) | a constant median put summer storms at winter heights; NORA10's July 1-year extreme is 0.44 × January's |
+| swell spread | σ_ln 0.30 | 0.20, Box-Cox λ 0.8 above 1 m | 0.30 with seasonal medians pushed the median annual maximum and the days above 2 m to the bands' edges |
+| plot scales | off_1 1.0, off_2 1.3, hav_1 2.4 | 1.058, 1.376, 2.752 | fitted: Hs100 / the reference sea's empirical 100-year level (4.724 m on the fit seeds) |
+| reference annual mean | 0.9 m (off_1) | 1.0 m (the day's peak) | [O:R17]'s 0.9 m is a time mean; a day's peak lies ~10 % above it |
+| AR(1) φ, σ_ε, Δ_weather, rates, leads, durations, Tp, limits | spec | spec | unchanged |
+
+### The forecast (`MetoceanForecast`, pure, never draws)
+
+For a target day T = t + k, P(Hs ≤ L) is the model's conditional probability given
+today's saved state: the base's AR(1) Gaussian at lead k mixed over the weather chain's
+state distribution on T (`WeatherSystem.StateDistribution(k)`, the sampler's own
+transition rows), the known events' timing exactly and each peak's posterior given its
+estimate (prior N(0, 1) in the peak's latent units, estimate error τ = min(1, days to
+onset / 4), conjugate update: mean y/(1+τ²), sd τ/√(1+τ²); exact from the onset day),
+and every event not yet created (creation day, onset and plateau enumerated at the
+month's rates). Numerics: the base in closed form, one uncertain swell on Gauss-Legendre
+panels refined toward where it alone reaches the limit, likely pairs (≥ 2 % of the
+probability) on nested panels, likely triples with the nearest swell on panels and the
+others by tensor Gauss-Hermite, all rarer combinations by one antithetic Hammersley rule
+(1,024 points), combinations under 1e-9 counted as above every limit (reported).
+- Accuracy against a high-resolution integration of the same terms (1,600 / 320 × 480
+  nodes, 2^15 Halton points): worst **1.6e-4** over 1,550 probabilities (62 snapshots ×
+  leads 1/3/5/7/10 × 5 levels; 150 days with two uncertain swells, 132 with a tail); on
+  every third snapshot (2,075 probabilities) the worst was 2.1e-4.
+- Against 60,000 futures simulated from the generative model (24 states, leads 1/3/6/10):
+  worst **3.1** standard errors.
+- The known events' posterior: PIT deciles 9.6-10.4 % at leads 1-4 before onset, the
+  10-90 % band holds 79.8-80.1 %, and the posterior mean's squared error is τ²/(1+τ²)
+  (0.0590 / 0.2001 / 0.3595 / 0.4986 against 0.0588 / 0.2000 / 0.3600 / 0.5000), below
+  the raw estimate's τ².
+- Operability odds are honest per vessel (leads 2 and 6, seeds 1-10 × 20 years, ±0.01):
+  delousing by a standard vessel 0.880 forecast / 0.880 realized, by an offshore wellboat
+  0.940 / 0.941, DP resupply 0.977 / 0.977, helicopter crew change 0.902 / 0.901 (its
+  wind from the weather chain: Severe days 0.499 below 25 m/s against 0.500).
+- Cost (M1 Pro, load average 24-34 during the measurement): one P(Hs ≤ 2 m) at lead 1-4
+  3-7 µs, lead 5 ~56 µs, leads 6-10 ~230-260 µs; a full `Issue` for 4 limits median
+  3.3 ms (p95 8.9), with the 10/50/90 % quantiles median 15.8 ms (p95 74); the day's tick
+  0.28 µs. The Driftsplan should ask lead by lead from tomorrow and stop at the first
+  window, not issue the full forecast every day (F2-05/F2-07).
+
+### Mutation checks (key tests fail when the model is broken)
+
+| Mutation | Tests that fail |
+|---|---|
+| a 9th uniform a day | acceptance 7 |
+| `Issue` touches the saved state | acceptance 6 |
+| the wind's spread 4.0 → 4.0000001 m/s | the weather fingerprints (acceptance 8) |
+| events created 3 days ahead | acceptance 4 |
+| the AR residual not saved | acceptance 9 |
+| the base forecast 20 % too sharp | the whole-distribution PIT (acceptance 5's ± 0.05 deciles alone pass) |
+| one refined panel instead of four | the quadrature check |
+| half the not-yet-created events' rate | the simulated-futures check |
+| no background swell | the calm-sea check |
+| no posterior shrinkage (estimate taken as the peak) | the posterior's squared error (its PIT alone passes) |
+| the helicopter's visibility gate dropped | the per-vessel honesty check |
+
+### Findings (RUN_LOG §8)
+
+- **Weather alone almost never shuts off_1 for 21 days** (0.1 % of winters; the longest
+  spell is 7 days in the median winter). F2-08's pre-registered 10-30 % of winters with a
+  21-day warning must come from booking, vessel and crew delays on top of the sea.
+- **One estimate error per event.** The spec draws the peak estimate's error once (u6)
+  and scales it by the lead, so the posterior given today's estimate is calibrated at
+  every lead, but the estimates on two days with different τ (leads 4 and 3) together
+  reveal the peak. A player would have to invert the displayed p50 to use it.
+- **The forecast is not free.** Long leads cost ~0.25 ms a probability; the wiring
+  should cache a day's forecast per plot and query short leads first.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
