@@ -322,7 +322,10 @@ public class MetoceanForecastAccuracyTests
     /// seeds 1-20 × 50 years, the probability the forecast gave to a peak at or
     /// below the true one (the PIT) is uniform at each lead 1-4 days before
     /// onset (each decile holds 10 % ± 1.2 %), and its 10-90 % band holds the
-    /// true peak 80 % ± 2 % of the time.
+    /// true peak 80 % ± 2 % of the time. It is also the sharpest such
+    /// statement: the posterior mean's squared error is τ²/(1 + τ²) of the
+    /// latent unit (± 4 %), below the raw estimate's τ², so the forecast uses
+    /// what the season says about swell peaks as well as the estimate.
     /// </summary>
     [Fact]
     public void KnownEventPeakPosterior_IsCalibratedAtEveryLead()
@@ -334,6 +337,7 @@ public class MetoceanForecastAccuracyTests
         {
             var deciles = new int[10];
             int inBand = 0;
+            double squaredError = 0.0;
             foreach (var e in events)
             {
                 var (mean, sd) = MetoceanForecast.PeakPosterior(cal, e, e.OnsetDay - lead);
@@ -341,11 +345,16 @@ public class MetoceanForecastAccuracyTests
                 double pit = MetoceanMath.NormalCdf((zTrue - mean) / sd);
                 deciles[Math.Min(9, (int)(pit * 10))]++;
                 if (pit >= 0.1 && pit <= 0.9) inBand++;
+                squaredError += (zTrue - mean) * (zTrue - mean);
             }
+            double tau = Math.Min(1.0, (double)lead / cal.ForecastFullErrorLeadDays);
+            double mse = squaredError / events.Count, best = tau * tau / (1.0 + tau * tau);
             string shares = string.Join(" ", deciles.Select(d => F(d / (double)events.Count, "0.000")));
-            _output.WriteLine($"lead {lead}: PIT deciles {shares}; 10-90 % band holds {F(inBand / (double)events.Count, "0.000")}");
+            _output.WriteLine($"lead {lead}: PIT deciles {shares}; 10-90 % band holds {F(inBand / (double)events.Count, "0.000")}; " +
+                              $"squared error {F(mse)} (τ²/(1+τ²) = {F(best)}, raw estimate τ² = {F(tau * tau)})");
             Assert.All(deciles, d => Assert.InRange(d / (double)events.Count, 0.088, 0.112));
             Assert.InRange(inBand / (double)events.Count, 0.78, 0.82);
+            Assert.InRange(mse, best * 0.96, best * 1.04);
         }
     }
 

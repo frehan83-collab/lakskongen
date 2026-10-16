@@ -29,12 +29,17 @@ public class MetoceanForecastReliabilityTests
 
     public MetoceanForecastReliabilityTests(ITestOutputHelper output) => _output = output;
 
-    /// <summary>Per lead and decile: forecasts, their summed probability and how many came true.</summary>
+    /// <summary>
+    /// Per lead and decile: forecasts, their summed probability and how many
+    /// came true; and per lead the deciles of the PIT, the forecast's
+    /// P(Hs ≤ the Hs that came).
+    /// </summary>
     private sealed class Tally
     {
         public readonly long[,] Count = new long[Leads.Length, 10];
         public readonly double[,] ProbabilitySum = new double[Leads.Length, 10];
         public readonly long[,] Hits = new long[Leads.Length, 10];
+        public readonly long[,] Pit = new long[Leads.Length, 10];
 
         public void Add(Tally other)
         {
@@ -44,6 +49,7 @@ public class MetoceanForecastReliabilityTests
                     Count[l, d] += other.Count[l, d];
                     ProbabilitySum[l, d] += other.ProbabilitySum[l, d];
                     Hits[l, d] += other.Hits[l, d];
+                    Pit[l, d] += other.Pit[l, d];
                 }
         }
     }
@@ -52,8 +58,9 @@ public class MetoceanForecastReliabilityTests
     {
         double scale = Cal.Plots.Off1.HsScale;
         int horizon = Leads.Max();
-        // Pending forecasts by target day: (lead index, limit index, probability).
+        // Pending forecasts by target day: (lead index, limit index, probability), and the day models for the PIT.
         var pending = new Dictionary<int, List<(int Lead, int Limit, double P)>>();
+        var pendingModels = new Dictionary<int, List<(int Lead, MetoceanForecast.DayModel Model)>>();
         var tally = new Tally();
         MetoceanRuns.Run(seed, MetoceanRuns.AcceptanceYears, afterTick: (day, sea, weather) =>
         {
@@ -66,6 +73,9 @@ public class MetoceanForecastReliabilityTests
                     tally.ProbabilitySum[lead, decile] += p;
                     if (hs <= LimitsM[limit]) tally.Hits[lead, decile]++;
                 }
+            if (pendingModels.Remove(day, out var models))
+                foreach (var (lead, model) in models)
+                    tally.Pit[lead, Math.Min(9, (int)(model.Cdf(sea.ReferenceHsToday()) * 10.0))]++;
             if (day + horizon >= MetoceanRuns.AcceptanceYears * SimCalendar.DaysPerYear) return;
             for (int l = 0; l < Leads.Length; l++)
             {
@@ -75,18 +85,28 @@ public class MetoceanForecastReliabilityTests
                     pending[day + Leads[l]] = list = new List<(int, int, double)>();
                 for (int i = 0; i < LimitsM.Length; i++)
                     list.Add((l, i, model.Cdf(LimitsM[i] / scale)));
+                if (!pendingModels.TryGetValue(day + Leads[l], out var modelList))
+                    pendingModels[day + Leads[l]] = modelList = new List<(int, MetoceanForecast.DayModel)>();
+                modelList.Add((l, model));
             }
         });
         return tally;
     }
 
-    [Fact]
-    public void Acceptance5_RealizedFrequency_IsWithinFivePointsOfTheForecast_InEveryDecile_AtLeads1To10()
+    /// <summary>The acceptance sample's tallies, computed once per test process for both checks.</summary>
+    private static readonly Lazy<Tally> Total = new(() =>
     {
         var total = new Tally();
         var perSeed = new Tally[20];
         Parallel.For(0, 20, i => perSeed[i] = RunSeed(i + 1));
         foreach (var t in perSeed) total.Add(t);
+        return total;
+    });
+
+    [Fact]
+    public void Acceptance5_RealizedFrequency_IsWithinFivePointsOfTheForecast_InEveryDecile_AtLeads1To10()
+    {
+        var total = Total.Value;
 
         var report = new StringBuilder();
         var failures = new List<string>();
@@ -115,5 +135,25 @@ public class MetoceanForecastReliabilityTests
         for (int l = 0; l < Leads.Length; l++)
             Assert.True(Enumerable.Range(0, 10).Count(d => total.Count[l, d] >= 100) >= 8,
                 $"lead {Leads[l]} uses too few deciles");
+    }
+
+    /// <summary>
+    /// Stronger than acceptance 5: the whole forecast distribution is
+    /// calibrated, not only three limits. At every lead the forecast's
+    /// P(Hs ≤ the Hs that came) (the PIT) falls in each tenth of [0, 1] on
+    /// 10 % ± 0.6 % of the 365,000 days; an over- or underconfident forecast
+    /// piles the PIT at the ends or the middle.
+    /// </summary>
+    [Fact]
+    public void TheWholeForecastDistribution_IsCalibrated_AtEveryLead()
+    {
+        var total = Total.Value;
+        for (int l = 0; l < Leads.Length; l++)
+        {
+            long n = Enumerable.Range(0, 10).Sum(d => total.Pit[l, d]);
+            var shares = Enumerable.Range(0, 10).Select(d => total.Pit[l, d] / (double)n).ToArray();
+            _output.WriteLine($"lead {Leads[l],2}: PIT deciles " + string.Join(" ", shares.Select(v => v.ToString("0.0000", CultureInfo.InvariantCulture))) + $" ({n} days)");
+            Assert.All(shares, v => Assert.InRange(v, 0.094, 0.106));
+        }
     }
 }
