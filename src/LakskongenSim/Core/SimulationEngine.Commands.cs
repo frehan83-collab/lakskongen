@@ -707,6 +707,7 @@ public partial class SimulationEngine
         if (snapshot.SitePlots != null)
             State.SitePlots.AddRange(snapshot.SitePlots.Where(p => p != null && !string.IsNullOrEmpty(p.Id)));
         AdoptFacilityFinanceState(snapshot); // F2-04: assets, projects, permit cases, ring-fence
+        AdoptDriftsplanState(snapshot);      // F2-05: the standing orders
         foreach (var kvp in snapshot.FactionRelations)
             State.FactionRelations[kvp.Key] = kvp.Value;
         foreach (var rep in snapshot.RecentMarketReports)

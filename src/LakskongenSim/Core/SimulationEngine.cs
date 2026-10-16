@@ -1505,6 +1505,7 @@ private class BalancingConfig
             StampDayNotes();
             for (int day = 0; day < days; day++)
             {
+                RunDriftsplan();     // F2-05: the standing orders act first, where a player's commands between days land
                 BeginMortalityDay(); // S2-05: this step's deaths carry the day it ends on
                 BeginHoldingDay();   // sim-a-1: every population's holding, resolved once for the step
                 try

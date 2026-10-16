@@ -1642,31 +1642,69 @@ UI_CHART_DAY_RANGE,Days %d–%d,Dag %d–%d
 UI_CHART_INCOME,Income,Inntekter
 ALERT_GILL_CRITICAL,Gill health critical at %s,Gjellehelsen er kritisk ved %s
 ALERT_GILL_POOR,Gill health declining at %s,Gjellehelsen svekkes ved %s
+DRIFTSPLAN_POLICY_DELOUSE_ON_COUNT,Delouse on the count,Avlus ved telling
+DRIFTSPLAN_POLICY_NET_CLEANING,Net care (ROV and net cleaning),Notpleie (ROV og notvask)
+DRIFTSPLAN_SETTING_INTERVAL_DAYS,Days between jobs,Dager mellom hver jobb
+DRIFTSPLAN_SETTING_METHOD,Method,Metode
+DRIFTSPLAN_SETTING_MIN_INTERVAL_DAYS,Fewest days between treatments,Minst antall dager mellom behandlinger
+DRIFTSPLAN_SETTING_SHARE_OF_LIMIT,Share of the lice limit,Andel av lusegrensen
 GAME_EVENT_ALGAL_BLOOM,Bloom at the farm,Oppblomstring ved anlegget
 GAME_EVENT_APPETITE_LOW,Low appetite,Lav appetitt
+GAME_EVENT_BIOFILTER_DEGRADED,Biofilter losing capacity,Biofilteret mister kapasitet
 GAME_EVENT_BIOMASS_ORDER,Order: get under the biomass limit,Pålegg: ned under MTB
+GAME_EVENT_CAPEX_OVERRUN,Construction over budget,Byggeprosjektet går over budsjett
+GAME_EVENT_CONSTRUCTION_PHASE_COMPLETE,Construction phase complete,Byggefase fullført
+GAME_EVENT_CONVERSION_DECISION,Conversion decision,Vedtak om konvertering
+GAME_EVENT_CONVERSION_PAYMENT_DUE,Conversion payment due,Konverteringsvederlaget forfaller
+GAME_EVENT_CREW_OVERDUE,Crew change overdue,Mannskapsbyttet er forsinket
+GAME_EVENT_DEV_LICENCE_AWARDED,Development licences awarded,Utviklingstillatelser tildelt
+GAME_EVENT_DEV_LICENCE_ROUND_OPENED,Development licence round open,Søknadsrunde for utviklingstillatelser er åpen
+GAME_EVENT_DISCHARGE_NEAR_CAP,Discharge near the permit cap,Utslippet nærmer seg grensen i tillatelsen
+GAME_EVENT_DRIFTSPLAN_COMMAND_FAILED,The operating plan could not do a job,Driftsplanen fikk ikke utført en oppgave
+GAME_EVENT_DRILL_COMPLETED,Drill completed,Øvelse gjennomført
 GAME_EVENT_ESCAPE,Fish escape,Rømming
 GAME_EVENT_FEED_CONVERSION_POOR,Feed conversion worsening,Fôrfaktoren forverres
 GAME_EVENT_GILL_HEALTH_CRITICAL,Gill health critical,Kritisk gjellehelse
 GAME_EVENT_GILL_HEALTH_POOR,Gill health declining,Svekket gjellehelse
+GAME_EVENT_GROWTH_SHORTFALL,Growth behind plan,Veksten ligger etter planen
+GAME_EVENT_H2S_ACUTE,Acute hydrogen sulphide,Akutt hydrogensulfid
+GAME_EVENT_H2S_CHRONIC,Hydrogen sulphide rising,Hydrogensulfid stiger
+GAME_EVENT_HANDLING_OVERDUE,Fish handling overdue,Håndtering av fisken er forsinket
 GAME_EVENT_INSURANCE_PAYOUT,Insurance settlement,Forsikringsoppgjør
+GAME_EVENT_LAND_O2_LOW,Low oxygen in the tanks,Lavt oksygen i karene
+GAME_EVENT_LAND_POWER_OUTAGE_UNCOVERED,Power outage: the backup did not start,Strømbrudd: reservekraften startet ikke
 GAME_EVENT_LICE_ABOVE_LIMIT,Lice above the legal limit,Lusenivået er over grensen
 GAME_EVENT_LICE_RISING,Lice levels rising,Lusenivået stiger
 GAME_EVENT_LICE_TREATMENT_DUE,Lice treatment due,Lusebehandling påkrevd
 GAME_EVENT_LICE_TREATMENT_ORDER,Order: delouse by the deadline,Pålegg: avlus innen fristen
+GAME_EVENT_LOX_SHORTAGE,Liquid oxygen running low,Flytende oksygen går mot slutten
+GAME_EVENT_MATTILSYNET_ORDER,Order: handle the fish by the deadline,Pålegg: håndter fisken innen fristen
+GAME_EVENT_MATURATION_RISING,Early maturation rising,Tidlig kjønnsmodning øker
+GAME_EVENT_MOORING_FAILURE,Mooring failure,Fortøyningsbrudd
 GAME_EVENT_MORTALITY_HIGH,High mortality,Høy dødelighet
 GAME_EVENT_NETS_CRITICAL,Nets critically worn,Nøtene er kritisk slitt
 GAME_EVENT_NETS_WORN,Nets worn,Nøtene er slitt
+GAME_EVENT_NET_TEAR,Net torn,Hull i nota
+GAME_EVENT_OFFSHORE_AREA_ROUND_OPENED,Offshore area round open,Utlysning av havområde er åpen
+GAME_EVENT_OFF_FLAVOUR_DETECTED,Off-flavour detected,Avsmak påvist
+GAME_EVENT_OUTAGE_COVERED,Power outage covered by the backup,Strømbrudd dekket av reservekraften
 GAME_EVENT_OXYGEN_CRITICAL,Oxygen critically low,Kritisk lavt oksygen
 GAME_EVENT_OXYGEN_LOW,Low oxygen,Lavt oksygen
+GAME_EVENT_PERMIT_DECISION,Permit decision,Vedtak i søknaden
+GAME_EVENT_SILO_LOW,Feed silo running low,Fôrsiloen går mot tom
+GAME_EVENT_SITE_APPROVAL_WITHDRAWN,Site approval withdrawn,Lokalitetsgodkjenningen er trukket tilbake
 GAME_EVENT_SOLVENCY_BANK_WARNING,Bank warning,Bankvarsel
 GAME_EVENT_SOLVENCY_FINAL_WARNING,Final warning from the bank,Siste varsel fra banken
 GAME_EVENT_SOLVENCY_OVERDRAFT,Account overdrawn,Overtrukket konto
 GAME_EVENT_STORM_DAMAGE,Storm damage,Stormskade
 GAME_EVENT_STORM_FORECAST,Storm on the way,Storm i vente
+GAME_EVENT_STORM_SWELL_FORECAST,Storm swell on the way,Stormsjø i vente
 GAME_EVENT_STORY_EVENT,Event,Hendelse
 GAME_EVENT_SUSTAINABILITY_LOW,Sustainability below the requirement,Bærekraft under kravet
+GAME_EVENT_TEETHING_DEFECT_REVEALED,Teething defect found,Barnesykdom avdekket
 GAME_EVENT_TEMPERATURE_HIGH,High sea temperature,Høy sjøtemperatur
+GAME_EVENT_TILT_EVENT,The unit is listing,Anlegget krenger
+GAME_EVENT_TOW_WINDOW_LIKELY,A tow window is likely,Godt slepevindu i sikte
 GAME_EVENT_TRAFFIC_LIGHT_CHANGED,Traffic light changed,Trafikklyset har skiftet
 GAME_EVENT_TRAFFIC_LIGHT_RED,Traffic light red,Trafikklyset er rødt
 GAME_EVENT_VACCINE_COVERAGE_LOW,Low vaccine coverage,Lav vaksinedekning
@@ -1685,14 +1723,26 @@ UI_EVENT_DAY,Day %d,Dag %d
 UI_EVENT_DEADLINE,Deadline: %s (in %d days),Frist: %s (om %d dager)
 UI_EVENT_DEADLINE_TODAY,Deadline: %s (today),Frist: %s (i dag)
 UI_EVENT_SUBJECT_COMPANY,The whole company,Hele selskapet
+UI_EVENT_VERB_ADJUST_WATER,Adjust the water,Juster vannet
+UI_EVENT_VERB_BOOK_OPERATION,Book an operation,Bestill operasjon
+UI_EVENT_VERB_BUILD_COMPETENCE,Build competence,Styrk kompetansen
 UI_EVENT_VERB_CHECK_WATER,Check the water,Se vannkvaliteten
 UI_EVENT_VERB_DELOUSE,Plan delousing,Planlegg avlusing
+UI_EVENT_VERB_FIX_DEFECT,Fix the defect,Utbedre feilen
 UI_EVENT_VERB_FRESHWATER_BATH,Plan a freshwater bath,Planlegg ferskvannsbehandling
 UI_EVENT_VERB_INSPECT_NETS,Check the nets,Sjekk nøtene
 UI_EVENT_VERB_INSPECT_SITE,Show the site,Vis lokaliteten
+UI_EVENT_VERB_OPEN_DRIFTSPLAN,Open the operating plan,Åpne driftsplanen
 UI_EVENT_VERB_OPEN_SUSTAINABILITY,See the requirements,Se kravene
+UI_EVENT_VERB_ORDER_OXYGEN,Order oxygen,Bestill oksygen
+UI_EVENT_VERB_PAY_CONVERSION,Pay the conversion,Betal konverteringen
 UI_EVENT_VERB_RAISE_CAPITAL,Raise capital,Skaff kapital
+UI_EVENT_VERB_REPAIR_UNIT,Repair,Reparer
+UI_EVENT_VERB_RESOLVE_OUTAGE,Choose a response,Velg tiltak
+UI_EVENT_VERB_REVIEW_ALARMS,Review the alarms,Gå gjennom alarmene
 UI_EVENT_VERB_REVIEW_FEEDING,Review feeding,Se på fôringen
+UI_EVENT_VERB_START_PURGE,Start a purge,Start rensing
+UI_EVENT_VERB_START_TOW,Plan the tow,Planlegg slepet
 UI_HUD_TIP_NOTIFICATIONS,Notifications (V) — %d unread,Varsler (V) — %d uleste
 UI_NOTIFY_CLEAR_ALL_TIP,Clear all notifications,Tøm alle varsler
 UI_NOTIFY_EXPAND_TIP,Click for the whole text,Klikk for hele teksten

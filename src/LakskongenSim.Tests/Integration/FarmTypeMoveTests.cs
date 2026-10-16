@@ -83,7 +83,9 @@ public class FarmTypeMoveTests
     /// the same branch, cash, fish and kilos were F2-03's and only the saved
     /// fields moved the hashes: 9f4737c4826751a4, bc190ab10a29ab81, 0fe99725a94520ca. A later
     /// item that changes the facility behaviour on purpose replaces these with
-    /// a RUN_LOG §7 row, as F2-03 and F2-04 did.
+    /// a RUN_LOG §7 row, as F2-03 and F2-04 did. F2-05 changes no facility
+    /// behaviour: these still hold for the continuation hashed without the
+    /// save's (empty) Driftsplan, and <see cref="F2_05Recording"/> pins it with.
     /// </summary>
     private static readonly IReadOnlyDictionary<string, string> F2_04Recording = new Dictionary<string, string>(StringComparer.Ordinal)
     {
@@ -92,7 +94,34 @@ public class FarmTypeMoveTests
         ["contained/events"] = "aa0ff910f3e60c5a",
     };
 
-    public static IEnumerable<object[]> Variants() => F2_04Recording.Keys.Select(k => new object[] { k });
+    /// <summary>
+    /// The same continuations on F2-05's engine (wave3/sim-core-4), the whole
+    /// save included: the save gains one field, the Driftsplan (empty here,
+    /// the player set no standing order), and nothing else moves: hashed with
+    /// that one field left out, each continuation is <see cref="F2_04Recording"/>
+    /// exactly (RUN_LOG §7, F2-05).
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, string> F2_05Recording = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["as-saved/events"] = "0d442d03d5bea8ff",
+        ["as-saved/no-events"] = "6601c6d400d18419",
+        ["contained/events"] = "8b60339b7b2baef4",
+    };
+
+    public static IEnumerable<object[]> Variants() => F2_05Recording.Keys.Select(k => new object[] { k });
+
+    /// <summary>The save's empty Driftsplan (F2-05), as the indented save writes it.</summary>
+    private const string EmptyDriftsplanLine = "  \"Driftsplan\": [],\n";
+
+    /// <summary>A save without its empty Driftsplan: the save as F2-04 wrote it (exactly one such line, or the test fails).</summary>
+    internal static string WithoutEmptyDriftsplan(string savedJson)
+    {
+        string json = savedJson.Replace("\r\n", "\n");
+        int at = json.IndexOf(EmptyDriftsplanLine, StringComparison.Ordinal);
+        Assert.True(at >= 0, "the save has no empty Driftsplan");
+        Assert.True(json.IndexOf(EmptyDriftsplanLine, at + 1, StringComparison.Ordinal) < 0, "the save has two");
+        return json.Remove(at, EmptyDriftsplanLine.Length);
+    }
 
     private static string FixturePath()
     {
@@ -136,22 +165,34 @@ public class FarmTypeMoveTests
         return engine;
     }
 
-    /// <summary>Run a variant and hash every day's traced state and the save every 30 days.</summary>
-    private static (string Hash, SimulationEngine Engine, int RedCreditDays) RecordContinuation(string variant)
+    /// <summary>
+    /// Run a variant and hash every day's traced state and the save every 30
+    /// days; <c>F2_04Hash</c> hashes the same with each save's empty Driftsplan
+    /// left out (the save as F2-04 wrote it).
+    /// </summary>
+    private static (string Hash, string F2_04Hash, SimulationEngine Engine, int RedCreditDays) RecordContinuation(string variant)
     {
         var engine = Resume(variant);
         var sb = new StringBuilder();
+        var sbF2_04 = new StringBuilder();
         int redCreditDays = 0;
         for (int day = 1; day <= ContinuationDays; day++)
         {
             engine.Advance(1);
-            sb.Append(GoldenTraceState.Capture(engine).DayHash()).Append('\n');
+            string dayHash = GoldenTraceState.Capture(engine).DayHash();
+            sb.Append(dayHash).Append('\n');
+            sbF2_04.Append(dayHash).Append('\n');
             if (engine.State.SeaSites.Any(s => s.RedZoneCreditApplied)) redCreditDays++;
             if (day % SnapshotEveryDays == 0 || day == ContinuationDays)
-                sb.Append(GoldenTraceState.Hex(SaveStateComparer.Normalize(SaveStateComparer.Serialize(engine)), 8)).Append('\n');
+            {
+                string save = SaveStateComparer.Normalize(SaveStateComparer.Serialize(engine));
+                sb.Append(GoldenTraceState.Hex(save, 8)).Append('\n');
+                sbF2_04.Append(GoldenTraceState.Hex(WithoutEmptyDriftsplan(save), 8)).Append('\n');
+            }
         }
-        string hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(sb.ToString())), 0, 8).ToLowerInvariant();
-        return (hash, engine, redCreditDays);
+        static string Hash(StringBuilder text) =>
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())), 0, 8).ToLowerInvariant();
+        return (Hash(sb), Hash(sbF2_04), engine, redCreditDays);
     }
 
     /// <summary>
@@ -173,11 +214,11 @@ public class FarmTypeMoveTests
     [MemberData(nameof(Variants))]
     public void PreF2FacilitiesSave_Runs365Days_ExactlyAsBeforeTheMove(string variant)
     {
-        var (hash, engine, redCreditDays) = RecordContinuation(variant);
+        var (hash, f2_04Hash, engine, redCreditDays) = RecordContinuation(variant);
         var ras = engine.RASFacilities.Single(f => f.Kind == LandSiteKind.GrowOut);
         var postSmolt = engine.RASFacilities.Single(f => f.Kind == LandSiteKind.PostSmolt);
         var unit = engine.OffshoreUnits.Single();
-        _output.WriteLine($"{variant}: continuation {hash}; red-credit days {redCreditDays}; " +
+        _output.WriteLine($"{variant}: continuation {hash} (without the empty Driftsplan {f2_04Hash}); red-credit days {redCreditDays}; " +
             $"cash {engine.FinanceManager.Balance:N0}; fish {engine.State.Populations.Sum(p => (long)p.TotalCount):N0}; " +
             $"RAS kg {ras.GetTotalBiomassKg():N0}; post-smolt kg {postSmolt.GetTotalBiomassKg():N0}; " +
             $"offshore kg {unit.Pens.Sum(p => p.GetTotalBiomassKg()):N0}");
@@ -211,7 +252,9 @@ public class FarmTypeMoveTests
             _output.WriteLine("not enforced here: this platform's math library differs from the recording's");
             return;
         }
-        Assert.Equal(F2_04Recording[variant], hash);
+        Assert.Equal(F2_05Recording[variant], hash);
+        Assert.Equal(F2_04Recording[variant], f2_04Hash);   // F2-05 changes no facility day: only the save's new empty field
+        Assert.NotEqual(F2_04Recording[variant], hash);     // ... which the whole save does carry
         Assert.NotEqual(F2_03Recording[variant], hash);   // F2-04 narrows deep-sea-farming and ring-fences the rent, on purpose
         Assert.NotEqual(PreMoveRecording[variant], hash); // the migration changes the facilities' days, on purpose
     }

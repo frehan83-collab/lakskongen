@@ -637,6 +637,15 @@ func is_carbon_neutral_year() -> bool: return _proxies.is_carbon_neutral_year()
 # ── F2-04: the farm-type catalogue (sim·core) ─────────────────────────────────
 func get_farm_type_catalog() -> Dictionary: return _proxies.get_farm_type_catalog()
 
+# ── F2-05: the Driftsplan and the notification meter (sim·core) ──────────────
+func get_driftsplan_catalog() -> Array[Dictionary]: return _proxies.get_driftsplan_catalog()
+func get_driftsplan(unit_id: String) -> Array[Dictionary]: return _proxies.get_driftsplan(unit_id)
+func set_driftsplan(unit_id: String, policy_kind: String, settings: Dictionary) -> Dictionary: return _proxies.set_driftsplan(unit_id, policy_kind, settings)
+func clear_driftsplan(unit_id: String, policy_kind: String) -> Dictionary: return _proxies.clear_driftsplan(unit_id, policy_kind)
+func get_next_planned(unit_id: String) -> Dictionary: return _proxies.get_next_planned(unit_id)
+func get_notification_meter() -> Array[Dictionary]: return _proxies.get_notification_meter()
+func get_notification_budget() -> Dictionary: return _proxies.get_notification_budget()
+
 # ── F2-03: farm types (land sites, offshore units, their plots) ───────────────
 # Each lane forwards only inside its own block (FARM_TYPES_SPEC §7.6).
 

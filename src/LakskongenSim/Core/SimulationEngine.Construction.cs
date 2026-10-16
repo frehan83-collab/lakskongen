@@ -157,6 +157,7 @@ public partial class SimulationEngine
             project.PaidNOK += overrun;
         }
         project.PhaseCompletedDays.Add(State.Day);
+        PublishConstructionPhaseEvents(project, project.CurrentPhase, overrun); // F2-05: typed events with the unit
         project.CurrentPhase++;
         project.PlayerStartRequested = false;
         project.PhaseStartDay = -1;
@@ -267,6 +268,7 @@ public partial class SimulationEngine
             if (!permit.IsPending || State.Day < permit.DecisionDay) continue;
             permit.Status = permit.WillBeRefused ? PermitStatus.Refused : PermitStatus.Approved;
             permit.DecidedDay = State.Day;
+            PublishPermitDecision(permit); // F2-05
         }
     }
 

@@ -93,6 +93,13 @@ namespace LakskongenSim.Core
         /// </summary>
         public decimal RentRingFencedCostsThisTaxYear { get; set; }
 
+        /// <summary>
+        /// F2-05: the Driftsplan, the company's standing orders (one per unit
+        /// and policy, sorted by unit and policy; docs/FARM_TYPES_SPEC.md §3.1
+        /// decision 7). Empty in a game where the player set none.
+        /// </summary>
+        public List<DriftsplanEntry> Driftsplan { get; set; } = new();
+
         /// <summary>Whether the player has an AI Feeding System installed.</summary>
         public bool OwnsAIFeedingSystem { get; set; } = false;
 

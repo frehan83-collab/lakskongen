@@ -70,7 +70,56 @@ namespace LakskongenSim.Events
 
         // ── Standing orders (they hold until answered or enforced; U2-07) ──
         LiceTreatmentOrder,
-        BiomassOrder
+        BiomassOrder,
+
+        // ── Farm types (docs/FARM_TYPES_SPEC.md §3.5; declared by F2-05, ──
+        // ── published by the lanes; each carries UnitId) ─────────────────
+        [FarmTypeEvent] LandPowerOutageUncovered,
+        [FarmTypeEvent] H2sAcute,
+        [FarmTypeEvent] TiltEvent,
+        [FarmTypeEvent] NetTear,
+        [FarmTypeEvent] MooringFailure,
+        [FarmTypeEvent] SiteApprovalWithdrawn,
+        [FarmTypeEvent] MattilsynetOrder,
+        [FarmTypeEvent] HandlingOverdue,
+        [FarmTypeEvent] LandO2Low,
+        [FarmTypeEvent] LoxShortage,
+        [FarmTypeEvent] H2sChronic,
+        [FarmTypeEvent] BiofilterDegraded,
+        [FarmTypeEvent] OffFlavourDetected,
+        [FarmTypeEvent] MaturationRising,
+        [FarmTypeEvent] GrowthShortfall,
+        [FarmTypeEvent] DischargeNearCap,
+        [FarmTypeEvent] SiloLow,
+        [FarmTypeEvent] CrewOverdue,
+        [FarmTypeEvent] StormSwellForecast,
+        [FarmTypeEvent] CapexOverrun,
+        [FarmTypeEvent] ConversionPaymentDue,
+        [FarmTypeEvent] PermitDecision,
+        [FarmTypeEvent] ConstructionPhaseComplete,
+        [FarmTypeEvent] TowWindowLikely,
+        [FarmTypeEvent] DevLicenceRoundOpened,
+        [FarmTypeEvent] DevLicenceAwarded,
+        [FarmTypeEvent] ConversionDecision,
+        [FarmTypeEvent] TeethingDefectRevealed,
+        [FarmTypeEvent] OutageCovered,
+        [FarmTypeEvent] DrillCompleted,
+        [FarmTypeEvent] OffshoreAreaRoundOpened,
+
+        // ── The Driftsplan (F2-05): a standing order could not do its job ──
+        [FarmTypeEvent] DriftsplanCommandFailed
+    }
+
+    /// <summary>
+    /// Marks a <see cref="GameEventType"/> of the farm-types work (F2,
+    /// docs/FARM_TYPES_SPEC.md §3.5). Every marked type is declared in the
+    /// catalog through its farm-type row, which names its severity, its
+    /// deadline rule and its counter verb (or "none") with no default
+    /// (F2-05 acceptance 3; a reflection test pins it).
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Field)]
+    public sealed class FarmTypeEventAttribute : Attribute
+    {
     }
 
     /// <summary>
@@ -85,7 +134,11 @@ namespace LakskongenSim.Events
         string Category,
         GameEventSeverity Severity,
         string CounterVerb,
-        GameEventDeadlineRule Deadline);
+        GameEventDeadlineRule Deadline)
+    {
+        /// <summary>True for a farm-type row: severity, deadline rule and verb were each declared, none defaulted (F2-05).</summary>
+        public bool DeclaredForFarmTypes { get; init; }
+    }
 
     /// <summary>The single table of event types (one row per <see cref="GameEventType"/>).</summary>
     public static class GameEventCatalog
@@ -104,11 +157,29 @@ namespace LakskongenSim.Events
         public const string VerbOpenSustainability = "open_sustainability";
         public const string VerbInspectSite = "inspect_site";
 
+        // Farm-type verbs (F2-05; spec §3.4-§3.5, §6.6): each names the place
+        // the counter lives, the offshore unit's board or the land site's.
+        public const string VerbBookOperation = "book_operation";
+        public const string VerbRepairUnit = "repair_unit";
+        public const string VerbReviewAlarms = "review_alarms";
+        public const string VerbFixDefect = "fix_defect";
+        public const string VerbStartTow = "start_tow";
+        public const string VerbPayConversion = "pay_conversion";
+        public const string VerbResolveOutage = "resolve_outage";
+        public const string VerbAdjustWater = "adjust_water";
+        public const string VerbOrderOxygen = "order_oxygen";
+        public const string VerbStartPurge = "start_purge";
+        public const string VerbBuildCompetence = "build_competence";
+        public const string VerbOpenDriftsplan = "open_driftsplan";
+
         /// <summary>Every verb a type may declare.</summary>
         public static readonly IReadOnlyList<string> CounterVerbs = new[]
         {
             NoCounterVerb, VerbDelouse, VerbFreshwaterBath, VerbInspectNets, VerbCheckWater,
-            VerbReviewFeeding, VerbRaiseCapital, VerbOpenSustainability, VerbInspectSite
+            VerbReviewFeeding, VerbRaiseCapital, VerbOpenSustainability, VerbInspectSite,
+            VerbBookOperation, VerbRepairUnit, VerbReviewAlarms, VerbFixDefect, VerbStartTow,
+            VerbPayConversion, VerbResolveOutage, VerbAdjustWater, VerbOrderOxygen, VerbStartPurge,
+            VerbBuildCompetence, VerbOpenDriftsplan
         };
 
         private static readonly GameEventTypeInfo[] Rows =
@@ -147,6 +218,47 @@ namespace LakskongenSim.Events
 
             Row(GameEventType.LiceTreatmentOrder, "lice_treatment_order", "lice_order", GameEventSeverity.Warning, VerbDelouse, GameEventDeadlineRule.SetByPublisher),
             Row(GameEventType.BiomassOrder, "biomass_order", "biomass_order", GameEventSeverity.Warning, VerbInspectSite, GameEventDeadlineRule.SetByPublisher),
+
+            // Farm types (spec §3.5). A deadline the publisher sets is the
+            // day the counter stops working: the order's or the appeal's due
+            // day, the day the silo, the oxygen or the discharge cap runs out,
+            // the swell's onset, the projected acute H2S day, the conversion
+            // payment's last day, the planned harvest an off-flavour must be
+            // purged before. Categories pair a warning with the critical it
+            // escalates to (handling, h2s), so the bus delivers it as one story.
+            F2Row(GameEventType.LandPowerOutageUncovered, "land_power_outage_uncovered", "land_power", GameEventSeverity.Critical, VerbResolveOutage, GameEventDeadlineRule.None),
+            F2Row(GameEventType.H2sAcute, "h2s_acute", "h2s", GameEventSeverity.Critical, VerbAdjustWater, GameEventDeadlineRule.None),
+            F2Row(GameEventType.TiltEvent, "tilt_event", "tilt", GameEventSeverity.Critical, VerbReviewAlarms, GameEventDeadlineRule.None),
+            F2Row(GameEventType.NetTear, "net_tear", "net_tear", GameEventSeverity.Critical, VerbRepairUnit, GameEventDeadlineRule.None),
+            F2Row(GameEventType.MooringFailure, "mooring_failure", "mooring", GameEventSeverity.Critical, VerbRepairUnit, GameEventDeadlineRule.None),
+            F2Row(GameEventType.SiteApprovalWithdrawn, "site_approval_withdrawn", "site_approval", GameEventSeverity.Critical, VerbBookOperation, GameEventDeadlineRule.SetByPublisher),
+            F2Row(GameEventType.MattilsynetOrder, "mattilsynet_order", "handling", GameEventSeverity.Critical, VerbBookOperation, GameEventDeadlineRule.SetByPublisher),
+            F2Row(GameEventType.HandlingOverdue, "handling_overdue", "handling", GameEventSeverity.Warning, VerbBookOperation, GameEventDeadlineRule.SetByPublisher),
+            F2Row(GameEventType.LandO2Low, "land_o2_low", "land_oxygen", GameEventSeverity.Warning, VerbAdjustWater, GameEventDeadlineRule.None),
+            F2Row(GameEventType.LoxShortage, "lox_shortage", "lox", GameEventSeverity.Warning, VerbOrderOxygen, GameEventDeadlineRule.SetByPublisher),
+            F2Row(GameEventType.H2sChronic, "h2s_chronic", "h2s", GameEventSeverity.Warning, VerbAdjustWater, GameEventDeadlineRule.SetByPublisher),
+            F2Row(GameEventType.BiofilterDegraded, "biofilter_degraded", "biofilter", GameEventSeverity.Warning, VerbAdjustWater, GameEventDeadlineRule.None),
+            F2Row(GameEventType.OffFlavourDetected, "off_flavour_detected", "off_flavour", GameEventSeverity.Warning, VerbStartPurge, GameEventDeadlineRule.SetByPublisher),
+            F2Row(GameEventType.MaturationRising, "maturation_rising", "maturation", GameEventSeverity.Warning, VerbAdjustWater, GameEventDeadlineRule.None),
+            F2Row(GameEventType.GrowthShortfall, "growth_shortfall", "growth_shortfall", GameEventSeverity.Warning, VerbBuildCompetence, GameEventDeadlineRule.None),
+            F2Row(GameEventType.DischargeNearCap, "discharge_near_cap", "discharge", GameEventSeverity.Warning, VerbAdjustWater, GameEventDeadlineRule.SetByPublisher),
+            F2Row(GameEventType.SiloLow, "silo_low", "silo", GameEventSeverity.Warning, VerbBookOperation, GameEventDeadlineRule.SetByPublisher),
+            F2Row(GameEventType.CrewOverdue, "crew_overdue", "crew", GameEventSeverity.Warning, VerbBookOperation, GameEventDeadlineRule.None),
+            F2Row(GameEventType.StormSwellForecast, "storm_swell_forecast", "storm_swell", GameEventSeverity.Warning, VerbBookOperation, GameEventDeadlineRule.SetByPublisher),
+            F2Row(GameEventType.CapexOverrun, "capex_overrun", "construction_cost", GameEventSeverity.Warning, NoCounterVerb, GameEventDeadlineRule.None),
+            F2Row(GameEventType.ConversionPaymentDue, "conversion_payment_due", "conversion_payment", GameEventSeverity.Warning, VerbPayConversion, GameEventDeadlineRule.SetByPublisher),
+            F2Row(GameEventType.PermitDecision, "permit_decision", "permit", GameEventSeverity.Info, NoCounterVerb, GameEventDeadlineRule.None),
+            F2Row(GameEventType.ConstructionPhaseComplete, "construction_phase_complete", "construction", GameEventSeverity.Info, NoCounterVerb, GameEventDeadlineRule.None),
+            F2Row(GameEventType.TowWindowLikely, "tow_window_likely", "tow", GameEventSeverity.Info, VerbStartTow, GameEventDeadlineRule.None),
+            F2Row(GameEventType.DevLicenceRoundOpened, "dev_licence_round_opened", "dev_licence_round", GameEventSeverity.Info, NoCounterVerb, GameEventDeadlineRule.None),
+            F2Row(GameEventType.DevLicenceAwarded, "dev_licence_awarded", "dev_licence", GameEventSeverity.Info, NoCounterVerb, GameEventDeadlineRule.None),
+            F2Row(GameEventType.ConversionDecision, "conversion_decision", "conversion", GameEventSeverity.Info, NoCounterVerb, GameEventDeadlineRule.None),
+            F2Row(GameEventType.TeethingDefectRevealed, "teething_defect_revealed", "teething", GameEventSeverity.Info, VerbFixDefect, GameEventDeadlineRule.None),
+            F2Row(GameEventType.OutageCovered, "outage_covered", "land_power", GameEventSeverity.Info, NoCounterVerb, GameEventDeadlineRule.None),
+            F2Row(GameEventType.DrillCompleted, "drill_completed", "drill", GameEventSeverity.Info, NoCounterVerb, GameEventDeadlineRule.None),
+            F2Row(GameEventType.OffshoreAreaRoundOpened, "offshore_area_round_opened", "offshore_area_round", GameEventSeverity.Info, NoCounterVerb, GameEventDeadlineRule.None),
+
+            F2Row(GameEventType.DriftsplanCommandFailed, "driftsplan_command_failed", "driftsplan", GameEventSeverity.Warning, VerbOpenDriftsplan, GameEventDeadlineRule.None),
         };
 
         private static readonly Dictionary<GameEventType, GameEventTypeInfo> ByType =
@@ -199,5 +311,10 @@ namespace LakskongenSim.Events
         private static GameEventTypeInfo Row(GameEventType type, string id, string category,
             GameEventSeverity severity, string verb, GameEventDeadlineRule deadline = GameEventDeadlineRule.None)
             => new(type, id, category, severity, verb, deadline);
+
+        /// <summary>A farm-type row: every column is declared, nothing defaults (F2-05 acceptance 3).</summary>
+        private static GameEventTypeInfo F2Row(GameEventType type, string id, string category,
+            GameEventSeverity severity, string verb, GameEventDeadlineRule deadline)
+            => new(type, id, category, severity, verb, deadline) { DeclaredForFarmTypes = true };
     }
 }

@@ -10,13 +10,28 @@ extends RefCounted
 ## the site that needs it most (most lice, most worn nets) when it runs.
 
 ## Verb -> the tab it opens. Site verbs open the pen view of their site.
+## The farm-type verbs (F2-05) open the unit's tab: the offshore unit's
+## operations and the land site's water, power and staff live there until the
+## window board (F2-33) and the land board (F2-32) take them over.
 const TAB_VERBS := {
 	"check_water": "telemetry",
 	"review_feeding": "ai_feeding",
 	"raise_capital": "finance",
 	"open_sustainability": "sustainability",
+	"book_operation": "offshore",
+	"repair_unit": "offshore",
+	"review_alarms": "offshore",
+	"fix_defect": "offshore",
+	"start_tow": "offshore",
+	"pay_conversion": "offshore",
+	"resolve_outage": "ras",
+	"adjust_water": "ras",
+	"order_oxygen": "ras",
+	"start_purge": "ras",
+	"build_competence": "ras",
 }
-const SITE_VERBS := ["delouse", "freshwater_bath", "inspect_nets"]
+## A standing order that failed opens its site, where the Driftsplan is set.
+const SITE_VERBS := ["delouse", "freshwater_bath", "inspect_nets", "open_driftsplan"]
 
 
 ## Runs the event's verb inside a running game scene (its root). Returns true

@@ -577,6 +577,29 @@ func is_carbon_neutral_year() -> bool:
 func get_farm_type_catalog() -> Dictionary:
 	return game_bridge.GetFarmTypeCatalog() if game_bridge else {"axes": [], "families": []}
 
+# ── F2-05: the Driftsplan and the notification meter (sim·core) ──────────────
+## The policies with their settings (range, default, unit, the default's source).
+func get_driftsplan_catalog() -> Array[Dictionary]:
+	return _arr(game_bridge.GetDriftsplanCatalog()) if game_bridge else []
+## A unit's standing orders, each with its next job.
+func get_driftsplan(unit_id: String) -> Array[Dictionary]:
+	return _arr(game_bridge.GetDriftsplan(unit_id)) if game_bridge else []
+## Set or change a standing order: {success, error, message}.
+func set_driftsplan(unit_id: String, policy_kind: String, settings: Dictionary) -> Dictionary:
+	return game_bridge.SetDriftsplan(unit_id, policy_kind, settings) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## End a standing order: {success, error, message}.
+func clear_driftsplan(unit_id: String, policy_kind: String) -> Dictionary:
+	return game_bridge.ClearDriftsplan(unit_id, policy_kind) if game_bridge else {"success": false, "error": "engine_not_ready", "message": "Not initialized"}
+## "Neste planlagt" for a unit ({} when nothing is planned).
+func get_next_planned(unit_id: String) -> Dictionary:
+	return game_bridge.GetNextPlanned(unit_id) if game_bridge else {}
+## Warnings and criticals per unit and month (spec §6.6).
+func get_notification_meter() -> Array[Dictionary]:
+	return _arr(game_bridge.GetNotificationMeter()) if game_bridge else []
+## The notification budget the meter is measured against.
+func get_notification_budget() -> Dictionary:
+	return game_bridge.GetNotificationBudget() if game_bridge else {}
+
 # ── F2-03: farm types (land sites, offshore units, their plots) ───────────────
 # Two lane blocks (FARM_TYPES_SPEC §7.6): the land lane (F2-12 … F2-16) appends
 # only inside the land block, the sea lane (F2-06 … F2-11) only inside the sea
