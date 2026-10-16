@@ -127,6 +127,12 @@ func apply_sky_context(ctx: Dictionary) -> void:
 	elif target["cloud"] > 0.7:
 		state = WeatherState.OVERCAST
 	if _target == target:
+		# The same weather again: keep blending, unless the blend has been
+		# made instant since it started (transition_duration 0: staging, QA).
+		if _transition_progress < 1.0 and transition_duration <= 0.0:
+			_transition_progress = 1.0
+			_blend(1.0)
+			_apply_particles()
 		return
 	_retarget(target)
 	_set_state(state)
