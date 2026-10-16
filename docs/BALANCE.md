@@ -1577,6 +1577,64 @@ median at 5 %, the ±10 % share at 80 % (family farm) and 90 % (zone-less),
 the mean within ±3 %, and the FCR at ±10 % in 95 % of cases (±1 % where only
 the weather is random).
 
+## 1n. U2-05: the harvest planner's projection (2026-10-16, branch `wave3/ui-a-2`)
+
+`SimulationEngine.ProjectHarvest(holding, pens, fraction, waitDays)`
+(`Core/SimulationEngine.HarvestPlanner.cs`, twin-lite, pure: no draw, no
+write) runs S2-04's planned pipeline forward on copies of the chosen pens:
+the wait on the tick's growth law at the site's feeding plan
+(`PopulationTwin`, shared with U2-04's projection), the order, each pen
+fasting ahead of its turn (30 degree-days in the expected water, at least the
+calibrated minimum), the wellboat slot and the slaughterhouse's daily capacity
+behind the orders already queued, then every batch priced as `SellLot` prices
+it: contracts first (oldest first, skipping one the weekly tick will have
+expired), then the market's expected price that day
+(`MarketSimulation.ExpectedPrices`: the daily step without its noise and
+shocks, the player's own batches pressing the price after their day), the
+processing plant's premium. Expected deaths are the median of the ledger's
+last 30 daily death rates (a normal day; an outbreak is not projected
+forward). No new calibration: every number is S2-04's `harvest` section, the
+market's and the growth law's.
+
+The planner compares ordering now with waiting 14, 28 and 56 days. "Net after
+feed" is the figure that compares them: the harvest's net less the feed the
+fish eat until their fast (a wait grows the fish and the gutted kilos, and
+costs feed and a normal day's deaths).
+
+### Acceptance 2: the same-day projection against the realized sale
+
+`HarvestPlannerTests` (the planned order placed the same day as the
+projection, then the game run until the order has sold):
+
+| setup | n | gross | gutted kilos (HOG) |
+|---|---|---|---|
+| player path: forste_sesong seeds 1-20 + po3_red_sone seeds 1-10, events, market noise and shocks on, ordered at 4.5 kg | 30 | within ±5 % in 28 of 30 (93 %), median 1.09 %, mean -0.11 % | within ±3 % in 28 of 30 |
+| zone-less site, market noise off | 12 | within ±2 % in 11 of 12 (seed 1: -4.46 %, the certification level changed during the harvest and the engine repriced) | within ±0.15 %; the kilos the price is paid on within ±0.45 %; last day within a day |
+| wait 14 / 28 / 56 days, then order | 3 x 10 | within ±3.41 %, all 30 within ±5 % | within ±1.70 % |
+| express, same day (the quote is what the sale books) | 2 | exact (gross, net, contract kilos and sales, VAP) | exact |
+| expected price path, bare market, volatility 0, 60 days | 1 | exact until the first weekly tick, within ±1 % after (mean ratio 0.997-1.003) | — |
+
+The two player-path misses on gross: forste_sesong seed 2 (+5.02 % gross,
++4.86 % HOG: fish died during the fast, events a normal day's death rate does
+not foresee) and po3_red_sone seed 3 (-7.76 % gross at -0.02 % HOG: the
+market moved). The two HOG misses are forste_sesong seeds 2 and 4 (+3.08 %). The projection is the
+order's expectation, unbiased (mean -0.11 %); the tests hold ±5 % in at least
+80 % of player-path cases, the median within 3 % and the mean within ±2 %.
+
+In the game (UI flow, po3_red_sone seed 91, day 294, 6 pens at 4.58 kg): the
+planner's "Nå" column said 17,873,202 NOK gross; the two slaughter days
+booked 18,591,607 NOK (-3.9 %), and the report's gross, cost and net were the
+ledger's harvest entries to the krone.
+
+### Acceptance 3: waiting leaves the live game untouched
+
+po3_red_sone seed 17, 60 days, every site projected at waits 0/14/28/56 every
+day (more than 100 projections): every SimRng stream and the save are
+unchanged after each day's projections, and the probed game equals its
+never-probed twin after 60 days (`TheProjection_LeavesTheLiveGameAndItsRngUntouched`;
+mutation: one draw from the live `market` stream inside `ProjectHarvest`
+fails it).
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |

@@ -157,6 +157,13 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "📦 Høst"
 
+[node name="BtnHarvestReport" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailActions"]
+theme_type_variation = &"SmallGhostButton"
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+text = "Siste slakterapport"
+
 [node name="BtnRepair" type="Button" parent="Margin/MainSplit/DetailScroll/DetailRoot/DetailActions"]
 theme_type_variation = &"SmallPrimaryButton"
 unique_name_in_owner = true

@@ -361,18 +361,19 @@ public partial class GameBridge : Node
                     EmitSignal(SignalName.FarmActionCompleted, "delousing", note.SiteId, note.Success);
                     break;
                 case "wellboat_harvest":
+                    // U2-05: the harvest's stinger plays once, with its one
+                    // toast (ConsequenceDirector), not here as well.
                     EmitSignal(SignalName.FarmActionCompleted, "wellboat", note.SiteId, note.Success);
                     EmitSignal(SignalName.FarmActionCompleted, "harvest", note.SiteId, note.Success);
-                    engine.Audio?.TriggerAlert("harvest");
                     break;
                 case "harvest_batch":
                     // S2-04: a planned harvest slaughtered a batch (cash moved).
                     EmitSignal(SignalName.GameStateUpdated);
                     break;
                 case "harvest_completed":
-                    // S2-04: the order's last batch: one harvest toast per harvest.
+                    // S2-04: the order's last batch: one harvest toast per harvest
+                    // (U2-05: the toast carries the stinger and the report).
                     EmitSignal(SignalName.FarmActionCompleted, "harvest", note.SiteId, note.Success);
-                    if (note.Success) engine.Audio?.TriggerAlert("harvest");
                     EmitSignal(SignalName.GameStateUpdated);
                     break;
                 case "wellboat_rov":

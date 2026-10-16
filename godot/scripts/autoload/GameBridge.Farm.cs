@@ -144,9 +144,8 @@ public partial class GameBridge : Node
             return 0.0;
         }
 
-        // Trigger achievement check
-        engine.Audio?.TriggerAlert("harvest");
-
+        // U2-05: the harvest's stinger plays once, with its one toast
+        // (ConsequenceDirector hears FarmActionCompleted).
         EmitSignal(SignalName.FarmActionCompleted, "harvest", siteId, true);
         EmitSignal(SignalName.GameStateUpdated);
         GD.Print($"GameBridge: Harvested {result.Value:N0} kg at '{siteId}' for {result.Value2:N0} NOK");

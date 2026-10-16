@@ -1,0 +1,385 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/HarvestPlanner.gd" id="1_planner"]
+[ext_resource type="Theme" path="res://theme/lakskongen_chart_theme.tres" id="2_chart"]
+[ext_resource type="Shader" path="res://shaders/ui_frost.gdshader" id="3_frost"]
+[ext_resource type="Script" path="res://scripts/ui/SizeClassChart.gd" id="4_sizes"]
+[ext_resource type="Script" path="res://scripts/ui/GradeBar.gd" id="5_grades"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_frost"]
+shader = ExtResource("3_frost")
+shader_parameter/tint_amount = 0.5
+shader_parameter/blur_lod = 3.0
+shader_parameter/vignette = 0.45
+
+[node name="HarvestPlanner" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("2_chart")
+script = ExtResource("1_planner")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_frost")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.043137, 0.164706, 0.227451, 0.82)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Card" type="PanelContainer" parent="Center"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(1120, 0)
+layout_mode = 2
+theme_type_variation = &"Card"
+
+[node name="Outer" type="VBoxContainer" parent="Center/Card"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Center/Card/Outer"]
+layout_mode = 2
+theme_type_variation = &"CardHeader"
+
+[node name="HeaderRow" type="HBoxContainer" parent="Center/Card/Outer/Header"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="TitleBox" type="VBoxContainer" parent="Center/Card/Outer/Header/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="Overline" type="Label" parent="Center/Card/Outer/Header/HeaderRow/TitleBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineAccent"
+text = "SLAKTEPLAN"
+
+[node name="TitleLabel" type="Label" parent="Center/Card/Outer/Header/HeaderRow/TitleBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Title"
+text = "Lokalitet"
+
+[node name="SubtitleLabel" type="Label" parent="Center/Card/Outer/Header/HeaderRow/TitleBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+text = "--"
+
+[node name="StatusTag" type="Label" parent="Center/Card/Outer/Header/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"TagMuted"
+text = "--"
+
+[node name="ReportButton" type="Button" parent="Center/Card/Outer/Header/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"SmallGhostButton"
+text = "Siste slakterapport"
+
+[node name="CloseButton" type="Button" parent="Center/Card/Outer/Header/HeaderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"GhostButton"
+text = "Lukk"
+
+[node name="Scroll" type="ScrollContainer" parent="Center/Card/Outer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 560)
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Pad" type="MarginContainer" parent="Center/Card/Outer/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 12
+
+[node name="Body" type="VBoxContainer" parent="Center/Card/Outer/Scroll/Pad"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="SelectRow" type="HBoxContainer" parent="Center/Card/Outer/Scroll/Pad/Body"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PensCaption" type="Label" parent="Center/Card/Outer/Scroll/Pad/Body/SelectRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+text = "Merder"
+
+[node name="PenChips" type="HFlowContainer" parent="Center/Card/Outer/Scroll/Pad/Body/SelectRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 6
+
+[node name="ShareCaption" type="Label" parent="Center/Card/Outer/Scroll/Pad/Body/SelectRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"SmallMuted"
+text = "Andel av fisken"
+
+[node name="ShareOption" type="OptionButton" parent="Center/Card/Outer/Scroll/Pad/Body/SelectRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"SmallOptionButton"
+
+[node name="Warning" type="Label" parent="Center/Card/Outer/Scroll/Pad/Body"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"BodySmallWarn"
+autowrap_mode = 3
+text = "--"
+
+[node name="OrderPanel" type="PanelContainer" parent="Center/Card/Outer/Scroll/Pad/Body"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_type_variation = &"CardFlat"
+
+[node name="OrderPad" type="MarginContainer" parent="Center/Card/Outer/Scroll/Pad/Body/OrderPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="OrderRow" type="HBoxContainer" parent="Center/Card/Outer/Scroll/Pad/Body/OrderPanel/OrderPad"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="OrderBox" type="VBoxContainer" parent="Center/Card/Outer/Scroll/Pad/Body/OrderPanel/OrderPad/OrderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="OrderTitle" type="Label" parent="Center/Card/Outer/Scroll/Pad/Body/OrderPanel/OrderPad/OrderRow/OrderBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"BodySmallStrong"
+text = "--"
+
+[node name="OrderDetail" type="Label" parent="Center/Card/Outer/Scroll/Pad/Body/OrderPanel/OrderPad/OrderRow/OrderBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+autowrap_mode = 3
+text = "--"
+
+[node name="CancelOrderButton" type="Button" parent="Center/Card/Outer/Scroll/Pad/Body/OrderPanel/OrderPad/OrderRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"SmallDangerButton"
+text = "Avlys ordren"
+
+[node name="Columns" type="HBoxContainer" parent="Center/Card/Outer/Scroll/Pad/Body"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="LeftCol" type="VBoxContainer" parent="Center/Card/Outer/Scroll/Pad/Body/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="ChartTitleRow" type="HBoxContainer" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ChartTitle" type="Label" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol/ChartTitleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodySmallStrong"
+text = "Vektfordeling, sløyd vekt"
+
+[node name="ShownTag" type="Label" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol/ChartTitleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"TagInfo"
+text = "Nå"
+
+[node name="SizeChart" type="Control" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(560, 200)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("4_sizes")
+
+[node name="ChartNote" type="Label" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+autowrap_mode = 3
+text = "--"
+
+[node name="GradeRow" type="HBoxContainer" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="GradeCaption" type="Label" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol/GradeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+text = "Kvalitet"
+
+[node name="GradeBar" type="Control" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol/GradeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 14)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+script = ExtResource("5_grades")
+
+[node name="GradeLegend" type="Label" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol/GradeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Small"
+text = "--"
+
+[node name="Facts" type="HBoxContainer" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="PriceBox" type="VBoxContainer" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol/Facts"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="PriceTitle" type="Label" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol/Facts/PriceBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Overline"
+text = "PRIS"
+
+[node name="PriceGrid" type="GridContainer" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol/Facts/PriceBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 4
+columns = 2
+
+[node name="LogisticsBox" type="VBoxContainer" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol/Facts"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="LogisticsTitle" type="Label" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol/Facts/LogisticsBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Overline"
+text = "BRØNNBÅT OG SLAKTERI"
+
+[node name="LogisticsGrid" type="GridContainer" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/LeftCol/Facts/LogisticsBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 4
+columns = 2
+
+[node name="RightCol" type="VBoxContainer" parent="Center/Card/Outer/Scroll/Pad/Body/Columns"]
+custom_minimum_size = Vector2(430, 0)
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SettleTitle" type="Label" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/RightCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Overline"
+text = "OPPGJØR"
+
+[node name="SettleGrid" type="GridContainer" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/RightCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 4
+columns = 2
+
+[node name="WaitSep" type="HSeparator" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/RightCol"]
+layout_mode = 2
+
+[node name="WaitTitle" type="Label" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/RightCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Overline"
+text = "SLAKTE NÅ ELLER VENTE?"
+
+[node name="WaitGrid" type="GridContainer" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/RightCol"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 4
+columns = 5
+
+[node name="WaitNote" type="Label" parent="Center/Card/Outer/Scroll/Pad/Body/Columns/RightCol"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(400, 0)
+layout_mode = 2
+theme_type_variation = &"SmallMuted"
+autowrap_mode = 3
+text = "--"
+
+[node name="Footer" type="PanelContainer" parent="Center/Card/Outer"]
+layout_mode = 2
+theme_type_variation = &"CardHeaderCompact"
+
+[node name="FooterRow" type="HBoxContainer" parent="Center/Card/Outer/Footer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="FooterNote" type="Label" parent="Center/Card/Outer/Footer/FooterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_type_variation = &"SmallMuted"
+autowrap_mode = 3
+text = "--"
+
+[node name="ExpressButton" type="Button" parent="Center/Card/Outer/Footer/FooterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"SecondaryButton"
+text = "Ekspress i dag"
+
+[node name="OrderButton" type="Button" parent="Center/Card/Outer/Footer/FooterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_type_variation = &"LargePrimaryButton"
+text = "Bestill slakting"
