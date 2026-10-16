@@ -435,6 +435,7 @@ public string PlacedZoneId { get; set; } = "";                  // "" = stranded
 - In-day: Weather → **Metocean** (new, F2-06) → **Driftsplan** (new, F2-05) → HealthPrep → Biology → **FarmOpex** (runs `OffshoreTickSystem` and `LandSiteTickSystem`, then the remaining opex) → CarbonLedger → … → Sludge → TrafficLight.
 - Post-tick: storm impacts (offshore skipped through a hook) → wellboat execution (gated through a hook) → **ConstructionAndPermits** (new: advances projects and resolves permit decisions).
 - The new phases draw only from their own new streams and touch only F2 units, so the shipped-scenario goldens hold.
+- **Landed (F2-05, `wave3/sim-core-4`):** the Driftsplan phase runs at the **start of every step** (`SimulationEngine.RunDriftsplan`, first in `Advance`, before the step resolves its holdings and the mortality ledger's day, and before Weather and Metocean), not between Metocean and HealthPrep: that is where a player's commands between days land, so a policy issues exactly the commands a scripted player would, with the same game every day (`DriftsplanTests`, the golden-trace day hash). Inside the step a treatment's deaths went to the next ledger day (mutation M1 in RUN_LOG §7). A policy reads the state the player reads, the end of the previous day, which already holds the metocean draw and the forecast it books against. Planning never draws: every evaluation is checked against every stream position (`DriftsplanPurityException`). A lane adds its policies through `DriftsplanPolicies.AddOffshorePolicies` / `AddLandPolicies` (partial methods in its own file) and its units' defaults with `ApplyDriftsplanDefaults(unitId)`.
 
 **Metocean** (`OffshoreMetocean.TickDay`; stream `offshore_metocean`; **exactly 8 uniforms per day**, always drawn, sampled by inverse CDF).
 
@@ -639,13 +640,41 @@ public string PlacedZoneId { get; set; } = "";                  // "" = stranded
 | `IsResourceRentLiable(unit, holding)` | `SellHarvest`, `SimulationEngine.Commands.cs:321` | today's (sea true, land false) | F2-04 (base), F2-09 (LicenceKind) |
 | `CountsTowardSiteLimits(site)` | `MaxSitesPerZone`, RemoteOpsCentre budget | true | F2-03 (offshore false) |
 
+**Landed (F2-02, `wave3/sim-core-1`).** The hooks are `internal` methods of `SimulationEngine` in
+`Core/SimulationEngine.FarmTypeHooks.cs` (frozen); each dispatches to `Farm/Offshore/OffshoreHooks.cs`
+(every sea site, offshore holdings) or `Farm/Land/LandHooks.cs` (land-tank holdings, the smolt hooks).
+A population hook dispatches on `HoldingOf(pop).Kind` (a sea pen takes the neutral default in the hooks
+file); a site hook goes to `OffshoreHooks` for every site, which checks F2-03's site kind. Call sites on
+the wave-2 base (the line numbers above are from `a8767ef`):
+
+| Hook | Call site | Notes |
+|---|---|---|
+| `ExternalLicePressureFor(site)` | `AdvanceSiteLiceModels`: `SetExternalPressure(SeasonalLicePressure(day) × hook)` | |
+| `ZoneLiceContribution(site, pop)` | `ZoneLiceForTrafficLight(zoneId)`, read by `UpdateTrafficLightZones` | per population with the site that holds it (`HoldingOf(pop).Site`, null outside a site), returning `ZoneLiceShare(LiceWeightedFish, Fish)`: the pre-F2 mean is summed over populations, so a per-site signature would change its order |
+| `SkipsFjordStormWear(site)` | `ApplyStormHazards` (net wear, escapes), `ApplyStormAndTemperatureImpacts` (storm deaths, the repair bill's site scale) | |
+| `OperationPossible(site, jobKind, day)` | `ProcessDueWellboatJobs` | a job ruled out today stays queued and is tried the next day |
+| `FeedAvailableFor(pop)` | biology feeding: `HoldingHusbandry.FeedAvailable` → ration 0 | |
+| `AppetiteFactorFor(pop)` | biology feeding: multiplies the oxygen × gill appetite | |
+| `UnitWaterTemperatureC(pop)` | disease tick (`IntegratedDisease.Update`); the growth water | `HoldingWaterOf(pop).TemperatureC`; `WaterOf` takes a tank's water from `LandHooks.TankWater` and an offshore pen's from `OffshoreHooks.PenWater`, so growth, disease and the hazards read one water |
+| `UnitMortalityTerms(pop)` | biology mortality | `MortalityTerms(AnchorMultiplier, ExtraHazards)`: the multiplier scales the anchor hazard (`FishPopulation.AdvanceDays(..., anchorHazardMultiplier)`); each `UnitHazard(cause, dailyFraction)` is booked after it (`ApplyUnitMortalityHazards`) |
+| `QualityMortalityMultiplier(pop)` | biology mortality: × the terms' anchor multiplier | |
+| `SmoltTierCostPerFish(tier, strain, source)` | `PlaceSmolts` (`SimulationEngine.Pens.cs`) | `SmoltSource { Purchased, OwnFacility }`; every stocking today is `Purchased` |
+| `IsResourceRentLiable(unitId, holdingKind)` | `FindHarvestHolding` (`SimulationEngine.Harvest.cs`) | |
+| `CountsTowardSiteLimits(site)` | none yet | `MaxSitesPerZone` is enforced nowhere and the ROC budget is summed in `GameBridge.Farm.cs`; F2-03 wires it |
+
+Moved with the hooks: the facility ticks (`Core/LandSiteTickSystem.cs`: tanks, post-smolt modules, land
+carbon; `Core/OffshoreTickSystem.cs`: offshore farms, offshore carbon; FarmOpex keeps the order tanks →
+offshore → post-smolt, the opex being one decimal sum) and the containment code
+(`Core/SimulationEngine.Containment.cs`). `FarmTypeMoveTests` pins the pre-F2 facilities save's 365-day
+continuation and greps the two hot files.
+
 ### 3.4 Commands
 
 Engine partials return `CommandResult`. Every verb a policy can issue is the same verb the player issues.
 
 | Verb | Partial | Fails with |
 |---|---|---|
-| `SetDriftsplan(unitId, policyKind, settings)`; `GetNextPlanned(unitId)` | `.Driftsplan` | unknown_policy, out_of_range |
+| `SetDriftsplan(unitId, policyKind, settings)`; `GetNextPlanned(unitId)` | `.Driftsplan` | unknown_policy, out_of_range (landed F2-05: also not_found for an unknown unit and not_applicable for a policy of another unit kind; `ClearDriftsplan`, `ApplyDriftsplanDefaults`, `GetPlannedJobs`) |
 | `BuildLandSite(plotId, LandTemplate, ContractForm)` (pilot lot, full lot or post-smolt module) | `.LandSites` | not_unlocked, plot_taken, permits_missing, grid_capacity, insufficient_funds |
 | `ExpandLandSite(siteId)` (pilot → full lot, next lot, next module); `PreOrderLot(siteId)`; `AccelerateConstruction(projectId)` | `.LandSites` | lots_exhausted, permits_missing, insufficient_funds |
 | `StockLandTank(siteId, tankId, count, strainId)`; `GradeTank(siteId, from, to, share)` | `.LandSites` | not_operational, biofilter_immature, tank_occupied, density_exceeded, annual_capacity, util_cap |
@@ -688,6 +717,8 @@ New GameEventBus types (U2-06 severities). Each carries `UnitId`, `DeadlineDay` 
 - At ≤ 1 sim-day remaining with no response, the game pauses.
 
 Every critical event writes an **IncidentReport** to the EventLog with ≥ 3 causal steps, the drivers behind each probability, the losses and the procedure unlocked.
+
+**Landed (F2-05, `wave3/sim-core-4`):** every type above is a `GameEventType` marked `[FarmTypeEvent]` with a catalog row declared through `F2Row` (severity as in the table, deadline rule, counter verb or `none`; `FarmTypeEventCatalogTests` reads this table), plus F2-05's own `DriftsplanCommandFailed` (warning, `open_driftsplan`). Deadlines the publisher sets: `SiteApprovalWithdrawn`, `MattilsynetOrder`, `HandlingOverdue`, `LoxShortage`, `H2sChronic`, `OffFlavourDetected`, `DischargeNearCap`, `SiloLow`, `StormSwellForecast`, `ConversionPaymentDue`. `HandlingOverdue` and `MattilsynetOrder` share a dedupe category (as do `H2sChronic` and `H2sAcute`), so the order escalates the warning on the bus and moves its deadline. Counter verbs: `book_operation`, `repair_unit`, `review_alarms`, `fix_defect`, `start_tow`, `pay_conversion` (the offshore tab until F2-33), `resolve_outage`, `adjust_water`, `order_oxygen`, `start_purge`, `build_competence` (the land tab until F2-32), `open_driftsplan`; `CapexOverrun` has none (a managed contract's overrun is owed). The notification meter (`engine.Notifications`) counts the warnings and criticals the bus delivered per unit and sim month against the §6.6 budget; it is not saved.
 
 ### 3.6 Economy and carbon hooks
 
@@ -736,6 +767,7 @@ Every critical event writes an **IncidentReport** to the EventLog with ≥ 3 cau
   4. **Overflow:** `site_plots.json` reserves `overflow_land[]` and `overflow_offshore[]` positions with neutral attributes. These are used only by migrated saves and are rendered like normal plots.
   5. **The relinker runs.**
 - **Landed (F2-01, `wave2/sim-int-3`):** the pre-F2 save version is v8, so the fixture is `src/LakskongenSim.Tests/Fixtures/save_v8_facilities.json` (generator `src/StateHashProbe/PreF2SaveFixture.cs`, frozen; `PreF2SaveFixtureTests`); the golden traces, their format and the re-record workflow are in `docs/GOLDEN_TRACES.md`.
+- **Landed (F2-03, `wave3/sim-core-2`):** save format v9; the migration is `SimulationEngine.MigrateFacilities` (after `AdoptSavedState` and at the start of a step, keyed on the legacy lists and land sites without a pad). Where the code differs from the sketch in §3.2: a land site's kind is `RASFacility.Kind` (`LandSiteKind { GrowOut, PostSmolt }`) until F2-12 brings `LandTemplate`; an offshore unit's carbon is its `SeaSite.CarbonTracker` (one tracker per sea site; `OffshoreUnit` has none); a plot is its own water area (`ZoneId` = plot id) in the scenario's production area; `GameState.SitePlots` holds plot state only once a unit takes a plot; `site_plots.json` reserves 4 overflow positions a kind and the catalogue generates more. The bridge has two verbs, `GetSeaSiteDetails()` (the fjord) and `GetAllSeaSiteDetails()` (every sea site), because a GDScript call never fills a C# default parameter. `CountsTowardSiteLimits` is wired (`RemoteOpsAttentionUsed`, `SitesCountingTowardLimits`); a fifth sea-site predicate, `CountsTowardAreaLicencePool`, lives in `OffshoreHooks`. The post-smolt section of `FacilityProductionTests` moved to `Farm/PostSmoltSiteTests.cs` (F2-13 adds `PostSmoltBridgeTests`). Audit: `docs/run/evidence/f2_03_sitekind_audit.md`; replaced tests: `docs/run/evidence/f2_03_replaced_tests.md`; decisions: RUN_LOG §7 (2026-10-16).
 - **Pre-1.0 policy (R3):** saves stay officially unsupported, but this migration is tested against the fixture `src/LakskongenSim.Tests/Fixtures/save_v3_facilities.json`. **F2-01 generates the fixture on the pre-F2 commit**, before any schema change.
 
 ### 3.9 Calibration registry
@@ -744,6 +776,7 @@ Every critical event writes an **IncidentReport** to the EventLog with ≥ 3 cau
 - **Every lane owns its own file.** `calibration.json` gains one include list (F2-04): `"facilitiesIncludes": ["calibration/facilities_land.json", "calibration/facilities_offshore.json", "calibration/facilities_closed_sea.json"]`. The C# records are `LandCalibration.cs`, `OffshoreCalibration.cs` and `ClosedSeaCalibration.cs`.
 - **Sources are machine-checked attributes, not comments.** The loader skips comments (`ReadCommentHandling.Skip`). Every leaf property carries `[Range]` and exactly one of `[Source("L:R2")]` or `[GameBalance("why")]`. A reflection guard in `CalibrationGuardTests` enforces it, and S4-10's `Validate()` reads the same attributes.
 - The registry goes from 1.0.5 to the next minor version at merge.
+- **Landed (F2-04, `wave3/sim-core-3`):** registry 1.1.0. Where the code differs from the sketch: `FacilitiesCalibration` is a `partial` record and sim·core owns a fourth include, `facilities_common.json` (`facilities.common`: depreciation lives, construction risk, the farm-type catalogue's reference inputs); `calibration.json` lists `["calibration/facilities_common.json", "calibration/facilities_land.json", "calibration/facilities_offshore.json", "calibration/facilities_closed_sea.json"]` and a listed file that is missing keeps its section's code defaults. Each lane adds its section property to `FacilitiesCalibration` from its own record file and carries `[Range]` + `[Source]`/`[GameBalance]` on every leaf (the guard walks whatever the record holds). `[Range]` is `System.ComponentModel.DataAnnotations.RangeAttribute`; `[Source]` takes one or more keys. Construction phases draw a cost factor and a duration factor (truncated lognormals, median and p90 from the registry); permit cases draw the decision day and the outcome; the post-tick `ConstructionAndPermitsTickSystem` (after the wellboat jobs) advances projects, decides due cases and books depreciation. Decisions: RUN_LOG §7 (2026-10-16); golden diff: `docs/run/evidence/f2_04_golden_diff.md`.
 
 ```csharp
 public sealed record LandEnergyCalibration

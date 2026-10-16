@@ -70,7 +70,34 @@ public class DeterminismBanTests
             foreach (var finding in DeterminismScanner.Scan(rel, File.ReadAllText(file)))
                 current[finding.Key] = current.GetValueOrDefault(finding.Key) + 1;
         }
+        // F2-04: the farm-type bridge partials are in scope too.
+        foreach (var rel in DeterminismScanner.BridgeScope)
+            foreach (var finding in DeterminismScanner.Scan(rel, File.ReadAllText(Path.Combine(root, rel))))
+                current[finding.Key] = current.GetValueOrDefault(finding.Key) + 1;
         return current;
+    }
+
+    [Fact]
+    public void TheScan_CoversTheFarmTypeBridgePartials_WithNoAllowlistEntry()
+    {
+        // F2-04 acceptance 6: both lanes' bridge partials (and the catalogue's)
+        // are scanned, and the allowlist did not grow to let anything in.
+        string root = RepoRoot();
+        Assert.Contains("godot/scripts/autoload/GameBridge.LandSites.cs", DeterminismScanner.BridgeScope);
+        Assert.Contains("godot/scripts/autoload/GameBridge.Offshore.cs", DeterminismScanner.BridgeScope);
+        foreach (var rel in DeterminismScanner.BridgeScope)
+        {
+            Assert.True(File.Exists(Path.Combine(root, rel)), rel);
+            Assert.Empty(DeterminismScanner.Scan(rel, File.ReadAllText(Path.Combine(root, rel))));
+        }
+        var allowed = ReadAllowlist(File.ReadAllLines(AllowlistPath(root)));
+        Assert.DoesNotContain(allowed.Keys, k => k.StartsWith("godot/", StringComparison.Ordinal));
+        Assert.Equal(73, allowed.Count); // the allowlist's size before F2-04
+        // A wall clock planted in a lane's partial would be found and keyed by it.
+        string planted = File.ReadAllText(Path.Combine(root, DeterminismScanner.BridgeScope[1]))
+            .Replace("public partial class GameBridge : Node\n{", "public partial class GameBridge : Node\n{\n    private static long Stamp() => System.DateTime.Now.Ticks;");
+        var found = Assert.Single(DeterminismScanner.Scan(DeterminismScanner.BridgeScope[1], planted));
+        Assert.StartsWith("godot/scripts/autoload/GameBridge.Offshore.cs :: DateTime.Now", found.Key);
     }
 
     [Fact]

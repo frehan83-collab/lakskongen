@@ -130,12 +130,23 @@ public class SaveLoadMatrixTests
                 engine.RASFacilities[^1].ConstructionDays = 40; // operational inside the horizon
                 break;
             case 45:
+                // F2-03: the legacy verbs build the F2 unit kinds (an offshore
+                // sea site on off_1, a post-smolt land site on pad_delta).
                 Ok(engine.BuildOffshoreFarm("Matrix Offshore", OffshoreType.SemiSubmersible));
-                engine.OffshoreFarms[^1].ConstructionDays = 60;
+                engine.OffshoreUnits[^1].Offshore!.ConstructionDays = 60;
                 break;
             case 60:
                 Ok(engine.BuildPostSmoltFacility("Matrix Post-smolt"));
-                engine.PostSmoltFacilities[^1].ConstructionDays = 50;
+                engine.PostSmoltSites[^1].ConstructionDays = 50;
+                break;
+            case 112:
+                // F2-03: every new kind holds fish across the later saves: the
+                // offshore unit's first zone and a vaccinated post-smolt batch.
+                Ok(engine.StockOffshoreFarm(engine.OffshoreUnits[^1].Id, 30_000));
+                Ok(engine.StartPostSmoltBatch(engine.PostSmoltSites[^1].Id, 120_000));
+                break;
+            case 118:
+                Ok(engine.VaccinatePostSmoltBatch(engine.PostSmoltSites[^1].Id, engine.PostSmoltSites[^1].Tanks[^1].Id));
                 break;
             case 120:
                 Ok(engine.RequestWellboat("po3_sor", "delouse", "hydrolicer"));

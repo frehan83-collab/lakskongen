@@ -227,6 +227,9 @@ public partial class SimulationEngine
         if (pen == null)
             return new PenStockingPreview(false, PenReasons.NotFound, $"Site '{site.Id}' has no pen '{penKey}'",
                 "", 0, 0.0, PenFishLimit, limit, 0.0, today, 0.0, 0);
+        if (site.Kind == SiteKind.Offshore) // F2-03: the unit's own verb stocks a zone
+            return new PenStockingPreview(false, OffshoreUnitKey, $"'{site.Label}' is an offshore unit: stock it through its own verb",
+                pen.Id, pen.Number, pen.VolumeM3, PenFishLimit, limit, 0.0, today, 0.0, 0);
 
         var forecast = ForecastPenStocking(site, strain, qualityTier);
         double density = forecast.PeakDensityKgPerM3(count, pen.VolumeM3);
@@ -280,6 +283,8 @@ public partial class SimulationEngine
         var site = State.SeaSites.FirstOrDefault(s => s.Id == siteId);
         if (site == null)
             return CommandResult.Fail("site_not_found", $"Site '{siteId}' not found");
+        if (site.Kind == SiteKind.Offshore) // F2-03: the unit's own verb stocks a zone
+            return CommandResult.Fail(OffshoreUnitKey, $"'{site.Label}' is an offshore unit: stock it through its own verb");
 
         var strain = SmoltStrainRegistry.Get(strainId);
         var verdict = EvaluatePenStocking(site, site.FindPen(penKey), penKey, count, strain, qualityTier, includeMaxCount: false);
@@ -307,8 +312,9 @@ public partial class SimulationEngine
     {
         int count = allocation.Sum(a => a.Count);
         // Calibrated smolt price × strain premium (review F269: the old path
-        // charged the hatchery rearing cost, ~54.75 NOK/fish vs 12 calibrated).
-        decimal stockingCost = count * _balancing.SmoltCostPerFish * (decimal)strain.CostMultiplier;
+        // charged the hatchery rearing cost, ~54.75 NOK/fish vs 12 calibrated),
+        // through the F2 hook SmoltTierCostPerFish (F2-13: the tier premium).
+        decimal stockingCost = count * SmoltTierCostPerFish(quality.Tier, strain, SmoltSource.Purchased);
         if (FinanceManager.Balance < stockingCost)
             return CommandResult.Fail("insufficient_funds",
                 $"Insufficient funds: need {stockingCost:N0} NOK for {count:N0} smolts");

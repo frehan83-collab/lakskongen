@@ -39,12 +39,12 @@ public class MortalityLedgerEngineTests
         Assert.True(engine.BuildRASFacility("Landtank", RASScale.Small).Ok);
         Assert.True(engine.BuildOffshoreFarm("Havfarm", OffshoreType.SemiSubmersible).Ok);
         var ras = engine.RASFacilities.Single();
-        var farm = engine.OffshoreFarms.Single();
+        var unit = engine.OffshoreUnits.Single(); // F2-03: the offshore structure is an offshore sea site
         ras.ConstructionDays = 1;
-        farm.ConstructionDays = 1;
+        unit.Offshore!.ConstructionDays = 1;
         engine.Advance(2);
         Assert.True(engine.StockRASFacility(ras.Id, 40_000).Ok);
-        Assert.True(engine.StockOffshoreFarm(farm.Id, 40_000).Ok);
+        Assert.True(engine.StockOffshoreFarm(unit.Id, 40_000).Ok);
         Assert.True(engine.RequestWellboat("po3_sor", "delouse", "hydrolicer").Ok);
         return engine;
     }
@@ -273,9 +273,11 @@ public class MortalityLedgerEngineTests
     }
 
     /// <summary>
-    /// Post-smolt batches hold no cohorts; their daily deaths are booked per
-    /// facility (unexplained: a top-down survival rate), so the company total
-    /// still holds every death.
+    /// F2-03: a post-smolt batch is a population in its land site's tanks, so
+    /// its deaths are booked by cause, cohort for cohort, under the site (the
+    /// pre-F2 facility booked a top-down survival rate as unexplained anchor
+    /// deaths per facility). The company total still holds every death, the
+    /// anchor is among the causes, and every death is a post-smolt's weight.
     /// </summary>
     [Fact]
     public void PostSmoltFacilityDeaths_AreBookedUnderTheFacility()
@@ -284,20 +286,35 @@ public class MortalityLedgerEngineTests
         engine.FinanceManager = new FinanceManager(5_000_000_000m);
         engine.Initialize(enableEvents: false, seed: 75);
         Assert.True(engine.BuildPostSmoltFacility("Post-smolt").Ok);
-        var facility = engine.PostSmoltFacilities.Single();
+        var facility = engine.PostSmoltSites.Single();
         facility.ConstructionDays = 1;
         engine.Advance(2);
         Assert.True(engine.StartPostSmoltBatch(facility.Id, 200_000).Ok);
-        int before = facility.Batches.Single().Count;
+        var batch = facility.Tanks.Single();
+        var cohort = batch.Cohorts.Single();
+        int before = batch.TotalCount;
+        long companyBefore = engine.MortalityLedger.Cumulative().Total.Fish;
 
-        engine.Advance(30);
+        long bookedDaily = 0;
+        for (int d = 0; d < 30; d++)
+        {
+            int countBefore = cohort.Count;
+            engine.Advance(1);
+            engine.MortalityLedger.TodayByCohort.TryGetValue(cohort, out var rec);
+            Assert.Equal(countBefore - cohort.Count, (rec?.TotalDeaths ?? 0) + (rec?.TotalRemoved ?? 0));
+            bookedDaily += rec?.TotalDeaths ?? 0;
+        }
 
-        int died = before - facility.Batches.Single().Count;
+        int died = before - batch.TotalCount;
         Assert.True(died > 0, "no post-smolt deaths in 30 days");
         var booked = engine.MortalityLedger.ForSite(facility.Id);
-        Assert.Equal(died, booked.Deaths(MortalityCause.BaselineAnchor).Fish);
+        Assert.True(booked.Deaths(MortalityCause.BaselineAnchor).Fish > 0, "the anchor kills post-smolts too");
+        Assert.Equal(died, MortalityCauses.All.Sum(c => booked.Deaths(c).Fish));
         Assert.Equal(died, booked.Total.Fish);
+        Assert.Equal(died, bookedDaily);
+        Assert.Equal(died, engine.MortalityLedger.Cumulative().Total.Fish - companyBefore);
         Assert.InRange(booked.Total.Kg, died * 0.08, died * 0.4);
+        Assert.Equal(facility.Id, batch.SiteId);
     }
 
     /// <summary>

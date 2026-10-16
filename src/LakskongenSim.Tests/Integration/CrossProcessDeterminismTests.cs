@@ -112,12 +112,12 @@ public class CrossProcessDeterminismTests
             $"the runner waited {clock.Elapsed.TotalSeconds:F1} s for a probe it should have killed at 3 s");
     }
 
-    private static string DotnetHost()
+    internal static string DotnetHost()
         => System.Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") is { Length: > 0 } host && File.Exists(host)
             ? host
             : "dotnet";
 
-    private static string ProbePath()
+    internal static string ProbePath()
     {
         // Same configuration as this test assembly (…/bin/<Configuration>/<tfm>/).
         var match = Regex.Match(AppContext.BaseDirectory.Replace('\\', '/'), @"/bin/([^/]+)/([^/]+)/?$");

@@ -145,7 +145,7 @@ namespace LakskongenSim.Biology
         /// Apply mortality over days, return surviving count (rounded to int).
         /// Combines baseline, stage, and disease mortality in a single application.
         /// A count-only function: nothing is booked. Populations die through
-        /// <see cref="ApplyMortality(FishPopulation, FishPopulation.Cohort, int, double, double)"/>,
+        /// <see cref="ApplyMortality(FishPopulation, FishPopulation.Cohort, int, double, double, double)"/>,
         /// which books every death by cause.
         /// </summary>
         public int ApplyMortality(int count, int days, LifeStage stage, string populationId = "", double mortalityReduction = 0.0, double diseaseResistanceBonus = 0.0)
@@ -183,15 +183,18 @@ namespace LakskongenSim.Biology
         /// (<see cref="MortalityCause.BaselineAnchor"/>) and the disease hazard
         /// (<see cref="MortalityCause.Disease"/>) in proportion to the two
         /// research-adjusted hazards (<see cref="MortalityLedger.Split"/>).
+        /// <paramref name="anchorHazardMultiplier"/> scales the baseline anchor
+        /// hazard (the holding's and the smolt quality's terms, F2 hooks; 1 = the
+        /// calibrated anchor, exactly as before F2).
         /// </summary>
         internal void ApplyMortality(FishPopulation population, FishPopulation.Cohort cohort, int days,
-            double mortalityReduction, double diseaseResistanceBonus)
+            double mortalityReduction, double diseaseResistanceBonus, double anchorHazardMultiplier = 1.0)
         {
             int count = cohort.Count;
             if (count <= 0 || days <= 0) return;
 
             var hazards = ResearchAdjustedHazards(
-                BaselineDailyRate(cohort.Stage) * StageMultiplier(cohort.Stage),
+                BaselineDailyRate(cohort.Stage) * StageMultiplier(cohort.Stage) * anchorHazardMultiplier,
                 DiseaseRateFor(population.Id), 0.0, mortalityReduction, diseaseResistanceBonus);
             int deaths = count - Survivors(count, days, hazards.Total);
             if (deaths <= 0) return;

@@ -143,6 +143,8 @@ public sealed class EngineRuntimeSnapshot
     public double MktPlayerPressure { get; set; }
     public int MktShockDays { get; set; }
     public double MktSupplyOffset { get; set; }
+    /// <summary>The market's daily realized prices, oldest first (F2-05); null in older saves (the queue then starts afresh, as it did).</summary>
+    public System.Collections.Generic.List<decimal>? MktDailyPrices { get; set; }
 
     /// <summary>
     /// The sustainability manager's live score and level. A storyteller

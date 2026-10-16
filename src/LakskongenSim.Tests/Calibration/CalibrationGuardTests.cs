@@ -401,5 +401,131 @@ namespace LakskongenSim.Tests.Calibration
             Assert.Equal(50_000.0, engine.FishPerDensityProxyPen, 6);
             Assert.True(engine.FishPerDensityProxyPen < 200_000.0);
         }
+
+        // ── F2-04: the facilities section (docs/FARM_TYPES_SPEC.md §3.9) ─────────
+
+        [Fact]
+        public void Version_IsTheF204MinorBump()
+        {
+            // Acceptance 3: the facilities section bumps the registry's minor
+            // version (1.0.x -> 1.1.0); later reconciliations keep counting up.
+            var version = System.Version.Parse(C.Version);
+            Assert.True(version >= new System.Version(1, 1, 0), $"registry {C.Version} is below the F2-04 bump 1.1.0");
+        }
+
+        [Fact]
+        public void Facilities_EveryLeafHasARangeThatHoldsIt_AndExactlyOneSourceOrGameBalance()
+        {
+            // Acceptance 3: the reflection guard. It walks the whole section,
+            // lane sections included once they are wired into the partial
+            // FacilitiesCalibration record.
+            var violations = CalibrationProvenanceGuard.Violations(C.Facilities, "facilities");
+            Assert.True(violations.Count == 0, "facilities calibration:\n  " + string.Join("\n  ", violations));
+            // Not vacuous: the shared section alone has 76 leaves (depreciation 2,
+            // construction 5, catalogue 3 + 66 over the seven farm types).
+            var shared = CalibrationProvenanceGuard.Leaves(C.Facilities.Common, "facilities.common");
+            Assert.Equal(76, shared.Count);
+            Assert.True(CalibrationProvenanceGuard.Leaves(C.Facilities, "facilities").Count >= shared.Count);
+        }
+
+        [Fact]
+        public void Facilities_Guard_CatchesEachKindOfBrokenLeaf()
+        {
+            // Mutation check of the guard itself: each broken leaf is named.
+            var violations = CalibrationProvenanceGuard.Violations(new BrokenFacilitySection(), "broken");
+            Assert.Contains(violations, v => v.StartsWith("broken.NoProvenance:", System.StringComparison.Ordinal) && v.Contains("(has 0)"));
+            Assert.Contains(violations, v => v.StartsWith("broken.TwoProvenances:", System.StringComparison.Ordinal) && v.Contains("(has 2)"));
+            Assert.Contains(violations, v => v.StartsWith("broken.NoRange:", System.StringComparison.Ordinal) && v.EndsWith("no [Range]", System.StringComparison.Ordinal));
+            Assert.Contains(violations, v => v.StartsWith("broken.OutOfRange:", System.StringComparison.Ordinal) && v.Contains("outside"));
+            Assert.Contains(violations, v => v.StartsWith("broken.Nested.Deep:", System.StringComparison.Ordinal));
+            Assert.Contains(violations, v => v.StartsWith("broken.Opaque:", System.StringComparison.Ordinal) && v.Contains("neither a leaf"));
+            Assert.DoesNotContain(violations, v => v.StartsWith("broken.Good:", System.StringComparison.Ordinal));
+            Assert.Equal(6, violations.Count);
+        }
+
+        [Fact]
+        public void Facilities_FileAndCodeDefaultsAgree()
+        {
+            // facilities_common.json (the embedded copy is the file) holds the code defaults.
+            Assert.Equal(new FacilityCommonCalibration(), C.Facilities.Common);
+        }
+
+        [Fact]
+        public void Facilities_DepreciationAndConstruction_StayInsideTheSpecsBands()
+        {
+            var c = C.Facilities.Common;
+            // Spec §3.6: land 20 years, offshore steel 25 years [GB].
+            Assert.Equal(20, c.Depreciation.LandLifeYears);
+            Assert.Equal(25, c.Depreciation.OffshoreLifeYears);
+            // A median overrun below its 90th percentile, both positive; the
+            // first OF1-class unit's +22 % (O:R4: 720 M + 157 M) inside the tail.
+            Assert.InRange(c.Construction.OverrunMedian, 0.0, c.Construction.OverrunP90);
+            Assert.InRange(157.0 / 720.0, c.Construction.OverrunMedian, c.Construction.OverrunP90);
+            Assert.InRange(c.Construction.DurationSlipMedian, 0.0, c.Construction.DurationSlipP90);
+            // A turnkey contract costs more than a managed build's median overrun.
+            Assert.True(c.Construction.TurnkeyPremium > c.Construction.OverrunMedian);
+        }
+
+        [Fact]
+        public void FarmTypeCatalog_ReferenceValuesMatchTheirSources()
+        {
+            var k = C.Facilities.Common.Catalog;
+            // V:1: 17,330 t for NOK 5.29 bn at the 2024 auction (≈ 305 k NOK/t).
+            Assert.InRange((double)k.OpenPen.LicencePriceNokPerTonneMtb, 5.29e9 / 17_330 * 0.99, 5.29e9 / 17_330 * 1.01);
+            // [code] values are the registry's own.
+            Assert.Equal(C.Infrastructure.SeaSiteBuildCostNOK, k.OpenPen.SiteCapexNok);
+            Assert.Equal(C.Capacity.BuiltSiteLocalityMtbTonnes, k.OpenPen.LocalityMtbTonnes);
+            Assert.Equal(1.0 - ContainmentTech.ModifiersFor(ContainmentLevel.SemiClosed).LiceExclusion01,
+                k.ClosedPen.ExternalLiceFactor, 9);
+            Assert.Equal(new PostSmoltFacility().SurvivalRate, k.PostSmolt.Survival);
+            Assert.Equal(new PostSmoltFacility().ConstructionDays, k.PostSmolt.ConstructionDays);
+            // V:2: NOK 10 M of Nov 2015 indexed to 13,804,348 in Jan 2026; O:R4: 8 x 780 t = 6,240 t.
+            Assert.Equal(13_804_348m, k.ConversionFeeNokPerLicence);
+            Assert.Equal(6_240.0, k.Of1.Licences * k.LicenceSizeTonnesMtb);
+            // O:R4: 720 M contract + 157 M first-cycle fixes; O:R22: 13 licences of 788 t ≈ 10,244 t.
+            Assert.Equal(720_000_000m + 157_000_000m, k.Of1.UnitCapexNok);
+            Assert.InRange(k.Havfarm.MtbTonnes, 10_000.0, 13 * 788.0);
+            // L:R1: 2.07 bn per full lot of 7,900 t (L:R8) ≈ 262 k NOK/t.
+            Assert.InRange((double)k.Hfs.CapexNokPerTonneHog * k.Hfs.LotCapacityTonnesHog, 2.0e9, 2.1e9);
+            // L:R2: 6.3-6.8 kWh/kg LW; L:T1/L:S3: 3.4-5.4; L:R7/S3/S4: 4-10; O:R50: 0.07 and 3.87.
+            Assert.InRange(k.Hfs.EnergyKWhPerKg, 6.3, 6.8);
+            Assert.InRange(k.PostSmolt.EnergyKWhPerKg, 3.4, 5.4);
+            Assert.InRange(k.Ras.EnergyKWhPerKg, 4.0, 10.0);
+            Assert.Equal(0.07, k.OpenPen.EnergyKWhPerKg);
+            Assert.Equal(3.87, k.ClosedPen.EnergyKWhPerKg);
+            // L:P1/P2/B5: RAS survival 97-99.7 %; O:R3: 7 % total in OF1's first generation.
+            Assert.InRange(k.Ras.Survival, 0.97, 0.997);
+            Assert.Equal(0.93, k.Of1.Survival);
+            // Bad cases lie below the medians.
+            Assert.True(k.ClosedPen.BadCaseSurvival < 1.0 - k.ClosedPen.CycleMortality);
+            Assert.True(k.PostSmolt.BadCaseSurvival < k.PostSmolt.Survival);
+            Assert.True(k.Hfs.BadCaseSurvival < k.Hfs.Survival);
+            Assert.True(k.Ras.BadCaseSurvival < k.Ras.Survival);
+            Assert.True(k.Of1.BadCaseSurvival < k.Of1.Survival);
+            Assert.True(k.Havfarm.BadCaseSurvival < k.Havfarm.Survival);
+            Assert.True(k.OpenPen.AnnualMortalityWorstArea > k.OpenPen.AnnualMortality);
+            // Spec §2B: external lice x0.10-0.15 offshore (off_1), x0.30 Havfarm-class, 0 on land.
+            Assert.InRange(k.Of1.ExternalLiceFactor, 0.10, 0.15);
+            Assert.Equal(0.30, k.Havfarm.ExternalLiceFactor);
+            Assert.Equal(0.0, k.Hfs.ExternalLiceFactor);
+            Assert.Equal(0.0, k.Ras.ExternalLiceFactor);
+        }
+
+        // A section that breaks every rule once (and keeps them once).
+        private sealed record BrokenFacilitySection
+        {
+            [System.ComponentModel.DataAnnotations.Range(0, 10)] [GameBalance("ok")] public double Good { get; init; } = 1;
+            [System.ComponentModel.DataAnnotations.Range(0, 10)] public double NoProvenance { get; init; } = 1;
+            [System.ComponentModel.DataAnnotations.Range(0, 10)] [Source("V:1")] [GameBalance("both")] public double TwoProvenances { get; init; } = 1;
+            [Source("V:1")] public double NoRange { get; init; } = 1;
+            [System.ComponentModel.DataAnnotations.Range(0, 10)] [Source("V:1")] public double OutOfRange { get; init; } = 11;
+            public BrokenNested Nested { get; init; } = new();
+            public System.Collections.Generic.List<string> Opaque { get; init; } = new();
+        }
+
+        private sealed record BrokenNested
+        {
+            [System.ComponentModel.DataAnnotations.Range(0, 10)] public int Deep { get; init; } = 2;
+        }
     }
 }

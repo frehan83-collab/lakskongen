@@ -50,9 +50,21 @@ namespace LakskongenSim.Events
             }
         }
 
-        /// <summary>The first population that sits in a sea site's pens (null when none).</summary>
+        /// <summary>
+        /// The first population that sits in a sea site's pens (null when none):
+        /// a fjord pen or an offshore unit's zone (F2-03: ISA reaches offshore
+        /// units, spec §3.1 decision 4).
+        /// </summary>
         internal static Biology.FishPopulation? FirstSeaPen(GameState gs)
             => gs.Populations.FirstOrDefault(p => gs.SeaSites.Any(s => s.Pens.Contains(p)));
+
+        /// <summary>
+        /// The company's fjord localities (F2-03): the fjord site cards (seals,
+        /// net wear, escape fines, fjord-use disputes, the tourism view) are about
+        /// a fjord's net pens, and an offshore unit meets its own (F2-08).
+        /// </summary>
+        internal static IEnumerable<Farm.SeaSite> FjordSites(GameState gs)
+            => gs.SeaSites.Where(s => s.Kind == Farm.SiteKind.Fjord);
 
         // ═══════════════════════════════════════════════════════════
         // DISEASE EVENTS (10 events)
@@ -392,13 +404,13 @@ namespace LakskongenSim.Events
                 Weight = 1.0,
                 CooldownDays = 60,
                 // Phase 1.5: fully deterrent-protected farms are skipped.
-                Condition = gs => gs.Populations.Any() && gs.SeaSites
+                Condition = gs => gs.Populations.Any() && FjordSites(gs)
                     .Where(s => s.Pens.Any(p => p.TotalCount > 0))
                     .Any(s => !s.HasSealDeterrent),
                 Apply = (gs, rec) =>
                 {
                     // Damage scales with the unprotected share of stock.
-                    var stocked = gs.SeaSites.Where(s => s.Pens.Any(p => p.TotalCount > 0)).ToList();
+                    var stocked = FjordSites(gs).Where(s => s.Pens.Any(p => p.TotalCount > 0)).ToList();
                     int total = stocked.SelectMany(s => s.Pens).Sum(p => p.TotalCount);
                     int unprotected = stocked.Where(s => !s.HasSealDeterrent).SelectMany(s => s.Pens).Sum(p => p.TotalCount);
                     double share = total > 0 ? (double)unprotected / total : 1.0;
@@ -603,7 +615,7 @@ namespace LakskongenSim.Events
                 Category = EventCategory.Regulation,
                 Weight = 0.8,
                 CooldownDays = 180,
-                Condition = gs => gs.SeaSites.Any(),
+                Condition = gs => FjordSites(gs).Any(),
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "Notsvikt: 12 000 fisk har rømt. Bot fra Fiskeridirektoratet og kostnader til gjenfangst.";
@@ -729,7 +741,7 @@ namespace LakskongenSim.Events
                 Category = EventCategory.Equipment,
                 Weight = 1.3,
                 CooldownDays = 60,
-                Condition = gs => gs.SeaSites.Any(),
+                Condition = gs => FjordSites(gs).Any(),
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "En rutineinspeksjon avdekker mye slitasje og små hull i nøtene. De må skiftes straks.";
@@ -801,7 +813,7 @@ namespace LakskongenSim.Events
                 Category = EventCategory.Community,
                 Weight = 0.6,
                 CooldownDays = 540,
-                Condition = gs => gs.SeaSites.Count >= 2,
+                Condition = gs => FjordSites(gs).Count() >= 2,
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "Det lokale fiskerlaget utfordrer retten din til å bruke fjorden. Advokatkostnader og mulig flytting av lokaliteten.";
@@ -817,7 +829,7 @@ namespace LakskongenSim.Events
                 Category = EventCategory.Community,
                 Weight = 0.5,
                 CooldownDays = 365,
-                Condition = gs => gs.SeaSites.Any(),
+                Condition = gs => FjordSites(gs).Any(),
                 Apply = (gs, rec) =>
                 {
                     rec.Description = "Reiselivsaktører klager på at merdene ødelegger fjordutsikten. Kommunalt høringsmøte og et kompromiss kreves.";

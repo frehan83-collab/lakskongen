@@ -41,12 +41,35 @@ public partial class SimulationEngine
         }
     }
 
-    /// <summary>Report an event on the bus; what it delivers also reaches the pacing rules.</summary>
+    private NotificationMeter? _notifications;
+
+    /// <summary>
+    /// The notification meter (F2-05, spec §6.6): the warnings and criticals
+    /// the player was told about, per unit and month. Emptied with the bus
+    /// (a new or loaded game); presentation state like the bus, never saved.
+    /// </summary>
+    public NotificationMeter Notifications
+    {
+        get
+        {
+            if (_notifications == null)
+            {
+                _notifications = new NotificationMeter();
+                GameEvents.Cleared += _notifications.Clear;
+            }
+            return _notifications;
+        }
+    }
+
+    /// <summary>Report an event on the bus; what it delivers also reaches the pacing rules and the notification meter.</summary>
     public GameEventPublishResult PublishGameEvent(GameEventRequest request)
     {
         var result = GameEvents.Publish(request);
         if (result.Outcome != GameEventOutcome.Suppressed)
+        {
             Pacing.Observe(result.Event);
+            Notifications.Observe(result.Event);
+        }
         return result;
     }
 

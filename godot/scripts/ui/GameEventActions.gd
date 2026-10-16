@@ -10,11 +10,28 @@ extends RefCounted
 ## the site that needs it most (most lice, most worn nets) when it runs.
 
 ## Verb -> the tab it opens. Site verbs open the pen view of their site.
+## The farm-type verbs (F2-05) open the unit's tab: the offshore unit's
+## operations and the land site's water, power and staff live there until the
+## window board (F2-33) and the land board (F2-32) take them over.
 const TAB_VERBS := {
 	"check_water": "telemetry",
 	"review_feeding": "ai_feeding",
 	"raise_capital": "finance",
 	"open_sustainability": "sustainability",
+	"book_operation": "offshore",
+	"repair_unit": "offshore",
+	"review_alarms": "offshore",
+	"fix_defect": "offshore",
+	"start_tow": "offshore",
+	"pay_conversion": "offshore",
+	"resolve_outage": "ras",
+	"adjust_water": "ras",
+	"order_oxygen": "ras",
+	"start_purge": "ras",
+	"build_competence": "ras",
+	# A standing order that failed: the pen view with its site selected, where
+	# the site's Driftsplan card is.
+	"open_driftsplan": "pens",
 }
 const SITE_VERBS := ["delouse", "freshwater_bath", "inspect_nets"]
 
@@ -27,12 +44,17 @@ static func perform(event: Dictionary, scene: Node) -> bool:
 	var verb := str(event.get("counter_verb", "none"))
 	var ui := scene.get_node_or_null("%GameUI")
 	var vista := scene.get_node_or_null("%FjordVistaBridge")
+	var sim := scene.get_node_or_null("/root/SimBridge")
 	if TAB_VERBS.has(verb):
 		if ui == null or not ui.has_method("show_tab"):
 			return false
 		ui.show_tab(TAB_VERBS[verb])
+		if verb == "open_driftsplan":
+			var pens: Node = ui.find_child("Panel_pens", true, false)
+			var unit := str(event.get("unit_id", ""))
+			if pens != null and unit != "" and pens.has_method("select_pen"):
+				pens.select_pen(unit)
 		return true
-	var sim := scene.get_node_or_null("/root/SimBridge")
 	var site := target_site(event, sim)
 	if SITE_VERBS.has(verb):
 		if vista != null and site != "" and vista.has_method("show_pen_detail"):

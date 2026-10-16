@@ -627,7 +627,8 @@ public partial class GameBridge : Node
     /// </summary>
     public bool InstallBarrier(string siteId, string kind)
     {
-        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        // F2-03: a permeable barrier is fjord-pen hardware; an offshore unit has none.
+        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId && s.Kind == Farm.SiteKind.Fjord);
         if (site == null) return false;
         if (!TryParseBarrierKind(kind, out var parsed)) return false;
 
@@ -720,6 +721,7 @@ public partial class GameBridge : Node
 
         foreach (var site in sites)
         {
+            if (site.Kind != Farm.SiteKind.Fjord) continue; // F2-03: barriers are fjord-pen hardware
             var spec = Farm.BarrierTech.SpecFor(site.Barrier);
             double flow = SiteFlowMs(SimulationEngine, site);
             int days = site.BarrierDaysSinceCleaning;
@@ -917,6 +919,26 @@ public partial class GameBridge : Node
         return result;
     }
 
+    /// <summary>Largest grant <see cref="QaGrantCash"/> books at once (NOK): a Havfarm-class build with room to spare.</summary>
+    private const double QaGrantCashMaxNok = 5_000_000_000.0;
+
+    /// <summary>
+    /// QA-only (F2-03): book <paramref name="nok"/> as other income so a seeded
+    /// scenario (a few million in the bank) can afford the facility build a UI
+    /// flow drives, e.g. an offshore unit next to the fjord's pens. Refuses a
+    /// non-finite, non-positive or larger-than-5-billion amount. Not reachable
+    /// from player UI (UiFlowTests calls it on the autoload).
+    /// </summary>
+    public bool QaGrantCash(double nok)
+    {
+        var engine = SimulationEngine;
+        if (engine?.State == null || engine.FinanceManager == null) return false;
+        if (!double.IsFinite(nok) || nok <= 0.0 || nok > QaGrantCashMaxNok) return false;
+        engine.ReceiveIncome((decimal)nok, "qa_grant");
+        EmitSignal(SignalName.GameStateUpdated);
+        return true;
+    }
+
     /// <summary>
     /// AI competitor companies for grey farm visuals (Phase 3).
     /// Keys: "id", "name", "market_share", "position_x", "position_z", "strategy".
@@ -968,7 +990,8 @@ public partial class GameBridge : Node
     /// </summary>
     public bool DeployCountermeasure(string siteId, string kind)
     {
-        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        // F2-03: the bloom deck spawns in the fjord's zones; an offshore unit meets none.
+        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId && s.Kind == Farm.SiteKind.Fjord);
         if (site == null) return false;
         bool isBubble = (kind ?? "").ToLower() == "bubble";
         if (!isBubble && (kind ?? "").ToLower() != "diffuser") return false;
@@ -1288,9 +1311,10 @@ public partial class GameBridge : Node
         double totalEmissions = 0, totalCredits = 0;
         double scope1 = 0, scope2 = 0, scope3 = 0;
 
-        // Sea sites
+        // Sea sites (F2-03: the fjord localities; an offshore unit's carbon is in "offshore")
         foreach (var site in state.SeaSites)
         {
+            if (site.Kind != Farm.SiteKind.Fjord) continue;
             var tracker = site.CarbonTracker;
             double em = tracker.TotalEmissions();
             double cr = tracker.TotalCredits();
@@ -1318,11 +1342,11 @@ public partial class GameBridge : Node
             });
         }
 
-        // Offshore farms
+        // Offshore units (F2-03: offshore sea sites; the carbon is on the site's tracker)
         var offshoreArray = new Godot.Collections.Array<Godot.Collections.Dictionary>();
-        foreach (var off in SimulationEngine!.OffshoreFarms)
+        foreach (var off in SimulationEngine!.OffshoreUnits)
         {
-            if (!off.IsOperational) continue;
+            if (off.Offshore?.IsOperational != true) continue;
             var tracker = off.CarbonTracker;
             double em = tracker.TotalEmissions();
             double cr = tracker.TotalCredits();
@@ -1336,7 +1360,7 @@ public partial class GameBridge : Node
             offshoreArray.Add(new Godot.Collections.Dictionary
             {
                 ["id"] = off.Id,
-                ["name"] = off.Name,
+                ["name"] = off.Label,
                 ["emissions_kg"] = em,
                 ["credits_kg"] = cr,
                 ["net_kg"] = em - cr,
@@ -1404,7 +1428,6 @@ public partial class GameBridge : Node
         result["scope2_kg"] = scope2;
         result["scope3_kg"] = scope3;
         result["this_year_net_kg"] = state.SeaSites.Sum(s => s.CarbonTracker.NetThisYear(state.Day)) +
-                                     SimulationEngine!.OffshoreFarms.Sum(o => o.CarbonTracker.NetThisYear(state.Day)) +
                                      SimulationEngine!.RASFacilities.Sum(r => r.CarbonTracker.NetThisYear(state.Day));
 
         return result;
@@ -1425,7 +1448,6 @@ public partial class GameBridge : Node
         if (totalHarvestedKg <= 0) return 0.0;
 
         double totalEmissions = state.SeaSites.Sum(s => s.CarbonTracker.TotalEmissions()) +
-                                SimulationEngine!.OffshoreFarms.Sum(o => o.CarbonTracker.TotalEmissions()) +
                                 SimulationEngine!.RASFacilities.Sum(r => r.CarbonTracker.TotalEmissions());
         
         return totalEmissions / totalHarvestedKg;
@@ -1440,7 +1462,6 @@ public partial class GameBridge : Node
         if (state == null) return false;
         
         double netThisYear = state.SeaSites.Sum(s => s.CarbonTracker.NetThisYear(state.Day)) +
-                             SimulationEngine!.OffshoreFarms.Sum(o => o.CarbonTracker.NetThisYear(state.Day)) +
                              SimulationEngine!.RASFacilities.Sum(r => r.CarbonTracker.NetThisYear(state.Day));
         
         return netThisYear <= 0;

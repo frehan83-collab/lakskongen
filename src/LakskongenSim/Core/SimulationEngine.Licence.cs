@@ -138,7 +138,7 @@ public partial class SimulationEngine
             reason = $"Zone '{zoneId}' not found";
             return false;
         }
-        if (State.SeaSites.Count == 0) return true;              // development right
+        if (!FjordSites().Any()) return true;                    // development right (F2-03: fjord localities)
         if (State.SeaSites.Any(s => s.ZoneId == zoneId)) return true; // organic growth
         if (HasGrowthLicence(zoneId)) return true;               // won at auction
         reason = $"Zone '{zoneId}' requires a growth licence — win the auction first";
@@ -169,7 +169,7 @@ public partial class SimulationEngine
                 $"Insufficient funds: need {cost:N0} NOK to build the site");
 
         var siteId = string.IsNullOrWhiteSpace(name)
-            ? $"site_{State.SeaSites.Count + 1}"
+            ? $"site_{FjordSites().Count() + 1}" // F2-03: offshore units are numbered apart
             : name;
         var site = new SeaSite(siteId, zoneId)
         {
@@ -532,13 +532,28 @@ public partial class SimulationEngine
     }
 
     /// <summary>
-    /// Get the total unlocked research effect for a given key.
+    /// Get the total unlocked research effect for a given key on a fjord sea
+    /// pen (the default unit). F2-04: a node narrowed to land tanks or
+    /// offshore units (<see cref="ResearchNode.AppliesTo"/>) is left out; read
+    /// those with <see cref="ResearchEffectFor"/>.
     /// Returns 0.0 if no unlocked research contributes to that key.
     /// </summary>
     public double GetResearchEffect(string key)
     {
         if (Research == null) return 0.0;
-        return Research.GetTotalEffect(key);
+        return Research.GetTotalEffect(key, ResearchScopes.Sea);
+    }
+
+    /// <summary>
+    /// F2-04: the total unlocked research effect for a given key on a unit of
+    /// <paramref name="kind"/>: every node that reaches every unit plus the
+    /// nodes narrowed to that kind (land-based-ras's to land tanks,
+    /// deep-sea-farming's to offshore units).
+    /// </summary>
+    public double ResearchEffectFor(string key, LakskongenSim.Environment.HoldingKind kind)
+    {
+        if (Research == null) return 0.0;
+        return Research.GetTotalEffect(key, ResearchScopes.For(kind));
     }
 
     /// <summary>

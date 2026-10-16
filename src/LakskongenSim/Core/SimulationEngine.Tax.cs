@@ -60,8 +60,11 @@ public partial class SimulationEngine
         // cost: skatteloven § 19-5 values the fish at the pen edge
         // ("markedsverdien ved merdkanten ... multiplisert med slaktevolum")
         // and § 19-6 lists no slaughter or transport among the deductions.
-        decimal seaPhaseCosts = fs.COGS + fs.OperatingExpenses - State.HarvestCostThisTaxYear;
-        decimal rentBase = State.ResourceRentHarvestValueThisTaxYear - seaPhaseCosts;
+        // F2-04: the base is ring-fenced: costs of units the rent does not
+        // reach (land sites; offshore units on licences outside it) and the
+        // facility depreciation never lower it (ResourceRentBaseThisTaxYear,
+        // SimulationEngine.FacilityFinance.cs).
+        decimal rentBase = ResourceRentBaseThisTaxYear();
         decimal rentTax = EnableResourceRentTax
             ? ResourceRentTax.Compute(rentBase, _calibration.Finance.ResourceRentBasicDeductionNOK,
                 TaxSystem.ResourceRentTaxRate)
@@ -83,6 +86,7 @@ public partial class SimulationEngine
         State.HarvestedKgThisTaxYear = 0.0;
         State.ResourceRentHarvestValueThisTaxYear = 0m;
         State.HarvestCostThisTaxYear = 0m;
+        State.RentRingFencedCostsThisTaxYear = 0m;
 
         return new AnnualTaxSettlement(preTax, corporate, Math.Max(0m, rentBase), rentTax,
             provisional, settlement, TaxSystem.LossCarryForward);

@@ -55,13 +55,17 @@ public partial class SimulationEngine
     public double AreaStandingBiomassTonnes(int productionArea)
         => SeaSitesInArea(productionArea).Sum(s => s.CurrentBiomassTonnes);
 
-    /// <summary>Sea sites of the company that lie in a production area, by id.</summary>
+    /// <summary>
+    /// Sea sites of the company that lie in a production area and count
+    /// against its licence pool, by id (F2-03: an offshore unit does not until
+    /// F2-09 binds its development licences, <see cref="CountsTowardAreaLicencePool"/>).
+    /// </summary>
     internal List<SeaSite> SeaSitesInArea(int productionArea)
     {
         var sites = new List<SeaSite>();
         if (State?.SeaSites == null) return sites;
         foreach (var site in State.SeaSites)
-            if (ProductionAreaOfSite(site) == productionArea)
+            if (CountsTowardAreaLicencePool(site) && ProductionAreaOfSite(site) == productionArea)
                 sites.Add(site);
         sites.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
         return sites;
@@ -95,7 +99,7 @@ public partial class SimulationEngine
     internal void MigrateCapacityRegisterAfterLoad()
     {
         if (State == null || State.CapacityRules.HasValue) return;
-        foreach (var site in State.SeaSites.OrderBy(s => s.Id, StringComparer.Ordinal))
+        foreach (var site in State.SeaSites.Where(CountsTowardAreaLicencePool).OrderBy(s => s.Id, StringComparer.Ordinal))
             GrantLicence(State, ProductionAreaOfSite(site), site.MABTonnes, site.Id, LicenceOrigin.LegacySave);
         State.CapacityRules = CapacityRegime.LicencesV1;
     }
@@ -188,6 +192,13 @@ public partial class SimulationEngine
         double poolT = AreaLicenceMtbTonnes(area);
         double siteMtbT = site.MABTonnes;
         int today = State.Day;
+
+        // F2-03: an offshore unit is stocked by its own verb (StockOffshoreFarm),
+        // against its own MTB; the fjord stocking path never stocks one.
+        if (site.Kind == SiteKind.Offshore)
+            return new StockingCapacityPreview(false, OffshoreUnitKey,
+                $"'{site.Label}' is an offshore unit: stock it through its own verb",
+                area, poolT, AreaStandingBiomassTonnes(area), siteMtbT, site.CurrentBiomassTonnes, today, 0);
 
         if (!CapacityRulesActive)
         {
@@ -292,7 +303,8 @@ public partial class SimulationEngine
         if (!CapacityRulesActive || State?.SeaSites == null) return;
 
         var areas = new SortedSet<int>();
-        foreach (var site in State.SeaSites) areas.Add(ProductionAreaOfSite(site));
+        foreach (var site in State.SeaSites)
+            if (CountsTowardAreaLicencePool(site)) areas.Add(ProductionAreaOfSite(site));
         foreach (var breach in State.CapacityBreaches)
             if (breach.IsOpen) areas.Add(breach.Area);
 
@@ -582,8 +594,11 @@ public partial class SimulationEngine
     public CapacityOverview GetCapacityOverview()
     {
         if (State == null) return new CapacityOverview();
+        // F2-03: an offshore unit's capacity is its own MTB (its unit list,
+        // GameBridge.Offshore.cs) until F2-09 binds its licences to the pool.
         var areaSet = new SortedSet<int>();
-        foreach (var site in State.SeaSites) areaSet.Add(ProductionAreaOfSite(site));
+        foreach (var site in State.SeaSites)
+            if (CountsTowardAreaLicencePool(site)) areaSet.Add(ProductionAreaOfSite(site));
         foreach (var licence in State.LicenceHoldings) areaSet.Add(licence.PooledArea);
 
         var areas = new List<AreaCapacityView>();
@@ -601,7 +616,7 @@ public partial class SimulationEngine
         }
 
         var sites = new List<SiteCapacityView>();
-        foreach (var site in State.SeaSites.OrderBy(s => s.Id, StringComparer.Ordinal))
+        foreach (var site in State.SeaSites.Where(CountsTowardAreaLicencePool).OrderBy(s => s.Id, StringComparer.Ordinal))
         {
             int area = ProductionAreaOfSite(site);
             double siteHeadroom = site.MABTonnes - site.CurrentBiomassTonnes;

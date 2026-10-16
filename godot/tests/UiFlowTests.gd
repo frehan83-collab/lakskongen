@@ -146,6 +146,12 @@ func _run() -> void:
 	_test_farm_type_graybox()
 	_test_land_kit_imports()
 	_test_offshore_unit_and_fleet()
+	# F2-03: an offshore unit leaves the fjord's pen layout alone.
+	await _test_offshore_unit_leaves_fjord_pens_in_place()
+	# F2-04: the farm-type catalogue and the research gates reach the UI.
+	await _test_farm_type_catalog_reaches_the_ui()
+	# F2-05: the Driftsplan card sets, changes and ends standing orders.
+	await _test_driftsplan_card_sets_and_runs_standing_orders()
 
 	_clear_test_saves()
 	_finish()
@@ -6225,4 +6231,300 @@ func _test_sky_latitude_follows_a_northern_scenario() -> void:
 		"sky latitude: the sim's sky context is the scenario's region (%s %.2f)" % [str(ctx.get("region", "")), float(ctx.get("latitude", 0.0))])
 	_check(absf(ts.latitude_deg - 63.43) < 0.01, "environment: the sky's latitude is the scenario region's (Trøndelag 63.43, got %.2f)" % ts.latitude_deg)
 	scene.queue_free()
+	await get_tree().process_frame
+
+## F2-03 (FARM_TYPES_SPEC §7.1 acceptance 6): an offshore unit is a sea site
+## in the engine, but the fjord's layout never sees it. FishPenManager lays
+## the fjord sites into channel slots by their index in GetSeaSiteDetails,
+## and the feed barges follow the same list; the bridge lists the fjord sites
+## unless asked. Building (and paying for) an OF1-class unit beside
+## po3_red_sone's two sites leaves every fjord site node, pen and barge where
+## it was, the unit stands in its own list on off_1 with its 3 zones, and the
+## 3D fjord draws no fjord site for it, today and a day later.
+func _test_offshore_unit_leaves_fjord_pens_in_place() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "offshore unit: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: Node = scene.get_node("FjordEnvironment")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var barges: FeedBargeVisualManager = env.get_node("FeedBargeVisualManager")
+	# The barges come with the first state sync (stocked at the start: on station).
+	_sim.state_updated.emit()
+	for i in 3:
+		await get_tree().process_frame
+	var fjord_ids: Array = _site_ids(_sim.get_all_pens())
+	var before := _fjord_layout(pens, barges)
+	_check(fjord_ids.size() == 2 and (before.get("sites", {}) as Dictionary).size() == 2
+		and (before.get("barges", []) as Array).size() == 2,
+		"offshore unit: the fjord draws po3_red_sone's two sites and their barges (%s)" % str(fjord_ids))
+
+	var bridge := get_node("/root/GameBridge")
+	var cash: float = float(_sim.balance)
+	_check(bool(bridge.QaGrantCash(1_000_000_000.0)) and float(_sim.balance) > cash + 999_000_000.0,
+		"offshore unit: a QA grant pays for the build")
+	_check(_sim.build_offshore_farm("Havmerd UI", "semi_submersible"), "offshore unit: an OF1-class unit is built")
+	_sim.state_updated.emit()
+	for i in 3:
+		await get_tree().process_frame
+	var units: Array = _sim.get_offshore_units()
+	var unit: Dictionary = units[0] if units.size() == 1 else {}
+	_check(str(unit.get("plot_id", "")) == "off_1" and int(unit.get("zones", 0)) == 3
+		and (unit.get("pens", []) as Array).size() == 3,
+		"offshore unit: it stands in its own list on off_1 with its 3 zones (%s)" % str(units.map(func(u: Dictionary) -> String: return "%s@%s" % [str(u.get("id", "")), str(u.get("plot_id", ""))])))
+	var unit_id := str(unit.get("id", ""))
+	var free_slots: Array = _sim.get_offshore_plots().filter(func(p: Dictionary) -> bool: return bool(p.get("free", false)))
+	_check(free_slots.size() == 2 and _site_ids(free_slots) == ["off_2", "hav_1"],
+		"offshore unit: two of the three offshore slots stay free (%s)" % str(_site_ids(free_slots)))
+	_check(_site_ids(_sim.get_all_pens()) == fjord_ids, "offshore unit: the fjord's site list is unchanged (%s)" % str(_site_ids(_sim.get_all_pens())))
+	_check(unit_id != "" and not (unit_id in pens.get_pen_ids()), "offshore unit: the 3D fjord draws no fjord site for it")
+	var after := _fjord_layout(pens, barges)
+	_check(after == before, "offshore unit: every fjord site, pen and feed barge stands where it stood (%s)" % _layout_change(before, after))
+
+	_sim.advance_days(1)
+	_sim.set_paused(true)
+	_sim.state_updated.emit()
+	for i in 3:
+		await get_tree().process_frame
+	var next_day := _fjord_layout(pens, barges)
+	_check(next_day == before, "offshore unit: a day later the fjord layout is still the same (%s)" % _layout_change(before, next_day))
+	scene.queue_free()
+	await get_tree().process_frame
+
+
+## The ids of a list of site or plot dictionaries, in order.
+func _site_ids(rows: Array) -> Array:
+	return rows.map(func(r: Dictionary) -> String: return str(r.get("id", "")))
+
+
+## Where the fjord's sites are drawn: per site its node, centre, pen count and
+## every pen's rest position (rounded to the millimetre); the feed barges'
+## sites and their states.
+func _fjord_layout(pens: FishPenManager, barges: FeedBargeVisualManager) -> Dictionary:
+	var sites := {}
+	for sid in pens.get_pen_ids():
+		var farm := pens.get_site(sid)
+		if farm == null:
+			continue
+		var rest := []
+		for k in farm.pen_count:
+			rest.append((farm.pen_rest_position(k) * 1000.0).round())
+		sites[sid] = [farm.get_instance_id(), (pens.get_pen_position(sid) * 1000.0).round(), farm.pen_count, rest]
+	var boats := []
+	var ids: Array = barges.active_site_ids()
+	ids.sort()
+	for sid in ids:
+		boats.append("%s:%s" % [str(sid), barges.barge_state(str(sid))])
+	return {"sites": sites, "barges": boats}
+
+
+## What moved between two layouts, for a failure message.
+func _layout_change(before: Dictionary, after: Dictionary) -> String:
+	if before == after:
+		return "nothing moved"
+	var changes := []
+	var a: Dictionary = before.get("sites", {})
+	var b: Dictionary = after.get("sites", {})
+	for sid in a.keys() + b.keys():
+		if a.get(sid) != b.get(sid) and not changes.has(str(sid)):
+			changes.append(str(sid))
+	if before.get("barges") != after.get("barges"):
+		changes.append("barges %s -> %s" % [str(before.get("barges")), str(after.get("barges"))])
+	return ", ".join(changes)
+
+
+## F2-04: the farm-type catalogue reaches the UI through SimBridge, the one
+## source of every farm-type number on a card: three families, seven variants
+## with the same axes, each value with its source keys (a null value names its
+## reason), every unlock gate with its status (po3_red_sone starts with
+## deep-sea-farming researched: the OF1-class research gate is met, the unit is
+## still locked). The tech tree's tooltip, reached with a real mouse hover,
+## names the unit kinds a narrowed node reaches and the farm types it opens.
+func _test_farm_type_catalog_reaches_the_ui() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 93), "farm types: seeded scenario starts")
+	_sim.set_paused(true)
+	var cat: Dictionary = _sim.get_farm_type_catalog()
+	var axes: Array = cat.get("axes", [])
+	var families: Array = cat.get("families", [])
+	var family_ids: Array = families.map(func(f: Dictionary) -> String: return str(f.get("id", "")))
+	_check(family_ids == ["sjo", "land", "hav"], "farm types: three families (%s)" % str(family_ids))
+	var variants := {}
+	for f in families:
+		for v in f.get("variants", []):
+			variants[str(v.get("id", ""))] = v
+	_check(variants.keys() == ["open_pen", "closed_pen", "post_smolt", "hfs", "ras", "of1", "havfarm"],
+		"farm types: seven variants in catalogue order (%s)" % str(variants.keys()))
+	var problems: Array = []
+	for id in variants:
+		var va: Dictionary = variants[id].get("axes", {})
+		if va.size() != axes.size():
+			problems.append("%s has %d axes" % [id, va.size()])
+		for a in axes:
+			var e: Dictionary = va.get(a, {})
+			if (e.get("sources", []) as Array).is_empty():
+				problems.append("%s.%s has no source" % [id, a])
+			if e.get("median") == null and str(e.get("note", "")) == "":
+				problems.append("%s.%s is empty without a reason" % [id, a])
+	_check(axes.size() == 7 and problems.is_empty(), "farm types: every card has the 7 axes with sources (%s)" % str(problems))
+	var untranslated: Array = []
+	for f in families:
+		if tr(str(f.get("name_key", ""))) == str(f.get("name_key", "")):
+			untranslated.append(f.get("name_key"))
+	for id in variants:
+		var key := str(variants[id].get("name_key", ""))
+		if tr(key) == key:
+			untranslated.append(key)
+	_check(untranslated.is_empty() and tr("FARM_VARIANT_OF1") == "Havmerd" and tr("FARM_FAMILY_SJO") == "Sjø",
+		"farm types: every family and variant has a Norwegian name (%s)" % str(untranslated))
+	var of1_capex := float(variants["of1"]["axes"]["capex_nok_per_t_year"].get("median", 0.0))
+	_check(of1_capex > 131000.0 and of1_capex < 133000.0,
+		"farm types: the OF1-class capacity cost comes through (%.0f NOK per t a year)" % of1_capex)
+	var research_met := false
+	for g in variants["of1"].get("gates", []):
+		if str(g.get("kind", "")) == "Research" and str(g.get("subject", "")) == "deep-sea-farming":
+			research_met = bool(g.get("met", false))
+	_check(bool(variants["open_pen"].get("unlocked", false)) and research_met and not bool(variants["of1"].get("unlocked", true)),
+		"farm types: the open pen is open, OF1's research gate met, the unit still locked")
+
+	# The tech tree: hover land-based-ras with the mouse.
+	_start_paused_game()
+	var tree: Control = (load("res://scripts/ui/TechTreePanel.gd") as GDScript).new()
+	add_child(tree)
+	await get_tree().process_frame
+	tree.on_panel_shown()
+	await get_tree().process_frame
+	var node_panel: Control = tree._node_panels.get("land-based-ras")
+	_check(node_panel != null, "farm types: the tech tree shows land-based-ras")
+	if node_panel == null:
+		tree.queue_free()
+		return
+	# Bring the node to the middle of the window, then move the cursor onto it.
+	var vp := get_viewport()
+	var centre := node_panel.get_global_rect().get_center()
+	tree.position += vp.get_visible_rect().get_center() - centre
+	await get_tree().process_frame
+	centre = node_panel.get_global_rect().get_center()
+	vp.notification(Node.NOTIFICATION_VP_MOUSE_ENTER)
+	for p in [centre + Vector2(-40, 0), centre]:
+		var ev := InputEventMouseMotion.new()
+		ev.position = p
+		ev.global_position = p
+		vp.push_input(ev, true)
+		await get_tree().process_frame
+	var text: String = tree._tooltip_label.text
+	_check(tr("UI_TECH_APPLIES_TO") % tr("RESEARCH_SCOPE_LAND") in text
+			and tr("UI_TECH_UNLOCKS") % ", ".join([tr("FARM_VARIANT_POST_SMOLT"), tr("FARM_VARIANT_HFS")]) in text,
+		"farm types: the tooltip names land tanks and the two land types it opens (%s)" % text.replace("\n", " | "))
+	tree.queue_free()
+	await get_tree().process_frame
+
+
+## F2-05: a fjord site's Driftsplan card. Real clicks turn the two fjord
+## orders on and off, a changed setting reaches the engine's order, the
+## defaults and ranges are the engine's, the card leads with the engine's
+## "Neste planlagt" and its status lines are the engine's (what the order
+## waits for, what it last did); the order runs when the day runs. A farm-type
+## event names its unit in the notification text.
+func _test_driftsplan_card_sets_and_runs_standing_orders() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 41), "driftsplan: po3_red_sone starts")
+	_sim.set_paused(true)
+	var site_id := "po3_nord"
+	var panel: Control = (load("res://scenes/ui/PenManagement.tscn") as PackedScene).instantiate()
+	add_child(panel)
+	await get_tree().process_frame
+	panel.select_pen(site_id)
+	await get_tree().process_frame
+	var card: DriftsplanCard = panel.driftsplan_card()
+	_check(card != null and card.is_visible_in_tree(), "driftsplan: the pen view shows the card")
+	if card == null:
+		panel.queue_free()
+		return
+	var scroll: ScrollContainer = panel.get_node("Margin/MainSplit/DetailScroll")
+	var net := card.policy_check("net_cleaning")
+	var lice := card.policy_check("delouse_on_count")
+	_check(net != null and lice != null and not net.button_pressed and not lice.button_pressed
+			and net.text == tr("DRIFTSPLAN_POLICY_NET_CLEANING"),
+		"driftsplan: both fjord orders are listed, off, with Norwegian names (%s)" % (net.text if net else "none"))
+	_check(card.next_planned_label().text == tr("DRIFTSPLAN_NEXT_NONE")
+			and card.policy_status("net_cleaning").text == tr("DRIFTSPLAN_STATUS_OFF"),
+		"driftsplan: nothing planned yet (%s)" % card.next_planned_label().text)
+	var interval := card.setting_control("net_cleaning", "interval_days") as SpinBox
+	var share := card.setting_control("delouse_on_count", "share_of_limit") as SpinBox
+	_check(interval != null and int(interval.value) == 14 and int(interval.min_value) == 7 and int(interval.max_value) == 60
+			and share != null and is_equal_approx(share.value, 80.0) and is_equal_approx(share.min_value, 50.0),
+		"driftsplan: the defaults and ranges are the engine's (%d d in 7-60, %.0f %%)" % [int(interval.value), share.value])
+
+	scroll.ensure_control_visible(net)
+	await get_tree().process_frame
+	await _click_control(net)
+	var orders: Array = _sim.get_driftsplan(site_id)
+	_check(orders.size() == 1 and str(orders[0].get("policy", "")) == "net_cleaning"
+			and int(orders[0].get("numbers", {}).get("interval_days", 0)) == 14,
+		"driftsplan: a click on net care sets the order with the card's values (%s)" % str(orders))
+	_check(card.next_planned_label().text == tr("DRIFTSPLAN_NEXT") % [tr("DRIFTSPLAN_POLICY_NET_CLEANING"), tr("DRIFTSPLAN_WHEN_TODAY")],
+		"driftsplan: the card leads with today's net care (%s)" % card.next_planned_label().text)
+	interval.value = 21
+	await get_tree().process_frame
+	_check(int(_sim.get_driftsplan(site_id)[0].get("numbers", {}).get("interval_days", 0)) == 21,
+		"driftsplan: a changed interval reaches the engine's order")
+
+	_sim.advance_day()
+	await get_tree().process_frame
+	card.refresh()
+	var entry: Dictionary = _sim.get_driftsplan(site_id)[0]
+	var expected_status := "%s · %s" % [tr("DRIFTSPLAN_WHEN") % [GameCalendar.short_date(21), 20],
+		tr("DRIFTSPLAN_LAST") % [GameCalendar.short_date(0), tr("DRIFTSPLAN_OUTCOME_OK")]]
+	_check(int(entry.get("issued_count", 0)) == 1 and int(entry.get("last_issued_day", -1)) == 0
+			and card.policy_status("net_cleaning").text == expected_status,
+		"driftsplan: the day ran the order, and the card says when it runs next and what it did (%s)" % card.policy_status("net_cleaning").text)
+
+	# A value prepared while the order is off survives the day's refresh and is what the switch sets.
+	share.value = 70.0
+	_sim.advance_day()
+	await get_tree().process_frame
+	card.refresh()
+	_check(is_equal_approx(share.value, 70.0) and _sim.get_driftsplan(site_id).size() == 1,
+		"driftsplan: a share prepared while the order is off stays (%.0f %%) and sets nothing yet" % share.value)
+	scroll.ensure_control_visible(lice)
+	await get_tree().process_frame
+	await _click_control(lice)
+	var prepared := 0.0
+	for e in _sim.get_driftsplan(site_id):
+		if str(e.get("policy", "")) == "delouse_on_count":
+			prepared = float(e.get("numbers", {}).get("share_of_limit", 0.0))
+	_check(is_equal_approx(prepared, 0.7), "driftsplan: the switch sets the prepared share (%.2f)" % prepared)
+	var method := card.setting_control("delouse_on_count", "method") as OptionButton
+	var thermal := -1
+	for i in method.item_count:
+		if str(method.get_item_metadata(i)) == "thermolicer":
+			thermal = i
+	method.select(thermal)
+	method.item_selected.emit(thermal)
+	await get_tree().process_frame
+	var lice_order: Dictionary = {}
+	for e in _sim.get_driftsplan(site_id):
+		if str(e.get("policy", "")) == "delouse_on_count":
+			lice_order = e
+	var level := float(lice_order.get("next", {}).get("trigger_value", 0.0))
+	_check(str(lice_order.get("choices", {}).get("method", "")) == "thermolicer" and method.get_item_text(thermal) == tr("DRIFTSPLAN_CHOICE_THERMOLICER"),
+		"driftsplan: the delousing order takes the chosen method (%s)" % str(lice_order.get("choices")))
+	_check(level > 0.1 and card.policy_status("delouse_on_count").text == tr("DRIFTSPLAN_WAIT_LICE_COUNT_ABOVE") % SimFormatters.num(level, 2),
+		"driftsplan: the order says it waits for a count over its level (%s)" % card.policy_status("delouse_on_count").text)
+
+	scroll.ensure_control_visible(net)
+	await get_tree().process_frame
+	await _click_control(net)
+	var left: Array = _sim.get_driftsplan(site_id).map(func(e: Dictionary) -> String: return str(e.get("policy", "")))
+	_check(left == ["delouse_on_count"] and not net.button_pressed
+			and card.policy_status("net_cleaning").text == tr("DRIFTSPLAN_STATUS_OFF"),
+		"driftsplan: a second click ends net care (%s)" % str(left))
+
+	var unit_event := {"type": "silo_low", "severity": "warning", "unit_id": "offshore_1", "unit_name": "Havmerd Vest", "site_id": "offshore_1"}
+	_check(GameEventText.subject(unit_event, _sim) == "Havmerd Vest"
+			and GameEventText.has_verb({"counter_verb": "open_driftsplan"}) and tr("GAME_EVENT_DRIFTSPLAN_COMMAND_FAILED") != "GAME_EVENT_DRIFTSPLAN_COMMAND_FAILED",
+		"driftsplan: a farm-type event names its unit, and a failed order has its verb and title")
+	panel.queue_free()
 	await get_tree().process_frame

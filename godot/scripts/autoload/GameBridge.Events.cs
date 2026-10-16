@@ -14,9 +14,10 @@ public partial class GameBridge
     /// <summary>
     /// An event the player is told about (delivered or escalated by the bus).
     /// Keys: id, type, severity ("info" | "warning" | "critical"), category,
-    /// key, day, site_id, zone_id, unit_id, variant, headline, message,
-    /// deadline_day (-1 none), counter_verb ("none" when nothing answers it),
-    /// value, escalation, generation (changes with every new or loaded game).
+    /// key, day, site_id, zone_id, unit_id, unit_name (the unit's label, ""
+    /// without a unit; F2-05), variant, headline, message, deadline_day (-1
+    /// none), counter_verb ("none" when nothing answers it), value, escalation,
+    /// generation (changes with every new or loaded game).
     /// </summary>
     [Signal] public delegate void GameEventRaisedEventHandler(Godot.Collections.Dictionary gameEvent);
 
@@ -113,13 +114,14 @@ public partial class GameBridge
                 ["category"] = info.Category,
                 ["severity"] = GameEventCatalog.SeverityId(info.Severity),
                 ["counter_verb"] = info.CounterVerb,
-                ["deadline"] = info.Deadline == GameEventDeadlineRule.SetByPublisher ? "set_by_publisher" : "none"
+                ["deadline"] = info.Deadline == GameEventDeadlineRule.SetByPublisher ? "set_by_publisher" : "none",
+                ["farm_type"] = info.DeclaredForFarmTypes
             });
         }
         return list;
     }
 
-    private static Godot.Collections.Dictionary ToDictionary(GameEvent ev, int generation) => new()
+    private Godot.Collections.Dictionary ToDictionary(GameEvent ev, int generation) => new()
     {
         ["generation"] = generation,
         ["id"] = ev.Id,
@@ -131,6 +133,7 @@ public partial class GameBridge
         ["site_id"] = ev.SiteId,
         ["zone_id"] = ev.ZoneId,
         ["unit_id"] = ev.UnitId,
+        ["unit_name"] = SimulationEngine?.UnitLabel(ev.UnitId) ?? "",
         ["variant"] = ev.Variant,
         ["headline"] = ev.Headline,
         ["message"] = ev.Message,

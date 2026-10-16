@@ -21,6 +21,19 @@ namespace LakskongenSim.Farm
         public string ZoneId { get; set; } = "";
         public RASScale Scale { get; set; } = RASScale.Medium;
 
+        /// <summary>
+        /// What the land site produces (F2-03): grow-out, or post-smolt for the
+        /// sea sites (a pre-F2 post-smolt facility migrates to one).
+        /// </summary>
+        public LandSiteKind Kind { get; set; } = LandSiteKind.GrowOut;
+
+        /// <summary>
+        /// The land pad the site stands on ("pad_a"), "" for a facility a pre-F2
+        /// save has not yet placed (F2-03's migration gives it a pad); its
+        /// <see cref="ZoneId"/> is the pad's (<see cref="SitePlot"/>).
+        /// </summary>
+        public string PlotId { get; set; } = "";
+
         // ─── Capacity & Production ───
         /// <summary>Maximum annual production capacity in tonnes.</summary>
         public double CapacityTonnesPerYear { get; set; } = 8_000; // Medium-scale (Salmon Evolution = 7,900t)

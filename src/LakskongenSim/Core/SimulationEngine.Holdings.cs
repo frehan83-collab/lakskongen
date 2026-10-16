@@ -32,9 +32,15 @@ public partial class SimulationEngine
     /// </summary>
     internal long HoldingScans { get; private set; }
 
-    /// <summary>Resolve every population's holding for the step that starts now.</summary>
+    /// <summary>
+    /// Resolve every population's holding for the step that starts now. A
+    /// state that still holds pre-F2 facilities (built by hand: a load migrates
+    /// its own, F2-03) is normalized into the F2 unit kinds first, so the step
+    /// resolves every population to its unit; an F2 state passes untouched.
+    /// </summary>
     internal void BeginHoldingDay()
     {
+        MigrateFacilities();
         _holdingIndex = HoldingIndex.Build(State);
         HoldingIndexBuilds++;
     }
@@ -65,19 +71,23 @@ public partial class SimulationEngine
     /// pen's area sea water, with the oxygen its current-fed exchange adds
     /// (<see cref="Farm.OffshoreFarm.OxygenBoost"/>); a sea pen's zone water,
     /// less the oxygen a running in-cage sag takes (<see cref="HypoxiaSagDepthAt"/>).
+    /// The land tank's and the offshore pen's water are the lanes' (F2-02:
+    /// <see cref="Farm.Land.LandHooks.TankWater"/>, <see cref="Farm.Offshore.OffshoreHooks.PenWater"/>),
+    /// the one water behind <see cref="UnitWaterTemperatureC"/>.
     /// </summary>
     internal HoldingWater WaterOf(in PopulationHolding holding, FishPopulation population)
     {
         switch (holding.Kind)
         {
             case HoldingKind.LandTank when holding.LandFacility != null:
-                return new HoldingWater(holding.LandFacility.CurrentWaterTemp, holding.LandFacility.OxygenLevel,
-                    HoldingWater.SeawaterSalinityPsu, HomeProductionArea, HoldingKind.LandTank);
+                return Farm.Land.LandHooks.TankWater(this, holding, population);
+            case HoldingKind.Offshore when holding.Site?.Offshore != null:
+                // An offshore unit's zone (F2-03): its plot's sea, not a fjord zone's.
+                return Farm.Offshore.OffshoreHooks.PenWater(this, holding, population,
+                    SeaWaterOf(holding.Zone, holding.Site.ZoneId, HoldingKind.Offshore));
             case HoldingKind.Offshore when holding.OffshoreFarm != null:
-            {
-                var sea = SeaWaterOf(holding.Zone, holding.OffshoreFarm.ZoneId, HoldingKind.Offshore);
-                return sea with { OxygenMgPerL = sea.OxygenMgPerL + holding.OffshoreFarm.OxygenBoost };
-            }
+                return Farm.Offshore.OffshoreHooks.PenWater(this, holding, population,
+                    SeaWaterOf(holding.Zone, holding.OffshoreFarm.ZoneId, HoldingKind.Offshore));
             default:
             {
                 var sea = SeaWaterOf(holding.Zone, population.ZoneId, HoldingKind.SeaPen);
@@ -105,7 +115,7 @@ public partial class SimulationEngine
         double waveHeight = holding.Kind switch
         {
             HoldingKind.LandTank => 0.0,
-            HoldingKind.Offshore => holding.OffshoreFarm?.CurrentWaveHeight ?? 0.0,
+            HoldingKind.Offshore => holding.Site?.Offshore?.CurrentWaveHeight ?? holding.OffshoreFarm?.CurrentWaveHeight ?? 0.0,
             _ => Weather?.CurrentWaveHeight ?? 0.0,
         };
         return CohortEnvironment.From(water, holding.Id, co2, waveHeight);
@@ -121,28 +131,13 @@ public partial class SimulationEngine
         return new HoldingWater(temperature, oxygen, HoldingWater.SeawaterSalinityPsu, area, kind);
     }
 
-    /// <summary>The holding of a population with no index entry: the facility, site and population lists, scanned.</summary>
+    /// <summary>
+    /// The holding of a population with no index entry: its unit, resolved by
+    /// scanning the unit lists (<see cref="UnitResolver.Resolve"/>, F2-03).
+    /// </summary>
     private PopulationHolding ScanForHolding(FishPopulation population)
     {
         HoldingScans++;
-        foreach (var facility in State.RASFacilities)
-            if (HoldsPopulation(facility.Tanks, population))
-                return HoldingIndex.LandTank(facility);
-        foreach (var farm in State.OffshoreFarms)
-            if (HoldsPopulation(farm.Pens, population))
-                return HoldingIndex.OffshorePen(farm, FindZone(farm.ZoneId));
-        var zone = FindZone(population.ZoneId);
-        foreach (var site in State.SeaSites)
-            if (HoldsPopulation(site.Pens, population))
-                return HoldingIndex.SeaPen(population, site, zone);
-        return HoldingIndex.SeaPen(population, null, zone);
-    }
-
-    private static bool HoldsPopulation(System.Collections.Generic.List<FishPopulation> pens, FishPopulation population)
-    {
-        for (int i = 0; i < pens.Count; i++)
-            if (ReferenceEquals(pens[i], population))
-                return true;
-        return false;
+        return HoldingIndex.HoldingOfUnit(population, UnitResolver.Resolve(State, population), FindZone);
     }
 }

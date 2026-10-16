@@ -7,12 +7,52 @@ using LakskongenSim.Biology;
 namespace LakskongenSim.Farm
 {
     /// <summary>
+    /// What a sea site is (roadmap F2-03, docs/FARM_TYPES_SPEC.md §3.1 decision
+    /// 1): everything in the water is a <see cref="SeaSite"/>, a fjord locality
+    /// of net pens or an offshore unit in the open sea.
+    /// </summary>
+    public enum SiteKind
+    {
+        /// <summary>A fjord locality: a frame mooring of open (or contained) net pens in a fjord zone.</summary>
+        Fjord = 0,
+        /// <summary>An offshore unit (<see cref="SeaSite.Offshore"/>) on an offshore slot; its zones are the site's pens.</summary>
+        Offshore = 1,
+    }
+
+    /// <summary>
     /// Represents a sea site where fish are kept in pens.
     /// </summary>
     public class SeaSite
     {
         public string Id { get; init; }
         public string ZoneId { get; set; } = ""; // Links to Environment.Zone
+
+        /// <summary>
+        /// What the site is (F2-03): a fjord locality, or an offshore unit whose
+        /// structure is <see cref="Offshore"/>. Saves from before F2-03 hold only
+        /// fjord sites (their offshore farms migrate to offshore sites on load).
+        /// </summary>
+        public SiteKind Kind { get; set; } = SiteKind.Fjord;
+
+        /// <summary>The plot the site stands on ("off_1"), "" for a fjord locality (F2-03; <see cref="SitePlot"/>).</summary>
+        public string PlotId { get; set; } = "";
+
+        /// <summary>The offshore structure: non-null exactly when <see cref="Kind"/> is <see cref="SiteKind.Offshore"/> (F2-03).</summary>
+        public global::LakskongenSim.Farm.Offshore.OffshoreUnit? Offshore { get; set; }
+
+        /// <summary>
+        /// The red-zone MTB credit factor applied to <see cref="MABTonnes"/>
+        /// (Phase 4.1), 1.0 when none: stored when the credit is applied so the
+        /// zone exit can divide by the factor that was applied (F2-10 switches
+        /// the exit to it; F2-03 stores it beside <see cref="RedZoneCreditApplied"/>).
+        /// </summary>
+        public double AppliedContainmentCredit { get; set; } = 1.0;
+
+        /// <summary>True for an offshore unit.</summary>
+        [JsonIgnore] public bool IsOffshore => Kind == SiteKind.Offshore;
+
+        /// <summary>True for a fjord locality.</summary>
+        [JsonIgnore] public bool IsFjord => Kind == SiteKind.Fjord;
 
         /// <summary>The name the player reads (the scenario's site name, or a
         /// generated place name for a site the player builds). Empty on saves

@@ -13,9 +13,12 @@ const TONES := {"critical": &"Crit", "warning": &"Warn", "info": &"Info"}
 const GLYPHS := {"critical": "!!", "warning": "!", "info": "i"}
 
 ## Counter verbs the UI knows how to perform (GameEventCatalog.CounterVerbs
-## minus "none"); a pytest keeps the two lists equal.
+## minus "none"); a pytest keeps the two lists equal. The second line holds the
+## farm-type verbs (F2-05): each opens the unit's board.
 const VERBS := ["delouse", "freshwater_bath", "inspect_nets", "check_water", "review_feeding",
-	"raise_capital", "open_sustainability", "inspect_site"]
+	"raise_capital", "open_sustainability", "inspect_site",
+	"book_operation", "repair_unit", "review_alarms", "fix_defect", "start_tow", "pay_conversion",
+	"resolve_outage", "adjust_water", "order_oxygen", "start_purge", "build_competence", "open_driftsplan"]
 
 
 static func tone(event: Dictionary) -> StringName:
@@ -36,8 +39,14 @@ static func title(event: Dictionary) -> String:
 	return text if text != key else SimLabels.humanize(str(event.get("type", "")))
 
 
-## "PO3 Sør", "PO3 nord" (a zone) or "Hele selskapet".
+## "PO3 Sør", "PO3 nord" (a zone) or "Hele selskapet". A farm-type event
+## names its unit (a land site, an offshore unit; F2-05) by the label the
+## bridge sends with it.
 static func subject(event: Dictionary, sim: Node) -> String:
+	var unit := str(event.get("unit_id", ""))
+	if unit != "":
+		var unit_name := str(event.get("unit_name", ""))
+		return unit_name if unit_name != "" else SimLabels.humanize(unit)
 	var site := str(event.get("site_id", ""))
 	if site != "":
 		return str(sim.site_name(site)) if sim != null and sim.has_method("site_name") else SimLabels.humanize(site)

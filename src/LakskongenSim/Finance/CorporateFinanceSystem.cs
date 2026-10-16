@@ -108,15 +108,16 @@ namespace LakskongenSim.Finance
 
         /// <summary>
         /// Covenant test on the current (year-to-date) figures. EBITDA is
-        /// earnings before interest and tax (revenue − COGS − OpEx); net debt is
-        /// interest-bearing debt minus cash (never negative).
+        /// earnings before interest, tax, depreciation and amortisation
+        /// (revenue − COGS − OpEx; F2-04's facility depreciation is added back);
+        /// net debt is interest-bearing debt minus cash (never negative).
         /// </summary>
         private CovenantTestResult TestCovenants(FinancialStatements statements, FinanceManager financeManager,
             InvestorSystem? investorSystem, decimal outstandingDebt)
         {
             var cash = financeManager?.Balance ?? 0m;
             var netDebt = Math.Max(0m, outstandingDebt - cash);
-            var ebitda = statements.PreTaxIncome + statements.InterestExpense;
+            var ebitda = statements.PreTaxIncome + statements.InterestExpense + statements.Depreciation;
             var undrawn = investorSystem?.AvailableCreditFacility ?? 0m;
             return Covenants.TestCovenants(netDebt, ebitda, statements.InterestExpense,
                 statements.Equity, statements.Assets, cash, undrawn);

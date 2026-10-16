@@ -266,6 +266,13 @@ namespace LakskongenSim.Core
             state.InsurancePolicies ??= new();
             state.BloomMitigations ??= new();
 
+            // F2-03: the unit lists and the plots' state (the engine migrates a
+            // pre-F2 save's facilities when it adopts the state).
+            state.RASFacilities ??= new();
+            state.OffshoreFarms ??= new();
+            state.PostSmoltFacilities ??= new();
+            state.SitePlots ??= new();
+
             // Ensure new scalar properties have sensible defaults if missing
             // (System.Text.Json uses 0/false/null for missing primitives, but we can override)
             if (state.BestFCR == 0.0)

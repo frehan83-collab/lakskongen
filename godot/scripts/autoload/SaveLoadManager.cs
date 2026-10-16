@@ -38,7 +38,7 @@ public partial class SaveLoadManager : Node
     /// migration step in MigrateSaveData. Old saves without the field read
     /// as version 0.
     /// </summary>
-    public const int CurrentSaveVersion = 8;
+    public const int CurrentSaveVersion = 9;
 
     private JsonSerializerOptions _jsonOptions;
     private GameBridge _gameBridge;
@@ -415,11 +415,25 @@ public partial class SaveLoadManager : Node
             site.CarbonTracker ??= new LakskongenSim.Farm.CarbonTracker();
         }
 
-        // CarbonTracker on OffshoreFarms (Phase 5.4)
+        // CarbonTracker on OffshoreFarms (Phase 5.4; load-only since F2-03)
+        state.OffshoreFarms ??= new List<LakskongenSim.Farm.OffshoreFarm>();
+        state.PostSmoltFacilities ??= new List<LakskongenSim.Farm.PostSmoltFacility>();
         foreach (var off in state.OffshoreFarms)
         {
             off.CarbonTracker ??= new LakskongenSim.Farm.CarbonTracker();
         }
+
+        // F2-03: an offshore sea site's structure (its own carbon tracker) and
+        // the plots' state (attributes rejoin from the catalogue on adoption).
+        foreach (var site in state.SeaSites)
+        {
+            if (site.Kind == LakskongenSim.Farm.SiteKind.Offshore)
+                site.Offshore ??= new LakskongenSim.Farm.Offshore.OffshoreUnit();
+            if (!double.IsFinite(site.AppliedContainmentCredit) || site.AppliedContainmentCredit <= 0.0)
+                site.AppliedContainmentCredit = 1.0;
+        }
+        state.SitePlots ??= new List<LakskongenSim.Farm.SitePlot>();
+        state.SitePlots.RemoveAll(p => p == null || string.IsNullOrEmpty(p.Id));
 
         // CarbonTracker on RASFacilities (Phase 5.4)
         foreach (var ras in state.RASFacilities)
@@ -464,10 +478,13 @@ public partial class SaveLoadManager : Node
             }
         }
 
-        // WatchMode on SeaSites (Phase 4.2)
+        // WatchMode on SeaSites (Phase 4.2; F2-03: an offshore unit is crewed on board)
         foreach (var site in state.SeaSites)
         {
-            if (string.IsNullOrEmpty(site.WatchMode)) site.WatchMode = "watch";
+            if (string.IsNullOrEmpty(site.WatchMode))
+                site.WatchMode = site.Kind == LakskongenSim.Farm.SiteKind.Offshore
+                    ? LakskongenSim.Core.SimulationEngine.OffshoreWatchMode
+                    : "watch";
         }
 
         // GillScore on SeaSites (Phase 4.3)
@@ -619,6 +636,19 @@ public partial class SaveLoadManager : Node
                     // keeping the volume it was simulated in
                     // (SimulationEngine.MigratePensAfterLoad); order pens keep "".
                     saveData.SaveVersion = 8;
+                    break;
+                case 8:
+                    // v8 -> v9 (F2-03): site kinds and plots. Sea sites carry their
+                    // kind (Fjord/Offshore), plot, offshore structure and stored
+                    // red-zone credit; land sites their kind (GrowOut/PostSmolt) and
+                    // pad; the game its plots' state (SitePlots). A v8 save loads
+                    // with fjord sites, no plots and its facilities in the pre-F2
+                    // lists: the engine moves each offshore farm to an offshore sea
+                    // site, each post-smolt facility to a post-smolt land site (its
+                    // batches populations) and each RAS facility onto a pad, on
+                    // overflow plots past the named ones, and empties the lists
+                    // (SimulationEngine.MigrateFacilities, idempotent).
+                    saveData.SaveVersion = 9;
                     break;
                 default:
                     GD.PrintErr($"No migrator for save version {saveData.SaveVersion}; loading as-is.");

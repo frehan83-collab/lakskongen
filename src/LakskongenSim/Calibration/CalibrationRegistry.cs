@@ -39,7 +39,7 @@ namespace LakskongenSim.Calibration
         public const string EmbeddedResourceName = "LakskongenSim.Calibration.calibration.json";
 
         /// <summary>Current schema/balancing version. Bump when reconciled values change.</summary>
-        public const string DefaultVersion = "1.0.10";
+        public const string DefaultVersion = "1.1.0";
 
         /// <summary>Calibration schema/balancing version.</summary>
         [JsonPropertyName("version")]
@@ -153,6 +153,15 @@ namespace LakskongenSim.Calibration
         public PenCalibration Pens { get; init; } = new();
 
         /// <summary>
+        /// Facilities (F2-04, docs/FARM_TYPES_SPEC.md §3.9): the farm types'
+        /// section, assembled from the include files <c>calibration.json</c>
+        /// lists under <c>facilitiesIncludes</c> (<see cref="CalibrationIncludes"/>).
+        /// Every leaf carries a range and its source or game-balance reason.
+        /// </summary>
+        [JsonPropertyName("facilities")]
+        public FacilitiesCalibration Facilities { get; init; } = new();
+
+        /// <summary>
         /// Derived feed cost per kg of fish produced = feed price × base FCR.
         /// This is the reconciled "~25.7 NOK/kg produced" figure in
         /// docs/REALISM_CHECKLIST.md; the old model used a flat 12.5 NOK/kg fish,
@@ -186,7 +195,12 @@ namespace LakskongenSim.Calibration
                 try
                 {
                     if (File.Exists(candidate))
-                        return Parse(File.ReadAllText(candidate));
+                    {
+                        // F2-04: includes next to the file first, then the embedded copies.
+                        string directory = Path.GetDirectoryName(Path.GetFullPath(candidate)) ?? ".";
+                        return Parse(File.ReadAllText(candidate),
+                            path => CalibrationIncludes.ReadBeside(directory, path) ?? CalibrationIncludes.ReadEmbedded(path));
+                    }
                 }
                 catch
                 {
@@ -212,10 +226,22 @@ namespace LakskongenSim.Calibration
             return new CalibrationRegistry();
         }
 
-        /// <summary>Deserialize a registry from raw JSON (used by tests and Load).</summary>
-        public static CalibrationRegistry Parse(string json)
+        /// <summary>
+        /// Deserialize a registry from raw JSON (used by tests and Load). The
+        /// facilities includes it lists come from the library's embedded copies.
+        /// </summary>
+        public static CalibrationRegistry Parse(string json) => Parse(json, CalibrationIncludes.ReadEmbedded);
+
+        /// <summary>
+        /// Deserialize a registry from raw JSON, reading the facilities includes
+        /// it lists with <paramref name="readInclude"/> (an include's text by its
+        /// listed path, or null when there is none: the section keeps its code
+        /// defaults).
+        /// </summary>
+        public static CalibrationRegistry Parse(string json, Func<string, string?> readInclude)
         {
-            var registry = JsonSerializer.Deserialize<CalibrationRegistry>(json, JsonOptions)
+            string composed = CalibrationIncludes.Compose(json, readInclude).Json;
+            var registry = JsonSerializer.Deserialize<CalibrationRegistry>(composed, JsonOptions)
                            ?? new CalibrationRegistry();
             return string.IsNullOrWhiteSpace(registry.Version)
                 ? registry with { Version = DefaultVersion }

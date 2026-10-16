@@ -98,16 +98,24 @@ public class PreF2SaveFixtureTests
     }
 
     /// <summary>
-    /// The pre-F2 engine loads the fixture through the game's adoption path with
+    /// The engine loads the fixture through the game's adoption path with
     /// every fish and kilo in place, runs 30 more days with the facilities
-    /// growing fish, and two loads run identically.
+    /// growing fish, and two loads run identically. F2-03 replaces the pre-F2
+    /// form of this test (the facilities stayed the pre-F2 kinds): the load
+    /// migrates them, one grow-out land site, one post-smolt land site and one
+    /// offshore unit by the facilities' ids, and the pre-F2 lists are empty;
+    /// every fish and kilo of the save is still there, in a population, and
+    /// the post-smolt batches are populations that grow. The migration's own
+    /// acceptance tests are <c>FacilityMigrationTests</c>.
     /// </summary>
     [Fact]
     public void TheFixture_LoadsOnThePreF2Engine_KeepsEveryFish_AndRuns30Days()
     {
         var saved = FixtureState();
-        long savedFish = saved.Populations.Sum(p => (long)p.TotalCount);
-        double savedKg = saved.Populations.Sum(p => p.GetTotalBiomassKg());
+        long savedFish = saved.Populations.Sum(p => (long)p.TotalCount)
+            + saved.PostSmoltFacilities.Sum(f => f.Batches.Sum(b => (long)b.Count));
+        double savedKg = saved.Populations.Sum(p => p.GetTotalBiomassKg())
+            + saved.PostSmoltFacilities.Sum(f => f.Batches.Sum(b => b.Count * b.AverageWeightG / 1000.0));
         string gameState;
         using (var doc = JsonDocument.Parse(FixtureText()))
             gameState = doc.RootElement.GetProperty("GameState").GetRawText();
@@ -116,15 +124,22 @@ public class PreF2SaveFixtureTests
         Assert.Equal(saved.Day, first.State.Day);
         Assert.Equal(savedFish, first.State.Populations.Sum(p => (long)p.TotalCount));
         Assert.Equal(savedKg, first.State.Populations.Sum(p => p.GetTotalBiomassKg()), 9);
-        Assert.Single(first.RASFacilities);
-        Assert.Single(first.OffshoreFarms);
-        Assert.Single(first.PostSmoltFacilities);
+        var ras = Assert.Single(first.RASFacilities, f => f.Kind == LandSiteKind.GrowOut);
+        var postSmolt = Assert.Single(first.PostSmoltSites);
+        var unit = Assert.Single(first.OffshoreUnits);
+        Assert.Equal((saved.RASFacilities[0].Id, saved.PostSmoltFacilities[0].Id, saved.OffshoreFarms[0].Id),
+            (ras.Id, postSmolt.Id, unit.Id));
+        Assert.Empty(first.OffshoreFarms);
+        Assert.Empty(first.PostSmoltFacilities);
 
-        double rasKg = first.RASFacilities[0].GetTotalBiomassKg();
+        double rasKg = ras.GetTotalBiomassKg();
+        double postSmoltKg = postSmolt.GetTotalBiomassKg();
         first.Advance(30);
-        Assert.True(first.RASFacilities[0].GetTotalBiomassKg() > rasKg, "RAS fish did not grow after the load");
-        Assert.True(first.OffshoreFarms[0].Pens.All(p => p.TotalCount > 0));
-        Assert.True(first.PostSmoltFacilities[0].Batches.Sum(b => b.Count) > 0);
+        Assert.True(ras.GetTotalBiomassKg() > rasKg, "RAS fish did not grow after the load");
+        Assert.Equal(2, unit.Pens.Count);
+        Assert.True(unit.Pens.All(p => p.TotalCount > 0));
+        Assert.True(postSmolt.Tanks.Sum(p => p.TotalCount) > 0);
+        Assert.True(postSmolt.GetTotalBiomassKg() > postSmoltKg, "post-smolt batches did not grow after the load");
 
         var second = SaveStateComparer.Resume(gameState, events: true);
         second.Advance(30);

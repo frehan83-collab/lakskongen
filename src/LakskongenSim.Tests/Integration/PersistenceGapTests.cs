@@ -78,8 +78,17 @@ public class PersistenceGapTests
         Assert.Equal("insufficient_funds", result.ErrorKey);
         Assert.Equal(before, engine.FinanceManager.Balance);
         Assert.Empty(engine.OffshoreFarms);
+        // F2-03: no offshore unit, and no plot was taken (a refused build changes nothing).
+        Assert.Empty(engine.OffshoreUnits);
+        Assert.Empty(engine.State.SitePlots);
     }
 
+    /// <summary>
+    /// The three facility verbs' units survive a save and a load (F2-03: a
+    /// grow-out land site, an offshore unit and a post-smolt land site, each on
+    /// its plot): one of each, by id, kind and plot, with their construction
+    /// clocks, the offshore unit's structure and zones, and the plots' owners.
+    /// </summary>
     [Fact]
     public void BuiltFacilities_SurviveSaveLoad()
     {
@@ -92,10 +101,22 @@ public class PersistenceGapTests
 
         var loaded = SaveStateComparer.Resume(SaveStateComparer.Serialize(engine), events: false);
 
-        Assert.Single(loaded.RASFacilities);
-        Assert.Single(loaded.OffshoreFarms);
-        Assert.Single(loaded.PostSmoltFacilities);
-        Assert.Equal(engine.RASFacilities[0].ConstructionStartDay, loaded.RASFacilities[0].ConstructionStartDay);
+        var ras = Assert.Single(loaded.RASFacilities, f => f.Kind == LandSiteKind.GrowOut);
+        var unit = Assert.Single(loaded.OffshoreUnits);
+        var postSmolt = Assert.Single(loaded.PostSmoltSites);
+        Assert.Equal(2, loaded.RASFacilities.Count);
+        Assert.Empty(loaded.OffshoreFarms);
+        Assert.Empty(loaded.PostSmoltFacilities);
+        Assert.Equal(engine.RASFacilities[0].ConstructionStartDay, ras.ConstructionStartDay);
+        Assert.Equal(engine.OffshoreUnits[0].Offshore!.ConstructionStartDay, unit.Offshore!.ConstructionStartDay);
+        Assert.Equal(engine.PostSmoltSites[0].ConstructionStartDay, postSmolt.ConstructionStartDay);
+        Assert.Equal(("pad_a", "off_1", "pad_delta"), (ras.PlotId, unit.PlotId, postSmolt.PlotId));
+        Assert.Equal((SiteKind.Offshore, OffshoreType.SemiSubmersible, 5.5, 3),
+            (unit.Kind, unit.Offshore.FarmType, unit.Offshore.DesignHsM, unit.PhysicalPens.Count));
+        Assert.Equal(ras.Id, loaded.FindPlot("pad_a")!.OwnerUnitId);
+        Assert.Equal(unit.Id, loaded.FindPlot("off_1")!.OwnerUnitId);
+        Assert.Equal(postSmolt.Id, loaded.FindPlot("pad_delta")!.OwnerUnitId);
+        Assert.Equal(5.0, loaded.FindPlot("off_1")!.Hs100M); // the catalogue's attributes join the saved state
     }
 
     // ── F409: contracts ────────────────────────────────────────────────────────

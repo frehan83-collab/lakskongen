@@ -701,6 +701,13 @@ public partial class SimulationEngine
         State.CapacityBreaches.Clear();
         if (snapshot.CapacityBreaches != null)
             State.CapacityBreaches.AddRange(snapshot.CapacityBreaches);
+        // F2-03: the plots' saved state (empty in a pre-F2 save and in a game
+        // that never built a facility); the catalogue's attributes join below.
+        State.SitePlots.Clear();
+        if (snapshot.SitePlots != null)
+            State.SitePlots.AddRange(snapshot.SitePlots.Where(p => p != null && !string.IsNullOrEmpty(p.Id)));
+        AdoptFacilityFinanceState(snapshot); // F2-04: assets, projects, permit cases, ring-fence
+        AdoptDriftsplanState(snapshot);      // F2-05: the standing orders
         foreach (var kvp in snapshot.FactionRelations)
             State.FactionRelations[kvp.Key] = kvp.Value;
         foreach (var rep in snapshot.RecentMarketReports)
@@ -727,6 +734,11 @@ public partial class SimulationEngine
         MigrateCapacityRegisterAfterLoad();
         // S2-01b: a save from before real pens gets one pen per population.
         MigratePensAfterLoad();
+        // F2-03: the plots get their attributes back from the catalogue, and a
+        // pre-F2 save's facilities become the F2 unit kinds (offshore sea sites,
+        // post-smolt land sites, land sites on pads). Idempotent.
+        RehydrateSitePlotsAfterLoad();
+        MigrateFacilities();
     }
 
     // ─── Phase 4.5: Attention Inbox hook ─────────────────────────────────

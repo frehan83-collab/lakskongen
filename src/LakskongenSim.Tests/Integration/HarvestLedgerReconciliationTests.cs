@@ -42,12 +42,12 @@ public class HarvestLedgerReconciliationTests
         Assert.True(engine.BuildRASFacility("Landtank", RASScale.Small).Ok);
         Assert.True(engine.BuildOffshoreFarm("Havfarm", OffshoreType.SemiSubmersible).Ok);
         var ras = engine.RASFacilities.Single();
-        var farm = engine.OffshoreFarms.Single();
+        var unit = engine.OffshoreUnits.Single(); // F2-03: the offshore farm is an offshore sea site
         ras.ConstructionDays = 1;
-        farm.ConstructionDays = 1;
+        unit.Offshore!.ConstructionDays = 1;
         engine.Advance(2);
         Assert.True(engine.StockRASFacility(ras.Id, 40_000).Ok);
-        Assert.True(engine.StockOffshoreFarm(farm.Id, 40_000).Ok);
+        Assert.True(engine.StockOffshoreFarm(unit.Id, 40_000).Ok);
         return engine;
     }
 
@@ -138,7 +138,7 @@ public class HarvestLedgerReconciliationTests
             var start = ledger.Cumulative();
             long aliveAtStart = FishAlive(engine);
             var ras = engine.RASFacilities.Single();
-            var farm = engine.OffshoreFarms.Single();
+            var farm = engine.OffshoreUnits.Single();
             string orderId = "";
 
             for (int d = 0; d < days; d++)

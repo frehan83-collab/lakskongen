@@ -1138,7 +1138,10 @@ public partial class GameBridge : Node
     /// Keys: "id", "name", "description", "branch", "tier",
     ///       "cost_nok", "research_days", "prerequisites" (Array[String]),
     ///       "unlocked" (bool), "is_active" (bool), "progress_days" (int),
-    ///       "can_research" (bool), "effects" (Dictionary).
+    ///       "can_research" (bool), "effects" (Dictionary), and (F2-04)
+    ///       "unlocks" (Array[String], farm-type variant ids the node opens) and
+    ///       "applies_to" (Array[String], the unit kinds its effects reach;
+    ///       empty = every unit).
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetResearchNodes()
     {
@@ -1156,6 +1159,14 @@ public partial class GameBridge : Node
             foreach (var kv in node.Effects)
                 effects[kv.Key] = kv.Value;
 
+            // F2-04: the farm types the node opens and the unit kinds its effects reach.
+            var unlocks = new Godot.Collections.Array<string>();
+            foreach (var id in node.Unlocks)
+                unlocks.Add(id);
+            var appliesTo = new Godot.Collections.Array<string>();
+            foreach (var scope in node.AppliesTo)
+                appliesTo.Add(scope);
+
             bool isActive = research.ActiveResearchId == node.Id;
             result.Add(new Godot.Collections.Dictionary
             {
@@ -1172,6 +1183,8 @@ public partial class GameBridge : Node
                 ["progress_days"] = isActive ? research.ResearchProgress : 0,
                 ["can_research"]  = research.CanResearch(node.Id),
                 ["effects"]       = effects,
+                ["unlocks"]       = unlocks,
+                ["applies_to"]    = appliesTo,
             });
         }
         return result;

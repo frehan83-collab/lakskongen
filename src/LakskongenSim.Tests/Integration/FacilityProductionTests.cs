@@ -180,57 +180,12 @@ public class FacilityProductionTests
         Assert.Empty(poorRas.Tanks);
     }
 
-    [Fact]
-    public void Offshore_StocksAndHarvests_AndCountsForTheRentTax()
-    {
-        var engine = RichEngine(55);
-        Assert.True(engine.BuildOffshoreFarm("Havfarm", OffshoreType.SemiSubmersible).Ok);
-        var farm = engine.OffshoreFarms.Single();
-        FinishConstruction(engine, () => farm.ConstructionDays = 1);
-
-        Assert.True(engine.StockOffshoreFarm(farm.Id, 50_000).Ok);
-        var pen = Assert.Single(farm.Pens);
-        Assert.Contains(pen, engine.State.Populations);
-        engine.Advance(200);
-
-        decimal rentBase = engine.State.ResourceRentHarvestValueThisTaxYear;
-        var harvest = engine.HarvestOffshoreFarm(farm.Id);
-        Assert.True(harvest.Ok, harvest.Message);
-        Assert.Empty(farm.Pens);
-        Assert.True(engine.State.ResourceRentHarvestValueThisTaxYear > rentBase);
-    }
-
-    [Fact]
-    public void PostSmolt_BatchIsVaccinated_GrowsAndGoesToSeaAsALargeSmolt()
-    {
-        var engine = RichEngine(56);
-        Assert.True(engine.BuildPostSmoltFacility("Post-smolt").Ok);
-        var facility = engine.PostSmoltFacilities.Single();
-        FinishConstruction(engine, () => facility.ConstructionDays = 1);
-        var site = new SeaSite("post-smolt-sea", "zone-ps") { MABTonnes = 780 };
-        engine.State.SeaSites.Add(site);
-
-        var started = engine.StartPostSmoltBatch(facility.Id, 50_000);
-        Assert.True(started.Ok, started.Message);
-        string batchId = started.Id;
-        Assert.Equal(engine.State.Day, facility.Batches.Single().StartDay);
-        Assert.Equal("batch_not_ready", engine.TransferPostSmoltToSea(facility.Id, batchId, site.Id).ErrorKey);
-        Assert.True(engine.VaccinatePostSmoltBatch(facility.Id, batchId).Ok);
-        Assert.Equal("already_vaccinated", engine.VaccinatePostSmoltBatch(facility.Id, batchId).ErrorKey);
-
-        int guard = 0;
-        while (!facility.Batches.Single().IsReadyForTransfer && guard++ < 400) engine.Advance(1);
-        var batch = facility.Batches.Single();
-        Assert.True(batch.IsReadyForTransfer, "batch never reached transfer weight");
-
-        var moved = engine.TransferPostSmoltToSea(facility.Id, batchId, site.Id);
-        Assert.True(moved.Ok, moved.Message);
-        Assert.Empty(facility.Batches);
-        var cohort = Assert.Single(Assert.Single(site.Pens).Cohorts);
-        Assert.Equal(batch.Count, cohort.Count);
-        Assert.Equal(batch.AverageWeightG / 1000.0, cohort.MeanWeightKg, 6);
-        Assert.Equal(SmoltQualityTier.Large, cohort.Quality); // 300 g target: 200-400 g band
-    }
+    // F2-03 (docs/FARM_TYPES_SPEC.md §3.10 "Replacements"): the offshore
+    // section (Offshore_StocksAndHarvests_AndCountsForTheRentTax) moved to
+    // Farm/OffshoreUnitTests.cs and the post-smolt section
+    // (PostSmolt_BatchIsVaccinated_GrowsAndGoesToSeaAsALargeSmolt) to
+    // Farm/PostSmoltSiteTests.cs, each asserting what it asserted here on the
+    // F2 unit kinds and more (RUN_LOG §7, F2-03).
 
     [Fact]
     public void FacilityFish_StayOneInstanceAcrossASave_AndTheGameContinuesExactly()

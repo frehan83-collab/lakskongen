@@ -30,17 +30,75 @@ namespace LakskongenSim.Core
         /// <summary>List of zones in the environment.</summary>
         public List<Environment.Zone> Zones { get; set; } = new();
 
-        /// <summary>List of active farms/sea sites.</summary>
+        /// <summary>
+        /// Everything in the water (F2-03): fjord localities and offshore units
+        /// (<see cref="Farm.SeaSite.Kind"/>).
+        /// </summary>
         public List<Farm.SeaSite> SeaSites { get; set; } = new();
 
-        /// <summary>List of active RAS facilities.</summary>
+        /// <summary>
+        /// Everything on land (F2-03): the land sites, grow-out and post-smolt
+        /// (<see cref="Farm.RASFacility.Kind"/>; the name is kept for save,
+        /// bridge and test compatibility, players read "Landanlegg").
+        /// </summary>
         public List<Farm.RASFacility> RASFacilities { get; set; } = new();
 
-        /// <summary>List of active Offshore farms.</summary>
+        /// <summary>
+        /// Load-only (F2-03): a pre-F2 save's offshore farms. The load migrates
+        /// each to an offshore <see cref="Farm.SeaSite"/> and empties the list
+        /// (<c>SimulationEngine.FacilityMigration.cs</c>).
+        /// </summary>
         public List<Farm.OffshoreFarm> OffshoreFarms { get; set; } = new();
 
-        /// <summary>List of active Post-Smolt facilities.</summary>
+        /// <summary>
+        /// Load-only (F2-03): a pre-F2 save's post-smolt facilities. The load
+        /// migrates each to a post-smolt land site and empties the list.
+        /// </summary>
         public List<Farm.PostSmoltFacility> PostSmoltFacilities { get; set; } = new();
+
+        /// <summary>
+        /// The game's farm-type plots (F2-03): the state of each land pad and
+        /// offshore slot a unit stands on or could stand on (owner, zoning,
+        /// grid feeds); the attributes come from the catalogue
+        /// (<see cref="Farm.SitePlotCatalog"/>) and are not saved. Empty until the
+        /// game first builds or migrates a land site or an offshore unit.
+        /// </summary>
+        public List<Farm.SitePlot> SitePlots { get; set; } = new();
+
+        /// <summary>
+        /// F2-04: the F2 units' fixed-asset register (docs/FARM_TYPES_SPEC.md
+        /// §3.6), depreciated straight-line as a non-cash P&amp;L line. Empty in a
+        /// game that never built a land site or an offshore unit.
+        /// </summary>
+        public List<Finance.FacilityAsset> FacilityAssets { get; set; } = new();
+
+        /// <summary>F2-04: facility construction projects (spec §3.2), finished ones included.</summary>
+        public List<ConstructionProject> ConstructionProjects { get; set; } = new();
+
+        /// <summary>F2-04: facility permit cases (spec §3.2), decided ones included.</summary>
+        public List<Finance.PermitCase> PermitCases { get; set; } = new();
+
+        /// <summary>F2-04: number of the next construction project ("cp_N"); ids are never reused.</summary>
+        public int NextConstructionProjectNumber { get; set; } = 1;
+
+        /// <summary>F2-04: number of the next permit case ("pc_N"); ids are never reused.</summary>
+        public int NextPermitCaseNumber { get; set; } = 1;
+
+        /// <summary>
+        /// F2-04: this fiscal year's costs of units that are not liable to
+        /// resource-rent tax (every land site; an offshore unit on licences the
+        /// rent does not reach), booked in the P&amp;L like any cost and left out
+        /// of the resource-rent deductions (the rent base is ring-fenced,
+        /// spec §3.6). Reset at the year-end tax settlement.
+        /// </summary>
+        public decimal RentRingFencedCostsThisTaxYear { get; set; }
+
+        /// <summary>
+        /// F2-05: the Driftsplan, the company's standing orders (one per unit
+        /// and policy, sorted by unit and policy; docs/FARM_TYPES_SPEC.md §3.1
+        /// decision 7). Empty in a game where the player set none.
+        /// </summary>
+        public List<DriftsplanEntry> Driftsplan { get; set; } = new();
 
         /// <summary>Whether the player has an AI Feeding System installed.</summary>
         public bool OwnsAIFeedingSystem { get; set; } = false;

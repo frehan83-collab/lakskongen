@@ -533,6 +533,7 @@ LEDGER_CONTRACT_PENALTIES,Contract penalties,Kontraktsbøter
 LEDGER_DELOUSING,Delousing,Avlusing
 LEDGER_EVENTS,Events,Hendelser
 LEDGER_FACILITIES,Facilities,Anlegg
+LEDGER_FACILITY_DEPRECIATION,Facility depreciation,Avskrivning av anlegg
 LEDGER_FEED,Feed,Fôr
 LEDGER_FEED_SPILL,Feed spill,Fôrspill
 LEDGER_FINES,Fines,Bøter
@@ -548,6 +549,7 @@ LEDGER_MITIGATION,Skirts and deterrents,Skjørt og skremmere
 LEDGER_NIGHT_SHIFT,Night shift,Nattskift
 LEDGER_OPERATIONS,Operations,Drift
 LEDGER_OTHER,Other,Annet
+LEDGER_PERMIT_FEES,Permit fees,Søknadsgebyrer
 LEDGER_RESEARCH,Research,Forskning
 LEDGER_SEA_SITE,New sea site,Nytt sjøanlegg
 LEDGER_SLUDGE,Sludge,Slam
@@ -626,6 +628,19 @@ FARM_FACTOR_FCR_CRITICAL,FCR %s (target %s),FCR %s (mål %s)
 FARM_FACTOR_FCR,FCR %s,FCR %s
 FARM_FACTOR_BALANCE_NEGATIVE,negative balance,negativ saldo
 FARM_FACTOR_BALANCE_LOW,low liquidity,lav likviditet
+FARM_FAMILY_HAV,Offshore,Hav
+FARM_FAMILY_LAND,Land,Land
+FARM_FAMILY_SJO,Sea,Sjø
+FARM_VARIANT_CLOSED_PEN,Semi-closed / closed pen,Semi-lukket / lukket merd
+FARM_VARIANT_HAVFARM,Ship pen,Skipsmerd
+FARM_VARIANT_HFS,Land farm (hybrid),Landanlegg (hybrid)
+FARM_VARIANT_OF1,Offshore pen,Havmerd
+FARM_VARIANT_OPEN_PEN,Open net pen,Åpen merd
+FARM_VARIANT_POST_SMOLT,Post-smolt module,Postsmoltmodul
+FARM_VARIANT_RAS,Land farm (RAS),Landanlegg (RAS)
+RESEARCH_SCOPE_LAND,land tanks,landtanker
+RESEARCH_SCOPE_OFFSHORE,offshore units,havmerder
+RESEARCH_SCOPE_SEA,fjord pens,fjordmerder
 UI_COMPANY_FALLBACK,Your company,Ditt selskap
 UI_DASHBOARD_PENS_TITLE,Pen overview,Merdoversikt
 UI_DASHBOARD_WATER_TITLE,Water quality,Vannkvalitet
@@ -1052,6 +1067,8 @@ UI_TECH_START_FAILED_TITLE,Cannot start research,Kan ikke starte forskning
 UI_TECH_START_FAILED,"Not enough cash, or a requirement is not met.","Ikke nok penger, eller et krav er ikke oppfylt."
 UI_TECH_REQUIRES,Requires: %s,Krever: %s
 UI_TECH_EFFECTS,Effects: %s,Effekter: %s
+UI_TECH_APPLIES_TO,Applies to: %s,Gjelder bare: %s
+UI_TECH_UNLOCKS,Opens: %s,Låser opp: %s
 RESEARCH_SELECTIVE_BREEDING_NAME,Selective breeding programme,Avlsprogram
 RESEARCH_SELECTIVE_BREEDING_DESC,Set up a systematic breeding programme that finds and multiplies fast-growing broodstock. Raises the base growth of every cohort.,Bygg opp et systematisk avlsprogram som finner og formerer hurtigvoksende stamfisk. Øker grunnveksten i alle kohorter.
 RESEARCH_DISEASE_RESISTANCE_NAME,Disease-resistant genetics,Sykdomsresistent genetikk
@@ -1093,9 +1110,9 @@ RESEARCH_PACKAGING_INNOVATION_DESC,"Modified-atmosphere packaging with bio-based
 RESEARCH_SASHIMI_GRADE_NAME,Sashimi-grade export,Sashimikvalitet for eksport
 RESEARCH_SASHIMI_GRADE_DESC,"Meet the Japanese import standard for raw salmon: strict parasite control, a guaranteed fat range and an ultra-cold chain. Opens the most valuable market there is.","Oppfyll den japanske importstandarden for rå laks: streng parasittkontroll, garantert fettinnhold og en ekstra kald kjølekjede. Åpner det mest verdifulle markedet som finnes."
 RESEARCH_DEEP_SEA_FARMING_NAME,Exposed offshore farming,Havbruk til havs
-RESEARCH_DEEP_SEA_FARMING_DESC,"Develop semi-submersible offshore pens for exposed sites with strong currents. Clean water and large volumes, and less crowding in the fjords.","Utvikle halvt nedsenkbare havmerder for eksponerte lokaliteter med sterk strøm. Rent vann og store volumer, og mindre trengsel i fjordene."
+RESEARCH_DEEP_SEA_FARMING_DESC,Develop semi-submersible offshore pens for exposed sites with strong currents. Opens the offshore pen; its lice and disease effects apply to offshore units only.,Utvikle halvt nedsenkbare havmerder for eksponerte lokaliteter med sterk strøm. Låser opp havmerden; effektene mot lus og sykdom gjelder bare havmerder.
 RESEARCH_LAND_BASED_RAS_NAME,Land-based RAS,Landbasert RAS
-RESEARCH_LAND_BASED_RAS_DESC,"A recirculating facility on land: no sea lice, no escapes and a controlled environment all year. Costly to build, but biosecure smolts and production close to the market.","Et resirkuleringsanlegg på land: ingen lakselus, ingen rømming og kontrollert miljø hele året. Dyrt å bygge, men gir biosikker smolt og produksjon nær markedet."
+RESEARCH_LAND_BASED_RAS_DESC,"A recirculating facility on land: no sea lice, no escapes and a controlled environment all year. Opens the post-smolt module and the hybrid land farm; its mortality and disease effects apply to land tanks only.","Et resirkuleringsanlegg på land: ingen lakselus, ingen rømming og kontrollert miljø hele året. Låser opp postsmoltmodulen og landanlegget (hybrid); effektene mot dødelighet og sykdom gjelder bare landtanker."
 RESEARCH_ARCTIC_AQUACULTURE_NAME,Arctic farming,Arktisk oppdrett
 RESEARCH_ARCTIC_AQUACULTURE_DESC,"Cold-adapted strains and winterised equipment for sites north of 70° N. Arctic salmon sells at a premium, and the work is done with the local authorities in Troms and Finnmark.","Kuldetilpassede stammer og vinterklargjort utstyr for lokaliteter nord for 70° N. Arktisk laks gir pristillegg, og arbeidet gjøres sammen med lokale myndigheter i Troms og Finnmark."
 RESEARCH_INTERNATIONAL_EXPORT_NAME,International export,Internasjonal eksport
@@ -1630,31 +1647,99 @@ UI_CHART_DAY_RANGE,Days %d–%d,Dag %d–%d
 UI_CHART_INCOME,Income,Inntekter
 ALERT_GILL_CRITICAL,Gill health critical at %s,Gjellehelsen er kritisk ved %s
 ALERT_GILL_POOR,Gill health declining at %s,Gjellehelsen svekkes ved %s
+DRIFTSPLAN_CHOICE_FRESHWATER,Freshwater bath,Ferskvannsbad
+DRIFTSPLAN_CHOICE_HYDROLICER,Flushing (mechanical),Spyling (mekanisk)
+DRIFTSPLAN_CHOICE_PEROXIDE,Hydrogen peroxide,Hydrogenperoksid
+DRIFTSPLAN_CHOICE_THERMOLICER,Thermal delousing,Termisk avlusing
+DRIFTSPLAN_FAIL_ALREADY_BOOKED,a boat was already booked,en båt var allerede bestilt
+DRIFTSPLAN_FAIL_CANCELLED,the treatment was called off,behandlingen ble avlyst
+DRIFTSPLAN_FAIL_INSUFFICIENT_FUNDS,not enough money,for lite penger
+DRIFTSPLAN_FAIL_OTHER,refused,avvist
+DRIFTSPLAN_FAIL_SITE_EMPTY,no fish,ingen fisk
+DRIFTSPLAN_INTRO,"Standing orders do the routine work by themselves, with the same orders and at the same price as when you give them yourself.","Faste oppdrag gjør rutinearbeidet av seg selv, med de samme bestillingene og til samme pris som når du gir dem selv."
+DRIFTSPLAN_LAST,last %s: %s,sist %s: %s
+DRIFTSPLAN_NEXT,Next planned: %s · %s,Neste planlagt: %s · %s
+DRIFTSPLAN_NEXT_NONE,Nothing planned,Ingenting planlagt
+DRIFTSPLAN_NONE_FOR_UNIT,No standing orders for this kind of unit yet.,Ingen faste oppdrag for denne typen anlegg ennå.
+DRIFTSPLAN_OUTCOME_OK,done,utført
+DRIFTSPLAN_POLICY_DELOUSE_ON_COUNT,Delouse on the count,Avlus ved telling
+DRIFTSPLAN_POLICY_NET_CLEANING,Net care (ROV and net cleaning),Notpleie (ROV og notvask)
+DRIFTSPLAN_SETTING_INTERVAL_DAYS,Days between jobs,Dager mellom hver jobb
+DRIFTSPLAN_SETTING_METHOD,Method,Metode
+DRIFTSPLAN_SETTING_MIN_INTERVAL_DAYS,Fewest days between treatments,Minst antall dager mellom behandlinger
+DRIFTSPLAN_SETTING_SHARE_OF_LIMIT,Share of the lice limit,Andel av lusegrensen
+DRIFTSPLAN_SETTING_TIP_DELOUSE_ON_COUNT_METHOD,Mechanical flushing works at any sea temperature.,Mekanisk spyling virker ved alle sjøtemperaturer.
+DRIFTSPLAN_SETTING_TIP_DELOUSE_ON_COUNT_MIN_INTERVAL_DAYS,Every handling stresses the fish: the order waits at least this long between two treatments.,Hver håndtering stresser fisken: oppdraget venter minst så lenge mellom to behandlinger.
+DRIFTSPLAN_SETTING_TIP_DELOUSE_ON_COUNT_SHARE_OF_LIMIT,The default treats a week before a second count over the limit would bring an order from Mattilsynet.,Standardverdien gir behandling en uke før en ny telling over grensen ville gitt pålegg fra Mattilsynet.
+DRIFTSPLAN_SETTING_TIP_NET_CLEANING_INTERVAL_DAYS,The default follows farms in Western Norway that cleaned their nets every other week from May to November 2019 (Elsheshtawy et al. 2023).,Standardverdien følger oppdrettere på Vestlandet som vasket nøtene annenhver uke fra mai til november 2019 (Elsheshtawy mfl. 2023).
+DRIFTSPLAN_SOURCE,Source: %s,Kilde: %s
+DRIFTSPLAN_STATUS_OFF,Off,Av
+DRIFTSPLAN_TIP_DELOUSE_ON_COUNT,"Delouses the site when the weekly lice count is above the chosen share of today's lice limit, at most once per count.","Avluser lokaliteten når den ukentlige lusetellingen er over valgt andel av dagens lusegrense, høyst én gang per telling."
+DRIFTSPLAN_TIP_NET_CLEANING,Books the ROV boat (net cleaning and inspection) at a fixed interval while there are fish in the pens. You pay the boat each time.,Bestiller ROV-båten (notvask og inspeksjon) med fast mellomrom så lenge det er fisk i merdene. Du betaler båten hver gang.
+DRIFTSPLAN_TITLE,Operating plan,Driftsplan
+DRIFTSPLAN_UNIT_DAYS,days,dager
+DRIFTSPLAN_WAIT,when needed,ved behov
+DRIFTSPLAN_WAIT_LICE_COUNT_ABOVE,when a lice count is above %s,når en lusetelling viser over %s
+DRIFTSPLAN_WAIT_SITE_STOCKED,waits for fish in the pens,venter på fisk i merdene
+DRIFTSPLAN_WHEN,%s (in %d days),%s (om %d dager)
+DRIFTSPLAN_WHEN_TODAY,today,i dag
 GAME_EVENT_ALGAL_BLOOM,Bloom at the farm,Oppblomstring ved anlegget
 GAME_EVENT_APPETITE_LOW,Low appetite,Lav appetitt
+GAME_EVENT_BIOFILTER_DEGRADED,Biofilter losing capacity,Biofilteret mister kapasitet
 GAME_EVENT_BIOMASS_ORDER,Order: get under the biomass limit,Pålegg: ned under MTB
+GAME_EVENT_CAPEX_OVERRUN,Construction over budget,Byggeprosjektet går over budsjett
+GAME_EVENT_CONSTRUCTION_PHASE_COMPLETE,Construction phase complete,Byggefase fullført
+GAME_EVENT_CONVERSION_DECISION,Conversion decision,Vedtak om konvertering
+GAME_EVENT_CONVERSION_PAYMENT_DUE,Conversion payment due,Konverteringsvederlaget forfaller
+GAME_EVENT_CREW_OVERDUE,Crew change overdue,Mannskapsbyttet er forsinket
+GAME_EVENT_DEV_LICENCE_AWARDED,Development licences awarded,Utviklingstillatelser tildelt
+GAME_EVENT_DEV_LICENCE_ROUND_OPENED,Development licence round open,Søknadsrunde for utviklingstillatelser er åpen
+GAME_EVENT_DISCHARGE_NEAR_CAP,Discharge near the permit cap,Utslippet nærmer seg grensen i tillatelsen
+GAME_EVENT_DRIFTSPLAN_COMMAND_FAILED,The operating plan could not do a job,Driftsplanen fikk ikke utført en oppgave
+GAME_EVENT_DRILL_COMPLETED,Drill completed,Øvelse gjennomført
 GAME_EVENT_ESCAPE,Fish escape,Rømming
 GAME_EVENT_FEED_CONVERSION_POOR,Feed conversion worsening,Fôrfaktoren forverres
 GAME_EVENT_GILL_HEALTH_CRITICAL,Gill health critical,Kritisk gjellehelse
 GAME_EVENT_GILL_HEALTH_POOR,Gill health declining,Svekket gjellehelse
+GAME_EVENT_GROWTH_SHORTFALL,Growth behind plan,Veksten ligger etter planen
+GAME_EVENT_H2S_ACUTE,Acute hydrogen sulphide,Akutt hydrogensulfid
+GAME_EVENT_H2S_CHRONIC,Hydrogen sulphide rising,Hydrogensulfid stiger
+GAME_EVENT_HANDLING_OVERDUE,Fish handling overdue,Håndtering av fisken er forsinket
 GAME_EVENT_INSURANCE_PAYOUT,Insurance settlement,Forsikringsoppgjør
+GAME_EVENT_LAND_O2_LOW,Low oxygen in the tanks,Lavt oksygen i karene
+GAME_EVENT_LAND_POWER_OUTAGE_UNCOVERED,Power outage: the backup did not start,Strømbrudd: reservekraften startet ikke
 GAME_EVENT_LICE_ABOVE_LIMIT,Lice above the legal limit,Lusenivået er over grensen
 GAME_EVENT_LICE_RISING,Lice levels rising,Lusenivået stiger
 GAME_EVENT_LICE_TREATMENT_DUE,Lice treatment due,Lusebehandling påkrevd
 GAME_EVENT_LICE_TREATMENT_ORDER,Order: delouse by the deadline,Pålegg: avlus innen fristen
+GAME_EVENT_LOX_SHORTAGE,Liquid oxygen running low,Flytende oksygen går mot slutten
+GAME_EVENT_MATTILSYNET_ORDER,Order: handle the fish by the deadline,Pålegg: håndter fisken innen fristen
+GAME_EVENT_MATURATION_RISING,Early maturation rising,Tidlig kjønnsmodning øker
+GAME_EVENT_MOORING_FAILURE,Mooring failure,Fortøyningsbrudd
 GAME_EVENT_MORTALITY_HIGH,High mortality,Høy dødelighet
 GAME_EVENT_NETS_CRITICAL,Nets critically worn,Nøtene er kritisk slitt
 GAME_EVENT_NETS_WORN,Nets worn,Nøtene er slitt
+GAME_EVENT_NET_TEAR,Net torn,Hull i nota
+GAME_EVENT_OFFSHORE_AREA_ROUND_OPENED,Offshore area round open,Utlysning av havområde er åpen
+GAME_EVENT_OFF_FLAVOUR_DETECTED,Off-flavour detected,Avsmak påvist
+GAME_EVENT_OUTAGE_COVERED,Power outage covered by the backup,Strømbrudd dekket av reservekraften
 GAME_EVENT_OXYGEN_CRITICAL,Oxygen critically low,Kritisk lavt oksygen
 GAME_EVENT_OXYGEN_LOW,Low oxygen,Lavt oksygen
+GAME_EVENT_PERMIT_DECISION,Permit decision,Vedtak i søknaden
+GAME_EVENT_SILO_LOW,Feed silo running low,Fôrsiloen går mot tom
+GAME_EVENT_SITE_APPROVAL_WITHDRAWN,Site approval withdrawn,Lokalitetsgodkjenningen er trukket tilbake
 GAME_EVENT_SOLVENCY_BANK_WARNING,Bank warning,Bankvarsel
 GAME_EVENT_SOLVENCY_FINAL_WARNING,Final warning from the bank,Siste varsel fra banken
 GAME_EVENT_SOLVENCY_OVERDRAFT,Account overdrawn,Overtrukket konto
 GAME_EVENT_STORM_DAMAGE,Storm damage,Stormskade
 GAME_EVENT_STORM_FORECAST,Storm on the way,Storm i vente
+GAME_EVENT_STORM_SWELL_FORECAST,Storm swell on the way,Stormsjø i vente
 GAME_EVENT_STORY_EVENT,Event,Hendelse
 GAME_EVENT_SUSTAINABILITY_LOW,Sustainability below the requirement,Bærekraft under kravet
+GAME_EVENT_TEETHING_DEFECT_REVEALED,Teething defect found,Barnesykdom avdekket
 GAME_EVENT_TEMPERATURE_HIGH,High sea temperature,Høy sjøtemperatur
+GAME_EVENT_TILT_EVENT,The unit is listing,Anlegget krenger
+GAME_EVENT_TOW_WINDOW_LIKELY,A tow window is likely,Godt slepevindu i sikte
 GAME_EVENT_TRAFFIC_LIGHT_CHANGED,Traffic light changed,Trafikklyset har skiftet
 GAME_EVENT_TRAFFIC_LIGHT_RED,Traffic light red,Trafikklyset er rødt
 GAME_EVENT_VACCINE_COVERAGE_LOW,Low vaccine coverage,Lav vaksinedekning
@@ -1673,14 +1758,26 @@ UI_EVENT_DAY,Day %d,Dag %d
 UI_EVENT_DEADLINE,Deadline: %s (in %d days),Frist: %s (om %d dager)
 UI_EVENT_DEADLINE_TODAY,Deadline: %s (today),Frist: %s (i dag)
 UI_EVENT_SUBJECT_COMPANY,The whole company,Hele selskapet
+UI_EVENT_VERB_ADJUST_WATER,Adjust the water,Juster vannet
+UI_EVENT_VERB_BOOK_OPERATION,Book an operation,Bestill operasjon
+UI_EVENT_VERB_BUILD_COMPETENCE,Build competence,Styrk kompetansen
 UI_EVENT_VERB_CHECK_WATER,Check the water,Se vannkvaliteten
 UI_EVENT_VERB_DELOUSE,Plan delousing,Planlegg avlusing
+UI_EVENT_VERB_FIX_DEFECT,Fix the defect,Utbedre feilen
 UI_EVENT_VERB_FRESHWATER_BATH,Plan a freshwater bath,Planlegg ferskvannsbehandling
 UI_EVENT_VERB_INSPECT_NETS,Check the nets,Sjekk nøtene
 UI_EVENT_VERB_INSPECT_SITE,Show the site,Vis lokaliteten
+UI_EVENT_VERB_OPEN_DRIFTSPLAN,Open the operating plan,Åpne driftsplanen
 UI_EVENT_VERB_OPEN_SUSTAINABILITY,See the requirements,Se kravene
+UI_EVENT_VERB_ORDER_OXYGEN,Order oxygen,Bestill oksygen
+UI_EVENT_VERB_PAY_CONVERSION,Pay the conversion,Betal konverteringen
 UI_EVENT_VERB_RAISE_CAPITAL,Raise capital,Skaff kapital
+UI_EVENT_VERB_REPAIR_UNIT,Repair,Reparer
+UI_EVENT_VERB_RESOLVE_OUTAGE,Choose a response,Velg tiltak
+UI_EVENT_VERB_REVIEW_ALARMS,Review the alarms,Gå gjennom alarmene
 UI_EVENT_VERB_REVIEW_FEEDING,Review feeding,Se på fôringen
+UI_EVENT_VERB_START_PURGE,Start a purge,Start rensing
+UI_EVENT_VERB_START_TOW,Plan the tow,Planlegg slepet
 UI_HUD_TIP_NOTIFICATIONS,Notifications (V) — %d unread,Varsler (V) — %d uleste
 UI_NOTIFY_CLEAR_ALL_TIP,Clear all notifications,Tøm alle varsler
 UI_NOTIFY_EXPAND_TIP,Click for the whole text,Klikk for hele teksten

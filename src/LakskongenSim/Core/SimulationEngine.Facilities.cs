@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using LakskongenSim.Events;
 using LakskongenSim.Farm;
+using LakskongenSim.Farm.Offshore;
+using LakskongenSim.Finance;
 
 namespace LakskongenSim.Core;
 
@@ -13,10 +15,23 @@ namespace LakskongenSim.Core;
 /// operational, F383) and wrote into engine-only lists that were not saved
 /// (F1069). The engine now owns the verb: CAPEX comes from the facility model,
 /// construction starts on the build day, and the facility lands in GameState.
+/// <para>
+/// F2-03 (docs/FARM_TYPES_SPEC.md §3.1 decision 5): the three verbs build the
+/// F2 unit kinds on the first free plot that fits, without permits, and stay
+/// the scenario-start and test path (the player's verbs with permits,
+/// construction phases and plots of their choosing are F2-07, F2-12 and
+/// F2-14's): <see cref="BuildRASFacility"/> a grow-out land site on a pad with
+/// the lots it needs, <see cref="BuildOffshoreFarm"/> an offshore sea site on a
+/// slot its class is rated for, <see cref="BuildPostSmoltFacility"/> a
+/// post-smolt land site on a pad with post-smolt room. No plot free: no_free_plot.
+/// </para>
 /// </summary>
 public partial class SimulationEngine
 {
-    /// <summary>Build a RAS (recirculating aquaculture) facility of the given scale.</summary>
+    /// <summary>Refusal key of a build with no free plot that fits.</summary>
+    public const string NoFreePlotKey = "no_free_plot";
+
+    /// <summary>Build a grow-out land site (a RAS facility) of the given scale on the first free pad with the lots it needs.</summary>
     public CommandResult BuildRASFacility(string name, RASScale scale)
     {
         if (State == null || FinanceManager == null)
@@ -26,25 +41,39 @@ public partial class SimulationEngine
 
         var facility = new RASFacility
         {
-            Id = NextFacilityId("ras", RASFacilities.Select(f => f.Id)),
-            Name = FacilityName(name, "RAS-anlegg", RASFacilities.Count),
+            Id = NextFacilityId("ras", RASFacilities.Where(f => f.Kind == LandSiteKind.GrowOut).Select(f => f.Id)),
+            Name = FacilityName(name, "RAS-anlegg", RASFacilities.Count(f => f.Kind == LandSiteKind.GrowOut)),
             Scale = scale,
+            Kind = LandSiteKind.GrowOut,
             CapacityTonnesPerYear = RASFacility.DefaultCapacityTonnesPerYear(scale)
         };
-        var paid = PayForFacility(facility.GetCAPEX(), facility.Name);
+        var plot = FirstFreePadFor(facility);
+        if (plot == null)
+            return CommandResult.Fail(NoFreePlotKey,
+                $"No free land pad holds {GrowOutLotsFor(facility.CapacityTonnesPerYear)} grow-out lots");
+        decimal capex = facility.GetCAPEX();
+        var paid = PayForFacility(capex, facility.Name);
         if (!paid.Ok) return paid;
 
+        PutOnPad(facility, plot);
         facility.StartConstruction(State.Day);
         RASFacilities.Add(facility);
+        // F2-04: an F2 unit's capex is depreciated from its commissioning day.
+        RegisterFacilityAsset(facility.Id, FacilityAssetKind.LandSite, capex, State.Day + facility.ConstructionDays);
         LogFacilityBuilt("RAS-anlegg under bygging",
-            SimText.Nb($"{facility.Name} er under bygging ({facility.CapacityTonnesPerYear:N0} t per år)"),
+            SimText.Nb($"{facility.Name} er under bygging på {plot.Name} ({facility.CapacityTonnesPerYear:N0} t per år)"),
             facility.CAPEX);
         return CommandResult.Success(
-            $"Construction of RAS facility '{facility.Name}' started ({facility.ConstructionDays} days)",
+            $"Construction of RAS facility '{facility.Name}' started on {plot.Id} ({facility.ConstructionDays} days)",
             value: (double)facility.CAPEX, id: facility.Id);
     }
 
-    /// <summary>Build an offshore farm of the given structure type.</summary>
+    /// <summary>
+    /// Build an offshore unit of the given structure class: an offshore sea
+    /// site with the class's zones, design Hs and MTB on the first free slot
+    /// the class is rated for (spec §4: an OF1-class semi-submersible fits
+    /// off_1, a Havfarm-class ship off_1 and off_2).
+    /// </summary>
     public CommandResult BuildOffshoreFarm(string name, OffshoreType type)
     {
         if (State == null || FinanceManager == null)
@@ -52,47 +81,107 @@ public partial class SimulationEngine
         if (!Enum.IsDefined(type))
             return CommandResult.Fail("invalid_type", $"Unknown offshore type '{type}'");
 
-        var farm = new OffshoreFarm
-        {
-            Id = NextFacilityId("offshore", OffshoreFarms.Select(f => f.Id)),
-            Name = FacilityName(name, "Offshore-anlegg", OffshoreFarms.Count),
-            FarmType = type
-        };
-        var paid = PayForFacility(farm.GetCAPEX(), farm.Name);
+        double designHs = OffshoreUnit.DefaultDesignHsM(type);
+        var plot = FirstFreePlot(p => p.AcceptsDesignHs(designHs));
+        if (plot == null)
+            return CommandResult.Fail(NoFreePlotKey,
+                $"No free offshore slot has a 100-year wave height within the {type} class's {designHs:F1} m");
+
+        string id = NextFacilityId("offshore",
+            State.SeaSites.Where(s => s.Kind == SiteKind.Offshore).Select(s => s.Id)
+                .Concat(OffshoreFarms.Select(f => f.Id)));
+        if (State.SeaSites.Any(s => s.Id == id))
+            return CommandResult.Fail("duplicate_id", $"A sea site is already called '{id}'");
+        string displayName = FacilityName(name, type == OffshoreType.ShipShaped ? "Skipsmerd" : "Havmerd",
+            OffshoreUnits.Count);
+        decimal capex = OffshoreUnit.LegacyCapexNok(type);
+        var paid = PayForFacility(capex, displayName);
         if (!paid.Ok) return paid;
 
-        farm.StartConstruction(State.Day);
-        OffshoreFarms.Add(farm);
+        var site = NewOffshoreSite(id, displayName, type, plot);
+        site.Offshore!.StartConstruction(State.Day, capex);
+        State.SeaSites.Add(site);
+        ClaimPlot(plot, site.Id);
+        // F2-04: the unit's steel is depreciated from its commissioning day.
+        RegisterFacilityAsset(site.Id, FacilityAssetKind.OffshoreUnit, capex, State.Day + site.Offshore.ConstructionDays);
         LogFacilityBuilt("Havmerd under bygging",
-            SimText.Nb($"{farm.Name} er under bygging ({farm.CapacityTonnes:N0} t kapasitet)"),
-            farm.CAPEX);
+            SimText.Nb($"{site.Label} er under bygging på {plot.Name} ({site.MABTonnes:N0} t MTB, {site.PhysicalPens.Count} soner)"),
+            capex);
         return CommandResult.Success(
-            $"Construction of offshore farm '{farm.Name}' started ({farm.ConstructionDays} days)",
-            value: (double)farm.CAPEX, id: farm.Id);
+            $"Construction of offshore unit '{site.Label}' started on {plot.Id} ({site.Offshore.ConstructionDays} days)",
+            value: (double)capex, id: site.Id);
     }
 
-    /// <summary>Build a post-smolt facility with the default annual smolt capacity.</summary>
+    /// <summary>
+    /// A new offshore sea site of <paramref name="type"/> on <paramref name="plot"/>:
+    /// the class's zones holding its volume, its design Hs and MTB, crewed on
+    /// board. Not yet built (no construction started) and not yet in the game.
+    /// </summary>
+    internal SeaSite NewOffshoreSite(string id, string displayName, OffshoreType type, SitePlot plot)
+    {
+        double volume = OffshoreUnit.DefaultVolumeM3(type);
+        return new SeaSite
+        {
+            Id = id,
+            ZoneId = plot.ZoneId,
+            DisplayName = displayName,
+            Kind = SiteKind.Offshore,
+            PlotId = plot.Id,
+            Offshore = new OffshoreUnit { FarmType = type, DesignHsM = OffshoreUnit.DefaultDesignHsM(type) },
+            MABTonnes = OffshoreUnit.DefaultMtbTonnes(type),
+            // The legacy one-figure density reads the unit as one body of
+            // water (its zones are the pens); its crew and upkeep are its own.
+            NumberOfPens = 1,
+            PenVolume = (float)volume,
+            WatchMode = OffshoreWatchMode,
+            PhysicalPens = OffshoreUnit.BuildZones(id, type, volume),
+        };
+    }
+
+    /// <summary>
+    /// Build a post-smolt land site of up to 4 modules on the first free pad
+    /// with post-smolt room (pad_delta first), with the pre-F2 post-smolt
+    /// facility's capital cost and construction time.
+    /// </summary>
     public CommandResult BuildPostSmoltFacility(string name)
     {
         if (State == null || FinanceManager == null)
             return CommandResult.Fail("engine_not_ready", "Engine not initialized");
 
-        var facility = new PostSmoltFacility
-        {
-            Id = NextFacilityId("postsmolt", PostSmoltFacilities.Select(f => f.Id)),
-            Name = FacilityName(name, "Post-smolt-anlegg", PostSmoltFacilities.Count)
-        };
-        var paid = PayForFacility(facility.GetCAPEX(), facility.Name);
+        var legacy = new PostSmoltFacility();
+        int modules = Math.Clamp((int)Math.Ceiling(legacy.AnnualSmoltCapacity / (double)PostSmoltFishPerModule),
+            1, MaxPostSmoltModules);
+        var facility = NewPostSmoltSite(
+            NextFacilityId("postsmolt", PostSmoltSites.Select(f => f.Id).Concat(PostSmoltFacilities.Select(f => f.Id))),
+            FacilityName(name, "Postsmoltanlegg", PostSmoltSites.Count), modules);
+        var plot = FirstFreePadFor(facility);
+        if (plot == null)
+            return CommandResult.Fail(NoFreePlotKey, $"No free land pad holds {modules} post-smolt modules");
+        decimal capex = legacy.GetCAPEX();
+        var paid = PayForFacility(capex, facility.Name);
         if (!paid.Ok) return paid;
 
-        facility.StartConstruction(State.Day);
-        PostSmoltFacilities.Add(facility);
+        PutOnPad(facility, plot);
+        facility.ConstructionStartDay = State.Day;
+        facility.ConstructionProgress = 0.0;
+        facility.CAPEX = capex;
+        RASFacilities.Add(facility);
+        // F2-04: an F2 unit's capex is depreciated from its commissioning day.
+        RegisterFacilityAsset(facility.Id, FacilityAssetKind.LandSite, capex, State.Day + facility.ConstructionDays);
         LogFacilityBuilt("Postsmoltanlegg under bygging",
-            SimText.Nb($"{facility.Name} er under bygging ({facility.AnnualSmoltCapacity:N0} smolt per år)"),
-            facility.CAPEX);
+            SimText.Nb($"{facility.Name} er under bygging på {plot.Name} ({modules} moduler, {modules * PostSmoltFishPerModule:N0} smolt)"),
+            capex);
         return CommandResult.Success(
-            $"Construction of post-smolt facility '{facility.Name}' started ({facility.ConstructionDays} days)",
-            value: (double)facility.CAPEX, id: facility.Id);
+            $"Construction of post-smolt site '{facility.Name}' started on {plot.Id} ({facility.ConstructionDays} days)",
+            value: (double)capex, id: facility.Id);
+    }
+
+    /// <summary>Put a new land site on <paramref name="plot"/>: its plot, its zone (the pad's water area) and the claim.</summary>
+    private void PutOnPad(RASFacility facility, SitePlot plot)
+    {
+        var held = ClaimPlot(plot, facility.Id);
+        facility.PlotId = held.Id;
+        facility.ZoneId = held.ZoneId;
     }
 
     /// <summary>

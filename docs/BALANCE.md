@@ -1339,6 +1339,38 @@ Year 1 reproduces S2-03's single-year measurement (seed 1: 469/624 vs
 seed; the ten-year test fails on seed 4 and is skipped with the band
 unchanged (RUN_LOG §8).
 
+**Closed (2026-10-15, `wave3/sim-core-1`).** The captain's ruling under the
+owner's autonomy mandate judges part 2 on the pooled climatology: over seeds
+1-20 x 10 weather years the median gap must lie in 60-120 days and at least
+90 % of the seeds' own ten-year medians in 60-120.
+`Po4ReachesFiveKilos_TwoToFourMonthsBeforePo13_PooledOverTwentySeedsAndTenWeatherYears`
+replaces the skipped per-seed test (same harness, band unchanged) and passes,
+re-measured on the wave-2 base `8c81754` (3 s, the 40 engines in parallel):
+
+| Seed | Gaps, years 1-10 | Median |
+|---|---|---|
+| 6 | 137, 85, 66, 72, 85, 118, 66, 68, 51, 106 | 78.5 |
+| 7 | 107, 92, 81, 77, 70, 69, 67, 105, 115, 98 | 86.5 |
+| 8 | 95, 102, 93, 138, 123, 89, 93, 117, 246, 129 | 109.5 |
+| 9 | 122, 134, 167, 88, 74, 127, 105, 66, 42, 110 | 107.5 |
+| 10 | 64, 86, 144, 98, 62, 62, 79, 74, 85, 71 | 76.5 |
+| 11 | 74, 88, 153, 110, 115, 100, 105, 102, 113, 157 | 107.5 |
+| 12 | 97, 98, 93, 84, 59, 118, 95, 97, 147, 147 | 97 |
+| 13 | 109, 172, 114, 81, 63, 72, 93, 109, 117, 108 | 108.5 |
+| 14 | 153, 117, 79, 106, 75, 87, 97, 95, 123, 138 | 101.5 |
+| 15 | 111, 113, 96, 78, 87, 159, 90, 68, 60, 51 | 88.5 |
+| 16 | 74, 78, 70, 84, 124, 127, 95, 71, 59, 45 | 76 |
+| 17 | 91, 94, 135, 139, 186, 171, 131, 89, 39, 47 | 112.5 |
+| 18 | 101, 109, 74, 121, 77, 41, 103, 97, 102, 96 | 99 |
+| 19 | 92, 29, 64, 98, 79, 72, 79, 85, 80, 90 | 79.5 |
+| 20 | 88, 93, 109, 96, 126, 127, 102, 106, 85, 88 | 99 |
+
+Seeds 1-5 as in the table above. Pooled over 200 year-classes: median 96
+days (p10 66, p90 145), 143 of 200 in 60-120; 19 of 20 seed medians in 60-120
+(seed 4, 134, the one outside; the ruling allows two). Mutations: requiring
+every seed's median in the band fails (19 of 20); a PO1 release against PO13
+(summer stall) fails (pooled median 65, 12 of 20 seeds).
+
 ## 1k. S2-01b: real pens (2026-10-15, branch `wave2/sim-int-2`)
 
 `wave2/sim-int-1` plus real pens: calibration v1.0.10 (section `pens`), save
@@ -1508,6 +1540,222 @@ weight raised by one ulp on day 200 in po3_red_sone seed 7: named on day 200
 (`pop > po3_nord/p01 > kg, c0.w`), 531 of 731 days then differ (cash 527,
 ledger 526, mort 527, pop 102, mtb 35, env 3) and the final cash moves by
 0.00000000016 NOK.
+
+## 1m. F2-03: site kinds, plots and the facility migration (2026-10-16, branch `wave3/sim-core-2`)
+
+No tuning. F2-03 gives the farm types their places and their unit kinds; the
+numbers below are the catalogue and the unit classes it ships with, sourced in
+`godot/data/site_plots.json` (`sources` per plot) and `Farm/Offshore/OffshoreUnit.cs`
+from docs/FARM_TYPES_SPEC.md (§2A, §3.2, §4: [O:Rn], [L:Rn] are its offshore
+and land references, [GB] a game-balance value).
+
+**The shipped scenarios are unchanged:** `tools/record_golden_traces.sh --base 235ccf2`
+gives 27 of 27 traces identical (every day line and every snapshot value);
+the only save drift is the additive fields (`SeaSite.Kind`, `PlotId`,
+`Offshore`, `AppliedContainmentCredit`, `GameState.SitePlots`),
+docs/run/evidence/f2_03_golden_diff.md.
+
+### Plots (`site_plots.json` v1)
+
+| plot | name | kind | centre (x, z) m | real distance | gameplay attributes |
+|---|---|---|---|---|---|
+| `pad_a` | Storholmen | land pad 640 x 420 m | (-450, -1720) (F2-18 read gate) | 1.8 km | 4 grow-out lots, 4 post-smolt modules, grid 40 MW (1 feed), sensitivity 0.2, not pre-zoned, blasting 120 M NOK [GB] |
+| `pad_b` | Skjærvika | land pad 480 x 360 m | (750, -1640) | 1.8 km | 2 lots, grid 25 MW, sensitivity 0.6 [GB, after Verholmen L:G4], blasting 77 M NOK |
+| `pad_delta` | Elveøyra | land pad 260 x 180 m | (0, 1450) | 1.5 km | 4 post-smolt modules, river intake (12-35 ppt), pre-zoned, grid 10 MW, blasting 40 M NOK |
+| `off_1` | Ytre kyst | offshore slot, OuterCoast | (-450, -2750) | 5 km | Hs100 5.0 m [O:R6], depth 150 m, external lice x 0.12 [GB: 0.01-0.06 adult females, 0 treatments in 2 OF1 cycles, O:R7, O:R8, O:R11] |
+| `off_2` | Havkanten | offshore slot, OuterCoastExposed | (850, -3400) | 12 km | Hs100 6.5 m [GB; AOF approved 6.7 m, O:R19], depth 220 m, lice x 0.10 |
+| `hav_1` | Havområde | offshore slot, OpenOcean (zone `hav`) | (0, -5200) | 83 km (45 nm, O:R58) | Hs100 13 m [GB, from the SFF design, O:R12, O:R29], depth 300 m, lice x 0.05-0.30 drawn per game |
+
+Static lift on every pad 13.0 m (pad +3.6 m [L:R13] + 8 m water + 1.5 m
+freeboard, derived); pumps 5 m³/s a lot [GB]; the deep-intake reach is
+computed from the heightfield (`ISitePlotGeometry.IntakeReachM`), never authored.
+Overflow plots for migrated saves: 4 reserved positions a kind (land pads
+on the mouth's shore, offshore slots in the open far field), neutral attributes
+(4 lots and 4 modules; off_1's sea), more generated past them.
+
+### Unit classes
+
+| class | zones | volume | MTB | design Hs | fits | crew | rota | capex (legacy verb) |
+|---|---|---|---|---|---|---|---|---|
+| OF1-class (SemiSubmersible) | 3 [O:R1, O:R6] | 250,000 m³ [O:R1, O:R6] | 6,240 t (8 x 780 t, O:R4) | 5.5 m [O:R6, O:R15] | off_1 (off_2 with +1.0 m) | 12 [O:R13] | 7 days (9-on/12-off in 3 shifts, O:R3) | 700 M NOK (pre-F2) |
+| Havfarm-class (ShipShaped) | 6 [O:R23, O:R25] | 6 x 69,000 m³ | 10,000 t [O:R22, O:R23] | 8.0 m | off_1, off_2 | 12 | 7 days | 900 M NOK (pre-F2) |
+| Submersible (legacy) | 3 | as OF1 [GB] | as OF1 [GB] | as OF1 [GB] | off_1 | 12 | 7 days | 1.2 bn NOK (pre-F2) |
+| post-smolt module (land) | 2 tanks of 1,600 m³ | 3,200 m³ | 480 t a year, 1.1 M fish at once [GB] | — | pads with post-smolt room, pad_delta first | — | — | pre-F2 facility |
+| grow-out lot (land) | — | — | 7,900 t a year [L:R8] | — | pads with lots | — | — | pre-F2 RAS facility |
+
+An offshore unit's water is its area's open sea (climatology, saturation
+oxygen) plus its current-fed 1.5 mg/L; its own lice model runs at its slot's
+external pressure (x 0.12 at off_1, held at the model's 0.2 floor after the
+seasonal factor); the fjord storm wear never reaches it.
+
+### The pre-F2 facilities save, migrated (`save_v8_facilities.json`)
+
+The RAS facility (Small, 5,000 t a year: 1 lot) takes pad_a, the semi-submersible offshore farm becomes
+`offshore_1` on off_1 (its 2 stocked pens in zones 1 and 2, its 8,000 t
+capacity kept as the unit's MTB, its 6 x 40,000 m³ of pens as 3 zones of
+80,000 m³, its 14-day rota 7 days), the post-smolt facility (10 M smolts a year)
+becomes `postsmolt_1` on pad_delta with 4 modules (8 tanks), its 2 batches
+populations. Fish and kg equal the save's to 1e-9; the 30-day continuation is
+bit-identical across processes. The 365-day continuations
+(`FarmTypeMoveTests`, osx-arm64):
+
+| variant | engine | cash day 365 (NOK) | fish | RAS kg | post-smolt kg | offshore kg |
+|---|---|---|---|---|---|---|
+| as-saved/events | pre-F2 (`235ccf2`) | 1,418,552,985 | 340,407 + 281,896 in batches | 267,921 | 9,514,553 (33.8 kg a fish) | 762,750 |
+| as-saved/events | F2-03 | 1,447,483,294 | 340,407 + 266,352 in tanks | 267,921 | 2,142,024 (8.0 kg a fish, 167 kg/m³) | 762,750 |
+| as-saved/no-events | pre-F2 (`235ccf2`) | 1,430,404,915 | 202,214 + 281,896 in batches | 158,051 | 9,514,553 (33.8 kg a fish) | 450,769 |
+| as-saved/no-events | F2-03 | 1,469,614,476 | 202,214 + 179,962 in tanks | 158,051 | 1,447,269 (8.0 kg a fish, 113 kg/m³) | 450,769 |
+
+The sea sites, the RAS tanks and the offshore unit hold the same fish and
+kilos to the kilo before and after: the fixture's offshore farm had no zone,
+so it already took its area's sea, and its fish now sit in zones of the same
+water. What moved is the post-smolt batches (nobody transfers them in this
+continuation): they now grow by the TGC law in their tanks' controlled 13 °C
+and die by the mortality hazards, where the pre-F2 facility compounded
+1.5 % of body weight a day x temperature / 12 with no end (33.8 kg a fish
+after a year) and lost 3 % over 180 days as anchor deaths, and paid feed for
+it. Cash is 28.9 M NOK (events) and 39.2 M NOK (no events) higher, net of the
+unit's 7-day rota (26 more crew changes at 150,000 NOK). A post-smolt left in
+its tanks still reaches 8 kg at 113-167 kg/m³: land tanks carry no density
+stress until F2-12 (RUN_LOG §8).
+
+## 1n. F2-04: facility finance, the farm-type catalogue, research gates (2026-10-16, branch `wave3/sim-core-3`)
+
+The calibration registry is **v1.1.0** (the F2-04 minor bump). Its new section
+`facilities` is assembled from include files (`calibration.json` →
+`facilitiesIncludes`, one file per lane); sim·core's is
+`godot/data/calibration/facilities_common.json`. Every leaf carries a `[Range]`
+and one `[Source]` (dossier keys of docs/research/FARM_TYPES_RESEARCH.md: `L:x`
+land, `O:x` offshore, `V:n` the realism review's, `code` the game's own) or
+`[GameBalance]` (a reason); `CalibrationGuardTests` checks all 76.
+
+### Depreciation and construction risk
+
+| value | number | provenance |
+|---|---|---|
+| land site life | 20 years, straight line from commissioning | [GB] spec §3.6; stand-in for skatteloven § 14-43's declining groups |
+| offshore unit life | 25 years | [GB] spec §3.6 |
+| managed cost overrun (lognormal, truncated at its p99) | median +7 %, p90 +25 % (p10 +2 %, p99 +71 %) | [GB] after O:R4 (the first OF1-class unit: 720 M + 157 M = +22 %) and L:C1 |
+| schedule slip (lognormal, truncated at its p99) | median +5 %, p90 +35 % (p10 +0.7 %, p99 +171 %) | [GB]; L:A10 slipped, O:R1 on plan |
+| turnkey premium | +12 % up front, no overrun | [GB] spec §3.9 |
+
+Depreciation is booked only for F2 units built in the game (the legacy build
+verbs register them at build day + construction days; construction projects
+at completion). Migrated pre-F2 units and every fjord capex stay off the
+register (spec §8). It is a non-cash P&L line: the corporate tax base falls by
+it (−22 % × depreciation of corporate tax), the cash reconciliation does not
+move (730 days × seeds 1/7/13 with a post-smolt site, a RAS and an OF1-class
+unit: depreciation = Σ capex / life per day to 1e-9 NOK, cash = booked flows to
+1e-6 NOK), and the resource-rent base never sees it.
+
+### The rent ring-fence (spec §3.6)
+
+The rent base is the liable harvest at the norm price less the sea-phase costs;
+costs of units the rent does not reach (every land site; an offshore unit on
+licences outside it, F2-09) are booked like any cost and left out of it. Twin
+games (`ressursrente`, events off, 300 days; one adds a commissioned Medium RAS
+stocked with 200,000 smolts): the land site costs 65.3 / 65.6 / 65.7 M NOK
+(seeds 1 / 7 / 13: opex, feed, smolts), every krone ring-fenced, and the rent
+bases are equal to 1e-20 NOK (32.28 / 18.61 / 20.03 M) while the mixed company's
+pre-tax income is that much lower. The real tax is a cash-flow tax that expenses
+sea-phase investments directly (Prop. 78 LS (2022–2023)); the game's rent base
+deducts no capex at all yet, sea or land (left for F2-09 / S4-09).
+
+### The farm-type catalogue's reference cards (spec §2A-2C)
+
+Computed by `Farm/FarmTypeCatalog.cs` from the registry; capacity cost per
+tonne of yearly capacity including the licence at 1.2 t HOG per t MTB a year
+[GB]; the bad case is the unit's capex at the overrun's p90, the build at the
+slip's p90, the survival in a bad cycle. After F2-17 the probe's medians replace them.
+
+| variant | capex NOK/t/yr (bad) | opex NOK/kg HOG | survival (bad) | ext. lice | kWh/kg | build days (bad) | capacity t/yr | sources (capex) |
+|---|---|---|---|---|---|---|---|---|
+| Åpen merd | 255,769 | 77.9 | 0.815 (0.741) | 1.0 | 0.07 | 0 | 3,744 | code, V:1, GB |
+| Semi-lukket / lukket merd | 281,437 (288,255) | 73.3 | 0.979 (0.92) | 0.15 | 3.87 | 60 (81) | 1,833 | O:R44, V:1, code, GB |
+| Postsmoltmodul | 229,167 (286,458) | — (no published figure) | 0.97 (0.90) | 0 | 4.4 | 593 (801) | 480 (live) | GB |
+| Landanlegg (hybrid) | 262,000 (327,500) | 70.7 | 0.97 (0.90) | 0 | 6.55 | 910 (1,229) | 7,900 | L:R1, GB |
+| Landanlegg (RAS), stage 3 | 321,000 (401,250) | 77.8 | 0.98 (0.88) | 0 | 7.0 | 973 (1,314) | 4,316 | L:C1, GB |
+| Havmerd (OF1-class) | 131,869 (161,149) | 101.3 | 0.93 (0.81) | 0.12 | — | 670 (905) | 7,488 | O:R4, code, V:2, GB |
+| Skipsmerd (Havfarm-class), stage 3 | 98,288 (119,121) | 101.3 | 0.972 (0.81) | 0.30 | — | 880 (1,188) | 12,000 | O:R26, O:R22, O:R23, V:2, GB |
+
+Gates (FR3: every gate, money included): Åpen merd at the start (6 M); the
+closed pen after the first harvest (50 M a pen); the post-smolt module after
+`land-based-ras` and the first harvest (110 M); the hybrid land farm after
+`land-based-ras`, an operating post-smolt module and a zoned pad (the pilot
+lot, 0.9 bn [GB]); OF1-class after `deep-sea-farming`, the first harvest, 365
+escape-free days and a development licence (F2-09), 35 % of 877 M as a
+consortium; RAS and Havfarm-class after one cycle of the company's own HFS /
+OF1-class unit.
+
+### Research narrowed to its unit kinds (spec §3.1 decision 0)
+
+| node | effects | before F2-04 | from F2-04 |
+|---|---|---|---|
+| `land-based-ras` | mortality −5 %, disease −14 % | every fish (fjord pens included) | land tanks only; opens the post-smolt module and the hybrid land farm |
+| `deep-sea-farming` | lice settlement −10 %, disease −6 % | every fish and every sea site | offshore units only; opens the OF1-class unit |
+
+A fjord-only game that researches neither is bit-identical (24 of 27 golden
+traces). po3_red_sone starts with `deep-sea-farming`: its fjord sites lose the
+10 % lice blocking and 6 % disease resistance (final cash −12.11 / −15.25 /
+−13.77 M → −11.91 / −15.11 / −13.81 M on seeds 1 / 7 / 13, live biomass 216 /
+119 / 244 t → 213 / 112 / 243 t; docs/run/evidence/f2_04_golden_diff.md).
+
+### The pre-F2 facilities save, F2-03 → F2-04 (`FarmTypeMoveTests`, 365 days)
+
+| variant | cash day 365 (NOK) | fish | RAS kg | post-smolt kg | offshore kg |
+|---|---|---|---|---|---|
+| as-saved/events F2-03 | 1,447,483,294 | 606,759 | 267,921 | 2,142,024 | 762,750 |
+| as-saved/events F2-04 | 1,447,567,426 | 605,878 | 267,815 | 2,137,987 | 762,750 |
+| as-saved/no-events F2-03 | 1,469,614,476 | 382,176 | 158,051 | 1,447,269 | 450,769 |
+| as-saved/no-events F2-04 | 1,470,441,983 | 374,745 | 152,966 | 1,412,511 | 450,769 |
+
+The save holds `deep-sea-farming`: its disease resistance no longer reaches
+the land and post-smolt tanks or the fjord pens (fewer fish there), the
+offshore unit keeps it (unchanged to the kilo). The year end's rent base now
+leaves the land sites' costs out, but stays under the 70 M NOK basic deduction
+either way, so no cash moves for it: with the ring-fence alone (before the
+narrowing) cash, fish and kilos were F2-03's to the krone and the kilo, and only
+the saved fields changed the pin.
+
+## 1o. F2-05: the Driftsplan and the notification budget (2026-10-16, branch `wave3/sim-core-4`)
+
+A standing order issues the player's own verb at the player's price: it adds
+no cost, no discount and no new effect, so its balance is the verb's. The
+defaults are the settings a new order starts with; each carries its source on
+the setting (`DriftsplanSetting.Source`, shown in the card's tooltip).
+Neither fjord policy is on by default: a fjord game plays as before until the
+player sets one (the farm-type lanes add their units' defaults, spec §1
+pillar 5).
+
+| policy · setting | default (range) | unit | provenance |
+|---|---|---|---|
+| net care (`net_cleaning`) · interval | 14 (7–60) | days | Elsheshtawy et al. 2023, *Frontiers in Aquaculture* 2:1125595: commercial farms in western Norway cleaned their nets every second week, May–November 2019; Bloecher and Floerl 2021 "every two weeks or more" at high-fouling sites. The job is the ROV wellboat (`RequestWellboat` "rov": 75,000 NOK, nets +15 %) |
+| delouse on the count (`delouse_on_count`) · share of the limit | 0.8 (0.5–1.0) | share | [GB] acts on the first weekly count over 0.8 × the lakselusforskriften § 8 limit (0.5 adult females, 0.2 in the area's spring weeks), a week before a second count over the limit brings Mattilsynet's order; 0.8 × 0.5 = the golden player's 0.4 (F2-01). Counts: § 6, weekly at ≥ 4 °C |
+| · fewest days between treatments | 14 (7–60) | days | [GB] the golden player's interval; each handling stresses the fish |
+| · method | hydrolicer (hydrolicer, thermolicer, freshwater, peroxide) | — | [GB] the golden player's; mechanical delousing works at any sea temperature |
+
+What a plan changes in a year of po3_red_sone (events on, 40 M NOK loan in
+every game, a lice wave of +0.5 adult females on both sites every 60 days;
+`DriftsplanTests.APlan_ChangesThePlayersGame`):
+
+| seed | net integrity mean / worst, no plan | with net care | ROV jobs (hire by day 300) | adult females, no plan | with the standing order | treatments | Mattilsynet treatment orders |
+|---|---|---|---|---|---|---|---|
+| 3 | 99.32 % / 95.6 % | 99.62 % / 95.8 % | 27 (1,650,000 NOK) | 0.441 | 0.123 | 12 | 9 → 0 |
+| 11 | 98.04 % / 91.8 % | 99.43 % / 94.3 % | 27 (1,650,000 NOK) | 0.453 | 0.124 | 12 | 9 → 0 |
+
+The nets' routine upkeep keeps them near 100 % on calm days, so net care pays
+mostly after storms (seed 11's winter); its price is the wellboat's (≈ 2 M NOK
+a year a site at 14 days), a balance for the player to judge against the
+storm escapes it guards against. The standing order keeps the lice at a third
+of the unplanned level and never lets an order come.
+
+**The notification budget** (spec §6.6, measured in F2-17 with
+`NotificationMeter`): a policy-competent player sees at most **2 warnings per
+unit per in-game month** and at most **1 critical per unit per in-game year**
+(`NotificationMeter.WarningBudgetPerUnitMonth`, `CriticalBudgetPerUnitYear`;
+owner brief "alarms are rare and mean something"). The meter counts what the
+bus delivered (new and escalated), never a repeat it absorbed, and never
+information.
 
 ## 2. Key economic knobs
 

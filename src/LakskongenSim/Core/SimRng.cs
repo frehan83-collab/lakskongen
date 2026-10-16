@@ -199,6 +199,27 @@ public sealed class SimRng
 
         /// <summary>Corporate finance: IPO market drift after listing (Phase 4.3).</summary>
         public const string CorporateFinance = "corporate_finance";
+
+        /// <summary>
+        /// Offshore metocean (F2-06, docs/FARM_TYPES_SPEC.md §3.7): the open
+        /// sea's base Hs, storm swell and visibility; no suffix, exactly 8
+        /// uniforms a day. Scope frozen by F2-04; the sea lane owns the draws.
+        /// </summary>
+        public const string OffshoreMetocean = "offshore_metocean";
+
+        /// <summary>
+        /// Facility permit cases (F2-04): suffix the case id and its round;
+        /// exactly 2 uniforms per round at submission or appeal (decision day,
+        /// outcome).
+        /// </summary>
+        public const string FacilityPermits = "facility_permits";
+
+        /// <summary>
+        /// Facility construction projects (F2-04): suffix the project id and
+        /// the phase key; exactly 2 uniforms at each phase's start (cost factor,
+        /// duration factor).
+        /// </summary>
+        public const string FacilityConstruction = "facility_construction";
     }
 
 /// <summary>
