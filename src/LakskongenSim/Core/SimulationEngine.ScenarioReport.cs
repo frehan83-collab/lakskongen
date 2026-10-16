@@ -86,6 +86,8 @@ public partial class SimulationEngine
             LiquidityWarnings = ladder.WarningsIssued,
             BankCalls = ladder.BankCallsIssued,
             RescueLoans = ladder.RescueLoansTaken,
+            RescueLoanDay = ladder.Offer is { Status: RescueOfferStatus.Accepted } taken ? taken.ResolvedDay : -1,
+            RescueLoanNok = ladder.Offer is { Status: RescueOfferStatus.Accepted } loan ? loan.AmountNok : 0m,
             OverdraftInterestNok = ladder.OverdraftInterestPaidNok,
             FinesNok = fines,
             Months = StoryMonths(story),

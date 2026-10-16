@@ -79,6 +79,10 @@ public sealed record ScenarioEndReport
     public int LiquidityWarnings { get; init; }
     public int BankCalls { get; init; }
     public int RescueLoans { get; init; }
+    /// <summary>Day the rescue loan was taken (-1 when none): the end screen marks it on the cash line.</summary>
+    public int RescueLoanDay { get; init; } = -1;
+    /// <summary>The rescue loan's principal (0 when none).</summary>
+    public decimal RescueLoanNok { get; init; }
     public decimal OverdraftInterestNok { get; init; }
     public decimal FinesNok { get; init; }
     public IReadOnlyList<ScenarioMonthPoint> Months { get; init; } = Array.Empty<ScenarioMonthPoint>();

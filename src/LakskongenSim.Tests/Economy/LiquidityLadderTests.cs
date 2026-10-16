@@ -350,6 +350,10 @@ public class LiquidityLadderTests
         Assert.Equal(0.14m, loan.InterestRate);
         Assert.Equal(SimCalendar.DaysInMonthsFrom(taker.State.Day, 36), loan.TermDays);
         Assert.Equal(1, taker.State.Liquidity.RescueLoansTaken);
+        var report = taker.GetScenarioEndReport();
+        Assert.Equal(taker.State.Day, report.RescueLoanDay);
+        Assert.Equal(offer.AmountNok, report.RescueLoanNok);
+        Assert.Equal(-1, decliner.GetScenarioEndReport().RescueLoanDay);
         Assert.Equal(-1, taker.State.Liquidity.EpisodeStartDay);
         Assert.Contains(taker.State.EventLog, e => e.Id == SimulationEngine.RescueLoanTakenKey);
         Assert.Equal("no_rescue_offer", taker.AcceptRescueLoan().ErrorKey);

@@ -492,6 +492,12 @@ func _a_lost_game_takes_the_rescue_loan_and_loads_the_autosave() -> void:
 		"loss: the reason is the scenario's own ('%s')" % sub.text)
 	var finance := (report.get("distinctions", []) as Array).filter(func(d: Dictionary) -> bool: return str(d.get("id", "")) == "finance")
 	_check(not finance.is_empty() and not bool(finance[0].get("met", true)), "loss: the rescue loan costs the finance distinction")
+	var chart: PnlStoryChart = screen.built().get("chart")
+	var mark: Dictionary = chart.loan_marker() if chart != null else {}
+	_check(not mark.is_empty() and float(report.get("rescue_loan", 0.0)) > 0.0
+			and is_equal_approx(float(mark["amount"]), float(report.get("rescue_loan", 0.0)))
+			and chart.plot_rect().grow(1.0).has_point(mark["at"]),
+		"loss: the rescue loan is marked on the cash line where it came in (borrowed, not income)")
 	await t._lint_screen("end screen (lost)")
 	_check(not screen.autosave_button.disabled, "loss: the autosave from before the end can be loaded")
 	_scene_changes.clear()

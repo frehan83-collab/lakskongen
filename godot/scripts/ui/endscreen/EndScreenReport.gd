@@ -174,14 +174,15 @@ static func _money(report: Dictionary, rows_out: Array) -> Control:
 		peak = maxf(peak, absf(float(l.get("amount", 0.0))))
 	if lines.is_empty():
 		box.add_child(_label(tr_key("UI_ENDSCREEN_MONEY_NONE"), &"BodySmallMuted", "None"))
-	for l in lines.slice(0, LINE_ROWS):
+	var shown: Array = lines.slice(0, LINE_ROWS)
+	for l in shown:
 		var income := bool(l.get("income", false))
 		var amount := float(l.get("amount", 0.0))
 		var row := VBoxContainer.new()
 		row.name = "Line_%s_%s" % [str(l.get("category", "")).validate_node_name(), "in" if income else "out"]
 		row.add_theme_constant_override("separation", 2)
 		var head := HBoxContainer.new()
-		var name := _label(SimLabels.ledger_category(str(l.get("category", "other"))), &"BodySmall", "Name")
+		var name := _label(line_label(str(l.get("category", "other")), income, shown), &"BodySmall", "Name")
 		name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name.clip_text = true
 		head.add_child(name)
@@ -301,6 +302,18 @@ static func _label(text: String, variation: StringName, node_name: String, upper
 
 static func tr_key(key: String) -> String:
 	return TranslationServer.translate(key)
+
+
+## A ledger line's name: a cost line with its own name (LEDGER_HARVEST_COST,
+## "Slakting og transport"), else the line's name, marked income or costs
+## when both sides of the line are listed.
+static func line_label(category: String, income: bool, lines: Array) -> String:
+	var own := "LEDGER_%s_%s" % [category.to_upper(), "INCOME" if income else "COST"]
+	if tr_key(own) != own:
+		return tr_key(own)
+	var both := lines.filter(func(l: Dictionary) -> bool: return str(l.get("category", "")) == category).size() > 1
+	var base := SimLabels.ledger_category(category)
+	return tr_key("UI_ENDSCREEN_LINE_INCOME" if income else "UI_ENDSCREEN_LINE_COST") % base if both else base
 
 
 ## "1 postering" / "3 posteringer": `stem`_ONE or `stem`_MANY with the count.

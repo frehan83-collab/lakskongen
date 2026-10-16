@@ -34,8 +34,9 @@ const SLIDE_PX := 40.0
 const REVEAL_S := 1.2
 const BUTTON_H := 46.0
 const PRIMARY_H := 54.0
-## Layers of the game scene that step aside while the screen is open.
-const ASIDE_NODES := ["UILayer", "EventLayer", "AttentionInbox"]
+## Layers of the game scene that step aside while the screen is open (and the
+## toast layer above the game).
+const ASIDE_NODES := ["UILayer", "EventLayer", "AttentionInbox", "/root/ToastNotification"]
 
 @onready var _screen: Control = %Screen
 @onready var _column: Control = %Column

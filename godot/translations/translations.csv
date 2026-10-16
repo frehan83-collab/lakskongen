@@ -1866,6 +1866,7 @@ ZONE_PO13_LEBESBY,Lebesby,Lebesby
 GAME_EVENT_BANK_CALL,Bank call,Bankmøte
 GAME_EVENT_LIQUIDITY_WARNING,Liquidity warning,Likviditetsvarsel
 GAME_EVENT_RESCUE_LOAN_TAKEN,Rescue loan taken,Redningslån tatt opp
+LEDGER_HARVEST_COST,Harvest and transport,Slakting og transport
 LEDGER_OVERDRAFT_INTEREST,Overdraft interest,Renter på overtrekk
 LEDGER_RESCUE_LOAN_FEE,Rescue loan fee,Gebyr for redningslån
 UI_BANK_ACCEPT,Take the rescue loan,Ta opp redningslånet
@@ -1902,6 +1903,7 @@ UI_ENDSCREEN_CAMPAIGN_OVERLINE,Campaign,Kampanje
 UI_ENDSCREEN_CAMPAIGN_PROGRESS,%d of %d scenarios won · %d open,%d av %d scenarioer vunnet · %d åpne
 UI_ENDSCREEN_CAMPAIGN_UNLOCKED,New scenarios open: %s,Nye scenarioer er åpne: %s
 UI_ENDSCREEN_CHART_FLOOR,Credit limit,Kredittramme
+UI_ENDSCREEN_CHART_LOAN,Rescue loan %s,Redningslån %s
 UI_ENDSCREEN_CHART_TIP,%s %d\nIncome: %s\nCosts: %s\nResult: %s\nCash at month end: %s,%s %d\nInntekter: %s\nKostnader: %s\nResultat: %s\nKontanter ved månedsslutt: %s
 UI_ENDSCREEN_CONTINUE,Keep playing,Fortsett å spille
 UI_ENDSCREEN_CONTINUE_OFF,The game is over,Spillet er over
@@ -1925,6 +1927,8 @@ UI_ENDSCREEN_KPI_RESULT,Result,Resultat
 UI_ENDSCREEN_KPI_RESULT_SUB,Income %s · costs %s,Inntekter %s · kostnader %s
 UI_ENDSCREEN_KPI_WARNING_MANY,%s warnings,%s varsler
 UI_ENDSCREEN_KPI_WARNING_ONE,%s warning,%s varsel
+UI_ENDSCREEN_LINE_COST,%s (costs),%s (kostnader)
+UI_ENDSCREEN_LINE_INCOME,%s (income),%s (inntekter)
 UI_ENDSCREEN_LOAD_FAILED,The autosave could not be loaded: %s,Autolagringen kunne ikke lastes: %s
 UI_ENDSCREEN_LOG_DAY,Day %d · %s,Dag %d · %s
 UI_ENDSCREEN_LOG_NONE,Nothing was logged.,Ingenting ble logget.

@@ -13,7 +13,8 @@ extends Control
 ## motion.
 
 ## Report fields this chart reads: months, start_day, end_day, opening_cash,
-## bankruptcy_floor, turning_points.
+## bankruptcy_floor, turning_points, rescue_loan_day, rescue_loan (a rescue
+## loan is marked where it came in: borrowed cash, not income).
 var report: Dictionary = {}:
 	set(v):
 		report = v
@@ -186,6 +187,7 @@ func _draw() -> void:
 	_draw_cash(plot)
 	_draw_band()
 	_draw_month_labels(font)
+	_draw_loan(font)
 	_draw_markers(font)
 
 
@@ -300,6 +302,30 @@ func _draw_markers(font: Font) -> void:
 		var ds := font.get_string_size(digit, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE)
 		draw_string(font, Vector2(c.x - ds.x * 0.5, c.y + ds.y * 0.32), digit, HORIZONTAL_ALIGNMENT_LEFT, -1,
 			FONT_SIZE, _pal(&"raised"))
+
+
+## The rescue loan's mark on the cash line ({} when none was taken).
+func loan_marker() -> Dictionary:
+	var day := int(report.get("rescue_loan_day", -1))
+	if day < start_day():
+		return {}
+	return {"at": Vector2(x_of(day), y_of(cash_at(day))), "amount": float(report.get("rescue_loan", 0.0))}
+
+
+func _draw_loan(font: Font) -> void:
+	var mark := loan_marker()
+	if mark.is_empty():
+		return
+	var at: Vector2 = mark["at"]
+	if at.x > plot_rect().position.x + plot_rect().size.x * reveal + 0.5:
+		return
+	var r := MARKER_R * 0.8
+	var diamond := PackedVector2Array([at + Vector2(0, -r), at + Vector2(r, 0), at + Vector2(0, r), at + Vector2(-r, 0)])
+	draw_colored_polygon(diamond, _pal(&"info"))
+	var text := tr("UI_ENDSCREEN_CHART_LOAN") % SimFormatters.format_nok(float(mark["amount"]))
+	var tw := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
+	var x := clampf(at.x - tw * 0.5, plot_rect().position.x, plot_rect().end.x - tw)
+	draw_string(font, Vector2(x, at.y - r - 6.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, _pal(&"info"))
 
 
 func _get_tooltip(at_position: Vector2) -> String:

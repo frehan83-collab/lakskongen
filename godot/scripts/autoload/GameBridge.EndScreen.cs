@@ -22,7 +22,8 @@ public partial class GameBridge : Node
     /// lowest_cash, lowest_cash_day, bankruptcy_floor, loan_principal,
     /// revenue, costs, net_result, harvested_tonnes_hog, harvest_batches,
     /// fish_died, fish_left_alive, fish_in_sea, mortality_share,
-    /// liquidity_warnings, bank_calls, rescue_loans, overdraft_interest, fines,
+    /// liquidity_warnings, bank_calls, rescue_loans, rescue_loan_day (-1 = none),
+    /// rescue_loan, overdraft_interest, fines,
     /// medal ("none" | "bronze" | "silver" | "gold"),
     /// months [{month, first_day, revenue, costs, result, cumulative, closing_cash}],
     /// turning_points [{category, income, first_day, last_day, amount, revenue,
@@ -69,6 +70,8 @@ public partial class GameBridge : Node
         result["liquidity_warnings"] = r.LiquidityWarnings;
         result["bank_calls"] = r.BankCalls;
         result["rescue_loans"] = r.RescueLoans;
+        result["rescue_loan_day"] = r.RescueLoanDay;
+        result["rescue_loan"] = (double)r.RescueLoanNok;
         result["overdraft_interest"] = (double)r.OverdraftInterestNok;
         result["fines"] = (double)r.FinesNok;
         result["medal"] = ScenarioMedals.Key(r.Medal);
