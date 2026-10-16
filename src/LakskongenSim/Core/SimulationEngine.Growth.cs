@@ -130,7 +130,10 @@ public partial class SimulationEngine
         }
 
         double appetite = law.ThermalAppetiteIndex(temperature) * husbandry.AppetiteModifier;
-        return Feed.FeedRation(population, eatenKg, grownKg, husbandry.SpreadQuality, FeedWasteReduction, appetite);
+        var fed = Feed.FeedRation(population, eatenKg, grownKg, husbandry.SpreadQuality, FeedWasteReduction, appetite);
+        // F2-04: a land tank's (or a non-liable offshore unit's) feed stays out of the rent base.
+        if (husbandry.Water.Kind != HoldingKind.SeaPen) AttributePopulationCost(population, fed.CostNOK);
+        return fed;
     }
 
     /// <summary>

@@ -65,6 +65,34 @@ namespace LakskongenSim.Core
         /// </summary>
         public List<Farm.SitePlot> SitePlots { get; set; } = new();
 
+        /// <summary>
+        /// F2-04: the F2 units' fixed-asset register (docs/FARM_TYPES_SPEC.md
+        /// §3.6), depreciated straight-line as a non-cash P&amp;L line. Empty in a
+        /// game that never built a land site or an offshore unit.
+        /// </summary>
+        public List<Finance.FacilityAsset> FacilityAssets { get; set; } = new();
+
+        /// <summary>F2-04: facility construction projects (spec §3.2), finished ones included.</summary>
+        public List<ConstructionProject> ConstructionProjects { get; set; } = new();
+
+        /// <summary>F2-04: facility permit cases (spec §3.2), decided ones included.</summary>
+        public List<Finance.PermitCase> PermitCases { get; set; } = new();
+
+        /// <summary>F2-04: number of the next construction project ("cp_N"); ids are never reused.</summary>
+        public int NextConstructionProjectNumber { get; set; } = 1;
+
+        /// <summary>F2-04: number of the next permit case ("pc_N"); ids are never reused.</summary>
+        public int NextPermitCaseNumber { get; set; } = 1;
+
+        /// <summary>
+        /// F2-04: this fiscal year's costs of units that are not liable to
+        /// resource-rent tax (every land site; an offshore unit on licences the
+        /// rent does not reach), booked in the P&amp;L like any cost and left out
+        /// of the resource-rent deductions (the rent base is ring-fenced,
+        /// spec §3.6). Reset at the year-end tax settlement.
+        /// </summary>
+        public decimal RentRingFencedCostsThisTaxYear { get; set; }
+
         /// <summary>Whether the player has an AI Feeding System installed.</summary>
         public bool OwnsAIFeedingSystem { get; set; } = false;
 

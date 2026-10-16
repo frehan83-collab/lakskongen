@@ -4,6 +4,7 @@ using System.Linq;
 using LakskongenSim.Events;
 using LakskongenSim.Farm;
 using LakskongenSim.Farm.Offshore;
+using LakskongenSim.Finance;
 
 namespace LakskongenSim.Core;
 
@@ -50,12 +51,15 @@ public partial class SimulationEngine
         if (plot == null)
             return CommandResult.Fail(NoFreePlotKey,
                 $"No free land pad holds {GrowOutLotsFor(facility.CapacityTonnesPerYear)} grow-out lots");
-        var paid = PayForFacility(facility.GetCAPEX(), facility.Name);
+        decimal capex = facility.GetCAPEX();
+        var paid = PayForFacility(capex, facility.Name);
         if (!paid.Ok) return paid;
 
         PutOnPad(facility, plot);
         facility.StartConstruction(State.Day);
         RASFacilities.Add(facility);
+        // F2-04: an F2 unit's capex is depreciated from its commissioning day.
+        RegisterFacilityAsset(facility.Id, FacilityAssetKind.LandSite, capex, State.Day + facility.ConstructionDays);
         LogFacilityBuilt("RAS-anlegg under bygging",
             SimText.Nb($"{facility.Name} er under bygging på {plot.Name} ({facility.CapacityTonnesPerYear:N0} t per år)"),
             facility.CAPEX);
@@ -98,6 +102,8 @@ public partial class SimulationEngine
         site.Offshore!.StartConstruction(State.Day, capex);
         State.SeaSites.Add(site);
         ClaimPlot(plot, site.Id);
+        // F2-04: the unit's steel is depreciated from its commissioning day.
+        RegisterFacilityAsset(site.Id, FacilityAssetKind.OffshoreUnit, capex, State.Day + site.Offshore.ConstructionDays);
         LogFacilityBuilt("Havmerd under bygging",
             SimText.Nb($"{site.Label} er under bygging på {plot.Name} ({site.MABTonnes:N0} t MTB, {site.PhysicalPens.Count} soner)"),
             capex);
@@ -160,6 +166,8 @@ public partial class SimulationEngine
         facility.ConstructionProgress = 0.0;
         facility.CAPEX = capex;
         RASFacilities.Add(facility);
+        // F2-04: an F2 unit's capex is depreciated from its commissioning day.
+        RegisterFacilityAsset(facility.Id, FacilityAssetKind.LandSite, capex, State.Day + facility.ConstructionDays);
         LogFacilityBuilt("Postsmoltanlegg under bygging",
             SimText.Nb($"{facility.Name} er under bygging på {plot.Name} ({modules} moduler, {modules * PostSmoltFishPerModule:N0} smolt)"),
             capex);

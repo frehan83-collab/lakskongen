@@ -26,6 +26,7 @@ internal static class OffshoreTickSystem
             if (site.Kind != SiteKind.Offshore || site.Offshore == null) continue;
             var result = site.Offshore.TickDay(engine.State.Day, engine.Weather.CurrentWaveHeight, storm, site.MABTonnes);
             engine._dailyFarmSystemsOpex += result.TotalDailyOPEX;
+            engine.AttributeUnitCost(site.Id, HoldingKind.Offshore, result.TotalDailyOPEX); // F2-04 ring-fence (liable units keep it)
         }
     }
 

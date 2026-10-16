@@ -30,6 +30,7 @@ internal static class LandSiteTickSystem
                 string.IsNullOrEmpty(rasFacility.Id) ? rasFacility.Name : rasFacility.Id));
             var rasResult = rasFacility.TickDay(engine.State.Day, engine.Weather.CurrentTemperatureC);
             engine._dailyFarmSystemsOpex += rasResult.TotalDailyOPEX;
+            engine.AttributeUnitCost(rasFacility.Id, Environment.HoldingKind.LandTank, rasResult.TotalDailyOPEX); // F2-04 ring-fence
         }
     }
 
@@ -46,6 +47,7 @@ internal static class LandSiteTickSystem
         {
             var postSmoltResult = postSmoltFacility.TickDay(engine.State.Day);
             engine._dailyFarmSystemsOpex += postSmoltResult.TotalDailyOPEX;
+            engine.AttributeUnitCost(postSmoltFacility.Id, Environment.HoldingKind.LandTank, postSmoltResult.TotalDailyOPEX); // F2-04 ring-fence
             engine.MortalityLedger.BookHoldingDeaths(postSmoltFacility.Id, postSmoltResult.TotalMortality,
                 postSmoltResult.TotalMortalityKg, MortalityCause.BaselineAnchor);
         }

@@ -20,6 +20,19 @@ namespace LakskongenSim.Finance
         public decimal Taxes { get; private set; }
 
         /// <summary>
+        /// F2-04: depreciation of F2 units this period (docs/FARM_TYPES_SPEC.md
+        /// §3.6), a non-cash P&amp;L line: part of the corporate tax base
+        /// (<see cref="PreTaxIncome"/>), never part of the cash reconciliation
+        /// (<see cref="LifetimeNetCashFlow"/>) or of the resource-rent base. It
+        /// is also the cost line <see cref="DepreciationCategory"/>, which is how
+        /// a save carries it (the cost breakdown is saved).
+        /// </summary>
+        public decimal Depreciation { get; private set; }
+
+        /// <summary>Cost-breakdown category of <see cref="Depreciation"/>.</summary>
+        public const string DepreciationCategory = "facility_depreciation";
+
+        /// <summary>
         /// Categorised cost breakdown (Phase 5.5 "feel" layer). Accumulated in
         /// parallel with the top-line buckets so a loss can be traced to its
         /// dominant causes (feed, delousing, insurance, interest, tax, …).
@@ -58,14 +71,19 @@ namespace LakskongenSim.Finance
         public decimal LifetimeLiabilitiesIncurred { get; private set; }
         public decimal LifetimeLiabilitiesRepaid { get; private set; }
         public decimal LifetimeEquityRaised { get; private set; }
+        /// <summary>F2-04: depreciation of F2 units since the game started (non-cash: not in <see cref="LifetimeNetCashFlow"/>).</summary>
+        public decimal LifetimeDepreciation { get; private set; }
 
         /// <summary>Net cash effect of every booked flow since the game started.</summary>
         public decimal LifetimeNetCashFlow =>
             LifetimeRevenue - LifetimeCOGS - LifetimeOperatingExpenses - LifetimeInterest - LifetimeTaxes
             - LifetimeCapex + LifetimeLiabilitiesIncurred - LifetimeLiabilitiesRepaid + LifetimeEquityRaised;
 
-        /// <summary>Pre-tax income for the current period (excludes tax already booked).</summary>
-        public decimal PreTaxIncome => Revenue - COGS - OperatingExpenses - InterestExpense;
+        /// <summary>
+        /// Pre-tax income for the current period (excludes tax already booked).
+        /// F2-04: less the period's facility depreciation (zero in a game with no F2 unit).
+        /// </summary>
+        public decimal PreTaxIncome => Revenue - COGS - OperatingExpenses - InterestExpense - Depreciation;
 
         /// <summary>Biomass inventory (live fish value) - Phase 4.3.</summary>
         public decimal BiomassInventoryValue { get; private set; }
@@ -154,6 +172,21 @@ namespace LakskongenSim.Finance
         }
 
         /// <summary>
+        /// F2-04: record a day's depreciation of F2 units. Non-cash: it lowers
+        /// pre-tax income and the book value of the assets, moves no cash and no
+        /// lifetime cash total. A zero amount books nothing (no empty cost line).
+        /// </summary>
+        public void RecordDepreciation(decimal amount)
+        {
+            if (amount <= 0m) return;
+            Depreciation += amount;
+            LifetimeDepreciation += amount;
+            Assets -= amount;
+            _costBreakdown[DepreciationCategory] = _costBreakdown.GetValueOrDefault(DepreciationCategory) + amount;
+            AddEvent($"Depreciation -{amount}");
+        }
+
+        /// <summary>
         /// Record a tax refund (provisional tax paid above the liability). Reduces
         /// booked tax. Does NOT modify cash - FinanceManager.AddRevenue() returns it.
         /// </summary>
@@ -201,6 +234,7 @@ namespace LakskongenSim.Finance
             OperatingExpenses = 0m;
             InterestExpense = 0m;
             Taxes = 0m;
+            Depreciation = 0m;
             _costBreakdown.Clear();
             _revenueBreakdown.Clear();
             AddEvent($"Year {CurrentYear} annual close");
@@ -230,7 +264,7 @@ namespace LakskongenSim.Finance
             Revenue = LifetimeRevenue, Cogs = LifetimeCOGS, Opex = LifetimeOperatingExpenses,
             Interest = LifetimeInterest, Taxes = LifetimeTaxes, Capex = LifetimeCapex,
             LiabilitiesIncurred = LifetimeLiabilitiesIncurred, LiabilitiesRepaid = LifetimeLiabilitiesRepaid,
-            EquityRaised = LifetimeEquityRaised
+            EquityRaised = LifetimeEquityRaised, Depreciation = LifetimeDepreciation
         };
 
         /// <summary>Restore lifetime totals after a load.</summary>
@@ -241,6 +275,7 @@ namespace LakskongenSim.Finance
             LifetimeInterest = t.Interest; LifetimeTaxes = t.Taxes; LifetimeCapex = t.Capex;
             LifetimeLiabilitiesIncurred = t.LiabilitiesIncurred; LifetimeLiabilitiesRepaid = t.LiabilitiesRepaid;
             LifetimeEquityRaised = t.EquityRaised;
+            LifetimeDepreciation = t.Depreciation;
         }
 
         /// <summary>Export the categorised cost breakdown (Phase 5.5). Ordered by key for
@@ -263,11 +298,13 @@ namespace LakskongenSim.Finance
                 foreach (var kv in costs) _costBreakdown[kv.Key] = kv.Value;
             if (revenues != null)
                 foreach (var kv in revenues) _revenueBreakdown[kv.Key] = kv.Value;
+            // F2-04: the period's depreciation travels as its cost line.
+            Depreciation = _costBreakdown.GetValueOrDefault(DepreciationCategory);
         }
 
         public decimal ComputeNetIncome()
         {
-            return Revenue - COGS - OperatingExpenses - InterestExpense - Taxes;
+            return Revenue - COGS - OperatingExpenses - InterestExpense - Depreciation - Taxes;
         }
 
         /// <summary>
@@ -344,5 +381,7 @@ namespace LakskongenSim.Finance
         public decimal LiabilitiesIncurred { get; set; }
         public decimal LiabilitiesRepaid { get; set; }
         public decimal EquityRaised { get; set; }
+        /// <summary>F2-04: facility depreciation (non-cash; outside the reconciliation identity).</summary>
+        public decimal Depreciation { get; set; }
     }
 }

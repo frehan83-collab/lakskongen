@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LakskongenSim.Biology;
 using LakskongenSim.Data;
+using LakskongenSim.Environment;
 using LakskongenSim.Events;
 using LakskongenSim.Farm;
 using LakskongenSim.Harvest;
@@ -110,6 +111,7 @@ public partial class SimulationEngine
         if (!TryPayCost(cost, CostBooking.Cogs, "smolts"))
             return CommandResult.Fail("insufficient_funds",
                 $"Insufficient funds: need {cost:N0} NOK for {count:N0} smolts", (double)cost);
+        AttributeUnitCost(site.Id, HoldingKind.Offshore, cost); // F2-04 ring-fence (a liable unit keeps it)
 
         double liceLoad = strain.InitialLiceLoad * PlotLiceMultiplierOf(site);
         PlacePopulation(site, zone, new FishPopulation.Cohort(Hatchery.MaturationDays, count, strain.ReleaseWeightKg,
@@ -199,6 +201,7 @@ public partial class SimulationEngine
         if (!TryPayCost(cost, CostBooking.Cogs, "smolts"))
             return CommandResult.Fail("insufficient_funds",
                 $"Insufficient funds: need {cost:N0} NOK for {count:N0} smolts", (double)cost);
+        AttributeUnitCost(site.Id, HoldingKind.LandTank, cost); // F2-04 ring-fence
 
         string batchId = NextFacilityId($"{site.Id}_batch", site.Tanks.Select(p => p.Id));
         var batch = new FishPopulation { Id = batchId, SiteId = site.Id, ZoneId = site.ZoneId, SeaLiceLoad = 0.0 };
@@ -227,6 +230,7 @@ public partial class SimulationEngine
         if (!TryPayCost(cost, CostBooking.Opex, "vaccination"))
             return CommandResult.Fail("insufficient_funds",
                 $"Insufficient funds: need {cost:N0} NOK to vaccinate batch '{batchId}'", (double)cost);
+        AttributeUnitCost(site.Id, HoldingKind.LandTank, cost); // F2-04 ring-fence
         batch.VaccinatedDay = State.Day;
         LogFacilityEvent("Postsmolt vaksinert", SimText.Nb($"{site.Name}: gruppe {batchId} vaksinert for {cost:N0} kr"), -cost);
         return CommandResult.Success($"Vaccinated batch {batchId}", (double)cost, id: batchId);
@@ -326,6 +330,7 @@ public partial class SimulationEngine
         if (!TryPayCost(cost, CostBooking.Cogs, "smolts"))
             return CommandResult.Fail("insufficient_funds",
                 $"Insufficient funds: need {cost:N0} NOK for {count:N0} smolts", (double)cost);
+        AttributeUnitCost(facilityId, HoldingKind.LandTank, cost); // F2-04 ring-fence
 
         var population = new FishPopulation { ZoneId = zoneId, SiteId = facilityId, SeaLiceLoad = liceLoad };
         population.InjectDependencies(Growth, Mortality);

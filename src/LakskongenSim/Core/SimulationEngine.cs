@@ -1548,6 +1548,7 @@ private class BalancingConfig
         {
             new StormImpactsTickSystem(),
             new WellboatExecutionTickSystem(),
+            new ConstructionAndPermitsTickSystem(), // F2-04: projects, permit decisions, F2 depreciation
             new HarvestOrdersTickSystem(),
             new CapacityEnforcementTickSystem(),
             new LicenseAuctionTickSystem(),
