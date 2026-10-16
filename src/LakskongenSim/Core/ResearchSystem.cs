@@ -587,7 +587,7 @@ namespace LakskongenSim.Core
             {
                 Id = "deep-sea-farming",
                 Name = "Deep-Sea Exposed Farming",
-                Description = "Develop offshore semi-submersible pen systems for exposed, high-current sites. Opens the OF1-class offshore unit; its lice and disease effects apply to offshore units only.",
+                Description = "Develop offshore semi-submersible pen systems for exposed, high-current sites. Opens the semi-submersible offshore unit; its lice and disease effects apply to offshore units only.",
                 Branch = ResearchBranch.Expansion,
                 Tier = 1,
                 CostNOK = 900_000m,

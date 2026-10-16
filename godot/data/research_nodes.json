@@ -314,7 +314,7 @@
   {
     "id": "deep-sea-farming",
     "name": "Deep-Sea Exposed Farming",
-    "description": "Develop offshore semi-submersible pen systems for exposed, high-current sites. Opens the OF1-class offshore unit; its lice and disease effects apply to offshore units only.",
+    "description": "Develop offshore semi-submersible pen systems for exposed, high-current sites. Opens the semi-submersible offshore unit; its lice and disease effects apply to offshore units only.",
     "branch": "Expansion",
     "tier": 1,
     "costNOK": 900000,

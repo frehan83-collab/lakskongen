@@ -138,6 +138,21 @@ public class PermitCaseTests
     }
 
     [Fact]
+    public void AFeeWithoutAPlot_IsTheCasesKind_Cost()
+    {
+        // A licence case tied to no plot is the offshore unit's (rent-liable):
+        // its fee stays a sea-phase cost; a land permit's fee is ring-fenced.
+        var engine = NewEngine(46);
+        Assert.True(engine.SubmitPermitCase(PermitKind.DevelopmentLicence, "", "", new PermitTerms(10, 20, 0.2, 1_000_000m)).Ok);
+        Assert.Equal(0m, engine.State.RentRingFencedCostsThisTaxYear);
+        Assert.True(engine.SubmitPermitCase(PermitKind.Dispensation, "", "site_1", new PermitTerms(10, 20, 0.2, 300_000m)).Ok);
+        Assert.Equal(0m, engine.State.RentRingFencedCostsThisTaxYear);
+        Assert.True(engine.SubmitPermitCase(PermitKind.GridConnection, "", "", new PermitTerms(10, 20, 0.2, 500_000m)).Ok);
+        Assert.Equal(500_000m, engine.State.RentRingFencedCostsThisTaxYear);
+        Assert.Equal(1_800_000m, engine.FinancialStatements.CostBreakdown["permit_fees"]);
+    }
+
+    [Fact]
     public void APendingCase_SurvivesASave_AndIsDecidedTheSameWay()
     {
         var engine = NewEngine(45);

@@ -197,7 +197,7 @@ public partial class SimulationEngine
             return CommandResult.Fail("already_pending", $"A {kind} case for '{plotId}' is already pending");
         if (!TryPayCost(terms!.FeeNok, CostBooking.Opex, "permit_fees"))
             return CommandResult.Fail("insufficient_funds", $"Insufficient funds for the {terms.FeeNok:N0} NOK fee", (double)terms.FeeNok);
-        AttributeUnitCost(unitId, PermitUnitKind(plotId), terms.FeeNok);
+        AttributeUnitCost(unitId, PermitUnitKind(plotId, kind), terms.FeeNok);
 
         var permit = new PermitCase
         {
@@ -233,7 +233,7 @@ public partial class SimulationEngine
             return CommandResult.Fail("invalid_terms", problem);
         if (!TryPayCost(terms!.FeeNok, CostBooking.Opex, "permit_fees"))
             return CommandResult.Fail("insufficient_funds", $"Insufficient funds for the {terms.FeeNok:N0} NOK fee", (double)terms.FeeNok);
-        AttributeUnitCost(permit.UnitId, PermitUnitKind(permit.PlotId), terms.FeeNok);
+        AttributeUnitCost(permit.UnitId, PermitUnitKind(permit.PlotId, permit.Kind), terms.FeeNok);
         permit.Round++;
         permit.SubmittedDay = State!.Day;
         permit.Status = PermitStatus.Appealed;
@@ -281,11 +281,23 @@ public partial class SimulationEngine
         permit.OutcomeDraw = outcomeDraw;
     }
 
-    /// <summary>The unit kind a plot serves (a land pad's fees are land costs; an offshore slot's offshore costs).</summary>
-    private HoldingKind PermitUnitKind(string plotId)
+    /// <summary>
+    /// The unit kind a case's fee is spent on: the plot's (a land pad's fees are
+    /// land costs, an offshore slot's offshore costs), or, for a case tied to no
+    /// known plot, the kind's own (the land permits are land costs, the
+    /// licence and area cases offshore costs, a dispensation a sea pen's).
+    /// </summary>
+    private HoldingKind PermitUnitKind(string plotId, PermitKind kind)
     {
         var plot = string.IsNullOrEmpty(plotId) ? null : SitePlots.FirstOrDefault(p => p.Id == plotId);
-        return plot?.Kind == Farm.PlotKind.OffshoreSlot ? HoldingKind.Offshore : HoldingKind.LandTank;
+        if (plot != null)
+            return plot.Kind == Farm.PlotKind.OffshoreSlot ? HoldingKind.Offshore : HoldingKind.LandTank;
+        return kind switch
+        {
+            PermitKind.DevelopmentLicence or PermitKind.Conversion or PermitKind.OffshoreArea => HoldingKind.Offshore,
+            PermitKind.Dispensation => HoldingKind.SeaPen,
+            _ => HoldingKind.LandTank,
+        };
     }
 }
 

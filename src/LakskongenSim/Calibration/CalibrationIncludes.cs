@@ -82,8 +82,10 @@ namespace LakskongenSim.Calibration
 
         /// <summary>The include paths <paramref name="registryJson"/> lists (empty when it lists none).</summary>
         public static IReadOnlyList<string> ListedIn(string registryJson)
+            => ListedIn(JsonNode.Parse(registryJson, NodeOptions, DocumentOptions) as JsonObject);
+
+        private static IReadOnlyList<string> ListedIn(JsonObject? root)
         {
-            var root = JsonNode.Parse(registryJson, NodeOptions, DocumentOptions) as JsonObject;
             var list = new List<string>();
             if (root?[ListKey] is JsonArray array)
                 foreach (var item in array)
@@ -107,7 +109,7 @@ namespace LakskongenSim.Calibration
 
             var included = new List<string>();
             var missing = new List<string>();
-            foreach (string path in ListedIn(registryJson))
+            foreach (string path in ListedIn(root))
             {
                 string section = SectionNameOf(path);
                 string? text = readInclude(path);

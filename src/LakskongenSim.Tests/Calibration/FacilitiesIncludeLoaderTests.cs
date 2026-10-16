@@ -68,11 +68,22 @@ namespace LakskongenSim.Tests.Calibration
             var composition = CalibrationIncludes.Compose(ShippedJson, p => CalibrationIncludes.ReadBeside(DataDir, p));
             // sim·core's file is always there; the lanes' files arrive with their branches.
             Assert.Contains("calibration/facilities_common.json", composition.Included);
+            var loaded = CalibrationRegistry.Load(DataDir).Facilities;
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,
+                AllowTrailingCommas = true,
+            };
             foreach (var path in composition.Included)
             {
                 string section = CalibrationIncludes.SectionNameOf(path);
-                if (!declared.Contains(section)) continue; // a lane wires its section from its own file
-                Assert.Contains(section, declared);
+                if (!declared.Contains(section)) continue; // a lane wires its section from its own record file
+                // The section the registry holds is exactly the file read on its own.
+                var property = typeof(FacilitiesCalibration).GetProperties()
+                    .Single(p => string.Equals(p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? p.Name, section, StringComparison.OrdinalIgnoreCase));
+                object? alone = System.Text.Json.JsonSerializer.Deserialize(CalibrationIncludes.ReadBeside(DataDir, path)!, property.PropertyType, options);
+                Assert.Equal(alone, property.GetValue(loaded));
             }
             // Every declared section has a listed include.
             var listedSections = CalibrationIncludes.ListedIn(ShippedJson).Select(CalibrationIncludes.SectionNameOf).ToHashSet();
