@@ -51,8 +51,8 @@ const SPECS := {
 		"source": "sky: art audit horizon; water: owner calm slate mirror (a calm, low-sun mirror; no source gives a midnight-sun water)"},
 	"graavaer": {"sky": ["#A7B3BA"], "water": ["#5E666C"],
 		"source": "sky: art audit; water: owner overcast grey"},
-	"storm": {"sky": ["#4C5861", "#6E7A82"], "water": ["#0D2B3B", "#1F4D5E"],
-		"source": "sky: art audit deck to its fog (the FJORD view's sky is the band over the horizon); water: art audit clear water deep to mid (no storm water hex in any source)"},
+	"storm": {"sky": ["#4C5861", "#6E7A82"], "water": ["#1F4D5E", "#6E7A82"],
+		"source": "sky: art audit deck to its fog (the FJORD view's sky is the band over the horizon); water: art audit clear water mid to the storm's fog (no source gives a storm sea: within 2 km of the camera it is the sea's body seen through the rain veil)"},
 	"blaatime": {"sky": ["#3C5A8A", "#7F96BC"], "water": ["#1E3340", "#2A4655"],
 		"source": "sky: art audit; water: owner calm winter slate mirror"},
 	"nordlys": {"sky": ["#08121F"], "water": ["#08121F", "#1E3340"],
@@ -96,57 +96,62 @@ const SEA_SMOKE := Color("#DDE4E8")
 ##   deck_value                     the cloud deck's brightness against the
 ##                                  sky model's (a storm's deck hangs dark
 ##                                  over a lighter horizon)
+##   horizon_lift                   under a closed deck, how much lighter
+##                                  the last degrees over the horizon are
+##                                  than the haze (the far deck thinning)
+##   mist                           low cloud banks on the walls from the
+##                                  cloud base up (MistBanks), 0-1
 const PROFILES := [
 	# Sommerdag: a high sun, a blue sky paling to the horizon, deep blue water.
 	{"zenith": "#5E8DB8", "horizon": "#C6D8E6", "horizon_sun": "#E3E5E0", "sky_grade": 0.55,
 		"deck": "#E9EDF0", "deck_grade": 0.0, "fog": "#A9BCC8", "fog_grade": 0.6, "fog_value": 0.92,
 		"sun": "#FFF1DD", "sun_grade": 0.5, "water": Color(0.0010, 0.014, 0.070), "exposure_ev": -0.15,
-		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0},
+		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0, "horizon_lift": 0.0, "mist": 0.0},
 	# Midnattssol: the sun a few degrees up in the north, gold on the horizon.
 	{"zenith": "#5A8AB4", "horizon": "#F8CC8C", "horizon_sun": "#F7CC90", "sky_grade": 1.0,
 		"deck": "#F4D19C", "deck_grade": 0.85, "fog": "#D8CDB8", "fog_grade": 0.5, "fog_value": 0.92,
 		"sun": "#FFC27A", "sun_grade": 0.45, "water": Color(0.0, 0.02, 0.03), "exposure_ev": 0.4,
-		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.2},
+		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.2, "horizon_lift": 0.0, "mist": 0.0},
 	# Gråvær: the west coast's closed grey deck, grey water, mist on the tops.
 	{"zenith": "#9AA8B0", "horizon": "#A7B3BA", "horizon_sun": "#A7B3BA", "sky_grade": 0.8,
-		"deck": "#A7B3BA", "deck_grade": 0.85, "fog": "#9AA7AE", "fog_grade": 0.85, "fog_value": 1.3,
+		"deck": "#A7B3BA", "deck_grade": 0.85, "fog": "#9AA7AE", "fog_grade": 0.85, "fog_value": 1.1,
 		"sun": "#E8ECEE", "sun_grade": 0.6, "water": Color(0.090, 0.100, 0.105), "exposure_ev": 0.35,
-		"cloud_base_m": 420.0, "cloud_base_fog": 0.01, "sky_haze": 1.0, "deck_value": 1.0},
+		"cloud_base_m": 200.0, "cloud_base_fog": 0.008, "sky_haze": 1.0, "deck_value": 1.0, "horizon_lift": 0.25, "mist": 1.0},
 	# Storm: a dark slate deck over a lighter horizon, rain driven by the
 	# wind; the far land fades lighter than the deck, so the mountains keep
 	# their outline.
 	{"zenith": "#4C5861", "horizon": "#6A767E", "horizon_sun": "#6A767E", "sky_grade": 0.85,
-		"deck": "#4C5861", "deck_grade": 0.9, "fog": "#6E7A82", "fog_grade": 0.85, "fog_value": 1.6,
-		"sun": "#DDE3E6", "sun_grade": 0.7, "water": Color(0.008, 0.022, 0.026), "exposure_ev": 1.0,
-		"cloud_base_m": 420.0, "cloud_base_fog": 0.004, "sky_haze": 0.7, "deck_value": 0.42},
+		"deck": "#4C5861", "deck_grade": 0.9, "fog": "#6E7A82", "fog_grade": 0.85, "fog_value": 0.3,
+		"sun": "#DDE3E6", "sun_grade": 0.7, "water": Color(0.008, 0.022, 0.026), "exposure_ev": 0.65,
+		"cloud_base_m": 220.0, "cloud_base_fog": 0.004, "sky_haze": 0.5, "deck_value": 0.42, "horizon_lift": 1.4, "mist": 0.3},
 	# Blåtime / mørketid: the sun just under the horizon, the sky deep blue
 	# with a pink south, the water a slate mirror.
 	{"zenith": "#3C5A8A", "horizon": "#7F96BC", "horizon_sun": "#D99AA8", "sky_grade": 0.9,
 		"deck": "#55688A", "deck_grade": 0.6, "fog": "#6E82A6", "fog_grade": 0.8, "fog_value": 0.9,
 		"sun": "#FFC9A0", "sun_grade": 0.5, "water": Color(0.0018, 0.0048, 0.0085), "exposure_ev": -0.2,
-		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0},
+		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0, "horizon_lift": 0.0, "mist": 0.0},
 	# Nordlys: a deep night sky for the aurora, the calm water mirroring it.
 	{"zenith": "#08121F", "horizon": "#14243A", "horizon_sun": "#14243A", "sky_grade": 0.8,
 		"deck": "#1A2430", "deck_grade": 0.6, "fog": "#16243A", "fog_grade": 0.8, "fog_value": 0.9,
 		"sun": "#FFF1DD", "sun_grade": 0.0, "water": Color(0.006, 0.02, 0.09), "exposure_ev": -1.0,
-		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0},
+		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0, "horizon_lift": 0.0, "mist": 0.0},
 	# Frostrøyk: a clear, still, bitter winter day: a cool cyan-grey sky, a
 	# slate mirror, sea smoke on the water.
 	{"zenith": "#81A0B0", "horizon": "#C5D2DA", "horizon_sun": "#CCD3D6", "sky_grade": 0.9,
 		"deck": "#C9D2D8", "deck_grade": 0.5, "fog": "#B9C8D0", "fog_grade": 0.75, "fog_value": 0.9,
 		"sun": "#FFE6C8", "sun_grade": 0.5, "water": Color(0.0016, 0.0050, 0.0072), "exposure_ev": 0.0,
-		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0},
+		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0, "horizon_lift": 0.0, "mist": 0.0},
 	# Høst: a low golden sun on the birches, a clear, dark sea.
 	{"zenith": "#5E8DB8", "horizon": "#C8D8E6", "horizon_sun": "#DED6C6", "sky_grade": 0.7,
 		"deck": "#E2DED6", "deck_grade": 0.25, "fog": "#B7BDB8", "fog_grade": 0.5, "fog_value": 0.9,
 		"sun": "#FFD9A0", "sun_grade": 0.65, "water": Color(0.0016, 0.0085, 0.0135), "exposure_ev": 0.0,
-		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0},
+		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0, "horizon_lift": 0.0, "mist": 0.0},
 ]
 
 ## Colour keys (sRGB hex in PROFILES, blended in linear light).
 const COLOR_KEYS: Array[String] = ["zenith", "horizon", "horizon_sun", "deck", "fog", "sun"]
 const SCALAR_KEYS: Array[String] = ["sky_grade", "deck_grade", "fog_grade", "fog_value", "sun_grade",
-	"exposure_ev", "cloud_base_m", "cloud_base_fog", "sky_haze", "deck_value"]
+	"exposure_ev", "cloud_base_m", "cloud_base_fog", "sky_haze", "deck_value", "horizon_lift", "mist"]
 
 # ── Weighing (degrees, m/s, mm/h, day of year) ───────────────────────────────
 ## Overcast from this cloud cover to full at OVERCAST_FULL.

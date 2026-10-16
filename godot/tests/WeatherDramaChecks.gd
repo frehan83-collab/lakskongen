@@ -51,7 +51,7 @@ func run(tests: Node) -> void:
 
 	_check_moods_from_the_sim(gb, env, director)
 	await _check_mood_blend_and_transition(gb, env, director, weather)
-	_check_fog_and_mist(gb, env, director, weather)
+	await _check_fog_and_mist(gb, env, director, weather, cam)
 	_check_frost_smoke(gb, env, director, weather)
 	await _check_cloud_shadows(gb, env, director)
 	await _check_pen_lamps(gb, env, director)
@@ -122,16 +122,75 @@ func _check_mood_blend_and_transition(gb: Node, env: FjordEnvironment, director:
 		"moods: a storm front turns the mood over seconds (storm weight %.3f after a frame, %.2f after 10 s)" % [first, later])
 
 
-func _check_fog_and_mist(gb: Node, env: FjordEnvironment, director: EnvironmentDirector, weather: WeatherController) -> void:
+func _check_fog_and_mist(gb: Node, env: FjordEnvironment, director: EnvironmentDirector, weather: WeatherController, cam: FjordCamera) -> void:
 	var world := director.world_environment.environment
-	_stage(gb, env, director, _golden("storm"))
-	var storm_ok := absf(world.fog_density - 3.912 / weather.get_visibility_m()) < 1e-9
-	var mist := world.fog_height_density < 0.0 and world.fog_height > 200.0
+	var focus_m: float = FjordCamera.ZOOM_DISTANCE[FjordCamera.ZoomLevel.FJORD]
 	_stage(gb, env, director, _golden("graavaer"))
-	var grey_ok := absf(world.fog_density - 3.912 / weather.get_visibility_m()) < 1e-9
-	var grey_mist := world.fog_height_density < 0.0
-	t._check(storm_ok and grey_ok, "moods: the fog stays Koschmieder's under every mood (storm, grey)")
+	var grey_vis := weather.get_visibility_m()
+	var grey_ok := absf(world.fog_density - 3.912 / grey_vis) < 1e-9
+	var grey_mist := world.fog_height_density < 0.0 and absf(world.fog_height - float(director.mood["cloud_base_m"])) < 1.0
+	# The engine takes the fog and ambient colours as sRGB: the director
+	# encodes its scene-linear values so they arrive unchanged.
+	var fog_lin: Color = director.get_composed()["fog_light_color"]
+	var horizon_lin: Color = director.get_composed()["horizon_color"]
+	var arrives := world.fog_light_color.srgb_to_linear()
+	var ambient := world.ambient_light_color.srgb_to_linear()
+	t._check(Vector3(arrives.r, arrives.g, arrives.b).distance_to(Vector3(fog_lin.r, fog_lin.g, fog_lin.b)) < 1e-3
+		and Vector3(ambient.r, ambient.g, ambient.b).distance_to(Vector3(horizon_lin.r, horizon_lin.g, horizon_lin.b)) < 1e-3
+		and fog_lin.r < 0.8 and not world.fog_light_color.is_equal_approx(fog_lin),
+		"moods: the fog and ambient colours reach the engine scene-linear (fog %.3f arrives %.3f)" % [fog_lin.g, arrives.g])
+	_stage(gb, env, director, _golden("storm"))
+	var storm_vis := weather.get_visibility_m()
+	var drawn := EnvironmentDirector.drawn_visibility(storm_vis)
+	var storm_ok := absf(world.fog_density - 3.912 / drawn) < 1e-9 and drawn > storm_vis
+	var t_focus := director.transmittance(focus_m)
+	var mist := world.fog_height_density < 0.0 and world.fog_height > 100.0
+	t._check(grey_ok and storm_ok and t_focus > 0.2 and t_focus <= 0.35,
+		"moods: the fog is Koschmieder's (grey, %.1f km) and a storm's %.1f km is drawn at %.1f km: the FJORD focus veiled to %.0f %%, the farm still in sight" % [
+			grey_vis / 1000.0, storm_vis / 1000.0, drawn / 1000.0, t_focus * 100.0])
+	t._check(is_equal_approx(EnvironmentDirector.drawn_visibility(20000.0), 20000.0)
+		and EnvironmentDirector.drawn_visibility(500.0) >= EnvironmentDirector.READABLE_VIS_M
+		and EnvironmentDirector.drawn_visibility(2000.0) > EnvironmentDirector.drawn_visibility(1000.0),
+		"moods: the readability floor leaves clear and grey days alone and only lifts a storm's or a snowfall's few kilometres")
 	t._check(mist and grey_mist, "moods: a low deck lays mist on the mountains (fog thickening above %.0f m)" % world.fog_height)
+	# The low cloud banks on the walls: on a grey day, from FJORD.
+	_stage(gb, env, director, _golden("graavaer"))
+	var banks := director.mist_banks
+	for i in 5:
+		await t.get_tree().process_frame
+	director.compose(0.0, true)
+	t._check(banks != null and banks.built and banks.bank_count > 20 and banks.visible and banks.amount > 0.9
+		and is_equal_approx(banks.cloud_base_m, world.fog_height),
+		"moods: low cloud banks hang on the walls from the cloud base (%d banks, mist %.2f)" % [banks.bank_count if banks else 0, banks.amount if banks else 0.0])
+	# Each bank hangs MistBanks.STAND_OFF_M out from its contour point (on
+	# one side or the other of the fjord), at or above the contour.
+	var terrain_node := env.get_node("Terrain") as FjordTerrain
+	var on_walls := 0
+	var at_or_above := 0
+	for i in banks.bank_count:
+		var o := banks.bank_origins[i]
+		var alt := banks.bank_altitudes[i]
+		var off := MistBanks.STAND_OFF_M
+		var miss := minf(absf(terrain_node.get_height_at(o.x - off, o.z) - alt), absf(terrain_node.get_height_at(o.x + off, o.z) - alt))
+		if miss < 40.0:
+			on_walls += 1
+		if o.y >= alt and MistBanks.ALTITUDES.has(alt):
+			at_or_above += 1
+	t._check(on_walls >= banks.bank_count * 0.9 and at_or_above == banks.bank_count,
+		"moods: the banks stand on the walls' contours (%d of %d within 40 m of their altitude)" % [on_walls, banks.bank_count])
+	# Rising toward COAST, the mist clears: the view keeps the farm.
+	cam.set_zoom_level(FjordCamera.ZoomLevel.COAST)
+	await t._settle_camera(cam)
+	director.compose(0.0, true)
+	var coast_clear := not banks.visible and world.fog_height_density > -1e-6
+	cam.set_zoom_level(FjordCamera.ZoomLevel.FJORD)
+	await t._settle_camera(cam)
+	director.compose(0.0, true)
+	t._check(coast_clear and banks.visible and world.fog_height_density < 0.0,
+		"moods: zooming out over the deck clears the mist on the mountains, zooming back in brings it back")
+	# A sunny day has no deck and no banks.
+	_stage(gb, env, director, _golden("sommerdag"))
+	t._check(not banks.visible and world.fog_height_density >= 0.0, "moods: no low cloud on a clear day")
 	# A sea-fog day keeps its layer on the water.
 	var fog_ctx: Dictionary = gb.SkyContextFor("Calm", 1.0, 9.0, 172, 62.0)
 	fog_ctx["sea_fog"] = 1.0
@@ -139,11 +198,15 @@ func _check_fog_and_mist(gb: Node, env: FjordEnvironment, director: EnvironmentD
 	director.compose(0.0, true)
 	t._check(world.fog_height_density > 0.0 and is_equal_approx(world.fog_height, EnvironmentDirector.SEA_FOG_TOP_M),
 		"moods: a sea-fog layer stays on the water")
-	# The storm's outline: the land's fog lighter than the deck hanging dark.
+	# The storm's outline: a dark deck over a lighter far horizon, the rain
+	# veil on the land a shade under that horizon (MoodGoldens measures the
+	# skyline's contrast on the frame).
 	_stage(gb, env, director, _golden("storm"))
 	var sky := director.world_environment.environment.sky.sky_material as ShaderMaterial
-	t._check(float(sky.get_shader_parameter("grade_deck_value")) < 0.6 and float(director.mood["fog_value"]) >= 1.0,
-		"moods: a storm's deck hangs dark (%.2f) over land fog no darker than the horizon, so the mountains keep their outline" % float(sky.get_shader_parameter("grade_deck_value")))
+	t._check(float(sky.get_shader_parameter("grade_deck_value")) < 0.6 and float(sky.get_shader_parameter("grade_horizon_lift")) >= 1.0
+		and float(director.mood["fog_value"]) < 1.0,
+		"moods: a storm's deck hangs dark (%.2f) over a lighter far horizon (+%.1f), the walls a shade under it" % [
+			float(sky.get_shader_parameter("grade_deck_value")), float(sky.get_shader_parameter("grade_horizon_lift"))])
 
 
 func _check_frost_smoke(gb: Node, env: FjordEnvironment, director: EnvironmentDirector, weather: WeatherController) -> void:

@@ -111,6 +111,12 @@ func capture(harness, env: Node, game: Node) -> void:
 		entry["composed_mood"] = composed.get("mood", "")
 		entry["exposure"] = composed.get("exposure", 0.0)
 		entry["sun_elevation"] = composed.get("sun_elevation", 0.0)
+		var fog_light: Color = composed.get("fog_light_color", Color.BLACK)
+		entry["fog_light"] = [fog_light.r, fog_light.g, fog_light.b]
+		entry["visibility_m"] = composed.get("visibility_m", 0.0)
+		entry["cloud_base_m"] = composed.get("cloud_base_m", 0.0)
+		entry["mist"] = composed.get("mist", 0.0)
+		entry["mist_banks"] = director.mist_banks.bank_count if director.mist_banks != null else 0
 		entry["phash"] = MoodMetrics.phash_hex(hashes[mood])
 		entries[mood] = entry
 		if String(composed.get("mood", "")) != mood:

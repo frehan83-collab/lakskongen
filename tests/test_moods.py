@@ -129,11 +129,16 @@ def test_the_profiles_carry_the_art_audits_palette():
     assert profiles["blaatime"]["horizon_sun"] == '"#D99AA8"'
     assert profiles["nordlys"]["zenith"] == '"#08121F"'
     assert profiles["hoest"]["sun"] == '"#FFD9A0"'
-    # Mist on the mountains only under a deck; a storm's deck hangs dark.
+    # Mist on the mountains (height fog and MistBanks) only under a deck; a
+    # storm's deck hangs dark over a lighter far horizon, its rain veil on the
+    # land a shade under that horizon, so the walls stand dark against it.
     for name in NAMES:
         base = float(profiles[name]["cloud_base_m"])
         assert (base > 0.0) == (name in ("graavaer", "storm")), name
-    assert float(profiles["storm"]["deck_value"]) < 0.6 <= float(profiles["storm"]["fog_value"])
+        assert (float(profiles[name]["mist"]) > 0.0) == (base > 0.0), name
+    assert float(profiles["graavaer"]["mist"]) > float(profiles["storm"]["mist"])
+    assert float(profiles["storm"]["deck_value"]) < 0.6 and float(profiles["storm"]["horizon_lift"]) >= 1.0
+    assert float(profiles["storm"]["fog_value"]) < 1.0
 
 
 def test_the_moods_are_weighed_from_the_sims_weather_and_calendar():

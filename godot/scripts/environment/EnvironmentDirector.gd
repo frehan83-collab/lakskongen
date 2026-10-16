@@ -117,6 +117,18 @@ const SEA_FOG_TOP_M := 45.0
 const SEA_FOG_HEIGHT_DENSITY := 0.045
 ## Underwater: fjord water seen through a camera at a few metres' depth.
 const UNDERWATER_VISIBILITY_M := 30.0
+## Readability (G3-05): in a storm the sim's visibility drops to 1.5-2 km,
+## where the drawn fog (now the sky's true luminance) would bury the
+## player's own farm at the default zoom and every wall behind it. The drawn
+## fog keeps at least READABLE_VIS_M (a smooth floor, exact above
+## READABLE_VIS_M + READABLE_SOFT_M): a storm still veils the FJORD focus to
+## about 30 % (G1-04: <= 35 %), but the walls and the pens keep their shape.
+const READABLE_VIS_M := 2500.0
+const READABLE_SOFT_M := 2000.0
+## The low deck's mist shows fully while the camera is less than
+## MIST_CLEAR_FROM_M over the cloud base and is gone MIST_CLEAR_TO_M over it.
+const MIST_CLEAR_FROM_M := 150.0
+const MIST_CLEAR_TO_M := 550.0
 const UNDERWATER_FOG_COLOR := Color(0.012, 0.055, 0.07)
 
 # ── Tonemap and glow (D13 Vestland Light) ─────────────────────────────────────
@@ -226,6 +238,8 @@ const LAMP_WHITE := Vector3(0.95, 1.0, 1.0)
 const WATER_ABSORPTION := Vector3(0.40, 0.09, 0.14)
 const LAMP_GLOW_ON_SCREEN := 0.75
 const LAMP_LIGHT_ENERGY := 2.5
+## The mist banks' light against the horizon's (scene-linear).
+const MIST_LIGHT := 1.1
 
 var _water_temperature_c := 8.0
 var _algae := 0.0
@@ -235,6 +249,8 @@ var mood_weights := PackedFloat32Array()
 var mood: Dictionary = {}
 var _smoke_drift := Vector2.ZERO
 var _storm_sway: StormSway = null
+## The low cloud banks on the walls (created at _ready; tests read them).
+var mist_banks: MistBanks = null
 var _sky_time := 0.0
 var _cloud_offset := Vector2.ZERO
 var _aurora := 0.0
@@ -316,6 +332,7 @@ func _ready() -> void:
 	_prewarm()
 	if camera != null:
 		_storm_sway = StormSway.ensure(camera)
+	mist_banks = MistBanks.ensure(get_parent())
 	compose(0.0, true)
 
 
@@ -558,9 +575,10 @@ func _apply_sky(delta: float, sun_elev: float, cloud: float, density: float, vis
 		mat.set_shader_parameter("moon_direction", _moon_dir)
 		mat.set_shader_parameter("moon_illumination", time_system.get_moon_illumination())
 		# haze_color is the fog's light colour (the land's aerial perspective);
-		# the sky's own horizon haze may stand a shade brighter (G3-05).
-		mat.set_shader_parameter("haze_color", c.get("fog_light_color", c["horizon_color"]))
-		mat.set_shader_parameter("sky_haze_color", c["horizon_color"])
+		# the sky's own horizon haze may stand a shade brighter (G3-05). Both
+		# are source_color uniforms: encoded like the environment's colours.
+		mat.set_shader_parameter("haze_color", encoded(c.get("fog_light_color", c["horizon_color"])))
+		mat.set_shader_parameter("sky_haze_color", encoded(c["horizon_color"]))
 		mat.set_shader_parameter("haze_amount", haze)
 		# The zenith sky lights the clouds; one value for every pixel.
 		mat.set_shader_parameter("sky_zenith", c["sky_zenith"])
@@ -578,6 +596,7 @@ func _apply_sky(delta: float, sun_elev: float, cloud: float, density: float, vis
 		mat.set_shader_parameter("grade_deck", EnvironmentMood.vec(mood.get("deck", Color.WHITE)))
 		mat.set_shader_parameter("grade_deck_amount", float(mood.get("deck_grade", 0.0)))
 		mat.set_shader_parameter("grade_deck_value", float(mood.get("deck_value", 1.0)))
+		mat.set_shader_parameter("grade_horizon_lift", float(mood.get("horizon_lift", 0.0)))
 		mat.set_shader_parameter("cloud_pass", 0 if underwater else int(quality.knobs["cloud_pass"]))
 		mat.set_shader_parameter("cloud_steps", int(quality.knobs["cloud_steps"]))
 		mat.set_shader_parameter("cloud_octaves", int(quality.knobs["cloud_octaves"]))
@@ -704,9 +723,9 @@ func _apply_fog(sun_elev: float, cloud: float, visibility: float, sea_fog: float
 		c["fog_density"] = env.fog_density
 		c["fog_color"] = env.fog_light_color
 		return
-	var distance_vis := lerpf(visibility, ABOVE_SEA_FOG_VISIBILITY_M, sea_fog)
+	var distance_vis := drawn_visibility(lerpf(visibility, ABOVE_SEA_FOG_VISIBILITY_M, sea_fog))
 	env.fog_density = KOSCHMIEDER / maxf(distance_vis, 1.0)
-	env.fog_light_color = c.get("fog_light_color", c["horizon_color"])
+	env.fog_light_color = encoded(c.get("fog_light_color", c["horizon_color"]))
 	env.fog_light_energy = 1.0
 	env.fog_aerial_perspective = AERIAL_PERSPECTIVE
 	env.fog_sky_affect = lerpf(SKY_AFFECT, 0.5, sea_fog)
@@ -715,16 +734,35 @@ func _apply_fog(sun_elev: float, cloud: float, visibility: float, sea_fog: float
 	# cloud base) a negative density thickens the fog above the base instead,
 	# so the mountains' tops go into the cloud and their slopes stay.
 	var base := float(mood.get("cloud_base_m", 0.0))
-	var base_fog := float(mood.get("cloud_base_fog", 0.0))
-	if sea_fog > 0.01 or base <= 0.0 or base_fog <= 0.0:
+	var base_fog := float(mood.get("cloud_base_fog", 0.0)) * mist_clear_for(base)
+	if sea_fog > 0.01 or base <= 0.0 or base_fog <= 1e-5:
 		env.fog_height = SEA_FOG_TOP_M
 		env.fog_height_density = SEA_FOG_HEIGHT_DENSITY * sea_fog
 	else:
 		env.fog_height = base
 		env.fog_height_density = -base_fog
 	c["cloud_base_m"] = env.fog_height if env.fog_height_density < 0.0 else 0.0
+	c["mist_view"] = mist_clear_for(base)
 	c["fog_density"] = env.fog_density
 	c["fog_color"] = env.fog_light_color
+
+
+## How much of a low deck's mist the view shows (1 under the deck, 0 well
+## above it): a management view keeps its clarity, so as the camera climbs
+## past the cloud base toward COAST the mist on the mountains (the height
+## fog and MistBanks) thins away instead of whiting out the farm below.
+func mist_clear_for(base_m: float) -> float:
+	if base_m <= 0.0 or camera == null:
+		return 1.0
+	var above := camera.global_position.y - base_m
+	return 1.0 - smoothstep(MIST_CLEAR_FROM_M, MIST_CLEAR_TO_M, above)
+
+
+## The visibility the fog is drawn at (m): the weather's, with the
+## readability floor (a polynomial smooth maximum with READABLE_VIS_M).
+static func drawn_visibility(visibility_m: float) -> float:
+	var h := clampf(0.5 + 0.5 * (visibility_m - READABLE_VIS_M) / READABLE_SOFT_M, 0.0, 1.0)
+	return lerpf(READABLE_VIS_M, visibility_m, h) + READABLE_SOFT_M * h * (1.0 - h)
 
 
 # ── Image: exposure, tonemap, glow, ambient, SSAO, shadows, depth of field ────
@@ -742,7 +780,7 @@ func _apply_image(sun_elev: float, distance: float, underwater: bool, c: Diction
 		env.adjustment_enabled = false
 		env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 		env.ambient_light_sky_contribution = 0.85
-		env.ambient_light_color = c["horizon_color"]
+		env.ambient_light_color = encoded(c["horizon_color"])
 		# The night boost only once the sky is dark: twilight lights the walls itself.
 		env.ambient_light_energy = lerpf(AMBIENT_DAY, AMBIENT_NIGHT, smoothstep(-6.0, -14.0, sun_elev))
 		var zoom := zoom_settings(distance)
@@ -1121,6 +1159,7 @@ func _apply_weather_drama(delta: float, sun_dir: Vector3, sun_elev: float, cloud
 		_apply_frost_smoke(mat, delta, sun_dir, sun_elev, wind, c)
 	_apply_cloud_shadows(mat, sun_dir, sun_elev, cloud, c)
 	_apply_lamps(mat, sun_elev, cloud, c)
+	_apply_mist(delta, underwater, wind.length(), c)
 	if _storm_sway != null:
 		_storm_sway.set_wind(0.0 if underwater else wind.length())
 		c["sway_level"] = _storm_sway.level
@@ -1169,6 +1208,20 @@ func _apply_cloud_shadows(mat: ShaderMaterial, sun_dir: Vector3, sun_elev: float
 			mat.set_shader_parameter("cloud_shadow_axis_v", cloud_shadows.map_axis_v)
 	c["cloud_shadow_strength"] = strength
 	c["cloud_shadow_drift"] = drift
+
+
+## Low cloud on the walls (MistBanks) from the mood's cloud base up, lit by
+## the deck's light a shade over the fog's (cloud, not the air in front of
+## it), built once the terrain stands.
+func _apply_mist(delta: float, underwater: bool, wind_ms: float, c: Dictionary) -> void:
+	if mist_banks == null:
+		return
+	if not mist_banks.built and terrain != null and terrain.is_ready():
+		mist_banks.build(terrain)
+	var shown := 0.0 if underwater else float(mood.get("mist", 0.0)) * float(c.get("mist_view", 1.0))
+	var light: Color = c.get("horizon_color", Color(0.5, 0.55, 0.6))
+	mist_banks.update(float(c.get("cloud_base_m", 0.0)), shown, light * MIST_LIGHT, wind_ms, delta)
+	c["mist"] = mist_banks.amount
 
 
 ## The pens' lamps burn after dark in the lighting season (PenLamps); the
@@ -1229,6 +1282,17 @@ func _static_setup() -> void:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+## A scene-linear colour as the engine's colour inputs take it. The
+## environment's fog and ambient colours and the shaders' source_color
+## uniforms are sRGB-encoded: the renderer linearises them. Everything the
+## director measures is scene-linear radiance, so it is encoded on the way
+## in and arrives unchanged (G3-05: written raw, a linear 0.18 arrived as
+## 0.027, and every overcast, storm, dusk and night fog came out 4 to 10
+## times too dark, the far land and sea sinking into it).
+static func encoded(linear: Color) -> Color:
+	return Color(maxf(linear.r, 0.0), maxf(linear.g, 0.0), maxf(linear.b, 0.0), linear.a).linear_to_srgb()
+
 
 func _env() -> Environment:
 	if world_environment == null:

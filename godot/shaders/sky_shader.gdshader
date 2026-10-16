@@ -86,6 +86,9 @@ uniform vec3 grade_deck = vec3(0.82, 0.85, 0.87);
 uniform float grade_deck_amount : hint_range(0.0, 1.0) = 0.0;
 // The deck's brightness against the model's (a storm's deck hangs dark).
 uniform float grade_deck_value : hint_range(0.0, 2.0) = 1.0;
+// Under a closed deck, how much lighter the sky gets in the last degrees
+// over the horizon (0: the haze colour throughout).
+uniform float grade_horizon_lift : hint_range(0.0, 4.0) = 0.0;
 
 const float PI_ = 3.14159265;
 const float R_EARTH = 6360.0;      // km
@@ -685,6 +688,13 @@ vec4 sky_body(vec3 dir, vec3 sun_dir, bool cubemap, bool with_aurora, vec4 cl) {
 	float mu_moon = dot(dir, moon_direction);
 	sky_rgb += vec3(0.006, 0.009, 0.016) * moon_illumination * moon_up * (0.35 + phase_hg(mu_moon, 0.75) * 0.6);
 	sky_rgb = grade_sky(sky_rgb, dir, sun_dir);
+	// Under a closed deck no clear sky shows: where the far deck thins toward
+	// the horizon the light behind it is the deck's own, diffused (the
+	// horizon haze colour), not the bright clear sky (G3-05).
+	// A mood may lift the last degrees over the horizon (grade_horizon_lift:
+	// a storm's lighter far deck under its dark nearer one).
+	float lift = 1.0 + grade_horizon_lift * exp(-max(dir.y, 0.0) * 40.0);
+	sky_rgb = mix(sky_rgb, sky_haze_color * lift, smoothstep(0.8, 0.97, cloud_coverage));
 	cl.rgb = grade_to(cl.rgb, grade_deck, grade_deck_amount) * grade_deck_value;
 	vec3 color = sky_rgb;
 	// Background only: in the radiance map the aurora would tint the
