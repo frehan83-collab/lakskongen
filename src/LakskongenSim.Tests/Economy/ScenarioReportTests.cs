@@ -76,9 +76,14 @@ public class ScenarioReportTests
         Assert.Contains(report.TurningPoints, t => t.Category == "harvest" && t.Income);
         foreach (var tp in report.TurningPoints)
         {
-            var run = ledger.Where(b => b.Category == tp.Category && b.Income == tp.Income).ToList();
+            // A run is one ledger line's income and costs together (a
+            // harvest's sales less its harvest cost): each part reconciles.
+            var run = ledger.Where(b => b.Category == tp.Category).ToList();
             var inside = run.Where(b => b.Day >= tp.FirstDay && b.Day <= tp.LastDay).ToList();
             Assert.Equal(inside.Sum(b => b.Amount), tp.AmountNok);
+            Assert.Equal(inside.Where(b => b.Income).Sum(b => b.Amount), tp.RevenueNok);
+            Assert.Equal(-inside.Where(b => !b.Income).Sum(b => b.Amount), tp.CostsNok);
+            Assert.Equal(tp.AmountNok >= 0m, tp.Income);
             Assert.Equal(inside.Count, tp.Bookings);
             // A run is whole: nothing of its line within the merge gap either side.
             Assert.DoesNotContain(run, b => b.Day < tp.FirstDay && b.Day >= tp.FirstDay - PnlStory.MergeGapDays);
@@ -88,7 +93,7 @@ public class ScenarioReportTests
         // The three are the largest one-off runs: no closed run outside them is larger.
         decimal smallest = report.TurningPoints.Min(t => Math.Abs(t.AmountNok));
         Assert.All(engine.State.PnlStory.Closed.Where(r => !report.TurningPoints.Any(t => t.Category == r.Category
-                && t.Income == r.Income && t.FirstDay == r.FirstDay)),
+                && t.FirstDay == r.FirstDay)),
             r => Assert.True(Math.Abs(r.Amount) <= smallest, $"{r.Category} {r.Amount:N0} outranks a shown point"));
         // In the order they happened.
         Assert.Equal(report.TurningPoints.OrderBy(t => t.FirstDay).Select(t => t.FirstDay), report.TurningPoints.Select(t => t.FirstDay));
@@ -101,6 +106,29 @@ public class ScenarioReportTests
     {
         var fs = e.FinancialStatements;
         return fs.LifetimeRevenue - fs.LifetimeCOGS - fs.LifetimeOperatingExpenses - fs.LifetimeInterest - fs.LifetimeTaxes;
+    }
+
+    /// <summary>
+    /// The ledger lines the end screen lists are the story's lifetime totals:
+    /// the largest first, each equal to the raw stream's sum for its line.
+    /// </summary>
+    [Fact]
+    public void LargestLines_AreTheLedgerTotals()
+    {
+        var engine = Started("po3_red_sone", 3);
+        var ledger = new List<Booking>();
+        engine.PnlBooked += (day, category, amount, income) => ledger.Add(new Booking(day, category, amount, income));
+        for (int d = 0; d < 400 && !engine.IsBankrupt; d++) { engine.Advance(1); HarvestAtFourAndAHalf(engine); }
+        var lines = engine.GetScenarioEndReport().Lines;
+        Assert.Equal(SimulationEngine.EndScreenLedgerLines, lines.Count);
+        foreach (var line in lines)
+            Assert.Equal(ledger.Where(b => b.Category == line.Category && b.Income == line.Income).Sum(b => b.Amount), line.AmountNok);
+        Assert.Equal(lines.OrderByDescending(l => Math.Abs(l.AmountNok)).Select(l => l.AmountNok), lines.Select(l => l.AmountNok));
+        decimal smallest = lines.Min(l => Math.Abs(l.AmountNok));
+        var others = ledger.GroupBy(b => (b.Category, b.Income))
+            .Where(g => !lines.Any(l => l.Category == g.Key.Category && l.Income == g.Key.Income));
+        Assert.All(others, g => Assert.True(Math.Abs(g.Sum(b => b.Amount)) <= smallest, $"{g.Key} outranks a listed line"));
+        Assert.Contains(lines, l => l.Category == "feed" && !l.Income);
     }
 
     [Fact]

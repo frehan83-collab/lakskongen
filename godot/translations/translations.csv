@@ -1863,3 +1863,123 @@ ZONE_PO10_SENJA,Senja,Senja
 ZONE_PO11_SKJERVOY,Skjervøy,Skjervøy
 ZONE_PO12_HASVIK,Hasvik,Hasvik
 ZONE_PO13_LEBESBY,Lebesby,Lebesby
+GAME_EVENT_BANK_CALL,Bank call,Bankmøte
+GAME_EVENT_LIQUIDITY_WARNING,Liquidity warning,Likviditetsvarsel
+GAME_EVENT_RESCUE_LOAN_TAKEN,Rescue loan taken,Redningslån tatt opp
+LEDGER_OVERDRAFT_INTEREST,Overdraft interest,Renter på overtrekk
+LEDGER_RESCUE_LOAN_FEE,Rescue loan fee,Gebyr for redningslån
+UI_BANK_ACCEPT,Take the rescue loan,Ta opp redningslånet
+UI_BANK_ACCEPT_TIP,"The money arrives today as a loan, repaid daily over its term",Pengene kommer i dag som et lån som betales ned daglig over løpetiden
+UI_BANK_DECLINE,Decline,Takk nei
+UI_BANK_DECLINE_TIP,The bank makes no new offer in this crisis,Banken gir ikke noe nytt tilbud i denne krisen
+UI_BANK_ERROR_BANKRUPT,The company is bankrupt.,Selskapet er konkurs.
+UI_BANK_ERROR_ENGINE_NOT_READY,No game is running.,Ingen spill kjører.
+UI_BANK_ERROR_NO_RESCUE_OFFER,The bank has no open offer.,Banken har ikke noe åpent tilbud.
+UI_BANK_ERROR_RESCUE_OFFER_EXPIRED,The offer has expired.,Tilbudet har gått ut.
+UI_BANK_FIG_BURN,Cash burn a day,Forbruk per dag
+UI_BANK_FIG_COLLATERAL,Fish in the sea (collateral),Fisk i sjøen (pant)
+UI_BANK_FIG_INTEREST,Overdraft interest paid,Renter på overtrekk betalt
+UI_BANK_FIG_INTEREST_VALUE,%s (%s a year),%s (%s i året)
+UI_BANK_FIG_RUNWAY,Days to the credit limit,Dager til kredittrammen
+UI_BANK_OFFER_ACCEPTED,You took the bank's rescue loan of %s (offered on day %d).,Dere tok opp bankens redningslån på %s (tilbudt dag %d).
+UI_BANK_OFFER_DECLINED,You declined the bank's rescue loan of %s (offered on day %d).,Dere takket nei til bankens redningslån på %s (tilbudt dag %d).
+UI_BANK_OFFER_EXPIRED,The rescue loan of %s offered on day %d expired unanswered.,Redningslånet på %s fra dag %d gikk ut ubesvart.
+UI_BANK_OFFER_TEXT,"%s at %s interest, a fee of %s, repaid over %d months. Answer by day %d (%d days left).","%s til %s rente og %s i gebyr, nedbetalt over %d måneder. Svar innen dag %d (%d dager igjen)."
+UI_BANK_OFFER_TITLE,The bank offers a rescue loan against the fish,Banken tilbyr et redningslån mot pant i fisken
+UI_BANK_OFFER_WITHDRAWN,The bank withdrew its offer of %s from day %d: the cash recovered.,Banken trakk tilbudet på %s fra dag %d: kontantene tok seg opp.
+UI_BANK_STAGE_CALL,Bank call,Bankmøte
+UI_BANK_STAGE_CALM,No remarks,Ingen merknader
+UI_BANK_STAGE_WARNING,Liquidity warning,Likviditetsvarsel
+UI_BANK_TEXT_CALL,The bank called you in on day %d: at today's burn the cash passes the credit limit of %s in %s days.,Banken kalte dere inn til møte dag %d: på dagens forbruk passerer kontantene kredittrammen på %s om %s dager.
+UI_BANK_TEXT_CALM,The cash is not falling. The bank has no remarks.,Kontantene faller ikke. Banken har ingen merknader.
+UI_BANK_TEXT_FALLING,The cash falls by %s a day and reaches the credit limit of %s in %s days.,Kontantene faller med %s om dagen og når kredittrammen på %s om %s dager.
+UI_BANK_TEXT_WARNING,"Liquidity warning on day %d: at today's burn the cash reaches the credit limit of %s in %s days. Harvest, borrow or cut costs.","Likviditetsvarsel dag %d: på dagens forbruk når kontantene kredittrammen på %s om %s dager. Slakt, lån eller kutt kostnader."
+UI_BANK_TITLE,The bank,Banken
+UI_ENDSCREEN_AUTOSAVE,Load autosave,Last inn autolagring
+UI_ENDSCREEN_AUTOSAVE_OFF,No autosave from before the end,Ingen autolagring fra før slutten
+UI_ENDSCREEN_AUTOSAVE_TIP,Go back to the latest autosave,Gå tilbake til siste autolagring
+UI_ENDSCREEN_CAMPAIGN_OVERLINE,Campaign,Kampanje
+UI_ENDSCREEN_CAMPAIGN_PROGRESS,%d of %d scenarios won · %d open,%d av %d scenarioer vunnet · %d åpne
+UI_ENDSCREEN_CAMPAIGN_UNLOCKED,New scenarios open: %s,Nye scenarioer er åpne: %s
+UI_ENDSCREEN_CHART_FLOOR,Credit limit,Kredittramme
+UI_ENDSCREEN_CHART_TIP,%s %d\nIncome: %s\nCosts: %s\nResult: %s\nCash at month end: %s,%s %d\nInntekter: %s\nKostnader: %s\nResultat: %s\nKontanter ved månedsslutt: %s
+UI_ENDSCREEN_CONTINUE,Keep playing,Fortsett å spille
+UI_ENDSCREEN_CONTINUE_OFF,The game is over,Spillet er over
+UI_ENDSCREEN_CONTINUE_TIP,Play on in the same game,Spill videre i samme spill
+UI_ENDSCREEN_FISH_NONE,No fish died.,Ingen fisk døde.
+UI_ENDSCREEN_FISH_SUMMARY,"%s fish died (%s of all the fish the company held), %s were harvested and %s are still in the sea.","%s fisk døde (%s av all fisk selskapet hadde), %s ble slaktet og %s står fortsatt i sjøen."
+UI_ENDSCREEN_FISH_TITLE,Where the fish went,Hvor ble fisken av?
+UI_ENDSCREEN_FREE_GAME,Free play,Fritt spill
+UI_ENDSCREEN_KPI_BANK,The bank,Banken
+UI_ENDSCREEN_KPI_BANK_CALM,No remarks,Ingen merknader
+UI_ENDSCREEN_KPI_BANK_SUB,Overdraft interest %s,Renter på overtrekk %s
+UI_ENDSCREEN_KPI_CALL_MANY,%s calls,%s bankmøter
+UI_ENDSCREEN_KPI_CALL_ONE,%s call,%s bankmøte
+UI_ENDSCREEN_KPI_CASH,Cash,Kontanter
+UI_ENDSCREEN_KPI_CASH_SUB,Lowest %s (day %s),Lavest %s (dag %s)
+UI_ENDSCREEN_KPI_HARVEST,Harvested,Slaktet
+UI_ENDSCREEN_KPI_HARVEST_SUB,Gutted weight in %s harvests,Sløyd vekt i %s slakt
+UI_ENDSCREEN_KPI_MORTALITY,Mortality,Dødelighet
+UI_ENDSCREEN_KPI_MORTALITY_SUB,%s fish died,%s fisk døde
+UI_ENDSCREEN_KPI_RESULT,Result,Resultat
+UI_ENDSCREEN_KPI_RESULT_SUB,Income %s · costs %s,Inntekter %s · kostnader %s
+UI_ENDSCREEN_KPI_WARNING_MANY,%s warnings,%s varsler
+UI_ENDSCREEN_KPI_WARNING_ONE,%s warning,%s varsel
+UI_ENDSCREEN_LOAD_FAILED,The autosave could not be loaded: %s,Autolagringen kunne ikke lastes: %s
+UI_ENDSCREEN_LOG_DAY,Day %d · %s,Dag %d · %s
+UI_ENDSCREEN_LOG_NONE,Nothing was logged.,Ingenting ble logget.
+UI_ENDSCREEN_LOG_TITLE,Event log,Hendelseslogg
+UI_ENDSCREEN_MARK_COMPLIANCE,Clean operation,Ren drift
+UI_ENDSCREEN_MARK_COMPLIANCE_MET,No fines or infringement fees,Ingen bøter eller overtredelsesgebyr
+UI_ENDSCREEN_MARK_COMPLIANCE_MISSED,Fines and fees: %s,Bøter og gebyrer: %s
+UI_ENDSCREEN_MARK_FINANCE,Sound finances,Sunn økonomi
+UI_ENDSCREEN_MARK_FINANCE_MET,The bank never called you in,Banken kalte aldri inn til møte
+UI_ENDSCREEN_MARK_FINANCE_MISSED,Bank calls: %d · rescue loans: %d,Bankmøter: %d · redningslån: %d
+UI_ENDSCREEN_MARK_MET,Met,Oppnådd
+UI_ENDSCREEN_MARK_MISSED,Missed,Ikke nådd
+UI_ENDSCREEN_MARK_WELFARE,Fish welfare,Fiskevelferd
+UI_ENDSCREEN_MARK_WELFARE_DETAIL,Mortality %s (limit %s),Dødelighet %s (grense %s)
+UI_ENDSCREEN_MEDAL_BEST,your best: %s,din beste: %s
+UI_ENDSCREEN_MEDAL_BRONZE,Bronze medal,Bronsemedalje
+UI_ENDSCREEN_MEDAL_GOLD,Gold medal,Gullmedalje
+UI_ENDSCREEN_MEDAL_NEW_BEST,your best yet,din beste hittil
+UI_ENDSCREEN_MEDAL_NONE,No medal,Ingen medalje
+UI_ENDSCREEN_MEDAL_NONE_SUB,Medals are for won scenarios,Medaljer gis for vunne scenarioer
+UI_ENDSCREEN_MEDAL_SILVER,Silver medal,Sølvmedalje
+UI_ENDSCREEN_MEDAL_SUB,%d of 3 distinctions,%d av 3 utmerkelser
+UI_ENDSCREEN_MENU,Main menu,Hovedmeny
+UI_ENDSCREEN_MENU_TIP,Leave the game for the main menu,Forlat spillet og gå til hovedmenyen
+UI_ENDSCREEN_MONEY_NONE,Nothing was booked.,Ingenting ble bokført.
+UI_ENDSCREEN_MONEY_TITLE,Where the money went,Hvor gikk pengene?
+UI_ENDSCREEN_NEXT,Next: %s,Neste: %s
+UI_ENDSCREEN_NEXT_NONE,Next scenario,Neste scenario
+UI_ENDSCREEN_NEXT_OFF,No other open scenario is left to win,Ingen andre åpne scenarioer gjenstår
+UI_ENDSCREEN_NEXT_TIP,"Start %s, the next scenario in the campaign","Start %s, neste scenario i kampanjen"
+UI_ENDSCREEN_POINTS_NONE,No single event moved the result.,Ingen enkelthendelse flyttet resultatet.
+UI_ENDSCREEN_POINTS_TITLE,Three turning points,Tre vendepunkter
+UI_ENDSCREEN_POINT_BOOKING_MANY,%s bookings,%s posteringer
+UI_ENDSCREEN_POINT_BOOKING_ONE,%s booking,%s postering
+UI_ENDSCREEN_POINT_DAY,Day %d · %s,Dag %d · %s
+UI_ENDSCREEN_POINT_DAYS,Days %d–%d · %s,Dag %d–%d · %s
+UI_ENDSCREEN_POINT_PARTS,Sales %s · costs %s,Salg %s · kostnader %s
+UI_ENDSCREEN_RETRY,Try again,Prøv igjen
+UI_ENDSCREEN_RETRY_TIP,Start the same scenario from the beginning,Start samme scenario fra begynnelsen
+UI_ENDSCREEN_SHEET_OVERLINE,The accounts,Regnskapet
+UI_ENDSCREEN_SHEET_PERIOD,%s to %s · %s days,%s til %s · %s dager
+UI_ENDSCREEN_START_FAILED,The scenario could not be started.,Scenarioet kunne ikke startes.
+UI_ENDSCREEN_STORY_HINT,"Cash at each month end, the month's result beneath; 1–3 mark the largest single events.","Kontanter ved hver månedsslutt, månedens resultat under; 1–3 er de største enkelthendelsene."
+UI_ENDSCREEN_STORY_TITLE,Where the money went,Pengehistorien
+UI_ENDSCREEN_SUB_BANKRUPT,The cash fell below the credit limit of %s on day %s and the bank petitioned for bankruptcy.,"Kontantene falt under kredittrammen på %s dag %s, og banken begjærte selskapet konkurs."
+UI_ENDSCREEN_SUB_BANK_LADDER,The bank warned you on day %s and called you in on day %s.,Banken varslet dere dag %s og kalte inn til møte dag %s.
+UI_ENDSCREEN_SUB_LOST,The game lasted %s days.,Spillet varte i %s dager.
+UI_ENDSCREEN_SUB_WON,You reached the goal after %s days: %s.,Dere nådde målet etter %s dager: %s.
+UI_ENDSCREEN_VERDICT_BANKRUPT,Bankrupt,Konkurs
+UI_ENDSCREEN_VERDICT_LOST,Scenario lost,Scenarioet er tapt
+UI_ENDSCREEN_VERDICT_WON,Goal reached,Målet er nådd
+UI_SCENARIO_CAMPAIGN_BEST,Your best: %s,Ditt beste: %s
+UI_SCENARIO_CAMPAIGN_LOCKED,Win %s to open this scenario.,Vinn %s for å åpne dette scenarioet.
+UI_SCENARIO_CAMPAIGN_OR, or , eller 
+UI_SCENARIO_MEDAL_BRONZE,Bronze,Bronse
+UI_SCENARIO_MEDAL_GOLD,Gold,Gull
+UI_SCENARIO_MEDAL_NONE,No medal,Ingen medalje
+UI_SCENARIO_MEDAL_SILVER,Silver,Sølv

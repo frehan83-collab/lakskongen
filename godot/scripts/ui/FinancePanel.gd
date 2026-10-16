@@ -117,6 +117,11 @@ func _ready() -> void:
 
 	_collect_scene_refs()
 	_build_deep_finance_row()
+	# U2-03: the bank's view of the cash and its rescue offer, first under the title.
+	if _title_label != null and _title_label.get_parent() != null:
+		var bank := BankCard.new()
+		_title_label.get_parent().add_child(bank)
+		_title_label.get_parent().move_child(bank, 1)
 	_build_balance_sparkline()
 	_build_insurance_card()
 	_build_story_card()

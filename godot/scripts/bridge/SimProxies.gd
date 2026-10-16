@@ -482,6 +482,12 @@ func get_market_report() -> Dictionary: return game_bridge.GetMarketReport() if 
 func get_profit_loss_story(top_n: int = 3) -> Dictionary: return game_bridge.GetProfitLossStory(top_n) if game_bridge else {}
 ## S2-05: deaths by cause in the NVI categories plus the fish that left alive (site, last N days, or company).
 func get_mortality_breakdown(site_id: String = "", last_days: int = 0) -> Dictionary: return game_bridge.GetMortalityBreakdown(site_id, last_days) if game_bridge else {"success": false, "message": "Not initialized", "categories": [], "causes": [], "left_alive": []}
+## U2-03: the end screen's report (verdict, figures, the P&L story's months and turning points, medal, event log).
+func get_scenario_end_report() -> Dictionary: return game_bridge.GetScenarioEndReport() if game_bridge else {"success": false, "verdict": "running"}
+## U2-03: the verdict as it stands: "running", "won", "lost" or "bankrupt".
+func get_current_verdict() -> String: return String(game_bridge.CurrentVerdict) if game_bridge else "running"
+## U2-03: the bank's reading of the cash (burn, runway, warning, bank call) and its rescue offer.
+func get_liquidity_status() -> Dictionary: return game_bridge.GetLiquidityStatus() if game_bridge else {"success": false, "offer": {}}
 ## S2-01a: licences and MTB per production area and site, headroom, the plan's peak and the biomass orders (U2-01's expansion flow).
 func get_capacity_overview() -> Dictionary: return game_bridge.GetCapacityOverview() if game_bridge else {"success": false, "message": "Not initialized", "areas": [], "sites": [], "licences": [], "breaches": []}
 ## S2-01a: what stocking would do to the caps (the check stock_smolts runs) and the most smolts that fit.

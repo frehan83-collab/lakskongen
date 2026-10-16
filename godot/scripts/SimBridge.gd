@@ -37,6 +37,11 @@ signal pen_action_completed(action: String, pen_id: String, success: bool)
 ## listeners route by severity, never by the message text.
 signal game_event_raised(event: Dictionary)
 
+## Emitted when a game's verdict lands (roadmap U2-03): "won" when the
+## scenario's goal is met (the game may go on), "lost" or "bankrupt" when the
+## game ended. The end screen reads the rest from get_scenario_end_report().
+signal scenario_ended(verdict: String)
+
 ## Emitted whenever the game clock changes (roadmap U2-07): speed, pause,
 ## holds, "Til neste hendelse" or a pacing decision. See get_clock_state().
 signal clock_changed(clock: Dictionary)
@@ -312,6 +317,7 @@ func _ready() -> void:
 		_game_bridge.DiseaseOutbreak.connect(_on_disease_outbreak)
 		_game_bridge.GameEventRaised.connect(func(ev: Dictionary) -> void: game_event_raised.emit(ev))
 		_game_bridge.ClockChanged.connect(func(clock: Dictionary) -> void: clock_changed.emit(clock))
+		_game_bridge.ScenarioWon.connect(func(_id: String, _name: String) -> void: scenario_ended.emit("won"))
 	else:
 		push_warning("SimBridge: /root/GameBridge not found — stub mode active")
 	_state.game_bridge = _game_bridge
@@ -323,7 +329,12 @@ func _ready() -> void:
 func _on_game_started() -> void: _state._on_game_started()
 func _on_game_state_updated() -> void: _state._on_game_state_updated()
 func _on_simulation_ticked(day: int) -> void: _state._on_simulation_ticked(day)
-func _on_game_ended(reason: String) -> void: _state._on_game_ended(reason)
+func _on_game_ended(reason: String) -> void:
+	_state._on_game_ended(reason)
+	# U2-03: the verdict the engine reached; a game ended by an error has none.
+	var verdict := get_current_verdict()
+	if verdict != "running":
+		scenario_ended.emit(verdict)
 func _on_tutorial_step_completed(step_number: int, title: String) -> void: _state._on_tutorial_step_completed(step_number, title)
 func _on_audio_alert_triggered(alert_key: String) -> void: _state._on_audio_alert_triggered(alert_key)
 func _on_achievement_unlocked(id: String, achievement_name: String, description: String, medal: String, tier: String) -> void: _state._on_achievement_unlocked(id, achievement_name, description, medal, tier)
@@ -612,6 +623,11 @@ func get_licence_auction(zone_id: String) -> Dictionary: return _proxies.get_lic
 func build_expansion_site(zone_id: String) -> Dictionary: return _actions.build_expansion_site(zone_id)
 func open_licence_auction(zone_id: String) -> Dictionary: return _actions.open_licence_auction(zone_id)
 func bid_on_licence_auction(zone_id: String, amount_nok: float) -> Dictionary: return _actions.bid_on_licence_auction(zone_id, amount_nok)
+func get_scenario_end_report() -> Dictionary: return _proxies.get_scenario_end_report()
+func get_current_verdict() -> String: return _proxies.get_current_verdict()
+func get_liquidity_status() -> Dictionary: return _proxies.get_liquidity_status()
+func accept_rescue_loan() -> Dictionary: return _actions.accept_rescue_loan()
+func decline_rescue_loan() -> Dictionary: return _actions.decline_rescue_loan()
 func get_site_pens(site_id: String) -> Array[Dictionary]: return _proxies.get_site_pens(site_id)
 func preview_pen_stocking(site_id: String, pen_id: String, count: int, strain_id: String = "standard", quality_tier: int = 0) -> Dictionary: return _proxies.preview_pen_stocking(site_id, pen_id, count, strain_id, quality_tier)
 func stock_smolts_in_pen(site_id: String, pen_id: String, count: int, strain_id: String = "standard", quality_tier: int = 0) -> Dictionary: return _actions.stock_smolts_in_pen(site_id, pen_id, count, strain_id, quality_tier)

@@ -20,22 +20,27 @@ namespace LakskongenSim.Finance
     }
 
     /// <summary>
-    /// A run of bookings in one ledger line: income or cost of one category on
-    /// days no more than <see cref="PnlStory.MergeGapDays"/> apart. A run longer
-    /// than <see cref="PnlStory.MaxEpisodeDays"/> is a running cost (feed,
-    /// wages, interest), never a turning point.
+    /// A run of bookings in one ledger line: the income and costs of one
+    /// category on days no more than <see cref="PnlStory.MergeGapDays"/> apart
+    /// (a harvest's sales and its wellboat and slaughter cost are one run). A
+    /// run longer than <see cref="PnlStory.MaxEpisodeDays"/> is a running cost
+    /// (feed, wages, interest), never a turning point.
     /// </summary>
     public sealed class PnlEpisode
     {
         /// <summary>Ledger category the bookings were made under ("harvest", "smolts").</summary>
         public string Category { get; set; } = "";
-        /// <summary>True for income, false for a cost.</summary>
+        /// <summary>True when the run's net is income (zero or more), false for a net cost.</summary>
         public bool Income { get; set; }
+        /// <summary>Income booked in the run (NOK, positive).</summary>
+        public decimal Revenue { get; set; }
+        /// <summary>Costs booked in the run (NOK, positive; a refund lowers them).</summary>
+        public decimal Costs { get; set; }
         /// <summary>First day of the run.</summary>
         public int FirstDay { get; set; }
         /// <summary>Last day of the run.</summary>
         public int LastDay { get; set; }
-        /// <summary>Signed P&amp;L of the run (NOK): income positive, costs negative.</summary>
+        /// <summary>Net P&amp;L of the run (NOK): its income less its costs.</summary>
         public decimal Amount { get; set; }
         /// <summary>Bookings in the run.</summary>
         public int Bookings { get; set; }
@@ -110,6 +115,24 @@ namespace LakskongenSim.Finance
         public static decimal NetResult(PnlStoryState story) => story.Totals.Values.Sum();
 
         /// <summary>
+        /// The <paramref name="count"/> largest ledger lines over the whole
+        /// story (income and cost lines apart), largest first: where the money
+        /// came from and went (a passive decline's story is its running costs).
+        /// </summary>
+        public static IReadOnlyList<(string Category, bool Income, decimal Amount)> LargestLines(PnlStoryState story, int count)
+        {
+            ArgumentNullException.ThrowIfNull(story);
+            return story.Totals
+                .Where(kv => kv.Value != 0m)
+                .Select(kv => (Category: kv.Key[1..], Income: kv.Key[0] == '+', Amount: kv.Value))
+                .OrderByDescending(l => Math.Abs(l.Amount))
+                .ThenBy(l => l.Category, StringComparer.Ordinal)
+                .ThenBy(l => l.Income)
+                .Take(Math.Max(0, count))
+                .ToList();
+        }
+
+        /// <summary>
         /// One P&amp;L booking: <paramref name="signedAmount"/> is positive for
         /// income and negative for a cost (a tax refund is a negative cost).
         /// </summary>
@@ -127,7 +150,7 @@ namespace LakskongenSim.Finance
             string key = Key(category, income);
             story.Totals[key] = (story.Totals.TryGetValue(key, out var t) ? t : 0m) + signedAmount;
 
-            var run = story.Open.FirstOrDefault(e => e.Income == income && e.Category == category);
+            var run = story.Open.FirstOrDefault(e => e.Category == category);
             if (run != null && day - run.LastDay > MergeGapDays)
             {
                 Close(story, run);
@@ -135,11 +158,14 @@ namespace LakskongenSim.Finance
             }
             if (run == null)
             {
-                run = new PnlEpisode { Category = category, Income = income, FirstDay = day, LastDay = day };
+                run = new PnlEpisode { Category = category, FirstDay = day, LastDay = day };
                 story.Open.Add(run);
             }
             run.LastDay = Math.Max(run.LastDay, day);
             run.Amount += signedAmount;
+            if (income) run.Revenue += signedAmount;
+            else run.Costs -= signedAmount;
+            run.Income = run.Amount >= 0m;
             run.Bookings++;
             if (run.LastDay - run.FirstDay + 1 > MaxEpisodeDays)
                 run.Running = true;
@@ -175,7 +201,6 @@ namespace LakskongenSim.Finance
                 .OrderByDescending(r => Math.Abs(r.Amount))
                 .ThenBy(r => r.FirstDay)
                 .ThenBy(r => r.Category, StringComparer.Ordinal)
-                .ThenBy(r => r.Income)
                 .Take(Math.Max(0, count))
                 .OrderBy(r => r.FirstDay)
                 .ThenBy(r => r.Category, StringComparer.Ordinal)
@@ -205,7 +230,6 @@ namespace LakskongenSim.Finance
                 .OrderByDescending(r => Math.Abs(r.Amount))
                 .ThenBy(r => r.FirstDay)
                 .ThenBy(r => r.Category, StringComparer.Ordinal)
-                .ThenBy(r => r.Income)
                 .Take(Capacity)
                 .ToList();
             story.Closed.Clear();

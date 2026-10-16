@@ -36,6 +36,9 @@ func _run() -> void:
 		return
 	mgr.UseSaveDirectory(TEST_SAVE_DIR)
 	_clear_test_saves()
+	# U2-03: this checkout's own campaign file (never the player's), fresh.
+	CampaignProgress.path_override = TEST_ROOT + "campaign.json"
+	CampaignProgress.reset()
 	# The checks read Norwegian text (the game's default language); a
 	# language.cfg left on English in the shared user dir must not flip them.
 	TranslationServer.set_locale("no")
@@ -146,8 +149,11 @@ func _run() -> void:
 	await _test_expansion_builds_the_tutorials_second_site()
 	await _test_auction_card_wins_a_green_zone_licence()
 	await _test_every_build_refusal_reads_as_text()
+	# U2-03: end screens, the liquidity ladder, the rescue loan, campaign progress.
+	await preload("res://tests/EndScreenFlowChecks.gd").new().run(self)
 
 	_clear_test_saves()
+	CampaignProgress.reset()
 	_finish()
 
 # ── Tests ──────────────────────────────────────────────────────────────────────
@@ -2047,6 +2053,7 @@ func _test_scenario_picker() -> void:
 	var wrong_lock: Array = []
 	var wrong_mod: Array = []
 	var locked := 0
+	var locked_ids: Array[String] = []
 	for e: Dictionary in entries:
 		var id := str(e["id"])
 		var card: Button = picker.get_card(id)
@@ -2056,6 +2063,8 @@ func _test_scenario_picker() -> void:
 			wrong_capital.append("%s: '%s' ≠ '%s'" % [id, capital.text if capital else "?", want])
 		var is_locked := not bool(e.get("unlocked", true))
 		locked += 1 if is_locked else 0
+		if is_locked:
+			locked_ids.append(id)
 		if card == null or (card.find_child("LockTag", true, false) != null) != is_locked:
 			wrong_lock.append(id)
 		if card == null or (card.find_child("ModTag", true, false) != null) != bool(e.get("is_mod", false)):
@@ -2067,7 +2076,24 @@ func _test_scenario_picker() -> void:
 	_check(first_capital != null and first_capital.text == SimFormatters.format_nok(4_000_000.0),
 		"picker: Familiegården starts with 4 000 000 (it read a tenth of its capital)")
 	_check(wrong_lock.is_empty(), "picker: a padlock only on a locked card %s" % str(wrong_lock))
-	_check(locked == 0, "picker: no scenario is locked until progression lands (%d locked)" % locked)
+	# U2-03 replaces U1-07's "no scenario is locked until progression lands"
+	# (RUN_LOG section 7) with the campaign's rule: a fresh campaign locks
+	# exactly the scenarios its graph does not open from the start, and only
+	# those; a locked card's Start stays off.
+	var open_from_start: Array = CampaignProgress.graph().get("open_from_start", [])
+	var want_locked: Array[String] = []
+	for id in CampaignProgress.order():
+		if not open_from_start.has(id):
+			want_locked.append(id)
+	locked_ids.sort()
+	want_locked.sort()
+	_check(locked == want_locked.size() and locked_ids == want_locked and want_locked.size() == 7,
+		"picker: a fresh campaign locks exactly its 7 later scenarios %s" % str(locked_ids))
+	if not locked_ids.is_empty():
+		picker.select(locked_ids[0])
+		_check(picker.get_start_button().disabled and picker.get_start_button().tooltip_text != "",
+			"picker: a locked scenario's Start is off and says why")
+		picker.select("forste_sesong")
 	_check(wrong_mod.is_empty(), "picker: exactly the mods' scenarios carry the Mod tag %s" % str(wrong_mod))
 	# The roadmap's text faults: the goal is equity (ressursrente showed 85 MNOK
 	# "overskudd" for a 25 MNOK goal) and Lakskongen starts in Vestland.

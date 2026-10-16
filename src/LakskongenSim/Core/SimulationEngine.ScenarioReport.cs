@@ -17,6 +17,9 @@ public partial class SimulationEngine
     /// <summary>Turning points the end screen shows.</summary>
     public const int EndScreenTurningPoints = 3;
 
+    /// <summary>Ledger lines the end screen lists ("where the money went").</summary>
+    public const int EndScreenLedgerLines = 5;
+
     /// <summary>The verdict as it stands: bankrupt, won, lost or running.</summary>
     public ScenarioVerdict CurrentVerdict()
     {
@@ -87,7 +90,11 @@ public partial class SimulationEngine
             FinesNok = fines,
             Months = StoryMonths(story),
             TurningPoints = PnlStory.TurningPoints(story, EndScreenTurningPoints)
-                .Select(r => new ScenarioTurningPoint(r.Category, r.Income, r.FirstDay, r.LastDay, r.Amount, r.Bookings))
+                .Select(r => new ScenarioTurningPoint(r.Category, r.Income, r.FirstDay, r.LastDay, r.Amount, r.Bookings,
+                    r.Revenue, r.Costs))
+                .ToList(),
+            Lines = PnlStory.LargestLines(story, EndScreenLedgerLines)
+                .Select(l => new ScenarioLedgerLine(l.Category, l.Income, l.Amount))
                 .ToList(),
             Distinctions = distinctions,
             Medal = ScenarioMedals.Award(verdict, distinctions),

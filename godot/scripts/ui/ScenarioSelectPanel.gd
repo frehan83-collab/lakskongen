@@ -9,8 +9,10 @@
 ## (1280–2560 px windows, UI scale 80–125 %) and scrolls when the cards do not.
 ##
 ## A card is selected by a click, by keyboard focus or select(); double-click,
-## Enter on the selected card or the Start button starts it. A padlock tag shows
-## only on a scenario the roster marks locked (none until progression, U2-03).
+## Enter on the selected card or the Start button starts it. The campaign
+## (CampaignProgress, U2-03) decides what is open: a locked card carries a
+## padlock tag, its detail names the wins that open it and Start stays off;
+## a won card carries its best medal, and the detail says so.
 ## Esc and Tilbake emit panel_close_requested; the main menu closes the layer.
 ##
 ## Signals:
@@ -34,6 +36,9 @@ const SCRIM_ALPHA := 1.0
 
 ## Difficulty 1–5 → stripe / pip tone.
 const DIFFICULTY_TONES := [&"Ok", &"Ok", &"Info", &"Warn", &"Crit"]
+## Best medal -> its tag's tone (gold reads amber, silver ice, bronze plain:
+## the accent tone held 4.07:1 on a card, under the 4.5:1 floor).
+const MEDAL_TONES := {"gold": &"TagWarn", "silver": &"TagInfo", "bronze": &"Tag"}
 const DIFFICULTY_KEYS := ["UI_DIFFICULTY_1", "UI_DIFFICULTY_2", "UI_DIFFICULTY_3", "UI_DIFFICULTY_4", "UI_DIFFICULTY_5"]
 ## ProductionRegion names from the roster → translation keys.
 const REGION_KEYS := {
@@ -131,10 +136,24 @@ func _load_roster() -> Array[Dictionary]:
 	var sim := get_node_or_null("/root/SimBridge")
 	if sim == null or not sim.has_method("get_available_scenarios"):
 		return out
+	var progress := CampaignProgress.load_progress()
 	for entry in sim.get_available_scenarios():
 		if entry is Dictionary and not str(entry.get("id", "")).is_empty():
-			out.append(entry)
+			out.append(with_campaign(entry, progress))
 	return out
+
+## A roster entry as the campaign sees it (U2-03): open only when the roster
+## and the campaign both open it, with its best medal and the scenarios whose
+## win opens it.
+static func with_campaign(entry: Dictionary, progress: Dictionary) -> Dictionary:
+	var e := entry.duplicate()
+	var id := str(e.get("id", ""))
+	var open := _is_unlocked(entry) and CampaignProgress.is_unlocked(id, progress)
+	e["unlocked"] = open
+	e["is_unlocked"] = open
+	e["medal"] = CampaignProgress.best_medal(id, progress)
+	e["unlocked_by"] = CampaignProgress.unlocked_by(id)
+	return e
 
 func _entry(scenario_id: String) -> Dictionary:
 	for entry in _scenarios:
@@ -304,9 +323,14 @@ func _build_card(entry: Dictionary) -> Button:
 		mod_tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		top.add_child(mod_tag)
 	if not _is_unlocked(entry):
-		var lock_tag := _card_label(tr("UI_SCENARIO_LOCKED_TAG"), &"TagMuted", "LockTag")
+		var lock_tag := _card_label(tr("UI_SCENARIO_LOCKED_TAG"), &"Tag", "LockTag")
 		lock_tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		top.add_child(lock_tag)
+	var medal := str(entry.get("medal", "none"))
+	if MEDAL_TONES.has(medal):
+		var medal_tag := _card_label(tr("UI_SCENARIO_MEDAL_" + medal.to_upper()), MEDAL_TONES[medal], "MedalTag")
+		medal_tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		top.add_child(medal_tag)
 
 	var name_label := _card_label(str(entry.get("name", id)), &"Subheading", "Name")
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -431,6 +455,9 @@ func _build_detail() -> Control:
 	rules.add_theme_constant_override("v_separation", 6)
 	box.add_child(rules)
 	_detail["rules"] = rules
+	var campaign_line := _detail_label(box, &"BodySmallStrong", true)
+	campaign_line.name = "Campaign"
+	_detail["campaign"] = campaign_line
 
 	var facts := GridContainer.new()
 	facts.name = "Facts"
@@ -463,6 +490,18 @@ func _build_detail() -> Control:
 	_start_button.pressed.connect(start_selected)
 	box.add_child(_start_button)
 	return panel
+
+## The campaign line of the detail pane: what opens a locked scenario, or the
+## best medal won in it ("" for a mod or an open, unwon scenario).
+func _campaign_text(entry: Dictionary) -> String:
+	if not _is_unlocked(entry):
+		var names := PackedStringArray()
+		for id in entry.get("unlocked_by", []):
+			var source := _entry(str(id))
+			names.append(str(source.get("name", id)))
+		return tr("UI_SCENARIO_CAMPAIGN_LOCKED") % tr("UI_SCENARIO_CAMPAIGN_OR").join(names) if not names.is_empty() else ""
+	var medal := str(entry.get("medal", "none"))
+	return tr("UI_SCENARIO_CAMPAIGN_BEST") % tr("UI_SCENARIO_MEDAL_" + medal.to_upper()) if MEDAL_TONES.has(medal) else ""
 
 func _detail_label(parent: Control, variation: StringName, wrap: bool = false) -> Label:
 	var lbl := Label.new()
@@ -500,6 +539,9 @@ func _show_detail(entry: Dictionary) -> void:
 		chip.theme_type_variation = &"TagInfo"
 		rules.add_child(chip)
 	rules.visible = not (entry.get("special", []) as Array).is_empty()
+	var campaign: Label = _detail["campaign"]
+	campaign.text = _campaign_text(entry)
+	campaign.visible = campaign.text != ""
 
 	var capital: Label = _detail["fact_capital"]
 	capital.text = capital_text(entry)

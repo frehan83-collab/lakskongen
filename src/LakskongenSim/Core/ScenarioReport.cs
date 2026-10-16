@@ -35,11 +35,16 @@ public sealed record ScenarioMonthPoint(
     decimal CumulativeResultNok, decimal ClosingCashNok);
 
 /// <summary>
-/// A turning point: one run of one ledger line (income or cost of one
-/// category over a few days), as the ledger booked it.
+/// A turning point: one run of one ledger line (the income and costs of one
+/// category over a few days, e.g. a harvest's sales less its harvest cost),
+/// as the ledger booked it. <see cref="Income"/> is true for a net income.
 /// </summary>
 public sealed record ScenarioTurningPoint(
-    string Category, bool Income, int FirstDay, int LastDay, decimal AmountNok, int Bookings);
+    string Category, bool Income, int FirstDay, int LastDay, decimal AmountNok, int Bookings,
+    decimal RevenueNok, decimal CostsNok);
+
+/// <summary>One ledger line over the whole game (income or cost of one category).</summary>
+public sealed record ScenarioLedgerLine(string Category, bool Income, decimal AmountNok);
 
 /// <summary>Everything the end screen shows, read from the engine's own books (U2-03).</summary>
 public sealed record ScenarioEndReport
@@ -78,6 +83,8 @@ public sealed record ScenarioEndReport
     public decimal FinesNok { get; init; }
     public IReadOnlyList<ScenarioMonthPoint> Months { get; init; } = Array.Empty<ScenarioMonthPoint>();
     public IReadOnlyList<ScenarioTurningPoint> TurningPoints { get; init; } = Array.Empty<ScenarioTurningPoint>();
+    /// <summary>The largest ledger lines over the game, largest first.</summary>
+    public IReadOnlyList<ScenarioLedgerLine> Lines { get; init; } = Array.Empty<ScenarioLedgerLine>();
     public IReadOnlyList<ScenarioDistinction> Distinctions { get; init; } = Array.Empty<ScenarioDistinction>();
     public ScenarioMedal Medal { get; init; }
 }

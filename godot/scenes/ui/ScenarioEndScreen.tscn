@@ -1,0 +1,223 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/endscreen/ScenarioEndScreen.gd" id="1_screen"]
+[ext_resource type="Shader" path="res://shaders/menu_glass.gdshader" id="2_glass"]
+[ext_resource type="Script" path="res://scripts/ui/endscreen/MedalBadge.gd" id="3_medal"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_glass"]
+shader = ExtResource("2_glass")
+
+[node name="ScenarioEndScreen" type="CanvasLayer"]
+layer = 50
+visible = false
+script = ExtResource("1_screen")
+
+[node name="Screen" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Scrim" type="ColorRect" parent="Screen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.027451, 0.121569, 0.168627, 0.62)
+
+[node name="Column" type="Control" parent="Screen"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_right = 460.0
+grow_vertical = 2
+
+[node name="Glass" type="ColorRect" parent="Screen/Column"]
+material = SubResource("ShaderMaterial_glass")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.043137, 0.164706, 0.227451, 0.95)
+
+[node name="Margin" type="MarginContainer" parent="Screen/Column"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 44
+theme_override_constants/margin_top = 36
+theme_override_constants/margin_right = 36
+theme_override_constants/margin_bottom = 32
+
+[node name="Scroll" type="ScrollContainer" parent="Screen/Column/Margin"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Content" type="VBoxContainer" parent="Screen/Column/Margin/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="AccentRule" type="ColorRect" parent="Screen/Column/Margin/Scroll/Content"]
+custom_minimum_size = Vector2(40, 3)
+layout_mode = 2
+size_flags_horizontal = 0
+mouse_filter = 2
+color = Color(0.94902, 0.529412, 0.415686, 1)
+
+[node name="Overline" type="Label" parent="Screen/Column/Margin/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"OverlineAccent"
+text = "–"
+uppercase = true
+
+[node name="VerdictTitle" type="Label" parent="Screen/Column/Margin/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Display"
+text = "–"
+autowrap_mode = 3
+
+[node name="VerdictSub" type="Label" parent="Screen/Column/Margin/Scroll/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_type_variation = &"Body"
+text = "–"
+autowrap_mode = 3
+
+[node name="Rule1" type="HSeparator" parent="Screen/Column/Margin/Scroll/Content"]
+layout_mode = 2
+
+[node name="MedalRow" type="HBoxContainer" parent="Screen/Column/Margin/Scroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="MedalBadge" type="Control" parent="Screen/Column/Margin/Scroll/Content/MedalRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(72, 88)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("3_medal")
+
+[node name="MedalText" type="VBoxContainer" parent="Screen/Column/Margin/Scroll/Content/MedalRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/separation = 2
+
+[node name="MedalTitle" type="Label" parent="Screen/Column/Margin/Scroll/Content/MedalRow/MedalText"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"Heading"
+text = "–"
+
+[node name="MedalSub" type="Label" parent="Screen/Column/Margin/Scroll/Content/MedalRow/MedalText"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+theme_type_variation = &"BodySmallMuted"
+text = "–"
+autowrap_mode = 3
+
+[node name="Distinctions" type="VBoxContainer" parent="Screen/Column/Margin/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CampaignNote" type="VBoxContainer" parent="Screen/Column/Margin/Scroll/Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="CampaignOverline" type="Label" parent="Screen/Column/Margin/Scroll/Content/CampaignNote"]
+layout_mode = 2
+theme_type_variation = &"OverlineAccent"
+text = "UI_ENDSCREEN_CAMPAIGN_OVERLINE"
+uppercase = true
+
+[node name="CampaignText" type="Label" parent="Screen/Column/Margin/Scroll/Content/CampaignNote"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_type_variation = &"BodySmallStrong"
+text = "–"
+autowrap_mode = 3
+
+[node name="Spacer" type="Control" parent="Screen/Column/Margin/Scroll/Content"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="PrimarySlot" type="VBoxContainer" parent="Screen/Column/Margin/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ButtonGrid" type="GridContainer" parent="Screen/Column/Margin/Scroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="ErrorLabel" type="Label" parent="Screen/Column/Margin/Scroll/Content"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+theme_type_variation = &"BodySmallCrit"
+text = "–"
+autowrap_mode = 3
+
+[node name="Sheet" type="PanelContainer" parent="Screen"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 488.0
+offset_top = 32.0
+offset_right = -32.0
+offset_bottom = -32.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Card"
+
+[node name="SheetScroll" type="ScrollContainer" parent="Screen/Sheet"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="SheetMargin" type="MarginContainer" parent="Screen/Sheet/SheetScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+
+[node name="Report" type="VBoxContainer" parent="Screen/Sheet/SheetScroll/SheetMargin"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 18
