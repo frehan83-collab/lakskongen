@@ -221,6 +221,10 @@ static func create(school_name: String, key: String = "") -> MultiMeshInstance3D
 	school.custom_aabb = SCHOOL_BOX
 	school.visibility_range_end = FISH_RANGE_M
 	school.visibility_range_end_margin = RANGE_HYSTERESIS_M
+	# Under the water: never in the planar mirror (G2-03). The mirror's camera
+	# sits below the surface and would draw the whole school over the
+	# reflection.
+	school.layers = PlanarReflection.NO_MIRROR_LAYER
 	var shoal := MultiMeshInstance3D.new()
 	shoal.name = "Shoal"
 	shoal.multimesh = _multimesh(shoal_mesh(2), buffer)
@@ -228,6 +232,9 @@ static func create(school_name: String, key: String = "") -> MultiMeshInstance3D
 	shoal.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	shoal.custom_aabb = SHOAL_BOX
 	shoal.visibility_range_end = COLUMN_RANGE_M
+	# The school seen through the surface is a decal on the water, not
+	# something the water mirrors.
+	shoal.layers = PlanarReflection.NO_MIRROR_LAYER
 	school.add_child(shoal)
 	var dir := 1.0 if absi(hash(key + "/dir")) % 2 == 0 else -1.0
 	school.set_meta("school", {

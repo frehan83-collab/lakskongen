@@ -66,6 +66,27 @@ const NIGHT_HOUR := 21.0
 const NIGHT_SEASON := 0.04
 const MIN_LIGHT_FRACTION := 0.0003
 const LIGHT_LUMA := 0.75
+# G2-03 water v2. 18: calm winter dusk at 68.5 N, low over the water looking
+# up the fjord to its head: the mirror must hold the scene above the
+# waterline (mean SSIM of the band under the waterline, flipped, against the
+# band over it >= MIN_MIRROR_SSIM). 19: calm day, looking straight down at a
+# shore: the water within 5 m of the shore (the bake's shore distance) is
+# whiter than the open water 15-40 m out. 09 (the aurora night): the aurora
+# shows in the calm water too.
+const MIRROR_LATITUDE := 68.5
+const MIRROR_SEASON := 0.11
+const MIRROR_HOUR := 15.6
+const MIRROR_FOCUS_Z := 700.0
+const MIRROR_DISTANCE_M := 520.0
+const MIRROR_PITCH_UP_DEG := 14.0
+const MIN_MIRROR_SSIM := 0.5
+const MIN_MIRROR_SSIM_GAIN := 0.1
+const MIRROR_BAND := 0.12
+const CALM_SKY := {"weather_state": "Calm", "cloud_cover": 0.15, "wind_ms": 1.5, "visibility_km": 50.0,
+	"precip_mm_h": 0.0, "sea_fog": 0.0, "wave_m": 0.1}
+const SHORE_FOAM_SDF_M := 5.0
+const MIN_SHORE_FOAM_LIFT := 0.04
+const MIN_AURORA_REFLECTION := 0.01
 
 # S1 living-fjord forced-state shots: set the QA lice load to the red-collar
 # threshold (FishPenManager: >=0.2 amber, >=0.5 critical/red).
@@ -112,6 +133,15 @@ func _ready() -> void:
 
 func _run_sequence() -> void:
 	await _wait(0.4)
+	# `-- --only=moods`: boot the game and shoot the mood goldens alone (G3-05).
+	if "--only=moods" in OS.get_cmdline_user_args():
+		await _boot_game()
+		await _capture_mood_goldens()
+		_print_summary()
+		for failure in _content_failures:
+			push_error("[ScreenshotHarness] content check failed: %s" % failure)
+		get_tree().quit(0 if _content_failures.is_empty() else 1)
+		return
 
 	await _capture_main_menu()
 	await _capture_scenario_selection()
@@ -139,6 +169,9 @@ func _run_sequence() -> void:
 	await _capture_fjord_bloom()
 	await _capture_fjord_underwater()
 	await _capture_fjord_diagnostics()
+	await _capture_fjord_calm_dusk()
+	await _capture_fjord_shore_foam()
+	await _capture_mood_goldens()
 	# Last of the fjord shots: it starts a Nordland game of its own.
 	await _capture_fjord_night_aurora()
 	await _audit_a11y_targets()
@@ -771,6 +804,12 @@ func _capture_fjord_night_aurora() -> void:
 	print("[ScreenshotHarness] 09_fjord_night_aurora: aurora covers %.1f%% of the frame" % (fraction * 100.0))
 	if fraction < MIN_AURORA_FRACTION:
 		_content_failures.append("09_fjord_night_aurora: aurora covers %.1f%% (min %.0f%%)" % [fraction * 100.0, MIN_AURORA_FRACTION * 100.0])
+	# G2-03: the calm water mirrors it (it was a black void before).
+	var reflected := _aurora_fraction(img, horizon_y, true)
+	print("[ScreenshotHarness] 09_fjord_night_aurora: the water mirrors the aurora on %.1f%% of the frame" % (reflected * 100.0))
+	if reflected < MIN_AURORA_REFLECTION:
+		_content_failures.append("09_fjord_night_aurora: the aurora shows in %.2f%% of the frame below the horizon (min %.0f%%)" % [
+			reflected * 100.0, MIN_AURORA_REFLECTION * 100.0])
 	# Overcast on the same night: the clouds hide it completely.
 	if vista != null:
 		vista.set("sim_weather_enabled", false)
@@ -787,7 +826,9 @@ func _capture_fjord_night_aurora() -> void:
 ## Fraction of the whole frame the aurora's green holds in the sky (rows
 ## above the horizon): green well above red and blue. The night sky is blue;
 ## below the horizon green pixels are pen lights and meadows, not aurora.
-static func _aurora_fraction(img: Image, horizon_y: int) -> float:
+## `below` counts the rows under the horizon instead: the aurora mirrored in
+## the calm water (G2-03).
+static func _aurora_fraction(img: Image, horizon_y: int, below: bool = false) -> float:
 	if img == null:
 		return 0.0
 	var hits := 0
@@ -795,7 +836,7 @@ static func _aurora_fraction(img: Image, horizon_y: int) -> float:
 	for y in range(0, img.get_height(), 4):
 		for x in range(0, img.get_width(), 4):
 			total += 1
-			if y >= horizon_y:
+			if (y < horizon_y) == below:
 				continue
 			var c := img.get_pixel(x, y)
 			if c.g > 0.12 and c.g - maxf(c.r, c.b) > 0.05:
@@ -845,6 +886,200 @@ func _capture_fjord_underwater() -> void:
 		cam.set("global_position", Vector3(0.0, -60.0, 0.0))
 	await _wait(2.6)
 	_check_not_black("11_fjord_underwater", await _shoot("11_fjord_underwater", true))
+
+
+# ── G3-05 moods: eight goldens from one camera (MoodGoldens) ──────────────────
+
+func _capture_mood_goldens() -> void:
+	if _env == null or not is_instance_valid(_env):
+		_content_failures.append("mood goldens: the fjord scene is incomplete")
+		return
+	_hide_ui()
+	var goldens := MoodGoldens.new()
+	await goldens.capture(self, _env, _game)
+	_content_failures.append_array(goldens.failures)
+
+
+# ── G2-03 water v2: the mirror and the shore foam ─────────────────────────────
+
+## 18: a calm winter dusk at 68.5 N, low over the water, looking up the fjord
+## to its head. The waterline at the head is a near-level row across the
+## middle of the frame; the planar mirror must repeat what stands above it.
+func _capture_fjord_calm_dusk() -> void:
+	if _env == null or not is_instance_valid(_env):
+		return
+	var terrain = _env.get("terrain")
+	var cam = _env.get("camera")
+	var ws = _env.get("weather_system")
+	if terrain == null or cam == null or ws == null:
+		_content_failures.append("18_fjord_calm_dusk: the fjord scene is incomplete")
+		return
+	var vista := _find(_game, "FjordVistaBridge")
+	if vista != null:
+		vista.set("sim_weather_enabled", false)
+	_hide_ui()
+	_env.call("set_latitude", MIRROR_LATITUDE)
+	_env.call("set_season", MIRROR_SEASON)
+	_env.call("set_time", MIRROR_HOUR)
+	ws.set("transition_duration", 0.15)
+	ws.call("apply_sky_context", CALM_SKY)
+	var focus := Vector3(float(terrain.call("channel_center_x", MIRROR_FOCUS_Z)), 0.0, MIRROR_FOCUS_Z)
+	var shore := focus
+	for i in 600:
+		shore.z += 5.0
+		shore.x = float(terrain.call("channel_center_x", shore.z))
+		if float(terrain.call("get_height_at", shore.x, shore.z)) > 0.0:
+			break
+	cam.set("auto_orbit_enabled", false)
+	cam.call("look_at_position", focus, ZOOM_FJORD)
+	cam.set("_distance_target", MIRROR_DISTANCE_M)
+	cam.set("_yaw_target", PI)
+	cam.set("_user_rotated", true)
+	cam.call("set_pitch_offset", MIRROR_PITCH_UP_DEG)
+	cam.call("_snap")
+	await _wait(3.0)
+	var img := await _shoot("18_fjord_calm_dusk", true)
+	if img == null:
+		_content_failures.append("18_fjord_calm_dusk was not captured")
+	else:
+		var row := int((cam as Camera3D).unproject_position(shore).y / get_viewport().get_visible_rect().size.y * img.get_height())
+		var ssim := mirror_ssim(img, row)
+		# The same frame with the sky's radiance alone (the Low tier's water):
+		# the mirror must be what makes the band match.
+		var director = _env.get("director")
+		var tier := String(director.call("get_quality_name")) if director != null else ""
+		var ssim_sky := 0.0
+		if director != null:
+			director.call("set_quality", "low")
+			await _wait(1.2)
+			ssim_sky = mirror_ssim(await _grab_frame(), row)
+			director.call("set_quality", tier)
+			await _wait(1.0)
+		print("[ScreenshotHarness] 18_fjord_calm_dusk: waterline row %d of %d, mirror SSIM %.3f (%s), sky reflection alone %.3f" % [
+			row, img.get_height(), ssim, tier, ssim_sky])
+		if ssim < MIN_MIRROR_SSIM:
+			_content_failures.append("18_fjord_calm_dusk: the reflection band matches the flipped skyline at SSIM %.3f (min %.2f)" % [ssim, MIN_MIRROR_SSIM])
+		if tier != "low" and ssim - ssim_sky < MIN_MIRROR_SSIM_GAIN:
+			_content_failures.append("18_fjord_calm_dusk: the mirror lifts the band's SSIM by %.3f over the sky's reflection alone (min %.2f)" % [
+				ssim - ssim_sky, MIN_MIRROR_SSIM_GAIN])
+	cam.call("set_pitch_offset", 0.0)
+	cam.set("_user_rotated", false)
+
+
+## Mean SSIM (8 x 8 windows, luminance, C1 = 0.01^2, C2 = 0.03^2) between the
+## band of MIRROR_BAND of the frame height above the waterline row and the
+## band below it flipped about that row, over the central half of the
+## columns, on a half-size copy of the frame.
+static func mirror_ssim(img: Image, row: int) -> float:
+	var small := img.duplicate() as Image
+	small.resize(img.get_width() / 2, img.get_height() / 2, Image.INTERPOLATE_BILINEAR)
+	var w := small.get_width()
+	var h := small.get_height()
+	var r := row / 2
+	var band := mini(int(h * MIRROR_BAND), mini(r, h - r - 1))
+	if band < 8:
+		return 0.0
+	var c1 := 0.01 * 0.01
+	var c2 := 0.03 * 0.03
+	var total := 0.0
+	var count := 0
+	for by in range(0, band - 7, 4):
+		for bx in range(w / 4, w * 3 / 4 - 7, 4):
+			var sa := 0.0
+			var sb := 0.0
+			var saa := 0.0
+			var sbb := 0.0
+			var sab := 0.0
+			for j in 8:
+				for i in 8:
+					var a := small.get_pixel(bx + i, r - 1 - (by + j)).get_luminance()
+					var b := small.get_pixel(bx + i, r + by + j).get_luminance()
+					sa += a
+					sb += b
+					saa += a * a
+					sbb += b * b
+					sab += a * b
+			var ma := sa / 64.0
+			var mb := sb / 64.0
+			var va := saa / 64.0 - ma * ma
+			var vb := sbb / 64.0 - mb * mb
+			var cov := sab / 64.0 - ma * mb
+			total += ((2.0 * ma * mb + c1) * (2.0 * cov + c2)) / ((ma * ma + mb * mb + c1) * (va + vb + c2))
+			count += 1
+	return total / maxf(float(count), 1.0)
+
+
+## 19: a calm day, the camera straight above a shore. Water pixels are told
+## apart by the water bake's shore distance under them: foam must whiten the
+## water within SHORE_FOAM_SDF_M of the shore (pixels much lighter than the
+## open water 15-40 m out, and grey rather than coloured, so the shallows'
+## seabed does not count).
+func _capture_fjord_shore_foam() -> void:
+	if _env == null or not is_instance_valid(_env):
+		return
+	var terrain = _env.get("terrain")
+	var cam = _env.get("camera")
+	var ws = _env.get("weather_system")
+	if terrain == null or cam == null or ws == null:
+		return
+	_env.call("set_latitude", 60.4)
+	_env.call("set_season", 0.5)
+	_env.call("set_time", 12.0)
+	ws.call("apply_sky_context", CALM_SKY)
+	var z := MIRROR_FOCUS_Z - 900.0
+	var x := float(terrain.call("channel_center_x", z))
+	for i in 400:
+		x += 4.0
+		if float(terrain.call("get_height_at", x, z)) > 0.0:
+			break
+	cam.call("look_at_position", Vector3(x - 25.0, 0.0, z), ZOOM_FARM)
+	cam.set("_distance_target", 200.0)
+	cam.call("set_top_down", true)
+	cam.call("_snap")
+	await _wait(2.5)
+	var img := await _shoot("19_fjord_shore_foam", true)
+	cam.call("set_top_down", false)
+	if img == null:
+		_content_failures.append("19_fjord_shore_foam was not captured")
+		return
+	var stats := shore_foam_stats(img, cam as Camera3D, terrain, get_viewport().get_visible_rect().size)
+	print("[ScreenshotHarness] 19_fjord_shore_foam: foam-white %.1f %% of %d pixels within %.0f m of the shore, %.1f %% of %d out at 15-40 m" % [
+		stats.x * 100.0, int(stats.z), SHORE_FOAM_SDF_M, stats.y * 100.0, int(stats.w)])
+	if stats.z < 50.0 or stats.w < 50.0 or stats.x < 0.15 or stats.x < 3.0 * stats.y:
+		_content_failures.append("19_fjord_shore_foam: foam on %.1f %% of the water within %.0f m of the shore (min 15 %%, 3x the open water's %.1f %%)" % [
+			stats.x * 100.0, SHORE_FOAM_SDF_M, stats.y * 100.0])
+
+
+## (near share, open share, near count, open count): the share of water
+## pixels within SHORE_FOAM_SDF_M of the shore, and 15-40 m out, that read
+## as foam (lighter than the open water's mean by 0.08 and nearly grey).
+static func shore_foam_stats(img: Image, cam: Camera3D, terrain: Object, view_size: Vector2) -> Vector4:
+	var scale := view_size / Vector2(img.get_width(), img.get_height())
+	var near: Array[Color] = []
+	var open: Array[Color] = []
+	for y in range(0, img.get_height(), 6):
+		for x in range(0, img.get_width(), 6):
+			var screen := Vector2(x, y) * scale
+			var origin := cam.project_ray_origin(screen)
+			var dir := cam.project_ray_normal(screen)
+			if dir.y > -1e-3:
+				continue
+			var p := origin + dir * (-origin.y / dir.y)
+			if float(terrain.call("get_height_at", p.x, p.z)) > -0.3:
+				continue
+			var shore := float((terrain.call("water_bake_at", p.x, p.z) as Color).g)
+			if shore > 0.5 and shore < SHORE_FOAM_SDF_M:
+				near.append(img.get_pixel(x, y))
+			elif shore > 15.0 and shore < 40.0:
+				open.append(img.get_pixel(x, y))
+	var open_mean := 0.0
+	for c in open:
+		open_mean += c.get_luminance()
+	open_mean /= maxf(float(open.size()), 1.0)
+	var foam := func(c: Color) -> bool:
+		return c.get_luminance() > open_mean + 0.08 and c.s < 0.25
+	return Vector4(float(near.filter(foam).size()) / maxf(float(near.size()), 1.0),
+		float(open.filter(foam).size()) / maxf(float(open.size()), 1.0), float(near.size()), float(open.size()))
 
 
 # ── S1 forced-state shots (living fjord readout) ──────────────────────────────
@@ -952,6 +1187,13 @@ func _configure_env(season: float, hour: float, weather: int, zoom: int) -> void
 		_env.call("set_time", hour)
 	_set_weather(weather)
 	_set_camera_zoom(zoom)
+	# The moods follow the weather over seconds (EnvironmentDirector
+	# MOOD_RATE, G3-05): once the weather has settled, a QA shot takes them
+	# at once, as it skips the weather's own blend.
+	await get_tree().create_timer(0.3).timeout
+	var director = _env.get("director") if _env != null and is_instance_valid(_env) else null
+	if director != null and director.has_method("compose"):
+		director.call("compose", 0.0, true)
 
 
 func _set_weather(state: int) -> void:

@@ -1,5 +1,6 @@
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
+#include "res://shaders/include/mirror_pass.gdshaderinc"
 
 // === Fjord terrain material (G2-02, "Vestland Light", roadmap D13) ===
 //
@@ -108,6 +109,7 @@ varying vec3 world_normal;
 varying vec4 masks;
 
 void vertex() {
+	VERTEX = lk_mirror_vertex(VERTEX, MODEL_MATRIX, CAMERA_VISIBLE_LAYERS, CAMERA_POSITION_WORLD);
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	world_normal = (MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz;
 	masks = COLOR;

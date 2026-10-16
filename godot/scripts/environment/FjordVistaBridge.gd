@@ -39,6 +39,13 @@ func _ready() -> void:
 	game_ui = get_node_or_null(game_ui_path)
 	if game_ui and game_ui.has_signal("world_view_changed"):
 		game_ui.world_view_changed.connect(_on_world_view_changed)
+	# A panel covers the world only while the UI layer is drawn (the
+	# screenshot harness hides it for its fjord shots).
+	if game_ui is CanvasItem:
+		(game_ui as CanvasItem).visibility_changed.connect(_update_world_cover)
+		var layer := game_ui.get_parent() as CanvasLayer
+		if layer != null:
+			layer.visibility_changed.connect(_update_world_cover)
 	if pen_manager:
 		pen_manager.pen_clicked.connect(_on_pen_clicked)
 		call_deferred("_initial_sync")
@@ -93,12 +100,26 @@ func _focus_first_pen() -> void:
 
 
 ## Camera keys, wheel and drags act only while the world is on screen; the
-## camera hint and "Fly to pen" hide behind opaque panels.
+## camera hint and "Fly to pen" hide behind opaque panels, and the
+## environment renders the covered world cheaply (half scale, sky paused).
 func _on_world_view_changed(visible_now: bool) -> void:
 	world_visible = visible_now
 	if vista_camera:
 		vista_camera.input_enabled = visible_now
+	_update_world_cover()
 	world_view_changed.emit(visible_now)
+
+
+## The environment renders a covered world cheaply: an opaque panel is up
+## and the UI layer is drawn.
+func _update_world_cover() -> void:
+	var env := pen_manager.get_parent() if pen_manager else null
+	var director: Node = env.get("director") if env != null and "director" in env else null
+	if director == null or not director.has_method("set_world_visible"):
+		return
+	# is_visible_in_tree() follows the UI layer's own visibility too.
+	var ui_drawn := game_ui is CanvasItem and (game_ui as CanvasItem).is_visible_in_tree()
+	director.set_world_visible(world_visible or not ui_drawn)
 
 
 func _on_state_updated() -> void:

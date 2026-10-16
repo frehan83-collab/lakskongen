@@ -12,13 +12,16 @@ namespace LakskongenSim.Environment
     /// <param name="Snow">True when the precipitation falls as snow.</param>
     /// <param name="SeaFog01">1 on an advection sea-fog day (a low layer over the water).</param>
     /// <param name="AirTemperatureC">Estimated 2 m air temperature over the water.</param>
+    /// <param name="FrostSmoke01">Frost smoke (sea smoke, steam fog) over the open water:
+    /// 0 none, 1 a dense layer (G3-05, <see cref="AtmosphereModel.FrostSmoke"/>).</param>
     public readonly record struct AtmosphereConditions(
         double VisibilityKm,
         double CloudCover01,
         double PrecipitationMmPerHour,
         bool Snow,
         double SeaFog01,
-        double AirTemperatureC);
+        double AirTemperatureC,
+        double FrostSmoke01 = 0.0);
 
     /// <summary>
     /// Derives the visible atmosphere (G1-02) from the sim's weather regime,
@@ -38,6 +41,9 @@ namespace LakskongenSim.Environment
     /// <item>sea spray above 14 m/s: σ = 0.01·(U − 14)²;</item>
     /// <item>advection sea fog: 250-750 m visibility.</item>
     /// </list>
+    /// Frost smoke (sea smoke) is a layer on the water a few to some tens of
+    /// metres deep: it does not change the visibility at the eye heights the
+    /// fjord is seen from, so it only reports how dense it is.
     /// </summary>
     public static class AtmosphereModel
     {
@@ -56,6 +62,23 @@ namespace LakskongenSim.Environment
         private const double SprayCoefficient = 0.01;
         private const double SnowBelowAirC = 1.0;
         private const double SeaFogPeakChance = 0.18;
+        // Frost smoke (G3-05). Saunders (1964, QJRMS 90, "Sea smoke and steam
+        // fog"): water steams once the air over it is 5-10 K colder than the
+        // water, and the smoke thickens and deepens as the contrast grows
+        // (layers of 10 m and more past about 15 K). A fjord's frost smoke is
+        // land air: on a clear, calm winter night the valleys cool by
+        // radiation and the cold air drains out over the water, well below
+        // the maritime estimate of AirTemperatureC. How deep that day's
+        // outbreak runs comes from the day's hash; the north's valleys run
+        // colder (mean January minima: Bergen about -1 C, Bodø -5, Tromsø -6).
+        private const double FrostSmokeOnsetK = 10.0;
+        private const double FrostSmokeDenseK = 20.0;
+        private const double ColdOutbreakK60N = 10.0;
+        private const double ColdOutbreakKPerDegree = 0.6;
+        private const double FrostSmokeCalmMs = 2.0;
+        private const double FrostSmokeMaxWindMs = 6.0;
+        private const double OutbreakClearCover = 0.35;
+        private const double OutbreakCloudyCover = 0.75;
 
         /// <summary>Extinction coefficient (km⁻¹) for a visibility (km).</summary>
         public static double ExtinctionPerKm(double visibilityKm)
@@ -112,8 +135,45 @@ namespace LakskongenSim.Environment
                 sigma += KoschmiederConstant / (0.25 + 0.5 * Hash01(simDay, 5));
             }
 
+            double cloudCover = Math.Clamp(cloud, 0.0, 1.0);
+            double frostSmoke = FrostSmoke(state, windMs, seaTempC, airTemp, cloudCover, precip, seaFog, simDay, doy, latitudeDeg);
             return new AtmosphereConditions(
-                KoschmiederConstant / sigma, Math.Clamp(cloud, 0.0, 1.0), precip, snow, seaFog, airTemp);
+                KoschmiederConstant / sigma, cloudCover, precip, snow, seaFog, airTemp, frostSmoke);
+        }
+
+        /// <summary>
+        /// Frost smoke over the open water (0-1): the water-air contrast against
+        /// the land air of a cold-air outbreak, in calm, dry weather. The
+        /// outbreak needs a clear sky (radiative cooling) and the cold season
+        /// (the winter weight of <see cref="AirTemperatureC"/>); its depth on
+        /// the day is <see cref="ColdOutbreakMaxK"/> times <c>Hash01(day, 6)</c>.
+        /// </summary>
+        public static double FrostSmoke(
+            WeatherState state, double windMs, double seaTempC, double airTempC, double cloudCover01,
+            double precipitationMmPerHour, double seaFog01, int simDay, int dayOfYear, double latitudeDeg)
+        {
+            if (state >= WeatherState.Storm || precipitationMmPerHour > 0.0 || seaFog01 > 0.0)
+                return 0.0;
+            double winter = WinterWeight(dayOfYear);
+            double clear = 1.0 - SmoothStep(OutbreakClearCover, OutbreakCloudyCover, cloudCover01);
+            double outbreak = ColdOutbreakMaxK(latitudeDeg) * Hash01(simDay, 6) * winter * clear;
+            double contrast = seaTempC - (airTempC - outbreak);
+            double calm = 1.0 - SmoothStep(FrostSmokeCalmMs, FrostSmokeMaxWindMs, windMs);
+            return SmoothStep(FrostSmokeOnsetK, FrostSmokeDenseK, contrast) * calm;
+        }
+
+        /// <summary>Deepest cold-air outbreak (K below the maritime air estimate) at a latitude.</summary>
+        public static double ColdOutbreakMaxK(double latitudeDeg)
+            => ColdOutbreakK60N + ColdOutbreakKPerDegree * Math.Max(latitudeDeg - 60.0, 0.0);
+
+        /// <summary>0 in midsummer, 1 at the coldest time of year (about 20 January).</summary>
+        public static double WinterWeight(int dayOfYear)
+            => 0.5 * (1.0 + Math.Cos(2.0 * Math.PI * (dayOfYear - 20) / SolarGeometry.DaysPerYear));
+
+        private static double SmoothStep(double edge0, double edge1, double x)
+        {
+            double t = Math.Clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+            return t * t * (3.0 - 2.0 * t);
         }
 
         /// <summary>
@@ -122,7 +182,7 @@ namespace LakskongenSim.Environment
         /// </summary>
         public static double AirTemperatureC(double seaTempC, int dayOfYear, double latitudeDeg)
         {
-            double winter = 0.5 * (1.0 + Math.Cos(2.0 * Math.PI * (dayOfYear - 20) / SolarGeometry.DaysPerYear));
+            double winter = WinterWeight(dayOfYear);
             double winterOffset = 3.5 + 0.12 * (latitudeDeg - 60.0);
             return seaTempC - winterOffset * winter + 2.0 * (1.0 - winter);
         }

@@ -26,7 +26,7 @@ lakskongen/
 │   │   ├── bridge/              # SimProxies.gd, SimActions.gd, SimFormatters.gd, SimState.gd
 │   │   └── SimBridge.gd         # Facade forwarding to proxies
 │   └── data/                    # calibration.json, scenarios.json, tutorial_steps.json
-├── tools/ci.sh                  # 17-step CI pipeline (tools/ci_clean_checkout.sh runs it on a fresh clone)
+├── tools/ci.sh                  # 18-step CI pipeline (tools/ci_clean_checkout.sh runs it on a fresh clone; step 18, the P0-04 perf smoke test, is warn-only)
 ├── docs/NEXT_LEVEL_PLAN.md      # Phase 4+ roadmap
 └── docs/REALISM_CHECKLIST.md    # Calibration bands
 ```

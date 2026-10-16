@@ -6,7 +6,9 @@ extends Node3D
 ## thickness, visibility, rain, snow, sea fog, wind and waves. The targets
 ## come from the sim (apply_sky_context(), fed by FjordVistaBridge from
 ## AtmosphereModel) or, for staging, from a named preset (set_weather()).
-## Owns its rain and snow particles. Writes nothing else: EnvironmentDirector
+## Owns its rain and snow particles; the rain slants with the wind (G3-05:
+## a drop falls at about RAIN_FALL_MS and drifts with the wind, so a gale
+## drives it at 60 degrees). Writes nothing else: EnvironmentDirector
 ## reads the blended values and is the only writer of fog, sky, light and
 ## the water's wave uniforms.
 
@@ -24,19 +26,29 @@ enum WeatherState { CLEAR, OVERCAST, RAIN, SNOW, STORM, FOG }
 ## Staging presets, in the same physical units AtmosphereModel derives from
 ## the sim: cloud cover and thickness (0-1), visibility (km), rain and snow
 ## (mm/h water equivalent), sea fog (0-1), wind (m/s), significant wave
-## height (m). The visibilities sit inside AtmosphereModel's bands.
+## height (m), frost smoke (0-1). The visibilities sit inside
+## AtmosphereModel's bands. Air and sea temperatures come from the sim only.
 const WEATHER_PRESETS := {
-	WeatherState.CLEAR:    { "cloud": 0.18, "density": 0.15, "visibility_km": 60.0, "rain": 0.0, "snow": 0.0, "sea_fog": 0.0, "wind_ms": 4.0,  "wave_m": 0.3 },
-	WeatherState.OVERCAST: { "cloud": 0.88, "density": 0.45, "visibility_km": 20.0, "rain": 0.0, "snow": 0.0, "sea_fog": 0.0, "wind_ms": 7.0,  "wave_m": 0.9 },
-	WeatherState.RAIN:     { "cloud": 0.96, "density": 0.7,  "visibility_km": 4.5,  "rain": 2.5, "snow": 0.0, "sea_fog": 0.0, "wind_ms": 9.0,  "wave_m": 1.2 },
-	WeatherState.SNOW:     { "cloud": 0.94, "density": 0.55, "visibility_km": 2.5,  "rain": 0.0, "snow": 0.8, "sea_fog": 0.0, "wind_ms": 6.0,  "wave_m": 0.8 },
-	WeatherState.STORM:    { "cloud": 1.0,  "density": 1.0,  "visibility_km": 2.0,  "rain": 7.0, "snow": 0.0, "sea_fog": 0.0, "wind_ms": 16.0, "wave_m": 3.0 },
-	WeatherState.FOG:      { "cloud": 0.35, "density": 0.3,  "visibility_km": 0.4,  "rain": 0.0, "snow": 0.0, "sea_fog": 1.0, "wind_ms": 2.0,  "wave_m": 0.2 },
+	WeatherState.CLEAR:    { "cloud": 0.18, "density": 0.15, "visibility_km": 60.0, "rain": 0.0, "snow": 0.0, "sea_fog": 0.0, "wind_ms": 4.0,  "wave_m": 0.3, "frost_smoke": 0.0 },
+	WeatherState.OVERCAST: { "cloud": 0.88, "density": 0.45, "visibility_km": 20.0, "rain": 0.0, "snow": 0.0, "sea_fog": 0.0, "wind_ms": 7.0,  "wave_m": 0.9, "frost_smoke": 0.0 },
+	WeatherState.RAIN:     { "cloud": 0.96, "density": 0.7,  "visibility_km": 4.5,  "rain": 2.5, "snow": 0.0, "sea_fog": 0.0, "wind_ms": 9.0,  "wave_m": 1.2, "frost_smoke": 0.0 },
+	WeatherState.SNOW:     { "cloud": 0.94, "density": 0.55, "visibility_km": 2.5,  "rain": 0.0, "snow": 0.8, "sea_fog": 0.0, "wind_ms": 6.0,  "wave_m": 0.8, "frost_smoke": 0.0 },
+	WeatherState.STORM:    { "cloud": 1.0,  "density": 1.0,  "visibility_km": 2.0,  "rain": 7.0, "snow": 0.0, "sea_fog": 0.0, "wind_ms": 16.0, "wave_m": 3.0, "frost_smoke": 0.0 },
+	WeatherState.FOG:      { "cloud": 0.35, "density": 0.3,  "visibility_km": 0.4,  "rain": 0.0, "snow": 0.0, "sea_fog": 1.0, "wind_ms": 2.0,  "wave_m": 0.2, "frost_smoke": 0.0 },
 }
 
 ## Particle counts at 1 mm/h (rain) and 1 mm/h water equivalent (snow).
 const RAIN_PER_MM := 900.0
 const SNOW_PER_MM := 5000.0
+## A raindrop's fall speed (m/s, terminal velocity of a 2 mm drop): with the
+## wind it sets the slant of the streaks.
+const RAIN_FALL_MS := 9.0
+## The rain's emitter sits this high over the camera; its drops drift
+## downwind while they fall, so it moves upwind by half the drift.
+const RAIN_EMIT_HEIGHT := 30.0
+const RAIN_LIFETIME_S := 2.2
+## Re-aim the rain when its slant moves this much (direction vector).
+const RAIN_AIM_STEP := 0.02
 
 var _target: Dictionary = {}
 var _current: Dictionary = {}
@@ -44,6 +56,7 @@ var _start: Dictionary = {}
 var _transition_progress: float = 1.0
 var _wind_direction: Vector2 = Vector2(1.0, 0.3).normalized()
 var _was_storm: bool = false
+var _rain_aim := Vector3.ZERO
 
 # Weather affects gameplay
 signal weather_changed(state: WeatherState)
@@ -68,6 +81,7 @@ func _process(delta: float) -> void:
 	var wind_angle := atan2(_wind_direction.y, _wind_direction.x)
 	wind_angle += sin(Time.get_ticks_msec() * 0.0001) * 0.001
 	_wind_direction = Vector2(cos(wind_angle), sin(wind_angle))
+	_aim_rain()
 	_update_particle_positions()
 
 
@@ -89,6 +103,9 @@ func apply_sky_context(ctx: Dictionary) -> void:
 	var regime := str(ctx.get("weather_state", "Calm"))
 	var stormy := regime == "Storm" or regime == "Severe"
 	var target := {
+		"air_c": float(ctx.get("air_temp_c", get_air_temperature_c())),
+		"sea_c": float(ctx.get("sea_temp_c", get_sea_temperature_c())),
+		"frost_smoke": float(ctx.get("frost_smoke", 0.0)),
 		"cloud": float(ctx.get("cloud_cover", 0.2)),
 		"density": 1.0 if regime == "Severe" else (0.9 if stormy else (0.6 if precip > 0.0 else 0.3)),
 		"visibility_km": float(ctx.get("visibility_km", 40.0)),
@@ -168,6 +185,31 @@ static func _set_amount(particles: GPUParticles3D, amount: int) -> void:
 		particles.amount = amount
 
 
+## The rain's direction: down at RAIN_FALL_MS plus the wind (the streaks
+## lean with it; rain_streak.gdshader stretches each one along its velocity).
+static func rain_direction(wind: Vector2) -> Vector3:
+	return Vector3(wind.x, -RAIN_FALL_MS, wind.y).normalized()
+
+
+func _aim_rain() -> void:
+	if rain_particles == null or not (rain_particles.process_material is ParticleProcessMaterial):
+		return
+	var aim := rain_direction(get_wind())
+	if aim.distance_to(_rain_aim) < RAIN_AIM_STEP:
+		return
+	_rain_aim = aim
+	var process := rain_particles.process_material as ParticleProcessMaterial
+	process.direction = aim
+
+
+## Where the rain's emitter sits for a camera: over it, moved upwind by half
+## the distance a drop drifts while it falls, so the slanting rain still
+## covers the view.
+func rain_emitter_position(cam_pos: Vector3) -> Vector3:
+	var drift := get_wind() * RAIN_LIFETIME_S * 0.5
+	return Vector3(cam_pos.x - drift.x, cam_pos.y + RAIN_EMIT_HEIGHT, cam_pos.z - drift.y)
+
+
 func _update_particle_positions() -> void:
 	# Rain and snow fall around the camera so they always cover the view.
 	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
@@ -175,7 +217,7 @@ func _update_particle_positions() -> void:
 		return
 	var cam_pos := cam.global_position
 	if rain_particles:
-		rain_particles.global_position = Vector3(cam_pos.x, cam_pos.y + 30.0, cam_pos.z)
+		rain_particles.global_position = rain_emitter_position(cam_pos)
 	if snow_particles:
 		snow_particles.global_position = Vector3(cam_pos.x, cam_pos.y + 10.0, cam_pos.z)
 
@@ -215,6 +257,20 @@ func get_wind_speed_ms() -> float:
 
 func get_wave_height_m() -> float:
 	return _current.get("wave_m", 0.3)
+
+
+## The sim's air temperature over the water and its sea temperature (deg C).
+func get_air_temperature_c() -> float:
+	return _current.get("air_c", 6.0)
+
+
+func get_sea_temperature_c() -> float:
+	return _current.get("sea_c", 8.0)
+
+
+## Frost smoke on the water (0-1, AtmosphereModel.FrostSmoke).
+func get_frost_smoke() -> float:
+	return _current.get("frost_smoke", 0.0)
 
 
 ## Unit wind direction (x, z) the water and clouds drift with.

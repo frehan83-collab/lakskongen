@@ -375,6 +375,8 @@ func _build_lod_multimeshes() -> void:
 			mmi.name = "PenLOD%d_%s" % [level, mesh.name]
 			mmi.multimesh = mm
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			# The parts under the water stay out of the planar mirror (G2-03).
+			mmi.layers = PenCage.layers_for(String(mesh.name))
 			mmi.visible = false
 			add_child(mmi)
 			parts[String(mesh.name)] = mmi

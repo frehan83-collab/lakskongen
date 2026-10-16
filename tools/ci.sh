@@ -403,6 +403,28 @@ step_validate_mods() {
     "$PYTHON" "$REPO_ROOT/tools/validate_mods.py"
 }
 
+# P0-04: frame times at FARM, FJORD and COAST (2560x1440) and behind an opaque
+# panel, judged against p95 <= 16.7 ms. Warn-only until the Phase 1 exit
+# (roadmap P0-04): an over-budget segment, or a runner without the Mac GPU,
+# reports WARN and never fails the run (PERF_GATE_STRICT=1 makes it fail).
+step_perf_smoke() {
+    if [[ "$(uname -s)" != "Darwin" ]]; then
+        echo "   Warn-only: the frame budget is measured on the Mac runner (M1 Pro)."
+        STEP_STATUS="WARN"
+        return
+    fi
+    local out rc=0
+    out="$(mktemp -d -t lakskongen-perf.XXXXXX)"
+    PERF_OUT_DIR="$out" PERF_LABEL=ci "$REPO_ROOT/tools/perf_smoke.sh" | tee "$out/summary.txt" || rc=$?
+    if (( rc == 1 )); then
+        STEP_STATUS="FAIL"
+        return 1
+    fi
+    if (( rc != 0 )) || grep -q "PERF_GATE WARN" "$out/summary.txt"; then
+        STEP_STATUS="WARN"
+    fi
+}
+
 echo "Lakskongen CI quality gate — repo: $REPO_ROOT"
 echo ""
 
@@ -423,6 +445,7 @@ run_step "Godot MCP: Autoload audit"                   step_godot_mcp_autoload_a
 run_step "Godot MCP: Shader check"                     step_godot_mcp_shader_check
 run_step "Godot MCP: Export verify"                    step_godot_mcp_export_verify
 run_step "Mod validation + cross-reference checks"     step_validate_mods
+run_step "Fjord frame-time smoke test (P0-04, warn-only)" step_perf_smoke
 
 CURRENT_STEP=""
 print_summary

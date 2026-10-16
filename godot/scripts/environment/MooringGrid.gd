@@ -172,6 +172,10 @@ func _spawn_glows() -> MultiMeshInstance3D:
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# The halo grows past the 1 m quad on screen; keep it from being culled.
 	mmi.extra_cull_margin = 40.0 + FLOAT_CULL_MARGIN
+	# The glow draws its own reflection (the glitter strip on the water,
+	# light_glow.gdshaderinc): out of the planar mirror (G2-03), so a lamp
+	# is reflected once.
+	mmi.layers = PlanarReflection.NO_MIRROR_LAYER
 	add_child(mmi)
 	return mmi
 
@@ -303,6 +307,8 @@ func _spawn_ropes() -> MultiMeshInstance3D:
 	mmi.multimesh = mm
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mmi.extra_cull_margin = FLOAT_CULL_MARGIN
+	# Under the water: never in the planar mirror (G2-03).
+	mmi.layers = PlanarReflection.NO_MIRROR_LAYER
 	mmi.visibility_range_end = ROPE_VISIBLE_M
 	add_child(mmi)
 	return mmi

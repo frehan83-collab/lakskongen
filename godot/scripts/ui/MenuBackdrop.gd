@@ -75,9 +75,13 @@ const BUOY_YELLOW := Color(0.910, 0.725, 0.165)  # D13 buoy yellow #E8B92A
 # ── Cost ──────────────────────────────────────────────────────────────────────
 ## The menu's low camera sees far more sky than the game's views, and the sky
 ## is the costliest pixel in the frame (the atmosphere and cloud march). The
-## world is drawn at this share of the screen's resolution and brought up
-## with FSR 1 (the menu's text stays at full resolution), so the menu costs
-## no more than the game's fjord view (measured in-run, RUN_LOG U1-09).
+## world is drawn at most at this share of the screen's resolution and
+## brought up by the quality tier's upscaler (the menu's text stays at full
+## resolution), so the menu costs no more than the game's fjord view
+## (measured in-run, RUN_LOG U1-09). The menu's director applies it as a cap
+## (EnvironmentDirector.set_render_scale_cap): the quality tiers are the only
+## writer of the render settings (P0-04), and a tier already below it (High,
+## 0.75) keeps its own.
 const RENDER_SCALE := 0.85
 
 ## The wellboat's lane (m off the centreline, left looking out) and speed
@@ -94,8 +98,6 @@ var reduced_motion: bool = false
 var drift_time: float = 0.0
 
 var _ready_emitted := false
-## The viewport's 3D scaling before the menu took it, restored on exit.
-var _saved_scaling: Array = []
 var _wellboat: Node3D = null
 var _wellboat_from_z := 0.0
 var _wellboat_to_z := 0.0
@@ -105,6 +107,8 @@ func _ready() -> void:
 	environment = ENVIRONMENT_SCENE.instantiate() as FjordEnvironment
 	environment.name = "FjordEnvironment"
 	add_child(environment)
+	if environment.director != null:
+		environment.director.set_render_scale_cap(RENDER_SCALE)
 	camera = environment.camera
 	terrain = environment.terrain
 	for manager in SIM_MANAGERS:
@@ -123,14 +127,6 @@ func _ready() -> void:
 		terrain.terrain_ready.connect(_on_terrain_ready, CONNECT_ONE_SHOT)
 	else:
 		_on_terrain_ready.call_deferred()
-
-
-func _enter_tree() -> void:
-	_take_render_scale()
-
-
-func _exit_tree() -> void:
-	_restore_render_scale()
 
 
 func _process(delta: float) -> void:
@@ -179,24 +175,6 @@ func _on_terrain_ready() -> void:
 	await get_tree().process_frame
 	_ready_emitted = true
 	world_ready.emit()
-
-
-func _take_render_scale() -> void:
-	var vp := get_viewport()
-	if vp == null or not _saved_scaling.is_empty():
-		return
-	_saved_scaling = [vp.scaling_3d_mode, vp.scaling_3d_scale]
-	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR
-	vp.scaling_3d_scale = RENDER_SCALE
-
-
-func _restore_render_scale() -> void:
-	var vp := get_viewport()
-	if vp == null or _saved_scaling.is_empty():
-		return
-	vp.scaling_3d_mode = _saved_scaling[0]
-	vp.scaling_3d_scale = _saved_scaling[1]
-	_saved_scaling = []
 
 
 func _stage_mood() -> void:

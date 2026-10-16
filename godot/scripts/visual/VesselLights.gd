@@ -70,6 +70,9 @@ static func attach(vessel: VesselModel) -> MultiMeshInstance3D:
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# The glows grow past their quads on screen.
 	mmi.extra_cull_margin = 60.0
+	# The glows draw their own reflection on the water (light_glow
+	# .gdshaderinc): out of the planar mirror (G2-03).
+	mmi.layers = PlanarReflection.NO_MIRROR_LAYER
 	mmi.visibility_range_end = RANGE_M
 	mmi.add_to_group(SiteLights.NIGHT_ONLY_GROUP)
 	mmi.visible = SiteLights.night_shown()

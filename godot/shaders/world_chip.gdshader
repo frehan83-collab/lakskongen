@@ -17,6 +17,9 @@ uniform float pad_px = 14.0;
 // Screen-space lift above the anchor, in pixels (keeps the chip clear of
 // the site labels when the camera is far away).
 uniform vec2 offset_px = vec2(0.0, 0.0);
+// 1 / the eye's exposure (VesselChip.set_exposure, G3-05): the pill keeps
+// its day brightness at night instead of washing out.
+uniform float exposure_comp = 1.0;
 
 void vertex() {
 	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
@@ -39,6 +42,6 @@ void fragment() {
 	float dd = length(p - dot_c) - dot_px * 0.5;
 	float dot_mask = 1.0 - smoothstep(-aa, aa, dd);
 	float accent_mix = max(dot_mask, rim * 0.65);
-	ALBEDO = mix(fill.rgb, accent.rgb, accent_mix);
+	ALBEDO = mix(fill.rgb, accent.rgb, accent_mix) * exposure_comp;
 	ALPHA = inside * mix(fill.a, 1.0, accent_mix);
 }

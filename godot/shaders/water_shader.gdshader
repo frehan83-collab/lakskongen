@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode world_vertex_coords, cull_disabled, depth_draw_opaque, diffuse_burley, specular_schlick_ggx;
+render_mode world_vertex_coords, cull_disabled, depth_draw_opaque, diffuse_burley, specular_schlick_ggx, specular_occlusion_disabled;
 
 // === Fjord water, optics v1 (G1-05) ===
 //
@@ -31,8 +31,16 @@ render_mode world_vertex_coords, cull_disabled, depth_draw_opaque, diffuse_burle
 // Seen from below (cull_disabled, !FRONT_FACING): Snell's window (48.6 deg)
 // shows the daylight, outside it total internal reflection mirrors the deep
 // water.
+//
+// Weather and night (G3-05, water/water_mood.gdshaderinc): frost smoke on
+// the water, the clouds' shadows, the pens' lamps after dark. The body's
+// deep scatter follows the mood (EnvironmentDirector): sunny deep blue,
+// calm-winter slate, overcast grey.
 
 #define WAVES 16
+
+#include "res://shaders/water/water_mirror.gdshaderinc"
+#include "res://shaders/water/water_mood.gdshaderinc"
 
 // ── Waves (written by EnvironmentDirector) ───────────────────────────────────
 // wave_k[i] = (wavevector x, wavevector z, wavenumber k = 2 pi / lambda, choppiness Q),
@@ -41,6 +49,9 @@ uniform vec4 wave_k[WAVES];
 // wave_amp[i] = (amplitude in the sheltered basin m, amplitude on the open coast m,
 // phase rad, wavelength m)
 uniform vec4 wave_amp[WAVES];
+// wave_peak[i] = the component's weight round the spectral peak of the
+// sheltered basin's sea and of the open coast's (whitecaps break there).
+uniform vec2 wave_peak[WAVES];
 // Whitecap coverage (Monahan fraction) and the local wind's ripple strength.
 uniform float whitecaps : hint_range(0.0, 1.0) = 0.0;
 // Crest field level above which the sea breaks (from Monahan's share,
@@ -98,15 +109,30 @@ const float SNELL_COS = 0.6615; // cos(48.6 deg)
 const float MIN_REFLECTION_UP = 0.03;
 // F0 = 0.16 * SPECULAR^2 = 0.02, water's normal-incidence reflectance.
 const float WATER_SPECULAR = 0.354;
+const float WATER_F0 = 0.02;
 // The whitecap field: a crest gate (0 in the troughs, CREST_WEIGHT on the
 // crests) plus breaker noise of BREAKER_SPREAD (texture A, uniform on 0-1),
 // so short patches break at random along the crests instead of
 // whole crest lines. The director's threshold mapping is calibrated on it.
 const float CREST_WEIGHT = 2.0;
 const float BREAKER_SPREAD = 2.0;
+// Wave groups and gusts: a slow field that gathers the caps into patches.
+const float GROUP_SPREAD = 2.5;
+// The foam lace frays a cap's edge (a ragged patch, not a smooth oval).
+const float LACE_RAGGED = 0.9;
+// Width (m) of the shore's foam fringe in a calm (G2-03: foam wherever the
+// shore distance is under 5 m).
+const float SHORE_FRINGE_M = 4.0;
 
 varying vec3 v_world;
 varying vec2 v_p0;
+// The still water level (the grid's height).
+varying float origin_y;
+// G3-05 per vertex (water_mood.gdshaderinc): the pens' lamp glow (rgb) and
+// the frost smoke's cover (a). Both are smooth over tens of metres, and in
+// the fragment stage their code (off on most days) cost ~1 ms at FJORD in
+// register pressure alone.
+varying vec4 v_mood;
 
 vec4 bake_at(vec2 xz) {
 	vec2 uv = ((xz - bake_origin) / bake_spacing + 0.5) / bake_texels;
@@ -190,7 +216,9 @@ void vertex() {
 	disp *= 1.0 - smoothstep(0.75 * displaced_extent, displaced_extent, d_grid);
 	VERTEX = vec3(p0.x, origin.y, p0.y) + disp;
 	v_world = VERTEX;
+	origin_y = origin.y;
 	v_p0 = p0;
+	v_mood = vec4(lamp_glow_at(p0), frost_smoke_cover(p0, normalize(CAMERA_POSITION_WORLD - VERTEX)));
 }
 
 void fragment() {
@@ -213,11 +241,16 @@ void fragment() {
 	// ── Analytic Gerstner normal, band-limited to the pixel footprint ──
 	vec3 n = vec3(0.0, 1.0, 0.0);
 	float lost_variance = 0.0;
-	// Surface height and its variance: the whitecaps break on the highest
-	// crests of the energy-carrying waves.
+	// The whitecaps break on the crests of the waves at the spectral peak
+	// (the swell lifts the sea without breaking it, the short chop is too
+	// small to show): the surface height of the components near the peak
+	// (wave_peak: each component's weight round the peak of the basin's and
+	// the coast's sea, from the director), its variance, and its quarter-
+	// period lag (height_lag), from which a trailing term follows that is
+	// high just after a crest has passed (the spent foam left behind it).
 	float height = 0.0;
+	float height_lag = 0.0;
 	float height_var = 0.0;
-	float energy = 0.0;
 	// The whitecaps follow the crests of the local sea until they shrink to
 	// a few pixels; only then is the surface height needed for components
 	// too fine to draw.
@@ -230,9 +263,10 @@ void fragment() {
 		vec4 wk = wave_k[i];
 		vec4 wa = wave_amp[i];
 		float a = component_amplitude(wa, exposure, depth);
-		float a2 = a * a;
 		float ka = wk.z * a;
-		energy += a2;
+		vec2 wp = wave_peak[i];
+		float peak_a = a * mix(wp.x, wp.y, exposure);
+		height_var += peak_a * peak_a;
 		float t = clamp((wa.w - keep_from) * keep_scale, 0.0, 1.0);
 		float keep = t * t * (3.0 - 2.0 * t);
 		lost_variance += 0.5 * ka * ka * (1.0 - keep * keep);
@@ -244,10 +278,14 @@ void fragment() {
 			n.x -= keep * wk.x * a * c;
 			n.z -= keep * wk.y * a * c;
 			n.y -= keep * wk.w * ka * sn;
-			height += a * sn;
+			height += peak_a * sn;
+			height_lag += peak_a * c;
 		}
 	}
-	height_var = 0.5 * energy;
+	height_var *= 0.5;
+	// The phase falls through pi/2 as a crest passes a point: just after it
+	// (sin high, cos still positive) the spent foam lingers.
+	float trail = 0.6 * height + 0.8 * height_lag;
 	n = normalize(n);
 
 	// ── Ripples: the wind's short waves, scrolling with the sea ──
@@ -268,7 +306,10 @@ void fragment() {
 
 	// ── Foam (only near the shore or where the sea breaks) ──
 	float surge = smoothstep(0.05, 0.7, hs);
-	float surf_width = 1.5 + 6.0 * surge + 3.0 * hs;
+	// The surf band: a lacy fringe SHORE_FRINGE_M wide in any weather (the
+	// lapping line where the fjord meets the rock; it also tells the player
+	// where the shore is), widening with the sea.
+	float surf_width = SHORE_FRINGE_M + 6.0 * surge + 3.0 * hs;
 	float foam = 0.0;
 	bool near_shore = shore < surf_width && shore > -0.5;
 	if (near_shore || breaking) {
@@ -279,19 +320,23 @@ void fragment() {
 		// that varies across the water (with the exposure) shears the texture
 		// into stripes.
 		float patches = texture(foam_texture, fuv / 70.0).g;
-		// Shore: a lapping line in a calm, a surf band a few metres wide once
-		// the sea builds, its lines running in.
+		// Shore: a lapping line and a lacy fringe in a calm, a surf band a
+		// few metres wide once the sea builds, its lines running in.
 		float shore_band = 1.0 - smoothstep(0.0, surf_width, shore);
 		float lines = 0.5 + 0.5 * sin(TAU_ * (shore / (2.5 + 3.0 * hs) + sea_time * 0.11) + patches * 3.0);
 		float shore_foam = shore_band * smoothstep(0.35, 0.95, shore_band * 0.6 + lines * 0.45) * (0.45 + 0.55 * lace);
-		shore_foam *= step(-0.5, shore) * mix(0.35, 1.0, surge);
-		// Whitecaps: a crest gate plus a breaker noise (which stretch of a
-		// crest breaks, at the scale of the local sea; it slowly cross-fades
-		// so caps form and die) exceeds whitecap_threshold, mapped from
-		// Monahan's share by the director. A bright core, a thinner lace of
-		// spent foam just below it. Once the dominant crests shrink to a few
-		// pixels the caps are drawn as their mean cover, clumped into foam
-		// fields.
+		shore_foam *= step(-0.5, shore) * mix(0.45, 1.0, surge);
+		// The lapping line: the last metre or two is wet and white.
+		float lap = (1.0 - smoothstep(0.0, 1.6 + hs, shore)) * step(-0.5, shore) * (0.5 + 0.5 * lace);
+		shore_foam = max(shore_foam, lap * 0.6);
+		// Whitecaps: a steep-crest gate plus a breaker noise (which stretch
+		// of a crest breaks, at the scale of the local sea; it slowly
+		// cross-fades so caps form and die) exceeds whitecap_threshold,
+		// mapped from Monahan's share by the director. A bright, soft-edged
+		// core on the crest, and spent foam trailing behind it (upwind, where
+		// the crest has just passed), streaked out along the wind. In a gale
+		// long wind streaks join them. Once the dominant crests shrink to a
+		// few pixels the caps are drawn as their mean cover.
 		float caps = 0.0;
 		if (breaking) {
 			vec2 bq = q - vec2(sea_time * 0.6, 0.0);
@@ -301,17 +346,39 @@ void fragment() {
 			vec2 bs = bq / vec2(11.0, 28.0);
 			vec2 bl = bq / vec2(150.0, 390.0);
 			float breaker_small = mix(texture(foam_texture, bs).a, texture(foam_texture, bs / 1.17 + 0.5).a, fade);
-			float breaker_large = mix(texture(foam_texture, bl).a, texture(foam_texture, bl / 1.17 + 0.5).a, fade);
+			// The large field changes slowly: one fetch, no cross-fade.
+			float breaker_large = texture(foam_texture, bl).a;
 			float breaker = mix(breaker_small, breaker_large, exposure);
-			float crest_gate = smoothstep(0.0, 1.5, height / sqrt(max(height_var, 1e-8)));
-			float crest_z = CREST_WEIGHT * crest_gate + BREAKER_SPREAD * (breaker - 0.5) + (lace - 0.5) * 0.3;
-			float core = smoothstep(whitecap_threshold, whitecap_threshold + 0.3, crest_z);
-			float spent = smoothstep(whitecap_threshold - 0.35, whitecap_threshold, crest_z) * lace * lace;
-			caps = max(core * (0.65 + 0.35 * lace) * (0.85 + 0.15 * bubbles), spent * 0.35);
+			// Waves break in groups and under gusts: a slow, round field a
+			// few hundred metres across gathers the caps into patches instead
+			// of one on every crest (a crest-stretched one lines them up in
+			// bands).
+			float group = texture(foam_texture, bq / 260.0 + 0.21).a;
+			float sigma_k = sqrt(max(height_var, 1e-10));
+			float crest_gate = smoothstep(0.0, 1.5, height / sigma_k);
+			float crest_z = CREST_WEIGHT * crest_gate + BREAKER_SPREAD * (breaker - 0.5) + GROUP_SPREAD * (group - 0.5) + (lace - 0.5) * LACE_RAGGED;
+			// The core holds Monahan's share (the director's threshold is
+			// calibrated on it); a faint halo softens its edge.
+			float core = smoothstep(whitecap_threshold, whitecap_threshold + 0.5, crest_z);
+			float halo = smoothstep(whitecap_threshold - 0.35, whitecap_threshold, crest_z) * 0.25;
+			// Spent foam: where a crest that broke has just passed (the trail
+			// term), on the same stretch of crest, thinning to lace streaked
+			// out down the wind.
+			float trail_z = CREST_WEIGHT * smoothstep(0.0, 1.5, trail / sigma_k) + BREAKER_SPREAD * (breaker - 0.5) + GROUP_SPREAD * (group - 0.5);
+			float streak = texture(foam_texture, vec2(fuv.x / 26.0, fuv.y / 3.5)).r;
+			float spent = smoothstep(whitecap_threshold - 0.2, whitecap_threshold + 0.3, trail_z) * (0.3 + 0.7 * streak) * lace;
+			caps = max(core * (0.6 + 0.4 * lace) * (0.8 + 0.2 * bubbles), max(halo, spent * 0.3));
+			// A gale draws long, thin streaks of foam down the wind (Beaufort 8+).
+			float gale = smoothstep(0.03, 0.09, whitecaps);
+			if (gale > 0.0) {
+				float windrow = smoothstep(0.7, 0.92, texture(foam_texture, vec2(fuv.x / 140.0, fuv.y / 2.6)).r) * (0.4 + 0.6 * patches);
+				caps = max(caps, windrow * gale * 0.25);
+			}
 			// Once the crests are too small to follow, the caps are their mean:
-			// a faint whitening by Monahan's share (any pattern drawn at that
-			// scale tiles into a lattice towards the horizon).
-			float far_caps = whitecaps * 0.6;
+			// a faint whitening by Monahan's share and the spent foam's (any
+			// pattern drawn at that scale tiles into a lattice towards the
+			// horizon).
+			float far_caps = whitecaps * 0.9 + gale * 0.02;
 			caps = mix(caps, far_caps, smoothstep(0.1, 0.35, footprint / max(dominant_lambda, 0.1)));
 			// Below about 5 m/s Monahan's share is a few isolated caps: none drawn.
 			caps *= smoothstep(0.0, 3.0, depth) * smoothstep(0.0008, 0.004, whitecaps);
@@ -353,9 +420,28 @@ void fragment() {
 		if (r.y < MIN_REFLECTION_UP) {
 			n = normalize(view_w + normalize(vec3(r.x, MIN_REFLECTION_UP, r.z)));
 		}
-		ALBEDO = mix(body, foam_color, foam);
+		// The planar mirror (G2-03) carries the share `mirror.a` of the
+		// reflection, added as emission with water's Schlick fresnel; the
+		// engine's sky reflection and sun highlight keep the rest (F0 scales
+		// with SPECULAR^2, and below F0 0.02 the engine's grazing term scales
+		// with F0 too, so SPECULAR * sqrt(1 - a) hands it exactly 1 - a).
+		// The view ray's point on the still water plane looks it up.
+		vec3 flat_point = CAMERA_POSITION_WORLD - to_camera * (CAMERA_POSITION_WORLD.y - origin_y) / max(to_camera.y, 1e-3);
+		vec4 mirror = planar_sample(flat_point, view_w, n, roughness);
+		mirror.a *= 1.0 - foam;
+		float cos_r = clamp(dot(n, view_w), 0.0, 1.0);
+		float fresnel = WATER_F0 + (1.0 - WATER_F0) * pow(1.0 - cos_r, 5.0);
+		// A cloud's shadow takes the direct sun out of the water column; the
+		// pens' lamps glow through it at night; frost smoke veils it all.
+		vec3 shaded_body = body * (1.0 - 0.6 * cloud_shadow_at(v_world));
+		float smoke = v_mood.a;
+		vec3 lamps = v_mood.rgb * (1.0 - foam);
+		EMISSION = mirror.rgb * fresnel * mirror.a;
+		EMISSION = (EMISSION + lamps) * (1.0 - smoke) + frost_smoke_light * smoke;
+		ALBEDO = mix(shaded_body, foam_color, foam) * (1.0 - smoke);
 		ROUGHNESS = mix(clamp(roughness, 0.02, 0.4), 0.85, foam);
-		SPECULAR = mix(WATER_SPECULAR, 0.1, foam);
+		SPECULAR = mix(WATER_SPECULAR, 0.1, foam) * sqrt(1.0 - mirror.a);
+		SPECULAR *= 1.0 - smoke;
 		METALLIC = 0.0;
 		vec3 nf = normalize(mix(n, vec3(0.0, 1.0, 0.0), foam * 0.6));
 		NORMAL = normalize((VIEW_MATRIX * vec4(nf, 0.0)).xyz);

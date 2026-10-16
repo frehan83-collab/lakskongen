@@ -96,6 +96,11 @@ const NET_PARTS := ["Net", "BirdNet", "BirdNetRim"]
 ## Past LOD0 nothing casts a shadow (roadmap P0-04: the pen is a few pixels
 ## wide there and every cascade would draw it again).
 const NO_SHADOW_PARTS := ["Net", "BirdNet", "BirdNetRim", "SinkerTube", "LiceSkirt"]
+## Parts that hang under the water: the planar mirror's camera sits below
+## the surface and would draw them over the reflection (G2-03). They live on
+## PlanarReflection.NO_MIRROR_LAYER at every LOD, in the pen's own meshes
+## and in a FarmSite's MultiMeshes of them (layers_for()).
+const NO_MIRROR_PARTS := ["Net", "SinkerTube", "LiceSkirt"]
 ## Bird-net styles: a tent from a centre mast (owner references 2 and 4) or
 ## a green net on blue rim poles (reference 5), or none.
 enum BirdNet { TENT, RIM, NONE }
@@ -131,7 +136,8 @@ var _bird_net: int = BirdNet.TENT
 ## True once a FarmSite draws this pen's LOD1 and LOD2 (set_site_drawn).
 var _site_drawn := false
 var _lod0_shown := true
-## Render layers of the LOD0 meshes while shown.
+## Render layers of the LOD0 meshes while shown (the parts under the water
+## take PlanarReflection.NO_MIRROR_LAYER instead, layers_for()).
 const LOD0_LAYERS := 1
 ## Bake sample under the pen, keyed by (x, z, WaveField.bake_version).
 var _bake_key := Vector3(INF, INF, -1.0)
@@ -223,12 +229,18 @@ func _configure_lods() -> void:
 			mesh.visibility_range_end_margin = LOD_HYSTERESIS if end > 0.0 else 0.0
 			mesh.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
 			mesh.cast_shadow = shadow_for(String(mesh.name), level)
+			mesh.layers = layers_for(String(mesh.name))
 
 ## Whether a part of a LOD casts a shadow: LOD0's solid parts only.
 static func shadow_for(part: String, level: int) -> GeometryInstance3D.ShadowCastingSetting:
 	if level >= 1 or part in NO_SHADOW_PARTS:
 		return GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+
+## The render layers a part is drawn on: what hangs under the water stays
+## out of the planar mirror (G2-03), the rest is ordinary world.
+static func layers_for(part: String) -> int:
+	return PlanarReflection.NO_MIRROR_LAYER if part in NO_MIRROR_PARTS else LOD0_LAYERS
 
 ## The ring colour for a health state.
 static func health_color_of(state: int) -> Color:
@@ -361,7 +373,7 @@ func is_site_drawn() -> bool:
 func set_lod0_visible(on: bool) -> void:
 	_lod0_shown = on
 	for mesh in get_lod_meshes(0):
-		mesh.layers = LOD0_LAYERS if on else 0
+		mesh.layers = layers_for(String(mesh.name)) if on else 0
 
 func is_lod0_visible() -> bool:
 	return _lod0_shown
@@ -398,3 +410,5 @@ static func style_label(label: Label3D, text_color: Color, max_distance: float =
 	label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# Its colour holds at night (the eye's exposure would bloom it).
 	SiteLights.keep_text_colour(label)
+	# A label is not part of the world: no reflection in the water (G2-03).
+	label.layers = PlanarReflection.NO_MIRROR_LAYER

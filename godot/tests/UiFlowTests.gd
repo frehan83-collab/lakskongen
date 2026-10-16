@@ -94,6 +94,10 @@ func _run() -> void:
 	await _test_sky_latitude_follows_a_northern_scenario()
 	await _test_terrain_material_and_vegetation()
 	await _test_water_grid_bake_and_sea_state()
+	await _test_quality_tiers_and_covered_world()
+	await _test_water_mirror_wakes_and_spray()
+	# G3-05: moods, weather drama and the Nordic night (WeatherDramaChecks.gd).
+	await WeatherDramaChecks.new().run(self)
 	await _test_theme_and_contrast_on_every_screen()
 	_test_formatters_speak_the_locale()
 	await _test_dashboard_title_names_the_company()
@@ -3321,6 +3325,473 @@ func _test_camera_frames_sky_and_avoids_terrain() -> void:
 	scene.queue_free()
 	await get_tree().process_frame
 
+## P0-04 / G5-01 / G1-06: quality tiers through the EnvironmentDirector.
+## The saved tier is the player's (High when none is saved); each tier's
+## knobs reach the viewport (MSAA, SMAA, 3D scale), the environment (SSAO,
+## glow), the camera (depth of field) and the sky (where its clouds are
+## drawn); clouds composited from a reduced-resolution pass get the engine's
+## sky fog taken back out with the fog the director wrote; behind an opaque
+## panel the 3D renders at half scale and the sky stops updating, and the
+## world on screen (or a hidden UI layer) restores both; the terrain's
+## pipelines are warmed with its chunks' own vertex format on the first
+## frames; the settings menu's quality list applies a tier at once.
+func _test_quality_tiers_and_covered_world() -> void:
+	var scene := await _spawn_game_scene()
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var env: FjordEnvironment = scene.get_node("FjordEnvironment")
+	var director: EnvironmentDirector = env.get_node("EnvironmentDirector")
+	var cam: FjordCamera = env.get_node("FjordCamera")
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	var world_env: Environment = (env.get_node("WorldEnvironment") as WorldEnvironment).environment
+	var sky_mat := world_env.sky.sky_material as ShaderMaterial
+	var vp := get_viewport()
+	cam.auto_orbit_enabled = false
+
+	# The tier: the saved one, High when none is saved; a settings file's shape.
+	_check(RenderQuality.DEFAULT_TIER == RenderQuality.Tier.HIGH and RenderQuality.tier_from_settings({}) == RenderQuality.Tier.HIGH
+		and RenderQuality.tier_from_settings({"graphics": {"quality": "ultra"}}) == RenderQuality.Tier.ULTRA
+		and RenderQuality.tier_from_settings({"graphics": {"quality": "nonsense"}}) == RenderQuality.Tier.HIGH
+		and RenderQuality.tier_from_settings("not a dictionary") == RenderQuality.Tier.HIGH,
+		"quality: High is the default tier; a saved graphics.quality picks another, anything else falls back to High")
+	_check(director.get_quality_name() == RenderQuality.NAMES[RenderQuality.load_saved_tier()],
+		"quality: the director starts on the saved tier (%s)" % director.get_quality_name())
+	_check(scene.get_tree().get_nodes_in_group(RenderQuality.DIRECTOR_GROUP).has(director), "quality: the director joins the group the settings menu applies tiers through")
+
+	# The terrain's pipelines were warmed on the first frames, with its chunks' vertex format.
+	_check(director.prewarmed_shaders.has(FjordTerrain.TERRAIN_SHADER) and not is_instance_valid(director.prewarm),
+		"quality: the terrain shader was warmed on the first frames and the warm-up has freed itself")
+	for i in 600:
+		if terrain.is_ready():
+			break
+		await get_tree().process_frame
+	var chunks := terrain.get_chunk_meshes()
+	var warm_format := _vertex_layout(ShaderPrewarm.triangle_mesh(ShaderPrewarm.TERRAIN_FORMAT))
+	var chunk_format := _vertex_layout(chunks[0].mesh if not chunks.is_empty() else null)
+	_check(warm_format == chunk_format and warm_format > 0,
+		"quality: the warm-up triangle carries the terrain chunks' vertex arrays (%d vs %d)" % [warm_format, chunk_format])
+	var arrived_mat := chunks[0].material_override as ShaderMaterial if not chunks.is_empty() else null
+	_check(arrived_mat != null and arrived_mat.get_shader_parameter(RenderQuality.TERRAIN_DETAIL_UNIFORM) != null
+		and is_equal_approx(float(arrived_mat.get_shader_parameter(RenderQuality.TERRAIN_DETAIL_UNIFORM)), float(director.get_quality_knobs()["terrain_detail"])),
+		"quality: the terrain's material gets the tier's detail level as its chunks arrive")
+
+	# Every tier reaches the viewport, the environment, the camera and the sky.
+	ui.show_tab("fjord")
+	await get_tree().process_frame
+	_check(director.is_world_visible(), "quality: the Fjord tab shows the world")
+	for tier_name in RenderQuality.NAMES:
+		director.set_quality(tier_name)
+		await get_tree().process_frame
+		var k: Dictionary = director.get_quality_knobs()
+		var attrs := cam.attributes as CameraAttributesPractical
+		_check(director.get_quality_name() == tier_name and vp.msaa_3d == int(k["msaa"]) and vp.screen_space_aa == int(k["screen_aa"])
+			and is_equal_approx(vp.scaling_3d_scale, float(k["scale"])) and world_env.ssao_enabled == bool(k["ssao"])
+			and world_env.glow_enabled == bool(k["glow"]) and int(sky_mat.get_shader_parameter("cloud_pass")) == int(k["cloud_pass"])
+			and int(sky_mat.get_shader_parameter("cloud_steps")) == int(k["cloud_steps"])
+			and (bool(k["dof"]) or not attrs.dof_blur_far_enabled),
+			"quality: %s reaches the viewport (MSAA %d, SMAA %d, scale %.2f), SSAO %s, glow, DOF and the sky (clouds in pass %d)" % [
+				tier_name, vp.msaa_3d, vp.screen_space_aa, vp.scaling_3d_scale, str(world_env.ssao_enabled), int(k["cloud_pass"])])
+		_check(vp.scaling_3d_scale >= 0.999 or vp.scaling_3d_mode == RenderQuality.upscaler(),
+			"quality: %s upscales a reduced 3D scale with MetalFX or FSR, not bilinear" % tier_name)
+		var terrain_mat := chunks[0].material_override as ShaderMaterial if not chunks.is_empty() else null
+		_check(terrain_mat != null and is_equal_approx(float(terrain_mat.get_shader_parameter(RenderQuality.TERRAIN_DETAIL_UNIFORM)), float(k["terrain_detail"])),
+			"quality: %s hands the terrain shader its detail level (%.1f)" % [tier_name, float(k["terrain_detail"])])
+	director.set_quality("high")
+	await get_tree().process_frame
+	var high: Dictionary = director.get_quality_knobs()
+	var ultra := RenderQuality.knobs_for(RenderQuality.Tier.ULTRA)
+	_check(int(high["msaa"]) == Viewport.MSAA_4X and int(high["screen_aa"]) == Viewport.SCREEN_SPACE_AA_SMAA,
+		"quality: High keeps MSAA 4x + SMAA (D12; the pen net resolves its threads with alpha-to-coverage)")
+	_check(int(ultra["cloud_pass"]) == 0 and bool(ultra["ssao"]) and is_equal_approx(float(ultra["scale"]), 1.0),
+		"quality: Ultra keeps the full-cost sky, SSAO and native scale (the reference High is judged against)")
+	director.set_quality("ultra", {"cloud_pass": 1, "no_such_knob": 3})
+	_check(int(director.get_quality_knobs()["cloud_pass"]) == 1 and not director.get_quality_knobs().has("no_such_knob"),
+		"quality: an override sets a known knob and an unknown one is ignored")
+	director.set_quality("nonsense")
+	_check(director.get_quality_name() == "ultra", "quality: an unknown tier name keeps the tier in force")
+
+	# Clouds from a reduced-resolution pass: the shader takes the engine's sky fog back out.
+	director.set_quality("high")
+	director.compose(0.0, true)
+	var fog_k := world_env.fog_sky_affect * (1.0 - world_env.fog_aerial_perspective)
+	var fog_s := world_env.fog_sky_affect * world_env.fog_sun_scatter
+	_check(absf(float(sky_mat.get_shader_parameter("sky_fog_k")) - fog_k) < 1e-5 and absf(float(sky_mat.get_shader_parameter("sky_fog_scatter")) - fog_s) < 1e-5
+		and (sky_mat.get_shader_parameter("haze_color") as Color).is_equal_approx(world_env.fog_light_color),
+		"quality: the sky undoes exactly the fog the director wrote (k %.4f, scatter %.4f)" % [fog_k, fog_s])
+	var zenith: Vector3 = sky_mat.get_shader_parameter("sky_zenith")
+	_check(zenith.is_equal_approx(director.get_composed()["sky_zenith"]) and zenith.length() > 0.0,
+		"quality: the sky reads the zenith colour the director measured, once a frame")
+
+	# Behind an opaque panel: half scale, the sky holds still; back: native, live.
+	ui.show_tab("finance")
+	await get_tree().process_frame
+	var updates := director.sky_updates
+	var sky_time: float = sky_mat.get_shader_parameter("sky_time")
+	for i in 10:
+		await get_tree().process_frame
+	_check(not director.is_world_visible() and is_equal_approx(vp.scaling_3d_scale, float(high["hidden_scale"]))
+		and vp.scaling_3d_mode == Viewport.SCALING_3D_MODE_BILINEAR,
+		"quality: an opaque panel drops the 3D to %.2f scale" % vp.scaling_3d_scale)
+	_check(director.sky_updates == updates and is_equal_approx(float(sky_mat.get_shader_parameter("sky_time")), sky_time),
+		"quality: behind an opaque panel the sky material holds still (no radiance re-render)")
+	_check(not cam.input_enabled, "quality: camera input stays off behind the panel")
+	var ui_layer: CanvasLayer = scene.get_node("UILayer")
+	ui_layer.visible = false
+	await get_tree().process_frame
+	_check(director.is_world_visible() and is_equal_approx(vp.scaling_3d_scale, float(high["scale"])),
+		"quality: with the UI layer hidden (the screenshot harness) the world renders at full quality")
+	ui_layer.visible = true
+	await get_tree().process_frame
+	_check(not director.is_world_visible(), "quality: the UI layer back covers the world again")
+	ui.show_tab("fjord")
+	for i in 3:
+		await get_tree().process_frame
+	_check(director.is_world_visible() and is_equal_approx(vp.scaling_3d_scale, float(high["scale"])) and director.sky_updates > updates
+		and not is_equal_approx(float(sky_mat.get_shader_parameter("sky_time")), sky_time),
+		"quality: the Fjord tab restores the tier's scale and a live sky")
+
+	# Underwater the clouds are marched per pixel (the fog replaces the sky).
+	cam.look_at_position(cam.get_focus_point(), FjordCamera.ZoomLevel.UNDERWATER)
+	await _settle_camera(cam)
+	director.compose(0.0, true)
+	_check(int(sky_mat.get_shader_parameter("cloud_pass")) == 0, "quality: underwater the sky marches its clouds itself")
+	cam.set_zoom_level(FjordCamera.ZoomLevel.FJORD)
+	await _settle_camera(cam)
+
+	# The settings menu's quality list applies a tier at once (nothing saved here).
+	var menu: Control = (load("res://scenes/ui/SettingsMenu.tscn") as PackedScene).instantiate()
+	add_child(menu)
+	await get_tree().process_frame
+	var option: OptionButton = menu.get_node("%QualityOption")
+	_check(option.item_count == RenderQuality.NAMES.size() and option.get_item_text(2) == "Høy" and option.get_item_text(0) == "Lav",
+		"quality: the settings menu lists Lav, Middels, Høy and Ultra")
+	option.select(3)
+	option.item_selected.emit(3)
+	await get_tree().process_frame
+	_check(director.get_quality_name() == "ultra" and vp.msaa_3d == Viewport.MSAA_4X and is_equal_approx(vp.scaling_3d_scale, 1.0),
+		"quality: choosing Ultra in the settings applies it to the running fjord")
+	_check(str(menu._collect_from_widgets()["graphics"]["quality"]) == "ultra", "quality: the settings menu saves the chosen tier under graphics.quality")
+	menu.set("_dirty", false)
+	menu.queue_free()
+	director.set_quality(RenderQuality.load_saved_tier())
+	scene.queue_free()
+	await get_tree().process_frame
+	_check(is_equal_approx(vp.scaling_3d_scale, 1.0), "quality: leaving the game leaves the viewport at native 3D scale")
+
+
+## G2-03 water v2. The planar mirror: the camera mirrored in the water plane
+## is a proper rotation, and anything above the water lands in the mirror
+## exactly where the water point that reflects it does; the water reads the
+## very texture and matrix the mirror rendered; it updates every frame at
+## FJORD and at 30 Hz at COAST on High, skips FARM distances on High (not on
+## Ultra), and falls back to the sky's radiance on Low, underwater, behind a
+## panel and in a storm. It leaves out the water, what hangs under it and
+## world labels, lights the mirror with its own shadowless sun and moon (the
+## player's camera never sees them), and draws its sky in its quarter pass.
+## Wakes: a moving boat lays a trail whose Kelvin arms spread at 19.47 deg
+## and fade; spray flies at the pens only in a gale.
+func _test_water_mirror_wakes_and_spray() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 91), "mirror: seeded scenario starts")
+	_sim.set_paused(true)
+	var scene: Node = (load("res://scenes/GameScene.tscn") as PackedScene).instantiate()
+	add_child(scene)
+	for i in 5:
+		await get_tree().process_frame
+	_sim.set_paused(true)
+	var env: FjordEnvironment = scene.get_node("FjordEnvironment")
+	var director: EnvironmentDirector = env.get_node("EnvironmentDirector")
+	var mirror: PlanarReflection = env.get_node("PlanarReflection")
+	var cam: FjordCamera = env.get_node("FjordCamera")
+	var grid: WaterGrid = env.get_node("WaterGrid")
+	var terrain: FjordTerrain = env.get_node("Terrain")
+	var weather: WeatherController = env.get_node("WeatherSystem")
+	var vista: FjordVistaBridge = scene.get_node("FjordVistaBridge")
+	var pens: FishPenManager = env.get_node("FishPenManager")
+	var ui: Control = scene.get_node("UILayer/GameUI")
+	var world_env := (env.get_node("WorldEnvironment") as WorldEnvironment).environment
+	var mat := director.water_material()
+	cam.auto_orbit_enabled = false
+	vista.sim_weather_enabled = false
+	weather.transition_duration = 0.0
+	ui.show_tab("fjord")
+	for i in 600:
+		if terrain.is_ready():
+			break
+		await get_tree().process_frame
+	var calm := {"weather_state": "Calm", "wind_ms": 1.5, "cloud_cover": 0.15, "visibility_km": 50.0}
+	env.apply_sky_context(calm)
+	director.set_quality("high")
+	var focus: Vector3 = pens.get_pen_position(pens.get_pen_ids()[0])
+	cam.look_at_position(focus, FjordCamera.ZoomLevel.FJORD)
+	await _settle_camera(cam)
+	for i in 3:
+		await get_tree().process_frame
+	_check(director.planar_reflection == mirror and mirror.camera == cam and mirror.water_grid == grid,
+		"mirror: the director, the player's camera and the water are wired to the planar mirror")
+
+	# The geometry: a proper rotation that looks along the mirrored view, and an
+	# object above the water lands in the mirror where its reflection is.
+	var proper := true
+	var worst := 0.0
+	var proj := Projection.create_perspective(45.0, 16.0 / 9.0, 0.05, 4000.0)
+	for i in 24:
+		var pos := Vector3(sin(i * 1.3) * 800.0, 30.0 + 70.0 * float(i % 5), cos(i * 0.9) * 800.0)
+		var basis := Basis.from_euler(Vector3(deg_to_rad(-4.0 - float(i % 6) * 6.0), float(i) * 0.7, 0.0))
+		var t := Transform3D(basis, pos)
+		var m := PlanarReflection.mirror_transform(t, 0.0)
+		var f := -t.basis.z
+		proper = proper and m.basis.determinant() > 0.999 and is_equal_approx(m.origin.y, -pos.y) \
+			and (-m.basis.z).is_equal_approx(Vector3(f.x, -f.y, f.z))
+		var vp := proj * Projection(m.affine_inverse())
+		var ahead := Vector3(f.x, 0.0, f.z).normalized()
+		var q := pos + ahead * (500.0 + 90.0 * float(i % 4)) + Vector3(0.0, 120.0 + 40.0 * float(i % 3), 0.0) - Vector3(0.0, pos.y, 0.0)
+		# The water point that mirrors q: where the line from the camera to q's
+		# mirror image crosses the water.
+		var q_image := Vector3(q.x, -q.y, q.z)
+		var p := pos + (q_image - pos) * (pos.y / (pos.y - q_image.y))
+		worst = maxf(worst, PlanarReflection.uv_of(vp, p).distance_to(PlanarReflection.uv_of(vp, q)))
+	_check(proper and worst < 1e-3,
+		"mirror: the mirrored camera is a proper rotation along the mirrored view, and an object above the water lands where the water mirrors it (worst %.6f uv)" % worst)
+	var mirror_cam := mirror.get_mirror_camera()
+	var live_vp := mirror_cam.get_camera_projection() * Projection(mirror_cam.get_camera_transform().affine_inverse())
+	var bound_vp: Projection = mat.get_shader_parameter(PlanarReflection.VIEW_PROJ_UNIFORM)
+	_check(mirror.renders > 0 and mat.get_shader_parameter(PlanarReflection.TEXTURE_UNIFORM) == mirror.get_texture()
+		and _projection_close(bound_vp, mirror.view_proj) and _projection_close(mirror.view_proj, live_vp)
+		and mirror_cam.global_position.is_equal_approx(PlanarReflection.mirror_transform(cam.global_transform, 0.0).origin),
+		"mirror: the water reads the texture and the view-projection the mirror rendered with (%d passes)" % mirror.renders)
+	var win := get_window().size
+	_check(mirror.get_viewport_size().y <= int(ceil(win.y * float(director.get_quality_knobs()["mirror_scale"]))) + 1
+		or mirror.get_viewport_size().y == PlanarReflection.MIN_HEIGHT_PX,
+		"mirror: High renders it at %.2f of the window (%s)" % [float(director.get_quality_knobs()["mirror_scale"]), str(mirror.get_viewport_size())])
+
+	# The cadence: every frame at FJORD, 30 Hz at COAST (High); none at FARM on
+	# High, every frame there on Ultra.
+	mirror.set_process(false)
+	var at_fjord := _mirror_passes(mirror, 60)
+	cam.look_at_position(focus, FjordCamera.ZoomLevel.COAST)
+	await _settle_camera(cam)
+	var at_coast := _mirror_passes(mirror, 60)
+	_check(at_fjord == 60 and at_coast == 30, "mirror: High updates it every frame at FJORD (%d of 60) and at 30 Hz at COAST (%d of 60)" % [at_fjord, at_coast])
+	cam.look_at_position(focus, FjordCamera.ZoomLevel.FARM)
+	await _settle_camera(cam)
+	var high_farm := _mirror_passes(mirror, 30)
+	director.set_quality("ultra")
+	var ultra_farm := _mirror_passes(mirror, 30)
+	_check(high_farm == 0 and ultra_farm == 30 and is_zero_approx(float(RenderQuality.knobs_for(RenderQuality.Tier.ULTRA)["mirror_from_m"])),
+		"mirror: High leaves FARM distances to the sky's radiance (%d passes), Ultra mirrors there too (%d)" % [high_farm, ultra_farm])
+	director.set_quality("low")
+	# 40 frames: the mirror fades out over 0.6 s on its last texture.
+	var low_passes := _mirror_passes(mirror, 40)
+	_check(low_passes == 0 and is_zero_approx(float(mat.get_shader_parameter(PlanarReflection.MIX_UNIFORM))),
+		"mirror: Low has no mirror (the water falls back to the sky's radiance and the probe)")
+	director.set_quality("high")
+	cam.look_at_position(focus, FjordCamera.ZoomLevel.FJORD)
+	await _settle_camera(cam)
+	_check(_mirror_passes(mirror, 10) == 10, "mirror: back on High at FJORD it renders again")
+	director.set_world_visible(false)
+	var covered := _mirror_passes(mirror, 30)
+	director.set_world_visible(true)
+	env.apply_sky_context({"weather_state": "Storm", "wind_ms": 16.0, "cloud_cover": 1.0, "visibility_km": 2.0})
+	director.compose(1.0 / 60.0)
+	var storm_passes := _mirror_passes(mirror, 30)
+	var storm_wanted: bool = director.get_composed().get("mirror_wanted", true)
+	env.apply_sky_context(calm)
+	director.compose(1.0 / 60.0)
+	_check(covered == 0 and storm_passes == 0 and not storm_wanted and bool(director.get_composed().get("mirror_wanted", false)),
+		"mirror: none behind an opaque panel or in a storm (no water calm enough to mirror), back in the calm")
+	cam.look_at_position(focus, FjordCamera.ZoomLevel.UNDERWATER)
+	await _settle_camera(cam)
+	var under_passes := _mirror_passes(mirror, 40)
+	_check(under_passes == 0 and is_zero_approx(float(mat.get_shader_parameter(PlanarReflection.MIX_UNIFORM))),
+		"mirror: none with the camera under the water")
+	cam.look_at_position(focus, FjordCamera.ZoomLevel.FJORD)
+	await _settle_camera(cam)
+	mirror.set_process(true)
+
+	# What it sees and what lights it.
+	var sun: DirectionalLight3D = env.get_node("Sun")
+	var moon: DirectionalLight3D = env.get_node("Moon")
+	_check(mirror_cam.cull_mask == PlanarReflection.mirror_cull_mask() and mirror_cam.cull_mask & WaterGrid.RENDER_LAYER == 0
+		and mirror_cam.cull_mask & PlanarReflection.NO_MIRROR_LAYER == 0 and mirror_cam.cull_mask & PlanarReflection.MIRROR_ONLY_LAYER != 0
+		and cam.cull_mask & PlanarReflection.MIRROR_ONLY_LAYER == 0 and cam.cull_mask & PlanarReflection.NO_MIRROR_LAYER != 0,
+		"mirror: its camera leaves out the water and what hangs under it; the player's camera never sees the mirror's lights")
+	director.compose(0.0, true)
+	_check(sun.layers == PlanarReflection.NO_MIRROR_LAYER and moon.layers == PlanarReflection.NO_MIRROR_LAYER
+		and mirror.sun.layers == PlanarReflection.MIRROR_ONLY_LAYER and not mirror.sun.shadow_enabled and not mirror.moon.shadow_enabled
+		and mirror.sun.global_transform.basis.z.is_equal_approx(sun.global_transform.basis.z)
+		and is_equal_approx(mirror.sun.light_energy, sun.light_energy) and mirror.sun.light_color.is_equal_approx(sun.light_color)
+		and is_equal_approx(mirror.moon.light_energy, moon.light_energy),
+		"mirror: lit by its own shadowless copy of the sun and the moon")
+	var m_env := mirror.environment
+	var main_sky := world_env.sky.sky_material as ShaderMaterial
+	var mirror_sky := m_env.sky.sky_material as ShaderMaterial if m_env.sky != null else null
+	_check(m_env.tonemap_mode == Environment.TONE_MAPPER_LINEAR and is_equal_approx(m_env.tonemap_exposure, 1.0) and not m_env.glow_enabled
+		and is_equal_approx(m_env.fog_density, world_env.fog_density * EnvironmentDirector.MIRROR_FOG_SHARE)
+		and m_env.fog_light_color.is_equal_approx(world_env.fog_light_color),
+		"mirror: scene radiance (linear, exposure 1, no glow) with the main fog's colour and half its density")
+	_check(mirror_sky != null and mirror_sky != main_sky and int(mirror_sky.get_shader_parameter("sky_pass")) == EnvironmentDirector.MIRROR_SKY_PASS
+		and bool(mirror_sky.get_shader_parameter("sky_pass_aurora")) and int(main_sky.get_shader_parameter("sky_pass")) == 0
+		and is_equal_approx(float(mirror_sky.get_shader_parameter("sky_time")), float(main_sky.get_shader_parameter("sky_time"))),
+		"mirror: its own sky, the main one's uniforms, marched in the quarter pass (the main sky stays per pixel)")
+	# Every pen of every site (G2-04 grids), at every LOD: the pen's own
+	# meshes (LOD0 shown or handed to the site, LOD1/LOD2) and the site's
+	# MultiMeshes of its LOD1/LOD2 parts. What hangs under the water is out of
+	# the mirror, the collar and the gear above it are in.
+	var underwater_ok := true
+	var above_ok := true
+	var lod0_ok := true
+	var cages_seen := 0
+	var site_parts := 0
+	var mirror_mask := PlanarReflection.mirror_cull_mask()
+	for id in pens.get_pen_ids():
+		var farm := pens.get_site(id)
+		for cage in pens.get_site_cages(id):
+			cages_seen += 1
+			for level in PenCage.LOD_NAMES.size():
+				for mesh in cage.get_lod_meshes(level):
+					var under := String(mesh.name) in PenCage.NO_MIRROR_PARTS
+					var hidden := level == 0 and not cage.is_lod0_visible() and mesh.layers == 0
+					if under:
+						underwater_ok = underwater_ok and (hidden or mesh.layers == PlanarReflection.NO_MIRROR_LAYER)
+					elif not hidden:
+						above_ok = above_ok and mesh.layers & mirror_mask != 0
+			# The site's LOD hand-over hides and shows LOD0 by its layers: it
+			# must hand each part its own layers back.
+			var was_shown := cage.is_lod0_visible()
+			cage.set_lod0_visible(false)
+			cage.set_lod0_visible(true)
+			for mesh in cage.get_lod_meshes(0):
+				lod0_ok = lod0_ok and mesh.layers == (PlanarReflection.NO_MIRROR_LAYER if String(mesh.name) in PenCage.NO_MIRROR_PARTS else PenCage.LOD0_LAYERS)
+			cage.set_lod0_visible(was_shown)
+		if farm != null:
+			for level in [FarmSite.Lod.MID, FarmSite.Lod.FAR]:
+				var parts: Dictionary = farm.get_lod_multimeshes(level)
+				for part in parts:
+					site_parts += 1
+					var mmi := parts[part] as MultiMeshInstance3D
+					if String(part) in PenCage.NO_MIRROR_PARTS:
+						underwater_ok = underwater_ok and mmi.layers == PlanarReflection.NO_MIRROR_LAYER
+					else:
+						above_ok = above_ok and mmi.layers & mirror_mask != 0
+	var schools := env.find_children("FishSchool*", "MultiMeshInstance3D", true, false)
+	var shoals := env.find_children("Shoal", "MultiMeshInstance3D", true, false)
+	var ropes := env.find_children("Ropes", "MultiMeshInstance3D", true, false)
+	var labels := env.find_children("Label", "Label3D", true, false) + env.find_children("Number", "Label3D", true, false)
+	var glows := env.find_children("LightGlow", "MultiMeshInstance3D", true, false) + env.find_children(VesselLights.LIGHTS_NAME, "MultiMeshInstance3D", true, false)
+	for node in schools + shoals + ropes + labels + glows:
+		underwater_ok = underwater_ok and (node as VisualInstance3D).layers == PlanarReflection.NO_MIRROR_LAYER
+	var gear := env.find_children("Hoses", "MeshInstance3D", true, false) + env.find_children("Buoy_LOD0", "MultiMeshInstance3D", true, false) \
+		+ env.find_children("HoseFloats_LOD0", "MultiMeshInstance3D", true, false)
+	for node in gear:
+		above_ok = above_ok and (node as VisualInstance3D).layers & mirror_mask != 0
+	_check(underwater_ok and cages_seen >= pens.get_pen_ids().size() and site_parts > 0 and schools.size() == cages_seen
+		and shoals.size() == cages_seen and not ropes.is_empty() and not labels.is_empty() and not glows.is_empty(),
+		"mirror: nets, sinker tubes, lice skirts (every pen, every LOD and the sites' LOD MultiMeshes), fish schools and shoals, mooring ropes, site and pen labels and the light glows (which draw their own reflection) stay out of it (%d pens, %d schools)" % [cages_seen, schools.size()])
+	_check(above_ok and lod0_ok and not gear.is_empty(),
+		"mirror: collars, walkways, hoses, buoys and hose floats stay in it, and the site's LOD hand-over gives each pen part its own layers back")
+
+	# Wakes: a boat run down the fjord, driven by hand.
+	var wakes: VesselWakes = env.get_node("VesselWakes")
+	wakes.set_process(false)
+	var boat := (load("res://assets/models/workboat/workboat.tscn") as PackedScene).instantiate() as VesselModel
+	env.add_child(boat)
+	var start := Vector3(terrain.channel_center_x(-400.0), 0.0, -400.0)
+	boat.global_position = start
+	boat.rotation.y = PI  # bow along +Z
+	wakes._process(0.6)
+	for i in 40:
+		boat.global_position += Vector3(0.0, 0.0, 5.0)
+		wakes._process(1.0)
+	var trail: Dictionary = wakes.trails.get(boat.get_instance_id(), {})
+	var points: Array = trail.get("points", [])
+	var spacing_ok := points.size() >= 15
+	for i in range(1, points.size()):
+		var gap := (points[i]["p"] as Vector3).distance_to(points[i - 1]["p"])
+		spacing_ok = spacing_ok and gap >= VesselWakes.SEGMENT_MIN_M - 0.01 and gap <= VesselWakes.SEGMENT_MAX_M + 5.01
+	var oldest: Dictionary = points[0] if not points.is_empty() else {}
+	var expected := 0.5 * boat.beam_m + tan(deg_to_rad(19.47)) * float(oldest.get("speed", 0.0)) * (wakes._time - float(oldest.get("t", 0.0)))
+	var stern := VesselWakes.stern_of(boat)
+	var newest: Dictionary = points[points.size() - 1] if not points.is_empty() else {}
+	_check(spacing_ok and absf(VesselWakes.wedge_half_width(oldest, wakes._time) - expected) < 0.05
+		and absf(float(newest.get("speed", 0.0)) - 5.0) < 0.6 and (newest.get("p", Vector3.INF) as Vector3).distance_to(stern) < VesselWakes.SEGMENT_MAX_M,
+		"wakes: a boat at 5 m/s lays a trail behind its stern (%d points), its Kelvin arms 19.47 deg off the track" % points.size())
+	var mesh_node: MeshInstance3D = trail.get("mesh")
+	var mesh := mesh_node.mesh as ArrayMesh if mesh_node else null
+	_check(mesh != null and mesh.surface_get_array_len(0) == (points.size() - 1) * 3 * 4 and mesh_node.layers == PlanarReflection.NO_MIRROR_LAYER
+		and mesh_node.material_override == wakes.material,
+		"wakes: the trail is one mesh of three ribbons (the wash and both arms), out of the mirror")
+	var alpha_new := VesselWakes.point_alpha(newest, wakes._time)
+	boat.queue_free()
+	await get_tree().process_frame
+	for i in 240:
+		wakes._process(1.0)
+	_check(alpha_new > 0.3 and wakes.trails.is_empty(), "wakes: a fresh wake shows (alpha %.2f) and a gone boat's wake fades away" % alpha_new)
+	wakes.set_sea_state(0.06)
+	var gale_wake := wakes.sea_visibility
+	wakes.set_sea_state(0.0)
+	_check(is_zero_approx(gale_wake) and is_equal_approx(wakes.sea_visibility, 1.0), "wakes: a gale's own foam hides them, a calm shows them")
+	wakes.set_process(true)
+
+	# Spray at the pens: only in a gale.
+	var spray: PenSpray = env.get_node("PenSpray")
+	_check(is_zero_approx(PenSpray.spray_level(0.6, 6.0)) and PenSpray.spray_level(0.3, 16.0) > 0.4 and PenSpray.spray_level(0.9, 16.0) > PenSpray.spray_level(0.3, 16.0),
+		"spray: none in a breeze, plenty in a gale, more where the sea at the pen is higher")
+	env.apply_sky_context({"weather_state": "Storm", "wind_ms": 16.0, "cloud_cover": 1.0, "visibility_km": 2.0})
+	director.compose(1.0 / 60.0)
+	spray._refresh()
+	# One emitter per pen of every (non-ghost) site, at that pen's collar.
+	var pen_total := 0
+	var at_collars := true
+	for id in pens.get_pen_ids():
+		var farm := pens.get_site(id)
+		if farm != null and farm.is_ghost():
+			continue
+		var site_cages := pens.get_site_cages(id)
+		for k in site_cages.size():
+			pen_total += 1
+			var em: GPUParticles3D = spray.emitters.get("%s#%d" % [id, k + 1])
+			var c := site_cages[k].global_position
+			at_collars = at_collars and em != null and Vector2(em.global_position.x - c.x, em.global_position.z - c.z).length() < 0.01
+	var emitting := spray.emitters.size() == pen_total and pen_total >= pens.get_pen_ids().size() and at_collars
+	for id in spray.emitters:
+		emitting = emitting and (spray.emitters[id] as GPUParticles3D).emitting and (spray.emitters[id] as GPUParticles3D).layers == PlanarReflection.NO_MIRROR_LAYER
+	env.apply_sky_context(calm)
+	director.compose(1.0 / 60.0)
+	spray._refresh()
+	var quiet := true
+	for id in spray.emitters:
+		quiet = quiet and not (spray.emitters[id] as GPUParticles3D).emitting
+	_check(emitting and quiet, "spray: every pen of every site sprays at its own collar in a 16 m/s gale (%d pens) and none in the calm" % pen_total)
+	_check(absf(EnvironmentDirector.whitecap_threshold(0.031) - 2.72) < 0.03 and absf(EnvironmentDirector.whitecap_threshold(0.105) - 1.96) < 0.03,
+		"whitecaps: the threshold mapping holds the top-down calibration (W 3.1 % -> 2.72, 10.5 % -> 1.96)")
+	scene.queue_free()
+	await get_tree().process_frame
+
+
+## Mirror passes rendered over `frames` hand-driven 60 fps frames.
+func _mirror_passes(mirror: PlanarReflection, frames: int) -> int:
+	var before := mirror.renders
+	for i in frames:
+		mirror._process(1.0 / 60.0)
+	return mirror.renders - before
+
+
+func _projection_close(a: Projection, b: Projection) -> bool:
+	for c in 4:
+		for r in 4:
+			if absf(a[c][r] - b[c][r]) > 1e-3 * maxf(1.0, absf(b[c][r])):
+				return false
+	return true
+
+
+## The vertex arrays a mesh's first surface carries (Mesh.ARRAY_FORMAT_* bits
+## for vertex, normal, tangent, colour, UV, UV2, index).
+func _vertex_layout(mesh: Mesh) -> int:
+	if mesh == null or not (mesh is ArrayMesh):
+		return -1
+	var mask := Mesh.ARRAY_FORMAT_VERTEX | Mesh.ARRAY_FORMAT_NORMAL | Mesh.ARRAY_FORMAT_TANGENT | Mesh.ARRAY_FORMAT_COLOR \
+		| Mesh.ARRAY_FORMAT_TEX_UV | Mesh.ARRAY_FORMAT_TEX_UV2 | Mesh.ARRAY_FORMAT_INDEX
+	return (mesh as ArrayMesh).surface_get_format(0) & mask
+
 ## G1-03: camera keys never steal input from a focused Control: arrows on the
 ## tab bar and WASD in a text field leave the camera still; with nothing
 ## focused the same keys pan it.
@@ -3505,8 +3976,9 @@ func _test_environment_director_owns_the_look() -> void:
 	director.compose(0.0, true)
 	_check(director.get_composed()["aurora_intensity"] == 0.0, "environment: no aurora in daylight")
 
-	# Depth of field and shadows by zoom.
+	# Depth of field and shadows by zoom: G1-06's table, in full on Ultra.
 	var attrs := cam.attributes as CameraAttributesPractical
+	director.set_quality("ultra")
 	cam.look_at_position(first, FjordCamera.ZoomLevel.FARM)
 	await _settle_camera(cam)
 	director.compose(0.0, true)
@@ -3517,6 +3989,21 @@ func _test_environment_director_owns_the_look() -> void:
 	director.compose(0.0, true)
 	_check(absf(attrs.dof_blur_amount - 0.14) < 0.005 and absf(sun.directional_shadow_max_distance - 4500.0) < 5.0 and absf(world_env.ssao_radius - 8.0) < 0.05,
 		"environment: COAST softens the far fjord (DOF %.3f, shadows %.0f m, SSAO %.1f m)" % [attrs.dof_blur_amount, sun.directional_shadow_max_distance, world_env.ssao_radius])
+	# High (P0-04): the same shadows; depth of field where it shows, at FARM,
+	# and skipped by COAST, where the haze softens the far fjord as much.
+	director.set_quality("high")
+	director.compose(0.0, true)
+	_check(not attrs.dof_blur_far_enabled and attrs.dof_blur_amount == 0.0 and absf(sun.directional_shadow_max_distance - 4500.0) < 5.0,
+		"environment: on High COAST skips the depth-of-field pass and keeps its shadows (%.0f m)" % sun.directional_shadow_max_distance)
+	cam.look_at_position(first, FjordCamera.ZoomLevel.FARM)
+	await _settle_camera(cam)
+	director.compose(0.0, true)
+	_check(attrs.dof_blur_far_enabled and absf(attrs.dof_blur_amount - 0.06) < 0.005 and not attrs.dof_blur_near_enabled and absf(sun.directional_shadow_max_distance - 350.0) < 5.0,
+		"environment: on High FARM keeps its far blur (DOF %.3f), without the near blur no FARM view reaches" % attrs.dof_blur_amount)
+	director.set_quality(RenderQuality.load_saved_tier())
+	cam.look_at_position(first, FjordCamera.ZoomLevel.COAST)
+	await _settle_camera(cam)
+	director.compose(0.0, true)
 	_check(world_env.tonemap_mode == Environment.TONE_MAPPER_AGX and is_equal_approx(world_env.tonemap_agx_white, 6.0) and not world_env.sdfgi_enabled,
 		"environment: AgX tonemapping, white 6, no SDFGI")
 

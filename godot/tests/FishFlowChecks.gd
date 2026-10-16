@@ -22,6 +22,9 @@ extends RefCounted
 const GAME_SCENE := "res://scenes/GameScene.tscn"
 const FISH_COST_MS := 0.3
 const COST_PENS := 12
+## The bloom's green scatter the water shader mixes toward (water_shader
+## .gdshader, FishSchool.water_optics: vec3(0.006, 0.024, 0.010)).
+const BLOOM_SCATTER_G := 0.024
 
 var t: Node = null
 
@@ -347,8 +350,16 @@ func _shoal_sees_the_water(env: Node) -> void:
 	director.set_water_state(8.0, 0.8)
 	await _frames(3)
 	var bloom := _vec3_param("deep_scatter")
-	_check(clear.is_equal_approx(expect[1]) and sigma.is_equal_approx(expect[0]) and bloom.y > clear.y * 1.5,
-		"fish: the shoal sees through the water's own optics, and a bloom greens it (scatter g %.4f -> %.4f)" % [clear.y, bloom.y])
+	var expect_bloom := FishSchool.water_optics(director.water_material())
+	# G3-05 moods set the water's body (deep_scatter) per mood, so the green a
+	# bloom adds is measured against the way to the bloom's own green (the
+	# water shader's mix toward 0.024 by 0.85 x algae: 68 % at 0.8), which
+	# holds under every mood; on the pre-mood body it is the old 1.5x and more.
+	var toward := (bloom.y - clear.y) / maxf(BLOOM_SCATTER_G - clear.y, 1e-6)
+	_check(clear.is_equal_approx(expect[1]) and sigma.is_equal_approx(expect[0]) and bloom.is_equal_approx(expect_bloom[1])
+		and bloom.y > clear.y and toward >= 0.65,
+		"fish: the shoal sees through the water's own optics, clear and in a bloom, and a bloom greens it (scatter g %.4f -> %.4f, %.0f %% of the way to the bloom's green)"
+			% [clear.y, bloom.y, toward * 100.0])
 	director.set_water_state(8.0, 0.0)
 	await _frames(2)
 
