@@ -407,6 +407,15 @@ namespace LakskongenSim.Calibration
         public double LotCapacityTonnesHog { get; init; } = 7_900;
 
         /// <summary>
+        /// Capex of the pilot lot (4 grow-out + 1 pre-grow-out tank), the land
+        /// family's entry rung (unit NOK): 900,000,000, expandable to a full lot
+        /// for 1.25 bn more. Game balance: spec §2A.
+        /// </summary>
+        [Range(100_000_000, 3_000_000_000)]
+        [GameBalance("spec §2A: the pilot lot, the land family's entry rung")]
+        public decimal PilotLotCapexNok { get; init; } = 900_000_000m;
+
+        /// <summary>
         /// Farming cost (unit NOK per kg HOG): 70.7 at about half the capacity
         /// in use. Source L:R1 (Q2 2026); the target is 60-65 by mid-2027 (L:R9).
         /// </summary>
@@ -566,6 +575,22 @@ namespace LakskongenSim.Calibration
         [Range(0, 365)]
         [GameBalance("spec §2A: mooring and certificate ≈ 45 d")]
         public int MooringAndCertificationDays { get; init; } = 45;
+
+        /// <summary>
+        /// The company's share of a consortium unit, the Hav family's entry rung
+        /// (unit fraction): 0.35. Game balance: spec §2C ("Consortium entry: 35 % equity").
+        /// </summary>
+        [Range(0.1, 1.0)]
+        [GameBalance("spec §2C: consortium entry at 35 % equity")]
+        public double ConsortiumEquityShare { get; init; } = 0.35;
+
+        /// <summary>
+        /// Escape-free days before the development-licence round opens to the
+        /// company (unit days): 365. Game balance: spec §2C ("12 escape-free months").
+        /// </summary>
+        [Range(0, 1095)]
+        [GameBalance("spec §2C: the round opens after 12 escape-free months")]
+        public int RoundEscapeFreeDays { get; init; } = 365;
     }
 
     /// <summary>The Havfarm-class ship, stage 3 (spec §2A-2B, column Havfarm).</summary>

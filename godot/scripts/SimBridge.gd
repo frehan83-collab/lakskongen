@@ -634,6 +634,9 @@ func get_carbon_ledger() -> Dictionary: return _proxies.get_carbon_ledger()
 func get_carbon_intensity() -> float: return _proxies.get_carbon_intensity()
 func is_carbon_neutral_year() -> bool: return _proxies.is_carbon_neutral_year()
 
+# ── F2-04: the farm-type catalogue (sim·core) ─────────────────────────────────
+func get_farm_type_catalog() -> Dictionary: return _proxies.get_farm_type_catalog()
+
 # ── F2-03: farm types (land sites, offshore units, their plots) ───────────────
 # Each lane forwards only inside its own block (FARM_TYPES_SPEC §7.6).
 

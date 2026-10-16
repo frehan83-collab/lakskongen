@@ -570,6 +570,13 @@ func is_carbon_neutral_year() -> bool:
 	push_warning("SimProxies: IsCarbonNeutralYear unavailable — returning false")
 	return false
 
+# ── F2-04: the farm-type catalogue (sim·core) ─────────────────────────────────
+## The three families and seven variants with their reference values, source
+## keys and unlock gates (GameBridge.FarmTypes.cs). The UI holds no farm-type
+## number of its own: it reads them here.
+func get_farm_type_catalog() -> Dictionary:
+	return game_bridge.GetFarmTypeCatalog() if game_bridge else {"axes": [], "families": []}
+
 # ── F2-03: farm types (land sites, offshore units, their plots) ───────────────
 # Two lane blocks (FARM_TYPES_SPEC §7.6): the land lane (F2-12 … F2-16) appends
 # only inside the land block, the sea lane (F2-06 … F2-11) only inside the sea

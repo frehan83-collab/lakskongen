@@ -348,6 +348,25 @@ static func format_effect(key: String, value: float) -> String:
 	var prefix: String = "−" if key in REDUCTION_EFFECTS else "+"
 	return "%s %s%d %%" % [label, prefix, int(round(value * 100.0))]
 
+## F2-04: the tooltip's scope lines: the unit kinds a narrowed node's effects
+## reach ("applies_to") and the farm types it opens ("unlocks"), both from
+## research_nodes.json through GameBridge.GetResearchNodes.
+func scope_lines(nd: Dictionary) -> PackedStringArray:
+	var lines: PackedStringArray = []
+	var scopes: Array = nd.get("applies_to", [])
+	if not scopes.is_empty():
+		var names: PackedStringArray = []
+		for s in scopes:
+			names.append(tr("RESEARCH_SCOPE_" + str(s).to_upper()))
+		lines.append(tr("UI_TECH_APPLIES_TO") % ", ".join(names))
+	var unlocks: Array = nd.get("unlocks", [])
+	if not unlocks.is_empty():
+		var variants: PackedStringArray = []
+		for v in unlocks:
+			variants.append(tr("FARM_VARIANT_" + str(v).to_upper()))
+		lines.append(tr("UI_TECH_UNLOCKS") % ", ".join(variants))
+	return lines
+
 func _build_node_panels() -> void:
 	# Remove old panels
 	for old_panel in _node_panels.values():
@@ -537,6 +556,7 @@ func _on_node_hover(node_id: String) -> void:
 		for k in effects:
 			fx_parts.append(format_effect(k, float(effects[k])))
 		lines.append(tr("UI_TECH_EFFECTS") % ", ".join(fx_parts))
+	lines.append_array(scope_lines(nd))
 
 	_tooltip_label.text = "\n".join(lines)
 	_tooltip_label.custom_minimum_size = Vector2(260, 0)

@@ -34,7 +34,7 @@ Every unit on a plot sits in its plot's own water area: its `ZoneId` is the plot
 
 **Completeness.** `TheAudit_ListsEveryConsumer_WithADecision` scans `src/LakskongenSim` and `godot/scripts/autoload` (C#) and every GDScript file under `godot/scripts` (comments stripped) for `SeaSites` and `GetSeaSiteDetails`, keyed by file and enclosing member with its number of uses, and fails when a consumer appears, disappears or changes its number of uses without this table following; `TheAudit_ListsEveryFjordViewConsumer` does the same for the fjord view (`FjordSites`), the consumers F2-03 moved off the list. `TheScan_FindsTheKnownConsumers` guards the scanner itself.
 
-**Totals.** 129 consumers (197 uses) of the list: 80 include, 37 exclude, 12 hook; 12 readers of the fjord view (10 exclude, the 2 views themselves include). The spec's estimate was about 99 in the sim and 58 in the bridge counted by use; a member that reads the list several times is one row here with its number of uses.
+**Totals.** 130 consumers (198 uses) of the list (F2-04 added `EscapeFreeDays`): 81 include, 37 exclude, 12 hook; 12 readers of the fjord view (10 exclude, the 2 views themselves include). The spec's estimate was about 99 in the sim and 58 in the bridge counted by use; a member that reads the list several times is one row here with its number of uses.
 
 ## Consumers
 
@@ -111,6 +111,7 @@ Every unit on a plot sits in its plot's own water area: its `ZoneId` is the plot
 | `src/LakskongenSim/Core/SimulationEngine.Facilities.cs` | `BuildOffshoreFarm` | 3 | units-and-lists | include | Creates the unit as an offshore sea site on the first free slot its class is rated for (`no_free_plot` otherwise) |
 | `src/LakskongenSim/Core/SimulationEngine.FacilityMigration.cs` | `MigrateFacilities` | 1 | units-and-lists | include | Adds each pre-F2 offshore farm as an offshore sea site (same id, zones merged pairwise) |
 | `src/LakskongenSim/Core/SimulationEngine.FacilityProduction.cs` | `TransferPostSmoltToSea` | 1 | capacity | exclude | A post-smolt batch goes to a fjord site; refuses a unit (`offshore_unit`) until F2-07's offshore stocking |
+| `src/LakskongenSim/Core/SimulationEngine.FarmTypes.cs` | `EscapeFreeDays` | 1 | escapes-sustainability | include | F2-04: the farm-type catalogue's escape-free gate (spec §2C, 12 escape-free months before the development-licence round) is the company's: an escape from an offshore unit breaks it as one from a fjord site does |
 | `src/LakskongenSim/Core/SimulationEngine.GameEvents.cs` | `PublishStandingOrders` | 2 | lice | include | Mattilsynet's standing treatment orders: a unit over its lice limit gets one (and its pacing deadline) |
 | `src/LakskongenSim/Core/SimulationEngine.Harvest.cs` | `FindHarvestHolding` | 1 | harvest-wellboat | include | A unit is an `Offshore` holding: the offshore wellboat route and rent (`IsResourceRentLiable`) |
 | `src/LakskongenSim/Core/SimulationEngine.Licence.cs` | `AcquireDistressedAsset` | 1 | units-and-lists | include | Adds the acquired fjord site (a rival's locality) |

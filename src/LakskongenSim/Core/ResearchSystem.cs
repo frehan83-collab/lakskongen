@@ -33,6 +33,23 @@ namespace LakskongenSim.Core
         public List<string>              Prerequisites { get; init; } = new();
         public bool                      Unlocked      { get; set; }
         public Dictionary<string, double> Effects      { get; init; } = new();
+
+        /// <summary>
+        /// F2-04: the farm-type variants this node opens (farm-type catalogue
+        /// ids, <c>Farm.FarmTypeCatalog</c>); the node is one of the variant's
+        /// unlock gates. Empty for a node that opens no farm type.
+        /// </summary>
+        public List<string> Unlocks { get; init; } = new();
+
+        /// <summary>
+        /// F2-04: the unit kinds the node's effects reach (<see cref="ResearchScopes"/>:
+        /// "sea", "offshore", "land"). Empty = every unit. A scoped node may only
+        /// carry effects a unit reads (<see cref="ResearchEffectKeys.UnitScoped"/>).
+        /// </summary>
+        public List<string> AppliesTo { get; init; } = new();
+
+        /// <summary>True when the node's effects reach a unit of <paramref name="scope"/> (an unscoped node reaches every unit).</summary>
+        public bool AppliesToScope(string scope) => AppliesTo.Count == 0 || AppliesTo.Contains(scope);
     }
 
     /// <summary>
@@ -130,13 +147,30 @@ namespace LakskongenSim.Core
             => _nodes.Values.Where(n => n.Unlocked).Select(n => n.Id);
 
         /// <summary>
-        /// Sum all unlocked effects for a given key.
+        /// Sum the unlocked effects for a given key that reach every unit
+        /// (F2-04: a node scoped to some unit kinds is left out; see
+        /// <see cref="GetTotalEffect(string, string)"/>).
         /// Returns 0.0 if no unlocked node contributes to that key.
         /// </summary>
         public double GetTotalEffect(string key)
             => _nodes.Values
-                .Where(n => n.Unlocked && n.Effects.ContainsKey(key))
+                .Where(n => n.Unlocked && n.AppliesTo.Count == 0 && n.Effects.ContainsKey(key))
                 .Sum(n => n.Effects[key]);
+
+        /// <summary>
+        /// F2-04: sum the unlocked effects for a given key that reach a unit of
+        /// <paramref name="scope"/> (<see cref="ResearchScopes"/>): every unscoped
+        /// node plus the nodes scoped to that kind, in the tree's order (so a
+        /// game with no scoped node unlocked sums exactly as before).
+        /// </summary>
+        public double GetTotalEffect(string key, string scope)
+            => _nodes.Values
+                .Where(n => n.Unlocked && n.AppliesToScope(scope) && n.Effects.ContainsKey(key))
+                .Sum(n => n.Effects[key]);
+
+        /// <summary>F2-04: every node (locked or not) that opens the farm-type variant <paramref name="variantId"/>, in tree order.</summary>
+        public IEnumerable<ResearchNode> NodesUnlocking(string variantId)
+            => _nodes.Values.Where(n => n.Unlocks.Contains(variantId));
 
         // ─── Save/load helpers ─────────────────────────────────────────────────
 
@@ -184,6 +218,8 @@ namespace LakskongenSim.Core
             {
                 node.Unlocked = previousState.TryGetValue(node.Id, out var wasUnlocked) && wasUnlocked;
                 ReportUnknownEffectKeys(node.Id, node.Effects?.Keys);
+                foreach (var problem in ScopeProblems(node))
+                    SimLog.Warn($"Research node '{node.Id}': {problem}");
                 _nodes[node.Id] = node;
             }
         }
@@ -191,6 +227,22 @@ namespace LakskongenSim.Core
         /// <summary>Effect keys of a node that no engine system reads.</summary>
         public static IEnumerable<string> UnknownEffectKeys(IEnumerable<string>? keys)
             => (keys ?? Enumerable.Empty<string>()).Where(k => !ResearchEffectKeys.Live.Contains(k));
+
+        /// <summary>
+        /// F2-04: what is wrong with a node's scope: an unknown unit kind, or an
+        /// effect a unit does not read on a scoped node (a scoped price premium
+        /// would apply to nothing).
+        /// </summary>
+        public static IEnumerable<string> ScopeProblems(ResearchNode node)
+        {
+            foreach (var scope in node.AppliesTo ?? new List<string>())
+                if (!ResearchScopes.All.Contains(scope))
+                    yield return $"unknown unit kind '{scope}' in appliesTo";
+            if (node.AppliesTo is { Count: > 0 })
+                foreach (var key in node.Effects?.Keys ?? Enumerable.Empty<string>())
+                    if (!ResearchEffectKeys.UnitScoped.Contains(key))
+                        yield return $"effect '{key}' cannot be scoped to a unit kind";
+        }
 
         private static void ReportUnknownEffectKeys(string nodeId, IEnumerable<string>? keys)
         {
@@ -535,26 +587,32 @@ namespace LakskongenSim.Core
             {
                 Id = "deep-sea-farming",
                 Name = "Deep-Sea Exposed Farming",
-                Description = "Develop offshore semi-submersible pen systems for exposed, high-current sites. Access to pristine water and large volume capacity, reducing fjord crowding pressure.",
+                Description = "Develop offshore semi-submersible pen systems for exposed, high-current sites. Opens the OF1-class offshore unit; its lice and disease effects apply to offshore units only.",
                 Branch = ResearchBranch.Expansion,
                 Tier = 1,
                 CostNOK = 900_000m,
                 ResearchDays = 55,
                 Prerequisites = new(),
-                Effects = new() { [ResearchEffectKeys.LiceReduction] = 0.10, [ResearchEffectKeys.DiseaseResistanceBonus] = 0.06 }
+                Effects = new() { [ResearchEffectKeys.LiceReduction] = 0.10, [ResearchEffectKeys.DiseaseResistanceBonus] = 0.06 },
+                // F2-04 (FARM_TYPES_SPEC §2C): the gate of the Hav family; its effects narrowed to offshore units.
+                Unlocks = new() { "of1" },
+                AppliesTo = new() { ResearchScopes.Offshore }
             });
 
             Add(new ResearchNode
             {
                 Id = "land-based-ras",
                 Name = "Land-Based RAS Facility",
-                Description = "Recirculating Aquaculture System on shore. Zero sea lice, no escape risk, controlled environment year-round. High capital cost but biosecure smolt production and ability to site near markets.",
+                Description = "Recirculating Aquaculture System on shore. Zero sea lice, no escape risk, controlled environment year-round. Opens the post-smolt module and the hybrid land farm; its mortality and disease effects apply to land tanks only.",
                 Branch = ResearchBranch.Expansion,
                 Tier = 1,
                 CostNOK = 1_200_000m,
                 ResearchDays = 60,
                 Prerequisites = new(),
-                Effects = new() { ["mortality_reduction"] = 0.05, ["disease_resistance_bonus"] = 0.14 }
+                Effects = new() { ["mortality_reduction"] = 0.05, ["disease_resistance_bonus"] = 0.14 },
+                // F2-04 (FARM_TYPES_SPEC §2C): the gate of the Land family; its effects narrowed to land tanks.
+                Unlocks = new() { "post_smolt", "hfs" },
+                AppliesTo = new() { ResearchScopes.Land }
             });
 
             Add(new ResearchNode

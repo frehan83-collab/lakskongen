@@ -57,8 +57,9 @@ public class FarmTypeMoveTests
     /// farm an offshore unit on off_1, its post-smolt facility a post-smolt land
     /// site on pad_delta, its RAS facility a land site on pad_a, the unit's
     /// carbon on its sea site's one tracker), hashed as
-    /// <see cref="PreMoveRecording"/>. A later item that changes the facility
-    /// behaviour on purpose replaces these with a RUN_LOG §7 row, as F2-03 did.
+    /// <see cref="PreMoveRecording"/>. F2-04 changes the facilities' days on
+    /// purpose (RUN_LOG §7, F2-04), so these are history now:
+    /// <see cref="F2_04Recording"/> pins the continuation.
     /// </summary>
     private static readonly IReadOnlyDictionary<string, string> F2_03Recording = new Dictionary<string, string>(StringComparer.Ordinal)
     {
@@ -67,7 +68,29 @@ public class FarmTypeMoveTests
         ["contained/events"] = "cc5ee2b0971b9fb1",
     };
 
-    public static IEnumerable<object[]> Variants() => F2_03Recording.Keys.Select(k => new object[] { k });
+    /// <summary>
+    /// The same continuations recorded on F2-04's engine (wave3/sim-core-3),
+    /// hashed as <see cref="PreMoveRecording"/>. What moved: (1) the save holds
+    /// deep-sea-farming, whose lice and disease effects now reach the offshore
+    /// unit only (spec §3.1 decision 0: F2-04 narrows the research effects), so
+    /// the fjord sites and the land and post-smolt tanks lose them; (2) the year
+    /// end's resource-rent base leaves out the land sites' costs (the
+    /// ring-fence, spec §3.6); (3) the save carries F2-04's additive fields
+    /// (asset register, construction projects, permit cases, the ring-fenced
+    /// costs). No unit enters the asset register: their capex was paid before
+    /// F2 (spec §8). Ring-fence alone (before the narrowing), recorded on the
+    /// same branch: 9f4737c4826751a4, bc190ab10a29ab81, 0fe99725a94520ca. A later
+    /// item that changes the facility behaviour on purpose replaces these with
+    /// a RUN_LOG §7 row, as F2-03 and F2-04 did.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, string> F2_04Recording = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["as-saved/events"] = "3d9dccd403596921",
+        ["as-saved/no-events"] = "a006d57aa0681740",
+        ["contained/events"] = "aa0ff910f3e60c5a",
+    };
+
+    public static IEnumerable<object[]> Variants() => F2_04Recording.Keys.Select(k => new object[] { k });
 
     private static string FixturePath()
     {
@@ -134,13 +157,15 @@ public class FarmTypeMoveTests
     /// unit kinds: the pre-F2 facilities save (a RAS facility with stocked
     /// tanks, an offshore farm with stocked pens, a post-smolt facility with
     /// batches, a hatchery cohort) loads into a grow-out land site, an offshore
-    /// unit and a post-smolt land site and runs 365 days as recorded on F2-03's
+    /// unit and a post-smolt land site and runs 365 days as recorded on F2-04's
     /// engine: every day's traced state (populations by tank and zone, the
     /// ledger, cash, every stream) and the whole save every 30 days (carbon
-    /// trackers, facility water, crew rotation). Replaces F2-02's pre-move pins
-    /// (<see cref="PreMoveRecording"/>; RUN_LOG §7, F2-03) and asserts more: the
+    /// trackers, facility water, crew rotation). Replaced F2-02's pre-move pins
+    /// (<see cref="PreMoveRecording"/>; RUN_LOG §7, F2-03) and F2-03's
+    /// (<see cref="F2_03Recording"/>; RUN_LOG §7, F2-04), and asserts more: the
     /// land sites and the offshore unit are the save's facilities by id, each
-    /// on its plot, the offshore unit's fish in its zones.
+    /// on its plot, the offshore unit's fish in its zones, and no unit whose
+    /// capex was paid before F2 enters the asset register.
     /// </summary>
     [Theory]
     [MemberData(nameof(Variants))]
@@ -168,6 +193,11 @@ public class FarmTypeMoveTests
         Assert.Contains(unit.CarbonTracker.Emissions, e => e.Source == unit.Id);
         Assert.Empty(engine.OffshoreFarms);
         Assert.Empty(engine.PostSmoltFacilities);
+        // F2-04: units migrated from a pre-F2 save were paid before F2 and depreciate nothing (spec §8).
+        Assert.Empty(engine.State.FacilityAssets);
+        Assert.Equal(0m, engine.FinancialStatements.LifetimeDepreciation);
+        // F2-04: the land sites' costs stayed out of the rent base (the ring-fence) and the year end reset it.
+        Assert.True(engine.State.RentRingFencedCostsThisTaxYear > 0m);
         if (variant.StartsWith("contained/", StringComparison.Ordinal))
             Assert.True(redCreditDays > 0, "the contained variant must reach the red-zone MTB credit");
 
@@ -179,7 +209,8 @@ public class FarmTypeMoveTests
             _output.WriteLine("not enforced here: this platform's math library differs from the recording's");
             return;
         }
-        Assert.Equal(F2_03Recording[variant], hash);
+        Assert.Equal(F2_04Recording[variant], hash);
+        Assert.NotEqual(F2_03Recording[variant], hash);   // F2-04 narrows deep-sea-farming and ring-fences the rent, on purpose
         Assert.NotEqual(PreMoveRecording[variant], hash); // the migration changes the facilities' days, on purpose
     }
 

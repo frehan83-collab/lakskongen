@@ -66,6 +66,53 @@ public class ResearchTreeContractTests
     }
 
     [Fact]
+    public void ShippedJson_CarriesTheCodeTreesUnlocksAndScopes()
+    {
+        // F2-04: the research gates and the narrowed effects are part of the contract.
+        var shipped = ShippedTree().ToDictionary(n => n.Id);
+        foreach (var node in CodeTree())
+        {
+            Assert.Equal(node.Unlocks, shipped[node.Id].Unlocks);
+            Assert.Equal(node.AppliesTo, shipped[node.Id].AppliesTo);
+        }
+        Assert.Contains(ShippedTree(), n => n.Unlocks.Count > 0);
+        Assert.Contains(ShippedTree(), n => n.AppliesTo.Count > 0);
+    }
+
+    [Fact]
+    public void EveryUnlock_IsAFarmTypeVariant_AndEveryScopeIsAUnitKind_CarryingOnlyUnitEffects()
+    {
+        foreach (var node in CodeTree())
+        {
+            Assert.All(node.Unlocks, id => Assert.Contains(id, FarmTypeIds.Variants));
+            Assert.Empty(ResearchSystem.ScopeProblems(node));
+        }
+        // The check itself: an unknown kind and a company-wide effect on a scoped node are named.
+        var bad = new ResearchNode
+        {
+            Id = "bad", AppliesTo = new() { "moon" },
+            Effects = new() { [ResearchEffectKeys.MarketPriceBonus] = 0.1, [ResearchEffectKeys.LiceReduction] = 0.1 }
+        };
+        Assert.Equal(new[] { "unknown unit kind 'moon' in appliesTo", "effect 'market_price_bonus' cannot be scoped to a unit kind" },
+            ResearchSystem.ScopeProblems(bad));
+    }
+
+    [Fact]
+    public void TheFarmTypeNodes_GateTheirFamilies_AndActOnTheirOwnUnitsOnly()
+    {
+        var tree = CodeTree().ToDictionary(n => n.Id);
+        Assert.Equal(new[] { "post_smolt", "hfs" }, tree["land-based-ras"].Unlocks);
+        Assert.Equal(new[] { ResearchScopes.Land }, tree["land-based-ras"].AppliesTo);
+        Assert.Equal(new[] { "of1" }, tree["deep-sea-farming"].Unlocks);
+        Assert.Equal(new[] { ResearchScopes.Offshore }, tree["deep-sea-farming"].AppliesTo);
+        Assert.All(tree.Values.Where(n => n.Id is not ("land-based-ras" or "deep-sea-farming")), n =>
+        {
+            Assert.Empty(n.Unlocks);
+            Assert.Empty(n.AppliesTo);
+        });
+    }
+
+    [Fact]
     public void EveryNode_HasAnEffect_AndEveryEffectKeyIsLive()
     {
         foreach (var node in CodeTree())

@@ -314,7 +314,7 @@
   {
     "id": "deep-sea-farming",
     "name": "Deep-Sea Exposed Farming",
-    "description": "Develop offshore semi-submersible pen systems for exposed, high-current sites. Access to pristine water and large volume capacity, reducing fjord crowding pressure.",
+    "description": "Develop offshore semi-submersible pen systems for exposed, high-current sites. Opens the OF1-class offshore unit; its lice and disease effects apply to offshore units only.",
     "branch": "Expansion",
     "tier": 1,
     "costNOK": 900000,
@@ -323,12 +323,18 @@
     "effects": {
       "lice_reduction": 0.1,
       "disease_resistance_bonus": 0.06
-    }
+    },
+    "unlocks": [
+      "of1"
+    ],
+    "appliesTo": [
+      "offshore"
+    ]
   },
   {
     "id": "land-based-ras",
     "name": "Land-Based RAS Facility",
-    "description": "Recirculating Aquaculture System on shore. Zero sea lice, no escape risk, controlled environment year-round. High capital cost but biosecure smolt production and ability to site near markets.",
+    "description": "Recirculating Aquaculture System on shore. Zero sea lice, no escape risk, controlled environment year-round. Opens the post-smolt module and the hybrid land farm; its mortality and disease effects apply to land tanks only.",
     "branch": "Expansion",
     "tier": 1,
     "costNOK": 1200000,
@@ -337,7 +343,14 @@
     "effects": {
       "mortality_reduction": 0.05,
       "disease_resistance_bonus": 0.14
-    }
+    },
+    "unlocks": [
+      "post_smolt",
+      "hfs"
+    ],
+    "appliesTo": [
+      "land"
+    ]
   },
   {
     "id": "arctic-aquaculture",

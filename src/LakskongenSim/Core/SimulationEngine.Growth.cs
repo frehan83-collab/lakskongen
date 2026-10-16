@@ -102,7 +102,11 @@ public partial class SimulationEngine
         // holding with no feed today (F2 hook FeedAvailableFor) gives none.
         double ration = population.IsFasting || !husbandry.FeedAvailable ? 0.0 : population.Ration?.EffectiveFraction ?? 1.0;
         TrackHarvestCondition(population, husbandry.Water);
-        double researchGrowth = 1.0 + GrowthRateBonus;
+        // F2-04: the research that reaches this holding's kind (land-based-ras and
+        // deep-sea-farming are narrowed to their units; a fjord pen reads what it always did).
+        var researchScope = husbandry.Water.Kind;
+        double researchGrowth = 1.0 + ResearchEffectFor(ResearchEffectKeys.GrowthRateBonus, researchScope);
+        double researchFcrReduction = ResearchEffectFor(ResearchEffectKeys.FcrReduction, researchScope);
         double dayLength = DayLengthHoursOf(husbandry.Water);
 
         double grownKg = 0.0;
@@ -120,7 +124,7 @@ public partial class SimulationEngine
                 dayLength);
             double satiationFcr = Feed.SatiationFcr(temperature, cohort.Stage,
                 law.FcrSizeFactor(cohort.MeanWeightKg), husbandry.StockingDensityKgM3,
-                husbandry.AppetiteModifier, FCRReduction);
+                husbandry.AppetiteModifier, researchFcrReduction);
 
             var day = law.GrowOneDay(cohort.MeanWeightKg, cohort.WeightCv, cohort.Stage, conditions, satiationFcr);
             cohort.MeanWeightKg = day.WeightKg;
@@ -130,7 +134,7 @@ public partial class SimulationEngine
         }
 
         double appetite = law.ThermalAppetiteIndex(temperature) * husbandry.AppetiteModifier;
-        var fed = Feed.FeedRation(population, eatenKg, grownKg, husbandry.SpreadQuality, FeedWasteReduction, appetite);
+        var fed = Feed.FeedRation(population, eatenKg, grownKg, husbandry.SpreadQuality, ResearchEffectFor(ResearchEffectKeys.FeedWasteReduction, researchScope), appetite);
         // F2-04: a land tank's (or a non-liable offshore unit's) feed stays out of the rent base.
         if (husbandry.Water.Kind != HoldingKind.SeaPen) AttributePopulationCost(population, fed.CostNOK);
         return fed;

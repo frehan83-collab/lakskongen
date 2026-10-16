@@ -46,6 +46,17 @@ public static class ResearchEffectKeys
         LiceReduction, CarbonReduction,
     };
 
+    /// <summary>
+    /// F2-04: the keys a unit reads for its own fish or site, so the only ones
+    /// a node scoped to some unit kinds may carry (growth, feed, deaths,
+    /// disease and lice; price, score and carbon are the company's).
+    /// </summary>
+    public static readonly IReadOnlySet<string> UnitScoped = new HashSet<string>(StringComparer.Ordinal)
+    {
+        GrowthRateBonus, FcrReduction, FeedWasteReduction, MortalityReduction,
+        DiseaseResistanceBonus, LiceReduction,
+    };
+
     /// <summary>Keys whose values are score points rather than fractions.</summary>
     public static readonly IReadOnlySet<string> PointKeys = new HashSet<string>(StringComparer.Ordinal)
     {
@@ -60,4 +71,33 @@ public static class ResearchEffectKeys
 
     /// <summary>A summed reduction clamped to [0, <see cref="MaxReduction"/>].</summary>
     public static double ClampReduction(double value) => Math.Clamp(value, 0.0, MaxReduction);
+}
+
+/// <summary>
+/// F2-04: the unit kinds a research node's effects can be narrowed to
+/// (<see cref="ResearchNode.AppliesTo"/>): a fjord sea pen, an offshore unit,
+/// a land tank. The holding seam's <see cref="Environment.HoldingKind"/> picks
+/// the scope of a population; a sea site's kind picks the scope of its lice.
+/// </summary>
+public static class ResearchScopes
+{
+    /// <summary>A fjord site's sea pens.</summary>
+    public const string Sea = "sea";
+
+    /// <summary>An offshore unit's zones.</summary>
+    public const string Offshore = "offshore";
+
+    /// <summary>A land site's tanks (grow-out and post-smolt).</summary>
+    public const string Land = "land";
+
+    /// <summary>Every scope.</summary>
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal) { Sea, Offshore, Land };
+
+    /// <summary>The scope of a holding kind.</summary>
+    public static string For(Environment.HoldingKind kind) => kind switch
+    {
+        Environment.HoldingKind.Offshore => Offshore,
+        Environment.HoldingKind.LandTank => Land,
+        _ => Sea,
+    };
 }

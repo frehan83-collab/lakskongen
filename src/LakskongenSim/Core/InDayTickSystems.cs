@@ -159,7 +159,9 @@ namespace LakskongenSim.Core;
                 // hazards are booked by their own cause after it.
                 var mortalityTerms = engine.UnitMortalityTerms(population);
                 double anchorMultiplier = mortalityTerms.AnchorMultiplier * engine.QualityMortalityMultiplier(population);
-                population.AdvanceDays(1, skipGrowth: true, engine.MortalityReduction, engine.DiseaseResistanceBonus, anchorMultiplier);
+                population.AdvanceDays(1, skipGrowth: true, // F2-04: research reaching this holding's kind
+                    engine.ResearchEffectFor(ResearchEffectKeys.MortalityReduction, holding.Kind),
+                    engine.ResearchEffectFor(ResearchEffectKeys.DiseaseResistanceBonus, holding.Kind), anchorMultiplier);
                 engine.ApplyUnitMortalityHazards(population, mortalityTerms);
 
                 // S2-03: the fish's appetite follows the water and their gills

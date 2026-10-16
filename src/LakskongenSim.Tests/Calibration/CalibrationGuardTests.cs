@@ -421,10 +421,10 @@ namespace LakskongenSim.Tests.Calibration
             // FacilitiesCalibration record.
             var violations = CalibrationProvenanceGuard.Violations(C.Facilities, "facilities");
             Assert.True(violations.Count == 0, "facilities calibration:\n  " + string.Join("\n  ", violations));
-            // Not vacuous: the shared section alone has 73 leaves (depreciation 2,
-            // construction 5, catalogue 3 + 63 over the seven farm types).
+            // Not vacuous: the shared section alone has 76 leaves (depreciation 2,
+            // construction 5, catalogue 3 + 66 over the seven farm types).
             var shared = CalibrationProvenanceGuard.Leaves(C.Facilities.Common, "facilities.common");
-            Assert.Equal(73, shared.Count);
+            Assert.Equal(76, shared.Count);
             Assert.True(CalibrationProvenanceGuard.Leaves(C.Facilities, "facilities").Count >= shared.Count);
         }
 

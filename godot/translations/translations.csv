@@ -528,6 +528,7 @@ LEDGER_CONTRACT_PENALTIES,Contract penalties,Kontraktsbøter
 LEDGER_DELOUSING,Delousing,Avlusing
 LEDGER_EVENTS,Events,Hendelser
 LEDGER_FACILITIES,Facilities,Anlegg
+LEDGER_FACILITY_DEPRECIATION,Facility depreciation,Avskrivning av anlegg
 LEDGER_FEED,Feed,Fôr
 LEDGER_FEED_SPILL,Feed spill,Fôrspill
 LEDGER_FINES,Fines,Bøter
@@ -543,6 +544,7 @@ LEDGER_MITIGATION,Skirts and deterrents,Skjørt og skremmere
 LEDGER_NIGHT_SHIFT,Night shift,Nattskift
 LEDGER_OPERATIONS,Operations,Drift
 LEDGER_OTHER,Other,Annet
+LEDGER_PERMIT_FEES,Permit fees,Søknadsgebyrer
 LEDGER_RESEARCH,Research,Forskning
 LEDGER_SEA_SITE,New sea site,Nytt sjøanlegg
 LEDGER_SLUDGE,Sludge,Slam
@@ -621,6 +623,19 @@ FARM_FACTOR_FCR_CRITICAL,FCR %s (target %s),FCR %s (mål %s)
 FARM_FACTOR_FCR,FCR %s,FCR %s
 FARM_FACTOR_BALANCE_NEGATIVE,negative balance,negativ saldo
 FARM_FACTOR_BALANCE_LOW,low liquidity,lav likviditet
+FARM_FAMILY_HAV,Offshore,Hav
+FARM_FAMILY_LAND,Land,Land
+FARM_FAMILY_SJO,Sea,Sjø
+FARM_VARIANT_CLOSED_PEN,Semi-closed / closed pen,Semi-lukket / lukket merd
+FARM_VARIANT_HAVFARM,Ship pen,Skipsmerd
+FARM_VARIANT_HFS,Land farm (hybrid),Landanlegg (hybrid)
+FARM_VARIANT_OF1,Offshore pen,Havmerd
+FARM_VARIANT_OPEN_PEN,Open net pen,Åpen merd
+FARM_VARIANT_POST_SMOLT,Post-smolt module,Postsmoltmodul
+FARM_VARIANT_RAS,Land farm (RAS),Landanlegg (RAS)
+RESEARCH_SCOPE_LAND,land tanks,landtanker
+RESEARCH_SCOPE_OFFSHORE,offshore units,havmerder
+RESEARCH_SCOPE_SEA,fjord pens,fjordmerder
 UI_COMPANY_FALLBACK,Your company,Ditt selskap
 UI_DASHBOARD_PENS_TITLE,Pen overview,Merdoversikt
 UI_DASHBOARD_WATER_TITLE,Water quality,Vannkvalitet
@@ -1047,6 +1062,8 @@ UI_TECH_START_FAILED_TITLE,Cannot start research,Kan ikke starte forskning
 UI_TECH_START_FAILED,"Not enough cash, or a requirement is not met.","Ikke nok penger, eller et krav er ikke oppfylt."
 UI_TECH_REQUIRES,Requires: %s,Krever: %s
 UI_TECH_EFFECTS,Effects: %s,Effekter: %s
+UI_TECH_APPLIES_TO,Applies to: %s,Gjelder bare: %s
+UI_TECH_UNLOCKS,Opens: %s,Låser opp: %s
 RESEARCH_SELECTIVE_BREEDING_NAME,Selective breeding programme,Avlsprogram
 RESEARCH_SELECTIVE_BREEDING_DESC,Set up a systematic breeding programme that finds and multiplies fast-growing broodstock. Raises the base growth of every cohort.,Bygg opp et systematisk avlsprogram som finner og formerer hurtigvoksende stamfisk. Øker grunnveksten i alle kohorter.
 RESEARCH_DISEASE_RESISTANCE_NAME,Disease-resistant genetics,Sykdomsresistent genetikk
@@ -1088,9 +1105,9 @@ RESEARCH_PACKAGING_INNOVATION_DESC,"Modified-atmosphere packaging with bio-based
 RESEARCH_SASHIMI_GRADE_NAME,Sashimi-grade export,Sashimikvalitet for eksport
 RESEARCH_SASHIMI_GRADE_DESC,"Meet the Japanese import standard for raw salmon: strict parasite control, a guaranteed fat range and an ultra-cold chain. Opens the most valuable market there is.","Oppfyll den japanske importstandarden for rå laks: streng parasittkontroll, garantert fettinnhold og en ekstra kald kjølekjede. Åpner det mest verdifulle markedet som finnes."
 RESEARCH_DEEP_SEA_FARMING_NAME,Exposed offshore farming,Havbruk til havs
-RESEARCH_DEEP_SEA_FARMING_DESC,"Develop semi-submersible offshore pens for exposed sites with strong currents. Clean water and large volumes, and less crowding in the fjords.","Utvikle halvt nedsenkbare havmerder for eksponerte lokaliteter med sterk strøm. Rent vann og store volumer, og mindre trengsel i fjordene."
+RESEARCH_DEEP_SEA_FARMING_DESC,Develop semi-submersible offshore pens for exposed sites with strong currents. Opens the offshore pen; its lice and disease effects apply to offshore units only.,Utvikle halvt nedsenkbare havmerder for eksponerte lokaliteter med sterk strøm. Låser opp havmerden; effektene mot lus og sykdom gjelder bare havmerder.
 RESEARCH_LAND_BASED_RAS_NAME,Land-based RAS,Landbasert RAS
-RESEARCH_LAND_BASED_RAS_DESC,"A recirculating facility on land: no sea lice, no escapes and a controlled environment all year. Costly to build, but biosecure smolts and production close to the market.","Et resirkuleringsanlegg på land: ingen lakselus, ingen rømming og kontrollert miljø hele året. Dyrt å bygge, men gir biosikker smolt og produksjon nær markedet."
+RESEARCH_LAND_BASED_RAS_DESC,"A recirculating facility on land: no sea lice, no escapes and a controlled environment all year. Opens the post-smolt module and the hybrid land farm; its mortality and disease effects apply to land tanks only.","Et resirkuleringsanlegg på land: ingen lakselus, ingen rømming og kontrollert miljø hele året. Låser opp postsmoltmodulen og landanlegget (hybrid); effektene mot dødelighet og sykdom gjelder bare landtanker."
 RESEARCH_ARCTIC_AQUACULTURE_NAME,Arctic farming,Arktisk oppdrett
 RESEARCH_ARCTIC_AQUACULTURE_DESC,"Cold-adapted strains and winterised equipment for sites north of 70° N. Arctic salmon sells at a premium, and the work is done with the local authorities in Troms and Finnmark.","Kuldetilpassede stammer og vinterklargjort utstyr for lokaliteter nord for 70° N. Arktisk laks gir pristillegg, og arbeidet gjøres sammen med lokale myndigheter i Troms og Finnmark."
 RESEARCH_INTERNATIONAL_EXPORT_NAME,International export,Internasjonal eksport

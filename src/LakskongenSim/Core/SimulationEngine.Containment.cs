@@ -162,7 +162,9 @@ public partial class SimulationEngine
         double barrier = site.Barrier != Farm.BarrierKind.None
             ? Farm.BarrierTech.EffectiveLiceBlocking(site.Barrier, SiteFlowMs(site), site.BarrierDaysSinceCleaning)
             : 0.0;
-        double research = ResearchEffectKeys.ClampReduction(LiceReduction);
+        // F2-04: research narrowed to offshore units (deep-sea-farming) blocks lice at an offshore unit only.
+        double research = ResearchEffectKeys.ClampReduction(ResearchEffectFor(ResearchEffectKeys.LiceReduction,
+            site.Kind == Farm.SiteKind.Offshore ? LakskongenSim.Environment.HoldingKind.Offshore : LakskongenSim.Environment.HoldingKind.SeaPen));
         return 1.0 - (1.0 - skirt) * (1.0 - exclusion) * (1.0 - barrier) * (1.0 - research);
     }
 }

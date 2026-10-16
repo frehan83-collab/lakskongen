@@ -29,6 +29,19 @@ public sealed record DeterminismFinding(string Path, string Pattern, string Symb
 public static class DeterminismScanner
 {
     /// <summary>
+    /// F2-04 (docs/FARM_TYPES_SPEC.md §3.7): bridge files scanned with the sim
+    /// library. The farm-type lanes' bridge partials hold verbs that start
+    /// builds, file permit cases and book operations, so they must draw nothing
+    /// unseeded either; the allowlist holds no entry for them.
+    /// </summary>
+    public static readonly IReadOnlyList<string> BridgeScope = new[]
+    {
+        "godot/scripts/autoload/GameBridge.LandSites.cs",
+        "godot/scripts/autoload/GameBridge.Offshore.cs",
+        "godot/scripts/autoload/GameBridge.FarmTypes.cs",
+    };
+
+    /// <summary>
     /// Banned static members as (type, member). "*" bans every member of the
     /// type. The label is "Type.Member" (or the type alone for "*").
     /// </summary>
