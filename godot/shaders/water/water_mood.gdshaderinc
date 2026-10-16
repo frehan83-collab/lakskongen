@@ -46,7 +46,7 @@ uniform int lamp_count = 0;
 uniform vec3 lamp_light = vec3(0.0);
 
 // Optical depth per metre of the densest wisps at full smoke.
-const float SMOKE_SIGMA = 0.0045;
+const float SMOKE_SIGMA = 0.004;
 // The longest path through the layer counted (m): beyond it the layer is opaque anyway.
 const float SMOKE_MAX_PATH = 2500.0;
 
@@ -85,16 +85,19 @@ float frost_smoke_cover(vec2 p, vec3 view_w) {
 		return 0.0;
 	}
 	float path = min(frost_smoke_depth / max(view_w.y, 0.006), SMOKE_MAX_PATH);
-	// Banks a few hundred metres across, a little longer down the wind and
-	// drifting with it, with softer curls drifting faster inside them.
+	// Banks a couple of hundred metres across, drifting with the wind, with
+	// clear water between them; inside, the steam rises in soft puffs a few
+	// tens of metres across (three octaves, a little longer down the wind,
+	// warped by the banks), so the layer reads as a cotton of sea smoke, not
+	// as streaks or a sheet.
 	vec2 along = frost_smoke_wind;
 	vec2 q = vec2(dot(p, along), dot(p, vec2(-along.y, along.x)));
-	vec2 a = (q - frost_smoke_drift) / vec2(300.0, 160.0);
-	float banks = smoke_noise(a) * 0.65 + smoke_noise(mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8)) * a * 2.2 + vec2(5.2, 1.3)) * 0.35;
-	vec2 b = (q - frost_smoke_drift * 1.7) / vec2(70.0, 32.0) + vec2(banks * 1.8, 0.0);
-	float curls = smoke_noise(b) * 0.6 + smoke_noise(b * 2.3 + vec2(1.9, 7.1)) * 0.4;
-	float wisps = smoothstep(0.42, 0.85, banks * 0.7 + curls * 0.4);
-	float density = frost_smoke * wisps * sqrt(wisps);
+	vec2 a = (q - frost_smoke_drift) / vec2(280.0, 240.0);
+	float banks = smoke_noise(a) * 0.65 + smoke_noise(mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8)) * a * 2.3 + vec2(5.2, 1.3)) * 0.35;
+	vec2 b = (q - frost_smoke_drift * 1.4) / vec2(58.0, 46.0) + vec2(banks * 1.6, banks * 1.1);
+	float puffs = smoke_noise(b) * 0.55 + smoke_noise(b * 2.07 + vec2(1.9, 7.1)) * 0.3 + smoke_noise(b * 4.3 + vec2(8.3, 2.9)) * 0.15;
+	float wisps = smoothstep(0.42, 0.88, banks * 0.6 + puffs * 0.55);
+	float density = frost_smoke * wisps;
 	return 1.0 - exp(-SMOKE_SIGMA * density * path);
 }
 

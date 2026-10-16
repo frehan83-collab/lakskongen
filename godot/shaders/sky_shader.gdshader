@@ -311,6 +311,11 @@ const float COARSE_MARGIN = 0.06;
 const int EDGE_SEARCH = 5;
 const int INNER_STEPS = 4;
 const float INNER_STEP_KM = 0.3;
+const float INNER_STEP_PER_KM = 0.02;
+// Broken cloud fades out over the last degrees above the horizon (sin of the
+// elevation): too far and too thin on screen to draw without stair steps,
+// and lost in the haze there anyway. A closed deck runs on to the horizon.
+const float HORIZON_FADE = 0.05;
 
 // The low slab's density at `t` km along `dir`; `hn` the normalised height.
 float slab_density(vec3 dir, float t, int octaves, out float hn) {
@@ -393,7 +398,9 @@ vec4 cloud_layer_low(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int 
 			lo = mid;
 		}
 	}
-	float ds_in = min(ds, INNER_STEP_KM);
+	// Far off a pixel spans kilometres of cloud: the steps into it lengthen
+	// with the distance, so a far cloud is its mean, not a sliver of it.
+	float ds_in = min(ds, max(INNER_STEP_KM, t0 * INNER_STEP_PER_KM));
 	t = hi + 0.5 * ds_in;
 	for (int i = 0; i < INNER_STEPS; i++) {
 		d = slab_density(dir, t, octaves, hn);
@@ -428,7 +435,8 @@ vec4 cloud_layer_low(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int 
 	}
 	// Aerial perspective: far clouds fade into the horizon sky.
 	float fade = exp(-t0 / 70.0);
-	return vec4(light / alpha, alpha * mix(0.35, 1.0, fade));
+	float low = mix(smoothstep(0.0, HORIZON_FADE, dir.y), 1.0, closed);
+	return vec4(light / alpha, alpha * mix(0.35, 1.0, fade) * low);
 }
 
 // Scud: ragged, dark, fast fragments under a storm deck (0.6 km).

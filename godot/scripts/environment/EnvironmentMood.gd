@@ -121,9 +121,9 @@ const PROFILES := [
 	# wind; the far land fades lighter than the deck, so the mountains keep
 	# their outline.
 	{"zenith": "#4C5861", "horizon": "#6A767E", "horizon_sun": "#6A767E", "sky_grade": 0.85,
-		"deck": "#4C5861", "deck_grade": 0.9, "fog": "#6E7A82", "fog_grade": 0.85, "fog_value": 0.3,
+		"deck": "#4C5861", "deck_grade": 0.9, "fog": "#6E7A82", "fog_grade": 0.85, "fog_value": 0.27,
 		"sun": "#DDE3E6", "sun_grade": 0.7, "water": Color(0.008, 0.022, 0.026), "exposure_ev": 0.65,
-		"cloud_base_m": 220.0, "cloud_base_fog": 0.004, "sky_haze": 0.5, "deck_value": 0.42, "horizon_lift": 1.4, "mist": 0.3},
+		"cloud_base_m": 220.0, "cloud_base_fog": 0.004, "sky_haze": 0.5, "deck_value": 0.42, "horizon_lift": 1.4, "mist": 0.2},
 	# Blåtime / mørketid: the sun just under the horizon, the sky deep blue
 	# with a pink south, the water a slate mirror.
 	{"zenith": "#3C5A8A", "horizon": "#7F96BC", "horizon_sun": "#D99AA8", "sky_grade": 0.9,
@@ -139,12 +139,12 @@ const PROFILES := [
 	# slate mirror, sea smoke on the water.
 	{"zenith": "#81A0B0", "horizon": "#C5D2DA", "horizon_sun": "#CCD3D6", "sky_grade": 0.9,
 		"deck": "#C9D2D8", "deck_grade": 0.5, "fog": "#B9C8D0", "fog_grade": 0.75, "fog_value": 0.9,
-		"sun": "#FFE6C8", "sun_grade": 0.5, "water": Color(0.0016, 0.0050, 0.0072), "exposure_ev": 0.0,
+		"sun": "#FFE6C8", "sun_grade": 0.5, "water": Color(0.0016, 0.0050, 0.0072), "exposure_ev": -0.35,
 		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0, "horizon_lift": 0.0, "mist": 0.0},
 	# Høst: a low golden sun on the birches, a clear, dark sea.
-	{"zenith": "#5E8DB8", "horizon": "#C8D8E6", "horizon_sun": "#DED6C6", "sky_grade": 0.7,
+	{"zenith": "#5E8DB8", "horizon": "#C8D8E6", "horizon_sun": "#DED6C6", "sky_grade": 0.9,
 		"deck": "#E2DED6", "deck_grade": 0.25, "fog": "#B7BDB8", "fog_grade": 0.5, "fog_value": 0.9,
-		"sun": "#FFD9A0", "sun_grade": 0.65, "water": Color(0.0016, 0.0085, 0.0135), "exposure_ev": 0.0,
+		"sun": "#FFD9A0", "sun_grade": 0.8, "water": Color(0.0016, 0.0085, 0.0135), "exposure_ev": -0.25,
 		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.0, "horizon_lift": 0.0, "mist": 0.0},
 ]
 

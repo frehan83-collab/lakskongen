@@ -288,6 +288,15 @@ func _check_pen_lamps(gb: Node, env: FjordEnvironment, director: EnvironmentDire
 	t._check(absf(glow.length() * exposure - Vector3(EnvironmentDirector.LAMP_GLOW_ON_SCREEN, 0, 0).length() * _filtered_norm()) < 0.05
 		and exposure > 4.0,
 		"moods: the lamps' glow keeps its screen brightness at the night's exposure (x%.1f)" % exposure)
+	# World UI at night: a vessel's chip keeps its day brightness (no bloom).
+	var chips := env.find_children("VesselChip", "", true, false)
+	var chips_ok := not chips.is_empty()
+	for chip in chips:
+		var vc := chip as VesselChip
+		var text := (vc.get_node("Text") as Label3D).modulate.srgb_to_linear()
+		var day := VesselChip.TEXT_COLOR.srgb_to_linear()
+		chips_ok = chips_ok and absf(vc.exposure_comp * exposure - 1.0) < 0.05 and absf(text.g * exposure / day.g - 1.0) < 0.05
+	t._check(chips_ok, "moods: at night a vessel's chip keeps its day brightness on screen (%d chips, exposure x%.1f)" % [chips.size(), exposure])
 	var lamp_y := lamps.lights[0].global_position.y if lit > 0 else 0.0
 	t._check(lit > 0 and absf(lamp_y - (lamps.cages[0].global_position.y - PenLamps.LAMP_DEPTH_M)) < 0.01,
 		"moods: the lamps hang %.0f m down in the pens" % PenLamps.LAMP_DEPTH_M)

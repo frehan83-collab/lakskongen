@@ -23,6 +23,13 @@ const DOT_GAP_PX := 8.0
 const LIFT_PX := 38.0
 const CHIP_SHADER := preload("res://shaders/world_chip.gdshader")
 
+## The eye's exposure the chip is compensated for now (G3-05): the night's
+## exposure (up to 16x, EnvironmentDirector) would otherwise bloom the text
+## and wash the Ink glass out; the chip keeps its day brightness on screen.
+var exposure_comp := 1.0
+## Re-tint when the compensation moves by more than this share.
+const EXPOSURE_STEP := 0.02
+
 var _text := ""
 var _accent := Color.WHITE
 var _quad: MeshInstance3D
@@ -94,3 +101,21 @@ func get_accent() -> Color:
 ## The pill's size on screen, in pixels.
 func get_size_px() -> Vector2:
 	return _quad.get_instance_shader_parameter("size_px")
+
+func _process(_delta: float) -> void:
+	var director := get_tree().get_first_node_in_group(RenderQuality.DIRECTOR_GROUP) as EnvironmentDirector
+	var exposure := float(director.get_composed().get("exposure", 1.0)) if director != null else 1.0
+	set_exposure(exposure)
+
+## Keep the chip's screen brightness at the eye's `exposure` (the text's and
+## the pill's light divided by it, in linear light).
+func set_exposure(exposure: float) -> void:
+	var comp := 1.0 / maxf(exposure, 1e-3)
+	if absf(comp - exposure_comp) <= EXPOSURE_STEP * exposure_comp:
+		return
+	exposure_comp = comp
+	var lin := TEXT_COLOR.srgb_to_linear()
+	var text := Color(lin.r * comp, lin.g * comp, lin.b * comp).linear_to_srgb()
+	text.a = TEXT_COLOR.a
+	_label.modulate = text
+	_material.set_shader_parameter("exposure_comp", comp)

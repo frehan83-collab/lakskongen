@@ -42,7 +42,7 @@ const MIN_PHASH_DELTA := 9
 const MIN_LAMP_FRACTION := 0.003
 const MIN_SHADOW_MOTION := 0.5
 const SHADOW_MOTION_RATIO := 3.0
-const SHADOW_GAP_S := 8.0
+const SHADOW_GAP_S := 12.0
 const MIN_STORM_HS := 2.0
 const MIN_SKYLINE_DL := 15.0
 ## Pixels sampled every STEP px; water counted within WATER_REACH_M of the

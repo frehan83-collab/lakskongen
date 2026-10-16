@@ -950,6 +950,13 @@ func _configure_env(season: float, hour: float, weather: int, zoom: int) -> void
 		_env.call("set_time", hour)
 	_set_weather(weather)
 	_set_camera_zoom(zoom)
+	# The moods follow the weather over seconds (EnvironmentDirector
+	# MOOD_RATE, G3-05): once the weather has settled, a QA shot takes them
+	# at once, as it skips the weather's own blend.
+	await get_tree().create_timer(0.3).timeout
+	var director = _env.get("director") if _env != null and is_instance_valid(_env) else null
+	if director != null and director.has_method("compose"):
+		director.call("compose", 0.0, true)
 
 
 func _set_weather(state: int) -> void:
