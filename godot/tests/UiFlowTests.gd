@@ -85,6 +85,8 @@ func _run() -> void:
 	await _test_water_grid_bake_and_sea_state()
 	await _test_quality_tiers_and_covered_world()
 	await _test_water_mirror_wakes_and_spray()
+	# G3-05: moods, weather drama and the Nordic night (WeatherDramaChecks.gd).
+	await WeatherDramaChecks.new().run(self)
 	await _test_theme_and_contrast_on_every_screen()
 	_test_formatters_speak_the_locale()
 	await _test_dashboard_title_names_the_company()

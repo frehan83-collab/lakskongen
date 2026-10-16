@@ -84,6 +84,8 @@ uniform vec3 grade_horizon_sun = vec3(0.67, 0.75, 0.79);
 uniform float grade_amount : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 grade_deck = vec3(0.82, 0.85, 0.87);
 uniform float grade_deck_amount : hint_range(0.0, 1.0) = 0.0;
+// The deck's brightness against the model's (a storm's deck hangs dark).
+uniform float grade_deck_value : hint_range(0.0, 2.0) = 1.0;
 
 const float PI_ = 3.14159265;
 const float R_EARTH = 6360.0;      // km
@@ -619,7 +621,7 @@ vec4 sky_body(vec3 dir, vec3 sun_dir, bool cubemap, bool with_aurora, vec4 cl) {
 	float mu_moon = dot(dir, moon_direction);
 	sky_rgb += vec3(0.006, 0.009, 0.016) * moon_illumination * moon_up * (0.35 + phase_hg(mu_moon, 0.75) * 0.6);
 	sky_rgb = grade_sky(sky_rgb, dir, sun_dir);
-	cl.rgb = grade_to(cl.rgb, grade_deck, grade_deck_amount);
+	cl.rgb = grade_to(cl.rgb, grade_deck, grade_deck_amount) * grade_deck_value;
 	vec3 color = sky_rgb;
 	// Background only: in the radiance map the aurora would tint the
 	// aerial-perspective fog over the whole fjord green.

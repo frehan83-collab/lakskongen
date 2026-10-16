@@ -4,9 +4,10 @@ render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabl
 // A raindrop's motion-blurred streak (G3-05): the quad stands along the
 // drop's velocity (the process material's align_y turns each particle's Y
 // axis onto it) and turns about that axis to face the camera, so rain driven
-// by a gale leans with the wind instead of standing upright. The streak
-// fades near the camera (a drop a metre away is a blur, not a bar) and with
-// distance (beyond a few tens of metres rain is a veil, which the fog draws).
+// by a gale leans with the wind instead of standing upright. A streak fades
+// in with distance, from nothing at fade_near_m (a drop a metre away is a
+// blur, not a bar) to full at fade_far_m, as the StandardMaterial's distance
+// fade did.
 
 uniform vec4 streak_color : source_color = vec4(0.72, 0.78, 0.86, 0.22);
 // Quad size in metres: x across the streak, y along it.
@@ -29,7 +30,7 @@ void vertex() {
 	side = side_len > 1e-3 ? side / side_len : normalize(cross(axis, vec3(1.0, 0.0, 0.0)));
 	vec3 world = origin + side * VERTEX.x * streak_size.x * scale + axis * VERTEX.y * streak_size.y * scale;
 	POSITION = PROJECTION_MATRIX * (VIEW_MATRIX * vec4(world, 1.0));
-	v_fade = smoothstep(fade_near_m * 0.5, fade_near_m, dist) * (1.0 - smoothstep(fade_far_m * 0.6, fade_far_m, dist));
+	v_fade = smoothstep(fade_near_m, fade_far_m, dist);
 }
 
 void fragment() {

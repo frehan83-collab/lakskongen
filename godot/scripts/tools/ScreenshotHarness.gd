@@ -113,6 +113,15 @@ func _ready() -> void:
 
 func _run_sequence() -> void:
 	await _wait(0.4)
+	# `-- --only=moods`: boot the game and shoot the mood goldens alone (G3-05).
+	if "--only=moods" in OS.get_cmdline_user_args():
+		await _boot_game()
+		await _capture_mood_goldens()
+		_print_summary()
+		for failure in _content_failures:
+			push_error("[ScreenshotHarness] content check failed: %s" % failure)
+		get_tree().quit(0 if _content_failures.is_empty() else 1)
+		return
 
 	await _capture_main_menu()
 	await _capture_scenario_selection()
@@ -140,6 +149,7 @@ func _run_sequence() -> void:
 	await _capture_fjord_diagnostics()
 	await _capture_fjord_calm_dusk()
 	await _capture_fjord_shore_foam()
+	await _capture_mood_goldens()
 	# Last of the fjord shots: it starts a Nordland game of its own.
 	await _capture_fjord_night_aurora()
 	await _audit_a11y_targets()
@@ -639,6 +649,18 @@ func _capture_fjord_underwater() -> void:
 		cam.set("global_position", Vector3(0.0, -60.0, 0.0))
 	await _wait(2.6)
 	_check_not_black("11_fjord_underwater", await _shoot("11_fjord_underwater", true))
+
+
+# ── G3-05 moods: eight goldens from one camera (MoodGoldens) ──────────────────
+
+func _capture_mood_goldens() -> void:
+	if _env == null or not is_instance_valid(_env):
+		_content_failures.append("mood goldens: the fjord scene is incomplete")
+		return
+	_hide_ui()
+	var goldens := MoodGoldens.new()
+	await goldens.capture(self, _env, _game)
+	_content_failures.append_array(goldens.failures)
 
 
 # ── G2-03 water v2: the mirror and the shore foam ─────────────────────────────

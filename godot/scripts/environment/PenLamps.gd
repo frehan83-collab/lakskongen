@@ -29,6 +29,9 @@ const ON_SPAN_DEG := 6.0
 const OVERCAST_SHIFT_DEG := 6.0
 
 @export var pen_manager: Node
+## Off keeps every lamp dark whatever the hour (the harness's A/B of the
+## night shot measures what the lamps add).
+@export var enabled := true
 
 ## The lit pens' cages, nearest first (tests read them).
 var cages: Array[PenCage] = []

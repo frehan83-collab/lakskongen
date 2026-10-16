@@ -30,7 +30,7 @@ const COVER_STEP := 0.04
 const EDGE := 0.07
 ## Darkening of a shadowed, sunlit surface's albedo at full strength: the
 ## direct sun's share of its light on a clear day.
-const MAX_DARKEN := 0.6
+const MAX_DARKEN := 0.65
 ## Only surfaces facing the sun take the shadow (Decal.normal_fade).
 const SUN_FACING := 0.12
 ## Render layers the shadows fall on: the land and what stands on it (the
@@ -45,6 +45,8 @@ var _base: Image = null
 var _above := PackedFloat32Array()
 var _built_cover := -1.0
 var _map: ImageTexture = null
+## The map as built (alpha = shadow), on the CPU (tests read it).
+var map_image: Image = null
 ## The map's frame (the water samples it with these): centre, and the
 ## projected axes scaled by 1 / the decal's size.
 var map_origin := Vector3.ZERO
@@ -54,16 +56,29 @@ var map_axis_v := Vector3(0.0, 0.0, 1.0 / (2.0 * PERIOD_M))
 ## holds (tests read them).
 var strength := 0.0
 var cover := 0.0
+## Off hides the shadows whatever the sky (the harness's A/B of their motion).
+var enabled := true
 
 
-func _ready() -> void:
+# The director can update the shadows before this node's _ready (it sits
+# earlier in the scene): everything update() relies on is set up here.
+func _init() -> void:
 	_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
 	_noise.seed = 4127
-	# About eight cycles a period: clouds a few hundred metres to 1.5 km across.
-	_noise.frequency = 0.04
+	# About ten cycles a period: clouds a few hundred metres to a kilometre across.
+	_noise.frequency = 0.05
 	_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
 	_noise.fractal_octaves = 4
 	_noise.fractal_gain = 0.5
+	_configure()
+	visible = false
+
+
+func _ready() -> void:
+	_configure()
+
+
+func _configure() -> void:
 	size = Vector3(2.0 * PERIOD_M, DEPTH_M, 2.0 * PERIOD_M)
 	cull_mask = LAND_LAYERS
 	normal_fade = SUN_FACING
@@ -71,8 +86,6 @@ func _ready() -> void:
 	lower_fade = 0.0
 	distance_fade_enabled = false
 	albedo_mix = 1.0
-	modulate = Color(0.0, 0.0, 0.0, 0.0)
-	visible = false
 
 
 ## The shadow map (alpha = shadow), for the water.
@@ -84,7 +97,7 @@ func get_map() -> Texture2D:
 ## is the sky's (0-1), `shadow_strength` 0-1 (0 hides them), `drift` the
 ## clouds' horizontal drift so far (m, x/z) and `focus` the camera's focus.
 func update(sun_dir: Vector3, cloud_cover: float, shadow_strength: float, drift: Vector2, focus: Vector3) -> void:
-	strength = clampf(shadow_strength, 0.0, 1.0)
+	strength = clampf(shadow_strength, 0.0, 1.0) if enabled else 0.0
 	visible = strength > 0.001
 	if not visible:
 		return
@@ -140,6 +153,7 @@ func _build_map(cloud_cover: float) -> void:
 	shifted.append_array(bytes.slice(0, bytes.size() - 1))
 	var map := Image.create_from_data(img.get_width(), img.get_height(), false, Image.FORMAT_LA8, shifted)
 	map.convert(Image.FORMAT_RGBA8)
+	map_image = map
 	if _map == null or _map.get_width() != map.get_width():
 		_map = ImageTexture.create_from_image(map)
 	else:

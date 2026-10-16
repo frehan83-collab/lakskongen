@@ -210,13 +210,13 @@ const MOOD_RATE := 0.8
 const CLOUD_SHADOW_FROM := 0.06
 const CLOUD_SHADOW_PEAK := 0.25
 const CLOUD_SHADOW_CLOSE := 0.7
-const CLOUD_SHADOW_TO := 0.92
+const CLOUD_SHADOW_TO := 0.9
 const SHADOW_SUN_FROM := 6.0
 const SHADOW_SUN_FULL := 15.0
 ## Frost smoke: its colour, how much of the sun and sky it scatters back,
 ## and how fast its wisps drift with the wind (share of the wind speed).
-const SMOKE_SUN := 0.7
-const SMOKE_SKY := 1.6
+const SMOKE_SUN := 0.8
+const SMOKE_SKY := 1.8
 const SMOKE_DRIFT := 0.6
 ## Pen lamps: the lamp's light (white LED, linear) filtered by the water
 ## above it (water_shader absorption over PenLamps.LAMP_DEPTH_M), the glow's
@@ -407,6 +407,13 @@ func set_water_state(temperature_c: float, algae01: float) -> void:
 	_algae = clampf(algae01, 0.0, 1.0)
 
 
+## Staging (the harness's goldens): put the clouds' drift (km, the sky's
+## cloud_offset) at a fixed point, so a golden's clouds and their shadows do
+## not depend on how long the run has played.
+func stage_cloud_drift(offset_km: Vector2) -> void:
+	_cloud_offset = offset_km
+
+
 ## The values composed last frame (tests and the harness read them).
 func get_composed() -> Dictionary:
 	return _composed
@@ -536,7 +543,7 @@ func _apply_sky(delta: float, sun_elev: float, cloud: float, density: float, vis
 		_aurora = 0.0
 	var above_fog_vis := lerpf(visibility, ABOVE_SEA_FOG_VISIBILITY_M, sea_fog)
 	var sigma_km := KOSCHMIEDER / maxf(above_fog_vis, 1.0) * 1000.0
-	var haze := smoothstep(0.0, 1.0, (sigma_km - 0.12) / 1.6)
+	var haze := smoothstep(0.0, 1.0, (sigma_km - 0.12) / 1.6) * clampf(float(mood.get("sky_haze", 1.0)), 0.0, 1.0)
 	var terms := sky_fog_terms(cloud, sea_fog)
 	var underwater: bool = c.get("underwater", false)
 	for i in mats.size():
@@ -570,6 +577,7 @@ func _apply_sky(delta: float, sun_elev: float, cloud: float, density: float, vis
 		mat.set_shader_parameter("grade_amount", float(mood.get("sky_grade", 0.0)))
 		mat.set_shader_parameter("grade_deck", EnvironmentMood.vec(mood.get("deck", Color.WHITE)))
 		mat.set_shader_parameter("grade_deck_amount", float(mood.get("deck_grade", 0.0)))
+		mat.set_shader_parameter("grade_deck_value", float(mood.get("deck_value", 1.0)))
 		mat.set_shader_parameter("cloud_pass", 0 if underwater else int(quality.knobs["cloud_pass"]))
 		mat.set_shader_parameter("cloud_steps", int(quality.knobs["cloud_steps"]))
 		mat.set_shader_parameter("cloud_octaves", int(quality.knobs["cloud_octaves"]))
@@ -638,7 +646,7 @@ func _measure_sky(sun_dir: Vector3, cloud: float, density: float, sea_fog: float
 	# The mood's aerial perspective; the land's fog a shade under the sky
 	# behind it (fog_value), so far mountains keep their outline.
 	fog_rgb = EnvironmentMood.grade_rgb(fog_rgb, mood.get("fog", Color.WHITE), float(mood.get("fog_grade", 0.0)))
-	var fog_light := fog_rgb * clampf(float(mood.get("fog_value", 1.0)), 0.3, 1.0)
+	var fog_light := fog_rgb * clampf(float(mood.get("fog_value", 1.0)), 0.3, 1.5)
 	c["sky_zenith"] = zenith
 	c["horizon_color"] = Color(fog_rgb.x, fog_rgb.y, fog_rgb.z)
 	c["fog_light_color"] = Color(fog_light.x, fog_light.y, fog_light.z)
@@ -1148,6 +1156,9 @@ func _apply_cloud_shadows(mat: ShaderMaterial, sun_dir: Vector3, sun_elev: float
 	var drift := -_cloud_offset * 1000.0
 	if cloud_shadows != null:
 		cloud_shadows.update(sun_dir, cloud, strength, drift, focus)
+		strength = cloud_shadows.strength
+	else:
+		strength = 0.0
 	if mat != null:
 		var on := cloud_shadows != null and cloud_shadows.get_map() != null and strength > 0.001
 		mat.set_shader_parameter("cloud_shadow_strength", strength if on else 0.0)
@@ -1168,7 +1179,8 @@ func _apply_lamps(mat: ShaderMaterial, sun_elev: float, cloud: float, c: Diction
 	var on := 0.0
 	var entries := PackedVector4Array()
 	if pen_lamps != null:
-		on = PenLamps.night_for(sun_elev, cloud) * PenLamps.season_for(time_system.get_day_of_year())
+		on = PenLamps.night_for(sun_elev, cloud) * PenLamps.season_for(time_system.get_day_of_year()) \
+			* (1.0 if pen_lamps.enabled else 0.0)
 		if on > 0.001:
 			entries = pen_lamps.lamp_entries()
 		for i in pen_lamps.lights.size():
