@@ -311,7 +311,10 @@ static func line_label(category: String, income: bool, lines: Array) -> String:
 	var own := "LEDGER_%s_%s" % [category.to_upper(), "INCOME" if income else "COST"]
 	if tr_key(own) != own:
 		return tr_key(own)
-	var both := lines.filter(func(l: Dictionary) -> bool: return str(l.get("category", "")) == category).size() > 1
+	# The other side named apart already tells the two lines apart.
+	var other := "LEDGER_%s_%s" % [category.to_upper(), "COST" if income else "INCOME"]
+	var both := tr_key(other) == other \
+		and lines.filter(func(l: Dictionary) -> bool: return str(l.get("category", "")) == category).size() > 1
 	var base := SimLabels.ledger_category(category)
 	return tr_key("UI_ENDSCREEN_LINE_INCOME" if income else "UI_ENDSCREEN_LINE_COST") % base if both else base
 

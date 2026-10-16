@@ -235,6 +235,20 @@ func _check_report_sheet(screen: Node, report: Dictionary) -> void:
 		var plot := chart.plot_rect().grow(1.0)
 		_check(chart.marker_centres().all(func(c: Vector2) -> bool: return plot.has_point(c)),
 			"end screen: every turning point's marker sits on the cash line inside the plot")
+	var lines: Array = report.get("lines", [])
+	var money: Array = built.get("money_rows", [])
+	var wrong_lines := []
+	var names := {}
+	for i in money.size():
+		var amount: Label = (money[i] as Node).find_child("Amount", true, false)
+		var line_name: Label = (money[i] as Node).find_child("Name", true, false)
+		if amount == null or amount.text != EndScreenReport.signed_nok(float(lines[i].get("amount", 0.0))):
+			wrong_lines.append(i)
+		if line_name != null:
+			names[line_name.text] = true
+	_check(lines.size() >= 3 and money.size() == mini(lines.size(), EndScreenReport.LINE_ROWS) and wrong_lines.is_empty()
+			and names.size() == money.size(),
+		"end screen: where the money went lists the largest ledger lines, each named apart, with their amounts %s" % str(wrong_lines))
 	var causes: Array = (t._sim.get_mortality_breakdown().get("categories", []) as Array).filter(
 		func(c: Dictionary) -> bool: return int(c.get("fish", 0)) > 0)
 	_check((built.get("mortality_rows", []) as Array).size() == mini(causes.size(), EndScreenReport.MORTALITY_ROWS),

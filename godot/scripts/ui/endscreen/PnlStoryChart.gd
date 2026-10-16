@@ -325,7 +325,10 @@ func _draw_loan(font: Font) -> void:
 	var text := tr("UI_ENDSCREEN_CHART_LOAN") % SimFormatters.format_nok(float(mark["amount"]))
 	var tw := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
 	var x := clampf(at.x - tw * 0.5, plot_rect().position.x, plot_rect().end.x - tw)
-	draw_string(font, Vector2(x, at.y - r - 6.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, _pal(&"info"))
+	var base := at.y - r - 6.0
+	# A paper backing keeps the label legible where it crosses the line.
+	draw_rect(Rect2(x - 4.0, base - FONT_SIZE - 1.0, tw + 8.0, FONT_SIZE + 6.0), Color(_pal(&"raised"), 0.92))
+	draw_string(font, Vector2(x, base), text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE, _pal(&"info"))
 
 
 func _get_tooltip(at_position: Vector2) -> String:
