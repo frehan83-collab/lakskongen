@@ -37,6 +37,7 @@ render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_sc
 // above; vertical seepage streaks and foliation bands on the cliffs.
 
 #include "res://shaders/ground_season.gdshaderinc"
+#include "res://shaders/include/cloud_shadow.gdshaderinc"
 
 const float L_ROCK = 0.0;
 const float L_GRASS = 1.0;
@@ -615,6 +616,9 @@ void fragment() {
 	// A film of sea water on the wet band; rain and seepage gloss the rock.
 	rough = mix(rough, 0.45, wet * 0.8);
 	rough = mix(rough, 0.32, max(wetness * br * 0.7, seep_wet * 0.6));
+	// Cloud shadows (G3-05): the map the water reads, on the tiers that draw
+	// no CloudShadows decal (the director zeroes it where the decal draws).
+	col *= lk_cloud_shadow_factor(world_pos, world_normal);
 	ALBEDO = clamp(col, vec3(0.0), vec3(1.0));
 	ROUGHNESS = clamp(rough, 0.05, 1.0);
 	METALLIC = 0.0;

@@ -145,3 +145,27 @@ lk_fresh_snow={
 "type": "float",
 "value": 0.0
 }
+lk_cloud_shadow_map={
+"type": "sampler2D",
+"value": ""
+}
+lk_cloud_shadow_origin={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}
+lk_cloud_shadow_axis_u={
+"type": "vec3",
+"value": Vector3(8.33333e-05, 0, 0)
+}
+lk_cloud_shadow_axis_v={
+"type": "vec3",
+"value": Vector3(0, 0, 8.33333e-05)
+}
+lk_cloud_shadow_sun={
+"type": "vec3",
+"value": Vector3(0, 1, 0)
+}
+lk_cloud_shadow_darken={
+"type": "float",
+"value": 0.0
+}

@@ -75,6 +75,12 @@ const UPSCALER_OTHER := Viewport.SCALING_3D_MODE_FSR
 ##                   cloud search may take on long grazing rays (G3-05: finer
 ##                   finds thin clouds the coarse grid steps over)
 ##   cloud_shadows   the clouds' shadows on the land and the water (G3-05)
+##   cloud_shadow_decal  the land's cloud shadows as the CloudShadows decal
+##                   (every land material: terrain, trees, shore props,
+##                   pens, boats); off, the terrain and the trees read the
+##                   shadow map in their own shaders (one fetch), which
+##                   costs nothing measurable where the view-sized decal
+##                   cost 0.6-0.8 ms at 1440p FJORD and 1.0-1.4 at COAST
 ##   radiance_size   Sky.RADIANCE_SIZE_* of the sky's radiance map
 ##   terrain_detail  0-1, handed to the terrain material (the heightfield
 ##                   and the far-field ring share it) as the terrain shader's
@@ -104,7 +110,7 @@ const PRESETS := {
 		"dof_reach": 0.0, "dof_near": false,
 		"shadow_atlas": 2048, "shadow_splits": 2, "shadow_distance": 0.6, "soft_shadows": RenderingServer.SHADOW_QUALITY_HARD,
 		"glow": true, "cloud_pass": 2, "cloud_steps": 4, "cloud_octaves": 4, "radiance_size": Sky.RADIANCE_SIZE_64,
-		"cloud_search": 1, "cloud_shadows": false,
+		"cloud_search": 1, "cloud_shadows": false, "cloud_shadow_decal": false,
 		"terrain_detail": 0.0,
 		"mirror": false, "mirror_scale": 0.0, "mirror_near_hz": 0.0, "mirror_far_hz": 0.0, "mirror_from_m": 0.0,
 	},
@@ -116,7 +122,7 @@ const PRESETS := {
 		"dof_reach": 700.0, "dof_near": false,
 		"shadow_atlas": 4096, "shadow_splits": 2, "shadow_distance": 0.8, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW,
 		"glow": true, "cloud_pass": 2, "cloud_steps": 5, "cloud_octaves": 5, "radiance_size": Sky.RADIANCE_SIZE_128,
-		"cloud_search": 2, "cloud_shadows": true,
+		"cloud_search": 2, "cloud_shadows": true, "cloud_shadow_decal": false,
 		"terrain_detail": 0.5,
 		"mirror": true, "mirror_scale": 0.33, "mirror_near_hz": 30.0, "mirror_far_hz": 20.0, "mirror_from_m": 300.0,
 	},
@@ -128,7 +134,7 @@ const PRESETS := {
 		"dof_reach": 700.0, "dof_near": false,
 		"shadow_atlas": 4096, "shadow_splits": 4, "shadow_distance": 1.0, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW,
 		"glow": true, "cloud_pass": 1, "cloud_steps": 6, "cloud_octaves": 6, "radiance_size": Sky.RADIANCE_SIZE_256,
-		"cloud_search": 2, "cloud_shadows": true,
+		"cloud_search": 2, "cloud_shadows": true, "cloud_shadow_decal": false,
 		"terrain_detail": 1.0,
 		"mirror": true, "mirror_scale": 0.4, "mirror_near_hz": 0.0, "mirror_far_hz": 30.0, "mirror_from_m": 300.0,
 	},
@@ -140,7 +146,7 @@ const PRESETS := {
 		"dof_reach": 100000.0, "dof_near": true,
 		"shadow_atlas": 4096, "shadow_splits": 4, "shadow_distance": 1.0, "soft_shadows": RenderingServer.SHADOW_QUALITY_SOFT_LOW,
 		"glow": true, "cloud_pass": 0, "cloud_steps": 6, "cloud_octaves": 6, "radiance_size": Sky.RADIANCE_SIZE_256,
-		"cloud_search": 3, "cloud_shadows": true,
+		"cloud_search": 3, "cloud_shadows": true, "cloud_shadow_decal": true,
 		"terrain_detail": 1.0,
 		"mirror": true, "mirror_scale": 0.5, "mirror_near_hz": 0.0, "mirror_far_hz": 0.0, "mirror_from_m": 0.0,
 	},

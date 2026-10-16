@@ -261,12 +261,20 @@ const LAMP_GLOW_ON_SCREEN := 0.75
 const LAMP_LIGHT_ENERGY := 2.5
 ## The mist banks' light against the horizon's (scene-linear).
 const MIST_LIGHT := 1.1
+## The land's cloud-shadow globals (project.godot [shader_globals], read by
+## include/cloud_shadow.gdshaderinc), in _apply_land_cloud_shadows' order.
+const LAND_SHADOW_GLOBALS := ["lk_cloud_shadow_map", "lk_cloud_shadow_origin", "lk_cloud_shadow_axis_u",
+	"lk_cloud_shadow_axis_v", "lk_cloud_shadow_sun", "lk_cloud_shadow_darken"]
 
 var _water_temperature_c := 8.0
 var _algae := 0.0
 ## The ground (G2-02): fresh snow and wet ground, eased toward the weather.
 var _fresh_snow := 0.0
 var _wetness := 0.0
+## The land's cloud-shadow globals last written (only changes are sent;
+## tests read them: the headless renderer keeps no global values).
+var land_shadow_map: Texture2D = null
+var land_shadow_darken := -1.0
 ## Mood weights (EnvironmentMood.Id order) and the blended profile composed
 ## last frame (tests and the harness read them).
 var mood_weights := PackedFloat32Array()
@@ -1267,11 +1275,14 @@ func _apply_cloud_shadows(mat: ShaderMaterial, sun_dir: Vector3, sun_elev: float
 		strength = 0.0
 	var focus := camera.get_focus_point() if camera != null else Vector3.ZERO
 	var drift := -_cloud_offset * 1000.0
+	var decal := bool(quality.knobs.get("cloud_shadow_decal", true))
 	if cloud_shadows != null:
+		cloud_shadows.decal_drawn = decal
 		cloud_shadows.update(sun_dir, cloud, strength, drift, focus)
 		strength = cloud_shadows.strength
 	else:
 		strength = 0.0
+	_apply_land_cloud_shadows(sun_dir, strength, decal, c)
 	if mat != null:
 		var on := cloud_shadows != null and cloud_shadows.get_map() != null and strength > 0.001
 		mat.set_shader_parameter("cloud_shadow_strength", strength if on else 0.0)
@@ -1282,6 +1293,29 @@ func _apply_cloud_shadows(mat: ShaderMaterial, sun_dir: Vector3, sun_elev: float
 			mat.set_shader_parameter("cloud_shadow_axis_v", cloud_shadows.map_axis_v)
 	c["cloud_shadow_strength"] = strength
 	c["cloud_shadow_drift"] = drift
+
+
+## The land's cloud shadows where the decal does not draw them: the map, its
+## frame, the sun and the darkening as global shader parameters for the
+## terrain (and its far field) and the trees (include/cloud_shadow
+## .gdshaderinc). Zero darkening where the decal draws them, so no slope is
+## darkened twice.
+func _apply_land_cloud_shadows(sun_dir: Vector3, strength: float, decal: bool, c: Dictionary) -> void:
+	var map := cloud_shadows.get_map() if cloud_shadows != null else null
+	var darken := cloud_shadows.darken() if cloud_shadows != null and map != null and not decal and strength > 0.001 else 0.0
+	if darken > 0.0:
+		if map != land_shadow_map:
+			RenderingServer.global_shader_parameter_set(LAND_SHADOW_GLOBALS[0], map)
+			land_shadow_map = map
+		RenderingServer.global_shader_parameter_set(LAND_SHADOW_GLOBALS[1], cloud_shadows.map_origin)
+		RenderingServer.global_shader_parameter_set(LAND_SHADOW_GLOBALS[2], cloud_shadows.map_axis_u)
+		RenderingServer.global_shader_parameter_set(LAND_SHADOW_GLOBALS[3], cloud_shadows.map_axis_v)
+		RenderingServer.global_shader_parameter_set(LAND_SHADOW_GLOBALS[4], sun_dir.normalized())
+	if darken > 0.0 or land_shadow_darken != 0.0:
+		RenderingServer.global_shader_parameter_set(LAND_SHADOW_GLOBALS[5], darken)
+		land_shadow_darken = darken
+	c["land_cloud_shadow_darken"] = darken
+	c["cloud_shadow_decal"] = decal and cloud_shadows != null and cloud_shadows.visible
 
 
 ## Low cloud on the walls (MistBanks) from the mood's cloud base up, lit by

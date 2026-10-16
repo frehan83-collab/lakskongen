@@ -58,6 +58,11 @@ var strength := 0.0
 var cover := 0.0
 ## Off hides the shadows whatever the sky (the harness's A/B of their motion).
 var enabled := true
+## Whether this decal draws them (RenderQuality cloud_shadow_decal: Ultra).
+## Off, the land's own shaders read the map (include/cloud_shadow
+## .gdshaderinc: the terrain, its far field and the trees), as the water
+## always does; the map, its frame and the strength are composed either way.
+var decal_drawn := true
 
 
 # The director can update the shadows before this node's _ready (it sits
@@ -98,8 +103,9 @@ func get_map() -> Texture2D:
 ## clouds' horizontal drift so far (m, x/z) and `focus` the camera's focus.
 func update(sun_dir: Vector3, cloud_cover: float, shadow_strength: float, drift: Vector2, focus: Vector3) -> void:
 	strength = clampf(shadow_strength, 0.0, 1.0) if enabled else 0.0
-	visible = strength > 0.001
-	if not visible:
+	var shown := strength > 0.001
+	visible = shown and decal_drawn
+	if not shown:
 		return
 	if absf(cloud_cover - _built_cover) >= COVER_STEP or _map == null:
 		_build_map(cloud_cover)
@@ -115,10 +121,15 @@ func update(sun_dir: Vector3, cloud_cover: float, shadow_strength: float, drift:
 	cv += PERIOD_M * roundf((fv - cv) / PERIOD_M)
 	var origin := basis.x * cu + basis.z * cv + basis.y * focus.dot(basis.y)
 	global_transform = Transform3D(basis, origin)
-	modulate = Color(0.0, 0.0, 0.0, MAX_DARKEN * strength)
+	modulate = Color(0.0, 0.0, 0.0, darken())
 	map_origin = origin
 	map_axis_u = basis.x / size.x
 	map_axis_v = basis.z / size.z
+
+
+## How much a shadow takes off a sunlit surface's albedo now (0: none).
+func darken() -> float:
+	return MAX_DARKEN * strength
 
 
 ## A frame whose +Y points at the sun and whose X lies level.

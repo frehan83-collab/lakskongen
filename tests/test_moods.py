@@ -338,3 +338,38 @@ def test_qa_shots_take_the_settled_mood():
     i = harness.index("func _configure_env(")
     body = harness[i:harness.index("\nfunc ", i + 10)]
     assert 'director.call("compose", 0.0, true)' in body
+
+
+def test_the_land_reads_the_cloud_shadow_map_where_the_decal_does_not_draw():
+    """Wave-2 integration: the view-sized decal cost 0.6-0.8 ms at 1440p FJORD (1.0-1.4 at
+    COAST); below Ultra the terrain (and its far field) and the trees read the same map in
+    their own shaders, as the water does. Exactly one path darkens the land."""
+    inc = (GODOT / "shaders/include/cloud_shadow.gdshaderinc").read_text(encoding="utf-8")
+    globals_ = ("lk_cloud_shadow_map", "lk_cloud_shadow_origin", "lk_cloud_shadow_axis_u",
+                "lk_cloud_shadow_axis_v", "lk_cloud_shadow_sun", "lk_cloud_shadow_darken")
+    for name in globals_:
+        assert re.search(rf"global uniform \w+ {name};", inc), name
+    # The decal's own fade along the sunlight (Decal.normal_fade = SUN_FACING 0.12).
+    assert "smoothstep(0.12, 1.0, dot(normalize(n), lk_cloud_shadow_sun) * 0.5 + 0.5)" in inc
+    assert "fract(" in inc, "the map is periodic over its box"
+    project = (GODOT / "project.godot").read_text(encoding="utf-8")
+    shader_globals = project[project.index("[shader_globals]"):]
+    for name in globals_:
+        assert f"\n{name}={{" in shader_globals, f"{name} must be declared in [shader_globals]"
+    for shader, normal in (("terrain_shader.gdshader", "world_normal"), ("vegetation_shader.gdshader", "normal_world")):
+        code = (GODOT / "shaders" / shader).read_text(encoding="utf-8")
+        assert '#include "res://shaders/include/cloud_shadow.gdshaderinc"' in code, shader
+        frag = code[code.index("void fragment()"):]
+        assert f"col *= lk_cloud_shadow_factor(world_pos, {normal});" in frag, shader
+        assert frag.index("lk_cloud_shadow_factor") < frag.index("ALBEDO ="), f"{shader}: before the albedo is written"
+    quality = QUALITY.read_text(encoding="utf-8")
+    decal = re.findall(r'"cloud_shadow_decal": (true|false)', quality)
+    assert decal == ["false", "false", "false", "true"], "the decal on Ultra only (Low, Medium, High read the map)"
+    assert "visible = shown and decal_drawn" in _code(SHADOWS), "the map and its frame are composed on every tier"
+    director = _code(DIRECTOR)
+    assert "cloud_shadows.decal_drawn = decal" in director
+    assert "not decal and strength > 0.001 else 0.0" in director, "no slope is darkened twice"
+    setters = {p.name for p in GODOT.rglob("*.gd")
+               if "global_shader_parameter_set(LAND_SHADOW_GLOBALS" in p.read_text(encoding="utf-8")
+               or re.search(r'global_shader_parameter_set\("lk_cloud_shadow', p.read_text(encoding="utf-8"))}
+    assert setters == {"EnvironmentDirector.gd"}, "the director is the only writer of the land's shadow globals"

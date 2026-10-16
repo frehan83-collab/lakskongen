@@ -14,6 +14,7 @@ render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_sc
 // up-facing foliage of trees above the snow line, as in a winter fjord.
 
 #include "res://shaders/ground_season.gdshaderinc"
+#include "res://shaders/include/cloud_shadow.gdshaderinc"
 
 // 0 spruce, 1 birch.
 uniform int species : hint_range(0, 1) = 0;
@@ -38,6 +39,7 @@ varying float base_altitude;
 varying vec3 normal_world;
 varying float height_local;
 varying vec3 local_pos;
+varying vec3 world_pos;
 
 void vertex() {
 	part = UV.x;
@@ -54,6 +56,7 @@ void vertex() {
 		VERTEX = centre + (VERTEX - centre) * s;
 	}
 	normal_world = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
 float hash13(vec3 p3) {
@@ -104,6 +107,8 @@ void fragment() {
 	float hold = species == 0 ? 0.6 : mix(0.55, 0.25, lk_foliage);
 	float snow = snowy * facing * hold * (part > 0.5 ? 1.0 : 0.35);
 	col = mix(col, snow_color * mix(0.85, 1.0, occlusion), snow);
+	// Cloud shadows (G3-05), as on the terrain under the trees.
+	col *= lk_cloud_shadow_factor(world_pos, normal_world);
 	ALBEDO = col;
 	ROUGHNESS = mix(0.88, 0.7, snow);
 	SPECULAR = mix(0.25, 0.45, snow);

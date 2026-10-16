@@ -232,9 +232,26 @@ func _check_cloud_shadows(gb: Node, env: FjordEnvironment, director: Environment
 	_stage(gb, env, director, _golden("sommerdag"))
 	var cover := float(director.get_composed()["cloud_cover"])
 	var share := _map_share(shadows)
-	t._check(shadows.visible and shadows.strength > 0.9 and float(water.get_shader_parameter("cloud_shadow_strength")) > 0.9
+	# The land takes them from exactly one path: the decal on the tiers that
+	# draw it (Ultra), the land's own shaders reading the map (the terrain,
+	# its far field and the trees) on the others; never both.
+	var tier := director.get_quality_name()
+	var paths := {}
+	for name in ["high", "ultra"]:
+		director.set_quality(name)
+		_stage(gb, env, director, _golden("sommerdag"))
+		var land := float(director.get_composed().get("land_cloud_shadow_darken", -1.0))
+		var decal_tier := bool(director.get_quality_knobs()["cloud_shadow_decal"])
+		var global_map: Texture2D = director.land_shadow_map
+		var global_darken := director.land_shadow_darken
+		paths[name] = (decal_tier and shadows.visible and land == 0.0 and global_darken == 0.0) \
+			or (not decal_tier and not shadows.visible and is_equal_approx(land, shadows.darken()) and land > 0.5
+				and is_equal_approx(global_darken, land) and global_map == shadows.get_map())
+	director.set_quality(tier)
+	_stage(gb, env, director, _golden("sommerdag"))
+	t._check(shadows.strength > 0.9 and paths["high"] and paths["ultra"] and float(water.get_shader_parameter("cloud_shadow_strength")) > 0.9
 		and water.get_shader_parameter("cloud_shadow_map") == shadows.get_map(),
-		"moods: broken cloud under a high sun casts shadows on the land and the water (strength %.2f)" % shadows.strength)
+		"moods: broken cloud under a high sun casts shadows on the water and on the land, by the land's shaders on High and the decal on Ultra, never both (strength %.2f)" % shadows.strength)
 	t._check(absf(share - cover) < 0.05, "moods: the shadows cover the cloud's share of the ground (%.2f for cover %.2f)" % [share, cover])
 	var before := shadows.map_origin
 	director.set_process(false)
@@ -245,9 +262,10 @@ func _check_cloud_shadows(gb: Node, env: FjordEnvironment, director: Environment
 	var drift := Vector2(director.get_composed()["cloud_shadow_drift"]).length()
 	t._check(moved > 5.0, "moods: the shadows drift with the clouds (%.0f m in a second)" % moved)
 	_stage(gb, env, director, _golden("graavaer"))
-	var closed := not shadows.visible and float(water.get_shader_parameter("cloud_shadow_strength")) == 0.0
+	var closed := not shadows.visible and float(water.get_shader_parameter("cloud_shadow_strength")) == 0.0 \
+		and director.land_shadow_darken == 0.0
 	_stage(gb, env, director, _golden("nordlys"))
-	var night := not shadows.visible
+	var night := not shadows.visible and director.land_shadow_darken == 0.0
 	t._check(closed and night and drift >= 0.0, "moods: no cloud shadows under a closed deck or at night")
 
 

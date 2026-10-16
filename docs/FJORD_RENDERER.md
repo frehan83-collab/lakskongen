@@ -370,12 +370,21 @@ at a graze, so the far fjord is veiled and the water under the camera stays
 clear; soft three-octave puffs inside banks with clear water between, lit
 by the sun and the sky, lifting once the sun warms the air (6-18°).
 
-**Cloud shadows** (`CloudShadows.gd`): one Decal over the view, projected
-along the sunlight, a seamless noise thresholded at the cloud cover (cover
+**Cloud shadows** (`CloudShadows.gd`): a map laid along the sunlight round
+the camera's focus, a seamless noise thresholded at the cloud cover (cover
 0.28 shades 27 % of the ground), drifting with the sky's low clouds; the
-water reads the same map. Strongest under broken cloud with the sun over
-6-15°, none under a closed deck or at night; `cloud_shadows` knob (off on
-Low).
+water reads it (`water_mood.gdshaderinc`). Strongest under broken cloud
+with the sun over 6-15°, none under a closed deck or at night;
+`cloud_shadows` knob (off on Low). The land takes it one of two ways
+(`cloud_shadow_decal` knob): on Ultra the node is a Decal over the view
+(every land material: terrain, trees, shore props, pens, boats); on Low to
+High the terrain (heightfield and far field) and the trees read the map in
+their own shaders (`include/cloud_shadow.gdshaderinc`, global uniforms the
+director writes, the decal's albedo darkening and its fade along the
+sunlight reproduced), and the decal is hidden. The view-sized decal is
+evaluated in every cluster it covers: retiring it on High saved 0.84 ms
+p50 at FJORD, 1.03 at FARM and 1.12 at COAST (paired, 2560x1440, the
+wave-2 integration build; `docs/run/evidence/perf/perf_int_water_decal_ab.md`).
 
 **Pen lamps** (`PenLamps.gd`): one OmniLight 5 m down in each stocked pen
 (up to 24 nearest) after dusk in the lighting season (October-April); the
@@ -710,6 +719,7 @@ group). High is the default.
 | Sky radiance map | 64 | 128 | 256 | 256 |
 | Terrain detail (the terrain shader's `wall_detail`, heightfield and far field: the wall noise above 0.5) | 0 | 0.5 | 1 | 1 |
 | Planar mirror (G2-03): share of the window, updates, drawn from | none | 0.33, 30 / 20 Hz, 300 m | 0.4, every frame / 30 Hz at COAST, 300 m | 0.5, every frame, always |
+| Cloud shadows on the land (G3-05) | none | the land's shaders | the land's shaders | the decal (every land material) |
 
 Ultra is the Wave-1 image unchanged. High trims what does not show at
 1440p (frames side by side in `docs/run/evidence/p0_04_perf.md`): SSAO
@@ -755,6 +765,7 @@ runs, the cost breakdown and the frames.
 |---|---|
 | `shaders/terrain_shader.gdshader` | terrain material (built by `FjordTerrain.gd`) |
 | `shaders/include/mirror_pass.gdshaderinc` | the terrain (keeps the seabed out of the mirror) |
+| `shaders/include/cloud_shadow.gdshaderinc` | the terrain and the trees: cloud shadows below Ultra |
 | `shaders/ground_season.gdshaderinc` | ground season globals, shared by terrain and trees |
 | `shaders/vegetation_shader.gdshader` | birch and spruce MultiMeshes (`Vegetation.gd`) |
 | `shaders/water_shader.gdshader` (+ `shaders/water/water_mirror.gdshaderinc`) | `WaterGrid` |
