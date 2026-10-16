@@ -144,6 +144,8 @@ func _run() -> void:
 	_test_offshore_unit_and_fleet()
 	# F2-03: an offshore unit leaves the fjord's pen layout alone.
 	await _test_offshore_unit_leaves_fjord_pens_in_place()
+	# F2-04: the farm-type catalogue and the research gates reach the UI.
+	await _test_farm_type_catalog_reaches_the_ui()
 
 	_clear_test_saves()
 	_finish()
@@ -5843,3 +5845,89 @@ func _layout_change(before: Dictionary, after: Dictionary) -> String:
 	if before.get("barges") != after.get("barges"):
 		changes.append("barges %s -> %s" % [str(before.get("barges")), str(after.get("barges"))])
 	return ", ".join(changes)
+
+
+## F2-04: the farm-type catalogue reaches the UI through SimBridge, the one
+## source of every farm-type number on a card: three families, seven variants
+## with the same axes, each value with its source keys (a null value names its
+## reason), every unlock gate with its status (po3_red_sone starts with
+## deep-sea-farming researched: the OF1-class research gate is met, the unit is
+## still locked). The tech tree's tooltip, reached with a real mouse hover,
+## names the unit kinds a narrowed node reaches and the farm types it opens.
+func _test_farm_type_catalog_reaches_the_ui() -> void:
+	_check(_sim.start_qa_scenario("po3_red_sone", 93), "farm types: seeded scenario starts")
+	_sim.set_paused(true)
+	var cat: Dictionary = _sim.get_farm_type_catalog()
+	var axes: Array = cat.get("axes", [])
+	var families: Array = cat.get("families", [])
+	var family_ids: Array = families.map(func(f: Dictionary) -> String: return str(f.get("id", "")))
+	_check(family_ids == ["sjo", "land", "hav"], "farm types: three families (%s)" % str(family_ids))
+	var variants := {}
+	for f in families:
+		for v in f.get("variants", []):
+			variants[str(v.get("id", ""))] = v
+	_check(variants.keys() == ["open_pen", "closed_pen", "post_smolt", "hfs", "ras", "of1", "havfarm"],
+		"farm types: seven variants in catalogue order (%s)" % str(variants.keys()))
+	var problems: Array = []
+	for id in variants:
+		var va: Dictionary = variants[id].get("axes", {})
+		if va.size() != axes.size():
+			problems.append("%s has %d axes" % [id, va.size()])
+		for a in axes:
+			var e: Dictionary = va.get(a, {})
+			if (e.get("sources", []) as Array).is_empty():
+				problems.append("%s.%s has no source" % [id, a])
+			if e.get("median") == null and str(e.get("note", "")) == "":
+				problems.append("%s.%s is empty without a reason" % [id, a])
+	_check(axes.size() == 7 and problems.is_empty(), "farm types: every card has the 7 axes with sources (%s)" % str(problems))
+	var untranslated: Array = []
+	for f in families:
+		if tr(str(f.get("name_key", ""))) == str(f.get("name_key", "")):
+			untranslated.append(f.get("name_key"))
+	for id in variants:
+		var key := str(variants[id].get("name_key", ""))
+		if tr(key) == key:
+			untranslated.append(key)
+	_check(untranslated.is_empty() and tr("FARM_VARIANT_OF1") == "Havmerd" and tr("FARM_FAMILY_SJO") == "Sjø",
+		"farm types: every family and variant has a Norwegian name (%s)" % str(untranslated))
+	var of1_capex := float(variants["of1"]["axes"]["capex_nok_per_t_year"].get("median", 0.0))
+	_check(of1_capex > 131000.0 and of1_capex < 133000.0,
+		"farm types: the OF1-class capacity cost comes through (%.0f NOK per t a year)" % of1_capex)
+	var research_met := false
+	for g in variants["of1"].get("gates", []):
+		if str(g.get("kind", "")) == "Research" and str(g.get("subject", "")) == "deep-sea-farming":
+			research_met = bool(g.get("met", false))
+	_check(bool(variants["open_pen"].get("unlocked", false)) and research_met and not bool(variants["of1"].get("unlocked", true)),
+		"farm types: the open pen is open, OF1's research gate met, the unit still locked")
+
+	# The tech tree: hover land-based-ras with the mouse.
+	_start_paused_game()
+	var tree: Control = (load("res://scripts/ui/TechTreePanel.gd") as GDScript).new()
+	add_child(tree)
+	await get_tree().process_frame
+	tree.on_panel_shown()
+	await get_tree().process_frame
+	var node_panel: Control = tree._node_panels.get("land-based-ras")
+	_check(node_panel != null, "farm types: the tech tree shows land-based-ras")
+	if node_panel == null:
+		tree.queue_free()
+		return
+	# Bring the node to the middle of the window, then move the cursor onto it.
+	var vp := get_viewport()
+	var centre := node_panel.get_global_rect().get_center()
+	tree.position += vp.get_visible_rect().get_center() - centre
+	await get_tree().process_frame
+	centre = node_panel.get_global_rect().get_center()
+	vp.notification(Node.NOTIFICATION_VP_MOUSE_ENTER)
+	for p in [centre + Vector2(-40, 0), centre]:
+		var ev := InputEventMouseMotion.new()
+		ev.position = p
+		ev.global_position = p
+		vp.push_input(ev, true)
+		await get_tree().process_frame
+	var text: String = tree._tooltip_label.text
+	_check(tr("UI_TECH_APPLIES_TO") % tr("RESEARCH_SCOPE_LAND") in text
+			and tr("UI_TECH_UNLOCKS") % ", ".join([tr("FARM_VARIANT_POST_SMOLT"), tr("FARM_VARIANT_HFS")]) in text,
+		"farm types: the tooltip names land tanks and the two land types it opens (%s)" % text.replace("\n", " | "))
+	tree.queue_free()
+	await get_tree().process_frame

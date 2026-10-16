@@ -73,13 +73,15 @@ public class FarmTypeMoveTests
     /// hashed as <see cref="PreMoveRecording"/>. What moved: (1) the save holds
     /// deep-sea-farming, whose lice and disease effects now reach the offshore
     /// unit only (spec §3.1 decision 0: F2-04 narrows the research effects), so
-    /// the fjord sites and the land and post-smolt tanks lose them; (2) the year
-    /// end's resource-rent base leaves out the land sites' costs (the
-    /// ring-fence, spec §3.6); (3) the save carries F2-04's additive fields
-    /// (asset register, construction projects, permit cases, the ring-fenced
-    /// costs). No unit enters the asset register: their capex was paid before
-    /// F2 (spec §8). Ring-fence alone (before the narrowing), recorded on the
-    /// same branch: 9f4737c4826751a4, bc190ab10a29ab81, 0fe99725a94520ca. A later
+    /// the fjord sites and the land and post-smolt tanks lose them; (2) the save
+    /// carries F2-04's additive fields (asset register, construction projects,
+    /// permit cases, the ring-fenced costs). The year end's resource-rent base
+    /// now leaves out the land sites' costs (the ring-fence, spec §3.6) but
+    /// stays under the 70 M basic deduction either way, so no cash moves for
+    /// it. No unit enters the asset register: their capex was paid before F2
+    /// (spec §8). With the ring-fence alone (before the narrowing), recorded on
+    /// the same branch, cash, fish and kilos were F2-03's and only the saved
+    /// fields moved the hashes: 9f4737c4826751a4, bc190ab10a29ab81, 0fe99725a94520ca. A later
     /// item that changes the facility behaviour on purpose replaces these with
     /// a RUN_LOG §7 row, as F2-03 and F2-04 did.
     /// </summary>

@@ -1619,6 +1619,104 @@ unit's 7-day rota (26 more crew changes at 150,000 NOK). A post-smolt left in
 its tanks still reaches 8 kg at 113-167 kg/m³: land tanks carry no density
 stress until F2-12 (RUN_LOG §8).
 
+## 1n. F2-04: facility finance, the farm-type catalogue, research gates (2026-10-16, branch `wave3/sim-core-3`)
+
+The calibration registry is **v1.1.0** (the F2-04 minor bump). Its new section
+`facilities` is assembled from include files (`calibration.json` →
+`facilitiesIncludes`, one file per lane); sim·core's is
+`godot/data/calibration/facilities_common.json`. Every leaf carries a `[Range]`
+and one `[Source]` (dossier keys of docs/research/FARM_TYPES_RESEARCH.md: `L:x`
+land, `O:x` offshore, `V:n` the realism review's, `code` the game's own) or
+`[GameBalance]` (a reason); `CalibrationGuardTests` checks all 76.
+
+### Depreciation and construction risk
+
+| value | number | provenance |
+|---|---|---|
+| land site life | 20 years, straight line from commissioning | [GB] spec §3.6; stand-in for skatteloven § 14-43's declining groups |
+| offshore unit life | 25 years | [GB] spec §3.6 |
+| managed cost overrun (lognormal, truncated at its p99) | median +7 %, p90 +25 % (p10 +2 %, p99 +71 %) | [GB] after O:R4 (the first OF1-class unit: 720 M + 157 M = +22 %) and L:C1 |
+| schedule slip (lognormal, truncated at its p99) | median +5 %, p90 +35 % (p10 +0.7 %, p99 +171 %) | [GB]; L:A10 slipped, O:R1 on plan |
+| turnkey premium | +12 % up front, no overrun | [GB] spec §3.9 |
+
+Depreciation is booked only for F2 units built in the game (the legacy build
+verbs register them at build day + construction days; construction projects
+at completion). Migrated pre-F2 units and every fjord capex stay off the
+register (spec §8). It is a non-cash P&L line: the corporate tax base falls by
+it (−22 % × depreciation of corporate tax), the cash reconciliation does not
+move (730 days × seeds 1/7/13 with a post-smolt site, a RAS and an OF1-class
+unit: depreciation = Σ capex / life per day to 1e-9 NOK, cash = booked flows to
+1e-6 NOK), and the resource-rent base never sees it.
+
+### The rent ring-fence (spec §3.6)
+
+The rent base is the liable harvest at the norm price less the sea-phase costs;
+costs of units the rent does not reach (every land site; an offshore unit on
+licences outside it, F2-09) are booked like any cost and left out of it. Twin
+games (`ressursrente`, events off, 300 days; one adds a commissioned Medium RAS
+stocked with 200,000 smolts): the land site costs 65.3 / 65.6 / 65.7 M NOK
+(seeds 1 / 7 / 13: opex, feed, smolts), every krone ring-fenced, and the rent
+bases are equal to 1e-20 NOK (32.28 / 18.61 / 20.03 M) while the mixed company's
+pre-tax income is that much lower. The real tax is a cash-flow tax that expenses
+sea-phase investments directly (Prop. 78 LS (2022–2023)); the game's rent base
+deducts no capex at all yet, sea or land (left for F2-09 / S4-09).
+
+### The farm-type catalogue's reference cards (spec §2A-2C)
+
+Computed by `Farm/FarmTypeCatalog.cs` from the registry; capacity cost per
+tonne of yearly capacity including the licence at 1.2 t HOG per t MTB a year
+[GB]; the bad case is the unit's capex at the overrun's p90, the build at the
+slip's p90, the survival in a bad cycle. After F2-17 the probe's medians replace them.
+
+| variant | capex NOK/t/yr (bad) | opex NOK/kg HOG | survival (bad) | ext. lice | kWh/kg | build days (bad) | capacity t/yr | sources (capex) |
+|---|---|---|---|---|---|---|---|---|
+| Åpen merd | 255,769 | 77.9 | 0.815 (0.741) | 1.0 | 0.07 | 0 | 3,744 | code, V:1, GB |
+| Semi-lukket / lukket merd | 281,437 (288,255) | 73.3 | 0.979 (0.92) | 0.15 | 3.87 | 60 (81) | 1,833 | O:R44, V:1, code, GB |
+| Postsmoltmodul | 229,167 (286,458) | — (no published figure) | 0.97 (0.90) | 0 | 4.4 | 593 (801) | 480 (live) | GB |
+| Landanlegg (hybrid) | 262,000 (327,500) | 70.7 | 0.97 (0.90) | 0 | 6.55 | 910 (1,229) | 7,900 | L:R1, GB |
+| Landanlegg (RAS), stage 3 | 321,000 (401,250) | 77.8 | 0.98 (0.88) | 0 | 7.0 | 973 (1,314) | 4,316 | L:C1, GB |
+| Havmerd (OF1-class) | 131,869 (161,149) | 101.3 | 0.93 (0.81) | 0.12 | — | 670 (905) | 7,488 | O:R4, code, V:2, GB |
+| Skipsmerd (Havfarm-class), stage 3 | 98,288 (119,121) | 101.3 | 0.972 (0.81) | 0.30 | — | 880 (1,188) | 12,000 | O:R26, O:R22, O:R23, V:2, GB |
+
+Gates (FR3: every gate, money included): Åpen merd at the start (6 M); the
+closed pen after the first harvest (50 M a pen); the post-smolt module after
+`land-based-ras` and the first harvest (110 M); the hybrid land farm after
+`land-based-ras`, an operating post-smolt module and a zoned pad (the pilot
+lot, 0.9 bn [GB]); OF1-class after `deep-sea-farming`, the first harvest, 365
+escape-free days and a development licence (F2-09), 35 % of 877 M as a
+consortium; RAS and Havfarm-class after one cycle of the company's own HFS /
+OF1-class unit.
+
+### Research narrowed to its unit kinds (spec §3.1 decision 0)
+
+| node | effects | before F2-04 | from F2-04 |
+|---|---|---|---|
+| `land-based-ras` | mortality −5 %, disease −14 % | every fish (fjord pens included) | land tanks only; opens the post-smolt module and the hybrid land farm |
+| `deep-sea-farming` | lice settlement −10 %, disease −6 % | every fish and every sea site | offshore units only; opens the OF1-class unit |
+
+A fjord-only game that researches neither is bit-identical (24 of 27 golden
+traces). po3_red_sone starts with `deep-sea-farming`: its fjord sites lose the
+10 % lice blocking and 6 % disease resistance (final cash −12.11 / −15.25 /
+−13.77 M → −11.91 / −15.11 / −13.81 M on seeds 1 / 7 / 13, live biomass 216 /
+119 / 244 t → 213 / 112 / 243 t; docs/run/evidence/f2_04_golden_diff.md).
+
+### The pre-F2 facilities save, F2-03 → F2-04 (`FarmTypeMoveTests`, 365 days)
+
+| variant | cash day 365 (NOK) | fish | RAS kg | post-smolt kg | offshore kg |
+|---|---|---|---|---|---|
+| as-saved/events F2-03 | 1,447,483,294 | 606,759 | 267,921 | 2,142,024 | 762,750 |
+| as-saved/events F2-04 | 1,447,567,426 | 605,878 | 267,815 | 2,137,987 | 762,750 |
+| as-saved/no-events F2-03 | 1,469,614,476 | 382,176 | 158,051 | 1,447,269 | 450,769 |
+| as-saved/no-events F2-04 | 1,470,441,983 | 374,745 | 152,966 | 1,412,511 | 450,769 |
+
+The save holds `deep-sea-farming`: its disease resistance no longer reaches
+the land and post-smolt tanks or the fjord pens (fewer fish there), the
+offshore unit keeps it (unchanged to the kilo). The year end's rent base now
+leaves the land sites' costs out, but stays under the 70 M NOK basic deduction
+either way, so no cash moves for it: with the ring-fence alone (before the
+narrowing) cash, fish and kilos were F2-03's to the krone and the kilo, and only
+the saved fields changed the pin.
+
 ## 2. Key economic knobs
 
 | Knob | Current | Real reference | Source | Recommended playtest band |
