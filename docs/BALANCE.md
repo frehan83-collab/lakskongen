@@ -1756,6 +1756,356 @@ unit per in-game month** and at most **1 critical per unit per in-game year**
 owner brief "alarms are rare and mean something"). The meter counts what the
 bus delivered (new and escalated), never a repeat it absorbed, and never
 information.
+## 1p. F2-12: land water, energy and tanks, standalone (2026-10-15, branch `wave3/sim-lanes-1`)
+
+F2-12 stage 1 builds the land unit's physics as pure models in new files
+(`Farm/Land/*`, `Calibration/LandCalibration.cs`, draft
+`godot/data/calibration/facilities_land.json`); nothing is wired into the
+engine tick, the bridge, `GameState` or the registry yet (F2-02..F2-04 are in
+flight), so the shipped game and the 27 golden traces are unchanged (27 of 27
+identical over 731 days). Every number below comes from `LandLotProjector`, a
+pure day-by-day projection of one lot: the biology grows each tank on the S2-03
+growth law at the tank water the previous day's land tick left (continuous
+light, appetite from CO2 and TAN, the land density brake), then
+`LandLotDaySolver` solves the lot's flows, heat balance, water and energy on the
+day's feed, in the engine's order.
+
+**Harness.** pad_a of the procedural fjord (default terrain, seed 42): 25 m
+water at the quay (1 m), 95 m water 140 m out (`IntakeReachM`, F2-19); 13 m
+static lift, 5.0 m³/s of intake pumps per lot, UV on the intake. The 25 m intake
+draws Salmon Evolution's area's water (PO5 climatology, S2-02), the 95 m intake
+10 °C [V:10]. One HFS lot: 12 × Ø28 m × 8 m (4,926 m³) + 2 × Ø16 m (1,608 m³) =
+62,329 m³. Every tank runs Salmon Evolution's new plan ([L:R1]: 400 g → 5.2 kg LW),
+stocked to a projected peak of 80 kg/m³ (82,736 smolts would fill a grow-out tank
+to 85), 97 % survival a cycle ([L:R2]), 7 days fallow, first stockings staggered
+over the rotation; 420 days of warm-up, then one measured year (2028). The plan's
+cycle at 12 °C and 24 h light is 240 days (8 months; [L:R1] 8-9). Energy and
+oxygen are per kg of live-weight biomass growth (harvest + Δ standing − smolts
+stocked), the basis of [L:R2]'s "kWh/kg biomass (LW)" and "oxygen consumption
+(biomass growth (LW))".
+
+### Acceptance (spec §7.1 F2-12, 1-5)
+
+| # | Criterion | Band | Measured | Test |
+|---|---|---|---|---|
+| 1 | HFS r 0.65, heat recovery, pad_a, annual [L:R2] | 6.0-7.5 kWh/kg LW | **6.40** | `LandEnergyModelTests.F2_12_Acceptance1_HfsR065WithHeatRecovery_Uses6To75KWhPerKgLw` |
+| 1 | r 0, intake at the setpoint, lift ≤ 2 m [L:A1, L:A3] | 0.6-1.5 | **1.08** (2 m lift, no UV, pumps sized for the loop) | `..._FlowThroughAtTheSetpoint_LiftUnder2M_Uses06To15KWhPerKgLw` |
+| 1 | RAS hall r 0.97 [L:R7, L:S3, L:S4] | 4-10 | **6.33** (6.70 without heat recovery) | `..._RasHallAtR097_Uses4To10KWhPerKgLw` |
+| 2 | LOX at the Salmon Evolution-like setup [L:R2] 0.55 | 0.45-0.65 kg O2/kg LW | **0.479** | `..._LoxAtTheSalmonEvolutionSetup_Is045To065KgPerKgLw` |
+| 2 | LOX from r 0 to r 0.9 at equal density | rises < 15 % | **−2.4 %** (14.84 → 14.48 t/day; held to ±15 %) | `LandWaterModelTests.F2_12_Acceptance2_LoxMovesUnder15Percent_FromR0ToR09_AtEqualDensity` |
+| 3 | CO2 at 60 kg/m³, 12 °C, r 0.65, default pumps | 10-15 mg/L | **13.41** | `..._Co2At60KgM3_12C_R065_DefaultPumps_Is10To15` |
+| 3 | CO2 above 70-80 kg/m³ | > 15 | **15.60** at 70, **17.80** at 80 | `..._Co2Exceeds15_At70And80KgM3` |
+| 3 | CO2 above r 0.8 | > 15 | **15.81** at r 0.8, 16.89 at 0.85 | `..._Co2Exceeds15_AboveR08_AndRisesWithReusePastTheStrippers` |
+| 4 | interior profit-optimal r (0.3-0.8) in ≥ 2 of 4 seasons | ≥ 2 | **4 of 4** (r 0.70, 0.70, 0.65, 0.70) | `LandVannstrategiSweepTests.F2_12_Acceptance4_AnInteriorReuseWins_InAtLeastTwoOfFourSeasons` |
+| 4 | the best probe pins neither r nor w at a bound | — | r **0.70**, intakes blended toward the setpoint (w interior on 116 of 365 days, mean 0.69) | `..._TheBestProbe_PinsNeitherReuseNorBlendAtABound` |
+| 5 | stocking with a projected peak above 85 kg/m³ is refused | `density_exceeded` | room + 1 smolt refused, room allowed; a tank stocked to the room peaks at ≤ 85 on every day of a year | `LandStockingPlannerTests` |
+
+Criterion 3 is measured on every tank of a full lot at the density, holding the
+plan's fish of the weight at which the plan stands at 60 kg/m³ (3.92 kg, eating
+0.771 % of their weight a day at 12 °C), i.e. denser stocking of the same fish.
+
+### Where the energy goes (kWh per kg LW growth, pad_a, PO5, one year)
+
+| Setup | total | intake | loop | treatment | UV | heating | cooling | base | LOX kg/kg | growth t | index kg/m³/yr | eFCR | CO2 mean / max | tank °C |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| HFS r 0.65, heat recovery (anchor) | 6.40 | 1.13 | 0.64 | 0.86 | 0.60 | 2.82 | 0.00 | 0.33 | 0.479 | 6,640 | 115 | 1.026 | 10.2 / 12.6 | 12.00 |
+| HFS r 0.65, no heat recovery | 10.52 | 1.16 | 0.66 | 0.88 | 0.62 | 6.86 | 0.00 | 0.34 | 0.475 | 6,478 | 112 | 1.027 | 10.0 / 12.6 | 11.71 |
+| HFS r 0.65, heat recovery, setpoint 13 °C | 7.48 | 1.05 | 0.59 | 0.80 | 0.56 | 4.19 | 0.00 | 0.30 | 0.494 | 7,185 | 124 | 1.026 | 10.9 / 13.3 | 13.00 |
+| HFS pilot lot (4 + 1 tanks) | 6.35 | 1.12 | 0.64 | 0.86 | 0.60 | 2.81 | 0.00 | 0.32 | 0.480 | 2,297 | 116 | 1.028 | 10.2 / 12.5 | 12.00 |
+| flow-through r 0, 12 °C intake, 2 m lift, no UV (anchor) | 1.08 | 0.75 | 0 | 0 | 0 | 0 | 0 | 0.33 | 0.482 | 6,697 | 116 | 1.027 | 9.7 / 12.0 | 12.02 |
+| the same with UV (a new plant must disinfect, [L:L2]) | 2.79 | 0.75 | 0 | 0 | 1.71 | 0 | 0 | 0.33 | 0.482 | 6,712 | 116 | 1.028 | 9.7 / 12.0 | 12.04 |
+| HFS r 0 on pad_a's pumps | 8.05 | 1.85 | 0 | 0 | 0.98 | 4.70 | 0 | 0.52 | 0.551 | 4,172 | 72 | 1.117 | 24.6 / 33.1 | 12.00 |
+| RAS hall r 0.97, heat recovery (anchor) | 6.33 | 0.12 | 1.21 | 4.05 | 0.07 | 0.17 | 0 | 0.71 | 0.481 | 4,106 | 106 | 1.008 | 8.7 / 11.6 | 12.00 |
+| RAS hall r 0.97, no heat recovery | 6.70 | 0.12 | 1.21 | 4.05 | 0.07 | 0.54 | 0 | 0.71 | 0.481 | 4,106 | 106 | 1.008 | 8.7 / 11.6 | 12.00 |
+| post-smolt module r 0.97 (80 g → 450 g) | 3.61 | 0.07 | 0.69 | 2.30 | 0.04 | 0.07 | 0 | 0.44 | 0.440 | 822 | 310 | 0.877 | 11.2 / 14.2 | 12.00 |
+
+Heating is the HFS's largest part (44 %) and the lever heat recovery pulls; the
+RAS hall's is treatment of its reused water (64 %). The post-smolt module lands
+in the 3.4-5.4 kWh/kg of [L:T1, L:S3] without tuning (F2-13 owns it).
+
+**By production area** (HFS anchor setup; the 25 m intake draws each area's water):
+
+| Area | kWh/kg, heat recovery | of which heating | kWh/kg, none |
+|---|---|---|---|
+| PO1 | 6.20 | 2.63 | 9.97 |
+| PO2 | 6.35 | 2.78 | 10.39 |
+| PO3 | 6.24 | 2.67 | 10.14 |
+| PO4 | 6.31 | 2.73 | 10.29 |
+| PO5 | 6.40 | 2.82 | 10.52 |
+| PO6 | 6.43 | 2.86 | 10.61 |
+| PO7 | 6.75 | 3.18 | 11.41 |
+| PO8 | 6.84 | 3.27 | 11.63 |
+| PO9 | 7.16 | 3.58 | 12.44 |
+| PO10 | 7.12 | 3.55 | 12.34 |
+| PO11 | 7.73 | 4.15 | 13.97 |
+| PO12 | 7.70 | 4.13 | 13.92 |
+| PO13 | 7.91 | 4.34 | 14.41 |
+
+The 95 m water is 10 °C everywhere [V:10] (no northern deep-water series); a
+northern pad pays for colder shallow water only through the blend.
+
+**Reuse on the HFS anchor (annual).** Below r 0.66 the intake pumps limit the
+new water (5.0 m³/s), so the circulation falls and CO2 rises; above the
+strippers' design (0.65) reused water returns unstripped, and with no biofilter
+the ammonia leaves only with the new water ([L:R7]).
+
+| r | kWh/kg | LOX kg/kg | growth t | CO2 mean / max mg/L | mean appetite | pump-limited days |
+|---|---|---|---|---|---|---|
+| 0.00 | 8.05 | 0.551 | 4,172 | 24.6 / 33.1 | 0.582 | 365 |
+| 0.30 | 6.50 | 0.498 | 5,509 | 16.1 / 24.4 | 0.775 | 365 |
+| 0.50 | 6.23 | 0.487 | 6,228 | 12.6 / 15.9 | 0.899 | 365 |
+| 0.60 | 6.35 | 0.482 | 6,532 | 11.0 / 14.0 | 0.960 | 365 |
+| 0.65 | 6.40 | 0.479 | 6,640 | 10.2 / 12.6 | 0.987 | 225 |
+| 0.70 | 5.95 | 0.481 | 6,558 | 10.5 / 13.5 | 0.966 | 0 |
+| 0.75 | 5.58 | 0.482 | 6,344 | 10.6 / 14.3 | 0.920 | 0 |
+| 0.80 | 5.34 | 0.483 | 5,941 | 10.6 / 15.2 | 0.850 | 0 |
+| 0.85 | 5.21 | 0.485 | 5,379 | 10.5 / 16.2 | 0.748 | 0 |
+| 0.90 | 5.89 | 0.525 | 4,162 | 12.0 / 17.4 | 0.576 | 0 |
+
+**A full lot at equal density** (60 kg/m³ of the plan's 3.92 kg fish, 12 °C, pad_a's pumps):
+
+| r | CO2 mg/L | TAN mg/L | LOX t/day | pumps limit |
+|---|---|---|---|---|
+| 0.00 | 34.58 | 2.00 | 14.84 | yes |
+| 0.30 | 25.34 | 2.00 | 14.69 | yes |
+| 0.50 | 18.69 | 2.00 | 14.50 | yes |
+| 0.60 | 15.20 | 2.00 | 14.33 | yes |
+| 0.65 | 13.41 | 2.00 | 14.20 | yes |
+| 0.70 | 14.02 | 2.31 | 14.25 | no |
+| 0.75 | 14.86 | 2.78 | 14.31 | no |
+| 0.80 | 15.81 | 3.47 | 14.37 | no |
+| 0.85 | 16.89 | 4.63 | 14.43 | no |
+| 0.90 | 18.14 | 6.94 | 14.48 | no |
+
+CO2 at r 0.65 by density: 11.21 (50), 13.41 (60), 14.51 (65), 15.60 (70), 16.70
+(75), 17.80 (80), 18.90 (85). At pad_a's pumps the HFS runs at exactly the 2 mg/L
+TAN limit with 60 kg/m³ of 3.9 kg fish, the "reuse until TAN" rule of [L:R7].
+
+**Profit sweep (criterion 4).** Profit = LW growth × 70 NOK/kg HOG × 0.83 − feed
+× 22.30 NOK/kg − kWh × 0.80 NOK − LOX × 4.0 NOK, over r 0-0.95 (step 0.05) ×
+w 0-1 (step 0.1), each season (91 days from 1 Jan, 1 Apr, 1 Jul, 1 Oct 2028)
+after a warm-up on the default strategy:
+
+| Season | best r | best fixed w | profit (M NOK) |
+|---|---|---|---|
+| winter | 0.70 | 1.0 | 45.0 |
+| spring | 0.70 | 1.0 | 45.0 |
+| summer | 0.65 | 0.5 | 51.2 |
+| autumn | 0.70 | 1.0 | 45.0 |
+| year, blended toward the setpoint | 0.70 | (daily) | 187.3 |
+| year, best fixed blend | 0.70 | 1.0 | 179.4 |
+
+The tanks sit at the 12 °C setpoint all year (the heat pumps never run out of
+capacity with heat recovery), so the fish grow alike in every season and only
+the heating differs; with the 95 m water warmer than the 25 m water from
+November to May, a fixed blend takes all deep water except in summer. Blending
+toward the setpoint every day beats every fixed blend by 7.9 M NOK a year.
+
+### Calibration chosen here (against the spec's draft, §3.9)
+
+| Key | Spec draft | Now | Why |
+|---|---|---|---|
+| loop flow | 20 vol/day [GB] | 20 | [L:R5] DESMI: 18-22 vol/day at peak biomass (derived) |
+| pump capacity | 5.0 m³/s [GB] | 5.0 | [L:R5] 16,000 L/s over 48 tanks: 5.1 per lot (derived) |
+| heat-pump size | 8 MW [GB] | 8 MW **electrical input** | [V:11] six 5-6 MW units + exchangers, > 100 MW heat for phase 2; 8 MW of heat could lift 5 m³/s by only 0.4 K |
+| HFS biofilter | maturing in 30 d | none | [L:R7], [L:R2]: HFS strips CO2 and oxygenates; reuse stops at the TAN limit |
+| stripper design reuse | — | 0.65 HFS, 0.97 RAS/post-smolt | [L:R2]: higher reuse needs more treatment; the strippers are sized for the sweet spot |
+| outlet DO | 7.0 mg/L | 8.0 (93 % sat.) | at 7.0 the new water and strippers supply 27 % of the fish's O2 and LOX reads 0.37 (fails 0.45); Remen et al. 2016: full feed intake needs 42-76 % sat. |
+| injection efficiency | 0.75 | 0.70 | 0.75 gives 0.447 (fails 0.45) |
+| heat per m³·K | 1.11 kWh | 1.14 | seawater ρc_p = 4.10 MJ/(m³·K) (TEOS-10) |
+| base load | 2,000 kWh/day | 6,000 (HFS), 8,000 (RAS), 1,000 (post-smolt) | an itemised 250 kW for a 12-tank lot (feeding, LED light, sludge, buildings) |
+| UV | — | 0.026 kWh/m³ | US DOE/LBNL Wastewater Tipsheet #6 (2021): low-pressure UV 100-250 kWh/MG |
+| cooling band | — | 0.5 K | no chiller runs to take 0.02 K of fish heat out of a flow-through loop |
+| fish O2 | 0.37 kg/kg feed | 0.37 | Grøttum & Sigholt 1998 respirometry (a 2 kg salmon at 12 °C: ~2.2 g O2/kg/day; a 2026 *Scientific Reports* refit raises the baseline 29 %) over a 0.8-0.9 %/day ration: ~0.3-0.4 kg O2/kg feed (derived) |
+
+### Mutation checks (key tests fail when the model is broken)
+
+| Mutation | Tests that fail |
+|---|---|
+| strippers take all reused water (no design cap) | `Flows_WithRoomInThePumps...`, acceptance 3 above r 0.8 |
+| heat recovery ignored (plain COP) | `HeatBalance_WithinCapacity...`, acceptance 1 HFS (6.40 → 12+), `HeatRecovery_CutsTheHfsEnergy` |
+| stocking allowed up to 1.1 × the limit | acceptance 5, `PostSmoltTanks_AreHeldTo80KgM3` |
+| fish O2 0.37 → 0.30 kg/kg feed | acceptance 2 (LOX), acceptance 3 (70-80 kg/m³, r 0.8), JSON parity |
+| water quality never touches appetite | `TankAppetite...`, acceptance 4 (the sweep then pins r at 0.95 in every season) |
+
+### Findings (RUN_LOG §8)
+
+- **Production index.** The plan stocks each tank once per cycle, so the lot's mean
+  density is 35 kg/m³ and it grows 115 kg/m³/yr against [L:R6]'s 131-140 (revised)
+  and the 150 of the 7,900 t nameplate; 6,640 t LW growth ≈ 5,850 t HOG, close to
+  Salmon Evolution's 2026 guidance (≈ 6,000 t, [V:17]). Energy scales with the
+  stocked tanks' volume (spec §3.3: the loop flow is tank volumes a day), so a
+  cohort plan with pre-grow-out transfers (F2-15) that raises the index lowers
+  kWh/kg: re-measure criterion 1 then.
+- **Fixed blend.** On pad_a a fixed annual w pins at 1.0 (all deep water): the 95 m
+  water is warmer than the 25 m water eight months a year and its line is 140 m.
+  Daily blending toward the setpoint is the best strategy; the Vannstrategi
+  presets (F2-32) should offer it.
+- **LOX and reuse.** LOX falls 2.4 % from r 0 to r 0.9 instead of rising: the
+  strippers bring the reused water back toward air saturation.
+
+## 1q. F2-06: the offshore sea, its honest forecast and the operability windows, standalone (2026-10-16, branch `wave3/sim-lanes-2`)
+
+F2-06 stage 2 builds the offshore sea as standalone components in new files
+(`Environment/{OffshoreMetocean,MetoceanForecast,MetoceanMath,OperabilityWindows}.cs`,
+`Calibration/OffshoreCalibration.cs`, draft `godot/data/calibration/facilities_offshore.json`)
+plus one pure addition to `WeatherSystem` (`StateDistribution(k)`, which
+`StormRiskNext3Days` now delegates to, and `WindSpeedBelowProbability`). Nothing is
+wired into the tick, the bridge or `GameState` (F2-02/F2-03 own `OffshoreTickSystem`,
+`OffshoreHooks.OperationPossible` and the bridge's `GetSeaStateForecast`), so the
+shipped game and the golden traces are unchanged. Every number below is measured on
+the standalone component the way the engine will run it: one `SimRng` per seed, the
+fjord weather advancing first on its own stream, then the sea ticking the same day on
+`offshore_metocean`. The acceptance sample is seeds 1-20 × 50 years (365,000 days);
+the fit runs on the disjoint seeds 1001-1100 × 50 years.
+
+**The model** (`OffshoreMetocean.TickDay`, 8 uniforms a day, always, inverse CDF):
+- u0: the base sea, an AR(1) in a sea transform T: T(B) = μ_month + Δ_weather + X,
+  X_t = 0.75 X_{t−1} + 0.30 Φ⁻¹(u0). T is ln h up to 1 m and (h^0.4 − 1)/0.4 above
+  (`MetoceanMath.UpperBoxCox`): a lognormal sea below 1 m with no floor, a thinner tail above.
+- u1-u6: a storm-swell event is created at the month's rate (0.02-0.10 a day, 22.1 a
+  year), arrives 4-7 days later, holds its peak 1-4 days between a half-height ramp day
+  on each side; peak from the month's median (2.2 m in January, shaped by NORA10's
+  monthly 1-year extremes: 0.96 m in July) with a 0.20 ln spread; Tp 9-14 s; u6 is the
+  standard normal error of the forecast's estimate of the peak.
+- u7: visibility (low-visibility days 3-6 % a month).
+- A plot's Hs = its scale × √(B² + 0.34² + Σ swell²): the day's wind sea, the background
+  swell and the storm swell add in energy. A day's Hs is the day's highest 3-hour sea
+  state, so the annual maxima give the design 100-year level and an operation booked for
+  the day must clear it.
+
+### Sources
+
+| Key | What it gives | Used for |
+|---|---|---|
+| NORCE 2020 (Ø. Johnsen, *MariCulture Smart Fishfarm, Metocean Design Basis, Haltenbanken II*, report 103211, 12.11.2020; NORA10 1958-2019 at 63.86 °N 6.46 °E, published with Fiskeridirektoratet's hearing on the Norskehavet site: https://fiskeridir.no/hoeringer/horing-om-klarering-av-lokalitet-for-akvakultur-i-norskehavet) | Table 3.2 monthly mean Hs 3.7 3.6 3.2 2.4 1.8 1.7 1.5 1.6 2.3 2.9 3.2 3.7 m (year 2.6), non-exceedance per 0.5 m (0.18 % below 0.5 m, 7.15 % below 1.0 m, 32.6 % above 3 m); Table 3.4 monthly 1-year extremes 10.3 … 4.5 (July) … 10.2 m, annual 1/10/100-year 11.6/13.9/16.2 m, 3-p Weibull locations 0.68-1.05 m; Table 3.7 Tp of 1-2 m seas 8.4-9.5 s | the monthly shape of the base sea, the swell's seasonal medians, the 100-year/annual-maximum ratio, the calm end (background swell), hav_1's check |
+| [O:R17] AOF summary report 1, Fiskeridirektoratet 2024 | site mean Hs 0.9 m, maximum 4.15 m (generation 1); barge inaccessible 92 days in ~25 months, 62 % in January-March | off_1's annual mean, acceptance 2, the winter window check |
+| [O:R6] NTNU thesis on OF1 (2018) | OF1's 100-year design Hs 5 m at Frohavet | off_1 Hs100 |
+| [O:R19] FFE 2026 | AOF approved for Hs 6.7 m | off_2 Hs100 6.5 m [GB] |
+| [O:R37] Menon 131/2023 | crowding only below Hs 2 m; wellboats operate offshore to about 5 m | the handling and alongside limits |
+| ICOADS 1950-2007, "Marine fog over northern Europe", AMS 97th Annual Meeting 2017 (https://ams.confex.com/ams/97Annual/webprogram/Paper307556.html) | north of 62 °N fog in < 3 % of ship observations in June-August, < 2 % the rest of the year | the low-visibility day shares (a day counts any low hour) |
+
+### Acceptance (spec §7 F2-06, 1-9)
+
+| # | Criterion | Band | Measured | Test |
+|---|---|---|---|---|
+| 1 | off_1 annual mean Hs | 0.8-1.1 m | **1.057** (the day's peak; [O:R17]'s 0.9 m is a time mean, ~10 % below) | `OffshoreMetoceanTests.Acceptance1_…` |
+| 1 | off_1 median annual maximum | 3.5-4.8 m | **3.776** | same |
+| 2 | off_1 days above 2.0 m, year / January-March | 8-14 % / 20-35 % | **11.8 % / 22.9 %** | `Acceptance2_…` |
+| 3 | empirical 100-year level (0.99 quantile of 1,000 annual maxima) | Hs100 ± 10 % | off_1 **4.954** (5.0), off_2 **6.443** (6.5), hav_1 **12.886** (13): −0.9 % | `Acceptance3_…` |
+| 4 | every swell event peaking ≥ 3 m at off_1 is in the forecast ≥ 4 days before onset | all | **707 of 707** (timing exact; its p90 on the first plateau day is above the forecast without it) | `Acceptance4_…` |
+| 5 | realized frequency within ± 0.05 of the forecast in every decile at leads 1, 3, 5, 7, 10 (limits 2.0, 2.5, 3.0 m at off_1) | ± 0.05 | worst **0.021** (lead 10, decile 2: 0.146 forecast, 0.125 realized, 1,147 forecasts); PIT of the whole distribution 9.91-10.11 % per tenth at every lead (364,800 days) | `MetoceanForecastReliabilityTests` |
+| 6 | 1,000 forecast polls leave every stream position unchanged | 0 moves | **0** (and the sea's saved state unchanged) | `Acceptance6_…` |
+| 7 | exactly 8 uniforms a day | 8 | **8** on each of 365,000 days, none from the weather stream | `Acceptance7_…` |
+| 8 | the fjord weather series for seeds 1-10 is unchanged | bit-identical | FNV-1a fingerprints of 10 years of state, temperature, wind, the three offsets and the 3-day storm risk, × default/harsh_storms/calm_weather: **30 of 30** equal to the pre-F2-06 recording (re-run with the pre-F2-06 algorithms in place: 3/3 pass) | `WeatherSeriesFingerprintTests` |
+| 9 | a save mid-event is bit-identical | bit-identical | saved on a plateau day with an event pending: 500 more days, the forecast and the stream position bit for bit | `Acceptance9_…` |
+
+### The climate the plots get (seeds 1-20 × 50 years, the day's peak Hs)
+
+| Plot | Scale | Mean | p10 / p50 / p90 / p99 | Annual max p10 / p50 / p90 | > 2 m | > 2.5 m | > 3 m | > 5 m |
+|---|---|---|---|---|---|---|---|---|
+| off_1 "Ytre kyst" | 1.058 | 1.057 | 0.44 / 0.79 / 2.13 / 3.33 | 3.29 / 3.78 / 4.36 | 11.8 % | 5.8 % | 2.2 % | 0.0 % |
+| off_2 "Havkanten" | 1.376 | 1.375 | 0.57 / 1.03 / 2.77 / 4.33 | 4.28 / 4.91 / 5.68 | 20.4 % | 13.0 % | 7.9 % | 0.24 % |
+| hav_1 "Havområde" | 2.752 | 2.750 | 1.13 / 2.05 / 5.54 / 8.66 | 8.56 / 9.82 / 11.35 | 51.4 % | 40.4 % | 32.3 % | 13.0 % |
+
+off_1 by month (mean, days above 2 m, above 3 m): Jan 1.49 / 26.1 % / 6.8 %, Feb 1.44 /
+24.3 % / 5.5 %, Mar 1.29 / 18.5 % / 2.6 %, Apr 0.97 / 7.3 % / 0.4 %, May 0.73 / 1.5 %,
+Jun 0.68 / 0.5 %, Jul 0.60 / 0.1 %, Aug 0.65 / 0.2 %, Sep 0.92 / 5.2 % / 0.2 %, Oct
+1.17 / 13.0 % / 0.9 %, Nov 1.29 / 19.4 % / 3.6 %, Dec 1.49 / 26.0 % / 6.6 %. The monthly
+means follow NORA10's shape within 1 % (`Off1_MonthlyMeans_FollowTheNora10Shape`).
+Lag autocorrelation of ln Hs: 0.80 (1 day), 0.59 (2), 0.45 (3), 0.30 (5).
+
+hav_1 is scaled only to the spec's 100-year sea of 13 m, yet it reproduces the open
+Norwegian Sea at Haltenbanken: mean 2.75 m against 2.6 m, 32.3 % of days above 3 m
+against 32.6 % of 3-hour states (`Hav1_MatchesTheOpenSeaAtHaltenbanken`). Its 100-year
+sea stays the spec's 13 m (NORA10 gives 16.2 m at Haltenbanken; the spec infers 13 m
+from the open-sea design, [O:R12], [O:R29]).
+
+The calm end (`CalmSea_FollowsNora10_WithNoPileUp`): no day below 0.192 × the annual
+mean (NORA10, 3-hour: 0.18 %), 4.9 % below 0.385 × (7.15 %), July 14.3 % below 0.667 ×
+its mean (19.8 %); a day's peak is never below its 3-hour values, so these are upper
+bounds, and the lowest 0.1 % of days spread over 0.341-0.349 m (no pile-up).
+
+Off_1 winters (October-March, 980 winters; `Off1Winters_HandlingWindowClimatology`):
+median 38 days above the 2.0 m handling limit (p10 27, p90 51; AOF's barge: ~37-40 a
+winter), 28 of them in spells of 3+ days; the longest spell without a handling day lasts
+median 7 days, p90 10; 21 days or more in 0.1 % of winters; above the offshore
+wellboat's 2.5 m: median 20 days.
+
+### Calibration chosen here (against the spec's draft, §3.9)
+
+| Key | Spec draft | Now | Why |
+|---|---|---|---|
+| base distribution | lognormal (ln Hs) | ln below 1 m, Box-Cox λ = 0.4 above | the lognormal's 100-year level was 1.85 × the median annual maximum and failed acceptance 1 and 3; NORA10's ratio is ~1.35 (16.2 m against an annual maximum of ~12); measured now 4.954 / 3.776 = 1.31 |
+| floor | — | none; background swell 0.34 m in energy | a Box-Cox power over the whole range reaches 0 m and needed a 0.1 m floor that bound on 3.8 % of days (a clamp); the lognormal lower piece put 2.4 % of days below 0.19 × the mean and 18.8 % below 0.385 × (NORA10: 0.18 % and 7.15 %); the background swell is NORA10's 3-p Weibull location (0.68-1.05 m in every month, 0.26-0.40 × the mean) |
+| μ_month (off_1) | 0.20 … −0.65 … 0.20 (ln, scale 1.0) | −0.524 … −1.281 … −0.492 (transform units, reference sea) | fitted on seeds 1001-1100 so each month's mean is 1.0 m × NORA10's monthly shape; `OffshoreMetoceanFitTests` re-runs the fit and fails if the shipped values are not its output |
+| swell median | 2.2 m all year | 2.2 m in January × NORA10's monthly 1-year extremes (0.96 m in July) | a constant median put summer storms at winter heights; NORA10's July 1-year extreme is 0.44 × January's |
+| swell spread | σ_ln 0.30 | 0.20, Box-Cox λ 0.8 above 1 m | 0.30 with seasonal medians pushed the median annual maximum and the days above 2 m to the bands' edges |
+| plot scales | off_1 1.0, off_2 1.3, hav_1 2.4 | 1.058, 1.376, 2.752 | fitted: Hs100 / the reference sea's empirical 100-year level (4.724 m on the fit seeds) |
+| reference annual mean | 0.9 m (off_1) | 1.0 m (the day's peak) | [O:R17]'s 0.9 m is a time mean; a day's peak lies ~10 % above it |
+| AR(1) φ, σ_ε, Δ_weather, rates, leads, durations, Tp, limits | spec | spec | unchanged |
+
+### The forecast (`MetoceanForecast`, pure, never draws)
+
+For a target day T = t + k, P(Hs ≤ L) is the model's conditional probability given
+today's saved state: the base's AR(1) Gaussian at lead k mixed over the weather chain's
+state distribution on T (`WeatherSystem.StateDistribution(k)`, the sampler's own
+transition rows), the known events' timing exactly and each peak's posterior given its
+estimate (prior N(0, 1) in the peak's latent units, estimate error τ = min(1, days to
+onset / 4), conjugate update: mean y/(1+τ²), sd τ/√(1+τ²); exact from the onset day),
+and every event not yet created (creation day, onset and plateau enumerated at the
+month's rates). Numerics: the base in closed form, one uncertain swell on Gauss-Legendre
+panels refined toward where it alone reaches the limit, likely pairs (≥ 2 % of the
+probability) on nested panels, likely triples with the nearest swell on panels and the
+others by tensor Gauss-Hermite, all rarer combinations by one antithetic Hammersley rule
+(1,024 points), combinations under 1e-9 counted as above every limit (reported).
+- Accuracy against a high-resolution integration of the same terms (1,600 / 320 × 480
+  nodes, 2^15 Halton points): worst **1.6e-4** over 1,550 probabilities (62 snapshots ×
+  leads 1/3/5/7/10 × 5 levels; 150 days with two uncertain swells, 132 with a tail); on
+  every third snapshot (2,075 probabilities) the worst was 2.1e-4.
+- Against 60,000 futures simulated from the generative model (24 states, leads 1/3/6/10):
+  worst **3.1** standard errors.
+- The known events' posterior: PIT deciles 9.6-10.4 % at leads 1-4 before onset, the
+  10-90 % band holds 79.8-80.1 %, and the posterior mean's squared error is τ²/(1+τ²)
+  (0.0590 / 0.2001 / 0.3595 / 0.4986 against 0.0588 / 0.2000 / 0.3600 / 0.5000), below
+  the raw estimate's τ².
+- Operability odds are honest per vessel (leads 2 and 6, seeds 1-10 × 20 years, ±0.01):
+  delousing by a standard vessel 0.880 forecast / 0.880 realized, by an offshore wellboat
+  0.940 / 0.941, DP resupply 0.977 / 0.977, helicopter crew change 0.902 / 0.901 (its
+  wind from the weather chain: Severe days 0.499 below 25 m/s against 0.500).
+- Cost (M1 Pro, load average 24-34 during the measurement): one P(Hs ≤ 2 m) at lead 1-4
+  3-7 µs, lead 5 ~56 µs, leads 6-10 ~230-260 µs; a full `Issue` for 4 limits median
+  3.3 ms (p95 8.9), with the 10/50/90 % quantiles median 15.8 ms (p95 74); the day's tick
+  0.28 µs. The Driftsplan should ask lead by lead from tomorrow and stop at the first
+  window, not issue the full forecast every day (F2-05/F2-07).
+
+### Mutation checks (key tests fail when the model is broken)
+
+| Mutation | Tests that fail |
+|---|---|
+| a 9th uniform a day | acceptance 7 |
+| `Issue` touches the saved state | acceptance 6 |
+| the wind's spread 4.0 → 4.0000001 m/s | the weather fingerprints (acceptance 8) |
+| events created 3 days ahead | acceptance 4 |
+| the AR residual not saved | acceptance 9 |
+| the base forecast 20 % too sharp | the whole-distribution PIT (acceptance 5's ± 0.05 deciles alone pass) |
+| one refined panel instead of four | the quadrature check |
+| half the not-yet-created events' rate | the simulated-futures check |
+| no background swell | the calm-sea check |
+| no posterior shrinkage (estimate taken as the peak) | the posterior's squared error (its PIT alone passes) |
+| the helicopter's visibility gate dropped | the per-vessel honesty check |
+
+### Findings (RUN_LOG §8)
+
+- **Weather alone almost never shuts off_1 for 21 days** (0.1 % of winters; the longest
+  spell is 7 days in the median winter). F2-08's pre-registered 10-30 % of winters with a
+  21-day warning must come from booking, vessel and crew delays on top of the sea.
+- **One estimate error per event.** The spec draws the peak estimate's error once (u6)
+  and scales it by the lead, so the posterior given today's estimate is calibrated at
+  every lead, but the estimates on two days with different τ (leads 4 and 3) together
+  reveal the peak. A player would have to invert the displayed p50 to use it.
+- **The forecast is not free.** Long leads cost ~0.25 ms a probability; the wiring
+  should cache a day's forecast per plot and query short leads first.
 
 ## 2. Key economic knobs
 
