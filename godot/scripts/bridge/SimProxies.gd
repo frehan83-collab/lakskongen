@@ -326,6 +326,18 @@ func get_harvest_orders() -> Array[Dictionary]:
 func get_harvest_reports() -> Array[Dictionary]:
 	return _arr(game_bridge.GetHarvestReports()) if game_bridge else ([] as Array[Dictionary])
 
+## Harvest planner (U2-05): a planned harvest projected today or after a wait
+## (twin-lite, no RNG moves), the planner's options, an express harvest of the
+## chosen pens, and the ledger's totals by category (the report's check).
+func project_harvest(holding_id: String, pen_ids: Array[String] = [], fraction: float = 1.0, wait_days: int = 0) -> Dictionary:
+	return game_bridge.ProjectHarvest(holding_id, pen_ids, fraction, wait_days) if game_bridge else {"success": false, "message": "Not initialized"}
+func get_harvest_planner_options() -> Dictionary:
+	return game_bridge.GetHarvestPlannerOptions() if game_bridge else {}
+func harvest_express(holding_id: String, pen_ids: Array[String] = [], fraction: float = 1.0) -> Dictionary:
+	return game_bridge.HarvestExpress(holding_id, pen_ids, fraction) if game_bridge else {"success": false, "message": "Not initialized"}
+func get_ledger_totals() -> Dictionary:
+	return game_bridge.GetLedgerTotals() if game_bridge else {"revenue": {}, "cost": {}}
+
 ## Perform maintenance on RAS facility, returns cost
 func ras_maintenance(facility_id: String) -> float:
 	if game_bridge and game_bridge.has_method("PerformRASMaintenance"):

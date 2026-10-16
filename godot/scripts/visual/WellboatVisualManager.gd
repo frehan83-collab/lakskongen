@@ -7,6 +7,14 @@ class_name WellboatVisualManager
 ## boat sails out when a job is booked, waits alongside the pen while the job
 ## is queued and sails home once the job has been carried out and left the
 ## queue.
+##
+## Harvests (roadmap U2-05): a planned harvest order (SimBridge.get_harvest_orders)
+## sends the large harvest carrier out when it is placed; it lies alongside
+## with "Slakting · om N d" until its slot, "Slakting · pågår" while the
+## slaughterhouse takes the batches, and sails home when the order is done,
+## its chip showing the harvest's net ("Slakting · ferdig · +8,05 MNOK"). An
+## express harvest's spot wellboat comes out, loads and leaves. A land farm's
+## own hall needs no wellboat.
 
 const ChannelBoat := preload("res://scripts/visual/ChannelBoat.gd")
 
@@ -17,6 +25,13 @@ const JOB_COLOURS := {
 	"delouse": Color(0.949, 0.718, 0.020, 1.0),
 	"other": Color(0.549, 0.780, 0.855, 1.0),
 }
+## Job ids of harvest boats: an order's ("harvest_order:<order id>") and an
+## express harvest's ("harvest_express:<report id>").
+const ORDER_PREFIX := "harvest_order:"
+const EXPRESS_PREFIX := "harvest_express:"
+## Routes that send no wellboat (a land farm's own hall).
+const HALL_ROUTE := "OnSiteHall"
+
 ## Chip text per job kind: translation key and Norwegian fallback.
 const JOB_LABELS := {
 	"harvest": ["UI_VESSEL_JOB_HARVEST", "Slakting"],
@@ -49,6 +64,9 @@ var _sim_bridge = null
 var _terrain = null
 var _fjord_env = null
 var _active_wellboats: Dictionary = {}  # job_id -> {boat, path, follow, site_id, state, tween, ...}
+## Harvest report ids already seen (an express harvest's report sends its boat once).
+var _seen_reports: Dictionary = {}
+var _reports_primed := false
 
 func _ready() -> void:
 	_fjord_env = get_parent()
@@ -93,10 +111,58 @@ func _sync_wellboats() -> void:
 		else:
 			_spawn_wellboat(job_id, site_id, str(job_dict.get("kind", "harvest")), due_day,
 				str(job_dict.get("method", "")))
+	queued.append_array(_sync_harvests(sim_day))
 	# A job that left the queue has been carried out: its boat sails home.
+	# An express harvest's boat turns home once it has loaded.
 	for job_id in _active_wellboats.keys():
-		if job_id not in queued:
+		if job_id not in queued and not str(job_id).begins_with(EXPRESS_PREFIX):
 			_start_return(job_id)
+
+
+## U2-05: the harvest orders' carriers, and an express harvest's spot boat.
+## Returns the job ids that stay out (the open orders).
+func _sync_harvests(sim_day: int) -> Array:
+	var out: Array = []
+	if not _sim_bridge.has_method("get_harvest_orders"):
+		return out
+	for o in _sim_bridge.get_harvest_orders():
+		if str(o.get("route", "")) == HALL_ROUTE:
+			continue
+		var job_id := ORDER_PREFIX + str(o.get("id", ""))
+		var site_id := str(o.get("holding_id", ""))
+		var slot := int(o.get("slot_day", sim_day))
+		out.append(job_id)
+		if not _active_wellboats.has(job_id):
+			_spawn_wellboat(job_id, site_id, "harvest", slot, "")
+		if _active_wellboats.has(job_id):
+			_active_wellboats[job_id]["harvesting"] = str(o.get("status", "")) == "Harvesting"
+			_update_wellboat_progress(job_id, sim_day, slot)
+	for r in _sim_bridge.get_harvest_reports():
+		var id := str(r.get("id", ""))
+		if _seen_reports.has(id):
+			continue
+		_seen_reports[id] = true
+		# Reports that were there when the scene came up are history.
+		if not _reports_primed or str(r.get("mode", "")) != "Express" or str(r.get("route", "")) == HALL_ROUTE:
+			continue
+		var job_id := EXPRESS_PREFIX + id
+		_spawn_wellboat(job_id, str(r.get("holding_id", "")), "harvest", sim_day, "")
+		if _active_wellboats.has(job_id):
+			_active_wellboats[job_id]["express"] = true
+			_active_wellboats[job_id]["payoff"] = _payoff_text(id)
+	_reports_primed = true
+	return out
+
+
+## The net of the harvest `key` names (an order id or a report id): "+8,05 MNOK".
+func _payoff_text(key: String) -> String:
+	var net := 0.0
+	var found := false
+	for r in _sim_bridge.get_harvest_reports():
+		if str(r.get("order_id", "")) == key or str(r.get("id", "")) == key:
+			net += float(r.get("net_nok", 0.0))
+			found = true
+	return ("+" if net >= 0.0 else "") + SimFormatters.format_nok(net) if found else ""
 
 ## Job ids with a boat on the water (outbound, on site or returning).
 func active_job_ids() -> Array:
@@ -169,6 +235,9 @@ func _on_wellboat_arrived(job_id: String) -> void:
 	var data: Dictionary = _active_wellboats[job_id]
 	data.state = "at_destination"
 	wellboat_arrived.emit(data.site_id)
+	# An express harvest's spot boat loads and leaves (its job never queues).
+	if bool(data.get("express", false)):
+		_start_return(job_id)
 
 func _start_return(job_id: String) -> void:
 	if not _active_wellboats.has(job_id):
@@ -180,6 +249,8 @@ func _start_return(job_id: String) -> void:
 	if data.tween:
 		data.tween.kill()
 	ChannelBoat.face_home(data.boat)
+	if str(job_id).begins_with(ORDER_PREFIX) and _sim_bridge != null:
+		data["payoff"] = _payoff_text(str(job_id).trim_prefix(ORDER_PREFIX))
 	_update_chip(job_id, int(data.due_day))
 	var tween := create_tween()
 	tween.set_ease(Tween.EASE_IN_OUT)
@@ -205,6 +276,11 @@ func _update_wellboat_progress(job_id: String, sim_day: int, due_day: int) -> vo
 func job_chip(job_id: String) -> VesselChip:
 	return _active_wellboats[job_id].chip if _active_wellboats.has(job_id) else null
 
+## The text on job `job_id`'s chip ("" when it has no boat).
+func chip_text_of(job_id: String) -> String:
+	var chip := job_chip(job_id)
+	return chip.get_text() if chip != null and chip.has_method("get_text") else ""
+
 ## "Avlusing · om 2 d" while the job waits, "Avlusing · ferdig" on the way home.
 static func chip_text(kind: String, days_left: int, done: bool) -> String:
 	var entry: Array = JOB_LABELS.get(kind, JOB_LABELS["other"])
@@ -221,7 +297,12 @@ func _update_chip(job_id: String, sim_day: int) -> void:
 	if chip == null:
 		return
 	var colour: Color = JOB_COLOURS.get(data.kind, JOB_COLOURS["other"])
-	chip.set_chip(chip_text(data.kind, int(data.due_day) - sim_day, data.state == "return"), colour)
+	var text := chip_text(data.kind, int(data.due_day) - sim_day, data.state == "return")
+	if data.state != "return" and bool(data.get("harvesting", false)):
+		text = _tr_or("UI_VESSEL_JOB_UNDER_WAY", "%s · pågår") % _tr_or(JOB_LABELS["harvest"][0], JOB_LABELS["harvest"][1])
+	if data.state == "return" and str(data.get("payoff", "")) != "":
+		text += " · " + str(data.payoff)
+	chip.set_chip(text, colour)
 
 static func _tr_or(key: String, fallback: String) -> String:
 	var text := TranslationServer.translate(key)

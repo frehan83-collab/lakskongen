@@ -1783,3 +1783,102 @@ UI_AIFEED_PLAN_TITLE,Feed type and ration,Fôrtype og fôrmengde
 UI_PEN_ACTION_FEED_PLAN,Feeding plan,Fôringsplan
 UI_TOAST_FEED_PLAN_ALL_OK,Feeding plan set for every site,Fôringsplan satt for alle lokaliteter
 UI_TOAST_FEED_PLAN_OK,Feeding plan for %s set,Fôringsplan for %s satt
+HARVESTPLAN_BEST,best,best
+HARVESTPLAN_BUTTON_ORDERED,Harvest plan · ordered,Slakteplan · bestilt
+HARVESTPLAN_BUTTON_TIP,"Open the harvest planner: weights, prices, the wellboat and what waiting would bring","Åpne slakteplanen: vekter, priser, brønnbåt og hva det gir å vente"
+HARVESTPLAN_CANCEL_ORDER,Cancel the order,Avlys ordren
+HARVESTPLAN_CAPACITY_VALUE,%s t gutted a day,%s t sløyd per døgn
+HARVESTPLAN_CHART_NOTE,"Bars: gutted tonnes per size class. Under each, the class's price against the 4–5 kg reference.",Søyler: sløyde tonn per størrelsesklasse. Under hver: klassens pris mot referansen 4–5 kg.
+HARVESTPLAN_CHART_TITLE,"Weight distribution, gutted weight","Vektfordeling, sløyd vekt"
+HARVESTPLAN_CLOSE,Close,Lukk
+HARVESTPLAN_DAY_IN,%s (in %d d),%s (om %d d)
+HARVESTPLAN_DAY_RANGE,%s – %s,%s – %s
+HARVESTPLAN_ERROR_HOLDING_EMPTY,There are no fish to harvest.,Det er ingen fisk å slakte.
+HARVESTPLAN_ERROR_HOLDING_NOT_FOUND,The site no longer exists.,Lokaliteten finnes ikke lenger.
+HARVESTPLAN_ERROR_INVALID_FRACTION,Choose a share of the fish between 1 and 100 %.,Velg en andel av fisken mellom 1 og 100 %.
+HARVESTPLAN_ERROR_PEN_IN_ORDER,These pens are already in a harvest order.,Merdene er allerede i en slakteordre.
+HARVESTPLAN_ERROR_PEN_NOT_FOUND,A chosen pen is not at this site.,En valgt merd er ikke på lokaliteten.
+HARVESTPLAN_EXPRESS,Express today · %s,Ekspress i dag · %s
+HARVESTPLAN_EXPRESS_TIP,Sold today at %s; a spot wellboat and the slaughterhouse's waiting pen cost %s more.,Selges i dag til %s; spot-brønnbåt og slakteriets ventemerd koster %s ekstra.
+HARVESTPLAN_FASTING_VALUE,%d days (%s degree-days),%d døgn (%s døgngrader)
+HARVESTPLAN_FOOTER,"A planned harvest is the default: no surcharge, the fish fast at the farm, each day's batch sells at that day's price.","Planlagt slakting er standard: uten ekspresstillegg, fisken sultes på anlegget, og hver dags parti selges til dagens pris."
+HARVESTPLAN_FOOTER_WAIT,The details show a projection %d weeks ahead. Order when you want to harvest.,Detaljene viser en prognose %d uker fram. Bestill når du vil slakte.
+HARVESTPLAN_GRADES,Grade,Kvalitet
+HARVESTPLAN_GRADE_LEGEND,%s superior · %s ordinary · %s production,%s superior · %s ordinær · %s produksjon
+HARVESTPLAN_LAST_REPORT,Last harvest report,Siste slakterapport
+HARVESTPLAN_LOGISTICS,WELLBOAT AND SLAUGHTERHOUSE,BRØNNBÅT OG SLAKTERI
+HARVESTPLAN_ORDER,Order harvest · wellboat %s,Bestill slakting · brønnbåt %s
+HARVESTPLAN_ORDER_DETAIL,%s of %s fish slaughtered · slot in %d days. Cancelling feeds the fish again.,"%s av %s fisk slaktet · slot om %d døgn. Avlyser du, fôres fisken igjen."
+HARVESTPLAN_ORDER_FASTING,"Ordered: the fish fast, the wellboat comes %s","Bestilt: fisken sultes, brønnbåten kommer %s"
+HARVESTPLAN_ORDER_HARVESTING,Harvest under way (wellboat slot %s),Slaktingen er i gang (brønnbåt %s)
+HARVESTPLAN_ORDER_TIP,"The fish fast ahead of their turn, the wellboat takes them on its slot and the slaughterhouse sells each day's batch. Expected net %s.","Fisken sultes før sin tur, brønnbåten henter på sin slot og slakteriet selger hver dags parti. Forventet netto %s."
+HARVESTPLAN_OVERLINE,HARVEST PLAN,SLAKTEPLAN
+HARVESTPLAN_PENS,Pens,Merder
+HARVESTPLAN_PEN_CHIP,Pen %d · %s · %s,Merd %d · %s · %s
+HARVESTPLAN_PEN_IN_ORDER,This pen is already in a harvest order.,Merden er allerede i en slakteordre.
+HARVESTPLAN_PEN_TIP,Include this pen in the harvest,Ta med merden i slaktingen
+HARVESTPLAN_PRICE,PRICE,PRIS
+HARVESTPLAN_ROW_CAPACITY,Slaughterhouse,Slakteriet
+HARVESTPLAN_ROW_CONTRACT,Contract (%s),Kontrakt (%s)
+HARVESTPLAN_ROW_EXPECTED,Expected on the slaughter days,Forventet på slaktedagene
+HARVESTPLAN_ROW_FACTOR,Size and grade,Størrelse og kvalitet
+HARVESTPLAN_ROW_FASTING,Fasting,Sulting
+HARVESTPLAN_ROW_FEED,Feed until the fast,Fôr fram til sultingen
+HARVESTPLAN_ROW_FISH,Fish,Fisk
+HARVESTPLAN_ROW_GROSS,Gross sale,Brutto salg
+HARVESTPLAN_ROW_HOG,Gutted weight,Sløyd vekt
+HARVESTPLAN_ROW_NET,Net,Netto
+HARVESTPLAN_ROW_NET_AFTER_FEED,Net after feed,Netto etter fôr
+HARVESTPLAN_ROW_ORDER_DAY,Ordered,Bestilles
+HARVESTPLAN_ROW_SLAUGHTER,Slaughter and packing,Slakting og pakking
+HARVESTPLAN_ROW_SLAUGHTER_DAYS,Slaughter days,Slaktedager
+HARVESTPLAN_ROW_SPOT,Spot (%s),Spot (%s)
+HARVESTPLAN_ROW_SPOT_TODAY,Spot today,Spot i dag
+HARVESTPLAN_ROW_SURCHARGE,Express surcharge,Ekspresstillegg
+HARVESTPLAN_ROW_TRANSPORT,Wellboat,Brønnbåt
+HARVESTPLAN_ROW_VAP,Processing premium,Foredlingspremie
+HARVESTPLAN_ROW_WELLBOAT,Wellboat slot,Brønnbåt
+HARVESTPLAN_SETTLEMENT,SETTLEMENT,OPPGJØR
+HARVESTPLAN_SHARE,Share of the fish,Andel av fisken
+HARVESTPLAN_SHARE_ITEM,%s of each pen,%s av hver merd
+HARVESTPLAN_SHARE_TIP,Harvest part of each pen's fish; the rest are fed again,Slakt en del av fisken i hver merd; resten fôres videre
+HARVESTPLAN_STATUS_EMPTY,No fish,Ingen fisk
+HARVESTPLAN_STATUS_ORDERED,Ordered,Bestilt
+HARVESTPLAN_STATUS_READY,Ready for harvest,Klar for slakting
+HARVESTPLAN_STATUS_SMALL,Below harvest weight,Under slaktevekt
+HARVESTPLAN_SUBTITLE,%d pens with fish · %s fish · mean %s,%d merder med fisk · %s fisk · snittvekt %s
+HARVESTPLAN_TODAY,Today,I dag
+HARVESTPLAN_WAIT_NOTE,"A projection, not a promise: growth in the expected sea temperature, a normal day's deaths (%s a day) and the market's expected price. Blooms, disease and storms are not foreseen.","En prognose, ikke et løfte: vekst i forventet sjøtemperatur, normal dødelighet (%s per døgn) og markedets forventede pris. Alger, sykdom og storm er ikke med."
+HARVESTPLAN_WAIT_NOW,Now,Nå
+HARVESTPLAN_WAIT_TIP,Show this column's harvest in detail,Vis denne kolonnens slakting i detalj
+HARVESTPLAN_WAIT_TITLE,HARVEST NOW OR WAIT?,SLAKTE NÅ ELLER VENTE?
+HARVESTPLAN_WAIT_WEEKS,In %d weeks,Om %d uker
+HARVESTPLAN_WARN_SMALL,"Mean weight %s, below the usual harvest weight (%s kg). Small fish are paid below the reference price; waiting may pay better.","Snittvekten er %s, under vanlig slaktevekt (%s kg). Små fisk betales under referanseprisen; å vente kan lønne seg."
+HARVESTPLAN_WHY_NO_PENS,Pick at least one pen.,Velg minst én merd.
+HARVESTPLAN_WROW_DAYS,Slaughtered,Slaktes
+HARVESTPLAN_WROW_FEED,Feed,Fôr
+HARVESTPLAN_WROW_HOG,Gutted,Sløyd
+HARVESTPLAN_WROW_MEAN,Mean weight,Snittvekt
+HARVESTPLAN_WROW_NET,Net,Netto
+HARVESTPLAN_WROW_PRICE,"Price, NOK/kg","Pris, NOK/kg"
+HARVESTPLAN_WROW_RESULT,Net after feed,Netto etter fôr
+HARVESTREPORT_CLOSE,Continue,Fortsett
+HARVESTREPORT_DAYS,"%d slaughter days, %s – %s","%d slaktedager, %s – %s"
+HARVESTREPORT_FOOTER,Paid %s per gutted kilo on average; size and grade earned ×%s of the reference (superior 4–5 kg).,Snitt %s per sløyd kilo; størrelse og kvalitet ga ×%s av referansen (superior 4–5 kg).
+HARVESTREPORT_KPI_FISH,Fish,Fisk
+HARVESTREPORT_KPI_HOG,Gutted,Sløyd
+HARVESTREPORT_KPI_LIVE,Live,Levende
+HARVESTREPORT_KPI_MEAN,Mean weight,Snittvekt
+HARVESTREPORT_KPI_SUPERIOR,Superior,Superior
+HARVESTREPORT_LEDGER,"Booked in the accounts: harvest sales %s, harvest cost %s.","Bokført i regnskapet: slaktesalg %s, slaktekost %s."
+HARVESTREPORT_MODE_EXPRESS,Express,Ekspress
+HARVESTREPORT_MODE_FORCED,Forced harvest,Tvangsslakting
+HARVESTREPORT_MODE_HIREDWELLBOAT,Hired wellboat,Innleid brønnbåt
+HARVESTREPORT_MODE_PLANNED,Planned,Planlagt
+HARVESTREPORT_NET,NET,NETTO
+HARVESTREPORT_NET_DETAIL,Gross %s · harvest cost %s,Brutto %s · slaktekost %s
+HARVESTREPORT_ONE_DAY,Slaughtered %s,Slaktet %s
+HARVESTREPORT_OVERLINE,HARVEST REPORT,SLAKTERAPPORT
+HARVESTREPORT_ROW_PENALTY,Forced-harvest price,Tvangsslaktpris
+UI_TOAST_HARVEST_DONE,"Harvest done at %s: %s gutted, %s net. Click for the report.","Slakting ferdig på %s: %s sløyd, %s netto. Klikk for rapporten."
+UI_VESSEL_JOB_UNDER_WAY,%s · under way,%s · pågår

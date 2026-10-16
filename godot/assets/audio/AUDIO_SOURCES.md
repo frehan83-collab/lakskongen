@@ -70,11 +70,11 @@ All 27 required audio files have been sourced from free/CC0 libraries. This docu
    - License: CC0/CC-BY (check individual files)
    - Alternative: Mixkit "System alert notification"
 
-3. **harvest_ready.wav**
-   - Source: Mixkit Notifications
-   - URL: https://mixkit.co/free-sound-effects/notification/
-   - Suggested: "Achievement bell" or "Success notification"
-   - License: Free for commercial use
+3. **harvest_stinger.wav** (U2-05; replaced harvest_ready.wav)
+   - Source: generated in the repository by `tools/gen_harvest_stinger.py`
+     (a rising D-major figure on a struck-wood voice, a low hull knock, a
+     ringing bell chord; sines and seeded noise, deterministic)
+   - License: original work of the project, no third-party material
 
 4. **financial_crisis.wav**
    - Source: Mixkit Alerts
