@@ -109,15 +109,15 @@ const PROFILES := [
 		"cloud_base_m": 0.0, "cloud_base_fog": 0.0, "sky_haze": 1.0, "deck_value": 1.2},
 	# Gråvær: the west coast's closed grey deck, grey water, mist on the tops.
 	{"zenith": "#9AA8B0", "horizon": "#A7B3BA", "horizon_sun": "#A7B3BA", "sky_grade": 0.8,
-		"deck": "#A7B3BA", "deck_grade": 0.85, "fog": "#9AA7AE", "fog_grade": 0.85, "fog_value": 0.86,
+		"deck": "#A7B3BA", "deck_grade": 0.85, "fog": "#9AA7AE", "fog_grade": 0.85, "fog_value": 1.3,
 		"sun": "#E8ECEE", "sun_grade": 0.6, "water": Color(0.090, 0.100, 0.105), "exposure_ev": 0.35,
-		"cloud_base_m": 520.0, "cloud_base_fog": 0.006, "sky_haze": 1.0, "deck_value": 1.0},
+		"cloud_base_m": 420.0, "cloud_base_fog": 0.01, "sky_haze": 1.0, "deck_value": 1.0},
 	# Storm: a dark slate deck over a lighter horizon, rain driven by the
 	# wind; the far land fades lighter than the deck, so the mountains keep
 	# their outline.
 	{"zenith": "#4C5861", "horizon": "#6A767E", "horizon_sun": "#6A767E", "sky_grade": 0.85,
-		"deck": "#4C5861", "deck_grade": 0.9, "fog": "#6E7A82", "fog_grade": 0.85, "fog_value": 1.0,
-		"sun": "#DDE3E6", "sun_grade": 0.7, "water": Color(0.0045, 0.012, 0.016), "exposure_ev": 0.65,
+		"deck": "#4C5861", "deck_grade": 0.9, "fog": "#6E7A82", "fog_grade": 0.85, "fog_value": 1.6,
+		"sun": "#DDE3E6", "sun_grade": 0.7, "water": Color(0.008, 0.022, 0.026), "exposure_ev": 1.0,
 		"cloud_base_m": 420.0, "cloud_base_fog": 0.004, "sky_haze": 0.7, "deck_value": 0.42},
 	# Blåtime / mørketid: the sun just under the horizon, the sky deep blue
 	# with a pink south, the water a slate mirror.

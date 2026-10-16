@@ -293,12 +293,34 @@ float high_density(vec2 p, int octaves) {
 // relief toward the sun, side light from a low sun, a silver lining, and
 // skylight; the column's optical thickness runs from fair-weather cumulus
 // (6) to storm nimbostratus (60).
-vec4 cloud_layer_low(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int octaves, int steps, float jitter) {
+// The low slab's base and top (km).
+const float H0 = 1.2;
+const float H1 = 2.4;
+// The search for the first cloud on a ray: on the screen a grid step of at
+// most COARSE_STEP_KM (up to COARSE_MAX times the tier's steps), testing
+// two octaves fewer with the noise raised by COARSE_MARGIN (about what the
+// dropped octaves can add), so a thin cloud is rarely stepped over. Then
+// EDGE_SEARCH bisections place the cloud's edge and INNER_STEPS steps of at
+// most INNER_STEP_KM integrate into it.
+const float COARSE_STEP_KM = 0.6;
+const int COARSE_MAX = 3;
+const float COARSE_MARGIN = 0.06;
+const int EDGE_SEARCH = 5;
+const int INNER_STEPS = 4;
+const float INNER_STEP_KM = 0.3;
+
+// The low slab's density at `t` km along `dir`; `hn` the normalised height.
+float slab_density(vec3 dir, float t, int octaves, out float hn) {
+	// Height along the ray over the curved Earth.
+	float h = OBSERVER_H + t * dir.y + t * t * (1.0 - dir.y * dir.y) / (2.0 * R_EARTH);
+	hn = clamp((h - H0) / (H1 - H0), 0.0, 1.0);
+	return low_density_at(low_noise(dir.xz * t, octaves), hn);
+}
+
+vec4 cloud_layer_low(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int octaves, int steps, bool fine) {
 	if (dir.y <= 0.0 || cloud_coverage <= 0.01) {
 		return vec4(0.0);
 	}
-	const float H0 = 1.2;
-	const float H1 = 2.4;
 	float t0 = shell_distance(dir, H0);
 	float t1 = shell_distance(dir, H1);
 	float tau_max = mix(6.0, 60.0, cloud_density);
@@ -317,8 +339,7 @@ vec4 cloud_layer_low(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int 
 	vec2 toward = normalize(sun_dir.xz + vec2(1e-4)) * 0.8;
 
 	// Near the horizon the slab runs for tens of km: march only its first
-	// 10 km (the clouds behind are hidden or lost in haze), so the steps stay
-	// close enough not to band.
+	// 10 km (the clouds behind are hidden or lost in haze).
 	t1 = min(t1, t0 + 10.0);
 	float ds = (t1 - t0) / float(steps);
 	// Fewer octaves with distance: detail finer than a pixel only aliases
@@ -326,18 +347,59 @@ vec4 cloud_layer_low(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int 
 	octaves = max(octaves - int(clamp(log2(max(t0, 1.0) / 6.0), 0.0, float(octaves - 2))), 2);
 	float transmittance = 1.0;
 	vec3 light = vec3(0.0);
-	for (int i = 0; i < steps; i++) {
-		float t = t0 + (float(i) + jitter) * ds;
-		vec3 p = dir * t;
-		// Height along the ray over the curved Earth.
+	// The noise is a 2D field, so steps a kilometre apart sample the same
+	// cloud shapes shifted along the ray: summed at fixed distances from the
+	// slab's base they stack into horizontal slices ("venetian blinds",
+	// G3-05). The march looks for the first cloud on a coarse grid, bisects
+	// to its edge, then integrates INNER_STEPS short steps into it: the
+	// samples ride the cloud's surface, which moves smoothly from pixel to
+	// pixel, and every pixel takes the same number of them, so the edges and
+	// the shading stay continuous.
+	int coarse = fine ? clamp(int(ceil((t1 - t0) / COARSE_STEP_KM)), steps, steps * COARSE_MAX) : steps;
+	float dc = (t1 - t0) / float(coarse);
+	int coarse_octaves = max(octaves - 2, 2);
+	float t = t0 + 0.5 * dc;
+	float t_empty = t0;
+	float hn = 0.0;
+	float d = 0.0;
+	bool hit = false;
+	for (int i = 0; i < coarse; i++) {
 		float h = OBSERVER_H + t * dir.y + t * t * (1.0 - dir.y * dir.y) / (2.0 * R_EARTH);
-		float hn = clamp((h - H0) / (H1 - H0), 0.0, 1.0);
-		float n = low_noise(p.xz, octaves);
-		float d = low_density_at(n, hn);
+		float hn_c = clamp((h - H0) / (H1 - H0), 0.0, 1.0);
+		if (low_density_at(low_noise(dir.xz * t, coarse_octaves) + COARSE_MARGIN, hn_c) > 0.001) {
+			d = slab_density(dir, t, octaves, hn);
+			if (d > 0.001) {
+				hit = true;
+				break;
+			}
+		}
+		t_empty = t;
+		t += dc;
+	}
+	if (!hit) {
+		return vec4(0.0);
+	}
+	float lo = t_empty;
+	float hi = t;
+	for (int k = 0; k < EDGE_SEARCH; k++) {
+		float mid = 0.5 * (lo + hi);
+		float hm;
+		if (slab_density(dir, mid, octaves, hm) > 0.001) {
+			hi = mid;
+		} else {
+			lo = mid;
+		}
+	}
+	float ds_in = min(ds, INNER_STEP_KM);
+	t = hi + 0.5 * ds_in;
+	for (int i = 0; i < INNER_STEPS; i++) {
+		d = slab_density(dir, t, octaves, hn);
+		vec3 p = dir * t;
+		t += ds_in;
 		if (d <= 0.001) {
 			continue;
 		}
-		float tau_step = d * sigma * ds;
+		float tau_step = d * sigma * ds_in;
 		// The column above this sample, and relief toward the sun.
 		float tau_column = d * tau_max;
 		float t_d = 1.0 / (1.0 + 0.75 * tau_column * 0.15);
@@ -533,10 +595,12 @@ vec3 night_sky(vec3 dir) {
 
 // The three cloud layers composited over an unknown background:
 // premultiplied colour and coverage (rgb over, a).
-vec4 clouds(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int octaves, int steps, int scud_octaves) {
+// `fine`: the screen's passes search the low slab on a finer grid than the
+// radiance map does (cloud_layer_low()).
+vec4 clouds(vec3 dir, vec3 sun_dir, vec3 sky_top, vec3 moon_light, int octaves, int steps, int scud_octaves, bool fine) {
 	vec4 high = cloud_layer_high(dir, sun_dir, sky_top, moon_light, octaves - 2);
 	vec4 acc = vec4(high.rgb * high.a, high.a);
-	vec4 low = cloud_layer_low(dir, sun_dir, sky_top, moon_light, octaves, steps, 0.5);
+	vec4 low = cloud_layer_low(dir, sun_dir, sky_top, moon_light, octaves, steps, fine);
 	acc = vec4(low.rgb * low.a + acc.rgb * (1.0 - low.a), low.a + acc.a * (1.0 - low.a));
 	vec4 scud = cloud_layer_scud(dir, sky_top, scud_octaves);
 	acc = vec4(scud.rgb * scud.a + acc.rgb * (1.0 - scud.a), scud.a + acc.a * (1.0 - scud.a));
@@ -683,12 +747,12 @@ void sky() {
 		if (sky_pass == wanted) {
 			// The whole sky but its per-pixel detail, with the cloud cover
 			// as alpha (sky_pass: the planar mirror's sky, G2-03).
-			vec4 cl = dir.y > 0.0 ? clouds(dir, sun_dir, sky_top, moon_light, cloud_octaves, cloud_steps, 4) : vec4(0.0);
+			vec4 cl = dir.y > 0.0 ? clouds(dir, sun_dir, sky_top, moon_light, cloud_octaves, cloud_steps, 4, true) : vec4(0.0);
 			c = sky_body(dir, sun_dir, false, sky_pass_aurora, cl);
 		} else if (sky_pass == 0 && cloud_pass == wanted && dir.y > 0.0) {
 			// The clouds only, premultiplied, when the quality tier puts
 			// them here.
-			c = clouds(dir, sun_dir, sky_top, moon_light, cloud_octaves, cloud_steps, 4);
+			c = clouds(dir, sun_dir, sky_top, moon_light, cloud_octaves, cloud_steps, 4, true);
 		}
 		COLOR = c.rgb;
 		ALPHA = c.a;
@@ -703,11 +767,11 @@ void sky() {
 		// (premultiplied, so the bilinear upsample keeps soft edges right).
 		vec4 cl;
 		if (cubemap) {
-			cl = clouds(dir, sun_dir, sky_top, moon_light, 3, 3, 2);
+			cl = clouds(dir, sun_dir, sky_top, moon_light, 3, 3, 2, false);
 		} else if (cloud_pass > 0) {
 			cl = unfogged(cloud_pass == 1 ? HALF_RES_COLOR : QUARTER_RES_COLOR, dir, sun_dir);
 		} else {
-			cl = clouds(dir, sun_dir, sky_top, moon_light, cloud_octaves, cloud_steps, 4);
+			cl = clouds(dir, sun_dir, sky_top, moon_light, cloud_octaves, cloud_steps, 4, true);
 		}
 		vec4 body = sky_body(dir, sun_dir, cubemap, !cubemap, cl);
 		vec3 color = body.rgb;

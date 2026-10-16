@@ -646,7 +646,7 @@ func _measure_sky(sun_dir: Vector3, cloud: float, density: float, sea_fog: float
 	# The mood's aerial perspective; the land's fog a shade under the sky
 	# behind it (fog_value), so far mountains keep their outline.
 	fog_rgb = EnvironmentMood.grade_rgb(fog_rgb, mood.get("fog", Color.WHITE), float(mood.get("fog_grade", 0.0)))
-	var fog_light := fog_rgb * clampf(float(mood.get("fog_value", 1.0)), 0.3, 1.5)
+	var fog_light := fog_rgb * clampf(float(mood.get("fog_value", 1.0)), 0.3, 2.0)
 	c["sky_zenith"] = zenith
 	c["horizon_color"] = Color(fog_rgb.x, fog_rgb.y, fog_rgb.z)
 	c["fog_light_color"] = Color(fog_light.x, fog_light.y, fog_light.z)
