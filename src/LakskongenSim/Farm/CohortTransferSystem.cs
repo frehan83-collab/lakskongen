@@ -110,6 +110,12 @@ namespace LakskongenSim.Farm
             var destSite = state.SeaSites.FirstOrDefault(s => s.Id == plan.DestSiteId);
             if (sourceSite == null || destSite == null)
                 return new TransferResult(false, 0, 0, 0m, "Site not found");
+            // F2-03 (site-kind audit): transfers run between the fjord sites of
+            // one zone (GetValidDestinations); an offshore unit's zones are
+            // stocked and emptied through its own verbs, and a fish moved into
+            // one here would sit in none of its zones.
+            if (sourceSite.Kind != SiteKind.Fjord || destSite.Kind != SiteKind.Fjord)
+                return new TransferResult(false, 0, 0, 0m, "An offshore unit takes no cohort transfer");
 
             // Check destination MAB capacity
             double destBiomass = destSite.Pens.Sum(p => p.GetTotalBiomassKg());

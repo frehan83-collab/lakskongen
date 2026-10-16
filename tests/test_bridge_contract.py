@@ -733,6 +733,75 @@ def test_every_capacity_reason_and_breach_status_has_english_and_norwegian_text(
     missing = [k for k in keys if k not in rows or not rows[k][1].strip() or not rows[k][2].strip()]
     assert not missing, f"capacity labels without en/no text: {missing}"
 
+# ── F2-03: site kinds and the farm-type lanes' slices ─────────────────────────
+# GetSeaSiteDetails lists the fjord sites unless asked (offshore units must
+# never shift the fjord's index-keyed pen slots); the land and sea lanes each
+# own one partial and one marked block in SimProxies.gd and SimBridge.gd, and
+# F2-03's list verbs reach the facade through them.
+
+LANE_BLOCKS = {
+    "land": ("GameBridge.LandSites.cs", ("GetLandSites", "GetLandPlots"), ("get_land_sites", "get_land_plots")),
+    "sea": ("GameBridge.Offshore.cs", ("GetOffshoreUnits", "GetOffshorePlots"), ("get_offshore_units", "get_offshore_plots")),
+}
+
+
+def _lane_block(src: str, lane: str) -> str:
+    begin = re.findall(rf"(?m)^.*BEGIN sim·{lane} lane block.*$", src)
+    end = re.findall(rf"(?m)^.*END sim·{lane} lane block.*$", src)
+    assert len(begin) == 1 and len(end) == 1, f"one BEGIN/END sim·{lane} lane block expected ({len(begin)}/{len(end)})"
+    start = src.index(begin[0])
+    stop = src.index(end[0])
+    assert start < stop, f"sim·{lane} block ends before it begins"
+    return src[start:stop]
+
+
+def test_sea_site_details_list_the_fjord_unless_asked():
+    farm = (BRIDGE_DIR / "GameBridge.Farm.cs").read_text(encoding="utf-8")
+    assert re.search(r"public Godot\.Collections\.Array<Godot\.Collections\.Dictionary> GetSeaSiteDetails\("
+                     r"bool includeOffshore = false\)", farm), "GetSeaSiteDetails(bool includeOffshore = false) expected"
+    assert "if (!includeOffshore && site.Kind != Farm.SiteKind.Fjord) continue;" in farm
+    for key in ("kind", "plot_id"):
+        assert re.search(r'\["' + key + r'"\]\s*= site\.', farm), f"GetSeaSiteDetails lacks key {key}"
+    # Every GDScript consumer takes the default (the fjord): none asks for offshore units.
+    callers = []
+    for path in (REPO / "godot").rglob("*.gd"):
+        if "addons" in path.parts:
+            continue
+        for call in re.findall(r"GetSeaSiteDetails\(([^)]*)\)", path.read_text(encoding="utf-8", errors="ignore")):
+            callers.append((str(path.relative_to(REPO)), call.strip()))
+    assert callers, "contract harness broken: no GetSeaSiteDetails caller found"
+    assert all(arg == "" for _, arg in callers), f"a fjord consumer asks for offshore units: {callers}"
+
+
+def test_each_farm_type_lane_owns_one_partial_and_one_marked_block():
+    scripts = REPO / "godot" / "scripts"
+    proxies = (scripts / "bridge" / "SimProxies.gd").read_text(encoding="utf-8")
+    facade = (scripts / "SimBridge.gd").read_text(encoding="utf-8")
+    for lane, (partial_name, verbs, funcs) in LANE_BLOCKS.items():
+        partial = (BRIDGE_DIR / partial_name).read_text(encoding="utf-8")
+        _lane_block(partial, lane)
+        other = "sea" if lane == "land" else "land"
+        assert f"sim·{other} lane block" not in partial, f"{partial_name} holds the {other} lane's block"
+        for verb in verbs:
+            assert re.search(rf"public Godot\.Collections\.Array<Godot\.Collections\.Dictionary> {verb}\(\)", partial), \
+                f"{partial_name} lacks {verb}"
+        proxy_block = _lane_block(proxies, lane)
+        facade_block = _lane_block(facade, lane)
+        for func, verb in zip(funcs, verbs):
+            assert re.search(rf"func {func}\(\) -> Array\[Dictionary\]:\s*\n?\s*return _arr\(game_bridge\.{verb}\(\)\)",
+                             proxy_block), f"SimProxies {lane} block lacks {func} -> {verb}"
+            assert re.search(rf"func {func}\(\) -> Array\[Dictionary\]: return _proxies\.{func}\(\)", facade_block), \
+                f"SimBridge {lane} block lacks {func}"
+
+
+def test_the_facility_name_parsers_are_the_bridges():
+    farm = (BRIDGE_DIR / "GameBridge.Farm.cs").read_text(encoding="utf-8")
+    assert "FacilityNames.TryParseRasScale(scale, out var rasScale)" in farm
+    assert "FacilityNames.TryParseOffshoreType(farmType, out var offshoreType)" in farm
+    assert "Enum.TryParse<LakskongenSim.Farm.RASScale>" not in farm
+    assert "Enum.TryParse<LakskongenSim.Farm.OffshoreType>" not in farm
+
+
 if __name__ == "__main__":
     test_bridge_contract()
     test_no_snake_case_signal_access()
@@ -745,4 +814,7 @@ if __name__ == "__main__":
     test_every_mortality_label_key_has_english_and_norwegian_text()
     test_capacity_overview_reaches_the_facade()
     test_every_capacity_reason_and_breach_status_has_english_and_norwegian_text()
+    test_sea_site_details_list_the_fjord_unless_asked()
+    test_each_farm_type_lane_owns_one_partial_and_one_marked_block()
+    test_the_facility_name_parsers_are_the_bridges()
     print("bridge contract OK")

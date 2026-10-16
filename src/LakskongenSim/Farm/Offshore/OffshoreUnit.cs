@@ -27,6 +27,11 @@ namespace LakskongenSim.Farm.Offshore
     /// sustainability score like any sea site's (the site-kind audit,
     /// <c>docs/run/evidence/f2_03_sitekind_audit.md</c>, decides each system).
     /// <para>
+    /// Its carbon is its sea site's (<see cref="SeaSite.CarbonTracker"/>: the
+    /// unit's fuel, power, crew transport and supply vessel, and the sludge
+    /// credits), one tracker per sea site.
+    /// </para>
+    /// <para>
     /// Built from the live members of the pre-F2 <see cref="OffshoreFarm"/>
     /// (which is now a load-only record a save's migration reads,
     /// <c>SimulationEngine.FacilityMigration.cs</c>); the rename with migration
@@ -77,9 +82,6 @@ namespace LakskongenSim.Farm.Offshore
 
         /// <summary>Crew in rotation (12 [O:R13]).</summary>
         public int EmployeeCount { get; set; } = DefaultEmployeeCount;
-
-        /// <summary>The unit's carbon emissions and credits (its fuel, power, crew transport and supply vessel).</summary>
-        public CarbonTracker CarbonTracker { get; set; } = new();
 
         /// <summary>
         /// Oxygen (mg/L) the current-fed exchange through the open structure

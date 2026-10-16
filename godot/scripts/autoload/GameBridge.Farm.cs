@@ -301,7 +301,7 @@ public partial class GameBridge : Node
             if (sites != null)
             {
                 foreach (var s in sites)
-                    if (IsBloomMitigationInstalled(s, kind)) installed.Add(s.Id);
+                    if (s.Kind == Farm.SiteKind.Fjord && IsBloomMitigationInstalled(s, kind)) installed.Add(s.Id);
             }
             result.Add(new Godot.Collections.Dictionary
             {
@@ -326,7 +326,8 @@ public partial class GameBridge : Node
     /// </summary>
     public bool InstallBloomMitigation(string siteId, string kind)
     {
-        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        // F2-03: the bloom deck spawns in the fjord's zones; an offshore unit meets none.
+        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId && s.Kind == Farm.SiteKind.Fjord);
         if (site == null) return false;
         if (!TryParseMitigationKind(kind, out var parsed) || parsed == Farm.MitigationKind.None) return false;
 
@@ -377,6 +378,20 @@ public partial class GameBridge : Node
     /// Ranked intervention suggestions from twin-lite projection (Phase 5.3).
     /// Keys: "id", "action", "site_id", "eta_days", "delta_nok", "confidence", "reasoning".
     /// </summary>
+    /// <summary>Mean gill score of the fjord sites (0 when there is none): the bloom deck's damage (F2-03).</summary>
+    private static double FjordGillAverage(LakskongenSim.Core.GameState state)
+    {
+        double sum = 0.0;
+        int n = 0;
+        foreach (var site in state.SeaSites)
+        {
+            if (site.Kind != Farm.SiteKind.Fjord) continue;
+            sum += site.GillScore;
+            n++;
+        }
+        return n > 0 ? sum / n : 0.0;
+    }
+
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetInterventionRanking()
     {
         var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
@@ -389,8 +404,7 @@ public partial class GameBridge : Node
             state, engine.SeaLice, tempC, engine.Analytics, engine.GrowthRateBonus);
         double currentLice = engine.SeaLice.AverageLicePerFish;
         double gillScore = 0.0;
-        if (state.SeaSites.Count > 0)
-            gillScore = state.SeaSites.Average(s => s.GillScore);
+        gillScore = FjordGillAverage(state); // F2-03: the fjord's gills (blooms never reach an offshore unit)
         double feedFcr = engine.Feed?.CurrentFCR ?? 1.15;
         var contracts = engine.ContractSystem?.ActiveContracts ?? new List<LakskongenSim.Market.Contract>();
         int crewCount = state.Crew?.Count ?? 0;
@@ -441,8 +455,7 @@ public partial class GameBridge : Node
                 state, engine.SeaLice, tempC, engine.Analytics, engine.GrowthRateBonus);
             double currentLice = engine.SeaLice.AverageLicePerFish;
             double gillScore = 0.0;
-            if (state.SeaSites.Count > 0)
-                gillScore = state.SeaSites.Average(s => s.GillScore);
+            gillScore = FjordGillAverage(state); // F2-03: the fjord's gills (blooms never reach an offshore unit)
             double feedFcr = engine.Feed?.CurrentFCR ?? 1.15;
             var contracts = engine.ContractSystem?.ActiveContracts ?? new List<LakskongenSim.Market.Contract>();
             int crewCount = state.Crew?.Count ?? 0;
@@ -780,7 +793,8 @@ public partial class GameBridge : Node
     /// </summary>
     public bool ToggleMitigation(string siteId, string kind)
     {
-        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        // F2-03: a lice skirt and a seal deterrent are fjord-pen hardware.
+        var site = SimulationEngine?.State?.SeaSites?.FirstOrDefault(s => s.Id == siteId && s.Kind == Farm.SiteKind.Fjord);
         if (site == null)
         {
             EmitSignal(SignalName.FarmActionCompleted, "mitigation", siteId, false);
@@ -840,9 +854,16 @@ public partial class GameBridge : Node
     ///       "id", "number", "population_id", "occupied", "fish_count",
     ///       "biomass_kg", "mean_weight_kg", "weight_cv", "lice_per_fish",
     ///       "density_kg_m3", "volume_m3", "circumference_m", "net_depth_m",
-    ///       "ration", "fasting").
+    ///       "ration", "fasting"), "kind" ("Fjord" or "Offshore", F2-03) and
+    ///       "plot_id" ("" for a fjord site).
+    /// F2-03: the fjord sites only, in list order, unless
+    /// <paramref name="includeOffshore"/>: the fjord's consumers (the pen
+    /// layout of FishPenManager, the feed barges, the fjord lists) index the
+    /// sites and their pens by position, and an offshore unit (a sea site in
+    /// the open sea) must never shift them. Offshore units have their own list
+    /// (GetOffshoreUnits, GameBridge.Offshore.cs).
     /// </summary>
-    public Godot.Collections.Array<Godot.Collections.Dictionary> GetSeaSiteDetails()
+    public Godot.Collections.Array<Godot.Collections.Dictionary> GetSeaSiteDetails(bool includeOffshore = false)
     {
         var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
         var sites = SimulationEngine?.State?.SeaSites;
@@ -850,6 +871,7 @@ public partial class GameBridge : Node
 
         foreach (var site in sites)
         {
+            if (!includeOffshore && site.Kind != Farm.SiteKind.Fjord) continue;
             // Per-site truth lives in site.Pens: populations carry the
             // shared ZoneId, never the site Id, so State-wide filtering
             // by either key misattributes biomass across sites.
@@ -903,7 +925,10 @@ public partial class GameBridge : Node
                     site.Barrier, SiteFlowMs(SimulationEngine, site), site.BarrierDaysSinceCleaning),
                 // S2-01b: the site's real pens (the art track lays out pen_count).
                 ["pen_count"]         = site.PhysicalPens.Count,
-                ["pens"]              = PenArrayOf(site.Id)
+                ["pens"]              = PenArrayOf(site.Id),
+                // F2-03: what the site is and the plot an offshore unit stands on.
+                ["kind"]              = site.Kind.ToString(),
+                ["plot_id"]           = site.PlotId
             });
         }
         return result;
@@ -1078,10 +1103,12 @@ public partial class GameBridge : Node
         var state = SimulationEngine?.State;
         var site = state?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
         if (site == null) return false;
+        // F2-03: an offshore unit is crewed on board, outside the centre's watch.
+        if (site.Kind != Farm.SiteKind.Fjord) return false;
         mode = (mode ?? "").ToLower();
         if (mode != "watch" && mode != "scan" && mode != "auto") return false;
         int budget = LakskongenSim.Optimization.RemoteOpsCentre.BudgetFor(state!.Crew.Count);
-        int used = state.SeaSites.Sum(s => LakskongenSim.Optimization.RemoteOpsCentre.CostFor(s.Id == siteId ? mode : s.WatchMode));
+        int used = SimulationEngine!.RemoteOpsAttentionUsed(siteId, mode);
         if (used > budget) return false;
         site.WatchMode = mode;
         EmitSignal(SignalName.GameStateUpdated);
@@ -1093,13 +1120,13 @@ public partial class GameBridge : Node
     {
         var state = SimulationEngine?.State;
         int crew = state?.Crew.Count ?? 0;
-        int sites = state?.SeaSites.Count ?? 0;
+        // F2-03: the sites the centre watches (the hook CountsTowardSiteLimits
+        // leaves offshore units out: they are crewed on board).
         return new Godot.Collections.Dictionary
         {
             ["budget"] = LakskongenSim.Optimization.RemoteOpsCentre.BudgetFor(crew),
-            ["used"] = state?.SeaSites != null
-                ? LakskongenSim.Optimization.RemoteOpsCentre.UsedBy(state.SeaSites) : 0,
-            ["site_count"] = sites
+            ["used"] = SimulationEngine?.RemoteOpsAttentionUsed() ?? 0,
+            ["site_count"] = SimulationEngine?.SitesCountingTowardLimits() ?? 0
         };
     }
     /// <summary>
@@ -1198,7 +1225,9 @@ public partial class GameBridge : Node
     public bool UpgradeContainment(string siteId, string levelName)
     {
         var state = SimulationEngine?.State;
-        var site = state?.SeaSites?.FirstOrDefault(s => s.Id == siteId);
+        // F2-03: the containment ladder is a fjord locality's (an offshore unit's
+        // structure is its own; F2-10 moves this verb into the engine).
+        var site = state?.SeaSites?.FirstOrDefault(s => s.Id == siteId && s.Kind == Farm.SiteKind.Fjord);
         if (site == null) return false;
         if (!System.Enum.TryParse<LakskongenSim.Farm.ContainmentLevel>(levelName, true, out var target))
             return false;
@@ -1219,6 +1248,7 @@ public partial class GameBridge : Node
             double credit = LakskongenSim.Farm.ContainmentTech.MabCreditFor(target, true);
             site.MABTonnes *= credit;
             site.RedZoneCreditApplied = true;
+            site.AppliedContainmentCredit = credit; // F2-03: the factor applied, stored (F2-10 divides by it)
         }
         state!.EventLog.Add(new LakskongenSim.Events.EventRecord
         {
@@ -1588,8 +1618,9 @@ public partial class GameBridge : Node
     // ── RAS Facility API ──────────────────────────────────────────────────────
 
     /// <summary>
-    /// Return all RAS facilities as an Array of Dictionaries.
-    /// Keys: "id", "name", "zone_id", "scale", "capacity_tonnes_per_year", "tank_count",
+    /// Return the grow-out land sites (RAS facilities) as an Array of Dictionaries
+    /// (F2-03: the post-smolt land sites are GetPostSmoltFacilities').
+    /// Keys: "id", "name", "zone_id", "plot_id", "scale", "capacity_tonnes_per_year", "tank_count",
     ///       "current_water_temp", "oxygen_level", "water_ph", "co2_level".
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetRASFacilities()
@@ -1600,11 +1631,13 @@ public partial class GameBridge : Node
 
         foreach (var facility in facilities)
         {
+            if (facility.Kind != Farm.LandSiteKind.GrowOut) continue;
             result.Add(new Godot.Collections.Dictionary
             {
                 ["id"] = facility.Id,
                 ["name"] = facility.Name,
                 ["zone_id"] = facility.ZoneId,
+                ["plot_id"] = facility.PlotId,
                 ["scale"] = facility.Scale.ToString(),
                 ["capacity_tonnes_per_year"] = facility.CapacityTonnesPerYear,
                 ["tank_count"] = facility.TankCount,
@@ -1664,11 +1697,6 @@ public partial class GameBridge : Node
         return fish > 0 ? pens.Sum(p => p.GetTotalBiomassKg()) / fish : 0.0;
     }
 
-    /// <summary>
-    /// Build a new RAS facility.
-    /// Valid scales: "Small", "Medium", "Large", "Mega".
-    /// Returns true on success, false if insufficient funds.
-    /// </summary>
     /// <summary>Installation cost of farm-wide AI feeding infrastructure.</summary>
     private const decimal AiFeedingInstallCostNok = 100_000_000m;
 
@@ -1681,10 +1709,16 @@ public partial class GameBridge : Node
     public Godot.Collections.Dictionary GetBuildCosts() => new()
     {
         ["ras"] = (double)new LakskongenSim.Farm.RASFacility { Scale = LakskongenSim.Farm.RASScale.Medium }.GetCAPEX(),
-        ["offshore"] = (double)new LakskongenSim.Farm.OffshoreFarm { FarmType = LakskongenSim.Farm.OffshoreType.SemiSubmersible }.GetCAPEX(),
+        ["offshore"] = (double)LakskongenSim.Farm.Offshore.OffshoreUnit.LegacyCapexNok(LakskongenSim.Farm.OffshoreType.SemiSubmersible),
         ["ai_feeding"] = (double)AiFeedingInstallCostNok,
     };
 
+    /// <summary>
+    /// Build a grow-out land site (a RAS facility) on the first free pad with
+    /// the lots it needs. Valid scales: "Small", "Medium", "Large" and "Mega"
+    /// (the 20,000 t Large), any case (F2-03: FacilityNames; "Mega" and numbers
+    /// used to fail or slip through Enum.TryParse).
+    /// </summary>
     public bool BuildRASFacility(string name, string scale)
     {
         if (SimulationEngine?.State == null)
@@ -1693,7 +1727,7 @@ public partial class GameBridge : Node
             EmitSignal(SignalName.FarmActionCompleted, "build_ras", name, false);
             return false;
         }
-        if (!Enum.TryParse<LakskongenSim.Farm.RASScale>(scale, true, out var rasScale))
+        if (!LakskongenSim.Farm.FacilityNames.TryParseRasScale(scale, out var rasScale))
         {
             GD.PrintErr($"GameBridge: BuildRASFacility failed - invalid scale '{scale}'");
             EmitSignal(SignalName.FarmActionCompleted, "build_ras", name, false);
@@ -1770,44 +1804,52 @@ public partial class GameBridge : Node
     // ── Offshore Farm API ─────────────────────────────────────────────────────
 
     /// <summary>
-    /// Return all offshore farms as an Array of Dictionaries.
-    /// Keys: "id", "name", "zone_id", "farm_type", "capacity_tonnes", "pen_count",
-    ///       "sea_lice_pressure", "water_flow_rate", "fcr".
+    /// The offshore units (F2-03: offshore sea sites) as the offshore panel
+    /// reads them. Keys: "id", "name", "zone_id", "plot_id", "farm_type",
+    /// "capacity_tonnes" (the unit's MTB), "pen_count" (its zones),
+    /// "sea_lice_pressure" (its slot's external lice pressure), "operational",
+    /// "construction_progress", "storm_lockdown", "wave_height",
+    /// "crew_days_since_rotation", "fish_count", "biomass_tonnes",
+    /// "mean_weight_kg", "design_hs_m". The full view is GetOffshoreUnits
+    /// (GameBridge.Offshore.cs).
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetOffshoreFarms()
     {
         var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
-        var farms = SimulationEngine?.OffshoreFarms;
-        if (farms == null) return result;
+        if (SimulationEngine?.State == null) return result;
 
-        foreach (var farm in farms)
+        foreach (var unit in SimulationEngine.OffshoreUnitViews())
         {
             result.Add(new Godot.Collections.Dictionary
             {
-                ["id"] = farm.Id,
-                ["name"] = farm.Name,
-                ["zone_id"] = farm.ZoneId,
-                ["farm_type"] = farm.FarmType.ToString(),
-                ["capacity_tonnes"] = farm.CapacityTonnes,
-                ["pen_count"] = farm.PenCount,
-                ["sea_lice_pressure"] = farm.SeaLicePressure,
-                ["water_flow_rate"] = farm.WaterFlowRate,
-                ["fcr"] = farm.FCR,
-                ["operational"] = farm.IsOperational,
-                ["construction_progress"] = farm.ConstructionProgress,
-                ["storm_lockdown"] = farm.IsStormLockdown,
-                ["fish_count"] = farm.Pens.Sum(p => p.TotalCount),
-                ["biomass_tonnes"] = farm.Pens.Sum(p => p.GetTotalBiomassKg()) / 1000.0,
-                ["mean_weight_kg"] = MeanWeightKg(farm.Pens)
+                ["id"] = unit.Id,
+                ["name"] = unit.Name,
+                ["zone_id"] = unit.ZoneId,
+                ["plot_id"] = unit.PlotId,
+                ["farm_type"] = unit.FarmType,
+                ["capacity_tonnes"] = unit.MtbTonnes,
+                ["pen_count"] = unit.Zones,
+                ["sea_lice_pressure"] = unit.ExternalLiceMultiplier,
+                ["operational"] = unit.Operational,
+                ["construction_progress"] = unit.ConstructionProgress,
+                ["storm_lockdown"] = unit.StormLockdown,
+                ["wave_height"] = unit.WaveHeightM,
+                ["crew_days_since_rotation"] = unit.CrewDaysSinceRotation,
+                ["fish_count"] = unit.FishCount,
+                ["biomass_tonnes"] = unit.BiomassTonnes,
+                ["mean_weight_kg"] = unit.MeanWeightKg,
+                ["design_hs_m"] = unit.DesignHsM,
             });
         }
         return result;
     }
 
     /// <summary>
-    /// Build a new offshore farm.
-    /// Valid farm types: "SemiSubmersible", "Ship", "Submerged".
-    /// Returns true on success, false if insufficient funds.
+    /// Build an offshore unit on the first free slot its class is rated for.
+    /// Valid farm types: "SemiSubmersible" (also "semi_submersible", "OF1"),
+    /// "ShipShaped" (also "Ship", "Havfarm"), "Submersible" (also "Submerged"),
+    /// any case (F2-03: FacilityNames; "Ship" and "Submerged" never parsed).
+    /// Returns true on success, false when refused (funds, no free slot).
     /// </summary>
     public bool BuildOffshoreFarm(string name, string farmType)
     {
@@ -1818,9 +1860,7 @@ public partial class GameBridge : Node
             return false;
         }
 
-        // UI passes snake_case ("semi_submersible") — normalize before parse.
-        var normalizedType = (farmType ?? "").Replace("_", "").Replace(" ", "");
-        if (!Enum.TryParse<LakskongenSim.Farm.OffshoreType>(normalizedType, true, out var offshoreType))
+        if (!LakskongenSim.Farm.FacilityNames.TryParseOffshoreType(farmType, out var offshoreType))
         {
             GD.PrintErr($"GameBridge: BuildOffshoreFarm failed - invalid type '{farmType}'");
             EmitSignal(SignalName.FarmActionCompleted, "build_offshore", name, false);
@@ -1842,14 +1882,16 @@ public partial class GameBridge : Node
     /// </summary>
     public float RepairOffshore(string farmId)
     {
-        if (SimulationEngine?.OffshoreFarms == null)
+        if (SimulationEngine?.State == null)
         {
             GD.PrintErr("GameBridge: RepairOffshore failed - engine not initialized");
             return 0f;
         }
 
-        var farm = SimulationEngine.OffshoreFarms.FirstOrDefault(f => f.Id == farmId);
-        if (farm == null)
+        // F2-03: the offshore unit (an offshore sea site); F2-07 moves the
+        // repair into the engine (RepairOffshore with its scope).
+        var unit = SimulationEngine.FindOffshoreUnit(farmId);
+        if (unit == null)
         {
             GD.PrintErr($"GameBridge: RepairOffshore failed - farm '{farmId}' not found");
             return 0f;
@@ -1871,7 +1913,7 @@ public partial class GameBridge : Node
             Day = SimulationEngine.State.Day,
             Name = "Reparasjon av havmerd",
             Category = LakskongenSim.Events.EventCategory.Equipment,
-            Description = $"{farm.Name} er reparert: skrog og utstyr er gjenopprettet",
+            Description = $"{unit.Label} er reparert: skrog og utstyr er gjenopprettet",
             BalanceChange = -repairCost
         });
 
@@ -1996,29 +2038,39 @@ public partial class GameBridge : Node
     // ── Post-Smolt Facility API ───────────────────────────────────────────────
 
     /// <summary>
-    /// Return all post-smolt facilities as an Array of Dictionaries.
-    /// Keys: "id", "name", "zone_id", "annual_smolt_capacity", "target_transfer_weight_g",
-    ///       "tank_sections", "water_temp", "survival_rate", "fcr".
+    /// The post-smolt land sites (F2-03: a pre-F2 post-smolt facility is a land
+    /// site of the post-smolt kind; its batches are populations in its tanks).
+    /// Keys: "id", "name", "zone_id", "plot_id", "modules", "annual_smolt_capacity"
+    /// (fish the modules hold at once), "target_transfer_weight_g",
+    /// "tank_sections" (tanks), "water_temp", "batches", "fish_count",
+    /// "mean_weight_g", "operational", "construction_progress". The batch verbs
+    /// below are F2-13's to make thin calls into the engine (they read the
+    /// pre-F2 list, which a load migrates away, so they refuse every batch).
     /// </summary>
     public Godot.Collections.Array<Godot.Collections.Dictionary> GetPostSmoltFacilities()
     {
         var result = new Godot.Collections.Array<Godot.Collections.Dictionary>();
-        var facilities = SimulationEngine?.PostSmoltFacilities;
-        if (facilities == null) return result;
+        if (SimulationEngine?.State == null) return result;
 
-        foreach (var facility in facilities)
+        foreach (var site in SimulationEngine.LandSiteViews())
         {
+            if (site.Kind != nameof(Farm.LandSiteKind.PostSmolt)) continue;
             result.Add(new Godot.Collections.Dictionary
             {
-                ["id"] = facility.Id,
-                ["name"] = facility.Name,
-                ["zone_id"] = facility.ZoneId,
-                ["annual_smolt_capacity"] = facility.AnnualSmoltCapacity,
-                ["target_transfer_weight_g"] = facility.TargetTransferWeightG,
-                ["tank_sections"] = facility.TankSections,
-                ["water_temp"] = facility.WaterTemp,
-                ["survival_rate"] = facility.SurvivalRate,
-                ["fcr"] = facility.FCR
+                ["id"] = site.Id,
+                ["name"] = site.Name,
+                ["zone_id"] = site.ZoneId,
+                ["plot_id"] = site.PlotId,
+                ["modules"] = site.Modules,
+                ["annual_smolt_capacity"] = site.FishCapacity,
+                ["target_transfer_weight_g"] = site.TransferWeightG,
+                ["tank_sections"] = site.Tanks,
+                ["water_temp"] = site.WaterTemperatureC,
+                ["batches"] = site.Populations,
+                ["fish_count"] = site.FishCount,
+                ["mean_weight_g"] = site.MeanWeightKg * 1000.0,
+                ["operational"] = site.Operational,
+                ["construction_progress"] = site.ConstructionProgress,
             });
         }
         return result;

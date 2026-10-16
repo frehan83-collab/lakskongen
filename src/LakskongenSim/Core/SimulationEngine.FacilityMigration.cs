@@ -155,7 +155,6 @@ public partial class SimulationEngine
             ConstructionDays = farm.ConstructionDays,
             ConstructionStartDay = farm.ConstructionStartDay,
             EmployeeCount = farm.EmployeeCount,
-            CarbonTracker = farm.CarbonTracker ?? new CarbonTracker(),
             OxygenBoost = farm.OxygenBoost,
             DesignHsM = designHs,
         };
@@ -177,6 +176,8 @@ public partial class SimulationEngine
             PenVolume = (float)totalVolume,
             WatchMode = OffshoreWatchMode,
             PhysicalPens = OffshoreUnit.BuildZones(farm.Id, farm.FarmType, totalVolume),
+            // The farm's carbon history is the site's (one tracker per sea site).
+            CarbonTracker = farm.CarbonTracker ?? new CarbonTracker(),
         };
 
         // The farm's pens become the zones' populations: pairwise merges until

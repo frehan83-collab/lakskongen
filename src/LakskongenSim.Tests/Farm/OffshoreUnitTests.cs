@@ -218,9 +218,14 @@ public class OffshoreUnitTests
             if (structure.TickDay(engine.State.Day + d, 1.0, false, unit.MABTonnes).CrewRotationCost > 0m) rotations++;
         Assert.Equal(4, rotations);
 
+        int fuelBefore = unit.CarbonTracker.Emissions.Count(e => e.Source == unit.Id && e.Category == "Scope1_Fuel");
         engine.Advance(10);
-        Assert.Contains(structure.CarbonTracker.Emissions, e => e.Source == unit.Id);
-        Assert.DoesNotContain(unit.CarbonTracker.Emissions, e => e.Source == unit.Id);
+        // The unit's own emissions (fuel, power, vessel), on its sea site's one
+        // tracker; the fjord sites' per-site diesel formula never ran on it:
+        // one fuel entry a day, not two.
+        Assert.Contains(unit.CarbonTracker.Emissions, e => e.Source == unit.Id && e.Category == "Scope1_Fuel");
+        Assert.Contains(unit.CarbonTracker.Emissions, e => e.Source == unit.Id + "_vessel");
+        Assert.Equal(fuelBefore + 10, unit.CarbonTracker.Emissions.Count(e => e.Source == unit.Id && e.Category == "Scope1_Fuel"));
         // A storm (Hs over 6 m) locks the crew in; over 12 m it damages the structure.
         var storm = structure.TickDay(engine.State.Day, 13.0, isStorm: true, mtbTonnes: unit.MABTonnes);
         Assert.True(storm.StormLockdown);

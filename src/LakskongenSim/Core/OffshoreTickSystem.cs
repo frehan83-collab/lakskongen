@@ -10,7 +10,7 @@ namespace LakskongenSim.Core;
 /// it on the offshore sea sites): every offshore unit runs its day
 /// (<see cref="Farm.Offshore.OffshoreUnit.TickDay"/>: construction, storm
 /// lockdown, structure, crew rotation), adds its opex to the day's facility
-/// opex and books its carbon on its own tracker. The sea lane (F2-06
+/// opex and books its carbon on its sea site's tracker. The sea lane (F2-06
 /// metocean, F2-07 operations and logistics, F2-08 incidents) grows it here.
 /// FarmOpex runs it between the land sites and the (empty) legacy post-smolt
 /// list (<see cref="LandSiteTickSystem"/>: the opex sum's order).
@@ -34,8 +34,9 @@ internal static class OffshoreTickSystem
     /// (Scope 1) and grid or shore power (Scope 2) from a base plus the standing
     /// biomass, cut by research (<paramref name="energyEmissionFactor"/>); the
     /// crew helicopter on rotation days and the supply vessel (Scope 3). Called
-    /// by the carbon ledger in its pre-F2 place (after the land sites); the
-    /// fjord-site emissions leave offshore units out (they are these).
+    /// by the carbon ledger in its pre-F2 place (after the land sites), on the
+    /// unit's sea site's tracker; the fjord-site emissions leave offshore units
+    /// out (these are theirs).
     /// </summary>
     public static void AccountCarbon(SimulationEngine engine, double energyEmissionFactor, int day)
     {
@@ -48,23 +49,23 @@ internal static class OffshoreTickSystem
             // Scope 1: Generator fuel (higher than fjord sites)
             double fuelL = 200.0 + biomassTonnes * 1.0; // base + per tonne
             double fuelCO2e = fuelL * Farm.CarbonLedger.DieselKgCO2ePerLiter * energyEmissionFactor;
-            off.CarbonTracker.AddEmission("Scope1_Fuel", site.Id, fuelCO2e, day);
+            site.CarbonTracker.AddEmission("Scope1_Fuel", site.Id, fuelCO2e, day);
 
             // Scope 2: Grid/shore power (assume partial)
             double elecKwh = 500.0 + biomassTonnes * 2.0;
             double elecCO2e = elecKwh * Farm.CarbonLedger.GridElectricityKgCO2ePerKwh * energyEmissionFactor;
-            off.CarbonTracker.AddEmission("Scope2_Electricity", site.Id, elecCO2e, day);
+            site.CarbonTracker.AddEmission("Scope2_Electricity", site.Id, elecCO2e, day);
 
             // Scope 3: Crew rotation (helicopter) - only on rotation days
             if (off.DaysSinceCrewRotation == 0 && off.EmployeeCount > 0)
             {
                 double heliCO2e = Farm.CarbonLedger.OffshoreCrewRotationEmissionsKgCO2e(off.EmployeeCount);
-                off.CarbonTracker.AddEmission("Scope3_Transport", site.Id + "_crew", heliCO2e, day);
+                site.CarbonTracker.AddEmission("Scope3_Transport", site.Id + "_crew", heliCO2e, day);
             }
 
             // Scope 3: Supply vessel (daily average)
             double vesselCO2e = Farm.CarbonLedger.OffshoreSupplyVesselEmissionsKgCO2e(3); // 3 trips/week
-            off.CarbonTracker.AddEmission("Scope3_Transport", site.Id + "_vessel", vesselCO2e, day);
+            site.CarbonTracker.AddEmission("Scope3_Transport", site.Id + "_vessel", vesselCO2e, day);
         }
     }
 }

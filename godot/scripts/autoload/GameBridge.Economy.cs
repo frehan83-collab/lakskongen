@@ -682,6 +682,8 @@ public partial class GameBridge : Node
 
         foreach (var site in sites)
         {
+            // F2-03: an offshore unit holds no sea licence until F2-09 binds its development licences.
+            if (site.Kind != LakskongenSim.Farm.SiteKind.Fjord) continue;
             result.Add(new Godot.Collections.Dictionary
             {
                 ["site_id"] = site.Id,

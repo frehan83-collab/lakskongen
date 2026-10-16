@@ -55,15 +55,16 @@ public class FarmTypeMoveTests
     /// <summary>
     /// The same continuations recorded on F2-03's engine (the save's offshore
     /// farm an offshore unit on off_1, its post-smolt facility a post-smolt land
-    /// site on pad_delta, its RAS facility a land site on pad_a), hashed as
+    /// site on pad_delta, its RAS facility a land site on pad_a, the unit's
+    /// carbon on its sea site's one tracker), hashed as
     /// <see cref="PreMoveRecording"/>. A later item that changes the facility
     /// behaviour on purpose replaces these with a RUN_LOG §7 row, as F2-03 did.
     /// </summary>
     private static readonly IReadOnlyDictionary<string, string> F2_03Recording = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["as-saved/events"] = "644fb42251dfb53b",
-        ["as-saved/no-events"] = "d7a720d29724ece1",
-        ["contained/events"] = "63109bcb0e168b95",
+        ["as-saved/events"] = "fc222260db75d617",
+        ["as-saved/no-events"] = "e06067233951965a",
+        ["contained/events"] = "cc5ee2b0971b9fb1",
     };
 
     public static IEnumerable<object[]> Variants() => F2_03Recording.Keys.Select(k => new object[] { k });
@@ -164,7 +165,7 @@ public class FarmTypeMoveTests
         Assert.All(unit.Pens, p => Assert.NotNull(unit.PenOf(p)));
         Assert.Contains(postSmolt.Tanks, p => p.TotalCount > 0);
         Assert.Contains(ras.CarbonTracker.Emissions, e => e.Source == ras.Id);
-        Assert.Contains(unit.Offshore!.CarbonTracker.Emissions, e => e.Source == unit.Id);
+        Assert.Contains(unit.CarbonTracker.Emissions, e => e.Source == unit.Id);
         Assert.Empty(engine.OffshoreFarms);
         Assert.Empty(engine.PostSmoltFacilities);
         if (variant.StartsWith("contained/", StringComparison.Ordinal))

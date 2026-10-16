@@ -633,3 +633,16 @@ func get_transfer_destinations(source_site_id: String, incoming_biomass_kg: floa
 func get_carbon_ledger() -> Dictionary: return _proxies.get_carbon_ledger()
 func get_carbon_intensity() -> float: return _proxies.get_carbon_intensity()
 func is_carbon_neutral_year() -> bool: return _proxies.is_carbon_neutral_year()
+
+# ── F2-03: farm types (land sites, offshore units, their plots) ───────────────
+# Each lane forwards only inside its own block (FARM_TYPES_SPEC §7.6).
+
+# ═══ BEGIN sim·land lane block (F2-03 list verbs; F2-12 … F2-16 append below) ═══
+func get_land_sites() -> Array[Dictionary]: return _proxies.get_land_sites()
+func get_land_plots() -> Array[Dictionary]: return _proxies.get_land_plots()
+# ═══ END sim·land lane block ═══
+
+# ═══ BEGIN sim·sea lane block (F2-03 list verbs; F2-06 … F2-11 append below) ═══
+func get_offshore_units() -> Array[Dictionary]: return _proxies.get_offshore_units()
+func get_offshore_plots() -> Array[Dictionary]: return _proxies.get_offshore_plots()
+# ═══ END sim·sea lane block ═══

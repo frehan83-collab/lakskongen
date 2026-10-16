@@ -569,3 +569,26 @@ func is_carbon_neutral_year() -> bool:
 		return game_bridge.IsCarbonNeutralYear()
 	push_warning("SimProxies: IsCarbonNeutralYear unavailable — returning false")
 	return false
+
+# ── F2-03: farm types (land sites, offshore units, their plots) ───────────────
+# Two lane blocks (FARM_TYPES_SPEC §7.6): the land lane (F2-12 … F2-16) appends
+# only inside the land block, the sea lane (F2-06 … F2-11) only inside the sea
+# block; each forwarder goes into the matching block of SimBridge.gd.
+
+# ═══ BEGIN sim·land lane block (F2-03 list verbs; F2-12 … F2-16 append below) ═══
+## The land sites, grow-out and post-smolt (GameBridge.LandSites.cs).
+func get_land_sites() -> Array[Dictionary]:
+	return _arr(game_bridge.GetLandSites()) if game_bridge else []
+## The land pads, free or held.
+func get_land_plots() -> Array[Dictionary]:
+	return _arr(game_bridge.GetLandPlots()) if game_bridge else []
+# ═══ END sim·land lane block ═══
+
+# ═══ BEGIN sim·sea lane block (F2-03 list verbs; F2-06 … F2-11 append below) ═══
+## The offshore units (GameBridge.Offshore.cs).
+func get_offshore_units() -> Array[Dictionary]:
+	return _arr(game_bridge.GetOffshoreUnits()) if game_bridge else []
+## The offshore slots, free or held.
+func get_offshore_plots() -> Array[Dictionary]:
+	return _arr(game_bridge.GetOffshorePlots()) if game_bridge else []
+# ═══ END sim·sea lane block ═══
